@@ -29,6 +29,7 @@ function AgentNodeComponent({ data, selected }: NodeProps) {
           backgroundColor: "white",
           width: "10px",
           height: "10px",
+          left: "35%",
         }}
       />
       <Handle
@@ -40,7 +41,7 @@ function AgentNodeComponent({ data, selected }: NodeProps) {
           backgroundColor: "white",
           width: "10px",
           height: "10px",
-          left: "40%",
+          left: "65%",
         }}
       />
 
@@ -54,6 +55,7 @@ function AgentNodeComponent({ data, selected }: NodeProps) {
           backgroundColor: "white",
           width: "10px",
           height: "10px",
+          left: "35%",
         }}
       />
       <Handle
@@ -65,7 +67,7 @@ function AgentNodeComponent({ data, selected }: NodeProps) {
           backgroundColor: "white",
           width: "10px",
           height: "10px",
-          left: "40%",
+          left: "65%",
         }}
       />
 
@@ -79,6 +81,7 @@ function AgentNodeComponent({ data, selected }: NodeProps) {
           backgroundColor: "white",
           width: "10px",
           height: "10px",
+          top: "35%",
         }}
       />
       <Handle
@@ -90,7 +93,7 @@ function AgentNodeComponent({ data, selected }: NodeProps) {
           backgroundColor: "white",
           width: "10px",
           height: "10px",
-          top: "40%",
+          top: "65%",
         }}
       />
 
@@ -104,6 +107,7 @@ function AgentNodeComponent({ data, selected }: NodeProps) {
           backgroundColor: "white",
           width: "10px",
           height: "10px",
+          top: "35%",
         }}
       />
       <Handle
@@ -115,7 +119,7 @@ function AgentNodeComponent({ data, selected }: NodeProps) {
           backgroundColor: "white",
           width: "10px",
           height: "10px",
-          top: "40%",
+          top: "65%",
         }}
       />
 
