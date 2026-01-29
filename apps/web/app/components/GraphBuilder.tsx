@@ -36,9 +36,10 @@ const MIN_DISTANCE = 150;
 function GraphBuilderInner() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const store = useStoreApi();
-  const { screenToFlowPosition, fitView, getViewport, getInternalNode } = useReactFlow();
+  const { screenToFlowPosition, fitView, getViewport, getInternalNode, setViewport } = useReactFlow();
   const [tempEdge, setTempEdge] = useState<Edge | null>(null);
   const [nodesHavePositions, setNodesHavePositions] = useState<boolean | null>(null);
+  const [nodeWidth, setNodeWidth] = useState<number | null>(null);
   const importGraph = useGraphStore((s) => s.importGraph);
 
   // Load and validate graph.json on mount
@@ -54,6 +55,13 @@ function GraphBuilderInner() {
         edges: result.data.edges.length,
       });
 
+      // Calculate node width based on longest ID
+      const maxIdLength = Math.max(...result.data.nodes.map((n) => n.id.length));
+      const nodePadding = 40; // padding inside the node
+      const calculatedWidth = maxIdLength * 7.5 + nodePadding;
+      setNodeWidth(calculatedWidth);
+      console.log("[GraphBuilder] Node width calculated:", calculatedWidth, `(max ID length: ${maxIdLength})`);
+
       // Check if nodes have positions (only once on load)
       const hasPositions = result.data.nodes.every(
         (node) => node.position !== undefined
@@ -65,7 +73,10 @@ function GraphBuilderInner() {
       let graphToImport = result.data;
       if (!hasPositions) {
         console.log("[GraphBuilder] Calculating node positions...");
-        const nodesWithPositions = layoutGraph(result.data.nodes, result.data.edges);
+        const horizontalGap = 200;
+        const nodesWithPositions = layoutGraph(result.data.nodes, result.data.edges, {
+          horizontalSpacing: calculatedWidth + horizontalGap,
+        });
         graphToImport = {
           ...result.data,
           nodes: nodesWithPositions,
@@ -74,25 +85,59 @@ function GraphBuilderInner() {
       }
 
       importGraph(graphToImport);
-      setTimeout(() => fitView({ padding: 0.2 }), 100);
+
+      // Position viewport so INITIAL_STEP is centered vertically and aligned left
+      setTimeout(() => {
+        const initialNode = graphToImport.nodes.find((n) => n.id === "INITIAL_STEP");
+        if (initialNode?.position && reactFlowWrapper.current) {
+          const { height } = reactFlowWrapper.current.getBoundingClientRect();
+          const nodeHeight = 120; // Approximate node height
+          const padding = 50; // Left padding
+
+          setViewport({
+            x: -initialNode.position.x + padding,
+            y: -initialNode.position.y + height / 2 - nodeHeight / 2,
+            zoom: 1,
+          });
+        } else {
+          fitView({ padding: 0.2 });
+        }
+      }, 100);
     } else {
       console.error("[GraphBuilder] ✗ Graph validation failed:");
       console.error(result.error.format());
     }
-  }, [importGraph, fitView]);
+  }, [importGraph, fitView, setViewport]);
 
   const rfNodes = useGraphStore((s) => s.rfNodes);
   const rfEdges = useGraphStore((s) => s.rfEdges);
   const selectedNodeId = useGraphStore((s) => s.selectedNodeId);
   const selectedEdgeId = useGraphStore((s) => s.selectedEdgeId);
 
+  const nodesWithMuted = useMemo(
+    () =>
+      rfNodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          muted: selectedNodeId !== null && node.id !== selectedNodeId,
+          nodeWidth,
+        },
+      })),
+    [rfNodes, selectedNodeId, nodeWidth]
+  );
+
   const edgesWithSelection = useMemo(
     () =>
       rfEdges.map((edge) => ({
         ...edge,
         selected: edge.id === selectedEdgeId,
+        data: {
+          ...edge.data,
+          muted: selectedNodeId !== null && edge.source !== selectedNodeId,
+        },
       })),
-    [rfEdges, selectedEdgeId]
+    [rfEdges, selectedEdgeId, selectedNodeId]
   );
   const setSelectedNodeId = useGraphStore((s) => s.setSelectedNodeId);
   const setSelectedEdgeId = useGraphStore((s) => s.setSelectedEdgeId);
@@ -335,7 +380,7 @@ function GraphBuilderInner() {
         {/* Canvas - Full size */}
         <main ref={reactFlowWrapper} className="absolute inset-0">
           <ReactFlow
-            nodes={rfNodes}
+            nodes={nodesWithMuted}
             edges={tempEdge ? [...edgesWithSelection, tempEdge] : edgesWithSelection}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
@@ -356,12 +401,13 @@ function GraphBuilderInner() {
           </ReactFlow>
         </main>
 
-        {/* Right Sidebar - Overlay */}
-        <aside className="absolute right-0 top-0 bottom-0 w-80 border-l border-gray-200 bg-white">
-          {selectedNodeId && <NodePanel nodeId={selectedNodeId} />}
-          {selectedEdgeId && <EdgePanel edgeId={selectedEdgeId} />}
-          {!selectedNodeId && !selectedEdgeId && <AgentPanel />}
-        </aside>
+        {/* Right Sidebar - Only visible when something is selected */}
+        {(selectedNodeId || selectedEdgeId) && (
+          <aside className="absolute right-0 top-0 bottom-0 w-80 border-l border-gray-200 bg-white">
+            {selectedNodeId && <NodePanel nodeId={selectedNodeId} />}
+            {selectedEdgeId && <EdgePanel edgeId={selectedEdgeId} />}
+          </aside>
+        )}
       </div>
     </div>
   );

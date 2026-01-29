@@ -12,11 +12,14 @@ export interface RFNodeData extends Record<string, unknown> {
   description: string;
   agent?: string;
   nextNodeIsUser?: boolean;
+  muted?: boolean;
+  nodeWidth?: number | null;
 }
 
 export interface RFEdgeData extends Record<string, unknown> {
   preconditions?: Precondition[];
   contextPreconditions?: ContextPreconditions;
+  muted?: boolean;
 }
 
 export function schemaNodeToRFNode(node: SchemaNode, index = 0): RFNode<RFNodeData> {

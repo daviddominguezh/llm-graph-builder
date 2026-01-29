@@ -10,11 +10,14 @@ import type { RFNodeData } from "../../utils/graphTransformers";
 function AgentNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as RFNodeData;
 
+  const width = nodeData.nodeWidth ?? 180;
+
   return (
     <div
-      className={`min-w-[180px] max-w-[240px] rounded-lg border bg-white ${
+      className={`rounded-lg border bg-white transition-opacity ${
         selected ? "border-primary" : "border-secondary"
-      }`}
+      } ${nodeData.muted ? "opacity-40" : "opacity-100"}`}
+      style={{ width: `${width}px` }}
     >
       <Handle
         type="target"

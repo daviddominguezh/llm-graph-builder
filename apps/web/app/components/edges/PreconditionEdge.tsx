@@ -34,6 +34,7 @@ function PreconditionEdgeComponent({
   const preconditions = edgeData?.preconditions;
   const hasPreconditions = preconditions && preconditions.length > 0;
   const preconditionType = hasPreconditions ? preconditions[0].type : null;
+  const muted = edgeData?.muted ?? false;
 
   const getTypeIcon = () => {
     switch (preconditionType) {
@@ -70,6 +71,8 @@ function PreconditionEdgeComponent({
           stroke: selected ? "#000000" : "#94a3b8",
           strokeWidth: selected ? 2 : 1.5,
           strokeDasharray: selected ? "none" : "5 5",
+          opacity: muted ? 0.4 : 1,
+          transition: "opacity 150ms",
         }}
       />
       {hasPreconditions && (
@@ -79,6 +82,8 @@ function PreconditionEdgeComponent({
               position: "absolute",
               transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
               pointerEvents: "all",
+              opacity: muted ? 0.4 : 1,
+              transition: "opacity 150ms",
             }}
             className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${getTypeColors()} ${
               selected ? "ring-2 ring-blue-500 ring-offset-1" : ""
