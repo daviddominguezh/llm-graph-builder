@@ -26,7 +26,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useGraphStore } from "../../stores/graphStore";
-import type { NodeKind } from "../../schemas/graph.schema";
 
 interface NodePanelProps {
   nodeId: string;
@@ -43,11 +42,6 @@ export function NodePanel({ nodeId }: NodePanelProps) {
 
   const [prevNodeId, setPrevNodeId] = useState(nodeId);
   const [id, setId] = useState(node?.id ?? "");
-  const [text, setText] = useState(node?.text ?? "");
-  const [description, setDescription] = useState(node?.description ?? "");
-  const [kind, setKind] = useState<NodeKind>(node?.kind ?? "agent");
-  const [agent, setAgent] = useState(node?.agent ?? "");
-  const [nextNodeIsUser, setNextNodeIsUser] = useState(node?.nextNodeIsUser ?? false);
 
   // Reset form when selecting a different node (React recommended pattern)
   if (nodeId !== prevNodeId) {
@@ -55,11 +49,6 @@ export function NodePanel({ nodeId }: NodePanelProps) {
     const currentNode = nodes.find((n) => n.id === nodeId);
     if (currentNode) {
       setId(currentNode.id);
-      setText(currentNode.text);
-      setDescription(currentNode.description);
-      setKind(currentNode.kind);
-      setAgent(currentNode.agent ?? "");
-      setNextNodeIsUser(currentNode.nextNodeIsUser ?? false);
     }
   }
 
@@ -67,18 +56,10 @@ export function NodePanel({ nodeId }: NodePanelProps) {
     return <div className="p-4 text-muted-foreground">Node not found</div>;
   }
 
-  const handleSave = () => {
-    // Rename node if ID changed
-    if (id !== nodeId) {
+  const handleIdBlur = () => {
+    if (id !== nodeId && id.trim()) {
       renameNode(nodeId, id);
     }
-    updateNode(id, {
-      text,
-      description,
-      kind,
-      agent: agent || undefined,
-      nextNodeIsUser: nextNodeIsUser || undefined,
-    });
   };
 
   const handleDelete = () => {
@@ -129,6 +110,7 @@ export function NodePanel({ nodeId }: NodePanelProps) {
               id="id"
               value={id}
               onChange={(e) => setId(e.target.value)}
+              onBlur={handleIdBlur}
               placeholder="Node ID..."
             />
           </div>
@@ -137,8 +119,8 @@ export function NodePanel({ nodeId }: NodePanelProps) {
             <Label htmlFor="text">Text</Label>
             <Textarea
               id="text"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
+              value={node.text}
+              onChange={(e) => updateNode(nodeId, { text: e.target.value })}
               rows={3}
               placeholder="Node text..."
             />
@@ -148,8 +130,8 @@ export function NodePanel({ nodeId }: NodePanelProps) {
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              value={node.description}
+              onChange={(e) => updateNode(nodeId, { description: e.target.value })}
               rows={2}
               placeholder="Node description..."
             />
@@ -157,7 +139,11 @@ export function NodePanel({ nodeId }: NodePanelProps) {
 
           <div className="space-y-2">
             <Label htmlFor="agent">Agent</Label>
-            <Select value={agent} onValueChange={(value) => setAgent(value ?? "")} disabled={agents.length === 0}>
+            <Select
+              value={node.agent ?? ""}
+              onValueChange={(value) => updateNode(nodeId, { agent: value || undefined })}
+              disabled={agents.length === 0}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select agent..." />
               </SelectTrigger>
@@ -171,32 +157,30 @@ export function NodePanel({ nodeId }: NodePanelProps) {
             </Select>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="nextNodeIsUser"
-              checked={nextNodeIsUser}
-              onCheckedChange={(checked) => setNextNodeIsUser(checked === true)}
-            />
-            <Label htmlFor="nextNodeIsUser">Next node expects user input</Label>
-          </div>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="isDecisionNode"
+                checked={node.kind === "agent_decision"}
+                onCheckedChange={(checked) =>
+                  updateNode(nodeId, { kind: checked ? "agent_decision" : "agent" })
+                }
+              />
+              <Label htmlFor="isDecisionNode">Is this a decision node?</Label>
+            </div>
 
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="isDecisionNode"
-              checked={kind === "agent_decision"}
-              onCheckedChange={(checked) =>
-                setKind(checked ? "agent_decision" : "agent")
-              }
-            />
-            <Label htmlFor="isDecisionNode">Is this a decision node?</Label>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="nextNodeIsUser"
+                checked={node.nextNodeIsUser ?? false}
+                onCheckedChange={(checked) =>
+                  updateNode(nodeId, { nextNodeIsUser: checked === true || undefined })
+                }
+              />
+              <Label htmlFor="nextNodeIsUser">Next node expects user input</Label>
+            </div>
           </div>
         </div>
-      </div>
-
-      <div className="border-t p-4">
-        <Button onClick={handleSave} className="w-full">
-          Save Changes
-        </Button>
       </div>
     </div>
   );

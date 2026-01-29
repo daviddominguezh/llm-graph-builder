@@ -7,6 +7,7 @@ import type {
 } from "../schemas/graph.schema";
 
 export interface RFNodeData extends Record<string, unknown> {
+  nodeId: string;
   text: string;
   description: string;
   agent?: string;
@@ -18,14 +19,21 @@ export interface RFEdgeData extends Record<string, unknown> {
   contextPreconditions?: ContextPreconditions;
 }
 
-export function schemaNodeToRFNode(node: SchemaNode): RFNode<RFNodeData> {
+export function schemaNodeToRFNode(node: SchemaNode, index = 0): RFNode<RFNodeData> {
+  // Generate default position if not provided (grid layout)
+  const defaultPosition = {
+    x: (index % 5) * 300,
+    y: Math.floor(index / 5) * 150,
+  };
+
   return {
     id: node.id,
     type: node.kind,
-    position: node.position,
+    position: node.position ?? defaultPosition,
     sourcePosition: Position.Right,
     targetPosition: Position.Left,
     data: {
+      nodeId: node.id,
       text: node.text,
       description: node.description,
       agent: node.agent,
@@ -50,9 +58,9 @@ export function rfNodeToSchemaNode(
   };
 }
 
-export function schemaEdgeToRFEdge(edge: SchemaEdge): RFEdge<RFEdgeData> {
+export function schemaEdgeToRFEdge(edge: SchemaEdge, index = 0): RFEdge<RFEdgeData> {
   return {
-    id: `${edge.from}-${edge.to}`,
+    id: `${edge.from}-${edge.to}-${index}`,
     source: edge.from,
     target: edge.to,
     type: "precondition",

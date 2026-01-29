@@ -87,7 +87,7 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
   addNode: (node) => {
     set((state) => {
       const newNodes = [...state.nodes, node];
-      const newRfNodes = newNodes.map(schemaNodeToRFNode);
+      const newRfNodes = newNodes.map((n, i) => schemaNodeToRFNode(n, i));
       return {
         nodes: newNodes,
         rfNodes: newRfNodes,
@@ -102,7 +102,7 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
       );
       return {
         nodes: newNodes,
-        rfNodes: newNodes.map(schemaNodeToRFNode),
+        rfNodes: newNodes.map((n, i) => schemaNodeToRFNode(n, i)),
       };
     });
   },
@@ -122,8 +122,8 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
       return {
         nodes: newNodes,
         edges: newEdges,
-        rfNodes: newNodes.map(schemaNodeToRFNode),
-        rfEdges: newEdges.map(schemaEdgeToRFEdge),
+        rfNodes: newNodes.map((n, i) => schemaNodeToRFNode(n, i)),
+        rfEdges: newEdges.map((e, i) => schemaEdgeToRFEdge(e, i)),
         startNode: state.startNode === oldId ? newId : state.startNode,
         selectedNodeId: state.selectedNodeId === oldId ? newId : state.selectedNodeId,
       };
@@ -137,8 +137,8 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
       return {
         nodes: newNodes,
         edges: newEdges,
-        rfNodes: newNodes.map(schemaNodeToRFNode),
-        rfEdges: newEdges.map(schemaEdgeToRFEdge),
+        rfNodes: newNodes.map((n, i) => schemaNodeToRFNode(n, i)),
+        rfEdges: newEdges.map((e, i) => schemaEdgeToRFEdge(e, i)),
         selectedNodeId:
           state.selectedNodeId === id ? null : state.selectedNodeId,
       };
@@ -152,7 +152,7 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
       );
       return {
         nodes: newNodes,
-        rfNodes: newNodes.map(schemaNodeToRFNode),
+        rfNodes: newNodes.map((n, i) => schemaNodeToRFNode(n, i)),
       };
     });
   },
@@ -163,7 +163,7 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
       const newEdges = [...state.edges, edge];
       return {
         edges: newEdges,
-        rfEdges: newEdges.map(schemaEdgeToRFEdge),
+        rfEdges: newEdges.map((e, i) => schemaEdgeToRFEdge(e, i)),
       };
     });
   },
@@ -175,7 +175,7 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
       );
       return {
         edges: newEdges,
-        rfEdges: newEdges.map(schemaEdgeToRFEdge),
+        rfEdges: newEdges.map((e, i) => schemaEdgeToRFEdge(e, i)),
       };
     });
   },
@@ -188,7 +188,7 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
       );
       return {
         edges: newEdges,
-        rfEdges: newEdges.map(schemaEdgeToRFEdge),
+        rfEdges: newEdges.map((e, i) => schemaEdgeToRFEdge(e, i)),
         selectedEdgeId:
           state.selectedEdgeId === edgeId ? null : state.selectedEdgeId,
       };
@@ -230,8 +230,8 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
       agents: graph.agents,
       nodes: graph.nodes,
       edges: graph.edges,
-      rfNodes: graph.nodes.map(schemaNodeToRFNode),
-      rfEdges: graph.edges.map(schemaEdgeToRFEdge),
+      rfNodes: graph.nodes.map((n, i) => schemaNodeToRFNode(n, i)),
+      rfEdges: graph.edges.map((e, i) => schemaEdgeToRFEdge(e, i)),
       selectedNodeId: null,
       selectedEdgeId: null,
     });

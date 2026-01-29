@@ -2,7 +2,9 @@
 
 import { memo } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { Bot, User } from "lucide-react";
+import { Bot } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import type { RFNodeData } from "../../utils/graphTransformers";
 
 function AgentNodeComponent({ data, selected }: NodeProps) {
@@ -10,7 +12,7 @@ function AgentNodeComponent({ data, selected }: NodeProps) {
 
   return (
     <div
-      className={`min-w-[180px] max-w-[240px] rounded-lg border bg-white p-3 ${
+      className={`min-w-[180px] max-w-[240px] rounded-lg border bg-white ${
         selected ? "border-primary" : "border-secondary"
       }`}
     >
@@ -35,17 +37,28 @@ function AgentNodeComponent({ data, selected }: NodeProps) {
         }}
       />
 
-      <div className="mb-1 flex items-center gap-2">
-        <Bot className="h-4 w-4 text-black" />
-        <span className="text-xs font-medium text-black">
-          {nodeData.agent ?? "Agent"}
-        </span>
-        {nodeData.nextNodeIsUser && (
-          <User className="ml-auto h-3 w-3 text-black/60" />
+      {/* Header */}
+      <div className="flex items-center gap-2 px-3 py-2">
+        <Bot className="h-4 w-4 text-muted-foreground" />
+        <span className="text-xs font-medium uppercase text-muted-foreground">Agent Node</span>
+        {nodeData.agent && (
+          <Badge variant="outline" className="ml-auto border-secondary bg-white uppercase">
+            {nodeData.agent}
+          </Badge>
         )}
       </div>
 
-      <p className="line-clamp-2 text-sm text-foreground">{nodeData.text}</p>
+      <Separator />
+
+      {/* Body */}
+      <div className="px-3 py-2">
+        <p className="text-sm font-medium text-foreground">{nodeData.nodeId}</p>
+        {nodeData.description && (
+          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+            {nodeData.description}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

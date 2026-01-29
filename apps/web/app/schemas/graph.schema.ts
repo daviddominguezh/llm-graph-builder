@@ -16,10 +16,10 @@ export const NodeSchema = z.object({
   id: z.string(),
   text: z.string(),
   kind: NodeKindSchema,
-  description: z.string(),
+  description: z.string().default(""),
   agent: z.string().optional(),
   nextNodeIsUser: z.boolean().optional(),
-  position: PositionSchema,
+  position: PositionSchema.optional(),
 });
 
 export const PreconditionTypeSchema = z.enum([
@@ -36,7 +36,7 @@ export const PreconditionSchema = z.object({
 
 export const ContextPreconditionsSchema = z.object({
   preconditions: z.array(z.string()),
-  jumpTo: z.string(),
+  jumpTo: z.string().optional(),
 });
 
 export const PreconditionsArraySchema = z

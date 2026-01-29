@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, Edit2, Check, X } from "lucide-react";
+import { Plus, Trash2, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -90,22 +90,19 @@ export function AgentPanel() {
                   placeholder="Description"
                   className="h-8 text-xs"
                 />
-                <div className="flex justify-end gap-1">
+                <div className="flex justify-end gap-2">
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleUpdate(agent.id)}
-                    className="h-6 w-6 text-green-500 hover:text-green-600"
+                    variant="outline"
+                    size="sm"
+                    onClick={cancelEdit}
                   >
-                    <Check className="h-3 w-3" />
+                    Cancel
                   </Button>
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={cancelEdit}
-                    className="h-6 w-6"
+                    size="sm"
+                    onClick={() => handleUpdate(agent.id)}
                   >
-                    <X className="h-3 w-3" />
+                    Save
                   </Button>
                 </div>
               </div>
@@ -141,7 +138,7 @@ export function AgentPanel() {
         ))}
 
         {isAdding && (
-          <Card className="border-primary/30 bg-primary/5 p-2">
+          <Card className="bg-white p-2">
             <div className="flex flex-col gap-2">
               <Input
                 value={newId}
@@ -156,22 +153,19 @@ export function AgentPanel() {
                 placeholder="Description"
                 className="h-8 text-xs"
               />
-              <div className="flex justify-end gap-1">
+              <div className="flex justify-end gap-2">
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleAdd}
-                  className="h-6 w-6 text-green-500 hover:text-green-600"
+                  variant="outline"
+                  size="sm"
+                  onClick={cancelEdit}
                 >
-                  <Check className="h-3 w-3" />
+                  Cancel
                 </Button>
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={cancelEdit}
-                  className="h-6 w-6"
+                  size="sm"
+                  onClick={handleAdd}
                 >
-                  <X className="h-3 w-3" />
+                  Create
                 </Button>
               </div>
             </div>

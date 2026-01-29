@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
   Background,
@@ -28,6 +28,8 @@ import { EdgePanel } from "./panels/EdgePanel";
 import { AgentPanel } from "./panels/AgentPanel";
 import { useGraphStore } from "../stores/graphStore";
 import { GraphSchema } from "../schemas/graph.schema";
+import { layoutGraph } from "../utils/layoutGraph";
+import graphData from "../data/graph2.json";
 
 const MIN_DISTANCE = 150;
 
@@ -36,6 +38,48 @@ function GraphBuilderInner() {
   const store = useStoreApi();
   const { screenToFlowPosition, fitView, getViewport, getInternalNode } = useReactFlow();
   const [tempEdge, setTempEdge] = useState<Edge | null>(null);
+  const [nodesHavePositions, setNodesHavePositions] = useState<boolean | null>(null);
+  const importGraph = useGraphStore((s) => s.importGraph);
+
+  // Load and validate graph.json on mount
+  useEffect(() => {
+    console.log("[GraphBuilder] Validating graph.json...");
+    const result = GraphSchema.safeParse(graphData);
+    if (result.success) {
+      console.log("[GraphBuilder] ✓ Graph validation successful");
+      console.log("[GraphBuilder] Graph summary:", {
+        startNode: result.data.startNode,
+        agents: result.data.agents.length,
+        nodes: result.data.nodes.length,
+        edges: result.data.edges.length,
+      });
+
+      // Check if nodes have positions (only once on load)
+      const hasPositions = result.data.nodes.every(
+        (node) => node.position !== undefined
+      );
+      setNodesHavePositions(hasPositions);
+      console.log("[GraphBuilder] Nodes have positions:", hasPositions);
+
+      // Calculate positions if nodes don't have them
+      let graphToImport = result.data;
+      if (!hasPositions) {
+        console.log("[GraphBuilder] Calculating node positions...");
+        const nodesWithPositions = layoutGraph(result.data.nodes, result.data.edges);
+        graphToImport = {
+          ...result.data,
+          nodes: nodesWithPositions,
+        };
+        console.log("[GraphBuilder] ✓ Positions calculated");
+      }
+
+      importGraph(graphToImport);
+      setTimeout(() => fitView({ padding: 0.2 }), 100);
+    } else {
+      console.error("[GraphBuilder] ✗ Graph validation failed:");
+      console.error(result.error.format());
+    }
+  }, [importGraph, fitView]);
 
   const rfNodes = useGraphStore((s) => s.rfNodes);
   const rfEdges = useGraphStore((s) => s.rfEdges);
@@ -55,7 +99,6 @@ function GraphBuilderInner() {
   const addNode = useGraphStore((s) => s.addNode);
   const addEdge_ = useGraphStore((s) => s.addEdge);
   const syncRFNodes = useGraphStore((s) => s.syncRFNodes);
-  const importGraph = useGraphStore((s) => s.importGraph);
   const exportGraph = useGraphStore((s) => s.exportGraph);
 
   const onNodesChange: OnNodesChange = useCallback(
