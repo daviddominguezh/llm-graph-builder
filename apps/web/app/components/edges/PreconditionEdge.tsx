@@ -67,8 +67,9 @@ function PreconditionEdgeComponent({
         id={id}
         path={edgePath}
         style={{
-          stroke: selected ? "#3b82f6" : "#94a3b8",
+          stroke: selected ? "#000000" : "#94a3b8",
           strokeWidth: selected ? 2 : 1.5,
+          strokeDasharray: selected ? "none" : "5 5",
         }}
       />
       {hasPreconditions && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
   Background,
@@ -41,6 +41,15 @@ function GraphBuilderInner() {
   const rfEdges = useGraphStore((s) => s.rfEdges);
   const selectedNodeId = useGraphStore((s) => s.selectedNodeId);
   const selectedEdgeId = useGraphStore((s) => s.selectedEdgeId);
+
+  const edgesWithSelection = useMemo(
+    () =>
+      rfEdges.map((edge) => ({
+        ...edge,
+        selected: edge.id === selectedEdgeId,
+      })),
+    [rfEdges, selectedEdgeId]
+  );
   const setSelectedNodeId = useGraphStore((s) => s.setSelectedNodeId);
   const setSelectedEdgeId = useGraphStore((s) => s.setSelectedEdgeId);
   const addNode = useGraphStore((s) => s.addNode);
@@ -284,7 +293,7 @@ function GraphBuilderInner() {
         <main ref={reactFlowWrapper} className="absolute inset-0">
           <ReactFlow
             nodes={rfNodes}
-            edges={tempEdge ? [...rfEdges, tempEdge] : rfEdges}
+            edges={tempEdge ? [...edgesWithSelection, tempEdge] : edgesWithSelection}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
