@@ -62,13 +62,27 @@ function PreconditionEdgeComponent({
     }
   };
 
+  const getStrokeColor = () => {
+    if (selected) return "#000000";
+    switch (preconditionType) {
+      case "user_said":
+        return "#22c55e"; // green-500
+      case "agent_decision":
+        return "#a855f7"; // purple-500
+      case "tool_call":
+        return "#f97316"; // orange-500
+      default:
+        return "#94a3b8"; // slate-400
+    }
+  };
+
   return (
     <>
       <BaseEdge
         id={id}
         path={edgePath}
         style={{
-          stroke: selected ? "#000000" : "#94a3b8",
+          stroke: getStrokeColor(),
           strokeWidth: selected ? 2 : 1.5,
           strokeDasharray: selected ? "none" : "5 5",
           opacity: muted ? 0.4 : 1,
