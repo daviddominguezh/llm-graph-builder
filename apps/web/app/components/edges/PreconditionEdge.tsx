@@ -73,6 +73,7 @@ function PreconditionEdgeComponent({
           strokeDasharray: selected ? "none" : "5 5",
           opacity: muted ? 0.4 : 1,
           transition: "opacity 150ms",
+          animation: selected ? "none" : "dash-flow 1s linear infinite",
         }}
       />
       {hasPreconditions && (

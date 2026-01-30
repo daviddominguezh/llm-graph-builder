@@ -203,3 +203,14 @@
   stroke-dasharray: 5 5;
 }
 
+/* Animated dashed edges - dashes move towards target */
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+.react-flow__edge-path.animated-dash {
+  animation: dash-flow 1s linear infinite;
+}
+

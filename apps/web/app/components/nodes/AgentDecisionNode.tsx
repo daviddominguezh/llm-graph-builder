@@ -2,15 +2,20 @@
 
 import { memo } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { GitBranch } from "lucide-react";
+import { GitBranch, ChevronLast, ArrowRight } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import type { RFNodeData } from "../../utils/graphTransformers";
+
+const HANDLE_SIZE = 16;
+const ICON_SIZE = 12;
 
 function AgentDecisionNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as RFNodeData;
 
   const width = nodeData.nodeWidth ?? 180;
+  const borderColor = selected ? "var(--primary)" : "var(--secondary)";
+  const iconColor = selected ? "var(--primary)" : "var(--secondary)";
 
   return (
     <div
@@ -19,109 +24,157 @@ function AgentDecisionNodeComponent({ data, selected }: NodeProps) {
       } ${nodeData.muted ? "opacity-40" : "opacity-100"}`}
       style={{ width: `${width}px` }}
     >
-      {/* Top handles */}
+      {/* Top handles - bottom left and bottom right corners */}
       <Handle
         type="target"
         position={Position.Top}
         id="top-target"
         style={{
-          borderColor: selected ? "var(--primary)" : "var(--secondary)",
+          borderColor,
           backgroundColor: "white",
-          width: "10px",
-          height: "10px",
+          width: `${HANDLE_SIZE}px`,
+          height: `${HANDLE_SIZE}px`,
           left: "35%",
+          borderRadius: "0 0 0 4px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
-      />
+      >
+        <ChevronLast size={ICON_SIZE} style={{ color: iconColor, transform: "rotate(90deg)" }} />
+      </Handle>
       <Handle
         type="source"
         position={Position.Top}
         id="top-source"
         style={{
-          borderColor: selected ? "var(--primary)" : "var(--secondary)",
+          borderColor,
           backgroundColor: "white",
-          width: "10px",
-          height: "10px",
+          width: `${HANDLE_SIZE}px`,
+          height: `${HANDLE_SIZE}px`,
           left: "65%",
+          borderRadius: "0 0 4px 0",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
-      />
+      >
+        <ArrowRight size={ICON_SIZE} style={{ color: iconColor, transform: "rotate(-90deg)" }} />
+      </Handle>
 
-      {/* Bottom handles */}
+      {/* Bottom handles - top left and top right corners */}
       <Handle
         type="target"
         position={Position.Bottom}
         id="bottom-target"
         style={{
-          borderColor: selected ? "var(--primary)" : "var(--secondary)",
+          borderColor,
           backgroundColor: "white",
-          width: "10px",
-          height: "10px",
+          width: `${HANDLE_SIZE}px`,
+          height: `${HANDLE_SIZE}px`,
           left: "35%",
+          borderRadius: "4px 0 0 0",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
-      />
+      >
+        <ChevronLast size={ICON_SIZE} style={{ color: iconColor, transform: "rotate(-90deg)" }} />
+      </Handle>
       <Handle
         type="source"
         position={Position.Bottom}
         id="bottom-source"
         style={{
-          borderColor: selected ? "var(--primary)" : "var(--secondary)",
+          borderColor,
           backgroundColor: "white",
-          width: "10px",
-          height: "10px",
+          width: `${HANDLE_SIZE}px`,
+          height: `${HANDLE_SIZE}px`,
           left: "65%",
+          borderRadius: "0 4px 0 0",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
-      />
+      >
+        <ArrowRight size={ICON_SIZE} style={{ color: iconColor, transform: "rotate(90deg)" }} />
+      </Handle>
 
-      {/* Left handles */}
+      {/* Left handles - top right and bottom right corners */}
       <Handle
         type="target"
         position={Position.Left}
         id="left-target"
         style={{
-          borderColor: selected ? "var(--primary)" : "var(--secondary)",
+          borderColor,
           backgroundColor: "white",
-          width: "10px",
-          height: "10px",
+          width: `${HANDLE_SIZE}px`,
+          height: `${HANDLE_SIZE}px`,
           top: "35%",
+          borderRadius: "0 4px 0 0",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
-      />
+      >
+        <ChevronLast size={ICON_SIZE} style={{ color: iconColor, transform: "rotate(0deg)" }} />
+      </Handle>
       <Handle
         type="source"
         position={Position.Left}
         id="left-source"
         style={{
-          borderColor: selected ? "var(--primary)" : "var(--secondary)",
+          borderColor,
           backgroundColor: "white",
-          width: "10px",
-          height: "10px",
+          width: `${HANDLE_SIZE}px`,
+          height: `${HANDLE_SIZE}px`,
           top: "65%",
+          borderRadius: "0 0 4px 0",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
-      />
+      >
+        <ArrowRight size={ICON_SIZE} style={{ color: iconColor, transform: "rotate(180deg)" }} />
+      </Handle>
 
-      {/* Right handles */}
+      {/* Right handles - top left and bottom left corners */}
       <Handle
         type="target"
         position={Position.Right}
         id="right-target"
         style={{
-          borderColor: selected ? "var(--primary)" : "var(--secondary)",
+          borderColor,
           backgroundColor: "white",
-          width: "10px",
-          height: "10px",
+          width: `${HANDLE_SIZE}px`,
+          height: `${HANDLE_SIZE}px`,
           top: "35%",
+          borderRadius: "4px 0 0 0",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
-      />
+      >
+        <ChevronLast size={ICON_SIZE} style={{ color: iconColor, transform: "rotate(180deg)" }} />
+      </Handle>
       <Handle
         type="source"
         position={Position.Right}
         id="right-source"
         style={{
-          borderColor: selected ? "var(--primary)" : "var(--secondary)",
+          borderColor,
           backgroundColor: "white",
-          width: "10px",
-          height: "10px",
+          width: `${HANDLE_SIZE}px`,
+          height: `${HANDLE_SIZE}px`,
           top: "65%",
+          borderRadius: "0 0 0 4px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
-      />
+      >
+        <ArrowRight size={ICON_SIZE} style={{ color: iconColor, transform: "rotate(0deg)" }} />
+      </Handle>
 
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2">
