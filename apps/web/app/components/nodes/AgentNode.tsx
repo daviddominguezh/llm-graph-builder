@@ -29,46 +29,82 @@ function AgentNodeComponent({ data, selected }: NodeProps) {
         position={Position.Top}
         id="top-target"
         style={{
-          borderColor,
           backgroundColor: "var(--xy-background-color)",
           width: `${HANDLE_SIZE}px`,
           height: `${HANDLE_SIZE}px`,
           left: "35%",
           borderWidth: 0,
-          borderBottomWidth: "1px",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <ArrowRight
-          size={ICON_SIZE}
-          className="text-red-400"
-          style={{ transform: "rotate(90deg)" }}
-        />
+        <div className="relative w-full h-full flex flex-col justify-center items-center">
+          <ArrowRight
+            size={ICON_SIZE}
+            className="absolute text-red-400"
+            style={{ transform: "rotate(90deg)" }}
+          />
+          <div className="absolute bottom-[-1px]">
+            <svg
+              width={HANDLE_SIZE + 2}
+              height={HANDLE_SIZE + 2}
+              viewBox="-1.5 0 19 0.05"
+            >
+              <path
+                d="M -1 0 A 9 9 0 0 0 17 0 L 17 8 L -1 8 Z"
+                fill="var(--xy-background-color)"
+              />
+              <path
+                d="M -1 0 A 9 9 0 0 0 17 0"
+                fill="none"
+                stroke={borderColor}
+                strokeWidth="1"
+              />
+            </svg>
+          </div>
+        </div>
       </Handle>
       <Handle
         type="source"
         position={Position.Top}
         id="top-source"
         style={{
-          borderColor,
           backgroundColor: "white",
           width: `${HANDLE_SIZE}px`,
           height: `${HANDLE_SIZE}px`,
           left: "65%",
           borderWidth: 0,
-          borderTopWidth: "1px",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <ArrowRight
-          size={ICON_SIZE}
-          className="text-green-500"
-          style={{ transform: "rotate(-90deg)" }}
-        />
+        <div className="relative w-full h-full flex flex-col justify-center items-center">
+          <ArrowRight
+            size={ICON_SIZE}
+            className="absolute text-green-500"
+            style={{ transform: "rotate(-90deg)" }}
+          />
+          <div className="absolute top-[0px]">
+            <svg
+              width={HANDLE_SIZE + 2}
+              height={HANDLE_SIZE + 2}
+              viewBox="-1.5 7.95 19 0.05"
+            >
+              <path
+                d="M -1 8 A 9 9 0 0 1 17 8 L 17 0 L -1 0 Z"
+                fill="var(--xy-background-color)"
+              />
+              <path
+                d="M -1 8 A 9 9 0 0 1 17 8"
+                fill="none"
+                stroke={borderColor}
+                strokeWidth="1"
+              />
+            </svg>
+          </div>
+        </div>
       </Handle>
 
       {/* Bottom handles */}
@@ -77,46 +113,82 @@ function AgentNodeComponent({ data, selected }: NodeProps) {
         position={Position.Bottom}
         id="bottom-target"
         style={{
-          borderColor,
           backgroundColor: "var(--xy-background-color)",
           width: `${HANDLE_SIZE}px`,
           height: `${HANDLE_SIZE}px`,
           left: "35%",
           borderWidth: 0,
-          borderTopWidth: "1px",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <ArrowRight
-          size={ICON_SIZE}
-          className="text-red-400"
-          style={{ transform: "rotate(-90deg)" }}
-        />
+        <div className="relative w-full h-full flex flex-col justify-center items-center">
+          <ArrowRight
+            size={ICON_SIZE}
+            className="absolute text-red-400"
+            style={{ transform: "rotate(-90deg)" }}
+          />
+          <div className="absolute top-[-1px]">
+            <svg
+              width={HANDLE_SIZE + 2}
+              height={HANDLE_SIZE + 2}
+              viewBox="-1.5 7.95 19 0.05"
+            >
+              <path
+                d="M -1 8 A 9 9 0 0 1 17 8 L 17 0 L -1 0 Z"
+                fill="var(--xy-background-color)"
+              />
+              <path
+                d="M -1 8 A 9 9 0 0 1 17 8"
+                fill="none"
+                stroke={borderColor}
+                strokeWidth="1"
+              />
+            </svg>
+          </div>
+        </div>
       </Handle>
       <Handle
         type="source"
         position={Position.Bottom}
         id="bottom-source"
         style={{
-          borderColor,
           backgroundColor: "white",
           width: `${HANDLE_SIZE}px`,
           height: `${HANDLE_SIZE}px`,
           left: "65%",
           borderWidth: 0,
-          borderBottomWidth: "1px",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <ArrowRight
-          size={ICON_SIZE}
-          className="text-green-500"
-          style={{ transform: "rotate(90deg)" }}
-        />
+        <div className="relative w-full h-full flex flex-col justify-center items-center">
+          <ArrowRight
+            size={ICON_SIZE}
+            className="absolute text-green-500"
+            style={{ transform: "rotate(90deg)" }}
+          />
+          <div className="absolute bottom-[0px]">
+            <svg
+              width={HANDLE_SIZE + 2}
+              height={HANDLE_SIZE + 2}
+              viewBox="-1.5 0 19 0.05"
+            >
+              <path
+                d="M -1 0 A 9 9 0 0 0 17 0 L 17 8 L -1 8 Z"
+                fill="var(--xy-background-color)"
+              />
+              <path
+                d="M -1 0 A 9 9 0 0 0 17 0"
+                fill="none"
+                stroke={borderColor}
+                strokeWidth="1"
+              />
+            </svg>
+          </div>
+        </div>
       </Handle>
 
       {/* Left handles */}
@@ -125,84 +197,135 @@ function AgentNodeComponent({ data, selected }: NodeProps) {
         position={Position.Left}
         id="left-target"
         style={{
-          borderColor,
           backgroundColor: "var(--xy-background-color)",
           width: `${HANDLE_SIZE}px`,
           height: `${HANDLE_SIZE}px`,
           top: "35%",
           borderWidth: 0,
-          borderRightWidth: "1px",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <ArrowRight
-          size={ICON_SIZE}
-          className="text-red-400"
-          style={{ transform: "rotate(0deg)" }}
-        />
+        <div className="relative w-full h-full flex flex-col justify-center items-center">
+          <ArrowRight
+            size={ICON_SIZE}
+            className="absolute text-red-400"
+            style={{ transform: "rotate(0deg)" }}
+          />
+          <div className="absolute right-[-1px]">
+            <svg
+              width={HANDLE_SIZE + 2}
+              height={HANDLE_SIZE + 2}
+              viewBox="0 -1.5 0.05 19"
+            >
+              <path
+                d="M 0 -1 A 9 9 0 0 1 0 17 L 8 17 L 8 -1 Z"
+                fill="var(--xy-background-color)"
+              />
+              <path
+                d="M 0 -1 A 9 9 0 0 1 0 17"
+                fill="none"
+                stroke={borderColor}
+                strokeWidth="1"
+              />
+            </svg>
+          </div>
+        </div>
       </Handle>
       <Handle
         type="source"
         position={Position.Left}
         id="left-source"
         style={{
-          borderColor,
           backgroundColor: "white",
           width: `${HANDLE_SIZE}px`,
           height: `${HANDLE_SIZE}px`,
           top: "65%",
           borderWidth: 0,
-          borderLeftWidth: "1px",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <ArrowRight
-          size={ICON_SIZE}
-          className="text-green-500"
-          style={{ transform: "rotate(180deg)" }}
-        />
+        <div className="relative w-full h-full flex flex-col justify-center items-center">
+          <ArrowRight
+            size={ICON_SIZE}
+            className="absolute text-green-500"
+            style={{ transform: "rotate(180deg)" }}
+          />
+          <div className="absolute left-[0px]">
+            <svg
+              width={HANDLE_SIZE + 2}
+              height={HANDLE_SIZE + 2}
+              viewBox="7.95 -1.5 0.05 19"
+            >
+              <path
+                d="M 8 -1 A 9 9 0 0 0 8 17 L 0 17 L 0 -1 Z"
+                fill="var(--xy-background-color)"
+              />
+              <path
+                d="M 8 -1 A 9 9 0 0 0 8 17"
+                fill="none"
+                stroke={borderColor}
+                strokeWidth="1"
+              />
+            </svg>
+          </div>
+        </div>
       </Handle>
 
-      {/* Right handles - top left and bottom left corners */}
+      {/* Right handles */}
       <Handle
         type="target"
         position={Position.Right}
         id="right-target"
         style={{
-          borderColor,
           backgroundColor: "var(--xy-background-color)",
           width: `${HANDLE_SIZE}px`,
           height: `${HANDLE_SIZE}px`,
           top: "35%",
-          right: "0%",
           borderWidth: 0,
-          borderLeftWidth: "1px",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <ArrowRight
-          size={ICON_SIZE}
-          className="text-red-400"
-          style={{ transform: "rotate(180deg)" }}
-        />
+        <div className="relative w-full h-full flex flex-col justify-center items-center">
+          <ArrowRight
+            size={ICON_SIZE}
+            className="absolute text-red-400"
+            style={{ transform: "rotate(180deg)" }}
+          />
+          <div className="absolute left-[-1px]">
+            <svg
+              width={HANDLE_SIZE + 2}
+              height={HANDLE_SIZE + 2}
+              viewBox="7.95 -1.5 0.05 19"
+            >
+              <path
+                d="M 8 -1 A 9 9 0 0 0 8 17 L 0 17 L 0 -1 Z"
+                fill="var(--xy-background-color)"
+              />
+              <path
+                d="M 8 -1 A 9 9 0 0 0 8 17"
+                fill="none"
+                stroke={borderColor}
+                strokeWidth="1"
+              />
+            </svg>
+          </div>
+        </div>
       </Handle>
       <Handle
         type="source"
         position={Position.Right}
         id="right-source"
         style={{
-          borderColor,
           backgroundColor: "white",
           width: `${HANDLE_SIZE}px`,
           height: `${HANDLE_SIZE}px`,
           top: "65%",
-          right: "0%",
           borderWidth: 0,
           display: "flex",
           alignItems: "center",
