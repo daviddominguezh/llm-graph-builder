@@ -4,7 +4,6 @@ import { useState } from "react";
 import {
   Trash2,
   Plus,
-  X,
   Info,
   MessageCircle,
   Brain,
@@ -181,19 +180,9 @@ export function EdgePanel({ edgeId, onEdgeDeleted }: EdgePanelProps) {
     setMultiEdgeInputs({});
   };
 
-  const handleRemovePrecondition = (index: number) => {
-    const newPreconditions = preconditions.filter((_, i) => i !== index);
-    setPreconditions(newPreconditions);
-    updateEdgeData({
-      preconditions: newPreconditions.length > 0 ? newPreconditions : undefined,
-    });
-  };
-
   const handleDeleteEdge = () => {
-    if (confirm("Are you sure you want to delete this edge?")) {
-      setEdges((eds) => eds.filter((e) => e.id !== edge.id));
-      onEdgeDeleted?.();
-    }
+    setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+    onEdgeDeleted?.();
   };
 
   const getTypeColor = (type: PreconditionType) => {
@@ -249,40 +238,39 @@ export function EdgePanel({ edgeId, onEdgeDeleted }: EdgePanelProps) {
       <div className="border-b p-2 px-3">
         <div className="flex items-center justify-between">
           <h4 className="text-sm font-semibold">Edge Properties</h4>
-          {!isFromStartNode && (
-            <AlertDialog>
-              <AlertDialogTrigger
-                render={
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-muted-foreground hover:text-destructive"
-                    title="Delete edge"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                }
-              />
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete edge?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete
-                    the edge.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    variant="destructive"
-                    onClick={handleDeleteEdge}
-                  >
-                    Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
+          <AlertDialog>
+            <AlertDialogTrigger
+              className={!isFromStartNode ? "visible" : "invisible"}
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground hover:text-destructive"
+                  title="Delete edge"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              }
+            />
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete edge?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete the
+                  edge.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  variant="destructive"
+                  onClick={handleDeleteEdge}
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 
@@ -293,14 +281,16 @@ export function EdgePanel({ edgeId, onEdgeDeleted }: EdgePanelProps) {
         {existingType && (
           <div className="mt-2">
             <Alert>
-              <Info className="h-4 w-4" />
+              <Info className="h-3 w-3 text-muted-foreground!" />
               <AlertDescription>
-                Edges are locked to:{" "}
-                <span
-                  className={`rounded px-1 py-0.5 ${getTypeColor(existingType)} ${getTypeBackgroundColor(existingType)}`}
-                >
-                  {existingType}
-                </span>
+                <div className="text-xs text-muted-foreground mt-[1px]">
+                  Edges are locked to:{" "}
+                  <span
+                    className={`rounded px-1 py-0.5 ${getTypeColor(existingType)} ${getTypeBackgroundColor(existingType)}`}
+                  >
+                    {existingType}
+                  </span>
+                </div>
               </AlertDescription>
             </Alert>
           </div>
@@ -334,28 +324,27 @@ export function EdgePanel({ edgeId, onEdgeDeleted }: EdgePanelProps) {
               </Button>
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 mt-2">
               {preconditions.map((p, index) => (
                 <Card key={index} className="p-2">
                   <div className="flex items-start justify-between">
-                    <div className="min-w-0 flex-1 flex flex-col gap-1">
-
+                    <div className="min-w-0 flex-1 flex flex-col gap-2">
                       <div
                         className={`flex items-center gap-1 leading-none rounded text-[10px] font-semibold ${getTypeColor(p.type)}`}
                       >
                         {getTypeIcon(p.type)}
-                        {p.type.toUpperCase()}:
+                        <div className="mt-[1px]">{p.type.toUpperCase()}:</div>
                       </div>
 
-                      <div className="flex text-sm items-center gap-1 bg-muted rounded-md p-2 mt-1">
+                      <div className="flex text-sm items-center gap-1 bg-muted rounded-md p-2">
                         {p.type === "user_said" && "“"}
-                        {p.value}
+                        <div className="text-gray-600 text-[13px]">{p.value}</div>
                         {p.type === "user_said" && "”"}
                       </div>
 
                       {p.description && (
-                        <div className="flex w-full h-fit items-stretch">
-                          <div className="w-[2px] bg-muted h-full"></div>
+                        <div className="flex w-full gap-1">
+                          <div className="ml-0.5 w-[2px] bg-zinc-200 self-stretch"></div>
                           <div className="text-xs text-muted-foreground">
                             {p.description}
                           </div>
@@ -367,17 +356,22 @@ export function EdgePanel({ edgeId, onEdgeDeleted }: EdgePanelProps) {
               ))}
 
               {preconditions.length === 0 && !isAddingPrecondition && (
-                <p className="text-xs text-muted-foreground">
-                  No preconditions
-                </p>
+                <Alert>
+                  <Info className="h-3 w-3 text-muted-foreground!" />
+                  <AlertDescription>
+                    <div className="text-xs text-muted-foreground mt-[1px]">
+                      No preconditions
+                    </div>
+                  </AlertDescription>
+                </Alert>
               )}
 
               {isAddingPrecondition && (
-                <Card className="border-primary/30 bg-primary/5 p-3">
+                <Card className="p-3 mt-1 shadow-lg">
                   <div className="flex flex-col gap-2">
                     {!existingType && (
-                      <div className="space-y-1">
-                        <Label className="text-xs">Type</Label>
+                      <div className="flex gap-2">
+                        <Label className="text-xs">Type:</Label>
                         <Select
                           value={newPreconditionType}
                           onValueChange={(value) => {
@@ -385,10 +379,10 @@ export function EdgePanel({ edgeId, onEdgeDeleted }: EdgePanelProps) {
                               setNewPreconditionType(value as PreconditionType);
                           }}
                         >
-                          <SelectTrigger className="h-8 text-xs">
+                          <SelectTrigger className="w-full">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="p-1">
                             <SelectItem value="user_said">user_said</SelectItem>
                             <SelectItem value="agent_decision">
                               agent_decision
