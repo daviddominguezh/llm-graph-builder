@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import type { RFNodeData } from "../../utils/graphTransformers";
 
 const HANDLE_SIZE = 16;
-const ICON_SIZE = 12;
+const ICON_SIZE = 10;
 
 function AgentNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as RFNodeData;
@@ -218,12 +218,16 @@ function AgentNodeComponent({ data, selected }: NodeProps) {
           <div className="absolute right-[1px]">
             <svg
               width={HANDLE_SIZE / 2}
-              height={HANDLE_SIZE}
-              viewBox="0 0 8 16"
+              height={HANDLE_SIZE + 2}
+              viewBox="1 -1.5 9 19"
             >
               <path
-                d="M 0 0 A 8 8 0 0 1 0 16 L 8 16 L 8 0 Z"
+                d="M 0 -1 A 9 9 0 0 1 0 17 L 8 17 L 8 -1 Z"
                 fill="var(--xy-background-color)"
+              />
+              <path
+                d="M 0 -1 A 9 9 0 0 1 0 17"
+                fill="none"
                 stroke={borderColor}
                 strokeWidth="1"
               />
