@@ -17,47 +17,23 @@ interface HandlePair {
 
 /**
  * Calculate the closest source and target handles based on node positions.
- * Returns handle IDs that minimize the distance between connected nodes.
+ * For left-to-right tree layouts, always use right-source → left-target.
  */
 function getClosestHandles(
   sourcePos: { x: number; y: number },
   targetPos: { x: number; y: number },
-  nodeWidth: number = DEFAULT_NODE_WIDTH,
-  nodeHeight: number = DEFAULT_NODE_HEIGHT
+  _nodeWidth: number = DEFAULT_NODE_WIDTH,
+  _nodeHeight: number = DEFAULT_NODE_HEIGHT
 ): HandlePair {
-  // Calculate center positions of each node
-  const sourceCenter = {
-    x: sourcePos.x + nodeWidth / 2,
-    y: sourcePos.y + nodeHeight / 2,
-  };
-  const targetCenter = {
-    x: targetPos.x + nodeWidth / 2,
-    y: targetPos.y + nodeHeight / 2,
-  };
-
   // Calculate direction from source to target
-  const dx = targetCenter.x - sourceCenter.x;
-  const dy = targetCenter.y - sourceCenter.y;
+  const dx = targetPos.x - sourcePos.x;
 
-  // Determine primary direction based on larger delta
-  if (Math.abs(dx) > Math.abs(dy)) {
-    // Horizontal movement is dominant
-    if (dx > 0) {
-      // Target is to the right of source
-      return { sourceHandle: "right-source", targetHandle: "left-target" };
-    } else {
-      // Target is to the left of source
-      return { sourceHandle: "left-source", targetHandle: "right-target" };
-    }
+  // For left-to-right flow (target is to the right)
+  if (dx >= 0) {
+    return { sourceHandle: "right-source", targetHandle: "left-target" };
   } else {
-    // Vertical movement is dominant
-    if (dy > 0) {
-      // Target is below source
-      return { sourceHandle: "bottom-source", targetHandle: "top-target" };
-    } else {
-      // Target is above source
-      return { sourceHandle: "top-source", targetHandle: "bottom-target" };
-    }
+    // For right-to-left flow (back edges)
+    return { sourceHandle: "left-source", targetHandle: "right-target" };
   }
 }
 

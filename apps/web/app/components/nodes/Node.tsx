@@ -60,7 +60,11 @@ function AgentNodeComponent({ data, selected, id }: NodeProps) {
       <Handles />
       <NodeHeader nodeKind={nodeKind} agent={nodeData.agent} />
       <Separator />
-      <NodeBody nodeId={nodeData.nodeId} description={nodeData.description} />
+      <NodeBody
+        nodeId={nodeData.nodeId}
+        description={nodeData.description}
+        text={nodeData.text}
+      />
     </div>
   );
 }

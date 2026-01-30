@@ -4,10 +4,8 @@ import {
   BottomSourceContent,
   BottomTargetContent,
   HANDLE_SIZE,
-  LeftSourceContent,
   LeftTargetContent,
   RightSourceContent,
-  RightTargetContent,
   TopSourceContent,
   TopTargetContent,
 } from "./HandleContent";
@@ -45,22 +43,13 @@ const bottomSourceStyle = {
 const leftTargetStyle = {
   ...handleStyleBase,
   backgroundColor: "var(--xy-background-color)",
-  top: "35%",
+  top: "50%",
 } as const;
-const leftSourceStyle = {
-  ...handleStyleBase,
-  backgroundColor: "white",
-  top: "65%",
-} as const;
-const rightTargetStyle = {
-  ...handleStyleBase,
-  backgroundColor: "var(--xy-background-color)",
-  top: "35%",
-} as const;
+
 const rightSourceStyle = {
   ...handleStyleBase,
   backgroundColor: "white",
-  top: "65%",
+  top: "50%",
 } as const;
 
 const HandlesComponent = () => {
@@ -111,24 +100,8 @@ const HandlesComponent = () => {
       >
         {LeftTargetContent}
       </Handle>
-      <Handle
-        type="source"
-        position={Position.Left}
-        id="left-source"
-        style={leftSourceStyle}
-      >
-        {LeftSourceContent}
-      </Handle>
 
       {/* Right handles */}
-      <Handle
-        type="target"
-        position={Position.Right}
-        id="right-target"
-        style={rightTargetStyle}
-      >
-        {RightTargetContent}
-      </Handle>
       <Handle
         type="source"
         position={Position.Right}

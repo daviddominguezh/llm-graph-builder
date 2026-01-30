@@ -1,7 +1,7 @@
 import type { Graph } from "../schemas/graph.schema";
 import { GraphSchema } from "../schemas/graph.schema";
 import { layoutGraph } from "./layoutGraph";
-import graphData from "../data/graph2.json";
+import graphData from "../data/graph-test.json";
 
 interface LoadGraphResult {
   graph: Graph;
@@ -22,17 +22,20 @@ function ensureNodePositions(graph: Graph, nodeWidth: number): Graph {
   }
 
   const horizontalGap = 150;
-  const verticalGap = 150;
-  const nodeHeight = 80;
+  const verticalGap = 100;
+  const nodeHeight = 100;
 
-  const nodesWithPositions = layoutGraph(graph.nodes, graph.edges, {
+  const layoutResult = layoutGraph(graph.nodes, graph.edges, {
     horizontalSpacing: nodeWidth + horizontalGap,
-    verticalSpacing: nodeHeight + verticalGap,
+    verticalSpacing: verticalGap,
+    nodeHeight,
   });
 
+  // Return only the tree nodes and edges (left-to-right flow only)
   return {
     ...graph,
-    nodes: nodesWithPositions,
+    nodes: layoutResult.nodes,
+    edges: layoutResult.edges,
   };
 }
 
