@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Bot, GitBranch } from "lucide-react";
 
@@ -5,13 +6,12 @@ const iconStyle = "h-4 w-4 text-muted-foreground";
 const decisionIcon = <GitBranch className={iconStyle} />;
 const agentIcon = <Bot className={iconStyle} />;
 
-export const NodeHeader = ({
-  isDecision,
-  agent,
-}: {
+interface NodeHeaderProps {
   isDecision: boolean;
   agent?: string;
-}) => {
+}
+
+const NodeHeaderComponent = ({ isDecision, agent }: NodeHeaderProps) => {
   const headerLabel = isDecision ? "Decision Node" : "Agent Node";
   const headerIcon = isDecision ? decisionIcon : agentIcon;
 
@@ -32,3 +32,7 @@ export const NodeHeader = ({
     </div>
   );
 };
+
+export const NodeHeader = memo(NodeHeaderComponent, (prev, next) =>
+  prev.isDecision === next.isDecision && prev.agent === next.agent
+);

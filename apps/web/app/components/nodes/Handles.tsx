@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Handle, Position } from "@xyflow/react";
 import {
   BottomSourceContent,
@@ -62,7 +63,7 @@ const rightSourceStyle = {
   top: "65%",
 } as const;
 
-export const Handles = () => {
+const HandlesComponent = () => {
   return (
     <>
       {/* Top handles */}
@@ -139,3 +140,6 @@ export const Handles = () => {
     </>
   );
 };
+
+// Never re-render - no props
+export const Handles = memo(HandlesComponent, () => true);

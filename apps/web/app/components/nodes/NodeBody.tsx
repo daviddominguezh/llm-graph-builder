@@ -1,10 +1,11 @@
-export const NodeBody = ({
-  nodeId,
-  description,
-}: {
+import { memo } from "react";
+
+interface NodeBodyProps {
   nodeId: string;
   description?: string;
-}) => {
+}
+
+const NodeBodyComponent = ({ nodeId, description }: NodeBodyProps) => {
   return (
     <div className="px-4 py-3">
       <p className="text-sm font-medium text-foreground">{nodeId}</p>
@@ -16,3 +17,7 @@ export const NodeBody = ({
     </div>
   );
 };
+
+export const NodeBody = memo(NodeBodyComponent, (prev, next) =>
+  prev.nodeId === next.nodeId && prev.description === next.description
+);
