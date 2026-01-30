@@ -28,7 +28,7 @@ import { AgentPanel } from "./panels/AgentPanel";
 import { useGraphStore } from "../stores/graphStore";
 import { GraphSchema } from "../schemas/graph.schema";
 import { layoutGraph } from "../utils/layoutGraph";
-import graphData from "../data/graph2.json";
+import graphData from "../data/graph.json";
 
 const MIN_DISTANCE = 150;
 

@@ -8,6 +8,11 @@ import {
   type EdgeProps,
 } from "@xyflow/react";
 import { MessageSquare, Brain, Wrench } from "lucide-react";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 import type { RFEdgeData } from "../../utils/graphTransformers";
 
 function PreconditionEdgeComponent({
@@ -100,12 +105,27 @@ function PreconditionEdgeComponent({
               opacity: muted ? 0.4 : 1,
               transition: "opacity 150ms",
             }}
-            className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${getTypeColors()} ${
-              selected ? "ring-2 ring-blue-500 ring-offset-1" : ""
-            }`}
           >
-            {getTypeIcon()}
-            <span>{preconditions.length}</span>
+            <Tooltip>
+              <TooltipTrigger
+                className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${getTypeColors()} ${
+                  selected ? "ring-2 ring-blue-500 ring-offset-1" : ""
+                }`}
+              >
+                {getTypeIcon()}
+                <span>{preconditions.length}</span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-sm">
+                <div className="space-y-1">
+                  {preconditions.map((p, i) => (
+                    <div key={i} className="text-xs">
+                      <span className="font-medium capitalize">{p.type.replace("_", " ")}:</span>{" "}
+                      {p.value}
+                    </div>
+                  ))}
+                </div>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </EdgeLabelRenderer>
       )}
