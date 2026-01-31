@@ -107,7 +107,7 @@ export function calculateInitialViewport(
   return {
     x: -initialNodePosition.x + padding,
     y: -initialNodePosition.y + containerHeight / 2 - nodeHeight / 2,
-    zoom: 1,
+    zoom: 0.8,
   };
 }
 
