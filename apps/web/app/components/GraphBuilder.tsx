@@ -588,6 +588,10 @@ function GraphBuilderInner() {
               <EdgePanel
                 edgeId={selectedEdgeId}
                 onEdgeDeleted={() => setSelectedEdgeId(null)}
+                onSelectNode={(nodeId) => {
+                  setSelectedNodeId(nodeId);
+                  setSelectedEdgeId(null);
+                }}
               />
             )}
           </aside>

@@ -1,14 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Trash2,
-  Plus,
-  Info,
-  MessageCircle,
-  Brain,
-  Wrench,
-} from "lucide-react";
+import { Trash2, Plus, Info, MessageCircle, Brain, Wrench } from "lucide-react";
 import { useEdges, useReactFlow } from "@xyflow/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +40,7 @@ const START_NODE_ID = "INITIAL_STEP";
 interface EdgePanelProps {
   edgeId: string;
   onEdgeDeleted?: () => void;
+  onSelectNode?: (nodeId: string) => void;
 }
 
 interface EdgePreconditionInput {
@@ -54,7 +48,11 @@ interface EdgePreconditionInput {
   description: string;
 }
 
-export function EdgePanel({ edgeId, onEdgeDeleted }: EdgePanelProps) {
+export function EdgePanel({
+  edgeId,
+  onEdgeDeleted,
+  onSelectNode,
+}: EdgePanelProps) {
   const edges = useEdges<Edge<RFEdgeData>>();
   const { setEdges } = useReactFlow();
 
@@ -275,9 +273,31 @@ export function EdgePanel({ edgeId, onEdgeDeleted }: EdgePanelProps) {
       </div>
 
       <div className="p-3">
-        <p className="text-xs/relaxed leading-none font-medium">
-          {from} <b>→</b> {to}
-        </p>
+        <div className="flex flex-col text-xs leading-none font-medium">
+          <span className="flex gap-1 text-xs text-muted-foreground">
+            <span className="w-[50px]">From:</span>
+            <Button
+              variant="link"
+              size="sm"
+              className="h-auto p-0 text-xs font-medium"
+              onClick={() => onSelectNode?.(from)}
+            >
+              {from}
+            </Button>
+          </span>
+
+          <span className="flex gap-1  text-xs text-muted-foreground">
+            <span className="w-[50px]">To:</span>
+            <Button
+              variant="link"
+              size="sm"
+              className="h-auto p-0 text-xs font-medium"
+              onClick={() => onSelectNode?.(to)}
+            >
+              {to}
+            </Button>
+          </span>
+        </div>
         {existingType && (
           <div className="mt-2">
             <Alert>
@@ -338,7 +358,9 @@ export function EdgePanel({ edgeId, onEdgeDeleted }: EdgePanelProps) {
 
                       <div className="flex text-sm items-center gap-1 bg-muted rounded-md p-2">
                         {p.type === "user_said" && "“"}
-                        <div className="text-gray-600 text-[13px]">{p.value}</div>
+                        <div className="text-gray-600 text-[13px]">
+                          {p.value}
+                        </div>
                         {p.type === "user_said" && "”"}
                       </div>
 
