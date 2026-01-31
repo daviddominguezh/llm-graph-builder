@@ -101,13 +101,17 @@ export function calculateInitialViewport(
   initialNodePosition: { x: number; y: number },
   containerHeight: number,
 ): { x: number; y: number; zoom: number } {
-  const nodeHeight = 120;
+  const nodeHeight = 44; // Start node height
   const padding = 50;
+  const zoom = 0.8;
+
+  // Center the node vertically, accounting for zoom
+  const nodeCenterY = initialNodePosition.y + nodeHeight / 2;
 
   return {
-    x: -initialNodePosition.x + padding,
-    y: -initialNodePosition.y + containerHeight / 2 - nodeHeight / 2,
-    zoom: 0.8,
+    x: -initialNodePosition.x * zoom + padding,
+    y: containerHeight / 2 - nodeCenterY * zoom,
+    zoom,
   };
 }
 
