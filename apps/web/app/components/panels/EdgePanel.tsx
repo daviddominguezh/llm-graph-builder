@@ -557,17 +557,19 @@ export function EdgePanel({
           </AlertDialogHeader>
 
           <div className="flex space-y-2 border-b pb-4 gap-2">
-            <Label className="text-xs">Precondition Type (shared)</Label>
+            <Label className="text-xs shrink-0">
+              Precondition type (shared)
+            </Label>
             <Select
               value={newPreconditionType}
               onValueChange={(value) => {
                 if (value) setNewPreconditionType(value as PreconditionType);
               }}
             >
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger className="text-xs w-full">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="p-1">
                 <SelectItem value="user_said">user_said</SelectItem>
                 <SelectItem value="agent_decision">agent_decision</SelectItem>
                 <SelectItem value="tool_call">tool_call</SelectItem>
@@ -619,10 +621,8 @@ export function EdgePanel({
             <AlertDialogAction
               onClick={handleConfirmTypeChange}
               disabled={
-                !allSourceEdges.every(
-                  (e) =>
-                    multiEdgeInputs[e.id]?.value.trim() &&
-                    multiEdgeInputs[e.id]?.description.trim(),
+                !allSourceEdges.every((e) =>
+                  multiEdgeInputs[e.id]?.value.trim(),
                 )
               }
             >
