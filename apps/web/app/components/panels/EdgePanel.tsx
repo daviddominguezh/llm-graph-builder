@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2, Plus, Info, MessageCircle, Brain, Wrench } from "lucide-react";
+import {
+  Trash2,
+  Plus,
+  Info,
+  MessageCircle,
+  Brain,
+  Wrench,
+  Pencil,
+} from "lucide-react";
 import { useEdges, useReactFlow } from "@xyflow/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,6 +86,15 @@ export function EdgePanel({
   const [newPreconditionDescription, setNewPreconditionDescription] =
     useState("");
   const [showTypeChangeConfirm, setShowTypeChangeConfirm] = useState(false);
+  const [editingPreconditionIndex, setEditingPreconditionIndex] = useState<
+    number | null
+  >(null);
+  const [editingPreconditionValue, setEditingPreconditionValue] = useState("");
+  const [editingPreconditionDescription, setEditingPreconditionDescription] =
+    useState("");
+  const [editingPreconditionType, setEditingPreconditionType] =
+    useState<PreconditionType>("user_said");
+  const [showEditModal, setShowEditModal] = useState(false);
 
   // State for multi-edge precondition inputs (keyed by edge ID)
   const [multiEdgeInputs, setMultiEdgeInputs] = useState<
@@ -133,6 +150,43 @@ export function EdgePanel({
 
   const handleAddPrecondition = () => {
     doAddPrecondition();
+  };
+
+  const handleEditPrecondition = (index: number) => {
+    setEditingPreconditionIndex(index);
+    setEditingPreconditionValue(preconditions[index].value);
+    setEditingPreconditionDescription(preconditions[index].description ?? "");
+    setEditingPreconditionType(preconditions[index].type);
+    setShowEditModal(true);
+  };
+
+  const handleSaveEditedPrecondition = () => {
+    if (editingPreconditionIndex === null) return;
+    if (!editingPreconditionValue.trim()) return;
+
+    const canChangeType = siblingEdges.length === 0;
+
+    const updatedPreconditions = preconditions.map((p, i) =>
+      i === editingPreconditionIndex
+        ? {
+            ...p,
+            type: canChangeType ? editingPreconditionType : p.type,
+            value: editingPreconditionValue.trim(),
+            description: editingPreconditionDescription.trim() || undefined,
+          }
+        : p,
+    );
+    setPreconditions(updatedPreconditions);
+    updateEdgeData({ preconditions: updatedPreconditions });
+    handleCancelEdit();
+  };
+
+  const handleCancelEdit = () => {
+    setEditingPreconditionIndex(null);
+    setEditingPreconditionValue("");
+    setEditingPreconditionDescription("");
+    setEditingPreconditionType("user_said");
+    setShowEditModal(false);
   };
 
   const initializeMultiEdgeInputs = () => {
@@ -363,19 +417,32 @@ export function EdgePanel({
                 <Card key={index} className="p-2">
                   <div className="flex items-start justify-between">
                     <div className="min-w-0 flex-1 flex flex-col gap-2">
-                      <div
-                        className={`flex items-center gap-1 leading-none rounded text-[10px] font-semibold ${getTypeColor(p.type)}`}
-                      >
-                        {getTypeIcon(p.type)}
-                        <div className="mt-[1px]">{p.type.toUpperCase()}:</div>
+                      <div className="flex items-center justify-between">
+                        <div
+                          className={`flex items-center gap-1 leading-none rounded text-[10px] font-semibold ${getTypeColor(p.type)}`}
+                        >
+                          {getTypeIcon(p.type)}
+                          <div className="mt-[1px]">
+                            {p.type.toUpperCase()}:
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-muted-foreground"
+                          onClick={() => handleEditPrecondition(index)}
+                          title="Edit precondition"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
                       </div>
 
                       <div className="flex text-sm items-center gap-1 bg-muted rounded-md p-2">
-                        {p.type === "user_said" && "“"}
+                        {p.type === "user_said" && "\u201C"}
                         <div className="text-gray-600 text-[13px]">
                           {p.value}
                         </div>
-                        {p.type === "user_said" && "”"}
+                        {p.type === "user_said" && "\u201D"}
                       </div>
 
                       {p.description && (
@@ -560,6 +627,78 @@ export function EdgePanel({
               }
             >
               Add Preconditions
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit precondition modal */}
+      <AlertDialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Edit Precondition</AlertDialogTitle>
+            <AlertDialogDescription>
+              Modify the precondition value and description.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="flex flex-col gap-4 py-4">
+            {siblingEdges.length === 0 && (
+              <div className="space-y-2 flex gap-2">
+                <Label>Type</Label>
+                <Select
+                  value={editingPreconditionType}
+                  onValueChange={(value) => {
+                    if (value)
+                      setEditingPreconditionType(value as PreconditionType);
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user_said">user_said</SelectItem>
+                    <SelectItem value="agent_decision">
+                      agent_decision
+                    </SelectItem>
+                    <SelectItem value="tool_call">tool_call</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="edit-value">Value</Label>
+              <Textarea
+                id="edit-value"
+                value={editingPreconditionValue}
+                onChange={(e) => setEditingPreconditionValue(e.target.value)}
+                placeholder="Precondition value..."
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description (optional)</Label>
+              <Textarea
+                id="edit-description"
+                value={editingPreconditionDescription}
+                onChange={(e) =>
+                  setEditingPreconditionDescription(e.target.value)
+                }
+                placeholder="Description..."
+                rows={2}
+              />
+            </div>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelEdit}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleSaveEditedPrecondition}
+              disabled={!editingPreconditionValue.trim()}
+            >
+              Save
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
