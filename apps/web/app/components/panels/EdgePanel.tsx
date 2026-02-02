@@ -34,6 +34,11 @@ import type { RFEdgeData } from "../../utils/graphTransformers";
 import type { Edge } from "@xyflow/react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const START_NODE_ID = "INITIAL_STEP";
 
@@ -300,8 +305,17 @@ export function EdgePanel({
         </div>
         {existingType && (
           <div className="mt-2">
-            <Alert>
-              <Info className="h-3 w-3 text-muted-foreground!" />
+            <Alert className="flex gap-1">
+              <Tooltip>
+                <TooltipTrigger>
+                  <Info className="h-3 w-3 text-muted-foreground!" />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-sm">
+                  To change the edge type, the source node must have 1 or fewer
+                  edges
+                </TooltipContent>
+              </Tooltip>
+
               <AlertDescription>
                 <div className="text-xs text-muted-foreground mt-[1px]">
                   Edges are locked to:{" "}
