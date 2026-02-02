@@ -704,12 +704,8 @@ function GraphBuilderInner() {
 
             {zoomViewNodeId && (
               <div className="absolute top-4 left-4 z-10">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleExitZoomView}
-                >
-                  <X className="h-4 w-4" />
+                <Button variant="secondary" onClick={handleExitZoomView}>
+                  <X className="h-3 w-3" />
                   Quit zoom view
                 </Button>
               </div>

@@ -44,7 +44,7 @@ const NodeHeaderComponent = ({ nodeKind, nodeId }: NodeHeaderProps) => {
   }
 
   return (
-    <div className="flex justify-between items-center">
+    <div className="flex justify-between items-center group">
       <div className="flex items-center gap-2 px-4 py-3">
         {headerIcon}
         <span className={`text-xs font-medium uppercase ${colorClass}`}>
@@ -55,13 +55,13 @@ const NodeHeaderComponent = ({ nodeKind, nodeId }: NodeHeaderProps) => {
       <Button
         variant="ghost"
         size="icon-lg"
-        className="h-6 w-6 mr-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+        className="mr-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
         onClick={(e) => {
           e.stopPropagation();
           onZoomToNode?.(nodeId);
         }}
       >
-        <Shrink className="h-4 w-4" />
+        <Shrink className="h-3 w-3" />
       </Button>
     </div>
   );
