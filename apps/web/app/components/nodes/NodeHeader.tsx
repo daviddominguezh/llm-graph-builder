@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { MessageSquare, Brain, Wrench, Send, Shrink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useHandleContext } from "./HandleContext";
 
 export type NodeKind =
   | "agent"
@@ -11,9 +12,11 @@ export type NodeKind =
 interface NodeHeaderProps {
   nodeKind: NodeKind;
   agent?: string;
+  nodeId: string;
 }
 
-const NodeHeaderComponent = ({ nodeKind }: NodeHeaderProps) => {
+const NodeHeaderComponent = ({ nodeKind, nodeId }: NodeHeaderProps) => {
+  const { onZoomToNode } = useHandleContext();
   let headerLabel: string;
   let headerIcon: React.ReactNode;
   let colorClass: string;
@@ -53,6 +56,10 @@ const NodeHeaderComponent = ({ nodeKind }: NodeHeaderProps) => {
         variant="ghost"
         size="icon-lg"
         className="h-6 w-6 mr-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={(e) => {
+          e.stopPropagation();
+          onZoomToNode?.(nodeId);
+        }}
       >
         <Shrink className="h-4 w-4" />
       </Button>
@@ -62,5 +69,8 @@ const NodeHeaderComponent = ({ nodeKind }: NodeHeaderProps) => {
 
 export const NodeHeader = memo(
   NodeHeaderComponent,
-  (prev, next) => prev.nodeKind === next.nodeKind && prev.agent === next.agent,
+  (prev, next) =>
+    prev.nodeKind === next.nodeKind &&
+    prev.agent === next.agent &&
+    prev.nodeId === next.nodeId,
 );

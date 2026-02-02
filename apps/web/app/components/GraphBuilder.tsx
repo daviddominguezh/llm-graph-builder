@@ -18,6 +18,9 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { nanoid } from "nanoid";
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { layoutGraph } from "../utils/layoutGraph";
 
 import { nodeTypes } from "./nodes";
 import { edgeTypes } from "./edges";
@@ -70,7 +73,10 @@ const defaultFirstNode: Node<RFNodeData> = {
   type: "agent",
   position: {
     x: defaultStartNode.position.x + START_NODE_WIDTH + NODE_GAP,
-    y: defaultStartNode.position.y + START_NODE_HEIGHT / 2 - DEFAULT_NODE_HEIGHT / 2,
+    y:
+      defaultStartNode.position.y +
+      START_NODE_HEIGHT / 2 -
+      DEFAULT_NODE_HEIGHT / 2,
   },
   data: {
     nodeId: DEFAULT_FIRST_NODE_ID,
@@ -131,8 +137,13 @@ const initialEdges = createInitialEdges();
 function GraphBuilderInner() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const store = useStoreApi();
-  const { screenToFlowPosition, fitView, getInternalNode, setViewport, getViewport } =
-    useReactFlow();
+  const {
+    screenToFlowPosition,
+    fitView,
+    getInternalNode,
+    setViewport,
+    getViewport,
+  } = useReactFlow();
 
   // React Flow as source of truth
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -149,6 +160,14 @@ function GraphBuilderInner() {
     position: { x: number; y: number };
     sourceNodeId: string;
     sourceHandleId: string | null;
+  } | null>(null);
+
+  // Zoom view state
+  const [zoomViewNodeId, setZoomViewNodeId] = useState<string | null>(null);
+  const [savedGraphState, setSavedGraphState] = useState<{
+    nodes: Node<RFNodeData>[];
+    edges: Edge<RFEdgeData>[];
+    viewport: { x: number; y: number; zoom: number };
   } | null>(null);
 
   // Set initial viewport to center start node vertically
@@ -228,7 +247,9 @@ function GraphBuilderInner() {
     // Find the source node to position relative to it
     const sourceNode = nodes.find((n) => n.id === connectionMenu.sourceNodeId);
     const isStartNode = sourceNode?.type === "start";
-    const sourceNodeWidth = isStartNode ? START_NODE_WIDTH : ((sourceNode?.data as RFNodeData)?.nodeWidth ?? NODE_WIDTH);
+    const sourceNodeWidth = isStartNode
+      ? START_NODE_WIDTH
+      : ((sourceNode?.data as RFNodeData)?.nodeWidth ?? NODE_WIDTH);
     const sourceNodeHeight = isStartNode ? START_NODE_HEIGHT : NODE_HEIGHT;
 
     // Position new node based on which handle was clicked
@@ -485,7 +506,10 @@ function GraphBuilderInner() {
             const initialPos = findInitialNodePosition(graph);
             if (initialPos) {
               const containerHeight = reactFlowWrapper.current.clientHeight;
-              const viewport = calculateInitialViewport(initialPos, containerHeight);
+              const viewport = calculateInitialViewport(
+                initialPos,
+                containerHeight,
+              );
               setViewport(viewport);
             }
           }, 50);
@@ -533,10 +557,114 @@ function GraphBuilderInner() {
     URL.revokeObjectURL(url);
   }, [nodes, edges, agents]);
 
+  // Zoom view handlers
+  const handleZoomToNode = useCallback(
+    (nodeId: string) => {
+      // Use original state if already in zoom view, otherwise use current state
+      const sourceNodes = savedGraphState?.nodes ?? nodes;
+      const sourceEdges = savedGraphState?.edges ?? edges;
+
+      // Only save state if not already in zoom view
+      if (!savedGraphState) {
+        setSavedGraphState({
+          nodes: [...nodes],
+          edges: [...edges],
+          viewport: getViewport(),
+        });
+      }
+
+      // Find connected edges from the source (original) state
+      const connectedEdges = sourceEdges.filter(
+        (e) => e.source === nodeId || e.target === nodeId,
+      );
+
+      // Find connected node IDs
+      const connectedNodeIds = new Set([
+        nodeId,
+        ...connectedEdges.map((e) => e.source),
+        ...connectedEdges.map((e) => e.target),
+      ]);
+
+      // Filter nodes from the source (original) state
+      const filteredNodes = sourceNodes.filter((n) =>
+        connectedNodeIds.has(n.id),
+      );
+
+      // Calculate node dimensions for layout
+      const nodeDimensions: Record<string, { width: number; height: number }> =
+        {};
+      filteredNodes.forEach((n) => {
+        const isStart = n.type === "start";
+        nodeDimensions[n.id] = {
+          width: isStart
+            ? START_NODE_WIDTH
+            : ((n.data as RFNodeData).nodeWidth ?? DEFAULT_NODE_WIDTH),
+          height: isStart ? START_NODE_HEIGHT : DEFAULT_NODE_HEIGHT,
+        };
+      });
+
+      // Prepare nodes for layoutGraph (schema format)
+      const schemaNodes = filteredNodes.map((n) => ({
+        id: n.id,
+        text: (n.data as RFNodeData).text,
+        description: (n.data as RFNodeData).description,
+        kind: "agent" as const,
+      }));
+
+      // Prepare edges for layoutGraph (schema format with from/to)
+      const schemaEdges = connectedEdges.map((e) => ({
+        from: e.source,
+        to: e.target,
+      }));
+
+      // Recalculate positions
+      const layoutResult = layoutGraph(schemaNodes, schemaEdges, {
+        rankdir: "LR",
+        horizontalSpacing: 250,
+        verticalSpacing: 100,
+        nodeDimensions,
+      });
+
+      // Apply new positions to filtered nodes
+      const repositionedNodes = filteredNodes.map((n) => {
+        const newPos = layoutResult.nodes.find(
+          (ln) => ln.id === n.id,
+        )?.position;
+        return newPos ? { ...n, position: newPos } : n;
+      });
+
+      // Clear selection
+      setSelectedNodeId(null);
+      setSelectedEdgeId(null);
+
+      // Update state (clear selection on nodes/edges too)
+      setNodes(repositionedNodes.map((n) => ({ ...n, selected: false })));
+      setEdges(connectedEdges.map((e) => ({ ...e, selected: false })));
+      setZoomViewNodeId(nodeId);
+
+      // Fit viewport after a short delay
+      setTimeout(() => fitView({ padding: 0.3, duration: 300 }), 50);
+    },
+    [nodes, edges, savedGraphState, getViewport, setNodes, setEdges, fitView],
+  );
+
+  const handleExitZoomView = useCallback(() => {
+    if (savedGraphState) {
+      setNodes(savedGraphState.nodes);
+      setEdges(savedGraphState.edges);
+      setViewport(savedGraphState.viewport, { duration: 300 });
+      setSavedGraphState(null);
+      setZoomViewNodeId(null);
+    }
+  }, [savedGraphState, setNodes, setEdges, setViewport]);
+
   // Combine edges with temp edge for display
   const displayEdges = tempEdge ? [...edges, tempEdge] : edges;
 
-  const handleContextValue = { onSourceHandleClick };
+  const handleContextValue = {
+    onSourceHandleClick,
+    onZoomToNode: handleZoomToNode,
+  };
 
   return (
     <HandleContext.Provider value={handleContextValue}>
@@ -547,142 +675,166 @@ function GraphBuilderInner() {
           onExport={handleExport}
         />
 
-      <div className="h-screen w-screen relative flex-1 overflow-hidden">
-        <main ref={reactFlowWrapper} className="absolute inset-0">
-          <ReactFlow
-            nodes={nodes}
-            edges={displayEdges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onNodeClick={onNodeClick}
-            onEdgeClick={onEdgeClick}
-            onPaneClick={onPaneClick}
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-          >
-            <Background />
-            <Controls />
-            <MiniMap
-              nodeStrokeWidth={3}
-              nodeColor={(node) => {
-                if (node.id === START_NODE_ID) return "#22c55e";
-                return "#e2e8f0";
-              }}
-              maskColor="rgba(0, 0, 0, 0.1)"
+        <div className="h-screen w-screen relative flex-1 overflow-hidden">
+          <main ref={reactFlowWrapper} className="absolute inset-0">
+            <ReactFlow
+              nodes={nodes}
+              edges={displayEdges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onNodeClick={onNodeClick}
+              onEdgeClick={onEdgeClick}
+              onPaneClick={onPaneClick}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+            >
+              <Background />
+              <Controls />
+              <MiniMap
+                nodeStrokeWidth={3}
+                nodeColor={(node) => {
+                  if (node.id === START_NODE_ID) return "#22c55e";
+                  return "#e2e8f0";
+                }}
+                maskColor="rgba(0, 0, 0, 0.1)"
+              />
+            </ReactFlow>
+
+            {zoomViewNodeId && (
+              <div className="absolute top-4 left-4 z-10">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleExitZoomView}
+                >
+                  <X className="h-4 w-4" />
+                  Quit zoom view
+                </Button>
+              </div>
+            )}
+          </main>
+
+          {(selectedNodeId || selectedEdgeId) && (
+            <aside className="absolute right-0 top-0 bottom-0 w-80 border-l border-gray-200 bg-white">
+              {selectedNodeId && (
+                <NodePanel
+                  nodeId={selectedNodeId}
+                  onNodeDeleted={() => setSelectedNodeId(null)}
+                  onNodeIdChanged={(newId) => setSelectedNodeId(newId)}
+                  onSelectEdge={(edgeId) => {
+                    // Update React Flow selection state
+                    setNodes((nds) =>
+                      nds.map((n) => ({ ...n, selected: false })),
+                    );
+                    setEdges((eds) =>
+                      eds.map((e) => ({ ...e, selected: e.id === edgeId })),
+                    );
+                    setSelectedEdgeId(edgeId);
+                    setSelectedNodeId(null);
+                  }}
+                  onSelectNode={(targetNodeId) => {
+                    const node = nodes.find((n) => n.id === targetNodeId);
+                    if (node && reactFlowWrapper.current) {
+                      const nodeData = node.data as RFNodeData;
+                      const nodeWidth = nodeData.nodeWidth ?? 180;
+                      const nodeHeight =
+                        node.type === "start"
+                          ? START_NODE_HEIGHT
+                          : DEFAULT_NODE_HEIGHT;
+                      const { zoom } = getViewport();
+                      const { width, height } =
+                        reactFlowWrapper.current.getBoundingClientRect();
+
+                      const nodeCenterX = node.position.x + nodeWidth / 2;
+                      const nodeCenterY = node.position.y + nodeHeight / 2;
+
+                      setViewport(
+                        {
+                          x: width / 2 - nodeCenterX * zoom,
+                          y: height / 2 - nodeCenterY * zoom,
+                          zoom,
+                        },
+                        { duration: 300 },
+                      );
+                    }
+                    // Update React Flow selection state
+                    setNodes((nds) =>
+                      nds.map((n) => ({
+                        ...n,
+                        selected: n.id === targetNodeId,
+                      })),
+                    );
+                    setEdges((eds) =>
+                      eds.map((e) => ({ ...e, selected: false })),
+                    );
+                    setSelectedNodeId(targetNodeId);
+                  }}
+                />
+              )}
+              {selectedEdgeId && (
+                <EdgePanel
+                  edgeId={selectedEdgeId}
+                  onEdgeDeleted={() => setSelectedEdgeId(null)}
+                  onSelectNode={(nodeId) => {
+                    const node = nodes.find((n) => n.id === nodeId);
+                    if (node && reactFlowWrapper.current) {
+                      const nodeData = node.data as RFNodeData;
+                      const nodeWidth = nodeData.nodeWidth ?? 180;
+                      const nodeHeight =
+                        node.type === "start"
+                          ? START_NODE_HEIGHT
+                          : DEFAULT_NODE_HEIGHT;
+                      const { zoom } = getViewport();
+                      const { width, height } =
+                        reactFlowWrapper.current.getBoundingClientRect();
+
+                      // Calculate node center
+                      const nodeCenterX = node.position.x + nodeWidth / 2;
+                      const nodeCenterY = node.position.y + nodeHeight / 2;
+
+                      // Calculate viewport position to center the node
+                      setViewport(
+                        {
+                          x: width / 2 - nodeCenterX * zoom,
+                          y: height / 2 - nodeCenterY * zoom,
+                          zoom,
+                        },
+                        { duration: 300 },
+                      );
+                    }
+                    // Update React Flow selection state
+                    setNodes((nds) =>
+                      nds.map((n) => ({ ...n, selected: n.id === nodeId })),
+                    );
+                    setEdges((eds) =>
+                      eds.map((e) => ({ ...e, selected: false })),
+                    );
+                    setSelectedNodeId(nodeId);
+                    setSelectedEdgeId(null);
+                  }}
+                />
+              )}
+            </aside>
+          )}
+
+          {connectionMenu && (
+            <ConnectionMenu
+              position={connectionMenu.position}
+              sourceNodeId={connectionMenu.sourceNodeId}
+              sourceHandleId={connectionMenu.sourceHandleId}
+              nodes={nodes.map((n) => ({
+                id: n.id,
+                text: (n.data as RFNodeData).text,
+              }))}
+              onSelectNode={handleConnectionMenuSelectNode}
+              onCreateNode={handleConnectionMenuCreateNode}
+              onClose={handleConnectionMenuClose}
             />
-          </ReactFlow>
-        </main>
-
-        {(selectedNodeId || selectedEdgeId) && (
-          <aside className="absolute right-0 top-0 bottom-0 w-80 border-l border-gray-200 bg-white">
-            {selectedNodeId && (
-              <NodePanel
-                nodeId={selectedNodeId}
-                onNodeDeleted={() => setSelectedNodeId(null)}
-                onNodeIdChanged={(newId) => setSelectedNodeId(newId)}
-                onSelectEdge={(edgeId) => {
-                  // Update React Flow selection state
-                  setNodes((nds) =>
-                    nds.map((n) => ({ ...n, selected: false }))
-                  );
-                  setEdges((eds) =>
-                    eds.map((e) => ({ ...e, selected: e.id === edgeId }))
-                  );
-                  setSelectedEdgeId(edgeId);
-                  setSelectedNodeId(null);
-                }}
-                onSelectNode={(targetNodeId) => {
-                  const node = nodes.find((n) => n.id === targetNodeId);
-                  if (node && reactFlowWrapper.current) {
-                    const nodeData = node.data as RFNodeData;
-                    const nodeWidth = nodeData.nodeWidth ?? 180;
-                    const nodeHeight = node.type === "start" ? START_NODE_HEIGHT : DEFAULT_NODE_HEIGHT;
-                    const { zoom } = getViewport();
-                    const { width, height } = reactFlowWrapper.current.getBoundingClientRect();
-
-                    const nodeCenterX = node.position.x + nodeWidth / 2;
-                    const nodeCenterY = node.position.y + nodeHeight / 2;
-
-                    setViewport(
-                      {
-                        x: width / 2 - nodeCenterX * zoom,
-                        y: height / 2 - nodeCenterY * zoom,
-                        zoom,
-                      },
-                      { duration: 300 }
-                    );
-                  }
-                  // Update React Flow selection state
-                  setNodes((nds) =>
-                    nds.map((n) => ({ ...n, selected: n.id === targetNodeId }))
-                  );
-                  setEdges((eds) =>
-                    eds.map((e) => ({ ...e, selected: false }))
-                  );
-                  setSelectedNodeId(targetNodeId);
-                }}
-              />
-            )}
-            {selectedEdgeId && (
-              <EdgePanel
-                edgeId={selectedEdgeId}
-                onEdgeDeleted={() => setSelectedEdgeId(null)}
-                onSelectNode={(nodeId) => {
-                  const node = nodes.find((n) => n.id === nodeId);
-                  if (node && reactFlowWrapper.current) {
-                    const nodeData = node.data as RFNodeData;
-                    const nodeWidth = nodeData.nodeWidth ?? 180;
-                    const nodeHeight = node.type === "start" ? START_NODE_HEIGHT : DEFAULT_NODE_HEIGHT;
-                    const { zoom } = getViewport();
-                    const { width, height } = reactFlowWrapper.current.getBoundingClientRect();
-
-                    // Calculate node center
-                    const nodeCenterX = node.position.x + nodeWidth / 2;
-                    const nodeCenterY = node.position.y + nodeHeight / 2;
-
-                    // Calculate viewport position to center the node
-                    setViewport(
-                      {
-                        x: width / 2 - nodeCenterX * zoom,
-                        y: height / 2 - nodeCenterY * zoom,
-                        zoom,
-                      },
-                      { duration: 300 }
-                    );
-                  }
-                  // Update React Flow selection state
-                  setNodes((nds) =>
-                    nds.map((n) => ({ ...n, selected: n.id === nodeId }))
-                  );
-                  setEdges((eds) =>
-                    eds.map((e) => ({ ...e, selected: false }))
-                  );
-                  setSelectedNodeId(nodeId);
-                  setSelectedEdgeId(null);
-                }}
-              />
-            )}
-          </aside>
-        )}
-
-        {connectionMenu && (
-          <ConnectionMenu
-            position={connectionMenu.position}
-            sourceNodeId={connectionMenu.sourceNodeId}
-            sourceHandleId={connectionMenu.sourceHandleId}
-            nodes={nodes.map((n) => ({
-              id: n.id,
-              text: (n.data as RFNodeData).text,
-            }))}
-            onSelectNode={handleConnectionMenuSelectNode}
-            onCreateNode={handleConnectionMenuCreateNode}
-            onClose={handleConnectionMenuClose}
-          />
-        )}
+          )}
+        </div>
       </div>
-    </div>
     </HandleContext.Provider>
   );
 }

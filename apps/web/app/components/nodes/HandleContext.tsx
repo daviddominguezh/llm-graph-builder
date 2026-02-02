@@ -8,6 +8,7 @@ interface HandleContextValue {
     handleId: string,
     event: React.MouseEvent
   ) => void;
+  onZoomToNode?: (nodeId: string) => void;
 }
 
 export const HandleContext = createContext<HandleContextValue>({});
