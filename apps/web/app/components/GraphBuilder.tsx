@@ -26,6 +26,7 @@ import { nodeTypes } from "./nodes";
 import { edgeTypes } from "./edges";
 import { HandleContext } from "./nodes/HandleContext";
 import { Toolbar } from "./panels/Toolbar";
+import { StatusButton } from "./panels/StatusButton";
 import { NodePanel } from "./panels/NodePanel";
 import { EdgePanel } from "./panels/EdgePanel";
 import { ConnectionMenu } from "./panels/ConnectionMenu";
@@ -702,14 +703,15 @@ function GraphBuilderInner() {
               />
             </ReactFlow>
 
-            {zoomViewNodeId && (
-              <div className="absolute top-4 left-4 z-10">
+            <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
+              {zoomViewNodeId && (
                 <Button variant="secondary" onClick={handleExitZoomView}>
                   <X className="h-3 w-3" />
                   Quit zoom view
                 </Button>
-              </div>
-            )}
+              )}
+              <StatusButton nodes={nodes} edges={edges} />
+            </div>
           </main>
 
           {(selectedNodeId || selectedEdgeId) && (

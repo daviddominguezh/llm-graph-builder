@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const AgentSchema = z.object({
   id: z.string(),
-  description: z.string(),
+  description: z.string().default(""),
 });
 
 export const NodeKindSchema = z.enum(["agent", "agent_decision"]);

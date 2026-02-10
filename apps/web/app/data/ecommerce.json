@@ -1,17 +1,12 @@
 {
   "startNode": "INITIAL_STEP",
-  "agents": [
-    { "id": "greeting", "description": "Section of the flow that handles greeting" },
-    { "id": "browse", "description": "Section of the flow that handles browsing" },
-    { "id": "checkout", "description": "Section of the flow that handles checking-out" },
-    { "id": "tracking", "description": "Section of the flow that handles order tracking" }
-  ],
+  "agents": [{ "id": "greeting" }, { "id": "browse" }, { "id": "checkout" }, { "id": "tracking" }],
   "nodes": [
+    { "id": "INITIAL_STEP", "text": "START", "kind": "agent", "nextNodeIsUser": true },
     {
-      "id": "INITIAL_STEP",
-      "text": "START",
-      "kind": "agent",
-      "nextNodeIsUser": true
+      "id": "AnswerBusinessQuestion",
+      "text": "AnswerBusinessQuestion",
+      "kind": "agent"
     },
     {
       "id": "IdentifyFirstContact",
@@ -902,7 +897,8 @@
       "text": "Ya revisamos y no hemos recibido tu pago. ¿Estás seguro de que lo realizaste? Por favor, confírmame si sí lo enviaste, y a qué cuenta.",
       "kind": "agent",
       "description": "Inform that the transference payment is was not received and request payment confirmation double check",
-      "agent": "checkout"
+      "agent": "checkout",
+      "nextNodeIsUser": true
     },
     {
       "id": "PaymentPendingTransference1",
@@ -1055,9 +1051,7 @@
     {
       "from": "INITIAL_STEP",
       "to": "IdentifyFirstContact",
-      "preconditions": [
-        { "type": "user_said", "value": "Busco un producto/referencia" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Busco un producto/referencia" }]
     },
     {
       "from": "IdentifyFirstContact",
@@ -1079,10 +1073,7 @@
           "value": "The user said hello or introduced themselves, but did not say which product they wanted and did not send any pictures"
         }
       ],
-      "contextPreconditions": {
-        "preconditions": ["USER_HAS_NAME"],
-        "jumpTo": "RegisterUserName"
-      }
+      "contextPreconditions": { "preconditions": ["USER_HAS_NAME"], "jumpTo": "RegisterUserName" }
     },
     {
       "from": "IdentifyFirstContact",
@@ -1166,9 +1157,7 @@
     {
       "from": "RegisterUserName",
       "to": "SearchIntent",
-      "preconditions": [
-        { "type": "user_said", "value": "Quisiera un [PRODUCTO] como..." }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Quisiera un [PRODUCTO] como..." }]
     },
     {
       "from": "AskTheReferenceImage",
@@ -1194,9 +1183,7 @@
     {
       "from": "AskGenderAsSearchCriteria",
       "to": "ProceedWithGenderSelection",
-      "preconditions": [
-        { "type": "user_said", "value": "Para hombre o para mujer" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Para hombre o para mujer" }]
     },
     {
       "from": "ProceedWithGenderSelection",
@@ -1215,9 +1202,7 @@
     {
       "from": "SingleProduct",
       "to": "ShowSingleImage",
-      "preconditions": [
-        { "type": "user_said", "value": "Quisiera ver otra imagen" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Quisiera ver otra imagen" }]
     },
     {
       "from": "SingleProduct",
@@ -1278,10 +1263,7 @@
           "value": "No me gusto, o deja así, o solo dame el producto que ya tenia en el carrito"
         }
       ],
-      "contextPreconditions": {
-        "preconditions": ["USER_HAS_NONEMPTY_CART"],
-        "jumpTo": "ContinueWithOrder"
-      }
+      "contextPreconditions": { "preconditions": ["USER_HAS_NONEMPTY_CART"], "jumpTo": "ContinueWithOrder" }
     },
     {
       "from": "SingleProduct",
@@ -1361,10 +1343,7 @@
     {
       "from": "AnswerProductPersonalizationsSP",
       "to": "DoAnswerProductPersonalizationSP",
-      "contextPreconditions": {
-        "preconditions": ["ALWAYS_TRUE"],
-        "jumpTo": "SingleProduct"
-      }
+      "contextPreconditions": { "preconditions": ["ALWAYS_TRUE"], "jumpTo": "SingleProduct" }
     },
     {
       "from": "InformNonExistingPersonalizationSP",
@@ -1379,12 +1358,7 @@
     {
       "from": "InformNonExistingPersonalizationSP",
       "to": "SearchIntent",
-      "preconditions": [
-        {
-          "type": "user_said",
-          "value": "Entonces quiero otro [PRODUCTO] como..."
-        }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Entonces quiero otro [PRODUCTO] como..." }]
     },
     {
       "from": "CheckProductPersonalizationsMP",
@@ -1434,10 +1408,7 @@
     {
       "from": "AnswerProductPersonalizationsMP",
       "to": "DoAnswerProductPersonalizationMP",
-      "contextPreconditions": {
-        "preconditions": ["ALWAYS_TRUE"],
-        "jumpTo": "MultipleProducts"
-      }
+      "contextPreconditions": { "preconditions": ["ALWAYS_TRUE"], "jumpTo": "MultipleProducts" }
     },
     {
       "from": "InformNonExistingPersonalizationMP",
@@ -1462,12 +1433,7 @@
     {
       "from": "InformNonExistingPersonalizationMP",
       "to": "SearchIntent",
-      "preconditions": [
-        {
-          "type": "user_said",
-          "value": "Entonces tienes otro [PRODUCTO] como..."
-        }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Entonces tienes otro [PRODUCTO] como..." }]
     },
     {
       "from": "AnswerProductQuestionMP",
@@ -1476,9 +1442,7 @@
     {
       "from": "MultipleProducts",
       "to": "ConfirmAddCart",
-      "preconditions": [
-        { "type": "user_said", "value": "Me gusta el producto [X]" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Me gusta el producto [X]" }]
     },
     {
       "from": "MultipleProducts",
@@ -1569,10 +1533,7 @@
           "value": "No me gusto, o deja así, o solo dame el producto que ya tenia en el carrito"
         }
       ],
-      "contextPreconditions": {
-        "preconditions": ["USER_HAS_NONEMPTY_CART"],
-        "jumpTo": "ContinueWithOrder"
-      }
+      "contextPreconditions": { "preconditions": ["USER_HAS_NONEMPTY_CART"], "jumpTo": "ContinueWithOrder" }
     },
     {
       "from": "AskForNewDifferentProduct",
@@ -1587,33 +1548,24 @@
     {
       "from": "AskInformation",
       "to": "ConfirmAddCart",
-      "preconditions": [
-        { "type": "user_said", "value": "Me gusta el producto [X]" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Me gusta el producto [X]" }]
     },
     {
       "from": "AskInformation",
       "to": "SearchIntent",
       "preconditions": [
-        {
-          "type": "user_said",
-          "value": "Es que estaba buscando algo con X, Y, Z características"
-        }
+        { "type": "user_said", "value": "Es que estaba buscando algo con X, Y, Z características" }
       ]
     },
     {
       "from": "AskChanges",
       "to": "SearchIntent",
-      "preconditions": [
-        { "type": "user_said", "value": "Me gustaría que tuviera..." }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Me gustaría que tuviera..." }]
     },
     {
       "from": "AskChanges",
       "to": "CheckIfMultipleProducts",
-      "preconditions": [
-        { "type": "user_said", "value": "Quiero seguir con este producto" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Quiero seguir con este producto" }]
     },
     {
       "from": "ConfirmAddCart",
@@ -1685,10 +1637,7 @@
       "from": "AskMultipleQuantities",
       "to": "ProceedWithMultipleGivenQuantity",
       "preconditions": [
-        {
-          "type": "user_said",
-          "value": "Quiero X unidades del product Y, - Z unidades del product M, etc"
-        }
+        { "type": "user_said", "value": "Quiero X unidades del product Y, - Z unidades del product M, etc" }
       ]
     },
     {
@@ -1775,18 +1724,13 @@
     {
       "from": "CartOptions",
       "to": "BuyMoreItems",
-      "preconditions": [
-        { "type": "user_said", "value": "Quiero comprar más productos" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Quiero comprar más productos" }]
     },
     {
       "from": "CartOptions",
       "to": "ContinueWithOrder",
       "preconditions": [
-        {
-          "type": "user_said",
-          "value": "Continuar / Avanzar / Terminar / Finalizar el pedido"
-        }
+        { "type": "user_said", "value": "Continuar / Avanzar / Terminar / Finalizar el pedido" }
       ]
     },
     {
@@ -1807,27 +1751,18 @@
     {
       "from": "BuyMoreItems",
       "to": "SearchIntent",
-      "preconditions": [
-        { "type": "user_said", "value": "Quisiera un producto X" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Quisiera un producto X" }]
     },
     { "from": "RemoveSuccess", "to": "CartOptions" },
     {
       "from": "WhichReplace",
       "to": "ReplaceItemSpecified",
-      "preconditions": [
-        { "type": "user_said", "value": "Quiero reemplazar el producto X" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Quiero reemplazar el producto X" }]
     },
     {
       "from": "WhatInstead",
       "to": "CheckReplacementType",
-      "preconditions": [
-        {
-          "type": "user_said",
-          "value": "Quiero el producto X con personalización Y"
-        }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Quiero el producto X con personalización Y" }]
     },
     {
       "from": "CheckReplacementType",
@@ -1864,27 +1799,19 @@
     {
       "from": "CustomLink",
       "to": "UserSaidFormWasFilled",
-      "preconditions": [
-        { "type": "user_said", "value": "Listo, ya llené el formulario" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Listo, ya llené el formulario" }]
     },
-    { "from": "RemindCustom", "to": "RemindCustom", "preconditions": [] },
     {
       "from": "RemindCustom",
       "to": "RemindCustom1",
       "preconditions": [
-        {
-          "type": "user_said",
-          "value": "\"Listo, llené el formulario\", o \"lo veo bien\", o \"ya está\""
-        }
+        { "type": "user_said", "value": "\"Listo, llené el formulario\", o \"lo veo bien\", o \"ya está\"" }
       ]
     },
     {
       "from": "AskCity",
       "to": "UserSpecifiedCity",
-      "preconditions": [
-        { "type": "user_said", "value": "Estoy en la ciudad X" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Estoy en la ciudad X" }]
     },
     {
       "from": "CityHasExactMatch",
@@ -1901,21 +1828,13 @@
       "from": "ClarifyCity",
       "to": "ConfirmShippingToCity",
       "preconditions": [
-        {
-          "type": "user_said",
-          "value": "Eligió el nombre de una de las ciudades de la lista"
-        }
+        { "type": "user_said", "value": "Eligió el nombre de una de las ciudades de la lista" }
       ]
     },
     {
       "from": "ClarifyCity",
       "to": "AskCity",
-      "preconditions": [
-        {
-          "type": "user_said",
-          "value": "No es esa, no es ninguna opción de la lista"
-        }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "No es esa, no es ninguna opción de la lista" }]
     },
     { "from": "CalculatShippingFees", "to": "InformShippingFees" },
     {
@@ -1991,9 +1910,7 @@
     {
       "from": "AskPayment2",
       "to": "ShowTotalCOD",
-      "preconditions": [
-        { "type": "tool_call", "value": "calculateTotalPayment" }
-      ]
+      "preconditions": [{ "type": "tool_call", "value": "calculateTotalPayment" }]
     },
     { "from": "ShowTotalCOD", "to": "ShowOrderSummary" },
     {
@@ -2010,10 +1927,7 @@
       "from": "AskDataCOD",
       "to": "ValidateCODData",
       "preconditions": [
-        {
-          "type": "user_said",
-          "value": "Mi nombre es Pepito, correo..., cédula..., dirección..."
-        }
+        { "type": "user_said", "value": "Mi nombre es Pepito, correo..., cédula..., dirección..." }
       ]
     },
     {
@@ -2050,58 +1964,39 @@
       "from": "ValidateCODData",
       "to": "CreateCODOrder",
       "preconditions": [
-        {
-          "type": "agent_decision",
-          "value": "All required fields are present, valid, and complete"
-        }
+        { "type": "agent_decision", "value": "All required fields are present, valid, and complete" }
       ]
     },
     {
       "from": "CreateCODOrder",
       "to": "OrderSuccess",
-      "preconditions": [
-        { "type": "tool_call", "value": "createCashOnDeliveryOrder" }
-      ]
+      "preconditions": [{ "type": "tool_call", "value": "createCashOnDeliveryOrder" }]
     },
     { "from": "OrderCancelled", "to": "CartOptions" },
     {
       "from": "SearchProduct",
       "to": "NoProductsFound",
       "preconditions": [
-        {
-          "type": "agent_decision",
-          "value": "the tool search did not found any (0) products"
-        }
+        { "type": "agent_decision", "value": "the tool search did not found any (0) products" }
       ]
     },
     {
       "from": "SearchProduct",
       "to": "ShowSingleImage",
-      "preconditions": [
-        {
-          "type": "agent_decision",
-          "value": "the tool search found only one (1) product"
-        }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "the tool search found only one (1) product" }]
     },
     {
       "from": "SearchProduct",
       "to": "ShowSeveralImages",
       "preconditions": [
-        {
-          "type": "agent_decision",
-          "value": "the tool search found more than one (>1) product"
-        }
+        { "type": "agent_decision", "value": "the tool search found more than one (>1) product" }
       ]
     },
     {
       "from": "NoProductsFound",
       "to": "SearchIntent",
       "preconditions": [
-        {
-          "type": "user_said",
-          "value": "¿Qué otras opciones tienes? ó, quiero un [PRODUCTO] como..."
-        }
+        { "type": "user_said", "value": "¿Qué otras opciones tienes? ó, quiero un [PRODUCTO] como..." }
       ]
     },
     {
@@ -2134,10 +2029,7 @@
           "value": "No me gusto, o deja así, o solo dame el producto que ya tenia en el carrito"
         }
       ],
-      "contextPreconditions": {
-        "preconditions": ["USER_HAS_NONEMPTY_CART"],
-        "jumpTo": "ContinueWithOrder"
-      }
+      "contextPreconditions": { "preconditions": ["USER_HAS_NONEMPTY_CART"], "jumpTo": "ContinueWithOrder" }
     },
     {
       "from": "ShowSingleImage",
@@ -2186,82 +2078,50 @@
     {
       "from": "UserSaidFormWasFilled",
       "to": "ConfirmCustomFormWasFilled",
-      "preconditions": [
-        { "type": "tool_call", "value": "confirmOrderCustomization" }
-      ]
+      "preconditions": [{ "type": "tool_call", "value": "confirmOrderCustomization" }]
     },
     {
       "from": "ConfirmCustomFormWasFilled",
       "to": "AskCity",
-      "preconditions": [
-        { "type": "agent_decision", "value": "The user DID complete the form" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "The user DID complete the form" }]
     },
     {
       "from": "ConfirmCustomFormWasFilled",
       "to": "RemindCustom",
-      "preconditions": [
-        {
-          "type": "agent_decision",
-          "value": "The user did NOT complete the form"
-        }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "The user did NOT complete the form" }]
     },
     {
       "from": "RemindCustom1",
       "to": "RemindCustom2",
-      "preconditions": [
-        { "type": "tool_call", "value": "confirmOrderCustomization" }
-      ]
+      "preconditions": [{ "type": "tool_call", "value": "confirmOrderCustomization" }]
     },
     {
       "from": "RemindCustom2",
       "to": "AskCity",
-      "preconditions": [
-        { "type": "agent_decision", "value": "The user DID complete the form" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "The user DID complete the form" }]
     },
     {
       "from": "RemindCustom2",
       "to": "RemindCustom",
-      "preconditions": [
-        {
-          "type": "agent_decision",
-          "value": "The user did NOT complete the form"
-        }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "The user did NOT complete the form" }]
     },
     {
       "from": "ContinueWithOrder",
       "to": "CustomLink",
-      "preconditions": [
-        { "type": "tool_call", "value": "createOrderCustomization" }
-      ]
+      "preconditions": [{ "type": "tool_call", "value": "createOrderCustomization" }]
     },
-    {
-      "from": "GetCart",
-      "to": "ShowCart",
-      "preconditions": [{ "type": "tool_call", "value": "getCart" }]
-    },
+    { "from": "GetCart", "to": "ShowCart", "preconditions": [{ "type": "tool_call", "value": "getCart" }] },
     {
       "from": "RemoveItemFromCart",
       "to": "UserDidNotSpecifyItemToRemove",
       "preconditions": [
-        {
-          "type": "agent_decision",
-          "value": "The user did NOT specify which product to remove"
-        }
+        { "type": "agent_decision", "value": "The user did NOT specify which product to remove" }
       ]
     },
     {
       "from": "RemoveItemFromCart",
       "to": "UserSpecifiedItemToRemove",
-      "preconditions": [
-        {
-          "type": "agent_decision",
-          "value": "The user DID specify which product to remove"
-        }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "The user DID specify which product to remove" }]
     },
     {
       "from": "UserDidNotSpecifyItemToRemove",
@@ -2277,20 +2137,14 @@
       "from": "ReplaceItemFromCart",
       "to": "UserSpecifiedItemToReplace",
       "preconditions": [
-        {
-          "type": "agent_decision",
-          "value": "The user DID specify which product to replace"
-        }
+        { "type": "agent_decision", "value": "The user DID specify which product to replace" }
       ]
     },
     {
       "from": "ReplaceItemFromCart",
       "to": "UserDidNotSpecifyItemToReplace",
       "preconditions": [
-        {
-          "type": "agent_decision",
-          "value": "The user did NOT specify which product to replace"
-        }
+        { "type": "agent_decision", "value": "The user did NOT specify which product to replace" }
       ]
     },
     {
@@ -2322,30 +2176,22 @@
     {
       "from": "AskCity2",
       "to": "CityHasExactMatch",
-      "preconditions": [
-        { "type": "agent_decision", "value": "City had an exact match" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "City had an exact match" }]
     },
     {
       "from": "AskCity2",
       "to": "ClarifyCity",
-      "preconditions": [
-        { "type": "agent_decision", "value": "City had several matches" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "City had several matches" }]
     },
     {
       "from": "AskCity2",
       "to": "CityDoesNotExist",
-      "preconditions": [
-        { "type": "agent_decision", "value": "No city was found" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "No city was found" }]
     },
     {
       "from": "CityDoesNotExist",
       "to": "UserSpecifiedCity",
-      "preconditions": [
-        { "type": "user_said", "value": "Nuevo nombre de ciudad corregido" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Nuevo nombre de ciudad corregido" }]
     },
     {
       "from": "ConfirmShippingToCity",
@@ -2362,9 +2208,7 @@
     {
       "from": "AskPayment3",
       "to": "CalculateTotalTransference",
-      "preconditions": [
-        { "type": "tool_call", "value": "calculateTotalPayment" }
-      ]
+      "preconditions": [{ "type": "tool_call", "value": "calculateTotalPayment" }]
     },
     { "from": "CalculateTotalTransference", "to": "ShowTotalTransference" },
     {
@@ -2381,10 +2225,7 @@
       "from": "AskDataTransference",
       "to": "ValidateTransferenceData",
       "preconditions": [
-        {
-          "type": "user_said",
-          "value": "Mi nombre es Pepito, correo..., cédula..., dirección..."
-        }
+        { "type": "user_said", "value": "Mi nombre es Pepito, correo..., cédula..., dirección..." }
       ]
     },
     {
@@ -2430,9 +2271,7 @@
     {
       "from": "CreateTransferencePayment",
       "to": "ShowTransferenceDetails",
-      "preconditions": [
-        { "type": "tool_call", "value": "getTransferenceDetails" }
-      ]
+      "preconditions": [{ "type": "tool_call", "value": "getTransferenceDetails" }]
     },
     {
       "from": "ShowTransferenceDetails",
@@ -2492,22 +2331,12 @@
     {
       "from": "ShowTransferenceDetails2",
       "to": "OrderSuccess",
-      "preconditions": [
-        {
-          "type": "agent_decision",
-          "value": "The tool result confirmed the payment"
-        }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "The tool result confirmed the payment" }]
     },
     {
       "from": "ShowTransferenceDetails2",
       "to": "PaymentPendingTransference",
-      "preconditions": [
-        {
-          "type": "agent_decision",
-          "value": "The tool result did not confirm the payment"
-        }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "The tool result did not confirm the payment" }]
     },
     {
       "from": "PaymentPendingTransference",
@@ -2536,9 +2365,7 @@
     {
       "from": "AskPayment1",
       "to": "CalculateTotalOnline",
-      "preconditions": [
-        { "type": "tool_call", "value": "calculateTotalPayment" }
-      ]
+      "preconditions": [{ "type": "tool_call", "value": "calculateTotalPayment" }]
     },
     { "from": "CalculateTotalOnline", "to": "ShowTotalOnline" },
     {
@@ -2555,10 +2382,7 @@
       "from": "AskDataOnline",
       "to": "ValidateOnlineData",
       "preconditions": [
-        {
-          "type": "user_said",
-          "value": "Mi nombre es Pepito, correo..., cédula..., dirección..."
-        }
+        { "type": "user_said", "value": "Mi nombre es Pepito, correo..., cédula..., dirección..." }
       ]
     },
     {
@@ -2619,22 +2443,12 @@
     {
       "from": "ShowPayLink2",
       "to": "OrderSuccess",
-      "preconditions": [
-        {
-          "type": "agent_decision",
-          "value": "The tool result confirmed the payment"
-        }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "The tool result confirmed the payment" }]
     },
     {
       "from": "ShowPayLink2",
       "to": "PaymentPending",
-      "preconditions": [
-        {
-          "type": "agent_decision",
-          "value": "The tool result did not confirm the payment"
-        }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "The tool result did not confirm the payment" }]
     },
     {
       "from": "PaymentPending",
@@ -2649,22 +2463,12 @@
     {
       "from": "PaymentPending2",
       "to": "OrderSuccess",
-      "preconditions": [
-        {
-          "type": "agent_decision",
-          "value": "The tool result confirmed the payment"
-        }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "The tool result confirmed the payment" }]
     },
     {
       "from": "OrderSuccess",
       "to": "UserDoesNotNeedAnythingElse",
-      "preconditions": [
-        {
-          "type": "user_said",
-          "value": "Gracias, eso es todo o no necesito nada más"
-        }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Gracias, eso es todo o no necesito nada más" }]
     },
     {
       "from": "OrderSuccess",
@@ -2679,32 +2483,19 @@
     {
       "from": "NotInterestedInSeeingAnyMore",
       "to": "UserDoesNotNeedAnythingElse",
-      "preconditions": [
-        {
-          "type": "user_said",
-          "value": "No, no necesito nada más, gracias, eso era todo"
-        }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "No, no necesito nada más, gracias, eso era todo" }]
     },
     {
       "from": "NotInterestedInSeeingAnyMore",
       "to": "RegisterUserName",
       "preconditions": [
-        {
-          "type": "user_said",
-          "value": "Si, necesito ayuda con algo: busco, quiero, necesito [X]"
-        }
+        { "type": "user_said", "value": "Si, necesito ayuda con algo: busco, quiero, necesito [X]" }
       ]
     },
     {
       "from": "PaymentPending2",
       "to": "PaymentPending",
-      "preconditions": [
-        {
-          "type": "agent_decision",
-          "value": "The tool result did not confirm the payment"
-        }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "The tool result did not confirm the payment" }]
     },
     {
       "from": "RegisterUserName",
@@ -2724,106 +2515,72 @@
     {
       "from": "InterpretOrderStatus",
       "to": "OrderUnpaid",
-      "preconditions": [
-        { "type": "agent_decision", "value": "Order status is unpaid" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "Order status is unpaid" }]
     },
     {
       "from": "InterpretOrderStatus",
       "to": "OrderPaidUnconfirmed",
-      "preconditions": [
-        {
-          "type": "agent_decision",
-          "value": "Order status is paid/unconfirmed"
-        }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "Order status is paid/unconfirmed" }]
     },
     {
       "from": "InterpretOrderStatus",
       "to": "OrderConfirmed",
-      "preconditions": [
-        { "type": "agent_decision", "value": "Order status is confirmed" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "Order status is confirmed" }]
     },
     {
       "from": "InterpretOrderStatus",
       "to": "OrderSent",
-      "preconditions": [
-        { "type": "agent_decision", "value": "Order status is sent/enviado" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "Order status is sent/enviado" }]
     },
     {
       "from": "InterpretOrderStatus",
       "to": "OrderReceived",
-      "preconditions": [
-        { "type": "agent_decision", "value": "Order status is received" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "Order status is received" }]
     },
     {
       "from": "InterpretOrderStatus",
       "to": "OrderCancelledTracking",
-      "preconditions": [
-        { "type": "agent_decision", "value": "Order status is cancelled" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "Order status is cancelled" }]
     },
     {
       "from": "InterpretOrderStatus",
       "to": "OrderPaymentFailed",
-      "preconditions": [
-        { "type": "agent_decision", "value": "Order status is payment-failed" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "Order status is payment-failed" }]
     },
     {
       "from": "InterpretOrderStatus",
       "to": "NoOrdersFound",
-      "preconditions": [
-        { "type": "agent_decision", "value": "No orders found for user" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "No orders found for user" }]
     },
     {
       "from": "OrderSent",
       "to": "OfferTrackingGuide",
-      "preconditions": [
-        { "type": "agent_decision", "value": "trackingId exists in response" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "trackingId exists in response" }]
     },
     {
       "from": "OrderSent",
       "to": "TrackingIdNotFound",
-      "preconditions": [
-        { "type": "agent_decision", "value": "No trackingId exists" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "No trackingId exists" }]
     },
     {
       "from": "TrackingIdNotFound",
       "to": "AskMoreTracking",
-      "preconditions": [
-        {
-          "type": "user_said",
-          "value": "Vale, gracias, esperaré que me la envies"
-        }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Vale, gracias, esperaré que me la envies" }]
     },
     {
       "from": "OfferTrackingGuide",
       "to": "UserWantsGuide",
-      "preconditions": [
-        { "type": "user_said", "value": "User responds to guide offer" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "User responds to guide offer" }]
     },
     {
       "from": "UserWantsGuide",
       "to": "SendTrackingGuide",
-      "preconditions": [
-        { "type": "agent_decision", "value": "User wants the guide" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "User wants the guide" }]
     },
     {
       "from": "UserWantsGuide",
       "to": "TrackingGuideDeclined",
-      "preconditions": [
-        { "type": "agent_decision", "value": "User declined the guide" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "User declined the guide" }]
     },
     {
       "from": "SendTrackingGuide",
@@ -2869,22 +2626,12 @@
     {
       "from": "AskMoreTracking",
       "to": "InterpretOrderStatus",
-      "preconditions": [
-        {
-          "type": "user_said",
-          "value": "tengo otra duda / necesito también otra cosa..."
-        }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "tengo otra duda / necesito también otra cosa..." }]
     },
     {
       "from": "AskMoreTracking",
       "to": "UserDoesNotNeedAnythingElse",
-      "preconditions": [
-        {
-          "type": "user_said",
-          "value": "Eso es todo, muchas gracias, no necesito nada más"
-        }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Eso es todo, muchas gracias, no necesito nada más" }]
     },
     {
       "from": "AskMoreTracking",
@@ -2899,12 +2646,7 @@
     {
       "from": "UserDoesNotNeedAnythingElse",
       "to": "RegisterUserName",
-      "preconditions": [
-        {
-          "type": "user_said",
-          "value": "Hola, tengo una pregunta, o necesito saber algo"
-        }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Hola, tengo una pregunta, o necesito saber algo" }]
     }
   ]
 }

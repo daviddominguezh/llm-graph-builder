@@ -1,7 +1,7 @@
 import type { Graph } from "../schemas/graph.schema";
 import { GraphSchema } from "../schemas/graph.schema";
 import { layoutGraph } from "./layoutGraph";
-import graphData from "../data/graph2.json";
+import graphData from "../data/ecommerce.json";
 
 interface LoadGraphResult {
   graph: Graph;
@@ -116,4 +116,4 @@ export function calculateInitialViewport(
 }
 
 // Set to null for empty canvas, or loadGraphData() to load from JSON
-export const GRAPH_DATA: ReturnType<typeof loadGraphData> = null;
+export const GRAPH_DATA: ReturnType<typeof loadGraphData> = loadGraphData();

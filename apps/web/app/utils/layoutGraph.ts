@@ -82,16 +82,6 @@ export function layoutGraph(
   // Run the layout algorithm
   dagre.layout(g);
 
-  // Log specific nodes for debugging
-  const debugNodes = ["B_GetUserId", "B_TripType"];
-  debugNodes.forEach((nodeId) => {
-    if (g.hasNode(nodeId)) {
-      const node = g.node(nodeId);
-      const dims = getNodeDimensions(nodeId);
-      console.log(`[layoutGraph] ${nodeId}: height=${dims.height}, dagre height=${node?.height}`);
-    }
-  });
-
   // Extract positions from dagre
   const positions = new Map<string, { x: number; y: number }>();
 
