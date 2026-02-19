@@ -79,7 +79,7 @@ export function NodePanel({
   }
 
   if (!node || !nodeData) {
-    return <div className="p-4 text-muted-foreground">Node not found</div>;
+    return null;
   }
 
   const updateNodeData = (updates: Partial<RFNodeData>) => {

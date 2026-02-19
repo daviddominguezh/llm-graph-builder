@@ -159,7 +159,8 @@ function validateReachability(
   }
 
   for (const node of nodes) {
-    if (node.id !== START_NODE_ID && !reachable.has(node.id)) {
+    const isGlobal = node.data.global === true;
+    if (node.id !== START_NODE_ID && !isGlobal && !reachable.has(node.id)) {
       errors.push({
         message: `Node "${node.id}": not reachable from the initial step`,
         nodeId: node.id,

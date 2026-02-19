@@ -19,6 +19,7 @@ export const NodeSchema = z.object({
   description: z.string().default(""),
   agent: z.string().optional(),
   nextNodeIsUser: z.boolean().optional(),
+  global: z.boolean().default(false),
   position: PositionSchema.optional(),
 });
 

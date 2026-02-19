@@ -6,7 +6,8 @@
     {
       "id": "AnswerBusinessQuestion",
       "text": "AnswerBusinessQuestion",
-      "kind": "agent"
+      "kind": "agent",
+      "global": true
     },
     {
       "id": "IdentifyFirstContact",

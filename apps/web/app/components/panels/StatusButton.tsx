@@ -30,17 +30,11 @@ export function StatusButton({ nodes, edges }: StatusButtonProps) {
     <AlertDialog>
       <AlertDialogTrigger
         render={
-          <Button variant="outline" className="bg-white">
+          <Button variant="ghost" size="sm" className="h-10 w-10">
             {isOk ? (
-              <>
-                <CircleCheck className="h-3.5 w-3.5 text-green-500" />
-                <span className="text-green-600">Status: OK</span>
-              </>
+              <CircleCheck className="size-4 text-green-500" />
             ) : (
-              <>
-                <CircleAlert className="h-3.5 w-3.5 text-red-500" />
-                <span className="text-red-600">Status: ERROR</span>
-              </>
+              <CircleAlert className="size-4 text-red-500" />
             )}
           </Button>
         }

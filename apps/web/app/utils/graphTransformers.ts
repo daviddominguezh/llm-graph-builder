@@ -51,6 +51,7 @@ export interface RFNodeData extends Record<string, unknown> {
   description: string;
   agent?: string;
   nextNodeIsUser?: boolean;
+  global?: boolean;
   muted?: boolean;
   nodeWidth?: number | null;
 }
@@ -80,6 +81,7 @@ export function schemaNodeToRFNode(node: SchemaNode, index = 0): RFNode<RFNodeDa
       description: node.description,
       agent: node.agent,
       nextNodeIsUser: node.nextNodeIsUser,
+      global: node.global,
     },
   };
 }
@@ -96,6 +98,7 @@ export function rfNodeToSchemaNode(
     description: data?.description ?? originalNode.description,
     agent: data?.agent ?? originalNode.agent,
     nextNodeIsUser: data?.nextNodeIsUser ?? originalNode.nextNodeIsUser,
+    global: data?.global ?? originalNode.global,
     position: rfNode.position,
   };
 }

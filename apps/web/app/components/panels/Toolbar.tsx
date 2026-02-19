@@ -1,29 +1,53 @@
 "use client";
 
-import { Upload, Download, Plus, WandSparkles, Play } from "lucide-react";
+import type { ReactNode } from "react";
+import { Upload, Download, Plus, WandSparkles, Play, Waypoints } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 interface ToolbarProps {
   onAddNode: () => void;
   onImport: () => void;
   onExport: () => void;
+  statusSlot?: ReactNode;
+  globalPanelOpen?: boolean;
+  onToggleGlobalPanel?: () => void;
 }
 
-export function Toolbar({ onImport, onExport }: ToolbarProps) {
+export function Toolbar({ onImport, onExport, statusSlot, globalPanelOpen, onToggleGlobalPanel }: ToolbarProps) {
   return (
-    <header className="absolute z-1 flex items-center justify-center gap-2 border rounded-lg bg-background p-1 top-2 shadow-lg">
-      <Button className="h-8 w-8" variant="ghost" size="sm">
-        <Play className="h-4 w-4" />
+    <header className="absolute z-1 flex items-stretch justify-center gap-1 border rounded-lg bg-background p-1 top-2 shadow-lg">
+      <Button className="h-10 w-10" variant="ghost" size="sm">
+        <Play className="size-4" />
       </Button>
-      <Button className="h-8 w-8" variant="ghost" size="sm" onClick={onImport}>
-        <Upload className="h-4 w-4" />
+      <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onImport}>
+        <Upload className="size-4" />
       </Button>
-      <Button className="h-8 w-8" variant="ghost" size="sm" onClick={onExport}>
-        <Download className="h-4 w-4" />
+      <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onExport}>
+        <Download className="size-4" />
       </Button>
-      <Button className="h-8 w-8" variant="ghost" size="sm">
-        <WandSparkles className="h-4 w-4" />
+      <Button className="h-10 w-10" variant="ghost" size="sm">
+        <WandSparkles className="size-4" />
       </Button>
+      {statusSlot && (
+        <>
+          <Separator orientation="vertical" />
+          {statusSlot}
+        </>
+      )}
+      {onToggleGlobalPanel && (
+        <>
+          <Separator orientation="vertical" />
+          <Button
+            className="h-10 w-10"
+            variant="ghost"
+            size="sm"
+            onClick={onToggleGlobalPanel}
+          >
+            <Waypoints className="size-4" />
+          </Button>
+        </>
+      )}
     </header>
   );
 }

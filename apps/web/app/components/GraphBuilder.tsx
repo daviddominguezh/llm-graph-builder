@@ -29,6 +29,7 @@ import { Toolbar } from "./panels/Toolbar";
 import { StatusButton } from "./panels/StatusButton";
 import { NodePanel } from "./panels/NodePanel";
 import { EdgePanel } from "./panels/EdgePanel";
+import { GlobalNodesPanel } from "./panels/GlobalNodesPanel";
 import { ConnectionMenu } from "./panels/ConnectionMenu";
 import { GraphSchema, type Agent } from "../schemas/graph.schema";
 import {
@@ -162,6 +163,9 @@ function GraphBuilderInner() {
     sourceNodeId: string;
     sourceHandleId: string | null;
   } | null>(null);
+
+  // Global nodes panel state
+  const [globalPanelOpen, setGlobalPanelOpen] = useState(false);
 
   // Zoom view state
   const [zoomViewNodeId, setZoomViewNodeId] = useState<string | null>(null);
@@ -338,6 +342,7 @@ function GraphBuilderInner() {
     setSelectedNodeId(null);
     setSelectedEdgeId(null);
     setConnectionMenu(null);
+    setGlobalPanelOpen(false);
   }, []);
 
   const getClosestEdge = useCallback(
@@ -538,6 +543,7 @@ function GraphBuilderInner() {
         description: (n.data as RFNodeData).description,
         agent: (n.data as RFNodeData).agent,
         nextNodeIsUser: (n.data as RFNodeData).nextNodeIsUser,
+        global: (n.data as RFNodeData).global,
         position: n.position,
       })),
       edges: edges.map((e) => rfEdgeToSchemaEdge(e)),
@@ -610,6 +616,7 @@ function GraphBuilderInner() {
         text: (n.data as RFNodeData).text,
         description: (n.data as RFNodeData).description,
         kind: "agent" as const,
+        global: (n.data as RFNodeData).global ?? false,
       }));
 
       // Prepare edges for layoutGraph (schema format with from/to)
@@ -662,6 +669,11 @@ function GraphBuilderInner() {
   // Combine edges with temp edge for display
   const displayEdges = tempEdge ? [...edges, tempEdge] : edges;
 
+  // Filter global nodes out of the canvas
+  const displayNodes = nodes.filter(
+    (n) => (n.data as RFNodeData).global !== true,
+  );
+
   const handleContextValue = {
     onSourceHandleClick,
     onZoomToNode: handleZoomToNode,
@@ -674,12 +686,15 @@ function GraphBuilderInner() {
           onAddNode={handleAddNode}
           onImport={handleImport}
           onExport={handleExport}
+          statusSlot={<StatusButton nodes={nodes} edges={edges} />}
+          globalPanelOpen={globalPanelOpen}
+          onToggleGlobalPanel={() => setGlobalPanelOpen((prev) => !prev)}
         />
 
         <div className="h-screen w-screen relative flex-1 overflow-hidden">
           <main ref={reactFlowWrapper} className="absolute inset-0">
             <ReactFlow
-              nodes={nodes}
+              nodes={displayNodes}
               edges={displayEdges}
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
@@ -703,15 +718,14 @@ function GraphBuilderInner() {
               />
             </ReactFlow>
 
-            <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
-              {zoomViewNodeId && (
+            {zoomViewNodeId && (
+              <div className="absolute top-4 left-4 z-10">
                 <Button variant="secondary" onClick={handleExitZoomView}>
                   <X className="h-3 w-3" />
                   Quit zoom view
                 </Button>
-              )}
-              <StatusButton nodes={nodes} edges={edges} />
-            </div>
+              </div>
+            )}
           </main>
 
           {(selectedNodeId || selectedEdgeId) && (
@@ -814,6 +828,43 @@ function GraphBuilderInner() {
                   }}
                 />
               )}
+            </aside>
+          )}
+
+          {globalPanelOpen && (
+            <aside className="absolute right-0 top-0 bottom-0 w-80 border-l border-gray-200 bg-white">
+              <GlobalNodesPanel
+                nodes={nodes}
+                onSelectNode={(nodeId) => {
+                  setSelectedNodeId(nodeId);
+                  setSelectedEdgeId(null);
+                  setGlobalPanelOpen(false);
+                }}
+                onAddNode={() => {
+                  const id = `node_${nanoid(8)}`;
+                  const newNode: Node<RFNodeData> = {
+                    id,
+                    type: "agent",
+                    position: { x: 0, y: 0 },
+                    data: {
+                      nodeId: id,
+                      text: "New global node",
+                      description: "",
+                      global: true,
+                      nodeWidth: GRAPH_DATA?.nodeWidth ?? 180,
+                    },
+                  };
+                  setNodes((nds) => [...nds, newNode]);
+                }}
+                onDeleteNode={(nodeId) => {
+                  setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+                  setEdges((eds) =>
+                    eds.filter(
+                      (e) => e.source !== nodeId && e.target !== nodeId,
+                    ),
+                  );
+                }}
+              />
             </aside>
           )}
 
