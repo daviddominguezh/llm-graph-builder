@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
   Background,
@@ -166,6 +166,7 @@ function GraphBuilderInner() {
 
   // Global nodes panel state
   const [globalPanelOpen, setGlobalPanelOpen] = useState(false);
+  const [customContextPreconditions, setCustomContextPreconditions] = useState<string[]>([]);
 
   // Zoom view state
   const [zoomViewNodeId, setZoomViewNodeId] = useState<string | null>(null);
@@ -674,6 +675,28 @@ function GraphBuilderInner() {
     (n) => (n.data as RFNodeData).global !== true,
   );
 
+  // Merge user-defined + edge-derived context precondition names
+  const edgeContextPreconditions = useMemo(() => {
+    const set = new Set<string>();
+    for (const edge of edges) {
+      const cp = (edge.data as RFEdgeData | undefined)?.contextPreconditions;
+      if (cp) {
+        for (const p of cp.preconditions) {
+          set.add(p);
+        }
+      }
+    }
+    return set;
+  }, [edges]);
+
+  const allContextPreconditions = useMemo(() => {
+    const merged = new Set([
+      ...customContextPreconditions,
+      ...edgeContextPreconditions,
+    ]);
+    return Array.from(merged).sort();
+  }, [customContextPreconditions, edgeContextPreconditions]);
+
   const handleContextValue = {
     onSourceHandleClick,
     onZoomToNode: handleZoomToNode,
@@ -789,6 +812,7 @@ function GraphBuilderInner() {
                 <EdgePanel
                   edgeId={selectedEdgeId}
                   onEdgeDeleted={() => setSelectedEdgeId(null)}
+                  availableContextPreconditions={allContextPreconditions}
                   onSelectNode={(nodeId) => {
                     const node = nodes.find((n) => n.id === nodeId);
                     if (node && reactFlowWrapper.current) {
@@ -835,11 +859,6 @@ function GraphBuilderInner() {
             <aside className="absolute right-0 top-0 bottom-0 w-80 border-l border-gray-200 bg-white">
               <GlobalNodesPanel
                 nodes={nodes}
-                onSelectNode={(nodeId) => {
-                  setSelectedNodeId(nodeId);
-                  setSelectedEdgeId(null);
-                  setGlobalPanelOpen(false);
-                }}
                 onAddNode={() => {
                   const id = `node_${nanoid(8)}`;
                   const newNode: Node<RFNodeData> = {
@@ -862,6 +881,77 @@ function GraphBuilderInner() {
                     eds.filter(
                       (e) => e.source !== nodeId && e.target !== nodeId,
                     ),
+                  );
+                }}
+                onUpdateNode={(nodeId, updates) => {
+                  setNodes((nds) =>
+                    nds.map((n) =>
+                      n.id === nodeId
+                        ? {
+                            ...n,
+                            data: {
+                              ...(n.data as RFNodeData),
+                              ...updates,
+                            },
+                          }
+                        : n,
+                    ),
+                  );
+                }}
+                contextPreconditions={allContextPreconditions}
+                onAddContextPrecondition={(value) => {
+                  setCustomContextPreconditions((prev) =>
+                    prev.includes(value) ? prev : [...prev, value],
+                  );
+                }}
+                onRemoveContextPrecondition={(value) => {
+                  setCustomContextPreconditions((prev) =>
+                    prev.filter((p) => p !== value),
+                  );
+                  setEdges((eds) =>
+                    eds.map((e) => {
+                      const cp = (e.data as RFEdgeData | undefined)
+                        ?.contextPreconditions;
+                      if (!cp) return e;
+                      const filtered = cp.preconditions.filter(
+                        (p) => p !== value,
+                      );
+                      return {
+                        ...e,
+                        data: {
+                          ...e.data,
+                          contextPreconditions:
+                            filtered.length > 0
+                              ? { ...cp, preconditions: filtered }
+                              : undefined,
+                        },
+                      };
+                    }),
+                  );
+                }}
+                onRenameContextPrecondition={(oldValue, newValue) => {
+                  setCustomContextPreconditions((prev) =>
+                    prev.map((p) => (p === oldValue ? newValue : p)),
+                  );
+                  setEdges((eds) =>
+                    eds.map((e) => {
+                      const cp = (e.data as RFEdgeData | undefined)
+                        ?.contextPreconditions;
+                      if (!cp) return e;
+                      const renamed = cp.preconditions.map((p) =>
+                        p === oldValue ? newValue : p,
+                      );
+                      return {
+                        ...e,
+                        data: {
+                          ...e.data,
+                          contextPreconditions: {
+                            ...cp,
+                            preconditions: renamed,
+                          },
+                        },
+                      };
+                    }),
                   );
                 }}
               />

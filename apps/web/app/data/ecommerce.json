@@ -7,6 +7,7 @@
       "id": "AnswerBusinessQuestion",
       "text": "AnswerBusinessQuestion",
       "kind": "agent",
+      "description": "Necesito informacion sobre los medios de pago, necesito saber sobre su politica de devoluciones, preguntas sobre las politicas del negocio, o preguntas acerca de si eres una IA",
       "global": true
     },
     {

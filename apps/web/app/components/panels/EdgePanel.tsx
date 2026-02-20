@@ -54,6 +54,7 @@ interface EdgePanelProps {
   edgeId: string;
   onEdgeDeleted?: () => void;
   onSelectNode?: (nodeId: string) => void;
+  availableContextPreconditions?: string[];
 }
 
 interface EdgePreconditionInput {
@@ -65,6 +66,7 @@ export function EdgePanel({
   edgeId,
   onEdgeDeleted,
   onSelectNode,
+  availableContextPreconditions = [],
 }: EdgePanelProps) {
   const edges = useEdges<Edge<RFEdgeData>>();
   const { setEdges } = useReactFlow();
@@ -276,6 +278,34 @@ export function EdgePanel({
     }
   };
 
+  // Context preconditions for this edge
+  const edgeContextPreconditionList =
+    edgeData?.contextPreconditions?.preconditions ?? [];
+
+  const unusedContextPreconditions = availableContextPreconditions.filter(
+    (cp) => !edgeContextPreconditionList.includes(cp),
+  );
+
+  const handleAddEdgeContextPrecondition = (value: string) => {
+    const current = edgeData?.contextPreconditions;
+    const updated = current
+      ? { ...current, preconditions: [...current.preconditions, value] }
+      : { preconditions: [value] };
+    updateEdgeData({ contextPreconditions: updated });
+  };
+
+  const handleRemoveEdgeContextPrecondition = (value: string) => {
+    const current = edgeData?.contextPreconditions;
+    if (!current) return;
+    const filtered = current.preconditions.filter((p) => p !== value);
+    updateEdgeData({
+      contextPreconditions:
+        filtered.length > 0
+          ? { ...current, preconditions: filtered }
+          : undefined,
+    });
+  };
+
   const updateMultiEdgeInput = (
     edgeId: string,
     field: keyof EdgePreconditionInput,
@@ -437,7 +467,7 @@ export function EdgePanel({
                         </Button>
                       </div>
 
-                      <div className="flex text-sm items-center gap-1 bg-muted rounded-md p-2">
+                      <div className="flex text-sm items-start gap-1 bg-muted rounded-md p-2">
                         {p.type === "user_said" && "\u201C"}
                         <div className="text-gray-600 text-[13px]">
                           {p.value}
@@ -445,11 +475,17 @@ export function EdgePanel({
                         {p.type === "user_said" && "\u201D"}
                       </div>
 
-                      {p.description && (
+                      {(p.description || (edgeData?.contextPreconditions && edgeData.contextPreconditions.preconditions.length > 0)) && (
                         <div className="flex w-full gap-1">
                           <div className="ml-0.5 w-[2px] bg-zinc-200 self-stretch"></div>
                           <div className="text-xs text-muted-foreground">
-                            {p.description}
+                            {p.description && <div>{p.description}</div>}
+                            {edgeData?.contextPreconditions && edgeData.contextPreconditions.preconditions.length > 0 && (
+                              <div className={p.description ? "mt-1" : ""}>
+                                <span>Context:</span>{" "}
+                                {edgeData.contextPreconditions.preconditions.join(", ")}
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
@@ -533,6 +569,61 @@ export function EdgePanel({
                     </div>
                   </div>
                 </Card>
+              )}
+            </div>
+          </div>
+
+          <Separator />
+
+          <div>
+            <div className="mb-1 flex items-center justify-between">
+              <Label>Context Preconditions</Label>
+            </div>
+
+            <div className="flex flex-col gap-1 mt-2">
+              {edgeContextPreconditionList.length === 0 && (
+                <div className="text-xs text-muted-foreground">
+                  No context preconditions on this edge.
+                </div>
+              )}
+
+              {edgeContextPreconditionList.map((cp) => (
+                <div
+                  key={cp}
+                  className="group/ecp flex items-center justify-between rounded-md border px-2 py-1"
+                >
+                  <span className="text-xs font-mono">{cp}</span>
+                  <Button
+                    variant="destructive"
+                    size="icon-xs"
+                    className="opacity-0 group-hover/ecp:opacity-100 transition-opacity"
+                    onClick={() => handleRemoveEdgeContextPrecondition(cp)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+
+              {unusedContextPreconditions.length > 0 && (
+                <div className="mt-1">
+                  <Select
+                    value=""
+                    onValueChange={(value) => {
+                      if (value) handleAddEdgeContextPrecondition(value);
+                    }}
+                  >
+                    <SelectTrigger className="w-full text-xs h-7">
+                      <SelectValue placeholder="Add context precondition..." />
+                    </SelectTrigger>
+                    <SelectContent className="p-1">
+                      {unusedContextPreconditions.map((cp) => (
+                        <SelectItem key={cp} value={cp}>
+                          {cp}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               )}
             </div>
           </div>

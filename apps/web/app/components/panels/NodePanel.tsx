@@ -282,21 +282,29 @@ export function NodePanel({
               <div className="flex flex-col ml-1 gap-1">
                 {incomingEdges.map((edge) => {
                   const value = edge.data?.preconditions?.[0]?.value;
+                  const contextPreconditions = edge.data?.contextPreconditions;
+                  const hasContext = contextPreconditions && contextPreconditions.preconditions.length > 0;
                   return (
                     <div key={edge.id}>
                       <div className="w-full flex justify-between items-center text-xs gap-1 py-1">
                         <div className="flex flex-col">
                           <div className="flex items-center">
                             {getEdgeTypeIcon(edge)}
-                            <span className="ml-0.5 text-[11px] truncate">
+                            <span className="ml-0.5 text-[11px]">
                               {edge.source}
                             </span>
                           </div>
-                          {value && (
+                          {(value || hasContext) && (
                             <div className="flex w-full gap-3 mt-1">
                               <div className="shrink-0 ml-1 w-[2px] bg-zinc-200 self-stretch"></div>
                               <div className="text-[10px] text-muted-foreground">
-                                {value}
+                                {value && <div>{value}</div>}
+                                {hasContext && (
+                                  <div className={value ? "mt-1" : ""}>
+                                    <span>Context:</span>{" "}
+                                    {contextPreconditions.preconditions.join(", ")}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           )}
@@ -354,21 +362,29 @@ export function NodePanel({
               <div className="flex flex-col ml-1 gap-1">
                 {outgoingEdges.map((edge) => {
                   const value = edge.data?.preconditions?.[0]?.value;
+                  const contextPreconditions = edge.data?.contextPreconditions;
+                  const hasContext = contextPreconditions && contextPreconditions.preconditions.length > 0;
                   return (
                     <div key={edge.id}>
                       <div className="w-full flex justify-between items-center text-xs gap-1 py-1">
                         <div className="flex flex-col">
                           <div className="flex items-center">
                             {getEdgeTypeIcon(edge)}
-                            <span className="ml-0.5 text-[11px] truncate">
+                            <span className="ml-0.5 text-[11px]">
                               {edge.target}
                             </span>
                           </div>
-                          {value && (
+                          {(value || hasContext) && (
                             <div className="flex w-full gap-3 mt-1">
                               <div className="shrink-0 ml-1 w-[2px] bg-zinc-200 self-stretch"></div>
                               <div className="text-[10px] text-muted-foreground">
-                                {value}
+                                {value && <div>{value}</div>}
+                                {hasContext && (
+                                  <div className={value ? "mt-1" : ""}>
+                                    <span>Context:</span>{" "}
+                                    {contextPreconditions.preconditions.join(", ")}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           )}
