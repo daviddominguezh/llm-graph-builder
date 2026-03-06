@@ -15,6 +15,7 @@
     "types": ["node", "jest"]
   },
     "references": [
+    { "path": "./packages/graph-types" },
     { "path": "./packages/web" },
     { "path": "./packages/api" },
   ],

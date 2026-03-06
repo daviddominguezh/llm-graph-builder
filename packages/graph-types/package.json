@@ -1,0 +1,30 @@
+{
+  "name": "@daviddh/graph-types",
+  "version": "1.0.0",
+  "description": "Shared Zod schemas and TypeScript types for the graph data model",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.d.ts.map"
+  ],
+  "scripts": {
+    "build": "rm -rf dist tsconfig.tsbuildinfo && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -b"
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "zod": "^4.3.6"
+  }
+}

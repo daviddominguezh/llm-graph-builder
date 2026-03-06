@@ -17,15 +17,8 @@
     "incremental": true,
     "declaration": true,
     "declarationMap": true,
-    "composite": true,
-    "types": ["node", "jest"],
-    "paths": {
-      "@src/*": ["./src/*"]
-    }
+    "composite": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist"],
-  "references": [
-    { "path": "../graph-types" }
-  ]
+  "exclude": ["node_modules", "dist"]
 }

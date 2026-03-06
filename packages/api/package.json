@@ -36,6 +36,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "@daviddh/graph-types": "*",
     "ai": "^6.0.116"
   }
 }
