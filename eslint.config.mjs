@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint';
 
 export default defineConfig([
   {
-    ignores: ['coverage/**', 'dist/**', '**/dist/**', 'node_modules/**', '**/node_modules/**', '**/.next/**', '*.config.js', '*.config.ts', 'examples/**'],
+    ignores: ['coverage/**', 'dist/**', '**/dist/**', 'node_modules/**', '**/node_modules/**', '**/.next/**', '*.config.js', '*.config.ts', 'examples/**', '**/lib/dagre.js', '**/next-env.d.ts'],
   },
   { files: ['**/*.{js,mjs,cjs,ts,mts,cts}'], plugins: { js }, extends: ['js/recommended'] },
   { files: ['**/*.{js,mjs,cjs,ts,mts,cts}'], languageOptions: { globals: globals.node } },

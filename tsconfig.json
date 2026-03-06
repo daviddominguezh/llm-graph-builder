@@ -14,10 +14,10 @@
     "resolveJsonModule": true,
     "types": ["node", "jest"]
   },
-    "references": [
+  "references": [
     { "path": "./packages/graph-types" },
     { "path": "./packages/web" },
-    { "path": "./packages/api" },
+    { "path": "./packages/api" }
   ],
   "files": []
 }

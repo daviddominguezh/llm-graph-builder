@@ -945,9 +945,7 @@
     {
       "from": "R_IdentifyAction",
       "to": "B_GetUserId",
-      "preconditions": [
-        { "type": "agent_decision", "value": "User wants to book a new flight" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "User wants to book a new flight" }]
     },
     {
       "from": "R_IdentifyAction",
@@ -1012,9 +1010,7 @@
     {
       "from": "R_AskMoreHelp",
       "to": "R_IdentifyAction",
-      "preconditions": [
-        { "type": "user_said", "value": "Yes, I need help with something else" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Yes, I need help with something else" }]
     },
     {
       "from": "R_AskMoreHelp",
@@ -1066,9 +1062,7 @@
     {
       "from": "B_TripType",
       "to": "B_RoundTripSelected",
-      "preconditions": [
-        { "type": "user_said", "value": "Round trip / Ida y vuelta" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Round trip / Ida y vuelta" }]
     },
     {
       "from": "B_OneWaySelected",
@@ -1091,9 +1085,7 @@
     {
       "from": "B_GetDates",
       "to": "B_SearchFlights",
-      "preconditions": [
-        { "type": "user_said", "value": "User provides travel date(s)" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "User provides travel date(s)" }]
     },
     {
       "from": "B_SearchFlights",
@@ -1109,9 +1101,7 @@
     {
       "from": "B_SelectFlights",
       "to": "B_SelectCabin",
-      "preconditions": [
-        { "type": "user_said", "value": "User selects preferred flight(s)" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "User selects preferred flight(s)" }]
     },
     {
       "from": "B_SelectCabin",
@@ -1163,16 +1153,12 @@
     {
       "from": "B_CheckMembership",
       "to": "B_SilverMember",
-      "preconditions": [
-        { "type": "agent_decision", "value": "User membership level is Silver" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "User membership level is Silver" }]
     },
     {
       "from": "B_CheckMembership",
       "to": "B_GoldMember",
-      "preconditions": [
-        { "type": "agent_decision", "value": "User membership level is Gold" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "User membership level is Gold" }]
     },
     {
       "from": "B_RegularMember",
@@ -1193,23 +1179,17 @@
     {
       "from": "B_AskExtraBags",
       "to": "B_AddExtraBags",
-      "preconditions": [
-        { "type": "user_said", "value": "Yes, I want extra bags" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Yes, I want extra bags" }]
     },
     {
       "from": "B_AskExtraBags",
       "to": "B_OfferInsurance",
-      "preconditions": [
-        { "type": "user_said", "value": "No extra bags needed / No thanks" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "No extra bags needed / No thanks" }]
     },
     {
       "from": "B_AddExtraBags",
       "to": "B_OfferInsurance",
-      "preconditions": [
-        { "type": "user_said", "value": "User specifies number of extra bags" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "User specifies number of extra bags" }]
     },
     {
       "from": "B_OfferInsurance",
@@ -1219,9 +1199,7 @@
     {
       "from": "B_OfferInsurance",
       "to": "B_SelectPayment",
-      "preconditions": [
-        { "type": "user_said", "value": "No insurance needed / No thanks" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "No insurance needed / No thanks" }]
     },
     {
       "from": "B_AddInsurance",
@@ -1240,9 +1218,7 @@
     {
       "from": "B_ConfirmDetails",
       "to": "B_ExecuteBooking",
-      "preconditions": [
-        { "type": "user_said", "value": "Yes, confirm booking" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Yes, confirm booking" }]
     },
     {
       "from": "B_ConfirmDetails",
@@ -1267,9 +1243,7 @@
     {
       "from": "B_Abort",
       "to": "R_IdentifyAction",
-      "preconditions": [
-        { "type": "user_said", "value": "User wants to do something else" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "User wants to do something else" }]
     },
 
     {
@@ -1286,23 +1260,17 @@
     {
       "from": "M_AskReservationId",
       "to": "M_GetReservationId",
-      "preconditions": [
-        { "type": "user_said", "value": "Yes, I have the reservation ID" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Yes, I have the reservation ID" }]
     },
     {
       "from": "M_AskReservationId",
       "to": "M_LookupReservation",
-      "preconditions": [
-        { "type": "user_said", "value": "No, I don't have the reservation ID" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "No, I don't have the reservation ID" }]
     },
     {
       "from": "M_GetReservationId",
       "to": "M_FetchDetails",
-      "preconditions": [
-        { "type": "user_said", "value": "User provides reservation ID" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "User provides reservation ID" }]
     },
     {
       "from": "M_LookupReservation",
@@ -1349,9 +1317,7 @@
     {
       "from": "M_SelectModType",
       "to": "MP_Rule",
-      "preconditions": [
-        { "type": "user_said", "value": "Update passenger information" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Update passenger information" }]
     },
 
     {
@@ -1385,9 +1351,7 @@
     {
       "from": "MF_SelectNewFlights",
       "to": "MF_CheckPriceDiff",
-      "preconditions": [
-        { "type": "user_said", "value": "User selects new flight(s)" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "User selects new flight(s)" }]
     },
     {
       "from": "MF_CheckPriceDiff",
@@ -1412,9 +1376,7 @@
     {
       "from": "MF_CheckPriceDiff",
       "to": "MF_Confirm",
-      "preconditions": [
-        { "type": "agent_decision", "value": "Price is the same" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "Price is the same" }]
     },
     {
       "from": "MF_PayMore",
@@ -1427,16 +1389,12 @@
     {
       "from": "MF_SelectPayment",
       "to": "MF_Confirm",
-      "preconditions": [
-        { "type": "user_said", "value": "User selects payment method" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "User selects payment method" }]
     },
     {
       "from": "MF_Confirm",
       "to": "MF_Execute",
-      "preconditions": [
-        { "type": "user_said", "value": "Yes, confirm changes" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Yes, confirm changes" }]
     },
     {
       "from": "MF_Confirm",
@@ -1461,9 +1419,7 @@
     {
       "from": "MF_Abort",
       "to": "R_IdentifyAction",
-      "preconditions": [
-        { "type": "user_said", "value": "User wants to do something else" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "User wants to do something else" }]
     },
 
     {
@@ -1493,16 +1449,12 @@
     {
       "from": "MC_SelectCabin",
       "to": "MC_CheckPriceDiff",
-      "preconditions": [
-        { "type": "user_said", "value": "User selects new cabin class" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "User selects new cabin class" }]
     },
     {
       "from": "MC_CheckPriceDiff",
       "to": "MC_PayDiff",
-      "preconditions": [
-        { "type": "agent_decision", "value": "New cabin costs more (upgrade)" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "New cabin costs more (upgrade)" }]
     },
     {
       "from": "MC_CheckPriceDiff",
@@ -1517,9 +1469,7 @@
     {
       "from": "MC_CheckPriceDiff",
       "to": "MC_Confirm",
-      "preconditions": [
-        { "type": "agent_decision", "value": "Price is the same" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "Price is the same" }]
     },
     {
       "from": "MC_PayDiff",
@@ -1532,9 +1482,7 @@
     {
       "from": "MC_Confirm",
       "to": "MC_Execute",
-      "preconditions": [
-        { "type": "user_said", "value": "Yes, confirm changes" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Yes, confirm changes" }]
     },
     {
       "from": "MC_Confirm",
@@ -1559,9 +1507,7 @@
     {
       "from": "MC_Abort",
       "to": "R_IdentifyAction",
-      "preconditions": [
-        { "type": "user_said", "value": "User wants to do something else" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "User wants to do something else" }]
     },
 
     {
@@ -1571,9 +1517,7 @@
     {
       "from": "MB_AddBags",
       "to": "MB_Confirm",
-      "preconditions": [
-        { "type": "user_said", "value": "User specifies number of bags to add" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "User specifies number of bags to add" }]
     },
     {
       "from": "MB_Confirm",
@@ -1603,9 +1547,7 @@
     {
       "from": "MB_Abort",
       "to": "R_IdentifyAction",
-      "preconditions": [
-        { "type": "user_said", "value": "User wants to do something else" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "User wants to do something else" }]
     },
 
     {
@@ -1655,9 +1597,7 @@
     {
       "from": "MP_Abort",
       "to": "R_IdentifyAction",
-      "preconditions": [
-        { "type": "user_said", "value": "User wants to do something else" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "User wants to do something else" }]
     },
 
     {
@@ -1674,23 +1614,17 @@
     {
       "from": "C_AskReservationId",
       "to": "C_GetReservationId",
-      "preconditions": [
-        { "type": "user_said", "value": "Yes, I have the reservation ID" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Yes, I have the reservation ID" }]
     },
     {
       "from": "C_AskReservationId",
       "to": "C_LookupReservation",
-      "preconditions": [
-        { "type": "user_said", "value": "No, I don't have the reservation ID" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "No, I don't have the reservation ID" }]
     },
     {
       "from": "C_GetReservationId",
       "to": "C_FetchDetails",
-      "preconditions": [
-        { "type": "user_said", "value": "User provides reservation ID" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "User provides reservation ID" }]
     },
     {
       "from": "C_LookupReservation",
@@ -1717,23 +1651,17 @@
     {
       "from": "C_AskReason",
       "to": "C_ReasonChangeOfPlan",
-      "preconditions": [
-        { "type": "user_said", "value": "Change of plan / Changed my mind" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Change of plan / Changed my mind" }]
     },
     {
       "from": "C_AskReason",
       "to": "C_ReasonAirlineCancelled",
-      "preconditions": [
-        { "type": "user_said", "value": "Airline cancelled the flight" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Airline cancelled the flight" }]
     },
     {
       "from": "C_AskReason",
       "to": "C_ReasonHealthWeather",
-      "preconditions": [
-        { "type": "user_said", "value": "Health reasons / Weather reasons" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Health reasons / Weather reasons" }]
     },
     {
       "from": "C_AskReason",
@@ -1823,9 +1751,7 @@
     {
       "from": "C_CheckBusinessClass",
       "to": "C_Allowed",
-      "preconditions": [
-        { "type": "agent_decision", "value": "Reservation is Business class" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "Reservation is Business class" }]
     },
     {
       "from": "C_CheckBusinessClass",
@@ -1888,9 +1814,7 @@
     {
       "from": "C_Confirm",
       "to": "C_Execute",
-      "preconditions": [
-        { "type": "user_said", "value": "Yes, confirm cancellation" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Yes, confirm cancellation" }]
     },
     {
       "from": "C_Confirm",
@@ -1919,9 +1843,7 @@
     {
       "from": "C_Abort",
       "to": "R_IdentifyAction",
-      "preconditions": [
-        { "type": "user_said", "value": "User wants to do something else" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "User wants to do something else" }]
     },
 
     {
@@ -1947,30 +1869,22 @@
     {
       "from": "COMP_NoProactiveOffer",
       "to": "R_IdentifyAction",
-      "preconditions": [
-        { "type": "user_said", "value": "User makes a new request" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "User makes a new request" }]
     },
     {
       "from": "COMP_CheckMembership",
       "to": "COMP_Eligible",
-      "preconditions": [
-        { "type": "agent_decision", "value": "User is Silver or Gold member" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "User is Silver or Gold member" }]
     },
     {
       "from": "COMP_CheckMembership",
       "to": "COMP_CheckInsurance",
-      "preconditions": [
-        { "type": "agent_decision", "value": "User is Regular member" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "User is Regular member" }]
     },
     {
       "from": "COMP_CheckInsurance",
       "to": "COMP_Eligible",
-      "preconditions": [
-        { "type": "agent_decision", "value": "User has travel insurance" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "User has travel insurance" }]
     },
     {
       "from": "COMP_CheckInsurance",
@@ -1985,9 +1899,7 @@
     {
       "from": "COMP_CheckBusinessClass",
       "to": "COMP_Eligible",
-      "preconditions": [
-        { "type": "agent_decision", "value": "User is flying Business class" }
-      ]
+      "preconditions": [{ "type": "agent_decision", "value": "User is flying Business class" }]
     },
     {
       "from": "COMP_CheckBusinessClass",
@@ -2010,9 +1922,7 @@
     {
       "from": "COMP_AskType",
       "to": "COMP_CancelledFlight",
-      "preconditions": [
-        { "type": "user_said", "value": "Flight was cancelled by the airline" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Flight was cancelled by the airline" }]
     },
     {
       "from": "COMP_AskType",
@@ -2046,9 +1956,7 @@
     {
       "from": "COMP_CancelledCertificate",
       "to": "COMP_Success",
-      "preconditions": [
-        { "type": "user_said", "value": "Yes, I accept the certificate" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Yes, I accept the certificate" }]
     },
     {
       "from": "COMP_CancelledCertificate",
@@ -2062,16 +1970,12 @@
     {
       "from": "COMP_DelayedAction",
       "to": "COMP_DelayedToModify",
-      "preconditions": [
-        { "type": "user_said", "value": "I want to modify my reservation" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "I want to modify my reservation" }]
     },
     {
       "from": "COMP_DelayedAction",
       "to": "COMP_DelayedToCancel",
-      "preconditions": [
-        { "type": "user_said", "value": "I want to cancel my reservation" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "I want to cancel my reservation" }]
     },
     {
       "from": "COMP_DelayedToModify",
@@ -2107,9 +2011,7 @@
     {
       "from": "COMP_DelayedCertificate",
       "to": "COMP_Success",
-      "preconditions": [
-        { "type": "user_said", "value": "Yes, I accept the certificate" }
-      ]
+      "preconditions": [{ "type": "user_said", "value": "Yes, I accept the certificate" }]
     },
     {
       "from": "COMP_DelayedCertificate",

@@ -11,7 +11,7 @@ export interface Context {
 }
 
 export interface ToolResponsePrompt {
-  type: "tool-result";
+  type: 'tool-result';
   toolCallId: string;
   toolName: string;
   result: { result: unknown };

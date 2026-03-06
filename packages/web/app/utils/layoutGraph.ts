@@ -1,5 +1,6 @@
-import type { Node, Edge } from "../schemas/graph.schema";
-import { dagre } from "../lib/dagre";
+import type { DagreGraph } from '../lib/dagre';
+import { dagre } from '../lib/dagre';
+import type { Edge, Node } from '../schemas/graph.schema';
 
 interface NodeDimensions {
   width: number;
@@ -11,13 +12,90 @@ interface LayoutOptions {
   verticalSpacing?: number;
   defaultNodeWidth?: number;
   defaultNodeHeight?: number;
-  nodeDimensions?: Record<string, NodeDimensions>; // Per-node dimensions
-  rankdir?: "TB" | "BT" | "LR" | "RL";
+  nodeDimensions?: Record<string, NodeDimensions>;
+  rankdir?: 'TB' | 'BT' | 'LR' | 'RL';
 }
 
 interface LayoutResult {
   nodes: Node[];
-  edges: Edge[]; // All edges, not just tree edges
+  edges: Edge[];
+}
+
+const DEFAULT_HORIZONTAL_SPACING = 150;
+const DEFAULT_VERTICAL_SPACING = 50;
+const DEFAULT_NODE_WIDTH = 180;
+const DEFAULT_NODE_HEIGHT = 130;
+const GRAPH_MARGIN = 20;
+const HALF_DIVISOR = 2;
+const ORIGIN = 0;
+
+interface ResolvedConfig {
+  horizontalSpacing: number;
+  verticalSpacing: number;
+  defaultNodeWidth: number;
+  defaultNodeHeight: number;
+  nodeDimensions: Record<string, NodeDimensions>;
+  rankdir: 'TB' | 'BT' | 'LR' | 'RL';
+}
+
+function resolveOptions(options: LayoutOptions): ResolvedConfig {
+  return {
+    horizontalSpacing: options.horizontalSpacing ?? DEFAULT_HORIZONTAL_SPACING,
+    verticalSpacing: options.verticalSpacing ?? DEFAULT_VERTICAL_SPACING,
+    defaultNodeWidth: options.defaultNodeWidth ?? DEFAULT_NODE_WIDTH,
+    defaultNodeHeight: options.defaultNodeHeight ?? DEFAULT_NODE_HEIGHT,
+    nodeDimensions: options.nodeDimensions ?? {},
+    rankdir: options.rankdir ?? 'LR',
+  };
+}
+
+function getDimensions(config: ResolvedConfig, nodeId: string): NodeDimensions {
+  return (
+    config.nodeDimensions[nodeId] ?? { width: config.defaultNodeWidth, height: config.defaultNodeHeight }
+  );
+}
+
+function buildDagreGraph(nodes: Node[], edges: Edge[], config: ResolvedConfig): DagreGraph {
+  const g = new dagre.graphlib.Graph();
+
+  g.setGraph({
+    rankdir: config.rankdir,
+    nodesep: config.verticalSpacing,
+    ranksep: config.horizontalSpacing,
+    marginx: GRAPH_MARGIN,
+    marginy: GRAPH_MARGIN,
+  });
+
+  g.setDefaultEdgeLabel(() => ({}));
+
+  nodes.forEach((node) => {
+    const dims = getDimensions(config, node.id);
+    g.setNode(node.id, { width: dims.width, height: dims.height, label: node.id });
+  });
+
+  edges.forEach((edge) => {
+    g.setEdge(edge.from, edge.to);
+  });
+
+  return g;
+}
+
+function extractPositions(g: DagreGraph, config: ResolvedConfig): Map<string, { x: number; y: number }> {
+  const positions = new Map<string, { x: number; y: number }>();
+
+  g.nodes().forEach((nodeId: string) => {
+    const dagreNode = g.node(nodeId);
+    const dims = getDimensions(config, nodeId);
+
+    if (dagreNode !== undefined) {
+      positions.set(nodeId, {
+        x: dagreNode.x - dims.width / HALF_DIVISOR,
+        y: dagreNode.y - dims.height / HALF_DIVISOR,
+      });
+    }
+  });
+
+  return positions;
 }
 
 /**
@@ -26,86 +104,22 @@ interface LayoutResult {
  * - Minimizes edge crossings
  * - Respects per-node dimensions
  */
-export function layoutGraph(
-  nodes: Node[],
-  edges: Edge[],
-  options: LayoutOptions = {}
-): LayoutResult {
-  const {
-    horizontalSpacing = 150,
-    verticalSpacing = 50,
-    defaultNodeWidth = 180,
-    defaultNodeHeight = 130,
-    nodeDimensions = {},
-    rankdir = "LR",
-  } = options;
-
-  if (nodes.length === 0) {
+export function layoutGraph(nodes: Node[], edges: Edge[], options: LayoutOptions = {}): LayoutResult {
+  if (nodes.length === ORIGIN) {
     return { nodes: [], edges: [] };
   }
 
-  // Helper to get node dimensions
-  const getNodeDimensions = (nodeId: string): NodeDimensions => {
-    return nodeDimensions[nodeId] ?? { width: defaultNodeWidth, height: defaultNodeHeight };
-  };
+  const config = resolveOptions(options);
+  const g = buildDagreGraph(nodes, edges, config);
 
-  // Create a new dagre graph
-  const g = new dagre.graphlib.Graph();
-
-  // Set graph options
-  g.setGraph({
-    rankdir,
-    nodesep: verticalSpacing,  // Vertical spacing between nodes in same rank
-    ranksep: horizontalSpacing, // Horizontal spacing between ranks
-    marginx: 20,
-    marginy: 20,
-  });
-
-  // Default edge label
-  g.setDefaultEdgeLabel(() => ({}));
-
-  // Add nodes with their specific dimensions
-  nodes.forEach((node) => {
-    const dims = getNodeDimensions(node.id);
-    g.setNode(node.id, {
-      width: dims.width,
-      height: dims.height,
-      label: node.id,
-    });
-  });
-
-  // Add ALL edges (dagre handles back-edges and cycles)
-  edges.forEach((edge) => {
-    g.setEdge(edge.from, edge.to);
-  });
-
-  // Run the layout algorithm
   dagre.layout(g);
 
-  // Extract positions from dagre
-  const positions = new Map<string, { x: number; y: number }>();
+  const positions = extractPositions(g, config);
 
-  g.nodes().forEach((nodeId: string) => {
-    const dagreNode = g.node(nodeId);
-    const dims = getNodeDimensions(nodeId);
-    if (dagreNode) {
-      // dagre returns center coordinates, we want top-left
-      positions.set(nodeId, {
-        x: dagreNode.x - dims.width / 2,
-        y: dagreNode.y - dims.height / 2,
-      });
-    }
-  });
-
-  // Build final positioned nodes
   const layoutedNodes = nodes.map((node) => ({
     ...node,
-    position: positions.get(node.id) ?? { x: 0, y: 0 },
+    position: positions.get(node.id) ?? { x: ORIGIN, y: ORIGIN },
   }));
 
-  // Return ALL edges (not filtered)
-  return {
-    nodes: layoutedNodes,
-    edges: edges,
-  };
+  return { nodes: layoutedNodes, edges };
 }

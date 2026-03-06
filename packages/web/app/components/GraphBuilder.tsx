@@ -10,7 +10,6 @@ import {
   ReactFlowProvider,
   useNodesState,
   useEdgesState,
-  useStoreApi,
   addEdge,
   type Connection,
   type Node,
@@ -46,7 +45,6 @@ import {
   type RFEdgeData,
 } from "../utils/graphTransformers";
 
-const MIN_DISTANCE = 150;
 const START_NODE_ID = "INITIAL_STEP";
 const DEFAULT_FIRST_NODE_ID = "first_node";
 const DEFAULT_NODE_WIDTH = 180;
@@ -138,11 +136,9 @@ const initialEdges = createInitialEdges();
 
 function GraphBuilderInner() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const store = useStoreApi();
   const {
     screenToFlowPosition,
     fitView,
-    getInternalNode,
     setViewport,
     getViewport,
   } = useReactFlow();
@@ -152,7 +148,6 @@ function GraphBuilderInner() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
   // Local UI state
-  const [tempEdge, setTempEdge] = useState<Edge | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [agents] = useState<Agent[]>(GRAPH_DATA?.graph.agents ?? []);
@@ -345,97 +340,6 @@ function GraphBuilderInner() {
     setConnectionMenu(null);
     setGlobalPanelOpen(false);
   }, []);
-
-  const getClosestEdge = useCallback(
-    (node: Node) => {
-      const { nodeLookup } = store.getState();
-      const internalNode = getInternalNode(node.id);
-      if (!internalNode) return null;
-
-      const closestNode = Array.from(nodeLookup.values()).reduce(
-        (res: { distance: number; node: typeof internalNode | null }, n) => {
-          // Skip self and start node (start node cannot be a target)
-          if (n.id !== internalNode.id && n.id !== START_NODE_ID) {
-            const dx =
-              n.internals.positionAbsolute.x -
-              internalNode.internals.positionAbsolute.x;
-            const dy =
-              n.internals.positionAbsolute.y -
-              internalNode.internals.positionAbsolute.y;
-            const d = Math.sqrt(dx * dx + dy * dy);
-
-            if (d < res.distance && d < MIN_DISTANCE) {
-              res.distance = d;
-              res.node = n;
-            }
-          }
-          return res;
-        },
-        { distance: Number.MAX_VALUE, node: null },
-      );
-
-      if (!closestNode.node) {
-        return null;
-      }
-
-      const closeNodeIsSource =
-        closestNode.node.internals.positionAbsolute.x <
-        internalNode.internals.positionAbsolute.x;
-
-      // Determine source and target
-      const source = closeNodeIsSource ? closestNode.node.id : node.id;
-      const target = closeNodeIsSource ? node.id : closestNode.node.id;
-
-      // Prevent start node from being a target
-      if (target === START_NODE_ID) return null;
-
-      return {
-        id: `${source}-${target}`,
-        source,
-        target,
-      };
-    },
-    [store, getInternalNode],
-  );
-
-  const onNodeDrag = useCallback(
-    (_: React.MouseEvent, node: Node) => {
-      const closeEdge = getClosestEdge(node);
-
-      if (closeEdge) {
-        const edgeExists = edges.some(
-          (e) => e.source === closeEdge.source && e.target === closeEdge.target,
-        );
-        if (!edgeExists) {
-          setTempEdge({ ...closeEdge, className: "temp opacity-50" });
-        } else {
-          setTempEdge(null);
-        }
-      } else {
-        setTempEdge(null);
-      }
-    },
-    [getClosestEdge, edges],
-  );
-
-  const onNodeDragStop = useCallback(
-    (_: React.MouseEvent, node: Node) => {
-      const closeEdge = getClosestEdge(node);
-      setTempEdge(null);
-
-      if (closeEdge) {
-        const edgeExists = edges.some(
-          (e) => e.source === closeEdge.source && e.target === closeEdge.target,
-        );
-        if (!edgeExists) {
-          setEdges((eds) =>
-            addEdge({ ...closeEdge, type: "precondition" }, eds),
-          );
-        }
-      }
-    },
-    [getClosestEdge, edges, setEdges],
-  );
 
   const handleAddNode = useCallback(() => {
     const id = `node_${nanoid(8)}`;
@@ -667,8 +571,7 @@ function GraphBuilderInner() {
     }
   }, [savedGraphState, setNodes, setEdges, setViewport]);
 
-  // Combine edges with temp edge for display
-  const displayEdges = tempEdge ? [...edges, tempEdge] : edges;
+  const displayEdges = edges;
 
   // Filter global nodes out of the canvas
   const displayNodes = nodes.filter(

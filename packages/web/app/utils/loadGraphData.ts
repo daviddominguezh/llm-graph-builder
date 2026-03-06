@@ -1,35 +1,40 @@
-import type { Graph } from "../schemas/graph.schema";
-import { GraphSchema } from "../schemas/graph.schema";
-import { layoutGraph } from "./layoutGraph";
-import graphData from "../data/ecommerce.json";
+import graphData from '../data/ecommerce.json';
+import type { Graph } from '../schemas/graph.schema';
+import { GraphSchema } from '../schemas/graph.schema';
+import { layoutGraph } from './layoutGraph';
 
 interface LoadGraphResult {
   graph: Graph;
   nodeWidth: number;
 }
 
-function calculateNodeWidth(nodes: Graph["nodes"]): number {
+const CHAR_WIDTH_FACTOR = 7.5;
+const INITIAL_STEP_WIDTH = 100;
+const INITIAL_STEP_HEIGHT = 44;
+const DEFAULT_NODE_HEIGHT = 130;
+const FIXED_NODE_HEIGHT = 220;
+const NO_SPACING = 0;
+const HALF_DIVISOR = 2;
+
+function calculateNodeWidth(nodes: Graph['nodes']): number {
   const maxIdLength = Math.max(...nodes.map((n) => n.id.length));
   const nodePadding = 40;
-  return maxIdLength * 7.5 + nodePadding;
+  return maxIdLength * CHAR_WIDTH_FACTOR + nodePadding;
 }
-
-const FIXED_NODE_HEIGHT = 220;
 
 /**
  * Calculate per-node dimensions for layout.
- * All nodes have fixed height of 133px except INITIAL_STEP.
+ * All nodes have fixed height except INITIAL_STEP.
  */
 function calculateNodeDimensions(
-  nodes: Graph["nodes"],
+  nodes: Graph['nodes'],
   nodeWidth: number
 ): Record<string, { width: number; height: number }> {
   const dimensions: Record<string, { width: number; height: number }> = {};
 
   for (const node of nodes) {
-    // Special case: INITIAL_STEP is a small StartNode button
-    if (node.id === "INITIAL_STEP") {
-      dimensions[node.id] = { width: 100, height: 44 };
+    if (node.id === 'INITIAL_STEP') {
+      dimensions[node.id] = { width: INITIAL_STEP_WIDTH, height: INITIAL_STEP_HEIGHT };
       continue;
     }
 
@@ -46,17 +51,15 @@ function ensureNodePositions(graph: Graph, nodeWidth: number): Graph {
     return graph;
   }
 
-  const horizontalGap = 0;
-  const verticalGap = 0;
   const nodeDimensions = calculateNodeDimensions(graph.nodes, nodeWidth);
 
   const layoutResult = layoutGraph(graph.nodes, graph.edges, {
-    horizontalSpacing: nodeWidth + horizontalGap,
-    verticalSpacing: verticalGap,
+    horizontalSpacing: nodeWidth,
+    verticalSpacing: NO_SPACING,
     defaultNodeWidth: nodeWidth,
-    defaultNodeHeight: 130,
+    defaultNodeHeight: DEFAULT_NODE_HEIGHT,
     nodeDimensions,
-    rankdir: "LR",
+    rankdir: 'LR',
   });
 
   return {
@@ -80,37 +83,29 @@ export function loadGraphData(): LoadGraphResult | null {
   const result = GraphSchema.safeParse(graphData);
 
   if (!result.success) {
-    console.error(
-      "[loadGraphData] Graph validation failed:",
-      result.error.format(),
-    );
     return null;
   }
 
   return processGraph(result.data);
 }
 
-export function findInitialNodePosition(
-  graph: Graph,
-): { x: number; y: number } | null {
-  const initialNode = graph.nodes.find((n) => n.id === "INITIAL_STEP");
+export function findInitialNodePosition(graph: Graph): { x: number; y: number } | null {
+  const initialNode = graph.nodes.find((n) => n.id === 'INITIAL_STEP');
   return initialNode?.position ?? null;
 }
 
 export function calculateInitialViewport(
   initialNodePosition: { x: number; y: number },
-  containerHeight: number,
+  containerHeight: number
 ): { x: number; y: number; zoom: number } {
-  const nodeHeight = 44; // Start node height
   const padding = 50;
   const zoom = 0.8;
 
-  // Center the node vertically, accounting for zoom
-  const nodeCenterY = initialNodePosition.y + nodeHeight / 2;
+  const nodeCenterY = initialNodePosition.y + INITIAL_STEP_HEIGHT / HALF_DIVISOR;
 
   return {
     x: -initialNodePosition.x * zoom + padding,
-    y: containerHeight / 2 - nodeCenterY * zoom,
+    y: containerHeight / HALF_DIVISOR - nodeCenterY * zoom,
     zoom,
   };
 }
