@@ -22,6 +22,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-markdown": "^10.1.0",
+    "rehype-starry-night": "^2.2.0",
     "remark-gfm": "^4.0.1",
     "shadcn": "^3.7.0",
     "tailwind-merge": "^3.4.0",

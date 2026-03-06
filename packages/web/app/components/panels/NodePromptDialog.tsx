@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { Loader2, SquareTerminal } from "lucide-react";
 import { useNodes, useEdges } from "@xyflow/react";
-import Markdown from "react-markdown";
+import { MarkdownHooks } from "react-markdown";
+import rehypeStarryNight from "rehype-starry-night";
 import remarkGfm from "remark-gfm";
+import "@wooorm/starry-night/style/both";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -69,8 +71,12 @@ function PromptContent({ state }: { state: PromptState }) {
         <TabsTrigger value="markdown">Markdown</TabsTrigger>
         <TabsTrigger value="plain">Plain text</TabsTrigger>
       </TabsList>
-      <TabsContent value="markdown" className="flex-1 min-h-0 overflow-y-auto rounded-md border p-3 text-xs whitespace-pre-wrap">
-        <Markdown remarkPlugins={[remarkGfm]}>{state.text}</Markdown>
+      <TabsContent value="markdown" className="flex-1 min-h-0 overflow-y-auto rounded-md border p-3 text-xs">
+        <div className="markdown-content">
+          <MarkdownHooks remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeStarryNight]}>
+            {state.text}
+          </MarkdownHooks>
+        </div>
       </TabsContent>
       <TabsContent value="plain" className="flex-1 min-h-0 overflow-y-auto rounded-md border p-3 text-xs font-mono whitespace-pre-wrap">
         {state.text}

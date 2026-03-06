@@ -125,6 +125,11 @@
   }
 }
 
+/* Revert Tailwind Preflight inside markdown so browser defaults apply */
+.markdown-content * {
+  all: revert;
+}
+
 /* React Flow Theme */
 .react-flow {
   --xy-background-color: #f7f9fb;

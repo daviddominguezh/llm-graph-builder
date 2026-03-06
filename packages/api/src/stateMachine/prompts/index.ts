@@ -5,10 +5,12 @@ import { insertValuesInText } from '../format/utils.js';
 import { getNode } from '../graph/index.js';
 
 export const AGENT_REPLY_SCHEMA = `
+\`\`\`json
 {
   "nextNodeID": "<NODE_ID>",
   "messageToUser": "<YOUR_REPLY>"
 }
+\`\`\`
 
 **IMPORTANT**: Your "messageToUser" must always be in the same language the user is writing
 `.trim();
@@ -37,16 +39,14 @@ export const SM_BASE_JSON_PROMPT = `Return **ONLY a valid JSON object with this 
 export const SM_SCHEMA_AGENTREPLY_PROMPT = `
 ${SM_BASE_JSON_PROMPT}
 
-\`\`\`json
 ${AGENT_REPLY_SCHEMA}
-\`\`\`
 `.trim();
 
 export const SM_SCHEMA_AGENTDECISION_PROMPT = `
 ${SM_BASE_JSON_PROMPT}
 
 ## REQUIRED OUTPUT JSON (MANDATORY)
- Respond with ONLY this structure::
+Respond with ONLY this structure::
 
 ${AGENT_REPLY_SCHEMA}
 
@@ -55,7 +55,7 @@ ${AGENT_REPLY_SCHEMA}
 
 export const REPLY_PROMPT = `
 ## REQUIRED JSON OUTPUT (MANDATORY)
- Respond with ONLY this structure:
+Respond with ONLY this structure:
 
 ${AGENT_REPLY_SCHEMA}
 
@@ -72,9 +72,8 @@ export const AGENT_DECISION_PROMPT = `${REPLY_PROMPT}
 ## FAILURE MODE: If you call a tool the system will CRASH
 
 ## SUCCESS MODE: Respond with ONLY this structure:
-\`\`\`json
-${AGENT_REPLY_SCHEMA}
-\`\`\``.trim();
+
+${AGENT_REPLY_SCHEMA}`.trim();
 
 // export const SM_BASE_PROMPT_NEXT_OPTION_IS_TOOL = `Emit ONLY valid JSON matching the tool schema. No comments, no trailing commas, no explanations in the inputs. Following this instructions,**CALL NOW THE TOOL:**:`;
 export const SM_BASE_PROMPT_NEXT_OPTION_IS_TOOL = `You must immediately call the tool {toolName}.
