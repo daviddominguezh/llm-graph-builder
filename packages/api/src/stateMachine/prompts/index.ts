@@ -1,3 +1,4 @@
+import type { Graph } from '@src/types/graph.js';
 import type { Context } from '@src/types/tools.js';
 
 import { insertValuesInText } from '../format/utils.js';
@@ -117,7 +118,7 @@ interface GenerateToolReplyPromptParams {
   description?: string;
 }
 
-export const generateToolReplyPrompt = (params: GenerateToolReplyPromptParams): string => {
+export const generateToolReplyPrompt = (graph: Graph, params: GenerateToolReplyPromptParams): string => {
   const { ctx, nodeId, nodeName, textExample, description } = params;
 
   const promptNode = `${SM_TOOLREPLY_NODE_REPLY}: "${nodeId}"`;
@@ -127,7 +128,7 @@ export const generateToolReplyPrompt = (params: GenerateToolReplyPromptParams): 
 
   let promptUserExample: string | undefined = undefined;
 
-  const node = getNode(nodeName);
+  const node = getNode(graph, nodeName);
   // THIS IF HANDLES ONLY THE USER EXAMPLES
   if (node.nextNodeIsUser === true) {
     // IMPORTANT: We no longer include specific example phrases in the prompt

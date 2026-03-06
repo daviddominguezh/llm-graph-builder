@@ -1,6 +1,6 @@
 import { FIRST_INDEX, INCREMENT_BY_ONE, INITIAL_STEP_NODE } from '@src/constants/index.js';
 import type { Graph } from '@src/types/graph.js';
-import type { SMNextOptions, SMPrompt } from '@src/types/stateMachine.js';
+import type { SMConfig, SMNextOptions } from '@src/types/stateMachine.js';
 import type { Context } from '@src/types/tools.js';
 
 import { convertEdgesToStr } from './format/index.js';
@@ -94,28 +94,28 @@ const buildUserReplyOptions = (params: BuildUserReplyOptionsParams): SMNextOptio
 });
 
 export const getNextOptions = async (
+  graph: Graph,
   context: Context,
-  currentNode: string,
-  isTest = false
+  currentNode: string
 ): Promise<SMNextOptions> => {
-  const node = getNode(currentNode);
-  const edges = await getEdgesFromNode(context, currentNode);
-  const toolsByEdge = getToolsFromEdges(context, edges, isTest);
+  const node = getNode(graph, currentNode);
+  const edges = await getEdgesFromNode(graph, context, currentNode);
+  const toolsByEdge = getToolsFromEdges(context, edges);
 
-  if (edges.length === FIRST_INDEX) {
-    return createTerminalNodeOptions(node, {});
-  }
+  if (edges.length === FIRST_INDEX) return createTerminalNodeOptions(node, {});
 
   const { [FIRST_INDEX]: firstEdgeEntry } = edges;
-  if (firstEdgeEntry === undefined) {
-    return createTerminalNodeOptions(node, {});
-  }
+  if (firstEdgeEntry === undefined) return createTerminalNodeOptions(node, {});
 
   const firstEdge = firstEdgeEntry.preconditions ?? [];
   const toolCall = firstEdge.find((edge) => edge.type === 'tool_call');
   const agentDecision = firstEdge.find((edge) => edge.type === 'agent_decision');
 
-  const { withPreconditions, withoutToolPreconditions, nodes } = await convertEdgesToStr(context, edges);
+  const { withPreconditions, withoutToolPreconditions, nodes } = await convertEdgesToStr(
+    graph,
+    context,
+    edges
+  );
 
   const availableNextNodeIDs = edges.map((_, i) => `- "${i + INCREMENT_BY_ONE}"`).join('\n');
   const nodeIdsSuffix = `\n\n**IMPORTANT**: The ONLY available nextNodeID's are:\n${availableNextNodeIDs}`;
@@ -182,14 +182,13 @@ const appendKindSpecificPrompts = (
   return { prompt: basePrompt, promptWithoutTools: basePromptWithoutTools };
 };
 
-export const buildNextPromptConfig = async (
+export const buildNextAgentConfig = async (
   graph: Graph,
   context: Context,
-  cn?: string,
-  isTest = false
-): Promise<SMPrompt> => {
+  cn?: string
+): Promise<SMConfig> => {
   const currentNode = cn ?? INITIAL_STEP_NODE;
-  const nextOptions = await getNextOptions(context, currentNode, isTest);
+  const nextOptions = await getNextOptions(graph, context, currentNode);
 
   const { kind } = nextOptions;
   const { prompt: mPrompt, promptWithoutTools: mPromptWithoutToolPreconditions } = appendKindSpecificPrompts(
@@ -206,7 +205,7 @@ export const buildNextPromptConfig = async (
       ? mPromptWithoutToolPreconditions
       : `${mPromptWithoutToolPreconditions}\n\n${userContext}`;
 
-  const promptConfig: SMPrompt = {
+  const promptConfig: SMConfig = {
     node: nextOptions.node,
     prompt: finalPrompt,
     promptWithoutToolPreconditions: finalPromptWithoutTools,

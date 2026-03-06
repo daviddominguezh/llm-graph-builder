@@ -1,7 +1,7 @@
 import type { Tool, ToolChoice, ToolSet } from 'ai';
 
-import { generateAllCloserTools } from '@src/ai/tools/index.js';
 import { FIRST_INDEX } from '@src/constants/index.js';
+import { generateAllTools } from '@src/tools/index.js';
 import type { Edge, Graph, Node } from '@src/types/graph.js';
 import {
   type EdgeTools,
@@ -14,29 +14,7 @@ import type { Context } from '@src/types/tools.js';
 
 import { CONTEXT_PRECONDITIONS } from './contextPreconditions.js';
 
-// Type guard to validate the imported JSON structure
-const isGraph = (obj: unknown): obj is Graph => {
-  if (typeof obj !== 'object' || obj === null) {
-    return false;
-  }
-  return (
-    'startNode' in obj &&
-    'nodes' in obj &&
-    'edges' in obj &&
-    typeof obj.startNode === 'string' &&
-    Array.isArray(obj.nodes) &&
-    Array.isArray(obj.edges)
-  );
-};
-
-// JSON import with type validation
-const STATE_MACHINE: Graph = isGraph(GraphJSON)
-  ? GraphJSON
-  : (() => {
-      throw new Error('Invalid flow graph JSON');
-    })();
-
-export const getNode = (nodeID: string): Node => {
+export const getNode = (graph: Graph, nodeID: string): Node => {
   if (nodeID === '') {
     throw new Error('No nodeID provided');
   }
@@ -44,14 +22,15 @@ export const getNode = (nodeID: string): Node => {
   if (id.length === FIRST_INDEX) {
     throw new Error('No nodeID provided');
   }
-  const node = STATE_MACHINE.nodes.find((mNode) => mNode.id.trim() === id);
+  const node = graph.nodes.find((mNode) => mNode.id.trim() === id);
   if (node === undefined) {
     throw new Error(`No node found with id ${id}`);
   }
   return node;
 };
 
-export const getNodeDescription = (nodeID: string): string | undefined => getNode(nodeID).description;
+export const getNodeDescription = (graph: Graph, nodeID: string): string | undefined =>
+  getNode(graph, nodeID).description;
 
 export const populateSkillEdges = (from: string, edges: Edge[]): Edge[] => {
   const skills: SKILL[] = [SKILL.ReplyUserRequestForInfo];
@@ -106,8 +85,8 @@ export const getToolsFromEdge = (allTools: Record<string, Tool>, edge: Edge): Ed
   };
 };
 
-export const getToolsFromEdges = (context: Context, edges: Edge[], isTest = false): ToolsByEdge => {
-  const genTools = generateAllCloserTools(context, isTest);
+export const getToolsFromEdges = (context: Context, edges: Edge[]): ToolsByEdge => {
+  const genTools = generateAllTools(context);
   const tools: ToolsByEdge = {};
   for (const edge of edges) {
     tools[edge.to] = getToolsFromEdge(genTools, edge);
@@ -115,14 +94,17 @@ export const getToolsFromEdges = (context: Context, edges: Edge[], isTest = fals
   return tools;
 };
 
-const isValidContextPrecondition = (prec: string): prec is ContextPrecondition =>
-  prec in CONTEXT_PRECONDITIONS;
+const isValidContextPrecondition = (prec: string): prec is string => prec in CONTEXT_PRECONDITIONS;
 
 const evaluatePreconditions = async (context: Context, preconditions: string[]): Promise<boolean> => {
   const validPreconditions = preconditions.filter(isValidContextPrecondition);
   const preconditionFns = validPreconditions.map((prec) => CONTEXT_PRECONDITIONS[prec]);
 
-  const results = await Promise.allSettled(preconditionFns.map(async (func) => await func(context)));
+  const results = await Promise.allSettled(
+    preconditionFns.map(async (func) => {
+      if (func !== undefined) return await func(context);
+    })
+  );
 
   const anyFailed = results.find((res) => res.status !== 'fulfilled');
   if (anyFailed !== undefined) {
@@ -150,9 +132,9 @@ const evaluateEdge = async (context: Context, edge: Edge): Promise<{ edge: Edge;
   return { edge, isValid: allPassed };
 };
 
-export const getEdgesFromNode = async (context: Context, nodeID: string): Promise<Edge[]> => {
-  const node = getNode(nodeID);
-  const mEdges = STATE_MACHINE.edges.filter((edge) => edge.from === node.id);
+export const getEdgesFromNode = async (graph: Graph, context: Context, nodeID: string): Promise<Edge[]> => {
+  const node = getNode(graph, nodeID);
+  const mEdges = graph.edges.filter((edge) => edge.from === node.id);
 
   const edgeEvaluations = await Promise.allSettled(
     mEdges.map(async (edge) => await evaluateEdge(context, edge))

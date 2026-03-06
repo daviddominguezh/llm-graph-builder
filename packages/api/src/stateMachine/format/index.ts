@@ -1,5 +1,5 @@
 import { FIRST_INDEX, INCREMENT_BY_ONE } from '@src/constants/index.js';
-import type { Edge, Precondition } from '@src/types/graph.js';
+import type { Edge, Graph, Precondition } from '@src/types/graph.js';
 import {
   EDGE_SKILLS,
   SKILL_DESCRIPTIONS,
@@ -72,8 +72,12 @@ export const convertEspecialEdgeToStr = (
   };
 };
 
-const getUserSaidExamples = async (context: Context, nodeId: string): Promise<string | undefined> => {
-  const edges = await getEdgesFromNode(context, nodeId);
+const getUserSaidExamples = async (
+  graph: Graph,
+  context: Context,
+  nodeId: string
+): Promise<string | undefined> => {
+  const edges = await getEdgesFromNode(graph, context, nodeId);
   const userEdges = edges.filter(
     (mEdge) => (mEdge.preconditions ?? []).filter((pre) => pre.type === 'user_said').length > FIRST_INDEX
   );
@@ -87,6 +91,7 @@ const getUserSaidExamples = async (context: Context, nodeId: string): Promise<st
 };
 
 export const convertEdgeToStr = async (
+  graph: Graph,
   context: Context,
   index: number,
   edge: Edge
@@ -95,14 +100,14 @@ export const convertEdgeToStr = async (
   if (to === 'AnswerBusinessQuestion') {
     return convertEspecialEdgeToStr(index, SPECIAL_EDGE.AnswerBusinessQuestion);
   }
-  const node = getNode(to);
-  const description = getNodeDescription(edge.to);
+  const node = getNode(graph, to);
+  const description = getNodeDescription(graph, edge.to);
   const { [FIRST_INDEX]: firstPrecondition } = edge.preconditions ?? [];
   let example: string | undefined = undefined;
 
   if (node.nextNodeIsUser === true) {
     example = insertValuesInText(context, node.text);
-    await getUserSaidExamples(context, node.id);
+    await getUserSaidExamples(graph, context, node.id);
   }
 
   const withPreconditions = formatOption({
@@ -126,6 +131,7 @@ export const convertEdgeToStr = async (
 };
 
 export const convertEdgesToStr = async (
+  graph: Graph,
   context: Context,
   edges: Edge[]
 ): Promise<{
@@ -141,7 +147,7 @@ export const convertEdgesToStr = async (
   const edgeResults = await Promise.allSettled(
     edges.map(async (edge, i) => {
       const edgeIndex = i + INCREMENT_BY_ONE;
-      const res = await convertEdgeToStr(context, edgeIndex, edge);
+      const res = await convertEdgeToStr(graph, context, edgeIndex, edge);
       return { index: edgeIndex, res, to: edge.to };
     })
   );

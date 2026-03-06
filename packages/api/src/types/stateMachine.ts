@@ -52,7 +52,7 @@ export interface SMNextOptions {
   nodes: Record<string, string>;
 }
 
-export interface SMPrompt {
+export interface SMConfig {
   prompt: string;
   promptWithoutToolPreconditions: string;
   toolsByEdge: ToolsByEdge;
