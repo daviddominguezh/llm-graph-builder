@@ -153,7 +153,7 @@ export function NodePromptDialog({
           </Button>
         }
       />
-      <AlertDialogContent size="lg" className="max-h-[85vh] flex flex-col">
+      <AlertDialogContent size="lg" className="h-[85vh] flex flex-col">
         <AlertDialogHeader>
           <AlertDialogTitle>Prompt: {nodeId}</AlertDialogTitle>
         </AlertDialogHeader>
