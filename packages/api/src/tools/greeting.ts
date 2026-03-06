@@ -1,7 +1,7 @@
 import { tool } from 'ai';
 import z from 'zod';
 
-import { logger } from '@globalUtils/logger.js';
+import { logger } from '@src/utils/logger.js';
 
 import type { Context, ToolResponsePrompt } from '@src/types/tools.js';
 
@@ -29,7 +29,7 @@ const ERROR_MSG = 'Some error';
 const handleAddUserName = async (
   context: Context,
   data: AddUserNameSchemaType,
-  info: ToolCallInfo
+  info: ToolCallInfo,
 ): Promise<ToolResponsePrompt> => {
   const { sessionID } = context;
   const { toolCallId, toolName } = info;

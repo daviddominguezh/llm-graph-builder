@@ -2,6 +2,8 @@ import { FIRST_INDEX, INCREMENT_BY_ONE, INITIAL_STEP_NODE } from '@src/constants
 import type { Graph } from '@src/types/graph.js';
 import type { SMConfig, SMNextOptions } from '@src/types/stateMachine.js';
 import type { Context } from '@src/types/tools.js';
+import type { Logger } from '@src/utils/logger.js';
+import { setLogger } from '@src/utils/logger.js';
 
 import { convertEdgesToStr } from './format/index.js';
 import { addNodeSpecificPrompts } from './format/utils.js';
@@ -185,8 +187,10 @@ const appendKindSpecificPrompts = (
 export const buildNextAgentConfig = async (
   graph: Graph,
   context: Context,
-  cn?: string
+  cn?: string,
+  logger?: Logger
 ): Promise<SMConfig> => {
+  if (logger !== undefined) setLogger(logger);
   const currentNode = cn ?? INITIAL_STEP_NODE;
   const nextOptions = await getNextOptions(graph, context, currentNode);
 
