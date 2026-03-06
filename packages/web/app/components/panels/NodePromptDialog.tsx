@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import { Loader2, SquareTerminal } from "lucide-react";
 import { useNodes, useEdges } from "@xyflow/react";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -42,14 +44,16 @@ interface PromptState {
   error: string | null;
 }
 
+function PromptLoading() {
+  return (
+    <div className="flex items-center justify-center py-8">
+      <Loader2 className="size-5 animate-spin text-muted-foreground" />
+    </div>
+  );
+}
+
 function PromptContent({ state }: { state: PromptState }) {
-  if (state.loading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="size-5 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  if (state.loading) return <PromptLoading />;
 
   if (state.error) {
     return (
@@ -60,11 +64,18 @@ function PromptContent({ state }: { state: PromptState }) {
   }
 
   return (
-    <Textarea
-      value={state.text}
-      readOnly
-      className="text-xs font-mono resize-none flex-1 min-h-0 overflow-y-auto"
-    />
+    <Tabs defaultValue="markdown" className="flex flex-1 flex-col min-h-0">
+      <TabsList className="w-fit">
+        <TabsTrigger value="markdown">Markdown</TabsTrigger>
+        <TabsTrigger value="plain">Plain text</TabsTrigger>
+      </TabsList>
+      <TabsContent value="markdown" className="flex-1 min-h-0 overflow-y-auto rounded-md border p-3 text-xs whitespace-pre-wrap">
+        <Markdown remarkPlugins={[remarkGfm]}>{state.text}</Markdown>
+      </TabsContent>
+      <TabsContent value="plain" className="flex-1 min-h-0 overflow-y-auto rounded-md border p-3 text-xs font-mono whitespace-pre-wrap">
+        {state.text}
+      </TabsContent>
+    </Tabs>
   );
 }
 
@@ -136,9 +147,9 @@ export function NodePromptDialog({
           </Button>
         }
       />
-      <AlertDialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
+      <AlertDialogContent size="lg" className="max-h-[85vh] flex flex-col">
         <AlertDialogHeader>
-          <AlertDialogTitle>Node prompt — {nodeId}</AlertDialogTitle>
+          <AlertDialogTitle>Prompt: {nodeId}</AlertDialogTitle>
         </AlertDialogHeader>
         <div className="flex flex-col gap-3 flex-1 min-h-0">
           <PresetSelector
