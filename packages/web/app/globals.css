@@ -132,6 +132,11 @@
   margin-bottom: 0px;
 }
 
+.markdown-content h1, h2, h3, h4, h5, h6 {
+  border-bottom: 1px solid #DDD !important;
+  padding-bottom: 4px !important;
+}
+
 /* React Flow Theme */
 .react-flow {
   --xy-background-color: #f7f9fb;
