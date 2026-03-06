@@ -6,7 +6,7 @@ import { useNodes, useEdges } from "@xyflow/react";
 import { MarkdownHooks } from "react-markdown";
 import rehypeStarryNight from "rehype-starry-night";
 import remarkGfm from "remark-gfm";
-import "@wooorm/starry-night/style/both";
+import "@wooorm/starry-night/style/light";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
