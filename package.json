@@ -1,0 +1,78 @@
+{
+  "name": "@daviddh/llm-graph-builder",
+  "version": "0.0.1",
+  "private": false,
+  "description": "Creates state-machine like workflows for LLMs",
+  "keywords": [
+    "llm",
+    "agents",
+    "markdown",
+    "stateMachine",
+    "runner",
+    "harness",
+    "workflow"
+  ],
+  "homepage": "https://github.com/daviddominguezh/llm-graph-builder#readme",
+  "bugs": {
+    "url": "https://github.com/daviddominguezh/llm-graph-builder/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/daviddominguezh/llm-graph-builder.git"
+  },
+  "license": "MIT",
+  "author": "David Dominguez",
+  "type": "module",
+  "main": "packages/core/dist/index.js",
+  "types": "packages/core/dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./packages/core/dist/index.d.ts",
+      "import": "./packages/core/dist/index.js",
+      "default": "./packages/core/dist/index.js"
+    },
+    "./core": {
+      "types": "./packages/core/dist/index.d.ts",
+      "import": "./packages/core/dist/index.js",
+      "default": "./packages/core/dist/index.js"
+    }
+  },
+  "files": [
+    "packages/core/dist",
+    "!packages/core/dist/__tests__",
+    "!packages/core/dist/**/*.d.ts.map",
+    "README.md",
+    "LICENSE"
+  ],
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "typecheck": "tsc -b",
+    "lint": "eslint .",
+    "format": "prettier --write \"**/*.{js,ts,json}\"",
+    "check": "npm run format && npm run lint && npm run typecheck",
+    "build": "npm run build --workspaces",
+    "build:web": "npm run build -w @daviddh/llm-graph-builder/web",
+    "test": "npm run test --workspaces --if-present",
+    "test:core": "npm run test -w @daviddh/llm-graph-builder/web"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.28.0",
+    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+    "@types/jest": "^30.0.0",
+    "eslint": "^9.28.0",
+    "eslint-config-love": "^144.0.0",
+    "globals": "^16.2.0",
+    "jest": "^30.0.5",
+    "prettier": "^3.8.1",
+    "ts-jest": "^29.4.4",
+    "tsc-alias": "^1.8.10",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.33.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
