@@ -93,7 +93,11 @@ function PresetSelector({
   return (
     <div className="flex items-center gap-2">
       <Label className="text-xs shrink-0">Preset</Label>
-      <Select value={activePresetId} onValueChange={(v) => { if (v) onSetActivePreset(v); }}>
+      <Select
+        value={activePresetId}
+        onValueChange={(v) => { if (v) onSetActivePreset(v); }}
+        items={presets.map((p) => ({ value: p.id, label: p.name }))}
+      >
         <SelectTrigger className="w-full">
           <SelectValue />
         </SelectTrigger>
