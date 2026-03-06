@@ -27,25 +27,12 @@ export interface Node {
   previousNodeWasUser?: boolean;
 }
 
-export type ContextPrecondition =
-  | 'USER_HAS_NAME'
-  | 'NO_USER_HAS_NAME'
-  | 'USER_HAS_NONEMPTY_CART'
-  | 'USER_HAS_EMPTY_CART'
-  | 'ASK_GENDER'
-  | 'NEVER_ASK_GENDER'
-  | 'NO_ASK_GENDER'
-  | 'ASK_OCCASION'
-  | 'NO_ASK_OCCASION'
-  | 'NEVER_ASK_OCCASION'
-  | 'ALWAYS_TRUE';
-
 export interface Edge {
   from: string;
   to: string;
   label?: string;
   preconditions?: Precondition[];
-  contextPreconditions?: { preconditions: ContextPrecondition[]; jumpTo?: string };
+  contextPreconditions?: { preconditions: string[]; jumpTo?: string };
 }
 
 export interface Graph {

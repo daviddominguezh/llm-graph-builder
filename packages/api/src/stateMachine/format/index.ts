@@ -1,35 +1,25 @@
-import type { Edge, Precondition } from "@src/types/graph.js";
-
+import { FIRST_INDEX, INCREMENT_BY_ONE } from '@src/constants/index.js';
+import type { Edge, Precondition } from '@src/types/graph.js';
 import {
   EDGE_SKILLS,
   SKILL_DESCRIPTIONS,
   SKILL_PRECONDITION,
   SPECIAL_EDGE,
-} from "@src/types/stateMachine.js";
+} from '@src/types/stateMachine.js';
+import type { Context } from '@src/types/tools.js';
 
-import type { Context } from "@src/types/tools.js";
-
-import { FIRST_INDEX, INCREMENT_BY_ONE } from "@src/constants/index.js";
-
-import {
-  getEdgesFromNode,
-  getNode,
-  getNodeDescription,
-} from "../graph/index.js";
-
-import { insertValuesInText } from "./utils.js";
-
-export { insertValuesInText } from "./utils.js";
+import { getEdgesFromNode, getNode, getNodeDescription } from '../graph/index.js';
+import { insertValuesInText } from './utils.js';
 
 const getPreconditionPrefix = (type: string): string => {
-  if (type === "user_said") {
-    return "Select this option when the user says something similar to";
+  if (type === 'user_said') {
+    return 'Select this option when the user says something similar to';
   }
-  if (type === "agent_decision") {
-    return "Select this option when";
+  if (type === 'agent_decision') {
+    return 'Select this option when';
   }
-  if (type === "tool_call") {
-    return "This node will execute the tool";
+  if (type === 'tool_call') {
+    return 'This node will execute the tool';
   }
   return type;
 };
@@ -54,19 +44,19 @@ export const formatOption = (params: FormatOptionParams): string => {
   if (precondition !== undefined) {
     parts.push(`- **Precondition**: ${formatPrecondition(precondition)}`);
   }
-  if (description !== undefined && description !== "") {
+  if (description !== undefined && description !== '') {
     parts.push(`- **Purpose**: ${description}`);
   }
-  if (example !== undefined && example !== "") {
-    const escapedExample = example.replace(/\n/gv, "\\n");
+  if (example !== undefined && example !== '') {
+    const escapedExample = example.replace(/\n/gv, '\\n');
     parts.push(`- **Response example**: ${escapedExample}`);
   }
-  return parts.join("\n").trim();
+  return parts.join('\n').trim();
 };
 
 export const convertEspecialEdgeToStr = (
   index: number,
-  edge: SPECIAL_EDGE,
+  edge: SPECIAL_EDGE
 ): { withPreconditions: string; withoutToolPreconditions: string } => {
   const { [edge]: skill } = EDGE_SKILLS;
   return {
@@ -82,21 +72,16 @@ export const convertEspecialEdgeToStr = (
   };
 };
 
-const getUserSaidExamples = async (
-  context: Context,
-  nodeId: string,
-): Promise<string | undefined> => {
+const getUserSaidExamples = async (context: Context, nodeId: string): Promise<string | undefined> => {
   const edges = await getEdgesFromNode(context, nodeId);
   const userEdges = edges.filter(
-    (mEdge) =>
-      (mEdge.preconditions ?? []).filter((pre) => pre.type === "user_said")
-        .length > FIRST_INDEX,
+    (mEdge) => (mEdge.preconditions ?? []).filter((pre) => pre.type === 'user_said').length > FIRST_INDEX
   );
   const userSaid = userEdges
     .map((mEdge) => (mEdge.preconditions ?? [])[FIRST_INDEX]?.value)
     .filter((value): value is string => value !== undefined);
   if (userSaid.length > FIRST_INDEX) {
-    return `\n  - ${userSaid.join("\n  - ")}`;
+    return `\n  - ${userSaid.join('\n  - ')}`;
   }
   return undefined;
 };
@@ -104,10 +89,10 @@ const getUserSaidExamples = async (
 export const convertEdgeToStr = async (
   context: Context,
   index: number,
-  edge: Edge,
+  edge: Edge
 ): Promise<{ withPreconditions: string; withoutToolPreconditions: string }> => {
   const { to } = edge;
-  if (to === "AnswerBusinessQuestion") {
+  if (to === 'AnswerBusinessQuestion') {
     return convertEspecialEdgeToStr(index, SPECIAL_EDGE.AnswerBusinessQuestion);
   }
   const node = getNode(to);
@@ -128,9 +113,7 @@ export const convertEdgeToStr = async (
   });
 
   const nonToolPrecondition =
-    edge.preconditions === undefined
-      ? undefined
-      : edge.preconditions.find((pre) => pre.type !== "tool_call");
+    edge.preconditions === undefined ? undefined : edge.preconditions.find((pre) => pre.type !== 'tool_call');
 
   const withoutToolPreconditions = formatOption({
     index,
@@ -144,7 +127,7 @@ export const convertEdgeToStr = async (
 
 export const convertEdgesToStr = async (
   context: Context,
-  edges: Edge[],
+  edges: Edge[]
 ): Promise<{
   withPreconditions: string;
   withoutToolPreconditions: string;
@@ -160,24 +143,22 @@ export const convertEdgesToStr = async (
       const edgeIndex = i + INCREMENT_BY_ONE;
       const res = await convertEdgeToStr(context, edgeIndex, edge);
       return { index: edgeIndex, res, to: edge.to };
-    }),
+    })
   );
 
   edgeResults.forEach((result) => {
-    if (result.status === "fulfilled") {
+    if (result.status === 'fulfilled') {
       const { value: resultValue } = result;
       const { index, res, to } = resultValue;
       nodes[index.toString()] = to;
       withPreconditions.push(`### Option ${index}:\n${res.withPreconditions}`);
-      withoutToolPreconditions.push(
-        `### Option ${index}:\n${res.withoutToolPreconditions}`,
-      );
+      withoutToolPreconditions.push(`### Option ${index}:\n${res.withoutToolPreconditions}`);
     }
   });
 
   return {
-    withPreconditions: withPreconditions.join("\n\n"),
-    withoutToolPreconditions: withoutToolPreconditions.join("\n\n"),
+    withPreconditions: withPreconditions.join('\n\n'),
+    withoutToolPreconditions: withoutToolPreconditions.join('\n\n'),
     nodes,
   };
 };

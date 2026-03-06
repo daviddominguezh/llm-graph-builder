@@ -1,8 +1,9 @@
 export interface Context {
-  logKey: string;
-  businessID: string;
+  sessionID: string;
+  tenantID: string;
   userID: string;
   namespace: string;
+  data: Record<string, unknown>;
   quickReplies: Record<string, string>;
   isFirstMessage?: boolean;
   currentTime?: string;

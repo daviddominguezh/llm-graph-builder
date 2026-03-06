@@ -1,9 +1,7 @@
-import { FIRST_INDEX } from '@constants/index.js';
+import type { Context } from '@src/types/tools.js';
 
-import type { Context } from '@globalTypes/ai/tools.js';
-
-import { insertValuesInText } from '../format/index.js';
-import { getEdgesFromNode, getNode } from '../graph/index.js';
+import { insertValuesInText } from '../format/utils.js';
+import { getNode } from '../graph/index.js';
 
 export const AGENT_REPLY_SCHEMA = `
 {
@@ -119,7 +117,7 @@ interface GenerateToolReplyPromptParams {
   description?: string;
 }
 
-export const generateToolReplyPrompt = async (params: GenerateToolReplyPromptParams): Promise<string> => {
+export const generateToolReplyPrompt = (params: GenerateToolReplyPromptParams): string => {
   const { ctx, nodeId, nodeName, textExample, description } = params;
 
   const promptNode = `${SM_TOOLREPLY_NODE_REPLY}: "${nodeId}"`;

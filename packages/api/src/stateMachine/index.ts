@@ -1,11 +1,10 @@
-import { addNodeSpecificPrompts } from '@src/ai/actions/callAgent/nodeProcessor.js';
-
-import { FIRST_INDEX, INCREMENT_BY_ONE, INITIAL_STEP_NODE } from '@constants/index.js';
-
-import type { SMNextOptions, SMPrompt } from '@globalTypes/ai/stateMachine.js';
-import type { Context } from '@globalTypes/ai/tools.js';
+import { FIRST_INDEX, INCREMENT_BY_ONE, INITIAL_STEP_NODE } from '@src/constants/index.js';
+import type { Graph } from '@src/types/graph.js';
+import type { SMNextOptions, SMPrompt } from '@src/types/stateMachine.js';
+import type { Context } from '@src/types/tools.js';
 
 import { convertEdgesToStr } from './format/index.js';
+import { addNodeSpecificPrompts } from './format/utils.js';
 import { getEdgesFromNode, getNode, getToolsFromEdges } from './graph/index.js';
 import {
   AGENT_DECISION_PROMPT,
@@ -142,25 +141,8 @@ export const getNextOptions = async (
   return buildUserReplyOptions({ node, edges, nodes, mPrompt, mPromptWithoutToolPreconditions });
 };
 
-export const generateUserContextPrompt = (context: Context): string | null => {
-  const strings: string[] = [];
-  const { businessName, businessDescription } = context.businessSetup.info;
-  if (businessName !== '') {
-    strings.push(`- Business Name: ${businessName}`);
-  }
-  if (businessDescription !== '') {
-    strings.push(`- Business Context: ${businessDescription}`);
-  }
-  if (context.userName !== undefined && context.userName !== '') {
-    strings.push(`- User Name: ${context.userName}`);
-  }
-
-  const userContext = strings.length === FIRST_INDEX ? null : strings.join('\n');
-  if (userContext === null) {
-    return userContext;
-  }
-  return `CONTEXT:\n${userContext}`;
-};
+// TODO: Implement
+export const generateUserContextPrompt = (context: Context): string | null => '';
 
 const buildDecisionEnforcement = (edges: SMNextOptions['edges']): string => `
 
@@ -201,6 +183,7 @@ const appendKindSpecificPrompts = (
 };
 
 export const buildNextPromptConfig = async (
+  graph: Graph,
   context: Context,
   cn?: string,
   isTest = false
@@ -233,7 +216,8 @@ export const buildNextPromptConfig = async (
     nodes: nextOptions.nodes,
   };
 
-  promptConfig.promptWithoutToolPreconditions = await addNodeSpecificPrompts(
+  promptConfig.promptWithoutToolPreconditions = addNodeSpecificPrompts(
+    graph,
     context,
     currentNode,
     promptConfig.prompt

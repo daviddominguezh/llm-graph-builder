@@ -1,13 +1,16 @@
 import type { Tool, ToolChoice, ToolSet } from 'ai';
 
 import { generateAllCloserTools } from '@src/ai/tools/index.js';
-import GraphJSON from '@src/flowGenerator/src/data/flowGraph.json' with { type: 'json' };
-import type { ContextPrecondition, Edge, Graph, Node } from '@src/flowGenerator/src/types/mermaid.js';
-
-import { type EdgeTools, SKILL, SKILL_EDGES, SKILL_PRECONDITION, type ToolsByEdge } from '@globalTypes/ai/stateMachine.js';
-import type { Context } from '@globalTypes/ai/tools.js';
-
-import { FIRST_INDEX } from '@constants/index.js';
+import { FIRST_INDEX } from '@src/constants/index.js';
+import type { Edge, Graph, Node } from '@src/types/graph.js';
+import {
+  type EdgeTools,
+  SKILL,
+  SKILL_EDGES,
+  SKILL_PRECONDITION,
+  type ToolsByEdge,
+} from '@src/types/stateMachine.js';
+import type { Context } from '@src/types/tools.js';
 
 import { CONTEXT_PRECONDITIONS } from './contextPreconditions.js';
 
@@ -27,7 +30,11 @@ const isGraph = (obj: unknown): obj is Graph => {
 };
 
 // JSON import with type validation
-const STATE_MACHINE: Graph = isGraph(GraphJSON) ? GraphJSON : (() => { throw new Error('Invalid flow graph JSON'); })();
+const STATE_MACHINE: Graph = isGraph(GraphJSON)
+  ? GraphJSON
+  : (() => {
+      throw new Error('Invalid flow graph JSON');
+    })();
 
 export const getNode = (nodeID: string): Node => {
   if (nodeID === '') {
@@ -111,16 +118,11 @@ export const getToolsFromEdges = (context: Context, edges: Edge[], isTest = fals
 const isValidContextPrecondition = (prec: string): prec is ContextPrecondition =>
   prec in CONTEXT_PRECONDITIONS;
 
-const evaluatePreconditions = async (
-  context: Context,
-  preconditions: string[]
-): Promise<boolean> => {
+const evaluatePreconditions = async (context: Context, preconditions: string[]): Promise<boolean> => {
   const validPreconditions = preconditions.filter(isValidContextPrecondition);
   const preconditionFns = validPreconditions.map((prec) => CONTEXT_PRECONDITIONS[prec]);
 
-  const results = await Promise.allSettled(
-    preconditionFns.map(async (func) => await func(context))
-  );
+  const results = await Promise.allSettled(preconditionFns.map(async (func) => await func(context)));
 
   const anyFailed = results.find((res) => res.status !== 'fulfilled');
   if (anyFailed !== undefined) {
@@ -133,10 +135,7 @@ const evaluatePreconditions = async (
   return fulfilledResults.every((res) => res.value);
 };
 
-const evaluateEdge = async (
-  context: Context,
-  edge: Edge
-): Promise<{ edge: Edge; isValid: boolean }> => {
+const evaluateEdge = async (context: Context, edge: Edge): Promise<{ edge: Edge; isValid: boolean }> => {
   if (
     edge.contextPreconditions?.preconditions === undefined ||
     edge.contextPreconditions.preconditions.length === FIRST_INDEX
@@ -144,7 +143,9 @@ const evaluateEdge = async (
     return { edge, isValid: true };
   }
 
-  const { contextPreconditions: { preconditions } } = edge;
+  const {
+    contextPreconditions: { preconditions },
+  } = edge;
   const allPassed = await evaluatePreconditions(context, preconditions);
   return { edge, isValid: allPassed };
 };
@@ -158,8 +159,9 @@ export const getEdgesFromNode = async (context: Context, nodeID: string): Promis
   );
 
   const edges = edgeEvaluations
-    .filter((result): result is PromiseFulfilledResult<{ edge: Edge; isValid: boolean }> =>
-      result.status === 'fulfilled'
+    .filter(
+      (result): result is PromiseFulfilledResult<{ edge: Edge; isValid: boolean }> =>
+        result.status === 'fulfilled'
     )
     .filter((result) => result.value.isValid)
     .map((result) => result.value.edge);
