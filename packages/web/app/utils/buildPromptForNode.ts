@@ -36,6 +36,7 @@ function rfNodesToSchemaNodes(nodes: Array<RFNode<RFNodeData>>): Array<{
     description: n.data.description,
     agent: n.data.agent,
     nextNodeIsUser: n.data.nextNodeIsUser ?? false,
+    fallbackNodeId: n.data.fallbackNodeId,
     global: n.data.global ?? false,
   }));
 }

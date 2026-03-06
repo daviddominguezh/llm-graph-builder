@@ -1,12 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, SlidersHorizontal, Check } from "lucide-react";
+import { ChevronDown, Plus, Trash2, SlidersHorizontal } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import type { ContextPreset } from "../../types/preset";
+import { type ContextPreset, DEFAULT_PRESET } from "../../types/preset";
 
 interface PresetsPanelProps {
   presets: ContextPreset[];
@@ -97,14 +108,12 @@ function DataField({
 
 function PresetItem({
   preset,
-  isActive,
-  onSetActive,
+  isDefault,
   onDelete,
   onUpdate,
 }: {
   preset: ContextPreset;
-  isActive: boolean;
-  onSetActive: () => void;
+  isDefault: boolean;
   onDelete: () => void;
   onUpdate: (id: string, updates: Partial<ContextPreset>) => void;
 }) {
@@ -117,24 +126,38 @@ function PresetItem({
           className="flex items-center gap-1.5 text-xs font-medium"
           onClick={() => setExpanded(!expanded)}
         >
-          {isActive && <Check className="size-3 text-green-600" />}
+          <ChevronDown
+            className={`size-3 transition-transform ${expanded ? "" : "-rotate-90"}`}
+          />
           {preset.name}
         </button>
-        <div className="flex gap-1">
-          {!isActive && (
-            <Button variant="ghost" size="icon-xs" onClick={onSetActive} title="Set active">
-              <Check className="size-3" />
-            </Button>
-          )}
-          <Button
-            variant="destructive"
-            size="icon-xs"
-            onClick={onDelete}
-            title="Delete preset"
-          >
-            <Trash2 className="size-3" />
-          </Button>
-        </div>
+        {!isDefault && (
+          <div className="flex gap-1">
+            <AlertDialog>
+              <AlertDialogTrigger
+                render={
+                  <Button variant="destructive" size="icon-xs" title="Delete preset">
+                    <Trash2 className="size-3" />
+                  </Button>
+                }
+              />
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete preset?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete the preset &quot;{preset.name}&quot;.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction variant="destructive" onClick={onDelete}>
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        )}
       </div>
       {expanded && <PresetFields preset={preset} onUpdate={onUpdate} />}
     </li>
@@ -164,8 +187,7 @@ export function PresetsPanel({
             <PresetItem
               key={preset.id}
               preset={preset}
-              isActive={preset.id === activePresetId}
-              onSetActive={() => onSetActive(preset.id)}
+              isDefault={preset.id === DEFAULT_PRESET.id}
               onDelete={() => onDelete(preset.id)}
               onUpdate={onUpdate}
             />

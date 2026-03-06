@@ -24,7 +24,9 @@ export const NodeSchema = z.object({
   description: z.string().default(''),
   agent: z.string().optional(),
   nextNodeIsUser: z.boolean().optional(),
+  fallbackNodeId: z.string().optional(),
   global: z.boolean().default(false),
+  defaultFallback: z.boolean().optional(),
   position: PositionSchema.optional(),
 });
 
@@ -35,6 +37,7 @@ export const RuntimeNodeSchema = z.object({
   description: z.string().default(''),
   agent: z.string().optional(),
   nextNodeIsUser: z.boolean().optional(),
+  fallbackNodeId: z.string().optional(),
   previousNodeWasUser: z.boolean().optional(),
   isUser: z.boolean().optional(),
   global: z.boolean().default(false),

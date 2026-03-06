@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Waypoints, Plus, Trash2, Pencil, X } from "lucide-react";
 import type { Node } from "@xyflow/react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -25,6 +26,7 @@ interface GlobalNodesPanelProps {
   onAddNode?: () => void;
   onDeleteNode?: (nodeId: string) => void;
   onUpdateNode?: (nodeId: string, updates: { text?: string; description?: string }) => void;
+  onSetDefaultFallback?: (nodeId: string | undefined) => void;
   contextPreconditions: string[];
   onAddContextPrecondition?: (value: string) => void;
   onRemoveContextPrecondition?: (value: string) => void;
@@ -96,6 +98,7 @@ export function GlobalNodesPanel({
   onAddNode,
   onDeleteNode,
   onUpdateNode,
+  onSetDefaultFallback,
   contextPreconditions,
   onAddContextPrecondition,
   onRemoveContextPrecondition,
@@ -162,6 +165,18 @@ export function GlobalNodesPanel({
                     <div className="text-xs font-medium">{data.text}</div>
                     <div className="mt-0.5 text-xs text-muted-foreground">
                       {data.description || "No description"}
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-3">
+                      <Checkbox
+                        id={`default-fallback-${node.id}`}
+                        checked={data.defaultFallback === true}
+                        onCheckedChange={(checked) => {
+                          onSetDefaultFallback?.(checked === true ? node.id : undefined);
+                        }}
+                      />
+                      <Label htmlFor={`default-fallback-${node.id}`}>
+                        Default fallback
+                      </Label>
                     </div>
                     <div className="absolute top-1.5 right-1.5 flex gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
                       <AlertDialog

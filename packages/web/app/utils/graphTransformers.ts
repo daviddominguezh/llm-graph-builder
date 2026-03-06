@@ -58,7 +58,9 @@ export interface RFNodeData extends Record<string, unknown> {
   description: string;
   agent?: string;
   nextNodeIsUser?: boolean;
+  fallbackNodeId?: string;
   global?: boolean;
+  defaultFallback?: boolean;
   muted?: boolean;
   nodeWidth?: number | null;
 }
@@ -91,7 +93,9 @@ export function schemaNodeToRFNode(node: SchemaNode, index = INITIAL_INDEX): RFN
       description: node.description,
       agent: node.agent,
       nextNodeIsUser: node.nextNodeIsUser,
+      fallbackNodeId: node.fallbackNodeId,
       global: node.global,
+      defaultFallback: node.defaultFallback,
     },
   };
 }
@@ -111,11 +115,13 @@ function resolveTextFields(
 function resolveOptionalFields(
   data: RFNodeData | undefined,
   original: SchemaNode
-): Pick<SchemaNode, 'agent' | 'nextNodeIsUser' | 'global'> {
+): Pick<SchemaNode, 'agent' | 'nextNodeIsUser' | 'fallbackNodeId' | 'global' | 'defaultFallback'> {
   return {
     agent: data?.agent ?? original.agent,
     nextNodeIsUser: data?.nextNodeIsUser ?? original.nextNodeIsUser,
+    fallbackNodeId: data?.fallbackNodeId ?? original.fallbackNodeId,
     global: data?.global ?? original.global,
+    defaultFallback: data?.defaultFallback ?? original.defaultFallback,
   };
 }
 

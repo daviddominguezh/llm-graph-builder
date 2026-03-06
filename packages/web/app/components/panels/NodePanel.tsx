@@ -1,24 +1,5 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import {
-  Trash2,
-  ArrowRight,
-  ArrowLeft,
-  MessageCircle,
-  Brain,
-  Wrench,
-  Box,
-  Cable,
-  Send,
-} from "lucide-react";
-import { useNodes, useEdges, useReactFlow } from "@xyflow/react";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,23 +10,31 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import type { RFNodeData, RFEdgeData } from "../../utils/graphTransformers";
-import type { Node, Edge } from "@xyflow/react";
-import type { Agent, PreconditionType } from "../../schemas/graph.schema";
-import type { ContextPreset } from "../../types/preset";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { NodePromptDialog } from "./NodePromptDialog";
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
+import type { Edge, Node } from '@xyflow/react';
+import { ArrowLeft, ArrowRight, Box, Brain, Cable, MessageCircle, Send, Trash2, Wrench } from 'lucide-react';
+import { useState } from 'react';
+
+import type { Agent, PreconditionType } from '../../schemas/graph.schema';
+import type { ContextPreset } from '../../types/preset';
+import type { RFEdgeData, RFNodeData } from '../../utils/graphTransformers';
+import { FallbackNodeSelect } from './FallbackNodeSelect';
+import { NodePromptDialog } from './NodePromptDialog';
 
 interface NodePanelProps {
   nodeId: string;
   agents: Agent[];
   presets: ContextPreset[];
   activePresetId: string;
+  globalNodeIds: string[];
   onSetActivePreset: (id: string) => void;
   onNodeDeleted?: () => void;
   onNodeIdChanged?: (newId: string) => void;
@@ -58,6 +47,7 @@ export function NodePanel({
   agents,
   presets,
   activePresetId,
+  globalNodeIds,
   onSetActivePreset,
   onNodeDeleted,
   onNodeIdChanged,
@@ -76,7 +66,7 @@ export function NodePanel({
   const nodeData = node?.data;
 
   const [prevNodeId, setPrevNodeId] = useState(nodeId);
-  const [id, setId] = useState(node?.id ?? "");
+  const [id, setId] = useState(node?.id ?? '');
 
   // Reset form when selecting a different node
   if (nodeId !== prevNodeId) {
@@ -92,11 +82,7 @@ export function NodePanel({
   }
 
   const updateNodeData = (updates: Partial<RFNodeData>) => {
-    setNodes((nds) =>
-      nds.map((n) =>
-        n.id === nodeId ? { ...n, data: { ...n.data, ...updates } } : n,
-      ),
-    );
+    setNodes((nds) => nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, ...updates } } : n)));
   };
 
   const handleIdBlur = () => {
@@ -104,11 +90,7 @@ export function NodePanel({
       const newId = id.trim();
       // Rename node: update node id and all edges referencing it
       setNodes((nds) =>
-        nds.map((n) =>
-          n.id === nodeId
-            ? { ...n, id: newId, data: { ...n.data, nodeId: newId } }
-            : n,
-        ),
+        nds.map((n) => (n.id === nodeId ? { ...n, id: newId, data: { ...n.data, nodeId: newId } } : n))
       );
       setEdges((eds) =>
         eds.map((e) => ({
@@ -116,7 +98,7 @@ export function NodePanel({
           id: e.id.replace(nodeId, newId),
           source: e.source === nodeId ? newId : e.source,
           target: e.target === nodeId ? newId : e.target,
-        })),
+        }))
       );
       // Notify parent of the ID change
       onNodeIdChanged?.(newId);
@@ -125,27 +107,22 @@ export function NodePanel({
 
   const handleDelete = () => {
     setNodes((nds) => nds.filter((n) => n.id !== nodeId));
-    setEdges((eds) =>
-      eds.filter((e) => e.source !== nodeId && e.target !== nodeId),
-    );
+    setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
     onNodeDeleted?.();
   };
 
   const getEdgeTypeIcon = (edge: Edge<RFEdgeData>) => {
-    const iconClass = "h-3 w-3 mr-1";
+    const iconClass = 'h-3 w-3 mr-1';
 
-    const preconditionType = edge.data?.preconditions?.[0]?.type as
-      | PreconditionType
-      | undefined;
-    if (!preconditionType)
-      return <Send className={`${iconClass} text-green-700`} />;
+    const preconditionType = edge.data?.preconditions?.[0]?.type as PreconditionType | undefined;
+    if (!preconditionType) return <Send className={`${iconClass} text-green-700`} />;
 
     switch (preconditionType) {
-      case "user_said":
+      case 'user_said':
         return <MessageCircle className={`${iconClass} text-green-700`} />;
-      case "agent_decision":
+      case 'agent_decision':
         return <Brain className={`${iconClass} text-purple-700`} />;
-      case "tool_call":
+      case 'tool_call':
         return <Wrench className={`${iconClass} text-orange-700`} />;
       default:
         return null;
@@ -183,16 +160,13 @@ export function NodePanel({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete node?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete
-                    the node and remove all its connections.
+                    This action cannot be undone. This will permanently delete the node and remove all its
+                    connections.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    variant="destructive"
-                    onClick={handleDelete}
-                  >
+                  <AlertDialogAction variant="destructive" onClick={handleDelete}>
                     Delete
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -248,9 +222,7 @@ export function NodePanel({
                   })
                 }
               />
-              <Label htmlFor="nextNodeIsUser">
-                Next node expects user input
-              </Label>
+              <Label htmlFor="nextNodeIsUser">Next node expects user input</Label>
             </div>
           </div>
         </div>
@@ -266,7 +238,7 @@ export function NodePanel({
 
           {incomingEdges.length > 0 && (
             <div className="mt-3">
-              <div className="flex gap-1 items-center text-xs mb-1">
+              <div className="flex gap-1 items-center text-xs mb-1 font-medium">
                 Incoming
                 <ArrowLeft className="h-3 w-3 mr-1" />
               </div>
@@ -281,9 +253,7 @@ export function NodePanel({
                         <div className="flex flex-col">
                           <div className="flex items-center">
                             {getEdgeTypeIcon(edge)}
-                            <span className="ml-0.5 text-[11px]">
-                              {edge.source}
-                            </span>
+                            <span className="ml-0.5 text-[11px]">{edge.source}</span>
                           </div>
                           {(value || hasContext) && (
                             <div className="flex w-full gap-3 mt-1">
@@ -291,9 +261,8 @@ export function NodePanel({
                               <div className="text-[10px] text-muted-foreground">
                                 {value && <div>{value}</div>}
                                 {hasContext && (
-                                  <div className={value ? "mt-1" : ""}>
-                                    <span>Context:</span>{" "}
-                                    {contextPreconditions.preconditions.join(", ")}
+                                  <div className={value ? 'mt-1' : ''}>
+                                    <span>Context:</span> {contextPreconditions.preconditions.join(', ')}
                                   </div>
                                 )}
                               </div>
@@ -305,11 +274,7 @@ export function NodePanel({
                           <Tooltip>
                             <TooltipTrigger
                               render={
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => onSelectNode?.(edge.source)}
-                                >
+                                <Button variant="ghost" size="sm" onClick={() => onSelectNode?.(edge.source)}>
                                   <Box />
                                 </Button>
                               }
@@ -322,11 +287,7 @@ export function NodePanel({
                           <Tooltip>
                             <TooltipTrigger
                               render={
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => onSelectEdge?.(edge.id)}
-                                >
+                                <Button variant="ghost" size="sm" onClick={() => onSelectEdge?.(edge.id)}>
                                   <Cable />
                                 </Button>
                               }
@@ -346,7 +307,7 @@ export function NodePanel({
 
           {outgoingEdges.length > 0 && (
             <div className="mt-3">
-              <div className="flex gap-1 items-center text-xs mb-1">
+              <div className="flex gap-1 items-center text-xs mb-1 font-medium">
                 Outgoing
                 <ArrowRight className="h-3 w-3 mr-1" />
               </div>
@@ -361,9 +322,7 @@ export function NodePanel({
                         <div className="flex flex-col">
                           <div className="flex items-center">
                             {getEdgeTypeIcon(edge)}
-                            <span className="ml-0.5 text-[11px]">
-                              {edge.target}
-                            </span>
+                            <span className="ml-0.5 text-[11px]">{edge.target}</span>
                           </div>
                           {(value || hasContext) && (
                             <div className="flex w-full gap-3 mt-1">
@@ -371,9 +330,8 @@ export function NodePanel({
                               <div className="text-[10px] text-muted-foreground">
                                 {value && <div>{value}</div>}
                                 {hasContext && (
-                                  <div className={value ? "mt-1" : ""}>
-                                    <span>Context:</span>{" "}
-                                    {contextPreconditions.preconditions.join(", ")}
+                                  <div className={value ? 'mt-1' : ''}>
+                                    <span>Context:</span> {contextPreconditions.preconditions.join(', ')}
                                   </div>
                                 )}
                               </div>
@@ -385,11 +343,7 @@ export function NodePanel({
                           <Tooltip>
                             <TooltipTrigger
                               render={
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => onSelectNode?.(edge.target)}
-                                >
+                                <Button variant="ghost" size="sm" onClick={() => onSelectNode?.(edge.target)}>
                                   <Box />
                                 </Button>
                               }
@@ -402,11 +356,7 @@ export function NodePanel({
                           <Tooltip>
                             <TooltipTrigger
                               render={
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => onSelectEdge?.(edge.id)}
-                                >
+                                <Button variant="ghost" size="sm" onClick={() => onSelectEdge?.(edge.id)}>
                                   <Cable />
                                 </Button>
                               }
@@ -423,6 +373,14 @@ export function NodePanel({
               </div>
             </div>
           )}
+
+          <FallbackNodeSelect
+            nodeId={nodeId}
+            edges={edges}
+            globalNodeIds={globalNodeIds}
+            value={nodeData.fallbackNodeId}
+            onChange={(fallbackId) => updateNodeData({ fallbackNodeId: fallbackId })}
+          />
         </div>
       </div>
     </div>

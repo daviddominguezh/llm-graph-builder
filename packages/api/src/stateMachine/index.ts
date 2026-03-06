@@ -11,7 +11,6 @@ import { convertEdgesToStr } from './format/index.js';
 import { addNodeSpecificPrompts } from './format/utils.js';
 import { getEdgesFromNode, getNode, getToolsFromEdges } from './graph/index.js';
 import {
-  AGENT_DECISION_PROMPT,
   REPLY_PROMPT,
   SM_BASE_PROMPT_NEXT_OPTIONS,
   SM_BASE_PROMPT_NEXT_OPTION_IS_AGENT_DECISION,
@@ -122,10 +121,8 @@ export const getNextOptions = async (
     edges
   );
 
-  const availableNextNodeIDs = edges.map((_, i) => `- "${i + INCREMENT_BY_ONE}"`).join('\n');
-  const nodeIdsSuffix = `\n\n**IMPORTANT**: The ONLY available nextNodeID's are:\n${availableNextNodeIDs}`;
-  const mPrompt = `${SM_BASE_PROMPT_NEXT_OPTIONS}\n\n${withPreconditions}${nodeIdsSuffix}`;
-  const mPromptWithoutToolPreconditions = `${SM_BASE_PROMPT_NEXT_OPTIONS}\n\n${withoutToolPreconditions}${nodeIdsSuffix}`;
+  const mPrompt = `${SM_BASE_PROMPT_NEXT_OPTIONS}\n\n${withPreconditions}`;
+  const mPromptWithoutToolPreconditions = `${SM_BASE_PROMPT_NEXT_OPTIONS}\n\n${withoutToolPreconditions}`;
 
   if (toolCall !== undefined) {
     return buildToolCallOptions({
@@ -149,32 +146,50 @@ export const getNextOptions = async (
 // TODO: Implement
 export const generateUserContextPrompt = (context: Context): string | null => '';
 
-const buildDecisionEnforcement = (edges: SMNextOptions['edges']): string => `## MANDATORY: JSON OUTPUT REQUIRED
+const buildDecisionFallback = (edges: SMNextOptions['edges'], fallbackNodeId?: string): string => {
+  const fallbackIndex = resolveFallbackIndex(edges, fallbackNodeId);
+  return `**Fallback** — \`nextNodeID: ${fallbackIndex}\`\nIf unclear, default to Option ${fallbackIndex}.`;
+};
 
-**THE ONLY POSSIBLE NEXT NODE IDs ARE**: [${edges.map((_, i) => i + INCREMENT_BY_ONE).join(', ')}]
+const resolveFallbackIndex = (edges: SMNextOptions['edges'], fallbackNodeId?: string): number => {
+  if (fallbackNodeId === undefined) return INCREMENT_BY_ONE;
+  const index = edges.findIndex((e) => e.to === fallbackNodeId);
+  return index >= FIRST_INDEX ? index + INCREMENT_BY_ONE : INCREMENT_BY_ONE;
+};
 
-**RETURN ONLY USING THIS JSON TEMPLATE:**
+const buildDecisionOutputFormat = (edges: SMNextOptions['edges']): string => {
+  const ids = edges.map((_, i) => i + INCREMENT_BY_ONE).join('|');
+  return `## Output format
+
+Return ONLY valid JSON. No tools. No extra text.
+
 \`\`\`json
 {
-  "nextNodeID": "Number of the nextNodeID",
-  "messageToUser": "Message with acknowledgment of user's choice"
+  "nextNodeID": "${ids}",
+  "messageToUser": "Your reply in the same language the user is writing"
 }
 \`\`\`
+`;
+};
 
-
-**MANDATORY:** REMEMBER YOU CAN NOT CALL ANY TOOL OR FUNCTION, DO NOT DO IT.`;
+interface AppendKindParams {
+  kind: SMNextOptions['kind'];
+  edges: SMNextOptions['edges'];
+  basePrompt: string;
+  basePromptWithoutTools: string;
+  fallbackNodeId?: string;
+}
 
 const appendKindSpecificPrompts = (
-  kind: SMNextOptions['kind'],
-  edges: SMNextOptions['edges'],
-  basePrompt: string,
-  basePromptWithoutTools: string
+  params: AppendKindParams
 ): { prompt: string; promptWithoutTools: string } => {
+  const { kind, edges, basePrompt, basePromptWithoutTools, fallbackNodeId } = params;
   if (kind === 'agent_decision') {
-    const extraEnforcement = buildDecisionEnforcement(edges);
+    const fallback = buildDecisionFallback(edges, fallbackNodeId);
+    const outputFormat = buildDecisionOutputFormat(edges);
     return {
-      prompt: `${basePrompt}\n\n${AGENT_DECISION_PROMPT}${extraEnforcement}`,
-      promptWithoutTools: `${basePromptWithoutTools}\n\n${AGENT_DECISION_PROMPT}${extraEnforcement}`,
+      prompt: `${basePrompt}\n\n${fallback}\n\n${outputFormat}`,
+      promptWithoutTools: `${basePromptWithoutTools}\n\n${fallback}\n\n${outputFormat}`,
     };
   }
   if (kind === 'user_reply') {
@@ -197,12 +212,13 @@ export const buildNextAgentConfig = async (
   const nextOptions = await getNextOptions(graph, context, currentNode, options?.toolsOverride);
 
   const { kind } = nextOptions;
-  const { prompt: mPrompt, promptWithoutTools: mPromptWithoutToolPreconditions } = appendKindSpecificPrompts(
+  const { prompt: mPrompt, promptWithoutTools: mPromptWithoutToolPreconditions } = appendKindSpecificPrompts({
     kind,
-    nextOptions.edges,
-    nextOptions.prompt,
-    nextOptions.promptWithoutToolPreconditions
-  );
+    edges: nextOptions.edges,
+    basePrompt: nextOptions.prompt,
+    basePromptWithoutTools: nextOptions.promptWithoutToolPreconditions,
+    fallbackNodeId: nextOptions.node.fallbackNodeId,
+  });
 
   const userContext = generateUserContextPrompt(context);
   const finalPrompt = userContext === null ? mPrompt : `${mPrompt}\n\n${userContext}`;

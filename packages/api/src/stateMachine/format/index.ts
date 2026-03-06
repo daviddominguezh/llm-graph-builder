@@ -12,22 +12,15 @@ import { getEdgesFromNode, getNode, getNodeDescription } from '../graph/index.js
 import { insertValuesInText } from './utils.js';
 
 const getPreconditionPrefix = (type: string): string => {
-  if (type === 'user_said') {
-    return 'Select this option when the user says something similar to';
-  }
-  if (type === 'agent_decision') {
-    return 'Select this option when';
-  }
-  if (type === 'tool_call') {
-    return 'This node will execute the tool';
-  }
-  return type;
+  if (type === 'user_said') return 'the user says something similar to';
+  if (type === 'tool_call') return 'execute the tool';
+  return '';
 };
 
 export const formatPrecondition = (precondition: Precondition): string => {
-  const { type } = precondition;
-  const preffix = getPreconditionPrefix(type);
-  return `${preffix}: "${precondition.value}"`;
+  const prefix = getPreconditionPrefix(precondition.type);
+  if (prefix === '') return precondition.value;
+  return `${prefix} "${precondition.value}"`;
 };
 
 interface FormatOptionParams {
@@ -40,18 +33,17 @@ interface FormatOptionParams {
 export const formatOption = (params: FormatOptionParams): string => {
   const { index, description, example, precondition } = params;
   const parts: string[] = [];
-  parts.push(`- **nextNodeID**: ${index}`);
+  parts.push(`**Option ${index}** — \`nextNodeID: ${index}\``);
   if (precondition !== undefined) {
-    parts.push(`- **Precondition**: ${formatPrecondition(precondition)}`);
-  }
-  if (description !== undefined && description !== '') {
-    parts.push(`- **Purpose**: ${description}`);
+    parts.push(`Select when: ${formatPrecondition(precondition)}`);
   }
   if (example !== undefined && example !== '') {
     const escapedExample = example.replace(/\n/gv, '\\n');
-    parts.push(`- **Response example**: ${escapedExample}`);
+    parts.push(`Response: ${escapedExample}`);
+  } else if (description !== undefined && description !== '') {
+    parts.push(`Response: ${description}`);
   }
-  return parts.join('\n').trim();
+  return parts.join('\n');
 };
 
 export const convertEspecialEdgeToStr = (
@@ -157,8 +149,8 @@ export const convertEdgesToStr = async (
       const { value: resultValue } = result;
       const { index, res, to } = resultValue;
       nodes[index.toString()] = to;
-      withPreconditions.push(`### Option ${index}:\n${res.withPreconditions}`);
-      withoutToolPreconditions.push(`### Option ${index}:\n${res.withoutToolPreconditions}`);
+      withPreconditions.push(res.withPreconditions);
+      withoutToolPreconditions.push(res.withoutToolPreconditions);
     }
   });
 

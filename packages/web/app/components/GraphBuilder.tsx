@@ -333,6 +333,8 @@ function GraphBuilderInner() {
     if (node.id === START_NODE_ID) return;
     setSelectedNodeId(node.id);
     setSelectedEdgeId(null);
+    setGlobalPanelOpen(false);
+    setPresetsOpen(false);
   }, []);
 
   const onEdgeClick = useCallback((_: React.MouseEvent, edge: Edge) => {
@@ -345,6 +347,7 @@ function GraphBuilderInner() {
     setSelectedEdgeId(null);
     setConnectionMenu(null);
     setGlobalPanelOpen(false);
+    setPresetsOpen(false);
   }, []);
 
   const handleAddNode = useCallback(() => {
@@ -455,6 +458,7 @@ function GraphBuilderInner() {
         agent: (n.data as RFNodeData).agent,
         nextNodeIsUser: (n.data as RFNodeData).nextNodeIsUser,
         global: (n.data as RFNodeData).global,
+        defaultFallback: (n.data as RFNodeData).defaultFallback,
         position: n.position,
       })),
       edges: edges.map((e) => rfEdgeToSchemaEdge(e)),
@@ -669,6 +673,7 @@ function GraphBuilderInner() {
                   agents={agents}
                   presets={presetsHook.presets}
                   activePresetId={presetsHook.activePresetId}
+                  globalNodeIds={nodes.filter((n) => (n.data as RFNodeData).global === true).map((n) => n.id)}
                   onSetActivePreset={presetsHook.setActivePresetId}
                   onNodeDeleted={() => setSelectedNodeId(null)}
                   onNodeIdChanged={(newId) => setSelectedNodeId(newId)}
@@ -810,6 +815,17 @@ function GraphBuilderInner() {
                           }
                         : n,
                     ),
+                  );
+                }}
+                onSetDefaultFallback={(nodeId) => {
+                  setNodes((nds) =>
+                    nds.map((n) => ({
+                      ...n,
+                      data: {
+                        ...(n.data as RFNodeData),
+                        defaultFallback: n.id === nodeId ? true : undefined,
+                      },
+                    })),
                   );
                 }}
                 contextPreconditions={allContextPreconditions}
