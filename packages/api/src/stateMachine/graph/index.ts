@@ -85,8 +85,12 @@ export const getToolsFromEdge = (allTools: Record<string, Tool>, edge: Edge): Ed
   };
 };
 
-export const getToolsFromEdges = (context: Context, edges: Edge[]): ToolsByEdge => {
-  const genTools = generateAllTools(context);
+export const getToolsFromEdges = (
+  context: Context,
+  edges: Edge[],
+  toolsOverride?: Record<string, Tool>
+): ToolsByEdge => {
+  const genTools = { ...generateAllTools(context), ...toolsOverride };
   const tools: ToolsByEdge = {};
   for (const edge of edges) {
     tools[edge.to] = getToolsFromEdge(genTools, edge);

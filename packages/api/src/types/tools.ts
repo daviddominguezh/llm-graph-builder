@@ -2,7 +2,6 @@ export interface Context {
   sessionID: string;
   tenantID: string;
   userID: string;
-  namespace: string;
   data: Record<string, unknown>;
   quickReplies: Record<string, string>;
   isFirstMessage?: boolean;

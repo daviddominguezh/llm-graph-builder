@@ -30,7 +30,9 @@ import { NodePanel } from "./panels/NodePanel";
 import { EdgePanel } from "./panels/EdgePanel";
 import { GlobalNodesPanel } from "./panels/GlobalNodesPanel";
 import { ConnectionMenu } from "./panels/ConnectionMenu";
+import { PresetsPanel } from "./panels/PresetsPanel";
 import { GraphSchema, type Agent } from "../schemas/graph.schema";
+import { usePresets } from "../hooks/usePresets";
 import {
   GRAPH_DATA,
   processGraph,
@@ -162,6 +164,10 @@ function GraphBuilderInner() {
   // Global nodes panel state
   const [globalPanelOpen, setGlobalPanelOpen] = useState(false);
   const [customContextPreconditions, setCustomContextPreconditions] = useState<string[]>([]);
+
+  // Presets state
+  const presetsHook = usePresets();
+  const [presetsOpen, setPresetsOpen] = useState(false);
 
   // Zoom view state
   const [zoomViewNodeId, setZoomViewNodeId] = useState<string | null>(null);
@@ -615,6 +621,7 @@ function GraphBuilderInner() {
           statusSlot={<StatusButton nodes={nodes} edges={edges} />}
           globalPanelOpen={globalPanelOpen}
           onToggleGlobalPanel={() => setGlobalPanelOpen((prev) => !prev)}
+          onTogglePresets={() => setPresetsOpen((prev) => !prev)}
         />
 
         <div className="h-screen w-screen relative flex-1 overflow-hidden">
@@ -659,6 +666,10 @@ function GraphBuilderInner() {
               {selectedNodeId && (
                 <NodePanel
                   nodeId={selectedNodeId}
+                  agents={agents}
+                  presets={presetsHook.presets}
+                  activePresetId={presetsHook.activePresetId}
+                  onSetActivePreset={presetsHook.setActivePresetId}
                   onNodeDeleted={() => setSelectedNodeId(null)}
                   onNodeIdChanged={(newId) => setSelectedNodeId(newId)}
                   onSelectEdge={(edgeId) => {
@@ -857,6 +868,19 @@ function GraphBuilderInner() {
                     }),
                   );
                 }}
+              />
+            </aside>
+          )}
+
+          {presetsOpen && (
+            <aside className="absolute left-0 top-0 bottom-0 w-80 border-r border-gray-200 bg-white z-10">
+              <PresetsPanel
+                presets={presetsHook.presets}
+                activePresetId={presetsHook.activePresetId}
+                onSetActive={presetsHook.setActivePresetId}
+                onAdd={presetsHook.addPreset}
+                onDelete={presetsHook.deletePreset}
+                onUpdate={presetsHook.updatePreset}
               />
             </aside>
           )}

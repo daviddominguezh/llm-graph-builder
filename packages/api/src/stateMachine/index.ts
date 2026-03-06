@@ -1,3 +1,5 @@
+import type { Tool } from 'ai';
+
 import { FIRST_INDEX, INCREMENT_BY_ONE, INITIAL_STEP_NODE } from '@src/constants/index.js';
 import type { Graph } from '@src/types/graph.js';
 import type { SMConfig, SMNextOptions } from '@src/types/stateMachine.js';
@@ -98,11 +100,12 @@ const buildUserReplyOptions = (params: BuildUserReplyOptionsParams): SMNextOptio
 export const getNextOptions = async (
   graph: Graph,
   context: Context,
-  currentNode: string
+  currentNode: string,
+  toolsOverride?: Record<string, Tool>
 ): Promise<SMNextOptions> => {
   const node = getNode(graph, currentNode);
   const edges = await getEdgesFromNode(graph, context, currentNode);
-  const toolsByEdge = getToolsFromEdges(context, edges);
+  const toolsByEdge = getToolsFromEdges(context, edges, toolsOverride);
 
   if (edges.length === FIRST_INDEX) return createTerminalNodeOptions(node, {});
 
@@ -188,11 +191,11 @@ export const buildNextAgentConfig = async (
   graph: Graph,
   context: Context,
   cn?: string,
-  logger?: Logger
+  options?: { logger?: Logger; toolsOverride?: Record<string, Tool> }
 ): Promise<SMConfig> => {
-  if (logger !== undefined) setLogger(logger);
+  if (options?.logger !== undefined) setLogger(options.logger);
   const currentNode = cn ?? INITIAL_STEP_NODE;
-  const nextOptions = await getNextOptions(graph, context, currentNode);
+  const nextOptions = await getNextOptions(graph, context, currentNode, options?.toolsOverride);
 
   const { kind } = nextOptions;
   const { prompt: mPrompt, promptWithoutTools: mPromptWithoutToolPreconditions } = appendKindSpecificPrompts(

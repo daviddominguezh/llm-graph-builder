@@ -10,7 +10,6 @@ import {
   Wrench,
   Box,
   Cable,
-  SquareTerminal,
   Send,
 } from "lucide-react";
 import { useNodes, useEdges, useReactFlow } from "@xyflow/react";
@@ -33,15 +32,21 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { RFNodeData, RFEdgeData } from "../../utils/graphTransformers";
 import type { Node, Edge } from "@xyflow/react";
-import type { PreconditionType } from "../../schemas/graph.schema";
+import type { Agent, PreconditionType } from "../../schemas/graph.schema";
+import type { ContextPreset } from "../../types/preset";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { NodePromptDialog } from "./NodePromptDialog";
 
 interface NodePanelProps {
   nodeId: string;
+  agents: Agent[];
+  presets: ContextPreset[];
+  activePresetId: string;
+  onSetActivePreset: (id: string) => void;
   onNodeDeleted?: () => void;
   onNodeIdChanged?: (newId: string) => void;
   onSelectEdge?: (edgeId: string) => void;
@@ -50,6 +55,10 @@ interface NodePanelProps {
 
 export function NodePanel({
   nodeId,
+  agents,
+  presets,
+  activePresetId,
+  onSetActivePreset,
   onNodeDeleted,
   onNodeIdChanged,
   onSelectEdge,
@@ -149,31 +158,13 @@ export function NodePanel({
         <div className="flex items-center justify-between">
           <h4 className="text-sm font-semibold">Node Properties</h4>
           <div className="flex items-center">
-            <AlertDialog>
-              <AlertDialogTrigger
-                render={
-                  <Button
-                    className="text-muted-foreground"
-                    variant="ghost"
-                    size="icon"
-                    title="View prompt"
-                  >
-                    <SquareTerminal />
-                  </Button>
-                }
-              />
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Node prompt</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Lorem ipsum dolor
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Close</AlertDialogCancel>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <NodePromptDialog
+              nodeId={nodeId}
+              agents={agents}
+              presets={presets}
+              activePresetId={activePresetId}
+              onSetActivePreset={onSetActivePreset}
+            />
 
             <AlertDialog>
               <AlertDialogTrigger
