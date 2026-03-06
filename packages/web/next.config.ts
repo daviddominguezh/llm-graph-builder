@@ -1,7 +1,38 @@
 import type { NextConfig } from 'next';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
+const apiSrc = path.resolve(currentDir, '../api/src');
+
+interface WebpackResolve {
+  alias?: Record<string, string>;
+  extensionAlias?: Record<string, string[]>;
+}
+
+interface WebpackConfig {
+  resolve?: WebpackResolve;
+}
+
+function configureWebpack(config: WebpackConfig): WebpackConfig {
+  return {
+    ...config,
+    resolve: {
+      ...config.resolve,
+      alias: {
+        ...config.resolve?.alias,
+        '@daviddh/llm-graph-runner': path.join(apiSrc, 'index.ts'),
+        '@src': apiSrc,
+      },
+      extensionAlias: { '.js': ['.ts', '.tsx', '.js'] },
+    },
+  };
+}
 
 const nextConfig: NextConfig = {
   reactStrictMode: false,
+  transpilePackages: ['@daviddh/llm-graph-runner'],
+  webpack: configureWebpack,
 };
 
 export default nextConfig;

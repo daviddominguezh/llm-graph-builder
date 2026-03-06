@@ -149,21 +149,20 @@ export const getNextOptions = async (
 // TODO: Implement
 export const generateUserContextPrompt = (context: Context): string | null => '';
 
-const buildDecisionEnforcement = (edges: SMNextOptions['edges']): string => `
+const buildDecisionEnforcement = (edges: SMNextOptions['edges']): string => `## MANDATORY: JSON OUTPUT REQUIRED
 
-═══════════════════════════════════════
-MANDATORY: JSON OUTPUT REQUIRED
-═══════════════════════════════════════
-## THE ONLY POSSIBLE NEXT NODE IDs ARE: [${edges.map((_, i) => i + INCREMENT_BY_ONE).join(', ')}]
-## RETURN ONLY USING THIS JSON TEMPLATE:
+**THE ONLY POSSIBLE NEXT NODE IDs ARE**: [${edges.map((_, i) => i + INCREMENT_BY_ONE).join(', ')}]
+
+**RETURN ONLY USING THIS JSON TEMPLATE:**
+\`\`\`json
 {
   "nextNodeID": "Number of the nextNodeID",
   "messageToUser": "Message with acknowledgment of user's choice"
 }
+\`\`\`
 
-═══════════════════════════════════════
-MANDATORY: REMEMBER YOU CAN NOT CALL ANY TOOL OR FUNCTION, DO NOT DO IT.
-═══════════════════════════════════════`;
+
+**MANDATORY:** REMEMBER YOU CAN NOT CALL ANY TOOL OR FUNCTION, DO NOT DO IT.`;
 
 const appendKindSpecificPrompts = (
   kind: SMNextOptions['kind'],

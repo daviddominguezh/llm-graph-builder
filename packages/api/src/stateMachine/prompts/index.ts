@@ -69,7 +69,7 @@ export const AGENT_DECISION_PROMPT = `${REPLY_PROMPT}
 - Your response will be PARSED AS JSON - any non-JSON text will cause system failure
 - The "messageToUser" field should be brief and directly related to the selected nextNodeID
 
-## FAILURE MODE: If you call a tool the system will CRASH
+## FAILURE ALERT: If you call a tool the system will CRASH
 
 ## SUCCESS MODE: Respond with ONLY this structure:
 
@@ -87,23 +87,18 @@ Just call the tool {toolName} right now and pass the required parameters.
 This is mandatory. Failure to do so means the task fails.
 `;
 
-export const SM_BASE_PROMPT_NEXT_OPTION_IS_AGENT_DECISION = `
-=================================================================
-### ROUTING DECISION MODE - NO TOOL EXECUTION ALLOWED
-=================================================================
+export const SM_BASE_PROMPT_NEXT_OPTION_IS_AGENT_DECISION = `# ROUTING DECISION MODE - NO TOOL EXECUTION ALLOWED
 
-## CRITICAL CONSTRAINTS FOR THIS STEP:
+Critical constraints:
+1. No tools are available at this step.
 
-** NO TOOLS ARE AVAILABLE AT THIS STEP **
-** DO NOT CALL ANY TOOLS **
-
-## YOUR ONLY JOB:
+Your task:
 1. Analyze the user's message to understand their intent
 2. Select which nextNodeID matches
 3. Write a helpful messageToUser that uses business context when relevant
 4. Return ONLY the JSON response (no tools, no actions, no execution)
 
-Decide which option applies and SELECT the appropriate "nextNodeID"`;
+Decide which option applies and choose the appropriate "nextNodeID"`;
 
 export const SM_TOOLREPLY_NOTOOLS_REPLY = `**DO NOT CALL ANY TOOL AT THIS STEP**`;
 export const SM_TOOLREPLY_NODE_REPLY = `Use the following nodeID as the "nextNodeID" parameter in your response`;
