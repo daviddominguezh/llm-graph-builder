@@ -58,7 +58,7 @@ export const formatOption = (params: FormatOptionParams): string => {
     parts.push(`- **Purpose**: ${description}`);
   }
   if (example !== undefined && example !== "") {
-    const escapedExample = example.replace(/\n/g, "\\n");
+    const escapedExample = example.replace(/\n/gv, "\\n");
     parts.push(`- **Response example**: ${escapedExample}`);
   }
   return parts.join("\n").trim();
