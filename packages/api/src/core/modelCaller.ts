@@ -1,5 +1,5 @@
 import type { LanguageModel } from 'ai';
-import { generateObject, generateText } from 'ai';
+import { generateText, Output } from 'ai';
 import z from 'zod';
 
 import type { ToolModelConfig } from '@src/types/ai/ai.js';
@@ -28,7 +28,7 @@ const FIRST_ATTEMPT = 0;
 export interface ModelCallResult {
   response?: { messages?: unknown[] };
   usage?: unknown;
-  object?: unknown;
+  output?: unknown;
   toolCalls?: unknown[];
   toolResults?: unknown[];
 }
@@ -80,12 +80,13 @@ async function executeModelCall(
       const result = await generateText(configWithAbort);
       return toModelCallResult(result);
     }
-    const result = await generateObject({
+    const result = await generateText({
       ...configWithAbort,
-      // TODO: Replace with proper node output
-      schema: z.object({
-        nextNodeID: z.string().nonempty(),
-        messageToUser: z.string().nonempty(),
+      output: Output.object({
+        schema: z.object({
+          nextNodeID: z.string().nonempty(),
+          messageToUser: z.string().nonempty(),
+        }),
       }),
     });
     return toModelCallResult(result);

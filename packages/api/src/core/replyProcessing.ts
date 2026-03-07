@@ -99,7 +99,7 @@ function extractUsage(rawUsage: ReplyUsageInfo | undefined): UsageResult {
 }
 
 function buildResponseMessages(typedReply: ReplyWithObject): Array<AssistantModelMessage | ToolModelMessage> {
-  const responseMsg = typedReply.object === undefined ? '' : JSON.stringify(typedReply.object);
+  const responseMsg = typedReply.output === undefined ? '' : JSON.stringify(typedReply.output);
   return (
     typedReply.response?.messages ?? [{ role: 'assistant', content: [{ type: 'text', text: responseMsg }] }]
   );
@@ -126,7 +126,7 @@ function logResponseReceived(params: ResponseLogParams): void {
       modelName,
       toolCallsCount,
       duration: `${Date.now() - attemptStartTime}ms`,
-      responseObject: typedReply.object,
+      responseObject: typedReply.output,
     }
   );
 }
@@ -183,7 +183,7 @@ function processReplyWithToolValidation(
   const { context, sessionId, config, expectedTool, attemptCount, modelName } = params;
   const toolCalls = typedReply.toolCalls ?? [];
   const toolResults = typedReply.toolResults ?? [];
-  const { object: resp } = typedReply;
+  const { output: resp } = typedReply;
   const strResp = JSON.stringify(resp);
   logger.info(
     `callAgentStep/${context.tenantID}/${context.userID}| [AGENT_EXECUTOR] Tool call raw response:\n${strResp}`

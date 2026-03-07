@@ -110,7 +110,7 @@ export interface ReplyUsageInfo {
 }
 
 export interface ReplyWithObject {
-  object?: unknown;
+  output?: unknown;
   toolCalls?: Array<TypedToolCall<Record<string, Tool<unknown, unknown>>>>;
   toolResults?: Array<{ toolName: string; output: unknown }>;
   usage?: ReplyUsageInfo;
