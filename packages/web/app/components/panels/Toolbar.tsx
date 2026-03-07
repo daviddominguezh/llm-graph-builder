@@ -9,16 +9,31 @@ interface ToolbarProps {
   onAddNode: () => void;
   onImport: () => void;
   onExport: () => void;
+  onPlay?: () => void;
+  simulationActive?: boolean;
   statusSlot?: ReactNode;
   globalPanelOpen?: boolean;
   onToggleGlobalPanel?: () => void;
   onTogglePresets?: () => void;
 }
 
-export function Toolbar({ onImport, onExport, statusSlot, onToggleGlobalPanel, onTogglePresets }: ToolbarProps) {
+export function Toolbar({
+  onImport,
+  onExport,
+  onPlay,
+  simulationActive,
+  statusSlot,
+  onToggleGlobalPanel,
+  onTogglePresets,
+}: ToolbarProps) {
   return (
     <header className="absolute z-1 flex items-stretch justify-center gap-1 border rounded-lg bg-background p-1 top-2 shadow-lg">
-      <Button className="h-10 w-10" variant="ghost" size="sm">
+      <Button
+        className="h-10 w-10"
+        variant={simulationActive ? 'default' : 'ghost'}
+        size="sm"
+        onClick={onPlay}
+      >
         <Play className="size-4" />
       </Button>
       <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onImport}>

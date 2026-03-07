@@ -32,8 +32,10 @@ import { GlobalNodesPanel } from "./panels/GlobalNodesPanel";
 import { ConnectionMenu } from "./panels/ConnectionMenu";
 import { PresetsPanel } from "./panels/PresetsPanel";
 import { SearchDialog } from "./panels/SearchDialog";
+import { SimulationPanel } from "./panels/simulation";
 import { GraphSchema, type Agent } from "../schemas/graph.schema";
 import { usePresets } from "../hooks/usePresets";
+import { useSimulation } from "../hooks/useSimulation";
 import {
   GRAPH_DATA,
   processGraph,
@@ -630,6 +632,17 @@ function GraphBuilderInner() {
     }
   }, [savedGraphState, setNodes, setEdges, setViewport]);
 
+  // Simulation state
+  const simulation = useSimulation({
+    allNodes: nodes,
+    edges,
+    agents,
+    preset: presetsHook.activePreset,
+    apiKey: presetsHook.apiKey,
+    onZoomToNode: handleZoomToNode,
+    onExitZoomView: handleExitZoomView,
+  });
+
   const displayEdges = edges;
 
   // Filter global nodes out of the canvas
@@ -671,6 +684,8 @@ function GraphBuilderInner() {
           onAddNode={handleAddNode}
           onImport={handleImport}
           onExport={handleExport}
+          onPlay={simulation.start}
+          simulationActive={simulation.active}
           statusSlot={<StatusButton nodes={nodes} edges={edges} />}
           globalPanelOpen={globalPanelOpen}
           onToggleGlobalPanel={() => setGlobalPanelOpen((prev) => !prev)}
@@ -706,11 +721,25 @@ function GraphBuilderInner() {
 
             {zoomViewNodeId && (
               <div className="absolute top-4 left-4 z-10">
-                <Button variant="secondary" onClick={handleExitZoomView}>
+                <Button
+                  variant="secondary"
+                  onClick={simulation.active ? simulation.stop : handleExitZoomView}
+                >
                   <X className="h-3 w-3" />
-                  Quit zoom view
+                  {simulation.active ? 'Stop simulation' : 'Quit zoom view'}
                 </Button>
               </div>
+            )}
+
+            {simulation.active && (
+              <SimulationPanel
+                steps={simulation.steps}
+                totalTokens={simulation.totalTokens}
+                currentNode={simulation.currentNode}
+                loading={simulation.loading}
+                onSendMessage={simulation.sendMessage}
+                onStop={simulation.stop}
+              />
             )}
           </main>
 
@@ -724,7 +753,7 @@ function GraphBuilderInner() {
             onSelectNode={handleSearchSelectNode}
           />
 
-          {(selectedNodeId || selectedEdgeId) && (
+          {!simulation.active && (selectedNodeId || selectedEdgeId) && (
             <aside className="absolute right-0 top-0 bottom-0 w-80 border-l border-gray-200 bg-white">
               {selectedNodeId && (
                 <NodePanel
