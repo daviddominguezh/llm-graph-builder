@@ -18,7 +18,6 @@ export const AGENT_CONSTANTS = {
   HIGH_MODEL_THRESHOLD,
 
   // Node names
-  FAQ_NODE_NAME: 'AnswerBusinessQuestion',
   INITIAL_STEP: 'INITIAL_STEP',
   GREETING_NODE: 'Greeting',
   USER_SPECIFIED_NAME_NODE: 'UserSpecifiedName',
@@ -47,7 +46,7 @@ export const AGENT_CONSTANTS = {
 export const PROMPTS = {
   TOOL_CALL_FORCE:
     'You MUST properly call the tool NOW. Do NOT request additional information to the user. Your ONLY task now is to call the tool immediatly',
-  FAQ_MUST_CALL_TOOL: (toolName: string) => `You must immediately call the tool "${toolName}".
+  GLOBAL_NODE_MUST_CALL_TOOL: (toolName: string) => `You must immediately call the tool "${toolName}".
 Do not reply with text.
 DO NOT REPLY TO THE USER, JUST CALL THE TOOL.
 Do not explain or confirm.
@@ -55,8 +54,8 @@ Do not do anything else.
 Just call the tool "${toolName}" right now and pass the required parameters.
 This is mandatory. Failure to do so means the task fails.
 Call the tool "${toolName}" RIGHT NOW.`,
-  FAQ_REPLY_SUFFIX:
-    '\n\nYour message to the user MUST address the question the user asked with a summary of the information you got from calling the AnswerBusinessQuestion tool.\nONLY IF you have not said hello yet, do it.',
+  GLOBAL_NODE_REPLY_SUFFIX:
+    '\n\nYour message to the user MUST address the question the user asked with a summary of the information you got from calling the tool.\nONLY IF you have not said hello yet, do it.',
   NO_ORDERS_WARNING:
     '\nDO NOT ASK THE USER IF THEY WANT TO SEE/KNOW ANYTHING ABOUT THEIR ORDERS. THE USER DOES NOT HAVE ANY ORDER, SO DO NOT MENTION IT.',
   NO_PRODUCT_LISTING_IN_CUSTOMIZATION: `

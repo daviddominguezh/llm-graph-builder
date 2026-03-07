@@ -6,12 +6,9 @@ import type { ParsedResult } from '@src/types/ai/index.js';
 import type { Context } from '@src/types/tools.js';
 import { logger } from '@src/utils/logger.js';
 
-import { AGENT_CONSTANTS } from './constants.js';
-import { MessageProcessor } from './messageProcessor.js';
-import { buildFAQConfig, processReplyNode, processToolNode } from './nodeProcessor.js';
+import { buildGlobalNodeConfig, processReplyNode, processToolNode } from './nodeProcessor.js';
 import type { CallAgentInput, NodeProcessingConfig } from './types.js';
 
-const FIRST_INDEX = 0;
 const LAST_INDEX_OFFSET = 1;
 const EMPTY_LENGTH = 0;
 
@@ -29,7 +26,7 @@ interface ProcessNodeParams {
   context: Context;
   input: CallAgentInput;
   currentNodeID: string;
-  nodeBeforeFAQ: string;
+  nodeBeforeGlobal: string;
   debugMessages: Record<string, ModelMessage[][]>;
 }
 
@@ -40,15 +37,19 @@ interface ProcessNodeResult {
   toolCalls: ToolCallsArray;
 }
 
+function isGlobalNode(context: Context, nodeID: string): boolean {
+  const node = getNode(context.graph, nodeID);
+  return node.global;
+}
+
 async function getNodeConfig(
   context: Context,
   currentNodeID: string,
-  nodeBeforeFAQ: string
+  nodeBeforeGlobal: string
 ): Promise<NodeProcessingConfig> {
-  const isFAQ = currentNodeID === AGENT_CONSTANTS.FAQ_NODE_NAME;
+  const isGlobal = isGlobalNode(context, currentNodeID);
 
-  // TODO: Replace everything "FAQ" for "global nodes"
-  if (isFAQ) return buildFAQConfig(context, nodeBeforeFAQ);
+  if (isGlobal) return buildGlobalNodeConfig(context, nodeBeforeGlobal, currentNodeID);
 
   return await buildNextAgentConfig(context.graph, context, currentNodeID);
 }
@@ -71,7 +72,7 @@ async function applyJumpTo(context: Context, currentNodeID: string, nextNodeID: 
 async function processToolCallNode(
   params: ProcessNodeParams,
   config: NodeProcessingConfig,
-  isFAQ: boolean
+  isGlobal: boolean
 ): Promise<ProcessNodeResult> {
   const { context, input, currentNodeID, debugMessages } = params;
   const edgeValues = Object.values(config.toolsByEdge);
@@ -84,7 +85,7 @@ async function processToolCallNode(
     input,
     currentNodeID,
     requiredTool,
-    isFAQ,
+    isGlobal,
     debugMessages,
   });
 
@@ -112,10 +113,10 @@ async function processReplyCallNode(
  * Processes a single node in the agent flow
  */
 export async function processNode(params: ProcessNodeParams): Promise<ProcessNodeResult> {
-  const { context, currentNodeID, nodeBeforeFAQ } = params;
-  const isFAQ = currentNodeID === AGENT_CONSTANTS.FAQ_NODE_NAME;
+  const { context, currentNodeID, nodeBeforeGlobal } = params;
+  const isGlobal = isGlobalNode(context, currentNodeID);
 
-  const config = await getNodeConfig(context, currentNodeID, nodeBeforeFAQ);
+  const config = await getNodeConfig(context, currentNodeID, nodeBeforeGlobal);
 
   logger.info(`callAgentStep/${context.tenantID}/${context.userID}| Kind: ${config.kind}`);
   logger.info(
@@ -123,7 +124,7 @@ export async function processNode(params: ProcessNodeParams): Promise<ProcessNod
   );
 
   if (config.kind === 'tool_call') {
-    return await processToolCallNode(params, config, isFAQ);
+    return await processToolCallNode(params, config, isGlobal);
   }
 
   return await processReplyCallNode(params, config);
@@ -131,7 +132,7 @@ export async function processNode(params: ProcessNodeParams): Promise<ProcessNod
 
 interface FlowState {
   currentNodeID: string;
-  nodeBeforeFAQ: string;
+  nodeBeforeGlobal: string;
   parsedResults: ParsedResult[];
   visitedNodes: string[];
   allToolCalls: ToolCallsArray;
@@ -151,14 +152,14 @@ async function processFlowStep(
   debugMessages: Record<string, ModelMessage[][]>,
   state: FlowState
 ): Promise<{ state: FlowState; error: boolean; shouldContinue: boolean }> {
-  const { currentNodeID, nodeBeforeFAQ, parsedResults, visitedNodes, allToolCalls } = state;
+  const { currentNodeID, nodeBeforeGlobal, parsedResults, visitedNodes, allToolCalls } = state;
   visitedNodes.push(currentNodeID);
 
   const { parsedResult, nextNodeID, error, toolCalls } = await processNode({
     context,
     input,
     currentNodeID,
-    nodeBeforeFAQ,
+    nodeBeforeGlobal,
     debugMessages,
   });
 
@@ -170,26 +171,23 @@ async function processFlowStep(
     allToolCalls.push(...toolCalls);
   }
 
-  const nextNodeIsFAQ = nextNodeID === AGENT_CONSTANTS.FAQ_NODE_NAME;
-  const newNodeBeforeFAQ = nextNodeIsFAQ ? nodeBeforeFAQ : nextNodeID;
+  const { global: nextNodeIsGlobal, nextNodeIsUser } = getNode(context.graph, nextNodeID);
+  const newNodeBeforeGlobal = nextNodeIsGlobal ? nodeBeforeGlobal : nextNodeID;
 
   logger.info(`callAgentStep/${context.tenantID}/${context.userID}| nextNode: ${nextNodeID}`);
-
-  const currentNode = getNode(context.graph, nextNodeID);
-  const nextNodeIsUser = currentNode.nextNodeIsUser === true;
 
   parsedResult.nextNodeID = nextNodeID;
   parsedResults.push(parsedResult);
 
   const newState: FlowState = {
     currentNodeID: nextNodeID,
-    nodeBeforeFAQ: newNodeBeforeFAQ,
+    nodeBeforeGlobal: newNodeBeforeGlobal,
     parsedResults,
     visitedNodes,
     allToolCalls,
   };
 
-  return { state: newState, error: false, shouldContinue: !nextNodeIsUser };
+  return { state: newState, error: false, shouldContinue: nextNodeIsUser !== true };
 }
 
 /**
@@ -233,7 +231,7 @@ export async function executeAgentFlowRecursive(
 export function createInitialFlowState(input: CallAgentInput): FlowState {
   return {
     currentNodeID: input.currentNode,
-    nodeBeforeFAQ: input.currentNode,
+    nodeBeforeGlobal: input.currentNode,
     parsedResults: [],
     visitedNodes: [],
     allToolCalls: [],

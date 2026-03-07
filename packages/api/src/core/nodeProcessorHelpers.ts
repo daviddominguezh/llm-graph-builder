@@ -1,7 +1,7 @@
 import type { AssistantModelMessage, ModelMessage, Tool, ToolModelMessage, TypedToolCall } from 'ai';
 
 import type { Message } from '@src/types/ai/index.js';
-import { Context } from '@src/types/tools.js';
+import type { Context } from '@src/types/tools.js';
 import { logger } from '@src/utils/logger.js';
 import { isError } from '@src/utils/typeGuards.js';
 
@@ -87,50 +87,52 @@ export function extractLastUserMessage(messages: Message[]): string | null {
   return null;
 }
 
-export function createSyntheticToolMessages(
-  toolCallId: string,
-  userMessage: string,
-  resultString: string
-): {
+interface SyntheticToolMessagesParams {
+  toolCallId: string;
+  toolName: string;
+  userMessage: string;
+  resultString: string;
+}
+
+interface SyntheticToolMessagesResult {
   toolCallMessage: AssistantModelMessage;
   toolResultMessage: ToolModelMessage;
   syntheticToolCall: TypedToolCall<Record<string, Tool>>;
-} {
-  const toolCallMessage: AssistantModelMessage = {
+}
+
+function buildSyntheticToolCall(
+  params: SyntheticToolMessagesParams
+): TypedToolCall<Record<string, Tool>> {
+  const { toolCallId, toolName, userMessage } = params;
+  return { type: 'tool-call', toolCallId, toolName, input: { query: userMessage } };
+}
+
+function buildSyntheticAssistantMessage(
+  params: SyntheticToolMessagesParams
+): AssistantModelMessage {
+  const { toolCallId, toolName, userMessage } = params;
+  return {
     role: 'assistant',
-    content: [
-      {
-        type: 'tool-call',
-        toolCallId,
-        // TODO: Change for FAQ (global node)
-        toolName: CloserTool.answerBusinessQuestion,
-        input: { query: userMessage },
-      },
-    ],
+    content: [{ type: 'tool-call', toolCallId, toolName, input: { query: userMessage } }],
   };
+}
 
-  const toolResultMessage: ToolModelMessage = {
+function buildSyntheticToolResultMessage(
+  params: SyntheticToolMessagesParams
+): ToolModelMessage {
+  const { toolCallId, toolName, resultString } = params;
+  return {
     role: 'tool',
-    content: [
-      {
-        type: 'tool-result',
-        toolCallId,
-        // TODO: Change for FAQ (global node)
-        toolName: CloserTool.answerBusinessQuestion,
-        output: { type: 'text', value: resultString },
-      },
-    ],
+    content: [{ type: 'tool-result', toolCallId, toolName, output: { type: 'text', value: resultString } }],
   };
+}
 
-  const syntheticToolCall: TypedToolCall<Record<string, Tool>> = {
-    type: 'tool-call',
-    toolCallId,
-    // TODO: Change for FAQ (global node)
-    toolName: CloserTool.answerBusinessQuestion,
-    input: { query: userMessage },
+export function createSyntheticToolMessages(params: SyntheticToolMessagesParams): SyntheticToolMessagesResult {
+  return {
+    toolCallMessage: buildSyntheticAssistantMessage(params),
+    toolResultMessage: buildSyntheticToolResultMessage(params),
+    syntheticToolCall: buildSyntheticToolCall(params),
   };
-
-  return { toolCallMessage, toolResultMessage, syntheticToolCall };
 }
 
 async function executeToolWithResult(
@@ -150,60 +152,83 @@ async function executeToolWithResult(
   return toolResult.result?.result ?? DEFAULT_RESPONSE;
 }
 
-function getToolFromConfig(config: NodeProcessingConfig): Tool | undefined {
+interface ToolFromConfig {
+  tool: Tool;
+  toolName: string;
+}
+
+function getToolFromConfig(config: NodeProcessingConfig): ToolFromConfig | undefined {
   const edgeValues = Object.values(config.toolsByEdge);
   const [firstEdge] = edgeValues;
   if (firstEdge === undefined) return undefined;
   const { tools } = firstEdge;
   if (tools === undefined) return undefined;
-  // TODO: Change for FAQ (global node)
-  return tools[CloserTool.answerBusinessQuestion];
+  const [firstEntry] = Object.entries(tools);
+  if (firstEntry === undefined) return undefined;
+  const [toolName, tool] = firstEntry;
+  return { tool, toolName };
 }
 
-export async function manuallyInvokeAnswerBusinessQuestion(
+function buildEmptyResult(): ManualInvokeResult {
+  return { success: false, messages: [], toolCalls: [] };
+}
+
+async function invokeToolManually(
   context: Context,
   config: NodeProcessingConfig,
   messages: Message[]
 ): Promise<ManualInvokeResult> {
   const userMessage = extractLastUserMessage(messages);
-
   if (userMessage === null || userMessage === '') {
-    logger.warn(
-      `callAgentStep/${context.tenantID}/${context.userID}| Could not extract user message for manual FAQ invocation`
-    );
-    return { success: false, messages: [], toolCalls: [] };
+    logger.warn(`callAgentStep/${context.tenantID}/${context.userID}| Could not extract user message for manual global node invocation`);
+    return buildEmptyResult();
   }
 
-  const tool = getToolFromConfig(config);
-  if (tool === undefined) {
-    logger.warn(
-      `callAgentStep/${context.tenantID}/${context.userID}| answerBusinessQuestion tool not found in config`
-    );
-    return { success: false, messages: [], toolCalls: [] };
+  const toolFromConfig = getToolFromConfig(config);
+  if (toolFromConfig === undefined) {
+    logger.warn(`callAgentStep/${context.tenantID}/${context.userID}| Global node tool not found in config`);
+    return buildEmptyResult();
   }
 
+  return await executeManualToolCall(context, toolFromConfig, userMessage, messages);
+}
+
+async function executeManualToolCall(
+  context: Context,
+  toolFromConfig: ToolFromConfig,
+  userMessage: string,
+  messages: Message[]
+): Promise<ManualInvokeResult> {
+  const { tool, toolName } = toolFromConfig;
   try {
-    const toolCallId = `manual-faq-${Date.now()}`;
-    logger.info(
-      `callAgentStep/${context.tenantID}/${context.userID}| Manually invoking answerBusinessQuestion with query: "${userMessage}"`
-    );
+    const toolCallId = `manual-global-${Date.now()}`;
+    logger.info(`callAgentStep/${context.tenantID}/${context.userID}| Manually invoking ${toolName} with query: "${userMessage}"`);
 
     const modelMessages: ModelMessage[] = messages.map((m) => m.message);
     const resultString = await executeToolWithResult(tool, userMessage, toolCallId, modelMessages);
-    const { toolCallMessage, toolResultMessage, syntheticToolCall } = createSyntheticToolMessages(
+    const { toolCallMessage, toolResultMessage, syntheticToolCall } = createSyntheticToolMessages({
       toolCallId,
+      toolName,
       userMessage,
-      resultString
-    );
+      resultString,
+    });
 
     return { success: true, messages: [toolCallMessage, toolResultMessage], toolCalls: [syntheticToolCall] };
   } catch (error) {
     const errorMessage = isError(error) ? error.message : 'Unknown error';
-    logger.error(`callAgentStep/${context.tenantID}/${context.userID}| Manual FAQ tool invocation failed`, {
+    logger.error(`callAgentStep/${context.tenantID}/${context.userID}| Manual global node tool invocation failed`, {
       error: errorMessage,
     });
-    return { success: false, messages: [], toolCalls: [] };
+    return buildEmptyResult();
   }
+}
+
+export async function manuallyInvokeGlobalNodeTool(
+  context: Context,
+  config: NodeProcessingConfig,
+  messages: Message[]
+): Promise<ManualInvokeResult> {
+  return await invokeToolManually(context, config, messages);
 }
 
 function addValuesToTypeMap(

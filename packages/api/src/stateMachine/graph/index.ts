@@ -3,13 +3,7 @@ import type { Tool, ToolChoice, ToolSet } from 'ai';
 import { FIRST_INDEX } from '@src/constants/index.js';
 import { generateAllTools } from '@src/tools/index.js';
 import type { Edge, Graph, Node } from '@src/types/graph.js';
-import {
-  type EdgeTools,
-  SKILL,
-  SKILL_EDGES,
-  SKILL_PRECONDITION,
-  type ToolsByEdge,
-} from '@src/types/stateMachine.js';
+import type { EdgeTools, ToolsByEdge } from '@src/types/stateMachine.js';
 import type { Context } from '@src/types/tools.js';
 
 import { CONTEXT_PRECONDITIONS } from './contextPreconditions.js';
@@ -32,21 +26,19 @@ export const getNode = (graph: Graph, nodeID: string): Node => {
 export const getNodeDescription = (graph: Graph, nodeID: string): string | undefined =>
   getNode(graph, nodeID).description;
 
-export const populateSkillEdges = (from: string, edges: Edge[]): Edge[] => {
-  const skills: SKILL[] = [SKILL.ReplyUserRequestForInfo];
+export const populateGlobalNodeEdges = (graph: Graph, from: string, edges: Edge[]): Edge[] => {
+  const globalNodes = graph.nodes.filter((node) => node.global);
 
-  for (const skill of skills) {
-    const { [skill]: skillEdgeTarget } = SKILL_EDGES;
-    const targetStr = skillEdgeTarget.toString();
-    const existingEdge = edges.find((edge) => edge.to === targetStr);
+  globalNodes.forEach((globalNode) => {
+    const existingEdge = edges.find((edge) => edge.to === globalNode.id);
     if (existingEdge === undefined) {
       edges.push({
         from,
-        to: skillEdgeTarget,
-        preconditions: [SKILL_PRECONDITION[skill]],
+        to: globalNode.id,
+        preconditions: [{ type: 'user_said', value: globalNode.description }],
       });
     }
-  }
+  });
 
   return edges;
 };
@@ -158,5 +150,5 @@ export const getEdgesFromNode = async (graph: Graph, context: Context, nodeID: s
   if (node.nextNodeIsUser === false) {
     return edges;
   }
-  return populateSkillEdges(nodeID, edges);
+  return populateGlobalNodeEdges(graph, nodeID, edges);
 };

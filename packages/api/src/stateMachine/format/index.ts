@@ -1,11 +1,5 @@
 import { FIRST_INDEX, INCREMENT_BY_ONE } from '@src/constants/index.js';
 import type { Edge, Graph, Precondition } from '@src/types/graph.js';
-import {
-  EDGE_SKILLS,
-  SKILL_DESCRIPTIONS,
-  SKILL_PRECONDITION,
-  SPECIAL_EDGE,
-} from '@src/types/stateMachine.js';
 import type { Context } from '@src/types/tools.js';
 
 import { getEdgesFromNode, getNode, getNodeDescription } from '../graph/index.js';
@@ -46,24 +40,6 @@ export const formatOption = (params: FormatOptionParams): string => {
   return parts.join('\n');
 };
 
-export const convertEspecialEdgeToStr = (
-  index: number,
-  edge: SPECIAL_EDGE
-): { withPreconditions: string; withoutToolPreconditions: string } => {
-  const { [edge]: skill } = EDGE_SKILLS;
-  return {
-    withPreconditions: formatOption({
-      index,
-      description: SKILL_DESCRIPTIONS[skill].value,
-      precondition: SKILL_PRECONDITION[skill],
-    }),
-    withoutToolPreconditions: formatOption({
-      index,
-      description: SKILL_DESCRIPTIONS[skill].value,
-    }),
-  };
-};
-
 const getUserSaidExamples = async (
   graph: Graph,
   context: Context,
@@ -89,9 +65,6 @@ export const convertEdgeToStr = async (
   edge: Edge
 ): Promise<{ withPreconditions: string; withoutToolPreconditions: string }> => {
   const { to } = edge;
-  if (to === 'AnswerBusinessQuestion') {
-    return convertEspecialEdgeToStr(index, SPECIAL_EDGE.AnswerBusinessQuestion);
-  }
   const node = getNode(graph, to);
   const description = getNodeDescription(graph, edge.to);
   const { [FIRST_INDEX]: firstPrecondition } = edge.preconditions ?? [];

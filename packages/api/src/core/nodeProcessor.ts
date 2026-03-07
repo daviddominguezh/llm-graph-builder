@@ -3,6 +3,7 @@ import type { ModelMessage } from 'ai';
 import { getNode, getToolsFromEdges } from '@src/stateMachine/graph/index.js';
 import { generateToolReplyPrompt } from '@src/stateMachine/prompts/index.js';
 import type { ParsedResult } from '@src/types/ai/ai.js';
+import type { Graph } from '@src/types/graph.js';
 import type { Context } from '@src/types/tools.js';
 import { logger } from '@src/utils/logger.js';
 import { formatMessages } from '@src/utils/messages.js';
@@ -10,13 +11,11 @@ import { formatMessages } from '@src/utils/messages.js';
 import { getModel } from './agentExecutorHelpers.js';
 import { getConfig } from './config.js';
 import { AGENT_CONSTANTS, PROMPTS } from './constants.js';
-import { type ToolCallsArray, getProviderFromMessages, isProductsEmpty } from './nodeProcessorHelpers.js';
+import { type ToolCallsArray, getProviderFromMessages } from './nodeProcessorHelpers.js';
 import { generateReply } from './replyGenerator.js';
 import { accumulateTokens } from './tokenTracker.js';
 import { type ProcessToolNodeParams, executeToolCall } from './toolCallExecutor.js';
 import type { CallAgentInput, NodeProcessingConfig } from './types.js';
-
-const EMPTY_LENGTH = 0;
 
 interface ProcessReplyNodeParams {
   context: Context;
@@ -32,26 +31,43 @@ interface GenerateToolReplyParams {
   currentNodeID: string;
   nextNodeID: string;
   nodes: Record<string, string>;
-  isFAQ: boolean;
+  isGlobal: boolean;
   debugMessages: Record<string, ModelMessage[][]>;
 }
 
-export function buildFAQConfig(context: Context, nodeBeforeFAQ: string): NodeProcessingConfig {
-  const { FAQ_NODE_NAME, INITIAL_STEP, DEFAULT_OUTPUT_NODE } = AGENT_CONSTANTS;
-  const targetNode = nodeBeforeFAQ === INITIAL_STEP ? INITIAL_STEP : nodeBeforeFAQ;
+function getGlobalNodeToolName(graph: Graph, globalNodeID: string): string {
+  const edges = graph.edges.filter((edge) => edge.from === globalNodeID);
+
+  for (const edge of edges) {
+    const toolPrecondition = (edge.preconditions ?? []).find((p) => p.type === 'tool_call');
+    if (toolPrecondition !== undefined) {
+      return toolPrecondition.value;
+    }
+  }
+
+  throw new Error(`Global node "${globalNodeID}" has no outgoing edge with a tool_call precondition`);
+}
+
+export function buildGlobalNodeConfig(
+  context: Context,
+  nodeBeforeGlobal: string,
+  globalNodeID: string
+): NodeProcessingConfig {
+  const { INITIAL_STEP, DEFAULT_OUTPUT_NODE } = AGENT_CONSTANTS;
+  const targetNode = nodeBeforeGlobal === INITIAL_STEP ? INITIAL_STEP : nodeBeforeGlobal;
+  const toolName = getGlobalNodeToolName(context.graph, globalNodeID);
 
   return {
     kind: 'tool_call' as const,
-    // TODO: FAQ must change for global nodes
-    promptWithoutToolPreconditions: PROMPTS.FAQ_MUST_CALL_TOOL(CloserTool.answerBusinessQuestion),
+    promptWithoutToolPreconditions: PROMPTS.GLOBAL_NODE_MUST_CALL_TOOL(toolName),
     toolsByEdge: getToolsFromEdges(context, [
       {
-        from: FAQ_NODE_NAME,
+        from: globalNodeID,
         to: targetNode,
-        preconditions: [{ type: 'tool_call', value: CloserTool.answerBusinessQuestion }],
+        preconditions: [{ type: 'tool_call', value: toolName }],
       },
     ]),
-    nodes: { [DEFAULT_OUTPUT_NODE]: nodeBeforeFAQ },
+    nodes: { [DEFAULT_OUTPUT_NODE]: nodeBeforeGlobal },
   };
 }
 
@@ -87,25 +103,24 @@ export async function processReplyNode(
 
 export function addNodeSpecificPrompts(context: Context, currentNodeID: string, replyPrompt: string): string {
   const prompt = replyPrompt;
-  // TODO: Extract this from the graph -> each node can have an optional "prompt" field
   return prompt;
 }
 
 async function generateToolReply(params: GenerateToolReplyParams): Promise<ParsedResult> {
-  const { context, input, currentNodeID, nextNodeID, nodes, isFAQ, debugMessages } = params;
+  const { context, input, currentNodeID, nextNodeID, nodes, isGlobal, debugMessages } = params;
   const provider = getProviderFromMessages(input.messages);
   const { model } = getModel();
   const nextNode = getNode(context.graph, nextNodeID);
 
-  let replyPrompt = await generateToolReplyPrompt({
+  let replyPrompt = generateToolReplyPrompt({
     ctx: context,
     nodeId: AGENT_CONSTANTS.DEFAULT_OUTPUT_NODE,
     nodeName: nextNode.id,
     textExample: nextNode.text,
     description: nextNode.description,
   });
-  if (isFAQ) replyPrompt += PROMPTS.FAQ_REPLY_SUFFIX;
-  replyPrompt = await addNodeSpecificPrompts(context, currentNodeID, replyPrompt);
+  if (isGlobal) replyPrompt += PROMPTS.GLOBAL_NODE_REPLY_SUFFIX;
+  replyPrompt = addNodeSpecificPrompts(context, currentNodeID, replyPrompt);
 
   const replyConfig = getConfig({
     model,
@@ -146,7 +161,7 @@ function createErrorResult(): ToolNodeResult {
 }
 
 export async function processToolNode(params: ProcessToolNodeParams): Promise<ToolNodeResult> {
-  const { context, config, input, currentNodeID, isFAQ, debugMessages, requiredTool } = params;
+  const { context, config, input, currentNodeID, isGlobal, debugMessages, requiredTool } = params;
   const { toolsByEdge, nodes } = config;
 
   const toolsByEdgeKeys = Object.keys(toolsByEdge);
@@ -169,9 +184,9 @@ export async function processToolNode(params: ProcessToolNodeParams): Promise<To
     return createErrorResult();
   }
 
-  const shouldGenerateReply = nextNode.nextNodeIsUser === true || isFAQ;
+  const shouldGenerateReply = nextNode.nextNodeIsUser === true || isGlobal;
   const parsedResult: ParsedResult = shouldGenerateReply
-    ? await generateToolReply({ context, input, currentNodeID, nextNodeID, nodes, isFAQ, debugMessages })
+    ? await generateToolReply({ context, input, currentNodeID, nextNodeID, nodes, isGlobal, debugMessages })
     : { nextNodeID: AGENT_CONSTANTS.DEFAULT_OUTPUT_NODE };
 
   const { [parsedResult.nextNodeID]: finalNextNodeID } = nodes;

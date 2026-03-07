@@ -12,7 +12,7 @@ import {
   type ManualInvokeResult,
   type ToolCallsArray,
   getProviderFromMessages,
-  manuallyInvokeAnswerBusinessQuestion,
+  manuallyInvokeGlobalNodeTool,
 } from './nodeProcessorHelpers.js';
 import { accumulateTokens } from './tokenTracker.js';
 import type { CallAgentInput, NodeProcessingConfig } from './types.js';
@@ -23,7 +23,7 @@ export interface ProcessToolNodeParams {
   input: CallAgentInput;
   currentNodeID: string;
   requiredTool: string | undefined;
-  isFAQ: boolean;
+  isGlobal: boolean;
   debugMessages: Record<string, ModelMessage[][]>;
 }
 
@@ -42,13 +42,13 @@ function getToolsFromConfig(config: NodeProcessingConfig): ToolsFromConfig {
   return { tools, toolChoice };
 }
 
-async function handleFAQFallback(
+async function handleGlobalNodeFallback(
   context: Context,
   config: NodeProcessingConfig,
   input: CallAgentInput,
   provider: Message['provider']
 ): Promise<ManualInvokeResult | null> {
-  const manualResult = await manuallyInvokeAnswerBusinessQuestion(context, config, input.messages);
+  const manualResult = await manuallyInvokeGlobalNodeTool(context, config, input.messages);
   if (!manualResult.success) return null;
 
   const queryMsgs = MessageProcessor.convertToAppMessages(manualResult.messages, provider);
@@ -102,19 +102,19 @@ function trackAgentTokens(
   Object.assign(debugMessages, { [currentNodeID]: agentRes.copyMsgs });
 }
 
-async function handleFAQFallbackIfNeeded(
+async function handleGlobalNodeFallbackIfNeeded(
   params: ProcessToolNodeParams,
   hasError: boolean,
   initialToolCalls: ToolCallsArray
 ): Promise<{ hasError: boolean; finalToolCalls: ToolCallsArray }> {
-  const { context, config, input, isFAQ } = params;
+  const { context, config, input, isGlobal } = params;
 
-  if (!hasError || !isFAQ) {
+  if (!hasError || !isGlobal) {
     return { hasError, finalToolCalls: initialToolCalls };
   }
 
   const provider = getProviderFromMessages(input.messages);
-  const fallbackResult = await handleFAQFallback(context, config, input, provider);
+  const fallbackResult = await handleGlobalNodeFallback(context, config, input, provider);
   if (fallbackResult === null) {
     return { hasError, finalToolCalls: initialToolCalls };
   }
@@ -134,7 +134,7 @@ export async function executeToolCall(params: ProcessToolNodeParams): Promise<Ex
   trackAgentTokens(params, agentRes);
 
   const { error: initialError, toolCalls: initialToolCalls } = agentRes;
-  const { hasError, finalToolCalls } = await handleFAQFallbackIfNeeded(
+  const { hasError, finalToolCalls } = await handleGlobalNodeFallbackIfNeeded(
     params,
     initialError,
     initialToolCalls

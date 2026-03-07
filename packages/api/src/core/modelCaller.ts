@@ -98,6 +98,7 @@ interface AttemptResult {
   success: boolean;
   result?: ModelCallResult;
   shouldRetry: boolean;
+  newState?: RetryState;
 }
 
 async function executeAttempt(
