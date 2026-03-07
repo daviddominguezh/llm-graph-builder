@@ -11,10 +11,10 @@ import { convertEdgesToStr } from './format/index.js';
 import { addNodeSpecificPrompts } from './format/utils.js';
 import { getEdgesFromNode, getNode, getToolsFromEdges } from './graph/index.js';
 import {
-  REPLY_PROMPT,
   SM_BASE_PROMPT_NEXT_OPTIONS,
   SM_BASE_PROMPT_NEXT_OPTION_IS_AGENT_DECISION,
   SM_BASE_PROMPT_NEXT_OPTION_IS_TOOL,
+  buildOutputFormatPrompt,
 } from './prompts/index.js';
 
 const createTerminalNodeOptions = (
@@ -157,20 +157,8 @@ const resolveFallbackIndex = (edges: SMNextOptions['edges'], fallbackNodeId?: st
   return index >= FIRST_INDEX ? index + INCREMENT_BY_ONE : INCREMENT_BY_ONE;
 };
 
-const buildDecisionOutputFormat = (edges: SMNextOptions['edges']): string => {
-  const ids = edges.map((_, i) => i + INCREMENT_BY_ONE).join('|');
-  return `## Output format
-
-Return ONLY valid JSON. No tools. No extra text.
-
-\`\`\`json
-{
-  "nextNodeID": "${ids}",
-  "messageToUser": "Your reply in the same language the user is writing"
-}
-\`\`\`
-`;
-};
+const buildEdgeIds = (edges: SMNextOptions['edges']): string =>
+  edges.map((_, i) => i + INCREMENT_BY_ONE).join('|');
 
 interface AppendKindParams {
   kind: SMNextOptions['kind'];
@@ -186,16 +174,17 @@ const appendKindSpecificPrompts = (
   const { kind, edges, basePrompt, basePromptWithoutTools, fallbackNodeId } = params;
   if (kind === 'agent_decision') {
     const fallback = buildDecisionFallback(edges, fallbackNodeId);
-    const outputFormat = buildDecisionOutputFormat(edges);
+    const outputFormat = buildOutputFormatPrompt(buildEdgeIds(edges));
     return {
       prompt: `${basePrompt}\n\n${fallback}\n\n${outputFormat}`,
       promptWithoutTools: `${basePromptWithoutTools}\n\n${fallback}\n\n${outputFormat}`,
     };
   }
   if (kind === 'user_reply') {
+    const outputFormat = buildOutputFormatPrompt(buildEdgeIds(edges));
     return {
-      prompt: `${basePrompt}\n\n${REPLY_PROMPT}`,
-      promptWithoutTools: `${basePromptWithoutTools}\n\n${REPLY_PROMPT}`,
+      prompt: `${basePrompt}\n\n${outputFormat}`,
+      promptWithoutTools: `${basePromptWithoutTools}\n\n${outputFormat}`,
     };
   }
   return { prompt: basePrompt, promptWithoutTools: basePromptWithoutTools };

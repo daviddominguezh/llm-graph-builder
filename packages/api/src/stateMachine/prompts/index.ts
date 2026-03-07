@@ -3,23 +3,22 @@ import type { Context } from '@src/types/tools.js';
 import { insertValuesInText } from '../format/utils.js';
 import { getNode } from '../graph/index.js';
 
-export const AGENT_REPLY_SCHEMA = `{
-  "nextNodeID": <id>,
+export const buildAgentReplySchema = (ids: string): string => `\`\`\`json
+{
+  "nextNodeID": "${ids}",
   "messageToUser": "Your reply in the same language the user is writing"
-}`;
+}
+\`\`\``;
 
 export const SM_BASE_PROMPT_NEXT_OPTIONS = `You are a routing node. Your only job is to classify the user's message and return a JSON object.
 
 ## Options`;
 
-export const OUTPUT_FORMAT_PROMPT = `## Output format
+export const buildOutputFormatPrompt = (ids: string): string => `## Output format
 
 Return ONLY valid JSON. No tools. No extra text.
 
-${AGENT_REPLY_SCHEMA}`;
-
-export const REPLY_PROMPT = OUTPUT_FORMAT_PROMPT;
-export const AGENT_DECISION_PROMPT = OUTPUT_FORMAT_PROMPT;
+${buildAgentReplySchema(ids)}`;
 
 export const SM_BASE_PROMPT_NEXT_OPTION_IS_AGENT_DECISION = `You are a routing node. Your only job is to classify the user's message and return a JSON object.
 
@@ -42,7 +41,8 @@ export const SM_TOOLREPLY_EXAMPLE_REPLY = `This is an example of the reply you s
 
 export const SM_BASE_JSON_PROMPT = `Return ONLY valid JSON:`;
 
-export const SM_SCHEMA_AGENTREPLY_PROMPT = `${SM_BASE_JSON_PROMPT}\n\n${AGENT_REPLY_SCHEMA}`;
+export const buildSchemaAgentReplyPrompt = (ids: string): string =>
+  `${SM_BASE_JSON_PROMPT}\n\n${buildAgentReplySchema(ids)}`;
 
 interface GenerateToolReplyPromptParams {
   ctx: Context;
@@ -71,5 +71,5 @@ export const generateToolReplyPrompt = (params: GenerateToolReplyPromptParams): 
   const hasUserExample = promptUserExample !== undefined;
   const userExamplePart = hasUserExample ? `\n${promptUserExample}\n\n` : '';
 
-  return `${SM_TOOLREPLY_NOTOOLS_REPLY}\n${promptNode}\n${descriptionPart}${userExamplePart}${promptInstruction}\n\n${SM_SCHEMA_AGENTREPLY_PROMPT}`;
+  return `${SM_TOOLREPLY_NOTOOLS_REPLY}\n${promptNode}\n${descriptionPart}${userExamplePart}${promptInstruction}\n\n${buildSchemaAgentReplyPrompt(nodeId)}`;
 };
