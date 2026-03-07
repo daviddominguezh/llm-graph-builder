@@ -1,5 +1,6 @@
 import type { AssistantModelMessage, LanguageModel, Tool, ToolModelMessage, TypedToolCall } from 'ai';
 
+import { getOpenRouterModel } from '@src/provider/openRouter.js';
 import type { TokenLog, ToolModelConfig } from '@src/types/ai/index.js';
 import type { Context } from '@src/types/tools.js';
 import { logger } from '@src/utils/logger.js';
@@ -142,40 +143,17 @@ export function processResponseMessages(
 export interface ModelSelection {
   model: LanguageModel;
   name: string;
-  tier: string;
 }
-
-const getModelFromFeature = (action: TEXT_FEATURE_ACTION, tier: string): ModelSelection => {
-  const { [action as keyof typeof TEXT_FEATURE_MODEL]: featureModel } = TEXT_FEATURE_MODEL;
-  const { model } = featureModel.getter();
-  const result: ModelSelection = { model, name: featureModel.model, tier };
-  return result;
-};
-
-const MODEL_TIER_MAP: Record<number, { action: TEXT_FEATURE_ACTION; tier: string }> = {
-  [AGENT_CONSTANTS.MEDIUM_MODEL_THRESHOLD]: { action: TEXT_FEATURE_ACTION.CALL_AGENT_MEDIUM, tier: 'MEDIUM' },
-  [AGENT_CONSTANTS.MEDIUMHIGH_MODEL_THRESHOLD]: {
-    action: TEXT_FEATURE_ACTION.CALL_AGENT_MEDIUMHIGH,
-    tier: 'MEDIUM_HIGH',
-  },
-  [AGENT_CONSTANTS.HIGH_MODEL_THRESHOLD]: { action: TEXT_FEATURE_ACTION.CALL_AGENT_HIGH, tier: 'HIGH' },
-};
 
 /**
  * Selects the appropriate model based on attempt count and expected tool
  */
-export function selectModel(attemptCount: number, expectedTool?: string): ModelSelection {
-  if (expectedTool === undefined) {
-    return getModelFromFeature(TEXT_FEATURE_ACTION.GENERATE_OBJECT, 'GENERATE_OBJECT');
-  }
-
-  const { [attemptCount]: tierConfig } = MODEL_TIER_MAP;
-  if (tierConfig !== undefined) {
-    const { action, tier } = tierConfig;
-    return getModelFromFeature(action, tier);
-  }
-
-  return getModelFromFeature(TEXT_FEATURE_ACTION.CALL_AGENT, 'DEFAULT');
+export function getModel(): ModelSelection {
+  const model = '';
+  return {
+    model: getOpenRouterModel(model),
+    name: model,
+  };
 }
 
 interface ExecutionSummaryParams {
@@ -216,17 +194,14 @@ export const logExecutionSummary = (params: ExecutionSummaryParams): void => {
     });
     logger.error(`callAgentStep/${context.tenantID}/${context.userID}| ERROR: Pausing AI for this chat...`);
   } else if (modelWorkedFine) {
-    logger.info(
-      `callAgentStep/${context.tenantID}/${context.userID}| [AGENT_EXECUTOR] EXECUTION SUCCEEDED`,
-      {
-        sessionId,
-        totalAttempts: attemptCount,
-        totalDuration: `${totalDuration}ms`,
-        expectedTool: expectedTool ?? 'none',
-        totalTokensUsed: tokens,
-        toolCallsExecuted: allToolCalls.length,
-      }
-    );
+    logger.info(`callAgentStep/${context.tenantID}/${context.userID}| [AGENT_EXECUTOR] EXECUTION SUCCEEDED`, {
+      sessionId,
+      totalAttempts: attemptCount,
+      totalDuration: `${totalDuration}ms`,
+      expectedTool: expectedTool ?? 'none',
+      totalTokensUsed: tokens,
+      toolCallsExecuted: allToolCalls.length,
+    });
   }
 };
 

@@ -5,7 +5,7 @@ import type { Context } from '@src/types/tools.js';
 import { logger } from '@src/utils/logger.js';
 import { isError } from '@src/utils/typeGuards.js';
 
-import { getEscalationReason, selectModel } from './agentExecutorHelpers.js';
+import { getEscalationReason, getModel } from './agentExecutorHelpers.js';
 import { AGENT_CONSTANTS } from './constants.js';
 import { MessageProcessor } from './messageProcessor.js';
 import { callModel } from './modelCaller.js';
@@ -105,7 +105,7 @@ async function tryExecuteAttempt(
 ): Promise<AttemptResult> {
   const { context, config, expectedTool, tokens, allToolCalls, copyMsgs, sessionId } = execParams;
   const attemptStartTime = Date.now();
-  const { model, name: modelName, tier } = selectModel(attemptCount + INCREMENT_STEP, expectedTool);
+  const { model, name: modelName, tier } = getModel();
 
   logAttemptStart({ context, sessionId, attemptCount, modelName, tier });
   copyMsgs.push(MessageProcessor.cleanMessagesBeforeSending(MessageProcessor.cloneMessages(config.messages)));
@@ -132,7 +132,7 @@ export async function executeAttempt(
 ): Promise<AttemptResult> {
   const { context, config, executionStartTime, sessionId } = execParams;
   const attemptStartTime = Date.now();
-  const { name: modelName, tier } = selectModel(attemptCount + INCREMENT_STEP, execParams.expectedTool);
+  const { name: modelName, tier } = getModel();
 
   try {
     return await tryExecuteAttempt(execParams, attemptCount);

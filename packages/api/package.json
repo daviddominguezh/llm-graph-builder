@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "@daviddh/graph-types": "*",
+    "@openrouter/ai-sdk-provider": "^2.2.5",
     "ai": "^6.0.116",
     "uuid": "^13.0.0"
   }

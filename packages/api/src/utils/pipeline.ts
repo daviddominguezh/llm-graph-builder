@@ -130,11 +130,13 @@ async function runFinishCallbacks(
 }
 
 export class Pipeline<TInitialInput, TCurrentOutput, TExitType = never> {
-  private readonly steps: StepEntry[] = [];
-  private readonly finishCallbacks: FinishCallbackEntry[] = [];
+  private constructor(
+    private readonly steps: StepEntry[],
+    private readonly finishCallbacks: FinishCallbackEntry[]
+  ) {}
 
   static create<TInput>(): Pipeline<TInput, TInput> {
-    return new Pipeline<TInput, TInput>();
+    return new Pipeline<TInput, TInput>([], []);
   }
 
   static createEarlyExit<T>(value: T): PipelineEarlyExit<T> {
@@ -167,14 +169,19 @@ export class Pipeline<TInitialInput, TCurrentOutput, TExitType = never> {
     TExitType | ExtractExitType<TCurrentOutput> | ExtractExitType<TNextOutput>
   > {
     type StepInput = ExtractContinueType<TCurrentOutput>;
-    const wrappedExecute = async (ctx: Context, input: unknown): Promise<unknown> =>
-      await step.execute(ctx, input as StepInput);
+    function isStepInput(value: unknown): value is StepInput {
+      return true;
+    }
+    const wrappedExecute = async (ctx: Context, input: unknown): Promise<unknown> => {
+      if (isStepInput(input)) return await step.execute(ctx, input);
+      return undefined;
+    };
     this.steps.push({ feature: step.feature, execute: wrappedExecute });
-    return this as unknown as Pipeline<
-      TInitialInput,
-      ExtractContinueType<TNextOutput>,
-      TExitType | ExtractExitType<TCurrentOutput> | ExtractExitType<TNextOutput>
-    >;
+    type NewExit = TExitType | ExtractExitType<TCurrentOutput> | ExtractExitType<TNextOutput>;
+    return new Pipeline<TInitialInput, ExtractContinueType<TNextOutput>, NewExit>(
+      this.steps,
+      this.finishCallbacks
+    );
   }
 
   addOnFinishCallbackTrigger(
@@ -211,12 +218,19 @@ export class Pipeline<TInitialInput, TCurrentOutput, TExitType = never> {
     context: Context,
     logKey: string
   ): Promise<TCurrentOutput | TExitType | null> {
+    function isExitType(value: unknown): value is TExitType {
+      return true;
+    }
+    function isOutputType(value: unknown): value is TCurrentOutput {
+      return true;
+    }
     if (outcome === null) return null;
-    if (outcome.earlyExit) return outcome.value as TExitType;
+    if (outcome.earlyExit && isExitType(outcome.value)) return outcome.value;
     logger.info(`${logKey}Pipeline execution completed successfully`);
     logger.debug(`${logKey}Final result:`, JSON.stringify(outcome.value));
     await runFinishCallbacks(outcome.value, this.finishCallbacks, context, logKey);
-    return outcome.value as TCurrentOutput;
+    if (isOutputType(outcome.value)) return outcome.value;
+    return null;
   }
 
   getSteps(): readonly StepEntry[] {
