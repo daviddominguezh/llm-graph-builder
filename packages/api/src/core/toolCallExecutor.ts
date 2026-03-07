@@ -66,7 +66,7 @@ async function executeAgentCall(
   const { params } = executeParams;
   const { context, config, input, currentNodeID, requiredTool } = params;
   const provider = getProviderFromMessages(input.messages);
-  const { model } = getModel();
+  const { model } = getModel(context.apiKey);
   const { promptWithoutToolPreconditions } = config;
   const { tools, toolChoice } = getToolsFromConfig(config);
 

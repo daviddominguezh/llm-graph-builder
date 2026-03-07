@@ -98,12 +98,13 @@ function handleFinalError(
 }
 
 async function tryExecuteAttempt(
+  apiKey: string,
   execParams: AttemptExecParams,
   attemptCount: number
 ): Promise<AttemptResult> {
   const { context, config, expectedTool, tokens, allToolCalls, copyMsgs, sessionId } = execParams;
   const attemptStartTime = Date.now();
-  const { model, name: modelName } = getModel();
+  const { model, name: modelName } = getModel(apiKey);
 
   logAttemptStart({ context, sessionId, attemptCount, modelName });
   copyMsgs.push(MessageProcessor.cleanMessagesBeforeSending(MessageProcessor.cloneMessages(config.messages)));
@@ -129,10 +130,10 @@ export async function executeAttempt(
 ): Promise<AttemptResult> {
   const { context, config, executionStartTime, sessionId } = execParams;
   const attemptStartTime = Date.now();
-  const { name: modelName } = getModel();
+  const { name: modelName } = getModel(context.apiKey);
 
   try {
-    return await tryExecuteAttempt(execParams, attemptCount);
+    return await tryExecuteAttempt(context.apiKey, execParams, attemptCount);
   } catch (error) {
     const err = isError(error) ? error : new Error('Unknown error');
     const attemptDuration = Date.now() - attemptStartTime;

@@ -1,9 +1,10 @@
 import { type OpenRouterProvider, createOpenRouter } from '@openrouter/ai-sdk-provider';
 import type { LanguageModel } from 'ai';
 
-const createOpenRouterProvider = (): OpenRouterProvider =>
+const createOpenRouterProvider = (key: string): OpenRouterProvider =>
   createOpenRouter({
-    apiKey: 'YOUR_OPENROUTER_API_KEY',
+    apiKey: key,
   });
 
-export const getOpenRouterModel = (model: string): LanguageModel => createOpenRouterProvider().chat(model);
+export const getOpenRouterModel = (key: string, model: string): LanguageModel =>
+  createOpenRouterProvider(key).chat(model);

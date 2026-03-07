@@ -148,10 +148,10 @@ export interface ModelSelection {
 /**
  * Selects the appropriate model based on attempt count and expected tool
  */
-export function getModel(): ModelSelection {
-  const model = '';
+export function getModel(apiKey: string): ModelSelection {
+  const model = 'x-ai/grok-4.1-fast';
   return {
-    model: getOpenRouterModel(model),
+    model: getOpenRouterModel(apiKey, model),
     name: model,
   };
 }

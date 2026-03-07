@@ -2,6 +2,7 @@ import type { Graph } from './graph.js';
 
 export interface Context {
   graph: Graph;
+  apiKey: string;
   sessionID: string;
   tenantID: string;
   userID: string;

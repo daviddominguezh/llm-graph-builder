@@ -67,7 +67,7 @@ export async function buildPromptForNode(params: BuildPromptParams): Promise<str
     edges: edges.map((e) => rfEdgeToSchemaEdge(e)),
   };
 
-  const context = buildContext(preset);
+  const context = { ...buildContext(preset), graph };
   const dummyTools = createDummyToolsForGraph(graph);
   const config = await buildNextAgentConfig(graph, context, nodeId, { toolsOverride: dummyTools });
 
