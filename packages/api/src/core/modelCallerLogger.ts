@@ -67,23 +67,20 @@ export function categorizeError(error: Error): string {
 interface StartingCallParams {
   ctx: ModelCallContext;
   modelName: string;
-  provider: string;
   expectedTool: string | undefined;
   messageCount: number;
 }
 
 export function logStartingCall(params: StartingCallParams): void {
-  const { ctx, modelName, provider, expectedTool, messageCount } = params;
+  const { ctx, modelName, expectedTool, messageCount } = params;
   logger.info(
     `callAgentStep/${ctx.context.tenantID}/${ctx.context.userID}| [MODEL_CALLER] Starting model call`,
     {
       correlationId: ctx.correlationId,
       modelName,
-      provider,
       expectedTool: expectedTool ?? 'none',
       messageCount,
       isToolCall: expectedTool !== undefined && expectedTool !== '',
-      timeoutMs: MODEL_CALL_TIMEOUT_MS,
     }
   );
 }

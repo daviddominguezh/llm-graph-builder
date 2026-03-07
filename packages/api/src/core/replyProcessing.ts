@@ -1,4 +1,4 @@
-import type { AssistantModelMessage, LanguageModelUsage, Tool, ToolModelMessage, TypedToolCall } from 'ai';
+import type { AssistantModelMessage, Tool, ToolModelMessage, TypedToolCall } from 'ai';
 
 import type { ToolModelConfig } from '@src/types/ai/ai.js';
 import type { TokenLog } from '@src/types/ai/index.js';
@@ -29,7 +29,6 @@ export interface ProcessReplyParams {
   tokens: TokenLog;
   allToolCalls: Array<TypedToolCall<Record<string, Tool<unknown, unknown>>>>;
   modelName: string;
-  tier: string;
 }
 
 interface ToolValidationParams {
@@ -42,7 +41,6 @@ interface ToolValidationParams {
   config: ToolModelConfig;
   msgs: Array<AssistantModelMessage | ToolModelMessage>;
   modelName: string;
-  tier: string;
 }
 
 function handleToolValidation(params: ToolValidationParams): boolean {
@@ -56,7 +54,6 @@ function handleToolValidation(params: ToolValidationParams): boolean {
     config,
     msgs,
     modelName,
-    tier,
   } = params;
   const hasSuccessfulCall = wasToolCallSuccessful(toolResults, expectedTool);
 
@@ -67,7 +64,6 @@ function handleToolValidation(params: ToolValidationParams): boolean {
     expectedTool,
     attemptCount,
     modelName,
-    tier,
     hasToolCalls: toolCalls.length > FIRST_INDEX,
   });
 
@@ -96,15 +92,15 @@ interface UsageResult {
   totalTokens: number;
 }
 
-function getInputTokens(rawUsage: LanguageModelUsage | undefined): number {
+function getInputTokens(rawUsage: ReplyUsageInfo | undefined): number {
   return rawUsage?.inputTokens ?? rawUsage?.promptTokens ?? ZERO_TOKENS;
 }
 
-function getOutputTokens(rawUsage: LanguageModelUsage | undefined): number {
+function getOutputTokens(rawUsage: ReplyUsageInfo | undefined): number {
   return rawUsage?.outputTokens ?? rawUsage?.completionTokens ?? ZERO_TOKENS;
 }
 
-function extractUsage(rawUsage: LanguageModelUsage | undefined): UsageResult {
+function extractUsage(rawUsage: ReplyUsageInfo | undefined): UsageResult {
   const inputTokens = getInputTokens(rawUsage);
   const outputTokens = getOutputTokens(rawUsage);
   const cachedInputTokens = rawUsage?.cachedInputTokens ?? ZERO_TOKENS;
@@ -123,14 +119,13 @@ interface ResponseLogParams {
   sessionId: string;
   attemptCount: number;
   modelName: string;
-  tier: string;
   toolCallsCount: number;
   attemptStartTime: number;
   typedReply: ReplyWithObject;
 }
 
 function logResponseReceived(params: ResponseLogParams): void {
-  const { context, sessionId, attemptCount, modelName, tier, toolCallsCount, attemptStartTime, typedReply } =
+  const { context, sessionId, attemptCount, modelName, toolCallsCount, attemptStartTime, typedReply } =
     params;
   logger.info(
     `callAgentStep/${context.tenantID}/${context.userID}| [AGENT_EXECUTOR] Model response received`,
@@ -138,7 +133,6 @@ function logResponseReceived(params: ResponseLogParams): void {
       sessionId,
       attemptNumber: attemptCount + INCREMENT_STEP,
       modelName,
-      tier,
       toolCallsCount,
       duration: `${Date.now() - attemptStartTime}ms`,
       responseObject: typedReply.object,
@@ -159,7 +153,6 @@ function processReplyCore(
     tokens,
     allToolCalls,
     modelName,
-    tier,
   } = params;
   const toolCalls = typedReply.toolCalls ?? [];
 
@@ -168,7 +161,6 @@ function processReplyCore(
     sessionId,
     attemptCount,
     modelName,
-    tier,
     toolCallsCount: toolCalls.length,
     attemptStartTime,
     typedReply,
@@ -197,7 +189,7 @@ function processReplyWithToolValidation(
   typedReply: ReplyWithObject,
   msgs: Array<AssistantModelMessage | ToolModelMessage>
 ): boolean {
-  const { context, sessionId, config, expectedTool, attemptCount, modelName, tier } = params;
+  const { context, sessionId, config, expectedTool, attemptCount, modelName } = params;
   const toolCalls = typedReply.toolCalls ?? [];
   const toolResults = typedReply.toolResults ?? [];
   const { object: resp } = typedReply;
@@ -220,7 +212,6 @@ function processReplyWithToolValidation(
     config,
     msgs,
     modelName,
-    tier,
   });
 }
 

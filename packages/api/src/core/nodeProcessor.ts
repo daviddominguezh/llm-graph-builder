@@ -85,48 +85,17 @@ export async function processReplyNode(
   return { parsedResult: res.result, nextNodeID: nextNodeID ?? '', toolCalls: res.toolCalls };
 }
 
-async function generateProductsShownPrompt(context: Context): Promise<string | null> {
-  if (context.isTest === true) return null;
-
-  const productsShown = await getProductsHaveAlreadyBeenShown(context.tenantID, context.userID);
-  if (isProductsEmpty(productsShown)) return null;
-
-  const productList = productsShown.map((id) => `- ${id}`).join('\n');
-  return `\n\nPRODUCTS ALREADY SHOWN TO USER:\nThe following product IDs have already been shown to this user in previous interactions:\n${productList}\n\nYou may reference these products when responding to the user.`;
-}
-
-export async function addNodeSpecificPrompts(
-  context: Context,
-  currentNodeID: string,
-  replyPrompt: string
-): Promise<string> {
-  let prompt = replyPrompt;
-
-  if (currentNodeID === AGENT_CONSTANTS.USER_SPECIFIED_NAME_NODE) {
-    const fetchedOrders =
-      context.isTest === true ? null : await getUserOrders(context.tenantID, context.userID);
-    const orders = fetchedOrders ?? [];
-    if (orders.length === EMPTY_LENGTH) prompt += PROMPTS.NO_ORDERS_WARNING;
-  }
-
-  if (AGENT_CONSTANTS.PRODUCTS_SHOWN_HISTORY.includes(currentNodeID)) {
-    const productsPrompt = await generateProductsShownPrompt(context);
-    if (productsPrompt !== null) prompt += productsPrompt;
-  }
-
-  // For CustomLink node, prevent hallucination of products not in cart
-  if (AGENT_CONSTANTS.CUSTOMIZATION_LINK_NODES.includes(currentNodeID)) {
-    prompt += PROMPTS.NO_PRODUCT_LISTING_IN_CUSTOMIZATION;
-  }
-
+export function addNodeSpecificPrompts(context: Context, currentNodeID: string, replyPrompt: string): string {
+  const prompt = replyPrompt;
+  // TODO: Extract this from the graph -> each node can have an optional "prompt" field
   return prompt;
 }
 
 async function generateToolReply(params: GenerateToolReplyParams): Promise<ParsedResult> {
   const { context, input, currentNodeID, nextNodeID, nodes, isFAQ, debugMessages } = params;
   const provider = getProviderFromMessages(input.messages);
-  const { model } = getCallAgentModel();
-  const nextNode = getNode(nextNodeID);
+  const { model } = getModel();
+  const nextNode = getNode(context.graph, nextNodeID);
 
   let replyPrompt = await generateToolReplyPrompt({
     ctx: context,
@@ -188,7 +157,7 @@ export async function processToolNode(params: ProcessToolNodeParams): Promise<To
   }
 
   const nextNodeID = firstNextNodeID;
-  const nextNode = getNode(nextNodeID);
+  const nextNode = getNode(context.graph, nextNodeID);
 
   const { hasError, finalToolCalls } = await executeToolCall(params);
 

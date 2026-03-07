@@ -3,7 +3,6 @@ import type { Context, ToolResponsePrompt } from '@src/types/tools.js';
 export interface ToolCallInfo {
   toolCallId: string;
   toolName: string;
-  isTest?: boolean;
 }
 
 export interface ExecuterParams<T> {

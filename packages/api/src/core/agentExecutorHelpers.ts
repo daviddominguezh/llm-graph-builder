@@ -237,7 +237,6 @@ export interface ToolValidationStatusParams {
   expectedTool: string;
   attemptCount: number;
   modelName: string;
-  tier: string;
   hasToolCalls: boolean;
 }
 
@@ -245,7 +244,7 @@ export function logToolValidationStatus(
   hasSuccessfulCall: boolean,
   params: ToolValidationStatusParams
 ): void {
-  const { context, sessionId, expectedTool, attemptCount, modelName, tier, hasToolCalls } = params;
+  const { context, sessionId, expectedTool, attemptCount, modelName, hasToolCalls } = params;
 
   if (hasSuccessfulCall) {
     logger.info(
@@ -255,7 +254,6 @@ export function logToolValidationStatus(
         tool: expectedTool,
         attemptNumber: attemptCount + INCREMENT_STEP,
         modelUsed: modelName,
-        tier,
       }
     );
     return;

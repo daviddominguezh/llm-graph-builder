@@ -1,4 +1,3 @@
-import type { Graph } from '@src/types/graph.js';
 import type { Context } from '@src/types/tools.js';
 
 import { insertValuesInText } from '../format/utils.js';
@@ -53,7 +52,7 @@ interface GenerateToolReplyPromptParams {
   description?: string;
 }
 
-export const generateToolReplyPrompt = (graph: Graph, params: GenerateToolReplyPromptParams): string => {
+export const generateToolReplyPrompt = (params: GenerateToolReplyPromptParams): string => {
   const { ctx, nodeId, nodeName, textExample, description } = params;
 
   const promptNode = `${SM_TOOLREPLY_NODE_REPLY}: "${nodeId}"`;
@@ -63,7 +62,7 @@ export const generateToolReplyPrompt = (graph: Graph, params: GenerateToolReplyP
 
   let promptUserExample: string | undefined = undefined;
 
-  const node = getNode(graph, nodeName);
+  const node = getNode(ctx.graph, nodeName);
   if (node.nextNodeIsUser === true) {
     promptUserExample = `- Ask the user an open-ended question to understand what they need`;
   }

@@ -7,6 +7,7 @@ import type { Context } from '@src/types/tools.js';
 
 import { MessageProcessor } from './messageProcessor.js';
 import {
+  getModelId,
   logAttempt,
   logFinalError,
   logNoToolCall,
@@ -60,10 +61,12 @@ function toModelCallResult(result: unknown): ModelCallResult {
   return result as ModelCallResult;
 }
 
+const MODEL_CALL_TIMEOUT_MS = 90000;
+
 async function executeModelCall(
   config: ToolModelConfig & { model: LanguageModel },
   expectedTool: string | undefined,
-  timeoutMs: number
+  timeoutMs = MODEL_CALL_TIMEOUT_MS
 ): Promise<ModelCallResult> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
@@ -119,7 +122,7 @@ async function executeAttempt(
   }
 
   try {
-    const result = await executeModelCall(newConfig, expectedTool, MODEL_CALL_TIMEOUT_MS);
+    const result = await executeModelCall(newConfig, expectedTool);
     const duration = Date.now() - attemptStartTime;
     const totalDuration = Date.now() - ctx.requestStartTime;
     logSuccess({ ctx, state, attemptDuration: duration, totalDuration, usage: result.usage });
@@ -164,7 +167,6 @@ export async function callModel(
   const requestStartTime = Date.now();
   const correlationId = `${context.tenantID}-${context.userID}-${requestStartTime}`;
   const modelName = getModelId(model);
-  const provider = getProviderFromModel(model) ?? 'unknown-provider';
 
   const ctx: ModelCallContext = { context, correlationId, requestStartTime };
   const initialState: RetryState = {
@@ -173,7 +175,7 @@ export async function callModel(
     networkRetryCount: FIRST_ATTEMPT,
   };
 
-  logStartingCall({ ctx, modelName, provider, expectedTool, messageCount: config.messages.length });
+  logStartingCall({ ctx, modelName, expectedTool, messageCount: config.messages.length });
 
   return await executeWithRetries(ctx, config, expectedTool, initialState);
 }

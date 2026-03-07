@@ -19,7 +19,6 @@ export interface Message {
   mediaUrl?: string | null;
   replyId?: string | null;
   key?: string | null;
-  isTest?: boolean;
   currentAssignee?: string;
   assignmentType?: 'human' | 'ai';
   assignedAt?: number;

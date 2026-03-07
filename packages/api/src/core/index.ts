@@ -5,12 +5,7 @@ import type { Context } from '@src/types/tools.js';
 import { logger } from '@src/utils/logger.js';
 
 import { handleCatchError, handleError } from './errorHandler.js';
-import {
-  createInitialFlowState,
-  executeAgentFlowRecursive,
-  extractLastMessage,
-  saveIntermediateMessages,
-} from './indexHelpers.js';
+import { createInitialFlowState, executeAgentFlowRecursive, extractLastMessage } from './indexHelpers.js';
 import { MessageProcessor } from './messageProcessor.js';
 import { createEmptyTokenLog } from './tokenTracker.js';
 import type { CallAgentInput, CallAgentOutput } from './types.js';
@@ -24,11 +19,7 @@ const LAST_INDEX_OFFSET = 1;
 export const cleanMessagesBeforeSending = (msgs: ModelMessage[]): ModelMessage[] =>
   MessageProcessor.cleanMessagesBeforeSending(msgs);
 
-async function executeFlow(
-  context: Context,
-  input: CallAgentInput,
-  initialMsgsLength: number
-): Promise<CallAgentOutput> {
+async function executeFlow(context: Context, input: CallAgentInput): Promise<CallAgentOutput> {
   const debugMessages: Record<string, ModelMessage[][]> = {};
   const initialState = createInitialFlowState(input);
 
@@ -42,8 +33,6 @@ async function executeFlow(
   if (error) {
     return await handleError(context, input);
   }
-
-  await saveIntermediateMessages(context, input, initialMsgsLength);
 
   const lastMessage = extractLastMessage(input);
   const [lastResult] = parsedResults.slice(-LAST_INDEX_OFFSET);
@@ -67,9 +56,6 @@ export const CALL_AGENT_STEP_NAME = 'callAgent';
 export const callAgentStep: PipelineStep<CallAgentInput, CallAgentOutput> = {
   feature: CALL_AGENT_STEP_NAME,
   execute: async (context: Context, input: CallAgentInput): Promise<CallAgentOutput> => {
-    const { messages } = input;
-    const { length: initialMsgsLength } = messages;
-
     input.tokensLog.push({
       action: CALL_AGENT_STEP_NAME,
       tokens: createEmptyTokenLog(),
@@ -80,7 +66,7 @@ export const callAgentStep: PipelineStep<CallAgentInput, CallAgentOutput> = {
     );
 
     try {
-      return await executeFlow(context, input, initialMsgsLength);
+      return await executeFlow(context, input);
     } catch (e) {
       handleCatchError(context, e);
       return await handleError(context, input);

@@ -1,9 +1,17 @@
-import type { EmbeddingModelUsage, LanguageModelUsage } from 'ai';
-
 import { NONNEGATIVE_DEFAULT } from '@src/constants/index.js';
 import type { TokenLog } from '@src/types/ai/index.js';
 
-export const getTokensUsage = (usage: LanguageModelUsage | EmbeddingModelUsage): TokenLog => {
+interface LanguageModelTokenUsage {
+  inputTokens?: number | undefined;
+  outputTokens?: number | undefined;
+  cachedInputTokens?: number | undefined;
+}
+
+interface EmbeddingTokenUsage {
+  tokens: number;
+}
+
+export const getTokensUsage = (usage: LanguageModelTokenUsage | EmbeddingTokenUsage): TokenLog => {
   if ('tokens' in usage) {
     return {
       input: usage.tokens,

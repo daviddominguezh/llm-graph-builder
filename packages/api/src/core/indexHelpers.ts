@@ -25,41 +25,6 @@ export function getRequiredTool(toolChoice?: ToolChoice<NoInfer<ToolSet>>): stri
   return toolChoice.toolName;
 }
 
-/** Saves intermediate messages to the database (filters out assistant text messages for tone adaptation) */
-export async function saveIntermediateMessages(
-  context: Context,
-  input: CallAgentInput,
-  initialMsgsLength: number
-): Promise<void> {
-  if (context.isTest === true) return;
-
-  const { messages } = input;
-  const { length: lastMsgsLength } = messages;
-  if (lastMsgsLength === initialMsgsLength) return;
-
-  const msgs = MessageProcessor.cleanEmptyMessages(messages.slice(initialMsgsLength, lastMsgsLength));
-  const allButLast = msgs.slice(FIRST_INDEX, msgs.length - LAST_INDEX_OFFSET);
-
-  if (allButLast.length === EMPTY_LENGTH) return;
-
-  // Filter out assistant text messages - they go through tone adaptation and are saved later
-  const msgsToSave = allButLast.filter((m) => !MessageProcessor.isAssistantTextMessage(m));
-
-  if (msgsToSave.length === EMPTY_LENGTH) return;
-
-  const promises = msgsToSave.map(
-    async (m) =>
-      await saveNamespaceMessage({
-        namespace: context.tenantID,
-        from: context.userID,
-        msg: m,
-        lastMsg: {},
-        saveAsLast: false,
-      })
-  );
-  await Promise.allSettled(promises);
-}
-
 interface ProcessNodeParams {
   context: Context;
   input: CallAgentInput;
@@ -83,15 +48,13 @@ async function getNodeConfig(
   const isFAQ = currentNodeID === AGENT_CONSTANTS.FAQ_NODE_NAME;
 
   // TODO: Replace everything "FAQ" for "global nodes"
-  if (isFAQ) {
-    return buildFAQConfig(context, nodeBeforeFAQ);
-  }
+  if (isFAQ) return buildFAQConfig(context, nodeBeforeFAQ);
 
-  return await buildNextAgentConfig(context, currentNodeID, context.isTest);
+  return await buildNextAgentConfig(context.graph, context, currentNodeID);
 }
 
 async function applyJumpTo(context: Context, currentNodeID: string, nextNodeID: string): Promise<string> {
-  const edges = await getEdgesFromNode(context, currentNodeID);
+  const edges = await getEdgesFromNode(context.graph, context, currentNodeID);
   const selectedEdge = edges.find((edge) => edge.to === nextNodeID);
   const jumpTo = selectedEdge?.contextPreconditions?.jumpTo;
 
@@ -212,7 +175,7 @@ async function processFlowStep(
 
   logger.info(`callAgentStep/${context.tenantID}/${context.userID}| nextNode: ${nextNodeID}`);
 
-  const currentNode = getNode(nextNodeID);
+  const currentNode = getNode(context.graph, nextNodeID);
   const nextNodeIsUser = currentNode.nextNodeIsUser === true;
 
   parsedResult.nextNodeID = nextNodeID;

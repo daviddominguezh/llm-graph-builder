@@ -41,14 +41,13 @@ interface AttemptLogParams {
   sessionId: string;
   attemptCount: number;
   modelName: string;
-  tier: string;
 }
 
 function logAttemptStart(params: AttemptLogParams): void {
-  const { context, sessionId, attemptCount, modelName, tier } = params;
+  const { context, sessionId, attemptCount, modelName } = params;
   logger.info(
     `callAgentStep/${context.tenantID}/${context.userID}| [AGENT_EXECUTOR] Attempt ${attemptCount + INCREMENT_STEP}`,
-    { sessionId, modelName, tier, reason: getEscalationReason(attemptCount) }
+    { sessionId, modelName, reason: getEscalationReason(attemptCount) }
   );
 }
 
@@ -58,12 +57,11 @@ interface AttemptErrorLogParams extends AttemptLogParams {
 }
 
 function logAttemptError(params: AttemptErrorLogParams): void {
-  const { context, sessionId, attemptCount, modelName, tier, err, attemptDuration } = params;
+  const { context, sessionId, attemptCount, modelName, err, attemptDuration } = params;
   logger.error(`callAgentStep/${context.tenantID}/${context.userID}| [AGENT_EXECUTOR] Model call failed`, {
     sessionId,
     attemptNumber: attemptCount + INCREMENT_STEP,
     modelName,
-    tier,
     errorName: err.name,
     errorMessage: err.message,
     duration: `${attemptDuration}ms`,
@@ -105,9 +103,9 @@ async function tryExecuteAttempt(
 ): Promise<AttemptResult> {
   const { context, config, expectedTool, tokens, allToolCalls, copyMsgs, sessionId } = execParams;
   const attemptStartTime = Date.now();
-  const { model, name: modelName, tier } = getModel();
+  const { model, name: modelName } = getModel();
 
-  logAttemptStart({ context, sessionId, attemptCount, modelName, tier });
+  logAttemptStart({ context, sessionId, attemptCount, modelName });
   copyMsgs.push(MessageProcessor.cleanMessagesBeforeSending(MessageProcessor.cloneMessages(config.messages)));
 
   const reply: unknown = await callModel(context, config, expectedTool, model);
@@ -121,7 +119,6 @@ async function tryExecuteAttempt(
     tokens,
     allToolCalls,
     modelName,
-    tier,
   });
   return { modelWorkedFine: result.modelWorkedFine, msgs: result.msgs, shouldBreak: false };
 }
@@ -141,7 +138,7 @@ export async function executeAttempt(
     const attemptDuration = Date.now() - attemptStartTime;
     const shouldContinue = attemptCount < AGENT_CONSTANTS.MAX_RETRY_ATTEMPTS - INCREMENT_STEP;
 
-    logAttemptError({ context, sessionId, attemptCount, modelName, tier, err, attemptDuration });
+    logAttemptError({ context, sessionId, attemptCount, modelName, err, attemptDuration });
 
     if (shouldContinue) {
       return handleRetryableError(context, config, err);

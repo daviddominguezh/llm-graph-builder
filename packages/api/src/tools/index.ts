@@ -6,6 +6,6 @@ import { GreetingTools } from './greeting.js';
 
 type ToolCallback = (context: Context) => Record<string, Tool>;
 
-export const generateAllTools: ToolCallback = (context: Context, isTest = false) => ({
-  ...GreetingTools.generate(context, isTest),
+export const generateAllTools: ToolCallback = (context: Context) => ({
+  ...GreetingTools.generate(context),
 });

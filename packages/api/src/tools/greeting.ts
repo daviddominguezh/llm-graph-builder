@@ -50,7 +50,7 @@ const handleAddUserName = async (
 };
 
 export const GreetingTools = {
-  generate: (context: Context, isTest = false) => ({
+  generate: (context: Context) => ({
     [CloserTool.addUserName]: tool({
       description: 'Registers the name of the user',
       inputSchema: AddUserNameSchema,
@@ -59,7 +59,7 @@ export const GreetingTools = {
           context,
           data,
           callback: handleAddUserName,
-          info: { toolCallId, toolName: CloserTool.addUserName, isTest },
+          info: { toolCallId, toolName: CloserTool.addUserName },
         }),
     }),
   }),
