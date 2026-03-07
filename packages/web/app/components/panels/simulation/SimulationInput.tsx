@@ -27,7 +27,7 @@ export function SimulationInput({ loading, onSendMessage }: SimulationInputProps
   };
 
   return (
-    <div className="flex items-center gap-2 border-t px-3 py-2">
+    <div className="flex items-center gap-2 border-t p-3">
       <Input
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -36,7 +36,7 @@ export function SimulationInput({ loading, onSendMessage }: SimulationInputProps
         disabled={loading}
         className="flex-1"
       />
-      <Button size="sm" disabled={loading || text.trim().length === 0} onClick={handleSubmit}>
+      <Button disabled={loading || text.trim().length === 0} onClick={handleSubmit}>
         {loading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
       </Button>
     </div>

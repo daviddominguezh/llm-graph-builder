@@ -21,7 +21,7 @@ export const cleanMessagesBeforeSending = (msgs: ModelMessage[]): ModelMessage[]
 
 async function executeFlow(context: Context, input: CallAgentInput): Promise<CallAgentOutput> {
   const debugMessages: Record<string, ModelMessage[][]> = {};
-  const initialState = createInitialFlowState(input);
+  const initialState = createInitialFlowState(input, context.graph);
 
   const { parsedResults, visitedNodes, error, toolCalls } = await executeAgentFlowRecursive(
     context,

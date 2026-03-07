@@ -616,8 +616,12 @@ function GraphBuilderInner() {
       setEdges(connectedEdges.map((e) => ({ ...e, selected: false })));
       setZoomViewNodeId(nodeId);
 
-      // Fit viewport after a short delay
-      setTimeout(() => fitView({ padding: 0.3, duration: 300 }), 50);
+      // Fit viewport after a short delay, but don't zoom in beyond current level
+      const { zoom: currentZoom } = getViewport();
+      setTimeout(
+        () => fitView({ padding: 0.3, duration: 300, maxZoom: currentZoom }),
+        50,
+      );
     },
     [nodes, edges, savedGraphState, getViewport, setNodes, setEdges, fitView],
   );

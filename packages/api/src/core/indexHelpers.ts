@@ -1,8 +1,10 @@
 import type { AssistantModelMessage, ModelMessage, Tool, ToolChoice, ToolSet, TypedToolCall } from 'ai';
 
+import { INITIAL_STEP_NODE } from '@src/constants/index.js';
 import { getEdgesFromNode, getNode } from '@src/stateMachine/graph/index.js';
 import { buildNextAgentConfig } from '@src/stateMachine/index.js';
 import type { ParsedResult } from '@src/types/ai/index.js';
+import type { Graph } from '@src/types/graph.js';
 import type { Context } from '@src/types/tools.js';
 import { logger } from '@src/utils/logger.js';
 
@@ -228,10 +230,17 @@ export async function executeAgentFlowRecursive(
   return await executeAgentFlowRecursive(context, input, debugMessages, newState);
 }
 
-export function createInitialFlowState(input: CallAgentInput): FlowState {
+function resolveStartNode(graph: Graph, nodeId: string): string {
+  if (nodeId !== INITIAL_STEP_NODE) return nodeId;
+  const [firstEdge] = graph.edges.filter((e) => e.from === INITIAL_STEP_NODE);
+  return firstEdge?.to ?? nodeId;
+}
+
+export function createInitialFlowState(input: CallAgentInput, graph: Graph): FlowState {
+  const startNode = resolveStartNode(graph, input.currentNode);
   return {
-    currentNodeID: input.currentNode,
-    nodeBeforeGlobal: input.currentNode,
+    currentNodeID: startNode,
+    nodeBeforeGlobal: startNode,
     parsedResults: [],
     visitedNodes: [],
     allToolCalls: [],
