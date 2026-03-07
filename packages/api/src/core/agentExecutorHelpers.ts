@@ -205,7 +205,7 @@ export const logExecutionSummary = (params: ExecutionSummaryParams): void => {
   const totalDuration = Date.now() - executionStartTime;
 
   if (!modelWorkedFine && attemptCount >= AGENT_CONSTANTS.MAX_RETRY_ATTEMPTS) {
-    logger.error(`callAgentStep/${context.namespace}/${context.userID}| [AGENT_EXECUTOR] EXECUTION FAILED`, {
+    logger.error(`callAgentStep/${context.tenantID}/${context.userID}| [AGENT_EXECUTOR] EXECUTION FAILED`, {
       sessionId,
       totalAttempts: attemptCount,
       totalDuration: `${totalDuration}ms`,
@@ -214,10 +214,10 @@ export const logExecutionSummary = (params: ExecutionSummaryParams): void => {
       totalTokensUsed: tokens,
       toolCallsAttempted: allToolCalls.length,
     });
-    logger.error(`callAgentStep/${context.namespace}/${context.userID}| ERROR: Pausing AI for this chat...`);
+    logger.error(`callAgentStep/${context.tenantID}/${context.userID}| ERROR: Pausing AI for this chat...`);
   } else if (modelWorkedFine) {
     logger.info(
-      `callAgentStep/${context.namespace}/${context.userID}| [AGENT_EXECUTOR] EXECUTION SUCCEEDED`,
+      `callAgentStep/${context.tenantID}/${context.userID}| [AGENT_EXECUTOR] EXECUTION SUCCEEDED`,
       {
         sessionId,
         totalAttempts: attemptCount,
@@ -241,7 +241,7 @@ export interface ToolValidationLogParams {
 export function logToolValidation(params: ToolValidationLogParams): void {
   const { context, sessionId, expectedTool, hasSuccessfulCall, toolResults } = params;
 
-  logger.info(`callAgentStep/${context.namespace}/${context.userID}| [AGENT_EXECUTOR] Tool call validation`, {
+  logger.info(`callAgentStep/${context.tenantID}/${context.userID}| [AGENT_EXECUTOR] Tool call validation`, {
     sessionId,
     expectedTool,
     hasSuccessfulCall,
@@ -274,7 +274,7 @@ export function logToolValidationStatus(
 
   if (hasSuccessfulCall) {
     logger.info(
-      `callAgentStep/${context.namespace}/${context.userID}| [AGENT_EXECUTOR] Tool call successful`,
+      `callAgentStep/${context.tenantID}/${context.userID}| [AGENT_EXECUTOR] Tool call successful`,
       {
         sessionId,
         tool: expectedTool,
@@ -287,7 +287,7 @@ export function logToolValidationStatus(
   }
 
   if (hasToolCalls) {
-    logger.warn(`callAgentStep/${context.namespace}/${context.userID}| [AGENT_EXECUTOR] Tool call failed`, {
+    logger.warn(`callAgentStep/${context.tenantID}/${context.userID}| [AGENT_EXECUTOR] Tool call failed`, {
       sessionId,
       attemptNumber: attemptCount + INCREMENT_STEP,
       remainingAttempts: AGENT_CONSTANTS.MAX_RETRY_ATTEMPTS - attemptCount - INCREMENT_STEP,
@@ -297,7 +297,7 @@ export function logToolValidationStatus(
   }
 
   logger.warn(
-    `callAgentStep/${context.namespace}/${context.userID}| [AGENT_EXECUTOR] Model did not call tool`,
+    `callAgentStep/${context.tenantID}/${context.userID}| [AGENT_EXECUTOR] Model did not call tool`,
     {
       sessionId,
       expectedTool,

@@ -1,13 +1,9 @@
 import type { AssistantModelMessage, ModelMessage, Tool, ToolModelMessage, TypedToolCall } from 'ai';
 
+import type { MESSAGES_PROVIDER, Message, TokenLog, ToolModelConfig } from '@src/types/ai/index.js';
+import type { Context } from '@src/types/tools.js';
 import { logger } from '@src/utils/logger.js';
-import { isError } from '@globalUtils/typeGuards.js';
-
-import type { ToolModelConfig } from '@src/types/ai/ai.js';
-import type { TokenLog } from '@src/types/ai/aiLogs.js';
-import type { Context } from '@src/types/ai/tools.js';
-import type { Message } from '@src/types/messages/aiMessages.js';
-import type { MESSAGES_PROVIDER } from '@src/types/messages/closerMessages.js';
+import { isError } from '@src/utils/typeGuards.js';
 
 import { getEscalationReason, selectModel } from './agentExecutorHelpers.js';
 import { AGENT_CONSTANTS } from './constants.js';
@@ -51,7 +47,7 @@ interface AttemptLogParams {
 function logAttemptStart(params: AttemptLogParams): void {
   const { context, sessionId, attemptCount, modelName, tier } = params;
   logger.info(
-    `callAgentStep/${context.namespace}/${context.userID}| [AGENT_EXECUTOR] Attempt ${attemptCount + INCREMENT_STEP}`,
+    `callAgentStep/${context.tenantID}/${context.userID}| [AGENT_EXECUTOR] Attempt ${attemptCount + INCREMENT_STEP}`,
     { sessionId, modelName, tier, reason: getEscalationReason(attemptCount) }
   );
 }
@@ -63,7 +59,7 @@ interface AttemptErrorLogParams extends AttemptLogParams {
 
 function logAttemptError(params: AttemptErrorLogParams): void {
   const { context, sessionId, attemptCount, modelName, tier, err, attemptDuration } = params;
-  logger.error(`callAgentStep/${context.namespace}/${context.userID}| [AGENT_EXECUTOR] Model call failed`, {
+  logger.error(`callAgentStep/${context.tenantID}/${context.userID}| [AGENT_EXECUTOR] Model call failed`, {
     sessionId,
     attemptNumber: attemptCount + INCREMENT_STEP,
     modelName,
@@ -77,7 +73,7 @@ function logAttemptError(params: AttemptErrorLogParams): void {
 
 function handleRetryableError(context: Context, config: ToolModelConfig, err: Error): AttemptResult {
   logger.warn(
-    `callAgentStep/${context.namespace}/${context.userID}| [AGENT_EXECUTOR] Will retry with escalation...`
+    `callAgentStep/${context.tenantID}/${context.userID}| [AGENT_EXECUTOR] Will retry with escalation...`
   );
   config.messages.unshift({
     role: 'system',
@@ -93,7 +89,7 @@ function handleFinalError(
   err: Error
 ): AttemptResult {
   logger.error(
-    `callAgentStep/${context.namespace}/${context.userID}| [AGENT_EXECUTOR] Exhausted all retries`,
+    `callAgentStep/${context.tenantID}/${context.userID}| [AGENT_EXECUTOR] Exhausted all retries`,
     {
       sessionId,
       totalDuration: `${Date.now() - executionStartTime}ms`,

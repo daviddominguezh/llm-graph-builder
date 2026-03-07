@@ -1,13 +1,10 @@
 import type { AssistantModelMessage, ToolModelMessage } from 'ai';
 
-import { logger } from '@src/utils/logger.js';
-
 import { getNode } from '@src/stateMachine/graph/index.js';
-
 import type { ParsedResult, ToolModelConfig } from '@src/types/ai/ai.js';
-import type { Context } from '@src/types/ai/tools.js';
-import type { Message } from '@src/types/messages/aiMessages.js';
-import type { MESSAGES_PROVIDER } from '@src/types/messages/closerMessages.js';
+import type { MESSAGES_PROVIDER, Message } from '@src/types/ai/index.js';
+import type { Context } from '@src/types/tools.js';
+import { logger } from '@src/utils/logger.js';
 
 import { executeAgent } from './agentExecutor.js';
 import { MessageProcessor } from './messageProcessor.js';
@@ -70,16 +67,16 @@ function resolveNextNode(
   const { nextNodeID: outputNodeNumber } = parsedResult;
   let resolvedOutputNode = outputNodeNumber;
 
-  logger.info(`callAgentStep/${context.namespace}/${context.userID}| OUTPUT NODE: ${outputNodeNumber}`);
+  logger.info(`callAgentStep/${context.tenantID}/${context.userID}| OUTPUT NODE: ${outputNodeNumber}`);
   if (nextNodeKnown !== undefined && nextNodeKnown !== '') {
     resolvedOutputNode = nextNodeKnown;
     logger.info(
-      `callAgentStep/${context.namespace}/${context.userID}| BUT, nextNode was known: ${resolvedOutputNode}`
+      `callAgentStep/${context.tenantID}/${context.userID}| BUT, nextNode was known: ${resolvedOutputNode}`
     );
   }
 
   const { [resolvedOutputNode]: nextNodeID } = nodes;
-  logger.info(`callAgentStep/${context.namespace}/${context.userID}| nextNode: ${nextNodeID ?? 'undefined'}`);
+  logger.info(`callAgentStep/${context.tenantID}/${context.userID}| nextNode: ${nextNodeID ?? 'undefined'}`);
 
   return nextNodeID ?? '';
 }
@@ -115,7 +112,7 @@ export async function generateReply(params: GenerateReplyParams): Promise<ReplyG
 
   const { tokens, messages: msgs, copyMsgs } = reply;
 
-  logger.info(`callAgentStep/${context.namespace}/${context.userID}| New messages:`, JSON.stringify(msgs));
+  logger.info(`callAgentStep/${context.tenantID}/${context.userID}| New messages:`, JSON.stringify(msgs));
 
   const { textPart, reasoningPart } = extractAndParseResponse(msgs);
   const parsedResult = ResponseParser.parseResponseJSON(context, textPart, reasoningPart);

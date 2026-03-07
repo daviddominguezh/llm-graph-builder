@@ -1,11 +1,8 @@
 import type { ModelMessage } from 'ai';
 
-import { formatMessages } from '@globalUtils/ai/messages.js';
-
-import { TEXT_FEATURE_ACTION, TEXT_FEATURE_MODEL } from '@src/ai/index.js';
-
-import type { Context } from '@src/types/ai/tools.js';
-import type { Message } from '@src/types/messages/aiMessages.js';
+import type { Message } from '@src/types/ai/index.js';
+import type { Context } from '@src/types/tools.js';
+import { formatMessages } from '@src/utils/messages.js';
 
 import { executeAgent } from './agentExecutor.js';
 import { getConfig } from './config.js';

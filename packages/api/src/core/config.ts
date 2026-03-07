@@ -1,6 +1,6 @@
 import type { LanguageModel, ModelMessage, Tool, ToolChoice, ToolSet } from 'ai';
 
-import type { ToolModelConfig } from '@src/types/ai/ai.js';
+import type { ToolModelConfig } from '@src/types/ai/index.js';
 
 const DEFAULT_TEMPERATURE = 0;
 

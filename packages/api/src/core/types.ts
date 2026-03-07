@@ -9,11 +9,15 @@ import type {
   TypedToolCall,
 } from 'ai';
 
-import type { ParsedResult, ToolModelConfig } from '@src/types/ai/ai.js';
-import type { ActionTokenUsage, TokenLog } from '@src/types/ai/aiLogs.js';
-import type { Context } from '@src/types/ai/tools.js';
-import type { Message } from '@src/types/messages/aiMessages.js';
-import type { MESSAGES_PROVIDER } from '@src/types/messages/closerMessages.js';
+import type {
+  ActionTokenUsage,
+  MESSAGES_PROVIDER,
+  Message,
+  ParsedResult,
+  TokenLog,
+  ToolModelConfig,
+} from '@src/types/ai/index.js';
+import type { Context } from '@src/types/tools.js';
 
 /**
  * Input parameters for the callAgent step

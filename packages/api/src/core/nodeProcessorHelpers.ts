@@ -1,11 +1,8 @@
 import type { AssistantModelMessage, ModelMessage, Tool, ToolModelMessage, TypedToolCall } from 'ai';
 
+import type { Message } from '@src/types/ai/index.js';
 import { logger } from '@src/utils/logger.js';
-import { isError } from '@globalUtils/typeGuards.js';
-
-import { CloserTool } from '@src/ai/tools/index.js';
-
-import type { Message } from '@src/types/messages/aiMessages.js';
+import { isError } from '@src/utils/typeGuards.js';
 
 import type { NodeProcessingConfig } from './types.js';
 
@@ -104,6 +101,7 @@ export function createSyntheticToolMessages(
       {
         type: 'tool-call',
         toolCallId,
+        // TODO: Change for FAQ (global node)
         toolName: CloserTool.answerBusinessQuestion,
         input: { query: userMessage },
       },
@@ -116,6 +114,7 @@ export function createSyntheticToolMessages(
       {
         type: 'tool-result',
         toolCallId,
+        // TODO: Change for FAQ (global node)
         toolName: CloserTool.answerBusinessQuestion,
         output: { type: 'text', value: resultString },
       },
@@ -125,6 +124,7 @@ export function createSyntheticToolMessages(
   const syntheticToolCall: TypedToolCall<Record<string, Tool>> = {
     type: 'tool-call',
     toolCallId,
+    // TODO: Change for FAQ (global node)
     toolName: CloserTool.answerBusinessQuestion,
     input: { query: userMessage },
   };
@@ -155,6 +155,7 @@ function getToolFromConfig(config: NodeProcessingConfig): Tool | undefined {
   if (firstEdge === undefined) return undefined;
   const { tools } = firstEdge;
   if (tools === undefined) return undefined;
+  // TODO: Change for FAQ (global node)
   return tools[CloserTool.answerBusinessQuestion];
 }
 
@@ -167,7 +168,7 @@ export async function manuallyInvokeAnswerBusinessQuestion(
 
   if (userMessage === null || userMessage === '') {
     logger.warn(
-      `callAgentStep/${context.namespace}/${context.userID}| Could not extract user message for manual FAQ invocation`
+      `callAgentStep/${context.tenantID}/${context.userID}| Could not extract user message for manual FAQ invocation`
     );
     return { success: false, messages: [], toolCalls: [] };
   }
@@ -175,7 +176,7 @@ export async function manuallyInvokeAnswerBusinessQuestion(
   const tool = getToolFromConfig(config);
   if (tool === undefined) {
     logger.warn(
-      `callAgentStep/${context.namespace}/${context.userID}| answerBusinessQuestion tool not found in config`
+      `callAgentStep/${context.tenantID}/${context.userID}| answerBusinessQuestion tool not found in config`
     );
     return { success: false, messages: [], toolCalls: [] };
   }
@@ -183,7 +184,7 @@ export async function manuallyInvokeAnswerBusinessQuestion(
   try {
     const toolCallId = `manual-faq-${Date.now()}`;
     logger.info(
-      `callAgentStep/${context.namespace}/${context.userID}| Manually invoking answerBusinessQuestion with query: "${userMessage}"`
+      `callAgentStep/${context.tenantID}/${context.userID}| Manually invoking answerBusinessQuestion with query: "${userMessage}"`
     );
 
     const modelMessages: ModelMessage[] = messages.map((m) => m.message);
@@ -197,7 +198,7 @@ export async function manuallyInvokeAnswerBusinessQuestion(
     return { success: true, messages: [toolCallMessage, toolResultMessage], toolCalls: [syntheticToolCall] };
   } catch (error) {
     const errorMessage = isError(error) ? error.message : 'Unknown error';
-    logger.error(`callAgentStep/${context.namespace}/${context.userID}| Manual FAQ tool invocation failed`, {
+    logger.error(`callAgentStep/${context.tenantID}/${context.userID}| Manual FAQ tool invocation failed`, {
       error: errorMessage,
     });
     return { success: false, messages: [], toolCalls: [] };

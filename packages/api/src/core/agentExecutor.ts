@@ -59,7 +59,7 @@ function createExecParams(
 }
 
 function logAgentStart(context: Context, sessionId: string, step: string, expectedTool?: string): void {
-  logger.info(`callAgentStep/${context.namespace}/${context.userID}| [AGENT_EXECUTOR] Starting`, {
+  logger.info(`callAgentStep/${context.tenantID}/${context.userID}| [AGENT_EXECUTOR] Starting`, {
     sessionId,
     step,
     expectedTool: expectedTool ?? 'none',
@@ -102,7 +102,7 @@ function buildResult(
 export async function executeAgent(options: ExecuteAgentOptions): Promise<AgentExecutionResult> {
   const { context, provider, messages, step, expectedTool } = options;
   const executionStartTime = Date.now();
-  const sessionId = `${context.namespace}-${context.userID}-${executionStartTime}`;
+  const sessionId = `${context.tenantID}-${context.userID}-${executionStartTime}`;
 
   logAgentStart(context, sessionId, step, expectedTool);
 

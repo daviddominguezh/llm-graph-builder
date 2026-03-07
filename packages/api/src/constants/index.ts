@@ -6,3 +6,6 @@ export const INCREMENT_BY_ONE = 1;
 
 /** Initial step node ID */
 export const INITIAL_STEP_NODE = 'INITIAL_STEP';
+
+/** Default value for non-negative fields */
+export const NONNEGATIVE_DEFAULT = 0;

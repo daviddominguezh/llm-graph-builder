@@ -1,11 +1,8 @@
 import type { ModelMessage } from 'ai';
 
-import { logger } from '@src/utils/logger.js';
-
-import { TEXT_FEATURE_ACTION } from '@src/ai/index.js';
-
-import type { Context } from '@src/types/ai/tools.js';
 import type { PipelineStep } from '@src/types/pipeline.js';
+import type { Context } from '@src/types/tools.js';
+import { logger } from '@src/utils/logger.js';
 
 import { handleCatchError, handleError } from './errorHandler.js';
 import {
@@ -77,7 +74,7 @@ export const callAgentStep: PipelineStep<CallAgentInput, CallAgentOutput> = {
     });
 
     logger.info(
-      `callAgentStep/${context.namespace}/${context.userID}| Processing Current Node: ${input.currentNode}`
+      `callAgentStep/${context.tenantID}/${context.userID}| Processing Current Node: ${input.currentNode}`
     );
 
     try {

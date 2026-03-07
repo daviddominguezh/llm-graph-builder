@@ -1,11 +1,10 @@
 import type { AssistantModelMessage, Tool, ToolModelMessage, TypedToolCall } from 'ai';
 
-import { getTokensUsage } from '@globalUtils/ai/tokens.js';
-import { logger } from '@src/utils/logger.js';
-
 import type { ToolModelConfig } from '@src/types/ai/ai.js';
-import type { TokenLog } from '@src/types/ai/aiLogs.js';
-import type { Context } from '@src/types/ai/tools.js';
+import type { TokenLog } from '@src/types/ai/index.js';
+import type { Context } from '@src/types/tools.js';
+import { logger } from '@src/utils/logger.js';
+import { getTokensUsage } from '@src/utils/tokens.js';
 
 import {
   logToolValidation,
@@ -134,7 +133,7 @@ function logResponseReceived(params: ResponseLogParams): void {
   const { context, sessionId, attemptCount, modelName, tier, toolCallsCount, attemptStartTime, typedReply } =
     params;
   logger.info(
-    `callAgentStep/${context.namespace}/${context.userID}| [AGENT_EXECUTOR] Model response received`,
+    `callAgentStep/${context.tenantID}/${context.userID}| [AGENT_EXECUTOR] Model response received`,
     {
       sessionId,
       attemptNumber: attemptCount + INCREMENT_STEP,
@@ -185,7 +184,7 @@ function processReplyCore(
 
   if (expectedTool === undefined) {
     logger.info(
-      `callAgentStep/${context.namespace}/${context.userID}| [AGENT_EXECUTOR] Non-tool response successful`
+      `callAgentStep/${context.tenantID}/${context.userID}| [AGENT_EXECUTOR] Non-tool response successful`
     );
     return { modelWorkedFine: true, msgs };
   }
@@ -204,7 +203,7 @@ function processReplyWithToolValidation(
   const { object: resp } = typedReply;
   const strResp = JSON.stringify(resp);
   logger.info(
-    `callAgentStep/${context.namespace}/${context.userID}| [AGENT_EXECUTOR] Tool call raw response:\n${strResp}`
+    `callAgentStep/${context.tenantID}/${context.userID}| [AGENT_EXECUTOR] Tool call raw response:\n${strResp}`
   );
 
   if (expectedTool === undefined) {

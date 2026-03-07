@@ -1,30 +1,15 @@
 import type { ModelMessage } from 'ai';
 
-import { getProductsHaveAlreadyBeenShown } from '@services/firebase/firebase.js';
-
-import { getUserOrders } from '@controllers/payment/index.js';
-
-import { formatMessages } from '@globalUtils/ai/messages.js';
-import { logger } from '@src/utils/logger.js';
-
-import { TEXT_FEATURE_ACTION, TEXT_FEATURE_MODEL } from '@src/ai/index.js';
-import { CloserTool } from '@src/ai/tools/index.js';
 import { getNode, getToolsFromEdges } from '@src/stateMachine/graph/index.js';
-import { buildNextPromptConfig } from '@src/stateMachine/index.js';
 import { generateToolReplyPrompt } from '@src/stateMachine/prompts/index.js';
-
 import type { ParsedResult } from '@src/types/ai/ai.js';
-import type { Context } from '@src/types/ai/tools.js';
+import type { Context } from '@src/types/tools.js';
+import { logger } from '@src/utils/logger.js';
+import { formatMessages } from '@src/utils/messages.js';
 
 import { getConfig } from './config.js';
 import { AGENT_CONSTANTS, PROMPTS } from './constants.js';
-import {
-  type ToolCallsArray,
-  aggregatePersonalizations,
-  convertSetsToArrays,
-  getProviderFromMessages,
-  isProductsEmpty,
-} from './nodeProcessorHelpers.js';
+import { type ToolCallsArray, getProviderFromMessages, isProductsEmpty } from './nodeProcessorHelpers.js';
 import { generateReply } from './replyGenerator.js';
 import { accumulateTokens } from './tokenTracker.js';
 import { type ProcessToolNodeParams, executeToolCall } from './toolCallExecutor.js';
@@ -64,6 +49,7 @@ export function buildFAQConfig(context: Context, nodeBeforeFAQ: string): NodePro
 
   return {
     kind: 'tool_call' as const,
+    // TODO: FAQ must change for global nodes
     promptWithoutToolPreconditions: PROMPTS.FAQ_MUST_CALL_TOOL(CloserTool.answerBusinessQuestion),
     toolsByEdge: getToolsFromEdges(context, [
       {
@@ -73,40 +59,6 @@ export function buildFAQConfig(context: Context, nodeBeforeFAQ: string): NodePro
       },
     ]),
     nodes: { [DEFAULT_OUTPUT_NODE]: nodeBeforeFAQ },
-  };
-}
-
-export async function buildPersonalizationConfig(
-  context: Context,
-  currentNodeID: string
-): Promise<NodeProcessingConfig | null> {
-  const productsShown = await getProductsHaveAlreadyBeenShown(context.namespace, context.userID);
-  if (isProductsEmpty(productsShown)) return null;
-
-  const businessProducts = context.businessSetup.products?.products;
-  const shownProducts = productsShown
-    .map((id) => businessProducts?.find((p) => p.id === id))
-    .filter((p) => p !== undefined);
-  if (shownProducts.length === EMPTY_LENGTH) return null;
-
-  const typesWithValues = aggregatePersonalizations(shownProducts);
-  if (Object.keys(typesWithValues).length === EMPTY_LENGTH) return null;
-
-  const typesWithValuesArray = convertSetsToArrays(typesWithValues);
-  const standardConfig = await buildNextPromptConfig(context, currentNodeID, context.isTest);
-  const [firstProductShown] = productsShown;
-  if (firstProductShown === undefined) return null;
-  const exampleProductId = firstProductShown;
-
-  return {
-    ...standardConfig,
-    promptWithoutToolPreconditions:
-      standardConfig.promptWithoutToolPreconditions +
-      PROMPTS.PERSONALIZATION_EXACT_NAMES_REQUIRED(
-        CloserTool.addMultipleItemsToCart,
-        typesWithValuesArray,
-        exampleProductId
-      ),
   };
 }
 
@@ -143,7 +95,7 @@ export async function processReplyNode(
 async function generateProductsShownPrompt(context: Context): Promise<string | null> {
   if (context.isTest === true) return null;
 
-  const productsShown = await getProductsHaveAlreadyBeenShown(context.namespace, context.userID);
+  const productsShown = await getProductsHaveAlreadyBeenShown(context.tenantID, context.userID);
   if (isProductsEmpty(productsShown)) return null;
 
   const productList = productsShown.map((id) => `- ${id}`).join('\n');
@@ -159,7 +111,7 @@ export async function addNodeSpecificPrompts(
 
   if (currentNodeID === AGENT_CONSTANTS.USER_SPECIFIED_NAME_NODE) {
     const fetchedOrders =
-      context.isTest === true ? null : await getUserOrders(context.namespace, context.userID);
+      context.isTest === true ? null : await getUserOrders(context.tenantID, context.userID);
     const orders = fetchedOrders ?? [];
     if (orders.length === EMPTY_LENGTH) prompt += PROMPTS.NO_ORDERS_WARNING;
   }
@@ -238,7 +190,7 @@ export async function processToolNode(params: ProcessToolNodeParams): Promise<To
   const toolsByEdgeKeys = Object.keys(toolsByEdge);
   const [firstNextNodeID] = toolsByEdgeKeys;
   if (firstNextNodeID === undefined) {
-    logger.error(`callAgentStep/${context.namespace}/${context.userID}| No edges found in toolsByEdge`);
+    logger.error(`callAgentStep/${context.tenantID}/${context.userID}| No edges found in toolsByEdge`);
     return createErrorResult();
   }
 
@@ -248,7 +200,7 @@ export async function processToolNode(params: ProcessToolNodeParams): Promise<To
   const { hasError, finalToolCalls } = await executeToolCall(params);
 
   if (hasError) {
-    logger.error(`callAgentStep/${context.namespace}/${context.userID}| Tool node failed`, {
+    logger.error(`callAgentStep/${context.tenantID}/${context.userID}| Tool node failed`, {
       currentNodeID,
       requiredTool: requiredTool ?? 'none',
     });

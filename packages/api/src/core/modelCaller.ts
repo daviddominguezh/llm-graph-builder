@@ -1,38 +1,27 @@
 import type { LanguageModel } from 'ai';
 import { generateObject, generateText } from 'ai';
-import { setTimeout as setTimeoutPromise } from 'node:timers/promises';
 import z from 'zod';
 
-import {
-  MODEL_CALL_TIMEOUT_MS,
-  getFallbackModel,
-  getModelId,
-  getProviderFromModel,
-  isTimeoutError,
-} from '@src/ai/providerFallback.js';
-
 import type { ToolModelConfig } from '@src/types/ai/ai.js';
-import type { Context } from '@src/types/ai/tools.js';
+import type { Context } from '@src/types/tools.js';
 
 import { MessageProcessor } from './messageProcessor.js';
 import {
   logAttempt,
-  logFallbackAttempt,
-  logFallbackSwitch,
   logFinalError,
-  logNoFallbackAvailable,
   logNoToolCall,
-  logRetryAttempt,
   logStartingCall,
   logSuccess,
   logToolCallDetails,
 } from './modelCallerLogger.js';
 
+interface RetryState {
+  currentModel: LanguageModel;
+  usedFallback: boolean;
+  networkRetryCount: number;
+}
+
 const MAX_NETWORK_RETRIES = 3;
-const BASE_BACKOFF_MS = 1000;
-const MAX_BACKOFF_MS = 10000;
-const BACKOFF_MULTIPLIER = 2;
-const INCREMENT_STEP = 1;
 const FIRST_ATTEMPT = 0;
 
 export interface ModelCallResult {
@@ -41,12 +30,6 @@ export interface ModelCallResult {
   object?: unknown;
   toolCalls?: unknown[];
   toolResults?: unknown[];
-}
-
-interface RetryState {
-  currentModel: LanguageModel;
-  usedFallback: boolean;
-  networkRetryCount: number;
 }
 
 interface ModelCallContext {
@@ -96,6 +79,7 @@ async function executeModelCall(
     }
     const result = await generateObject({
       ...configWithAbort,
+      // TODO: Replace with proper node output
       schema: z.object({
         nextNodeID: z.string().nonempty(),
         messageToUser: z.string().nonempty(),
@@ -107,80 +91,10 @@ async function executeModelCall(
   }
 }
 
-function calculateBackoff(retryCount: number): number {
-  const exponentialBackoff = BASE_BACKOFF_MS * BACKOFF_MULTIPLIER ** (retryCount - INCREMENT_STEP);
-  return Math.min(exponentialBackoff, MAX_BACKOFF_MS);
-}
-
-function tryFallbackModel(state: RetryState): LanguageModel | null {
-  const fallbackModelWithCapabilities = getFallbackModel(state.currentModel);
-  if (fallbackModelWithCapabilities === null) {
-    return null;
-  }
-  return fallbackModelWithCapabilities.model;
-}
-
-async function sleep(ms: number): Promise<void> {
-  await setTimeoutPromise(ms);
-}
-
 interface AttemptResult {
   success: boolean;
   result?: ModelCallResult;
   shouldRetry: boolean;
-  newState?: RetryState;
-}
-
-function handleTimeoutFallback(
-  ctx: ModelCallContext,
-  state: RetryState,
-  duration: number,
-  err: Error
-): AttemptResult | null {
-  logFallbackAttempt(ctx, state, duration, err);
-  const fallbackModel = tryFallbackModel(state);
-  if (fallbackModel !== null) {
-    logFallbackSwitch(ctx, fallbackModel);
-    return {
-      success: false,
-      shouldRetry: true,
-      newState: { currentModel: fallbackModel, usedFallback: true, networkRetryCount: FIRST_ATTEMPT },
-    };
-  }
-  logNoFallbackAvailable(ctx);
-  return null;
-}
-
-function tryHandleTimeoutFallback(
-  ctx: ModelCallContext,
-  state: RetryState,
-  duration: number,
-  err: Error
-): AttemptResult | null {
-  const canTryFallback = isTimeoutError(err) && !state.usedFallback;
-  if (!canTryFallback) {
-    return null;
-  }
-  return handleTimeoutFallback(ctx, state, duration, err);
-}
-
-async function handleRetryableError(
-  ctx: ModelCallContext,
-  state: RetryState,
-  err: Error,
-  duration: number
-): Promise<AttemptResult> {
-  const newRetryCount = state.networkRetryCount + INCREMENT_STEP;
-  const backoffMs = calculateBackoff(newRetryCount);
-  logRetryAttempt({
-    ctx,
-    state: { ...state, networkRetryCount: newRetryCount },
-    error: err,
-    duration,
-    backoffMs,
-  });
-  await sleep(backoffMs);
-  return { success: false, shouldRetry: true, newState: { ...state, networkRetryCount: newRetryCount } };
 }
 
 async function executeAttempt(
@@ -212,13 +126,8 @@ async function executeAttempt(
     return { success: true, result, shouldRetry: false };
   } catch (error) {
     const err = error instanceof Error ? error : new Error('Unknown error');
-    const duration = Date.now() - attemptStartTime;
-
-    const fallbackResult = tryHandleTimeoutFallback(ctx, state, duration, err);
-    if (fallbackResult !== null) return fallbackResult;
-
     if (isRetryableError(err) && state.networkRetryCount < MAX_NETWORK_RETRIES) {
-      return await handleRetryableError(ctx, state, err, duration);
+      // TODO: Use the rate-limiter for this
     }
 
     const totalDuration = Date.now() - ctx.requestStartTime;
@@ -253,7 +162,7 @@ export async function callModel(
   model: LanguageModel
 ): Promise<ModelCallResult> {
   const requestStartTime = Date.now();
-  const correlationId = `${context.namespace}-${context.userID}-${requestStartTime}`;
+  const correlationId = `${context.tenantID}-${context.userID}-${requestStartTime}`;
   const modelName = getModelId(model);
   const provider = getProviderFromModel(model) ?? 'unknown-provider';
 

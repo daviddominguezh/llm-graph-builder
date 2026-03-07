@@ -1,23 +1,14 @@
 import type { AssistantModelMessage, ModelMessage, Tool, ToolChoice, ToolSet, TypedToolCall } from 'ai';
 
-import { saveNamespaceMessage } from '@services/firebase/firebase.js';
-
-import { logger } from '@src/utils/logger.js';
-
 import { getEdgesFromNode, getNode } from '@src/stateMachine/graph/index.js';
-import { buildNextPromptConfig } from '@src/stateMachine/index.js';
-
-import type { ParsedResult } from '@src/types/ai/ai.js';
-import type { Context } from '@src/types/ai/tools.js';
+import { buildNextAgentConfig } from '@src/stateMachine/index.js';
+import type { ParsedResult } from '@src/types/ai/index.js';
+import type { Context } from '@src/types/tools.js';
+import { logger } from '@src/utils/logger.js';
 
 import { AGENT_CONSTANTS } from './constants.js';
 import { MessageProcessor } from './messageProcessor.js';
-import {
-  buildFAQConfig,
-  buildPersonalizationConfig,
-  processReplyNode,
-  processToolNode,
-} from './nodeProcessor.js';
+import { buildFAQConfig, processReplyNode, processToolNode } from './nodeProcessor.js';
 import type { CallAgentInput, NodeProcessingConfig } from './types.js';
 
 const FIRST_INDEX = 0;
@@ -59,7 +50,7 @@ export async function saveIntermediateMessages(
   const promises = msgsToSave.map(
     async (m) =>
       await saveNamespaceMessage({
-        namespace: context.namespace,
+        namespace: context.tenantID,
         from: context.userID,
         msg: m,
         lastMsg: {},
@@ -90,22 +81,13 @@ async function getNodeConfig(
   nodeBeforeFAQ: string
 ): Promise<NodeProcessingConfig> {
   const isFAQ = currentNodeID === AGENT_CONSTANTS.FAQ_NODE_NAME;
-  const isPersonalizationNode =
-    currentNodeID === AGENT_CONSTANTS.PROCEED_WITH_GIVEN_QUANTITY_NODE ||
-    currentNodeID === AGENT_CONSTANTS.PROCEED_WITH_MULTIPLE_GIVEN_QUANTITY_NODE;
 
+  // TODO: Replace everything "FAQ" for "global nodes"
   if (isFAQ) {
     return buildFAQConfig(context, nodeBeforeFAQ);
   }
 
-  if (isPersonalizationNode) {
-    const personalizationConfig = await buildPersonalizationConfig(context, currentNodeID);
-    if (personalizationConfig !== null) {
-      return personalizationConfig;
-    }
-  }
-
-  return await buildNextPromptConfig(context, currentNodeID, context.isTest);
+  return await buildNextAgentConfig(context, currentNodeID, context.isTest);
 }
 
 async function applyJumpTo(context: Context, currentNodeID: string, nextNodeID: string): Promise<string> {
@@ -115,7 +97,7 @@ async function applyJumpTo(context: Context, currentNodeID: string, nextNodeID: 
 
   if (jumpTo !== undefined && jumpTo !== '') {
     logger.info(
-      `callAgentStep/${context.namespace}/${context.userID}| JumpTo detected: ${nextNodeID} -> ${jumpTo}`
+      `callAgentStep/${context.tenantID}/${context.userID}| JumpTo detected: ${nextNodeID} -> ${jumpTo}`
     );
     return jumpTo;
   }
@@ -172,9 +154,9 @@ export async function processNode(params: ProcessNodeParams): Promise<ProcessNod
 
   const config = await getNodeConfig(context, currentNodeID, nodeBeforeFAQ);
 
-  logger.info(`callAgentStep/${context.namespace}/${context.userID}| Kind: ${config.kind}`);
+  logger.info(`callAgentStep/${context.tenantID}/${context.userID}| Kind: ${config.kind}`);
   logger.info(
-    `callAgentStep/${context.namespace}/${context.userID}| PROMPT:\n${config.promptWithoutToolPreconditions}\n`
+    `callAgentStep/${context.tenantID}/${context.userID}| PROMPT:\n${config.promptWithoutToolPreconditions}\n`
   );
 
   if (config.kind === 'tool_call') {
@@ -228,7 +210,7 @@ async function processFlowStep(
   const nextNodeIsFAQ = nextNodeID === AGENT_CONSTANTS.FAQ_NODE_NAME;
   const newNodeBeforeFAQ = nextNodeIsFAQ ? nodeBeforeFAQ : nextNodeID;
 
-  logger.info(`callAgentStep/${context.namespace}/${context.userID}| nextNode: ${nextNodeID}`);
+  logger.info(`callAgentStep/${context.tenantID}/${context.userID}| nextNode: ${nextNodeID}`);
 
   const currentNode = getNode(nextNodeID);
   const nextNodeIsUser = currentNode.nextNodeIsUser === true;

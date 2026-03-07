@@ -1,8 +1,7 @@
 import type { AssistantModelMessage, ModelMessage, ToolModelMessage } from 'ai';
 import { v4 as uuidv4 } from 'uuid';
 
-import type { Message } from '@src/types/messages/aiMessages.js';
-import type { MESSAGES_PROVIDER } from '@src/types/messages/closerMessages.js';
+import type { MESSAGES_PROVIDER, Message } from '@src/types/ai/index.js';
 
 const EMPTY_LENGTH = 0;
 

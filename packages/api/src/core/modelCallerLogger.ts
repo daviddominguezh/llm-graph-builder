@@ -1,13 +1,8 @@
+import type { LanguageModelV2 } from '@ai-sdk/provider';
 import type { LanguageModel } from 'ai';
 
+import type { Context } from '@src/types/tools.js';
 import { logger } from '@src/utils/logger.js';
-
-import {
-  MODEL_CALL_TIMEOUT_MS,
-  getModelId,
-  getProviderFromModel,
-  isTimeoutError,
-} from '@src/ai/providerFallback.js';
 
 const INCREMENT_STEP = 1;
 const MAX_NETWORK_RETRIES = 3;
@@ -19,9 +14,30 @@ interface RetryState {
 }
 
 interface ModelCallContext {
-  context: { namespace: string; userID: string };
+  context: Context;
   correlationId: string;
   requestStartTime: number;
+}
+
+function isLanguageModelV2(model: LanguageModel): model is LanguageModelV2 {
+  return typeof model !== 'string' && 'provider' in model;
+}
+
+export function getModelId(model: LanguageModel): string {
+  if (typeof model === 'string') return model;
+  if (isLanguageModelV2(model)) return model.modelId;
+  return model.modelId;
+}
+
+export function isTimeoutError(error: Error): boolean {
+  const message = error.message.toLowerCase();
+  return (
+    error.name === 'TimeoutError' ||
+    error.name === 'AbortError' ||
+    message.includes('timeout') ||
+    message.includes('aborted') ||
+    message.includes('timed out')
+  );
 }
 
 function isModelBusyError(error: Error): boolean {
@@ -59,7 +75,7 @@ interface StartingCallParams {
 export function logStartingCall(params: StartingCallParams): void {
   const { ctx, modelName, provider, expectedTool, messageCount } = params;
   logger.info(
-    `callAgentStep/${ctx.context.namespace}/${ctx.context.userID}| [MODEL_CALLER] Starting model call`,
+    `callAgentStep/${ctx.context.tenantID}/${ctx.context.userID}| [MODEL_CALLER] Starting model call`,
     {
       correlationId: ctx.correlationId,
       modelName,
@@ -74,14 +90,12 @@ export function logStartingCall(params: StartingCallParams): void {
 
 export function logAttempt(ctx: ModelCallContext, state: RetryState, messageCount: number): void {
   const currentModelName = getModelId(state.currentModel);
-  const currentProvider = getProviderFromModel(state.currentModel) ?? 'unknown-provider';
 
   logger.info(
-    `callAgentStep/${ctx.context.namespace}/${ctx.context.userID}| [MODEL_CALLER] Network attempt ${state.networkRetryCount + INCREMENT_STEP}/${MAX_NETWORK_RETRIES + INCREMENT_STEP}`,
+    `callAgentStep/${ctx.context.tenantID}/${ctx.context.userID}| [MODEL_CALLER] Network attempt ${state.networkRetryCount + INCREMENT_STEP}/${MAX_NETWORK_RETRIES + INCREMENT_STEP}`,
     {
       correlationId: ctx.correlationId,
       modelName: currentModelName,
-      provider: currentProvider,
       messageCount,
       usedFallback: state.usedFallback,
     }
@@ -100,13 +114,13 @@ function getMessageContent(message: unknown): unknown {
 
 export function logToolCallDetails(ctx: ModelCallContext, expectedTool: string, messages: unknown[]): void {
   logger.info(
-    `callAgentStep/${ctx.context.namespace}/${ctx.context.userID}| [MODEL_CALLER] Generating text for tool call: ${expectedTool}`
+    `callAgentStep/${ctx.context.tenantID}/${ctx.context.userID}| [MODEL_CALLER] Generating text for tool call: ${expectedTool}`
   );
   const [firstMessage] = messages;
   const content = getMessageContent(firstMessage);
   const promptContent = content === undefined ? 'no messages' : JSON.stringify(content);
   logger.info(
-    `callAgentStep/${ctx.context.namespace}/${ctx.context.userID}| [MODEL_CALLER] Prompt: ${promptContent}`
+    `callAgentStep/${ctx.context.tenantID}/${ctx.context.userID}| [MODEL_CALLER] Prompt: ${promptContent}`
   );
 }
 
@@ -121,14 +135,12 @@ interface SuccessParams {
 export function logSuccess(params: SuccessParams): void {
   const { ctx, state, attemptDuration, totalDuration, usage } = params;
   const currentModelName = getModelId(state.currentModel);
-  const currentProvider = getProviderFromModel(state.currentModel) ?? 'unknown-provider';
 
   logger.info(
-    `callAgentStep/${ctx.context.namespace}/${ctx.context.userID}| [MODEL_CALLER] Model call succeeded`,
+    `callAgentStep/${ctx.context.tenantID}/${ctx.context.userID}| [MODEL_CALLER] Model call succeeded`,
     {
       correlationId: ctx.correlationId,
       modelName: currentModelName,
-      provider: currentProvider,
       attemptNumber: state.networkRetryCount + INCREMENT_STEP,
       attemptDuration: `${attemptDuration}ms`,
       totalDuration: `${totalDuration}ms`,
@@ -145,14 +157,12 @@ export function logFallbackAttempt(
   error: Error
 ): void {
   const currentModelName = getModelId(state.currentModel);
-  const currentProvider = getProviderFromModel(state.currentModel) ?? 'unknown-provider';
 
   logger.warn(
-    `callAgentStep/${ctx.context.namespace}/${ctx.context.userID}| [MODEL_CALLER] TIMEOUT after ${duration}ms - attempting fallback provider`,
+    `callAgentStep/${ctx.context.tenantID}/${ctx.context.userID}| [MODEL_CALLER] TIMEOUT after ${duration}ms - attempting fallback provider`,
     {
       correlationId: ctx.correlationId,
       modelName: currentModelName,
-      provider: currentProvider,
       errorCategory: categorizeError(error),
       errorMessage: error.message,
     }
@@ -161,9 +171,9 @@ export function logFallbackAttempt(
 
 export function logFallbackSwitch(ctx: ModelCallContext, newModel: LanguageModel): void {
   const fallbackModelName = getModelId(newModel);
-  const fallbackProvider = getProviderFromModel(newModel) ?? 'unknown-provider';
+
   logger.info(
-    `callAgentStep/${ctx.context.namespace}/${ctx.context.userID}| [MODEL_CALLER] Switching to fallback model: ${fallbackModelName} (provider: ${fallbackProvider})`
+    `callAgentStep/${ctx.context.tenantID}/${ctx.context.userID}| [MODEL_CALLER] Switching to fallback model: ${fallbackModelName}`
   );
 }
 
@@ -178,17 +188,16 @@ interface RetryAttemptParams {
 export function logRetryAttempt(params: RetryAttemptParams): void {
   const { ctx, state, error, duration, backoffMs } = params;
   const currentModelName = getModelId(state.currentModel);
-  const currentProvider = getProviderFromModel(state.currentModel) ?? 'unknown-provider';
+
   const modelBusy = isModelBusyError(error);
   const timeout = isTimeoutError(error);
   const statusMessage = modelBusy ? 'MODEL BUSY' : timeout ? 'TIMEOUT' : 'Network error';
 
   logger.warn(
-    `callAgentStep/${ctx.context.namespace}/${ctx.context.userID}| [MODEL_CALLER] ${statusMessage} on attempt ${state.networkRetryCount}/${MAX_NETWORK_RETRIES + INCREMENT_STEP}`,
+    `callAgentStep/${ctx.context.tenantID}/${ctx.context.userID}| [MODEL_CALLER] ${statusMessage} on attempt ${state.networkRetryCount}/${MAX_NETWORK_RETRIES + INCREMENT_STEP}`,
     {
       correlationId: ctx.correlationId,
       modelName: currentModelName,
-      provider: currentProvider,
       errorCategory: categorizeError(error),
       errorMessage: error.message,
       attemptDuration: `${duration}ms`,
@@ -200,11 +209,11 @@ export function logRetryAttempt(params: RetryAttemptParams): void {
 
   if (modelBusy) {
     logger.warn(
-      `callAgentStep/${ctx.context.namespace}/${ctx.context.userID}| [MODEL_CALLER] Model capacity issue detected - retrying after backoff.`
+      `callAgentStep/${ctx.context.tenantID}/${ctx.context.userID}| [MODEL_CALLER] Model capacity issue detected - retrying after backoff.`
     );
   }
   logger.info(
-    `callAgentStep/${ctx.context.namespace}/${ctx.context.userID}| [MODEL_CALLER] Retrying after ${backoffMs}ms...`
+    `callAgentStep/${ctx.context.tenantID}/${ctx.context.userID}| [MODEL_CALLER] Retrying after ${backoffMs}ms...`
   );
 }
 
@@ -215,14 +224,12 @@ export function logFinalError(
   totalDuration: number
 ): void {
   const currentModelName = getModelId(state.currentModel);
-  const currentProvider = getProviderFromModel(state.currentModel) ?? 'unknown-provider';
 
   logger.error(
-    `callAgentStep/${ctx.context.namespace}/${ctx.context.userID}| [MODEL_CALLER] Model call failed after ${state.networkRetryCount + INCREMENT_STEP} attempts`,
+    `callAgentStep/${ctx.context.tenantID}/${ctx.context.userID}| [MODEL_CALLER] Model call failed after ${state.networkRetryCount + INCREMENT_STEP} attempts`,
     {
       correlationId: ctx.correlationId,
       modelName: currentModelName,
-      provider: currentProvider,
       errorCategory: categorizeError(error),
       errorName: error.name,
       errorMessage: error.message,
@@ -235,23 +242,23 @@ export function logFinalError(
     }
   );
 
-  logger.error(`callAgentStep/${ctx.context.namespace}/${ctx.context.userID}| Error name: ${error.name}`);
+  logger.error(`callAgentStep/${ctx.context.tenantID}/${ctx.context.userID}| Error name: ${error.name}`);
   logger.error(
-    `callAgentStep/${ctx.context.namespace}/${ctx.context.userID}| Error message: ${error.message}`
+    `callAgentStep/${ctx.context.tenantID}/${ctx.context.userID}| Error message: ${error.message}`
   );
   logger.error(
-    `callAgentStep/${ctx.context.namespace}/${ctx.context.userID}| Stack trace:\n${error.stack ?? 'no stack'}`
+    `callAgentStep/${ctx.context.tenantID}/${ctx.context.userID}| Stack trace:\n${error.stack ?? 'no stack'}`
   );
 }
 
 export function logNoToolCall(ctx: ModelCallContext): void {
   logger.info(
-    `callAgentStep/${ctx.context.namespace}/${ctx.context.userID}| [MODEL_CALLER] Generating object (no tool call expected)`
+    `callAgentStep/${ctx.context.tenantID}/${ctx.context.userID}| [MODEL_CALLER] Generating object (no tool call expected)`
   );
 }
 
 export function logNoFallbackAvailable(ctx: ModelCallContext): void {
   logger.warn(
-    `callAgentStep/${ctx.context.namespace}/${ctx.context.userID}| [MODEL_CALLER] No fallback available - will retry with same model`
+    `callAgentStep/${ctx.context.tenantID}/${ctx.context.userID}| [MODEL_CALLER] No fallback available - will retry with same model`
   );
 }

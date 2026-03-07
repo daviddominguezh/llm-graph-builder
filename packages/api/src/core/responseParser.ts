@@ -1,9 +1,8 @@
 import type { AssistantContent, AssistantModelMessage, ToolModelMessage } from 'ai';
 
-import { logger } from '@src/utils/logger.js';
-
 import type { ParsedResult } from '@src/types/ai/ai.js';
-import type { Context } from '@src/types/ai/tools.js';
+import type { Context } from '@src/types/tools.js';
+import { logger } from '@src/utils/logger.js';
 
 import { AGENT_CONSTANTS, ERROR_MESSAGES } from './constants.js';
 import type { TextExtractionParams } from './types.js';
@@ -159,7 +158,7 @@ export const parseResponseJSON = (context: Context, str: string, reasoningStr?: 
   }
 
   // Log error and throw
-  logger.error(`callAgentStep/${context.namespace}/${context.userID}| ${errorStr}`);
+  logger.error(`callAgentStep/${context.tenantID}/${context.userID}| ${errorStr}`);
   throw newError;
 };
 
