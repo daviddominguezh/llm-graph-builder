@@ -1,4 +1,4 @@
-import { type CallAgentOutput, MESSAGES_PROVIDER, type Message, execute } from '@daviddh/llm-graph-runner';
+import { type CallAgentOutput, type Logger, MESSAGES_PROVIDER, type Message, execute } from '@daviddh/llm-graph-runner';
 import type { Edge as RFEdge, Node as RFNode } from '@xyflow/react';
 import { nanoid } from 'nanoid';
 import { useCallback, useState } from 'react';
@@ -11,6 +11,20 @@ import { START_NODE_ID, buildContext, buildGraph } from '../utils/graphContext';
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
 
 const INITIAL_TOKEN_COUNT = 0;
+
+const consoleLogger: Logger = {
+  error: console.error,
+  warn: console.warn,
+  help: console.log,
+  data: console.log,
+  info: console.info,
+  debug: console.debug,
+  prompt: console.log,
+  http: console.log,
+  verbose: console.log,
+  input: console.log,
+  silly: console.log,
+};
 
 interface UseSimulationParams {
   allNodes: Array<RFNode<RFNodeData>>;
@@ -183,7 +197,7 @@ function useSimulationSend(deps: SendMessageDeps): (text: string) => void {
       const graph = buildGraph(allNodes, edges, agents);
       const context = { ...buildContext(preset, apiKey), graph };
 
-      void execute(context, allMessages, currentNode).then((result) => {
+      void execute(context, allMessages, currentNode, consoleLogger).then((result) => {
         if (result === null) {
           setters.setLoading(false);
           return;

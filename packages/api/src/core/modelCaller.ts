@@ -1,5 +1,5 @@
 import type { LanguageModel } from 'ai';
-import { generateText, Output } from 'ai';
+import { Output, generateText } from 'ai';
 import z from 'zod';
 
 import type { ToolModelConfig } from '@src/types/ai/ai.js';
