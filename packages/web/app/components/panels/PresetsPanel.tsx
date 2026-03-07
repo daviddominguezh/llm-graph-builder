@@ -21,8 +21,6 @@ import { type ContextPreset, DEFAULT_PRESET } from "../../types/preset";
 
 interface PresetsPanelProps {
   presets: ContextPreset[];
-  activePresetId: string;
-  onSetActive: (id: string) => void;
   onAdd: () => void;
   onDelete: (id: string) => void;
   onUpdate: (id: string, updates: Partial<ContextPreset>) => void;
@@ -166,8 +164,6 @@ function PresetItem({
 
 export function PresetsPanel({
   presets,
-  activePresetId,
-  onSetActive,
   onAdd,
   onDelete,
   onUpdate,

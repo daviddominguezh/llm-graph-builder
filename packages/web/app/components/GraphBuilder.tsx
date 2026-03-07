@@ -31,6 +31,7 @@ import { EdgePanel } from "./panels/EdgePanel";
 import { GlobalNodesPanel } from "./panels/GlobalNodesPanel";
 import { ConnectionMenu } from "./panels/ConnectionMenu";
 import { PresetsPanel } from "./panels/PresetsPanel";
+import { SearchDialog } from "./panels/SearchDialog";
 import { GraphSchema, type Agent } from "../schemas/graph.schema";
 import { usePresets } from "../hooks/usePresets";
 import {
@@ -169,6 +170,9 @@ function GraphBuilderInner() {
   const presetsHook = usePresets();
   const [presetsOpen, setPresetsOpen] = useState(false);
 
+  // Search state
+  const [searchOpen, setSearchOpen] = useState(false);
+
   // Zoom view state
   const [zoomViewNodeId, setZoomViewNodeId] = useState<string | null>(null);
   const [savedGraphState, setSavedGraphState] = useState<{
@@ -191,6 +195,51 @@ function GraphBuilderInner() {
       setViewport(viewport);
     }
   }, [setViewport]);
+
+  // Cmd+F / Ctrl+F to toggle search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "f") {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const handleSearchSelectNode = useCallback(
+    (targetNodeId: string) => {
+      const node = nodes.find((n) => n.id === targetNodeId);
+      if (node && reactFlowWrapper.current) {
+        const nodeData = node.data as RFNodeData;
+        const nodeWidth = nodeData.nodeWidth ?? DEFAULT_NODE_WIDTH;
+        const nodeHeight =
+          node.type === "start" ? START_NODE_HEIGHT : DEFAULT_NODE_HEIGHT;
+        const { zoom } = getViewport();
+        const { width, height } =
+          reactFlowWrapper.current.getBoundingClientRect();
+
+        setViewport(
+          {
+            x: width / 2 - (node.position.x + nodeWidth / 2) * zoom,
+            y: height / 2 - (node.position.y + nodeHeight / 2) * zoom,
+            zoom,
+          },
+          { duration: 300 },
+        );
+      }
+      setNodes((nds) =>
+        nds.map((n) => ({ ...n, selected: n.id === targetNodeId })),
+      );
+      setEdges((eds) => eds.map((e) => ({ ...e, selected: false })));
+      setSelectedNodeId(targetNodeId);
+      setSelectedEdgeId(null);
+      setGlobalPanelOpen(false);
+      setPresetsOpen(false);
+    },
+    [nodes, getViewport, setViewport, setNodes, setEdges],
+  );
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -665,6 +714,16 @@ function GraphBuilderInner() {
             )}
           </main>
 
+          <SearchDialog
+            nodes={nodes.map((n) => ({
+              id: n.id,
+              text: (n.data as RFNodeData).text,
+            }))}
+            open={searchOpen}
+            onClose={() => setSearchOpen(false)}
+            onSelectNode={handleSearchSelectNode}
+          />
+
           {(selectedNodeId || selectedEdgeId) && (
             <aside className="absolute right-0 top-0 bottom-0 w-80 border-l border-gray-200 bg-white">
               {selectedNodeId && (
@@ -892,8 +951,6 @@ function GraphBuilderInner() {
             <aside className="absolute left-0 top-0 bottom-0 w-80 border-r border-gray-200 bg-white z-10">
               <PresetsPanel
                 presets={presetsHook.presets}
-                activePresetId={presetsHook.activePresetId}
-                onSetActive={presetsHook.setActivePresetId}
                 onAdd={presetsHook.addPreset}
                 onDelete={presetsHook.deletePreset}
                 onUpdate={presetsHook.updatePreset}
