@@ -232,7 +232,8 @@ export async function executeAgentFlowRecursive(
 
 function resolveStartNode(graph: Graph, nodeId: string): string {
   if (nodeId !== INITIAL_STEP_NODE) return nodeId;
-  const [firstEdge] = graph.edges.filter((e) => e.from === INITIAL_STEP_NODE);
+  const edgesFromInitial = graph.edges.filter((e) => e.from === INITIAL_STEP_NODE);
+  const [firstEdge] = edgesFromInitial;
   return firstEdge?.to ?? nodeId;
 }
 
