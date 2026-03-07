@@ -1,6 +1,7 @@
 import type { AssistantModelMessage, ModelMessage, Tool, ToolModelMessage, TypedToolCall } from 'ai';
 
 import type { Message } from '@src/types/ai/index.js';
+import { Context } from '@src/types/tools.js';
 import { logger } from '@src/utils/logger.js';
 import { isError } from '@src/utils/typeGuards.js';
 
@@ -160,7 +161,7 @@ function getToolFromConfig(config: NodeProcessingConfig): Tool | undefined {
 }
 
 export async function manuallyInvokeAnswerBusinessQuestion(
-  context: { namespace: string; userID: string },
+  context: Context,
   config: NodeProcessingConfig,
   messages: Message[]
 ): Promise<ManualInvokeResult> {

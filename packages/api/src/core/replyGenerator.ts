@@ -85,11 +85,12 @@ function resolveNextNode(
  * Removes messageToUser if the next node is not a reply node
  */
 function cleanNonReplyMessage(
+  context: Context,
   msg: AssistantModelMessage | ToolModelMessage,
   nextNodeID: string,
   parsedResult: ParsedResult
 ): ParsedResult {
-  const nextNode = getNode(nextNodeID);
+  const nextNode = getNode(context.graph, nextNodeID);
   const isReplyNode = nextNode.nextNodeIsUser === true;
 
   if (isReplyNode || msg.role !== 'assistant') {
@@ -123,7 +124,7 @@ export async function generateReply(params: GenerateReplyParams): Promise<ReplyG
   if (firstMsg === undefined) {
     throw new Error('Expected at least one message from agent');
   }
-  const cleanedResult = cleanNonReplyMessage(firstMsg, nextNodeID, parsedResult);
+  const cleanedResult = cleanNonReplyMessage(context, firstMsg, nextNodeID, parsedResult);
 
   const lastIndex = msgs.length - LAST_INDEX_OFFSET;
   const [lastMsg] = msgs.slice(lastIndex);

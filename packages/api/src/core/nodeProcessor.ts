@@ -7,6 +7,7 @@ import type { Context } from '@src/types/tools.js';
 import { logger } from '@src/utils/logger.js';
 import { formatMessages } from '@src/utils/messages.js';
 
+import { getModel } from './agentExecutorHelpers.js';
 import { getConfig } from './config.js';
 import { AGENT_CONSTANTS, PROMPTS } from './constants.js';
 import { type ToolCallsArray, getProviderFromMessages, isProductsEmpty } from './nodeProcessorHelpers.js';
@@ -35,14 +36,6 @@ interface GenerateToolReplyParams {
   debugMessages: Record<string, ModelMessage[][]>;
 }
 
-function getCallAgentModel(): ReturnType<
-  (typeof TEXT_FEATURE_MODEL)[keyof typeof TEXT_FEATURE_MODEL]['getter']
-> {
-  const { [TEXT_FEATURE_ACTION.CALL_AGENT as keyof typeof TEXT_FEATURE_MODEL]: featureModel } =
-    TEXT_FEATURE_MODEL;
-  return featureModel.getter();
-}
-
 export function buildFAQConfig(context: Context, nodeBeforeFAQ: string): NodeProcessingConfig {
   const { FAQ_NODE_NAME, INITIAL_STEP, DEFAULT_OUTPUT_NODE } = AGENT_CONSTANTS;
   const targetNode = nodeBeforeFAQ === INITIAL_STEP ? INITIAL_STEP : nodeBeforeFAQ;
@@ -68,7 +61,7 @@ export async function processReplyNode(
   const { context, config, input, currentNodeID, debugMessages } = params;
   const { promptWithoutToolPreconditions, nodes } = config;
   const provider = getProviderFromMessages(input.messages);
-  const { model } = getCallAgentModel();
+  const { model } = getModel();
 
   const cleanMessages = formatMessages(input.messages, [promptWithoutToolPreconditions]);
   const modelConfig = getConfig({ model, cleanMessages, toolChoice: 'none' });

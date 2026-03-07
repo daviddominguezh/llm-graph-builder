@@ -1,4 +1,7 @@
+import type { Graph } from './graph.js';
+
 export interface Context {
+  graph: Graph;
   sessionID: string;
   tenantID: string;
   userID: string;

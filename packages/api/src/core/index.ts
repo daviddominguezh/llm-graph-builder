@@ -59,17 +59,19 @@ async function executeFlow(
   };
 }
 
+export const CALL_AGENT_STEP_NAME = 'callAgent';
+
 /**
  * Main pipeline step for executing the agent flow
  */
 export const callAgentStep: PipelineStep<CallAgentInput, CallAgentOutput> = {
-  feature: TEXT_FEATURE_ACTION.CALL_AGENT,
+  feature: CALL_AGENT_STEP_NAME,
   execute: async (context: Context, input: CallAgentInput): Promise<CallAgentOutput> => {
     const { messages } = input;
     const { length: initialMsgsLength } = messages;
 
     input.tokensLog.push({
-      action: TEXT_FEATURE_ACTION.CALL_AGENT,
+      action: CALL_AGENT_STEP_NAME,
       tokens: createEmptyTokenLog(),
     });
 

@@ -132,7 +132,7 @@ export async function executeAttempt(
 ): Promise<AttemptResult> {
   const { context, config, executionStartTime, sessionId } = execParams;
   const attemptStartTime = Date.now();
-  const { name: modelName, tier } = getModel();
+  const { name: modelName } = getModel();
 
   try {
     return await tryExecuteAttempt(execParams, attemptCount);

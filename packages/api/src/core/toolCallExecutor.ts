@@ -5,6 +5,7 @@ import type { Context } from '@src/types/tools.js';
 import { formatMessages } from '@src/utils/messages.js';
 
 import { executeAgent } from './agentExecutor.js';
+import { getModel } from './agentExecutorHelpers.js';
 import { getConfig } from './config.js';
 import { MessageProcessor } from './messageProcessor.js';
 import {
@@ -29,14 +30,6 @@ export interface ProcessToolNodeParams {
 interface ToolsFromConfig {
   tools: NodeProcessingConfig['toolsByEdge'][string]['tools'] | undefined;
   toolChoice: NodeProcessingConfig['toolsByEdge'][string]['toolChoice'] | undefined;
-}
-
-function getCallAgentModel(): ReturnType<
-  (typeof TEXT_FEATURE_MODEL)[keyof typeof TEXT_FEATURE_MODEL]['getter']
-> {
-  const { [TEXT_FEATURE_ACTION.CALL_AGENT as keyof typeof TEXT_FEATURE_MODEL]: featureModel } =
-    TEXT_FEATURE_MODEL;
-  return featureModel.getter();
 }
 
 function getToolsFromConfig(config: NodeProcessingConfig): ToolsFromConfig {
@@ -73,7 +66,7 @@ async function executeAgentCall(
   const { params } = executeParams;
   const { context, config, input, currentNodeID, requiredTool } = params;
   const provider = getProviderFromMessages(input.messages);
-  const { model } = getCallAgentModel();
+  const { model } = getModel();
   const { promptWithoutToolPreconditions } = config;
   const { tools, toolChoice } = getToolsFromConfig(config);
 

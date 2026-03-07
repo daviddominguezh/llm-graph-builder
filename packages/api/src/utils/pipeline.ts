@@ -24,10 +24,7 @@ interface FinishCallbackEntry {
   callback: (task: string, data: unknown, context: Context) => Promise<void>;
 }
 
-type StepOutcome =
-  | { earlyExit: false; value: unknown }
-  | { earlyExit: true; value: unknown }
-  | null;
+type StepOutcome = { earlyExit: false; value: unknown } | { earlyExit: true; value: unknown } | null;
 
 interface StepLogInfo {
   stepNum: number;
@@ -81,20 +78,17 @@ async function processAllSteps(
   logKey: string
 ): Promise<StepOutcome> {
   const seed: StepOutcome = { earlyExit: false, value: initialInput };
-  return await steps.reduce<Promise<StepOutcome>>(
-    async (accPromise, step, index) => {
-      const acc = await accPromise;
-      if (acc === null || acc.earlyExit) return acc;
-      const stepNum = index + STEP_NUMBER_OFFSET;
-      const logInfo: StepLogInfo = { stepNum, total: steps.length, logKey };
-      try {
-        return await executeSinglePipelineStep(context, step, acc.value, logInfo);
-      } catch (stepError: unknown) {
-        return handleStepError(logInfo, step.feature, stepError);
-      }
-    },
-    Promise.resolve(seed)
-  );
+  return await steps.reduce<Promise<StepOutcome>>(async (accPromise, step, index) => {
+    const acc = await accPromise;
+    if (acc === null || acc.earlyExit) return acc;
+    const stepNum = index + STEP_NUMBER_OFFSET;
+    const logInfo: StepLogInfo = { stepNum, total: steps.length, logKey };
+    try {
+      return await executeSinglePipelineStep(context, step, acc.value, logInfo);
+    } catch (stepError: unknown) {
+      return handleStepError(logInfo, step.feature, stepError);
+    }
+  }, Promise.resolve(seed));
 }
 
 async function executeSingleCallback(
@@ -193,11 +187,8 @@ export class Pipeline<TInitialInput, TCurrentOutput, TExitType = never> {
     return this;
   }
 
-  async execute(
-    context: Context,
-    initialInput: TInitialInput
-  ): Promise<TCurrentOutput | TExitType | null> {
-    const logKey = `executingPipeline/${context.namespace}| `;
+  async execute(context: Context, initialInput: TInitialInput): Promise<TCurrentOutput | TExitType | null> {
+    const logKey = `executingPipeline/${context.tenantID}| `;
     logger.info(`${logKey}Starting pipeline with ${this.steps.length} steps...`);
     if (this.steps.length === EMPTY_COUNT) {
       logger.warn(`${logKey}Pipeline has no steps, returning null`);

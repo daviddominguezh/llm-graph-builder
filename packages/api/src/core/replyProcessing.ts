@@ -1,4 +1,4 @@
-import type { AssistantModelMessage, Tool, ToolModelMessage, TypedToolCall } from 'ai';
+import type { AssistantModelMessage, LanguageModelUsage, Tool, ToolModelMessage, TypedToolCall } from 'ai';
 
 import type { ToolModelConfig } from '@src/types/ai/ai.js';
 import type { TokenLog } from '@src/types/ai/index.js';
@@ -96,15 +96,15 @@ interface UsageResult {
   totalTokens: number;
 }
 
-function getInputTokens(rawUsage: ReplyUsageInfo | undefined): number {
+function getInputTokens(rawUsage: LanguageModelUsage | undefined): number {
   return rawUsage?.inputTokens ?? rawUsage?.promptTokens ?? ZERO_TOKENS;
 }
 
-function getOutputTokens(rawUsage: ReplyUsageInfo | undefined): number {
+function getOutputTokens(rawUsage: LanguageModelUsage | undefined): number {
   return rawUsage?.outputTokens ?? rawUsage?.completionTokens ?? ZERO_TOKENS;
 }
 
-function extractUsage(rawUsage: ReplyUsageInfo | undefined): UsageResult {
+function extractUsage(rawUsage: LanguageModelUsage | undefined): UsageResult {
   const inputTokens = getInputTokens(rawUsage);
   const outputTokens = getOutputTokens(rawUsage);
   const cachedInputTokens = rawUsage?.cachedInputTokens ?? ZERO_TOKENS;
