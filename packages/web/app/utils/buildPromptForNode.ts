@@ -18,6 +18,7 @@ interface BuildPromptParams {
   nodeId: string;
   preset: ContextPreset;
   agents: Agent[];
+  apiKey: string;
 }
 
 function rfNodesToSchemaNodes(nodes: Array<RFNode<RFNodeData>>): Array<{
@@ -41,7 +42,10 @@ function rfNodesToSchemaNodes(nodes: Array<RFNode<RFNodeData>>): Array<{
   }));
 }
 
-function buildContext(preset: ContextPreset): {
+function buildContext(
+  preset: ContextPreset,
+  apiKey: string
+): {
   apiKey: string;
   sessionID: string;
   tenantID: string;
@@ -50,7 +54,7 @@ function buildContext(preset: ContextPreset): {
   quickReplies: Record<string, string>;
 } {
   return {
-    apiKey: '',
+    apiKey,
     sessionID: preset.sessionID,
     tenantID: preset.tenantID,
     userID: preset.userID,
@@ -60,7 +64,7 @@ function buildContext(preset: ContextPreset): {
 }
 
 export async function buildPromptForNode(params: BuildPromptParams): Promise<string> {
-  const { nodes, edges, nodeId, preset, agents } = params;
+  const { nodes, edges, nodeId, preset, agents, apiKey } = params;
 
   const graph = {
     startNode: START_NODE_ID,
@@ -69,7 +73,7 @@ export async function buildPromptForNode(params: BuildPromptParams): Promise<str
     edges: edges.map((e) => rfEdgeToSchemaEdge(e)),
   };
 
-  const context = { ...buildContext(preset), graph };
+  const context = { ...buildContext(preset, apiKey), graph };
   const dummyTools = createDummyToolsForGraph(graph);
   const config = await buildNextAgentConfig(graph, context, nodeId, { toolsOverride: dummyTools });
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Plus, Trash2, SlidersHorizontal } from "lucide-react";
+import { ChevronDown, Eye, EyeOff, Plus, Trash2, SlidersHorizontal } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,10 +17,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { type ContextPreset, DEFAULT_PRESET } from "../../types/preset";
 
 interface PresetsPanelProps {
   presets: ContextPreset[];
+  apiKey: string;
+  onApiKeyChange: (key: string) => void;
   onAdd: () => void;
   onDelete: (id: string) => void;
   onUpdate: (id: string, updates: Partial<ContextPreset>) => void;
@@ -164,10 +167,14 @@ function PresetItem({
 
 export function PresetsPanel({
   presets,
+  apiKey,
+  onApiKeyChange,
   onAdd,
   onDelete,
   onUpdate,
 }: PresetsPanelProps) {
+  const [showApiKey, setShowApiKey] = useState(false);
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-2 border-b px-4 py-3">
@@ -178,6 +185,27 @@ export function PresetsPanel({
         </Button>
       </div>
       <div className="flex-1 overflow-y-auto p-4">
+        <div className="mb-4 space-y-1">
+          <Label>API Key</Label>
+          <div className="relative">
+            <Input
+              type={showApiKey ? "text" : "password"}
+              value={apiKey}
+              onChange={(e) => onApiKeyChange(e.target.value)}
+              placeholder="Enter API key..."
+              className="pr-9"
+            />
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="absolute right-2 top-1/2 -translate-y-1/2"
+              onClick={() => setShowApiKey((prev) => !prev)}
+            >
+              {showApiKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            </Button>
+          </div>
+          <Separator className="mt-3" />
+        </div>
         <ul className="space-y-2">
           {presets.map((preset) => (
             <PresetItem

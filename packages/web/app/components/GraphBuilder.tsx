@@ -733,6 +733,7 @@ function GraphBuilderInner() {
                   agents={agents}
                   presets={presetsHook.presets}
                   activePresetId={presetsHook.activePresetId}
+                  apiKey={presetsHook.apiKey}
                   globalNodeIds={nodes.filter((n) => (n.data as RFNodeData).global === true).map((n) => n.id)}
                   onSetActivePreset={presetsHook.setActivePresetId}
                   onNodeDeleted={() => setSelectedNodeId(null)}
@@ -952,6 +953,8 @@ function GraphBuilderInner() {
             <aside className="absolute left-0 top-0 bottom-0 w-80 border-r border-gray-200 bg-white z-10">
               <PresetsPanel
                 presets={presetsHook.presets}
+                apiKey={presetsHook.apiKey}
+                onApiKeyChange={presetsHook.setApiKey}
                 onAdd={presetsHook.addPreset}
                 onDelete={presetsHook.deletePreset}
                 onUpdate={presetsHook.updatePreset}

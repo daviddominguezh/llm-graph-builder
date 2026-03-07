@@ -116,12 +116,21 @@ function resolveOptionalFields(
   data: RFNodeData | undefined,
   original: SchemaNode
 ): Pick<SchemaNode, 'agent' | 'nextNodeIsUser' | 'fallbackNodeId' | 'global' | 'defaultFallback'> {
+  if (data === undefined) {
+    return {
+      agent: original.agent,
+      nextNodeIsUser: original.nextNodeIsUser,
+      fallbackNodeId: original.fallbackNodeId,
+      global: original.global,
+      defaultFallback: original.defaultFallback,
+    };
+  }
   return {
-    agent: data?.agent ?? original.agent,
-    nextNodeIsUser: data?.nextNodeIsUser ?? original.nextNodeIsUser,
-    fallbackNodeId: data?.fallbackNodeId ?? original.fallbackNodeId,
-    global: data?.global ?? original.global,
-    defaultFallback: data?.defaultFallback ?? original.defaultFallback,
+    agent: data.agent ?? original.agent,
+    nextNodeIsUser: data.nextNodeIsUser ?? original.nextNodeIsUser,
+    fallbackNodeId: data.fallbackNodeId ?? original.fallbackNodeId,
+    global: data.global ?? original.global,
+    defaultFallback: data.defaultFallback ?? original.defaultFallback,
   };
 }
 

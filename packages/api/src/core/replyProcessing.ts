@@ -44,17 +44,8 @@ interface ToolValidationParams {
 }
 
 function handleToolValidation(params: ToolValidationParams): boolean {
-  const {
-    context,
-    sessionId,
-    expectedTool,
-    toolResults,
-    toolCalls,
-    attemptCount,
-    config,
-    msgs,
-    modelName,
-  } = params;
+  const { context, sessionId, expectedTool, toolResults, toolCalls, attemptCount, config, msgs, modelName } =
+    params;
   const hasSuccessfulCall = wasToolCallSuccessful(toolResults, expectedTool);
 
   logToolValidation({ context, sessionId, expectedTool, hasSuccessfulCall, toolResults });

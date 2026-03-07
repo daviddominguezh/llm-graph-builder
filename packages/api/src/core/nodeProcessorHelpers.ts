@@ -100,16 +100,12 @@ interface SyntheticToolMessagesResult {
   syntheticToolCall: TypedToolCall<Record<string, Tool>>;
 }
 
-function buildSyntheticToolCall(
-  params: SyntheticToolMessagesParams
-): TypedToolCall<Record<string, Tool>> {
+function buildSyntheticToolCall(params: SyntheticToolMessagesParams): TypedToolCall<Record<string, Tool>> {
   const { toolCallId, toolName, userMessage } = params;
   return { type: 'tool-call', toolCallId, toolName, input: { query: userMessage } };
 }
 
-function buildSyntheticAssistantMessage(
-  params: SyntheticToolMessagesParams
-): AssistantModelMessage {
+function buildSyntheticAssistantMessage(params: SyntheticToolMessagesParams): AssistantModelMessage {
   const { toolCallId, toolName, userMessage } = params;
   return {
     role: 'assistant',
@@ -117,9 +113,7 @@ function buildSyntheticAssistantMessage(
   };
 }
 
-function buildSyntheticToolResultMessage(
-  params: SyntheticToolMessagesParams
-): ToolModelMessage {
+function buildSyntheticToolResultMessage(params: SyntheticToolMessagesParams): ToolModelMessage {
   const { toolCallId, toolName, resultString } = params;
   return {
     role: 'tool',
@@ -127,7 +121,9 @@ function buildSyntheticToolResultMessage(
   };
 }
 
-export function createSyntheticToolMessages(params: SyntheticToolMessagesParams): SyntheticToolMessagesResult {
+export function createSyntheticToolMessages(
+  params: SyntheticToolMessagesParams
+): SyntheticToolMessagesResult {
   return {
     toolCallMessage: buildSyntheticAssistantMessage(params),
     toolResultMessage: buildSyntheticToolResultMessage(params),
@@ -180,7 +176,9 @@ async function invokeToolManually(
 ): Promise<ManualInvokeResult> {
   const userMessage = extractLastUserMessage(messages);
   if (userMessage === null || userMessage === '') {
-    logger.warn(`callAgentStep/${context.tenantID}/${context.userID}| Could not extract user message for manual global node invocation`);
+    logger.warn(
+      `callAgentStep/${context.tenantID}/${context.userID}| Could not extract user message for manual global node invocation`
+    );
     return buildEmptyResult();
   }
 
@@ -202,7 +200,9 @@ async function executeManualToolCall(
   const { tool, toolName } = toolFromConfig;
   try {
     const toolCallId = `manual-global-${Date.now()}`;
-    logger.info(`callAgentStep/${context.tenantID}/${context.userID}| Manually invoking ${toolName} with query: "${userMessage}"`);
+    logger.info(
+      `callAgentStep/${context.tenantID}/${context.userID}| Manually invoking ${toolName} with query: "${userMessage}"`
+    );
 
     const modelMessages: ModelMessage[] = messages.map((m) => m.message);
     const resultString = await executeToolWithResult(tool, userMessage, toolCallId, modelMessages);
@@ -216,9 +216,12 @@ async function executeManualToolCall(
     return { success: true, messages: [toolCallMessage, toolResultMessage], toolCalls: [syntheticToolCall] };
   } catch (error) {
     const errorMessage = isError(error) ? error.message : 'Unknown error';
-    logger.error(`callAgentStep/${context.tenantID}/${context.userID}| Manual global node tool invocation failed`, {
-      error: errorMessage,
-    });
+    logger.error(
+      `callAgentStep/${context.tenantID}/${context.userID}| Manual global node tool invocation failed`,
+      {
+        error: errorMessage,
+      }
+    );
     return buildEmptyResult();
   }
 }

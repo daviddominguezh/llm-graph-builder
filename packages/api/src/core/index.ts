@@ -31,7 +31,7 @@ async function executeFlow(context: Context, input: CallAgentInput): Promise<Cal
   );
 
   if (error) {
-    return await handleError(context, input);
+    return handleError(context, input);
   }
 
   const lastMessage = extractLastMessage(input);
@@ -69,7 +69,7 @@ export const callAgentStep: PipelineStep<CallAgentInput, CallAgentOutput> = {
       return await executeFlow(context, input);
     } catch (e) {
       handleCatchError(context, e);
-      return await handleError(context, input);
+      return handleError(context, input);
     }
   },
 };

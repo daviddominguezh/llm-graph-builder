@@ -7,7 +7,7 @@ import type { CallAgentInput, CallAgentOutput } from './types.js';
 /**
  * Handles error state by pausing the chat
  */
-export async function handleError(context: Context, input: CallAgentInput): Promise<CallAgentOutput> {
+export function handleError(context: Context, input: CallAgentInput): CallAgentOutput {
   logger.error('AI execution failed, attempting human assignment', {
     tenantID: context.tenantID,
     userId: context.userID,
