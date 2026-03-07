@@ -1,4 +1,4 @@
-import { type CallAgentOutput, type Logger, MESSAGES_PROVIDER, type Message, execute } from '@daviddh/llm-graph-runner';
+import { type CallAgentOutput, MESSAGES_PROVIDER, type Message, execute } from '@daviddh/llm-graph-runner';
 import type { Edge as RFEdge, Node as RFNode } from '@xyflow/react';
 import { nanoid } from 'nanoid';
 import { useCallback, useState } from 'react';
@@ -7,24 +7,11 @@ import type { Agent } from '../schemas/graph.schema';
 import type { ContextPreset } from '../types/preset';
 import type { SimulationStep, SimulationTokens } from '../types/simulation';
 import { sumTokensFromLogs } from '../types/simulation';
+import { consoleLogger } from '../utils/consoleLogger';
 import { START_NODE_ID, buildContext, buildGraph } from '../utils/graphContext';
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
 
 const INITIAL_TOKEN_COUNT = 0;
-
-const consoleLogger: Logger = {
-  error: console.error,
-  warn: console.warn,
-  help: console.log,
-  data: console.log,
-  info: console.info,
-  debug: console.debug,
-  prompt: console.log,
-  http: console.log,
-  verbose: console.log,
-  input: console.log,
-  silly: console.log,
-};
 
 interface UseSimulationParams {
   allNodes: Array<RFNode<RFNodeData>>;
