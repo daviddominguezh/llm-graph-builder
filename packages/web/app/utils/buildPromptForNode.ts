@@ -42,6 +42,7 @@ function rfNodesToSchemaNodes(nodes: Array<RFNode<RFNodeData>>): Array<{
 }
 
 function buildContext(preset: ContextPreset): {
+  apiKey: string;
   sessionID: string;
   tenantID: string;
   userID: string;
@@ -49,6 +50,7 @@ function buildContext(preset: ContextPreset): {
   quickReplies: Record<string, string>;
 } {
   return {
+    apiKey: '',
     sessionID: preset.sessionID,
     tenantID: preset.tenantID,
     userID: preset.userID,

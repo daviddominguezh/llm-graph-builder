@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Loader2, SquareTerminal } from "lucide-react";
-import { useNodes, useEdges } from "@xyflow/react";
+import { useEdges } from "@xyflow/react";
 import { MarkdownHooks } from "react-markdown";
 import rehypeStarryNight from "rehype-starry-night";
 import remarkGfm from "remark-gfm";
@@ -34,6 +34,7 @@ import { buildPromptForNode } from "../../utils/buildPromptForNode";
 
 interface NodePromptDialogProps {
   nodeId: string;
+  allNodes: Array<Node<RFNodeData>>;
   agents: Agent[];
   presets: ContextPreset[];
   activePresetId: string;
@@ -115,12 +116,12 @@ function PresetSelector({
 
 export function NodePromptDialog({
   nodeId,
+  allNodes,
   agents,
   presets,
   activePresetId,
   onSetActivePreset,
 }: NodePromptDialogProps) {
-  const nodes = useNodes<Node<RFNodeData>>();
   const edges = useEdges<Edge<RFEdgeData>>();
   const [open, setOpen] = useState(false);
   const [prompt, setPrompt] = useState<PromptState>({ text: "", loading: false, error: null });
@@ -133,7 +134,7 @@ export function NodePromptDialog({
     let cancelled = false;
     setPrompt({ text: "", loading: true, error: null });
 
-    buildPromptForNode({ nodes, edges, nodeId, preset: activePreset, agents })
+    buildPromptForNode({ nodes: allNodes, edges, nodeId, preset: activePreset, agents })
       .then((text) => {
         if (!cancelled) setPrompt({ text, loading: false, error: null });
       })
@@ -146,7 +147,7 @@ export function NodePromptDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, nodeId, activePreset, agents, nodes, edges]);
+  }, [open, nodeId, activePreset, agents, allNodes, edges]);
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>

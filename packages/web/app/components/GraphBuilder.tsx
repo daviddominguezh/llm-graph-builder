@@ -729,6 +729,7 @@ function GraphBuilderInner() {
               {selectedNodeId && (
                 <NodePanel
                   nodeId={selectedNodeId}
+                  allNodes={nodes}
                   agents={agents}
                   presets={presetsHook.presets}
                   activePresetId={presetsHook.activePresetId}

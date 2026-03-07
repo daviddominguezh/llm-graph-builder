@@ -31,6 +31,7 @@ import { NodePromptDialog } from './NodePromptDialog';
 
 interface NodePanelProps {
   nodeId: string;
+  allNodes: Array<Node<RFNodeData>>;
   agents: Agent[];
   presets: ContextPreset[];
   activePresetId: string;
@@ -44,6 +45,7 @@ interface NodePanelProps {
 
 export function NodePanel({
   nodeId,
+  allNodes,
   agents,
   presets,
   activePresetId,
@@ -137,6 +139,7 @@ export function NodePanel({
           <div className="flex items-center">
             <NodePromptDialog
               nodeId={nodeId}
+              allNodes={allNodes}
               agents={agents}
               presets={presets}
               activePresetId={activePresetId}
