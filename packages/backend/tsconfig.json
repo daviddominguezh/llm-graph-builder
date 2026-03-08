@@ -5,20 +5,23 @@
     "lib": ["ES2024"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "isolatedModules": true,
+    "rootDir": "./src",
+    "outDir": "./dist",
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "types": ["node", "jest"]
+    "isolatedModules": true,
+    "incremental": true,
+    "declaration": true,
+    "declarationMap": true,
+    "composite": true,
+    "types": ["node"],
+    "noEmit": true
   },
-  "references": [
-    { "path": "./packages/graph-types" },
-    { "path": "./packages/web" },
-    { "path": "./packages/api" },
-    { "path": "./packages/backend" }
-  ],
-  "files": []
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"],
+  "references": [{ "path": "../graph-types" }]
 }

@@ -19,6 +19,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { type ContextPreset, DEFAULT_PRESET } from "../../types/preset";
+import type { McpServerConfig } from "../../schemas/graph.schema";
+import type { DiscoveredTool } from "../../lib/api";
+import { McpServersSection } from "./McpServersSection";
+
+interface McpProps {
+  servers: McpServerConfig[];
+  discoveredTools: Record<string, DiscoveredTool[]>;
+  discovering: Record<string, boolean>;
+  onAddServer: () => void;
+  onRemoveServer: (id: string) => void;
+  onUpdateServer: (id: string, updates: Partial<McpServerConfig>) => void;
+  onDiscoverTools: (id: string) => void;
+}
 
 interface PresetsPanelProps {
   presets: ContextPreset[];
@@ -27,6 +40,7 @@ interface PresetsPanelProps {
   onAdd: () => void;
   onDelete: (id: string) => void;
   onUpdate: (id: string, updates: Partial<ContextPreset>) => void;
+  mcp: McpProps;
 }
 
 interface PresetFieldsProps {
@@ -172,6 +186,7 @@ export function PresetsPanel({
   onAdd,
   onDelete,
   onUpdate,
+  mcp,
 }: PresetsPanelProps) {
   const [showApiKey, setShowApiKey] = useState(false);
 
@@ -217,6 +232,16 @@ export function PresetsPanel({
             />
           ))}
         </ul>
+        <Separator className="mt-4" />
+        <McpServersSection
+          servers={mcp.servers}
+          discoveredTools={mcp.discoveredTools}
+          discovering={mcp.discovering}
+          onAdd={mcp.onAddServer}
+          onRemove={mcp.onRemoveServer}
+          onUpdate={mcp.onUpdateServer}
+          onDiscover={mcp.onDiscoverTools}
+        />
       </div>
     </div>
   );

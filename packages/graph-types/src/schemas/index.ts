@@ -10,3 +10,9 @@ export {
   RuntimeEdgeSchema,
 } from './edge.schema.js';
 export { GraphSchema, RuntimeGraphSchema } from './graph.schema.js';
+export {
+  StdioTransportSchema,
+  SseTransportSchema,
+  McpTransportSchema,
+  McpServerConfigSchema,
+} from './mcp.schema.js';

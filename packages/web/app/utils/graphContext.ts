@@ -1,6 +1,6 @@
 import type { Edge as RFEdge, Node as RFNode } from '@xyflow/react';
 
-import type { Agent, Edge } from '../schemas/graph.schema';
+import type { Agent, Edge, McpServerConfig } from '../schemas/graph.schema';
 import type { ContextPreset } from '../types/preset';
 import { type RFEdgeData, type RFNodeData, rfEdgeToSchemaEdge } from './graphTransformers';
 
@@ -54,22 +54,25 @@ export function buildContext(preset: ContextPreset, apiKey: string): ContextWith
   };
 }
 
-interface BuiltGraph {
+export interface BuiltGraph {
   startNode: string;
   agents: Agent[];
   nodes: SchemaNodeLike[];
   edges: Edge[];
+  mcpServers?: McpServerConfig[];
 }
 
 export function buildGraph(
   nodes: Array<RFNode<RFNodeData>>,
   edges: Array<RFEdge<RFEdgeData>>,
-  agents: Agent[]
+  agents: Agent[],
+  mcpServers?: McpServerConfig[]
 ): BuiltGraph {
   return {
     startNode: START_NODE_ID,
     agents,
     nodes: rfNodesToSchemaNodes(nodes),
     edges: edges.map((e) => rfEdgeToSchemaEdge(e)),
+    mcpServers,
   };
 }

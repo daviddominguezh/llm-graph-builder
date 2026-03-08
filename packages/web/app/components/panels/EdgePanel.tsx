@@ -55,6 +55,7 @@ interface EdgePanelProps {
   onEdgeDeleted?: () => void;
   onSelectNode?: (nodeId: string) => void;
   availableContextPreconditions?: string[];
+  availableMcpTools?: string[];
 }
 
 interface EdgePreconditionInput {
@@ -67,6 +68,7 @@ export function EdgePanel({
   onEdgeDeleted,
   onSelectNode,
   availableContextPreconditions = [],
+  availableMcpTools = [],
 }: EdgePanelProps) {
   const edges = useEdges<Edge<RFEdgeData>>();
   const { setEdges } = useReactFlow();
@@ -543,6 +545,21 @@ export function EdgePanel({
                         className="text-xs"
                         autoFocus
                       />
+                      {newPreconditionType === "tool_call" &&
+                        availableMcpTools.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {availableMcpTools.map((tool) => (
+                              <button
+                                key={tool}
+                                type="button"
+                                className="rounded bg-muted px-1.5 py-0.5 text-[10px] hover:bg-muted-foreground/20"
+                                onClick={() => setNewPreconditionValue(tool)}
+                              >
+                                {tool}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Description (optional)</Label>

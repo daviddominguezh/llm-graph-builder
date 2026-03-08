@@ -1,13 +1,12 @@
-import { type CallAgentOutput, MESSAGES_PROVIDER, type Message, execute } from '@daviddh/llm-graph-runner';
+import { MESSAGES_PROVIDER, type Message } from '@daviddh/llm-graph-runner';
 import type { Edge as RFEdge, Node as RFNode } from '@xyflow/react';
 import { nanoid } from 'nanoid';
 import { useCallback, useRef, useState } from 'react';
 
-import type { Agent } from '../schemas/graph.schema';
+import { type SimulateRequestBody, type StreamCallbacks, streamSimulation } from '../lib/api';
+import type { Agent, McpServerConfig } from '../schemas/graph.schema';
 import type { ContextPreset } from '../types/preset';
 import type { SimulationStep, SimulationTokens } from '../types/simulation';
-import { sumTokensFromLogs } from '../types/simulation';
-import { consoleLogger } from '../utils/consoleLogger';
 import { START_NODE_ID, buildContext, buildGraph } from '../utils/graphContext';
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
 
@@ -24,6 +23,7 @@ interface UseSimulationParams {
   agents: Agent[];
   preset: ContextPreset | undefined;
   apiKey: string;
+  mcpServers: McpServerConfig[];
   onZoomToNode: (nodeId: string) => void;
   onExitZoomView: () => void;
 }
@@ -56,55 +56,12 @@ function createUserMessage(text: string): Message {
   };
 }
 
-const LAST_ELEMENT_INDEX = -1;
-
-function getLastVisitedNode(visitedNodes: string[], fallback: string): string {
-  return visitedNodes.at(LAST_ELEMENT_INDEX) ?? fallback;
-}
-
-function buildStepFromResult(
-  result: CallAgentOutput,
-  userText: string,
-  currentNode: string
-): { step: SimulationStep; newNode: string } {
-  const { visitedNodes, text: agentText, tokensLogs } = result;
-  const newNode = getLastVisitedNode(visitedNodes, currentNode);
-
-  const step: SimulationStep = {
-    userText,
-    agentText: agentText ?? '',
-    visitedNodes,
-    tokenUsage: sumTokensFromLogs(tokensLogs),
-  };
-
-  return { step, newNode };
-}
-
-function addTokens(prev: SimulationTokens, step: SimulationStep): SimulationTokens {
+function addTokens(prev: SimulationTokens, usage: SimulationTokens): SimulationTokens {
   return {
-    input: prev.input + step.tokenUsage.input,
-    output: prev.output + step.tokenUsage.output,
-    cached: prev.cached + step.tokenUsage.cached,
+    input: prev.input + usage.input,
+    output: prev.output + usage.output,
+    cached: prev.cached + usage.cached,
   };
-}
-
-function wrapAgentMessage(result: CallAgentOutput): Message | null {
-  if (result.message === null) return null;
-
-  return {
-    id: nanoid(),
-    provider: MESSAGES_PROVIDER.WEB,
-    type: 'text',
-    timestamp: Date.now(),
-    originalId: nanoid(),
-    message: result.message,
-  };
-}
-
-function appendAgentMessage(allMessages: Message[], result: CallAgentOutput): Message[] {
-  const wrapped = wrapAgentMessage(result);
-  if (wrapped === null) return allMessages;
-  return [...allMessages, wrapped];
 }
 
 interface SimulationSetters {
@@ -115,26 +72,6 @@ interface SimulationSetters {
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
   saveSnapshot: (s: GraphSnapshot | null) => void;
   getSnapshot: () => GraphSnapshot | null;
-}
-
-interface ApplyResultParams {
-  result: CallAgentOutput;
-  userText: string;
-  allMessages: Message[];
-  currentNode: string;
-  setters: SimulationSetters;
-  onZoomToNode: (nodeId: string) => void;
-}
-
-function applyExecutionResult(p: ApplyResultParams): void {
-  const { step, newNode } = buildStepFromResult(p.result, p.userText, p.currentNode);
-
-  p.setters.setMessages(appendAgentMessage(p.allMessages, p.result));
-  p.setters.setSteps((prev) => [...prev, step]);
-  p.setters.setTotalTokens((prev) => addTokens(prev, step));
-  p.setters.setCurrentNode(newNode);
-  p.setters.setLoading(false);
-  p.onZoomToNode(newNode);
 }
 
 interface SimulationStartDeps {
@@ -179,12 +116,60 @@ interface SendMessageDeps {
   agents: Agent[];
   apiKey: string;
   currentNode: string;
+  mcpServers: McpServerConfig[];
   setters: SimulationSetters;
   onZoomToNode: (nodeId: string) => void;
 }
 
+function buildStreamCallbacks(
+  userText: string,
+  setters: SimulationSetters,
+  onZoomToNode: (nodeId: string) => void
+): StreamCallbacks {
+  return {
+    onNodeVisited: (nodeId: string) => {
+      setters.setCurrentNode(nodeId);
+      onZoomToNode(nodeId);
+    },
+    onAgentResponse: (event) => {
+      const step: SimulationStep = {
+        userText,
+        agentText: event.text,
+        visitedNodes: event.visitedNodes,
+        tokenUsage: event.tokenUsage,
+      };
+      setters.setSteps((prev) => [...prev, step]);
+      setters.setTotalTokens((prev) => addTokens(prev, event.tokenUsage));
+    },
+    onComplete: () => {
+      setters.setLoading(false);
+    },
+    onError: () => {
+      setters.setLoading(false);
+    },
+  };
+}
+
+interface BuildSimulateParamsOptions {
+  snapshot: GraphSnapshot;
+  agents: Agent[];
+  mcpServers: McpServerConfig[];
+  allMessages: Message[];
+  currentNode: string;
+  preset: ContextPreset;
+  apiKey: string;
+}
+
+function buildSimulateParams(opts: BuildSimulateParamsOptions): SimulateRequestBody {
+  const graph: Record<string, unknown> = {
+    ...buildGraph(opts.snapshot.nodes, opts.snapshot.edges, opts.agents, opts.mcpServers),
+  };
+  const context = buildContext(opts.preset, opts.apiKey);
+  return { graph, messages: opts.allMessages, currentNode: opts.currentNode, ...context };
+}
+
 function useSimulationSend(deps: SendMessageDeps): (text: string) => void {
-  const { preset, loading, messages, agents, apiKey, currentNode } = deps;
+  const { preset, loading, messages, agents, apiKey, currentNode, mcpServers } = deps;
   const { setters, onZoomToNode } = deps;
 
   return useCallback(
@@ -195,31 +180,27 @@ function useSimulationSend(deps: SendMessageDeps): (text: string) => void {
 
       const userMessage = createUserMessage(text);
       const allMessages = [...messages, userMessage];
-      const { nodes, edges } = snapshot;
-      const graph = buildGraph(nodes, edges, agents);
-      const context = { ...buildContext(preset, apiKey), graph };
+      const params = buildSimulateParams({
+        snapshot,
+        agents,
+        mcpServers,
+        allMessages,
+        currentNode,
+        preset,
+        apiKey,
+      });
+      const callbacks = buildStreamCallbacks(text, setters, onZoomToNode);
 
-      void execute(context, allMessages, currentNode, consoleLogger).then((result) => {
-        if (result === null) {
-          setters.setLoading(false);
-          return;
-        }
-        applyExecutionResult({
-          result,
-          userText: text,
-          allMessages,
-          currentNode,
-          setters,
-          onZoomToNode,
-        });
+      void streamSimulation(params, callbacks).catch(() => {
+        setters.setLoading(false);
       });
     },
-    [preset, loading, messages, agents, apiKey, currentNode, setters, onZoomToNode]
+    [preset, loading, messages, agents, apiKey, currentNode, mcpServers, setters, onZoomToNode]
   );
 }
 
 export function useSimulation(params: UseSimulationParams): SimulationState {
-  const { allNodes, edges, agents, preset, apiKey, onZoomToNode, onExitZoomView } = params;
+  const { allNodes, edges, agents, preset, apiKey, mcpServers, onZoomToNode, onExitZoomView } = params;
 
   const [active, setActive] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -253,6 +234,7 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
     agents,
     apiKey,
     currentNode,
+    mcpServers,
     setters,
     onZoomToNode,
   });

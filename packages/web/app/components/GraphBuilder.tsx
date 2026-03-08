@@ -34,6 +34,7 @@ import { PresetsPanel } from "./panels/PresetsPanel";
 import { SearchDialog } from "./panels/SearchDialog";
 import { SimulationPanel } from "./panels/simulation";
 import { GraphSchema, type Agent } from "../schemas/graph.schema";
+import { useMcpServers } from "../hooks/useMcpServers";
 import { usePresets } from "../hooks/usePresets";
 import { useSimulation } from "../hooks/useSimulation";
 import {
@@ -170,6 +171,7 @@ function GraphBuilderInner() {
 
   // Presets state
   const presetsHook = usePresets();
+  const mcpHook = useMcpServers();
   const [presetsOpen, setPresetsOpen] = useState(false);
 
   // Search state
@@ -470,6 +472,7 @@ function GraphBuilderInner() {
           );
           setNodes(newNodes);
           setEdges(newEdges);
+          mcpHook.setServers(result.data.mcpServers ?? []);
 
           // Set viewport to center INITIAL_STEP
           setTimeout(() => {
@@ -492,7 +495,7 @@ function GraphBuilderInner() {
       }
     };
     input.click();
-  }, [setNodes, setEdges, setViewport]);
+  }, [setNodes, setEdges, setViewport, mcpHook]);
 
   const handleExport = useCallback(() => {
     const graph = {
@@ -513,6 +516,7 @@ function GraphBuilderInner() {
         position: n.position,
       })),
       edges: edges.map((e) => rfEdgeToSchemaEdge(e)),
+      mcpServers: mcpHook.servers.length > 0 ? mcpHook.servers : undefined,
     };
 
     const result = GraphSchema.safeParse(graph);
@@ -528,7 +532,7 @@ function GraphBuilderInner() {
     a.download = "graph.json";
     a.click();
     URL.revokeObjectURL(url);
-  }, [nodes, edges, agents]);
+  }, [nodes, edges, agents, mcpHook.servers]);
 
   // Zoom view handlers
   const handleZoomToNode = useCallback(
@@ -643,6 +647,7 @@ function GraphBuilderInner() {
     agents,
     preset: presetsHook.activePreset,
     apiKey: presetsHook.apiKey,
+    mcpServers: mcpHook.servers,
     onZoomToNode: handleZoomToNode,
     onExitZoomView: handleExitZoomView,
   });
@@ -826,6 +831,7 @@ function GraphBuilderInner() {
                   edgeId={selectedEdgeId}
                   onEdgeDeleted={() => setSelectedEdgeId(null)}
                   availableContextPreconditions={allContextPreconditions}
+                  availableMcpTools={mcpHook.allToolNames}
                   onSelectNode={(nodeId) => {
                     const node = nodes.find((n) => n.id === nodeId);
                     if (node && reactFlowWrapper.current) {
@@ -991,6 +997,15 @@ function GraphBuilderInner() {
                 onAdd={presetsHook.addPreset}
                 onDelete={presetsHook.deletePreset}
                 onUpdate={presetsHook.updatePreset}
+                mcp={{
+                  servers: mcpHook.servers,
+                  discoveredTools: mcpHook.discoveredTools,
+                  discovering: mcpHook.discovering,
+                  onAddServer: mcpHook.addServer,
+                  onRemoveServer: mcpHook.removeServer,
+                  onUpdateServer: mcpHook.updateServer,
+                  onDiscoverTools: mcpHook.discoverTools,
+                }}
               />
             </aside>
           )}
