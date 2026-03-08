@@ -237,13 +237,21 @@ function ServerItem({ server, status, isDiscovering, onRemove, onUpdate, onDisco
 
   return (
     <li className="rounded-md border px-3 py-2">
-      <div className="flex items-center justify-between">
-        <button className="flex items-center gap-1.5 text-xs" onClick={() => setExpanded(!expanded)}>
+      <div
+        className="flex items-center justify-between cursor-pointer"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <span className="flex items-center gap-1.5 text-xs">
           <ChevronDown className={`size-3 transition-transform ${expanded ? '' : '-rotate-90'}`} />
           <StatusIcon status={status} />
           {server.name}
-        </button>
-        <Button variant="destructive" size="icon-xs" title="Remove server" onClick={onRemove}>
+        </span>
+        <Button
+          variant="destructive"
+          size="icon-xs"
+          title="Remove server"
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+        >
           <Trash2 className="size-3" />
         </Button>
       </div>

@@ -936,62 +936,6 @@ function GraphBuilderInner() {
                     })),
                   );
                 }}
-                contextPreconditions={allContextPreconditions}
-                onAddContextPrecondition={(value) => {
-                  setCustomContextPreconditions((prev) =>
-                    prev.includes(value) ? prev : [...prev, value],
-                  );
-                }}
-                onRemoveContextPrecondition={(value) => {
-                  setCustomContextPreconditions((prev) =>
-                    prev.filter((p) => p !== value),
-                  );
-                  setEdges((eds) =>
-                    eds.map((e) => {
-                      const cp = (e.data as RFEdgeData | undefined)
-                        ?.contextPreconditions;
-                      if (!cp) return e;
-                      const filtered = cp.preconditions.filter(
-                        (p) => p !== value,
-                      );
-                      return {
-                        ...e,
-                        data: {
-                          ...e.data,
-                          contextPreconditions:
-                            filtered.length > 0
-                              ? { ...cp, preconditions: filtered }
-                              : undefined,
-                        },
-                      };
-                    }),
-                  );
-                }}
-                onRenameContextPrecondition={(oldValue, newValue) => {
-                  setCustomContextPreconditions((prev) =>
-                    prev.map((p) => (p === oldValue ? newValue : p)),
-                  );
-                  setEdges((eds) =>
-                    eds.map((e) => {
-                      const cp = (e.data as RFEdgeData | undefined)
-                        ?.contextPreconditions;
-                      if (!cp) return e;
-                      const renamed = cp.preconditions.map((p) =>
-                        p === oldValue ? newValue : p,
-                      );
-                      return {
-                        ...e,
-                        data: {
-                          ...e.data,
-                          contextPreconditions: {
-                            ...cp,
-                            preconditions: renamed,
-                          },
-                        },
-                      };
-                    }),
-                  );
-                }}
               />
             </aside>
           )}
@@ -1010,10 +954,75 @@ function GraphBuilderInner() {
               <PresetsPanel
                 presets={presetsHook.presets}
                 apiKey={presetsHook.apiKey}
+                contextKeys={presetsHook.contextKeys}
                 onApiKeyChange={presetsHook.setApiKey}
                 onAdd={presetsHook.addPreset}
                 onDelete={presetsHook.deletePreset}
                 onUpdate={presetsHook.updatePreset}
+                context={{
+                  keys: presetsHook.contextKeys,
+                  onAdd: presetsHook.addContextKey,
+                  onRemove: presetsHook.removeContextKey,
+                  onRename: presetsHook.renameContextKey,
+                }}
+                contextPreconditions={{
+                  preconditions: allContextPreconditions,
+                  onAdd: (value) => {
+                    setCustomContextPreconditions((prev) =>
+                      prev.includes(value) ? prev : [...prev, value],
+                    );
+                  },
+                  onRemove: (value) => {
+                    setCustomContextPreconditions((prev) =>
+                      prev.filter((p) => p !== value),
+                    );
+                    setEdges((eds) =>
+                      eds.map((e) => {
+                        const cp = (e.data as RFEdgeData | undefined)
+                          ?.contextPreconditions;
+                        if (!cp) return e;
+                        const filtered = cp.preconditions.filter(
+                          (p) => p !== value,
+                        );
+                        return {
+                          ...e,
+                          data: {
+                            ...e.data,
+                            contextPreconditions:
+                              filtered.length > 0
+                                ? { ...cp, preconditions: filtered }
+                                : undefined,
+                          },
+                        };
+                      }),
+                    );
+                  },
+                  onRename: (oldValue, newValue) => {
+                    setCustomContextPreconditions((prev) =>
+                      prev.map((p) => (p === oldValue ? newValue : p)),
+                    );
+                    setEdges((eds) =>
+                      eds.map((e) => {
+                        const cp = (e.data as RFEdgeData | undefined)
+                          ?.contextPreconditions;
+                        if (!cp) return e;
+                        const renamed = cp.preconditions.map((p) =>
+                          p === oldValue ? newValue : p,
+                        );
+                        return {
+                          ...e,
+                          data: {
+                            ...e.data,
+                            contextPreconditions: {
+                              ...cp,
+                              preconditions: renamed,
+                            },
+                          },
+                        };
+                      }),
+                    );
+                  },
+                }}
                 mcp={{
                   servers: mcpHook.servers,
                   discovering: mcpHook.discovering,
