@@ -53,7 +53,9 @@ async function getNodeConfig(
 
   if (isGlobal) return buildGlobalNodeConfig(context, nodeBeforeGlobal, currentNodeID);
 
-  return await buildNextAgentConfig(context.graph, context, currentNodeID);
+  return await buildNextAgentConfig(context.graph, context, currentNodeID, {
+    toolsOverride: context.toolsOverride,
+  });
 }
 
 async function applyJumpTo(context: Context, currentNodeID: string, nextNodeID: string): Promise<string> {
@@ -156,6 +158,7 @@ async function processFlowStep(
 ): Promise<{ state: FlowState; error: boolean; shouldContinue: boolean }> {
   const { currentNodeID, nodeBeforeGlobal, parsedResults, visitedNodes, allToolCalls } = state;
   visitedNodes.push(currentNodeID);
+  context.onNodeVisited?.(currentNodeID);
 
   const { parsedResult, nextNodeID, error, toolCalls } = await processNode({
     context,

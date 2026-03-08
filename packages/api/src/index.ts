@@ -1,3 +1,5 @@
+import type { Tool } from 'ai';
+
 import { INITIAL_STEP_NODE } from './constants/index.js';
 import { type CallAgentOutput, callAgentStep } from './core/index.js';
 import type { Message } from './types/ai/messages.js';
@@ -26,5 +28,30 @@ export const execute = async (
     messages,
     tokensLog: [],
     currentNode: currentNode ?? INITIAL_STEP_NODE,
+  });
+};
+
+export interface ExecuteWithCallbacksOptions {
+  context: Context;
+  messages: Message[];
+  currentNode?: string;
+  logger?: Logger;
+  toolsOverride?: Record<string, Tool>;
+  onNodeVisited?: (nodeId: string) => void;
+}
+
+export const executeWithCallbacks = async (
+  options: ExecuteWithCallbacksOptions
+): Promise<CallAgentOutput | null> => {
+  if (options.logger !== undefined) setLogger(options.logger);
+  const context: Context = {
+    ...options.context,
+    toolsOverride: options.toolsOverride,
+    onNodeVisited: options.onNodeVisited,
+  };
+  return await Pipeline.executeSingleStep(context, callAgentStep, {
+    messages: options.messages,
+    tokensLog: [],
+    currentNode: options.currentNode ?? INITIAL_STEP_NODE,
   });
 };

@@ -31,11 +31,15 @@ import { EdgePanel } from "./panels/EdgePanel";
 import { GlobalNodesPanel } from "./panels/GlobalNodesPanel";
 import { ConnectionMenu } from "./panels/ConnectionMenu";
 import { PresetsPanel } from "./panels/PresetsPanel";
+import { ToolsPanel } from "./panels/ToolsPanel";
 import { SearchDialog } from "./panels/SearchDialog";
 import { SimulationPanel } from "./panels/simulation";
 import { GraphSchema, type Agent } from "../schemas/graph.schema";
+import { useMcpServers } from "../hooks/useMcpServers";
 import { usePresets } from "../hooks/usePresets";
 import { useSimulation } from "../hooks/useSimulation";
+import type { ContextPrecondition } from "../types/contextPrecondition";
+import { createEmptyGroup } from "../types/contextPrecondition";
 import {
   GRAPH_DATA,
   processGraph,
@@ -166,11 +170,15 @@ function GraphBuilderInner() {
 
   // Global nodes panel state
   const [globalPanelOpen, setGlobalPanelOpen] = useState(false);
-  const [customContextPreconditions, setCustomContextPreconditions] = useState<string[]>([]);
+  const [customContextPreconditions, setCustomContextPreconditions] = useState<ContextPrecondition[]>([]);
 
   // Presets state
   const presetsHook = usePresets();
+  const mcpHook = useMcpServers();
   const [presetsOpen, setPresetsOpen] = useState(false);
+
+  // Tools panel state
+  const [toolsOpen, setToolsOpen] = useState(false);
 
   // Search state
   const [searchOpen, setSearchOpen] = useState(false);
@@ -386,11 +394,13 @@ function GraphBuilderInner() {
     setSelectedEdgeId(null);
     setGlobalPanelOpen(false);
     setPresetsOpen(false);
+    setToolsOpen(false);
   }, []);
 
   const onEdgeClick = useCallback((_: React.MouseEvent, edge: Edge) => {
     setSelectedEdgeId(edge.id);
     setSelectedNodeId(null);
+    setToolsOpen(false);
   }, []);
 
   const onPaneClick = useCallback(() => {
@@ -399,6 +409,7 @@ function GraphBuilderInner() {
     setConnectionMenu(null);
     setGlobalPanelOpen(false);
     setPresetsOpen(false);
+    setToolsOpen(false);
   }, []);
 
   const handleAddNode = useCallback(() => {
@@ -470,6 +481,7 @@ function GraphBuilderInner() {
           );
           setNodes(newNodes);
           setEdges(newEdges);
+          mcpHook.setServers(result.data.mcpServers ?? []);
 
           // Set viewport to center INITIAL_STEP
           setTimeout(() => {
@@ -492,7 +504,7 @@ function GraphBuilderInner() {
       }
     };
     input.click();
-  }, [setNodes, setEdges, setViewport]);
+  }, [setNodes, setEdges, setViewport, mcpHook]);
 
   const handleExport = useCallback(() => {
     const graph = {
@@ -513,6 +525,7 @@ function GraphBuilderInner() {
         position: n.position,
       })),
       edges: edges.map((e) => rfEdgeToSchemaEdge(e)),
+      mcpServers: mcpHook.servers.length > 0 ? mcpHook.servers : undefined,
     };
 
     const result = GraphSchema.safeParse(graph);
@@ -528,7 +541,7 @@ function GraphBuilderInner() {
     a.download = "graph.json";
     a.click();
     URL.revokeObjectURL(url);
-  }, [nodes, edges, agents]);
+  }, [nodes, edges, agents, mcpHook.servers]);
 
   // Zoom view handlers
   const handleZoomToNode = useCallback(
@@ -643,6 +656,7 @@ function GraphBuilderInner() {
     agents,
     preset: presetsHook.activePreset,
     apiKey: presetsHook.apiKey,
+    mcpServers: mcpHook.servers,
     onZoomToNode: handleZoomToNode,
     onExitZoomView: handleExitZoomView,
   });
@@ -669,10 +683,8 @@ function GraphBuilderInner() {
   }, [edges]);
 
   const allContextPreconditions = useMemo(() => {
-    const merged = new Set([
-      ...customContextPreconditions,
-      ...edgeContextPreconditions,
-    ]);
+    const customNames = customContextPreconditions.map((p) => p.name);
+    const merged = new Set([...customNames, ...edgeContextPreconditions]);
     return Array.from(merged).sort();
   }, [customContextPreconditions, edgeContextPreconditions]);
 
@@ -694,6 +706,7 @@ function GraphBuilderInner() {
           globalPanelOpen={globalPanelOpen}
           onToggleGlobalPanel={() => setGlobalPanelOpen((prev) => !prev)}
           onTogglePresets={() => setPresetsOpen((prev) => !prev)}
+          onToggleTools={() => setToolsOpen((prev) => !prev)}
         />
 
         <div className="h-screen w-screen relative flex-1 overflow-hidden">
@@ -826,6 +839,7 @@ function GraphBuilderInner() {
                   edgeId={selectedEdgeId}
                   onEdgeDeleted={() => setSelectedEdgeId(null)}
                   availableContextPreconditions={allContextPreconditions}
+                  availableMcpTools={mcpHook.allToolNames}
                   onSelectNode={(nodeId) => {
                     const node = nodes.find((n) => n.id === nodeId);
                     if (node && reactFlowWrapper.current) {
@@ -922,62 +936,15 @@ function GraphBuilderInner() {
                     })),
                   );
                 }}
-                contextPreconditions={allContextPreconditions}
-                onAddContextPrecondition={(value) => {
-                  setCustomContextPreconditions((prev) =>
-                    prev.includes(value) ? prev : [...prev, value],
-                  );
-                }}
-                onRemoveContextPrecondition={(value) => {
-                  setCustomContextPreconditions((prev) =>
-                    prev.filter((p) => p !== value),
-                  );
-                  setEdges((eds) =>
-                    eds.map((e) => {
-                      const cp = (e.data as RFEdgeData | undefined)
-                        ?.contextPreconditions;
-                      if (!cp) return e;
-                      const filtered = cp.preconditions.filter(
-                        (p) => p !== value,
-                      );
-                      return {
-                        ...e,
-                        data: {
-                          ...e.data,
-                          contextPreconditions:
-                            filtered.length > 0
-                              ? { ...cp, preconditions: filtered }
-                              : undefined,
-                        },
-                      };
-                    }),
-                  );
-                }}
-                onRenameContextPrecondition={(oldValue, newValue) => {
-                  setCustomContextPreconditions((prev) =>
-                    prev.map((p) => (p === oldValue ? newValue : p)),
-                  );
-                  setEdges((eds) =>
-                    eds.map((e) => {
-                      const cp = (e.data as RFEdgeData | undefined)
-                        ?.contextPreconditions;
-                      if (!cp) return e;
-                      const renamed = cp.preconditions.map((p) =>
-                        p === oldValue ? newValue : p,
-                      );
-                      return {
-                        ...e,
-                        data: {
-                          ...e.data,
-                          contextPreconditions: {
-                            ...cp,
-                            preconditions: renamed,
-                          },
-                        },
-                      };
-                    }),
-                  );
-                }}
+              />
+            </aside>
+          )}
+
+          {toolsOpen && !simulation.active && !selectedNodeId && !selectedEdgeId && !globalPanelOpen && (
+            <aside className="absolute right-0 top-0 bottom-0 w-80 border-l border-gray-200 bg-white">
+              <ToolsPanel
+                servers={mcpHook.servers}
+                discoveredTools={mcpHook.discoveredTools}
               />
             </aside>
           )}
@@ -987,10 +954,90 @@ function GraphBuilderInner() {
               <PresetsPanel
                 presets={presetsHook.presets}
                 apiKey={presetsHook.apiKey}
+                contextKeys={presetsHook.contextKeys}
                 onApiKeyChange={presetsHook.setApiKey}
                 onAdd={presetsHook.addPreset}
                 onDelete={presetsHook.deletePreset}
                 onUpdate={presetsHook.updatePreset}
+                context={{
+                  keys: presetsHook.contextKeys,
+                  onAdd: presetsHook.addContextKey,
+                  onRemove: presetsHook.removeContextKey,
+                  onRename: presetsHook.renameContextKey,
+                }}
+                contextPreconditions={{
+                  preconditions: customContextPreconditions,
+                  onAdd: () => {
+                    const id = nanoid();
+                    const name = `precondition_${id.slice(0, 4)}`;
+                    setCustomContextPreconditions((prev) => [
+                      ...prev,
+                      { id, name, root: createEmptyGroup() },
+                    ]);
+                  },
+                  onRemove: (id) => {
+                    const target = customContextPreconditions.find((p) => p.id === id);
+                    setCustomContextPreconditions((prev) => prev.filter((p) => p.id !== id));
+                    if (!target) return;
+                    setEdges((eds) =>
+                      eds.map((e) => {
+                        const cp = (e.data as RFEdgeData | undefined)
+                          ?.contextPreconditions;
+                        if (!cp) return e;
+                        const filtered = cp.preconditions.filter(
+                          (p) => p !== target.name,
+                        );
+                        return {
+                          ...e,
+                          data: {
+                            ...e.data,
+                            contextPreconditions:
+                              filtered.length > 0
+                                ? { ...cp, preconditions: filtered }
+                                : undefined,
+                          },
+                        };
+                      }),
+                    );
+                  },
+                  onUpdate: (id, updates) => {
+                    const old = customContextPreconditions.find((p) => p.id === id);
+                    setCustomContextPreconditions((prev) =>
+                      prev.map((p) => (p.id === id ? { ...p, ...updates } : p)),
+                    );
+                    if (updates.name && old && updates.name !== old.name) {
+                      setEdges((eds) =>
+                        eds.map((e) => {
+                          const cp = (e.data as RFEdgeData | undefined)
+                            ?.contextPreconditions;
+                          if (!cp) return e;
+                          const renamed = cp.preconditions.map((p) =>
+                            p === old.name ? (updates.name as string) : p,
+                          );
+                          return {
+                            ...e,
+                            data: {
+                              ...e.data,
+                              contextPreconditions: {
+                                ...cp,
+                                preconditions: renamed,
+                              },
+                            },
+                          };
+                        }),
+                      );
+                    }
+                  },
+                }}
+                mcp={{
+                  servers: mcpHook.servers,
+                  discovering: mcpHook.discovering,
+                  serverStatus: mcpHook.serverStatus,
+                  onAddServer: mcpHook.addServer,
+                  onRemoveServer: mcpHook.removeServer,
+                  onUpdateServer: mcpHook.updateServer,
+                  onDiscoverTools: mcpHook.discoverTools,
+                }}
               />
             </aside>
           )}

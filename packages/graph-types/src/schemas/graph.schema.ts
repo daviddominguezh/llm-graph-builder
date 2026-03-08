@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { AgentSchema } from './agent.schema.js';
 import { EdgeSchema, RuntimeEdgeSchema } from './edge.schema.js';
+import { McpServerConfigSchema } from './mcp.schema.js';
 import { NodeSchema, RuntimeNodeSchema } from './node.schema.js';
 
 export const GraphSchema = z.object({
@@ -9,6 +10,7 @@ export const GraphSchema = z.object({
   agents: z.array(AgentSchema),
   nodes: z.array(NodeSchema),
   edges: z.array(EdgeSchema),
+  mcpServers: z.array(McpServerConfigSchema).optional(),
 });
 
 export const RuntimeGraphSchema = z.object({
@@ -17,4 +19,5 @@ export const RuntimeGraphSchema = z.object({
   nodes: z.array(RuntimeNodeSchema),
   edges: z.array(RuntimeEdgeSchema),
   initialUserMessage: z.string().optional(),
+  mcpServers: z.array(McpServerConfigSchema).optional(),
 });
