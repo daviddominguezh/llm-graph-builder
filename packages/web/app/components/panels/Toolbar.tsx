@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Upload, Download, WandSparkles, Play, Waypoints, SlidersHorizontal } from "lucide-react";
+import { Upload, Download, WandSparkles, Play, Waypoints, SlidersHorizontal, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
@@ -15,6 +15,7 @@ interface ToolbarProps {
   globalPanelOpen?: boolean;
   onToggleGlobalPanel?: () => void;
   onTogglePresets?: () => void;
+  onToggleTools?: () => void;
 }
 
 export function Toolbar({
@@ -25,6 +26,7 @@ export function Toolbar({
   statusSlot,
   onToggleGlobalPanel,
   onTogglePresets,
+  onToggleTools,
 }: ToolbarProps) {
   return (
     <header className="absolute z-1 flex items-stretch justify-center gap-1 border rounded-lg bg-background p-1 top-2 shadow-lg">
@@ -74,6 +76,19 @@ export function Toolbar({
             onClick={onTogglePresets}
           >
             <SlidersHorizontal className="size-4" />
+          </Button>
+        </>
+      )}
+      {onToggleTools && (
+        <>
+          <Separator orientation="vertical" />
+          <Button
+            className="h-10 w-10"
+            variant="ghost"
+            size="sm"
+            onClick={onToggleTools}
+          >
+            <Wrench className="size-4" />
           </Button>
         </>
       )}

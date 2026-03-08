@@ -34,13 +34,28 @@ async function discoverFromTransport(transport: McpTransport): Promise<DiscoverR
   }
 }
 
+function logRequest(body: unknown): void {
+  process.stdout.write(`[discover] POST /mcp/discover body=${JSON.stringify(body)}\n`);
+}
+
+function logError(message: string): void {
+  process.stderr.write(`[discover] ERROR: ${message}\n`);
+}
+
+function logSuccess(toolCount: number): void {
+  process.stdout.write(`[discover] OK: discovered ${String(toolCount)} tools\n`);
+}
+
 export async function handleDiscover(req: Request, res: Response): Promise<void> {
+  logRequest(req.body);
   try {
     const transport = parseTransport(req.body);
     const result = await discoverFromTransport(transport);
+    logSuccess(result.tools.length);
     res.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
+    logError(message);
     res.status(HTTP_BAD_REQUEST).json({ error: message });
   }
 }

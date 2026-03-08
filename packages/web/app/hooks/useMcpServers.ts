@@ -1,5 +1,6 @@
 import { nanoid } from 'nanoid';
 import { useCallback, useState } from 'react';
+import { toast } from 'sonner';
 
 import { type DiscoveredTool, discoverMcpTools } from '../lib/api';
 import type { McpServerConfig } from '../schemas/graph.schema';
@@ -84,9 +85,12 @@ function useToolDiscovery(
       void discoverMcpTools(server.transport)
         .then((tools) => {
           setDiscoveredTools((prev) => ({ ...prev, [id]: tools }));
+          toast.success(`Discovered ${String(tools.length)} tools from ${server.name}`);
         })
-        .catch(() => {
+        .catch((err: unknown) => {
           setDiscoveredTools((prev) => ({ ...prev, [id]: [] }));
+          const msg = err instanceof Error ? err.message : 'Unknown error';
+          toast.error(`Failed to discover tools: ${msg}`);
         })
         .finally(() => {
           setDiscovering((prev) => ({ ...prev, [id]: false }));

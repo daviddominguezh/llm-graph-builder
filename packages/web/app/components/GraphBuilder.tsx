@@ -31,6 +31,7 @@ import { EdgePanel } from "./panels/EdgePanel";
 import { GlobalNodesPanel } from "./panels/GlobalNodesPanel";
 import { ConnectionMenu } from "./panels/ConnectionMenu";
 import { PresetsPanel } from "./panels/PresetsPanel";
+import { ToolsPanel } from "./panels/ToolsPanel";
 import { SearchDialog } from "./panels/SearchDialog";
 import { SimulationPanel } from "./panels/simulation";
 import { GraphSchema, type Agent } from "../schemas/graph.schema";
@@ -173,6 +174,9 @@ function GraphBuilderInner() {
   const presetsHook = usePresets();
   const mcpHook = useMcpServers();
   const [presetsOpen, setPresetsOpen] = useState(false);
+
+  // Tools panel state
+  const [toolsOpen, setToolsOpen] = useState(false);
 
   // Search state
   const [searchOpen, setSearchOpen] = useState(false);
@@ -388,11 +392,13 @@ function GraphBuilderInner() {
     setSelectedEdgeId(null);
     setGlobalPanelOpen(false);
     setPresetsOpen(false);
+    setToolsOpen(false);
   }, []);
 
   const onEdgeClick = useCallback((_: React.MouseEvent, edge: Edge) => {
     setSelectedEdgeId(edge.id);
     setSelectedNodeId(null);
+    setToolsOpen(false);
   }, []);
 
   const onPaneClick = useCallback(() => {
@@ -401,6 +407,7 @@ function GraphBuilderInner() {
     setConnectionMenu(null);
     setGlobalPanelOpen(false);
     setPresetsOpen(false);
+    setToolsOpen(false);
   }, []);
 
   const handleAddNode = useCallback(() => {
@@ -699,6 +706,7 @@ function GraphBuilderInner() {
           globalPanelOpen={globalPanelOpen}
           onToggleGlobalPanel={() => setGlobalPanelOpen((prev) => !prev)}
           onTogglePresets={() => setPresetsOpen((prev) => !prev)}
+          onToggleTools={() => setToolsOpen((prev) => !prev)}
         />
 
         <div className="h-screen w-screen relative flex-1 overflow-hidden">
@@ -984,6 +992,16 @@ function GraphBuilderInner() {
                     }),
                   );
                 }}
+              />
+            </aside>
+          )}
+
+          {toolsOpen && !simulation.active && !selectedNodeId && !selectedEdgeId && !globalPanelOpen && (
+            <aside className="absolute right-0 top-0 bottom-0 w-80 border-l border-gray-200 bg-white">
+              <ToolsPanel
+                servers={mcpHook.servers}
+                discoveredTools={mcpHook.discoveredTools}
+                onClose={() => setToolsOpen(false)}
               />
             </aside>
           )}

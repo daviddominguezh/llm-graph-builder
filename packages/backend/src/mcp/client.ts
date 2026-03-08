@@ -17,6 +17,12 @@ interface SseTransport {
   headers?: Record<string, string>;
 }
 
+interface HttpTransport {
+  type: 'http';
+  url: string;
+  headers?: Record<string, string>;
+}
+
 function createStdioTransport(transport: StdioTransport): Experimental_StdioMCPTransport {
   return new Experimental_StdioMCPTransport({
     command: transport.command,
@@ -37,10 +43,24 @@ function createSseConfig(transport: SseTransport): {
   };
 }
 
+function createHttpConfig(transport: HttpTransport): {
+  type: 'http';
+  url: string;
+  headers?: Record<string, string>;
+} {
+  return {
+    type: 'http' as const,
+    url: transport.url,
+    headers: transport.headers,
+  };
+}
+
 export async function connectMcpClient(transport: McpTransport): Promise<McpClient> {
   if (transport.type === 'stdio') {
     return await createMCPClient({ transport: createStdioTransport(transport) });
   }
-
+  if (transport.type === 'http') {
+    return await createMCPClient({ transport: createHttpConfig(transport) });
+  }
   return await createMCPClient({ transport: createSseConfig(transport) });
 }

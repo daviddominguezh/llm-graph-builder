@@ -13,7 +13,17 @@ export const SseTransportSchema = z.object({
   headers: z.record(z.string(), z.string()).optional(),
 });
 
-export const McpTransportSchema = z.discriminatedUnion('type', [StdioTransportSchema, SseTransportSchema]);
+export const HttpTransportSchema = z.object({
+  type: z.literal('http'),
+  url: z.string(),
+  headers: z.record(z.string(), z.string()).optional(),
+});
+
+export const McpTransportSchema = z.discriminatedUnion('type', [
+  StdioTransportSchema,
+  SseTransportSchema,
+  HttpTransportSchema,
+]);
 
 export const McpServerConfigSchema = z.object({
   id: z.string(),
