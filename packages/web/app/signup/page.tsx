@@ -50,7 +50,7 @@ function SignupForm() {
     const password = formData.get('password') as string;
 
     const supabase = createClient();
-    const { error: authError } = await supabase.auth.signUp({
+    const { data, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { full_name: name } },
@@ -58,6 +58,12 @@ function SignupForm() {
 
     if (authError) {
       setError(t('errors.generic'));
+      setLoading(false);
+      return;
+    }
+
+    if (data.session === null) {
+      setError(t('signup.checkEmail'));
       setLoading(false);
       return;
     }

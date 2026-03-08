@@ -31,20 +31,30 @@ function GoogleIcon() {
 export function OAuthButtons() {
   const t = useTranslations('auth');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   async function handleGoogleSignIn() {
     setLoading(true);
+    setError('');
     const supabase = createClient();
-    await supabase.auth.signInWithOAuth({
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
+
+    if (oauthError) {
+      setError(t('errors.oauthFailed'));
+      setLoading(false);
+    }
   }
 
   return (
-    <Button variant="outline" size="lg" className="w-full gap-2" disabled={loading} onClick={handleGoogleSignIn}>
-      <GoogleIcon />
-      {t('oauth.google')}
-    </Button>
+    <>
+      <Button variant="outline" size="lg" className="w-full gap-2" disabled={loading} onClick={handleGoogleSignIn}>
+        <GoogleIcon />
+        {t('oauth.google')}
+      </Button>
+      {error !== '' && <p className="text-destructive text-xs">{error}</p>}
+    </>
   );
 }
