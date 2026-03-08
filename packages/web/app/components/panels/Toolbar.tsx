@@ -5,6 +5,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
@@ -22,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 
 interface ToolbarProps {
   onAddNode: () => void;
@@ -48,6 +49,47 @@ function useLogout() {
   };
 }
 
+interface UserInfo {
+  name: string;
+  email: string;
+}
+
+function useCurrentUser(): UserInfo | null {
+  const [user, setUser] = useState<UserInfo | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user !== null) {
+        setUser({
+          name: (data.user.user_metadata?.full_name as string) ?? '',
+          email: data.user.email ?? '',
+        });
+      }
+    });
+  }, []);
+
+  return user;
+}
+
+function UserSection() {
+  const user = useCurrentUser();
+
+  if (user === null) {
+    return null;
+  }
+
+  return (
+    <>
+      <DropdownMenuLabel className="flex flex-col gap-0.5 font-normal">
+        {user.name !== '' && <span className="text-xs font-medium">{user.name}</span>}
+        <span className="text-muted-foreground text-xs">{user.email}</span>
+      </DropdownMenuLabel>
+      <Separator />
+    </>
+  );
+}
+
 function FileMenu({ onImport, onExport }: { onImport: () => void; onExport: () => void }) {
   const t = useTranslations('common');
   const handleLogout = useLogout();
@@ -61,17 +103,20 @@ function FileMenu({ onImport, onExport }: { onImport: () => void; onExport: () =
           </Button>
         }
       />
-      <DropdownMenuContent side="bottom" align="start">
+      <DropdownMenuContent side="bottom" align="start" className="w-52">
+        <UserSection />
         <DropdownMenuItem onClick={onImport}>
           <Upload className="size-4" />
-          Import
+          {t('import')}
+          <span className="text-muted-foreground ml-auto text-xs">⌘I</span>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={onExport}>
           <Download className="size-4" />
-          Export
+          {t('export')}
+          <span className="text-muted-foreground ml-auto text-xs">⌘E</span>
         </DropdownMenuItem>
         <Separator />
-        <DropdownMenuItem onClick={handleLogout}>
+        <DropdownMenuItem onClick={handleLogout} className="text-destructive">
           <LogOut className="size-4" />
           {t('logout')}
         </DropdownMenuItem>

@@ -55,6 +55,8 @@
     }
   },
   "common": {
+    "import": "Import",
+    "export": "Export",
     "logout": "Sign out",
     "loading": "Loading..."
   }
