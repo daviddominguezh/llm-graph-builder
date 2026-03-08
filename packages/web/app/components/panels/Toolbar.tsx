@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
@@ -72,25 +73,31 @@ function useCurrentUser(): UserInfo | null {
   return user;
 }
 
-function UserSection() {
-  const user = useCurrentUser();
-
+function UserSection({ user }: { user: UserInfo | null }) {
   if (user === null) {
     return null;
   }
 
   return (
     <>
-      <DropdownMenuLabel className="flex flex-col gap-0.5 font-normal">
-        {user.name !== '' && <span className="text-xs font-medium">{user.name}</span>}
-        <span className="text-muted-foreground text-xs">{user.email}</span>
-      </DropdownMenuLabel>
+      <DropdownMenuGroup>
+        <DropdownMenuLabel className="flex flex-col gap-0.5 font-normal">
+          {user.name !== '' && <span className="text-xs font-medium">{user.name}</span>}
+          <span className="text-muted-foreground text-xs">{user.email}</span>
+        </DropdownMenuLabel>
+      </DropdownMenuGroup>
       <Separator />
     </>
   );
 }
 
-function FileMenu({ onImport, onExport }: { onImport: () => void; onExport: () => void }) {
+interface FileMenuProps {
+  onImport: () => void;
+  onExport: () => void;
+  user: UserInfo | null;
+}
+
+function FileMenu({ onImport, onExport, user }: FileMenuProps) {
   const t = useTranslations('common');
   const handleLogout = useLogout();
 
@@ -104,22 +111,24 @@ function FileMenu({ onImport, onExport }: { onImport: () => void; onExport: () =
         }
       />
       <DropdownMenuContent side="bottom" align="start" className="w-52">
-        <UserSection />
-        <DropdownMenuItem onClick={onImport}>
-          <Upload className="size-4" />
-          {t('import')}
-          <span className="text-muted-foreground ml-auto text-xs">⌘I</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={onExport}>
-          <Download className="size-4" />
-          {t('export')}
-          <span className="text-muted-foreground ml-auto text-xs">⌘E</span>
-        </DropdownMenuItem>
+        <UserSection user={user} />
+        <div className="py-1">
+          <DropdownMenuItem onClick={onImport}>
+            <Upload className="size-4" />
+            {t('import')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={onExport}>
+            <Download className="size-4" />
+            {t('export')}
+          </DropdownMenuItem>
+        </div>
         <Separator />
-        <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-          <LogOut className="size-4" />
-          {t('logout')}
-        </DropdownMenuItem>
+        <div className="pt-1">
+          <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+            <LogOut className="size-4" />
+            {t('logout')}
+          </DropdownMenuItem>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -135,10 +144,12 @@ export function Toolbar({
   onTogglePresets,
   onToggleTools,
 }: ToolbarProps) {
+  const user = useCurrentUser();
+
   return (
     <>
       <div className="absolute top-2 left-2 z-1">
-        <FileMenu onImport={onImport} onExport={onExport} />
+        <FileMenu onImport={onImport} onExport={onExport} user={user} />
       </div>
       <header className="absolute z-1 flex items-stretch justify-center gap-1 border rounded-lg bg-background p-1 top-2 shadow-lg">
         <Button
