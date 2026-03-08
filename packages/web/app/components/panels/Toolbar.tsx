@@ -1,11 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-<<<<<<< Updated upstream
-import { Upload, Download, WandSparkles, Play, Waypoints, SlidersHorizontal } from "lucide-react";
-=======
 import { Upload, Download, WandSparkles, Play, Waypoints, SlidersHorizontal, SquareFunction, Menu } from "lucide-react";
->>>>>>> Stashed changes
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -25,6 +21,7 @@ interface ToolbarProps {
   globalPanelOpen?: boolean;
   onToggleGlobalPanel?: () => void;
   onTogglePresets?: () => void;
+  onToggleTools?: () => void;
 }
 
 function FileMenu({ onImport, onExport }: { onImport: () => void; onExport: () => void }) {
@@ -59,61 +56,9 @@ export function Toolbar({
   statusSlot,
   onToggleGlobalPanel,
   onTogglePresets,
+  onToggleTools,
 }: ToolbarProps) {
   return (
-<<<<<<< Updated upstream
-    <header className="absolute z-1 flex items-stretch justify-center gap-1 border rounded-lg bg-background p-1 top-2 shadow-lg">
-      <Button
-        className="h-10 w-10"
-        variant={simulationActive ? 'default' : 'ghost'}
-        size="sm"
-        onClick={onPlay}
-      >
-        <Play className="size-4" />
-      </Button>
-      <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onImport}>
-        <Upload className="size-4" />
-      </Button>
-      <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onExport}>
-        <Download className="size-4" />
-      </Button>
-      <Button className="h-10 w-10" variant="ghost" size="sm">
-        <WandSparkles className="size-4" />
-      </Button>
-      {statusSlot && (
-        <>
-          <Separator orientation="vertical" />
-          {statusSlot}
-        </>
-      )}
-      {onToggleGlobalPanel && (
-        <>
-          <Separator orientation="vertical" />
-          <Button
-            className="h-10 w-10"
-            variant="ghost"
-            size="sm"
-            onClick={onToggleGlobalPanel}
-          >
-            <Waypoints className="size-4" />
-          </Button>
-        </>
-      )}
-      {onTogglePresets && (
-        <>
-          <Separator orientation="vertical" />
-          <Button
-            className="h-10 w-10"
-            variant="ghost"
-            size="sm"
-            onClick={onTogglePresets}
-          >
-            <SlidersHorizontal className="size-4" />
-          </Button>
-        </>
-      )}
-    </header>
-=======
     <>
       <div className="absolute top-2 left-2 z-1">
         <div className="border rounded-lg bg-background p-1 shadow-lg">
@@ -179,6 +124,5 @@ export function Toolbar({
         )}
       </header>
     </>
->>>>>>> Stashed changes
   );
 }

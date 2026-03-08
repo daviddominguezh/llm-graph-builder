@@ -940,14 +940,12 @@ function GraphBuilderInner() {
             </aside>
           )}
 
-          {toolsOpen && !simulation.active && !selectedNodeId && !selectedEdgeId && !globalPanelOpen && (
-            <aside className="absolute right-0 top-0 bottom-0 w-80 border-l border-gray-200 bg-white">
-              <ToolsPanel
-                servers={mcpHook.servers}
-                discoveredTools={mcpHook.discoveredTools}
-              />
-            </aside>
-          )}
+          <ToolsPanel
+            servers={mcpHook.servers}
+            discoveredTools={mcpHook.discoveredTools}
+            open={toolsOpen}
+            onClose={() => setToolsOpen(false)}
+          />
 
           {presetsOpen && (
             <aside className="absolute left-0 top-0 bottom-0 w-80 border-r border-gray-200 bg-white z-10">

@@ -125,7 +125,13 @@ export function useMcpServers(): McpServersState {
   const allToolNames = collectToolNames(discoveredTools);
 
   return {
-    servers, discoveredTools, allToolNames, discovering, serverStatus,
-    ...mutations, discoverTools, setServers,
+    servers,
+    discoveredTools,
+    allToolNames,
+    discovering,
+    serverStatus,
+    ...mutations,
+    discoverTools,
+    setServers,
   };
 }

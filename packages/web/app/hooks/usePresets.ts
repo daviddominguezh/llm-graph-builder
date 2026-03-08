@@ -53,15 +53,15 @@ function removeKeyFromData(data: Record<string, unknown>, key: string): Record<s
   return Object.fromEntries(Object.entries(data).filter(([k]) => k !== key));
 }
 
-function renameKeyInData(data: Record<string, unknown>, oldKey: string, newKey: string): Record<string, unknown> {
-  return Object.fromEntries(
-    Object.entries(data).map(([k, v]) => (k === oldKey ? [newKey, v] : [k, v]))
-  );
+function renameKeyInData(
+  data: Record<string, unknown>,
+  oldKey: string,
+  newKey: string
+): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(data).map(([k, v]) => (k === oldKey ? [newKey, v] : [k, v])));
 }
 
-function useContextKeys(
-  setPresets: React.Dispatch<React.SetStateAction<ContextPreset[]>>
-): {
+function useContextKeys(setPresets: React.Dispatch<React.SetStateAction<ContextPreset[]>>): {
   contextKeys: string[];
   addContextKey: (key: string) => void;
   removeContextKey: (key: string) => void;
@@ -130,9 +130,12 @@ function usePresetCrud(setPresets: React.Dispatch<React.SetStateAction<ContextPr
 
   const deletePreset = useDeletePreset(setPresets, setActivePresetId);
 
-  const updatePreset = useCallback((id: string, updates: Partial<ContextPreset>) => {
-    setPresets((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
-  }, [setPresets]);
+  const updatePreset = useCallback(
+    (id: string, updates: Partial<ContextPreset>) => {
+      setPresets((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
+    },
+    [setPresets]
+  );
 
   return { addPreset, deletePreset, updatePreset, setActivePresetId, activePresetId };
 }
@@ -146,11 +149,19 @@ export function usePresets(): PresetsState {
   const activePreset = presets.find((p) => p.id === crud.activePresetId) ?? presets[FIRST_INDEX];
 
   return {
-    presets, activePreset, apiKey, contextKeys: ctx.contextKeys,
-    activePresetId: crud.activePresetId, setActivePresetId: crud.setActivePresetId,
-    setApiKey, addPreset: crud.addPreset, deletePreset: crud.deletePreset,
-    updatePreset: crud.updatePreset, addContextKey: ctx.addContextKey,
-    removeContextKey: ctx.removeContextKey, renameContextKey: ctx.renameContextKey,
+    presets,
+    activePreset,
+    apiKey,
+    contextKeys: ctx.contextKeys,
+    activePresetId: crud.activePresetId,
+    setActivePresetId: crud.setActivePresetId,
+    setApiKey,
+    addPreset: crud.addPreset,
+    deletePreset: crud.deletePreset,
+    updatePreset: crud.updatePreset,
+    addContextKey: ctx.addContextKey,
+    removeContextKey: ctx.removeContextKey,
+    renameContextKey: ctx.renameContextKey,
     setContextKeys: ctx.setContextKeys,
   };
 }
