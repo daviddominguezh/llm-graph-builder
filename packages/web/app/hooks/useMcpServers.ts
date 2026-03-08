@@ -5,11 +5,14 @@ import { toast } from 'sonner';
 import { type DiscoveredTool, discoverMcpTools } from '../lib/api';
 import type { McpServerConfig } from '../schemas/graph.schema';
 
+export type McpServerStatus = 'pending' | 'active';
+
 export interface McpServersState {
   servers: McpServerConfig[];
   discoveredTools: Record<string, DiscoveredTool[]>;
   allToolNames: string[];
   discovering: Record<string, boolean>;
+  serverStatus: Record<string, McpServerStatus>;
   addServer: () => void;
   removeServer: (id: string) => void;
   updateServer: (id: string, updates: Partial<McpServerConfig>) => void;
@@ -21,7 +24,7 @@ function createDefaultServer(): McpServerConfig {
   return {
     id: nanoid(),
     name: 'New MCP Server',
-    transport: { type: 'sse', url: '' },
+    transport: { type: 'http', url: '' },
     enabled: true,
   };
 }
@@ -40,14 +43,19 @@ function removeKeyFromRecord<T>(record: Record<string, T>, key: string): Record<
   return Object.fromEntries(Object.entries(record).filter(([k]) => k !== key));
 }
 
-function useServerMutations(
-  setServers: React.Dispatch<React.SetStateAction<McpServerConfig[]>>,
-  setDiscoveredTools: React.Dispatch<React.SetStateAction<Record<string, DiscoveredTool[]>>>
-): {
+interface MutationSetters {
+  setServers: React.Dispatch<React.SetStateAction<McpServerConfig[]>>;
+  setDiscoveredTools: React.Dispatch<React.SetStateAction<Record<string, DiscoveredTool[]>>>;
+  setServerStatus: React.Dispatch<React.SetStateAction<Record<string, McpServerStatus>>>;
+}
+
+function useServerMutations(setters: MutationSetters): {
   addServer: () => void;
   removeServer: (id: string) => void;
   updateServer: (id: string, updates: Partial<McpServerConfig>) => void;
 } {
+  const { setServers, setDiscoveredTools, setServerStatus } = setters;
+
   const addServer = useCallback(() => {
     setServers((prev) => [...prev, createDefaultServer()]);
   }, [setServers]);
@@ -56,8 +64,9 @@ function useServerMutations(
     (id: string) => {
       setServers((prev) => prev.filter((s) => s.id !== id));
       setDiscoveredTools((prev) => removeKeyFromRecord(prev, id));
+      setServerStatus((prev) => removeKeyFromRecord(prev, id));
     },
-    [setServers, setDiscoveredTools]
+    [setServers, setDiscoveredTools, setServerStatus]
   );
 
   const updateServer = useCallback(
@@ -70,11 +79,15 @@ function useServerMutations(
   return { addServer, removeServer, updateServer };
 }
 
-function useToolDiscovery(
-  servers: McpServerConfig[],
-  setDiscoveredTools: React.Dispatch<React.SetStateAction<Record<string, DiscoveredTool[]>>>,
-  setDiscovering: React.Dispatch<React.SetStateAction<Record<string, boolean>>>
-): (id: string) => void {
+interface DiscoverySetters {
+  setDiscoveredTools: React.Dispatch<React.SetStateAction<Record<string, DiscoveredTool[]>>>;
+  setDiscovering: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  setServerStatus: React.Dispatch<React.SetStateAction<Record<string, McpServerStatus>>>;
+}
+
+function useToolDiscovery(servers: McpServerConfig[], setters: DiscoverySetters): (id: string) => void {
+  const { setDiscoveredTools, setDiscovering, setServerStatus } = setters;
+
   return useCallback(
     (id: string) => {
       const server = servers.find((s) => s.id === id);
@@ -85,6 +98,7 @@ function useToolDiscovery(
       void discoverMcpTools(server.transport)
         .then((tools) => {
           setDiscoveredTools((prev) => ({ ...prev, [id]: tools }));
+          setServerStatus((prev) => ({ ...prev, [id]: 'active' }));
           toast.success(`Discovered ${String(tools.length)} tools from ${server.name}`);
         })
         .catch((err: unknown) => {
@@ -96,7 +110,7 @@ function useToolDiscovery(
           setDiscovering((prev) => ({ ...prev, [id]: false }));
         });
     },
-    [servers, setDiscoveredTools, setDiscovering]
+    [servers, setDiscoveredTools, setDiscovering, setServerStatus]
   );
 }
 
@@ -104,10 +118,14 @@ export function useMcpServers(): McpServersState {
   const [servers, setServers] = useState<McpServerConfig[]>([]);
   const [discoveredTools, setDiscoveredTools] = useState<Record<string, DiscoveredTool[]>>({});
   const [discovering, setDiscovering] = useState<Record<string, boolean>>({});
+  const [serverStatus, setServerStatus] = useState<Record<string, McpServerStatus>>({});
 
-  const mutations = useServerMutations(setServers, setDiscoveredTools);
-  const discoverTools = useToolDiscovery(servers, setDiscoveredTools, setDiscovering);
+  const mutations = useServerMutations({ setServers, setDiscoveredTools, setServerStatus });
+  const discoverTools = useToolDiscovery(servers, { setDiscoveredTools, setDiscovering, setServerStatus });
   const allToolNames = collectToolNames(discoveredTools);
 
-  return { servers, discoveredTools, allToolNames, discovering, ...mutations, discoverTools, setServers };
+  return {
+    servers, discoveredTools, allToolNames, discovering, serverStatus,
+    ...mutations, discoverTools, setServers,
+  };
 }

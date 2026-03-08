@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, Loader2, Plus, Search, Trash2, X } from 'lucide-react';
+import { ChevronDown, Loader2, Plus, RefreshCw, Search, Trash2, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,12 +9,12 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { McpServerConfig } from '../../schemas/graph.schema';
-import type { DiscoveredTool } from '../../lib/api';
+import type { McpServerStatus } from '../../hooks/useMcpServers';
 
 interface McpServersSectionProps {
   servers: McpServerConfig[];
-  discoveredTools: Record<string, DiscoveredTool[]>;
   discovering: Record<string, boolean>;
+  serverStatus: Record<string, McpServerStatus>;
   onAdd: () => void;
   onRemove: (id: string) => void;
   onUpdate: (id: string, updates: Partial<McpServerConfig>) => void;
@@ -23,7 +23,7 @@ interface McpServersSectionProps {
 
 interface ServerItemProps {
   server: McpServerConfig;
-  tools: DiscoveredTool[];
+  status: McpServerStatus;
   isDiscovering: boolean;
   onRemove: () => void;
   onUpdate: (updates: Partial<McpServerConfig>) => void;
@@ -158,26 +158,6 @@ function StdioTransportFields({ server, onUpdate }: { server: McpServerConfig; o
   );
 }
 
-function ToolsList({ tools }: { tools: DiscoveredTool[] }) {
-  if (tools.length === 0) return null;
-
-  return (
-    <div className="mt-2 space-y-1">
-      <Label>Discovered Tools</Label>
-      <ul className="space-y-1">
-        {tools.map((tool) => (
-          <li key={tool.name} className="rounded border px-2 py-1">
-            <span className="font-medium">{tool.name}</span>
-            {tool.description !== undefined && (
-              <p className="text-muted-foreground text-xs mt-0.5">{tool.description}</p>
-            )}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 function TransportTypeSelector({
   server,
   onUpdate,
@@ -213,7 +193,22 @@ function TransportTypeSelector({
   );
 }
 
-function ServerItemExpanded({ server, tools, isDiscovering, onUpdate, onDiscover }: Omit<ServerItemProps, 'onRemove'>) {
+function DiscoverButton({ status, isDiscovering, onDiscover }: { status: McpServerStatus; isDiscovering: boolean; onDiscover: () => void }) {
+  const isActive = status === 'active';
+  const icon = isDiscovering
+    ? <Loader2 className="size-4 animate-spin mr-1" />
+    : isActive ? <RefreshCw className="size-4 mr-1" /> : <Search className="size-4 mr-1" />;
+  const label = isActive ? 'Reload Tools' : 'Discover Tools';
+
+  return (
+    <Button variant="outline" size="sm" className="w-full" onClick={onDiscover} disabled={isDiscovering}>
+      {icon}
+      {label}
+    </Button>
+  );
+}
+
+function ServerItemExpanded({ server, status, isDiscovering, onUpdate, onDiscover }: Omit<ServerItemProps, 'onRemove'>) {
   return (
     <div className="space-y-2 mt-2">
       <div className="space-y-1">
@@ -226,16 +221,17 @@ function ServerItemExpanded({ server, tools, isDiscovering, onUpdate, onDiscover
       <TransportTypeSelector server={server} onUpdate={onUpdate} />
       <UrlTransportFields server={server} onUpdate={onUpdate} />
       <StdioTransportFields server={server} onUpdate={onUpdate} />
-      <Button variant="outline" size="sm" className="w-full" onClick={onDiscover} disabled={isDiscovering}>
-        {isDiscovering ? <Loader2 className="size-4 animate-spin mr-1" /> : <Search className="size-4 mr-1" />}
-        Discover Tools
-      </Button>
-      <ToolsList tools={tools} />
+      <DiscoverButton status={status} isDiscovering={isDiscovering} onDiscover={onDiscover} />
     </div>
   );
 }
 
-function ServerItem({ server, tools, isDiscovering, onRemove, onUpdate, onDiscover }: ServerItemProps) {
+function StatusBadge({ status }: { status: McpServerStatus }) {
+  const variant = status === 'active' ? 'default' : 'outline';
+  return <Badge variant={variant} className="ml-1">{status}</Badge>;
+}
+
+function ServerItem({ server, status, isDiscovering, onRemove, onUpdate, onDiscover }: ServerItemProps) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -244,9 +240,7 @@ function ServerItem({ server, tools, isDiscovering, onRemove, onUpdate, onDiscov
         <button className="flex items-center gap-1.5 text-sm font-medium" onClick={() => setExpanded(!expanded)}>
           <ChevronDown className={`size-3 transition-transform ${expanded ? '' : '-rotate-90'}`} />
           {server.name}
-          <Badge variant="outline" className="ml-1">
-            {server.transport.type}
-          </Badge>
+          <StatusBadge status={status} />
         </button>
         <Button variant="destructive" size="icon-xs" title="Remove server" onClick={onRemove}>
           <Trash2 className="size-3" />
@@ -255,7 +249,7 @@ function ServerItem({ server, tools, isDiscovering, onRemove, onUpdate, onDiscov
       {expanded && (
         <ServerItemExpanded
           server={server}
-          tools={tools}
+          status={status}
           isDiscovering={isDiscovering}
           onUpdate={onUpdate}
           onDiscover={onDiscover}
@@ -267,8 +261,8 @@ function ServerItem({ server, tools, isDiscovering, onRemove, onUpdate, onDiscov
 
 export function McpServersSection({
   servers,
-  discoveredTools,
   discovering,
+  serverStatus,
   onAdd,
   onRemove,
   onUpdate,
@@ -287,7 +281,7 @@ export function McpServersSection({
           <ServerItem
             key={server.id}
             server={server}
-            tools={discoveredTools[server.id] ?? []}
+            status={serverStatus[server.id] ?? 'pending'}
             isDiscovering={discovering[server.id] ?? false}
             onRemove={() => onRemove(server.id)}
             onUpdate={(updates) => onUpdate(server.id, updates)}

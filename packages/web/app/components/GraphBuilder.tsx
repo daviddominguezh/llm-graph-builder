@@ -1001,7 +1001,6 @@ function GraphBuilderInner() {
               <ToolsPanel
                 servers={mcpHook.servers}
                 discoveredTools={mcpHook.discoveredTools}
-                onClose={() => setToolsOpen(false)}
               />
             </aside>
           )}
@@ -1017,8 +1016,8 @@ function GraphBuilderInner() {
                 onUpdate={presetsHook.updatePreset}
                 mcp={{
                   servers: mcpHook.servers,
-                  discoveredTools: mcpHook.discoveredTools,
                   discovering: mcpHook.discovering,
+                  serverStatus: mcpHook.serverStatus,
                   onAddServer: mcpHook.addServer,
                   onRemoveServer: mcpHook.removeServer,
                   onUpdateServer: mcpHook.updateServer,

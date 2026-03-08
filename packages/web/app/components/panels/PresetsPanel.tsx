@@ -20,13 +20,13 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { type ContextPreset, DEFAULT_PRESET } from "../../types/preset";
 import type { McpServerConfig } from "../../schemas/graph.schema";
-import type { DiscoveredTool } from "../../lib/api";
+import type { McpServerStatus } from "../../hooks/useMcpServers";
 import { McpServersSection } from "./McpServersSection";
 
 interface McpProps {
   servers: McpServerConfig[];
-  discoveredTools: Record<string, DiscoveredTool[]>;
   discovering: Record<string, boolean>;
+  serverStatus: Record<string, McpServerStatus>;
   onAddServer: () => void;
   onRemoveServer: (id: string) => void;
   onUpdateServer: (id: string, updates: Partial<McpServerConfig>) => void;
@@ -52,7 +52,7 @@ function PresetFields({ preset, onUpdate }: PresetFieldsProps) {
   return (
     <div className="space-y-2 mt-2">
       <div className="space-y-1">
-        <Label className="text-[10px]">Name</Label>
+        <Label>Name</Label>
         <Input
           value={preset.name}
           onChange={(e) => onUpdate(preset.id, { name: e.target.value })}
@@ -60,7 +60,7 @@ function PresetFields({ preset, onUpdate }: PresetFieldsProps) {
         />
       </div>
       <div className="space-y-1">
-        <Label className="text-[10px]">Session ID</Label>
+        <Label>Session ID</Label>
         <Input
           value={preset.sessionID}
           onChange={(e) => onUpdate(preset.id, { sessionID: e.target.value })}
@@ -68,7 +68,7 @@ function PresetFields({ preset, onUpdate }: PresetFieldsProps) {
         />
       </div>
       <div className="space-y-1">
-        <Label className="text-[10px]">Tenant ID</Label>
+        <Label>Tenant ID</Label>
         <Input
           value={preset.tenantID}
           onChange={(e) => onUpdate(preset.id, { tenantID: e.target.value })}
@@ -76,7 +76,7 @@ function PresetFields({ preset, onUpdate }: PresetFieldsProps) {
         />
       </div>
       <div className="space-y-1">
-        <Label className="text-[10px]">User ID</Label>
+        <Label>User ID</Label>
         <Input
           value={preset.userID}
           onChange={(e) => onUpdate(preset.id, { userID: e.target.value })}
@@ -201,7 +201,7 @@ export function PresetsPanel({
       </div>
       <div className="flex-1 overflow-y-auto p-4">
         <div className="mb-4 space-y-1">
-          <Label>API Key</Label>
+          <Label>OpenRouter API Key</Label>
           <div className="relative">
             <Input
               type={showApiKey ? "text" : "password"}
@@ -221,6 +221,7 @@ export function PresetsPanel({
           </div>
           <Separator className="mt-3" />
         </div>
+        <Label>Testing Presets</Label>
         <ul className="space-y-2">
           {presets.map((preset) => (
             <PresetItem
@@ -235,8 +236,8 @@ export function PresetsPanel({
         <Separator className="mt-4" />
         <McpServersSection
           servers={mcp.servers}
-          discoveredTools={mcp.discoveredTools}
           discovering={mcp.discovering}
+          serverStatus={mcp.serverStatus}
           onAdd={mcp.onAddServer}
           onRemove={mcp.onRemoveServer}
           onUpdate={mcp.onUpdateServer}
