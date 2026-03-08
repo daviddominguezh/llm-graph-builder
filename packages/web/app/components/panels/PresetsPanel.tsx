@@ -222,7 +222,7 @@ export function PresetsPanel({
           <Separator className="mt-3" />
         </div>
         <Label>Testing Presets</Label>
-        <ul className="space-y-2">
+        <ul className="space-y-2 mt-1">
           {presets.map((preset) => (
             <PresetItem
               key={preset.id}

@@ -1,12 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, Loader2, Plus, RefreshCw, Search, Trash2, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle, ChevronDown, Loader2, Plus, RefreshCw, Search, Trash2, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { McpServerConfig } from '../../schemas/graph.schema';
 import type { McpServerStatus } from '../../hooks/useMcpServers';
@@ -226,9 +225,11 @@ function ServerItemExpanded({ server, status, isDiscovering, onUpdate, onDiscove
   );
 }
 
-function StatusBadge({ status }: { status: McpServerStatus }) {
-  const variant = status === 'active' ? 'default' : 'outline';
-  return <Badge variant={variant} className="ml-1">{status}</Badge>;
+function StatusIcon({ status }: { status: McpServerStatus }) {
+  if (status === 'active') {
+    return <CheckCircle className="size-3 text-green-500" />;
+  }
+  return <AlertTriangle className="size-3 text-orange-400" />;
 }
 
 function ServerItem({ server, status, isDiscovering, onRemove, onUpdate, onDiscover }: ServerItemProps) {
@@ -237,10 +238,10 @@ function ServerItem({ server, status, isDiscovering, onRemove, onUpdate, onDisco
   return (
     <li className="rounded-md border px-3 py-2">
       <div className="flex items-center justify-between">
-        <button className="flex items-center gap-1.5 text-sm font-medium" onClick={() => setExpanded(!expanded)}>
+        <button className="flex items-center gap-1.5 text-xs" onClick={() => setExpanded(!expanded)}>
           <ChevronDown className={`size-3 transition-transform ${expanded ? '' : '-rotate-90'}`} />
+          <StatusIcon status={status} />
           {server.name}
-          <StatusBadge status={status} />
         </button>
         <Button variant="destructive" size="icon-xs" title="Remove server" onClick={onRemove}>
           <Trash2 className="size-3" />
@@ -271,7 +272,7 @@ export function McpServersSection({
   return (
     <div className="mt-4">
       <div className="flex items-center justify-between mb-2">
-        <Label className="font-semibold">MCP Servers</Label>
+        <Label>MCP Servers</Label>
         <Button variant="ghost" size="icon-xs" onClick={onAdd}>
           <Plus className="size-3" />
         </Button>
