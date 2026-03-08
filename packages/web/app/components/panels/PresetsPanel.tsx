@@ -20,6 +20,7 @@ import { Separator } from "@/components/ui/separator";
 import { type ContextPreset, DEFAULT_PRESET } from "../../types/preset";
 import type { McpServerConfig } from "../../schemas/graph.schema";
 import type { McpServerStatus } from "../../hooks/useMcpServers";
+import type { ContextPrecondition } from "../../types/contextPrecondition";
 import { McpServersSection } from "./McpServersSection";
 import { ContextPreconditionsSection } from "./ContextPreconditionsSection";
 
@@ -41,10 +42,10 @@ interface ContextKeysProps {
 }
 
 interface ContextPreconditionsProps {
-  preconditions: string[];
-  onAdd: (value: string) => void;
-  onRemove: (value: string) => void;
-  onRename: (oldValue: string, newValue: string) => void;
+  preconditions: ContextPrecondition[];
+  onAdd: () => void;
+  onRemove: (id: string) => void;
+  onUpdate: (id: string, updates: Partial<ContextPrecondition>) => void;
 }
 
 interface PresetsPanelProps {
@@ -281,9 +282,10 @@ export function PresetsPanel({
         />
         <ContextPreconditionsSection
           preconditions={contextPreconditions.preconditions}
+          contextKeys={contextKeys}
           onAdd={contextPreconditions.onAdd}
           onRemove={contextPreconditions.onRemove}
-          onRename={contextPreconditions.onRename}
+          onUpdate={contextPreconditions.onUpdate}
         />
         <div className="flex items-center justify-between mb-1">
           <Label>Testing Presets</Label>
