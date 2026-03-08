@@ -212,6 +212,10 @@ function GraphBuilderInner() {
       if ((e.metaKey || e.ctrlKey) && e.key === "f") {
         e.preventDefault();
         setSearchOpen((prev) => !prev);
+        return;
+      }
+      if (e.key === "Escape") {
+        setSearchOpen(false);
       }
     };
     document.addEventListener("keydown", handleKeyDown);
@@ -410,6 +414,7 @@ function GraphBuilderInner() {
     setGlobalPanelOpen(false);
     setPresetsOpen(false);
     setToolsOpen(false);
+    setSearchOpen(false);
   }, []);
 
   const handleAddNode = useCallback(() => {

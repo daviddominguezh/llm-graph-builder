@@ -1,15 +1,24 @@
-"use client";
+'use client';
 
-import type { ReactNode } from "react";
-import { Upload, Download, WandSparkles, Play, Waypoints, SlidersHorizontal, SquareFunction, Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
+import { Separator } from '@/components/ui/separator';
+import {
+  Download,
+  Menu,
+  Play,
+  SlidersHorizontal,
+  SquareFunction,
+  Upload,
+  WandSparkles,
+  Waypoints,
+} from 'lucide-react';
+import type { ReactNode } from 'react';
 
 interface ToolbarProps {
   onAddNode: () => void;
@@ -29,7 +38,7 @@ function FileMenu({ onImport, onExport }: { onImport: () => void; onExport: () =
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button className="h-10 w-10" variant="ghost" size="sm">
+          <Button className="h-9 w-9 bg-white" variant="outline" size="sm">
             <Menu className="size-4" />
           </Button>
         }
@@ -61,9 +70,7 @@ export function Toolbar({
   return (
     <>
       <div className="absolute top-2 left-2 z-1">
-        <div className="border rounded-lg bg-background p-1 shadow-lg">
-          <FileMenu onImport={onImport} onExport={onExport} />
-        </div>
+        <FileMenu onImport={onImport} onExport={onExport} />
       </div>
       <header className="absolute z-1 flex items-stretch justify-center gap-1 border rounded-lg bg-background p-1 top-2 shadow-lg">
         <Button
@@ -77,49 +84,37 @@ export function Toolbar({
         <Button className="h-10 w-10" variant="ghost" size="sm">
           <WandSparkles className="size-4" />
         </Button>
-        {statusSlot && (
-          <>
-            <Separator orientation="vertical" />
-            {statusSlot}
-          </>
-        )}
+
         {onToggleGlobalPanel && (
           <>
             <Separator orientation="vertical" />
-            <Button
-              className="h-10 w-10"
-              variant="ghost"
-              size="sm"
-              onClick={onToggleGlobalPanel}
-            >
+            <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onToggleGlobalPanel}>
               <Waypoints className="size-4" />
             </Button>
           </>
         )}
+
+        {onToggleTools && (
+          <>
+            <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onToggleTools}>
+              <SquareFunction className="size-4" />
+            </Button>
+          </>
+        )}
+
         {onTogglePresets && (
           <>
             <Separator orientation="vertical" />
-            <Button
-              className="h-10 w-10"
-              variant="ghost"
-              size="sm"
-              onClick={onTogglePresets}
-            >
+            <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onTogglePresets}>
               <SlidersHorizontal className="size-4" />
             </Button>
           </>
         )}
-        {onToggleTools && (
+
+        {statusSlot && (
           <>
             <Separator orientation="vertical" />
-            <Button
-              className="h-10 w-10"
-              variant="ghost"
-              size="sm"
-              onClick={onToggleTools}
-            >
-              <SquareFunction className="size-4" />
-            </Button>
+            {statusSlot}
           </>
         )}
       </header>
