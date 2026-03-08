@@ -6,6 +6,8 @@ import type {
   ContextPreconditionsSchema,
   EdgeSchema,
   GraphSchema,
+  McpServerConfigSchema,
+  McpTransportSchema,
   NodeSchema,
   PositionSchema,
   PreconditionSchema,
@@ -29,3 +31,5 @@ export type Edge = z.infer<typeof EdgeSchema>;
 export type RuntimeEdge = z.infer<typeof RuntimeEdgeSchema>;
 export type Graph = z.infer<typeof GraphSchema>;
 export type RuntimeGraph = z.infer<typeof RuntimeGraphSchema>;
+export type McpTransport = z.infer<typeof McpTransportSchema>;
+export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;

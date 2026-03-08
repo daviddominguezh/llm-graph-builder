@@ -1,3 +1,5 @@
+import type { Tool } from 'ai';
+
 import type { Graph } from './graph.js';
 
 export interface Context {
@@ -11,6 +13,8 @@ export interface Context {
   isFirstMessage?: boolean;
   currentTime?: string;
   userToken?: string;
+  toolsOverride?: Record<string, Tool>;
+  onNodeVisited?: (nodeId: string) => void;
 }
 
 export interface ToolResponsePrompt {

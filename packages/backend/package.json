@@ -1,0 +1,37 @@
+{
+  "name": "@daviddh/graph-runner-backend",
+  "version": "1.0.0",
+  "description": "Backend server for LLM graph runner with MCP support",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "graph-runner-backend": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "rm -rf dist tsconfig.tsbuildinfo && tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
+    "typecheck": "tsc -b",
+    "start": "tsx src/index.ts",
+    "dev": "tsx watch src/index.ts"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@ai-sdk/mcp": "^1.0.26",
+    "@daviddh/graph-types": "*",
+    "@daviddh/llm-graph-runner": "*",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0"
+  }
+}

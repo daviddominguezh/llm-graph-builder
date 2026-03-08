@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const apiSrc = path.resolve(currentDir, '../api/src');
+const graphTypesSrc = path.resolve(currentDir, '../graph-types/src');
 
 interface WebpackResolve {
   alias?: Record<string, string>;
@@ -21,6 +22,7 @@ function configureWebpack(config: WebpackConfig): WebpackConfig {
       ...config.resolve,
       alias: {
         ...config.resolve?.alias,
+        '@daviddh/graph-types': path.join(graphTypesSrc, 'index.ts'),
         '@daviddh/llm-graph-runner': path.join(apiSrc, 'index.ts'),
         '@src': apiSrc,
       },
@@ -31,7 +33,7 @@ function configureWebpack(config: WebpackConfig): WebpackConfig {
 
 const nextConfig: NextConfig = {
   reactStrictMode: false,
-  transpilePackages: ['@daviddh/llm-graph-runner'],
+  transpilePackages: ['@daviddh/graph-types', '@daviddh/llm-graph-runner'],
   webpack: configureWebpack,
 };
 
