@@ -8,8 +8,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
+import { createClient } from '@/app/lib/supabase/client';
 import {
   Download,
+  LogOut,
   Menu,
   Play,
   SlidersHorizontal,
@@ -18,6 +20,8 @@ import {
   WandSparkles,
   Waypoints,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 interface ToolbarProps {
@@ -33,7 +37,21 @@ interface ToolbarProps {
   onToggleTools?: () => void;
 }
 
+function useLogout() {
+  const router = useRouter();
+
+  return async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
+  };
+}
+
 function FileMenu({ onImport, onExport }: { onImport: () => void; onExport: () => void }) {
+  const t = useTranslations('common');
+  const handleLogout = useLogout();
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -51,6 +69,11 @@ function FileMenu({ onImport, onExport }: { onImport: () => void; onExport: () =
         <DropdownMenuItem onClick={onExport}>
           <Download className="size-4" />
           Export
+        </DropdownMenuItem>
+        <Separator />
+        <DropdownMenuItem onClick={handleLogout}>
+          <LogOut className="size-4" />
+          {t('logout')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -117,6 +140,7 @@ export function Toolbar({
             {statusSlot}
           </>
         )}
+
       </header>
     </>
   );

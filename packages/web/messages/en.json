@@ -1,0 +1,61 @@
+{
+  "auth": {
+    "login": {
+      "title": "Sign in",
+      "description": "Enter your credentials to access Flowforge",
+      "email": "Email",
+      "emailPlaceholder": "you@example.com",
+      "password": "Password",
+      "submit": "Sign in",
+      "noAccount": "Don't have an account?",
+      "signUpLink": "Sign up",
+      "forgotPassword": "Forgot password?",
+      "or": "or"
+    },
+    "signup": {
+      "title": "Create account",
+      "description": "Get started with Flowforge",
+      "name": "Full name",
+      "namePlaceholder": "John Doe",
+      "email": "Email",
+      "emailPlaceholder": "you@example.com",
+      "password": "Password",
+      "submit": "Create account",
+      "hasAccount": "Already have an account?",
+      "signInLink": "Sign in",
+      "or": "or",
+      "checkEmail": "Check your email for a confirmation link."
+    },
+    "forgotPassword": {
+      "title": "Reset password",
+      "description": "Enter your email to receive a reset link",
+      "email": "Email",
+      "emailPlaceholder": "you@example.com",
+      "submit": "Send reset link",
+      "checkEmail": "Check your email for a password reset link.",
+      "backToLogin": "Back to sign in"
+    },
+    "resetPassword": {
+      "title": "Set new password",
+      "description": "Enter your new password below",
+      "password": "New password",
+      "confirmPassword": "Confirm password",
+      "submit": "Update password",
+      "success": "Password updated successfully.",
+      "mismatch": "Passwords do not match."
+    },
+    "oauth": {
+      "google": "Continue with Google"
+    },
+    "errors": {
+      "invalidCredentials": "Invalid email or password.",
+      "emailTaken": "An account with this email already exists.",
+      "generic": "Something went wrong. Please try again.",
+      "oauthFailed": "OAuth sign-in failed. Please try again."
+    }
+  },
+  "common": {
+    "logout": "Sign out",
+    "loading": "Loading..."
+  }
+}
