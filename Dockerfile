@@ -21,15 +21,15 @@ RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3
 
 # Copy monorepo root files for workspace install
-COPY package-lock.json package.json ./
+COPY package.json ./
 
-# Copy workspace package.json files (needed for npm ci to resolve workspaces)
+# Copy workspace package.json files (needed for npm install to resolve workspaces)
 COPY packages/graph-types/package.json ./packages/graph-types/
 COPY packages/api/package.json ./packages/api/
 COPY packages/backend/package.json ./packages/backend/
 
 # Install all dependencies (workspaces need the full install)
-RUN npm ci --include=dev
+RUN npm install --include=dev
 
 # Copy workspace source code (only the packages the backend needs)
 COPY packages/graph-types/ ./packages/graph-types/
