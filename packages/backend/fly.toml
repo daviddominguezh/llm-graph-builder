@@ -2,6 +2,7 @@ app = 'state-forge-backend'
 primary_region = 'iad'
 
 [build]
+  dockerfile = "packages/backend/Dockerfile"
 
 [http_service]
   internal_port = 4000

@@ -20,15 +20,26 @@ FROM base AS build
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3
 
-# Install node modules
+# Copy monorepo root files for workspace install
 COPY package-lock.json package.json ./
+
+# Copy workspace package.json files (needed for npm ci to resolve workspaces)
+COPY packages/graph-types/package.json ./packages/graph-types/
+COPY packages/api/package.json ./packages/api/
+COPY packages/backend/package.json ./packages/backend/
+
+# Install all dependencies (workspaces need the full install)
 RUN npm ci --include=dev
 
-# Copy application code
-COPY . .
+# Copy workspace source code (only the packages the backend needs)
+COPY packages/graph-types/ ./packages/graph-types/
+COPY packages/api/ ./packages/api/
+COPY packages/backend/ ./packages/backend/
 
-# Build application
-RUN npm run build
+# Build the backend and its dependencies
+RUN npm run build -w @daviddh/graph-types && \
+    npm run build -w @daviddh/llm-graph-runner && \
+    npm run build -w @daviddh/graph-runner-backend
 
 # Remove development dependencies
 RUN npm prune --omit=dev
@@ -41,5 +52,5 @@ FROM base
 COPY --from=build /app /app
 
 # Start the server by default, this can be overwritten at runtime
-EXPOSE 3000
-CMD [ "npm", "run", "start" ]
+EXPOSE 4000
+CMD [ "npm", "run", "start", "-w", "@daviddh/graph-runner-backend" ]
