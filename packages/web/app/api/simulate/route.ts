@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const HTTP_BAD_REQUEST = 400;
+const HTTP_UNAUTHORIZED = 401;
 
 interface SimulateBody {
   apiKeyId?: string;
@@ -33,6 +34,14 @@ export async function POST(request: Request): Promise<Response> {
   const raw: unknown = await request.json();
   if (!isSimulateBody(raw)) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: HTTP_BAD_REQUEST });
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: HTTP_UNAUTHORIZED });
   }
 
   const { apiKey, error } = await resolveApiKey(raw);

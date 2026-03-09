@@ -122,6 +122,12 @@ async function fetchCurrentSlug(supabase: SupabaseClient, orgId: string): Promis
   return (data as { slug: string }).slug;
 }
 
+function currentSlugMatchesBase(currentSlug: string, baseSlug: string): boolean {
+  if (currentSlug === baseSlug) return true;
+  const suffix = currentSlug.slice(baseSlug.length);
+  return /^-\d+$/.test(suffix);
+}
+
 export async function updateOrgName(
   supabase: SupabaseClient,
   orgId: string,
@@ -134,7 +140,7 @@ export async function updateOrgName(
 
   const currentSlug = await fetchCurrentSlug(supabase, orgId);
   const currentBase = currentSlug ?? '';
-  const slugChanged = currentBase !== baseSlug && !currentBase.startsWith(`${baseSlug}-`);
+  const slugChanged = !currentSlugMatchesBase(currentBase, baseSlug);
   const slug = slugChanged ? await findUniqueSlug(supabase, baseSlug, 'organizations') : currentBase;
   const payload: Record<string, string> = { name };
   if (slugChanged) payload.slug = slug;

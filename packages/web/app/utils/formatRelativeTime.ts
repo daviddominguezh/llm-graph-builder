@@ -22,8 +22,9 @@ const TIME_UNITS: TimeUnit[] = [
 ];
 
 function findUnit(diffSeconds: number): { unit: Intl.RelativeTimeFormatUnit; value: number } {
+  const abs = Math.abs(diffSeconds);
   for (const { threshold, unit, divisor } of TIME_UNITS) {
-    if (diffSeconds < threshold) {
+    if (abs < threshold) {
       return { unit, value: -Math.floor(diffSeconds / divisor) };
     }
   }
@@ -34,7 +35,7 @@ const MS_PER_SECOND = 1_000;
 
 export function formatRelativeTime(dateString: string, locale = 'en'): string {
   const diffSeconds = (Date.now() - new Date(dateString).getTime()) / MS_PER_SECOND;
-  const { unit, value } = findUnit(Math.abs(diffSeconds));
+  const { unit, value } = findUnit(diffSeconds);
   const formatter = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
   return formatter.format(value, unit);
 }

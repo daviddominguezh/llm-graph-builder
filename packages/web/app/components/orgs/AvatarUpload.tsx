@@ -3,6 +3,7 @@
 import { toProxyImageSrc } from '@/app/lib/supabase/image';
 import { Camera } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { toast } from 'sonner';
 import Image from 'next/image';
 import { type ChangeEvent, useRef } from 'react';
 
@@ -49,13 +50,15 @@ function AvatarPreview({ currentUrl, previewUrl, name }: Pick<AvatarUploadProps,
   return <AvatarFallback name={name} />;
 }
 
-function useFileHandler(onFileSelect: (file: File | null) => void) {
+function useFileHandler(onFileSelect: (file: File | null) => void, t: ReturnType<typeof useTranslations>) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   function handleChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
 
     if (file !== null && file.size > MAX_FILE_SIZE) {
+      toast.error(t('fileTooLarge'));
+      e.target.value = '';
       onFileSelect(null);
       return;
     }
@@ -72,7 +75,7 @@ function useFileHandler(onFileSelect: (file: File | null) => void) {
 
 export function AvatarUpload({ currentUrl, previewUrl, name, onFileSelect, onRemove }: AvatarUploadProps) {
   const t = useTranslations('orgs');
-  const { inputRef, handleChange, openPicker } = useFileHandler(onFileSelect);
+  const { inputRef, handleChange, openPicker } = useFileHandler(onFileSelect, t);
   const hasImage = (previewUrl ?? currentUrl) !== null;
 
   return (

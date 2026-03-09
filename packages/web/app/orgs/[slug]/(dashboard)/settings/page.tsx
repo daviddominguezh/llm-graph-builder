@@ -20,7 +20,17 @@ function isMemberRole(value: unknown): value is MemberRole {
 }
 
 async function verifyOwnership(supabase: SupabaseClient, orgId: string): Promise<boolean> {
-  const { data } = await supabase.from('org_members').select('role').eq('org_id', orgId).single();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { data } = await supabase
+    .from('org_members')
+    .select('role')
+    .eq('org_id', orgId)
+    .eq('user_id', user.id)
+    .single();
 
   if (!isMemberRole(data)) return false;
   return data.role === 'owner';

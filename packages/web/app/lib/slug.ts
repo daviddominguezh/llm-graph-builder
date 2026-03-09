@@ -38,10 +38,10 @@ function isSlugRow(value: unknown): value is SlugRow {
 }
 
 function extractSuffix(slug: string, baseSlug: string): number {
-  if (slug === baseSlug) return FIRST_SUFFIX;
+  if (slug === baseSlug) return 0;
   const tail = slug.slice(baseSlug.length + FIRST_SUFFIX);
   const num = Number(tail);
-  return Number.isFinite(num) ? num : FIRST_SUFFIX;
+  return Number.isFinite(num) && num > 0 ? num : 0;
 }
 
 function findNextSuffix(rows: SlugRow[], baseSlug: string): number {
@@ -61,7 +61,7 @@ export async function findUniqueSlug(
   const { data } = await supabase
     .from(table)
     .select('slug')
-    .or(`slug.eq.${baseSlug},slug.like.${baseSlug}-%`);
+    .or(`slug.eq.${baseSlug},slug.like.${baseSlug}-[0-9]%`);
 
   const rows: SlugRow[] = (data ?? []).filter(isSlugRow);
   if (rows.length === EMPTY_LENGTH) return baseSlug;
