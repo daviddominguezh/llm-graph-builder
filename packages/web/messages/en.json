@@ -115,5 +115,27 @@
     "deleteError": "Failed to delete organization. Please try again.",
     "uploadError": "Failed to upload image. Please try again.",
     "back": "Back"
+  },
+  "apiKeys": {
+    "title": "API Keys",
+    "add": "Add key",
+    "name": "Name",
+    "namePlaceholder": "My API Key",
+    "nameRequired": "Key name is required.",
+    "key": "Key",
+    "keyPlaceholder": "sk-or-...",
+    "keyRequired": "API key is required.",
+    "createError": "Failed to add key. Please try again.",
+    "deleteTitle": "Delete API key",
+    "deleteDescription": "This will delete \"{name}\". Agents using this key will need a new one selected.",
+    "deleteConfirm": "Delete",
+    "deleteCancel": "Cancel",
+    "deleteError": "Failed to delete key. Please try again.",
+    "noKeys": "No API keys configured. Add keys in org settings.",
+    "stagingKey": "Staging API Key",
+    "productionKey": "Production API Key",
+    "selectKey": "Select a key",
+    "none": "None",
+    "requiresKey": "Set an OpenRouter API key first"
   }
 }
