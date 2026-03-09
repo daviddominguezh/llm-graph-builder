@@ -4,6 +4,7 @@ import type { ComponentType } from 'react';
 
 import dynamic from 'next/dynamic';
 
+import type { ApiKeyRow } from '@/app/lib/api-keys';
 import type { Graph } from '@/app/schemas/graph.schema';
 
 interface EditorClientProps {
@@ -12,6 +13,9 @@ interface EditorClientProps {
   initialGraphData: Graph;
   initialProductionData: Graph;
   initialVersion: number;
+  orgApiKeys: ApiKeyRow[];
+  stagingApiKeyId: string | null;
+  productionApiKeyId: string | null;
 }
 
 const GraphBuilder = dynamic<EditorClientProps>(
@@ -28,6 +32,9 @@ export function EditorClient({
   initialGraphData,
   initialProductionData,
   initialVersion,
+  orgApiKeys,
+  stagingApiKeyId,
+  productionApiKeyId,
 }: EditorClientProps): React.JSX.Element {
   return (
     <GraphBuilder
@@ -36,6 +43,9 @@ export function EditorClient({
       initialGraphData={initialGraphData}
       initialProductionData={initialProductionData}
       initialVersion={initialVersion}
+      orgApiKeys={orgApiKeys}
+      stagingApiKeyId={stagingApiKeyId}
+      productionApiKeyId={productionApiKeyId}
     />
   );
 }

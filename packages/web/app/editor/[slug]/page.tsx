@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 
 import { getAgentBySlug } from '@/app/lib/agents';
+import { getApiKeysByOrg } from '@/app/lib/api-keys';
 import { createClient } from '@/app/lib/supabase/server';
 
 import { EditorClient } from './EditorClient';
@@ -18,6 +19,8 @@ export default async function EditorPage({ params }: EditorPageProps): Promise<R
     redirect('/');
   }
 
+  const { result: orgApiKeys } = await getApiKeysByOrg(supabase, agent.org_id);
+
   return (
     <EditorClient
       agentId={agent.id}
@@ -25,6 +28,9 @@ export default async function EditorPage({ params }: EditorPageProps): Promise<R
       initialGraphData={agent.graph_data_staging}
       initialProductionData={agent.graph_data_production}
       initialVersion={agent.version}
+      orgApiKeys={orgApiKeys}
+      stagingApiKeyId={agent.staging_api_key_id}
+      productionApiKeyId={agent.production_api_key_id}
     />
   );
 }
