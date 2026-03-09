@@ -5,6 +5,7 @@ import { useReactFlow, ReactFlowProvider, useNodesState, useEdgesState } from '@
 import '@xyflow/react/dist/style.css';
 
 import { HandleContext } from './nodes/HandleContext';
+import { PublishButton } from './panels/PublishButton';
 import { Toolbar } from './panels/Toolbar';
 import { StatusButton } from './panels/StatusButton';
 import { ConnectionMenu } from './panels/ConnectionMenu';
@@ -141,6 +142,7 @@ function useGraphBuilderHooks(props: GraphBuilderProps) {
     graphActions,
     handleImport,
     handleExport,
+    getGraphData,
     pendingSave,
     canPublish,
     simulation,
@@ -185,6 +187,18 @@ function GraphBuilderInner(props: GraphBuilderProps) {
           onTogglePresets={() => h.setPresetsOpen((prev) => !prev)}
           onToggleTools={() => h.setToolsOpen((prev) => !prev)}
           pendingSave={h.pendingSave}
+          publishSlot={
+            props.agentId !== undefined ? (
+              <PublishButton
+                agentId={props.agentId}
+                canPublish={h.canPublish}
+                onPublished={(newVersion) => {
+                  h.setVersion(newVersion);
+                  h.setProductionData(h.getGraphData() ?? undefined);
+                }}
+              />
+            ) : undefined
+          }
         />
 
         <GraphCanvas
