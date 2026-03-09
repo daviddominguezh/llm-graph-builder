@@ -9,6 +9,7 @@ import { DeleteAgentDialog } from './DeleteAgentDialog';
 
 interface AgentTableProps {
   agents: AgentMetadata[];
+  orgSlug: string;
 }
 
 function TableHeader() {
@@ -27,7 +28,7 @@ function TableHeader() {
   );
 }
 
-export function AgentTable({ agents }: AgentTableProps) {
+export function AgentTable({ agents, orgSlug }: AgentTableProps) {
   const [deleteTarget, setDeleteTarget] = useState<AgentMetadata | null>(null);
 
   return (
@@ -36,7 +37,7 @@ export function AgentTable({ agents }: AgentTableProps) {
         <TableHeader />
         <tbody>
           {agents.map((agent) => (
-            <AgentTableRow key={agent.id} agent={agent} onDelete={setDeleteTarget} />
+            <AgentTableRow key={agent.id} agent={agent} orgSlug={orgSlug} onDelete={setDeleteTarget} />
           ))}
         </tbody>
       </table>

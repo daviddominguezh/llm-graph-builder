@@ -25,7 +25,7 @@ export default async function OrgPage({ params }: OrgPageProps): Promise<React.J
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-6">
       <OrgHeader org={org} />
-      <AgentDashboard agents={agents} orgId={org.id} />
+      <AgentDashboard agents={agents} orgId={org.id} orgSlug={org.slug} />
     </div>
   );
 }

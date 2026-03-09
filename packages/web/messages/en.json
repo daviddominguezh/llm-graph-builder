@@ -59,7 +59,9 @@
     "import": "Import",
     "export": "Export",
     "logout": "Sign out",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "backToAgents": "Back to agents",
+    "org": "Org"
   },
   "agents": {
     "title": "My Agents",

@@ -13,6 +13,7 @@ import { EmptyState } from './EmptyState';
 interface AgentDashboardProps {
   agents: AgentMetadata[];
   orgId: string;
+  orgSlug: string;
 }
 
 function DashboardHeader({ onCreateClick }: { onCreateClick: () => void }) {
@@ -29,15 +30,15 @@ function DashboardHeader({ onCreateClick }: { onCreateClick: () => void }) {
   );
 }
 
-export function AgentDashboard({ agents, orgId }: AgentDashboardProps) {
+export function AgentDashboard({ agents, orgId, orgSlug }: AgentDashboardProps) {
   const [createOpen, setCreateOpen] = useState(false);
   const hasAgents = agents.length > 0;
 
   return (
     <div className="flex w-full flex-col gap-6">
       <DashboardHeader onCreateClick={() => setCreateOpen(true)} />
-      {hasAgents ? <AgentTable agents={agents} /> : <EmptyState />}
-      <CreateAgentDialog open={createOpen} onOpenChange={setCreateOpen} orgId={orgId} />
+      {hasAgents ? <AgentTable agents={agents} orgSlug={orgSlug} /> : <EmptyState />}
+      <CreateAgentDialog open={createOpen} onOpenChange={setCreateOpen} orgId={orgId} orgSlug={orgSlug} />
     </div>
   );
 }

@@ -2,29 +2,33 @@ import { redirect } from 'next/navigation';
 
 import { getAgentBySlug } from '@/app/lib/agents';
 import { getApiKeysByOrg } from '@/app/lib/api-keys';
+import { getOrgBySlug } from '@/app/lib/orgs';
 import { createClient } from '@/app/lib/supabase/server';
 
 import { EditorClient } from './EditorClient';
 
 interface EditorPageProps {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ slug: string; agentSlug: string }>;
 }
 
 export default async function EditorPage({ params }: EditorPageProps): Promise<React.JSX.Element> {
-  const { slug } = await params;
+  const { slug, agentSlug } = await params;
   const supabase = await createClient();
-  const { agent } = await getAgentBySlug(supabase, slug);
 
-  if (!agent) {
-    redirect('/');
-  }
+  const { result: org } = await getOrgBySlug(supabase, slug);
+  if (!org) redirect('/');
 
-  const { result: orgApiKeys } = await getApiKeysByOrg(supabase, agent.org_id);
+  const { agent } = await getAgentBySlug(supabase, agentSlug);
+  if (!agent || agent.org_id !== org.id) redirect(`/orgs/${slug}`);
+
+  const { result: orgApiKeys } = await getApiKeysByOrg(supabase, org.id);
 
   return (
     <EditorClient
       agentId={agent.id}
       agentName={agent.name}
+      orgSlug={org.slug}
+      orgName={org.name}
       initialGraphData={agent.graph_data_staging}
       initialProductionData={agent.graph_data_production}
       initialVersion={agent.version}

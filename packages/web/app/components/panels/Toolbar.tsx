@@ -13,6 +13,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
+  ArrowLeft,
   Download,
   LogOut,
   Menu,
@@ -24,6 +25,7 @@ import {
   Waypoints,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type ReactNode, useEffect, useState } from 'react';
 
@@ -41,6 +43,8 @@ interface ToolbarProps {
   pendingSave?: boolean;
   publishSlot?: ReactNode;
   stagingKeyId?: string | null;
+  orgSlug?: string;
+  orgName?: string;
 }
 
 function useLogout() {
@@ -78,9 +82,7 @@ function useCurrentUser(): UserInfo | null {
 }
 
 function UserSection({ user }: { user: UserInfo | null }) {
-  if (user === null) {
-    return null;
-  }
+  if (user === null) return null;
 
   return (
     <>
@@ -95,13 +97,31 @@ function UserSection({ user }: { user: UserInfo | null }) {
   );
 }
 
+function OrgSection({ orgName }: { orgName: string }) {
+  const t = useTranslations('common');
+
+  return (
+    <>
+      <DropdownMenuGroup>
+        <DropdownMenuLabel className="font-normal">
+          <span className="text-muted-foreground text-xs">{t('org')}:</span>{' '}
+          <span className="text-xs font-bold text-black">{orgName}</span>
+        </DropdownMenuLabel>
+      </DropdownMenuGroup>
+      <Separator />
+    </>
+  );
+}
+
 interface FileMenuProps {
   onImport: () => void;
   onExport: () => void;
   user: UserInfo | null;
+  orgSlug?: string;
+  orgName?: string;
 }
 
-function FileMenu({ onImport, onExport, user }: FileMenuProps) {
+function FileMenu({ onImport, onExport, user, orgSlug, orgName }: FileMenuProps) {
   const t = useTranslations('common');
   const handleLogout = useLogout();
 
@@ -115,6 +135,7 @@ function FileMenu({ onImport, onExport, user }: FileMenuProps) {
         }
       />
       <DropdownMenuContent side="bottom" align="start" className="w-52">
+        {orgName !== undefined && <OrgSection orgName={orgName} />}
         <UserSection user={user} />
         <div className="py-1">
           <DropdownMenuItem onClick={onImport}>
@@ -127,6 +148,12 @@ function FileMenu({ onImport, onExport, user }: FileMenuProps) {
           </DropdownMenuItem>
         </div>
         <Separator />
+        {orgSlug !== undefined && (
+          <DropdownMenuItem render={<Link href={`/orgs/${orgSlug}`} />}>
+            <ArrowLeft className="size-4" />
+            {t('backToAgents')}
+          </DropdownMenuItem>
+        )}
         <div className="pt-1">
           <DropdownMenuItem onClick={handleLogout} className="text-destructive">
             <LogOut className="size-4" />
@@ -179,25 +206,52 @@ function PlayButton({
   );
 }
 
-export function Toolbar({
-  onImport,
-  onExport,
-  onPlay,
-  simulationActive,
-  statusSlot,
-  onToggleGlobalPanel,
-  onTogglePresets,
-  onToggleTools,
-  pendingSave,
-  publishSlot,
-  stagingKeyId,
-}: ToolbarProps) {
+function ToolbarButtons(props: ToolbarProps) {
+  const { onToggleGlobalPanel, onToggleTools, onTogglePresets, statusSlot, pendingSave, publishSlot } = props;
+
+  return (
+    <>
+      {onToggleGlobalPanel && (
+        <>
+          <Separator orientation="vertical" />
+          <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onToggleGlobalPanel}>
+            <Waypoints className="size-4" />
+          </Button>
+        </>
+      )}
+      {onToggleTools && (
+        <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onToggleTools}>
+          <SquareFunction className="size-4" />
+        </Button>
+      )}
+      {onTogglePresets && (
+        <>
+          <Separator orientation="vertical" />
+          <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onTogglePresets}>
+            <SlidersHorizontal className="size-4" />
+          </Button>
+        </>
+      )}
+      {statusSlot && (
+        <>
+          <Separator orientation="vertical" />
+          {statusSlot}
+        </>
+      )}
+      {pendingSave !== undefined && <SaveIndicator pendingSave={pendingSave} />}
+      {publishSlot}
+    </>
+  );
+}
+
+export function Toolbar(props: ToolbarProps) {
+  const { onImport, onExport, onPlay, simulationActive, stagingKeyId, orgSlug, orgName } = props;
   const user = useCurrentUser();
 
   return (
     <>
       <div className="absolute top-2 left-2 z-1">
-        <FileMenu onImport={onImport} onExport={onExport} user={user} />
+        <FileMenu onImport={onImport} onExport={onExport} user={user} orgSlug={orgSlug} orgName={orgName} />
       </div>
       <header className="absolute z-1 flex items-stretch justify-center gap-1 border rounded-lg bg-background p-1 top-2 shadow-lg">
         <PlayButton
@@ -208,42 +262,7 @@ export function Toolbar({
         <Button className="h-10 w-10" variant="ghost" size="sm">
           <WandSparkles className="size-4" />
         </Button>
-
-        {onToggleGlobalPanel && (
-          <>
-            <Separator orientation="vertical" />
-            <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onToggleGlobalPanel}>
-              <Waypoints className="size-4" />
-            </Button>
-          </>
-        )}
-
-        {onToggleTools && (
-          <>
-            <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onToggleTools}>
-              <SquareFunction className="size-4" />
-            </Button>
-          </>
-        )}
-
-        {onTogglePresets && (
-          <>
-            <Separator orientation="vertical" />
-            <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onTogglePresets}>
-              <SlidersHorizontal className="size-4" />
-            </Button>
-          </>
-        )}
-
-        {statusSlot && (
-          <>
-            <Separator orientation="vertical" />
-            {statusSlot}
-          </>
-        )}
-
-        {pendingSave !== undefined && <SaveIndicator pendingSave={pendingSave} />}
-        {publishSlot}
+        <ToolbarButtons {...props} />
       </header>
     </>
   );

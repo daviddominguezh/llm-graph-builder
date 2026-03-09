@@ -111,8 +111,15 @@ function useBeforeUnloadWarning(pendingSave: boolean): void {
   }, [pendingSave]);
 }
 
+function useInitialSnapshot(getGraphData: () => Graph | null): string {
+  const ref = useRef<string | null>(null);
+  ref.current ??= serializeGraph(getGraphData) ?? '';
+  return ref.current;
+}
+
 export function useAutoSave({ agentId, getGraphData, enabled }: UseAutoSaveOptions): UseAutoSaveReturn {
-  const lastSavedRef = useRef<string>('');
+  const initialSnapshot = useInitialSnapshot(getGraphData);
+  const lastSavedRef = useRef<string>(initialSnapshot);
   const [pendingSave, setPendingSave] = useState(false);
 
   const callbacks: SaveCallbacks = {

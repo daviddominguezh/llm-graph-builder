@@ -107,11 +107,13 @@ async function insertOrg(
   name: string,
   slug: string
 ): Promise<{ result: OrgRow | null; error: string | null }> {
-  const result = await supabase.from('organizations').insert({ name, slug }).select().single();
+  // Insert without .select() — the AFTER INSERT trigger adds the creator to
+  // org_members, but it fires AFTER the RETURNING clause is evaluated.
+  // A separate SELECT lets the trigger complete first.
+  const { error } = await supabase.from('organizations').insert({ name, slug });
+  if (error !== null) return { result: null, error: error.message };
 
-  if (result.error !== null) return { result: null, error: result.error.message };
-  if (!isOrgRow(result.data)) return { result: null, error: 'Invalid organization data' };
-  return { result: result.data, error: null };
+  return await getOrgBySlug(supabase, slug);
 }
 
 export async function updateOrgName(

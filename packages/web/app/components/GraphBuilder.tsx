@@ -34,6 +34,8 @@ const DEFAULT_VERSION = 0;
 export interface GraphBuilderProps {
   agentId?: string;
   agentName?: string;
+  orgSlug?: string;
+  orgName?: string;
   initialGraphData?: Graph;
   initialProductionData?: Graph;
   initialVersion?: number;
@@ -201,6 +203,8 @@ function GraphBuilderInner(props: GraphBuilderProps) {
           onToggleTools={() => h.setToolsOpen((prev) => !prev)}
           pendingSave={h.pendingSave}
           stagingKeyId={h.apiKeys.stagingKeyId}
+          orgSlug={props.orgSlug}
+          orgName={props.orgName}
           publishSlot={
             props.agentId !== undefined ? (
               <PublishButton

@@ -10,6 +10,8 @@ import type { Graph } from '@/app/schemas/graph.schema';
 interface EditorClientProps {
   agentId: string;
   agentName: string;
+  orgSlug: string;
+  orgName: string;
   initialGraphData: Graph;
   initialProductionData: Graph;
   initialVersion: number;
@@ -26,26 +28,6 @@ const GraphBuilder = dynamic<EditorClientProps>(
   { ssr: false }
 );
 
-export function EditorClient({
-  agentId,
-  agentName,
-  initialGraphData,
-  initialProductionData,
-  initialVersion,
-  orgApiKeys,
-  stagingApiKeyId,
-  productionApiKeyId,
-}: EditorClientProps): React.JSX.Element {
-  return (
-    <GraphBuilder
-      agentId={agentId}
-      agentName={agentName}
-      initialGraphData={initialGraphData}
-      initialProductionData={initialProductionData}
-      initialVersion={initialVersion}
-      orgApiKeys={orgApiKeys}
-      stagingApiKeyId={stagingApiKeyId}
-      productionApiKeyId={productionApiKeyId}
-    />
-  );
+export function EditorClient(props: EditorClientProps): React.JSX.Element {
+  return <GraphBuilder {...props} />;
 }

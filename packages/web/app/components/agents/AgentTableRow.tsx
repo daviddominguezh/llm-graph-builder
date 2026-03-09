@@ -9,10 +9,11 @@ import Link from 'next/link';
 
 interface AgentTableRowProps {
   agent: AgentMetadata;
+  orgSlug: string;
   onDelete: (agent: AgentMetadata) => void;
 }
 
-function AgentActions({ agent, onDelete }: AgentTableRowProps) {
+function AgentActions({ agent, orgSlug, onDelete }: AgentTableRowProps) {
   const t = useTranslations('agents');
 
   return (
@@ -21,7 +22,7 @@ function AgentActions({ agent, onDelete }: AgentTableRowProps) {
         <Button
           variant="ghost"
           size="icon-sm"
-          render={<Link href={`/editor/${agent.slug}`} />}
+          render={<Link href={`/orgs/${orgSlug}/editor/${agent.slug}`} />}
           aria-label={t('edit')}
         >
           <Pencil />
@@ -34,18 +35,18 @@ function AgentActions({ agent, onDelete }: AgentTableRowProps) {
   );
 }
 
-export function AgentTableRow({ agent, onDelete }: AgentTableRowProps) {
+export function AgentTableRow({ agent, orgSlug, onDelete }: AgentTableRowProps) {
   return (
     <tr className="border-b">
       <td className="py-2 font-medium">
-        <Link href={`/editor/${agent.slug}`} className="hover:underline">
+        <Link href={`/orgs/${orgSlug}/editor/${agent.slug}`} className="hover:underline">
           {agent.name}
         </Link>
       </td>
       <td className="text-muted-foreground py-2">{agent.description}</td>
       <td className="py-2">v{agent.version}</td>
       <td className="text-muted-foreground py-2">{formatRelativeTime(agent.updated_at)}</td>
-      <AgentActions agent={agent} onDelete={onDelete} />
+      <AgentActions agent={agent} orgSlug={orgSlug} onDelete={onDelete} />
     </tr>
   );
 }
