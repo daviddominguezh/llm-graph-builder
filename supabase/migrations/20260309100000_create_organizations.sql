@@ -20,7 +20,7 @@ create index idx_organizations_slug on public.organizations(slug);
 create table public.org_members (
   org_id     uuid not null references public.organizations(id) on delete cascade,
   user_id    uuid not null references public.users(id) on delete cascade,
-  role       text not null check (role in ('owner', 'member')),
+  role       text not null default 'owner' check (role in ('owner', 'member')),
   created_at timestamptz not null default now(),
   primary key (org_id, user_id)
 );
@@ -38,21 +38,22 @@ create policy "Org members can read their orgs"
   using (
     exists (
       select 1 from public.org_members
-      where org_members.org_id = id
+      where org_members.org_id = organizations.id
         and org_members.user_id = auth.uid()
     )
   );
 
 create policy "Authenticated users can create orgs"
   on public.organizations for insert
-  with check (auth.uid() is not null);
+  to authenticated
+  with check (true);
 
 create policy "Org owners can update their orgs"
   on public.organizations for update
   using (
     exists (
       select 1 from public.org_members
-      where org_members.org_id = id
+      where org_members.org_id = organizations.id
         and org_members.user_id = auth.uid()
         and org_members.role = 'owner'
     )
@@ -63,7 +64,7 @@ create policy "Org owners can delete their orgs"
   using (
     exists (
       select 1 from public.org_members
-      where org_members.org_id = id
+      where org_members.org_id = organizations.id
         and org_members.user_id = auth.uid()
         and org_members.role = 'owner'
     )
@@ -111,7 +112,7 @@ create policy "Org owners can remove members"
 -- 5. Trigger: auto-add creator as owner on org INSERT
 -- ============================================================================
 
-create or replace function public.handle_new_org()
+create or replace function public.add_org_creator()
 returns trigger
 language plpgsql
 security definer set search_path = ''
@@ -129,7 +130,7 @@ $$;
 
 create trigger on_org_created
   after insert on public.organizations
-  for each row execute function public.handle_new_org();
+  for each row execute function public.add_org_creator();
 
 -- ============================================================================
 -- 6. Trigger: auto-update updated_at on organizations UPDATE
@@ -157,32 +158,31 @@ create trigger on_organizations_updated
 alter table public.agents
   add column org_id uuid references public.organizations(id) on delete cascade;
 
--- 7b. Create a default org for each user who owns agents
-insert into public.organizations (id, name, slug)
-select
-  gen_random_uuid(),
-  coalesce(nullif(u.full_name, ''), u.email) || '''s Organization',
-  u.id::text
-from public.users u
-where exists (
-  select 1 from public.agents a where a.user_id = u.id
-);
+-- 7b-d. Create a default org per user, add them as owner, update agents
+do $$
+declare
+  r record;
+  new_org_id uuid;
+  org_slug text;
+begin
+  for r in
+    select distinct u.id as user_id, u.full_name, u.email
+    from public.users u
+    join public.agents a on a.user_id = u.id
+  loop
+    new_org_id := gen_random_uuid();
+    org_slug := lower(replace(coalesce(nullif(r.full_name, ''), 'my-org'), ' ', '-'))
+                || '-' || substring(new_org_id::text from 1 for 8);
 
--- 7c. Insert the user as owner of their default org
--- (The trigger handles this automatically for new inserts, but the
---  bulk insert above uses a direct INSERT so we do it manually here
---  in case the trigger's auth.uid() returns null during migration.)
-insert into public.org_members (org_id, user_id, role)
-select o.id, u.id, 'owner'
-from public.organizations o
-join public.users u on o.slug = u.id::text
-on conflict (org_id, user_id) do nothing;
+    insert into public.organizations (id, name, slug)
+    values (new_org_id, coalesce(nullif(r.full_name, ''), r.email) || '''s Organization', org_slug);
 
--- 7d. Populate org_id on existing agents
-update public.agents
-set org_id = o.id
-from public.organizations o
-where o.slug = agents.user_id::text;
+    insert into public.org_members (org_id, user_id, role)
+    values (new_org_id, r.user_id, 'owner');
+
+    update public.agents set org_id = new_org_id where user_id = r.user_id;
+  end loop;
+end $$;
 
 -- 7e. Make org_id NOT NULL
 alter table public.agents
@@ -226,25 +226,23 @@ create policy "Org members can create agents"
     )
   );
 
-create policy "Org owners can update agents"
+create policy "Org members can update agents"
   on public.agents for update
   using (
     exists (
       select 1 from public.org_members
       where org_members.org_id = agents.org_id
         and org_members.user_id = auth.uid()
-        and org_members.role = 'owner'
     )
   );
 
-create policy "Org owners can delete agents"
+create policy "Org members can delete agents"
   on public.agents for delete
   using (
     exists (
       select 1 from public.org_members
       where org_members.org_id = agents.org_id
         and org_members.user_id = auth.uid()
-        and org_members.role = 'owner'
     )
   );
 
@@ -263,23 +261,17 @@ create policy "Anyone can read org avatars"
 -- Authenticated users can upload
 create policy "Authenticated users can upload org avatars"
   on storage.objects for insert
-  with check (
-    bucket_id = 'org-avatars'
-    and auth.uid() is not null
-  );
+  to authenticated
+  with check (bucket_id = 'org-avatars');
 
 -- Authenticated users can update their uploads
 create policy "Authenticated users can update org avatars"
   on storage.objects for update
-  using (
-    bucket_id = 'org-avatars'
-    and auth.uid() is not null
-  );
+  to authenticated
+  using (bucket_id = 'org-avatars');
 
 -- Authenticated users can delete
 create policy "Authenticated users can delete org avatars"
   on storage.objects for delete
-  using (
-    bucket_id = 'org-avatars'
-    and auth.uid() is not null
-  );
+  to authenticated
+  using (bucket_id = 'org-avatars');
