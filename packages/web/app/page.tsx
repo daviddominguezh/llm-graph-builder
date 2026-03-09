@@ -1,12 +1,21 @@
-"use client";
+import { redirect } from 'next/navigation';
 
-import dynamic from 'next/dynamic';
+import { getAgentsByUser } from '@/app/lib/agents';
+import { createClient } from '@/app/lib/supabase/server';
 
-const GraphBuilder = dynamic(
-  () => import('./components/GraphBuilder').then((mod) => mod.GraphBuilder),
-  { ssr: false }
-);
+import { AgentDashboard } from './components/agents/AgentDashboard';
 
-export default function Page(): React.JSX.Element {
-  return <GraphBuilder />;
+export default async function DashboardPage(): Promise<React.JSX.Element> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect('/login');
+  }
+
+  const { agents } = await getAgentsByUser(supabase);
+
+  return <AgentDashboard agents={agents} userId={user.id} />;
 }
