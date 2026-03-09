@@ -14,11 +14,11 @@ function OrgAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null
   const initial = name.trim().charAt(0).toUpperCase() || '?';
 
   if (avatarUrl !== null) {
-    return <img src={avatarUrl} alt={name} className="h-8 w-8 rounded-full object-cover" />;
+    return <img src={avatarUrl} alt={name} className="h-6 w-6 rounded-full object-cover" />;
   }
 
   return (
-    <div className="bg-muted flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium">
+    <div className="bg-muted flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium">
       {initial}
     </div>
   );

@@ -65,7 +65,7 @@ function NameSection({ org }: OrgSettingsFormProps) {
   return (
     <form onSubmit={handleSubmit} className="flex min-w-0 flex-1 flex-col gap-2">
       <Label htmlFor="org-name">{t('name')}</Label>
-      <div className="flex items-end gap-2">
+      <div className="flex items-center gap-2">
         <Input id="org-name" name="name" defaultValue={org.name} placeholder={t('namePlaceholder')} required />
         <Button type="submit" variant="outline" size="sm" disabled={loading}>
           {t('saveName')}

@@ -20,7 +20,7 @@ function AvatarFallback({ name }: { name: string }) {
   const letter = name.trim().charAt(0).toUpperCase() || '?';
 
   return (
-    <div className="bg-muted text-muted-foreground flex size-14 items-center justify-center rounded-full text-xl font-semibold">
+    <div className="bg-muted text-muted-foreground flex size-12 items-center justify-center rounded-full text-base font-semibold">
       {letter}
     </div>
   );
@@ -31,9 +31,9 @@ function AvatarImage({ src, name }: { src: string; name: string }) {
     <Image
       src={src}
       alt={name}
-      width={56}
-      height={56}
-      className="size-14 rounded-full object-cover"
+      width={48}
+      height={48}
+      className="size-12 rounded-full object-cover"
     />
   );
 }
