@@ -1,0 +1,100 @@
+'use client';
+
+import { getOrgsAction } from '@/app/actions/orgs';
+import type { OrgRow, OrgWithAgentCount } from '@/app/lib/orgs';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Check, Plus } from 'lucide-react';
+import Image from 'next/image';
+import { useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
+import { type ReactNode, useCallback, useEffect, useState } from 'react';
+
+import { CreateOrgDialog } from './CreateOrgDialog';
+
+interface OrgSwitcherPopoverProps {
+  currentOrg: OrgRow;
+  children: ReactNode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+function ListAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
+  const initial = name.trim().charAt(0).toUpperCase() || '?';
+
+  if (avatarUrl !== null) {
+    return (
+      <Image
+        src={avatarUrl}
+        alt={name}
+        width={24}
+        height={24}
+        className="h-6 w-6 shrink-0 rounded-full object-cover"
+      />
+    );
+  }
+
+  return (
+    <div className="bg-muted flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium">
+      {initial}
+    </div>
+  );
+}
+
+function useOrgList(open: boolean) {
+  const [orgs, setOrgs] = useState<OrgWithAgentCount[]>([]);
+
+  const fetchOrgs = useCallback(async () => {
+    const { result } = await getOrgsAction();
+    setOrgs(result);
+  }, []);
+
+  useEffect(() => {
+    if (open) void fetchOrgs();
+  }, [open, fetchOrgs]);
+
+  return orgs;
+}
+
+export function OrgSwitcherPopover({ currentOrg, children, open, onOpenChange }: OrgSwitcherPopoverProps) {
+  const t = useTranslations('orgs');
+  const router = useRouter();
+  const orgs = useOrgList(open);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const handleCreate = () => {
+    onOpenChange(false);
+    setDialogOpen(true);
+  };
+
+  return (
+    <>
+      <DropdownMenu open={open} onOpenChange={onOpenChange}>
+        <DropdownMenuTrigger className="w-full cursor-pointer">{children}</DropdownMenuTrigger>
+        <DropdownMenuContent side="bottom" align="start" className="w-56">
+          <DropdownMenuGroup>
+            {orgs.map((org) => (
+              <DropdownMenuItem key={org.id} onClick={() => router.push(`/orgs/${org.slug}`)}>
+                <ListAvatar name={org.name} avatarUrl={org.avatar_url} />
+                <span className="flex-1 truncate">{org.name}</span>
+                {org.id === currentOrg.id && <Check className="ml-auto size-3.5" />}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleCreate}>
+            <Plus className="size-4" />
+            {t('create')}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <CreateOrgDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+    </>
+  );
+}

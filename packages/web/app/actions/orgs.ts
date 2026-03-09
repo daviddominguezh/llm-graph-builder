@@ -4,10 +4,11 @@ import {
   removeOrgAvatar as removeOrgAvatarLib,
   uploadOrgAvatar as uploadOrgAvatarLib,
 } from '@/app/lib/org-storage';
-import type { OrgRow } from '@/app/lib/orgs';
+import type { OrgRow, OrgWithAgentCount } from '@/app/lib/orgs';
 import {
   createOrg as createOrgLib,
   deleteOrg as deleteOrgLib,
+  getOrgsByUser,
   updateOrgAvatar as updateOrgAvatarLib,
   updateOrgName as updateOrgNameLib,
 } from '@/app/lib/orgs';
@@ -67,6 +68,11 @@ export async function uploadOrgAvatarAction(
   const res = await updateOrgAvatarLib(supabase, orgId, url);
   if (res.error !== null) serverError('[uploadOrgAvatarAction] update error:', res.error);
   return res;
+}
+
+export async function getOrgsAction(): Promise<{ result: OrgWithAgentCount[]; error: string | null }> {
+  const supabase = await createClient();
+  return await getOrgsByUser(supabase);
 }
 
 export async function removeOrgAvatarAction(orgId: string): Promise<{ error: string | null }> {

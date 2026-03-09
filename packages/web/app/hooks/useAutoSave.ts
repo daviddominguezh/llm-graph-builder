@@ -3,7 +3,7 @@ import type { Graph } from '@/app/schemas/graph.schema';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-const AUTO_SAVE_DELAY_MS = 20000;
+const AUTO_SAVE_DELAY_MS = 10000;
 
 interface UseAutoSaveOptions {
   agentId: string | undefined;
