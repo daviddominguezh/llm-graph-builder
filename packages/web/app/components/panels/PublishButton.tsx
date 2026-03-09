@@ -3,7 +3,7 @@
 import { publishAgentAction } from '@/app/actions/agents';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { Loader2, Upload } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -17,7 +17,7 @@ interface PublishButtonProps {
 
 function PublishSpinner() {
   return (
-    <Button variant="ghost" size="sm" disabled className="h-10 gap-1.5 px-3">
+    <Button variant="default" size="sm" disabled className="h-10 gap-1.5 px-3">
       <Loader2 className="size-4 animate-spin" />
     </Button>
   );
@@ -38,13 +38,12 @@ function PublishButtonContent({
 
   const button = (
     <Button
-      variant={canPublish && hasApiKey ? 'default' : 'ghost'}
+      variant="default"
       size="sm"
       onClick={disabled ? undefined : onPublish}
       disabled={disabled}
       className="h-10 gap-1.5 px-3"
     >
-      <Upload className="size-4" />
       {t('publish')}
     </Button>
   );

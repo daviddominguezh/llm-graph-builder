@@ -194,7 +194,7 @@ function PlayButton({
 }
 
 function ToolbarButtons(props: ToolbarProps) {
-  const { onToggleGlobalPanel, onToggleTools, onTogglePresets, statusSlot, pendingSave, publishSlot } = props;
+  const { onToggleGlobalPanel, onToggleTools, onTogglePresets, statusSlot, pendingSave } = props;
 
   return (
     <>
@@ -226,7 +226,6 @@ function ToolbarButtons(props: ToolbarProps) {
         </>
       )}
       {pendingSave !== undefined && <SaveIndicator pendingSave={pendingSave} />}
-      {publishSlot}
     </>
   );
 }
@@ -266,6 +265,7 @@ export function Toolbar(props: ToolbarProps) {
         </Button>
         <ToolbarButtons {...props} />
       </header>
+      {props.publishSlot && <div className="absolute top-2 right-2 z-1">{props.publishSlot}</div>}
     </>
   );
 }
