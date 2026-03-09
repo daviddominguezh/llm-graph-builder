@@ -19,9 +19,9 @@ export default async function OrgLayout({ children, params }: OrgLayoutProps): P
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="relative h-screen">
       <OrgSidebar org={org} />
-      <main className="flex-1 overflow-y-auto p-6">{children}</main>
+      <main className="h-full overflow-y-auto p-6 pl-16">{children}</main>
     </div>
   );
 }

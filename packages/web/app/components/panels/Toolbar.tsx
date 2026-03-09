@@ -24,6 +24,7 @@ import {
   Waypoints,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
@@ -65,7 +66,7 @@ function OrgAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null
   const initial = name.trim().charAt(0).toUpperCase() || '?';
 
   if (avatarUrl !== null) {
-    return <img src={avatarUrl} alt={name} className="h-5 w-5 rounded-full ring-1 ring-white object-cover" />;
+    return <Image src={avatarUrl} alt={name} width={20} height={20} className="h-5 w-5 rounded-full ring-1 ring-white object-cover" />;
   }
 
   return (

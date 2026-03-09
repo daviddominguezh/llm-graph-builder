@@ -1,6 +1,7 @@
 import type { OrgWithAgentCount } from '@/app/lib/orgs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import Link from 'next/link';
 
 interface OrgCardProps {
@@ -11,7 +12,7 @@ function OrgAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null
   const initial = name.trim().charAt(0).toUpperCase() || '?';
 
   if (avatarUrl !== null) {
-    return <img src={avatarUrl} alt={name} className="h-12 w-12 rounded-full object-cover" />;
+    return <Image src={avatarUrl} alt={name} width={48} height={48} className="h-12 w-12 rounded-full object-cover" />;
   }
 
   return (
