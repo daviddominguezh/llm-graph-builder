@@ -37,11 +37,13 @@ function isSlugRow(value: unknown): value is SlugRow {
   return typeof value === 'object' && value !== null && 'slug' in value;
 }
 
+const BASE_SUFFIX = 0;
+
 function extractSuffix(slug: string, baseSlug: string): number {
-  if (slug === baseSlug) return 0;
+  if (slug === baseSlug) return BASE_SUFFIX;
   const tail = slug.slice(baseSlug.length + FIRST_SUFFIX);
   const num = Number(tail);
-  return Number.isFinite(num) && num > 0 ? num : 0;
+  return Number.isFinite(num) && num > BASE_SUFFIX ? num : BASE_SUFFIX;
 }
 
 function findNextSuffix(rows: SlugRow[], baseSlug: string): number {

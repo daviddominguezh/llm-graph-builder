@@ -125,7 +125,7 @@ async function fetchCurrentSlug(supabase: SupabaseClient, orgId: string): Promis
 function currentSlugMatchesBase(currentSlug: string, baseSlug: string): boolean {
   if (currentSlug === baseSlug) return true;
   const suffix = currentSlug.slice(baseSlug.length);
-  return /^-\d+$/.test(suffix);
+  return /^-\d+$/v.test(suffix);
 }
 
 export async function updateOrgName(
