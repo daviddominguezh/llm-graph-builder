@@ -281,7 +281,7 @@ export function EdgePanel({
   };
 
   // Context preconditions for this edge
-  const edgeContextPreconditionList =
+  const edgeContextPreconditionList: string[] =
     edgeData?.contextPreconditions?.preconditions ?? [];
 
   const unusedContextPreconditions = availableContextPreconditions.filter(
