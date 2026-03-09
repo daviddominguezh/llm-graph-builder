@@ -163,7 +163,7 @@ function useMenuCreateNode(
       id,
       type: 'agent',
       position: newPosition,
-      data: { nodeId: id, text: 'New node', description: 'Node description', nodeWidth: DEFAULT_NODE_WIDTH },
+      data: { nodeId: id, text: 'New node', description: '', nodeWidth: DEFAULT_NODE_WIDTH },
     };
 
     params.setNodes((nds) => [...nds, newNode]);

@@ -63,7 +63,7 @@ export async function findUniqueSlug(
   const { data } = await supabase
     .from(table)
     .select('slug')
-    .or(`slug.eq.${baseSlug},slug.like.${baseSlug}-[0-9]%`);
+    .or(`slug.eq.${baseSlug},slug.like.${baseSlug}-%`);
 
   const rows: SlugRow[] = (data ?? []).filter(isSlugRow);
   if (rows.length === EMPTY_LENGTH) return baseSlug;

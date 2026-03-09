@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { type ChangeEvent, type FormEvent, useCallback, useState } from 'react';
+import { type FormEvent, useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
 interface CreateOrgDialogProps {
@@ -48,16 +48,9 @@ function useAvatarPreview() {
 
 interface CreateOrgFieldsProps {
   nameError: string;
-  previewUrl: string | null;
-  orgName: string;
-  onNameChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  onFileSelect: (file: File | null) => void;
 }
 
-function CreateOrgFields({
-  nameError,
-  onNameChange,
-}: CreateOrgFieldsProps) {
+function CreateOrgFields({ nameError }: CreateOrgFieldsProps) {
   const t = useTranslations('orgs');
 
   return (
@@ -69,7 +62,6 @@ function CreateOrgFields({
           name="name"
           placeholder={t('namePlaceholder')}
           required
-          onChange={onNameChange}
         />
         {nameError !== '' && <p className="text-destructive text-xs">{nameError}</p>}
       </div>
@@ -147,18 +139,11 @@ function useCreateOrgSubmit(onOpenChange: (open: boolean) => void) {
 
 function CreateOrgForm({ onOpenChange }: CreateOrgDialogProps) {
   const t = useTranslations('orgs');
-  const [orgName, setOrgName] = useState('');
-  const { loading, nameError, previewUrl, onFileSelect, handleSubmit } = useCreateOrgSubmit(onOpenChange);
+  const { loading, nameError, handleSubmit } = useCreateOrgSubmit(onOpenChange);
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <CreateOrgFields
-        nameError={nameError}
-        previewUrl={previewUrl}
-        orgName={orgName}
-        onNameChange={(e) => setOrgName(e.target.value)}
-        onFileSelect={onFileSelect}
-      />
+      <CreateOrgFields nameError={nameError} />
       <DialogFooter>
         <Button type="submit" disabled={loading}>
           {t('create')}
