@@ -5,7 +5,7 @@ import { findUniqueSlug, generateSlug } from './slug';
 
 export interface AgentRow {
   id: string;
-  user_id: string;
+  org_id: string;
   name: string;
   slug: string;
   description: string;
@@ -25,7 +25,7 @@ interface StagingRow {
 
 interface InsertAgentParams {
   supabase: SupabaseClient;
-  userId: string;
+  orgId: string;
   name: string;
   slug: string;
   description: string;
@@ -42,12 +42,14 @@ function isAgentRow(value: unknown): value is AgentRow {
   return typeof value === 'object' && value !== null && 'id' in value && 'slug' in value;
 }
 
-export async function getAgentsByUser(
-  supabase: SupabaseClient
+export async function getAgentsByOrg(
+  supabase: SupabaseClient,
+  orgId: string
 ): Promise<{ agents: AgentMetadata[]; error: string | null }> {
   const { data, error } = await supabase
     .from('agents')
     .select(METADATA_COLUMNS)
+    .eq('org_id', orgId)
     .order('updated_at', { ascending: false });
 
   if (error !== null) return { agents: [], error: error.message };
@@ -72,7 +74,7 @@ async function insertAgent(
   const result = await params.supabase
     .from('agents')
     .insert({
-      user_id: params.userId,
+      org_id: params.orgId,
       name: params.name,
       slug: params.slug,
       description: params.description,
@@ -89,7 +91,7 @@ async function insertAgent(
 
 export async function createAgent(
   supabase: SupabaseClient,
-  userId: string,
+  orgId: string,
   name: string,
   description: string
 ): Promise<{ agent: AgentRow | null; error: string | null }> {
@@ -99,7 +101,7 @@ export async function createAgent(
   }
 
   const slug = await findUniqueSlug(supabase, baseSlug, 'agents');
-  return await insertAgent({ supabase, userId, name, slug, description });
+  return await insertAgent({ supabase, orgId, name, slug, description });
 }
 
 export async function saveStaging(
