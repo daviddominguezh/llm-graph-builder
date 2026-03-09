@@ -1,5 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+type SlugTable = 'agents' | 'organizations';
+
 const MAX_SLUG_ATTEMPTS = 100;
 const FIRST_SUFFIX = 1;
 const EMPTY_LENGTH = 0;
@@ -28,8 +30,8 @@ export function generateSlug(name: string): string {
   return collapseDashes(slugifyChars(name.toLowerCase()));
 }
 
-async function isSlugTaken(supabase: SupabaseClient, slug: string): Promise<boolean> {
-  const { data } = await supabase.from('agents').select('slug').eq('slug', slug).limit(FIRST_SUFFIX);
+async function isSlugTaken(supabase: SupabaseClient, slug: string, table: SlugTable): Promise<boolean> {
+  const { data } = await supabase.from(table).select('slug').eq('slug', slug).limit(FIRST_SUFFIX);
   return data !== null && data.length > EMPTY_LENGTH;
 }
 
@@ -37,18 +39,27 @@ function buildCandidate(baseSlug: string, suffix: number): string {
   return suffix === FIRST_SUFFIX ? baseSlug : `${baseSlug}-${String(suffix)}`;
 }
 
-async function trySlug(supabase: SupabaseClient, baseSlug: string, suffix: number): Promise<string> {
+async function trySlug(
+  supabase: SupabaseClient,
+  baseSlug: string,
+  suffix: number,
+  table: SlugTable
+): Promise<string> {
   if (suffix > MAX_SLUG_ATTEMPTS) {
     return `${baseSlug}-${String(Date.now())}`;
   }
 
   const candidate = buildCandidate(baseSlug, suffix);
-  const taken = await isSlugTaken(supabase, candidate);
+  const taken = await isSlugTaken(supabase, candidate, table);
   if (!taken) return candidate;
 
-  return await trySlug(supabase, baseSlug, suffix + FIRST_SUFFIX);
+  return await trySlug(supabase, baseSlug, suffix + FIRST_SUFFIX, table);
 }
 
-export async function findUniqueSlug(supabase: SupabaseClient, baseSlug: string): Promise<string> {
-  return await trySlug(supabase, baseSlug, FIRST_SUFFIX);
+export async function findUniqueSlug(
+  supabase: SupabaseClient,
+  baseSlug: string,
+  table: SlugTable
+): Promise<string> {
+  return await trySlug(supabase, baseSlug, FIRST_SUFFIX, table);
 }

@@ -98,7 +98,7 @@ export async function createAgent(
     return { agent: null, error: 'Invalid agent name' };
   }
 
-  const slug = await findUniqueSlug(supabase, baseSlug);
+  const slug = await findUniqueSlug(supabase, baseSlug, 'agents');
   return await insertAgent({ supabase, userId, name, slug, description });
 }
 
