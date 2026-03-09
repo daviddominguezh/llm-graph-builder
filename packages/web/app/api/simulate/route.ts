@@ -6,6 +6,8 @@ import { NextResponse } from 'next/server';
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const HTTP_BAD_REQUEST = 400;
 const HTTP_UNAUTHORIZED = 401;
+const HTTP_GATEWAY_TIMEOUT = 504;
+const UPSTREAM_TIMEOUT_MS = 30_000;
 
 interface SimulateBody {
   apiKeyId?: string;
@@ -33,6 +35,38 @@ async function resolveApiKey(
   return { apiKey: value, error: null };
 }
 
+async function fetchUpstream(body: Record<string, unknown>): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, UPSTREAM_TIMEOUT_MS);
+
+  try {
+    const upstream = await fetch(`${API_URL}/simulate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (!upstream.ok) {
+      return new Response(upstream.body, { status: upstream.status });
+    }
+
+    return new Response(upstream.body, {
+      status: upstream.status,
+      headers: { 'Content-Type': 'text/event-stream' },
+    });
+  } catch (err) {
+    clearTimeout(timeout);
+    if (err instanceof Error && err.name === 'AbortError') {
+      return NextResponse.json({ error: 'Request timed out' }, { status: HTTP_GATEWAY_TIMEOUT });
+    }
+    throw err;
+  }
+}
+
 export async function POST(request: Request): Promise<Response> {
   const raw: unknown = await request.json();
   if (!isSimulateBody(raw)) {
@@ -53,20 +87,5 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const rest = Object.fromEntries(Object.entries(raw).filter(([k]) => k !== 'apiKeyId'));
-  const upstreamBody = { ...rest, apiKey };
-
-  const upstream = await fetch(`${API_URL}/simulate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(upstreamBody),
-  });
-
-  if (!upstream.ok) {
-    return new Response(upstream.body, { status: upstream.status });
-  }
-
-  return new Response(upstream.body, {
-    status: upstream.status,
-    headers: { 'Content-Type': 'text/event-stream' },
-  });
+  return await fetchUpstream({ ...rest, apiKey });
 }

@@ -1,4 +1,5 @@
 import type { Edge, Node } from '@xyflow/react';
+import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 import { toast } from 'sonner';
 
@@ -16,11 +17,13 @@ interface UseExportGraphParams {
 }
 
 export function useExportGraph({ nodes, edges, agents, mcpServers }: UseExportGraphParams): () => void {
+  const t = useTranslations('editor');
+
   return useCallback(() => {
     const graph = serializeGraphData({ nodes, edges, agents, mcpServers });
 
     if (graph === null) {
-      toast.error('Graph has validation errors. Please fix before exporting.');
+      toast.error(t('exportValidationError'));
       return;
     }
 
@@ -32,5 +35,5 @@ export function useExportGraph({ nodes, edges, agents, mcpServers }: UseExportGr
     a.download = 'graph.json';
     a.click();
     URL.revokeObjectURL(url);
-  }, [nodes, edges, agents, mcpServers]);
+  }, [nodes, edges, agents, mcpServers, t]);
 }

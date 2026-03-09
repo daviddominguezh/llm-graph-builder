@@ -88,7 +88,8 @@
     "publishFailed": "Failed to publish. Please try again.",
     "saving": "Saving...",
     "autoSaveFailed": "Auto-save failed. Your changes may not be saved.",
-    "notFound": "Agent not found"
+    "notFound": "Agent not found",
+    "exportValidationError": "Graph has validation errors. Please fix before exporting."
   },
   "orgs": {
     "title": "My Organizations",

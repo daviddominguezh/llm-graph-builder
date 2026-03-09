@@ -59,7 +59,13 @@ function applyImportedGraph(data: Graph, params: UseImportGraphParams): void {
   }, VIEWPORT_DELAY);
 }
 
-export function useImportGraph(params: UseImportGraphParams): () => void {
+export function useImportGraph({
+  setNodes,
+  setEdges,
+  setViewport,
+  reactFlowWrapper,
+  mcpSetServers,
+}: UseImportGraphParams): () => void {
   return useCallback(() => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -73,7 +79,13 @@ export function useImportGraph(params: UseImportGraphParams): () => void {
           const json: unknown = JSON.parse(text);
           const result = GraphSchema.safeParse(json);
           if (result.success) {
-            applyImportedGraph(result.data, params);
+            applyImportedGraph(result.data, {
+              setNodes,
+              setEdges,
+              setViewport,
+              reactFlowWrapper,
+              mcpSetServers,
+            });
           } else {
             toast.error(`Invalid graph file: ${result.error.message}`);
           }
@@ -83,5 +95,5 @@ export function useImportGraph(params: UseImportGraphParams): () => void {
       });
     };
     input.click();
-  }, [params]);
+  }, [setNodes, setEdges, setViewport, reactFlowWrapper, mcpSetServers]);
 }

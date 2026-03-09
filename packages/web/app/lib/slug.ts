@@ -66,7 +66,8 @@ export async function findUniqueSlug(
     .or(`slug.eq.${baseSlug},slug.like.${baseSlug}-%`);
 
   const rows: SlugRow[] = (data ?? []).filter(isSlugRow);
-  if (rows.length === EMPTY_LENGTH) return baseSlug;
+  const exactExists = rows.some((r) => r.slug === baseSlug);
+  if (!exactExists) return baseSlug;
 
   const next = findNextSuffix(rows, baseSlug);
   return `${baseSlug}-${String(next)}`;

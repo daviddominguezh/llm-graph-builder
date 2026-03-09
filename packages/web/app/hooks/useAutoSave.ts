@@ -28,10 +28,15 @@ interface DebounceOptions {
   callbacks: SaveCallbacks;
 }
 
-function serializeGraph(getGraphData: () => Graph | null): string | null {
+interface SerializeResult {
+  graphData: Graph;
+  serialized: string;
+}
+
+function serializeGraph(getGraphData: () => Graph | null): SerializeResult | null {
   const graphData = getGraphData();
   if (graphData === null) return null;
-  return JSON.stringify(graphData);
+  return { graphData, serialized: JSON.stringify(graphData) };
 }
 
 function executeSave(agentId: string, graphData: Graph, serialized: string, cb: SaveCallbacks): void {
@@ -52,23 +57,22 @@ function useSaveCallback(
 ): () => void {
   return useCallback(() => {
     if (agentId === undefined || agentId === '') return;
-    const serialized = serializeGraph(getGraphData);
-    if (serialized === null || serialized === cb.getLastSaved()) {
+    const result = serializeGraph(getGraphData);
+    if (result === null || result.serialized === cb.getLastSaved()) {
       cb.setPendingSave(false);
       return;
     }
 
-    const graphData = getGraphData();
-    if (graphData === null) return;
-
-    executeSave(agentId, graphData, serialized, cb);
+    executeSave(agentId, result.graphData, result.serialized, cb);
   }, [agentId, getGraphData, cb]);
 }
 
 function computeSerialized(options: DebounceOptions): string | null {
   const { enabled, agentId, getGraphData } = options;
   const hasAgent = agentId !== undefined && agentId !== '';
-  return enabled && hasAgent ? serializeGraph(getGraphData) : null;
+  if (!enabled || !hasAgent) return null;
+  const result = serializeGraph(getGraphData);
+  return result?.serialized ?? null;
 }
 
 function useDebounceEffect(options: DebounceOptions, doSave: () => void): void {
@@ -108,7 +112,7 @@ function useBeforeUnloadWarning(pendingSave: boolean): void {
 
 function useInitialSnapshot(getGraphData: () => Graph | null): string {
   const ref = useRef<string | null>(null);
-  ref.current ??= serializeGraph(getGraphData) ?? '';
+  ref.current ??= serializeGraph(getGraphData)?.serialized ?? '';
   return ref.current;
 }
 
