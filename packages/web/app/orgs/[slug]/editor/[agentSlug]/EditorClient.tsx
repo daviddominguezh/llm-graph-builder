@@ -5,7 +5,6 @@ import type { ComponentType } from 'react';
 import dynamic from 'next/dynamic';
 
 import type { ApiKeyRow } from '@/app/lib/api-keys';
-import type { Graph } from '@/app/schemas/graph.schema';
 
 interface EditorClientProps {
   agentId: string;
@@ -13,8 +12,6 @@ interface EditorClientProps {
   orgSlug: string;
   orgName: string;
   orgAvatarUrl: string | null;
-  initialGraphData: Graph;
-  initialProductionData: Graph;
   initialVersion: number;
   orgApiKeys: ApiKeyRow[];
   stagingApiKeyId: string | null;

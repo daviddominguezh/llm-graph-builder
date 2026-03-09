@@ -114,8 +114,8 @@ function useToolDiscovery(servers: McpServerConfig[], setters: DiscoverySetters)
   );
 }
 
-export function useMcpServers(): McpServersState {
-  const [servers, setServers] = useState<McpServerConfig[]>([]);
+export function useMcpServers(initialServers?: McpServerConfig[]): McpServersState {
+  const [servers, setServers] = useState<McpServerConfig[]>(initialServers ?? []);
   const [discoveredTools, setDiscoveredTools] = useState<Record<string, DiscoveredTool[]>>({});
   const [discovering, setDiscovering] = useState<Record<string, boolean>>({});
   const [serverStatus, setServerStatus] = useState<Record<string, McpServerStatus>>({});

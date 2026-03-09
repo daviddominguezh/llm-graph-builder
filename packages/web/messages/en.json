@@ -89,7 +89,8 @@
     "saving": "Saving...",
     "autoSaveFailed": "Auto-save failed. Your changes may not be saved.",
     "notFound": "Agent not found",
-    "exportValidationError": "Graph has validation errors. Please fix before exporting."
+    "exportValidationError": "Graph has validation errors. Please fix before exporting.",
+    "loadGraphFailed": "Failed to load graph data."
   },
   "orgs": {
     "title": "My Organizations",

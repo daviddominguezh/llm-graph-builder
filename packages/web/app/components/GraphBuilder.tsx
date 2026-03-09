@@ -3,6 +3,8 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useReactFlow, ReactFlowProvider, useNodesState, useEdgesState } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { HandleContext } from './nodes/HandleContext';
 import { PublishButton } from './panels/PublishButton';
@@ -13,20 +15,21 @@ import { SearchDialog } from './panels/SearchDialog';
 import { GraphCanvas } from './GraphCanvas';
 import { SidePanels } from './SidePanels';
 import type { ApiKeyRow } from '../lib/api-keys';
-import { GraphSchema } from '../schemas/graph.schema';
 import type { Agent, Graph } from '../schemas/graph.schema';
 import { useApiKeySelection } from '../hooks/useApiKeySelection';
-import { useMcpServers } from '../hooks/useMcpServers';
-import { usePresets } from '../hooks/usePresets';
-import { useSimulation } from '../hooks/useSimulation';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { useGraphActions } from '../hooks/useGraphActions';
+import type { GraphLoadResult } from '../hooks/useGraphLoader';
+import { useGraphLoader } from '../hooks/useGraphLoader';
 import { useImportGraph } from '../hooks/useImportGraph';
 import { useExportGraph } from '../hooks/useExportGraph';
 import { useGraphSelection } from '../hooks/useGraphSelection';
+import { useMcpServers } from '../hooks/useMcpServers';
+import { useOperationQueue } from '../hooks/useOperationQueue';
+import { usePresets } from '../hooks/usePresets';
+import { useSimulation } from '../hooks/useSimulation';
 import { useZoomView } from '../hooks/useZoomView';
 import { useInitialViewport, useSearchKeyboard, useContextPreconditions } from '../hooks/useGraphBuilderHelpers';
-import { buildInitialEdges, buildInitialNodes } from '../utils/graphInitializer';
 import { serializeGraphData } from '../utils/graphSerializer';
 import type { RFNodeData } from '../utils/graphTransformers';
 
@@ -38,29 +41,27 @@ export interface GraphBuilderProps {
   orgSlug?: string;
   orgName?: string;
   orgAvatarUrl?: string | null;
-  initialGraphData?: Graph;
-  initialProductionData?: Graph;
   initialVersion?: number;
   orgApiKeys?: ApiKeyRow[];
   stagingApiKeyId?: string | null;
   productionApiKeyId?: string | null;
 }
 
-function useGraphBuilderHooks(props: GraphBuilderProps) {
-  const { agentId, initialGraphData, initialProductionData, initialVersion } = props;
+interface LoadedEditorProps extends GraphBuilderProps {
+  loadResult: GraphLoadResult;
+}
+
+function useGraphBuilderHooks(props: LoadedEditorProps) {
+  const { agentId, loadResult } = props;
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const rf = useReactFlow();
 
-  const initNodes = useMemo(() => buildInitialNodes(initialGraphData), [initialGraphData]);
-  const initEdges = useMemo(() => buildInitialEdges(initialGraphData), [initialGraphData]);
+  const [nodes, setNodes, onNodesChange] = useNodesState(loadResult.nodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(loadResult.edges);
+  const [agents] = useState<Agent[]>(loadResult.agents);
+  const [version, setVersion] = useState(props.initialVersion ?? DEFAULT_VERSION);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initEdges);
-  const [agents] = useState<Agent[]>(initialGraphData?.agents ?? []);
-  const [version, setVersion] = useState(initialVersion ?? DEFAULT_VERSION);
-  const [productionData, setProductionData] = useState(() =>
-    initialProductionData ? (GraphSchema.safeParse(initialProductionData).data ?? initialProductionData) : undefined
-  );
+  const mcpHook = useMcpServers(loadResult.mcpServers);
 
   const apiKeys = useApiKeySelection({
     agentId,
@@ -74,7 +75,6 @@ function useGraphBuilderHooks(props: GraphBuilderProps) {
   const [searchOpen, setSearchOpen] = useState(false);
 
   const presetsHook = usePresets();
-  const mcpHook = useMcpServers();
 
   const panels = useMemo(() => ({ setGlobalPanelOpen, setPresetsOpen, setToolsOpen, setSearchOpen }), []);
 
@@ -120,14 +120,17 @@ function useGraphBuilderHooks(props: GraphBuilderProps) {
 
   const getGraphData = useCallback((): Graph | null => serializedGraph, [serializedGraph]);
 
-  const { pendingSave } = useAutoSave({ agentId, getGraphData, enabled: agentId !== undefined });
+  const opQueue = useOperationQueue(agentId);
 
-  const canPublish = useMemo(
-    () => serializedGraph !== null && JSON.stringify(serializedGraph) !== JSON.stringify(productionData),
-    [serializedGraph, productionData]
-  );
+  const { pendingSave } = useAutoSave({
+    hasPendingOps: opQueue.hasPendingOps,
+    flush: opQueue.flush,
+    enabled: agentId !== undefined,
+  });
 
-  useInitialViewport(reactFlowWrapper, rf.setViewport, initialGraphData);
+  const canPublish = serializedGraph !== null;
+
+  useInitialViewport(reactFlowWrapper, rf.setViewport, loadResult.graphData);
   useSearchKeyboard(setSearchOpen);
 
   const simulation = useSimulation({
@@ -177,13 +180,22 @@ function useGraphBuilderHooks(props: GraphBuilderProps) {
     setSearchOpen,
     version,
     setVersion,
-    productionData,
-    setProductionData,
     apiKeys,
   };
 }
 
-function GraphBuilderInner(props: GraphBuilderProps) {
+function GraphBuilderLoading() {
+  const t = useTranslations('common');
+
+  return (
+    <div className="flex h-screen w-screen items-center justify-center">
+      <Loader2 className="mr-2 size-6 animate-spin" />
+      <span>{t('loading')}</span>
+    </div>
+  );
+}
+
+function LoadedEditor(props: LoadedEditorProps) {
   const h = useGraphBuilderHooks(props);
 
   const handleContextValue = {
@@ -219,7 +231,6 @@ function GraphBuilderInner(props: GraphBuilderProps) {
                 hasApiKey={h.apiKeys.stagingKeyId !== null}
                 onPublished={(newVersion) => {
                   h.setVersion(newVersion);
-                  h.setProductionData(h.getGraphData() ?? undefined);
                   h.apiKeys.setProductionKeyId(h.apiKeys.stagingKeyId);
                 }}
               />
@@ -283,6 +294,14 @@ function GraphBuilderInner(props: GraphBuilderProps) {
       </div>
     </HandleContext.Provider>
   );
+}
+
+function GraphBuilderInner(props: GraphBuilderProps) {
+  const loader = useGraphLoader(props.agentId);
+
+  if (loader.loading) return <GraphBuilderLoading />;
+
+  return <LoadedEditor {...props} loadResult={loader.result} />;
 }
 
 export function GraphBuilder(props: GraphBuilderProps) {
