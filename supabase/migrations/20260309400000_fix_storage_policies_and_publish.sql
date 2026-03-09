@@ -40,7 +40,17 @@ security definer set search_path = ''
 as $$
 declare
   new_version integer;
+  v_org_id uuid;
 begin
+  -- Verify the caller is a member of the agent's org
+  select org_id into v_org_id from public.agents where id = agent_id;
+  if v_org_id is null then
+    raise exception 'Agent not found';
+  end if;
+  if not public.is_org_member(v_org_id) then
+    raise exception 'Not authorized to publish this agent';
+  end if;
+
   update public.agents
   set
     graph_data_production = graph_data_staging,

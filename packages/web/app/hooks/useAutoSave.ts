@@ -74,28 +74,20 @@ function computeSerialized(options: DebounceOptions): string | null {
 function useDebounceEffect(options: DebounceOptions, doSave: () => void): void {
   const { callbacks } = options;
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const prevSerializedRef = useRef<string | null>(null);
+
+  const serialized = computeSerialized(options);
 
   useEffect(() => {
-    const serialized = computeSerialized(options);
-    if (serialized === null || serialized === callbacks.getLastSaved()) return undefined;
-    if (serialized === prevSerializedRef.current) return undefined;
+    if (serialized === null || serialized === callbacks.getLastSaved()) return;
 
-    prevSerializedRef.current = serialized;
     callbacks.setPendingSave(true);
-
-    if (timerRef.current !== null) {
-      clearTimeout(timerRef.current);
-    }
-
+    if (timerRef.current !== null) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(doSave, AUTO_SAVE_DELAY_MS);
 
     return () => {
-      if (timerRef.current !== null) {
-        clearTimeout(timerRef.current);
-      }
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
     };
-  }); // No deps — runs every render to detect changes
+  }, [serialized, doSave, callbacks]);
 }
 
 function useBeforeUnloadWarning(pendingSave: boolean): void {
