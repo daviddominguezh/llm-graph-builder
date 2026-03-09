@@ -188,23 +188,24 @@ end $$;
 alter table public.agents
   alter column org_id set not null;
 
--- 7f. Drop old user_id column and its index
+-- 7f. Drop old user_id-based RLS policies before dropping the column
+drop policy if exists "Users can read their own agents" on public.agents;
+drop policy if exists "Users can insert their own agents" on public.agents;
+drop policy if exists "Users can update their own agents" on public.agents;
+drop policy if exists "Users can delete their own agents" on public.agents;
+
+-- 7g. Drop old user_id column and its index
 drop index if exists idx_agents_user_id;
 
 alter table public.agents
   drop column user_id;
 
--- 7g. Add index on new org_id column
+-- 7h. Add index on new org_id column
 create index idx_agents_org_id on public.agents(org_id);
 
 -- ============================================================================
--- 8. Update agents RLS policies from user_id to org membership
+-- 8. Create new agents RLS policies based on org membership
 -- ============================================================================
-
-drop policy if exists "Users can read their own agents" on public.agents;
-drop policy if exists "Users can insert their own agents" on public.agents;
-drop policy if exists "Users can update their own agents" on public.agents;
-drop policy if exists "Users can delete their own agents" on public.agents;
 
 create policy "Org members can read agents"
   on public.agents for select
