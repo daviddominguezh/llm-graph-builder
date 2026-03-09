@@ -64,7 +64,7 @@ function ResetPasswordForm() {
       <div className="flex flex-col items-center gap-3">
         <p className="text-center text-sm text-muted-foreground">{t('resetPassword.success')}</p>
         <Link href="/" className="text-primary text-sm underline">
-          {t('login.submit')}
+          {t('resetPassword.goToDashboard')}
         </Link>
       </div>
     );

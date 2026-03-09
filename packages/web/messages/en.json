@@ -42,7 +42,8 @@
       "confirmPassword": "Confirm password",
       "submit": "Update password",
       "success": "Password updated successfully.",
-      "mismatch": "Passwords do not match."
+      "mismatch": "Passwords do not match.",
+      "goToDashboard": "Continue to dashboard"
     },
     "oauth": {
       "google": "Continue with Google"

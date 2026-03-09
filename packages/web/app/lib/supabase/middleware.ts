@@ -44,6 +44,14 @@ function createSupabaseMiddlewareClient(
   });
 }
 
+function redirectWithCookies(url: URL, sourceResponse: NextResponse): NextResponse {
+  const response = NextResponse.redirect(url);
+  sourceResponse.cookies.getAll().forEach((cookie) => {
+    response.cookies.set(cookie.name, cookie.value);
+  });
+  return response;
+}
+
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
   const supabaseResponse = NextResponse.next({ request });
   const supabase = createSupabaseMiddlewareClient(request, supabaseResponse);
@@ -59,13 +67,13 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   if (user === null && !isGuestOnlyRoute(request.nextUrl.pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
-    return NextResponse.redirect(url);
+    return redirectWithCookies(url, supabaseResponse);
   }
 
   if (user !== null && isGuestOnlyRoute(request.nextUrl.pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = '/';
-    return NextResponse.redirect(url);
+    return redirectWithCookies(url, supabaseResponse);
   }
 
   return supabaseResponse;
