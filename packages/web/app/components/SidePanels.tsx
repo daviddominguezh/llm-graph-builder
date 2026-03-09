@@ -3,6 +3,7 @@
 import type { Edge, Node } from '@xyflow/react';
 import { nanoid } from 'nanoid';
 
+import type { ApiKeyRow } from '../lib/api-keys';
 import type { Agent } from '../schemas/graph.schema';
 import type { McpServersState } from '../hooks/useMcpServers';
 import type { ContextPrecondition } from '../types/contextPrecondition';
@@ -29,10 +30,8 @@ type EdgeSetter = (edges: EdgeArray | ((eds: EdgeArray) => EdgeArray)) => void;
 interface PresetsHook {
   presets: ContextPreset[];
   activePresetId: string;
-  apiKey: string;
   contextKeys: string[];
   setActivePresetId: (id: string) => void;
-  setApiKey: (key: string) => void;
   addPreset: () => void;
   deletePreset: (id: string) => void;
   updatePreset: (id: string, updates: Partial<ContextPreset>) => void;
@@ -61,10 +60,20 @@ export interface SidePanelsProps {
   setNodes: NodeSetter;
   setEdges: EdgeSetter;
   ctxPreconditions: CtxPreconditionsState;
+  orgApiKeys: ApiKeyRow[];
+  stagingKeyId: string | null;
+  productionKeyId: string | null;
+  onStagingKeyChange: (keyId: string | null) => void;
+}
+
+function resolveApiKey(orgApiKeys: ApiKeyRow[], stagingKeyId: string | null): string {
+  if (stagingKeyId === null) return '';
+  const found = orgApiKeys.find((k) => k.id === stagingKeyId);
+  return found?.key_value ?? '';
 }
 
 function SelectionPanel(props: SidePanelsProps) {
-  const { selection, nodes, agents, presetsHook, mcpHook, ctxPreconditions } = props;
+  const { selection, nodes, agents, presetsHook, mcpHook, ctxPreconditions, orgApiKeys, stagingKeyId } = props;
 
   return (
     <aside className="absolute right-0 top-0 bottom-0 w-80 border-l border-gray-200 bg-white">
@@ -75,7 +84,7 @@ function SelectionPanel(props: SidePanelsProps) {
           agents={agents}
           presets={presetsHook.presets}
           activePresetId={presetsHook.activePresetId}
-          apiKey={presetsHook.apiKey}
+          apiKey={resolveApiKey(orgApiKeys, stagingKeyId)}
           globalNodeIds={nodes.filter((n) => n.data.global === true).map((n) => n.id)}
           onSetActivePreset={presetsHook.setActivePresetId}
           onNodeDeleted={() => selection.setSelectedNodeId(null)}
@@ -173,14 +182,23 @@ function handlePreconditionUpdate(
   }
 }
 
-function PresetsAside({ presetsHook, mcpHook, ctxPreconditions, setEdges }: Pick<SidePanelsProps, 'presetsHook' | 'mcpHook' | 'ctxPreconditions' | 'setEdges'>) {
+type PresetsAsideProps = Pick<
+  SidePanelsProps,
+  'presetsHook' | 'mcpHook' | 'ctxPreconditions' | 'setEdges' | 'orgApiKeys' | 'stagingKeyId' | 'productionKeyId' | 'onStagingKeyChange'
+>;
+
+function PresetsAside(props: PresetsAsideProps) {
+  const { presetsHook, mcpHook, ctxPreconditions, setEdges } = props;
+
   return (
     <aside className="absolute left-0 top-0 bottom-0 w-80 border-r border-gray-200 bg-white z-10">
       <PresetsPanel
         presets={presetsHook.presets}
-        apiKey={presetsHook.apiKey}
         contextKeys={presetsHook.contextKeys}
-        onApiKeyChange={presetsHook.setApiKey}
+        orgApiKeys={props.orgApiKeys}
+        stagingKeyId={props.stagingKeyId}
+        productionKeyId={props.productionKeyId}
+        onStagingKeyChange={props.onStagingKeyChange}
         onAdd={presetsHook.addPreset}
         onDelete={presetsHook.deletePreset}
         onUpdate={presetsHook.updatePreset}
@@ -224,7 +242,18 @@ export function SidePanels(props: SidePanelsProps) {
       {showSelectionPanel && <SelectionPanel {...props} />}
       {globalPanelOpen && <GlobalPanel setNodes={props.setNodes} setEdges={props.setEdges} nodes={props.nodes} />}
       <ToolsPanel servers={props.mcpHook.servers} discoveredTools={props.mcpHook.discoveredTools} open={toolsOpen} onClose={() => {}} />
-      {presetsOpen && <PresetsAside presetsHook={props.presetsHook} mcpHook={props.mcpHook} ctxPreconditions={props.ctxPreconditions} setEdges={props.setEdges} />}
+      {presetsOpen && (
+        <PresetsAside
+          presetsHook={props.presetsHook}
+          mcpHook={props.mcpHook}
+          ctxPreconditions={props.ctxPreconditions}
+          setEdges={props.setEdges}
+          orgApiKeys={props.orgApiKeys}
+          stagingKeyId={props.stagingKeyId}
+          productionKeyId={props.productionKeyId}
+          onStagingKeyChange={props.onStagingKeyChange}
+        />
+      )}
     </>
   );
 }
