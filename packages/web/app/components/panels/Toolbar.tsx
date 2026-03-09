@@ -1,5 +1,6 @@
 'use client';
 
+import { createClient } from '@/app/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
-import { createClient } from '@/app/lib/supabase/client';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Download,
   LogOut,
@@ -39,6 +40,7 @@ interface ToolbarProps {
   onToggleTools?: () => void;
   pendingSave?: boolean;
   publishSlot?: ReactNode;
+  stagingKeyId?: string | null;
 }
 
 function useLogout() {
@@ -141,10 +143,39 @@ function SaveIndicator({ pendingSave }: { pendingSave: boolean }) {
 
   if (!pendingSave) return null;
 
+  return <span className="text-muted-foreground flex items-center px-2 text-xs">{t('saving')}</span>;
+}
+
+function PlayButton({
+  simulationActive,
+  onPlay,
+  disabled,
+}: {
+  simulationActive: boolean;
+  onPlay?: () => void;
+  disabled: boolean;
+}) {
+  const t = useTranslations('apiKeys');
+
+  const button = (
+    <Button
+      className="h-10 w-10"
+      variant={simulationActive ? 'default' : 'ghost'}
+      size="sm"
+      onClick={disabled ? undefined : onPlay}
+      disabled={disabled}
+    >
+      <Play className="size-4" />
+    </Button>
+  );
+
+  if (!disabled) return button;
+
   return (
-    <span className="text-muted-foreground flex items-center px-2 text-xs">
-      {t('saving')}
-    </span>
+    <Tooltip>
+      <TooltipTrigger render={<span />}>{button}</TooltipTrigger>
+      <TooltipContent>{t('requiresKey')}</TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -159,6 +190,7 @@ export function Toolbar({
   onToggleTools,
   pendingSave,
   publishSlot,
+  stagingKeyId,
 }: ToolbarProps) {
   const user = useCurrentUser();
 
@@ -168,14 +200,11 @@ export function Toolbar({
         <FileMenu onImport={onImport} onExport={onExport} user={user} />
       </div>
       <header className="absolute z-1 flex items-stretch justify-center gap-1 border rounded-lg bg-background p-1 top-2 shadow-lg">
-        <Button
-          className="h-10 w-10"
-          variant={simulationActive ? 'default' : 'ghost'}
-          size="sm"
-          onClick={onPlay}
-        >
-          <Play className="size-4" />
-        </Button>
+        <PlayButton
+          simulationActive={simulationActive ?? false}
+          onPlay={onPlay}
+          disabled={stagingKeyId === null || stagingKeyId === undefined}
+        />
         <Button className="h-10 w-10" variant="ghost" size="sm">
           <WandSparkles className="size-4" />
         </Button>
