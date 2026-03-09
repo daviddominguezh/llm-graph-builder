@@ -1,6 +1,7 @@
 import cors from 'cors';
 import express, { type Express, type NextFunction, type Request, type Response } from 'express';
 
+import { requireAuth } from './middleware/auth.js';
 import { handleDiscover } from './routes/discover.js';
 import { handleSimulate } from './routes/simulateHandler.js';
 
@@ -18,6 +19,10 @@ export function createApp(): Express {
 
   app.post('/mcp/discover', handleDiscover);
   app.post('/simulate', handleSimulate);
+
+  const agentRouter = express.Router();
+  agentRouter.use(requireAuth);
+  app.use('/agents', agentRouter);
 
   return app;
 }

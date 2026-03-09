@@ -29,6 +29,7 @@
     "@ai-sdk/mcp": "^1.0.26",
     "@daviddh/graph-types": "*",
     "@daviddh/llm-graph-runner": "*",
+    "@supabase/supabase-js": "^2.99.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "zod": "^4.3.6"
