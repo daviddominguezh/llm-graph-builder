@@ -111,4 +111,4 @@ export function calculateInitialViewport(
 }
 
 // Set to null for empty canvas, or loadGraphData() to load from JSON
-export const GRAPH_DATA: ReturnType<typeof loadGraphData> = loadGraphData();
+export const GRAPH_DATA: ReturnType<typeof loadGraphData> = null;

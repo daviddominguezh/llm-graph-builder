@@ -68,16 +68,18 @@ function useSaveCallback(
   }, [agentId, getGraphData, cb]);
 }
 
-function useDebounceEffect(options: DebounceOptions, doSave: () => void): void {
-  const { enabled, agentId, getGraphData, callbacks } = options;
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const serializedRef = useRef<string | null>(null);
-
+function computeSerialized(options: DebounceOptions): string | null {
+  const { enabled, agentId, getGraphData } = options;
   const hasAgent = agentId !== undefined && agentId !== '';
-  serializedRef.current = enabled && hasAgent ? serializeGraph(getGraphData) : null;
+  return enabled && hasAgent ? serializeGraph(getGraphData) : null;
+}
+
+function useDebounceEffect(options: DebounceOptions, doSave: () => void): void {
+  const { callbacks } = options;
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const { current: serialized } = serializedRef;
+    const serialized = computeSerialized(options);
     if (serialized === null || serialized === callbacks.getLastSaved()) return undefined;
 
     callbacks.setPendingSave(true);

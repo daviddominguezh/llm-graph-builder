@@ -37,6 +37,8 @@ interface ToolbarProps {
   onToggleGlobalPanel?: () => void;
   onTogglePresets?: () => void;
   onToggleTools?: () => void;
+  pendingSave?: boolean;
+  publishSlot?: ReactNode;
 }
 
 function useLogout() {
@@ -134,6 +136,18 @@ function FileMenu({ onImport, onExport, user }: FileMenuProps) {
   );
 }
 
+function SaveIndicator({ pendingSave }: { pendingSave: boolean }) {
+  const t = useTranslations('editor');
+
+  if (!pendingSave) return null;
+
+  return (
+    <span className="text-muted-foreground flex items-center px-2 text-xs">
+      {t('saving')}
+    </span>
+  );
+}
+
 export function Toolbar({
   onImport,
   onExport,
@@ -143,6 +157,8 @@ export function Toolbar({
   onToggleGlobalPanel,
   onTogglePresets,
   onToggleTools,
+  pendingSave,
+  publishSlot,
 }: ToolbarProps) {
   const user = useCurrentUser();
 
@@ -197,6 +213,8 @@ export function Toolbar({
           </>
         )}
 
+        {pendingSave !== undefined && <SaveIndicator pendingSave={pendingSave} />}
+        {publishSlot}
       </header>
     </>
   );
