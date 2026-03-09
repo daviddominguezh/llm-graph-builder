@@ -15,10 +15,10 @@ import { toast } from 'sonner';
 interface CreateAgentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  userId: string;
+  orgId: string;
 }
 
-function CreateAgentForm({ userId, onOpenChange }: CreateAgentDialogProps) {
+function CreateAgentForm({ orgId, onOpenChange }: CreateAgentDialogProps) {
   const t = useTranslations('agents');
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -39,7 +39,7 @@ function CreateAgentForm({ userId, onOpenChange }: CreateAgentDialogProps) {
     setNameError('');
 
     const supabase = createClient();
-    const { agent, error } = await createAgent(supabase, userId, name, description);
+    const { agent, error } = await createAgent(supabase, orgId, name, description);
 
     if (error !== null || agent === null) {
       setLoading(false);
@@ -81,7 +81,7 @@ function CreateAgentFields({ nameError }: { nameError: string }) {
   );
 }
 
-export function CreateAgentDialog({ open, onOpenChange, userId }: CreateAgentDialogProps) {
+export function CreateAgentDialog({ open, onOpenChange, orgId }: CreateAgentDialogProps) {
   const t = useTranslations('agents');
 
   return (
@@ -90,7 +90,7 @@ export function CreateAgentDialog({ open, onOpenChange, userId }: CreateAgentDia
         <DialogHeader>
           <DialogTitle>{t('create')}</DialogTitle>
         </DialogHeader>
-        <CreateAgentForm open={open} onOpenChange={onOpenChange} userId={userId} />
+        <CreateAgentForm open={open} onOpenChange={onOpenChange} orgId={orgId} />
       </DialogContent>
     </Dialog>
   );
