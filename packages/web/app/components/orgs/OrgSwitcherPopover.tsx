@@ -41,7 +41,10 @@ function ListAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | nul
   }
 
   return (
-    <div className="bg-muted flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium">
+    <div
+      className="bg-muted flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium"
+      style={{ color: 'var(--color-foreground)' }}
+    >
       {initial}
     </div>
   );

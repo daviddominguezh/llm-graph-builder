@@ -10,8 +10,6 @@ import { useRouter } from 'next/navigation';
 import { type ChangeEvent, type FormEvent, useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
-import { AvatarUpload } from './AvatarUpload';
-
 interface CreateOrgDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -57,10 +55,7 @@ interface CreateOrgFieldsProps {
 
 function CreateOrgFields({
   nameError,
-  previewUrl,
-  orgName,
   onNameChange,
-  onFileSelect,
 }: CreateOrgFieldsProps) {
   const t = useTranslations('orgs');
 
@@ -77,7 +72,6 @@ function CreateOrgFields({
         />
         {nameError !== '' && <p className="text-destructive text-xs">{nameError}</p>}
       </div>
-      <AvatarUpload currentUrl={null} previewUrl={previewUrl} name={orgName} onFileSelect={onFileSelect} />
     </>
   );
 }
