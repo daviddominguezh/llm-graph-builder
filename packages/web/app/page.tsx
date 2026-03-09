@@ -1,11 +1,11 @@
 import { redirect } from 'next/navigation';
 
-import { getAgentsByUser } from '@/app/lib/agents';
+import { getOrgsByUser } from '@/app/lib/orgs';
 import { createClient } from '@/app/lib/supabase/server';
 
-import { AgentDashboard } from './components/agents/AgentDashboard';
+import { OrgCardGrid } from './components/orgs/OrgCardGrid';
 
-export default async function DashboardPage(): Promise<React.JSX.Element> {
+export default async function HomePage(): Promise<React.JSX.Element> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -15,7 +15,7 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
     redirect('/login');
   }
 
-  const { agents } = await getAgentsByUser(supabase);
+  const { result: orgs } = await getOrgsByUser(supabase);
 
-  return <AgentDashboard agents={agents} userId={user.id} />;
+  return <OrgCardGrid orgs={orgs} />;
 }
