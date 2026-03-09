@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 
-import type { ApiKeyRow } from '../lib/api-keys';
 import { saveStagingKeyId } from '../lib/agents';
+import type { ApiKeyRow } from '../lib/api-keys';
 import { createClient } from '../lib/supabase/client';
 
 interface UseApiKeySelectionParams {
