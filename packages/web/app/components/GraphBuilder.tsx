@@ -12,7 +12,9 @@ import { ConnectionMenu } from './panels/ConnectionMenu';
 import { SearchDialog } from './panels/SearchDialog';
 import { GraphCanvas } from './GraphCanvas';
 import { SidePanels } from './SidePanels';
+import type { ApiKeyRow } from '../lib/api-keys';
 import type { Agent, Graph } from '../schemas/graph.schema';
+import { useApiKeySelection } from '../hooks/useApiKeySelection';
 import { useMcpServers } from '../hooks/useMcpServers';
 import { usePresets } from '../hooks/usePresets';
 import { useSimulation } from '../hooks/useSimulation';
@@ -35,6 +37,9 @@ export interface GraphBuilderProps {
   initialGraphData?: Graph;
   initialProductionData?: Graph;
   initialVersion?: number;
+  orgApiKeys?: ApiKeyRow[];
+  stagingApiKeyId?: string | null;
+  productionApiKeyId?: string | null;
 }
 
 function useGraphBuilderHooks(props: GraphBuilderProps) {
@@ -50,6 +55,13 @@ function useGraphBuilderHooks(props: GraphBuilderProps) {
   const [agents] = useState<Agent[]>(initialGraphData?.agents ?? []);
   const [version, setVersion] = useState(initialVersion ?? DEFAULT_VERSION);
   const [productionData, setProductionData] = useState(initialProductionData);
+
+  const apiKeys = useApiKeySelection({
+    agentId,
+    orgApiKeys: props.orgApiKeys ?? [],
+    initialStagingKeyId: props.stagingApiKeyId ?? null,
+    initialProductionKeyId: props.productionApiKeyId ?? null,
+  });
 
   const [globalPanelOpen, setGlobalPanelOpen] = useState(false);
   const [presetsOpen, setPresetsOpen] = useState(false);
@@ -117,7 +129,7 @@ function useGraphBuilderHooks(props: GraphBuilderProps) {
     edges,
     agents,
     preset: presetsHook.activePreset,
-    apiKey: presetsHook.apiKey,
+    apiKey: apiKeys.resolvedApiKey,
     mcpServers: mcpHook.servers,
     onZoomToNode: zoomView.handleZoomToNode,
     onExitZoomView: zoomView.handleExitZoomView,
@@ -161,6 +173,7 @@ function useGraphBuilderHooks(props: GraphBuilderProps) {
     setVersion,
     productionData,
     setProductionData,
+    apiKeys,
   };
 }
 
@@ -187,14 +200,17 @@ function GraphBuilderInner(props: GraphBuilderProps) {
           onTogglePresets={() => h.setPresetsOpen((prev) => !prev)}
           onToggleTools={() => h.setToolsOpen((prev) => !prev)}
           pendingSave={h.pendingSave}
+          stagingKeyId={h.apiKeys.stagingKeyId}
           publishSlot={
             props.agentId !== undefined ? (
               <PublishButton
                 agentId={props.agentId}
                 canPublish={h.canPublish}
+                hasApiKey={h.apiKeys.stagingKeyId !== null}
                 onPublished={(newVersion) => {
                   h.setVersion(newVersion);
                   h.setProductionData(h.getGraphData() ?? undefined);
+                  h.apiKeys.setProductionKeyId(h.apiKeys.stagingKeyId);
                 }}
               />
             ) : undefined
@@ -237,6 +253,10 @@ function GraphBuilderInner(props: GraphBuilderProps) {
           setNodes={h.setNodes}
           setEdges={h.setEdges}
           ctxPreconditions={h.ctxPreconditions}
+          orgApiKeys={props.orgApiKeys ?? []}
+          stagingKeyId={h.apiKeys.stagingKeyId}
+          productionKeyId={h.apiKeys.productionKeyId}
+          onStagingKeyChange={h.apiKeys.handleStagingKeyChange}
         />
 
         {h.graphActions.connectionMenu !== null && (
