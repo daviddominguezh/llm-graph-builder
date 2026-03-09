@@ -1,49 +1,19 @@
 'use client';
 
-import { createOrgAction, uploadOrgAvatarAction } from '@/app/actions/orgs';
+import { createOrgAction } from '@/app/actions/orgs';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { type FormEvent, useCallback, useState } from 'react';
+import { type FormEvent, useState } from 'react';
 import { toast } from 'sonner';
 
 interface CreateOrgDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   dismissible?: boolean;
-}
-
-interface AvatarPreviewState {
-  file: File | null;
-  previewUrl: string | null;
-}
-
-function useAvatarPreview() {
-  const [avatar, setAvatar] = useState<AvatarPreviewState>({ file: null, previewUrl: null });
-
-  const onFileSelect = useCallback(
-    (file: File | null) => {
-      if (avatar.previewUrl !== null) {
-        URL.revokeObjectURL(avatar.previewUrl);
-      }
-
-      const previewUrl = file !== null ? URL.createObjectURL(file) : null;
-      setAvatar({ file, previewUrl });
-    },
-    [avatar.previewUrl]
-  );
-
-  const reset = useCallback(() => {
-    if (avatar.previewUrl !== null) {
-      URL.revokeObjectURL(avatar.previewUrl);
-    }
-    setAvatar({ file: null, previewUrl: null });
-  }, [avatar.previewUrl]);
-
-  return { avatarFile: avatar.file, previewUrl: avatar.previewUrl, onFileSelect, reset };
 }
 
 interface CreateOrgFieldsProps {
@@ -69,38 +39,14 @@ function CreateOrgFields({ nameError }: CreateOrgFieldsProps) {
   );
 }
 
-interface UploadAvatarParams {
-  file: File;
-  orgId: string;
-}
-
-async function handleAvatarUpload({ file, orgId }: UploadAvatarParams): Promise<string | null> {
-  const formData = new FormData();
-  formData.append('file', file);
-  const { error } = await uploadOrgAvatarAction(orgId, formData);
-  return error;
-}
-
-interface SubmitOrgResult {
-  slug: string;
-}
-
-async function submitOrg(name: string, avatarFile: File | null): Promise<SubmitOrgResult> {
+async function submitOrg(name: string): Promise<string> {
   const { result: org, error } = await createOrgAction(name);
 
   if (error !== null || org === null) {
     throw new Error(error ?? 'Failed to create organization');
   }
 
-  if (avatarFile !== null) {
-    const avatarErr = await handleAvatarUpload({ file: avatarFile, orgId: org.id });
-
-    if (avatarErr !== null) {
-      toast.error(avatarErr);
-    }
-  }
-
-  return { slug: org.slug };
+  return org.slug;
 }
 
 function useCreateOrgSubmit(onOpenChange: (open: boolean) => void) {
@@ -108,7 +54,6 @@ function useCreateOrgSubmit(onOpenChange: (open: boolean) => void) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState('');
-  const { avatarFile, previewUrl, onFileSelect, reset } = useAvatarPreview();
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -124,8 +69,7 @@ function useCreateOrgSubmit(onOpenChange: (open: boolean) => void) {
     setNameError('');
 
     try {
-      const { slug } = await submitOrg(name, avatarFile);
-      reset();
+      const slug = await submitOrg(name);
       onOpenChange(false);
       router.push(`/orgs/${slug}`);
     } catch {
@@ -134,7 +78,7 @@ function useCreateOrgSubmit(onOpenChange: (open: boolean) => void) {
     }
   }
 
-  return { loading, nameError, previewUrl, onFileSelect, handleSubmit };
+  return { loading, nameError, handleSubmit };
 }
 
 function CreateOrgForm({ onOpenChange }: CreateOrgDialogProps) {

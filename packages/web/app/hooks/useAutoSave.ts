@@ -1,6 +1,6 @@
 import { saveStagingAction } from '@/app/actions/agents';
 import type { Graph } from '@/app/schemas/graph.schema';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 const AUTO_SAVE_DELAY_MS = 10000;
@@ -125,13 +125,16 @@ export function useAutoSave({ agentId, getGraphData, enabled }: UseAutoSaveOptio
   const lastSavedRef = useRef<string>(initialSnapshot);
   const [pendingSave, setPendingSave] = useState(false);
 
-  const callbacks: SaveCallbacks = {
-    getLastSaved: () => lastSavedRef.current,
-    setLastSaved: (value: string) => {
-      lastSavedRef.current = value;
-    },
-    setPendingSave,
-  };
+  const callbacks: SaveCallbacks = useMemo(
+    () => ({
+      getLastSaved: () => lastSavedRef.current,
+      setLastSaved: (value: string) => {
+        lastSavedRef.current = value;
+      },
+      setPendingSave,
+    }),
+    [setPendingSave]
+  );
 
   const doSave = useSaveCallback(agentId, getGraphData, callbacks);
   useDebounceEffect({ enabled, agentId, getGraphData, callbacks }, doSave);

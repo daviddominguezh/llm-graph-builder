@@ -139,6 +139,7 @@ create trigger on_org_created
 create or replace function public.update_organizations_updated_at()
 returns trigger
 language plpgsql
+security definer set search_path = ''
 as $$
 begin
   new.updated_at = now();

@@ -35,6 +35,7 @@ create policy "Users can delete their own agents"
 create or replace function public.update_agents_updated_at()
 returns trigger
 language plpgsql
+security definer set search_path = ''
 as $$
 begin
   new.updated_at = now();

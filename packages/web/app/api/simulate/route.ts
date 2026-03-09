@@ -1,5 +1,6 @@
 import { getApiKeyValueById } from '@/app/lib/api-keys';
 import { createClient } from '@/app/lib/supabase/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
@@ -15,13 +16,15 @@ function isSimulateBody(value: unknown): value is SimulateBody {
   return typeof value === 'object' && value !== null;
 }
 
-async function resolveApiKey(body: SimulateBody): Promise<{ apiKey: string; error: string | null }> {
+async function resolveApiKey(
+  supabase: SupabaseClient,
+  body: SimulateBody
+): Promise<{ apiKey: string; error: string | null }> {
   const { apiKeyId } = body;
   if (typeof apiKeyId !== 'string' || apiKeyId === '') {
     return { apiKey: '', error: 'Missing apiKeyId' };
   }
 
-  const supabase = await createClient();
   const { value, error } = await getApiKeyValueById(supabase, apiKeyId);
   if (error !== null || value === null) {
     return { apiKey: '', error: error ?? 'API key not found' };
@@ -44,7 +47,7 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ error: 'Unauthorized' }, { status: HTTP_UNAUTHORIZED });
   }
 
-  const { apiKey, error } = await resolveApiKey(raw);
+  const { apiKey, error } = await resolveApiKey(supabase, raw);
   if (error !== null) {
     return NextResponse.json({ error }, { status: HTTP_BAD_REQUEST });
   }

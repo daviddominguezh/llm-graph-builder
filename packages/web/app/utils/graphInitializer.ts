@@ -35,8 +35,8 @@ const defaultFirstNode: Node<RFNodeData> = {
   },
   data: {
     nodeId: DEFAULT_FIRST_NODE_ID,
-    text: 'New node',
-    description: 'Node description',
+    text: '',
+    description: '',
     nodeWidth: DEFAULT_NODE_WIDTH,
   },
 };
