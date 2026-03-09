@@ -60,5 +60,33 @@
     "export": "Export",
     "logout": "Sign out",
     "loading": "Loading..."
+  },
+  "agents": {
+    "title": "My Agents",
+    "empty": "No agents yet. Create your first one.",
+    "create": "Create agent",
+    "name": "Name",
+    "namePlaceholder": "My Agent",
+    "nameRequired": "Agent name is required.",
+    "description": "Description",
+    "descriptionPlaceholder": "What does this agent do?",
+    "version": "Version",
+    "updated": "Updated",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleteTitle": "Delete agent",
+    "deleteDescription": "This will permanently delete \"{name}\". This action cannot be undone.",
+    "deleteConfirm": "Delete",
+    "deleteCancel": "Cancel",
+    "slugTaken": "An agent with this name already exists. Try a different name.",
+    "createError": "Failed to create agent. Please try again."
+  },
+  "editor": {
+    "publish": "Publish",
+    "publishFailed": "Failed to publish. Please try again.",
+    "saving": "Saving...",
+    "autoSaveFailed": "Auto-save failed. Your changes may not be saved.",
+    "notFound": "Agent not found"
   }
 }
