@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Eye, EyeOff, Plus, Trash2, SlidersHorizontal, X } from "lucide-react";
+import { ChevronDown, Plus, Trash2, SlidersHorizontal, X } from "lucide-react";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import type { ApiKeyRow } from "../../lib/api-keys";
+import { ApiKeySelectSection } from "./ApiKeySelectSection";
 import { type ContextPreset, DEFAULT_PRESET } from "../../types/preset";
 import type { McpServerConfig } from "../../schemas/graph.schema";
 import type { McpServerStatus } from "../../hooks/useMcpServers";
@@ -50,9 +53,11 @@ interface ContextPreconditionsProps {
 
 interface PresetsPanelProps {
   presets: ContextPreset[];
-  apiKey: string;
   contextKeys: string[];
-  onApiKeyChange: (key: string) => void;
+  orgApiKeys: ApiKeyRow[];
+  stagingKeyId: string | null;
+  productionKeyId: string | null;
+  onStagingKeyChange: (keyId: string | null) => void;
   onAdd: () => void;
   onDelete: (id: string) => void;
   onUpdate: (id: string, updates: Partial<ContextPreset>) => void;
@@ -234,9 +239,11 @@ function PresetItem({
 
 export function PresetsPanel({
   presets,
-  apiKey,
   contextKeys,
-  onApiKeyChange,
+  orgApiKeys,
+  stagingKeyId,
+  productionKeyId,
+  onStagingKeyChange,
   onAdd,
   onDelete,
   onUpdate,
@@ -244,8 +251,6 @@ export function PresetsPanel({
   contextPreconditions,
   mcp,
 }: PresetsPanelProps) {
-  const [showApiKey, setShowApiKey] = useState(false);
-
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-2 border-b px-4 py-3">
@@ -253,27 +258,12 @@ export function PresetsPanel({
         <h2 className="text-sm font-semibold">Context Presets</h2>
       </div>
       <div className="flex-1 overflow-y-auto p-4">
-        <div className="mb-4 space-y-1">
-          <Label>OpenRouter API Key</Label>
-          <div className="relative">
-            <Input
-              type={showApiKey ? "text" : "password"}
-              value={apiKey}
-              onChange={(e) => onApiKeyChange(e.target.value)}
-              placeholder="Enter API key..."
-              className="pr-9"
-            />
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              className="absolute right-2 top-1/2 -translate-y-1/2"
-              onClick={() => setShowApiKey((prev) => !prev)}
-            >
-              {showApiKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-            </Button>
-          </div>
-          <Separator className="mt-3" />
-        </div>
+        <ApiKeySelectSection
+          orgApiKeys={orgApiKeys}
+          stagingKeyId={stagingKeyId}
+          productionKeyId={productionKeyId}
+          onStagingKeyChange={onStagingKeyChange}
+        />
         <ContextKeysSection
           keys={contextKeys}
           onAdd={context.onAdd}

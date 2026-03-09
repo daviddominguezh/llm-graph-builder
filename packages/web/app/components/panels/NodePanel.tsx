@@ -35,7 +35,6 @@ interface NodePanelProps {
   agents: Agent[];
   presets: ContextPreset[];
   activePresetId: string;
-  apiKey: string;
   globalNodeIds: string[];
   onSetActivePreset: (id: string) => void;
   onNodeDeleted?: () => void;
@@ -50,7 +49,6 @@ export function NodePanel({
   agents,
   presets,
   activePresetId,
-  apiKey,
   globalNodeIds,
   onSetActivePreset,
   onNodeDeleted,
@@ -145,7 +143,6 @@ export function NodePanel({
               agents={agents}
               presets={presets}
               activePresetId={activePresetId}
-              apiKey={apiKey}
               onSetActivePreset={onSetActivePreset}
             />
 

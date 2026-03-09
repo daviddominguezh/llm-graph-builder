@@ -7,10 +7,6 @@ import type {
   Node as SchemaNode,
 } from '../schemas/graph.schema';
 
-// Default node dimensions for handle calculation
-const DEFAULT_NODE_WIDTH = 180;
-const DEFAULT_NODE_HEIGHT = 80;
-
 // Grid layout constants
 const GRID_COLUMNS = 5;
 const GRID_COLUMN_WIDTH = 300;
@@ -30,9 +26,7 @@ interface HandlePair {
  */
 function getClosestHandles(
   sourcePos: { x: number; y: number },
-  targetPos: { x: number; y: number },
-  _nodeWidth: number = DEFAULT_NODE_WIDTH,
-  _nodeHeight: number = DEFAULT_NODE_HEIGHT
+  targetPos: { x: number; y: number }
 ): HandlePair {
   const dx = targetPos.x - sourcePos.x;
   const dy = targetPos.y - sourcePos.y;

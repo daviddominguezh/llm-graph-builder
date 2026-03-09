@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-# Full check (format + lint + typecheck)
+# Full check (format + lint + typecheck), you MUST run this after you think you have finished your changes
 npm run check
 
 # Individual checks
@@ -55,6 +55,11 @@ Graphs have **nodes** (kinds: `agent`, `agent_decision`, `tool`) and **edges** w
 - `tool_call` - invoke external tools
 - `agent_decision` - LLM selects next node
 - `user_reply` - await user input
+
+### Data access
+
+- **Client components never talk to the database.** The data flow is: Client → Next.js backend (Server Components, Server Actions, Route Handlers) → dedicated backend. No direct Supabase calls from the browser.
+- Auth flows (login, signup, OAuth, password reset) are the only exception — these use the Supabase browser client for auth token management.
 
 ## Code style and constraints
 

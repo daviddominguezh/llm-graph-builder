@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
+    "target": "ES2024",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
@@ -19,7 +19,10 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@daviddh/graph-types": ["../graph-types/src/index.ts"],
+      "@daviddh/llm-graph-runner": ["../api/src/index.ts"],
+      "@src/*": ["../api/src/*"]
     }
   },
   "include": [

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Loader2, SquareTerminal } from "lucide-react";
 import { useEdges } from "@xyflow/react";
 import { MarkdownHooks } from "react-markdown";
@@ -38,7 +38,6 @@ interface NodePromptDialogProps {
   agents: Agent[];
   presets: ContextPreset[];
   activePresetId: string;
-  apiKey: string;
   onSetActivePreset: (id: string) => void;
 }
 
@@ -121,12 +120,12 @@ export function NodePromptDialog({
   agents,
   presets,
   activePresetId,
-  apiKey,
   onSetActivePreset,
 }: NodePromptDialogProps) {
   const edges = useEdges<Edge<RFEdgeData>>();
   const [open, setOpen] = useState(false);
   const [prompt, setPrompt] = useState<PromptState>({ text: "", loading: false, error: null });
+  const [, startTransition] = useTransition();
 
   const activePreset = presets.find((p) => p.id === activePresetId);
 
@@ -134,9 +133,11 @@ export function NodePromptDialog({
     if (!open || !activePreset) return;
 
     let cancelled = false;
-    setPrompt({ text: "", loading: true, error: null });
+    startTransition(() => {
+      setPrompt({ text: "", loading: true, error: null });
+    });
 
-    buildPromptForNode({ nodes: allNodes, edges, nodeId, preset: activePreset, agents, apiKey })
+    buildPromptForNode({ nodes: allNodes, edges, nodeId, preset: activePreset, agents })
       .then((text) => {
         if (!cancelled) setPrompt({ text, loading: false, error: null });
       })
@@ -149,7 +150,7 @@ export function NodePromptDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, nodeId, activePreset, agents, allNodes, edges, apiKey]);
+  }, [open, nodeId, activePreset, agents, allNodes, edges, startTransition]);
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>

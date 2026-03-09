@@ -1,12 +1,26 @@
-"use client";
+import { redirect } from 'next/navigation';
 
-import dynamic from 'next/dynamic';
+import { getOrgsByUser } from '@/app/lib/orgs';
+import { createClient } from '@/app/lib/supabase/server';
 
-const GraphBuilder = dynamic(
-  () => import('./components/GraphBuilder').then((mod) => mod.GraphBuilder),
-  { ssr: false }
-);
+import { CreateFirstOrg } from './components/orgs/CreateFirstOrg';
 
-export default function Page(): React.JSX.Element {
-  return <GraphBuilder />;
+export default async function HomePage(): Promise<React.JSX.Element> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect('/login');
+  }
+
+  const { result: orgs } = await getOrgsByUser(supabase);
+  const firstOrg = orgs[0];
+
+  if (firstOrg !== undefined) {
+    redirect(`/orgs/${firstOrg.slug}`);
+  }
+
+  return <CreateFirstOrg />;
 }

@@ -6,21 +6,12 @@ import { type ContextPreset, DEFAULT_PRESET } from '../types/preset';
 const FIRST_INDEX = 0;
 const NAME_SUFFIX_LENGTH = 4;
 
-const API_KEY_STORAGE_KEY = 'llm-graph-builder-api-key';
-
-function loadApiKey(): string {
-  if (typeof window === 'undefined') return '';
-  return localStorage.getItem(API_KEY_STORAGE_KEY) ?? '';
-}
-
 interface PresetsState {
   presets: ContextPreset[];
   activePreset: ContextPreset | undefined;
   activePresetId: string;
-  apiKey: string;
   contextKeys: string[];
   setActivePresetId: (id: string) => void;
-  setApiKey: (key: string) => void;
   addPreset: () => void;
   deletePreset: (id: string) => void;
   updatePreset: (id: string, updates: Partial<ContextPreset>) => void;
@@ -97,17 +88,6 @@ function useContextKeys(setPresets: React.Dispatch<React.SetStateAction<ContextP
   return { contextKeys, addContextKey, removeContextKey, renameContextKey, setContextKeys };
 }
 
-function useApiKey(): { apiKey: string; setApiKey: (key: string) => void } {
-  const [apiKey, setApiKeyState] = useState(loadApiKey);
-
-  const setApiKey = useCallback((key: string) => {
-    setApiKeyState(key);
-    localStorage.setItem(API_KEY_STORAGE_KEY, key);
-  }, []);
-
-  return { apiKey, setApiKey };
-}
-
 function usePresetCrud(setPresets: React.Dispatch<React.SetStateAction<ContextPreset[]>>): {
   addPreset: () => void;
   deletePreset: (id: string) => void;
@@ -142,7 +122,6 @@ function usePresetCrud(setPresets: React.Dispatch<React.SetStateAction<ContextPr
 
 export function usePresets(): PresetsState {
   const [presets, setPresets] = useState<ContextPreset[]>([DEFAULT_PRESET]);
-  const { apiKey, setApiKey } = useApiKey();
   const crud = usePresetCrud(setPresets);
   const ctx = useContextKeys(setPresets);
 
@@ -151,11 +130,9 @@ export function usePresets(): PresetsState {
   return {
     presets,
     activePreset,
-    apiKey,
     contextKeys: ctx.contextKeys,
     activePresetId: crud.activePresetId,
     setActivePresetId: crud.setActivePresetId,
-    setApiKey,
     addPreset: crud.addPreset,
     deletePreset: crud.deletePreset,
     updatePreset: crud.updatePreset,

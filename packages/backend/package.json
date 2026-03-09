@@ -10,7 +10,10 @@
   },
   "scripts": {
     "build": "rm -rf dist tsconfig.tsbuildinfo && tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
-    "typecheck": "tsc -b",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write \"**/*.{js,ts,json}\"",
+    "check": "npm run format && npm run lint && npm run typecheck",
     "start": "tsx src/index.ts",
     "dev": "tsx watch src/index.ts"
   },

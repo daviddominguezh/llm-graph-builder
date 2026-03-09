@@ -1,0 +1,63 @@
+import { ApiKeysSection } from '@/app/components/orgs/ApiKeysSection';
+import { DangerZone } from '@/app/components/orgs/DangerZone';
+import { OrgSettingsForm } from '@/app/components/orgs/OrgSettingsForm';
+import { getApiKeysByOrg } from '@/app/lib/api-keys';
+import { getOrgBySlug } from '@/app/lib/orgs';
+import { createClient } from '@/app/lib/supabase/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { redirect } from 'next/navigation';
+
+interface OrgSettingsPageProps {
+  params: Promise<{ slug: string }>;
+}
+
+interface MemberRole {
+  role: string;
+}
+
+function isMemberRole(value: unknown): value is MemberRole {
+  return typeof value === 'object' && value !== null && 'role' in value;
+}
+
+async function verifyOwnership(supabase: SupabaseClient, orgId: string): Promise<boolean> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { data } = await supabase
+    .from('org_members')
+    .select('role')
+    .eq('org_id', orgId)
+    .eq('user_id', user.id)
+    .single();
+
+  if (!isMemberRole(data)) return false;
+  return data.role === 'owner';
+}
+
+export default async function OrgSettingsPage({ params }: OrgSettingsPageProps): Promise<React.JSX.Element> {
+  const { slug } = await params;
+  const supabase = await createClient();
+  const { result: org } = await getOrgBySlug(supabase, slug);
+
+  if (!org) {
+    redirect('/');
+  }
+
+  const isOwner = await verifyOwnership(supabase, org.id);
+
+  if (!isOwner) {
+    redirect(`/orgs/${slug}`);
+  }
+
+  const { result: apiKeys } = await getApiKeysByOrg(supabase, org.id);
+
+  return (
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+      <OrgSettingsForm org={org} />
+      <ApiKeysSection orgId={org.id} initialKeys={apiKeys} />
+      <DangerZone org={org} />
+    </div>
+  );
+}
