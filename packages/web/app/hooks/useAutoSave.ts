@@ -1,5 +1,4 @@
-import { saveStaging } from '@/app/lib/agents';
-import { createClient } from '@/app/lib/supabase/client';
+import { saveStagingAction } from '@/app/actions/agents';
 import type { Graph } from '@/app/schemas/graph.schema';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -36,9 +35,7 @@ function serializeGraph(getGraphData: () => Graph | null): string | null {
 }
 
 function executeSave(agentId: string, graphData: Graph, serialized: string, cb: SaveCallbacks): void {
-  const supabase = createClient();
-
-  void saveStaging(supabase, agentId, graphData).then(({ error }) => {
+  void saveStagingAction(agentId, graphData).then(({ error }) => {
     if (error !== null) {
       toast.error('Auto-save failed');
       return;

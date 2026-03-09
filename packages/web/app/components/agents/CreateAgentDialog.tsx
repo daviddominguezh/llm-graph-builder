@@ -1,7 +1,6 @@
 'use client';
 
-import { createAgent } from '@/app/lib/agents';
-import { createClient } from '@/app/lib/supabase/client';
+import { createAgentAction } from '@/app/actions/agents';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -38,8 +37,7 @@ function CreateAgentForm({ orgId, onOpenChange }: CreateAgentDialogProps) {
     setLoading(true);
     setNameError('');
 
-    const supabase = createClient();
-    const { agent, error } = await createAgent(supabase, orgId, name, description);
+    const { agent, error } = await createAgentAction(orgId, name, description);
 
     if (error !== null || agent === null) {
       setLoading(false);

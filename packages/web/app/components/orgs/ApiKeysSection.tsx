@@ -1,8 +1,7 @@
 'use client';
 
+import { getApiKeysByOrgAction } from '@/app/actions/api-keys';
 import type { ApiKeyRow } from '@/app/lib/api-keys';
-import { getApiKeysByOrg } from '@/app/lib/api-keys';
-import { createClient } from '@/app/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Plus, Trash2 } from 'lucide-react';
@@ -67,8 +66,7 @@ export function ApiKeysSection({ orgId, initialKeys }: ApiKeysSectionProps) {
   const [deleteTarget, setDeleteTarget] = useState<ApiKeyRow | null>(null);
 
   const refreshKeys = useCallback(async () => {
-    const supabase = createClient();
-    const { result } = await getApiKeysByOrg(supabase, orgId);
+    const { result } = await getApiKeysByOrgAction(orgId);
     setKeys(result);
   }, [orgId]);
 

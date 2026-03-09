@@ -1,7 +1,6 @@
 'use client';
 
-import { deleteApiKey } from '@/app/lib/api-keys';
-import { createClient } from '@/app/lib/supabase/client';
+import { deleteApiKeyAction } from '@/app/actions/api-keys';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,8 +29,7 @@ function useDeleteApiKey(keyId: string, onOpenChange: (open: boolean) => void, o
 
   async function handleDelete() {
     setLoading(true);
-    const supabase = createClient();
-    const { error } = await deleteApiKey(supabase, keyId);
+    const { error } = await deleteApiKeyAction(keyId);
 
     setLoading(false);
 

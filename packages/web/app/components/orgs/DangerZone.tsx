@@ -1,8 +1,7 @@
 'use client';
 
+import { deleteOrgAction } from '@/app/actions/orgs';
 import type { OrgRow } from '@/app/lib/orgs';
-import { deleteOrg } from '@/app/lib/orgs';
-import { createClient } from '@/app/lib/supabase/client';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,8 +29,7 @@ function useDeleteOrg(org: OrgRow) {
 
   async function handleDelete() {
     setLoading(true);
-    const supabase = createClient();
-    const { error } = await deleteOrg(supabase, org.id);
+    const { error } = await deleteOrgAction(org.id);
 
     setLoading(false);
 

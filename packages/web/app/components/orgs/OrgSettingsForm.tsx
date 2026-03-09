@@ -1,9 +1,7 @@
 'use client';
 
-import { removeOrgAvatar, uploadOrgAvatar } from '@/app/lib/org-storage';
+import { removeOrgAvatarAction, updateOrgNameAction, uploadOrgAvatarAction } from '@/app/actions/orgs';
 import type { OrgRow } from '@/app/lib/orgs';
-import { updateOrgAvatar, updateOrgName } from '@/app/lib/orgs';
-import { createClient } from '@/app/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,8 +17,7 @@ interface OrgSettingsFormProps {
 }
 
 async function submitNameUpdate(orgId: string, name: string): Promise<string | null> {
-  const supabase = createClient();
-  const { result: newSlug, error } = await updateOrgName(supabase, orgId, name);
+  const { result: newSlug, error } = await updateOrgNameAction(orgId, name);
 
   if (error !== null) return null;
   return newSlug;
@@ -79,23 +76,15 @@ function NameSection({ org }: OrgSettingsFormProps) {
 }
 
 async function handleUpload(orgId: string, file: File): Promise<string | null> {
-  const supabase = createClient();
-  const { result: url, error: uploadErr } = await uploadOrgAvatar(supabase, orgId, file);
-
-  if (uploadErr !== null || url === null) return uploadErr;
-
-  const { error: updateErr } = await updateOrgAvatar(supabase, orgId, url);
-  return updateErr;
+  const formData = new FormData();
+  formData.append('file', file);
+  const { error } = await uploadOrgAvatarAction(orgId, formData);
+  return error;
 }
 
 async function handleRemove(orgId: string): Promise<string | null> {
-  const supabase = createClient();
-  const { error: removeErr } = await removeOrgAvatar(supabase, orgId);
-
-  if (removeErr !== null) return removeErr;
-
-  const { error: updateErr } = await updateOrgAvatar(supabase, orgId, null);
-  return updateErr;
+  const { error } = await removeOrgAvatarAction(orgId);
+  return error;
 }
 
 function useAvatarHandlers(org: OrgRow) {

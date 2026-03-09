@@ -1,7 +1,6 @@
 'use client';
 
-import { publishAgent } from '@/app/lib/agents';
-import { createClient } from '@/app/lib/supabase/client';
+import { publishAgentAction } from '@/app/actions/agents';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Loader2, Upload } from 'lucide-react';
@@ -66,8 +65,7 @@ export function PublishButton({ agentId, canPublish, hasApiKey, onPublished }: P
 
   async function handlePublish() {
     setPublishing(true);
-    const supabase = createClient();
-    const { version: newVersion, error } = await publishAgent(supabase, agentId);
+    const { version: newVersion, error } = await publishAgentAction(agentId);
 
     if (error !== null || newVersion === null) {
       toast.error(t('publishFailed'));

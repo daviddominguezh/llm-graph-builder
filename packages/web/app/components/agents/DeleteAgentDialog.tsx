@@ -1,8 +1,7 @@
 'use client';
 
+import { deleteAgentAction } from '@/app/actions/agents';
 import type { AgentMetadata } from '@/app/lib/agents';
-import { deleteAgent } from '@/app/lib/agents';
-import { createClient } from '@/app/lib/supabase/client';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,8 +32,7 @@ export function DeleteAgentDialog({ agent, onOpenChange }: DeleteAgentDialogProp
     if (agent === null) return;
     setLoading(true);
 
-    const supabase = createClient();
-    const { error } = await deleteAgent(supabase, agent.id);
+    const { error } = await deleteAgentAction(agent.id);
 
     setLoading(false);
 

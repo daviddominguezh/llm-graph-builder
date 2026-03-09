@@ -56,6 +56,11 @@ Graphs have **nodes** (kinds: `agent`, `agent_decision`, `tool`) and **edges** w
 - `agent_decision` - LLM selects next node
 - `user_reply` - await user input
 
+### Data access
+
+- **Client components never talk to the database.** The data flow is: Client → Next.js backend (Server Components, Server Actions, Route Handlers) → dedicated backend. No direct Supabase calls from the browser.
+- Auth flows (login, signup, OAuth, password reset) are the only exception — these use the Supabase browser client for auth token management.
+
 ## Code style and constraints
 
 ### ESLint (strict, do not disable)

@@ -1,7 +1,6 @@
 'use client';
 
-import { createApiKey } from '@/app/lib/api-keys';
-import { createClient } from '@/app/lib/supabase/client';
+import { createApiKeyAction } from '@/app/actions/api-keys';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -64,8 +63,7 @@ function CreateApiKeyForm({ orgId, onOpenChange, onCreated }: CreateApiKeyDialog
     setNameError('');
     setKeyError('');
 
-    const supabase = createClient();
-    const { result, error } = await createApiKey(supabase, orgId, name, keyValue);
+    const { result, error } = await createApiKeyAction(orgId, name, keyValue);
 
     if (error !== null || result === null) {
       setLoading(false);

@@ -1,8 +1,6 @@
 'use client';
 
-import { uploadOrgAvatar } from '@/app/lib/org-storage';
-import { createOrg, updateOrgAvatar } from '@/app/lib/orgs';
-import { createClient } from '@/app/lib/supabase/client';
+import { createOrgAction, uploadOrgAvatarAction } from '@/app/actions/orgs';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -90,13 +88,10 @@ interface UploadAvatarParams {
 }
 
 async function handleAvatarUpload({ file, orgId }: UploadAvatarParams): Promise<string | null> {
-  const supabase = createClient();
-  const { result: url, error: uploadErr } = await uploadOrgAvatar(supabase, orgId, file);
-
-  if (uploadErr !== null || url === null) return uploadErr;
-
-  const { error: updateErr } = await updateOrgAvatar(supabase, orgId, url);
-  return updateErr;
+  const formData = new FormData();
+  formData.append('file', file);
+  const { error } = await uploadOrgAvatarAction(orgId, formData);
+  return error;
 }
 
 interface SubmitOrgResult {
@@ -104,8 +99,7 @@ interface SubmitOrgResult {
 }
 
 async function submitOrg(name: string, avatarFile: File | null): Promise<SubmitOrgResult> {
-  const supabase = createClient();
-  const { result: org, error } = await createOrg(supabase, name);
+  const { result: org, error } = await createOrgAction(name);
 
   if (error !== null || org === null) {
     throw new Error(error ?? 'Failed to create organization');

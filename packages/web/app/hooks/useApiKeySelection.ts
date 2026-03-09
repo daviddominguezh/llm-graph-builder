@@ -1,8 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 
-import { saveStagingKeyId } from '../lib/agents';
+import { saveStagingKeyIdAction } from '../actions/agents';
 import type { ApiKeyRow } from '../lib/api-keys';
-import { createClient } from '../lib/supabase/client';
 
 interface UseApiKeySelectionParams {
   agentId: string | undefined;
@@ -35,8 +34,7 @@ export function useApiKeySelection(params: UseApiKeySelectionParams): ApiKeySele
     (keyId: string | null) => {
       setStagingKeyId(keyId);
       if (agentId !== undefined) {
-        const supabase = createClient();
-        void saveStagingKeyId(supabase, agentId, keyId);
+        void saveStagingKeyIdAction(agentId, keyId);
       }
     },
     [agentId]
