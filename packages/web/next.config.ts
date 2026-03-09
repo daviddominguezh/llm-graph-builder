@@ -1,6 +1,9 @@
 import type { NextConfig } from 'next';
+import createNextIntlPlugin from 'next-intl/plugin';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+const withNextIntl = createNextIntlPlugin('./app/i18n/request.ts');
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const apiSrc = path.resolve(currentDir, '../api/src');
@@ -37,4 +40,4 @@ const nextConfig: NextConfig = {
   webpack: configureWebpack,
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);
