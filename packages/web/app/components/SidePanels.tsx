@@ -168,7 +168,7 @@ function handlePreconditionUpdate(
       eds.map((e) => {
         const cp = (e.data as RFEdgeData | undefined)?.contextPreconditions;
         if (cp === undefined) return e;
-        const renamed = cp.preconditions.map((p) => (p === old.name ? updates.name! : p));
+        const renamed = cp.preconditions.map((p: string) => (p === old.name ? updates.name! : p));
         return { ...e, data: { ...e.data, contextPreconditions: { ...cp, preconditions: renamed } } };
       })
     );
