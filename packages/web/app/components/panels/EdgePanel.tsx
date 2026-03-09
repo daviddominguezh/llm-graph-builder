@@ -299,7 +299,7 @@ export function EdgePanel({
   const handleRemoveEdgeContextPrecondition = (value: string) => {
     const current = edgeData?.contextPreconditions;
     if (!current) return;
-    const filtered = current.preconditions.filter((p) => p !== value);
+    const filtered = current.preconditions.filter((p: string) => p !== value);
     updateEdgeData({
       contextPreconditions:
         filtered.length > 0
