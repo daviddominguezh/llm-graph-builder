@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-# Full check (format + lint + typecheck)
+# Full check (format + lint + typecheck), you MUST run this after you think you have finished your changes
 npm run check
 
 # Individual checks

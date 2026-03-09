@@ -18,7 +18,13 @@ interface CreateAgentDialogProps {
   orgSlug: string;
 }
 
-function CreateAgentForm({ orgId, orgSlug, onOpenChange }: CreateAgentDialogProps) {
+interface CreateAgentFormProps {
+  orgId: string;
+  orgSlug: string;
+  onOpenChange: (open: boolean) => void;
+}
+
+function CreateAgentForm({ orgId, orgSlug, onOpenChange }: CreateAgentFormProps) {
   const t = useTranslations('agents');
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -89,7 +95,7 @@ export function CreateAgentDialog({ open, onOpenChange, orgId, orgSlug }: Create
         <DialogHeader>
           <DialogTitle>{t('create')}</DialogTitle>
         </DialogHeader>
-        <CreateAgentForm open={open} onOpenChange={onOpenChange} orgId={orgId} orgSlug={orgSlug} />
+        <CreateAgentForm onOpenChange={onOpenChange} orgId={orgId} orgSlug={orgSlug} />
       </DialogContent>
     </Dialog>
   );

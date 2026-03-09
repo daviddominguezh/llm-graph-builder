@@ -17,11 +17,12 @@ interface OrgSettingsFormProps {
   org: OrgRow;
 }
 
-async function submitNameUpdate(orgId: string, name: string): Promise<string | null> {
+async function submitNameUpdate(
+  orgId: string,
+  name: string
+): Promise<{ slug: string | null; error: string | null }> {
   const { result: newSlug, error } = await updateOrgNameAction(orgId, name);
-
-  if (error !== null) return null;
-  return newSlug;
+  return { slug: newSlug, error };
 }
 
 function useNameSubmit(org: OrgRow) {
@@ -42,15 +43,15 @@ function useNameSubmit(org: OrgRow) {
 
     setLoading(true);
     setNameError('');
-    const newSlug = await submitNameUpdate(org.id, name);
+    const { slug: newSlug, error } = await submitNameUpdate(org.id, name);
     setLoading(false);
 
-    if (newSlug === null) {
-      toast.error(t('updateError'));
+    if (error !== null) {
+      toast.error(error);
       return;
     }
 
-    if (newSlug !== org.slug) {
+    if (newSlug !== null && newSlug !== org.slug) {
       router.replace(`/orgs/${newSlug}/settings`);
     }
   }

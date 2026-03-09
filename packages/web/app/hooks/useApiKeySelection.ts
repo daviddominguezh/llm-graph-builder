@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { toast } from 'sonner';
 
 import { saveStagingKeyIdAction } from '../actions/agents';
 
@@ -12,7 +13,7 @@ export interface ApiKeySelectionState {
   stagingKeyId: string | null;
   productionKeyId: string | null;
   setProductionKeyId: React.Dispatch<React.SetStateAction<string | null>>;
-  handleStagingKeyChange: (keyId: string | null) => void;
+  handleStagingKeyChange: (keyId: string | null) => Promise<void>;
 }
 
 export function useApiKeySelection(params: UseApiKeySelectionParams): ApiKeySelectionState {
@@ -22,13 +23,17 @@ export function useApiKeySelection(params: UseApiKeySelectionParams): ApiKeySele
   const [productionKeyId, setProductionKeyId] = useState<string | null>(initialProductionKeyId);
 
   const handleStagingKeyChange = useCallback(
-    (keyId: string | null) => {
+    async (keyId: string | null) => {
       setStagingKeyId(keyId);
       if (agentId !== undefined) {
-        void saveStagingKeyIdAction(agentId, keyId);
+        const { error } = await saveStagingKeyIdAction(agentId, keyId);
+        if (error !== null) {
+          setStagingKeyId(initialStagingKeyId);
+          toast.error(error);
+        }
       }
     },
-    [agentId]
+    [agentId, initialStagingKeyId]
   );
 
   return { stagingKeyId, productionKeyId, setProductionKeyId, handleStagingKeyChange };
