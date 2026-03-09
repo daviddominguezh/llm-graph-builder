@@ -14,6 +14,8 @@ export interface AgentRow {
   version: number;
   created_at: string;
   updated_at: string;
+  staging_api_key_id: string | null;
+  production_api_key_id: string | null;
 }
 
 export type AgentMetadata = Pick<AgentRow, 'id' | 'name' | 'slug' | 'description' | 'version' | 'updated_at'>;
@@ -21,6 +23,7 @@ export type AgentMetadata = Pick<AgentRow, 'id' | 'name' | 'slug' | 'description
 interface StagingRow {
   graph_data_staging: Record<string, unknown>;
   version: number;
+  staging_api_key_id: string | null;
 }
 
 interface InsertAgentParams {
@@ -116,13 +119,25 @@ export async function saveStaging(
   return { error: null };
 }
 
+export async function saveStagingKeyId(
+  supabase: SupabaseClient,
+  agentId: string,
+  keyId: string | null
+): Promise<{ error: string | null }> {
+  const payload: Record<string, unknown> = { staging_api_key_id: keyId };
+  const { error } = await supabase.from('agents').update(payload).eq('id', agentId);
+
+  if (error !== null) return { error: error.message };
+  return { error: null };
+}
+
 async function fetchStagingData(
   supabase: SupabaseClient,
   agentId: string
 ): Promise<{ row: StagingRow | null; error: string | null }> {
   const result = await supabase
     .from('agents')
-    .select('graph_data_staging, version')
+    .select('graph_data_staging, version, staging_api_key_id')
     .eq('id', agentId)
     .single();
 
@@ -140,7 +155,11 @@ async function promoteToProduction(
 
   const { error } = await supabase
     .from('agents')
-    .update({ graph_data_production: row.graph_data_staging, version: newVersion })
+    .update({
+      graph_data_production: row.graph_data_staging,
+      version: newVersion,
+      production_api_key_id: row.staging_api_key_id,
+    })
     .eq('id', agentId);
 
   if (error !== null) return { version: null, error: error.message };
