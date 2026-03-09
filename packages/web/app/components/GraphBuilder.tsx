@@ -13,6 +13,7 @@ import { SearchDialog } from './panels/SearchDialog';
 import { GraphCanvas } from './GraphCanvas';
 import { SidePanels } from './SidePanels';
 import type { ApiKeyRow } from '../lib/api-keys';
+import { GraphSchema } from '../schemas/graph.schema';
 import type { Agent, Graph } from '../schemas/graph.schema';
 import { useApiKeySelection } from '../hooks/useApiKeySelection';
 import { useMcpServers } from '../hooks/useMcpServers';
@@ -57,7 +58,9 @@ function useGraphBuilderHooks(props: GraphBuilderProps) {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initEdges);
   const [agents] = useState<Agent[]>(initialGraphData?.agents ?? []);
   const [version, setVersion] = useState(initialVersion ?? DEFAULT_VERSION);
-  const [productionData, setProductionData] = useState(initialProductionData);
+  const [productionData, setProductionData] = useState(() =>
+    initialProductionData ? (GraphSchema.safeParse(initialProductionData).data ?? initialProductionData) : undefined
+  );
 
   const apiKeys = useApiKeySelection({
     agentId,

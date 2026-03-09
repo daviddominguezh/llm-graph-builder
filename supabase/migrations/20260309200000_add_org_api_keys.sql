@@ -39,6 +39,17 @@ create policy "Org members can create API keys"
     )
   );
 
+create policy "Org members can update API keys"
+  on public.org_api_keys for update
+  to authenticated
+  using (
+    exists (
+      select 1 from public.org_members
+      where org_members.org_id = org_api_keys.org_id
+        and org_members.user_id = auth.uid()
+    )
+  );
+
 create policy "Org members can delete API keys"
   on public.org_api_keys for delete
   to authenticated

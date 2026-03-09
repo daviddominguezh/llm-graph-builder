@@ -59,7 +59,7 @@ function collectEdgePreconditions(edges: Array<Edge<RFEdgeData>>): Set<string> {
   for (const edge of edges) {
     const cp = edge.data?.contextPreconditions;
     if (cp !== undefined) {
-      cp.preconditions.forEach((p) => set.add(p));
+      cp.preconditions.forEach((p: string) => set.add(p));
     }
   }
   return set;
