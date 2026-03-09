@@ -3,6 +3,7 @@
 import { publishAgent } from '@/app/lib/agents';
 import { createClient } from '@/app/lib/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Loader2, Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -11,6 +12,7 @@ import { toast } from 'sonner';
 interface PublishButtonProps {
   agentId: string;
   canPublish: boolean;
+  hasApiKey: boolean;
   onPublished: (newVersion: number) => void;
 }
 
@@ -22,7 +24,43 @@ function PublishSpinner() {
   );
 }
 
-export function PublishButton({ agentId, canPublish, onPublished }: PublishButtonProps) {
+function PublishButtonContent({
+  canPublish,
+  hasApiKey,
+  onPublish,
+}: {
+  canPublish: boolean;
+  hasApiKey: boolean;
+  onPublish: () => void;
+}) {
+  const t = useTranslations('editor');
+  const tKeys = useTranslations('apiKeys');
+  const disabled = !canPublish || !hasApiKey;
+
+  const button = (
+    <Button
+      variant={canPublish && hasApiKey ? 'default' : 'ghost'}
+      size="sm"
+      onClick={disabled ? undefined : onPublish}
+      disabled={disabled}
+      className="h-10 gap-1.5 px-3"
+    >
+      <Upload className="size-4" />
+      {t('publish')}
+    </Button>
+  );
+
+  if (hasApiKey) return button;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger render={<span />}>{button}</TooltipTrigger>
+      <TooltipContent>{tKeys('requiresKey')}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+export function PublishButton({ agentId, canPublish, hasApiKey, onPublished }: PublishButtonProps) {
   const t = useTranslations('editor');
   const [publishing, setPublishing] = useState(false);
 
@@ -41,20 +79,7 @@ export function PublishButton({ agentId, canPublish, onPublished }: PublishButto
     setPublishing(false);
   }
 
-  if (publishing) {
-    return <PublishSpinner />;
-  }
+  if (publishing) return <PublishSpinner />;
 
-  return (
-    <Button
-      variant={canPublish ? 'default' : 'ghost'}
-      size="sm"
-      onClick={handlePublish}
-      disabled={!canPublish}
-      className="h-10 gap-1.5 px-3"
-    >
-      <Upload className="size-4" />
-      {t('publish')}
-    </Button>
-  );
+  return <PublishButtonContent canPublish={canPublish} hasApiKey={hasApiKey} onPublish={handlePublish} />;
 }
