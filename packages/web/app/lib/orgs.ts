@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+import { removeOrgAvatar } from './org-storage';
 import { findUniqueSlug, generateSlug } from './slug';
 
 export interface OrgRow {
@@ -162,6 +163,9 @@ export async function updateOrgAvatar(
 }
 
 export async function deleteOrg(supabase: SupabaseClient, orgId: string): Promise<{ error: string | null }> {
+  // Best-effort: remove avatar from storage before deleting the org row
+  await removeOrgAvatar(supabase, orgId);
+
   const { error } = await supabase.from('organizations').delete().eq('id', orgId);
 
   if (error !== null) return { error: error.message };

@@ -204,7 +204,7 @@ function useAddNode(params: UseGraphActionsParams): () => void {
       data: {
         nodeId: id,
         text: 'New node',
-        description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+        description: '',
         nodeWidth: DEFAULT_NODE_WIDTH,
       },
     };

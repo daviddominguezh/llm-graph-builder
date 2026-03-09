@@ -54,5 +54,9 @@ export function serializeGraphData({ nodes, edges, agents, mcpServers }: Seriali
   };
 
   const result = GraphSchema.safeParse(graph);
-  return result.success ? result.data : null;
+  if (!result.success) {
+    globalThis.console.error('[serializeGraphData] schema validation failed', result.error);
+    return null;
+  }
+  return result.data;
 }

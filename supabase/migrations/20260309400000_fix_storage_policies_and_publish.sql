@@ -70,6 +70,7 @@ update public.org_api_keys
 create or replace function public.set_api_key_preview()
 returns trigger
 language plpgsql
+security definer set search_path = ''
 as $$
 begin
   new.key_preview := '••••••••' || right(new.key_value, 4);
