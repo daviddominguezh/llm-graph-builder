@@ -63,7 +63,7 @@
     "backToAgents": "Back to agents"
   },
   "agents": {
-    "title": "My Agents",
+    "title": "Agents",
     "empty": "No agents yet. Create your first one.",
     "create": "Create agent",
     "name": "Name",
@@ -98,8 +98,12 @@
     "namePlaceholder": "My Organization",
     "nameRequired": "Organization name is required.",
     "agentCount": "{count} agents",
+    "agents": "Agents",
     "settings": "Settings",
     "settingsTitle": "Organization Settings",
+    "generalSection": "General",
+    "generalDescription": "Update your organization name and profile picture.",
+    "dangerDescription": "Irreversible actions that affect your entire organization.",
     "saveName": "Save",
     "profilePicture": "Profile picture",
     "upload": "Upload",
@@ -118,8 +122,9 @@
     "back": "Back"
   },
   "apiKeys": {
-    "title": "API Keys",
+    "title": "OpenRouter API Keys",
     "add": "Add key",
+    "description": "Manage OpenRouter API keys used by your agents to connect to LLM providers.",
     "name": "Name",
     "namePlaceholder": "My API Key",
     "nameRequired": "Key name is required.",

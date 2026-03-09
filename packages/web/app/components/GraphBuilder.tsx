@@ -207,6 +207,7 @@ function GraphBuilderInner(props: GraphBuilderProps) {
           orgSlug={props.orgSlug}
           orgName={props.orgName}
           orgAvatarUrl={props.orgAvatarUrl}
+          agentName={props.agentName}
           publishSlot={
             props.agentId !== undefined ? (
               <PublishButton

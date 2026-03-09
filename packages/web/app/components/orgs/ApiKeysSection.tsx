@@ -3,7 +3,7 @@
 import { getApiKeysByOrgAction } from '@/app/actions/api-keys';
 import type { ApiKeyRow } from '@/app/lib/api-keys';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
@@ -30,20 +30,19 @@ function ApiKeyItem({ apiKey, onDeleteClick }: ApiKeyItemProps) {
         <span className="text-sm font-medium">{apiKey.name}</span>
         <span className="text-muted-foreground font-mono text-xs">{maskKeyValue(apiKey.key_value)}</span>
       </div>
-      <Button variant="ghost" size="icon" onClick={() => onDeleteClick(apiKey)}>
-        <Trash2 className="h-4 w-4" />
+      <Button variant="ghost" size="icon-sm" onClick={() => onDeleteClick(apiKey)}>
+        <Trash2 className="size-4" />
       </Button>
     </div>
   );
 }
 
-interface ApiKeysListProps {
-  keys: ApiKeyRow[];
-  onDeleteClick: (key: ApiKeyRow) => void;
-}
+function ApiKeysList({ keys, onDeleteClick }: { keys: ApiKeyRow[]; onDeleteClick: (key: ApiKeyRow) => void }) {
+  const t = useTranslations('apiKeys');
 
-function ApiKeysList({ keys, onDeleteClick }: ApiKeysListProps) {
-  if (keys.length === 0) return null;
+  if (keys.length === 0) {
+    return <p className="text-muted-foreground text-xs bg-gray-100 py-2 px-3 rounded-md">{t('noKeys')}</p>;
+  }
 
   return (
     <div className="flex flex-col gap-2">
@@ -71,15 +70,20 @@ export function ApiKeysSection({ orgId, initialKeys }: ApiKeysSectionProps) {
   }, [orgId]);
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <Label>{t('title')}</Label>
-        <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
-          <Plus className="mr-1 h-4 w-4" />
-          {t('add')}
-        </Button>
-      </div>
-      <ApiKeysList keys={keys} onDeleteClick={setDeleteTarget} />
+    <Card>
+      <CardHeader>
+        <CardTitle>{t('title')}</CardTitle>
+        <CardDescription>{t('description')}</CardDescription>
+        <CardAction>
+          <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus className="size-4" />
+            {t('add')}
+          </Button>
+        </CardAction>
+      </CardHeader>
+      <CardContent>
+        <ApiKeysList keys={keys} onDeleteClick={setDeleteTarget} />
+      </CardContent>
       <CreateApiKeyDialog open={createOpen} onOpenChange={setCreateOpen} orgId={orgId} onCreated={refreshKeys} />
       {deleteTarget !== null && (
         <DeleteApiKeyDialog
@@ -90,6 +94,6 @@ export function ApiKeysSection({ orgId, initialKeys }: ApiKeysSectionProps) {
           onDeleted={refreshKeys}
         />
       )}
-    </div>
+    </Card>
   );
 }

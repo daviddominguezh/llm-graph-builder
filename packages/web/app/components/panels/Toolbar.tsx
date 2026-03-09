@@ -13,7 +13,6 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
-  ArrowLeft,
   Download,
   LogOut,
   Menu,
@@ -27,7 +26,7 @@ import {
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type ReactNode, useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 
 interface ToolbarProps {
   onAddNode: () => void;
@@ -46,6 +45,7 @@ interface ToolbarProps {
   orgSlug?: string;
   orgName?: string;
   orgAvatarUrl?: string | null;
+  agentName?: string;
 }
 
 function useLogout() {
@@ -59,64 +59,39 @@ function useLogout() {
   };
 }
 
-interface UserInfo {
-  name: string;
-  email: string;
-}
 
-function useCurrentUser(): UserInfo | null {
-  const [user, setUser] = useState<UserInfo | null>(null);
-
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user !== null) {
-        setUser({
-          name: (data.user.user_metadata?.full_name as string) ?? '',
-          email: data.user.email ?? '',
-        });
-      }
-    });
-  }, []);
-
-  return user;
-}
-
-function UserSection({ user }: { user: UserInfo | null }) {
-  if (user === null) return null;
-
-  return (
-    <>
-      <DropdownMenuGroup>
-        <DropdownMenuLabel className="flex flex-col gap-0.5 font-normal">
-          {user.name !== '' && <span className="text-xs font-medium">{user.name}</span>}
-          <span className="text-muted-foreground text-xs truncate">{user.email}</span>
-        </DropdownMenuLabel>
-      </DropdownMenuGroup>
-    </>
-  );
-}
 
 function OrgAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
   const initial = name.trim().charAt(0).toUpperCase() || '?';
 
   if (avatarUrl !== null) {
-    return <img src={avatarUrl} alt={name} className="h-5 w-5 rounded-full object-cover" />;
+    return <img src={avatarUrl} alt={name} className="h-5 w-5 rounded-full ring-1 ring-white object-cover" />;
   }
 
   return (
-    <div className="bg-muted flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-medium">
+    <div className="bg-muted flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-medium ring-1 ring-white">
       {initial}
     </div>
   );
 }
 
-function OrgSection({ orgName, orgAvatarUrl }: { orgName: string; orgAvatarUrl: string | null }) {
+interface OrgSectionProps {
+  orgName: string;
+  orgAvatarUrl: string | null;
+  orgSlug: string;
+  agentName: string;
+}
+
+function OrgSection({ orgName, orgAvatarUrl, orgSlug, agentName }: OrgSectionProps) {
   return (
     <DropdownMenuGroup>
-      <DropdownMenuLabel className="flex items-center gap-2 font-normal">
+      <DropdownMenuLabel className="flex items-center gap-1.5 font-normal">
         <OrgAvatar name={orgName} avatarUrl={orgAvatarUrl} />
-        <span className="text-xs font-bold text-black">{orgName}</span>
+        <Link href={`/orgs/${orgSlug}`} className="text-xs font-bold text-black hover:underline">
+          {orgName}
+        </Link>
+        <span className="text-muted-foreground text-xs">/</span>
+        <span className="text-xs text-black">{agentName}</span>
       </DropdownMenuLabel>
     </DropdownMenuGroup>
   );
@@ -125,13 +100,13 @@ function OrgSection({ orgName, orgAvatarUrl }: { orgName: string; orgAvatarUrl: 
 interface FileMenuProps {
   onImport: () => void;
   onExport: () => void;
-  user: UserInfo | null;
   orgSlug?: string;
   orgName?: string;
   orgAvatarUrl?: string | null;
+  agentName?: string;
 }
 
-function FileMenu({ onImport, onExport, user, orgSlug, orgName, orgAvatarUrl }: FileMenuProps) {
+function FileMenu({ onImport, onExport, orgSlug, orgName, orgAvatarUrl, agentName }: FileMenuProps) {
   const t = useTranslations('common');
   const handleLogout = useLogout();
 
@@ -145,10 +120,14 @@ function FileMenu({ onImport, onExport, user, orgSlug, orgName, orgAvatarUrl }: 
         }
       />
       <DropdownMenuContent side="bottom" align="start" className="w-52">
-        <div className="p-2 mb-1 bg-gray-100 rounded-md">
-          {orgName !== undefined && <OrgSection orgName={orgName} orgAvatarUrl={orgAvatarUrl ?? null} />}
-          <UserSection user={user} />
-        </div>
+        {orgName !== undefined && orgSlug !== undefined && agentName !== undefined && (
+          <OrgSection
+            orgName={orgName}
+            orgAvatarUrl={orgAvatarUrl ?? null}
+            orgSlug={orgSlug}
+            agentName={agentName}
+          />
+        )}
         <Separator />
         <div className="py-1">
           <DropdownMenuItem onClick={onImport}>
@@ -161,12 +140,6 @@ function FileMenu({ onImport, onExport, user, orgSlug, orgName, orgAvatarUrl }: 
           </DropdownMenuItem>
         </div>
         <Separator />
-        {orgSlug !== undefined && (
-          <DropdownMenuItem render={<Link href={`/orgs/${orgSlug}`} />}>
-            <ArrowLeft className="size-4" />
-            {t('backToAgents')}
-          </DropdownMenuItem>
-        )}
         <div className="pt-1">
           <DropdownMenuItem onClick={handleLogout} className="text-destructive">
             <LogOut className="size-4" />
@@ -258,20 +231,27 @@ function ToolbarButtons(props: ToolbarProps) {
 }
 
 export function Toolbar(props: ToolbarProps) {
-  const { onImport, onExport, onPlay, simulationActive, stagingKeyId, orgSlug, orgName, orgAvatarUrl } =
-    props;
-  const user = useCurrentUser();
-
+  const {
+    onImport,
+    onExport,
+    onPlay,
+    simulationActive,
+    stagingKeyId,
+    orgSlug,
+    orgName,
+    orgAvatarUrl,
+    agentName,
+  } = props;
   return (
     <>
       <div className="absolute top-2 left-2 z-1">
         <FileMenu
           onImport={onImport}
           onExport={onExport}
-          user={user}
           orgSlug={orgSlug}
           orgName={orgName}
           orgAvatarUrl={orgAvatarUrl}
+          agentName={agentName}
         />
       </div>
       <header className="absolute z-1 flex items-stretch justify-center gap-1 border rounded-lg bg-background p-1 top-2 shadow-lg">

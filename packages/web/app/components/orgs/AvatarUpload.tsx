@@ -1,7 +1,6 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Upload } from 'lucide-react';
+import { Camera } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { type ChangeEvent, useRef } from 'react';
@@ -21,7 +20,7 @@ function AvatarFallback({ name }: { name: string }) {
   const letter = name.trim().charAt(0).toUpperCase() || '?';
 
   return (
-    <div className="bg-muted text-muted-foreground flex size-20 items-center justify-center rounded-full text-2xl font-semibold">
+    <div className="bg-muted text-muted-foreground flex size-14 items-center justify-center rounded-full text-xl font-semibold">
       {letter}
     </div>
   );
@@ -32,9 +31,9 @@ function AvatarImage({ src, name }: { src: string; name: string }) {
     <Image
       src={src}
       alt={name}
-      width={80}
-      height={80}
-      className="size-20 rounded-full object-cover"
+      width={56}
+      height={56}
+      className="size-14 rounded-full object-cover"
     />
   );
 }
@@ -70,44 +69,24 @@ function useFileHandler(onFileSelect: (file: File | null) => void) {
   return { inputRef, handleChange, openPicker };
 }
 
-function AvatarActions({
-  currentUrl,
-  onRemove,
-  onUploadClick,
-}: {
-  currentUrl: string | null;
-  onRemove: (() => void) | undefined;
-  onUploadClick: () => void;
-}) {
-  const t = useTranslations('orgs');
-  const showRemove = currentUrl !== null && onRemove !== undefined;
-
-  return (
-    <div className="flex gap-2">
-      <Button type="button" variant="outline" size="sm" onClick={onUploadClick}>
-        <Upload data-icon="inline-start" />
-        {t('upload')}
-      </Button>
-      {showRemove && (
-        <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
-          {t('remove')}
-        </Button>
-      )}
-    </div>
-  );
-}
-
 export function AvatarUpload({ currentUrl, previewUrl, name, onFileSelect, onRemove }: AvatarUploadProps) {
   const t = useTranslations('orgs');
   const { inputRef, handleChange, openPicker } = useFileHandler(onFileSelect);
+  const hasImage = (previewUrl ?? currentUrl) !== null;
 
   return (
-    <div className="flex flex-col gap-2">
-      <span className="text-sm font-medium">{t('profilePicture')}</span>
-      <div className="flex items-center gap-4">
+    <div className="flex shrink-0 flex-col items-center gap-1">
+      <button type="button" onClick={openPicker} className="group relative cursor-pointer rounded-full">
         <AvatarPreview currentUrl={currentUrl} previewUrl={previewUrl} name={name} />
-        <AvatarActions currentUrl={currentUrl} onRemove={onRemove} onUploadClick={openPicker} />
-      </div>
+        <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 transition-colors group-hover:bg-black/40">
+          <Camera className="size-4 text-white opacity-0 transition-opacity group-hover:opacity-100" />
+        </div>
+      </button>
+      {hasImage && onRemove !== undefined && (
+        <button type="button" className="text-muted-foreground text-[11px] hover:underline" onClick={onRemove}>
+          {t('remove')}
+        </button>
+      )}
       <input ref={inputRef} type="file" accept={ACCEPTED_TYPES} className="hidden" onChange={handleChange} />
     </div>
   );

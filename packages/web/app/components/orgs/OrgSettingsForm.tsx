@@ -3,6 +3,7 @@
 import { removeOrgAvatarAction, updateOrgNameAction, uploadOrgAvatarAction } from '@/app/actions/orgs';
 import type { OrgRow } from '@/app/lib/orgs';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useTranslations } from 'next-intl';
@@ -62,11 +63,11 @@ function NameSection({ org }: OrgSettingsFormProps) {
   const { loading, nameError, handleSubmit } = useNameSubmit(org);
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+    <form onSubmit={handleSubmit} className="flex min-w-0 flex-1 flex-col gap-2">
       <Label htmlFor="org-name">{t('name')}</Label>
       <div className="flex items-end gap-2">
         <Input id="org-name" name="name" defaultValue={org.name} placeholder={t('namePlaceholder')} required />
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" variant="outline" size="sm" disabled={loading}>
           {t('saveName')}
         </Button>
       </div>
@@ -132,10 +133,20 @@ function AvatarSection({ org }: OrgSettingsFormProps) {
 }
 
 export function OrgSettingsForm({ org }: OrgSettingsFormProps) {
+  const t = useTranslations('orgs');
+
   return (
-    <div className="flex flex-col gap-6">
-      <NameSection org={org} />
-      <AvatarSection org={org} />
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>{t('generalSection')}</CardTitle>
+        <CardDescription>{t('generalDescription')}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-start gap-4">
+          <AvatarSection org={org} />
+          <NameSection org={org} />
+        </div>
+      </CardContent>
+    </Card>
   );
 }

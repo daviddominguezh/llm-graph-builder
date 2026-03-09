@@ -13,6 +13,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -76,12 +77,17 @@ export function DangerZone({ org }: DangerZoneProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   return (
-    <div className="border-destructive/50 flex flex-col gap-3 rounded-lg border p-4">
-      <h3 className="text-sm font-medium">{t('dangerZone')}</h3>
-      <Button variant="destructive" onClick={() => setConfirmOpen(true)}>
-        {t('delete')}
-      </Button>
+    <Card className="ring-destructive/20">
+      <CardHeader>
+        <CardTitle className="text-destructive">{t('dangerZone')}</CardTitle>
+        <CardDescription>{t('dangerDescription')}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button variant="destructive" size="sm" onClick={() => setConfirmOpen(true)}>
+          {t('delete')}
+        </Button>
+      </CardContent>
       <DeleteConfirmDialog org={org} open={confirmOpen} onOpenChange={setConfirmOpen} />
-    </div>
+    </Card>
   );
 }

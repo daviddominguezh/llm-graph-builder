@@ -5,7 +5,6 @@ import { getOrgBySlug } from '@/app/lib/orgs';
 import { createClient } from '@/app/lib/supabase/server';
 
 import { AgentDashboard } from '@/app/components/agents/AgentDashboard';
-import { OrgHeader } from '@/app/components/orgs/OrgHeader';
 
 interface OrgPageProps {
   params: Promise<{ slug: string }>;
@@ -23,8 +22,7 @@ export default async function OrgPage({ params }: OrgPageProps): Promise<React.J
   const { agents } = await getAgentsByOrg(supabase, org.id);
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-6">
-      <OrgHeader org={org} />
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
       <AgentDashboard agents={agents} orgId={org.id} orgSlug={org.slug} />
     </div>
   );

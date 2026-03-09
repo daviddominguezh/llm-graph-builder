@@ -7,8 +7,6 @@ import { createClient } from '@/app/lib/supabase/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
 
-import { OrgSettingsHeader } from './OrgSettingsHeader';
-
 interface OrgSettingsPageProps {
   params: Promise<{ slug: string }>;
 }
@@ -46,8 +44,7 @@ export default async function OrgSettingsPage({ params }: OrgSettingsPageProps):
   const { result: apiKeys } = await getApiKeysByOrg(supabase, org.id);
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6">
-      <OrgSettingsHeader slug={slug} />
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
       <OrgSettingsForm org={org} />
       <ApiKeysSection orgId={org.id} initialKeys={apiKeys} />
       <DangerZone org={org} />
