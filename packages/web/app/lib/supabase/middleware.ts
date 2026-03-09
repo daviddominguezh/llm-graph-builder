@@ -5,13 +5,22 @@ import { NextResponse } from 'next/server';
 
 type Database = Record<string, never>;
 
-const AUTH_ROUTES = ['/login', '/signup', '/forgot-password', '/reset-password'];
+// Guest-only: redirect to / if authenticated
+const GUEST_ONLY_ROUTES = ['/login', '/signup', '/forgot-password'];
+
+// Public: no auth checks at all (callback needs to run before session exists,
+// reset-password needs session access after recovery callback)
+const PUBLIC_ROUTES = ['/auth/callback', '/reset-password'];
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
-function isAuthRoute(pathname: string): boolean {
-  return AUTH_ROUTES.some((route) => pathname.startsWith(route));
+function isGuestOnlyRoute(pathname: string): boolean {
+  return GUEST_ONLY_ROUTES.some((route) => pathname.startsWith(route));
+}
+
+function isPublicRoute(pathname: string): boolean {
+  return PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
 }
 
 function createSupabaseMiddlewareClient(
@@ -43,13 +52,17 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (user === null && !isAuthRoute(request.nextUrl.pathname)) {
+  if (isPublicRoute(request.nextUrl.pathname)) {
+    return supabaseResponse;
+  }
+
+  if (user === null && !isGuestOnlyRoute(request.nextUrl.pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
   }
 
-  if (user !== null && isAuthRoute(request.nextUrl.pathname)) {
+  if (user !== null && isGuestOnlyRoute(request.nextUrl.pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = '/';
     return NextResponse.redirect(url);
