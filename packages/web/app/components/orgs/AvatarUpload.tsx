@@ -1,5 +1,6 @@
 'use client';
 
+import { toProxyImageSrc } from '@/app/lib/supabase/image';
 import { Camera } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
@@ -29,7 +30,7 @@ function AvatarFallback({ name }: { name: string }) {
 function AvatarImage({ src, name }: { src: string; name: string }) {
   return (
     <Image
-      src={src}
+      src={toProxyImageSrc(src)}
       alt={name}
       width={48}
       height={48}

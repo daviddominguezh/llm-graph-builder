@@ -22,7 +22,11 @@ export async function createOrgAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  serverLog('[createOrgAction] name:', name, 'user:', user?.id ?? 'NOT AUTHENTICATED');
+  if (user === null) {
+    serverError('[createOrgAction] NOT AUTHENTICATED');
+    return { result: null, error: 'Unauthorized' };
+  }
+  serverLog('[createOrgAction] name:', name, 'user:', user.id);
   const res = await createOrgLib(supabase, name);
   if (res.error === null) serverLog('[createOrgAction] created org:', res.result?.slug);
   else serverError('[createOrgAction] error:', res.error);

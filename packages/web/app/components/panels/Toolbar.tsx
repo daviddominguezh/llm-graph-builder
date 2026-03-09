@@ -1,6 +1,7 @@
 'use client';
 
 import { createClient } from '@/app/lib/supabase/client';
+import { toProxyImageSrc } from '@/app/lib/supabase/image';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -66,7 +67,7 @@ function OrgAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null
   const initial = name.trim().charAt(0).toUpperCase() || '?';
 
   if (avatarUrl !== null) {
-    return <Image src={avatarUrl} alt={name} width={20} height={20} className="h-5 w-5 rounded-full ring-1 ring-white object-cover" />;
+    return <Image src={toProxyImageSrc(avatarUrl)} alt={name} width={20} height={20} className="h-5 w-5 rounded-full ring-1 ring-white object-cover" />;
   }
 
   return (

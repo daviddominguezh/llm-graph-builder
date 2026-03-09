@@ -2,6 +2,7 @@
 
 import type { OrgRow } from '@/app/lib/orgs';
 import { createClient } from '@/app/lib/supabase/client';
+import { toProxyImageSrc } from '@/app/lib/supabase/image';
 import { Button } from '@/components/ui/button';
 import { ChevronsUpDown, LogOut, Settings, Zap } from 'lucide-react';
 import Image from 'next/image';
@@ -22,17 +23,17 @@ function OrgAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null
   if (avatarUrl !== null) {
     return (
       <Image
-        src={avatarUrl}
+        src={toProxyImageSrc(avatarUrl)}
         alt={name}
-        width={24}
-        height={24}
-        className="h-6 w-6 shrink-0 rounded-full object-cover"
+        width={20}
+        height={20}
+        className="h-5 w-5 shrink-0 rounded-full object-cover"
       />
     );
   }
 
   return (
-    <div className="bg-muted flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium">
+    <div className="bg-muted flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-medium">
       {initial}
     </div>
   );
@@ -89,7 +90,7 @@ function CollapsedTrigger({ org }: { org: OrgRow }) {
 
 function ExpandedTrigger({ org }: { org: OrgRow }) {
   return (
-    <div className="flex h-8 items-center overflow-hidden">
+    <div className="flex h-8 items-center overflow-hidden px-2">
       <div className="flex min-w-0 items-center gap-2">
         <OrgAvatar name={org.name} avatarUrl={org.avatar_url} />
         <span className="truncate text-sm font-semibold">{org.name}</span>

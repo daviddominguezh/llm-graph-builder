@@ -1,4 +1,5 @@
 import type { OrgWithAgentCount } from '@/app/lib/orgs';
+import { toProxyImageSrc } from '@/app/lib/supabase/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
@@ -12,7 +13,7 @@ function OrgAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null
   const initial = name.trim().charAt(0).toUpperCase() || '?';
 
   if (avatarUrl !== null) {
-    return <Image src={avatarUrl} alt={name} width={48} height={48} className="h-12 w-12 rounded-full object-cover" />;
+    return <Image src={toProxyImageSrc(avatarUrl)} alt={name} width={48} height={48} className="h-12 w-12 rounded-full object-cover" />;
   }
 
   return (

@@ -66,14 +66,8 @@ export interface SidePanelsProps {
   onStagingKeyChange: (keyId: string | null) => void;
 }
 
-function resolveApiKey(orgApiKeys: ApiKeyRow[], stagingKeyId: string | null): string {
-  if (stagingKeyId === null) return '';
-  const found = orgApiKeys.find((k) => k.id === stagingKeyId);
-  return found?.key_value ?? '';
-}
-
 function SelectionPanel(props: SidePanelsProps) {
-  const { selection, nodes, agents, presetsHook, mcpHook, ctxPreconditions, orgApiKeys, stagingKeyId } = props;
+  const { selection, nodes, agents, presetsHook, mcpHook, ctxPreconditions } = props;
 
   return (
     <aside className="absolute right-0 top-0 bottom-0 w-80 border-l border-gray-200 bg-white">
@@ -84,7 +78,6 @@ function SelectionPanel(props: SidePanelsProps) {
           agents={agents}
           presets={presetsHook.presets}
           activePresetId={presetsHook.activePresetId}
-          apiKey={resolveApiKey(orgApiKeys, stagingKeyId)}
           globalNodeIds={nodes.filter((n) => n.data.global === true).map((n) => n.id)}
           onSetActivePreset={presetsHook.setActivePresetId}
           onNodeDeleted={() => selection.setSelectedNodeId(null)}

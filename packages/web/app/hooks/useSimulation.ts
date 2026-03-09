@@ -22,7 +22,7 @@ interface UseSimulationParams {
   edges: Array<RFEdge<RFEdgeData>>;
   agents: Agent[];
   preset: ContextPreset | undefined;
-  apiKey: string;
+  apiKeyId: string;
   mcpServers: McpServerConfig[];
   onZoomToNode: (nodeId: string) => void;
   onExitZoomView: () => void;
@@ -114,7 +114,7 @@ interface SendMessageDeps {
   loading: boolean;
   messages: Message[];
   agents: Agent[];
-  apiKey: string;
+  apiKeyId: string;
   currentNode: string;
   mcpServers: McpServerConfig[];
   setters: SimulationSetters;
@@ -157,19 +157,30 @@ interface BuildSimulateParamsOptions {
   allMessages: Message[];
   currentNode: string;
   preset: ContextPreset;
-  apiKey: string;
+  apiKeyId: string;
 }
 
 function buildSimulateParams(opts: BuildSimulateParamsOptions): SimulateRequestBody {
   const graph: Record<string, unknown> = {
     ...buildGraph(opts.snapshot.nodes, opts.snapshot.edges, opts.agents, opts.mcpServers),
   };
-  const context = buildContext(opts.preset, opts.apiKey);
-  return { graph, messages: opts.allMessages, currentNode: opts.currentNode, ...context };
+  const fullContext = buildContext(opts.preset, '');
+  const { sessionID, tenantID, userID, data, quickReplies } = fullContext;
+  return {
+    graph,
+    messages: opts.allMessages,
+    currentNode: opts.currentNode,
+    apiKeyId: opts.apiKeyId,
+    sessionID,
+    tenantID,
+    userID,
+    data,
+    quickReplies,
+  };
 }
 
 function useSimulationSend(deps: SendMessageDeps): (text: string) => void {
-  const { preset, loading, messages, agents, apiKey, currentNode, mcpServers } = deps;
+  const { preset, loading, messages, agents, apiKeyId, currentNode, mcpServers } = deps;
   const { setters, onZoomToNode } = deps;
 
   return useCallback(
@@ -187,7 +198,7 @@ function useSimulationSend(deps: SendMessageDeps): (text: string) => void {
         allMessages,
         currentNode,
         preset,
-        apiKey,
+        apiKeyId,
       });
       const callbacks = buildStreamCallbacks(text, setters, onZoomToNode);
 
@@ -195,12 +206,12 @@ function useSimulationSend(deps: SendMessageDeps): (text: string) => void {
         setters.setLoading(false);
       });
     },
-    [preset, loading, messages, agents, apiKey, currentNode, mcpServers, setters, onZoomToNode]
+    [preset, loading, messages, agents, apiKeyId, currentNode, mcpServers, setters, onZoomToNode]
   );
 }
 
 export function useSimulation(params: UseSimulationParams): SimulationState {
-  const { allNodes, edges, agents, preset, apiKey, mcpServers, onZoomToNode, onExitZoomView } = params;
+  const { allNodes, edges, agents, preset, apiKeyId, mcpServers, onZoomToNode, onExitZoomView } = params;
 
   const [active, setActive] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -232,7 +243,7 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
     loading,
     messages,
     agents,
-    apiKey,
+    apiKeyId,
     currentNode,
     mcpServers,
     setters,

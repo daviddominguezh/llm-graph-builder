@@ -2,7 +2,6 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 type SlugTable = 'agents' | 'organizations';
 
-const MAX_SLUG_ATTEMPTS = 100;
 const FIRST_SUFFIX = 1;
 const EMPTY_LENGTH = 0;
 
@@ -30,30 +29,28 @@ export function generateSlug(name: string): string {
   return collapseDashes(slugifyChars(name.toLowerCase()));
 }
 
-async function isSlugTaken(supabase: SupabaseClient, slug: string, table: SlugTable): Promise<boolean> {
-  const { data } = await supabase.from(table).select('slug').eq('slug', slug).limit(FIRST_SUFFIX);
-  return data !== null && data.length > EMPTY_LENGTH;
+interface SlugRow {
+  slug: string;
 }
 
-function buildCandidate(baseSlug: string, suffix: number): string {
-  return suffix === FIRST_SUFFIX ? baseSlug : `${baseSlug}-${String(suffix)}`;
+function isSlugRow(value: unknown): value is SlugRow {
+  return typeof value === 'object' && value !== null && 'slug' in value;
 }
 
-async function trySlug(
-  supabase: SupabaseClient,
-  baseSlug: string,
-  suffix: number,
-  table: SlugTable
-): Promise<string> {
-  if (suffix > MAX_SLUG_ATTEMPTS) {
-    return `${baseSlug}-${String(Date.now())}`;
+function extractSuffix(slug: string, baseSlug: string): number {
+  if (slug === baseSlug) return FIRST_SUFFIX;
+  const tail = slug.slice(baseSlug.length + FIRST_SUFFIX);
+  const num = Number(tail);
+  return Number.isFinite(num) ? num : FIRST_SUFFIX;
+}
+
+function findNextSuffix(rows: SlugRow[], baseSlug: string): number {
+  let maxSuffix = 0;
+  for (const row of rows) {
+    const suffix = extractSuffix(row.slug, baseSlug);
+    if (suffix > maxSuffix) maxSuffix = suffix;
   }
-
-  const candidate = buildCandidate(baseSlug, suffix);
-  const taken = await isSlugTaken(supabase, candidate, table);
-  if (!taken) return candidate;
-
-  return await trySlug(supabase, baseSlug, suffix + FIRST_SUFFIX, table);
+  return maxSuffix + FIRST_SUFFIX;
 }
 
 export async function findUniqueSlug(
@@ -61,5 +58,14 @@ export async function findUniqueSlug(
   baseSlug: string,
   table: SlugTable
 ): Promise<string> {
-  return await trySlug(supabase, baseSlug, FIRST_SUFFIX, table);
+  const { data } = await supabase
+    .from(table)
+    .select('slug')
+    .or(`slug.eq.${baseSlug},slug.like.${baseSlug}-%`);
+
+  const rows: SlugRow[] = (data ?? []).filter(isSlugRow);
+  if (rows.length === EMPTY_LENGTH) return baseSlug;
+
+  const next = findNextSuffix(rows, baseSlug);
+  return `${baseSlug}-${String(next)}`;
 }

@@ -74,11 +74,14 @@ function computeSerialized(options: DebounceOptions): string | null {
 function useDebounceEffect(options: DebounceOptions, doSave: () => void): void {
   const { callbacks } = options;
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevSerializedRef = useRef<string | null>(null);
 
   useEffect(() => {
     const serialized = computeSerialized(options);
     if (serialized === null || serialized === callbacks.getLastSaved()) return undefined;
+    if (serialized === prevSerializedRef.current) return undefined;
 
+    prevSerializedRef.current = serialized;
     callbacks.setPendingSave(true);
 
     if (timerRef.current !== null) {

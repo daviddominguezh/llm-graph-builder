@@ -116,6 +116,12 @@ async function insertOrg(
   return await getOrgBySlug(supabase, slug);
 }
 
+async function fetchCurrentSlug(supabase: SupabaseClient, orgId: string): Promise<string | null> {
+  const { data } = await supabase.from('organizations').select('slug').eq('id', orgId).single();
+  if (data === null || typeof data !== 'object' || !('slug' in data)) return null;
+  return (data as { slug: string }).slug;
+}
+
 export async function updateOrgName(
   supabase: SupabaseClient,
   orgId: string,
@@ -126,8 +132,13 @@ export async function updateOrgName(
     return { result: null, error: 'Invalid organization name' };
   }
 
-  const slug = await findUniqueSlug(supabase, baseSlug, 'organizations');
-  const { error } = await supabase.from('organizations').update({ name, slug }).eq('id', orgId);
+  const currentSlug = await fetchCurrentSlug(supabase, orgId);
+  const currentBase = currentSlug ?? '';
+  const slugChanged = currentBase !== baseSlug && !currentBase.startsWith(`${baseSlug}-`);
+  const slug = slugChanged ? await findUniqueSlug(supabase, baseSlug, 'organizations') : currentBase;
+  const payload: Record<string, string> = { name };
+  if (slugChanged) payload.slug = slug;
+  const { error } = await supabase.from('organizations').update(payload).eq('id', orgId);
 
   if (error !== null) return { result: null, error: error.message };
   return { result: slug, error: null };

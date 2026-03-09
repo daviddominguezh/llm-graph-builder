@@ -2,6 +2,7 @@
 
 import { getOrgsAction } from '@/app/actions/orgs';
 import type { OrgRow, OrgWithAgentCount } from '@/app/lib/orgs';
+import { toProxyImageSrc } from '@/app/lib/supabase/image';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,7 +32,7 @@ function ListAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | nul
   if (avatarUrl !== null) {
     return (
       <Image
-        src={avatarUrl}
+        src={toProxyImageSrc(avatarUrl)}
         alt={name}
         width={24}
         height={24}

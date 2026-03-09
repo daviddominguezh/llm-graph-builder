@@ -59,7 +59,7 @@ export interface SimulateRequestBody {
   graph: Record<string, unknown>;
   messages: unknown[];
   currentNode: string;
-  apiKey: string;
+  apiKeyId: string;
   sessionID: string;
   tenantID: string;
   userID: string;
@@ -177,7 +177,7 @@ export async function streamSimulation(
   params: SimulateRequestBody,
   callbacks: StreamCallbacks
 ): Promise<void> {
-  const res = await fetch(apiUrl('/simulate'), {
+  const res = await fetch('/api/simulate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),

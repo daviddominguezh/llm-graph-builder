@@ -11,13 +11,6 @@ import { useCallback, useState } from 'react';
 import { CreateApiKeyDialog } from './CreateApiKeyDialog';
 import { DeleteApiKeyDialog } from './DeleteApiKeyDialog';
 
-const MASK_VISIBLE_CHARS = 4;
-const MASK_PREFIX = '••••••••';
-
-function maskKeyValue(keyValue: string): string {
-  return MASK_PREFIX + keyValue.slice(-MASK_VISIBLE_CHARS);
-}
-
 interface ApiKeyItemProps {
   apiKey: ApiKeyRow;
   onDeleteClick: (key: ApiKeyRow) => void;
@@ -28,7 +21,7 @@ function ApiKeyItem({ apiKey, onDeleteClick }: ApiKeyItemProps) {
     <div className="flex items-center justify-between rounded-md border px-3 py-2">
       <div className="flex flex-col gap-0.5">
         <span className="text-sm font-medium">{apiKey.name}</span>
-        <span className="text-muted-foreground font-mono text-xs">{maskKeyValue(apiKey.key_value)}</span>
+        <span className="text-muted-foreground font-mono text-xs">{apiKey.key_preview}</span>
       </div>
       <Button variant="ghost" size="icon-sm" onClick={() => onDeleteClick(apiKey)}>
         <Trash2 className="size-4" />

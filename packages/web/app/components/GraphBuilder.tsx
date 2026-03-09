@@ -61,7 +61,6 @@ function useGraphBuilderHooks(props: GraphBuilderProps) {
 
   const apiKeys = useApiKeySelection({
     agentId,
-    orgApiKeys: props.orgApiKeys ?? [],
     initialStagingKeyId: props.stagingApiKeyId ?? null,
     initialProductionKeyId: props.productionApiKeyId ?? null,
   });
@@ -132,7 +131,7 @@ function useGraphBuilderHooks(props: GraphBuilderProps) {
     edges,
     agents,
     preset: presetsHook.activePreset,
-    apiKey: apiKeys.resolvedApiKey,
+    apiKeyId: apiKeys.stagingKeyId ?? '',
     mcpServers: mcpHook.servers,
     onZoomToNode: zoomView.handleZoomToNode,
     onExitZoomView: zoomView.handleExitZoomView,

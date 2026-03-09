@@ -38,7 +38,6 @@ interface NodePromptDialogProps {
   agents: Agent[];
   presets: ContextPreset[];
   activePresetId: string;
-  apiKey: string;
   onSetActivePreset: (id: string) => void;
 }
 
@@ -121,7 +120,6 @@ export function NodePromptDialog({
   agents,
   presets,
   activePresetId,
-  apiKey,
   onSetActivePreset,
 }: NodePromptDialogProps) {
   const edges = useEdges<Edge<RFEdgeData>>();
@@ -136,7 +134,7 @@ export function NodePromptDialog({
     let cancelled = false;
     setPrompt({ text: "", loading: true, error: null });
 
-    buildPromptForNode({ nodes: allNodes, edges, nodeId, preset: activePreset, agents, apiKey })
+    buildPromptForNode({ nodes: allNodes, edges, nodeId, preset: activePreset, agents })
       .then((text) => {
         if (!cancelled) setPrompt({ text, loading: false, error: null });
       })
@@ -149,7 +147,7 @@ export function NodePromptDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, nodeId, activePreset, agents, allNodes, edges, apiKey]);
+  }, [open, nodeId, activePreset, agents, allNodes, edges]);
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>

@@ -20,12 +20,6 @@ export interface AgentRow {
 
 export type AgentMetadata = Pick<AgentRow, 'id' | 'name' | 'slug' | 'description' | 'version' | 'updated_at'>;
 
-interface StagingRow {
-  graph_data_staging: Record<string, unknown>;
-  version: number;
-  staging_api_key_id: string | null;
-}
-
 interface InsertAgentParams {
   supabase: SupabaseClient;
   orgId: string;
@@ -34,7 +28,6 @@ interface InsertAgentParams {
   description: string;
 }
 
-const VERSION_INCREMENT = 1;
 const METADATA_COLUMNS = 'id, name, slug, description, version, updated_at';
 
 /**
@@ -131,52 +124,17 @@ export async function saveStagingKeyId(
   return { error: null };
 }
 
-async function fetchStagingData(
-  supabase: SupabaseClient,
-  agentId: string
-): Promise<{ row: StagingRow | null; error: string | null }> {
-  const result = await supabase
-    .from('agents')
-    .select('graph_data_staging, version, staging_api_key_id')
-    .eq('id', agentId)
-    .single();
-
-  if (result.error !== null) return { row: null, error: result.error.message };
-  const row: StagingRow = result.data as StagingRow;
-  return { row, error: null };
-}
-
-async function promoteToProduction(
-  supabase: SupabaseClient,
-  agentId: string,
-  row: StagingRow
-): Promise<{ version: number | null; error: string | null }> {
-  const newVersion = row.version + VERSION_INCREMENT;
-
-  const { error } = await supabase
-    .from('agents')
-    .update({
-      graph_data_production: row.graph_data_staging,
-      version: newVersion,
-      production_api_key_id: row.staging_api_key_id,
-    })
-    .eq('id', agentId);
-
-  if (error !== null) return { version: null, error: error.message };
-  return { version: newVersion, error: null };
-}
-
 export async function publishAgent(
   supabase: SupabaseClient,
   agentId: string
 ): Promise<{ version: number | null; error: string | null }> {
-  const { row, error } = await fetchStagingData(supabase, agentId);
+  const result = await supabase.rpc('publish_agent', { agent_id: agentId });
+  const { error } = result;
+  const data: unknown = result.data;
 
-  if (error !== null || row === null) {
-    return { version: null, error: error ?? 'Agent not found' };
-  }
-
-  return await promoteToProduction(supabase, agentId, row);
+  if (error !== null) return { version: null, error: error.message };
+  const version = typeof data === 'number' ? data : null;
+  return { version, error: version === null ? 'Publish failed' : null };
 }
 
 export async function deleteAgent(
