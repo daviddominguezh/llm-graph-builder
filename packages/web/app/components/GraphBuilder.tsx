@@ -36,6 +36,7 @@ export interface GraphBuilderProps {
   agentName?: string;
   orgSlug?: string;
   orgName?: string;
+  orgAvatarUrl?: string | null;
   initialGraphData?: Graph;
   initialProductionData?: Graph;
   initialVersion?: number;
@@ -205,6 +206,7 @@ function GraphBuilderInner(props: GraphBuilderProps) {
           stagingKeyId={h.apiKeys.stagingKeyId}
           orgSlug={props.orgSlug}
           orgName={props.orgName}
+          orgAvatarUrl={props.orgAvatarUrl}
           publishSlot={
             props.agentId !== undefined ? (
               <PublishButton

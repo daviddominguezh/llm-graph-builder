@@ -12,6 +12,7 @@ interface EditorClientProps {
   agentName: string;
   orgSlug: string;
   orgName: string;
+  orgAvatarUrl: string | null;
   initialGraphData: Graph;
   initialProductionData: Graph;
   initialVersion: number;

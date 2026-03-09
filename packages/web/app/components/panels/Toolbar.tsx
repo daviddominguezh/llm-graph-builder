@@ -45,6 +45,7 @@ interface ToolbarProps {
   stagingKeyId?: string | null;
   orgSlug?: string;
   orgName?: string;
+  orgAvatarUrl?: string | null;
 }
 
 function useLogout() {
@@ -89,27 +90,35 @@ function UserSection({ user }: { user: UserInfo | null }) {
       <DropdownMenuGroup>
         <DropdownMenuLabel className="flex flex-col gap-0.5 font-normal">
           {user.name !== '' && <span className="text-xs font-medium">{user.name}</span>}
-          <span className="text-muted-foreground text-xs">{user.email}</span>
+          <span className="text-muted-foreground text-xs truncate">{user.email}</span>
         </DropdownMenuLabel>
       </DropdownMenuGroup>
-      <Separator />
     </>
   );
 }
 
-function OrgSection({ orgName }: { orgName: string }) {
-  const t = useTranslations('common');
+function OrgAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
+  const initial = name.trim().charAt(0).toUpperCase() || '?';
+
+  if (avatarUrl !== null) {
+    return <img src={avatarUrl} alt={name} className="h-5 w-5 rounded-full object-cover" />;
+  }
 
   return (
-    <>
-      <DropdownMenuGroup>
-        <DropdownMenuLabel className="font-normal">
-          <span className="text-muted-foreground text-xs">{t('org')}:</span>{' '}
-          <span className="text-xs font-bold text-black">{orgName}</span>
-        </DropdownMenuLabel>
-      </DropdownMenuGroup>
-      <Separator />
-    </>
+    <div className="bg-muted flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-medium">
+      {initial}
+    </div>
+  );
+}
+
+function OrgSection({ orgName, orgAvatarUrl }: { orgName: string; orgAvatarUrl: string | null }) {
+  return (
+    <DropdownMenuGroup>
+      <DropdownMenuLabel className="flex items-center gap-2 font-normal">
+        <OrgAvatar name={orgName} avatarUrl={orgAvatarUrl} />
+        <span className="text-xs font-bold text-black">{orgName}</span>
+      </DropdownMenuLabel>
+    </DropdownMenuGroup>
   );
 }
 
@@ -119,9 +128,10 @@ interface FileMenuProps {
   user: UserInfo | null;
   orgSlug?: string;
   orgName?: string;
+  orgAvatarUrl?: string | null;
 }
 
-function FileMenu({ onImport, onExport, user, orgSlug, orgName }: FileMenuProps) {
+function FileMenu({ onImport, onExport, user, orgSlug, orgName, orgAvatarUrl }: FileMenuProps) {
   const t = useTranslations('common');
   const handleLogout = useLogout();
 
@@ -135,8 +145,11 @@ function FileMenu({ onImport, onExport, user, orgSlug, orgName }: FileMenuProps)
         }
       />
       <DropdownMenuContent side="bottom" align="start" className="w-52">
-        {orgName !== undefined && <OrgSection orgName={orgName} />}
-        <UserSection user={user} />
+        <div className="p-2 mb-1 bg-gray-100 rounded-md">
+          {orgName !== undefined && <OrgSection orgName={orgName} orgAvatarUrl={orgAvatarUrl ?? null} />}
+          <UserSection user={user} />
+        </div>
+        <Separator />
         <div className="py-1">
           <DropdownMenuItem onClick={onImport}>
             <Upload className="size-4" />
@@ -245,13 +258,21 @@ function ToolbarButtons(props: ToolbarProps) {
 }
 
 export function Toolbar(props: ToolbarProps) {
-  const { onImport, onExport, onPlay, simulationActive, stagingKeyId, orgSlug, orgName } = props;
+  const { onImport, onExport, onPlay, simulationActive, stagingKeyId, orgSlug, orgName, orgAvatarUrl } =
+    props;
   const user = useCurrentUser();
 
   return (
     <>
       <div className="absolute top-2 left-2 z-1">
-        <FileMenu onImport={onImport} onExport={onExport} user={user} orgSlug={orgSlug} orgName={orgName} />
+        <FileMenu
+          onImport={onImport}
+          onExport={onExport}
+          user={user}
+          orgSlug={orgSlug}
+          orgName={orgName}
+          orgAvatarUrl={orgAvatarUrl}
+        />
       </div>
       <header className="absolute z-1 flex items-stretch justify-center gap-1 border rounded-lg bg-background p-1 top-2 shadow-lg">
         <PlayButton

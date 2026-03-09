@@ -29,6 +29,7 @@ export default async function EditorPage({ params }: EditorPageProps): Promise<R
       agentName={agent.name}
       orgSlug={org.slug}
       orgName={org.name}
+      orgAvatarUrl={org.avatar_url}
       initialGraphData={agent.graph_data_staging}
       initialProductionData={agent.graph_data_production}
       initialVersion={agent.version}
