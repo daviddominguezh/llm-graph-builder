@@ -28,7 +28,7 @@ export async function getApiKeysByOrg(
   orgId: string
 ): Promise<{ result: ApiKeyRow[]; error: string | null }> {
   const { data, error } = await supabase
-    .from('api_keys')
+    .from('org_api_keys')
     .select('*')
     .eq('org_id', orgId)
     .order('created_at', { ascending: false });
@@ -45,7 +45,7 @@ export async function createApiKey(
   keyValue: string
 ): Promise<{ result: ApiKeyRow | null; error: string | null }> {
   const result = await supabase
-    .from('api_keys')
+    .from('org_api_keys')
     .insert({ org_id: orgId, name, key_value: keyValue })
     .select()
     .single();
@@ -59,7 +59,7 @@ export async function deleteApiKey(
   supabase: SupabaseClient,
   keyId: string
 ): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('api_keys').delete().eq('id', keyId);
+  const { error } = await supabase.from('org_api_keys').delete().eq('id', keyId);
 
   if (error !== null) return { error: error.message };
   return { error: null };
