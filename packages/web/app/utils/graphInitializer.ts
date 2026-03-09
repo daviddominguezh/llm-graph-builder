@@ -1,6 +1,6 @@
 import type { Edge, Node } from '@xyflow/react';
 
-import type { Graph } from '../schemas/graph.schema';
+import type { Graph, Edge as SchemaEdge, Node as SchemaNode } from '../schemas/graph.schema';
 import type { RFEdgeData, RFNodeData } from './graphTransformers';
 import { schemaEdgeToRFEdge, schemaNodeToRFNode } from './graphTransformers';
 import { processGraph } from './loadGraphData';
@@ -78,7 +78,7 @@ export function buildInitialNodes(graphData: Graph | undefined): Array<Node<RFNo
     return [defaultStartNode, defaultFirstNode];
   }
   const { graph, nodeWidth } = processGraph(graphData);
-  return graph.nodes.map((n, i) => mapSchemaNode(n, i, nodeWidth));
+  return graph.nodes.map((n: SchemaNode, i: number) => mapSchemaNode(n, i, nodeWidth));
 }
 
 export function buildInitialEdges(graphData: Graph | undefined): Array<Edge<RFEdgeData>> {
@@ -86,5 +86,5 @@ export function buildInitialEdges(graphData: Graph | undefined): Array<Edge<RFEd
     return [defaultStartEdge];
   }
   const { graph } = processGraph(graphData);
-  return graph.edges.map((e, i) => schemaEdgeToRFEdge(e, i, graph.nodes));
+  return graph.edges.map((e: SchemaEdge, i: number) => schemaEdgeToRFEdge(e, i, graph.nodes));
 }

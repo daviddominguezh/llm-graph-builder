@@ -1,5 +1,5 @@
 import graphData from '../data/ecommerce.json';
-import type { Graph } from '../schemas/graph.schema';
+import type { Graph, Node as SchemaNode } from '../schemas/graph.schema';
 import { GraphSchema } from '../schemas/graph.schema';
 import { layoutGraph } from './layoutGraph';
 
@@ -17,7 +17,7 @@ const NO_SPACING = 0;
 const HALF_DIVISOR = 2;
 
 function calculateNodeWidth(nodes: Graph['nodes']): number {
-  const maxIdLength = Math.max(...nodes.map((n) => n.id.length));
+  const maxIdLength = Math.max(...nodes.map((n: SchemaNode) => n.id.length));
   const nodePadding = 40;
   return maxIdLength * CHAR_WIDTH_FACTOR + nodePadding;
 }
@@ -45,7 +45,7 @@ function calculateNodeDimensions(
 }
 
 function ensureNodePositions(graph: Graph, nodeWidth: number): Graph {
-  const hasPositions = graph.nodes.every((node) => node.position !== undefined);
+  const hasPositions = graph.nodes.every((node: SchemaNode) => node.position !== undefined);
 
   if (hasPositions) {
     return graph;
@@ -90,7 +90,7 @@ export function loadGraphData(): LoadGraphResult | null {
 }
 
 export function findInitialNodePosition(graph: Graph): { x: number; y: number } | null {
-  const initialNode = graph.nodes.find((n) => n.id === 'INITIAL_STEP');
+  const initialNode = graph.nodes.find((n: SchemaNode) => n.id === 'INITIAL_STEP');
   return initialNode?.position ?? null;
 }
 

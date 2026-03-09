@@ -2,7 +2,7 @@ import type { Edge, Node, ReactFlowInstance } from '@xyflow/react';
 import { useCallback } from 'react';
 import { toast } from 'sonner';
 
-import type { Graph, McpServerConfig } from '../schemas/graph.schema';
+import type { Graph, McpServerConfig, Edge as SchemaEdge, Node as SchemaNode } from '../schemas/graph.schema';
 import { GraphSchema } from '../schemas/graph.schema';
 import { START_NODE_ID } from '../utils/graphInitializer';
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
@@ -24,7 +24,7 @@ interface UseImportGraphParams {
 }
 
 function buildImportedNodes(graph: Graph, nodeWidth: number): NodeArray {
-  return graph.nodes.map((n, i) => {
+  return graph.nodes.map((n: SchemaNode, i: number) => {
     const baseNode = schemaNodeToRFNode(n, i);
     const isStartNode = n.id === START_NODE_ID;
     return {
@@ -40,7 +40,7 @@ function buildImportedNodes(graph: Graph, nodeWidth: number): NodeArray {
 function applyImportedGraph(data: Graph, params: UseImportGraphParams): void {
   const { graph, nodeWidth } = processGraph(data);
   const newNodes = buildImportedNodes(graph, nodeWidth);
-  const newEdges = graph.edges.map((e, i) => schemaEdgeToRFEdge(e, i, graph.nodes));
+  const newEdges = graph.edges.map((e: SchemaEdge, i: number) => schemaEdgeToRFEdge(e, i, graph.nodes));
 
   params.setNodes(newNodes);
   params.setEdges(newEdges);
