@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Let authenticated users create, list, edit, delete, and save agents — each agent owns a graph stored in Supabase.
+**Goal:** Let authenticated users create, list, edit, delete, and publish agents — each agent owns a graph stored in Supabase with staging/production separation.
 
-**Architecture:** New `agents` table (JSONB graph data). Dashboard at `/` lists agents in a table. Editor at `/editor/[slug]` loads the GraphBuilder with data from DB. Save button in toolbar with dirty-state tracking and tab-close protection.
+**Architecture:** New `agents` table with two JSONB columns (staging + production). Dashboard at `/` lists agents in a table. Editor at `/editor/[slug]` loads the GraphBuilder with staging data from DB. Auto-save (debounced 2s) writes to staging. Publish button promotes staging to production with version increment.
 
 **Tech Stack:** Supabase (Postgres + RLS), Next.js 16 App Router, React 19, shadcn/ui, next-intl, @xyflow/react
 
@@ -16,14 +16,16 @@ Single `agents` table:
 
 ```sql
 CREATE TABLE public.agents (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id     UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  name        TEXT NOT NULL,
-  slug        TEXT NOT NULL UNIQUE,
-  description TEXT DEFAULT '',
-  graph_data  JSONB NOT NULL DEFAULT '{}',
-  created_at  TIMESTAMPTZ DEFAULT now(),
-  updated_at  TIMESTAMPTZ DEFAULT now()
+  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id               UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  name                  TEXT NOT NULL,
+  slug                  TEXT NOT NULL UNIQUE,
+  description           TEXT DEFAULT '',
+  graph_data_staging    JSONB NOT NULL DEFAULT '{}',
+  graph_data_production JSONB NOT NULL DEFAULT '{}',
+  version               INTEGER NOT NULL DEFAULT 0,
+  created_at            TIMESTAMPTZ DEFAULT now(),
+  updated_at            TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE INDEX idx_agents_user_id ON public.agents(user_id);
@@ -32,7 +34,8 @@ CREATE INDEX idx_agents_slug ON public.agents(slug);
 
 - RLS: users can SELECT/INSERT/UPDATE/DELETE only their own rows (`auth.uid() = user_id`)
 - Trigger: auto-update `updated_at` on every UPDATE
-- `graph_data` stores the same shape as the current export: `{ startNode, agents, nodes, edges, mcpServers }`
+- `graph_data_staging` / `graph_data_production` store the same shape as the current export: `{ startNode, agents, nodes, edges, mcpServers }`
+- `version` starts at 0, increments on each publish
 - Slug is globally unique (DB constraint)
 
 ## Routing
@@ -46,8 +49,8 @@ CREATE INDEX idx_agents_slug ON public.agents(slug);
 
 ## Dashboard (`/`)
 
-- Server component fetches agents for current user (id, name, slug, description, updated_at — excludes graph_data)
-- Simple table: name, description, relative updated time, edit/delete action buttons
+- Server component fetches agents for current user (id, name, slug, description, version, updated_at — excludes graph data)
+- Simple table: name, description, version, relative updated time, edit/delete action buttons
 - "Create agent" button opens a shadcn Dialog with name (required) + description (optional)
 - Clicking a row or "Edit" navigates to `/editor/[slug]`
 - "Delete" opens shadcn AlertDialog confirmation, then deletes from DB
@@ -63,18 +66,24 @@ CREATE INDEX idx_agents_slug ON public.agents(slug);
 
 - Server component fetches agent by slug, verifies ownership via RLS
 - If not found → redirect to `/`
-- Passes `graph_data` and agent metadata (id, name) as props to client GraphBuilder
+- Passes `graph_data_staging` and agent metadata (id, name, version) as props to client GraphBuilder
 - New agents start with a blank graph (just the INITIAL_STEP start node)
 
-## Save Flow
+## Auto-Save Flow
 
-- **Dirty tracking:** store last-saved graph as a ref; on every node/edge change, compare current state to ref via JSON serialization
-- **Save button:** standalone in toolbar, after play button area
-  - Saved state: check icon, ghost/muted style
-  - Unsaved state: warning indicator (orange), more prominent
-- **On save:** serialize graph (same as export), UPDATE `agents.graph_data` and `updated_at` in Supabase, reset dirty flag
-- **Keyboard shortcut:** Cmd+S / Ctrl+S (preventDefault on browser save)
-- **Tab close:** register `beforeunload` when dirty, remove when clean
+- **Debounced auto-save:** on every node/edge change, debounce 20 seconds of inactivity, then serialize graph and UPDATE `graph_data_staging` in Supabase
+- **Saving indicator:** during the 20s debounce window (changes exist but haven't been persisted yet), show a "Saving..." state in the toolbar so the user knows their changes are pending
+- **Tab close protection:** when changes are unsaved (during debounce window), register `beforeunload` to show browser's native "Leave site?" confirmation
+- After auto-save completes, indicator clears and beforeunload is removed
+- On auto-save error, show a toast notification
+
+## Publish Flow
+
+- **Publish button:** always visible in toolbar, shows "Publish" label
+- Disabled when `graph_data_staging === graph_data_production` (nothing to publish)
+- Enabled when staging differs from production
+- On click: UPDATE `graph_data_production = graph_data_staging`, increment `version` by 1
+- After publish, button becomes disabled again until next change
 
 ## New Files
 
@@ -84,14 +93,16 @@ CREATE INDEX idx_agents_slug ON public.agents(slug);
 - `app/components/agents/CreateAgentDialog.tsx`
 - `app/components/agents/DeleteAgentDialog.tsx`
 - `app/editor/[slug]/page.tsx`
-- `app/components/panels/SaveButton.tsx`
+- `app/components/panels/PublishButton.tsx`
+- `app/hooks/useAutoSave.ts` — debounced auto-save hook
 - `app/lib/agents.ts` — Supabase CRUD helpers
 - `app/lib/slug.ts` — slug generation
 
 ## Modified Files
 
-- `app/components/panels/Toolbar.tsx` — add save button slot
-- `app/components/GraphBuilder.tsx` — accept initial data prop, expose save, track dirty state, Cmd+S, beforeunload
+- `app/components/panels/Toolbar.tsx` — add publish button slot
+- `app/components/GraphBuilder.tsx` — accept initial data prop, blank canvas default, integrate auto-save and publish
+- `app/utils/loadGraphData.ts` — default to null (blank canvas)
 - `messages/en.json` — new translation keys
 
 ## Translations
@@ -103,8 +114,10 @@ CREATE INDEX idx_agents_slug ON public.agents(slug);
   "create": "Create agent",
   "name": "Name",
   "namePlaceholder": "My Agent",
+  "nameRequired": "Agent name is required.",
   "description": "Description",
   "descriptionPlaceholder": "What does this agent do?",
+  "version": "Version",
   "updated": "Updated",
   "actions": "Actions",
   "edit": "Edit",
@@ -113,12 +126,14 @@ CREATE INDEX idx_agents_slug ON public.agents(slug);
   "deleteDescription": "This will permanently delete \"{name}\". This action cannot be undone.",
   "deleteConfirm": "Delete",
   "deleteCancel": "Cancel",
-  "slugTaken": "An agent with this name already exists. Try a different name."
+  "slugTaken": "An agent with this name already exists. Try a different name.",
+  "createError": "Failed to create agent. Please try again."
 },
 "editor": {
-  "save": "Save",
-  "saved": "Saved",
-  "unsavedChanges": "Unsaved changes",
+  "publish": "Publish",
+  "publishFailed": "Failed to publish. Please try again.",
+  "saving": "Saving...",
+  "autoSaveFailed": "Auto-save failed. Your changes may not be saved.",
   "notFound": "Agent not found"
 }
 ```

@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Let authenticated users create, list, edit, delete, and save agents — each agent owns a graph stored in Supabase.
+**Goal:** Let authenticated users create, list, edit, delete, and publish agents — each agent owns a graph stored in Supabase with staging/production separation and auto-save.
 
-**Architecture:** New `agents` table with JSONB graph data. Dashboard at `/` lists agents in a table. Editor at `/editor/[slug]` loads the GraphBuilder with data from DB. Save button in toolbar with dirty-state tracking and tab-close protection.
+**Architecture:** New `agents` table with `graph_data_staging` + `graph_data_production` JSONB columns and `version` integer. Dashboard at `/` lists agents. Editor at `/editor/[slug]` loads GraphBuilder with staging data. Debounced auto-save (2s idle) writes to staging. Publish button promotes staging to production with version increment.
 
 **Tech Stack:** Supabase (Postgres + RLS), Next.js 16 App Router, React 19, shadcn/ui, next-intl, @xyflow/react
 
@@ -21,14 +21,16 @@
 
 ```sql
 create table public.agents (
-  id          uuid primary key default gen_random_uuid(),
-  user_id     uuid not null references public.users(id) on delete cascade,
-  name        text not null,
-  slug        text not null unique,
-  description text default '',
-  graph_data  jsonb not null default '{}',
-  created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now()
+  id                    uuid primary key default gen_random_uuid(),
+  user_id               uuid not null references public.users(id) on delete cascade,
+  name                  text not null,
+  slug                  text not null unique,
+  description           text default '',
+  graph_data_staging    jsonb not null default '{}',
+  graph_data_production jsonb not null default '{}',
+  version               integer not null default 0,
+  created_at            timestamptz not null default now(),
+  updated_at            timestamptz not null default now()
 );
 
 create index idx_agents_user_id on public.agents(user_id);
@@ -69,14 +71,14 @@ create trigger on_agents_updated
 
 **Step 2: Apply the migration**
 
-Run: `npx supabase db push` (or `npx supabase migration up` for local)
+Run: `npx supabase db push` or `npx supabase migration up` for local
 Expected: Migration applies successfully
 
 **Step 3: Commit**
 
 ```bash
 git add supabase/migrations/20260309000000_create_agents_table.sql
-git commit -m "feat: add agents table with RLS and auto-updated_at trigger"
+git commit -m "feat: add agents table with staging/production graph data and RLS"
 ```
 
 ---
@@ -90,7 +92,7 @@ git commit -m "feat: add agents table with RLS and auto-updated_at trigger"
 
 **Step 1: Add translation keys**
 
-Add after the `"common"` section in `en.json`:
+Add after the `"common"` section:
 
 ```json
 "agents": {
@@ -102,6 +104,7 @@ Add after the `"common"` section in `en.json`:
   "nameRequired": "Agent name is required.",
   "description": "Description",
   "descriptionPlaceholder": "What does this agent do?",
+  "version": "Version",
   "updated": "Updated",
   "actions": "Actions",
   "edit": "Edit",
@@ -114,10 +117,10 @@ Add after the `"common"` section in `en.json`:
   "createError": "Failed to create agent. Please try again."
 },
 "editor": {
-  "save": "Save",
-  "saved": "Saved",
-  "unsavedChanges": "Unsaved changes",
-  "saveFailed": "Failed to save. Please try again.",
+  "publish": "Publish",
+  "publishFailed": "Failed to publish. Please try again.",
+  "saving": "Saving...",
+  "autoSaveFailed": "Auto-save failed. Your changes may not be saved.",
   "notFound": "Agent not found"
 }
 ```
@@ -125,7 +128,7 @@ Add after the `"common"` section in `en.json`:
 **Step 2: Verify**
 
 Run: `npm run typecheck -w packages/web`
-Expected: PASS (translations are runtime, no type impact)
+Expected: PASS
 
 **Step 3: Commit**
 
@@ -174,10 +177,6 @@ git commit -m "feat: add shadcn dialog component"
 ```typescript
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-/**
- * Convert a name to a URL-friendly slug.
- * Lowercase, hyphens for spaces, strip non-alphanumeric, collapse consecutive hyphens.
- */
 export function generateSlug(name: string): string {
   return name
     .toLowerCase()
@@ -185,10 +184,6 @@ export function generateSlug(name: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-/**
- * Find a unique slug by appending -2, -3, etc. on collision.
- * Queries the agents table to check for existing slugs.
- */
 export async function findUniqueSlug(
   supabase: SupabaseClient,
   baseSlug: string
@@ -196,7 +191,6 @@ export async function findUniqueSlug(
   let candidate = baseSlug;
   let suffix = 2;
 
-  // eslint: loop is bounded — slugs will eventually be unique
   while (true) {
     const { data } = await supabase
       .from('agents')
@@ -233,9 +227,7 @@ git commit -m "feat: add slug generation utility"
 **Files:**
 - Create: `packages/web/app/lib/agents.ts`
 
-**Context:** These functions wrap Supabase queries. They're used by both server components (dashboard) and client components (create, delete, save). The `graph_data` column stores a `Graph` object from `@daviddh/graph-types`.
-
-The browser Supabase client is at `@/app/lib/supabase/client` (`createClient()`), the server one at `@/app/lib/supabase/server` (`createClient()` — async). The caller decides which client to pass.
+**Context:** These functions wrap Supabase queries. Used by server components (dashboard) and client components (create, delete, auto-save, publish). The browser Supabase client is at `@/app/lib/supabase/client`, the server one at `@/app/lib/supabase/server`. The caller passes whichever client is appropriate.
 
 **Step 1: Implement CRUD helpers**
 
@@ -252,14 +244,19 @@ export interface AgentRow {
   name: string;
   slug: string;
   description: string;
-  graph_data: Graph;
+  graph_data_staging: Graph;
+  graph_data_production: Graph;
+  version: number;
   created_at: string;
   updated_at: string;
 }
 
-export type AgentMetadata = Pick<AgentRow, 'id' | 'name' | 'slug' | 'description' | 'updated_at'>;
+export type AgentMetadata = Pick<
+  AgentRow,
+  'id' | 'name' | 'slug' | 'description' | 'version' | 'updated_at'
+>;
 
-const METADATA_COLUMNS = 'id, name, slug, description, updated_at';
+const METADATA_COLUMNS = 'id, name, slug, description, version, updated_at';
 
 export async function getAgentsByUser(
   supabase: SupabaseClient
@@ -302,7 +299,14 @@ export async function createAgent(
 
   const { data, error } = await supabase
     .from('agents')
-    .insert({ user_id: userId, name, slug, description, graph_data: {} })
+    .insert({
+      user_id: userId,
+      name,
+      slug,
+      description,
+      graph_data_staging: {},
+      graph_data_production: {},
+    })
     .select()
     .single();
 
@@ -310,18 +314,48 @@ export async function createAgent(
   return { agent: data as AgentRow, error: null };
 }
 
-export async function saveAgentGraph(
+export async function saveStaging(
   supabase: SupabaseClient,
   agentId: string,
   graphData: Graph
 ): Promise<{ error: string | null }> {
   const { error } = await supabase
     .from('agents')
-    .update({ graph_data: graphData as unknown as Record<string, unknown> })
+    .update({ graph_data_staging: graphData as unknown as Record<string, unknown> })
     .eq('id', agentId);
 
   if (error) return { error: error.message };
   return { error: null };
+}
+
+export async function publishAgent(
+  supabase: SupabaseClient,
+  agentId: string
+): Promise<{ version: number | null; error: string | null }> {
+  // Read current staging + version
+  const { data: agent, error: readError } = await supabase
+    .from('agents')
+    .select('graph_data_staging, version')
+    .eq('id', agentId)
+    .single();
+
+  if (readError || !agent) {
+    return { version: null, error: readError?.message ?? 'Agent not found' };
+  }
+
+  const row = agent as { graph_data_staging: Record<string, unknown>; version: number };
+  const newVersion = row.version + 1;
+
+  const { error: updateError } = await supabase
+    .from('agents')
+    .update({
+      graph_data_production: row.graph_data_staging,
+      version: newVersion,
+    })
+    .eq('id', agentId);
+
+  if (updateError) return { version: null, error: updateError.message };
+  return { version: newVersion, error: null };
 }
 
 export async function deleteAgent(
@@ -347,19 +381,24 @@ Expected: PASS
 
 ```bash
 git add packages/web/app/lib/agents.ts
-git commit -m "feat: add agent CRUD helpers"
+git commit -m "feat: add agent CRUD helpers with staging/production/publish"
 ```
 
 ---
 
-## Task 6: Dashboard page — server component
+## Task 6: Dashboard page and client components
 
 **Files:**
 - Modify: `packages/web/app/page.tsx` (replace entirely)
+- Create: `packages/web/app/components/agents/AgentDashboard.tsx`
+- Create: `packages/web/app/components/agents/AgentTable.tsx`
+- Create: `packages/web/app/components/agents/AgentTableRow.tsx`
+- Create: `packages/web/app/components/agents/CreateAgentDialog.tsx`
+- Create: `packages/web/app/components/agents/DeleteAgentDialog.tsx`
 
-**Context:** Currently this file is a `'use client'` page that dynamically imports `GraphBuilder`. It becomes a server component that fetches agents and renders the dashboard.
+**Context:** The current `app/page.tsx` is a `'use client'` page that dynamically imports `GraphBuilder`. Replace it with a server component that fetches agents and renders the dashboard. Keep all functions under 40 lines, all files under 300 lines. Use shadcn components. All text via `useTranslations`.
 
-**Step 1: Replace page.tsx**
+### app/page.tsx (server component)
 
 ```typescript
 import { redirect } from 'next/navigation';
@@ -385,34 +424,7 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
 }
 ```
 
-**Step 2: Verify** (will fail until AgentDashboard exists — that's expected)
-
-Run: `npm run typecheck -w packages/web`
-Expected: Error about missing AgentDashboard (resolved in next task)
-
-**Step 3: Commit** (commit together with Task 7)
-
----
-
-## Task 7: Dashboard client components
-
-**Files:**
-- Create: `packages/web/app/components/agents/AgentDashboard.tsx`
-- Create: `packages/web/app/components/agents/AgentTable.tsx`
-- Create: `packages/web/app/components/agents/CreateAgentDialog.tsx`
-- Create: `packages/web/app/components/agents/DeleteAgentDialog.tsx`
-
-**Context:**
-- Use shadcn components: `Button`, `Input`, `Label`, `Textarea`, `Dialog`, `AlertDialog`, `Separator`
-- Use `next-intl` for all user-facing text via `useTranslations`
-- Use `createClient` from `@/app/lib/supabase/client` (browser client)
-- Use `useRouter` from `next/navigation` for navigation and `router.refresh()` to revalidate server data
-- Max 40 lines per function, 300 lines per file — split into small focused components
-- Never use `any` type
-
 ### AgentDashboard.tsx
-
-Main dashboard layout. Header with title + create button, content area with table or empty state.
 
 ```typescript
 'use client';
@@ -431,11 +443,7 @@ interface AgentDashboardProps {
   userId: string;
 }
 
-function DashboardHeader({
-  onCreateClick,
-}: {
-  onCreateClick: () => void;
-}) {
+function DashboardHeader({ onCreateClick }: { onCreateClick: () => void }) {
   const t = useTranslations('agents');
 
   return (
@@ -453,9 +461,7 @@ function DashboardHeader({
 
 function EmptyState() {
   const t = useTranslations('agents');
-  return (
-    <p className="py-12 text-center text-muted-foreground">{t('empty')}</p>
-  );
+  return <p className="py-12 text-center text-muted-foreground">{t('empty')}</p>;
 }
 
 export function AgentDashboard({ agents, userId }: AgentDashboardProps) {
@@ -477,8 +483,6 @@ export function AgentDashboard({ agents, userId }: AgentDashboardProps) {
 
 ### AgentTable.tsx
 
-Table rendering agent rows with relative time, edit/delete actions.
-
 ```typescript
 'use client';
 
@@ -488,8 +492,6 @@ import { useState } from 'react';
 
 import { AgentTableRow } from './AgentTableRow';
 import { DeleteAgentDialog } from './DeleteAgentDialog';
-
-// Need a separate AgentTableRow file or inline — keep under 40 lines per function
 
 interface AgentTableProps {
   agents: AgentMetadata[];
@@ -506,6 +508,7 @@ export function AgentTable({ agents }: AgentTableProps) {
           <tr className="border-b text-left text-muted-foreground">
             <th className="pb-2 font-medium">{t('name')}</th>
             <th className="pb-2 font-medium">{t('description')}</th>
+            <th className="pb-2 font-medium">{t('version')}</th>
             <th className="pb-2 font-medium">{t('updated')}</th>
             <th className="pb-2 text-right font-medium">{t('actions')}</th>
           </tr>
@@ -526,7 +529,7 @@ export function AgentTable({ agents }: AgentTableProps) {
 }
 ```
 
-You'll also need `AgentTableRow.tsx` as a separate file to keep functions under 40 lines:
+### AgentTableRow.tsx
 
 ```typescript
 'use client';
@@ -567,6 +570,7 @@ export function AgentTableRow({ agent, onDelete }: AgentTableRowProps) {
         </Link>
       </td>
       <td className="py-3 text-muted-foreground">{agent.description}</td>
+      <td className="py-3 text-muted-foreground">v{agent.version}</td>
       <td className="py-3 text-muted-foreground">{formatRelativeTime(agent.updated_at)}</td>
       <td className="py-3 text-right">
         <div className="flex justify-end gap-1">
@@ -588,8 +592,6 @@ export function AgentTableRow({ agent, onDelete }: AgentTableRowProps) {
 ```
 
 ### CreateAgentDialog.tsx
-
-Dialog with name + optional description form. Creates agent via Supabase, navigates to editor on success.
 
 ```typescript
 'use client';
@@ -616,7 +618,7 @@ interface CreateAgentDialogProps {
   userId: string;
 }
 
-function CreateAgentForm({ userId, onOpenChange }: CreateAgentDialogProps) {
+function CreateAgentForm({ userId, onOpenChange }: Omit<CreateAgentDialogProps, 'open'>) {
   const t = useTranslations('agents');
   const router = useRouter();
   const [error, setError] = useState('');
@@ -658,17 +660,10 @@ function CreateAgentForm({ userId, onOpenChange }: CreateAgentDialogProps) {
       </div>
       <div className="flex flex-col gap-1">
         <Label htmlFor="agent-description">{t('description')}</Label>
-        <Textarea
-          id="agent-description"
-          name="description"
-          placeholder={t('descriptionPlaceholder')}
-          rows={3}
-        />
+        <Textarea id="agent-description" name="description" placeholder={t('descriptionPlaceholder')} rows={3} />
       </div>
       {error !== '' && <p className="text-destructive text-xs">{error}</p>}
-      <Button type="submit" disabled={loading}>
-        {t('create')}
-      </Button>
+      <Button type="submit" disabled={loading}>{t('create')}</Button>
     </form>
   );
 }
@@ -682,7 +677,7 @@ export function CreateAgentDialog({ open, onOpenChange, userId }: CreateAgentDia
         <DialogHeader>
           <DialogTitle>{t('create')}</DialogTitle>
         </DialogHeader>
-        <CreateAgentForm open={open} onOpenChange={onOpenChange} userId={userId} />
+        <CreateAgentForm userId={userId} onOpenChange={onOpenChange} />
       </DialogContent>
     </Dialog>
   );
@@ -690,8 +685,6 @@ export function CreateAgentDialog({ open, onOpenChange, userId }: CreateAgentDia
 ```
 
 ### DeleteAgentDialog.tsx
-
-AlertDialog confirmation. Calls `deleteAgent()` then refreshes the page via `router.refresh()`.
 
 ```typescript
 'use client';
@@ -765,25 +758,26 @@ export function DeleteAgentDialog({ agent, open, onOpenChange }: DeleteAgentDial
 **Step 2: Verify**
 
 Run: `npm run check`
-Expected: PASS — format, lint, typecheck all clean
+Expected: PASS
 
 **Step 3: Commit**
 
 ```bash
 git add packages/web/app/page.tsx packages/web/app/components/agents/
-git commit -m "feat: add agent dashboard with create/delete functionality"
+git commit -m "feat: add agent dashboard with create/delete, table view, and slug routing"
 ```
 
 ---
 
-## Task 8: Editor page — server component
+## Task 7: Editor page with server component
 
 **Files:**
 - Create: `packages/web/app/editor/[slug]/page.tsx`
+- Create: `packages/web/app/editor/[slug]/EditorClient.tsx`
 
-**Context:** This server component fetches an agent by slug via the server Supabase client. RLS ensures only the owner can read it. If not found, redirects to `/`. Passes `graph_data` and metadata to a client wrapper that dynamically imports GraphBuilder.
+**Context:** Server component fetches agent by slug via server Supabase client. RLS ensures only owner can access. Passes staging data to a client wrapper that dynamically imports GraphBuilder (SSR disabled for React Flow).
 
-**Step 1: Create the editor page**
+### page.tsx
 
 ```typescript
 import { redirect } from 'next/navigation';
@@ -810,15 +804,15 @@ export default async function EditorPage({ params }: EditorPageProps): Promise<R
     <EditorClient
       agentId={agent.id}
       agentName={agent.name}
-      initialGraphData={agent.graph_data}
+      initialGraphData={agent.graph_data_staging}
+      initialProductionData={agent.graph_data_production}
+      initialVersion={agent.version}
     />
   );
 }
 ```
 
-**Step 2: Create the client wrapper**
-
-Create `packages/web/app/editor/[slug]/EditorClient.tsx`:
+### EditorClient.tsx
 
 ```typescript
 'use client';
@@ -836,76 +830,221 @@ interface EditorClientProps {
   agentId: string;
   agentName: string;
   initialGraphData: Graph;
+  initialProductionData: Graph;
+  initialVersion: number;
 }
 
-export function EditorClient({ agentId, agentName, initialGraphData }: EditorClientProps) {
+export function EditorClient({
+  agentId,
+  agentName,
+  initialGraphData,
+  initialProductionData,
+  initialVersion,
+}: EditorClientProps) {
   return (
     <GraphBuilder
       agentId={agentId}
       agentName={agentName}
       initialGraphData={initialGraphData}
+      initialProductionData={initialProductionData}
+      initialVersion={initialVersion}
     />
   );
 }
 ```
 
-**Step 3: Verify** (will fail until GraphBuilder accepts new props — that's expected)
+**Step 2: Verify** (will fail until GraphBuilder accepts new props — resolved in Task 8)
 
-**Step 4: Commit** (commit together with Task 9)
+**Step 3: Commit** (commit together with Task 8)
 
 ---
 
-## Task 9: Modify GraphBuilder to accept initial data and expose graph serialization
+## Task 8: Auto-save hook
+
+**Files:**
+- Create: `packages/web/app/hooks/useAutoSave.ts`
+
+**Context:** Debounced auto-save that writes to `graph_data_staging` after 20 seconds of inactivity. Returns `pendingSave` boolean so the UI can show "Saving..." state. When `pendingSave` is true, register `beforeunload` to warn the user before closing the tab. Silent on success, toast on error.
+
+**Step 1: Implement the hook**
+
+```typescript
+import { saveStaging } from '@/app/lib/agents';
+import { createClient } from '@/app/lib/supabase/client';
+import type { Graph } from '@/app/schemas/graph.schema';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
+
+const AUTO_SAVE_DELAY_MS = 20000;
+
+interface UseAutoSaveOptions {
+  agentId: string | undefined;
+  getGraphData: () => Graph | null;
+  enabled: boolean;
+}
+
+interface UseAutoSaveReturn {
+  pendingSave: boolean;
+}
+
+export function useAutoSave({ agentId, getGraphData, enabled }: UseAutoSaveOptions): UseAutoSaveReturn {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSavedRef = useRef<string>('');
+  const [pendingSave, setPendingSave] = useState(false);
+
+  const doSave = useCallback(() => {
+    if (!agentId) return;
+    const graphData = getGraphData();
+    if (!graphData) return;
+
+    const serialized = JSON.stringify(graphData);
+    if (serialized === lastSavedRef.current) {
+      setPendingSave(false);
+      return;
+    }
+
+    const supabase = createClient();
+    saveStaging(supabase, agentId, graphData).then(({ error }) => {
+      if (error) {
+        toast.error('Auto-save failed');
+        return;
+      }
+      lastSavedRef.current = serialized;
+      setPendingSave(false);
+    });
+  }, [agentId, getGraphData]);
+
+  // Debounce: reset timer on every render when enabled
+  useEffect(() => {
+    if (!enabled || !agentId) return;
+
+    const graphData = getGraphData();
+    if (!graphData) return;
+
+    const serialized = JSON.stringify(graphData);
+    if (serialized === lastSavedRef.current) return;
+
+    // Mark as pending (changes exist but not yet saved)
+    setPendingSave(true);
+
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+
+    timerRef.current = setTimeout(doSave, AUTO_SAVE_DELAY_MS);
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  });
+
+  // beforeunload when changes are pending
+  useEffect(() => {
+    if (!pendingSave) return;
+
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [pendingSave]);
+
+  return { pendingSave };
+}
+```
+
+**Key behaviors:**
+- `pendingSave` is `true` from the moment changes are detected until auto-save completes
+- The beforeunload listener is active only while `pendingSave` is true
+- The UI uses `pendingSave` to show a "Saving..." indicator in the toolbar
+- The debounce timer resets on every render (no dependency array on main effect)
+
+**Step 2: Verify**
+
+Run: `npm run typecheck -w packages/web`
+Expected: PASS
+
+**Step 3: Commit**
+
+```bash
+git add packages/web/app/hooks/useAutoSave.ts
+git commit -m "feat: add debounced auto-save hook for staging graph data"
+```
+
+---
+
+## Task 9: Modify GraphBuilder to accept initial data and integrate auto-save
 
 **Files:**
 - Modify: `packages/web/app/components/GraphBuilder.tsx`
 - Modify: `packages/web/app/utils/loadGraphData.ts`
 
 **Context:** Currently `GraphBuilder` takes no props and loads `ecommerce.json` via `GRAPH_DATA`. It needs to:
-1. Accept optional `initialGraphData`, `agentId`, `agentName` props
-2. When `initialGraphData` is provided and non-empty (`graph_data !== {}`), use it instead of `GRAPH_DATA`
-3. When `initialGraphData` is empty (`{}`), show a blank canvas (start node + first node)
-4. Expose a `getGraphData()` function for the save button to call
-5. Track dirty state and call `onDirtyChange` when it changes
+1. Accept optional `initialGraphData`, `initialProductionData`, `initialVersion`, `agentId`, `agentName` props
+2. When `initialGraphData` has graph content, load it; otherwise show blank canvas (start node + first node)
+3. Expose a `getGraphData()` callback for auto-save and publish
+4. Integrate the `useAutoSave` hook
+5. Track whether staging differs from production for publish button state
 
-**Key changes:**
+### Key changes to loadGraphData.ts
 
-### GraphBuilder props
+Change the last line to default to null (blank canvas):
+
+```typescript
+// Before:
+export const GRAPH_DATA: ReturnType<typeof loadGraphData> = loadGraphData();
+
+// After:
+export const GRAPH_DATA: ReturnType<typeof loadGraphData> = null;
+```
+
+### Key changes to GraphBuilder.tsx
+
+**Add props interface:**
 
 ```typescript
 interface GraphBuilderProps {
   agentId?: string;
   agentName?: string;
   initialGraphData?: Graph;
+  initialProductionData?: Graph;
+  initialVersion?: number;
 }
 ```
 
-Update `GraphBuilder` to accept and forward props to `GraphBuilderInner`:
+**Update exports:**
 
 ```typescript
-export function GraphBuilder({ agentId, agentName, initialGraphData }: GraphBuilderProps) {
+export function GraphBuilder(props: GraphBuilderProps) {
   return (
     <ReactFlowProvider>
-      <GraphBuilderInner agentId={agentId} agentName={agentName} initialGraphData={initialGraphData} />
+      <GraphBuilderInner {...props} />
     </ReactFlowProvider>
   );
 }
 ```
 
-### Initial data loading
+**Replace module-level initialization with helper functions:**
 
-Replace the module-level `createInitialNodes()` / `createInitialEdges()` / `initialNodes` / `initialEdges` pattern. Move initialization into `GraphBuilderInner` using `useMemo` or a setup function that takes the prop.
+Remove the module-level `createInitialNodes()`, `createInitialEdges()`, `initialNodes`, `initialEdges` variables.
 
-Create helper functions (can be in the same file or extracted):
+Add helper functions that take `initialGraphData` as a parameter:
 
 ```typescript
-function buildInitialNodes(graphData?: Graph): Node<RFNodeData>[] {
-  if (!graphData || Object.keys(graphData).length === 0) {
+function isEmptyGraph(graphData: Graph | undefined): boolean {
+  if (!graphData) return true;
+  return !('nodes' in graphData) || !Array.isArray(graphData.nodes) || graphData.nodes.length === 0;
+}
+
+function buildInitialNodes(graphData: Graph | undefined): Node<RFNodeData>[] {
+  if (isEmptyGraph(graphData)) {
     return [defaultStartNode, defaultFirstNode];
   }
-  const { nodeWidth } = processGraph(graphData);
-  const processed = processGraph(graphData);
-  return processed.graph.nodes.map((n, i) => {
+  const { graph, nodeWidth } = processGraph(graphData as Graph);
+  return graph.nodes.map((n, i) => {
     const baseNode = schemaNodeToRFNode(n, i);
     const isStartNode = n.id === START_NODE_ID;
     return {
@@ -918,47 +1057,35 @@ function buildInitialNodes(graphData?: Graph): Node<RFNodeData>[] {
   });
 }
 
-function buildInitialEdges(graphData?: Graph): Edge<RFEdgeData>[] {
-  if (!graphData || Object.keys(graphData).length === 0) {
+function buildInitialEdges(graphData: Graph | undefined): Edge<RFEdgeData>[] {
+  if (isEmptyGraph(graphData)) {
     return [defaultStartEdge];
   }
-  const processed = processGraph(graphData);
-  return processed.graph.edges.map((e, i) => schemaEdgeToRFEdge(e, i, processed.graph.nodes));
+  const { graph } = processGraph(graphData as Graph);
+  return graph.edges.map((e, i) => schemaEdgeToRFEdge(e, i, graph.nodes));
 }
 ```
 
-Then in `GraphBuilderInner`:
+**In GraphBuilderInner, use `useMemo` to compute initial values:**
 
 ```typescript
-// Use useMemo or useRef to compute initial values once
-const [nodes, setNodes, onNodesChange] = useNodesState(
-  buildInitialNodes(initialGraphData)
-);
-const [edges, setEdges, onEdgesChange] = useEdgesState(
-  buildInitialEdges(initialGraphData)
-);
-const [agents] = useState<Agent[]>(
-  initialGraphData?.agents ?? GRAPH_DATA?.graph.agents ?? []
-);
+function GraphBuilderInner({
+  agentId,
+  initialGraphData,
+  initialProductionData,
+  initialVersion,
+}: GraphBuilderProps) {
+  const initNodes = useMemo(() => buildInitialNodes(initialGraphData), [initialGraphData]);
+  const initEdges = useMemo(() => buildInitialEdges(initialGraphData), [initialGraphData]);
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(initNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initEdges);
+  const [agents] = useState<Agent[]>(initialGraphData?.agents ?? []);
+  const [version, setVersion] = useState(initialVersion ?? 0);
+  const [productionData, setProductionData] = useState(initialProductionData);
 ```
 
-### Remove hardcoded GRAPH_DATA usage
-
-In `loadGraphData.ts`, change the last line:
-
-```typescript
-// Before:
-export const GRAPH_DATA: ReturnType<typeof loadGraphData> = loadGraphData();
-
-// After:
-export const GRAPH_DATA: ReturnType<typeof loadGraphData> = null;
-```
-
-This makes the default state a blank canvas. The module-level functions `createInitialNodes()` and `createInitialEdges()` can be removed since initialization now happens inside the component.
-
-### Expose getGraphData
-
-Add a function inside `GraphBuilderInner` that serializes the current graph state (same logic as `handleExport` but without file download):
+**Add getGraphData callback** (same serialization as handleExport but returns the object):
 
 ```typescript
 const getGraphData = useCallback((): Graph | null => {
@@ -979,15 +1106,57 @@ const getGraphData = useCallback((): Graph | null => {
     edges: edges.map((e) => rfEdgeToSchemaEdge(e)),
     mcpServers: mcpHook.servers.length > 0 ? mcpHook.servers : undefined,
   };
-
   const result = GraphSchema.safeParse(graph);
   return result.success ? result.data : null;
 }, [nodes, edges, agents, mcpHook.servers]);
 ```
 
-### Pass save-related props to Toolbar
+**Integrate auto-save:**
 
-The save button needs `agentId`, `isDirty`, and `getGraphData`. Add a `saveSlot` to the Toolbar (see Task 10).
+```typescript
+const { pendingSave } = useAutoSave({
+  agentId,
+  getGraphData,
+  enabled: agentId !== undefined,
+});
+```
+
+**Compute publishable state** (staging differs from production):
+
+```typescript
+const canPublish = useMemo(() => {
+  const currentData = getGraphData();
+  if (!currentData) return false;
+  return JSON.stringify(currentData) !== JSON.stringify(productionData);
+}, [getGraphData, productionData]);
+```
+
+**Pass publish slot and saving state to Toolbar:**
+
+```typescript
+<Toolbar
+  // ... existing props
+  pendingSave={pendingSave}
+  publishSlot={
+    agentId ? (
+      <PublishButton
+        agentId={agentId}
+        canPublish={canPublish}
+        version={version}
+        onPublished={(newVersion) => {
+          setVersion(newVersion);
+          setProductionData(getGraphData() ?? undefined);
+        }}
+      />
+    ) : undefined
+  }
+/>
+```
+
+**Also update references to `GRAPH_DATA` throughout the file:**
+- `GRAPH_DATA?.nodeWidth ?? 180` → just use `180` (or compute from initial data)
+- Remove the import of `GRAPH_DATA` from loadGraphData
+- Keep imports of `processGraph`, `findInitialNodePosition`, `calculateInitialViewport`
 
 **Step 2: Verify**
 
@@ -997,65 +1166,58 @@ Expected: PASS
 **Step 3: Commit**
 
 ```bash
-git add packages/web/app/components/GraphBuilder.tsx packages/web/app/utils/loadGraphData.ts packages/web/app/editor/
-git commit -m "feat: GraphBuilder accepts initial data props, editor page with slug routing"
+git add packages/web/app/components/GraphBuilder.tsx packages/web/app/utils/loadGraphData.ts
+git commit -m "feat: GraphBuilder accepts initial data, integrates auto-save, blank canvas default"
 ```
 
 ---
 
-## Task 10: Save button component and Toolbar integration
+## Task 10: Publish button and Toolbar integration
 
 **Files:**
-- Create: `packages/web/app/components/panels/SaveButton.tsx`
+- Create: `packages/web/app/components/panels/PublishButton.tsx`
 - Modify: `packages/web/app/components/panels/Toolbar.tsx`
-- Modify: `packages/web/app/components/GraphBuilder.tsx`
 
-**Context:** The save button sits in the toolbar. It shows a check icon when saved (ghost style) or a warning icon when dirty (more prominent). Clicking it calls `saveAgentGraph()` from `@/app/lib/agents`.
-
-### SaveButton.tsx
+### PublishButton.tsx
 
 ```typescript
 'use client';
 
-import { saveAgentGraph } from '@/app/lib/agents';
+import { publishAgent } from '@/app/lib/agents';
 import { createClient } from '@/app/lib/supabase/client';
-import type { Graph } from '@/app/schemas/graph.schema';
 import { Button } from '@/components/ui/button';
-import { Check, CircleAlert, Loader2 } from 'lucide-react';
+import { Loader2, Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-interface SaveButtonProps {
+interface PublishButtonProps {
   agentId: string;
-  isDirty: boolean;
-  getGraphData: () => Graph | null;
-  onSaved: () => void;
+  canPublish: boolean;
+  version: number;
+  onPublished: (newVersion: number) => void;
 }
 
-export function SaveButton({ agentId, isDirty, getGraphData, onSaved }: SaveButtonProps) {
+export function PublishButton({ agentId, canPublish, version, onPublished }: PublishButtonProps) {
   const t = useTranslations('editor');
-  const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
-  async function handleSave() {
-    const graphData = getGraphData();
-    if (!graphData) return;
-
-    setSaving(true);
+  async function handlePublish() {
+    setPublishing(true);
     const supabase = createClient();
-    const { error } = await saveAgentGraph(supabase, agentId, graphData);
+    const { version: newVersion, error } = await publishAgent(supabase, agentId);
 
-    if (error) {
-      toast.error(t('saveFailed'));
-      setSaving(false);
+    if (error || newVersion === null) {
+      toast.error(t('publishFailed'));
+      setPublishing(false);
       return;
     }
 
-    onSaved();
-    setSaving(false);
+    onPublished(newVersion);
+    setPublishing(false);
   }
 
-  if (saving) {
+  if (publishing) {
     return (
       <Button variant="ghost" size="sm" disabled className="h-10 gap-1.5 px-3">
         <Loader2 className="size-4 animate-spin" />
@@ -1065,23 +1227,14 @@ export function SaveButton({ agentId, isDirty, getGraphData, onSaved }: SaveButt
 
   return (
     <Button
-      variant={isDirty ? 'outline' : 'ghost'}
+      variant={canPublish ? 'default' : 'ghost'}
       size="sm"
-      onClick={handleSave}
-      disabled={!isDirty}
+      onClick={handlePublish}
+      disabled={!canPublish}
       className="h-10 gap-1.5 px-3"
     >
-      {isDirty ? (
-        <>
-          <CircleAlert className="size-4 text-orange-500" />
-          {t('unsavedChanges')}
-        </>
-      ) : (
-        <>
-          <Check className="size-4 text-green-600" />
-          {t('saved')}
-        </>
-      )}
+      <Upload className="size-4" />
+      {t('publish')}
     </Button>
   );
 }
@@ -1089,98 +1242,35 @@ export function SaveButton({ agentId, isDirty, getGraphData, onSaved }: SaveButt
 
 ### Toolbar.tsx changes
 
-Add `saveSlot` prop:
+Add `publishSlot` and `pendingSave` props:
 
 ```typescript
 interface ToolbarProps {
   // ... existing props
-  saveSlot?: ReactNode;
+  publishSlot?: ReactNode;
+  pendingSave?: boolean;
 }
 ```
 
-Render it in the header after the play button:
+Render the saving indicator and publish slot in the header (after play button area):
 
 ```tsx
-{saveSlot && (
+{pendingSave && (
+  <span className="flex items-center gap-1.5 px-2 text-xs text-muted-foreground">
+    <Loader2 className="size-3 animate-spin" />
+    {t('editor.saving')}
+  </span>
+)}
+
+{publishSlot && (
   <>
     <Separator orientation="vertical" />
-    {saveSlot}
+    {publishSlot}
   </>
 )}
 ```
 
-### GraphBuilder.tsx changes — dirty state + save integration
-
-Add dirty tracking and wire up the save button:
-
-```typescript
-// Inside GraphBuilderInner:
-
-// Dirty state tracking
-const lastSavedRef = useRef<string>(JSON.stringify({ nodes, edges, agents }));
-const [isDirty, setIsDirty] = useState(false);
-
-// Check dirty on node/edge changes
-useEffect(() => {
-  const currentState = JSON.stringify({
-    nodes: nodes.map((n) => ({ id: n.id, data: n.data, position: n.position })),
-    edges: edges.map((e) => ({ source: e.source, target: e.target, data: e.data })),
-  });
-  setIsDirty(currentState !== lastSavedRef.current);
-}, [nodes, edges]);
-
-// Initialize lastSavedRef properly
-useEffect(() => {
-  lastSavedRef.current = JSON.stringify({
-    nodes: nodes.map((n) => ({ id: n.id, data: n.data, position: n.position })),
-    edges: edges.map((e) => ({ source: e.source, target: e.target, data: e.data })),
-  });
-  // Only run once on mount
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);
-
-function handleSaved() {
-  lastSavedRef.current = JSON.stringify({
-    nodes: nodes.map((n) => ({ id: n.id, data: n.data, position: n.position })),
-    edges: edges.map((e) => ({ source: e.source, target: e.target, data: e.data })),
-  });
-  setIsDirty(false);
-}
-
-// Cmd+S / Ctrl+S shortcut (merge with existing Cmd+F handler)
-// In the existing keydown handler, add:
-if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-  e.preventDefault();
-  // Trigger save via ref or callback
-}
-
-// beforeunload protection
-useEffect(() => {
-  if (!isDirty) return;
-  function handleBeforeUnload(e: BeforeUnloadEvent) {
-    e.preventDefault();
-  }
-  window.addEventListener('beforeunload', handleBeforeUnload);
-  return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-}, [isDirty]);
-```
-
-Wire up the save button in the Toolbar call:
-
-```tsx
-<Toolbar
-  // ... existing props
-  saveSlot={
-    agentId ? (
-      <SaveButton
-        agentId={agentId}
-        isDirty={isDirty}
-        getGraphData={getGraphData}
-        onSaved={handleSaved}
-      />
-    ) : undefined
-  }
-/>
+Note: The Toolbar needs `useTranslations` to access the `editor.saving` key. Alternatively, pass the saving indicator as a slot from the parent. Choose whichever keeps the component under 40 lines per function.
 ```
 
 **Step 2: Verify**
@@ -1188,28 +1278,18 @@ Wire up the save button in the Toolbar call:
 Run: `npm run check`
 Expected: PASS
 
-**Step 3: Test manually**
-
-1. Create an agent from dashboard → opens blank editor
-2. Add nodes/edges → save button shows "Unsaved changes" with orange icon
-3. Click save → button changes to "Saved" with green check
-4. Modify something → button goes back to "Unsaved changes"
-5. Try to close tab with unsaved changes → browser shows leave warning
-6. Press Cmd+S → saves without clicking the button
-
-**Step 4: Commit**
+**Step 3: Commit**
 
 ```bash
-git add packages/web/app/components/panels/SaveButton.tsx packages/web/app/components/panels/Toolbar.tsx packages/web/app/components/GraphBuilder.tsx
-git commit -m "feat: add save button with dirty tracking and tab-close protection"
+git add packages/web/app/components/panels/PublishButton.tsx packages/web/app/components/panels/Toolbar.tsx packages/web/app/components/GraphBuilder.tsx packages/web/app/editor/
+git commit -m "feat: add publish button, editor page, and auto-save integration"
 ```
 
 ---
 
 ## Task 11: Final cleanup and verification
 
-**Files:**
-- All files from previous tasks
+**Files:** All files from previous tasks
 
 **Step 1: Run full check**
 
@@ -1223,17 +1303,22 @@ Expected: PASS — format (Prettier), lint (ESLint), typecheck (tsc -b) all clea
 3. Click "Create agent" → fill name + description → click create
 4. Redirected to `/editor/my-agent` with blank canvas (start node + first node)
 5. Add nodes, edges, modify graph
-6. Save button shows orange warning → click save → green check
-7. Navigate back to `/` → see agent in table with correct name and "just now" timestamp
-8. Click agent → editor loads with saved graph intact
-9. Delete agent from dashboard → confirmation → agent removed
-10. Try creating two agents with same name → second gets slug `-2`
-11. Press Cmd+S in editor → saves
-12. Modify graph, try closing tab → browser warns about unsaved changes
+6. See "Saving..." indicator appear in toolbar immediately
+7. Try to close tab → browser shows "Leave site?" confirmation
+8. Wait 20 seconds — auto-save completes, "Saving..." disappears
+9. Try to close tab again → no warning (changes are saved)
+10. Publish button is enabled (staging differs from production) → click Publish
+11. Publish button becomes disabled, version increments
+12. Navigate back to `/` → see agent in table with version and "just now" timestamp
+13. Click agent → editor loads with saved staging graph intact
+14. Make more changes → "Saving..." appears → auto-save fires → Publish becomes enabled again
+15. Delete agent from dashboard → confirmation → agent removed
+16. Try creating two agents with same name → second gets slug `-2`
+17. Refresh page while editing after auto-save → changes are preserved
 
-**Step 3: Final commit**
+**Step 3: Final commit if any remaining changes**
 
 ```bash
 git add -A
-git commit -m "feat: multi-agent dashboard with CRUD, editor routing, save and dirty tracking"
+git commit -m "feat: multi-agent dashboard with CRUD, auto-save, and publish flow"
 ```
