@@ -146,7 +146,7 @@ function handlePreconditionRemove(
     eds.map((e) => {
       const cp = (e.data as RFEdgeData | undefined)?.contextPreconditions;
       if (cp === undefined) return e;
-      const filtered = cp.preconditions.filter((p) => p !== target.name);
+      const filtered = cp.preconditions.filter((p: string) => p !== target.name);
       return {
         ...e,
         data: { ...e.data, contextPreconditions: filtered.length > 0 ? { ...cp, preconditions: filtered } : undefined },

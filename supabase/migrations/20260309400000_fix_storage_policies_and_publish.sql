@@ -89,5 +89,5 @@ end;
 $$;
 
 create trigger on_api_key_insert
-  before insert on public.org_api_keys
+  before insert or update of key_value on public.org_api_keys
   for each row execute function public.set_api_key_preview();

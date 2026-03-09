@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { saveStagingKeyIdAction } from '../actions/agents';
@@ -21,19 +21,22 @@ export function useApiKeySelection(params: UseApiKeySelectionParams): ApiKeySele
 
   const [stagingKeyId, setStagingKeyId] = useState<string | null>(initialStagingKeyId);
   const [productionKeyId, setProductionKeyId] = useState<string | null>(initialProductionKeyId);
+  const lastSavedKeyIdRef = useRef(initialStagingKeyId);
 
   const handleStagingKeyChange = useCallback(
     async (keyId: string | null) => {
       setStagingKeyId(keyId);
       if (agentId !== undefined) {
         const { error } = await saveStagingKeyIdAction(agentId, keyId);
-        if (error !== null) {
-          setStagingKeyId(initialStagingKeyId);
+        if (error === null) {
+          lastSavedKeyIdRef.current = keyId;
+        } else {
+          setStagingKeyId(lastSavedKeyIdRef.current);
           toast.error(error);
         }
       }
     },
-    [agentId, initialStagingKeyId]
+    [agentId]
   );
 
   return { stagingKeyId, productionKeyId, setProductionKeyId, handleStagingKeyChange };

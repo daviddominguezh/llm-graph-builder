@@ -110,18 +110,19 @@ function useGraphBuilderHooks(props: GraphBuilderProps) {
 
   const handleExport = useExportGraph({ nodes, edges, agents, mcpServers: mcpHook.servers });
 
-  const getGraphData = useCallback(
-    (): Graph | null => serializeGraphData({ nodes, edges, agents, mcpServers: mcpHook.servers }),
+  const serializedGraph = useMemo(
+    () => serializeGraphData({ nodes, edges, agents, mcpServers: mcpHook.servers }),
     [nodes, edges, agents, mcpHook.servers]
   );
 
+  const getGraphData = useCallback((): Graph | null => serializedGraph, [serializedGraph]);
+
   const { pendingSave } = useAutoSave({ agentId, getGraphData, enabled: agentId !== undefined });
 
-  const canPublish = useMemo(() => {
-    const currentData = getGraphData();
-    if (currentData === null) return false;
-    return JSON.stringify(currentData) !== JSON.stringify(productionData);
-  }, [getGraphData, productionData]);
+  const canPublish = useMemo(
+    () => serializedGraph !== null && JSON.stringify(serializedGraph) !== JSON.stringify(productionData),
+    [serializedGraph, productionData]
+  );
 
   useInitialViewport(reactFlowWrapper, rf.setViewport, initialGraphData);
   useSearchKeyboard(setSearchOpen);

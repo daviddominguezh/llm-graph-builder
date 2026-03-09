@@ -21,7 +21,10 @@ export default async function EditorPage({ params }: EditorPageProps): Promise<R
   const { agent } = await getAgentBySlug(supabase, agentSlug);
   if (!agent || agent.org_id !== org.id) redirect(`/orgs/${slug}`);
 
-  const { result: orgApiKeys } = await getApiKeysByOrg(supabase, org.id);
+  const { result: orgApiKeys, error: apiKeyError } = await getApiKeysByOrg(supabase, org.id);
+  if (apiKeyError !== null) {
+    console.error('[EditorPage] failed to load API keys:', apiKeyError);
+  }
 
   return (
     <EditorClient
