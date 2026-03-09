@@ -15,7 +15,7 @@ import { Check, Plus } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { type ReactNode, useCallback, useEffect, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useState, useTransition } from 'react';
 
 import { CreateOrgDialog } from './CreateOrgDialog';
 
@@ -53,14 +53,17 @@ function ListAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | nul
 
 function useOrgList(open: boolean) {
   const [orgs, setOrgs] = useState<OrgWithAgentCount[]>([]);
+  const [, startTransition] = useTransition();
 
-  const fetchOrgs = useCallback(async () => {
-    const { result } = await getOrgsAction();
-    setOrgs(result);
-  }, []);
+  const fetchOrgs = useCallback(() => {
+    startTransition(async () => {
+      const { result } = await getOrgsAction();
+      setOrgs(result);
+    });
+  }, [startTransition]);
 
   useEffect(() => {
-    if (open) void fetchOrgs();
+    if (open) fetchOrgs();
   }, [open, fetchOrgs]);
 
   return orgs;

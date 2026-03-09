@@ -13,7 +13,10 @@
   },
   "scripts": {
     "build": "cd \"$(dirname \"$npm_package_json\")\" && rm -rf dist tsconfig*.tsbuildinfo && tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
-    "typecheck": "tsc -b",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write \"**/*.{js,ts,json}\"",
+    "check": "npm run format && npm run lint && npm run typecheck",
     "test": "NODE_OPTIONS='--experimental-vm-modules' npx jest",
     "test:watch": "NODE_OPTIONS='--experimental-vm-modules' npx jest --watch"
   },
