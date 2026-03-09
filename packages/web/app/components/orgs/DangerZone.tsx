@@ -15,7 +15,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -25,22 +24,19 @@ interface DangerZoneProps {
 
 function useDeleteOrg(org: OrgRow) {
   const t = useTranslations('orgs');
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   async function handleDelete() {
     setLoading(true);
     const { error } = await deleteOrgAction(org.id);
 
-    setLoading(false);
-
     if (error !== null) {
+      setLoading(false);
       toast.error(t('deleteError'));
       return;
     }
 
-    router.push('/');
-    router.refresh();
+    window.location.href = '/';
   }
 
   return { loading, handleDelete };

@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { getOrgsByUser } from '@/app/lib/orgs';
 import { createClient } from '@/app/lib/supabase/server';
 
-import { OrgCardGrid } from './components/orgs/OrgCardGrid';
+import { CreateFirstOrg } from './components/orgs/CreateFirstOrg';
 
 export default async function HomePage(): Promise<React.JSX.Element> {
   const supabase = await createClient();
@@ -16,6 +16,11 @@ export default async function HomePage(): Promise<React.JSX.Element> {
   }
 
   const { result: orgs } = await getOrgsByUser(supabase);
+  const firstOrg = orgs[0];
 
-  return <OrgCardGrid orgs={orgs} />;
+  if (firstOrg !== undefined) {
+    redirect(`/orgs/${firstOrg.slug}`);
+  }
+
+  return <CreateFirstOrg />;
 }

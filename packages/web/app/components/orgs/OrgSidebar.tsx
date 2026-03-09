@@ -1,12 +1,13 @@
 'use client';
 
 import type { OrgRow } from '@/app/lib/orgs';
+import { createClient } from '@/app/lib/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ChevronsUpDown, Settings, Zap } from 'lucide-react';
+import { ChevronsUpDown, LogOut, Settings, Zap } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 
 import { OrgSwitcherPopover } from './OrgSwitcherPopover';
@@ -123,6 +124,34 @@ function ExpandedNav({ basePath, isSettings }: { basePath: string; isSettings: b
   );
 }
 
+function useLogout() {
+  const router = useRouter();
+
+  return async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
+  };
+}
+
+function LogoutButton({ collapsed }: { collapsed: boolean }) {
+  const t = useTranslations('common');
+  const handleLogout = useLogout();
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-8 w-full justify-start gap-2 px-2 text-muted-foreground hover:text-destructive"
+      onClick={handleLogout}
+    >
+      <LogOut className="size-4 shrink-0" />
+      {!collapsed && <span className="whitespace-nowrap text-sm">{t('logout')}</span>}
+    </Button>
+  );
+}
+
 function useSidebarState() {
   const [collapsed, setCollapsed] = useState(true);
   const [switcherOpen, setSwitcherOpen] = useState(false);
@@ -166,6 +195,9 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
       ) : (
         <ExpandedNav basePath={basePath} isSettings={isSettings} />
       )}
+      <div className="mt-auto">
+        <LogoutButton collapsed={sidebar.collapsed} />
+      </div>
     </aside>
   );
 }

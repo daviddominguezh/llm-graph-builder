@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 interface CreateOrgDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  dismissible?: boolean;
 }
 
 interface AvatarPreviewState {
@@ -167,12 +168,13 @@ function CreateOrgForm({ onOpenChange }: CreateOrgDialogProps) {
   );
 }
 
-export function CreateOrgDialog({ open, onOpenChange }: CreateOrgDialogProps) {
+export function CreateOrgDialog({ open, onOpenChange, dismissible = true }: CreateOrgDialogProps) {
   const t = useTranslations('orgs');
+  const handleOpenChange = dismissible ? onOpenChange : () => {};
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent showCloseButton={dismissible}>
         <DialogHeader>
           <DialogTitle>{t('create')}</DialogTitle>
         </DialogHeader>
