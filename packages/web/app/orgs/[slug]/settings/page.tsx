@@ -1,5 +1,7 @@
+import { ApiKeysSection } from '@/app/components/orgs/ApiKeysSection';
 import { DangerZone } from '@/app/components/orgs/DangerZone';
 import { OrgSettingsForm } from '@/app/components/orgs/OrgSettingsForm';
+import { getApiKeysByOrg } from '@/app/lib/api-keys';
 import { getOrgBySlug } from '@/app/lib/orgs';
 import { createClient } from '@/app/lib/supabase/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -41,10 +43,13 @@ export default async function OrgSettingsPage({ params }: OrgSettingsPageProps):
     redirect(`/orgs/${slug}`);
   }
 
+  const { result: apiKeys } = await getApiKeysByOrg(supabase, org.id);
+
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6">
       <OrgSettingsHeader slug={slug} />
       <OrgSettingsForm org={org} />
+      <ApiKeysSection orgId={org.id} initialKeys={apiKeys} />
       <DangerZone org={org} />
     </div>
   );
