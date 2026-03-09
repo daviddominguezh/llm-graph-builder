@@ -4,6 +4,7 @@ import express, { type Express, type NextFunction, type Request, type Response }
 import { requireAuth } from './middleware/auth.js';
 import { handleDiscover } from './routes/discover.js';
 import { handleGetGraph } from './routes/graph/getGraph.js';
+import { handlePostOperations } from './routes/graph/postOperations.js';
 import { handleSimulate } from './routes/simulateHandler.js';
 
 function requestLogger(req: Request, _res: Response, next: NextFunction): void {
@@ -24,6 +25,7 @@ export function createApp(): Express {
   const agentRouter = express.Router();
   agentRouter.use(requireAuth);
   agentRouter.get('/:agentId/graph', handleGetGraph);
+  agentRouter.post('/:agentId/graph/operations', handlePostOperations);
   app.use('/agents', agentRouter);
 
   return app;
