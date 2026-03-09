@@ -117,6 +117,10 @@ language plpgsql
 security definer set search_path = ''
 as $$
 begin
+  if auth.uid() is null then
+    return new;
+  end if;
+
   insert into public.org_members (org_id, user_id, role)
   values (new.id, auth.uid(), 'owner');
   return new;
@@ -157,7 +161,7 @@ alter table public.agents
 insert into public.organizations (id, name, slug)
 select
   gen_random_uuid(),
-  u.full_name || '''s Organization',
+  coalesce(nullif(u.full_name, ''), u.email) || '''s Organization',
   u.id::text
 from public.users u
 where exists (
