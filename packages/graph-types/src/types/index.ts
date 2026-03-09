@@ -4,11 +4,14 @@ import type {
   AgentSchema,
   BaseNodeKindSchema,
   ContextPreconditionsSchema,
+  ContextPresetSchema,
   EdgeSchema,
   GraphSchema,
   McpServerConfigSchema,
   McpTransportSchema,
   NodeSchema,
+  OperationSchema,
+  OperationsBatchSchema,
   PositionSchema,
   PreconditionSchema,
   PreconditionTypeSchema,
@@ -19,6 +22,7 @@ import type {
 } from '../schemas/index.js';
 
 export type Agent = z.infer<typeof AgentSchema>;
+export type ContextPreset = z.infer<typeof ContextPresetSchema>;
 export type Position = z.infer<typeof PositionSchema>;
 export type BaseNodeKind = z.infer<typeof BaseNodeKindSchema>;
 export type RuntimeNodeKind = z.infer<typeof RuntimeNodeKindSchema>;
@@ -33,3 +37,5 @@ export type Graph = z.infer<typeof GraphSchema>;
 export type RuntimeGraph = z.infer<typeof RuntimeGraphSchema>;
 export type McpTransport = z.infer<typeof McpTransportSchema>;
 export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
+export type Operation = z.infer<typeof OperationSchema>;
+export type OperationsBatch = z.infer<typeof OperationsBatchSchema>;
