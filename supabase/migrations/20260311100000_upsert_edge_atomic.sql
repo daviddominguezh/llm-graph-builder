@@ -18,6 +18,16 @@ as $$
 declare
   v_edge_id uuid;
 begin
+  -- Verify the calling user is a member of the agent's org
+  if not exists (
+    select 1
+    from public.agents a
+    join public.org_members om on om.org_id = a.org_id
+    where a.id = p_agent_id and om.user_id = auth.uid()
+  ) then
+    raise exception 'AGENT_NOT_FOUND:%', p_agent_id;
+  end if;
+
   -- Upsert the edge row
   insert into public.graph_edges (agent_id, from_node, to_node)
   values (p_agent_id, p_from_node, p_to_node)
