@@ -17,14 +17,15 @@ function isEmptyGraph(graphData: Graph | undefined): boolean {
 
 /**
  * When the editor loads with no existing graph data (new agent),
- * pushes insert operations for the default nodes and edges so
- * they get persisted on the next auto-save flush.
+ * pushes insert operations for the default nodes and edges
+ * and flushes immediately so the initial graph is persisted.
  */
 export function useSeedInitialGraph(
   graphData: Graph | undefined,
   nodes: Array<Node<RFNodeData>>,
   edges: Array<Edge<RFEdgeData>>,
-  pushOperation: PushOperation
+  pushOperation: PushOperation,
+  flush: () => Promise<void>
 ): void {
   const seeded = useRef(false);
 
@@ -40,5 +41,7 @@ export function useSeedInitialGraph(
     for (const edge of edges) {
       pushOperation(buildInsertEdgeOp(edge.source, edge.target, edge.data));
     }
-  }, [graphData, nodes, edges, pushOperation]);
+
+    void flush();
+  }, [graphData, nodes, edges, pushOperation, flush]);
 }

@@ -67,7 +67,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
 
   const opQueue = useOperationQueue(agentId);
 
-  useSeedInitialGraph(loadResult.graphData, loadResult.nodes, loadResult.edges, opQueue.pushOperation);
+  useSeedInitialGraph(loadResult.graphData, loadResult.nodes, loadResult.edges, opQueue.pushOperation, opQueue.flush);
 
   const mcpHook = useMcpServers(loadResult.mcpServers, opQueue.pushOperation);
 
