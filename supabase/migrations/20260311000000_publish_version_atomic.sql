@@ -4,12 +4,12 @@
 -- between assembly and version insertion.
 -- ============================================================================
 
--- Drop the old 3-parameter version
+-- Drop old versions with different signatures
 drop function if exists public.publish_version_tx(uuid, jsonb, uuid);
+drop function if exists public.publish_version_tx(uuid, uuid);
 
 create or replace function public.publish_version_tx(
-  p_agent_id uuid,
-  p_user_id uuid
+  p_agent_id uuid
 ) returns integer
 language plpgsql
 security definer
@@ -26,7 +26,7 @@ begin
     select 1
     from public.agents a
     join public.org_members om on om.org_id = a.org_id
-    where a.id = p_agent_id and om.user_id = p_user_id
+    where a.id = p_agent_id and om.user_id = auth.uid()
   ) then
     raise exception 'AGENT_NOT_FOUND:%', p_agent_id;
   end if;
@@ -115,7 +115,7 @@ begin
 
   -- Insert the version snapshot
   insert into public.agent_versions (agent_id, version, graph_data, published_by)
-  values (p_agent_id, v_new_version, v_graph_data, p_user_id);
+  values (p_agent_id, v_new_version, v_graph_data, auth.uid());
 
   -- Promote the production API key
   update public.agents

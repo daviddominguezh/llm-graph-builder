@@ -23,10 +23,10 @@ export async function handlePostPublish(req: Request, res: AuthenticatedResponse
     return;
   }
 
-  const { supabase, userId }: AuthenticatedLocals = res.locals;
+  const { supabase }: AuthenticatedLocals = res.locals;
 
   try {
-    const version = await publishVersion(supabase, agentId, userId);
+    const version = await publishVersion(supabase, agentId);
     res.status(HTTP_OK).json({ version });
   } catch (err) {
     const message = extractErrorMessage(err);
