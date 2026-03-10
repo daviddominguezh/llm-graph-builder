@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { type DiscoveredTool, discoverMcpTools } from '../lib/api';
 import type { McpServerConfig } from '../schemas/graph.schema';
@@ -15,6 +15,8 @@ export interface ServerProgress {
   status: 'loading' | 'done' | 'error';
 }
 
+type SettledStatus = 'done' | 'error';
+
 function getEnabledServers(servers: McpServerConfig[] | undefined): McpServerConfig[] {
   if (servers === undefined) return [];
   return servers.filter((s) => s.enabled);
@@ -27,53 +29,42 @@ async function discoverSingleServer(
   return { id: server.id, tools };
 }
 
-function buildInitialProgress(servers: McpServerConfig[]): ServerProgress[] {
-  return servers.map((s) => ({ id: s.id, name: s.name, status: 'loading' as const }));
-}
-
-function updateProgressEntry(
-  prev: ServerProgress[],
-  id: string,
-  status: 'done' | 'error'
-): ServerProgress[] {
-  return prev.map((p) => (p.id === id ? { ...p, status } : p));
+function buildProgress(enabled: McpServerConfig[], settled: Record<string, SettledStatus>): ServerProgress[] {
+  return enabled.map((s) => ({
+    id: s.id,
+    name: s.name,
+    status: settled[s.id] ?? ('loading' as const),
+  }));
 }
 
 export function useMcpDiscovery(servers: McpServerConfig[] | undefined): McpDiscoveryResult {
-  const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState<ServerProgress[]>([]);
+  const enabled = useMemo(() => getEnabledServers(servers), [servers]);
+  const [settled, setSettled] = useState<Record<string, SettledStatus>>({});
   const [tools, setTools] = useState<Record<string, DiscoveredTool[]>>({});
   const started = useRef(false);
+
+  const serverProgress = useMemo(() => buildProgress(enabled, settled), [enabled, settled]);
+  const loading = enabled.length > 0 && serverProgress.some((p) => p.status === 'loading');
 
   useEffect(() => {
     if (servers === undefined) {
       started.current = false;
       return;
     }
-    if (started.current) return;
-
-    const enabled = getEnabledServers(servers);
-    if (enabled.length === 0) return;
-
+    if (started.current || enabled.length === 0) return;
     started.current = true;
-    setLoading(true);
-    setProgress(buildInitialProgress(enabled));
 
-    const promises = enabled.map((server) =>
-      discoverSingleServer(server)
+    for (const server of enabled) {
+      void discoverSingleServer(server)
         .then((result) => {
           setTools((prev) => ({ ...prev, [result.id]: result.tools }));
-          setProgress((prev) => updateProgressEntry(prev, server.id, 'done'));
+          setSettled((prev) => ({ ...prev, [server.id]: 'done' }));
         })
         .catch(() => {
-          setProgress((prev) => updateProgressEntry(prev, server.id, 'error'));
-        })
-    );
+          setSettled((prev) => ({ ...prev, [server.id]: 'error' }));
+        });
+    }
+  }, [servers, enabled]);
 
-    void Promise.allSettled(promises).then(() => {
-      setLoading(false);
-    });
-  }, [servers]);
-
-  return { loading, serverProgress: progress, discoveredTools: tools };
+  return { loading, serverProgress, discoveredTools: tools };
 }

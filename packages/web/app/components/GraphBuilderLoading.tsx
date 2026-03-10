@@ -14,7 +14,7 @@ function McpServerList({ servers }: { servers: ServerProgress[] }) {
   const t = useTranslations('editor');
 
   return (
-    <div className="mt-4 flex flex-col items-center gap-2">
+    <div className="mt-4 flex flex-col items-start gap-2">
       <p className="text-sm text-muted-foreground">{t('connectingMcpServers')}</p>
       <div className="flex flex-col gap-1.5">
         {servers.map((s) => (

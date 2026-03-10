@@ -160,7 +160,9 @@ export interface UseMcpServersOptions {
 export function useMcpServers(options: UseMcpServersOptions): McpServersState {
   const { initialServers, initialDiscoveredTools, pushOperation } = options;
   const [servers, setServers] = useState<McpServerConfig[]>(initialServers ?? []);
-  const [discoveredTools, setDiscoveredTools] = useState<Record<string, DiscoveredTool[]>>(initialDiscoveredTools ?? {});
+  const [discoveredTools, setDiscoveredTools] = useState<Record<string, DiscoveredTool[]>>(
+    initialDiscoveredTools ?? {}
+  );
   const [discovering, setDiscovering] = useState<Record<string, boolean>>({});
   const [serverStatus, setServerStatus] = useState<Record<string, McpServerStatus>>(
     buildInitialStatus(initialDiscoveredTools ?? {})
