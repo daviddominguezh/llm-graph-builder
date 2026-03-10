@@ -33,6 +33,7 @@ interface UseSimulationParams {
   apiKeyId: string;
   mcpServers: McpServerConfig[];
   onZoomToNode: (nodeId: string) => void;
+  onSelectNode: (nodeId: string) => void;
   onExitZoomView: () => void;
 }
 
@@ -110,7 +111,7 @@ function checkTerminated(
 
 function useSimulationSend(deps: SendMessageDeps): (text: string) => void {
   const { preset, loading, messages, agents, apiKeyId, currentNode, mcpServers } = deps;
-  const { setters, onZoomToNode } = deps;
+  const { setters, onZoomToNode, onSelectNode } = deps;
 
   return useCallback(
     (text: string) => {
@@ -131,13 +132,24 @@ function useSimulationSend(deps: SendMessageDeps): (text: string) => void {
         preset,
         apiKeyId,
       });
-      const callbacks = buildStreamCallbacks(text, setters, onZoomToNode);
+      const callbacks = buildStreamCallbacks({ setters, onZoomToNode, onSelectNode });
 
       void streamSimulation(params, callbacks).catch(() => {
         setters.setLoading(false);
       });
     },
-    [preset, loading, messages, agents, apiKeyId, currentNode, mcpServers, setters, onZoomToNode]
+    [
+      preset,
+      loading,
+      messages,
+      agents,
+      apiKeyId,
+      currentNode,
+      mcpServers,
+      setters,
+      onZoomToNode,
+      onSelectNode,
+    ]
   );
 }
 
@@ -197,7 +209,17 @@ function useSimulationState(): SimulationHookState {
 }
 
 export function useSimulation(params: UseSimulationParams): SimulationState {
-  const { allNodes, edges, agents, preset, apiKeyId, mcpServers, onZoomToNode, onExitZoomView } = params;
+  const {
+    allNodes,
+    edges,
+    agents,
+    preset,
+    apiKeyId,
+    mcpServers,
+    onZoomToNode,
+    onSelectNode,
+    onExitZoomView,
+  } = params;
   const s = useSimulationState();
 
   const start = useSimulationStart({ setters: s.setters, allNodes, edges, onZoomToNode });
@@ -212,6 +234,7 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
     mcpServers,
     setters: s.setters,
     onZoomToNode,
+    onSelectNode,
   });
 
   const terminated = checkTerminated(s.active, s.loading, s.snapshotRef.current, s.currentNode);

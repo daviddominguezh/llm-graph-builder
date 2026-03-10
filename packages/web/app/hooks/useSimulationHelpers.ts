@@ -45,6 +45,7 @@ export interface SendMessageDeps {
   mcpServers: McpServerConfig[];
   setters: SimulationSetters;
   onZoomToNode: (nodeId: string) => void;
+  onSelectNode: (nodeId: string) => void;
 }
 
 export interface BuildSimulateParamsOptions {
@@ -65,11 +66,14 @@ function addTokens(prev: SimulationTokens, usage: SimulationTokens): SimulationT
   };
 }
 
-export function buildStreamCallbacks(
-  userText: string,
-  setters: SimulationSetters,
-  onZoomToNode: (nodeId: string) => void
-): StreamCallbacks {
+export interface StreamCallbackDeps {
+  setters: SimulationSetters;
+  onZoomToNode: (nodeId: string) => void;
+  onSelectNode: (nodeId: string) => void;
+}
+
+export function buildStreamCallbacks(deps: StreamCallbackDeps): StreamCallbacks {
+  const { setters, onZoomToNode, onSelectNode } = deps;
   return {
     onNodeVisited: (nodeId: string) => {
       flushSync(() => {
@@ -77,6 +81,7 @@ export function buildStreamCallbacks(
         setters.setVisitedNodes((prev) => [...prev, nodeId]);
       });
       onZoomToNode(nodeId);
+      onSelectNode(nodeId);
     },
     onNodeProcessed: (event) => {
       const result: NodeResult = {

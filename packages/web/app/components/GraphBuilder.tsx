@@ -158,6 +158,14 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
   useInitialViewport(reactFlowWrapper, rf.setViewport, loadResult.graphData);
   useSearchKeyboard(setSearchOpen);
 
+  const handleSimSelectNode = useCallback(
+    (nodeId: string) => {
+      setNodes((nds) => nds.map((n) => ({ ...n, selected: n.id === nodeId })));
+      selection.setSelectedNodeId(nodeId);
+    },
+    [setNodes, selection]
+  );
+
   const simulation = useSimulation({
     allNodes: nodes,
     edges,
@@ -166,6 +174,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     apiKeyId: apiKeys.stagingKeyId ?? '',
     mcpServers: mcpHook.servers,
     onZoomToNode: zoomView.handleZoomToNode,
+    onSelectNode: handleSimSelectNode,
     onExitZoomView: zoomView.handleExitZoomView,
   });
 

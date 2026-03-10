@@ -36,18 +36,15 @@ function Breadcrumbs({ nodes }: { nodes: string[] }) {
 
 function SimulationHeader({
   visitedNodes,
-  terminated,
   onStop,
-}: Pick<SimulationPanelProps, 'visitedNodes' | 'terminated' | 'onStop'>) {
+}: Pick<SimulationPanelProps, 'visitedNodes' | 'onStop'>) {
   return (
     <div className="flex flex-col gap-1 border-b px-3 py-2">
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold">Simulation</span>
-        {!terminated && (
-          <Button variant="destructive" size="icon" className="size-7" onClick={onStop}>
-            <Square className="size-3" />
-          </Button>
-        )}
+        <Button variant="destructive" size="icon" className="size-7" onClick={onStop}>
+          <Square className="size-3" />
+        </Button>
       </div>
       <Breadcrumbs nodes={visitedNodes} />
     </div>
@@ -93,10 +90,18 @@ export function SimulationPanel(props: SimulationPanelProps) {
     }
   }, [nodeResults.length]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onStop();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onStop]);
+
   return (
     <div className="absolute inset-y-0 left-0 z-10 flex w-[350px] p-2 pt-3">
       <div className="relative flex h-full w-full flex-col rounded-md border bg-background shadow-md">
-        <SimulationHeader visitedNodes={visitedNodes} terminated={terminated} onStop={onStop} />
+        <SimulationHeader visitedNodes={visitedNodes} onStop={onStop} />
         <ContentArea lastUserText={lastUserText} nodeResults={nodeResults} scrollRef={scrollRef} />
         <SimulationInput
           loading={loading}
