@@ -4,6 +4,7 @@ import type { RFEdgeData, RFNodeData } from '../../utils/graphTransformers';
 import {
   buildDeleteEdgeOp,
   buildDeleteNodeOp,
+  buildInsertEdgeOp,
   buildInsertNodeOp,
   buildUpdateNodeOp,
 } from '../../utils/operationBuilders';
@@ -26,7 +27,19 @@ export function pushDeleteNode(nodeId: string, edges: Array<Edge<RFEdgeData>>, p
   }
 }
 
-export function pushRenameNode(oldId: string, node: Node<RFNodeData>, pushOp: PushOperation): void {
+export function pushRenameNode(
+  oldId: string,
+  node: Node<RFNodeData>,
+  edges: Array<Edge<RFEdgeData>>,
+  pushOp: PushOperation
+): void {
   pushOp(buildDeleteNodeOp(oldId));
   pushOp(buildInsertNodeOp(node));
+  const connected = edges.filter((e) => e.source === oldId || e.target === oldId);
+  for (const edge of connected) {
+    pushOp(buildDeleteEdgeOp(edge.source, edge.target));
+    const newSource = edge.source === oldId ? node.id : edge.source;
+    const newTarget = edge.target === oldId ? node.id : edge.target;
+    pushOp(buildInsertEdgeOp(newSource, newTarget, edge.data));
+  }
 }

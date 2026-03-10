@@ -150,7 +150,10 @@ function handleGlobalSetFallback(
     }))
   );
   for (const n of nodes) {
-    const updated = { ...n, data: { ...n.data, defaultFallback: n.id === nodeId ? true : undefined } };
+    const isNewFallback = n.id === nodeId;
+    const wasFallback = n.data.defaultFallback === true;
+    if (isNewFallback === wasFallback) continue;
+    const updated = { ...n, data: { ...n.data, defaultFallback: isNewFallback ? true : undefined } };
     pushOp(buildUpdateNodeOp(updated));
   }
 }

@@ -105,7 +105,7 @@ export function NodePanel({
           target: e.target === nodeId ? newId : e.target,
         }))
       );
-      pushRenameNode(nodeId, renamedNode, pushOperation);
+      pushRenameNode(nodeId, renamedNode, edges, pushOperation);
       onNodeIdChanged?.(newId);
     }
   };
