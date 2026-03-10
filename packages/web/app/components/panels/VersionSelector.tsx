@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { History } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 
@@ -78,14 +79,11 @@ function buildOpenChangeHandler(isOpen: boolean, onClose: () => void) {
 }
 
 function EmptyVersionsTrigger() {
-  const t = useTranslations('editor');
-
   return (
-    <Select disabled>
-      <SelectTrigger size="sm" className="h-8 min-w-[120px] text-xs">
-        <SelectValue placeholder={t('noVersions')} />
-      </SelectTrigger>
-    </Select>
+    <div className="flex h-8 items-center gap-1.5 rounded-md border bg-background px-3 text-xs text-muted-foreground">
+      <History className="size-3.5" />
+      <span>v0</span>
+    </div>
   );
 }
 
@@ -126,6 +124,7 @@ export function VersionSelector(props: VersionSelectorProps) {
     <>
       <Select value={currentVersion} onValueChange={handleValueChange} disabled={loading}>
         <SelectTrigger size="sm" className="h-8 min-w-[90px] text-xs">
+          <History className="size-3.5" />
           <SelectValue placeholder={t('versionLabel', { version: String(currentVersion) })} />
         </SelectTrigger>
         <SelectContent side="bottom" align="end">

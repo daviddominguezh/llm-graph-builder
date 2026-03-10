@@ -272,8 +272,8 @@ export function Toolbar(props: ToolbarProps) {
       </header>
       {(props.publishSlot ?? props.versionSlot) && (
         <div className="absolute top-2 right-2 z-1 flex items-center gap-2">
-          {props.publishSlot}
           {props.versionSlot}
+          {props.publishSlot}
         </div>
       )}
     </>
