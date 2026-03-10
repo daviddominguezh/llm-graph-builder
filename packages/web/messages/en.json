@@ -101,6 +101,9 @@
     "restoreVersionFailed": "Failed to restore version. Please try again.",
     "connectingMcpServers": "Connecting to MCP servers..."
   },
+  "edgePanel": {
+    "parameters": "Parameters:"
+  },
   "orgs": {
     "title": "My Organizations",
     "empty": "No organizations yet. Create your first one.",

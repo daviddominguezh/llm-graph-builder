@@ -13,6 +13,7 @@ export interface McpServersState {
   servers: McpServerConfig[];
   discoveredTools: Record<string, DiscoveredTool[]>;
   allToolNames: string[];
+  allTools: DiscoveredTool[];
   discovering: Record<string, boolean>;
   serverStatus: Record<string, McpServerStatus>;
   addServer: () => void;
@@ -39,6 +40,20 @@ function collectToolNames(discoveredTools: Record<string, DiscoveredTool[]>): st
     }
   }
   return [...names];
+}
+
+function collectAllTools(discoveredTools: Record<string, DiscoveredTool[]>): DiscoveredTool[] {
+  const seen = new Set<string>();
+  const result: DiscoveredTool[] = [];
+  for (const tools of Object.values(discoveredTools)) {
+    for (const tool of tools) {
+      if (!seen.has(tool.name)) {
+        seen.add(tool.name);
+        result.push(tool);
+      }
+    }
+  }
+  return result;
 }
 
 function removeKeyFromRecord<T>(record: Record<string, T>, key: string): Record<string, T> {
@@ -171,11 +186,13 @@ export function useMcpServers(options: UseMcpServersOptions): McpServersState {
   const mutations = useServerMutations({ setServers, setDiscoveredTools, setServerStatus, pushOperation });
   const discoverTools = useToolDiscovery(servers, { setDiscoveredTools, setDiscovering, setServerStatus });
   const allToolNames = collectToolNames(discoveredTools);
+  const allTools = collectAllTools(discoveredTools);
 
   return {
     servers,
     discoveredTools,
     allToolNames,
+    allTools,
     discovering,
     serverStatus,
     ...mutations,

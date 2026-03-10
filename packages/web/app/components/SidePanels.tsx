@@ -99,7 +99,7 @@ function SelectionPanel(props: SidePanelsProps) {
           edgeId={selection.selectedEdgeId}
           onEdgeDeleted={() => selection.setSelectedEdgeId(null)}
           availableContextPreconditions={ctxPreconditions.allContextPreconditions}
-          availableMcpTools={mcpHook.allToolNames}
+          availableMcpTools={mcpHook.allTools}
           onSelectNode={selection.navigateToNode}
           pushOperation={pushOperation}
         />

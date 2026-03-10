@@ -38,6 +38,7 @@ import type {
   Precondition,
   PreconditionType,
 } from "../../schemas/graph.schema";
+import type { DiscoveredTool } from "../../lib/api";
 import type { PushOperation } from "../../utils/operationBuilders";
 import type { RFEdgeData } from "../../utils/graphTransformers";
 import type { Edge } from "@xyflow/react";
@@ -49,6 +50,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { pushDeleteEdge, pushTypeChangeOps, pushUpdateEdge } from "./edgePanelOps";
+import { ToolParamsCard } from "./ToolParamsCard";
 
 const START_NODE_ID = "INITIAL_STEP";
 
@@ -57,7 +59,7 @@ interface EdgePanelProps {
   onEdgeDeleted?: () => void;
   onSelectNode?: (nodeId: string) => void;
   availableContextPreconditions?: string[];
-  availableMcpTools?: string[];
+  availableMcpTools?: DiscoveredTool[];
   pushOperation: PushOperation;
 }
 
@@ -498,6 +500,10 @@ export function EdgePanel({
                           </div>
                         </div>
                       )}
+
+                      {p.type === "tool_call" && availableMcpTools.length > 0 && (
+                        <ToolParamsCard toolName={p.value} tools={availableMcpTools} />
+                      )}
                     </div>
                   </div>
                 </Card>
@@ -557,15 +563,20 @@ export function EdgePanel({
                           <div className="flex flex-wrap gap-1 mt-1">
                             {availableMcpTools.map((tool) => (
                               <button
-                                key={tool}
+                                key={tool.name}
                                 type="button"
                                 className="rounded bg-muted px-1.5 py-0.5 text-[10px] hover:bg-muted-foreground/20"
-                                onClick={() => setNewPreconditionValue(tool)}
+                                onClick={() => setNewPreconditionValue(tool.name)}
                               >
-                                {tool}
+                                {tool.name}
                               </button>
                             ))}
                           </div>
+                        )}
+                      {newPreconditionType === "tool_call" &&
+                        newPreconditionValue &&
+                        availableMcpTools.length > 0 && (
+                          <ToolParamsCard toolName={newPreconditionValue} tools={availableMcpTools} />
                         )}
                     </div>
                     <div className="space-y-1">
