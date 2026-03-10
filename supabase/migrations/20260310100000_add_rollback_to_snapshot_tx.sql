@@ -112,5 +112,10 @@ begin
       );
     end loop;
   end if;
+
+  -- 6. Restore start node
+  update public.agents
+  set start_node = coalesce(p_snapshot->>'startNode', start_node)
+  where id = p_agent_id;
 end;
 $$;

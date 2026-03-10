@@ -68,6 +68,7 @@ export function useAutoSave({
   }, []);
 
   const scheduleRetry = useCallback(() => {
+    if (retryTimerRef.current !== null) clearTimeout(retryTimerRef.current);
     retryTimerRef.current = setTimeout(() => setRetrySeq((s) => s + 1), AUTO_SAVE_DELAY_MS);
   }, []);
 
