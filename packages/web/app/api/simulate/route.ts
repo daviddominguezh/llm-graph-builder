@@ -68,8 +68,10 @@ async function fetchUpstream(body: Record<string, unknown>): Promise<Response> {
 }
 
 export async function POST(request: Request): Promise<Response> {
+  console.log('[simulate proxy] POST /api/simulate received');
   const raw: unknown = await request.json();
   if (!isSimulateBody(raw)) {
+    console.log('[simulate proxy] Invalid request body');
     return NextResponse.json({ error: 'Invalid request body' }, { status: HTTP_BAD_REQUEST });
   }
 
@@ -78,14 +80,20 @@ export async function POST(request: Request): Promise<Response> {
     data: { user },
   } = await supabase.auth.getUser();
   if (user === null) {
+    console.log('[simulate proxy] Unauthorized — no user');
     return NextResponse.json({ error: 'Unauthorized' }, { status: HTTP_UNAUTHORIZED });
   }
+  console.log('[simulate proxy] User authenticated:', user.id);
 
   const { apiKey, error } = await resolveApiKey(supabase, raw);
   if (error !== null) {
+    console.log('[simulate proxy] API key error:', error);
     return NextResponse.json({ error }, { status: HTTP_BAD_REQUEST });
   }
+  console.log('[simulate proxy] API key resolved, forwarding to backend');
 
   const rest = Object.fromEntries(Object.entries(raw).filter(([k]) => k !== 'apiKeyId'));
-  return await fetchUpstream({ ...rest, apiKey });
+  const response = await fetchUpstream({ ...rest, apiKey });
+  console.log('[simulate proxy] Backend responded with status:', response.status);
+  return response;
 }

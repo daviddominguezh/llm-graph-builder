@@ -53,7 +53,7 @@
     "format": "prettier --write \"**/*.{js,ts,json}\"",
     "check": "npm run format && npm run lint && npm run typecheck && npm run check -w packages/graph-types && npm run check -w packages/api && npm run check -w packages/backend && npm run check -w packages/web",
     "build": "npm run build -w @daviddh/graph-types && npm run build -w @daviddh/llm-graph-runner && npm run build -w @daviddh/graph-runner-backend && npm run build -w web",
-    "dev": "npm run dev -w @daviddh/graph-runner-backend & npm run dev -w web & wait",
+    "dev": "npm run build -w packages/api && (npm run dev -w @daviddh/graph-runner-backend & npm run dev -w web & wait)",
     "build:web": "npm run build -w packages/web",
     "test": "npm run test --workspaces --if-present",
     "test:core": "npm run test -w @daviddh/llm-graph-builder/web"

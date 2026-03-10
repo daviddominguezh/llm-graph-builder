@@ -146,6 +146,13 @@ function processReplyCore(
     modelName,
   } = params;
   const toolCalls = typedReply.toolCalls ?? [];
+  const toolResults = typedReply.toolResults ?? [];
+
+  logger.info(`[REPLY] Processing reply core`);
+  logger.info(`[REPLY] toolCalls: ${toolCalls.length}, toolResults: ${toolResults.length}`);
+  logger.info(`[REPLY] expectedTool: ${expectedTool ?? 'none'}`);
+  logger.info(`[REPLY] output type: ${typeof typedReply.output}, value: ${JSON.stringify(typedReply.output)}`);
+  logger.info(`[REPLY] response?.messages count: ${typedReply.response?.messages?.length ?? 0}`);
 
   logResponseReceived({
     context,
@@ -159,9 +166,21 @@ function processReplyCore(
 
   if (toolCalls.length > FIRST_INDEX) {
     allToolCalls.push(...toolCalls);
+    logger.info(`[REPLY] Added ${toolCalls.length} tool calls. Tool names: ${toolCalls.map((tc: { toolName?: string }) => tc.toolName ?? 'unknown').join(', ')}`);
   }
 
   const msgs = buildResponseMessages(typedReply);
+  logger.info(`[REPLY] Built ${msgs.length} response messages`);
+  for (const msg of msgs) {
+    logger.info(`[REPLY]   msg role=${msg.role}, content type=${typeof msg.content}, isArray=${Array.isArray(msg.content)}`);
+    if (Array.isArray(msg.content)) {
+      for (const part of msg.content) {
+        const p = part as { type?: string };
+        logger.info(`[REPLY]     part type=${p.type ?? 'unknown'}`);
+      }
+    }
+  }
+
   const { usage: rawUsage } = typedReply;
   accumulateTokens(tokens, getTokensUsage(extractUsage(rawUsage)));
 
@@ -172,6 +191,7 @@ function processReplyCore(
     return { modelWorkedFine: true, msgs };
   }
 
+  logger.info(`[REPLY] Expected tool "${expectedTool}" — will proceed to tool validation`);
   return { modelWorkedFine: false, msgs };
 }
 
@@ -210,13 +230,18 @@ export function processReply(
   reply: unknown,
   params: ProcessReplyParams
 ): { modelWorkedFine: boolean; msgs: Array<AssistantModelMessage | ToolModelMessage> } {
+  logger.info(`[REPLY] processReply called, reply is ${typeof reply}`);
   const typedReply = extractReplyData(reply);
+  logger.info(`[REPLY] extractReplyData keys: ${Object.keys(typedReply).join(', ')}`);
   const result = processReplyCore(params, typedReply);
 
   if (result.modelWorkedFine) {
+    logger.info('[REPLY] processReplyCore returned modelWorkedFine=true, done');
     return result;
   }
 
+  logger.info('[REPLY] processReplyCore returned modelWorkedFine=false, running tool validation');
   const modelWorkedFine = processReplyWithToolValidation(params, typedReply, result.msgs);
+  logger.info(`[REPLY] Tool validation result: modelWorkedFine=${String(modelWorkedFine)}`);
   return { modelWorkedFine, msgs: result.msgs };
 }

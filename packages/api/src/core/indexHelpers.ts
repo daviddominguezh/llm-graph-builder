@@ -157,6 +157,7 @@ async function processFlowStep(
   state: FlowState
 ): Promise<{ state: FlowState; error: boolean; shouldContinue: boolean }> {
   const { currentNodeID, nodeBeforeGlobal, parsedResults, visitedNodes, allToolCalls } = state;
+  logger.info(`[FLOW] Processing node: ${currentNodeID}, visitedSoFar: [${visitedNodes.join(', ')}]`);
   visitedNodes.push(currentNodeID);
   context.onNodeVisited?.(currentNodeID);
 
@@ -168,7 +169,11 @@ async function processFlowStep(
     debugMessages,
   });
 
+  logger.info(`[FLOW] processNode returned: nextNodeID=${nextNodeID}, error=${String(error)}, toolCalls=${toolCalls.length}`);
+  logger.info(`[FLOW] parsedResult: ${JSON.stringify(parsedResult)}`);
+
   if (error) {
+    logger.info('[FLOW] Error in processNode, stopping flow');
     return { state, error: true, shouldContinue: false };
   }
 

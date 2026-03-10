@@ -22,6 +22,8 @@ export const cleanMessagesBeforeSending = (msgs: ModelMessage[]): ModelMessage[]
 async function executeFlow(context: Context, input: CallAgentInput): Promise<CallAgentOutput> {
   const debugMessages: Record<string, ModelMessage[][]> = {};
   const initialState = createInitialFlowState(input, context.graph);
+  logger.info(`[FLOW] Starting flow from node: ${initialState.currentNodeID}`);
+  logger.info(`[FLOW] Graph edges: ${context.graph.edges.length}, nodes: ${context.graph.nodes.length}`);
 
   const { parsedResults, visitedNodes, error, toolCalls } = await executeAgentFlowRecursive(
     context,
@@ -30,12 +32,18 @@ async function executeFlow(context: Context, input: CallAgentInput): Promise<Cal
     initialState
   );
 
+  logger.info(`[FLOW] Flow complete: visitedNodes=[${visitedNodes.join(', ')}], error=${String(error)}, parsedResults=${parsedResults.length}`);
+
   if (error) {
+    logger.info('[FLOW] Flow ended with error, returning error response');
     return handleError(context, input);
   }
 
   const lastMessage = extractLastMessage(input);
   const [lastResult] = parsedResults.slice(-LAST_INDEX_OFFSET);
+
+  logger.info(`[FLOW] lastResult: ${JSON.stringify(lastResult)}`);
+  logger.info(`[FLOW] text (messageToUser): "${lastResult?.messageToUser ?? 'undefined'}"`);
 
   return {
     message: lastMessage,

@@ -5,6 +5,8 @@ import z from 'zod';
 import type { ToolModelConfig } from '@src/types/ai/ai.js';
 import type { Context } from '@src/types/tools.js';
 
+import { logger } from '@src/utils/logger.js';
+
 import { MessageProcessor } from './messageProcessor.js';
 import {
   getModelId,
@@ -54,11 +56,26 @@ function isRetryableError(error: Error): boolean {
   );
 }
 
+function safeGetOutput(obj: Record<string, unknown>): unknown {
+  try {
+    return obj.output;
+  } catch {
+    return undefined;
+  }
+}
+
 function toModelCallResult(result: unknown): ModelCallResult {
   if (typeof result !== 'object' || result === null) {
     return {};
   }
-  return result as ModelCallResult;
+  const obj = result as Record<string, unknown>;
+  return {
+    response: obj.response as ModelCallResult['response'],
+    usage: obj.usage,
+    output: safeGetOutput(obj),
+    toolCalls: obj.toolCalls as unknown[] | undefined,
+    toolResults: obj.toolResults as unknown[] | undefined,
+  };
 }
 
 const MODEL_CALL_TIMEOUT_MS = 90000;
@@ -77,9 +94,20 @@ async function executeModelCall(
     const configWithAbort = { ...config, abortSignal: controller.signal };
 
     if (expectedTool !== undefined && expectedTool !== '') {
+      logger.info(`[MODEL_CALL] Tool call mode, expectedTool=${expectedTool}`);
+      logger.info(`[MODEL_CALL] Tools available: ${Object.keys(config.tools ?? {}).join(', ')}`);
+      logger.info(`[MODEL_CALL] toolChoice: ${JSON.stringify(config.toolChoice)}`);
+      logger.info(`[MODEL_CALL] config keys: ${Object.keys(config).join(', ')}`);
       const result = await generateText(configWithAbort);
-      return toModelCallResult(result);
+      const typed = toModelCallResult(result);
+      logger.info(`[MODEL_CALL] Result keys: ${Object.keys(typed).join(', ')}`);
+      logger.info(`[MODEL_CALL] toolCalls count: ${typed.toolCalls?.length ?? 0}`);
+      logger.info(`[MODEL_CALL] toolResults count: ${typed.toolResults?.length ?? 0}`);
+      logger.info(`[MODEL_CALL] output: ${JSON.stringify(typed.output)}`);
+      logger.info(`[MODEL_CALL] response messages: ${typed.response?.messages?.length ?? 0}`);
+      return typed;
     }
+    logger.info('[MODEL_CALL] Object output mode (agent_decision)');
     const result = await generateText({
       ...configWithAbort,
       output: Output.object({
@@ -89,7 +117,9 @@ async function executeModelCall(
         }),
       }),
     });
-    return toModelCallResult(result);
+    const typed = toModelCallResult(result);
+    logger.info(`[MODEL_CALL] Decision result output: ${JSON.stringify(typed.output)}`);
+    return typed;
   } finally {
     clearTimeout(timeoutId);
   }
@@ -127,7 +157,7 @@ async function executeAttempt(
     const result = await executeModelCall(newConfig, expectedTool);
     const duration = Date.now() - attemptStartTime;
     const totalDuration = Date.now() - ctx.requestStartTime;
-    logSuccess({ ctx, state, attemptDuration: duration, totalDuration, usage: result.usage });
+    logSuccess({ ctx, state, attemptDuration: duration, totalDuration, usage: result.usage, result });
     return { success: true, result, shouldRetry: false };
   } catch (error) {
     const err = error instanceof Error ? error : new Error('Unknown error');
