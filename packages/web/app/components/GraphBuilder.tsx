@@ -36,6 +36,7 @@ import { useZoomView } from '../hooks/useZoomView';
 import { useInitialViewport, useSearchKeyboard, useContextPreconditions } from '../hooks/useGraphBuilderHelpers';
 import { serializeGraphData } from '../utils/graphSerializer';
 import type { RFNodeData } from '../utils/graphTransformers';
+import { useFormatGraph } from '../hooks/useFormatGraph';
 
 const DEFAULT_VERSION = 0;
 
@@ -140,6 +141,16 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
 
   const handleExport = useExportGraph({ nodes, edges, agents, mcpServers: mcpHook.servers });
 
+  const handleFormat = useFormatGraph({
+    nodes,
+    edges,
+    agents,
+    mcpServers: mcpHook.servers,
+    setNodes,
+    setEdges,
+    pushOperation: opQueue.pushOperation,
+  });
+
   const serializedGraph = useMemo(
     () => serializeGraphData({ nodes, edges, agents, mcpServers: mcpHook.servers }),
     [nodes, edges, agents, mcpHook.servers]
@@ -197,6 +208,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     graphActions,
     handleImport,
     handleExport,
+    handleFormat,
     getGraphData,
     pendingSave,
     canPublish,
@@ -238,6 +250,7 @@ function LoadedEditor(props: LoadedEditorProps) {
           onAddNode={h.graphActions.handleAddNode}
           onImport={h.handleImport}
           onExport={h.handleExport}
+          onFormat={h.handleFormat}
           onPlay={h.simulation.start}
           simulationActive={h.simulation.active}
           statusSlot={<StatusButton nodes={h.nodes} edges={h.edges} pendingSave={h.pendingSave} />}

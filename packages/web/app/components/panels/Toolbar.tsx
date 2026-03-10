@@ -14,6 +14,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
+  AlignHorizontalSpaceAround,
   Download,
   LogOut,
   Menu,
@@ -34,6 +35,7 @@ interface ToolbarProps {
   onAddNode: () => void;
   onImport: () => void;
   onExport: () => void;
+  onFormat: () => void;
   onPlay?: () => void;
   simulationActive?: boolean;
   statusSlot?: ReactNode;
@@ -186,8 +188,24 @@ function PlayButton({
   );
 }
 
+function FormatButton({ onFormat }: { onFormat: () => void }) {
+  const t = useTranslations('common');
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onFormat}>
+            <AlignHorizontalSpaceAround className="size-4" />
+          </Button>
+        }
+      />
+      <TooltipContent>{t('formatGraph')}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 function ToolbarButtons(props: ToolbarProps) {
-  const { onToggleGlobalPanel, onToggleTools, onTogglePresets, statusSlot } = props;
+  const { onFormat, onToggleGlobalPanel, onToggleTools, onTogglePresets, statusSlot } = props;
 
   return (
     <>
@@ -215,6 +233,7 @@ function ToolbarButtons(props: ToolbarProps) {
       {statusSlot && (
         <>
           <Separator orientation="vertical" />
+          <FormatButton onFormat={onFormat} />
           {statusSlot}
         </>
       )}
@@ -223,17 +242,8 @@ function ToolbarButtons(props: ToolbarProps) {
 }
 
 export function Toolbar(props: ToolbarProps) {
-  const {
-    onImport,
-    onExport,
-    onPlay,
-    simulationActive,
-    stagingKeyId,
-    orgSlug,
-    orgName,
-    orgAvatarUrl,
-    agentName,
-  } = props;
+  const { onImport, onExport, onPlay, simulationActive, stagingKeyId, orgSlug, orgName, orgAvatarUrl, agentName } =
+    props;
   return (
     <>
       <div className="absolute top-2 left-2 z-1">

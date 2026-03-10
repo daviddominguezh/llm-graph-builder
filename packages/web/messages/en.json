@@ -60,7 +60,8 @@
     "export": "Export",
     "logout": "Sign out",
     "loading": "Loading...",
-    "backToAgents": "Back to agents"
+    "backToAgents": "Back to agents",
+    "formatGraph": "Auto-layout"
   },
   "agents": {
     "title": "Agents",
