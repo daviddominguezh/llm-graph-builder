@@ -24,8 +24,8 @@ async function fetchAllEdgeData(supabase: SupabaseClient, agentId: string): Prom
   const edgeIds = edgeRows.map((e) => e.id);
 
   const [preconditionRows, contextPreconditionRows] = await Promise.all([
-    fetchEdgePreconditions(supabase, edgeIds),
-    fetchEdgeContextPreconditions(supabase, edgeIds),
+    fetchEdgePreconditions(supabase, agentId, edgeIds),
+    fetchEdgeContextPreconditions(supabase, agentId, edgeIds),
   ]);
 
   return { edgeRows, preconditionRows, contextPreconditionRows };

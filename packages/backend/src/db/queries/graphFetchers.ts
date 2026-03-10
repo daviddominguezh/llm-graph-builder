@@ -48,19 +48,29 @@ export async function fetchEdges(supabase: SupabaseClient, agentId: string): Pro
 
 export async function fetchEdgePreconditions(
   supabase: SupabaseClient,
+  agentId: string,
   edgeIds: string[]
 ): Promise<EdgePreconditionRow[]> {
   if (edgeIds.length === EMPTY_LENGTH) return [];
-  const result = await supabase.from('graph_edge_preconditions').select('*').in('edge_id', edgeIds);
+  const result = await supabase
+    .from('graph_edge_preconditions')
+    .select('*, graph_edges!inner()')
+    .eq('graph_edges.agent_id', agentId)
+    .in('edge_id', edgeIds);
   return throwOnError<EdgePreconditionRow[]>(result);
 }
 
 export async function fetchEdgeContextPreconditions(
   supabase: SupabaseClient,
+  agentId: string,
   edgeIds: string[]
 ): Promise<EdgeContextPreconditionRow[]> {
   if (edgeIds.length === EMPTY_LENGTH) return [];
-  const result = await supabase.from('graph_edge_context_preconditions').select('*').in('edge_id', edgeIds);
+  const result = await supabase
+    .from('graph_edge_context_preconditions')
+    .select('*, graph_edges!inner()')
+    .eq('graph_edges.agent_id', agentId)
+    .in('edge_id', edgeIds);
   return throwOnError<EdgeContextPreconditionRow[]>(result);
 }
 

@@ -12,7 +12,8 @@ create or replace function public.publish_version_tx(
   p_user_id uuid
 ) returns integer
 language plpgsql
-security invoker
+security definer
+set search_path = public
 as $$
 declare
   v_new_version integer;
@@ -20,6 +21,16 @@ declare
   v_start_node text;
   v_graph_data jsonb;
 begin
+  -- Verify the calling user is a member of the agent's org
+  if not exists (
+    select 1
+    from public.agents a
+    join public.org_members om on om.org_id = a.org_id
+    where a.id = p_agent_id and om.user_id = p_user_id
+  ) then
+    raise exception 'AGENT_NOT_FOUND:%', p_agent_id;
+  end if;
+
   -- Lock the agent row to serialize concurrent writes
   select start_node, staging_api_key_id
   into v_start_node, v_staging_api_key_id
