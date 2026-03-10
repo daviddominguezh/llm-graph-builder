@@ -2,7 +2,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
-const AUTO_SAVE_DELAY_MS = 10000;
+const AUTO_SAVE_DELAY_MS = 5000;
 
 export interface UseAutoSaveOptions {
   hasPendingOps: boolean;
