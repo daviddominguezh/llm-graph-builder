@@ -80,7 +80,7 @@ function buildOpenChangeHandler(isOpen: boolean, onClose: () => void) {
 
 function EmptyVersionsTrigger() {
   return (
-    <div className="flex h-8 items-center gap-1.5 rounded-md border bg-background px-3 text-xs text-muted-foreground">
+    <div className="flex h-10 items-center gap-1.5 rounded-md border bg-background px-3 text-xs text-muted-foreground">
       <History className="size-3.5" />
       <span>v0</span>
     </div>
@@ -123,7 +123,7 @@ export function VersionSelector(props: VersionSelectorProps) {
   return (
     <>
       <Select value={currentVersion} onValueChange={handleValueChange} disabled={loading}>
-        <SelectTrigger size="sm" className="h-8 min-w-[90px] text-xs">
+        <SelectTrigger size="sm" className="h-10 min-w-[90px] text-xs">
           <History className="size-3.5" />
           <SelectValue placeholder={t('versionLabel', { version: String(currentVersion) })} />
         </SelectTrigger>
