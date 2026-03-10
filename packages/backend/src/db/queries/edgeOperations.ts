@@ -51,7 +51,7 @@ function buildPreconditionRows(edgeId: string, data: EdgeData): PreconditionInse
     edge_id: edgeId,
     type: p.type,
     value: p.value,
-    description: p.description,
+    description: p.description ?? '',
   }));
 }
 
