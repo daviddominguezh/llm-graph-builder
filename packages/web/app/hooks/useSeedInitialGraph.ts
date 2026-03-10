@@ -8,6 +8,13 @@ import { buildInsertEdgeOp, buildInsertNodeOp } from '../utils/operationBuilders
 
 type PushOperation = (op: Operation) => void;
 
+const EMPTY_LENGTH = 0;
+
+function isEmptyGraph(graphData: Graph | undefined): boolean {
+  if (graphData === undefined) return true;
+  return !Array.isArray(graphData.nodes) || graphData.nodes.length === EMPTY_LENGTH;
+}
+
 /**
  * When the editor loads with no existing graph data (new agent),
  * pushes insert operations for the default nodes and edges so
@@ -23,7 +30,7 @@ export function useSeedInitialGraph(
 
   useEffect(() => {
     if (seeded.current) return;
-    if (graphData !== undefined) return;
+    if (!isEmptyGraph(graphData)) return;
 
     seeded.current = true;
 
