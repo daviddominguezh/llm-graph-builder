@@ -43,6 +43,7 @@ interface ToolbarProps {
   onToggleTools?: () => void;
   pendingSave?: boolean;
   publishSlot?: ReactNode;
+  versionSlot?: ReactNode;
   stagingKeyId?: string | null;
   orgSlug?: string;
   orgName?: string;
@@ -266,7 +267,12 @@ export function Toolbar(props: ToolbarProps) {
         </Button>
         <ToolbarButtons {...props} />
       </header>
-      {props.publishSlot && <div className="absolute top-2 right-2 z-1">{props.publishSlot}</div>}
+      {(props.publishSlot ?? props.versionSlot) && (
+        <div className="absolute top-2 right-2 z-1 flex items-center gap-2">
+          {props.publishSlot}
+          {props.versionSlot}
+        </div>
+      )}
     </>
   );
 }

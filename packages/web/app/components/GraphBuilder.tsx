@@ -12,6 +12,7 @@ import { Toolbar } from './panels/Toolbar';
 import { StatusButton } from './panels/StatusButton';
 import { ConnectionMenu } from './panels/ConnectionMenu';
 import { SearchDialog } from './panels/SearchDialog';
+import { VersionSwitcherSlot } from './panels/VersionSwitcherSlot';
 import { GraphCanvas } from './GraphCanvas';
 import { SidePanels } from './SidePanels';
 import type { ApiKeyRow } from '../lib/api-keys';
@@ -28,6 +29,7 @@ import { useMcpServers } from '../hooks/useMcpServers';
 import { useOperationQueue } from '../hooks/useOperationQueue';
 import { usePresets } from '../hooks/usePresets';
 import { useSimulation } from '../hooks/useSimulation';
+import { useVersions } from '../hooks/useVersions';
 import { useZoomView } from '../hooks/useZoomView';
 import { useInitialViewport, useSearchKeyboard, useContextPreconditions } from '../hooks/useGraphBuilderHelpers';
 import { serializeGraphData } from '../utils/graphSerializer';
@@ -49,6 +51,7 @@ export interface GraphBuilderProps {
 
 interface LoadedEditorProps extends GraphBuilderProps {
   loadResult: GraphLoadResult;
+  reload: () => void;
 }
 
 function useGraphBuilderHooks(props: LoadedEditorProps) {
@@ -183,6 +186,8 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     setVersion,
     apiKeys,
     pushOperation: opQueue.pushOperation,
+    hasPendingOps: opQueue.hasPendingOps,
+    clearQueue: opQueue.clearQueue,
   };
 }
 
@@ -199,6 +204,7 @@ function GraphBuilderLoading() {
 
 function LoadedEditor(props: LoadedEditorProps) {
   const h = useGraphBuilderHooks(props);
+  const versionsHook = useVersions(props.agentId, props.initialVersion ?? DEFAULT_VERSION);
 
   const handleContextValue = {
     onSourceHandleClick: h.graphActions.onSourceHandleClick,
@@ -233,8 +239,21 @@ function LoadedEditor(props: LoadedEditorProps) {
                 hasApiKey={h.apiKeys.stagingKeyId !== null}
                 onPublished={(newVersion) => {
                   h.setVersion(newVersion);
+                  versionsHook.setCurrentVersion(newVersion);
                   h.apiKeys.setProductionKeyId(h.apiKeys.stagingKeyId);
+                  void versionsHook.refresh();
                 }}
+              />
+            ) : undefined
+          }
+          versionSlot={
+            props.agentId !== undefined ? (
+              <VersionSwitcherSlot
+                agentId={props.agentId}
+                versionsHook={versionsHook}
+                hasPendingOps={h.hasPendingOps}
+                clearQueue={h.clearQueue}
+                reload={props.reload}
               />
             ) : undefined
           }
@@ -304,7 +323,7 @@ function GraphBuilderInner(props: GraphBuilderProps) {
 
   if (loader.loading) return <GraphBuilderLoading />;
 
-  return <LoadedEditor {...props} loadResult={loader.result} />;
+  return <LoadedEditor {...props} loadResult={loader.result} reload={loader.reload} />;
 }
 
 export function GraphBuilder(props: GraphBuilderProps) {

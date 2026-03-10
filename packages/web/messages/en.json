@@ -90,7 +90,15 @@
     "autoSaveFailed": "Auto-save failed. Your changes may not be saved.",
     "notFound": "Agent not found",
     "exportValidationError": "Graph has validation errors. Please fix before exporting.",
-    "loadGraphFailed": "Failed to load graph data."
+    "loadGraphFailed": "Failed to load graph data.",
+    "versionLabel": "v{version}",
+    "versionPublishedAt": "Published {date}",
+    "switchVersionTitle": "Switch version?",
+    "switchVersionDescription": "You have unpublished changes that will be lost. Continue?",
+    "switchVersionConfirm": "Switch",
+    "switchVersionCancel": "Cancel",
+    "noVersions": "No published versions",
+    "restoreVersionFailed": "Failed to restore version. Please try again."
   },
   "orgs": {
     "title": "My Organizations",
