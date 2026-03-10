@@ -7,8 +7,10 @@ import { defaultStartNode } from '../utils/graphInitializer';
 import type { RFEdgeData } from '../utils/graphTransformers';
 import { calculateInitialViewport, findInitialNodePosition } from '../utils/loadGraphData';
 
+const EMPTY_LENGTH = 0;
+
 function resolveInitialPosition(initialGraphData: Graph | undefined): { x: number; y: number } | null {
-  if (initialGraphData?.nodes === undefined || initialGraphData.nodes.length === 0) {
+  if (initialGraphData?.nodes === undefined || initialGraphData.nodes.length === EMPTY_LENGTH) {
     return defaultStartNode.position;
   }
   return findInitialNodePosition(initialGraphData);

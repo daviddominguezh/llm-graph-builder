@@ -15,18 +15,21 @@ function isEmptyGraph(graphData: Graph | undefined): boolean {
   return !Array.isArray(graphData.nodes) || graphData.nodes.length === EMPTY_LENGTH;
 }
 
+interface SeedInitialGraphOptions {
+  graphData: Graph | undefined;
+  nodes: Array<Node<RFNodeData>>;
+  edges: Array<Edge<RFEdgeData>>;
+  pushOperation: PushOperation;
+  flush: () => Promise<void>;
+}
+
 /**
  * When the editor loads with no existing graph data (new agent),
  * pushes insert operations for the default nodes and edges
  * and flushes immediately so the initial graph is persisted.
  */
-export function useSeedInitialGraph(
-  graphData: Graph | undefined,
-  nodes: Array<Node<RFNodeData>>,
-  edges: Array<Edge<RFEdgeData>>,
-  pushOperation: PushOperation,
-  flush: () => Promise<void>
-): void {
+export function useSeedInitialGraph(opts: SeedInitialGraphOptions): void {
+  const { graphData, nodes, edges, pushOperation, flush } = opts;
   const seeded = useRef(false);
 
   useEffect(() => {

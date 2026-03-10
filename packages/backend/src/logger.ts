@@ -1,8 +1,10 @@
 import type { Logger } from '@daviddh/llm-graph-runner';
 
+const { console: stdout } = globalThis;
+
 function makeLogFn(prefix: string): (...args: unknown[]) => void {
   return (...args: unknown[]) => {
-    console.log(`[runner:${prefix}]`, ...args);
+    stdout.log(`[runner:${prefix}]`, ...args);
   };
 }
 

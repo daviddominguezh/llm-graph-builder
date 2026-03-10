@@ -44,16 +44,12 @@ function collectToolNames(discoveredTools: Record<string, DiscoveredTool[]>): st
 
 function collectAllTools(discoveredTools: Record<string, DiscoveredTool[]>): DiscoveredTool[] {
   const seen = new Set<string>();
-  const result: DiscoveredTool[] = [];
-  for (const tools of Object.values(discoveredTools)) {
-    for (const tool of tools) {
-      if (!seen.has(tool.name)) {
-        seen.add(tool.name);
-        result.push(tool);
-      }
-    }
-  }
-  return result;
+  const allTools = Object.values(discoveredTools).flat();
+  return allTools.filter((tool) => {
+    if (seen.has(tool.name)) return false;
+    seen.add(tool.name);
+    return true;
+  });
 }
 
 function removeKeyFromRecord<T>(record: Record<string, T>, key: string): Record<string, T> {

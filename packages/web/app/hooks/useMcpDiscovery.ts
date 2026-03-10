@@ -37,6 +37,8 @@ function buildProgress(enabled: McpServerConfig[], settled: Record<string, Settl
   }));
 }
 
+const EMPTY_LENGTH = 0;
+
 export function useMcpDiscovery(servers: McpServerConfig[] | undefined): McpDiscoveryResult {
   const enabled = useMemo(() => getEnabledServers(servers), [servers]);
   const [settled, setSettled] = useState<Record<string, SettledStatus>>({});
@@ -44,14 +46,14 @@ export function useMcpDiscovery(servers: McpServerConfig[] | undefined): McpDisc
   const started = useRef(false);
 
   const serverProgress = useMemo(() => buildProgress(enabled, settled), [enabled, settled]);
-  const loading = enabled.length > 0 && serverProgress.some((p) => p.status === 'loading');
+  const loading = enabled.length > EMPTY_LENGTH && serverProgress.some((p) => p.status === 'loading');
 
   useEffect(() => {
     if (servers === undefined) {
       started.current = false;
       return;
     }
-    if (started.current || enabled.length === 0) return;
+    if (started.current || enabled.length === EMPTY_LENGTH) return;
     started.current = true;
 
     for (const server of enabled) {
