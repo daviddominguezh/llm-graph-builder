@@ -28,6 +28,7 @@ import { useGraphSelection } from '../hooks/useGraphSelection';
 import { useMcpServers } from '../hooks/useMcpServers';
 import { useOperationQueue } from '../hooks/useOperationQueue';
 import { usePresets } from '../hooks/usePresets';
+import { useSeedInitialGraph } from '../hooks/useSeedInitialGraph';
 import { useSimulation } from '../hooks/useSimulation';
 import { useVersions } from '../hooks/useVersions';
 import { useZoomView } from '../hooks/useZoomView';
@@ -65,6 +66,8 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
   const [version, setVersion] = useState(props.initialVersion ?? DEFAULT_VERSION);
 
   const opQueue = useOperationQueue(agentId);
+
+  useSeedInitialGraph(loadResult.graphData, loadResult.nodes, loadResult.edges, opQueue.pushOperation);
 
   const mcpHook = useMcpServers(loadResult.mcpServers, opQueue.pushOperation);
 
