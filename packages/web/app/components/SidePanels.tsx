@@ -77,7 +77,7 @@ function SelectionPanel(props: SidePanelsProps) {
   const { selection, nodes, agents, presetsHook, mcpHook, ctxPreconditions, pushOperation } = props;
 
   return (
-    <aside className="absolute right-0 top-0 bottom-0 w-80 border-l border-gray-200 bg-white">
+    <aside className="absolute right-0 top-0 bottom-0 z-10 w-80 border-l border-gray-200 bg-white">
       {selection.selectedNodeId !== null && (
         <NodePanel
           nodeId={selection.selectedNodeId}
@@ -160,7 +160,7 @@ function handleGlobalSetFallback(
 
 function GlobalPanel({ setNodes, setEdges, nodes, pushOperation }: GlobalPanelProps) {
   return (
-    <aside className="absolute right-0 top-0 bottom-0 w-80 border-l border-gray-200 bg-white">
+    <aside className="absolute right-0 top-0 bottom-0 z-10 w-80 border-l border-gray-200 bg-white">
       <GlobalNodesPanel
         nodes={nodes}
         onAddNode={() => handleGlobalAddNode(setNodes, pushOperation)}
