@@ -19,7 +19,7 @@ import {
   LogOut,
   Menu,
   Play,
-  SlidersHorizontal,
+  Settings,
   SquareFunction,
   Upload,
   WandSparkles,
@@ -211,7 +211,6 @@ function ToolbarButtons(props: ToolbarProps) {
     <>
       {onToggleGlobalPanel && (
         <>
-          <Separator orientation="vertical" />
           <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onToggleGlobalPanel}>
             <Waypoints className="size-4" />
           </Button>
@@ -222,19 +221,13 @@ function ToolbarButtons(props: ToolbarProps) {
           <SquareFunction className="size-4" />
         </Button>
       )}
+      <FormatButton onFormat={onFormat} />
       {onTogglePresets && (
         <>
           <Separator orientation="vertical" />
           <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onTogglePresets}>
-            <SlidersHorizontal className="size-4" />
+            <Settings className="size-4" />
           </Button>
-        </>
-      )}
-      {statusSlot && (
-        <>
-          <Separator orientation="vertical" />
-          <FormatButton onFormat={onFormat} />
-          {statusSlot}
         </>
       )}
     </>
@@ -257,11 +250,14 @@ export function Toolbar(props: ToolbarProps) {
         />
       </div>
       <header className="absolute z-1 flex items-stretch justify-center gap-1 border rounded-lg bg-background p-1 top-2 shadow-lg">
+        {props.statusSlot}
+        <Separator orientation="vertical" />
         <PlayButton
           simulationActive={simulationActive ?? false}
           onPlay={onPlay}
           disabled={stagingKeyId === null || stagingKeyId === undefined}
         />
+        <Separator orientation="vertical" />
         <Button className="h-10 w-10" variant="ghost" size="sm">
           <WandSparkles className="size-4" />
         </Button>
