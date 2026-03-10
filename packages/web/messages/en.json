@@ -63,6 +63,15 @@
     "backToAgents": "Back to agents",
     "formatGraph": "Auto-layout"
   },
+  "toolbar": {
+    "status": "Validation status",
+    "simulate": "Simulate",
+    "generate": "Generate",
+    "globalNodes": "Global nodes",
+    "tools": "Tools",
+    "autoLayout": "Auto-layout",
+    "settings": "Settings"
+  },
   "agents": {
     "title": "Agents",
     "empty": "No agents yet. Create your first one.",

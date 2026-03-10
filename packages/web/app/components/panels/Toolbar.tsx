@@ -12,7 +12,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip as TooltipPrimitive } from '@base-ui/react/tooltip';
 import {
   AlignHorizontalSpaceAround,
   Download,
@@ -30,6 +31,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
+
+const TOOLTIP_DELAY = 1000;
 
 interface ToolbarProps {
   onAddNode: () => void;
@@ -52,6 +55,17 @@ interface ToolbarProps {
   agentName?: string;
 }
 
+function ToolbarTooltip({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <TooltipProvider delay={TOOLTIP_DELAY}>
+      <TooltipPrimitive.Root>
+        <TooltipTrigger render={<span />}>{children}</TooltipTrigger>
+        <TooltipContent>{label}</TooltipContent>
+      </TooltipPrimitive.Root>
+    </TooltipProvider>
+  );
+}
+
 function useLogout() {
   const router = useRouter();
 
@@ -63,17 +77,23 @@ function useLogout() {
   };
 }
 
-
-
 function OrgAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
   const initial = name.trim().charAt(0).toUpperCase() || '?';
 
   if (avatarUrl !== null) {
-    return <Image src={toProxyImageSrc(avatarUrl)} alt={name} width={20} height={20} className="h-5 w-5 rounded-full ring-1 ring-white object-cover" />;
+    return (
+      <Image
+        src={toProxyImageSrc(avatarUrl)}
+        alt={name}
+        width={20}
+        height={20}
+        className="h-5 w-5 rounded-full object-cover ring-1 ring-white"
+      />
+    );
   }
 
   return (
-    <div className="bg-muted flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-medium ring-1 ring-white">
+    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[10px] font-medium ring-1 ring-white">
       {initial}
     </div>
   );
@@ -94,7 +114,7 @@ function OrgSection({ orgName, orgAvatarUrl, orgSlug, agentName }: OrgSectionPro
         <Link href={`/orgs/${orgSlug}`} className="text-xs font-bold text-black hover:underline">
           {orgName}
         </Link>
-        <span className="text-muted-foreground text-xs">/</span>
+        <span className="text-xs text-muted-foreground">/</span>
         <span className="text-xs text-black">{agentName}</span>
       </DropdownMenuLabel>
     </DropdownMenuGroup>
@@ -155,15 +175,7 @@ function FileMenu({ onImport, onExport, orgSlug, orgName, orgAvatarUrl, agentNam
   );
 }
 
-function PlayButton({
-  simulationActive,
-  onPlay,
-  disabled,
-}: {
-  simulationActive: boolean;
-  onPlay?: () => void;
-  disabled: boolean;
-}) {
+function PlayButton({ simulationActive, onPlay, disabled, label }: PlayButtonProps) {
   const t = useTranslations('apiKeys');
 
   const button = (
@@ -178,56 +190,53 @@ function PlayButton({
     </Button>
   );
 
-  if (!disabled) return button;
+  if (disabled) {
+    return <ToolbarTooltip label={t('requiresKey')}>{button}</ToolbarTooltip>;
+  }
 
-  return (
-    <Tooltip>
-      <TooltipTrigger render={<span />}>{button}</TooltipTrigger>
-      <TooltipContent>{t('requiresKey')}</TooltipContent>
-    </Tooltip>
-  );
+  return <ToolbarTooltip label={label}>{button}</ToolbarTooltip>;
 }
 
-function FormatButton({ onFormat }: { onFormat: () => void }) {
-  const t = useTranslations('common');
-  return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onFormat}>
-            <AlignHorizontalSpaceAround className="size-4" />
-          </Button>
-        }
-      />
-      <TooltipContent>{t('formatGraph')}</TooltipContent>
-    </Tooltip>
-  );
+interface PlayButtonProps {
+  simulationActive: boolean;
+  onPlay?: () => void;
+  disabled: boolean;
+  label: string;
 }
 
 function ToolbarButtons(props: ToolbarProps) {
-  const { onFormat, onToggleGlobalPanel, onToggleTools, onTogglePresets, statusSlot } = props;
+  const { onFormat, onToggleGlobalPanel, onToggleTools, onTogglePresets } = props;
+  const t = useTranslations('toolbar');
 
   return (
     <>
       {onToggleGlobalPanel && (
-        <>
+        <ToolbarTooltip label={t('globalNodes')}>
           <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onToggleGlobalPanel}>
             <Waypoints className="size-4" />
           </Button>
-        </>
+        </ToolbarTooltip>
       )}
       {onToggleTools && (
-        <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onToggleTools}>
-          <SquareFunction className="size-4" />
-        </Button>
+        <ToolbarTooltip label={t('tools')}>
+          <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onToggleTools}>
+            <SquareFunction className="size-4" />
+          </Button>
+        </ToolbarTooltip>
       )}
-      <FormatButton onFormat={onFormat} />
+      <ToolbarTooltip label={t('autoLayout')}>
+        <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onFormat}>
+          <AlignHorizontalSpaceAround className="size-4" />
+        </Button>
+      </ToolbarTooltip>
       {onTogglePresets && (
         <>
           <Separator orientation="vertical" />
-          <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onTogglePresets}>
-            <Settings className="size-4" />
-          </Button>
+          <ToolbarTooltip label={t('settings')}>
+            <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onTogglePresets}>
+              <Settings className="size-4" />
+            </Button>
+          </ToolbarTooltip>
         </>
       )}
     </>
@@ -237,6 +246,7 @@ function ToolbarButtons(props: ToolbarProps) {
 export function Toolbar(props: ToolbarProps) {
   const { onImport, onExport, onPlay, simulationActive, stagingKeyId, orgSlug, orgName, orgAvatarUrl, agentName } =
     props;
+  const t = useTranslations('toolbar');
   return (
     <>
       <div className="absolute top-2 left-2 z-1">
@@ -249,18 +259,21 @@ export function Toolbar(props: ToolbarProps) {
           agentName={agentName}
         />
       </div>
-      <header className="absolute z-1 flex items-stretch justify-center gap-1 border rounded-lg bg-background p-1 top-2 shadow-lg">
-        {props.statusSlot}
+      <header className="absolute z-1 flex items-stretch justify-center gap-1 rounded-lg border bg-background p-1 top-2 shadow-lg">
+        <ToolbarTooltip label={t('status')}>{props.statusSlot}</ToolbarTooltip>
         <Separator orientation="vertical" />
         <PlayButton
           simulationActive={simulationActive ?? false}
           onPlay={onPlay}
           disabled={stagingKeyId === null || stagingKeyId === undefined}
+          label={t('simulate')}
         />
         <Separator orientation="vertical" />
-        <Button className="h-10 w-10" variant="ghost" size="sm">
-          <WandSparkles className="size-4" />
-        </Button>
+        <ToolbarTooltip label={t('generate')}>
+          <Button className="h-10 w-10" variant="ghost" size="sm">
+            <WandSparkles className="size-4" />
+          </Button>
+        </ToolbarTooltip>
         <ToolbarButtons {...props} />
       </header>
       {(props.publishSlot ?? props.versionSlot) && (
