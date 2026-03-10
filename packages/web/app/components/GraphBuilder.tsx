@@ -61,7 +61,9 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
   const [agents] = useState<Agent[]>(loadResult.agents);
   const [version, setVersion] = useState(props.initialVersion ?? DEFAULT_VERSION);
 
-  const mcpHook = useMcpServers(loadResult.mcpServers);
+  const opQueue = useOperationQueue(agentId);
+
+  const mcpHook = useMcpServers(loadResult.mcpServers, opQueue.pushOperation);
 
   const apiKeys = useApiKeySelection({
     agentId,
@@ -74,7 +76,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
   const [toolsOpen, setToolsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
-  const presetsHook = usePresets();
+  const presetsHook = usePresets(opQueue.pushOperation);
 
   const panels = useMemo(() => ({ setGlobalPanelOpen, setPresetsOpen, setToolsOpen, setSearchOpen }), []);
 
@@ -101,6 +103,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     setSelectedNodeId: selection.setSelectedNodeId,
     reactFlowWrapper,
     reactFlow: rf,
+    pushOperation: opQueue.pushOperation,
   });
 
   const handleImport = useImportGraph({
@@ -119,8 +122,6 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
   );
 
   const getGraphData = useCallback((): Graph | null => serializedGraph, [serializedGraph]);
-
-  const opQueue = useOperationQueue(agentId);
 
   const { pendingSave } = useAutoSave({
     hasPendingOps: opQueue.hasPendingOps,
@@ -181,6 +182,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     version,
     setVersion,
     apiKeys,
+    pushOperation: opQueue.pushOperation,
   };
 }
 
@@ -278,6 +280,7 @@ function LoadedEditor(props: LoadedEditorProps) {
           stagingKeyId={h.apiKeys.stagingKeyId}
           productionKeyId={h.apiKeys.productionKeyId}
           onStagingKeyChange={h.apiKeys.handleStagingKeyChange}
+          pushOperation={h.pushOperation}
         />
 
         {h.graphActions.connectionMenu !== null && (

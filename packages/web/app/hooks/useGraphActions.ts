@@ -11,6 +11,8 @@ import {
   START_NODE_WIDTH,
 } from '../utils/graphInitializer';
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
+import { buildInsertEdgeOp, buildInsertNodeOp } from '../utils/operationBuilders';
+import type { PushOperation } from '../utils/operationBuilders';
 
 const NANOID_LENGTH = 8;
 const HALF = 2;
@@ -36,6 +38,7 @@ interface UseGraphActionsParams {
   setSelectedNodeId: (id: string | null) => void;
   reactFlowWrapper: React.RefObject<HTMLDivElement | null>;
   reactFlow: Pick<ReactFlowInstance, 'screenToFlowPosition' | 'setViewport'>;
+  pushOperation: PushOperation;
 }
 
 interface UseGraphActionsReturn {
@@ -88,15 +91,17 @@ function resolveTargetHandle(sourceHandleId: string | null): string {
 
 function useOnConnect(
   setEdges: UseGraphActionsParams['setEdges'],
-  setMenu: (v: ConnectionMenuState | null) => void
+  setMenu: (v: ConnectionMenuState | null) => void,
+  pushOperation: PushOperation
 ): (params: Connection) => void {
   return useCallback(
     (params: Connection) => {
       if (params.target === START_NODE_ID) return;
       setEdges((eds) => addEdge({ ...params, type: 'precondition' }, eds));
+      pushOperation(buildInsertEdgeOp(params.source, params.target));
       setMenu(null);
     },
-    [setEdges, setMenu]
+    [setEdges, setMenu, pushOperation]
   );
 }
 
@@ -124,7 +129,8 @@ function useSourceHandleClick(
 function useMenuSelectNode(
   menu: ConnectionMenuState | null,
   setEdges: UseGraphActionsParams['setEdges'],
-  setMenu: (v: ConnectionMenuState | null) => void
+  setMenu: (v: ConnectionMenuState | null) => void,
+  pushOperation: PushOperation
 ): (targetNodeId: string) => void {
   return useCallback(
     (targetNodeId: string) => {
@@ -141,9 +147,10 @@ function useMenuSelectNode(
           eds
         )
       );
+      pushOperation(buildInsertEdgeOp(menu.sourceNodeId, targetNodeId));
       setMenu(null);
     },
-    [menu, setEdges, setMenu]
+    [menu, setEdges, setMenu, pushOperation]
   );
 }
 
@@ -152,6 +159,8 @@ function useMenuCreateNode(
   menu: ConnectionMenuState | null,
   setMenu: (v: ConnectionMenuState | null) => void
 ): () => void {
+  const { pushOperation } = params;
+
   return useCallback(() => {
     if (menu === null) return;
     const id = `node_${nanoid(NANOID_LENGTH)}`;
@@ -179,13 +188,15 @@ function useMenuCreateNode(
         eds
       )
     );
+    pushOperation(buildInsertNodeOp(newNode));
+    pushOperation(buildInsertEdgeOp(menu.sourceNodeId, id));
     setMenu(null);
     params.setSelectedNodeId(id);
-  }, [menu, params, setMenu]);
+  }, [menu, params, setMenu, pushOperation]);
 }
 
 function useAddNode(params: UseGraphActionsParams): () => void {
-  const { reactFlowWrapper, reactFlow, setNodes, setSelectedNodeId } = params;
+  const { reactFlowWrapper, reactFlow, setNodes, setSelectedNodeId, pushOperation } = params;
 
   return useCallback(() => {
     const id = `node_${nanoid(NANOID_LENGTH)}`;
@@ -209,8 +220,9 @@ function useAddNode(params: UseGraphActionsParams): () => void {
       },
     };
     setNodes((nds) => [...nds, newNode]);
+    pushOperation(buildInsertNodeOp(newNode));
     setSelectedNodeId(id);
-  }, [reactFlowWrapper, reactFlow, setNodes, setSelectedNodeId]);
+  }, [reactFlowWrapper, reactFlow, setNodes, setSelectedNodeId, pushOperation]);
 }
 
 export function useGraphActions(params: UseGraphActionsParams): UseGraphActionsReturn {
@@ -218,9 +230,14 @@ export function useGraphActions(params: UseGraphActionsParams): UseGraphActionsR
 
   return {
     connectionMenu,
-    onConnect: useOnConnect(params.setEdges, setConnectionMenu),
+    onConnect: useOnConnect(params.setEdges, setConnectionMenu, params.pushOperation),
     onSourceHandleClick: useSourceHandleClick(params.edges, setConnectionMenu),
-    handleConnectionMenuSelectNode: useMenuSelectNode(connectionMenu, params.setEdges, setConnectionMenu),
+    handleConnectionMenuSelectNode: useMenuSelectNode(
+      connectionMenu,
+      params.setEdges,
+      setConnectionMenu,
+      params.pushOperation
+    ),
     handleConnectionMenuCreateNode: useMenuCreateNode(params, connectionMenu, setConnectionMenu),
     handleConnectionMenuClose: useCallback(() => {
       setConnectionMenu(null);

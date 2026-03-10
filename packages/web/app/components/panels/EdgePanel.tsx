@@ -38,6 +38,7 @@ import type {
   Precondition,
   PreconditionType,
 } from "../../schemas/graph.schema";
+import type { PushOperation } from "../../utils/operationBuilders";
 import type { RFEdgeData } from "../../utils/graphTransformers";
 import type { Edge } from "@xyflow/react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -47,6 +48,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { pushDeleteEdge, pushTypeChangeOps, pushUpdateEdge } from "./edgePanelOps";
 
 const START_NODE_ID = "INITIAL_STEP";
 
@@ -56,6 +58,7 @@ interface EdgePanelProps {
   onSelectNode?: (nodeId: string) => void;
   availableContextPreconditions?: string[];
   availableMcpTools?: string[];
+  pushOperation: PushOperation;
 }
 
 interface EdgePreconditionInput {
@@ -69,6 +72,7 @@ export function EdgePanel({
   onSelectNode,
   availableContextPreconditions = [],
   availableMcpTools = [],
+  pushOperation,
 }: EdgePanelProps) {
   const edges = useEdges<Edge<RFEdgeData>>();
   const { setEdges } = useReactFlow();
@@ -129,11 +133,13 @@ export function EdgePanel({
   const allSourceEdges = [edge, ...siblingEdges];
 
   const updateEdgeData = (updates: Partial<RFEdgeData>) => {
+    const merged = { ...edgeData, ...updates };
     setEdges((eds) =>
       eds.map((e) =>
         e.id === edge.id ? { ...e, data: { ...e.data, ...updates } } : e,
       ),
     );
+    pushUpdateEdge(from, to, merged, pushOperation);
   };
 
   const doAddPrecondition = () => {
@@ -202,7 +208,6 @@ export function EdgePanel({
   };
 
   const handleConfirmTypeChange = () => {
-    // Add preconditions to all edges from the same source
     setEdges((eds) =>
       eds.map((e) => {
         const input = multiEdgeInputs[e.id];
@@ -226,7 +231,8 @@ export function EdgePanel({
       }),
     );
 
-    // Update local state for current edge
+    pushTypeChangeOps(allSourceEdges, multiEdgeInputs, newPreconditionType, pushOperation);
+
     const currentInput = multiEdgeInputs[edge.id];
     if (currentInput && currentInput.value.trim()) {
       const newPrecondition: Precondition = {
@@ -243,6 +249,7 @@ export function EdgePanel({
 
   const handleDeleteEdge = () => {
     setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+    pushDeleteEdge(from, to, pushOperation);
     onEdgeDeleted?.();
   };
 

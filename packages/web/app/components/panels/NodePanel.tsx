@@ -25,9 +25,11 @@ import { useState } from 'react';
 
 import type { Agent, PreconditionType } from '../../schemas/graph.schema';
 import type { ContextPreset } from '../../types/preset';
+import type { PushOperation } from '../../utils/operationBuilders';
 import type { RFEdgeData, RFNodeData } from '../../utils/graphTransformers';
 import { FallbackNodeSelect } from './FallbackNodeSelect';
 import { NodePromptDialog } from './NodePromptDialog';
+import { pushDeleteNode, pushRenameNode, pushUpdateNode } from './nodePanelOps';
 
 interface NodePanelProps {
   nodeId: string;
@@ -41,6 +43,7 @@ interface NodePanelProps {
   onNodeIdChanged?: (newId: string) => void;
   onSelectEdge?: (edgeId: string) => void;
   onSelectNode?: (nodeId: string) => void;
+  pushOperation: PushOperation;
 }
 
 export function NodePanel({
@@ -55,6 +58,7 @@ export function NodePanel({
   onNodeIdChanged,
   onSelectEdge,
   onSelectNode,
+  pushOperation,
 }: NodePanelProps) {
   const nodes = useNodes<Node<RFNodeData>>();
   const edges = useEdges<Edge<RFEdgeData>>();
@@ -85,15 +89,14 @@ export function NodePanel({
 
   const updateNodeData = (updates: Partial<RFNodeData>) => {
     setNodes((nds) => nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, ...updates } } : n)));
+    pushUpdateNode(node, updates, pushOperation);
   };
 
   const handleIdBlur = () => {
     if (id !== nodeId && id.trim()) {
       const newId = id.trim();
-      // Rename node: update node id and all edges referencing it
-      setNodes((nds) =>
-        nds.map((n) => (n.id === nodeId ? { ...n, id: newId, data: { ...n.data, nodeId: newId } } : n))
-      );
+      const renamedNode = { ...node, id: newId, data: { ...node.data, nodeId: newId } };
+      setNodes((nds) => nds.map((n) => (n.id === nodeId ? renamedNode : n)));
       setEdges((eds) =>
         eds.map((e) => ({
           ...e,
@@ -102,7 +105,7 @@ export function NodePanel({
           target: e.target === nodeId ? newId : e.target,
         }))
       );
-      // Notify parent of the ID change
+      pushRenameNode(nodeId, renamedNode, pushOperation);
       onNodeIdChanged?.(newId);
     }
   };
@@ -110,6 +113,7 @@ export function NodePanel({
   const handleDelete = () => {
     setNodes((nds) => nds.filter((n) => n.id !== nodeId));
     setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
+    pushDeleteNode(nodeId, edges, pushOperation);
     onNodeDeleted?.();
   };
 

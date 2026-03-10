@@ -9,6 +9,12 @@ import type { McpServersState } from '../hooks/useMcpServers';
 import type { ContextPrecondition } from '../types/contextPrecondition';
 import { createEmptyGroup } from '../types/contextPrecondition';
 import { DEFAULT_NODE_WIDTH } from '../utils/graphInitializer';
+import {
+  buildDeleteNodeOp,
+  buildInsertNodeOp,
+  buildUpdateNodeOp,
+} from '../utils/operationBuilders';
+import type { PushOperation } from '../utils/operationBuilders';
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
 import type { UseGraphSelectionReturn } from '../hooks/useGraphSelection';
 import type { ContextPreset } from '../types/preset';
@@ -64,10 +70,11 @@ export interface SidePanelsProps {
   stagingKeyId: string | null;
   productionKeyId: string | null;
   onStagingKeyChange: (keyId: string | null) => void;
+  pushOperation: PushOperation;
 }
 
 function SelectionPanel(props: SidePanelsProps) {
-  const { selection, nodes, agents, presetsHook, mcpHook, ctxPreconditions } = props;
+  const { selection, nodes, agents, presetsHook, mcpHook, ctxPreconditions, pushOperation } = props;
 
   return (
     <aside className="absolute right-0 top-0 bottom-0 w-80 border-l border-gray-200 bg-white">
@@ -84,6 +91,7 @@ function SelectionPanel(props: SidePanelsProps) {
           onNodeIdChanged={(newId) => selection.setSelectedNodeId(newId)}
           onSelectEdge={selection.selectEdge}
           onSelectNode={selection.navigateToNode}
+          pushOperation={pushOperation}
         />
       )}
       {selection.selectedEdgeId !== null && (
@@ -93,41 +101,76 @@ function SelectionPanel(props: SidePanelsProps) {
           availableContextPreconditions={ctxPreconditions.allContextPreconditions}
           availableMcpTools={mcpHook.allToolNames}
           onSelectNode={selection.navigateToNode}
+          pushOperation={pushOperation}
         />
       )}
     </aside>
   );
 }
 
-function GlobalPanel({ setNodes, setEdges, nodes }: Pick<SidePanelsProps, 'setNodes' | 'setEdges' | 'nodes'>) {
+type GlobalPanelProps = Pick<SidePanelsProps, 'setNodes' | 'setEdges' | 'nodes' | 'pushOperation'>;
+
+function handleGlobalAddNode(setNodes: NodeSetter, pushOp: PushOperation): void {
+  const id = `node_${nanoid(NANOID_LENGTH)}`;
+  const newNode: Node<RFNodeData> = {
+    id,
+    type: 'agent',
+    position: { x: 0, y: 0 },
+    data: { nodeId: id, text: 'New global node', description: '', global: true, nodeWidth: DEFAULT_NODE_WIDTH },
+  };
+  setNodes((nds) => [...nds, newNode]);
+  pushOp(buildInsertNodeOp(newNode));
+}
+
+function handleGlobalUpdateNode(
+  nodeId: string,
+  updates: Partial<RFNodeData>,
+  nodes: NodeArray,
+  setNodes: NodeSetter,
+  pushOp: PushOperation
+): void {
+  setNodes((nds) => nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, ...updates } } : n)));
+  const node = nodes.find((n) => n.id === nodeId);
+  if (node) {
+    const updated: Node<RFNodeData> = { ...node, data: { ...node.data, ...updates } };
+    pushOp(buildUpdateNodeOp(updated));
+  }
+}
+
+function handleGlobalSetFallback(
+  nodeId: string | undefined,
+  nodes: NodeArray,
+  setNodes: NodeSetter,
+  pushOp: PushOperation
+): void {
+  setNodes((nds) =>
+    nds.map((n) => ({
+      ...n,
+      data: { ...n.data, defaultFallback: n.id === nodeId ? true : undefined },
+    }))
+  );
+  for (const n of nodes) {
+    const updated = { ...n, data: { ...n.data, defaultFallback: n.id === nodeId ? true : undefined } };
+    pushOp(buildUpdateNodeOp(updated));
+  }
+}
+
+function GlobalPanel({ setNodes, setEdges, nodes, pushOperation }: GlobalPanelProps) {
   return (
     <aside className="absolute right-0 top-0 bottom-0 w-80 border-l border-gray-200 bg-white">
       <GlobalNodesPanel
         nodes={nodes}
-        onAddNode={() => {
-          const id = `node_${nanoid(NANOID_LENGTH)}`;
-          const newNode: Node<RFNodeData> = {
-            id,
-            type: 'agent',
-            position: { x: 0, y: 0 },
-            data: { nodeId: id, text: 'New global node', description: '', global: true, nodeWidth: DEFAULT_NODE_WIDTH },
-          };
-          setNodes((nds) => [...nds, newNode]);
-        }}
+        onAddNode={() => handleGlobalAddNode(setNodes, pushOperation)}
         onDeleteNode={(nodeId) => {
           setNodes((nds) => nds.filter((n) => n.id !== nodeId));
           setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
+          pushOperation(buildDeleteNodeOp(nodeId));
         }}
         onUpdateNode={(nodeId, updates) => {
-          setNodes((nds) => nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, ...updates } } : n)));
+          handleGlobalUpdateNode(nodeId, updates, nodes, setNodes, pushOperation);
         }}
         onSetDefaultFallback={(nodeId) => {
-          setNodes((nds) =>
-            nds.map((n) => ({
-              ...n,
-              data: { ...n.data, defaultFallback: n.id === nodeId ? true : undefined },
-            }))
-          );
+          handleGlobalSetFallback(nodeId, nodes, setNodes, pushOperation);
         }}
       />
     </aside>
@@ -233,7 +276,14 @@ export function SidePanels(props: SidePanelsProps) {
   return (
     <>
       {showSelectionPanel && <SelectionPanel {...props} />}
-      {globalPanelOpen && <GlobalPanel setNodes={props.setNodes} setEdges={props.setEdges} nodes={props.nodes} />}
+      {globalPanelOpen && (
+        <GlobalPanel
+          setNodes={props.setNodes}
+          setEdges={props.setEdges}
+          nodes={props.nodes}
+          pushOperation={props.pushOperation}
+        />
+      )}
       <ToolsPanel servers={props.mcpHook.servers} discoveredTools={props.mcpHook.discoveredTools} open={toolsOpen} onClose={() => {}} />
       {presetsOpen && (
         <PresetsAside
