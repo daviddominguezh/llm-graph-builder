@@ -12,7 +12,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { History } from 'lucide-react';
+import { ChevronDown, History } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 
@@ -82,7 +82,8 @@ function EmptyVersionsTrigger() {
   return (
     <div className="flex h-10 items-center gap-1.5 rounded-md border bg-background px-3 text-xs text-muted-foreground">
       <History className="size-3.5" />
-      <span>v0</span>
+      <span className="font-bold">v0</span>
+      <ChevronDown className="size-3.5" />
     </div>
   );
 }
@@ -123,7 +124,7 @@ export function VersionSelector(props: VersionSelectorProps) {
   return (
     <>
       <Select value={currentVersion} onValueChange={handleValueChange} disabled={loading}>
-        <SelectTrigger size="sm" className="h-10 min-w-[90px] text-xs">
+        <SelectTrigger size="sm" className="h-10 min-w-[90px] text-xs font-bold">
           <History className="size-3.5" />
           <SelectValue placeholder={t('versionLabel', { version: String(currentVersion) })} />
         </SelectTrigger>
