@@ -48,7 +48,7 @@ function AgentText({ text }: { text: string }) {
 
 export function NodeResultItem({ result }: { result: NodeResult }) {
   return (
-    <div className="flex flex-col gap-0.5 border-l-2 border-muted-foreground/30 py-1 pl-3">
+    <div className="flex flex-col gap-0.5 border-l-3 border-muted-foreground/30 py-0 pl-2">
       <span className="font-mono text-[11px] font-medium">{result.nodeId}</span>
       {result.toolCalls.map((call, i) => (
         <ToolCallRow key={i} call={call} />

@@ -1,5 +1,7 @@
 'use client';
 
+import { ArrowDownToLine, ArrowUpFromLine, Clock, Database } from 'lucide-react';
+
 import type { SimulationTokens } from '../../../types/simulation';
 
 function formatCount(n: number): string {
@@ -18,17 +20,25 @@ function formatDuration(ms: number): string {
   return `${String(ms)}ms`;
 }
 
+function Separator() {
+  return <span className="mx-1 text-muted-foreground/40">|</span>;
+}
+
 export function TokenDisplay({ tokens, durationMs, className = '' }: TokenDisplayProps) {
   return (
-    <span className={`font-mono text-[10px] text-muted-foreground ${className}`}>
-      <span title="Input tokens">&darr;{formatCount(tokens.input)}</span>
-      {' '}
-      <span title="Output tokens">&uarr;{formatCount(tokens.output)}</span>
-      {' '}
-      <span title="Cached tokens">{'\u23F8\uFE0E'}{formatCount(tokens.cached)}</span>
+    <span className={`inline-flex items-center font-mono text-[10px] text-muted-foreground ${className}`}>
+      <ArrowDownToLine className="mr-0.5 size-2.5" />
+      <span title="Input tokens">{formatCount(tokens.input)}</span>
+      <Separator />
+      <Database className="mr-0.5 size-2.5" />
+      <span title="Cached tokens">{formatCount(tokens.cached)}</span>
+      <Separator />
+      <ArrowUpFromLine className="mr-0.5 size-2.5" />
+      <span title="Output tokens">{formatCount(tokens.output)}</span>
       {durationMs !== undefined && (
         <>
-          {' '}
+          <Separator />
+          <Clock className="mr-0.5 size-2.5" />
           <span title="Processing time">{formatDuration(durationMs)}</span>
         </>
       )}

@@ -2,7 +2,6 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@base-ui/react';
 import { Loader2, OctagonX, Send } from 'lucide-react';
 import { useState } from 'react';
 
@@ -16,14 +15,14 @@ interface SimulationInputProps {
 
 function TerminatedBanner({ label, description }: { label: string; description: string }) {
   return (
-    <div className='flex flex-col w-full'>
-      <div className='w-full h-[1px] bg-gray-200'></div>
+    <div className="flex flex-col w-full">
+      <div className="w-full h-[1px] bg-gray-200"></div>
 
-      <div className="flex gap-2 p-2 text-sm bg-gray-100 m-2 rounded-md">
-        <OctagonX className="size-4 mt-0.5" />
+      <div className="flex gap-2 p-2 text-xs bg-gray-100 m-2 rounded-md">
+        <OctagonX className="size-3.5 mt-0.5" />
         <div className="flex flex-col">
           <span>{label}</span>
-          <span className="text-xs text-muted-foreground">{description}</span>
+          <span className="text-muted-foreground">{description}</span>
         </div>
       </div>
     </div>

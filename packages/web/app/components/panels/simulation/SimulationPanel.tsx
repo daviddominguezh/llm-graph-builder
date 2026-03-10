@@ -57,7 +57,7 @@ function SimulationHeader({
 function UserMessage({ text }: { text: string }) {
   if (text === '') return null;
   return (
-    <div className="ml-auto border-r-2 border-primary py-1 pr-3">
+    <div className="ml-auto border-r-3 border-primary py-0 pr-2">
       <p className="text-right text-xs leading-relaxed">{text}</p>
     </div>
   );
@@ -72,7 +72,7 @@ interface ContentAreaProps {
 function ContentArea({ lastUserText, nodeResults, scrollRef }: ContentAreaProps) {
   return (
     <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2">
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-4">
         <UserMessage text={lastUserText} />
         {nodeResults.map((result, i) => (
           <NodeResultItem key={i} result={result} />
