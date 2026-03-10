@@ -120,6 +120,7 @@ function useSimulationSend(deps: SendMessageDeps): (text: string) => void {
       setters.setLoading(true);
       setters.setNodeResults([]);
       setters.setLastUserText(text);
+      setters.setVisitedNodes([]);
 
       const userMessage = createUserMessage(text);
       const allMessages = [...messages, userMessage];

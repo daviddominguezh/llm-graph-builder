@@ -97,6 +97,7 @@ function useOnConnect(
   return useCallback(
     (params: Connection) => {
       if (params.target === START_NODE_ID) return;
+      if (params.source === null || params.target === null) return;
       setEdges((eds) => addEdge({ ...params, type: 'precondition' }, eds));
       pushOperation(buildInsertEdgeOp(params.source, params.target));
       setMenu(null);

@@ -28,7 +28,10 @@ function throwOnError<T>(result: QueryResult<T>): T {
 
 export async function fetchStartNode(supabase: SupabaseClient, agentId: string): Promise<string | null> {
   const result = await supabase.from('agents').select('start_node').eq('id', agentId).single();
-  if (result.error !== null) return null;
+  if (result.error !== null) {
+    if (result.error.code === 'PGRST116') return null;
+    throw new Error(`fetchStartNode: ${result.error.message}`);
+  }
   const row: AgentStartNodeRow = result.data;
   return row.start_node;
 }

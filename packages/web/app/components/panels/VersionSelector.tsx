@@ -95,8 +95,10 @@ export function VersionSelector(props: VersionSelectorProps) {
   const [pendingVersion, setPendingVersion] = useState<number | null>(null);
 
   const handleValueChange = useCallback(
-    (selectedVersion: number | null) => {
-      if (selectedVersion === null || selectedVersion === currentVersion) return;
+    (raw: string | null) => {
+      if (raw === null) return;
+      const selectedVersion = Number(raw);
+      if (Number.isNaN(selectedVersion) || selectedVersion === currentVersion) return;
 
       if (hasPendingOps) {
         setPendingVersion(selectedVersion);
@@ -123,14 +125,14 @@ export function VersionSelector(props: VersionSelectorProps) {
 
   return (
     <>
-      <Select value={currentVersion} onValueChange={handleValueChange} disabled={loading}>
+      <Select value={String(currentVersion)} onValueChange={handleValueChange} disabled={loading}>
         <SelectTrigger size="sm" className="h-10 min-w-[90px] text-xs font-bold">
           <History className="size-3.5" />
           <SelectValue placeholder={t('versionLabel', { version: String(currentVersion) })} />
         </SelectTrigger>
         <SelectContent side="bottom" align="end">
           {versions.map((v) => (
-            <SelectItem key={v.version} value={v.version}>
+            <SelectItem key={v.version} value={String(v.version)}>
               <VersionItemLabel version={v.version} publishedAt={v.publishedAt} />
             </SelectItem>
           ))}
