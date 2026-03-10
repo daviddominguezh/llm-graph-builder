@@ -87,7 +87,10 @@ async function dispatchPresetOps(supabase: SupabaseClient, agentId: string, op: 
   }
   if (op.type === 'updateStartNode') {
     await updateStartNode(supabase, agentId, op.startNode);
+    return;
   }
+
+  throw new Error(`Unhandled operation type: ${op.type}`);
 }
 
 export async function executeSingleOperation(

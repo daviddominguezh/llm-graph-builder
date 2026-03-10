@@ -68,47 +68,20 @@ export async function hydrateNodes(supabase: SupabaseClient, agentId: string, no
 
 interface EdgeInsertedRow {
   id: string;
-  from_node: string;
-  to_node: string;
 }
 
-interface EdgeIdMap {
-  from: string;
-  to: string;
-  dbId: string;
-}
-
-async function insertEdgeRows(
-  supabase: SupabaseClient,
-  agentId: string,
-  edges: Edge[]
-): Promise<EdgeIdMap[]> {
+async function insertEdgeRows(supabase: SupabaseClient, agentId: string, edges: Edge[]): Promise<string[]> {
   if (edges.length === EMPTY_LENGTH) return [];
 
   const rows = edges.map((e) => ({ agent_id: agentId, from_node: e.from, to_node: e.to }));
-  const result = await supabase.from('graph_edges').insert(rows).select('id, from_node, to_node');
+  const result = await supabase.from('graph_edges').insert(rows).select('id');
 
   if (result.error !== null) {
     throw new Error(`insertEdgeRows: ${result.error.message}`);
   }
 
   const inserted: EdgeInsertedRow[] = result.data;
-
-  return inserted.map((r) => ({
-    from: r.from_node,
-    to: r.to_node,
-    dbId: r.id,
-  }));
-}
-
-function findEdgeDbId(idMaps: EdgeIdMap[], from: string, to: string): string {
-  const match = idMaps.find((m) => m.from === from && m.to === to);
-
-  if (match === undefined) {
-    throw new Error(`Edge not found: ${from} -> ${to}`);
-  }
-
-  return match.dbId;
+  return inserted.map((r) => r.id);
 }
 
 interface PreconditionInsertRow {
@@ -125,42 +98,36 @@ interface ContextPreconditionInsertRow {
   jump_to: string | undefined;
 }
 
-function buildPreconditionRows(edges: Edge[], idMaps: EdgeIdMap[]): PreconditionInsertRow[] {
-  const rows: PreconditionInsertRow[] = [];
+function buildPreconditionRows(edges: Edge[], edgeDbIds: string[]): PreconditionInsertRow[] {
+  return edges.flatMap((edge, i) => {
+    if (edge.preconditions === undefined) return [];
+    const edgeId = edgeDbIds.at(i);
+    if (edgeId === undefined) return [];
 
-  for (const edge of edges) {
-    if (edge.preconditions === undefined) continue;
-    const edgeId = findEdgeDbId(idMaps, edge.from, edge.to);
-
-    for (const p of edge.preconditions) {
-      rows.push({
-        edge_id: edgeId,
-        type: p.type,
-        value: p.value,
-        description: p.description,
-        tool_fields: p.toolFields,
-      });
-    }
-  }
-
-  return rows;
+    return edge.preconditions.map((p) => ({
+      edge_id: edgeId,
+      type: p.type,
+      value: p.value,
+      description: p.description,
+      tool_fields: p.toolFields,
+    }));
+  });
 }
 
-function buildContextPreconditionRows(edges: Edge[], idMaps: EdgeIdMap[]): ContextPreconditionInsertRow[] {
-  const rows: ContextPreconditionInsertRow[] = [];
+function buildContextPreconditionRows(edges: Edge[], edgeDbIds: string[]): ContextPreconditionInsertRow[] {
+  return edges.flatMap((edge, i) => {
+    if (edge.contextPreconditions === undefined) return [];
+    const edgeId = edgeDbIds.at(i);
+    if (edgeId === undefined) return [];
 
-  for (const edge of edges) {
-    if (edge.contextPreconditions === undefined) continue;
-    const edgeId = findEdgeDbId(idMaps, edge.from, edge.to);
-
-    rows.push({
-      edge_id: edgeId,
-      preconditions: edge.contextPreconditions.preconditions,
-      jump_to: edge.contextPreconditions.jumpTo,
-    });
-  }
-
-  return rows;
+    return [
+      {
+        edge_id: edgeId,
+        preconditions: edge.contextPreconditions.preconditions,
+        jump_to: edge.contextPreconditions.jumpTo,
+      },
+    ];
+  });
 }
 
 async function insertPreconditionRows(
@@ -182,9 +149,9 @@ async function insertContextPreconditionRows(
 }
 
 export async function hydrateEdges(supabase: SupabaseClient, agentId: string, edges: Edge[]): Promise<void> {
-  const idMaps = await insertEdgeRows(supabase, agentId, edges);
-  const preRows = buildPreconditionRows(edges, idMaps);
-  const ctxRows = buildContextPreconditionRows(edges, idMaps);
+  const edgeDbIds = await insertEdgeRows(supabase, agentId, edges);
+  const preRows = buildPreconditionRows(edges, edgeDbIds);
+  const ctxRows = buildContextPreconditionRows(edges, edgeDbIds);
 
   await Promise.all([
     insertPreconditionRows(supabase, preRows),

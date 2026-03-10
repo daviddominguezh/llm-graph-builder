@@ -2,7 +2,9 @@
 
 import { fetchVersions } from '@/app/lib/graphApi';
 import type { VersionSummary } from '@/app/lib/graphApi';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 export interface UseVersionsReturn {
   versions: VersionSummary[];
@@ -44,6 +46,7 @@ function useLoadVersionsOnMount(
 }
 
 export function useVersions(agentId: string | undefined, initialVersion: number): UseVersionsReturn {
+  const t = useTranslations('editor');
   const [state, setState] = useState<VersionsState>(INITIAL_STATE);
   const [currentVersion, setCurrentVersion] = useState(initialVersion);
 
@@ -53,7 +56,8 @@ export function useVersions(agentId: string | undefined, initialVersion: number)
 
   const handleError = useCallback(() => {
     setState((prev) => ({ ...prev, loading: false }));
-  }, []);
+    toast.error(t('loadVersionsFailed'));
+  }, [t]);
 
   useLoadVersionsOnMount(agentId, handleLoaded, handleError);
 
@@ -66,8 +70,9 @@ export function useVersions(agentId: string | undefined, initialVersion: number)
       setState({ versions: result, loading: false });
     } catch {
       setState((prev) => ({ ...prev, loading: false }));
+      toast.error(t('loadVersionsFailed'));
     }
-  }, [agentId]);
+  }, [agentId, t]);
 
   return {
     versions: state.versions,

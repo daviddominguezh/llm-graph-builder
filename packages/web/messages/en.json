@@ -109,7 +109,9 @@
     "switchVersionCancel": "Cancel",
     "noVersions": "No published versions",
     "restoreVersionFailed": "Failed to restore version. Please try again.",
-    "connectingMcpServers": "Connecting to MCP servers..."
+    "connectingMcpServers": "Connecting to MCP servers...",
+    "loadVersionsFailed": "Failed to load versions. Please try again.",
+    "seedGraphFailed": "Failed to save initial graph. Please reload the page."
   },
   "simulation": {
     "toolInput": "Input",

@@ -1,13 +1,11 @@
 import type { Request } from 'express';
 
-import { assembleGraph } from '../../db/queries/graphQueries.js';
 import { publishVersion } from '../../db/queries/versionQueries.js';
 import {
   type AuthenticatedLocals,
   type AuthenticatedResponse,
   HTTP_BAD_REQUEST,
   HTTP_INTERNAL_ERROR,
-  HTTP_NOT_FOUND,
   HTTP_OK,
   extractErrorMessage,
   getAgentId,
@@ -28,14 +26,7 @@ export async function handlePostPublish(req: Request, res: AuthenticatedResponse
   const { supabase, userId }: AuthenticatedLocals = res.locals;
 
   try {
-    const graph = await assembleGraph(supabase, agentId);
-
-    if (graph === null) {
-      res.status(HTTP_NOT_FOUND).json({ error: 'No graph data to publish' });
-      return;
-    }
-
-    const version = await publishVersion(supabase, agentId, userId, graph);
+    const version = await publishVersion(supabase, agentId, userId);
     res.status(HTTP_OK).json({ version });
   } catch (err) {
     const message = extractErrorMessage(err);

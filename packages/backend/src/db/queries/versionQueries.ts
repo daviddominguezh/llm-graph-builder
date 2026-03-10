@@ -21,12 +21,10 @@ interface VersionSnapshotRow {
 export async function publishVersion(
   supabase: SupabaseClient,
   agentId: string,
-  userId: string,
-  graph: Graph
+  userId: string
 ): Promise<number> {
   const result = await supabase.rpc('publish_version_tx', {
     p_agent_id: agentId,
-    p_graph_data: graph,
     p_user_id: userId,
   });
 

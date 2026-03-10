@@ -1,6 +1,8 @@
 import type { Operation } from '@daviddh/graph-types';
 import type { Edge, Node } from '@xyflow/react';
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 
 import type { Graph } from '../schemas/graph.schema';
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
@@ -31,6 +33,7 @@ interface SeedInitialGraphOptions {
 export function useSeedInitialGraph(opts: SeedInitialGraphOptions): void {
   const { graphData, nodes, edges, pushOperation, flush } = opts;
   const seeded = useRef(false);
+  const t = useTranslations('editor');
 
   useEffect(() => {
     if (seeded.current) return;
@@ -45,6 +48,9 @@ export function useSeedInitialGraph(opts: SeedInitialGraphOptions): void {
       pushOperation(buildInsertEdgeOp(edge.source, edge.target, edge.data));
     }
 
-    void flush();
-  }, [graphData, nodes, edges, pushOperation, flush]);
+    void flush().catch(() => {
+      toast.error(t('seedGraphFailed'));
+      seeded.current = false;
+    });
+  }, [graphData, nodes, edges, pushOperation, flush, t]);
 }
