@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { CircleCheck, CircleAlert } from "lucide-react";
+import { CircleCheck, CircleAlert, Loader2 } from "lucide-react";
 import type { Node, Edge } from "@xyflow/react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,22 +20,26 @@ import type { RFNodeData, RFEdgeData } from "../../utils/graphTransformers";
 interface StatusButtonProps {
   nodes: Node<RFNodeData>[];
   edges: Edge<RFEdgeData>[];
+  pendingSave?: boolean;
 }
 
-export function StatusButton({ nodes, edges }: StatusButtonProps) {
+function StatusIcon({ isOk, saving }: { isOk: boolean; saving: boolean }) {
+  if (saving) return <Loader2 className="size-4 animate-spin text-orange-500" />;
+  if (isOk) return <CircleCheck className="size-4 text-green-500" />;
+  return <CircleAlert className="size-4 text-red-500" />;
+}
+
+export function StatusButton({ nodes, edges, pendingSave }: StatusButtonProps) {
   const errors = useMemo(() => validateGraph(nodes, edges), [nodes, edges]);
   const isOk = errors.length === 0;
+  const saving = pendingSave === true;
 
   return (
     <AlertDialog>
       <AlertDialogTrigger
         render={
           <Button variant="ghost" size="sm" className="h-10 w-10">
-            {isOk ? (
-              <CircleCheck className="size-4 text-green-500" />
-            ) : (
-              <CircleAlert className="size-4 text-red-500" />
-            )}
+            <StatusIcon isOk={isOk} saving={saving} />
           </Button>
         }
       />

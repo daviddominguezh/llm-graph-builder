@@ -98,7 +98,8 @@
     "switchVersionConfirm": "Switch",
     "switchVersionCancel": "Cancel",
     "noVersions": "No published versions",
-    "restoreVersionFailed": "Failed to restore version. Please try again."
+    "restoreVersionFailed": "Failed to restore version. Please try again.",
+    "connectingMcpServers": "Connecting to MCP servers..."
   },
   "orgs": {
     "title": "My Organizations",

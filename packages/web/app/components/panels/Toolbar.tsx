@@ -15,7 +15,6 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Download,
-  Loader2,
   LogOut,
   Menu,
   Play,
@@ -42,7 +41,6 @@ interface ToolbarProps {
   onToggleGlobalPanel?: () => void;
   onTogglePresets?: () => void;
   onToggleTools?: () => void;
-  pendingSave?: boolean;
   publishSlot?: ReactNode;
   versionSlot?: ReactNode;
   stagingKeyId?: string | null;
@@ -155,16 +153,6 @@ function FileMenu({ onImport, onExport, orgSlug, orgName, orgAvatarUrl, agentNam
   );
 }
 
-function SaveIndicator({ pendingSave }: { pendingSave: boolean }) {
-  if (!pendingSave) return null;
-
-  return (
-    <span className="flex items-center px-2">
-      <Loader2 className="size-4 animate-spin text-orange-500" />
-    </span>
-  );
-}
-
 function PlayButton({
   simulationActive,
   onPlay,
@@ -199,7 +187,7 @@ function PlayButton({
 }
 
 function ToolbarButtons(props: ToolbarProps) {
-  const { onToggleGlobalPanel, onToggleTools, onTogglePresets, statusSlot, pendingSave } = props;
+  const { onToggleGlobalPanel, onToggleTools, onTogglePresets, statusSlot } = props;
 
   return (
     <>
@@ -230,7 +218,6 @@ function ToolbarButtons(props: ToolbarProps) {
           {statusSlot}
         </>
       )}
-      {pendingSave !== undefined && <SaveIndicator pendingSave={pendingSave} />}
     </>
   );
 }

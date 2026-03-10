@@ -8,7 +8,7 @@ import type { RFEdgeData } from '../utils/graphTransformers';
 import { calculateInitialViewport, findInitialNodePosition } from '../utils/loadGraphData';
 
 function resolveInitialPosition(initialGraphData: Graph | undefined): { x: number; y: number } | null {
-  if (initialGraphData?.nodes === undefined) {
+  if (initialGraphData?.nodes === undefined || initialGraphData.nodes.length === 0) {
     return defaultStartNode.position;
   }
   return findInitialNodePosition(initialGraphData);

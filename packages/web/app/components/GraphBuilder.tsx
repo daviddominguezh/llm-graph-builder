@@ -3,9 +3,8 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useReactFlow, ReactFlowProvider, useNodesState, useEdgesState } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Loader2 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
 
+import { GraphBuilderLoading } from './GraphBuilderLoading';
 import { HandleContext } from './nodes/HandleContext';
 import { PublishButton } from './panels/PublishButton';
 import { Toolbar } from './panels/Toolbar';
@@ -15,6 +14,7 @@ import { SearchDialog } from './panels/SearchDialog';
 import { VersionSwitcherSlot } from './panels/VersionSwitcherSlot';
 import { GraphCanvas } from './GraphCanvas';
 import { SidePanels } from './SidePanels';
+import type { DiscoveredTool } from '../lib/api';
 import type { ApiKeyRow } from '../lib/api-keys';
 import type { Agent, Graph } from '../schemas/graph.schema';
 import { useApiKeySelection } from '../hooks/useApiKeySelection';
@@ -23,6 +23,7 @@ import { useGraphActions } from '../hooks/useGraphActions';
 import type { GraphLoadResult } from '../hooks/useGraphLoader';
 import { useGraphLoader } from '../hooks/useGraphLoader';
 import { useImportGraph } from '../hooks/useImportGraph';
+import { useMcpDiscovery } from '../hooks/useMcpDiscovery';
 import { useExportGraph } from '../hooks/useExportGraph';
 import { useGraphSelection } from '../hooks/useGraphSelection';
 import { useMcpServers } from '../hooks/useMcpServers';
@@ -53,6 +54,7 @@ export interface GraphBuilderProps {
 interface LoadedEditorProps extends GraphBuilderProps {
   loadResult: GraphLoadResult;
   reload: () => void;
+  initialDiscoveredTools: Record<string, DiscoveredTool[]>;
 }
 
 function useGraphBuilderHooks(props: LoadedEditorProps) {
@@ -69,7 +71,11 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
 
   useSeedInitialGraph(loadResult.graphData, loadResult.nodes, loadResult.edges, opQueue.pushOperation, opQueue.flush);
 
-  const mcpHook = useMcpServers(loadResult.mcpServers, opQueue.pushOperation);
+  const mcpHook = useMcpServers({
+    initialServers: loadResult.mcpServers,
+    initialDiscoveredTools: props.initialDiscoveredTools,
+    pushOperation: opQueue.pushOperation,
+  });
 
   const apiKeys = useApiKeySelection({
     agentId,
@@ -201,17 +207,6 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
   };
 }
 
-function GraphBuilderLoading() {
-  const t = useTranslations('common');
-
-  return (
-    <div className="flex h-screen w-screen items-center justify-center">
-      <Loader2 className="mr-2 size-6 animate-spin" />
-      <span>{t('loading')}</span>
-    </div>
-  );
-}
-
 function LoadedEditor(props: LoadedEditorProps) {
   const h = useGraphBuilderHooks(props);
   const versionsHook = useVersions(props.agentId, props.initialVersion ?? DEFAULT_VERSION);
@@ -230,12 +225,11 @@ function LoadedEditor(props: LoadedEditorProps) {
           onExport={h.handleExport}
           onPlay={h.simulation.start}
           simulationActive={h.simulation.active}
-          statusSlot={<StatusButton nodes={h.nodes} edges={h.edges} />}
+          statusSlot={<StatusButton nodes={h.nodes} edges={h.edges} pendingSave={h.pendingSave} />}
           globalPanelOpen={h.globalPanelOpen}
           onToggleGlobalPanel={() => h.setGlobalPanelOpen((prev) => !prev)}
           onTogglePresets={() => h.setPresetsOpen((prev) => !prev)}
           onToggleTools={() => h.setToolsOpen((prev) => !prev)}
-          pendingSave={h.pendingSave}
           stagingKeyId={h.apiKeys.stagingKeyId}
           orgSlug={props.orgSlug}
           orgName={props.orgName}
@@ -331,10 +325,20 @@ function LoadedEditor(props: LoadedEditorProps) {
 
 function GraphBuilderInner(props: GraphBuilderProps) {
   const loader = useGraphLoader(props.agentId);
+  const mcpServers = loader.loading ? undefined : loader.result.mcpServers;
+  const discovery = useMcpDiscovery(mcpServers);
 
   if (loader.loading) return <GraphBuilderLoading />;
+  if (discovery.loading) return <GraphBuilderLoading serverProgress={discovery.serverProgress} />;
 
-  return <LoadedEditor {...props} loadResult={loader.result} reload={loader.reload} />;
+  return (
+    <LoadedEditor
+      {...props}
+      loadResult={loader.result}
+      reload={loader.reload}
+      initialDiscoveredTools={discovery.discoveredTools}
+    />
+  );
 }
 
 export function GraphBuilder(props: GraphBuilderProps) {

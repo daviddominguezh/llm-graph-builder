@@ -143,14 +143,28 @@ function useToolDiscovery(servers: McpServerConfig[], setters: DiscoverySetters)
   );
 }
 
-export function useMcpServers(
-  initialServers: McpServerConfig[] | undefined,
-  pushOperation: PushOperation
-): McpServersState {
+function buildInitialStatus(tools: Record<string, DiscoveredTool[]>): Record<string, McpServerStatus> {
+  const status: Record<string, McpServerStatus> = {};
+  for (const id of Object.keys(tools)) {
+    status[id] = 'active';
+  }
+  return status;
+}
+
+export interface UseMcpServersOptions {
+  initialServers: McpServerConfig[] | undefined;
+  initialDiscoveredTools?: Record<string, DiscoveredTool[]>;
+  pushOperation: PushOperation;
+}
+
+export function useMcpServers(options: UseMcpServersOptions): McpServersState {
+  const { initialServers, initialDiscoveredTools, pushOperation } = options;
   const [servers, setServers] = useState<McpServerConfig[]>(initialServers ?? []);
-  const [discoveredTools, setDiscoveredTools] = useState<Record<string, DiscoveredTool[]>>({});
+  const [discoveredTools, setDiscoveredTools] = useState<Record<string, DiscoveredTool[]>>(initialDiscoveredTools ?? {});
   const [discovering, setDiscovering] = useState<Record<string, boolean>>({});
-  const [serverStatus, setServerStatus] = useState<Record<string, McpServerStatus>>({});
+  const [serverStatus, setServerStatus] = useState<Record<string, McpServerStatus>>(
+    buildInitialStatus(initialDiscoveredTools ?? {})
+  );
 
   const mutations = useServerMutations({ setServers, setDiscoveredTools, setServerStatus, pushOperation });
   const discoverTools = useToolDiscovery(servers, { setDiscoveredTools, setDiscovering, setServerStatus });
