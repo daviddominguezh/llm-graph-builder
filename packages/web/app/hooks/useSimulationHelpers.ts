@@ -1,10 +1,11 @@
 import type { Message } from '@daviddh/llm-graph-runner';
 import type { Edge as RFEdge, Node as RFNode } from '@xyflow/react';
+import { flushSync } from 'react-dom';
 
 import type { SimulateRequestBody, StreamCallbacks } from '../lib/api';
 import type { Agent, McpServerConfig } from '../schemas/graph.schema';
 import type { ContextPreset } from '../types/preset';
-import type { SimulationStep, SimulationTokens } from '../types/simulation';
+import type { NodeResult, SimulationTokens } from '../types/simulation';
 import { buildContext, buildGraph } from '../utils/graphContext';
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
 
@@ -15,7 +16,8 @@ export interface GraphSnapshot {
 
 export interface SimulationSetters {
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
-  setSteps: React.Dispatch<React.SetStateAction<SimulationStep[]>>;
+  setNodeResults: React.Dispatch<React.SetStateAction<NodeResult[]>>;
+  setLastUserText: React.Dispatch<React.SetStateAction<string>>;
   setTotalTokens: React.Dispatch<React.SetStateAction<SimulationTokens>>;
   setCurrentNode: React.Dispatch<React.SetStateAction<string>>;
   setVisitedNodes: React.Dispatch<React.SetStateAction<string[]>>;
@@ -70,21 +72,26 @@ export function buildStreamCallbacks(
 ): StreamCallbacks {
   return {
     onNodeVisited: (nodeId: string) => {
-      setters.setCurrentNode(nodeId);
-      setters.setVisitedNodes((prev) => [...prev, nodeId]);
+      flushSync(() => {
+        setters.setCurrentNode(nodeId);
+        setters.setVisitedNodes((prev) => [...prev, nodeId]);
+      });
       onZoomToNode(nodeId);
     },
-    onAgentResponse: (event) => {
-      const step: SimulationStep = {
-        userText,
-        agentText: event.text,
-        visitedNodes: event.visitedNodes,
+    onNodeProcessed: (event) => {
+      const result: NodeResult = {
+        nodeId: event.nodeId,
+        text: event.text,
         toolCalls: event.toolCalls,
-        nodeTokens: event.nodeTokens,
-        tokenUsage: event.tokenUsage,
+        tokens: event.tokens,
       };
-      setters.setSteps((prev) => [...prev, step]);
-      setters.setTotalTokens((prev) => addTokens(prev, event.tokenUsage));
+      flushSync(() => {
+        setters.setNodeResults((prev) => [...prev, result]);
+        setters.setTotalTokens((prev) => addTokens(prev, event.tokens));
+      });
+    },
+    onAgentResponse: () => {
+      /* data already captured via onNodeProcessed */
     },
     onComplete: () => {
       setters.setLoading(false);

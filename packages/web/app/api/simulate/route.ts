@@ -35,6 +35,31 @@ async function resolveApiKey(
   return { apiKey: value, error: null };
 }
 
+function buildSseStreamResponse(upstream: Response): Response {
+  const { console: log } = globalThis;
+  log.log(`[SSE:proxy] upstream responded, status=${upstream.status}`);
+
+  const { body: upstreamBody } = upstream;
+  if (upstreamBody === null) {
+    log.log('[SSE:proxy] upstream body is null');
+    return new Response(null, { status: upstream.status });
+  }
+
+  const transform = new TransformStream<Uint8Array, Uint8Array>({
+    transform(chunk, ctrl) {
+      log.log(`[SSE:proxy] forwarding chunk, bytes=${chunk.length}`);
+      ctrl.enqueue(chunk);
+    },
+  });
+
+  void upstreamBody.pipeTo(transform.writable);
+
+  return new Response(transform.readable, {
+    status: upstream.status,
+    headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' },
+  });
+}
+
 async function fetchUpstream(body: Record<string, unknown>): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => {
@@ -54,10 +79,7 @@ async function fetchUpstream(body: Record<string, unknown>): Promise<Response> {
       return new Response(upstream.body, { status: upstream.status });
     }
 
-    return new Response(upstream.body, {
-      status: upstream.status,
-      headers: { 'Content-Type': 'text/event-stream' },
-    });
+    return buildSseStreamResponse(upstream);
   } catch (err) {
     clearTimeout(timeout);
     if (err instanceof Error && err.name === 'AbortError') {

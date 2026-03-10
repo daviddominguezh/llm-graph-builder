@@ -6,7 +6,7 @@ import { useCallback, useRef, useState } from 'react';
 import { streamSimulation } from '../lib/api';
 import type { Agent, McpServerConfig } from '../schemas/graph.schema';
 import type { ContextPreset } from '../types/preset';
-import type { SimulationStep, SimulationTokens } from '../types/simulation';
+import type { NodeResult, SimulationTokens } from '../types/simulation';
 import { START_NODE_ID } from '../utils/graphContext';
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
 import type {
@@ -42,7 +42,8 @@ export interface SimulationState {
   currentNode: string;
   terminated: boolean;
   visitedNodes: string[];
-  steps: SimulationStep[];
+  lastUserText: string;
+  nodeResults: NodeResult[];
   totalTokens: SimulationTokens;
   start: () => void;
   stop: () => void;
@@ -74,7 +75,8 @@ function useSimulationStart(deps: SimulationStartDeps): () => void {
     setters.setActive(true);
     setters.setCurrentNode(START_NODE_ID);
     setters.setMessages([]);
-    setters.setSteps([]);
+    setters.setNodeResults([]);
+    setters.setLastUserText('');
     setters.setVisitedNodes([]);
     setters.setTotalTokens(EMPTY_TOKENS);
     onZoomToNode(START_NODE_ID);
@@ -89,7 +91,8 @@ function useSimulationStop(
     setters.saveSnapshot(null);
     setters.setActive(false);
     setters.setMessages([]);
-    setters.setSteps([]);
+    setters.setNodeResults([]);
+    setters.setLastUserText('');
     setters.setVisitedNodes([]);
     setters.setTotalTokens(EMPTY_TOKENS);
     onExitZoomView();
@@ -114,6 +117,8 @@ function useSimulationSend(deps: SendMessageDeps): (text: string) => void {
       const snapshot = setters.getSnapshot();
       if (preset === undefined || loading || snapshot === null) return;
       setters.setLoading(true);
+      setters.setNodeResults([]);
+      setters.setLastUserText(text);
 
       const userMessage = createUserMessage(text);
       const allMessages = [...messages, userMessage];
@@ -141,7 +146,8 @@ interface SimulationHookState {
   loading: boolean;
   currentNode: string;
   messages: Message[];
-  steps: SimulationStep[];
+  lastUserText: string;
+  nodeResults: NodeResult[];
   visitedNodes: string[];
   totalTokens: SimulationTokens;
   snapshotRef: React.RefObject<GraphSnapshot | null>;
@@ -153,7 +159,8 @@ function useSimulationState(): SimulationHookState {
   const [loading, setLoading] = useState(false);
   const [currentNode, setCurrentNode] = useState(START_NODE_ID);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [steps, setSteps] = useState<SimulationStep[]>([]);
+  const [lastUserText, setLastUserText] = useState('');
+  const [nodeResults, setNodeResults] = useState<NodeResult[]>([]);
   const [visitedNodes, setVisitedNodes] = useState<string[]>([]);
   const [totalTokens, setTotalTokens] = useState<SimulationTokens>(EMPTY_TOKENS);
   const snapshotRef = useRef<GraphSnapshot | null>(null);
@@ -164,7 +171,8 @@ function useSimulationState(): SimulationHookState {
 
   const setters: FullSetters = {
     setMessages,
-    setSteps,
+    setNodeResults,
+    setLastUserText,
     setTotalTokens,
     setCurrentNode,
     setVisitedNodes,
@@ -174,7 +182,18 @@ function useSimulationState(): SimulationHookState {
     getSnapshot,
   };
 
-  return { active, loading, currentNode, messages, steps, visitedNodes, totalTokens, snapshotRef, setters };
+  return {
+    active,
+    loading,
+    currentNode,
+    messages,
+    lastUserText,
+    nodeResults,
+    visitedNodes,
+    totalTokens,
+    snapshotRef,
+    setters,
+  };
 }
 
 export function useSimulation(params: UseSimulationParams): SimulationState {
@@ -203,7 +222,8 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
     currentNode: s.currentNode,
     terminated,
     visitedNodes: s.visitedNodes,
-    steps: s.steps,
+    lastUserText: s.lastUserText,
+    nodeResults: s.nodeResults,
     totalTokens: s.totalTokens,
     start,
     stop,

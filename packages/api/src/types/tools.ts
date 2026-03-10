@@ -1,6 +1,14 @@
-import type { Tool } from 'ai';
+import type { Tool, TypedToolCall } from 'ai';
 
+import type { TokenLog } from './ai/logs.js';
 import type { Graph } from './graph.js';
+
+export interface NodeProcessedEvent {
+  nodeId: string;
+  text?: string;
+  toolCalls: Array<TypedToolCall<Record<string, Tool>>>;
+  tokens: TokenLog;
+}
 
 export interface Context {
   graph: Graph;
@@ -15,6 +23,7 @@ export interface Context {
   userToken?: string;
   toolsOverride?: Record<string, Tool>;
   onNodeVisited?: (nodeId: string) => void;
+  onNodeProcessed?: (event: NodeProcessedEvent) => void;
 }
 
 export interface ToolResponsePrompt {

@@ -30,6 +30,13 @@ export interface SimulateRequest {
 export type SimulationEvent =
   | { type: 'node_visited'; nodeId: string }
   | {
+      type: 'node_processed';
+      nodeId: string;
+      text: string;
+      toolCalls: Array<{ toolName: string; input: unknown }>;
+      tokens: { input: number; output: number; cached: number };
+    }
+  | {
       type: 'agent_response';
       text: string;
       visitedNodes: string[];

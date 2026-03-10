@@ -1,4 +1,4 @@
-import type { CallAgentOutput } from '@daviddh/llm-graph-runner';
+import type { CallAgentOutput, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
 import { executeWithCallbacks } from '@daviddh/llm-graph-runner';
 import type { Request, Response } from 'express';
 
@@ -10,7 +10,24 @@ import { buildContext, setSseHeaders, sumTokens, writeSSE } from './simulate.js'
 const EMPTY_SESSION: McpSession = { clients: [], tools: {} };
 
 function sendNodeVisited(res: Response, nodeId: string): void {
+  const { console: log } = globalThis;
+  log.log(`[SSE:backend] sending node_visited: ${nodeId}`);
   writeSSE(res, { type: 'node_visited', nodeId });
+}
+
+function sendNodeProcessed(res: Response, event: NodeProcessedEvent): void {
+  const { console: log } = globalThis;
+  log.log(`[SSE:backend] sending node_processed: ${event.nodeId}`);
+  writeSSE(res, {
+    type: 'node_processed',
+    nodeId: event.nodeId,
+    text: event.text ?? '',
+    toolCalls: event.toolCalls.map((tc) => ({
+      toolName: tc.toolName,
+      input: tc.input as unknown,
+    })),
+    tokens: event.tokens,
+  });
 }
 
 function extractToolCalls(
@@ -33,6 +50,8 @@ function extractNodeTokens(
 }
 
 function sendAgentResponse(res: Response, result: CallAgentOutput): void {
+  const { console: log } = globalThis;
+  log.log(`[SSE:backend] sending agent_response, visitedNodes: ${JSON.stringify(result.visitedNodes)}`);
   const tokenUsage = sumTokens(result);
   writeSSE(res, {
     type: 'agent_response',
@@ -59,6 +78,9 @@ async function runSimulation(body: SimulateRequest, session: McpSession, res: Re
     logger: consoleLogger,
     onNodeVisited: (nodeId: string) => {
       sendNodeVisited(res, nodeId);
+    },
+    onNodeProcessed: (event: NodeProcessedEvent) => {
+      sendNodeProcessed(res, event);
     },
   });
   if (result !== null) {

@@ -94,9 +94,9 @@ export function GraphCanvas({
 
         {simulation.active && (
           <SimulationPanel
-            steps={simulation.steps}
+            lastUserText={simulation.lastUserText}
+            nodeResults={simulation.nodeResults}
             visitedNodes={simulation.visitedNodes}
-            totalTokens={simulation.totalTokens}
             terminated={simulation.terminated}
             loading={simulation.loading}
             onSendMessage={simulation.sendMessage}

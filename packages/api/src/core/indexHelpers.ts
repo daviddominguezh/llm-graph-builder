@@ -153,6 +153,22 @@ export interface FlowResult {
   toolCalls: ToolCallsArray;
 }
 
+interface EmitNodeProcessedParams {
+  context: Context;
+  input: CallAgentInput;
+  nodeId: string;
+  parsedResult: ParsedResult;
+  toolCalls: ToolCallsArray;
+}
+
+function emitNodeProcessed(params: EmitNodeProcessedParams): void {
+  const { context, input, nodeId, parsedResult, toolCalls } = params;
+  if (context.onNodeProcessed === undefined) return;
+  const lastLog = input.tokensLog.at(-LAST_INDEX_OFFSET);
+  const tokens = lastLog?.tokens ?? createEmptyTokenLog();
+  context.onNodeProcessed({ nodeId, text: parsedResult.messageToUser, toolCalls, tokens });
+}
+
 function isTerminalNode(context: Context, nodeID: string): boolean {
   const edges = context.graph.edges.filter((e) => e.from === nodeID);
   return edges.length === EMPTY_LENGTH;
@@ -183,6 +199,8 @@ async function processFlowStep(
   if (error) {
     return { state, error: true, shouldContinue: false };
   }
+
+  emitNodeProcessed({ context, input, nodeId: currentNodeID, parsedResult, toolCalls });
 
   if (toolCalls.length > EMPTY_LENGTH) {
     allToolCalls.push(...toolCalls);

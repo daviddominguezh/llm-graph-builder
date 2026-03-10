@@ -1,18 +1,18 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 import { Square } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { Button } from '@/components/ui/button';
-import type { SimulationStep, SimulationTokens } from '../../../types/simulation';
-import { TokenDisplay } from './TokenDisplay';
-import { StepItem } from './StepItem';
+import { useEffect, useRef } from 'react';
+
+import type { NodeResult } from '../../../types/simulation';
+import { NodeResultItem } from './NodeResultItem';
 import { SimulationInput } from './SimulationInput';
 
 interface SimulationPanelProps {
-  steps: SimulationStep[];
+  lastUserText: string;
+  nodeResults: NodeResult[];
   visitedNodes: string[];
-  totalTokens: SimulationTokens;
   terminated: boolean;
   loading: boolean;
   onSendMessage: (text: string) => void;
@@ -34,13 +34,15 @@ function Breadcrumbs({ nodes }: { nodes: string[] }) {
   );
 }
 
-function SimulationHeader({ visitedNodes, totalTokens, onStop }: Pick<SimulationPanelProps, 'visitedNodes' | 'totalTokens' | 'onStop'>) {
+function SimulationHeader({
+  visitedNodes,
+  onStop,
+}: Pick<SimulationPanelProps, 'visitedNodes' | 'onStop'>) {
   return (
     <div className="flex items-center gap-3 border-b px-3 py-2">
       <span className="shrink-0 text-sm font-semibold">Simulation</span>
       <Breadcrumbs nodes={visitedNodes} />
-      <TokenDisplay tokens={totalTokens} className="ml-auto shrink-0" />
-      <Button variant="destructive" size="sm" onClick={onStop}>
+      <Button variant="destructive" size="sm" className="ml-auto" onClick={onStop}>
         <Square className="mr-1 size-3" />
         Stop
       </Button>
@@ -48,19 +50,38 @@ function SimulationHeader({ visitedNodes, totalTokens, onStop }: Pick<Simulation
   );
 }
 
-function StepsList({ steps, scrollRef }: { steps: SimulationStep[]; scrollRef: React.RefObject<HTMLDivElement | null> }) {
+function UserMessage({ text }: { text: string }) {
+  if (text === '') return null;
+  return (
+    <div className="flex justify-end">
+      <div className="max-w-[75%] rounded-lg bg-primary px-3 py-1.5 text-sm text-primary-foreground">
+        {text}
+      </div>
+    </div>
+  );
+}
+
+interface ContentAreaProps {
+  lastUserText: string;
+  nodeResults: NodeResult[];
+  scrollRef: React.RefObject<HTMLDivElement | null>;
+}
+
+function ContentArea({ lastUserText, nodeResults, scrollRef }: ContentAreaProps) {
   return (
     <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2">
       <div className="flex flex-col gap-2">
-        {steps.map((step, i) => (
-          <StepItem key={i} step={step} index={i} />
+        <UserMessage text={lastUserText} />
+        {nodeResults.map((result, i) => (
+          <NodeResultItem key={i} result={result} />
         ))}
       </div>
     </div>
   );
 }
 
-export function SimulationPanel({ steps, visitedNodes, totalTokens, terminated, loading, onSendMessage, onStop }: SimulationPanelProps) {
+export function SimulationPanel(props: SimulationPanelProps) {
+  const { lastUserText, nodeResults, visitedNodes, terminated, loading, onSendMessage, onStop } = props;
   const t = useTranslations('simulation');
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -68,13 +89,20 @@ export function SimulationPanel({ steps, visitedNodes, totalTokens, terminated, 
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [steps.length]);
+  }, [nodeResults.length]);
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 z-10 flex h-72 flex-col border-t bg-background">
-      <SimulationHeader visitedNodes={visitedNodes} totalTokens={totalTokens} onStop={onStop} />
-      <StepsList steps={steps} scrollRef={scrollRef} />
-      <SimulationInput loading={loading} terminated={terminated} terminatedLabel={t('terminated')} onSendMessage={onSendMessage} />
+    <div className="absolute bottom-0 left-0 z-10 flex w-72 h-full p-2 pt-13">
+      <div className="relative w-full h-full flex flex-col border bg-background rounded-md shadow-md">
+        <SimulationHeader visitedNodes={visitedNodes} onStop={onStop} />
+        <ContentArea lastUserText={lastUserText} nodeResults={nodeResults} scrollRef={scrollRef} />
+        <SimulationInput
+          loading={loading}
+          terminated={terminated}
+          terminatedLabel={t('terminated')}
+          onSendMessage={onSendMessage}
+        />
+      </div>
     </div>
   );
 }

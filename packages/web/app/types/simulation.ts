@@ -20,6 +20,13 @@ export interface SimulationStep {
   tokenUsage: TokenLog;
 }
 
+export interface NodeResult {
+  nodeId: string;
+  text: string;
+  toolCalls: SimulationToolCall[];
+  tokens: TokenLog;
+}
+
 export interface SimulationTokens {
   input: number;
   output: number;

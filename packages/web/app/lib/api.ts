@@ -87,8 +87,16 @@ interface AgentResponseEvent {
   tokenUsage: { input: number; output: number; cached: number };
 }
 
+export interface NodeProcessedEvent {
+  nodeId: string;
+  text: string;
+  toolCalls: SseToolCall[];
+  tokens: { input: number; output: number; cached: number };
+}
+
 export interface StreamCallbacks {
   onNodeVisited?: (nodeId: string) => void;
+  onNodeProcessed?: (event: NodeProcessedEvent) => void;
   onAgentResponse?: (event: AgentResponseEvent) => void;
   onError?: (message: string) => void;
   onComplete?: () => void;
@@ -105,6 +113,8 @@ const SseNodeTokensSchema = z.object({
   tokens: z.object({ input: z.number(), output: z.number(), cached: z.number() }),
 });
 
+const TokensSchema = z.object({ input: z.number(), output: z.number(), cached: z.number() });
+
 const SseEventSchema = z.object({
   type: z.string(),
   nodeId: z.string().optional(),
@@ -112,7 +122,8 @@ const SseEventSchema = z.object({
   visitedNodes: z.array(z.string()).optional(),
   toolCalls: z.array(SseToolCallSchema).optional(),
   nodeTokens: z.array(SseNodeTokensSchema).optional(),
-  tokenUsage: z.object({ input: z.number(), output: z.number(), cached: z.number() }).optional(),
+  tokens: TokensSchema.optional(),
+  tokenUsage: TokensSchema.optional(),
   message: z.string().optional(),
 });
 
@@ -121,6 +132,17 @@ type SseEvent = z.infer<typeof SseEventSchema>;
 function handleNodeVisited(event: SseEvent, callbacks: StreamCallbacks): void {
   if (event.nodeId !== undefined) {
     callbacks.onNodeVisited?.(event.nodeId);
+  }
+}
+
+function handleNodeProcessed(event: SseEvent, callbacks: StreamCallbacks): void {
+  if (event.nodeId !== undefined && event.tokens !== undefined) {
+    callbacks.onNodeProcessed?.({
+      nodeId: event.nodeId,
+      text: event.text ?? '',
+      toolCalls: event.toolCalls ?? [],
+      tokens: event.tokens,
+    });
   }
 }
 
@@ -138,8 +160,12 @@ function handleAgentResponse(event: SseEvent, callbacks: StreamCallbacks): void 
 }
 
 function dispatchSseEvent(event: SseEvent, callbacks: StreamCallbacks): void {
+  // eslint-disable-next-line no-console -- temporary debug logging for SSE pipeline
+  console.log(`[SSE:client] t=${Date.now()} event type=${event.type}`, event.nodeId ?? '');
   if (event.type === 'node_visited') {
     handleNodeVisited(event, callbacks);
+  } else if (event.type === 'node_processed') {
+    handleNodeProcessed(event, callbacks);
   } else if (event.type === 'agent_response') {
     handleAgentResponse(event, callbacks);
   } else if (event.type === 'error' && event.message !== undefined) {
@@ -183,22 +209,43 @@ function processStreamChunk(state: StreamReaderState, chunk: ReadableStreamReadR
   const updated = processChunk(state.decoder, chunk.value, state.buffer);
   const lines = updated.split('\n');
   const remaining = lines.pop() ?? '';
+  const dataLines = lines.filter((l) => l.trim().startsWith(SSE_DATA_PREFIX));
+  // eslint-disable-next-line no-console -- temporary debug logging for SSE pipeline
+  console.log(
+    `[SSE:client] t=${Date.now()} chunk received, lines=${String(lines.length)}, dataLines=${String(dataLines.length)}`
+  );
   processBufferedLines(lines, state.callbacks);
   return remaining;
 }
 
-async function readNextChunk(state: StreamReaderState): Promise<void> {
-  const chunk = await state.reader.read();
-  if (chunk.done) return;
-  const remaining = processStreamChunk(state, chunk);
-  await readNextChunk({ ...state, buffer: remaining });
+function scheduleNextRead(state: StreamReaderState, resolve: () => void, reject: (e: unknown) => void): void {
+  setTimeout(() => {
+    readChunkLoop(state, resolve, reject);
+  });
+}
+
+function readChunkLoop(state: StreamReaderState, resolve: () => void, reject: (e: unknown) => void): void {
+  state.reader
+    .read()
+    .then((chunk) => {
+      if (chunk.done) {
+        resolve();
+        return;
+      }
+      const remaining = processStreamChunk(state, chunk);
+      scheduleNextRead({ ...state, buffer: remaining }, resolve, reject);
+    })
+    .catch(reject);
 }
 
 async function readSseStream(
   reader: ReadableStreamDefaultReader<Uint8Array>,
   callbacks: StreamCallbacks
 ): Promise<void> {
-  await readNextChunk({ reader, decoder: new TextDecoder(), callbacks, buffer: '' });
+  const state: StreamReaderState = { reader, decoder: new TextDecoder(), callbacks, buffer: '' };
+  return new Promise<void>((resolve, reject) => {
+    readChunkLoop(state, resolve, reject);
+  });
 }
 
 export async function streamSimulation(
