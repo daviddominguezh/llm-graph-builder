@@ -63,11 +63,12 @@ export async function updateNode(
 }
 
 async function deleteRelatedEdges(supabase: SupabaseClient, agentId: string, nodeId: string): Promise<void> {
+  const safeId = nodeId.replace(/[^a-zA-Z0-9_-]/gv, '');
   const result = await supabase
     .from('graph_edges')
     .delete()
     .eq('agent_id', agentId)
-    .or(`from_node.eq.${nodeId},to_node.eq.${nodeId}`);
+    .or(`from_node.eq.${safeId},to_node.eq.${safeId}`);
   throwOnMutationError(result, 'deleteRelatedEdges');
 }
 

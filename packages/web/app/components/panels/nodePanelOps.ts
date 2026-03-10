@@ -19,12 +19,8 @@ export function pushUpdateNode(
   pushOp(buildUpdateNodeOp(updated));
 }
 
-export function pushDeleteNode(nodeId: string, edges: Array<Edge<RFEdgeData>>, pushOp: PushOperation): void {
+export function pushDeleteNode(nodeId: string, pushOp: PushOperation): void {
   pushOp(buildDeleteNodeOp(nodeId));
-  const connected = edges.filter((e) => e.source === nodeId || e.target === nodeId);
-  for (const edge of connected) {
-    pushOp(buildDeleteEdgeOp(edge.source, edge.target));
-  }
 }
 
 export function pushRenameNode(

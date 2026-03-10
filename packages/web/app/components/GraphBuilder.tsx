@@ -186,6 +186,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     setVersion,
     apiKeys,
     pushOperation: opQueue.pushOperation,
+    flush: opQueue.flush,
     hasPendingOps: opQueue.hasPendingOps,
     clearQueue: opQueue.clearQueue,
   };
@@ -237,6 +238,7 @@ function LoadedEditor(props: LoadedEditorProps) {
                 agentId={props.agentId}
                 canPublish={h.canPublish}
                 hasApiKey={h.apiKeys.stagingKeyId !== null}
+                flush={h.flush}
                 onPublished={(newVersion) => {
                   h.setVersion(newVersion);
                   versionsHook.setCurrentVersion(newVersion);

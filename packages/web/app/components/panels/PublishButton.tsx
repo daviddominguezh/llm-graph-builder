@@ -12,6 +12,7 @@ interface PublishButtonProps {
   agentId: string;
   canPublish: boolean;
   hasApiKey: boolean;
+  flush: () => Promise<void>;
   onPublished: (newVersion: number) => void;
 }
 
@@ -58,13 +59,14 @@ function PublishButtonContent({
   );
 }
 
-export function PublishButton({ agentId, canPublish, hasApiKey, onPublished }: PublishButtonProps) {
+export function PublishButton({ agentId, canPublish, hasApiKey, flush, onPublished }: PublishButtonProps) {
   const t = useTranslations('editor');
   const [publishing, setPublishing] = useState(false);
 
   async function handlePublish() {
     setPublishing(true);
     try {
+      await flush();
       const { version: newVersion } = await publishGraph(agentId);
       onPublished(newVersion);
     } catch {

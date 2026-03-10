@@ -113,7 +113,7 @@ export function NodePanel({
   const handleDelete = () => {
     setNodes((nds) => nds.filter((n) => n.id !== nodeId));
     setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
-    pushDeleteNode(nodeId, edges, pushOperation);
+    pushDeleteNode(nodeId, pushOperation);
     onNodeDeleted?.();
   };
 

@@ -20,8 +20,8 @@ create table public.agent_versions (
   id           uuid primary key default gen_random_uuid(),
   agent_id     uuid not null references public.agents(id) on delete cascade,
   version      integer not null,
-  graph_data   jsonb,
-  published_at timestamptz,
+  graph_data   jsonb not null,
+  published_at timestamptz not null default now(),
   published_by uuid references auth.users,
   unique (agent_id, version)
 );

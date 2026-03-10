@@ -1,31 +1,16 @@
 import { OperationsBatchSchema } from '@daviddh/graph-types';
-import type { createClient } from '@supabase/supabase-js';
 import type { Request, Response } from 'express';
 
 import { executeOperationsBatch } from '../../db/queries/operationExecutor.js';
-
-type SupabaseClient = ReturnType<typeof createClient>;
-
-const HTTP_OK = 200;
-const HTTP_BAD_REQUEST = 400;
-const HTTP_INTERNAL_ERROR = 500;
-
-interface AuthenticatedLocals extends Record<string, unknown> {
-  supabase: SupabaseClient;
-  userId: string;
-}
-
-type AuthenticatedResponse = Response<unknown, AuthenticatedLocals>;
-
-interface AgentParams {
-  agentId?: string | string[];
-}
-
-function getAgentId(req: Request): string | undefined {
-  const { agentId }: AgentParams = req.params;
-  if (typeof agentId === 'string') return agentId;
-  return undefined;
-}
+import {
+  type AuthenticatedLocals,
+  type AuthenticatedResponse,
+  HTTP_BAD_REQUEST,
+  HTTP_INTERNAL_ERROR,
+  HTTP_OK,
+  extractErrorMessage,
+  getAgentId,
+} from '../routeHelpers.js';
 
 function logError(agentId: string, message: string): void {
   process.stderr.write(`[postOperations] ERROR agent=${agentId}: ${message}\n`);
@@ -56,7 +41,7 @@ export async function handlePostOperations(req: Request, res: AuthenticatedRespo
     await executeOperationsBatch(supabase, agentId, parsed.data.operations);
     res.status(HTTP_OK).json({ success: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
+    const message = extractErrorMessage(err);
     logError(agentId, message);
     res.status(HTTP_INTERNAL_ERROR).json({ error: message });
   }
