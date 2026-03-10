@@ -6,11 +6,17 @@ export interface SimulationToolCall {
   output: unknown;
 }
 
+export interface NodeTokenUsage {
+  node: string;
+  tokens: TokenLog;
+}
+
 export interface SimulationStep {
   userText: string;
   agentText: string;
   visitedNodes: string[];
   toolCalls: SimulationToolCall[];
+  nodeTokens: NodeTokenUsage[];
   tokenUsage: TokenLog;
 }
 

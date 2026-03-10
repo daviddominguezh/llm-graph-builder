@@ -73,11 +73,17 @@ interface SseToolCall {
   output: unknown;
 }
 
+interface SseNodeTokens {
+  node: string;
+  tokens: { input: number; output: number; cached: number };
+}
+
 interface AgentResponseEvent {
   type: 'agent_response';
   text: string;
   visitedNodes: string[];
   toolCalls: SseToolCall[];
+  nodeTokens: SseNodeTokens[];
   tokenUsage: { input: number; output: number; cached: number };
 }
 
@@ -94,12 +100,18 @@ const SseToolCallSchema = z.object({
   output: z.unknown(),
 });
 
+const SseNodeTokensSchema = z.object({
+  node: z.string(),
+  tokens: z.object({ input: z.number(), output: z.number(), cached: z.number() }),
+});
+
 const SseEventSchema = z.object({
   type: z.string(),
   nodeId: z.string().optional(),
   text: z.string().optional(),
   visitedNodes: z.array(z.string()).optional(),
   toolCalls: z.array(SseToolCallSchema).optional(),
+  nodeTokens: z.array(SseNodeTokensSchema).optional(),
   tokenUsage: z.object({ input: z.number(), output: z.number(), cached: z.number() }).optional(),
   message: z.string().optional(),
 });
@@ -119,6 +131,7 @@ function handleAgentResponse(event: SseEvent, callbacks: StreamCallbacks): void 
       text: event.text,
       visitedNodes: event.visitedNodes,
       toolCalls: event.toolCalls ?? [],
+      nodeTokens: event.nodeTokens ?? [],
       tokenUsage: event.tokenUsage,
     });
   }

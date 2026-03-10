@@ -34,6 +34,7 @@ export type SimulationEvent =
       text: string;
       visitedNodes: string[];
       toolCalls: Array<{ toolName: string; input: unknown; output: unknown }>;
+      nodeTokens: Array<{ node: string; tokens: { input: number; output: number; cached: number } }>;
       tokenUsage: { input: number; output: number; cached: number };
     }
   | { type: 'error'; message: string }

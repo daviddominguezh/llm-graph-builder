@@ -4,7 +4,7 @@ import { Wrench } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Separator } from '@/components/ui/separator';
-import type { SimulationStep, SimulationToolCall } from '../../../types/simulation';
+import type { NodeTokenUsage, SimulationStep, SimulationToolCall } from '../../../types/simulation';
 import { TokenDisplay } from './TokenDisplay';
 
 interface StepItemProps {
@@ -42,7 +42,7 @@ function formatJson(value: unknown): string {
   return JSON.stringify(value, null, 2);
 }
 
-function ToolCallItem({ call, t }: { call: SimulationToolCall; t: (key: string) => string }) {
+function ToolCallItem({ call }: { call: SimulationToolCall }) {
   return (
     <div className="w-fit rounded-md border border-orange-200 bg-orange-50 px-3 py-2 dark:border-orange-900 dark:bg-orange-950/30">
       <div className="flex items-center gap-1.5">
@@ -58,12 +58,33 @@ function ToolCallItem({ call, t }: { call: SimulationToolCall; t: (key: string) 
   );
 }
 
-function ToolCallsList({ calls, t }: { calls: SimulationToolCall[]; t: (key: string) => string }) {
+function ToolCallsList({ calls }: { calls: SimulationToolCall[] }) {
   if (calls.length === 0) return null;
   return (
     <div className="flex flex-col gap-1">
       {calls.map((call, i) => (
-        <ToolCallItem key={i} call={call} t={t} />
+        <ToolCallItem key={i} call={call} />
+      ))}
+    </div>
+  );
+}
+
+function NodeTokenItem({ entry }: { entry: NodeTokenUsage }) {
+  return (
+    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+      <span className="font-medium">{entry.node}</span>
+      <TokenDisplay tokens={entry.tokens} />
+    </div>
+  );
+}
+
+function NodeTokensList({ entries, t }: { entries: NodeTokenUsage[]; t: (key: string) => string }) {
+  if (entries.length === 0) return null;
+  return (
+    <div className="mt-1 flex flex-col gap-0.5 rounded border bg-muted/30 px-2 py-1.5">
+      <span className="text-[10px] font-medium text-muted-foreground">{t('nodeTokens')}</span>
+      {entries.map((entry, i) => (
+        <NodeTokenItem key={i} entry={entry} />
       ))}
     </div>
   );
@@ -76,12 +97,13 @@ export function StepItem({ step, index }: StepItemProps) {
       {index > 0 && <Separator className="my-1" />}
       <VisitedNodesPath nodes={step.visitedNodes} />
       <UserMessage text={step.userText} />
-      <ToolCallsList calls={step.toolCalls} t={t} />
+      <ToolCallsList calls={step.toolCalls} />
       <AgentMessage text={step.agentText} />
-      <TokenDisplay
-        tokens={{ input: step.tokenUsage.input, output: step.tokenUsage.output, cached: step.tokenUsage.cached }}
-        className="self-end"
-      />
+      <NodeTokensList entries={step.nodeTokens} t={t} />
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-medium text-muted-foreground">{t('totalTokens')}</span>
+        <TokenDisplay tokens={step.tokenUsage} />
+      </div>
     </div>
   );
 }

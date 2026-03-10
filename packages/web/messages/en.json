@@ -102,7 +102,10 @@
     "connectingMcpServers": "Connecting to MCP servers..."
   },
   "simulation": {
-    "toolInput": "Input"
+    "toolInput": "Input",
+    "nodeTokens": "Tokens by node",
+    "totalTokens": "Total",
+    "terminated": "Terminal node reached — simulation complete"
   },
   "edgePanel": {
     "parameters": "Parameters:",

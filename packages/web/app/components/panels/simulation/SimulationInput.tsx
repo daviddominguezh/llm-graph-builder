@@ -1,17 +1,30 @@
 'use client';
 
 import { useState } from 'react';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, OctagonX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 interface SimulationInputProps {
   loading: boolean;
+  terminated: boolean;
+  terminatedLabel: string;
   onSendMessage: (text: string) => void;
 }
 
-export function SimulationInput({ loading, onSendMessage }: SimulationInputProps) {
+function TerminatedBanner({ label }: { label: string }) {
+  return (
+    <div className="flex items-center justify-center gap-2 border-t px-3 py-3 text-sm text-muted-foreground">
+      <OctagonX className="size-4" />
+      <span>{label}</span>
+    </div>
+  );
+}
+
+export function SimulationInput({ loading, terminated, terminatedLabel, onSendMessage }: SimulationInputProps) {
   const [text, setText] = useState('');
+
+  if (terminated) return <TerminatedBanner label={terminatedLabel} />;
 
   const handleSubmit = () => {
     const trimmed = text.trim();

@@ -21,6 +21,13 @@ function extractToolCalls(result: CallAgentOutput): Array<{ toolName: string; in
   }));
 }
 
+function extractNodeTokens(result: CallAgentOutput): Array<{ node: string; tokens: { input: number; output: number; cached: number } }> {
+  return result.tokensLogs.map((log) => ({
+    node: log.action,
+    tokens: log.tokens,
+  }));
+}
+
 function sendAgentResponse(res: Response, result: CallAgentOutput): void {
   const tokenUsage = sumTokens(result);
   writeSSE(res, {
@@ -28,6 +35,7 @@ function sendAgentResponse(res: Response, result: CallAgentOutput): void {
     text: result.text ?? '',
     visitedNodes: result.visitedNodes,
     toolCalls: extractToolCalls(result),
+    nodeTokens: extractNodeTokens(result),
     tokenUsage,
   });
 }

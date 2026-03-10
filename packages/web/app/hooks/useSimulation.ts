@@ -11,6 +11,11 @@ import { START_NODE_ID, buildContext, buildGraph } from '../utils/graphContext';
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
 
 const INITIAL_TOKEN_COUNT = 0;
+const ZERO_EDGES = 0;
+
+function isNodeTerminal(edges: Array<RFEdge<RFEdgeData>>, nodeId: string): boolean {
+  return nodeId !== START_NODE_ID && edges.filter((e) => e.source === nodeId).length === ZERO_EDGES;
+}
 
 interface GraphSnapshot {
   nodes: Array<RFNode<RFNodeData>>;
@@ -32,6 +37,7 @@ export interface SimulationState {
   active: boolean;
   loading: boolean;
   currentNode: string;
+  terminated: boolean;
   steps: SimulationStep[];
   totalTokens: SimulationTokens;
   start: () => void;
@@ -137,6 +143,7 @@ function buildStreamCallbacks(
         agentText: event.text,
         visitedNodes: event.visitedNodes,
         toolCalls: event.toolCalls,
+        nodeTokens: event.nodeTokens,
         tokenUsage: event.tokenUsage,
       };
       setters.setSteps((prev) => [...prev, step]);
@@ -251,5 +258,8 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
     onZoomToNode,
   });
 
-  return { active, loading, currentNode, steps, totalTokens, start, stop, sendMessage };
+  const { current: snapshot } = snapshotRef;
+  const terminated = active && !loading && snapshot !== null && isNodeTerminal(snapshot.edges, currentNode);
+
+  return { active, loading, currentNode, terminated, steps, totalTokens, start, stop, sendMessage };
 }
