@@ -44,7 +44,7 @@ export async function insertNode(
   data: InsertNodeOp['data']
 ): Promise<void> {
   const row = buildNodeRow(agentId, data);
-  const result = await supabase.from('graph_nodes').insert(row);
+  const result = await supabase.from('graph_nodes').upsert(row, { onConflict: 'agent_id,node_id' });
   throwOnMutationError(result, 'insertNode');
 }
 

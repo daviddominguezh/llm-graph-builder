@@ -34,7 +34,11 @@ const EMPTY_LENGTH = 0;
 
 async function insertEdgeRow(supabase: SupabaseClient, agentId: string, data: EdgeData): Promise<string> {
   const row: EdgeInsertRow = { agent_id: agentId, from_node: data.from, to_node: data.to };
-  const result = await supabase.from('graph_edges').insert(row).select('id').single();
+  const result = await supabase
+    .from('graph_edges')
+    .upsert(row, { onConflict: 'agent_id,from_node,to_node' })
+    .select('id')
+    .single();
 
   if (result.error !== null) {
     throw new Error(`insertEdgeRow: ${result.error.message}`);
@@ -83,6 +87,7 @@ async function insertPreconditions(supabase: SupabaseClient, edgeId: string, dat
 
 export async function insertEdge(supabase: SupabaseClient, agentId: string, data: EdgeData): Promise<void> {
   const edgeId = await insertEdgeRow(supabase, agentId, data);
+  await deletePreconditionsForEdge(supabase, edgeId);
   await insertPreconditions(supabase, edgeId, data);
 }
 

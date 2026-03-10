@@ -37,7 +37,7 @@ export async function insertMcpServer(
   data: InsertMcpOp['data']
 ): Promise<void> {
   const row = buildMcpServerRow(agentId, data);
-  const result = await supabase.from('graph_mcp_servers').insert(row);
+  const result = await supabase.from('graph_mcp_servers').upsert(row, { onConflict: 'agent_id,server_id' });
   throwOnMutationError(result, 'insertMcpServer');
 }
 

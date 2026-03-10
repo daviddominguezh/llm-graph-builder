@@ -32,7 +32,7 @@ export async function insertContextPreset(
   data: InsertPresetOp['data']
 ): Promise<void> {
   const row = buildPresetRow(agentId, data);
-  const result = await supabase.from('graph_context_presets').insert(row);
+  const result = await supabase.from('graph_context_presets').upsert(row, { onConflict: 'agent_id,name' });
   throwOnMutationError(result, 'insertContextPreset');
 }
 

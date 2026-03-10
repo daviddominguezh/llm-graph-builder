@@ -26,7 +26,7 @@ export async function insertAgent(
   data: InsertAgentOp['data']
 ): Promise<void> {
   const row = buildAgentRow(agentId, data);
-  const result = await supabase.from('graph_agents').insert(row);
+  const result = await supabase.from('graph_agents').upsert(row, { onConflict: 'agent_id,agent_key' });
   throwOnMutationError(result, 'insertAgent');
 }
 

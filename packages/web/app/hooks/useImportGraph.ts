@@ -18,7 +18,7 @@ type NodeArray = Array<Node<RFNodeData>>;
 type EdgeArray = Array<Edge<RFEdgeData>>;
 type PushOperation = (op: Operation) => void;
 
-interface UseImportGraphParams {
+export interface UseImportGraphParams {
   setNodes: (nodes: NodeArray | ((nds: NodeArray) => NodeArray)) => void;
   setEdges: (edges: EdgeArray | ((eds: EdgeArray) => EdgeArray)) => void;
   setViewport: ReactFlowInstance['setViewport'];
@@ -78,58 +78,36 @@ function applyImportedGraph(data: Graph, params: UseImportGraphParams): void {
   setImportedViewport(graph, params);
 }
 
+function parseAndApply(text: string, params: UseImportGraphParams): void {
+  const json: unknown = JSON.parse(text);
+  const result = GraphSchema.safeParse(json);
+  if (result.success) {
+    applyImportedGraph(result.data, params);
+  } else {
+    toast.error(`Invalid graph file: ${result.error.message}`);
+  }
+}
+
+function openFilePicker(onFileRead: (text: string) => void): void {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = () => {
+    const file = input.files?.[FIRST_FILE_INDEX];
+    if (file === undefined) return;
+    void file.text().then(onFileRead);
+  };
+  input.click();
+}
+
 export function useImportGraph(params: UseImportGraphParams): () => void {
-  const {
-    setNodes,
-    setEdges,
-    setViewport,
-    reactFlowWrapper,
-    mcpSetServers,
-    pushOperation,
-    getCurrentNodes,
-    getCurrentMcpServers,
-  } = params;
-
   return useCallback(() => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = () => {
-      const file = input.files?.[FIRST_FILE_INDEX];
-      if (file === undefined) return;
-
-      void file.text().then((text) => {
-        try {
-          const json: unknown = JSON.parse(text);
-          const result = GraphSchema.safeParse(json);
-          if (result.success) {
-            applyImportedGraph(result.data, {
-              setNodes,
-              setEdges,
-              setViewport,
-              reactFlowWrapper,
-              mcpSetServers,
-              pushOperation,
-              getCurrentNodes,
-              getCurrentMcpServers,
-            });
-          } else {
-            toast.error(`Invalid graph file: ${result.error.message}`);
-          }
-        } catch {
-          toast.error('Failed to parse JSON file');
-        }
-      });
-    };
-    input.click();
-  }, [
-    setNodes,
-    setEdges,
-    setViewport,
-    reactFlowWrapper,
-    mcpSetServers,
-    pushOperation,
-    getCurrentNodes,
-    getCurrentMcpServers,
-  ]);
+    openFilePicker((text) => {
+      try {
+        parseAndApply(text, params);
+      } catch {
+        toast.error('Failed to parse JSON file');
+      }
+    });
+  }, [params]);
 }
