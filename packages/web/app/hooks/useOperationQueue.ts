@@ -33,10 +33,10 @@ export function useOperationQueue(agentId: string | undefined): UseOperationQueu
 
     const ops = [...queueRef.current];
     queueRef.current = [];
-    setPendingCount(queueRef.current.length);
 
     try {
       await sendOperations(agentId, ops);
+      setPendingCount(queueRef.current.length);
     } catch (error: unknown) {
       queueRef.current = [...ops, ...queueRef.current];
       setPendingCount(queueRef.current.length);

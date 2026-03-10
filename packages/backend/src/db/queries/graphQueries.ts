@@ -20,10 +20,12 @@ interface EdgeData {
 }
 
 async function fetchAllEdgeData(supabase: SupabaseClient, agentId: string): Promise<EdgeData> {
-  const [edgeRows, preconditionRows, contextPreconditionRows] = await Promise.all([
-    fetchEdges(supabase, agentId),
-    fetchEdgePreconditions(supabase, agentId),
-    fetchEdgeContextPreconditions(supabase, agentId),
+  const edgeRows = await fetchEdges(supabase, agentId);
+  const edgeIds = edgeRows.map((e) => e.id);
+
+  const [preconditionRows, contextPreconditionRows] = await Promise.all([
+    fetchEdgePreconditions(supabase, edgeIds),
+    fetchEdgeContextPreconditions(supabase, edgeIds),
   ]);
 
   return { edgeRows, preconditionRows, contextPreconditionRows };

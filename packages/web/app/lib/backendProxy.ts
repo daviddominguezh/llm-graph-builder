@@ -42,6 +42,6 @@ export async function proxyToBackend(method: string, backendPath: string, body?:
 
   return new Response(upstream.body, {
     status: upstream.status,
-    headers: { 'Content-Type': upstream.headers.get('Content-Type') ?? 'application/json' },
+    headers: upstream.headers,
   });
 }

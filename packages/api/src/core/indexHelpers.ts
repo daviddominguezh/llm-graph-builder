@@ -193,10 +193,6 @@ async function processFlowStep(
   visitedNodes.push(currentNodeID);
   context.onNodeVisited?.(currentNodeID);
 
-  if (isTerminalNode(context, currentNodeID)) {
-    return { state, error: false, shouldContinue: false, isTerminal: true };
-  }
-
   const result = await processNodeTimed({ context, input, currentNodeID, nodeBeforeGlobal, debugMessages });
 
   if (result.error) {
@@ -205,6 +201,10 @@ async function processFlowStep(
 
   const { parsedResult, nextNodeID, toolCalls, durationMs } = result;
   emitNodeProcessed({ context, input, nodeId: currentNodeID, parsedResult, toolCalls, durationMs });
+
+  if (isTerminalNode(context, currentNodeID)) {
+    return { state, error: false, shouldContinue: false, isTerminal: true };
+  }
 
   if (toolCalls.length > EMPTY_LENGTH) {
     allToolCalls.push(...toolCalls);
