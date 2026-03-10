@@ -18,6 +18,7 @@ export interface UseOperationQueueReturn {
 
 export function useOperationQueue(agentId: string | undefined): UseOperationQueueReturn {
   const queueRef = useRef<Operation[]>([]);
+  const flushGenRef = useRef(EMPTY_COUNT);
   const [pendingCount, setPendingCount] = useState(EMPTY_COUNT);
   const [flushSeq, setFlushSeq] = useState(EMPTY_COUNT);
 
@@ -31,6 +32,7 @@ export function useOperationQueue(agentId: string | undefined): UseOperationQueu
     if (queueRef.current.length === EMPTY_COUNT) return;
     if (agentId === undefined) return;
 
+    const gen = ++flushGenRef.current;
     const ops = [...queueRef.current];
     queueRef.current = [];
 
@@ -38,13 +40,16 @@ export function useOperationQueue(agentId: string | undefined): UseOperationQueu
       await sendOperations(agentId, ops);
       setPendingCount(queueRef.current.length);
     } catch (error: unknown) {
-      queueRef.current = [...ops, ...queueRef.current];
+      if (gen === flushGenRef.current) {
+        queueRef.current = [...ops, ...queueRef.current];
+      }
       setPendingCount(queueRef.current.length);
       throw error;
     }
   }, [agentId]);
 
   const clearQueue = useCallback(() => {
+    flushGenRef.current++;
     queueRef.current = [];
     setPendingCount(EMPTY_COUNT);
   }, []);

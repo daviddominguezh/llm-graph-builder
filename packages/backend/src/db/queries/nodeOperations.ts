@@ -62,19 +62,12 @@ export async function updateNode(
   throwOnMutationError(result, 'updateNode');
 }
 
-const EMPTY_LENGTH = 0;
-
 async function deleteRelatedEdges(supabase: SupabaseClient, agentId: string, nodeId: string): Promise<void> {
-  const safeId = nodeId.replace(/[^a-zA-Z0-9_\x2d]/gv, '');
-  if (safeId.length === EMPTY_LENGTH) {
-    throw new Error(`deleteRelatedEdges: nodeId "${nodeId}" is empty after sanitization`);
-  }
-  const result = await supabase
-    .from('graph_edges')
-    .delete()
-    .eq('agent_id', agentId)
-    .or(`from_node.eq.${safeId},to_node.eq.${safeId}`);
-  throwOnMutationError(result, 'deleteRelatedEdges');
+  const r1 = await supabase.from('graph_edges').delete().eq('agent_id', agentId).eq('from_node', nodeId);
+  throwOnMutationError(r1, 'deleteRelatedEdges:from');
+
+  const r2 = await supabase.from('graph_edges').delete().eq('agent_id', agentId).eq('to_node', nodeId);
+  throwOnMutationError(r2, 'deleteRelatedEdges:to');
 }
 
 export async function deleteNode(supabase: SupabaseClient, agentId: string, nodeId: string): Promise<void> {

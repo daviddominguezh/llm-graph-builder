@@ -19,7 +19,8 @@ declare
   v_ctx jsonb;
 begin
   -- 1. Clear staging data (order matters for FK constraints)
-  delete from public.graph_context_presets where agent_id = p_agent_id;
+  -- Note: graph_context_presets are intentionally NOT deleted here because
+  -- they are not included in snapshots and cannot be restored.
   delete from public.graph_mcp_servers where agent_id = p_agent_id;
   delete from public.graph_agents where agent_id = p_agent_id;
   delete from public.graph_edges where agent_id = p_agent_id;
