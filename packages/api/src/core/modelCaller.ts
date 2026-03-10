@@ -54,11 +54,27 @@ function isRetryableError(error: Error): boolean {
   );
 }
 
-function toModelCallResult(result: unknown): ModelCallResult {
-  if (typeof result !== 'object' || result === null) {
-    return {};
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function safeGetOutput(obj: Record<string, unknown>): unknown {
+  try {
+    return obj.output;
+  } catch {
+    return undefined;
   }
-  return result as ModelCallResult;
+}
+
+function toModelCallResult(result: unknown): ModelCallResult {
+  if (!isRecord(result)) return {};
+  return {
+    response: isRecord(result.response) ? (result.response as ModelCallResult['response']) : undefined,
+    usage: result.usage,
+    output: safeGetOutput(result),
+    toolCalls: Array.isArray(result.toolCalls) ? (result.toolCalls as unknown[]) : undefined,
+    toolResults: Array.isArray(result.toolResults) ? (result.toolResults as unknown[]) : undefined,
+  };
 }
 
 const MODEL_CALL_TIMEOUT_MS = 90000;
@@ -127,7 +143,7 @@ async function executeAttempt(
     const result = await executeModelCall(newConfig, expectedTool);
     const duration = Date.now() - attemptStartTime;
     const totalDuration = Date.now() - ctx.requestStartTime;
-    logSuccess({ ctx, state, attemptDuration: duration, totalDuration, usage: result.usage });
+    logSuccess({ ctx, state, attemptDuration: duration, totalDuration, usage: result.usage, result });
     return { success: true, result, shouldRetry: false };
   } catch (error) {
     const err = error instanceof Error ? error : new Error('Unknown error');

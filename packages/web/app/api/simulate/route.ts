@@ -35,6 +35,18 @@ async function resolveApiKey(
   return { apiKey: value, error: null };
 }
 
+function buildSseStreamResponse(upstream: Response): Response {
+  const { body: upstreamBody } = upstream;
+  if (upstreamBody === null) {
+    return new Response(null, { status: upstream.status });
+  }
+
+  return new Response(upstreamBody, {
+    status: upstream.status,
+    headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' },
+  });
+}
+
 async function fetchUpstream(body: Record<string, unknown>): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => {
@@ -54,10 +66,7 @@ async function fetchUpstream(body: Record<string, unknown>): Promise<Response> {
       return new Response(upstream.body, { status: upstream.status });
     }
 
-    return new Response(upstream.body, {
-      status: upstream.status,
-      headers: { 'Content-Type': 'text/event-stream' },
-    });
+    return buildSseStreamResponse(upstream);
   } catch (err) {
     clearTimeout(timeout);
     if (err instanceof Error && err.name === 'AbortError') {

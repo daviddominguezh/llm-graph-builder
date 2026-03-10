@@ -7,15 +7,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import type { Operation } from "@daviddh/graph-types";
 import type { Agent } from "../../schemas/graph.schema";
+import type { PushOperation } from "../../utils/operationBuilders";
 import type { RFNodeData } from "../../utils/graphTransformers";
 import type { Node } from "@xyflow/react";
+
+function buildInsertAgentOp(agent: Agent): Operation {
+  return { type: 'insertAgent', data: { agentKey: agent.id, description: agent.description } };
+}
+
+function buildUpdateAgentOp(id: string, description: string): Operation {
+  return { type: 'updateAgent', data: { agentKey: id, description } };
+}
+
+function buildDeleteAgentOp(id: string): Operation {
+  return { type: 'deleteAgent', agentKey: id };
+}
 
 interface AgentPanelProps {
   agents: Agent[];
   onAddAgent: (agent: Agent) => void;
   onUpdateAgent: (id: string, updates: Partial<Omit<Agent, "id">>) => void;
   onDeleteAgent: (id: string) => void;
+  pushOperation: PushOperation;
 }
 
 export function AgentPanel({
@@ -23,6 +38,7 @@ export function AgentPanel({
   onAddAgent,
   onUpdateAgent,
   onDeleteAgent,
+  pushOperation,
 }: AgentPanelProps) {
   const nodes = useNodes<Node<RFNodeData>>();
 
@@ -33,7 +49,9 @@ export function AgentPanel({
 
   const handleAdd = () => {
     if (newId.trim()) {
-      onAddAgent({ id: newId.trim(), description: newDescription.trim() });
+      const agent: Agent = { id: newId.trim(), description: newDescription.trim() };
+      onAddAgent(agent);
+      pushOperation(buildInsertAgentOp(agent));
       setNewId("");
       setNewDescription("");
       setIsAdding(false);
@@ -43,6 +61,7 @@ export function AgentPanel({
   const handleUpdate = (id: string) => {
     if (newId.trim()) {
       onUpdateAgent(id, { description: newDescription.trim() });
+      pushOperation(buildUpdateAgentOp(id, newDescription.trim()));
       setEditingId(null);
       setNewId("");
       setNewDescription("");
@@ -58,6 +77,7 @@ export function AgentPanel({
       if (!proceed) return;
     }
     onDeleteAgent(id);
+    pushOperation(buildDeleteAgentOp(id));
   };
 
   const startEdit = (id: string, description: string) => {

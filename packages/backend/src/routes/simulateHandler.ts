@@ -1,7 +1,8 @@
-import type { CallAgentOutput } from '@daviddh/llm-graph-runner';
+import type { CallAgentOutput, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
 import { executeWithCallbacks } from '@daviddh/llm-graph-runner';
 import type { Request, Response } from 'express';
 
+import { consoleLogger } from '../logger.js';
 import { type McpSession, closeMcpSession, createMcpSession } from '../mcp/lifecycle.js';
 import type { SimulateRequest } from '../types.js';
 import { buildContext, setSseHeaders, sumTokens, writeSSE } from './simulate.js';
@@ -12,12 +13,47 @@ function sendNodeVisited(res: Response, nodeId: string): void {
   writeSSE(res, { type: 'node_visited', nodeId });
 }
 
+function sendNodeProcessed(res: Response, event: NodeProcessedEvent): void {
+  writeSSE(res, {
+    type: 'node_processed',
+    nodeId: event.nodeId,
+    text: event.text ?? '',
+    toolCalls: event.toolCalls.map((tc) => ({
+      toolName: tc.toolName,
+      input: tc.input as unknown,
+    })),
+    tokens: event.tokens,
+    durationMs: event.durationMs,
+  });
+}
+
+function extractToolCalls(
+  result: CallAgentOutput
+): Array<{ toolName: string; input: unknown; output: unknown }> {
+  return result.toolCalls.map((tc) => ({
+    toolName: tc.toolName,
+    input: tc.input as unknown,
+    output: undefined,
+  }));
+}
+
+function extractNodeTokens(
+  result: CallAgentOutput
+): Array<{ node: string; tokens: { input: number; output: number; cached: number } }> {
+  return result.tokensLogs.map((log) => ({
+    node: log.action,
+    tokens: log.tokens,
+  }));
+}
+
 function sendAgentResponse(res: Response, result: CallAgentOutput): void {
   const tokenUsage = sumTokens(result);
   writeSSE(res, {
     type: 'agent_response',
     text: result.text ?? '',
     visitedNodes: result.visitedNodes,
+    toolCalls: extractToolCalls(result),
+    nodeTokens: extractNodeTokens(result),
     tokenUsage,
   });
 }
@@ -34,8 +70,12 @@ async function runSimulation(body: SimulateRequest, session: McpSession, res: Re
     messages: body.messages,
     currentNode: body.currentNode,
     toolsOverride: session.tools,
+    logger: consoleLogger,
     onNodeVisited: (nodeId: string) => {
       sendNodeVisited(res, nodeId);
+    },
+    onNodeProcessed: (event: NodeProcessedEvent) => {
+      sendNodeProcessed(res, event);
     },
   });
   if (result !== null) {

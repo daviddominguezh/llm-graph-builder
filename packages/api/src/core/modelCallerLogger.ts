@@ -127,6 +127,7 @@ interface SuccessParams {
   attemptDuration: number;
   totalDuration: number;
   usage: unknown;
+  result: unknown;
 }
 
 export function logSuccess(params: SuccessParams): void {
@@ -143,6 +144,7 @@ export function logSuccess(params: SuccessParams): void {
       totalDuration: `${totalDuration}ms`,
       usedFallback: state.usedFallback,
       usage: usage ?? 'not available',
+      result: JSON.stringify(params.result),
     }
   );
 }

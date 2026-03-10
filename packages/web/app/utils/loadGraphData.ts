@@ -70,6 +70,23 @@ function ensureNodePositions(graph: Graph, nodeWidth: number): Graph {
 }
 
 /**
+ * Force re-layout of all nodes regardless of existing positions.
+ */
+export function relayoutGraph(graph: Graph): LoadGraphResult {
+  const nodeWidth = calculateNodeWidth(graph.nodes);
+  const nodeDimensions = calculateNodeDimensions(graph.nodes, nodeWidth);
+  const layoutResult = layoutGraph(graph.nodes, graph.edges, {
+    horizontalSpacing: nodeWidth,
+    verticalSpacing: NO_SPACING,
+    defaultNodeWidth: nodeWidth,
+    defaultNodeHeight: DEFAULT_NODE_HEIGHT,
+    nodeDimensions,
+    rankdir: 'LR',
+  });
+  return { graph: { ...graph, nodes: layoutResult.nodes, edges: layoutResult.edges }, nodeWidth };
+}
+
+/**
  * Process a validated graph: calculate node width and ensure positions.
  * Use this for both hardcoded data and imported files.
  */

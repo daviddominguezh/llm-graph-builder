@@ -9,6 +9,7 @@ import type { Context } from '@src/types/tools.js';
 import { logger } from '@src/utils/logger.js';
 
 import { buildGlobalNodeConfig, processReplyNode, processToolNode } from './nodeProcessor.js';
+import { createEmptyTokenLog } from './tokenTracker.js';
 import type { CallAgentInput, NodeProcessingConfig } from './types.js';
 
 const LAST_INDEX_OFFSET = 1;
@@ -117,8 +118,10 @@ async function processReplyCallNode(
  * Processes a single node in the agent flow
  */
 export async function processNode(params: ProcessNodeParams): Promise<ProcessNodeResult> {
-  const { context, currentNodeID, nodeBeforeGlobal } = params;
+  const { context, input, currentNodeID, nodeBeforeGlobal } = params;
   const isGlobal = isGlobalNode(context, currentNodeID);
+
+  input.tokensLog.push({ action: currentNodeID, tokens: createEmptyTokenLog() });
 
   const config = await getNodeConfig(context, currentNodeID, nodeBeforeGlobal);
 
@@ -150,36 +153,66 @@ export interface FlowResult {
   toolCalls: ToolCallsArray;
 }
 
+interface EmitNodeProcessedParams {
+  context: Context;
+  input: CallAgentInput;
+  nodeId: string;
+  parsedResult: ParsedResult;
+  toolCalls: ToolCallsArray;
+  durationMs: number;
+}
+
+function emitNodeProcessed(params: EmitNodeProcessedParams): void {
+  const { context, input, nodeId, parsedResult, toolCalls, durationMs } = params;
+  if (context.onNodeProcessed === undefined) return;
+  const lastLog = input.tokensLog.at(-LAST_INDEX_OFFSET);
+  const tokens = lastLog?.tokens ?? createEmptyTokenLog();
+  context.onNodeProcessed({ nodeId, text: parsedResult.messageToUser, toolCalls, tokens, durationMs });
+}
+
+function isTerminalNode(context: Context, nodeID: string): boolean {
+  const edges = context.graph.edges.filter((e) => e.from === nodeID);
+  return edges.length === EMPTY_LENGTH;
+}
+
+async function processNodeTimed(
+  params: ProcessNodeParams
+): Promise<ProcessNodeResult & { durationMs: number }> {
+  const startTime = Date.now();
+  const result = await processNode(params);
+  return { ...result, durationMs: Date.now() - startTime };
+}
+
 async function processFlowStep(
   context: Context,
   input: CallAgentInput,
   debugMessages: Record<string, ModelMessage[][]>,
   state: FlowState
-): Promise<{ state: FlowState; error: boolean; shouldContinue: boolean }> {
+): Promise<{ state: FlowState; error: boolean; shouldContinue: boolean; isTerminal?: boolean }> {
   const { currentNodeID, nodeBeforeGlobal, parsedResults, visitedNodes, allToolCalls } = state;
   visitedNodes.push(currentNodeID);
   context.onNodeVisited?.(currentNodeID);
 
-  const { parsedResult, nextNodeID, error, toolCalls } = await processNode({
-    context,
-    input,
-    currentNodeID,
-    nodeBeforeGlobal,
-    debugMessages,
-  });
+  const result = await processNodeTimed({ context, input, currentNodeID, nodeBeforeGlobal, debugMessages });
 
-  if (error) {
+  if (result.error) {
     return { state, error: true, shouldContinue: false };
   }
+
+  const { parsedResult, nextNodeID, toolCalls, durationMs } = result;
+  emitNodeProcessed({ context, input, nodeId: currentNodeID, parsedResult, toolCalls, durationMs });
 
   if (toolCalls.length > EMPTY_LENGTH) {
     allToolCalls.push(...toolCalls);
   }
 
+  if (isTerminalNode(context, currentNodeID)) {
+    parsedResults.push(parsedResult);
+    return { state, error: false, shouldContinue: false, isTerminal: true };
+  }
+
   const { global: nextNodeIsGlobal, nextNodeIsUser } = getNode(context.graph, nextNodeID);
   const newNodeBeforeGlobal = nextNodeIsGlobal ? nodeBeforeGlobal : nextNodeID;
-
-  logger.info(`callAgentStep/${context.tenantID}/${context.userID}| nextNode: ${nextNodeID}`);
 
   parsedResult.nextNodeID = nextNodeID;
   parsedResults.push(parsedResult);
@@ -192,7 +225,14 @@ async function processFlowStep(
     allToolCalls,
   };
 
-  return { state: newState, error: false, shouldContinue: nextNodeIsUser !== true };
+  return { state: newState, error: false, shouldContinue: nextNodeIsUser !== true, isTerminal: false };
+}
+
+function appendLastVisitedNode(parsedResults: ParsedResult[], visitedNodes: string[]): void {
+  const [lastParsedResult] = parsedResults.slice(-LAST_INDEX_OFFSET);
+  if (lastParsedResult !== undefined) {
+    visitedNodes.push(lastParsedResult.nextNodeID);
+  }
 }
 
 /**
@@ -208,6 +248,7 @@ export async function executeAgentFlowRecursive(
     state: newState,
     error,
     shouldContinue,
+    isTerminal,
   } = await processFlowStep(context, input, debugMessages, state);
 
   if (error) {
@@ -222,9 +263,8 @@ export async function executeAgentFlowRecursive(
 
   if (!shouldContinue) {
     const { parsedResults, visitedNodes, allToolCalls } = newState;
-    const [lastParsedResult] = parsedResults.slice(-LAST_INDEX_OFFSET);
-    if (lastParsedResult !== undefined) {
-      visitedNodes.push(lastParsedResult.nextNodeID);
+    if (isTerminal !== true) {
+      appendLastVisitedNode(parsedResults, visitedNodes);
     }
 
     return { parsedResults, visitedNodes, debugMessages, error: false, toolCalls: allToolCalls };

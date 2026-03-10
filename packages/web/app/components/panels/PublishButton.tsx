@@ -1,6 +1,6 @@
 'use client';
 
-import { publishAgentAction } from '@/app/actions/agents';
+import { publishGraph } from '@/app/lib/graphApi';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Loader2 } from 'lucide-react';
@@ -12,6 +12,7 @@ interface PublishButtonProps {
   agentId: string;
   canPublish: boolean;
   hasApiKey: boolean;
+  flush: () => Promise<void>;
   onPublished: (newVersion: number) => void;
 }
 
@@ -58,22 +59,21 @@ function PublishButtonContent({
   );
 }
 
-export function PublishButton({ agentId, canPublish, hasApiKey, onPublished }: PublishButtonProps) {
+export function PublishButton({ agentId, canPublish, hasApiKey, flush, onPublished }: PublishButtonProps) {
   const t = useTranslations('editor');
   const [publishing, setPublishing] = useState(false);
 
   async function handlePublish() {
     setPublishing(true);
-    const { version: newVersion, error } = await publishAgentAction(agentId);
-
-    if (error !== null || newVersion === null) {
+    try {
+      await flush();
+      const { version: newVersion } = await publishGraph(agentId);
+      onPublished(newVersion);
+    } catch {
       toast.error(t('publishFailed'));
+    } finally {
       setPublishing(false);
-      return;
     }
-
-    onPublished(newVersion);
-    setPublishing(false);
   }
 
   if (publishing) return <PublishSpinner />;

@@ -1,7 +1,9 @@
+import type { Operation } from '@daviddh/graph-types';
 import { nanoid } from 'nanoid';
 import { useCallback, useState } from 'react';
 
 import { type ContextPreset, DEFAULT_PRESET } from '../types/preset';
+import type { PushOperation } from '../utils/operationBuilders';
 
 const FIRST_INDEX = 0;
 const NAME_SUFFIX_LENGTH = 4;
@@ -21,22 +23,55 @@ interface PresetsState {
   setContextKeys: (keys: string[]) => void;
 }
 
+interface PresetOpData {
+  name: string;
+  sessionId?: string;
+  tenantId?: string;
+  userId?: string;
+  data?: Record<string, unknown>;
+}
+
+function toPresetOpData(preset: ContextPreset): PresetOpData {
+  return {
+    name: preset.name,
+    sessionId: preset.sessionID,
+    tenantId: preset.tenantID,
+    userId: preset.userID,
+    data: preset.data,
+  };
+}
+
+function buildInsertPresetOp(preset: ContextPreset): Operation {
+  return { type: 'insertContextPreset', data: toPresetOpData(preset) };
+}
+
+function buildUpdatePresetOp(preset: ContextPreset): Operation {
+  return { type: 'updateContextPreset', data: toPresetOpData(preset) };
+}
+
+function buildDeletePresetOp(name: string): Operation {
+  return { type: 'deleteContextPreset', name };
+}
+
 function useDeletePreset(
   setPresets: React.Dispatch<React.SetStateAction<ContextPreset[]>>,
-  setActivePresetId: React.Dispatch<React.SetStateAction<string>>
+  setActivePresetId: React.Dispatch<React.SetStateAction<string>>,
+  pushOperation: PushOperation
 ): (id: string) => void {
   return useCallback(
     (id: string) => {
       setPresets((prev) => {
+        const target = prev.find((p) => p.id === id);
         const filtered = prev.filter((p) => p.id !== id);
         const next = filtered.length === FIRST_INDEX ? [DEFAULT_PRESET] : filtered;
         setActivePresetId((currentId) =>
           currentId === id ? (next[FIRST_INDEX]?.id ?? DEFAULT_PRESET.id) : currentId
         );
+        if (target !== undefined) pushOperation(buildDeletePresetOp(target.name));
         return next;
       });
     },
-    [setPresets, setActivePresetId]
+    [setPresets, setActivePresetId, pushOperation]
   );
 }
 
@@ -88,7 +123,10 @@ function useContextKeys(setPresets: React.Dispatch<React.SetStateAction<ContextP
   return { contextKeys, addContextKey, removeContextKey, renameContextKey, setContextKeys };
 }
 
-function usePresetCrud(setPresets: React.Dispatch<React.SetStateAction<ContextPreset[]>>): {
+function usePresetCrud(
+  setPresets: React.Dispatch<React.SetStateAction<ContextPreset[]>>,
+  pushOperation: PushOperation
+): {
   addPreset: () => void;
   deletePreset: (id: string) => void;
   updatePreset: (id: string, updates: Partial<ContextPreset>) => void;
@@ -105,24 +143,30 @@ function usePresetCrud(setPresets: React.Dispatch<React.SetStateAction<ContextPr
       name: `Preset ${id.slice(FIRST_INDEX, NAME_SUFFIX_LENGTH)}`,
     };
     setPresets((prev) => [...prev, newPreset]);
+    pushOperation(buildInsertPresetOp(newPreset));
     setActivePresetId(id);
-  }, [setPresets]);
+  }, [setPresets, pushOperation]);
 
-  const deletePreset = useDeletePreset(setPresets, setActivePresetId);
+  const deletePreset = useDeletePreset(setPresets, setActivePresetId, pushOperation);
 
   const updatePreset = useCallback(
     (id: string, updates: Partial<ContextPreset>) => {
-      setPresets((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
+      setPresets((prev) => {
+        const updated = prev.map((p) => (p.id === id ? { ...p, ...updates } : p));
+        const merged = updated.find((p) => p.id === id);
+        if (merged !== undefined) pushOperation(buildUpdatePresetOp(merged));
+        return updated;
+      });
     },
-    [setPresets]
+    [setPresets, pushOperation]
   );
 
   return { addPreset, deletePreset, updatePreset, setActivePresetId, activePresetId };
 }
 
-export function usePresets(): PresetsState {
+export function usePresets(pushOperation: PushOperation): PresetsState {
   const [presets, setPresets] = useState<ContextPreset[]>([DEFAULT_PRESET]);
-  const crud = usePresetCrud(setPresets);
+  const crud = usePresetCrud(setPresets, pushOperation);
   const ctx = useContextKeys(setPresets);
 
   const activePreset = presets.find((p) => p.id === crud.activePresetId) ?? presets[FIRST_INDEX];

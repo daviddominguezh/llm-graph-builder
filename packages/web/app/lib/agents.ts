@@ -1,4 +1,3 @@
-import type { Graph } from '@/app/schemas/graph.schema';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { findUniqueSlug, generateSlug } from './slug';
@@ -9,8 +8,8 @@ export interface AgentRow {
   name: string;
   slug: string;
   description: string;
-  graph_data_staging: Graph;
-  graph_data_production: Graph;
+  start_node: string;
+  current_version: number;
   version: number;
   created_at: string;
   updated_at: string;
@@ -74,8 +73,6 @@ async function insertAgent(
       name: params.name,
       slug: params.slug,
       description: params.description,
-      graph_data_staging: {},
-      graph_data_production: {},
     })
     .select()
     .single();
@@ -100,18 +97,6 @@ export async function createAgent(
   return await insertAgent({ supabase, orgId, name, slug, description });
 }
 
-export async function saveStaging(
-  supabase: SupabaseClient,
-  agentId: string,
-  graphData: Graph
-): Promise<{ error: string | null }> {
-  const payload: Record<string, unknown> = { graph_data_staging: graphData };
-  const { error } = await supabase.from('agents').update(payload).eq('id', agentId);
-
-  if (error !== null) return { error: error.message };
-  return { error: null };
-}
-
 export async function saveStagingKeyId(
   supabase: SupabaseClient,
   agentId: string,
@@ -122,19 +107,6 @@ export async function saveStagingKeyId(
 
   if (error !== null) return { error: error.message };
   return { error: null };
-}
-
-export async function publishAgent(
-  supabase: SupabaseClient,
-  agentId: string
-): Promise<{ version: number | null; error: string | null }> {
-  const result = await supabase.rpc('publish_agent', { agent_id: agentId });
-  const { error } = result;
-  const data: unknown = result.data;
-
-  if (error !== null) return { version: null, error: error.message };
-  const version = typeof data === 'number' ? data : null;
-  return { version, error: version === null ? 'Publish failed' : null };
 }
 
 export async function deleteAgent(

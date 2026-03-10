@@ -15,7 +15,7 @@
     "format": "prettier --write \"**/*.{js,ts,json}\"",
     "check": "npm run format && npm run lint && npm run typecheck",
     "start": "node dist/index.js",
-    "dev": "tsx watch src/index.ts"
+    "dev": "tsx watch --env-file=.env src/index.ts"
   },
   "files": [
     "dist",
@@ -29,6 +29,7 @@
     "@ai-sdk/mcp": "^1.0.26",
     "@daviddh/graph-types": "*",
     "@daviddh/llm-graph-runner": "*",
+    "@supabase/supabase-js": "^2.99.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "zod": "^4.3.6"

@@ -20,22 +20,25 @@ export const formatPrecondition = (precondition: Precondition): string => {
 interface FormatOptionParams {
   index: number;
   description?: string;
+  nodeText?: string;
   example?: string;
   precondition?: Precondition;
 }
 
 export const formatOption = (params: FormatOptionParams): string => {
-  const { index, description, example, precondition } = params;
+  const { index, description, nodeText, example, precondition } = params;
   const parts: string[] = [];
   parts.push(`**Option ${index}** — \`nextNodeID: ${index}\``);
+  const label = description !== undefined && description !== '' ? description : nodeText;
+  if (label !== undefined && label !== '') {
+    parts.push(label);
+  }
   if (precondition !== undefined) {
     parts.push(`Select when: ${formatPrecondition(precondition)}`);
   }
   if (example !== undefined && example !== '') {
     const escapedExample = example.replace(/\n/gv, '\\n');
     parts.push(`Response: ${escapedExample}`);
-  } else if (description !== undefined && description !== '') {
-    parts.push(`Response: ${description}`);
   }
   return parts.join('\n');
 };
@@ -78,6 +81,7 @@ export const convertEdgeToStr = async (
   const withPreconditions = formatOption({
     index,
     description,
+    nodeText: node.text,
     example,
     precondition: firstPrecondition,
   });
@@ -88,6 +92,7 @@ export const convertEdgeToStr = async (
   const withoutToolPreconditions = formatOption({
     index,
     description,
+    nodeText: node.text,
     example,
     precondition: nonToolPrecondition,
   });

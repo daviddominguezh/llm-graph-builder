@@ -67,26 +67,65 @@ export interface SimulateRequestBody {
   quickReplies: Record<string, string>;
 }
 
+interface SseToolCall {
+  toolName: string;
+  input: unknown;
+  output: unknown;
+}
+
+interface SseNodeTokens {
+  node: string;
+  tokens: { input: number; output: number; cached: number };
+}
+
 interface AgentResponseEvent {
   type: 'agent_response';
   text: string;
   visitedNodes: string[];
+  toolCalls: SseToolCall[];
+  nodeTokens: SseNodeTokens[];
   tokenUsage: { input: number; output: number; cached: number };
+}
+
+export interface NodeProcessedEvent {
+  nodeId: string;
+  text: string;
+  toolCalls: SseToolCall[];
+  tokens: { input: number; output: number; cached: number };
+  durationMs?: number;
 }
 
 export interface StreamCallbacks {
   onNodeVisited?: (nodeId: string) => void;
+  onNodeProcessed?: (event: NodeProcessedEvent) => void;
   onAgentResponse?: (event: AgentResponseEvent) => void;
   onError?: (message: string) => void;
   onComplete?: () => void;
 }
+
+const SseToolCallSchema = z.object({
+  toolName: z.string(),
+  input: z.unknown(),
+  output: z.unknown(),
+});
+
+const SseNodeTokensSchema = z.object({
+  node: z.string(),
+  tokens: z.object({ input: z.number(), output: z.number(), cached: z.number() }),
+});
+
+const TokensSchema = z.object({ input: z.number(), output: z.number(), cached: z.number() });
 
 const SseEventSchema = z.object({
   type: z.string(),
   nodeId: z.string().optional(),
   text: z.string().optional(),
   visitedNodes: z.array(z.string()).optional(),
-  tokenUsage: z.object({ input: z.number(), output: z.number(), cached: z.number() }).optional(),
+  toolCalls: z.array(SseToolCallSchema).optional(),
+  nodeTokens: z.array(SseNodeTokensSchema).optional(),
+  tokens: TokensSchema.optional(),
+  tokenUsage: TokensSchema.optional(),
+  durationMs: z.number().optional(),
   message: z.string().optional(),
 });
 
@@ -98,12 +137,26 @@ function handleNodeVisited(event: SseEvent, callbacks: StreamCallbacks): void {
   }
 }
 
+function handleNodeProcessed(event: SseEvent, callbacks: StreamCallbacks): void {
+  if (event.nodeId !== undefined && event.tokens !== undefined) {
+    callbacks.onNodeProcessed?.({
+      nodeId: event.nodeId,
+      text: event.text ?? '',
+      toolCalls: event.toolCalls ?? [],
+      tokens: event.tokens,
+      durationMs: event.durationMs,
+    });
+  }
+}
+
 function handleAgentResponse(event: SseEvent, callbacks: StreamCallbacks): void {
   if (event.text !== undefined && event.visitedNodes !== undefined && event.tokenUsage !== undefined) {
     callbacks.onAgentResponse?.({
       type: 'agent_response',
       text: event.text,
       visitedNodes: event.visitedNodes,
+      toolCalls: event.toolCalls ?? [],
+      nodeTokens: event.nodeTokens ?? [],
       tokenUsage: event.tokenUsage,
     });
   }
@@ -112,6 +165,8 @@ function handleAgentResponse(event: SseEvent, callbacks: StreamCallbacks): void 
 function dispatchSseEvent(event: SseEvent, callbacks: StreamCallbacks): void {
   if (event.type === 'node_visited') {
     handleNodeVisited(event, callbacks);
+  } else if (event.type === 'node_processed') {
+    handleNodeProcessed(event, callbacks);
   } else if (event.type === 'agent_response') {
     handleAgentResponse(event, callbacks);
   } else if (event.type === 'error' && event.message !== undefined) {

@@ -1,97 +1,18 @@
-import { saveStagingAction } from '@/app/actions/agents';
-import type { Graph } from '@/app/schemas/graph.schema';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-const AUTO_SAVE_DELAY_MS = 10000;
+const AUTO_SAVE_DELAY_MS = 5000;
 
-interface UseAutoSaveOptions {
-  agentId: string | undefined;
-  getGraphData: () => Graph | null;
+export interface UseAutoSaveOptions {
+  hasPendingOps: boolean;
+  flushSeq: number;
+  flush: () => Promise<void>;
   enabled: boolean;
 }
 
-interface UseAutoSaveReturn {
+export interface UseAutoSaveReturn {
   pendingSave: boolean;
-}
-
-interface SaveCallbacks {
-  getLastSaved: () => string;
-  setLastSaved: (value: string) => void;
-  setPendingSave: (value: boolean) => void;
-}
-
-interface DebounceOptions {
-  enabled: boolean;
-  agentId: string | undefined;
-  getGraphData: () => Graph | null;
-  callbacks: SaveCallbacks;
-}
-
-interface SerializeResult {
-  graphData: Graph;
-  serialized: string;
-}
-
-function serializeGraph(getGraphData: () => Graph | null): SerializeResult | null {
-  const graphData = getGraphData();
-  if (graphData === null) return null;
-  return { graphData, serialized: JSON.stringify(graphData) };
-}
-
-function executeSave(agentId: string, graphData: Graph, serialized: string, cb: SaveCallbacks): void {
-  void saveStagingAction(agentId, graphData).then(({ error }) => {
-    if (error !== null) {
-      toast.error('Auto-save failed');
-      return;
-    }
-    cb.setLastSaved(serialized);
-    cb.setPendingSave(false);
-  });
-}
-
-function useSaveCallback(
-  agentId: string | undefined,
-  getGraphData: () => Graph | null,
-  cb: SaveCallbacks
-): () => void {
-  return useCallback(() => {
-    if (agentId === undefined || agentId === '') return;
-    const result = serializeGraph(getGraphData);
-    if (result === null || result.serialized === cb.getLastSaved()) {
-      cb.setPendingSave(false);
-      return;
-    }
-
-    executeSave(agentId, result.graphData, result.serialized, cb);
-  }, [agentId, getGraphData, cb]);
-}
-
-function computeSerialized(options: DebounceOptions): string | null {
-  const { enabled, agentId, getGraphData } = options;
-  const hasAgent = agentId !== undefined && agentId !== '';
-  if (!enabled || !hasAgent) return null;
-  const result = serializeGraph(getGraphData);
-  return result?.serialized ?? null;
-}
-
-function useDebounceEffect(options: DebounceOptions, doSave: () => void): void {
-  const { callbacks } = options;
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const serialized = computeSerialized(options);
-
-  useEffect(() => {
-    if (serialized === null || serialized === callbacks.getLastSaved()) return;
-
-    callbacks.setPendingSave(true);
-    if (timerRef.current !== null) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(doSave, AUTO_SAVE_DELAY_MS);
-
-    return () => {
-      if (timerRef.current !== null) clearTimeout(timerRef.current);
-    };
-  }, [serialized, doSave, callbacks]);
 }
 
 function useBeforeUnloadWarning(pendingSave: boolean): void {
@@ -110,31 +31,56 @@ function useBeforeUnloadWarning(pendingSave: boolean): void {
   }, [pendingSave]);
 }
 
-function useInitialSnapshot(getGraphData: () => Graph | null): string {
-  const ref = useRef<string | null>(null);
-  ref.current ??= serializeGraph(getGraphData)?.serialized ?? '';
-  return ref.current;
+function useFlushEffect(
+  flushSeq: number,
+  hasPendingOps: boolean,
+  enabled: boolean,
+  doFlush: () => void
+): void {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!enabled || !hasPendingOps) return;
+
+    if (timerRef.current !== null) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(doFlush, AUTO_SAVE_DELAY_MS);
+
+    return () => {
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
+    };
+  }, [flushSeq, hasPendingOps, enabled, doFlush]);
 }
 
-export function useAutoSave({ agentId, getGraphData, enabled }: UseAutoSaveOptions): UseAutoSaveReturn {
-  const initialSnapshot = useInitialSnapshot(getGraphData);
-  const lastSavedRef = useRef<string>(initialSnapshot);
-  const [pendingSave, setPendingSave] = useState(false);
+export function useAutoSave({
+  hasPendingOps,
+  flushSeq,
+  flush,
+  enabled,
+}: UseAutoSaveOptions): UseAutoSaveReturn {
+  const t = useTranslations('editor');
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [retrySeq, setRetrySeq] = useState(0);
 
-  const callbacks: SaveCallbacks = useMemo(
-    () => ({
-      getLastSaved: () => lastSavedRef.current,
-      setLastSaved: (value: string) => {
-        lastSavedRef.current = value;
-      },
-      setPendingSave,
-    }),
-    [setPendingSave]
-  );
+  useEffect(() => {
+    return () => {
+      if (retryTimerRef.current !== null) clearTimeout(retryTimerRef.current);
+    };
+  }, []);
 
-  const doSave = useSaveCallback(agentId, getGraphData, callbacks);
-  useDebounceEffect({ enabled, agentId, getGraphData, callbacks }, doSave);
-  useBeforeUnloadWarning(pendingSave);
+  const scheduleRetry = useCallback(() => {
+    if (retryTimerRef.current !== null) clearTimeout(retryTimerRef.current);
+    retryTimerRef.current = setTimeout(() => setRetrySeq((s) => s + 1), AUTO_SAVE_DELAY_MS);
+  }, []);
 
-  return { pendingSave };
+  const doFlush = useCallback(() => {
+    void flush().catch(() => {
+      toast.error(t('autoSaveFailed'));
+      scheduleRetry();
+    });
+  }, [flush, t, scheduleRetry]);
+
+  useFlushEffect(flushSeq + retrySeq, hasPendingOps, enabled, doFlush);
+  useBeforeUnloadWarning(hasPendingOps);
+
+  return { pendingSave: hasPendingOps };
 }

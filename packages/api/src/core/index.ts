@@ -7,7 +7,6 @@ import { logger } from '@src/utils/logger.js';
 import { handleCatchError, handleError } from './errorHandler.js';
 import { createInitialFlowState, executeAgentFlowRecursive, extractLastMessage } from './indexHelpers.js';
 import { MessageProcessor } from './messageProcessor.js';
-import { createEmptyTokenLog } from './tokenTracker.js';
 import type { CallAgentInput, CallAgentOutput } from './types.js';
 
 export type * from './types.js';
@@ -56,11 +55,6 @@ export const CALL_AGENT_STEP_NAME = 'callAgent';
 export const callAgentStep: PipelineStep<CallAgentInput, CallAgentOutput> = {
   feature: CALL_AGENT_STEP_NAME,
   execute: async (context: Context, input: CallAgentInput): Promise<CallAgentOutput> => {
-    input.tokensLog.push({
-      action: CALL_AGENT_STEP_NAME,
-      tokens: createEmptyTokenLog(),
-    });
-
     logger.info(
       `callAgentStep/${context.tenantID}/${context.userID}| Processing Current Node: ${input.currentNode}`
     );

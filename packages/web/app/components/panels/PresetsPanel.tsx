@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Plus, Trash2, SlidersHorizontal, X } from "lucide-react";
+import { ChevronDown, Plus, Trash2, Settings, X } from "lucide-react";
 
 import {
   AlertDialog,
@@ -254,7 +254,7 @@ export function PresetsPanel({
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-2 border-b px-4 py-3">
-        <SlidersHorizontal className="size-4" />
+        <Settings className="size-4" />
         <h2 className="text-sm font-semibold">Context Presets</h2>
       </div>
       <div className="flex-1 overflow-y-auto p-4">

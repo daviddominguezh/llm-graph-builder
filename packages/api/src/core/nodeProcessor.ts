@@ -3,7 +3,7 @@ import type { ModelMessage } from 'ai';
 import { getNode, getToolsFromEdges } from '@src/stateMachine/graph/index.js';
 import { generateToolReplyPrompt } from '@src/stateMachine/prompts/index.js';
 import type { ParsedResult } from '@src/types/ai/ai.js';
-import type { Graph } from '@src/types/graph.js';
+import type { Graph, ToolFieldValue } from '@src/types/graph.js';
 import type { Context } from '@src/types/tools.js';
 import { logger } from '@src/utils/logger.js';
 import { formatMessages } from '@src/utils/messages.js';
@@ -16,6 +16,8 @@ import { generateReply } from './replyGenerator.js';
 import { accumulateTokens } from './tokenTracker.js';
 import { type ProcessToolNodeParams, executeToolCall } from './toolCallExecutor.js';
 import type { CallAgentInput, NodeProcessingConfig } from './types.js';
+
+const LAST_INDEX_OFFSET = 1;
 
 interface ProcessReplyNodeParams {
   context: Context;
@@ -35,13 +37,18 @@ interface GenerateToolReplyParams {
   debugMessages: Record<string, ModelMessage[][]>;
 }
 
-function getGlobalNodeToolName(graph: Graph, globalNodeID: string): string {
+interface GlobalNodeToolInfo {
+  name: string;
+  toolFields: Record<string, ToolFieldValue> | undefined;
+}
+
+function getGlobalNodeToolInfo(graph: Graph, globalNodeID: string): GlobalNodeToolInfo {
   const edges = graph.edges.filter((edge) => edge.from === globalNodeID);
 
   for (const edge of edges) {
     const toolPrecondition = (edge.preconditions ?? []).find((p) => p.type === 'tool_call');
     if (toolPrecondition !== undefined) {
-      return toolPrecondition.value;
+      return { name: toolPrecondition.value, toolFields: toolPrecondition.toolFields };
     }
   }
 
@@ -55,16 +62,16 @@ export function buildGlobalNodeConfig(
 ): NodeProcessingConfig {
   const { INITIAL_STEP, DEFAULT_OUTPUT_NODE } = AGENT_CONSTANTS;
   const targetNode = nodeBeforeGlobal === INITIAL_STEP ? INITIAL_STEP : nodeBeforeGlobal;
-  const toolName = getGlobalNodeToolName(context.graph, globalNodeID);
+  const toolInfo = getGlobalNodeToolInfo(context.graph, globalNodeID);
 
   return {
     kind: 'tool_call' as const,
-    promptWithoutToolPreconditions: PROMPTS.GLOBAL_NODE_MUST_CALL_TOOL(toolName),
+    promptWithoutToolPreconditions: PROMPTS.GLOBAL_NODE_MUST_CALL_TOOL(toolInfo.name, toolInfo.toolFields),
     toolsByEdge: getToolsFromEdges(context, [
       {
         from: globalNodeID,
         to: targetNode,
-        preconditions: [{ type: 'tool_call', value: toolName }],
+        preconditions: [{ type: 'tool_call', value: toolInfo.name, toolFields: toolInfo.toolFields }],
       },
     ]),
     nodes: { [DEFAULT_OUTPUT_NODE]: nodeBeforeGlobal },
@@ -91,9 +98,9 @@ export async function processReplyNode(
     nodes,
   });
   const { tokensLog } = input;
-  const [firstTokenLog] = tokensLog;
-  if (firstTokenLog !== undefined) {
-    accumulateTokens(firstTokenLog.tokens, res.tokens);
+  const lastTokenLog = tokensLog.at(-LAST_INDEX_OFFSET);
+  if (lastTokenLog !== undefined) {
+    accumulateTokens(lastTokenLog.tokens, res.tokens);
   }
   Object.assign(debugMessages, { [currentNodeID]: res.copyMsgs });
 
@@ -138,9 +145,9 @@ async function generateToolReply(params: GenerateToolReplyParams): Promise<Parse
   });
 
   const { tokensLog: replyTokensLog } = input;
-  const [replyFirstTokenLog] = replyTokensLog;
-  if (replyFirstTokenLog !== undefined) {
-    accumulateTokens(replyFirstTokenLog.tokens, replyRes.tokens);
+  const replyLastTokenLog = replyTokensLog.at(-LAST_INDEX_OFFSET);
+  if (replyLastTokenLog !== undefined) {
+    accumulateTokens(replyLastTokenLog.tokens, replyRes.tokens);
   }
   Object.assign(debugMessages, {
     [`${currentNodeID}${AGENT_CONSTANTS.AFTER_TOOL_REPLY_SUFFIX}`]: replyRes.copyMsgs,

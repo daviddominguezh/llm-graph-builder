@@ -1,63 +1,116 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
-import { Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import type { SimulationStep, SimulationTokens } from '../../../types/simulation';
-import { TokenDisplay } from './TokenDisplay';
-import { StepItem } from './StepItem';
+import { Square } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useEffect, useRef } from 'react';
+
+import type { NodeResult } from '../../../types/simulation';
+import { NodeResultItem } from './NodeResultItem';
 import { SimulationInput } from './SimulationInput';
 
 interface SimulationPanelProps {
-  steps: SimulationStep[];
-  totalTokens: SimulationTokens;
-  currentNode: string;
+  lastUserText: string;
+  nodeResults: NodeResult[];
+  visitedNodes: string[];
+  terminated: boolean;
   loading: boolean;
   onSendMessage: (text: string) => void;
   onStop: () => void;
 }
 
-function SimulationHeader({ currentNode, totalTokens, onStop }: Pick<SimulationPanelProps, 'currentNode' | 'totalTokens' | 'onStop'>) {
+function Breadcrumbs({ nodes }: { nodes: string[] }) {
+  if (nodes.length === 0) return null;
+  const lastIndex = nodes.length - 1;
   return (
-    <div className="flex items-center gap-3 border-b px-3 py-2">
-      <span className="text-sm font-semibold">Simulation</span>
-      <Badge variant="secondary">{currentNode}</Badge>
-      <TokenDisplay tokens={totalTokens} className="ml-auto" />
-      <Button variant="destructive" size="sm" onClick={onStop}>
-        <Square className="mr-1 size-3" />
-        Stop
-      </Button>
+    <p className="truncate font-mono text-[10px] text-muted-foreground">
+      {nodes.map((node, i) => (
+        <span key={i}>
+          {i > 0 && ' \u2192 '}
+          <span className={i === lastIndex ? 'font-bold text-foreground' : ''}>{node}</span>
+        </span>
+      ))}
+    </p>
+  );
+}
+
+function SimulationHeader({
+  visitedNodes,
+  onStop,
+}: Pick<SimulationPanelProps, 'visitedNodes' | 'onStop'>) {
+  return (
+    <div className="flex flex-col gap-1 border-b px-3 py-2">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold">Simulation</span>
+        <Button variant="destructive" size="icon" className="size-7" onClick={onStop}>
+          <Square className="size-3" />
+        </Button>
+      </div>
+      <Breadcrumbs nodes={visitedNodes} />
     </div>
   );
 }
 
-function StepsList({ steps, scrollRef }: { steps: SimulationStep[]; scrollRef: React.RefObject<HTMLDivElement | null> }) {
+function UserMessage({ text }: { text: string }) {
+  if (text === '') return null;
+  return (
+    <div className="ml-auto border-r-3 border-primary py-0 pr-2">
+      <p className="text-right text-xs leading-relaxed">{text}</p>
+    </div>
+  );
+}
+
+interface ContentAreaProps {
+  lastUserText: string;
+  nodeResults: NodeResult[];
+  scrollRef: React.RefObject<HTMLDivElement | null>;
+}
+
+function ContentArea({ lastUserText, nodeResults, scrollRef }: ContentAreaProps) {
   return (
     <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2">
-      <div className="flex flex-col gap-2">
-        {steps.map((step, i) => (
-          <StepItem key={i} step={step} index={i} />
+      <div className="flex flex-col gap-4">
+        <UserMessage text={lastUserText} />
+        {nodeResults.map((result, i) => (
+          <NodeResultItem key={i} result={result} />
         ))}
       </div>
     </div>
   );
 }
 
-export function SimulationPanel({ steps, totalTokens, currentNode, loading, onSendMessage, onStop }: SimulationPanelProps) {
+export function SimulationPanel(props: SimulationPanelProps) {
+  const { lastUserText, nodeResults, visitedNodes, terminated, loading, onSendMessage, onStop } = props;
+  const t = useTranslations('simulation');
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [steps.length]);
+  }, [nodeResults.length]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onStop();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onStop]);
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 z-10 flex h-72 flex-col border-t bg-background">
-      <SimulationHeader currentNode={currentNode} totalTokens={totalTokens} onStop={onStop} />
-      <StepsList steps={steps} scrollRef={scrollRef} />
-      <SimulationInput loading={loading} onSendMessage={onSendMessage} />
+    <div className="absolute inset-y-0 left-0 z-10 flex w-[350px] p-2 pt-3">
+      <div className="relative flex h-full w-full flex-col rounded-md border bg-background shadow-md">
+        <SimulationHeader visitedNodes={visitedNodes} onStop={onStop} />
+        <ContentArea lastUserText={lastUserText} nodeResults={nodeResults} scrollRef={scrollRef} />
+        <SimulationInput
+          loading={loading}
+          terminated={terminated}
+          terminatedLabel={t('terminated')}
+          terminatedDescription={t('terminatedDescription')}
+          onSendMessage={onSendMessage}
+        />
+      </div>
     </div>
   );
 }

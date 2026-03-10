@@ -1,4 +1,4 @@
 export { SimulationPanel } from './SimulationPanel';
 export { SimulationInput } from './SimulationInput';
-export { StepItem } from './StepItem';
+export { NodeResultItem } from './NodeResultItem';
 export { TokenDisplay } from './TokenDisplay';

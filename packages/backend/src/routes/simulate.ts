@@ -3,8 +3,24 @@ import type { Response } from 'express';
 
 import type { SimulateRequest, SimulationEvent } from '../types.js';
 
+interface Flushable {
+  flush: () => void;
+}
+
+function hasFlushProperty(value: object): value is Flushable {
+  return 'flush' in value && typeof value.flush === 'function';
+}
+
+function isFlushable(value: unknown): value is Flushable {
+  return typeof value === 'object' && value !== null && hasFlushProperty(value);
+}
+
 export function writeSSE(res: Response, event: SimulationEvent): void {
-  res.write(`data: ${JSON.stringify(event)}\n\n`);
+  const payload = `data: ${JSON.stringify(event)}\n\n`;
+  res.write(payload);
+  if (isFlushable(res)) {
+    res.flush();
+  }
 }
 
 export function setSseHeaders(res: Response): void {

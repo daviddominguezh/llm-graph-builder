@@ -37,7 +37,10 @@ import { Card } from "@/components/ui/card";
 import type {
   Precondition,
   PreconditionType,
+  ToolFieldValue,
 } from "../../schemas/graph.schema";
+import type { DiscoveredTool } from "../../lib/api";
+import type { PushOperation } from "../../utils/operationBuilders";
 import type { RFEdgeData } from "../../utils/graphTransformers";
 import type { Edge } from "@xyflow/react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -47,6 +50,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { pushDeleteEdge, pushTypeChangeOps, pushUpdateEdge } from "./edgePanelOps";
+import { ToolParamsCard } from "./ToolParamsCard";
 
 const START_NODE_ID = "INITIAL_STEP";
 
@@ -55,7 +60,8 @@ interface EdgePanelProps {
   onEdgeDeleted?: () => void;
   onSelectNode?: (nodeId: string) => void;
   availableContextPreconditions?: string[];
-  availableMcpTools?: string[];
+  availableMcpTools?: DiscoveredTool[];
+  pushOperation: PushOperation;
 }
 
 interface EdgePreconditionInput {
@@ -69,6 +75,7 @@ export function EdgePanel({
   onSelectNode,
   availableContextPreconditions = [],
   availableMcpTools = [],
+  pushOperation,
 }: EdgePanelProps) {
   const edges = useEdges<Edge<RFEdgeData>>();
   const { setEdges } = useReactFlow();
@@ -89,6 +96,9 @@ export function EdgePanel({
   const [newPreconditionValue, setNewPreconditionValue] = useState("");
   const [newPreconditionDescription, setNewPreconditionDescription] =
     useState("");
+  const [newPreconditionToolFields, setNewPreconditionToolFields] = useState<
+    Record<string, ToolFieldValue> | undefined
+  >(undefined);
   const [showTypeChangeConfirm, setShowTypeChangeConfirm] = useState(false);
   const [editingPreconditionIndex, setEditingPreconditionIndex] = useState<
     number | null
@@ -129,11 +139,13 @@ export function EdgePanel({
   const allSourceEdges = [edge, ...siblingEdges];
 
   const updateEdgeData = (updates: Partial<RFEdgeData>) => {
+    const merged = { ...edgeData, ...updates };
     setEdges((eds) =>
       eds.map((e) =>
         e.id === edge.id ? { ...e, data: { ...e.data, ...updates } } : e,
       ),
     );
+    pushUpdateEdge(from, to, merged, pushOperation);
   };
 
   const doAddPrecondition = () => {
@@ -142,18 +154,26 @@ export function EdgePanel({
         type: existingType ?? newPreconditionType,
         value: newPreconditionValue.trim(),
         description: newPreconditionDescription.trim() || undefined,
+        toolFields: newPreconditionToolFields,
       };
       const newPreconditions = [...preconditions, newPrecondition];
       setPreconditions(newPreconditions);
       updateEdgeData({ preconditions: newPreconditions });
       setNewPreconditionValue("");
       setNewPreconditionDescription("");
+      setNewPreconditionToolFields(undefined);
       setIsAddingPrecondition(false);
     }
   };
 
   const handleAddPrecondition = () => {
     doAddPrecondition();
+  };
+
+  const handleToolFieldsChange = (index: number, toolFields: Record<string, ToolFieldValue> | undefined) => {
+    const updated = preconditions.map((p, i) => (i === index ? { ...p, toolFields } : p));
+    setPreconditions(updated);
+    updateEdgeData({ preconditions: updated });
   };
 
   const handleEditPrecondition = (index: number) => {
@@ -202,7 +222,6 @@ export function EdgePanel({
   };
 
   const handleConfirmTypeChange = () => {
-    // Add preconditions to all edges from the same source
     setEdges((eds) =>
       eds.map((e) => {
         const input = multiEdgeInputs[e.id];
@@ -226,7 +245,8 @@ export function EdgePanel({
       }),
     );
 
-    // Update local state for current edge
+    pushTypeChangeOps(allSourceEdges, multiEdgeInputs, newPreconditionType, pushOperation);
+
     const currentInput = multiEdgeInputs[edge.id];
     if (currentInput && currentInput.value.trim()) {
       const newPrecondition: Precondition = {
@@ -243,6 +263,7 @@ export function EdgePanel({
 
   const handleDeleteEdge = () => {
     setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+    pushDeleteEdge(from, to, pushOperation);
     onEdgeDeleted?.();
   };
 
@@ -491,6 +512,15 @@ export function EdgePanel({
                           </div>
                         </div>
                       )}
+
+                      {p.type === "tool_call" && availableMcpTools.length > 0 && (
+                        <ToolParamsCard
+                          toolName={p.value}
+                          tools={availableMcpTools}
+                          toolFields={p.toolFields}
+                          onToolFieldsChange={(tf) => handleToolFieldsChange(index, tf)}
+                        />
+                      )}
                     </div>
                   </div>
                 </Card>
@@ -550,15 +580,25 @@ export function EdgePanel({
                           <div className="flex flex-wrap gap-1 mt-1">
                             {availableMcpTools.map((tool) => (
                               <button
-                                key={tool}
+                                key={tool.name}
                                 type="button"
                                 className="rounded bg-muted px-1.5 py-0.5 text-[10px] hover:bg-muted-foreground/20"
-                                onClick={() => setNewPreconditionValue(tool)}
+                                onClick={() => setNewPreconditionValue(tool.name)}
                               >
-                                {tool}
+                                {tool.name}
                               </button>
                             ))}
                           </div>
+                        )}
+                      {newPreconditionType === "tool_call" &&
+                        newPreconditionValue &&
+                        availableMcpTools.length > 0 && (
+                          <ToolParamsCard
+                            toolName={newPreconditionValue}
+                            tools={availableMcpTools}
+                            toolFields={newPreconditionToolFields}
+                            onToolFieldsChange={setNewPreconditionToolFields}
+                          />
                         )}
                     </div>
                     <div className="space-y-1">

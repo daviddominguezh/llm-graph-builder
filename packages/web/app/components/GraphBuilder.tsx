@@ -4,31 +4,39 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { useReactFlow, ReactFlowProvider, useNodesState, useEdgesState } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
+import { GraphBuilderLoading } from './GraphBuilderLoading';
 import { HandleContext } from './nodes/HandleContext';
 import { PublishButton } from './panels/PublishButton';
 import { Toolbar } from './panels/Toolbar';
 import { StatusButton } from './panels/StatusButton';
 import { ConnectionMenu } from './panels/ConnectionMenu';
 import { SearchDialog } from './panels/SearchDialog';
+import { VersionSwitcherSlot } from './panels/VersionSwitcherSlot';
 import { GraphCanvas } from './GraphCanvas';
 import { SidePanels } from './SidePanels';
+import type { DiscoveredTool } from '../lib/api';
 import type { ApiKeyRow } from '../lib/api-keys';
-import { GraphSchema } from '../schemas/graph.schema';
 import type { Agent, Graph } from '../schemas/graph.schema';
 import { useApiKeySelection } from '../hooks/useApiKeySelection';
-import { useMcpServers } from '../hooks/useMcpServers';
-import { usePresets } from '../hooks/usePresets';
-import { useSimulation } from '../hooks/useSimulation';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { useGraphActions } from '../hooks/useGraphActions';
+import type { GraphLoadResult } from '../hooks/useGraphLoader';
+import { useGraphLoader } from '../hooks/useGraphLoader';
 import { useImportGraph } from '../hooks/useImportGraph';
+import { useMcpDiscovery } from '../hooks/useMcpDiscovery';
 import { useExportGraph } from '../hooks/useExportGraph';
 import { useGraphSelection } from '../hooks/useGraphSelection';
+import { useMcpServers } from '../hooks/useMcpServers';
+import { useOperationQueue } from '../hooks/useOperationQueue';
+import { usePresets } from '../hooks/usePresets';
+import { useSeedInitialGraph } from '../hooks/useSeedInitialGraph';
+import { useSimulation } from '../hooks/useSimulation';
+import { useVersions } from '../hooks/useVersions';
 import { useZoomView } from '../hooks/useZoomView';
 import { useInitialViewport, useSearchKeyboard, useContextPreconditions } from '../hooks/useGraphBuilderHelpers';
-import { buildInitialEdges, buildInitialNodes } from '../utils/graphInitializer';
 import { serializeGraphData } from '../utils/graphSerializer';
 import type { RFNodeData } from '../utils/graphTransformers';
+import { useFormatGraph } from '../hooks/useFormatGraph';
 
 const DEFAULT_VERSION = 0;
 
@@ -38,29 +46,43 @@ export interface GraphBuilderProps {
   orgSlug?: string;
   orgName?: string;
   orgAvatarUrl?: string | null;
-  initialGraphData?: Graph;
-  initialProductionData?: Graph;
   initialVersion?: number;
   orgApiKeys?: ApiKeyRow[];
   stagingApiKeyId?: string | null;
   productionApiKeyId?: string | null;
 }
 
-function useGraphBuilderHooks(props: GraphBuilderProps) {
-  const { agentId, initialGraphData, initialProductionData, initialVersion } = props;
+interface LoadedEditorProps extends GraphBuilderProps {
+  loadResult: GraphLoadResult;
+  reload: () => void;
+  initialDiscoveredTools: Record<string, DiscoveredTool[]>;
+}
+
+function useGraphBuilderHooks(props: LoadedEditorProps) {
+  const { agentId, loadResult } = props;
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const rf = useReactFlow();
 
-  const initNodes = useMemo(() => buildInitialNodes(initialGraphData), [initialGraphData]);
-  const initEdges = useMemo(() => buildInitialEdges(initialGraphData), [initialGraphData]);
+  const [nodes, setNodes, onNodesChange] = useNodesState(loadResult.nodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(loadResult.edges);
+  const [agents] = useState<Agent[]>(loadResult.agents);
+  const [version, setVersion] = useState(props.initialVersion ?? DEFAULT_VERSION);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initEdges);
-  const [agents] = useState<Agent[]>(initialGraphData?.agents ?? []);
-  const [version, setVersion] = useState(initialVersion ?? DEFAULT_VERSION);
-  const [productionData, setProductionData] = useState(() =>
-    initialProductionData ? (GraphSchema.safeParse(initialProductionData).data ?? initialProductionData) : undefined
-  );
+  const opQueue = useOperationQueue(agentId);
+
+  useSeedInitialGraph({
+    graphData: loadResult.graphData,
+    nodes: loadResult.nodes,
+    edges: loadResult.edges,
+    pushOperation: opQueue.pushOperation,
+    flush: opQueue.flush,
+  });
+
+  const mcpHook = useMcpServers({
+    initialServers: loadResult.mcpServers,
+    initialDiscoveredTools: props.initialDiscoveredTools,
+    pushOperation: opQueue.pushOperation,
+  });
 
   const apiKeys = useApiKeySelection({
     agentId,
@@ -73,8 +95,7 @@ function useGraphBuilderHooks(props: GraphBuilderProps) {
   const [toolsOpen, setToolsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
-  const presetsHook = usePresets();
-  const mcpHook = useMcpServers();
+  const presetsHook = usePresets(opQueue.pushOperation);
 
   const panels = useMemo(() => ({ setGlobalPanelOpen, setPresetsOpen, setToolsOpen, setSearchOpen }), []);
 
@@ -101,7 +122,11 @@ function useGraphBuilderHooks(props: GraphBuilderProps) {
     setSelectedNodeId: selection.setSelectedNodeId,
     reactFlowWrapper,
     reactFlow: rf,
+    pushOperation: opQueue.pushOperation,
   });
+
+  const getNodes = useCallback(() => nodes, [nodes]);
+  const getMcpServers = useCallback(() => mcpHook.servers, [mcpHook.servers]);
 
   const handleImport = useImportGraph({
     setNodes,
@@ -109,9 +134,22 @@ function useGraphBuilderHooks(props: GraphBuilderProps) {
     setViewport: rf.setViewport,
     reactFlowWrapper,
     mcpSetServers: mcpHook.setServers,
+    pushOperation: opQueue.pushOperation,
+    getCurrentNodes: getNodes,
+    getCurrentMcpServers: getMcpServers,
   });
 
   const handleExport = useExportGraph({ nodes, edges, agents, mcpServers: mcpHook.servers });
+
+  const handleFormat = useFormatGraph({
+    nodes,
+    edges,
+    agents,
+    mcpServers: mcpHook.servers,
+    setNodes,
+    setEdges,
+    pushOperation: opQueue.pushOperation,
+  });
 
   const serializedGraph = useMemo(
     () => serializeGraphData({ nodes, edges, agents, mcpServers: mcpHook.servers }),
@@ -120,15 +158,25 @@ function useGraphBuilderHooks(props: GraphBuilderProps) {
 
   const getGraphData = useCallback((): Graph | null => serializedGraph, [serializedGraph]);
 
-  const { pendingSave } = useAutoSave({ agentId, getGraphData, enabled: agentId !== undefined });
+  const { pendingSave } = useAutoSave({
+    hasPendingOps: opQueue.hasPendingOps,
+    flushSeq: opQueue.flushSeq,
+    flush: opQueue.flush,
+    enabled: agentId !== undefined,
+  });
 
-  const canPublish = useMemo(
-    () => serializedGraph !== null && JSON.stringify(serializedGraph) !== JSON.stringify(productionData),
-    [serializedGraph, productionData]
-  );
+  const canPublish = serializedGraph !== null;
 
-  useInitialViewport(reactFlowWrapper, rf.setViewport, initialGraphData);
+  useInitialViewport(reactFlowWrapper, rf.setViewport, loadResult.graphData);
   useSearchKeyboard(setSearchOpen);
+
+  const handleSimSelectNode = useCallback(
+    (nodeId: string) => {
+      setNodes((nds) => nds.map((n) => ({ ...n, selected: n.id === nodeId })));
+      selection.setSelectedNodeId(nodeId);
+    },
+    [setNodes, selection]
+  );
 
   const simulation = useSimulation({
     allNodes: nodes,
@@ -138,6 +186,7 @@ function useGraphBuilderHooks(props: GraphBuilderProps) {
     apiKeyId: apiKeys.stagingKeyId ?? '',
     mcpServers: mcpHook.servers,
     onZoomToNode: zoomView.handleZoomToNode,
+    onSelectNode: handleSimSelectNode,
     onExitZoomView: zoomView.handleExitZoomView,
   });
 
@@ -160,6 +209,7 @@ function useGraphBuilderHooks(props: GraphBuilderProps) {
     graphActions,
     handleImport,
     handleExport,
+    handleFormat,
     getGraphData,
     pendingSave,
     canPublish,
@@ -177,14 +227,17 @@ function useGraphBuilderHooks(props: GraphBuilderProps) {
     setSearchOpen,
     version,
     setVersion,
-    productionData,
-    setProductionData,
     apiKeys,
+    pushOperation: opQueue.pushOperation,
+    flush: opQueue.flush,
+    hasPendingOps: opQueue.hasPendingOps,
+    clearQueue: opQueue.clearQueue,
   };
 }
 
-function GraphBuilderInner(props: GraphBuilderProps) {
+function LoadedEditor(props: LoadedEditorProps) {
   const h = useGraphBuilderHooks(props);
+  const versionsHook = useVersions(props.agentId, props.initialVersion ?? DEFAULT_VERSION);
 
   const handleContextValue = {
     onSourceHandleClick: h.graphActions.onSourceHandleClick,
@@ -194,18 +247,18 @@ function GraphBuilderInner(props: GraphBuilderProps) {
   return (
     <HandleContext.Provider value={handleContextValue}>
       <div className="flex h-screen w-screen flex-col items-center">
-        <Toolbar
+        {!h.simulation.active && <Toolbar
           onAddNode={h.graphActions.handleAddNode}
           onImport={h.handleImport}
           onExport={h.handleExport}
+          onFormat={h.handleFormat}
           onPlay={h.simulation.start}
           simulationActive={h.simulation.active}
-          statusSlot={<StatusButton nodes={h.nodes} edges={h.edges} />}
+          statusSlot={<StatusButton nodes={h.nodes} edges={h.edges} pendingSave={h.pendingSave} />}
           globalPanelOpen={h.globalPanelOpen}
           onToggleGlobalPanel={() => h.setGlobalPanelOpen((prev) => !prev)}
           onTogglePresets={() => h.setPresetsOpen((prev) => !prev)}
           onToggleTools={() => h.setToolsOpen((prev) => !prev)}
-          pendingSave={h.pendingSave}
           stagingKeyId={h.apiKeys.stagingKeyId}
           orgSlug={props.orgSlug}
           orgName={props.orgName}
@@ -217,15 +270,28 @@ function GraphBuilderInner(props: GraphBuilderProps) {
                 agentId={props.agentId}
                 canPublish={h.canPublish}
                 hasApiKey={h.apiKeys.stagingKeyId !== null}
+                flush={h.flush}
                 onPublished={(newVersion) => {
                   h.setVersion(newVersion);
-                  h.setProductionData(h.getGraphData() ?? undefined);
+                  versionsHook.setCurrentVersion(newVersion);
                   h.apiKeys.setProductionKeyId(h.apiKeys.stagingKeyId);
+                  void versionsHook.refresh();
                 }}
               />
             ) : undefined
           }
-        />
+          versionSlot={
+            props.agentId !== undefined ? (
+              <VersionSwitcherSlot
+                agentId={props.agentId}
+                versionsHook={versionsHook}
+                hasPendingOps={h.hasPendingOps}
+                clearQueue={h.clearQueue}
+                reload={props.reload}
+              />
+            ) : undefined
+          }
+        />}
 
         <GraphCanvas
           reactFlowWrapper={h.reactFlowWrapper}
@@ -267,6 +333,7 @@ function GraphBuilderInner(props: GraphBuilderProps) {
           stagingKeyId={h.apiKeys.stagingKeyId}
           productionKeyId={h.apiKeys.productionKeyId}
           onStagingKeyChange={h.apiKeys.handleStagingKeyChange}
+          pushOperation={h.pushOperation}
         />
 
         {h.graphActions.connectionMenu !== null && (
@@ -282,6 +349,24 @@ function GraphBuilderInner(props: GraphBuilderProps) {
         )}
       </div>
     </HandleContext.Provider>
+  );
+}
+
+function GraphBuilderInner(props: GraphBuilderProps) {
+  const loader = useGraphLoader(props.agentId);
+  const mcpServers = loader.loading ? undefined : loader.result.mcpServers;
+  const discovery = useMcpDiscovery(mcpServers);
+
+  if (loader.loading) return <GraphBuilderLoading />;
+  if (discovery.loading) return <GraphBuilderLoading serverProgress={discovery.serverProgress} />;
+
+  return (
+    <LoadedEditor
+      {...props}
+      loadResult={loader.result}
+      reload={loader.reload}
+      initialDiscoveredTools={discovery.discoveredTools}
+    />
   );
 }
 

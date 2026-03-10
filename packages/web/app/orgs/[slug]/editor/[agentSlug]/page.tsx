@@ -33,9 +33,7 @@ export default async function EditorPage({ params }: EditorPageProps): Promise<R
       orgSlug={org.slug}
       orgName={org.name}
       orgAvatarUrl={org.avatar_url}
-      initialGraphData={agent.graph_data_staging}
-      initialProductionData={agent.graph_data_production}
-      initialVersion={agent.version}
+      initialVersion={agent.current_version}
       orgApiKeys={orgApiKeys}
       stagingApiKeyId={agent.staging_api_key_id}
       productionApiKeyId={agent.production_api_key_id}

@@ -60,7 +60,17 @@
     "export": "Export",
     "logout": "Sign out",
     "loading": "Loading...",
-    "backToAgents": "Back to agents"
+    "backToAgents": "Back to agents",
+    "formatGraph": "Auto-layout"
+  },
+  "toolbar": {
+    "status": "Validation status",
+    "simulate": "Simulate",
+    "generate": "Generate",
+    "globalNodes": "Global nodes",
+    "tools": "Tools",
+    "autoLayout": "Auto-layout",
+    "settings": "Settings"
   },
   "agents": {
     "title": "Agents",
@@ -89,7 +99,32 @@
     "saving": "Saving...",
     "autoSaveFailed": "Auto-save failed. Your changes may not be saved.",
     "notFound": "Agent not found",
-    "exportValidationError": "Graph has validation errors. Please fix before exporting."
+    "exportValidationError": "Graph has validation errors. Please fix before exporting.",
+    "loadGraphFailed": "Failed to load graph data.",
+    "versionLabel": "v{version}",
+    "versionPublishedAt": "Published {date}",
+    "switchVersionTitle": "Switch version?",
+    "switchVersionDescription": "You have unpublished changes that will be lost. Continue?",
+    "switchVersionConfirm": "Switch",
+    "switchVersionCancel": "Cancel",
+    "noVersions": "No published versions",
+    "restoreVersionFailed": "Failed to restore version. Please try again.",
+    "connectingMcpServers": "Connecting to MCP servers...",
+    "loadVersionsFailed": "Failed to load versions. Please try again.",
+    "seedGraphFailed": "Failed to save initial graph. Please reload the page."
+  },
+  "simulation": {
+    "toolInput": "Input",
+    "nodeTokens": "Tokens by node",
+    "totalTokens": "Total",
+    "terminated": "Terminal node reached",
+    "terminatedDescription": "Simulation complete"
+  },
+  "edgePanel": {
+    "parameters": "Parameters:",
+    "agentInferred": "Agent inferred",
+    "optionalField": "optional",
+    "fixedValuePlaceholder": "Enter value..."
   },
   "orgs": {
     "title": "My Organizations",

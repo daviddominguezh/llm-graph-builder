@@ -162,13 +162,11 @@ function processReplyCore(
   }
 
   const msgs = buildResponseMessages(typedReply);
+
   const { usage: rawUsage } = typedReply;
   accumulateTokens(tokens, getTokensUsage(extractUsage(rawUsage)));
 
   if (expectedTool === undefined) {
-    logger.info(
-      `callAgentStep/${context.tenantID}/${context.userID}| [AGENT_EXECUTOR] Non-tool response successful`
-    );
     return { modelWorkedFine: true, msgs };
   }
 

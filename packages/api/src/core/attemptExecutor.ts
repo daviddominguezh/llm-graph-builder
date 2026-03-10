@@ -107,9 +107,17 @@ async function tryExecuteAttempt(
   const { model, name: modelName } = getModel(apiKey);
 
   logAttemptStart({ context, sessionId, attemptCount, modelName });
+  logger.info(`[ATTEMPT] Messages count: ${config.messages.length}`);
+  logger.info(`[ATTEMPT] Expected tool: ${expectedTool ?? 'none'}`);
+  logger.info(`[ATTEMPT] Tools in config: ${Object.keys(config.tools ?? {}).join(', ')}`);
   copyMsgs.push(MessageProcessor.cleanMessagesBeforeSending(MessageProcessor.cloneMessages(config.messages)));
 
+  logger.info('[ATTEMPT] Calling model...');
   const reply: unknown = await callModel(context, config, expectedTool, model);
+  logger.info(`[ATTEMPT] Model returned, reply type: ${typeof reply}`);
+  logger.info(
+    `[ATTEMPT] Reply keys: ${typeof reply === 'object' && reply !== null ? Object.keys(reply).join(', ') : 'N/A'}`
+  );
   const result = processReply(reply, {
     context,
     sessionId,
@@ -121,6 +129,9 @@ async function tryExecuteAttempt(
     allToolCalls,
     modelName,
   });
+  logger.info(
+    `[ATTEMPT] processReply result: modelWorkedFine=${String(result.modelWorkedFine)}, msgs=${result.msgs.length}`
+  );
   return { modelWorkedFine: result.modelWorkedFine, msgs: result.msgs, shouldBreak: false };
 }
 

@@ -82,6 +82,10 @@ Graphs have **nodes** (kinds: `agent`, `agent_decision`, `tool`) and **edges** w
 - Add new shadcn components: `npx shadcn@latest add <component-name>`
 - Never use `!important` in CSS or Tailwind classes
 
+### API (agent executor)
+
+- This is where the agents are executed, with tools/mcps, and prompts are created.
+
 ### Internationalization
 
 - Always add translations when adding user-facing text

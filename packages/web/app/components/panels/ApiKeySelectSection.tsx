@@ -25,10 +25,15 @@ function StagingKeySelect({
 }) {
   const t = useTranslations('apiKeys');
 
+  const items = [
+    { value: '', label: t('none') },
+    ...orgApiKeys.map((key) => ({ value: key.id, label: key.name })),
+  ];
+
   return (
     <div className="space-y-1">
       <Label>{t('stagingKey')}</Label>
-      <Select value={stagingKeyId ?? ''} onValueChange={(val) => onStagingKeyChange(val === '' ? null : val)}>
+      <Select value={stagingKeyId ?? ''} items={items} onValueChange={(val) => onStagingKeyChange(val === '' ? null : val)}>
         <SelectTrigger className="w-full">
           <SelectValue placeholder={t('selectKey')} />
         </SelectTrigger>

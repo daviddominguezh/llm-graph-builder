@@ -1,9 +1,11 @@
+import type { Operation } from '@daviddh/graph-types';
 import { nanoid } from 'nanoid';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
 import { type DiscoveredTool, discoverMcpTools } from '../lib/api';
 import type { McpServerConfig } from '../schemas/graph.schema';
+import type { PushOperation } from '../utils/operationBuilders';
 
 export type McpServerStatus = 'pending' | 'active';
 
@@ -11,6 +13,7 @@ export interface McpServersState {
   servers: McpServerConfig[];
   discoveredTools: Record<string, DiscoveredTool[]>;
   allToolNames: string[];
+  allTools: DiscoveredTool[];
   discovering: Record<string, boolean>;
   serverStatus: Record<string, McpServerStatus>;
   addServer: () => void;
@@ -39,14 +42,43 @@ function collectToolNames(discoveredTools: Record<string, DiscoveredTool[]>): st
   return [...names];
 }
 
+function collectAllTools(discoveredTools: Record<string, DiscoveredTool[]>): DiscoveredTool[] {
+  const seen = new Set<string>();
+  const allTools = Object.values(discoveredTools).flat();
+  return allTools.filter((tool) => {
+    if (seen.has(tool.name)) return false;
+    seen.add(tool.name);
+    return true;
+  });
+}
+
 function removeKeyFromRecord<T>(record: Record<string, T>, key: string): Record<string, T> {
   return Object.fromEntries(Object.entries(record).filter(([k]) => k !== key));
+}
+
+function buildInsertMcpOp(server: McpServerConfig): Operation {
+  return {
+    type: 'insertMcpServer',
+    data: { serverId: server.id, name: server.name, transport: server.transport, enabled: server.enabled },
+  };
+}
+
+function buildUpdateMcpOp(id: string, merged: McpServerConfig): Operation {
+  return {
+    type: 'updateMcpServer',
+    data: { serverId: id, name: merged.name, transport: merged.transport, enabled: merged.enabled },
+  };
+}
+
+function buildDeleteMcpOp(id: string): Operation {
+  return { type: 'deleteMcpServer', serverId: id };
 }
 
 interface MutationSetters {
   setServers: React.Dispatch<React.SetStateAction<McpServerConfig[]>>;
   setDiscoveredTools: React.Dispatch<React.SetStateAction<Record<string, DiscoveredTool[]>>>;
   setServerStatus: React.Dispatch<React.SetStateAction<Record<string, McpServerStatus>>>;
+  pushOperation: PushOperation;
 }
 
 function useServerMutations(setters: MutationSetters): {
@@ -54,26 +86,34 @@ function useServerMutations(setters: MutationSetters): {
   removeServer: (id: string) => void;
   updateServer: (id: string, updates: Partial<McpServerConfig>) => void;
 } {
-  const { setServers, setDiscoveredTools, setServerStatus } = setters;
+  const { setServers, setDiscoveredTools, setServerStatus, pushOperation } = setters;
 
   const addServer = useCallback(() => {
-    setServers((prev) => [...prev, createDefaultServer()]);
-  }, [setServers]);
+    const server = createDefaultServer();
+    setServers((prev) => [...prev, server]);
+    pushOperation(buildInsertMcpOp(server));
+  }, [setServers, pushOperation]);
 
   const removeServer = useCallback(
     (id: string) => {
       setServers((prev) => prev.filter((s) => s.id !== id));
       setDiscoveredTools((prev) => removeKeyFromRecord(prev, id));
       setServerStatus((prev) => removeKeyFromRecord(prev, id));
+      pushOperation(buildDeleteMcpOp(id));
     },
-    [setServers, setDiscoveredTools, setServerStatus]
+    [setServers, setDiscoveredTools, setServerStatus, pushOperation]
   );
 
   const updateServer = useCallback(
     (id: string, updates: Partial<McpServerConfig>) => {
-      setServers((prev) => prev.map((s) => (s.id === id ? { ...s, ...updates } : s)));
+      setServers((prev) => {
+        const updated = prev.map((s) => (s.id === id ? { ...s, ...updates } : s));
+        const merged = updated.find((s) => s.id === id);
+        if (merged !== undefined) pushOperation(buildUpdateMcpOp(id, merged));
+        return updated;
+      });
     },
-    [setServers]
+    [setServers, pushOperation]
   );
 
   return { addServer, removeServer, updateServer };
@@ -114,20 +154,41 @@ function useToolDiscovery(servers: McpServerConfig[], setters: DiscoverySetters)
   );
 }
 
-export function useMcpServers(): McpServersState {
-  const [servers, setServers] = useState<McpServerConfig[]>([]);
-  const [discoveredTools, setDiscoveredTools] = useState<Record<string, DiscoveredTool[]>>({});
-  const [discovering, setDiscovering] = useState<Record<string, boolean>>({});
-  const [serverStatus, setServerStatus] = useState<Record<string, McpServerStatus>>({});
+function buildInitialStatus(tools: Record<string, DiscoveredTool[]>): Record<string, McpServerStatus> {
+  const status: Record<string, McpServerStatus> = {};
+  for (const id of Object.keys(tools)) {
+    status[id] = 'active';
+  }
+  return status;
+}
 
-  const mutations = useServerMutations({ setServers, setDiscoveredTools, setServerStatus });
+export interface UseMcpServersOptions {
+  initialServers: McpServerConfig[] | undefined;
+  initialDiscoveredTools?: Record<string, DiscoveredTool[]>;
+  pushOperation: PushOperation;
+}
+
+export function useMcpServers(options: UseMcpServersOptions): McpServersState {
+  const { initialServers, initialDiscoveredTools, pushOperation } = options;
+  const [servers, setServers] = useState<McpServerConfig[]>(initialServers ?? []);
+  const [discoveredTools, setDiscoveredTools] = useState<Record<string, DiscoveredTool[]>>(
+    initialDiscoveredTools ?? {}
+  );
+  const [discovering, setDiscovering] = useState<Record<string, boolean>>({});
+  const [serverStatus, setServerStatus] = useState<Record<string, McpServerStatus>>(
+    buildInitialStatus(initialDiscoveredTools ?? {})
+  );
+
+  const mutations = useServerMutations({ setServers, setDiscoveredTools, setServerStatus, pushOperation });
   const discoverTools = useToolDiscovery(servers, { setDiscoveredTools, setDiscovering, setServerStatus });
   const allToolNames = collectToolNames(discoveredTools);
+  const allTools = collectAllTools(discoveredTools);
 
   return {
     servers,
     discoveredTools,
     allToolNames,
+    allTools,
     discovering,
     serverStatus,
     ...mutations,

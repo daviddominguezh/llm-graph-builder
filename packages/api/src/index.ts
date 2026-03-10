@@ -3,7 +3,7 @@ import type { Tool } from 'ai';
 import { INITIAL_STEP_NODE } from './constants/index.js';
 import { type CallAgentOutput, callAgentStep } from './core/index.js';
 import type { Message } from './types/ai/messages.js';
-import type { Context } from './types/tools.js';
+import type { Context, NodeProcessedEvent } from './types/tools.js';
 import type { Logger } from './utils/logger.js';
 import { setLogger } from './utils/logger.js';
 import { Pipeline } from './utils/pipeline.js';
@@ -14,7 +14,7 @@ export type { CallAgentOutput } from './core/index.js';
 export type { Message } from './types/ai/messages.js';
 export { MESSAGES_PROVIDER } from './types/ai/messages.js';
 export type { TokenLog, ActionTokenUsage } from './types/ai/logs.js';
-export type { Context } from './types/tools.js';
+export type { Context, NodeProcessedEvent } from './types/tools.js';
 export type { Logger } from './utils/logger.js';
 
 export const execute = async (
@@ -38,6 +38,7 @@ export interface ExecuteWithCallbacksOptions {
   logger?: Logger;
   toolsOverride?: Record<string, Tool>;
   onNodeVisited?: (nodeId: string) => void;
+  onNodeProcessed?: (event: NodeProcessedEvent) => void;
 }
 
 export const executeWithCallbacks = async (
@@ -48,6 +49,7 @@ export const executeWithCallbacks = async (
     ...options.context,
     toolsOverride: options.toolsOverride,
     onNodeVisited: options.onNodeVisited,
+    onNodeProcessed: options.onNodeProcessed,
   };
   return await Pipeline.executeSingleStep(context, callAgentStep, {
     messages: options.messages,
