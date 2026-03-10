@@ -93,7 +93,7 @@ export function StepItem({ step, index }: StepItemProps) {
       <ToolCallsList calls={step.toolCalls} />
       <AgentMessage text={step.agentText} />
       <NodeTokensList entries={step.nodeTokens} t={t} />
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between px-2">
         <span className="text-[10px] font-medium text-muted-foreground">{t('totalTokens')}</span>
         <TokenDisplay tokens={step.tokenUsage} />
       </div>
