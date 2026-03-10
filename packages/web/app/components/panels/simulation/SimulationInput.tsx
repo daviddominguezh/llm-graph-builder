@@ -40,7 +40,7 @@ export function SimulationInput({ loading, terminated, terminatedLabel, onSendMe
   };
 
   return (
-    <div className="flex items-center gap-2 border-t p-3">
+    <div className="flex items-center gap-1 border-t p-1.5">
       <Input
         value={text}
         onChange={(e) => setText(e.target.value)}

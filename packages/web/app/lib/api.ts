@@ -218,34 +218,18 @@ function processStreamChunk(state: StreamReaderState, chunk: ReadableStreamReadR
   return remaining;
 }
 
-function scheduleNextRead(state: StreamReaderState, resolve: () => void, reject: (e: unknown) => void): void {
-  setTimeout(() => {
-    readChunkLoop(state, resolve, reject);
-  });
-}
-
-function readChunkLoop(state: StreamReaderState, resolve: () => void, reject: (e: unknown) => void): void {
-  state.reader
-    .read()
-    .then((chunk) => {
-      if (chunk.done) {
-        resolve();
-        return;
-      }
-      const remaining = processStreamChunk(state, chunk);
-      scheduleNextRead({ ...state, buffer: remaining }, resolve, reject);
-    })
-    .catch(reject);
+async function readNextChunk(state: StreamReaderState): Promise<void> {
+  const chunk = await state.reader.read();
+  if (chunk.done) return;
+  const remaining = processStreamChunk(state, chunk);
+  await readNextChunk({ ...state, buffer: remaining });
 }
 
 async function readSseStream(
   reader: ReadableStreamDefaultReader<Uint8Array>,
   callbacks: StreamCallbacks
 ): Promise<void> {
-  const state: StreamReaderState = { reader, decoder: new TextDecoder(), callbacks, buffer: '' };
-  return new Promise<void>((resolve, reject) => {
-    readChunkLoop(state, resolve, reject);
-  });
+  await readNextChunk({ reader, decoder: new TextDecoder(), callbacks, buffer: '' });
 }
 
 export async function streamSimulation(

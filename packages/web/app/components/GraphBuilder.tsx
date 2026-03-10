@@ -225,7 +225,7 @@ function LoadedEditor(props: LoadedEditorProps) {
   return (
     <HandleContext.Provider value={handleContextValue}>
       <div className="flex h-screen w-screen flex-col items-center">
-        <Toolbar
+        {!h.simulation.active && <Toolbar
           onAddNode={h.graphActions.handleAddNode}
           onImport={h.handleImport}
           onExport={h.handleExport}
@@ -268,7 +268,7 @@ function LoadedEditor(props: LoadedEditorProps) {
               />
             ) : undefined
           }
-        />
+        />}
 
         <GraphCanvas
           reactFlowWrapper={h.reactFlowWrapper}
