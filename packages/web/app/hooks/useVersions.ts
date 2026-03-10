@@ -19,8 +19,6 @@ interface VersionsState {
   loading: boolean;
 }
 
-const INITIAL_STATE: VersionsState = { versions: [], loading: false };
-
 function useLoadVersionsOnMount(
   agentId: string | undefined,
   onLoaded: (versions: VersionSummary[]) => void,
@@ -47,7 +45,10 @@ function useLoadVersionsOnMount(
 
 export function useVersions(agentId: string | undefined, initialVersion: number): UseVersionsReturn {
   const t = useTranslations('editor');
-  const [state, setState] = useState<VersionsState>(INITIAL_STATE);
+  const [state, setState] = useState<VersionsState>({
+    versions: [],
+    loading: agentId !== undefined,
+  });
   const [currentVersion, setCurrentVersion] = useState(initialVersion);
 
   const handleLoaded = useCallback((versions: VersionSummary[]) => {

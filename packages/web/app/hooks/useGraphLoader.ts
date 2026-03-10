@@ -6,7 +6,7 @@ import { buildInitialEdges, buildInitialNodes } from '@/app/utils/graphInitializ
 import type { RFEdgeData, RFNodeData } from '@/app/utils/graphTransformers';
 import type { Edge, Node } from '@xyflow/react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 export interface GraphLoadResult {
@@ -88,15 +88,20 @@ export function useGraphLoader(agentId: string | undefined): UseGraphLoaderRetur
 
   useLoadOnMount(agentId, handleSuccess, handleError);
 
+  const reloadSeqRef = useRef(0);
+
   const reload = useCallback(() => {
     if (agentId === undefined) return;
+    const mySeq = ++reloadSeqRef.current;
     setState((prev) => ({ ...prev, loading: true }));
 
     void fetchGraph(agentId)
       .then((graph) => {
+        if (mySeq !== reloadSeqRef.current) return;
         setState({ loading: false, result: buildLoadResult(graph) });
       })
       .catch(() => {
+        if (mySeq !== reloadSeqRef.current) return;
         setState((prev) => ({ ...prev, loading: false }));
         toast.error(t('loadGraphFailed'));
       });

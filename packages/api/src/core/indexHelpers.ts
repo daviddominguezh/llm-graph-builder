@@ -202,12 +202,13 @@ async function processFlowStep(
   const { parsedResult, nextNodeID, toolCalls, durationMs } = result;
   emitNodeProcessed({ context, input, nodeId: currentNodeID, parsedResult, toolCalls, durationMs });
 
-  if (isTerminalNode(context, currentNodeID)) {
-    return { state, error: false, shouldContinue: false, isTerminal: true };
-  }
-
   if (toolCalls.length > EMPTY_LENGTH) {
     allToolCalls.push(...toolCalls);
+  }
+
+  if (isTerminalNode(context, currentNodeID)) {
+    parsedResults.push(parsedResult);
+    return { state, error: false, shouldContinue: false, isTerminal: true };
   }
 
   const { global: nextNodeIsGlobal, nextNodeIsUser } = getNode(context.graph, nextNodeID);
