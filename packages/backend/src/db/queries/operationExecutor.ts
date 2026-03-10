@@ -3,13 +3,6 @@ import type { Graph, Operation } from '@daviddh/graph-types';
 import { assembleGraph } from './graphQueries.js';
 import { executeSingleOperation } from './operationDispatch.js';
 import type { SupabaseClient } from './operationHelpers.js';
-import {
-  clearStagingData,
-  hydrateAgents,
-  hydrateEdges,
-  hydrateMcpServers,
-  hydrateNodes,
-} from './versionRestoreHelpers.js';
 
 async function runSequentially(
   supabase: SupabaseClient,
@@ -25,13 +18,13 @@ async function runSequentially(
 }
 
 async function rollbackToSnapshot(supabase: SupabaseClient, agentId: string, snapshot: Graph): Promise<void> {
-  await clearStagingData(supabase, agentId);
-  await hydrateNodes(supabase, agentId, snapshot.nodes);
-  await hydrateEdges(supabase, agentId, snapshot.edges);
-  await Promise.all([
-    hydrateAgents(supabase, agentId, snapshot.agents),
-    hydrateMcpServers(supabase, agentId, snapshot.mcpServers),
-  ]);
+  const result = await supabase.rpc('rollback_to_snapshot_tx', {
+    p_agent_id: agentId,
+    p_snapshot: snapshot,
+  });
+  if (result.error !== null) {
+    throw new Error(`rollbackToSnapshot: ${result.error.message}`);
+  }
 }
 
 /**

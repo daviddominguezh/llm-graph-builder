@@ -9,6 +9,8 @@ import type {
 } from './graphRowTypes.js';
 import type { SupabaseClient } from './operationHelpers.js';
 
+const EMPTY_LENGTH = 0;
+
 interface QueryResult<T> {
   data: T | null;
   error: { message: string } | null;
@@ -41,14 +43,18 @@ export async function fetchEdges(supabase: SupabaseClient, agentId: string): Pro
   return throwOnError<EdgeRow[]>(result);
 }
 
+async function fetchEdgeIds(supabase: SupabaseClient, agentId: string): Promise<string[]> {
+  const edges = await fetchEdges(supabase, agentId);
+  return edges.map((e) => e.id);
+}
+
 export async function fetchEdgePreconditions(
   supabase: SupabaseClient,
   agentId: string
 ): Promise<EdgePreconditionRow[]> {
-  const result = await supabase
-    .from('graph_edge_preconditions')
-    .select('*, graph_edges!inner(agent_id)')
-    .eq('graph_edges.agent_id', agentId);
+  const edgeIds = await fetchEdgeIds(supabase, agentId);
+  if (edgeIds.length === EMPTY_LENGTH) return [];
+  const result = await supabase.from('graph_edge_preconditions').select('*').in('edge_id', edgeIds);
   return throwOnError<EdgePreconditionRow[]>(result);
 }
 
@@ -56,10 +62,9 @@ export async function fetchEdgeContextPreconditions(
   supabase: SupabaseClient,
   agentId: string
 ): Promise<EdgeContextPreconditionRow[]> {
-  const result = await supabase
-    .from('graph_edge_context_preconditions')
-    .select('*, graph_edges!inner(agent_id)')
-    .eq('graph_edges.agent_id', agentId);
+  const edgeIds = await fetchEdgeIds(supabase, agentId);
+  if (edgeIds.length === EMPTY_LENGTH) return [];
+  const result = await supabase.from('graph_edge_context_preconditions').select('*').in('edge_id', edgeIds);
   return throwOnError<EdgeContextPreconditionRow[]>(result);
 }
 

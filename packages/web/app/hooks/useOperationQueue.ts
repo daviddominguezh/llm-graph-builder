@@ -12,16 +12,19 @@ export interface UseOperationQueueReturn {
   flush: () => Promise<void>;
   hasPendingOps: boolean;
   pendingCount: number;
+  flushSeq: number;
   clearQueue: () => void;
 }
 
 export function useOperationQueue(agentId: string | undefined): UseOperationQueueReturn {
   const queueRef = useRef<Operation[]>([]);
   const [pendingCount, setPendingCount] = useState(EMPTY_COUNT);
+  const [flushSeq, setFlushSeq] = useState(EMPTY_COUNT);
 
   const pushOperation = useCallback((op: Operation) => {
     queueRef.current = [...queueRef.current, op];
     setPendingCount((prev) => prev + INCREMENT);
+    setFlushSeq((s) => s + INCREMENT);
   }, []);
 
   const flush = useCallback(async () => {
@@ -48,5 +51,5 @@ export function useOperationQueue(agentId: string | undefined): UseOperationQueu
 
   const hasPendingOps = pendingCount > EMPTY_COUNT;
 
-  return { pushOperation, flush, hasPendingOps, pendingCount, clearQueue };
+  return { pushOperation, flush, hasPendingOps, pendingCount, flushSeq, clearQueue };
 }

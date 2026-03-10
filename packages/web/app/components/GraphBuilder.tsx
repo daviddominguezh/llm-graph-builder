@@ -160,6 +160,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
 
   const { pendingSave } = useAutoSave({
     hasPendingOps: opQueue.hasPendingOps,
+    flushSeq: opQueue.flushSeq,
     flush: opQueue.flush,
     enabled: agentId !== undefined,
   });

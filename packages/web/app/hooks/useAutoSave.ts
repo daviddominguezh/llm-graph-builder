@@ -6,6 +6,7 @@ const AUTO_SAVE_DELAY_MS = 5000;
 
 export interface UseAutoSaveOptions {
   hasPendingOps: boolean;
+  flushSeq: number;
   flush: () => Promise<void>;
   enabled: boolean;
 }
@@ -30,7 +31,12 @@ function useBeforeUnloadWarning(pendingSave: boolean): void {
   }, [pendingSave]);
 }
 
-function useFlushEffect(hasPendingOps: boolean, enabled: boolean, doFlush: () => void): void {
+function useFlushEffect(
+  flushSeq: number,
+  hasPendingOps: boolean,
+  enabled: boolean,
+  doFlush: () => void
+): void {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -42,10 +48,15 @@ function useFlushEffect(hasPendingOps: boolean, enabled: boolean, doFlush: () =>
     return () => {
       if (timerRef.current !== null) clearTimeout(timerRef.current);
     };
-  }, [hasPendingOps, enabled, doFlush]);
+  }, [flushSeq, hasPendingOps, enabled, doFlush]);
 }
 
-export function useAutoSave({ hasPendingOps, flush, enabled }: UseAutoSaveOptions): UseAutoSaveReturn {
+export function useAutoSave({
+  hasPendingOps,
+  flushSeq,
+  flush,
+  enabled,
+}: UseAutoSaveOptions): UseAutoSaveReturn {
   const t = useTranslations('editor');
 
   const doFlush = useCallback(() => {
@@ -54,7 +65,7 @@ export function useAutoSave({ hasPendingOps, flush, enabled }: UseAutoSaveOption
     });
   }, [flush, t]);
 
-  useFlushEffect(hasPendingOps, enabled, doFlush);
+  useFlushEffect(flushSeq, hasPendingOps, enabled, doFlush);
   useBeforeUnloadWarning(hasPendingOps);
 
   return { pendingSave: hasPendingOps };
