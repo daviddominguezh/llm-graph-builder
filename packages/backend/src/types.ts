@@ -35,6 +35,7 @@ export type SimulationEvent =
       text: string;
       toolCalls: Array<{ toolName: string; input: unknown }>;
       tokens: { input: number; output: number; cached: number };
+      durationMs: number;
     }
   | {
       type: 'agent_response';

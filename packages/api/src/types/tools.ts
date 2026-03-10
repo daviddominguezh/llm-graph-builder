@@ -8,6 +8,7 @@ export interface NodeProcessedEvent {
   text?: string;
   toolCalls: Array<TypedToolCall<Record<string, Tool>>>;
   tokens: TokenLog;
+  durationMs: number;
 }
 
 export interface Context {

@@ -10,14 +10,10 @@ import { buildContext, setSseHeaders, sumTokens, writeSSE } from './simulate.js'
 const EMPTY_SESSION: McpSession = { clients: [], tools: {} };
 
 function sendNodeVisited(res: Response, nodeId: string): void {
-  const { console: log } = globalThis;
-  log.log(`[SSE:backend] sending node_visited: ${nodeId}`);
   writeSSE(res, { type: 'node_visited', nodeId });
 }
 
 function sendNodeProcessed(res: Response, event: NodeProcessedEvent): void {
-  const { console: log } = globalThis;
-  log.log(`[SSE:backend] sending node_processed: ${event.nodeId}`);
   writeSSE(res, {
     type: 'node_processed',
     nodeId: event.nodeId,
@@ -27,6 +23,7 @@ function sendNodeProcessed(res: Response, event: NodeProcessedEvent): void {
       input: tc.input as unknown,
     })),
     tokens: event.tokens,
+    durationMs: event.durationMs,
   });
 }
 
@@ -50,8 +47,6 @@ function extractNodeTokens(
 }
 
 function sendAgentResponse(res: Response, result: CallAgentOutput): void {
-  const { console: log } = globalThis;
-  log.log(`[SSE:backend] sending agent_response, visitedNodes: ${JSON.stringify(result.visitedNodes)}`);
   const tokenUsage = sumTokens(result);
   writeSSE(res, {
     type: 'agent_response',

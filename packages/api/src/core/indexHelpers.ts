@@ -159,19 +159,28 @@ interface EmitNodeProcessedParams {
   nodeId: string;
   parsedResult: ParsedResult;
   toolCalls: ToolCallsArray;
+  durationMs: number;
 }
 
 function emitNodeProcessed(params: EmitNodeProcessedParams): void {
-  const { context, input, nodeId, parsedResult, toolCalls } = params;
+  const { context, input, nodeId, parsedResult, toolCalls, durationMs } = params;
   if (context.onNodeProcessed === undefined) return;
   const lastLog = input.tokensLog.at(-LAST_INDEX_OFFSET);
   const tokens = lastLog?.tokens ?? createEmptyTokenLog();
-  context.onNodeProcessed({ nodeId, text: parsedResult.messageToUser, toolCalls, tokens });
+  context.onNodeProcessed({ nodeId, text: parsedResult.messageToUser, toolCalls, tokens, durationMs });
 }
 
 function isTerminalNode(context: Context, nodeID: string): boolean {
   const edges = context.graph.edges.filter((e) => e.from === nodeID);
   return edges.length === EMPTY_LENGTH;
+}
+
+async function processNodeTimed(
+  params: ProcessNodeParams
+): Promise<ProcessNodeResult & { durationMs: number }> {
+  const startTime = Date.now();
+  const result = await processNode(params);
+  return { ...result, durationMs: Date.now() - startTime };
 }
 
 async function processFlowStep(
@@ -188,19 +197,14 @@ async function processFlowStep(
     return { state, error: false, shouldContinue: false, isTerminal: true };
   }
 
-  const { parsedResult, nextNodeID, error, toolCalls } = await processNode({
-    context,
-    input,
-    currentNodeID,
-    nodeBeforeGlobal,
-    debugMessages,
-  });
+  const result = await processNodeTimed({ context, input, currentNodeID, nodeBeforeGlobal, debugMessages });
 
-  if (error) {
+  if (result.error) {
     return { state, error: true, shouldContinue: false };
   }
 
-  emitNodeProcessed({ context, input, nodeId: currentNodeID, parsedResult, toolCalls });
+  const { parsedResult, nextNodeID, toolCalls, durationMs } = result;
+  emitNodeProcessed({ context, input, nodeId: currentNodeID, parsedResult, toolCalls, durationMs });
 
   if (toolCalls.length > EMPTY_LENGTH) {
     allToolCalls.push(...toolCalls);

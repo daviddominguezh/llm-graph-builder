@@ -25,6 +25,7 @@ export interface NodeResult {
   text: string;
   toolCalls: SimulationToolCall[];
   tokens: TokenLog;
+  durationMs?: number;
 }
 
 export interface SimulationTokens {

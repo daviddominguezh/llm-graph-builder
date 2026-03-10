@@ -1,30 +1,45 @@
 'use client';
 
-import { useState } from 'react';
-import { Send, Loader2, OctagonX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Separator } from '@base-ui/react';
+import { Loader2, OctagonX, Send } from 'lucide-react';
+import { useState } from 'react';
 
 interface SimulationInputProps {
   loading: boolean;
   terminated: boolean;
   terminatedLabel: string;
+  terminatedDescription: string;
   onSendMessage: (text: string) => void;
 }
 
-function TerminatedBanner({ label }: { label: string }) {
+function TerminatedBanner({ label, description }: { label: string; description: string }) {
   return (
-    <div className="flex items-center justify-center gap-2 border-t px-3 py-3 text-sm text-muted-foreground">
-      <OctagonX className="size-4" />
-      <span>{label}</span>
+    <div className='flex flex-col w-full'>
+      <div className='w-full h-[1px] bg-gray-200'></div>
+
+      <div className="flex gap-2 p-2 text-sm bg-gray-100 m-2 rounded-md">
+        <OctagonX className="size-4 mt-0.5" />
+        <div className="flex flex-col">
+          <span>{label}</span>
+          <span className="text-xs text-muted-foreground">{description}</span>
+        </div>
+      </div>
     </div>
   );
 }
 
-export function SimulationInput({ loading, terminated, terminatedLabel, onSendMessage }: SimulationInputProps) {
+export function SimulationInput({
+  loading,
+  terminated,
+  terminatedLabel,
+  terminatedDescription,
+  onSendMessage,
+}: SimulationInputProps) {
   const [text, setText] = useState('');
 
-  if (terminated) return <TerminatedBanner label={terminatedLabel} />;
+  if (terminated) return <TerminatedBanner label={terminatedLabel} description={terminatedDescription} />;
 
   const handleSubmit = () => {
     const trimmed = text.trim();

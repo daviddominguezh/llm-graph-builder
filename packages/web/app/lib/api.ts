@@ -92,6 +92,7 @@ export interface NodeProcessedEvent {
   text: string;
   toolCalls: SseToolCall[];
   tokens: { input: number; output: number; cached: number };
+  durationMs?: number;
 }
 
 export interface StreamCallbacks {
@@ -124,6 +125,7 @@ const SseEventSchema = z.object({
   nodeTokens: z.array(SseNodeTokensSchema).optional(),
   tokens: TokensSchema.optional(),
   tokenUsage: TokensSchema.optional(),
+  durationMs: z.number().optional(),
   message: z.string().optional(),
 });
 
@@ -142,6 +144,7 @@ function handleNodeProcessed(event: SseEvent, callbacks: StreamCallbacks): void 
       text: event.text ?? '',
       toolCalls: event.toolCalls ?? [],
       tokens: event.tokens,
+      durationMs: event.durationMs,
     });
   }
 }
@@ -160,8 +163,6 @@ function handleAgentResponse(event: SseEvent, callbacks: StreamCallbacks): void 
 }
 
 function dispatchSseEvent(event: SseEvent, callbacks: StreamCallbacks): void {
-  // eslint-disable-next-line no-console -- temporary debug logging for SSE pipeline
-  console.log(`[SSE:client] t=${Date.now()} event type=${event.type}`, event.nodeId ?? '');
   if (event.type === 'node_visited') {
     handleNodeVisited(event, callbacks);
   } else if (event.type === 'node_processed') {
@@ -209,11 +210,6 @@ function processStreamChunk(state: StreamReaderState, chunk: ReadableStreamReadR
   const updated = processChunk(state.decoder, chunk.value, state.buffer);
   const lines = updated.split('\n');
   const remaining = lines.pop() ?? '';
-  const dataLines = lines.filter((l) => l.trim().startsWith(SSE_DATA_PREFIX));
-  // eslint-disable-next-line no-console -- temporary debug logging for SSE pipeline
-  console.log(
-    `[SSE:client] t=${Date.now()} chunk received, lines=${String(lines.length)}, dataLines=${String(dataLines.length)}`
-  );
   processBufferedLines(lines, state.callbacks);
   return remaining;
 }

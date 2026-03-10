@@ -84,6 +84,7 @@ export function buildStreamCallbacks(
         text: event.text,
         toolCalls: event.toolCalls,
         tokens: event.tokens,
+        durationMs: event.durationMs,
       };
       flushSync(() => {
         setters.setNodeResults((prev) => [...prev, result]);

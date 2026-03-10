@@ -23,7 +23,7 @@ function Breadcrumbs({ nodes }: { nodes: string[] }) {
   if (nodes.length === 0) return null;
   const lastIndex = nodes.length - 1;
   return (
-    <p className="truncate text-xs text-muted-foreground">
+    <p className="truncate font-mono text-[10px] text-muted-foreground">
       {nodes.map((node, i) => (
         <span key={i}>
           {i > 0 && ' \u2192 '}
@@ -36,16 +36,20 @@ function Breadcrumbs({ nodes }: { nodes: string[] }) {
 
 function SimulationHeader({
   visitedNodes,
+  terminated,
   onStop,
-}: Pick<SimulationPanelProps, 'visitedNodes' | 'onStop'>) {
+}: Pick<SimulationPanelProps, 'visitedNodes' | 'terminated' | 'onStop'>) {
   return (
-    <div className="flex items-center gap-3 border-b px-3 py-2">
-      <span className="shrink-0 text-sm font-semibold">Simulation</span>
+    <div className="flex flex-col gap-1 border-b px-3 py-2">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold">Simulation</span>
+        {!terminated && (
+          <Button variant="destructive" size="icon" className="size-7" onClick={onStop}>
+            <Square className="size-3" />
+          </Button>
+        )}
+      </div>
       <Breadcrumbs nodes={visitedNodes} />
-      <Button variant="destructive" size="sm" className="ml-auto" onClick={onStop}>
-        <Square className="mr-1 size-3" />
-        Stop
-      </Button>
     </div>
   );
 }
@@ -53,10 +57,8 @@ function SimulationHeader({
 function UserMessage({ text }: { text: string }) {
   if (text === '') return null;
   return (
-    <div className="flex justify-end">
-      <div className="max-w-[75%] rounded-lg bg-primary px-3 py-1.5 text-sm text-primary-foreground">
-        {text}
-      </div>
+    <div className="ml-auto border-r-2 border-primary py-1 pr-3">
+      <p className="text-right text-xs leading-relaxed">{text}</p>
     </div>
   );
 }
@@ -70,7 +72,7 @@ interface ContentAreaProps {
 function ContentArea({ lastUserText, nodeResults, scrollRef }: ContentAreaProps) {
   return (
     <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2">
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3">
         <UserMessage text={lastUserText} />
         {nodeResults.map((result, i) => (
           <NodeResultItem key={i} result={result} />
@@ -92,14 +94,15 @@ export function SimulationPanel(props: SimulationPanelProps) {
   }, [nodeResults.length]);
 
   return (
-    <div className="absolute bottom-0 left-0 z-10 flex w-72 h-full p-2 pt-13">
-      <div className="relative w-full h-full flex flex-col border bg-background rounded-md shadow-md">
-        <SimulationHeader visitedNodes={visitedNodes} onStop={onStop} />
+    <div className="absolute inset-y-0 left-0 z-10 flex w-[350px] p-2 pt-3">
+      <div className="relative flex h-full w-full flex-col rounded-md border bg-background shadow-md">
+        <SimulationHeader visitedNodes={visitedNodes} terminated={terminated} onStop={onStop} />
         <ContentArea lastUserText={lastUserText} nodeResults={nodeResults} scrollRef={scrollRef} />
         <SimulationInput
           loading={loading}
           terminated={terminated}
           terminatedLabel={t('terminated')}
+          terminatedDescription={t('terminatedDescription')}
           onSendMessage={onSendMessage}
         />
       </div>

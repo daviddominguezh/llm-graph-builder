@@ -16,15 +16,10 @@ function isFlushable(value: unknown): value is Flushable {
 }
 
 export function writeSSE(res: Response, event: SimulationEvent): void {
-  const { console: log } = globalThis;
   const payload = `data: ${JSON.stringify(event)}\n\n`;
-  log.log(`[SSE:write] type=${event.type}, bytes=${payload.length}`);
   res.write(payload);
   if (isFlushable(res)) {
     res.flush();
-    log.log('[SSE:write] flushed');
-  } else {
-    log.log('[SSE:write] no flush method available');
   }
 }
 

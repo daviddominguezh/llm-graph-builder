@@ -36,25 +36,12 @@ async function resolveApiKey(
 }
 
 function buildSseStreamResponse(upstream: Response): Response {
-  const { console: log } = globalThis;
-  log.log(`[SSE:proxy] upstream responded, status=${upstream.status}`);
-
   const { body: upstreamBody } = upstream;
   if (upstreamBody === null) {
-    log.log('[SSE:proxy] upstream body is null');
     return new Response(null, { status: upstream.status });
   }
 
-  const transform = new TransformStream<Uint8Array, Uint8Array>({
-    transform(chunk, ctrl) {
-      log.log(`[SSE:proxy] forwarding chunk, bytes=${chunk.length}`);
-      ctrl.enqueue(chunk);
-    },
-  });
-
-  void upstreamBody.pipeTo(transform.writable);
-
-  return new Response(transform.readable, {
+  return new Response(upstreamBody, {
     status: upstream.status,
     headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' },
   });

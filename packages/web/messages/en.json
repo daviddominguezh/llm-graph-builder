@@ -105,7 +105,8 @@
     "toolInput": "Input",
     "nodeTokens": "Tokens by node",
     "totalTokens": "Total",
-    "terminated": "Terminal node reached — simulation complete"
+    "terminated": "Terminal node reached",
+    "terminatedDescription": "Simulation complete"
   },
   "edgePanel": {
     "parameters": "Parameters:",
