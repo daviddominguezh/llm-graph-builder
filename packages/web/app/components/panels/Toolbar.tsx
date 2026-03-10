@@ -15,6 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Download,
+  Loader2,
   LogOut,
   Menu,
   Play,
@@ -155,11 +156,13 @@ function FileMenu({ onImport, onExport, orgSlug, orgName, orgAvatarUrl, agentNam
 }
 
 function SaveIndicator({ pendingSave }: { pendingSave: boolean }) {
-  const t = useTranslations('editor');
-
   if (!pendingSave) return null;
 
-  return <span className="text-muted-foreground flex items-center px-2 text-xs">{t('saving')}</span>;
+  return (
+    <span className="flex items-center px-2">
+      <Loader2 className="size-4 animate-spin text-orange-500" />
+    </span>
+  );
 }
 
 function PlayButton({
