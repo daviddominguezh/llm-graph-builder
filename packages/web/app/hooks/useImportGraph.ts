@@ -101,13 +101,42 @@ function openFilePicker(onFileRead: (text: string) => void): void {
 }
 
 export function useImportGraph(params: UseImportGraphParams): () => void {
+  const {
+    setNodes,
+    setEdges,
+    setViewport,
+    reactFlowWrapper,
+    mcpSetServers,
+    pushOperation,
+    getCurrentNodes,
+    getCurrentMcpServers,
+  } = params;
+
   return useCallback(() => {
     openFilePicker((text) => {
       try {
-        parseAndApply(text, params);
+        parseAndApply(text, {
+          setNodes,
+          setEdges,
+          setViewport,
+          reactFlowWrapper,
+          mcpSetServers,
+          pushOperation,
+          getCurrentNodes,
+          getCurrentMcpServers,
+        });
       } catch {
         toast.error('Failed to parse JSON file');
       }
     });
-  }, [params]);
+  }, [
+    setNodes,
+    setEdges,
+    setViewport,
+    reactFlowWrapper,
+    mcpSetServers,
+    pushOperation,
+    getCurrentNodes,
+    getCurrentMcpServers,
+  ]);
 }

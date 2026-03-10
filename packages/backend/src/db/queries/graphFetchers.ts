@@ -1,5 +1,3 @@
-import type { createClient } from '@supabase/supabase-js';
-
 import type {
   AgentRow,
   AgentStartNodeRow,
@@ -9,8 +7,7 @@ import type {
   McpServerRow,
   NodeRow,
 } from './graphRowTypes.js';
-
-type SupabaseClient = ReturnType<typeof createClient>;
+import type { SupabaseClient } from './operationHelpers.js';
 
 interface QueryResult<T> {
   data: T | null;
@@ -36,12 +33,12 @@ export async function fetchStartNode(supabase: SupabaseClient, agentId: string):
 
 export async function fetchNodes(supabase: SupabaseClient, agentId: string): Promise<NodeRow[]> {
   const result = await supabase.from('graph_nodes').select('*').eq('agent_id', agentId);
-  return throwOnError(result) as NodeRow[];
+  return throwOnError<NodeRow[]>(result);
 }
 
 export async function fetchEdges(supabase: SupabaseClient, agentId: string): Promise<EdgeRow[]> {
   const result = await supabase.from('graph_edges').select('*').eq('agent_id', agentId);
-  return throwOnError(result) as EdgeRow[];
+  return throwOnError<EdgeRow[]>(result);
 }
 
 export async function fetchEdgePreconditions(
@@ -52,7 +49,7 @@ export async function fetchEdgePreconditions(
     .from('graph_edge_preconditions')
     .select('*, graph_edges!inner(agent_id)')
     .eq('graph_edges.agent_id', agentId);
-  return throwOnError(result) as EdgePreconditionRow[];
+  return throwOnError<EdgePreconditionRow[]>(result);
 }
 
 export async function fetchEdgeContextPreconditions(
@@ -63,15 +60,15 @@ export async function fetchEdgeContextPreconditions(
     .from('graph_edge_context_preconditions')
     .select('*, graph_edges!inner(agent_id)')
     .eq('graph_edges.agent_id', agentId);
-  return throwOnError(result) as EdgeContextPreconditionRow[];
+  return throwOnError<EdgeContextPreconditionRow[]>(result);
 }
 
 export async function fetchAgents(supabase: SupabaseClient, agentId: string): Promise<AgentRow[]> {
   const result = await supabase.from('graph_agents').select('*').eq('agent_id', agentId);
-  return throwOnError(result) as AgentRow[];
+  return throwOnError<AgentRow[]>(result);
 }
 
 export async function fetchMcpServers(supabase: SupabaseClient, agentId: string): Promise<McpServerRow[]> {
   const result = await supabase.from('graph_mcp_servers').select('*').eq('agent_id', agentId);
-  return throwOnError(result) as McpServerRow[];
+  return throwOnError<McpServerRow[]>(result);
 }

@@ -121,7 +121,10 @@ export async function getVersionSnapshot(
     .eq('version', version)
     .single();
 
-  if (result.error !== null) return null;
+  if (result.error !== null) {
+    if (result.error.code === 'PGRST116') return null;
+    throw new Error(`getVersionSnapshot: ${result.error.message}`);
+  }
 
   const row: VersionSnapshotRow = result.data;
   return row.graph_data;

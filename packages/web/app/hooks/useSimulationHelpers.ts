@@ -1,6 +1,5 @@
 import type { Message } from '@daviddh/llm-graph-runner';
 import type { Edge as RFEdge, Node as RFNode } from '@xyflow/react';
-import { flushSync } from 'react-dom';
 
 import type { SimulateRequestBody, StreamCallbacks } from '../lib/api';
 import type { Agent, McpServerConfig } from '../schemas/graph.schema';
@@ -76,10 +75,8 @@ export function buildStreamCallbacks(deps: StreamCallbackDeps): StreamCallbacks 
   const { setters, onZoomToNode, onSelectNode } = deps;
   return {
     onNodeVisited: (nodeId: string) => {
-      flushSync(() => {
-        setters.setCurrentNode(nodeId);
-        setters.setVisitedNodes((prev) => [...prev, nodeId]);
-      });
+      setters.setCurrentNode(nodeId);
+      setters.setVisitedNodes((prev) => [...prev, nodeId]);
       onZoomToNode(nodeId);
       onSelectNode(nodeId);
     },
@@ -91,10 +88,8 @@ export function buildStreamCallbacks(deps: StreamCallbackDeps): StreamCallbacks 
         tokens: event.tokens,
         durationMs: event.durationMs,
       };
-      flushSync(() => {
-        setters.setNodeResults((prev) => [...prev, result]);
-        setters.setTotalTokens((prev) => addTokens(prev, event.tokens));
-      });
+      setters.setNodeResults((prev) => [...prev, result]);
+      setters.setTotalTokens((prev) => addTokens(prev, event.tokens));
     },
     onAgentResponse: () => {
       /* data already captured via onNodeProcessed */

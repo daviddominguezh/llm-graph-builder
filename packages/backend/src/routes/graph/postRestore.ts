@@ -1,6 +1,6 @@
 import type { Request } from 'express';
 
-import { restoreVersion } from '../../db/queries/versionRestore.js';
+import { VersionNotFoundError, restoreVersion } from '../../db/queries/versionRestore.js';
 import {
   type AuthenticatedLocals,
   type AuthenticatedResponse,
@@ -31,7 +31,7 @@ function logError(agentId: string, message: string): void {
 }
 
 function isVersionNotFoundError(err: unknown): boolean {
-  return err instanceof Error && err.message.startsWith('Version ');
+  return err instanceof VersionNotFoundError;
 }
 
 export async function handlePostRestore(req: Request, res: AuthenticatedResponse): Promise<void> {

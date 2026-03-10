@@ -1,5 +1,4 @@
 import type { Graph } from '@daviddh/graph-types';
-import type { createClient } from '@supabase/supabase-js';
 
 import { assembleAgents, assembleEdges, assembleMcpServers, assembleNodes } from './graphAssemblers.js';
 import {
@@ -12,8 +11,7 @@ import {
   fetchStartNode,
 } from './graphFetchers.js';
 import type { EdgeContextPreconditionRow, EdgePreconditionRow, EdgeRow } from './graphRowTypes.js';
-
-type SupabaseClient = ReturnType<typeof createClient>;
+import type { SupabaseClient } from './operationHelpers.js';
 
 interface EdgeData {
   edgeRows: EdgeRow[];
