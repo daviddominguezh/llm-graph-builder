@@ -12,12 +12,6 @@ interface StepItemProps {
   index: number;
 }
 
-function VisitedNodesPath({ nodes }: { nodes: string[] }) {
-  return (
-    <p className="mb-1 text-xs font-medium text-muted-foreground">{nodes.join(' \u2192 ')}</p>
-  );
-}
-
 function UserMessage({ text }: { text: string }) {
   return (
     <div className="flex justify-end">
@@ -95,7 +89,6 @@ export function StepItem({ step, index }: StepItemProps) {
   return (
     <div className="flex flex-col gap-1.5">
       {index > 0 && <Separator className="my-1" />}
-      <VisitedNodesPath nodes={step.visitedNodes} />
       <UserMessage text={step.userText} />
       <ToolCallsList calls={step.toolCalls} />
       <AgentMessage text={step.agentText} />

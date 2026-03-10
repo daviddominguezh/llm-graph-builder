@@ -11,15 +11,12 @@ import { SimulationInput } from './SimulationInput';
 
 interface SimulationPanelProps {
   steps: SimulationStep[];
+  visitedNodes: string[];
   totalTokens: SimulationTokens;
   terminated: boolean;
   loading: boolean;
   onSendMessage: (text: string) => void;
   onStop: () => void;
-}
-
-function buildBreadcrumbs(steps: SimulationStep[]): string[] {
-  return steps.flatMap((s) => s.visitedNodes);
 }
 
 function Breadcrumbs({ nodes }: { nodes: string[] }) {
@@ -37,12 +34,11 @@ function Breadcrumbs({ nodes }: { nodes: string[] }) {
   );
 }
 
-function SimulationHeader({ steps, totalTokens, onStop }: Pick<SimulationPanelProps, 'steps' | 'totalTokens' | 'onStop'>) {
-  const breadcrumbs = buildBreadcrumbs(steps);
+function SimulationHeader({ visitedNodes, totalTokens, onStop }: Pick<SimulationPanelProps, 'visitedNodes' | 'totalTokens' | 'onStop'>) {
   return (
     <div className="flex items-center gap-3 border-b px-3 py-2">
       <span className="shrink-0 text-sm font-semibold">Simulation</span>
-      <Breadcrumbs nodes={breadcrumbs} />
+      <Breadcrumbs nodes={visitedNodes} />
       <TokenDisplay tokens={totalTokens} className="ml-auto shrink-0" />
       <Button variant="destructive" size="sm" onClick={onStop}>
         <Square className="mr-1 size-3" />
@@ -64,7 +60,7 @@ function StepsList({ steps, scrollRef }: { steps: SimulationStep[]; scrollRef: R
   );
 }
 
-export function SimulationPanel({ steps, totalTokens, terminated, loading, onSendMessage, onStop }: SimulationPanelProps) {
+export function SimulationPanel({ steps, visitedNodes, totalTokens, terminated, loading, onSendMessage, onStop }: SimulationPanelProps) {
   const t = useTranslations('simulation');
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -76,7 +72,7 @@ export function SimulationPanel({ steps, totalTokens, terminated, loading, onSen
 
   return (
     <div className="absolute bottom-0 left-0 right-0 z-10 flex h-72 flex-col border-t bg-background">
-      <SimulationHeader steps={steps} totalTokens={totalTokens} onStop={onStop} />
+      <SimulationHeader visitedNodes={visitedNodes} totalTokens={totalTokens} onStop={onStop} />
       <StepsList steps={steps} scrollRef={scrollRef} />
       <SimulationInput loading={loading} terminated={terminated} terminatedLabel={t('terminated')} onSendMessage={onSendMessage} />
     </div>

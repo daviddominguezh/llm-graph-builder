@@ -138,7 +138,6 @@ function handleAgentResponse(event: SseEvent, callbacks: StreamCallbacks): void 
 }
 
 function dispatchSseEvent(event: SseEvent, callbacks: StreamCallbacks): void {
-  console.log('[simulate client] SSE event:', event.type, event);
   if (event.type === 'node_visited') {
     handleNodeVisited(event, callbacks);
   } else if (event.type === 'agent_response') {
@@ -206,13 +205,11 @@ export async function streamSimulation(
   params: SimulateRequestBody,
   callbacks: StreamCallbacks
 ): Promise<void> {
-  console.log('[simulate client] Starting simulation, currentNode:', params.currentNode);
   const res = await fetch('/api/simulate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
   });
-  console.log('[simulate client] Response status:', res.status);
 
   if (!res.ok) {
     throw new Error(`Simulation request failed: ${String(res.status)}`);

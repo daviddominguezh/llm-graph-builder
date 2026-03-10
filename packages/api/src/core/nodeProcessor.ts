@@ -17,6 +17,8 @@ import { accumulateTokens } from './tokenTracker.js';
 import { type ProcessToolNodeParams, executeToolCall } from './toolCallExecutor.js';
 import type { CallAgentInput, NodeProcessingConfig } from './types.js';
 
+const LAST_INDEX_OFFSET = 1;
+
 interface ProcessReplyNodeParams {
   context: Context;
   config: NodeProcessingConfig;
@@ -96,9 +98,9 @@ export async function processReplyNode(
     nodes,
   });
   const { tokensLog } = input;
-  const [firstTokenLog] = tokensLog;
-  if (firstTokenLog !== undefined) {
-    accumulateTokens(firstTokenLog.tokens, res.tokens);
+  const lastTokenLog = tokensLog.at(-LAST_INDEX_OFFSET);
+  if (lastTokenLog !== undefined) {
+    accumulateTokens(lastTokenLog.tokens, res.tokens);
   }
   Object.assign(debugMessages, { [currentNodeID]: res.copyMsgs });
 
@@ -143,9 +145,9 @@ async function generateToolReply(params: GenerateToolReplyParams): Promise<Parse
   });
 
   const { tokensLog: replyTokensLog } = input;
-  const [replyFirstTokenLog] = replyTokensLog;
-  if (replyFirstTokenLog !== undefined) {
-    accumulateTokens(replyFirstTokenLog.tokens, replyRes.tokens);
+  const replyLastTokenLog = replyTokensLog.at(-LAST_INDEX_OFFSET);
+  if (replyLastTokenLog !== undefined) {
+    accumulateTokens(replyLastTokenLog.tokens, replyRes.tokens);
   }
   Object.assign(debugMessages, {
     [`${currentNodeID}${AGENT_CONSTANTS.AFTER_TOOL_REPLY_SUFFIX}`]: replyRes.copyMsgs,

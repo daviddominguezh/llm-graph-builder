@@ -38,6 +38,7 @@ export interface SimulationState {
   loading: boolean;
   currentNode: string;
   terminated: boolean;
+  visitedNodes: string[];
   steps: SimulationStep[];
   totalTokens: SimulationTokens;
   start: () => void;
@@ -75,6 +76,7 @@ interface SimulationSetters {
   setSteps: React.Dispatch<React.SetStateAction<SimulationStep[]>>;
   setTotalTokens: React.Dispatch<React.SetStateAction<SimulationTokens>>;
   setCurrentNode: React.Dispatch<React.SetStateAction<string>>;
+  setVisitedNodes: React.Dispatch<React.SetStateAction<string[]>>;
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
   saveSnapshot: (s: GraphSnapshot | null) => void;
   getSnapshot: () => GraphSnapshot | null;
@@ -96,6 +98,7 @@ function useSimulationStart(deps: SimulationStartDeps): () => void {
     setters.setCurrentNode(START_NODE_ID);
     setters.setMessages([]);
     setters.setSteps([]);
+    setters.setVisitedNodes([]);
     setters.setTotalTokens(EMPTY_TOKENS);
     onZoomToNode(START_NODE_ID);
   }, [setters, allNodes, edges, onZoomToNode]);
@@ -110,6 +113,7 @@ function useSimulationStop(
     setters.setActive(false);
     setters.setMessages([]);
     setters.setSteps([]);
+    setters.setVisitedNodes([]);
     setters.setTotalTokens(EMPTY_TOKENS);
     onExitZoomView();
   }, [setters, onExitZoomView]);
@@ -135,6 +139,7 @@ function buildStreamCallbacks(
   return {
     onNodeVisited: (nodeId: string) => {
       setters.setCurrentNode(nodeId);
+      setters.setVisitedNodes((prev) => [...prev, nodeId]);
       onZoomToNode(nodeId);
     },
     onAgentResponse: (event) => {
@@ -187,6 +192,15 @@ function buildSimulateParams(opts: BuildSimulateParamsOptions): SimulateRequestB
   };
 }
 
+function checkTerminated(
+  active: boolean,
+  loading: boolean,
+  snapshot: GraphSnapshot | null,
+  currentNode: string
+): boolean {
+  return active && !loading && snapshot !== null && isNodeTerminal(snapshot.edges, currentNode);
+}
+
 function useSimulationSend(deps: SendMessageDeps): (text: string) => void {
   const { preset, loading, messages, agents, apiKeyId, currentNode, mcpServers } = deps;
   const { setters, onZoomToNode } = deps;
@@ -226,6 +240,7 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
   const [currentNode, setCurrentNode] = useState(START_NODE_ID);
   const [messages, setMessages] = useState<Message[]>([]);
   const [steps, setSteps] = useState<SimulationStep[]>([]);
+  const [visitedNodes, setVisitedNodes] = useState<string[]>([]);
   const [totalTokens, setTotalTokens] = useState<SimulationTokens>(EMPTY_TOKENS);
   const snapshotRef = useRef<GraphSnapshot | null>(null);
   const saveSnapshot = useCallback((s: GraphSnapshot | null) => {
@@ -238,6 +253,7 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
     setSteps,
     setTotalTokens,
     setCurrentNode,
+    setVisitedNodes,
     setLoading,
     setActive,
     saveSnapshot,
@@ -258,8 +274,18 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
     onZoomToNode,
   });
 
-  const { current: snapshot } = snapshotRef;
-  const terminated = active && !loading && snapshot !== null && isNodeTerminal(snapshot.edges, currentNode);
+  const terminated = checkTerminated(active, loading, snapshotRef.current, currentNode);
 
-  return { active, loading, currentNode, terminated, steps, totalTokens, start, stop, sendMessage };
+  return {
+    active,
+    loading,
+    currentNode,
+    terminated,
+    visitedNodes,
+    steps,
+    totalTokens,
+    start,
+    stop,
+    sendMessage,
+  };
 }

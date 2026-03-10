@@ -9,7 +9,7 @@ interface TokenDisplayProps {
 
 export function TokenDisplay({ tokens, className = '' }: TokenDisplayProps) {
   return (
-    <span className={`text-xs text-muted-foreground ${className}`}>
+    <span className={`px-2 text-xs text-muted-foreground ${className}`}>
       <span title="Input tokens">In: {tokens.input.toLocaleString()}</span>
       {' / '}
       <span title="Output tokens">Out: {tokens.output.toLocaleString()}</span>

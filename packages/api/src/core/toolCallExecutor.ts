@@ -17,6 +17,8 @@ import {
 import { accumulateTokens } from './tokenTracker.js';
 import type { CallAgentInput, NodeProcessingConfig } from './types.js';
 
+const LAST_INDEX_OFFSET = 1;
+
 export interface ProcessToolNodeParams {
   context: Context;
   config: NodeProcessingConfig;
@@ -95,9 +97,9 @@ function trackAgentTokens(
 ): void {
   const { input, currentNodeID, debugMessages } = params;
   const { tokensLog: toolTokensLog } = input;
-  const [toolFirstTokenLog] = toolTokensLog;
-  if (toolFirstTokenLog !== undefined) {
-    accumulateTokens(toolFirstTokenLog.tokens, agentRes.tokens);
+  const toolLastTokenLog = toolTokensLog.at(-LAST_INDEX_OFFSET);
+  if (toolLastTokenLog !== undefined) {
+    accumulateTokens(toolLastTokenLog.tokens, agentRes.tokens);
   }
   Object.assign(debugMessages, { [currentNodeID]: agentRes.copyMsgs });
 }

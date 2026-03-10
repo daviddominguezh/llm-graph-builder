@@ -13,15 +13,19 @@ function sendNodeVisited(res: Response, nodeId: string): void {
   writeSSE(res, { type: 'node_visited', nodeId });
 }
 
-function extractToolCalls(result: CallAgentOutput): Array<{ toolName: string; input: unknown; output: unknown }> {
+function extractToolCalls(
+  result: CallAgentOutput
+): Array<{ toolName: string; input: unknown; output: unknown }> {
   return result.toolCalls.map((tc) => ({
     toolName: tc.toolName,
-    input: tc.input,
+    input: tc.input as unknown,
     output: undefined,
   }));
 }
 
-function extractNodeTokens(result: CallAgentOutput): Array<{ node: string; tokens: { input: number; output: number; cached: number } }> {
+function extractNodeTokens(
+  result: CallAgentOutput
+): Array<{ node: string; tokens: { input: number; output: number; cached: number } }> {
   return result.tokensLogs.map((log) => ({
     node: log.action,
     tokens: log.tokens,
@@ -67,24 +71,14 @@ export async function handleSimulate(
   res: Response
 ): Promise<void> {
   const { body } = req;
-  console.log('[simulate] POST /simulate received');
-  console.log('[simulate] currentNode:', body.currentNode);
-  console.log('[simulate] messages count:', body.messages?.length ?? 0);
-  console.log('[simulate] graph nodes:', body.graph?.nodes?.length ?? 0);
-  console.log('[simulate] mcpServers:', body.graph?.mcpServers?.length ?? 0);
   const mcpServers = body.graph.mcpServers ?? [];
   setSseHeaders(res);
   let session: McpSession = EMPTY_SESSION;
   try {
-    console.log('[simulate] Creating MCP session...');
     session = await createMcpSession(mcpServers);
-    console.log('[simulate] MCP session created, tools:', Object.keys(session.tools).length);
-    console.log('[simulate] Running simulation...');
     await runSimulation(body, session, res);
-    console.log('[simulate] Simulation complete');
     writeSSE(res, { type: 'simulation_complete' });
   } catch (err) {
-    console.error('[simulate] Error:', err);
     sendError(res, err);
   } finally {
     await closeMcpSession(session);
