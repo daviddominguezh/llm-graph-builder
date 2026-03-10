@@ -27,6 +27,7 @@ function ComboboxTrigger({
   return (
     <ComboboxPrimitive.Trigger
       data-slot="combobox-trigger"
+      nativeButton
       className={cn("[&_svg:not([class*='size-'])]:size-3.5", className)}
       {...props}
     >
@@ -40,6 +41,7 @@ function ComboboxClear({ className, ...props }: ComboboxPrimitive.Clear.Props) {
   return (
     <ComboboxPrimitive.Clear
       data-slot="combobox-clear"
+      nativeButton
       render={<InputGroupButton variant="ghost" size="icon-xs" />}
       className={cn(className)}
       {...props}

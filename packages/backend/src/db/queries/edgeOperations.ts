@@ -18,6 +18,7 @@ interface PreconditionInsertRow {
   type: string;
   value: string;
   description: string | undefined;
+  tool_fields: Record<string, unknown> | undefined;
 }
 
 interface ContextPreconditionInsertRow {
@@ -56,6 +57,7 @@ function buildPreconditionRows(edgeId: string, data: EdgeData): PreconditionInse
     type: p.type,
     value: p.value,
     description: p.description ?? '',
+    tool_fields: p.toolFields,
   }));
 }
 

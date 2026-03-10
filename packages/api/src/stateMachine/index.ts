@@ -1,7 +1,7 @@
 import type { Tool } from 'ai';
 
 import { FIRST_INDEX, INCREMENT_BY_ONE, INITIAL_STEP_NODE } from '@src/constants/index.js';
-import type { Graph } from '@src/types/graph.js';
+import type { Graph, ToolFieldValue } from '@src/types/graph.js';
 import type { SMConfig, SMNextOptions } from '@src/types/stateMachine.js';
 import type { Context } from '@src/types/tools.js';
 import type { Logger } from '@src/utils/logger.js';
@@ -37,11 +37,24 @@ interface BuildToolCallOptionsParams {
   nodes: Record<string, string>;
   toolCallValue: string;
   toolDescription: string | undefined;
+  toolFields: Record<string, ToolFieldValue> | undefined;
   nextNode: string;
 }
 
+function buildFixedFieldsPrompt(toolFields: Record<string, ToolFieldValue> | undefined): string {
+  if (toolFields === undefined) return '';
+  const lines: string[] = [];
+  for (const [name, field] of Object.entries(toolFields)) {
+    if (field.type === 'fixed') {
+      lines.push(`- ${name}: "${field.value}"`);
+    }
+  }
+  if (lines.length === FIRST_INDEX) return '';
+  return `\n\nFor the following parameters, use these EXACT values:\n${lines.join('\n')}`;
+}
+
 const buildToolCallOptions = (params: BuildToolCallOptionsParams): SMNextOptions => {
-  const { node, edges, toolsByEdge, nodes, toolCallValue, toolDescription, nextNode } = params;
+  const { node, edges, toolsByEdge, nodes, toolCallValue, toolDescription, toolFields, nextNode } = params;
   let prompt = SM_BASE_PROMPT_NEXT_OPTION_IS_TOOL.replaceAll('{toolName}', `"${toolCallValue}"`);
   if (toolDescription !== undefined && toolDescription !== '') {
     prompt += `\n\n${toolDescription}\n\n Call the tool {toolName} RIGHT NOW.`.replaceAll(
@@ -49,6 +62,7 @@ const buildToolCallOptions = (params: BuildToolCallOptionsParams): SMNextOptions
       `"${toolCallValue}"`
     );
   }
+  prompt += buildFixedFieldsPrompt(toolFields);
   return {
     node,
     edges,
@@ -132,6 +146,7 @@ export const getNextOptions = async (
       nodes,
       toolCallValue: toolCall.value,
       toolDescription: toolCall.description,
+      toolFields: toolCall.toolFields,
       nextNode: firstEdgeEntry.to,
     });
   }

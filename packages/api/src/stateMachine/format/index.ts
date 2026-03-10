@@ -5,6 +5,8 @@ import type { Context } from '@src/types/tools.js';
 import { getEdgesFromNode, getNode, getNodeDescription } from '../graph/index.js';
 import { insertValuesInText } from './utils.js';
 
+const DESCRIPTION_LOG_LIMIT = 80;
+
 const getPreconditionPrefix = (type: string): string => {
   if (type === 'user_said') return 'the user says something similar to';
   if (type === 'tool_call') return 'execute the tool';
@@ -20,22 +22,26 @@ export const formatPrecondition = (precondition: Precondition): string => {
 interface FormatOptionParams {
   index: number;
   description?: string;
+  nodeText?: string;
   example?: string;
   precondition?: Precondition;
 }
 
 export const formatOption = (params: FormatOptionParams): string => {
-  const { index, description, example, precondition } = params;
+  const { index, description, nodeText, example, precondition } = params;
   const parts: string[] = [];
   parts.push(`**Option ${index}** — \`nextNodeID: ${index}\``);
+  const label = description !== undefined && description !== '' ? description : nodeText;
+  console.log('[formatOption]', { index, description: description?.slice(FIRST_INDEX, DESCRIPTION_LOG_LIMIT), nodeText: nodeText?.slice(FIRST_INDEX, DESCRIPTION_LOG_LIMIT), label: label?.slice(FIRST_INDEX, DESCRIPTION_LOG_LIMIT) });
+  if (label !== undefined && label !== '') {
+    parts.push(label);
+  }
   if (precondition !== undefined) {
     parts.push(`Select when: ${formatPrecondition(precondition)}`);
   }
   if (example !== undefined && example !== '') {
     const escapedExample = example.replace(/\n/gv, '\\n');
     parts.push(`Response: ${escapedExample}`);
-  } else if (description !== undefined && description !== '') {
-    parts.push(`Response: ${description}`);
   }
   return parts.join('\n');
 };
@@ -70,6 +76,14 @@ export const convertEdgeToStr = async (
   const { [FIRST_INDEX]: firstPrecondition } = edge.preconditions ?? [];
   let example: string | undefined = undefined;
 
+  console.log('[convertEdgeToStr]', {
+    to,
+    nodeId: node.id,
+    nodeText: node.text.slice(FIRST_INDEX, DESCRIPTION_LOG_LIMIT),
+    description: description?.slice(FIRST_INDEX, DESCRIPTION_LOG_LIMIT),
+    preconditionType: firstPrecondition?.type,
+  });
+
   if (node.nextNodeIsUser === true) {
     example = insertValuesInText(context, node.text);
     await getUserSaidExamples(graph, context, node.id);
@@ -78,6 +92,7 @@ export const convertEdgeToStr = async (
   const withPreconditions = formatOption({
     index,
     description,
+    nodeText: node.text,
     example,
     precondition: firstPrecondition,
   });
@@ -88,6 +103,7 @@ export const convertEdgeToStr = async (
   const withoutToolPreconditions = formatOption({
     index,
     description,
+    nodeText: node.text,
     example,
     precondition: nonToolPrecondition,
   });

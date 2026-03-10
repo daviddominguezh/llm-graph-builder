@@ -13,12 +13,21 @@ function sendNodeVisited(res: Response, nodeId: string): void {
   writeSSE(res, { type: 'node_visited', nodeId });
 }
 
+function extractToolCalls(result: CallAgentOutput): Array<{ toolName: string; input: unknown; output: unknown }> {
+  return result.toolCalls.map((tc) => ({
+    toolName: tc.toolName,
+    input: tc.input,
+    output: undefined,
+  }));
+}
+
 function sendAgentResponse(res: Response, result: CallAgentOutput): void {
   const tokenUsage = sumTokens(result);
   writeSSE(res, {
     type: 'agent_response',
     text: result.text ?? '',
     visitedNodes: result.visitedNodes,
+    toolCalls: extractToolCalls(result),
     tokenUsage,
   });
 }

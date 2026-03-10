@@ -1,9 +1,16 @@
 import type { ActionTokenUsage, TokenLog } from '@daviddh/llm-graph-runner';
 
+export interface SimulationToolCall {
+  toolName: string;
+  input: unknown;
+  output: unknown;
+}
+
 export interface SimulationStep {
   userText: string;
   agentText: string;
   visitedNodes: string[];
+  toolCalls: SimulationToolCall[];
   tokenUsage: TokenLog;
 }
 

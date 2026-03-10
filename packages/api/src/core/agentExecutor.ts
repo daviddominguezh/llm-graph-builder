@@ -109,7 +109,9 @@ export async function executeAgent(options: ExecuteAgentOptions): Promise<AgentE
   const execParams = createExecParams(options, sessionId, executionStartTime);
   const state = await runExecutionLoop(execParams);
 
-  logger.info(`[EXECUTOR] Loop done: modelWorkedFine=${String(state.modelWorkedFine)}, attempts=${state.attemptCount}, msgs=${state.msgs.length}`);
+  logger.info(
+    `[EXECUTOR] Loop done: modelWorkedFine=${String(state.modelWorkedFine)}, attempts=${state.attemptCount}, msgs=${state.msgs.length}`
+  );
   if (state.lastError !== undefined) {
     logger.info(`[EXECUTOR] lastError: ${state.lastError.name}: ${state.lastError.message}`);
   }
@@ -122,7 +124,9 @@ export async function executeAgent(options: ExecuteAgentOptions): Promise<AgentE
   messages.push(...MessageProcessor.convertToAppMessages(processedMsgs, provider));
 
   const result = buildResult(execParams, state, processedMsgs);
-  logger.info(`[EXECUTOR] Final result: error=${String(result.error)}, toolCalls=${result.toolCalls.length}, lastMessage role=${result.lastMessage.role}`);
+  logger.info(
+    `[EXECUTOR] Final result: error=${String(result.error)}, toolCalls=${result.toolCalls.length}, lastMessage role=${result.lastMessage.role}`
+  );
   if (typeof result.lastMessage.content === 'string') {
     logger.info(`[EXECUTOR] lastMessage content (string): "${result.lastMessage.content.slice(0, 200)}"`);
   } else if (Array.isArray(result.lastMessage.content)) {

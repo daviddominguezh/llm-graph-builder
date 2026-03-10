@@ -12,6 +12,7 @@ import { ResponseParser } from './responseParser.js';
 import type { ReplyGenerationResult } from './types.js';
 
 const LAST_INDEX_OFFSET = 1;
+const EMPTY_LENGTH = 0;
 const EMPTY_STRING = '';
 
 interface GenerateReplyParams {
@@ -84,21 +85,23 @@ function resolveNextNode(
 /**
  * Removes messageToUser if the next node is not a reply node
  */
+function isTerminalNode(context: Context, nodeID: string): boolean {
+  return context.graph.edges.filter((e) => e.from === nodeID).length === EMPTY_LENGTH;
+}
+
 function cleanNonReplyMessage(
   context: Context,
   msg: AssistantModelMessage | ToolModelMessage,
   nextNodeID: string,
   parsedResult: ParsedResult
 ): ParsedResult {
+  if (msg.role !== 'assistant') return parsedResult;
+  if (nextNodeID === '' || isTerminalNode(context, nextNodeID)) return parsedResult;
+
   const nextNode = getNode(context.graph, nextNodeID);
-  const isReplyNode = nextNode.nextNodeIsUser === true;
+  if (nextNode.nextNodeIsUser === true) return parsedResult;
 
-  if (isReplyNode || msg.role !== 'assistant') {
-    return parsedResult;
-  }
-
-  const cleanedResult: ParsedResult = { ...parsedResult, messageToUser: undefined };
-  return cleanedResult;
+  return { ...parsedResult, messageToUser: undefined };
 }
 
 const isAssistantMessage = (msg: AssistantModelMessage | ToolModelMessage): msg is AssistantModelMessage =>

@@ -33,6 +33,7 @@ export type SimulationEvent =
       type: 'agent_response';
       text: string;
       visitedNodes: string[];
+      toolCalls: Array<{ toolName: string; input: unknown; output: unknown }>;
       tokenUsage: { input: number; output: number; cached: number };
     }
   | { type: 'error'; message: string }

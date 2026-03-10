@@ -30,6 +30,7 @@ export interface EdgePreconditionRow {
   type: PreconditionType;
   value: string;
   description: string | null;
+  tool_fields: Record<string, unknown> | null;
 }
 
 /** Row shape returned by `graph_edge_context_preconditions` table. */

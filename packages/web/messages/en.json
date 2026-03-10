@@ -101,8 +101,14 @@
     "restoreVersionFailed": "Failed to restore version. Please try again.",
     "connectingMcpServers": "Connecting to MCP servers..."
   },
+  "simulation": {
+    "toolInput": "Input"
+  },
   "edgePanel": {
-    "parameters": "Parameters:"
+    "parameters": "Parameters:",
+    "agentInferred": "Agent inferred",
+    "optionalField": "optional",
+    "fixedValuePlaceholder": "Enter value..."
   },
   "orgs": {
     "title": "My Organizations",

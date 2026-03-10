@@ -32,7 +32,9 @@ async function executeFlow(context: Context, input: CallAgentInput): Promise<Cal
     initialState
   );
 
-  logger.info(`[FLOW] Flow complete: visitedNodes=[${visitedNodes.join(', ')}], error=${String(error)}, parsedResults=${parsedResults.length}`);
+  logger.info(
+    `[FLOW] Flow complete: visitedNodes=[${visitedNodes.join(', ')}], error=${String(error)}, parsedResults=${parsedResults.length}`
+  );
 
   if (error) {
     logger.info('[FLOW] Flow ended with error, returning error response');

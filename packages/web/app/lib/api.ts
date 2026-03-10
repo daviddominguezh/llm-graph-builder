@@ -67,10 +67,17 @@ export interface SimulateRequestBody {
   quickReplies: Record<string, string>;
 }
 
+interface SseToolCall {
+  toolName: string;
+  input: unknown;
+  output: unknown;
+}
+
 interface AgentResponseEvent {
   type: 'agent_response';
   text: string;
   visitedNodes: string[];
+  toolCalls: SseToolCall[];
   tokenUsage: { input: number; output: number; cached: number };
 }
 
@@ -81,11 +88,18 @@ export interface StreamCallbacks {
   onComplete?: () => void;
 }
 
+const SseToolCallSchema = z.object({
+  toolName: z.string(),
+  input: z.unknown(),
+  output: z.unknown(),
+});
+
 const SseEventSchema = z.object({
   type: z.string(),
   nodeId: z.string().optional(),
   text: z.string().optional(),
   visitedNodes: z.array(z.string()).optional(),
+  toolCalls: z.array(SseToolCallSchema).optional(),
   tokenUsage: z.object({ input: z.number(), output: z.number(), cached: z.number() }).optional(),
   message: z.string().optional(),
 });
@@ -104,6 +118,7 @@ function handleAgentResponse(event: SseEvent, callbacks: StreamCallbacks): void 
       type: 'agent_response',
       text: event.text,
       visitedNodes: event.visitedNodes,
+      toolCalls: event.toolCalls ?? [],
       tokenUsage: event.tokenUsage,
     });
   }

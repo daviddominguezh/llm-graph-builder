@@ -116,6 +116,7 @@ interface PreconditionInsertRow {
   type: string;
   value: string;
   description: string | undefined;
+  tool_fields: Record<string, unknown> | undefined;
 }
 
 interface ContextPreconditionInsertRow {
@@ -132,7 +133,13 @@ function buildPreconditionRows(edges: Edge[], idMaps: EdgeIdMap[]): Precondition
     const edgeId = findEdgeDbId(idMaps, edge.from, edge.to);
 
     for (const p of edge.preconditions) {
-      rows.push({ edge_id: edgeId, type: p.type, value: p.value, description: p.description });
+      rows.push({
+        edge_id: edgeId,
+        type: p.type,
+        value: p.value,
+        description: p.description,
+        tool_fields: p.toolFields,
+      });
     }
   }
 

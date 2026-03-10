@@ -115,7 +115,9 @@ async function tryExecuteAttempt(
   logger.info('[ATTEMPT] Calling model...');
   const reply: unknown = await callModel(context, config, expectedTool, model);
   logger.info(`[ATTEMPT] Model returned, reply type: ${typeof reply}`);
-  logger.info(`[ATTEMPT] Reply keys: ${typeof reply === 'object' && reply !== null ? Object.keys(reply).join(', ') : 'N/A'}`);
+  logger.info(
+    `[ATTEMPT] Reply keys: ${typeof reply === 'object' && reply !== null ? Object.keys(reply).join(', ') : 'N/A'}`
+  );
   const result = processReply(reply, {
     context,
     sessionId,
@@ -127,7 +129,9 @@ async function tryExecuteAttempt(
     allToolCalls,
     modelName,
   });
-  logger.info(`[ATTEMPT] processReply result: modelWorkedFine=${String(result.modelWorkedFine)}, msgs=${result.msgs.length}`);
+  logger.info(
+    `[ATTEMPT] processReply result: modelWorkedFine=${String(result.modelWorkedFine)}, msgs=${result.msgs.length}`
+  );
   return { modelWorkedFine: result.modelWorkedFine, msgs: result.msgs, shouldBreak: false };
 }
 

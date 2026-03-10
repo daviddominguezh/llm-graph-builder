@@ -37,6 +37,7 @@ import { Card } from "@/components/ui/card";
 import type {
   Precondition,
   PreconditionType,
+  ToolFieldValue,
 } from "../../schemas/graph.schema";
 import type { DiscoveredTool } from "../../lib/api";
 import type { PushOperation } from "../../utils/operationBuilders";
@@ -95,6 +96,9 @@ export function EdgePanel({
   const [newPreconditionValue, setNewPreconditionValue] = useState("");
   const [newPreconditionDescription, setNewPreconditionDescription] =
     useState("");
+  const [newPreconditionToolFields, setNewPreconditionToolFields] = useState<
+    Record<string, ToolFieldValue> | undefined
+  >(undefined);
   const [showTypeChangeConfirm, setShowTypeChangeConfirm] = useState(false);
   const [editingPreconditionIndex, setEditingPreconditionIndex] = useState<
     number | null
@@ -150,18 +154,26 @@ export function EdgePanel({
         type: existingType ?? newPreconditionType,
         value: newPreconditionValue.trim(),
         description: newPreconditionDescription.trim() || undefined,
+        toolFields: newPreconditionToolFields,
       };
       const newPreconditions = [...preconditions, newPrecondition];
       setPreconditions(newPreconditions);
       updateEdgeData({ preconditions: newPreconditions });
       setNewPreconditionValue("");
       setNewPreconditionDescription("");
+      setNewPreconditionToolFields(undefined);
       setIsAddingPrecondition(false);
     }
   };
 
   const handleAddPrecondition = () => {
     doAddPrecondition();
+  };
+
+  const handleToolFieldsChange = (index: number, toolFields: Record<string, ToolFieldValue> | undefined) => {
+    const updated = preconditions.map((p, i) => (i === index ? { ...p, toolFields } : p));
+    setPreconditions(updated);
+    updateEdgeData({ preconditions: updated });
   };
 
   const handleEditPrecondition = (index: number) => {
@@ -502,7 +514,12 @@ export function EdgePanel({
                       )}
 
                       {p.type === "tool_call" && availableMcpTools.length > 0 && (
-                        <ToolParamsCard toolName={p.value} tools={availableMcpTools} />
+                        <ToolParamsCard
+                          toolName={p.value}
+                          tools={availableMcpTools}
+                          toolFields={p.toolFields}
+                          onToolFieldsChange={(tf) => handleToolFieldsChange(index, tf)}
+                        />
                       )}
                     </div>
                   </div>
@@ -576,7 +593,12 @@ export function EdgePanel({
                       {newPreconditionType === "tool_call" &&
                         newPreconditionValue &&
                         availableMcpTools.length > 0 && (
-                          <ToolParamsCard toolName={newPreconditionValue} tools={availableMcpTools} />
+                          <ToolParamsCard
+                            toolName={newPreconditionValue}
+                            tools={availableMcpTools}
+                            toolFields={newPreconditionToolFields}
+                            onToolFieldsChange={setNewPreconditionToolFields}
+                          />
                         )}
                     </div>
                     <div className="space-y-1">

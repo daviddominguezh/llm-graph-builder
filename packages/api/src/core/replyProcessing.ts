@@ -151,7 +151,9 @@ function processReplyCore(
   logger.info(`[REPLY] Processing reply core`);
   logger.info(`[REPLY] toolCalls: ${toolCalls.length}, toolResults: ${toolResults.length}`);
   logger.info(`[REPLY] expectedTool: ${expectedTool ?? 'none'}`);
-  logger.info(`[REPLY] output type: ${typeof typedReply.output}, value: ${JSON.stringify(typedReply.output)}`);
+  logger.info(
+    `[REPLY] output type: ${typeof typedReply.output}, value: ${JSON.stringify(typedReply.output)}`
+  );
   logger.info(`[REPLY] response?.messages count: ${typedReply.response?.messages?.length ?? 0}`);
 
   logResponseReceived({
@@ -166,13 +168,17 @@ function processReplyCore(
 
   if (toolCalls.length > FIRST_INDEX) {
     allToolCalls.push(...toolCalls);
-    logger.info(`[REPLY] Added ${toolCalls.length} tool calls. Tool names: ${toolCalls.map((tc: { toolName?: string }) => tc.toolName ?? 'unknown').join(', ')}`);
+    logger.info(
+      `[REPLY] Added ${toolCalls.length} tool calls. Tool names: ${toolCalls.map((tc: { toolName?: string }) => tc.toolName ?? 'unknown').join(', ')}`
+    );
   }
 
   const msgs = buildResponseMessages(typedReply);
   logger.info(`[REPLY] Built ${msgs.length} response messages`);
   for (const msg of msgs) {
-    logger.info(`[REPLY]   msg role=${msg.role}, content type=${typeof msg.content}, isArray=${Array.isArray(msg.content)}`);
+    logger.info(
+      `[REPLY]   msg role=${msg.role}, content type=${typeof msg.content}, isArray=${Array.isArray(msg.content)}`
+    );
     if (Array.isArray(msg.content)) {
       for (const part of msg.content) {
         const p = part as { type?: string };

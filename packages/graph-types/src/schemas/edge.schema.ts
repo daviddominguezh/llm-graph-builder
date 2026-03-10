@@ -2,10 +2,16 @@ import { z } from 'zod';
 
 export const PreconditionTypeSchema = z.enum(['user_said', 'agent_decision', 'tool_call']);
 
+export const ToolFieldValueSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('fixed'), value: z.string() }),
+  z.object({ type: z.literal('reference'), nodeId: z.string(), path: z.string() }),
+]);
+
 export const PreconditionSchema = z.object({
   type: PreconditionTypeSchema,
   value: z.string(),
   description: z.string().optional(),
+  toolFields: z.record(z.string(), ToolFieldValueSchema).optional(),
 });
 
 export const ContextPreconditionsSchema = z.object({

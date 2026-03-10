@@ -5,6 +5,7 @@ export { BaseNodeKindSchema, RuntimeNodeKindSchema, NodeSchema, RuntimeNodeSchem
 export {
   PreconditionTypeSchema,
   PreconditionSchema,
+  ToolFieldValueSchema,
   ContextPreconditionsSchema,
   PreconditionsArraySchema,
   EdgeSchema,

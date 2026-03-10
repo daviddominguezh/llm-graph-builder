@@ -25,4 +25,5 @@ export type {
   Position,
   Precondition,
   PreconditionType,
+  ToolFieldValue,
 } from '@daviddh/graph-types';

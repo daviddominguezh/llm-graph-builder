@@ -150,16 +150,26 @@ export interface FlowResult {
   toolCalls: ToolCallsArray;
 }
 
+function isTerminalNode(context: Context, nodeID: string): boolean {
+  const edges = context.graph.edges.filter((e) => e.from === nodeID);
+  return edges.length === EMPTY_LENGTH;
+}
+
 async function processFlowStep(
   context: Context,
   input: CallAgentInput,
   debugMessages: Record<string, ModelMessage[][]>,
   state: FlowState
-): Promise<{ state: FlowState; error: boolean; shouldContinue: boolean }> {
+): Promise<{ state: FlowState; error: boolean; shouldContinue: boolean; isTerminal?: boolean }> {
   const { currentNodeID, nodeBeforeGlobal, parsedResults, visitedNodes, allToolCalls } = state;
   logger.info(`[FLOW] Processing node: ${currentNodeID}, visitedSoFar: [${visitedNodes.join(', ')}]`);
   visitedNodes.push(currentNodeID);
   context.onNodeVisited?.(currentNodeID);
+
+  if (isTerminalNode(context, currentNodeID)) {
+    logger.info(`[FLOW] Terminal node reached: ${currentNodeID}, stopping flow`);
+    return { state, error: false, shouldContinue: false, isTerminal: true };
+  }
 
   const { parsedResult, nextNodeID, error, toolCalls } = await processNode({
     context,
@@ -169,7 +179,9 @@ async function processFlowStep(
     debugMessages,
   });
 
-  logger.info(`[FLOW] processNode returned: nextNodeID=${nextNodeID}, error=${String(error)}, toolCalls=${toolCalls.length}`);
+  logger.info(
+    `[FLOW] processNode returned: nextNodeID=${nextNodeID}, error=${String(error)}, toolCalls=${toolCalls.length}`
+  );
   logger.info(`[FLOW] parsedResult: ${JSON.stringify(parsedResult)}`);
 
   if (error) {
@@ -197,7 +209,7 @@ async function processFlowStep(
     allToolCalls,
   };
 
-  return { state: newState, error: false, shouldContinue: nextNodeIsUser !== true };
+  return { state: newState, error: false, shouldContinue: nextNodeIsUser !== true, isTerminal: false };
 }
 
 /**
@@ -213,6 +225,7 @@ export async function executeAgentFlowRecursive(
     state: newState,
     error,
     shouldContinue,
+    isTerminal,
   } = await processFlowStep(context, input, debugMessages, state);
 
   if (error) {
@@ -227,9 +240,11 @@ export async function executeAgentFlowRecursive(
 
   if (!shouldContinue) {
     const { parsedResults, visitedNodes, allToolCalls } = newState;
-    const [lastParsedResult] = parsedResults.slice(-LAST_INDEX_OFFSET);
-    if (lastParsedResult !== undefined) {
-      visitedNodes.push(lastParsedResult.nextNodeID);
+    if (isTerminal !== true) {
+      const [lastParsedResult] = parsedResults.slice(-LAST_INDEX_OFFSET);
+      if (lastParsedResult !== undefined) {
+        visitedNodes.push(lastParsedResult.nextNodeID);
+      }
     }
 
     return { parsedResults, visitedNodes, debugMessages, error: false, toolCalls: allToolCalls };

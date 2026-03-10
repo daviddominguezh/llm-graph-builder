@@ -136,6 +136,7 @@ function buildStreamCallbacks(
         userText,
         agentText: event.text,
         visitedNodes: event.visitedNodes,
+        toolCalls: event.toolCalls,
         tokenUsage: event.tokenUsage,
       };
       setters.setSteps((prev) => [...prev, step]);

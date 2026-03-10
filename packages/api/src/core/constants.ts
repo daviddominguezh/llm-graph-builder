@@ -2,6 +2,8 @@
  * Constants for the Call Agent module
  * All magic strings and numbers extracted for maintainability
  */
+import { FIRST_INDEX } from '@src/constants/index.js';
+import type { ToolFieldValue } from '@src/types/graph.js';
 
 const MAX_RETRY_ATTEMPTS = 4;
 const MEDIUM_MODEL_THRESHOLD = 2;
@@ -43,17 +45,32 @@ export const AGENT_CONSTANTS = {
   CUSTOMIZATION_LINK_NODES: ['CustomLink', 'RemindCustom'] as string[],
 } as const;
 
+function formatFixedFields(toolFields: Record<string, ToolFieldValue> | undefined): string {
+  if (toolFields === undefined) return '';
+  const lines: string[] = [];
+  for (const [name, field] of Object.entries(toolFields)) {
+    if (field.type === 'fixed') {
+      lines.push(`- ${name}: "${field.value}"`);
+    }
+  }
+  if (lines.length === FIRST_INDEX) return '';
+  return `\n\nFor the following parameters, use these EXACT values:\n${lines.join('\n')}`;
+}
+
 export const PROMPTS = {
   TOOL_CALL_FORCE:
     'You MUST properly call the tool NOW. Do NOT request additional information to the user. Your ONLY task now is to call the tool immediatly',
-  GLOBAL_NODE_MUST_CALL_TOOL: (toolName: string) => `You must immediately call the tool "${toolName}".
+  GLOBAL_NODE_MUST_CALL_TOOL: (toolName: string, toolFields?: Record<string, ToolFieldValue>) => {
+    const base = `You must immediately call the tool "${toolName}".
 Do not reply with text.
 DO NOT REPLY TO THE USER, JUST CALL THE TOOL.
 Do not explain or confirm.
 Do not do anything else.
 Just call the tool "${toolName}" right now and pass the required parameters.
 This is mandatory. Failure to do so means the task fails.
-Call the tool "${toolName}" RIGHT NOW.`,
+Call the tool "${toolName}" RIGHT NOW.`;
+    return base + formatFixedFields(toolFields);
+  },
   GLOBAL_NODE_REPLY_SUFFIX:
     '\n\nYour message to the user MUST address the question the user asked with a summary of the information you got from calling the tool.\nONLY IF you have not said hello yet, do it.',
   NO_ORDERS_WARNING:

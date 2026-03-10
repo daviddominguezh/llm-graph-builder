@@ -6,8 +6,10 @@ import type {
   McpTransport,
   Node,
   Precondition,
+  ToolFieldValue,
 } from '@daviddh/graph-types';
-import { McpTransportSchema } from '@daviddh/graph-types';
+import { McpTransportSchema, ToolFieldValueSchema } from '@daviddh/graph-types';
+import { z } from 'zod';
 
 import type {
   AgentRow,
@@ -20,6 +22,14 @@ import type {
 
 const EMPTY_LENGTH = 0;
 const FIRST_INDEX = 0;
+
+const ToolFieldsSchema = z.record(z.string(), ToolFieldValueSchema);
+
+function parseToolFields(raw: Record<string, unknown> | null): Record<string, ToolFieldValue> | undefined {
+  if (raw === null) return undefined;
+  const result = ToolFieldsSchema.safeParse(raw);
+  return result.success ? result.data : undefined;
+}
 
 function buildPosition(row: NodeRow): { x: number; y: number } | undefined {
   if (row.position_x === null || row.position_y === null) return undefined;
@@ -74,6 +84,7 @@ function buildPreconditions(rows: EdgePreconditionRow[] | undefined): Preconditi
     type: r.type,
     value: r.value,
     description: r.description ?? undefined,
+    toolFields: parseToolFields(r.tool_fields),
   }));
 }
 

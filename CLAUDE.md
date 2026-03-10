@@ -84,7 +84,7 @@ Graphs have **nodes** (kinds: `agent`, `agent_decision`, `tool`) and **edges** w
 
 ### API (agent executor)
 
-- This is imported directly in the web package, therefore, there is no need to build this package.
+- This is where the agents are executed, with tools/mcps, and prompts are created.
 
 ### Internationalization
 

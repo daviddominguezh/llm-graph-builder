@@ -46,7 +46,7 @@ function ZoomViewOverlay({
   onExitZoomView,
 }: Pick<GraphCanvasProps, 'simulation' | 'onExitZoomView'>) {
   return (
-    <div className="absolute top-4 left-4 z-10">
+    <div className="absolute top-3 left-13 z-10">
       <Button variant="secondary" onClick={simulation.active ? simulation.stop : onExitZoomView}>
         <X className="h-3 w-3" />
         {simulation.active ? 'Stop simulation' : 'Quit zoom view'}
