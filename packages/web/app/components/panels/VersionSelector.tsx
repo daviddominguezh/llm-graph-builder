@@ -81,9 +81,11 @@ function EmptyVersionsTrigger() {
   const t = useTranslations('editor');
 
   return (
-    <SelectTrigger size="sm" disabled className="h-8 min-w-[120px] text-xs">
-      <SelectValue placeholder={t('noVersions')} />
-    </SelectTrigger>
+    <Select disabled>
+      <SelectTrigger size="sm" className="h-8 min-w-[120px] text-xs">
+        <SelectValue placeholder={t('noVersions')} />
+      </SelectTrigger>
+    </Select>
   );
 }
 
