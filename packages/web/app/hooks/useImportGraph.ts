@@ -1,3 +1,4 @@
+import type { Operation } from '@daviddh/graph-types';
 import type { Edge, Node, ReactFlowInstance } from '@xyflow/react';
 import { useCallback } from 'react';
 import { toast } from 'sonner';
@@ -7,6 +8,7 @@ import { GraphSchema } from '../schemas/graph.schema';
 import { START_NODE_ID } from '../utils/graphInitializer';
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
 import { schemaEdgeToRFEdge, schemaNodeToRFNode } from '../utils/graphTransformers';
+import { buildImportOperations } from '../utils/importOperations';
 import { calculateInitialViewport, findInitialNodePosition, processGraph } from '../utils/loadGraphData';
 
 const VIEWPORT_DELAY = 50;
@@ -14,6 +16,7 @@ const FIRST_FILE_INDEX = 0;
 
 type NodeArray = Array<Node<RFNodeData>>;
 type EdgeArray = Array<Edge<RFEdgeData>>;
+type PushOperation = (op: Operation) => void;
 
 interface UseImportGraphParams {
   setNodes: (nodes: NodeArray | ((nds: NodeArray) => NodeArray)) => void;
@@ -21,6 +24,9 @@ interface UseImportGraphParams {
   setViewport: ReactFlowInstance['setViewport'];
   reactFlowWrapper: React.RefObject<HTMLDivElement | null>;
   mcpSetServers: (servers: McpServerConfig[]) => void;
+  pushOperation: PushOperation;
+  getCurrentNodes: () => NodeArray;
+  getCurrentMcpServers: () => McpServerConfig[];
 }
 
 function buildImportedNodes(graph: Graph, nodeWidth: number): NodeArray {
@@ -37,15 +43,7 @@ function buildImportedNodes(graph: Graph, nodeWidth: number): NodeArray {
   });
 }
 
-function applyImportedGraph(data: Graph, params: UseImportGraphParams): void {
-  const { graph, nodeWidth } = processGraph(data);
-  const newNodes = buildImportedNodes(graph, nodeWidth);
-  const newEdges = graph.edges.map((e: SchemaEdge, i: number) => schemaEdgeToRFEdge(e, i, graph.nodes));
-
-  params.setNodes(newNodes);
-  params.setEdges(newEdges);
-  params.mcpSetServers(data.mcpServers ?? []);
-
+function setImportedViewport(graph: Graph, params: UseImportGraphParams): void {
   const { reactFlowWrapper } = params;
   setTimeout(() => {
     const { current: wrapper } = reactFlowWrapper;
@@ -59,13 +57,39 @@ function applyImportedGraph(data: Graph, params: UseImportGraphParams): void {
   }, VIEWPORT_DELAY);
 }
 
-export function useImportGraph({
-  setNodes,
-  setEdges,
-  setViewport,
-  reactFlowWrapper,
-  mcpSetServers,
-}: UseImportGraphParams): () => void {
+function applyImportedGraph(data: Graph, params: UseImportGraphParams): void {
+  const { graph, nodeWidth } = processGraph(data);
+  const newNodes = buildImportedNodes(graph, nodeWidth);
+  const newEdges = graph.edges.map((e: SchemaEdge, i: number) => schemaEdgeToRFEdge(e, i, graph.nodes));
+
+  const ops = buildImportOperations({
+    currentNodes: params.getCurrentNodes(),
+    currentMcpServers: params.getCurrentMcpServers(),
+    importedGraph: data,
+    importedNodes: newNodes,
+  });
+  for (const op of ops) {
+    params.pushOperation(op);
+  }
+
+  params.setNodes(newNodes);
+  params.setEdges(newEdges);
+  params.mcpSetServers(data.mcpServers ?? []);
+  setImportedViewport(graph, params);
+}
+
+export function useImportGraph(params: UseImportGraphParams): () => void {
+  const {
+    setNodes,
+    setEdges,
+    setViewport,
+    reactFlowWrapper,
+    mcpSetServers,
+    pushOperation,
+    getCurrentNodes,
+    getCurrentMcpServers,
+  } = params;
+
   return useCallback(() => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -85,6 +109,9 @@ export function useImportGraph({
               setViewport,
               reactFlowWrapper,
               mcpSetServers,
+              pushOperation,
+              getCurrentNodes,
+              getCurrentMcpServers,
             });
           } else {
             toast.error(`Invalid graph file: ${result.error.message}`);
@@ -95,5 +122,14 @@ export function useImportGraph({
       });
     };
     input.click();
-  }, [setNodes, setEdges, setViewport, reactFlowWrapper, mcpSetServers]);
+  }, [
+    setNodes,
+    setEdges,
+    setViewport,
+    reactFlowWrapper,
+    mcpSetServers,
+    pushOperation,
+    getCurrentNodes,
+    getCurrentMcpServers,
+  ]);
 }

@@ -109,12 +109,18 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     pushOperation: opQueue.pushOperation,
   });
 
+  const getNodes = useCallback(() => nodes, [nodes]);
+  const getMcpServers = useCallback(() => mcpHook.servers, [mcpHook.servers]);
+
   const handleImport = useImportGraph({
     setNodes,
     setEdges,
     setViewport: rf.setViewport,
     reactFlowWrapper,
     mcpSetServers: mcpHook.setServers,
+    pushOperation: opQueue.pushOperation,
+    getCurrentNodes: getNodes,
+    getCurrentMcpServers: getMcpServers,
   });
 
   const handleExport = useExportGraph({ nodes, edges, agents, mcpServers: mcpHook.servers });
