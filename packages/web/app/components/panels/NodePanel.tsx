@@ -98,12 +98,11 @@ export function NodePanel({
       const renamedNode = { ...node, id: newId, data: { ...node.data, nodeId: newId } };
       setNodes((nds) => nds.map((n) => (n.id === nodeId ? renamedNode : n)));
       setEdges((eds) =>
-        eds.map((e) => ({
-          ...e,
-          id: e.id.replace(nodeId, newId),
-          source: e.source === nodeId ? newId : e.source,
-          target: e.target === nodeId ? newId : e.target,
-        }))
+        eds.map((e) => {
+          const newSource = e.source === nodeId ? newId : e.source;
+          const newTarget = e.target === nodeId ? newId : e.target;
+          return { ...e, id: `${newSource}-${newTarget}`, source: newSource, target: newTarget };
+        })
       );
       pushRenameNode(nodeId, renamedNode, edges, pushOperation);
       onNodeIdChanged?.(newId);
