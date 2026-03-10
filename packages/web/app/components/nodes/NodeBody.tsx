@@ -40,5 +40,5 @@ const NodeBodyComponent = ({ nodeId, description, text }: NodeBodyProps) => {
 export const NodeBody = memo(
   NodeBodyComponent,
   (prev, next) =>
-    prev.nodeId === next.nodeId && prev.description === next.description,
+    prev.nodeId === next.nodeId && prev.description === next.description && prev.text === next.text,
 );
