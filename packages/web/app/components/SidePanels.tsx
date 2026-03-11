@@ -140,7 +140,7 @@ type PresetsAsideProps = Pick<
   | 'productionKeyId'
   | 'onStagingKeyChange'
   | 'outputSchemasHook'
-> & { onEditSchema: (id: string) => void };
+> & { onEditSchema: (id: string) => void; onRemoveSchema: (id: string) => void };
 
 function PresetsAside(props: PresetsAsideProps) {
   const { presetsHook, ctxPreconditions, setEdges } = props;
@@ -175,7 +175,7 @@ function PresetsAside(props: PresetsAsideProps) {
             const id = props.outputSchemasHook.addSchema();
             props.onEditSchema(id);
           },
-          onRemove: props.outputSchemasHook.removeSchema,
+          onRemove: props.onRemoveSchema,
           onEdit: props.onEditSchema,
         }}
       />
@@ -193,6 +193,13 @@ export function SidePanels(props: SidePanelsProps) {
     editingSchemaId !== null
       ? props.outputSchemasHook.schemas.find((s) => s.id === editingSchemaId)
       : undefined;
+
+  const handleRemoveSchema = (id: string) => {
+    props.outputSchemasHook.removeSchema(id);
+    props.setNodes((nds) =>
+      nds.map((n) => (n.data.outputSchemaId === id ? { ...n, data: { ...n.data, outputSchemaId: undefined } } : n))
+    );
+  };
 
   return (
     <>
@@ -239,6 +246,7 @@ export function SidePanels(props: SidePanelsProps) {
           onStagingKeyChange={props.onStagingKeyChange}
           outputSchemasHook={props.outputSchemasHook}
           onEditSchema={setEditingSchemaId}
+          onRemoveSchema={handleRemoveSchema}
         />
       )}
     </>
