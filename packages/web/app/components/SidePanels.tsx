@@ -205,7 +205,7 @@ export function SidePanels(props: SidePanelsProps) {
     <>
       <OutputSchemaDialog
         schema={editingSchema}
-        onUpdate={props.outputSchemasHook.updateSchema}
+        onSave={props.outputSchemasHook.updateSchema}
         open={editingSchemaId !== null}
         onOpenChange={(open) => {
           if (!open) setEditingSchemaId(null);

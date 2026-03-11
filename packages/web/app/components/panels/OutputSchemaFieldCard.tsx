@@ -4,11 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { OutputSchemaField } from '@daviddh/graph-types';
-import { Info, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
 
 import type { OutputSchemaFieldType } from './outputSchemaTypes';
 import {
@@ -126,32 +124,6 @@ function FieldTypeSelect({
   );
 }
 
-function DescriptionToggle({
-  hasContent,
-  expanded,
-  onToggle,
-}: {
-  hasContent: boolean;
-  expanded: boolean;
-  onToggle: () => void;
-}) {
-  const t = useTranslations('nodePanel');
-  const filled = hasContent || expanded;
-
-  return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Button variant="ghost" size="icon-xs" onClick={onToggle}>
-            <Info className={`size-3 ${filled ? 'text-foreground' : 'text-muted-foreground'}`} />
-          </Button>
-        }
-      />
-      <TooltipContent>{t('toggleDescription')}</TooltipContent>
-    </Tooltip>
-  );
-}
-
 function DeleteButton({ onRemove }: { onRemove: () => void }) {
   const t = useTranslations('nodePanel');
   return (
@@ -170,15 +142,11 @@ function DeleteButton({ onRemove }: { onRemove: () => void }) {
 function FieldHeader({
   field,
   availableTypes,
-  showDescription,
-  onToggleDescription,
   onChange,
   onRemove,
 }: {
   field: OutputSchemaField;
   availableTypes: OutputSchemaFieldType[];
-  showDescription: boolean;
-  onToggleDescription: () => void;
   onChange: (updates: Partial<OutputSchemaField>) => void;
   onRemove: () => void;
 }) {
@@ -193,11 +161,6 @@ function FieldHeader({
       <Checkbox
         checked={field.required}
         onCheckedChange={(checked) => onChange({ required: checked === true })}
-      />
-      <DescriptionToggle
-        hasContent={!!field.description}
-        expanded={showDescription}
-        onToggle={onToggleDescription}
       />
       <DeleteButton onRemove={onRemove} />
     </div>
@@ -302,7 +265,6 @@ function FieldChildren({
 }
 
 export function OutputSchemaFieldCard({ field, depth, onChange, onRemove }: FieldCardProps) {
-  const [showDescription, setShowDescription] = useState(!!field.description);
   const t = useTranslations('nodePanel');
   const availableTypes = getAvailableTypes(depth);
   const borderColor = TYPE_BORDER_COLORS[field.type];
@@ -314,22 +276,13 @@ export function OutputSchemaFieldCard({ field, depth, onChange, onRemove }: Fiel
 
   return (
     <div className={`group flex flex-col border-l-2 ${borderColor} ${bgColor} rounded-r py-0.5 pl-2 hover:bg-muted/30`}>
-      <FieldHeader
-        field={field}
-        availableTypes={availableTypes}
-        showDescription={showDescription}
-        onToggleDescription={() => setShowDescription((prev) => !prev)}
-        onChange={handleChange}
-        onRemove={onRemove}
+      <FieldHeader field={field} availableTypes={availableTypes} onChange={handleChange} onRemove={onRemove} />
+      <Input
+        value={field.description ?? ''}
+        onChange={(e) => handleChange({ description: e.target.value || undefined })}
+        placeholder={t('fieldDescriptionPlaceholder')}
+        className="ml-1 mt-1 h-6 text-xs"
       />
-      {showDescription && (
-        <Input
-          value={field.description ?? ''}
-          onChange={(e) => handleChange({ description: e.target.value || undefined })}
-          placeholder={t('fieldDescriptionPlaceholder')}
-          className="ml-1 mt-1 h-6 text-xs"
-        />
-      )}
       <FieldChildren field={field} depth={depth} onChange={handleChange} />
     </div>
   );

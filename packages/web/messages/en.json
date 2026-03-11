@@ -146,8 +146,7 @@
     "arrayItems": "Array element",
     "objectProperties": "Properties",
     "deleteField": "Delete field",
-    "toggleDescription": "Toggle description",
-    "addNestedField": "+ Add"
+    "addNestedField": "+ Add field"
   },
   "outputSchemas": {
     "sectionTitle": "Output Schemas",
@@ -157,6 +156,8 @@
     "schemaName": "Schema name",
     "fieldCount": "{count} fields",
     "none": "None",
+    "save": "Save",
+    "cancel": "Cancel",
     "editSchema": "Edit schema"
   },
   "orgs": {
