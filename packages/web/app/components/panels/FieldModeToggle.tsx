@@ -8,7 +8,6 @@ export type FieldMode = 'inferred' | 'fixed' | 'reference';
 interface FieldModeToggleProps {
   mode: FieldMode;
   onModeChange: (mode: FieldMode) => void;
-  fieldName: string;
   readOnly?: boolean;
 }
 
@@ -25,7 +24,7 @@ function getModeLabel(mode: FieldMode, t: (key: string) => string): string {
   }
 }
 
-export function FieldModeToggle({ mode, onModeChange, fieldName, readOnly }: FieldModeToggleProps) {
+export function FieldModeToggle({ mode, onModeChange, readOnly }: FieldModeToggleProps) {
   const t = useTranslations('edgePanel');
   if (readOnly) return null;
 

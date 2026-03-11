@@ -128,7 +128,6 @@ function PropertyRowBody({ entry, fieldValue, onModeChange, onValueChange, onOpe
       <FieldModeToggle
         mode={mode}
         onModeChange={(m) => onModeChange(name, m)}
-        fieldName={name}
         readOnly={readOnly}
       />
       {prop.enum && prop.enum.length > 0 && (
