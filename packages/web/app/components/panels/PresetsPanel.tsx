@@ -21,21 +21,8 @@ import { Separator } from "@/components/ui/separator";
 import type { ApiKeyRow } from "../../lib/api-keys";
 import { ApiKeySelectSection } from "./ApiKeySelectSection";
 import { type ContextPreset, DEFAULT_PRESET } from "../../types/preset";
-import type { McpServerConfig } from "../../schemas/graph.schema";
-import type { McpServerStatus } from "../../hooks/useMcpServers";
 import type { ContextPrecondition } from "../../types/contextPrecondition";
-import { McpServersSection } from "./McpServersSection";
 import { ContextPreconditionsSection } from "./ContextPreconditionsSection";
-
-interface McpProps {
-  servers: McpServerConfig[];
-  discovering: Record<string, boolean>;
-  serverStatus: Record<string, McpServerStatus>;
-  onAddServer: () => void;
-  onRemoveServer: (id: string) => void;
-  onUpdateServer: (id: string, updates: Partial<McpServerConfig>) => void;
-  onDiscoverTools: (id: string) => void;
-}
 
 interface ContextKeysProps {
   keys: string[];
@@ -63,7 +50,6 @@ interface PresetsPanelProps {
   onUpdate: (id: string, updates: Partial<ContextPreset>) => void;
   context: ContextKeysProps;
   contextPreconditions: ContextPreconditionsProps;
-  mcp: McpProps;
 }
 
 interface PresetFieldsProps {
@@ -249,7 +235,6 @@ export function PresetsPanel({
   onUpdate,
   context,
   contextPreconditions,
-  mcp,
 }: PresetsPanelProps) {
   return (
     <div className="flex h-full flex-col">
@@ -295,16 +280,6 @@ export function PresetsPanel({
             />
           ))}
         </ul>
-        <Separator className="mt-4" />
-        <McpServersSection
-          servers={mcp.servers}
-          discovering={mcp.discovering}
-          serverStatus={mcp.serverStatus}
-          onAdd={mcp.onAddServer}
-          onRemove={mcp.onRemoveServer}
-          onUpdate={mcp.onUpdateServer}
-          onDiscover={mcp.onDiscoverTools}
-        />
       </div>
     </div>
   );

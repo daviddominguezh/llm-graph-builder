@@ -223,11 +223,11 @@ function handlePreconditionUpdate(
 
 type PresetsAsideProps = Pick<
   SidePanelsProps,
-  'presetsHook' | 'mcpHook' | 'ctxPreconditions' | 'setEdges' | 'orgApiKeys' | 'stagingKeyId' | 'productionKeyId' | 'onStagingKeyChange'
+  'presetsHook' | 'ctxPreconditions' | 'setEdges' | 'orgApiKeys' | 'stagingKeyId' | 'productionKeyId' | 'onStagingKeyChange'
 >;
 
 function PresetsAside(props: PresetsAsideProps) {
-  const { presetsHook, mcpHook, ctxPreconditions, setEdges } = props;
+  const { presetsHook, ctxPreconditions, setEdges } = props;
 
   return (
     <aside className="absolute left-0 top-0 bottom-0 w-80 border-r border-gray-200 bg-white z-10">
@@ -257,15 +257,6 @@ function PresetsAside(props: PresetsAsideProps) {
           onRemove: (id) => handlePreconditionRemove(id, ctxPreconditions, setEdges),
           onUpdate: (id, updates) => handlePreconditionUpdate(id, updates, ctxPreconditions, setEdges),
         }}
-        mcp={{
-          servers: mcpHook.servers,
-          discovering: mcpHook.discovering,
-          serverStatus: mcpHook.serverStatus,
-          onAddServer: mcpHook.addServer,
-          onRemoveServer: mcpHook.removeServer,
-          onUpdateServer: mcpHook.updateServer,
-          onDiscoverTools: mcpHook.discoverTools,
-        }}
       />
     </aside>
   );
@@ -287,11 +278,24 @@ export function SidePanels(props: SidePanelsProps) {
           pushOperation={props.pushOperation}
         />
       )}
-      <ToolsPanel servers={props.mcpHook.servers} discoveredTools={props.mcpHook.discoveredTools} open={toolsOpen} onClose={() => {}} />
+      <ToolsPanel
+        servers={props.mcpHook.servers}
+        discoveredTools={props.mcpHook.discoveredTools}
+        mcp={{
+          servers: props.mcpHook.servers,
+          discovering: props.mcpHook.discovering,
+          serverStatus: props.mcpHook.serverStatus,
+          onAddServer: props.mcpHook.addServer,
+          onRemoveServer: props.mcpHook.removeServer,
+          onUpdateServer: props.mcpHook.updateServer,
+          onDiscoverTools: props.mcpHook.discoverTools,
+        }}
+        open={toolsOpen}
+        onClose={() => {}}
+      />
       {presetsOpen && (
         <PresetsAside
           presetsHook={props.presetsHook}
-          mcpHook={props.mcpHook}
           ctxPreconditions={props.ctxPreconditions}
           setEdges={props.setEdges}
           orgApiKeys={props.orgApiKeys}

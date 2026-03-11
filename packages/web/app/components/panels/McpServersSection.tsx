@@ -278,7 +278,7 @@ export function McpServersSection({
   onDiscover,
 }: McpServersSectionProps) {
   return (
-    <div className="mt-4">
+    <div className="mt-2">
       <div className="flex items-center justify-between mb-2">
         <Label>MCP Servers</Label>
         <Button variant="ghost" size="icon-xs" onClick={onAdd}>

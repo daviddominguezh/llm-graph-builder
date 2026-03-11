@@ -57,8 +57,13 @@ export function OutputSchemaDialog({ fields, onChange }: OutputSchemaDialogProps
     <Dialog>
       <DialogTrigger
         render={
-          <Button variant="ghost" size="icon" className="relative" title={t('outputSchema')}>
-            <Braces className="h-4 w-4" />
+          <Button
+            className={`text-muted-foreground ${fieldCount > 0 ? 'relative' : ''}`}
+            variant="ghost"
+            size="icon"
+            title={t('outputSchema')}
+          >
+            <Braces />
             {fieldCount > 0 && (
               <span className="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary text-[9px] text-primary-foreground">
                 {fieldCount}

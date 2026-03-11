@@ -70,7 +70,9 @@
     "globalNodes": "Global nodes",
     "tools": "Tools",
     "autoLayout": "Auto-layout",
-    "settings": "Settings"
+    "settings": "Settings",
+    "mcpServersTab": "MCP Servers",
+    "toolsTab": "Tools"
   },
   "agents": {
     "title": "Agents",
