@@ -15,7 +15,7 @@ export default {
       },
     ],
   },
-  testMatch: ['**/__tests__/**/*.test.ts'],
+  testMatch: ['**/__tests__/**/*.test.ts', '**/src/**/*.test.ts'],
   collectCoverage: true,
   coverageProvider: 'v8',
   coverageDirectory: 'coverage',
