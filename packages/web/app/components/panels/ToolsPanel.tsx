@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import { Search, SquareFunction } from 'lucide-react';
 
@@ -37,6 +38,11 @@ interface FlatTool {
   inputSchema: Record<string, unknown> | undefined;
 }
 
+interface ToolGroup {
+  serverName: string;
+  tools: FlatTool[];
+}
+
 interface SchemaProperty {
   type?: string;
   description?: string;
@@ -49,27 +55,43 @@ interface ToolSchema {
   required?: string[];
 }
 
-function flattenTools(servers: McpServerConfig[], discovered: Record<string, DiscoveredTool[]>): FlatTool[] {
-  const result: FlatTool[] = [];
+function buildToolGroups(servers: McpServerConfig[], discovered: Record<string, DiscoveredTool[]>): ToolGroup[] {
+  const groups: ToolGroup[] = [];
   for (const server of servers) {
-    for (const tool of discovered[server.id] ?? []) {
-      result.push({
-        serverName: server.name,
-        name: tool.name,
-        description: tool.description,
-        inputSchema: tool.inputSchema,
-      });
+    const serverTools = (discovered[server.id] ?? []).map((tool) => ({
+      serverName: server.name,
+      name: tool.name,
+      description: tool.description,
+      inputSchema: tool.inputSchema,
+    }));
+    if (serverTools.length > 0) {
+      serverTools.sort((a, b) => a.name.localeCompare(b.name));
+      groups.push({ serverName: server.name, tools: serverTools });
     }
   }
-  return result;
+  groups.sort((a, b) => a.serverName.localeCompare(b.serverName));
+  return groups;
 }
 
-function filterTools(tools: FlatTool[], query: string): FlatTool[] {
-  if (query === '') return tools;
+function filterGroups(groups: ToolGroup[], query: string): ToolGroup[] {
+  if (query === '') return groups;
   const lower = query.toLowerCase();
-  return tools.filter(
-    (t) => t.name.toLowerCase().includes(lower) || t.description?.toLowerCase().includes(lower)
-  );
+  const filtered: ToolGroup[] = [];
+  for (const group of groups) {
+    const tools = group.tools.filter(
+      (t) => t.name.toLowerCase().includes(lower) || t.description?.toLowerCase().includes(lower)
+    );
+    if (tools.length > 0) {
+      filtered.push({ serverName: group.serverName, tools });
+    }
+  }
+  return filtered;
+}
+
+function countTools(groups: ToolGroup[]): number {
+  let count = 0;
+  for (const g of groups) count += g.tools.length;
+  return count;
 }
 
 function buildRequiredSet(schema: ToolSchema): Set<string> {
@@ -118,8 +140,9 @@ function ToolSchemaDetails({ schema }: { schema: ToolSchema }) {
 
   const requiredSet = buildRequiredSet(schema);
   const entries = Object.entries(schema.properties);
-  const required = entries.filter(([n]) => requiredSet.has(n));
-  const optional = entries.filter(([n]) => !requiredSet.has(n));
+  const cmp = (a: [string, SchemaProperty], b: [string, SchemaProperty]) => a[0].localeCompare(b[0]);
+  const required = entries.filter(([n]) => requiredSet.has(n)).sort(cmp);
+  const optional = entries.filter(([n]) => !requiredSet.has(n)).sort(cmp);
   const sorted = [...required, ...optional];
 
   return (
@@ -134,20 +157,43 @@ function ToolSchemaDetails({ schema }: { schema: ToolSchema }) {
   );
 }
 
-function ToolRow({ tool, active, expanded, onMouseEnter, onClick }: {
+function FloatingSchema({ anchorRef, schema }: {
+  anchorRef: React.RefObject<HTMLDivElement | null>;
+  schema: ToolSchema;
+}) {
+  const positionRef = useCallback((el: HTMLDivElement | null) => {
+    const anchor = anchorRef.current;
+    if (!el || !anchor) return;
+    const rect = anchor.getBoundingClientRect();
+    el.style.top = `${String(rect.bottom + 4)}px`;
+    el.style.left = `${String(rect.left)}px`;
+    el.style.width = `${String(rect.width)}px`;
+  }, [anchorRef]);
+
+  return createPortal(
+    <div
+      ref={positionRef}
+      data-tools-panel-portal
+      className="fixed z-50 max-h-64 overflow-y-auto rounded-md border bg-background shadow-lg py-1.5"
+    >
+      <ToolSchemaDetails schema={schema} />
+    </div>,
+    document.body
+  );
+}
+
+function ToolRow({ tool, expanded, onClick }: {
   tool: FlatTool;
-  active: boolean;
   expanded: boolean;
-  onMouseEnter: () => void;
   onClick: () => void;
 }) {
+  const rowRef = useRef<HTMLDivElement>(null);
+
   return (
-    <li className="relative">
+    <li>
       <div
-        className={`flex w-full flex-col rounded-md px-3 py-1.5 text-left text-xs cursor-pointer ${
-          active ? 'bg-accent/10' : 'hover:bg-accent/5'
-        }`}
-        onMouseEnter={onMouseEnter}
+        ref={rowRef}
+        className="flex w-full flex-col rounded-md px-3 py-1.5 text-left text-xs cursor-pointer hover:bg-accent/5"
         onClick={onClick}
       >
         <span className="font-medium">{tool.name}</span>
@@ -156,42 +202,51 @@ function ToolRow({ tool, active, expanded, onMouseEnter, onClick }: {
         </span>
       </div>
       {expanded && tool.inputSchema && (
-        <div className="absolute left-1 right-1 z-30 rounded-md border bg-background shadow-md py-1.5">
-          <ToolSchemaDetails schema={tool.inputSchema as ToolSchema} />
-        </div>
+        <FloatingSchema anchorRef={rowRef} schema={tool.inputSchema as ToolSchema} />
       )}
     </li>
   );
 }
 
-function ToolsList({ results, allTools, activeIndex, expandedTool, onSetActiveIndex, onToggleTool }: {
-  results: FlatTool[];
-  allTools: FlatTool[];
-  activeIndex: number;
+function ServerGroupHeader({ name }: { name: string }) {
+  return (
+    <li className="px-3 pt-2 pb-0.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+      {name}
+    </li>
+  );
+}
+
+function ToolsList({ groups, totalCount, expandedTool, onToggleTool }: {
+  groups: ToolGroup[];
+  totalCount: number;
   expandedTool: string | null;
-  onSetActiveIndex: (i: number) => void;
   onToggleTool: (toolKey: string) => void;
 }) {
   return (
     <ul className="flex-1 overflow-y-auto p-1">
-      {results.length === 0 ? (
+      {totalCount === 0 ? (
         <li className="px-3 py-2 text-xs text-muted-foreground">
-          {allTools.length === 0 ? 'No tools discovered yet' : 'No results'}
+          {groups.length === 0 ? 'No tools discovered yet' : 'No results'}
         </li>
       ) : (
-        results.map((tool, i) => {
-          const key = `${tool.serverName}-${tool.name}`;
-          return (
-            <ToolRow
-              key={key}
-              tool={tool}
-              active={i === activeIndex}
-              expanded={expandedTool === key}
-              onMouseEnter={() => onSetActiveIndex(i)}
-              onClick={() => onToggleTool(key)}
-            />
-          );
-        })
+        groups.map((group) => (
+          <li key={group.serverName}>
+            <ServerGroupHeader name={group.serverName} />
+            <ul>
+              {group.tools.map((tool) => {
+                const key = `${tool.serverName}-${tool.name}`;
+                return (
+                  <ToolRow
+                    key={key}
+                    tool={tool}
+                    expanded={expandedTool === key}
+                    onClick={() => onToggleTool(key)}
+                  />
+                );
+              })}
+            </ul>
+          </li>
+        ))
       )}
     </ul>
   );
@@ -217,7 +272,6 @@ export function ToolsPanel({ servers, discoveredTools, mcp, open, onClose }: Too
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
-  const [activeIndex, setActiveIndex] = useState(0);
   const [prevOpen, setPrevOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('mcp');
   const [expandedTool, setExpandedTool] = useState<string | null>(null);
@@ -226,7 +280,6 @@ export function ToolsPanel({ servers, discoveredTools, mcp, open, onClose }: Too
   if (open && !prevOpen) {
     setPrevOpen(true);
     setQuery('');
-    setActiveIndex(0);
     setActiveTab('mcp');
     setExpandedTool(null);
   }
@@ -234,8 +287,9 @@ export function ToolsPanel({ servers, discoveredTools, mcp, open, onClose }: Too
     setPrevOpen(false);
   }
 
-  const allTools = useMemo(() => flattenTools(servers, discoveredTools), [servers, discoveredTools]);
-  const results = filterTools(allTools, query);
+  const allGroups = useMemo(() => buildToolGroups(servers, discoveredTools), [servers, discoveredTools]);
+  const filteredGroups = filterGroups(allGroups, query);
+  const totalCount = countTools(filteredGroups);
 
   useEffect(() => {
     if (open && activeTab === 'tools') {
@@ -247,7 +301,10 @@ export function ToolsPanel({ servers, discoveredTools, mcp, open, onClose }: Too
     if (!open) return;
 
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as HTMLElement;
+      const insideContainer = containerRef.current?.contains(target) === true;
+      const insidePortal = target.closest('[data-tools-panel-portal]') !== null;
+      if (!insideContainer && !insidePortal) {
         onClose();
       }
     };
@@ -259,17 +316,6 @@ export function ToolsPanel({ servers, discoveredTools, mcp, open, onClose }: Too
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       onClose();
-      return;
-    }
-    if (activeTab !== 'tools') return;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setActiveIndex((prev) => Math.min(prev + 1, results.length - 1));
-      return;
-    }
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setActiveIndex((prev) => Math.max(prev - 1, 0));
     }
   };
 
@@ -301,18 +347,16 @@ export function ToolsPanel({ servers, discoveredTools, mcp, open, onClose }: Too
             <Input
               ref={inputRef}
               value={query}
-              onChange={(e) => { setQuery(e.target.value); setActiveIndex(0); }}
+              onChange={(e) => setQuery(e.target.value)}
               placeholder="Search tools..."
               className="h-7 border-0 bg-transparent p-0 text-xs shadow-none focus-visible:ring-0"
             />
             <SquareFunction className="size-3.5 text-muted-foreground shrink-0" />
           </div>
           <ToolsList
-            results={results}
-            allTools={allTools}
-            activeIndex={activeIndex}
+            groups={filteredGroups}
+            totalCount={totalCount}
             expandedTool={expandedTool}
-            onSetActiveIndex={setActiveIndex}
             onToggleTool={handleToggleTool}
           />
         </TabsContent>

@@ -286,7 +286,7 @@ export function McpServersSection({
         </Button>
       </div>
       <ul className="space-y-2">
-        {servers.map((server) => (
+        {[...servers].sort((a, b) => a.name.localeCompare(b.name)).map((server) => (
           <ServerItem
             key={server.id}
             server={server}
