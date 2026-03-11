@@ -94,6 +94,11 @@ function SelectionPanel(props: SidePanelsProps) {
           onSelectEdge={selection.selectEdge}
           onSelectNode={selection.navigateToNode}
           pushOperation={pushOperation}
+          outputSchemas={props.outputSchemasHook.schemas}
+          onAddOutputSchema={props.outputSchemasHook.addSchema}
+          onEditOutputSchema={() => {
+            // Dialog opening will be wired in Task 8
+          }}
         />
       )}
       {selection.selectedEdgeId !== null && (

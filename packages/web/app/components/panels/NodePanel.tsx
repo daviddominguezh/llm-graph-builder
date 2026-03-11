@@ -24,6 +24,8 @@ import { ArrowLeft, ArrowRight, Box, Brain, Cable, Info, MessageCircle, Send, Tr
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import type { OutputSchemaEntity } from '@daviddh/graph-types';
+
 import type { Agent, PreconditionType } from '../../schemas/graph.schema';
 import type { ContextPreset } from '../../types/preset';
 import type { PushOperation } from '../../utils/operationBuilders';
@@ -31,7 +33,7 @@ import type { RFEdgeData, RFNodeData } from '../../utils/graphTransformers';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FallbackNodeSelect } from './FallbackNodeSelect';
 import { NodePromptDialog } from './NodePromptDialog';
-import { OutputSchemaDialog } from './OutputSchemaDialog';
+import { OutputSchemaSelect } from './OutputSchemaSelect';
 import { pushDeleteNode, pushRenameNode, pushUpdateNode } from './nodePanelOps';
 import { hasToolCallEdge } from './toolCallGuard';
 
@@ -48,6 +50,9 @@ interface NodePanelProps {
   onSelectEdge?: (edgeId: string) => void;
   onSelectNode?: (nodeId: string) => void;
   pushOperation: PushOperation;
+  outputSchemas: OutputSchemaEntity[];
+  onAddOutputSchema: () => string;
+  onEditOutputSchema: (id: string) => void;
 }
 
 export function NodePanel({
@@ -63,6 +68,9 @@ export function NodePanel({
   onSelectEdge,
   onSelectNode,
   pushOperation,
+  outputSchemas,
+  onAddOutputSchema,
+  onEditOutputSchema,
 }: NodePanelProps) {
   const nodes = useNodes<Node<RFNodeData>>();
   const edges = useEdges<Edge<RFEdgeData>>();
@@ -146,12 +154,6 @@ export function NodePanel({
         <div className="flex items-center justify-between">
           <h4 className="text-sm font-semibold">Node Properties</h4>
           <div className="flex items-center">
-            {node.type === 'agent' && (
-              <OutputSchemaDialog
-                fields={nodeData.outputSchema ?? []}
-                onChange={(outputSchema) => updateNodeData({ outputSchema })}
-              />
-            )}
             <NodePromptDialog
               nodeId={nodeId}
               allNodes={allNodes}
@@ -230,6 +232,20 @@ export function NodePanel({
               disabled={isToolCallNode}
             />
           </div>
+
+          {node.type === 'agent' && (
+            <OutputSchemaSelect
+              schemas={outputSchemas}
+              value={nodeData.outputSchemaId}
+              onChange={(schemaId) => updateNodeData({ outputSchemaId: schemaId })}
+              onAddSchema={() => {
+                const id = onAddOutputSchema();
+                updateNodeData({ outputSchemaId: id });
+                onEditOutputSchema(id);
+              }}
+              onEditSchema={onEditOutputSchema}
+            />
+          )}
 
           {isToolCallNode && (
             <Alert>
