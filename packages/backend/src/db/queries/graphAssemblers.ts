@@ -48,6 +48,7 @@ export function assembleNode(row: NodeRow): Node {
     global: row.global,
     defaultFallback: row.default_fallback ?? undefined,
     position: buildPosition(row),
+    outputSchema: (row.output_schema as Node['outputSchema']) ?? undefined,
   };
 }
 

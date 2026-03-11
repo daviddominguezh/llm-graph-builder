@@ -19,6 +19,7 @@ interface NodeRow {
   default_fallback: boolean | undefined;
   position_x: number | undefined;
   position_y: number | undefined;
+  output_schema: Record<string, unknown>[] | undefined;
 }
 
 function buildNodeRow(agentId: string, data: InsertNodeOp['data']): NodeRow {
@@ -35,6 +36,7 @@ function buildNodeRow(agentId: string, data: InsertNodeOp['data']): NodeRow {
     default_fallback: data.defaultFallback,
     position_x: data.position?.x,
     position_y: data.position?.y,
+    output_schema: data.outputSchema as Record<string, unknown>[] | undefined,
   };
 }
 
