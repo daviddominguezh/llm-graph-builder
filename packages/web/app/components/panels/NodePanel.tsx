@@ -20,8 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
 import type { Edge, Node } from '@xyflow/react';
-import { ArrowLeft, ArrowRight, Box, Brain, Cable, Info, MessageCircle, Send, Trash2, Wrench } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { ArrowLeft, ArrowRight, Box, Brain, Cable, MessageCircle, Send, Trash2, Wrench } from 'lucide-react';
 import { useState } from 'react';
 
 import type { OutputSchemaEntity } from '@daviddh/graph-types';
@@ -30,7 +29,6 @@ import type { Agent, PreconditionType } from '../../schemas/graph.schema';
 import type { ContextPreset } from '../../types/preset';
 import type { PushOperation } from '../../utils/operationBuilders';
 import type { RFEdgeData, RFNodeData } from '../../utils/graphTransformers';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FallbackNodeSelect } from './FallbackNodeSelect';
 import { NodePromptDialog } from './NodePromptDialog';
 import { OutputSchemaSelect } from './OutputSchemaSelect';
@@ -75,12 +73,12 @@ export function NodePanel({
   const nodes = useNodes<Node<RFNodeData>>();
   const edges = useEdges<Edge<RFEdgeData>>();
   const { setNodes, setEdges } = useReactFlow();
-  const t = useTranslations('nodePanel');
 
   // Get incoming and outgoing edges
   const incomingEdges = edges.filter((e) => e.target === nodeId);
   const outgoingEdges = edges.filter((e) => e.source === nodeId);
   const isToolCallNode = hasToolCallEdge(outgoingEdges);
+  const isUserSaidNode = outgoingEdges.some((e) => e.data?.preconditions?.some((p) => p.type === 'user_said'));
 
   const node = nodes.find((n) => n.id === nodeId);
   const nodeData = node?.data;
@@ -198,13 +196,6 @@ export function NodePanel({
 
       <div className="flex-1 overflow-y-auto">
         <div className="flex flex-col gap-4 p-4">
-          {isToolCallNode && (
-            <Alert>
-              <Info className="h-3 w-3" />
-              <AlertDescription className="text-xs">{t('disabledByToolCall')}</AlertDescription>
-            </Alert>
-          )}
-
           <div className="space-y-2">
             <Label htmlFor="id">ID</Label>
             <Input
@@ -217,29 +208,29 @@ export function NodePanel({
           </div>
 
           {!isToolCallNode && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={nodeData.description}
-                  onChange={(e) => updateNodeData({ description: e.target.value })}
-                  rows={2}
-                  placeholder="Node description..."
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={nodeData.description}
+                onChange={(e) => updateNodeData({ description: e.target.value })}
+                rows={2}
+                placeholder="Node description..."
+              />
+            </div>
+          )}
 
-              <div className="space-y-2">
-                <Label htmlFor="text">Text</Label>
-                <Textarea
-                  id="text"
-                  value={nodeData.text}
-                  onChange={(e) => updateNodeData({ text: e.target.value })}
-                  rows={3}
-                  placeholder="Node text..."
-                />
-              </div>
-            </>
+          {isUserSaidNode && (
+            <div className="space-y-2">
+              <Label htmlFor="text">Text</Label>
+              <Textarea
+                id="text"
+                value={nodeData.text}
+                onChange={(e) => updateNodeData({ text: e.target.value })}
+                rows={3}
+                placeholder="Node text..."
+              />
+            </div>
           )}
 
           {node.type === 'agent' && (
