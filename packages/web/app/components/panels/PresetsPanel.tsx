@@ -18,11 +18,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import type { OutputSchemaEntity } from '@daviddh/graph-types';
 import type { ApiKeyRow } from "../../lib/api-keys";
 import { ApiKeySelectSection } from "./ApiKeySelectSection";
 import { type ContextPreset, DEFAULT_PRESET } from "../../types/preset";
 import type { ContextPrecondition } from "../../types/contextPrecondition";
 import { ContextPreconditionsSection } from "./ContextPreconditionsSection";
+import { OutputSchemasSection } from "./OutputSchemasSection";
 
 interface ContextKeysProps {
   keys: string[];
@@ -38,6 +40,13 @@ interface ContextPreconditionsProps {
   onUpdate: (id: string, updates: Partial<ContextPrecondition>) => void;
 }
 
+interface OutputSchemasProps {
+  schemas: OutputSchemaEntity[];
+  onAdd: () => void;
+  onRemove: (id: string) => void;
+  onEdit: (id: string) => void;
+}
+
 interface PresetsPanelProps {
   presets: ContextPreset[];
   contextKeys: string[];
@@ -50,6 +59,7 @@ interface PresetsPanelProps {
   onUpdate: (id: string, updates: Partial<ContextPreset>) => void;
   context: ContextKeysProps;
   contextPreconditions: ContextPreconditionsProps;
+  outputSchemas: OutputSchemasProps;
 }
 
 interface PresetFieldsProps {
@@ -235,6 +245,7 @@ export function PresetsPanel({
   onUpdate,
   context,
   contextPreconditions,
+  outputSchemas,
 }: PresetsPanelProps) {
   return (
     <div className="flex h-full flex-col">
@@ -254,6 +265,12 @@ export function PresetsPanel({
           onAdd={context.onAdd}
           onRemove={context.onRemove}
           onRename={context.onRename}
+        />
+        <OutputSchemasSection
+          schemas={outputSchemas.schemas}
+          onAdd={outputSchemas.onAdd}
+          onRemove={outputSchemas.onRemove}
+          onEdit={outputSchemas.onEdit}
         />
         <ContextPreconditionsSection
           preconditions={contextPreconditions.preconditions}

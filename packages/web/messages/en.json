@@ -147,6 +147,16 @@
     "objectProperties": "Properties",
     "deleteField": "Delete field"
   },
+  "outputSchemas": {
+    "sectionTitle": "Output Schemas",
+    "newSchema": "New schema...",
+    "deleteTitle": "Delete schema?",
+    "deleteDescription": "This will remove the schema \"{name}\" and unassign it from any nodes using it.",
+    "schemaName": "Schema name",
+    "fieldCount": "{count} fields",
+    "none": "None",
+    "editSchema": "Edit schema"
+  },
   "orgs": {
     "title": "My Organizations",
     "empty": "No organizations yet. Create your first one.",

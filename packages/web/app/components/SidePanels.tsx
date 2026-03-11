@@ -6,6 +6,7 @@ import { nanoid } from 'nanoid';
 import type { ApiKeyRow } from '../lib/api-keys';
 import type { Agent } from '../schemas/graph.schema';
 import type { McpServersState } from '../hooks/useMcpServers';
+import type { OutputSchemasState } from '../hooks/useOutputSchemas';
 import type { ContextPrecondition } from '../types/contextPrecondition';
 import { createEmptyGroup } from '../types/contextPrecondition';
 import { DEFAULT_NODE_WIDTH } from '../utils/graphInitializer';
@@ -60,6 +61,7 @@ export interface SidePanelsProps {
   agents: Agent[];
   presetsHook: PresetsHook;
   mcpHook: McpServersState;
+  outputSchemasHook: OutputSchemasState;
   globalPanelOpen: boolean;
   presetsOpen: boolean;
   toolsOpen: boolean;
@@ -223,7 +225,14 @@ function handlePreconditionUpdate(
 
 type PresetsAsideProps = Pick<
   SidePanelsProps,
-  'presetsHook' | 'ctxPreconditions' | 'setEdges' | 'orgApiKeys' | 'stagingKeyId' | 'productionKeyId' | 'onStagingKeyChange'
+  | 'presetsHook'
+  | 'ctxPreconditions'
+  | 'setEdges'
+  | 'orgApiKeys'
+  | 'stagingKeyId'
+  | 'productionKeyId'
+  | 'onStagingKeyChange'
+  | 'outputSchemasHook'
 >;
 
 function PresetsAside(props: PresetsAsideProps) {
@@ -256,6 +265,16 @@ function PresetsAside(props: PresetsAsideProps) {
           },
           onRemove: (id) => handlePreconditionRemove(id, ctxPreconditions, setEdges),
           onUpdate: (id, updates) => handlePreconditionUpdate(id, updates, ctxPreconditions, setEdges),
+        }}
+        outputSchemas={{
+          schemas: props.outputSchemasHook.schemas,
+          onAdd: () => {
+            props.outputSchemasHook.addSchema();
+          },
+          onRemove: props.outputSchemasHook.removeSchema,
+          onEdit: () => {
+            // Dialog opening will be wired in Task 8
+          },
         }}
       />
     </aside>
@@ -302,6 +321,7 @@ export function SidePanels(props: SidePanelsProps) {
           stagingKeyId={props.stagingKeyId}
           productionKeyId={props.productionKeyId}
           onStagingKeyChange={props.onStagingKeyChange}
+          outputSchemasHook={props.outputSchemasHook}
         />
       )}
     </>
