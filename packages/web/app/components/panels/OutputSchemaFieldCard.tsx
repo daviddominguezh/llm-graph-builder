@@ -1,17 +1,19 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { OutputSchemaField } from '@daviddh/graph-types';
-import { Plus, Trash2 } from 'lucide-react';
+import { Info, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 
 import type { OutputSchemaFieldType } from './outputSchemaTypes';
 import {
+  TYPE_BG_COLORS,
+  TYPE_BORDER_COLORS,
   createEmptyField,
   getAvailableTypes,
   isValidFieldName,
@@ -26,112 +28,194 @@ interface FieldCardProps {
   onRemove: () => void;
 }
 
-function EnumValuesEditor({ values, onChange }: { values: string[]; onChange: (values: string[]) => void }) {
+interface EnumValuesEditorProps {
+  values: string[];
+  onChange: (values: string[]) => void;
+}
+
+function EnumValuesEditor({ values, onChange }: EnumValuesEditorProps) {
+  return (
+    <div className="ml-1 mt-1 flex flex-wrap gap-1">
+      {values.map((v, i) => (
+        <EnumPill key={i} value={v} index={i} values={values} onChange={onChange} />
+      ))}
+      <button
+        onClick={() => onChange([...values, ''])}
+        className="px-1 text-xs text-muted-foreground hover:text-foreground"
+      >
+        +
+      </button>
+    </div>
+  );
+}
+
+function EnumPill({
+  value,
+  index,
+  values,
+  onChange,
+}: {
+  value: string;
+  index: number;
+  values: string[];
+  onChange: (values: string[]) => void;
+}) {
+  return (
+    <div className="flex items-center gap-0.5 rounded border bg-muted/40 px-1.5 py-0.5">
+      <input
+        value={value}
+        onChange={(e) => onChange(values.map((val, j) => (j === index ? e.target.value : val)))}
+        className="w-16 bg-transparent text-xs outline-none"
+      />
+      <button
+        onClick={() => onChange(values.filter((_, j) => j !== index))}
+        className="text-xs text-muted-foreground hover:text-foreground"
+      >
+        &times;
+      </button>
+    </div>
+  );
+}
+
+function FieldNameInput({
+  name,
+  onChange,
+}: {
+  name: string;
+  onChange: (name: string) => void;
+}) {
+  const t = useTranslations('nodePanel');
+  const nameInvalid = name !== '' && !isValidFieldName(name);
+
+  return (
+    <Input
+      value={name}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={t('fieldNamePlaceholder')}
+      className={`h-6 flex-1 font-mono text-xs ${nameInvalid ? 'border-destructive' : ''}`}
+    />
+  );
+}
+
+function FieldTypeSelect({
+  type,
+  availableTypes,
+  onChange,
+}: {
+  type: OutputSchemaFieldType;
+  availableTypes: OutputSchemaFieldType[];
+  onChange: (type: OutputSchemaFieldType) => void;
+}) {
+  const handleValueChange = (value: OutputSchemaFieldType | null) => {
+    if (value !== null) onChange(value);
+  };
+
+  return (
+    <Select value={type} onValueChange={handleValueChange}>
+      <SelectTrigger className="h-6 w-24 text-xs">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {availableTypes.map((fieldType) => (
+          <SelectItem key={fieldType} value={fieldType}>
+            {fieldType}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function DescriptionToggle({
+  hasContent,
+  expanded,
+  onToggle,
+}: {
+  hasContent: boolean;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const t = useTranslations('nodePanel');
+  const filled = hasContent || expanded;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button variant="ghost" size="icon-xs" onClick={onToggle}>
+            <Info className={`size-3 ${filled ? 'text-foreground' : 'text-muted-foreground'}`} />
+          </Button>
+        }
+      />
+      <TooltipContent>{t('toggleDescription')}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function DeleteButton({ onRemove }: { onRemove: () => void }) {
   const t = useTranslations('nodePanel');
   return (
-    <div className="ml-4 mt-1 space-y-1">
-      <Label className="text-[10px]">{t('enumValues')}</Label>
-      {values.map((v, i) => (
-        <div key={i} className="flex gap-1">
-          <Input
-            value={v}
-            onChange={(e) => onChange(values.map((val, j) => (j === i ? e.target.value : val)))}
-            className="h-6 text-xs"
-          />
-          <Button variant="ghost" size="icon-xs" onClick={() => onChange(values.filter((_, j) => j !== i))}>
-            <Trash2 className="h-3 w-3" />
-          </Button>
-        </div>
-      ))}
-      <Button variant="ghost" size="xs" onClick={() => onChange([...values, ''])}>
-        <Plus className="h-3 w-3 mr-1" />
-        {t('addEnumValue')}
-      </Button>
-    </div>
+    <Button
+      variant="ghost"
+      size="icon-xs"
+      onClick={onRemove}
+      title={t('deleteField')}
+      className="opacity-0 transition-opacity group-hover:opacity-100"
+    >
+      <Trash2 className="size-3" />
+    </Button>
   );
 }
 
 function FieldHeader({
   field,
   availableTypes,
+  showDescription,
+  onToggleDescription,
   onChange,
   onRemove,
 }: {
   field: OutputSchemaField;
   availableTypes: OutputSchemaFieldType[];
+  showDescription: boolean;
+  onToggleDescription: () => void;
   onChange: (updates: Partial<OutputSchemaField>) => void;
   onRemove: () => void;
 }) {
-  const t = useTranslations('nodePanel');
-  const nameInvalid = field.name !== '' && !isValidFieldName(field.name);
-
   return (
-    <div className="flex items-center gap-1.5">
-      <Input
-        value={field.name}
-        onChange={(e) => onChange({ name: e.target.value })}
-        placeholder={t('fieldNamePlaceholder')}
-        className={`h-6 flex-1 text-xs ${nameInvalid ? 'border-destructive' : ''}`}
+    <div className="flex items-center gap-1">
+      <FieldNameInput name={field.name} onChange={(name) => onChange({ name })} />
+      <FieldTypeSelect
+        type={field.type}
+        availableTypes={availableTypes}
+        onChange={(type) => onChange({ type })}
       />
-      <Select value={field.type} onValueChange={(v) => onChange({ type: v as OutputSchemaFieldType })}>
-        <SelectTrigger className="h-6 w-24 text-xs">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {availableTypes.map((fieldType) => (
-            <SelectItem key={fieldType} value={fieldType}>
-              {fieldType}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <div className="flex items-center gap-1">
-        <Checkbox
-          checked={field.required}
-          onCheckedChange={(checked) => onChange({ required: checked === true })}
-        />
-        <span className="text-[10px] text-muted-foreground">{t('fieldRequired')}</span>
-      </div>
-      <Button variant="ghost" size="icon-xs" onClick={onRemove} title={t('deleteField')}>
-        <Trash2 className="h-3 w-3" />
-      </Button>
+      <Checkbox
+        checked={field.required}
+        onCheckedChange={(checked) => onChange({ required: checked === true })}
+      />
+      <DescriptionToggle
+        hasContent={!!field.description}
+        expanded={showDescription}
+        onToggle={onToggleDescription}
+      />
+      <DeleteButton onRemove={onRemove} />
     </div>
-  );
-}
-
-function FieldDescription({
-  description,
-  onChange,
-}: {
-  description: string | undefined;
-  onChange: (desc: string | undefined) => void;
-}) {
-  const t = useTranslations('nodePanel');
-  return (
-    <Input
-      value={description ?? ''}
-      onChange={(e) => onChange(e.target.value || undefined)}
-      placeholder={t('fieldDescriptionPlaceholder')}
-      className="h-6 text-xs"
-    />
   );
 }
 
 function NestedFieldList({
   fields,
   depth,
-  label,
   onChange,
 }: {
   fields: OutputSchemaField[];
   depth: number;
-  label: string;
   onChange: (fields: OutputSchemaField[]) => void;
 }) {
   const t = useTranslations('nodePanel');
   return (
-    <div className="ml-3 mt-1 space-y-2 border-l-2 border-zinc-200 pl-3">
-      <Label className="text-[10px]">{label}</Label>
+    <div className="ml-1 mt-1 space-y-1">
       {fields.map((f, i) => (
         <OutputSchemaFieldCard
           key={i}
@@ -141,15 +225,41 @@ function NestedFieldList({
           onRemove={() => onChange(removeFieldFromList(fields, i))}
         />
       ))}
-      <Button variant="ghost" size="xs" onClick={() => onChange([...fields, createEmptyField()])}>
-        <Plus className="h-3 w-3 mr-1" />
-        {t('addField')}
-      </Button>
+      <button
+        onClick={() => onChange([...fields, createEmptyField()])}
+        className="ml-2 text-xs text-muted-foreground hover:text-foreground"
+      >
+        {t('addNestedField')}
+      </button>
     </div>
   );
 }
 
-function applyTypeDefaults(field: OutputSchemaField, updates: Partial<OutputSchemaField>): OutputSchemaField {
+function ArrayItemEditor({
+  items,
+  depth,
+  onChange,
+}: {
+  items: OutputSchemaField;
+  depth: number;
+  onChange: (updates: Partial<OutputSchemaField>) => void;
+}) {
+  return (
+    <div className="ml-1 mt-1">
+      <OutputSchemaFieldCard
+        field={items}
+        depth={depth + 1}
+        onChange={(updated) => onChange({ items: updated })}
+        onRemove={() => onChange({ items: createEmptyField() })}
+      />
+    </div>
+  );
+}
+
+function applyTypeDefaults(
+  field: OutputSchemaField,
+  updates: Partial<OutputSchemaField>
+): OutputSchemaField {
   const merged = { ...field, ...updates };
   if (updates.type !== undefined && updates.type !== field.type) {
     merged.enumValues = updates.type === 'enum' ? [''] : undefined;
@@ -159,40 +269,68 @@ function applyTypeDefaults(field: OutputSchemaField, updates: Partial<OutputSche
   return merged;
 }
 
+function FieldChildren({
+  field,
+  depth,
+  onChange,
+}: {
+  field: OutputSchemaField;
+  depth: number;
+  onChange: (updates: Partial<OutputSchemaField>) => void;
+}) {
+  if (field.type === 'enum') {
+    return (
+      <EnumValuesEditor
+        values={field.enumValues ?? ['']}
+        onChange={(v) => onChange({ enumValues: v })}
+      />
+    );
+  }
+  if (field.type === 'object') {
+    return (
+      <NestedFieldList
+        fields={field.properties ?? []}
+        depth={depth}
+        onChange={(p) => onChange({ properties: p })}
+      />
+    );
+  }
+  if (field.type === 'array' && field.items) {
+    return <ArrayItemEditor items={field.items} depth={depth} onChange={onChange} />;
+  }
+  return null;
+}
+
 export function OutputSchemaFieldCard({ field, depth, onChange, onRemove }: FieldCardProps) {
+  const [showDescription, setShowDescription] = useState(!!field.description);
   const t = useTranslations('nodePanel');
   const availableTypes = getAvailableTypes(depth);
+  const borderColor = TYPE_BORDER_COLORS[field.type];
+  const bgColor = TYPE_BG_COLORS[field.type];
 
   const handleChange = (updates: Partial<OutputSchemaField>) => {
     onChange(applyTypeDefaults(field, updates));
   };
 
   return (
-    <Card className="space-y-1.5 p-2">
-      <FieldHeader field={field} availableTypes={availableTypes} onChange={handleChange} onRemove={onRemove} />
-      <FieldDescription description={field.description} onChange={(d) => handleChange({ description: d })} />
-      {field.type === 'enum' && (
-        <EnumValuesEditor values={field.enumValues ?? ['']} onChange={(v) => handleChange({ enumValues: v })} />
-      )}
-      {field.type === 'object' && (
-        <NestedFieldList
-          fields={field.properties ?? []}
-          depth={depth}
-          label={t('objectProperties')}
-          onChange={(p) => handleChange({ properties: p })}
+    <div className={`group flex flex-col border-l-2 ${borderColor} ${bgColor} rounded-r py-0.5 pl-2 hover:bg-muted/30`}>
+      <FieldHeader
+        field={field}
+        availableTypes={availableTypes}
+        showDescription={showDescription}
+        onToggleDescription={() => setShowDescription((prev) => !prev)}
+        onChange={handleChange}
+        onRemove={onRemove}
+      />
+      {showDescription && (
+        <Input
+          value={field.description ?? ''}
+          onChange={(e) => handleChange({ description: e.target.value || undefined })}
+          placeholder={t('fieldDescriptionPlaceholder')}
+          className="ml-1 mt-1 h-6 text-xs"
         />
       )}
-      {field.type === 'array' && field.items && (
-        <div className="ml-3 mt-1 border-l-2 border-orange-200 pl-3">
-          <Label className="text-[10px]">{t('arrayItems')}</Label>
-          <OutputSchemaFieldCard
-            field={field.items}
-            depth={depth + 1}
-            onChange={(updated) => handleChange({ items: updated })}
-            onRemove={() => handleChange({ items: createEmptyField() })}
-          />
-        </div>
-      )}
-    </Card>
+      <FieldChildren field={field} depth={depth} onChange={handleChange} />
+    </div>
   );
 }

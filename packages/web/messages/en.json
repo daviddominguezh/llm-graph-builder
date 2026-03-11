@@ -145,7 +145,9 @@
     "addEnumValue": "Add value",
     "arrayItems": "Array element",
     "objectProperties": "Properties",
-    "deleteField": "Delete field"
+    "deleteField": "Delete field",
+    "toggleDescription": "Toggle description",
+    "addNestedField": "+ Add"
   },
   "outputSchemas": {
     "sectionTitle": "Output Schemas",
