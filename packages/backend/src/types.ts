@@ -25,6 +25,7 @@ export interface SimulateRequest {
   userID: string;
   data: Record<string, unknown>;
   quickReplies: Record<string, string>;
+  structuredOutputs?: Record<string, unknown[]>;
 }
 
 export type SimulationEvent =
@@ -36,6 +37,7 @@ export type SimulationEvent =
       toolCalls: Array<{ toolName: string; input: unknown }>;
       tokens: { input: number; output: number; cached: number };
       durationMs: number;
+      structuredOutput?: { nodeId: string; data: unknown };
     }
   | {
       type: 'agent_response';

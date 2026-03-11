@@ -24,6 +24,7 @@ function sendNodeProcessed(res: Response, event: NodeProcessedEvent): void {
     })),
     tokens: event.tokens,
     durationMs: event.durationMs,
+    structuredOutput: event.structuredOutput,
   });
 }
 
@@ -71,6 +72,7 @@ async function runSimulation(body: SimulateRequest, session: McpSession, res: Re
     currentNode: body.currentNode,
     toolsOverride: session.tools,
     logger: consoleLogger,
+    structuredOutputs: body.structuredOutputs,
     onNodeVisited: (nodeId: string) => {
       sendNodeVisited(res, nodeId);
     },

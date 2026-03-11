@@ -65,6 +65,7 @@ export interface SimulateRequestBody {
   userID: string;
   data: Record<string, unknown>;
   quickReplies: Record<string, string>;
+  structuredOutputs?: Record<string, unknown[]>;
 }
 
 interface SseToolCall {
@@ -93,6 +94,7 @@ export interface NodeProcessedEvent {
   toolCalls: SseToolCall[];
   tokens: { input: number; output: number; cached: number };
   durationMs?: number;
+  structuredOutput?: { nodeId: string; data: unknown };
 }
 
 export interface StreamCallbacks {
@@ -116,6 +118,11 @@ const SseNodeTokensSchema = z.object({
 
 const TokensSchema = z.object({ input: z.number(), output: z.number(), cached: z.number() });
 
+const StructuredOutputSchema = z.object({
+  nodeId: z.string(),
+  data: z.unknown(),
+});
+
 const SseEventSchema = z.object({
   type: z.string(),
   nodeId: z.string().optional(),
@@ -127,6 +134,7 @@ const SseEventSchema = z.object({
   tokenUsage: TokensSchema.optional(),
   durationMs: z.number().optional(),
   message: z.string().optional(),
+  structuredOutput: StructuredOutputSchema.optional(),
 });
 
 type SseEvent = z.infer<typeof SseEventSchema>;
@@ -145,6 +153,7 @@ function handleNodeProcessed(event: SseEvent, callbacks: StreamCallbacks): void 
       toolCalls: event.toolCalls ?? [],
       tokens: event.tokens,
       durationMs: event.durationMs,
+      structuredOutput: event.structuredOutput,
     });
   }
 }

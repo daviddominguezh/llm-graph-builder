@@ -80,6 +80,7 @@ function useSimulationStart(deps: SimulationStartDeps): () => void {
     setters.setLastUserText('');
     setters.setVisitedNodes([]);
     setters.setTotalTokens(EMPTY_TOKENS);
+    setters.setStructuredOutputs({});
     onZoomToNode(START_NODE_ID);
   }, [setters, allNodes, edges, onZoomToNode]);
 }
@@ -96,6 +97,7 @@ function useSimulationStop(
     setters.setLastUserText('');
     setters.setVisitedNodes([]);
     setters.setTotalTokens(EMPTY_TOKENS);
+    setters.setStructuredOutputs({});
     onExitZoomView();
   }, [setters, onExitZoomView]);
 }
@@ -109,21 +111,23 @@ function checkTerminated(
   return active && !loading && snapshot !== null && isNodeTerminal(snapshot.edges, currentNode);
 }
 
+function resetBeforeSend(setters: SimulationSetters, text: string): void {
+  setters.setLoading(true);
+  setters.setNodeResults([]);
+  setters.setLastUserText(text);
+  setters.setVisitedNodes([]);
+}
+
 function useSimulationSend(deps: SendMessageDeps): (text: string) => void {
-  const { preset, loading, messages, agents, apiKeyId, currentNode, mcpServers } = deps;
-  const { setters, onZoomToNode, onSelectNode } = deps;
+  const { preset, loading, messages, agents, apiKeyId, currentNode } = deps;
+  const { mcpServers, structuredOutputs, setters, onZoomToNode, onSelectNode } = deps;
 
   return useCallback(
     (text: string) => {
       const snapshot = setters.getSnapshot();
       if (preset === undefined || loading || snapshot === null) return;
-      setters.setLoading(true);
-      setters.setNodeResults([]);
-      setters.setLastUserText(text);
-      setters.setVisitedNodes([]);
-
-      const userMessage = createUserMessage(text);
-      const allMessages = [...messages, userMessage];
+      resetBeforeSend(setters, text);
+      const allMessages = [...messages, createUserMessage(text)];
       const params = buildSimulateParams({
         snapshot,
         agents,
@@ -132,9 +136,9 @@ function useSimulationSend(deps: SendMessageDeps): (text: string) => void {
         currentNode,
         preset,
         apiKeyId,
+        structuredOutputs,
       });
       const callbacks = buildStreamCallbacks({ setters, onZoomToNode, onSelectNode });
-
       void streamSimulation(params, callbacks).catch(() => {
         setters.setLoading(false);
       });
@@ -147,6 +151,7 @@ function useSimulationSend(deps: SendMessageDeps): (text: string) => void {
       apiKeyId,
       currentNode,
       mcpServers,
+      structuredOutputs,
       setters,
       onZoomToNode,
       onSelectNode,
@@ -163,8 +168,22 @@ interface SimulationHookState {
   nodeResults: NodeResult[];
   visitedNodes: string[];
   totalTokens: SimulationTokens;
+  structuredOutputs: Record<string, unknown[]>;
   snapshotRef: React.RefObject<GraphSnapshot | null>;
   setters: FullSetters;
+}
+
+function useSnapshotRef(): {
+  snapshotRef: React.RefObject<GraphSnapshot | null>;
+  saveSnapshot: (s: GraphSnapshot | null) => void;
+  getSnapshot: () => GraphSnapshot | null;
+} {
+  const snapshotRef = useRef<GraphSnapshot | null>(null);
+  const saveSnapshot = useCallback((s: GraphSnapshot | null) => {
+    snapshotRef.current = s;
+  }, []);
+  const getSnapshot = useCallback((): GraphSnapshot | null => snapshotRef.current, []);
+  return { snapshotRef, saveSnapshot, getSnapshot };
 }
 
 function useSimulationState(): SimulationHookState {
@@ -176,11 +195,8 @@ function useSimulationState(): SimulationHookState {
   const [nodeResults, setNodeResults] = useState<NodeResult[]>([]);
   const [visitedNodes, setVisitedNodes] = useState<string[]>([]);
   const [totalTokens, setTotalTokens] = useState<SimulationTokens>(EMPTY_TOKENS);
-  const snapshotRef = useRef<GraphSnapshot | null>(null);
-  const saveSnapshot = useCallback((s: GraphSnapshot | null) => {
-    snapshotRef.current = s;
-  }, []);
-  const getSnapshot = useCallback((): GraphSnapshot | null => snapshotRef.current, []);
+  const [structuredOutputs, setStructuredOutputs] = useState<Record<string, unknown[]>>({});
+  const { snapshotRef, saveSnapshot, getSnapshot } = useSnapshotRef();
 
   const setters: FullSetters = {
     setMessages,
@@ -190,6 +206,7 @@ function useSimulationState(): SimulationHookState {
     setCurrentNode,
     setVisitedNodes,
     setLoading,
+    setStructuredOutputs,
     setActive,
     saveSnapshot,
     getSnapshot,
@@ -204,40 +221,35 @@ function useSimulationState(): SimulationHookState {
     nodeResults,
     visitedNodes,
     totalTokens,
+    structuredOutputs,
     snapshotRef,
     setters,
   };
 }
 
+function buildSendDeps(params: UseSimulationParams, s: SimulationHookState): SendMessageDeps {
+  return {
+    preset: params.preset,
+    loading: s.loading,
+    messages: s.messages,
+    agents: params.agents,
+    apiKeyId: params.apiKeyId,
+    currentNode: s.currentNode,
+    mcpServers: params.mcpServers,
+    structuredOutputs: s.structuredOutputs,
+    setters: s.setters,
+    onZoomToNode: params.onZoomToNode,
+    onSelectNode: params.onSelectNode,
+  };
+}
+
 export function useSimulation(params: UseSimulationParams): SimulationState {
-  const {
-    allNodes,
-    edges,
-    agents,
-    preset,
-    apiKeyId,
-    mcpServers,
-    onZoomToNode,
-    onSelectNode,
-    onExitZoomView,
-  } = params;
+  const { allNodes, edges, onZoomToNode, onExitZoomView } = params;
   const s = useSimulationState();
 
   const start = useSimulationStart({ setters: s.setters, allNodes, edges, onZoomToNode });
   const stop = useSimulationStop(s.setters, onExitZoomView);
-  const sendMessage = useSimulationSend({
-    preset,
-    loading: s.loading,
-    messages: s.messages,
-    agents,
-    apiKeyId,
-    currentNode: s.currentNode,
-    mcpServers,
-    setters: s.setters,
-    onZoomToNode,
-    onSelectNode,
-  });
-
+  const sendMessage = useSimulationSend(buildSendDeps(params, s));
   const terminated = checkTerminated(s.active, s.loading, s.snapshotRef.current, s.currentNode);
 
   return {
