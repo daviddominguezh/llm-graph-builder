@@ -1,16 +1,16 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { useTranslations } from 'next-intl';
-import { Search, SquareFunction } from 'lucide-react';
-
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Search, SquareFunction } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+
+import type { McpServerStatus } from '../../hooks/useMcpServers';
 import type { DiscoveredTool } from '../../lib/api';
 import type { McpServerConfig } from '../../schemas/graph.schema';
-import type { McpServerStatus } from '../../hooks/useMcpServers';
 import { McpServersSection } from './McpServersSection';
 
 interface McpProps {
@@ -55,7 +55,10 @@ interface ToolSchema {
   required?: string[];
 }
 
-function buildToolGroups(servers: McpServerConfig[], discovered: Record<string, DiscoveredTool[]>): ToolGroup[] {
+function buildToolGroups(
+  servers: McpServerConfig[],
+  discovered: Record<string, DiscoveredTool[]>
+): ToolGroup[] {
   const groups: ToolGroup[] = [];
   for (const server of servers) {
     const serverTools = (discovered[server.id] ?? []).map((tool) => ({
@@ -107,7 +110,11 @@ function buildRequiredSet(schema: ToolSchema): Set<string> {
   return required;
 }
 
-function SchemaFieldRow({ name, prop, isRequired }: {
+function SchemaFieldRow({
+  name,
+  prop,
+  isRequired,
+}: {
   name: string;
   prop: SchemaProperty;
   isRequired: boolean;
@@ -125,7 +132,9 @@ function SchemaFieldRow({ name, prop, isRequired }: {
       {prop.enum && prop.enum.length > 0 && (
         <div className="flex flex-wrap gap-0.5">
           {prop.enum.map((v) => (
-            <span key={v} className="rounded bg-muted px-1 py-0.5 font-mono text-[9px]">{v}</span>
+            <span key={v} className="rounded bg-muted px-1 py-0.5 font-mono text-[9px]">
+              {v}
+            </span>
           ))}
         </div>
       )}
@@ -157,18 +166,24 @@ function ToolSchemaDetails({ schema }: { schema: ToolSchema }) {
   );
 }
 
-function FloatingSchema({ anchorRef, schema }: {
+function FloatingSchema({
+  anchorRef,
+  schema,
+}: {
   anchorRef: React.RefObject<HTMLDivElement | null>;
   schema: ToolSchema;
 }) {
-  const positionRef = useCallback((el: HTMLDivElement | null) => {
-    const anchor = anchorRef.current;
-    if (!el || !anchor) return;
-    const rect = anchor.getBoundingClientRect();
-    el.style.top = `${String(rect.bottom + 4)}px`;
-    el.style.left = `${String(rect.left)}px`;
-    el.style.width = `${String(rect.width)}px`;
-  }, [anchorRef]);
+  const positionRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      const anchor = anchorRef.current;
+      if (!el || !anchor) return;
+      const rect = anchor.getBoundingClientRect();
+      el.style.top = `${String(rect.bottom + 4)}px`;
+      el.style.left = `${String(rect.left)}px`;
+      el.style.width = `${String(rect.width)}px`;
+    },
+    [anchorRef]
+  );
 
   return createPortal(
     <div
@@ -182,18 +197,14 @@ function FloatingSchema({ anchorRef, schema }: {
   );
 }
 
-function ToolRow({ tool, expanded, onClick }: {
-  tool: FlatTool;
-  expanded: boolean;
-  onClick: () => void;
-}) {
+function ToolRow({ tool, expanded, onClick }: { tool: FlatTool; expanded: boolean; onClick: () => void }) {
   const rowRef = useRef<HTMLDivElement>(null);
 
   return (
     <li>
       <div
         ref={rowRef}
-        className="flex w-full flex-col rounded-md px-3 py-1.5 text-left text-xs cursor-pointer hover:bg-accent/5"
+        className="flex w-full flex-col px-1 py-0 text-left text-xs cursor-pointer border-l-2 border-background hover:border-accent"
         onClick={onClick}
       >
         <span className="font-medium">{tool.name}</span>
@@ -210,29 +221,34 @@ function ToolRow({ tool, expanded, onClick }: {
 
 function ServerGroupHeader({ name }: { name: string }) {
   return (
-    <li className="px-3 pt-2 pb-0.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-      {name}
-    </li>
+    <div className="sticky top-0 z-10 bg-background px-2 pt-0 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+      <div className="pt-2">{name}</div>
+    </div>
   );
 }
 
-function ToolsList({ groups, totalCount, expandedTool, onToggleTool }: {
+function ToolsList({
+  groups,
+  totalCount,
+  expandedTool,
+  onToggleTool,
+}: {
   groups: ToolGroup[];
   totalCount: number;
   expandedTool: string | null;
   onToggleTool: (toolKey: string) => void;
 }) {
   return (
-    <ul className="flex-1 overflow-y-auto p-1">
+    <div className="flex-1 overflow-y-auto p-1 pt-0">
       {totalCount === 0 ? (
-        <li className="px-3 py-2 text-xs text-muted-foreground">
+        <p className="px-3 py-2 text-xs text-muted-foreground">
           {groups.length === 0 ? 'No tools discovered yet' : 'No results'}
-        </li>
+        </p>
       ) : (
         groups.map((group) => (
-          <li key={group.serverName}>
+          <div key={group.serverName}>
             <ServerGroupHeader name={group.serverName} />
-            <ul>
+            <ul className="flex flex-col gap-2">
               {group.tools.map((tool) => {
                 const key = `${tool.serverName}-${tool.name}`;
                 return (
@@ -245,10 +261,10 @@ function ToolsList({ groups, totalCount, expandedTool, onToggleTool }: {
                 );
               })}
             </ul>
-          </li>
+          </div>
         ))
       )}
-    </ul>
+    </div>
   );
 }
 
