@@ -113,7 +113,7 @@ async function tryExecuteAttempt(
   copyMsgs.push(MessageProcessor.cleanMessagesBeforeSending(MessageProcessor.cloneMessages(config.messages)));
 
   logger.info('[ATTEMPT] Calling model...');
-  const reply: unknown = await callModel(context, config, expectedTool, model);
+  const reply: unknown = await callModel(context, config, { expectedTool, model });
   logger.info(`[ATTEMPT] Model returned, reply type: ${typeof reply}`);
   logger.info(
     `[ATTEMPT] Reply keys: ${typeof reply === 'object' && reply !== null ? Object.keys(reply).join(', ') : 'N/A'}`

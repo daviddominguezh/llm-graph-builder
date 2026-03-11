@@ -8,6 +8,7 @@ import { logger } from '@src/utils/logger.js';
 
 import { buildGlobalNodeConfig, processReplyNode, processToolNode } from './nodeProcessor.js';
 import type { ToolCallsArray } from './nodeProcessorHelpers.js';
+import { processStructuredOutputNode } from './structuredOutputProcessor.js';
 import { createEmptyTokenLog } from './tokenTracker.js';
 import type { CallAgentInput, NodeProcessingConfig } from './types.js';
 
@@ -18,6 +19,7 @@ export interface ProcessNodeResult {
   nextNodeID: string;
   error: boolean;
   toolCalls: ToolCallsArray;
+  structuredOutput?: { nodeId: string; data: unknown };
 }
 
 export interface ProcessNodeParams {
@@ -107,6 +109,21 @@ async function processReplyCallNode(
   return { ...result, nextNodeID: finalNextNodeID, error: false };
 }
 
+async function processStructuredOutputCallNode(
+  params: ProcessNodeParams,
+  config: NodeProcessingConfig
+): Promise<ProcessNodeResult> {
+  const { context, input, currentNodeID, debugMessages } = params;
+  const result = await processStructuredOutputNode({ context, config, input, currentNodeID, debugMessages });
+  return {
+    parsedResult: result.parsedResult,
+    nextNodeID: result.nextNodeID,
+    error: false,
+    toolCalls: result.toolCalls,
+    structuredOutput: result.structuredOutput,
+  };
+}
+
 /**
  * Processes a single node in the agent flow
  */
@@ -123,6 +140,7 @@ export async function processNode(params: ProcessNodeParams): Promise<ProcessNod
     `callAgentStep/${context.tenantID}/${context.userID}| PROMPT:\n${config.promptWithoutToolPreconditions}\n`
   );
 
+  if (config.kind === 'structured_output') return await processStructuredOutputCallNode(params, config);
   if (config.kind === 'tool_call') return await processToolCallNode(params, config, isGlobal);
   return await processReplyCallNode(params, config);
 }

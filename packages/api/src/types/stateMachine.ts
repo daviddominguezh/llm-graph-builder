@@ -1,3 +1,4 @@
+import type { OutputSchemaField } from '@daviddh/graph-types';
 import type { ToolChoice, ToolSet } from 'ai';
 
 import type { Edge, Node } from './graph.js';
@@ -9,6 +10,8 @@ export interface EdgeTools {
 
 export type ToolsByEdge = Record<string, EdgeTools>;
 
+export type NodeKind = 'tool_call' | 'agent_decision' | 'user_reply' | 'structured_output';
+
 export interface SMNextOptions {
   edges: Edge[];
   node: Node;
@@ -16,8 +19,9 @@ export interface SMNextOptions {
   promptWithoutToolPreconditions: string;
   toolsByEdge: ToolsByEdge;
   nextNode?: string;
-  kind: 'tool_call' | 'agent_decision' | 'user_reply';
+  kind: NodeKind;
   nodes: Record<string, string>;
+  outputSchema?: OutputSchemaField[];
 }
 
 export interface SMConfig {
@@ -26,8 +30,9 @@ export interface SMConfig {
   toolsByEdge: ToolsByEdge;
   node: Node;
   nextNode?: string;
-  kind: 'tool_call' | 'agent_decision' | 'user_reply';
+  kind: NodeKind;
   nodes: Record<string, string>;
+  outputSchema?: OutputSchemaField[];
 }
 
 export interface UserNode {

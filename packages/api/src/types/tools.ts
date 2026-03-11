@@ -9,6 +9,7 @@ export interface NodeProcessedEvent {
   toolCalls: Array<TypedToolCall<Record<string, Tool>>>;
   tokens: TokenLog;
   durationMs: number;
+  structuredOutput?: { nodeId: string; data: unknown };
 }
 
 export interface Context {

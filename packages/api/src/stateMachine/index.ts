@@ -17,6 +17,7 @@ import {
   buildOutputFormatPrompt,
 } from './prompts/index.js';
 import { buildResolvedFieldsPrompt } from './referenceResolver.js';
+import { buildStructuredOutputOptions, hasOutputSchema } from './structuredOutputOptions.js';
 
 const createTerminalNodeOptions = (
   node: ReturnType<typeof getNode>,
@@ -113,30 +114,23 @@ interface GetNextOptionsParams {
   structuredOutputs?: Record<string, unknown[]>;
 }
 
-async function resolveEdgeOptions(
-  graph: Graph,
-  context: Context,
-  currentNode: string,
-  params: GetNextOptionsParams
-): Promise<SMNextOptions> {
-  const node = getNode(graph, currentNode);
-  const edges = await getEdgesFromNode(graph, context, currentNode);
-  const toolsByEdge = getToolsFromEdges(context, edges, params.toolsOverride);
+interface StandardEdgeContext {
+  node: ReturnType<typeof getNode>;
+  edges: SMNextOptions['edges'];
+  toolsByEdge: SMNextOptions['toolsByEdge'];
+  nodes: Record<string, string>;
+  withPreconditions: string;
+  withoutToolPreconditions: string;
+  firstEdgeEntry: SMNextOptions['edges'][number];
+  structuredOutputs?: Record<string, unknown[]>;
+}
 
-  if (edges.length === FIRST_INDEX) return createTerminalNodeOptions(node, {});
-
-  const { [FIRST_INDEX]: firstEdgeEntry } = edges;
-  if (firstEdgeEntry === undefined) return createTerminalNodeOptions(node, {});
-
+function buildStandardEdgeOptions(ctx: StandardEdgeContext): SMNextOptions {
+  const { node, edges, toolsByEdge, nodes, withPreconditions, withoutToolPreconditions } = ctx;
+  const { firstEdgeEntry, structuredOutputs } = ctx;
   const firstEdge = firstEdgeEntry.preconditions ?? [];
   const toolCall = firstEdge.find((edge) => edge.type === 'tool_call');
   const agentDecision = firstEdge.find((edge) => edge.type === 'agent_decision');
-
-  const { withPreconditions, withoutToolPreconditions, nodes } = await convertEdgesToStr(
-    graph,
-    context,
-    edges
-  );
   const mPrompt = `${SM_BASE_PROMPT_NEXT_OPTIONS}\n\n${withPreconditions}`;
   const mPromptWithoutToolPreconditions = `${SM_BASE_PROMPT_NEXT_OPTIONS}\n\n${withoutToolPreconditions}`;
 
@@ -150,14 +144,50 @@ async function resolveEdgeOptions(
       toolDescription: toolCall.description,
       toolFields: toolCall.toolFields,
       nextNode: firstEdgeEntry.to,
-      structuredOutputs: params.structuredOutputs,
+      structuredOutputs,
     });
   }
-
   if (agentDecision !== undefined) {
     return buildAgentDecisionOptions({ node, edges, nodes, withPreconditions });
   }
   return buildUserReplyOptions({ node, edges, nodes, mPrompt, mPromptWithoutToolPreconditions });
+}
+
+async function resolveEdgeOptions(
+  graph: Graph,
+  context: Context,
+  currentNode: string,
+  params: GetNextOptionsParams
+): Promise<SMNextOptions> {
+  const node = getNode(graph, currentNode);
+
+  if (hasOutputSchema(node)) {
+    const edges = await getEdgesFromNode(graph, context, currentNode);
+    return buildStructuredOutputOptions(node, edges);
+  }
+
+  const edges = await getEdgesFromNode(graph, context, currentNode);
+  const toolsByEdge = getToolsFromEdges(context, edges, params.toolsOverride);
+
+  if (edges.length === FIRST_INDEX) return createTerminalNodeOptions(node, {});
+  const { [FIRST_INDEX]: firstEdgeEntry } = edges;
+  if (firstEdgeEntry === undefined) return createTerminalNodeOptions(node, {});
+
+  const { withPreconditions, withoutToolPreconditions, nodes } = await convertEdgesToStr(
+    graph,
+    context,
+    edges
+  );
+  return buildStandardEdgeOptions({
+    node,
+    edges,
+    toolsByEdge,
+    nodes,
+    withPreconditions,
+    withoutToolPreconditions,
+    firstEdgeEntry,
+    structuredOutputs: params.structuredOutputs,
+  });
 }
 
 export const getNextOptions = async (
@@ -240,6 +270,7 @@ function buildPromptConfig(
     nextNode: nextOptions.nextNode,
     kind: nextOptions.kind,
     nodes: nextOptions.nodes,
+    outputSchema: nextOptions.outputSchema,
   };
   config.promptWithoutToolPreconditions = addNodeSpecificPrompts(graph, context, currentNode, config.prompt);
   return config;

@@ -5,6 +5,7 @@ import { getNode } from '@src/stateMachine/graph/index.js';
 import type { ParsedResult } from '@src/types/ai/index.js';
 import type { Graph } from '@src/types/graph.js';
 import type { Context } from '@src/types/tools.js';
+import { stableJsonStringify } from '@src/utils/stableJsonHash.js';
 
 import type { ProcessNodeParams, ProcessNodeResult, ToolCallsArray } from './nodeHelpers.js';
 import { processNode } from './nodeHelpers.js';
@@ -43,14 +44,22 @@ interface EmitNodeProcessedParams {
   parsedResult: ParsedResult;
   toolCalls: ToolCallsArray;
   durationMs: number;
+  structuredOutput?: { nodeId: string; data: unknown };
 }
 
 function emitNodeProcessed(params: EmitNodeProcessedParams): void {
-  const { context, input, nodeId, parsedResult, toolCalls, durationMs } = params;
+  const { context, input, nodeId, parsedResult, toolCalls, durationMs, structuredOutput } = params;
   if (context.onNodeProcessed === undefined) return;
   const lastLog = input.tokensLog.at(-LAST_INDEX_OFFSET);
   const tokens = lastLog?.tokens ?? createEmptyTokenLog();
-  context.onNodeProcessed({ nodeId, text: parsedResult.messageToUser, toolCalls, tokens, durationMs });
+  context.onNodeProcessed({
+    nodeId,
+    text: parsedResult.messageToUser,
+    toolCalls,
+    tokens,
+    durationMs,
+    structuredOutput,
+  });
 }
 
 function isTerminalNode(context: Context, nodeID: string): boolean {
@@ -91,6 +100,25 @@ function advanceFlowState(context: Context, state: FlowState, nextNodeID: string
   return { state: newState, error: false, shouldContinue: nextNodeIsUser !== true, isTerminal: false };
 }
 
+function mergeStructuredOutputEntry(outputs: Record<string, unknown[]>, nodeId: string, data: unknown): void {
+  const existing = outputs[nodeId] ?? [];
+  const hash = stableJsonStringify(data);
+  const alreadyExists = existing.some((e) => stableJsonStringify(e) === hash);
+  if (!alreadyExists) {
+    Object.assign(outputs, { [nodeId]: [...existing, data] });
+  }
+}
+
+function accumulateStructuredOutput(
+  state: FlowState,
+  structuredOutput: { nodeId: string; data: unknown } | undefined
+): void {
+  if (structuredOutput === undefined) return;
+  const { nodeId, data } = structuredOutput;
+  mergeStructuredOutputEntry(state.structuredOutputs, nodeId, data);
+  state.newStructuredOutputs.push(structuredOutput);
+}
+
 async function processFlowStep(
   context: Context,
   input: CallAgentInput,
@@ -112,9 +140,18 @@ async function processFlowStep(
 
   if (result.error) return { state, error: true, shouldContinue: false };
 
-  const { parsedResult, nextNodeID, toolCalls, durationMs } = result;
-  emitNodeProcessed({ context, input, nodeId: currentNodeID, parsedResult, toolCalls, durationMs });
+  const { parsedResult, nextNodeID, toolCalls, durationMs, structuredOutput } = result;
+  emitNodeProcessed({
+    context,
+    input,
+    nodeId: currentNodeID,
+    parsedResult,
+    toolCalls,
+    durationMs,
+    structuredOutput,
+  });
   if (toolCalls.length > EMPTY_LENGTH) allToolCalls.push(...toolCalls);
+  accumulateStructuredOutput(state, structuredOutput);
 
   if (isTerminalNode(context, currentNodeID)) {
     parsedResults.push(parsedResult);
