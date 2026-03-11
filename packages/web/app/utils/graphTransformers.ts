@@ -115,7 +115,13 @@ function resolveOptionalFields(
   original: SchemaNode
 ): Pick<
   SchemaNode,
-  'agent' | 'nextNodeIsUser' | 'fallbackNodeId' | 'global' | 'defaultFallback' | 'outputSchemaId' | 'outputPrompt'
+  | 'agent'
+  | 'nextNodeIsUser'
+  | 'fallbackNodeId'
+  | 'global'
+  | 'defaultFallback'
+  | 'outputSchemaId'
+  | 'outputPrompt'
 > {
   if (data === undefined) {
     return {

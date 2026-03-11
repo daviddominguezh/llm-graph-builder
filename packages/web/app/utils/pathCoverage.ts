@@ -75,11 +75,7 @@ export interface CoverageResult {
  * Validate path coverage for a reference from target T to output node R.
  * Uses the dominator check algorithm from the design spec (section 3.1-3.2).
  */
-export function checkPathCoverage(
-  edges: FlowEdge[],
-  target: string,
-  refNodeId: string
-): CoverageResult {
+export function checkPathCoverage(edges: FlowEdge[], target: string, refNodeId: string): CoverageResult {
   if (isDominator(edges, refNodeId, target)) {
     return { covered: true };
   }
@@ -104,9 +100,7 @@ export function checkFallbackCoverage(
 ): CoverageResult {
   if (primaryFieldRequired) {
     // Remove primary ref node — only consider paths that bypass it
-    const reducedEdges = edges.filter(
-      (e) => e.source !== primaryRefNodeId && e.target !== primaryRefNodeId
-    );
+    const reducedEdges = edges.filter((e) => e.source !== primaryRefNodeId && e.target !== primaryRefNodeId);
     if (isDominator(reducedEdges, fallbackNodeId, target)) {
       return { covered: true };
     }
