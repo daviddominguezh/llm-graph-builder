@@ -14,7 +14,7 @@ export interface NodeRow {
   default_fallback: boolean | null;
   position_x: number | null;
   position_y: number | null;
-  output_schema: Array<Record<string, unknown>> | null;
+  output_schema_id: string | null;
 }
 
 /** Row shape returned by `graph_edges` table. */
@@ -58,6 +58,14 @@ export interface McpServerRow {
   transport_type: McpTransportType;
   transport_config: Record<string, unknown>;
   enabled: boolean;
+}
+
+/** Row shape returned by `graph_output_schemas` table. */
+export interface OutputSchemaRow {
+  agent_id: string;
+  schema_id: string;
+  name: string;
+  fields: Array<Record<string, unknown>>;
 }
 
 /** Partial agent row for start_node lookup. */

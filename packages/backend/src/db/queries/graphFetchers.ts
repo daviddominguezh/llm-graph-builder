@@ -6,6 +6,7 @@ import type {
   EdgeRow,
   McpServerRow,
   NodeRow,
+  OutputSchemaRow,
 } from './graphRowTypes.js';
 import type { SupabaseClient } from './operationHelpers.js';
 
@@ -74,4 +75,12 @@ export async function fetchAgents(supabase: SupabaseClient, agentId: string): Pr
 export async function fetchMcpServers(supabase: SupabaseClient, agentId: string): Promise<McpServerRow[]> {
   const result = await supabase.from('graph_mcp_servers').select('*').eq('agent_id', agentId);
   return throwOnError<McpServerRow[]>(result);
+}
+
+export async function fetchOutputSchemas(
+  supabase: SupabaseClient,
+  agentId: string
+): Promise<OutputSchemaRow[]> {
+  const result = await supabase.from('graph_output_schemas').select('*').eq('agent_id', agentId);
+  return throwOnError<OutputSchemaRow[]>(result);
 }

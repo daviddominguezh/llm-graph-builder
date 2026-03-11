@@ -5,6 +5,7 @@ import type {
   McpServerConfig,
   McpTransport,
   Node,
+  OutputSchemaEntity,
   OutputSchemaField,
   Precondition,
   ToolFieldValue,
@@ -19,6 +20,7 @@ import type {
   EdgeRow,
   McpServerRow,
   NodeRow,
+  OutputSchemaRow,
 } from './graphRowTypes.js';
 
 const EMPTY_LENGTH = 0;
@@ -32,10 +34,9 @@ function parseToolFields(raw: Record<string, unknown> | null): Record<string, To
   return result.success ? result.data : undefined;
 }
 
-function parseOutputSchema(raw: Array<Record<string, unknown>> | null): OutputSchemaField[] | undefined {
-  if (raw === null) return undefined;
+function parseOutputSchemaFields(raw: Array<Record<string, unknown>>): OutputSchemaField[] {
   const result = z.array(OutputSchemaFieldSchema).safeParse(raw);
-  return result.success ? result.data : undefined;
+  return result.success ? result.data : [];
 }
 
 function buildPosition(row: NodeRow): { x: number; y: number } | undefined {
@@ -55,7 +56,7 @@ export function assembleNode(row: NodeRow): Node {
     global: row.global,
     defaultFallback: row.default_fallback ?? undefined,
     position: buildPosition(row),
-    outputSchema: parseOutputSchema(row.output_schema),
+    outputSchemaId: row.output_schema_id ?? undefined,
   };
 }
 
@@ -145,5 +146,15 @@ export function assembleMcpServers(rows: McpServerRow[]): McpServerConfig[] | un
     name: row.name,
     transport: buildTransport(row),
     enabled: row.enabled,
+  }));
+}
+
+export function assembleOutputSchemas(rows: OutputSchemaRow[]): OutputSchemaEntity[] | undefined {
+  if (rows.length === EMPTY_LENGTH) return undefined;
+
+  return rows.map((row) => ({
+    id: row.schema_id,
+    name: row.name,
+    fields: parseOutputSchemaFields(row.fields),
   }));
 }

@@ -5,6 +5,7 @@ import { deleteContextPreset, insertContextPreset, updateContextPreset } from '.
 import { deleteEdge, insertEdge, updateEdge } from './edgeOperations.js';
 import { deleteMcpServer, insertMcpServer, updateMcpServer } from './mcpServerOperations.js';
 import { deleteNode, insertNode, updateNode } from './nodeOperations.js';
+import { deleteOutputSchema, insertOutputSchema, updateOutputSchema } from './outputSchemaOperations.js';
 import type { SupabaseClient } from './operationHelpers.js';
 import { updateStartNode } from './startNodeOperations.js';
 
@@ -53,10 +54,10 @@ async function dispatchAgentOps(supabase: SupabaseClient, agentId: string, op: O
     await deleteAgent(supabase, agentId, op.agentKey);
     return;
   }
-  await dispatchRemainingOps(supabase, agentId, op);
+  await dispatchMcpOps(supabase, agentId, op);
 }
 
-async function dispatchRemainingOps(supabase: SupabaseClient, agentId: string, op: Operation): Promise<void> {
+async function dispatchMcpOps(supabase: SupabaseClient, agentId: string, op: Operation): Promise<void> {
   if (op.type === 'insertMcpServer') {
     await insertMcpServer(supabase, agentId, op.data);
     return;
@@ -67,6 +68,26 @@ async function dispatchRemainingOps(supabase: SupabaseClient, agentId: string, o
   }
   if (op.type === 'deleteMcpServer') {
     await deleteMcpServer(supabase, agentId, op.serverId);
+    return;
+  }
+  await dispatchOutputSchemaOps(supabase, agentId, op);
+}
+
+async function dispatchOutputSchemaOps(
+  supabase: SupabaseClient,
+  agentId: string,
+  op: Operation
+): Promise<void> {
+  if (op.type === 'insertOutputSchema') {
+    await insertOutputSchema(supabase, agentId, op.data);
+    return;
+  }
+  if (op.type === 'updateOutputSchema') {
+    await updateOutputSchema(supabase, agentId, op.data);
+    return;
+  }
+  if (op.type === 'deleteOutputSchema') {
+    await deleteOutputSchema(supabase, agentId, op.schemaId);
     return;
   }
   await dispatchPresetOps(supabase, agentId, op);
