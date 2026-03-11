@@ -13,6 +13,7 @@ export type * from './types.js';
 export { MessageProcessor } from './messageProcessor.js';
 
 const LAST_INDEX_OFFSET = 1;
+const EMPTY_LENGTH = 0;
 
 // Export for backward compatibility - wrap to preserve context
 export const cleanMessagesBeforeSending = (msgs: ModelMessage[]): ModelMessage[] =>
@@ -22,12 +23,8 @@ async function executeFlow(context: Context, input: CallAgentInput): Promise<Cal
   const debugMessages: Record<string, ModelMessage[][]> = {};
   const initialState = createInitialFlowState(input, context.graph);
 
-  const { parsedResults, visitedNodes, error, toolCalls } = await executeAgentFlowRecursive(
-    context,
-    input,
-    debugMessages,
-    initialState
-  );
+  const { parsedResults, visitedNodes, error, toolCalls, newStructuredOutputs } =
+    await executeAgentFlowRecursive(context, input, debugMessages, initialState);
 
   if (error) {
     return handleError(context, input);
@@ -44,6 +41,7 @@ async function executeFlow(context: Context, input: CallAgentInput): Promise<Cal
     visitedNodes,
     text: lastResult?.messageToUser,
     debugMessages,
+    structuredOutputs: newStructuredOutputs.length > EMPTY_LENGTH ? newStructuredOutputs : undefined,
   };
 }
 

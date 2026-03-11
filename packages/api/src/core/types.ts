@@ -9,6 +9,8 @@ import type {
   TypedToolCall,
 } from 'ai';
 
+import type { OutputSchemaField } from '@daviddh/graph-types';
+
 import type {
   ActionTokenUsage,
   MESSAGES_PROVIDER,
@@ -27,6 +29,7 @@ export interface CallAgentInput {
   tokensLog: ActionTokenUsage[];
   currentNode: string;
   indicatorOriginalId?: string;
+  structuredOutputs: Record<string, unknown[]>;
 }
 
 /**
@@ -40,6 +43,7 @@ export interface CallAgentOutput {
   parsedResults?: ParsedResult[];
   text?: string;
   debugMessages: Record<string, ModelMessage[][]>;
+  structuredOutputs?: Array<{ nodeId: string; data: unknown }>;
 }
 
 /**
@@ -81,7 +85,7 @@ export interface ReplyGenerationResult {
  * Configuration for node processing
  */
 export interface NodeProcessingConfig {
-  kind: 'tool_call' | 'agent_decision' | 'user_reply' | undefined;
+  kind: 'tool_call' | 'agent_decision' | 'user_reply' | 'structured_output' | undefined;
   promptWithoutToolPreconditions: string;
   toolsByEdge: Record<
     string,
@@ -91,6 +95,7 @@ export interface NodeProcessingConfig {
     }
   >;
   nodes: Record<string, string>;
+  outputSchema?: OutputSchemaField[];
 }
 
 /**

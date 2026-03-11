@@ -143,6 +143,8 @@ interface FlowState {
   parsedResults: ParsedResult[];
   visitedNodes: string[];
   allToolCalls: ToolCallsArray;
+  structuredOutputs: Record<string, unknown[]>;
+  newStructuredOutputs: Array<{ nodeId: string; data: unknown }>;
 }
 
 export interface FlowResult {
@@ -151,6 +153,7 @@ export interface FlowResult {
   debugMessages: Record<string, ModelMessage[][]>;
   error: boolean;
   toolCalls: ToolCallsArray;
+  newStructuredOutputs: Array<{ nodeId: string; data: unknown }>;
 }
 
 interface EmitNodeProcessedParams {
@@ -223,6 +226,8 @@ async function processFlowStep(
     parsedResults,
     visitedNodes,
     allToolCalls,
+    structuredOutputs: state.structuredOutputs,
+    newStructuredOutputs: state.newStructuredOutputs,
   };
 
   return { state: newState, error: false, shouldContinue: nextNodeIsUser !== true, isTerminal: false };
@@ -258,16 +263,17 @@ export async function executeAgentFlowRecursive(
       debugMessages,
       error: true,
       toolCalls: newState.allToolCalls,
+      newStructuredOutputs: newState.newStructuredOutputs,
     };
   }
 
   if (!shouldContinue) {
-    const { parsedResults, visitedNodes, allToolCalls } = newState;
+    const { parsedResults, visitedNodes, allToolCalls, newStructuredOutputs } = newState;
     if (isTerminal !== true) {
       appendLastVisitedNode(parsedResults, visitedNodes);
     }
 
-    return { parsedResults, visitedNodes, debugMessages, error: false, toolCalls: allToolCalls };
+    return { parsedResults, visitedNodes, debugMessages, error: false, toolCalls: allToolCalls, newStructuredOutputs };
   }
 
   return await executeAgentFlowRecursive(context, input, debugMessages, newState);
@@ -288,6 +294,8 @@ export function createInitialFlowState(input: CallAgentInput, graph: Graph): Flo
     parsedResults: [],
     visitedNodes: [],
     allToolCalls: [],
+    structuredOutputs: { ...input.structuredOutputs },
+    newStructuredOutputs: [],
   };
 }
 
