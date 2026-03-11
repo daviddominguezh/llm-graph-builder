@@ -22,6 +22,7 @@ interface OutputSchemaSelectProps {
   onChange: (schemaId: string | undefined) => void;
   onAddSchema: () => void;
   onEditSchema: (id: string) => void;
+  disabled?: boolean;
 }
 
 function handleChange(
@@ -53,6 +54,7 @@ export function OutputSchemaSelect({
   onChange,
   onAddSchema,
   onEditSchema,
+  disabled,
 }: OutputSchemaSelectProps) {
   const t = useTranslations('nodePanel');
   const tSchemas = useTranslations('outputSchemas');
@@ -66,7 +68,7 @@ export function OutputSchemaSelect({
           value={value ?? NONE_VALUE}
           onValueChange={(v) => handleChange(v, onChange, onAddSchema)}
         >
-          <SelectTrigger className="h-8 flex-1 text-xs">
+          <SelectTrigger className="h-8 flex-1 text-xs" disabled={disabled}>
             <span className="flex flex-1 text-left truncate">{displayLabel}</span>
           </SelectTrigger>
           <SelectContent>

@@ -56,6 +56,7 @@ export interface RFNodeData extends Record<string, unknown> {
   global?: boolean;
   defaultFallback?: boolean;
   outputSchemaId?: string;
+  outputPrompt?: string;
   muted?: boolean;
   nodeWidth?: number | null;
 }
@@ -92,6 +93,7 @@ export function schemaNodeToRFNode(node: SchemaNode, index = INITIAL_INDEX): RFN
       global: node.global,
       defaultFallback: node.defaultFallback,
       outputSchemaId: node.outputSchemaId,
+      outputPrompt: node.outputPrompt,
     },
   };
 }
@@ -113,7 +115,7 @@ function resolveOptionalFields(
   original: SchemaNode
 ): Pick<
   SchemaNode,
-  'agent' | 'nextNodeIsUser' | 'fallbackNodeId' | 'global' | 'defaultFallback' | 'outputSchemaId'
+  'agent' | 'nextNodeIsUser' | 'fallbackNodeId' | 'global' | 'defaultFallback' | 'outputSchemaId' | 'outputPrompt'
 > {
   if (data === undefined) {
     return {
@@ -123,6 +125,7 @@ function resolveOptionalFields(
       global: original.global,
       defaultFallback: original.defaultFallback,
       outputSchemaId: original.outputSchemaId,
+      outputPrompt: original.outputPrompt,
     };
   }
   return {
@@ -132,6 +135,7 @@ function resolveOptionalFields(
     global: data.global ?? original.global,
     defaultFallback: data.defaultFallback ?? original.defaultFallback,
     outputSchemaId: data.outputSchemaId ?? original.outputSchemaId,
+    outputPrompt: data.outputPrompt ?? original.outputPrompt,
   };
 }
 

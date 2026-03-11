@@ -12,7 +12,6 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -30,8 +29,8 @@ import type { ContextPreset } from '../../types/preset';
 import type { PushOperation } from '../../utils/operationBuilders';
 import type { RFEdgeData, RFNodeData } from '../../utils/graphTransformers';
 import { FallbackNodeSelect } from './FallbackNodeSelect';
+import { NodePanelOutputSchema } from './NodePanelOutputSchema';
 import { NodePromptDialog } from './NodePromptDialog';
-import { OutputSchemaSelect } from './OutputSchemaSelect';
 import { pushDeleteNode, pushRenameNode, pushUpdateNode } from './nodePanelOps';
 import { hasToolCallEdge } from './toolCallGuard';
 
@@ -233,34 +232,15 @@ export function NodePanel({
             </div>
           )}
 
-          {node.type === 'agent' && (
-            <OutputSchemaSelect
-              schemas={outputSchemas}
-              value={nodeData.outputSchemaId}
-              onChange={(schemaId) => updateNodeData({ outputSchemaId: schemaId })}
-              onAddSchema={() => {
-                const id = onAddOutputSchema();
-                updateNodeData({ outputSchemaId: id });
-                onEditOutputSchema(id);
-              }}
-              onEditSchema={onEditOutputSchema}
-            />
-          )}
-
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="nextNodeIsUser"
-                checked={nodeData.nextNodeIsUser ?? false}
-                onCheckedChange={(checked) =>
-                  updateNodeData({
-                    nextNodeIsUser: checked === true || undefined,
-                  })
-                }
-              />
-              <Label htmlFor="nextNodeIsUser">Next node expects user input</Label>
-            </div>
-          </div>
+          <NodePanelOutputSchema
+            nodeData={nodeData}
+            nodeType={node.type}
+            outgoingEdges={outgoingEdges}
+            outputSchemas={outputSchemas}
+            onUpdateNodeData={updateNodeData}
+            onAddOutputSchema={onAddOutputSchema}
+            onEditOutputSchema={onEditOutputSchema}
+          />
         </div>
 
         <Separator />
