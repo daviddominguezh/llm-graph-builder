@@ -28,6 +28,7 @@ import { useExportGraph } from '../hooks/useExportGraph';
 import { useGraphSelection } from '../hooks/useGraphSelection';
 import { useMcpServers } from '../hooks/useMcpServers';
 import { useOperationQueue } from '../hooks/useOperationQueue';
+import { useOutputSchemas } from '../hooks/useOutputSchemas';
 import { usePresets } from '../hooks/usePresets';
 import { useSeedInitialGraph } from '../hooks/useSeedInitialGraph';
 import { useSimulation } from '../hooks/useSimulation';
@@ -96,6 +97,11 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
   const [searchOpen, setSearchOpen] = useState(false);
 
   const presetsHook = usePresets(opQueue.pushOperation);
+
+  const outputSchemasHook = useOutputSchemas({
+    initialSchemas: loadResult.outputSchemas,
+    pushOperation: opQueue.pushOperation,
+  });
 
   const panels = useMemo(() => ({ setGlobalPanelOpen, setPresetsOpen, setToolsOpen, setSearchOpen }), []);
 
@@ -216,6 +222,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     simulation,
     presetsHook,
     mcpHook,
+    outputSchemasHook,
     ctxPreconditions,
     globalPanelOpen,
     setGlobalPanelOpen,
@@ -323,6 +330,7 @@ function LoadedEditor(props: LoadedEditorProps) {
           agents={h.agents}
           presetsHook={h.presetsHook}
           mcpHook={h.mcpHook}
+          outputSchemasHook={h.outputSchemasHook}
           globalPanelOpen={h.globalPanelOpen}
           presetsOpen={h.presetsOpen}
           toolsOpen={h.toolsOpen}

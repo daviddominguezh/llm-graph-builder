@@ -1,38 +1,35 @@
 'use client';
 
-import type { Edge, Node } from '@xyflow/react';
-import { nanoid } from 'nanoid';
+import type { Edge } from '@xyflow/react';
+import { useState } from 'react';
 
 import type { ApiKeyRow } from '../lib/api-keys';
 import type { Agent } from '../schemas/graph.schema';
 import type { McpServersState } from '../hooks/useMcpServers';
 import type { OutputSchemasState } from '../hooks/useOutputSchemas';
-import type { ContextPrecondition } from '../types/contextPrecondition';
-import { createEmptyGroup } from '../types/contextPrecondition';
-import { DEFAULT_NODE_WIDTH } from '../utils/graphInitializer';
-import {
-  buildDeleteNodeOp,
-  buildInsertNodeOp,
-  buildUpdateNodeOp,
-} from '../utils/operationBuilders';
 import type { PushOperation } from '../utils/operationBuilders';
-import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
+import type { RFEdgeData } from '../utils/graphTransformers';
 import type { UseGraphSelectionReturn } from '../hooks/useGraphSelection';
 import type { ContextPreset } from '../types/preset';
 
-import { NodePanel } from './panels/NodePanel';
 import { EdgePanel } from './panels/EdgePanel';
 import { GlobalNodesPanel } from './panels/GlobalNodesPanel';
+import { NodePanel } from './panels/NodePanel';
+import { OutputSchemaDialog } from './panels/OutputSchemaDialog';
 import { PresetsPanel } from './panels/PresetsPanel';
 import { ToolsPanel } from './panels/ToolsPanel';
+import type { CtxPreconditionsState, EdgeSetter, NodeArray, NodeSetter } from './sidePanelHelpers';
+import {
+  createPrecondition,
+  handleGlobalAddNode,
+  handleGlobalDeleteNode,
+  handleGlobalSetFallback,
+  handleGlobalUpdateNode,
+  handlePreconditionRemove,
+  handlePreconditionUpdate,
+} from './sidePanelHelpers';
 
-const NANOID_LENGTH = 8;
-const NAME_SLICE_END = 4;
-
-type NodeArray = Array<Node<RFNodeData>>;
 type EdgeArray = Array<Edge<RFEdgeData>>;
-type NodeSetter = (nodes: NodeArray | ((nds: NodeArray) => NodeArray)) => void;
-type EdgeSetter = (edges: EdgeArray | ((eds: EdgeArray) => EdgeArray)) => void;
 
 interface PresetsHook {
   presets: ContextPreset[];
@@ -47,11 +44,7 @@ interface PresetsHook {
   renameContextKey: (old: string, newKey: string) => void;
 }
 
-interface CtxPreconditionsState {
-  customContextPreconditions: ContextPrecondition[];
-  setCustomContextPreconditions: React.Dispatch<React.SetStateAction<ContextPrecondition[]>>;
-  allContextPreconditions: string[];
-}
+export { type CtxPreconditionsState };
 
 export interface SidePanelsProps {
   selection: UseGraphSelectionReturn;
@@ -75,8 +68,12 @@ export interface SidePanelsProps {
   pushOperation: PushOperation;
 }
 
-function SelectionPanel(props: SidePanelsProps) {
-  const { selection, nodes, agents, presetsHook, mcpHook, ctxPreconditions, pushOperation } = props;
+interface SelectionPanelProps extends SidePanelsProps {
+  onEditSchema: (id: string) => void;
+}
+
+function SelectionPanel(props: SelectionPanelProps) {
+  const { selection, nodes, agents, presetsHook, ctxPreconditions, pushOperation } = props;
 
   return (
     <aside className="absolute right-0 top-0 bottom-0 z-10 w-80 border-l border-gray-200 bg-white">
@@ -96,9 +93,7 @@ function SelectionPanel(props: SidePanelsProps) {
           pushOperation={pushOperation}
           outputSchemas={props.outputSchemasHook.schemas}
           onAddOutputSchema={props.outputSchemasHook.addSchema}
-          onEditOutputSchema={() => {
-            // Dialog opening will be wired in Task 8
-          }}
+          onEditOutputSchema={props.onEditSchema}
         />
       )}
       {selection.selectedEdgeId !== null && (
@@ -106,7 +101,7 @@ function SelectionPanel(props: SidePanelsProps) {
           edgeId={selection.selectedEdgeId}
           onEdgeDeleted={() => selection.setSelectedEdgeId(null)}
           availableContextPreconditions={ctxPreconditions.allContextPreconditions}
-          availableMcpTools={mcpHook.allTools}
+          availableMcpTools={props.mcpHook.allTools}
           onSelectNode={selection.navigateToNode}
           pushOperation={pushOperation}
         />
@@ -117,65 +112,13 @@ function SelectionPanel(props: SidePanelsProps) {
 
 type GlobalPanelProps = Pick<SidePanelsProps, 'setNodes' | 'setEdges' | 'nodes' | 'pushOperation'>;
 
-function handleGlobalAddNode(setNodes: NodeSetter, pushOp: PushOperation): void {
-  const id = `node_${nanoid(NANOID_LENGTH)}`;
-  const newNode: Node<RFNodeData> = {
-    id,
-    type: 'agent',
-    position: { x: 0, y: 0 },
-    data: { nodeId: id, text: 'New global node', description: '', global: true, nodeWidth: DEFAULT_NODE_WIDTH },
-  };
-  setNodes((nds) => [...nds, newNode]);
-  pushOp(buildInsertNodeOp(newNode));
-}
-
-function handleGlobalUpdateNode(
-  nodeId: string,
-  updates: Partial<RFNodeData>,
-  nodes: NodeArray,
-  setNodes: NodeSetter,
-  pushOp: PushOperation
-): void {
-  setNodes((nds) => nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, ...updates } } : n)));
-  const node = nodes.find((n) => n.id === nodeId);
-  if (node) {
-    const updated: Node<RFNodeData> = { ...node, data: { ...node.data, ...updates } };
-    pushOp(buildUpdateNodeOp(updated));
-  }
-}
-
-function handleGlobalSetFallback(
-  nodeId: string | undefined,
-  nodes: NodeArray,
-  setNodes: NodeSetter,
-  pushOp: PushOperation
-): void {
-  setNodes((nds) =>
-    nds.map((n) => ({
-      ...n,
-      data: { ...n.data, defaultFallback: n.id === nodeId ? true : undefined },
-    }))
-  );
-  for (const n of nodes) {
-    const isNewFallback = n.id === nodeId;
-    const wasFallback = n.data.defaultFallback === true;
-    if (isNewFallback === wasFallback) continue;
-    const updated = { ...n, data: { ...n.data, defaultFallback: isNewFallback ? true : undefined } };
-    pushOp(buildUpdateNodeOp(updated));
-  }
-}
-
 function GlobalPanel({ setNodes, setEdges, nodes, pushOperation }: GlobalPanelProps) {
   return (
     <aside className="absolute right-0 top-0 bottom-0 z-10 w-80 border-l border-gray-200 bg-white">
       <GlobalNodesPanel
         nodes={nodes}
         onAddNode={() => handleGlobalAddNode(setNodes, pushOperation)}
-        onDeleteNode={(nodeId) => {
-          setNodes((nds) => nds.filter((n) => n.id !== nodeId));
-          setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
-          pushOperation(buildDeleteNodeOp(nodeId));
-        }}
+        onDeleteNode={(nodeId) => handleGlobalDeleteNode(nodeId, setNodes, setEdges, pushOperation)}
         onUpdateNode={(nodeId, updates) => {
           handleGlobalUpdateNode(nodeId, updates, nodes, setNodes, pushOperation);
         }}
@@ -185,47 +128,6 @@ function GlobalPanel({ setNodes, setEdges, nodes, pushOperation }: GlobalPanelPr
       />
     </aside>
   );
-}
-
-function handlePreconditionRemove(
-  id: string,
-  ctx: CtxPreconditionsState,
-  setEdges: EdgeSetter
-): void {
-  const target = ctx.customContextPreconditions.find((p) => p.id === id);
-  ctx.setCustomContextPreconditions((prev) => prev.filter((p) => p.id !== id));
-  if (target === undefined) return;
-  setEdges((eds) =>
-    eds.map((e) => {
-      const cp = (e.data as RFEdgeData | undefined)?.contextPreconditions;
-      if (cp === undefined) return e;
-      const filtered = cp.preconditions.filter((p: string) => p !== target.name);
-      return {
-        ...e,
-        data: { ...e.data, contextPreconditions: filtered.length > 0 ? { ...cp, preconditions: filtered } : undefined },
-      };
-    })
-  );
-}
-
-function handlePreconditionUpdate(
-  id: string,
-  updates: Partial<ContextPrecondition>,
-  ctx: CtxPreconditionsState,
-  setEdges: EdgeSetter
-): void {
-  const old = ctx.customContextPreconditions.find((p) => p.id === id);
-  ctx.setCustomContextPreconditions((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
-  if (updates.name !== undefined && old !== undefined && updates.name !== old.name) {
-    setEdges((eds) =>
-      eds.map((e) => {
-        const cp = (e.data as RFEdgeData | undefined)?.contextPreconditions;
-        if (cp === undefined) return e;
-        const renamed = cp.preconditions.map((p: string) => (p === old.name ? updates.name! : p));
-        return { ...e, data: { ...e.data, contextPreconditions: { ...cp, preconditions: renamed } } };
-      })
-    );
-  }
 }
 
 type PresetsAsideProps = Pick<
@@ -238,7 +140,7 @@ type PresetsAsideProps = Pick<
   | 'productionKeyId'
   | 'onStagingKeyChange'
   | 'outputSchemasHook'
->;
+> & { onEditSchema: (id: string) => void };
 
 function PresetsAside(props: PresetsAsideProps) {
   const { presetsHook, ctxPreconditions, setEdges } = props;
@@ -263,23 +165,18 @@ function PresetsAside(props: PresetsAsideProps) {
         }}
         contextPreconditions={{
           preconditions: ctxPreconditions.customContextPreconditions,
-          onAdd: () => {
-            const id = nanoid();
-            const name = `precondition_${id.slice(0, NAME_SLICE_END)}`;
-            ctxPreconditions.setCustomContextPreconditions((prev) => [...prev, { id, name, root: createEmptyGroup() }]);
-          },
+          onAdd: () => createPrecondition(ctxPreconditions),
           onRemove: (id) => handlePreconditionRemove(id, ctxPreconditions, setEdges),
           onUpdate: (id, updates) => handlePreconditionUpdate(id, updates, ctxPreconditions, setEdges),
         }}
         outputSchemas={{
           schemas: props.outputSchemasHook.schemas,
           onAdd: () => {
-            props.outputSchemasHook.addSchema();
+            const id = props.outputSchemasHook.addSchema();
+            props.onEditSchema(id);
           },
           onRemove: props.outputSchemasHook.removeSchema,
-          onEdit: () => {
-            // Dialog opening will be wired in Task 8
-          },
+          onEdit: props.onEditSchema,
         }}
       />
     </aside>
@@ -291,9 +188,23 @@ export function SidePanels(props: SidePanelsProps) {
   const hasSelection = selection.selectedNodeId !== null || selection.selectedEdgeId !== null;
   const showSelectionPanel = !simulation.active && hasSelection;
 
+  const [editingSchemaId, setEditingSchemaId] = useState<string | null>(null);
+  const editingSchema =
+    editingSchemaId !== null
+      ? props.outputSchemasHook.schemas.find((s) => s.id === editingSchemaId)
+      : undefined;
+
   return (
     <>
-      {showSelectionPanel && <SelectionPanel {...props} />}
+      <OutputSchemaDialog
+        schema={editingSchema}
+        onUpdate={props.outputSchemasHook.updateSchema}
+        open={editingSchemaId !== null}
+        onOpenChange={(open) => {
+          if (!open) setEditingSchemaId(null);
+        }}
+      />
+      {showSelectionPanel && <SelectionPanel {...props} onEditSchema={setEditingSchemaId} />}
       {globalPanelOpen && (
         <GlobalPanel
           setNodes={props.setNodes}
@@ -327,6 +238,7 @@ export function SidePanels(props: SidePanelsProps) {
           productionKeyId={props.productionKeyId}
           onStagingKeyChange={props.onStagingKeyChange}
           outputSchemasHook={props.outputSchemasHook}
+          onEditSchema={setEditingSchemaId}
         />
       )}
     </>
