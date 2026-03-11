@@ -1,4 +1,3 @@
-import type { OutputSchemaField } from '@daviddh/graph-types';
 import { Position, type Edge as RFEdge, type Node as RFNode } from '@xyflow/react';
 
 import type {
@@ -56,7 +55,7 @@ export interface RFNodeData extends Record<string, unknown> {
   fallbackNodeId?: string;
   global?: boolean;
   defaultFallback?: boolean;
-  outputSchema?: OutputSchemaField[];
+  outputSchemaId?: string;
   muted?: boolean;
   nodeWidth?: number | null;
 }
@@ -92,7 +91,7 @@ export function schemaNodeToRFNode(node: SchemaNode, index = INITIAL_INDEX): RFN
       fallbackNodeId: node.fallbackNodeId,
       global: node.global,
       defaultFallback: node.defaultFallback,
-      outputSchema: node.outputSchema,
+      outputSchemaId: node.outputSchemaId,
     },
   };
 }
@@ -114,7 +113,7 @@ function resolveOptionalFields(
   original: SchemaNode
 ): Pick<
   SchemaNode,
-  'agent' | 'nextNodeIsUser' | 'fallbackNodeId' | 'global' | 'defaultFallback' | 'outputSchema'
+  'agent' | 'nextNodeIsUser' | 'fallbackNodeId' | 'global' | 'defaultFallback' | 'outputSchemaId'
 > {
   if (data === undefined) {
     return {
@@ -123,7 +122,7 @@ function resolveOptionalFields(
       fallbackNodeId: original.fallbackNodeId,
       global: original.global,
       defaultFallback: original.defaultFallback,
-      outputSchema: original.outputSchema,
+      outputSchemaId: original.outputSchemaId,
     };
   }
   return {
@@ -132,7 +131,7 @@ function resolveOptionalFields(
     fallbackNodeId: data.fallbackNodeId ?? original.fallbackNodeId,
     global: data.global ?? original.global,
     defaultFallback: data.defaultFallback ?? original.defaultFallback,
-    outputSchema: data.outputSchema ?? original.outputSchema,
+    outputSchemaId: data.outputSchemaId ?? original.outputSchemaId,
   };
 }
 
