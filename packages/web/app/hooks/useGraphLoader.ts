@@ -1,7 +1,7 @@
 'use client';
 
 import { fetchGraph } from '@/app/lib/graphApi';
-import type { Agent, Graph, McpServerConfig } from '@/app/schemas/graph.schema';
+import type { Agent, Graph, McpServerConfig, OutputSchemaEntity } from '@/app/schemas/graph.schema';
 import { buildInitialEdges, buildInitialNodes } from '@/app/utils/graphInitializer';
 import type { RFEdgeData, RFNodeData } from '@/app/utils/graphTransformers';
 import type { Edge, Node } from '@xyflow/react';
@@ -14,6 +14,7 @@ export interface GraphLoadResult {
   edges: Array<Edge<RFEdgeData>>;
   agents: Agent[];
   mcpServers: McpServerConfig[];
+  outputSchemas: OutputSchemaEntity[];
   graphData: Graph | undefined;
 }
 
@@ -28,6 +29,7 @@ const EMPTY_RESULT: GraphLoadResult = {
   edges: buildInitialEdges(undefined),
   agents: [],
   mcpServers: [],
+  outputSchemas: [],
   graphData: undefined,
 };
 
@@ -37,6 +39,7 @@ function buildLoadResult(graph: Graph): GraphLoadResult {
     edges: buildInitialEdges(graph),
     agents: graph.agents,
     mcpServers: graph.mcpServers ?? [],
+    outputSchemas: graph.outputSchemas ?? [],
     graphData: graph,
   };
 }
