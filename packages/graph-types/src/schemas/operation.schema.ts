@@ -21,15 +21,15 @@ import {
   UpdateMcpServerOperationSchema,
 } from './operation-mcp.schema.js';
 import {
-  DeleteOutputSchemaOperationSchema,
-  InsertOutputSchemaOperationSchema,
-  UpdateOutputSchemaOperationSchema,
-} from './operation-output-schema.schema.js';
-import {
   DeleteNodeOperationSchema,
   InsertNodeOperationSchema,
   UpdateNodeOperationSchema,
 } from './operation-node.schema.js';
+import {
+  DeleteOutputSchemaOperationSchema,
+  InsertOutputSchemaOperationSchema,
+  UpdateOutputSchemaOperationSchema,
+} from './operation-output-schema.schema.js';
 import { UpdateStartNodeOperationSchema } from './operation-start-node.schema.js';
 
 export const OperationSchema = z.discriminatedUnion('type', [

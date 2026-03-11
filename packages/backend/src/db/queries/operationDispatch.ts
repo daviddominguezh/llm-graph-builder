@@ -5,8 +5,8 @@ import { deleteContextPreset, insertContextPreset, updateContextPreset } from '.
 import { deleteEdge, insertEdge, updateEdge } from './edgeOperations.js';
 import { deleteMcpServer, insertMcpServer, updateMcpServer } from './mcpServerOperations.js';
 import { deleteNode, insertNode, updateNode } from './nodeOperations.js';
-import { deleteOutputSchema, insertOutputSchema, updateOutputSchema } from './outputSchemaOperations.js';
 import type { SupabaseClient } from './operationHelpers.js';
+import { deleteOutputSchema, insertOutputSchema, updateOutputSchema } from './outputSchemaOperations.js';
 import { updateStartNode } from './startNodeOperations.js';
 
 async function dispatchNodeOps(supabase: SupabaseClient, agentId: string, op: Operation): Promise<void> {
