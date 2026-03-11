@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { OutputSchemaSchema } from './output-schema.schema.js';
 import { PositionSchema } from './position.schema.js';
 
 export const BaseNodeKindSchema = z.enum(['agent', 'agent_decision']);
@@ -27,6 +28,7 @@ export const NodeSchema = z.object({
   fallbackNodeId: z.string().optional(),
   global: z.boolean().default(false),
   defaultFallback: z.boolean().optional(),
+  outputSchema: OutputSchemaSchema,
   position: PositionSchema.optional(),
 });
 
@@ -41,5 +43,6 @@ export const RuntimeNodeSchema = z.object({
   previousNodeWasUser: z.boolean().optional(),
   isUser: z.boolean().optional(),
   global: z.boolean().default(false),
+  outputSchema: OutputSchemaSchema,
   position: PositionSchema.optional(),
 });
