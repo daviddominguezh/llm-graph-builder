@@ -10,7 +10,8 @@ import {
   Wrench,
   Pencil,
 } from "lucide-react";
-import { useEdges, useReactFlow } from "@xyflow/react";
+import { useEdges, useNodes, useReactFlow } from "@xyflow/react";
+import type { Node } from "@xyflow/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,7 +42,7 @@ import type {
 } from "../../schemas/graph.schema";
 import type { DiscoveredTool } from "../../lib/api";
 import type { PushOperation } from "../../utils/operationBuilders";
-import type { RFEdgeData } from "../../utils/graphTransformers";
+import type { RFEdgeData, RFNodeData } from "../../utils/graphTransformers";
 import type { Edge } from "@xyflow/react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
@@ -50,7 +51,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useTranslations } from "next-intl";
+import { useRef } from "react";
 import { pushDeleteEdge, pushTypeChangeOps, pushUpdateEdge } from "./edgePanelOps";
+import { pushUpdateNode } from "./nodePanelOps";
+import { nodeHasContent } from "./toolCallGuard";
 import { ToolParamsCard } from "./ToolParamsCard";
 
 const START_NODE_ID = "INITIAL_STEP";
@@ -78,12 +83,15 @@ export function EdgePanel({
   pushOperation,
 }: EdgePanelProps) {
   const edges = useEdges<Edge<RFEdgeData>>();
-  const { setEdges } = useReactFlow();
+  const nodes = useNodes<Node<RFNodeData>>();
+  const { setEdges, setNodes } = useReactFlow();
+  const t = useTranslations("edgePanel");
 
   // Find edge by ID
   const edge = edges.find((e) => e.id === edgeId);
   const from = edge?.source ?? "";
   const to = edge?.target ?? "";
+  const sourceNode = nodes.find((n) => n.id === from);
   const edgeData = edge?.data;
 
   const [prevEdgeId, setPrevEdgeId] = useState(edgeId);
@@ -114,6 +122,10 @@ export function EdgePanel({
   const [multiEdgeInputs, setMultiEdgeInputs] = useState<
     Record<string, EdgePreconditionInput>
   >({});
+
+  // Tool-call warning modal state
+  const [showToolCallWarning, setShowToolCallWarning] = useState(false);
+  const pendingToolCallAction = useRef<(() => void) | null>(null);
 
   // Reset form when selecting a different edge
   if (edgeId !== prevEdgeId) {
@@ -148,6 +160,33 @@ export function EdgePanel({
     pushUpdateEdge(from, to, merged, pushOperation);
   };
 
+  const clearSourceNodeContent = () => {
+    if (!sourceNode) return;
+    const updates = { text: "", description: "" };
+    setNodes((nds) =>
+      nds.map((n) =>
+        n.id === from ? { ...n, data: { ...n.data, ...updates } } : n,
+      ),
+    );
+    pushUpdateNode(sourceNode, updates, pushOperation);
+  };
+
+  const guardToolCall = (type: PreconditionType, action: () => void) => {
+    if (type !== "tool_call" || !nodeHasContent(sourceNode?.data)) {
+      action();
+      return;
+    }
+    pendingToolCallAction.current = action;
+    setShowToolCallWarning(true);
+  };
+
+  const confirmToolCallWarning = () => {
+    clearSourceNodeContent();
+    pendingToolCallAction.current?.();
+    pendingToolCallAction.current = null;
+    setShowToolCallWarning(false);
+  };
+
   const doAddPrecondition = () => {
     if (newPreconditionValue.trim()) {
       const newPrecondition: Precondition = {
@@ -167,7 +206,8 @@ export function EdgePanel({
   };
 
   const handleAddPrecondition = () => {
-    doAddPrecondition();
+    const effectiveType = existingType ?? newPreconditionType;
+    guardToolCall(effectiveType, doAddPrecondition);
   };
 
   const handleToolFieldsChange = (index: number, toolFields: Record<string, ToolFieldValue> | undefined) => {
@@ -184,7 +224,7 @@ export function EdgePanel({
     setShowEditModal(true);
   };
 
-  const handleSaveEditedPrecondition = () => {
+  const doSaveEditedPrecondition = () => {
     if (editingPreconditionIndex === null) return;
     if (!editingPreconditionValue.trim()) return;
 
@@ -205,6 +245,17 @@ export function EdgePanel({
     handleCancelEdit();
   };
 
+  const handleSaveEditedPrecondition = () => {
+    const canChangeType = siblingEdges.length === 0;
+    const wasToolCall = existingType === "tool_call";
+    const isChangingToToolCall = canChangeType && editingPreconditionType === "tool_call" && !wasToolCall;
+    if (isChangingToToolCall) {
+      guardToolCall("tool_call", doSaveEditedPrecondition);
+      return;
+    }
+    doSaveEditedPrecondition();
+  };
+
   const handleCancelEdit = () => {
     setEditingPreconditionIndex(null);
     setEditingPreconditionValue("");
@@ -221,7 +272,7 @@ export function EdgePanel({
     setMultiEdgeInputs(inputs);
   };
 
-  const handleConfirmTypeChange = () => {
+  const doConfirmTypeChange = () => {
     setEdges((eds) =>
       eds.map((e) => {
         const input = multiEdgeInputs[e.id];
@@ -259,6 +310,10 @@ export function EdgePanel({
 
     setShowTypeChangeConfirm(false);
     setMultiEdgeInputs({});
+  };
+
+  const handleConfirmTypeChange = () => {
+    guardToolCall(newPreconditionType, doConfirmTypeChange);
   };
 
   const handleDeleteEdge = () => {
@@ -847,6 +902,24 @@ export function EdgePanel({
               disabled={!editingPreconditionValue.trim()}
             >
               Save
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Tool call warning modal — source node text/description will be cleared */}
+      <AlertDialog open={showToolCallWarning} onOpenChange={setShowToolCallWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("toolCallWarningTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("toolCallWarningDescription", { nodeId: from })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("toolCallWarningCancel")}</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={confirmToolCallWarning}>
+              {t("toolCallWarningConfirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
