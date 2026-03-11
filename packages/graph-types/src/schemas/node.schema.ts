@@ -28,7 +28,7 @@ export const NodeSchema = z.object({
   fallbackNodeId: z.string().optional(),
   global: z.boolean().default(false),
   defaultFallback: z.boolean().optional(),
-  outputSchema: OutputSchemaSchema,
+  outputSchemaId: z.string().optional(),
   position: PositionSchema.optional(),
 });
 

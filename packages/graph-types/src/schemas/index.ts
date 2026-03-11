@@ -25,6 +25,7 @@ export {
   McpTransportSchema,
   McpServerConfigSchema,
 } from './mcp.schema.js';
+export { OutputSchemaEntitySchema } from './output-schema-entity.schema.js';
 export {
   OperationSchema,
   OperationsBatchSchema,
@@ -40,6 +41,9 @@ export {
   InsertMcpServerOperationSchema,
   UpdateMcpServerOperationSchema,
   DeleteMcpServerOperationSchema,
+  InsertOutputSchemaOperationSchema,
+  UpdateOutputSchemaOperationSchema,
+  DeleteOutputSchemaOperationSchema,
   InsertContextPresetOperationSchema,
   UpdateContextPresetOperationSchema,
   DeleteContextPresetOperationSchema,

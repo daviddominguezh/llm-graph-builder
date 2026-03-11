@@ -1,7 +1,6 @@
 import { z } from 'zod';
 
 import { BaseNodeKindSchema } from './node.schema.js';
-import { OutputSchemaSchema } from './output-schema.schema.js';
 import { PositionSchema } from './position.schema.js';
 
 const NodeDataSchema = z.object({
@@ -14,7 +13,7 @@ const NodeDataSchema = z.object({
   fallbackNodeId: z.string().optional(),
   global: z.boolean().optional(),
   defaultFallback: z.boolean().optional(),
-  outputSchema: OutputSchemaSchema,
+  outputSchemaId: z.string().optional(),
   position: PositionSchema.optional(),
 });
 

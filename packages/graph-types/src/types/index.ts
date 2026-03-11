@@ -12,6 +12,7 @@ import type {
   NodeSchema,
   OperationSchema,
   OperationsBatchSchema,
+  OutputSchemaEntitySchema,
   PositionSchema,
   PreconditionSchema,
   PreconditionTypeSchema,
@@ -41,4 +42,5 @@ export type McpTransport = z.infer<typeof McpTransportSchema>;
 export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
 export type Operation = z.infer<typeof OperationSchema>;
 export type OperationsBatch = z.infer<typeof OperationsBatchSchema>;
+export type OutputSchemaEntity = z.infer<typeof OutputSchemaEntitySchema>;
 export type { OutputSchemaField } from '../schemas/output-schema.schema.js';
