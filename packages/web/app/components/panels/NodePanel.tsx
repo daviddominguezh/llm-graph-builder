@@ -198,6 +198,13 @@ export function NodePanel({
 
       <div className="flex-1 overflow-y-auto">
         <div className="flex flex-col gap-4 p-4">
+          {isToolCallNode && (
+            <Alert>
+              <Info className="h-3 w-3" />
+              <AlertDescription className="text-xs">{t('disabledByToolCall')}</AlertDescription>
+            </Alert>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="id">ID</Label>
             <Input
@@ -209,29 +216,31 @@ export function NodePanel({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={nodeData.description}
-              onChange={(e) => updateNodeData({ description: e.target.value })}
-              rows={2}
-              placeholder="Node description..."
-              disabled={isToolCallNode}
-            />
-          </div>
+          {!isToolCallNode && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={nodeData.description}
+                  onChange={(e) => updateNodeData({ description: e.target.value })}
+                  rows={2}
+                  placeholder="Node description..."
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="text">Text</Label>
-            <Textarea
-              id="text"
-              value={nodeData.text}
-              onChange={(e) => updateNodeData({ text: e.target.value })}
-              rows={3}
-              placeholder="Node text..."
-              disabled={isToolCallNode}
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="text">Text</Label>
+                <Textarea
+                  id="text"
+                  value={nodeData.text}
+                  onChange={(e) => updateNodeData({ text: e.target.value })}
+                  rows={3}
+                  placeholder="Node text..."
+                />
+              </div>
+            </>
+          )}
 
           {node.type === 'agent' && (
             <OutputSchemaSelect
@@ -245,13 +254,6 @@ export function NodePanel({
               }}
               onEditSchema={onEditOutputSchema}
             />
-          )}
-
-          {isToolCallNode && (
-            <Alert>
-              <Info className="h-3 w-3" />
-              <AlertDescription className="text-xs">{t('disabledByToolCall')}</AlertDescription>
-            </Alert>
           )}
 
           <div className="space-y-2">
