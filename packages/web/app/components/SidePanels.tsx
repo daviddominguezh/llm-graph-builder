@@ -102,6 +102,8 @@ function SelectionPanel(props: SelectionPanelProps) {
           onEdgeDeleted={() => selection.setSelectedEdgeId(null)}
           availableContextPreconditions={ctxPreconditions.allContextPreconditions}
           availableMcpTools={props.mcpHook.allTools}
+          mcpServers={props.mcpHook.servers}
+          mcpDiscoveredTools={props.mcpHook.discoveredTools}
           onSelectNode={selection.navigateToNode}
           pushOperation={pushOperation}
         />
