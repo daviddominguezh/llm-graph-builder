@@ -1,6 +1,7 @@
 import type { Edge as RFFlowEdge, Node as RFFlowNode } from '@xyflow/react';
 
 import type { RFEdgeData, RFNodeData } from './graphTransformers';
+import { validateOutputSchemaNodes, validateReferences } from './graphValidationOutputSchemas';
 
 const START_NODE_ID = 'INITIAL_STEP';
 const EMPTY = 0;
@@ -178,5 +179,7 @@ export function validateGraph(nodes: FlowNode[], edges: FlowEdge[]): ValidationE
     ...validateUserSaid(nodes, edgesBySource),
     ...validatePreconditionConsistency(edgesBySource),
     ...validateReachability(nodes, edges),
+    ...validateOutputSchemaNodes(nodes, edgesBySource),
+    ...validateReferences(nodes, edges),
   ];
 }
