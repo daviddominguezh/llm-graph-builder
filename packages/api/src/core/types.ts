@@ -1,3 +1,4 @@
+import type { OutputSchemaField } from '@daviddh/graph-types';
 import type {
   AssistantContent,
   AssistantModelMessage,
@@ -8,8 +9,6 @@ import type {
   ToolSet,
   TypedToolCall,
 } from 'ai';
-
-import type { OutputSchemaField } from '@daviddh/graph-types';
 
 import type {
   ActionTokenUsage,

@@ -16,6 +16,7 @@ import {
   SM_BASE_PROMPT_NEXT_OPTION_IS_TOOL,
   buildOutputFormatPrompt,
 } from './prompts/index.js';
+import { buildResolvedFieldsPrompt } from './referenceResolver.js';
 
 const createTerminalNodeOptions = (
   node: ReturnType<typeof getNode>,
@@ -39,18 +40,15 @@ interface BuildToolCallOptionsParams {
   toolDescription: string | undefined;
   toolFields: Record<string, ToolFieldValue> | undefined;
   nextNode: string;
+  structuredOutputs?: Record<string, unknown[]>;
 }
 
-function buildFixedFieldsPrompt(toolFields: Record<string, ToolFieldValue> | undefined): string {
+function buildFixedFieldsPrompt(
+  toolFields: Record<string, ToolFieldValue> | undefined,
+  structuredOutputs?: Record<string, unknown[]>
+): string {
   if (toolFields === undefined) return '';
-  const lines: string[] = [];
-  for (const [name, field] of Object.entries(toolFields)) {
-    if (field.type === 'fixed') {
-      lines.push(`- ${name}: "${field.value}"`);
-    }
-  }
-  if (lines.length === FIRST_INDEX) return '';
-  return `\n\nFor the following parameters, use these EXACT values:\n${lines.join('\n')}`;
+  return buildResolvedFieldsPrompt(toolFields, structuredOutputs ?? {});
 }
 
 const buildToolCallOptions = (params: BuildToolCallOptionsParams): SMNextOptions => {
@@ -62,7 +60,7 @@ const buildToolCallOptions = (params: BuildToolCallOptionsParams): SMNextOptions
       `"${toolCallValue}"`
     );
   }
-  prompt += buildFixedFieldsPrompt(toolFields);
+  prompt += buildFixedFieldsPrompt(toolFields, params.structuredOutputs);
   return {
     node,
     edges,
@@ -110,15 +108,20 @@ const buildUserReplyOptions = (params: BuildUserReplyOptionsParams): SMNextOptio
   nodes: params.nodes,
 });
 
-export const getNextOptions = async (
+interface GetNextOptionsParams {
+  toolsOverride?: Record<string, Tool>;
+  structuredOutputs?: Record<string, unknown[]>;
+}
+
+async function resolveEdgeOptions(
   graph: Graph,
   context: Context,
   currentNode: string,
-  toolsOverride?: Record<string, Tool>
-): Promise<SMNextOptions> => {
+  params: GetNextOptionsParams
+): Promise<SMNextOptions> {
   const node = getNode(graph, currentNode);
   const edges = await getEdgesFromNode(graph, context, currentNode);
-  const toolsByEdge = getToolsFromEdges(context, edges, toolsOverride);
+  const toolsByEdge = getToolsFromEdges(context, edges, params.toolsOverride);
 
   if (edges.length === FIRST_INDEX) return createTerminalNodeOptions(node, {});
 
@@ -134,7 +137,6 @@ export const getNextOptions = async (
     context,
     edges
   );
-
   const mPrompt = `${SM_BASE_PROMPT_NEXT_OPTIONS}\n\n${withPreconditions}`;
   const mPromptWithoutToolPreconditions = `${SM_BASE_PROMPT_NEXT_OPTIONS}\n\n${withoutToolPreconditions}`;
 
@@ -148,15 +150,22 @@ export const getNextOptions = async (
       toolDescription: toolCall.description,
       toolFields: toolCall.toolFields,
       nextNode: firstEdgeEntry.to,
+      structuredOutputs: params.structuredOutputs,
     });
   }
 
   if (agentDecision !== undefined) {
     return buildAgentDecisionOptions({ node, edges, nodes, withPreconditions });
   }
-
   return buildUserReplyOptions({ node, edges, nodes, mPrompt, mPromptWithoutToolPreconditions });
-};
+}
+
+export const getNextOptions = async (
+  graph: Graph,
+  context: Context,
+  currentNode: string,
+  opts?: GetNextOptionsParams
+): Promise<SMNextOptions> => await resolveEdgeOptions(graph, context, currentNode, opts ?? {});
 
 // TODO: Implement
 export const generateUserContextPrompt = (context: Context): string | null => '';
@@ -205,48 +214,52 @@ const appendKindSpecificPrompts = (
   return { prompt: basePrompt, promptWithoutTools: basePromptWithoutTools };
 };
 
-export const buildNextAgentConfig = async (
+function applyUserContext(prompt: string, userContext: string | null): string {
+  return userContext === null ? prompt : `${prompt}\n\n${userContext}`;
+}
+
+function buildPromptConfig(
   graph: Graph,
   context: Context,
-  cn?: string,
-  options?: { logger?: Logger; toolsOverride?: Record<string, Tool> }
-): Promise<SMConfig> => {
-  if (options?.logger !== undefined) setLogger(options.logger);
-  const currentNode = cn ?? INITIAL_STEP_NODE;
-  const nextOptions = await getNextOptions(graph, context, currentNode, options?.toolsOverride);
-
-  const { kind } = nextOptions;
-  const { prompt: mPrompt, promptWithoutTools: mPromptWithoutToolPreconditions } = appendKindSpecificPrompts({
-    kind,
+  currentNode: string,
+  nextOptions: SMNextOptions
+): SMConfig {
+  const { prompt: mPrompt, promptWithoutTools: mPromptWithoutTools } = appendKindSpecificPrompts({
+    kind: nextOptions.kind,
     edges: nextOptions.edges,
     basePrompt: nextOptions.prompt,
     basePromptWithoutTools: nextOptions.promptWithoutToolPreconditions,
     fallbackNodeId: nextOptions.node.fallbackNodeId,
   });
-
   const userContext = generateUserContextPrompt(context);
-  const finalPrompt = userContext === null ? mPrompt : `${mPrompt}\n\n${userContext}`;
-  const finalPromptWithoutTools =
-    userContext === null
-      ? mPromptWithoutToolPreconditions
-      : `${mPromptWithoutToolPreconditions}\n\n${userContext}`;
-
-  const promptConfig: SMConfig = {
+  const config: SMConfig = {
     node: nextOptions.node,
-    prompt: finalPrompt,
-    promptWithoutToolPreconditions: finalPromptWithoutTools,
+    prompt: applyUserContext(mPrompt, userContext),
+    promptWithoutToolPreconditions: applyUserContext(mPromptWithoutTools, userContext),
     toolsByEdge: nextOptions.toolsByEdge,
     nextNode: nextOptions.nextNode,
     kind: nextOptions.kind,
     nodes: nextOptions.nodes,
   };
+  config.promptWithoutToolPreconditions = addNodeSpecificPrompts(graph, context, currentNode, config.prompt);
+  return config;
+}
 
-  promptConfig.promptWithoutToolPreconditions = addNodeSpecificPrompts(
-    graph,
-    context,
-    currentNode,
-    promptConfig.prompt
-  );
-
-  return promptConfig;
+export const buildNextAgentConfig = async (
+  graph: Graph,
+  context: Context,
+  cn?: string,
+  options?: {
+    logger?: Logger;
+    toolsOverride?: Record<string, Tool>;
+    structuredOutputs?: Record<string, unknown[]>;
+  }
+): Promise<SMConfig> => {
+  if (options?.logger !== undefined) setLogger(options.logger);
+  const currentNode = cn ?? INITIAL_STEP_NODE;
+  const nextOptions = await getNextOptions(graph, context, currentNode, {
+    toolsOverride: options?.toolsOverride,
+    structuredOutputs: options?.structuredOutputs,
+  });
+  return buildPromptConfig(graph, context, currentNode, nextOptions);
 };
