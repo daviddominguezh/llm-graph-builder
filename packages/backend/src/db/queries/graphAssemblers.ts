@@ -57,6 +57,7 @@ export function assembleNode(row: NodeRow): Node {
     defaultFallback: row.default_fallback ?? undefined,
     position: buildPosition(row),
     outputSchemaId: row.output_schema_id ?? undefined,
+    outputPrompt: row.output_prompt ?? undefined,
   };
 }
 

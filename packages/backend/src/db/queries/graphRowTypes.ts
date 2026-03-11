@@ -15,6 +15,7 @@ export interface NodeRow {
   position_x: number | null;
   position_y: number | null;
   output_schema_id: string | null;
+  output_prompt: string | null;
 }
 
 /** Row shape returned by `graph_edges` table. */

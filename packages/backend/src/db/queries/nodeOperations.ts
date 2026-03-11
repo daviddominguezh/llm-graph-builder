@@ -20,6 +20,7 @@ interface NodeRow {
   position_x: number | undefined;
   position_y: number | undefined;
   output_schema_id: string | undefined;
+  output_prompt: string | undefined;
 }
 
 function buildNodeRow(agentId: string, data: InsertNodeOp['data']): NodeRow {
@@ -37,6 +38,7 @@ function buildNodeRow(agentId: string, data: InsertNodeOp['data']): NodeRow {
     position_x: data.position?.x,
     position_y: data.position?.y,
     output_schema_id: data.outputSchemaId,
+    output_prompt: data.outputPrompt,
   };
 }
 
