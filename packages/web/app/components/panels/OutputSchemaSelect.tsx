@@ -8,7 +8,6 @@ import {
   SelectItem,
   SelectSeparator,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select';
 import type { OutputSchemaEntity } from '@daviddh/graph-types';
 import { Pencil } from 'lucide-react';
@@ -38,6 +37,16 @@ function handleChange(
   onChange(selected === NONE_VALUE ? undefined : selected);
 }
 
+function getDisplayLabel(
+  value: string | undefined,
+  schemas: OutputSchemaEntity[],
+  noneLabel: string
+): string {
+  if (value === undefined || value === NONE_VALUE) return noneLabel;
+  const schema = schemas.find((s) => s.id === value);
+  return schema?.name ?? noneLabel;
+}
+
 export function OutputSchemaSelect({
   schemas,
   value,
@@ -47,6 +56,7 @@ export function OutputSchemaSelect({
 }: OutputSchemaSelectProps) {
   const t = useTranslations('nodePanel');
   const tSchemas = useTranslations('outputSchemas');
+  const displayLabel = getDisplayLabel(value, schemas, tSchemas('none'));
 
   return (
     <div className="space-y-2">
@@ -57,7 +67,7 @@ export function OutputSchemaSelect({
           onValueChange={(v) => handleChange(v, onChange, onAddSchema)}
         >
           <SelectTrigger className="h-8 flex-1 text-xs">
-            <SelectValue />
+            <span className="flex flex-1 text-left truncate">{displayLabel}</span>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={NONE_VALUE}>{tSchemas('none')}</SelectItem>
