@@ -26,6 +26,7 @@ export function buildInsertNodeOp(node: Node<RFNodeData>): Operation {
       fallbackNodeId: node.data.fallbackNodeId,
       global: node.data.global,
       defaultFallback: node.data.defaultFallback,
+      outputSchema: node.data.outputSchema,
       position: node.position,
     },
   };
@@ -44,6 +45,7 @@ export function buildUpdateNodeOp(node: Node<RFNodeData>): Operation {
       fallbackNodeId: node.data.fallbackNodeId,
       global: node.data.global,
       defaultFallback: node.data.defaultFallback,
+      outputSchema: node.data.outputSchema,
       position: node.position,
     },
   };

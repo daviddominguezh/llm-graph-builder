@@ -124,7 +124,26 @@
     "parameters": "Parameters:",
     "agentInferred": "Agent inferred",
     "optionalField": "optional",
-    "fixedValuePlaceholder": "Enter value..."
+    "fixedValuePlaceholder": "Enter value...",
+    "toolCallWarningTitle": "Switch to tool call?",
+    "toolCallWarningDescription": "The source node \"{nodeId}\" has text and/or description content that will be cleared. Tool call nodes do not use these fields.",
+    "toolCallWarningConfirm": "Clear & continue",
+    "toolCallWarningCancel": "Cancel"
+  },
+  "nodePanel": {
+    "disabledByToolCall": "Disabled — this node routes through a tool call edge.",
+    "outputSchema": "Output Schema",
+    "outputSchemaDescription": "Define the structured output format for this agent node.",
+    "outputSchemaEmpty": "No fields defined. Add fields to define the output structure.",
+    "addField": "Add field",
+    "fieldNamePlaceholder": "e.g. sentiment",
+    "fieldRequired": "Required",
+    "fieldDescriptionPlaceholder": "What this field represents...",
+    "enumValues": "Values",
+    "addEnumValue": "Add value",
+    "arrayItems": "Array element",
+    "objectProperties": "Properties",
+    "deleteField": "Delete field"
   },
   "orgs": {
     "title": "My Organizations",
