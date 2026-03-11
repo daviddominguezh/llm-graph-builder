@@ -2,10 +2,24 @@ import { z } from 'zod';
 
 export const PreconditionTypeSchema = z.enum(['user_said', 'agent_decision', 'tool_call']);
 
-export const ToolFieldValueSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('fixed'), value: z.string() }),
-  z.object({ type: z.literal('reference'), nodeId: z.string(), path: z.string() }),
-]);
+/** Explicit type required for z.lazy() recursive reference. */
+export type ToolFieldValue =
+  | { type: 'fixed'; value: string }
+  | { type: 'reference'; nodeId: string; path: string; fallbacks?: ToolFieldValue[] };
+
+const FixedFieldValueSchema = z.object({ type: z.literal('fixed'), value: z.string() });
+
+export const ToolFieldValueSchema: z.ZodType<ToolFieldValue> = z.lazy(() =>
+  z.union([
+    FixedFieldValueSchema,
+    z.object({
+      type: z.literal('reference'),
+      nodeId: z.string(),
+      path: z.string(),
+      fallbacks: z.array(ToolFieldValueSchema).optional(),
+    }),
+  ])
+);
 
 export const PreconditionSchema = z.object({
   type: PreconditionTypeSchema,

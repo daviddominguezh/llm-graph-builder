@@ -20,7 +20,6 @@ import type {
   RuntimeGraphSchema,
   RuntimeNodeKindSchema,
   RuntimeNodeSchema,
-  ToolFieldValueSchema,
 } from '../schemas/index.js';
 
 export type Agent = z.infer<typeof AgentSchema>;
@@ -32,7 +31,7 @@ export type Node = z.infer<typeof NodeSchema>;
 export type RuntimeNode = z.infer<typeof RuntimeNodeSchema>;
 export type PreconditionType = z.infer<typeof PreconditionTypeSchema>;
 export type Precondition = z.infer<typeof PreconditionSchema>;
-export type ToolFieldValue = z.infer<typeof ToolFieldValueSchema>;
+export type { ToolFieldValue } from '../schemas/edge.schema.js';
 export type ContextPreconditions = z.infer<typeof ContextPreconditionsSchema>;
 export type Edge = z.infer<typeof EdgeSchema>;
 export type RuntimeEdge = z.infer<typeof RuntimeEdgeSchema>;

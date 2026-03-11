@@ -17,6 +17,7 @@ export {
   EdgeSchema,
   RuntimeEdgeSchema,
 } from './edge.schema.js';
+export type { ToolFieldValue } from './edge.schema.js';
 export { GraphSchema, RuntimeGraphSchema } from './graph.schema.js';
 export {
   StdioTransportSchema,
