@@ -5,10 +5,11 @@ import type {
   McpServerConfig,
   McpTransport,
   Node,
+  OutputSchemaField,
   Precondition,
   ToolFieldValue,
 } from '@daviddh/graph-types';
-import { McpTransportSchema, ToolFieldValueSchema } from '@daviddh/graph-types';
+import { McpTransportSchema, OutputSchemaFieldSchema, ToolFieldValueSchema } from '@daviddh/graph-types';
 import { z } from 'zod';
 
 import type {
@@ -31,6 +32,12 @@ function parseToolFields(raw: Record<string, unknown> | null): Record<string, To
   return result.success ? result.data : undefined;
 }
 
+function parseOutputSchema(raw: Array<Record<string, unknown>> | null): OutputSchemaField[] | undefined {
+  if (raw === null) return undefined;
+  const result = z.array(OutputSchemaFieldSchema).safeParse(raw);
+  return result.success ? result.data : undefined;
+}
+
 function buildPosition(row: NodeRow): { x: number; y: number } | undefined {
   if (row.position_x === null || row.position_y === null) return undefined;
   return { x: row.position_x, y: row.position_y };
@@ -48,7 +55,7 @@ export function assembleNode(row: NodeRow): Node {
     global: row.global,
     defaultFallback: row.default_fallback ?? undefined,
     position: buildPosition(row),
-    outputSchema: (row.output_schema as Node['outputSchema']) ?? undefined,
+    outputSchema: parseOutputSchema(row.output_schema),
   };
 }
 

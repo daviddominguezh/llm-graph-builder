@@ -1,6 +1,5 @@
-import { Position, type Edge as RFEdge, type Node as RFNode } from '@xyflow/react';
-
 import type { OutputSchemaField } from '@daviddh/graph-types';
+import { Position, type Edge as RFEdge, type Node as RFNode } from '@xyflow/react';
 
 import type {
   ContextPreconditions,
@@ -113,7 +112,10 @@ function resolveTextFields(
 function resolveOptionalFields(
   data: RFNodeData | undefined,
   original: SchemaNode
-): Pick<SchemaNode, 'agent' | 'nextNodeIsUser' | 'fallbackNodeId' | 'global' | 'defaultFallback' | 'outputSchema'> {
+): Pick<
+  SchemaNode,
+  'agent' | 'nextNodeIsUser' | 'fallbackNodeId' | 'global' | 'defaultFallback' | 'outputSchema'
+> {
   if (data === undefined) {
     return {
       agent: original.agent,

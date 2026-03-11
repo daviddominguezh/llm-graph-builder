@@ -1,15 +1,8 @@
 import { z } from 'zod';
 
-export const OutputSchemaFieldTypeSchema = z.enum([
-  'string',
-  'number',
-  'boolean',
-  'enum',
-  'object',
-  'array',
-]);
+export const OutputSchemaFieldTypeSchema = z.enum(['string', 'number', 'boolean', 'enum', 'object', 'array']);
 
-export type OutputSchemaField = {
+export interface OutputSchemaField {
   name: string;
   type: z.infer<typeof OutputSchemaFieldTypeSchema>;
   required: boolean;
@@ -17,7 +10,7 @@ export type OutputSchemaField = {
   enumValues?: string[];
   items?: OutputSchemaField;
   properties?: OutputSchemaField[];
-};
+}
 
 export const OutputSchemaFieldSchema: z.ZodType<OutputSchemaField> = z.lazy(() =>
   z.object({

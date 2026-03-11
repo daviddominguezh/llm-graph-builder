@@ -14,7 +14,7 @@ export interface NodeRow {
   default_fallback: boolean | null;
   position_x: number | null;
   position_y: number | null;
-  output_schema: Record<string, unknown>[] | null;
+  output_schema: Array<Record<string, unknown>> | null;
 }
 
 /** Row shape returned by `graph_edges` table. */

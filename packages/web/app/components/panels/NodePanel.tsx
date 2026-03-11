@@ -20,16 +20,20 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
 import type { Edge, Node } from '@xyflow/react';
-import { ArrowLeft, ArrowRight, Box, Brain, Cable, MessageCircle, Send, Trash2, Wrench } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Box, Brain, Cable, Info, MessageCircle, Send, Trash2, Wrench } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import type { Agent, PreconditionType } from '../../schemas/graph.schema';
 import type { ContextPreset } from '../../types/preset';
 import type { PushOperation } from '../../utils/operationBuilders';
 import type { RFEdgeData, RFNodeData } from '../../utils/graphTransformers';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FallbackNodeSelect } from './FallbackNodeSelect';
 import { NodePromptDialog } from './NodePromptDialog';
+import { OutputSchemaDialog } from './OutputSchemaDialog';
 import { pushDeleteNode, pushRenameNode, pushUpdateNode } from './nodePanelOps';
+import { hasToolCallEdge } from './toolCallGuard';
 
 interface NodePanelProps {
   nodeId: string;
@@ -63,10 +67,12 @@ export function NodePanel({
   const nodes = useNodes<Node<RFNodeData>>();
   const edges = useEdges<Edge<RFEdgeData>>();
   const { setNodes, setEdges } = useReactFlow();
+  const t = useTranslations('nodePanel');
 
   // Get incoming and outgoing edges
   const incomingEdges = edges.filter((e) => e.target === nodeId);
   const outgoingEdges = edges.filter((e) => e.source === nodeId);
+  const isToolCallNode = hasToolCallEdge(outgoingEdges);
 
   const node = nodes.find((n) => n.id === nodeId);
   const nodeData = node?.data;
@@ -140,6 +146,12 @@ export function NodePanel({
         <div className="flex items-center justify-between">
           <h4 className="text-sm font-semibold">Node Properties</h4>
           <div className="flex items-center">
+            {node.type === 'agent' && (
+              <OutputSchemaDialog
+                fields={nodeData.outputSchema ?? []}
+                onChange={(outputSchema) => updateNodeData({ outputSchema })}
+              />
+            )}
             <NodePromptDialog
               nodeId={nodeId}
               allNodes={allNodes}
@@ -203,6 +215,7 @@ export function NodePanel({
               onChange={(e) => updateNodeData({ description: e.target.value })}
               rows={2}
               placeholder="Node description..."
+              disabled={isToolCallNode}
             />
           </div>
 
@@ -214,8 +227,16 @@ export function NodePanel({
               onChange={(e) => updateNodeData({ text: e.target.value })}
               rows={3}
               placeholder="Node text..."
+              disabled={isToolCallNode}
             />
           </div>
+
+          {isToolCallNode && (
+            <Alert>
+              <Info className="h-3 w-3" />
+              <AlertDescription className="text-xs">{t('disabledByToolCall')}</AlertDescription>
+            </Alert>
+          )}
 
           <div className="space-y-2">
             <div className="flex items-center gap-2">

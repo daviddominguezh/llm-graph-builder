@@ -2,7 +2,11 @@ export { AgentSchema } from './agent.schema.js';
 export { ContextPresetSchema } from './context-preset.schema.js';
 export { PositionSchema } from './position.schema.js';
 export { BaseNodeKindSchema, RuntimeNodeKindSchema, NodeSchema, RuntimeNodeSchema } from './node.schema.js';
-export { OutputSchemaFieldSchema, OutputSchemaFieldTypeSchema, OutputSchemaSchema } from './output-schema.schema.js';
+export {
+  OutputSchemaFieldSchema,
+  OutputSchemaFieldTypeSchema,
+  OutputSchemaSchema,
+} from './output-schema.schema.js';
 export type { OutputSchemaField } from './output-schema.schema.js';
 export {
   PreconditionTypeSchema,
