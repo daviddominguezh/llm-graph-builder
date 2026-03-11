@@ -14,6 +14,7 @@ const NodeDataSchema = z.object({
   global: z.boolean().optional(),
   defaultFallback: z.boolean().optional(),
   outputSchemaId: z.string().optional(),
+  outputPrompt: z.string().optional(),
   position: PositionSchema.optional(),
 });
 

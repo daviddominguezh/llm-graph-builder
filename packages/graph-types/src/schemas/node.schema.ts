@@ -29,6 +29,7 @@ export const NodeSchema = z.object({
   global: z.boolean().default(false),
   defaultFallback: z.boolean().optional(),
   outputSchemaId: z.string().optional(),
+  outputPrompt: z.string().optional(),
   position: PositionSchema.optional(),
 });
 
@@ -44,5 +45,6 @@ export const RuntimeNodeSchema = z.object({
   isUser: z.boolean().optional(),
   global: z.boolean().default(false),
   outputSchema: OutputSchemaSchema,
+  outputPrompt: z.string().optional(),
   position: PositionSchema.optional(),
 });
