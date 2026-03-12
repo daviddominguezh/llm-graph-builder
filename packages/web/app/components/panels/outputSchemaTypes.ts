@@ -86,11 +86,15 @@ function hasUniqueNames(fields: OutputSchemaField[]): boolean {
 function isFieldTypeComplete(field: OutputSchemaField): boolean {
   if (field.type === 'enum') {
     const values = field.enumValues ?? [];
-    return values.length >= MIN_ENUM_VALUES && values.every((v) => v.trim() !== '') && hasUniqueValues(values);
+    return (
+      values.length >= MIN_ENUM_VALUES && values.every((v) => v.trim() !== '') && hasUniqueValues(values)
+    );
   }
   if (field.type === 'object') {
     const props = field.properties ?? [];
-    return props.length >= MIN_PROPERTIES && hasUniqueNames(props) && props.every((p) => isFieldComplete(p, false));
+    return (
+      props.length >= MIN_PROPERTIES && hasUniqueNames(props) && props.every((p) => isFieldComplete(p, false))
+    );
   }
   if (field.type === 'array') {
     return field.items !== undefined && isFieldComplete(field.items, true);

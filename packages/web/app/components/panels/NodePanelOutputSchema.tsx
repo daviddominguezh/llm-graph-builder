@@ -19,6 +19,7 @@ interface NodePanelOutputSchemaProps {
   onUpdateNodeData: (updates: Partial<RFNodeData>) => void;
   onAddOutputSchema: () => string;
   onEditOutputSchema: (id: string) => void;
+  onEditNewOutputSchema: (id: string) => void;
 }
 
 function hasRoutingPrecondition(edge: Edge<RFEdgeData>): boolean {
@@ -58,6 +59,7 @@ function OutputSchemaSection({
   onUpdateNodeData,
   onAddOutputSchema,
   onEditOutputSchema,
+  onEditNewOutputSchema,
   t,
 }: {
   nodeData: RFNodeData;
@@ -66,6 +68,7 @@ function OutputSchemaSection({
   onUpdateNodeData: (updates: Partial<RFNodeData>) => void;
   onAddOutputSchema: () => string;
   onEditOutputSchema: (id: string) => void;
+  onEditNewOutputSchema: (id: string) => void;
   t: (key: string) => string;
 }) {
   const disabled = isOutputSchemaDisabled(nodeData, outgoingEdges);
@@ -73,7 +76,7 @@ function OutputSchemaSection({
 
   const handleAddSchema = () => {
     const id = onAddOutputSchema();
-    onEditOutputSchema(id);
+    onEditNewOutputSchema(id);
   };
 
   return (
@@ -113,6 +116,7 @@ export function NodePanelOutputSchema({
   onUpdateNodeData,
   onAddOutputSchema,
   onEditOutputSchema,
+  onEditNewOutputSchema,
 }: NodePanelOutputSchemaProps) {
   const t = useTranslations('nodePanel');
   const isNextNodeUserDisabled = nodeData.outputSchemaId !== undefined;
@@ -127,6 +131,7 @@ export function NodePanelOutputSchema({
           onUpdateNodeData={onUpdateNodeData}
           onAddOutputSchema={onAddOutputSchema}
           onEditOutputSchema={onEditOutputSchema}
+          onEditNewOutputSchema={onEditNewOutputSchema}
           t={t}
         />
       )}

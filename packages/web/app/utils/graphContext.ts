@@ -1,3 +1,4 @@
+import type { OutputSchemaEntity } from '@daviddh/graph-types';
 import type { Edge as RFEdge, Node as RFNode } from '@xyflow/react';
 
 import type { Agent, Edge, McpServerConfig } from '../schemas/graph.schema';
@@ -19,9 +20,23 @@ interface SchemaNodeLike {
   agent: string | undefined;
   nextNodeIsUser: boolean;
   global: boolean;
+  outputPrompt?: string;
+  outputSchema?: OutputSchemaEntity['fields'];
 }
 
-export function rfNodesToSchemaNodes(nodes: Array<RFNode<RFNodeData>>): SchemaNodeLike[] {
+function resolveOutputSchema(
+  node: RFNode<RFNodeData>,
+  schemas: OutputSchemaEntity[]
+): OutputSchemaEntity['fields'] | undefined {
+  if (node.data.outputSchemaId === undefined) return undefined;
+  const schema = schemas.find((s) => s.id === node.data.outputSchemaId);
+  return schema?.fields;
+}
+
+export function rfNodesToSchemaNodes(
+  nodes: Array<RFNode<RFNodeData>>,
+  outputSchemas?: OutputSchemaEntity[]
+): SchemaNodeLike[] {
   return nodes.map((n) => ({
     id: n.id,
     text: n.data.text,
@@ -31,6 +46,8 @@ export function rfNodesToSchemaNodes(nodes: Array<RFNode<RFNodeData>>): SchemaNo
     nextNodeIsUser: n.data.nextNodeIsUser ?? false,
     fallbackNodeId: n.data.fallbackNodeId,
     global: n.data.global ?? false,
+    outputPrompt: n.data.outputPrompt,
+    outputSchema: resolveOutputSchema(n, outputSchemas ?? []),
   }));
 }
 
@@ -66,12 +83,13 @@ export function buildGraph(
   nodes: Array<RFNode<RFNodeData>>,
   edges: Array<RFEdge<RFEdgeData>>,
   agents: Agent[],
-  mcpServers?: McpServerConfig[]
+  mcpServers?: McpServerConfig[],
+  outputSchemas?: OutputSchemaEntity[]
 ): BuiltGraph {
   return {
     startNode: START_NODE_ID,
     agents,
-    nodes: rfNodesToSchemaNodes(nodes),
+    nodes: rfNodesToSchemaNodes(nodes, outputSchemas),
     edges: edges.map((e) => rfEdgeToSchemaEdge(e)),
     mcpServers,
   };

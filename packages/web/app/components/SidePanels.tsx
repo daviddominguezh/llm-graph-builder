@@ -1,7 +1,7 @@
 'use client';
 
 import type { Edge } from '@xyflow/react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import type { ApiKeyRow } from '../lib/api-keys';
 import type { Agent } from '../schemas/graph.schema';
@@ -70,6 +70,7 @@ export interface SidePanelsProps {
 
 interface SelectionPanelProps extends SidePanelsProps {
   onEditSchema: (id: string) => void;
+  onEditNewSchema: (id: string) => void;
 }
 
 function SelectionPanel(props: SelectionPanelProps) {
@@ -94,6 +95,7 @@ function SelectionPanel(props: SelectionPanelProps) {
           outputSchemas={props.outputSchemasHook.schemas}
           onAddOutputSchema={props.outputSchemasHook.addSchema}
           onEditOutputSchema={props.onEditSchema}
+          onEditNewOutputSchema={props.onEditNewSchema}
         />
       )}
       {selection.selectedEdgeId !== null && (
@@ -142,7 +144,7 @@ type PresetsAsideProps = Pick<
   | 'productionKeyId'
   | 'onStagingKeyChange'
   | 'outputSchemasHook'
-> & { onEditSchema: (id: string) => void; onRemoveSchema: (id: string) => void };
+> & { onEditSchema: (id: string) => void; onEditNewSchema: (id: string) => void; onRemoveSchema: (id: string) => void };
 
 function PresetsAside(props: PresetsAsideProps) {
   const { presetsHook, ctxPreconditions, setEdges } = props;
@@ -175,7 +177,7 @@ function PresetsAside(props: PresetsAsideProps) {
           schemas: props.outputSchemasHook.schemas,
           onAdd: () => {
             const id = props.outputSchemasHook.addSchema();
-            props.onEditSchema(id);
+            props.onEditNewSchema(id);
           },
           onRemove: props.onRemoveSchema,
           onEdit: props.onEditSchema,
@@ -191,10 +193,21 @@ export function SidePanels(props: SidePanelsProps) {
   const showSelectionPanel = !simulation.active && hasSelection;
 
   const [editingSchemaId, setEditingSchemaId] = useState<string | null>(null);
+  const [pendingNewSchemaId, setPendingNewSchemaId] = useState<string | null>(null);
+  const savedRef = useRef(false);
   const editingSchema =
     editingSchemaId !== null
       ? props.outputSchemasHook.schemas.find((s) => s.id === editingSchemaId)
       : undefined;
+
+  const handleEditSchema = (id: string) => {
+    setEditingSchemaId(id);
+  };
+
+  const handleEditNewSchema = (id: string) => {
+    setPendingNewSchemaId(id);
+    setEditingSchemaId(id);
+  };
 
   const handleRemoveSchema = (id: string) => {
     props.outputSchemasHook.removeSchema(id);
@@ -209,18 +222,31 @@ export function SidePanels(props: SidePanelsProps) {
         schema={editingSchema}
         onSave={props.outputSchemasHook.updateSchema}
         onSaved={(id) => {
+          savedRef.current = true;
+          setPendingNewSchemaId(null);
           const nodeId = selection.selectedNodeId;
           if (nodeId === null) return;
           props.setNodes((nds) =>
-            nds.map((n) => (n.id === nodeId && !n.data.outputSchemaId ? { ...n, data: { ...n.data, outputSchemaId: id } } : n))
+            nds.map((n) =>
+              n.id === nodeId && !n.data.outputSchemaId ? { ...n, data: { ...n.data, outputSchemaId: id } } : n
+            )
           );
         }}
         open={editingSchemaId !== null}
         onOpenChange={(open) => {
-          if (!open) setEditingSchemaId(null);
+          if (!open) {
+            if (pendingNewSchemaId !== null && !savedRef.current) {
+              props.outputSchemasHook.removeSchema(pendingNewSchemaId);
+            }
+            setPendingNewSchemaId(null);
+            savedRef.current = false;
+            setEditingSchemaId(null);
+          }
         }}
       />
-      {showSelectionPanel && <SelectionPanel {...props} onEditSchema={setEditingSchemaId} />}
+      {showSelectionPanel && (
+        <SelectionPanel {...props} onEditSchema={handleEditSchema} onEditNewSchema={handleEditNewSchema} />
+      )}
       {globalPanelOpen && (
         <GlobalPanel
           setNodes={props.setNodes}
@@ -254,7 +280,8 @@ export function SidePanels(props: SidePanelsProps) {
           productionKeyId={props.productionKeyId}
           onStagingKeyChange={props.onStagingKeyChange}
           outputSchemasHook={props.outputSchemasHook}
-          onEditSchema={setEditingSchemaId}
+          onEditSchema={handleEditSchema}
+          onEditNewSchema={handleEditNewSchema}
           onRemoveSchema={handleRemoveSchema}
         />
       )}

@@ -50,6 +50,7 @@ interface NodePanelProps {
   outputSchemas: OutputSchemaEntity[];
   onAddOutputSchema: () => string;
   onEditOutputSchema: (id: string) => void;
+  onEditNewOutputSchema: (id: string) => void;
 }
 
 export function NodePanel({
@@ -68,6 +69,7 @@ export function NodePanel({
   outputSchemas,
   onAddOutputSchema,
   onEditOutputSchema,
+  onEditNewOutputSchema,
 }: NodePanelProps) {
   const nodes = useNodes<Node<RFNodeData>>();
   const edges = useEdges<Edge<RFEdgeData>>();
@@ -158,6 +160,7 @@ export function NodePanel({
               presets={presets}
               activePresetId={activePresetId}
               onSetActivePreset={onSetActivePreset}
+              outputSchemas={outputSchemas}
             />
 
             <AlertDialog>
@@ -240,6 +243,7 @@ export function NodePanel({
             onUpdateNodeData={updateNodeData}
             onAddOutputSchema={onAddOutputSchema}
             onEditOutputSchema={onEditOutputSchema}
+            onEditNewOutputSchema={onEditNewOutputSchema}
           />
         </div>
 

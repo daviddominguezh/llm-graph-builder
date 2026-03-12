@@ -26,6 +26,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import type { OutputSchemaEntity } from '@daviddh/graph-types';
+
 import type { RFNodeData, RFEdgeData } from "../../utils/graphTransformers";
 import type { Node, Edge } from "@xyflow/react";
 import type { Agent } from "../../schemas/graph.schema";
@@ -39,6 +41,7 @@ interface NodePromptDialogProps {
   presets: ContextPreset[];
   activePresetId: string;
   onSetActivePreset: (id: string) => void;
+  outputSchemas: OutputSchemaEntity[];
 }
 
 interface PromptState {
@@ -121,6 +124,7 @@ export function NodePromptDialog({
   presets,
   activePresetId,
   onSetActivePreset,
+  outputSchemas,
 }: NodePromptDialogProps) {
   const edges = useEdges<Edge<RFEdgeData>>();
   const [open, setOpen] = useState(false);
@@ -137,7 +141,7 @@ export function NodePromptDialog({
       setPrompt({ text: "", loading: true, error: null });
     });
 
-    buildPromptForNode({ nodes: allNodes, edges, nodeId, preset: activePreset, agents })
+    buildPromptForNode({ nodes: allNodes, edges, nodeId, preset: activePreset, agents, outputSchemas })
       .then((text) => {
         if (!cancelled) setPrompt({ text, loading: false, error: null });
       })
@@ -150,7 +154,7 @@ export function NodePromptDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, nodeId, activePreset, agents, allNodes, edges, startTransition]);
+  }, [open, nodeId, activePreset, agents, allNodes, edges, outputSchemas, startTransition]);
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>

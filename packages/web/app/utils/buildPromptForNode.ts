@@ -1,3 +1,4 @@
+import type { OutputSchemaEntity } from '@daviddh/graph-types';
 import { buildNextAgentConfig, createDummyToolsForGraph } from '@daviddh/llm-graph-runner';
 import type { Edge as RFEdge, Node as RFNode } from '@xyflow/react';
 
@@ -14,12 +15,13 @@ interface BuildPromptParams {
   nodeId: string;
   preset: ContextPreset;
   agents: Agent[];
+  outputSchemas?: OutputSchemaEntity[];
 }
 
 export async function buildPromptForNode(params: BuildPromptParams): Promise<string> {
-  const { nodes, edges, nodeId, preset, agents } = params;
+  const { nodes, edges, nodeId, preset, agents, outputSchemas } = params;
 
-  const graph = buildGraph(nodes, edges, agents);
+  const graph = buildGraph(nodes, edges, agents, undefined, outputSchemas);
   const context = { ...buildContext(preset, PREVIEW_API_KEY_PLACEHOLDER), graph };
   const dummyTools = createDummyToolsForGraph(graph);
   const config = await buildNextAgentConfig(graph, context, nodeId, { toolsOverride: dummyTools });
