@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { OutputSchemaField } from '@daviddh/graph-types';
 import { Trash2 } from 'lucide-react';
@@ -75,13 +76,7 @@ function EnumPill({
   );
 }
 
-function FieldNameInput({
-  name,
-  onChange,
-}: {
-  name: string;
-  onChange: (name: string) => void;
-}) {
+function FieldNameInput({ name, onChange }: { name: string; onChange: (name: string) => void }) {
   const t = useTranslations('nodePanel');
   const nameInvalid = name !== '' && !isValidFieldName(name);
 
@@ -90,7 +85,7 @@ function FieldNameInput({
       value={name}
       onChange={(e) => onChange(e.target.value)}
       placeholder={t('fieldNamePlaceholder')}
-      className={`h-6 flex-1 font-mono text-xs ${nameInvalid ? 'border-destructive' : ''}`}
+      className={`h-7 flex-1 font-mono text-xs ${nameInvalid ? 'border-destructive' : ''}`}
     />
   );
 }
@@ -110,7 +105,7 @@ function FieldTypeSelect({
 
   return (
     <Select value={type} onValueChange={handleValueChange}>
-      <SelectTrigger className="h-6 w-24 text-xs">
+      <SelectTrigger className="h-7 w-24 text-xs">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -127,14 +122,8 @@ function FieldTypeSelect({
 function DeleteButton({ onRemove }: { onRemove: () => void }) {
   const t = useTranslations('nodePanel');
   return (
-    <Button
-      variant="ghost"
-      size="icon-xs"
-      onClick={onRemove}
-      title={t('deleteField')}
-      className="opacity-0 transition-opacity group-hover:opacity-100"
-    >
-      <Trash2 className="size-3" />
+    <Button variant="destructive" onClick={onRemove} title={t('deleteField')}>
+      <Trash2 className="size-3.5" />
     </Button>
   );
 }
@@ -152,15 +141,12 @@ function FieldHeader({
 }) {
   return (
     <div className="flex items-center gap-1">
+      <Label className="shrink-0 w-[75px]">{'Name:'}</Label>
       <FieldNameInput name={field.name} onChange={(name) => onChange({ name })} />
       <FieldTypeSelect
         type={field.type}
         availableTypes={availableTypes}
         onChange={(type) => onChange({ type })}
-      />
-      <Checkbox
-        checked={field.required}
-        onCheckedChange={(checked) => onChange({ required: checked === true })}
       />
       <DeleteButton onRemove={onRemove} />
     </div>
@@ -219,10 +205,7 @@ function ArrayItemEditor({
   );
 }
 
-function applyTypeDefaults(
-  field: OutputSchemaField,
-  updates: Partial<OutputSchemaField>
-): OutputSchemaField {
+function applyTypeDefaults(field: OutputSchemaField, updates: Partial<OutputSchemaField>): OutputSchemaField {
   const merged = { ...field, ...updates };
   if (updates.type !== undefined && updates.type !== field.type) {
     merged.enumValues = updates.type === 'enum' ? [''] : undefined;
@@ -243,10 +226,7 @@ function FieldChildren({
 }) {
   if (field.type === 'enum') {
     return (
-      <EnumValuesEditor
-        values={field.enumValues ?? ['']}
-        onChange={(v) => onChange({ enumValues: v })}
-      />
+      <EnumValuesEditor values={field.enumValues ?? ['']} onChange={(v) => onChange({ enumValues: v })} />
     );
   }
   if (field.type === 'object') {
@@ -275,14 +255,33 @@ export function OutputSchemaFieldCard({ field, depth, onChange, onRemove }: Fiel
   };
 
   return (
-    <div className={`group flex flex-col border-l-2 ${borderColor} ${bgColor} rounded-r py-0.5 pl-2 hover:bg-muted/30`}>
-      <FieldHeader field={field} availableTypes={availableTypes} onChange={handleChange} onRemove={onRemove} />
-      <Input
-        value={field.description ?? ''}
-        onChange={(e) => handleChange({ description: e.target.value || undefined })}
-        placeholder={t('fieldDescriptionPlaceholder')}
-        className="ml-1 mt-1 h-6 text-xs"
+    <div className={`group flex flex-col border-l-3 ${borderColor} ${bgColor} rounded-r py-0.5 pl-3`}>
+      <FieldHeader
+        field={field}
+        availableTypes={availableTypes}
+        onChange={handleChange}
+        onRemove={onRemove}
       />
+      <div className="mt-1 flex items-center gap-1">
+        <Label className="shrink-0 w-[75px]">{'Description:'}</Label>
+        <Input
+          value={field.description ?? ''}
+          onChange={(e) => handleChange({ description: e.target.value || undefined })}
+          placeholder={t('fieldDescriptionPlaceholder')}
+          className="h-7 text-xs"
+        />
+      </div>
+      <div className="mt-1 flex h-7 items-center gap-1">
+        <Label className="shrink-0 w-[75px]">{'Required:'}</Label>
+        <Checkbox
+          checked={field.required}
+          onCheckedChange={(checked) => handleChange({ required: checked === true })}
+        />
+        <span className="ml-0.5 text-muted-foreground">
+          {'(specifies if this field is optional or always required)'}
+        </span>
+      </div>
+
       <FieldChildren field={field} depth={depth} onChange={handleChange} />
     </div>
   );

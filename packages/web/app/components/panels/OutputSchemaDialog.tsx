@@ -29,7 +29,9 @@ interface OutputSchemaDialogProps {
 function EmptyState() {
   const t = useTranslations('nodePanel');
   return (
-    <p className="py-8 text-center text-xs text-muted-foreground">{t('outputSchemaEmpty')}</p>
+    <p className="p-4 rounded-md text-center text-xs text-muted-foreground bg-gray-100">
+      {t('outputSchemaEmpty')}
+    </p>
   );
 }
 
@@ -41,16 +43,19 @@ function FieldList({
   onChange: (fields: OutputSchemaField[]) => void;
 }) {
   return (
-    <div className="space-y-1">
-      {fields.map((field, index) => (
-        <OutputSchemaFieldCard
-          key={index}
-          field={field}
-          depth={1}
-          onChange={(updated) => onChange(updateFieldInList(fields, index, updated))}
-          onRemove={() => onChange(removeFieldFromList(fields, index))}
-        />
-      ))}
+    <div className="flex flex-col ml-1">
+      <Label>{'Fields:'}</Label>
+      <div className="space-y-1 pr-1 mt-2 pl-0">
+        {fields.map((field, index) => (
+          <OutputSchemaFieldCard
+            key={index}
+            field={field}
+            depth={1}
+            onChange={(updated) => onChange(updateFieldInList(fields, index, updated))}
+            onRemove={() => onChange(removeFieldFromList(fields, index))}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -78,34 +83,35 @@ function SchemaEditor({
 
   return (
     <>
-      <div className="flex items-center justify-between">
-        <DialogHeader>
-          <DialogTitle>{draft.name || tSchemas('schemaName')}</DialogTitle>
+      <div className="flex flex-col flex-1 overflow-y-auto">
+        <DialogHeader className="border-b pb-3 sticky top-0">
+          <DialogTitle>{'Structured Output Schema'}</DialogTitle>
         </DialogHeader>
+        <div className="space-y-1 px-1 pt-3 pb-3">
+          <Label className="text-xs">{tSchemas('schemaName')}</Label>
+          <Input
+            value={draft.name}
+            onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))}
+            placeholder={tSchemas('schemaName')}
+            className="h-7 font-mono text-xs"
+          />
+        </div>
+        <div className="py-2">
+          {draft.fields.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <FieldList fields={draft.fields} onChange={handleFieldsChange} />
+          )}
+        </div>
         <Button
           variant="outline"
           size="sm"
           onClick={() => handleFieldsChange([...draft.fields, createEmptyField()])}
+          className="w-fit self-end"
         >
           <Plus className="mr-1 h-3.5 w-3.5" />
           {t('addField')}
         </Button>
-      </div>
-      <div className="space-y-1 px-1">
-        <Label className="text-xs">{tSchemas('schemaName')}</Label>
-        <Input
-          value={draft.name}
-          onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))}
-          placeholder={tSchemas('schemaName')}
-          className="h-7 font-mono text-xs"
-        />
-      </div>
-      <div className="flex-1 overflow-y-auto py-2">
-        {draft.fields.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <FieldList fields={draft.fields} onChange={handleFieldsChange} />
-        )}
       </div>
       <DialogFooter>
         <DialogClose render={<Button variant="outline" onClick={onCancel} />}>
