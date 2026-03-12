@@ -65,7 +65,7 @@ function EnumPill({
       <input
         value={value}
         onChange={(e) => onChange(values.map((val, j) => (j === index ? e.target.value : val)))}
-        className="w-16 bg-transparent text-xs outline-none"
+        className="w-16 px-1 bg-transparent text-xs outline-none"
       />
       <button
         onClick={() => onChange(values.filter((_, j) => j !== index))}
@@ -86,7 +86,7 @@ function FieldNameInput({ name, onChange }: { name: string; onChange: (name: str
       value={name}
       onChange={(e) => onChange(e.target.value)}
       placeholder={t('fieldNamePlaceholder')}
-      className={`h-7 flex-1 font-mono text-xs ${nameInvalid ? 'border-destructive' : ''}`}
+      className={`h-7 flex-1 text-xs ${nameInvalid ? 'border-destructive' : ''}`}
     />
   );
 }

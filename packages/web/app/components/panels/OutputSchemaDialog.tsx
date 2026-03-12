@@ -17,7 +17,12 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import { OutputSchemaFieldCard } from './OutputSchemaFieldCard';
-import { createEmptyField, removeFieldFromList, updateFieldInList } from './outputSchemaTypes';
+import {
+  createEmptyField,
+  isSchemaComplete,
+  removeFieldFromList,
+  updateFieldInList,
+} from './outputSchemaTypes';
 
 interface OutputSchemaDialogProps {
   schema: OutputSchemaEntity | undefined;
@@ -117,7 +122,9 @@ function SchemaEditor({
         <DialogClose render={<Button variant="outline" onClick={onCancel} />}>
           {tSchemas('cancel')}
         </DialogClose>
-        <Button onClick={handleSave}>{tSchemas('save')}</Button>
+        <Button onClick={handleSave} disabled={!isSchemaComplete(draft.name, draft.fields)}>
+          {tSchemas('save')}
+        </Button>
       </DialogFooter>
     </>
   );

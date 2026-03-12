@@ -63,3 +63,44 @@ export function updateFieldInList(
 export function removeFieldFromList(fields: OutputSchemaField[], index: number): OutputSchemaField[] {
   return fields.filter((_, i) => i !== index);
 }
+
+const MIN_ENUM_VALUES = 1;
+const MIN_PROPERTIES = 1;
+
+function isFieldComplete(field: OutputSchemaField, isArrayItem: boolean): boolean {
+  if (!isArrayItem && (!field.name || !isValidFieldName(field.name))) return false;
+  if (!isArrayItem && (!field.description || field.description.trim() === '')) return false;
+  return isFieldTypeComplete(field);
+}
+
+function hasUniqueValues(values: string[]): boolean {
+  const trimmed = values.map((v) => v.trim());
+  return new Set(trimmed).size === trimmed.length;
+}
+
+function hasUniqueNames(fields: OutputSchemaField[]): boolean {
+  const names = fields.map((f) => f.name);
+  return new Set(names).size === names.length;
+}
+
+function isFieldTypeComplete(field: OutputSchemaField): boolean {
+  if (field.type === 'enum') {
+    const values = field.enumValues ?? [];
+    return values.length >= MIN_ENUM_VALUES && values.every((v) => v.trim() !== '') && hasUniqueValues(values);
+  }
+  if (field.type === 'object') {
+    const props = field.properties ?? [];
+    return props.length >= MIN_PROPERTIES && hasUniqueNames(props) && props.every((p) => isFieldComplete(p, false));
+  }
+  if (field.type === 'array') {
+    return field.items !== undefined && isFieldComplete(field.items, true);
+  }
+  return true;
+}
+
+export function isSchemaComplete(name: string, fields: OutputSchemaField[]): boolean {
+  if (!name || name.trim() === '') return false;
+  if (fields.length === 0) return false;
+  if (!hasUniqueNames(fields)) return false;
+  return fields.every((f) => isFieldComplete(f, false));
+}
