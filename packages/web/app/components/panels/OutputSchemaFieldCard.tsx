@@ -34,7 +34,7 @@ interface EnumValuesEditorProps {
 
 function EnumValuesEditor({ values, onChange }: EnumValuesEditorProps) {
   return (
-    <div className="ml-1 mt-1 flex flex-wrap gap-1">
+    <div className="flex flex-wrap gap-1">
       {values.map((v, i) => (
         <EnumPill key={i} value={v} index={i} values={values} onChange={onChange} />
       ))}
@@ -60,7 +60,7 @@ function EnumPill({
   onChange: (values: string[]) => void;
 }) {
   return (
-    <div className="flex items-center gap-0.5 rounded border bg-muted/40 px-1.5 py-0.5">
+    <div className="flex items-center gap-0.5 rounded-md border bg-muted/40 px-1.5 py-0.5 h-6.5">
       <input
         value={value}
         onChange={(e) => onChange(values.map((val, j) => (j === index ? e.target.value : val)))}
@@ -225,9 +225,7 @@ function FieldChildren({
   onChange: (updates: Partial<OutputSchemaField>) => void;
 }) {
   if (field.type === 'enum') {
-    return (
-      <EnumValuesEditor values={field.enumValues ?? ['']} onChange={(v) => onChange({ enumValues: v })} />
-    );
+    return null;
   }
   if (field.type === 'object') {
     return (
@@ -262,6 +260,15 @@ export function OutputSchemaFieldCard({ field, depth, onChange, onRemove }: Fiel
         onChange={handleChange}
         onRemove={onRemove}
       />
+      {field.type === 'enum' && (
+        <div className="flex items-center gap-1 min-h-7 pt-1">
+          <Label className="shrink-0 w-[75px]">{'Values:'}</Label>
+          <EnumValuesEditor
+            values={field.enumValues ?? ['']}
+            onChange={(v) => handleChange({ enumValues: v })}
+          />
+        </div>
+      )}
       <div className="mt-1 flex items-center gap-1">
         <Label className="shrink-0 w-[75px]">{'Description:'}</Label>
         <Input
