@@ -173,10 +173,13 @@ async function resolveEdgeOptions(
   const { [FIRST_INDEX]: firstEdgeEntry } = edges;
   if (firstEdgeEntry === undefined) return createTerminalNodeOptions(node, {});
 
+  const firstPreconditions = firstEdgeEntry.preconditions ?? [];
+  const isAgentDecision = firstPreconditions.some((p) => p.type === 'agent_decision');
   const { withPreconditions, withoutToolPreconditions, nodes } = await convertEdgesToStr(
     graph,
     context,
-    edges
+    edges,
+    isAgentDecision
   );
   return buildStandardEdgeOptions({
     node,
