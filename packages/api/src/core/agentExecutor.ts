@@ -9,6 +9,7 @@ import { runExecutionLoop } from './attemptExecutor.js';
 import type { AttemptExecParams } from './attemptExecutor.js';
 import { AGENT_CONSTANTS } from './constants.js';
 import { MessageProcessor } from './messageProcessor.js';
+import type { OutputSchema } from './modelCaller.js';
 import { createEmptyTokenLog } from './tokenTracker.js';
 import type { AgentExecutionResult, ExecutionState } from './types.js';
 
@@ -21,6 +22,7 @@ export interface ExecuteAgentOptions {
   messages: Message[];
   step: string;
   expectedTool?: string;
+  outputSchema?: OutputSchema;
 }
 
 function getLastMessage(
@@ -50,6 +52,7 @@ function createExecParams(
     messages: options.messages,
     step: options.step,
     expectedTool: options.expectedTool,
+    outputSchema: options.outputSchema,
     sessionId,
     executionStartTime,
     tokens,

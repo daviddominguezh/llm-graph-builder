@@ -1,6 +1,6 @@
 import type { Tool } from 'ai';
 
-import { FIRST_INDEX, INCREMENT_BY_ONE, INITIAL_STEP_NODE } from '@src/constants/index.js';
+import { FIRST_INDEX, INITIAL_STEP_NODE } from '@src/constants/index.js';
 import type { Graph, ToolFieldValue } from '@src/types/graph.js';
 import type { SMConfig, SMNextOptions } from '@src/types/stateMachine.js';
 import type { Context } from '@src/types/tools.js';
@@ -10,11 +10,11 @@ import { setLogger } from '@src/utils/logger.js';
 import { convertEdgesToStr } from './format/index.js';
 import { addNodeSpecificPrompts } from './format/utils.js';
 import { getEdgesFromNode, getNode, getToolsFromEdges } from './graph/index.js';
+import { appendKindSpecificPrompts } from './promptAssembly.js';
 import {
   SM_BASE_PROMPT_NEXT_OPTIONS,
   SM_BASE_PROMPT_NEXT_OPTION_IS_AGENT_DECISION,
   SM_BASE_PROMPT_NEXT_OPTION_IS_TOOL,
-  buildOutputFormatPrompt,
 } from './prompts/index.js';
 import { buildResolvedFieldsPrompt } from './referenceResolver.js';
 import { buildStructuredOutputOptions, hasOutputSchema } from './structuredOutputOptions.js';
@@ -203,50 +203,6 @@ export const getNextOptions = async (
 // TODO: Implement
 export const generateUserContextPrompt = (context: Context): string | null => '';
 
-const buildDecisionFallback = (edges: SMNextOptions['edges'], fallbackNodeId?: string): string => {
-  const fallbackIndex = resolveFallbackIndex(edges, fallbackNodeId);
-  return `**Fallback** — \`nextNodeID: ${fallbackIndex}\`\nIf unclear, default to Option ${fallbackIndex}.`;
-};
-
-const resolveFallbackIndex = (edges: SMNextOptions['edges'], fallbackNodeId?: string): number => {
-  if (fallbackNodeId === undefined) return INCREMENT_BY_ONE;
-  const index = edges.findIndex((e) => e.to === fallbackNodeId);
-  return index >= FIRST_INDEX ? index + INCREMENT_BY_ONE : INCREMENT_BY_ONE;
-};
-
-const buildEdgeIds = (edges: SMNextOptions['edges']): string =>
-  edges.map((_, i) => i + INCREMENT_BY_ONE).join('|');
-
-interface AppendKindParams {
-  kind: SMNextOptions['kind'];
-  edges: SMNextOptions['edges'];
-  basePrompt: string;
-  basePromptWithoutTools: string;
-  fallbackNodeId?: string;
-}
-
-const appendKindSpecificPrompts = (
-  params: AppendKindParams
-): { prompt: string; promptWithoutTools: string } => {
-  const { kind, edges, basePrompt, basePromptWithoutTools, fallbackNodeId } = params;
-  if (kind === 'agent_decision') {
-    const fallback = buildDecisionFallback(edges, fallbackNodeId);
-    const outputFormat = buildOutputFormatPrompt(buildEdgeIds(edges));
-    return {
-      prompt: `${basePrompt}\n\n${fallback}\n\n${outputFormat}`,
-      promptWithoutTools: `${basePromptWithoutTools}\n\n${fallback}\n\n${outputFormat}`,
-    };
-  }
-  if (kind === 'user_reply') {
-    const outputFormat = buildOutputFormatPrompt(buildEdgeIds(edges));
-    return {
-      prompt: `${basePrompt}\n\n${outputFormat}`,
-      promptWithoutTools: `${basePromptWithoutTools}\n\n${outputFormat}`,
-    };
-  }
-  return { prompt: basePrompt, promptWithoutTools: basePromptWithoutTools };
-};
-
 function applyUserContext(prompt: string, userContext: string | null): string {
   return userContext === null ? prompt : `${prompt}\n\n${userContext}`;
 }
@@ -263,8 +219,10 @@ function buildPromptConfig(
     basePrompt: nextOptions.prompt,
     basePromptWithoutTools: nextOptions.promptWithoutToolPreconditions,
     fallbackNodeId: nextOptions.node.fallbackNodeId,
+    nextNodeIsUser: nextOptions.node.nextNodeIsUser,
   });
   const userContext = generateUserContextPrompt(context);
+  const skipMessageToUser = nextOptions.kind === 'agent_decision' && nextOptions.node.nextNodeIsUser !== true;
   const config: SMConfig = {
     node: nextOptions.node,
     prompt: applyUserContext(mPrompt, userContext),
@@ -274,6 +232,7 @@ function buildPromptConfig(
     kind: nextOptions.kind,
     nodes: nextOptions.nodes,
     outputSchema: nextOptions.outputSchema,
+    skipMessageToUser,
   };
   config.promptWithoutToolPreconditions = addNodeSpecificPrompts(graph, context, currentNode, config.prompt);
   return config;

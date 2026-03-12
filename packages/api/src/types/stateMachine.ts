@@ -33,6 +33,7 @@ export interface SMConfig {
   kind: NodeKind;
   nodes: Record<string, string>;
   outputSchema?: OutputSchemaField[];
+  skipMessageToUser?: boolean;
 }
 
 export interface UserNode {

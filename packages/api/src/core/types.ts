@@ -95,6 +95,7 @@ export interface NodeProcessingConfig {
   >;
   nodes: Record<string, string>;
   outputSchema?: OutputSchemaField[];
+  skipMessageToUser?: boolean;
 }
 
 /**

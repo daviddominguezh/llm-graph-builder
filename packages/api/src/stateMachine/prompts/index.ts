@@ -20,6 +20,18 @@ Return ONLY valid JSON. No tools. No extra text.
 
 ${buildAgentReplySchema(ids)}`;
 
+export const buildDecisionOnlySchema = (ids: string): string => `\`\`\`json
+{
+  "nextNodeID": "${ids}"
+}
+\`\`\``;
+
+export const buildDecisionOnlyOutputFormatPrompt = (ids: string): string => `## Output format
+
+Return ONLY valid JSON. No tools. No extra text.
+
+${buildDecisionOnlySchema(ids)}`;
+
 export const SM_BASE_PROMPT_NEXT_OPTION_IS_AGENT_DECISION = `You are a routing node. Your only job is to classify the user's message and return a JSON object.
 
 ## Options`;

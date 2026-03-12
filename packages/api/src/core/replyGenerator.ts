@@ -8,6 +8,7 @@ import { logger } from '@src/utils/logger.js';
 
 import { executeAgent } from './agentExecutor.js';
 import { MessageProcessor } from './messageProcessor.js';
+import type { OutputSchema } from './modelCaller.js';
 import { ResponseParser } from './responseParser.js';
 import type { ReplyGenerationResult } from './types.js';
 
@@ -23,6 +24,7 @@ interface GenerateReplyParams {
   step: string;
   nodes: Record<string, string>;
   nextNodeKnown?: string;
+  outputSchema?: OutputSchema;
 }
 
 /**
@@ -111,8 +113,8 @@ const isAssistantMessage = (msg: AssistantModelMessage | ToolModelMessage): msg 
  * Generates a reply from the agent without tool calls
  */
 export async function generateReply(params: GenerateReplyParams): Promise<ReplyGenerationResult> {
-  const { context, provider, config, messages, step, nodes, nextNodeKnown } = params;
-  const reply = await executeAgent({ context, provider, config, messages, step });
+  const { context, provider, config, messages, step, nodes, nextNodeKnown, outputSchema } = params;
+  const reply = await executeAgent({ context, provider, config, messages, step, outputSchema });
 
   const { tokens, messages: msgs, copyMsgs } = reply;
 

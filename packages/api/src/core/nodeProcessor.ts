@@ -11,6 +11,7 @@ import { formatMessages } from '@src/utils/messages.js';
 import { getModel } from './agentExecutorHelpers.js';
 import { getConfig } from './config.js';
 import { AGENT_CONSTANTS, PROMPTS } from './constants.js';
+import { DECISION_ONLY_OUTPUT_SCHEMA } from './modelCaller.js';
 import { type ToolCallsArray, getProviderFromMessages } from './nodeProcessorHelpers.js';
 import { generateReply } from './replyGenerator.js';
 import { accumulateTokens } from './tokenTracker.js';
@@ -88,6 +89,7 @@ export async function processReplyNode(
 
   const cleanMessages = formatMessages(input.messages, [promptWithoutToolPreconditions]);
   const modelConfig = getConfig({ model, cleanMessages, toolChoice: 'none' });
+  const outputSchema = config.skipMessageToUser === true ? DECISION_ONLY_OUTPUT_SCHEMA : undefined;
 
   const res = await generateReply({
     context,
@@ -96,6 +98,7 @@ export async function processReplyNode(
     messages: input.messages,
     step: currentNodeID,
     nodes,
+    outputSchema,
   });
   const { tokensLog } = input;
   const lastTokenLog = tokensLog.at(-LAST_INDEX_OFFSET);

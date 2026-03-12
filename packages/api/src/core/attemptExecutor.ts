@@ -8,7 +8,7 @@ import { isError } from '@src/utils/typeGuards.js';
 import { getEscalationReason, getModel } from './agentExecutorHelpers.js';
 import { AGENT_CONSTANTS } from './constants.js';
 import { MessageProcessor } from './messageProcessor.js';
-import { callModel } from './modelCaller.js';
+import { type OutputSchema, callModel } from './modelCaller.js';
 import { processReply } from './replyProcessing.js';
 import type { ExecutionState } from './types.js';
 
@@ -22,6 +22,7 @@ export interface AttemptExecParams {
   messages: Message[];
   step: string;
   expectedTool?: string;
+  outputSchema?: OutputSchema;
   sessionId: string;
   executionStartTime: number;
   tokens: TokenLog;
@@ -102,7 +103,8 @@ async function tryExecuteAttempt(
   execParams: AttemptExecParams,
   attemptCount: number
 ): Promise<AttemptResult> {
-  const { context, config, expectedTool, tokens, allToolCalls, copyMsgs, sessionId } = execParams;
+  const { context, config, expectedTool, outputSchema, tokens, allToolCalls, copyMsgs, sessionId } =
+    execParams;
   const attemptStartTime = Date.now();
   const { model, name: modelName } = getModel(apiKey);
 
@@ -113,7 +115,7 @@ async function tryExecuteAttempt(
   copyMsgs.push(MessageProcessor.cleanMessagesBeforeSending(MessageProcessor.cloneMessages(config.messages)));
 
   logger.info('[ATTEMPT] Calling model...');
-  const reply: unknown = await callModel(context, config, { expectedTool, model });
+  const reply: unknown = await callModel(context, config, { expectedTool, model, outputSchema });
   logger.info(`[ATTEMPT] Model returned, reply type: ${typeof reply}`);
   logger.info(
     `[ATTEMPT] Reply keys: ${typeof reply === 'object' && reply !== null ? Object.keys(reply).join(', ') : 'N/A'}`
