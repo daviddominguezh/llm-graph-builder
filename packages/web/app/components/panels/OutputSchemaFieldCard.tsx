@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { OutputSchemaField } from '@daviddh/graph-types';
@@ -34,45 +35,27 @@ interface EnumValuesEditorProps {
 }
 
 function EnumValuesEditor({ values, onChange }: EnumValuesEditorProps) {
+  const t = useTranslations('nodePanel');
   return (
-    <div className="flex flex-wrap gap-1">
+    <div className="flex flex-wrap items-center gap-1">
       {values.map((v, i) => (
-        <EnumPill key={i} value={v} index={i} values={values} onChange={onChange} />
+        <InputGroup key={i} className="w-28">
+          <InputGroupInput
+            value={v}
+            onChange={(e) => onChange(values.map((val, j) => (j === i ? e.target.value : val)))}
+            placeholder={t('enumValuePlaceholder')}
+            className="h-7 text-xs"
+          />
+          <InputGroupAddon align="inline-end">
+            <InputGroupButton size="icon-xs" onClick={() => onChange(values.filter((_, j) => j !== i))}>
+              <span className="text-xs">&times;</span>
+            </InputGroupButton>
+          </InputGroupAddon>
+        </InputGroup>
       ))}
-      <button
-        onClick={() => onChange([...values, ''])}
-        className="px-1 text-xs text-muted-foreground hover:text-foreground"
-      >
-        +
-      </button>
-    </div>
-  );
-}
-
-function EnumPill({
-  value,
-  index,
-  values,
-  onChange,
-}: {
-  value: string;
-  index: number;
-  values: string[];
-  onChange: (values: string[]) => void;
-}) {
-  return (
-    <div className="flex items-center gap-0.5 rounded-md border bg-muted/40 px-1.5 py-0.5 h-6.5">
-      <input
-        value={value}
-        onChange={(e) => onChange(values.map((val, j) => (j === index ? e.target.value : val)))}
-        className="w-16 px-1 bg-transparent text-xs outline-none"
-      />
-      <button
-        onClick={() => onChange(values.filter((_, j) => j !== index))}
-        className="text-xs text-muted-foreground hover:text-foreground"
-      >
-        &times;
-      </button>
+      <Button variant="ghost" size="icon-xs" onClick={() => onChange([...values, ''])}>
+        <span className="text-xs">+</span>
+      </Button>
     </div>
   );
 }

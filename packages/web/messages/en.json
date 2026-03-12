@@ -147,6 +147,7 @@
     "fieldDescriptionPlaceholder": "What this field represents...",
     "enumValues": "Values",
     "addEnumValue": "Add value",
+    "enumValuePlaceholder": "e.g. positive",
     "arrayItems": "Array element",
     "objectProperties": "Properties",
     "deleteField": "Delete field",
