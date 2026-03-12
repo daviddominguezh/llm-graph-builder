@@ -73,7 +73,6 @@ function OutputSchemaSection({
 
   const handleAddSchema = () => {
     const id = onAddOutputSchema();
-    onUpdateNodeData({ outputSchemaId: id });
     onEditOutputSchema(id);
   };
 

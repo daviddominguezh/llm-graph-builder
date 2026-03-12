@@ -208,6 +208,13 @@ export function SidePanels(props: SidePanelsProps) {
       <OutputSchemaDialog
         schema={editingSchema}
         onSave={props.outputSchemasHook.updateSchema}
+        onSaved={(id) => {
+          const nodeId = selection.selectedNodeId;
+          if (nodeId === null) return;
+          props.setNodes((nds) =>
+            nds.map((n) => (n.id === nodeId && !n.data.outputSchemaId ? { ...n, data: { ...n.data, outputSchemaId: id } } : n))
+          );
+        }}
         open={editingSchemaId !== null}
         onOpenChange={(open) => {
           if (!open) setEditingSchemaId(null);

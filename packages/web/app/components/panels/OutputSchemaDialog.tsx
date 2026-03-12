@@ -27,6 +27,7 @@ import {
 interface OutputSchemaDialogProps {
   schema: OutputSchemaEntity | undefined;
   onSave: (id: string, updates: Partial<OutputSchemaEntity>) => void;
+  onSaved?: (id: string) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -130,9 +131,10 @@ function SchemaEditor({
   );
 }
 
-export function OutputSchemaDialog({ schema, onSave, open, onOpenChange }: OutputSchemaDialogProps) {
+export function OutputSchemaDialog({ schema, onSave, onSaved, open, onOpenChange }: OutputSchemaDialogProps) {
   const handleSave = (id: string, updates: Partial<OutputSchemaEntity>) => {
     onSave(id, updates);
+    onSaved?.(id);
     onOpenChange(false);
   };
 
