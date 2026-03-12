@@ -45,7 +45,7 @@ function FieldList({
   return (
     <div className="flex flex-col ml-1">
       <Label>{'Fields:'}</Label>
-      <div className="space-y-1 pr-1 mt-2 pl-0">
+      <div className="flex flex-col gap-3 space-y-1 pr-1 mt-2 pl-0">
         {fields.map((field, index) => (
           <OutputSchemaFieldCard
             key={index}

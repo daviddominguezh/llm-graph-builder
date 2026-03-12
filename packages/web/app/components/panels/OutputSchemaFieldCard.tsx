@@ -25,6 +25,7 @@ interface FieldCardProps {
   depth: number;
   onChange: (updated: OutputSchemaField) => void;
   onRemove: () => void;
+  isArrayItem?: boolean;
 }
 
 interface EnumValuesEditorProps {
@@ -200,6 +201,7 @@ function ArrayItemEditor({
         depth={depth + 1}
         onChange={(updated) => onChange({ items: updated })}
         onRemove={() => onChange({ items: createEmptyField() })}
+        isArrayItem
       />
     </div>
   );
@@ -242,7 +244,39 @@ function FieldChildren({
   return null;
 }
 
-export function OutputSchemaFieldCard({ field, depth, onChange, onRemove }: FieldCardProps) {
+function ArrayItemCard({
+  field,
+  depth,
+  availableTypes,
+  borderColor,
+  bgColor,
+  onChange,
+}: {
+  field: OutputSchemaField;
+  depth: number;
+  availableTypes: OutputSchemaFieldType[];
+  borderColor: string;
+  bgColor: string;
+  onChange: (updates: Partial<OutputSchemaField>) => void;
+}) {
+  return (
+    <div className={`group flex flex-col border-l-3 ${borderColor} ${bgColor} rounded-r py-0.5 pl-3`}>
+      <div className="flex items-center gap-1">
+        <Label className="shrink-0 w-[75px]">{'Item type:'}</Label>
+        <FieldTypeSelect type={field.type} availableTypes={availableTypes} onChange={(type) => onChange({ type })} />
+      </div>
+      {field.type === 'enum' && (
+        <div className="flex items-center gap-1 min-h-7 pt-1">
+          <Label className="shrink-0 w-[75px]">{'Values:'}</Label>
+          <EnumValuesEditor values={field.enumValues ?? ['']} onChange={(v) => onChange({ enumValues: v })} />
+        </div>
+      )}
+      <FieldChildren field={field} depth={depth} onChange={onChange} />
+    </div>
+  );
+}
+
+export function OutputSchemaFieldCard({ field, depth, onChange, onRemove, isArrayItem }: FieldCardProps) {
   const t = useTranslations('nodePanel');
   const availableTypes = getAvailableTypes(depth);
   const borderColor = TYPE_BORDER_COLORS[field.type];
@@ -251,6 +285,19 @@ export function OutputSchemaFieldCard({ field, depth, onChange, onRemove }: Fiel
   const handleChange = (updates: Partial<OutputSchemaField>) => {
     onChange(applyTypeDefaults(field, updates));
   };
+
+  if (isArrayItem) {
+    return (
+      <ArrayItemCard
+        field={field}
+        depth={depth}
+        availableTypes={availableTypes}
+        borderColor={borderColor}
+        bgColor={bgColor}
+        onChange={handleChange}
+      />
+    );
+  }
 
   return (
     <div className={`group flex flex-col border-l-3 ${borderColor} ${bgColor} rounded-r py-0.5 pl-3`}>
