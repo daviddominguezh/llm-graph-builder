@@ -53,7 +53,7 @@ function EnvRefSelector({ envVariableId, envVariables, t, onChange }: EnvRefSele
 
   return (
     <Select value={envVariableId ?? ''} onValueChange={handleChange}>
-      <SelectTrigger className="w-full text-sm">
+      <SelectTrigger className="w-full text-xs">
         <SelectValue placeholder={t('selectEnvVar')} />
       </SelectTrigger>
       <SelectContent>
@@ -77,7 +77,11 @@ interface VariableRowProps {
 
 function VariableRow({ variable, variableValue, envVariables, t, onChange }: VariableRowProps) {
   function handleModeChange(mode: string | null) {
-    onChange({ type: mode === 'env_ref' ? 'env_ref' : 'direct' });
+    if (mode === 'env_ref') {
+      onChange({ type: 'env_ref', envVariableId: '' });
+    } else {
+      onChange({ type: 'direct', value: '' });
+    }
   }
 
   return (

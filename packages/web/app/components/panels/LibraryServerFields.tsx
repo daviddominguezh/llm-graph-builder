@@ -1,12 +1,11 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
-
 import type { OrgEnvVariableRow } from '@/app/lib/org-env-variables';
 import { extractVariableNames } from '@/app/lib/resolve-variables';
 import type { McpServerConfig } from '@/app/schemas/graph.schema';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useTranslations } from 'next-intl';
 
 import { VariableValuesEditor } from './VariableValuesEditor';
 import type { VariableValue } from './VariableValuesEditor';
@@ -47,6 +46,7 @@ export function LibraryServerFields({ server, envVariables, onUpdate }: LibraryS
 
   return (
     <div className="space-y-2 mt-2">
+      <p className="text-xs text-muted-foreground">{t('readOnlyConfig')}</p>
       <div className="space-y-1">
         <Label>Name</Label>
         <Input value={server.name} disabled />
@@ -55,7 +55,6 @@ export function LibraryServerFields({ server, envVariables, onUpdate }: LibraryS
         <Label>Transport</Label>
         <Input value={server.transport.type} disabled />
       </div>
-      <p className="text-xs text-muted-foreground">{t('readOnlyConfig')}</p>
       <VariableValuesEditor
         variables={variables}
         values={values}
