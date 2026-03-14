@@ -5,6 +5,8 @@ import { createContext, useContext, useMemo, useState } from 'react';
 import type { CopilotSession } from './copilotTypes';
 import { useCopilotSessions } from './useCopilotSessions';
 import { useCopilotStreaming } from './useCopilotStreaming';
+import { CopilotButton } from './CopilotButton';
+import { CopilotPanel } from './CopilotPanel';
 
 // ---------------------------------------------------------------------------
 // Context interface
@@ -68,5 +70,11 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
 // ---------------------------------------------------------------------------
 
 export function CopilotShell({ children }: { children: React.ReactNode }) {
-  return <CopilotProvider>{children}</CopilotProvider>;
+  return (
+    <CopilotProvider>
+      {children}
+      <CopilotButton />
+      <CopilotPanel />
+    </CopilotProvider>
+  );
 }
