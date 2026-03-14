@@ -4,7 +4,8 @@ import type { OrgRow } from '@/app/lib/orgs';
 import { createClient } from '@/app/lib/supabase/client';
 import { toProxyImageSrc } from '@/app/lib/supabase/image';
 import { Button } from '@/components/ui/button';
-import { ChevronsUpDown, LogOut, Settings, Zap } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { ChevronsUpDown, KeyRound, LayoutDashboard, LogOut, MessageSquare, ScrollText, Settings, Users, Zap } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
@@ -100,27 +101,57 @@ function ExpandedTrigger({ org }: { org: OrgRow }) {
   );
 }
 
-function CollapsedNav({ basePath, isSettings }: { basePath: string; isSettings: boolean }) {
+interface NavItemDef {
+  segment: string;
+  path: string;
+  Icon: LucideIcon;
+  labelKey: string;
+}
+
+const NAV_ITEMS: NavItemDef[] = [
+  { segment: 'dashboard', path: '/dashboard', Icon: LayoutDashboard, labelKey: 'dashboard' },
+  { segment: '', path: '', Icon: Zap, labelKey: 'agents' },
+  { segment: 'chats', path: '/chats', Icon: MessageSquare, labelKey: 'chats' },
+  { segment: 'api-keys', path: '/api-keys', Icon: KeyRound, labelKey: 'apiKeys' },
+  { segment: 'logs', path: '/logs', Icon: ScrollText, labelKey: 'logs' },
+  { segment: 'team', path: '/team', Icon: Users, labelKey: 'team' },
+  { segment: 'settings', path: '/settings', Icon: Settings, labelKey: 'settings' },
+];
+
+function getActiveSegment(pathname: string, basePath: string): string {
+  const rest = pathname.slice(basePath.length);
+  return rest.split('/')[1] ?? '';
+}
+
+function CollapsedNav({ basePath, segment }: { basePath: string; segment: string }) {
   return (
     <nav className="flex flex-col gap-0.5">
-      <NavItem href={basePath} icon={<Zap className="size-4" />} active={!isSettings} />
-      <NavItem href={`${basePath}/settings`} icon={<Settings className="size-4" />} active={isSettings} />
+      {NAV_ITEMS.map((item) => (
+        <NavItem
+          key={item.labelKey}
+          href={`${basePath}${item.path}`}
+          icon={<item.Icon className="size-4" />}
+          active={segment === item.segment}
+        />
+      ))}
     </nav>
   );
 }
 
-function ExpandedNav({ basePath, isSettings }: { basePath: string; isSettings: boolean }) {
+function ExpandedNav({ basePath, segment }: { basePath: string; segment: string }) {
   const t = useTranslations('orgs');
 
   return (
     <nav className="flex flex-col gap-0.5">
-      <NavItemExpanded href={basePath} icon={<Zap className="size-4" />} label={t('agents')} active={!isSettings} />
-      <NavItemExpanded
-        href={`${basePath}/settings`}
-        icon={<Settings className="size-4" />}
-        label={t('settings')}
-        active={isSettings}
-      />
+      {NAV_ITEMS.map((item) => (
+        <NavItemExpanded
+          key={item.labelKey}
+          href={`${basePath}${item.path}`}
+          icon={<item.Icon className="size-4" />}
+          label={t(item.labelKey)}
+          active={segment === item.segment}
+        />
+      ))}
     </nav>
   );
 }
@@ -179,7 +210,7 @@ function useSidebarState() {
 export function OrgSidebar({ org }: OrgSidebarProps) {
   const pathname = usePathname();
   const basePath = `/orgs/${org.slug}`;
-  const isSettings = pathname.endsWith('/settings');
+  const segment = getActiveSegment(pathname, basePath);
   const sidebar = useSidebarState();
 
   return (
@@ -192,9 +223,9 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
         {sidebar.collapsed ? <CollapsedTrigger org={org} /> : <ExpandedTrigger org={org} />}
       </OrgSwitcherPopover>
       {sidebar.collapsed ? (
-        <CollapsedNav basePath={basePath} isSettings={isSettings} />
+        <CollapsedNav basePath={basePath} segment={segment} />
       ) : (
-        <ExpandedNav basePath={basePath} isSettings={isSettings} />
+        <ExpandedNav basePath={basePath} segment={segment} />
       )}
       <div className="mt-auto">
         <LogoutButton collapsed={sidebar.collapsed} />
