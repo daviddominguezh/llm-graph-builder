@@ -10,7 +10,12 @@ import type {
   Precondition,
   ToolFieldValue,
 } from '@daviddh/graph-types';
-import { McpTransportSchema, OutputSchemaFieldSchema, ToolFieldValueSchema } from '@daviddh/graph-types';
+import {
+  McpTransportSchema,
+  OutputSchemaFieldSchema,
+  ToolFieldValueSchema,
+  VariableValueSchema,
+} from '@daviddh/graph-types';
 import { z } from 'zod';
 
 import type {
@@ -139,6 +144,15 @@ function buildTransport(row: McpServerRow): McpTransport {
   return McpTransportSchema.parse(raw);
 }
 
+function parseVariableValues(
+  raw: Record<string, unknown> | null
+): Record<string, z.infer<typeof VariableValueSchema>> | undefined {
+  if (raw === null) return undefined;
+  const schema = z.record(z.string(), VariableValueSchema);
+  const result = schema.safeParse(raw);
+  return result.success ? result.data : undefined;
+}
+
 export function assembleMcpServers(rows: McpServerRow[]): McpServerConfig[] | undefined {
   if (rows.length === EMPTY_LENGTH) return undefined;
 
@@ -147,6 +161,8 @@ export function assembleMcpServers(rows: McpServerRow[]): McpServerConfig[] | un
     name: row.name,
     transport: buildTransport(row),
     enabled: row.enabled,
+    libraryItemId: row.library_item_id ?? undefined,
+    variableValues: parseVariableValues(row.variable_values),
   }));
 }
 

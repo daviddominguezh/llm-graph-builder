@@ -59,6 +59,8 @@ export interface McpServerRow {
   transport_type: McpTransportType;
   transport_config: Record<string, unknown>;
   enabled: boolean;
+  library_item_id: string | null;
+  variable_values: Record<string, unknown> | null;
 }
 
 /** Row shape returned by `graph_output_schemas` table. */
