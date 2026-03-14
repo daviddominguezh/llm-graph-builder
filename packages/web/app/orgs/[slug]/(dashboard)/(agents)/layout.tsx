@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 
 import { AgentsSidebar } from '@/app/components/agents/AgentsSidebar';
-import { getAgentsByOrg } from '@/app/lib/agents';
+import { getCachedAgentsByOrg } from '@/app/lib/agents';
 import { getOrgBySlug } from '@/app/lib/orgs';
 import { createClient } from '@/app/lib/supabase/server';
 
@@ -19,7 +19,7 @@ export default async function AgentsLayout({ children, params }: AgentsLayoutPro
     redirect('/');
   }
 
-  const { agents } = await getAgentsByOrg(supabase, org.id);
+  const { agents } = await getCachedAgentsByOrg(supabase, org.id);
 
   return (
     <div className="flex h-full p-1.5">

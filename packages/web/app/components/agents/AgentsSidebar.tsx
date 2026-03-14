@@ -3,13 +3,16 @@
 import type { AgentMetadata } from '@/app/lib/agents';
 import { formatRelativeTime } from '@/app/utils/formatRelativeTime';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Plus, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
 import { CreateAgentDialog } from './CreateAgentDialog';
+import { getAgentStatus, STATUS_COLORS } from './agentStatus';
 
 interface AgentsSidebarProps {
   agents: AgentMetadata[];
@@ -21,7 +24,7 @@ function SidebarHeader({ onCreateClick }: { onCreateClick: () => void }) {
   const t = useTranslations('agents');
 
   return (
-    <div className="flex items-center justify-between border-b px-3 py-2">
+    <div className="flex items-center justify-between px-3 py-2">
       <h2 className="text-sm font-semibold">{t('title')}</h2>
       <Button variant="ghost" size="icon-sm" onClick={onCreateClick}>
         <Plus />
@@ -30,41 +33,90 @@ function SidebarHeader({ onCreateClick }: { onCreateClick: () => void }) {
   );
 }
 
-function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: string; active: boolean }) {
-  const href = `/orgs/${orgSlug}/editor/${agent.slug}`;
+function SearchInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const t = useTranslations('agents');
 
   return (
-    <Link
-      href={href}
-      className={`flex flex-col gap-1 rounded-lg border px-3 py-2 transition-colors ${
-        active
-          ? 'border-foreground/15 bg-black/[0.04] text-foreground'
-          : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
-      }`}
-    >
-      <span className="truncate text-sm font-medium text-foreground">{agent.name}</span>
-      {agent.description !== '' && (
-        <span className="line-clamp-2 text-xs text-muted-foreground">{agent.description}</span>
-      )}
-      <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-        <span>v{agent.version}</span>
-        <span>·</span>
-        <span>{formatRelativeTime(agent.updated_at)}</span>
+    <div className="px-3 pb-2">
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={t('search')}
+          className="pl-7"
+        />
       </div>
-    </Link>
+    </div>
   );
 }
 
-function AgentList({ agents, orgSlug, pathname }: { agents: AgentMetadata[]; orgSlug: string; pathname: string }) {
+function StatusBar({ status, active }: { status: string; active: boolean }) {
+  return (
+    <div
+      className={`w-0.5 shrink-0 self-stretch rounded-full ${active ? 'bg-primary' : status}`}
+    />
+  );
+}
+
+function AgentCardTooltip({ agent }: { agent: AgentMetadata }) {
+  return (
+    <div className="flex flex-col gap-1">
+      {agent.description ? <span>{agent.description}</span> : null}
+      <span className="text-background/70">{formatRelativeTime(agent.updated_at)}</span>
+    </div>
+  );
+}
+
+function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: string; active: boolean }) {
+  const href = `/orgs/${orgSlug}/editor/${agent.slug}`;
+  const status = getAgentStatus(agent);
+  const colorClass = STATUS_COLORS[status];
+
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={<Link href={href} />}
+        className={`flex h-8 items-center gap-2 rounded-md px-2 transition-colors ${
+          active ? 'bg-primary/10 text-foreground' : 'hover:bg-muted text-foreground'
+        }`}
+      >
+        <StatusBar status={colorClass} active={active} />
+        <span className="min-w-0 flex-1 truncate text-sm font-medium">{agent.name}</span>
+        <span className="shrink-0 text-[11px] text-muted-foreground">v{agent.version}</span>
+      </TooltipTrigger>
+      <TooltipContent side="right">
+        <AgentCardTooltip agent={agent} />
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function AgentList({
+  agents,
+  orgSlug,
+  pathname,
+  search,
+}: {
+  agents: AgentMetadata[];
+  orgSlug: string;
+  pathname: string;
+  search: string;
+}) {
   const t = useTranslations('agents');
+  const filtered = agents.filter((a) => a.name.toLowerCase().includes(search.toLowerCase()));
 
   if (agents.length === 0) {
-    return <p className="px-3 py-4 text-center text-xs text-muted-foreground">{t('empty')}</p>;
+    return <p className="px-3 py-4 text-center text-xs text-muted-foreground bg-gray-100 mt-1 mx-3 rounded-md">{t('empty')}</p>;
+  }
+
+  if (filtered.length === 0) {
+    return <p className="px-3 py-4 text-center text-xs text-muted-foreground">{t('noResults')}</p>;
   }
 
   return (
-    <nav className="flex flex-col gap-1 px-2">
-      {agents.map((agent) => (
+    <nav className="flex flex-col gap-0.5 px-2">
+      {filtered.map((agent) => (
         <AgentCard
           key={agent.id}
           agent={agent}
@@ -79,12 +131,14 @@ function AgentList({ agents, orgSlug, pathname }: { agents: AgentMetadata[]; org
 export function AgentsSidebar({ agents, orgId, orgSlug }: AgentsSidebarProps) {
   const pathname = usePathname();
   const [createOpen, setCreateOpen] = useState(false);
+  const [search, setSearch] = useState('');
 
   return (
-    <aside className="flex h-full w-[270px] shrink-0 flex-col border-r bg-background border rounded-xl">
+    <aside className="flex h-full w-[240px] shrink-0 flex-col border rounded-xl bg-background">
       <SidebarHeader onCreateClick={() => setCreateOpen(true)} />
-      <div className="flex-1 overflow-y-auto py-1">
-        <AgentList agents={agents} orgSlug={orgSlug} pathname={pathname} />
+      <SearchInput value={search} onChange={setSearch} />
+      <div className="flex-1 overflow-y-auto">
+        <AgentList agents={agents} orgSlug={orgSlug} pathname={pathname} search={search} />
       </div>
       <CreateAgentDialog open={createOpen} onOpenChange={setCreateOpen} orgId={orgId} orgSlug={orgSlug} />
     </aside>

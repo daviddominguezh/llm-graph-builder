@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { cache } from 'react';
 
 import { findUniqueSlug, generateSlug } from './slug';
 
@@ -17,7 +18,17 @@ export interface AgentRow {
   production_api_key_id: string | null;
 }
 
-export type AgentMetadata = Pick<AgentRow, 'id' | 'name' | 'slug' | 'description' | 'version' | 'updated_at'>;
+export type AgentMetadata = Pick<
+  AgentRow,
+  'id' | 'name' | 'slug' | 'description' | 'version' | 'updated_at'
+> & {
+  published_at: string | null;
+};
+
+interface VersionRow {
+  agent_id: string;
+  published_at: string;
+}
 
 interface InsertAgentParams {
   supabase: SupabaseClient;
@@ -37,6 +48,25 @@ function isAgentRow(value: unknown): value is AgentRow {
   return typeof value === 'object' && value !== null && 'id' in value && 'slug' in value;
 }
 
+async function fetchPublishedAtMap(
+  supabase: SupabaseClient,
+  agentIds: string[]
+): Promise<Map<string, string>> {
+  const { data } = await supabase
+    .from('agent_versions')
+    .select('agent_id, published_at')
+    .in('agent_id', agentIds)
+    .order('version', { ascending: false });
+
+  const map = new Map<string, string>();
+  for (const v of (data as VersionRow[] | null) ?? []) {
+    if (!map.has(v.agent_id)) {
+      map.set(v.agent_id, v.published_at);
+    }
+  }
+  return map;
+}
+
 export async function getAgentsByOrg(
   supabase: SupabaseClient,
   orgId: string
@@ -48,9 +78,25 @@ export async function getAgentsByOrg(
     .order('updated_at', { ascending: false });
 
   if (error !== null) return { agents: [], error: error.message };
-  const agents: AgentMetadata[] = (data as AgentMetadata[] | null) ?? [];
+
+  type AgentBase = Pick<AgentRow, 'id' | 'name' | 'slug' | 'description' | 'version' | 'updated_at'>;
+  const rows = (data as AgentBase[] | null) ?? [];
+  if (rows.length === 0) return { agents: [], error: null };
+
+  const publishedAtMap = await fetchPublishedAtMap(
+    supabase,
+    rows.map((a) => a.id)
+  );
+
+  const agents: AgentMetadata[] = rows.map((a) => ({
+    ...a,
+    published_at: publishedAtMap.get(a.id) ?? null,
+  }));
+
   return { agents, error: null };
 }
+
+export const getCachedAgentsByOrg = cache(getAgentsByOrg);
 
 export async function getAgentBySlug(
   supabase: SupabaseClient,

@@ -94,6 +94,10 @@
     "deleteCancel": "Cancel",
     "slugTaken": "An agent with this name already exists. Try a different name.",
     "selectAgent": "Select an agent to get started",
+    "search": "Search...",
+    "noResults": "No matching agents",
+    "createFirst": "Create your first agent",
+    "createFirstDescription": "Agents are workflows that connect LLM steps, tools, and decisions.",
     "createError": "Failed to create agent. Please try again."
   },
   "editor": {
