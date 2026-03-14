@@ -17,10 +17,13 @@ interface McpProps {
   servers: McpServerConfig[];
   discovering: Record<string, boolean>;
   serverStatus: Record<string, McpServerStatus>;
+  orgId: string;
   onAddServer: () => void;
   onRemoveServer: (id: string) => void;
   onUpdateServer: (id: string, updates: Partial<McpServerConfig>) => void;
   onDiscoverTools: (id: string) => void;
+  onPublishServer: (server: McpServerConfig) => void;
+  onOpenLibrary: () => void;
 }
 
 interface ToolsPanelProps {
@@ -275,10 +278,13 @@ function McpTab({ mcp }: { mcp: McpProps }) {
         servers={mcp.servers}
         discovering={mcp.discovering}
         serverStatus={mcp.serverStatus}
+        orgId={mcp.orgId}
         onAdd={mcp.onAddServer}
         onRemove={mcp.onRemoveServer}
         onUpdate={mcp.onUpdateServer}
         onDiscover={mcp.onDiscoverTools}
+        onPublish={mcp.onPublishServer}
+        onOpenLibrary={mcp.onOpenLibrary}
       />
     </div>
   );

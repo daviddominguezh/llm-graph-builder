@@ -71,7 +71,7 @@ export function GraphCanvas({
   onExitZoomView,
 }: GraphCanvasProps) {
   return (
-    <div className="h-screen w-screen relative flex-1 overflow-hidden">
+    <div className="relative h-full w-full flex-1 overflow-hidden">
       <main ref={reactFlowWrapper} className="absolute inset-0">
         <ReactFlow
           nodes={displayNodes}

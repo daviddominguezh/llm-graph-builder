@@ -73,7 +73,7 @@ function PublishFormFields({ state, onDescriptionChange, onCategoryChange, onIma
       </div>
       <div className="flex flex-col gap-1">
         <Label>{t('category')}</Label>
-        <Select value={state.category} onValueChange={onCategoryChange}>
+        <Select value={state.category} onValueChange={(v) => onCategoryChange(v ?? '')}>
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
