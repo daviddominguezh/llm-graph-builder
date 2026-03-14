@@ -438,6 +438,10 @@ CREATE POLICY mcp_library_insert ON mcp_library
   FOR INSERT TO authenticated
   WITH CHECK (is_org_member(org_id, auth.uid()));
 
+CREATE POLICY mcp_library_update ON mcp_library
+  FOR UPDATE TO authenticated
+  USING (is_org_member(org_id, auth.uid()));
+
 CREATE POLICY mcp_library_delete ON mcp_library
   FOR DELETE TO authenticated
   USING (is_org_member(org_id, auth.uid()));
@@ -889,10 +893,21 @@ const COLUMNS = 'id, org_id, name, description, category, image_url, transport_t
 
 const LIST_COLUMNS = 'id, org_id, orgs(name), name, description, category, image_url, transport_type, variables, installations_count';
 
-export async function browseLibrary(
+interface RawLibraryRow extends McpLibraryRow {
+  orgs?: { name: string } | null;
+}
+
+function flattenOrgName(rows: McpLibraryRow[]): McpLibraryRow[] {
+  return rows.map((row) => {
+    const raw = row as RawLibraryRow;
+    return { ...row, org_name: raw.orgs?.name };
+  });
+}
+
+function buildBrowseQuery(
   supabase: SupabaseClient,
   options?: { query?: string; category?: string; limit?: number; offset?: number }
-): Promise<{ result: McpLibraryRow[]; error: string | null }> {
+): ReturnType<SupabaseClient['from']> {
   const limit = options?.limit ?? 15;
   const offset = options?.offset ?? 0;
 
@@ -903,18 +918,24 @@ export async function browseLibrary(
     .range(offset, offset + limit - 1);
 
   if (options?.query) {
-    q = q.or(`name.ilike.%${options.query}%,description.ilike.%${options.query}%`);
+    q = q.ilike('name', `%${options.query}%`);
   }
   if (options?.category) {
     q = q.eq('category', options.category);
   }
 
-  const { data, error } = await q;
+  return q;
+}
+
+export async function browseLibrary(
+  supabase: SupabaseClient,
+  options?: { query?: string; category?: string; limit?: number; offset?: number }
+): Promise<{ result: McpLibraryRow[]; error: string | null }> {
+  const { data, error } = await buildBrowseQuery(supabase, options);
   if (error !== null) return { result: [], error: error.message };
 
   const raw: unknown[] = (data as unknown[] | null) ?? [];
-  const rows = mapRows(raw);
-  return { result: rows, error: null };
+  return { result: flattenOrgName(mapRows(raw)), error: null };
 }
 
 export async function getLibraryItemById(
@@ -1136,10 +1157,8 @@ const VARIABLE_PATTERN = /\{\{(\w+)\}\}/g;
 export function extractVariableNames(transport: McpTransport): string[] {
   const names = new Set<string>();
   const text = JSON.stringify(transport);
-  let match: RegExpExecArray | null = VARIABLE_PATTERN.exec(text);
-  while (match !== null) {
+  for (const match of text.matchAll(VARIABLE_PATTERN)) {
     names.add(match[1]);
-    match = VARIABLE_PATTERN.exec(text);
   }
   return [...names];
 }
@@ -1278,7 +1297,7 @@ git commit -m "feat: add browse/search MCP library route handler"
 // packages/web/app/api/mcp/discover/route.ts
 import { resolveTransportVariables } from '@/app/lib/resolve-variables';
 import { createClient } from '@/app/lib/supabase/server';
-import { McpTransportSchema } from '@daviddh/graph-types';
+import { McpTransportSchema, VariableValueSchema } from '@daviddh/graph-types';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -1288,8 +1307,29 @@ const HTTP_UNAUTHORIZED = 401;
 
 const DiscoverRequestSchema = z.object({
   transport: McpTransportSchema,
-  variableValues: z.record(z.string(), z.unknown()).optional(),
+  variableValues: z.record(z.string(), VariableValueSchema).optional(),
 });
+
+async function resolveAndProxy(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  parsed: z.infer<typeof DiscoverRequestSchema>
+): Promise<Response> {
+  let { transport } = parsed;
+  const { variableValues } = parsed;
+
+  if (variableValues !== undefined && Object.keys(variableValues).length > 0) {
+    transport = await resolveTransportVariables(supabase, transport, variableValues);
+  }
+
+  const upstream = await fetch(`${API_URL}/mcp/discover`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ transport }),
+  });
+
+  const body: unknown = await upstream.json();
+  return NextResponse.json(body, { status: upstream.status });
+}
 
 export async function POST(request: Request): Promise<Response> {
   const supabase = await createClient();
@@ -1304,22 +1344,7 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ error: 'Invalid request' }, { status: HTTP_BAD_REQUEST });
   }
 
-  let { transport } = parsed.data;
-  const { variableValues } = parsed.data;
-
-  if (variableValues !== undefined && Object.keys(variableValues).length > 0) {
-    const typedValues = variableValues as Record<string, { type: 'direct'; value: string } | { type: 'env_ref'; envVariableId: string }>;
-    transport = await resolveTransportVariables(supabase, transport, typedValues);
-  }
-
-  const upstream = await fetch(`${API_URL}/mcp/discover`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ transport }),
-  });
-
-  const body: unknown = await upstream.json();
-  return NextResponse.json(body, { status: upstream.status });
+  return resolveAndProxy(supabase, parsed.data);
 }
 ```
 
@@ -1616,6 +1641,8 @@ export function EnvVariablesSection({ orgId, initialVariables }: EnvVariablesSec
 }
 ```
 
+> **ESLint note:** `CreateEnvVariableDialog` and `EnvVariablesSection` may exceed `max-lines-per-function: 40`. Extract sub-components as needed (e.g., the form body into `EnvVariableForm`, move `VariableRow` to its own function). Also replace hardcoded "Secret"/"Visible" strings with translation keys.
+
 - [ ] **Step 4: Run typecheck**
 
 Run: `npm run typecheck -w packages/web`
@@ -1830,6 +1857,8 @@ export function PublishMcpDialog({ server, orgId, open, onOpenChange, onPublishe
   );
 }
 ```
+
+> **ESLint note:** The `PublishMcpDialog` function will exceed `max-lines-per-function: 40`. Extract sub-components: `PublishWarningBanner`, `PublishFormFields` (description + category + image), and `VariablePreview`. Each should be a separate function in the same file or split into a helper file if the file exceeds 300 lines.
 
 - [ ] **Step 2: Run typecheck**
 
@@ -2423,30 +2452,45 @@ git commit -m "feat: route MCP discover through Next.js proxy for variable resol
 
 - [ ] **Step 1: Add variable resolution before proxying**
 
-Import the resolver:
+Import the resolver and Zod schemas:
 ```ts
 import { resolveTransportVariables } from '@/app/lib/resolve-variables';
-import { McpTransportSchema } from '@daviddh/graph-types';
+import { McpTransportSchema, VariableValueSchema } from '@daviddh/graph-types';
+import { z } from 'zod';
 ```
 
-In the `POST` handler, after `resolveApiKey` and before `fetchUpstream`, add a step to resolve MCP server variables in the graph payload:
+Add a helper function (outside `POST`) that resolves variables for a single MCP server entry:
 
 ```ts
-// Resolve MCP server variables
-const graph = rest.graph as Record<string, unknown> | undefined;
-if (graph !== undefined) {
-  const mcpServers = graph.mcpServers as Array<Record<string, unknown>> | undefined;
-  if (mcpServers !== undefined) {
-    const resolved = await Promise.all(
-      mcpServers.map(async (server) => {
-        const variableValues = server.variableValues as Record<string, { type: string; value?: string; envVariableId?: string }> | undefined;
-        if (variableValues === undefined) return server;
-        const transport = McpTransportSchema.parse(server.transport);
-        const resolvedTransport = await resolveTransportVariables(supabase, transport, variableValues as Record<string, { type: 'direct'; value: string } | { type: 'env_ref'; envVariableId: string }>);
-        return { ...server, transport: resolvedTransport, variableValues: undefined };
-      })
+const McpServerEntrySchema = z.object({
+  transport: McpTransportSchema,
+  variableValues: z.record(z.string(), VariableValueSchema).optional(),
+}).passthrough();
+
+async function resolveServerVariables(
+  supabase: SupabaseClient,
+  server: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const parsed = McpServerEntrySchema.safeParse(server);
+  if (!parsed.success) return server;
+  const { variableValues } = parsed.data;
+  if (variableValues === undefined) return server;
+  const resolved = await resolveTransportVariables(supabase, parsed.data.transport, variableValues);
+  return { ...server, transport: resolved, variableValues: undefined };
+}
+```
+
+In the `POST` handler, after `resolveApiKey` and before `fetchUpstream`, add:
+
+```ts
+const graph = rest.graph;
+if (typeof graph === 'object' && graph !== null && 'mcpServers' in graph) {
+  const g = graph as Record<string, unknown>;
+  const servers = g.mcpServers;
+  if (Array.isArray(servers)) {
+    g.mcpServers = await Promise.all(
+      servers.map((s: unknown) => resolveServerVariables(supabase, s as Record<string, unknown>))
     );
-    graph.mcpServers = resolved;
   }
 }
 ```

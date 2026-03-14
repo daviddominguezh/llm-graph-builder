@@ -4,6 +4,7 @@ import type { OrgRow } from '@/app/lib/orgs';
 import { createClient } from '@/app/lib/supabase/client';
 import { toProxyImageSrc } from '@/app/lib/supabase/image';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import type { LucideIcon } from 'lucide-react';
 import { ChevronsUpDown, KeyRound, LayoutDashboard, LogOut, MessageSquare, ScrollText, Settings, Users, Zap } from 'lucide-react';
 import Image from 'next/image';
@@ -108,10 +109,13 @@ interface NavItemDef {
   labelKey: string;
 }
 
-const NAV_ITEMS: NavItemDef[] = [
+const TOP_NAV_ITEMS: NavItemDef[] = [
   { segment: 'dashboard', path: '/dashboard', Icon: LayoutDashboard, labelKey: 'dashboard' },
   { segment: '', path: '', Icon: Zap, labelKey: 'agents' },
   { segment: 'chats', path: '/chats', Icon: MessageSquare, labelKey: 'chats' },
+];
+
+const BOTTOM_NAV_ITEMS: NavItemDef[] = [
   { segment: 'api-keys', path: '/api-keys', Icon: KeyRound, labelKey: 'apiKeys' },
   { segment: 'logs', path: '/logs', Icon: ScrollText, labelKey: 'logs' },
   { segment: 'team', path: '/team', Icon: Users, labelKey: 'team' },
@@ -123,10 +127,10 @@ function getActiveSegment(pathname: string, basePath: string): string {
   return rest.split('/')[1] ?? '';
 }
 
-function CollapsedNav({ basePath, segment }: { basePath: string; segment: string }) {
+function NavList({ items, basePath, segment }: { items: NavItemDef[]; basePath: string; segment: string }) {
   return (
     <nav className="flex flex-col gap-0.5">
-      {NAV_ITEMS.map((item) => (
+      {items.map((item) => (
         <NavItem
           key={item.labelKey}
           href={`${basePath}${item.path}`}
@@ -138,12 +142,12 @@ function CollapsedNav({ basePath, segment }: { basePath: string; segment: string
   );
 }
 
-function ExpandedNav({ basePath, segment }: { basePath: string; segment: string }) {
+function NavListExpanded({ items, basePath, segment }: { items: NavItemDef[]; basePath: string; segment: string }) {
   const t = useTranslations('orgs');
 
   return (
     <nav className="flex flex-col gap-0.5">
-      {NAV_ITEMS.map((item) => (
+      {items.map((item) => (
         <NavItemExpanded
           key={item.labelKey}
           href={`${basePath}${item.path}`}
@@ -223,11 +227,17 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
         {sidebar.collapsed ? <CollapsedTrigger org={org} /> : <ExpandedTrigger org={org} />}
       </OrgSwitcherPopover>
       {sidebar.collapsed ? (
-        <CollapsedNav basePath={basePath} segment={segment} />
+        <NavList items={TOP_NAV_ITEMS} basePath={basePath} segment={segment} />
       ) : (
-        <ExpandedNav basePath={basePath} segment={segment} />
+        <NavListExpanded items={TOP_NAV_ITEMS} basePath={basePath} segment={segment} />
       )}
-      <div className="mt-auto">
+      <div className="mt-auto flex flex-col gap-2">
+        {sidebar.collapsed ? (
+          <NavList items={BOTTOM_NAV_ITEMS} basePath={basePath} segment={segment} />
+        ) : (
+          <NavListExpanded items={BOTTOM_NAV_ITEMS} basePath={basePath} segment={segment} />
+        )}
+        <Separator />
         <LogoutButton collapsed={sidebar.collapsed} />
       </div>
     </aside>
