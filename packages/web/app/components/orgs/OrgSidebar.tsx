@@ -124,7 +124,9 @@ const BOTTOM_NAV_ITEMS: NavItemDef[] = [
 
 function getActiveSegment(pathname: string, basePath: string): string {
   const rest = pathname.slice(basePath.length);
-  return rest.split('/')[1] ?? '';
+  const segment = rest.split('/')[1] ?? '';
+  if (segment === 'editor') return '';
+  return segment;
 }
 
 function NavList({ items, basePath, segment }: { items: NavItemDef[]; basePath: string; segment: string }) {

@@ -93,6 +93,7 @@
     "deleteConfirm": "Delete",
     "deleteCancel": "Cancel",
     "slugTaken": "An agent with this name already exists. Try a different name.",
+    "selectAgent": "Select an agent to get started",
     "createError": "Failed to create agent. Please try again."
   },
   "editor": {

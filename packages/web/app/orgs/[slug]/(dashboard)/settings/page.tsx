@@ -54,10 +54,12 @@ export default async function OrgSettingsPage({ params }: OrgSettingsPageProps):
   const { result: apiKeys } = await getApiKeysByOrg(supabase, org.id);
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-      <OrgSettingsForm org={org} />
-      <ApiKeysSection orgId={org.id} initialKeys={apiKeys} />
-      <DangerZone org={org} />
+    <div className="h-full overflow-y-auto p-6">
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+        <OrgSettingsForm org={org} />
+        <ApiKeysSection orgId={org.id} initialKeys={apiKeys} />
+        <DangerZone org={org} />
+      </div>
     </div>
   );
 }

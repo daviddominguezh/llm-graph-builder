@@ -253,7 +253,7 @@ function LoadedEditor(props: LoadedEditorProps) {
 
   return (
     <HandleContext.Provider value={handleContextValue}>
-      <div className="flex h-screen w-screen flex-col items-center">
+      <div className="flex h-full w-full flex-col items-center">
         {!h.simulation.active && <Toolbar
           onAddNode={h.graphActions.handleAddNode}
           onImport={h.handleImport}
