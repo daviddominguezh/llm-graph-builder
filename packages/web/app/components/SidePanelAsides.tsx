@@ -22,6 +22,7 @@ type PresetsAsideProps = Pick<
   | 'stagingKeyId'
   | 'productionKeyId'
   | 'onStagingKeyChange'
+  | 'onProductionKeyChange'
   | 'outputSchemasHook'
   | 'agentId'
   | 'agentName'
@@ -44,6 +45,7 @@ export function PresetsAside(props: PresetsAsideProps) {
         stagingKeyId={props.stagingKeyId}
         productionKeyId={props.productionKeyId}
         onStagingKeyChange={props.onStagingKeyChange}
+        onProductionKeyChange={props.onProductionKeyChange}
         agentId={props.agentId}
         agentName={props.agentName}
         orgSlug={props.orgSlug}

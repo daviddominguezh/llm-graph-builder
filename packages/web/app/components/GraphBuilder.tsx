@@ -288,7 +288,7 @@ function LoadedEditor(props: LoadedEditorProps) {
               <PublishButton
                 agentId={props.agentId}
                 canPublish={h.canPublish}
-                hasApiKey={h.apiKeys.stagingKeyId !== null}
+                hasApiKey={h.apiKeys.productionKeyId !== null}
                 flush={h.flush}
                 onPublished={(newVersion) => {
                   h.setVersion(newVersion);
@@ -359,6 +359,7 @@ function LoadedEditor(props: LoadedEditorProps) {
           stagingKeyId={h.apiKeys.stagingKeyId}
           productionKeyId={h.apiKeys.productionKeyId}
           onStagingKeyChange={h.apiKeys.handleStagingKeyChange}
+          onProductionKeyChange={h.apiKeys.handleProductionKeyChange}
           onPublishMcpServer={() => {}}
           onOpenMcpLibrary={() => {
             h.setLibraryOpen(true);

@@ -4,6 +4,7 @@ import type { AgentRow } from '@/app/lib/agents';
 import {
   createAgent as createAgentLib,
   deleteAgent as deleteAgentLib,
+  saveProductionKeyId as saveProductionKeyIdLib,
   saveStagingKeyId as saveStagingKeyIdLib,
 } from '@/app/lib/agents';
 import { serverError, serverLog } from '@/app/lib/serverLogger';
@@ -47,5 +48,16 @@ export async function saveStagingKeyIdAction(
   const supabase = await createClient();
   const res = await saveStagingKeyIdLib(supabase, agentId, keyId);
   if (res.error !== null) serverError('[saveStagingKeyIdAction] error:', res.error);
+  return res;
+}
+
+export async function saveProductionKeyIdAction(
+  agentId: string,
+  keyId: string | null
+): Promise<{ error: string | null }> {
+  serverLog('[saveProductionKeyIdAction] agentId:', agentId, 'keyId:', keyId);
+  const supabase = await createClient();
+  const res = await saveProductionKeyIdLib(supabase, agentId, keyId);
+  if (res.error !== null) serverError('[saveProductionKeyIdAction] error:', res.error);
   return res;
 }

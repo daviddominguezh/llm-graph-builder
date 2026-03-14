@@ -56,6 +56,7 @@ interface PresetsPanelProps {
   stagingKeyId: string | null;
   productionKeyId: string | null;
   onStagingKeyChange: (keyId: string | null) => void;
+  onProductionKeyChange: (keyId: string | null) => void;
   agentId: string;
   agentName: string;
   orgSlug: string;
@@ -253,6 +254,7 @@ export function PresetsPanel(props: PresetsPanelProps) {
           stagingKeyId={props.stagingKeyId}
           productionKeyId={props.productionKeyId}
           onStagingKeyChange={props.onStagingKeyChange}
+          onProductionKeyChange={props.onProductionKeyChange}
         />
         <ContextKeysSection
           keys={props.contextKeys}

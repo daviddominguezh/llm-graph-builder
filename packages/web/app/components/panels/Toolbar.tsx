@@ -237,7 +237,7 @@ export function Toolbar(props: ToolbarProps) {
   const t = useTranslations('toolbar');
   return (
     <>
-      <div className="absolute top-0 left-2 z-1">
+      <div className="absolute top-0 left-0 z-1">
         <FileMenu
           onImport={onImport}
           onExport={onExport}

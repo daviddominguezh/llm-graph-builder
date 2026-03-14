@@ -69,6 +69,7 @@
     "generate": "Generate",
     "globalNodes": "Global nodes",
     "tools": "Tools",
+    "mcpLibrary": "MCP Library",
     "autoLayout": "Auto-layout",
     "settings": "Settings",
     "mcpServersTab": "MCP Servers",

@@ -12,6 +12,7 @@ export interface ApiKeySelectProps {
   stagingKeyId: string | null;
   productionKeyId: string | null;
   onStagingKeyChange: (keyId: string | null) => void;
+  onProductionKeyChange: (keyId: string | null) => void;
 }
 
 function StagingKeySelect({
@@ -50,18 +51,48 @@ function StagingKeySelect({
   );
 }
 
-function ProductionKeyDisplay({ keyName }: { keyName: string | undefined }) {
+function ProductionKeySelect({
+  orgApiKeys,
+  productionKeyId,
+  onProductionKeyChange,
+}: {
+  orgApiKeys: ApiKeyRow[];
+  productionKeyId: string | null;
+  onProductionKeyChange: (keyId: string | null) => void;
+}) {
   const t = useTranslations('apiKeys');
+
+  const items = [
+    { value: '', label: t('none') },
+    ...orgApiKeys.map((key) => ({ value: key.id, label: key.name })),
+  ];
 
   return (
     <div className="space-y-1">
       <Label>{t('productionKey')}</Label>
-      <p className="text-muted-foreground text-xs">{keyName ?? t('none')}</p>
+      <Select
+        value={productionKeyId ?? ''}
+        items={items}
+        onValueChange={(val) => onProductionKeyChange(val === '' ? null : val)}
+      >
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder={t('selectKey')} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="">{t('none')}</SelectItem>
+          {orgApiKeys.map((key) => (
+            <SelectItem key={key.id} value={key.id}>
+              {key.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }
 
-export function ApiKeySelectSection({ orgApiKeys, stagingKeyId, productionKeyId, onStagingKeyChange }: ApiKeySelectProps) {
+export function ApiKeySelectSection(props: ApiKeySelectProps) {
+  const { orgApiKeys, stagingKeyId, productionKeyId, onStagingKeyChange, onProductionKeyChange } = props;
   const t = useTranslations('apiKeys');
 
   if (orgApiKeys.length === 0) {
@@ -74,12 +105,14 @@ export function ApiKeySelectSection({ orgApiKeys, stagingKeyId, productionKeyId,
     );
   }
 
-  const productionKeyName = orgApiKeys.find((k) => k.id === productionKeyId)?.name;
-
   return (
     <div className="mb-4 space-y-3">
       <StagingKeySelect orgApiKeys={orgApiKeys} stagingKeyId={stagingKeyId} onStagingKeyChange={onStagingKeyChange} />
-      <ProductionKeyDisplay keyName={productionKeyName} />
+      <ProductionKeySelect
+        orgApiKeys={orgApiKeys}
+        productionKeyId={productionKeyId}
+        onProductionKeyChange={onProductionKeyChange}
+      />
       <Separator className="mt-3" />
     </div>
   );

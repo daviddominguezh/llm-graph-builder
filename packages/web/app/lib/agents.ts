@@ -155,6 +155,18 @@ export async function saveStagingKeyId(
   return { error: null };
 }
 
+export async function saveProductionKeyId(
+  supabase: SupabaseClient,
+  agentId: string,
+  keyId: string | null
+): Promise<{ error: string | null }> {
+  const payload: Record<string, unknown> = { production_api_key_id: keyId };
+  const { error } = await supabase.from('agents').update(payload).eq('id', agentId);
+
+  if (error !== null) return { error: error.message };
+  return { error: null };
+}
+
 export async function deleteAgent(
   supabase: SupabaseClient,
   agentId: string

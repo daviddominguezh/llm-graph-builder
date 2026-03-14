@@ -70,6 +70,7 @@ export interface SidePanelsProps {
   stagingKeyId: string | null;
   productionKeyId: string | null;
   onStagingKeyChange: (keyId: string | null) => void;
+  onProductionKeyChange: (keyId: string | null) => void;
   onPublishMcpServer: (server: McpServerConfig) => void;
   onOpenMcpLibrary: () => void;
   onCloseLibrary: () => void;
@@ -231,6 +232,7 @@ export function SidePanels(props: SidePanelsProps) {
           stagingKeyId={props.stagingKeyId}
           productionKeyId={props.productionKeyId}
           onStagingKeyChange={props.onStagingKeyChange}
+          onProductionKeyChange={props.onProductionKeyChange}
           outputSchemasHook={props.outputSchemasHook}
           onEditSchema={schema.handleEditSchema}
           onEditNewSchema={schema.handleEditNewSchema}
