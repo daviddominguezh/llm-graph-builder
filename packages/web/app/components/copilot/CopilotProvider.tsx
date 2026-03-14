@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 
 import type { CopilotSession } from './copilotTypes';
 import { useCopilotSessions } from './useCopilotSessions';
@@ -15,6 +15,7 @@ import { CopilotPanel } from './CopilotPanel';
 export interface CopilotContextValue {
   isOpen: boolean;
   setOpen: (open: boolean) => void;
+  onOpenRef: React.MutableRefObject<(() => void) | null>;
   sessions: CopilotSession[];
   activeSession: CopilotSession | null;
   createSession: () => string;
@@ -43,14 +44,26 @@ export function useCopilotContext(): CopilotContextValue {
 // ---------------------------------------------------------------------------
 
 export function CopilotProvider({ children }: { children: React.ReactNode }) {
-  const [isOpen, setOpen] = useState(false);
+  const [isOpen, rawSetOpen] = useState(false);
+  const onOpenRef = useRef<(() => void) | null>(null);
   const sessions = useCopilotSessions();
   const streaming = useCopilotStreaming(sessions.addMessage, sessions.updateLastMessage);
+
+  const setOpen = useCallback(
+    (open: boolean) => {
+      if (open) {
+        onOpenRef.current?.();
+      }
+      rawSetOpen(open);
+    },
+    []
+  );
 
   const value = useMemo<CopilotContextValue>(
     () => ({
       isOpen,
       setOpen,
+      onOpenRef,
       sessions: sessions.sessions,
       activeSession: sessions.activeSession,
       createSession: sessions.createSession,
@@ -59,7 +72,7 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
       stopStreaming: streaming.stopStreaming,
       isStreaming: streaming.isStreaming,
     }),
-    [isOpen, sessions, streaming]
+    [isOpen, setOpen, sessions, streaming]
   );
 
   return <CopilotContext.Provider value={value}>{children}</CopilotContext.Provider>;

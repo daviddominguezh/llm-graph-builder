@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 
 import { AgentsSidebar } from '@/app/components/agents/AgentsSidebar';
+import { CopilotShell } from '@/app/components/copilot/CopilotProvider';
 import { getCachedAgentsByOrg } from '@/app/lib/agents';
 import { getOrgBySlug } from '@/app/lib/orgs';
 import { createClient } from '@/app/lib/supabase/server';
@@ -24,7 +25,9 @@ export default async function AgentsLayout({ children, params }: AgentsLayoutPro
   return (
     <div className="flex h-full p-1.5">
       <AgentsSidebar agents={agents} orgId={org.id} orgSlug={org.slug} />
-      <div className="flex-1 overflow-hidden">{children}</div>
+      <CopilotShell>
+        <div className="flex-1 overflow-hidden">{children}</div>
+      </CopilotShell>
     </div>
   );
 }

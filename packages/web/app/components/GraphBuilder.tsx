@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useReactFlow, ReactFlowProvider, useNodesState, useEdgesState } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
+import { useCopilotContext } from './copilot/CopilotProvider';
 import { GraphBuilderLoading } from './GraphBuilderLoading';
 import { HandleContext } from './nodes/HandleContext';
 import { PublishButton } from './panels/PublishButton';
@@ -108,15 +109,36 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     pushOperation: opQueue.pushOperation,
   });
 
+  const { setOpen: setCopilotOpen, onOpenRef: copilotOnOpenRef } = useCopilotContext();
+
   const panels = useMemo(
-    () => ({ setGlobalPanelOpen, setPresetsOpen, setToolsOpen, setSearchOpen, setLibraryOpen }),
-    []
+    () => ({
+      setGlobalPanelOpen,
+      setPresetsOpen,
+      setToolsOpen,
+      setSearchOpen,
+      setLibraryOpen,
+      setCopilotOpen,
+    }),
+    [setCopilotOpen]
   );
 
   const selection = useGraphSelection(
     { nodes, setNodes, setEdges, reactFlow: rf, reactFlowWrapper },
     panels
   );
+
+  const onCopilotOpen = useCallback(() => {
+    selection.setSelectedNodeId(null);
+    selection.setSelectedEdgeId(null);
+    setGlobalPanelOpen(false);
+    setPresetsOpen(false);
+    setToolsOpen(false);
+  }, [selection]);
+
+  useEffect(() => {
+    copilotOnOpenRef.current = onCopilotOpen;
+  }, [copilotOnOpenRef, onCopilotOpen]);
 
   const zoomView = useZoomView({
     nodes,

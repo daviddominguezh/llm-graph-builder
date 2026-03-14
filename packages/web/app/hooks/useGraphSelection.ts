@@ -43,6 +43,7 @@ interface PanelCloseState {
   setToolsOpen: (v: boolean) => void;
   setSearchOpen: (v: boolean) => void;
   setLibraryOpen: (v: boolean) => void;
+  setCopilotOpen: (v: boolean) => void;
 }
 
 function centerViewOnNode(
@@ -78,6 +79,7 @@ function useClickHandlers(
       panels.setGlobalPanelOpen(false);
       panels.setPresetsOpen(false);
       panels.setToolsOpen(false);
+      panels.setCopilotOpen(false);
     },
     [setSelectedNodeId, setSelectedEdgeId, panels]
   );
@@ -87,6 +89,7 @@ function useClickHandlers(
       setSelectedEdgeId(edge.id);
       setSelectedNodeId(null);
       panels.setToolsOpen(false);
+      panels.setCopilotOpen(false);
     },
     [setSelectedEdgeId, setSelectedNodeId, panels]
   );
@@ -99,6 +102,7 @@ function useClickHandlers(
     panels.setToolsOpen(false);
     panels.setSearchOpen(false);
     panels.setLibraryOpen(false);
+    panels.setCopilotOpen(false);
   }, [setSelectedNodeId, setSelectedEdgeId, panels]);
 
   return { onNodeClick, onEdgeClick, onPaneClick };

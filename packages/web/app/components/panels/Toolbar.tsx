@@ -22,7 +22,6 @@ import {
   Settings,
   SquareFunction,
   Upload,
-  WandSparkles,
   Waypoints,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -265,11 +264,6 @@ export function Toolbar(props: ToolbarProps) {
           {props.publishSlot}
         </div>
       )}
-      <div className="absolute bottom-0 right-1 z-1">
-        <Button variant="default" size="sm" className="h-12 w-12 rounded-full">
-          <WandSparkles className="size-5" />
-        </Button>
-      </div>
     </>
   );
 }
