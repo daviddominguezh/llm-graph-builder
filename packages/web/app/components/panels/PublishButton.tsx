@@ -54,7 +54,7 @@ function PublishButtonContent({
   return (
     <Tooltip>
       <TooltipTrigger render={<span />}>{button}</TooltipTrigger>
-      <TooltipContent>{tKeys('requiresKey')}</TooltipContent>
+      <TooltipContent>{tKeys('requiresProductionKey')}</TooltipContent>
     </Tooltip>
   );
 }

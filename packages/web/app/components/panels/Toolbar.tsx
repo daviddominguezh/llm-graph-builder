@@ -177,7 +177,7 @@ function PlayButton({ simulationActive, onPlay, disabled, label }: PlayButtonPro
   );
 
   if (disabled) {
-    return <ToolbarTooltip label={t('requiresKey')}>{button}</ToolbarTooltip>;
+    return <ToolbarTooltip label={t('requiresStagingKey')}>{button}</ToolbarTooltip>;
   }
 
   return <ToolbarTooltip label={label}>{button}</ToolbarTooltip>;

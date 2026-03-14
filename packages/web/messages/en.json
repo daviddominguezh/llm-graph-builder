@@ -251,7 +251,8 @@
     "productionKey": "Production API Key",
     "selectKey": "Select a key",
     "none": "None",
-    "requiresKey": "Set an OpenRouter API key first"
+    "requiresStagingKey": "Set a staging API key first",
+    "requiresProductionKey": "Set a production API key first"
   },
   "mcpLibrary": {
     "publish": "Publish",
