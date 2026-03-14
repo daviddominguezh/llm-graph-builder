@@ -15,6 +15,7 @@ import { TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui
 import { Tooltip as TooltipPrimitive } from '@base-ui/react/tooltip';
 import {
   AlignHorizontalSpaceAround,
+  Blocks,
   Download,
   Menu,
   Play,
@@ -43,6 +44,7 @@ interface ToolbarProps {
   onToggleGlobalPanel?: () => void;
   onTogglePresets?: () => void;
   onToggleTools?: () => void;
+  onToggleLibrary?: () => void;
   publishSlot?: ReactNode;
   versionSlot?: ReactNode;
   stagingKeyId?: string | null;
@@ -189,7 +191,7 @@ interface PlayButtonProps {
 }
 
 function ToolbarButtons(props: ToolbarProps) {
-  const { onToggleGlobalPanel, onToggleTools, onTogglePresets } = props;
+  const { onToggleGlobalPanel, onToggleTools, onToggleLibrary, onTogglePresets } = props;
   const t = useTranslations('toolbar');
 
   return (
@@ -205,6 +207,13 @@ function ToolbarButtons(props: ToolbarProps) {
         <ToolbarTooltip label={t('tools')}>
           <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onToggleTools}>
             <SquareFunction className="size-4" />
+          </Button>
+        </ToolbarTooltip>
+      )}
+      {onToggleLibrary && (
+        <ToolbarTooltip label={t('mcpLibrary')}>
+          <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onToggleLibrary}>
+            <Blocks className="size-4" />
           </Button>
         </ToolbarTooltip>
       )}
@@ -247,20 +256,20 @@ export function Toolbar(props: ToolbarProps) {
           label={t('simulate')}
         />
         <Separator orientation="vertical" />
-        <ToolbarTooltip label={t('generate')}>
-          <Button className="h-10 w-10" variant="ghost" size="sm">
-            <WandSparkles className="size-4" />
-          </Button>
-        </ToolbarTooltip>
         <ToolbarButtons {...props} />
       </header>
       {(props.statusSlot ?? props.publishSlot ?? props.versionSlot) && (
-        <div className="absolute top-0 right-2 z-1 flex items-center gap-2">
+        <div className="absolute top-0 right-1 z-1 flex items-center gap-1.5">
           {props.statusSlot}
           {props.versionSlot}
           {props.publishSlot}
         </div>
       )}
+      <div className="absolute bottom-0 right-1 z-1">
+        <Button variant="default" size="sm" className="h-12 w-12 rounded-full">
+          <WandSparkles className="size-5" />
+        </Button>
+      </div>
     </>
   );
 }

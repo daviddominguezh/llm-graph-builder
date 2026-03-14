@@ -277,6 +277,7 @@ function LoadedEditor(props: LoadedEditorProps) {
           onToggleGlobalPanel={() => h.setGlobalPanelOpen((prev) => !prev)}
           onTogglePresets={() => h.setPresetsOpen((prev) => !prev)}
           onToggleTools={() => h.setToolsOpen((prev) => !prev)}
+          onToggleLibrary={() => h.setLibraryOpen((prev) => !prev)}
           stagingKeyId={h.apiKeys.stagingKeyId}
           orgSlug={props.orgSlug}
           orgName={props.orgName}
