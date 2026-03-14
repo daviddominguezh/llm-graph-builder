@@ -40,6 +40,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: false,
   transpilePackages: ['@daviddh/graph-types', '@daviddh/llm-graph-runner'],
   images: { localPatterns: [{ pathname: '/supabase-storage/**' }] },
+  devIndicators: false,
   webpack: configureWebpack,
   rewrites() {
     return [

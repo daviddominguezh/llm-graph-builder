@@ -1,6 +1,5 @@
 'use client';
 
-import { createClient } from '@/app/lib/supabase/client';
 import { toProxyImageSrc } from '@/app/lib/supabase/image';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,7 +16,6 @@ import { Tooltip as TooltipPrimitive } from '@base-ui/react/tooltip';
 import {
   AlignHorizontalSpaceAround,
   Download,
-  LogOut,
   Menu,
   Play,
   Settings,
@@ -29,7 +27,6 @@ import {
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 const TOOLTIP_DELAY = 1000;
@@ -64,17 +61,6 @@ function ToolbarTooltip({ label, children }: { label: string; children: ReactNod
       </TooltipPrimitive.Root>
     </TooltipProvider>
   );
-}
-
-function useLogout() {
-  const router = useRouter();
-
-  return async function handleLogout() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
-  };
 }
 
 function OrgAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
@@ -124,15 +110,16 @@ function OrgSection({ orgName, orgAvatarUrl, orgSlug, agentName }: OrgSectionPro
 interface FileMenuProps {
   onImport: () => void;
   onExport: () => void;
+  onFormat: () => void;
   orgSlug?: string;
   orgName?: string;
   orgAvatarUrl?: string | null;
   agentName?: string;
 }
 
-function FileMenu({ onImport, onExport, orgSlug, orgName, orgAvatarUrl, agentName }: FileMenuProps) {
+function FileMenu({ onImport, onExport, onFormat, orgSlug, orgName, orgAvatarUrl, agentName }: FileMenuProps) {
   const t = useTranslations('common');
-  const handleLogout = useLogout();
+  const tToolbar = useTranslations('toolbar');
 
   return (
     <DropdownMenu>
@@ -162,12 +149,9 @@ function FileMenu({ onImport, onExport, orgSlug, orgName, orgAvatarUrl, agentNam
             <Download className="size-4" />
             {t('export')}
           </DropdownMenuItem>
-        </div>
-        <Separator />
-        <div className="pt-1">
-          <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-            <LogOut className="size-4" />
-            {t('logout')}
+          <DropdownMenuItem onClick={onFormat}>
+            <AlignHorizontalSpaceAround className="size-4" />
+            {tToolbar('autoLayout')}
           </DropdownMenuItem>
         </div>
       </DropdownMenuContent>
@@ -205,7 +189,7 @@ interface PlayButtonProps {
 }
 
 function ToolbarButtons(props: ToolbarProps) {
-  const { onFormat, onToggleGlobalPanel, onToggleTools, onTogglePresets } = props;
+  const { onToggleGlobalPanel, onToggleTools, onTogglePresets } = props;
   const t = useTranslations('toolbar');
 
   return (
@@ -224,11 +208,6 @@ function ToolbarButtons(props: ToolbarProps) {
           </Button>
         </ToolbarTooltip>
       )}
-      <ToolbarTooltip label={t('autoLayout')}>
-        <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onFormat}>
-          <AlignHorizontalSpaceAround className="size-4" />
-        </Button>
-      </ToolbarTooltip>
       {onTogglePresets && (
         <>
           <Separator orientation="vertical" />
@@ -253,6 +232,7 @@ export function Toolbar(props: ToolbarProps) {
         <FileMenu
           onImport={onImport}
           onExport={onExport}
+          onFormat={props.onFormat}
           orgSlug={orgSlug}
           orgName={orgName}
           orgAvatarUrl={orgAvatarUrl}
@@ -260,8 +240,6 @@ export function Toolbar(props: ToolbarProps) {
         />
       </div>
       <header className="absolute z-1 flex items-stretch justify-center gap-1 rounded-lg border bg-background p-1 top-0 shadow-lg">
-        <ToolbarTooltip label={t('status')}>{props.statusSlot}</ToolbarTooltip>
-        <Separator orientation="vertical" />
         <PlayButton
           simulationActive={simulationActive ?? false}
           onPlay={onPlay}
@@ -276,8 +254,9 @@ export function Toolbar(props: ToolbarProps) {
         </ToolbarTooltip>
         <ToolbarButtons {...props} />
       </header>
-      {(props.publishSlot ?? props.versionSlot) && (
+      {(props.statusSlot ?? props.publishSlot ?? props.versionSlot) && (
         <div className="absolute top-0 right-2 z-1 flex items-center gap-2">
+          {props.statusSlot}
           {props.versionSlot}
           {props.publishSlot}
         </div>

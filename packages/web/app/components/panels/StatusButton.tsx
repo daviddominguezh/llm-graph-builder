@@ -38,7 +38,7 @@ export function StatusButton({ nodes, edges, pendingSave }: StatusButtonProps) {
     <AlertDialog>
       <AlertDialogTrigger
         render={
-          <Button variant="ghost" size="sm" className="h-10 w-10">
+          <Button variant="outline" size="sm" className="h-10 w-10 bg-white">
             <StatusIcon isOk={isOk} saving={saving} />
           </Button>
         }
