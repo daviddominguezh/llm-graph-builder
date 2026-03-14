@@ -70,7 +70,7 @@ export function AgentsSidebar({ agents, orgId, orgSlug }: AgentsSidebarProps) {
   const [createOpen, setCreateOpen] = useState(false);
 
   return (
-    <aside className="flex h-full w-[270px] shrink-0 flex-col border-r bg-background pr-2">
+    <aside className="flex h-full w-[270px] shrink-0 flex-col border-r bg-background pr-2 py-3">
       <SidebarHeader onCreateClick={() => setCreateOpen(true)} />
       <div className="flex-1 overflow-y-auto py-1">
         <AgentList agents={agents} orgSlug={orgSlug} pathname={pathname} />
