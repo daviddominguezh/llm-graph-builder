@@ -187,7 +187,7 @@ function useToolDiscovery(servers: McpServerConfig[], setters: DiscoverySetters)
 
       setDiscovering((prev) => ({ ...prev, [id]: true }));
 
-      void discoverMcpTools(server.transport)
+      void discoverMcpTools(server.transport, server.variableValues)
         .then((tools) => {
           setDiscoveredTools((prev) => ({ ...prev, [id]: tools }));
           setServerStatus((prev) => ({ ...prev, [id]: 'active' }));

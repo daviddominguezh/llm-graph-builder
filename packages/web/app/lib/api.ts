@@ -1,13 +1,8 @@
 import type { McpTransport } from '@/app/schemas/graph.schema';
 import { z } from 'zod';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const SSE_DATA_PREFIX = 'data: ';
 const EMPTY_LENGTH = 0;
-
-function apiUrl(path: string): string {
-  return `${API_URL}${path}`;
-}
 
 export interface DiscoveredTool {
   name: string;
@@ -40,11 +35,14 @@ async function parseDiscoverError(res: Response): Promise<string> {
   return parsed.success ? (parsed.data.error ?? 'Discovery failed') : 'Discovery failed';
 }
 
-export async function discoverMcpTools(transport: McpTransport): Promise<DiscoveredTool[]> {
-  const res = await fetch(apiUrl('/mcp/discover'), {
+export async function discoverMcpTools(
+  transport: McpTransport,
+  variableValues?: Record<string, unknown>
+): Promise<DiscoveredTool[]> {
+  const res = await fetch('/api/mcp/discover', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ transport }),
+    body: JSON.stringify({ transport, variableValues }),
   });
   if (!res.ok) {
     const message = await parseDiscoverError(res);
