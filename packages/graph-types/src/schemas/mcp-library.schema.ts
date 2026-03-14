@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 import { McpTransportSchema, VariableValueSchema } from './mcp.schema.js';
 
+const DEFAULT_INSTALLATIONS_COUNT = 0;
+
 export { VariableValueSchema };
 
 export const MCP_LIBRARY_CATEGORIES = [
@@ -46,7 +48,7 @@ export const McpLibraryItemSchema = z.object({
   transportConfig: z.record(z.string(), z.unknown()),
   transport: McpTransportSchema.optional(),
   variables: z.array(McpLibraryVariableSchema),
-  installationsCount: z.number().default(0),
+  installationsCount: z.number().default(DEFAULT_INSTALLATIONS_COUNT),
   publishedBy: z.string(),
   createdAt: z.string().optional(),
 });

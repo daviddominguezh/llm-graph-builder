@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AlertTriangle, CheckCircle, ChevronDown, Loader2, Plus, RefreshCw, Search, Trash2, X } from 'lucide-react';
+import { AlertTriangle, BookOpen, CheckCircle, ChevronDown, Loader2, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,15 +9,19 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { McpServerConfig } from '../../schemas/graph.schema';
 import type { McpServerStatus } from '../../hooks/useMcpServers';
+import { HeadersEditor } from './HeadersEditor';
 
 interface McpServersSectionProps {
   servers: McpServerConfig[];
   discovering: Record<string, boolean>;
   serverStatus: Record<string, McpServerStatus>;
+  orgId: string;
   onAdd: () => void;
   onRemove: (id: string) => void;
   onUpdate: (id: string, updates: Partial<McpServerConfig>) => void;
   onDiscover: (id: string) => void;
+  onPublish: (server: McpServerConfig) => void;
+  onOpenLibrary: () => void;
 }
 
 interface ServerItemProps {
@@ -27,84 +31,7 @@ interface ServerItemProps {
   onRemove: () => void;
   onUpdate: (updates: Partial<McpServerConfig>) => void;
   onDiscover: () => void;
-}
-
-interface HeaderEntry {
-  key: string;
-  value: string;
-}
-
-function headersToEntries(headers: Record<string, string> | undefined): HeaderEntry[] {
-  if (headers === undefined) return [];
-  return Object.entries(headers).map(([key, value]) => ({ key, value }));
-}
-
-function entriesToHeaders(entries: HeaderEntry[]): Record<string, string> | undefined {
-  if (entries.length === 0) return undefined;
-  return Object.fromEntries(entries.map((e) => [e.key, e.value]));
-}
-
-function HeaderRow({ entry, onChange, onRemove }: { entry: HeaderEntry; onChange: (e: HeaderEntry) => void; onRemove: () => void }) {
-  return (
-    <div className="flex items-center gap-1">
-      <Input
-        value={entry.key}
-        onChange={(e) => onChange({ ...entry, key: e.target.value })}
-        placeholder="Header name"
-        className="flex-1"
-      />
-      <Input
-        value={entry.value}
-        onChange={(e) => onChange({ ...entry, value: e.target.value })}
-        placeholder="Value"
-        className="flex-1"
-      />
-      <Button variant="ghost" size="icon-xs" onClick={onRemove}>
-        <X className="size-3" />
-      </Button>
-    </div>
-  );
-}
-
-function HeadersEditor({ headers, onHeadersChange }: { headers: Record<string, string> | undefined; onHeadersChange: (h: Record<string, string> | undefined) => void }) {
-  const entries = headersToEntries(headers);
-
-  function updateEntry(index: number, updated: HeaderEntry): void {
-    const next = entries.map((e, i) => (i === index ? updated : e));
-    onHeadersChange(entriesToHeaders(next));
-  }
-
-  function removeEntry(index: number): void {
-    const next = entries.filter((_, i) => i !== index);
-    onHeadersChange(entriesToHeaders(next));
-  }
-
-  function addEntry(): void {
-    onHeadersChange(entriesToHeaders([...entries, { key: '', value: '' }]));
-  }
-
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between">
-        <Label>Headers</Label>
-        <Button variant="ghost" size="icon-xs" onClick={addEntry}>
-          <Plus className="size-3" />
-        </Button>
-      </div>
-      {entries.length > 0 && (
-        <div className="space-y-1">
-          {entries.map((entry, index) => (
-            <HeaderRow
-              key={index}
-              entry={entry}
-              onChange={(e) => updateEntry(index, e)}
-              onRemove={() => removeEntry(index)}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
+  onPublish: () => void;
 }
 
 function UrlTransportFields({ server, onUpdate }: { server: McpServerConfig; onUpdate: (u: Partial<McpServerConfig>) => void }) {
@@ -192,35 +119,58 @@ function TransportTypeSelector({
   );
 }
 
-function DiscoverButton({ status, isDiscovering, onDiscover }: { status: McpServerStatus; isDiscovering: boolean; onDiscover: () => void }) {
+function DiscoverButton({
+  status,
+  isDiscovering,
+  onDiscover,
+  className,
+}: {
+  status: McpServerStatus;
+  isDiscovering: boolean;
+  onDiscover: () => void;
+  className?: string;
+}) {
   const isActive = status === 'active';
-  const icon = isDiscovering
-    ? <Loader2 className="size-4 animate-spin mr-1" />
-    : isActive ? <RefreshCw className="size-4 mr-1" /> : <Search className="size-4 mr-1" />;
+  const icon = isDiscovering ? (
+    <Loader2 className="size-4 animate-spin mr-1" />
+  ) : isActive ? (
+    <RefreshCw className="size-4 mr-1" />
+  ) : (
+    <Search className="size-4 mr-1" />
+  );
   const label = isActive ? 'Reload Tools' : 'Discover Tools';
 
   return (
-    <Button variant="outline" size="sm" className="w-full" onClick={onDiscover} disabled={isDiscovering}>
+    <Button variant="default" size="sm" className={className} onClick={onDiscover} disabled={isDiscovering}>
       {icon}
       {label}
     </Button>
   );
 }
 
-function ServerItemExpanded({ server, status, isDiscovering, onUpdate, onDiscover }: Omit<ServerItemProps, 'onRemove'>) {
+function ServerItemExpanded({
+  server,
+  status,
+  isDiscovering,
+  onUpdate,
+  onDiscover,
+  onPublish,
+}: Omit<ServerItemProps, 'onRemove'>) {
   return (
     <div className="space-y-2 mt-2">
       <div className="space-y-1">
         <Label>Name</Label>
-        <Input
-          value={server.name}
-          onChange={(e) => onUpdate({ name: e.target.value })}
-        />
+        <Input value={server.name} onChange={(e) => onUpdate({ name: e.target.value })} />
       </div>
       <TransportTypeSelector server={server} onUpdate={onUpdate} />
       <UrlTransportFields server={server} onUpdate={onUpdate} />
       <StdioTransportFields server={server} onUpdate={onUpdate} />
-      <DiscoverButton status={status} isDiscovering={isDiscovering} onDiscover={onDiscover} />
+      <div className="flex gap-2">
+        <Button variant="outline" size="sm" className="flex-1" onClick={onPublish}>
+          Publish
+        </Button>
+        <DiscoverButton status={status} isDiscovering={isDiscovering} onDiscover={onDiscover} className="flex-1" />
+      </div>
     </div>
   );
 }
@@ -232,7 +182,7 @@ function StatusIcon({ status }: { status: McpServerStatus }) {
   return <AlertTriangle className="size-3 text-orange-400" />;
 }
 
-function ServerItem({ server, status, isDiscovering, onRemove, onUpdate, onDiscover }: ServerItemProps) {
+function ServerItem({ server, status, isDiscovering, onRemove, onUpdate, onDiscover, onPublish }: ServerItemProps) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -262,6 +212,7 @@ function ServerItem({ server, status, isDiscovering, onRemove, onUpdate, onDisco
           isDiscovering={isDiscovering}
           onUpdate={onUpdate}
           onDiscover={onDiscover}
+          onPublish={onPublish}
         />
       )}
     </li>
@@ -276,14 +227,21 @@ export function McpServersSection({
   onRemove,
   onUpdate,
   onDiscover,
+  onPublish,
+  onOpenLibrary,
 }: McpServersSectionProps) {
   return (
     <div className="mt-2">
       <div className="flex items-center justify-between mb-2">
         <Label>MCP Servers</Label>
-        <Button variant="ghost" size="icon-xs" onClick={onAdd}>
-          <Plus className="size-3" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon-xs" onClick={onOpenLibrary}>
+            <BookOpen className="size-3" />
+          </Button>
+          <Button variant="ghost" size="icon-xs" onClick={onAdd}>
+            <Plus className="size-3" />
+          </Button>
+        </div>
       </div>
       <ul className="space-y-2">
         {[...servers].sort((a, b) => a.name.localeCompare(b.name)).map((server) => (
@@ -295,6 +253,7 @@ export function McpServersSection({
             onRemove={() => onRemove(server.id)}
             onUpdate={(updates) => onUpdate(server.id, updates)}
             onDiscover={() => onDiscover(server.id)}
+            onPublish={() => onPublish(server)}
           />
         ))}
       </ul>

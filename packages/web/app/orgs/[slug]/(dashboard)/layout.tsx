@@ -19,7 +19,7 @@ export default async function OrgLayout({ children, params }: OrgLayoutProps): P
   }
 
   return (
-    <div className="relative h-screen">
+    <div className="relative h-screen bg-muted">
       <OrgSidebar org={org} />
       <main className="h-full pl-14">{children}</main>
     </div>
