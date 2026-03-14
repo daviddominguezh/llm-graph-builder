@@ -31,7 +31,7 @@ export const formatOption = (params: FormatOptionParams): string => {
   parts.push(`**Option ${index}** — \`nextNodeID: ${index}\``);
   const label = description !== undefined && description !== '' ? description : nodeText;
   if (label !== undefined && label !== '') {
-    parts.push(label);
+    parts.push(`Description: ${label}`);
   }
   if (precondition !== undefined) {
     parts.push(`Select when: ${formatPrecondition(precondition)}`);

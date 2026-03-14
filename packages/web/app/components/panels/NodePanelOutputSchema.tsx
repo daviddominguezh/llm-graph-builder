@@ -32,24 +32,12 @@ function hasContextPrecondition(edge: Edge<RFEdgeData>): boolean {
   return cp !== undefined && cp.preconditions.length > 0;
 }
 
-function isOutputSchemaDisabled(nodeData: RFNodeData, outgoingEdges: Array<Edge<RFEdgeData>>): boolean {
+function isOutputSchemaHidden(nodeData: RFNodeData, outgoingEdges: Array<Edge<RFEdgeData>>): boolean {
   if (nodeData.nextNodeIsUser === true) return true;
   if (outgoingEdges.length > 1) return true;
   if (outgoingEdges.some(hasRoutingPrecondition)) return true;
   if (outgoingEdges.some(hasContextPrecondition)) return true;
   return false;
-}
-
-function getDisableReason(
-  nodeData: RFNodeData,
-  outgoingEdges: Array<Edge<RFEdgeData>>,
-  t: (key: string) => string
-): string | null {
-  if (nodeData.nextNodeIsUser === true) return t('outputSchemaDisabledNextNodeIsUser');
-  if (outgoingEdges.length > 1) return t('outputSchemaDisabledMultipleEdges');
-  if (outgoingEdges.some(hasRoutingPrecondition)) return t('outputSchemaDisabledPreconditions');
-  if (outgoingEdges.some(hasContextPrecondition)) return t('outputSchemaDisabledContextPreconditions');
-  return null;
 }
 
 function OutputSchemaSection({
@@ -71,8 +59,9 @@ function OutputSchemaSection({
   onEditNewOutputSchema: (id: string) => void;
   t: (key: string) => string;
 }) {
-  const disabled = isOutputSchemaDisabled(nodeData, outgoingEdges);
-  const disableReason = getDisableReason(nodeData, outgoingEdges, t);
+  const hidden = isOutputSchemaHidden(nodeData, outgoingEdges);
+
+  if (hidden) return null;
 
   const handleAddSchema = () => {
     const id = onAddOutputSchema();
@@ -87,11 +76,7 @@ function OutputSchemaSection({
         onChange={(schemaId) => onUpdateNodeData({ outputSchemaId: schemaId })}
         onAddSchema={handleAddSchema}
         onEditSchema={onEditOutputSchema}
-        disabled={disabled}
       />
-      {disabled && disableReason !== null && (
-        <p className="text-xs text-muted-foreground">{disableReason}</p>
-      )}
       {nodeData.outputSchemaId !== undefined && (
         <div className="space-y-2">
           <Label htmlFor="outputPrompt">{t('outputPrompt')}</Label>
