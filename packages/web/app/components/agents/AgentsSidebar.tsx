@@ -77,7 +77,7 @@ function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: 
     <Tooltip>
       <TooltipTrigger
         render={<Link href={href} />}
-        className={`flex h-8 items-center gap-2 rounded-md px-2 transition-colors ${
+        className={`flex h-8 items-center gap-2 rounded-e-md pr-2 transition-colors ${
           active ? 'bg-primary/10 text-foreground' : 'hover:bg-muted text-foreground'
         }`}
       >
@@ -111,7 +111,7 @@ function AgentList({
   }
 
   if (filtered.length === 0) {
-    return <p className="px-3 py-4 text-center text-xs text-muted-foreground">{t('noResults')}</p>;
+    return <p className="px-3 py-4 text-center text-xs text-muted-foreground bg-gray-100 mt-1 mx-3 rounded-md">{t('noResults')}</p>;
   }
 
   return (
