@@ -1,25 +1,23 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import {
-  ReactFlow,
   Background,
+  type Connection,
   Controls,
-  MiniMap,
   type Edge,
   type Node,
-  type OnNodesChange,
   type OnEdgesChange,
-  type Connection,
+  type OnNodesChange,
+  ReactFlow,
 } from '@xyflow/react';
 import { X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
-import { nodeTypes } from './nodes';
-import { edgeTypes } from './edges';
-import { SimulationPanel } from './panels/simulation';
-import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
-import { START_NODE_ID } from '../utils/graphInitializer';
 import type { SimulationState } from '../hooks/useSimulation';
+import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
+import { edgeTypes } from './edges';
+import { nodeTypes } from './nodes';
+import { SimulationPanel } from './panels/simulation';
 
 interface GraphCanvasProps {
   reactFlowWrapper: React.RefObject<HTMLDivElement | null>;
@@ -34,11 +32,6 @@ interface GraphCanvasProps {
   zoomViewNodeId: string | null;
   simulation: SimulationState;
   onExitZoomView: () => void;
-}
-
-function minimapNodeColor(node: Node): string {
-  if (node.id === START_NODE_ID) return '#22c55e';
-  return '#e2e8f0';
 }
 
 function ZoomViewOverlay({
@@ -88,10 +81,11 @@ export function GraphCanvas({
         >
           <Background />
           <Controls />
-          <MiniMap nodeStrokeWidth={3} nodeColor={minimapNodeColor} maskColor="rgba(0, 0, 0, 0.1)" />
         </ReactFlow>
 
-        {zoomViewNodeId !== null && <ZoomViewOverlay simulation={simulation} onExitZoomView={onExitZoomView} />}
+        {zoomViewNodeId !== null && (
+          <ZoomViewOverlay simulation={simulation} onExitZoomView={onExitZoomView} />
+        )}
 
         {simulation.active && (
           <SimulationPanel
