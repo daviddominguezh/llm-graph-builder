@@ -53,8 +53,8 @@ function CreateAgentForm({ orgId, orgSlug, onOpenChange }: CreateAgentFormProps)
     }
 
     onOpenChange(false);
-    router.push(`/orgs/${orgSlug}/editor/${agent.slug}`);
     router.refresh();
+    router.push(`/orgs/${orgSlug}/editor/${agent.slug}`);
   }
 
   return (

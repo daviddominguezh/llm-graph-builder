@@ -249,7 +249,7 @@ export function Toolbar(props: ToolbarProps) {
   const t = useTranslations('toolbar');
   return (
     <>
-      <div className="absolute top-2 left-2 z-1">
+      <div className="absolute top-0 left-2 z-1">
         <FileMenu
           onImport={onImport}
           onExport={onExport}
@@ -259,7 +259,7 @@ export function Toolbar(props: ToolbarProps) {
           agentName={agentName}
         />
       </div>
-      <header className="absolute z-1 flex items-stretch justify-center gap-1 rounded-lg border bg-background p-1 top-2 shadow-lg">
+      <header className="absolute z-1 flex items-stretch justify-center gap-1 rounded-lg border bg-background p-1 top-0 shadow-lg">
         <ToolbarTooltip label={t('status')}>{props.statusSlot}</ToolbarTooltip>
         <Separator orientation="vertical" />
         <PlayButton
@@ -277,7 +277,7 @@ export function Toolbar(props: ToolbarProps) {
         <ToolbarButtons {...props} />
       </header>
       {(props.publishSlot ?? props.versionSlot) && (
-        <div className="absolute top-2 right-2 z-1 flex items-center gap-2">
+        <div className="absolute top-0 right-2 z-1 flex items-center gap-2">
           {props.versionSlot}
           {props.publishSlot}
         </div>
