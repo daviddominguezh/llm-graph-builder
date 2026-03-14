@@ -30,7 +30,7 @@ function CardImage({ imageUrl, name }: { imageUrl: string | null; name: string }
 function CardInfo({ item }: { item: McpLibraryRow }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-      <p className="truncate text-sm font-medium">{item.name}</p>
+      <p className="truncate text-xs font-medium">{item.name}</p>
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
         {item.org_name !== undefined && <span className="truncate">{item.org_name}</span>}
         {item.org_name !== undefined && <span>·</span>}
@@ -57,12 +57,12 @@ function CardFooter({ item, isInstalled, onInstall }: McpLibraryCardProps) {
 
 export function McpLibraryCard({ item, isInstalled, onInstall }: McpLibraryCardProps) {
   return (
-    <div className="flex flex-col gap-2 border p-3 mx-3 rounded-md mt-1">
-      <div className="flex items-start gap-3">
+    <div className="flex flex-col gap-1 border-l-2 border-primary pl-2 mx-2 mt-2">
+      <div className="flex items-start gap-2">
         <CardImage imageUrl={item.image_url} name={item.name} />
         <CardInfo item={item} />
       </div>
-      <p className="line-clamp-2 text-xs text-muted-foreground">{item.description}</p>
+      <p className="line-clamp-2 text-[10px] text-muted-foreground">{item.description}</p>
       <CardFooter item={item} isInstalled={isInstalled} onInstall={onInstall} />
     </div>
   );

@@ -135,7 +135,7 @@ export function McpLibraryPanel({ installedLibraryIds, onInstall, onClose }: Mcp
   const { query, items, loading, handleQueryChange } = useLibrarySearch();
 
   return (
-    <div className="absolute bottom-0 left-0 top-0 z-10 flex w-80 flex-col bg-white border rounded-xl">
+    <div className="w-[240px] absolute bottom-0 left-0 top-0 z-10 flex w-80 flex-col bg-white border rounded-xl">
       <LibraryPanelHeader onClose={onClose} />
       <LibrarySearchBar value={query} onChange={handleQueryChange} />
       <LibraryItemsList
