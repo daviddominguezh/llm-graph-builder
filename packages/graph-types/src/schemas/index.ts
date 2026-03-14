@@ -25,6 +25,7 @@ export {
   HttpTransportSchema,
   McpTransportSchema,
   McpServerConfigSchema,
+  VariableValueSchema,
 } from './mcp.schema.js';
 export {
   MCP_LIBRARY_CATEGORIES,
@@ -32,7 +33,6 @@ export {
   McpLibraryItemSchema,
   McpLibraryVariableSchema,
   OrgEnvVariableSchema,
-  VariableValueSchema,
 } from './mcp-library.schema.js';
 export { OutputSchemaEntitySchema } from './output-schema-entity.schema.js';
 export {

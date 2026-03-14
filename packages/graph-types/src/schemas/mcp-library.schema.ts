@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
-import { McpTransportSchema } from './mcp.schema.js';
+import { McpTransportSchema, VariableValueSchema } from './mcp.schema.js';
+
+export { VariableValueSchema };
 
 export const MCP_LIBRARY_CATEGORIES = [
   'Productivity',
@@ -31,11 +33,6 @@ export const McpLibraryVariableSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
 });
-
-export const VariableValueSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('direct'), value: z.string() }),
-  z.object({ type: z.literal('env_ref'), envVariableId: z.string() }),
-]);
 
 export const McpLibraryItemSchema = z.object({
   id: z.string(),

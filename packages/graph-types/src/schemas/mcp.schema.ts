@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
-import { VariableValueSchema } from './mcp-library.schema.js';
+export const VariableValueSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('direct'), value: z.string() }),
+  z.object({ type: z.literal('env_ref'), envVariableId: z.string() }),
+]);
 
 export const StdioTransportSchema = z.object({
   type: z.literal('stdio'),
