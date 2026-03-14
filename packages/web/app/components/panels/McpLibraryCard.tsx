@@ -5,7 +5,6 @@ import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 
 import type { McpLibraryRow } from '@/app/lib/mcp-library-types';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
 interface McpLibraryCardProps {
@@ -22,48 +21,35 @@ function CardImage({ imageUrl, name }: { imageUrl: string | null; name: string }
   }
 
   return (
-    <div className="flex size-10 items-center justify-center rounded bg-gray-100">
-      <Server className="size-5 text-gray-400" />
+    <div className="flex size-8 items-center justify-center rounded bg-gray-100">
+      <Server className="size-4 text-gray-400" />
     </div>
   );
 }
 
-interface CardHeaderProps {
-  item: McpLibraryRow;
-  isInstalled: boolean;
-  onInstall: (item: McpLibraryRow) => void;
-}
-
-function CardHeader({ item, isInstalled, onInstall }: CardHeaderProps) {
-  const t = useTranslations('mcpLibrary');
-
+function CardInfo({ item }: { item: McpLibraryRow }) {
   return (
-    <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
-      <div className="min-w-0">
-        <p className="truncate text-sm font-medium">{item.name}</p>
-        {item.org_name !== undefined && (
-          <p className="truncate text-xs text-muted-foreground">{item.org_name}</p>
-        )}
-      </div>
-      <Button size="sm" variant={isInstalled ? 'outline' : 'default'} disabled={isInstalled} onClick={() => onInstall(item)}>
-        {isInstalled ? t('installed') : t('install')}
-      </Button>
+    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+      <p className="truncate text-sm font-medium">{item.name}</p>
+      {item.org_name !== undefined && (
+        <p className="truncate text-xs text-muted-foreground">{item.org_name}</p>
+      )}
     </div>
   );
 }
 
-function CardMeta({ item }: { item: McpLibraryRow }) {
+function CardFooter({ item, isInstalled, onInstall }: McpLibraryCardProps) {
   const t = useTranslations('mcpLibrary');
 
   return (
-    <div className="flex items-center gap-2">
-      <Badge variant="outline" className="text-xs">
-        {item.category}
-      </Badge>
+    <div className="flex items-center justify-between">
       <span className="flex items-center gap-1 text-xs text-muted-foreground">
         <Download className="size-3" />
         {t('installations', { count: item.installations_count })}
       </span>
+      <Button size="sm" variant={isInstalled ? 'outline' : 'default'} disabled={isInstalled} onClick={() => onInstall(item)}>
+        {isInstalled ? t('installed') : t('install')}
+      </Button>
     </div>
   );
 }
@@ -73,10 +59,10 @@ export function McpLibraryCard({ item, isInstalled, onInstall }: McpLibraryCardP
     <div className="flex flex-col gap-2 border p-3 mx-3 rounded-md mt-1">
       <div className="flex items-start gap-3">
         <CardImage imageUrl={item.image_url} name={item.name} />
-        <CardHeader item={item} isInstalled={isInstalled} onInstall={onInstall} />
+        <CardInfo item={item} />
       </div>
       <p className="line-clamp-2 text-xs text-muted-foreground">{item.description}</p>
-      <CardMeta item={item} />
+      <CardFooter item={item} isInstalled={isInstalled} onInstall={onInstall} />
     </div>
   );
 }
