@@ -23,6 +23,9 @@ type PresetsAsideProps = Pick<
   | 'productionKeyId'
   | 'onStagingKeyChange'
   | 'outputSchemasHook'
+  | 'agentId'
+  | 'agentName'
+  | 'orgSlug'
 > & {
   onEditSchema: (id: string) => void;
   onEditNewSchema: (id: string) => void;
@@ -41,6 +44,9 @@ export function PresetsAside(props: PresetsAsideProps) {
         stagingKeyId={props.stagingKeyId}
         productionKeyId={props.productionKeyId}
         onStagingKeyChange={props.onStagingKeyChange}
+        agentId={props.agentId}
+        agentName={props.agentName}
+        orgSlug={props.orgSlug}
         onAdd={presetsHook.addPreset}
         onDelete={presetsHook.deletePreset}
         onUpdate={presetsHook.updatePreset}

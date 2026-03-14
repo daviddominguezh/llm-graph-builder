@@ -17,7 +17,7 @@ interface McpLibraryCardProps {
 function CardImage({ imageUrl, name }: { imageUrl: string | null; name: string }) {
   if (imageUrl !== null) {
     return (
-      <Image src={imageUrl} alt={name} width={40} height={40} className="size-10 rounded object-cover" unoptimized />
+      <Image src={imageUrl} alt={name} width={30} height={30} className="size-8 rounded object-cover" unoptimized />
     );
   }
 

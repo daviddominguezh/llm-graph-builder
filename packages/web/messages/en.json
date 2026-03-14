@@ -72,7 +72,10 @@
     "autoLayout": "Auto-layout",
     "settings": "Settings",
     "mcpServersTab": "MCP Servers",
-    "toolsTab": "Tools"
+    "toolsTab": "Tools",
+    "dangerZone": "Danger zone",
+    "deleteAgent": "Delete this agent",
+    "deleteAgentDescription": "Permanently delete this agent and all its data. This action cannot be undone."
   },
   "agents": {
     "title": "Agents",

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from 'next-intl';
 import { ChevronDown, Plus, Trash2, Settings, X } from "lucide-react";
 
 import {
@@ -24,6 +25,7 @@ import { ApiKeySelectSection } from "./ApiKeySelectSection";
 import { type ContextPreset, DEFAULT_PRESET } from "../../types/preset";
 import type { ContextPrecondition } from "../../types/contextPrecondition";
 import { ContextPreconditionsSection } from "./ContextPreconditionsSection";
+import { AgentDangerZone } from './AgentDangerZone';
 import { OutputSchemasSection } from "./OutputSchemasSection";
 
 interface ContextKeysProps {
@@ -54,6 +56,9 @@ interface PresetsPanelProps {
   stagingKeyId: string | null;
   productionKeyId: string | null;
   onStagingKeyChange: (keyId: string | null) => void;
+  agentId: string;
+  agentName: string;
+  orgSlug: string;
   onAdd: () => void;
   onDelete: (id: string) => void;
   onUpdate: (id: string, updates: Partial<ContextPreset>) => void;
@@ -233,70 +238,60 @@ function PresetItem({
   );
 }
 
-export function PresetsPanel({
-  presets,
-  contextKeys,
-  orgApiKeys,
-  stagingKeyId,
-  productionKeyId,
-  onStagingKeyChange,
-  onAdd,
-  onDelete,
-  onUpdate,
-  context,
-  contextPreconditions,
-  outputSchemas,
-}: PresetsPanelProps) {
+export function PresetsPanel(props: PresetsPanelProps) {
+  const t = useTranslations('toolbar');
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-2 border-b px-4 py-3">
         <Settings className="size-4" />
-        <h2 className="text-sm font-semibold">Context Presets</h2>
+        <h2 className="text-sm font-semibold">{t('settings')}</h2>
       </div>
       <div className="flex-1 overflow-y-auto p-4">
         <ApiKeySelectSection
-          orgApiKeys={orgApiKeys}
-          stagingKeyId={stagingKeyId}
-          productionKeyId={productionKeyId}
-          onStagingKeyChange={onStagingKeyChange}
+          orgApiKeys={props.orgApiKeys}
+          stagingKeyId={props.stagingKeyId}
+          productionKeyId={props.productionKeyId}
+          onStagingKeyChange={props.onStagingKeyChange}
         />
         <ContextKeysSection
-          keys={contextKeys}
-          onAdd={context.onAdd}
-          onRemove={context.onRemove}
-          onRename={context.onRename}
+          keys={props.contextKeys}
+          onAdd={props.context.onAdd}
+          onRemove={props.context.onRemove}
+          onRename={props.context.onRename}
         />
         <OutputSchemasSection
-          schemas={outputSchemas.schemas}
-          onAdd={outputSchemas.onAdd}
-          onRemove={outputSchemas.onRemove}
-          onEdit={outputSchemas.onEdit}
+          schemas={props.outputSchemas.schemas}
+          onAdd={props.outputSchemas.onAdd}
+          onRemove={props.outputSchemas.onRemove}
+          onEdit={props.outputSchemas.onEdit}
         />
         <ContextPreconditionsSection
-          preconditions={contextPreconditions.preconditions}
-          contextKeys={contextKeys}
-          onAdd={contextPreconditions.onAdd}
-          onRemove={contextPreconditions.onRemove}
-          onUpdate={contextPreconditions.onUpdate}
+          preconditions={props.contextPreconditions.preconditions}
+          contextKeys={props.contextKeys}
+          onAdd={props.contextPreconditions.onAdd}
+          onRemove={props.contextPreconditions.onRemove}
+          onUpdate={props.contextPreconditions.onUpdate}
         />
         <div className="flex items-center justify-between mb-1">
           <Label>Testing Presets</Label>
-          <Button variant="ghost" size="icon-xs" onClick={onAdd}>
+          <Button variant="ghost" size="icon-xs" onClick={props.onAdd}>
             <Plus className="size-3" />
           </Button>
         </div>
         <ul className="space-y-2">
-          {presets.map((preset) => (
+          {props.presets.map((preset) => (
             <PresetItem
               key={preset.id}
               preset={preset}
-              contextKeys={contextKeys}
+              contextKeys={props.contextKeys}
               isDefault={preset.id === DEFAULT_PRESET.id}
-              onDelete={() => onDelete(preset.id)}
-              onUpdate={onUpdate}
+              onDelete={() => props.onDelete(preset.id)}
+              onUpdate={props.onUpdate}
             />
           ))}
         </ul>
+        <AgentDangerZone agentId={props.agentId} agentName={props.agentName} orgSlug={props.orgSlug} />
       </div>
     </div>
   );

@@ -348,6 +348,9 @@ function LoadedEditor(props: LoadedEditorProps) {
           ctxPreconditions={h.ctxPreconditions}
           orgApiKeys={props.orgApiKeys ?? []}
           orgId={props.orgId ?? ''}
+          agentId={props.agentId ?? ''}
+          agentName={props.agentName ?? ''}
+          orgSlug={props.orgSlug ?? ''}
           envVariables={h.envVariables}
           stagingKeyId={h.apiKeys.stagingKeyId}
           productionKeyId={h.apiKeys.productionKeyId}

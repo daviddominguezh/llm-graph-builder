@@ -8,6 +8,7 @@ import {
 } from '@/app/lib/agents';
 import { serverError, serverLog } from '@/app/lib/serverLogger';
 import { createClient } from '@/app/lib/supabase/server';
+import { revalidatePath } from 'next/cache';
 
 export async function createAgentAction(
   orgId: string,
@@ -17,8 +18,12 @@ export async function createAgentAction(
   serverLog('[createAgentAction] orgId:', orgId, 'name:', name);
   const supabase = await createClient();
   const res = await createAgentLib(supabase, orgId, name, description);
-  if (res.error === null) serverLog('[createAgentAction] created agent:', res.agent?.slug);
-  else serverError('[createAgentAction] error:', res.error);
+  if (res.error === null) {
+    serverLog('[createAgentAction] created agent:', res.agent?.slug);
+    revalidatePath('/orgs/[slug]', 'layout');
+  } else {
+    serverError('[createAgentAction] error:', res.error);
+  }
   return res;
 }
 
@@ -26,7 +31,11 @@ export async function deleteAgentAction(agentId: string): Promise<{ error: strin
   serverLog('[deleteAgentAction] agentId:', agentId);
   const supabase = await createClient();
   const res = await deleteAgentLib(supabase, agentId);
-  if (res.error !== null) serverError('[deleteAgentAction] error:', res.error);
+  if (res.error === null) {
+    revalidatePath('/orgs/[slug]', 'layout');
+  } else {
+    serverError('[deleteAgentAction] error:', res.error);
+  }
   return res;
 }
 

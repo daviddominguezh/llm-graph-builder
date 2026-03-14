@@ -79,7 +79,7 @@ function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: 
         <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
           <span>v{agent.version}</span>
           <span>·</span>
-          <span>{formatRelativeTime(agent.updated_at)}</span>
+          <span suppressHydrationWarning>{formatRelativeTime(agent.updated_at)}</span>
         </div>
       </div>
     </Link>

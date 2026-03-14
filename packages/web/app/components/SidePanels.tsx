@@ -63,6 +63,9 @@ export interface SidePanelsProps {
   ctxPreconditions: CtxPreconditionsState;
   orgApiKeys: ApiKeyRow[];
   orgId: string;
+  agentId: string;
+  agentName: string;
+  orgSlug: string;
   envVariables: OrgEnvVariableRow[];
   stagingKeyId: string | null;
   productionKeyId: string | null;
@@ -232,6 +235,9 @@ export function SidePanels(props: SidePanelsProps) {
           onEditSchema={schema.handleEditSchema}
           onEditNewSchema={schema.handleEditNewSchema}
           onRemoveSchema={schema.handleRemoveSchema}
+          agentId={props.agentId}
+          agentName={props.agentName}
+          orgSlug={props.orgSlug}
         />
       )}
     </>

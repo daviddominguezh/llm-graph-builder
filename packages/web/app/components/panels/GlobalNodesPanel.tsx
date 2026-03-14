@@ -120,7 +120,7 @@ export function GlobalNodesPanel({
       <div className="flex-1 overflow-y-auto">
         <div className="p-4">
           {globalNodes.length === 0 ? (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground bg-gray-100 rounded-md p-3">
               No global nodes yet.
             </p>
           ) : (
