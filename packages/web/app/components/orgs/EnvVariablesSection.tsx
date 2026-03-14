@@ -2,12 +2,13 @@
 
 import { getEnvVariablesByOrgAction } from '@/app/actions/org-env-variables';
 import type { OrgEnvVariableRow } from '@/app/lib/org-env-variables';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
+
+import { EditEnvVariableDialog } from './EditEnvVariableDialog';
 
 import { CreateEnvVariableDialog } from './CreateEnvVariableDialog';
 import { DeleteEnvVariableDialog } from './DeleteEnvVariableDialog';
@@ -20,22 +21,41 @@ interface EnvVariablesSectionProps {
 interface VariableRowProps {
   variable: OrgEnvVariableRow;
   onDeleteClick: (variable: OrgEnvVariableRow) => void;
+  onEditClick: (variable: OrgEnvVariableRow) => void;
 }
 
-function VariableRow({ variable, onDeleteClick }: VariableRowProps) {
-  const t = useTranslations('envVariables');
+function MaskedValue({ value, isSecret }: { value: string; isSecret: boolean }) {
+  const [visible, setVisible] = useState(!isSecret);
+  const display = visible ? value : '••••••••';
+  const Icon = visible ? EyeOff : Eye;
 
+  return (
+    <div className="flex items-center gap-1">
+      <code className="text-xs text-muted-foreground truncate max-w-48">{display}</code>
+      {isSecret && (
+        <Button variant="ghost" size="icon-xs" onClick={() => setVisible((v) => !v)}>
+          <Icon className="size-3" />
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function VariableRow({ variable, onDeleteClick, onEditClick }: VariableRowProps) {
   return (
     <div className="flex items-center justify-between rounded-md border px-3 py-2">
       <div className="flex flex-col gap-0.5">
         <span className="text-sm font-medium font-mono">{variable.name}</span>
-        <Badge variant="outline" className="w-fit text-xs">
-          {variable.is_secret ? t('secret') : t('visible')}
-        </Badge>
+        <MaskedValue value={variable.value} isSecret={variable.is_secret} />
       </div>
-      <Button variant="ghost" size="icon-sm" onClick={() => onDeleteClick(variable)}>
-        <Trash2 className="size-4" />
-      </Button>
+      <div className="flex items-center gap-1">
+        <Button variant="ghost" size="icon-sm" onClick={() => onEditClick(variable)}>
+          <Pencil className="size-3.5" />
+        </Button>
+        <Button variant="ghost" size="icon-sm" onClick={() => onDeleteClick(variable)}>
+          <Trash2 className="size-3.5" />
+        </Button>
+      </div>
     </div>
   );
 }
@@ -43,9 +63,10 @@ function VariableRow({ variable, onDeleteClick }: VariableRowProps) {
 interface VariablesListProps {
   variables: OrgEnvVariableRow[];
   onDeleteClick: (variable: OrgEnvVariableRow) => void;
+  onEditClick: (variable: OrgEnvVariableRow) => void;
 }
 
-function VariablesList({ variables, onDeleteClick }: VariablesListProps) {
+function VariablesList({ variables, onDeleteClick, onEditClick }: VariablesListProps) {
   const t = useTranslations('envVariables');
 
   if (variables.length === 0) {
@@ -57,7 +78,7 @@ function VariablesList({ variables, onDeleteClick }: VariablesListProps) {
   return (
     <div className="flex flex-col gap-2">
       {variables.map((variable) => (
-        <VariableRow key={variable.id} variable={variable} onDeleteClick={onDeleteClick} />
+        <VariableRow key={variable.id} variable={variable} onDeleteClick={onDeleteClick} onEditClick={onEditClick} />
       ))}
     </div>
   );
@@ -68,6 +89,7 @@ export function EnvVariablesSection({ orgId, initialVariables }: EnvVariablesSec
   const [variables, setVariables] = useState<OrgEnvVariableRow[]>(initialVariables);
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<OrgEnvVariableRow | null>(null);
+  const [editTarget, setEditTarget] = useState<OrgEnvVariableRow | null>(null);
 
   const refreshVariables = useCallback(async () => {
     const { result } = await getEnvVariablesByOrgAction(orgId);
@@ -87,7 +109,7 @@ export function EnvVariablesSection({ orgId, initialVariables }: EnvVariablesSec
         </CardAction>
       </CardHeader>
       <CardContent>
-        <VariablesList variables={variables} onDeleteClick={setDeleteTarget} />
+        <VariablesList variables={variables} onDeleteClick={setDeleteTarget} onEditClick={setEditTarget} />
       </CardContent>
       <CreateEnvVariableDialog
         open={createOpen}
@@ -102,6 +124,14 @@ export function EnvVariablesSection({ orgId, initialVariables }: EnvVariablesSec
           variableId={deleteTarget.id}
           variableName={deleteTarget.name}
           onDeleted={refreshVariables}
+        />
+      )}
+      {editTarget !== null && (
+        <EditEnvVariableDialog
+          open={editTarget !== null}
+          onOpenChange={() => setEditTarget(null)}
+          variable={editTarget}
+          onSaved={refreshVariables}
         />
       )}
     </Card>

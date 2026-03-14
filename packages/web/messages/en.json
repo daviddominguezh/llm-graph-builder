@@ -309,6 +309,8 @@
     "deleteDescription": "This will delete \"{name}\". MCP servers referencing this variable will need a new value.",
     "deleteConfirm": "Delete",
     "deleteCancel": "Cancel",
-    "deleteError": "Failed to delete variable."
+    "deleteError": "Failed to delete variable.",
+    "editTitle": "Edit variable",
+    "save": "Save"
   }
 }

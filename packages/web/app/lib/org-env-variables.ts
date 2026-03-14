@@ -25,7 +25,7 @@ function mapRows(data: unknown[]): OrgEnvVariableRow[] {
 }
 
 const COLUMNS = 'id, org_id, name, value, is_secret, created_at';
-const LIST_COLUMNS = 'id, org_id, name, is_secret, created_at';
+const LIST_COLUMNS = 'id, org_id, name, value, is_secret, created_at';
 
 export async function getEnvVariablesByOrg(
   supabase: SupabaseClient,
