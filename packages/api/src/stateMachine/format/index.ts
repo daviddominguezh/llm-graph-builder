@@ -34,7 +34,8 @@ export const formatOption = (params: FormatOptionParams): string => {
     parts.push(`Description: ${label}`);
   }
   if (precondition !== undefined) {
-    parts.push(`Select when: ${formatPrecondition(precondition)}`);
+    const selectLabel = precondition.type === 'user_said' ? 'Select when user says:' : 'Select when:';
+    parts.push(`${selectLabel} ${formatPrecondition(precondition)}`);
   }
   if (example !== undefined && example !== '') {
     const escapedExample = example.replace(/\n/gv, '\\n');
