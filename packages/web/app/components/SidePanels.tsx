@@ -4,7 +4,7 @@ import type { Edge } from '@xyflow/react';
 import { useRef, useState } from 'react';
 
 import type { ApiKeyRow } from '../lib/api-keys';
-import type { Agent } from '../schemas/graph.schema';
+import type { Agent, McpServerConfig } from '../schemas/graph.schema';
 import type { McpServersState } from '../hooks/useMcpServers';
 import type { OutputSchemasState } from '../hooks/useOutputSchemas';
 import type { PushOperation } from '../utils/operationBuilders';
@@ -62,9 +62,12 @@ export interface SidePanelsProps {
   setEdges: EdgeSetter;
   ctxPreconditions: CtxPreconditionsState;
   orgApiKeys: ApiKeyRow[];
+  orgId: string;
   stagingKeyId: string | null;
   productionKeyId: string | null;
   onStagingKeyChange: (keyId: string | null) => void;
+  onPublishMcpServer: (server: McpServerConfig) => void;
+  onOpenMcpLibrary: () => void;
   pushOperation: PushOperation;
 }
 
@@ -262,10 +265,13 @@ export function SidePanels(props: SidePanelsProps) {
           servers: props.mcpHook.servers,
           discovering: props.mcpHook.discovering,
           serverStatus: props.mcpHook.serverStatus,
+          orgId: props.orgId,
           onAddServer: props.mcpHook.addServer,
           onRemoveServer: props.mcpHook.removeServer,
           onUpdateServer: props.mcpHook.updateServer,
           onDiscoverTools: props.mcpHook.discoverTools,
+          onPublishServer: props.onPublishMcpServer,
+          onOpenLibrary: props.onOpenMcpLibrary,
         }}
         open={toolsOpen}
         onClose={() => {}}

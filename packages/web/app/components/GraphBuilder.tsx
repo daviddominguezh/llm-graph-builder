@@ -45,6 +45,7 @@ export interface GraphBuilderProps {
   agentId?: string;
   agentName?: string;
   orgSlug?: string;
+  orgId?: string;
   orgName?: string;
   orgAvatarUrl?: string | null;
   initialVersion?: number;
@@ -338,9 +339,12 @@ function LoadedEditor(props: LoadedEditorProps) {
           setEdges={h.setEdges}
           ctxPreconditions={h.ctxPreconditions}
           orgApiKeys={props.orgApiKeys ?? []}
+          orgId={props.orgId ?? ''}
           stagingKeyId={h.apiKeys.stagingKeyId}
           productionKeyId={h.apiKeys.productionKeyId}
           onStagingKeyChange={h.apiKeys.handleStagingKeyChange}
+          onPublishMcpServer={() => {}}
+          onOpenMcpLibrary={() => {}}
           pushOperation={h.pushOperation}
         />
 
