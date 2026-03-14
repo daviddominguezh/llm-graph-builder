@@ -31,6 +31,7 @@ export default async function EditorPage({ params }: EditorPageProps): Promise<R
       agentId={agent.id}
       agentName={agent.name}
       orgSlug={org.slug}
+      orgId={org.id}
       orgName={org.name}
       orgAvatarUrl={org.avatar_url}
       initialVersion={agent.current_version}

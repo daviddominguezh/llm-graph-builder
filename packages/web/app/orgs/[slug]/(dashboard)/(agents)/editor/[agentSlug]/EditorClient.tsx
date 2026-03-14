@@ -10,6 +10,7 @@ interface EditorClientProps {
   agentId: string;
   agentName: string;
   orgSlug: string;
+  orgId: string;
   orgName: string;
   orgAvatarUrl: string | null;
   initialVersion: number;

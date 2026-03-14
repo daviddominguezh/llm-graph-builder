@@ -9,6 +9,13 @@ import type { PushOperation } from '../utils/operationBuilders';
 
 export type McpServerStatus = 'pending' | 'active';
 
+export interface AddFromLibraryConfig {
+  name: string;
+  transport: McpServerConfig['transport'];
+  libraryItemId: string;
+  variables: Array<{ name: string }>;
+}
+
 export interface McpServersState {
   servers: McpServerConfig[];
   discoveredTools: Record<string, DiscoveredTool[]>;
@@ -17,6 +24,7 @@ export interface McpServersState {
   discovering: Record<string, boolean>;
   serverStatus: Record<string, McpServerStatus>;
   addServer: () => void;
+  addServerFromLibrary: (config: AddFromLibraryConfig) => McpServerConfig;
   removeServer: (id: string) => void;
   updateServer: (id: string, updates: Partial<McpServerConfig>) => void;
   discoverTools: (id: string) => void;
@@ -59,14 +67,28 @@ function removeKeyFromRecord<T>(record: Record<string, T>, key: string): Record<
 function buildInsertMcpOp(server: McpServerConfig): Operation {
   return {
     type: 'insertMcpServer',
-    data: { serverId: server.id, name: server.name, transport: server.transport, enabled: server.enabled },
+    data: {
+      serverId: server.id,
+      name: server.name,
+      transport: server.transport,
+      enabled: server.enabled,
+      libraryItemId: server.libraryItemId,
+      variableValues: server.variableValues,
+    },
   };
 }
 
 function buildUpdateMcpOp(id: string, merged: McpServerConfig): Operation {
   return {
     type: 'updateMcpServer',
-    data: { serverId: id, name: merged.name, transport: merged.transport, enabled: merged.enabled },
+    data: {
+      serverId: id,
+      name: merged.name,
+      transport: merged.transport,
+      enabled: merged.enabled,
+      libraryItemId: merged.libraryItemId,
+      variableValues: merged.variableValues,
+    },
   };
 }
 
@@ -81,11 +103,24 @@ interface MutationSetters {
   pushOperation: PushOperation;
 }
 
-function useServerMutations(setters: MutationSetters): {
+interface ServerMutations {
   addServer: () => void;
+  addServerFromLibrary: (config: AddFromLibraryConfig) => McpServerConfig;
   removeServer: (id: string) => void;
   updateServer: (id: string, updates: Partial<McpServerConfig>) => void;
-} {
+}
+
+function buildEmptyVariableValues(
+  variables: Array<{ name: string }>
+): Record<string, { type: 'direct'; value: string }> {
+  const values: Record<string, { type: 'direct'; value: string }> = {};
+  for (const v of variables) {
+    values[v.name] = { type: 'direct', value: '' };
+  }
+  return values;
+}
+
+function useServerMutations(setters: MutationSetters): ServerMutations {
   const { setServers, setDiscoveredTools, setServerStatus, pushOperation } = setters;
 
   const addServer = useCallback(() => {
@@ -93,6 +128,23 @@ function useServerMutations(setters: MutationSetters): {
     setServers((prev) => [...prev, server]);
     pushOperation(buildInsertMcpOp(server));
   }, [setServers, pushOperation]);
+
+  const addServerFromLibrary = useCallback(
+    (config: AddFromLibraryConfig): McpServerConfig => {
+      const server: McpServerConfig = {
+        id: nanoid(),
+        name: config.name,
+        transport: config.transport,
+        enabled: true,
+        libraryItemId: config.libraryItemId,
+        variableValues: buildEmptyVariableValues(config.variables),
+      };
+      setServers((prev) => [...prev, server]);
+      pushOperation(buildInsertMcpOp(server));
+      return server;
+    },
+    [setServers, pushOperation]
+  );
 
   const removeServer = useCallback(
     (id: string) => {
@@ -116,7 +168,7 @@ function useServerMutations(setters: MutationSetters): {
     [setServers, pushOperation]
   );
 
-  return { addServer, removeServer, updateServer };
+  return { addServer, addServerFromLibrary, removeServer, updateServer };
 }
 
 interface DiscoverySetters {

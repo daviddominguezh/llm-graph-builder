@@ -10,6 +10,7 @@ import { createPortal } from 'react-dom';
 
 import type { McpServerStatus } from '../../hooks/useMcpServers';
 import type { DiscoveredTool } from '../../lib/api';
+import type { OrgEnvVariableRow } from '../../lib/org-env-variables';
 import type { McpServerConfig } from '../../schemas/graph.schema';
 import { McpServersSection } from './McpServersSection';
 
@@ -18,6 +19,7 @@ interface McpProps {
   discovering: Record<string, boolean>;
   serverStatus: Record<string, McpServerStatus>;
   orgId: string;
+  envVariables: OrgEnvVariableRow[];
   onAddServer: () => void;
   onRemoveServer: (id: string) => void;
   onUpdateServer: (id: string, updates: Partial<McpServerConfig>) => void;
@@ -279,6 +281,7 @@ function McpTab({ mcp }: { mcp: McpProps }) {
         discovering={mcp.discovering}
         serverStatus={mcp.serverStatus}
         orgId={mcp.orgId}
+        envVariables={mcp.envVariables}
         onAdd={mcp.onAddServer}
         onRemove={mcp.onRemoveServer}
         onUpdate={mcp.onUpdateServer}

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { OrgEnvVariableRow } from '../../lib/org-env-variables';
 import type { McpServerConfig } from '../../schemas/graph.schema';
 import type { McpServerStatus } from '../../hooks/useMcpServers';
 import { HeadersEditor } from './HeadersEditor';
@@ -16,6 +17,7 @@ interface McpServersSectionProps {
   discovering: Record<string, boolean>;
   serverStatus: Record<string, McpServerStatus>;
   orgId: string;
+  envVariables: OrgEnvVariableRow[];
   onAdd: () => void;
   onRemove: (id: string) => void;
   onUpdate: (id: string, updates: Partial<McpServerConfig>) => void;

@@ -19,6 +19,7 @@ import type { ApiKeyRow } from '../lib/api-keys';
 import type { Agent, Graph } from '../schemas/graph.schema';
 import { useApiKeySelection } from '../hooks/useApiKeySelection';
 import { useAutoSave } from '../hooks/useAutoSave';
+import { useEnvVariables } from '../hooks/useEnvVariables';
 import { useGraphActions } from '../hooks/useGraphActions';
 import type { GraphLoadResult } from '../hooks/useGraphLoader';
 import { useGraphLoader } from '../hooks/useGraphLoader';
@@ -96,6 +97,9 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
   const [presetsOpen, setPresetsOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+
+  const envVariables = useEnvVariables(props.orgId);
 
   const presetsHook = usePresets(opQueue.pushOperation);
 
@@ -233,6 +237,9 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     setToolsOpen,
     searchOpen,
     setSearchOpen,
+    libraryOpen,
+    setLibraryOpen,
+    envVariables,
     version,
     setVersion,
     apiKeys,
@@ -335,16 +342,22 @@ function LoadedEditor(props: LoadedEditorProps) {
           globalPanelOpen={h.globalPanelOpen}
           presetsOpen={h.presetsOpen}
           toolsOpen={h.toolsOpen}
+          libraryOpen={h.libraryOpen}
           setNodes={h.setNodes}
           setEdges={h.setEdges}
           ctxPreconditions={h.ctxPreconditions}
           orgApiKeys={props.orgApiKeys ?? []}
           orgId={props.orgId ?? ''}
+          envVariables={h.envVariables}
           stagingKeyId={h.apiKeys.stagingKeyId}
           productionKeyId={h.apiKeys.productionKeyId}
           onStagingKeyChange={h.apiKeys.handleStagingKeyChange}
           onPublishMcpServer={() => {}}
-          onOpenMcpLibrary={() => {}}
+          onOpenMcpLibrary={() => {
+            h.setLibraryOpen(true);
+            h.setPresetsOpen(false);
+          }}
+          onCloseLibrary={() => h.setLibraryOpen(false)}
           pushOperation={h.pushOperation}
         />
 

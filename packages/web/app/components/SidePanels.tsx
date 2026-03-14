@@ -1,9 +1,9 @@
 'use client';
 
 import type { Edge } from '@xyflow/react';
-import { useRef, useState } from 'react';
 
 import type { ApiKeyRow } from '../lib/api-keys';
+import type { OrgEnvVariableRow } from '../lib/org-env-variables';
 import type { Agent, McpServerConfig } from '../schemas/graph.schema';
 import type { McpServersState } from '../hooks/useMcpServers';
 import type { OutputSchemasState } from '../hooks/useOutputSchemas';
@@ -16,18 +16,17 @@ import { EdgePanel } from './panels/EdgePanel';
 import { GlobalNodesPanel } from './panels/GlobalNodesPanel';
 import { NodePanel } from './panels/NodePanel';
 import { OutputSchemaDialog } from './panels/OutputSchemaDialog';
-import { PresetsPanel } from './panels/PresetsPanel';
 import { ToolsPanel } from './panels/ToolsPanel';
+import { McpDialogs, PresetsAside } from './SidePanelAsides';
 import type { CtxPreconditionsState, EdgeSetter, NodeArray, NodeSetter } from './sidePanelHelpers';
 import {
-  createPrecondition,
   handleGlobalAddNode,
   handleGlobalDeleteNode,
   handleGlobalSetFallback,
   handleGlobalUpdateNode,
-  handlePreconditionRemove,
-  handlePreconditionUpdate,
 } from './sidePanelHelpers';
+import { getInstalledLibraryIds } from './sidePanelMcpHelpers';
+import { usePublishState, useSchemaDialogState } from './useSidePanelState';
 
 type EdgeArray = Array<Edge<RFEdgeData>>;
 
@@ -58,16 +57,19 @@ export interface SidePanelsProps {
   globalPanelOpen: boolean;
   presetsOpen: boolean;
   toolsOpen: boolean;
+  libraryOpen: boolean;
   setNodes: NodeSetter;
   setEdges: EdgeSetter;
   ctxPreconditions: CtxPreconditionsState;
   orgApiKeys: ApiKeyRow[];
   orgId: string;
+  envVariables: OrgEnvVariableRow[];
   stagingKeyId: string | null;
   productionKeyId: string | null;
   onStagingKeyChange: (keyId: string | null) => void;
   onPublishMcpServer: (server: McpServerConfig) => void;
   onOpenMcpLibrary: () => void;
+  onCloseLibrary: () => void;
   pushOperation: PushOperation;
 }
 
@@ -137,118 +139,76 @@ function GlobalPanel({ setNodes, setEdges, nodes, pushOperation }: GlobalPanelPr
   );
 }
 
-type PresetsAsideProps = Pick<
-  SidePanelsProps,
-  | 'presetsHook'
-  | 'ctxPreconditions'
-  | 'setEdges'
-  | 'orgApiKeys'
-  | 'stagingKeyId'
-  | 'productionKeyId'
-  | 'onStagingKeyChange'
-  | 'outputSchemasHook'
-> & { onEditSchema: (id: string) => void; onEditNewSchema: (id: string) => void; onRemoveSchema: (id: string) => void };
+interface ToolsPanelSlotProps {
+  sidePanelProps: SidePanelsProps;
+  onPublishServer: (server: McpServerConfig) => void;
+}
 
-function PresetsAside(props: PresetsAsideProps) {
-  const { presetsHook, ctxPreconditions, setEdges } = props;
-
+function ToolsPanelSlot({ sidePanelProps: p, onPublishServer }: ToolsPanelSlotProps) {
   return (
-    <aside className="absolute left-0 top-0 bottom-0 w-80 border-r border-gray-200 bg-white z-10">
-      <PresetsPanel
-        presets={presetsHook.presets}
-        contextKeys={presetsHook.contextKeys}
-        orgApiKeys={props.orgApiKeys}
-        stagingKeyId={props.stagingKeyId}
-        productionKeyId={props.productionKeyId}
-        onStagingKeyChange={props.onStagingKeyChange}
-        onAdd={presetsHook.addPreset}
-        onDelete={presetsHook.deletePreset}
-        onUpdate={presetsHook.updatePreset}
-        context={{
-          keys: presetsHook.contextKeys,
-          onAdd: presetsHook.addContextKey,
-          onRemove: presetsHook.removeContextKey,
-          onRename: presetsHook.renameContextKey,
-        }}
-        contextPreconditions={{
-          preconditions: ctxPreconditions.customContextPreconditions,
-          onAdd: () => createPrecondition(ctxPreconditions),
-          onRemove: (id) => handlePreconditionRemove(id, ctxPreconditions, setEdges),
-          onUpdate: (id, updates) => handlePreconditionUpdate(id, updates, ctxPreconditions, setEdges),
-        }}
-        outputSchemas={{
-          schemas: props.outputSchemasHook.schemas,
-          onAdd: () => {
-            const id = props.outputSchemasHook.addSchema();
-            props.onEditNewSchema(id);
-          },
-          onRemove: props.onRemoveSchema,
-          onEdit: props.onEditSchema,
-        }}
-      />
-    </aside>
+    <ToolsPanel
+      servers={p.mcpHook.servers}
+      discoveredTools={p.mcpHook.discoveredTools}
+      mcp={{
+        servers: p.mcpHook.servers,
+        discovering: p.mcpHook.discovering,
+        serverStatus: p.mcpHook.serverStatus,
+        orgId: p.orgId,
+        envVariables: p.envVariables,
+        onAddServer: p.mcpHook.addServer,
+        onRemoveServer: p.mcpHook.removeServer,
+        onUpdateServer: p.mcpHook.updateServer,
+        onDiscoverTools: p.mcpHook.discoverTools,
+        onPublishServer,
+        onOpenLibrary: p.onOpenMcpLibrary,
+      }}
+      open={p.toolsOpen}
+      onClose={() => {}}
+    />
   );
 }
 
 export function SidePanels(props: SidePanelsProps) {
-  const { selection, simulation, globalPanelOpen, presetsOpen, toolsOpen } = props;
+  const { selection, simulation, globalPanelOpen, presetsOpen, libraryOpen } = props;
   const hasSelection = selection.selectedNodeId !== null || selection.selectedEdgeId !== null;
   const showSelectionPanel = !simulation.active && hasSelection;
 
-  const [editingSchemaId, setEditingSchemaId] = useState<string | null>(null);
-  const [pendingNewSchemaId, setPendingNewSchemaId] = useState<string | null>(null);
-  const savedRef = useRef(false);
-  const editingSchema =
-    editingSchemaId !== null
-      ? props.outputSchemasHook.schemas.find((s) => s.id === editingSchemaId)
-      : undefined;
+  const schema = useSchemaDialogState({
+    outputSchemasHook: props.outputSchemasHook,
+    selection: props.selection,
+    setNodes: props.setNodes,
+  });
 
-  const handleEditSchema = (id: string) => {
-    setEditingSchemaId(id);
-  };
-
-  const handleEditNewSchema = (id: string) => {
-    setPendingNewSchemaId(id);
-    setEditingSchemaId(id);
-  };
-
-  const handleRemoveSchema = (id: string) => {
-    props.outputSchemasHook.removeSchema(id);
-    props.setNodes((nds) =>
-      nds.map((n) => (n.data.outputSchemaId === id ? { ...n, data: { ...n.data, outputSchemaId: undefined } } : n))
-    );
-  };
+  const publish = usePublishState(props.mcpHook);
+  const installedIds = getInstalledLibraryIds(props.mcpHook.servers);
 
   return (
     <>
       <OutputSchemaDialog
-        schema={editingSchema}
+        schema={schema.editingSchema}
         onSave={props.outputSchemasHook.updateSchema}
-        onSaved={(id) => {
-          savedRef.current = true;
-          setPendingNewSchemaId(null);
-          const nodeId = selection.selectedNodeId;
-          if (nodeId === null) return;
-          props.setNodes((nds) =>
-            nds.map((n) =>
-              n.id === nodeId && !n.data.outputSchemaId ? { ...n, data: { ...n.data, outputSchemaId: id } } : n
-            )
-          );
-        }}
-        open={editingSchemaId !== null}
+        onSaved={schema.handleSchemaSaved}
+        open={schema.editingSchemaId !== null}
         onOpenChange={(open) => {
-          if (!open) {
-            if (pendingNewSchemaId !== null && !savedRef.current) {
-              props.outputSchemasHook.removeSchema(pendingNewSchemaId);
-            }
-            setPendingNewSchemaId(null);
-            savedRef.current = false;
-            setEditingSchemaId(null);
-          }
+          if (!open) schema.handleSchemaDialogClose();
         }}
       />
+      <McpDialogs
+        publishServer={publish.publishServer}
+        orgId={props.orgId}
+        onPublishClose={() => publish.setPublishServer(null)}
+        onPublished={() => publish.setPublishServer(null)}
+        libraryOpen={libraryOpen}
+        installedLibraryIds={installedIds}
+        onInstall={publish.handleInstallFromLibrary}
+        onCloseLibrary={props.onCloseLibrary}
+      />
       {showSelectionPanel && (
-        <SelectionPanel {...props} onEditSchema={handleEditSchema} onEditNewSchema={handleEditNewSchema} />
+        <SelectionPanel
+          {...props}
+          onEditSchema={schema.handleEditSchema}
+          onEditNewSchema={schema.handleEditNewSchema}
+        />
       )}
       {globalPanelOpen && (
         <GlobalPanel
@@ -258,25 +218,8 @@ export function SidePanels(props: SidePanelsProps) {
           pushOperation={props.pushOperation}
         />
       )}
-      <ToolsPanel
-        servers={props.mcpHook.servers}
-        discoveredTools={props.mcpHook.discoveredTools}
-        mcp={{
-          servers: props.mcpHook.servers,
-          discovering: props.mcpHook.discovering,
-          serverStatus: props.mcpHook.serverStatus,
-          orgId: props.orgId,
-          onAddServer: props.mcpHook.addServer,
-          onRemoveServer: props.mcpHook.removeServer,
-          onUpdateServer: props.mcpHook.updateServer,
-          onDiscoverTools: props.mcpHook.discoverTools,
-          onPublishServer: props.onPublishMcpServer,
-          onOpenLibrary: props.onOpenMcpLibrary,
-        }}
-        open={toolsOpen}
-        onClose={() => {}}
-      />
-      {presetsOpen && (
+      <ToolsPanelSlot sidePanelProps={props} onPublishServer={publish.setPublishServer} />
+      {presetsOpen && !libraryOpen && (
         <PresetsAside
           presetsHook={props.presetsHook}
           ctxPreconditions={props.ctxPreconditions}
@@ -286,9 +229,9 @@ export function SidePanels(props: SidePanelsProps) {
           productionKeyId={props.productionKeyId}
           onStagingKeyChange={props.onStagingKeyChange}
           outputSchemasHook={props.outputSchemasHook}
-          onEditSchema={handleEditSchema}
-          onEditNewSchema={handleEditNewSchema}
-          onRemoveSchema={handleRemoveSchema}
+          onEditSchema={schema.handleEditSchema}
+          onEditNewSchema={schema.handleEditNewSchema}
+          onRemoveSchema={schema.handleRemoveSchema}
         />
       )}
     </>
