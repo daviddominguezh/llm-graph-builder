@@ -17,15 +17,22 @@ export interface ServerProgress {
 
 type SettledStatus = 'done' | 'error';
 
-function getEnabledServers(servers: McpServerConfig[] | undefined): McpServerConfig[] {
+function hasCompleteVariables(server: McpServerConfig): boolean {
+  if (server.variableValues === undefined) return true;
+  return Object.values(server.variableValues).every((v) =>
+    v.type === 'direct' ? (v.value ?? '') !== '' : (v.envVariableId ?? '') !== ''
+  );
+}
+
+function getDiscoverableServers(servers: McpServerConfig[] | undefined): McpServerConfig[] {
   if (servers === undefined) return [];
-  return servers.filter((s) => s.enabled);
+  return servers.filter((s) => s.enabled && hasCompleteVariables(s));
 }
 
 async function discoverSingleServer(
   server: McpServerConfig
 ): Promise<{ id: string; tools: DiscoveredTool[] }> {
-  const tools = await discoverMcpTools(server.transport);
+  const tools = await discoverMcpTools(server.transport, server.variableValues);
   return { id: server.id, tools };
 }
 
@@ -40,7 +47,7 @@ function buildProgress(enabled: McpServerConfig[], settled: Record<string, Settl
 const EMPTY_LENGTH = 0;
 
 export function useMcpDiscovery(servers: McpServerConfig[] | undefined): McpDiscoveryResult {
-  const enabled = useMemo(() => getEnabledServers(servers), [servers]);
+  const enabled = useMemo(() => getDiscoverableServers(servers), [servers]);
   const [settled, setSettled] = useState<Record<string, SettledStatus>>({});
   const [tools, setTools] = useState<Record<string, DiscoveredTool[]>>({});
   const started = useRef(false);
