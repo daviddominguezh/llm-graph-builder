@@ -52,7 +52,7 @@ function AgentList({ agents, orgSlug, pathname }: { agents: AgentMetadata[]; org
   }
 
   return (
-    <nav className="flex flex-col gap-0.5 px-2">
+    <nav className="flex flex-col gap-0.5 px-0">
       {agents.map((agent) => (
         <AgentListItem
           key={agent.id}
@@ -70,7 +70,7 @@ export function AgentsSidebar({ agents, orgId, orgSlug }: AgentsSidebarProps) {
   const [createOpen, setCreateOpen] = useState(false);
 
   return (
-    <aside className="flex h-full w-[270px] shrink-0 flex-col border-r bg-background">
+    <aside className="flex h-full w-[270px] shrink-0 flex-col border-r bg-background pr-2">
       <SidebarHeader onCreateClick={() => setCreateOpen(true)} />
       <div className="flex-1 overflow-y-auto py-1">
         <AgentList agents={agents} orgSlug={orgSlug} pathname={pathname} />
