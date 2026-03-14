@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import type { OrgEnvVariableRow } from '@/app/lib/org-env-variables';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 
 export interface VariableValue {
   type: 'direct' | 'env_ref';
@@ -51,14 +51,16 @@ function EnvRefSelector({ envVariableId, envVariables, t, onChange }: EnvRefSele
     if (v !== null) onChange(v);
   }
 
+  const selectedName = envVariables.find((ev) => ev.id === envVariableId)?.name;
+
   return (
     <Select value={envVariableId ?? ''} onValueChange={handleChange}>
       <SelectTrigger className="w-full text-xs">
-        <SelectValue placeholder={t('selectEnvVar')} />
+        <span className="flex flex-1 text-left">{selectedName ?? t('selectEnvVar')}</span>
       </SelectTrigger>
       <SelectContent>
         {envVariables.map((ev) => (
-          <SelectItem key={ev.id} value={ev.id} label={ev.name}>
+          <SelectItem key={ev.id} value={ev.id}>
             {ev.name}
           </SelectItem>
         ))}
@@ -89,11 +91,13 @@ function VariableRow({ variable, variableValue, envVariables, t, onChange }: Var
       <Label className="text-xs font-medium">{variable.name}</Label>
       <Select value={variableValue.type} onValueChange={handleModeChange}>
         <SelectTrigger className="w-full text-xs">
-          <SelectValue />
+          <span className="flex flex-1 text-left">
+            {variableValue.type === 'env_ref' ? t('envVariable') : t('directValue')}
+          </span>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="direct" label={t('directValue')}>{t('directValue')}</SelectItem>
-          <SelectItem value="env_ref" label={t('envVariable')}>{t('envVariable')}</SelectItem>
+          <SelectItem value="direct">{t('directValue')}</SelectItem>
+          <SelectItem value="env_ref">{t('envVariable')}</SelectItem>
         </SelectContent>
       </Select>
       {variableValue.type === 'direct' ? (
