@@ -1,7 +1,9 @@
 import { ApiKeysSection } from '@/app/components/orgs/ApiKeysSection';
 import { DangerZone } from '@/app/components/orgs/DangerZone';
+import { EnvVariablesSection } from '@/app/components/orgs/EnvVariablesSection';
 import { OrgSettingsForm } from '@/app/components/orgs/OrgSettingsForm';
 import { getApiKeysByOrg } from '@/app/lib/api-keys';
+import { getEnvVariablesByOrg } from '@/app/lib/org-env-variables';
 import { getOrgBySlug } from '@/app/lib/orgs';
 import { createClient } from '@/app/lib/supabase/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -52,12 +54,15 @@ export default async function OrgSettingsPage({ params }: OrgSettingsPageProps):
   }
 
   const { result: apiKeys } = await getApiKeysByOrg(supabase, org.id);
+  const envVarsResult = await getEnvVariablesByOrg(supabase, org.id);
+  const envVariables = envVarsResult.error === null ? envVarsResult.result : [];
 
   return (
     <div className="h-full overflow-y-auto p-6">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
         <OrgSettingsForm org={org} />
         <ApiKeysSection orgId={org.id} initialKeys={apiKeys} />
+        <EnvVariablesSection orgId={org.id} initialVariables={envVariables} />
         <DangerZone org={org} />
       </div>
     </div>
