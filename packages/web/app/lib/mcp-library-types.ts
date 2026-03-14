@@ -42,11 +42,11 @@ export function isLibraryRow(value: unknown): value is McpLibraryRow {
   );
 }
 
-type RawLibraryRow = McpLibraryRow & { orgs?: { name: string } | null };
+type RawLibraryRow = McpLibraryRow & { organizations?: { name: string } | null };
 
 export function flattenOrgName(row: RawLibraryRow): McpLibraryRow {
-  const { orgs, ...rest } = row;
-  return { ...rest, org_name: orgs?.name };
+  const { organizations, ...rest } = row;
+  return { ...rest, org_name: organizations?.name };
 }
 
 export function mapRows(data: unknown[]): McpLibraryRow[] {
@@ -57,7 +57,7 @@ export function mapRows(data: unknown[]): McpLibraryRow[] {
 }
 
 export const BROWSE_COLUMNS =
-  'id, org_id, orgs(name), name, description, category, image_url, transport_type, transport_config, variables, installations_count, published_by, created_at';
+  'id, org_id, organizations(name), name, description, category, image_url, transport_type, transport_config, variables, installations_count, published_by, created_at';
 
 export const DETAIL_COLUMNS =
-  'id, org_id, orgs(name), name, description, category, image_url, transport_type, transport_config, variables, installations_count, published_by, created_at';
+  'id, org_id, organizations(name), name, description, category, image_url, transport_type, transport_config, variables, installations_count, published_by, created_at';
