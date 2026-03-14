@@ -1,15 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { AlertTriangle, BookOpen, CheckCircle, ChevronDown, Loader2, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
-
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { AlertTriangle, BookOpen, CheckCircle, ChevronDown, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+
+import type { McpServerStatus } from '../../hooks/useMcpServers';
 import type { OrgEnvVariableRow } from '../../lib/org-env-variables';
 import type { McpServerConfig } from '../../schemas/graph.schema';
-import type { McpServerStatus } from '../../hooks/useMcpServers';
-import { areVariablesComplete, LibraryServerFields } from './LibraryServerFields';
+import { LibraryServerFields, areVariablesComplete } from './LibraryServerFields';
 import type { VariableValueShape } from './LibraryServerFields';
 import { StdioTransportFields, TransportTypeSelector, UrlTransportFields } from './TransportFields';
 
@@ -52,13 +52,7 @@ function DiscoverButton({
   className?: string;
 }) {
   const isActive = status === 'active';
-  const icon = isDiscovering ? (
-    <Loader2 className="size-4 animate-spin mr-1" />
-  ) : isActive ? (
-    <RefreshCw className="size-4 mr-1" />
-  ) : (
-    <Search className="size-4 mr-1" />
-  );
+
   const label = isActive ? 'Reload Tools' : 'Discover Tools';
 
   return (
@@ -69,7 +63,6 @@ function DiscoverButton({
       onClick={onDiscover}
       disabled={isDiscovering || (disabled ?? false)}
     >
-      {icon}
       {label}
     </Button>
   );
@@ -96,7 +89,12 @@ function EditableServerFields({
         <Button variant="outline" size="sm" className="flex-1" onClick={onPublish}>
           Publish
         </Button>
-        <DiscoverButton status={status} isDiscovering={isDiscovering} onDiscover={onDiscover} className="flex-1" />
+        <DiscoverButton
+          status={status}
+          isDiscovering={isDiscovering}
+          onDiscover={onDiscover}
+          className="flex-1"
+        />
       </div>
     </>
   );
@@ -149,7 +147,16 @@ function StatusIcon({ status }: { status: McpServerStatus }) {
   return <AlertTriangle className="size-3 text-orange-400" />;
 }
 
-function ServerItem({ server, status, isDiscovering, envVariables, onRemove, onUpdate, onDiscover, onPublish }: ServerItemProps) {
+function ServerItem({
+  server,
+  status,
+  isDiscovering,
+  envVariables,
+  onRemove,
+  onUpdate,
+  onDiscover,
+  onPublish,
+}: ServerItemProps) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -167,7 +174,10 @@ function ServerItem({ server, status, isDiscovering, envVariables, onRemove, onU
           variant="destructive"
           size="icon-xs"
           title="Remove server"
-          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
         >
           <Trash2 className="size-3" />
         </Button>
@@ -213,19 +223,21 @@ export function McpServersSection({
         </div>
       </div>
       <ul className="space-y-2">
-        {[...servers].sort((a, b) => a.name.localeCompare(b.name)).map((server) => (
-          <ServerItem
-            key={server.id}
-            server={server}
-            status={serverStatus[server.id] ?? 'pending'}
-            isDiscovering={discovering[server.id] ?? false}
-            envVariables={envVariables}
-            onRemove={() => onRemove(server.id)}
-            onUpdate={(updates) => onUpdate(server.id, updates)}
-            onDiscover={() => onDiscover(server.id)}
-            onPublish={() => onPublish(server)}
-          />
-        ))}
+        {[...servers]
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((server) => (
+            <ServerItem
+              key={server.id}
+              server={server}
+              status={serverStatus[server.id] ?? 'pending'}
+              isDiscovering={discovering[server.id] ?? false}
+              envVariables={envVariables}
+              onRemove={() => onRemove(server.id)}
+              onUpdate={(updates) => onUpdate(server.id, updates)}
+              onDiscover={() => onDiscover(server.id)}
+              onPublish={() => onPublish(server)}
+            />
+          ))}
       </ul>
     </div>
   );

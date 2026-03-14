@@ -70,7 +70,7 @@ function CardMeta({ item }: { item: McpLibraryRow }) {
 
 export function McpLibraryCard({ item, isInstalled, onInstall }: McpLibraryCardProps) {
   return (
-    <div className="flex flex-col gap-2 border-b p-3 last:border-b-0">
+    <div className="flex flex-col gap-2 border p-3 mx-3 rounded-md mt-1">
       <div className="flex items-start gap-3">
         <CardImage imageUrl={item.image_url} name={item.name} />
         <CardHeader item={item} isInstalled={isInstalled} onInstall={onInstall} />

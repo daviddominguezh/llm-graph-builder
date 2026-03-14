@@ -76,11 +76,11 @@ function LibraryItemsList({ items, loading, query, installedLibraryIds, onInstal
   const t = useTranslations('mcpLibrary');
 
   if (loading) {
-    return <p className="px-4 py-3 text-xs text-muted-foreground">{t('loading')}</p>;
+    return <p className="px-4 py-3 text-xs text-muted-foreground bg-gray-100 rounded-md mx-3 mt-1">{t('loading')}</p>;
   }
 
   if (items.length === 0) {
-    return <p className="px-4 py-3 text-xs text-muted-foreground">{t('noResults')}</p>;
+    return <p className="px-4 py-3 text-xs text-muted-foreground bg-gray-100 rounded-md mx-3 mt-1">{t('noResults')}</p>;
   }
 
   return (
@@ -135,7 +135,7 @@ export function McpLibraryPanel({ installedLibraryIds, onInstall, onClose }: Mcp
   const { query, items, loading, handleQueryChange } = useLibrarySearch();
 
   return (
-    <div className="absolute bottom-0 left-0 top-0 z-10 flex w-80 flex-col border-r border-gray-200 bg-white">
+    <div className="absolute bottom-0 left-0 top-0 z-10 flex w-80 flex-col bg-white border rounded-xl">
       <LibraryPanelHeader onClose={onClose} />
       <LibrarySearchBar value={query} onChange={handleQueryChange} />
       <LibraryItemsList
