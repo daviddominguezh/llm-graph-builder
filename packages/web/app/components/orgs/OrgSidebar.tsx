@@ -114,8 +114,8 @@ interface NavItemDef {
 }
 
 const TOP_NAV_ITEMS: NavItemDef[] = [
-  { segment: 'dashboard', path: '/dashboard', Icon: LayoutDashboard, labelKey: 'dashboard' },
   { segment: '', path: '', Icon: Zap, labelKey: 'agents' },
+  { segment: 'dashboard', path: '/dashboard', Icon: LayoutDashboard, labelKey: 'dashboard' },
   { segment: 'chats', path: '/chats', Icon: MessageSquare, labelKey: 'chats' },
 ];
 

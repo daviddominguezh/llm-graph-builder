@@ -4,7 +4,6 @@ import type { AgentMetadata } from '@/app/lib/agents';
 import { formatRelativeTime } from '@/app/utils/formatRelativeTime';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Plus, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
@@ -59,36 +58,31 @@ function StatusBar({ status, active }: { status: string; active: boolean }) {
   );
 }
 
-function AgentCardTooltip({ agent }: { agent: AgentMetadata }) {
-  return (
-    <div className="flex flex-col gap-1">
-      {agent.description ? <span>{agent.description}</span> : null}
-      <span className="text-background/70">{formatRelativeTime(agent.updated_at)}</span>
-    </div>
-  );
-}
-
 function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: string; active: boolean }) {
   const href = `/orgs/${orgSlug}/editor/${agent.slug}`;
   const status = getAgentStatus(agent);
   const colorClass = STATUS_COLORS[status];
 
   return (
-    <Tooltip>
-      <TooltipTrigger
-        render={<Link href={href} />}
-        className={`flex h-8 items-center gap-2 rounded-e-md pr-2 transition-colors ${
-          active ? 'bg-primary/10 text-foreground' : 'hover:bg-muted text-foreground'
-        }`}
-      >
-        <StatusBar status={colorClass} active={active} />
-        <span className="min-w-0 flex-1 truncate text-sm font-medium">{agent.name}</span>
-        <span className="shrink-0 text-[11px] text-muted-foreground">v{agent.version}</span>
-      </TooltipTrigger>
-      <TooltipContent side="right">
-        <AgentCardTooltip agent={agent} />
-      </TooltipContent>
-    </Tooltip>
+    <Link
+      href={href}
+      className={`flex gap-2 rounded-e-md pr-2 py-0 transition-colors ${
+        active ? 'bg-primary/10 text-foreground' : 'hover:bg-muted text-foreground'
+      }`}
+    >
+      <StatusBar status={colorClass} active={active} />
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-1">
+        <span className="truncate text-xs font-medium">{agent.name}</span>
+        {agent.description ? (
+          <span className="line-clamp-1 text-[10px] text-muted-foreground">{agent.description}</span>
+        ) : null}
+        <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
+          <span>v{agent.version}</span>
+          <span>·</span>
+          <span>{formatRelativeTime(agent.updated_at)}</span>
+        </div>
+      </div>
+    </Link>
   );
 }
 
