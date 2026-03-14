@@ -58,7 +58,7 @@ function EnvRefSelector({ envVariableId, envVariables, t, onChange }: EnvRefSele
       </SelectTrigger>
       <SelectContent>
         {envVariables.map((ev) => (
-          <SelectItem key={ev.id} value={ev.id}>
+          <SelectItem key={ev.id} value={ev.id} label={ev.name}>
             {ev.name}
           </SelectItem>
         ))}
@@ -92,8 +92,8 @@ function VariableRow({ variable, variableValue, envVariables, t, onChange }: Var
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="direct">{t('directValue')}</SelectItem>
-          <SelectItem value="env_ref">{t('envVariable')}</SelectItem>
+          <SelectItem value="direct" label={t('directValue')}>{t('directValue')}</SelectItem>
+          <SelectItem value="env_ref" label={t('envVariable')}>{t('envVariable')}</SelectItem>
         </SelectContent>
       </Select>
       {variableValue.type === 'direct' ? (
