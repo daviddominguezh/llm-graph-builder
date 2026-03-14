@@ -1,7 +1,10 @@
 import { getApiKeyValueById } from '@/app/lib/api-keys';
+import { resolveTransportVariables } from '@/app/lib/resolve-variables';
 import { createClient } from '@/app/lib/supabase/server';
+import { McpTransportSchema, VariableValueSchema } from '@daviddh/graph-types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const HTTP_BAD_REQUEST = 400;
@@ -16,6 +19,35 @@ interface SimulateBody {
 
 function isSimulateBody(value: unknown): value is SimulateBody {
   return typeof value === 'object' && value !== null;
+}
+
+const McpServerEntrySchema = z
+  .object({
+    transport: McpTransportSchema,
+    variableValues: z.record(z.string(), VariableValueSchema).optional(),
+  })
+  .passthrough();
+
+async function resolveServerVariables(
+  supabase: SupabaseClient,
+  server: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const parsed = McpServerEntrySchema.safeParse(server);
+  if (!parsed.success) return server;
+  const { variableValues } = parsed.data;
+  if (variableValues === undefined) return server;
+  const resolved = await resolveTransportVariables(supabase, parsed.data.transport, variableValues);
+  return { ...server, transport: resolved, variableValues: undefined };
+}
+
+async function resolveMcpServersInGraph(supabase: SupabaseClient, graph: unknown): Promise<void> {
+  if (typeof graph !== 'object' || graph === null || !('mcpServers' in graph)) return;
+  const g = graph as Record<string, unknown>;
+  const servers = g.mcpServers;
+  if (!Array.isArray(servers)) return;
+  g.mcpServers = await Promise.all(
+    servers.map((s: unknown) => resolveServerVariables(supabase, s as Record<string, unknown>))
+  );
 }
 
 async function resolveApiKey(
@@ -96,5 +128,6 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const rest = Object.fromEntries(Object.entries(raw).filter(([k]) => k !== 'apiKeyId'));
+  await resolveMcpServersInGraph(supabase, rest.graph);
   return await fetchUpstream({ ...rest, apiKey });
 }
