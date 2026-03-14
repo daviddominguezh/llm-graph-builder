@@ -231,6 +231,8 @@ git commit -m "feat: extend McpServerConfig and operations with libraryItemId an
 - Modify: `packages/backend/src/db/queries/graphAssemblers.ts`
 - Modify: `packages/backend/src/db/queries/mcpServerOperations.ts`
 
+> **Note:** `graphFetchers.ts` does NOT need changes — `fetchMcpServers` uses `select('*')` which automatically picks up the new columns. The updated `McpServerRow` type in `graphRowTypes.ts` is sufficient.
+
 - [ ] **Step 1: Update McpServerRow**
 
 In `packages/backend/src/db/queries/graphRowTypes.ts`, modify `McpServerRow` (line 55-62):
@@ -2137,6 +2139,8 @@ export function McpLibraryPanel({ installedLibraryIds, onInstall, onClose }: Mcp
 }
 ```
 
+> **ESLint note:** `McpLibraryPanel` will exceed `max-lines-per-function: 40`. Extract sub-components: `LibraryPanelHeader` (title + close button), `LibrarySearchBar`, and `LibraryItemsList` (the scrollable results area). The `fetchLibrary` function should stay as a standalone helper.
+
 - [ ] **Step 2: Run typecheck**
 
 Run: `npm run typecheck -w packages/web`
@@ -2285,14 +2289,22 @@ git commit -m "feat: add variable values editor component (direct/env-ref)"
 
 This is a wiring task that connects all the pieces. The exact code depends on how `GraphBuilder.tsx` manages state (it uses `useState` for panel toggles). The key changes:
 
-- [ ] **Step 1: Add `libraryOpen` state to GraphBuilder**
+> **Note on `orgId`:** `GraphBuilderProps` currently has `orgSlug` but not `orgId`. The editor page component (which renders `GraphBuilder`) already fetches the org. Add `orgId: string` to `GraphBuilderProps` and pass it from the page. Alternatively, resolve `orgId` from `orgSlug` in the page's server component and thread it through.
+
+- [ ] **Step 1: Add `libraryOpen` state and `envVariables` fetching to GraphBuilder**
 
 Add alongside existing panel states:
 ```ts
 const [libraryOpen, setLibraryOpen] = useState(false);
 ```
 
-Pass it down through SidePanels props.
+For env variables in the graph editor, add a client-side fetch using the server action. Either:
+- (a) Add `orgId` + `initialEnvVariables` props to `GraphBuilder` (fetched in the page server component, like `apiKeys`), or
+- (b) Use a `useEffect` in `GraphBuilder` to call `getEnvVariablesByOrgAction(orgId)` on mount and store in state.
+
+Option (a) is preferred for consistency with how `orgApiKeys` is already handled. Thread `envVariables` through `SidePanelsProps` → `ToolsPanel` → `McpServersSection`.
+
+Pass `libraryOpen`, `setLibraryOpen`, `orgId`, and `envVariables` down through SidePanels props.
 
 - [ ] **Step 2: Add `addServerFromLibrary` to useMcpServers**
 
