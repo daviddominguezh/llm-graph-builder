@@ -31,9 +31,14 @@ function CardInfo({ item }: { item: McpLibraryRow }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
       <p className="truncate text-sm font-medium">{item.name}</p>
-      {item.org_name !== undefined && (
-        <p className="truncate text-xs text-muted-foreground">{item.org_name}</p>
-      )}
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        {item.org_name !== undefined && <span className="truncate">{item.org_name}</span>}
+        {item.org_name !== undefined && <span>·</span>}
+        <span className="flex items-center gap-0.5">
+          <Download className="size-2.5" />
+          {item.installations_count}
+        </span>
+      </div>
     </div>
   );
 }
@@ -42,11 +47,7 @@ function CardFooter({ item, isInstalled, onInstall }: McpLibraryCardProps) {
   const t = useTranslations('mcpLibrary');
 
   return (
-    <div className="flex items-center justify-between">
-      <span className="flex items-center gap-1 text-xs text-muted-foreground">
-        <Download className="size-3" />
-        {t('installations', { count: item.installations_count })}
-      </span>
+    <div className="flex justify-end">
       <Button size="sm" variant={isInstalled ? 'outline' : 'default'} disabled={isInstalled} onClick={() => onInstall(item)}>
         {isInstalled ? t('installed') : t('install')}
       </Button>
