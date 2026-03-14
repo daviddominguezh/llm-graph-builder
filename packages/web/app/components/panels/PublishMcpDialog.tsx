@@ -31,7 +31,8 @@ interface PublishFormState {
 }
 
 function extractTransportConfig(transport: McpServerConfig['transport']): Record<string, unknown> {
-  const { type: _type, ...config } = transport;
+  const config: Record<string, unknown> = { ...transport };
+  delete config['type'];
   return config;
 }
 
