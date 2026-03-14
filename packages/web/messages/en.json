@@ -63,6 +63,16 @@
     "backToAgents": "Back to agents",
     "formatGraph": "Auto-layout"
   },
+  "copilot": {
+    "title": "Copilot",
+    "newChat": "New chat",
+    "placeholder": "Ask about your graph...",
+    "send": "Send",
+    "stop": "Stop",
+    "close": "Close",
+    "emptyState": "Ask me anything about your graph.",
+    "selectChat": "Select a chat"
+  },
   "toolbar": {
     "status": "Validation status",
     "simulate": "Simulate",
