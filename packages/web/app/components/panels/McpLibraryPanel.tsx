@@ -1,11 +1,10 @@
 'use client';
 
-import { Search, X } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { McpLibraryRow } from '@/app/lib/mcp-library-types';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 import { McpLibraryCard } from './McpLibraryCard';
@@ -13,7 +12,6 @@ import { McpLibraryCard } from './McpLibraryCard';
 interface McpLibraryPanelProps {
   installedLibraryIds: string[];
   onInstall: (item: McpLibraryRow) => void;
-  onClose: () => void;
 }
 
 async function fetchLibrary(query?: string): Promise<McpLibraryRow[]> {
@@ -26,19 +24,12 @@ async function fetchLibrary(query?: string): Promise<McpLibraryRow[]> {
   return data.result ?? [];
 }
 
-interface LibraryPanelHeaderProps {
-  onClose: () => void;
-}
-
-function LibraryPanelHeader({ onClose }: LibraryPanelHeaderProps) {
+function LibraryPanelHeader() {
   const t = useTranslations('mcpLibrary');
 
   return (
-    <div className="flex items-center justify-between border-b px-4 py-3">
+    <div className="border-b px-4 py-3">
       <h2 className="text-sm font-semibold">{t('libraryTitle')}</h2>
-      <Button variant="ghost" size="icon-xs" onClick={onClose}>
-        <X className="size-4" />
-      </Button>
     </div>
   );
 }
@@ -131,12 +122,12 @@ function useLibrarySearch() {
   return { query, items, loading, handleQueryChange };
 }
 
-export function McpLibraryPanel({ installedLibraryIds, onInstall, onClose }: McpLibraryPanelProps) {
+export function McpLibraryPanel({ installedLibraryIds, onInstall }: McpLibraryPanelProps) {
   const { query, items, loading, handleQueryChange } = useLibrarySearch();
 
   return (
     <div className="w-[240px] absolute bottom-0 left-0 top-0 z-10 flex w-80 flex-col bg-white border rounded-xl">
-      <LibraryPanelHeader onClose={onClose} />
+      <LibraryPanelHeader />
       <LibrarySearchBar value={query} onChange={handleQueryChange} />
       <LibraryItemsList
         items={items}

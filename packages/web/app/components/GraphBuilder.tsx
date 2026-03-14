@@ -108,7 +108,10 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     pushOperation: opQueue.pushOperation,
   });
 
-  const panels = useMemo(() => ({ setGlobalPanelOpen, setPresetsOpen, setToolsOpen, setSearchOpen }), []);
+  const panels = useMemo(
+    () => ({ setGlobalPanelOpen, setPresetsOpen, setToolsOpen, setSearchOpen, setLibraryOpen }),
+    []
+  );
 
   const selection = useGraphSelection(
     { nodes, setNodes, setEdges, reactFlow: rf, reactFlowWrapper },

@@ -42,6 +42,7 @@ interface PanelCloseState {
   setPresetsOpen: (v: boolean) => void;
   setToolsOpen: (v: boolean) => void;
   setSearchOpen: (v: boolean) => void;
+  setLibraryOpen: (v: boolean) => void;
 }
 
 function centerViewOnNode(
@@ -97,6 +98,7 @@ function useClickHandlers(
     panels.setPresetsOpen(false);
     panels.setToolsOpen(false);
     panels.setSearchOpen(false);
+    panels.setLibraryOpen(false);
   }, [setSelectedNodeId, setSelectedEdgeId, panels]);
 
   return { onNodeClick, onEdgeClick, onPaneClick };
