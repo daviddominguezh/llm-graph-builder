@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { VariableValueSchema } from './mcp-library.schema.js';
+
 export const StdioTransportSchema = z.object({
   type: z.literal('stdio'),
   command: z.string(),
@@ -30,4 +32,6 @@ export const McpServerConfigSchema = z.object({
   name: z.string(),
   transport: McpTransportSchema,
   enabled: z.boolean().default(true),
+  libraryItemId: z.string().optional(),
+  variableValues: z.record(z.string(), VariableValueSchema).optional(),
 });
