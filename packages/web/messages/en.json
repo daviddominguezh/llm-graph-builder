@@ -252,7 +252,7 @@
   "mcpLibrary": {
     "publish": "Publish",
     "publishTitle": "Publish MCP Server",
-    "publishWarning": "This MCP will be visible to all users. Ensure all sensitive data uses variables (e.g., {{API_TOKEN}}).",
+    "publishWarning": "This MCP will be visible to all users. Ensure all sensitive data uses variables (e.g., '{{API_TOKEN}}').",
     "publishConfirm": "Publish",
     "publishCancel": "Cancel",
     "publishSuccess": "MCP server published successfully.",

@@ -3,6 +3,16 @@ import type { McpLibraryRow } from '@/app/lib/mcp-library-types';
 import type { AddFromLibraryConfig, McpServersState } from '../hooks/useMcpServers';
 import type { McpServerConfig } from '../schemas/graph.schema';
 
+function parseHeaders(config: Record<string, unknown>): Record<string, string> | undefined {
+  const raw = config['headers'];
+  if (typeof raw !== 'object' || raw === null) return undefined;
+  const headers: Record<string, string> = {};
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof v === 'string') headers[k] = v;
+  }
+  return Object.keys(headers).length > 0 ? headers : undefined;
+}
+
 export function buildTransportFromLibrary(item: McpLibraryRow): McpServerConfig['transport'] {
   const config = item.transport_config;
   const type = item.transport_type;
@@ -19,12 +29,14 @@ export function buildTransportFromLibrary(item: McpLibraryRow): McpServerConfig[
     return {
       type: 'sse',
       url: typeof config['url'] === 'string' ? config['url'] : '',
+      headers: parseHeaders(config),
     };
   }
 
   return {
     type: 'http',
     url: typeof config['url'] === 'string' ? config['url'] : '',
+    headers: parseHeaders(config),
   };
 }
 

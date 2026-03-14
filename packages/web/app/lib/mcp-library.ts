@@ -73,6 +73,20 @@ export async function unpublishFromLibrary(
   return { error: null };
 }
 
+export async function updateLibraryImageUrl(
+  supabase: SupabaseClient,
+  libraryItemId: string,
+  imageUrl: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('mcp_library')
+    .update({ image_url: imageUrl })
+    .eq('id', libraryItemId);
+
+  if (error !== null) return { error: error.message };
+  return { error: null };
+}
+
 export async function incrementInstallations(
   supabase: SupabaseClient,
   libraryItemId: string

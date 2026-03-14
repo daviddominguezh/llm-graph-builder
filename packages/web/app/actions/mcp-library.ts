@@ -6,6 +6,7 @@ import {
   incrementInstallations,
   publishToLibrary as publishToLibraryLib,
   unpublishFromLibrary as unpublishFromLibraryLib,
+  updateLibraryImageUrl,
 } from '@/app/lib/mcp-library';
 import { uploadMcpImage } from '@/app/lib/mcp-library-storage';
 import type { PublishInput } from '@/app/lib/mcp-library-types';
@@ -20,7 +21,9 @@ async function handleImageUpload(
   const file = imageFormData.get('image');
   if (!(file instanceof File)) return { image_url: null, error: 'No image file provided' };
   const uploadRes = await uploadMcpImage(supabase, libraryItemId, file);
-  if (uploadRes.error !== null) return { image_url: null, error: uploadRes.error };
+  if (uploadRes.error !== null || uploadRes.result === null)
+    return { image_url: null, error: uploadRes.error };
+  await updateLibraryImageUrl(supabase, libraryItemId, uploadRes.result);
   return { image_url: uploadRes.result, error: null };
 }
 

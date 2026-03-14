@@ -1,9 +1,10 @@
 'use client';
 
 import { MCP_LIBRARY_CATEGORIES } from '@daviddh/graph-types';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Camera, Server } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useRef, useState } from 'react';
+import Image from 'next/image';
+import { type ChangeEvent, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { publishMcpAction } from '@/app/actions/mcp-library';
@@ -54,13 +55,37 @@ interface PublishFormFieldsProps {
   onImageChange: (f: File | null) => void;
 }
 
-function PublishFormFields({ state, onDescriptionChange, onCategoryChange, onImageChange }: PublishFormFieldsProps) {
+function ImagePicker({ imageFile, onImageChange }: { imageFile: File | null; onImageChange: (f: File | null) => void }) {
   const t = useTranslations('mcpLibrary');
   const fileRef = useRef<HTMLInputElement>(null);
+  const previewUrl = imageFile !== null ? URL.createObjectURL(imageFile) : null;
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleChange(e: ChangeEvent<HTMLInputElement>) {
     onImageChange(e.target.files?.[0] ?? null);
   }
+
+  return (
+    <div className="flex flex-col gap-1">
+      <Label>{t('image')}</Label>
+      <button type="button" onClick={() => fileRef.current?.click()} className="group relative size-16 cursor-pointer rounded-md">
+        {previewUrl !== null ? (
+          <Image src={previewUrl} alt="MCP" width={64} height={64} className="size-16 rounded-md object-cover" unoptimized />
+        ) : (
+          <div className="flex size-16 items-center justify-center rounded-md bg-muted">
+            <Server className="size-6 text-muted-foreground" />
+          </div>
+        )}
+        <div className="absolute inset-0 flex items-center justify-center rounded-md bg-black/0 transition-colors group-hover:bg-black/40">
+          <Camera className="size-4 text-white opacity-0 transition-opacity group-hover:opacity-100" />
+        </div>
+      </button>
+      <input ref={fileRef} type="file" accept=".png,.jpg,.jpeg,.webp" className="hidden" onChange={handleChange} />
+    </div>
+  );
+}
+
+function PublishFormFields({ state, onDescriptionChange, onCategoryChange, onImageChange }: PublishFormFieldsProps) {
+  const t = useTranslations('mcpLibrary');
 
   return (
     <div className="flex flex-col gap-3">
@@ -87,13 +112,7 @@ function PublishFormFields({ state, onDescriptionChange, onCategoryChange, onIma
           </SelectContent>
         </Select>
       </div>
-      <div className="flex flex-col gap-1">
-        <Label>{t('image')}</Label>
-        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-        <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
-          {state.imageFile !== null ? state.imageFile.name : t('imageUpload')}
-        </Button>
-      </div>
+      <ImagePicker imageFile={state.imageFile} onImageChange={onImageChange} />
     </div>
   );
 }
