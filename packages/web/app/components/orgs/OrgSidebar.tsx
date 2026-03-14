@@ -46,8 +46,10 @@ function NavItem({ href, icon, active }: { href: string; icon: React.ReactNode; 
     <Button
       variant="ghost"
       size="sm"
-      className={`h-8 w-full justify-start px-2 ${
-        active ? 'bg-black/[0.04] text-foreground' : 'text-muted-foreground hover:text-foreground/70'
+      className={`h-8 w-full justify-start px-2 border ${
+        active
+          ? 'border-primary bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary'
+          : 'border-white text-muted-foreground hover:text-foreground/70'
       }`}
       render={<Link href={href} />}
     >
@@ -71,8 +73,10 @@ function NavItemExpanded({
     <Button
       variant="ghost"
       size="sm"
-      className={`h-8 w-full justify-start gap-2 px-2 text-sm ${
-        active ? 'bg-black/[0.04] text-foreground' : 'text-muted-foreground hover:text-foreground/70'
+      className={`h-8 w-full justify-start gap-2 px-2 text-sm border ${
+        active
+          ? 'border-primary bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary'
+          : 'border-white text-muted-foreground hover:text-foreground/70'
       }`}
       render={<Link href={href} />}
     >
@@ -221,7 +225,7 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
 
   return (
     <aside
-      className={`absolute left-2 top-2 bottom-2 z-10 flex flex-col gap-4 rounded-xl border bg-background p-2 shadow-sm transition-[width] duration-100 ${sidebar.collapsed ? 'w-13' : 'w-48 shadow-lg'}`}
+      className={`absolute left-1 top-1 bottom-1 z-10 flex flex-col gap-4 rounded-xl border bg-background p-2 transition-[width] duration-100 ${sidebar.collapsed ? 'w-13' : 'w-48 shadow-lg'}`}
       onMouseEnter={sidebar.handleMouseEnter}
       onMouseLeave={sidebar.handleMouseLeave}
     >

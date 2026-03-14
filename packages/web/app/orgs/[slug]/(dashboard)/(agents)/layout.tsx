@@ -22,7 +22,7 @@ export default async function AgentsLayout({ children, params }: AgentsLayoutPro
   const { agents } = await getAgentsByOrg(supabase, org.id);
 
   return (
-    <div className="flex h-full px-1">
+    <div className="flex h-full p-1">
       <AgentsSidebar agents={agents} orgId={org.id} orgSlug={org.slug} />
       <div className="flex-1 overflow-hidden">{children}</div>
     </div>

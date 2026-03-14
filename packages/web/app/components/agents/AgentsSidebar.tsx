@@ -1,6 +1,7 @@
 'use client';
 
 import type { AgentMetadata } from '@/app/lib/agents';
+import { formatRelativeTime } from '@/app/utils/formatRelativeTime';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -29,17 +30,27 @@ function SidebarHeader({ onCreateClick }: { onCreateClick: () => void }) {
   );
 }
 
-function AgentListItem({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: string; active: boolean }) {
+function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: string; active: boolean }) {
   const href = `/orgs/${orgSlug}/editor/${agent.slug}`;
 
   return (
     <Link
       href={href}
-      className={`flex flex-col gap-0.5 rounded-md px-2 py-1.5 text-sm transition-colors ${
-        active ? 'bg-black/[0.04] font-medium text-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+      className={`flex flex-col gap-1 rounded-lg border px-3 py-2 transition-colors ${
+        active
+          ? 'border-foreground/15 bg-black/[0.04] text-foreground'
+          : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
       }`}
     >
-      <span className="truncate">{agent.name}</span>
+      <span className="truncate text-sm font-medium text-foreground">{agent.name}</span>
+      {agent.description !== '' && (
+        <span className="line-clamp-2 text-xs text-muted-foreground">{agent.description}</span>
+      )}
+      <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+        <span>v{agent.version}</span>
+        <span>·</span>
+        <span>{formatRelativeTime(agent.updated_at)}</span>
+      </div>
     </Link>
   );
 }
@@ -52,9 +63,9 @@ function AgentList({ agents, orgSlug, pathname }: { agents: AgentMetadata[]; org
   }
 
   return (
-    <nav className="flex flex-col gap-0.5 px-0">
+    <nav className="flex flex-col gap-1 px-2">
       {agents.map((agent) => (
-        <AgentListItem
+        <AgentCard
           key={agent.id}
           agent={agent}
           orgSlug={orgSlug}
@@ -70,7 +81,7 @@ export function AgentsSidebar({ agents, orgId, orgSlug }: AgentsSidebarProps) {
   const [createOpen, setCreateOpen] = useState(false);
 
   return (
-    <aside className="flex h-full w-[270px] shrink-0 flex-col border-r bg-background pr-2 py-3">
+    <aside className="flex h-full w-[270px] shrink-0 flex-col border-r bg-background border rounded-xl">
       <SidebarHeader onCreateClick={() => setCreateOpen(true)} />
       <div className="flex-1 overflow-y-auto py-1">
         <AgentList agents={agents} orgSlug={orgSlug} pathname={pathname} />
