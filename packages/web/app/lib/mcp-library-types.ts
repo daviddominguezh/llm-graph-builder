@@ -1,3 +1,5 @@
+export type McpAuthType = 'none' | 'token' | 'oauth';
+
 export interface McpLibraryRow {
   id: string;
   org_id: string;
@@ -12,6 +14,7 @@ export interface McpLibraryRow {
   installations_count: number;
   published_by: string;
   created_at: string;
+  auth_type: McpAuthType;
 }
 
 export interface BrowseOptions {
@@ -38,7 +41,8 @@ export function isLibraryRow(value: unknown): value is McpLibraryRow {
     'id' in value &&
     'name' in value &&
     'org_id' in value &&
-    'transport_type' in value
+    'transport_type' in value &&
+    'auth_type' in value
   );
 }
 
@@ -57,7 +61,7 @@ export function mapRows(data: unknown[]): McpLibraryRow[] {
 }
 
 export const BROWSE_COLUMNS =
-  'id, org_id, organizations(name), name, description, category, image_url, transport_type, transport_config, variables, installations_count, published_by, created_at';
+  'id, org_id, organizations(name), name, description, category, image_url, transport_type, transport_config, variables, installations_count, published_by, created_at, auth_type';
 
 export const DETAIL_COLUMNS =
-  'id, org_id, organizations(name), name, description, category, image_url, transport_type, transport_config, variables, installations_count, published_by, created_at';
+  'id, org_id, organizations(name), name, description, category, image_url, transport_type, transport_config, variables, installations_count, published_by, created_at, auth_type';

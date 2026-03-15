@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { type DiscoveredTool, discoverMcpTools } from '../lib/api';
+import type { McpLibraryRow } from '../lib/mcp-library-types';
 import type { McpServerConfig } from '../schemas/graph.schema';
 
 export interface McpDiscoveryResult {
@@ -24,9 +25,18 @@ function hasCompleteVariables(server: McpServerConfig): boolean {
   );
 }
 
-function getDiscoverableServers(servers: McpServerConfig[] | undefined): McpServerConfig[] {
+function isOAuthServer(server: McpServerConfig, libraryItems: McpLibraryRow[]): boolean {
+  if (server.libraryItemId === undefined) return false;
+  const item = libraryItems.find((i) => i.id === server.libraryItemId);
+  return item?.auth_type === 'oauth';
+}
+
+function getDiscoverableServers(
+  servers: McpServerConfig[] | undefined,
+  libraryItems: McpLibraryRow[]
+): McpServerConfig[] {
   if (servers === undefined) return [];
-  return servers.filter((s) => s.enabled && hasCompleteVariables(s));
+  return servers.filter((s) => s.enabled && hasCompleteVariables(s) && !isOAuthServer(s, libraryItems));
 }
 
 async function discoverSingleServer(
@@ -46,8 +56,11 @@ function buildProgress(enabled: McpServerConfig[], settled: Record<string, Settl
 
 const EMPTY_LENGTH = 0;
 
-export function useMcpDiscovery(servers: McpServerConfig[] | undefined): McpDiscoveryResult {
-  const enabled = useMemo(() => getDiscoverableServers(servers), [servers]);
+export function useMcpDiscovery(
+  servers: McpServerConfig[] | undefined,
+  libraryItems?: McpLibraryRow[]
+): McpDiscoveryResult {
+  const enabled = useMemo(() => getDiscoverableServers(servers, libraryItems ?? []), [servers, libraryItems]);
   const [settled, setSettled] = useState<Record<string, SettledStatus>>({});
   const [tools, setTools] = useState<Record<string, DiscoveredTool[]>>({});
   const started = useRef(false);
