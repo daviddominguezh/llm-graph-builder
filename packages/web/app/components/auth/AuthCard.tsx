@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 
-import icon from '@/app/icon.png';
+import logo from '@/app/logo.avif';
 
 interface AuthCardProps {
   title: string;
@@ -13,7 +13,7 @@ interface AuthCardProps {
 export function AuthCard({ title, description, children }: AuthCardProps) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6">
-      <Image src={icon} alt="Flowforge" width={56} height={56} className="rounded-xl" />
+      <Image src={logo} alt="Closer" width={56} height={56} className="rounded-xl" />
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-lg">{title}</CardTitle>
