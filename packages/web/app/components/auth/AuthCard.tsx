@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 
-import logo from '@/app/logo.avif';
+import logo from '@/app/logoOpenflow.avif';
 
 interface AuthCardProps {
   title: string;
