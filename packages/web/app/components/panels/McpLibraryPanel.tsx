@@ -1,11 +1,12 @@
 'use client';
 
+import type { McpLibraryRow } from '@/app/lib/mcp-library-types';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@base-ui/react';
 import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
-
-import type { McpLibraryRow } from '@/app/lib/mcp-library-types';
-import { Input } from '@/components/ui/input';
+import React from 'react';
 
 import { McpLibraryCard } from './McpLibraryCard';
 
@@ -67,25 +68,36 @@ function LibraryItemsList({ items, loading, query, installedLibraryIds, onInstal
   const t = useTranslations('mcpLibrary');
 
   if (loading) {
-    return <p className="px-4 py-3 text-xs text-muted-foreground bg-gray-100 rounded-md mx-3 mt-1">{t('loading')}</p>;
+    return (
+      <p className="px-4 py-3 text-xs text-muted-foreground bg-gray-100 rounded-md mx-3 mt-1">
+        {t('loading')}
+      </p>
+    );
   }
 
   if (items.length === 0) {
-    return <p className="px-4 py-3 text-xs text-muted-foreground bg-gray-100 rounded-md mx-3 mt-1">{t('noResults')}</p>;
+    return (
+      <p className="px-4 py-3 text-xs text-muted-foreground bg-gray-100 rounded-md mx-3 mt-1">
+        {t('noResults')}
+      </p>
+    );
   }
 
   return (
-    <div className="flex flex-col overflow-y-auto">
+    <div className="flex flex-col overflow-y-auto gap-2 pb-4">
       {query === '' && (
         <p className="px-3 py-1.5 text-xs font-medium text-muted-foreground">{t('topInstalled')}</p>
       )}
-      {items.map((item) => (
-        <McpLibraryCard
-          key={item.id}
-          item={item}
-          isInstalled={installedLibraryIds.includes(item.id)}
-          onInstall={onInstall}
-        />
+      {items.map((item, i) => (
+        <React.Fragment key={item.id}>
+          <McpLibraryCard
+            key={`${item.id}-card`}
+            item={item}
+            isInstalled={installedLibraryIds.includes(item.id)}
+            onInstall={onInstall}
+          />
+          {i < items.length - 1 && <Separator />}
+        </React.Fragment>
       ))}
     </div>
   );
