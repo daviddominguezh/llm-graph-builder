@@ -80,7 +80,7 @@ export function GraphCanvas({
           defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         >
           <Background />
-          <Controls />
+          <Controls className='ml-[2px]! mb-[2px]!' />
         </ReactFlow>
 
         {zoomViewNodeId !== null && (
