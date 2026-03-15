@@ -49,9 +49,9 @@ INSERT INTO public.users (id, email, full_name) VALUES
   (v_user_id, 'david@usecloser.ai', 'David')
 ON CONFLICT (id) DO NOTHING;
 
--- 4. Create "Closer" organization
-INSERT INTO public.organizations (id, name, slug) VALUES
-  (v_org_id, 'Closer', 'closer')
+-- 4. Create "Closer" organization (avatar served from Next.js public/)
+INSERT INTO public.organizations (id, name, slug, avatar_url) VALUES
+  (v_org_id, 'Closer', 'closer', '/logoCloser.avif')
 ON CONFLICT (id) DO NOTHING;
 
 -- 5. Add user as org owner
