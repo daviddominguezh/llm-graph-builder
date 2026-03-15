@@ -28,6 +28,7 @@ export interface DecryptedConnection {
   expiresAt: Date | null;
   tokenEndpoint: string;
   scopes: string | null;
+  connectedBy: string;
 }
 
 export interface UpsertConnectionInput {
@@ -55,6 +56,7 @@ export function decryptRow(row: OAuthConnectionRow): DecryptedConnection {
     expiresAt: row.expires_at !== null ? new Date(row.expires_at) : null,
     tokenEndpoint: row.token_endpoint,
     scopes: row.scopes,
+    connectedBy: row.connected_by,
   };
 }
 
@@ -91,7 +93,10 @@ function buildUpsertRow(input: UpsertConnectionInput): Record<string, unknown> {
   };
 }
 
-export async function upsertConnection(supabase: SupabaseClient, input: UpsertConnectionInput): Promise<void> {
+export async function upsertConnection(
+  supabase: SupabaseClient,
+  input: UpsertConnectionInput
+): Promise<void> {
   const row = buildUpsertRow(input);
   const result = await supabase
     .from('mcp_oauth_connections')

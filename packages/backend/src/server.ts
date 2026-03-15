@@ -12,6 +12,7 @@ import { handlePostRestore } from './routes/graph/postRestore.js';
 import { handleCallback } from './routes/oauth/oauthCallback.js';
 import { handleDisconnect } from './routes/oauth/oauthDisconnect.js';
 import { handleInitiate } from './routes/oauth/oauthInitiate.js';
+import { handleResolveToken } from './routes/oauth/oauthResolveToken.js';
 import { handleStatus } from './routes/oauth/oauthStatus.js';
 import { handleSimulate } from './routes/simulateHandler.js';
 
@@ -41,6 +42,7 @@ export function createApp(): Express {
   agentRouter.post('/:agentId/versions/:version/restore', handlePostRestore);
   agentRouter.post('/mcp-oauth/initiate', handleInitiate);
   agentRouter.get('/mcp-oauth/status', handleStatus);
+  agentRouter.post('/mcp-oauth/resolve-token', handleResolveToken);
   agentRouter.delete('/mcp-oauth/connections', handleDisconnect);
   app.use('/agents', agentRouter);
 
