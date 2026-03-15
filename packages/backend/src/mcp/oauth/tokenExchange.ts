@@ -1,10 +1,14 @@
-export interface TokenResponse {
-  access_token: string;
-  refresh_token?: string;
-  expires_in?: number;
-  token_type: string;
-  scope?: string;
-}
+import { z } from 'zod';
+
+const TokenResponseSchema = z.object({
+  access_token: z.string(),
+  refresh_token: z.string().optional(),
+  expires_in: z.number().optional(),
+  token_type: z.string(),
+  scope: z.string().optional(),
+});
+
+export type TokenResponse = z.infer<typeof TokenResponseSchema>;
 
 interface ClientCredentials {
   clientId: string;
@@ -26,7 +30,8 @@ function buildAuthBody(creds: ClientCredentials): Record<string, string> {
   }
   const body: Record<string, string> = { client_id: creds.clientId };
   if (creds.clientSecret !== undefined) {
-    body['client_secret'] = creds.clientSecret;
+    const { clientSecret } = creds;
+    body.client_secret = clientSecret;
   }
   return body;
 }
@@ -43,18 +48,22 @@ async function postTokenRequest(
     const text = await res.text();
     throw new Error(`Token request failed: ${String(res.status)} — ${text}`);
   }
-  return (await res.json()) as TokenResponse;
+  const raw: unknown = await res.json();
+  return TokenResponseSchema.parse(raw);
 }
 
-export async function exchangeCode(
-  tokenEndpoint: string,
-  code: string,
-  codeVerifier: string,
-  redirectUri: string,
-  resourceUrl: string,
-  creds: ClientCredentials
-): Promise<TokenResponse> {
-  return postTokenRequest(
+export interface ExchangeCodeParams {
+  tokenEndpoint: string;
+  code: string;
+  codeVerifier: string;
+  redirectUri: string;
+  resourceUrl: string;
+  creds: ClientCredentials;
+}
+
+export async function exchangeCode(params: ExchangeCodeParams): Promise<TokenResponse> {
+  const { tokenEndpoint, code, codeVerifier, redirectUri, resourceUrl, creds } = params;
+  return await postTokenRequest(
     tokenEndpoint,
     {
       grant_type: 'authorization_code',
@@ -73,7 +82,7 @@ export async function refreshAccessToken(
   resourceUrl: string,
   creds: ClientCredentials
 ): Promise<TokenResponse> {
-  return postTokenRequest(
+  return await postTokenRequest(
     tokenEndpoint,
     { grant_type: 'refresh_token', refresh_token: refreshToken, resource: resourceUrl },
     creds

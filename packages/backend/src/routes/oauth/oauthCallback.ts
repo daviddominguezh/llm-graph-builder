@@ -34,18 +34,18 @@ function computeExpiresAt(expiresIn: number | undefined): Date | null {
 }
 
 async function performTokenExchange(params: ExchangeParams): Promise<TokenResponse> {
-  return await exchangeCode(
-    params.tokenEndpoint,
-    params.code,
-    params.codeVerifier,
-    params.callbackUrl,
-    params.mcpServerUrl,
-    {
+  return await exchangeCode({
+    tokenEndpoint: params.tokenEndpoint,
+    code: params.code,
+    codeVerifier: params.codeVerifier,
+    redirectUri: params.callbackUrl,
+    resourceUrl: params.mcpServerUrl,
+    creds: {
       clientId: params.clientId,
       clientSecret: params.registration.client_secret,
       authMethod: params.registration.token_endpoint_auth_method,
-    }
-  );
+    },
+  });
 }
 
 interface StoreTokensArgs {

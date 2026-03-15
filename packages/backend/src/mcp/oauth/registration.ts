@@ -1,9 +1,12 @@
-export interface ClientRegistration {
-  client_id: string;
-  client_secret?: string;
-  token_endpoint_auth_method?: string;
-  [key: string]: unknown;
-}
+import { z } from 'zod';
+
+const ClientRegistrationSchema = z.object({
+  client_id: z.string(),
+  client_secret: z.string().optional(),
+  token_endpoint_auth_method: z.string().optional(),
+});
+
+export type ClientRegistration = z.infer<typeof ClientRegistrationSchema> & Record<string, unknown>;
 
 export async function registerClient(
   registrationEndpoint: string,
@@ -27,5 +30,6 @@ export async function registerClient(
     throw new Error(`Dynamic client registration failed: ${String(res.status)} — ${text}`);
   }
 
-  return (await res.json()) as ClientRegistration;
+  const raw: unknown = await res.json();
+  return ClientRegistrationSchema.loose().parse(raw);
 }

@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import { decrypt, encrypt } from '../../mcp/oauth/encryption.js';
 import type { SupabaseClient } from './operationHelpers.js';
 import { throwOnMutationError } from './operationHelpers.js';
@@ -44,6 +46,21 @@ export interface UpsertConnectionInput {
   connectedBy: string;
 }
 
+const OAuthConnectionRowSchema = z.object({
+  id: z.string(),
+  org_id: z.string(),
+  library_item_id: z.string(),
+  client_id: z.string(),
+  client_registration: z.string(),
+  access_token: z.string(),
+  refresh_token: z.string().nullable(),
+  expires_at: z.string().nullable(),
+  token_endpoint: z.string(),
+  scopes: z.string().nullable(),
+  connected_by: z.string(),
+  key_version: z.number(),
+});
+
 export function decryptRow(row: OAuthConnectionRow): DecryptedConnection {
   return {
     id: row.id,
@@ -52,8 +69,8 @@ export function decryptRow(row: OAuthConnectionRow): DecryptedConnection {
     clientId: row.client_id,
     clientRegistration: decrypt(row.client_registration),
     accessToken: decrypt(row.access_token),
-    refreshToken: row.refresh_token !== null ? decrypt(row.refresh_token) : null,
-    expiresAt: row.expires_at !== null ? new Date(row.expires_at) : null,
+    refreshToken: row.refresh_token === null ? null : decrypt(row.refresh_token),
+    expiresAt: row.expires_at === null ? null : new Date(row.expires_at),
     tokenEndpoint: row.token_endpoint,
     scopes: row.scopes,
     connectedBy: row.connected_by,
@@ -71,11 +88,12 @@ export async function getConnection(
     .eq('org_id', orgId)
     .eq('library_item_id', libraryItemId)
     .single();
-  if (result.error !== null) {
-    if (result.error.code === 'PGRST116') return null;
-    throw new Error(`getConnection: ${result.error.message}`);
+  if (result.error === null) {
+    const row = OAuthConnectionRowSchema.parse(result.data);
+    return decryptRow(row);
   }
-  return decryptRow(result.data as OAuthConnectionRow);
+  if (result.error.code === 'PGRST116') return null;
+  throw new Error(`getConnection: ${result.error.message}`);
 }
 
 function buildUpsertRow(input: UpsertConnectionInput): Record<string, unknown> {
@@ -85,8 +103,8 @@ function buildUpsertRow(input: UpsertConnectionInput): Record<string, unknown> {
     client_id: input.clientId,
     client_registration: encrypt(input.clientRegistration),
     access_token: encrypt(input.accessToken),
-    refresh_token: input.refreshToken !== null ? encrypt(input.refreshToken) : null,
-    expires_at: input.expiresAt !== null ? input.expiresAt.toISOString() : null,
+    refresh_token: input.refreshToken === null ? null : encrypt(input.refreshToken),
+    expires_at: input.expiresAt === null ? null : input.expiresAt.toISOString(),
     token_endpoint: input.tokenEndpoint,
     scopes: input.scopes,
     connected_by: input.connectedBy,
@@ -123,10 +141,10 @@ interface ConnectionStatus {
   expiresAt?: string;
 }
 
-interface StatusRow {
-  connected_by: string;
-  expires_at: string | null;
-}
+const StatusRowSchema = z.object({
+  connected_by: z.string(),
+  expires_at: z.string().nullable(),
+});
 
 export async function getConnectionStatus(
   supabase: SupabaseClient,
@@ -143,7 +161,7 @@ export async function getConnectionStatus(
     if (result.error.code === 'PGRST116') return { connected: false };
     throw new Error(`getConnectionStatus: ${result.error.message}`);
   }
-  const row = result.data as StatusRow;
+  const row = StatusRowSchema.parse(result.data);
   return {
     connected: true,
     connectedBy: row.connected_by,
