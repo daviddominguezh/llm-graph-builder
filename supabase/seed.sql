@@ -85,10 +85,10 @@ INSERT INTO public.mcp_library (
  'http', '{"url":"https://mcp.atlassian.com/v1/mcp","headers":{"Authorization":"Bearer {{ATLASSIAN_API_TOKEN}}"}}'::jsonb,
  '[{"name":"ATLASSIAN_API_TOKEN"}]'::jsonb, v_user_id, 0),
 
--- Notion
-(v_org_id, 'Notion', 'Read and write Notion pages, databases, and blocks. Supports internal integration tokens and OAuth.', 'Productivity',
- 'http', '{"url":"https://mcp.notion.com/mcp","headers":{"Authorization":"Bearer {{NOTION_API_KEY}}"}}'::jsonb,
- '[{"name":"NOTION_API_KEY"}]'::jsonb, v_user_id, 0),
+-- Notion (OAuth only — no static token)
+(v_org_id, 'Notion', 'Read and write Notion pages, databases, and blocks. Authenticates via OAuth.', 'Productivity',
+ 'http', '{"url":"https://mcp.notion.com/mcp","headers":{}}'::jsonb,
+ '[]'::jsonb, v_user_id, 0),
 
 -- Supabase
 (v_org_id, 'Supabase', 'Manage Supabase projects, databases, migrations, Edge Functions, and storage buckets.', 'Data & Analytics',
@@ -100,10 +100,10 @@ INSERT INTO public.mcp_library (
  'http', '{"url":"https://mcp.zapier.com/api/mcp/mcp","headers":{"Authorization":"Bearer {{ZAPIER_MCP_API_KEY}}"}}'::jsonb,
  '[{"name":"ZAPIER_MCP_API_KEY"}]'::jsonb, v_user_id, 0),
 
--- Context7
-(v_org_id, 'Context7', 'Fetch up-to-date, version-specific library and framework documentation for LLMs.', 'Development',
- 'http', '{"url":"https://mcp.context7.com/mcp","headers":{"Authorization":"Bearer {{CONTEXT7_API_KEY}}"}}'::jsonb,
- '[{"name":"CONTEXT7_API_KEY"}]'::jsonb, v_user_id, 0),
+-- Context7 (no auth required)
+(v_org_id, 'Context7', 'Fetch up-to-date, version-specific library and framework documentation for LLMs. No API key required.', 'Development',
+ 'http', '{"url":"https://mcp.context7.com/mcp","headers":{}}'::jsonb,
+ '[]'::jsonb, v_user_id, 0),
 
 -- Stripe
 (v_org_id, 'Stripe', 'Manage Stripe payments, customers, subscriptions, invoices, and refunds via the Stripe API.', 'Finance',
@@ -125,10 +125,10 @@ INSERT INTO public.mcp_library (
  'http', '{"url":"https://mcp.figma.com/mcp","headers":{"Authorization":"Bearer {{FIGMA_ACCESS_TOKEN}}"}}'::jsonb,
  '[{"name":"FIGMA_ACCESS_TOKEN"}]'::jsonb, v_user_id, 0),
 
--- AWS
-(v_org_id, 'AWS', 'Access official AWS documentation, code samples, and architectural guidance in real time.', 'DevOps & Infrastructure',
- 'http', '{"url":"https://knowledge-mcp.global.api.aws","headers":{"Authorization":"Bearer {{AWS_ACCESS_TOKEN}}"}}'::jsonb,
- '[{"name":"AWS_ACCESS_TOKEN"}]'::jsonb, v_user_id, 0),
+-- AWS (no auth required — public docs endpoint)
+(v_org_id, 'AWS', 'Access official AWS documentation, code samples, and architectural guidance in real time. No authentication required.', 'DevOps & Infrastructure',
+ 'http', '{"url":"https://knowledge-mcp.global.api.aws","headers":{}}'::jsonb,
+ '[]'::jsonb, v_user_id, 0),
 
 -- Sentry
 (v_org_id, 'Sentry', 'Query Sentry error events, issues, projects, and performance data for debugging and monitoring.', 'DevOps & Infrastructure',
@@ -150,10 +150,10 @@ INSERT INTO public.mcp_library (
  'http', '{"url":"https://docs.mcp.cloudflare.com/mcp","headers":{"Authorization":"Bearer {{CLOUDFLARE_API_TOKEN}}"}}'::jsonb,
  '[{"name":"CLOUDFLARE_API_TOKEN"}]'::jsonb, v_user_id, 0),
 
--- Vercel
-(v_org_id, 'Vercel', 'Manage Vercel projects, deployments, and logs. Search Vercel documentation.', 'DevOps & Infrastructure',
- 'http', '{"url":"https://mcp.vercel.com","headers":{"Authorization":"Bearer {{VERCEL_API_TOKEN}}"}}'::jsonb,
- '[{"name":"VERCEL_API_TOKEN"}]'::jsonb, v_user_id, 0),
+-- Vercel (OAuth only — no static token)
+(v_org_id, 'Vercel', 'Manage Vercel projects, deployments, and logs. Search Vercel documentation. Authenticates via OAuth.', 'DevOps & Infrastructure',
+ 'http', '{"url":"https://mcp.vercel.com","headers":{}}'::jsonb,
+ '[]'::jsonb, v_user_id, 0),
 
 -- HubSpot
 (v_org_id, 'HubSpot', 'Access and manage HubSpot CRM data including contacts, companies, deals, and pipelines.', 'Sales',
@@ -210,10 +210,10 @@ INSERT INTO public.mcp_library (
  'http', '{"url":"https://mcp.canva.com/v1/mcp","headers":{"Authorization":"Bearer {{CANVA_ACCESS_TOKEN}}"}}'::jsonb,
  '[{"name":"CANVA_ACCESS_TOKEN"}]'::jsonb, v_user_id, 0),
 
--- Square
-(v_org_id, 'Square', 'Manage Square payments, inventory, orders, and customers.', 'Finance',
- 'sse', '{"url":"https://mcp.squareup.com/sse","headers":{"Authorization":"Bearer {{SQUARE_ACCESS_TOKEN}}"}}'::jsonb,
- '[{"name":"SQUARE_ACCESS_TOKEN"}]'::jsonb, v_user_id, 0),
+-- Square (OAuth only — no static token)
+(v_org_id, 'Square', 'Manage Square payments, inventory, orders, and customers. Authenticates via OAuth.', 'Finance',
+ 'sse', '{"url":"https://mcp.squareup.com/sse","headers":{}}'::jsonb,
+ '[]'::jsonb, v_user_id, 0),
 
 -- Wix
 (v_org_id, 'Wix', 'Manage Wix sites, content, and business data for website management automation.', 'Design',
