@@ -2,7 +2,7 @@
   "auth": {
     "login": {
       "title": "Sign in",
-      "description": "Enter your credentials to access Flowforge",
+      "description": "Enter your credentials to access OpenFlow",
       "email": "Email",
       "emailPlaceholder": "you@example.com",
       "password": "Password",
@@ -14,7 +14,7 @@
     },
     "signup": {
       "title": "Create account",
-      "description": "Get started with Flowforge",
+      "description": "Get started with OpenFlow",
       "name": "Full name",
       "namePlaceholder": "John Doe",
       "email": "Email",
@@ -302,7 +302,15 @@
     "readOnlyConfig": "Configuration from library (read-only)",
     "loading": "Loading...",
     "discoverTools": "Discover Tools",
-    "reloadTools": "Reload Tools"
+    "reloadTools": "Reload Tools",
+    "oauthConnect": "Connect",
+    "oauthConnected": "Connected",
+    "oauthDisconnect": "Disconnect",
+    "oauthExpired": "Connection expired — click Discover Tools to reconnect",
+    "oauthRequired": "This MCP requires sign-in. Click Discover Tools to connect.",
+    "oauthSuccess": "Successfully connected!",
+    "oauthError": "Failed to connect. Please try again.",
+    "oauthBadge": "OAuth"
   },
   "envVariables": {
     "title": "Environment Variables",
