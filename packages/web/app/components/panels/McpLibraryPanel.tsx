@@ -17,7 +17,7 @@ interface McpLibraryPanelProps {
 async function fetchLibrary(query?: string): Promise<McpLibraryRow[]> {
   const params = new URLSearchParams();
   if (query) params.set('q', query);
-  params.set('limit', '15');
+  params.set('limit', '30');
   const res = await fetch(`/api/mcp-library?${params.toString()}`);
   if (!res.ok) return [];
   const data = (await res.json()) as { result?: McpLibraryRow[] };

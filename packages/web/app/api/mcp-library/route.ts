@@ -16,7 +16,7 @@ export async function GET(request: Request): Promise<Response> {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get('q') ?? undefined;
   const category = searchParams.get('category') ?? undefined;
-  const limit = Number(searchParams.get('limit') ?? '15');
+  const limit = Number(searchParams.get('limit') ?? '30');
   const offset = Number(searchParams.get('offset') ?? '0');
 
   const res = await browseLibrary(supabase, { query, category, limit, offset });
