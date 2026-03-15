@@ -108,6 +108,7 @@
     "deleteCancel": "Cancel",
     "slugTaken": "An agent with this name already exists. Try a different name.",
     "selectAgent": "Select an agent to get started",
+    "selectAgentDescription": "Pick an agent from the sidebar to open the graph editor.",
     "search": "Search...",
     "noResults": "No matching agents",
     "createFirst": "Create your first agent",
