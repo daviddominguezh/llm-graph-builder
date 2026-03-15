@@ -15,7 +15,7 @@ interface McpLibraryCardProps {
 function CardImage({ imageUrl, name }: { imageUrl: string | null; name: string }) {
   if (imageUrl !== null) {
     return (
-      <Image src={imageUrl} alt={name} width={27} height={27} className="size-8 rounded object-cover" unoptimized />
+      <Image src={imageUrl} alt={name} width={18} height={18} className="size-7 rounded object-cover" unoptimized />
     );
   }
 
@@ -30,7 +30,7 @@ function CardInfo({ item }: { item: McpLibraryRow }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
       <p className="truncate text-xs font-medium">{item.name}</p>
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <div className="flex items-center gap-1.5 text-[10px]">
         {item.org_name !== undefined && <span className="truncate">{item.org_name}</span>}
         {item.org_name !== undefined && <span>·</span>}
         <span className="flex items-center gap-0.5">
@@ -58,7 +58,7 @@ function InstallButton({ isInstalled, onInstall }: { isInstalled: boolean; onIns
 
 export function McpLibraryCard({ item, isInstalled, onInstall }: McpLibraryCardProps) {
   return (
-    <div className="flex flex-col gap-1 border-l-2 border-primary pl-2 mx-2 mt-2">
+    <div className="flex flex-col gap-1 border-b mx-2 mt-2 pb-2 px-2 first:mt-0.5">
       <div className="flex items-start gap-2">
         <CardImage imageUrl={item.image_url} name={item.name} />
         <CardInfo item={item} />

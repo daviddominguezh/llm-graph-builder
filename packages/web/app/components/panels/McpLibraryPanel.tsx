@@ -64,7 +64,7 @@ interface LibraryItemsListProps {
   onInstall: (item: McpLibraryRow) => void;
 }
 
-function LibraryItemsList({ items, loading, query, installedLibraryIds, onInstall }: LibraryItemsListProps) {
+function LibraryItemsList({ items, loading, installedLibraryIds, onInstall }: LibraryItemsListProps) {
   const t = useTranslations('mcpLibrary');
 
   if (loading) {
@@ -84,10 +84,7 @@ function LibraryItemsList({ items, loading, query, installedLibraryIds, onInstal
   }
 
   return (
-    <div className="flex flex-col overflow-y-auto gap-2 pb-4">
-      {query === '' && (
-        <p className="px-3 py-1.5 text-xs font-medium text-muted-foreground">{t('topInstalled')}</p>
-      )}
+    <div className="flex flex-col overflow-y-auto gap-0 pb-4">
       {items.map((item, i) => (
         <React.Fragment key={item.id}>
           <McpLibraryCard
