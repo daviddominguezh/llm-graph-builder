@@ -2,7 +2,9 @@
 
 import type { OrgEnvVariableRow } from '@/app/lib/org-env-variables';
 import { extractVariableNames } from '@/app/lib/resolve-variables';
+import type { McpAuthType } from '@/app/lib/mcp-library-types';
 import type { McpServerConfig } from '@/app/schemas/graph.schema';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useTranslations } from 'next-intl';
@@ -13,6 +15,8 @@ import type { VariableValue } from './VariableValuesEditor';
 interface LibraryServerFieldsProps {
   server: McpServerConfig;
   envVariables: OrgEnvVariableRow[];
+  authType?: McpAuthType;
+  oauthConnected?: boolean;
   onUpdate: (updates: Partial<McpServerConfig>) => void;
 }
 
@@ -44,14 +48,51 @@ function getEndpointLabel(transport: McpServerConfig['transport']): string {
   return transport.type === 'stdio' ? 'Command' : 'URL';
 }
 
-export function LibraryServerFields({ server, envVariables, onUpdate }: LibraryServerFieldsProps) {
+function OAuthStatus({ connected }: { connected: boolean }) {
   const t = useTranslations('mcpLibrary');
+  if (connected) {
+    return (
+      <Badge variant="outline" className="text-green-600 border-green-300 bg-green-50">
+        {t('oauthConnected')}
+      </Badge>
+    );
+  }
+  return <p className="text-xs text-muted-foreground">{t('oauthRequired')}</p>;
+}
+
+function VariableSection({
+  server,
+  envVariables,
+  onUpdate,
+}: Pick<LibraryServerFieldsProps, 'server' | 'envVariables' | 'onUpdate'>) {
   const variables = buildVariableList(server);
   const values = (server.variableValues ?? {}) as Record<string, VariableValue>;
 
   function handleVariableChange(newValues: Record<string, VariableValue>): void {
     onUpdate({ variableValues: newValues as McpServerConfig['variableValues'] });
   }
+
+  if (variables.length === 0) return null;
+
+  return (
+    <VariableValuesEditor
+      variables={variables}
+      values={values}
+      envVariables={envVariables}
+      onChange={handleVariableChange}
+    />
+  );
+}
+
+export function LibraryServerFields({
+  server,
+  envVariables,
+  authType,
+  oauthConnected,
+  onUpdate,
+}: LibraryServerFieldsProps) {
+  const t = useTranslations('mcpLibrary');
+  const isOAuth = authType === 'oauth';
 
   return (
     <div className="space-y-2 mt-2">
@@ -64,12 +105,11 @@ export function LibraryServerFields({ server, envVariables, onUpdate }: LibraryS
         <Label>{getEndpointLabel(server.transport)}</Label>
         <Input value={getTransportEndpoint(server.transport)} disabled />
       </div>
-      <VariableValuesEditor
-        variables={variables}
-        values={values}
-        envVariables={envVariables}
-        onChange={handleVariableChange}
-      />
+      {isOAuth ? (
+        <OAuthStatus connected={oauthConnected ?? false} />
+      ) : (
+        <VariableSection server={server} envVariables={envVariables} onUpdate={onUpdate} />
+      )}
     </div>
   );
 }

@@ -7,7 +7,9 @@ import { AlertTriangle, BookOpen, CheckCircle, ChevronDown, Plus, Trash2 } from 
 import { useState } from 'react';
 
 import type { McpServerStatus } from '../../hooks/useMcpServers';
+import { useOAuthStatus } from '../../hooks/useOAuthStatus';
 import type { OrgEnvVariableRow } from '../../lib/org-env-variables';
+import type { McpAuthType, McpLibraryRow } from '../../lib/mcp-library-types';
 import type { McpServerConfig } from '../../schemas/graph.schema';
 import { LibraryServerFields, areVariablesComplete } from './LibraryServerFields';
 import type { VariableValueShape } from './LibraryServerFields';
@@ -19,6 +21,7 @@ interface McpServersSectionProps {
   serverStatus: Record<string, McpServerStatus>;
   orgId: string;
   envVariables: OrgEnvVariableRow[];
+  libraryItems?: McpLibraryRow[];
   onAdd: () => void;
   onRemove: (id: string) => void;
   onUpdate: (id: string, updates: Partial<McpServerConfig>) => void;
@@ -32,6 +35,8 @@ interface ServerItemProps {
   status: McpServerStatus;
   isDiscovering: boolean;
   envVariables: OrgEnvVariableRow[];
+  orgId: string;
+  authType?: McpAuthType;
   onRemove: () => void;
   onUpdate: (updates: Partial<McpServerConfig>) => void;
   onDiscover: () => void;
@@ -52,7 +57,6 @@ function DiscoverButton({
   className?: string;
 }) {
   const isActive = status === 'active';
-
   const label = isActive ? 'Reload Tools' : 'Discover Tools';
 
   return (
@@ -75,7 +79,7 @@ function EditableServerFields({
   onUpdate,
   onDiscover,
   onPublish,
-}: Omit<ServerItemProps, 'onRemove' | 'envVariables'>) {
+}: Omit<ServerItemProps, 'onRemove' | 'envVariables' | 'orgId' | 'authType'>) {
   return (
     <>
       <div className="space-y-1">
@@ -100,23 +104,77 @@ function EditableServerFields({
   );
 }
 
+interface LibraryExpandedProps {
+  server: McpServerConfig;
+  status: McpServerStatus;
+  isDiscovering: boolean;
+  envVariables: OrgEnvVariableRow[];
+  orgId: string;
+  authType?: McpAuthType;
+  onUpdate: (updates: Partial<McpServerConfig>) => void;
+  onDiscover: () => void;
+}
+
+function LibraryExpandedFields({
+  server,
+  status,
+  isDiscovering,
+  envVariables,
+  orgId,
+  authType,
+  onUpdate,
+  onDiscover,
+}: LibraryExpandedProps) {
+  const variableValues = server.variableValues as Record<string, VariableValueShape> | undefined;
+  const varsComplete = areVariablesComplete(variableValues);
+  const oauthStatus = useOAuthStatus(orgId, authType === 'oauth' ? server.libraryItemId : undefined);
+
+  return (
+    <>
+      <LibraryServerFields
+        server={server}
+        envVariables={envVariables}
+        authType={authType}
+        oauthConnected={oauthStatus.connected}
+        onUpdate={onUpdate}
+      />
+      <DiscoverButton
+        status={status}
+        isDiscovering={isDiscovering}
+        onDiscover={onDiscover}
+        disabled={authType !== 'oauth' && !varsComplete}
+        className="w-full"
+      />
+    </>
+  );
+}
+
 function ServerItemExpanded({
   server,
   status,
   isDiscovering,
   envVariables,
+  orgId,
+  authType,
   onUpdate,
   onDiscover,
   onPublish,
 }: Omit<ServerItemProps, 'onRemove'>) {
   const isFromLibrary = server.libraryItemId !== undefined;
-  const variableValues = server.variableValues as Record<string, VariableValueShape> | undefined;
-  const varsComplete = areVariablesComplete(variableValues);
 
   return (
     <div className="space-y-2 mt-2">
       {isFromLibrary ? (
-        <LibraryServerFields server={server} envVariables={envVariables} onUpdate={onUpdate} />
+        <LibraryExpandedFields
+          server={server}
+          status={status}
+          isDiscovering={isDiscovering}
+          envVariables={envVariables}
+          orgId={orgId}
+          authType={authType}
+          onUpdate={onUpdate}
+          onDiscover={onDiscover}
+        />
       ) : (
         <EditableServerFields
           server={server}
@@ -125,15 +183,6 @@ function ServerItemExpanded({
           onUpdate={onUpdate}
           onDiscover={onDiscover}
           onPublish={onPublish}
-        />
-      )}
-      {isFromLibrary && (
-        <DiscoverButton
-          status={status}
-          isDiscovering={isDiscovering}
-          onDiscover={onDiscover}
-          disabled={!varsComplete}
-          className="w-full"
         />
       )}
     </div>
@@ -152,6 +201,8 @@ function ServerItem({
   status,
   isDiscovering,
   envVariables,
+  orgId,
+  authType,
   onRemove,
   onUpdate,
   onDiscover,
@@ -188,6 +239,8 @@ function ServerItem({
           status={status}
           isDiscovering={isDiscovering}
           envVariables={envVariables}
+          orgId={orgId}
+          authType={authType}
           onUpdate={onUpdate}
           onDiscover={onDiscover}
           onPublish={onPublish}
@@ -197,11 +250,18 @@ function ServerItem({
   );
 }
 
+function getAuthType(server: McpServerConfig, libraryItems: McpLibraryRow[]): McpAuthType | undefined {
+  if (server.libraryItemId === undefined) return undefined;
+  return libraryItems.find((i) => i.id === server.libraryItemId)?.auth_type;
+}
+
 export function McpServersSection({
   servers,
   discovering,
   serverStatus,
   envVariables,
+  orgId,
+  libraryItems,
   onAdd,
   onRemove,
   onUpdate,
@@ -209,6 +269,8 @@ export function McpServersSection({
   onPublish,
   onOpenLibrary,
 }: McpServersSectionProps) {
+  const items = libraryItems ?? [];
+
   return (
     <div className="mt-2">
       <div className="flex items-center justify-between mb-2">
@@ -232,6 +294,8 @@ export function McpServersSection({
               status={serverStatus[server.id] ?? 'pending'}
               isDiscovering={discovering[server.id] ?? false}
               envVariables={envVariables}
+              orgId={orgId}
+              authType={getAuthType(server, items)}
               onRemove={() => onRemove(server.id)}
               onUpdate={(updates) => onUpdate(server.id, updates)}
               onDiscover={() => onDiscover(server.id)}
