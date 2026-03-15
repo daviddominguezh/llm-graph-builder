@@ -59,6 +59,16 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+  const sendMessage = useCallback(
+    (text: string) => {
+      if (sessions.activeSession === null) {
+        sessions.createSession();
+      }
+      streaming.startStreaming(text);
+    },
+    [sessions, streaming]
+  );
+
   const value = useMemo<CopilotContextValue>(
     () => ({
       isOpen,
@@ -68,11 +78,11 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
       activeSession: sessions.activeSession,
       createSession: sessions.createSession,
       switchSession: sessions.switchSession,
-      sendMessage: streaming.startStreaming,
+      sendMessage,
       stopStreaming: streaming.stopStreaming,
       isStreaming: streaming.isStreaming,
     }),
-    [isOpen, setOpen, sessions, streaming]
+    [isOpen, setOpen, sessions, streaming, sendMessage]
   );
 
   return <CopilotContext.Provider value={value}>{children}</CopilotContext.Provider>;

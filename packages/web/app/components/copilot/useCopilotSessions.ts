@@ -4,7 +4,6 @@ import { useRef, useState } from 'react';
 
 import type { CopilotMessage, CopilotPersistedState, CopilotSession } from './copilotTypes';
 
-const STORAGE_KEY = 'copilot-state';
 const MAX_SESSIONS = 50;
 const TITLE_MAX_LENGTH = 40;
 
@@ -17,28 +16,6 @@ export interface UseCopilotSessionsReturn {
   switchSession: (id: string) => void;
   addMessage: (message: CopilotMessage) => void;
   updateLastMessage: (blocks: CopilotMessage['blocks']) => void;
-}
-
-// ---------------------------------------------------------------------------
-// localStorage helpers
-// ---------------------------------------------------------------------------
-
-function loadState(): CopilotPersistedState {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return EMPTY_STATE;
-    return JSON.parse(raw) as CopilotPersistedState;
-  } catch {
-    return EMPTY_STATE;
-  }
-}
-
-function saveState(state: CopilotPersistedState): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    // QuotaExceededError or localStorage unavailable — silently drop
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -93,13 +70,12 @@ function applyUpdateLastMessage(
 // ---------------------------------------------------------------------------
 
 export function useCopilotSessions(): UseCopilotSessionsReturn {
-  const [state, setRawState] = useState<CopilotPersistedState>(() => loadState());
+  const [state, setRawState] = useState<CopilotPersistedState>(EMPTY_STATE);
   const ref = useRef(state);
 
   function update(next: CopilotPersistedState): void {
     ref.current = next;
     setRawState(next);
-    saveState(next);
   }
 
   function createSession(): string {

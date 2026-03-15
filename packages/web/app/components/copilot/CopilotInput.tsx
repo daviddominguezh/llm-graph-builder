@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowUp, Square } from 'lucide-react';
+import { ArrowUp, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -52,12 +52,12 @@ export function CopilotInput({ onSend, onStop, isStreaming }: CopilotInputProps)
       />
       <Button
         variant="default"
-        size="icon-sm"
+        className="size-9.5"
         disabled={!trimmed && !isStreaming}
         onClick={handleButtonClick}
         aria-label={isStreaming ? t('stop') : t('send')}
       >
-        {isStreaming ? <Square className="size-3" /> : <ArrowUp className="size-3" />}
+        {isStreaming ? <Loader2 className="size-3 animate-spin" /> : <ArrowUp className="size-3" />}
       </Button>
     </div>
   );

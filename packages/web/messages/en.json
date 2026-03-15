@@ -66,11 +66,11 @@
   "copilot": {
     "title": "Copilot",
     "newChat": "New chat",
-    "placeholder": "Ask about your graph...",
+    "placeholder": "Ask about your agents...",
     "send": "Send",
     "stop": "Stop",
     "close": "Close",
-    "emptyState": "Ask me anything about your graph.",
+    "emptyState": "Ask me anything about your agents.",
     "selectChat": "Select a chat"
   },
   "toolbar": {
