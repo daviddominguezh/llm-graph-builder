@@ -57,7 +57,7 @@ ON CONFLICT (id) DO NOTHING;
 
 -- 4. Create "Closer" organization (avatar served from Next.js public/)
 INSERT INTO public.organizations (id, name, slug, avatar_url) VALUES
-  (v_org_id, 'Closer', 'closer', '/logoCloser.avif')
+  (v_org_id, 'Closer', 'closer', '/logoCloser.png')
 ON CONFLICT (id) DO NOTHING;
 
 -- 5. Add user as org owner

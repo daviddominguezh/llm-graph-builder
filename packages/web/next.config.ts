@@ -39,7 +39,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
 const nextConfig: NextConfig = {
   reactStrictMode: false,
   transpilePackages: ['@daviddh/graph-types', '@daviddh/llm-graph-runner'],
-  images: { localPatterns: [{ pathname: '/supabase-storage/**' }, { pathname: '/**' }] },
+  images: { localPatterns: [{ pathname: '/supabase-storage/**' }, { pathname: '/logoCloser.png' }] },
   devIndicators: false,
   webpack: configureWebpack,
   rewrites() {
