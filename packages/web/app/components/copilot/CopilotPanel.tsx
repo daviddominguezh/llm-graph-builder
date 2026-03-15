@@ -47,8 +47,9 @@ interface CopilotHeaderProps {
 function CopilotHeader({ sessions, activeSession, onNewChat, onSwitchSession, onClose }: CopilotHeaderProps) {
   const t = useTranslations('copilot');
   const sorted = [...sessions].sort((a, b) => b.createdAt - a.createdAt);
-  const hasChats = sorted.length > 0;
-  const canCreateNew = activeSession === null || activeSession.messages.length >= MIN_MESSAGES_FOR_NEW_CHAT;
+  const activeIsEmpty = activeSession === null || activeSession.messages.length === 0;
+  const canShowHistory = sorted.length > 1 || (sorted.length >= 1 && activeIsEmpty);
+  const canCreateNew = activeSession !== null && activeSession.messages.length >= MIN_MESSAGES_FOR_NEW_CHAT;
 
   return (
     <div className="flex items-center justify-between border-b px-3 py-2">
@@ -71,7 +72,7 @@ function CopilotHeader({ sessions, activeSession, onNewChat, onSwitchSession, on
                 variant="ghost"
                 size="sm"
                 className="h-8 w-8"
-                disabled={!hasChats}
+                disabled={!canShowHistory}
                 aria-label={t('selectChat')}
               >
                 <History className="size-4" />
@@ -79,14 +80,23 @@ function CopilotHeader({ sessions, activeSession, onNewChat, onSwitchSession, on
             }
           />
           <DropdownMenuContent side="bottom" align="end" className="max-h-60 w-64 overflow-y-auto">
-            {sorted.map((s) => (
-              <DropdownMenuItem key={s.id} onClick={() => onSwitchSession(s.id)}>
-                <div className="flex w-full flex-col gap-0.5 overflow-hidden">
-                  <span className="truncate text-xs">{getSessionLabel(s) || t('newChat')}</span>
-                  <span className="text-[10px] text-muted-foreground">{getLastMessageTime(s)}</span>
-                </div>
-              </DropdownMenuItem>
-            ))}
+            {sorted
+              .filter((s) => s.messages.length > 0)
+              .map((s) => {
+                const isCurrent = s.id === activeSession?.id;
+                return (
+                  <DropdownMenuItem
+                    key={s.id}
+                    disabled={isCurrent}
+                    onClick={isCurrent ? undefined : () => onSwitchSession(s.id)}
+                  >
+                    <div className="flex w-full flex-col gap-0.5 overflow-hidden">
+                      <span className="truncate text-xs">{getSessionLabel(s)}</span>
+                      <span className="text-[10px] text-muted-foreground">{getLastMessageTime(s)}</span>
+                    </div>
+                  </DropdownMenuItem>
+                );
+              })}
           </DropdownMenuContent>
         </DropdownMenu>
         <Button variant="ghost" size="sm" className="h-8 w-8" onClick={onClose} aria-label={t('close')}>
