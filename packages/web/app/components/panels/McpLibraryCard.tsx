@@ -51,7 +51,7 @@ function InstallButton({ isInstalled, onInstall }: { isInstalled: boolean; onIns
       onClick={onInstall}
       className="shrink-0"
     >
-      {isInstalled ? <Check className="size-2" /> : <Download className="size-2" />}
+      {isInstalled ? <Check className="size-3" /> : <Download className="size-3" />}
     </Button>
   );
 }
