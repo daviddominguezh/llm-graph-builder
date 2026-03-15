@@ -1,7 +1,6 @@
 'use client';
 
-import { Download, Server } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { Check, Download, Server } from 'lucide-react';
 import Image from 'next/image';
 
 import type { McpLibraryRow } from '@/app/lib/mcp-library-types';
@@ -43,15 +42,17 @@ function CardInfo({ item }: { item: McpLibraryRow }) {
   );
 }
 
-function CardFooter({ item, isInstalled, onInstall }: McpLibraryCardProps) {
-  const t = useTranslations('mcpLibrary');
-
+function InstallButton({ isInstalled, onInstall }: { isInstalled: boolean; onInstall: () => void }) {
   return (
-    <div className="flex justify-end">
-      <Button size="sm" variant={isInstalled ? 'outline' : 'default'} disabled={isInstalled} onClick={() => onInstall(item)}>
-        {isInstalled ? t('installed') : t('install')}
-      </Button>
-    </div>
+    <Button
+      size="icon-xs"
+      variant={isInstalled ? 'outline' : 'default'}
+      disabled={isInstalled}
+      onClick={onInstall}
+      className="shrink-0"
+    >
+      {isInstalled ? <Check className="size-3.5" /> : <Download className="size-3.5" />}
+    </Button>
   );
 }
 
@@ -61,9 +62,9 @@ export function McpLibraryCard({ item, isInstalled, onInstall }: McpLibraryCardP
       <div className="flex items-start gap-2">
         <CardImage imageUrl={item.image_url} name={item.name} />
         <CardInfo item={item} />
+        <InstallButton isInstalled={isInstalled} onInstall={() => onInstall(item)} />
       </div>
       <p className="line-clamp-2 text-[10px] text-muted-foreground">{item.description}</p>
-      <CardFooter item={item} isInstalled={isInstalled} onInstall={onInstall} />
     </div>
   );
 }
