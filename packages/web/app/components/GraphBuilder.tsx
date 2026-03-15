@@ -21,6 +21,7 @@ import type { Agent, Graph } from '../schemas/graph.schema';
 import { useApiKeySelection } from '../hooks/useApiKeySelection';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { useEnvVariables } from '../hooks/useEnvVariables';
+import { useMcpLibrary } from '../hooks/useMcpLibrary';
 import { useGraphActions } from '../hooks/useGraphActions';
 import type { GraphLoadResult } from '../hooks/useGraphLoader';
 import { useGraphLoader } from '../hooks/useGraphLoader';
@@ -101,6 +102,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
   const [libraryOpen, setLibraryOpen] = useState(false);
 
   const envVariables = useEnvVariables(props.orgId);
+  const mcpLibrary = useMcpLibrary();
 
   const presetsHook = usePresets(opQueue.pushOperation);
 
@@ -265,6 +267,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     libraryOpen,
     setLibraryOpen,
     envVariables,
+    mcpLibrary,
     version,
     setVersion,
     apiKeys,
@@ -369,6 +372,7 @@ function LoadedEditor(props: LoadedEditorProps) {
           presetsOpen={h.presetsOpen}
           toolsOpen={h.toolsOpen}
           libraryOpen={h.libraryOpen}
+          mcpLibrary={h.mcpLibrary}
           setNodes={h.setNodes}
           setEdges={h.setEdges}
           ctxPreconditions={h.ctxPreconditions}

@@ -1,5 +1,6 @@
 'use client';
 
+import type { McpLibraryState } from '../hooks/useMcpLibrary';
 import type { McpLibraryRow } from '../lib/mcp-library-types';
 import type { McpServerConfig } from '../schemas/graph.schema';
 
@@ -84,9 +85,9 @@ export interface McpDialogsProps {
   onPublishClose: () => void;
   onPublished: () => void;
   libraryOpen: boolean;
+  mcpLibrary: McpLibraryState;
   installedLibraryIds: string[];
   onInstall: (item: McpLibraryRow) => void;
-  onCloseLibrary: () => void;
 }
 
 export function McpDialogs(props: McpDialogsProps) {
@@ -105,6 +106,7 @@ export function McpDialogs(props: McpDialogsProps) {
       )}
       {props.libraryOpen && (
         <McpLibraryPanel
+          library={props.mcpLibrary}
           installedLibraryIds={props.installedLibraryIds}
           onInstall={props.onInstall}
         />

@@ -5,24 +5,16 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@base-ui/react';
 import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import React from 'react';
 
+import type { McpLibraryState } from '../../hooks/useMcpLibrary';
 import { McpLibraryCard } from './McpLibraryCard';
 
 interface McpLibraryPanelProps {
+  library: McpLibraryState;
   installedLibraryIds: string[];
   onInstall: (item: McpLibraryRow) => void;
-}
-
-async function fetchLibrary(query?: string): Promise<McpLibraryRow[]> {
-  const params = new URLSearchParams();
-  if (query) params.set('q', query);
-  params.set('limit', '30');
-  const res = await fetch(`/api/mcp-library?${params.toString()}`);
-  if (!res.ok) return [];
-  const data = (await res.json()) as { result?: McpLibraryRow[] };
-  return data.result ?? [];
 }
 
 function LibraryPanelHeader() {
@@ -35,12 +27,7 @@ function LibraryPanelHeader() {
   );
 }
 
-interface LibrarySearchBarProps {
-  value: string;
-  onChange: (value: string) => void;
-}
-
-function LibrarySearchBar({ value, onChange }: LibrarySearchBarProps) {
+function LibrarySearchBar({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const t = useTranslations('mcpLibrary');
 
   return (
@@ -56,10 +43,17 @@ function LibrarySearchBar({ value, onChange }: LibrarySearchBarProps) {
   );
 }
 
+function filterItems(items: McpLibraryRow[], query: string): McpLibraryRow[] {
+  if (query === '') return items;
+  const lower = query.toLowerCase();
+  return items.filter(
+    (item) => item.name.toLowerCase().includes(lower) || item.description.toLowerCase().includes(lower)
+  );
+}
+
 interface LibraryItemsListProps {
   items: McpLibraryRow[];
   loading: boolean;
-  query: string;
   installedLibraryIds: string[];
   onInstall: (item: McpLibraryRow) => void;
 }
@@ -100,48 +94,26 @@ function LibraryItemsList({ items, loading, installedLibraryIds, onInstall }: Li
   );
 }
 
-function useLibrarySearch() {
+export function McpLibraryPanel({ library, installedLibraryIds, onInstall }: McpLibraryPanelProps) {
   const [query, setQuery] = useState('');
-  const [items, setItems] = useState<McpLibraryRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const runFetch = useCallback((term: string) => {
-    Promise.resolve()
-      .then(() => {
-        setLoading(true);
-        return fetchLibrary(term || undefined);
-      })
-      .then(setItems)
-      .catch(() => setItems([]))
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    runFetch(searchTerm);
-  }, [runFetch, searchTerm]);
+  const [debouncedQuery, setDebouncedQuery] = useState('');
 
   function handleQueryChange(value: string) {
     setQuery(value);
     if (debounceRef.current !== null) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => setSearchTerm(value), 300);
+    debounceRef.current = setTimeout(() => setDebouncedQuery(value), 300);
   }
 
-  return { query, items, loading, handleQueryChange };
-}
-
-export function McpLibraryPanel({ installedLibraryIds, onInstall }: McpLibraryPanelProps) {
-  const { query, items, loading, handleQueryChange } = useLibrarySearch();
+  const filtered = useMemo(() => filterItems(library.items, debouncedQuery), [library.items, debouncedQuery]);
 
   return (
     <div className="w-[240px] absolute bottom-0 left-0 top-0 z-10 flex w-80 flex-col bg-white border rounded-xl">
       <LibraryPanelHeader />
       <LibrarySearchBar value={query} onChange={handleQueryChange} />
       <LibraryItemsList
-        items={items}
-        loading={loading}
-        query={query}
+        items={filtered}
+        loading={library.loading}
         installedLibraryIds={installedLibraryIds}
         onInstall={onInstall}
       />

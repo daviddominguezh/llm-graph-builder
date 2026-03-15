@@ -10,6 +10,7 @@ import type { OutputSchemasState } from '../hooks/useOutputSchemas';
 import type { PushOperation } from '../utils/operationBuilders';
 import type { RFEdgeData } from '../utils/graphTransformers';
 import type { UseGraphSelectionReturn } from '../hooks/useGraphSelection';
+import type { McpLibraryState } from '../hooks/useMcpLibrary';
 import type { ContextPreset } from '../types/preset';
 
 import { EdgePanel } from './panels/EdgePanel';
@@ -58,6 +59,7 @@ export interface SidePanelsProps {
   presetsOpen: boolean;
   toolsOpen: boolean;
   libraryOpen: boolean;
+  mcpLibrary: McpLibraryState;
   setNodes: NodeSetter;
   setEdges: EdgeSetter;
   ctxPreconditions: CtxPreconditionsState;
@@ -203,9 +205,9 @@ export function SidePanels(props: SidePanelsProps) {
         onPublishClose={() => publish.setPublishServer(null)}
         onPublished={() => publish.setPublishServer(null)}
         libraryOpen={libraryOpen}
+        mcpLibrary={props.mcpLibrary}
         installedLibraryIds={installedIds}
         onInstall={publish.handleInstallFromLibrary}
-        onCloseLibrary={props.onCloseLibrary}
       />
       {showSelectionPanel && (
         <SelectionPanel
