@@ -35,6 +35,15 @@ function buildVariableList(server: McpServerConfig): Array<{ name: string }> {
   return extractVariableNames(server.transport).map((name) => ({ name }));
 }
 
+function getTransportEndpoint(transport: McpServerConfig['transport']): string {
+  if (transport.type === 'stdio') return transport.command;
+  return transport.url;
+}
+
+function getEndpointLabel(transport: McpServerConfig['transport']): string {
+  return transport.type === 'stdio' ? 'Command' : 'URL';
+}
+
 export function LibraryServerFields({ server, envVariables, onUpdate }: LibraryServerFieldsProps) {
   const t = useTranslations('mcpLibrary');
   const variables = buildVariableList(server);
@@ -52,8 +61,8 @@ export function LibraryServerFields({ server, envVariables, onUpdate }: LibraryS
         <Input value={server.name} disabled />
       </div>
       <div className="space-y-1">
-        <Label>Transport</Label>
-        <Input value={server.transport.type} disabled />
+        <Label>{getEndpointLabel(server.transport)}</Label>
+        <Input value={getTransportEndpoint(server.transport)} disabled />
       </div>
       <VariableValuesEditor
         variables={variables}
