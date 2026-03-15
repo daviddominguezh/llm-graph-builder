@@ -9,6 +9,10 @@ import { handleGetVersions } from './routes/graph/getVersions.js';
 import { handlePostOperations } from './routes/graph/postOperations.js';
 import { handlePostPublish } from './routes/graph/postPublish.js';
 import { handlePostRestore } from './routes/graph/postRestore.js';
+import { handleCallback } from './routes/oauth/oauthCallback.js';
+import { handleDisconnect } from './routes/oauth/oauthDisconnect.js';
+import { handleInitiate } from './routes/oauth/oauthInitiate.js';
+import { handleStatus } from './routes/oauth/oauthStatus.js';
 import { handleSimulate } from './routes/simulateHandler.js';
 
 function requestLogger(req: Request, _res: Response, next: NextFunction): void {
@@ -25,6 +29,7 @@ export function createApp(): Express {
 
   app.post('/mcp/discover', handleDiscover);
   app.post('/simulate', handleSimulate);
+  app.get('/mcp/oauth/callback', handleCallback);
 
   const agentRouter = express.Router();
   agentRouter.use(requireAuth);
@@ -34,6 +39,9 @@ export function createApp(): Express {
   agentRouter.get('/:agentId/versions', handleGetVersions);
   agentRouter.get('/:agentId/versions/:version', handleGetVersion);
   agentRouter.post('/:agentId/versions/:version/restore', handlePostRestore);
+  agentRouter.post('/mcp-oauth/initiate', handleInitiate);
+  agentRouter.get('/mcp-oauth/status', handleStatus);
+  agentRouter.delete('/mcp-oauth/connections', handleDisconnect);
   app.use('/agents', agentRouter);
 
   return app;
