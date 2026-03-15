@@ -1,4 +1,5 @@
 import { getApiKeyValueById } from '@/app/lib/api-keys';
+import { resolveOAuthServers } from '@/app/lib/resolve-oauth-servers';
 import { resolveTransportVariables } from '@/app/lib/resolve-variables';
 import { createClient } from '@/app/lib/supabase/server';
 import { McpTransportSchema, VariableValueSchema } from '@daviddh/graph-types';
@@ -129,5 +130,13 @@ export async function POST(request: Request): Promise<Response> {
 
   const rest = Object.fromEntries(Object.entries(raw).filter(([k]) => k !== 'apiKeyId'));
   await resolveMcpServersInGraph(supabase, rest.graph);
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (session !== null) {
+    await resolveOAuthServers(supabase, rest.graph, `Bearer ${session.access_token}`);
+  }
+
   return await fetchUpstream({ ...rest, apiKey });
 }
