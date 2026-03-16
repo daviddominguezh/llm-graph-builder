@@ -8,6 +8,7 @@ DO $$
 DECLARE
   v_user_id   uuid := 'a0000000-0000-0000-0000-000000000001';
   v_org_id    uuid := 'b0000000-0000-0000-0000-000000000001';
+  v_recipe_agent_id uuid := 'c0000000-0000-0000-0000-000000000001';
 BEGIN
 
 -- 1. Create auth user (all string columns GoTrue scans must be '' not NULL)
@@ -160,5 +161,75 @@ INSERT INTO public.mcp_library (
 (v_org_id, 'Firecrawl', 'Web scraping and crawling: extract clean markdown from any URL, crawl websites, and perform deep research.', 'AI & ML', 'token', 'https://icon.horse/icon/firecrawl.dev',
  'http', '{"url":"https://mcp.firecrawl.dev/v2/mcp","headers":{"Authorization":"Bearer {{FIRECRAWL_API_KEY}}"}}'::jsonb,
  '[{"name":"FIRECRAWL_API_KEY"}]'::jsonb, v_user_id, 0);
+
+-- 7. Create "test-recipe" agent
+INSERT INTO public.agents (
+  id, name, slug, description, version, current_version, org_id, start_node,
+  created_at, updated_at
+) VALUES (
+  v_recipe_agent_id,
+  'test-recipe',
+  'test-recipe',
+  'A test agent that extracts structured recipe data from user input.',
+  1, 1, v_org_id, 'INITIAL_STEP',
+  now(), now()
+) ON CONFLICT (id) DO NOTHING;
+
+-- 8. Create graph nodes for test-recipe agent
+INSERT INTO public.graph_nodes (
+  id, agent_id, node_id, text, kind, description,
+  next_node_is_user, global, position_x, position_y,
+  output_schema_id, output_prompt
+) VALUES
+( 'c1000000-0000-0000-0000-000000000000',
+  v_recipe_agent_id, 'INITIAL_STEP',
+  'You are a friendly recipe assistant. Greet the user and ask them what recipe they would like to create.',
+  'agent', 'Initial greeting node',
+  true, false, 20, 108, NULL, NULL ),
+( 'c1000000-0000-0000-0000-000000000001',
+  v_recipe_agent_id, 'create_recipe',
+  '',
+  'agent', 'Generates a recipe',
+  false, false, 257.5, 20, 'seLAsT6-u2dSZ0xoxHVp4',
+  'Create a Michelin-star-level recipe for the dish the user requested, or, if they didn''t specify, for lasagna' ),
+( 'c1000000-0000-0000-0000-000000000002',
+  v_recipe_agent_id, 'terminal_node',
+  '',
+  'agent', '',
+  false, false, 495, 20, NULL, NULL )
+ON CONFLICT (id) DO NOTHING;
+
+-- 9. Create edges: INITIAL_STEP -> create_recipe -> terminal_node
+INSERT INTO public.graph_edges (
+  id, agent_id, from_node, to_node
+) VALUES
+( 'c2000000-0000-0000-0000-000000000001',
+  v_recipe_agent_id, 'INITIAL_STEP', 'create_recipe' ),
+( 'c2000000-0000-0000-0000-000000000002',
+  v_recipe_agent_id, 'create_recipe', 'terminal_node' )
+ON CONFLICT (id) DO NOTHING;
+
+-- 10. Create edge precondition (user_said on first edge only)
+INSERT INTO public.graph_edge_preconditions (
+  id, edge_id, type, value, description
+) VALUES
+( 'c3000000-0000-0000-0000-000000000001',
+  'c2000000-0000-0000-0000-000000000001',
+  'user_said', 'I want a recipe like...', 'User expressed interest in creating a recipe' )
+ON CONFLICT (id) DO NOTHING;
+
+-- 11. Seed recipe output schema
+INSERT INTO public.graph_output_schemas (agent_id, schema_id, name, fields) VALUES (
+  v_recipe_agent_id,
+  'seLAsT6-u2dSZ0xoxHVp4',
+  'recipe_schema',
+  '[
+    {"name":"name","type":"string","required":true,"description":"The name of the recipe"},
+    {"name":"duration","type":"number","required":true,"description":"The total cooking time (in minutes) of this recipe"},
+    {"name":"ingredients","type":"array","required":true,"description":"The list of ingredients required for this recipe","items":{"name":"","type":"object","required":true,"properties":[{"name":"name","type":"string","required":true,"description":"The name of the ingredient"},{"name":"amount","type":"number","required":true,"description":"The amount of units required of this ingredient"},{"name":"unit","type":"enum","required":true,"description":"The unit in which we will measure this ingredient","enumValues":["pound","kg","ounce","ml","scoop","pinch"]},{"name":"costPerUnit","type":"number","required":true,"description":"The cost of each unit of this ingredient"}]}},
+    {"name":"description","type":"string","required":true,"description":"A short, introductory description of this recipe"},
+    {"name":"instructions","type":"string","required":true,"description":"The full list of instructions for this recipe"}
+  ]'::jsonb
+) ON CONFLICT (agent_id, schema_id) DO NOTHING;
 
 END $$;
