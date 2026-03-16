@@ -44,7 +44,11 @@ export const appendKindSpecificPrompts = (
   const { kind, edges, basePrompt, basePromptWithoutTools } = params;
   if (kind === 'agent_decision') return buildAgentDecisionPrompts(params);
   if (kind === 'user_reply') {
-    const outputFormat = buildOutputFormatPrompt(buildEdgeIds(edges));
+    const edgeIds = buildEdgeIds(edges);
+    const outputFormat =
+      params.nextNodeIsUser === true
+        ? buildOutputFormatPrompt(edgeIds)
+        : buildDecisionOnlyOutputFormatPrompt(edgeIds);
     return {
       prompt: `${basePrompt}\n\n${outputFormat}`,
       promptWithoutTools: `${basePromptWithoutTools}\n\n${outputFormat}`,

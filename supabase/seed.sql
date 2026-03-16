@@ -185,7 +185,7 @@ INSERT INTO public.graph_nodes (
   v_recipe_agent_id, 'INITIAL_STEP',
   'You are a friendly recipe assistant. Greet the user and ask them what recipe they would like to create.',
   'agent', 'Initial greeting node',
-  true, false, 20, 108, NULL, NULL ),
+  false, false, 20, 108, NULL, NULL ),
 ( 'c1000000-0000-0000-0000-000000000001',
   v_recipe_agent_id, 'create_recipe',
   '',

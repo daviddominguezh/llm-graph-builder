@@ -222,7 +222,7 @@ function buildPromptConfig(
     nextNodeIsUser: nextOptions.node.nextNodeIsUser,
   });
   const userContext = generateUserContextPrompt(context);
-  const skipMessageToUser = nextOptions.kind === 'agent_decision' && nextOptions.node.nextNodeIsUser !== true;
+  const skipMessageToUser = nextOptions.node.nextNodeIsUser !== true;
   const config: SMConfig = {
     node: nextOptions.node,
     prompt: applyUserContext(mPrompt, userContext),
