@@ -1,12 +1,7 @@
 import type { Edge, Node, ReactFlowInstance } from '@xyflow/react';
 import { useCallback, useState } from 'react';
 
-import {
-  DEFAULT_NODE_HEIGHT,
-  DEFAULT_NODE_WIDTH,
-  START_NODE_HEIGHT,
-  START_NODE_ID,
-} from '../utils/graphInitializer';
+import { DEFAULT_NODE_HEIGHT, DEFAULT_NODE_WIDTH, START_NODE_HEIGHT } from '../utils/graphInitializer';
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
 
 const HALF = 2;
@@ -73,7 +68,6 @@ function useClickHandlers(
 ): Pick<UseGraphSelectionReturn, 'onNodeClick' | 'onEdgeClick' | 'onPaneClick'> {
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
-      if (node.id === START_NODE_ID) return;
       setSelectedNodeId(node.id);
       setSelectedEdgeId(null);
       panels.setGlobalPanelOpen(false);

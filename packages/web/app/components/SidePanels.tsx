@@ -13,10 +13,12 @@ import type { UseGraphSelectionReturn } from '../hooks/useGraphSelection';
 import type { McpLibraryState } from '../hooks/useMcpLibrary';
 import type { ContextPreset } from '../types/preset';
 
+import { START_NODE_ID } from '../utils/graphInitializer';
 import { EdgePanel } from './panels/EdgePanel';
 import { GlobalNodesPanel } from './panels/GlobalNodesPanel';
 import { NodePanel } from './panels/NodePanel';
 import { OutputSchemaDialog } from './panels/OutputSchemaDialog';
+import { StartNodePanel } from './panels/StartNodePanel';
 import { ToolsPanel } from './panels/ToolsPanel';
 import { McpDialogs, PresetsAside } from './SidePanelAsides';
 import type { CtxPreconditionsState, EdgeSetter, NodeArray, NodeSetter } from './sidePanelHelpers';
@@ -86,10 +88,22 @@ interface SelectionPanelProps extends SidePanelsProps {
 
 function SelectionPanel(props: SelectionPanelProps) {
   const { selection, nodes, agents, presetsHook, ctxPreconditions, pushOperation } = props;
+  const isStartNode = selection.selectedNodeId === START_NODE_ID;
 
   return (
     <aside className="absolute right-1 top-0 bottom-0 z-10 w-80 border-gray-200 bg-white border rounded-xl">
-      {selection.selectedNodeId !== null && (
+      {selection.selectedNodeId !== null && isStartNode && (
+        <StartNodePanel
+          nodeId={selection.selectedNodeId}
+          allNodes={nodes}
+          agents={agents}
+          presets={presetsHook.presets}
+          activePresetId={presetsHook.activePresetId}
+          onSetActivePreset={presetsHook.setActivePresetId}
+          outputSchemas={props.outputSchemasHook.schemas}
+        />
+      )}
+      {selection.selectedNodeId !== null && !isStartNode && (
         <NodePanel
           nodeId={selection.selectedNodeId}
           allNodes={nodes}

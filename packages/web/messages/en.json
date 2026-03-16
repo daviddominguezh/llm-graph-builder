@@ -156,6 +156,10 @@
     "toolCallWarningConfirm": "Clear & continue",
     "toolCallWarningCancel": "Cancel"
   },
+  "startNodePanel": {
+    "title": "Start Node",
+    "description": "This is the entry point of the graph. It cannot be modified."
+  },
   "nodePanel": {
     "disabledByToolCall": "Disabled — this node routes through a tool call edge.",
     "outputSchema": "Output Schema",
