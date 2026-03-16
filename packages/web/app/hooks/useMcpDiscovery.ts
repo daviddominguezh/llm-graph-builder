@@ -36,14 +36,20 @@ function getDiscoverableServers(
   libraryItems: McpLibraryRow[]
 ): McpServerConfig[] {
   if (servers === undefined) return [];
-  return servers.filter((s) => s.enabled && hasCompleteVariables(s) && !isOAuthServer(s, libraryItems));
+  return servers.filter((s) => {
+    if (!s.enabled) return false;
+    if (isOAuthServer(s, libraryItems)) return true;
+    return hasCompleteVariables(s);
+  });
 }
 
 async function discoverSingleServer(
-  server: McpServerConfig
+  server: McpServerConfig,
+  orgId?: string
 ): Promise<{ id: string; tools: DiscoveredTool[] }> {
   const tools = await discoverMcpTools(server.transport, {
     variableValues: server.variableValues as Record<string, unknown> | undefined,
+    orgId,
     libraryItemId: server.libraryItemId,
   });
   return { id: server.id, tools };
@@ -61,7 +67,8 @@ const EMPTY_LENGTH = 0;
 
 export function useMcpDiscovery(
   servers: McpServerConfig[] | undefined,
-  libraryItems?: McpLibraryRow[]
+  libraryItems?: McpLibraryRow[],
+  orgId?: string
 ): McpDiscoveryResult {
   const enabled = useMemo(() => getDiscoverableServers(servers, libraryItems ?? []), [servers, libraryItems]);
   const [settled, setSettled] = useState<Record<string, SettledStatus>>({});
@@ -80,7 +87,7 @@ export function useMcpDiscovery(
     started.current = true;
 
     for (const server of enabled) {
-      void discoverSingleServer(server)
+      void discoverSingleServer(server, orgId)
         .then((result) => {
           setTools((prev) => ({ ...prev, [result.id]: result.tools }));
           setSettled((prev) => ({ ...prev, [server.id]: 'done' }));
@@ -89,7 +96,7 @@ export function useMcpDiscovery(
           setSettled((prev) => ({ ...prev, [server.id]: 'error' }));
         });
     }
-  }, [servers, enabled]);
+  }, [servers, enabled, orgId]);
 
   return { loading, serverProgress, discoveredTools: tools };
 }

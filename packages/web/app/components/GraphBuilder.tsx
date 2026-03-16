@@ -83,10 +83,14 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     flush: opQueue.flush,
   });
 
+  const mcpLibrary = useMcpLibrary();
+
   const mcpHook = useMcpServers({
     initialServers: loadResult.mcpServers,
     initialDiscoveredTools: props.initialDiscoveredTools,
     pushOperation: opQueue.pushOperation,
+    libraryItems: mcpLibrary.items,
+    orgId: props.orgId,
   });
 
   const apiKeys = useApiKeySelection({
@@ -102,7 +106,6 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
   const [libraryOpen, setLibraryOpen] = useState(false);
 
   const envVariables = useEnvVariables(props.orgId);
-  const mcpLibrary = useMcpLibrary();
 
   const presetsHook = usePresets(opQueue.pushOperation);
 
@@ -414,7 +417,7 @@ function LoadedEditor(props: LoadedEditorProps) {
 function GraphBuilderInner(props: GraphBuilderProps) {
   const loader = useGraphLoader(props.agentId);
   const mcpServers = loader.loading ? undefined : loader.result.mcpServers;
-  const discovery = useMcpDiscovery(mcpServers);
+  const discovery = useMcpDiscovery(mcpServers, undefined, props.orgId);
 
   if (loader.loading) return <GraphBuilderLoading />;
   if (discovery.loading) return <GraphBuilderLoading serverProgress={discovery.serverProgress} />;
