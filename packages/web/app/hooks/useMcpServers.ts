@@ -207,14 +207,19 @@ async function handleOAuthDiscover(params: OAuthDiscoverParams): Promise<boolean
 interface NormalDiscoverParams {
   server: McpServerConfig;
   id: string;
+  orgId?: string;
   setters: DiscoverySetters;
 }
 
 function runNormalDiscover(params: NormalDiscoverParams): void {
-  const { server, id, setters } = params;
+  const { server, id, orgId, setters } = params;
   const { setDiscoveredTools, setDiscovering, setServerStatus } = setters;
 
-  void discoverMcpTools(server.transport, server.variableValues)
+  void discoverMcpTools(server.transport, {
+    variableValues: server.variableValues as Record<string, unknown> | undefined,
+    orgId,
+    libraryItemId: server.libraryItemId,
+  })
     .then((tools) => {
       setDiscoveredTools((prev) => ({ ...prev, [id]: tools }));
       setServerStatus((prev) => ({ ...prev, [id]: 'active' }));
@@ -247,12 +252,12 @@ function discoverForServer(ctx: DiscoveryContext, id: string): void {
 
   if (authType === 'oauth') {
     void handleOAuthDiscover({ server, orgId, setDiscovering: setters.setDiscovering }).then((redirected) => {
-      if (!redirected) runNormalDiscover({ server, id, setters });
+      if (!redirected) runNormalDiscover({ server, id, orgId, setters });
     });
     return;
   }
 
-  runNormalDiscover({ server, id, setters });
+  runNormalDiscover({ server, id, orgId, setters });
 }
 
 function useToolDiscovery(ctx: DiscoveryContext): (id: string) => void {

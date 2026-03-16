@@ -11,16 +11,45 @@ const HTTP_UNAUTHORIZED = 401;
 const DiscoverRequestSchema = z.object({
   transport: McpTransportSchema,
   variableValues: z.record(z.string(), VariableValueSchema).optional(),
+  orgId: z.string().optional(),
+  libraryItemId: z.string().optional(),
 });
 
 type DiscoverRequest = z.infer<typeof DiscoverRequestSchema>;
 type SupabaseClientType = Awaited<ReturnType<typeof createClient>>;
 
-async function resolveAndProxy(supabase: SupabaseClientType, parsed: DiscoverRequest): Promise<Response> {
-  let transport = parsed.transport;
+async function resolveOAuthHeaders(
+  authHeader: string,
+  parsed: DiscoverRequest
+): Promise<Record<string, string> | undefined> {
+  if (parsed.orgId === undefined || parsed.libraryItemId === undefined) return undefined;
+  const res = await fetch(`${API_URL}/agents/mcp-oauth/resolve-token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+    body: JSON.stringify({ orgId: parsed.orgId, libraryItemId: parsed.libraryItemId }),
+  });
+  if (!res.ok) return undefined;
+  const data = (await res.json()) as { accessToken?: string };
+  if (data.accessToken === undefined) return undefined;
+  return { Authorization: `Bearer ${data.accessToken}` };
+}
 
-  if (parsed.variableValues !== undefined) {
-    transport = await resolveTransportVariables(supabase, transport, parsed.variableValues);
+interface ProxyContext {
+  supabase: SupabaseClientType;
+  authHeader: string;
+  parsed: DiscoverRequest;
+}
+
+async function resolveAndProxy(ctx: ProxyContext): Promise<Response> {
+  let { transport } = ctx.parsed;
+
+  if (ctx.parsed.variableValues !== undefined) {
+    transport = await resolveTransportVariables(ctx.supabase, transport, ctx.parsed.variableValues);
+  }
+
+  const oauthHeaders = await resolveOAuthHeaders(ctx.authHeader, ctx.parsed);
+  if (oauthHeaders !== undefined && (transport.type === 'http' || transport.type === 'sse')) {
+    transport = { ...transport, headers: { ...transport.headers, ...oauthHeaders } };
   }
 
   const upstream = await fetch(`${API_URL}/mcp/discover`, {
@@ -48,5 +77,8 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ error: result.error.message }, { status: HTTP_BAD_REQUEST });
   }
 
-  return resolveAndProxy(supabase, result.data);
+  const session = await supabase.auth.getSession();
+  const authHeader = `Bearer ${session.data.session?.access_token ?? ''}`;
+
+  return resolveAndProxy({ supabase, authHeader, parsed: result.data });
 }

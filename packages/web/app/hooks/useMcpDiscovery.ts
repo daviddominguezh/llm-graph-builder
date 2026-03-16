@@ -42,7 +42,10 @@ function getDiscoverableServers(
 async function discoverSingleServer(
   server: McpServerConfig
 ): Promise<{ id: string; tools: DiscoveredTool[] }> {
-  const tools = await discoverMcpTools(server.transport, server.variableValues);
+  const tools = await discoverMcpTools(server.transport, {
+    variableValues: server.variableValues as Record<string, unknown> | undefined,
+    libraryItemId: server.libraryItemId,
+  });
   return { id: server.id, tools };
 }
 

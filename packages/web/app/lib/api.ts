@@ -35,14 +35,25 @@ async function parseDiscoverError(res: Response): Promise<string> {
   return parsed.success ? (parsed.data.error ?? 'Discovery failed') : 'Discovery failed';
 }
 
+export interface DiscoverOptions {
+  variableValues?: Record<string, unknown>;
+  orgId?: string;
+  libraryItemId?: string;
+}
+
 export async function discoverMcpTools(
   transport: McpTransport,
-  variableValues?: Record<string, unknown>
+  options?: DiscoverOptions
 ): Promise<DiscoveredTool[]> {
   const res = await fetch('/api/mcp/discover', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ transport, variableValues }),
+    body: JSON.stringify({
+      transport,
+      variableValues: options?.variableValues,
+      orgId: options?.orgId,
+      libraryItemId: options?.libraryItemId,
+    }),
   });
   if (!res.ok) {
     const message = await parseDiscoverError(res);
