@@ -10,7 +10,7 @@ import type {
 // Grid layout constants
 const GRID_COLUMNS = 5;
 const GRID_COLUMN_WIDTH = 300;
-const GRID_ROW_HEIGHT = 150;
+const GRID_ROW_HEIGHT = 200;
 const INITIAL_INDEX = 0;
 
 interface HandlePair {
