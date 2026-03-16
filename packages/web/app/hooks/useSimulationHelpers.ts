@@ -1,3 +1,4 @@
+import type { OutputSchemaEntity } from '@daviddh/graph-types';
 import type { Message } from '@daviddh/llm-graph-runner';
 import type { Edge as RFEdge, Node as RFNode } from '@xyflow/react';
 
@@ -5,7 +6,7 @@ import type { NodeProcessedEvent, SimulateRequestBody, StreamCallbacks } from '.
 import type { Agent, McpServerConfig } from '../schemas/graph.schema';
 import type { ContextPreset } from '../types/preset';
 import type { NodeResult, SimulationTokens } from '../types/simulation';
-import { buildContext, buildGraph } from '../utils/graphContext';
+import { type GraphBuildInputs, buildContext, buildGraph } from '../utils/graphContext';
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
 import { stableJsonStringify } from '../utils/stableJsonHash';
 
@@ -44,16 +45,18 @@ export interface SendMessageDeps {
   apiKeyId: string;
   currentNode: string;
   mcpServers: McpServerConfig[];
+  outputSchemas: OutputSchemaEntity[];
   structuredOutputs: Record<string, unknown[]>;
   setters: SimulationSetters;
   onZoomToNode: (nodeId: string) => void;
   onSelectNode: (nodeId: string) => void;
 }
 
-export interface BuildSimulateParamsOptions {
+export interface BuildSimulateParamsOptions extends Pick<
+  GraphBuildInputs,
+  'agents' | 'mcpServers' | 'outputSchemas'
+> {
   snapshot: GraphSnapshot;
-  agents: Agent[];
-  mcpServers: McpServerConfig[];
   allMessages: Message[];
   currentNode: string;
   preset: ContextPreset;
@@ -129,7 +132,7 @@ export function buildStreamCallbacks(deps: StreamCallbackDeps): StreamCallbacks 
 
 export function buildSimulateParams(opts: BuildSimulateParamsOptions): SimulateRequestBody {
   const graph: Record<string, unknown> = {
-    ...buildGraph(opts.snapshot.nodes, opts.snapshot.edges, opts.agents, opts.mcpServers),
+    ...buildGraph(opts.snapshot.nodes, opts.snapshot.edges, opts.agents, opts.mcpServers, opts.outputSchemas),
   };
   const fullContext = buildContext(opts.preset, '');
   const { sessionID, tenantID, userID, data, quickReplies } = fullContext;

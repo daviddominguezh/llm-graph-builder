@@ -71,6 +71,19 @@ export function buildContext(preset: ContextPreset, apiKey: string): ContextWith
   };
 }
 
+/**
+ * Shared inputs required to build a runtime graph.
+ * Extend this interface in simulation, prompt preview, etc.
+ * to ensure all callers stay in sync.
+ */
+export interface GraphBuildInputs {
+  nodes: Array<RFNode<RFNodeData>>;
+  edges: Array<RFEdge<RFEdgeData>>;
+  agents: Agent[];
+  mcpServers?: McpServerConfig[];
+  outputSchemas?: OutputSchemaEntity[];
+}
+
 export interface BuiltGraph {
   startNode: string;
   agents: Agent[];

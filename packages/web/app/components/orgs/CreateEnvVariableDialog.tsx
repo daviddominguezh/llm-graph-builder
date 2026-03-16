@@ -28,17 +28,27 @@ interface EnvVariableFormProps {
 interface FormFieldsProps {
   nameError: string;
   isSecret: boolean;
+  onNameChange: (value: string) => void;
   onIsSecretChange: (checked: boolean) => void;
 }
 
-function FormFields({ nameError, isSecret, onIsSecretChange }: FormFieldsProps) {
+function FormFields({ nameError, isSecret, onNameChange, onIsSecretChange }: FormFieldsProps) {
   const t = useTranslations('envVariables');
 
   return (
     <>
       <div className="flex flex-col gap-1">
         <Label htmlFor="var-name">{t('name')}</Label>
-        <Input id="var-name" name="name" placeholder={t('namePlaceholder')} required />
+        <Input
+          id="var-name"
+          name="name"
+          placeholder={t('namePlaceholder')}
+          required
+          onChange={(e) => {
+            e.target.value = e.target.value.toUpperCase();
+            onNameChange(e.target.value);
+          }}
+        />
         {nameError !== '' && <p className="text-destructive text-xs">{nameError}</p>}
       </div>
       <div className="flex flex-col gap-1">
@@ -63,11 +73,21 @@ function FormFields({ nameError, isSecret, onIsSecretChange }: FormFieldsProps) 
   );
 }
 
+function validateName(name: string, t: (key: string) => string): string {
+  if (name === '') return '';
+  if (!NAME_PATTERN.test(name)) return t('nameFormat');
+  return '';
+}
+
 function EnvVariableForm({ orgId, onOpenChange, onCreated }: EnvVariableFormProps) {
   const t = useTranslations('envVariables');
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState('');
   const [isSecret, setIsSecret] = useState(false);
+
+  function handleNameChange(value: string) {
+    setNameError(validateName(value, t));
+  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -97,7 +117,12 @@ function EnvVariableForm({ orgId, onOpenChange, onCreated }: EnvVariableFormProp
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <FormFields nameError={nameError} isSecret={isSecret} onIsSecretChange={setIsSecret} />
+      <FormFields
+        nameError={nameError}
+        isSecret={isSecret}
+        onNameChange={handleNameChange}
+        onIsSecretChange={setIsSecret}
+      />
       <DialogFooter>
         <Button type="submit" disabled={loading}>
           {t('add')}

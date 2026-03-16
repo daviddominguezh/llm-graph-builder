@@ -170,7 +170,7 @@ INSERT INTO public.agents (
   v_recipe_agent_id,
   'test-recipe',
   'test-recipe',
-  'A test agent that extracts structured recipe data from user input.',
+  'A test agent that creates recipes or suggests meal ideas based on user intent.',
   1, 1, v_org_id, 'INITIAL_STEP',
   now(), now()
 ) ON CONFLICT (id) DO NOTHING;
@@ -183,39 +183,51 @@ INSERT INTO public.graph_nodes (
 ) VALUES
 ( 'c1000000-0000-0000-0000-000000000000',
   v_recipe_agent_id, 'INITIAL_STEP',
-  'You are a friendly recipe assistant. Greet the user and ask them what recipe they would like to create.',
-  'agent', 'Initial greeting node',
-  false, false, 20, 108, NULL, NULL ),
+  'You are a friendly recipe assistant. Based on the user''s message, determine their intent.',
+  'agent', 'Routes user to the correct flow based on intent',
+  false, false, 20, 258, NULL, NULL ),
 ( 'c1000000-0000-0000-0000-000000000001',
   v_recipe_agent_id, 'create_recipe',
   '',
   'agent', 'Generates a recipe',
   false, false, 257.5, 20, 'seLAsT6-u2dSZ0xoxHVp4',
-  'Create a Michelin-star-level recipe for the dish the user requested, or, if they didn''t specify, for lasagna' ),
+  'Generate a Michelin-star-level recipe based on the user''s request, or, if they haven''t specified a dish, make it for lasagna.' ),
+( 'c1000000-0000-0000-0000-000000000003',
+  v_recipe_agent_id, 'read_recipes',
+  '',
+  'agent', 'Reads all the recipes the user had previously created',
+  false, false, 257.5, 320, NULL, NULL ),
 ( 'c1000000-0000-0000-0000-000000000002',
   v_recipe_agent_id, 'terminal_node',
   '',
   'agent', '',
-  false, false, 495, 20, NULL, NULL )
+  false, false, 532.5, 170, NULL, NULL )
 ON CONFLICT (id) DO NOTHING;
 
--- 9. Create edges: INITIAL_STEP -> create_recipe -> terminal_node
+-- 9. Create edges
 INSERT INTO public.graph_edges (
   id, agent_id, from_node, to_node
 ) VALUES
 ( 'c2000000-0000-0000-0000-000000000001',
   v_recipe_agent_id, 'INITIAL_STEP', 'create_recipe' ),
+( 'c2000000-0000-0000-0000-000000000003',
+  v_recipe_agent_id, 'INITIAL_STEP', 'read_recipes' ),
 ( 'c2000000-0000-0000-0000-000000000002',
-  v_recipe_agent_id, 'create_recipe', 'terminal_node' )
+  v_recipe_agent_id, 'create_recipe', 'terminal_node' ),
+( 'c2000000-0000-0000-0000-000000000004',
+  v_recipe_agent_id, 'read_recipes', 'terminal_node' )
 ON CONFLICT (id) DO NOTHING;
 
--- 10. Create edge precondition (user_said on first edge only)
+-- 10. Create edge preconditions (user_said on both INITIAL_STEP edges)
 INSERT INTO public.graph_edge_preconditions (
   id, edge_id, type, value, description
 ) VALUES
 ( 'c3000000-0000-0000-0000-000000000001',
   'c2000000-0000-0000-0000-000000000001',
-  'user_said', 'I want a recipe like...', 'User expressed interest in creating a recipe' )
+  'user_said', 'I want you to give me a recipe about...', 'User wants you to create a new recipe' ),
+( 'c3000000-0000-0000-0000-000000000002',
+  'c2000000-0000-0000-0000-000000000003',
+  'user_said', 'Check the previously saved recipes', 'User wants to retrieve previous recipe suggestions' )
 ON CONFLICT (id) DO NOTHING;
 
 -- 11. Seed recipe output schema

@@ -1,3 +1,4 @@
+import type { OutputSchemaEntity } from '@daviddh/graph-types';
 import { MESSAGES_PROVIDER, type Message } from '@daviddh/llm-graph-runner';
 import type { Edge as RFEdge, Node as RFNode } from '@xyflow/react';
 import { nanoid } from 'nanoid';
@@ -32,6 +33,7 @@ interface UseSimulationParams {
   preset: ContextPreset | undefined;
   apiKeyId: string;
   mcpServers: McpServerConfig[];
+  outputSchemas: OutputSchemaEntity[];
   onZoomToNode: (nodeId: string) => void;
   onSelectNode: (nodeId: string) => void;
   onExitZoomView: () => void;
@@ -120,7 +122,7 @@ function resetBeforeSend(setters: SimulationSetters, text: string): void {
 
 function useSimulationSend(deps: SendMessageDeps): (text: string) => void {
   const { preset, loading, messages, agents, apiKeyId, currentNode } = deps;
-  const { mcpServers, structuredOutputs, setters, onZoomToNode, onSelectNode } = deps;
+  const { mcpServers, outputSchemas, structuredOutputs, setters, onZoomToNode, onSelectNode } = deps;
 
   return useCallback(
     (text: string) => {
@@ -132,6 +134,7 @@ function useSimulationSend(deps: SendMessageDeps): (text: string) => void {
         snapshot,
         agents,
         mcpServers,
+        outputSchemas,
         allMessages,
         currentNode,
         preset,
@@ -151,6 +154,7 @@ function useSimulationSend(deps: SendMessageDeps): (text: string) => void {
       apiKeyId,
       currentNode,
       mcpServers,
+      outputSchemas,
       structuredOutputs,
       setters,
       onZoomToNode,
@@ -236,6 +240,7 @@ function buildSendDeps(params: UseSimulationParams, s: SimulationHookState): Sen
     apiKeyId: params.apiKeyId,
     currentNode: s.currentNode,
     mcpServers: params.mcpServers,
+    outputSchemas: params.outputSchemas,
     structuredOutputs: s.structuredOutputs,
     setters: s.setters,
     onZoomToNode: params.onZoomToNode,

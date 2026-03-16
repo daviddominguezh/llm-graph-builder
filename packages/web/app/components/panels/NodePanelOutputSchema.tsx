@@ -128,7 +128,7 @@ export function NodePanelOutputSchema({
             disabled={isNextNodeUserDisabled}
             onCheckedChange={(checked) =>
               onUpdateNodeData({
-                nextNodeIsUser: checked === true || undefined,
+                nextNodeIsUser: checked === true,
               })
             }
           />

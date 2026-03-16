@@ -9,6 +9,8 @@ import { useTranslations } from 'next-intl';
 import { type FormEvent, useState } from 'react';
 import { toast } from 'sonner';
 
+const NAME_PATTERN = /^[A-Z][A-Z0-9_]*$/;
+
 interface CreateApiKeyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -19,16 +21,26 @@ interface CreateApiKeyDialogProps {
 interface CreateApiKeyFieldsProps {
   nameError: string;
   keyError: string;
+  onNameChange: (value: string) => void;
 }
 
-function CreateApiKeyFields({ nameError, keyError }: CreateApiKeyFieldsProps) {
+function CreateApiKeyFields({ nameError, keyError, onNameChange }: CreateApiKeyFieldsProps) {
   const t = useTranslations('apiKeys');
 
   return (
     <>
       <div className="flex flex-col gap-1">
         <Label htmlFor="key-name">{t('name')}</Label>
-        <Input id="key-name" name="name" placeholder={t('namePlaceholder')} required />
+        <Input
+          id="key-name"
+          name="name"
+          placeholder={t('namePlaceholder')}
+          required
+          onChange={(e) => {
+            e.target.value = e.target.value.toUpperCase();
+            onNameChange(e.target.value);
+          }}
+        />
         {nameError !== '' && <p className="text-destructive text-xs">{nameError}</p>}
       </div>
       <div className="flex flex-col gap-1">
@@ -40,11 +52,21 @@ function CreateApiKeyFields({ nameError, keyError }: CreateApiKeyFieldsProps) {
   );
 }
 
+function validateName(name: string, t: (key: string) => string): string {
+  if (name === '') return '';
+  if (!NAME_PATTERN.test(name)) return t('nameFormat');
+  return '';
+}
+
 function CreateApiKeyForm({ orgId, onOpenChange, onCreated }: CreateApiKeyDialogProps) {
   const t = useTranslations('apiKeys');
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState('');
   const [keyError, setKeyError] = useState('');
+
+  function handleNameChange(value: string) {
+    setNameError(validateName(value, t));
+  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -77,7 +99,7 @@ function CreateApiKeyForm({ orgId, onOpenChange, onCreated }: CreateApiKeyDialog
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <CreateApiKeyFields nameError={nameError} keyError={keyError} />
+      <CreateApiKeyFields nameError={nameError} keyError={keyError} onNameChange={handleNameChange} />
       <DialogFooter>
         <Button type="submit" disabled={loading}>
           {t('add')}
@@ -97,11 +119,11 @@ function validateFields(
   keyValue: string,
   t: (key: string) => string
 ): FieldErrors | null {
-  const nameError = name === '' ? t('nameRequired') : '';
+  const nameErr = name === '' ? t('nameRequired') : validateName(name, t);
   const keyError = keyValue === '' ? t('keyRequired') : '';
 
-  if (nameError !== '' || keyError !== '') {
-    return { nameError, keyError };
+  if (nameErr !== '' || keyError !== '') {
+    return { nameError: nameErr, keyError };
   }
 
   return null;

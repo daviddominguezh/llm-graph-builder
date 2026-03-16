@@ -226,6 +226,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     preset: presetsHook.activePreset,
     apiKeyId: apiKeys.stagingKeyId ?? '',
     mcpServers: mcpHook.servers,
+    outputSchemas: outputSchemasHook.schemas,
     onZoomToNode: zoomView.handleZoomToNode,
     onSelectNode: handleSimSelectNode,
     onExitZoomView: zoomView.handleExitZoomView,
