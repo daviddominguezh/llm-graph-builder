@@ -6,6 +6,7 @@ import type { Graph } from './graph.js';
 export interface NodeProcessedEvent {
   nodeId: string;
   text?: string;
+  output?: unknown;
   toolCalls: Array<TypedToolCall<Record<string, Tool>>>;
   tokens: TokenLog;
   durationMs: number;

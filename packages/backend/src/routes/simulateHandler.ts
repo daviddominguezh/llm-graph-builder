@@ -18,6 +18,7 @@ function sendNodeProcessed(res: Response, event: NodeProcessedEvent): void {
     type: 'node_processed',
     nodeId: event.nodeId,
     text: event.text ?? '',
+    output: event.output,
     toolCalls: event.toolCalls.map((tc) => ({
       toolName: tc.toolName,
       input: tc.input as unknown,

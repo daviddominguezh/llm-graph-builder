@@ -34,6 +34,7 @@ export type SimulationEvent =
       type: 'node_processed';
       nodeId: string;
       text: string;
+      output?: unknown;
       toolCalls: Array<{ toolName: string; input: unknown }>;
       tokens: { input: number; output: number; cached: number };
       durationMs: number;

@@ -23,6 +23,7 @@ export interface SimulationStep {
 export interface NodeResult {
   nodeId: string;
   text: string;
+  output?: unknown;
   toolCalls: SimulationToolCall[];
   tokens: TokenLog;
   durationMs?: number;

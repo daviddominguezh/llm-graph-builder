@@ -100,6 +100,7 @@ interface AgentResponseEvent {
 export interface NodeProcessedEvent {
   nodeId: string;
   text: string;
+  output?: unknown;
   toolCalls: SseToolCall[];
   tokens: { input: number; output: number; cached: number };
   durationMs?: number;
@@ -136,6 +137,7 @@ const SseEventSchema = z.object({
   type: z.string(),
   nodeId: z.string().optional(),
   text: z.string().optional(),
+  output: z.unknown().optional(),
   visitedNodes: z.array(z.string()).optional(),
   toolCalls: z.array(SseToolCallSchema).optional(),
   nodeTokens: z.array(SseNodeTokensSchema).optional(),
@@ -159,6 +161,7 @@ function handleNodeProcessed(event: SseEvent, callbacks: StreamCallbacks): void 
     callbacks.onNodeProcessed?.({
       nodeId: event.nodeId,
       text: event.text ?? '',
+      output: event.output,
       toolCalls: event.toolCalls ?? [],
       tokens: event.tokens,
       durationMs: event.durationMs,

@@ -47,6 +47,14 @@ interface EmitNodeProcessedParams {
   structuredOutput?: { nodeId: string; data: unknown };
 }
 
+function resolveOutput(
+  parsedResult: ParsedResult,
+  structuredOutput?: { nodeId: string; data: unknown }
+): unknown {
+  if (structuredOutput !== undefined) return structuredOutput.data;
+  return parsedResult;
+}
+
 function emitNodeProcessed(params: EmitNodeProcessedParams): void {
   const { context, input, nodeId, parsedResult, toolCalls, durationMs, structuredOutput } = params;
   if (context.onNodeProcessed === undefined) return;
@@ -55,6 +63,7 @@ function emitNodeProcessed(params: EmitNodeProcessedParams): void {
   context.onNodeProcessed({
     nodeId,
     text: parsedResult.messageToUser,
+    output: resolveOutput(parsedResult, structuredOutput),
     toolCalls,
     tokens,
     durationMs,

@@ -88,6 +88,7 @@ function handleNodeProcessedEvent(setters: SimulationSetters, event: NodeProcess
   const result: NodeResult = {
     nodeId: event.nodeId,
     text: event.text,
+    output: event.output,
     toolCalls: event.toolCalls,
     tokens: event.tokens,
     durationMs: event.durationMs,
