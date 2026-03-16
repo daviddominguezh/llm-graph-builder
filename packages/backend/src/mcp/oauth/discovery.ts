@@ -13,17 +13,30 @@ const OAuthMetadataSchema = z.object({
 
 export type OAuthMetadata = z.infer<typeof OAuthMetadataSchema>;
 
-function buildWellKnownUrl(mcpServerUrl: string): string {
+function buildWellKnownUrls(mcpServerUrl: string): string[] {
   const parsed = new URL(mcpServerUrl);
-  return `${parsed.origin}/.well-known/oauth-authorization-server${parsed.pathname}`;
+  const withPath = `${parsed.origin}/.well-known/oauth-authorization-server${parsed.pathname}`;
+  const rootOnly = `${parsed.origin}/.well-known/oauth-authorization-server`;
+  return parsed.pathname === '/' ? [rootOnly] : [withPath, rootOnly];
+}
+
+async function fetchMetadata(url: string): Promise<OAuthMetadata | null> {
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  const raw: unknown = await res.json();
+  return OAuthMetadataSchema.parse(raw);
 }
 
 export async function discoverOAuthMetadata(mcpServerUrl: string): Promise<OAuthMetadata> {
-  const wellKnownUrl = buildWellKnownUrl(mcpServerUrl);
-  const res = await fetch(wellKnownUrl);
-  if (!res.ok) {
-    throw new Error(`OAuth discovery failed: ${String(res.status)} from ${wellKnownUrl}`);
-  }
-  const raw: unknown = await res.json();
-  return OAuthMetadataSchema.parse(raw);
+  const [primary, fallback] = buildWellKnownUrls(mcpServerUrl);
+  if (primary === undefined) throw new Error(`OAuth discovery failed for ${mcpServerUrl}`);
+
+  const metadata = await fetchMetadata(primary);
+  if (metadata !== null) return metadata;
+
+  if (fallback === undefined) throw new Error(`OAuth discovery failed for ${mcpServerUrl}`);
+  const fallbackMetadata = await fetchMetadata(fallback);
+  if (fallbackMetadata !== null) return fallbackMetadata;
+
+  throw new Error(`OAuth discovery failed for ${mcpServerUrl}`);
 }
