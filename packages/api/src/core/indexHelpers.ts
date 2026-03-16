@@ -213,11 +213,16 @@ export async function executeAgentFlowRecursive(
   return await executeAgentFlowRecursive(context, input, debugMessages, newState);
 }
 
+const SINGLE_EDGE = 1;
+
 function resolveStartNode(graph: Graph, nodeId: string): string {
   if (nodeId !== INITIAL_STEP_NODE) return nodeId;
   const edgesFromInitial = graph.edges.filter((e) => e.from === INITIAL_STEP_NODE);
   const [firstEdge] = edgesFromInitial;
-  return firstEdge?.to ?? nodeId;
+  if (edgesFromInitial.length === SINGLE_EDGE) {
+    return firstEdge?.to ?? nodeId;
+  }
+  return nodeId;
 }
 
 export function createInitialFlowState(input: CallAgentInput, graph: Graph): FlowState {
