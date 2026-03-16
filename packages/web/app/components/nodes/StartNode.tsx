@@ -2,7 +2,35 @@
 
 import { memo } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { ArrowRight } from "lucide-react";
+import { HANDLE_SIZE, ICON_SIZE } from "./HandleContent";
 import { useHandleContext } from "./HandleContext";
+
+const GREEN_BORDER = "#22c55e";
+
+const rightSourceStyle = {
+  width: `${HANDLE_SIZE}px`,
+  height: `${HANDLE_SIZE}px`,
+  borderWidth: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+  backgroundColor: "white",
+  top: "50%",
+} as const;
+
+const RightSourceContentGreen = (
+  <div className="relative w-full h-full flex flex-col justify-center items-center">
+    <ArrowRight size={ICON_SIZE} className="absolute text-green-500" style={{ transform: "rotate(0deg)" }} />
+    <div className="absolute right-[0px]">
+      <svg width={HANDLE_SIZE + 2} height={HANDLE_SIZE + 2} viewBox="0 -1.5 0.05 19">
+        <path d="M 0 -1 A 9 9 0 0 1 0 17 L 8 17 L 8 -1 Z" fill="var(--xy-background-color)" />
+        <path d="M 0 -1 A 9 9 0 0 1 0 17" fill="none" stroke={GREEN_BORDER} strokeWidth="1" />
+      </svg>
+    </div>
+  </div>
+);
 
 function StartNodeComponent({ selected, id }: NodeProps) {
   const { onSourceHandleClick } = useHandleContext();
@@ -12,7 +40,6 @@ function StartNodeComponent({ selected, id }: NodeProps) {
     onSourceHandleClick?.(id, "right-source", e);
   };
 
-  // Prevent drag-and-drop connection - only allow click
   const preventDrag = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
@@ -32,14 +59,10 @@ function StartNodeComponent({ selected, id }: NodeProps) {
         id="right-source"
         onClick={handleClick}
         onMouseDown={preventDrag}
-        style={{
-          backgroundColor: "white",
-          width: "12px",
-          height: "12px",
-          border: "2px solid #22c55e",
-          cursor: "pointer",
-        }}
-      />
+        style={rightSourceStyle}
+      >
+        {RightSourceContentGreen}
+      </Handle>
     </div>
   );
 }
