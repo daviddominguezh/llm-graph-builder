@@ -180,21 +180,28 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     getCurrentMcpServers: getMcpServers,
   });
 
-  const handleExport = useExportGraph({ nodes, edges, agents, mcpServers: mcpHook.servers });
+  const handleExport = useExportGraph({
+    nodes,
+    edges,
+    agents,
+    mcpServers: mcpHook.servers,
+    outputSchemas: outputSchemasHook.schemas,
+  });
 
   const handleFormat = useFormatGraph({
     nodes,
     edges,
     agents,
     mcpServers: mcpHook.servers,
+    outputSchemas: outputSchemasHook.schemas,
     setNodes,
     setEdges,
     pushOperation: opQueue.pushOperation,
   });
 
   const serializedGraph = useMemo(
-    () => serializeGraphData({ nodes, edges, agents, mcpServers: mcpHook.servers }),
-    [nodes, edges, agents, mcpHook.servers]
+    () => serializeGraphData({ nodes, edges, agents, mcpServers: mcpHook.servers, outputSchemas: outputSchemasHook.schemas }),
+    [nodes, edges, agents, mcpHook.servers, outputSchemasHook.schemas]
   );
 
   const getGraphData = useCallback((): Graph | null => serializedGraph, [serializedGraph]);
