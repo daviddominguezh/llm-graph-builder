@@ -33,6 +33,30 @@ function getPreconditionType(edge: FlowEdge): string {
   return 'none';
 }
 
+function validateStartOutgoing(outgoing: FlowEdge[], errors: ValidationError[]): void {
+  if (outgoing.length === EMPTY) {
+    errors.push({ message: 'Initial step: must have at least 1 outgoing edge', nodeId: START_NODE_ID });
+    return;
+  }
+  for (const edge of outgoing) {
+    const type = getPreconditionType(edge);
+    if (type !== 'user_said') {
+      errors.push({
+        message: `Initial step: all outgoing edges must be of type "user_said" (found "${type}")`,
+        nodeId: START_NODE_ID,
+      });
+      return;
+    }
+    const value = edge.data?.preconditions?.[EMPTY]?.value ?? '';
+    if (value.trim() === '') {
+      errors.push({
+        message: `Initial step: edge to "${edge.target}" must have a non-empty user_said value`,
+        nodeId: START_NODE_ID,
+      });
+    }
+  }
+}
+
 function validateInitialStep(nodes: FlowNode[], edges: FlowEdge[]): ValidationError[] {
   const errors: ValidationError[] = [];
 
@@ -43,12 +67,7 @@ function validateInitialStep(nodes: FlowNode[], edges: FlowEdge[]): ValidationEr
   }
 
   const outgoing = edges.filter((e) => e.source === START_NODE_ID);
-  if (outgoing.length !== EXACTLY_ONE) {
-    errors.push({
-      message: `Initial step: must have exactly 1 outgoing edge (found ${outgoing.length})`,
-      nodeId: START_NODE_ID,
-    });
-  }
+  validateStartOutgoing(outgoing, errors);
 
   const incoming = edges.filter((e) => e.target === START_NODE_ID);
   if (incoming.length > EMPTY) {
