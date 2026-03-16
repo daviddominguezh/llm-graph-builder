@@ -161,6 +161,7 @@ function ToolsPanelSlot({ sidePanelProps: p, onPublishServer }: ToolsPanelSlotPr
         serverStatus: p.mcpHook.serverStatus,
         orgId: p.orgId,
         envVariables: p.envVariables,
+        libraryItems: p.mcpLibrary.items,
         onAddServer: p.mcpHook.addServer,
         onRemoveServer: p.mcpHook.removeServer,
         onUpdateServer: p.mcpHook.updateServer,

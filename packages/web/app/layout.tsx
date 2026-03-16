@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Flowforge",
+  title: "OpenFlow",
   description: "LLM State machine builder",
 };
 
