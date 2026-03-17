@@ -110,13 +110,19 @@ interface ParsedData {
 const isValidParsedData = (data: unknown): data is ParsedData =>
   typeof data === 'object' && data !== null && ('nextNodeID' in data || 'messageToUser' in data);
 
+const BR_TAG = '<br>';
+const NEWLINE = '\n';
+
+const normalizeLineBreaks = (text: string): string => text.replaceAll(BR_TAG, NEWLINE);
+
 const extractParsedResult = (data: ParsedData): ParsedResult => {
-  const messageToUser =
+  const rawMessage =
     data.messageToUser === undefined
       ? undefined
       : typeof data.messageToUser === 'string'
         ? data.messageToUser
         : undefined;
+  const messageToUser = rawMessage === undefined ? undefined : normalizeLineBreaks(rawMessage);
   const nextNodeID =
     typeof data.nextNodeID === 'string' || typeof data.nextNodeID === 'number' ? String(data.nextNodeID) : '';
   return { nextNodeID, messageToUser };
