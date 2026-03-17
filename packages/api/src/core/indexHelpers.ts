@@ -128,6 +128,52 @@ function accumulateStructuredOutput(
   state.newStructuredOutputs.push(structuredOutput);
 }
 
+function lastResultHasMessage(parsedResults: ParsedResult[]): boolean {
+  const [last] = parsedResults.slice(-LAST_INDEX_OFFSET);
+  return last?.messageToUser !== undefined && last.messageToUser !== '';
+}
+
+async function executeTerminalNode(
+  context: Context,
+  input: CallAgentInput,
+  debugMessages: Record<string, ModelMessage[][]>,
+  state: FlowState
+): Promise<FlowStepResult> {
+  const { currentNodeID, nodeBeforeGlobal, parsedResults, visitedNodes } = state;
+  visitedNodes.push(currentNodeID);
+  context.onNodeVisited?.(currentNodeID);
+
+  if (lastResultHasMessage(parsedResults)) {
+    return { state, error: false, shouldContinue: false, isTerminal: true };
+  }
+
+  const result = await processNodeTimed({
+    context,
+    input,
+    currentNodeID,
+    nodeBeforeGlobal,
+    debugMessages,
+    structuredOutputs: state.structuredOutputs,
+  });
+
+  if (result.error) return { state, error: true, shouldContinue: false };
+
+  const { parsedResult, toolCalls, durationMs, structuredOutput } = result;
+  emitNodeProcessed({
+    context,
+    input,
+    nodeId: currentNodeID,
+    parsedResult,
+    toolCalls,
+    durationMs,
+    structuredOutput,
+  });
+  if (toolCalls.length > EMPTY_LENGTH) state.allToolCalls.push(...toolCalls);
+  accumulateStructuredOutput(state, structuredOutput);
+  parsedResults.push(parsedResult);
+  return { state, error: false, shouldContinue: false, isTerminal: true };
+}
+
 async function processFlowStep(
   context: Context,
   input: CallAgentInput,
@@ -135,6 +181,11 @@ async function processFlowStep(
   state: FlowState
 ): Promise<FlowStepResult> {
   const { currentNodeID, nodeBeforeGlobal, parsedResults, visitedNodes, allToolCalls } = state;
+
+  if (isTerminalNode(context, currentNodeID)) {
+    return await executeTerminalNode(context, input, debugMessages, state);
+  }
+
   visitedNodes.push(currentNodeID);
   context.onNodeVisited?.(currentNodeID);
 
@@ -161,11 +212,6 @@ async function processFlowStep(
   });
   if (toolCalls.length > EMPTY_LENGTH) allToolCalls.push(...toolCalls);
   accumulateStructuredOutput(state, structuredOutput);
-
-  if (isTerminalNode(context, currentNodeID)) {
-    parsedResults.push(parsedResult);
-    return { state, error: false, shouldContinue: false, isTerminal: true };
-  }
 
   parsedResult.nextNodeID = nextNodeID;
   parsedResults.push(parsedResult);
