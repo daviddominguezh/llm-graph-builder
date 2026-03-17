@@ -22,6 +22,7 @@ export interface SMNextOptions {
   kind: NodeKind;
   nodes: Record<string, string>;
   outputSchema?: OutputSchemaField[];
+  isTerminal?: boolean;
 }
 
 export interface SMConfig {
@@ -34,6 +35,7 @@ export interface SMConfig {
   nodes: Record<string, string>;
   outputSchema?: OutputSchemaField[];
   skipMessageToUser?: boolean;
+  isTerminal?: boolean;
 }
 
 export interface UserNode {

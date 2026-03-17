@@ -32,6 +32,18 @@ Return ONLY valid JSON. No tools. No extra text.
 
 ${buildDecisionOnlySchema(ids)}`;
 
+export const buildTerminalNodeSchema = (): string => `\`\`\`json
+{
+  "messageToUser": "Your reply in the same language the user is writing"
+}
+\`\`\``;
+
+export const buildTerminalOutputFormatPrompt = (): string => `## Output format
+
+Return ONLY valid JSON. No tools. No extra text.
+
+${buildTerminalNodeSchema()}`;
+
 export const SM_BASE_PROMPT_NEXT_OPTION_IS_AGENT_DECISION = `You are a routing node. Your only job is to classify the user's message and return a JSON object.
 
 ## Options`;

@@ -88,6 +88,10 @@ export const DECISION_ONLY_OUTPUT_SCHEMA = z.object({
   nextNodeID: z.string().nonempty(),
 });
 
+export const TERMINAL_OUTPUT_SCHEMA = z.object({
+  messageToUser: z.string().nonempty(),
+});
+
 export type OutputSchema = z.ZodObject<Record<string, z.ZodType>>;
 
 interface ModelCallOptions {

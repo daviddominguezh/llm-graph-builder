@@ -25,11 +25,12 @@ const createTerminalNodeOptions = (
 ): SMNextOptions => ({
   node,
   edges: [],
-  prompt: 'This is a terminal node with no further actions.',
-  promptWithoutToolPreconditions: 'This is a terminal node with no further actions.',
+  prompt: 'This is a terminal node. You must generate a final message to the user.',
+  promptWithoutToolPreconditions: 'This is a terminal node. You must generate a final message to the user.',
   toolsByEdge: {},
   kind: 'user_reply' as const,
   nodes,
+  isTerminal: true,
 });
 
 interface BuildToolCallOptionsParams {
@@ -213,6 +214,7 @@ function buildPromptConfig(
   currentNode: string,
   nextOptions: SMNextOptions
 ): SMConfig {
+  const isTerminal = nextOptions.isTerminal === true;
   const { prompt: mPrompt, promptWithoutTools: mPromptWithoutTools } = appendKindSpecificPrompts({
     kind: nextOptions.kind,
     edges: nextOptions.edges,
@@ -220,9 +222,10 @@ function buildPromptConfig(
     basePromptWithoutTools: nextOptions.promptWithoutToolPreconditions,
     fallbackNodeId: nextOptions.node.fallbackNodeId,
     nextNodeIsUser: nextOptions.node.nextNodeIsUser,
+    isTerminal,
   });
   const userContext = generateUserContextPrompt(context);
-  const skipMessageToUser = nextOptions.node.nextNodeIsUser !== true;
+  const skipMessageToUser = isTerminal ? false : nextOptions.node.nextNodeIsUser !== true;
   const config: SMConfig = {
     node: nextOptions.node,
     prompt: applyUserContext(mPrompt, userContext),
@@ -233,6 +236,7 @@ function buildPromptConfig(
     nodes: nextOptions.nodes,
     outputSchema: nextOptions.outputSchema,
     skipMessageToUser,
+    isTerminal,
   };
   config.promptWithoutToolPreconditions = addNodeSpecificPrompts(graph, context, currentNode, config.prompt);
   return config;
