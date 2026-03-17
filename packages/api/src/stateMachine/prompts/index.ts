@@ -3,7 +3,7 @@ import type { Context } from '@src/types/tools.js';
 import { insertValuesInText } from '../format/utils.js';
 import { getNode } from '../graph/index.js';
 
-const MESSAGE_TO_USER_RULE = `IMPORTANT: In "messageToUser", use <br> to create line breaks and use markdown for formatting (not HTML). Example: "Hello!<br><br>**Here is a list:**<br>- Item 1<br>- Item 2". Never put all content on a single line.`;
+const MESSAGE_TO_USER_RULE = `IMPORTANT: In "messageToUser", use <br> for line breaks. Example: "Line one<br>Line two<br>Line three". Never put all content on a single line.`;
 
 export const buildAgentReplySchema = (ids: string): string => `\`\`\`json
 {
