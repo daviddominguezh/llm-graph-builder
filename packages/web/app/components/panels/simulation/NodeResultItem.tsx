@@ -132,7 +132,7 @@ function OutputRow({ data }: { data: unknown }) {
 function AgentText({ text }: { text: string }) {
   if (text === '') return null;
   return (
-    <div className="markdown-content pl-[18px] text-xs leading-relaxed">
+    <div className="markdown-content pl-[18px] text-xs leading-relaxed bg-gray-100/60 rounded-md py-3 pr-3">
       <MarkdownHooks remarkPlugins={[remarkGfm]}>{text}</MarkdownHooks>
     </div>
   );
