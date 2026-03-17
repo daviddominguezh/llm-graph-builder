@@ -10,6 +10,10 @@ import { relayoutGraph } from '../utils/loadGraphData';
 import { buildUpdateNodeOp } from '../utils/operationBuilders';
 import type { PushOperation } from '../utils/operationBuilders';
 
+export interface FormatOptions {
+  skipPersist?: boolean;
+}
+
 interface UseFormatGraphParams {
   nodes: Array<Node<RFNodeData>>;
   edges: Array<Edge<RFEdgeData>>;
@@ -37,23 +41,28 @@ function mapLayoutedNode(n: Graph['nodes'][number], i: number, nodeWidth: number
   };
 }
 
-export function useFormatGraph(params: UseFormatGraphParams): () => void {
+export function useFormatGraph(params: UseFormatGraphParams): (options?: FormatOptions) => void {
   const { nodes, edges, agents, mcpServers, outputSchemas, setNodes, setEdges, pushOperation } = params;
 
-  return useCallback(() => {
-    const graph = serializeGraphData({ nodes, edges, agents, mcpServers, outputSchemas });
-    if (graph === null) return;
+  return useCallback(
+    (options?: FormatOptions) => {
+      const graph = serializeGraphData({ nodes, edges, agents, mcpServers, outputSchemas });
+      if (graph === null) return;
 
-    const { graph: layouted, nodeWidth } = relayoutGraph(graph);
+      const { graph: layouted, nodeWidth } = relayoutGraph(graph);
 
-    const rfNodes = layouted.nodes.map((n, i) => mapLayoutedNode(n, i, nodeWidth));
-    const rfEdges = layouted.edges.map((e, i) => schemaEdgeToRFEdge(e, i, layouted.nodes));
+      const rfNodes = layouted.nodes.map((n, i) => mapLayoutedNode(n, i, nodeWidth));
+      const rfEdges = layouted.edges.map((e, i) => schemaEdgeToRFEdge(e, i, layouted.nodes));
 
-    setNodes(rfNodes);
-    setEdges(rfEdges);
+      setNodes(rfNodes);
+      setEdges(rfEdges);
 
-    for (const rfNode of rfNodes) {
-      pushOperation(buildUpdateNodeOp(rfNode));
-    }
-  }, [nodes, edges, agents, mcpServers, outputSchemas, setNodes, setEdges, pushOperation]);
+      if (!options?.skipPersist) {
+        for (const rfNode of rfNodes) {
+          pushOperation(buildUpdateNodeOp(rfNode));
+        }
+      }
+    },
+    [nodes, edges, agents, mcpServers, outputSchemas, setNodes, setEdges, pushOperation]
+  );
 }

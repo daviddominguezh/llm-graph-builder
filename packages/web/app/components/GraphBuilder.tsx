@@ -230,6 +230,13 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
   useInitialViewport(reactFlowWrapper, rf.setViewport, loadResult.graphData);
   useSearchKeyboard(setSearchOpen);
 
+  const initialLayoutDone = useRef(false);
+  useEffect(() => {
+    if (initialLayoutDone.current) return;
+    initialLayoutDone.current = true;
+    handleFormat({ skipPersist: true });
+  }, [handleFormat]);
+
   const prevNodeCount = useRef(nodes.length);
   const prevEdgeCount = useRef(edges.length);
   useEffect(() => {
