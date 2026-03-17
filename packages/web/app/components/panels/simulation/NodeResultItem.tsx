@@ -8,11 +8,8 @@ import type { NodeResult, SimulationToolCall } from '../../../types/simulation';
 import { SmallJsonBlock, extractMcpPayload, isJsonObject } from '../JsonDisplay';
 import { TokenDisplay } from './TokenDisplay';
 
-const REDACTED_PATTERN = /^\[REDACTED\]$/i;
-
-function isUsableReasoning(reasoning: string | undefined): reasoning is string {
-  if (reasoning === undefined || reasoning === '') return false;
-  return !REDACTED_PATTERN.test(reasoning.trim());
+function hasReasoning(reasoning: string | undefined): reasoning is string {
+  return reasoning !== undefined && reasoning !== '';
 }
 
 function JsonOrText({ value, label }: { value: unknown; label: string }) {
@@ -144,7 +141,7 @@ export function NodeResultItem({ result }: { result: NodeResult }) {
     <div className={`max-w-[100%] flex flex-col gap-0.5 border-l-3 ${borderClass} py-0 pl-2`}>
       <span className="font-mono text-[11px] font-medium">{result.nodeId}</span>
       {result.error !== undefined && <ErrorRow message={result.error} />}
-      {isUsableReasoning(result.reasoning) && <ReasoningRow reasoning={result.reasoning} />}
+      {hasReasoning(result.reasoning) && <ReasoningRow reasoning={result.reasoning} />}
       {result.toolCalls.map((call, i) => (
         <ToolCallRow key={i} call={call} />
       ))}
