@@ -7,6 +7,7 @@ import '@xyflow/react/dist/style.css';
 import { useCopilotContext } from './copilot/CopilotProvider';
 import { GraphBuilderLoading } from './GraphBuilderLoading';
 import { HandleContext } from './nodes/HandleContext';
+import { DeleteConfirmDialog } from './panels/DeleteConfirmDialog';
 import { PublishButton } from './panels/PublishButton';
 import { Toolbar } from './panels/Toolbar';
 import { StatusButton } from './panels/StatusButton';
@@ -33,6 +34,7 @@ import { useMcpServers } from '../hooks/useMcpServers';
 import { useOperationQueue } from '../hooks/useOperationQueue';
 import { useOutputSchemas } from '../hooks/useOutputSchemas';
 import { usePresets } from '../hooks/usePresets';
+import { useDeleteConfirmation } from '../hooks/useDeleteConfirmation';
 import { useSeedInitialGraph } from '../hooks/useSeedInitialGraph';
 import { useSimulation } from '../hooks/useSimulation';
 import { useVersions } from '../hooks/useVersions';
@@ -133,6 +135,16 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     panels
   );
 
+  const deleteConfirmation = useDeleteConfirmation({
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    pushOperation: opQueue.pushOperation,
+    onNodeDeleted: () => selection.setSelectedNodeId(null),
+    onEdgeDeleted: () => selection.setSelectedEdgeId(null),
+  });
+
   const onCopilotOpen = useCallback(() => {
     selection.setSelectedNodeId(null);
     selection.setSelectedEdgeId(null);
@@ -218,6 +230,18 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
   useInitialViewport(reactFlowWrapper, rf.setViewport, loadResult.graphData);
   useSearchKeyboard(setSearchOpen);
 
+  const prevNodeCount = useRef(nodes.length);
+  const prevEdgeCount = useRef(edges.length);
+  useEffect(() => {
+    const nodesChanged = nodes.length !== prevNodeCount.current;
+    const edgesChanged = edges.length !== prevEdgeCount.current;
+    if (nodesChanged || edgesChanged) {
+      prevNodeCount.current = nodes.length;
+      prevEdgeCount.current = edges.length;
+      handleFormat();
+    }
+  }, [nodes.length, edges.length, handleFormat]);
+
   const handleSimSelectNode = useCallback(
     (nodeId: string) => {
       setNodes((nds) => nds.map((n) => ({ ...n, selected: n.id === nodeId })));
@@ -250,6 +274,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     agents,
     onNodesChange,
     onEdgesChange,
+    deleteConfirmation,
     setNodes,
     setEdges,
     displayNodes,
@@ -404,6 +429,12 @@ function LoadedEditor(props: LoadedEditorProps) {
           }}
           onCloseLibrary={() => h.setLibraryOpen(false)}
           pushOperation={h.pushOperation}
+        />
+
+        <DeleteConfirmDialog
+          pendingDelete={h.deleteConfirmation.pendingDelete}
+          onConfirm={h.deleteConfirmation.confirmDelete}
+          onCancel={h.deleteConfirmation.cancelDelete}
         />
 
         {h.graphActions.connectionMenu !== null && (

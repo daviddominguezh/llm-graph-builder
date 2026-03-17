@@ -133,7 +133,13 @@
     "restoreVersionFailed": "Failed to restore version. Please try again.",
     "connectingMcpServers": "Connecting to MCP servers...",
     "loadVersionsFailed": "Failed to load versions. Please try again.",
-    "seedGraphFailed": "Failed to save initial graph. Please reload the page."
+    "seedGraphFailed": "Failed to save initial graph. Please reload the page.",
+    "deleteNodeTitle": "Delete node?",
+    "deleteNodeDescription": "This action cannot be undone. This will permanently delete the node and remove all its connections.",
+    "deleteEdgeTitle": "Delete edge?",
+    "deleteEdgeDescription": "This action cannot be undone. This will permanently delete the edge.",
+    "deleteConfirm": "Delete",
+    "deleteCancel": "Cancel"
   },
   "simulation": {
     "toolInput": "Input",
