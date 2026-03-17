@@ -38,7 +38,7 @@ function getNodeKind(nodeId: string, edges: Edge<RFEdgeData>[]): NodeKind {
   return "agent";
 }
 
-function AgentNodeComponent({ data, selected, id }: NodeProps) {
+function AgentNodeComponent({ data, id }: NodeProps) {
   const nodeData = data as RFNodeData;
   const edges = useEdges<Edge<RFEdgeData>>();
 
@@ -48,11 +48,7 @@ function AgentNodeComponent({ data, selected, id }: NodeProps) {
   const nextNodeIsUser = nodeData.nextNodeIsUser ?? false;
 
   const borderWidth = nextNodeIsUser ? "border-2" : "border";
-  const borderColor = nextNodeIsUser
-    ? "border-red-500"
-    : selected
-      ? "border-primary"
-      : "border-secondary";
+  const borderColor = nextNodeIsUser ? "border-red-500" : "border-secondary";
   const opacity = muted ? "opacity-40" : "opacity-100";
 
   const containerBaseStyle =
