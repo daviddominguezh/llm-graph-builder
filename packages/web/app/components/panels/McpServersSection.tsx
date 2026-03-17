@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AlertTriangle, BookOpen, CheckCircle, ChevronDown, Plus, Trash2 } from 'lucide-react';
+import { AlertTriangle, BookOpen, CheckCircle, ChevronDown, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 import type { McpServerStatus } from '../../hooks/useMcpServers';
@@ -67,7 +67,7 @@ function DiscoverButton({
       onClick={onDiscover}
       disabled={isDiscovering || (disabled ?? false)}
     >
-      {label}
+      {isDiscovering ? <Loader2 className="size-3 animate-spin text-white" /> : label}
     </Button>
   );
 }

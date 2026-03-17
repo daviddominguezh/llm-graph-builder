@@ -1,19 +1,21 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, SquareFunction } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Play, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 
 import type { McpServerStatus } from '../../hooks/useMcpServers';
-import type { DiscoveredTool } from '../../lib/api';
-import type { OrgEnvVariableRow } from '../../lib/org-env-variables';
+import type { DiscoveredTool, ToolCallOptions } from '../../lib/api';
 import type { McpLibraryRow } from '../../lib/mcp-library-types';
+import type { OrgEnvVariableRow } from '../../lib/org-env-variables';
 import type { McpServerConfig } from '../../schemas/graph.schema';
 import { McpServersSection } from './McpServersSection';
+import { FloatingSchema, type ToolSchema } from './ToolSchemaPopover';
+import { ToolTestModal } from './ToolTestModal';
 
 interface McpProps {
   servers: McpServerConfig[];
@@ -39,6 +41,7 @@ interface ToolsPanelProps {
 }
 
 interface FlatTool {
+  serverId: string;
   serverName: string;
   name: string;
   description: string | undefined;
@@ -50,18 +53,6 @@ interface ToolGroup {
   tools: FlatTool[];
 }
 
-interface SchemaProperty {
-  type?: string;
-  description?: string;
-  enum?: string[];
-  required?: boolean;
-}
-
-interface ToolSchema {
-  properties?: Record<string, SchemaProperty>;
-  required?: string[];
-}
-
 function buildToolGroups(
   servers: McpServerConfig[],
   discovered: Record<string, DiscoveredTool[]>
@@ -69,6 +60,7 @@ function buildToolGroups(
   const groups: ToolGroup[] = [];
   for (const server of servers) {
     const serverTools = (discovered[server.id] ?? []).map((tool) => ({
+      serverId: server.id,
       serverName: server.name,
       name: tool.name,
       description: tool.description,
@@ -86,16 +78,14 @@ function buildToolGroups(
 function filterGroups(groups: ToolGroup[], query: string): ToolGroup[] {
   if (query === '') return groups;
   const lower = query.toLowerCase();
-  const filtered: ToolGroup[] = [];
-  for (const group of groups) {
-    const tools = group.tools.filter(
-      (t) => t.name.toLowerCase().includes(lower) || t.description?.toLowerCase().includes(lower)
-    );
-    if (tools.length > 0) {
-      filtered.push({ serverName: group.serverName, tools });
-    }
-  }
-  return filtered;
+  return groups
+    .map((g) => ({
+      ...g,
+      tools: g.tools.filter(
+        (t) => t.name.toLowerCase().includes(lower) || t.description?.toLowerCase().includes(lower)
+      ),
+    }))
+    .filter((g) => g.tools.length > 0);
 }
 
 function countTools(groups: ToolGroup[]): number {
@@ -104,133 +94,65 @@ function countTools(groups: ToolGroup[]): number {
   return count;
 }
 
-function buildRequiredSet(schema: ToolSchema): Set<string> {
-  const required = new Set<string>();
-  if (Array.isArray(schema.required)) {
-    for (const name of schema.required) required.add(name);
-  }
-  if (schema.properties) {
-    for (const [name, prop] of Object.entries(schema.properties)) {
-      if (prop.required === true) required.add(name);
-    }
-  }
-  return required;
-}
-
-function SchemaFieldRow({
-  name,
-  prop,
-  isRequired,
-}: {
-  name: string;
-  prop: SchemaProperty;
-  isRequired: boolean;
-}) {
+function PlayButton({ tool, onTest }: { tool: FlatTool; onTest: (tool: FlatTool) => void }) {
+  const t = useTranslations('toolTest');
   return (
-    <div className="flex flex-col gap-0.5">
-      <div className="flex min-w-0 items-baseline gap-1">
-        <code className="shrink-0 font-mono text-[11px] font-semibold">{name}</code>
-        {prop.type && <span className="text-[10px] text-muted-foreground">({prop.type})</span>}
-        {isRequired && <span className="text-[10px] font-medium text-orange-600">*</span>}
-      </div>
-      {prop.description && (
-        <span className="text-[10px] leading-tight text-muted-foreground">{prop.description}</span>
-      )}
-      {prop.enum && prop.enum.length > 0 && (
-        <div className="flex flex-wrap gap-0.5">
-          {prop.enum.map((v) => (
-            <span key={v} className="rounded bg-muted px-1 py-0.5 font-mono text-[9px]">
-              {v}
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            className="shrink-0 opacity-0 transition-opacity group-hover/tool:opacity-100 hover:bg-[#4fc661] hover:text-background"
+            onClick={(e) => {
+              e.stopPropagation();
+              onTest(tool);
+            }}
+          />
+        }
+      >
+        <Play className="size-3" />
+      </TooltipTrigger>
+      <TooltipContent side="top">{t('testTool')}</TooltipContent>
+    </Tooltip>
   );
 }
 
-function ToolSchemaDetails({ schema }: { schema: ToolSchema }) {
-  if (!schema.properties || Object.keys(schema.properties).length === 0) {
-    return <p className="px-3 py-1 text-[10px] text-muted-foreground">No parameters</p>;
-  }
-
-  const requiredSet = buildRequiredSet(schema);
-  const entries = Object.entries(schema.properties);
-  const cmp = (a: [string, SchemaProperty], b: [string, SchemaProperty]) => a[0].localeCompare(b[0]);
-  const required = entries.filter(([n]) => requiredSet.has(n)).sort(cmp);
-  const optional = entries.filter(([n]) => !requiredSet.has(n)).sort(cmp);
-  const sorted = [...required, ...optional];
-
-  return (
-    <div className="flex flex-col px-3 pb-2">
-      {sorted.map(([name, prop], index) => (
-        <div key={name}>
-          {index > 0 && <Separator className="my-1.5" />}
-          <SchemaFieldRow name={name} prop={prop} isRequired={requiredSet.has(name)} />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function FloatingSchema({
-  anchorRef,
-  schema,
+function ToolRow({
+  tool,
+  expanded,
+  onClick,
+  onTest,
 }: {
-  anchorRef: React.RefObject<HTMLDivElement | null>;
-  schema: ToolSchema;
+  tool: FlatTool;
+  expanded: boolean;
+  onClick: () => void;
+  onTest: (tool: FlatTool) => void;
 }) {
-  const positionRef = useCallback(
-    (el: HTMLDivElement | null) => {
-      const anchor = anchorRef.current;
-      if (!el || !anchor) return;
-      const rect = anchor.getBoundingClientRect();
-      el.style.top = `${String(rect.bottom + 4)}px`;
-      el.style.left = `${String(rect.left)}px`;
-      el.style.width = `${String(rect.width)}px`;
-    },
-    [anchorRef]
-  );
-
-  return createPortal(
-    <div
-      ref={positionRef}
-      data-tools-panel-portal
-      className="fixed z-50 max-h-64 overflow-y-auto rounded-md border bg-background shadow-lg py-1.5"
-    >
-      <ToolSchemaDetails schema={schema} />
-    </div>,
-    document.body
-  );
-}
-
-function ToolRow({ tool, expanded, onClick }: { tool: FlatTool; expanded: boolean; onClick: () => void }) {
   const rowRef = useRef<HTMLDivElement>(null);
-
   return (
-    <li>
+    <li className="flex flex-col w-[calc(50%_-_(var(--spacing)*2))] shrink-0 bg-gray-100 rounded-sm py-1.5">
       <div
         ref={rowRef}
-        className="flex w-full flex-col px-1 py-0 text-left text-xs cursor-pointer border-l-2 border-background hover:border-accent"
+        className="group/tool flex w-full items-start gap-1 px-1 py-0 text-left text-xs cursor-pointer border-l-2 border-gray-300 hover:border-accent"
         onClick={onClick}
       >
-        <span className="font-medium">{tool.name}</span>
-        <span className="text-[10px] text-muted-foreground truncate">
-          {tool.description ?? tool.serverName}
-        </span>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <span className="font-medium">{tool.name}</span>
+          <span className="truncate text-[10px] text-muted-foreground">
+            {tool.description ?? tool.serverName}
+          </span>
+        </div>
+        <PlayButton tool={tool} onTest={onTest} />
       </div>
       {expanded && tool.inputSchema && (
-        <FloatingSchema anchorRef={rowRef} schema={tool.inputSchema as ToolSchema} />
+        <FloatingSchema
+          description={tool.description}
+          anchorRef={rowRef}
+          schema={tool.inputSchema as ToolSchema}
+        />
       )}
     </li>
-  );
-}
-
-function ServerGroupHeader({ name }: { name: string }) {
-  return (
-    <div className="sticky top-0 z-10 bg-background px-2 pt-0 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-      <div className="pt-2">{name}</div>
-    </div>
   );
 }
 
@@ -239,23 +161,27 @@ function ToolsList({
   totalCount,
   expandedTool,
   onToggleTool,
+  onTestTool,
 }: {
   groups: ToolGroup[];
   totalCount: number;
   expandedTool: string | null;
-  onToggleTool: (toolKey: string) => void;
+  onToggleTool: (key: string) => void;
+  onTestTool: (tool: FlatTool) => void;
 }) {
   return (
     <div className="flex-1 overflow-y-auto p-1 pt-0">
       {totalCount === 0 ? (
-        <p className="px-3 py-2 text-xs text-muted-foreground">
+        <p className="p-3 text-xs text-muted-foreground bg-gray-100 rounded-md mt-2">
           {groups.length === 0 ? 'No tools discovered yet' : 'No results'}
         </p>
       ) : (
         groups.map((group) => (
           <div key={group.serverName}>
-            <ServerGroupHeader name={group.serverName} />
-            <ul className="flex flex-col gap-2">
+            <div className="sticky top-0 z-10 bg-background px-2 pt-0 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+              <div className="pt-2">{group.serverName}</div>
+            </div>
+            <ul className="flex flex-row gap-2 gap-y-3 flex-wrap pl-1">
               {group.tools.map((tool) => {
                 const key = `${tool.serverName}-${tool.name}`;
                 return (
@@ -264,6 +190,7 @@ function ToolsList({
                     tool={tool}
                     expanded={expandedTool === key}
                     onClick={() => onToggleTool(key)}
+                    onTest={onTestTool}
                   />
                 );
               })}
@@ -296,14 +223,34 @@ function McpTab({ mcp }: { mcp: McpProps }) {
   );
 }
 
+function buildCallOptions(server: McpServerConfig | undefined, orgId: string): ToolCallOptions | undefined {
+  if (server === undefined) return undefined;
+  return {
+    variableValues: server.variableValues as Record<string, unknown> | undefined,
+    orgId,
+    libraryItemId: server.libraryItemId,
+  };
+}
+
+function useToolTest(servers: McpServerConfig[], orgId: string) {
+  const [testingTool, setTestingTool] = useState<FlatTool | null>(null);
+  const server = testingTool !== null ? servers.find((s) => s.id === testingTool.serverId) : undefined;
+  const transport = server?.transport ?? null;
+  const callOptions = buildCallOptions(server, orgId);
+  const openTest = useCallback((tool: FlatTool) => setTestingTool(tool), []);
+  const closeTest = useCallback(() => setTestingTool(null), []);
+  return { testingTool, transport, callOptions, openTest, closeTest };
+}
+
 export function ToolsPanel({ servers, discoveredTools, mcp, open, onClose }: ToolsPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const t = useTranslations('toolbar');
   const [query, setQuery] = useState('');
   const [prevOpen, setPrevOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('mcp');
   const [expandedTool, setExpandedTool] = useState<string | null>(null);
-  const t = useTranslations('toolbar');
+  const tt = useToolTest(servers, mcp.orgId);
 
   if (open && !prevOpen) {
     setPrevOpen(true);
@@ -311,84 +258,75 @@ export function ToolsPanel({ servers, discoveredTools, mcp, open, onClose }: Too
     setActiveTab('mcp');
     setExpandedTool(null);
   }
-  if (!open && prevOpen) {
-    setPrevOpen(false);
-  }
+  if (!open && prevOpen) setPrevOpen(false);
 
   const allGroups = useMemo(() => buildToolGroups(servers, discoveredTools), [servers, discoveredTools]);
   const filteredGroups = filterGroups(allGroups, query);
   const totalCount = countTools(filteredGroups);
 
   useEffect(() => {
-    if (open && activeTab === 'tools') {
-      requestAnimationFrame(() => inputRef.current?.focus());
-    }
+    if (open && activeTab === 'tools') requestAnimationFrame(() => inputRef.current?.focus());
   }, [open, activeTab]);
 
   useEffect(() => {
     if (!open) return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const insideContainer = containerRef.current?.contains(target) === true;
-      const insidePortal = target.closest('[data-tools-panel-portal]') !== null;
-      if (!insideContainer && !insidePortal) {
+    const handler = (e: MouseEvent) => {
+      const el = e.target as HTMLElement;
+      if (containerRef.current?.contains(el) !== true && el.closest('[data-tools-panel-portal]') === null)
         onClose();
-      }
     };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, [open, onClose]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      onClose();
-    }
-  };
-
-  const handleToggleTool = (key: string) => {
-    setExpandedTool((prev) => (prev === key ? null : key));
-  };
 
   if (!open) return null;
 
   return (
-    <div
-      ref={containerRef}
-      className="absolute top-16 left-1/2 z-20 -translate-x-1/2 w-[28rem] h-96 flex flex-col rounded-lg border bg-background shadow-lg"
-      onKeyDown={handleKeyDown}
-    >
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full gap-0">
-        <div className="flex items-center gap-0 p-1 border-b">
-          <TabsList className="w-full">
-            <TabsTrigger value="mcp">{t('mcpServersTab')}</TabsTrigger>
-            <TabsTrigger value="tools">{t('toolsTab')}</TabsTrigger>
-          </TabsList>
-        </div>
-        <TabsContent value="mcp" className="flex-1 overflow-y-auto mt-0 pt-0 px-0">
-          <McpTab mcp={mcp} />
-        </TabsContent>
-        <TabsContent value="tools" className="flex-1 overflow-y-auto flex flex-col mt-0 pt-0">
-          <div className="flex items-center gap-2 px-3 py-2 border-b">
-            <Search className="size-3.5 text-muted-foreground shrink-0" />
-            <Input
-              ref={inputRef}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search tools..."
-              className="h-7 border-0 bg-transparent p-0 text-xs shadow-none focus-visible:ring-0"
-            />
-            <SquareFunction className="size-3.5 text-muted-foreground shrink-0" />
+    <>
+      <div
+        ref={containerRef}
+        className="absolute top-16 left-1/2 z-20 -translate-x-1/2 w-[28rem] h-96 flex flex-col rounded-lg border bg-background shadow-lg"
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') onClose();
+        }}
+      >
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full gap-0">
+          <div className="flex items-center gap-0 p-1 border-b">
+            <TabsList className="w-full">
+              <TabsTrigger value="mcp">{t('mcpServersTab')}</TabsTrigger>
+              <TabsTrigger value="tools">{t('toolsTab')}</TabsTrigger>
+            </TabsList>
           </div>
-          <ToolsList
-            groups={filteredGroups}
-            totalCount={totalCount}
-            expandedTool={expandedTool}
-            onToggleTool={handleToggleTool}
-          />
-        </TabsContent>
-      </Tabs>
-    </div>
+          <TabsContent value="mcp" className="flex-1 overflow-y-auto mt-0 pt-0 px-1">
+            <McpTab mcp={mcp} />
+          </TabsContent>
+          <TabsContent value="tools" className="flex-1 overflow-y-auto flex flex-col mt-0 pt-0">
+            <div className="flex items-center gap-2 px-3 py-2 border-b">
+              <Search className="size-3.5 text-muted-foreground shrink-0" />
+              <Input
+                ref={inputRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search tools..."
+                className="h-7 border-0 bg-transparent p-0 text-xs shadow-none focus-visible:ring-0"
+              />
+            </div>
+            <ToolsList
+              groups={filteredGroups}
+              totalCount={totalCount}
+              expandedTool={expandedTool}
+              onToggleTool={(key) => setExpandedTool((prev) => (prev === key ? null : key))}
+              onTestTool={tt.openTest}
+            />
+          </TabsContent>
+        </Tabs>
+      </div>
+      <ToolTestModal
+        tool={tt.testingTool}
+        transport={tt.transport}
+        callOptions={tt.callOptions}
+        onClose={tt.closeTest}
+      />
+    </>
   );
 }

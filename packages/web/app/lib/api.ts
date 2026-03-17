@@ -64,6 +64,60 @@ export async function discoverMcpTools(
   return data.tools;
 }
 
+export interface ToolCallOptions {
+  variableValues?: Record<string, unknown>;
+  orgId?: string;
+  libraryItemId?: string;
+}
+
+export interface ToolCallResult {
+  success: true;
+  result: unknown;
+}
+
+export interface ToolCallError {
+  success: false;
+  error: { message: string; code?: string; details?: unknown };
+}
+
+export type ToolCallResponse = ToolCallResult | ToolCallError;
+
+const ToolCallResponseSchema = z.union([
+  z.object({ success: z.literal(true), result: z.unknown() }),
+  z.object({
+    success: z.literal(false),
+    error: z.object({
+      message: z.string(),
+      code: z.string().optional(),
+      details: z.unknown().optional(),
+    }),
+  }),
+]);
+
+export async function callMcpTool(
+  transport: McpTransport,
+  toolName: string,
+  args: Record<string, unknown>,
+  options?: ToolCallOptions,
+  signal?: AbortSignal
+): Promise<ToolCallResponse> {
+  const res = await fetch('/api/mcp/tools/call', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      transport,
+      toolName,
+      args,
+      variableValues: options?.variableValues,
+      orgId: options?.orgId,
+      libraryItemId: options?.libraryItemId,
+    }),
+    signal,
+  });
+  const raw = await fetchJsonUnknown(res);
+  return ToolCallResponseSchema.parse(raw) as ToolCallResponse;
+}
+
 export interface SimulateRequestBody {
   graph: Record<string, unknown>;
   messages: unknown[];

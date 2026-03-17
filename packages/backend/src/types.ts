@@ -28,6 +28,28 @@ export interface SimulateRequest {
   structuredOutputs?: Record<string, unknown[]>;
 }
 
+export interface ToolCallRequest {
+  transport: McpTransport;
+  toolName: string;
+  args: Record<string, unknown>;
+}
+
+export interface ToolCallSuccessResponse {
+  success: true;
+  result: unknown;
+}
+
+export interface ToolCallErrorResponse {
+  success: false;
+  error: {
+    message: string;
+    code?: string;
+    details?: unknown;
+  };
+}
+
+export type ToolCallResponse = ToolCallSuccessResponse | ToolCallErrorResponse;
+
 export type SimulationEvent =
   | { type: 'node_visited'; nodeId: string }
   | {

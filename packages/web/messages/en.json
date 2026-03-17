@@ -286,6 +286,7 @@
     "publishError": "Failed to publish MCP server.",
     "unpublishSuccess": "MCP server unpublished.",
     "unpublishError": "Failed to unpublish MCP server.",
+    "fields": "Fields",
     "description": "Description",
     "descriptionPlaceholder": "What does this MCP server do?",
     "descriptionRequired": "Description is required.",
@@ -347,5 +348,24 @@
     "deleteError": "Failed to delete variable.",
     "editTitle": "Edit variable",
     "save": "Save"
+  },
+  "toolTest": {
+    "emptyState": "Run a tool to see the result here.",
+    "run": "Run",
+    "running": "Running...",
+    "success": "Success",
+    "error": "Error",
+    "optional": "Optional",
+    "errorCode": "Code",
+    "errorDetails": "Details",
+    "requiredFields": "Fill in all required fields to run.",
+    "jsonPlaceholder": "Enter JSON...",
+    "invalidJson": "Invalid JSON",
+    "noInput": "This tool requires no input.",
+    "testTool": "Test tool",
+    "cancel": "Cancel",
+    "showAll": "Show all ({count} lines)",
+    "collapse": "Collapse",
+    "copied": "Copied"
   }
 }

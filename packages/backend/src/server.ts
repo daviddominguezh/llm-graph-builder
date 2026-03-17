@@ -15,6 +15,7 @@ import { handleInitiate } from './routes/oauth/oauthInitiate.js';
 import { handleResolveToken } from './routes/oauth/oauthResolveToken.js';
 import { handleStatus } from './routes/oauth/oauthStatus.js';
 import { handleSimulate } from './routes/simulateHandler.js';
+import { handleToolCall } from './routes/toolCall.js';
 
 function requestLogger(req: Request, _res: Response, next: NextFunction): void {
   process.stdout.write(`[server] ${req.method} ${req.path}\n`);
@@ -29,6 +30,7 @@ export function createApp(): Express {
   app.use(requestLogger);
 
   app.post('/mcp/discover', handleDiscover);
+  app.post('/mcp/tools/call', handleToolCall);
   app.post('/simulate', handleSimulate);
   app.get('/mcp/oauth/callback', handleCallback);
 
