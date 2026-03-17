@@ -3,13 +3,11 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Check, Copy, Loader2, Terminal } from 'lucide-react';
-import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { ToolCallResponse } from '../../lib/api';
-
-const ReactJson = dynamic(() => import('@microlink/react-json-view'), { ssr: false });
+import { JsonBlock, extractMcpPayload, isJsonObject } from './JsonDisplay';
 
 type ResultState = 'empty' | 'loading' | 'done';
 
@@ -72,54 +70,6 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-function JsonBlock({ value }: { value: Record<string, unknown> | unknown[] }) {
-  return (
-    <div className="rounded-lg bg-muted/50 p-4 text-[11px]">
-      <ReactJson
-        src={value}
-        name={false}
-        theme="rjv-default"
-        displayDataTypes={false}
-        displayObjectSize={false}
-        enableClipboard={false}
-        collapsed={2}
-        style={{ backgroundColor: 'transparent', fontFamily: 'var(--font-mono, monospace)' }}
-      />
-    </div>
-  );
-}
-
-interface McpContentItem {
-  type: string;
-  text?: string;
-}
-
-function isMcpContentResult(value: unknown): value is { content: McpContentItem[] } {
-  if (typeof value !== 'object' || value === null) return false;
-  const obj = value as Record<string, unknown>;
-  return Array.isArray(obj['content']);
-}
-
-function tryParseJson(text: string): unknown {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return undefined;
-  }
-}
-
-function extractMcpPayload(value: unknown): unknown {
-  if (!isMcpContentResult(value)) return value;
-  const items = value.content.filter((c) => c.type === 'text' && typeof c.text === 'string');
-  if (items.length === 1 && items[0]?.text !== undefined) {
-    return tryParseJson(items[0].text) ?? items[0].text;
-  }
-  if (items.length > 1) {
-    return items.map((c) => tryParseJson(c.text ?? '') ?? c.text);
-  }
-  return value;
-}
-
 function formatDuration(ms: number): string {
   return ms < 1000 ? `${String(ms)}ms` : `${(ms / 1000).toFixed(2)}s`;
 }
@@ -159,10 +109,6 @@ function ResultHeader({
 
 function serializePayload(payload: unknown): string {
   return typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2);
-}
-
-function isJsonObject(value: unknown): value is Record<string, unknown> | unknown[] {
-  return typeof value === 'object' && value !== null;
 }
 
 function SuccessResult({ result, durationMs }: { result: unknown; durationMs: number | null }) {

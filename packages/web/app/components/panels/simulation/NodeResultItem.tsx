@@ -5,16 +5,47 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import type { NodeResult, SimulationToolCall } from '../../../types/simulation';
+import { SmallJsonBlock, extractMcpPayload, isJsonObject } from '../JsonDisplay';
 import { TokenDisplay } from './TokenDisplay';
 
-function formatJson(value: unknown): string {
-  if (value === undefined || value === null) return '';
-  return JSON.stringify(value, null, 2);
+const REDACTED_PATTERN = /^\[REDACTED\]$/i;
+
+function isUsableReasoning(reasoning: string | undefined): reasoning is string {
+  if (reasoning === undefined || reasoning === '') return false;
+  return !REDACTED_PATTERN.test(reasoning.trim());
+}
+
+function JsonOrText({ value, label }: { value: unknown; label: string }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-[9px] uppercase text-muted-foreground">{label}</span>
+      {isJsonObject(value) ? (
+        <SmallJsonBlock value={value} />
+      ) : (
+        <pre className="max-h-28 overflow-auto whitespace-pre-wrap rounded bg-muted p-1.5 font-mono text-[10px]">
+          {String(value ?? '')}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+function ToolCallDetails({ call }: { call: SimulationToolCall }) {
+  const t = useTranslations('simulation');
+  const hasInput = call.input !== undefined && call.input !== null;
+  const extracted = extractMcpPayload(call.output);
+  const hasOutput = extracted !== undefined && extracted !== null;
+
+  return (
+    <div className="ml-[30px] mt-1 flex flex-col gap-1">
+      {hasInput && <JsonOrText value={call.input} label={t('toolInput')} />}
+      {hasOutput && <JsonOrText value={extracted} label={t('toolOutput')} />}
+    </div>
+  );
 }
 
 function ToolCallRow({ call }: { call: SimulationToolCall }) {
   const [open, setOpen] = useState(false);
-  const t = useTranslations('simulation');
   const hasContent = call.input !== undefined || call.output !== undefined;
 
   return (
@@ -31,37 +62,7 @@ function ToolCallRow({ call }: { call: SimulationToolCall }) {
         <Wrench className="size-3 text-muted-foreground" />
         <span className="font-mono text-[11px]">{call.toolName}</span>
       </button>
-      {open && <ToolCallDetails call={call} inputLabel={t('toolInput')} outputLabel={t('toolOutput')} />}
-    </div>
-  );
-}
-
-function ToolCallDetails({
-  call,
-  inputLabel,
-  outputLabel,
-}: {
-  call: SimulationToolCall;
-  inputLabel: string;
-  outputLabel: string;
-}) {
-  const hasInput = call.input !== undefined && call.input !== null;
-  const hasOutput = call.output !== undefined && call.output !== null;
-
-  return (
-    <div className="ml-[30px] mt-1 flex flex-col gap-1">
-      {hasInput && (
-        <pre className="max-h-28 overflow-auto rounded bg-muted p-1.5 font-mono text-[10px]">
-          <span className="mb-0.5 block text-[9px] uppercase text-muted-foreground">{inputLabel}</span>
-          {formatJson(call.input)}
-        </pre>
-      )}
-      {hasOutput && (
-        <pre className="max-h-28 overflow-auto rounded bg-muted p-1.5 font-mono text-[10px]">
-          <span className="mb-0.5 block text-[9px] uppercase text-muted-foreground">{outputLabel}</span>
-          {formatJson(call.output)}
-        </pre>
-      )}
+      {open && <ToolCallDetails call={call} />}
     </div>
   );
 }
@@ -103,6 +104,7 @@ function ErrorRow({ message }: { message: string }) {
 
 function OutputRow({ data }: { data: unknown }) {
   const [open, setOpen] = useState(false);
+  const extracted = extractMcpPayload(data);
 
   return (
     <div className="flex flex-col">
@@ -114,9 +116,15 @@ function OutputRow({ data }: { data: unknown }) {
         <span className="font-mono text-[11px]">Output</span>
       </button>
       {open && (
-        <pre className="ml-[30px] mt-1 max-h-48 overflow-auto rounded bg-muted p-1.5 font-mono text-[10px]">
-          {formatJson(data)}
-        </pre>
+        <div className="ml-[30px] mt-1">
+          {isJsonObject(extracted) ? (
+            <SmallJsonBlock value={extracted} />
+          ) : (
+            <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded bg-muted p-1.5 font-mono text-[10px]">
+              {String(extracted ?? '')}
+            </pre>
+          )}
+        </div>
       )}
     </div>
   );
@@ -133,10 +141,10 @@ export function NodeResultItem({ result }: { result: NodeResult }) {
     : 'border-muted-foreground/30';
 
   return (
-    <div className={`max-w-[80%] flex flex-col gap-0.5 border-l-3 ${borderClass} py-0 pl-2`}>
+    <div className={`max-w-[100%] flex flex-col gap-0.5 border-l-3 ${borderClass} py-0 pl-2`}>
       <span className="font-mono text-[11px] font-medium">{result.nodeId}</span>
       {result.error !== undefined && <ErrorRow message={result.error} />}
-      {result.reasoning !== undefined && <ReasoningRow reasoning={result.reasoning} />}
+      {isUsableReasoning(result.reasoning) && <ReasoningRow reasoning={result.reasoning} />}
       {result.toolCalls.map((call, i) => (
         <ToolCallRow key={i} call={call} />
       ))}
