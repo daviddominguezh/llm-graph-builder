@@ -54,8 +54,8 @@ function SimulationHeader({
 function UserMessage({ text }: { text: string }) {
   if (text === '') return null;
   return (
-    <div className="ml-auto border-r-3 border-primary py-0 pr-2">
-      <p className="text-right text-xs leading-relaxed">{text}</p>
+    <div className="max-w-[80%] ml-auto bg-accent/10 rounded-md p-2 pr-0">
+      <p className="text-xs leading-relaxed border-r-3 border-primary pr-2">{text}</p>
     </div>
   );
 }
