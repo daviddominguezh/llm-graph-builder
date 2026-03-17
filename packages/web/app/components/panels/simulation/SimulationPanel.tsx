@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Loader2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import type { NodeResult, SimulationTokens } from '../../../types/simulation';
 import { NodeResultItem } from './NodeResultItem';
@@ -23,17 +23,32 @@ interface SimulationPanelProps {
 }
 
 function Breadcrumbs({ nodes }: { nodes: string[] }) {
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollToEnd = useCallback(() => {
+    const el = scrollRef.current;
+    if (el !== null) {
+      el.scrollLeft = el.scrollWidth;
+    }
+  }, []);
+
+  useEffect(() => {
+    scrollToEnd();
+  }, [nodes.length, scrollToEnd]);
+
   if (nodes.length === 0) return null;
   const lastIndex = nodes.length - 1;
   return (
-    <p className="truncate font-mono text-[10px] text-muted-foreground">
-      {nodes.map((node, i) => (
-        <span key={i}>
-          {i > 0 && ' \u2192 '}
-          <span className={i === lastIndex ? 'font-bold text-foreground' : ''}>{node}</span>
-        </span>
-      ))}
-    </p>
+    <div ref={scrollRef} className="overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+      <p className="whitespace-nowrap font-mono text-[10px] text-muted-foreground">
+        {nodes.map((node, i) => (
+          <span key={i}>
+            {i > 0 && ' \u2192 '}
+            <span className={i === lastIndex ? 'font-bold text-foreground' : ''}>{node}</span>
+          </span>
+        ))}
+      </p>
+    </div>
   );
 }
 

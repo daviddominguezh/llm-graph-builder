@@ -2,6 +2,8 @@
 
 import { AlertTriangle, Braces, Brain, ChevronRight, Wrench } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { MarkdownHooks } from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useState } from 'react';
 
 import type { NodeResult, SimulationToolCall } from '../../../types/simulation';
@@ -129,7 +131,11 @@ function OutputRow({ data }: { data: unknown }) {
 
 function AgentText({ text }: { text: string }) {
   if (text === '') return null;
-  return <p className="pl-[18px] text-xs leading-relaxed">{text}</p>;
+  return (
+    <div className="markdown-content pl-[18px] text-xs leading-relaxed">
+      <MarkdownHooks remarkPlugins={[remarkGfm]}>{text}</MarkdownHooks>
+    </div>
+  );
 }
 
 export function NodeResultItem({ result }: { result: NodeResult }) {
