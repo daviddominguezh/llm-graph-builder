@@ -31,7 +31,6 @@ interface ToolTestFormProps {
   schema: ToolSchema | undefined;
   running: boolean;
   onRun: (args: Record<string, unknown>) => void;
-  onCancel: () => void;
 }
 
 type FieldValues = Record<string, string | boolean>;
@@ -223,31 +222,14 @@ function OptionalSection({ children }: { children: React.ReactNode }) {
   );
 }
 
-function RunButton({
-  enabled,
-  running,
-  onRun,
-  onCancel,
-}: {
-  enabled: boolean;
-  running: boolean;
-  onRun: () => void;
-  onCancel: () => void;
-}) {
+function RunButton({ enabled, running, onRun }: { enabled: boolean; running: boolean; onRun: () => void }) {
   const t = useTranslations('toolTest');
   return (
-    <div className="sticky bottom-0 border-t bg-background pb-1 pt-2">
-      <div className="flex gap-2">
-        <Button className="flex-1" disabled={!enabled || running} onClick={onRun}>
-          {running && <Loader2 className="size-3 animate-spin" />}
-          {running ? t('running') : t('run')}
-        </Button>
-        {running && (
-          <Button variant="ghost" className="text-muted-foreground" onClick={onCancel}>
-            {t('cancel')}
-          </Button>
-        )}
-      </div>
+    <div className="shrink-0 border-t bg-background p-2">
+      <Button className="w-full" disabled={!enabled || running} onClick={onRun}>
+        {running && <Loader2 className="size-3 animate-spin" />}
+        {running ? t('running') : t('run')}
+      </Button>
       {!enabled && !running && (
         <p className="mt-1.5 text-center text-[10px] text-muted-foreground">{t('requiredFields')}</p>
       )}
@@ -255,7 +237,7 @@ function RunButton({
   );
 }
 
-export function ToolTestForm({ schema, running, onRun, onCancel }: ToolTestFormProps) {
+export function ToolTestForm({ schema, running, onRun }: ToolTestFormProps) {
   const t = useTranslations('toolTest');
   const [values, setValues] = useState<FieldValues>({});
   const [jsonErrors, setJsonErrors] = useState<JsonErrors>({});
@@ -318,25 +300,27 @@ export function ToolTestForm({ schema, running, onRun, onCancel }: ToolTestFormP
   );
 
   return (
-    <div className="flex flex-1 flex-col overflow-y-auto scroll-py-4 px-5 py-4">
-      {hasNoProps ? (
-        <p className="flex-1 text-xs text-muted-foreground">{t('noInput')}</p>
-      ) : (
-        <div className="flex flex-1 flex-col gap-4">
-          {required.map((name) => renderField(name, true))}
-          {optional.length > 0 && startExpanded && (
-            <div className="flex flex-col gap-4">
-              {optional.map((name) => renderField(name, false))}
-            </div>
-          )}
-          {optional.length > 0 && !startExpanded && (
-            <OptionalSection>
-              {optional.map((name) => renderField(name, false))}
-            </OptionalSection>
-          )}
-        </div>
-      )}
-      <RunButton enabled={enabled} running={running} onRun={handleRun} onCancel={onCancel} />
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex-1 overflow-y-auto px-5 py-4">
+        {hasNoProps ? (
+          <p className="text-xs text-muted-foreground">{t('noInput')}</p>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {required.map((name) => renderField(name, true))}
+            {optional.length > 0 && startExpanded && (
+              <div className="flex flex-col gap-4">
+                {optional.map((name) => renderField(name, false))}
+              </div>
+            )}
+            {optional.length > 0 && !startExpanded && (
+              <OptionalSection>
+                {optional.map((name) => renderField(name, false))}
+              </OptionalSection>
+            )}
+          </div>
+        )}
+      </div>
+      <RunButton enabled={enabled} running={running} onRun={handleRun} />
     </div>
   );
 }

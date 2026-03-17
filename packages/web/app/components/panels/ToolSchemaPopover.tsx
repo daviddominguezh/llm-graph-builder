@@ -1,9 +1,7 @@
 'use client';
 
-import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { useTranslations } from 'next-intl';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 interface SchemaProperty {
@@ -91,15 +89,18 @@ export function FloatingSchema({
   description = '',
   anchorRef,
   schema,
+  onClose,
 }: {
   description?: string;
   anchorRef: React.RefObject<HTMLDivElement | null>;
   schema: ToolSchema;
+  onClose?: () => void;
 }) {
-  const t = useTranslations('mcpLibrary');
+  const floatingRef = useRef<HTMLDivElement | null>(null);
 
   const positionRef = useCallback(
     (el: HTMLDivElement | null) => {
+      floatingRef.current = el;
       const anchor = anchorRef.current;
       if (!el || !anchor) return;
       const rect = anchor.getBoundingClientRect();
@@ -109,6 +110,19 @@ export function FloatingSchema({
     },
     [anchorRef]
   );
+
+  useEffect(() => {
+    if (onClose === undefined) return;
+    const handler = (e: MouseEvent) => {
+      const el = floatingRef.current;
+      const anchor = anchorRef.current;
+      if (el?.contains(e.target as Node) === true) return;
+      if (anchor?.contains(e.target as Node) === true) return;
+      onClose();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose, anchorRef]);
 
   return createPortal(
     <div

@@ -122,11 +122,13 @@ function ToolRow({
   tool,
   expanded,
   onClick,
+  onCollapse,
   onTest,
 }: {
   tool: FlatTool;
   expanded: boolean;
   onClick: () => void;
+  onCollapse: () => void;
   onTest: (tool: FlatTool) => void;
 }) {
   const rowRef = useRef<HTMLDivElement>(null);
@@ -150,6 +152,7 @@ function ToolRow({
           description={tool.description}
           anchorRef={rowRef}
           schema={tool.inputSchema as ToolSchema}
+          onClose={onCollapse}
         />
       )}
     </li>
@@ -161,12 +164,14 @@ function ToolsList({
   totalCount,
   expandedTool,
   onToggleTool,
+  onCollapseTool,
   onTestTool,
 }: {
   groups: ToolGroup[];
   totalCount: number;
   expandedTool: string | null;
   onToggleTool: (key: string) => void;
+  onCollapseTool: () => void;
   onTestTool: (tool: FlatTool) => void;
 }) {
   return (
@@ -190,6 +195,7 @@ function ToolsList({
                     tool={tool}
                     expanded={expandedTool === key}
                     onClick={() => onToggleTool(key)}
+                    onCollapse={onCollapseTool}
                     onTest={onTestTool}
                   />
                 );
@@ -316,6 +322,7 @@ export function ToolsPanel({ servers, discoveredTools, mcp, open, onClose }: Too
               totalCount={totalCount}
               expandedTool={expandedTool}
               onToggleTool={(key) => setExpandedTool((prev) => (prev === key ? null : key))}
+              onCollapseTool={() => setExpandedTool(null)}
               onTestTool={tt.openTest}
             />
           </TabsContent>

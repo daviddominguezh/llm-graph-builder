@@ -3,14 +3,13 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Check, Copy, Loader2, Terminal } from 'lucide-react';
-import { MarkdownHooks } from 'react-markdown';
-import rehypeStarryNight from 'rehype-starry-night';
-import remarkGfm from 'remark-gfm';
-import '@wooorm/starry-night/style/light';
+import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { ToolCallResponse } from '../../lib/api';
+
+const ReactJson = dynamic(() => import('@microlink/react-json-view'), { ssr: false });
 
 type ResultState = 'empty' | 'loading' | 'done';
 
@@ -18,6 +17,7 @@ interface ToolTestResultProps {
   state: ResultState;
   result: ToolCallResponse | null;
   startedAt: number | null;
+  durationMs: number | null;
 }
 
 function EmptyState({ message }: { message: string }) {
@@ -48,7 +48,7 @@ function ElapsedTimer({ startedAt }: { startedAt: number }) {
 function LoadingState({ startedAt }: { startedAt: number | null }) {
   const t = useTranslations('toolTest');
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3">
+    <div className="flex flex-1 flex-col items-center justify-center gap-1">
       <Loader2 className="size-5 animate-spin text-muted-foreground" />
       <p className="animate-pulse text-xs text-muted-foreground">{t('running')}</p>
       {startedAt !== null && <ElapsedTimer startedAt={startedAt} />}
@@ -66,74 +66,168 @@ function CopyButton({ text }: { text: string }) {
   }, [text]);
 
   return (
-    <Button variant="ghost" size="icon-xs" className="shrink-0" onClick={handleCopy}>
-      {copied ? <Check className="size-2.5" /> : <Copy className="size-2.5" />}
+    <Button variant="ghost" size="icon" className="shrink-0" onClick={handleCopy}>
+      {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
     </Button>
   );
 }
 
-function JsonBlock({ value }: { value: unknown }) {
-  const json = JSON.stringify(value, null, 2);
-  const markdown = `\`\`\`json\n${json}\n\`\`\``;
-
+function JsonBlock({ value }: { value: Record<string, unknown> | unknown[] }) {
   return (
-    <div className="relative">
-      <div className="absolute right-2 top-2 z-10">
-        <CopyButton text={json} />
-      </div>
-      <div className="overflow-x-auto rounded-lg bg-muted/50 text-[11px] leading-relaxed [&_pre]:p-4">
-        <MarkdownHooks remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeStarryNight]}>
-          {markdown}
-        </MarkdownHooks>
-      </div>
+    <div className="rounded-lg bg-muted/50 p-4 text-[11px]">
+      <ReactJson
+        src={value}
+        name={false}
+        theme="rjv-default"
+        displayDataTypes={false}
+        displayObjectSize={false}
+        enableClipboard={false}
+        collapsed={2}
+        style={{ backgroundColor: 'transparent', fontFamily: 'var(--font-mono, monospace)' }}
+      />
     </div>
   );
 }
 
-function SuccessResult({ result }: { result: unknown }) {
+interface McpContentItem {
+  type: string;
+  text?: string;
+}
+
+function isMcpContentResult(value: unknown): value is { content: McpContentItem[] } {
+  if (typeof value !== 'object' || value === null) return false;
+  const obj = value as Record<string, unknown>;
+  return Array.isArray(obj['content']);
+}
+
+function tryParseJson(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+}
+
+function extractMcpPayload(value: unknown): unknown {
+  if (!isMcpContentResult(value)) return value;
+  const items = value.content.filter((c) => c.type === 'text' && typeof c.text === 'string');
+  if (items.length === 1 && items[0]?.text !== undefined) {
+    return tryParseJson(items[0].text) ?? items[0].text;
+  }
+  if (items.length > 1) {
+    return items.map((c) => tryParseJson(c.text ?? '') ?? c.text);
+  }
+  return value;
+}
+
+function formatDuration(ms: number): string {
+  return ms < 1000 ? `${String(ms)}ms` : `${(ms / 1000).toFixed(2)}s`;
+}
+
+function ResultHeader({
+  success, durationMs, copyText,
+}: {
+  success: boolean; durationMs: number | null; copyText?: string;
+}) {
   const t = useTranslations('toolTest');
   return (
-    <div className="flex flex-col gap-3 p-5 animate-in fade-in-0 duration-300">
-      <Badge className="w-fit bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border-transparent animate-in slide-in-from-top-1 fade-in-0 duration-200">
-        {t('success')}
-      </Badge>
-      <JsonBlock value={result} />
+    <div className="shrink-0 flex items-center gap-4 text-xs animate-in slide-in-from-top-1 fade-in-0 duration-200">
+      <div className="flex items-center gap-1.5">
+        <span className="text-muted-foreground">{t('status')}:</span>
+        {success ? (
+          <Badge className="bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border-transparent">
+            {t('success')}
+          </Badge>
+        ) : (
+          <Badge variant="destructive">{t('error')}</Badge>
+        )}
+      </div>
+      {durationMs !== null && (
+        <div className="flex items-center gap-1.5">
+          <span className="text-muted-foreground">{t('duration')}:</span>
+          <span className="tabular-nums font-medium">{formatDuration(durationMs)}</span>
+        </div>
+      )}
+      {copyText !== undefined && (
+        <div className="ml-auto">
+          <CopyButton text={copyText} />
+        </div>
+      )}
     </div>
   );
 }
 
-function ErrorResult({ error }: { error: { message: string; code?: string; details?: unknown } }) {
+function serializePayload(payload: unknown): string {
+  return typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2);
+}
+
+function isJsonObject(value: unknown): value is Record<string, unknown> | unknown[] {
+  return typeof value === 'object' && value !== null;
+}
+
+function SuccessResult({ result, durationMs }: { result: unknown; durationMs: number | null }) {
+  const payload = extractMcpPayload(result);
+  const copyText = serializePayload(payload);
+  return (
+    <div className="min-w-0 flex min-h-0 flex-1 flex-col animate-in fade-in-0 duration-300">
+      <div className="shrink-0 px-5 pt-5 pb-3">
+        <ResultHeader success durationMs={durationMs} copyText={copyText} />
+      </div>
+      <div className="flex-1 overflow-y-auto px-5 pb-5">
+        {isJsonObject(payload) ? (
+          <JsonBlock value={payload} />
+        ) : (
+          <pre className="whitespace-pre-wrap rounded-lg bg-muted/50 p-4 text-[11px] leading-relaxed">{String(payload)}</pre>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ErrorResult({
+  error, durationMs,
+}: {
+  error: { message: string; code?: string; details?: unknown }; durationMs: number | null;
+}) {
   const t = useTranslations('toolTest');
   return (
-    <div className="flex flex-col gap-3 p-5 animate-in fade-in-0 duration-300">
-      <Badge variant="destructive" className="w-fit animate-in slide-in-from-top-1 fade-in-0 duration-200">
-        {t('error')}
-      </Badge>
-      <p className="text-sm font-medium">{error.message}</p>
-      {error.code !== undefined && (
-        <div className="flex items-baseline gap-2 text-xs">
-          <span className="text-muted-foreground">{t('errorCode')}</span>
-          <code className="font-mono">{error.code}</code>
+    <div className="min-w-0 flex min-h-0 flex-1 flex-col animate-in fade-in-0 duration-300">
+      <div className="shrink-0 px-5 pt-5 pb-3">
+        <ResultHeader success={false} durationMs={durationMs} />
+      </div>
+      <div className="flex-1 overflow-y-auto px-5 pb-5">
+        <div className="flex flex-col gap-3">
+          <p className="text-sm font-medium">{error.message}</p>
+          {error.code !== undefined && (
+            <div className="flex items-baseline gap-2 text-xs">
+              <span className="text-muted-foreground">{t('errorCode')}</span>
+              <code className="font-mono">{error.code}</code>
+            </div>
+          )}
+          {error.details !== undefined && (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {t('errorDetails')}
+              </span>
+              {isJsonObject(error.details) ? (
+                <JsonBlock value={error.details} />
+              ) : (
+                <pre className="whitespace-pre-wrap rounded-lg bg-muted/50 p-4 text-[11px]">{String(error.details)}</pre>
+              )}
+            </div>
+          )}
         </div>
-      )}
-      {error.details !== undefined && (
-        <div className="flex flex-col gap-1.5">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            {t('errorDetails')}
-          </span>
-          <JsonBlock value={error.details} />
-        </div>
-      )}
+      </div>
     </div>
   );
 }
 
-function DoneResult({ result }: { result: ToolCallResponse }) {
-  if (result.success) return <SuccessResult result={result.result} />;
-  return <ErrorResult error={result.error} />;
+function DoneResult({ result, durationMs }: { result: ToolCallResponse; durationMs: number | null }) {
+  if (result.success) return <SuccessResult result={result.result} durationMs={durationMs} />;
+  return <ErrorResult error={result.error} durationMs={durationMs} />;
 }
 
-export function ToolTestResult({ state, result, startedAt }: ToolTestResultProps) {
+export function ToolTestResult({ state, result, startedAt, durationMs }: ToolTestResultProps) {
   const t = useTranslations('toolTest');
   const showLoading = useRef(false);
 
@@ -149,6 +243,6 @@ export function ToolTestResult({ state, result, startedAt }: ToolTestResultProps
   }, [state]);
 
   if (state === 'loading') return <LoadingState startedAt={startedAt} />;
-  if (state === 'done' && result !== null) return <DoneResult result={result} />;
+  if (state === 'done' && result !== null) return <DoneResult result={result} durationMs={durationMs} />;
   return <EmptyState message={t('emptyState')} />;
 }

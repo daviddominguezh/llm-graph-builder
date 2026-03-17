@@ -366,6 +366,8 @@
     "cancel": "Cancel",
     "showAll": "Show all ({count} lines)",
     "collapse": "Collapse",
-    "copied": "Copied"
+    "copied": "Copied",
+    "status": "Status",
+    "duration": "Duration"
   }
 }

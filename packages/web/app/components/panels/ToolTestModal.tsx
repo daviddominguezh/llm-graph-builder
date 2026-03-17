@@ -34,6 +34,7 @@ function ModalBody({
   const [resultState, setResultState] = useState<ResultState>('empty');
   const [result, setResult] = useState<ToolCallResponse | null>(null);
   const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [durationMs, setDurationMs] = useState<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const handleRun = useCallback(
@@ -43,16 +44,20 @@ function ModalBody({
       const controller = new AbortController();
       abortRef.current = controller;
 
+      const start = Date.now();
       setResultState('loading');
-      setStartedAt(Date.now());
+      setStartedAt(start);
+      setDurationMs(null);
       try {
         const res = await callMcpTool(transport, tool.name, args, callOptions, controller.signal);
         if (!controller.signal.aborted) {
+          setDurationMs(Date.now() - start);
           setResult(res);
           setResultState('done');
         }
       } catch (err: unknown) {
         if (controller.signal.aborted) return;
+        setDurationMs(Date.now() - start);
         const message = err instanceof Error ? err.message : 'Unknown error';
         setResult({ success: false, error: { message } });
         setResultState('done');
@@ -61,28 +66,21 @@ function ModalBody({
     [transport, tool, callOptions]
   );
 
-  const handleCancel = useCallback(() => {
-    abortRef.current?.abort();
-    setResultState('empty');
-    setStartedAt(null);
-  }, []);
-
   const schema = tool?.inputSchema as
     | { properties?: Record<string, { type?: string; description?: string; enum?: string[] }>; required?: string[] }
     | undefined;
 
   return (
-    <div className="grid h-full grid-cols-[45fr_55fr]">
+    <div className="grid h-full min-h-0 grid-cols-[45fr_55fr]">
       <ToolTestForm
         schema={schema}
         running={resultState === 'loading'}
         onRun={handleRun}
-        onCancel={handleCancel}
       />
-      <div className="flex">
+      <div className="flex min-w-0 min-h-0">
         <Separator orientation="vertical" />
-        <div className="flex flex-1 flex-col overflow-y-auto scroll-py-4">
-          <ToolTestResult state={resultState} result={result} startedAt={startedAt} />
+        <div className="flex min-w-0 min-h-0 flex-1 flex-col">
+          <ToolTestResult state={resultState} result={result} startedAt={startedAt} durationMs={durationMs} />
         </div>
       </div>
     </div>
@@ -100,7 +98,7 @@ export function ToolTestModal({ tool, transport, callOptions, onClose }: ToolTes
       >
         {tool !== null && (
           <>
-            <DialogHeader className="border-b px-5 py-3">
+            <DialogHeader className="border-b pl-5 py-3 pr-7">
               <Tooltip>
                 <TooltipTrigger render={<DialogTitle className="max-w-[70%] truncate font-mono text-sm font-semibold tracking-tight" />}>
                   {tool.name}
@@ -110,7 +108,7 @@ export function ToolTestModal({ tool, transport, callOptions, onClose }: ToolTes
               {tool.description !== undefined && (
                 <Tooltip>
                   <TooltipTrigger
-                    render={<DialogDescription className="line-clamp-1" />}
+                    render={<DialogDescription className="w-fit line-clamp-1" />}
                   >
                     {tool.description}
                   </TooltipTrigger>
