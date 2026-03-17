@@ -18,7 +18,7 @@ interface PublishButtonProps {
 
 function PublishSpinner() {
   return (
-    <Button variant="default" size="sm" disabled className="h-10 gap-1.5 px-3">
+    <Button variant="default" size="sm" disabled className="h-10 gap-1.5 px-3 rounded-xl">
       <Loader2 className="size-4 animate-spin" />
     </Button>
   );
@@ -43,7 +43,7 @@ function PublishButtonContent({
       size="sm"
       onClick={disabled ? undefined : onPublish}
       disabled={disabled}
-      className="h-10 gap-1.5 px-3"
+      className="h-10 gap-1.5 px-3 rounded-xl"
     >
       {t('publish')}
     </Button>
