@@ -27,6 +27,7 @@ function resolveOutput(
   structuredOutput?: { nodeId: string; data: unknown }
 ): unknown {
   if (structuredOutput !== undefined) return structuredOutput.data;
+  if (parsedResult.nextNodeID === '') return { messageToUser: parsedResult.messageToUser };
   return parsedResult;
 }
 
