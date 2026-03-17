@@ -110,7 +110,7 @@ interface ParsedData {
 const isValidParsedData = (data: unknown): data is ParsedData =>
   typeof data === 'object' && data !== null && ('nextNodeID' in data || 'messageToUser' in data);
 
-const BR_TAG = '<br>';
+const BR_TAG = '[nl]';
 const NEWLINE = '\n';
 
 const normalizeLineBreaks = (text: string): string => text.replaceAll(BR_TAG, NEWLINE);
