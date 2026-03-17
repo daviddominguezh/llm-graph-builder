@@ -190,9 +190,13 @@
   border-color: var(--xy-theme-hover);
 }
 
-.react-flow__node.selectable.selected {
-  border-color: var(--xy-theme-selected);
+.react-flow__node.selectable.selected,
+.react-flow__node.selectable.selected:focus,
+.react-flow__node.selectable.selected:focus:active {
+  border-color: var(--secondary);
   box-shadow: var(--xy-node-boxshadow-default);
+  outline: 2px solid var(--xy-theme-selected);
+  outline-offset: 3px;
 }
 
 .react-flow__edge.selectable:hover .react-flow__edge-path,
