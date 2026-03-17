@@ -156,6 +156,8 @@ export interface NodeProcessedEvent {
   text: string;
   output?: unknown;
   toolCalls: SseToolCall[];
+  reasoning?: string;
+  error?: string;
   tokens: { input: number; output: number; cached: number };
   durationMs?: number;
   structuredOutput?: { nodeId: string; data: unknown };
@@ -200,6 +202,8 @@ const SseEventSchema = z.object({
   durationMs: z.number().optional(),
   message: z.string().optional(),
   structuredOutput: StructuredOutputSchema.optional(),
+  reasoning: z.string().optional(),
+  error: z.string().optional(),
 });
 
 type SseEvent = z.infer<typeof SseEventSchema>;
@@ -217,6 +221,8 @@ function handleNodeProcessed(event: SseEvent, callbacks: StreamCallbacks): void 
       text: event.text ?? '',
       output: event.output,
       toolCalls: event.toolCalls ?? [],
+      reasoning: event.reasoning,
+      error: event.error,
       tokens: event.tokens,
       durationMs: event.durationMs,
       structuredOutput: event.structuredOutput,

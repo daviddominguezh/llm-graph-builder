@@ -143,6 +143,8 @@
   },
   "simulation": {
     "toolInput": "Input",
+    "toolOutput": "Output",
+    "reasoning": "Reasoning",
     "nodeTokens": "Tokens by node",
     "totalTokens": "Total",
     "terminated": "Terminal node reached",

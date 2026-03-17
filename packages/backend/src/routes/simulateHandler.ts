@@ -21,8 +21,11 @@ function sendNodeProcessed(res: Response, event: NodeProcessedEvent): void {
     output: event.output,
     toolCalls: event.toolCalls.map((tc) => ({
       toolName: tc.toolName,
-      input: tc.input as unknown,
+      input: tc.input,
+      output: tc.output,
     })),
+    reasoning: event.reasoning,
+    error: event.error,
     tokens: event.tokens,
     durationMs: event.durationMs,
     structuredOutput: event.structuredOutput,

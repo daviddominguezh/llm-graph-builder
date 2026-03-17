@@ -138,11 +138,14 @@ export async function generateReply(params: GenerateReplyParams): Promise<ReplyG
     throw new Error('Expected last message to be an assistant message');
   }
 
+  const reasoning = reasoningPart === EMPTY_STRING ? undefined : reasoningPart;
+
   return {
     result: cleanedResult,
     tokens,
     toolCalls: reply.toolCalls,
     lastMessage: lastMsg,
     copyMsgs,
+    reasoning,
   };
 }

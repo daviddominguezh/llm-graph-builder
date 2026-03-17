@@ -44,6 +44,7 @@ function createExecParams(
   const tokens: TokenLog = createEmptyTokenLog();
   const copyMsgs: ModelMessage[][] = [];
   const allToolCalls: Array<TypedToolCall<Record<string, Tool<unknown, unknown>>>> = [];
+  const allToolResults: Array<{ toolName: string; output: unknown }> = [];
 
   return {
     context: options.context,
@@ -57,6 +58,7 @@ function createExecParams(
     executionStartTime,
     tokens,
     allToolCalls,
+    allToolResults,
     copyMsgs,
   };
 }
@@ -93,6 +95,7 @@ function buildResult(
     messages: processedMsgs,
     tokens: execParams.tokens,
     toolCalls: execParams.allToolCalls,
+    toolResults: execParams.allToolResults,
     lastMessage: getLastMessage(processedMsgs),
     copyMsgs: execParams.copyMsgs,
     error: !state.modelWorkedFine,

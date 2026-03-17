@@ -11,12 +11,13 @@ import { formatMessages } from '@src/utils/messages.js';
 import { getModel } from './agentExecutorHelpers.js';
 import { getConfig } from './config.js';
 import { AGENT_CONSTANTS, PROMPTS } from './constants.js';
+import { MessageProcessor } from './messageProcessor.js';
 import { DECISION_ONLY_OUTPUT_SCHEMA, type OutputSchema, TERMINAL_OUTPUT_SCHEMA } from './modelCaller.js';
 import { type ToolCallsArray, getProviderFromMessages } from './nodeProcessorHelpers.js';
 import { generateReply } from './replyGenerator.js';
 import { accumulateTokens } from './tokenTracker.js';
 import { type ProcessToolNodeParams, executeToolCall } from './toolCallExecutor.js';
-import type { CallAgentInput, NodeProcessingConfig } from './types.js';
+import type { AgentExecutionResult, CallAgentInput, NodeProcessingConfig } from './types.js';
 
 const LAST_INDEX_OFFSET = 1;
 
@@ -85,9 +86,14 @@ function resolveReplyOutputSchema(config: NodeProcessingConfig): OutputSchema | 
   return undefined;
 }
 
-export async function processReplyNode(
-  params: ProcessReplyNodeParams
-): Promise<{ parsedResult: ParsedResult; nextNodeID: string; toolCalls: ToolCallsArray }> {
+interface ReplyNodeResult {
+  parsedResult: ParsedResult;
+  nextNodeID: string;
+  toolCalls: ToolCallsArray;
+  reasoning?: string;
+}
+
+export async function processReplyNode(params: ProcessReplyNodeParams): Promise<ReplyNodeResult> {
   const { context, config, input, currentNodeID, debugMessages } = params;
   const { promptWithoutToolPreconditions, nodes } = config;
   const provider = getProviderFromMessages(input.messages);
@@ -114,7 +120,12 @@ export async function processReplyNode(
   Object.assign(debugMessages, { [currentNodeID]: res.copyMsgs });
 
   const { [res.result.nextNodeID]: nextNodeID } = nodes;
-  return { parsedResult: res.result, nextNodeID: nextNodeID ?? '', toolCalls: res.toolCalls };
+  return {
+    parsedResult: res.result,
+    nextNodeID: nextNodeID ?? '',
+    toolCalls: res.toolCalls,
+    reasoning: res.reasoning,
+  };
 }
 
 export function addNodeSpecificPrompts(context: Context, currentNodeID: string, replyPrompt: string): string {
@@ -170,10 +181,19 @@ interface ToolNodeResult {
   nextNodeID: string;
   error: boolean;
   toolCalls: ToolCallsArray;
+  reasoning?: string;
+  toolResults?: Array<{ toolName: string; output: unknown }>;
+  errorMessage?: string;
 }
 
-function createErrorResult(): ToolNodeResult {
-  return { parsedResult: { nextNodeID: '' }, nextNodeID: '', error: true, toolCalls: [] };
+function extractReasoningFromResult(agentRes: AgentExecutionResult): string | undefined {
+  const parts = MessageProcessor.extractContentByType(agentRes.messages, 'reasoning');
+  const [first] = parts;
+  return first !== undefined && first !== '' ? first : undefined;
+}
+
+function createErrorResult(errorMessage?: string): ToolNodeResult {
+  return { parsedResult: { nextNodeID: '' }, nextNodeID: '', error: true, toolCalls: [], errorMessage };
 }
 
 export async function processToolNode(params: ProcessToolNodeParams): Promise<ToolNodeResult> {
@@ -184,20 +204,23 @@ export async function processToolNode(params: ProcessToolNodeParams): Promise<To
   const [firstNextNodeID] = toolsByEdgeKeys;
   if (firstNextNodeID === undefined) {
     logger.error(`callAgentStep/${context.tenantID}/${context.userID}| No edges found in toolsByEdge`);
-    return createErrorResult();
+    return createErrorResult('No edges found in toolsByEdge');
   }
 
   const nextNodeID = firstNextNodeID;
   const nextNode = getNode(context.graph, nextNodeID);
 
-  const { hasError, finalToolCalls } = await executeToolCall(params);
+  const { agentRes, hasError, finalToolCalls } = await executeToolCall(params);
+  const reasoning = extractReasoningFromResult(agentRes);
+  const { toolResults } = agentRes;
 
   if (hasError) {
+    const errMsg = `Tool node failed: ${requiredTool ?? 'unknown'}`;
     logger.error(`callAgentStep/${context.tenantID}/${context.userID}| Tool node failed`, {
       currentNodeID,
       requiredTool: requiredTool ?? 'none',
     });
-    return createErrorResult();
+    return createErrorResult(errMsg);
   }
 
   const shouldGenerateReply = nextNode.nextNodeIsUser === true || isGlobal;
@@ -206,5 +229,12 @@ export async function processToolNode(params: ProcessToolNodeParams): Promise<To
     : { nextNodeID: AGENT_CONSTANTS.DEFAULT_OUTPUT_NODE };
 
   const { [parsedResult.nextNodeID]: finalNextNodeID } = nodes;
-  return { parsedResult, nextNodeID: finalNextNodeID ?? '', error: false, toolCalls: finalToolCalls };
+  return {
+    parsedResult,
+    nextNodeID: finalNextNodeID ?? '',
+    error: false,
+    toolCalls: finalToolCalls,
+    reasoning,
+    toolResults,
+  };
 }

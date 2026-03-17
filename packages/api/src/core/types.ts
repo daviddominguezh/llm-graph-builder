@@ -64,6 +64,7 @@ export interface AgentExecutionResult {
   messages: Array<AssistantModelMessage | ToolModelMessage>;
   tokens: TokenLog;
   toolCalls: Array<TypedToolCall<Record<string, Tool>>>;
+  toolResults: Array<{ toolName: string; output: unknown }>;
   lastMessage: AssistantModelMessage;
   copyMsgs: ModelMessage[][];
   error: boolean;
@@ -78,6 +79,7 @@ export interface ReplyGenerationResult {
   toolCalls: Array<TypedToolCall<Record<string, Tool>>>;
   lastMessage: AssistantModelMessage;
   copyMsgs: ModelMessage[][];
+  reasoning?: string;
 }
 
 /**

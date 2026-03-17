@@ -90,6 +90,8 @@ function handleNodeProcessedEvent(setters: SimulationSetters, event: NodeProcess
     text: event.text,
     output: event.output,
     toolCalls: event.toolCalls,
+    reasoning: event.reasoning,
+    error: event.error,
     tokens: event.tokens,
     durationMs: event.durationMs,
   };

@@ -20,6 +20,9 @@ export interface ProcessNodeResult {
   error: boolean;
   toolCalls: ToolCallsArray;
   structuredOutput?: { nodeId: string; data: unknown };
+  reasoning?: string;
+  toolResults?: Array<{ toolName: string; output: unknown }>;
+  errorMessage?: string;
 }
 
 export interface ProcessNodeParams {
@@ -93,7 +96,9 @@ async function processToolCallNode(
     debugMessages,
   });
 
-  if (result.error) return result;
+  if (result.error) {
+    return { ...result, errorMessage: result.errorMessage };
+  }
 
   const finalNextNodeID = await applyJumpTo(context, currentNodeID, result.nextNodeID);
   return { ...result, nextNodeID: finalNextNodeID };
@@ -106,7 +111,7 @@ async function processReplyCallNode(
   const { context, input, currentNodeID, debugMessages } = params;
   const result = await processReplyNode({ context, config, input, currentNodeID, debugMessages });
   const finalNextNodeID = await applyJumpTo(context, currentNodeID, result.nextNodeID);
-  return { ...result, nextNodeID: finalNextNodeID, error: false };
+  return { ...result, nextNodeID: finalNextNodeID, error: false, reasoning: result.reasoning };
 }
 
 async function processStructuredOutputCallNode(

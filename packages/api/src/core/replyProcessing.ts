@@ -28,6 +28,7 @@ export interface ProcessReplyParams {
   attemptStartTime: number;
   tokens: TokenLog;
   allToolCalls: Array<TypedToolCall<Record<string, Tool<unknown, unknown>>>>;
+  allToolResults: Array<{ toolName: string; output: unknown }>;
   modelName: string;
 }
 
@@ -143,9 +144,11 @@ function processReplyCore(
     attemptStartTime,
     tokens,
     allToolCalls,
+    allToolResults,
     modelName,
   } = params;
   const toolCalls = typedReply.toolCalls ?? [];
+  const toolResults = typedReply.toolResults ?? [];
 
   logResponseReceived({
     context,
@@ -159,6 +162,9 @@ function processReplyCore(
 
   if (toolCalls.length > FIRST_INDEX) {
     allToolCalls.push(...toolCalls);
+  }
+  if (toolResults.length > FIRST_INDEX) {
+    allToolResults.push(...toolResults);
   }
 
   const msgs = buildResponseMessages(typedReply);

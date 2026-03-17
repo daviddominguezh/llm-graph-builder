@@ -1,6 +1,6 @@
 'use client';
 
-import { Braces, ChevronRight, Wrench } from 'lucide-react';
+import { AlertTriangle, Braces, Brain, ChevronRight, Wrench } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -15,7 +15,7 @@ function formatJson(value: unknown): string {
 function ToolCallRow({ call }: { call: SimulationToolCall }) {
   const [open, setOpen] = useState(false);
   const t = useTranslations('simulation');
-  const hasInput = call.input !== undefined && call.input !== null;
+  const hasContent = call.input !== undefined || call.output !== undefined;
 
   return (
     <div className="flex flex-col">
@@ -23,20 +23,80 @@ function ToolCallRow({ call }: { call: SimulationToolCall }) {
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         className="flex items-center gap-1.5 text-left"
-        disabled={!hasInput}
+        disabled={!hasContent}
       >
         <ChevronRight
-          className={`size-3 text-muted-foreground transition-transform ${open ? 'rotate-90' : ''} ${hasInput ? '' : 'invisible'}`}
+          className={`size-3 text-muted-foreground transition-transform ${open ? 'rotate-90' : ''} ${hasContent ? '' : 'invisible'}`}
         />
         <Wrench className="size-3 text-muted-foreground" />
         <span className="font-mono text-[11px]">{call.toolName}</span>
       </button>
-      {open && hasInput && (
-        <pre className="ml-[30px] mt-1 max-h-28 overflow-auto rounded bg-muted p-1.5 font-mono text-[10px]">
-          <span className="mb-0.5 block text-[9px] uppercase text-muted-foreground">{t('toolInput')}</span>
+      {open && <ToolCallDetails call={call} inputLabel={t('toolInput')} outputLabel={t('toolOutput')} />}
+    </div>
+  );
+}
+
+function ToolCallDetails({
+  call,
+  inputLabel,
+  outputLabel,
+}: {
+  call: SimulationToolCall;
+  inputLabel: string;
+  outputLabel: string;
+}) {
+  const hasInput = call.input !== undefined && call.input !== null;
+  const hasOutput = call.output !== undefined && call.output !== null;
+
+  return (
+    <div className="ml-[30px] mt-1 flex flex-col gap-1">
+      {hasInput && (
+        <pre className="max-h-28 overflow-auto rounded bg-muted p-1.5 font-mono text-[10px]">
+          <span className="mb-0.5 block text-[9px] uppercase text-muted-foreground">{inputLabel}</span>
           {formatJson(call.input)}
         </pre>
       )}
+      {hasOutput && (
+        <pre className="max-h-28 overflow-auto rounded bg-muted p-1.5 font-mono text-[10px]">
+          <span className="mb-0.5 block text-[9px] uppercase text-muted-foreground">{outputLabel}</span>
+          {formatJson(call.output)}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+function ReasoningRow({ reasoning }: { reasoning: string }) {
+  const [open, setOpen] = useState(false);
+  const t = useTranslations('simulation');
+
+  return (
+    <div className="flex flex-col">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex items-center gap-1.5 text-left"
+      >
+        <ChevronRight
+          className={`size-3 text-muted-foreground transition-transform ${open ? 'rotate-90' : ''}`}
+        />
+        <Brain className="size-3 text-muted-foreground" />
+        <span className="font-mono text-[11px]">{t('reasoning')}</span>
+      </button>
+      {open && (
+        <pre className="ml-[30px] mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded bg-muted p-1.5 font-mono text-[10px]">
+          {reasoning}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+function ErrorRow({ message }: { message: string }) {
+  return (
+    <div className="flex items-center gap-1.5 text-destructive">
+      <AlertTriangle className="size-3" />
+      <span className="font-mono text-[11px]">{message}</span>
     </div>
   );
 }
@@ -68,9 +128,15 @@ function AgentText({ text }: { text: string }) {
 }
 
 export function NodeResultItem({ result }: { result: NodeResult }) {
+  const borderClass = result.error !== undefined
+    ? 'border-destructive/50'
+    : 'border-muted-foreground/30';
+
   return (
-    <div className="max-w-[80%] flex flex-col gap-0.5 border-l-3 border-muted-foreground/30 py-0 pl-2">
+    <div className={`max-w-[80%] flex flex-col gap-0.5 border-l-3 ${borderClass} py-0 pl-2`}>
       <span className="font-mono text-[11px] font-medium">{result.nodeId}</span>
+      {result.error !== undefined && <ErrorRow message={result.error} />}
+      {result.reasoning !== undefined && <ReasoningRow reasoning={result.reasoning} />}
       {result.toolCalls.map((call, i) => (
         <ToolCallRow key={i} call={call} />
       ))}

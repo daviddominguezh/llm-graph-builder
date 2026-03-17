@@ -25,6 +25,8 @@ export interface NodeResult {
   text: string;
   output?: unknown;
   toolCalls: SimulationToolCall[];
+  reasoning?: string;
+  error?: string;
   tokens: TokenLog;
   durationMs?: number;
 }

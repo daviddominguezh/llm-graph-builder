@@ -57,7 +57,9 @@ export type SimulationEvent =
       nodeId: string;
       text: string;
       output?: unknown;
-      toolCalls: Array<{ toolName: string; input: unknown }>;
+      toolCalls: Array<{ toolName: string; input: unknown; output?: unknown }>;
+      reasoning?: string;
+      error?: string;
       tokens: { input: number; output: number; cached: number };
       durationMs: number;
       structuredOutput?: { nodeId: string; data: unknown };

@@ -5,11 +5,10 @@ import { getNode } from '@src/stateMachine/graph/index.js';
 import type { ParsedResult } from '@src/types/ai/index.js';
 import type { Graph } from '@src/types/graph.js';
 import type { Context } from '@src/types/tools.js';
-import { stableJsonStringify } from '@src/utils/stableJsonHash.js';
 
-import type { ProcessNodeParams, ProcessNodeResult, ToolCallsArray } from './nodeHelpers.js';
+import { type TimedResult, applySuccessResult, emitResultForNode } from './flowEmitter.js';
+import type { ProcessNodeParams, ToolCallsArray } from './nodeHelpers.js';
 import { processNode } from './nodeHelpers.js';
-import { createEmptyTokenLog } from './tokenTracker.js';
 import type { CallAgentInput } from './types.js';
 
 export type { ToolCallsArray } from './nodeHelpers.js';
@@ -37,48 +36,12 @@ export interface FlowResult {
   newStructuredOutputs: Array<{ nodeId: string; data: unknown }>;
 }
 
-interface EmitNodeProcessedParams {
-  context: Context;
-  input: CallAgentInput;
-  nodeId: string;
-  parsedResult: ParsedResult;
-  toolCalls: ToolCallsArray;
-  durationMs: number;
-  structuredOutput?: { nodeId: string; data: unknown };
-}
-
-function resolveOutput(
-  parsedResult: ParsedResult,
-  structuredOutput?: { nodeId: string; data: unknown }
-): unknown {
-  if (structuredOutput !== undefined) return structuredOutput.data;
-  return parsedResult;
-}
-
-function emitNodeProcessed(params: EmitNodeProcessedParams): void {
-  const { context, input, nodeId, parsedResult, toolCalls, durationMs, structuredOutput } = params;
-  if (context.onNodeProcessed === undefined) return;
-  const lastLog = input.tokensLog.at(-LAST_INDEX_OFFSET);
-  const tokens = lastLog?.tokens ?? createEmptyTokenLog();
-  context.onNodeProcessed({
-    nodeId,
-    text: parsedResult.messageToUser,
-    output: resolveOutput(parsedResult, structuredOutput),
-    toolCalls,
-    tokens,
-    durationMs,
-    structuredOutput,
-  });
-}
-
 function isTerminalNode(context: Context, nodeID: string): boolean {
   const edges = context.graph.edges.filter((e) => e.from === nodeID);
   return edges.length === EMPTY_LENGTH;
 }
 
-async function processNodeTimed(
-  params: ProcessNodeParams
-): Promise<ProcessNodeResult & { durationMs: number }> {
+async function processNodeTimed(params: ProcessNodeParams): Promise<TimedResult> {
   const startTime = Date.now();
   const result = await processNode(params);
   return { ...result, durationMs: Date.now() - startTime };
@@ -109,28 +72,33 @@ function advanceFlowState(context: Context, state: FlowState, nextNodeID: string
   return { state: newState, error: false, shouldContinue: nextNodeIsUser !== true, isTerminal: false };
 }
 
-function mergeStructuredOutputEntry(outputs: Record<string, unknown[]>, nodeId: string, data: unknown): void {
-  const existing = outputs[nodeId] ?? [];
-  const hash = stableJsonStringify(data);
-  const alreadyExists = existing.some((e) => stableJsonStringify(e) === hash);
-  if (!alreadyExists) {
-    Object.assign(outputs, { [nodeId]: [...existing, data] });
-  }
-}
-
-function accumulateStructuredOutput(
-  state: FlowState,
-  structuredOutput: { nodeId: string; data: unknown } | undefined
-): void {
-  if (structuredOutput === undefined) return;
-  const { nodeId, data } = structuredOutput;
-  mergeStructuredOutputEntry(state.structuredOutputs, nodeId, data);
-  state.newStructuredOutputs.push(structuredOutput);
-}
-
 function lastResultHasMessage(parsedResults: ParsedResult[]): boolean {
   const [last] = parsedResults.slice(-LAST_INDEX_OFFSET);
   return last?.messageToUser !== undefined && last.messageToUser !== '';
+}
+
+interface NodeHandlerParams {
+  context: Context;
+  input: CallAgentInput;
+  nodeId: string;
+  result: TimedResult;
+}
+
+function handleNodeSuccess(params: NodeHandlerParams, state: FlowState): void {
+  const { context, input, nodeId, result } = params;
+  emitResultForNode({ context, input, nodeId, result });
+  applySuccessResult(state.allToolCalls, result, state.structuredOutputs, state.newStructuredOutputs);
+}
+
+function handleNodeError(params: NodeHandlerParams): void {
+  const { context, input, nodeId, result } = params;
+  emitResultForNode({
+    context,
+    input,
+    nodeId,
+    result,
+    errorOverride: result.errorMessage ?? 'Node processing failed',
+  });
 }
 
 async function executeTerminalNode(
@@ -156,21 +124,13 @@ async function executeTerminalNode(
     structuredOutputs: state.structuredOutputs,
   });
 
-  if (result.error) return { state, error: true, shouldContinue: false };
+  if (result.error) {
+    handleNodeError({ context, input, nodeId: currentNodeID, result });
+    return { state, error: true, shouldContinue: false };
+  }
 
-  const { parsedResult, toolCalls, durationMs, structuredOutput } = result;
-  emitNodeProcessed({
-    context,
-    input,
-    nodeId: currentNodeID,
-    parsedResult,
-    toolCalls,
-    durationMs,
-    structuredOutput,
-  });
-  if (toolCalls.length > EMPTY_LENGTH) state.allToolCalls.push(...toolCalls);
-  accumulateStructuredOutput(state, structuredOutput);
-  parsedResults.push(parsedResult);
+  handleNodeSuccess({ context, input, nodeId: currentNodeID, result }, state);
+  parsedResults.push(result.parsedResult);
   return { state, error: false, shouldContinue: false, isTerminal: true };
 }
 
@@ -180,7 +140,7 @@ async function processFlowStep(
   debugMessages: Record<string, ModelMessage[][]>,
   state: FlowState
 ): Promise<FlowStepResult> {
-  const { currentNodeID, nodeBeforeGlobal, parsedResults, visitedNodes, allToolCalls } = state;
+  const { currentNodeID, nodeBeforeGlobal, parsedResults, visitedNodes } = state;
 
   if (isTerminalNode(context, currentNodeID)) {
     return await executeTerminalNode(context, input, debugMessages, state);
@@ -198,21 +158,13 @@ async function processFlowStep(
     structuredOutputs: state.structuredOutputs,
   });
 
-  if (result.error) return { state, error: true, shouldContinue: false };
+  if (result.error) {
+    handleNodeError({ context, input, nodeId: currentNodeID, result });
+    return { state, error: true, shouldContinue: false };
+  }
 
-  const { parsedResult, nextNodeID, toolCalls, durationMs, structuredOutput } = result;
-  emitNodeProcessed({
-    context,
-    input,
-    nodeId: currentNodeID,
-    parsedResult,
-    toolCalls,
-    durationMs,
-    structuredOutput,
-  });
-  if (toolCalls.length > EMPTY_LENGTH) allToolCalls.push(...toolCalls);
-  accumulateStructuredOutput(state, structuredOutput);
-
+  handleNodeSuccess({ context, input, nodeId: currentNodeID, result }, state);
+  const { parsedResult, nextNodeID } = result;
   parsedResult.nextNodeID = nextNodeID;
   parsedResults.push(parsedResult);
   return advanceFlowState(context, state, nextNodeID);
@@ -223,6 +175,17 @@ function appendLastVisitedNode(parsedResults: ParsedResult[], visitedNodes: stri
   if (lastParsedResult !== undefined) {
     visitedNodes.push(lastParsedResult.nextNodeID);
   }
+}
+
+function buildFlowResult(
+  state: FlowState,
+  debugMessages: Record<string, ModelMessage[][]>,
+  error: boolean,
+  isTerminal?: boolean
+): FlowResult {
+  const { parsedResults, visitedNodes, allToolCalls, newStructuredOutputs } = state;
+  if (isTerminal !== true && !error) appendLastVisitedNode(parsedResults, visitedNodes);
+  return { parsedResults, visitedNodes, debugMessages, error, toolCalls: allToolCalls, newStructuredOutputs };
 }
 
 /**
@@ -241,28 +204,8 @@ export async function executeAgentFlowRecursive(
     isTerminal,
   } = await processFlowStep(context, input, debugMessages, state);
 
-  if (error) {
-    return {
-      parsedResults: newState.parsedResults,
-      visitedNodes: newState.visitedNodes,
-      debugMessages,
-      error: true,
-      toolCalls: newState.allToolCalls,
-      newStructuredOutputs: newState.newStructuredOutputs,
-    };
-  }
-
-  if (!shouldContinue) {
-    const { parsedResults, visitedNodes, allToolCalls, newStructuredOutputs } = newState;
-    if (isTerminal !== true) appendLastVisitedNode(parsedResults, visitedNodes);
-    return {
-      parsedResults,
-      visitedNodes,
-      debugMessages,
-      error: false,
-      toolCalls: allToolCalls,
-      newStructuredOutputs,
-    };
+  if (error || !shouldContinue) {
+    return buildFlowResult(newState, debugMessages, error, isTerminal);
   }
 
   return await executeAgentFlowRecursive(context, input, debugMessages, newState);
