@@ -88,10 +88,12 @@ function useSimulationStart(deps: SimulationStartDeps): () => void {
 }
 
 function useSimulationStop(
-  setters: SimulationSetters & { setActive: React.Dispatch<React.SetStateAction<boolean>> },
+  setters: FullSetters,
+  abortSimulation: () => void,
   onExitZoomView: () => void
 ): () => void {
   return useCallback(() => {
+    abortSimulation();
     setters.saveSnapshot(null);
     setters.setActive(false);
     setters.setMessages([]);
@@ -101,7 +103,7 @@ function useSimulationStop(
     setters.setTotalTokens(EMPTY_TOKENS);
     setters.setStructuredOutputs({});
     onExitZoomView();
-  }, [setters, onExitZoomView]);
+  }, [setters, abortSimulation, onExitZoomView]);
 }
 
 function checkTerminated(
@@ -120,14 +122,20 @@ function resetBeforeSend(setters: SimulationSetters, text: string): void {
   setters.setVisitedNodes([]);
 }
 
-function useSimulationSend(deps: SendMessageDeps): (text: string) => void {
+interface SendDepsWithAbort extends SendMessageDeps {
+  abortAndCreateSignal: () => AbortSignal;
+}
+
+function useSimulationSend(deps: SendDepsWithAbort): (text: string) => void {
   const { preset, loading, messages, agents, apiKeyId, currentNode } = deps;
   const { mcpServers, outputSchemas, structuredOutputs, setters, onZoomToNode, onSelectNode } = deps;
+  const { abortAndCreateSignal } = deps;
 
   return useCallback(
     (text: string) => {
       const snapshot = setters.getSnapshot();
       if (preset === undefined || loading || snapshot === null) return;
+      const signal = abortAndCreateSignal();
       resetBeforeSend(setters, text);
       const allMessages = [...messages, createUserMessage(text)];
       const params = buildSimulateParams({
@@ -142,7 +150,7 @@ function useSimulationSend(deps: SendMessageDeps): (text: string) => void {
         structuredOutputs,
       });
       const callbacks = buildStreamCallbacks({ setters, onZoomToNode, onSelectNode });
-      void streamSimulation(params, callbacks).catch(() => {
+      void streamSimulation(params, callbacks, signal).catch(() => {
         setters.setLoading(false);
       });
     },
@@ -159,6 +167,7 @@ function useSimulationSend(deps: SendMessageDeps): (text: string) => void {
       setters,
       onZoomToNode,
       onSelectNode,
+      abortAndCreateSignal,
     ]
   );
 }
@@ -188,6 +197,24 @@ function useSnapshotRef(): {
   }, []);
   const getSnapshot = useCallback((): GraphSnapshot | null => snapshotRef.current, []);
   return { snapshotRef, saveSnapshot, getSnapshot };
+}
+
+function useAbortRef(): {
+  abortSimulation: () => void;
+  abortAndCreateSignal: () => AbortSignal;
+} {
+  const abortRef = useRef<AbortController | null>(null);
+  const abortSimulation = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+  }, []);
+  const abortAndCreateSignal = useCallback((): AbortSignal => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    return controller.signal;
+  }, []);
+  return { abortSimulation, abortAndCreateSignal };
 }
 
 function useSimulationState(): SimulationHookState {
@@ -231,7 +258,11 @@ function useSimulationState(): SimulationHookState {
   };
 }
 
-function buildSendDeps(params: UseSimulationParams, s: SimulationHookState): SendMessageDeps {
+function buildSendDeps(
+  params: UseSimulationParams,
+  s: SimulationHookState,
+  abortAndCreateSignal: () => AbortSignal
+): SendDepsWithAbort {
   return {
     preset: params.preset,
     loading: s.loading,
@@ -245,16 +276,18 @@ function buildSendDeps(params: UseSimulationParams, s: SimulationHookState): Sen
     setters: s.setters,
     onZoomToNode: params.onZoomToNode,
     onSelectNode: params.onSelectNode,
+    abortAndCreateSignal,
   };
 }
 
 export function useSimulation(params: UseSimulationParams): SimulationState {
   const { allNodes, edges, onZoomToNode, onExitZoomView } = params;
   const s = useSimulationState();
+  const { abortSimulation, abortAndCreateSignal } = useAbortRef();
 
   const start = useSimulationStart({ setters: s.setters, allNodes, edges, onZoomToNode });
-  const stop = useSimulationStop(s.setters, onExitZoomView);
-  const sendMessage = useSimulationSend(buildSendDeps(params, s));
+  const stop = useSimulationStop(s.setters, abortSimulation, onExitZoomView);
+  const sendMessage = useSimulationSend(buildSendDeps(params, s, abortAndCreateSignal));
   const terminated = checkTerminated(s.active, s.loading, s.snapshotRef.current, s.currentNode);
 
   return {

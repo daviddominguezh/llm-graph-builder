@@ -31,6 +31,7 @@ export interface ModelCallResult {
   output?: unknown;
   toolCalls?: unknown[];
   toolResults?: unknown[];
+  costUSD?: number;
 }
 
 interface ModelCallContext {
@@ -66,6 +67,35 @@ function safeGetOutput(obj: Record<string, unknown>): unknown {
   }
 }
 
+function getNestedRecord(obj: Record<string, unknown>, key: string): Record<string, unknown> | undefined {
+  const { [key]: value } = obj;
+  return isRecord(value) ? value : undefined;
+}
+
+function getNumericCost(obj: Record<string, unknown>): number | undefined {
+  return typeof obj.cost === 'number' ? obj.cost : undefined;
+}
+
+function extractOpenRouterCost(result: Record<string, unknown>): number | undefined {
+  const metadata = getNestedRecord(result, 'providerMetadata');
+  if (metadata === undefined) return undefined;
+  const openrouter = getNestedRecord(metadata, 'openrouter');
+  if (openrouter === undefined) return undefined;
+  const orUsage = getNestedRecord(openrouter, 'usage');
+  return orUsage === undefined ? undefined : getNumericCost(orUsage);
+}
+
+function extractRawUsageCost(result: Record<string, unknown>): number | undefined {
+  const usage = getNestedRecord(result, 'usage');
+  if (usage === undefined) return undefined;
+  const raw = getNestedRecord(usage, 'raw');
+  return raw === undefined ? undefined : getNumericCost(raw);
+}
+
+function extractCostFromResult(result: Record<string, unknown>): number | undefined {
+  return extractOpenRouterCost(result) ?? extractRawUsageCost(result);
+}
+
 function toModelCallResult(result: unknown): ModelCallResult {
   if (!isRecord(result)) return {};
   return {
@@ -74,6 +104,7 @@ function toModelCallResult(result: unknown): ModelCallResult {
     output: safeGetOutput(result),
     toolCalls: Array.isArray(result.toolCalls) ? (result.toolCalls as unknown[]) : undefined,
     toolResults: Array.isArray(result.toolResults) ? (result.toolResults as unknown[]) : undefined,
+    costUSD: extractCostFromResult(result),
   };
 }
 

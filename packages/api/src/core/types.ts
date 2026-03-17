@@ -123,6 +123,7 @@ export interface ReplyWithObject {
   toolResults?: Array<{ toolName: string; output: unknown }>;
   usage?: ReplyUsageInfo;
   response?: { messages?: Array<AssistantModelMessage | ToolModelMessage> };
+  costUSD?: number;
 }
 
 export interface ExecuteAgentParams {

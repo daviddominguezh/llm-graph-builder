@@ -35,6 +35,7 @@ export interface SimulationTokens {
   input: number;
   output: number;
   cached: number;
+  costUSD?: number;
 }
 
 export function sumTokensFromLogs(logs: ActionTokenUsage[]): TokenLog {

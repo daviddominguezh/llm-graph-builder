@@ -64,11 +64,17 @@ export interface BuildSimulateParamsOptions extends Pick<
   structuredOutputs?: Record<string, unknown[]>;
 }
 
+function addCost(a: number | undefined, b: number | undefined): number | undefined {
+  if (a === undefined && b === undefined) return undefined;
+  return (a ?? 0) + (b ?? 0);
+}
+
 function addTokens(prev: SimulationTokens, usage: SimulationTokens): SimulationTokens {
   return {
     input: prev.input + usage.input,
     output: prev.output + usage.output,
     cached: prev.cached + usage.cached,
+    costUSD: addCost(prev.costUSD, usage.costUSD),
   };
 }
 

@@ -95,6 +95,8 @@ export function GraphCanvas({
             visitedNodes={simulation.visitedNodes}
             terminated={simulation.terminated}
             loading={simulation.loading}
+            currentNode={simulation.currentNode}
+            totalTokens={simulation.totalTokens}
             onSendMessage={simulation.sendMessage}
             onStop={simulation.stop}
           />

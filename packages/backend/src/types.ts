@@ -60,7 +60,7 @@ export type SimulationEvent =
       toolCalls: Array<{ toolName: string; input: unknown; output?: unknown }>;
       reasoning?: string;
       error?: string;
-      tokens: { input: number; output: number; cached: number };
+      tokens: { input: number; output: number; cached: number; costUSD?: number };
       durationMs: number;
       structuredOutput?: { nodeId: string; data: unknown };
     }

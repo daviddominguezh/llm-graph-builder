@@ -1,13 +1,14 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Square } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
 
-import type { NodeResult } from '../../../types/simulation';
+import type { NodeResult, SimulationTokens } from '../../../types/simulation';
 import { NodeResultItem } from './NodeResultItem';
 import { SimulationInput } from './SimulationInput';
+import { TokenDisplay } from './TokenDisplay';
 
 interface SimulationPanelProps {
   lastUserText: string;
@@ -15,6 +16,8 @@ interface SimulationPanelProps {
   visitedNodes: string[];
   terminated: boolean;
   loading: boolean;
+  currentNode: string;
+  totalTokens: SimulationTokens;
   onSendMessage: (text: string) => void;
   onStop: () => void;
 }
@@ -42,8 +45,8 @@ function SimulationHeader({
     <div className="flex flex-col gap-1 border-b px-3 py-2">
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold">Simulation</span>
-        <Button variant="destructive" size="icon" className="size-7" onClick={onStop}>
-          <Square className="size-3" />
+        <Button variant="ghost" size="icon" className="size-7" onClick={onStop}>
+          <X className="size-3" />
         </Button>
       </div>
       <Breadcrumbs nodes={visitedNodes} />
@@ -79,8 +82,41 @@ function ContentArea({ lastUserText, nodeResults, scrollRef }: ContentAreaProps)
   );
 }
 
+function ExecutingIndicator({ currentNode, hasTokens }: { currentNode: string, hasTokens: boolean }) {
+  const t = useTranslations('simulation');
+  return (
+    <div className={`flex items-center gap-1.5 px-3 pt-1.5 text-xs text-muted-foreground ${hasTokens ? '' : 'pb-1.5'}`}>
+      <Loader2 className="size-3 animate-spin" />
+      <span className="truncate text-[10px]">{t('executingNode', { node: currentNode })}</span>
+    </div>
+  );
+}
+
+function SimulationFooter({ totalTokens, loading, currentNode }: SimulationFooterProps) {
+  const t = useTranslations('simulation');
+  const hasTokens = totalTokens.input > 0 || totalTokens.output > 0;
+  return (
+    <div className="flex flex-col border-t">
+      {loading && <ExecutingIndicator hasTokens={hasTokens} currentNode={currentNode} />}
+      {hasTokens && (
+        <div className="flex items-center gap-1.5 px-3 py-1">
+          <span className="text-[10px] font-medium text-muted-foreground">{t('totalTokens')}:</span>
+          <TokenDisplay tokens={totalTokens} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface SimulationFooterProps {
+  totalTokens: SimulationTokens;
+  loading: boolean;
+  currentNode: string;
+}
+
 export function SimulationPanel(props: SimulationPanelProps) {
-  const { lastUserText, nodeResults, visitedNodes, terminated, loading, onSendMessage, onStop } = props;
+  const { lastUserText, nodeResults, visitedNodes, terminated, loading } = props;
+  const { currentNode, totalTokens, onSendMessage, onStop } = props;
   const t = useTranslations('simulation');
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -103,6 +139,7 @@ export function SimulationPanel(props: SimulationPanelProps) {
       <div className="relative flex h-full w-full flex-col rounded-xl border bg-background">
         <SimulationHeader visitedNodes={visitedNodes} onStop={onStop} />
         <ContentArea lastUserText={lastUserText} nodeResults={nodeResults} scrollRef={scrollRef} />
+        <SimulationFooter totalTokens={totalTokens} loading={loading} currentNode={currentNode} />
         <SimulationInput
           loading={loading}
           terminated={terminated}

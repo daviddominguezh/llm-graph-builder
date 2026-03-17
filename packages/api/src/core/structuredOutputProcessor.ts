@@ -47,7 +47,9 @@ function accumulateTokensFromResult(input: CallAgentInput, result: ModelCallResu
   const lastLog = input.tokensLog.at(-LAST_INDEX_OFFSET);
   if (lastLog === undefined) return;
   const rawUsage = extractUsageFromResult(result);
-  accumulateTokens(lastLog.tokens, getTokensUsage(rawUsage));
+  const { costUSD } = result;
+  const tokenLog = { ...getTokensUsage(rawUsage), costUSD };
+  accumulateTokens(lastLog.tokens, tokenLog);
 }
 
 function storeDebugMessages(

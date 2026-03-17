@@ -11,6 +11,13 @@ export const createEmptyTokenLog = (): TokenLog => ({
   cached: INITIAL_TOKEN_COUNT,
 });
 
+const NO_COST = 0;
+
+function addCost(a: number | undefined, b: number | undefined): number | undefined {
+  if (a === undefined && b === undefined) return undefined;
+  return (a ?? NO_COST) + (b ?? NO_COST);
+}
+
 /**
  * Accumulates tokens from source into target by mutating target in place
  */
@@ -19,6 +26,7 @@ export const accumulateTokens = (target: TokenLog, source: TokenLog): void => {
     input: target.input + source.input,
     output: target.output + source.output,
     cached: target.cached + source.cached,
+    costUSD: addCost(target.costUSD, source.costUSD),
   });
 };
 
@@ -29,4 +37,5 @@ export const cloneTokenLog = (tokens: TokenLog): TokenLog => ({
   input: tokens.input,
   output: tokens.output,
   cached: tokens.cached,
+  costUSD: tokens.costUSD,
 });

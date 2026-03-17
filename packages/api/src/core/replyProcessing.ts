@@ -82,6 +82,7 @@ interface UsageResult {
   outputTokens: number;
   cachedInputTokens: number;
   totalTokens: number;
+  costUSD?: number;
 }
 
 function getInputTokens(rawUsage: ReplyUsageInfo | undefined): number {
@@ -92,11 +93,17 @@ function getOutputTokens(rawUsage: ReplyUsageInfo | undefined): number {
   return rawUsage?.outputTokens ?? rawUsage?.completionTokens ?? ZERO_TOKENS;
 }
 
-function extractUsage(rawUsage: ReplyUsageInfo | undefined): UsageResult {
+interface ExtractUsageOptions {
+  rawUsage: ReplyUsageInfo | undefined;
+  costUSD: number | undefined;
+}
+
+function extractUsage(options: ExtractUsageOptions): UsageResult {
+  const { rawUsage, costUSD } = options;
   const inputTokens = getInputTokens(rawUsage);
   const outputTokens = getOutputTokens(rawUsage);
   const cachedInputTokens = rawUsage?.cachedInputTokens ?? ZERO_TOKENS;
-  return { inputTokens, outputTokens, cachedInputTokens, totalTokens: inputTokens + outputTokens };
+  return { inputTokens, outputTokens, cachedInputTokens, totalTokens: inputTokens + outputTokens, costUSD };
 }
 
 function buildResponseMessages(typedReply: ReplyWithObject): Array<AssistantModelMessage | ToolModelMessage> {
@@ -169,8 +176,8 @@ function processReplyCore(
 
   const msgs = buildResponseMessages(typedReply);
 
-  const { usage: rawUsage } = typedReply;
-  accumulateTokens(tokens, getTokensUsage(extractUsage(rawUsage)));
+  const { usage: rawUsage, costUSD } = typedReply;
+  accumulateTokens(tokens, getTokensUsage(extractUsage({ rawUsage, costUSD })));
 
   if (expectedTool === undefined) {
     return { modelWorkedFine: true, msgs };

@@ -139,7 +139,7 @@ interface SseToolCall {
 
 interface SseNodeTokens {
   node: string;
-  tokens: { input: number; output: number; cached: number };
+  tokens: { input: number; output: number; cached: number; costUSD?: number };
 }
 
 interface AgentResponseEvent {
@@ -158,7 +158,7 @@ export interface NodeProcessedEvent {
   toolCalls: SseToolCall[];
   reasoning?: string;
   error?: string;
-  tokens: { input: number; output: number; cached: number };
+  tokens: { input: number; output: number; cached: number; costUSD?: number };
   durationMs?: number;
   structuredOutput?: { nodeId: string; data: unknown };
 }
@@ -182,7 +182,12 @@ const SseNodeTokensSchema = z.object({
   tokens: z.object({ input: z.number(), output: z.number(), cached: z.number() }),
 });
 
-const TokensSchema = z.object({ input: z.number(), output: z.number(), cached: z.number() });
+const TokensSchema = z.object({
+  input: z.number(),
+  output: z.number(),
+  cached: z.number(),
+  costUSD: z.number().optional(),
+});
 
 const StructuredOutputSchema = z.object({
   nodeId: z.string(),
@@ -311,12 +316,14 @@ async function readSseStream(
 
 export async function streamSimulation(
   params: SimulateRequestBody,
-  callbacks: StreamCallbacks
+  callbacks: StreamCallbacks,
+  signal?: AbortSignal
 ): Promise<void> {
   const res = await fetch('/api/simulate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
+    signal,
   });
 
   if (!res.ok) {

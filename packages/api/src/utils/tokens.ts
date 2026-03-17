@@ -5,6 +5,7 @@ interface LanguageModelTokenUsage {
   inputTokens?: number | undefined;
   outputTokens?: number | undefined;
   cachedInputTokens?: number | undefined;
+  costUSD?: number | undefined;
 }
 
 interface EmbeddingTokenUsage {
@@ -28,5 +29,6 @@ export const getTokensUsage = (usage: LanguageModelTokenUsage | EmbeddingTokenUs
     input: inputTokens - cachedInputTokens,
     output: outputTokens,
     cached: cachedInputTokens,
+    costUSD: usage.costUSD,
   };
 };

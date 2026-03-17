@@ -147,6 +147,7 @@
     "reasoning": "Reasoning",
     "nodeTokens": "Tokens by node",
     "totalTokens": "Total",
+    "executingNode": "Executing {node}...",
     "terminated": "Terminal node reached",
     "terminatedDescription": "Simulation complete"
   },
