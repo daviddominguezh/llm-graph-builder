@@ -74,7 +74,7 @@ export function SimulationModelSelector({ models, value, onValueChange }: Simula
         <ComboboxList>
           {(group) => (
             <ComboboxGroup key={group.value} items={group.items}>
-              <ComboboxLabel className="sticky top-0 z-10 bg-popover font-semibold uppercase text-muted-foreground/60">{group.value}</ComboboxLabel>
+              <ComboboxLabel className="sticky -top-1 z-10 bg-popover font-semibold uppercase text-muted-foreground/60">{group.value}</ComboboxLabel>
               <ComboboxCollection>
                 {(modelId) => (
                   <ComboboxItem key={modelId} value={modelId}>

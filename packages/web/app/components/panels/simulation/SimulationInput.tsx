@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { ArrowUp, Loader2, OctagonX } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import { useOpenRouterModels } from '../../../hooks/useOpenRouterModels';
 import { SimulationModelSelector } from './SimulationModelSelector';
@@ -76,40 +76,60 @@ function ChatInput({ loading, onSendMessage }: Pick<SimulationInputProps, 'loadi
   const t = useTranslations('simulation');
   const models = useOpenRouterModels();
 
-  const handleSubmit = () => {
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  const clearEditor = useCallback(() => {
+    if (editorRef.current) {
+      editorRef.current.textContent = '';
+    }
+    setText('');
+  }, []);
+
+  const handleInput = useCallback(() => {
+    setText(editorRef.current?.textContent ?? '');
+  }, []);
+
+  const handleEditorSubmit = useCallback(() => {
     const trimmed = text.trim();
     if (trimmed.length === 0) return;
     onSendMessage(trimmed);
-    setText('');
-  };
+    clearEditor();
+  }, [text, onSendMessage, clearEditor]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter' && !e.shiftKey && !loading) {
       e.preventDefault();
-      handleSubmit();
+      handleEditorSubmit();
     }
   };
 
+  const isEmpty = text.trim().length === 0;
+
   return (
-    <div className="flex flex-col mx-2 mb-0 overflow-hidden rounded-2xl border bg-muted/30">
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder={t('placeholder')}
-        disabled={loading}
-        rows={2}
-        className="w-full resize-none border-b bg-transparent px-3 pt-0 pb-0 text-xs outline-none placeholder:text-muted-foreground disabled:opacity-50"
-      />
+    <div className="mx-2 flex flex-col overflow-hidden rounded-lg border bg-muted/30 py-1 gap-1 my-2">
+      <div className="max-h-96 min-h-6 w-full overflow-y-auto break-words px-3 py-2 text-xs transition-opacity">
+        <div
+          ref={editorRef}
+          contentEditable={!loading}
+          role="textbox"
+          aria-label={t('placeholder')}
+          aria-multiline="true"
+          tabIndex={0}
+          onInput={handleInput}
+          onKeyDown={handleKeyDown}
+          data-placeholder={t('placeholder')}
+          className="min-h-4 outline-none empty:before:pointer-events-none empty:before:text-muted-foreground empty:before:content-[attr(data-placeholder)]"
+        />
+      </div>
       <ChatInputControls
         models={models}
         modelId={modelId}
         effort={effort}
         onModelChange={setModelId}
         onEffortChange={setEffort}
-        sendDisabled={loading || text.trim().length === 0}
+        sendDisabled={loading || isEmpty}
         loading={loading}
-        onSubmit={handleSubmit}
+        onSubmit={handleEditorSubmit}
       />
     </div>
   );
