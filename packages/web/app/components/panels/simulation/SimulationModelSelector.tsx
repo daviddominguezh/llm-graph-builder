@@ -71,7 +71,7 @@ export function SimulationModelSelector({ models, value, onValueChange }: Simula
         <ComboboxList>
           {(group) => (
             <ComboboxGroup key={group.value} items={group.items}>
-              <ComboboxLabel>{group.value}</ComboboxLabel>
+              <ComboboxLabel className="font-semibold uppercase text-muted-foreground/60">{group.value}</ComboboxLabel>
               <ComboboxCollection>
                 {(modelId) => (
                   <ComboboxItem key={modelId} value={modelId}>
