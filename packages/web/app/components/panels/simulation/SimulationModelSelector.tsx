@@ -60,7 +60,6 @@ export function SimulationModelSelector({ models, value, onValueChange, effort, 
     () => new Map(models.map((m) => [m.id, m.name.replace(/^[^:]+:\s*/, '')])),
     [models]
   );
-
   return (
     <Combobox
       items={groups}
@@ -72,7 +71,11 @@ export function SimulationModelSelector({ models, value, onValueChange, effort, 
         placeholder={t('selectModel')}
         className="model-selector-trigger h-6 border-none bg-transparent text-[11px] text-muted-foreground shadow-none transition-colors rounded-md hover:bg-black/5 focus-within:bg-black/5"
         style={{ width: 'auto', flex: '0 0 auto', cursor: 'default', fieldSizing: 'content', boxShadow: 'none', borderColor: 'transparent' } as React.CSSProperties}
-      />
+      >
+        {effort === 'high' && (
+          <span className="shrink-0 text-[11px] text-muted-foreground/60">Thinking</span>
+        )}
+      </ComboboxInput>
       <ComboboxContent className="flex min-w-[280px] flex-col">
         <ComboboxEmpty>{t('noModelsFound')}</ComboboxEmpty>
         <ComboboxList className="flex-1">

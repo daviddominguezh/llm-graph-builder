@@ -77,7 +77,7 @@ function ChatInputControls({
 function ChatInput({ loading, onSendMessage }: Pick<SimulationInputProps, 'loading' | 'onSendMessage'>) {
   const [text, setText] = useState('');
   const [modelId, setModelId] = useState('x-ai/grok-4.1-fast');
-  const [effort, setEffort] = useState<ThinkingEffort>('medium');
+  const [effort, setEffort] = useState<ThinkingEffort>('high');
   const t = useTranslations('simulation');
   const models = useOpenRouterModels();
 

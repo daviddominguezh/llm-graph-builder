@@ -1,61 +1,30 @@
 'use client';
 
-import { cn } from '@/lib/utils';
+import { Switch } from '@/components/ui/switch';
 import { useTranslations } from 'next-intl';
 
-export type ThinkingEffort = 'low' | 'medium' | 'high';
+export type ThinkingEffort = 'none' | 'low' | 'medium' | 'high';
 
 interface SimulationThinkingEffortProps {
   value: ThinkingEffort;
   onValueChange: (value: ThinkingEffort) => void;
 }
 
-const EFFORT_OPTIONS: ThinkingEffort[] = ['low', 'medium', 'high'];
-
-const EFFORT_KEYS: Record<ThinkingEffort, string> = {
-  low: 'effortLow',
-  medium: 'effortMedium',
-  high: 'effortHigh',
-};
-
-function EffortButton({
-  selected,
-  label,
-  onClick,
-}: {
-  selected: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      className={cn(
-        'h-6 px-2 text-[11px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/30',
-        selected
-          ? 'bg-muted font-medium text-foreground'
-          : 'text-muted-foreground hover:text-foreground'
-      )}
-      onClick={onClick}
-    >
-      {label}
-    </button>
-  );
-}
-
 export function SimulationThinkingEffort({ value, onValueChange }: SimulationThinkingEffortProps) {
   const t = useTranslations('simulation');
+  const enabled = value === 'high';
+
+  const handleToggle = (checked: boolean) => {
+    onValueChange(checked ? 'high' : 'none');
+  };
 
   return (
-    <div className="flex overflow-hidden rounded-md bg-muted/40">
-      {EFFORT_OPTIONS.map((option) => (
-        <EffortButton
-          key={option}
-          selected={option === value}
-          label={t(EFFORT_KEYS[option])}
-          onClick={() => onValueChange(option)}
-        />
-      ))}
-    </div>
+    <label className="flex items-center gap-3 rounded-lg px-0.5 py-0.5 justify-between">
+      <div className="min-w-0">
+        <div className="text-xs font-medium">{t('extendedThinking')}</div>
+        <div className="mt-0.5 text-[10px] text-muted-foreground">{t('extendedThinkingDescription')}</div>
+      </div>
+      <Switch checked={enabled} onCheckedChange={handleToggle} />
+    </label>
   );
 }

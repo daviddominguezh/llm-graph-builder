@@ -155,7 +155,9 @@
     "noModelsFound": "No models found",
     "effortLow": "Low",
     "effortMedium": "Medium",
-    "effortHigh": "High"
+    "effortHigh": "High",
+    "extendedThinking": "Extended thinking",
+    "extendedThinkingDescription": "Think longer for complex tasks"
   },
   "edgePanel": {
     "parameters": "Parameters:",
