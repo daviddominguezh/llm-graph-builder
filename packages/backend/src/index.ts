@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { fetchAndCacheModels } from './openrouter/modelCache.js';
 import { createApp } from './server.js';
 
 const DEFAULT_PORT = 4000;
@@ -10,4 +11,5 @@ const app = createApp();
 
 app.listen(port, () => {
   process.stdout.write(`Graph Runner Backend listening on port ${String(port)}\n`);
+  void fetchAndCacheModels();
 });

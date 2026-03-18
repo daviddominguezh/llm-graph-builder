@@ -149,7 +149,13 @@
     "totalTokens": "Total",
     "executingNode": "Executing {node}...",
     "terminated": "Terminal node reached",
-    "terminatedDescription": "Simulation complete"
+    "terminatedDescription": "Simulation complete",
+    "placeholder": "Type a message...",
+    "selectModel": "Select model...",
+    "noModelsFound": "No models found",
+    "effortLow": "Low",
+    "effortMedium": "Medium",
+    "effortHigh": "High"
   },
   "edgePanel": {
     "parameters": "Parameters:",

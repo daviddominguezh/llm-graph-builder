@@ -14,6 +14,7 @@ import { handleDisconnect } from './routes/oauth/oauthDisconnect.js';
 import { handleInitiate } from './routes/oauth/oauthInitiate.js';
 import { handleResolveToken } from './routes/oauth/oauthResolveToken.js';
 import { handleStatus } from './routes/oauth/oauthStatus.js';
+import { handleGetOpenRouterModels } from './routes/openrouterModels.js';
 import { handleSimulate } from './routes/simulateHandler.js';
 import { handleToolCall } from './routes/toolCall.js';
 
@@ -29,6 +30,7 @@ export function createApp(): Express {
   app.use(express.json({ limit: '10mb' }));
   app.use(requestLogger);
 
+  app.get('/openrouter/models', handleGetOpenRouterModels);
   app.post('/mcp/discover', handleDiscover);
   app.post('/mcp/tools/call', handleToolCall);
   app.post('/simulate', handleSimulate);

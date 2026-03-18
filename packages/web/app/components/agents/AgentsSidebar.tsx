@@ -109,7 +109,7 @@ function AgentList({
   }
 
   return (
-    <nav className="flex flex-col gap-1.5 px-2">
+    <nav className="flex flex-col gap-1.5 px-2 mt-0.5">
       {filtered.map((agent) => (
         <AgentCard
           key={agent.id}
