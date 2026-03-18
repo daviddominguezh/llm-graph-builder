@@ -91,7 +91,11 @@ function ChatInput({ loading, onSendMessage }: Pick<SimulationInputProps, 'loadi
   }, []);
 
   const handleInput = useCallback(() => {
-    setText(editorRef.current?.textContent ?? '');
+    const content = editorRef.current?.textContent ?? '';
+    setText(content);
+    if (content === '' && editorRef.current) {
+      editorRef.current.innerHTML = '';
+    }
   }, []);
 
   const handleEditorSubmit = useCallback(() => {
