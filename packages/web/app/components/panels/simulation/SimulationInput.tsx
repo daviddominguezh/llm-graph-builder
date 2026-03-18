@@ -61,6 +61,7 @@ function ChatInputControls({
 }) {
   return (
     <div className="flex items-center gap-2 px-2 pb-0">
+      <div className="flex-1" />
       <SimulationModelSelector
         models={models}
         value={modelId}
@@ -68,7 +69,6 @@ function ChatInputControls({
         effort={effort}
         onEffortChange={onEffortChange}
       />
-      <div className="flex-1" />
       <SendButton disabled={sendDisabled} loading={loading} onClick={onSubmit} />
     </div>
   );

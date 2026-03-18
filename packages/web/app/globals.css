@@ -125,6 +125,13 @@
   }
 }
 
+/* Model selector trigger: suppress focus ring/border when dropdown is open */
+div.model-selector-trigger[data-slot="input-group"] {
+  box-shadow: none;
+  border-color: transparent;
+  outline: none;
+}
+
 /* Revert Tailwind Preflight inside markdown so browser defaults apply */
 .markdown-content * {
   all: revert;

@@ -70,7 +70,8 @@ export function SimulationModelSelector({ models, value, onValueChange, effort, 
     >
       <ComboboxInput
         placeholder={t('selectModel')}
-        className="h-6 w-[150px] border-none bg-transparent text-[11px] shadow-none hover:bg-muted/80 transition-colors rounded-md [&_input]:cursor-default"
+        className="model-selector-trigger h-6 border-none bg-transparent text-[11px] text-muted-foreground shadow-none transition-colors rounded-md hover:bg-black/5 focus-within:bg-black/5"
+        style={{ width: 'auto', flex: '0 0 auto', cursor: 'default', fieldSizing: 'content', boxShadow: 'none', borderColor: 'transparent' } as React.CSSProperties}
       />
       <ComboboxContent className="flex min-w-[280px] flex-col">
         <ComboboxEmpty>{t('noModelsFound')}</ComboboxEmpty>
