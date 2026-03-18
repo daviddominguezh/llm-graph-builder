@@ -10,6 +10,7 @@ import {
   ComboboxItem,
   ComboboxLabel,
   ComboboxList,
+  useComboboxAnchor,
 } from '@/components/ui/combobox';
 import { useTranslations } from 'next-intl';
 import { useRef, useMemo } from 'react';
@@ -61,6 +62,7 @@ export function SimulationModelSelector({ models, value, onValueChange, effort, 
     [models]
   );
   const openRef = useRef(false);
+  const anchorRef = useComboboxAnchor();
 
   return (
     <Combobox
@@ -70,26 +72,28 @@ export function SimulationModelSelector({ models, value, onValueChange, effort, 
       itemToStringLabel={extractShortName}
       onOpenChange={(open) => { openRef.current = open; }}
     >
-      <ComboboxInput
-        placeholder={t('selectModel')}
-        className="model-selector-trigger h-6 border-none bg-transparent text-[11px] text-muted-foreground shadow-none transition-colors rounded-md hover:bg-black/5 focus-within:bg-black/5"
-        style={{ width: 'auto', flex: '0 0 auto', cursor: 'default', fieldSizing: 'content', boxShadow: 'none', borderColor: 'transparent' } as React.CSSProperties}
-      >
-        {effort === 'high' && (
-          <span
-            className="shrink-0 cursor-default text-[11px] text-muted-foreground/60"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              if (!openRef.current) {
-                (e.currentTarget.parentElement?.querySelector('button') as HTMLButtonElement | null)?.click();
-              }
-            }}
-          >
-            Thinking
-          </span>
-        )}
-      </ComboboxInput>
-      <ComboboxContent className="flex min-w-[280px] flex-col">
+      <div ref={anchorRef}>
+        <ComboboxInput
+          placeholder={t('selectModel')}
+          className="model-selector-trigger h-6 border-none bg-transparent text-[11px] text-muted-foreground shadow-none transition-colors rounded-md hover:bg-black/5 focus-within:bg-black/5"
+          style={{ width: 'auto', flex: '0 0 auto', cursor: 'default', fieldSizing: 'content', boxShadow: 'none', borderColor: 'transparent' } as React.CSSProperties}
+        >
+          {effort === 'high' && (
+            <span
+              className="shrink-0 cursor-default text-[11px] text-muted-foreground/60"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                if (!openRef.current) {
+                  (e.currentTarget.parentElement?.querySelector('button') as HTMLButtonElement | null)?.click();
+                }
+              }}
+            >
+              Thinking
+            </span>
+          )}
+        </ComboboxInput>
+      </div>
+      <ComboboxContent className="flex min-w-[280px] flex-col" align="end" anchor={anchorRef}>
         <ComboboxEmpty>{t('noModelsFound')}</ComboboxEmpty>
         <ComboboxList className="flex-1">
           {(group) => (
