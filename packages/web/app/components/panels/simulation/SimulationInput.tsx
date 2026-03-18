@@ -7,7 +7,7 @@ import { useCallback, useRef, useState } from 'react';
 
 import { useOpenRouterModels } from '../../../hooks/useOpenRouterModels';
 import { SimulationModelSelector } from './SimulationModelSelector';
-import { SimulationThinkingEffort, type ThinkingEffort } from './SimulationThinkingEffort';
+import type { ThinkingEffort } from './SimulationThinkingEffort';
 
 interface SimulationInputProps {
   loading: boolean;
@@ -61,8 +61,13 @@ function ChatInputControls({
 }) {
   return (
     <div className="flex items-center gap-2 px-2 pb-0">
-      <SimulationModelSelector models={models} value={modelId} onValueChange={onModelChange} />
-      <SimulationThinkingEffort value={effort} onValueChange={onEffortChange} />
+      <SimulationModelSelector
+        models={models}
+        value={modelId}
+        onValueChange={onModelChange}
+        effort={effort}
+        onEffortChange={onEffortChange}
+      />
       <div className="flex-1" />
       <SendButton disabled={sendDisabled} loading={loading} onClick={onSubmit} />
     </div>

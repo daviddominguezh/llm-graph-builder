@@ -15,6 +15,7 @@ import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
 import type { OpenRouterModel } from '../../../hooks/useOpenRouterModels';
+import { SimulationThinkingEffort, type ThinkingEffort } from './SimulationThinkingEffort';
 
 interface ModelGroup {
   value: string;
@@ -48,9 +49,11 @@ interface SimulationModelSelectorProps {
   models: OpenRouterModel[];
   value: string;
   onValueChange: (value: string) => void;
+  effort: ThinkingEffort;
+  onEffortChange: (value: ThinkingEffort) => void;
 }
 
-export function SimulationModelSelector({ models, value, onValueChange }: SimulationModelSelectorProps) {
+export function SimulationModelSelector({ models, value, onValueChange, effort, onEffortChange }: SimulationModelSelectorProps) {
   const t = useTranslations('simulation');
   const groups = useMemo(() => buildGroups(models), [models]);
   const nameMap = useMemo(
@@ -69,9 +72,9 @@ export function SimulationModelSelector({ models, value, onValueChange }: Simula
         placeholder={t('selectModel')}
         className="h-6 w-[150px] border-none bg-transparent text-[11px] shadow-none hover:bg-muted/80 transition-colors rounded-md [&_input]:cursor-default"
       />
-      <ComboboxContent className="min-w-[280px]">
+      <ComboboxContent className="flex min-w-[280px] flex-col">
         <ComboboxEmpty>{t('noModelsFound')}</ComboboxEmpty>
-        <ComboboxList>
+        <ComboboxList className="flex-1">
           {(group) => (
             <ComboboxGroup key={group.value} items={group.items}>
               <ComboboxLabel className="sticky -top-1 z-10 bg-popover font-semibold uppercase text-muted-foreground/60">{group.value}</ComboboxLabel>
@@ -85,6 +88,9 @@ export function SimulationModelSelector({ models, value, onValueChange }: Simula
             </ComboboxGroup>
           )}
         </ComboboxList>
+        <div className="shrink-0 border-t px-2 py-1.5">
+          <SimulationThinkingEffort value={effort} onValueChange={onEffortChange} />
+        </div>
       </ComboboxContent>
     </Combobox>
   );
