@@ -53,7 +53,10 @@ interface SimulationModelSelectorProps {
 export function SimulationModelSelector({ models, value, onValueChange }: SimulationModelSelectorProps) {
   const t = useTranslations('simulation');
   const groups = useMemo(() => buildGroups(models), [models]);
-  const nameMap = useMemo(() => new Map(models.map((m) => [m.id, m.name])), [models]);
+  const nameMap = useMemo(
+    () => new Map(models.map((m) => [m.id, m.name.replace(/^[^:]+:\s*/, '')])),
+    [models]
+  );
 
   return (
     <Combobox
@@ -66,7 +69,7 @@ export function SimulationModelSelector({ models, value, onValueChange }: Simula
         placeholder={t('selectModel')}
         className="h-6 w-[150px] border-none bg-transparent text-[11px] shadow-none hover:bg-muted/80 transition-colors rounded-md [&_input]:cursor-default"
       />
-      <ComboboxContent>
+      <ComboboxContent className="min-w-[280px]">
         <ComboboxEmpty>{t('noModelsFound')}</ComboboxEmpty>
         <ComboboxList>
           {(group) => (
