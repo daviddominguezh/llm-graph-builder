@@ -93,7 +93,7 @@ export function SimulationModelSelector({ models, value, onValueChange, effort, 
           )}
         </ComboboxInput>
       </div>
-      <ComboboxContent className="flex min-w-[280px] flex-col" align="end" anchor={anchorRef}>
+      <ComboboxContent className="flex w-[280px] flex-col" align="end" anchor={anchorRef}>
         <ComboboxEmpty>{t('noModelsFound')}</ComboboxEmpty>
         <ComboboxList className="flex-1">
           {(group) => (
