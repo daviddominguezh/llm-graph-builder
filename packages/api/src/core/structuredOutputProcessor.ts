@@ -72,7 +72,7 @@ export async function processStructuredOutputNode(
   params: ProcessStructuredOutputParams
 ): Promise<StructuredOutputResult> {
   const { context, config, input, currentNodeID, debugMessages } = params;
-  const { model } = getModel(context.apiKey);
+  const { model } = getModel(context.apiKey, context.modelId);
   const zodSchema = outputSchemaToZod(config.outputSchema ?? []);
   const cleanMessages = formatMessages(input.messages, [config.promptWithoutToolPreconditions]);
   const modelConfig = getConfig({ model, cleanMessages, toolChoice: 'none' });

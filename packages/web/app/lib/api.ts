@@ -123,6 +123,7 @@ export interface SimulateRequestBody {
   messages: unknown[];
   currentNode: string;
   apiKeyId: string;
+  modelId: string;
   sessionID: string;
   tenantID: string;
   userID: string;

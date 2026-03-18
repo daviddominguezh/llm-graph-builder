@@ -20,6 +20,7 @@ export interface SimulateRequest {
   messages: Message[];
   currentNode: string;
   apiKey: string;
+  modelId: string;
   sessionID: string;
   tenantID: string;
   userID: string;

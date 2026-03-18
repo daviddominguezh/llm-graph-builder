@@ -48,6 +48,8 @@ export interface SimulationState {
   lastUserText: string;
   nodeResults: NodeResult[];
   totalTokens: SimulationTokens;
+  modelId: string;
+  setModelId: (id: string) => void;
   start: () => void;
   stop: () => void;
   sendMessage: (text: string) => void;
@@ -127,7 +129,7 @@ interface SendDepsWithAbort extends SendMessageDeps {
 }
 
 function useSimulationSend(deps: SendDepsWithAbort): (text: string) => void {
-  const { preset, loading, messages, agents, apiKeyId, currentNode } = deps;
+  const { preset, loading, messages, agents, apiKeyId, modelId, currentNode } = deps;
   const { mcpServers, outputSchemas, structuredOutputs, setters, onZoomToNode, onSelectNode } = deps;
   const { abortAndCreateSignal } = deps;
 
@@ -147,6 +149,7 @@ function useSimulationSend(deps: SendDepsWithAbort): (text: string) => void {
         currentNode,
         preset,
         apiKeyId,
+        modelId,
         structuredOutputs,
       });
       const callbacks = buildStreamCallbacks({ setters, onZoomToNode, onSelectNode });
@@ -160,6 +163,7 @@ function useSimulationSend(deps: SendDepsWithAbort): (text: string) => void {
       messages,
       agents,
       apiKeyId,
+      modelId,
       currentNode,
       mcpServers,
       outputSchemas,
@@ -182,6 +186,8 @@ interface SimulationHookState {
   visitedNodes: string[];
   totalTokens: SimulationTokens;
   structuredOutputs: Record<string, unknown[]>;
+  modelId: string;
+  setModelId: React.Dispatch<React.SetStateAction<string>>;
   snapshotRef: React.RefObject<GraphSnapshot | null>;
   setters: FullSetters;
 }
@@ -227,6 +233,7 @@ function useSimulationState(): SimulationHookState {
   const [visitedNodes, setVisitedNodes] = useState<string[]>([]);
   const [totalTokens, setTotalTokens] = useState<SimulationTokens>(EMPTY_TOKENS);
   const [structuredOutputs, setStructuredOutputs] = useState<Record<string, unknown[]>>({});
+  const [modelId, setModelId] = useState('x-ai/grok-4.1-fast');
   const { snapshotRef, saveSnapshot, getSnapshot } = useSnapshotRef();
 
   const setters: FullSetters = {
@@ -253,6 +260,8 @@ function useSimulationState(): SimulationHookState {
     visitedNodes,
     totalTokens,
     structuredOutputs,
+    modelId,
+    setModelId,
     snapshotRef,
     setters,
   };
@@ -269,6 +278,7 @@ function buildSendDeps(
     messages: s.messages,
     agents: params.agents,
     apiKeyId: params.apiKeyId,
+    modelId: s.modelId,
     currentNode: s.currentNode,
     mcpServers: params.mcpServers,
     outputSchemas: params.outputSchemas,
@@ -299,6 +309,8 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
     lastUserText: s.lastUserText,
     nodeResults: s.nodeResults,
     totalTokens: s.totalTokens,
+    modelId: s.modelId,
+    setModelId: s.setModelId,
     start,
     stop,
     sendMessage,

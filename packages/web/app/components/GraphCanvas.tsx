@@ -97,6 +97,8 @@ export function GraphCanvas({
             loading={simulation.loading}
             currentNode={simulation.currentNode}
             totalTokens={simulation.totalTokens}
+            modelId={simulation.modelId}
+            onModelIdChange={simulation.setModelId}
             onSendMessage={simulation.sendMessage}
             onStop={simulation.stop}
           />

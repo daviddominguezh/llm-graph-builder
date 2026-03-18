@@ -24,6 +24,7 @@ export interface NodeProcessedEvent {
 export interface Context {
   graph: Graph;
   apiKey: string;
+  modelId: string;
   sessionID: string;
   tenantID: string;
   userID: string;

@@ -14,7 +14,7 @@ export async function buildPromptForNode(params: BuildPromptParams): Promise<str
   const { nodes, edges, nodeId, preset, agents, outputSchemas } = params;
 
   const graph = buildGraph(nodes, edges, agents, undefined, outputSchemas);
-  const context = { ...buildContext(preset, PREVIEW_API_KEY_PLACEHOLDER), graph };
+  const context = { ...buildContext(preset, PREVIEW_API_KEY_PLACEHOLDER), graph, modelId: '' };
   const dummyTools = createDummyToolsForGraph(graph);
   const config = await buildNextAgentConfig(graph, context, nodeId, { toolsOverride: dummyTools });
 

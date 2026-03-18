@@ -14,13 +14,15 @@ interface SimulationInputProps {
   terminated: boolean;
   terminatedLabel: string;
   terminatedDescription: string;
+  modelId: string;
+  onModelIdChange: (id: string) => void;
   onSendMessage: (text: string) => void;
 }
 
 function TerminatedBanner({ label, description }: { label: string; description: string }) {
   return (
     <div className="flex w-full flex-col">
-      <div className="h-[1px] w-full bg-gray-200" />
+      <div className="h-[1px] w-full bg-gray-200 mt-1" />
       <div className="m-2 flex gap-2 rounded-md bg-gray-100 p-2 text-xs">
         <OctagonX className="mt-0.5 size-3.5" />
         <div className="flex flex-col">
@@ -74,9 +76,13 @@ function ChatInputControls({
   );
 }
 
-function ChatInput({ loading, onSendMessage }: Pick<SimulationInputProps, 'loading' | 'onSendMessage'>) {
+function ChatInput({
+  loading,
+  modelId,
+  onModelIdChange,
+  onSendMessage,
+}: Pick<SimulationInputProps, 'loading' | 'modelId' | 'onModelIdChange' | 'onSendMessage'>) {
   const [text, setText] = useState('');
-  const [modelId, setModelId] = useState('x-ai/grok-4.1-fast');
   const [effort, setEffort] = useState<ThinkingEffort>('high');
   const t = useTranslations('simulation');
   const models = useOpenRouterModels();
@@ -134,7 +140,7 @@ function ChatInput({ loading, onSendMessage }: Pick<SimulationInputProps, 'loadi
         models={models}
         modelId={modelId}
         effort={effort}
-        onModelChange={setModelId}
+        onModelChange={onModelIdChange}
         onEffortChange={setEffort}
         sendDisabled={loading || isEmpty}
         loading={loading}
@@ -145,7 +151,8 @@ function ChatInput({ loading, onSendMessage }: Pick<SimulationInputProps, 'loadi
 }
 
 export function SimulationInput(props: SimulationInputProps) {
-  const { loading, terminated, terminatedLabel, terminatedDescription, onSendMessage } = props;
+  const { loading, terminated, terminatedLabel, terminatedDescription } = props;
+  const { modelId, onModelIdChange, onSendMessage } = props;
   if (terminated) return <TerminatedBanner label={terminatedLabel} description={terminatedDescription} />;
-  return <ChatInput loading={loading} onSendMessage={onSendMessage} />;
+  return <ChatInput loading={loading} modelId={modelId} onModelIdChange={onModelIdChange} onSendMessage={onSendMessage} />;
 }

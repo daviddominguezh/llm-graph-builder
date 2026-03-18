@@ -122,7 +122,7 @@ async function tryExecuteAttempt(
   const { context, config, expectedTool, outputSchema, tokens, allToolCalls, allToolResults, sessionId } =
     execParams;
   const attemptStartTime = Date.now();
-  const { model, name: modelName } = getModel(apiKey);
+  const { model, name: modelName } = getModel(apiKey, context.modelId);
 
   logAttemptDetails(execParams, attemptCount, modelName);
 
@@ -152,7 +152,7 @@ export async function executeAttempt(
 ): Promise<AttemptResult> {
   const { context, config, executionStartTime, sessionId } = execParams;
   const attemptStartTime = Date.now();
-  const { name: modelName } = getModel(context.apiKey);
+  const { name: modelName } = getModel(context.apiKey, context.modelId);
 
   try {
     return await tryExecuteAttempt(context.apiKey, execParams, attemptCount);

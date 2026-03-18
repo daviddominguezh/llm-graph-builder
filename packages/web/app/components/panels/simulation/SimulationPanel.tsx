@@ -18,6 +18,8 @@ interface SimulationPanelProps {
   loading: boolean;
   currentNode: string;
   totalTokens: SimulationTokens;
+  modelId: string;
+  onModelIdChange: (id: string) => void;
   onSendMessage: (text: string) => void;
   onStop: () => void;
 }
@@ -131,7 +133,7 @@ interface SimulationFooterProps {
 
 export function SimulationPanel(props: SimulationPanelProps) {
   const { lastUserText, nodeResults, visitedNodes, terminated, loading } = props;
-  const { currentNode, totalTokens, onSendMessage, onStop } = props;
+  const { currentNode, totalTokens, modelId, onModelIdChange, onSendMessage, onStop } = props;
   const t = useTranslations('simulation');
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -160,6 +162,8 @@ export function SimulationPanel(props: SimulationPanelProps) {
           terminated={terminated}
           terminatedLabel={t('terminated')}
           terminatedDescription={t('terminatedDescription')}
+          modelId={modelId}
+          onModelIdChange={onModelIdChange}
           onSendMessage={onSendMessage}
         />
       </div>

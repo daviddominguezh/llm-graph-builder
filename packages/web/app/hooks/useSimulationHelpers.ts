@@ -43,6 +43,7 @@ export interface SendMessageDeps {
   messages: Message[];
   agents: Agent[];
   apiKeyId: string;
+  modelId: string;
   currentNode: string;
   mcpServers: McpServerConfig[];
   outputSchemas: OutputSchemaEntity[];
@@ -61,6 +62,7 @@ export interface BuildSimulateParamsOptions extends Pick<
   currentNode: string;
   preset: ContextPreset;
   apiKeyId: string;
+  modelId: string;
   structuredOutputs?: Record<string, unknown[]>;
 }
 
@@ -150,6 +152,7 @@ export function buildSimulateParams(opts: BuildSimulateParamsOptions): SimulateR
     messages: opts.allMessages,
     currentNode: opts.currentNode,
     apiKeyId: opts.apiKeyId,
+    modelId: opts.modelId,
     sessionID,
     tenantID,
     userID,

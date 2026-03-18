@@ -97,7 +97,7 @@ export async function processReplyNode(params: ProcessReplyNodeParams): Promise<
   const { context, config, input, currentNodeID, debugMessages } = params;
   const { promptWithoutToolPreconditions, nodes } = config;
   const provider = getProviderFromMessages(input.messages);
-  const { model } = getModel(context.apiKey);
+  const { model } = getModel(context.apiKey, context.modelId);
 
   const cleanMessages = formatMessages(input.messages, [promptWithoutToolPreconditions]);
   const modelConfig = getConfig({ model, cleanMessages, toolChoice: 'none' });
@@ -136,7 +136,7 @@ export function addNodeSpecificPrompts(context: Context, currentNodeID: string, 
 async function generateToolReply(params: GenerateToolReplyParams): Promise<ParsedResult> {
   const { context, input, currentNodeID, nextNodeID, nodes, isGlobal, debugMessages } = params;
   const provider = getProviderFromMessages(input.messages);
-  const { model } = getModel(context.apiKey);
+  const { model } = getModel(context.apiKey, context.modelId);
   const nextNode = getNode(context.graph, nextNodeID);
 
   let replyPrompt = generateToolReplyPrompt({
