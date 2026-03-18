@@ -73,7 +73,17 @@ export function SimulationModelSelector({ models, value, onValueChange, effort, 
         style={{ width: 'auto', flex: '0 0 auto', cursor: 'default', fieldSizing: 'content', boxShadow: 'none', borderColor: 'transparent' } as React.CSSProperties}
       >
         {effort === 'high' && (
-          <span className="shrink-0 text-[11px] text-muted-foreground/60">Thinking</span>
+          <span
+            className="shrink-0 cursor-default text-[11px] text-muted-foreground/60"
+            onClick={(e) => {
+              const btn = e.currentTarget.parentElement?.querySelector('button');
+              if (btn && btn.getAttribute('aria-expanded') !== 'true') {
+                btn.click();
+              }
+            }}
+          >
+            Thinking
+          </span>
         )}
       </ComboboxInput>
       <ComboboxContent className="flex min-w-[280px] flex-col">
