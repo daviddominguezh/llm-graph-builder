@@ -60,7 +60,7 @@ function ChatInputControls({
   onSubmit: () => void;
 }) {
   return (
-    <div className="flex items-center gap-2 px-2 pb-2">
+    <div className="flex items-center gap-2 px-2 pb-0">
       <SimulationModelSelector models={models} value={modelId} onValueChange={onModelChange} />
       <SimulationThinkingEffort value={effort} onValueChange={onEffortChange} />
       <div className="flex-1" />
@@ -91,7 +91,7 @@ function ChatInput({ loading, onSendMessage }: Pick<SimulationInputProps, 'loadi
   };
 
   return (
-    <div className="mx-2 mb-2 overflow-hidden rounded-2xl border bg-muted/30">
+    <div className="flex flex-col mx-2 mb-0 overflow-hidden rounded-2xl border bg-muted/30">
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -99,7 +99,7 @@ function ChatInput({ loading, onSendMessage }: Pick<SimulationInputProps, 'loadi
         placeholder={t('placeholder')}
         disabled={loading}
         rows={2}
-        className="w-full resize-none border-none bg-transparent px-3 pt-3 pb-1 text-xs outline-none placeholder:text-muted-foreground disabled:opacity-50"
+        className="w-full resize-none border-b bg-transparent px-3 pt-0 pb-0 text-xs outline-none placeholder:text-muted-foreground disabled:opacity-50"
       />
       <ChatInputControls
         models={models}
