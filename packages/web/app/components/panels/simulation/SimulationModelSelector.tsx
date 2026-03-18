@@ -12,7 +12,7 @@ import {
   ComboboxList,
 } from '@/components/ui/combobox';
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { useRef, useMemo } from 'react';
 
 import type { OpenRouterModel } from '../../../hooks/useOpenRouterModels';
 import { SimulationThinkingEffort, type ThinkingEffort } from './SimulationThinkingEffort';
@@ -60,12 +60,15 @@ export function SimulationModelSelector({ models, value, onValueChange, effort, 
     () => new Map(models.map((m) => [m.id, m.name.replace(/^[^:]+:\s*/, '')])),
     [models]
   );
+  const openRef = useRef(false);
+
   return (
     <Combobox
       items={groups}
       value={value}
       onValueChange={(v) => onValueChange(v ?? '')}
       itemToStringLabel={extractShortName}
+      onOpenChange={(open) => { openRef.current = open; }}
     >
       <ComboboxInput
         placeholder={t('selectModel')}
@@ -75,10 +78,10 @@ export function SimulationModelSelector({ models, value, onValueChange, effort, 
         {effort === 'high' && (
           <span
             className="shrink-0 cursor-default text-[11px] text-muted-foreground/60"
-            onClick={(e) => {
-              const btn = e.currentTarget.parentElement?.querySelector('button');
-              if (btn && btn.getAttribute('aria-expanded') !== 'true') {
-                btn.click();
+            onMouseDown={(e) => {
+              e.preventDefault();
+              if (!openRef.current) {
+                (e.currentTarget.parentElement?.querySelector('button') as HTMLButtonElement | null)?.click();
               }
             }}
           >
