@@ -100,7 +100,7 @@ function ContentArea({ lastUserText, nodeResults, scrollRef }: ContentAreaProps)
 function ExecutingIndicator({ currentNode, hasTokens }: { currentNode: string, hasTokens: boolean }) {
   const t = useTranslations('simulation');
   return (
-    <div className={`flex items-center gap-1.5 px-3 pt-1.5 text-xs text-muted-foreground ${hasTokens ? '' : 'pb-1.5'}`}>
+    <div className={`flex items-center gap-1.5 px-3 pt-1.5 text-xs text-muted-foreground ${hasTokens ? '' : 'pb-0'}`}>
       <Loader2 className="size-3 animate-spin" />
       <span className="truncate text-[10px]">{t('executingNode', { node: currentNode })}</span>
     </div>
@@ -114,7 +114,7 @@ function SimulationFooter({ totalTokens, loading, currentNode }: SimulationFoote
     <div className="flex flex-col border-t">
       {loading && <ExecutingIndicator hasTokens={hasTokens} currentNode={currentNode} />}
       {hasTokens && (
-        <div className="flex items-center gap-1.5 px-3 py-1">
+        <div className="flex items-center gap-1.5 px-3 pt-1">
           <span className="text-[10px] font-medium text-muted-foreground">{t('totalTokens')}:</span>
           <TokenDisplay tokens={totalTokens} />
         </div>
