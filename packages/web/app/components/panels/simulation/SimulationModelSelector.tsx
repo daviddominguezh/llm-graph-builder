@@ -64,7 +64,7 @@ export function SimulationModelSelector({ models, value, onValueChange }: Simula
     >
       <ComboboxInput
         placeholder={t('selectModel')}
-        className="h-6 w-[150px] border-none bg-transparent text-[11px] shadow-none"
+        className="h-6 w-[150px] border-none bg-transparent text-[11px] shadow-none hover:bg-muted/80 transition-colors rounded-md [&_input]:cursor-default"
       />
       <ComboboxContent>
         <ComboboxEmpty>{t('noModelsFound')}</ComboboxEmpty>
