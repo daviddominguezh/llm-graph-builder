@@ -185,23 +185,43 @@ INSERT INTO public.graph_nodes (
   v_recipe_agent_id, 'INITIAL_STEP',
   'You are a friendly recipe assistant. Based on the user''s message, determine their intent.',
   'agent', 'Routes user to the correct flow based on intent',
-  false, false, 20, 258, NULL, NULL ),
+  false, false, 20, 338, NULL, NULL ),
 ( 'c1000000-0000-0000-0000-000000000001',
   v_recipe_agent_id, 'create_recipe',
   '',
-  'agent', 'Generates a recipe',
-  false, false, 257.5, 20, 'seLAsT6-u2dSZ0xoxHVp4',
+  'agent', '',
+  false, false, 340, 20, 'seLAsT6-u2dSZ0xoxHVp4',
   'Generate a Michelin-star-level recipe based on the user''s request, or, if they haven''t specified a dish, make it for lasagna.' ),
-( 'c1000000-0000-0000-0000-000000000003',
-  v_recipe_agent_id, 'read_recipes',
-  '',
-  'agent', 'Reads all the recipes the user had previously created',
-  false, false, 257.5, 320, NULL, NULL ),
 ( 'c1000000-0000-0000-0000-000000000002',
   v_recipe_agent_id, 'terminal_node',
   '',
   'agent', '',
-  false, false, 532.5, 170, NULL, NULL )
+  false, false, 1660, 320, NULL, NULL ),
+( 'c1000000-0000-0000-0000-000000000003',
+  v_recipe_agent_id, 'list_linear_teams',
+  '',
+  'agent', '',
+  false, false, 780, 20, NULL, NULL ),
+( 'c1000000-0000-0000-0000-000000000004',
+  v_recipe_agent_id, 'read_linear_recipes',
+  '',
+  'agent', '',
+  false, false, 340, 400, NULL, NULL ),
+( 'c1000000-0000-0000-0000-000000000005',
+  v_recipe_agent_id, 'determine_recipe_count',
+  '',
+  'agent', '',
+  false, false, 780, 400, NULL, NULL ),
+( 'c1000000-0000-0000-0000-000000000006',
+  v_recipe_agent_id, 'with_existing_recipes',
+  '',
+  'agent', '',
+  false, false, 1220, 320, NULL, NULL ),
+( 'c1000000-0000-0000-0000-000000000007',
+  v_recipe_agent_id, 'with_linear_teams_listed',
+  '',
+  'agent', '',
+  false, false, 1220, 20, NULL, NULL )
 ON CONFLICT (id) DO NOTHING;
 
 -- 9. Create edges
@@ -210,24 +230,60 @@ INSERT INTO public.graph_edges (
 ) VALUES
 ( 'c2000000-0000-0000-0000-000000000001',
   v_recipe_agent_id, 'INITIAL_STEP', 'create_recipe' ),
-( 'c2000000-0000-0000-0000-000000000003',
-  v_recipe_agent_id, 'INITIAL_STEP', 'read_recipes' ),
 ( 'c2000000-0000-0000-0000-000000000002',
-  v_recipe_agent_id, 'create_recipe', 'terminal_node' ),
+  v_recipe_agent_id, 'INITIAL_STEP', 'read_linear_recipes' ),
+( 'c2000000-0000-0000-0000-000000000003',
+  v_recipe_agent_id, 'create_recipe', 'list_linear_teams' ),
 ( 'c2000000-0000-0000-0000-000000000004',
-  v_recipe_agent_id, 'read_recipes', 'terminal_node' )
+  v_recipe_agent_id, 'list_linear_teams', 'with_linear_teams_listed' ),
+( 'c2000000-0000-0000-0000-000000000005',
+  v_recipe_agent_id, 'read_linear_recipes', 'determine_recipe_count' ),
+( 'c2000000-0000-0000-0000-000000000006',
+  v_recipe_agent_id, 'determine_recipe_count', 'with_existing_recipes' ),
+( 'c2000000-0000-0000-0000-000000000007',
+  v_recipe_agent_id, 'determine_recipe_count', 'terminal_node' ),
+( 'c2000000-0000-0000-0000-000000000008',
+  v_recipe_agent_id, 'with_existing_recipes', 'terminal_node' ),
+( 'c2000000-0000-0000-0000-000000000009',
+  v_recipe_agent_id, 'with_linear_teams_listed', 'terminal_node' )
 ON CONFLICT (id) DO NOTHING;
 
--- 10. Create edge preconditions (user_said on both INITIAL_STEP edges)
+-- 10. Create edge preconditions
 INSERT INTO public.graph_edge_preconditions (
   id, edge_id, type, value, description
 ) VALUES
+-- INITIAL_STEP -> create_recipe (user_said)
 ( 'c3000000-0000-0000-0000-000000000001',
   'c2000000-0000-0000-0000-000000000001',
   'user_said', 'I want you to give me a recipe about...', 'User wants you to create a new recipe' ),
+-- INITIAL_STEP -> read_linear_recipes (user_said)
 ( 'c3000000-0000-0000-0000-000000000002',
-  'c2000000-0000-0000-0000-000000000003',
-  'user_said', 'Check the previously saved recipes', 'User wants to retrieve previous recipe suggestions' )
+  'c2000000-0000-0000-0000-000000000002',
+  'user_said', 'Check the previously saved recipes', 'User wants to retrieve previous recipe suggestions' ),
+-- list_linear_teams -> with_linear_teams_listed (tool_call)
+( 'c3000000-0000-0000-0000-000000000003',
+  'c2000000-0000-0000-0000-000000000004',
+  'tool_call', 'list_teams', 'Retrieves all the linear teams' ),
+-- read_linear_recipes -> determine_recipe_count (tool_call)
+( 'c3000000-0000-0000-0000-000000000004',
+  'c2000000-0000-0000-0000-000000000005',
+  'tool_call', 'list_issues', 'Retrieves all the linear issues' ),
+-- determine_recipe_count -> with_existing_recipes (agent_decision)
+( 'c3000000-0000-0000-0000-000000000005',
+  'c2000000-0000-0000-0000-000000000006',
+  'agent_decision', 'the user has existing recipes', '' ),
+-- determine_recipe_count -> terminal_node (agent_decision)
+( 'c3000000-0000-0000-0000-000000000006',
+  'c2000000-0000-0000-0000-000000000007',
+  'agent_decision', 'the user does not have recipes', '' ),
+-- with_existing_recipes -> terminal_node (tool_call)
+( 'c3000000-0000-0000-0000-000000000007',
+  'c2000000-0000-0000-0000-000000000008',
+  'tool_call', 'get_issue', 'Retrieves a specific issue' ),
+-- with_linear_teams_listed -> terminal_node (tool_call)
+( 'c3000000-0000-0000-0000-000000000008',
+  'c2000000-0000-0000-0000-000000000009',
+  'tool_call', 'save_issue', 'Saves the generated recipe in linear' )
 ON CONFLICT (id) DO NOTHING;
 
 -- 11. Seed recipe output schema
