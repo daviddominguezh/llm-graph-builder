@@ -286,7 +286,36 @@ INSERT INTO public.graph_edge_preconditions (
   'tool_call', 'save_issue', 'Saves the generated recipe in linear' )
 ON CONFLICT (id) DO NOTHING;
 
--- 11. Seed recipe output schema
+-- 11. Create org env variable for Linear API key
+INSERT INTO public.org_env_variables (
+  id, org_id, name, value, is_secret, created_by, created_at, updated_at
+) VALUES (
+  'd20ad0b2-dbc3-4b92-a6bb-d4f84fc6813c',
+  v_org_id,
+  'LINEAR_KEY',
+  'lin_api_REPLACE_ME',
+  true,
+  v_user_id,
+  now(), now()
+) ON CONFLICT (org_id, name) DO NOTHING;
+
+-- 12. Link Linear MCP server to the agent
+INSERT INTO public.graph_mcp_servers (
+  id, agent_id, server_id, name, transport_type, transport_config,
+  enabled, library_item_id, variable_values
+) VALUES (
+  '18938af9-c843-499f-a431-771ad38d638b',
+  v_recipe_agent_id,
+  'LksmRH1FDdU2NbockiZVa',
+  'Linear',
+  'http',
+  '{"url":"https://mcp.linear.app/mcp","headers":{"Authorization":"Bearer {{LINEAR_API_KEY}}"}}'::jsonb,
+  true,
+  (SELECT id FROM public.mcp_library WHERE name = 'Linear' AND org_id = v_org_id LIMIT 1),
+  '{"LINEAR_API_KEY":{"type":"env_ref","envVariableId":"d20ad0b2-dbc3-4b92-a6bb-d4f84fc6813c"}}'::jsonb
+) ON CONFLICT (agent_id, server_id) DO NOTHING;
+
+-- 13. Seed recipe output schema
 INSERT INTO public.graph_output_schemas (agent_id, schema_id, name, fields) VALUES (
   v_recipe_agent_id,
   'seLAsT6-u2dSZ0xoxHVp4',
