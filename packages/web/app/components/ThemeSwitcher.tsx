@@ -3,18 +3,12 @@
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
 
 export function ThemeSwitcher() {
   const { resolvedTheme, setTheme } = useTheme();
   const t = useTranslations('theme');
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
+  if (resolvedTheme === undefined) return null;
 
   const isLight = resolvedTheme === 'light';
 
