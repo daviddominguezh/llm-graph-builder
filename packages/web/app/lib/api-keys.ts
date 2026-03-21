@@ -44,11 +44,10 @@ export async function getApiKeyValueById(
   supabase: SupabaseClient,
   keyId: string
 ): Promise<{ value: string | null; error: string | null }> {
-  const { data, error } = await supabase.from('org_api_keys').select('key_value').eq('id', keyId).single();
+  const { data, error } = await supabase.rpc('get_api_key_value', { p_key_id: keyId });
 
   if (error !== null) return { value: null, error: error.message };
-  const row = data as { key_value: string } | null;
-  return { value: row?.key_value ?? null, error: null };
+  return { value: (data as string) ?? null, error: null };
 }
 
 export async function createApiKey(
@@ -57,15 +56,17 @@ export async function createApiKey(
   name: string,
   keyValue: string
 ): Promise<{ result: ApiKeyRow | null; error: string | null }> {
-  const result = await supabase
-    .from('org_api_keys')
-    .insert({ org_id: orgId, name, key_value: keyValue })
-    .select(API_KEY_COLUMNS)
-    .single();
+  const { data, error } = await supabase.rpc('create_org_api_key', {
+    p_org_id: orgId,
+    p_name: name,
+    p_key_value: keyValue,
+  });
 
-  if (result.error !== null) return { result: null, error: result.error.message };
-  if (!isApiKeyRow(result.data)) return { result: null, error: 'Invalid API key data' };
-  return { result: result.data, error: null };
+  if (error !== null) return { result: null, error: error.message };
+  const rows = data as unknown[];
+  const first: unknown = rows[0];
+  if (!isApiKeyRow(first)) return { result: null, error: 'Invalid API key data' };
+  return { result: first, error: null };
 }
 
 export async function deleteApiKey(
