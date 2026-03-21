@@ -90,7 +90,7 @@ function SchemaEditor({
   return (
     <>
       <div className="flex flex-col flex-1 overflow-y-auto">
-        <DialogHeader className="border-b pb-3 sticky top-0">
+        <DialogHeader className="border-b pb-3 sticky top-0 bg-background! z-50">
           <DialogTitle>{'Structured Output Schema'}</DialogTitle>
         </DialogHeader>
         <div className="space-y-1 px-1 pt-3 pb-3">
