@@ -43,10 +43,9 @@ function formatTime(iso: string): string {
 interface VersionItemProps {
   version: number;
   publishedAt: string;
-  isCurrent: boolean;
 }
 
-function VersionItemLabel({ version, publishedAt, isCurrent }: VersionItemProps) {
+function VersionItemLabel({ version, publishedAt }: VersionItemProps) {
   const t = useTranslations('editor');
 
   return (
@@ -172,11 +171,7 @@ export function VersionSelector(props: VersionSelectorProps) {
               value={String(v.version)}
               className="group min-h-11 items-start py-2 focus:bg-accent/20 focus:text-foreground not-data-[variant=destructive]:focus:**:text-foreground [&>[data-slot=select-item-indicator]]:top-2.5"
             >
-              <VersionItemLabel
-                version={v.version}
-                publishedAt={v.publishedAt}
-                isCurrent={v.version === currentVersion}
-              />
+              <VersionItemLabel version={v.version} publishedAt={v.publishedAt} />
             </SelectItem>
           ))}
         </SelectContent>
