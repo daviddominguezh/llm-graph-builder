@@ -3,6 +3,7 @@ import express, { type Express, type NextFunction, type Request, type Response }
 
 import { requireAuth } from './middleware/auth.js';
 import { handleDiscover } from './routes/discover.js';
+import { executeRouter } from './routes/execute/executeRoute.js';
 import { handleGetGraph } from './routes/graph/getGraph.js';
 import { handleGetVersion } from './routes/graph/getVersion.js';
 import { handleGetVersions } from './routes/graph/getVersions.js';
@@ -35,6 +36,9 @@ export function createApp(): Express {
   app.post('/mcp/tools/call', handleToolCall);
   app.post('/simulate', handleSimulate);
   app.get('/mcp/oauth/callback', handleCallback);
+
+  // Public execution route (uses its own API key auth)
+  app.use('/api/agents', executeRouter);
 
   const agentRouter = express.Router();
   agentRouter.use(requireAuth);
