@@ -124,6 +124,7 @@
     "exportValidationError": "Graph has validation errors. Please fix before exporting.",
     "loadGraphFailed": "Failed to load graph data.",
     "versionLabel": "v{version}",
+    "versionDraft": "Draft",
     "versionPublishedAt": "Published {date}",
     "switchVersionTitle": "Switch version?",
     "switchVersionDescription": "You have unpublished changes that will be lost. Continue?",
