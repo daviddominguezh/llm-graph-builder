@@ -8,6 +8,7 @@ import { Toaster } from '@/components/ui/sonner';
 import './globals.css';
 
 import { OpenRouterModelsLogger } from './components/OpenRouterModelsLogger';
+import { ThemeProvider } from './components/ThemeProvider';
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
@@ -35,12 +36,14 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} className={inter.variable}>
+    <html lang={locale} className={inter.variable} suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <NextIntlClientProvider messages={messages}>
-          <OpenRouterModelsLogger />
-          {children}
-          <Toaster />
+          <ThemeProvider>
+            <OpenRouterModelsLogger />
+            {children}
+            <Toaster />
+          </ThemeProvider>
         </NextIntlClientProvider>
       </body>
     </html>
