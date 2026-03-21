@@ -553,7 +553,7 @@ export function EdgePanel({
 
                       <div className="flex text-sm items-start gap-1 bg-muted rounded-md p-2">
                         {p.type === "user_said" && "\u201C"}
-                        <div className="text-gray-600 text-[13px]">
+                        <div className="text-muted-foreground text-[13px]">
                           {p.value}
                         </div>
                         {p.type === "user_said" && "\u201D"}

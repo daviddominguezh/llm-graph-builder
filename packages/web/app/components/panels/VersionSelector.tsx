@@ -53,7 +53,7 @@ function VersionItemLabel({ version, publishedAt }: VersionItemProps) {
       <span className="flex items-center gap-2">
         <Badge
           variant="outline"
-          className="h-4 bg-muted/40 group-focus:bg-white px-1.5 font-mono text-[9px] font-semibold tabular-nums"
+          className="h-4 bg-muted/40 group-focus:bg-background px-1.5 font-mono text-[9px] font-semibold tabular-nums"
         >
           {t('versionLabel', { version: String(version) })}
         </Badge>
@@ -112,7 +112,7 @@ function EmptyVersionsTrigger() {
   const t = useTranslations('editor');
 
   return (
-    <div className="flex h-10 items-center gap-1.5 rounded-md border bg-white px-3 text-xs text-foreground">
+    <div className="flex h-10 items-center gap-1.5 rounded-md border bg-background px-3 text-xs text-foreground">
       <History className="size-4" />
       <span className="font-bold">{t('versionDraft')}</span>
     </div>
@@ -159,7 +159,7 @@ export function VersionSelector(props: VersionSelectorProps) {
       <Select value={String(currentVersion)} onValueChange={handleValueChange} disabled={loading}>
         <SelectTrigger
           size="sm"
-          className="h-10 data-[size=sm]:h-10 bg-white px-3 text-xs font-bold [&>svg:last-child]:hidden"
+          className="h-10 data-[size=sm]:h-10 bg-background px-3 text-xs font-bold [&>svg:last-child]:hidden"
         >
           <History className="size-4" />
           <span>{triggerLabel}</span>

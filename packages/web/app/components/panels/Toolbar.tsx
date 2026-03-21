@@ -75,13 +75,13 @@ function OrgAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null
         alt={name}
         width={20}
         height={20}
-        className="h-5 w-5 rounded-full object-cover ring-1 ring-white"
+        className="h-5 w-5 rounded-full object-cover ring-1 ring-background"
       />
     );
   }
 
   return (
-    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[10px] font-medium ring-1 ring-white">
+    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[10px] font-medium ring-1 ring-background">
       {initial}
     </div>
   );
@@ -99,11 +99,11 @@ function OrgSection({ orgName, orgAvatarUrl, orgSlug, agentName }: OrgSectionPro
     <DropdownMenuGroup>
       <DropdownMenuLabel className="flex items-center gap-1.5 font-normal">
         <OrgAvatar name={orgName} avatarUrl={orgAvatarUrl} />
-        <Link href={`/orgs/${orgSlug}`} className="text-xs font-bold text-black hover:underline">
+        <Link href={`/orgs/${orgSlug}`} className="text-xs font-bold text-foreground hover:underline">
           {orgName}
         </Link>
         <span className="text-xs text-muted-foreground">/</span>
-        <span className="text-xs text-black">{agentName}</span>
+        <span className="text-xs text-foreground">{agentName}</span>
       </DropdownMenuLabel>
     </DropdownMenuGroup>
   );
@@ -158,7 +158,7 @@ function FileMenu({ onImport, onExport, onFormat, orgSlug, orgName, orgAvatarUrl
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button className="h-9 w-9 bg-white" variant="outline" size="sm">
+          <Button className="h-9 w-9 bg-background" variant="outline" size="sm">
             <Menu className="size-4" />
           </Button>
         }

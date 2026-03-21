@@ -169,7 +169,7 @@ export function AgentPanel({
         ))}
 
         {isAdding && (
-          <Card className="bg-white p-2">
+          <Card className="bg-background p-2">
             <div className="flex flex-col gap-2">
               <Input
                 value={newId}
