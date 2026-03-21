@@ -153,7 +153,7 @@ div.model-selector-trigger[data-slot="input-group"] {
 
 /* React Flow Theme */
 .react-flow {
-  --xy-background-color: var(--background);
+  --xy-background-color: var(--muted);
   --xy-theme-selected: var(--primary);
   --xy-theme-hover: var(--secondary);
   --xy-theme-edge-hover: black;
@@ -173,7 +173,7 @@ div.model-selector-trigger[data-slot="input-group"] {
 }
 
 .react-flow.dark {
-  --xy-background-color: var(--background);
+  --xy-background-color: var(--muted);
   --xy-theme-edge-hover: white;
   --xy-handle-background-color-default: var(--background);
   --xy-edge-label-color-default: var(--muted-foreground);
