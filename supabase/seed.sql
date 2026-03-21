@@ -288,12 +288,12 @@ ON CONFLICT (id) DO NOTHING;
 
 -- 11. Create org env variable for Linear API key
 INSERT INTO public.org_env_variables (
-  id, org_id, name, value, is_secret, created_by, created_at, updated_at
+  id, org_id, name, encrypted_value, is_secret, created_by, created_at, updated_at
 ) VALUES (
   'd20ad0b2-dbc3-4b92-a6bb-d4f84fc6813c',
   v_org_id,
   'LINEAR_KEY',
-  'lin_api_REPLACE_ME',
+  encrypt_secret('lin_api_REPLACE_ME'),
   true,
   v_user_id,
   now(), now()
