@@ -64,12 +64,12 @@ function PreconditionEdgeComponent({
       case "tool_call":
         return "bg-orange-100 text-orange-700 border-orange-300";
       default:
-        return "bg-gray-100 text-gray-700 border-gray-300";
+        return "bg-muted text-muted-foreground border-border";
     }
   };
 
   const getStrokeColor = () => {
-    if (selected) return "#000000";
+    if (selected) return "var(--foreground)";
     switch (preconditionType) {
       case "user_said":
         return "#22c55e"; // green-500

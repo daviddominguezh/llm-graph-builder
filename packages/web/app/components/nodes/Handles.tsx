@@ -35,7 +35,7 @@ const topTargetStyle = {
 } as const;
 const topSourceStyle = {
   ...handleStyleBase,
-  backgroundColor: "white",
+  backgroundColor: "var(--background)",
   left: "65%",
 } as const;
 const bottomTargetStyle = {
@@ -45,7 +45,7 @@ const bottomTargetStyle = {
 } as const;
 const bottomSourceStyle = {
   ...handleStyleBase,
-  backgroundColor: "white",
+  backgroundColor: "var(--background)",
   left: "65%",
 } as const;
 const leftTargetStyle = {
@@ -56,7 +56,7 @@ const leftTargetStyle = {
 
 const rightSourceStyle = {
   ...handleStyleBase,
-  backgroundColor: "white",
+  backgroundColor: "var(--background)",
   top: "50%",
 } as const;
 

@@ -16,7 +16,7 @@ const rightSourceStyle = {
   alignItems: "center",
   justifyContent: "center",
   cursor: "pointer",
-  backgroundColor: "white",
+  backgroundColor: "var(--background)",
   top: "50%",
 } as const;
 

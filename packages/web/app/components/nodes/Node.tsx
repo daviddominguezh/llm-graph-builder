@@ -52,7 +52,7 @@ function AgentNodeComponent({ data, id }: NodeProps) {
   const opacity = muted ? "opacity-40" : "opacity-100";
 
   const containerBaseStyle =
-    "rounded-lg bg-white p-1 transition-opacity overflow-hidden";
+    "rounded-lg bg-background p-1 transition-opacity overflow-hidden";
   const containerClassname = `${containerBaseStyle} ${borderWidth} ${borderColor} ${opacity}`;
 
   return (
