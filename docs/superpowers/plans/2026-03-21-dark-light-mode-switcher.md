@@ -63,7 +63,7 @@ interface ThemeProviderProps {
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
   return (
-    <NextThemesProvider attribute="class" defaultTheme="system" disableTransitionOnChange>
+    <NextThemesProvider attribute="class" defaultTheme="system" storageKey="theme" disableTransitionOnChange>
       {children}
     </NextThemesProvider>
   );
@@ -116,16 +116,53 @@ git commit -m "feat: add ThemeProvider wrapper to root layout"
 
 Create `packages/web/app/components/ThemeSwitcher.tsx`:
 
-A `'use client'` component that:
-- Uses `useTheme()` from `next-themes` to get `resolvedTheme` and `setTheme`
-- Uses `useTranslations('theme')` for aria labels
-- Has a `mounted` guard via `useState` + `useEffect` (return `null` before mount)
-- Renders two buttons (`Sun` and `Moon` from lucide-react) inside a container with `inline-flex items-center rounded-md border bg-muted p-0.5 gap-0.5`
-- The active button gets `bg-background shadow-sm` styles, the inactive gets `text-muted-foreground hover:text-foreground`
-- Both buttons are `h-7 w-7 rounded-sm` with the icon at `size-4`
-- Each button has `aria-label={t('light')}` / `aria-label={t('dark')}`
-- Clicking Sun calls `setTheme('light')`, clicking Moon calls `setTheme('dark')`
-- Active state is determined by `resolvedTheme === 'light'` / `resolvedTheme === 'dark'`
+```tsx
+'use client';
+
+import { Moon, Sun } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { useTranslations } from 'next-intl';
+import { useEffect, useState } from 'react';
+
+export function ThemeSwitcher() {
+  const { resolvedTheme, setTheme } = useTheme();
+  const t = useTranslations('theme');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
+  const isLight = resolvedTheme === 'light';
+
+  return (
+    <div className="inline-flex items-center rounded-md border bg-muted p-0.5 gap-0.5">
+      <button
+        type="button"
+        className={`inline-flex h-7 w-7 items-center justify-center rounded-sm transition-colors ${
+          isLight ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'
+        }`}
+        onClick={() => setTheme('light')}
+        aria-label={t('light')}
+      >
+        <Sun className="size-4" />
+      </button>
+      <button
+        type="button"
+        className={`inline-flex h-7 w-7 items-center justify-center rounded-sm transition-colors ${
+          !isLight ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'
+        }`}
+        onClick={() => setTheme('dark')}
+        aria-label={t('dark')}
+      >
+        <Moon className="size-4" />
+      </button>
+    </div>
+  );
+}
+```
 
 - [ ] **Step 2: Run typecheck**
 
@@ -206,31 +243,51 @@ git commit -m "feat: add appearance section to settings page"
 **Files:**
 - Modify: `packages/web/app/components/panels/Toolbar.tsx`
 
-- [ ] **Step 1: Add ThemeSwitcher to FileMenu dropdown**
+- [ ] **Step 1: Extract FileMenuItems and add ThemeSwitcher**
+
+The `FileMenu` function is already at the 40-line limit. To stay within bounds, extract a `FileMenuItems` helper and add the theme switcher there.
 
 In `packages/web/app/components/panels/Toolbar.tsx`:
 - Import `ThemeSwitcher` from `../ThemeSwitcher`
-- In the `FileMenu` component, after the last `DropdownMenuItem` (auto-layout) and its closing `</div>`, add:
-  - A `<Separator />`
-  - A `<div className="px-2 py-1.5">` containing `<ThemeSwitcher />`
-
-The FileMenu dropdown content becomes:
+- Extract a new `FileMenuItems` component that contains the dropdown menu items and the theme switcher:
 
 ```tsx
-<DropdownMenuContent side="bottom" align="start" className="w-52">
-  {/* ... org section ... */}
-  <Separator />
-  <div className="py-1">
-    <DropdownMenuItem onClick={onImport}>...</DropdownMenuItem>
-    <DropdownMenuItem onClick={onExport}>...</DropdownMenuItem>
-    <DropdownMenuItem onClick={onFormat}>...</DropdownMenuItem>
-  </div>
-  <Separator />
-  <div className="px-2 py-1.5">
-    <ThemeSwitcher />
-  </div>
-</DropdownMenuContent>
+interface FileMenuItemsProps {
+  onImport: () => void;
+  onExport: () => void;
+  onFormat: () => void;
+}
+
+function FileMenuItems({ onImport, onExport, onFormat }: FileMenuItemsProps) {
+  const t = useTranslations('common');
+  const tToolbar = useTranslations('toolbar');
+
+  return (
+    <>
+      <div className="py-1">
+        <DropdownMenuItem onClick={onImport}>
+          <Upload className="size-4" />
+          {t('import')}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onExport}>
+          <Download className="size-4" />
+          {t('export')}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onFormat}>
+          <AlignHorizontalSpaceAround className="size-4" />
+          {tToolbar('autoLayout')}
+        </DropdownMenuItem>
+      </div>
+      <Separator />
+      <div className="px-2 py-1.5">
+        <ThemeSwitcher />
+      </div>
+    </>
+  );
+}
 ```
+
+Then update `FileMenu` to use `<FileMenuItems>` instead of inlining the menu items, and remove the now-duplicated `useTranslations` calls from `FileMenu`.
 
 - [ ] **Step 2: Run typecheck**
 
@@ -254,9 +311,9 @@ git commit -m "feat: add theme switcher to canvas toolbar file menu"
 - [ ] **Step 1: Add colorMode prop to ReactFlow**
 
 In `packages/web/app/components/GraphCanvas.tsx`:
-- Import `useTheme` from `next-themes`
-- Import `useState`, `useEffect` from `react`
-- In the `GraphCanvas` component, add a mounted guard and theme resolution:
+- Add new import: `import { useTheme } from 'next-themes';`
+- Add new import: `import { useEffect, useState } from 'react';` (neither `useState` nor `useEffect` are currently imported in this file)
+- In the `GraphCanvas` component body, add a mounted guard and theme resolution before the return:
 
 ```tsx
 const { resolvedTheme } = useTheme();
