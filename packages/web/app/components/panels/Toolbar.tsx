@@ -1,6 +1,5 @@
 'use client';
 
-import { ThemeSwitcher } from '../ThemeSwitcher';
 import { toProxyImageSrc } from '@/app/lib/supabase/image';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,6 +18,7 @@ import {
   Blocks,
   Download,
   Menu,
+  Palette,
   Play,
   Settings,
   SquareFunction,
@@ -29,6 +29,8 @@ import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+
+import { ThemeSwitcher } from '../ThemeSwitcher';
 
 const TOOLTIP_DELAY = 1000;
 
@@ -137,8 +139,11 @@ function FileMenuItems({ onImport, onExport, onFormat }: FileMenuItemsProps) {
         </DropdownMenuItem>
       </div>
       <Separator />
-      <div className="flex items-center justify-between px-2 py-1.5">
-        <span className="text-xs text-muted-foreground">{tTheme('label')}</span>
+      <div className="flex items-center justify-between pl-2 pt-1.5">
+        <span className="text-xs/relaxed flex gap-2 items-center">
+          <Palette className="size-4" />
+          {tTheme('label')}
+        </span>
         <ThemeSwitcher />
       </div>
     </>
@@ -155,7 +160,15 @@ interface FileMenuProps {
   agentName?: string;
 }
 
-function FileMenu({ onImport, onExport, onFormat, orgSlug, orgName, orgAvatarUrl, agentName }: FileMenuProps) {
+function FileMenu({
+  onImport,
+  onExport,
+  onFormat,
+  orgSlug,
+  orgName,
+  orgAvatarUrl,
+  agentName,
+}: FileMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -252,8 +265,17 @@ function ToolbarButtons(props: ToolbarProps) {
 }
 
 export function Toolbar(props: ToolbarProps) {
-  const { onImport, onExport, onPlay, simulationActive, stagingKeyId, orgSlug, orgName, orgAvatarUrl, agentName } =
-    props;
+  const {
+    onImport,
+    onExport,
+    onPlay,
+    simulationActive,
+    stagingKeyId,
+    orgSlug,
+    orgName,
+    orgAvatarUrl,
+    agentName,
+  } = props;
   const t = useTranslations('toolbar');
   return (
     <>
