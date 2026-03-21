@@ -59,7 +59,7 @@ function NavItem({
       size="sm"
       className={`h-8 w-full justify-start px-2 border ${
         active
-          ? 'border-primary bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary'
+          ? 'border-primary bg-primary/15 text-primary hover:bg-primary/15 hover:text-primary'
           : 'border-background text-muted-foreground hover:text-foreground/70'
       }`}
       render={<Link href={href} onClick={onClick} />}
@@ -88,7 +88,7 @@ function NavItemExpanded({
       size="sm"
       className={`h-8 w-full justify-start gap-2 px-2 text-sm border ${
         active
-          ? 'border-primary bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary'
+          ? 'border-primary bg-primary/15 text-primary hover:bg-primary/15 hover:text-primary'
           : 'border-background text-muted-foreground hover:text-foreground/70'
       }`}
       render={<Link href={href} onClick={onClick} />}
@@ -276,7 +276,7 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
 
   return (
     <aside
-      className={`absolute left-1.5 top-1.5 bottom-1.5 z-10 flex flex-col gap-4 rounded-xl border bg-background p-2 transition-[width] duration-100 ${sidebar.collapsed ? 'w-13' : 'w-74 shadow-lg'}`}
+      className={`absolute left-1.5 top-1.5 bottom-1.5 z-100 flex flex-col gap-4 rounded-xl border bg-background p-2 transition-[width] duration-100 ${sidebar.collapsed ? 'w-13' : 'w-74 shadow-lg'}`}
       onMouseEnter={sidebar.handleMouseEnter}
       onMouseLeave={sidebar.handleMouseLeave}
     >
