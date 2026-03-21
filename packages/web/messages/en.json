@@ -383,5 +383,10 @@
     "copied": "Copied",
     "status": "Status",
     "duration": "Duration"
+  },
+  "theme": {
+    "appearance": "Appearance",
+    "light": "Light",
+    "dark": "Dark"
   }
 }
