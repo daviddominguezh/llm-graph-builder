@@ -173,6 +173,10 @@ div.model-selector-trigger[data-slot="input-group"] {
 }
 
 .react-flow.dark {
+  --xy-background-color: var(--background);
+  --xy-theme-edge-hover: white;
+  --xy-handle-background-color-default: var(--background);
+  --xy-edge-label-color-default: var(--muted-foreground);
   --xy-node-boxshadow-default:
     0px 3.54px 4.55px 0px rgba(255, 255, 255, 0.05),
     0px 3.54px 4.55px 0px rgba(255, 255, 255, 0.13),
