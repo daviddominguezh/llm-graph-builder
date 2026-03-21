@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 import { Button } from '@/components/ui/button';
 import {
   Background,
@@ -11,6 +13,7 @@ import {
   type OnNodesChange,
   ReactFlow,
 } from '@xyflow/react';
+import { useTheme } from 'next-themes';
 import { X } from 'lucide-react';
 
 import type { SimulationState } from '../hooks/useSimulation';
@@ -63,6 +66,13 @@ export function GraphCanvas({
   simulation,
   onExitZoomView,
 }: GraphCanvasProps) {
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  const colorMode = mounted && resolvedTheme === 'dark' ? 'dark' : 'light';
+
   return (
     <div className="relative h-full w-full flex-1 overflow-hidden">
       <main ref={reactFlowWrapper} className="absolute inset-0">
@@ -79,6 +89,7 @@ export function GraphCanvas({
           edgeTypes={edgeTypes}
           deleteKeyCode={null}
           defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+          colorMode={colorMode}
         >
           <Background />
           <Controls className='ml-[2px]! mb-[2px]!' />
