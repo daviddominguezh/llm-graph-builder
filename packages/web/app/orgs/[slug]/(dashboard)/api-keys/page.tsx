@@ -1,12 +1,52 @@
-import { useTranslations } from 'next-intl';
+import { ExecutionKeysSection } from '@/app/components/orgs/execution-keys/ExecutionKeysSection';
+import { getAgentsByOrg } from '@/app/lib/agents';
+import type { ExecutionKeyWithAgents } from '@/app/lib/execution-keys';
+import { getAgentsForKey, getExecutionKeysByOrg } from '@/app/lib/execution-keys-queries';
+import { getOrgBySlug } from '@/app/lib/orgs';
+import { createClient } from '@/app/lib/supabase/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { redirect } from 'next/navigation';
 
-export default function ApiKeysPage(): React.JSX.Element {
-  const t = useTranslations('orgs');
+interface ApiKeysPageProps {
+  params: Promise<{ slug: string }>;
+}
+
+async function fetchKeysWithAgents(
+  supabase: SupabaseClient,
+  orgId: string
+): Promise<ExecutionKeyWithAgents[]> {
+  const { result: keys } = await getExecutionKeysByOrg(supabase, orgId);
+
+  const results = await Promise.all(
+    keys.map(async (key) => {
+      const { result: agents } = await getAgentsForKey(supabase, key.id);
+      return { ...key, agents };
+    })
+  );
+
+  return results;
+}
+
+export default async function ApiKeysPage({ params }: ApiKeysPageProps): Promise<React.JSX.Element> {
+  const { slug } = await params;
+  const supabase = await createClient();
+  const { result: org } = await getOrgBySlug(supabase, slug);
+
+  if (!org) {
+    redirect('/');
+  }
+
+  const [keysWithAgents, { agents: allAgents }] = await Promise.all([
+    fetchKeysWithAgents(supabase, org.id),
+    getAgentsByOrg(supabase, org.id),
+  ]);
+
+  const publishedAgents = allAgents.filter((a) => a.published_at !== null);
 
   return (
     <div className="h-full overflow-y-auto p-6">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-        <h1 className="text-2xl font-bold">{t('apiKeys')}</h1>
+        <ExecutionKeysSection orgId={org.id} initialKeys={keysWithAgents} agents={publishedAgents} />
       </div>
     </div>
   );
