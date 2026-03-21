@@ -89,7 +89,7 @@ function NavItemExpanded({
       className={`h-8 w-full justify-start gap-2 px-2 text-sm border ${
         active
           ? 'border-primary bg-primary/15 text-primary hover:bg-primary/15 hover:text-primary'
-          : 'border-background text-muted-foreground hover:text-foreground/70'
+          : 'border-background text-muted-foreground hover:text-foreground/70 bg-red-100'
       }`}
       render={<Link href={href} onClick={onClick} />}
     >

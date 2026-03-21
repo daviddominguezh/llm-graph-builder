@@ -73,7 +73,7 @@ function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: 
     <Link
       href={href}
       className={`flex gap-2 rounded-md pr-2 py-0 transition-colors ${
-        active ? 'bg-primary/15 text-foreground' : 'hover:bg-muted text-foreground'
+        active ? 'bg-primary/15 text-foreground' : 'hover:bg-card text-foreground'
       }`}
     >
       <StatusBar status={colorClass} active={active} />
