@@ -413,7 +413,7 @@ CREATE TABLE public.agent_sessions (
   session_id text NOT NULL,
   channel text NOT NULL DEFAULT 'web' CHECK (channel IN ('whatsapp', 'web')),
   current_node_id text NOT NULL DEFAULT 'INITIAL_STEP',
-  model text,
+  model text NOT NULL,
   structured_outputs jsonb NOT NULL DEFAULT '{}',
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -453,7 +453,7 @@ CREATE TABLE public.agent_executions (
   external_user_id text NOT NULL,
   channel text NOT NULL DEFAULT 'web',
   execution_key_id uuid REFERENCES public.agent_execution_keys(id) ON DELETE SET NULL,
-  model text,
+  model text NOT NULL,
   total_input_tokens integer NOT NULL DEFAULT 0,
   total_output_tokens integer NOT NULL DEFAULT 0,
   total_cached_tokens integer NOT NULL DEFAULT 0,
@@ -502,14 +502,14 @@ CREATE TABLE public.agent_execution_nodes (
   execution_id uuid NOT NULL REFERENCES public.agent_executions(id) ON DELETE CASCADE,
   node_id text NOT NULL,
   step_order integer NOT NULL,
-  messages_sent jsonb,
-  response jsonb,
-  input_tokens integer,
-  output_tokens integer,
-  cached_tokens integer,
-  cost numeric(12,6),
-  duration_ms integer,
-  model text,
+  messages_sent jsonb NOT NULL,
+  response jsonb NOT NULL,
+  input_tokens integer NOT NULL DEFAULT 0,
+  output_tokens integer NOT NULL DEFAULT 0,
+  cached_tokens integer NOT NULL DEFAULT 0,
+  cost numeric(12,6) NOT NULL DEFAULT 0,
+  duration_ms integer NOT NULL DEFAULT 0,
+  model text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -537,7 +537,7 @@ CREATE TABLE public.agent_execution_messages (
   content jsonb NOT NULL,
   tool_calls jsonb,
   tool_call_id text,
-  node_id text,
+  node_id text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
