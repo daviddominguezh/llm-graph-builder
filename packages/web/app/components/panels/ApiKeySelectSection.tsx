@@ -32,7 +32,7 @@ function StagingKeySelect({
   ];
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <Label>{t('stagingKey')}</Label>
       <Select value={stagingKeyId ?? ''} items={items} onValueChange={(val) => onStagingKeyChange(val === '' ? null : val)}>
         <SelectTrigger className="w-full">
@@ -68,7 +68,7 @@ function ProductionKeySelect({
   ];
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <Label>{t('productionKey')}</Label>
       <Select
         value={productionKeyId ?? ''}

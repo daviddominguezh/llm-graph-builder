@@ -30,13 +30,13 @@ function OrgAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null
         alt={name}
         width={20}
         height={20}
-        className="h-5 w-5 shrink-0 rounded-full object-cover"
+        className="h-5 w-5 shrink-0 rounded-full object-cover border"
       />
     );
   }
 
   return (
-    <div className="bg-muted flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-medium">
+    <div className="bg-muted flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-medium border">
       {initial}
     </div>
   );
@@ -89,7 +89,7 @@ function NavItemExpanded({
       className={`h-8 w-full justify-start gap-2 px-2 text-sm border ${
         active
           ? 'border-primary bg-primary/15 text-primary hover:bg-primary/15 hover:text-primary'
-          : 'border-background text-muted-foreground hover:text-foreground/70 bg-red-100'
+          : 'border-background text-muted-foreground hover:text-foreground/70 hover:bg-card!'
       }`}
       render={<Link href={href} onClick={onClick} />}
     >
@@ -220,7 +220,7 @@ function LogoutButton({ collapsed }: { collapsed: boolean }) {
     <Button
       variant="ghost"
       size="sm"
-      className="h-8 w-full justify-start gap-2 px-2 text-muted-foreground hover:text-destructive"
+      className="h-8 w-full justify-start gap-2 px-2 text-muted-foreground hover:text-destructive hover:bg-card!"
       onClick={handleLogout}
     >
       <LogOut className="size-4 shrink-0" />
@@ -276,7 +276,7 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
 
   return (
     <aside
-      className={`absolute left-1.5 top-1.5 bottom-1.5 z-100 flex flex-col gap-4 rounded-xl border bg-background p-2 transition-[width] duration-100 ${sidebar.collapsed ? 'w-13' : 'w-74 shadow-lg'}`}
+      className={`absolute left-1.5 top-1.5 bottom-1.5 z-11 flex flex-col gap-4 rounded-xl border bg-background p-2 transition-[width] duration-100 ${sidebar.collapsed ? 'w-13' : 'w-74 shadow-lg'}`}
       onMouseEnter={sidebar.handleMouseEnter}
       onMouseLeave={sidebar.handleMouseLeave}
     >

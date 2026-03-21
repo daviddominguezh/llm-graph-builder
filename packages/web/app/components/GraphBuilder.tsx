@@ -332,7 +332,7 @@ function LoadedEditor(props: LoadedEditorProps) {
 
   return (
     <HandleContext.Provider value={handleContextValue}>
-      <div className="relative flex h-full w-full flex-col items-center ml-1">
+      <div className="relative flex h-full w-full flex-col items-center ml-0">
         {!h.simulation.active && <Toolbar
           onAddNode={h.graphActions.handleAddNode}
           onImport={h.handleImport}
