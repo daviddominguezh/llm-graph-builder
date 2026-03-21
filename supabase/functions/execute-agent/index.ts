@@ -1,7 +1,6 @@
 // Supabase Edge Function — Stateless Agent Executor
 // Receives complete payload, executes agent, streams SSE events back.
 // No DB access, no secrets resolution — all provided in the payload.
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 
 // Note: @daviddh/llm-graph-runner import path will need adjustment for Deno.
