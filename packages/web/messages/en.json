@@ -386,6 +386,8 @@
   },
   "theme": {
     "appearance": "Appearance",
+    "appearanceDescription": "Choose your preferred color theme for the interface.",
+    "label": "Theme",
     "light": "Light",
     "dark": "Dark"
   }

@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTranslations } from 'next-intl';
 
 import { ThemeSwitcher } from '../ThemeSwitcher';
@@ -12,6 +12,7 @@ export function AppearanceSection() {
     <Card>
       <CardHeader>
         <CardTitle>{t('appearance')}</CardTitle>
+        <CardDescription>{t('appearanceDescription')}</CardDescription>
       </CardHeader>
       <CardContent>
         <ThemeSwitcher />

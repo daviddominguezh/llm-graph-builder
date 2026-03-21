@@ -118,6 +118,7 @@ interface FileMenuItemsProps {
 function FileMenuItems({ onImport, onExport, onFormat }: FileMenuItemsProps) {
   const t = useTranslations('common');
   const tToolbar = useTranslations('toolbar');
+  const tTheme = useTranslations('theme');
 
   return (
     <>
@@ -136,7 +137,8 @@ function FileMenuItems({ onImport, onExport, onFormat }: FileMenuItemsProps) {
         </DropdownMenuItem>
       </div>
       <Separator />
-      <div className="px-2 py-1.5">
+      <div className="flex items-center justify-between px-2 py-1.5">
+        <span className="text-xs text-muted-foreground">{tTheme('label')}</span>
         <ThemeSwitcher />
       </div>
     </>
