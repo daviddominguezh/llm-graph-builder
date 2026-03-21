@@ -159,7 +159,7 @@ export function VersionSelector(props: VersionSelectorProps) {
       <Select value={String(currentVersion)} onValueChange={handleValueChange} disabled={loading}>
         <SelectTrigger
           size="sm"
-          className="h-10 data-[size=sm]:h-10 bg-background px-3 text-xs font-bold [&>svg:last-child]:hidden"
+          className="h-10 data-[size=sm]:h-10 bg-background px-3 text-xs font-bold [&>svg:last-child]:hidden bg-background! hover:bg-card!"
         >
           <History className="size-4" />
           <span>{triggerLabel}</span>
