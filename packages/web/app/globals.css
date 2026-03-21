@@ -188,7 +188,8 @@ div.model-selector-trigger[data-slot="input-group"] {
   --xy-controls-button-background-color: var(--background);
   --xy-controls-button-background-color-hover: var(--card);
   --xy-controls-button-color: var(--foreground);
-  --xy-controls-button-border-color: var(--border);
+  --xy-controls-button-border-color: transparent;
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   overflow: hidden;
 }
