@@ -51,7 +51,7 @@ function NavItem({
   href: string;
   icon: React.ReactNode;
   active: boolean;
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent) => void;
 }) {
   return (
     <Button
@@ -80,7 +80,7 @@ function NavItemExpanded({
   icon: React.ReactNode;
   label: string;
   active: boolean;
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent) => void;
 }) {
   return (
     <Button
@@ -155,7 +155,7 @@ function NavList({
   items: NavItemDef[];
   basePath: string;
   segment: string;
-  onItemClick?: (item: NavItemDef) => void;
+  onItemClick?: (item: NavItemDef, e: React.MouseEvent) => void;
 }) {
   return (
     <nav className="flex flex-col gap-0.5">
@@ -165,7 +165,7 @@ function NavList({
           href={`${basePath}${item.path}`}
           icon={<item.Icon className="size-4" />}
           active={segment === item.segment}
-          onClick={onItemClick ? () => onItemClick(item) : undefined}
+          onClick={onItemClick ? (e) => onItemClick(item, e) : undefined}
         />
       ))}
     </nav>
@@ -181,7 +181,7 @@ function NavListExpanded({
   items: NavItemDef[];
   basePath: string;
   segment: string;
-  onItemClick?: (item: NavItemDef) => void;
+  onItemClick?: (item: NavItemDef, e: React.MouseEvent) => void;
 }) {
   const t = useTranslations('orgs');
 
@@ -194,7 +194,7 @@ function NavListExpanded({
           icon={<item.Icon className="size-4" />}
           label={t(item.labelKey)}
           active={segment === item.segment}
-          onClick={onItemClick ? () => onItemClick(item) : undefined}
+          onClick={onItemClick ? (e) => onItemClick(item, e) : undefined}
         />
       ))}
     </nav>
@@ -252,11 +252,16 @@ function useSidebarState() {
   return { collapsed, switcherOpen, handleSwitcherChange, handleMouseEnter, handleMouseLeave };
 }
 
-function useAgentsNavClick() {
-  const { setCollapsed } = useAgentsSidebar();
+function useAgentsNavClick(activeSegment: string) {
+  const { collapsed, setCollapsed } = useAgentsSidebar();
 
-  return (item: NavItemDef) => {
-    if (item.segment === '') {
+  return (item: NavItemDef, e: React.MouseEvent) => {
+    if (item.segment !== '') return;
+
+    if (collapsed && activeSegment === '') {
+      e.preventDefault();
+      setCollapsed(false);
+    } else {
       setCollapsed(false);
     }
   };
@@ -267,7 +272,7 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
   const basePath = `/orgs/${org.slug}`;
   const segment = getActiveSegment(pathname, basePath);
   const sidebar = useSidebarState();
-  const handleNavClick = useAgentsNavClick();
+  const handleNavClick = useAgentsNavClick(segment);
 
   return (
     <aside

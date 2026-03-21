@@ -31,7 +31,7 @@ function SidebarHeader({ onCreateClick, onHide }: { onCreateClick: () => void; o
           <Plus />
         </Button>
         <Button variant="ghost" size="icon-sm" onClick={onHide} title={t('hideSidebar')}>
-          <PanelLeftClose className="size-4" />
+          <PanelLeftClose />
         </Button>
       </div>
     </div>
