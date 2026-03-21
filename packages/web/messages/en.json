@@ -360,6 +360,7 @@
     "deleteCancel": "Cancel",
     "deleteError": "Failed to delete variable.",
     "editTitle": "Edit variable",
+    "enterNewValue": "Enter new value (leave empty to keep current)",
     "save": "Save"
   },
   "toolTest": {

@@ -20,12 +20,11 @@ interface EditEnvVariableDialogProps {
 
 interface EditFormFieldsProps {
   defaultName: string;
-  defaultValue: string;
   isSecret: boolean;
   onIsSecretChange: (checked: boolean) => void;
 }
 
-function EditFormFields({ defaultName, defaultValue, isSecret, onIsSecretChange }: EditFormFieldsProps) {
+function EditFormFields({ defaultName, isSecret, onIsSecretChange }: EditFormFieldsProps) {
   const t = useTranslations('envVariables');
 
   return (
@@ -36,7 +35,7 @@ function EditFormFields({ defaultName, defaultValue, isSecret, onIsSecretChange 
       </div>
       <div className="flex flex-col gap-1">
         <Label htmlFor="edit-var-value">{t('value')}</Label>
-        <Input id="edit-var-value" name="value" defaultValue={defaultValue} required />
+        <Input id="edit-var-value" name="value" defaultValue="" placeholder={t('enterNewValue')} />
       </div>
       <div className="flex items-center gap-2">
         <Checkbox
@@ -59,7 +58,8 @@ function EditForm({ variable, onOpenChange, onSaved }: Omit<EditEnvVariableDialo
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const name = (formData.get('name') as string).trim();
-    const value = formData.get('value') as string;
+    const rawValue = (formData.get('value') as string).trim();
+    const value = rawValue.length > 0 ? rawValue : undefined;
 
     setLoading(true);
     const { error } = await updateEnvVariableAction(variable.id, { name, value, isSecret });
@@ -76,12 +76,7 @@ function EditForm({ variable, onOpenChange, onSaved }: Omit<EditEnvVariableDialo
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <EditFormFields
-        defaultName={variable.name}
-        defaultValue={variable.value}
-        isSecret={isSecret}
-        onIsSecretChange={setIsSecret}
-      />
+      <EditFormFields defaultName={variable.name} isSecret={isSecret} onIsSecretChange={setIsSecret} />
       <DialogFooter>
         <Button type="submit" disabled={loading}>
           {t('save')}

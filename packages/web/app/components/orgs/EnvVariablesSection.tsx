@@ -4,7 +4,7 @@ import { getEnvVariablesByOrgAction } from '@/app/actions/org-env-variables';
 import type { OrgEnvVariableRow } from '@/app/lib/org-env-variables';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, EyeOff, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 
@@ -24,21 +24,8 @@ interface VariableRowProps {
   onEditClick: (variable: OrgEnvVariableRow) => void;
 }
 
-function MaskedValue({ value, isSecret }: { value: string; isSecret: boolean }) {
-  const [visible, setVisible] = useState(!isSecret);
-  const display = visible ? value : '••••••••';
-  const Icon = visible ? EyeOff : Eye;
-
-  return (
-    <div className="flex items-center gap-1">
-      <code className="text-xs text-muted-foreground truncate max-w-48">{display}</code>
-      {isSecret && (
-        <Button variant="ghost" size="icon-xs" onClick={() => setVisible((v) => !v)}>
-          <Icon className="size-3" />
-        </Button>
-      )}
-    </div>
-  );
+function MaskedValue() {
+  return <span className="text-xs text-muted-foreground font-mono">{'••••••••'}</span>;
 }
 
 function VariableRow({ variable, onDeleteClick, onEditClick }: VariableRowProps) {
@@ -46,7 +33,7 @@ function VariableRow({ variable, onDeleteClick, onEditClick }: VariableRowProps)
     <div className="flex items-center justify-between rounded-md border px-3 py-2">
       <div className="flex flex-col gap-0.5">
         <span className="text-sm font-medium font-mono">{variable.name}</span>
-        <MaskedValue value={variable.value} isSecret={variable.is_secret} />
+        <MaskedValue />
       </div>
       <div className="flex items-center gap-1">
         <Button variant="ghost" size="icon-sm" onClick={() => onEditClick(variable)}>

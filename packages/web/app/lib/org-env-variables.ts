@@ -4,7 +4,6 @@ export interface OrgEnvVariableRow {
   id: string;
   org_id: string;
   name: string;
-  value: string;
   is_secret: boolean;
   created_at: string;
 }
@@ -24,8 +23,8 @@ function mapRows(data: unknown[]): OrgEnvVariableRow[] {
   }, []);
 }
 
-const COLUMNS = 'id, org_id, name, value, is_secret, created_at';
-const LIST_COLUMNS = 'id, org_id, name, value, is_secret, created_at';
+const COLUMNS = 'id, org_id, name, is_secret, created_at';
+const LIST_COLUMNS = 'id, org_id, name, is_secret, created_at';
 
 export async function getEnvVariablesByOrg(
   supabase: SupabaseClient,
@@ -46,15 +45,10 @@ export async function getEnvVariableValue(
   supabase: SupabaseClient,
   variableId: string
 ): Promise<{ value: string | null; error: string | null }> {
-  const { data, error } = await supabase
-    .from('org_env_variables')
-    .select('value')
-    .eq('id', variableId)
-    .single();
+  const { data, error } = await supabase.rpc('get_env_variable_value', { p_var_id: variableId });
 
   if (error !== null) return { value: null, error: error.message };
-  const row = data as { value: string } | null;
-  return { value: row?.value ?? null, error: null };
+  return { value: (data as string) ?? null, error: null };
 }
 
 export async function createEnvVariable(
@@ -65,15 +59,19 @@ export async function createEnvVariable(
   isSecret: boolean
 ): Promise<{ result: OrgEnvVariableRow | null; error: string | null }> {
   const userId = (await supabase.auth.getUser()).data.user?.id;
-  const result = await supabase
-    .from('org_env_variables')
-    .insert({ org_id: orgId, name, value, is_secret: isSecret, created_by: userId })
-    .select(COLUMNS)
-    .single();
+  const { data, error } = await supabase.rpc('create_org_env_variable', {
+    p_org_id: orgId,
+    p_name: name,
+    p_value: value,
+    p_is_secret: isSecret,
+    p_created_by: userId,
+  });
 
-  if (result.error !== null) return { result: null, error: result.error.message };
-  if (!isOrgEnvVariableRow(result.data)) return { result: null, error: 'Invalid env variable data' };
-  return { result: result.data, error: null };
+  if (error !== null) return { result: null, error: error.message };
+  const rows = data as unknown[];
+  const first: unknown = rows[0];
+  if (!isOrgEnvVariableRow(first)) return { result: null, error: 'Invalid env variable data' };
+  return { result: first, error: null };
 }
 
 export async function updateEnvVariable(
@@ -81,12 +79,12 @@ export async function updateEnvVariable(
   variableId: string,
   updates: { name?: string; value?: string; isSecret?: boolean }
 ): Promise<{ error: string | null }> {
-  const patch: Record<string, unknown> = {};
-  if (updates.name !== undefined) patch['name'] = updates.name;
-  if (updates.value !== undefined) patch['value'] = updates.value;
-  if (updates.isSecret !== undefined) patch['is_secret'] = updates.isSecret;
-
-  const { error } = await supabase.from('org_env_variables').update(patch).eq('id', variableId);
+  const { error } = await supabase.rpc('update_org_env_variable', {
+    p_var_id: variableId,
+    p_name: updates.name ?? null,
+    p_value: updates.value ?? null,
+    p_is_secret: updates.isSecret ?? null,
+  });
 
   if (error !== null) return { error: error.message };
   return { error: null };
