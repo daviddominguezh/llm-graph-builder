@@ -1,5 +1,6 @@
 'use client';
 
+import { useAgentsSidebar } from '@/app/components/agents/AgentsSidebarContext';
 import type { OrgRow } from '@/app/lib/orgs';
 import { createClient } from '@/app/lib/supabase/client';
 import { toProxyImageSrc } from '@/app/lib/supabase/image';
@@ -41,7 +42,17 @@ function OrgAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null
   );
 }
 
-function NavItem({ href, icon, active }: { href: string; icon: React.ReactNode; active: boolean }) {
+function NavItem({
+  href,
+  icon,
+  active,
+  onClick,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  active: boolean;
+  onClick?: () => void;
+}) {
   return (
     <Button
       variant="ghost"
@@ -51,7 +62,7 @@ function NavItem({ href, icon, active }: { href: string; icon: React.ReactNode; 
           ? 'border-primary bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary'
           : 'border-white text-muted-foreground hover:text-foreground/70'
       }`}
-      render={<Link href={href} />}
+      render={<Link href={href} onClick={onClick} />}
     >
       {icon}
     </Button>
@@ -63,11 +74,13 @@ function NavItemExpanded({
   icon,
   label,
   active,
+  onClick,
 }: {
   href: string;
   icon: React.ReactNode;
   label: string;
   active: boolean;
+  onClick?: () => void;
 }) {
   return (
     <Button
@@ -78,7 +91,7 @@ function NavItemExpanded({
           ? 'border-primary bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary'
           : 'border-white text-muted-foreground hover:text-foreground/70'
       }`}
-      render={<Link href={href} />}
+      render={<Link href={href} onClick={onClick} />}
     >
       {icon}
       <span className="whitespace-nowrap">{label}</span>
@@ -133,7 +146,17 @@ function getActiveSegment(pathname: string, basePath: string): string {
   return segment;
 }
 
-function NavList({ items, basePath, segment }: { items: NavItemDef[]; basePath: string; segment: string }) {
+function NavList({
+  items,
+  basePath,
+  segment,
+  onItemClick,
+}: {
+  items: NavItemDef[];
+  basePath: string;
+  segment: string;
+  onItemClick?: (item: NavItemDef) => void;
+}) {
   return (
     <nav className="flex flex-col gap-0.5">
       {items.map((item) => (
@@ -142,13 +165,24 @@ function NavList({ items, basePath, segment }: { items: NavItemDef[]; basePath: 
           href={`${basePath}${item.path}`}
           icon={<item.Icon className="size-4" />}
           active={segment === item.segment}
+          onClick={onItemClick ? () => onItemClick(item) : undefined}
         />
       ))}
     </nav>
   );
 }
 
-function NavListExpanded({ items, basePath, segment }: { items: NavItemDef[]; basePath: string; segment: string }) {
+function NavListExpanded({
+  items,
+  basePath,
+  segment,
+  onItemClick,
+}: {
+  items: NavItemDef[];
+  basePath: string;
+  segment: string;
+  onItemClick?: (item: NavItemDef) => void;
+}) {
   const t = useTranslations('orgs');
 
   return (
@@ -160,6 +194,7 @@ function NavListExpanded({ items, basePath, segment }: { items: NavItemDef[]; ba
           icon={<item.Icon className="size-4" />}
           label={t(item.labelKey)}
           active={segment === item.segment}
+          onClick={onItemClick ? () => onItemClick(item) : undefined}
         />
       ))}
     </nav>
@@ -217,11 +252,22 @@ function useSidebarState() {
   return { collapsed, switcherOpen, handleSwitcherChange, handleMouseEnter, handleMouseLeave };
 }
 
+function useAgentsNavClick() {
+  const { setCollapsed } = useAgentsSidebar();
+
+  return (item: NavItemDef) => {
+    if (item.segment === '') {
+      setCollapsed(false);
+    }
+  };
+}
+
 export function OrgSidebar({ org }: OrgSidebarProps) {
   const pathname = usePathname();
   const basePath = `/orgs/${org.slug}`;
   const segment = getActiveSegment(pathname, basePath);
   const sidebar = useSidebarState();
+  const handleNavClick = useAgentsNavClick();
 
   return (
     <aside
@@ -233,9 +279,9 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
         {sidebar.collapsed ? <CollapsedTrigger org={org} /> : <ExpandedTrigger org={org} />}
       </OrgSwitcherPopover>
       {sidebar.collapsed ? (
-        <NavList items={TOP_NAV_ITEMS} basePath={basePath} segment={segment} />
+        <NavList items={TOP_NAV_ITEMS} basePath={basePath} segment={segment} onItemClick={handleNavClick} />
       ) : (
-        <NavListExpanded items={TOP_NAV_ITEMS} basePath={basePath} segment={segment} />
+        <NavListExpanded items={TOP_NAV_ITEMS} basePath={basePath} segment={segment} onItemClick={handleNavClick} />
       )}
       <div className="mt-auto flex flex-col gap-2">
         {sidebar.collapsed ? (

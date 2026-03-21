@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
+import { AgentsSidebarProvider } from '@/app/components/agents/AgentsSidebarContext';
 import { OrgSidebar } from '@/app/components/orgs/OrgSidebar';
 import { getOrgBySlug } from '@/app/lib/orgs';
 import { createClient } from '@/app/lib/supabase/server';
@@ -19,9 +20,11 @@ export default async function OrgLayout({ children, params }: OrgLayoutProps): P
   }
 
   return (
-    <div className="relative h-screen bg-muted">
-      <OrgSidebar org={org} />
-      <main className="h-full pl-14">{children}</main>
-    </div>
+    <AgentsSidebarProvider>
+      <div className="relative h-screen bg-muted">
+        <OrgSidebar org={org} />
+        <main className="h-full pl-14">{children}</main>
+      </div>
+    </AgentsSidebarProvider>
   );
 }

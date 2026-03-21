@@ -4,12 +4,13 @@ import type { AgentMetadata } from '@/app/lib/agents';
 import { formatRelativeTime } from '@/app/utils/formatRelativeTime';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Search } from 'lucide-react';
+import { PanelLeftClose, Plus, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
+import { useAgentsSidebar } from './AgentsSidebarContext';
 import { CreateAgentDialog } from './CreateAgentDialog';
 import { getAgentStatus, STATUS_COLORS } from './agentStatus';
 
@@ -19,15 +20,20 @@ interface AgentsSidebarProps {
   orgSlug: string;
 }
 
-function SidebarHeader({ onCreateClick }: { onCreateClick: () => void }) {
+function SidebarHeader({ onCreateClick, onHide }: { onCreateClick: () => void; onHide: () => void }) {
   const t = useTranslations('agents');
 
   return (
     <div className="flex items-center justify-between px-3 py-2">
       <h2 className="text-sm font-semibold">{t('title')}</h2>
-      <Button variant="ghost" size="icon-sm" onClick={onCreateClick}>
-        <Plus />
-      </Button>
+      <div className="flex items-center">
+        <Button variant="ghost" size="icon-sm" onClick={onCreateClick}>
+          <Plus />
+        </Button>
+        <Button variant="ghost" size="icon-sm" onClick={onHide} title={t('hideSidebar')}>
+          <PanelLeftClose className="size-4" />
+        </Button>
+      </div>
     </div>
   );
 }
@@ -126,10 +132,17 @@ export function AgentsSidebar({ agents, orgId, orgSlug }: AgentsSidebarProps) {
   const pathname = usePathname();
   const [createOpen, setCreateOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const { collapsed, setCollapsed } = useAgentsSidebar();
+
+  if (collapsed) {
+    return (
+      <CreateAgentDialog open={createOpen} onOpenChange={setCreateOpen} orgId={orgId} orgSlug={orgSlug} />
+    );
+  }
 
   return (
     <aside className="flex h-full w-[240px] shrink-0 flex-col border rounded-xl bg-background">
-      <SidebarHeader onCreateClick={() => setCreateOpen(true)} />
+      <SidebarHeader onCreateClick={() => setCreateOpen(true)} onHide={() => setCollapsed(true)} />
       <SearchInput value={search} onChange={setSearch} />
       <div className="flex-1 overflow-y-auto">
         <AgentList agents={agents} orgSlug={orgSlug} pathname={pathname} search={search} />
