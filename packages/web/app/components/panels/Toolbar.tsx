@@ -1,5 +1,6 @@
 'use client';
 
+import { ThemeSwitcher } from '../ThemeSwitcher';
 import { toProxyImageSrc } from '@/app/lib/supabase/image';
 import { Button } from '@/components/ui/button';
 import {
@@ -108,6 +109,40 @@ function OrgSection({ orgName, orgAvatarUrl, orgSlug, agentName }: OrgSectionPro
   );
 }
 
+interface FileMenuItemsProps {
+  onImport: () => void;
+  onExport: () => void;
+  onFormat: () => void;
+}
+
+function FileMenuItems({ onImport, onExport, onFormat }: FileMenuItemsProps) {
+  const t = useTranslations('common');
+  const tToolbar = useTranslations('toolbar');
+
+  return (
+    <>
+      <div className="py-1">
+        <DropdownMenuItem onClick={onImport}>
+          <Upload className="size-4" />
+          {t('import')}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onExport}>
+          <Download className="size-4" />
+          {t('export')}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onFormat}>
+          <AlignHorizontalSpaceAround className="size-4" />
+          {tToolbar('autoLayout')}
+        </DropdownMenuItem>
+      </div>
+      <Separator />
+      <div className="px-2 py-1.5">
+        <ThemeSwitcher />
+      </div>
+    </>
+  );
+}
+
 interface FileMenuProps {
   onImport: () => void;
   onExport: () => void;
@@ -119,9 +154,6 @@ interface FileMenuProps {
 }
 
 function FileMenu({ onImport, onExport, onFormat, orgSlug, orgName, orgAvatarUrl, agentName }: FileMenuProps) {
-  const t = useTranslations('common');
-  const tToolbar = useTranslations('toolbar');
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -141,20 +173,7 @@ function FileMenu({ onImport, onExport, onFormat, orgSlug, orgName, orgAvatarUrl
           />
         )}
         <Separator />
-        <div className="py-1">
-          <DropdownMenuItem onClick={onImport}>
-            <Upload className="size-4" />
-            {t('import')}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={onExport}>
-            <Download className="size-4" />
-            {t('export')}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={onFormat}>
-            <AlignHorizontalSpaceAround className="size-4" />
-            {tToolbar('autoLayout')}
-          </DropdownMenuItem>
-        </div>
+        <FileMenuItems onImport={onImport} onExport={onExport} onFormat={onFormat} />
       </DropdownMenuContent>
     </DropdownMenu>
   );
