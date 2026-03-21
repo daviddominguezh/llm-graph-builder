@@ -73,7 +73,7 @@ function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: 
     <Link
       href={href}
       className={`flex gap-2 rounded-md pr-2 py-0 transition-colors ${
-        active ? 'bg-primary/10 text-foreground' : 'hover:bg-muted text-foreground'
+        active ? 'bg-primary/15 text-foreground' : 'hover:bg-muted text-foreground'
       }`}
     >
       <StatusBar status={colorClass} active={active} />
@@ -107,11 +107,11 @@ function AgentList({
   const filtered = agents.filter((a) => a.name.toLowerCase().includes(search.toLowerCase()));
 
   if (agents.length === 0) {
-    return <p className="px-3 py-4 text-center text-xs text-muted-foreground bg-gray-100 mt-1 mx-3 rounded-md">{t('empty')}</p>;
+    return <p className="px-3 py-4 text-center text-xs text-muted-foreground bg-muted mt-1 mx-3 rounded-md">{t('empty')}</p>;
   }
 
   if (filtered.length === 0) {
-    return <p className="px-3 py-4 text-center text-xs text-muted-foreground bg-gray-100 mt-1 mx-3 rounded-md">{t('noResults')}</p>;
+    return <p className="px-3 py-4 text-center text-xs text-muted-foreground bg-muted mt-1 mx-3 rounded-md">{t('noResults')}</p>;
   }
 
   return (

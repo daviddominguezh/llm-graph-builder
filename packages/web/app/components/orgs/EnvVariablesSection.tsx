@@ -58,7 +58,7 @@ function VariablesList({ variables, onDeleteClick, onEditClick }: VariablesListP
 
   if (variables.length === 0) {
     return (
-      <p className="text-muted-foreground text-xs bg-gray-100 py-2 px-3 rounded-md">{t('noVariables')}</p>
+      <p className="text-muted-foreground text-xs bg-muted py-2 px-3 rounded-md">{t('noVariables')}</p>
     );
   }
 

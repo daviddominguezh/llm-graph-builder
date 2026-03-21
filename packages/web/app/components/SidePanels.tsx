@@ -91,7 +91,7 @@ function SelectionPanel(props: SelectionPanelProps) {
   const isStartNode = selection.selectedNodeId === START_NODE_ID;
 
   return (
-    <aside className="absolute right-1 top-0 bottom-0 z-10 w-80 border-gray-200 bg-white border rounded-xl">
+    <aside className="absolute right-1 top-0 bottom-0 z-10 w-80 border-border bg-background border rounded-xl">
       {selection.selectedNodeId !== null && isStartNode && (
         <StartNodePanel
           nodeId={selection.selectedNodeId}
@@ -143,7 +143,7 @@ type GlobalPanelProps = Pick<SidePanelsProps, 'setNodes' | 'setEdges' | 'nodes' 
 
 function GlobalPanel({ setNodes, setEdges, nodes, pushOperation }: GlobalPanelProps) {
   return (
-    <aside className="absolute right-1 top-0 bottom-0 z-10 w-80 border-gray-200 bg-white border rounded-xl">
+    <aside className="absolute right-1 top-0 bottom-0 z-10 w-80 border-border bg-background border rounded-xl">
       <GlobalNodesPanel
         nodes={nodes}
         onAddNode={() => handleGlobalAddNode(setNodes, pushOperation)}

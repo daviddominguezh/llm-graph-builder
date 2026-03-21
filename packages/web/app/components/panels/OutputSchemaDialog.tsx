@@ -35,7 +35,7 @@ interface OutputSchemaDialogProps {
 function EmptyState() {
   const t = useTranslations('nodePanel');
   return (
-    <p className="p-4 rounded-md text-center text-xs text-muted-foreground bg-gray-100 -mt-2 mx-1">
+    <p className="p-4 rounded-md text-center text-xs text-muted-foreground bg-muted -mt-2 mx-1">
       {t('outputSchemaEmpty')}
     </p>
   );

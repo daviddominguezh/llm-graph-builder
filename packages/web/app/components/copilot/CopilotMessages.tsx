@@ -66,7 +66,7 @@ export function CopilotMessages({ messages }: CopilotMessagesProps) {
   if (messages.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <p className="text-xs text-muted-foreground bg-gray-100 p-3 rounded-md">{t('emptyState')}</p>
+        <p className="text-xs text-muted-foreground bg-muted p-3 rounded-md">{t('emptyState')}</p>
       </div>
     );
   }

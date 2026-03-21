@@ -63,7 +63,7 @@ function LibraryItemsList({ items, loading, installedLibraryIds, onInstall }: Li
 
   if (loading) {
     return (
-      <p className="px-4 py-3 text-xs text-muted-foreground bg-gray-100 rounded-md mx-3 mt-1">
+      <p className="px-4 py-3 text-xs text-muted-foreground bg-muted rounded-md mx-3 mt-1">
         {t('loading')}
       </p>
     );
@@ -71,7 +71,7 @@ function LibraryItemsList({ items, loading, installedLibraryIds, onInstall }: Li
 
   if (items.length === 0) {
     return (
-      <p className="px-4 py-3 text-xs text-muted-foreground bg-gray-100 rounded-md mx-3 mt-1">
+      <p className="px-4 py-3 text-xs text-muted-foreground bg-muted rounded-md mx-3 mt-1">
         {t('noResults')}
       </p>
     );
@@ -108,7 +108,7 @@ export function McpLibraryPanel({ library, installedLibraryIds, onInstall }: Mcp
   const filtered = useMemo(() => filterItems(library.items, debouncedQuery), [library.items, debouncedQuery]);
 
   return (
-    <div className="w-[240px] absolute bottom-0 left-0 top-0 z-10 flex w-80 flex-col bg-white border rounded-xl">
+    <div className="w-[240px] absolute bottom-0 left-0 top-0 z-10 flex w-80 flex-col bg-background border rounded-xl">
       <LibraryPanelHeader />
       <LibrarySearchBar value={query} onChange={handleQueryChange} />
       <LibraryItemsList

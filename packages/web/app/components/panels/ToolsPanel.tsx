@@ -133,10 +133,10 @@ function ToolRow({
 }) {
   const rowRef = useRef<HTMLDivElement>(null);
   return (
-    <li className="flex flex-col w-[calc(50%_-_(var(--spacing)*2))] shrink-0 bg-gray-100 rounded-sm py-1.5">
+    <li className="flex flex-col w-[calc(50%_-_(var(--spacing)*2))] shrink-0 bg-muted rounded-sm py-1.5">
       <div
         ref={rowRef}
-        className="group/tool flex w-full items-start gap-1 px-1 py-0 text-left text-xs cursor-pointer border-l-2 border-gray-300 hover:border-accent"
+        className="group/tool flex w-full items-start gap-1 px-1 py-0 text-left text-xs cursor-pointer border-l-2 border-border hover:border-accent"
         onClick={onClick}
       >
         <div className="flex min-w-0 flex-1 flex-col">
@@ -177,7 +177,7 @@ function ToolsList({
   return (
     <div className="flex-1 overflow-y-auto p-1 pt-0">
       {totalCount === 0 ? (
-        <p className="p-3 text-xs text-muted-foreground bg-gray-100 rounded-md mt-2">
+        <p className="p-3 text-xs text-muted-foreground bg-muted rounded-md mt-2">
           {groups.length === 0 ? 'No tools discovered yet' : 'No results'}
         </p>
       ) : (

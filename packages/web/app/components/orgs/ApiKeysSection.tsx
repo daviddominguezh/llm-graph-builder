@@ -34,7 +34,7 @@ function ApiKeysList({ keys, onDeleteClick }: { keys: ApiKeyRow[]; onDeleteClick
   const t = useTranslations('apiKeys');
 
   if (keys.length === 0) {
-    return <p className="text-muted-foreground text-xs bg-gray-100 py-2 px-3 rounded-md">{t('noKeys')}</p>;
+    return <p className="text-muted-foreground text-xs bg-muted py-2 px-3 rounded-md">{t('noKeys')}</p>;
   }
 
   return (

@@ -22,8 +22,8 @@ function CardImage({ imageUrl, name }: { imageUrl: string | null; name: string }
   }
 
   return (
-    <div className="flex size-8 items-center justify-center rounded bg-gray-100">
-      <Server className="size-4 text-gray-400" />
+    <div className="flex size-8 items-center justify-center rounded bg-muted">
+      <Server className="size-4 text-muted-foreground" />
     </div>
   );
 }
