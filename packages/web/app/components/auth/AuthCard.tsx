@@ -13,7 +13,7 @@ interface AuthCardProps {
 export function AuthCard({ title, description, children }: AuthCardProps) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6">
-      <Image src={logo} alt="Closer" width={56} height={56} className="rounded-xl" />
+      <Image src={logo} alt="Closer" width={56} height={56} className="rounded-md" />
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-lg">{title}</CardTitle>

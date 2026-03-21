@@ -412,7 +412,7 @@ export function AgentsSidebar({ agents, orgId, orgSlug }: AgentsSidebarProps) {
   const [search, setSearch] = useState('');
 
   return (
-    <aside className="flex h-full w-[240px] shrink-0 flex-col border rounded-xl bg-background">
+    <aside className="flex h-full w-[240px] shrink-0 flex-col border rounded-md bg-background">
       <SidebarHeader onCreateClick={() => setCreateOpen(true)} />
       <SearchInput value={search} onChange={setSearch} />
       <div className="flex-1 overflow-y-auto">

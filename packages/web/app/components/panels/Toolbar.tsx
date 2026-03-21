@@ -173,7 +173,7 @@ function FileMenu({
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button className="h-9 w-9 bg-background" variant="outline" size="sm">
+          <Button className="h-9 w-9 bg-background! hover:bg-card!" variant="outline" size="sm">
             <Menu className="size-4" />
           </Button>
         }
@@ -199,7 +199,7 @@ function PlayButton({ simulationActive, onPlay, disabled, label }: PlayButtonPro
 
   const button = (
     <Button
-      className="h-10 w-10"
+      className="h-10 w-10 hover:bg-card!"
       variant={simulationActive ? 'default' : 'ghost'}
       size="sm"
       onClick={disabled ? undefined : onPlay}
@@ -231,21 +231,21 @@ function ToolbarButtons(props: ToolbarProps) {
     <>
       {onToggleGlobalPanel && (
         <ToolbarTooltip label={t('globalNodes')}>
-          <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onToggleGlobalPanel}>
+          <Button className="h-10 w-10 hover:bg-card!" variant="ghost" size="sm" onClick={onToggleGlobalPanel}>
             <Waypoints className="size-4" />
           </Button>
         </ToolbarTooltip>
       )}
       {onToggleTools && (
         <ToolbarTooltip label={t('tools')}>
-          <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onToggleTools}>
+          <Button className="h-10 w-10 hover:bg-card!" variant="ghost" size="sm" onClick={onToggleTools}>
             <SquareFunction className="size-4" />
           </Button>
         </ToolbarTooltip>
       )}
       {onToggleLibrary && (
         <ToolbarTooltip label={t('mcpLibrary')}>
-          <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onToggleLibrary}>
+          <Button className="h-10 w-10 hover:bg-card!" variant="ghost" size="sm" onClick={onToggleLibrary}>
             <Blocks className="size-4" />
           </Button>
         </ToolbarTooltip>
@@ -254,7 +254,7 @@ function ToolbarButtons(props: ToolbarProps) {
         <>
           <Separator orientation="vertical" />
           <ToolbarTooltip label={t('settings')}>
-            <Button className="h-10 w-10" variant="ghost" size="sm" onClick={onTogglePresets}>
+            <Button className="h-10 w-10 hover:bg-card!" variant="ghost" size="sm" onClick={onTogglePresets}>
               <Settings className="size-4" />
             </Button>
           </ToolbarTooltip>

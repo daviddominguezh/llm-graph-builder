@@ -24,7 +24,7 @@ function SidebarHeader({ onCreateClick, onHide }: { onCreateClick: () => void; o
   const t = useTranslations('agents');
 
   return (
-    <div className="flex items-center justify-between px-3 py-2">
+    <div className="flex items-center justify-between pl-3 pr-1 py-2">
       <h2 className="text-sm font-semibold">{t('title')}</h2>
       <div className="flex items-center">
         <Button variant="ghost" size="icon-sm" onClick={onCreateClick}>
@@ -42,7 +42,7 @@ function SearchInput({ value, onChange }: { value: string; onChange: (v: string)
   const t = useTranslations('agents');
 
   return (
-    <div className="px-3 pb-2">
+    <div className="px-2 pb-2">
       <div className="relative">
         <Search className="pointer-events-none absolute left-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
         <Input
@@ -141,7 +141,7 @@ export function AgentsSidebar({ agents, orgId, orgSlug }: AgentsSidebarProps) {
   }
 
   return (
-    <aside className="flex h-full w-[240px] shrink-0 flex-col border rounded-xl bg-background mr-1">
+    <aside className="flex h-full w-[240px] shrink-0 flex-col border rounded-md bg-background mr-1">
       <SidebarHeader onCreateClick={() => setCreateOpen(true)} onHide={() => setCollapsed(true)} />
       <SearchInput value={search} onChange={setSearch} />
       <div className="flex-1 overflow-y-auto">
