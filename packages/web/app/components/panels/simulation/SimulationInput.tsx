@@ -36,7 +36,7 @@ function TerminatedBanner({ label, description }: { label: string; description: 
 
 function SendButton({ disabled, loading, onClick }: { disabled: boolean; loading: boolean; onClick: () => void }) {
   return (
-    <Button disabled={disabled} onClick={onClick} size="icon" className="size-7 rounded-full">
+    <Button disabled={disabled} onClick={onClick} size="icon" className="size-7">
       {loading ? <Loader2 className="size-3.5 animate-spin" /> : <ArrowUp className="size-3.5" />}
     </Button>
   );

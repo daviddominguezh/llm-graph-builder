@@ -91,7 +91,7 @@ function SelectionPanel(props: SelectionPanelProps) {
   const isStartNode = selection.selectedNodeId === START_NODE_ID;
 
   return (
-    <aside className="absolute right-1 top-0 bottom-0 z-10 w-80 border-border bg-background border rounded-md">
+    <aside className="absolute right-0 top-0 bottom-0 z-10 w-80 border-border bg-background border rounded-md">
       {selection.selectedNodeId !== null && isStartNode && (
         <StartNodePanel
           nodeId={selection.selectedNodeId}
