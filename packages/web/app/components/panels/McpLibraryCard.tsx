@@ -1,12 +1,9 @@
 'use client';
 
+import type { McpLibraryRow } from '@/app/lib/mcp-library-types';
+import { Button } from '@/components/ui/button';
 import { Check, Download, Server } from 'lucide-react';
 import Image from 'next/image';
-import { useTranslations } from 'next-intl';
-
-import type { McpLibraryRow } from '@/app/lib/mcp-library-types';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 
 interface McpLibraryCardProps {
   item: McpLibraryRow;
@@ -17,7 +14,14 @@ interface McpLibraryCardProps {
 function CardImage({ imageUrl, name }: { imageUrl: string | null; name: string }) {
   if (imageUrl !== null) {
     return (
-      <Image src={imageUrl} alt={name} width={18} height={18} className="size-7 rounded object-cover" unoptimized />
+      <Image
+        src={imageUrl}
+        alt={name}
+        width={18}
+        height={18}
+        className="size-7 rounded object-cover"
+        unoptimized
+      />
     );
   }
 
@@ -28,21 +32,11 @@ function CardImage({ imageUrl, name }: { imageUrl: string | null; name: string }
   );
 }
 
-function OAuthBadge() {
-  const t = useTranslations('mcpLibrary');
-  return (
-    <Badge variant="outline" className="text-purple-600 border-purple-300 bg-purple-50 text-[9px] h-4 px-1">
-      {t('oauthBadge')}
-    </Badge>
-  );
-}
-
 function CardInfo({ item }: { item: McpLibraryRow }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
       <div className="flex items-center gap-1">
         <p className="truncate text-xs font-medium">{item.name}</p>
-        {item.auth_type === 'oauth' && <OAuthBadge />}
       </div>
       <div className="flex items-center gap-1.5 text-[10px]">
         {item.org_name !== undefined && <span className="truncate">{item.org_name}</span>}
