@@ -86,7 +86,7 @@ export function GraphCanvas({
           colorMode={colorMode}
         >
           <Background />
-          <Controls className='ml-[2px]! mb-[2px]!' />
+          <Controls className='ml-[0px]! mb-[0px]!' />
         </ReactFlow>
 
         {zoomViewNodeId !== null && (
