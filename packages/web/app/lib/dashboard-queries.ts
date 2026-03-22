@@ -5,6 +5,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 /* ------------------------------------------------------------------ */
 
 export interface AgentSummaryRow {
+  [key: string]: unknown;
   agent_id: string;
   agent_name: string;
   agent_slug: string;
@@ -19,6 +20,7 @@ export interface AgentSummaryRow {
 }
 
 export interface SessionRow {
+  [key: string]: unknown;
   id: string;
   tenant_id: string;
   user_id: string;
