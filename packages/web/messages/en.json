@@ -425,5 +425,69 @@
     "editAgents": "Edit agents",
     "editName": "Edit name",
     "updateError": "Failed to update key. Please try again."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "description": "Overview of execution metrics per agent.",
+    "sessions": "Sessions",
+    "sessionsFor": "Sessions for {agentName}",
+    "sessionDebug": "Session Debug",
+    "columns": {
+      "agentName": "Agent",
+      "totalExecutions": "Executions",
+      "totalTokens": "Tokens",
+      "totalCost": "Cost",
+      "uniqueTenants": "Tenants",
+      "uniqueUsers": "Users",
+      "uniqueSessions": "Sessions",
+      "lastExecution": "Last Execution",
+      "tenantId": "Tenant",
+      "userId": "User",
+      "sessionId": "Session",
+      "channel": "Channel",
+      "currentNode": "Current Node",
+      "model": "Model",
+      "version": "Version",
+      "created": "Created",
+      "lastActivity": "Last Activity"
+    },
+    "filters": {
+      "addFilter": "Add filter",
+      "dateRange": "Date range",
+      "tenant": "Tenant",
+      "user": "User",
+      "agent": "Agent",
+      "version": "Version",
+      "channel": "Channel",
+      "model": "Model",
+      "from": "From",
+      "to": "To",
+      "apply": "Apply",
+      "clearAll": "Clear all"
+    },
+    "pagination": {
+      "pageOf": "Page {page} of {total}",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "debug": {
+      "metadata": "Session Metadata",
+      "executions": "Executions",
+      "executionN": "Execution {n}",
+      "nodeDetails": "Node Details",
+      "messagesSent": "Messages Sent to LLM",
+      "llmResponse": "LLM Response",
+      "structuredOutput": "Structured Output",
+      "tokenUsage": "Token Usage",
+      "duration": "Duration",
+      "notVisited": "Not visited — agent chose a different path",
+      "selectNode": "Click a node to inspect its execution details.",
+      "inputTokens": "Input",
+      "outputTokens": "Output",
+      "cachedTokens": "Cached",
+      "cost": "Cost"
+    },
+    "empty": "No execution data yet. Agents will appear here after they receive API calls.",
+    "noSessions": "No sessions found for this agent."
   }
 }
