@@ -232,11 +232,11 @@ export async function completeExecution(
     .from('agent_executions')
     .update({
       status: 'completed',
-      input_tokens: totals.inputTokens,
-      output_tokens: totals.outputTokens,
-      cached_tokens: totals.cachedTokens,
+      total_input_tokens: totals.inputTokens,
+      total_output_tokens: totals.outputTokens,
+      total_cached_tokens: totals.cachedTokens,
       total_cost: totals.totalCost,
-      duration_ms: totals.durationMs,
+      total_duration_ms: totals.durationMs,
       completed_at: new Date().toISOString(),
     })
     .eq('id', executionId);
@@ -263,6 +263,10 @@ export async function failExecution(
   if (result.error !== null) {
     throw new Error(`failExecution: ${result.error.message}`);
   }
+}
+
+export async function refreshExecutionSummary(supabase: SupabaseClient): Promise<void> {
+  await supabase.rpc('refresh_execution_summary');
 }
 
 interface UpdateSessionStateParams {

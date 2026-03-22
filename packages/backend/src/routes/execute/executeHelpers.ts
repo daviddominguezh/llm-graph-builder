@@ -4,6 +4,8 @@ import { MESSAGES_PROVIDER } from '@daviddh/llm-graph-runner';
 import type { Response } from 'express';
 import { randomUUID } from 'node:crypto';
 
+import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
+import { resolveAccessToken } from '../../mcp/oauth/tokenRefresh.js';
 import type { AgentExecutionInput, PublicExecutionEvent } from './executeTypes.js';
 
 /* ─── SSE utilities ─── */
@@ -148,4 +150,79 @@ export function sendNodeVisitedEvent(res: Response, nodeId: string): void {
 
 export function sendNodeProcessedEvent(res: Response, event: NodeProcessedEvent): void {
   writePublicSSE(res, { type: 'text', text: event.text ?? '', nodeId: event.nodeId });
+}
+
+/* ─── OAuth token resolution for MCP servers ─── */
+
+function hasAuthorizationHeader(server: McpServerConfig): boolean {
+  const { transport } = server;
+  if (transport.type === 'stdio') return false;
+  if (transport.headers === undefined) return false;
+  return Object.keys(transport.headers).some((k) => k.toLowerCase() === 'authorization');
+}
+
+function isOAuthCandidate(server: McpServerConfig): boolean {
+  return typeof server.libraryItemId === 'string' && !hasAuthorizationHeader(server);
+}
+
+interface McpLibraryRow {
+  auth_type?: string;
+  transport_config?: { url?: string };
+}
+
+function isMcpLibraryRow(value: unknown): value is McpLibraryRow {
+  return typeof value === 'object' && value !== null;
+}
+
+async function lookupLibraryItem(
+  supabase: SupabaseClient,
+  libraryItemId: string
+): Promise<McpLibraryRow | null> {
+  const result = await supabase
+    .from('mcp_library')
+    .select('auth_type, transport_config')
+    .eq('id', libraryItemId)
+    .single();
+  if (result.error !== null) return null;
+  const data: unknown = result.data;
+  if (!isMcpLibraryRow(data)) return null;
+  return data;
+}
+
+function withAuthHeader(server: McpServerConfig, token: string): McpServerConfig {
+  if (server.transport.type === 'stdio') return server;
+  const existing = server.transport.headers ?? {};
+  return {
+    ...server,
+    transport: { ...server.transport, headers: { ...existing, Authorization: `Bearer ${token}` } },
+  };
+}
+
+async function resolveOneOAuthServer(
+  supabase: SupabaseClient,
+  orgId: string,
+  server: McpServerConfig
+): Promise<McpServerConfig> {
+  if (!isOAuthCandidate(server)) return server;
+  const { libraryItemId } = server;
+  if (libraryItemId === undefined) return server;
+  const item = await lookupLibraryItem(supabase, libraryItemId);
+  if (item?.auth_type !== 'oauth') return server;
+  const mcpServerUrl = item.transport_config?.url;
+  if (typeof mcpServerUrl !== 'string' || mcpServerUrl === '') return server;
+  const token = await resolveAccessToken(supabase, orgId, libraryItemId, mcpServerUrl);
+  return withAuthHeader(server, token);
+}
+
+export async function resolveOAuthForExecution(
+  supabase: SupabaseClient,
+  graph: RuntimeGraph,
+  orgId: string
+): Promise<RuntimeGraph> {
+  const { mcpServers } = graph;
+  if (mcpServers === undefined) return graph;
+  const resolved = await Promise.all(
+    mcpServers.map(async (s) => await resolveOneOAuthServer(supabase, orgId, s))
+  );
+  return { ...graph, mcpServers: resolved };
 }

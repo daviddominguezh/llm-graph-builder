@@ -17,6 +17,7 @@ import {
   buildUserMessage,
   extractTextFromInput,
   resolveMcpTransportVariables,
+  resolveOAuthForExecution,
   sendNodeProcessedEvent,
   sendNodeVisitedEvent,
   setSseHeaders,
@@ -142,7 +143,8 @@ async function fetchAllData(params: FetchAllParams): Promise<FetchedData> {
     fetchGraphAndKeys({ supabase, agentId, version, orgId, productionApiKeyId: productionKeyId }),
     fetchSessionData({ supabase, agentId, orgId, version, input, model }),
   ]);
-  const resolvedGraph = resolveMcpTransportVariables(graphAndKeys.graph, graphAndKeys.envVars);
+  const envResolvedGraph = resolveMcpTransportVariables(graphAndKeys.graph, graphAndKeys.envVars);
+  const resolvedGraph = await resolveOAuthForExecution(supabase, envResolvedGraph, orgId);
   return { ...graphAndKeys, ...sessionData, graph: resolvedGraph };
 }
 

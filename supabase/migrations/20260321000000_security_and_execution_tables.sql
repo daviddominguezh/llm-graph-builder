@@ -442,6 +442,32 @@ CREATE POLICY agent_sessions_select ON public.agent_sessions
   FOR SELECT TO authenticated
   USING (is_org_member(org_id, auth.uid()));
 
+-- RPC: Lock session for atomic read-modify-write (FOR UPDATE NOWAIT)
+CREATE OR REPLACE FUNCTION lock_session_for_update(
+  p_agent_id uuid,
+  p_version integer,
+  p_tenant_id text,
+  p_user_id text,
+  p_session_id text,
+  p_channel text
+)
+RETURNS SETOF agent_sessions
+LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = ''
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT * FROM public.agent_sessions
+  WHERE agent_id = p_agent_id
+    AND version = p_version
+    AND tenant_id = p_tenant_id
+    AND user_id = p_user_id
+    AND session_id = p_session_id
+    AND channel = p_channel
+  FOR UPDATE NOWAIT;
+END;
+$$;
+
 -- 5d. agent_executions
 CREATE TABLE public.agent_executions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -582,3 +608,14 @@ GROUP BY e.org_id, e.agent_id, e.version;
 
 CREATE UNIQUE INDEX idx_exec_summary_pk
   ON public.agent_execution_summary(org_id, agent_id, version);
+
+-- RPC: Refresh the execution summary materialized view
+CREATE OR REPLACE FUNCTION refresh_execution_summary()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = ''
+AS $$
+BEGIN
+  REFRESH MATERIALIZED VIEW CONCURRENTLY public.agent_execution_summary;
+END;
+$$;

@@ -3,6 +3,7 @@ import type { CallAgentOutput } from '@daviddh/llm-graph-runner';
 import {
   completeExecution,
   createExecution,
+  refreshExecutionSummary,
   saveExecutionMessage,
   saveNodeVisit,
   updateSessionState,
@@ -146,6 +147,11 @@ export async function persistPostExecution(
     await updateSessionState(supabase, params.sessionDbId, {
       currentNodeId: params.currentNodeId,
       structuredOutputs: params.structuredOutputs,
+    });
+
+    // Fire and forget — refresh materialized view for dashboards
+    refreshExecutionSummary(supabase).catch(() => {
+      /* ignore refresh errors */
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown persistence error';
