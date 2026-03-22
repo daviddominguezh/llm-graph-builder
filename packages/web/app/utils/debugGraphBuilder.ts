@@ -7,56 +7,77 @@ export interface DebugGraphResult {
   mutedEdgeIds: Set<string>;
 }
 
+interface MutedCollector {
+  mutedNodes: SchemaNode[];
+  mutedNodeIds: Set<string>;
+}
+
+function processCandidateEdge(
+  edge: SchemaEdge,
+  visitedSet: Set<string>,
+  allNodesMap: Map<string, SchemaNode>,
+  collector: MutedCollector
+): void {
+  if (visitedSet.has(edge.to) || collector.mutedNodeIds.has(edge.to)) return;
+
+  const targetNode = allNodesMap.get(edge.to);
+  if (targetNode === undefined) return;
+
+  collector.mutedNodeIds.add(edge.to);
+  collector.mutedNodes.push(targetNode);
+}
+
 function collectMutedNeighbors(
   visitedSet: Set<string>,
   allEdges: SchemaEdge[],
   allNodesMap: Map<string, SchemaNode>
-): { mutedNodes: SchemaNode[]; mutedNodeIds: Set<string> } {
-  const mutedNodeIds = new Set<string>();
-  const mutedNodes: SchemaNode[] = [];
+): MutedCollector {
+  const collector: MutedCollector = { mutedNodes: [], mutedNodeIds: new Set<string>() };
 
   for (const nodeId of visitedSet) {
     const outgoing = allEdges.filter((e) => e.from === nodeId);
 
     for (const edge of outgoing) {
-      if (!visitedSet.has(edge.to) && !mutedNodeIds.has(edge.to)) {
-        const targetNode = allNodesMap.get(edge.to);
-        if (targetNode !== undefined) {
-          mutedNodeIds.add(edge.to);
-          mutedNodes.push(targetNode);
-        }
-      }
+      processCandidateEdge(edge, visitedSet, allNodesMap, collector);
     }
   }
 
-  return { mutedNodes, mutedNodeIds };
+  return collector;
+}
+
+interface KeptEdgesCollector {
+  keptEdges: SchemaEdge[];
+  mutedEdgeIds: Set<string>;
+}
+
+function processKeptEdge(edge: SchemaEdge, mutedNodeIds: Set<string>, collector: KeptEdgesCollector): void {
+  const edgeId = `${edge.from}-${edge.to}`;
+  const isMuted = mutedNodeIds.has(edge.from) || mutedNodeIds.has(edge.to);
+
+  if (isMuted) {
+    collector.mutedEdgeIds.add(edgeId);
+  }
+
+  collector.keptEdges.push(edge);
 }
 
 function collectKeptEdges(
   allEdges: SchemaEdge[],
   keptNodeIds: Set<string>,
   mutedNodeIds: Set<string>
-): { keptEdges: SchemaEdge[]; mutedEdgeIds: Set<string> } {
-  const keptEdges: SchemaEdge[] = [];
-  const mutedEdgeIds = new Set<string>();
+): KeptEdgesCollector {
+  const collector: KeptEdgesCollector = { keptEdges: [], mutedEdgeIds: new Set<string>() };
 
   for (const edge of allEdges) {
     const fromKept = keptNodeIds.has(edge.from);
     const toKept = keptNodeIds.has(edge.to);
 
     if (fromKept && toKept) {
-      const edgeId = `${edge.from}-${edge.to}`;
-      const isMuted = mutedNodeIds.has(edge.from) || mutedNodeIds.has(edge.to);
-
-      if (isMuted) {
-        mutedEdgeIds.add(edgeId);
-      }
-
-      keptEdges.push(edge);
+      processKeptEdge(edge, mutedNodeIds, collector);
     }
   }
 
-  return { keptEdges, mutedEdgeIds };
+  return collector;
 }
 
 /**

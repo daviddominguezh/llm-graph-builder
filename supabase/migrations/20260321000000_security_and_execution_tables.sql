@@ -453,7 +453,7 @@ CREATE OR REPLACE FUNCTION lock_session_for_update(
 )
 RETURNS SETOF agent_sessions
 LANGUAGE plpgsql
-SECURITY DEFINER SET search_path = ''
+SET search_path = ''
 AS $$
 BEGIN
   RETURN QUERY

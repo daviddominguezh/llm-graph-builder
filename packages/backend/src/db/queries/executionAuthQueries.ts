@@ -155,7 +155,7 @@ async function fetchEnvVariableNames(supabase: SupabaseClient, orgId: string): P
 }
 
 async function decryptEnvVariable(supabase: SupabaseClient, variableId: string): Promise<string | null> {
-  const result = await supabase.rpc('get_env_variable_value', { p_variable_id: variableId });
+  const result = await supabase.rpc('get_env_variable_value', { p_var_id: variableId });
   if (result.error !== null) return null;
   return typeof result.data === 'string' ? result.data : null;
 }

@@ -117,7 +117,7 @@ export interface SessionFetchParams {
 interface MessageRow {
   id: string;
   role: string;
-  content: string;
+  content: Record<string, unknown>;
   created_at: string;
 }
 
@@ -128,6 +128,11 @@ const CHANNEL_PROVIDERS: Record<string, MESSAGES_PROVIDER> = {
 
 function resolveChannelProvider(channel: string): MESSAGES_PROVIDER {
   return CHANNEL_PROVIDERS[channel] ?? MESSAGES_PROVIDER.WEB;
+}
+
+function extractContentText(content: Record<string, unknown>): string {
+  const { text } = content as { text?: unknown };
+  return typeof text === 'string' ? text : JSON.stringify(content);
 }
 
 function buildModelMessage(role: string, content: string): Message['message'] {
@@ -142,7 +147,7 @@ function messageRowToMessage(row: MessageRow, provider: MESSAGES_PROVIDER): Mess
     timestamp: new Date(row.created_at).getTime(),
     originalId: row.id,
     type: 'text',
-    message: buildModelMessage(row.role, row.content),
+    message: buildModelMessage(row.role, extractContentText(row.content)),
   };
 }
 

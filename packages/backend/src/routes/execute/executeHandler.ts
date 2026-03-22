@@ -175,6 +175,7 @@ async function prepareExecution(
     tenantId: input.tenantId,
     userId: input.userId,
     userMessageContent: extractTextFromInput(input),
+    currentNodeId: fetched.currentNodeId,
   });
 
   return { supabase, input, agentId, orgId, version, model, fetched, userMessage, executionId };
@@ -198,6 +199,7 @@ async function persistResult(
     currentNodeId: newNodeId,
     structuredOutputs: newOutputs,
     durationMs,
+    model: ctx.model,
   });
 }
 

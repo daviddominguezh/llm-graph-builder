@@ -87,6 +87,41 @@ function paginationRange(params: DashboardParams): { from: number; to: number } 
 /*  1. Agent Summary                                                   */
 /* ------------------------------------------------------------------ */
 
+interface AgentInfo {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+type SummaryRawRow = Record<string, unknown> & { agent_id: string };
+
+async function fetchAgentNames(
+  supabase: SupabaseClient,
+  agentIds: string[]
+): Promise<Map<string, AgentInfo>> {
+  if (agentIds.length === 0) return new Map();
+  const { data } = await supabase.from('agents').select('id, name, slug').in('id', agentIds);
+  const agents = (data as AgentInfo[] | null) ?? [];
+  return new Map(agents.map((a) => [a.id, a]));
+}
+
+function mapSummaryRow(r: SummaryRawRow, agentMap: Map<string, AgentInfo>): AgentSummaryRow {
+  const agent = agentMap.get(r.agent_id);
+  return {
+    agent_id: r.agent_id,
+    agent_name: agent?.name ?? '',
+    agent_slug: agent?.slug ?? '',
+    total_executions: Number(r['total_executions'] ?? 0),
+    total_input_tokens: Number(r['total_input_tokens'] ?? 0),
+    total_output_tokens: Number(r['total_output_tokens'] ?? 0),
+    total_cost: Number(r['total_cost'] ?? 0),
+    unique_tenants: Number(r['unique_tenants'] ?? 0),
+    unique_users: Number(r['unique_users'] ?? 0),
+    unique_sessions: Number(r['unique_sessions'] ?? 0),
+    last_execution_at: r['last_execution_at'] !== null ? String(r['last_execution_at']) : null,
+  };
+}
+
 export async function getAgentSummary(
   supabase: SupabaseClient,
   orgId: string,
@@ -96,39 +131,21 @@ export async function getAgentSummary(
   const sortCol = params.sortKey ?? 'total_executions';
   const ascending = params.sortDirection === 'asc';
 
-  let query = supabase
+  const query = supabase
     .from('agent_execution_summary')
-    .select('*, agents!inner(name, slug)', { count: 'exact' })
-    .eq('agents.org_id', orgId)
+    .select('*', { count: 'exact' })
+    .eq('org_id', orgId)
     .order(sortCol, { ascending })
     .range(from, to);
 
-  if (params.filters?.['agent'] !== undefined) {
-    query = query.ilike('agents.name', `%${String(params.filters['agent'])}%`);
-  }
-
   const { data, count, error } = await query;
 
-  if (error !== null) {
-    return { rows: [], totalCount: 0, error: error.message };
-  }
+  if (error !== null) return { rows: [], totalCount: 0, error: error.message };
 
-  type RawRow = Record<string, unknown> & { agents: { name: string; slug: string } };
-  const raw = (data as RawRow[] | null) ?? [];
-
-  const rows: AgentSummaryRow[] = raw.map((r) => ({
-    agent_id: String(r['agent_id'] ?? ''),
-    agent_name: r.agents.name,
-    agent_slug: r.agents.slug,
-    total_executions: Number(r['total_executions'] ?? 0),
-    total_input_tokens: Number(r['total_input_tokens'] ?? 0),
-    total_output_tokens: Number(r['total_output_tokens'] ?? 0),
-    total_cost: Number(r['total_cost'] ?? 0),
-    unique_tenants: Number(r['unique_tenants'] ?? 0),
-    unique_users: Number(r['unique_users'] ?? 0),
-    unique_sessions: Number(r['unique_sessions'] ?? 0),
-    last_execution_at: r['last_execution_at'] !== null ? String(r['last_execution_at']) : null,
-  }));
+  const summaryRows = (data as SummaryRawRow[] | null) ?? [];
+  const agentIds = summaryRows.map((r) => r.agent_id);
+  const agentMap = await fetchAgentNames(supabase, agentIds);
+  const rows = summaryRows.map((r) => mapSummaryRow(r, agentMap));
 
   return { rows, totalCount: count ?? 0, error: null };
 }

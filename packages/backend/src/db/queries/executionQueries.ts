@@ -4,7 +4,6 @@ interface QueryResult<T> {
   data: T | null;
   error: { message: string; code?: string } | null;
 }
-
 export interface SessionRow {
   id: string;
   agent_id: string;
@@ -13,13 +12,12 @@ export interface SessionRow {
   user_id: string;
   session_id: string;
   channel: string;
-  model: string | null;
+  model: string;
   current_node_id: string;
   structured_outputs: Record<string, unknown[]>;
   created_at: string;
   updated_at: string;
 }
-
 interface GetOrCreateSessionParams {
   agentId: string;
   orgId: string;
@@ -28,15 +26,13 @@ interface GetOrCreateSessionParams {
   userId: string;
   sessionId: string;
   channel: string;
-  model: string | null;
+  model: string;
 }
-
 export interface SessionResult {
   session: SessionRow | null;
   isNew: boolean;
   locked?: boolean;
 }
-
 const INITIAL_NODE = 'INITIAL_STEP';
 const LOCK_ERROR_CODE = '55P03';
 const NOT_FOUND_CODE = 'PGRST116';
@@ -108,12 +104,12 @@ export async function getOrCreateSession(
 interface MessageRow {
   id: string;
   session_id: string;
-  execution_id: string | null;
+  execution_id: string;
+  node_id: string;
   role: string;
-  content: string;
+  content: Record<string, unknown>;
   created_at: string;
 }
-
 export async function getSessionMessages(supabase: SupabaseClient, sessionId: string): Promise<MessageRow[]> {
   const result: QueryResult<MessageRow[]> = await supabase
     .from('agent_execution_messages')
@@ -153,7 +149,7 @@ export async function createExecution(
       model: params.model,
       channel: params.channel,
       tenant_id: params.tenantId,
-      user_id: params.userId,
+      external_user_id: params.userId,
       status: 'running',
     })
     .select('id')
@@ -168,7 +164,8 @@ export async function createExecution(
 
 interface SaveMessageParams {
   sessionId: string;
-  executionId: string | null;
+  executionId: string;
+  nodeId: string;
   role: string;
   content: string;
 }
@@ -180,8 +177,9 @@ export async function saveExecutionMessage(
   const result = await supabase.from('agent_execution_messages').insert({
     session_id: params.sessionId,
     execution_id: params.executionId,
+    node_id: params.nodeId,
     role: params.role,
-    content: params.content,
+    content: { text: params.content },
   });
 
   if (result.error !== null) {
@@ -192,22 +190,30 @@ export async function saveExecutionMessage(
 interface SaveNodeVisitParams {
   executionId: string;
   nodeId: string;
-  text: string;
-  durationMs: number;
+  stepOrder: number;
+  messagesSent: unknown;
+  response: unknown;
   inputTokens: number;
   outputTokens: number;
   cachedTokens: number;
+  cost: number;
+  durationMs: number;
+  model: string;
 }
 
 export async function saveNodeVisit(supabase: SupabaseClient, params: SaveNodeVisitParams): Promise<void> {
   const result = await supabase.from('agent_execution_nodes').insert({
     execution_id: params.executionId,
     node_id: params.nodeId,
-    text: params.text,
-    duration_ms: params.durationMs,
+    step_order: params.stepOrder,
+    messages_sent: params.messagesSent,
+    response: params.response,
     input_tokens: params.inputTokens,
     output_tokens: params.outputTokens,
     cached_tokens: params.cachedTokens,
+    cost: params.cost,
+    duration_ms: params.durationMs,
+    model: params.model,
   });
 
   if (result.error !== null) {

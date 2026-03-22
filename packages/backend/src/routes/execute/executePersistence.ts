@@ -22,6 +22,7 @@ interface PreExecutionParams {
   tenantId: string;
   userId: string;
   userMessageContent: string;
+  currentNodeId: string;
 }
 
 interface PreExecutionResult {
@@ -46,6 +47,7 @@ export async function persistPreExecution(
   await saveExecutionMessage(supabase, {
     sessionId: params.sessionDbId,
     executionId,
+    nodeId: params.currentNodeId,
     role: 'user',
     content: params.userMessageContent,
   });
@@ -62,6 +64,7 @@ export interface PostExecutionParams {
   currentNodeId: string;
   structuredOutputs: Record<string, unknown[]>;
   durationMs: number;
+  model: string;
 }
 
 const ZERO = 0;
@@ -89,34 +92,45 @@ function sumTotalCost(result: CallAgentOutput): number {
 async function persistNodeVisits(
   supabase: SupabaseClient,
   executionId: string,
-  result: CallAgentOutput
+  result: CallAgentOutput,
+  model: string
 ): Promise<void> {
-  const saves = result.tokensLogs.map(async (log) => {
+  const saves = result.tokensLogs.map(async (log, index) => {
     await saveNodeVisit(supabase, {
       executionId,
       nodeId: log.action,
-      text: JSON.stringify(result.debugMessages[log.action] ?? []),
-      durationMs: ZERO,
+      stepOrder: index,
+      messagesSent: result.debugMessages[log.action] ?? [],
+      response: { text: result.text ?? '' },
       inputTokens: log.tokens.input,
       outputTokens: log.tokens.output,
       cachedTokens: log.tokens.cached,
+      cost: log.tokens.costUSD ?? ZERO,
+      durationMs: ZERO,
+      model,
     });
   });
   await Promise.all(saves);
 }
 
+interface AssistantMessageParams {
+  sessionDbId: string;
+  executionId: string;
+  nodeId: string;
+  text: string;
+}
+
 async function persistAssistantMessage(
   supabase: SupabaseClient,
-  sessionDbId: string,
-  executionId: string,
-  text: string
+  params: AssistantMessageParams
 ): Promise<void> {
-  if (text === '') return;
+  if (params.text === '') return;
   await saveExecutionMessage(supabase, {
-    sessionId: sessionDbId,
-    executionId,
+    sessionId: params.sessionDbId,
+    executionId: params.executionId,
+    nodeId: params.nodeId,
     role: 'assistant',
-    content: text,
+    content: params.text,
   });
 }
 
@@ -141,8 +155,13 @@ export async function persistPostExecution(
   params: PostExecutionParams
 ): Promise<void> {
   try {
-    await persistNodeVisits(supabase, params.executionId, params.result);
-    await persistAssistantMessage(supabase, params.sessionDbId, params.executionId, params.result.text ?? '');
+    await persistNodeVisits(supabase, params.executionId, params.result, params.model);
+    await persistAssistantMessage(supabase, {
+      sessionDbId: params.sessionDbId,
+      executionId: params.executionId,
+      nodeId: params.currentNodeId,
+      text: params.result.text ?? '',
+    });
     await persistCompletion(supabase, params.executionId, params.result, params.durationMs);
     await updateSessionState(supabase, params.sessionDbId, {
       currentNodeId: params.currentNodeId,
