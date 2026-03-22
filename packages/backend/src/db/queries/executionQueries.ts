@@ -58,8 +58,9 @@ async function tryLockExistingSession(
     throw new Error(`tryLockExistingSession: ${result.error.message}`);
   }
 
-  if (result.data === null) return null;
-  return { session: result.data, isNew: false };
+  const rows = result.data as unknown;
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+  return { session: rows[0] as SessionRow, isNew: false };
 }
 
 async function insertNewSession(

@@ -4,34 +4,54 @@
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-ALTER DATABASE postgres SET app.settings.encryption_key = 'dev-encryption-key-CHANGE-IN-PRODUCTION-32chars!';
-SET app.settings.encryption_key = 'dev-encryption-key-CHANGE-IN-PRODUCTION-32chars!';
+-- Store encryption key in a private config table (not exposed via PostgREST)
+-- In production, update this value via direct SQL or migration.
+CREATE SCHEMA IF NOT EXISTS private;
 
--- encrypt_secret(plaintext) — encrypts a text value using pgp_sym_encrypt
+CREATE TABLE IF NOT EXISTS private.encryption_config (
+  key text PRIMARY KEY,
+  value text NOT NULL
+);
+
+INSERT INTO private.encryption_config (key, value)
+VALUES ('encryption_key', 'dev-encryption-key-CHANGE-IN-PRODUCTION-32chars!')
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+
+-- encrypt_secret(plaintext) — encrypts using pgp_sym_encrypt with stored key
 CREATE OR REPLACE FUNCTION public.encrypt_secret(plaintext text)
 RETURNS bytea
 LANGUAGE plpgsql
 SECURITY DEFINER SET search_path = ''
 AS $$
+DECLARE
+  enc_key text;
 BEGIN
-  RETURN pgp_sym_encrypt(
-    plaintext,
-    current_setting('app.settings.encryption_key')
-  );
+  SELECT value INTO enc_key
+  FROM private.encryption_config
+  WHERE key = 'encryption_key';
+  IF enc_key IS NULL THEN
+    RAISE EXCEPTION 'Encryption key not found in private.encryption_config';
+  END IF;
+  RETURN extensions.pgp_sym_encrypt(plaintext, enc_key);
 END;
 $$;
 
--- decrypt_secret(encrypted) — decrypts a bytea value using pgp_sym_decrypt
+-- decrypt_secret(encrypted) — decrypts using pgp_sym_decrypt with stored key
 CREATE OR REPLACE FUNCTION public.decrypt_secret(encrypted bytea)
 RETURNS text
 LANGUAGE plpgsql
 SECURITY DEFINER SET search_path = ''
 AS $$
+DECLARE
+  enc_key text;
 BEGIN
-  RETURN pgp_sym_decrypt(
-    encrypted,
-    current_setting('app.settings.encryption_key')
-  );
+  SELECT value INTO enc_key
+  FROM private.encryption_config
+  WHERE key = 'encryption_key';
+  IF enc_key IS NULL THEN
+    RAISE EXCEPTION 'Encryption key not found in private.encryption_config';
+  END IF;
+  RETURN extensions.pgp_sym_decrypt(encrypted, enc_key);
 END;
 $$;
 
@@ -46,13 +66,13 @@ ALTER TABLE public.org_api_keys ADD COLUMN encrypted_value bytea;
 UPDATE public.org_api_keys
 SET encrypted_value = public.encrypt_secret(key_value);
 
+-- Drop the old trigger and function BEFORE dropping the column they depend on
+DROP TRIGGER IF EXISTS on_api_key_insert ON public.org_api_keys;
+DROP FUNCTION IF EXISTS public.set_api_key_preview();
+
 -- Make encrypted_value NOT NULL and drop key_value
 ALTER TABLE public.org_api_keys ALTER COLUMN encrypted_value SET NOT NULL;
 ALTER TABLE public.org_api_keys DROP COLUMN key_value;
-
--- Drop the old trigger and function
-DROP TRIGGER IF EXISTS on_api_key_insert ON public.org_api_keys;
-DROP FUNCTION IF EXISTS public.set_api_key_preview();
 
 -- RPC: create_org_api_key — encrypts and inserts a new API key
 CREATE OR REPLACE FUNCTION public.create_org_api_key(
@@ -549,7 +569,7 @@ CREATE POLICY agent_execution_nodes_select ON public.agent_execution_nodes
   USING (
     EXISTS (
       SELECT 1 FROM public.agent_executions e
-      WHERE e.id = execution_id
+      WHERE e.id = agent_execution_nodes.execution_id
         AND is_org_member(e.org_id, auth.uid())
     )
   );
@@ -580,7 +600,7 @@ CREATE POLICY agent_execution_messages_select ON public.agent_execution_messages
   USING (
     EXISTS (
       SELECT 1 FROM public.agent_sessions s
-      WHERE s.id = session_id
+      WHERE s.id = agent_execution_messages.session_id
         AND is_org_member(s.org_id, auth.uid())
     )
   );
