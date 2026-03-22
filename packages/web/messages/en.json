@@ -480,12 +480,21 @@
       "structuredOutput": "Structured Output",
       "tokenUsage": "Token Usage",
       "duration": "Duration",
+      "model": "Model",
       "notVisited": "Not visited — agent chose a different path",
       "selectNode": "Click a node to inspect its execution details.",
       "inputTokens": "Input",
       "outputTokens": "Output",
       "cachedTokens": "Cached",
-      "cost": "Cost"
+      "cost": "Cost",
+      "agent": "Agent",
+      "version": "Version",
+      "tenant": "Tenant",
+      "user": "User",
+      "session": "Session",
+      "channel": "Channel",
+      "totalCost": "Total Cost",
+      "totalTokens": "Total Tokens"
     },
     "empty": "No execution data yet. Agents will appear here after they receive API calls.",
     "noSessions": "No sessions found for this agent."
