@@ -84,7 +84,7 @@ export function EnvVariablesSection({ orgId, initialVariables }: EnvVariablesSec
   }, [orgId]);
 
   return (
-    <Card>
+    <Card className='bg-background'>
       <CardHeader>
         <CardTitle>{t('title')}</CardTitle>
         <CardDescription>{t('description')}</CardDescription>

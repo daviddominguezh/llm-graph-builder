@@ -137,7 +137,7 @@ export function OrgSettingsForm({ org }: OrgSettingsFormProps) {
   const t = useTranslations('orgs');
 
   return (
-    <Card>
+    <Card className='bg-background'>
       <CardHeader>
         <CardTitle>{t('generalSection')}</CardTitle>
         <CardDescription>{t('generalDescription')}</CardDescription>

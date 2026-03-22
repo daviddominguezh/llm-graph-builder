@@ -9,7 +9,7 @@ export function AppearanceSection() {
   const t = useTranslations('theme');
 
   return (
-    <Card>
+    <Card className='bg-background'>
       <CardHeader>
         <CardTitle>{t('appearance')}</CardTitle>
         <CardDescription>{t('appearanceDescription')}</CardDescription>

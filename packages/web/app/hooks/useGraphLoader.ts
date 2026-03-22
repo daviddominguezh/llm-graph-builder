@@ -24,9 +24,18 @@ export interface UseGraphLoaderReturn {
   reload: () => void;
 }
 
-const EMPTY_RESULT: GraphLoadResult = {
+const NEW_AGENT_RESULT: GraphLoadResult = {
   nodes: buildInitialNodes(undefined),
   edges: buildInitialEdges(undefined),
+  agents: [],
+  mcpServers: [],
+  outputSchemas: [],
+  graphData: undefined,
+};
+
+const LOADING_RESULT: GraphLoadResult = {
+  nodes: [],
+  edges: [],
   agents: [],
   mcpServers: [],
   outputSchemas: [],
@@ -77,7 +86,7 @@ export function useGraphLoader(agentId: string | undefined): UseGraphLoaderRetur
   const t = useTranslations('editor');
   const [state, setState] = useState<LoaderState>({
     loading: agentId !== undefined,
-    result: EMPTY_RESULT,
+    result: agentId !== undefined ? LOADING_RESULT : NEW_AGENT_RESULT,
   });
 
   const handleSuccess = useCallback((loadResult: GraphLoadResult) => {
