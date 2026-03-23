@@ -81,10 +81,33 @@ export interface PublicTextEvent {
 }
 
 export interface PublicToolCallEvent {
-  type: 'tool_call';
+  type: 'toolCall';
+  nodeId: string;
   name: string;
   args: unknown;
   result: unknown;
+}
+
+export interface PublicTokenUsageEvent {
+  type: 'tokenUsage';
+  nodeId: string;
+  inputTokens: number;
+  outputTokens: number;
+  cachedTokens: number;
+  cost: number;
+  durationMs: number;
+}
+
+export interface PublicStructuredOutputEvent {
+  type: 'structuredOutput';
+  nodeId: string;
+  data: unknown;
+}
+
+export interface PublicNodeErrorEvent {
+  type: 'nodeError';
+  nodeId: string;
+  message: string;
 }
 
 export interface PublicErrorEvent {
@@ -101,6 +124,9 @@ export type PublicExecutionEvent =
   | PublicNodeVisitedEvent
   | PublicTextEvent
   | PublicToolCallEvent
+  | PublicTokenUsageEvent
+  | PublicStructuredOutputEvent
+  | PublicNodeErrorEvent
   | PublicErrorEvent
   | PublicDoneEvent;
 

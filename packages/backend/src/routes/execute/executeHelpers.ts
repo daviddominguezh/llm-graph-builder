@@ -149,7 +149,37 @@ export function sendNodeVisitedEvent(res: Response, nodeId: string): void {
 }
 
 export function sendNodeProcessedEvent(res: Response, event: NodeProcessedEvent): void {
-  writePublicSSE(res, { type: 'text', text: event.text ?? '', nodeId: event.nodeId });
+  if (event.text !== undefined && event.text !== '') {
+    writePublicSSE(res, { type: 'text', text: event.text, nodeId: event.nodeId });
+  }
+  for (const tc of event.toolCalls) {
+    writePublicSSE(res, {
+      type: 'toolCall',
+      nodeId: event.nodeId,
+      name: tc.toolName,
+      args: tc.input,
+      result: tc.output,
+    });
+  }
+  writePublicSSE(res, {
+    type: 'tokenUsage',
+    nodeId: event.nodeId,
+    inputTokens: event.tokens.input,
+    outputTokens: event.tokens.output,
+    cachedTokens: event.tokens.cached,
+    cost: event.tokens.costUSD ?? 0,
+    durationMs: event.durationMs,
+  });
+  if (event.structuredOutput !== undefined) {
+    writePublicSSE(res, {
+      type: 'structuredOutput',
+      nodeId: event.structuredOutput.nodeId,
+      data: event.structuredOutput.data,
+    });
+  }
+  if (event.error) {
+    writePublicSSE(res, { type: 'nodeError', nodeId: event.nodeId, message: event.error });
+  }
 }
 
 /* ─── OAuth token resolution for MCP servers ─── */
