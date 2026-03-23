@@ -108,7 +108,7 @@ export function McpLibraryPanel({ library, installedLibraryIds, onInstall }: Mcp
   const filtered = useMemo(() => filterItems(library.items, debouncedQuery), [library.items, debouncedQuery]);
 
   return (
-    <div className="w-[240px] absolute bottom-0 left-0 top-0 z-10 flex w-80 flex-col bg-background border rounded-md">
+    <div className="w-[240px] absolute bottom-0 left-0 top-0 z-10 flex w-80 flex-col bg-background border-r rounded-e-md">
       <LibraryPanelHeader />
       <LibrarySearchBar value={query} onChange={handleQueryChange} />
       <LibraryItemsList

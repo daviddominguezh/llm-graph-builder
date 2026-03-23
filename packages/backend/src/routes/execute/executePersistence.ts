@@ -1,6 +1,5 @@
 import type { CallAgentOutput } from '@daviddh/llm-graph-runner';
 
-import type { NodeProcessedData } from './edgeFunctionClient.js';
 import {
   completeExecution,
   createExecution,
@@ -10,6 +9,7 @@ import {
   updateSessionState,
 } from '../../db/queries/executionQueries.js';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
+import type { NodeProcessedData } from './edgeFunctionClient.js';
 
 /* ─── Pre-execution persistence ─── */
 
@@ -91,48 +91,74 @@ function sumTotalCost(result: CallAgentOutput): number {
   return total;
 }
 
-function buildNodeResponse(
+interface ParsedResultEntry {
+  nextNodeID: string;
+  messageToUser?: string;
+}
+
+interface StructuredOutputEntry {
+  nodeId: string;
+  data: unknown;
+}
+
+interface NodeResponseContext {
+  parsedResult: ParsedResultEntry | undefined;
+  structuredOutput: StructuredOutputEntry | undefined;
+  processed: NodeProcessedData | undefined;
+}
+
+function getNodeResponseContext(
   result: CallAgentOutput,
   nodeId: string,
   index: number,
   nodeData: NodeProcessedData[]
-): Record<string, unknown> {
-  const parsedResult = result.parsedResults?.[index];
-  const structuredOutput = result.structuredOutputs?.find((s) => s.nodeId === nodeId);
-  const processed = nodeData.find((n) => n.nodeId === nodeId);
+): NodeResponseContext {
+  const raw = result.parsedResults?.[index] as ParsedResultEntry | undefined;
+  const so = result.structuredOutputs?.find((s) => s.nodeId === nodeId) as StructuredOutputEntry | undefined;
+  return { parsedResult: raw, structuredOutput: so, processed: nodeData.find((n) => n.nodeId === nodeId) };
+}
+
+function buildNodeResponse(ctx: NodeResponseContext): Record<string, unknown> {
+  const { parsedResult, structuredOutput, processed } = ctx;
   const response: Record<string, unknown> = { text: parsedResult?.messageToUser ?? '' };
-  if (parsedResult?.nextNodeID !== undefined && parsedResult.nextNodeID !== '') {
-    response['next_node'] = parsedResult.nextNodeID;
+  const { nextNodeID } = parsedResult ?? {};
+  if (nextNodeID !== undefined && nextNodeID !== '') {
+    response.next_node = nextNodeID;
   }
   if (structuredOutput !== undefined) {
-    response['structured_output'] = structuredOutput.data;
+    const { data } = structuredOutput;
+    response.structured_output = data;
   }
   if (processed !== undefined && processed.toolCalls.length > ZERO) {
-    response['tool_calls'] = processed.toolCalls;
+    const { toolCalls } = processed;
+    response.tool_calls = toolCalls;
   }
   return response;
 }
 
-async function persistNodeVisits(
-  supabase: SupabaseClient,
-  executionId: string,
-  result: CallAgentOutput,
-  model: string,
-  nodeData: NodeProcessedData[]
-): Promise<void> {
+interface PersistNodeVisitsParams {
+  supabase: SupabaseClient;
+  executionId: string;
+  result: CallAgentOutput;
+  model: string;
+  nodeData: NodeProcessedData[];
+}
+
+async function persistNodeVisits(params: PersistNodeVisitsParams): Promise<void> {
+  const { supabase, executionId, result, model, nodeData } = params;
   const saves = result.tokensLogs.map(async (log, index) => {
-    const processed = nodeData.find((n) => n.nodeId === log.action);
+    const ctx = getNodeResponseContext(result, log.action, index, nodeData);
     await saveNodeVisit(supabase, {
       executionId,
       nodeId: log.action,
       stepOrder: index,
       messagesSent: result.debugMessages[log.action] ?? [],
-      response: buildNodeResponse(result, log.action, index, nodeData),
+      response: buildNodeResponse(ctx),
       inputTokens: log.tokens.input,
       outputTokens: log.tokens.output,
       cachedTokens: log.tokens.cached,
       cost: log.tokens.costUSD ?? ZERO,
-      durationMs: processed?.durationMs ?? ZERO,
+      durationMs: ctx.processed?.durationMs ?? ZERO,
       model,
     });
   });
@@ -181,7 +207,13 @@ export async function persistPostExecution(
   params: PostExecutionParams
 ): Promise<void> {
   try {
-    await persistNodeVisits(supabase, params.executionId, params.result, params.model, params.nodeData);
+    await persistNodeVisits({
+      supabase,
+      executionId: params.executionId,
+      result: params.result,
+      model: params.model,
+      nodeData: params.nodeData,
+    });
     await persistAssistantMessage(supabase, {
       sessionDbId: params.sessionDbId,
       executionId: params.executionId,

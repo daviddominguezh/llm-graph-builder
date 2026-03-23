@@ -94,7 +94,7 @@ function NavItemExpanded({
       render={<Link href={href} onClick={onClick} />}
     >
       {icon}
-      <span className="whitespace-nowrap font-normal">{label}</span>
+      <span className={`whitespace-nowrap font-normal ${active ? 'font-semibold' : ''}`}>{label}</span>
     </Button>
   );
 }
@@ -276,7 +276,7 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
 
   return (
     <aside
-      className={`absolute left-0 top-0 bottom-0 z-11 flex flex-col gap-4 bg-sidebar p-2 transition-[width] duration-100 ${sidebar.collapsed ? 'w-[52px] border border-transparent' : 'w-74 shadow-lg border rounded-e-md z-12'}`}
+      className={`absolute left-0 top-0 bottom-0 z-11 flex flex-col gap-4 bg-sidebar p-2 transition-[width] duration-100 ${sidebar.collapsed ? 'w-[52px] border border-transparent' : 'w-73 shadow-lg border rounded-e-md z-12'}`}
       onMouseEnter={sidebar.handleMouseEnter}
       onMouseLeave={sidebar.handleMouseLeave}
     >

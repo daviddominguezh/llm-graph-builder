@@ -41,7 +41,7 @@ function ZoomViewOverlay({
 }: Pick<GraphCanvasProps, 'simulation' | 'onExitZoomView'>) {
   if (simulation.active) return null;
   return (
-    <div className="absolute top-3 left-13 z-10">
+    <div className="absolute top-2 left-11 z-10">
       <Button variant="secondary" onClick={onExitZoomView}>
         <X className="h-3 w-3" />
         Quit zoom view
@@ -86,7 +86,7 @@ export function GraphCanvas({
           colorMode={colorMode}
         >
           <Background color="var(--sidebar-ring)" />
-          <Controls className='ml-[0px]! mb-1!' />
+          <Controls className='ml-1! mb-1! shadow-xs!' />
         </ReactFlow>
 
         {zoomViewNodeId !== null && (

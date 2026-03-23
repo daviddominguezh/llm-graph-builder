@@ -38,7 +38,7 @@ export function PresetsAside(props: PresetsAsideProps) {
   const { presetsHook, ctxPreconditions, setEdges } = props;
 
   return (
-    <aside className="w-[240px] absolute left-0 top-0 bottom-0 w-80 border rounded-md border-border bg-background z-10">
+    <aside className="w-[240px] absolute left-0 top-0 bottom-0 w-80 border-r rounded-e-md bg-background z-10">
       <PresetsPanel
         presets={presetsHook.presets}
         contextKeys={presetsHook.contextKeys}

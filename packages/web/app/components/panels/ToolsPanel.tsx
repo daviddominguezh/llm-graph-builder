@@ -177,7 +177,7 @@ function ToolsList({
   return (
     <div className="flex-1 overflow-y-auto p-1 pt-0">
       {totalCount === 0 ? (
-        <p className="p-3 text-xs text-muted-foreground bg-muted rounded-md mt-2">
+        <p className="p-3 text-xs text-muted-foreground bg-muted rounded-md mt-2 mx-1">
           {groups.length === 0 ? 'No tools discovered yet' : 'No results'}
         </p>
       ) : (
@@ -291,7 +291,7 @@ export function ToolsPanel({ servers, discoveredTools, mcp, open, onClose }: Too
     <>
       <div
         ref={containerRef}
-        className="absolute top-16 left-1/2 z-20 -translate-x-1/2 w-[28rem] h-96 flex flex-col rounded-lg border bg-background shadow-lg"
+        className="absolute top-14.5 left-1/2 z-20 -translate-x-1/2 w-[28rem] h-96 flex flex-col rounded-lg border bg-background shadow-lg"
         onKeyDown={(e) => {
           if (e.key === 'Escape') onClose();
         }}

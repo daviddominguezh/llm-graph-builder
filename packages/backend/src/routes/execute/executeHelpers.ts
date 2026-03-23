@@ -167,7 +167,7 @@ export function sendNodeProcessedEvent(res: Response, event: NodeProcessedEvent)
     inputTokens: event.tokens.input,
     outputTokens: event.tokens.output,
     cachedTokens: event.tokens.cached,
-    cost: event.tokens.costUSD ?? 0,
+    cost: event.tokens.costUSD ?? ZERO_COST,
     durationMs: event.durationMs,
   });
   if (event.structuredOutput !== undefined) {
@@ -177,7 +177,7 @@ export function sendNodeProcessedEvent(res: Response, event: NodeProcessedEvent)
       data: event.structuredOutput.data,
     });
   }
-  if (event.error) {
+  if (event.error !== undefined && event.error !== '') {
     writePublicSSE(res, { type: 'nodeError', nodeId: event.nodeId, message: event.error });
   }
 }

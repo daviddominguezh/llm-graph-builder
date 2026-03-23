@@ -494,7 +494,10 @@
       "session": "Session",
       "channel": "Channel",
       "totalCost": "Total Cost",
-      "totalTokens": "Total Tokens"
+      "totalTokens": "Total Tokens",
+      "toolCall": "tool call",
+      "toolCallArgs": "Tool Call Args",
+      "toolCallOutput": "Tool Call Output"
     },
     "empty": "No execution data yet. Agents will appear here after they receive API calls.",
     "noSessions": "No sessions found for this agent."

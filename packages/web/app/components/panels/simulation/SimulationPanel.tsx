@@ -153,7 +153,7 @@ export function SimulationPanel(props: SimulationPanelProps) {
 
   return (
     <div className="absolute inset-y-0 left-0 z-10 flex w-[350px] p-0">
-      <div className="relative flex h-full w-full flex-col rounded-md border bg-background">
+      <div className="relative flex h-full w-full flex-col rounded-e-md border-r bg-background">
         <SimulationHeader visitedNodes={visitedNodes} onStop={onStop} />
         <ContentArea lastUserText={lastUserText} nodeResults={nodeResults} scrollRef={scrollRef} />
         <SimulationFooter totalTokens={totalTokens} loading={loading} currentNode={currentNode} />

@@ -107,6 +107,15 @@ interface ToolCallData {
   result: unknown;
 }
 
+interface RawToolCall {
+  toolName?: string;
+  name?: string;
+  input?: unknown;
+  args?: unknown;
+  output?: unknown;
+  result?: unknown;
+}
+
 export interface NodeProcessedData {
   nodeId: string;
   text: string;
@@ -119,18 +128,32 @@ interface RawParsedResult {
   messageToUser?: string;
 }
 
-function buildResultFromResponse(event: SseEvent, nodeTexts: NodeProcessedData[]): CallAgentOutput {
-  const eventParsed = Array.isArray(event.parsedResults)
-    ? (event.parsedResults as RawParsedResult[]).map((r) => ({
-        nextNodeID: r.nextNodeID ?? '',
-        messageToUser: r.messageToUser,
-      }))
-    : null;
-  const parsedResults = eventParsed ?? nodeTexts.map((nt) => ({
-    nextNodeID: '',
-    messageToUser: nt.text || undefined,
+function mapRawToolCalls(raw: unknown): ToolCallData[] {
+  if (!Array.isArray(raw)) return [];
+  return (raw as RawToolCall[]).map((tc) => ({
+    name: tc.toolName ?? tc.name ?? '',
+    args: tc.input ?? tc.args,
+    result: tc.output ?? tc.result,
   }));
+}
 
+function buildParsedResults(
+  event: SseEvent,
+  nodeTexts: NodeProcessedData[]
+): CallAgentOutput['parsedResults'] {
+  if (Array.isArray(event.parsedResults)) {
+    return (event.parsedResults as RawParsedResult[]).map((r) => ({
+      nextNodeID: r.nextNodeID ?? '',
+      messageToUser: r.messageToUser,
+    }));
+  }
+  return nodeTexts.map((nt) => ({
+    nextNodeID: '',
+    messageToUser: nt.text !== '' ? nt.text : undefined,
+  }));
+}
+
+function buildResultFromResponse(event: SseEvent, nodeTexts: NodeProcessedData[]): CallAgentOutput {
   return {
     message: null,
     text: String(event.text ?? ''),
@@ -139,8 +162,31 @@ function buildResultFromResponse(event: SseEvent, nodeTexts: NodeProcessedData[]
     tokensLogs: mapNodeTokensToTokensLogs(event.nodeTokens),
     debugMessages: (event.debugMessages as CallAgentOutput['debugMessages']) ?? {},
     structuredOutputs: (event.structuredOutputs as CallAgentOutput['structuredOutputs']) ?? [],
-    parsedResults,
+    parsedResults: buildParsedResults(event, nodeTexts),
   };
+}
+
+/* ─── SSE event handlers ─── */
+
+const ZERO = 0;
+
+function toStr(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+function handleNodeProcessed(
+  event: SseEvent,
+  nodeTexts: NodeProcessedData[],
+  callbacks: ExecuteAgentCallbacks
+): void {
+  const durationMs = typeof event.durationMs === 'number' ? event.durationMs : ZERO;
+  nodeTexts.push({
+    nodeId: toStr(event.nodeId),
+    text: toStr(event.text),
+    toolCalls: mapRawToolCalls(event.toolCalls),
+    durationMs,
+  });
+  processNodeProcessed(event, callbacks);
 }
 
 /* ─── Main: call edge function ─── */
@@ -182,15 +228,7 @@ export async function executeAgent(
     if (event.type === 'node_visited') {
       callbacks.onNodeVisited(String(event.nodeId));
     } else if (event.type === 'node_processed') {
-      const rawCalls = Array.isArray(event.toolCalls) ? (event.toolCalls as Record<string, unknown>[]) : [];
-      const toolCalls: ToolCallData[] = rawCalls.map((tc) => ({
-        name: String(tc['toolName'] ?? tc['name'] ?? ''),
-        args: tc['input'] ?? tc['args'],
-        result: tc['output'] ?? tc['result'],
-      }));
-      const durationMs = typeof event.durationMs === 'number' ? event.durationMs : 0;
-      nodeTexts.push({ nodeId: String(event.nodeId ?? ''), text: String(event.text ?? ''), toolCalls, durationMs });
-      processNodeProcessed(event, callbacks);
+      handleNodeProcessed(event, nodeTexts, callbacks);
     } else if (event.type === 'agent_response') {
       result = buildResultFromResponse(event, nodeTexts);
     } else if (event.type === 'error') {
