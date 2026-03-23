@@ -69,7 +69,7 @@ function ImagePicker({ imageFile, onImageChange }: { imageFile: File | null; onI
       <Label>{t('image')}</Label>
       <button type="button" onClick={() => fileRef.current?.click()} className="group relative size-16 cursor-pointer rounded-md">
         {previewUrl !== null ? (
-          <Image src={previewUrl} alt="MCP" width={64} height={64} className="size-16 rounded-md object-cover" unoptimized />
+          <Image src={previewUrl} alt="MCP" width={64} height={64} className="size-16 rounded-md object-cover border" unoptimized />
         ) : (
           <div className="flex size-16 items-center justify-center rounded-md bg-muted">
             <Server className="size-6 text-muted-foreground" />

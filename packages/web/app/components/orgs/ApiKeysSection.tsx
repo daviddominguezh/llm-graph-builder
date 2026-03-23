@@ -63,7 +63,7 @@ export function ApiKeysSection({ orgId, initialKeys }: ApiKeysSectionProps) {
   }, [orgId]);
 
   return (
-    <Card className='bg-background'>
+    <Card className='bg-background ring-0'>
       <CardHeader>
         <CardTitle>{t('title')}</CardTitle>
         <CardDescription>{t('description')}</CardDescription>

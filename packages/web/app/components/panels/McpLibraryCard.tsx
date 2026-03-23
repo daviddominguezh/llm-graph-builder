@@ -19,7 +19,7 @@ function CardImage({ imageUrl, name }: { imageUrl: string | null; name: string }
         alt={name}
         width={18}
         height={18}
-        className="size-7 rounded object-cover bg-white p-[2px]"
+        className="size-7 rounded object-cover bg-white p-[2px] border"
         unoptimized
       />
     );

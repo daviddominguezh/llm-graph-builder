@@ -7,6 +7,7 @@ import { getApiKeysByOrg } from '@/app/lib/api-keys';
 import { getEnvVariablesByOrg } from '@/app/lib/org-env-variables';
 import { getOrgBySlug } from '@/app/lib/orgs';
 import { createClient } from '@/app/lib/supabase/server';
+import { Separator } from '@/components/ui/separator';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
 
@@ -62,9 +63,13 @@ export default async function OrgSettingsPage({ params }: OrgSettingsPageProps):
     <div className="h-full overflow-y-auto p-6">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
         <OrgSettingsForm org={org} />
+        <Separator />
         <AppearanceSection />
+        <Separator />
         <ApiKeysSection orgId={org.id} initialKeys={apiKeys} />
+        <Separator />
         <EnvVariablesSection orgId={org.id} initialVariables={envVariables} />
+        <Separator />
         <DangerZone org={org} />
       </div>
     </div>

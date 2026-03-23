@@ -77,7 +77,7 @@ function OrgAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null
         alt={name}
         width={20}
         height={20}
-        className="h-5 w-5 rounded-full object-cover ring-1 ring-background"
+        className="h-5 w-5 rounded-full object-cover border"
       />
     );
   }

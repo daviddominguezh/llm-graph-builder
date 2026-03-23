@@ -36,6 +36,8 @@ export interface SessionResult {
 const INITIAL_NODE = 'INITIAL_STEP';
 const LOCK_ERROR_CODE = '55P03';
 const NOT_FOUND_CODE = 'PGRST116';
+const FIRST_INDEX = 0;
+const isSessionRow = (v: unknown): v is SessionRow => typeof v === 'object' && v !== null;
 
 async function tryLockExistingSession(
   supabase: SupabaseClient,
@@ -59,8 +61,10 @@ async function tryLockExistingSession(
   }
 
   const rows = result.data as unknown;
-  if (!Array.isArray(rows) || rows.length === 0) return null;
-  return { session: rows[0] as SessionRow, isNew: false };
+  if (!Array.isArray(rows) || rows.length === FIRST_INDEX) return null;
+  const firstRow: unknown = rows[FIRST_INDEX];
+  if (!isSessionRow(firstRow)) return null;
+  return { session: firstRow, isNew: false };
 }
 
 async function insertNewSession(
@@ -90,7 +94,6 @@ async function insertNewSession(
 
   return result.data;
 }
-
 export async function getOrCreateSession(
   supabase: SupabaseClient,
   params: GetOrCreateSessionParams
@@ -124,7 +127,6 @@ export async function getSessionMessages(supabase: SupabaseClient, sessionId: st
 
   return result.data ?? [];
 }
-
 interface CreateExecutionParams {
   sessionId: string;
   agentId: string;
@@ -162,7 +164,6 @@ export async function createExecution(
 
   return result.data.id;
 }
-
 interface SaveMessageParams {
   sessionId: string;
   executionId: string;
@@ -187,7 +188,6 @@ export async function saveExecutionMessage(
     throw new Error(`saveExecutionMessage: ${result.error.message}`);
   }
 }
-
 interface SaveNodeVisitParams {
   executionId: string;
   nodeId: string;
@@ -221,7 +221,6 @@ export async function saveNodeVisit(supabase: SupabaseClient, params: SaveNodeVi
     throw new Error(`saveNodeVisit: ${result.error.message}`);
   }
 }
-
 interface CompletionTotals {
   inputTokens: number;
   outputTokens: number;

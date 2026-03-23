@@ -35,7 +35,7 @@ function AvatarImage({ src, name }: { src: string; name: string }) {
       alt={name}
       width={48}
       height={48}
-      className="size-12 rounded-full object-cover"
+      className="size-12 rounded-full object-cover border"
     />
   );
 }

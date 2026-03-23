@@ -1,6 +1,18 @@
 import type { RuntimeGraph } from '@daviddh/graph-types';
 import type { CallAgentOutput, Message, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
 
+import {
+  type SseEvent,
+  extractLineEvents,
+  isRecord,
+  parseTrailingBuffer,
+  toNum,
+  toOptStr,
+  toRecord,
+  toStr,
+  toStringArray,
+} from './sseHelpers.js';
+
 export interface ExecuteAgentParams {
   graph: RuntimeGraph;
   apiKey: string;
@@ -23,97 +35,92 @@ export interface ExecuteAgentCallbacks {
 
 /* ─── Environment ─── */
 
+function readEnv(name: string): string | undefined {
+  return process.env[name];
+}
+
 function getRequiredEnv(name: string): string {
-  const val = process.env[name];
+  const val = readEnv(name);
   if (val === undefined || val === '') throw new Error(`Missing env var: ${name}`);
   return val;
 }
 
-/* ─── SSE line parser ─── */
+/* ─── Stream reader (recursive to avoid await-in-loop) ─── */
 
-interface SseEvent {
-  type: string;
-  [key: string]: unknown;
+type DecodeChunk = (value: Uint8Array) => string;
+
+async function* readChunks(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  decode: DecodeChunk,
+  buffer: string
+): AsyncGenerator<SseEvent> {
+  const { done, value } = await reader.read();
+  const text = value === undefined ? '' : decode(value);
+  const updated = buffer + text;
+
+  if (done) {
+    yield* parseTrailingBuffer(updated);
+    return;
+  }
+
+  const { events, remaining } = extractLineEvents(updated);
+  yield* events;
+  yield* readChunks(reader, decode, remaining);
 }
-
-function parseSseLine(line: string): SseEvent | null {
-  const trimmed = line.trim();
-  if (!trimmed.startsWith('data:')) return null;
-  const json = trimmed.slice('data:'.length).trim();
-  if (json === '') return null;
-  return JSON.parse(json) as SseEvent;
-}
-
-/* ─── Stream reader ─── */
 
 async function* readSseStream(body: ReadableStream<Uint8Array>): AsyncGenerator<SseEvent> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
-  let buffer = '';
-
+  const decode: DecodeChunk = (v) => decoder.decode(v, { stream: true });
   try {
-    let done = false;
-    while (!done) {
-      const chunk = await reader.read();
-      done = chunk.done;
-      if (chunk.value !== undefined) {
-        buffer += decoder.decode(chunk.value, { stream: true });
-      }
-      const lines = buffer.split('\n');
-      buffer = lines.pop() ?? '';
-      for (const line of lines) {
-        const event = parseSseLine(line);
-        if (event !== null) yield event;
-      }
-    }
-    if (buffer.trim() !== '') {
-      const event = parseSseLine(buffer);
-      if (event !== null) yield event;
-    }
+    yield* readChunks(reader, decode, '');
   } finally {
     reader.releaseLock();
   }
+}
+
+/* ─── Type-safe SSE event parsers ─── */
+
+function parseSimToolCalls(value: unknown): NodeProcessedEvent['toolCalls'] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item: unknown) => {
+    const rec = toRecord(item);
+    return { toolName: toStr(rec.toolName), input: rec.input, output: rec.output };
+  });
+}
+
+function parseTokenLog(value: unknown): NodeProcessedEvent['tokens'] {
+  const rec = toRecord(value);
+  return { input: toNum(rec.input), output: toNum(rec.output), cached: toNum(rec.cached) };
+}
+
+function parseStructuredOutput(value: unknown): NodeProcessedEvent['structuredOutput'] {
+  if (!isRecord(value)) return undefined;
+  return { nodeId: toStr(value.nodeId), data: value.data };
 }
 
 /* ─── Event processing ─── */
 
 function processNodeProcessed(event: SseEvent, callbacks: ExecuteAgentCallbacks): void {
   callbacks.onNodeProcessed({
-    nodeId: String(event.nodeId ?? ''),
-    text: event.text as string | undefined,
+    nodeId: toStr(event.nodeId),
+    text: toOptStr(event.text),
     output: event.output,
-    toolCalls: (event.toolCalls as NodeProcessedEvent['toolCalls']) ?? [],
-    reasoning: event.reasoning as string | undefined,
-    error: event.error as string | undefined,
-    tokens: (event.tokens as NodeProcessedEvent['tokens']) ?? { input: 0, output: 0, cached: 0 },
-    durationMs: (event.durationMs as number) ?? 0,
-    structuredOutput: event.structuredOutput as NodeProcessedEvent['structuredOutput'],
+    toolCalls: parseSimToolCalls(event.toolCalls),
+    reasoning: toOptStr(event.reasoning),
+    error: toOptStr(event.error),
+    tokens: parseTokenLog(event.tokens),
+    durationMs: toNum(event.durationMs),
+    structuredOutput: parseStructuredOutput(event.structuredOutput),
   });
 }
 
-interface NodeToken {
-  node: string;
-  tokens: { input: number; output: number; cached: number; costUSD?: number };
-}
-
-function mapNodeTokensToTokensLogs(nodeTokens: unknown): CallAgentOutput['tokensLogs'] {
-  if (!Array.isArray(nodeTokens)) return [];
-  return (nodeTokens as NodeToken[]).map((nt) => ({ action: nt.node, tokens: nt.tokens }));
-}
+/* ─── Agent output parsers ─── */
 
 interface ToolCallData {
   name: string;
   args: unknown;
   result: unknown;
-}
-
-interface RawToolCall {
-  toolName?: string;
-  name?: string;
-  input?: unknown;
-  args?: unknown;
-  output?: unknown;
-  result?: unknown;
 }
 
 export interface NodeProcessedData {
@@ -123,18 +130,50 @@ export interface NodeProcessedData {
   durationMs: number;
 }
 
-interface RawParsedResult {
-  nextNodeID?: string;
-  messageToUser?: string;
-}
-
 function mapRawToolCalls(raw: unknown): ToolCallData[] {
   if (!Array.isArray(raw)) return [];
-  return (raw as RawToolCall[]).map((tc) => ({
-    name: tc.toolName ?? tc.name ?? '',
-    args: tc.input ?? tc.args,
-    result: tc.output ?? tc.result,
-  }));
+  return raw.map((item: unknown) => {
+    const rec = toRecord(item);
+    const toolName = toStr(rec.toolName);
+    return {
+      name: toolName === '' ? toStr(rec.name) : toolName,
+      args: rec.input ?? rec.args,
+      result: rec.output ?? rec.result,
+    };
+  });
+}
+
+function mapNodeTokensToTokensLogs(nodeTokens: unknown): CallAgentOutput['tokensLogs'] {
+  if (!Array.isArray(nodeTokens)) return [];
+  return nodeTokens.map((item: unknown) => {
+    const rec = toRecord(item);
+    const tokens = toRecord(rec.tokens);
+    return {
+      action: toStr(rec.node),
+      tokens: {
+        input: toNum(tokens.input),
+        output: toNum(tokens.output),
+        cached: toNum(tokens.cached),
+        costUSD: typeof tokens.costUSD === 'number' ? tokens.costUSD : undefined,
+      },
+    };
+  });
+}
+
+function isDebugMessages(value: unknown): value is CallAgentOutput['debugMessages'] {
+  return typeof value === 'object' && value !== null;
+}
+
+function isToolCallsArray(value: unknown): value is CallAgentOutput['toolCalls'] {
+  return Array.isArray(value);
+}
+
+function parseStructuredOutputs(value: unknown): Array<{ nodeId: string; data: unknown }> {
+  if (!Array.isArray(value)) return [];
+  return value.map((item: unknown) => {
+    const rec = toRecord(item);
+    return { nodeId: toStr(rec.nodeId), data: rec.data };
+  });
 }
 
 function buildParsedResults(
@@ -142,51 +181,66 @@ function buildParsedResults(
   nodeTexts: NodeProcessedData[]
 ): CallAgentOutput['parsedResults'] {
   if (Array.isArray(event.parsedResults)) {
-    return (event.parsedResults as RawParsedResult[]).map((r) => ({
-      nextNodeID: r.nextNodeID ?? '',
-      messageToUser: r.messageToUser,
-    }));
+    return event.parsedResults.map((item: unknown) => {
+      const rec = toRecord(item);
+      return { nextNodeID: toStr(rec.nextNodeID), messageToUser: toOptStr(rec.messageToUser) };
+    });
   }
   return nodeTexts.map((nt) => ({
     nextNodeID: '',
-    messageToUser: nt.text !== '' ? nt.text : undefined,
+    messageToUser: nt.text === '' ? undefined : nt.text,
   }));
 }
 
 function buildResultFromResponse(event: SseEvent, nodeTexts: NodeProcessedData[]): CallAgentOutput {
   return {
     message: null,
-    text: String(event.text ?? ''),
-    visitedNodes: (event.visitedNodes as string[]) ?? [],
-    toolCalls: (event.toolCalls as CallAgentOutput['toolCalls']) ?? [],
+    text: toStr(event.text),
+    visitedNodes: toStringArray(event.visitedNodes),
+    toolCalls: isToolCallsArray(event.toolCalls) ? event.toolCalls : [],
     tokensLogs: mapNodeTokensToTokensLogs(event.nodeTokens),
-    debugMessages: (event.debugMessages as CallAgentOutput['debugMessages']) ?? {},
-    structuredOutputs: (event.structuredOutputs as CallAgentOutput['structuredOutputs']) ?? [],
+    debugMessages: isDebugMessages(event.debugMessages) ? event.debugMessages : {},
+    structuredOutputs: parseStructuredOutputs(event.structuredOutputs),
     parsedResults: buildParsedResults(event, nodeTexts),
   };
 }
 
 /* ─── SSE event handlers ─── */
 
-const ZERO = 0;
-
-function toStr(value: unknown): string {
-  return typeof value === 'string' ? value : '';
-}
-
 function handleNodeProcessed(
   event: SseEvent,
   nodeTexts: NodeProcessedData[],
   callbacks: ExecuteAgentCallbacks
 ): void {
-  const durationMs = typeof event.durationMs === 'number' ? event.durationMs : ZERO;
   nodeTexts.push({
     nodeId: toStr(event.nodeId),
     text: toStr(event.text),
     toolCalls: mapRawToolCalls(event.toolCalls),
-    durationMs,
+    durationMs: toNum(event.durationMs),
   });
   processNodeProcessed(event, callbacks);
+}
+
+interface SseEventResult {
+  agentOutput: CallAgentOutput | undefined;
+}
+
+function handleSseEvent(
+  event: SseEvent,
+  nodeTexts: NodeProcessedData[],
+  callbacks: ExecuteAgentCallbacks
+): SseEventResult {
+  if (event.type === 'node_visited') {
+    callbacks.onNodeVisited(toStr(event.nodeId));
+  } else if (event.type === 'node_processed') {
+    handleNodeProcessed(event, nodeTexts, callbacks);
+  } else if (event.type === 'agent_response') {
+    return { agentOutput: buildResultFromResponse(event, nodeTexts) };
+  } else if (event.type === 'error') {
+    const msg = toStr(event.message);
+    throw new Error(msg === '' ? 'Edge function execution error' : msg);
+  }
+  return { agentOutput: undefined };
 }
 
 /* ─── Main: call edge function ─── */
@@ -221,18 +275,20 @@ export async function executeAgent(
     throw new Error('Edge function returned no body');
   }
 
+  return await processEventStream(response.body, callbacks);
+}
+
+async function processEventStream(
+  body: ReadableStream<Uint8Array>,
+  callbacks: ExecuteAgentCallbacks
+): Promise<ExecuteAgentResult> {
   let result: CallAgentOutput | null = null;
   const nodeTexts: NodeProcessedData[] = [];
 
-  for await (const event of readSseStream(response.body)) {
-    if (event.type === 'node_visited') {
-      callbacks.onNodeVisited(String(event.nodeId));
-    } else if (event.type === 'node_processed') {
-      handleNodeProcessed(event, nodeTexts, callbacks);
-    } else if (event.type === 'agent_response') {
-      result = buildResultFromResponse(event, nodeTexts);
-    } else if (event.type === 'error') {
-      throw new Error(String(event.message ?? 'Edge function execution error'));
+  for await (const event of readSseStream(body)) {
+    const { agentOutput } = handleSseEvent(event, nodeTexts, callbacks);
+    if (agentOutput !== undefined) {
+      result = agentOutput;
     }
   }
 
