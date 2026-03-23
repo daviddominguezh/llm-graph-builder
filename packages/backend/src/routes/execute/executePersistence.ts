@@ -120,10 +120,14 @@ function getNodeResponseContext(
 
 function buildNodeResponse(ctx: NodeResponseContext): Record<string, unknown> {
   const { parsedResult, structuredOutput, processed } = ctx;
-  const response: Record<string, unknown> = { text: parsedResult?.messageToUser ?? '' };
+  const response: Record<string, unknown> = {};
+  const { messageToUser } = parsedResult ?? {};
+  if (messageToUser !== undefined && messageToUser !== '') {
+    response.text = messageToUser;
+  }
   const { nextNodeID } = parsedResult ?? {};
   if (nextNodeID !== undefined && nextNodeID !== '') {
-    response.next_node = nextNodeID;
+    response.nextNodeID = nextNodeID;
   }
   if (structuredOutput !== undefined) {
     const { data } = structuredOutput;

@@ -1,19 +1,16 @@
 'use client';
 
-import { useCallback, useMemo, useState, useTransition } from 'react';
-
-import { useTranslations } from 'next-intl';
-
 import { fetchNodeVisitsForExecution } from '@/app/actions/dashboard';
 import type { ExecutionSummaryRow, NodeVisitRow, SessionRow } from '@/app/lib/dashboard';
 import type { Graph } from '@/app/schemas/graph.schema';
 import { buildDebugGraph } from '@/app/utils/debugGraphBuilder';
+import { useTranslations } from 'next-intl';
+import { useCallback, useMemo, useState, useTransition } from 'react';
 
 import { DebugCanvas } from './DebugCanvas';
+import { NodeInspector } from './NodeInspector';
 import { DebugBreadcrumb } from './debug-view/DebugBreadcrumb';
 import { SessionMetadataBar } from './debug-view/SessionMetadataBar';
-import { ExecutionTimeline } from './ExecutionTimeline';
-import { NodeInspector } from './NodeInspector';
 
 interface DebugViewProps {
   session: SessionRow;
@@ -88,15 +85,7 @@ export function DebugView({
         dashboardLabel={t('title')}
       />
 
-      <h1 className="text-2xl font-bold">{t('sessionDebug')}</h1>
-
       <SessionMetadataBar session={session} agentName={agentName} />
-
-      <ExecutionTimeline
-        executions={executions}
-        selectedId={state.selectedExecutionId}
-        onSelect={state.handleSelectExecution}
-      />
 
       <div className="flex flex-1 gap-4 min-h-0">
         <div className="w-2/3">

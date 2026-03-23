@@ -1,5 +1,3 @@
-import { Badge } from '@/components/ui/badge';
-
 import type { SessionRow } from '@/app/lib/dashboard';
 
 import type { Column } from './sortable-table-types';
@@ -14,10 +12,6 @@ function formatDateTime(dateStr: string | null): string {
 
 function formatCost(cost: number): string {
   return `$${cost.toFixed(5)}`;
-}
-
-function channelBadge(row: SessionRow): React.ReactNode {
-  return <Badge variant="secondary">{row.channel}</Badge>;
 }
 
 export function buildSessionColumns(t: (key: string) => string): Column<SessionRow>[] {
@@ -46,19 +40,19 @@ export function buildSessionColumns(t: (key: string) => string): Column<SessionR
       key: 'channel',
       label: t('columns.channel'),
       sortable: true,
-      render: channelBadge,
+      render: (row) => <span className="font-mono uppercase">{row.channel}</span>,
     },
     {
       key: 'current_node_id',
       label: t('columns.currentNode'),
       sortable: false,
-      render: (row) => row.current_node_id,
+      render: (row) => <span className="font-mono uppercase">{row.current_node_id}</span>,
     },
     {
       key: 'version',
       label: t('columns.version'),
       sortable: true,
-      render: (row) => String(row.version),
+      render: (row) => `v${String(row.version)}`,
     },
     {
       key: 'model',

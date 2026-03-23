@@ -1,4 +1,5 @@
 import { ChevronRight } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 
 interface DebugBreadcrumbProps {
@@ -16,8 +17,10 @@ export function DebugBreadcrumb({
   sessionId,
   dashboardLabel,
 }: DebugBreadcrumbProps) {
+  const t = useTranslations('dashboard');
+
   return (
-    <nav className="flex items-center gap-1 text-sm text-muted-foreground mb-4">
+    <nav className="flex items-center gap-1 text-sm text-muted-foreground">
       <Link href={`/orgs/${slug}/dashboard`} className="hover:text-foreground">
         {dashboardLabel}
       </Link>
@@ -26,7 +29,9 @@ export function DebugBreadcrumb({
         {agentName}
       </Link>
       <ChevronRight className="size-3" />
-      <span className="text-foreground font-medium truncate max-w-48">{sessionId}</span>
+      <span className="text-foreground font-medium">
+        {t('sessionDebug')} ({sessionId})
+      </span>
     </nav>
   );
 }

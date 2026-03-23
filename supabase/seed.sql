@@ -183,7 +183,7 @@ INSERT INTO public.graph_nodes (
 ) VALUES
 ( 'c1000000-0000-0000-0000-000000000000',
   v_recipe_agent_id, 'INITIAL_STEP',
-  'You are a friendly recipe assistant. Based on the user''s message, determine their intent.',
+  '',
   'agent', 'Routes user to the correct flow based on intent',
   false, false, 20, 338, NULL, NULL ),
 ( 'c1000000-0000-0000-0000-000000000001',

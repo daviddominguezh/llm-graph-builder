@@ -431,7 +431,7 @@
     "description": "Overview of execution metrics per agent.",
     "sessions": "Sessions",
     "sessionsFor": "Sessions for {agentName}",
-    "sessionDebug": "Session Debug",
+    "sessionDebug": "Session Trace",
     "columns": {
       "agentName": "Agent",
       "totalExecutions": "Executions",
