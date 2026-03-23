@@ -279,7 +279,7 @@ export function Toolbar(props: ToolbarProps) {
   const t = useTranslations('toolbar');
   return (
     <>
-      <div className="absolute top-0 left-0 z-1">
+      <div className="absolute top-1 left-0 z-1">
         <FileMenu
           onImport={onImport}
           onExport={onExport}
@@ -290,7 +290,7 @@ export function Toolbar(props: ToolbarProps) {
           agentName={agentName}
         />
       </div>
-      <header className="absolute z-1 flex items-stretch justify-center gap-1 rounded-lg border bg-background p-1 top-0 shadow-lg">
+      <header className="absolute z-1 flex items-stretch justify-center gap-1 rounded-lg border bg-background p-1 top-1 shadow-lg">
         <PlayButton
           simulationActive={simulationActive ?? false}
           onPlay={onPlay}
@@ -301,7 +301,7 @@ export function Toolbar(props: ToolbarProps) {
         <ToolbarButtons {...props} />
       </header>
       {(props.statusSlot ?? props.publishSlot ?? props.versionSlot) && (
-        <div className="absolute top-0 right-0 z-1 flex items-center gap-1.5">
+        <div className="absolute top-1 right-1 z-1 flex items-center gap-1">
           {props.statusSlot}
           {props.versionSlot}
           {props.publishSlot}

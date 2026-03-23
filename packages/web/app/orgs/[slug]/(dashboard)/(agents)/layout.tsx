@@ -23,7 +23,7 @@ export default async function AgentsLayout({ children, params }: AgentsLayoutPro
   const { agents } = await getCachedAgentsByOrg(supabase, org.id);
 
   return (
-    <div className="flex h-full p-1.5">
+    <div className="flex h-full p-0 bg-sidebar-accent">
       <AgentsSidebar agents={agents} orgId={org.id} orgSlug={org.slug} />
       <CopilotShell>
         <div className="flex-1 overflow-hidden">{children}</div>

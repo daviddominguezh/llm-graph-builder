@@ -1,9 +1,12 @@
 import { redirect } from 'next/navigation';
 
+import type { Graph } from '@daviddh/graph-types';
+import { GraphSchema } from '@daviddh/graph-types';
+
 import { DebugView } from '@/app/components/dashboard/DebugView';
 import { getAgentsByOrg } from '@/app/lib/agents';
+import { fetchFromBackend } from '@/app/lib/backendProxy';
 import { getExecutionsForSession, getNodeVisitsForExecution, getSessionDetail } from '@/app/lib/dashboard';
-import { fetchVersionSnapshot } from '@/app/lib/graphApi';
 import { getOrgBySlug } from '@/app/lib/orgs';
 import { createClient } from '@/app/lib/supabase/server';
 
@@ -48,10 +51,11 @@ export default async function SessionDebugPage({ params }: SessionDebugPageProps
   const executions = executionsResult.rows;
   const firstExecution = executions[FIRST_INDEX];
 
-  const [graph, initialNodeVisits] = await Promise.all([
-    fetchVersionSnapshot(agent.id, session.version),
+  const [graphRaw, initialNodeVisits] = await Promise.all([
+    fetchFromBackend('GET', `/agents/${agent.id}/versions/${String(session.version)}`),
     fetchInitialNodeVisits(supabase, firstExecution?.id),
   ]);
+  const graph: Graph = GraphSchema.parse(graphRaw);
 
   return (
     <DebugView

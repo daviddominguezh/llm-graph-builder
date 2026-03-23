@@ -57,10 +57,10 @@ function NavItem({
     <Button
       variant="ghost"
       size="sm"
-      className={`h-8 w-full justify-start px-2 border ${
+      className={`h-8 w-full justify-start px-2 ${
         active
           ? 'border-primary bg-primary/15 text-primary hover:bg-primary/15 hover:text-primary'
-          : 'border-background text-muted-foreground hover:text-foreground/70'
+          : 'text-muted-foreground hover:text-foreground/70 hover:bg-sidebar-accent'
       }`}
       render={<Link href={href} onClick={onClick} />}
     >
@@ -86,15 +86,15 @@ function NavItemExpanded({
     <Button
       variant="ghost"
       size="sm"
-      className={`h-8 w-full justify-start gap-2 px-2 text-sm border ${
+      className={`h-8 w-full justify-start gap-2 px-2 text-sm ${
         active
           ? 'border-primary bg-primary/15 text-primary hover:bg-primary/15 hover:text-primary'
-          : 'border-background text-muted-foreground hover:text-foreground/70 hover:bg-card!'
+          : 'text-muted-foreground hover:text-foreground hover:bg-sidebar-accent!'
       }`}
       render={<Link href={href} onClick={onClick} />}
     >
       {icon}
-      <span className="whitespace-nowrap">{label}</span>
+      <span className="whitespace-nowrap font-normal">{label}</span>
     </Button>
   );
 }
@@ -109,7 +109,7 @@ function CollapsedTrigger({ org }: { org: OrgRow }) {
 
 function ExpandedTrigger({ org }: { org: OrgRow }) {
   return (
-    <div className="flex h-8 items-center overflow-hidden px-2">
+    <div className="flex h-8 rounded-md items-center overflow-hidden px-2 hover:bg-sidebar-accent">
       <div className="flex min-w-0 items-center gap-2">
         <OrgAvatar name={org.name} avatarUrl={org.avatar_url} />
         <span className="truncate text-sm font-semibold">{org.name}</span>
@@ -220,11 +220,11 @@ function LogoutButton({ collapsed }: { collapsed: boolean }) {
     <Button
       variant="ghost"
       size="sm"
-      className="h-8 w-full justify-start gap-2 px-2 text-muted-foreground hover:text-destructive hover:bg-card!"
+      className="h-8 w-full justify-start gap-2 px-2 text-muted-foreground hover:text-destructive hover:bg-sidebar-accent!"
       onClick={handleLogout}
     >
       <LogOut className="size-4 shrink-0" />
-      {!collapsed && <span className="whitespace-nowrap text-sm">{t('logout')}</span>}
+      {!collapsed && <span className="whitespace-nowrap text-sm font-normal">{t('logout')}</span>}
     </Button>
   );
 }
@@ -276,7 +276,7 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
 
   return (
     <aside
-      className={`absolute left-1.5 top-1.5 bottom-1.5 z-11 flex flex-col gap-4 rounded-md border bg-background p-2 transition-[width] duration-100 ${sidebar.collapsed ? 'w-13' : 'w-74 shadow-lg'}`}
+      className={`absolute left-0 top-0 bottom-0 z-11 flex flex-col gap-4 bg-sidebar p-2 transition-[width] duration-100 ${sidebar.collapsed ? 'w-[52px] border border-transparent' : 'w-74 shadow-lg border rounded-e-md z-12'}`}
       onMouseEnter={sidebar.handleMouseEnter}
       onMouseLeave={sidebar.handleMouseLeave}
     >

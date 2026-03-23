@@ -31,6 +31,9 @@ export interface SessionRow {
   model: string;
   created_at: string;
   updated_at: string;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_cost: number;
 }
 
 export interface ExecutionSummaryRow {
@@ -167,7 +170,7 @@ export async function getSessionsByAgent(
   const ascending = params.sortDirection === 'asc';
 
   let query = supabase
-    .from('agent_sessions')
+    .from('agent_sessions_with_cost')
     .select('*', { count: 'exact' })
     .eq('org_id', orgId)
     .eq('agent_id', agentId)
@@ -199,7 +202,11 @@ export async function getSessionDetail(
   supabase: SupabaseClient,
   sessionId: string
 ): Promise<{ session: SessionRow | null; error: string | null }> {
-  const { data, error } = await supabase.from('agent_sessions').select('*').eq('id', sessionId).single();
+  const { data, error } = await supabase
+    .from('agent_sessions_with_cost')
+    .select('*')
+    .eq('id', sessionId)
+    .single();
 
   if (error !== null) return { session: null, error: error.message };
   return { session: data as SessionRow, error: null };

@@ -141,7 +141,7 @@ export function AgentsSidebar({ agents, orgId, orgSlug }: AgentsSidebarProps) {
   }
 
   return (
-    <aside className="flex h-full w-[240px] shrink-0 flex-col border rounded-md bg-background mr-1">
+    <aside className="flex h-full w-[240px] shrink-0 flex-col border-r rounded-md bg-background mr-1">
       <SidebarHeader onCreateClick={() => setCreateOpen(true)} onHide={() => setCollapsed(true)} />
       <SearchInput value={search} onChange={setSearch} />
       <div className="flex-1 overflow-y-auto">

@@ -34,9 +34,9 @@ function ListAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | nul
       <Image
         src={toProxyImageSrc(avatarUrl)}
         alt={name}
-        width={24}
-        height={24}
-        className="h-6 w-6 shrink-0 rounded-full object-cover"
+        width={20}
+        height={20}
+        className="h-5 w-5 shrink-0 rounded-full object-cover"
       />
     );
   }

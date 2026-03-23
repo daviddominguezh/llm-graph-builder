@@ -4,19 +4,22 @@ import type { AgentSummaryRow } from '@/app/lib/dashboard';
 
 import type { Column } from './sortable-table-types';
 
-function formatTokens(row: AgentSummaryRow): string {
-  const total = row.total_input_tokens + row.total_output_tokens;
-  return total.toLocaleString();
+function formatAvgCost(row: AgentSummaryRow): string {
+  if (row.total_executions === 0) return '$0.00000';
+  const avg = row.total_cost / row.total_executions;
+  return '$' + avg.toFixed(5);
 }
 
 function formatCost(row: AgentSummaryRow): string {
-  return '$' + row.total_cost.toFixed(2);
+  return '$' + row.total_cost.toFixed(5);
 }
 
-function formatDate(dateStr: string | null): string {
+function formatDateTime(dateStr: string | null): string {
   if (!dateStr) return '-';
   const d = new Date(dateStr);
-  return `${String(d.getUTCFullYear())}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+  const date = `${String(d.getFullYear())}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return `${date} ${time}`;
 }
 
 export function buildAgentSummaryColumns(
@@ -44,10 +47,10 @@ export function buildAgentSummaryColumns(
       render: (row) => row.total_executions.toLocaleString(),
     },
     {
-      key: 'total_tokens',
-      label: t('columns.totalTokens'),
+      key: 'avg_cost',
+      label: t('columns.avgCost'),
       sortable: false,
-      render: formatTokens,
+      render: formatAvgCost,
     },
     {
       key: 'total_cost',
@@ -77,7 +80,7 @@ export function buildAgentSummaryColumns(
       key: 'last_execution_at',
       label: t('columns.lastExecution'),
       sortable: true,
-      render: (row) => formatDate(row.last_execution_at),
+      render: (row) => formatDateTime(row.last_execution_at),
     },
   ];
 }

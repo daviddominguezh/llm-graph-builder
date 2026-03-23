@@ -4,10 +4,16 @@ import type { SessionRow } from '@/app/lib/dashboard';
 
 import type { Column } from './sortable-table-types';
 
-function formatDate(dateStr: string | null): string {
+function formatDateTime(dateStr: string | null): string {
   if (!dateStr) return '-';
   const d = new Date(dateStr);
-  return `${String(d.getUTCFullYear())}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+  const date = `${String(d.getFullYear())}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return `${date} ${time}`;
+}
+
+function formatCost(cost: number): string {
+  return `$${cost.toFixed(5)}`;
 }
 
 function channelBadge(row: SessionRow): React.ReactNode {
@@ -61,16 +67,16 @@ export function buildSessionColumns(t: (key: string) => string): Column<SessionR
       render: (row) => row.model,
     },
     {
-      key: 'created_at',
-      label: t('columns.created'),
+      key: 'total_cost',
+      label: t('columns.totalCost'),
       sortable: true,
-      render: (row) => formatDate(row.created_at),
+      render: (row) => formatCost(row.total_cost),
     },
     {
       key: 'updated_at',
       label: t('columns.lastActivity'),
       sortable: true,
-      render: (row) => formatDate(row.updated_at),
+      render: (row) => formatDateTime(row.updated_at),
     },
   ];
 }

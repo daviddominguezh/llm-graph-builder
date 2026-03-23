@@ -3,7 +3,7 @@ import type { Request, Response } from 'express';
 
 import { failExecution } from '../../db/queries/executionQueries.js';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
-import type { ExecuteAgentParams } from './edgeFunctionClient.js';
+import type { ExecuteAgentParams, NodeProcessedData } from './edgeFunctionClient.js';
 import { executeAgent } from './edgeFunctionClient.js';
 import type { ExecutionAuthLocals, ExecutionAuthResponse } from './executeAuth.js';
 import {
@@ -186,7 +186,8 @@ async function prepareExecution(
 async function persistResult(
   ctx: ExecutionContext,
   result: CallAgentOutput,
-  startTime: number
+  startTime: number,
+  nodeData: NodeProcessedData[]
 ): Promise<void> {
   const durationMs = Date.now() - startTime;
   const newNodeId = getLastVisitedNode(result, ctx.fetched.currentNodeId);
@@ -200,6 +201,7 @@ async function persistResult(
     structuredOutputs: newOutputs,
     durationMs,
     model: ctx.model,
+    nodeData,
   });
 }
 
@@ -212,7 +214,7 @@ function noop(): void {
 async function handleStreaming(ctx: ExecutionContext, res: Response): Promise<void> {
   setSseHeaders(res);
   const startTime = Date.now();
-  const result = await executeAgent(buildExecuteParams(ctx), {
+  const { output, nodeData } = await executeAgent(buildExecuteParams(ctx), {
     onNodeVisited: (nodeId) => {
       sendNodeVisitedEvent(res, nodeId);
     },
@@ -221,10 +223,10 @@ async function handleStreaming(ctx: ExecutionContext, res: Response): Promise<vo
     },
   });
 
-  if (result !== null) {
-    const response = buildAgentResponse(result, Date.now() - startTime);
+  if (output !== null) {
+    const response = buildAgentResponse(output, Date.now() - startTime);
     writePublicSSE(res, { type: 'done', response });
-    await persistResult(ctx, result, startTime);
+    await persistResult(ctx, output, startTime, nodeData);
   }
 }
 
@@ -232,14 +234,14 @@ async function handleStreaming(ctx: ExecutionContext, res: Response): Promise<vo
 
 async function handleNonStreaming(ctx: ExecutionContext, res: Response): Promise<void> {
   const startTime = Date.now();
-  const result = await executeAgent(buildExecuteParams(ctx), {
+  const { output, nodeData } = await executeAgent(buildExecuteParams(ctx), {
     onNodeVisited: noop,
     onNodeProcessed: noop,
   });
 
-  if (result !== null) {
-    res.json(buildAgentResponse(result, Date.now() - startTime));
-    await persistResult(ctx, result, startTime);
+  if (output !== null) {
+    res.json(buildAgentResponse(output, Date.now() - startTime));
+    await persistResult(ctx, output, startTime, nodeData);
     return;
   }
 

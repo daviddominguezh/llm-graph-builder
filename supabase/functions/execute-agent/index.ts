@@ -167,6 +167,7 @@ Deno.serve(async (req: Request) => {
             tokenUsage: tokens,
             debugMessages: result.debugMessages,
             structuredOutputs: result.structuredOutputs,
+            parsedResults: result.parsedResults,
           });
         }
 

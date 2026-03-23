@@ -435,8 +435,8 @@
     "columns": {
       "agentName": "Agent",
       "totalExecutions": "Executions",
-      "totalTokens": "Tokens",
-      "totalCost": "Cost",
+      "avgCost": "Avg Cost",
+      "totalCost": "Total Cost",
       "uniqueTenants": "Tenants",
       "uniqueUsers": "Users",
       "uniqueSessions": "Sessions",

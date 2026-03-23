@@ -1,5 +1,5 @@
-import type { CallAgentOutput, Message, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
 import type { RuntimeGraph } from '@daviddh/graph-types';
+import type { CallAgentOutput, Message, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
 
 export interface ExecuteAgentParams {
   graph: RuntimeGraph;
@@ -101,7 +101,36 @@ function mapNodeTokensToTokensLogs(nodeTokens: unknown): CallAgentOutput['tokens
   return (nodeTokens as NodeToken[]).map((nt) => ({ action: nt.node, tokens: nt.tokens }));
 }
 
-function buildResultFromResponse(event: SseEvent): CallAgentOutput {
+interface ToolCallData {
+  name: string;
+  args: unknown;
+  result: unknown;
+}
+
+export interface NodeProcessedData {
+  nodeId: string;
+  text: string;
+  toolCalls: ToolCallData[];
+  durationMs: number;
+}
+
+interface RawParsedResult {
+  nextNodeID?: string;
+  messageToUser?: string;
+}
+
+function buildResultFromResponse(event: SseEvent, nodeTexts: NodeProcessedData[]): CallAgentOutput {
+  const eventParsed = Array.isArray(event.parsedResults)
+    ? (event.parsedResults as RawParsedResult[]).map((r) => ({
+        nextNodeID: r.nextNodeID ?? '',
+        messageToUser: r.messageToUser,
+      }))
+    : null;
+  const parsedResults = eventParsed ?? nodeTexts.map((nt) => ({
+    nextNodeID: '',
+    messageToUser: nt.text || undefined,
+  }));
+
   return {
     message: null,
     text: String(event.text ?? ''),
@@ -110,15 +139,21 @@ function buildResultFromResponse(event: SseEvent): CallAgentOutput {
     tokensLogs: mapNodeTokensToTokensLogs(event.nodeTokens),
     debugMessages: (event.debugMessages as CallAgentOutput['debugMessages']) ?? {},
     structuredOutputs: (event.structuredOutputs as CallAgentOutput['structuredOutputs']) ?? [],
+    parsedResults,
   };
 }
 
 /* ─── Main: call edge function ─── */
 
+export interface ExecuteAgentResult {
+  output: CallAgentOutput | null;
+  nodeData: NodeProcessedData[];
+}
+
 export async function executeAgent(
   params: ExecuteAgentParams,
   callbacks: ExecuteAgentCallbacks
-): Promise<CallAgentOutput | null> {
+): Promise<ExecuteAgentResult> {
   const edgeFunctionUrl = getRequiredEnv('SUPABASE_EDGE_FUNCTION_URL');
   const serviceKey = getRequiredEnv('SUPABASE_SERVICE_ROLE_KEY');
 
@@ -141,18 +176,27 @@ export async function executeAgent(
   }
 
   let result: CallAgentOutput | null = null;
+  const nodeTexts: NodeProcessedData[] = [];
 
   for await (const event of readSseStream(response.body)) {
     if (event.type === 'node_visited') {
       callbacks.onNodeVisited(String(event.nodeId));
     } else if (event.type === 'node_processed') {
+      const rawCalls = Array.isArray(event.toolCalls) ? (event.toolCalls as Record<string, unknown>[]) : [];
+      const toolCalls: ToolCallData[] = rawCalls.map((tc) => ({
+        name: String(tc['toolName'] ?? tc['name'] ?? ''),
+        args: tc['input'] ?? tc['args'],
+        result: tc['output'] ?? tc['result'],
+      }));
+      const durationMs = typeof event.durationMs === 'number' ? event.durationMs : 0;
+      nodeTexts.push({ nodeId: String(event.nodeId ?? ''), text: String(event.text ?? ''), toolCalls, durationMs });
       processNodeProcessed(event, callbacks);
     } else if (event.type === 'agent_response') {
-      result = buildResultFromResponse(event);
+      result = buildResultFromResponse(event, nodeTexts);
     } else if (event.type === 'error') {
       throw new Error(String(event.message ?? 'Edge function execution error'));
     }
   }
 
-  return result;
+  return { output: result, nodeData: nodeTexts };
 }

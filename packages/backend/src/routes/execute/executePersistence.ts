@@ -1,5 +1,6 @@
 import type { CallAgentOutput } from '@daviddh/llm-graph-runner';
 
+import type { NodeProcessedData } from './edgeFunctionClient.js';
 import {
   completeExecution,
   createExecution,
@@ -65,6 +66,7 @@ export interface PostExecutionParams {
   structuredOutputs: Record<string, unknown[]>;
   durationMs: number;
   model: string;
+  nodeData: NodeProcessedData[];
 }
 
 const ZERO = 0;
@@ -89,24 +91,48 @@ function sumTotalCost(result: CallAgentOutput): number {
   return total;
 }
 
+function buildNodeResponse(
+  result: CallAgentOutput,
+  nodeId: string,
+  index: number,
+  nodeData: NodeProcessedData[]
+): Record<string, unknown> {
+  const parsedResult = result.parsedResults?.[index];
+  const structuredOutput = result.structuredOutputs?.find((s) => s.nodeId === nodeId);
+  const processed = nodeData.find((n) => n.nodeId === nodeId);
+  const response: Record<string, unknown> = { text: parsedResult?.messageToUser ?? '' };
+  if (parsedResult?.nextNodeID !== undefined && parsedResult.nextNodeID !== '') {
+    response['next_node'] = parsedResult.nextNodeID;
+  }
+  if (structuredOutput !== undefined) {
+    response['structured_output'] = structuredOutput.data;
+  }
+  if (processed !== undefined && processed.toolCalls.length > ZERO) {
+    response['tool_calls'] = processed.toolCalls;
+  }
+  return response;
+}
+
 async function persistNodeVisits(
   supabase: SupabaseClient,
   executionId: string,
   result: CallAgentOutput,
-  model: string
+  model: string,
+  nodeData: NodeProcessedData[]
 ): Promise<void> {
   const saves = result.tokensLogs.map(async (log, index) => {
+    const processed = nodeData.find((n) => n.nodeId === log.action);
     await saveNodeVisit(supabase, {
       executionId,
       nodeId: log.action,
       stepOrder: index,
       messagesSent: result.debugMessages[log.action] ?? [],
-      response: { text: result.text ?? '' },
+      response: buildNodeResponse(result, log.action, index, nodeData),
       inputTokens: log.tokens.input,
       outputTokens: log.tokens.output,
       cachedTokens: log.tokens.cached,
       cost: log.tokens.costUSD ?? ZERO,
-      durationMs: ZERO,
+      durationMs: processed?.durationMs ?? ZERO,
       model,
     });
   });
@@ -155,7 +181,7 @@ export async function persistPostExecution(
   params: PostExecutionParams
 ): Promise<void> {
   try {
-    await persistNodeVisits(supabase, params.executionId, params.result, params.model);
+    await persistNodeVisits(supabase, params.executionId, params.result, params.model, params.nodeData);
     await persistAssistantMessage(supabase, {
       sessionDbId: params.sessionDbId,
       executionId: params.executionId,
