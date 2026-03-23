@@ -4,6 +4,7 @@ import { fetchNodeVisitsForExecution } from '@/app/actions/dashboard';
 import type { ExecutionSummaryRow, NodeVisitRow, SessionRow } from '@/app/lib/dashboard';
 import type { Graph } from '@/app/schemas/graph.schema';
 import { buildDebugGraph } from '@/app/utils/debugGraphBuilder';
+import { Separator } from '@/components/ui/separator';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState, useTransition } from 'react';
 
@@ -76,33 +77,39 @@ export function DebugView({
   );
 
   return (
-    <div className="flex h-full flex-col gap-4 p-6">
-      <DebugBreadcrumb
-        slug={orgSlug}
-        agentName={agentName}
-        agentSlug={agentSlug}
-        sessionId={session.session_id}
-        dashboardLabel={t('title')}
-      />
+    <div className="flex h-full flex-col">
+      <div className="px-6 py-4">
+        <DebugBreadcrumb
+          slug={orgSlug}
+          agentName={agentName}
+          agentSlug={agentSlug}
+          sessionId={session.session_id}
+          dashboardLabel={t('title')}
+        />
+      </div>
 
-      <SessionMetadataBar session={session} agentName={agentName} />
+      <Separator />
 
-      <div className="flex flex-1 gap-4 min-h-0">
-        <div className="w-2/3">
-          <DebugCanvas
-            graph={graph}
-            visitedNodeIds={visitedNodeIds}
-            selectedNodeId={state.selectedNodeId}
-            onNodeClick={state.setSelectedNodeId}
-          />
-        </div>
-        <div className="w-1/3 overflow-y-auto rounded-lg border p-4">
-          <NodeInspector
-            nodeId={state.selectedNodeId}
-            nodeVisits={state.nodeVisits}
-            mutedNodeIds={mutedNodeIds}
-            graphNodes={graph.nodes}
-          />
+      <div className="p-6 flex flex-col gap-4">
+        <SessionMetadataBar session={session} agentName={agentName} />
+
+        <div className="flex flex-1 gap-4 min-h-0">
+          <div className="w-2/3">
+            <DebugCanvas
+              graph={graph}
+              visitedNodeIds={visitedNodeIds}
+              selectedNodeId={state.selectedNodeId}
+              onNodeClick={state.setSelectedNodeId}
+            />
+          </div>
+          <div className="w-1/3 overflow-y-auto rounded-lg border p-4">
+            <NodeInspector
+              nodeId={state.selectedNodeId}
+              nodeVisits={state.nodeVisits}
+              mutedNodeIds={mutedNodeIds}
+              graphNodes={graph.nodes}
+            />
+          </div>
         </div>
       </div>
     </div>
