@@ -497,7 +497,14 @@
       "totalTokens": "Total Tokens",
       "toolCall": "tool call",
       "toolCallArgs": "Tool Call Args",
-      "toolCallOutput": "Tool Call Output"
+      "toolCallOutput": "Tool Call Output",
+      "roleUser": "User",
+      "roleSystem": "System",
+      "roleAssistant": "Assistant",
+      "roleReasoning": "Reasoning",
+      "roleToolCall": "Tool Call",
+      "roleToolResult": "Tool Result",
+      "showReasoning": "Show reasoning"
     },
     "empty": "No execution data yet. Agents will appear here after they receive API calls.",
     "noSessions": "No sessions found for this agent."

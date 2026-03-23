@@ -1,13 +1,13 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
-import { Brain } from 'lucide-react';
-
-import type { Node as SchemaNode } from '@/app/schemas/graph.schema';
-import type { NodeVisitRow } from '@/app/lib/dashboard';
 import { TokenDisplay } from '@/app/components/panels/simulation/TokenDisplay';
+import type { NodeVisitRow } from '@/app/lib/dashboard';
+import type { Node as SchemaNode } from '@/app/schemas/graph.schema';
+import { Brain } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { JsonBlock } from './JsonBlock';
+import { MessageCards } from './MessageCards';
 import { NodeHeader } from './NodeHeader';
 import { parseResponse } from './responseHelpers';
 
@@ -42,8 +42,6 @@ function visitToTokens(visit: NodeVisitRow) {
 }
 
 export function VisitedNodeDetails({ node, visit }: VisitedNodeDetailsProps) {
-  const t = useTranslations('dashboard.debug');
-
   return (
     <div className="flex flex-col gap-3">
       <div>
@@ -57,7 +55,7 @@ export function VisitedNodeDetails({ node, visit }: VisitedNodeDetailsProps) {
           </span>
         </div>
       </div>
-      <JsonBlock label={t('messagesSent')} data={visit.messages_sent} />
+      <MessageCards data={visit.messages_sent} />
       <ResponseSection visit={visit} />
     </div>
   );

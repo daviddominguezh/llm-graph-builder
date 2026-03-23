@@ -28,7 +28,7 @@ export function SessionMetadataBar({ session, agentName }: SessionMetadataBarPro
 
   const items: MetadataItemProps[] = [
     { label: t('agent'), value: agentName },
-    { label: t('version'), value: String(session.version) },
+    { label: t('version'), value: `v${String(session.version)}` },
     { label: t('tenant'), value: session.tenant_id },
     { label: t('user'), value: session.user_id },
     { label: t('session'), value: session.session_id },
@@ -36,7 +36,7 @@ export function SessionMetadataBar({ session, agentName }: SessionMetadataBarPro
   ];
 
   return (
-    <div className="flex flex-wrap gap-4 rounded-md border bg-muted/50 p-3">
+    <div className="flex flex-wrap gap-14 rounded-md border bg-muted/50 p-3">
       {items.map((item) => (
         <MetadataItem key={item.label} label={item.label} value={item.value} />
       ))}

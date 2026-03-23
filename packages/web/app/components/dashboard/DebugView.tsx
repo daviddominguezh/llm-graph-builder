@@ -90,7 +90,7 @@ export function DebugView({
 
       <Separator />
 
-      <div className="p-6 flex flex-col gap-4 flex-1 min-h-[0px]">
+      <div className="px-6 py-4 flex flex-col gap-4 flex-1 min-h-[0px]">
         <SessionMetadataBar session={session} agentName={agentName} />
 
         <div className="flex flex-1 gap-4 min-h-0">
