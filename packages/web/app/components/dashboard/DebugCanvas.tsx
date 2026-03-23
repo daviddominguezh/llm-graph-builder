@@ -95,7 +95,7 @@ export function DebugCanvas({ graph, visitedNodeIds, selectedNodeId, onNodeClick
   }, [graph, visitedNodeIds, selectedNodeId]);
 
   return (
-    <div className="relative h-full w-full flex-1 overflow-hidden rounded-md border">
+    <div className="relative h-full w-full flex-1 overflow-hidden rounded-md border bg-red-100">
       <ReactFlow<Node<RFNodeData>, Edge<RFEdgeData>>
         nodes={nodes}
         edges={edges}
@@ -110,7 +110,7 @@ export function DebugCanvas({ graph, visitedNodeIds, selectedNodeId, onNodeClick
         fitView
         colorMode={colorMode}
       >
-        <Background color="var(--sidebar-ring)" />
+        <Background color="var(--canvas-dots)" />
         <Controls />
       </ReactFlow>
     </div>

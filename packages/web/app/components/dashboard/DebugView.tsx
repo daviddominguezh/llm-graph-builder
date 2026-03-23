@@ -77,8 +77,8 @@ export function DebugView({
   );
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="px-6 py-4 shrink-0">
+    <div className="flex h-full flex-col bg-muted">
+      <div className="px-6 py-4 shrink-0 bg-muted">
         <DebugBreadcrumb
           slug={orgSlug}
           agentName={agentName}
@@ -102,7 +102,7 @@ export function DebugView({
               onNodeClick={state.setSelectedNodeId}
             />
           </div>
-          <div className="w-1/3 overflow-y-auto rounded-md border p-4">
+          <div className="w-1/3 overflow-y-auto rounded-md border p-4 bg-card">
             <NodeInspector
               nodeId={state.selectedNodeId}
               nodeVisits={state.nodeVisits}

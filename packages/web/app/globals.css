@@ -80,6 +80,8 @@
   --sidebar-accent-foreground: oklch(0.96 0.02 272);
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.705 0.015 286.067);
+  --canvas: #f5f5f5;
+  --canvas-dots: lab(50% 0 0);
 }
 
 .dark {
@@ -99,7 +101,7 @@
   --accent-foreground: oklch(0.96 0.02 272);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(25.197% 0.00003 271.152);
-  --input: oklch(1 0 0 / 15%);
+  --input: lab(100% 0 0/.15);
   --ring: oklch(0.552 0.016 285.938);
   --chart-1: oklch(0.79 0.10 275);
   --chart-2: oklch(0.68 0.16 277);
@@ -114,6 +116,8 @@
   --sidebar-accent-foreground: oklch(0.96 0.02 272);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.552 0.016 285.938);
+  --canvas: #0F0F0F;
+  --canvas-dots: lab(100% 0 0/.2);
 }
 
 @layer base {
@@ -142,6 +146,8 @@ div.model-selector-trigger[data-slot="input-group"] {
 .markdown-content > :is(h1, h2, h3, h4, h5, h6) {
   border-bottom: 1px solid #DDD !important;
   padding-bottom: 4px !important;
+  margin-bottom: 8px !important;
+  margin-top: 8px !important;
 }
 
 .markdown-content pre {
@@ -153,7 +159,7 @@ div.model-selector-trigger[data-slot="input-group"] {
 
 /* React Flow Theme */
 .react-flow {
-  --xy-background-color: var(--muted);
+  --xy-background-color: var(--canvas);
   --xy-theme-selected: var(--primary);
   --xy-theme-hover: var(--secondary);
   --xy-theme-edge-hover: black;
@@ -173,7 +179,7 @@ div.model-selector-trigger[data-slot="input-group"] {
 }
 
 .react-flow.dark {
-  --xy-background-color: var(--muted);
+  --xy-background-color: var(--canvas);
   --xy-theme-edge-hover: white;
   --xy-handle-background-color-default: var(--background);
   --xy-edge-label-color-default: var(--muted-foreground);

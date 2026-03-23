@@ -26,7 +26,7 @@ export default async function AgentsLayout({ children, params }: AgentsLayoutPro
     <div className="flex h-full p-0 bg-sidebar-accent">
       <AgentsSidebar agents={agents} orgId={org.id} orgSlug={org.slug} />
       <CopilotShell>
-        <div className="flex-1 overflow-hidden">{children}</div>
+        <div className="flex-1 overflow-hidden bg-background">{children}</div>
       </CopilotShell>
     </div>
   );

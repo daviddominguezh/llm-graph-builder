@@ -92,7 +92,7 @@ export function GraphCanvas({
           defaultViewport={{ x: 0, y: 0, zoom: 1 }}
           colorMode={colorMode}
         >
-          <Background color="var(--sidebar-ring)" />
+          <Background color="var(--canvas-dots)" />
           <Controls className='ml-1! mb-1! shadow-xs!' />
         </ReactFlow>
 

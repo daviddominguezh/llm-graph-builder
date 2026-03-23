@@ -1,11 +1,9 @@
 'use client';
 
-import { useMemo } from 'react';
-
-import { useTranslations } from 'next-intl';
-
-import type { Node as SchemaNode } from '@/app/schemas/graph.schema';
 import type { NodeVisitRow } from '@/app/lib/dashboard';
+import type { Node as SchemaNode } from '@/app/schemas/graph.schema';
+import { useTranslations } from 'next-intl';
+import { useMemo } from 'react';
 
 import { NodeHeader } from './node-inspector/NodeHeader';
 import { VisitedNodeDetails } from './node-inspector/VisitedNodeDetails';

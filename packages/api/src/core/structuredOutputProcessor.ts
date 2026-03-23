@@ -53,13 +53,11 @@ function accumulateTokensFromResult(input: CallAgentInput, result: ModelCallResu
 }
 
 function storeDebugMessages(
-  result: ModelCallResult,
+  inputMessages: ModelMessage[],
   debugMessages: Record<string, ModelMessage[][]>,
   currentNodeID: string
 ): void {
-  const messages = result.response?.messages;
-  if (messages === undefined) return;
-  Object.assign(debugMessages, { [currentNodeID]: [messages] });
+  Object.assign(debugMessages, { [currentNodeID]: [inputMessages] });
 }
 
 function resolveNextNodeID(config: NodeProcessingConfig): string {
@@ -84,7 +82,7 @@ export async function processStructuredOutputNode(
   const output = result.output ?? {};
 
   accumulateTokensFromResult(input, result);
-  storeDebugMessages(result, debugMessages, currentNodeID);
+  storeDebugMessages(modelConfig.messages, debugMessages, currentNodeID);
 
   const nextNodeID = resolveNextNodeID(config);
   const parsedResult: ParsedResult = { nextNodeID, messageToUser: undefined };
