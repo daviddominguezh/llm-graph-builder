@@ -78,7 +78,7 @@ export function DebugView({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="px-6 py-4">
+      <div className="px-6 py-4 shrink-0">
         <DebugBreadcrumb
           slug={orgSlug}
           agentName={agentName}
@@ -90,7 +90,7 @@ export function DebugView({
 
       <Separator />
 
-      <div className="p-6 flex flex-col gap-4">
+      <div className="p-6 flex flex-col gap-4 flex-1 min-h-[0px]">
         <SessionMetadataBar session={session} agentName={agentName} />
 
         <div className="flex flex-1 gap-4 min-h-0">
@@ -102,7 +102,7 @@ export function DebugView({
               onNodeClick={state.setSelectedNodeId}
             />
           </div>
-          <div className="w-1/3 overflow-y-auto rounded-lg border p-4">
+          <div className="w-1/3 overflow-y-auto rounded-md border p-4">
             <NodeInspector
               nodeId={state.selectedNodeId}
               nodeVisits={state.nodeVisits}

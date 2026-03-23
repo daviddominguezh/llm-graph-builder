@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 import { Button } from '@/components/ui/button';
 import {
   Background,
@@ -65,7 +67,12 @@ export function GraphCanvas({
   onExitZoomView,
 }: GraphCanvasProps) {
   const { resolvedTheme } = useTheme();
-  const colorMode = resolvedTheme === 'dark' ? 'dark' : 'light';
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => { setMounted(true); });
+    return () => { cancelAnimationFrame(id); };
+  }, []);
+  const colorMode = mounted && resolvedTheme === 'dark' ? 'dark' : 'light';
 
   return (
     <div className="relative h-full w-full flex-1 overflow-hidden">

@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { Brain } from 'lucide-react';
 
 import type { Node as SchemaNode } from '@/app/schemas/graph.schema';
 import type { NodeVisitRow } from '@/app/lib/dashboard';
@@ -49,8 +50,11 @@ export function VisitedNodeDetails({ node, visit }: VisitedNodeDetailsProps) {
         <NodeHeader node={node} />
         <div className="mt-1 flex items-center gap-2">
           <TokenDisplay tokens={visitToTokens(visit)} durationMs={visit.duration_ms} />
-          <span className="text-[10px] text-muted-foreground/60">|</span>
-          <span className="font-mono text-[10px] text-muted-foreground">{visit.model}</span>
+          <span className="text-[10px] text-muted-foreground/40">|</span>
+          <span className="inline-flex items-center font-mono text-[10px] text-muted-foreground">
+            <Brain className="mr-0.5 size-2.5" />
+            {visit.model}
+          </span>
         </div>
       </div>
       <JsonBlock label={t('messagesSent')} data={visit.messages_sent} />

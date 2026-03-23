@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import {
   Background,
@@ -80,7 +80,12 @@ function handleNodeClick(
 
 export function DebugCanvas({ graph, visitedNodeIds, selectedNodeId, onNodeClick }: DebugCanvasProps) {
   const { resolvedTheme } = useTheme();
-  const colorMode = resolvedTheme === 'dark' ? 'dark' : 'light';
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => { setMounted(true); });
+    return () => { cancelAnimationFrame(id); };
+  }, []);
+  const colorMode = mounted && resolvedTheme === 'dark' ? 'dark' : 'light';
 
   const { nodes, edges } = useMemo(() => {
     const { layouted, mutedNodeIds, mutedEdgeIds } = buildLayoutedData(graph, visitedNodeIds);
@@ -90,7 +95,7 @@ export function DebugCanvas({ graph, visitedNodeIds, selectedNodeId, onNodeClick
   }, [graph, visitedNodeIds, selectedNodeId]);
 
   return (
-    <div className="relative h-full w-full flex-1 overflow-hidden rounded-lg border">
+    <div className="relative h-full w-full flex-1 overflow-hidden rounded-md border">
       <ReactFlow<Node<RFNodeData>, Edge<RFEdgeData>>
         nodes={nodes}
         edges={edges}

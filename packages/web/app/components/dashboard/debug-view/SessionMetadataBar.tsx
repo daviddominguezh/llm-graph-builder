@@ -36,7 +36,7 @@ export function SessionMetadataBar({ session, agentName }: SessionMetadataBarPro
   ];
 
   return (
-    <div className="flex flex-wrap gap-4 rounded-lg border bg-muted/50 p-3">
+    <div className="flex flex-wrap gap-4 rounded-md border bg-muted/50 p-3">
       {items.map((item) => (
         <MetadataItem key={item.label} label={item.label} value={item.value} />
       ))}
