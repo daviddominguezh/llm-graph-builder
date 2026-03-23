@@ -15,7 +15,7 @@ interface SortableTableBodyProps<T extends Record<string, unknown>> {
 function EmptyRow({ colSpan, message }: { colSpan: number; message: string }) {
   return (
     <TableRow>
-      <TableCell colSpan={colSpan} className="h-24 text-center text-muted-foreground">
+      <TableCell colSpan={colSpan} className="h-24 text-center text-muted-foreground rounded-b-md bg-muted">
         {message}
       </TableCell>
     </TableRow>

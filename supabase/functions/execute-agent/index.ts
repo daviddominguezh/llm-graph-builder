@@ -99,12 +99,41 @@ function sumTokens(result: CallAgentOutput): { input: number; output: number; ca
   return { input, output, cached, cost };
 }
 
+/* ─── Auth ─── */
+
+function timingSafeEqual(a: string, b: string): boolean {
+  const encoder = new TextEncoder();
+  const bufA = encoder.encode(a);
+  const bufB = encoder.encode(b);
+  if (bufA.byteLength !== bufB.byteLength) return false;
+  return crypto.subtle.timingSafeEqual(bufA, bufB);
+}
+
+function authenticateRequest(req: Request): Response | null {
+  const masterKey = Deno.env.get('EDGE_FUNCTION_MASTER_KEY');
+  if (masterKey === undefined || masterKey === '') {
+    return new Response('Server misconfigured', { status: 500 });
+  }
+
+  const authHeader = req.headers.get('authorization') ?? '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : '';
+
+  if (token === '' || !timingSafeEqual(token, masterKey)) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
+  return null;
+}
+
 /* ─── Main handler ─── */
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: SSE_HEADERS });
   }
+
+  const authError = authenticateRequest(req);
+  if (authError !== null) return authError;
 
   const payload: ExecutePayload = await req.json();
   const mcpServers = payload.graph.mcpServers ?? [];

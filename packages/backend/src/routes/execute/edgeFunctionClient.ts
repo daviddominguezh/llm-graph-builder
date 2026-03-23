@@ -255,13 +255,13 @@ export async function executeAgent(
   callbacks: ExecuteAgentCallbacks
 ): Promise<ExecuteAgentResult> {
   const edgeFunctionUrl = getRequiredEnv('SUPABASE_EDGE_FUNCTION_URL');
-  const serviceKey = getRequiredEnv('SUPABASE_SERVICE_ROLE_KEY');
+  const masterKey = getRequiredEnv('EDGE_FUNCTION_MASTER_KEY');
 
   const response = await fetch(`${edgeFunctionUrl}/execute-agent`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${serviceKey}`,
+      Authorization: `Bearer ${masterKey}`,
     },
     body: JSON.stringify(params),
   });
