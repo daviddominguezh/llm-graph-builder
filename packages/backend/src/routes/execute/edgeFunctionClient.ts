@@ -91,13 +91,23 @@ function processNodeProcessed(event: SseEvent, callbacks: ExecuteAgentCallbacks)
   });
 }
 
+interface NodeToken {
+  node: string;
+  tokens: { input: number; output: number; cached: number; costUSD?: number };
+}
+
+function mapNodeTokensToTokensLogs(nodeTokens: unknown): CallAgentOutput['tokensLogs'] {
+  if (!Array.isArray(nodeTokens)) return [];
+  return (nodeTokens as NodeToken[]).map((nt) => ({ action: nt.node, tokens: nt.tokens }));
+}
+
 function buildResultFromResponse(event: SseEvent): CallAgentOutput {
   return {
     message: null,
     text: String(event.text ?? ''),
     visitedNodes: (event.visitedNodes as string[]) ?? [],
     toolCalls: (event.toolCalls as CallAgentOutput['toolCalls']) ?? [],
-    tokensLogs: (event.nodeTokens as CallAgentOutput['tokensLogs']) ?? [],
+    tokensLogs: mapNodeTokensToTokensLogs(event.nodeTokens),
     debugMessages: (event.debugMessages as CallAgentOutput['debugMessages']) ?? {},
     structuredOutputs: (event.structuredOutputs as CallAgentOutput['structuredOutputs']) ?? [],
   };
