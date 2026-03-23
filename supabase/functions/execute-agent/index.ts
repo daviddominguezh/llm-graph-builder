@@ -2,16 +2,16 @@
 // Receives complete payload, executes agent via @daviddh/llm-graph-runner, streams SSE events back.
 // No DB access, no secrets resolution — all provided in the payload.
 
-import { createMCPClient } from 'npm:@ai-sdk/mcp';
-import type { McpServerConfig, McpTransport, RuntimeGraph } from 'npm:@daviddh/graph-types';
+import { createMCPClient } from '@ai-sdk/mcp';
+import type { McpServerConfig, McpTransport, RuntimeGraph } from '@daviddh/graph-types';
 import type {
   CallAgentOutput,
   Context,
   Message,
   NodeProcessedEvent,
-} from 'npm:@daviddh/llm-graph-runner';
-import { executeWithCallbacks } from 'npm:@daviddh/llm-graph-runner';
-import type { Tool } from 'npm:ai';
+} from '@daviddh/llm-graph-runner';
+import { executeWithCallbacks } from '@daviddh/llm-graph-runner';
+import type { Tool } from 'ai';
 
 interface ExecutePayload {
   graph: RuntimeGraph;
@@ -41,7 +41,10 @@ const SSE_HEADERS = {
 type McpClient = Awaited<ReturnType<typeof createMCPClient>>;
 
 async function connectMcpServer(transport: McpTransport): Promise<McpClient> {
-  if (transport.type === 'sse' || transport.type === 'http') {
+  if (transport.type === 'http') {
+    return await createMCPClient({ transport: { type: 'http', url: transport.url, headers: transport.headers } });
+  }
+  if (transport.type === 'sse') {
     return await createMCPClient({ transport: { type: 'sse', url: transport.url, headers: transport.headers } });
   }
   throw new Error(`Unsupported transport type in edge function: ${transport.type}`);
