@@ -14,7 +14,8 @@ interface ExecutionTimelineProps {
 }
 
 function formatTimestamp(iso: string): string {
-  return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const d = new Date(iso);
+  return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
 }
 
 function statusVariant(status: string): 'default' | 'destructive' | 'outline' | 'secondary' {

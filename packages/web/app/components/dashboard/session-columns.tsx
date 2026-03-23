@@ -6,7 +6,8 @@ import type { Column } from './sortable-table-types';
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleDateString();
+  const d = new Date(dateStr);
+  return `${String(d.getUTCFullYear())}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
 }
 
 function channelBadge(row: SessionRow): React.ReactNode {
