@@ -3,9 +3,10 @@
 import type { ExecutionKeyWithAgents } from '@/app/lib/executionKeys';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Braces, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import React from 'react';
 
 interface ExecutionKeyRowProps {
   keyData: ExecutionKeyWithAgents;
@@ -27,26 +28,15 @@ function isExpired(expiresAt: string | null): boolean {
 }
 
 function AgentBadges({ keyData }: { keyData: ExecutionKeyWithAgents }) {
-  const t = useTranslations('executionKeys');
-  const [expanded, setExpanded] = useState(false);
-  const count = keyData.agents.length;
-
-  if (count === 0) return null;
-
-  if (!expanded) {
-    return (
-      <Badge variant="secondary" className="cursor-pointer" onClick={() => setExpanded(true)}>
-        {t('agentCount', { count })}
-      </Badge>
-    );
-  }
+  if (keyData.agents.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-1">
-      {keyData.agents.map((agent) => (
-        <Badge key={agent.agent_id} variant="secondary">
-          {agent.agent_name}
-        </Badge>
+    <div className="flex gap-1">
+      {keyData.agents.map((agent, i) => (
+        <React.Fragment key={agent.agent_id}>
+          <span className="font-mono text-[10px]">{agent.agent_slug}</span>
+          {i < keyData.agents.length - 1 && <Separator orientation="vertical" />}
+        </React.Fragment>
       ))}
     </div>
   );
@@ -57,9 +47,9 @@ function KeyMetadata({ keyData }: { keyData: ExecutionKeyWithAgents }) {
   const lastUsed = keyData.last_used_at !== null ? formatRelativeDate(keyData.last_used_at) : t('never');
 
   return (
-    <div className="text-muted-foreground flex flex-wrap gap-x-3 gap-y-0.5 text-xs">
+    <div className="text-muted-foreground flex flex-1 text-xs justify-evenly">
       <span>
-        {t('prefix')}: <span className="font-mono">{keyData.key_prefix}</span>
+        <span className="font-mono">{keyData.key_prefix}</span>
       </span>
       <span>
         {t('created')}: {formatRelativeDate(keyData.created_at)}
@@ -76,16 +66,28 @@ export function ExecutionKeyRow({ keyData, onDelete }: ExecutionKeyRowProps) {
   const t = useTranslations('executionKeys');
 
   return (
-    <div className="flex items-start justify-between gap-3 rounded-md border px-3 py-2 bg-card">
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">{keyData.name}</span>
-          {expired && <Badge variant="destructive">{t('expired')}</Badge>}
+    <div className="flex w-full items-center justify-between items-center gap-3 rounded-md border px-3 py-2 bg-card">
+      <div className="flex gap-3 items-center flex-1">
+        <div className="bg-background rounded-full p-1.5 border">
+          <Braces className="size-4" />
         </div>
-        <KeyMetadata keyData={keyData} />
-        <AgentBadges keyData={keyData} />
+        <div className="flex min-w-0 flex-1 flex-row gap-1.5 items-center">
+          <div className="flex flex-col shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium font-mono">{keyData.name.toUpperCase()}</span>
+              {expired && <Badge variant="destructive">{t('expired')}</Badge>}
+            </div>
+            <AgentBadges keyData={keyData} />
+          </div>
+          <KeyMetadata keyData={keyData} />
+        </div>
       </div>
-      <Button variant="ghost" size="icon-sm" onClick={() => onDelete(keyData.id, keyData.name)}>
+      <Button
+        variant="destructive"
+        className="shrink-0"
+        size="icon-sm"
+        onClick={() => onDelete(keyData.id, keyData.name)}
+      >
         <Trash2 className="size-4" />
       </Button>
     </div>
