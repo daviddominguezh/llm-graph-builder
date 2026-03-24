@@ -290,7 +290,7 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
 
   return (
     <aside
-      className={`absolute left-0 top-0 bottom-0 z-11 flex flex-col gap-4 bg-sidebar p-2 transition-[width] duration-100 ${sidebar.collapsed ? 'w-[52px] border border-transparent' : 'w-73.5 shadow-lg border rounded-e-md z-12'}`}
+      className={`absolute left-0 top-0 bottom-0 z-11 flex flex-col gap-4 bg-sidebar p-2 pl-1.5 transition-[width] duration-100 ${sidebar.collapsed ? 'w-[52px] border border-transparent' : 'w-73.5 shadow-lg border rounded-e-md z-12'}`}
       onMouseEnter={sidebar.handleMouseEnter}
       onMouseLeave={sidebar.handleMouseLeave}
     >
