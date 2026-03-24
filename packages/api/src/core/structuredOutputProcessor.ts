@@ -8,6 +8,7 @@ import { getTokensUsage } from '@src/utils/tokens.js';
 
 import { getModel } from './agentExecutorHelpers.js';
 import { getConfig } from './config.js';
+import { MessageProcessor } from './messageProcessor.js';
 import { callModel } from './modelCaller.js';
 import type { ModelCallResult } from './modelCaller.js';
 import type { ToolCallsArray } from './nodeProcessorHelpers.js';
@@ -57,7 +58,8 @@ function storeDebugMessages(
   debugMessages: Record<string, ModelMessage[][]>,
   currentNodeID: string
 ): void {
-  Object.assign(debugMessages, { [currentNodeID]: [inputMessages] });
+  const cleaned = MessageProcessor.cleanMessagesBeforeSending(inputMessages);
+  Object.assign(debugMessages, { [currentNodeID]: [cleaned] });
 }
 
 function resolveNextNodeID(config: NodeProcessingConfig): string {

@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl';
 import { fetchSessionsByAgent } from '@/app/actions/dashboard';
 import type { SessionRow } from '@/app/lib/dashboard';
 
+import { DeleteSessionDialog } from './DeleteSessionDialog';
 import { FilterBar } from './FilterBar';
 import { buildSessionColumns } from './session-columns';
 import { buildSessionFilterDefs } from './session-filters';
@@ -46,8 +47,9 @@ export function SessionsView({
 
   const [rows, setRows] = useState<SessionRow[]>(initialRows);
   const [totalCount, setTotalCount] = useState(initialTotal);
+  const [deleteTarget, setDeleteTarget] = useState<SessionRow | null>(null);
 
-  useEffect(() => {
+  const refetchSessions = useCallback(() => {
     startTransition(async () => {
       const result = await fetchSessionsByAgent(orgId, agentId, params);
       setRows(result.rows);
@@ -55,16 +57,27 @@ export function SessionsView({
     });
   }, [orgId, agentId, params, startTransition]);
 
-  const columns = useMemo(() => buildSessionColumns(t), [t]);
-  const filterDefs = useMemo(() => buildSessionFilterDefs(t), [t]);
-  const totalPages = computeTotalPages(totalCount);
+  useEffect(() => {
+    refetchSessions();
+  }, [refetchSessions]);
 
-  const handleRowClick = useCallback(
+  const handleDebug = useCallback(
     (row: SessionRow) => {
       router.push(`/orgs/${slug}/dashboard/${agentSlug}/sessions/${row.id}`);
     },
     [router, slug, agentSlug]
   );
+
+  const handleDelete = useCallback((row: SessionRow) => {
+    setDeleteTarget(row);
+  }, []);
+
+  const columns = useMemo(
+    () => buildSessionColumns(t, { onDebug: handleDebug, onDelete: handleDelete }),
+    [t, handleDebug, handleDelete]
+  );
+  const filterDefs = useMemo(() => buildSessionFilterDefs(t), [t]);
+  const totalPages = computeTotalPages(totalCount);
 
   return (
     <div className="flex flex-col gap-4">
@@ -85,10 +98,19 @@ export function SessionsView({
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
-        onRowClick={handleRowClick}
         loading={isPending}
         emptyMessage={t('noSessions')}
       />
+      {deleteTarget !== null && (
+        <DeleteSessionDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setDeleteTarget(null);
+          }}
+          sessionId={deleteTarget.id}
+          onDeleted={refetchSessions}
+        />
+      )}
     </div>
   );
 }

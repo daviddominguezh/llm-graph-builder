@@ -7,6 +7,7 @@ export type {
 } from './dashboard-queries';
 
 export {
+  deleteSession,
   getAgentSummary,
   getExecutionsForSession,
   getNodeVisitsForExecution,

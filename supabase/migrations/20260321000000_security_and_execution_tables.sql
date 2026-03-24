@@ -462,6 +462,10 @@ CREATE POLICY agent_sessions_select ON public.agent_sessions
   FOR SELECT TO authenticated
   USING (is_org_member(org_id, auth.uid()));
 
+CREATE POLICY agent_sessions_delete ON public.agent_sessions
+  FOR DELETE TO authenticated
+  USING (is_org_member(org_id, auth.uid()));
+
 -- RPC: Lock session for atomic read-modify-write (FOR UPDATE NOWAIT)
 CREATE OR REPLACE FUNCTION lock_session_for_update(
   p_agent_id uuid,

@@ -512,6 +512,15 @@
       "encryptedByProvider": "This content was encrypted by the provider and cannot be displayed"
     },
     "empty": "No execution data yet. Agents will appear here after they receive API calls.",
-    "noSessions": "No sessions found for this agent."
+    "noSessions": "No sessions found for this agent.",
+    "actions": "Actions",
+    "debugSession": "Debug session",
+    "deleteSession": "Delete session",
+    "deleteSessionTitle": "Delete session",
+    "deleteSessionDescription": "This will permanently delete this session and all its execution data. This action cannot be undone.",
+    "deleteSessionCancel": "Cancel",
+    "deleteSessionConfirm": "Delete",
+    "deleteSessionSuccess": "Session deleted",
+    "deleteSessionError": "Failed to delete session"
   }
 }

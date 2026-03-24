@@ -8,6 +8,7 @@ import type {
   SessionRow,
 } from '@/app/lib/dashboard';
 import {
+  deleteSession as deleteSessionLib,
   getAgentSummary as getAgentSummaryLib,
   getExecutionsForSession as getExecutionsForSessionLib,
   getNodeVisitsForExecution as getNodeVisitsForExecutionLib,
@@ -63,6 +64,14 @@ export async function fetchExecutionsForSession(
   const supabase = await createClient();
   const res = await getExecutionsForSessionLib(supabase, sessionId);
   if (res.error !== null) serverError('[fetchExecutionsForSession] error:', res.error);
+  return res;
+}
+
+export async function deleteSessionAction(sessionId: string): Promise<{ error: string | null }> {
+  serverLog('[deleteSession] sessionId:', sessionId);
+  const supabase = await createClient();
+  const res = await deleteSessionLib(supabase, sessionId);
+  if (res.error !== null) serverError('[deleteSession] error:', res.error);
   return res;
 }
 

@@ -247,3 +247,16 @@ export async function getNodeVisitsForExecution(
   if (error !== null) return { rows: [], error: error.message };
   return { rows: (data as NodeVisitRow[] | null) ?? [], error: null };
 }
+
+/* ------------------------------------------------------------------ */
+/*  6. Delete Session                                                   */
+/* ------------------------------------------------------------------ */
+
+export async function deleteSession(
+  supabase: SupabaseClient,
+  sessionId: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('agent_sessions').delete().eq('id', sessionId);
+  if (error !== null) return { error: error.message };
+  return { error: null };
+}

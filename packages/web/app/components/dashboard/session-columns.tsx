@@ -1,3 +1,5 @@
+import { Bug, Trash2 } from 'lucide-react';
+
 import type { SessionRow } from '@/app/lib/dashboard';
 
 import type { Column } from './sortable-table-types';
@@ -14,8 +16,49 @@ function formatCost(cost: number): string {
   return `$${cost.toFixed(5)}`;
 }
 
-export function buildSessionColumns(t: (key: string) => string): Column<SessionRow>[] {
-  return [
+interface SessionColumnCallbacks {
+  onDebug: (row: SessionRow) => void;
+  onDelete: (row: SessionRow) => void;
+}
+
+function stopPropagation(e: React.MouseEvent) {
+  e.stopPropagation();
+}
+
+function ActionsCell(row: SessionRow, t: (key: string) => string, callbacks: SessionColumnCallbacks) {
+  return (
+    <div className="flex items-center justify-end gap-1">
+      <button
+        type="button"
+        onClick={(e) => {
+          stopPropagation(e);
+          callbacks.onDebug(row);
+        }}
+        className="rounded p-1 text-green-600 hover:bg-green-600/10"
+        title={t('debugSession')}
+      >
+        <Bug className="size-4" />
+      </button>
+      <button
+        type="button"
+        onClick={(e) => {
+          stopPropagation(e);
+          callbacks.onDelete(row);
+        }}
+        className="rounded p-1 text-destructive hover:bg-destructive/10"
+        title={t('deleteSession')}
+      >
+        <Trash2 className="size-4" />
+      </button>
+    </div>
+  );
+}
+
+export function buildSessionColumns(
+  t: (key: string) => string,
+  callbacks?: SessionColumnCallbacks
+): Column<SessionRow>[] {
+  const columns: Column<SessionRow>[] = [
     {
       key: 'tenant_id',
       label: t('columns.tenantId'),
@@ -32,9 +75,7 @@ export function buildSessionColumns(t: (key: string) => string): Column<SessionR
       key: 'session_id',
       label: t('columns.sessionId'),
       sortable: false,
-      render: (row) => (
-        <span className="font-mono text-xs">{row.session_id}</span>
-      ),
+      render: (row) => <span className="font-mono text-xs">{row.session_id}</span>,
     },
     {
       key: 'channel',
@@ -73,4 +114,16 @@ export function buildSessionColumns(t: (key: string) => string): Column<SessionR
       render: (row) => formatDateTime(row.updated_at),
     },
   ];
+
+  if (callbacks !== undefined) {
+    columns.push({
+      key: 'actions',
+      label: t('actions'),
+      sortable: false,
+      render: (row) => ActionsCell(row, t, callbacks),
+      className: 'w-20 text-right',
+    });
+  }
+
+  return columns;
 }
