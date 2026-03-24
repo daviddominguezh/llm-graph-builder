@@ -268,7 +268,7 @@
   },
   "apiKeys": {
     "title": "OpenRouter API Keys",
-    "add": "Add key",
+    "add": "Add OpenRouter key",
     "description": "Manage OpenRouter API keys used by your agents to connect to LLM providers.",
     "name": "Name",
     "namePlaceholder": "OPENROUTER_KEY",
@@ -342,7 +342,7 @@
   "envVariables": {
     "title": "Environment Variables",
     "description": "Manage environment variables used by MCP servers installed from the library.",
-    "add": "Add variable",
+    "add": "Add environment variable",
     "name": "Name",
     "namePlaceholder": "MY_API_TOKEN",
     "nameRequired": "Variable name is required.",

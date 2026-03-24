@@ -19,7 +19,7 @@ export function ThemeSwitcher() {
       <Button
         variant="ghost"
         size="icon"
-        className={cn('rounded-sm', isLight ? 'bg-background shadow-sm hover:bg-background' : 'text-muted-foreground')}
+        className={cn('rounded-sm', isLight ? 'bg-background hover:bg-background shadow-sm' : 'dark:hover:bg-card text-muted-foreground')}
         onClick={() => setTheme('light')}
         aria-label={t('light')}
         aria-pressed={isLight}
@@ -29,7 +29,7 @@ export function ThemeSwitcher() {
       <Button
         variant="ghost"
         size="icon"
-        className={cn('rounded-sm', !isLight ? 'bg-background shadow-sm hover:bg-background' : 'text-muted-foreground')}
+        className={cn('rounded-sm', !isLight ? 'dark:bg-input hover:bg-card bg-background hover:bg-background shadow-sm' : 'text-muted-foreground')}
         onClick={() => setTheme('dark')}
         aria-label={t('dark')}
         aria-pressed={!isLight}

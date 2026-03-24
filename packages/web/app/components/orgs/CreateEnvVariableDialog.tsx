@@ -2,7 +2,6 @@
 
 import { createEnvVariableAction } from '@/app/actions/org-env-variables';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,12 +26,10 @@ interface EnvVariableFormProps {
 
 interface FormFieldsProps {
   nameError: string;
-  isSecret: boolean;
   onNameChange: (value: string) => void;
-  onIsSecretChange: (checked: boolean) => void;
 }
 
-function FormFields({ nameError, isSecret, onNameChange, onIsSecretChange }: FormFieldsProps) {
+function FormFields({ nameError, onNameChange }: FormFieldsProps) {
   const t = useTranslations('envVariables');
 
   return (
@@ -53,21 +50,7 @@ function FormFields({ nameError, isSecret, onNameChange, onIsSecretChange }: For
       </div>
       <div className="flex flex-col gap-1">
         <Label htmlFor="var-value">{t('value')}</Label>
-        <Input
-          id="var-value"
-          name="value"
-          type={isSecret ? 'password' : 'text'}
-          placeholder={t('valuePlaceholder')}
-          required
-        />
-      </div>
-      <div className="flex items-center gap-2">
-        <Checkbox
-          id="var-secret"
-          checked={isSecret}
-          onCheckedChange={(checked) => onIsSecretChange(checked === true)}
-        />
-        <Label htmlFor="var-secret">{t('secret')}</Label>
+        <Input id="var-value" name="value" type="password" placeholder={t('valuePlaceholder')} required />
       </div>
     </>
   );
@@ -83,8 +66,6 @@ function EnvVariableForm({ orgId, onOpenChange, onCreated }: EnvVariableFormProp
   const t = useTranslations('envVariables');
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState('');
-  const [isSecret, setIsSecret] = useState(false);
-
   function handleNameChange(value: string) {
     setNameError(validateName(value, t));
   }
@@ -103,7 +84,7 @@ function EnvVariableForm({ orgId, onOpenChange, onCreated }: EnvVariableFormProp
     setLoading(true);
     setNameError('');
 
-    const { error } = await createEnvVariableAction(orgId, name, value, isSecret);
+    const { error } = await createEnvVariableAction(orgId, name, value, true);
 
     if (error !== null) {
       setLoading(false);
@@ -117,12 +98,7 @@ function EnvVariableForm({ orgId, onOpenChange, onCreated }: EnvVariableFormProp
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <FormFields
-        nameError={nameError}
-        isSecret={isSecret}
-        onNameChange={handleNameChange}
-        onIsSecretChange={setIsSecret}
-      />
+      <FormFields nameError={nameError} onNameChange={handleNameChange} />
       <DialogFooter>
         <Button type="submit" disabled={loading}>
           {t('add')}

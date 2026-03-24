@@ -34,6 +34,7 @@ function CreateApiKeyFields({ nameError, keyError, onNameChange }: CreateApiKeyF
         <Input
           id="key-name"
           name="name"
+          autoComplete="off"
           placeholder={t('namePlaceholder')}
           required
           onChange={(e) => {
@@ -45,7 +46,14 @@ function CreateApiKeyFields({ nameError, keyError, onNameChange }: CreateApiKeyF
       </div>
       <div className="flex flex-col gap-1">
         <Label htmlFor="key-value">{t('key')}</Label>
-        <Input id="key-value" name="keyValue" type="password" placeholder={t('keyPlaceholder')} required />
+        <Input
+          className="font-mono"
+          autoComplete="off"
+          id="key-value"
+          name="keyValue"
+          placeholder={t('keyPlaceholder')}
+          required
+        />
         {keyError !== '' && <p className="text-destructive text-xs">{keyError}</p>}
       </div>
     </>
@@ -114,11 +122,7 @@ interface FieldErrors {
   keyError: string;
 }
 
-function validateFields(
-  name: string,
-  keyValue: string,
-  t: (key: string) => string
-): FieldErrors | null {
+function validateFields(name: string, keyValue: string, t: (key: string) => string): FieldErrors | null {
   const nameErr = name === '' ? t('nameRequired') : validateName(name, t);
   const keyError = keyValue === '' ? t('keyRequired') : '';
 

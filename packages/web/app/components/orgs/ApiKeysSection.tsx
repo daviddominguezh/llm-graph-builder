@@ -18,12 +18,12 @@ interface ApiKeyItemProps {
 
 function ApiKeyItem({ apiKey, onDeleteClick }: ApiKeyItemProps) {
   return (
-    <div className="flex items-center justify-between rounded-md border px-3 py-2">
+    <div className="flex items-center justify-between rounded-md border px-3 py-2 bg-card">
       <div className="flex flex-col gap-0.5">
         <span className="text-sm font-medium">{apiKey.name}</span>
         <span className="text-muted-foreground font-mono text-xs">{apiKey.key_preview}</span>
       </div>
-      <Button variant="ghost" size="icon-sm" onClick={() => onDeleteClick(apiKey)}>
+      <Button variant="destructive" size="icon-sm" onClick={() => onDeleteClick(apiKey)}>
         <Trash2 className="size-4" />
       </Button>
     </div>
@@ -34,7 +34,7 @@ function ApiKeysList({ keys, onDeleteClick }: { keys: ApiKeyRow[]; onDeleteClick
   const t = useTranslations('apiKeys');
 
   if (keys.length === 0) {
-    return <p className="text-muted-foreground text-xs bg-muted py-2 px-3 rounded-md">{t('noKeys')}</p>;
+    return <p className="text-muted-foreground text-xs bg-card py-2 px-3 rounded-md">{t('noKeys')}</p>;
   }
 
   return (

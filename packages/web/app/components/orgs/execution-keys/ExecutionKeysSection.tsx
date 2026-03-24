@@ -37,7 +37,7 @@ async function fetchAgentsForKeys(keys: ExecutionKeyRowType[]): Promise<Executio
 
 function EmptyState() {
   const t = useTranslations('executionKeys');
-  return <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-xs">{t('noKeys')}</p>;
+  return <p className="bg-input text-muted-foreground rounded-md px-3 py-2 text-xs">{t('noKeys')}</p>;
 }
 
 function KeysList({

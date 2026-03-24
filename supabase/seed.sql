@@ -171,7 +171,7 @@ INSERT INTO public.agents (
   'test-recipe',
   'test-recipe',
   'A test agent that creates recipes or suggests meal ideas based on user intent.',
-  1, 1, v_org_id, 'INITIAL_STEP',
+  1, 0, v_org_id, 'INITIAL_STEP',
   now(), now()
 ) ON CONFLICT (id) DO NOTHING;
 

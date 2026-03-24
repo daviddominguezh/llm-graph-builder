@@ -30,16 +30,16 @@ function MaskedValue() {
 
 function VariableRow({ variable, onDeleteClick, onEditClick }: VariableRowProps) {
   return (
-    <div className="flex items-center justify-between rounded-md border px-3 py-2">
+    <div className="flex items-center justify-between rounded-md border px-3 py-2 bg-card">
       <div className="flex flex-col gap-0.5">
         <span className="text-sm font-medium font-mono">{variable.name}</span>
         <MaskedValue />
       </div>
       <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon-sm" onClick={() => onEditClick(variable)}>
+        <Button variant="ghost" onClick={() => onEditClick(variable)}>
           <Pencil className="size-3.5" />
         </Button>
-        <Button variant="ghost" size="icon-sm" onClick={() => onDeleteClick(variable)}>
+        <Button variant="destructive" onClick={() => onDeleteClick(variable)}>
           <Trash2 className="size-3.5" />
         </Button>
       </div>

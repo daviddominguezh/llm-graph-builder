@@ -69,6 +69,7 @@ async function attemptMcpConnection(
   server: McpServerConfig
 ): Promise<{ client: McpClient; tools: Record<string, Tool> }> {
   const client = await connectMcpServer(server.transport);
+  await client.listTools();
   const tools = await client.tools();
   return { client, tools };
 }
