@@ -122,7 +122,7 @@ export function ExecutionKeysSection({ orgId, initialKeys, agents }: ExecutionKe
   }
 
   return (
-    <Card>
+    <Card className='bg-background'>
       <SectionHeader onCreateClick={() => state.setCreateOpen(true)} />
       <CardContent>
         <KeysList keys={state.keys} onDelete={handleDelete} />
