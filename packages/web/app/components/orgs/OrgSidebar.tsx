@@ -13,7 +13,6 @@ import {
   LayoutDashboard,
   LogOut,
   MessageSquare,
-  ScrollText,
   Settings,
   Users,
   Zap,
@@ -150,7 +149,6 @@ const TOP_NAV_ITEMS: NavItemDef[] = [
 
 const BOTTOM_NAV_ITEMS: NavItemDef[] = [
   { segment: 'api-keys', path: '/api-keys', Icon: KeyRound, labelKey: 'apiKeys' },
-  { segment: 'logs', path: '/logs', Icon: ScrollText, labelKey: 'logs' },
   { segment: 'team', path: '/team', Icon: Users, labelKey: 'team' },
   { segment: 'settings', path: '/settings', Icon: Settings, labelKey: 'settings' },
 ];
