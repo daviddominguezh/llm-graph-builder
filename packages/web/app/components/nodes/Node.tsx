@@ -52,7 +52,7 @@ function AgentNodeComponent({ data, id, selected }: NodeProps) {
   const borderWidth = hasError || nextNodeIsUser ? "border-2" : "border";
   const borderColor = hasError ? "border-red-500" : nextNodeIsUser ? "border-red-500" : "border-secondary";
   const mutedStyle = muted ? "border-border bg-muted grayscale contrast-85 pointer-events-none" : "";
-  const selectionRing = selected ? "ring-2 ring-primary ring-offset-2" : "";
+  const selectionRing = selected ? "ring-2 ring-primary" : "";
 
   const containerBaseStyle = "rounded-lg bg-background p-1 relative";
   const containerClassname = `${containerBaseStyle} ${borderWidth} ${borderColor} ${mutedStyle} ${selectionRing}`;
