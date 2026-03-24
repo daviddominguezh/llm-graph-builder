@@ -40,11 +40,11 @@ export function StartNodePanel(props: StartNodePanelProps) {
         </div>
       </div>
 
-      <div className="flex gap-3 p-6">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
-          <Play className="h-5 w-5 text-green-600" />
+      <div className="flex gap-3 p-3 bg-card m-3 items-center rounded-md border">
+        <div className="flex p-1.5 aspect-1/1 w-fit h-fit shrink-0 items-center justify-center rounded-full bg-green-100 border border-green-600">
+          <Play className="h-3.5 w-3.5 text-green-600" />
         </div>
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           {t('description')}
         </p>
       </div>
