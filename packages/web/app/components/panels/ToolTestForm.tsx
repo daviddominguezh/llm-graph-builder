@@ -226,7 +226,7 @@ function OptionalSection({ children }: { children: React.ReactNode }) {
 function RunButton({ enabled, running, onRun }: { enabled: boolean; running: boolean; onRun: () => void }) {
   const t = useTranslations('toolTest');
   return (
-    <div className="shrink-0 border-t bg-background p-2">
+    <div className="shrink-0 border-t bg-popover p-2">
       <Button className="w-full" disabled={!enabled || running} onClick={onRun}>
         {running && <Loader2 className="size-3 animate-spin" />}
         {running ? t('running') : t('run')}
