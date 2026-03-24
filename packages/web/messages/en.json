@@ -424,6 +424,7 @@
     "never": "Never",
     "expired": "Expired",
     "agentCount": "{count} agents",
+    "otherAgents": "+{count} others",
     "editAgents": "Edit agents",
     "editName": "Edit name",
     "updateError": "Failed to update key. Please try again."

@@ -5,9 +5,9 @@ import { formatRelativeTime } from '@/app/utils/formatRelativeTime';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Braces, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import React from 'react';
 
 interface ExecutionKeyRowProps {
   keyData: ExecutionKeyWithAgents;
@@ -28,19 +28,39 @@ function isExpired(expiresAt: string | null): boolean {
   return new Date(expiresAt) < new Date();
 }
 
+function AgentBadge({ slug }: { slug: string }) {
+  return <span className="rounded-full border bg-background px-1.5 font-mono text-[10px]">{slug}</span>;
+}
+
 function AgentBadges({ keyData }: { keyData: ExecutionKeyWithAgents }) {
-  if (keyData.agents.length === 0) return null;
+  const t = useTranslations('executionKeys');
+  const { agents } = keyData;
+  if (agents.length === 0) return null;
+
+  const first = agents[0];
+  if (first === undefined) return null;
+  const rest = agents.slice(1);
+
+  if (rest.length === 0) {
+    return <AgentBadge slug={first.agent_slug} />;
+  }
 
   return (
-    <div className="flex gap-1">
-      {keyData.agents.map((agent, i) => (
-        <React.Fragment key={agent.agent_id}>
-          <span className="rounded-full border bg-background px-1.5 font-mono text-[10px]">
-            {agent.agent_slug}
-          </span>
-          {i < keyData.agents.length - 1 && <Separator orientation="vertical" />}
-        </React.Fragment>
-      ))}
+    <div className="flex items-center gap-1">
+      <AgentBadge slug={first.agent_slug} />
+      <Separator orientation="vertical" />
+      <Tooltip>
+        <TooltipTrigger className="rounded-full border bg-background px-1.5 font-mono text-[10px] cursor-default">
+          {t('otherAgents', { count: rest.length })}
+        </TooltipTrigger>
+        <TooltipContent>
+          <div className="flex flex-col gap-1">
+            {rest.map((agent) => (
+              <AgentBadge key={agent.agent_id} slug={agent.agent_slug} />
+            ))}
+          </div>
+        </TooltipContent>
+      </Tooltip>
     </div>
   );
 }
@@ -79,10 +99,10 @@ export function ExecutionKeyRow({ keyData, onDelete }: ExecutionKeyRowProps) {
             <KeyMetadata keyData={keyData} />
           </div>
           <AgentBadges keyData={keyData} />
-          <span>
+          <span className="text-muted-foreground text-[11px]">
             {t('created')} {formatRelativeTime(keyData.created_at, locale)}
           </span>
-          <span>
+          <span className="text-muted-foreground text-[11px]">
             {keyData.expires_at !== null
               ? `${t('expiresAt')} ${formatRelativeDate(keyData.expires_at)}`
               : t('noExpiration')}
