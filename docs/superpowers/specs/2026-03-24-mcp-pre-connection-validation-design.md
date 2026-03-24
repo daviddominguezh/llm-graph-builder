@@ -31,8 +31,7 @@ The edge function adds an upfront MCP connection phase before calling `executeWi
 3. Partition results into successes (client + tools) and failures (server name + error message).
 4. If any failures:
    - Clean up successfully connected clients.
-   - Emit structured SSE event: `{ type: "mcp_connection_error", failures: [{ server, error }] }`.
-   - Emit generic error event: `{ type: "error", message: "Failed to connect to MCP servers: Linear (connection refused), Slack (timeout)" }`.
+   - Emit error event: `{ type: "error", message: "Failed to connect to MCP servers: Linear (connection refused), Slack (timeout)" }`.
    - Close the stream — do NOT call `executeWithCallbacks()`.
 5. If all succeed: merge tools, return clients and tools. Proceed with execution as today.
 
@@ -63,23 +62,15 @@ When no nodes were visited, the canvas shows the full graph in its muted/unvisit
 
 ### 4. Error Message Format
 
-**Structured SSE event** (for programmatic consumers):
-```json
-{
-  "type": "mcp_connection_error",
-  "failures": [
-    { "server": "Linear", "error": "Connection refused" },
-    { "server": "Slack", "error": "Request timeout" }
-  ]
-}
-```
+The error message stored in `agent_executions.error` is a flattened human-readable string:
 
-**Flattened string** (stored in `agent_executions.error`):
 ```
 Failed to connect to MCP servers: Linear (Connection refused), Slack (Request timeout)
 ```
 
-Each failure includes the server `name` from `McpServerConfig` and the error message from the caught exception.
+Each failure includes the server `name` from `McpServerConfig` and the error message from the caught exception. Only the standard `{ type: "error", message }` SSE event is emitted — no custom event types. The backend's existing `edgeFunctionClient.ts` SSE parser already handles this event type, driving the `failExecution` pipeline.
+
+**Note:** The selected execution in the debug view is looked up from the `executions` prop by matching `selectedExecutionId`, giving access to `status` and `error` fields.
 
 ## Non-Goals
 
