@@ -10,12 +10,12 @@ interface AuthCardProps {
 export function AuthCard({ title, description, children }: AuthCardProps) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
+      <Card className="w-full max-w-sm bg-background">
+        <CardHeader className='bg-background'>
           <CardTitle className="text-lg">{title}</CardTitle>
           <CardDescription>{description}</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">{children}</CardContent>
+        <CardContent className="flex flex-col gap-4 bg-background">{children}</CardContent>
       </Card>
     </div>
   );
