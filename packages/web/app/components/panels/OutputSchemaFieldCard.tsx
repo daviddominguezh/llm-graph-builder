@@ -158,12 +158,13 @@ function NestedFieldList({
           onRemove={() => onChange(removeFieldFromList(fields, i))}
         />
       ))}
-      <button
+      <Button
+        variant="ghost"
         onClick={() => onChange([...fields, createEmptyField()])}
-        className="ml-2 text-xs text-muted-foreground hover:text-foreground"
+        className="ml-2 h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
       >
         {t('addNestedField')}
-      </button>
+      </Button>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { AlertTriangle, Braces, Brain, ChevronRight, Wrench } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { MarkdownHooks } from 'react-markdown';
@@ -51,10 +52,11 @@ function ToolCallRow({ call }: { call: SimulationToolCall }) {
 
   return (
     <div className="flex flex-col">
-      <button
+      <Button
+        variant="ghost"
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex items-center gap-1.5 text-left"
+        className="h-auto justify-start gap-1.5 p-0 text-left"
         disabled={!hasContent}
       >
         <ChevronRight
@@ -62,7 +64,7 @@ function ToolCallRow({ call }: { call: SimulationToolCall }) {
         />
         <Wrench className="size-3 text-muted-foreground" />
         <span className="font-mono text-[11px]">{call.toolName}</span>
-      </button>
+      </Button>
       {open && <ToolCallDetails call={call} />}
     </div>
   );
@@ -74,17 +76,18 @@ function ReasoningRow({ reasoning }: { reasoning: string }) {
 
   return (
     <div className="flex flex-col">
-      <button
+      <Button
+        variant="ghost"
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex items-center gap-1.5 text-left"
+        className="h-auto justify-start gap-1.5 p-0 text-left"
       >
         <ChevronRight
           className={`size-3 text-muted-foreground transition-transform ${open ? 'rotate-90' : ''}`}
         />
         <Brain className="size-3 text-muted-foreground" />
         <span className="font-mono text-[11px]">{t('reasoning')}</span>
-      </button>
+      </Button>
       {open && (
         <pre className="ml-[30px] mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded bg-muted p-1.5 font-mono text-[10px]">
           {reasoning}
@@ -109,13 +112,13 @@ function OutputRow({ data }: { data: unknown }) {
 
   return (
     <div className="flex flex-col">
-      <button type="button" onClick={() => setOpen((prev) => !prev)} className="flex items-center gap-1.5 text-left">
+      <Button variant="ghost" type="button" onClick={() => setOpen((prev) => !prev)} className="h-auto justify-start gap-1.5 p-0 text-left">
         <ChevronRight
           className={`size-3 text-muted-foreground transition-transform ${open ? 'rotate-90' : ''}`}
         />
         <Braces className="size-3 text-muted-foreground" />
         <span className="font-mono text-[11px]">Output</span>
-      </button>
+      </Button>
       {open && (
         <div className="ml-[30px] mt-1">
           {isJsonObject(extracted) ? (

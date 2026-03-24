@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 interface SearchableNode {
@@ -118,8 +119,9 @@ export function SearchDialog({ nodes, open, onClose, onSelectNode }: SearchDialo
         ) : (
           results.map((node, i) => (
             <li key={node.id}>
-              <button
-                className={`flex w-full flex-col rounded-md px-3 py-1.5 text-left text-xs ${
+              <Button
+                variant="ghost"
+                className={`flex h-auto w-full flex-col items-start rounded-md px-3 py-1.5 text-left text-xs ${
                   i === activeIndex ? "bg-accent/10" : "hover:bg-accent/5"
                 }`}
                 onMouseEnter={() => setActiveIndex(i)}
@@ -127,7 +129,7 @@ export function SearchDialog({ nodes, open, onClose, onSelectNode }: SearchDialo
               >
                 <span className="font-medium">{node.id}</span>
                 <span className="text-[10px] text-muted-foreground truncate">{node.text}</span>
-              </button>
+              </Button>
             </li>
           ))
         )}

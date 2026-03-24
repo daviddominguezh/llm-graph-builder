@@ -23,9 +23,9 @@ export function ActiveFilterChips({ filters, onRemove, onClear }: ActiveFilterCh
       {filters.map((f) => (
         <Badge key={f.key} variant="secondary" className="gap-1">
           <span className="font-medium">{f.label}:</span> {f.displayValue}
-          <button type="button" className="ml-0.5 hover:text-foreground" onClick={() => onRemove(f.key)}>
+          <Button variant="ghost" size="icon" type="button" className="ml-0.5 size-4" onClick={() => onRemove(f.key)}>
             <X className="size-3" />
-          </button>
+          </Button>
         </Badge>
       ))}
       <Button variant="ghost" size="xs" onClick={onClear}>

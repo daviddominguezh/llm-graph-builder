@@ -1,6 +1,6 @@
-import { Bug, Trash2 } from 'lucide-react';
-
 import type { SessionRow } from '@/app/lib/dashboard';
+import { Button } from '@/components/ui/button';
+import { Bug, Trash2 } from 'lucide-react';
 
 import type { Column } from './sortable-table-types';
 
@@ -28,28 +28,28 @@ function stopPropagation(e: React.MouseEvent) {
 function ActionsCell(row: SessionRow, t: (key: string) => string, callbacks: SessionColumnCallbacks) {
   return (
     <div className="flex items-center justify-end gap-1">
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        size="icon"
         onClick={(e) => {
           stopPropagation(e);
           callbacks.onDebug(row);
         }}
-        className="rounded p-1 text-green-600 hover:bg-green-600/10"
         title={t('debugSession')}
       >
         <Bug className="size-4" />
-      </button>
-      <button
-        type="button"
+      </Button>
+      <Button
+        variant="destructive"
+        size="icon"
         onClick={(e) => {
           stopPropagation(e);
           callbacks.onDelete(row);
         }}
-        className="rounded p-1 text-destructive hover:bg-destructive/10"
         title={t('deleteSession')}
       >
         <Trash2 className="size-4" />
-      </button>
+      </Button>
     </div>
   );
 }

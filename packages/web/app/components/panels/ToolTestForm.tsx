@@ -209,14 +209,15 @@ function OptionalSection({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <button
+      <Button
+        variant="ghost"
         type="button"
-        className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+        className="h-auto justify-start gap-1 p-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
         onClick={() => setOpen((prev) => !prev)}
       >
         {open ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
         {t('optional')}
-      </button>
+      </Button>
       {open && <div className="flex flex-col gap-4 animate-in fade-in-0 slide-in-from-top-1 duration-200">{children}</div>}
     </div>
   );

@@ -67,7 +67,7 @@ function ImagePicker({ imageFile, onImageChange }: { imageFile: File | null; onI
   return (
     <div className="flex flex-col gap-1">
       <Label>{t('image')}</Label>
-      <button type="button" onClick={() => fileRef.current?.click()} className="group relative size-16 cursor-pointer rounded-md">
+      <Button variant="ghost" type="button" onClick={() => fileRef.current?.click()} className="group relative size-16 cursor-pointer rounded-md p-0">
         {previewUrl !== null ? (
           <Image src={previewUrl} alt="MCP" width={64} height={64} className="size-16 rounded-md object-cover border" unoptimized />
         ) : (
@@ -78,7 +78,7 @@ function ImagePicker({ imageFile, onImageChange }: { imageFile: File | null; onI
         <div className="absolute inset-0 flex items-center justify-center rounded-md bg-black/0 transition-colors group-hover:bg-black/40">
           <Camera className="size-4 text-white opacity-0 transition-opacity group-hover:opacity-100" />
         </div>
-      </button>
+      </Button>
       <input ref={fileRef} type="file" accept=".png,.jpg,.jpeg,.webp" className="hidden" onChange={handleChange} />
     </div>
   );
