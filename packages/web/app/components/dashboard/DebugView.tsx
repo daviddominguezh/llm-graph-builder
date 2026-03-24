@@ -119,7 +119,7 @@ interface DebugHeaderProps {
 function DebugHeader({ orgSlug, agentName, agentSlug, sessionId, dashboardLabel }: DebugHeaderProps) {
   return (
     <>
-      <div className="px-6 py-4 shrink-0 bg-muted">
+      <div className="px-6 py-4 shrink-0 bg-background">
         <DebugBreadcrumb
           slug={orgSlug}
           agentName={agentName}
@@ -233,7 +233,7 @@ export function DebugView(props: DebugViewProps) {
   };
 
   return (
-    <div className="flex h-full flex-col bg-muted">
+    <div className="flex h-full flex-col bg-background">
       <DebugHeader
         orgSlug={orgSlug}
         agentName={agentName}

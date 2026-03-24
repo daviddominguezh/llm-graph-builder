@@ -528,7 +528,7 @@ export function EdgePanel({
 
             <div className="flex flex-col gap-2 mt-2">
               {preconditions.map((p, index) => (
-                <Card key={index} className="p-2">
+                <Card key={index} className="p-2 bg-background">
                   <div className="flex items-start justify-between">
                     <div className="min-w-0 flex-1 flex flex-col gap-2">
                       <div className="flex items-center justify-between">

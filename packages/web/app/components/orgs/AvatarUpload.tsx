@@ -88,7 +88,7 @@ export function AvatarUpload({ currentUrl, previewUrl, name, onFileSelect, onRem
         </div>
       </Button>
       {hasImage && onRemove !== undefined && (
-        <Button variant="link" type="button" onClick={onRemove} className="h-auto p-0 text-muted-foreground text-[11px]">
+        <Button variant="link" type="button" onClick={onRemove} className="h-auto p-0 pt-1 text-muted-foreground text-[11px]">
           {t('remove')}
         </Button>
       )}
