@@ -1,8 +1,10 @@
+import { ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
-import { SessionBreadcrumb } from '@/app/components/dashboard/SessionBreadcrumb';
 import { SessionsView } from '@/app/components/dashboard/SessionsView';
+import { Separator } from '@/components/ui/separator';
 import { getAgentsByOrg } from '@/app/lib/agents';
 import { getSessionsByAgent } from '@/app/lib/dashboard';
 import { getOrgBySlug } from '@/app/lib/orgs';
@@ -44,12 +46,20 @@ export default async function AgentSessionsPage({ params }: AgentSessionsPagePro
   });
 
   return (
-    <div className="h-full overflow-y-auto p-6">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-        <div>
-          <SessionBreadcrumb slug={slug} agentName={agent.name} dashboardLabel={t('title')} />
-          <h1 className="text-2xl font-bold">{t('sessionsFor', { agentName: agent.name })}</h1>
-        </div>
+    <div className="flex h-full flex-col bg-muted">
+      <div className="px-6 py-4 shrink-0 bg-muted">
+        <nav className="flex items-center gap-1 text-sm text-muted-foreground">
+          <Link href={`/orgs/${slug}/dashboard`} className="hover:text-foreground">
+            {t('title')}
+          </Link>
+          <ChevronRight className="size-3" />
+          <span className="text-foreground font-medium">{agent.name}</span>
+        </nav>
+      </div>
+
+      <Separator />
+
+      <div className="flex-1 overflow-y-auto px-6 py-4">
         <SessionsView
           orgId={org.id}
           agentId={agent.id}

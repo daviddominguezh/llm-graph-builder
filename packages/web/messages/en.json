@@ -498,6 +498,7 @@
       "toolCall": "tool call",
       "toolCallArgs": "Tool Call Args",
       "toolCallOutput": "Tool Call Output",
+      "nodeError": "Node Error",
       "roleUser": "User",
       "roleSystem": "System",
       "roleAssistant": "Assistant",

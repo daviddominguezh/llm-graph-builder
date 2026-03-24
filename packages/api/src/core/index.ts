@@ -1,5 +1,6 @@
 import type { ModelMessage } from 'ai';
 
+import type { ParsedResult } from '@src/types/ai/index.js';
 import type { PipelineStep } from '@src/types/pipeline.js';
 import type { Context } from '@src/types/tools.js';
 import { logger } from '@src/utils/logger.js';
@@ -19,30 +20,72 @@ const EMPTY_LENGTH = 0;
 export const cleanMessagesBeforeSending = (msgs: ModelMessage[]): ModelMessage[] =>
   MessageProcessor.cleanMessagesBeforeSending(msgs);
 
-async function executeFlow(context: Context, input: CallAgentInput): Promise<CallAgentOutput> {
-  const debugMessages: Record<string, ModelMessage[][]> = {};
-  const initialState = createInitialFlowState(input, context.graph);
+interface AccumulatedState {
+  debugMessages: Record<string, ModelMessage[][]>;
+  visitedNodes: string[];
+  parsedResults: ParsedResult[];
+  structuredOutputs: Array<{ nodeId: string; data: unknown }>;
+}
 
-  const { parsedResults, visitedNodes, error, toolCalls, newStructuredOutputs } =
-    await executeAgentFlowRecursive(context, input, debugMessages, initialState);
+function buildErrorOutput(context: Context, input: CallAgentInput, state: AccumulatedState): CallAgentOutput {
+  return {
+    ...handleError(context, input),
+    debugMessages: state.debugMessages,
+    visitedNodes: state.visitedNodes,
+    parsedResults: state.parsedResults,
+    structuredOutputs: state.structuredOutputs.length > EMPTY_LENGTH ? state.structuredOutputs : undefined,
+  };
+}
 
-  if (error) {
-    return handleError(context, input);
-  }
-
+function buildSuccessOutput(
+  input: CallAgentInput,
+  state: AccumulatedState,
+  toolCalls: CallAgentOutput['toolCalls']
+): CallAgentOutput {
   const lastMessage = extractLastMessage(input);
-  const [lastResult] = parsedResults.slice(-LAST_INDEX_OFFSET);
+  const [lastResult] = state.parsedResults.slice(-LAST_INDEX_OFFSET);
 
   return {
     message: lastMessage,
     tokensLogs: input.tokensLog,
     toolCalls,
-    parsedResults,
-    visitedNodes,
+    parsedResults: state.parsedResults,
+    visitedNodes: state.visitedNodes,
     text: lastResult?.messageToUser,
-    debugMessages,
-    structuredOutputs: newStructuredOutputs.length > EMPTY_LENGTH ? newStructuredOutputs : undefined,
+    debugMessages: state.debugMessages,
+    structuredOutputs: state.structuredOutputs.length > EMPTY_LENGTH ? state.structuredOutputs : undefined,
   };
+}
+
+async function executeFlow(context: Context, input: CallAgentInput): Promise<CallAgentOutput> {
+  const debugMessages: Record<string, ModelMessage[][]> = {};
+  const initialState = createInitialFlowState(input, context.graph);
+
+  try {
+    const { visitedNodes, error, toolCalls, newStructuredOutputs, parsedResults } =
+      await executeAgentFlowRecursive(context, input, debugMessages, initialState);
+
+    const accumulated: AccumulatedState = {
+      debugMessages,
+      visitedNodes,
+      parsedResults,
+      structuredOutputs: newStructuredOutputs,
+    };
+
+    if (error) {
+      return buildErrorOutput(context, input, accumulated);
+    }
+
+    return buildSuccessOutput(input, accumulated, toolCalls);
+  } catch (e) {
+    handleCatchError(context, e);
+    return buildErrorOutput(context, input, {
+      debugMessages,
+      visitedNodes: initialState.visitedNodes,
+      parsedResults: initialState.parsedResults,
+      structuredOutputs: initialState.newStructuredOutputs,
+    });
+  }
 }
 
 export const CALL_AGENT_STEP_NAME = 'callAgent';
@@ -57,11 +100,6 @@ export const callAgentStep: PipelineStep<CallAgentInput, CallAgentOutput> = {
       `callAgentStep/${context.tenantID}/${context.userID}| Processing Current Node: ${input.currentNode}`
     );
 
-    try {
-      return await executeFlow(context, input);
-    } catch (e) {
-      handleCatchError(context, e);
-      return handleError(context, input);
-    }
+    return await executeFlow(context, input);
   },
 };

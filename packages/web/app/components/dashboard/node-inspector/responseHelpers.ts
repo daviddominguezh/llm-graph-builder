@@ -10,6 +10,7 @@ interface ParsedResponse {
   toolCallArgs: ToolCallEntry[];
   toolCallOutputs: ToolCallEntry[];
   structuredOutput: unknown;
+  error: string | null;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -35,6 +36,7 @@ export function parseResponse(response: unknown): ParsedResponse {
   }));
 
   const structuredOutput = rec !== null && 'structured_output' in rec ? rec['structured_output'] : null;
+  const error = rec !== null && typeof rec['error'] === 'string' ? rec['error'] : null;
 
-  return { hasToolCalls, toolCalls: rawToolCalls, toolCallArgs, toolCallOutputs, structuredOutput };
+  return { hasToolCalls, toolCalls: rawToolCalls, toolCallArgs, toolCallOutputs, structuredOutput, error };
 }

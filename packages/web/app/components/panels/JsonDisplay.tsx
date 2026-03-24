@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { useTheme } from 'next-themes';
 
 const ReactJson = dynamic(() => import('@microlink/react-json-view'), { ssr: false });
 
@@ -40,12 +41,14 @@ export function extractMcpPayload(value: unknown): unknown {
 }
 
 export function JsonBlock({ value }: { value: Record<string, unknown> | unknown[] }) {
+  const { resolvedTheme } = useTheme();
+  const jsonTheme = resolvedTheme === 'dark' ? 'monokai' : 'rjv-default';
   return (
     <div className="rounded-lg bg-muted/50 p-4 text-[11px]">
       <ReactJson
         src={value}
         name={false}
-        theme="rjv-default"
+        theme={jsonTheme}
         displayDataTypes={false}
         displayObjectSize={false}
         enableClipboard={false}
@@ -57,12 +60,14 @@ export function JsonBlock({ value }: { value: Record<string, unknown> | unknown[
 }
 
 export function SmallJsonBlock({ value }: { value: Record<string, unknown> | unknown[] }) {
+  const { resolvedTheme } = useTheme();
+  const jsonTheme = resolvedTheme === 'dark' ? 'monokai' : 'rjv-default';
   return (
     <div className="rounded bg-muted/50 p-1.5 text-[10px]">
       <ReactJson
         src={value}
         name={false}
-        theme="rjv-default"
+        theme={jsonTheme}
         displayDataTypes={false}
         displayObjectSize={false}
         enableClipboard={false}

@@ -29,6 +29,22 @@ function deriveVisitedNodeIds(visits: NodeVisitRow[]): string[] {
   return visits.map((v) => v.node_id);
 }
 
+function hasErrorResponse(response: unknown): boolean {
+  if (typeof response !== 'object' || response === null) return false;
+  const rec = response as Record<string, unknown>;
+  return typeof rec['error'] === 'string' && rec['error'] !== '';
+}
+
+function deriveErrorNodeIds(visits: NodeVisitRow[]): Set<string> {
+  const ids = new Set<string>();
+  for (const v of visits) {
+    if (hasErrorResponse(v.response)) {
+      ids.add(v.node_id);
+    }
+  }
+  return ids;
+}
+
 function useExecutionState(executions: ExecutionSummaryRow[], initialVisits: NodeVisitRow[]) {
   const firstExecution = executions[FIRST_INDEX];
   const [selectedExecutionId, setSelectedExecutionId] = useState(firstExecution?.id ?? '');
@@ -49,11 +65,16 @@ function useExecutionState(executions: ExecutionSummaryRow[], initialVisits: Nod
     [startTransition]
   );
 
+  const handleDeselectNode = useCallback(() => {
+    setSelectedNodeId(null);
+  }, []);
+
   return {
     selectedExecutionId,
     nodeVisits,
     selectedNodeId,
     setSelectedNodeId,
+    handleDeselectNode,
     handleSelectExecution,
   };
 }
@@ -70,10 +91,11 @@ export function DebugView({
   const t = useTranslations('dashboard');
   const state = useExecutionState(executions, initialNodeVisits);
   const visitedNodeIds = useMemo(() => deriveVisitedNodeIds(state.nodeVisits), [state.nodeVisits]);
+  const errorNodeIds = useMemo(() => deriveErrorNodeIds(state.nodeVisits), [state.nodeVisits]);
 
   const mutedNodeIds = useMemo(
-    () => buildDebugGraph(graph.nodes, graph.edges, visitedNodeIds).mutedNodeIds,
-    [graph, visitedNodeIds]
+    () => buildDebugGraph(graph.nodes, graph.edges, visitedNodeIds, errorNodeIds).mutedNodeIds,
+    [graph, visitedNodeIds, errorNodeIds]
   );
 
   return (
@@ -98,8 +120,10 @@ export function DebugView({
             <DebugCanvas
               graph={graph}
               visitedNodeIds={visitedNodeIds}
+              errorNodeIds={errorNodeIds}
               selectedNodeId={state.selectedNodeId}
               onNodeClick={state.setSelectedNodeId}
+              onDeselectNode={state.handleDeselectNode}
             />
           </div>
           <div className="w-1/3 overflow-y-auto rounded-md border p-4 bg-card">

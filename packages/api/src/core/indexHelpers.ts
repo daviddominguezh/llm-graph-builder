@@ -41,10 +41,22 @@ function isTerminalNode(context: Context, nodeID: string): boolean {
   return edges.length === EMPTY_LENGTH;
 }
 
-async function processNodeTimed(params: ProcessNodeParams): Promise<TimedResult> {
+async function processNodeSafe(params: ProcessNodeParams): Promise<TimedResult> {
   const startTime = Date.now();
-  const result = await processNode(params);
-  return { ...result, durationMs: Date.now() - startTime };
+  try {
+    const result = await processNode(params);
+    return { ...result, durationMs: Date.now() - startTime };
+  } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : 'Node processing failed';
+    return {
+      parsedResult: { nextNodeID: '' },
+      nextNodeID: '',
+      error: true,
+      toolCalls: [],
+      durationMs: Date.now() - startTime,
+      errorMessage,
+    };
+  }
 }
 
 interface FlowStepResult {
@@ -115,7 +127,7 @@ async function executeTerminalNode(
     return { state, error: false, shouldContinue: false, isTerminal: true };
   }
 
-  const result = await processNodeTimed({
+  const result = await processNodeSafe({
     context,
     input,
     currentNodeID,
@@ -149,7 +161,7 @@ async function processFlowStep(
   visitedNodes.push(currentNodeID);
   context.onNodeVisited?.(currentNodeID);
 
-  const result = await processNodeTimed({
+  const result = await processNodeSafe({
     context,
     input,
     currentNodeID,

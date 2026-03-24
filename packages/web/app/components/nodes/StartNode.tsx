@@ -25,7 +25,7 @@ const RightSourceContentGreen = (
     <ArrowRight size={ICON_SIZE} className="absolute text-green-500" style={{ transform: "rotate(0deg)" }} />
     <div className="absolute right-[0px]">
       <svg width={HANDLE_SIZE + 2} height={HANDLE_SIZE + 2} viewBox="0 -1.5 0.05 19">
-        <path d="M 0 -1 A 9 9 0 0 1 0 17 L 8 17 L 8 -1 Z" fill="var(--xy-background-color)" />
+        <path d="M 0 -1 A 9 9 0 0 1 0 17 L 8 17 L 8 -1 Z" />
         <path d="M 0 -1 A 9 9 0 0 1 0 17" fill="none" stroke={GREEN_BORDER} strokeWidth="1" />
       </svg>
     </div>

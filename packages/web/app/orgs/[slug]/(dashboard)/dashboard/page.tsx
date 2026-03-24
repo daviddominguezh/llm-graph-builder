@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
 import { AgentSummaryView } from '@/app/components/dashboard/AgentSummaryView';
+import { Separator } from '@/components/ui/separator';
 import { getAgentSummary } from '@/app/lib/dashboard';
 import { getOrgBySlug } from '@/app/lib/orgs';
 import { createClient } from '@/app/lib/supabase/server';
@@ -31,12 +32,16 @@ export default async function DashboardPage({ params }: DashboardPageProps): Pro
   });
 
   return (
-    <div className="h-full overflow-y-auto p-6">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-        <div>
-          <h1 className="text-2xl font-bold">{t('title')}</h1>
-          <p className="text-sm text-muted-foreground">{t('description')}</p>
-        </div>
+    <div className="flex h-full flex-col bg-muted">
+      <div className="px-6 py-4 shrink-0 bg-muted">
+        <nav className="flex items-center gap-1 text-sm text-muted-foreground">
+          <span className="text-foreground font-medium">{t('title')}</span>
+        </nav>
+      </div>
+
+      <Separator />
+
+      <div className="flex-1 overflow-y-auto px-6 py-4">
         <AgentSummaryView orgId={org.id} slug={slug} initialRows={rows} initialTotal={totalCount} />
       </div>
     </div>

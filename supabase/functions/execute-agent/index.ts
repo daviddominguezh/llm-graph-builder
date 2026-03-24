@@ -30,7 +30,7 @@ interface ExecutePayload {
 
 const SSE_HEADERS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, content-type',
+  'Access-Control-Allow-Headers': 'authorization, content-type, x-master-key',
   'Content-Type': 'text/event-stream',
   'Cache-Control': 'no-cache',
   Connection: 'keep-alive',
@@ -106,7 +106,11 @@ function timingSafeEqual(a: string, b: string): boolean {
   const bufA = encoder.encode(a);
   const bufB = encoder.encode(b);
   if (bufA.byteLength !== bufB.byteLength) return false;
-  return crypto.subtle.timingSafeEqual(bufA, bufB);
+  let mismatch = 0;
+  for (let i = 0; i < bufA.byteLength; i++) {
+    mismatch |= bufA[i]! ^ bufB[i]!;
+  }
+  return mismatch === 0;
 }
 
 function authenticateRequest(req: Request): Response | null {
@@ -115,8 +119,7 @@ function authenticateRequest(req: Request): Response | null {
     return new Response('Server misconfigured', { status: 500 });
   }
 
-  const authHeader = req.headers.get('authorization') ?? '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : '';
+  const token = req.headers.get('x-master-key') ?? '';
 
   if (token === '' || !timingSafeEqual(token, masterKey)) {
     return new Response('Unauthorized', { status: 401 });

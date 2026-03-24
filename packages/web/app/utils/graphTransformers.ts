@@ -58,6 +58,7 @@ export interface RFNodeData extends Record<string, unknown> {
   outputSchemaId?: string;
   outputPrompt?: string;
   muted?: boolean;
+  hasError?: boolean;
   nodeWidth?: number | null;
 }
 

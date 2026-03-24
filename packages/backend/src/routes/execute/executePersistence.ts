@@ -118,26 +118,38 @@ function getNodeResponseContext(
   return { parsedResult: raw, structuredOutput: so, processed: nodeData.find((n) => n.nodeId === nodeId) };
 }
 
+function parsedResultFields(parsedResult: ParsedResultEntry | undefined): Record<string, unknown> {
+  const { messageToUser, nextNodeID } = parsedResult ?? {};
+  const fields: Record<string, unknown> = {};
+  if (messageToUser !== undefined && messageToUser !== '') {
+    fields.text = messageToUser;
+  }
+  if (nextNodeID !== undefined && nextNodeID !== '') {
+    fields.nextNodeID = nextNodeID;
+  }
+  return fields;
+}
+
+function processedFields(processed: NodeProcessedData | undefined): Record<string, unknown> {
+  if (processed === undefined) return {};
+  const { toolCalls, error } = processed;
+  const fields: Record<string, unknown> = {};
+  if (toolCalls.length > ZERO) {
+    fields.tool_calls = toolCalls;
+  }
+  if (error !== undefined && error !== '') {
+    fields.error = error;
+  }
+  return fields;
+}
+
 function buildNodeResponse(ctx: NodeResponseContext): Record<string, unknown> {
   const { parsedResult, structuredOutput, processed } = ctx;
-  const response: Record<string, unknown> = {};
-  const { messageToUser } = parsedResult ?? {};
-  if (messageToUser !== undefined && messageToUser !== '') {
-    response.text = messageToUser;
-  }
-  const { nextNodeID } = parsedResult ?? {};
-  if (nextNodeID !== undefined && nextNodeID !== '') {
-    response.nextNodeID = nextNodeID;
-  }
-  if (structuredOutput !== undefined) {
-    const { data } = structuredOutput;
-    response.structured_output = data;
-  }
-  if (processed !== undefined && processed.toolCalls.length > ZERO) {
-    const { toolCalls } = processed;
-    response.tool_calls = toolCalls;
-  }
-  return response;
+  return {
+    ...parsedResultFields(parsedResult),
+    ...(structuredOutput === undefined ? {} : { structured_output: structuredOutput.data }),
+    ...processedFields(processed),
+  };
 }
 
 interface PersistNodeVisitsParams {

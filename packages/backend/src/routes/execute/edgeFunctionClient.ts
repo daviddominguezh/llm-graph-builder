@@ -128,6 +128,7 @@ export interface NodeProcessedData {
   text: string;
   toolCalls: ToolCallData[];
   durationMs: number;
+  error?: string;
 }
 
 function mapRawToolCalls(raw: unknown): ToolCallData[] {
@@ -217,6 +218,7 @@ function handleNodeProcessed(
     text: toStr(event.text),
     toolCalls: mapRawToolCalls(event.toolCalls),
     durationMs: toNum(event.durationMs),
+    error: toOptStr(event.error),
   });
   processNodeProcessed(event, callbacks);
 }
@@ -255,13 +257,16 @@ export async function executeAgent(
   callbacks: ExecuteAgentCallbacks
 ): Promise<ExecuteAgentResult> {
   const edgeFunctionUrl = getRequiredEnv('SUPABASE_EDGE_FUNCTION_URL');
+  const serviceKey = getRequiredEnv('SUPABASE_SERVICE_ROLE_KEY');
   const masterKey = getRequiredEnv('EDGE_FUNCTION_MASTER_KEY');
 
   const response = await fetch(`${edgeFunctionUrl}/execute-agent`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${masterKey}`,
+      Authorization: `Bearer ${serviceKey}`,
+      apikey: serviceKey,
+      'x-master-key': masterKey,
     },
     body: JSON.stringify(params),
   });

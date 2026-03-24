@@ -52,7 +52,6 @@ export async function validateExecutionKey(
     .select('id, org_id, expires_at')
     .eq('key_hash', keyHash)
     .single();
-
   if (result.error !== null || result.data === null) return null;
   if (isExpired(result.data.expires_at)) return null;
 

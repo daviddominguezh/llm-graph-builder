@@ -21,11 +21,12 @@ import { useHandleContext } from "./HandleContext";
 const handleStyleBase = {
   width: `${HANDLE_SIZE}px`,
   height: `${HANDLE_SIZE}px`,
-  borderWidth: 0,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   cursor: "pointer",
+  borderRadius: '100px',
+  overflow: 'hidden'
 } as const;
 
 const topTargetStyle = {
