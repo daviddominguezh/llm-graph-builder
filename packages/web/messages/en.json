@@ -63,6 +63,7 @@
     "backToAgents": "Back to agents",
     "formatGraph": "Auto-layout",
     "copyJson": "Copy JSON",
+    "copyCurl": "Copy cURL",
     "copied": "Copied"
   },
   "copilot": {
@@ -121,6 +122,7 @@
   "editor": {
     "publish": "Publish",
     "publishFailed": "Failed to publish. Please try again.",
+    "curlExample": "cURL example",
     "saving": "Saving...",
     "autoSaveFailed": "Auto-save failed. Your changes may not be saved.",
     "notFound": "Agent not found",

@@ -27,6 +27,7 @@ export default async function EditorPage({ params }: EditorPageProps): Promise<R
   return (
     <EditorClient
       agentId={agent.id}
+      agentSlug={agent.slug}
       agentName={agent.name}
       orgSlug={org.slug}
       orgId={org.id}

@@ -48,6 +48,7 @@ const DEFAULT_VERSION = 0;
 
 export interface GraphBuilderProps {
   agentId?: string;
+  agentSlug?: string;
   agentName?: string;
   orgSlug?: string;
   orgId?: string;
@@ -355,6 +356,8 @@ function LoadedEditor(props: LoadedEditorProps) {
             props.agentId !== undefined ? (
               <PublishButton
                 agentId={props.agentId}
+                agentSlug={props.agentSlug ?? ''}
+                version={h.version}
                 canPublish={h.canPublish}
                 hasApiKey={h.apiKeys.productionKeyId !== null}
                 flush={h.flush}
