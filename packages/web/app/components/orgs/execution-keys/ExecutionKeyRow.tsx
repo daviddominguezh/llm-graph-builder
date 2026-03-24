@@ -34,7 +34,9 @@ function AgentBadges({ keyData }: { keyData: ExecutionKeyWithAgents }) {
     <div className="flex gap-1">
       {keyData.agents.map((agent, i) => (
         <React.Fragment key={agent.agent_id}>
-          <span className="font-mono text-[10px]">{agent.agent_slug}</span>
+          <span className="rounded-full border bg-background px-1.5 font-mono text-[10px]">
+            {agent.agent_slug}
+          </span>
           {i < keyData.agents.length - 1 && <Separator orientation="vertical" />}
         </React.Fragment>
       ))}
@@ -42,21 +44,16 @@ function AgentBadges({ keyData }: { keyData: ExecutionKeyWithAgents }) {
   );
 }
 
-function KeyMetadata({ keyData }: { keyData: ExecutionKeyWithAgents }) {
-  const t = useTranslations('executionKeys');
-  const lastUsed = keyData.last_used_at !== null ? formatRelativeDate(keyData.last_used_at) : t('never');
+function MaskedKeyPrefix({ prefix }: { prefix: string }) {
+  const visible = prefix.slice(0, 7);
 
+  return <span className="font-mono text-[10px]">{`${visible}${'...'}`}</span>;
+}
+
+function KeyMetadata({ keyData }: { keyData: ExecutionKeyWithAgents }) {
   return (
     <div className="text-muted-foreground flex flex-1 text-xs justify-evenly">
-      <span>
-        <span className="font-mono">{keyData.key_prefix}</span>
-      </span>
-      <span>
-        {t('created')}: {formatRelativeDate(keyData.created_at)}
-      </span>
-      <span>
-        {t('lastUsed')}: {lastUsed}
-      </span>
+      <MaskedKeyPrefix prefix={keyData.key_prefix} />
     </div>
   );
 }
@@ -69,17 +66,20 @@ export function ExecutionKeyRow({ keyData, onDelete }: ExecutionKeyRowProps) {
     <div className="flex w-full items-center justify-between items-center gap-3 rounded-md border px-3 py-2 bg-card">
       <div className="flex gap-3 items-center flex-1">
         <div className="bg-background rounded-full p-1.5 border">
-          <Braces className="size-4" />
+          <Braces className="size-4.5" />
         </div>
-        <div className="flex min-w-0 flex-1 flex-row gap-1.5 items-center">
+        <div className="flex min-w-0 flex-1 flex-row gap-1.5 items-center justify-between">
           <div className="flex flex-col shrink-0">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium font-mono">{keyData.name.toUpperCase()}</span>
+              <span className="text-[11px] font-medium font-mono">{keyData.name.toUpperCase()}</span>
               {expired && <Badge variant="destructive">{t('expired')}</Badge>}
             </div>
-            <AgentBadges keyData={keyData} />
+            <KeyMetadata keyData={keyData} />
           </div>
-          <KeyMetadata keyData={keyData} />
+          <AgentBadges keyData={keyData} />
+          <span>
+            {t('created')} {formatRelativeDate(keyData.created_at)}
+          </span>
         </div>
       </div>
       <Button
