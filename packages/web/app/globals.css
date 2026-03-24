@@ -208,12 +208,10 @@ div.model-selector-trigger[data-slot="input-group"] {
   border-radius: var(--radius-lg);
 }
 
-.react-flow__node.selectable:focus {
-  box-shadow: 0px 0px 0px 4px var(--xy-theme-color-focus);
-}
-
+.react-flow__node.selectable:focus,
 .react-flow__node.selectable:focus:active {
-  box-shadow: var(--xy-node-boxshadow-default);
+  box-shadow: none;
+  outline: none;
 }
 
 .react-flow__node.selectable:hover,

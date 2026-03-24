@@ -32,7 +32,7 @@ export function CopyJsonButton({ getValue }: CopyJsonButtonProps) {
     <Button
       variant="ghost"
       size="icon-sm"
-      className="absolute right-1.5 top-1.5 text-muted-foreground hover:text-foreground"
+      className="absolute right-1.5 top-1.5 z-10 text-muted-foreground hover:text-foreground"
       onClick={handleCopy}
       aria-label={label}
       title={label}
