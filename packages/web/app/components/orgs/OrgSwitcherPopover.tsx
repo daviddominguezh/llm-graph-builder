@@ -84,7 +84,7 @@ export function OrgSwitcherPopover({ currentOrg, children, open, onOpenChange }:
     <>
       <DropdownMenu open={open} onOpenChange={onOpenChange}>
         <DropdownMenuTrigger className="w-full cursor-pointer">{children}</DropdownMenuTrigger>
-        <DropdownMenuContent side="bottom" align="start" className="w-69.5">
+        <DropdownMenuContent side="bottom" align="start" className="w-46">
           <DropdownMenuGroup>
             {orgs.map((org) => (
               <DropdownMenuItem key={org.id} onClick={() => router.push(`/orgs/${org.slug}`)}>

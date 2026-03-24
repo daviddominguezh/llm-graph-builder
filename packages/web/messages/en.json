@@ -356,6 +356,7 @@
     "noVariables": "No environment variables configured.",
     "createError": "Failed to create variable.",
     "updateError": "Failed to update variable.",
+    "revealError": "Failed to retrieve value.",
     "deleteTitle": "Delete variable",
     "deleteDescription": "This will delete \"{name}\". MCP servers referencing this variable will need a new value.",
     "deleteConfirm": "Delete",

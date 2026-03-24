@@ -4,6 +4,7 @@ import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
 import {
   createEnvVariable as createEnvVariableLib,
   deleteEnvVariable as deleteEnvVariableLib,
+  getEnvVariableValue as getEnvVariableValueLib,
   getEnvVariablesByOrg as getEnvVariablesByOrgLib,
   updateEnvVariable as updateEnvVariableLib,
 } from '@/app/lib/orgEnvVariables';
@@ -39,6 +40,15 @@ export async function updateEnvVariableAction(
   serverLog('[updateEnvVariableAction] variableId:', variableId);
   const res = await updateEnvVariableLib(variableId, updates);
   if (res.error !== null) serverError('[updateEnvVariableAction] error:', res.error);
+  return res;
+}
+
+export async function getEnvVariableValueAction(
+  variableId: string
+): Promise<{ value: string | null; error: string | null }> {
+  serverLog('[getEnvVariableValueAction] variableId:', variableId);
+  const res = await getEnvVariableValueLib(variableId);
+  if (res.error !== null) serverError('[getEnvVariableValueAction] error:', res.error);
   return res;
 }
 

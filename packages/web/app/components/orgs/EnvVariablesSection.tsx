@@ -1,17 +1,17 @@
 'use client';
 
-import { getEnvVariablesByOrgAction } from '@/app/actions/orgEnvVariables';
+import { getEnvVariableValueAction, getEnvVariablesByOrgAction } from '@/app/actions/orgEnvVariables';
 import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
-
-import { EditEnvVariableDialog } from './EditEnvVariableDialog';
+import { toast } from 'sonner';
 
 import { CreateEnvVariableDialog } from './CreateEnvVariableDialog';
 import { DeleteEnvVariableDialog } from './DeleteEnvVariableDialog';
+import { EditEnvVariableDialog } from './EditEnvVariableDialog';
 
 interface EnvVariablesSectionProps {
   orgId: string;
@@ -24,17 +24,44 @@ interface VariableRowProps {
   onEditClick: (variable: OrgEnvVariableRow) => void;
 }
 
-function MaskedValue() {
-  return <span className="text-xs text-muted-foreground font-mono">{'••••••••'}</span>;
+function RevealableValue({ variableId }: { variableId: string }) {
+  const t = useTranslations('envVariables');
+  const [revealed, setRevealed] = useState(false);
+  const [value, setValue] = useState<string | null>(null);
+
+  async function handleReveal() {
+    if (revealed) {
+      setRevealed(false);
+      return;
+    }
+    const res = await getEnvVariableValueAction(variableId);
+    if (res.error !== null) {
+      toast.error(t('revealError'));
+      return;
+    }
+    setValue(res.value);
+    setRevealed(true);
+  }
+
+  const Icon = revealed ? EyeOff : Eye;
+
+  return (
+    <div className="flex flex-1 items-center gap-1.5">
+      <Button variant="ghost" size="icon-sm" onClick={handleReveal}>
+        <Icon className="size-3" />
+      </Button>
+      <span className="text-xs text-muted-foreground font-mono">
+        {revealed && value !== null ? value : '••••••••'}
+      </span>
+    </div>
+  );
 }
 
 function VariableRow({ variable, onDeleteClick, onEditClick }: VariableRowProps) {
   return (
     <div className="flex items-center justify-between rounded-md border px-3 py-2 bg-card">
-      <div className="flex flex-col gap-0.5">
-        <span className="text-sm font-medium font-mono">{variable.name}</span>
-        <MaskedValue />
-      </div>
+      <span className="text-sm font-medium font-mono mr-6">{variable.name}</span>
+      <RevealableValue variableId={variable.id} />
       <div className="flex items-center gap-1">
         <Button variant="ghost" onClick={() => onEditClick(variable)}>
           <Pencil className="size-3.5" />
@@ -57,15 +84,18 @@ function VariablesList({ variables, onDeleteClick, onEditClick }: VariablesListP
   const t = useTranslations('envVariables');
 
   if (variables.length === 0) {
-    return (
-      <p className="text-muted-foreground text-xs bg-muted py-2 px-3 rounded-md">{t('noVariables')}</p>
-    );
+    return <p className="text-muted-foreground text-xs bg-muted py-2 px-3 rounded-md">{t('noVariables')}</p>;
   }
 
   return (
     <div className="flex flex-col gap-2">
       {variables.map((variable) => (
-        <VariableRow key={variable.id} variable={variable} onDeleteClick={onDeleteClick} onEditClick={onEditClick} />
+        <VariableRow
+          key={variable.id}
+          variable={variable}
+          onDeleteClick={onDeleteClick}
+          onEditClick={onEditClick}
+        />
       ))}
     </div>
   );
@@ -84,7 +114,7 @@ export function EnvVariablesSection({ orgId, initialVariables }: EnvVariablesSec
   }, [orgId]);
 
   return (
-    <Card className='bg-background ring-0'>
+    <Card className="bg-background ring-0">
       <CardHeader>
         <CardTitle>{t('title')}</CardTitle>
         <CardDescription>{t('description')}</CardDescription>
