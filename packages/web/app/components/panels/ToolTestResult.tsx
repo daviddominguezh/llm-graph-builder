@@ -1,10 +1,9 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Check, Copy, Loader2, Terminal } from 'lucide-react';
+import { Loader2, Terminal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { ToolCallResponse } from '../../lib/api';
 import { JsonBlock, extractMcpPayload, isJsonObject } from './JsonDisplay';
@@ -54,30 +53,17 @@ function LoadingState({ startedAt }: { startedAt: number | null }) {
   );
 }
 
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = useCallback(() => {
-    void navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [text]);
-
-  return (
-    <Button variant="ghost" size="icon" className="shrink-0" onClick={handleCopy}>
-      {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-    </Button>
-  );
-}
-
 function formatDuration(ms: number): string {
   return ms < 1000 ? `${String(ms)}ms` : `${(ms / 1000).toFixed(2)}s`;
 }
 
 function ResultHeader({
-  success, durationMs, copyText,
+  success,
+  durationMs,
 }: {
-  success: boolean; durationMs: number | null; copyText?: string;
+  success: boolean;
+  durationMs: number | null;
+  copyText?: string;
 }) {
   const t = useTranslations('toolTest');
   return (
@@ -98,32 +84,25 @@ function ResultHeader({
           <span className="tabular-nums font-medium">{formatDuration(durationMs)}</span>
         </div>
       )}
-      {copyText !== undefined && (
-        <div className="ml-auto">
-          <CopyButton text={copyText} />
-        </div>
-      )}
     </div>
   );
 }
 
-function serializePayload(payload: unknown): string {
-  return typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2);
-}
-
 function SuccessResult({ result, durationMs }: { result: unknown; durationMs: number | null }) {
   const payload = extractMcpPayload(result);
-  const copyText = serializePayload(payload);
+
   return (
     <div className="min-w-0 flex min-h-0 flex-1 flex-col animate-in fade-in-0 duration-300">
       <div className="shrink-0 px-5 pt-5 pb-3">
-        <ResultHeader success durationMs={durationMs} copyText={copyText} />
+        <ResultHeader success durationMs={durationMs} />
       </div>
       <div className="flex-1 overflow-y-auto px-5 pb-5">
         {isJsonObject(payload) ? (
           <JsonBlock value={payload} />
         ) : (
-          <pre className="whitespace-pre-wrap rounded-lg bg-muted/50 p-4 text-[11px] leading-relaxed">{String(payload)}</pre>
+          <pre className="whitespace-pre-wrap rounded-lg bg-muted/50 p-4 text-[11px] leading-relaxed">
+            {String(payload)}
+          </pre>
         )}
       </div>
     </div>
@@ -131,9 +110,11 @@ function SuccessResult({ result, durationMs }: { result: unknown; durationMs: nu
 }
 
 function ErrorResult({
-  error, durationMs,
+  error,
+  durationMs,
 }: {
-  error: { message: string; code?: string; details?: unknown }; durationMs: number | null;
+  error: { message: string; code?: string; details?: unknown };
+  durationMs: number | null;
 }) {
   const t = useTranslations('toolTest');
   return (
@@ -158,7 +139,9 @@ function ErrorResult({
               {isJsonObject(error.details) ? (
                 <JsonBlock value={error.details} />
               ) : (
-                <pre className="whitespace-pre-wrap rounded-lg bg-muted/50 p-4 text-[11px]">{String(error.details)}</pre>
+                <pre className="whitespace-pre-wrap rounded-lg bg-muted/50 p-4 text-[11px]">
+                  {String(error.details)}
+                </pre>
               )}
             </div>
           )}

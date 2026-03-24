@@ -39,6 +39,7 @@ function FormFields({ nameError, onNameChange }: FormFieldsProps) {
         <Input
           id="var-name"
           name="name"
+          autoComplete="off"
           placeholder={t('namePlaceholder')}
           required
           onChange={(e) => {
@@ -50,7 +51,14 @@ function FormFields({ nameError, onNameChange }: FormFieldsProps) {
       </div>
       <div className="flex flex-col gap-1">
         <Label htmlFor="var-value">{t('value')}</Label>
-        <Input id="var-value" name="value" type="password" placeholder={t('valuePlaceholder')} required />
+        <Input
+          autoComplete="off"
+          id="var-value"
+          name="value"
+          className="font-mono"
+          placeholder={t('valuePlaceholder')}
+          required
+        />
       </div>
     </>
   );
