@@ -44,8 +44,8 @@ export default async function AgentSessionsPage({ params }: AgentSessionsPagePro
   });
 
   return (
-    <div className="flex h-full flex-col bg-muted">
-      <div className="px-6 py-4 shrink-0 bg-muted">
+    <div className="flex h-full flex-col bg-background">
+      <div className="px-6 py-4 shrink-0 bg-background">
         <nav className="flex items-center gap-1 text-sm text-muted-foreground">
           <Link href={`/orgs/${slug}/dashboard`} className="hover:text-foreground">
             {t('title')}

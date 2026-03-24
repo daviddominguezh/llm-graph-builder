@@ -30,8 +30,8 @@ export default async function DashboardPage({ params }: DashboardPageProps): Pro
   });
 
   return (
-    <div className="flex h-full flex-col bg-muted">
-      <div className="px-6 py-4 shrink-0 bg-muted">
+    <div className="flex h-full flex-col bg-background">
+      <div className="px-6 py-4 shrink-0 bg-background">
         <nav className="flex items-center gap-1 text-sm text-muted-foreground">
           <span className="text-foreground font-medium">{t('title')}</span>
         </nav>
