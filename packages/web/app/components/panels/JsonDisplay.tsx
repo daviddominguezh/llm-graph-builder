@@ -1,7 +1,11 @@
 'use client';
 
+import { useCallback } from 'react';
+
 import dynamic from 'next/dynamic';
 import { useTheme } from 'next-themes';
+
+import { CopyJsonButton } from './CopyJsonButton';
 
 const ReactJson = dynamic(() => import('@microlink/react-json-view'), { ssr: false });
 
@@ -43,8 +47,10 @@ export function extractMcpPayload(value: unknown): unknown {
 export function JsonBlock({ value }: { value: Record<string, unknown> | unknown[] }) {
   const { resolvedTheme } = useTheme();
   const jsonTheme = resolvedTheme === 'dark' ? 'monokai' : 'rjv-default';
+  const getJson = useCallback(() => JSON.stringify(value, null, 2), [value]);
   return (
-    <div className="rounded-lg bg-muted/50 p-4 text-[11px]">
+    <div className="relative rounded-lg bg-muted/50 p-4 text-[11px]">
+      <CopyJsonButton getValue={getJson} />
       <ReactJson
         src={value}
         name={false}
@@ -62,8 +68,10 @@ export function JsonBlock({ value }: { value: Record<string, unknown> | unknown[
 export function SmallJsonBlock({ value }: { value: Record<string, unknown> | unknown[] }) {
   const { resolvedTheme } = useTheme();
   const jsonTheme = resolvedTheme === 'dark' ? 'monokai' : 'rjv-default';
+  const getJson = useCallback(() => JSON.stringify(value, null, 2), [value]);
   return (
-    <div className="rounded bg-muted/50 p-1.5 text-[10px]">
+    <div className="relative rounded bg-muted/50 p-1.5 text-[10px]">
+      <CopyJsonButton getValue={getJson} />
       <ReactJson
         src={value}
         name={false}

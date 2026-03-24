@@ -61,7 +61,9 @@
     "logout": "Sign out",
     "loading": "Loading...",
     "backToAgents": "Back to agents",
-    "formatGraph": "Auto-layout"
+    "formatGraph": "Auto-layout",
+    "copyJson": "Copy JSON",
+    "copied": "Copied"
   },
   "copilot": {
     "title": "Copilot",

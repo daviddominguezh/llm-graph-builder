@@ -35,22 +35,23 @@ function ResponseSection({ visit }: { visit: NodeVisitRow }) {
   const t = useTranslations('dashboard.debug');
   const parsed = parseResponse(visit.response);
 
+  if (parsed.error !== null) {
+    return <ErrorBanner message={parsed.error} />;
+  }
+
   return (
-    <>
-      {parsed.error !== null && <ErrorBanner message={parsed.error} />}
-      <details className="group" open>
-        <summary className="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground">
-          {t('llmResponse')}
-        </summary>
-        <div className="mt-1">
-          {isJsonObject(visit.response) ? (
-            <JsonViewer value={visit.response as Record<string, unknown>} />
-          ) : (
-            <JsonBlock label={t('llmResponse')} data={visit.response} />
-          )}
-        </div>
-      </details>
-    </>
+    <details className="group" open>
+      <summary className="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground">
+        {t('llmResponse')}
+      </summary>
+      <div className="mt-1">
+        {isJsonObject(visit.response) ? (
+          <JsonViewer value={visit.response as Record<string, unknown>} />
+        ) : (
+          <JsonBlock label={t('llmResponse')} data={visit.response} />
+        )}
+      </div>
+    </details>
   );
 }
 

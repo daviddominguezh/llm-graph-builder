@@ -222,10 +222,11 @@ div.model-selector-trigger[data-slot="input-group"] {
 
 .react-flow__node.selectable.selected,
 .react-flow__node.selectable.selected:focus,
-.react-flow__node.selectable.selected:focus:active {
-  box-shadow: var(--xy-node-boxshadow-default);
-  outline: 2px solid var(--xy-theme-selected);
-  outline-offset: 3px;
+.react-flow__node.selectable.selected:focus:active,
+.react-flow__node.selectable.selected:focus-visible {
+  box-shadow: none;
+  outline: none;
+  border-color: transparent;
 }
 
 .react-flow__edge.selectable:hover .react-flow__edge-path,
