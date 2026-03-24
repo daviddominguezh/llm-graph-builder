@@ -1,11 +1,12 @@
 'use client';
 
 import type { ExecutionKeyWithAgents } from '@/app/lib/executionKeys';
+import { formatRelativeTime } from '@/app/utils/formatRelativeTime';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Braces, Trash2 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import React from 'react';
 
 interface ExecutionKeyRowProps {
@@ -61,14 +62,15 @@ function KeyMetadata({ keyData }: { keyData: ExecutionKeyWithAgents }) {
 export function ExecutionKeyRow({ keyData, onDelete }: ExecutionKeyRowProps) {
   const expired = isExpired(keyData.expires_at);
   const t = useTranslations('executionKeys');
+  const locale = useLocale();
 
   return (
     <div className="flex w-full items-center justify-between items-center gap-3 rounded-md border px-3 py-2 bg-card">
       <div className="flex gap-3 items-center flex-1">
-        <div className="bg-background rounded-full p-1.5 border">
-          <Braces className="size-4.5" />
-        </div>
-        <div className="flex min-w-0 flex-1 flex-row gap-1.5 items-center justify-between">
+        <div className="flex min-w-0 flex-1 flex-row gap-1.5 items-center justify-between mr-1">
+          <div className="bg-background rounded-full p-1.5 border">
+            <Braces className="size-4.5" />
+          </div>
           <div className="flex flex-col shrink-0">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-medium font-mono">{keyData.name.toUpperCase()}</span>
@@ -78,7 +80,7 @@ export function ExecutionKeyRow({ keyData, onDelete }: ExecutionKeyRowProps) {
           </div>
           <AgentBadges keyData={keyData} />
           <span>
-            {t('created')} {formatRelativeDate(keyData.created_at)}
+            {t('created')} {formatRelativeTime(keyData.created_at, locale)}
           </span>
           <span>
             {keyData.expires_at !== null
