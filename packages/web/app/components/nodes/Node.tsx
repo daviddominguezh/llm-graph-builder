@@ -50,7 +50,7 @@ function AgentNodeComponent({ data, id, selected }: NodeProps) {
   const nextNodeIsUser = nodeData.nextNodeIsUser ?? false;
 
   const borderWidth = hasError || nextNodeIsUser ? "border-2" : "border";
-  const borderColor = hasError ? "border-red-500" : nextNodeIsUser ? "border-red-500" : "border-secondary";
+  const borderColor = hasError ? "border-destructive" : nextNodeIsUser ? "border-red-500" : "border-secondary";
   const mutedStyle = muted ? "border-border bg-muted grayscale contrast-85 pointer-events-none" : "";
   const selectionRing = selected ? "ring-2 ring-primary" : "";
 
@@ -63,8 +63,8 @@ function AgentNodeComponent({ data, id, selected }: NodeProps) {
       style={{ width: `${width}px`, minHeight: "220px", maxHeight: "220px" }}
     >
       {hasError && (
-        <div className="absolute right-1.5 top-1.5 z-10">
-          <AlertCircle className="size-4 text-red-500" />
+        <div className="absolute -right-2 -top-2 z-10 flex size-5 items-center justify-center rounded-full bg-destructive">
+          <AlertCircle className="size-3 text-white" />
         </div>
       )}
       <Handles nodeId={id} nextNodeIsUser={nextNodeIsUser} />

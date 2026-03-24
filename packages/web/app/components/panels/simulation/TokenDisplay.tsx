@@ -2,6 +2,8 @@
 
 import { ArrowDownToLine, ArrowUpFromLine, Clock, Database, DollarSign } from 'lucide-react';
 
+import { cn } from '@/lib/utils';
+
 import type { SimulationTokens } from '../../../types/simulation';
 
 function formatCount(n: number): string {
@@ -31,7 +33,7 @@ function Separator() {
 
 export function TokenDisplay({ tokens, durationMs, className = '' }: TokenDisplayProps) {
   return (
-    <span className={`inline-flex items-center font-mono text-[10px] text-muted-foreground ${className}`}>
+    <span className={cn('inline-flex items-center font-mono text-[10px] text-muted-foreground', className)}>
       <ArrowDownToLine className="mr-0.5 size-2.5" />
       <span title="Input tokens">{formatCount(tokens.input)}</span>
       <Separator />

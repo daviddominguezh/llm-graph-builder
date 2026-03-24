@@ -1,9 +1,11 @@
 'use client';
 
-import { Bot, Brain, Cog, User, Wrench } from 'lucide-react';
+import { Bot, Brain, Cog, Lock, User, Wrench } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { MarkdownHooks } from 'react-markdown';
+import rehypeStarryNight from 'rehype-starry-night';
 import remarkGfm from 'remark-gfm';
+import '@/app/styles/starry-night.css';
 
 import { SmallJsonBlock, isJsonObject, tryParseJson } from '@/app/components/panels/JsonDisplay';
 
@@ -50,7 +52,7 @@ function TextContent({ text }: { text: string }) {
 function MarkdownContent({ text }: { text: string }) {
   return (
     <div className="markdown-content text-xs leading-relaxed">
-      <MarkdownHooks remarkPlugins={[remarkGfm]}>{text}</MarkdownHooks>
+      <MarkdownHooks remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeStarryNight]}>{text}</MarkdownHooks>
     </div>
   );
 }
@@ -84,7 +86,17 @@ function CardContent({ card }: { card: MessageCard }) {
   if (card.kind === 'user') return <TextContent text={card.text} />;
   if (card.kind === 'system') return <MarkdownContent text={card.text} />;
   if (card.kind === 'assistant') return <AssistantContent text={card.text} />;
-  if (card.kind === 'reasoning') return <MarkdownContent text={card.text} />;
+  if (card.kind === 'reasoning') {
+    if (card.text === '[REDACTED]') {
+      return (
+        <p className="flex items-center gap-1.5 text-xs italic text-muted-foreground bg-card rounded-md p-3">
+          <Lock className="size-3" />
+          {t('encryptedByProvider')}
+        </p>
+      );
+    }
+    return <MarkdownContent text={card.text} />;
+  }
   if (card.kind === 'tool-call') {
     return (
       <div className="flex flex-col gap-1">
@@ -103,7 +115,7 @@ function CardContent({ card }: { card: MessageCard }) {
 
 function MessageCardItem({ card }: { card: MessageCard }) {
   return (
-    <div className="flex flex-col gap-1.5 rounded-md border bg-card p-3">
+    <div className="flex flex-col gap-1.5 rounded-md border bg-muted p-3">
       <RoleBadge kind={card.kind} />
       <CardContent card={card} />
     </div>

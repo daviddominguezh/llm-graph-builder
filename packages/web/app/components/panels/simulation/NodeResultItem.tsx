@@ -3,7 +3,9 @@
 import { AlertTriangle, Braces, Brain, ChevronRight, Wrench } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { MarkdownHooks } from 'react-markdown';
+import rehypeStarryNight from 'rehype-starry-night';
 import remarkGfm from 'remark-gfm';
+import '@/app/styles/starry-night.css';
 import { useState } from 'react';
 
 import type { NodeResult, SimulationToolCall } from '../../../types/simulation';
@@ -133,7 +135,7 @@ function AgentText({ text }: { text: string }) {
   if (text === '') return null;
   return (
     <div className="markdown-content pl-[18px] text-xs leading-relaxed bg-muted/70 rounded-md py-3 pr-3 mt-1 border border-border">
-      <MarkdownHooks remarkPlugins={[remarkGfm]}>{text}</MarkdownHooks>
+      <MarkdownHooks remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeStarryNight]}>{text}</MarkdownHooks>
     </div>
   );
 }

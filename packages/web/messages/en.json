@@ -495,6 +495,7 @@
       "user": "User",
       "session": "Session",
       "channel": "Channel",
+      "createdAt": "Created at",
       "totalCost": "Total Cost",
       "totalTokens": "Total Tokens",
       "toolCall": "tool call",
@@ -507,7 +508,8 @@
       "roleReasoning": "Reasoning",
       "roleToolCall": "Tool Call",
       "roleToolResult": "Tool Result",
-      "showReasoning": "Show reasoning"
+      "showReasoning": "Show reasoning",
+      "encryptedByProvider": "This content was encrypted by the provider and cannot be displayed"
     },
     "empty": "No execution data yet. Agents will appear here after they receive API calls.",
     "noSessions": "No sessions found for this agent."
