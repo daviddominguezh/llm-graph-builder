@@ -43,9 +43,11 @@ export function GraphBuilderLoading({ serverProgress }: GraphBuilderLoadingProps
   const hasServers = serverProgress !== undefined && serverProgress.length > 0;
 
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center">
-      <Loader2 className="size-5 animate-spin text-muted-foreground" />
-      {hasServers && <McpServerList servers={serverProgress} />}
+    <div className="relative flex h-full w-full flex-col items-center justify-center">
+      <div className="absolute top-[50%] flex w-full flex-col items-center justify-center">
+        <Loader2 className="size-5 animate-spin text-muted-foreground" />
+        {hasServers && <McpServerList servers={serverProgress} />}
+      </div>
     </div>
   );
 }
