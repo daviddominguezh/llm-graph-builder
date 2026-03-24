@@ -4,7 +4,7 @@ import type { DashboardParams } from '@/app/lib/dashboard';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
 
-import type { ActiveFilter } from './filter-bar-types';
+import type { ActiveFilter } from './filterBarTypes';
 
 const DEFAULT_PAGE = 0;
 const DEFAULT_PAGE_SIZE = 50;

@@ -1,6 +1,6 @@
-import { getApiKeyValueById } from '@/app/lib/api-keys';
-import { resolveOAuthServers } from '@/app/lib/resolve-oauth-servers';
-import { resolveTransportVariables } from '@/app/lib/resolve-variables-server';
+import { getApiKeyValueById } from '@/app/lib/apiKeys';
+import { resolveOAuthServers } from '@/app/lib/resolveOauthServers';
+import { resolveTransportVariables } from '@/app/lib/resolveVariablesServer';
 import { createClient } from '@/app/lib/supabase/server';
 import { McpTransportSchema, VariableValueSchema } from '@daviddh/graph-types';
 import { NextResponse } from 'next/server';

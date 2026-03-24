@@ -1,6 +1,6 @@
 'use client';
 
-import { createEnvVariableAction } from '@/app/actions/org-env-variables';
+import { createEnvVariableAction } from '@/app/actions/orgEnvVariables';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';

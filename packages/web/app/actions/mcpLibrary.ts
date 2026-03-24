@@ -1,14 +1,14 @@
 'use server';
 
-import type { McpLibraryRow } from '@/app/lib/mcp-library';
+import type { McpLibraryRow } from '@/app/lib/mcpLibrary';
 import {
   getLibraryItemById as getLibraryItemByIdLib,
   incrementInstallations,
   publishToLibrary as publishToLibraryLib,
   unpublishFromLibrary as unpublishFromLibraryLib,
   uploadMcpImage,
-} from '@/app/lib/mcp-library';
-import type { PublishInput } from '@/app/lib/mcp-library-types';
+} from '@/app/lib/mcpLibrary';
+import type { PublishInput } from '@/app/lib/mcpLibraryTypes';
 import { serverError, serverLog } from '@/app/lib/serverLogger';
 
 async function handleImageUpload(

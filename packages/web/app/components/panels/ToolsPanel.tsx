@@ -10,8 +10,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { McpServerStatus } from '../../hooks/useMcpServers';
 import type { DiscoveredTool, ToolCallOptions } from '../../lib/api';
-import type { McpLibraryRow } from '../../lib/mcp-library-types';
-import type { OrgEnvVariableRow } from '../../lib/org-env-variables';
+import type { McpLibraryRow } from '../../lib/mcpLibraryTypes';
+import type { OrgEnvVariableRow } from '../../lib/orgEnvVariables';
 import type { McpServerConfig } from '../../schemas/graph.schema';
 import { McpServersSection } from './McpServersSection';
 import { FloatingSchema, type ToolSchema } from './ToolSchemaPopover';

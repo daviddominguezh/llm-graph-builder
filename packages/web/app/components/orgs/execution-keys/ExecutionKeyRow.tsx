@@ -1,6 +1,6 @@
 'use client';
 
-import type { ExecutionKeyWithAgents } from '@/app/lib/execution-keys';
+import type { ExecutionKeyWithAgents } from '@/app/lib/executionKeys';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';

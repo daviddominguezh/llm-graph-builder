@@ -5,9 +5,9 @@ import { Table } from '@/components/ui/table';
 import { SortableTableBody } from './SortableTableBody';
 import { SortableTableHeader } from './SortableTableHeader';
 import { TablePagination } from './TablePagination';
-import type { SortableTableProps } from './sortable-table-types';
+import type { SortableTableProps } from './sortableTableTypes';
 
-export type { Column, SortableTableProps } from './sortable-table-types';
+export type { Column, SortableTableProps } from './sortableTableTypes';
 
 export function SortableTable<T extends Record<string, unknown>>({
   columns,

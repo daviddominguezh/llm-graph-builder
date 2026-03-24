@@ -17,7 +17,7 @@ import { VersionSwitcherSlot } from './panels/VersionSwitcherSlot';
 import { GraphCanvas } from './GraphCanvas';
 import { SidePanels } from './SidePanels';
 import type { DiscoveredTool } from '../lib/api';
-import type { ApiKeyRow } from '../lib/api-keys';
+import type { ApiKeyRow } from '../lib/apiKeys';
 import type { Agent, Graph } from '../schemas/graph.schema';
 import { useApiKeySelection } from '../hooks/useApiKeySelection';
 import { useAutoSave } from '../hooks/useAutoSave';

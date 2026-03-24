@@ -1,8 +1,8 @@
 import type { McpTransport } from '@/app/schemas/graph.schema';
 
-import { getEnvVariableValue } from './org-env-variables';
-import type { VariableValue } from './resolve-variables';
-import { replaceInTransport } from './resolve-variables';
+import { getEnvVariableValue } from './orgEnvVariables';
+import type { VariableValue } from './resolveVariables';
+import { replaceInTransport } from './resolveVariables';
 
 export async function resolveValues(
   variableValues: Record<string, VariableValue>

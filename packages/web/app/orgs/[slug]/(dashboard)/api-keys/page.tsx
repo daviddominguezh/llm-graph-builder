@@ -1,7 +1,7 @@
 import { ExecutionKeysSection } from '@/app/components/orgs/execution-keys/ExecutionKeysSection';
 import { getAgentsByOrg } from '@/app/lib/agents';
-import type { ExecutionKeyWithAgents } from '@/app/lib/execution-keys';
-import { getAgentsForKey, getExecutionKeysByOrg } from '@/app/lib/execution-keys-queries';
+import type { ExecutionKeyWithAgents } from '@/app/lib/executionKeys';
+import { getAgentsForKey, getExecutionKeysByOrg } from '@/app/lib/executionKeysQueries';
 import { getOrgBySlug } from '@/app/lib/orgs';
 import { redirect } from 'next/navigation';
 

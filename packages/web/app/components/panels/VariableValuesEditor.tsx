@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 
-import type { OrgEnvVariableRow } from '@/app/lib/org-env-variables';
+import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';

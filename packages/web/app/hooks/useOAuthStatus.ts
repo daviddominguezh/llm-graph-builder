@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { getOAuthConnectionStatus } from '../actions/mcp-oauth';
+import { getOAuthConnectionStatus } from '../actions/mcpOauth';
 
 export interface OAuthStatusResult {
   connected: boolean;

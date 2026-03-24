@@ -1,6 +1,6 @@
 'use client';
 
-import type { McpLibraryRow } from '@/app/lib/mcp-library-types';
+import type { McpLibraryRow } from '@/app/lib/mcpLibraryTypes';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@base-ui/react';
 import { Search } from 'lucide-react';

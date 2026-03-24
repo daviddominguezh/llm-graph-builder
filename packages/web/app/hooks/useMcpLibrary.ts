@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import type { McpLibraryRow } from '../lib/mcp-library-types';
+import type { McpLibraryRow } from '../lib/mcpLibraryTypes';
 
 const LIBRARY_LIMIT = 30;
 

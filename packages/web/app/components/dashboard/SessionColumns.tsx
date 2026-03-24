@@ -2,7 +2,7 @@ import type { SessionRow } from '@/app/lib/dashboard';
 import { Button } from '@/components/ui/button';
 import { Bug, CircleAlert, CircleCheck, Trash2 } from 'lucide-react';
 
-import type { Column } from './sortable-table-types';
+import type { Column } from './sortableTableTypes';
 
 function formatDateTime(dateStr: string | null): string {
   if (!dateStr) return '-';

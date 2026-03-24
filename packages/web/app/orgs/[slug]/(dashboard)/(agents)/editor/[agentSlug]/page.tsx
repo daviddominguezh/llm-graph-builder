@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 
 import { getAgentBySlug } from '@/app/lib/agents';
-import { getApiKeysByOrg } from '@/app/lib/api-keys';
+import { getApiKeysByOrg } from '@/app/lib/apiKeys';
 import { getOrgBySlug } from '@/app/lib/orgs';
 
 import { EditorClient } from './EditorClient';

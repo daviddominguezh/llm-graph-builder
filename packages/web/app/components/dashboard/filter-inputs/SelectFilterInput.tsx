@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
-import type { ActiveFilter, FilterDefinition } from '../filter-bar-types';
+import type { ActiveFilter, FilterDefinition } from '../filterBarTypes';
 
 interface SelectFilterInputProps {
   definition: FilterDefinition;

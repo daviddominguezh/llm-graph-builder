@@ -1,6 +1,6 @@
 'use client';
 
-import { deleteApiKeyAction } from '@/app/actions/api-keys';
+import { deleteApiKeyAction } from '@/app/actions/apiKeys';
 import {
   AlertDialog,
   AlertDialogAction,

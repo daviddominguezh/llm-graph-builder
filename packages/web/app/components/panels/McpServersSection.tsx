@@ -8,8 +8,8 @@ import { useState } from 'react';
 
 import type { McpServerStatus } from '../../hooks/useMcpServers';
 import { useOAuthStatus } from '../../hooks/useOAuthStatus';
-import type { OrgEnvVariableRow } from '../../lib/org-env-variables';
-import type { McpAuthType, McpLibraryRow } from '../../lib/mcp-library-types';
+import type { OrgEnvVariableRow } from '../../lib/orgEnvVariables';
+import type { McpAuthType, McpLibraryRow } from '../../lib/mcpLibraryTypes';
 import type { McpServerConfig } from '../../schemas/graph.schema';
 import { LibraryServerFields, areVariablesComplete } from './LibraryServerFields';
 import type { VariableValueShape } from './LibraryServerFields';

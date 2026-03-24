@@ -1,4 +1,4 @@
-import { resolveTransportVariables } from '@/app/lib/resolve-variables-server';
+import { resolveTransportVariables } from '@/app/lib/resolveVariablesServer';
 import { createClient } from '@/app/lib/supabase/server';
 import { McpTransportSchema, VariableValueSchema } from '@daviddh/graph-types';
 import { NextResponse } from 'next/server';

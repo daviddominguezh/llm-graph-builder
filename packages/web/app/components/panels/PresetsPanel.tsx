@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import type { OutputSchemaEntity } from '@daviddh/graph-types';
-import type { ApiKeyRow } from "../../lib/api-keys";
+import type { ApiKeyRow } from "../../lib/apiKeys";
 import { ApiKeySelectSection } from "./ApiKeySelectSection";
 import { type ContextPreset, DEFAULT_PRESET } from "../../types/preset";
 import type { ContextPrecondition } from "../../types/contextPrecondition";

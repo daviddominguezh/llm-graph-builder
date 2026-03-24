@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import type { ActiveFilter } from './filter-bar-types';
+import type { ActiveFilter } from './filterBarTypes';
 
 interface ActiveFilterChipsProps {
   filters: ActiveFilter[];

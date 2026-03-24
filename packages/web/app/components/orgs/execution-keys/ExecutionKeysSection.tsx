@@ -1,8 +1,8 @@
 'use client';
 
-import { getAgentsForKeyAction, getExecutionKeysByOrgAction } from '@/app/actions/execution-keys';
+import { getAgentsForKeyAction, getExecutionKeysByOrgAction } from '@/app/actions/executionKeys';
 import type { AgentMetadata } from '@/app/lib/agents';
-import type { ExecutionKeyRow as ExecutionKeyRowType, ExecutionKeyWithAgents } from '@/app/lib/execution-keys';
+import type { ExecutionKeyRow as ExecutionKeyRowType, ExecutionKeyWithAgents } from '@/app/lib/executionKeys';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus } from 'lucide-react';

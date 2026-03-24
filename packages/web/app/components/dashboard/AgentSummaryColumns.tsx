@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 import type { AgentSummaryRow } from '@/app/lib/dashboard';
 
-import type { Column } from './sortable-table-types';
+import type { Column } from './sortableTableTypes';
 
 function formatAvgCost(row: AgentSummaryRow): string {
   if (row.total_executions === 0) return '$0.00000';

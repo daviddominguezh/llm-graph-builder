@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { useTranslations } from 'next-intl';
 
-import type { ApiKeyRow } from '../../lib/api-keys';
+import type { ApiKeyRow } from '../../lib/apiKeys';
 
 export interface ApiKeySelectProps {
   orgApiKeys: ApiKeyRow[];

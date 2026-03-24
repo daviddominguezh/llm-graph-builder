@@ -3,7 +3,7 @@
 import { TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
-import type { Column } from './sortable-table-types';
+import type { Column } from './sortableTableTypes';
 
 interface SortableTableHeaderProps<T> {
   columns: Column<T>[];

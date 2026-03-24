@@ -1,6 +1,6 @@
 'use server';
 
-import type { CreateExecutionKeyResult, ExecutionKeyAgent, ExecutionKeyRow } from '@/app/lib/execution-keys';
+import type { CreateExecutionKeyResult, ExecutionKeyAgent, ExecutionKeyRow } from '@/app/lib/executionKeys';
 import {
   createExecutionKey as createExecutionKeyLib,
   deleteExecutionKey as deleteExecutionKeyLib,
@@ -8,7 +8,7 @@ import {
   getExecutionKeysByOrg as getExecutionKeysByOrgLib,
   updateExecutionKeyAgents as updateExecutionKeyAgentsLib,
   updateExecutionKeyName as updateExecutionKeyNameLib,
-} from '@/app/lib/execution-keys';
+} from '@/app/lib/executionKeys';
 import { serverError, serverLog } from '@/app/lib/serverLogger';
 
 export async function getExecutionKeysByOrgAction(

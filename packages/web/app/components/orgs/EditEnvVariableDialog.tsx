@@ -1,7 +1,7 @@
 'use client';
 
-import { updateEnvVariableAction } from '@/app/actions/org-env-variables';
-import type { OrgEnvVariableRow } from '@/app/lib/org-env-variables';
+import { updateEnvVariableAction } from '@/app/actions/orgEnvVariables';
+import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';

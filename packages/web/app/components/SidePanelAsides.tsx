@@ -1,7 +1,7 @@
 'use client';
 
 import type { McpLibraryState } from '../hooks/useMcpLibrary';
-import type { McpLibraryRow } from '../lib/mcp-library-types';
+import type { McpLibraryRow } from '../lib/mcpLibraryTypes';
 import type { McpServerConfig } from '../schemas/graph.schema';
 
 import { McpLibraryPanel } from './panels/McpLibraryPanel';

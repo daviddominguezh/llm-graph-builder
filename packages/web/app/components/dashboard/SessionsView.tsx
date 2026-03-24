@@ -11,8 +11,8 @@ import type { SessionRow } from '@/app/lib/dashboard';
 import { DeleteSessionDialog } from './DeleteSessionDialog';
 import { FilterBar } from './FilterBar';
 import { SearchBar } from './SearchBar';
-import { buildSessionColumns } from './session-columns';
-import { buildSessionFilterDefs } from './session-filters';
+import { buildSessionColumns } from './SessionColumns';
+import { buildSessionFilterDefs } from './sessionFilters';
 import { SortableTable } from './SortableTable';
 import { useDashboardParams } from './useDashboardParams';
 

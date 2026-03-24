@@ -63,6 +63,6 @@ export {
   getExecutionKeysByOrg,
   updateExecutionKeyAgents,
   updateExecutionKeyName,
-} from './execution-keys-queries';
+} from './executionKeysQueries';
 
-export type { CreateExecutionKeyResult } from './execution-keys-queries';
+export type { CreateExecutionKeyResult } from './executionKeysQueries';

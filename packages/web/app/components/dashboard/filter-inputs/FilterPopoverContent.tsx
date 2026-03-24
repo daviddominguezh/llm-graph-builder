@@ -1,6 +1,6 @@
 'use client';
 
-import type { ActiveFilter, FilterDefinition } from '../filter-bar-types';
+import type { ActiveFilter, FilterDefinition } from '../filterBarTypes';
 
 import { DateRangeInput } from './DateRangeInput';
 import { SelectFilterInput } from './SelectFilterInput';

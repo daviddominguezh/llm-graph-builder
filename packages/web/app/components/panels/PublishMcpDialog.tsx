@@ -7,8 +7,8 @@ import Image from 'next/image';
 import { type ChangeEvent, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-import { publishMcpAction } from '@/app/actions/mcp-library';
-import { extractVariableNames } from '@/app/lib/resolve-variables';
+import { publishMcpAction } from '@/app/actions/mcpLibrary';
+import { extractVariableNames } from '@/app/lib/resolveVariables';
 import type { McpServerConfig } from '@/app/schemas/graph.schema';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

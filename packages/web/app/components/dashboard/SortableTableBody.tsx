@@ -2,7 +2,7 @@
 
 import { TableBody, TableCell, TableRow } from '@/components/ui/table';
 
-import type { Column } from './sortable-table-types';
+import type { Column } from './sortableTableTypes';
 
 interface SortableTableBodyProps<T extends Record<string, unknown>> {
   columns: Column<T>[];

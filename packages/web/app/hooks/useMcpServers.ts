@@ -3,10 +3,10 @@ import { nanoid } from 'nanoid';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
-import { getOAuthConnectionStatus } from '../actions/mcp-oauth';
+import { getOAuthConnectionStatus } from '../actions/mcpOauth';
 import { type DiscoveredTool, discoverMcpTools } from '../lib/api';
-import type { McpLibraryRow } from '../lib/mcp-library-types';
-import { initiateOAuthFlow } from '../lib/mcp-oauth-client';
+import type { McpLibraryRow } from '../lib/mcpLibraryTypes';
+import { initiateOAuthFlow } from '../lib/mcpOauthClient';
 import type { McpServerConfig } from '../schemas/graph.schema';
 import type { PushOperation } from '../utils/operationBuilders';
 

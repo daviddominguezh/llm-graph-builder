@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { type DiscoveredTool, discoverMcpTools } from '../lib/api';
-import type { McpLibraryRow } from '../lib/mcp-library-types';
+import type { McpLibraryRow } from '../lib/mcpLibraryTypes';
 import type { McpServerConfig } from '../schemas/graph.schema';
 
 export interface McpDiscoveryResult {

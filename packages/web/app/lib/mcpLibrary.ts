@@ -1,9 +1,9 @@
 import { fetchFromBackend, uploadToBackend } from './backendProxy';
-import type { BrowseOptions, McpLibraryRow, PublishInput } from './mcp-library-types';
-import { isLibraryRow } from './mcp-library-types';
+import type { BrowseOptions, McpLibraryRow, PublishInput } from './mcpLibraryTypes';
+import { isLibraryRow } from './mcpLibraryTypes';
 
-export type { McpLibraryRow } from './mcp-library-types';
-export { isLibraryRow } from './mcp-library-types';
+export type { McpLibraryRow } from './mcpLibraryTypes';
+export { isLibraryRow } from './mcpLibraryTypes';
 
 /* ------------------------------------------------------------------ */
 /*  Type guards                                                        */

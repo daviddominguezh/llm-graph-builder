@@ -1,11 +1,11 @@
 'use server';
 
-import type { ApiKeyRow } from '@/app/lib/api-keys';
+import type { ApiKeyRow } from '@/app/lib/apiKeys';
 import {
   createApiKey as createApiKeyLib,
   deleteApiKey as deleteApiKeyLib,
   getApiKeysByOrg as getApiKeysByOrgLib,
-} from '@/app/lib/api-keys';
+} from '@/app/lib/apiKeys';
 import { serverError, serverLog } from '@/app/lib/serverLogger';
 
 export async function getApiKeysByOrgAction(

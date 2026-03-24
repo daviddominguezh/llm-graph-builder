@@ -4,7 +4,7 @@ export type {
   ExecutionSummaryRow,
   NodeVisitRow,
   SessionRow,
-} from './dashboard-queries';
+} from './dashboardQueries';
 
 export {
   deleteSession,
@@ -13,4 +13,4 @@ export {
   getNodeVisitsForExecution,
   getSessionDetail,
   getSessionsByAgent,
-} from './dashboard-queries';
+} from './dashboardQueries';

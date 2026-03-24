@@ -1,12 +1,12 @@
 'use server';
 
-import type { OrgEnvVariableRow } from '@/app/lib/org-env-variables';
+import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
 import {
   createEnvVariable as createEnvVariableLib,
   deleteEnvVariable as deleteEnvVariableLib,
   getEnvVariablesByOrg as getEnvVariablesByOrgLib,
   updateEnvVariable as updateEnvVariableLib,
-} from '@/app/lib/org-env-variables';
+} from '@/app/lib/orgEnvVariables';
 import { serverError, serverLog } from '@/app/lib/serverLogger';
 
 export async function getEnvVariablesByOrgAction(

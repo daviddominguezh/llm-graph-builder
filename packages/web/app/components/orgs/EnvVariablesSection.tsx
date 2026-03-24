@@ -1,7 +1,7 @@
 'use client';
 
-import { getEnvVariablesByOrgAction } from '@/app/actions/org-env-variables';
-import type { OrgEnvVariableRow } from '@/app/lib/org-env-variables';
+import { getEnvVariablesByOrgAction } from '@/app/actions/orgEnvVariables';
+import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Pencil, Plus, Trash2 } from 'lucide-react';

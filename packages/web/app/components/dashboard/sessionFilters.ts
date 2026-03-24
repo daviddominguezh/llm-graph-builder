@@ -1,4 +1,4 @@
-import type { FilterDefinition } from './filter-bar-types';
+import type { FilterDefinition } from './filterBarTypes';
 
 export function buildSessionFilterDefs(t: (key: string) => string): FilterDefinition[] {
   return [

@@ -1,6 +1,6 @@
 'use client';
 
-import { deleteExecutionKeyAction } from '@/app/actions/execution-keys';
+import { deleteExecutionKeyAction } from '@/app/actions/executionKeys';
 import {
   AlertDialog,
   AlertDialogAction,

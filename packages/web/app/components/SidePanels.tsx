@@ -2,8 +2,8 @@
 
 import type { Edge } from '@xyflow/react';
 
-import type { ApiKeyRow } from '../lib/api-keys';
-import type { OrgEnvVariableRow } from '../lib/org-env-variables';
+import type { ApiKeyRow } from '../lib/apiKeys';
+import type { OrgEnvVariableRow } from '../lib/orgEnvVariables';
 import type { Agent, McpServerConfig } from '../schemas/graph.schema';
 import type { McpServersState } from '../hooks/useMcpServers';
 import type { OutputSchemasState } from '../hooks/useOutputSchemas';

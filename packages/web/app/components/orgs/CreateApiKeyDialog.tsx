@@ -1,6 +1,6 @@
 'use client';
 
-import { createApiKeyAction } from '@/app/actions/api-keys';
+import { createApiKeyAction } from '@/app/actions/apiKeys';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';

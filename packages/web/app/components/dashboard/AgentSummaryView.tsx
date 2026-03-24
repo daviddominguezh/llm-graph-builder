@@ -8,8 +8,8 @@ import { useTranslations } from 'next-intl';
 import { fetchAgentSummary } from '@/app/actions/dashboard';
 import type { AgentSummaryRow } from '@/app/lib/dashboard';
 
-import { buildAgentSummaryColumns } from './agent-summary-columns';
-import { buildAgentSummaryFilterDefs } from './agent-summary-filters';
+import { buildAgentSummaryColumns } from './AgentSummaryColumns';
+import { buildAgentSummaryFilterDefs } from './agentSummaryFilters';
 import { FilterBar } from './FilterBar';
 import { SortableTable } from './SortableTable';
 import { useDashboardParams } from './useDashboardParams';

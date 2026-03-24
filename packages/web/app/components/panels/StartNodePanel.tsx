@@ -40,7 +40,7 @@ export function StartNodePanel(props: StartNodePanelProps) {
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6">
+      <div className="flex gap-3 p-6">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
           <Play className="h-5 w-5 text-green-600" />
         </div>

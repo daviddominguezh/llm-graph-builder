@@ -1,8 +1,8 @@
 'use client';
 
-import type { OrgEnvVariableRow } from '@/app/lib/org-env-variables';
-import { extractVariableNames } from '@/app/lib/resolve-variables';
-import type { McpAuthType } from '@/app/lib/mcp-library-types';
+import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
+import { extractVariableNames } from '@/app/lib/resolveVariables';
+import type { McpAuthType } from '@/app/lib/mcpLibraryTypes';
 import type { McpServerConfig } from '@/app/schemas/graph.schema';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';

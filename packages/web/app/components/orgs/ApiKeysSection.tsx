@@ -1,7 +1,7 @@
 'use client';
 
-import { getApiKeysByOrgAction } from '@/app/actions/api-keys';
-import type { ApiKeyRow } from '@/app/lib/api-keys';
+import { getApiKeysByOrgAction } from '@/app/actions/apiKeys';
+import type { ApiKeyRow } from '@/app/lib/apiKeys';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Trash2 } from 'lucide-react';

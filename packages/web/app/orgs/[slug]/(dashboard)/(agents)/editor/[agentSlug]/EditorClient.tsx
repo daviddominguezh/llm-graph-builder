@@ -4,7 +4,7 @@ import type { ComponentType } from 'react';
 
 import dynamic from 'next/dynamic';
 
-import type { ApiKeyRow } from '@/app/lib/api-keys';
+import type { ApiKeyRow } from '@/app/lib/apiKeys';
 
 interface EditorClientProps {
   agentId: string;

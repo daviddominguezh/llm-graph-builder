@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import type { KeyboardEvent } from 'react';
 
-import type { ActiveFilter, FilterDefinition } from '../filter-bar-types';
+import type { ActiveFilter, FilterDefinition } from '../filterBarTypes';
 
 interface TextFilterInputProps {
   definition: FilterDefinition;

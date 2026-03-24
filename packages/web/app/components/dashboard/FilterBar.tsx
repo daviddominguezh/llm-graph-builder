@@ -4,9 +4,9 @@ import { useMemo } from 'react';
 
 import { ActiveFilterChips } from './ActiveFilterChips';
 import { AddFilterButton } from './AddFilterButton';
-import type { FilterBarProps } from './filter-bar-types';
+import type { FilterBarProps } from './filterBarTypes';
 
-export type { ActiveFilter, FilterBarProps, FilterDefinition } from './filter-bar-types';
+export type { ActiveFilter, FilterBarProps, FilterDefinition } from './filterBarTypes';
 
 export function FilterBar({ definitions, active, onAdd, onRemove, onClear }: FilterBarProps) {
   const activeKeys = useMemo(() => new Set(active.map((f) => f.key)), [active]);

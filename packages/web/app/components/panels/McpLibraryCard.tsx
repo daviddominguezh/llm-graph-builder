@@ -1,6 +1,6 @@
 'use client';
 
-import type { McpLibraryRow } from '@/app/lib/mcp-library-types';
+import type { McpLibraryRow } from '@/app/lib/mcpLibraryTypes';
 import { Button } from '@/components/ui/button';
 import { Check, Download, Server } from 'lucide-react';
 import Image from 'next/image';

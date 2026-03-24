@@ -1,4 +1,4 @@
-import type { McpLibraryRow } from '@/app/lib/mcp-library-types';
+import type { McpLibraryRow } from '@/app/lib/mcpLibraryTypes';
 
 import type { AddFromLibraryConfig, McpServersState } from '../hooks/useMcpServers';
 import type { McpServerConfig } from '../schemas/graph.schema';

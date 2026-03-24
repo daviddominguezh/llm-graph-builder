@@ -1,6 +1,6 @@
 'use client';
 
-import { deleteEnvVariableAction } from '@/app/actions/org-env-variables';
+import { deleteEnvVariableAction } from '@/app/actions/orgEnvVariables';
 import {
   AlertDialog,
   AlertDialogAction,

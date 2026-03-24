@@ -2,11 +2,11 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-import { installMcpAction } from '../actions/mcp-library';
+import { installMcpAction } from '../actions/mcpLibrary';
 import type { UseGraphSelectionReturn } from '../hooks/useGraphSelection';
 import type { McpServersState } from '../hooks/useMcpServers';
 import type { OutputSchemasState } from '../hooks/useOutputSchemas';
-import type { McpLibraryRow } from '../lib/mcp-library-types';
+import type { McpLibraryRow } from '../lib/mcpLibraryTypes';
 import type { McpServerConfig } from '../schemas/graph.schema';
 import type { NodeSetter } from './sidePanelHelpers';
 import { buildLibraryConfig } from './sidePanelMcpHelpers';

@@ -1,8 +1,8 @@
 'use client';
 
-import { createExecutionKeyAction } from '@/app/actions/execution-keys';
+import { createExecutionKeyAction } from '@/app/actions/executionKeys';
 import type { AgentMetadata } from '@/app/lib/agents';
-import type { ExecutionKeyRow } from '@/app/lib/execution-keys';
+import type { ExecutionKeyRow } from '@/app/lib/executionKeys';
 import { Button } from '@/components/ui/button';
 import {
   Combobox,
