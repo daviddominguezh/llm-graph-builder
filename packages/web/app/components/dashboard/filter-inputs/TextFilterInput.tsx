@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -16,8 +17,8 @@ export function TextFilterInput({ definition, onApply }: TextFilterInputProps) {
   const t = useTranslations('dashboard.filters');
   const [value, setValue] = useState('');
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key !== 'Enter' || value.trim() === '') return;
+  const applyFilter = () => {
+    if (value.trim() === '') return;
     onApply({
       key: definition.key,
       label: definition.label,
@@ -26,15 +27,22 @@ export function TextFilterInput({ definition, onApply }: TextFilterInputProps) {
     });
   };
 
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') applyFilter();
+  };
+
   return (
-    <div className="p-2">
+    <div className="flex flex-col gap-2">
       <Input
-        placeholder={`${t('apply')}...`}
+        placeholder={`${definition.label}...`}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
         autoFocus
       />
+      <Button size="sm" onClick={applyFilter} disabled={value.trim() === ''}>
+        {t('apply')}
+      </Button>
     </div>
   );
 }

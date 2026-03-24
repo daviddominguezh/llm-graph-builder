@@ -10,10 +10,14 @@ function buildPath(orgId: string): string {
 export async function uploadOrgAvatar(
   supabase: SupabaseClient,
   orgId: string,
-  file: File
+  fileBuffer: Buffer,
+  mimeType: string
 ): Promise<{ result: string | null; error: string | null }> {
   const path = buildPath(orgId);
-  const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true });
+  const { error } = await supabase.storage.from(BUCKET).upload(path, fileBuffer, {
+    upsert: true,
+    contentType: mimeType,
+  });
 
   if (error !== null) return { result: null, error: error.message };
 
@@ -27,7 +31,6 @@ export async function removeOrgAvatar(
 ): Promise<{ error: string | null }> {
   const path = buildPath(orgId);
   const { error } = await supabase.storage.from(BUCKET).remove([path]);
-
   if (error !== null) return { error: error.message };
   return { error: null };
 }

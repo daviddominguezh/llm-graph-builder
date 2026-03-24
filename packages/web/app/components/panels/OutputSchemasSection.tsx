@@ -96,7 +96,7 @@ export function OutputSchemasSection({ schemas, onAdd, onRemove, onEdit }: Outpu
   const t = useTranslations('outputSchemas');
 
   return (
-    <div className="mb-4">
+    <div className="mb-3">
       <div className="flex items-center justify-between mb-1">
         <Label>{t('sectionTitle')}</Label>
         <Button variant="ghost" size="icon-xs" onClick={onAdd}>

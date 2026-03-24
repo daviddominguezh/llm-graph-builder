@@ -1,6 +1,6 @@
 import type { SessionRow } from '@/app/lib/dashboard';
 import { Button } from '@/components/ui/button';
-import { Bug, Trash2 } from 'lucide-react';
+import { Bug, CircleAlert, CircleCheck, Trash2 } from 'lucide-react';
 
 import type { Column } from './sortable-table-types';
 
@@ -59,6 +59,21 @@ export function buildSessionColumns(
   callbacks?: SessionColumnCallbacks
 ): Column<SessionRow>[] {
   const columns: Column<SessionRow>[] = [
+    {
+      key: 'has_error',
+      label: t('columns.status'),
+      sortable: true,
+      render: (row) =>
+        row.has_error ? (
+          <span title={t('columns.statusError')}>
+            <CircleAlert className="size-4 text-destructive" />
+          </span>
+        ) : (
+          <span title={t('columns.statusSuccess')}>
+            <CircleCheck className="size-4 text-green-600" />
+          </span>
+        ),
+    },
     {
       key: 'tenant_id',
       label: t('columns.tenantId'),

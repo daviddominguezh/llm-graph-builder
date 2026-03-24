@@ -5,58 +5,30 @@ import { EnvVariablesSection } from '@/app/components/orgs/EnvVariablesSection';
 import { OrgSettingsForm } from '@/app/components/orgs/OrgSettingsForm';
 import { getApiKeysByOrg } from '@/app/lib/api-keys';
 import { getEnvVariablesByOrg } from '@/app/lib/org-env-variables';
-import { getOrgBySlug } from '@/app/lib/orgs';
-import { createClient } from '@/app/lib/supabase/server';
+import { getOrgBySlug, getOrgRole } from '@/app/lib/orgs';
 import { Separator } from '@/components/ui/separator';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
 
 interface OrgSettingsPageProps {
   params: Promise<{ slug: string }>;
 }
 
-interface MemberRole {
-  role: string;
-}
-
-function isMemberRole(value: unknown): value is MemberRole {
-  return typeof value === 'object' && value !== null && 'role' in value;
-}
-
-async function verifyOwnership(supabase: SupabaseClient, orgId: string): Promise<boolean> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return false;
-
-  const { data } = await supabase
-    .from('org_members')
-    .select('role')
-    .eq('org_id', orgId)
-    .eq('user_id', user.id)
-    .single();
-
-  if (!isMemberRole(data)) return false;
-  return data.role === 'owner';
-}
-
 export default async function OrgSettingsPage({ params }: OrgSettingsPageProps): Promise<React.JSX.Element> {
   const { slug } = await params;
-  const supabase = await createClient();
-  const { result: org } = await getOrgBySlug(supabase, slug);
+  const { result: org } = await getOrgBySlug(slug);
 
   if (!org) {
     redirect('/');
   }
 
-  const isOwner = await verifyOwnership(supabase, org.id);
+  const role = await getOrgRole(org.id);
 
-  if (!isOwner) {
+  if (role !== 'owner') {
     redirect(`/orgs/${slug}`);
   }
 
-  const { result: apiKeys } = await getApiKeysByOrg(supabase, org.id);
-  const envVarsResult = await getEnvVariablesByOrg(supabase, org.id);
+  const { result: apiKeys } = await getApiKeysByOrg(org.id);
+  const envVarsResult = await getEnvVariablesByOrg(org.id);
   const envVariables = envVarsResult.error === null ? envVarsResult.result : [];
 
   return (

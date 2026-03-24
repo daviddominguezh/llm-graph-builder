@@ -97,7 +97,7 @@ export function ApiKeySelectSection(props: ApiKeySelectProps) {
 
   if (orgApiKeys.length === 0) {
     return (
-      <div className="mb-4 space-y-1">
+      <div className="mb-3 space-y-1">
         <Label>{t('stagingKey')}</Label>
         <p className="text-muted-foreground text-xs">{t('noKeys')}</p>
         <Separator className="mt-3" />
@@ -106,7 +106,7 @@ export function ApiKeySelectSection(props: ApiKeySelectProps) {
   }
 
   return (
-    <div className="mb-4 space-y-3">
+    <div className="mb-3 space-y-3">
       <StagingKeySelect orgApiKeys={orgApiKeys} stagingKeyId={stagingKeyId} onStagingKeyChange={onStagingKeyChange} />
       <ProductionKeySelect
         orgApiKeys={orgApiKeys}

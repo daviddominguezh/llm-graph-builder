@@ -1,7 +1,4 @@
 import type { McpTransport } from '@/app/schemas/graph.schema';
-import type { SupabaseClient } from '@supabase/supabase-js';
-
-import { getEnvVariableValue } from './org-env-variables';
 
 export type DirectValue = { type: 'direct'; value: string };
 export type EnvRefValue = { type: 'env_ref'; envVariableId: string };
@@ -18,7 +15,7 @@ export function extractVariableNames(transport: McpTransport): string[] {
   return [...names];
 }
 
-function replaceVariablesInString(str: string, resolved: Record<string, string>): string {
+export function replaceVariablesInString(str: string, resolved: Record<string, string>): string {
   return str.replace(VARIABLE_PATTERN, (_, name: string) => resolved[name] ?? `{{${name}}}`);
 }
 
@@ -32,7 +29,7 @@ function replaceInHeaders(
   );
 }
 
-function replaceInTransport(transport: McpTransport, resolved: Record<string, string>): McpTransport {
+export function replaceInTransport(transport: McpTransport, resolved: Record<string, string>): McpTransport {
   if (transport.type === 'stdio') {
     return {
       ...transport,
@@ -50,34 +47,4 @@ function replaceInTransport(transport: McpTransport, resolved: Record<string, st
     url: replaceVariablesInString(transport.url, resolved),
     headers: replaceInHeaders(transport.headers, resolved),
   };
-}
-
-export async function resolveValues(
-  supabase: SupabaseClient,
-  variableValues: Record<string, VariableValue>
-): Promise<Record<string, string>> {
-  const entries = Object.entries(variableValues);
-  const resolved: Record<string, string> = {};
-
-  await Promise.all(
-    entries.map(async ([name, val]) => {
-      if (val.type === 'direct') {
-        resolved[name] = val.value;
-      } else {
-        const res = await getEnvVariableValue(supabase, val.envVariableId);
-        resolved[name] = res.value ?? '';
-      }
-    })
-  );
-
-  return resolved;
-}
-
-export async function resolveTransportVariables(
-  supabase: SupabaseClient,
-  transport: McpTransport,
-  variableValues: Record<string, VariableValue>
-): Promise<McpTransport> {
-  const resolved = await resolveValues(supabase, variableValues);
-  return replaceInTransport(transport, resolved);
 }

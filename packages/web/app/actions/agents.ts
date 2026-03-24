@@ -8,7 +8,6 @@ import {
   saveStagingKeyId as saveStagingKeyIdLib,
 } from '@/app/lib/agents';
 import { serverError, serverLog } from '@/app/lib/serverLogger';
-import { createClient } from '@/app/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
 export async function createAgentAction(
@@ -17,8 +16,7 @@ export async function createAgentAction(
   description: string
 ): Promise<{ agent: AgentRow | null; error: string | null }> {
   serverLog('[createAgentAction] orgId:', orgId, 'name:', name);
-  const supabase = await createClient();
-  const res = await createAgentLib(supabase, orgId, name, description);
+  const res = await createAgentLib(orgId, name, description);
   if (res.error === null) {
     serverLog('[createAgentAction] created agent:', res.agent?.slug);
     revalidatePath('/orgs/[slug]', 'layout');
@@ -30,8 +28,7 @@ export async function createAgentAction(
 
 export async function deleteAgentAction(agentId: string): Promise<{ error: string | null }> {
   serverLog('[deleteAgentAction] agentId:', agentId);
-  const supabase = await createClient();
-  const res = await deleteAgentLib(supabase, agentId);
+  const res = await deleteAgentLib(agentId);
   if (res.error === null) {
     revalidatePath('/orgs/[slug]', 'layout');
   } else {
@@ -45,8 +42,7 @@ export async function saveStagingKeyIdAction(
   keyId: string | null
 ): Promise<{ error: string | null }> {
   serverLog('[saveStagingKeyIdAction] agentId:', agentId, 'keyId:', keyId);
-  const supabase = await createClient();
-  const res = await saveStagingKeyIdLib(supabase, agentId, keyId);
+  const res = await saveStagingKeyIdLib(agentId, keyId);
   if (res.error !== null) serverError('[saveStagingKeyIdAction] error:', res.error);
   return res;
 }
@@ -56,8 +52,7 @@ export async function saveProductionKeyIdAction(
   keyId: string | null
 ): Promise<{ error: string | null }> {
   serverLog('[saveProductionKeyIdAction] agentId:', agentId, 'keyId:', keyId);
-  const supabase = await createClient();
-  const res = await saveProductionKeyIdLib(supabase, agentId, keyId);
+  const res = await saveProductionKeyIdLib(agentId, keyId);
   if (res.error !== null) serverError('[saveProductionKeyIdAction] error:', res.error);
   return res;
 }

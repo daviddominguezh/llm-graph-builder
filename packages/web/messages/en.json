@@ -434,6 +434,7 @@
     "sessions": "Sessions",
     "sessionsFor": "Sessions for {agentName}",
     "sessionDebug": "Session Trace",
+    "searchPlaceholder": "Search sessions...",
     "columns": {
       "agentName": "Agent",
       "totalExecutions": "Executions",
@@ -443,6 +444,9 @@
       "uniqueUsers": "Users",
       "uniqueSessions": "Sessions",
       "lastExecution": "Last Execution",
+      "status": "Status",
+      "statusSuccess": "Success",
+      "statusError": "Error",
       "tenantId": "Tenant",
       "userId": "User",
       "sessionId": "Session",
@@ -455,9 +459,13 @@
     },
     "filters": {
       "addFilter": "Add filter",
+      "status": "Status",
+      "statusSuccess": "Success",
+      "statusError": "Error",
       "dateRange": "Date range",
       "tenant": "Tenant",
       "user": "User",
+      "session": "Session",
       "agent": "Agent",
       "version": "Version",
       "channel": "Channel",
@@ -465,6 +473,7 @@
       "from": "From",
       "to": "To",
       "apply": "Apply",
+      "back": "Back",
       "clearAll": "Clear all"
     },
     "pagination": {

@@ -155,7 +155,7 @@ function ContextKeyRow({ keyName, onRemove, onRename }: {
 
 function ContextKeysSection({ keys, onAdd, onRemove, onRename }: ContextKeysProps) {
   return (
-    <div className="mb-4">
+    <div className="mb-3">
       <div className="flex items-center justify-between mb-1">
         <Label>Context</Label>
         <Button variant="ghost" size="icon-xs" onClick={() => onAdd('')}>
@@ -244,11 +244,10 @@ export function PresetsPanel(props: PresetsPanelProps) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2 border-b px-4 py-3">
-        <Settings className="size-4" />
+      <div className="flex items-center gap-2 border-b px-3 py-2.5">
         <h2 className="text-sm font-semibold">{t('settings')}</h2>
       </div>
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-3 px-2">
         <ApiKeySelectSection
           orgApiKeys={props.orgApiKeys}
           stagingKeyId={props.stagingKeyId}

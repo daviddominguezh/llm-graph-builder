@@ -15,11 +15,13 @@ interface DashboardParamsState {
   sortKey: string;
   sortDirection: 'asc' | 'desc';
   filters: ActiveFilter[];
+  search: string;
   setSort: (key: string) => void;
   setPage: (page: number) => void;
   addFilter: (filter: ActiveFilter) => void;
   removeFilter: (key: string) => void;
   clearFilters: () => void;
+  setSearch: (search: string) => void;
 }
 
 function parseFilters(sp: URLSearchParams): ActiveFilter[] {
@@ -42,14 +44,19 @@ function filtersToRecord(filters: ActiveFilter[]): Record<string, string | strin
   return record;
 }
 
-function buildSearchString(sortKey: string, sortDir: string, page: number, filters: ActiveFilter[]): string {
+function buildUrlParams(
+  sortKey: string,
+  sortDir: string,
+  page: number,
+  filters: ActiveFilter[],
+  search: string
+): string {
   const sp = new URLSearchParams();
   sp.set('sort', sortKey);
   sp.set('dir', sortDir);
   sp.set('page', String(page));
-  if (filters.length > 0) {
-    sp.set('filters', JSON.stringify(filters));
-  }
+  if (filters.length > 0) sp.set('filters', JSON.stringify(filters));
+  if (search !== '') sp.set('search', search);
   return sp.toString();
 }
 
@@ -61,10 +68,11 @@ export function useDashboardParams(defaultSort: string): DashboardParamsState {
   const sortDirection = (searchParams.get('dir') ?? 'desc') as 'asc' | 'desc';
   const page = Number(searchParams.get('page') ?? DEFAULT_PAGE);
   const filters = useMemo(() => parseFilters(searchParams), [searchParams]);
+  const search = searchParams.get('search') ?? '';
 
   const navigate = useCallback(
-    (sort: string, dir: string, p: number, f: ActiveFilter[]) => {
-      router.push(`?${buildSearchString(sort, dir, p, f)}`);
+    (sort: string, dir: string, p: number, f: ActiveFilter[], s: string) => {
+      router.push(`?${buildUrlParams(sort, dir, p, f, s)}`);
     },
     [router]
   );
@@ -72,24 +80,24 @@ export function useDashboardParams(defaultSort: string): DashboardParamsState {
   const setSort = useCallback(
     (key: string) => {
       const newDir = key === sortKey && sortDirection === 'desc' ? 'asc' : 'desc';
-      navigate(key, newDir, DEFAULT_PAGE, filters);
+      navigate(key, newDir, DEFAULT_PAGE, filters, search);
     },
-    [sortKey, sortDirection, filters, navigate]
+    [sortKey, sortDirection, filters, search, navigate]
   );
 
   const setPage = useCallback(
     (p: number) => {
-      navigate(sortKey, sortDirection, p, filters);
+      navigate(sortKey, sortDirection, p, filters, search);
     },
-    [sortKey, sortDirection, filters, navigate]
+    [sortKey, sortDirection, filters, search, navigate]
   );
 
   const addFilter = useCallback(
     (filter: ActiveFilter) => {
       const next = [...filters.filter((f) => f.key !== filter.key), filter];
-      navigate(sortKey, sortDirection, DEFAULT_PAGE, next);
+      navigate(sortKey, sortDirection, DEFAULT_PAGE, next, search);
     },
-    [sortKey, sortDirection, filters, navigate]
+    [sortKey, sortDirection, filters, search, navigate]
   );
 
   const removeFilter = useCallback(
@@ -98,15 +106,23 @@ export function useDashboardParams(defaultSort: string): DashboardParamsState {
         sortKey,
         sortDirection,
         DEFAULT_PAGE,
-        filters.filter((f) => f.key !== key)
+        filters.filter((f) => f.key !== key),
+        search
       );
     },
-    [sortKey, sortDirection, filters, navigate]
+    [sortKey, sortDirection, filters, search, navigate]
   );
 
   const clearFilters = useCallback(() => {
-    navigate(sortKey, sortDirection, DEFAULT_PAGE, []);
-  }, [sortKey, sortDirection, navigate]);
+    navigate(sortKey, sortDirection, DEFAULT_PAGE, [], search);
+  }, [sortKey, sortDirection, search, navigate]);
+
+  const setSearch = useCallback(
+    (s: string) => {
+      navigate(sortKey, sortDirection, DEFAULT_PAGE, filters, s);
+    },
+    [sortKey, sortDirection, filters, navigate]
+  );
 
   const params: DashboardParams = useMemo(
     () => ({
@@ -115,8 +131,9 @@ export function useDashboardParams(defaultSort: string): DashboardParamsState {
       sortKey,
       sortDirection,
       filters: filtersToRecord(filters),
+      search: search || undefined,
     }),
-    [page, sortKey, sortDirection, filters]
+    [page, sortKey, sortDirection, filters, search]
   );
 
   return {
@@ -125,10 +142,12 @@ export function useDashboardParams(defaultSort: string): DashboardParamsState {
     sortKey,
     sortDirection,
     filters,
+    search,
     setSort,
     setPage,
     addFilter,
     removeFilter,
     clearFilters,
+    setSearch,
   };
 }

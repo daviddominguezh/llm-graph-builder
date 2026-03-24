@@ -3,23 +3,18 @@ import { getAgentsByOrg } from '@/app/lib/agents';
 import type { ExecutionKeyWithAgents } from '@/app/lib/execution-keys';
 import { getAgentsForKey, getExecutionKeysByOrg } from '@/app/lib/execution-keys-queries';
 import { getOrgBySlug } from '@/app/lib/orgs';
-import { createClient } from '@/app/lib/supabase/server';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
 
 interface ApiKeysPageProps {
   params: Promise<{ slug: string }>;
 }
 
-async function fetchKeysWithAgents(
-  supabase: SupabaseClient,
-  orgId: string
-): Promise<ExecutionKeyWithAgents[]> {
-  const { result: keys } = await getExecutionKeysByOrg(supabase, orgId);
+async function fetchKeysWithAgents(orgId: string): Promise<ExecutionKeyWithAgents[]> {
+  const { result: keys } = await getExecutionKeysByOrg(orgId);
 
   const results = await Promise.all(
     keys.map(async (key) => {
-      const { result: agents } = await getAgentsForKey(supabase, key.id);
+      const { result: agents } = await getAgentsForKey(key.id);
       return { ...key, agents };
     })
   );
@@ -29,16 +24,15 @@ async function fetchKeysWithAgents(
 
 export default async function ApiKeysPage({ params }: ApiKeysPageProps): Promise<React.JSX.Element> {
   const { slug } = await params;
-  const supabase = await createClient();
-  const { result: org } = await getOrgBySlug(supabase, slug);
+  const { result: org } = await getOrgBySlug(slug);
 
   if (!org) {
     redirect('/');
   }
 
   const [keysWithAgents, { agents: allAgents }] = await Promise.all([
-    fetchKeysWithAgents(supabase, org.id),
-    getAgentsByOrg(supabase, org.id),
+    fetchKeysWithAgents(org.id),
+    getAgentsByOrg(org.id),
   ]);
 
   const publishedAgents = allAgents.filter((a) => a.published_at !== null);

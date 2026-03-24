@@ -4,7 +4,6 @@ import { redirect } from 'next/navigation';
 import { AgentEmptyState } from '@/app/components/agents/AgentEmptyState';
 import { getCachedAgentsByOrg } from '@/app/lib/agents';
 import { getOrgBySlug } from '@/app/lib/orgs';
-import { createClient } from '@/app/lib/supabase/server';
 
 interface AgentsPageProps {
   params: Promise<{ slug: string }>;
@@ -48,14 +47,13 @@ function SelectAgentPrompt() {
 
 export default async function AgentsPage({ params }: AgentsPageProps): Promise<React.JSX.Element> {
   const { slug } = await params;
-  const supabase = await createClient();
-  const { result: org } = await getOrgBySlug(supabase, slug);
+  const { result: org } = await getOrgBySlug(slug);
 
   if (!org) {
     redirect('/');
   }
 
-  const { agents } = await getCachedAgentsByOrg(supabase, org.id);
+  const { agents } = await getCachedAgentsByOrg(org.id);
 
   if (agents.length === 0) {
     return <AgentEmptyState orgId={org.id} orgSlug={org.slug} />;

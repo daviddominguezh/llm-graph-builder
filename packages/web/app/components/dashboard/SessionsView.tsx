@@ -10,6 +10,7 @@ import type { SessionRow } from '@/app/lib/dashboard';
 
 import { DeleteSessionDialog } from './DeleteSessionDialog';
 import { FilterBar } from './FilterBar';
+import { SearchBar } from './SearchBar';
 import { buildSessionColumns } from './session-columns';
 import { buildSessionFilterDefs } from './session-filters';
 import { SortableTable } from './SortableTable';
@@ -42,8 +43,10 @@ export function SessionsView({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  const { params, page, sortKey, sortDirection, filters, setSort, setPage, addFilter, removeFilter, clearFilters } =
-    useDashboardParams('updated_at');
+  const {
+    params, page, sortKey, sortDirection, filters, search,
+    setSort, setPage, addFilter, removeFilter, clearFilters, setSearch,
+  } = useDashboardParams('updated_at');
 
   const [rows, setRows] = useState<SessionRow[]>(initialRows);
   const [totalCount, setTotalCount] = useState(initialTotal);
@@ -81,13 +84,16 @@ export function SessionsView({
 
   return (
     <div className="flex flex-col gap-4">
-      <FilterBar
-        definitions={filterDefs}
-        active={filters}
-        onAdd={addFilter}
-        onRemove={removeFilter}
-        onClear={clearFilters}
-      />
+      <div className="flex items-center gap-3">
+        <SearchBar value={search} onChange={setSearch} />
+        <FilterBar
+          definitions={filterDefs}
+          active={filters}
+          onAdd={addFilter}
+          onRemove={removeFilter}
+          onClear={clearFilters}
+        />
+      </div>
       <SortableTable<SessionRow>
         columns={columns}
         rows={rows}

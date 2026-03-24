@@ -1,7 +1,10 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { cache } from 'react';
 
-import { findUniqueSlug, generateSlug } from './slug';
+import { fetchFromBackend } from './backendProxy';
+
+/* ------------------------------------------------------------------ */
+/*  Types                                                              */
+/* ------------------------------------------------------------------ */
 
 export interface AgentRow {
   id: string;
@@ -25,154 +28,101 @@ export type AgentMetadata = Pick<
   published_at: string | null;
 };
 
-interface VersionRow {
-  agent_id: string;
-  published_at: string;
-}
+/* ------------------------------------------------------------------ */
+/*  Type guards                                                        */
+/* ------------------------------------------------------------------ */
 
-interface InsertAgentParams {
-  supabase: SupabaseClient;
-  orgId: string;
-  name: string;
-  slug: string;
-  description: string;
-}
-
-const METADATA_COLUMNS = 'id, name, slug, description, version, updated_at';
-
-/**
- * Supabase returns untyped data for schemas without codegen.
- * This type predicate enables safe narrowing from query results.
- */
-function isAgentRow(value: unknown): value is AgentRow {
+export function isAgentRow(value: unknown): value is AgentRow {
   return typeof value === 'object' && value !== null && 'id' in value && 'slug' in value;
 }
 
-async function fetchPublishedAtMap(
-  supabase: SupabaseClient,
-  agentIds: string[]
-): Promise<Map<string, string>> {
-  const { data } = await supabase
-    .from('agent_versions')
-    .select('agent_id, published_at')
-    .in('agent_id', agentIds)
-    .order('version', { ascending: false });
-
-  const map = new Map<string, string>();
-  for (const v of (data as VersionRow[] | null) ?? []) {
-    if (!map.has(v.agent_id)) {
-      map.set(v.agent_id, v.published_at);
-    }
-  }
-  return map;
+function isAgentMetadataArray(value: unknown): value is AgentMetadata[] {
+  return Array.isArray(value);
 }
 
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+function extractError(err: unknown): string {
+  return err instanceof Error ? err.message : 'Unknown error';
+}
+
+/* ------------------------------------------------------------------ */
+/*  Queries via backend proxy                                          */
+/* ------------------------------------------------------------------ */
+
 export async function getAgentsByOrg(
-  supabase: SupabaseClient,
   orgId: string
 ): Promise<{ agents: AgentMetadata[]; error: string | null }> {
-  const { data, error } = await supabase
-    .from('agents')
-    .select(METADATA_COLUMNS)
-    .eq('org_id', orgId)
-    .order('updated_at', { ascending: false });
-
-  if (error !== null) return { agents: [], error: error.message };
-
-  type AgentBase = Pick<AgentRow, 'id' | 'name' | 'slug' | 'description' | 'version' | 'updated_at'>;
-  const rows = (data as AgentBase[] | null) ?? [];
-  if (rows.length === 0) return { agents: [], error: null };
-
-  const publishedAtMap = await fetchPublishedAtMap(
-    supabase,
-    rows.map((a) => a.id)
-  );
-
-  const agents: AgentMetadata[] = rows.map((a) => ({
-    ...a,
-    published_at: publishedAtMap.get(a.id) ?? null,
-  }));
-
-  return { agents, error: null };
+  try {
+    const data = await fetchFromBackend('GET', `/agents/by-org/${encodeURIComponent(orgId)}`);
+    if (!isAgentMetadataArray(data)) return { agents: [], error: 'Invalid response' };
+    return { agents: data, error: null };
+  } catch (err) {
+    return { agents: [], error: extractError(err) };
+  }
 }
 
 export const getCachedAgentsByOrg = cache(getAgentsByOrg);
 
 export async function getAgentBySlug(
-  supabase: SupabaseClient,
   slug: string
 ): Promise<{ agent: AgentRow | null; error: string | null }> {
-  const result = await supabase.from('agents').select('*').eq('slug', slug).single();
-
-  if (result.error !== null) return { agent: null, error: result.error.message };
-  if (!isAgentRow(result.data)) return { agent: null, error: 'Invalid agent data' };
-  return { agent: result.data, error: null };
-}
-
-async function insertAgent(
-  params: InsertAgentParams
-): Promise<{ agent: AgentRow | null; error: string | null }> {
-  const result = await params.supabase
-    .from('agents')
-    .insert({
-      org_id: params.orgId,
-      name: params.name,
-      slug: params.slug,
-      description: params.description,
-    })
-    .select()
-    .single();
-
-  if (result.error !== null) return { agent: null, error: result.error.message };
-  if (!isAgentRow(result.data)) return { agent: null, error: 'Invalid agent data' };
-  return { agent: result.data, error: null };
+  try {
+    const data = await fetchFromBackend('GET', `/agents/by-slug/${encodeURIComponent(slug)}`);
+    if (!isAgentRow(data)) return { agent: null, error: 'Invalid response' };
+    return { agent: data, error: null };
+  } catch (err) {
+    return { agent: null, error: extractError(err) };
+  }
 }
 
 export async function createAgent(
-  supabase: SupabaseClient,
   orgId: string,
   name: string,
   description: string
 ): Promise<{ agent: AgentRow | null; error: string | null }> {
-  const baseSlug = generateSlug(name);
-  if (baseSlug === '') {
-    return { agent: null, error: 'Invalid agent name' };
+  try {
+    const data = await fetchFromBackend('POST', '/agents', { orgId, name, description });
+    if (!isAgentRow(data)) return { agent: null, error: 'Invalid response' };
+    return { agent: data, error: null };
+  } catch (err) {
+    return { agent: null, error: extractError(err) };
   }
-
-  const slug = await findUniqueSlug(supabase, baseSlug, 'agents');
-  return await insertAgent({ supabase, orgId, name, slug, description });
 }
 
 export async function saveStagingKeyId(
-  supabase: SupabaseClient,
   agentId: string,
   keyId: string | null
 ): Promise<{ error: string | null }> {
-  const payload: Record<string, unknown> = { staging_api_key_id: keyId };
-  const { error } = await supabase.from('agents').update(payload).eq('id', agentId);
-
-  if (error !== null) return { error: error.message };
-  return { error: null };
+  try {
+    await fetchFromBackend('PATCH', `/agents/${encodeURIComponent(agentId)}/staging-key`, { keyId });
+    return { error: null };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
 }
 
 export async function saveProductionKeyId(
-  supabase: SupabaseClient,
   agentId: string,
   keyId: string | null
 ): Promise<{ error: string | null }> {
-  const payload: Record<string, unknown> = { production_api_key_id: keyId };
-  const { error } = await supabase.from('agents').update(payload).eq('id', agentId);
-
-  if (error !== null) return { error: error.message };
-  return { error: null };
+  try {
+    await fetchFromBackend('PATCH', `/agents/${encodeURIComponent(agentId)}/production-key`, {
+      keyId,
+    });
+    return { error: null };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
 }
 
-export async function deleteAgent(
-  supabase: SupabaseClient,
-  agentId: string
-): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('agents').delete().eq('id', agentId);
-
-  if (error !== null) return { error: error.message };
-  return { error: null };
+export async function deleteAgent(agentId: string): Promise<{ error: string | null }> {
+  try {
+    await fetchFromBackend('DELETE', `/agents/${encodeURIComponent(agentId)}`);
+    return { error: null };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
 }

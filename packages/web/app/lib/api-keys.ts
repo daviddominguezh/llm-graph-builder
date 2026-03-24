@@ -1,4 +1,8 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { fetchFromBackend } from './backendProxy';
+
+/* ------------------------------------------------------------------ */
+/*  Types                                                              */
+/* ------------------------------------------------------------------ */
 
 export interface ApiKeyRow {
   id: string;
@@ -8,73 +12,79 @@ export interface ApiKeyRow {
   created_at: string;
 }
 
-/**
- * Supabase returns untyped data for schemas without codegen.
- * This type predicate enables safe narrowing from query results.
- */
+/* ------------------------------------------------------------------ */
+/*  Type guards                                                        */
+/* ------------------------------------------------------------------ */
+
 export function isApiKeyRow(value: unknown): value is ApiKeyRow {
   return typeof value === 'object' && value !== null && 'id' in value && 'key_preview' in value;
 }
 
-function mapApiKeyRows(data: unknown[]): ApiKeyRow[] {
-  return data.reduce<ApiKeyRow[]>((acc, row) => {
-    if (isApiKeyRow(row)) acc.push(row);
-    return acc;
-  }, []);
+function isApiKeyRowArray(val: unknown): val is ApiKeyRow[] {
+  return Array.isArray(val);
 }
 
-const API_KEY_COLUMNS = 'id, org_id, name, key_preview, created_at';
+interface ApiKeyValueResponse {
+  value: string | null;
+}
 
-export async function getApiKeysByOrg(
-  supabase: SupabaseClient,
-  orgId: string
-): Promise<{ result: ApiKeyRow[]; error: string | null }> {
-  const { data, error } = await supabase
-    .from('org_api_keys')
-    .select(API_KEY_COLUMNS)
-    .eq('org_id', orgId)
-    .order('created_at', { ascending: false });
+function isApiKeyValueResponse(val: unknown): val is ApiKeyValueResponse {
+  return typeof val === 'object' && val !== null && 'value' in val;
+}
 
-  if (error !== null) return { result: [], error: error.message };
-  const rows: unknown[] = (data as unknown[] | null) ?? [];
-  return { result: mapApiKeyRows(rows), error: null };
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+function extractError(err: unknown): string {
+  return err instanceof Error ? err.message : 'Unknown error';
+}
+
+/* ------------------------------------------------------------------ */
+/*  Queries via backend proxy                                          */
+/* ------------------------------------------------------------------ */
+
+export async function getApiKeysByOrg(orgId: string): Promise<{ result: ApiKeyRow[]; error: string | null }> {
+  try {
+    const data = await fetchFromBackend('GET', `/secrets/api-keys/${encodeURIComponent(orgId)}`);
+    if (!isApiKeyRowArray(data)) return { result: [], error: 'Invalid response' };
+    return { result: data, error: null };
+  } catch (err) {
+    return { result: [], error: extractError(err) };
+  }
 }
 
 export async function getApiKeyValueById(
-  supabase: SupabaseClient,
   keyId: string
 ): Promise<{ value: string | null; error: string | null }> {
-  const { data, error } = await supabase.rpc('get_api_key_value', { p_key_id: keyId });
-
-  if (error !== null) return { value: null, error: error.message };
-  return { value: (data as string) ?? null, error: null };
+  try {
+    const data = await fetchFromBackend('GET', `/secrets/api-keys/${encodeURIComponent(keyId)}/value`);
+    if (!isApiKeyValueResponse(data)) return { value: null, error: 'Invalid response' };
+    return { value: data.value, error: null };
+  } catch (err) {
+    return { value: null, error: extractError(err) };
+  }
 }
 
 export async function createApiKey(
-  supabase: SupabaseClient,
   orgId: string,
   name: string,
   keyValue: string
 ): Promise<{ result: ApiKeyRow | null; error: string | null }> {
-  const { data, error } = await supabase.rpc('create_org_api_key', {
-    p_org_id: orgId,
-    p_name: name,
-    p_key_value: keyValue,
-  });
-
-  if (error !== null) return { result: null, error: error.message };
-  const rows = data as unknown[];
-  const first: unknown = rows[0];
-  if (!isApiKeyRow(first)) return { result: null, error: 'Invalid API key data' };
-  return { result: first, error: null };
+  try {
+    const data = await fetchFromBackend('POST', '/secrets/api-keys', { orgId, name, keyValue });
+    if (!isApiKeyRow(data)) return { result: null, error: 'Invalid response' };
+    return { result: data, error: null };
+  } catch (err) {
+    return { result: null, error: extractError(err) };
+  }
 }
 
-export async function deleteApiKey(
-  supabase: SupabaseClient,
-  keyId: string
-): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('org_api_keys').delete().eq('id', keyId);
-
-  if (error !== null) return { error: error.message };
-  return { error: null };
+export async function deleteApiKey(keyId: string): Promise<{ error: string | null }> {
+  try {
+    await fetchFromBackend('DELETE', `/secrets/api-keys/${encodeURIComponent(keyId)}`);
+    return { error: null };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
 }

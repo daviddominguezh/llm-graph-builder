@@ -1,24 +1,20 @@
-import { browseLibrary } from '@/app/lib/mcp-library';
-import { createClient } from '@/app/lib/supabase/server';
-import { NextResponse } from 'next/server';
-
-const HTTP_UNAUTHORIZED = 401;
+import { proxyToBackend } from '@/app/lib/backendProxy';
 
 export async function GET(request: Request): Promise<Response> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (user === null) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: HTTP_UNAUTHORIZED });
-  }
-
   const { searchParams } = new URL(request.url);
-  const query = searchParams.get('q') ?? undefined;
-  const category = searchParams.get('category') ?? undefined;
-  const limit = Number(searchParams.get('limit') ?? '30');
-  const offset = Number(searchParams.get('offset') ?? '0');
+  const params = new URLSearchParams();
 
-  const res = await browseLibrary(supabase, { query, category, limit, offset });
-  return NextResponse.json(res);
+  const q = searchParams.get('q');
+  const category = searchParams.get('category');
+  const limit = searchParams.get('limit');
+  const offset = searchParams.get('offset');
+
+  if (q !== null) params.set('q', q);
+  if (category !== null) params.set('category', category);
+  if (limit !== null) params.set('limit', limit);
+  if (offset !== null) params.set('offset', offset);
+
+  const qs = params.toString();
+  const path = qs === '' ? '/mcp-library' : `/mcp-library?${qs}`;
+  return proxyToBackend('GET', path);
 }

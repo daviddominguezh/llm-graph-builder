@@ -36,12 +36,12 @@ export function DateRangeInput({ definition, onApply }: DateRangeInputProps) {
   };
 
   return (
-    <div className="flex flex-col gap-2 p-2">
+    <div className="flex flex-col gap-2">
       <Label className="text-xs">{t('from')}</Label>
       <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
       <Label className="text-xs">{t('to')}</Label>
       <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-      <Button size="xs" onClick={handleApply} disabled={from === '' && to === ''}>
+      <Button size="sm" onClick={handleApply} disabled={from === '' && to === ''}>
         {t('apply')}
       </Button>
     </div>

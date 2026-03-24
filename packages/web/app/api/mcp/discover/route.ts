@@ -1,4 +1,4 @@
-import { resolveTransportVariables } from '@/app/lib/resolve-variables';
+import { resolveTransportVariables } from '@/app/lib/resolve-variables-server';
 import { createClient } from '@/app/lib/supabase/server';
 import { McpTransportSchema, VariableValueSchema } from '@daviddh/graph-types';
 import { NextResponse } from 'next/server';
@@ -16,7 +16,6 @@ const DiscoverRequestSchema = z.object({
 });
 
 type DiscoverRequest = z.infer<typeof DiscoverRequestSchema>;
-type SupabaseClientType = Awaited<ReturnType<typeof createClient>>;
 
 async function resolveOAuthHeaders(
   authHeader: string,
@@ -35,7 +34,6 @@ async function resolveOAuthHeaders(
 }
 
 interface ProxyContext {
-  supabase: SupabaseClientType;
   authHeader: string;
   parsed: DiscoverRequest;
 }
@@ -44,7 +42,7 @@ async function resolveAndProxy(ctx: ProxyContext): Promise<Response> {
   let { transport } = ctx.parsed;
 
   if (ctx.parsed.variableValues !== undefined) {
-    transport = await resolveTransportVariables(ctx.supabase, transport, ctx.parsed.variableValues);
+    transport = await resolveTransportVariables(transport, ctx.parsed.variableValues);
   }
 
   const oauthHeaders = await resolveOAuthHeaders(ctx.authHeader, ctx.parsed);
@@ -80,5 +78,5 @@ export async function POST(request: Request): Promise<Response> {
   const session = await supabase.auth.getSession();
   const authHeader = `Bearer ${session.data.session?.access_token ?? ''}`;
 
-  return resolveAndProxy({ supabase, authHeader, parsed: result.data });
+  return resolveAndProxy({ authHeader, parsed: result.data });
 }

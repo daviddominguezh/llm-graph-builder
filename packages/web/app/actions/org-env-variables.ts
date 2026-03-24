@@ -8,14 +8,12 @@ import {
   updateEnvVariable as updateEnvVariableLib,
 } from '@/app/lib/org-env-variables';
 import { serverError, serverLog } from '@/app/lib/serverLogger';
-import { createClient } from '@/app/lib/supabase/server';
 
 export async function getEnvVariablesByOrgAction(
   orgId: string
 ): Promise<{ result: OrgEnvVariableRow[]; error: string | null }> {
   serverLog('[getEnvVariablesByOrgAction] orgId:', orgId);
-  const supabase = await createClient();
-  const res = await getEnvVariablesByOrgLib(supabase, orgId);
+  const res = await getEnvVariablesByOrgLib(orgId);
   if (res.error === null) serverLog('[getEnvVariablesByOrgAction] found', res.result.length, 'variables');
   else serverError('[getEnvVariablesByOrgAction] error:', res.error);
   return res;
@@ -28,8 +26,7 @@ export async function createEnvVariableAction(
   isSecret: boolean
 ): Promise<{ result: OrgEnvVariableRow | null; error: string | null }> {
   serverLog('[createEnvVariableAction] orgId:', orgId, 'name:', name);
-  const supabase = await createClient();
-  const res = await createEnvVariableLib(supabase, orgId, name, value, isSecret);
+  const res = await createEnvVariableLib(orgId, name, value, isSecret);
   if (res.error === null) serverLog('[createEnvVariableAction] created variable:', res.result?.id);
   else serverError('[createEnvVariableAction] error:', res.error);
   return res;
@@ -40,16 +37,14 @@ export async function updateEnvVariableAction(
   updates: { name?: string; value?: string; isSecret?: boolean }
 ): Promise<{ error: string | null }> {
   serverLog('[updateEnvVariableAction] variableId:', variableId);
-  const supabase = await createClient();
-  const res = await updateEnvVariableLib(supabase, variableId, updates);
+  const res = await updateEnvVariableLib(variableId, updates);
   if (res.error !== null) serverError('[updateEnvVariableAction] error:', res.error);
   return res;
 }
 
 export async function deleteEnvVariableAction(variableId: string): Promise<{ error: string | null }> {
   serverLog('[deleteEnvVariableAction] variableId:', variableId);
-  const supabase = await createClient();
-  const res = await deleteEnvVariableLib(supabase, variableId);
+  const res = await deleteEnvVariableLib(variableId);
   if (res.error !== null) serverError('[deleteEnvVariableAction] error:', res.error);
   return res;
 }

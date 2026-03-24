@@ -1,7 +1,6 @@
 import { AgentsSidebarProvider } from '@/app/components/agents/AgentsSidebarContext';
 import { OrgSidebar } from '@/app/components/orgs/OrgSidebar';
 import { getOrgBySlug } from '@/app/lib/orgs';
-import { createClient } from '@/app/lib/supabase/server';
 import { redirect } from 'next/navigation';
 
 interface OrgLayoutProps {
@@ -11,8 +10,7 @@ interface OrgLayoutProps {
 
 export default async function OrgLayout({ children, params }: OrgLayoutProps): Promise<React.JSX.Element> {
   const { slug } = await params;
-  const supabase = await createClient();
-  const { result: org } = await getOrgBySlug(supabase, slug);
+  const { result: org } = await getOrgBySlug(slug);
 
   if (!org) {
     redirect('/');

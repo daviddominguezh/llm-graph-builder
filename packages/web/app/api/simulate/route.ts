@@ -1,9 +1,8 @@
 import { getApiKeyValueById } from '@/app/lib/api-keys';
 import { resolveOAuthServers } from '@/app/lib/resolve-oauth-servers';
-import { resolveTransportVariables } from '@/app/lib/resolve-variables';
+import { resolveTransportVariables } from '@/app/lib/resolve-variables-server';
 import { createClient } from '@/app/lib/supabase/server';
 import { McpTransportSchema, VariableValueSchema } from '@daviddh/graph-types';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -29,38 +28,32 @@ const McpServerEntrySchema = z
   })
   .passthrough();
 
-async function resolveServerVariables(
-  supabase: SupabaseClient,
-  server: Record<string, unknown>
-): Promise<Record<string, unknown>> {
+async function resolveServerVariables(server: Record<string, unknown>): Promise<Record<string, unknown>> {
   const parsed = McpServerEntrySchema.safeParse(server);
   if (!parsed.success) return server;
   const { variableValues } = parsed.data;
   if (variableValues === undefined) return server;
-  const resolved = await resolveTransportVariables(supabase, parsed.data.transport, variableValues);
+  const resolved = await resolveTransportVariables(parsed.data.transport, variableValues);
   return { ...server, transport: resolved, variableValues: undefined };
 }
 
-async function resolveMcpServersInGraph(supabase: SupabaseClient, graph: unknown): Promise<void> {
+async function resolveMcpServersInGraph(graph: unknown): Promise<void> {
   if (typeof graph !== 'object' || graph === null || !('mcpServers' in graph)) return;
   const g = graph as Record<string, unknown>;
   const servers = g.mcpServers;
   if (!Array.isArray(servers)) return;
   g.mcpServers = await Promise.all(
-    servers.map((s: unknown) => resolveServerVariables(supabase, s as Record<string, unknown>))
+    servers.map((s: unknown) => resolveServerVariables(s as Record<string, unknown>))
   );
 }
 
-async function resolveApiKey(
-  supabase: SupabaseClient,
-  body: SimulateBody
-): Promise<{ apiKey: string; error: string | null }> {
+async function resolveApiKey(body: SimulateBody): Promise<{ apiKey: string; error: string | null }> {
   const { apiKeyId } = body;
   if (typeof apiKeyId !== 'string' || apiKeyId === '') {
     return { apiKey: '', error: 'Missing apiKeyId' };
   }
 
-  const { value, error } = await getApiKeyValueById(supabase, apiKeyId);
+  const { value, error } = await getApiKeyValueById(apiKeyId);
   if (error !== null || value === null) {
     return { apiKey: '', error: error ?? 'API key not found' };
   }
@@ -123,13 +116,13 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ error: 'Unauthorized' }, { status: HTTP_UNAUTHORIZED });
   }
 
-  const { apiKey, error } = await resolveApiKey(supabase, raw);
+  const { apiKey, error } = await resolveApiKey(raw);
   if (error !== null) {
     return NextResponse.json({ error }, { status: HTTP_BAD_REQUEST });
   }
 
   const rest = Object.fromEntries(Object.entries(raw).filter(([k]) => k !== 'apiKeyId'));
-  await resolveMcpServersInGraph(supabase, rest.graph);
+  await resolveMcpServersInGraph(rest.graph);
 
   const {
     data: { session },

@@ -15,7 +15,7 @@ export default async function HomePage(): Promise<React.JSX.Element> {
     redirect('/login');
   }
 
-  const { result: orgs } = await getOrgsByUser(supabase);
+  const { result: orgs } = await getOrgsByUser();
   const firstOrg = orgs[0];
 
   if (firstOrg !== undefined) {

@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { fetchFromBackend } from './backendProxy';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -34,6 +34,7 @@ export interface SessionRow {
   total_input_tokens: number;
   total_output_tokens: number;
   total_cost: number;
+  has_error: boolean;
 }
 
 export interface ExecutionSummaryRow {
@@ -69,10 +70,11 @@ export interface DashboardParams {
   sortKey?: string;
   sortDirection?: 'asc' | 'desc';
   filters?: Record<string, string | string[]>;
+  search?: string;
 }
 
 /* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
+/*  Type guards                                                        */
 /* ------------------------------------------------------------------ */
 
 interface PaginatedResult<T> {
@@ -81,118 +83,113 @@ interface PaginatedResult<T> {
   error: string | null;
 }
 
-function paginationRange(params: DashboardParams): { from: number; to: number } {
-  const from = params.page * params.pageSize;
-  const to = from + params.pageSize - 1;
-  return { from, to };
+function isPaginatedResult(val: unknown): val is PaginatedResult<unknown> {
+  return typeof val === 'object' && val !== null && 'rows' in val && 'totalCount' in val;
+}
+
+function isSessionRow(val: unknown): val is SessionRow {
+  return typeof val === 'object' && val !== null && 'id' in val;
+}
+
+function isRowArray(val: unknown): val is unknown[] {
+  return Array.isArray(val);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+function extractError(err: unknown): string {
+  return err instanceof Error ? err.message : 'Unknown error';
+}
+
+function buildQueryString(params: DashboardParams): string {
+  const qs = new URLSearchParams();
+  qs.set('page', String(params.page));
+  qs.set('pageSize', String(params.pageSize));
+
+  if (params.sortKey !== undefined) {
+    qs.set('sortKey', params.sortKey);
+  }
+
+  if (params.sortDirection !== undefined) {
+    qs.set('sortDirection', params.sortDirection);
+  }
+
+  appendFilters(qs, params.filters);
+
+  if (params.search !== undefined && params.search !== '') {
+    qs.set('search', params.search);
+  }
+
+  return qs.toString();
+}
+
+function appendFilters(qs: URLSearchParams, filters: Record<string, string | string[]> | undefined): void {
+  if (filters === undefined) return;
+
+  for (const [key, val] of Object.entries(filters)) {
+    if (typeof val === 'string') {
+      qs.set(key, val);
+    }
+  }
 }
 
 /* ------------------------------------------------------------------ */
 /*  1. Agent Summary                                                   */
 /* ------------------------------------------------------------------ */
 
-interface AgentInfo {
-  id: string;
-  name: string;
-  slug: string;
-}
-
-type SummaryRawRow = Record<string, unknown> & { agent_id: string };
-
-async function fetchAgentNames(
-  supabase: SupabaseClient,
-  agentIds: string[]
-): Promise<Map<string, AgentInfo>> {
-  if (agentIds.length === 0) return new Map();
-  const { data } = await supabase.from('agents').select('id, name, slug').in('id', agentIds);
-  const agents = (data as AgentInfo[] | null) ?? [];
-  return new Map(agents.map((a) => [a.id, a]));
-}
-
-function mapSummaryRow(r: SummaryRawRow, agentMap: Map<string, AgentInfo>): AgentSummaryRow {
-  const agent = agentMap.get(r.agent_id);
-  return {
-    agent_id: r.agent_id,
-    agent_name: agent?.name ?? '',
-    agent_slug: agent?.slug ?? '',
-    total_executions: Number(r['total_executions'] ?? 0),
-    total_input_tokens: Number(r['total_input_tokens'] ?? 0),
-    total_output_tokens: Number(r['total_output_tokens'] ?? 0),
-    total_cost: Number(r['total_cost'] ?? 0),
-    unique_tenants: Number(r['unique_tenants'] ?? 0),
-    unique_users: Number(r['unique_users'] ?? 0),
-    unique_sessions: Number(r['unique_sessions'] ?? 0),
-    last_execution_at: r['last_execution_at'] !== null ? String(r['last_execution_at']) : null,
-  };
-}
-
 export async function getAgentSummary(
-  supabase: SupabaseClient,
   orgId: string,
   params: DashboardParams
 ): Promise<PaginatedResult<AgentSummaryRow>> {
-  const { from, to } = paginationRange(params);
-  const sortCol = params.sortKey ?? 'total_executions';
-  const ascending = params.sortDirection === 'asc';
+  try {
+    const qs = buildQueryString(params);
+    const url = `/dashboard/${encodeURIComponent(orgId)}/agent-summary?${qs}`;
+    const data = await fetchFromBackend('GET', url);
 
-  const query = supabase
-    .from('agent_execution_summary')
-    .select('*', { count: 'exact' })
-    .eq('org_id', orgId)
-    .order(sortCol, { ascending })
-    .range(from, to);
+    if (!isPaginatedResult(data)) {
+      return { rows: [], totalCount: 0, error: 'Invalid response' };
+    }
 
-  const { data, count, error } = await query;
-
-  if (error !== null) return { rows: [], totalCount: 0, error: error.message };
-
-  const summaryRows = (data as SummaryRawRow[] | null) ?? [];
-  const agentIds = summaryRows.map((r) => r.agent_id);
-  const agentMap = await fetchAgentNames(supabase, agentIds);
-  const rows = summaryRows.map((r) => mapSummaryRow(r, agentMap));
-
-  return { rows, totalCount: count ?? 0, error: null };
+    return {
+      rows: isRowArray(data.rows) ? (data.rows as AgentSummaryRow[]) : [],
+      totalCount: data.totalCount,
+      error: null,
+    };
+  } catch (err) {
+    return { rows: [], totalCount: 0, error: extractError(err) };
+  }
 }
 
 /* ------------------------------------------------------------------ */
 /*  2. Sessions by Agent                                               */
 /* ------------------------------------------------------------------ */
 
-const SESSION_FILTER_COLUMNS = ['tenant_id', 'user_id', 'channel', 'model'] as const;
-
 export async function getSessionsByAgent(
-  supabase: SupabaseClient,
   orgId: string,
   agentId: string,
   params: DashboardParams
 ): Promise<PaginatedResult<SessionRow>> {
-  const { from, to } = paginationRange(params);
-  const sortCol = params.sortKey ?? 'updated_at';
-  const ascending = params.sortDirection === 'asc';
+  try {
+    const qs = buildQueryString(params);
+    const orgEnc = encodeURIComponent(orgId);
+    const agentEnc = encodeURIComponent(agentId);
+    const url = `/dashboard/${orgEnc}/sessions/${agentEnc}?${qs}`;
+    const data = await fetchFromBackend('GET', url);
 
-  let query = supabase
-    .from('agent_sessions_with_cost')
-    .select('*', { count: 'exact' })
-    .eq('org_id', orgId)
-    .eq('agent_id', agentId)
-    .order(sortCol, { ascending })
-    .range(from, to);
-
-  for (const col of SESSION_FILTER_COLUMNS) {
-    const val = params.filters?.[col];
-    if (val !== undefined) {
-      query = query.ilike(col, `%${String(val)}%`);
+    if (!isPaginatedResult(data)) {
+      return { rows: [], totalCount: 0, error: 'Invalid response' };
     }
+
+    return {
+      rows: isRowArray(data.rows) ? (data.rows as SessionRow[]) : [],
+      totalCount: data.totalCount,
+      error: null,
+    };
+  } catch (err) {
+    return { rows: [], totalCount: 0, error: extractError(err) };
   }
-
-  const { data, count, error } = await query;
-
-  if (error !== null) {
-    return { rows: [], totalCount: 0, error: error.message };
-  }
-
-  const rows = (data as SessionRow[] | null) ?? [];
-  return { rows, totalCount: count ?? 0, error: null };
 }
 
 /* ------------------------------------------------------------------ */
@@ -200,17 +197,20 @@ export async function getSessionsByAgent(
 /* ------------------------------------------------------------------ */
 
 export async function getSessionDetail(
-  supabase: SupabaseClient,
   sessionId: string
 ): Promise<{ session: SessionRow | null; error: string | null }> {
-  const { data, error } = await supabase
-    .from('agent_sessions_with_cost')
-    .select('*')
-    .eq('id', sessionId)
-    .single();
+  try {
+    const url = `/dashboard/sessions/${encodeURIComponent(sessionId)}`;
+    const data = await fetchFromBackend('GET', url);
 
-  if (error !== null) return { session: null, error: error.message };
-  return { session: data as SessionRow, error: null };
+    if (!isSessionRow(data)) {
+      return { session: null, error: 'Invalid response' };
+    }
+
+    return { session: data, error: null };
+  } catch (err) {
+    return { session: null, error: extractError(err) };
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -218,17 +218,20 @@ export async function getSessionDetail(
 /* ------------------------------------------------------------------ */
 
 export async function getExecutionsForSession(
-  supabase: SupabaseClient,
   sessionId: string
 ): Promise<{ rows: ExecutionSummaryRow[]; error: string | null }> {
-  const { data, error } = await supabase
-    .from('agent_executions')
-    .select('*')
-    .eq('session_id', sessionId)
-    .order('started_at', { ascending: true });
+  try {
+    const url = `/dashboard/sessions/${encodeURIComponent(sessionId)}/executions`;
+    const data = await fetchFromBackend('GET', url);
 
-  if (error !== null) return { rows: [], error: error.message };
-  return { rows: (data as ExecutionSummaryRow[] | null) ?? [], error: null };
+    if (!isRowArray(data)) {
+      return { rows: [], error: 'Invalid response' };
+    }
+
+    return { rows: data as ExecutionSummaryRow[], error: null };
+  } catch (err) {
+    return { rows: [], error: extractError(err) };
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -236,28 +239,32 @@ export async function getExecutionsForSession(
 /* ------------------------------------------------------------------ */
 
 export async function getNodeVisitsForExecution(
-  supabase: SupabaseClient,
   executionId: string
 ): Promise<{ rows: NodeVisitRow[]; error: string | null }> {
-  const { data, error } = await supabase
-    .from('agent_execution_nodes')
-    .select('*')
-    .eq('execution_id', executionId)
-    .order('step_order', { ascending: true });
+  try {
+    const url = `/dashboard/executions/${encodeURIComponent(executionId)}/node-visits`;
+    const data = await fetchFromBackend('GET', url);
 
-  if (error !== null) return { rows: [], error: error.message };
-  return { rows: (data as NodeVisitRow[] | null) ?? [], error: null };
+    if (!isRowArray(data)) {
+      return { rows: [], error: 'Invalid response' };
+    }
+
+    return { rows: data as NodeVisitRow[], error: null };
+  } catch (err) {
+    return { rows: [], error: extractError(err) };
+  }
 }
 
 /* ------------------------------------------------------------------ */
-/*  6. Delete Session                                                   */
+/*  6. Delete Session                                                  */
 /* ------------------------------------------------------------------ */
 
-export async function deleteSession(
-  supabase: SupabaseClient,
-  sessionId: string
-): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('agent_sessions').delete().eq('id', sessionId);
-  if (error !== null) return { error: error.message };
-  return { error: null };
+export async function deleteSession(sessionId: string): Promise<{ error: string | null }> {
+  try {
+    const url = `/dashboard/sessions/${encodeURIComponent(sessionId)}`;
+    await fetchFromBackend('DELETE', url);
+    return { error: null };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
 }

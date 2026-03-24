@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation';
 import { getAgentBySlug } from '@/app/lib/agents';
 import { getApiKeysByOrg } from '@/app/lib/api-keys';
 import { getOrgBySlug } from '@/app/lib/orgs';
-import { createClient } from '@/app/lib/supabase/server';
 
 import { EditorClient } from './EditorClient';
 
@@ -13,15 +12,14 @@ interface EditorPageProps {
 
 export default async function EditorPage({ params }: EditorPageProps): Promise<React.JSX.Element> {
   const { slug, agentSlug } = await params;
-  const supabase = await createClient();
 
-  const { result: org } = await getOrgBySlug(supabase, slug);
+  const { result: org } = await getOrgBySlug(slug);
   if (!org) redirect('/');
 
-  const { agent } = await getAgentBySlug(supabase, agentSlug);
+  const { agent } = await getAgentBySlug(agentSlug);
   if (!agent || agent.org_id !== org.id) redirect(`/orgs/${slug}`);
 
-  const { result: orgApiKeys, error: apiKeyError } = await getApiKeysByOrg(supabase, org.id);
+  const { result: orgApiKeys, error: apiKeyError } = await getApiKeysByOrg(org.id);
   if (apiKeyError !== null) {
     console.error('[EditorPage] failed to load API keys:', apiKeyError);
   }

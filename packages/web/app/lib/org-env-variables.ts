@@ -1,4 +1,8 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { fetchFromBackend } from './backendProxy';
+
+/* ------------------------------------------------------------------ */
+/*  Types                                                              */
+/* ------------------------------------------------------------------ */
 
 export interface OrgEnvVariableRow {
   id: string;
@@ -8,94 +12,94 @@ export interface OrgEnvVariableRow {
   created_at: string;
 }
 
-/**
- * Supabase returns untyped data for schemas without codegen.
- * This type predicate enables safe narrowing from query results.
- */
+/* ------------------------------------------------------------------ */
+/*  Type guards                                                        */
+/* ------------------------------------------------------------------ */
+
 export function isOrgEnvVariableRow(value: unknown): value is OrgEnvVariableRow {
   return typeof value === 'object' && value !== null && 'id' in value && 'name' in value && 'org_id' in value;
 }
 
-function mapRows(data: unknown[]): OrgEnvVariableRow[] {
-  return data.reduce<OrgEnvVariableRow[]>((acc, row) => {
-    if (isOrgEnvVariableRow(row)) acc.push(row);
-    return acc;
-  }, []);
+function isOrgEnvVariableRowArray(val: unknown): val is OrgEnvVariableRow[] {
+  return Array.isArray(val);
 }
 
-const COLUMNS = 'id, org_id, name, is_secret, created_at';
-const LIST_COLUMNS = 'id, org_id, name, is_secret, created_at';
+interface EnvVariableValueResponse {
+  value: string | null;
+}
+
+function isEnvVariableValueResponse(val: unknown): val is EnvVariableValueResponse {
+  return typeof val === 'object' && val !== null && 'value' in val;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+function extractError(err: unknown): string {
+  return err instanceof Error ? err.message : 'Unknown error';
+}
+
+/* ------------------------------------------------------------------ */
+/*  Queries via backend proxy                                          */
+/* ------------------------------------------------------------------ */
 
 export async function getEnvVariablesByOrg(
-  supabase: SupabaseClient,
   orgId: string
 ): Promise<{ result: OrgEnvVariableRow[]; error: string | null }> {
-  const { data, error } = await supabase
-    .from('org_env_variables')
-    .select(LIST_COLUMNS)
-    .eq('org_id', orgId)
-    .order('created_at', { ascending: false });
-
-  if (error !== null) return { result: [], error: error.message };
-  const rows: unknown[] = (data as unknown[] | null) ?? [];
-  return { result: mapRows(rows), error: null };
+  try {
+    const data = await fetchFromBackend('GET', `/secrets/env-vars/${encodeURIComponent(orgId)}`);
+    if (!isOrgEnvVariableRowArray(data)) return { result: [], error: 'Invalid response' };
+    return { result: data, error: null };
+  } catch (err) {
+    return { result: [], error: extractError(err) };
+  }
 }
 
 export async function getEnvVariableValue(
-  supabase: SupabaseClient,
   variableId: string
 ): Promise<{ value: string | null; error: string | null }> {
-  const { data, error } = await supabase.rpc('get_env_variable_value', { p_var_id: variableId });
-
-  if (error !== null) return { value: null, error: error.message };
-  return { value: (data as string) ?? null, error: null };
+  try {
+    const data = await fetchFromBackend('GET', `/secrets/env-vars/${encodeURIComponent(variableId)}/value`);
+    if (!isEnvVariableValueResponse(data)) return { value: null, error: 'Invalid response' };
+    return { value: data.value, error: null };
+  } catch (err) {
+    return { value: null, error: extractError(err) };
+  }
 }
 
 export async function createEnvVariable(
-  supabase: SupabaseClient,
   orgId: string,
   name: string,
   value: string,
   isSecret: boolean
 ): Promise<{ result: OrgEnvVariableRow | null; error: string | null }> {
-  const userId = (await supabase.auth.getUser()).data.user?.id;
-  const { data, error } = await supabase.rpc('create_org_env_variable', {
-    p_org_id: orgId,
-    p_name: name,
-    p_value: value,
-    p_is_secret: isSecret,
-    p_created_by: userId,
-  });
-
-  if (error !== null) return { result: null, error: error.message };
-  const rows = data as unknown[];
-  const first: unknown = rows[0];
-  if (!isOrgEnvVariableRow(first)) return { result: null, error: 'Invalid env variable data' };
-  return { result: first, error: null };
+  try {
+    const data = await fetchFromBackend('POST', '/secrets/env-vars', { orgId, name, value, isSecret });
+    if (!isOrgEnvVariableRow(data)) return { result: null, error: 'Invalid response' };
+    return { result: data, error: null };
+  } catch (err) {
+    return { result: null, error: extractError(err) };
+  }
 }
 
 export async function updateEnvVariable(
-  supabase: SupabaseClient,
   variableId: string,
   updates: { name?: string; value?: string; isSecret?: boolean }
 ): Promise<{ error: string | null }> {
-  const { error } = await supabase.rpc('update_org_env_variable', {
-    p_var_id: variableId,
-    p_name: updates.name ?? null,
-    p_value: updates.value ?? null,
-    p_is_secret: updates.isSecret ?? null,
-  });
-
-  if (error !== null) return { error: error.message };
-  return { error: null };
+  try {
+    await fetchFromBackend('PATCH', `/secrets/env-vars/${encodeURIComponent(variableId)}`, updates);
+    return { error: null };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
 }
 
-export async function deleteEnvVariable(
-  supabase: SupabaseClient,
-  variableId: string
-): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('org_env_variables').delete().eq('id', variableId);
-
-  if (error !== null) return { error: error.message };
-  return { error: null };
+export async function deleteEnvVariable(variableId: string): Promise<{ error: string | null }> {
+  try {
+    await fetchFromBackend('DELETE', `/secrets/env-vars/${encodeURIComponent(variableId)}`);
+    return { error: null };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
 }

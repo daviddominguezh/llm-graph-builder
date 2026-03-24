@@ -5,7 +5,6 @@ import { AgentSummaryView } from '@/app/components/dashboard/AgentSummaryView';
 import { Separator } from '@/components/ui/separator';
 import { getAgentSummary } from '@/app/lib/dashboard';
 import { getOrgBySlug } from '@/app/lib/orgs';
-import { createClient } from '@/app/lib/supabase/server';
 
 interface DashboardPageProps {
   params: Promise<{ slug: string }>;
@@ -15,8 +14,7 @@ const DEFAULT_PAGE_SIZE = 50;
 
 export default async function DashboardPage({ params }: DashboardPageProps): Promise<React.JSX.Element> {
   const { slug } = await params;
-  const supabase = await createClient();
-  const { result: org } = await getOrgBySlug(supabase, slug);
+  const { result: org } = await getOrgBySlug(slug);
 
   if (!org) {
     redirect('/');
@@ -24,7 +22,7 @@ export default async function DashboardPage({ params }: DashboardPageProps): Pro
 
   const t = await getTranslations('dashboard');
 
-  const { rows, totalCount } = await getAgentSummary(supabase, org.id, {
+  const { rows, totalCount } = await getAgentSummary(org.id, {
     page: 0,
     pageSize: DEFAULT_PAGE_SIZE,
     sortKey: 'last_execution_at',

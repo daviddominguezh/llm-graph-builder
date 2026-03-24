@@ -7,9 +7,19 @@ import { toProxyImageSrc } from '@/app/lib/supabase/image';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import type { LucideIcon } from 'lucide-react';
-import { ChevronsUpDown, KeyRound, LayoutDashboard, LogOut, MessageSquare, ScrollText, Settings, Users, Zap } from 'lucide-react';
-import Image from 'next/image';
+import {
+  ChevronsUpDown,
+  KeyRound,
+  LayoutDashboard,
+  LogOut,
+  MessageSquare,
+  ScrollText,
+  Settings,
+  Users,
+  Zap,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
@@ -54,18 +64,20 @@ function NavItem({
   onClick?: (e: React.MouseEvent) => void;
 }) {
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className={`h-8 w-full justify-start px-2 ${
-        active
-          ? 'border-primary bg-primary/15 text-primary hover:bg-primary/15 hover:text-primary'
-          : 'text-muted-foreground hover:text-foreground/70 hover:bg-sidebar-accent'
-      }`}
-      render={<Link href={href} onClick={onClick} />}
-    >
-      {icon}
-    </Button>
+    <div className={`group flex flex-col justify-center py-1 ${active ? 'bg-primary/15 rounded-[5px]' : ''}`}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className={`h-6 w-full justify-start px-2 border-x-0 border-y-0 rounded-none ${
+          active
+            ? 'border-l border-l-2 border-primary bg-transparent text-primary hover:text-primary'
+            : 'border-l border-l-2 group-hover:border-foreground text-muted-foreground hover:text-foreground/70 hover:bg-sidebar-accent'
+        }`}
+        render={<Link href={href} onClick={onClick} />}
+      >
+        {icon}
+      </Button>
+    </div>
   );
 }
 
@@ -83,19 +95,21 @@ function NavItemExpanded({
   onClick?: (e: React.MouseEvent) => void;
 }) {
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className={`h-8 w-full justify-start gap-2 px-2 text-sm ${
-        active
-          ? 'border-primary bg-primary/15 text-primary hover:bg-primary/15! hover:text-primary'
-          : 'text-muted-foreground hover:text-foreground hover:bg-sidebar-accent!'
-      }`}
-      render={<Link href={href} onClick={onClick} />}
-    >
-      {icon}
-      <span className={`whitespace-nowrap font-normal ${active ? 'font-semibold' : ''}`}>{label}</span>
-    </Button>
+    <div className={`group flex flex-col justify-center py-1 rounded-[5px] ${active ? 'bg-primary/15' : 'hover:bg-sidebar-accent'}`}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className={`h-6 w-full justify-start gap-2 px-2 text-sm border-x-0 border-y-0 rounded-none ${
+          active
+            ? 'border-l border-l-2 border-primary bg-transparent hover:bg-transparent! text-primary hover:text-primary'
+            : 'border-l border-l-2 group-hover:border-foreground text-muted-foreground hover:text-foreground hover:bg-transparent!'
+        }`}
+        render={<Link href={href} onClick={onClick} />}
+      >
+        {icon}
+        <span className={`whitespace-nowrap font-normal ${active ? 'font-semibold' : ''}`}>{label}</span>
+      </Button>
+    </div>
   );
 }
 
@@ -280,13 +294,22 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
       onMouseEnter={sidebar.handleMouseEnter}
       onMouseLeave={sidebar.handleMouseLeave}
     >
-      <OrgSwitcherPopover currentOrg={org} open={sidebar.switcherOpen} onOpenChange={sidebar.handleSwitcherChange}>
+      <OrgSwitcherPopover
+        currentOrg={org}
+        open={sidebar.switcherOpen}
+        onOpenChange={sidebar.handleSwitcherChange}
+      >
         {sidebar.collapsed ? <CollapsedTrigger org={org} /> : <ExpandedTrigger org={org} />}
       </OrgSwitcherPopover>
       {sidebar.collapsed ? (
         <NavList items={TOP_NAV_ITEMS} basePath={basePath} segment={segment} onItemClick={handleNavClick} />
       ) : (
-        <NavListExpanded items={TOP_NAV_ITEMS} basePath={basePath} segment={segment} onItemClick={handleNavClick} />
+        <NavListExpanded
+          items={TOP_NAV_ITEMS}
+          basePath={basePath}
+          segment={segment}
+          onItemClick={handleNavClick}
+        />
       )}
       <div className="mt-auto flex flex-col gap-2">
         {sidebar.collapsed ? (

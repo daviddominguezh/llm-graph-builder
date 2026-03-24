@@ -8,41 +8,37 @@ import { getAgentsByOrg } from '@/app/lib/agents';
 import { fetchFromBackend } from '@/app/lib/backendProxy';
 import { getExecutionsForSession, getNodeVisitsForExecution, getSessionDetail } from '@/app/lib/dashboard';
 import { getOrgBySlug } from '@/app/lib/orgs';
-import { createClient } from '@/app/lib/supabase/server';
 
 interface SessionDebugPageProps {
   params: Promise<{ slug: string; agentSlug: string; sessionId: string }>;
 }
 
-type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
-
-async function resolveAgent(supabase: SupabaseClient, orgId: string, agentSlug: string) {
-  const { agents } = await getAgentsByOrg(supabase, orgId);
+async function resolveAgent(orgId: string, agentSlug: string) {
+  const { agents } = await getAgentsByOrg(orgId);
   return agents.find((a) => a.slug === agentSlug) ?? null;
 }
 
 const FIRST_INDEX = 0;
 
-async function fetchInitialNodeVisits(supabase: SupabaseClient, executionId: string | undefined) {
+async function fetchInitialNodeVisits(executionId: string | undefined) {
   if (executionId === undefined) return [];
-  const { rows } = await getNodeVisitsForExecution(supabase, executionId);
+  const { rows } = await getNodeVisitsForExecution(executionId);
   return rows;
 }
 
 export default async function SessionDebugPage({ params }: SessionDebugPageProps): Promise<React.JSX.Element> {
   const { slug, agentSlug, sessionId } = await params;
-  const supabase = await createClient();
-  const { result: org } = await getOrgBySlug(supabase, slug);
+  const { result: org } = await getOrgBySlug(slug);
 
   if (!org) redirect('/');
 
-  const agent = await resolveAgent(supabase, org.id, agentSlug);
+  const agent = await resolveAgent(org.id, agentSlug);
 
   if (!agent) redirect(`/orgs/${slug}/dashboard`);
 
   const [sessionResult, executionsResult] = await Promise.all([
-    getSessionDetail(supabase, sessionId),
-    getExecutionsForSession(supabase, sessionId),
+    getSessionDetail(sessionId),
+    getExecutionsForSession(sessionId),
   ]);
 
   if (!sessionResult.session) redirect(`/orgs/${slug}/dashboard/${agentSlug}`);
@@ -53,7 +49,7 @@ export default async function SessionDebugPage({ params }: SessionDebugPageProps
 
   const [graphRaw, initialNodeVisits] = await Promise.all([
     fetchFromBackend('GET', `/agents/${agent.id}/versions/${String(session.version)}`),
-    fetchInitialNodeVisits(supabase, firstExecution?.id),
+    fetchInitialNodeVisits(firstExecution?.id),
   ]);
   const graph: Graph = GraphSchema.parse(graphRaw);
 

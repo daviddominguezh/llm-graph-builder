@@ -1,32 +1,50 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { fetchFromBackend, uploadToBackend } from './backendProxy';
 
-const BUCKET = 'mcp-images';
+/* ------------------------------------------------------------------ */
+/*  Type guards                                                        */
+/* ------------------------------------------------------------------ */
 
-function buildPath(libraryItemId: string): string {
-  return `${libraryItemId}/image`;
+interface ImageUrlResponse {
+  url: string;
 }
 
+function isImageUrlResponse(val: unknown): val is ImageUrlResponse {
+  return typeof val === 'object' && val !== null && 'url' in val;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+function extractError(err: unknown): string {
+  return err instanceof Error ? err.message : 'Unknown error';
+}
+
+/* ------------------------------------------------------------------ */
+/*  Storage via backend proxy                                          */
+/* ------------------------------------------------------------------ */
+
 export async function uploadMcpImage(
-  supabase: SupabaseClient,
   libraryItemId: string,
   file: File
 ): Promise<{ result: string | null; error: string | null }> {
-  const path = buildPath(libraryItemId);
-  const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true });
-
-  if (error !== null) return { result: null, error: error.message };
-
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-  return { result: data.publicUrl, error: null };
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    const path = `/mcp-library/${encodeURIComponent(libraryItemId)}/image`;
+    const data = await uploadToBackend(path, formData);
+    if (!isImageUrlResponse(data)) return { result: null, error: 'Invalid response' };
+    return { result: data.url, error: null };
+  } catch (err) {
+    return { result: null, error: extractError(err) };
+  }
 }
 
-export async function removeMcpImage(
-  supabase: SupabaseClient,
-  libraryItemId: string
-): Promise<{ error: string | null }> {
-  const path = buildPath(libraryItemId);
-  const { error } = await supabase.storage.from(BUCKET).remove([path]);
-
-  if (error !== null) return { error: error.message };
-  return { error: null };
+export async function removeMcpImage(libraryItemId: string): Promise<{ error: string | null }> {
+  try {
+    await fetchFromBackend('DELETE', `/mcp-library/${encodeURIComponent(libraryItemId)}/image`);
+    return { error: null };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
 }

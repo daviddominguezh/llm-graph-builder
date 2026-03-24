@@ -80,7 +80,7 @@ export function ContextPreconditionsSection({
   onUpdate,
 }: ContextPreconditionsSectionProps) {
   return (
-    <div className="mb-4">
+    <div className="mb-3">
       <div className="flex items-center justify-between mb-1">
         <Label>Context Preconditions</Label>
         <Button variant="ghost" size="icon-xs" onClick={onAdd}>

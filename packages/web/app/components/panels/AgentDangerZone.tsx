@@ -43,7 +43,7 @@ export function AgentDangerZone({ agentId, agentName, orgSlug }: AgentDangerZone
   }
 
   return (
-    <div className="mt-6 border-t pt-5">
+    <div className="mt-4 border-t pt-4">
       <Label className="text-destructive">{t('dangerZone')}</Label>
       <p className="mt-1 text-xs text-muted-foreground">{t('deleteAgentDescription')}</p>
       <AlertDialog>

@@ -1,23 +1,25 @@
 'use server';
 
-import { createClient } from '@/app/lib/supabase/server';
+import { fetchFromBackend } from '@/app/lib/backendProxy';
 
-interface OAuthConnectionRow {
-  connected_by: string;
-  expires_at: string | null;
+interface ConnectionStatusResponse {
+  connected: boolean;
+}
+
+function isConnectionStatus(val: unknown): val is ConnectionStatusResponse {
+  return typeof val === 'object' && val !== null && 'connected' in val;
 }
 
 export async function getOAuthConnectionStatus(
   orgId: string,
   libraryItemId: string
 ): Promise<{ connected: boolean }> {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from('mcp_oauth_connections')
-    .select('connected_by, expires_at')
-    .eq('org_id', orgId)
-    .eq('library_item_id', libraryItemId)
-    .single<OAuthConnectionRow>();
-
-  return { connected: data !== null };
+  try {
+    const params = new URLSearchParams({ orgId, libraryItemId });
+    const data = await fetchFromBackend('GET', `/agents/mcp-oauth/status?${params.toString()}`);
+    if (!isConnectionStatus(data)) return { connected: false };
+    return { connected: data.connected };
+  } catch {
+    return { connected: false };
+  }
 }

@@ -8,7 +8,6 @@ import { Separator } from '@/components/ui/separator';
 import { getAgentsByOrg } from '@/app/lib/agents';
 import { getSessionsByAgent } from '@/app/lib/dashboard';
 import { getOrgBySlug } from '@/app/lib/orgs';
-import { createClient } from '@/app/lib/supabase/server';
 
 interface AgentSessionsPageProps {
   params: Promise<{ slug: string; agentSlug: string }>;
@@ -16,21 +15,20 @@ interface AgentSessionsPageProps {
 
 const DEFAULT_PAGE_SIZE = 50;
 
-async function resolveAgent(supabase: ReturnType<typeof createClient> extends Promise<infer R> ? R : never, orgId: string, agentSlug: string) {
-  const { agents } = await getAgentsByOrg(supabase, orgId);
+async function resolveAgent(orgId: string, agentSlug: string) {
+  const { agents } = await getAgentsByOrg(orgId);
   return agents.find((a) => a.slug === agentSlug) ?? null;
 }
 
 export default async function AgentSessionsPage({ params }: AgentSessionsPageProps): Promise<React.JSX.Element> {
   const { slug, agentSlug } = await params;
-  const supabase = await createClient();
-  const { result: org } = await getOrgBySlug(supabase, slug);
+  const { result: org } = await getOrgBySlug(slug);
 
   if (!org) {
     redirect('/');
   }
 
-  const agent = await resolveAgent(supabase, org.id, agentSlug);
+  const agent = await resolveAgent(org.id, agentSlug);
 
   if (!agent) {
     redirect(`/orgs/${slug}/dashboard`);
@@ -38,7 +36,7 @@ export default async function AgentSessionsPage({ params }: AgentSessionsPagePro
 
   const t = await getTranslations('dashboard');
 
-  const { rows, totalCount } = await getSessionsByAgent(supabase, org.id, agent.id, {
+  const { rows, totalCount } = await getSessionsByAgent(org.id, agent.id, {
     page: 0,
     pageSize: DEFAULT_PAGE_SIZE,
     sortKey: 'updated_at',

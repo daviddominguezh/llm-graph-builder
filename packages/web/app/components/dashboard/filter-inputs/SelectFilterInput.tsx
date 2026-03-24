@@ -34,14 +34,14 @@ export function SelectFilterInput({ definition, onApply }: SelectFilterInputProp
   };
 
   return (
-    <div className="flex flex-col gap-2 p-2">
+    <div className="flex flex-col gap-2">
       {options.map((opt) => (
         <Label key={opt.value} className="flex items-center gap-2 text-xs">
           <Checkbox checked={selected.includes(opt.value)} onCheckedChange={() => toggle(opt.value)} />
           {opt.label}
         </Label>
       ))}
-      <Button size="xs" onClick={handleApply} disabled={selected.length === 0}>
+      <Button size="sm" onClick={handleApply} disabled={selected.length === 0}>
         {t('apply')}
       </Button>
     </div>
