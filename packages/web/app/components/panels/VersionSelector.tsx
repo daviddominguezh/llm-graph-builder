@@ -169,7 +169,7 @@ export function VersionSelector(props: VersionSelectorProps) {
             <SelectItem
               key={v.version}
               value={String(v.version)}
-              className="group min-h-11 items-start py-2 focus:bg-accent/20 focus:text-foreground not-data-[variant=destructive]:focus:**:text-foreground [&>[data-slot=select-item-indicator]]:top-2.5"
+              
             >
               <VersionItemLabel version={v.version} publishedAt={v.publishedAt} />
             </SelectItem>
