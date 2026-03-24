@@ -47,6 +47,7 @@ export interface ExecutionSummaryRow {
   started_at: string;
   completed_at: string | null;
   status: string;
+  error: string | null;
 }
 
 export interface NodeVisitRow {
