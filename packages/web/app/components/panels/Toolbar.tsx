@@ -104,8 +104,8 @@ function OrgSection({ orgName, orgAvatarUrl, orgSlug, agentName }: OrgSectionPro
         <Link href={`/orgs/${orgSlug}`} className="text-xs font-bold text-foreground hover:underline">
           {orgName}
         </Link>
-        <span className="text-xs text-muted-foreground">/</span>
-        <span className="text-xs text-foreground">{agentName}</span>
+        <span className="text-xs text-muted-foreground cursor-default">/</span>
+        <span className="text-xs text-foreground cursor-default">{agentName}</span>
       </DropdownMenuLabel>
     </DropdownMenuGroup>
   );
@@ -124,7 +124,15 @@ function FileMenuItems({ onImport, onExport, onFormat }: FileMenuItemsProps) {
 
   return (
     <>
-      <div className="py-1">
+      <div className="flex items-center justify-between pl-2 pr-1 py-1.5">
+        <span className="text-xs/relaxed flex gap-2 items-center cursor-default">
+          <Palette className="size-4" />
+          {tTheme('label')}
+        </span>
+        <ThemeSwitcher />
+      </div>
+      <Separator />
+      <div className="pt-1">
         <DropdownMenuItem onClick={onImport}>
           <Upload className="size-4" />
           {t('import')}
@@ -137,14 +145,6 @@ function FileMenuItems({ onImport, onExport, onFormat }: FileMenuItemsProps) {
           <AlignHorizontalSpaceAround className="size-4" />
           {tToolbar('autoLayout')}
         </DropdownMenuItem>
-      </div>
-      <Separator />
-      <div className="flex items-center justify-between pl-2 pt-1.5">
-        <span className="text-xs/relaxed flex gap-2 items-center">
-          <Palette className="size-4" />
-          {tTheme('label')}
-        </span>
-        <ThemeSwitcher />
       </div>
     </>
   );
@@ -231,7 +231,12 @@ function ToolbarButtons(props: ToolbarProps) {
     <>
       {onToggleGlobalPanel && (
         <ToolbarTooltip label={t('globalNodes')}>
-          <Button className="h-10 w-10 hover:bg-card!" variant="ghost" size="sm" onClick={onToggleGlobalPanel}>
+          <Button
+            className="h-10 w-10 hover:bg-card!"
+            variant="ghost"
+            size="sm"
+            onClick={onToggleGlobalPanel}
+          >
             <Waypoints className="size-4" />
           </Button>
         </ToolbarTooltip>

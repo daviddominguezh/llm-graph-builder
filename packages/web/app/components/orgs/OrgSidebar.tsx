@@ -95,7 +95,9 @@ function NavItemExpanded({
   onClick?: (e: React.MouseEvent) => void;
 }) {
   return (
-    <div className={`group flex flex-col justify-center py-1 rounded-[5px] ${active ? 'bg-primary/15' : 'hover:bg-sidebar-accent'}`}>
+    <div
+      className={`group flex flex-col justify-center py-1 rounded-[5px] ${active ? 'bg-primary/15' : 'hover:bg-sidebar-accent'}`}
+    >
       <Button
         variant="ghost"
         size="sm"
@@ -290,7 +292,7 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
 
   return (
     <aside
-      className={`absolute left-0 top-0 bottom-0 z-11 flex flex-col gap-4 bg-sidebar p-2 pl-1.5 transition-[width] duration-100 ${sidebar.collapsed ? 'w-[52px] border border-transparent' : 'w-50 shadow-lg border rounded-e-md z-12'}`}
+      className={`absolute left-0 top-0 bottom-0 z-11 flex flex-col gap-2 bg-sidebar p-2 pl-1.5 transition-[width] duration-100 ${sidebar.collapsed ? 'w-[52px] border border-transparent' : 'w-50 shadow-lg border rounded-e-md z-12'}`}
       onMouseEnter={sidebar.handleMouseEnter}
       onMouseLeave={sidebar.handleMouseLeave}
     >
@@ -301,6 +303,7 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
       >
         {sidebar.collapsed ? <CollapsedTrigger org={org} /> : <ExpandedTrigger org={org} />}
       </OrgSwitcherPopover>
+      <Separator />
       {sidebar.collapsed ? (
         <NavList items={TOP_NAV_ITEMS} basePath={basePath} segment={segment} onItemClick={handleNavClick} />
       ) : (
