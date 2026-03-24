@@ -50,20 +50,62 @@ async function connectMcpServer(transport: McpTransport): Promise<McpClient> {
   throw new Error(`Unsupported transport type in edge function: ${transport.type}`);
 }
 
-async function createMcpTools(servers: McpServerConfig[]): Promise<{ tools: Record<string, Tool>; clients: McpClient[] }> {
+interface McpConnectionResult {
+  tools: Record<string, Tool>;
+  clients: McpClient[];
+}
+
+interface McpConnectionFailure {
+  server: string;
+  error: string;
+}
+
+interface McpValidationResult {
+  success: McpConnectionResult | null;
+  failures: McpConnectionFailure[];
+}
+
+async function attemptMcpConnection(
+  server: McpServerConfig
+): Promise<{ client: McpClient; tools: Record<string, Tool> }> {
+  const client = await connectMcpServer(server.transport);
+  const tools = await client.tools();
+  return { client, tools };
+}
+
+function buildMcpErrorMessage(failures: McpConnectionFailure[]): string {
+  const details = failures.map((f) => `${f.server} (${f.error})`).join(', ');
+  return `Failed to connect to MCP servers: ${details}`;
+}
+
+async function validateAndConnectMcpServers(servers: McpServerConfig[]): Promise<McpValidationResult> {
   const enabled = servers.filter((s) => s.enabled);
-  if (enabled.length === 0) return { tools: {}, clients: [] };
+  if (enabled.length === 0) return { success: { tools: {}, clients: [] }, failures: [] };
+
+  const results = await Promise.allSettled(enabled.map((server) => attemptMcpConnection(server)));
 
   const clients: McpClient[] = [];
   const allTools: Record<string, Tool> = {};
+  const failures: McpConnectionFailure[] = [];
 
-  for (const server of enabled) {
-    const client = await connectMcpServer(server.transport);
-    clients.push(client);
-    Object.assign(allTools, await client.tools());
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i]!;
+    const server = enabled[i]!;
+    if (result.status === 'fulfilled') {
+      clients.push(result.value.client);
+      Object.assign(allTools, result.value.tools);
+    } else {
+      const errMsg = result.reason instanceof Error ? result.reason.message : 'Unknown error';
+      failures.push({ server: server.name, error: errMsg });
+    }
   }
 
-  return { tools: allTools, clients };
+  if (failures.length > 0) {
+    await closeMcpClients(clients);
+    return { success: null, failures };
+  }
+
+  return { success: { tools: allTools, clients }, failures: [] };
 }
 
 async function closeMcpClients(clients: McpClient[]): Promise<void> {
@@ -151,15 +193,21 @@ Deno.serve(async (req: Request) => {
       let clients: McpClient[] = [];
 
       try {
-        const mcp = await createMcpTools(mcpServers);
-        clients = mcp.clients;
+        const validation = await validateAndConnectMcpServers(mcpServers);
+
+        if (validation.success === null) {
+          write({ type: 'error', message: buildMcpErrorMessage(validation.failures) });
+          return;
+        }
+
+        clients = validation.success.clients;
 
         const context = buildContext(payload);
         const result = await executeWithCallbacks({
           context,
           messages: payload.messages,
           currentNode: payload.currentNodeId,
-          toolsOverride: mcp.tools,
+          toolsOverride: validation.success.tools,
           structuredOutputs: payload.structuredOutputs,
           onNodeVisited: (nodeId: string) => {
             write({ type: 'node_visited', nodeId });
