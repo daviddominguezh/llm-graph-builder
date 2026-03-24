@@ -20,6 +20,7 @@ import { layoutGraph } from '@/app/utils/layoutGraph';
 
 import { edgeTypes } from '../edges';
 import { nodeTypes } from '../nodes';
+import { HandleContext } from '../nodes/HandleContext';
 
 interface DebugCanvasProps {
   graph: Graph;
@@ -30,6 +31,7 @@ interface DebugCanvasProps {
   onDeselectNode: () => void;
 }
 
+const readOnlyHandleContext = { readOnly: true };
 const CHAR_WIDTH_FACTOR = 7.5;
 const NODE_PADDING = 40;
 const INITIAL_STEP_ID = 'INITIAL_STEP';
@@ -152,24 +154,26 @@ export function DebugCanvas({
   }, [graph, visitedNodeIds, errorNodeIds, selectedNodeId]);
 
   return (
-    <div className="relative h-full w-full flex-1 overflow-hidden rounded-md border">
-      <ReactFlow<Node<RFNodeData>, Edge<RFEdgeData>>
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        nodesDraggable={false}
-        nodesConnectable={false}
-        elementsSelectable={true}
-        onNodeClick={(e, node) => handleNodeClick(e, node, onNodeClick)}
-        onPaneClick={onDeselectNode}
-        deleteKeyCode={null}
-        fitView
-        colorMode={colorMode}
-      >
-        <Background color="var(--canvas-dots)" />
-        <Controls />
-      </ReactFlow>
-    </div>
+    <HandleContext.Provider value={readOnlyHandleContext}>
+      <div className="relative h-full w-full flex-1 overflow-hidden rounded-md border">
+        <ReactFlow<Node<RFNodeData>, Edge<RFEdgeData>>
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          nodesDraggable={false}
+          nodesConnectable={false}
+          elementsSelectable={true}
+          onNodeClick={(e, node) => handleNodeClick(e, node, onNodeClick)}
+          onPaneClick={onDeselectNode}
+          deleteKeyCode={null}
+          fitView
+          colorMode={colorMode}
+        >
+          <Background color="var(--canvas-dots)" />
+          <Controls />
+        </ReactFlow>
+      </div>
+    </HandleContext.Provider>
   );
 }

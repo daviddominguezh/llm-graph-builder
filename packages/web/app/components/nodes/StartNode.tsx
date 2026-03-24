@@ -47,7 +47,7 @@ function StartNodeComponent({ selected, id }: NodeProps) {
   return (
     <div
       className={`flex items-center justify-center rounded-lg bg-green-500 px-6 py-3 ${
-        selected ? "ring-2 ring-primary ring-offset-2" : ""
+        selected ? "ring-2 ring-primary" : ""
       }`}
     >
       <span className="text-sm font-semibold uppercase tracking-wide text-white">

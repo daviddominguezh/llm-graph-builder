@@ -203,7 +203,8 @@ div.model-selector-trigger[data-slot="input-group"] {
 }
 
 .react-flow__node-agent,
-.react-flow__node-agent_decision {
+.react-flow__node-agent_decision,
+.react-flow__node-start {
   border-radius: var(--radius-lg);
 }
 
