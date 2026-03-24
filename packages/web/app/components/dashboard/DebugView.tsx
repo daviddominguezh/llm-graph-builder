@@ -4,7 +4,9 @@ import { fetchNodeVisitsForExecution } from '@/app/actions/dashboard';
 import type { ExecutionSummaryRow, NodeVisitRow, SessionRow } from '@/app/lib/dashboard';
 import type { Graph } from '@/app/schemas/graph.schema';
 import { buildDebugGraph } from '@/app/utils/debugGraphBuilder';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
+import { AlertCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState, useTransition } from 'react';
 
@@ -45,6 +47,33 @@ function deriveErrorNodeIds(visits: NodeVisitRow[]): Set<string> {
   return ids;
 }
 
+function findExecution(
+  executions: ExecutionSummaryRow[],
+  selectedId: string
+): ExecutionSummaryRow | undefined {
+  return executions.find((e) => e.id === selectedId);
+}
+
+function ExecutionErrorBanner({
+  execution,
+  label,
+}: {
+  execution: ExecutionSummaryRow;
+  label: string;
+}) {
+  if (execution.status !== 'failed' || execution.error === null || execution.error === '') {
+    return null;
+  }
+
+  return (
+    <Alert variant="destructive">
+      <AlertCircle />
+      <AlertTitle>{label}</AlertTitle>
+      <AlertDescription>{execution.error}</AlertDescription>
+    </Alert>
+  );
+}
+
 function useExecutionState(executions: ExecutionSummaryRow[], initialVisits: NodeVisitRow[]) {
   const firstExecution = executions[FIRST_INDEX];
   const [selectedExecutionId, setSelectedExecutionId] = useState(firstExecution?.id ?? '');
@@ -79,63 +108,146 @@ function useExecutionState(executions: ExecutionSummaryRow[], initialVisits: Nod
   };
 }
 
-export function DebugView({
-  session,
-  executions,
-  initialNodeVisits,
-  graph,
-  orgSlug,
-  agentName,
-  agentSlug,
-}: DebugViewProps) {
-  const t = useTranslations('dashboard');
-  const state = useExecutionState(executions, initialNodeVisits);
-  const visitedNodeIds = useMemo(() => deriveVisitedNodeIds(state.nodeVisits), [state.nodeVisits]);
-  const errorNodeIds = useMemo(() => deriveErrorNodeIds(state.nodeVisits), [state.nodeVisits]);
+interface DebugHeaderProps {
+  orgSlug: string;
+  agentName: string;
+  agentSlug: string;
+  sessionId: string;
+  dashboardLabel: string;
+}
 
-  const mutedNodeIds = useMemo(
-    () => buildDebugGraph(graph.nodes, graph.edges, visitedNodeIds, errorNodeIds).mutedNodeIds,
-    [graph, visitedNodeIds, errorNodeIds]
-  );
-
+function DebugHeader({ orgSlug, agentName, agentSlug, sessionId, dashboardLabel }: DebugHeaderProps) {
   return (
-    <div className="flex h-full flex-col bg-muted">
+    <>
       <div className="px-6 py-4 shrink-0 bg-muted">
         <DebugBreadcrumb
           slug={orgSlug}
           agentName={agentName}
           agentSlug={agentSlug}
-          sessionId={session.session_id}
-          dashboardLabel={t('title')}
+          sessionId={sessionId}
+          dashboardLabel={dashboardLabel}
         />
       </div>
-
       <Separator />
+    </>
+  );
+}
 
-      <div className="px-6 py-4 flex flex-col gap-4 flex-1 min-h-[0px]">
-        <SessionMetadataBar session={session} agentName={agentName} />
+interface DebugCanvasAreaProps {
+  graph: Graph;
+  visitedNodeIds: string[];
+  errorNodeIds: Set<string>;
+  mutedNodeIds: Set<string>;
+  selectedNodeId: string | null;
+  nodeVisits: NodeVisitRow[];
+  onNodeClick: (id: string) => void;
+  onDeselectNode: () => void;
+}
 
-        <div className="flex flex-1 gap-4 min-h-0">
-          <div className="w-2/3">
-            <DebugCanvas
-              graph={graph}
-              visitedNodeIds={visitedNodeIds}
-              errorNodeIds={errorNodeIds}
-              selectedNodeId={state.selectedNodeId}
-              onNodeClick={state.setSelectedNodeId}
-              onDeselectNode={state.handleDeselectNode}
-            />
-          </div>
-          <div className="w-1/3 overflow-y-auto rounded-md border p-4 bg-card">
-            <NodeInspector
-              nodeId={state.selectedNodeId}
-              nodeVisits={state.nodeVisits}
-              mutedNodeIds={mutedNodeIds}
-              graphNodes={graph.nodes}
-            />
-          </div>
-        </div>
+function DebugCanvasArea({
+  graph,
+  visitedNodeIds,
+  errorNodeIds,
+  mutedNodeIds,
+  selectedNodeId,
+  nodeVisits,
+  onNodeClick,
+  onDeselectNode,
+}: DebugCanvasAreaProps) {
+  return (
+    <div className="flex flex-1 gap-4 min-h-0">
+      <div className="w-2/3">
+        <DebugCanvas
+          graph={graph}
+          visitedNodeIds={visitedNodeIds}
+          errorNodeIds={errorNodeIds}
+          selectedNodeId={selectedNodeId}
+          onNodeClick={onNodeClick}
+          onDeselectNode={onDeselectNode}
+        />
       </div>
+      <div className="w-1/3 overflow-y-auto rounded-md border p-4 bg-card">
+        <NodeInspector
+          nodeId={selectedNodeId}
+          nodeVisits={nodeVisits}
+          mutedNodeIds={mutedNodeIds}
+          graphNodes={graph.nodes}
+        />
+      </div>
+    </div>
+  );
+}
+
+interface DebugBodyProps {
+  session: SessionRow;
+  agentName: string;
+  selectedExecution: ExecutionSummaryRow | undefined;
+  errorBannerLabel: string;
+  canvasAreaProps: DebugCanvasAreaProps;
+}
+
+function DebugBody({ session, agentName, selectedExecution, errorBannerLabel, canvasAreaProps }: DebugBodyProps) {
+  return (
+    <div className="px-6 py-4 flex flex-col gap-4 flex-1 min-h-[0px]">
+      <SessionMetadataBar session={session} agentName={agentName} />
+      {selectedExecution !== undefined && (
+        <ExecutionErrorBanner execution={selectedExecution} label={errorBannerLabel} />
+      )}
+      <DebugCanvasArea {...canvasAreaProps} />
+    </div>
+  );
+}
+
+function useDebugViewState(props: DebugViewProps) {
+  const { executions, initialNodeVisits, graph } = props;
+  const state = useExecutionState(executions, initialNodeVisits);
+  const visitedNodeIds = useMemo(() => deriveVisitedNodeIds(state.nodeVisits), [state.nodeVisits]);
+  const errorNodeIds = useMemo(() => deriveErrorNodeIds(state.nodeVisits), [state.nodeVisits]);
+  const mutedNodeIds = useMemo(
+    () => buildDebugGraph(graph.nodes, graph.edges, visitedNodeIds, errorNodeIds).mutedNodeIds,
+    [graph, visitedNodeIds, errorNodeIds]
+  );
+  const selectedExecution = useMemo(
+    () => findExecution(executions, state.selectedExecutionId),
+    [executions, state.selectedExecutionId]
+  );
+
+  return { state, visitedNodeIds, errorNodeIds, mutedNodeIds, selectedExecution };
+}
+
+export function DebugView(props: DebugViewProps) {
+  const { session, graph, orgSlug, agentName, agentSlug } = props;
+  const t = useTranslations('dashboard');
+  const { state, visitedNodeIds, errorNodeIds, mutedNodeIds, selectedExecution } =
+    useDebugViewState(props);
+
+  const canvasAreaProps: DebugCanvasAreaProps = {
+    graph,
+    visitedNodeIds,
+    errorNodeIds,
+    mutedNodeIds,
+    selectedNodeId: state.selectedNodeId,
+    nodeVisits: state.nodeVisits,
+    onNodeClick: state.setSelectedNodeId,
+    onDeselectNode: state.handleDeselectNode,
+  };
+
+  return (
+    <div className="flex h-full flex-col bg-muted">
+      <DebugHeader
+        orgSlug={orgSlug}
+        agentName={agentName}
+        agentSlug={agentSlug}
+        sessionId={session.session_id}
+        dashboardLabel={t('title')}
+      />
+      <DebugBody
+        session={session}
+        agentName={agentName}
+        selectedExecution={selectedExecution}
+        errorBannerLabel={t('debug.executionError')}
+        canvasAreaProps={canvasAreaProps}
+      />
     </div>
   );
 }
