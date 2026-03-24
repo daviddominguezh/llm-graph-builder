@@ -80,6 +80,11 @@ export function ExecutionKeyRow({ keyData, onDelete }: ExecutionKeyRowProps) {
           <span>
             {t('created')} {formatRelativeDate(keyData.created_at)}
           </span>
+          <span>
+            {keyData.expires_at !== null
+              ? `${t('expiresAt')} ${formatRelativeDate(keyData.expires_at)}`
+              : t('noExpiration')}
+          </span>
         </div>
       </div>
       <Button
