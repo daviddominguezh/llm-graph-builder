@@ -26,7 +26,8 @@ const handleStyleBase = {
   justifyContent: "center",
   cursor: "pointer",
   borderRadius: '100px',
-  overflow: 'hidden'
+  overflow: 'hidden',
+  borderColor: 'var(--input)'
 } as const;
 
 const readOnlyStyleBase = {
@@ -37,11 +38,11 @@ const readOnlyStyleBase = {
 
 function buildHandleStyles(base: typeof handleStyleBase | typeof readOnlyStyleBase) {
   return {
-    topTarget: { ...base, backgroundColor: "var(--xy-background-color)", left: "35%" } as const,
+    topTarget: { ...base, backgroundColor: "var(--background)", left: "35%" } as const,
     topSource: { ...base, backgroundColor: "var(--background)", left: "65%" } as const,
-    bottomTarget: { ...base, backgroundColor: "var(--xy-background-color)", left: "35%" } as const,
+    bottomTarget: { ...base, backgroundColor: "var(--background)", left: "35%" } as const,
     bottomSource: { ...base, backgroundColor: "var(--background)", left: "65%" } as const,
-    leftTarget: { ...base, backgroundColor: "var(--xy-background-color)", top: "50%" } as const,
+    leftTarget: { ...base, backgroundColor: "var(--background)", top: "50%" } as const,
     rightSource: { ...base, backgroundColor: "var(--background)", top: "50%" } as const,
   };
 }

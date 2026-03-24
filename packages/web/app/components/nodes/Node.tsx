@@ -50,7 +50,7 @@ function AgentNodeComponent({ data, id, selected }: NodeProps) {
   const nextNodeIsUser = nodeData.nextNodeIsUser ?? false;
 
   const borderWidth = hasError || nextNodeIsUser ? "border-2" : "border";
-  const borderColor = hasError ? "border-destructive" : nextNodeIsUser ? "border-red-500" : "border-secondary";
+  const borderColor = hasError ? "border-destructive" : nextNodeIsUser ? "border-red-500" : "border-input";
   const mutedStyle = muted ? "border-border bg-muted grayscale contrast-85 pointer-events-none" : "";
   const selectionRing = selected ? "ring-2 ring-primary" : "";
 
