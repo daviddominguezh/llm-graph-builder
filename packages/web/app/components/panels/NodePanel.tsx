@@ -277,8 +277,8 @@ export function NodePanel({
                             <span className="ml-0.5 text-[11px]">{edge.source}</span>
                           </div>
                           {(value || hasContext) && (
-                            <div className="flex w-full gap-3 mt-1">
-                              <div className="shrink-0 ml-1 w-[2px] bg-zinc-200 self-stretch"></div>
+                            <div className="flex w-full gap-3 mt-1 bg-card rounded-sm py-1">
+                              <div className="shrink-0 w-[2px] bg-ring self-stretch"></div>
                               <div className="w-full text-[10px] text-muted-foreground">
                                 {value && <div className="w-full">{value}</div>}
                                 {hasContext && (
@@ -346,8 +346,8 @@ export function NodePanel({
                             <span className="ml-0.5 text-[11px]">{edge.target}</span>
                           </div>
                           {(value || hasContext) && (
-                            <div className="flex w-full gap-3 mt-1">
-                              <div className="shrink-0 ml-1 w-[2px] bg-zinc-200 self-stretch"></div>
+                            <div className="flex w-full gap-3 mt-1 bg-card rounded-sm py-1">
+                              <div className="shrink-0 ml-0 w-[2px] bg-ring self-stretch"></div>
                               <div className="w-full text-[10px] text-muted-foreground">
                                 {value && <div className="w-full">{value}</div>}
                                 {hasContext && (

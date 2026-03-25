@@ -560,8 +560,8 @@ export function EdgePanel({
                       </div>
 
                       {(p.description || (edgeData?.contextPreconditions && edgeData.contextPreconditions.preconditions.length > 0)) && (
-                        <div className="flex w-full gap-1">
-                          <div className="ml-0.5 w-[2px] bg-zinc-200 self-stretch shrink-0"></div>
+                        <div className="flex w-full gap-1 bg-card rounded-sm py-1">
+                          <div className="ml-0 w-[2px] bg-ring self-stretch shrink-0"></div>
                           <div className="text-xs text-muted-foreground">
                             {p.description && <div>{p.description}</div>}
                             {edgeData?.contextPreconditions && edgeData.contextPreconditions.preconditions.length > 0 && (
