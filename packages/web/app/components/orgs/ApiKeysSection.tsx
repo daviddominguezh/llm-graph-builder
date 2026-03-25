@@ -23,14 +23,20 @@ function ApiKeyItem({ apiKey, onDeleteClick }: ApiKeyItemProps) {
         <span className="text-sm font-medium">{apiKey.name}</span>
         <span className="text-muted-foreground font-mono text-xs">{apiKey.key_preview}</span>
       </div>
-      <Button variant="destructive" size="icon-sm" onClick={() => onDeleteClick(apiKey)}>
-        <Trash2 className="size-4" />
+      <Button variant="destructive" onClick={() => onDeleteClick(apiKey)}>
+        <Trash2 className="size-3.5" />
       </Button>
     </div>
   );
 }
 
-function ApiKeysList({ keys, onDeleteClick }: { keys: ApiKeyRow[]; onDeleteClick: (key: ApiKeyRow) => void }) {
+function ApiKeysList({
+  keys,
+  onDeleteClick,
+}: {
+  keys: ApiKeyRow[];
+  onDeleteClick: (key: ApiKeyRow) => void;
+}) {
   const t = useTranslations('apiKeys');
 
   if (keys.length === 0) {
@@ -63,7 +69,7 @@ export function ApiKeysSection({ orgId, initialKeys }: ApiKeysSectionProps) {
   }, [orgId]);
 
   return (
-    <Card className='bg-background ring-0'>
+    <Card className="bg-background ring-0">
       <CardHeader>
         <CardTitle>{t('title')}</CardTitle>
         <CardDescription>{t('description')}</CardDescription>
@@ -77,7 +83,12 @@ export function ApiKeysSection({ orgId, initialKeys }: ApiKeysSectionProps) {
       <CardContent>
         <ApiKeysList keys={keys} onDeleteClick={setDeleteTarget} />
       </CardContent>
-      <CreateApiKeyDialog open={createOpen} onOpenChange={setCreateOpen} orgId={orgId} onCreated={refreshKeys} />
+      <CreateApiKeyDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        orgId={orgId}
+        onCreated={refreshKeys}
+      />
       {deleteTarget !== null && (
         <DeleteApiKeyDialog
           open={deleteTarget !== null}
