@@ -15,9 +15,9 @@ export function AuthCard({ title, description, children }: AuthCardProps) {
   return (
     <div className="flex min-h-screen">
       <div className="flex flex-1 flex-col items-center justify-center gap-6 p-4">
-        <Card className="auth-card-enter w-full max-w-sm ring-1 ring-foreground/5 dark:ring-white/10 shadow-2xl bg-popover">
+        <Card className="auth-card-enter w-full max-w-sm ring-1 ring-foreground/5 dark:ring-white/10 shadow-2xl bg-popover px-3 py-5 text-foreground/80">
           <CardHeader>
-            <CardTitle className="text-lg">{title}</CardTitle>
+            <CardTitle className="text-xl font-bold">{title}</CardTitle>
             <CardDescription>{description}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">{children}</CardContent>

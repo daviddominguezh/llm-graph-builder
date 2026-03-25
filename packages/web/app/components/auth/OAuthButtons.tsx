@@ -51,7 +51,7 @@ export function OAuthButtons() {
 
   return (
     <>
-      <Button variant="outline" size="lg" className="w-full gap-2 bg-card/80 hover:bg-card" disabled={loading} onClick={handleGoogleSignIn}>
+      <Button variant="outline" size="lg" className="w-full gap-2 bg-background hover:bg-card" disabled={loading} onClick={handleGoogleSignIn}>
         {loading ? <Loader2 className="size-4 animate-spin" /> : <GoogleIcon />}
         {t('oauth.google')}
       </Button>
