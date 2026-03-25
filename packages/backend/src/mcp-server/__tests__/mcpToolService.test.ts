@@ -92,6 +92,7 @@ const toolList = [
 ];
 
 const TOOL_COUNT = 2;
+const FIRST = 0;
 
 function buildMockClient(): MockClient {
   return {
@@ -124,7 +125,7 @@ describe('discoverTools', () => {
     const result = await discoverTools(ctx, 'agent-1', 'server-1');
 
     expect(result).toHaveLength(TOOL_COUNT);
-    expect(result[0]).toEqual({
+    expect(result[FIRST]).toEqual({
       name: 'search',
       description: 'Search for results',
       inputSchema: { type: 'object', properties: { q: { type: 'string' } } },
@@ -159,49 +160,55 @@ describe('discoverTools', () => {
 });
 
 /* ------------------------------------------------------------------ */
+/*  callTool helpers                                                   */
+/* ------------------------------------------------------------------ */
+
+const EMPTY_ARGS: Record<string, unknown> = {};
+const SEARCH_INPUT = { agentId: 'agent-1', serverId: 'server-1', toolName: 'search', args: EMPTY_ARGS };
+
+function setupCallToolClient(): { ctx: ServiceContext; mockClient: MockClient } {
+  const ctx = buildCtx();
+  const mockClient = buildMockClient();
+  mockAssembleGraph.mockResolvedValue(testGraph);
+  mockConnectMcpClient.mockResolvedValue(mockClient);
+  return { ctx, mockClient };
+}
+
+/* ------------------------------------------------------------------ */
 /*  callTool                                                           */
 /* ------------------------------------------------------------------ */
 
 describe('callTool', () => {
   it('calls the tool with args and returns result', async () => {
-    const ctx = buildCtx();
-    const mockClient = buildMockClient();
-    mockAssembleGraph.mockResolvedValue(testGraph);
-    mockConnectMcpClient.mockResolvedValue(mockClient);
+    const { ctx, mockClient } = setupCallToolClient();
 
-    const result = await callTool(ctx, 'agent-1', 'server-1', 'search', { q: 'test' });
+    const result = await callTool(ctx, { agentId: 'agent-1', serverId: 'server-1', toolName: 'search', args: { q: 'test' } });
 
     expect(result).toEqual({ results: ['result1'] });
     expect(mockClient.close).toHaveBeenCalled();
   });
 
   it('throws when tool not found in toolset', async () => {
-    const ctx = buildCtx();
-    const mockClient = buildMockClient();
-    mockAssembleGraph.mockResolvedValue(testGraph);
-    mockConnectMcpClient.mockResolvedValue(mockClient);
+    const { ctx, mockClient } = setupCallToolClient();
 
-    await expect(callTool(ctx, 'agent-1', 'server-1', 'missing-tool', {})).rejects.toThrow(
-      'Tool not found: missing-tool'
-    );
+    await expect(
+      callTool(ctx, { agentId: 'agent-1', serverId: 'server-1', toolName: 'missing-tool', args: EMPTY_ARGS })
+    ).rejects.toThrow('Tool not found: missing-tool');
     expect(mockClient.close).toHaveBeenCalled();
   });
 
   it('closes client after tool execution error', async () => {
-    const ctx = buildCtx();
-    const mockClient = buildMockClient();
+    const { ctx, mockClient } = setupCallToolClient();
     const failingTool = { execute: jest.fn<MockTool['execute']>().mockRejectedValue(new Error('exec fail')) };
     mockClient.tools = jest.fn<MockClient['tools']>().mockResolvedValue({ search: failingTool });
-    mockAssembleGraph.mockResolvedValue(testGraph);
-    mockConnectMcpClient.mockResolvedValue(mockClient);
 
-    await expect(callTool(ctx, 'agent-1', 'server-1', 'search', {})).rejects.toThrow('exec fail');
+    await expect(callTool(ctx, SEARCH_INPUT)).rejects.toThrow('exec fail');
     expect(mockClient.close).toHaveBeenCalled();
   });
 
   it('throws when graph not found', async () => {
     mockAssembleGraph.mockResolvedValue(null);
 
-    await expect(callTool(buildCtx(), 'agent-1', 'server-1', 'search', {})).rejects.toThrow('Graph not found');
+    await expect(callTool(buildCtx(), SEARCH_INPUT)).rejects.toThrow('Graph not found');
   });
 });

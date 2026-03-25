@@ -43,7 +43,7 @@ function registerCallMcpTool(server: McpServer, getContext: () => ServiceContext
     async ({ agentSlug, serverId, toolName, args }) => {
       const ctx = getContext();
       const agentId = await resolveAgentId(ctx, agentSlug);
-      const result = await callTool(ctx, agentId, serverId, toolName, args);
+      const result = await callTool(ctx, { agentId, serverId, toolName, args });
       return textResult(result);
     }
   );

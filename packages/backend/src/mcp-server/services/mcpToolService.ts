@@ -18,6 +18,13 @@ export interface DiscoveredTool {
   inputSchema: Record<string, unknown>;
 }
 
+export interface CallToolInput {
+  agentId: string;
+  serverId: string;
+  toolName: string;
+  args: Record<string, unknown>;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
@@ -57,13 +64,12 @@ async function openClient(
   ctx: ServiceContext,
   agentId: string,
   serverId: string
-): Promise<{ client: McpClient; transport: McpTransport }> {
+): Promise<McpClient> {
   const graph = requireGraph(await assembleGraph(ctx.supabase, agentId), agentId);
   const server = requireServer(graph, serverId);
   const envVars = await getDecryptedEnvVariables(ctx.supabase, ctx.orgId);
   const transport = resolveTransportVars(server.transport, envVars);
-  const client = await connectMcpClient(transport);
-  return { client, transport };
+  return await connectMcpClient(transport);
 }
 
 /* ------------------------------------------------------------------ */
@@ -75,7 +81,7 @@ export async function discoverTools(
   agentId: string,
   serverId: string
 ): Promise<DiscoveredTool[]> {
-  const { client } = await openClient(ctx, agentId, serverId);
+  const client = await openClient(ctx, agentId, serverId);
   try {
     const { tools } = await client.listTools();
     return tools.map((t) => ({
@@ -90,15 +96,13 @@ export async function discoverTools(
 
 export async function callTool(
   ctx: ServiceContext,
-  agentId: string,
-  serverId: string,
-  toolName: string,
-  args: Record<string, unknown>
+  input: CallToolInput
 ): Promise<unknown> {
-  const { client } = await openClient(ctx, agentId, serverId);
+  const { agentId, serverId, toolName, args } = input;
+  const client = await openClient(ctx, agentId, serverId);
   try {
     const toolSet = await client.tools();
-    const tool = toolSet[toolName];
+    const { [toolName]: tool } = toolSet;
     if (tool === undefined) throw new Error(`Tool not found: ${toolName}`);
     return await tool.execute(args, { toolCallId: toolName, messages: [] });
   } finally {
