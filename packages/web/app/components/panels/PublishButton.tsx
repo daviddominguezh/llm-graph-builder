@@ -40,7 +40,7 @@ function buildCurlCommand(agentSlug: string, version: number): string {
 }'`;
 }
 
-function CopyButton({ text }: { text: string }) {
+function CopyButton({ text, disabled }: { text: string; disabled?: boolean }) {
   const t = useTranslations('common');
   const [copied, setCopied] = useState(false);
 
@@ -54,28 +54,36 @@ function CopyButton({ text }: { text: string }) {
   const label = copied ? t('copied') : t('copyCurl');
 
   return (
-    <Button variant="ghost" size="icon-sm" onClick={handleCopy} aria-label={label} title={label}>
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      onClick={handleCopy}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+    >
       <Icon className="size-3.5" />
     </Button>
   );
 }
 
-function CurlDisplay({ agentSlug, version }: { agentSlug: string; version: number }) {
-  const t = useTranslations('editor');
+interface CurlDisplayProps {
+  agentSlug: string;
+  version: number;
+  publishing?: boolean;
+}
+
+function CurlHighlighter({ curl, publishing }: { curl: string; publishing: boolean }) {
   const { resolvedTheme } = useTheme();
-  const curl = buildCurlCommand(agentSlug, version);
   const syntaxTheme = resolvedTheme === 'dark' ? oneDark : oneLight;
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium">
-          {t('curlExample')}
-          {' ('}v{version}
-          {'):'}
-        </span>
-        <CopyButton text={curl} />
-      </div>
+    <div className="relative">
+      {publishing && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-md bg-background/60">
+          <Loader2 className="size-5 animate-spin text-muted-foreground" />
+        </div>
+      )}
       <SyntaxHighlighter
         language="bash"
         style={syntaxTheme}
@@ -87,6 +95,8 @@ function CurlDisplay({ agentSlug, version }: { agentSlug: string; version: numbe
           padding: '0.625rem',
           wordBreak: 'break-all',
           whiteSpace: 'pre-wrap',
+          opacity: publishing ? 0.4 : 1,
+          transition: 'opacity 150ms',
         }}
       >
         {curl}
@@ -95,11 +105,22 @@ function CurlDisplay({ agentSlug, version }: { agentSlug: string; version: numbe
   );
 }
 
-function PublishSpinner() {
+function CurlDisplay({ agentSlug, version, publishing = false }: CurlDisplayProps) {
+  const t = useTranslations('editor');
+  const curl = buildCurlCommand(agentSlug, version);
+
   return (
-    <Button variant="default" size="sm" disabled className="h-10 gap-1.5 px-3 rounded-md">
-      <Loader2 className="size-4 animate-spin" />
-    </Button>
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium">
+          {t('curlExample')}
+          {' ('}v{version}
+          {'):'}
+        </span>
+        <CopyButton text={curl} disabled={publishing} />
+      </div>
+      <CurlHighlighter curl={curl} publishing={publishing} />
+    </div>
   );
 }
 
@@ -139,18 +160,21 @@ function PublishStatus({ version }: { version: number }) {
 interface PopoverBodyProps {
   agentSlug: string;
   version: number;
+  publishing: boolean;
   onPublish: () => void;
 }
 
-function PopoverBody({ agentSlug, version, onPublish }: PopoverBodyProps) {
+function PopoverBody({ agentSlug, version, publishing, onPublish }: PopoverBodyProps) {
   const t = useTranslations('editor');
+  const showCurl = version > 0 || publishing;
+  const curlVersion = version > 0 ? version : version + 1;
 
   return (
     <div className="flex flex-col gap-3 p-0.5">
       <PublishStatus version={version} />
       <Separator />
-      {version > 0 && <CurlDisplay agentSlug={agentSlug} version={version} />}
-      <Button variant="default" size="sm" className="w-full" onClick={onPublish}>
+      {showCurl && <CurlDisplay agentSlug={agentSlug} version={curlVersion} publishing={publishing} />}
+      <Button variant="default" size="sm" className="w-full" onClick={onPublish} disabled={publishing}>
         {t('publish')} v{version + 1}
       </Button>
     </div>
@@ -183,7 +207,6 @@ export function PublishButton(props: PublishButtonProps) {
 
   async function handlePublish() {
     setPublishing(true);
-    setOpen(false);
     try {
       await flush();
       const { version: newVersion } = await publishGraph(agentId);
@@ -195,18 +218,26 @@ export function PublishButton(props: PublishButtonProps) {
     }
   }
 
-  if (publishing) return <PublishSpinner />;
+  function handleOpenChange(next: boolean) {
+    if (!publishing) setOpen(next);
+  }
+
   if (!canPublish || !hasApiKey) return <DisabledPublishButton />;
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger
         render={<Button variant="default" size="sm" className="h-10 gap-1.5 px-3 rounded-md" />}
       >
         {t('publish')}
       </PopoverTrigger>
       <PopoverContent side="bottom" align="end" sideOffset={8} className="w-96">
-        <PopoverBody agentSlug={agentSlug} version={version} onPublish={handlePublish} />
+        <PopoverBody
+          agentSlug={agentSlug}
+          version={version}
+          publishing={publishing}
+          onPublish={handlePublish}
+        />
       </PopoverContent>
     </Popover>
   );
