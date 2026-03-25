@@ -3,12 +3,17 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import type { Request, Response } from 'express';
 
 import { authenticateMcpKey } from './auth.js';
+import type { CatalogEntry } from './services/toolCatalogBuilder.js';
 import { ToolCatalogBuilder } from './services/toolCatalogBuilder.js';
 import { registerAllTools } from './tools/index.js';
+import { registerToolSearchTools } from './tools/toolSearchTools.js';
 import type { ServiceContext } from './types.js';
 
 const SERVER_NAME = 'openflow';
 const SERVER_VERSION = '1.0.0';
+
+const catalogBuilder = new ToolCatalogBuilder();
+let catalog: CatalogEntry[] = [];
 
 const HTTP_METHOD_NOT_ALLOWED = 405;
 const HTTP_FORBIDDEN = 403;
@@ -29,9 +34,11 @@ function createMcpServer(getContext: () => ServiceContext): McpServer {
     { name: SERVER_NAME, version: SERVER_VERSION },
     { capabilities: { tools: {} } }
   );
-  const catalog = new ToolCatalogBuilder();
 
-  registerAllTools(server, getContext, catalog);
+  registerAllTools(server, getContext, catalogBuilder);
+  catalog = catalogBuilder.build();
+  registerToolSearchTools(server, catalog);
+
   return server;
 }
 
