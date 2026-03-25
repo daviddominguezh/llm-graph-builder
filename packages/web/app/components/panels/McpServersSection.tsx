@@ -211,7 +211,7 @@ function ServerItem({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <li className="rounded-md border px-3 py-2">
+    <li className="rounded-md border px-3 py-2 bg-background">
       <div
         className="flex items-center justify-between cursor-pointer"
         onClick={() => setExpanded(!expanded)}

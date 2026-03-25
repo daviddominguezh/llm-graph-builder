@@ -110,7 +110,7 @@ export function SearchDialog({ nodes, open, onClose, onSelectNode }: SearchDialo
           onChange={(e) => { setQuery(e.target.value); setActiveIndex(0); }}
           onKeyDown={handleKeyDown}
           placeholder="Search nodes..."
-          className="h-7 border-0 bg-transparent p-0 text-xs shadow-none focus-visible:ring-0"
+          className="h-7 border-0 bg-transparent! p-0 text-xs shadow-none focus-visible:ring-0"
         />
       </div>
       <ul className="flex-1 overflow-y-auto p-1">
@@ -121,7 +121,7 @@ export function SearchDialog({ nodes, open, onClose, onSelectNode }: SearchDialo
             <li key={node.id}>
               <Button
                 variant="ghost"
-                className={`flex h-auto w-full flex-col items-start rounded-md px-3 py-1.5 text-left text-xs ${
+                className={`flex h-auto w-full flex-col items-start justify-center rounded-md px-3 py-1.5 text-left text-xs ${
                   i === activeIndex ? "bg-accent/10" : "hover:bg-accent/5"
                 }`}
                 onMouseEnter={() => setActiveIndex(i)}

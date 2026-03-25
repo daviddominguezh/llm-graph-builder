@@ -103,7 +103,7 @@ function PlayButton({ tool, onTest }: { tool: FlatTool; onTest: (tool: FlatTool)
           <Button
             variant="ghost"
             size="icon-xs"
-            className="shrink-0 opacity-0 transition-opacity group-hover/tool:opacity-100 hover:bg-[#4fc661] hover:text-background"
+            className="shrink-0 opacity-0 transition-opacity group-hover/tool:opacity-100 hover:bg-[#4fc661] dark:hover:bg-[#4fc661] hover:text-background dark:hover:text-foreground"
             onClick={(e) => {
               e.stopPropagation();
               onTest(tool);
@@ -136,7 +136,7 @@ function ToolRow({
     <li className="flex flex-col w-[calc(50%_-_(var(--spacing)*2))] shrink-0 bg-muted rounded-sm py-1.5">
       <div
         ref={rowRef}
-        className="group/tool flex w-full items-start gap-1 px-1 py-0 text-left text-xs cursor-pointer border-l-2 border-border hover:border-accent"
+        className="group/tool flex w-full items-start gap-1 px-1 py-0 text-left text-xs cursor-pointer border-l-2 border-ring hover:border-accent"
         onClick={onClick}
       >
         <div className="flex min-w-0 flex-1 flex-col">
@@ -183,7 +183,7 @@ function ToolsList({
       ) : (
         groups.map((group) => (
           <div key={group.serverName}>
-            <div className="sticky top-0 z-10 bg-background px-2 pt-0 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+            <div className="sticky top-0 z-10 bg-popover px-2 pt-0 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
               <div className="pt-2">{group.serverName}</div>
             </div>
             <ul className="flex flex-row gap-2 gap-y-3 flex-wrap pl-1">
@@ -291,7 +291,7 @@ export function ToolsPanel({ servers, discoveredTools, mcp, open, onClose }: Too
     <>
       <div
         ref={containerRef}
-        className="absolute top-14.5 left-1/2 z-20 -translate-x-1/2 w-[28rem] h-96 flex flex-col rounded-lg border bg-background shadow-lg"
+        className="absolute top-14.5 left-1/2 z-20 -translate-x-1/2 w-[28rem] h-96 flex flex-col rounded-lg border bg-popover shadow-lg"
         onKeyDown={(e) => {
           if (e.key === 'Escape') onClose();
         }}
@@ -314,7 +314,7 @@ export function ToolsPanel({ servers, discoveredTools, mcp, open, onClose }: Too
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search tools..."
-                className="h-7 border-0 bg-transparent p-0 text-xs shadow-none focus-visible:ring-0"
+                className="h-7 border-0 bg-transparent! p-0 text-xs shadow-none focus-visible:ring-0"
               />
             </div>
             <ToolsList
