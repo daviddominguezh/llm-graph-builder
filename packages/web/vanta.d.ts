@@ -1,6 +1,8 @@
 declare module 'vanta/dist/vanta.rings.min' {
   export interface VantaEffect {
     destroy: () => void;
+    restart: () => void;
+    colors: number[];
   }
 
   interface VantaRingsOptions {

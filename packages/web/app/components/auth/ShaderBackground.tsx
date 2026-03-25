@@ -29,8 +29,15 @@ function usePrefersReducedMotion(): boolean {
   );
 }
 
-const DARK_PALETTE = { backgroundColor: 0x0a0a12, color: 0xa960ee } as const;
-const LIGHT_PALETTE = { backgroundColor: 0xf0f0f5, color: 0x7c3aed } as const;
+const DARK_PALETTE = { backgroundColor: 0x0a0a12, color: 0x7c3aed } as const;
+const LIGHT_PALETTE = { backgroundColor: 0xf0f0f5, color: 0x6d28d9 } as const;
+
+// All shades of the accent color (violet hue 277) — from dark to light
+const ACCENT_RINGS: number[] = [
+  0x2e1065, 0x3b0764, 0x4c1d95, 0x5b21b6, 0x6d28d9,
+  0x7c3aed, 0x8b5cf6, 0xa78bfa, 0xc4b5fd, 0x7e22ce,
+  0x9333ea, 0xa855f7, 0xd8b4fe,
+];
 
 async function initRings(el: HTMLElement, isDark: boolean): Promise<VantaEffect> {
   const [THREE, { default: RINGS }] = await Promise.all([
@@ -38,7 +45,7 @@ async function initRings(el: HTMLElement, isDark: boolean): Promise<VantaEffect>
     import('vanta/dist/vanta.rings.min'),
   ]);
 
-  return RINGS({
+  const effect = RINGS({
     el,
     THREE,
     mouseControls: true,
@@ -48,6 +55,11 @@ async function initRings(el: HTMLElement, isDark: boolean): Promise<VantaEffect>
     scaleMobile: 1,
     ...(isDark ? DARK_PALETTE : LIGHT_PALETTE),
   });
+
+  // Override the internal color palette and regenerate rings
+  effect.colors = ACCENT_RINGS;
+  effect.restart();
+  return effect;
 }
 
 export function ShaderBackground() {
