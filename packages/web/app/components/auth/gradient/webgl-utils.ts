@@ -1,4 +1,6 @@
-export function compileShader(gl: WebGLRenderingContext, type: number, source: string): WebGLShader {
+type GL = WebGLRenderingContext;
+
+export function compileShader(gl: GL, type: number, source: string): WebGLShader {
   const shader = gl.createShader(type);
   if (!shader) throw new Error('Failed to create shader');
   gl.shaderSource(shader, source);
@@ -11,7 +13,7 @@ export function compileShader(gl: WebGLRenderingContext, type: number, source: s
   return shader;
 }
 
-export function linkProgram(gl: WebGLRenderingContext, vSrc: string, fSrc: string): WebGLProgram {
+export function linkProgram(gl: GL, vSrc: string, fSrc: string): WebGLProgram {
   const vs = compileShader(gl, gl.VERTEX_SHADER, vSrc);
   const fs = compileShader(gl, gl.FRAGMENT_SHADER, fSrc);
   const program = gl.createProgram();
@@ -27,50 +29,76 @@ export function linkProgram(gl: WebGLRenderingContext, vSrc: string, fSrc: strin
   return program;
 }
 
-export function uploadBuffer(
-  gl: WebGLRenderingContext,
-  data: Float32Array | Uint16Array,
-  target: number
-): WebGLBuffer {
+export function uploadBuffer(gl: GL, data: Float32Array | Uint16Array, target: number): void {
   const buffer = gl.createBuffer();
   if (!buffer) throw new Error('Failed to create buffer');
   gl.bindBuffer(target, buffer);
   gl.bufferData(target, data, gl.STATIC_DRAW);
-  return buffer;
 }
 
-interface PlaneGeometry {
-  positions: Float32Array;
+// Stripe density: xSeg = ceil(0.06 * width), ySeg = ceil(0.16 * height)
+export function computeSegments(width: number, height: number): [number, number] {
+  return [Math.ceil(0.06 * width), Math.ceil(0.16 * height)];
+}
+
+// Stripe PlaneGeometry.setTopology — UV layout:
+//   uv.x = x/segX (0→1), uv.y = 1 - y/segY (1→0, top to bottom)
+//   uvNorm.x = -1 + 2*x/segX, uvNorm.y = 1 - 2*y/segY
+export function buildTopology(
+  xSeg: number,
+  ySeg: number
+): {
   uvs: Float32Array;
+  uvNorms: Float32Array;
   indices: Uint16Array;
+} {
+  const vertCount = (xSeg + 1) * (ySeg + 1);
+  const uvs = new Float32Array(2 * vertCount);
+  const uvNorms = new Float32Array(2 * vertCount);
+  const indices = new Uint16Array(6 * xSeg * ySeg);
+
+  for (let y = 0; y <= ySeg; y++) {
+    for (let x = 0; x <= xSeg; x++) {
+      const i = y * (xSeg + 1) + x;
+      uvs[2 * i] = x / xSeg;
+      uvs[2 * i + 1] = 1 - y / ySeg;
+      uvNorms[2 * i] = -1 + (x / xSeg) * 2;
+      uvNorms[2 * i + 1] = 1 - (y / ySeg) * 2;
+
+      if (x < xSeg && y < ySeg) {
+        const q = y * xSeg + x;
+        indices[6 * q] = i;
+        indices[6 * q + 1] = i + 1 + xSeg;
+        indices[6 * q + 2] = i + 1;
+        indices[6 * q + 3] = i + 1;
+        indices[6 * q + 4] = i + 1 + xSeg;
+        indices[6 * q + 5] = i + 2 + xSeg;
+      }
+    }
+  }
+
+  return { uvs, uvNorms, indices };
 }
 
-export function createPlane(segX: number, segY: number): PlaneGeometry {
-  const positions: number[] = [];
-  const uvs: number[] = [];
-  const indices: number[] = [];
-  const cols = segX + 1;
+// Stripe PlaneGeometry.setSize with orientation "xz":
+//   position.x = pixel X, position.y = 0, position.z = -pixel Y
+export function buildPositions(xSeg: number, ySeg: number, w: number, h: number): Float32Array {
+  const vertCount = (xSeg + 1) * (ySeg + 1);
+  const positions = new Float32Array(3 * vertCount);
+  const startX = -(w / 2);
+  const startY = -(h / 2);
+  const stepX = w / xSeg;
+  const stepY = h / ySeg;
 
-  for (let y = 0; y <= segY; y++) {
-    for (let x = 0; x <= segX; x++) {
-      const u = x / segX;
-      const v = y / segY;
-      positions.push(u * 2 - 1, v * 2 - 1, 0);
-      uvs.push(u, v);
+  for (let y = 0; y <= ySeg; y++) {
+    const posY = startY + y * stepY;
+    for (let x = 0; x <= xSeg; x++) {
+      const posX = startX + x * stepX;
+      const idx = y * (xSeg + 1) + x;
+      positions[3 * idx] = posX;
+      positions[3 * idx + 2] = -posY;
     }
   }
 
-  for (let y = 0; y < segY; y++) {
-    for (let x = 0; x < segX; x++) {
-      const i = y * cols + x;
-      indices.push(i, i + 1, i + cols);
-      indices.push(i + 1, i + cols + 1, i + cols);
-    }
-  }
-
-  return {
-    positions: new Float32Array(positions),
-    uvs: new Float32Array(uvs),
-    indices: new Uint16Array(indices),
-  };
+  return positions;
 }

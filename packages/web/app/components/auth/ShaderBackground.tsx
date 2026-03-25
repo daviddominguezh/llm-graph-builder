@@ -36,11 +36,15 @@ export function ShaderBackground() {
     const canvas = canvasRef.current;
     if (!canvas) return undefined;
 
-    const base = isDark ? DARK_CONFIG : LIGHT_CONFIG;
-    const config = prefersReducedMotion ? { ...base, speed: 0 } : base;
-    const handle = createGradient(canvas, config);
-    return () => handle.destroy();
+    const config = isDark ? DARK_CONFIG : LIGHT_CONFIG;
+    try {
+      const handle = createGradient(canvas, config);
+      if (prefersReducedMotion) handle.destroy();
+      return () => handle.destroy();
+    } catch {
+      return undefined;
+    }
   }, [isDark, prefersReducedMotion]);
 
-  return <canvas ref={canvasRef} className="h-full w-full" aria-hidden="true" />;
+  return <canvas ref={canvasRef} className="absolute inset-0 block h-full w-full" aria-hidden="true" />;
 }
