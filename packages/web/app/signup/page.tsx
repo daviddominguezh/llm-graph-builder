@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -71,6 +72,7 @@ function useSignupSubmit(name: string, email: string, password: string) {
   const router = useRouter();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -86,6 +88,7 @@ function useSignupSubmit(name: string, email: string, password: string) {
 
     if (authError) {
       setError(t('errors.generic'));
+      setIsShaking(true);
       setLoading(false);
       return;
     }
@@ -100,7 +103,7 @@ function useSignupSubmit(name: string, email: string, password: string) {
     router.refresh();
   }
 
-  return { error, loading, handleSubmit };
+  return { error, loading, isShaking, setIsShaking, handleSubmit };
 }
 
 function SignupForm() {
@@ -108,7 +111,7 @@ function SignupForm() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { error, loading, handleSubmit } = useSignupSubmit(name, email, password);
+  const { error, loading, isShaking, setIsShaking, handleSubmit } = useSignupSubmit(name, email, password);
   const isFormValid = name.trim().length > 0 && EMAIL_REGEX.test(email) && password.length > 0;
 
   return (
@@ -119,7 +122,11 @@ function SignupForm() {
         <span className="text-muted-foreground text-xs">{t('signup.or')}</span>
         <Separator className="flex-1" />
       </div>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      <form
+        onSubmit={handleSubmit}
+        className={`flex flex-col gap-3 ${isShaking ? 'auth-shake' : ''}`}
+        onAnimationEnd={() => setIsShaking(false)}
+      >
         <SignupFields
           name={name}
           email={email}
@@ -130,7 +137,7 @@ function SignupForm() {
         />
         {error && <p className="text-destructive text-xs">{error}</p>}
         <Button type="submit" size="lg" className="w-full" disabled={!isFormValid || loading}>
-          {t('signup.submit')}
+          {loading ? <Loader2 className="size-4 animate-spin" /> : t('signup.submit')}
         </Button>
       </form>
       <p className="text-center text-xs text-muted-foreground">

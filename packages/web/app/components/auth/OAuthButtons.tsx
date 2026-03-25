@@ -2,6 +2,7 @@
 
 import { createClient } from '@/app/lib/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -50,8 +51,8 @@ export function OAuthButtons() {
 
   return (
     <>
-      <Button variant="outline" size="lg" className="w-full gap-2 bg-background hover:bg-card" disabled={loading} onClick={handleGoogleSignIn}>
-        <GoogleIcon />
+      <Button variant="outline" size="lg" className="w-full gap-2 bg-card/80 hover:bg-card" disabled={loading} onClick={handleGoogleSignIn}>
+        {loading ? <Loader2 className="size-4 animate-spin" /> : <GoogleIcon />}
         {t('oauth.google')}
       </Button>
       {error !== '' && <p className="text-destructive text-xs">{error}</p>}

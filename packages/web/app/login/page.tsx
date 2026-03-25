@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -63,6 +64,7 @@ function useLoginSubmit(email: string, password: string) {
   const router = useRouter();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -74,6 +76,7 @@ function useLoginSubmit(email: string, password: string) {
 
     if (authError) {
       setError(t('errors.invalidCredentials'));
+      setIsShaking(true);
       setLoading(false);
       return;
     }
@@ -82,14 +85,14 @@ function useLoginSubmit(email: string, password: string) {
     router.refresh();
   }
 
-  return { error, loading, handleSubmit };
+  return { error, loading, isShaking, setIsShaking, handleSubmit };
 }
 
 function LoginForm() {
   const t = useTranslations('auth');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { error, loading, handleSubmit } = useLoginSubmit(email, password);
+  const { error, loading, isShaking, setIsShaking, handleSubmit } = useLoginSubmit(email, password);
   const isFormValid = EMAIL_REGEX.test(email) && password.length > 0;
 
   return (
@@ -100,11 +103,15 @@ function LoginForm() {
         <span className="text-muted-foreground text-xs">{t('login.or')}</span>
         <Separator className="flex-1" />
       </div>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      <form
+        onSubmit={handleSubmit}
+        className={`flex flex-col gap-3 ${isShaking ? 'auth-shake' : ''}`}
+        onAnimationEnd={() => setIsShaking(false)}
+      >
         <LoginFields email={email} password={password} onEmailChange={setEmail} onPasswordChange={setPassword} />
         {error && <p className="text-destructive text-xs">{error}</p>}
         <Button type="submit" size="lg" className="w-full" disabled={!isFormValid || loading}>
-          {t('login.submit')}
+          {loading ? <Loader2 className="size-4 animate-spin" /> : t('login.submit')}
         </Button>
       </form>
       <p className="text-center text-xs text-muted-foreground">
