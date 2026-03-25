@@ -32,7 +32,7 @@ function CreateOrgFields(props: CreateOrgFieldsProps) {
   const t = useTranslations('orgs');
 
   return (
-    <div className="flex items-start gap-4">
+    <div className="flex items-center gap-4">
       <AvatarUpload
         currentUrl={null}
         previewUrl={previewUrl}
@@ -136,7 +136,7 @@ function CreateOrgForm({ onOpenChange }: CreateOrgDialogProps) {
         onRemove={handleRemove}
       />
       <DialogFooter>
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading || name.trim() === ''}>
           {t('create')}
         </Button>
       </DialogFooter>
