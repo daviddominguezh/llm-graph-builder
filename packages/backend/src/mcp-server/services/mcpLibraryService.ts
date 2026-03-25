@@ -2,18 +2,30 @@ import type { McpLibraryRow } from '../../db/queries/mcpLibraryQueries.js';
 import * as mcpLibraryQueries from '../../db/queries/mcpLibraryQueries.js';
 import type { ServiceContext } from '../types.js';
 
+/* ------------------------------------------------------------------ */
+/*  Types                                                              */
+/* ------------------------------------------------------------------ */
+
+export interface BrowseOptions {
+  query?: string;
+  category?: string;
+  limit?: number;
+  offset?: number;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Service functions                                                  */
+/* ------------------------------------------------------------------ */
+
 export async function browseLibrary(
   ctx: ServiceContext,
-  query?: string,
-  category?: string,
-  limit?: number,
-  offset?: number
+  options: BrowseOptions = {}
 ): Promise<McpLibraryRow[]> {
   const { result, error } = await mcpLibraryQueries.browseLibrary(ctx.supabase, {
-    query,
-    category,
-    limit,
-    offset,
+    query: options.query,
+    category: options.category,
+    limit: options.limit,
+    offset: options.offset,
   });
   if (error !== null) throw new Error(error);
   return result;

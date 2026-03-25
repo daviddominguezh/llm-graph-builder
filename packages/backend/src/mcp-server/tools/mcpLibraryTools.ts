@@ -23,7 +23,7 @@ function registerBrowseMcpLibrary(server: McpServer, getContext: () => ServiceCo
     },
     async ({ query, category, limit, offset }) => {
       const ctx = getContext();
-      const result = await browseLibrary(ctx, query, category, limit, offset);
+      const result = await browseLibrary(ctx, { query, category, limit, offset });
       return textResult(result);
     }
   );
