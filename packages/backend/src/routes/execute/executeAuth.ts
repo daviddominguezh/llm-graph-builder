@@ -1,6 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { NextFunction, Request, Response } from 'express';
-import { createHash } from 'node:crypto';
 
 import {
   createServiceClient,
@@ -10,6 +9,7 @@ import {
   validateExecutionKey,
   validateKeyAgentAccess,
 } from '../../db/queries/executionAuthQueries.js';
+import { hashToken } from '../../utils/hashToken.js';
 
 export interface ExecutionAuthLocals extends Record<string, unknown> {
   orgId: string;
@@ -31,10 +31,6 @@ function extractBearerToken(header: string | undefined): string | null {
   if (header === undefined) return null;
   if (!header.startsWith(BEARER_PREFIX)) return null;
   return header.slice(BEARER_PREFIX.length);
-}
-
-function hashToken(token: string): string {
-  return createHash('sha256').update(token).digest('hex');
 }
 
 function sendError(res: Response, status: number, message: string): void {

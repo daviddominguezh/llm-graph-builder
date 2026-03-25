@@ -27,7 +27,11 @@ export function linkProgram(gl: WebGLRenderingContext, vSrc: string, fSrc: strin
   return program;
 }
 
-export function uploadBuffer(gl: WebGLRenderingContext, data: Float32Array | Uint16Array, target: number): WebGLBuffer {
+export function uploadBuffer(
+  gl: WebGLRenderingContext,
+  data: Float32Array | Uint16Array,
+  target: number
+): WebGLBuffer {
   const buffer = gl.createBuffer();
   if (!buffer) throw new Error('Failed to create buffer');
   gl.bindBuffer(target, buffer);
