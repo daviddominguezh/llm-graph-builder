@@ -430,11 +430,30 @@ git commit -m "feat(mcp-server): auth module — execution key validation for MC
 
 **Files:**
 - Create: `packages/backend/src/mcp-server/helpers.ts`
+- Create: `packages/backend/src/mcp-server/__tests__/helpers.test.ts`
 - Create: `packages/backend/src/mcp-server/server.ts`
 - Create: `packages/backend/src/mcp-server/tools/index.ts`
 - Modify: `packages/backend/src/server.ts`
 
-- [ ] **Step 1: Create helpers module**
+- [ ] **Step 1: Write tests for `resolveAgentId` helper**
+
+Create `packages/backend/src/mcp-server/__tests__/helpers.test.ts`:
+
+Test cases:
+- Returns agentId when agent exists and key has all-agents access (empty join table)
+- Returns agentId when agent exists and key has specific access to this agent
+- Throws when agent slug not found
+- Throws when key lacks access to the agent (join table has rows, but not this agent)
+
+Mock `executionAuthQueries.getAgentBySlugAndOrg`, `executionKeyQueries.getAgentsForKey`, `executionAuthQueries.validateKeyAgentAccess`.
+
+- [ ] **Step 2: Run tests — verify they fail**
+
+```bash
+npm test -w packages/backend -- --testPathPattern=helpers
+```
+
+- [ ] **Step 3: Create helpers module**
 
 Create `packages/backend/src/mcp-server/helpers.ts`:
 
@@ -443,7 +462,13 @@ Contains:
 - `formatError(err)` — extracts error message string.
 - `textResult(data)` — returns `{ content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] }`.
 
-- [ ] **Step 2: Create tools index (empty for now)**
+- [ ] **Step 4: Run tests — verify they pass**
+
+```bash
+npm test -w packages/backend -- --testPathPattern=helpers
+```
+
+- [ ] **Step 5: Create tools index (empty for now)**
 
 Create `packages/backend/src/mcp-server/tools/index.ts`:
 ```typescript
@@ -493,13 +518,13 @@ app.delete('/mcp', handleMcpRequest);
 
 Note: MCP StreamableHTTP uses POST for messages, GET for SSE stream, DELETE for session termination.
 
-- [ ] **Step 5: Verify typecheck passes**
+- [ ] **Step 6: Verify typecheck passes**
 
 ```bash
 npm run typecheck -w packages/backend
 ```
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git commit -m "feat(mcp-server): MCP server core with StreamableHTTP transport and Express mount"
@@ -526,7 +551,7 @@ This task is the full canonical implementation. All subsequent tasks follow this
 | `list_agents` | `listAgents(ctx, search?)` | `agentQueries.getAgentsByOrg(supabase, orgId)` |
 | `create_agent` | `createAgent(ctx, name, description)` | `slugQueries.generateSlug(name)` → `slugQueries.findUniqueSlug(supabase, slug, 'agents')` → `agentQueries.insertAgent(supabase, { org_id, name, slug, description })` |
 | `get_agent` | `getAgent(ctx, agentSlug)` | `agentQueries.getAgentBySlug(supabase, slug)` |
-| `update_agent` | `updateAgent(ctx, agentSlug, fields)` | `agentQueries.getAgentBySlug` then update via supabase directly (or add a new query if needed) |
+| `update_agent` | `updateAgent(ctx, agentSlug, fields)` | `agentQueries.getAgentBySlug` → new `agentQueries.updateAgent(supabase, agentId, { name?, description? })` (create this query function — simple `.update().eq('id', agentId)` on `agents` table, following the existing pattern of `updateStagingKeyId`) |
 | `delete_agent` | `deleteAgent(ctx, agentSlug)` | `agentQueries.getAgentBySlug` → `agentQueries.deleteAgent(supabase, agentId)` |
 
 - [ ] **Step 1: Write failing tests for `listAgents`**
@@ -707,28 +732,15 @@ git commit -m "feat(mcp-server): agent domain tools (list, add, update, delete)"
 
 ---
 
-### Task 8: Validation Service (tools 64-68)
+### Task 8a: Validation Service — Violation Checkers (tool 64 partial)
 
 **Files:**
 - Create: `packages/backend/src/mcp-server/services/validationService.ts`
 - Create: `packages/backend/src/mcp-server/__tests__/validationService.test.ts`
-- Create: `packages/backend/src/mcp-server/tools/validationTools.ts`
 
-**Tool → Implementation:**
+Implement each violation type as a **pure function** that takes a `Graph` and returns `Violation[]`. This makes testing straightforward — no mocking needed, just construct graph fixtures.
 
-| Tool | Service function | Logic |
-|------|-----------------|-------|
-| `validate_graph` | `validateGraph(ctx, agentId)` | `assembleGraph` → run violation checks (orphans, dead ends, missing preconditions, etc.) |
-| `get_reachability` | `getReachability(ctx, agentId, fromNode, maxDepth)` | `assembleGraph` → BFS from `fromNode` |
-| `find_path` | `findPath(ctx, agentId, from, to)` | `assembleGraph` → BFS shortest path |
-| `get_dead_ends` | `getDeadEnds(ctx, agentId)` | `assembleGraph` → nodes with no outbound edges that aren't terminals |
-| `get_orphans` | `getOrphans(ctx, agentId)` | `assembleGraph` → BFS from startNode, return unreached |
-
-**Key notes:**
-- `validateGraph` is the most complex — implement each violation type as a pure function that takes a `Graph` and returns `Violation[]`. This makes testing straightforward.
-- BFS/DFS functions are pure graph algorithms operating on `Graph.nodes` and `Graph.edges`.
-
-Violation checkers to implement as pure functions:
+Violation checkers:
 - `checkOrphanNodes(graph)` — BFS from startNode
 - `checkDeadEnds(graph)` — nodes with no outbound edges and `nextNodeIsUser !== true` and `global !== true`
 - `checkMissingPreconditions(graph)` — edges from `agent_decision` nodes must have `agent_decision` preconditions
@@ -739,16 +751,45 @@ Violation checkers to implement as pure functions:
 - `checkDanglingFallbacks(graph)` — node.fallbackNodeId must reference existing node
 - `checkGlobalNodeTools(graph)` — global nodes must have exactly one outbound tool_call edge
 
-- [ ] **Step 1: Write tests for each violation checker (pure functions)**
-- [ ] **Step 2: Implement violation checkers**
-- [ ] **Step 3: Write tests for BFS/reachability/path-finding**
-- [ ] **Step 4: Implement graph traversal functions**
-- [ ] **Step 5: Run tests — verify all pass**
-- [ ] **Step 6: Create tools + wire**
-- [ ] **Step 7: Commit**
+- [ ] **Step 1: Write tests for each violation checker with graph fixtures**
+- [ ] **Step 2: Run tests — verify they fail**
+- [ ] **Step 3: Implement all 9 violation checkers as pure functions**
+- [ ] **Step 4: Implement `validateGraph(ctx, agentId)` that calls `assembleGraph` then all checkers**
+- [ ] **Step 5: Run tests — verify they pass**
+- [ ] **Step 6: Commit**
 
 ```bash
-git commit -m "feat(mcp-server): validation & analysis tools (validate, reachability, path, dead ends, orphans)"
+git commit -m "feat(mcp-server): graph validation — 9 violation checkers"
+```
+
+---
+
+### Task 8b: Validation Service — Graph Traversal + Tools (tools 64-68)
+
+**Files:**
+- Modify: `packages/backend/src/mcp-server/services/validationService.ts`
+- Modify: `packages/backend/src/mcp-server/__tests__/validationService.test.ts`
+- Create: `packages/backend/src/mcp-server/tools/validationTools.ts`
+
+BFS/DFS graph traversal functions — pure algorithms on `Graph.nodes` + `Graph.edges`:
+
+| Tool | Service function | Logic |
+|------|-----------------|-------|
+| `validate_graph` | `validateGraph(ctx, agentId)` | Already done in 8a |
+| `get_reachability` | `getReachability(ctx, agentId, fromNode, maxDepth)` | BFS from `fromNode` |
+| `find_path` | `findPath(ctx, agentId, from, to)` | BFS shortest path |
+| `get_dead_ends` | `getDeadEnds(ctx, agentId)` | Reuses `checkDeadEnds` from 8a |
+| `get_orphans` | `getOrphans(ctx, agentId)` | Reuses `checkOrphanNodes` BFS from 8a |
+
+- [ ] **Step 1: Write tests for BFS reachability and path-finding with graph fixtures**
+- [ ] **Step 2: Run tests — verify they fail**
+- [ ] **Step 3: Implement graph traversal functions**
+- [ ] **Step 4: Run tests — verify they pass**
+- [ ] **Step 5: Create `validationTools.ts` with 5 tool registrations + wire**
+- [ ] **Step 6: Commit**
+
+```bash
+git commit -m "feat(mcp-server): graph traversal & validation tools (reachability, path, dead ends, orphans)"
 ```
 
 ---
@@ -875,7 +916,7 @@ git commit -m "feat(mcp-server): context preset tools (list, add, update, delete
 | `delete_env_variable` | `envVariableQueries.deleteEnvVariable(supabase, variableId)` |
 | `get_env_variable_value` | `envVariableQueries.getEnvVariableValue(supabase, variableId)` |
 
-**Note:** These are org-scoped — no `agent_slug` needed. The `userId` for `createEnvVariable` can be empty string since MCP keys don't have a user context. Check if the RPC requires it — if so, pass a sentinel like `'mcp-api'`.
+**Note:** These are org-scoped — no `agent_slug` needed. The `createEnvVariable` RPC takes a `userId` param (`p_created_by`). Before implementing, check if the `create_org_env_variable` Supabase RPC enforces an FK constraint on this field by reading the migration SQL or testing with a dummy value. If it does enforce FK, either: (a) make the column nullable in a migration, or (b) store the execution key's ID as a reference. If no FK constraint, pass an empty string.
 
 - [ ] **Step 1-5: TDD cycle**
 - [ ] **Step 6: Commit**
@@ -1001,7 +1042,9 @@ Reuses:
 
 The service assembles the prompt components and returns them as structured data (system prompt, options, fallback, output format, template variables).
 
-- [ ] **Step 1: Check exports from `@daviddh/llm-graph-runner`, refactor if needed**
+- [ ] **Step 1: Export prompt assembly functions from `@daviddh/llm-graph-runner`**
+
+`buildNextAgentConfig` is in `packages/api/src/stateMachine/index.ts` and `convertEdgesToStr` is in `packages/api/src/stateMachine/format/index.ts`. Neither is exported from the package root (`packages/api/src/index.ts`). Add both to the package's public exports. Then run `npm run build -w packages/api` to rebuild.
 - [ ] **Step 2: Write tests**
 - [ ] **Step 3: Implement `promptService.ts`**
 - [ ] **Step 4: Create tool + wire**
