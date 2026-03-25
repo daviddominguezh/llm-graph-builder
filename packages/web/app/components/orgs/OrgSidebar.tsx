@@ -243,27 +243,49 @@ function LogoutButton({ collapsed }: { collapsed: boolean }) {
   );
 }
 
+const SIDEBAR_TRANSITION_MS = 100;
+
 function useSidebarState() {
   const [collapsed, setCollapsed] = useState(true);
+  const [contentCollapsed, setContentCollapsed] = useState(true);
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const isHovered = useRef(false);
+  const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function clearCollapseTimer() {
+    if (collapseTimer.current !== null) {
+      clearTimeout(collapseTimer.current);
+      collapseTimer.current = null;
+    }
+  }
+
+  function collapse() {
+    setCollapsed(true);
+    collapseTimer.current = setTimeout(() => setContentCollapsed(true), SIDEBAR_TRANSITION_MS);
+  }
+
+  function expand() {
+    clearCollapseTimer();
+    setCollapsed(false);
+    setContentCollapsed(false);
+  }
 
   const handleSwitcherChange = (open: boolean) => {
     setSwitcherOpen(open);
-    if (!open && !isHovered.current) setCollapsed(true);
+    if (!open && !isHovered.current) collapse();
   };
 
   const handleMouseEnter = () => {
     isHovered.current = true;
-    setCollapsed(false);
+    expand();
   };
 
   const handleMouseLeave = () => {
     isHovered.current = false;
-    if (!switcherOpen) setCollapsed(true);
+    if (!switcherOpen) collapse();
   };
 
-  return { collapsed, switcherOpen, handleSwitcherChange, handleMouseEnter, handleMouseLeave };
+  return { collapsed, contentCollapsed, switcherOpen, handleSwitcherChange, handleMouseEnter, handleMouseLeave };
 }
 
 function useAgentsNavClick(activeSegment: string) {
@@ -290,7 +312,7 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
 
   return (
     <aside
-      className={`absolute left-0 top-0 bottom-0 z-11 flex flex-col gap-2 bg-sidebar p-2 pl-1.5 transition-[width] duration-100 ${sidebar.collapsed ? 'w-[52px] border border-transparent' : 'w-50 shadow-lg border rounded-e-md z-12'}`}
+      className={`absolute left-0 top-0 bottom-0 z-11 flex flex-col gap-2 overflow-hidden bg-sidebar p-2 pl-1.5 transition-[width] duration-100 ${sidebar.collapsed ? 'w-[52px]' : 'w-50'} ${sidebar.contentCollapsed ? 'border border-transparent' : 'shadow-lg border rounded-e-md z-12'}`}
       onMouseEnter={sidebar.handleMouseEnter}
       onMouseLeave={sidebar.handleMouseLeave}
     >
@@ -299,10 +321,10 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
         open={sidebar.switcherOpen}
         onOpenChange={sidebar.handleSwitcherChange}
       >
-        {sidebar.collapsed ? <CollapsedTrigger org={org} /> : <ExpandedTrigger org={org} />}
+        {sidebar.contentCollapsed ? <CollapsedTrigger org={org} /> : <ExpandedTrigger org={org} />}
       </OrgSwitcherPopover>
       <Separator />
-      {sidebar.collapsed ? (
+      {sidebar.contentCollapsed ? (
         <NavList items={TOP_NAV_ITEMS} basePath={basePath} segment={segment} onItemClick={handleNavClick} />
       ) : (
         <NavListExpanded
@@ -313,13 +335,13 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
         />
       )}
       <div className="mt-auto flex flex-col gap-2">
-        {sidebar.collapsed ? (
+        {sidebar.contentCollapsed ? (
           <NavList items={BOTTOM_NAV_ITEMS} basePath={basePath} segment={segment} />
         ) : (
           <NavListExpanded items={BOTTOM_NAV_ITEMS} basePath={basePath} segment={segment} />
         )}
         <Separator />
-        <LogoutButton collapsed={sidebar.collapsed} />
+        <LogoutButton collapsed={sidebar.contentCollapsed} />
       </div>
     </aside>
   );

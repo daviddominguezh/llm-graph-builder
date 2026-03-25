@@ -143,7 +143,7 @@ export function OrgSettingsForm({ org }: OrgSettingsFormProps) {
         <CardDescription>{t('generalDescription')}</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex items-start gap-4">
+        <div className="flex items-center gap-4">
           <AvatarSection org={org} />
           <NameSection org={org} />
         </div>
