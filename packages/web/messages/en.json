@@ -122,7 +122,7 @@
   "editor": {
     "publish": "Publish",
     "publishFailed": "Failed to publish. Please try again.",
-    "curlExample": "cURL example",
+    "curlExample": "cURL Example",
     "draft": "Draft",
     "publishedVersion": "Published",
     "saving": "Saving...",

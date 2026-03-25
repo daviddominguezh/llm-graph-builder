@@ -7,7 +7,10 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Check, Copy, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 import { useCallback, useState } from 'react';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { toast } from 'sonner';
 
 const FEEDBACK_DURATION = 1500;
@@ -59,17 +62,35 @@ function CopyButton({ text }: { text: string }) {
 
 function CurlDisplay({ agentSlug, version }: { agentSlug: string; version: number }) {
   const t = useTranslations('editor');
+  const { resolvedTheme } = useTheme();
   const curl = buildCurlCommand(agentSlug, version);
+  const syntaxTheme = resolvedTheme === 'dark' ? oneDark : oneLight;
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium">{t('curlExample')}</span>
+        <span className="text-xs font-medium">
+          {t('curlExample')}
+          {' ('}v{version}
+          {'):'}
+        </span>
         <CopyButton text={curl} />
       </div>
-      <pre className="bg-muted rounded-md border p-2.5 text-[11px] leading-relaxed overflow-x-auto whitespace-pre-wrap break-all font-mono">
+      <SyntaxHighlighter
+        language="bash"
+        style={syntaxTheme}
+        customStyle={{
+          margin: 0,
+          borderRadius: '0.375rem',
+          fontSize: '11px',
+          lineHeight: '1.625',
+          padding: '0.625rem',
+          wordBreak: 'break-all',
+          whiteSpace: 'pre-wrap',
+        }}
+      >
         {curl}
-      </pre>
+      </SyntaxHighlighter>
     </div>
   );
 }
@@ -103,7 +124,12 @@ function PublishStatus({ version }: { version: number }) {
             {t('publishedVersion')}
           </>
         ) : (
-          t('draft')
+          <>
+            <span
+              className={`mx-1.5 inline-block size-2.5 rounded-full ${isPublished ? 'bg-green-500' : 'bg-gray-400'}`}
+            />
+            {t('draft')}
+          </>
         )}
       </span>
     </div>
