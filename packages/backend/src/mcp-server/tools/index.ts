@@ -8,6 +8,7 @@ import { registerGraphWriteTools } from './graphWriteTools.js';
 import { registerMcpLibraryTools } from './mcpLibraryTools.js';
 import { registerMcpManagementTools } from './mcpManagementTools.js';
 import { registerMcpToolOpsTools } from './mcpToolOpsTools.js';
+import { registerOutputSchemaTools } from './outputSchemaTools.js';
 import { registerValidationTools } from './validationTools.js';
 
 export function registerAllTools(server: McpServer, getContext: () => ServiceContext): void {
@@ -18,5 +19,6 @@ export function registerAllTools(server: McpServer, getContext: () => ServiceCon
   registerMcpManagementTools(server, getContext);
   registerMcpLibraryTools(server, getContext);
   registerMcpToolOpsTools(server, getContext);
+  registerOutputSchemaTools(server, getContext);
   registerValidationTools(server, getContext);
 }
