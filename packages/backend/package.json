@@ -15,7 +15,9 @@
     "format": "prettier --write \"**/*.{js,ts,json}\"",
     "check": "npm run format && npm run lint && npm run typecheck",
     "start": "node dist/index.js",
-    "dev": "tsx watch --env-file=.env src/index.ts"
+    "dev": "tsx watch --env-file=.env src/index.ts",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' npx jest",
+    "test:watch": "NODE_OPTIONS='--experimental-vm-modules' npx jest --watch"
   },
   "files": [
     "dist",
@@ -29,6 +31,7 @@
     "@ai-sdk/mcp": "^1.0.26",
     "@daviddh/graph-types": "*",
     "@daviddh/llm-graph-runner": "*",
+    "@modelcontextprotocol/sdk": "^1.28.0",
     "@supabase/supabase-js": "^2.99.0",
     "@types/multer": "^2.1.0",
     "cors": "^2.8.5",
