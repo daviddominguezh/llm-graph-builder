@@ -2,6 +2,7 @@ import cors from 'cors';
 import express, { type Express, type NextFunction, type Request, type Response } from 'express';
 import multer from 'multer';
 
+import { handleMcpRequest } from './mcp-server/server.js';
 import { requireAuth } from './middleware/auth.js';
 import { agentRouter } from './routes/agents/agentRouter.js';
 import { dashboardRouter } from './routes/dashboard/dashboardRouter.js';
@@ -57,6 +58,10 @@ export function createApp(): Express {
   app.post('/mcp/tools/call', handleToolCall);
   app.post('/simulate', handleSimulate);
   app.get('/mcp/oauth/callback', handleCallback);
+
+  app.post('/mcp', handleMcpRequest);
+  app.get('/mcp', handleMcpRequest);
+  app.delete('/mcp', handleMcpRequest);
 
   app.use('/api/agents', executeRouter);
   app.use('/orgs', buildOrgRouter());
