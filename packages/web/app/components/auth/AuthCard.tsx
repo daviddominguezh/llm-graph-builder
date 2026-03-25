@@ -1,6 +1,11 @@
 'use client';
 
+import logo from '@/app/icon.png';
+import logoBlack from '@/app/openflowLogoBlack.png';
+import logoWhite from '@/app/openflowLogoWhite.png';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useTheme } from 'next-themes';
+import Image from 'next/image';
 import type { ReactNode } from 'react';
 
 import { ShaderBackground } from './ShaderBackground';
@@ -12,21 +17,26 @@ interface AuthCardProps {
 }
 
 export function AuthCard({ title, description, children }: AuthCardProps) {
+  const { resolvedTheme } = useTheme();
+  const logoType = resolvedTheme === 'dark' ? logoWhite : logoBlack;
+
   return (
     <div className="flex min-h-screen min-w-screen justify-center items-center">
-
       <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 1 }}>
         <ShaderBackground />
       </div>
 
       <div className="absolute w-full h-full flex flex-col z-2">
-        <div className="border-b border-input w-full h-19 shrink-0 flex items-end pl-26">
-          <div className='font-bold text-xl px-4 py-2'>OpenFlow</div>
+        <div className="border-b border-secondary/30 w-full h-19 shrink-0 flex items-end pl-26">
+          <div className="px-4 py-2 flex gap-2 items-center">
+            <Image className='mb-1' src={logo} alt="OpenFlow" height={30} priority />
+            <Image src={logoType} alt="OpenFlow" height={24} priority />
+          </div>
         </div>
         <div className="w-full flex-1 min-h-[0px] flex">
-          <div className="border-r border-input w-26 h-full shrink-0"></div>
+          <div className="border-r border-secondary/30 w-26 h-full shrink-0"></div>
           <div className="flex-1 min-w-[0px] h-full shrink-0"></div>
-          <div className="border-l border-input w-26 h-full shrink-0"></div>
+          <div className="border-l border-secondary/30 w-26 h-full shrink-0"></div>
         </div>
       </div>
 
