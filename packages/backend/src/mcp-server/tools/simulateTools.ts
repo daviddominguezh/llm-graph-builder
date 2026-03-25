@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { resolveAgentId, textResult } from '../helpers.js';
 import { simulateAgent } from '../services/simulateService.js';
 import type { SimulationExecutionParams } from '../services/simulateTypes.js';
+import type { ToolCatalogBuilder } from '../services/toolCatalogBuilder.js';
 import type { ServiceContext } from '../types.js';
 
 /* ------------------------------------------------------------------ */
@@ -31,7 +32,7 @@ async function defaultRunSimulation(params: SimulationExecutionParams): Promise<
 }
 
 /* ------------------------------------------------------------------ */
-/*  Tool registration                                                  */
+/*  Schemas                                                            */
 /* ------------------------------------------------------------------ */
 
 const messageSchema = z.object({
@@ -39,21 +40,30 @@ const messageSchema = z.object({
   content: z.string(),
 });
 
-export function registerSimulateTools(server: McpServer, getContext: () => ServiceContext): void {
+const SIMULATE_AGENT_DESC =
+  'Run the agent graph with the given messages and return a debug trace including ' +
+  'response text, visited nodes, tool calls, and token usage';
+
+const SIMULATE_AGENT_SCHEMA = {
+  agentSlug: z.string().describe('Agent slug'),
+  messages: z.array(messageSchema).describe('Conversation messages to simulate'),
+  currentNode: z.string().optional().describe('Node ID to start from (defaults to start node)'),
+  modelId: z.string().optional().describe('Model override (e.g. openai/gpt-4o-mini)'),
+  data: z.record(z.string(), z.unknown()).optional().describe('Extra data context for the agent'),
+};
+
+/* ------------------------------------------------------------------ */
+/*  Tool registration                                                  */
+/* ------------------------------------------------------------------ */
+
+export function registerSimulateTools(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
   server.registerTool(
     'simulate_agent',
-    {
-      description:
-        'Run the agent graph with the given messages and return a debug trace including ' +
-        'response text, visited nodes, tool calls, and token usage',
-      inputSchema: {
-        agentSlug: z.string().describe('Agent slug'),
-        messages: z.array(messageSchema).describe('Conversation messages to simulate'),
-        currentNode: z.string().optional().describe('Node ID to start from (defaults to start node)'),
-        modelId: z.string().optional().describe('Model override (e.g. openai/gpt-4o-mini)'),
-        data: z.record(z.string(), z.unknown()).optional().describe('Extra data context for the agent'),
-      },
-    },
+    { description: SIMULATE_AGENT_DESC, inputSchema: SIMULATE_AGENT_SCHEMA },
     async ({ agentSlug, messages, currentNode, modelId, data }) => {
       const ctx = getContext();
       const agentId = await resolveAgentId(ctx, agentSlug);
@@ -64,4 +74,10 @@ export function registerSimulateTools(server: McpServer, getContext: () => Servi
       return textResult(result);
     }
   );
+  catalog.register({
+    name: 'simulate_agent',
+    description: SIMULATE_AGENT_DESC,
+    category: 'simulation',
+    inputSchema: z.toJSONSchema(z.object(SIMULATE_AGENT_SCHEMA)) as Record<string, unknown>,
+  });
 }

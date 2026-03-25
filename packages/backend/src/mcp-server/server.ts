@@ -3,6 +3,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import type { Request, Response } from 'express';
 
 import { authenticateMcpKey } from './auth.js';
+import { ToolCatalogBuilder } from './services/toolCatalogBuilder.js';
 import { registerAllTools } from './tools/index.js';
 import type { ServiceContext } from './types.js';
 
@@ -28,8 +29,9 @@ function createMcpServer(getContext: () => ServiceContext): McpServer {
     { name: SERVER_NAME, version: SERVER_VERSION },
     { capabilities: { tools: {} } }
   );
+  const catalog = new ToolCatalogBuilder();
 
-  registerAllTools(server, getContext);
+  registerAllTools(server, getContext, catalog);
   return server;
 }
 

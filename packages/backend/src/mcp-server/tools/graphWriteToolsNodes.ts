@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { resolveAgentId, textResult } from '../helpers.js';
 import { addNode, deleteNode, updateNode } from '../services/graphWriteService.js';
+import type { ToolCatalogBuilder } from '../services/toolCatalogBuilder.js';
 import type { ServiceContext } from '../types.js';
 
 /* ------------------------------------------------------------------ */
@@ -21,23 +22,39 @@ const nodeOptionalFields = {
   outputPrompt: z.string().optional().describe('Output prompt'),
 };
 
+const ADD_NODE_SCHEMA = {
+  agentSlug: z.string().describe('Agent slug'),
+  id: z.string().describe('Node ID (unique within the graph)'),
+  text: z.string().describe('Node prompt text'),
+  kind: nodeKindSchema.describe('Node kind'),
+  ...nodeOptionalFields,
+};
+
+const UPDATE_NODE_SCHEMA = {
+  agentSlug: z.string().describe('Agent slug'),
+  nodeId: z.string().describe('Node ID to update'),
+  text: z.string().optional().describe('Node prompt text'),
+  kind: nodeKindSchema.optional().describe('Node kind'),
+  ...nodeOptionalFields,
+};
+
+const DELETE_NODE_SCHEMA = {
+  agentSlug: z.string().describe('Agent slug'),
+  nodeId: z.string().describe('Node ID to delete'),
+};
+
 /* ------------------------------------------------------------------ */
 /*  Tool: add_node                                                     */
 /* ------------------------------------------------------------------ */
 
-function registerAddNode(server: McpServer, getContext: () => ServiceContext): void {
+function registerAddNode(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
   server.registerTool(
     'add_node',
-    {
-      description: 'Add a new node to the agent graph',
-      inputSchema: {
-        agentSlug: z.string().describe('Agent slug'),
-        id: z.string().describe('Node ID (unique within the graph)'),
-        text: z.string().describe('Node prompt text'),
-        kind: nodeKindSchema.describe('Node kind'),
-        ...nodeOptionalFields,
-      },
-    },
+    { description: 'Add a new node to the agent graph', inputSchema: ADD_NODE_SCHEMA },
     async ({ agentSlug, id, text, kind, ...rest }) => {
       const ctx = getContext();
       const agentId = await resolveAgentId(ctx, agentSlug);
@@ -45,25 +62,26 @@ function registerAddNode(server: McpServer, getContext: () => ServiceContext): v
       return textResult(result);
     }
   );
+  catalog.register({
+    name: 'add_node',
+    description: 'Add a new node to the agent graph',
+    category: 'graph_write',
+    inputSchema: z.toJSONSchema(z.object(ADD_NODE_SCHEMA)) as Record<string, unknown>,
+  });
 }
 
 /* ------------------------------------------------------------------ */
 /*  Tool: update_node                                                  */
 /* ------------------------------------------------------------------ */
 
-function registerUpdateNode(server: McpServer, getContext: () => ServiceContext): void {
+function registerUpdateNode(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
   server.registerTool(
     'update_node',
-    {
-      description: 'Update fields of an existing node in the agent graph',
-      inputSchema: {
-        agentSlug: z.string().describe('Agent slug'),
-        nodeId: z.string().describe('Node ID to update'),
-        text: z.string().optional().describe('Node prompt text'),
-        kind: nodeKindSchema.optional().describe('Node kind'),
-        ...nodeOptionalFields,
-      },
-    },
+    { description: 'Update fields of an existing node in the agent graph', inputSchema: UPDATE_NODE_SCHEMA },
     async ({ agentSlug, nodeId, ...fields }) => {
       const ctx = getContext();
       const agentId = await resolveAgentId(ctx, agentSlug);
@@ -71,21 +89,28 @@ function registerUpdateNode(server: McpServer, getContext: () => ServiceContext)
       return textResult(result);
     }
   );
+  catalog.register({
+    name: 'update_node',
+    description: 'Update fields of an existing node in the agent graph',
+    category: 'graph_write',
+    inputSchema: z.toJSONSchema(z.object(UPDATE_NODE_SCHEMA)) as Record<string, unknown>,
+  });
 }
 
 /* ------------------------------------------------------------------ */
 /*  Tool: delete_node                                                  */
 /* ------------------------------------------------------------------ */
 
-function registerDeleteNode(server: McpServer, getContext: () => ServiceContext): void {
+function registerDeleteNode(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
   server.registerTool(
     'delete_node',
     {
       description: 'Delete a node from the agent graph along with its connected edges',
-      inputSchema: {
-        agentSlug: z.string().describe('Agent slug'),
-        nodeId: z.string().describe('Node ID to delete'),
-      },
+      inputSchema: DELETE_NODE_SCHEMA,
     },
     async ({ agentSlug, nodeId }) => {
       const ctx = getContext();
@@ -94,14 +119,24 @@ function registerDeleteNode(server: McpServer, getContext: () => ServiceContext)
       return textResult(result);
     }
   );
+  catalog.register({
+    name: 'delete_node',
+    description: 'Delete a node from the agent graph along with its connected edges',
+    category: 'graph_write',
+    inputSchema: z.toJSONSchema(z.object(DELETE_NODE_SCHEMA)) as Record<string, unknown>,
+  });
 }
 
 /* ------------------------------------------------------------------ */
 /*  Registration                                                       */
 /* ------------------------------------------------------------------ */
 
-export function registerGraphWriteNodeTools(server: McpServer, getContext: () => ServiceContext): void {
-  registerAddNode(server, getContext);
-  registerUpdateNode(server, getContext);
-  registerDeleteNode(server, getContext);
+export function registerGraphWriteNodeTools(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
+  registerAddNode(server, getContext, catalog);
+  registerUpdateNode(server, getContext, catalog);
+  registerDeleteNode(server, getContext, catalog);
 }

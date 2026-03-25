@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { resolveAgentId, textResult } from '../helpers.js';
 import { addEdge, deleteEdge, setStartNode, updateEdge } from '../services/graphWriteService.js';
+import type { ToolCatalogBuilder } from '../services/toolCatalogBuilder.js';
 import type { ServiceContext } from '../types.js';
 
 /* ------------------------------------------------------------------ */
@@ -26,21 +27,46 @@ const edgePreconditionFields = {
 };
 
 /* ------------------------------------------------------------------ */
+/*  Tool schemas                                                       */
+/* ------------------------------------------------------------------ */
+
+const ADD_EDGE_SCHEMA = {
+  agentSlug: z.string().describe('Agent slug'),
+  from: z.string().describe('Source node ID'),
+  to: z.string().describe('Target node ID'),
+  ...edgePreconditionFields,
+};
+
+const UPDATE_EDGE_SCHEMA = {
+  agentSlug: z.string().describe('Agent slug'),
+  from: z.string().describe('Source node ID'),
+  to: z.string().describe('Target node ID'),
+  ...edgePreconditionFields,
+};
+
+const DELETE_EDGE_SCHEMA = {
+  agentSlug: z.string().describe('Agent slug'),
+  from: z.string().describe('Source node ID'),
+  to: z.string().describe('Target node ID'),
+};
+
+const SET_START_NODE_SCHEMA = {
+  agentSlug: z.string().describe('Agent slug'),
+  nodeId: z.string().describe('Node ID to set as start'),
+};
+
+/* ------------------------------------------------------------------ */
 /*  Tool: add_edge                                                     */
 /* ------------------------------------------------------------------ */
 
-function registerAddEdge(server: McpServer, getContext: () => ServiceContext): void {
+function registerAddEdge(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
   server.registerTool(
     'add_edge',
-    {
-      description: 'Add a new edge between two nodes in the agent graph',
-      inputSchema: {
-        agentSlug: z.string().describe('Agent slug'),
-        from: z.string().describe('Source node ID'),
-        to: z.string().describe('Target node ID'),
-        ...edgePreconditionFields,
-      },
-    },
+    { description: 'Add a new edge between two nodes in the agent graph', inputSchema: ADD_EDGE_SCHEMA },
     async ({ agentSlug, from, to, preconditions, contextPreconditions }) => {
       const ctx = getContext();
       const agentId = await resolveAgentId(ctx, agentSlug);
@@ -48,23 +74,28 @@ function registerAddEdge(server: McpServer, getContext: () => ServiceContext): v
       return textResult(result);
     }
   );
+  catalog.register({
+    name: 'add_edge',
+    description: 'Add a new edge between two nodes in the agent graph',
+    category: 'graph_write',
+    inputSchema: z.toJSONSchema(z.object(ADD_EDGE_SCHEMA)) as Record<string, unknown>,
+  });
 }
 
 /* ------------------------------------------------------------------ */
 /*  Tool: update_edge                                                  */
 /* ------------------------------------------------------------------ */
 
-function registerUpdateEdge(server: McpServer, getContext: () => ServiceContext): void {
+function registerUpdateEdge(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
   server.registerTool(
     'update_edge',
     {
       description: 'Update preconditions of an existing edge in the agent graph',
-      inputSchema: {
-        agentSlug: z.string().describe('Agent slug'),
-        from: z.string().describe('Source node ID'),
-        to: z.string().describe('Target node ID'),
-        ...edgePreconditionFields,
-      },
+      inputSchema: UPDATE_EDGE_SCHEMA,
     },
     async ({ agentSlug, from, to, preconditions, contextPreconditions }) => {
       const ctx = getContext();
@@ -73,23 +104,26 @@ function registerUpdateEdge(server: McpServer, getContext: () => ServiceContext)
       return textResult({ success: true });
     }
   );
+  catalog.register({
+    name: 'update_edge',
+    description: 'Update preconditions of an existing edge in the agent graph',
+    category: 'graph_write',
+    inputSchema: z.toJSONSchema(z.object(UPDATE_EDGE_SCHEMA)) as Record<string, unknown>,
+  });
 }
 
 /* ------------------------------------------------------------------ */
 /*  Tool: delete_edge                                                  */
 /* ------------------------------------------------------------------ */
 
-function registerDeleteEdge(server: McpServer, getContext: () => ServiceContext): void {
+function registerDeleteEdge(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
   server.registerTool(
     'delete_edge',
-    {
-      description: 'Delete an edge between two nodes in the agent graph',
-      inputSchema: {
-        agentSlug: z.string().describe('Agent slug'),
-        from: z.string().describe('Source node ID'),
-        to: z.string().describe('Target node ID'),
-      },
-    },
+    { description: 'Delete an edge between two nodes in the agent graph', inputSchema: DELETE_EDGE_SCHEMA },
     async ({ agentSlug, from, to }) => {
       const ctx = getContext();
       const agentId = await resolveAgentId(ctx, agentSlug);
@@ -97,22 +131,26 @@ function registerDeleteEdge(server: McpServer, getContext: () => ServiceContext)
       return textResult({ success: true });
     }
   );
+  catalog.register({
+    name: 'delete_edge',
+    description: 'Delete an edge between two nodes in the agent graph',
+    category: 'graph_write',
+    inputSchema: z.toJSONSchema(z.object(DELETE_EDGE_SCHEMA)) as Record<string, unknown>,
+  });
 }
 
 /* ------------------------------------------------------------------ */
 /*  Tool: set_start_node                                               */
 /* ------------------------------------------------------------------ */
 
-function registerSetStartNode(server: McpServer, getContext: () => ServiceContext): void {
+function registerSetStartNode(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
   server.registerTool(
     'set_start_node',
-    {
-      description: 'Set the start node of the agent graph',
-      inputSchema: {
-        agentSlug: z.string().describe('Agent slug'),
-        nodeId: z.string().describe('Node ID to set as start'),
-      },
-    },
+    { description: 'Set the start node of the agent graph', inputSchema: SET_START_NODE_SCHEMA },
     async ({ agentSlug, nodeId }) => {
       const ctx = getContext();
       const agentId = await resolveAgentId(ctx, agentSlug);
@@ -120,15 +158,25 @@ function registerSetStartNode(server: McpServer, getContext: () => ServiceContex
       return textResult({ success: true });
     }
   );
+  catalog.register({
+    name: 'set_start_node',
+    description: 'Set the start node of the agent graph',
+    category: 'graph_write',
+    inputSchema: z.toJSONSchema(z.object(SET_START_NODE_SCHEMA)) as Record<string, unknown>,
+  });
 }
 
 /* ------------------------------------------------------------------ */
 /*  Registration                                                       */
 /* ------------------------------------------------------------------ */
 
-export function registerGraphWriteEdgeTools(server: McpServer, getContext: () => ServiceContext): void {
-  registerAddEdge(server, getContext);
-  registerUpdateEdge(server, getContext);
-  registerDeleteEdge(server, getContext);
-  registerSetStartNode(server, getContext);
+export function registerGraphWriteEdgeTools(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
+  registerAddEdge(server, getContext, catalog);
+  registerUpdateEdge(server, getContext, catalog);
+  registerDeleteEdge(server, getContext, catalog);
+  registerSetStartNode(server, getContext, catalog);
 }

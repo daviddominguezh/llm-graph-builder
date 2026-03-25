@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { resolveAgentId, textResult } from '../helpers.js';
 import { batchMutate } from '../services/graphWriteService.js';
+import type { ToolCatalogBuilder } from '../services/toolCatalogBuilder.js';
 import type { ServiceContext } from '../types.js';
 
 /* ------------------------------------------------------------------ */
@@ -51,24 +52,33 @@ const mutationOpSchema = z.discriminatedUnion('type', [
 ]);
 
 /* ------------------------------------------------------------------ */
+/*  Tool schema                                                        */
+/* ------------------------------------------------------------------ */
+
+const BATCH_MUTATE_DESC = 'Apply multiple graph mutations atomically with automatic rollback on failure';
+
+const BATCH_MUTATE_SCHEMA = {
+  agentSlug: z.string().describe('Agent slug'),
+  operations: z.array(mutationOpSchema).describe('List of operations to apply in order'),
+  validateAfter: z
+    .boolean()
+    .default(true)
+    .optional()
+    .describe('Read back graph after mutations for validation'),
+};
+
+/* ------------------------------------------------------------------ */
 /*  Tool: batch_mutate                                                 */
 /* ------------------------------------------------------------------ */
 
-function registerBatchMutate(server: McpServer, getContext: () => ServiceContext): void {
+function registerBatchMutate(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
   server.registerTool(
     'batch_mutate',
-    {
-      description: 'Apply multiple graph mutations atomically with automatic rollback on failure',
-      inputSchema: {
-        agentSlug: z.string().describe('Agent slug'),
-        operations: z.array(mutationOpSchema).describe('List of operations to apply in order'),
-        validateAfter: z
-          .boolean()
-          .default(true)
-          .optional()
-          .describe('Read back graph after mutations for validation'),
-      },
-    },
+    { description: BATCH_MUTATE_DESC, inputSchema: BATCH_MUTATE_SCHEMA },
     async ({ agentSlug, operations, validateAfter }) => {
       const ctx = getContext();
       const agentId = await resolveAgentId(ctx, agentSlug);
@@ -76,12 +86,22 @@ function registerBatchMutate(server: McpServer, getContext: () => ServiceContext
       return textResult(result);
     }
   );
+  catalog.register({
+    name: 'batch_mutate',
+    description: BATCH_MUTATE_DESC,
+    category: 'graph_write',
+    inputSchema: z.toJSONSchema(z.object(BATCH_MUTATE_SCHEMA)) as Record<string, unknown>,
+  });
 }
 
 /* ------------------------------------------------------------------ */
 /*  Registration                                                       */
 /* ------------------------------------------------------------------ */
 
-export function registerGraphWriteBatchTools(server: McpServer, getContext: () => ServiceContext): void {
-  registerBatchMutate(server, getContext);
+export function registerGraphWriteBatchTools(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
+  registerBatchMutate(server, getContext, catalog);
 }

@@ -10,6 +10,7 @@ import {
   removeMcpServer,
   updateMcpServer,
 } from '../services/mcpManagementService.js';
+import type { ToolCatalogBuilder } from '../services/toolCatalogBuilder.js';
 import type { ServiceContext } from '../types.js';
 
 /* ------------------------------------------------------------------ */
@@ -41,16 +42,54 @@ const variableValueSchema = z.discriminatedUnion('type', [
 ]);
 
 /* ------------------------------------------------------------------ */
+/*  Tool schemas                                                       */
+/* ------------------------------------------------------------------ */
+
+const LIST_MCP_SERVERS_SCHEMA = { agentSlug: z.string().describe('Agent slug') };
+
+const GET_MCP_SERVER_SCHEMA = {
+  agentSlug: z.string().describe('Agent slug'),
+  serverId: z.string().describe('MCP server ID'),
+};
+
+const ADD_MCP_SERVER_SCHEMA = {
+  agentSlug: z.string().describe('Agent slug'),
+  name: z.string().describe('Server name'),
+  transport: transportSchema.describe('Transport configuration'),
+  enabled: z.boolean().optional().describe('Whether the server is enabled'),
+};
+
+const UPDATE_MCP_SERVER_SCHEMA = {
+  agentSlug: z.string().describe('Agent slug'),
+  serverId: z.string().describe('MCP server ID'),
+  name: z.string().optional().describe('New server name'),
+  transport: transportSchema.optional().describe('New transport configuration'),
+  enabled: z.boolean().optional().describe('Enable or disable the server'),
+};
+
+const REMOVE_MCP_SERVER_SCHEMA = {
+  agentSlug: z.string().describe('Agent slug'),
+  serverId: z.string().describe('MCP server ID'),
+};
+
+const INSTALL_MCP_FROM_LIBRARY_SCHEMA = {
+  agentSlug: z.string().describe('Agent slug'),
+  libraryItemId: z.string().describe('Library item ID to install'),
+  variableValues: z.record(z.string(), variableValueSchema).optional().describe('Variable values'),
+};
+
+/* ------------------------------------------------------------------ */
 /*  Tool registrations                                                 */
 /* ------------------------------------------------------------------ */
 
-function registerListMcpServers(server: McpServer, getContext: () => ServiceContext): void {
+function registerListMcpServers(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
   server.registerTool(
     'list_mcp_servers',
-    {
-      description: 'List all MCP servers configured for an agent',
-      inputSchema: { agentSlug: z.string().describe('Agent slug') },
-    },
+    { description: 'List all MCP servers configured for an agent', inputSchema: LIST_MCP_SERVERS_SCHEMA },
     async ({ agentSlug }) => {
       const ctx = getContext();
       const agentId = await resolveAgentId(ctx, agentSlug);
@@ -58,18 +97,22 @@ function registerListMcpServers(server: McpServer, getContext: () => ServiceCont
       return textResult(result);
     }
   );
+  catalog.register({
+    name: 'list_mcp_servers',
+    description: 'List all MCP servers configured for an agent',
+    category: 'mcp_management',
+    inputSchema: z.toJSONSchema(z.object(LIST_MCP_SERVERS_SCHEMA)) as Record<string, unknown>,
+  });
 }
 
-function registerGetMcpServer(server: McpServer, getContext: () => ServiceContext): void {
+function registerGetMcpServer(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
   server.registerTool(
     'get_mcp_server',
-    {
-      description: 'Get details of a specific MCP server by ID',
-      inputSchema: {
-        agentSlug: z.string().describe('Agent slug'),
-        serverId: z.string().describe('MCP server ID'),
-      },
-    },
+    { description: 'Get details of a specific MCP server by ID', inputSchema: GET_MCP_SERVER_SCHEMA },
     async ({ agentSlug, serverId }) => {
       const ctx = getContext();
       const agentId = await resolveAgentId(ctx, agentSlug);
@@ -77,20 +120,22 @@ function registerGetMcpServer(server: McpServer, getContext: () => ServiceContex
       return textResult(result);
     }
   );
+  catalog.register({
+    name: 'get_mcp_server',
+    description: 'Get details of a specific MCP server by ID',
+    category: 'mcp_management',
+    inputSchema: z.toJSONSchema(z.object(GET_MCP_SERVER_SCHEMA)) as Record<string, unknown>,
+  });
 }
 
-function registerAddMcpServer(server: McpServer, getContext: () => ServiceContext): void {
+function registerAddMcpServer(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
   server.registerTool(
     'add_mcp_server',
-    {
-      description: 'Add a new MCP server to an agent',
-      inputSchema: {
-        agentSlug: z.string().describe('Agent slug'),
-        name: z.string().describe('Server name'),
-        transport: transportSchema.describe('Transport configuration'),
-        enabled: z.boolean().optional().describe('Whether the server is enabled'),
-      },
-    },
+    { description: 'Add a new MCP server to an agent', inputSchema: ADD_MCP_SERVER_SCHEMA },
     async ({ agentSlug, name, transport, enabled }) => {
       const ctx = getContext();
       const agentId = await resolveAgentId(ctx, agentSlug);
@@ -98,21 +143,22 @@ function registerAddMcpServer(server: McpServer, getContext: () => ServiceContex
       return textResult(result);
     }
   );
+  catalog.register({
+    name: 'add_mcp_server',
+    description: 'Add a new MCP server to an agent',
+    category: 'mcp_management',
+    inputSchema: z.toJSONSchema(z.object(ADD_MCP_SERVER_SCHEMA)) as Record<string, unknown>,
+  });
 }
 
-function registerUpdateMcpServer(server: McpServer, getContext: () => ServiceContext): void {
+function registerUpdateMcpServer(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
   server.registerTool(
     'update_mcp_server',
-    {
-      description: 'Update an existing MCP server configuration',
-      inputSchema: {
-        agentSlug: z.string().describe('Agent slug'),
-        serverId: z.string().describe('MCP server ID'),
-        name: z.string().optional().describe('New server name'),
-        transport: transportSchema.optional().describe('New transport configuration'),
-        enabled: z.boolean().optional().describe('Enable or disable the server'),
-      },
-    },
+    { description: 'Update an existing MCP server configuration', inputSchema: UPDATE_MCP_SERVER_SCHEMA },
     async ({ agentSlug, serverId, name, transport, enabled }) => {
       const ctx = getContext();
       const agentId = await resolveAgentId(ctx, agentSlug);
@@ -120,18 +166,22 @@ function registerUpdateMcpServer(server: McpServer, getContext: () => ServiceCon
       return textResult({ success: true });
     }
   );
+  catalog.register({
+    name: 'update_mcp_server',
+    description: 'Update an existing MCP server configuration',
+    category: 'mcp_management',
+    inputSchema: z.toJSONSchema(z.object(UPDATE_MCP_SERVER_SCHEMA)) as Record<string, unknown>,
+  });
 }
 
-function registerRemoveMcpServer(server: McpServer, getContext: () => ServiceContext): void {
+function registerRemoveMcpServer(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
   server.registerTool(
     'remove_mcp_server',
-    {
-      description: 'Remove an MCP server from an agent',
-      inputSchema: {
-        agentSlug: z.string().describe('Agent slug'),
-        serverId: z.string().describe('MCP server ID'),
-      },
-    },
+    { description: 'Remove an MCP server from an agent', inputSchema: REMOVE_MCP_SERVER_SCHEMA },
     async ({ agentSlug, serverId }) => {
       const ctx = getContext();
       const agentId = await resolveAgentId(ctx, agentSlug);
@@ -139,18 +189,24 @@ function registerRemoveMcpServer(server: McpServer, getContext: () => ServiceCon
       return textResult({ success: true });
     }
   );
+  catalog.register({
+    name: 'remove_mcp_server',
+    description: 'Remove an MCP server from an agent',
+    category: 'mcp_management',
+    inputSchema: z.toJSONSchema(z.object(REMOVE_MCP_SERVER_SCHEMA)) as Record<string, unknown>,
+  });
 }
 
-function registerInstallMcpFromLibrary(server: McpServer, getContext: () => ServiceContext): void {
+function registerInstallMcpFromLibrary(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
   server.registerTool(
     'install_mcp_from_library',
     {
       description: 'Install an MCP server from the library into an agent',
-      inputSchema: {
-        agentSlug: z.string().describe('Agent slug'),
-        libraryItemId: z.string().describe('Library item ID to install'),
-        variableValues: z.record(z.string(), variableValueSchema).optional().describe('Variable values'),
-      },
+      inputSchema: INSTALL_MCP_FROM_LIBRARY_SCHEMA,
     },
     async ({ agentSlug, libraryItemId, variableValues }) => {
       const ctx = getContext();
@@ -159,17 +215,27 @@ function registerInstallMcpFromLibrary(server: McpServer, getContext: () => Serv
       return textResult(result);
     }
   );
+  catalog.register({
+    name: 'install_mcp_from_library',
+    description: 'Install an MCP server from the library into an agent',
+    category: 'mcp_management',
+    inputSchema: z.toJSONSchema(z.object(INSTALL_MCP_FROM_LIBRARY_SCHEMA)) as Record<string, unknown>,
+  });
 }
 
 /* ------------------------------------------------------------------ */
 /*  Register all                                                       */
 /* ------------------------------------------------------------------ */
 
-export function registerMcpManagementTools(server: McpServer, getContext: () => ServiceContext): void {
-  registerListMcpServers(server, getContext);
-  registerGetMcpServer(server, getContext);
-  registerAddMcpServer(server, getContext);
-  registerUpdateMcpServer(server, getContext);
-  registerRemoveMcpServer(server, getContext);
-  registerInstallMcpFromLibrary(server, getContext);
+export function registerMcpManagementTools(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
+  registerListMcpServers(server, getContext, catalog);
+  registerGetMcpServer(server, getContext, catalog);
+  registerAddMcpServer(server, getContext, catalog);
+  registerUpdateMcpServer(server, getContext, catalog);
+  registerRemoveMcpServer(server, getContext, catalog);
+  registerInstallMcpFromLibrary(server, getContext, catalog);
 }

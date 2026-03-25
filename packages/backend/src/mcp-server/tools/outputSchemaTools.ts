@@ -10,6 +10,7 @@ import {
   listOutputSchemas,
   updateOutputSchema,
 } from '../services/outputSchemaService.js';
+import type { ToolCatalogBuilder } from '../services/toolCatalogBuilder.js';
 import type { ServiceContext } from '../types.js';
 
 /* ------------------------------------------------------------------ */
@@ -31,16 +32,46 @@ const outputSchemaFieldSchema: z.ZodType<OutputSchemaField> = z.lazy(() =>
 );
 
 /* ------------------------------------------------------------------ */
+/*  Tool schemas                                                       */
+/* ------------------------------------------------------------------ */
+
+const LIST_OUTPUT_SCHEMAS_SCHEMA = { agentSlug: z.string().describe('Agent slug') };
+
+const GET_OUTPUT_SCHEMA_SCHEMA = {
+  agentSlug: z.string().describe('Agent slug'),
+  schemaId: z.string().describe('Output schema ID'),
+};
+
+const ADD_OUTPUT_SCHEMA_SCHEMA = {
+  agentSlug: z.string().describe('Agent slug'),
+  name: z.string().describe('Schema name'),
+  fields: z.array(outputSchemaFieldSchema).describe('Schema fields'),
+};
+
+const UPDATE_OUTPUT_SCHEMA_SCHEMA = {
+  agentSlug: z.string().describe('Agent slug'),
+  schemaId: z.string().describe('Output schema ID'),
+  name: z.string().optional().describe('New schema name'),
+  fields: z.array(outputSchemaFieldSchema).optional().describe('New schema fields'),
+};
+
+const DELETE_OUTPUT_SCHEMA_SCHEMA = {
+  agentSlug: z.string().describe('Agent slug'),
+  schemaId: z.string().describe('Output schema ID'),
+};
+
+/* ------------------------------------------------------------------ */
 /*  Tool registrations                                                 */
 /* ------------------------------------------------------------------ */
 
-function registerListOutputSchemas(server: McpServer, getContext: () => ServiceContext): void {
+function registerListOutputSchemas(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
   server.registerTool(
     'list_output_schemas',
-    {
-      description: 'List all output schemas for an agent',
-      inputSchema: { agentSlug: z.string().describe('Agent slug') },
-    },
+    { description: 'List all output schemas for an agent', inputSchema: LIST_OUTPUT_SCHEMAS_SCHEMA },
     async ({ agentSlug }) => {
       const ctx = getContext();
       const agentId = await resolveAgentId(ctx, agentSlug);
@@ -48,18 +79,22 @@ function registerListOutputSchemas(server: McpServer, getContext: () => ServiceC
       return textResult(result);
     }
   );
+  catalog.register({
+    name: 'list_output_schemas',
+    description: 'List all output schemas for an agent',
+    category: 'output_schema',
+    inputSchema: z.toJSONSchema(z.object(LIST_OUTPUT_SCHEMAS_SCHEMA)) as Record<string, unknown>,
+  });
 }
 
-function registerGetOutputSchema(server: McpServer, getContext: () => ServiceContext): void {
+function registerGetOutputSchema(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
   server.registerTool(
     'get_output_schema',
-    {
-      description: 'Get a specific output schema by ID',
-      inputSchema: {
-        agentSlug: z.string().describe('Agent slug'),
-        schemaId: z.string().describe('Output schema ID'),
-      },
-    },
+    { description: 'Get a specific output schema by ID', inputSchema: GET_OUTPUT_SCHEMA_SCHEMA },
     async ({ agentSlug, schemaId }) => {
       const ctx = getContext();
       const agentId = await resolveAgentId(ctx, agentSlug);
@@ -67,19 +102,22 @@ function registerGetOutputSchema(server: McpServer, getContext: () => ServiceCon
       return textResult(result);
     }
   );
+  catalog.register({
+    name: 'get_output_schema',
+    description: 'Get a specific output schema by ID',
+    category: 'output_schema',
+    inputSchema: z.toJSONSchema(z.object(GET_OUTPUT_SCHEMA_SCHEMA)) as Record<string, unknown>,
+  });
 }
 
-function registerAddOutputSchema(server: McpServer, getContext: () => ServiceContext): void {
+function registerAddOutputSchema(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
   server.registerTool(
     'add_output_schema',
-    {
-      description: 'Add a new output schema to an agent',
-      inputSchema: {
-        agentSlug: z.string().describe('Agent slug'),
-        name: z.string().describe('Schema name'),
-        fields: z.array(outputSchemaFieldSchema).describe('Schema fields'),
-      },
-    },
+    { description: 'Add a new output schema to an agent', inputSchema: ADD_OUTPUT_SCHEMA_SCHEMA },
     async ({ agentSlug, name, fields }) => {
       const ctx = getContext();
       const agentId = await resolveAgentId(ctx, agentSlug);
@@ -87,20 +125,22 @@ function registerAddOutputSchema(server: McpServer, getContext: () => ServiceCon
       return textResult(result);
     }
   );
+  catalog.register({
+    name: 'add_output_schema',
+    description: 'Add a new output schema to an agent',
+    category: 'output_schema',
+    inputSchema: z.toJSONSchema(z.object(ADD_OUTPUT_SCHEMA_SCHEMA)) as Record<string, unknown>,
+  });
 }
 
-function registerUpdateOutputSchema(server: McpServer, getContext: () => ServiceContext): void {
+function registerUpdateOutputSchema(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
   server.registerTool(
     'update_output_schema',
-    {
-      description: 'Update an existing output schema',
-      inputSchema: {
-        agentSlug: z.string().describe('Agent slug'),
-        schemaId: z.string().describe('Output schema ID'),
-        name: z.string().optional().describe('New schema name'),
-        fields: z.array(outputSchemaFieldSchema).optional().describe('New schema fields'),
-      },
-    },
+    { description: 'Update an existing output schema', inputSchema: UPDATE_OUTPUT_SCHEMA_SCHEMA },
     async ({ agentSlug, schemaId, name, fields }) => {
       const ctx = getContext();
       const agentId = await resolveAgentId(ctx, agentSlug);
@@ -108,18 +148,22 @@ function registerUpdateOutputSchema(server: McpServer, getContext: () => Service
       return textResult({ success: true });
     }
   );
+  catalog.register({
+    name: 'update_output_schema',
+    description: 'Update an existing output schema',
+    category: 'output_schema',
+    inputSchema: z.toJSONSchema(z.object(UPDATE_OUTPUT_SCHEMA_SCHEMA)) as Record<string, unknown>,
+  });
 }
 
-function registerDeleteOutputSchema(server: McpServer, getContext: () => ServiceContext): void {
+function registerDeleteOutputSchema(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
   server.registerTool(
     'delete_output_schema',
-    {
-      description: 'Delete an output schema from an agent',
-      inputSchema: {
-        agentSlug: z.string().describe('Agent slug'),
-        schemaId: z.string().describe('Output schema ID'),
-      },
-    },
+    { description: 'Delete an output schema from an agent', inputSchema: DELETE_OUTPUT_SCHEMA_SCHEMA },
     async ({ agentSlug, schemaId }) => {
       const ctx = getContext();
       const agentId = await resolveAgentId(ctx, agentSlug);
@@ -127,16 +171,26 @@ function registerDeleteOutputSchema(server: McpServer, getContext: () => Service
       return textResult(result);
     }
   );
+  catalog.register({
+    name: 'delete_output_schema',
+    description: 'Delete an output schema from an agent',
+    category: 'output_schema',
+    inputSchema: z.toJSONSchema(z.object(DELETE_OUTPUT_SCHEMA_SCHEMA)) as Record<string, unknown>,
+  });
 }
 
 /* ------------------------------------------------------------------ */
 /*  Register all                                                       */
 /* ------------------------------------------------------------------ */
 
-export function registerOutputSchemaTools(server: McpServer, getContext: () => ServiceContext): void {
-  registerListOutputSchemas(server, getContext);
-  registerGetOutputSchema(server, getContext);
-  registerAddOutputSchema(server, getContext);
-  registerUpdateOutputSchema(server, getContext);
-  registerDeleteOutputSchema(server, getContext);
+export function registerOutputSchemaTools(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
+  registerListOutputSchemas(server, getContext, catalog);
+  registerGetOutputSchema(server, getContext, catalog);
+  registerAddOutputSchema(server, getContext, catalog);
+  registerUpdateOutputSchema(server, getContext, catalog);
+  registerDeleteOutputSchema(server, getContext, catalog);
 }

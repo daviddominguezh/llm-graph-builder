@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
+import type { ToolCatalogBuilder } from '../services/toolCatalogBuilder.js';
 import type { ServiceContext } from '../types.js';
 import { registerAgentDomainTools } from './agentDomainTools.js';
 import { registerAgentIntelligenceTools } from './agentIntelligenceTools.js';
@@ -24,27 +25,31 @@ import { registerSimulateTools } from './simulateTools.js';
 import { registerValidationTools } from './validationTools.js';
 import { registerVersionIntelTools } from './versionIntelTools.js';
 
-export function registerAllTools(server: McpServer, getContext: () => ServiceContext): void {
-  registerAgentTools(server, getContext);
-  registerAgentDomainTools(server, getContext);
-  registerGraphReadTools(server, getContext);
-  registerGraphWriteTools(server, getContext);
-  registerMcpManagementTools(server, getContext);
-  registerMcpLibraryTools(server, getContext);
-  registerMcpToolOpsTools(server, getContext);
-  registerOutputSchemaTools(server, getContext);
-  registerContextPresetTools(server, getContext);
-  registerValidationTools(server, getContext);
-  registerEnvVariableTools(server, getContext);
-  registerApiKeyTools(server, getContext);
-  registerExecutionKeyTools(server, getContext);
-  registerPublishTools(server, getContext);
-  registerSimulateTools(server, getContext);
-  registerPromptTools(server, getContext);
-  registerModelTools(server, getContext);
-  registerAgentIntelligenceTools(server, getContext);
-  registerNodeIntelligenceTools(server, getContext);
-  registerExecutionIntelTools(server, getContext);
-  registerGraphConvenienceTools(server, getContext);
-  registerVersionIntelTools(server, getContext);
+export function registerAllTools(
+  server: McpServer,
+  getContext: () => ServiceContext,
+  catalog: ToolCatalogBuilder
+): void {
+  registerAgentTools(server, getContext, catalog);
+  registerAgentDomainTools(server, getContext, catalog);
+  registerGraphReadTools(server, getContext, catalog);
+  registerGraphWriteTools(server, getContext, catalog);
+  registerMcpManagementTools(server, getContext, catalog);
+  registerMcpLibraryTools(server, getContext, catalog);
+  registerMcpToolOpsTools(server, getContext, catalog);
+  registerOutputSchemaTools(server, getContext, catalog);
+  registerContextPresetTools(server, getContext, catalog);
+  registerValidationTools(server, getContext, catalog);
+  registerEnvVariableTools(server, getContext, catalog);
+  registerApiKeyTools(server, getContext, catalog);
+  registerExecutionKeyTools(server, getContext, catalog);
+  registerPublishTools(server, getContext, catalog);
+  registerSimulateTools(server, getContext, catalog);
+  registerPromptTools(server, getContext, catalog);
+  registerModelTools(server, getContext, catalog);
+  registerAgentIntelligenceTools(server, getContext, catalog);
+  registerNodeIntelligenceTools(server, getContext, catalog);
+  registerExecutionIntelTools(server, getContext, catalog);
+  registerGraphConvenienceTools(server, getContext, catalog);
+  registerVersionIntelTools(server, getContext, catalog);
 }
