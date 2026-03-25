@@ -3,7 +3,8 @@
 import { publishGraph } from '@/app/lib/graphApi';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Check, Copy, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
@@ -81,6 +82,34 @@ function PublishSpinner() {
   );
 }
 
+function PublishStatus({ version }: { version: number }) {
+  const t = useTranslations('editor');
+  const isPublished = version > 0;
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <span
+        className={`flex flex-row items-center text-sm font-medium ${isPublished ? 'text-foreground' : 'text-muted-foreground'}`}
+      >
+        {isPublished ? (
+          <>
+            <span className="text-[10px] text-muted-foreground rounded-full border px-1.5 font-mono mr-1.5 bg-background">
+              v{version}
+            </span>
+            <Separator orientation="vertical" />
+            <span
+              className={`mx-1.5 inline-block size-2.5 rounded-full ${isPublished ? 'bg-green-500' : 'bg-muted-foreground'}`}
+            />
+            {t('publishedVersion')}
+          </>
+        ) : (
+          t('draft')
+        )}
+      </span>
+    </div>
+  );
+}
+
 interface PopoverBodyProps {
   agentSlug: string;
   version: number;
@@ -91,10 +120,12 @@ function PopoverBody({ agentSlug, version, onPublish }: PopoverBodyProps) {
   const t = useTranslations('editor');
 
   return (
-    <div className="flex flex-col gap-3">
-      <CurlDisplay agentSlug={agentSlug} version={version} />
+    <div className="flex flex-col gap-3 p-0.5">
+      <PublishStatus version={version} />
+      <Separator />
+      {version > 0 && <CurlDisplay agentSlug={agentSlug} version={version} />}
       <Button variant="default" size="sm" className="w-full" onClick={onPublish}>
-        {t('publish')}
+        {t('publish')} v{version + 1}
       </Button>
     </div>
   );

@@ -123,6 +123,8 @@
     "publish": "Publish",
     "publishFailed": "Failed to publish. Please try again.",
     "curlExample": "cURL example",
+    "draft": "Draft",
+    "publishedVersion": "Published",
     "saving": "Saving...",
     "autoSaveFailed": "Auto-save failed. Your changes may not be saved.",
     "notFound": "Agent not found",
