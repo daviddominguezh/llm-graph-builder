@@ -42,7 +42,7 @@ function DarkShader({ speed }: { speed: number }) {
       gradient={0.6}
       edges
       length={1.5}
-      scale={1}
+      scale={0.2}
       angle1={0.1}
       angle2={-0.1}
     />
@@ -63,7 +63,7 @@ function LightShader({ speed }: { speed: number }) {
       gradient={0.7}
       edges
       length={1.5}
-      scale={1}
+      scale={0.2}
       angle1={0.1}
       angle2={-0.1}
     />
@@ -73,11 +73,11 @@ function LightShader({ speed }: { speed: number }) {
 export function ShaderBackground() {
   const { resolvedTheme } = useTheme();
   const prefersReducedMotion = usePrefersReducedMotion();
-  const speed = prefersReducedMotion ? 0 : 0.3;
+  const speed = prefersReducedMotion ? 0 : 1.2;
   const isDark = resolvedTheme === 'dark';
 
   return (
-    <div className="fixed inset-0 -z-10" aria-hidden="true">
+    <div className="h-full w-full" aria-hidden="true">
       {isDark ? <DarkShader speed={speed} /> : <LightShader speed={speed} />}
     </div>
   );

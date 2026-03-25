@@ -13,10 +13,9 @@ interface AuthCardProps {
 
 export function AuthCard({ title, description, children }: AuthCardProps) {
   return (
-    <>
-      <ShaderBackground />
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6 p-4">
-        <Card className="auth-card-enter w-full max-w-sm backdrop-blur-xl bg-card/80 dark:bg-card/60 ring-1 ring-foreground/5 dark:ring-white/10 shadow-2xl">
+    <div className="flex min-h-screen">
+      <div className="flex flex-1 flex-col items-center justify-center gap-6 p-4">
+        <Card className="auth-card-enter w-full max-w-sm ring-1 ring-foreground/5 dark:ring-white/10 shadow-2xl bg-popover">
           <CardHeader>
             <CardTitle className="text-lg">{title}</CardTitle>
             <CardDescription>{description}</CardDescription>
@@ -24,6 +23,9 @@ export function AuthCard({ title, description, children }: AuthCardProps) {
           <CardContent className="flex flex-col gap-4">{children}</CardContent>
         </Card>
       </div>
-    </>
+      <div className="hidden lg:flex lg:flex-1 items-center justify-center bg-muted/30 dark:bg-muted/10 overflow-hidden">
+        <ShaderBackground />
+      </div>
+    </div>
   );
 }
