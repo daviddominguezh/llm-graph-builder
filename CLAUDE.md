@@ -94,3 +94,18 @@ Graphs have **nodes** (kinds: `agent`, `agent_decision`, `tool`) and **edges** w
 
 - Prettier: single quotes, 2-space indent, 110 print width, trailing comma es5
 - Import sorting via `@trivago/prettier-plugin-sort-imports`
+
+## Design Context
+
+See `.impeccable.md` for full design context. Key principles:
+
+1. **Density with clarity** — Pack information tightly without sacrificing readability. Like Linear.
+2. **Precision over decoration** — Crisp alignment, consistent spacing, typographic hierarchy over decorative elements.
+3. **Progressive disclosure of power** — Simple at first glance, deep on exploration.
+4. **Purposeful motion** — Snappy, functional animations that communicate state, never distract.
+5. **Developer-grade polish** — Consistent, predictable, keyboard-friendly, visually coherent.
+
+**Brand**: Precise, polished, dynamic. Developer tool with modern SaaS refinement.
+**References**: Linear (density), Vercel/Stripe (polish), Retool/n8n (builder patterns).
+**Anti-references**: Generic Bootstrap SaaS, enterprise clutter, toy-like whimsy, unpolished dev tools.
+**Density**: Information-rich, compact components (h-7 buttons, xs-sm text, tight padding).
