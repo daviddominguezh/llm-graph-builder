@@ -179,6 +179,30 @@ export async function updateProductionKeyId(
   return { error: null };
 }
 
+interface AgentUpdateFields {
+  name?: string;
+  description?: string;
+}
+
+function buildAgentPayload(fields: AgentUpdateFields): Record<string, unknown> {
+  const { name, description } = fields;
+  const payload: Record<string, unknown> = {};
+  if (name !== undefined) payload.name = name;
+  if (description !== undefined) payload.description = description;
+  return payload;
+}
+
+export async function updateAgent(
+  supabase: SupabaseClient,
+  agentId: string,
+  fields: AgentUpdateFields
+): Promise<{ error: string | null }> {
+  const payload = buildAgentPayload(fields);
+  const { error } = await supabase.from('agents').update(payload).eq('id', agentId);
+  if (error !== null) return { error: error.message };
+  return { error: null };
+}
+
 export async function deleteAgent(
   supabase: SupabaseClient,
   agentId: string

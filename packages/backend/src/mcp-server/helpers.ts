@@ -1,18 +1,11 @@
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+
 import { getAgentBySlugAndOrg, validateKeyAgentAccess } from '../db/queries/executionAuthQueries.js';
 import { getAgentsForKey } from '../db/queries/executionKeyQueries.js';
 import type { ServiceContext } from './types.js';
 
 const NO_AGENTS = 0;
 const JSON_INDENT = 2;
-
-interface TextContent {
-  type: 'text';
-  text: string;
-}
-
-interface TextResult {
-  content: TextContent[];
-}
 
 async function checkKeyAccess(ctx: ServiceContext, agentId: string, slug: string): Promise<void> {
   const { result } = await getAgentsForKey(ctx.supabase, ctx.keyId);
@@ -37,7 +30,7 @@ export async function resolveAgentId(ctx: ServiceContext, agentSlug: string): Pr
   return agent.id;
 }
 
-export function textResult(data: unknown): TextResult {
+export function textResult(data: unknown): CallToolResult {
   return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, JSON_INDENT) }] };
 }
 
