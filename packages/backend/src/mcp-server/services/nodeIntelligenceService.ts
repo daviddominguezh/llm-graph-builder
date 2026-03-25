@@ -2,9 +2,9 @@ import type { Edge, Graph, Precondition } from '@daviddh/graph-types';
 
 import { assembleGraph } from '../../db/queries/graphQueries.js';
 import type { ServiceContext } from '../types.js';
-import { getNode } from './graphReadService.js';
 import type { NodeDetails } from './graphReadHelpers.js';
 import { requireGraph } from './graphReadHelpers.js';
+import { getNode } from './graphReadService.js';
 import { getNodePrompt } from './promptService.js';
 import type { NodePromptResult } from './promptService.js';
 import { getReachability } from './validationService.js';
@@ -40,7 +40,8 @@ export interface EdgeExplanation {
 
 function formatPrecondition(p: Precondition): string {
   const base = `${p.type}: "${p.value}"`;
-  return p.description !== undefined ? `${base} (${p.description})` : base;
+  if (p.description === undefined) return base;
+  return `${base} (${p.description})`;
 }
 
 function buildPreconditionExplanations(preconditions: Precondition[]): PreconditionExplanation[] {
@@ -51,8 +52,10 @@ function buildPreconditionExplanations(preconditions: Precondition[]): Precondit
   }));
 }
 
+const EMPTY_COUNT = 0;
+
 function buildEdgeSummary(from: string, to: string, preconditions: Precondition[]): string {
-  if (preconditions.length === 0) {
+  if (preconditions.length === EMPTY_COUNT) {
     return `Unconditional transition from ${from} to ${to}`;
   }
   const parts = preconditions.map(formatPrecondition);

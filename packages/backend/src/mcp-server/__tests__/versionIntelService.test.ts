@@ -33,6 +33,18 @@ jest.unstable_mockModule('../../db/queries/versionQueries.js', () => ({
 const { diffVersions } = await import('../services/versionIntelService.js');
 
 /* ------------------------------------------------------------------ */
+/*  Constants                                                           */
+/* ------------------------------------------------------------------ */
+
+const V1 = 1;
+const V2 = 2;
+const V99 = 99;
+const COUNT_ONE = 1;
+const COUNT_ZERO = 0;
+const MIN_SUMMARY_LENGTH = 0;
+const FIRST_ITEM = 0;
+
+/* ------------------------------------------------------------------ */
 /*  Fixtures                                                            */
 /* ------------------------------------------------------------------ */
 
@@ -47,18 +59,21 @@ const VERSION_1: Graph = {
   agents: [{ id: 'bot', description: '' }],
   nodes: [
     { id: 'A', text: 'Node A', kind: 'agent', description: '', global: false, agent: 'bot' },
-    { id: 'B', text: 'Node B', kind: 'agent', description: '', global: false, agent: 'bot', nextNodeIsUser: true },
+    { id: 'B', text: 'Node B', kind: 'agent', description: '', global: false, agent: 'bot' },
   ],
   edges: [{ from: 'A', to: 'B', preconditions: [{ type: 'user_said', value: 'hi' }] }],
 };
 
 const VERSION_2: Graph = {
   startNode: 'A',
-  agents: [{ id: 'bot', description: '' }, { id: 'support', description: '' }],
+  agents: [
+    { id: 'bot', description: '' },
+    { id: 'support', description: '' },
+  ],
   nodes: [
     { id: 'A', text: 'Node A updated', kind: 'agent', description: '', global: false, agent: 'bot' },
-    { id: 'B', text: 'Node B', kind: 'agent', description: '', global: false, agent: 'bot', nextNodeIsUser: true },
-    { id: 'C', text: 'Node C', kind: 'agent', description: '', global: false, agent: 'support', nextNodeIsUser: true },
+    { id: 'B', text: 'Node B', kind: 'agent', description: '', global: false, agent: 'bot' },
+    { id: 'C', text: 'Node C', kind: 'agent', description: '', global: false, agent: 'support' },
   ],
   edges: [
     { from: 'A', to: 'B', preconditions: [{ type: 'user_said', value: 'hi' }] },
@@ -80,87 +95,83 @@ beforeEach(() => {
 });
 
 /* ------------------------------------------------------------------ */
+/*  Helpers                                                             */
+/* ------------------------------------------------------------------ */
+
+function mockV1toV2(): void {
+  mockGetVersionSnapshot.mockResolvedValueOnce(VERSION_1).mockResolvedValueOnce(VERSION_2);
+}
+
+/* ------------------------------------------------------------------ */
 /*  diffVersions                                                        */
 /* ------------------------------------------------------------------ */
 
-describe('diffVersions', () => {
+describe('diffVersions — structural changes', () => {
   it('detects added nodes when comparing two versions', async () => {
-    mockGetVersionSnapshot.mockResolvedValueOnce(VERSION_1).mockResolvedValueOnce(VERSION_2);
-
-    const result = await diffVersions(buildCtx(), 'agent-1', 1, 2);
-
-    expect(result.nodes.added).toHaveLength(1);
-    expect(result.nodes.added[0]?.id).toBe('C');
+    mockV1toV2();
+    const result = await diffVersions(buildCtx(), 'agent-1', V1, V2);
+    expect(result.nodes.added).toHaveLength(COUNT_ONE);
+    expect(result.nodes.added[FIRST_ITEM]?.id).toBe('C');
   });
 
   it('detects modified nodes', async () => {
-    mockGetVersionSnapshot.mockResolvedValueOnce(VERSION_1).mockResolvedValueOnce(VERSION_2);
-
-    const result = await diffVersions(buildCtx(), 'agent-1', 1, 2);
-
-    expect(result.nodes.modified).toHaveLength(1);
-    expect(result.nodes.modified[0]?.id).toBe('A');
+    mockV1toV2();
+    const result = await diffVersions(buildCtx(), 'agent-1', V1, V2);
+    expect(result.nodes.modified).toHaveLength(COUNT_ONE);
+    expect(result.nodes.modified[FIRST_ITEM]?.id).toBe('A');
   });
 
   it('detects added edges', async () => {
-    mockGetVersionSnapshot.mockResolvedValueOnce(VERSION_1).mockResolvedValueOnce(VERSION_2);
-
-    const result = await diffVersions(buildCtx(), 'agent-1', 1, 2);
-
-    expect(result.edges.added).toHaveLength(1);
-    expect(result.edges.added[0]?.from).toBe('B');
+    mockV1toV2();
+    const result = await diffVersions(buildCtx(), 'agent-1', V1, V2);
+    expect(result.edges.added).toHaveLength(COUNT_ONE);
+    expect(result.edges.added[FIRST_ITEM]?.from).toBe('B');
   });
 
   it('detects added agent domains', async () => {
-    mockGetVersionSnapshot.mockResolvedValueOnce(VERSION_1).mockResolvedValueOnce(VERSION_2);
-
-    const result = await diffVersions(buildCtx(), 'agent-1', 1, 2);
-
+    mockV1toV2();
+    const result = await diffVersions(buildCtx(), 'agent-1', V1, V2);
     expect(result.agentDomainsAdded).toContain('support');
   });
+});
 
+describe('diffVersions — draft and edge cases', () => {
   it('loads draft graph via assembleGraph', async () => {
     mockAssembleGraph.mockResolvedValue(DRAFT_GRAPH);
     mockGetVersionSnapshot.mockResolvedValueOnce(VERSION_1);
-
-    const result = await diffVersions(buildCtx(), 'agent-1', 1, 'draft');
-
+    const result = await diffVersions(buildCtx(), 'agent-1', V1, 'draft');
     expect(result.startNodeChanged).toBe(true);
     expect(result.toStartNode).toBe('NEW_START');
   });
 
   it('returns no changes when comparing identical graphs', async () => {
     mockGetVersionSnapshot.mockResolvedValueOnce(VERSION_1).mockResolvedValueOnce(VERSION_1);
-
-    const result = await diffVersions(buildCtx(), 'agent-1', 1, 1);
-
-    expect(result.nodes.added).toHaveLength(0);
-    expect(result.nodes.removed).toHaveLength(0);
-    expect(result.nodes.modified).toHaveLength(0);
-    expect(result.edges.added).toHaveLength(0);
-    expect(result.edges.removed).toHaveLength(0);
+    const result = await diffVersions(buildCtx(), 'agent-1', V1, V1);
+    expect(result.nodes.added).toHaveLength(COUNT_ZERO);
+    expect(result.nodes.removed).toHaveLength(COUNT_ZERO);
+    expect(result.nodes.modified).toHaveLength(COUNT_ZERO);
+    expect(result.edges.added).toHaveLength(COUNT_ZERO);
+    expect(result.edges.removed).toHaveLength(COUNT_ZERO);
     expect(result.summary).toContain('no changes');
   });
 
   it('includes a readable summary', async () => {
-    mockGetVersionSnapshot.mockResolvedValueOnce(VERSION_1).mockResolvedValueOnce(VERSION_2);
-
-    const result = await diffVersions(buildCtx(), 'agent-1', 1, 2);
-
+    mockV1toV2();
+    const result = await diffVersions(buildCtx(), 'agent-1', V1, V2);
     expect(typeof result.summary).toBe('string');
-    expect(result.summary.length).toBeGreaterThan(0);
+    expect(result.summary.length).toBeGreaterThan(MIN_SUMMARY_LENGTH);
   });
 
   it('throws when version snapshot not found', async () => {
     mockGetVersionSnapshot.mockResolvedValueOnce(null);
-
-    await expect(diffVersions(buildCtx(), 'agent-1', 99, 1)).rejects.toThrow('Version 99 not found');
+    await expect(diffVersions(buildCtx(), 'agent-1', V99, V1)).rejects.toThrow(
+      `Version ${String(V99)} not found`
+    );
   });
 
   it('throws when draft graph not found', async () => {
     mockAssembleGraph.mockResolvedValue(null);
     mockGetVersionSnapshot.mockResolvedValueOnce(VERSION_1);
-
-    await expect(diffVersions(buildCtx(), 'agent-1', 'draft', 1)).rejects.toThrow('Graph not found');
+    await expect(diffVersions(buildCtx(), 'agent-1', 'draft', V1)).rejects.toThrow('Graph not found');
   });
 });

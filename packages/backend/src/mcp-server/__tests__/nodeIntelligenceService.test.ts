@@ -23,6 +23,13 @@ jest.unstable_mockModule('../../db/queries/graphQueries.js', () => ({
 const { getNodeFullContext, explainEdge } = await import('../services/nodeIntelligenceService.js');
 
 /* ------------------------------------------------------------------ */
+/*  Constants                                                           */
+/* ------------------------------------------------------------------ */
+
+const ONE_PRECONDITION = 1;
+const FIRST_ITEM = 0;
+
+/* ------------------------------------------------------------------ */
 /*  Fixtures                                                            */
 /* ------------------------------------------------------------------ */
 
@@ -36,8 +43,23 @@ const BASE_GRAPH: Graph = {
   startNode: 'A',
   agents: [{ id: 'bot', description: '' }],
   nodes: [
-    { id: 'A', text: 'Start node. Enter your query.', kind: 'agent', description: '', global: false, agent: 'bot' },
-    { id: 'B', text: 'End node.', kind: 'agent', description: '', global: false, agent: 'bot', nextNodeIsUser: true },
+    {
+      id: 'A',
+      text: 'Start node. Enter your query.',
+      kind: 'agent',
+      description: '',
+      global: false,
+      agent: 'bot',
+    },
+    {
+      id: 'B',
+      text: 'End node.',
+      kind: 'agent',
+      description: '',
+      global: false,
+      agent: 'bot',
+      nextNodeIsUser: true,
+    },
   ],
   edges: [
     {
@@ -53,8 +75,24 @@ const MULTI_PRECONDITION_GRAPH: Graph = {
   agents: [{ id: 'bot', description: '' }],
   nodes: [
     { id: 'A', text: 'Decision node', kind: 'agent_decision', description: '', global: false, agent: 'bot' },
-    { id: 'B', text: 'Path B', kind: 'agent', description: '', global: false, agent: 'bot', nextNodeIsUser: true },
-    { id: 'C', text: 'Path C', kind: 'agent', description: '', global: false, agent: 'bot', nextNodeIsUser: true },
+    {
+      id: 'B',
+      text: 'Path B',
+      kind: 'agent',
+      description: '',
+      global: false,
+      agent: 'bot',
+      nextNodeIsUser: true,
+    },
+    {
+      id: 'C',
+      text: 'Path C',
+      kind: 'agent',
+      description: '',
+      global: false,
+      agent: 'bot',
+      nextNodeIsUser: true,
+    },
   ],
   edges: [
     {
@@ -126,9 +164,9 @@ describe('explainEdge', () => {
 
     expect(result.from).toBe('A');
     expect(result.to).toBe('B');
-    expect(result.preconditions).toHaveLength(1);
-    expect(result.preconditions[0]?.type).toBe('user_said');
-    expect(result.preconditions[0]?.value).toBe('hello');
+    expect(result.preconditions).toHaveLength(ONE_PRECONDITION);
+    expect(result.preconditions[FIRST_ITEM]?.type).toBe('user_said');
+    expect(result.preconditions[FIRST_ITEM]?.value).toBe('hello');
   });
 
   it('includes context flags when present', async () => {

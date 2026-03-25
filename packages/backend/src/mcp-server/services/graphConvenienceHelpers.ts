@@ -169,11 +169,26 @@ function buildLinearOps(domainKey: string): Operation[] {
 
   return [
     { type: 'insertAgent', data: { agentKey: domainKey, description: domainKey } },
-    { type: 'insertNode', data: { nodeId: entryId, text: `${domainKey} entry`, kind: 'agent', agent: domainKey } },
-    { type: 'insertNode', data: { nodeId: step1Id, text: `${domainKey} step`, kind: 'agent', agent: domainKey } },
-    { type: 'insertNode', data: { nodeId: step2Id, text: `${domainKey} end`, kind: 'agent', agent: domainKey } },
-    { type: 'insertEdge', data: { from: entryId, to: step1Id, preconditions: [{ type: 'user_said', value: 'continue' }] } },
-    { type: 'insertEdge', data: { from: step1Id, to: step2Id, preconditions: [{ type: 'user_said', value: 'done' }] } },
+    {
+      type: 'insertNode',
+      data: { nodeId: entryId, text: `${domainKey} entry`, kind: 'agent', agent: domainKey },
+    },
+    {
+      type: 'insertNode',
+      data: { nodeId: step1Id, text: `${domainKey} step`, kind: 'agent', agent: domainKey },
+    },
+    {
+      type: 'insertNode',
+      data: { nodeId: step2Id, text: `${domainKey} end`, kind: 'agent', agent: domainKey },
+    },
+    {
+      type: 'insertEdge',
+      data: { from: entryId, to: step1Id, preconditions: [{ type: 'user_said', value: 'continue' }] },
+    },
+    {
+      type: 'insertEdge',
+      data: { from: step1Id, to: step2Id, preconditions: [{ type: 'user_said', value: 'done' }] },
+    },
   ];
 }
 
@@ -184,11 +199,26 @@ function buildDecisionTreeOps(domainKey: string): Operation[] {
 
   return [
     { type: 'insertAgent', data: { agentKey: domainKey, description: domainKey } },
-    { type: 'insertNode', data: { nodeId: entryId, text: `${domainKey} decision`, kind: 'agent_decision', agent: domainKey } },
-    { type: 'insertNode', data: { nodeId: pathAId, text: `${domainKey} path A`, kind: 'agent', agent: domainKey } },
-    { type: 'insertNode', data: { nodeId: pathBId, text: `${domainKey} path B`, kind: 'agent', agent: domainKey } },
-    { type: 'insertEdge', data: { from: entryId, to: pathAId, preconditions: [{ type: 'agent_decision', value: 'path_a' }] } },
-    { type: 'insertEdge', data: { from: entryId, to: pathBId, preconditions: [{ type: 'agent_decision', value: 'path_b' }] } },
+    {
+      type: 'insertNode',
+      data: { nodeId: entryId, text: `${domainKey} decision`, kind: 'agent_decision', agent: domainKey },
+    },
+    {
+      type: 'insertNode',
+      data: { nodeId: pathAId, text: `${domainKey} path A`, kind: 'agent', agent: domainKey },
+    },
+    {
+      type: 'insertNode',
+      data: { nodeId: pathBId, text: `${domainKey} path B`, kind: 'agent', agent: domainKey },
+    },
+    {
+      type: 'insertEdge',
+      data: { from: entryId, to: pathAId, preconditions: [{ type: 'agent_decision', value: 'path_a' }] },
+    },
+    {
+      type: 'insertEdge',
+      data: { from: entryId, to: pathBId, preconditions: [{ type: 'agent_decision', value: 'path_b' }] },
+    },
   ];
 }
 
@@ -199,12 +229,34 @@ function buildToolLoopOps(domainKey: string): Operation[] {
 
   return [
     { type: 'insertAgent', data: { agentKey: domainKey, description: domainKey } },
-    { type: 'insertNode', data: { nodeId: entryId, text: `${domainKey} entry`, kind: 'agent', agent: domainKey } },
-    { type: 'insertNode', data: { nodeId: toolId, text: `${domainKey} tool call`, kind: 'agent', agent: domainKey } },
-    { type: 'insertNode', data: { nodeId: processId, text: `${domainKey} process`, kind: 'agent', agent: domainKey } },
-    { type: 'insertEdge', data: { from: entryId, to: toolId, preconditions: [{ type: 'user_said', value: 'start' }] } },
-    { type: 'insertEdge', data: { from: toolId, to: processId, preconditions: [{ type: 'tool_call', value: `${domainKey}_tool` }] } },
-    { type: 'insertEdge', data: { from: processId, to: toolId, preconditions: [{ type: 'user_said', value: 'retry' }] } },
+    {
+      type: 'insertNode',
+      data: { nodeId: entryId, text: `${domainKey} entry`, kind: 'agent', agent: domainKey },
+    },
+    {
+      type: 'insertNode',
+      data: { nodeId: toolId, text: `${domainKey} tool call`, kind: 'agent', agent: domainKey },
+    },
+    {
+      type: 'insertNode',
+      data: { nodeId: processId, text: `${domainKey} process`, kind: 'agent', agent: domainKey },
+    },
+    {
+      type: 'insertEdge',
+      data: { from: entryId, to: toolId, preconditions: [{ type: 'user_said', value: 'start' }] },
+    },
+    {
+      type: 'insertEdge',
+      data: {
+        from: toolId,
+        to: processId,
+        preconditions: [{ type: 'tool_call', value: `${domainKey}_tool` }],
+      },
+    },
+    {
+      type: 'insertEdge',
+      data: { from: processId, to: toolId, preconditions: [{ type: 'user_said', value: 'retry' }] },
+    },
   ];
 }
 

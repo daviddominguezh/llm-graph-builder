@@ -1,5 +1,3 @@
-import type { createClient } from '@supabase/supabase-js';
-
 import type {
   AgentSummaryRow,
   DashboardParams,
@@ -9,6 +7,7 @@ import type {
   SessionRow,
 } from './dashboardTypes.js';
 import { paginationRange } from './dashboardTypes.js';
+import type { SupabaseClient } from './operationHelpers.js';
 
 export type {
   AgentSummaryRow,
@@ -18,8 +17,6 @@ export type {
   PaginatedResult,
   SessionRow,
 } from './dashboardTypes.js';
-
-type SupabaseClient = ReturnType<typeof createClient>;
 
 const EMPTY_LENGTH = 0;
 const DEFAULT_NUMERIC = 0;
@@ -238,15 +235,12 @@ export async function getSessionDetail(
   supabase: SupabaseClient,
   sessionId: string
 ): Promise<{ session: SessionRow | null; error: string | null }> {
-  const { data, error } = await supabase
-    .from('agent_sessions_with_cost')
-    .select('*')
-    .eq('id', sessionId)
-    .single();
+  const result = await supabase.from('agent_sessions_with_cost').select('*').eq('id', sessionId).single();
 
-  if (error !== null) return { session: null, error: error.message };
-  if (!isSessionRow(data)) return { session: null, error: 'Invalid data' };
-  return { session: data, error: null };
+  if (result.error !== null) return { session: null, error: result.error.message };
+  const rawData: unknown = result.data;
+  if (!isSessionRow(rawData)) return { session: null, error: 'Invalid data' };
+  return { session: rawData, error: null };
 }
 
 /* ------------------------------------------------------------------ */

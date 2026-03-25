@@ -1,5 +1,3 @@
-import type { createClient } from '@supabase/supabase-js';
-
 import {
   getAgentSummary,
   getExecutionsForSession,
@@ -15,8 +13,6 @@ import type {
   SessionRow,
 } from '../../db/queries/dashboardQueries.js';
 import type { ServiceContext } from '../types.js';
-
-type DashboardClient = ReturnType<typeof createClient>;
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                               */
@@ -53,15 +49,14 @@ export async function getExecutionHistory(
   agentId: string,
   limit = DEFAULT_LIMIT
 ): Promise<ExecutionHistory> {
-  const client = ctx.supabase as unknown as DashboardClient;
-  const summaryResult = await getAgentSummary(client, ctx.orgId, {
+  const summaryResult = await getAgentSummary(ctx.supabase, ctx.orgId, {
     page: DEFAULT_PAGE,
     pageSize: DEFAULT_LIMIT,
   });
 
   const summary = summaryResult.rows.find((r) => r.agent_id === agentId) ?? null;
 
-  const sessions = await getSessionsByAgent(client, ctx.orgId, agentId, {
+  const sessions = await getSessionsByAgent(ctx.supabase, ctx.orgId, agentId, {
     page: DEFAULT_PAGE,
     pageSize: limit,
     sortKey: 'updated_at',
@@ -75,15 +70,11 @@ export async function getExecutionHistory(
 /*  getSessionDetail                                                    */
 /* ------------------------------------------------------------------ */
 
-export async function getSessionDetailById(
-  ctx: ServiceContext,
-  sessionId: string
-): Promise<SessionDetail> {
-  const client = ctx.supabase as unknown as DashboardClient;
-  const { session, error } = await getSessionDetail(client, sessionId);
+export async function getSessionDetailById(ctx: ServiceContext, sessionId: string): Promise<SessionDetail> {
+  const { session, error } = await getSessionDetail(ctx.supabase, sessionId);
   if (error !== null) throw new Error(`Session error: ${error}`);
 
-  const executionsResult = await getExecutionsForSession(client, sessionId);
+  const executionsResult = await getExecutionsForSession(ctx.supabase, sessionId);
   if (executionsResult.error !== null) {
     throw new Error(`Executions error: ${executionsResult.error}`);
   }
@@ -95,12 +86,8 @@ export async function getSessionDetailById(
 /*  getExecutionTrace                                                   */
 /* ------------------------------------------------------------------ */
 
-export async function getExecutionTrace(
-  ctx: ServiceContext,
-  executionId: string
-): Promise<ExecutionTrace> {
-  const client = ctx.supabase as unknown as DashboardClient;
-  const { rows, error } = await getNodeVisitsForExecution(client, executionId);
+export async function getExecutionTrace(ctx: ServiceContext, executionId: string): Promise<ExecutionTrace> {
+  const { rows, error } = await getNodeVisitsForExecution(ctx.supabase, executionId);
   if (error !== null) throw new Error(`Execution trace error: ${error}`);
   return { executionId, nodeVisits: rows };
 }

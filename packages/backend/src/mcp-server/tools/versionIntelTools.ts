@@ -15,7 +15,8 @@ function registerDiffVersions(server: McpServer, getContext: () => ServiceContex
   server.registerTool(
     'diff_versions',
     {
-      description: 'Compare two versions of an agent graph and return a structured diff of nodes, edges, domains, MCP servers, and output schemas',
+      description:
+        'Compare two versions of an agent graph and return a structured diff of nodes, edges, domains, MCP servers, and output schemas',
       inputSchema: {
         agentSlug: z.string().describe('Agent slug'),
         fromVersion: versionRefSchema.describe('Source version (number or "draft")'),

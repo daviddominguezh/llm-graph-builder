@@ -43,11 +43,7 @@ export interface VersionDiff {
 /*  Graph loading helpers                                               */
 /* ------------------------------------------------------------------ */
 
-async function loadGraph(
-  ctx: ServiceContext,
-  agentId: string,
-  version: VersionRef
-): Promise<Graph> {
+async function loadGraph(ctx: ServiceContext, agentId: string, version: VersionRef): Promise<Graph> {
   if (version === 'draft') {
     const raw = await assembleGraph(ctx.supabase, agentId);
     return requireGraph(raw, agentId);
@@ -102,15 +98,22 @@ function diffStringArrays(from: string[], to: string[]): { added: string[]; remo
   };
 }
 
+const EMPTY = 0;
+const ONLY_HEADER = 1;
+
+function pushIfNonEmpty(parts: string[], count: number, label: string): void {
+  if (count > EMPTY) parts.push(label);
+}
+
 function buildSummary(diff: Omit<VersionDiff, 'summary'>, from: VersionRef, to: VersionRef): string {
   const parts: string[] = [`Diff from v${String(from)} to v${String(to)}:`];
-  if (diff.nodes.added.length > 0) parts.push(`+${String(diff.nodes.added.length)} nodes`);
-  if (diff.nodes.removed.length > 0) parts.push(`-${String(diff.nodes.removed.length)} nodes`);
-  if (diff.nodes.modified.length > 0) parts.push(`~${String(diff.nodes.modified.length)} modified nodes`);
-  if (diff.edges.added.length > 0) parts.push(`+${String(diff.edges.added.length)} edges`);
-  if (diff.edges.removed.length > 0) parts.push(`-${String(diff.edges.removed.length)} edges`);
+  pushIfNonEmpty(parts, diff.nodes.added.length, `+${String(diff.nodes.added.length)} nodes`);
+  pushIfNonEmpty(parts, diff.nodes.removed.length, `-${String(diff.nodes.removed.length)} nodes`);
+  pushIfNonEmpty(parts, diff.nodes.modified.length, `~${String(diff.nodes.modified.length)} modified nodes`);
+  pushIfNonEmpty(parts, diff.edges.added.length, `+${String(diff.edges.added.length)} edges`);
+  pushIfNonEmpty(parts, diff.edges.removed.length, `-${String(diff.edges.removed.length)} edges`);
   if (diff.startNodeChanged) parts.push(`start node changed`);
-  if (parts.length === 1) parts.push('no changes');
+  if (parts.length === ONLY_HEADER) parts.push('no changes');
   return parts.join(' ');
 }
 

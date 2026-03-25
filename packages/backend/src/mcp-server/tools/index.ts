@@ -2,22 +2,27 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import type { ServiceContext } from '../types.js';
 import { registerAgentDomainTools } from './agentDomainTools.js';
+import { registerAgentIntelligenceTools } from './agentIntelligenceTools.js';
 import { registerAgentTools } from './agentTools.js';
 import { registerApiKeyTools } from './apiKeyTools.js';
 import { registerContextPresetTools } from './contextPresetTools.js';
 import { registerEnvVariableTools } from './envVariableTools.js';
+import { registerExecutionIntelTools } from './executionIntelTools.js';
 import { registerExecutionKeyTools } from './executionKeyTools.js';
+import { registerGraphConvenienceTools } from './graphConvenienceTools.js';
 import { registerGraphReadTools } from './graphReadTools.js';
 import { registerGraphWriteTools } from './graphWriteTools.js';
 import { registerMcpLibraryTools } from './mcpLibraryTools.js';
 import { registerMcpManagementTools } from './mcpManagementTools.js';
 import { registerMcpToolOpsTools } from './mcpToolOpsTools.js';
 import { registerModelTools } from './modelTools.js';
+import { registerNodeIntelligenceTools } from './nodeIntelligenceTools.js';
 import { registerOutputSchemaTools } from './outputSchemaTools.js';
 import { registerPromptTools } from './promptTools.js';
 import { registerPublishTools } from './publishTools.js';
 import { registerSimulateTools } from './simulateTools.js';
 import { registerValidationTools } from './validationTools.js';
+import { registerVersionIntelTools } from './versionIntelTools.js';
 
 export function registerAllTools(server: McpServer, getContext: () => ServiceContext): void {
   registerAgentTools(server, getContext);
@@ -37,4 +42,9 @@ export function registerAllTools(server: McpServer, getContext: () => ServiceCon
   registerSimulateTools(server, getContext);
   registerPromptTools(server, getContext);
   registerModelTools(server, getContext);
+  registerAgentIntelligenceTools(server, getContext);
+  registerNodeIntelligenceTools(server, getContext);
+  registerExecutionIntelTools(server, getContext);
+  registerGraphConvenienceTools(server, getContext);
+  registerVersionIntelTools(server, getContext);
 }

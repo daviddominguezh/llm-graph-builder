@@ -21,80 +21,92 @@ import { requireGraph } from './graphReadHelpers.js';
 export type { ContextFlagUsage, McpToolUsage, NewNodeInput, ScaffoldPattern };
 
 /* ------------------------------------------------------------------ */
+/*  cloneNode input                                                     */
+/* ------------------------------------------------------------------ */
+
+interface CloneNodeInput {
+  agentId: string;
+  nodeId: string;
+  newId: string;
+  cloneEdges?: boolean;
+}
+
+/* ------------------------------------------------------------------ */
 /*  cloneNode                                                           */
 /* ------------------------------------------------------------------ */
 
-export async function cloneNode(
-  ctx: ServiceContext,
-  agentId: string,
-  nodeId: string,
-  newId: string,
-  cloneEdges = false
-): Promise<void> {
-  const raw = await assembleGraph(ctx.supabase, agentId);
-  const graph = requireGraph(raw, agentId);
+export async function cloneNode(ctx: ServiceContext, input: CloneNodeInput): Promise<void> {
+  const raw = await assembleGraph(ctx.supabase, input.agentId);
+  const graph = requireGraph(raw, input.agentId);
 
-  const source = graph.nodes.find((n) => n.id === nodeId);
-  if (source === undefined) throw new Error(`Node not found: ${nodeId}`);
+  const source = graph.nodes.find((n) => n.id === input.nodeId);
+  if (source === undefined) throw new Error(`Node not found: ${input.nodeId}`);
 
   const ops = [
-    ...buildCloneNodeOps(source, newId),
-    ...(cloneEdges ? buildCloneEdgeOps(nodeId, newId, graph.edges) : []),
+    ...buildCloneNodeOps(source, input.newId),
+    ...(input.cloneEdges === true ? buildCloneEdgeOps(input.nodeId, input.newId, graph.edges) : []),
   ];
 
-  await executeOperationsBatch(ctx.supabase, agentId, ops);
+  await executeOperationsBatch(ctx.supabase, input.agentId, ops);
+}
+
+/* ------------------------------------------------------------------ */
+/*  insertNodeBetween input                                             */
+/* ------------------------------------------------------------------ */
+
+interface InsertBetweenInput {
+  agentId: string;
+  from: string;
+  to: string;
+  newNode: NewNodeInput;
 }
 
 /* ------------------------------------------------------------------ */
 /*  insertNodeBetween                                                   */
 /* ------------------------------------------------------------------ */
 
-export async function insertNodeBetween(
-  ctx: ServiceContext,
-  agentId: string,
-  from: string,
-  to: string,
-  newNode: NewNodeInput
-): Promise<void> {
-  const raw = await assembleGraph(ctx.supabase, agentId);
-  const graph = requireGraph(raw, agentId);
+export async function insertNodeBetween(ctx: ServiceContext, input: InsertBetweenInput): Promise<void> {
+  const raw = await assembleGraph(ctx.supabase, input.agentId);
+  const graph = requireGraph(raw, input.agentId);
 
-  const edge = graph.edges.find((e) => e.from === from && e.to === to);
-  if (edge === undefined) throw new Error(`Edge not found: ${from} -> ${to}`);
+  const edge = graph.edges.find((e) => e.from === input.from && e.to === input.to);
+  if (edge === undefined) throw new Error(`Edge not found: ${input.from} -> ${input.to}`);
 
-  const ops = buildInsertBetweenOps(from, to, newNode, edge.preconditions);
-  await executeOperationsBatch(ctx.supabase, agentId, ops);
+  const ops = buildInsertBetweenOps(input.from, input.to, input.newNode, edge.preconditions);
+  await executeOperationsBatch(ctx.supabase, input.agentId, ops);
+}
+
+/* ------------------------------------------------------------------ */
+/*  swapEdgeTarget input                                                */
+/* ------------------------------------------------------------------ */
+
+interface SwapEdgeInput {
+  agentId: string;
+  from: string;
+  oldTo: string;
+  newTo: string;
 }
 
 /* ------------------------------------------------------------------ */
 /*  swapEdgeTarget                                                      */
 /* ------------------------------------------------------------------ */
 
-export async function swapEdgeTarget(
-  ctx: ServiceContext,
-  agentId: string,
-  from: string,
-  oldTo: string,
-  newTo: string
-): Promise<void> {
-  const raw = await assembleGraph(ctx.supabase, agentId);
-  const graph = requireGraph(raw, agentId);
+export async function swapEdgeTarget(ctx: ServiceContext, input: SwapEdgeInput): Promise<void> {
+  const raw = await assembleGraph(ctx.supabase, input.agentId);
+  const graph = requireGraph(raw, input.agentId);
 
-  const edge = graph.edges.find((e) => e.from === from && e.to === oldTo);
-  if (edge === undefined) throw new Error(`Edge not found: ${from} -> ${oldTo}`);
+  const edge = graph.edges.find((e) => e.from === input.from && e.to === input.oldTo);
+  if (edge === undefined) throw new Error(`Edge not found: ${input.from} -> ${input.oldTo}`);
 
-  const ops = buildSwapEdgeOps(from, oldTo, newTo, edge);
-  await executeOperationsBatch(ctx.supabase, agentId, ops);
+  const ops = buildSwapEdgeOps(input.from, input.oldTo, input.newTo, edge);
+  await executeOperationsBatch(ctx.supabase, input.agentId, ops);
 }
 
 /* ------------------------------------------------------------------ */
 /*  listContextFlags                                                    */
 /* ------------------------------------------------------------------ */
 
-export async function listContextFlags(
-  ctx: ServiceContext,
-  agentId: string
-): Promise<ContextFlagUsage[]> {
+export async function listContextFlags(ctx: ServiceContext, agentId: string): Promise<ContextFlagUsage[]> {
   const raw = await assembleGraph(ctx.supabase, agentId);
   const graph = requireGraph(raw, agentId);
   return extractFlagUsages(graph);

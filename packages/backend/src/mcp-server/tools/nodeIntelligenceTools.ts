@@ -13,7 +13,8 @@ function registerGetNodeFullContext(server: McpServer, getContext: () => Service
   server.registerTool(
     'get_node_full_context',
     {
-      description: 'Get full context for a node: details, prompt, inbound/outbound edges, reachability from start',
+      description:
+        'Get full context for a node: details, prompt, inbound/outbound edges, reachability from start',
       inputSchema: {
         agentSlug: z.string().describe('Agent slug'),
         nodeId: z.string().describe('Node ID'),
@@ -36,7 +37,8 @@ function registerExplainEdge(server: McpServer, getContext: () => ServiceContext
   server.registerTool(
     'explain_edge',
     {
-      description: 'Generate a human-readable explanation of an edge transition, including preconditions and context flags',
+      description:
+        'Generate a human-readable explanation of an edge transition, including preconditions and context flags',
       inputSchema: {
         agentSlug: z.string().describe('Agent slug'),
         from: z.string().describe('Source node ID'),

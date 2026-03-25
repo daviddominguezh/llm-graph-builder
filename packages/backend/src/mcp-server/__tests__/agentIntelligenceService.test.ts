@@ -47,6 +47,15 @@ const { getAgentHealth, getAgentOverview, explainAgentFlow } =
   await import('../services/agentIntelligenceService.js');
 
 /* ------------------------------------------------------------------ */
+/*  Constants                                                           */
+/* ------------------------------------------------------------------ */
+
+const VERSION_ONE = 1;
+const DOMAIN_COUNT_MULTI = 2;
+const SALES_NODE_COUNT = 2;
+const MIN_SUMMARY_LENGTH = 0;
+
+/* ------------------------------------------------------------------ */
 /*  Fixtures                                                            */
 /* ------------------------------------------------------------------ */
 
@@ -63,8 +72,8 @@ const AGENT_ROW: AgentRow = {
   slug: 'test-agent',
   description: 'Test',
   start_node: 'A',
-  current_version: 1,
-  version: 1,
+  current_version: VERSION_ONE,
+  version: VERSION_ONE,
   created_at: '2024-01-01',
   updated_at: '2024-01-01',
   staging_api_key_id: null,
@@ -76,7 +85,15 @@ const CLEAN_GRAPH: Graph = {
   agents: [{ id: 'bot', description: 'Bot domain' }],
   nodes: [
     { id: 'A', text: 'Start', kind: 'agent', description: '', global: false, agent: 'bot' },
-    { id: 'B', text: 'End', kind: 'agent', description: '', global: false, agent: 'bot', nextNodeIsUser: true },
+    {
+      id: 'B',
+      text: 'End',
+      kind: 'agent',
+      description: '',
+      global: false,
+      agent: 'bot',
+      nextNodeIsUser: true,
+    },
   ],
   edges: [{ from: 'A', to: 'B', preconditions: [{ type: 'user_said', value: 'hi' }] }],
 };
@@ -90,7 +107,15 @@ const MULTI_DOMAIN_GRAPH: Graph = {
   nodes: [
     { id: 'A', text: 'Entry', kind: 'agent', description: '', global: false, agent: 'sales' },
     { id: 'B', text: 'Sales', kind: 'agent', description: '', global: false, agent: 'sales' },
-    { id: 'C', text: 'Support', kind: 'agent', description: '', global: false, agent: 'support', nextNodeIsUser: true },
+    {
+      id: 'C',
+      text: 'Support',
+      kind: 'agent',
+      description: '',
+      global: false,
+      agent: 'support',
+      nextNodeIsUser: true,
+    },
     { id: 'G', text: 'Global', kind: 'agent', description: '', global: true },
   ],
   edges: [
@@ -133,7 +158,10 @@ describe('getAgentHealth', () => {
   it('returns warnings when graph has violations', async () => {
     const orphanGraph: Graph = {
       ...CLEAN_GRAPH,
-      nodes: [...CLEAN_GRAPH.nodes, { id: 'orphan', text: 'orphan', kind: 'agent', description: '', global: false }],
+      nodes: [
+        ...CLEAN_GRAPH.nodes,
+        { id: 'orphan', text: 'orphan', kind: 'agent', description: '', global: false },
+      ],
     };
     mockAssembleGraph.mockResolvedValue(orphanGraph);
     mockGetAgentBySlug.mockResolvedValue({ result: AGENT_ROW, error: null });
@@ -180,10 +208,10 @@ describe('explainAgentFlow', () => {
 
     const result = await explainAgentFlow(buildCtx(), 'agent-1');
 
-    expect(result.domains).toHaveLength(2);
+    expect(result.domains).toHaveLength(DOMAIN_COUNT_MULTI);
     const salesDomain = result.domains.find((d) => d.domainKey === 'sales');
     expect(salesDomain).toBeDefined();
-    expect(salesDomain?.nodeCount).toBe(2);
+    expect(salesDomain?.nodeCount).toBe(SALES_NODE_COUNT);
   });
 
   it('identifies global behaviors', async () => {
@@ -200,7 +228,7 @@ describe('explainAgentFlow', () => {
     const result = await explainAgentFlow(buildCtx(), 'agent-1');
 
     expect(typeof result.summary).toBe('string');
-    expect(result.summary.length).toBeGreaterThan(0);
+    expect(result.summary.length).toBeGreaterThan(MIN_SUMMARY_LENGTH);
   });
 
   it('throws when graph not found', async () => {

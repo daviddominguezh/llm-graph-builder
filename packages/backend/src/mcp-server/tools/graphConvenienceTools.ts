@@ -31,7 +31,7 @@ function registerCloneNode(server: McpServer, getContext: () => ServiceContext):
     async ({ agentSlug, nodeId, newId, cloneEdges }) => {
       const ctx = getContext();
       const agentId = await resolveAgentId(ctx, agentSlug);
-      await cloneNode(ctx, agentId, nodeId, newId, cloneEdges);
+      await cloneNode(ctx, { agentId, nodeId, newId, cloneEdges });
       return textResult({ cloned: newId });
     }
   );
@@ -45,7 +45,8 @@ function registerInsertNodeBetween(server: McpServer, getContext: () => ServiceC
   server.registerTool(
     'insert_node_between',
     {
-      description: 'Insert a new node between two connected nodes, inheriting the original edge preconditions',
+      description:
+        'Insert a new node between two connected nodes, inheriting the original edge preconditions',
       inputSchema: {
         agentSlug: z.string().describe('Agent slug'),
         from: z.string().describe('Source node ID'),
@@ -60,7 +61,7 @@ function registerInsertNodeBetween(server: McpServer, getContext: () => ServiceC
     async ({ agentSlug, from, to, id, text, kind, description, agent }) => {
       const ctx = getContext();
       const agentId = await resolveAgentId(ctx, agentSlug);
-      await insertNodeBetween(ctx, agentId, from, to, { id, text, kind, description, agent });
+      await insertNodeBetween(ctx, { agentId, from, to, newNode: { id, text, kind, description, agent } });
       return textResult({ inserted: id });
     }
   );
@@ -85,7 +86,7 @@ function registerSwapEdgeTarget(server: McpServer, getContext: () => ServiceCont
     async ({ agentSlug, from, oldTo, newTo }) => {
       const ctx = getContext();
       const agentId = await resolveAgentId(ctx, agentSlug);
-      await swapEdgeTarget(ctx, agentId, from, oldTo, newTo);
+      await swapEdgeTarget(ctx, { agentId, from, oldTo, newTo });
       return textResult({ swapped: { from, oldTo, newTo } });
     }
   );

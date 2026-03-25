@@ -1,19 +1,19 @@
 import type { Edge, Graph, Node } from '@daviddh/graph-types';
 
-import { assembleGraph } from '../../db/queries/graphQueries.js';
 import { getAgentBySlug } from '../../db/queries/agentQueries.js';
 import type { AgentRow } from '../../db/queries/agentQueries.js';
+import { assembleGraph } from '../../db/queries/graphQueries.js';
+import type { VersionSummary } from '../../db/queries/versionQueries.js';
+import type { ServiceContext } from '../types.js';
+import { requireGraph } from './graphReadHelpers.js';
+import { getGraphSummary } from './graphReadService.js';
 import { listMcpServers } from './mcpManagementService.js';
 import type { McpServerSummary } from './mcpManagementService.js';
 import { listOutputSchemas } from './outputSchemaService.js';
 import type { OutputSchemaWithUsage } from './outputSchemaService.js';
 import { listVersions } from './publishService.js';
-import type { VersionSummary } from '../../db/queries/versionQueries.js';
-import { validateGraph, getOrphans, getDeadEnds } from './validationService.js';
+import { getDeadEnds, getOrphans, validateGraph } from './validationService.js';
 import type { Violation } from './validationService.js';
-import { getGraphSummary } from './graphReadService.js';
-import { requireGraph } from './graphReadHelpers.js';
-import type { ServiceContext } from '../types.js';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                               */
@@ -61,10 +61,19 @@ export interface AgentOverview {
 /*  Health helpers                                                      */
 /* ------------------------------------------------------------------ */
 
+const EMPTY = 0;
+
+function hasErrors(violations: Violation[]): boolean {
+  return violations.filter((v) => v.severity === 'error').length > EMPTY;
+}
+
+function hasWarnings(violations: Violation[], orphans: string[], deadEnds: string[]): boolean {
+  return violations.length > EMPTY || orphans.length > EMPTY || deadEnds.length > EMPTY;
+}
+
 function resolveHealthStatus(violations: Violation[], orphans: string[], deadEnds: string[]): HealthStatus {
-  const errorViolations = violations.filter((v) => v.severity === 'error');
-  if (errorViolations.length > 0) return 'errors';
-  if (violations.length > 0 || orphans.length > 0 || deadEnds.length > 0) return 'warnings';
+  if (hasErrors(violations)) return 'errors';
+  if (hasWarnings(violations, orphans, deadEnds)) return 'warnings';
   return 'healthy';
 }
 
@@ -91,7 +100,7 @@ export async function getAgentHealth(ctx: ServiceContext, agentId: string): Prom
     getDeadEnds(ctx, agentId),
   ]);
 
-  const configIssues = agentResult.result !== null ? buildConfigIssues(agentResult.result) : [];
+  const configIssues = agentResult.result === null ? [] : buildConfigIssues(agentResult.result);
   const status = resolveHealthStatus(violations, orphanNodes, deadEndNodes);
   return { status, violations, orphanNodes, deadEndNodes, configIssues };
 }
@@ -176,9 +185,7 @@ export async function explainAgentFlow(ctx: ServiceContext, agentId: string): Pr
   const raw = await assembleGraph(ctx.supabase, agentId);
   const graph = requireGraph(raw, agentId);
 
-  const domains = graph.agents.map((a) =>
-    buildDomainInfo(a.id, a.description, graph.nodes, graph.edges)
-  );
+  const domains = graph.agents.map((a) => buildDomainInfo(a.id, a.description, graph.nodes, graph.edges));
 
   const summary = [
     `Agent has ${String(graph.nodes.length)} nodes, ${String(graph.edges.length)} edges,`,

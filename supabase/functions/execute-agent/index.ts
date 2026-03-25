@@ -1,15 +1,9 @@
 // Supabase Edge Function — Stateless Agent Executor
 // Receives complete payload, executes agent via @daviddh/llm-graph-runner, streams SSE events back.
 // No DB access, no secrets resolution — all provided in the payload.
-
 import { createMCPClient } from '@ai-sdk/mcp';
 import type { McpServerConfig, McpTransport, RuntimeGraph } from '@daviddh/graph-types';
-import type {
-  CallAgentOutput,
-  Context,
-  Message,
-  NodeProcessedEvent,
-} from '@daviddh/llm-graph-runner';
+import type { CallAgentOutput, Context, Message, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
 import { executeWithCallbacks } from '@daviddh/llm-graph-runner';
 import type { Tool } from 'ai';
 
@@ -42,10 +36,14 @@ type McpClient = Awaited<ReturnType<typeof createMCPClient>>;
 
 async function connectMcpServer(transport: McpTransport): Promise<McpClient> {
   if (transport.type === 'http') {
-    return await createMCPClient({ transport: { type: 'http', url: transport.url, headers: transport.headers } });
+    return await createMCPClient({
+      transport: { type: 'http', url: transport.url, headers: transport.headers },
+    });
   }
   if (transport.type === 'sse') {
-    return await createMCPClient({ transport: { type: 'sse', url: transport.url, headers: transport.headers } });
+    return await createMCPClient({
+      transport: { type: 'sse', url: transport.url, headers: transport.headers },
+    });
   }
   throw new Error(`Unsupported transport type in edge function: ${transport.type}`);
 }
@@ -115,7 +113,9 @@ async function closeMcpClients(clients: McpClient[]): Promise<void> {
 
 /* ─── Context builder ─── */
 
-function buildContext(payload: ExecutePayload): Omit<Context, 'toolsOverride' | 'onNodeVisited' | 'onNodeProcessed'> {
+function buildContext(
+  payload: ExecutePayload
+): Omit<Context, 'toolsOverride' | 'onNodeVisited' | 'onNodeProcessed'> {
   return {
     graph: payload.graph,
     apiKey: payload.apiKey,
@@ -132,7 +132,10 @@ function buildContext(payload: ExecutePayload): Omit<Context, 'toolsOverride' | 
 /* ─── Token summation ─── */
 
 function sumTokens(result: CallAgentOutput): { input: number; output: number; cached: number; cost: number } {
-  let input = 0, output = 0, cached = 0, cost = 0;
+  let input = 0,
+    output = 0,
+    cached = 0,
+    cost = 0;
   for (const log of result.tokensLogs) {
     input += log.tokens.input;
     output += log.tokens.output;

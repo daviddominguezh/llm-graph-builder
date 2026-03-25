@@ -2,11 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import { resolveAgentId, textResult } from '../helpers.js';
-import {
-  explainAgentFlow,
-  getAgentHealth,
-  getAgentOverview,
-} from '../services/agentIntelligenceService.js';
+import { explainAgentFlow, getAgentHealth, getAgentOverview } from '../services/agentIntelligenceService.js';
 import type { ServiceContext } from '../types.js';
 
 /* ------------------------------------------------------------------ */
@@ -17,7 +13,8 @@ function registerGetAgentOverview(server: McpServer, getContext: () => ServiceCo
   server.registerTool(
     'get_agent_overview',
     {
-      description: 'Get a comprehensive overview of an agent: metadata, graph summary, health, MCP servers, schemas, versions',
+      description:
+        'Get a comprehensive overview of an agent: metadata, graph summary, health, MCP servers, schemas, versions',
       inputSchema: { agentSlug: z.string().describe('Agent slug') },
     },
     async ({ agentSlug }) => {
@@ -37,7 +34,8 @@ function registerGetAgentHealth(server: McpServer, getContext: () => ServiceCont
   server.registerTool(
     'get_agent_health',
     {
-      description: 'Get health status of an agent: validation violations, orphan nodes, dead ends, config issues',
+      description:
+        'Get health status of an agent: validation violations, orphan nodes, dead ends, config issues',
       inputSchema: { agentSlug: z.string().describe('Agent slug') },
     },
     async ({ agentSlug }) => {
