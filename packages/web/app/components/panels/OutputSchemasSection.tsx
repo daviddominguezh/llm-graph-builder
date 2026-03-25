@@ -44,7 +44,7 @@ function SchemaRowActions({
       <AlertDialog>
         <AlertDialogTrigger
           render={
-            <Button variant="ghost" size="icon-xs" title={t('deleteTitle')}>
+            <Button variant="destructive" size="icon-xs" title={t('deleteTitle')}>
               <Trash2 className="size-3" />
             </Button>
           }

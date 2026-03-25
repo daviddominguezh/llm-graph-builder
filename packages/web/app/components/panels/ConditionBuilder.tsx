@@ -154,7 +154,7 @@ function ComparisonRow({ comparison, contextKeys, onChange, onRemove }: {
           onChange={(operator) => onChange({ ...comparison, operator })}
         />
         <div className="flex-1" />
-        <Button variant="ghost" size="icon-xs" onClick={onRemove}>
+        <Button variant="destructive" size="icon-xs" onClick={onRemove}>
           <Trash2 className="size-3" />
         </Button>
       </div>
@@ -180,7 +180,7 @@ function GroupHeader({ operator, onToggle, onRemove }: {
         {operator.toUpperCase()}
       </Button>
       {onRemove && (
-        <Button variant="ghost" size="icon-xs" onClick={onRemove}>
+        <Button variant="destructive" size="icon-xs" onClick={onRemove}>
           <Trash2 className="size-3" />
         </Button>
       )}

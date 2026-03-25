@@ -1,8 +1,4 @@
-"use client";
-
-import { useState } from "react";
-import { useTranslations } from 'next-intl';
-import { ChevronDown, Plus, Trash2, Settings, X } from "lucide-react";
+'use client';
 
 import {
   AlertDialog,
@@ -14,19 +10,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import type { OutputSchemaEntity } from '@daviddh/graph-types';
-import type { ApiKeyRow } from "../../lib/apiKeys";
-import { ApiKeySelectSection } from "./ApiKeySelectSection";
-import { type ContextPreset, DEFAULT_PRESET } from "../../types/preset";
-import type { ContextPrecondition } from "../../types/contextPrecondition";
-import { ContextPreconditionsSection } from "./ContextPreconditionsSection";
+import { ChevronDown, Plus, Trash2, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useState } from 'react';
+
+import type { ApiKeyRow } from '../../lib/apiKeys';
+import type { ContextPrecondition } from '../../types/contextPrecondition';
+import { type ContextPreset, DEFAULT_PRESET } from '../../types/preset';
 import { AgentDangerZone } from './AgentDangerZone';
-import { OutputSchemasSection } from "./OutputSchemasSection";
+import { ApiKeySelectSection } from './ApiKeySelectSection';
+import { ContextPreconditionsSection } from './ContextPreconditionsSection';
+import { OutputSchemasSection } from './OutputSchemasSection';
 
 interface ContextKeysProps {
   keys: string[];
@@ -74,7 +74,11 @@ interface PresetFieldsProps {
   onUpdate: (id: string, updates: Partial<ContextPreset>) => void;
 }
 
-function ContextValueField({ preset, keyName, onUpdate }: {
+function ContextValueField({
+  preset,
+  keyName,
+  onUpdate,
+}: {
   preset: ContextPreset;
   keyName: string;
   onUpdate: (id: string, updates: Partial<ContextPreset>) => void;
@@ -96,10 +100,7 @@ function PresetFields({ preset, contextKeys, onUpdate }: PresetFieldsProps) {
     <div className="space-y-2 mt-2">
       <div className="space-y-1">
         <Label>Name</Label>
-        <Input
-          value={preset.name}
-          onChange={(e) => onUpdate(preset.id, { name: e.target.value })}
-        />
+        <Input value={preset.name} onChange={(e) => onUpdate(preset.id, { name: e.target.value })} />
       </div>
       <div className="space-y-1">
         <Label>Session ID</Label>
@@ -110,42 +111,31 @@ function PresetFields({ preset, contextKeys, onUpdate }: PresetFieldsProps) {
       </div>
       <div className="space-y-1">
         <Label>Tenant ID</Label>
-        <Input
-          value={preset.tenantID}
-          onChange={(e) => onUpdate(preset.id, { tenantID: e.target.value })}
-        />
+        <Input value={preset.tenantID} onChange={(e) => onUpdate(preset.id, { tenantID: e.target.value })} />
       </div>
       <div className="space-y-1">
         <Label>User ID</Label>
-        <Input
-          value={preset.userID}
-          onChange={(e) => onUpdate(preset.id, { userID: e.target.value })}
-        />
+        <Input value={preset.userID} onChange={(e) => onUpdate(preset.id, { userID: e.target.value })} />
       </div>
       {contextKeys.map((key) => (
-        <ContextValueField
-          key={key}
-          preset={preset}
-          keyName={key}
-          onUpdate={onUpdate}
-        />
+        <ContextValueField key={key} preset={preset} keyName={key} onUpdate={onUpdate} />
       ))}
     </div>
   );
 }
 
-function ContextKeyRow({ keyName, onRemove, onRename }: {
+function ContextKeyRow({
+  keyName,
+  onRemove,
+  onRename,
+}: {
   keyName: string;
   onRemove: () => void;
   onRename: (newKey: string) => void;
 }) {
   return (
     <div className="flex items-center gap-1">
-      <Input
-        value={keyName}
-        onChange={(e) => onRename(e.target.value)}
-        className="flex-1"
-      />
+      <Input value={keyName} onChange={(e) => onRename(e.target.value)} className="flex-1" />
       <Button variant="ghost" size="icon-xs" onClick={onRemove}>
         <X className="size-3" />
       </Button>
@@ -201,9 +191,7 @@ function PresetItem({
         onClick={() => setExpanded(!expanded)}
       >
         <span className="flex items-center gap-1.5 text-xs font-medium">
-          <ChevronDown
-            className={`size-3 transition-transform ${expanded ? "" : "-rotate-90"}`}
-          />
+          <ChevronDown className={`size-3 transition-transform ${expanded ? '' : '-rotate-90'}`} />
           {preset.name}
         </span>
         {!isDefault && (

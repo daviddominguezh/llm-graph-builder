@@ -30,7 +30,7 @@ function PreconditionHeader({ name, expanded, onToggle, onRemove }: {
         {name}
       </span>
       <div onClick={(e) => e.stopPropagation()}>
-        <Button variant="ghost" size="icon-xs" onClick={onRemove}>
+        <Button variant="destructive" size="icon-xs" onClick={onRemove}>
           <Trash2 className="size-3" />
         </Button>
       </div>

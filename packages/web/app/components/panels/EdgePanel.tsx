@@ -414,9 +414,8 @@ export function EdgePanel({
               className={!isFromStartNode ? "visible" : "invisible"}
               render={
                 <Button
-                  variant="ghost"
+                  variant="destructive"
                   size="icon"
-                  className="text-muted-foreground hover:text-destructive"
                   title="Delete edge"
                 >
                   <Trash2 className="h-4 w-4" />
