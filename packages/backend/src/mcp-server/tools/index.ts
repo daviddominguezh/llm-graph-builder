@@ -5,6 +5,7 @@ import { registerAgentDomainTools } from './agentDomainTools.js';
 import { registerAgentTools } from './agentTools.js';
 import { registerGraphReadTools } from './graphReadTools.js';
 import { registerGraphWriteTools } from './graphWriteTools.js';
+import { registerMcpLibraryTools } from './mcpLibraryTools.js';
 import { registerMcpManagementTools } from './mcpManagementTools.js';
 import { registerValidationTools } from './validationTools.js';
 
@@ -14,5 +15,6 @@ export function registerAllTools(server: McpServer, getContext: () => ServiceCon
   registerGraphReadTools(server, getContext);
   registerGraphWriteTools(server, getContext);
   registerMcpManagementTools(server, getContext);
+  registerMcpLibraryTools(server, getContext);
   registerValidationTools(server, getContext);
 }
