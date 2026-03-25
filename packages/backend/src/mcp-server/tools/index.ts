@@ -3,6 +3,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ServiceContext } from '../types.js';
 import { registerAgentDomainTools } from './agentDomainTools.js';
 import { registerAgentTools } from './agentTools.js';
+import { registerContextPresetTools } from './contextPresetTools.js';
 import { registerGraphReadTools } from './graphReadTools.js';
 import { registerGraphWriteTools } from './graphWriteTools.js';
 import { registerMcpLibraryTools } from './mcpLibraryTools.js';
@@ -20,5 +21,6 @@ export function registerAllTools(server: McpServer, getContext: () => ServiceCon
   registerMcpLibraryTools(server, getContext);
   registerMcpToolOpsTools(server, getContext);
   registerOutputSchemaTools(server, getContext);
+  registerContextPresetTools(server, getContext);
   registerValidationTools(server, getContext);
 }
