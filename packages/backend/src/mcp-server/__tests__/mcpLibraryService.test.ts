@@ -77,10 +77,14 @@ beforeEach(() => {
 /*  browseLibrary helpers                                              */
 /* ------------------------------------------------------------------ */
 
-function expectBrowseCalledWith(
-  supabase: SupabaseClient,
-  opts: { query?: string; category?: string; limit?: number; offset?: number }
-): void {
+interface BrowseOpts {
+  query?: string;
+  category?: string;
+  limit?: number;
+  offset?: number;
+}
+
+function expectBrowseCalledWith(supabase: SupabaseClient, opts: BrowseOpts): void {
   expect(mockBrowseLibrary).toHaveBeenCalledWith(supabase, {
     query: opts.query,
     category: opts.category,
@@ -89,14 +93,19 @@ function expectBrowseCalledWith(
   });
 }
 
+function setupBrowse(rows: McpLibraryRow[]): ServiceContext {
+  const ctx = buildCtx();
+  mockBrowseLibrary.mockResolvedValue({ result: rows, error: null });
+  return ctx;
+}
+
 /* ------------------------------------------------------------------ */
 /*  browseLibrary                                                      */
 /* ------------------------------------------------------------------ */
 
 describe('browseLibrary', () => {
   it('returns all items when no filters provided', async () => {
-    const ctx = buildCtx();
-    mockBrowseLibrary.mockResolvedValue({ result: [libraryRow, libraryRow2], error: null });
+    const ctx = setupBrowse([libraryRow, libraryRow2]);
 
     const result = await browseLibrary(ctx);
 
@@ -105,8 +114,7 @@ describe('browseLibrary', () => {
   });
 
   it('passes query filter to the query function', async () => {
-    const ctx = buildCtx();
-    mockBrowseLibrary.mockResolvedValue({ result: [libraryRow], error: null });
+    const ctx = setupBrowse([libraryRow]);
 
     const result = await browseLibrary(ctx, { query: 'Test' });
 
@@ -115,25 +123,24 @@ describe('browseLibrary', () => {
   });
 
   it('passes all filters', async () => {
-    const ctx = buildCtx();
-    mockBrowseLibrary.mockResolvedValue({ result: [libraryRow], error: null });
+    const ctx = setupBrowse([libraryRow]);
+    const opts = { query: 'Test', category: 'utilities', limit: BROWSE_LIMIT, offset: BROWSE_OFFSET };
 
-    await browseLibrary(ctx, { query: 'Test', category: 'utilities', limit: BROWSE_LIMIT, offset: BROWSE_OFFSET });
+    await browseLibrary(ctx, opts);
 
-    expectBrowseCalledWith(ctx.supabase, { query: 'Test', category: 'utilities', limit: BROWSE_LIMIT, offset: BROWSE_OFFSET });
+    expectBrowseCalledWith(ctx.supabase, opts);
   });
 
   it('returns empty array when no items found', async () => {
-    mockBrowseLibrary.mockResolvedValue({ result: [], error: null });
+    const ctx = setupBrowse([]);
 
-    const result = await browseLibrary(buildCtx());
+    const result = await browseLibrary(ctx);
 
     expect(result).toEqual([]);
   });
 
   it('throws when query returns an error', async () => {
     mockBrowseLibrary.mockResolvedValue({ result: [], error: 'DB error' });
-
     await expect(browseLibrary(buildCtx())).rejects.toThrow('DB error');
   });
 });
