@@ -3,6 +3,15 @@ declare module 'vanta/dist/vanta.rings.min' {
     destroy: () => void;
     restart: () => void;
     colors: number[];
+    genRing: (
+      color: number,
+      radius: number,
+      width: number,
+      startAngle?: number,
+      arcAngle?: number,
+      yPosition?: number,
+      speed?: number
+    ) => void;
   }
 
   interface VantaRingsOptions {

@@ -39,6 +39,21 @@ const ACCENT_RINGS: number[] = [
   0x9333ea, 0xa855f7, 0xd8b4fe,
 ];
 
+function pickAccentColor(): number {
+  return ACCENT_RINGS[Math.floor(Math.random() * ACCENT_RINGS.length)] ?? 0x7c3aed;
+}
+
+function addOuterRings(effect: VantaEffect): void {
+  for (let i = 0; i < 12; i++) {
+    const radius = 80 + Math.random() * 120;
+    const width = 1 + Math.random() * 4;
+    const arc = 2 + Math.random() * 4;
+    const y = (Math.random() - 0.5) * 15;
+    const speed = 0.05 + Math.random() * 0.2;
+    effect.genRing(pickAccentColor(), radius, width, Math.random() * 1000, arc, y, speed);
+  }
+}
+
 async function initRings(el: HTMLElement, isDark: boolean): Promise<VantaEffect> {
   const [THREE, { default: RINGS }] = await Promise.all([
     import('three'),
@@ -56,9 +71,9 @@ async function initRings(el: HTMLElement, isDark: boolean): Promise<VantaEffect>
     ...(isDark ? DARK_PALETTE : LIGHT_PALETTE),
   });
 
-  // Override the internal color palette and regenerate rings
   effect.colors = ACCENT_RINGS;
   effect.restart();
+  addOuterRings(effect);
   return effect;
 }
 
@@ -91,5 +106,13 @@ export function ShaderBackground() {
     };
   }, [isDark, prefersReducedMotion]);
 
-  return <div ref={containerRef} className="absolute inset-0 h-full w-full" aria-hidden="true" />;
+  return (
+    <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
+      <div
+        ref={containerRef}
+        className="h-full w-full"
+        style={{ transform: 'translate(20%, 15%) scale(1.5)' }}
+      />
+    </div>
+  );
 }
