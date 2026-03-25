@@ -60,11 +60,7 @@ function resolveTransportVars(transport: McpTransport, vars: Record<string, stri
   };
 }
 
-async function openClient(
-  ctx: ServiceContext,
-  agentId: string,
-  serverId: string
-): Promise<McpClient> {
+async function openClient(ctx: ServiceContext, agentId: string, serverId: string): Promise<McpClient> {
   const graph = requireGraph(await assembleGraph(ctx.supabase, agentId), agentId);
   const server = requireServer(graph, serverId);
   const envVars = await getDecryptedEnvVariables(ctx.supabase, ctx.orgId);
@@ -94,10 +90,7 @@ export async function discoverTools(
   }
 }
 
-export async function callTool(
-  ctx: ServiceContext,
-  input: CallToolInput
-): Promise<unknown> {
+export async function callTool(ctx: ServiceContext, input: CallToolInput): Promise<unknown> {
   const { agentId, serverId, toolName, args } = input;
   const client = await openClient(ctx, agentId, serverId);
   try {

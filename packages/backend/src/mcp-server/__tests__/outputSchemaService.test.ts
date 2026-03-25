@@ -1,6 +1,6 @@
+import type { Graph, OutputSchemaEntity, OutputSchemaField } from '@daviddh/graph-types';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
-import type { Graph, OutputSchemaEntity, OutputSchemaField } from '@daviddh/graph-types';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import type { ServiceContext } from '../types.js';
 

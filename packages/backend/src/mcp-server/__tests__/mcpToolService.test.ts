@@ -1,6 +1,6 @@
+import type { Graph, McpServerConfig, McpTransport } from '@daviddh/graph-types';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
-import type { Graph, McpServerConfig, McpTransport } from '@daviddh/graph-types';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import type { ServiceContext } from '../types.js';
 
@@ -182,7 +182,12 @@ describe('callTool', () => {
   it('calls the tool with args and returns result', async () => {
     const { ctx, mockClient } = setupCallToolClient();
 
-    const result = await callTool(ctx, { agentId: 'agent-1', serverId: 'server-1', toolName: 'search', args: { q: 'test' } });
+    const result = await callTool(ctx, {
+      agentId: 'agent-1',
+      serverId: 'server-1',
+      toolName: 'search',
+      args: { q: 'test' },
+    });
 
     expect(result).toEqual({ results: ['result1'] });
     expect(mockClient.close).toHaveBeenCalled();

@@ -3,8 +3,7 @@
 import { useTheme } from 'next-themes';
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 
-import { DARK_CONFIG, LIGHT_CONFIG } from './gradient/config';
-import { createGradient } from './gradient/create-gradient';
+import type { VantaEffect } from 'vanta/dist/vanta.rings.min';
 
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
@@ -23,28 +22,62 @@ function getReducedMotionServerSnapshot(): boolean {
 }
 
 function usePrefersReducedMotion(): boolean {
-  return useSyncExternalStore(subscribeToReducedMotion, getReducedMotionSnapshot, getReducedMotionServerSnapshot);
+  return useSyncExternalStore(
+    subscribeToReducedMotion,
+    getReducedMotionSnapshot,
+    getReducedMotionServerSnapshot
+  );
+}
+
+const DARK_PALETTE = { backgroundColor: 0x0a0a12, color: 0xa960ee } as const;
+const LIGHT_PALETTE = { backgroundColor: 0xf0f0f5, color: 0x7c3aed } as const;
+
+async function initRings(el: HTMLElement, isDark: boolean): Promise<VantaEffect> {
+  const [THREE, { default: RINGS }] = await Promise.all([
+    import('three'),
+    import('vanta/dist/vanta.rings.min'),
+  ]);
+
+  return RINGS({
+    el,
+    THREE,
+    mouseControls: true,
+    touchControls: true,
+    gyroControls: false,
+    scale: 1,
+    scaleMobile: 1,
+    ...(isDark ? DARK_PALETTE : LIGHT_PALETTE),
+  });
 }
 
 export function ShaderBackground() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const { resolvedTheme } = useTheme();
   const prefersReducedMotion = usePrefersReducedMotion();
   const isDark = resolvedTheme === 'dark';
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return undefined;
+    const el = containerRef.current;
+    if (!el || prefersReducedMotion) return undefined;
 
-    const config = isDark ? DARK_CONFIG : LIGHT_CONFIG;
-    try {
-      const handle = createGradient(canvas, config);
-      if (prefersReducedMotion) handle.destroy();
-      return () => handle.destroy();
-    } catch {
-      return undefined;
-    }
+    let destroyed = false;
+    let effect: VantaEffect | null = null;
+
+    initRings(el, isDark)
+      .then((e) => {
+        if (destroyed) {
+          e.destroy();
+          return;
+        }
+        effect = e;
+      })
+      .catch(() => undefined);
+
+    return () => {
+      destroyed = true;
+      effect?.destroy();
+    };
   }, [isDark, prefersReducedMotion]);
 
-  return <canvas ref={canvasRef} className="absolute inset-0 block h-full w-full" aria-hidden="true" />;
+  return <div ref={containerRef} className="absolute inset-0 h-full w-full" aria-hidden="true" />;
 }
