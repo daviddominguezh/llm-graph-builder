@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useReactFlow, ReactFlowProvider, useNodesState, useEdgesState } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { useRouter } from 'next/navigation';
 
 import { useCopilotContext } from './copilot/CopilotProvider';
 import { GraphBuilderLoading } from './GraphBuilderLoading';
@@ -325,6 +326,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
 function LoadedEditor(props: LoadedEditorProps) {
   const h = useGraphBuilderHooks(props);
   const versionsHook = useVersions(props.agentId, props.initialVersion ?? DEFAULT_VERSION);
+  const router = useRouter();
 
   const handleContextValue = {
     onSourceHandleClick: h.graphActions.onSourceHandleClick,
@@ -366,6 +368,7 @@ function LoadedEditor(props: LoadedEditorProps) {
                   versionsHook.setCurrentVersion(newVersion);
                   h.apiKeys.setProductionKeyId(h.apiKeys.stagingKeyId);
                   void versionsHook.refresh();
+                  router.refresh();
                 }}
               />
             ) : undefined

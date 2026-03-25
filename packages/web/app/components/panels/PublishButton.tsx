@@ -14,6 +14,7 @@ import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/pris
 import { toast } from 'sonner';
 
 const FEEDBACK_DURATION = 1500;
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 interface PublishButtonProps {
   agentId: string;
@@ -26,7 +27,7 @@ interface PublishButtonProps {
 }
 
 function buildCurlCommand(agentSlug: string, version: number): string {
-  return `curl --location 'http://localhost:4000/api/agents/${agentSlug}/${String(version)}' \\
+  return `curl --location '${API_URL}/api/agents/${agentSlug}/${String(version)}' \\
 --header 'Content-Type: application/json' \\
 --header 'Authorization: Bearer <YOUR_API_KEY>' \\
 --data '{
