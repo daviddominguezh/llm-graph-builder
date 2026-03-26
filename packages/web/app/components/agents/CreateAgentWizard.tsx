@@ -167,7 +167,7 @@ function WizardBody({
       <DialogHeader>
         <DialogTitle>{title}</DialogTitle>
       </DialogHeader>
-      <div key={state.step} className="animate-in fade-in duration-200">
+      <div key={state.step} className="min-w-0 animate-in fade-in duration-200">
         {state.step === 'template' ? (
           <TemplateStep
             selection={state.selection}
@@ -212,7 +212,7 @@ export function CreateAgentWizard({ open, onOpenChange, orgId, orgSlug }: Create
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-3xl">
+      <DialogContent className="sm:max-w-3xl overflow-hidden">
         <WizardBody state={state} orgId={orgId} orgSlug={orgSlug} onClose={() => handleOpenChange(false)} />
       </DialogContent>
     </Dialog>
