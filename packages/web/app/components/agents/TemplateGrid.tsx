@@ -119,6 +119,7 @@ interface GridContentProps {
   versionsMap: Record<string, number[]>;
   selectedVersions: Record<string, number>;
   loaded: boolean;
+  hasActiveFilter: boolean;
   onSelectBlank: () => void;
   onSelectTemplate: (agentId: string) => void;
   onVersionChange: (agentId: string, version: number) => void;
@@ -128,12 +129,16 @@ interface GridContentProps {
 }
 
 function GridContent(props: GridContentProps) {
-  const { templates, selection, versionsMap, selectedVersions, loaded } = props;
+  const { templates, selection, versionsMap, selectedVersions, loaded, hasActiveFilter } = props;
   const hasTemplates = templates.length > 0;
+  const showBlank = !hasActiveFilter || hasTemplates;
+  const showNoResults = !hasTemplates && loaded && hasActiveFilter;
 
   return (
     <div className="grid grid-cols-1 gap-3 max-h-[50vh] overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
-      <BlankCanvasCard selected={selection?.type === 'blank'} onSelect={props.onSelectBlank} />
+      {showBlank && (
+        <BlankCanvasCard selected={selection?.type === 'blank'} onSelect={props.onSelectBlank} />
+      )}
       {hasTemplates
         ? templates.map((tpl) => (
             <TemplateCard
@@ -151,7 +156,7 @@ function GridContent(props: GridContentProps) {
       {!hasTemplates && !loaded && (
         <p className="col-span-full py-8 text-center text-sm text-muted-foreground">{props.loadingLabel}</p>
       )}
-      {!hasTemplates && loaded && (
+      {showNoResults && (
         <div className="col-span-full flex flex-col items-center gap-2 py-10">
           <Search className="size-5 text-muted-foreground/40" />
           <p className="text-sm text-muted-foreground">{props.noResultsLabel}</p>
@@ -206,6 +211,7 @@ export function TemplateGrid({ selection, onSelectionChange, onPreview }: Templa
         versionsMap={versionsMap}
         selectedVersions={selectedVersions}
         loaded={data.loaded}
+        hasActiveFilter={debouncedSearch !== '' || category !== ''}
         onSelectBlank={handleSelectBlank}
         onSelectTemplate={handleSelectTemplate}
         onVersionChange={handleVersionChange}
