@@ -75,6 +75,55 @@ Deploy any agent as an API endpoint. Call it from your app, your backend, your m
 
 ---
 
+## Why You Can't Build an Agent-Powered SaaS with the Alternatives
+
+If you're building a SaaS product where AI agents are the core of what you sell to your customers, most popular agent-building platforms are not an option — not because of technical limitations, but because their licenses explicitly forbid it.
+
+### Dify
+
+Dify's license states:
+
+> "Unless explicitly authorized by Dify in writing, you may not use the Dify source code to operate a multi-tenant environment."
+
+In Dify's terms, one tenant equals one workspace. The open-source Community Edition allows unlimited workflows within a single workspace, but the moment you need separate workspaces for separate customers — which is the definition of a SaaS — you need a paid Enterprise license with written authorization from Dify. Multi-tenant capability and custom branding are exclusive to Dify Enterprise.
+
+This isn't a technical gap you can work around. It's a legal restriction baked into the license.
+
+### n8n
+
+n8n uses the Sustainable Use License, which restricts usage to internal business purposes. Specifically:
+
+- It prohibits hosting n8n and charging customers for access.
+- It prohibits selling a product or service whose value derives substantially from n8n functionality.
+- It prohibits workflows that dynamically use customer credentials to connect to their own systems.
+
+If you want to expose n8n-based functionality to your customers, you need to negotiate a separate Embed License — individual, commercial, and often costly. n8n was designed for single organizations, not for multi-tenant SaaS platforms. Their own community forums are full of founders asking whether their SaaS idea is allowed under the license. The answer is almost always no.
+
+### Langflow
+
+Langflow is MIT licensed, which means there are no legal restrictions on commercial or multi-tenant use. You could, in theory, build a SaaS on top of it.
+
+However, Langflow has no built-in concept of tenants, per-customer channel routing, or per-tenant usage tracking. You would need to build the entire multi-tenant layer yourself: tenant isolation, channel management (WhatsApp, Slack, Telegram per customer), cost tracking per tenant, and customer-facing APIs. That's months of infrastructure work before you ship a single agent to a customer.
+
+### LangSmith
+
+LangSmith is a closed-source proprietary platform. Self-hosting requires an enterprise license. More fundamentally, LangSmith has no concept of "your customers" as end users — it's built for teams developing and monitoring their own agents, not for reselling agents to third parties.
+
+### The Bottom Line
+
+| Platform          | Can you legally build a SaaS with it? | What's blocking you?                                          |
+| ----------------- | ------------------------------------- | ------------------------------------------------------------- |
+| Dify (Community)  | No                                    | License prohibits multi-tenant use without Enterprise agreement |
+| n8n (Community)   | No                                    | License restricts to internal business use only               |
+| Langflow          | Yes, but...                           | No multi-tenant infrastructure — you build everything yourself |
+| LangSmith         | No                                    | Closed-source, no resale model, enterprise license required   |
+
+If you're building agents for yourself, these tools work great. If you're building agents to sell to other people, they either can't help you or will cost you months of custom engineering before you can start.
+
+**OpenFlow is MIT licensed and multi-tenant from day one.** No license restrictions, no enterprise upsell for basic SaaS functionality, no months of plumbing before your first customer.
+
+---
+
 ## Who Is This For
 
 - **AI agencies** building custom agents for multiple clients
