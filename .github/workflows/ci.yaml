@@ -15,6 +15,8 @@ jobs:
           node-version: 'lts/*'
       - name: Install dependencies
         run: npm install
+      - name: Build graph-types
+        run: npm run build -w packages/graph-types
       - name: Build package
         run: npm run build:api
       - name: Run format, lint, and typecheck
