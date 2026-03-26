@@ -19,20 +19,30 @@ function OrgAvatar({ url, slug }: { url: string | null; slug: string }) {
 
   if (url) {
     return (
-      <Image src={url} alt={slug} width={20} height={20} className="size-5 shrink-0 rounded-full object-cover" />
+      <Image
+        src={url}
+        alt={slug}
+        width={20}
+        height={20}
+        className="size-5 shrink-0 rounded-full object-cover"
+        aria-hidden="true"
+      />
     );
   }
 
   return (
-    <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-muted-foreground">
+    <div
+      className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-muted-foreground"
+      aria-hidden="true"
+    >
       {fallback}
     </div>
   );
 }
 
-function StatItem({ icon, value }: { icon: React.ReactNode; value: number }) {
+function StatItem({ icon, value, label }: { icon: React.ReactNode; value: number; label: string }) {
   return (
-    <span className="flex items-center gap-0.5 text-[11px] text-muted-foreground">
+    <span className="flex items-center gap-0.5 text-[11px] text-muted-foreground" aria-label={`${value} ${label}`}>
       {icon}
       {value}
     </span>
@@ -58,6 +68,8 @@ export interface TemplateCardProps {
 /* ------------------------------------------------------------------ */
 
 function TemplateCardHeader({ template }: { template: TemplateListItem }) {
+  const tc = useTranslations('categories');
+
   return (
     <div className="flex items-center gap-1.5 min-w-0">
       <OrgAvatar url={template.org_avatar_url} slug={template.org_slug} />
@@ -65,7 +77,7 @@ function TemplateCardHeader({ template }: { template: TemplateListItem }) {
         {template.org_slug}/{template.agent_slug}
       </span>
       <Badge variant="secondary" className="ml-auto shrink-0">
-        {template.category}
+        {tc(template.category)}
       </Badge>
     </div>
   );
@@ -95,9 +107,9 @@ function TemplateCardStats({
   return (
     <div className="flex items-center gap-2">
       <div className="flex items-center gap-2">
-        <StatItem icon={<Network className="size-3" />} value={template.node_count} />
-        <StatItem icon={<Puzzle className="size-3" />} value={template.mcp_server_count} />
-        <StatItem icon={<Download className="size-3" />} value={template.download_count} />
+        <StatItem icon={<Network className="size-3" />} value={template.node_count} label={t('nodes')} />
+        <StatItem icon={<Puzzle className="size-3" />} value={template.mcp_server_count} label={t('mcpServers')} />
+        <StatItem icon={<Download className="size-3" />} value={template.download_count} label={t('downloads')} />
       </div>
       <div className="ml-auto flex items-center gap-0.5">
         <TemplateVersionSelector
@@ -176,7 +188,7 @@ export function BlankCanvasCard({ selected, onSelect }: { selected: boolean; onS
       onClick={onSelect}
       className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border p-3 text-center transition-colors hover:bg-card/60 ${blankBorderClass(selected)}`}
     >
-      <GitFork className="size-5 text-muted-foreground" />
+      <GitFork className="size-5 text-muted-foreground" aria-hidden="true" />
       <span className="text-xs font-medium text-foreground">{t('blankCanvas')}</span>
       <p className="text-[11px] text-muted-foreground">{t('blankCanvasDescription')}</p>
     </button>
