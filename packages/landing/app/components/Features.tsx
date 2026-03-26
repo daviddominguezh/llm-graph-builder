@@ -52,7 +52,7 @@ export function Features() {
         <h2 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
           How We&#39;re Different
         </h2>
-        <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
+        <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
           We don&#39;t sell to people who build agents for themselves. We sell to people who build agents to
           sell to other people.
         </p>

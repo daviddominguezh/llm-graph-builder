@@ -23,11 +23,12 @@ function TableHead() {
   return (
     <thead>
       <tr>
-        <th className="pb-4 text-left font-medium text-muted-foreground">
+        <th scope="col" className="pb-4 text-left font-medium text-muted-foreground">
           <span className="sr-only">Feature</span>
         </th>
         {COMPETITORS.map((name, i) => (
           <th
+            scope="col"
             key={name}
             className={`pb-4 text-center font-heading text-sm font-semibold ${i === 0 ? 'text-primary' : 'text-foreground'}`}
           >
