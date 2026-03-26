@@ -4,7 +4,6 @@ import logo from '@/app/icon.png';
 import logoBlack from '@/app/openflowLogoBlack.png';
 import logoWhite from '@/app/openflowLogoWhite.png';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useTheme } from 'next-themes';
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 
@@ -17,9 +16,6 @@ interface AuthCardProps {
 }
 
 export function AuthCard({ title, description, children }: AuthCardProps) {
-  const { resolvedTheme } = useTheme();
-  const logoType = resolvedTheme === 'dark' ? logoWhite : logoBlack;
-
   return (
     <div className="flex min-h-screen min-w-screen justify-center items-center">
       <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 1 }}>
@@ -30,7 +26,8 @@ export function AuthCard({ title, description, children }: AuthCardProps) {
         <div className="border-b border-secondary/30 w-full h-19 shrink-0 flex items-end pl-26">
           <div className="px-4 py-2 flex gap-2 items-center">
             <Image className='mb-1' src={logo} alt="OpenFlow" height={30} priority />
-            <Image src={logoType} alt="OpenFlow" height={24} priority />
+            <Image className="dark:hidden" src={logoBlack} alt="OpenFlow" height={24} priority />
+            <Image className="hidden dark:block" src={logoWhite} alt="OpenFlow" height={24} priority />
           </div>
         </div>
         <div className="w-full flex-1 min-h-[0px] flex">

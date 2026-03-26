@@ -1,7 +1,7 @@
 'use client';
 
 import { useTheme } from 'next-themes';
-import { useEffect, useRef, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import type { VantaEffect } from 'vanta/dist/vanta.rings.min';
 
@@ -82,6 +82,7 @@ export function ShaderBackground() {
   const { resolvedTheme } = useTheme();
   const prefersReducedMotion = usePrefersReducedMotion();
   const isDark = resolvedTheme === 'dark';
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -97,6 +98,7 @@ export function ShaderBackground() {
           return;
         }
         effect = e;
+        setReady(true);
       })
       .catch(() => undefined);
 
@@ -107,7 +109,11 @@ export function ShaderBackground() {
   }, [isDark, prefersReducedMotion]);
 
   return (
-    <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
+    <div
+      className="absolute inset-0 overflow-hidden transition-opacity duration-1000 ease-out"
+      style={{ opacity: ready ? 1 : 0 }}
+      aria-hidden="true"
+    >
       <div
         ref={containerRef}
         className="h-full w-full"
