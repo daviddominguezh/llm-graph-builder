@@ -88,7 +88,6 @@ export function ShaderBackground() {
     const el = containerRef.current;
     if (!el || prefersReducedMotion) return undefined;
 
-    setReady(false);
     let destroyed = false;
     let effect: VantaEffect | null = null;
 
