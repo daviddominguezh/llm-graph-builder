@@ -45,6 +45,8 @@ export async function Hero() {
     <section className="relative flex flex-col items-center overflow-hidden px-6 pt-36 pb-28 text-center">
       <HeroBackground />
 
+      <OpenSourceBadge />
+
       <h1 className="font-heading relative max-w-4xl text-5xl font-bold leading-[1.1] tracking-tight text-balance sm:text-6xl lg:text-7xl">
         Making it easier to build{' '}
         <span className="text-primary">AI agents</span>
@@ -61,6 +63,23 @@ export async function Hero() {
 
       <HeroVisual />
     </section>
+  );
+}
+
+function OpenSourceBadge() {
+  return (
+    <div
+      className="relative mb-6 inline-flex items-center gap-2 rounded-full border border-border px-4 py-1.5 text-xs font-medium text-muted-foreground"
+      style={{
+        backgroundImage:
+          'linear-gradient(110deg, transparent 30%, var(--color-primary)/0.08 50%, transparent 70%)',
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 4s ease-in-out infinite',
+      }}
+    >
+      <span className="h-1.5 w-1.5 rounded-full bg-success" />
+      Open Source &middot; MIT Licensed
+    </div>
   );
 }
 

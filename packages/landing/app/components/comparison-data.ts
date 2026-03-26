@@ -7,6 +7,7 @@ export interface ComparisonRow {
   langflow: CellValue;
   n8n: CellValue;
   langsmith: CellValue;
+  emphasis?: boolean;
 }
 
 export const ROWS: ComparisonRow[] = [
@@ -82,6 +83,7 @@ export const ROWS: ComparisonRow[] = [
     langflow: 'no',
     n8n: 'no',
     langsmith: 'no',
+    emphasis: true,
   },
 ];
 

@@ -34,7 +34,7 @@ function AudienceCardItem({ audience }: { audience: AudienceCard }) {
   const Icon = audience.icon;
 
   return (
-    <div className="rounded-xl border border-border bg-background p-6 text-center">
+    <div className="rounded-xl border border-border bg-background p-6 text-center transition-[transform,border-color] hover:-translate-y-0.5 hover:border-primary/30">
       <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg bg-primary/8">
         <Icon className="h-5 w-5 text-primary" />
       </div>

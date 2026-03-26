@@ -42,8 +42,10 @@ function TableHead() {
 
 function TableRow({ row }: { row: ComparisonRow }) {
   return (
-    <tr className="border-t border-border transition-colors hover:bg-foreground/[0.02]">
-      <td className="py-3 pr-4 text-sm text-foreground">{row.feature}</td>
+    <tr className={`border-t border-border transition-colors hover:bg-foreground/[0.02] ${row.emphasis === true ? 'bg-foreground/[0.02] font-medium' : ''}`}>
+      <td className={`py-3 pr-4 text-sm ${row.emphasis === true ? 'font-semibold text-foreground' : 'text-foreground'}`}>
+        {row.feature}
+      </td>
       {COMPETITOR_KEYS.map((key, i) => (
         <td key={key} className={`py-3 text-center ${i === 0 ? 'bg-success/6' : ''}`}>
           <CellDisplay value={row[key]} highlight={i === 0} />

@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 const GITHUB_URL = 'https://github.com/daviddominguezh/llm-graph-builder';
 
 const TECH = [
@@ -41,6 +43,12 @@ function FooterBottom() {
     <div className="mt-6 flex items-center justify-between border-t border-border pt-6">
       <span className="text-sm text-muted-foreground">OpenFlow</span>
       <div className="flex items-center gap-4 text-sm text-muted-foreground">
+        <Link href="/terms" className="transition-colors hover:text-foreground">
+          Terms
+        </Link>
+        <Link href="/privacy" className="transition-colors hover:text-foreground">
+          Privacy
+        </Link>
         <span>MIT License</span>
         <a
           href={GITHUB_URL}
