@@ -107,9 +107,9 @@ function TemplateCardStats({
   return (
     <div className="flex items-center gap-2">
       <div className="flex items-center gap-2">
-        <StatItem icon={<Network className="size-3" />} value={template.node_count} label={t('nodes')} />
-        <StatItem icon={<Puzzle className="size-3" />} value={template.mcp_server_count} label={t('mcpServers')} />
-        <StatItem icon={<Download className="size-3" />} value={template.download_count} label={t('downloads')} />
+        <StatItem icon={<Network className="size-3 text-primary/60" />} value={template.node_count} label={t('nodes')} />
+        <StatItem icon={<Puzzle className="size-3 text-blue-500/60 dark:text-blue-400/60" />} value={template.mcp_server_count} label={t('mcpServers')} />
+        <StatItem icon={<Download className="size-3 text-green-600/60 dark:text-green-400/60" />} value={template.download_count} label={t('downloads')} />
       </div>
       <div className="ml-auto flex items-center gap-0.5">
         <TemplateVersionSelector
