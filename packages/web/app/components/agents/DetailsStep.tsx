@@ -90,7 +90,7 @@ function CategoryField({
         <SelectTrigger className="w-full">
           <SelectValue>{tc(value)}</SelectValue>
         </SelectTrigger>
-        <SelectContent className="[&_[role=listbox]]:max-h-[30vh]">
+        <SelectContent className="max-h-[min(30vh,var(--available-height))]">
           {TEMPLATE_CATEGORIES.map((cat) => (
             <SelectItem key={cat} value={cat}>
               {tc(cat)}
