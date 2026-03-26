@@ -113,8 +113,9 @@ function PreviewGraph({
   colorMode: 'dark' | 'light';
 }) {
   return (
-    <div className="min-h-0 flex-1">
+    <div className="h-0 flex-1">
       <ReactFlow
+        style={{ width: '100%', height: '100%' }}
         nodes={nodes}
         edges={edges}
         nodesDraggable={false}
