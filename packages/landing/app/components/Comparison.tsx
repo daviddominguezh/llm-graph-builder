@@ -7,7 +7,11 @@ import { COMPETITOR_KEYS, COMPETITORS, ROWS } from './comparison-data';
 function CellDisplay({ value, highlight }: { value: CellValue; highlight: boolean }): ReactNode {
   switch (value) {
     case 'yes':
-      return <Check className={`mx-auto h-4 w-4 ${highlight ? 'text-primary' : 'text-foreground'}`} />;
+      return (
+        <Check
+          className={`mx-auto h-4 w-4 ${highlight ? 'text-primary drop-shadow-[0_0_3px_var(--color-primary)/0.3]' : 'text-foreground'}`}
+        />
+      );
     case 'no':
       return <X className="mx-auto h-4 w-4 text-muted-foreground/40" />;
     case 'partial':

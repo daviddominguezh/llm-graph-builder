@@ -65,7 +65,7 @@ export async function Navbar() {
   return (
     <nav className="fixed top-0 z-50 w-full border-b border-border/50 bg-background/70 backdrop-blur-xl">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
-        <a href="#" className="font-heading text-lg font-bold tracking-tight">
+        <a href="#" className="font-heading text-lg font-bold tracking-tight transition-colors hover:text-primary">
           OpenFlow
         </a>
 

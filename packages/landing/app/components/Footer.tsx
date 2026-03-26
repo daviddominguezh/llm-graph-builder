@@ -27,7 +27,7 @@ function TechBadges() {
       {TECH.map((name) => (
         <span
           key={name}
-          className="rounded-md border border-border px-2 py-0.5 font-mono text-xs text-muted-foreground"
+          className="rounded-md border border-border px-2 py-0.5 font-mono text-xs text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground"
         >
           {name}
         </span>
