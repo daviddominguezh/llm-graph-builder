@@ -1,4 +1,5 @@
 import { AgentsSidebarProvider } from '@/app/components/agents/AgentsSidebarContext';
+import { EditorCacheProvider } from '@/app/components/editors/EditorCacheProvider';
 import { OrgSidebar } from '@/app/components/orgs/OrgSidebar';
 import { getOrgBySlug } from '@/app/lib/orgs';
 import { redirect } from 'next/navigation';
@@ -18,12 +19,14 @@ export default async function OrgLayout({ children, params }: OrgLayoutProps): P
 
   return (
     <AgentsSidebarProvider>
-      <div className="relative h-screen bg-sidebar">
-        <OrgSidebar org={org} />
-        <main className="relative z-11 h-full bg-background ml-12.5 border rounded-s-xl shadow-sm overflow-hidden">
-          {children}
-        </main>
-      </div>
+      <EditorCacheProvider>
+        <div className="relative h-screen bg-sidebar">
+          <OrgSidebar org={org} />
+          <main className="relative z-11 h-full bg-background ml-12.5 border rounded-s-xl shadow-sm overflow-hidden">
+            {children}
+          </main>
+        </div>
+      </EditorCacheProvider>
     </AgentsSidebarProvider>
   );
 }
