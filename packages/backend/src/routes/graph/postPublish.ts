@@ -1,5 +1,6 @@
 import type { Request } from 'express';
 
+import { syncTemplateAfterPublish } from '../../db/queries/templateSync.js';
 import { publishVersion } from '../../db/queries/versionQueries.js';
 import {
   type AuthenticatedLocals,
@@ -27,6 +28,9 @@ export async function handlePostPublish(req: Request, res: AuthenticatedResponse
 
   try {
     const version = await publishVersion(supabase, agentId);
+    await syncTemplateAfterPublish(supabase, agentId).catch((syncErr) => {
+      logError(agentId, `template sync failed: ${extractErrorMessage(syncErr)}`);
+    });
     res.status(HTTP_OK).json({ version });
   } catch (err) {
     const message = extractErrorMessage(err);
