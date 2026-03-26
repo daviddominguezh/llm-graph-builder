@@ -11,8 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
+import { Globe, Lock } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -31,19 +30,48 @@ function useVisibilityState(initialIsPublic: boolean) {
   return { isPublic, setIsPublic, pendingValue, setPendingValue, dialogOpen, setDialogOpen };
 }
 
-function handleCheckboxChange(
-  checked: boolean,
+function handleCardSelect(
+  value: boolean,
   currentVersion: number,
   t: (key: string) => string,
   setPendingValue: (v: boolean) => void,
   setDialogOpen: (v: boolean) => void
 ) {
-  if (currentVersion === 0 && checked) {
+  if (currentVersion === 0 && value) {
     toast.error(t('mustPublishFirst'));
     return;
   }
-  setPendingValue(checked);
+  setPendingValue(value);
   setDialogOpen(true);
+}
+
+function VisibilityOption({
+  selected,
+  onClick,
+  icon,
+  label,
+  description,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  description: string;
+}) {
+  const border = selected ? 'border-primary ring-1 ring-primary' : 'border-border';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex flex-1 cursor-pointer flex-col gap-1 rounded-lg border p-3 text-left transition-[border-color,box-shadow] duration-150 hover:bg-card/60 ${border}`}
+    >
+      <div className="flex items-center gap-1.5">
+        {icon}
+        <span className="text-xs font-medium">{label}</span>
+      </div>
+      <p className="text-[11px] text-muted-foreground">{description}</p>
+    </button>
+  );
 }
 
 async function handleConfirm(
@@ -103,8 +131,8 @@ export function VisibilityToggle({ agentId, currentVersion, initialIsPublic }: V
   const router = useRouter();
   const state = useVisibilityState(initialIsPublic);
 
-  const onCheckboxChange = (checked: boolean) => {
-    handleCheckboxChange(checked, currentVersion, t, state.setPendingValue, state.setDialogOpen);
+  const selectVisibility = (value: boolean) => {
+    handleCardSelect(value, currentVersion, t, state.setPendingValue, state.setDialogOpen);
   };
 
   const onConfirm = () => {
@@ -113,14 +141,22 @@ export function VisibilityToggle({ agentId, currentVersion, initialIsPublic }: V
 
   return (
     <>
-      <div className="flex items-center gap-2">
-        <Checkbox id="visibility-toggle" checked={state.isPublic} onCheckedChange={onCheckboxChange} />
-        <Label htmlFor="visibility-toggle" className="flex items-center gap-1.5">
-          {state.isPublic && <span className="size-1.5 shrink-0 rounded-full bg-green-500" />}
-          {state.isPublic ? t('visibilityPublic') : t('visibilityPrivate')}
-        </Label>
+      <div className="flex gap-2">
+        <VisibilityOption
+          selected={!state.isPublic}
+          onClick={() => selectVisibility(false)}
+          icon={<Lock className="size-3.5 text-muted-foreground" />}
+          label={t('visibilityPrivate')}
+          description={t('privateDescription')}
+        />
+        <VisibilityOption
+          selected={state.isPublic}
+          onClick={() => selectVisibility(true)}
+          icon={<Globe className="size-3.5 text-green-600 dark:text-green-400" />}
+          label={t('visibilityPublic')}
+          description={t('publicDescription')}
+        />
       </div>
-      <p className="text-muted-foreground text-xs">{t('publicExplanation')}</p>
       <VisibilityDialog
         open={state.dialogOpen}
         pendingValue={state.pendingValue}
