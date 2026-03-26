@@ -167,22 +167,24 @@ function WizardBody({
       <DialogHeader>
         <DialogTitle>{title}</DialogTitle>
       </DialogHeader>
-      {state.step === 'template' ? (
-        <TemplateStep
-          selection={state.selection}
-          onSelectionChange={state.setSelection}
-          onPreview={handlePreview}
-          onNext={() => state.setStep('details')}
-        />
-      ) : (
-        <DetailsStep
-          state={state.details}
-          onChange={state.setDetails}
-          onBack={() => state.setStep('template')}
-          onSubmit={handleSubmit}
-          loading={state.loading}
-        />
-      )}
+      <div key={state.step} className="animate-in fade-in duration-200">
+        {state.step === 'template' ? (
+          <TemplateStep
+            selection={state.selection}
+            onSelectionChange={state.setSelection}
+            onPreview={handlePreview}
+            onNext={() => state.setStep('details')}
+          />
+        ) : (
+          <DetailsStep
+            state={state.details}
+            onChange={state.setDetails}
+            onBack={() => state.setStep('template')}
+            onSubmit={handleSubmit}
+            loading={state.loading}
+          />
+        )}
+      </div>
       <TemplatePreviewModal
         open={state.preview.open}
         onOpenChange={(v) => state.setPreview((prev) => ({ ...prev, open: v }))}

@@ -8,6 +8,8 @@ import { browseTemplatesAction, getTemplateVersionsAction } from '@/app/actions/
 import { useDebouncedValue } from '@/app/hooks/useDebouncedValue';
 import type { TemplateListItem } from '@/app/lib/templates';
 
+import { Search } from 'lucide-react';
+
 import { BlankCanvasCard, TemplateCard } from './TemplateCard';
 import { CategoryPills, SearchBar } from './TemplateGridFilters';
 
@@ -150,7 +152,10 @@ function GridContent(props: GridContentProps) {
         <p className="col-span-full py-8 text-center text-sm text-muted-foreground">{props.loadingLabel}</p>
       )}
       {!hasTemplates && loaded && (
-        <p className="col-span-full py-8 text-center text-sm text-muted-foreground">{props.noResultsLabel}</p>
+        <div className="col-span-full flex flex-col items-center gap-2 py-10">
+          <Search className="size-5 text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">{props.noResultsLabel}</p>
+        </div>
       )}
     </div>
   );
