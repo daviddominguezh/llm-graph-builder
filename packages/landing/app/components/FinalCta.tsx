@@ -10,19 +10,19 @@ function GitHubIcon() {
 
 export function FinalCta() {
   return (
-    <section className="bg-foreground px-6 py-24 text-center">
+    <section className="bg-primary px-6 py-24 text-center">
       <div className="mx-auto max-w-3xl">
-        <h2 className="font-heading text-3xl font-semibold tracking-tight text-background sm:text-4xl">
+        <h2 className="font-heading text-3xl font-semibold tracking-tight text-primary-foreground sm:text-4xl">
           Ready to build your agent-powered SaaS?
         </h2>
-        <p className="mt-4 text-lg text-background/60">
+        <p className="mt-4 text-lg text-primary-foreground/70">
           MIT licensed. Multi-tenant from day one. No license restrictions, no enterprise upsell.
         </p>
         <a
           href={GITHUB_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-8 inline-flex items-center gap-2 rounded-xl border border-background/20 bg-background/10 px-6 py-3 text-sm font-semibold text-background transition-colors hover:bg-background/20"
+          className="mt-8 inline-flex items-center gap-2 rounded-xl bg-background px-6 py-3 text-sm font-semibold text-foreground shadow-lg transition-colors hover:bg-background/90"
         >
           <GitHubIcon />
           View on GitHub

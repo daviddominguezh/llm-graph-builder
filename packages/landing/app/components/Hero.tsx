@@ -40,19 +40,30 @@ export async function Hero() {
   const stars = await fetchGitHubStars();
 
   return (
-    <section className="flex flex-col items-center px-6 pt-32 pb-20 text-center">
-      <h1 className="font-heading max-w-4xl text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
+    <section className="relative flex flex-col items-center overflow-hidden px-6 pt-36 pb-28 text-center">
+      <HeroBackground />
+
+      <h1 className="font-heading relative max-w-4xl text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
         Making it easier to build AI agents
       </h1>
 
-      <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+      <p className="relative mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
         The platform for building agent-powered SaaS. Build an AI agent, connect WhatsApp, Slack, or a chatbot
         — and each of your customers gets their own isolated instance.
       </p>
 
       <GitHubCta stars={stars} />
 
-      <p className="mt-4 text-sm text-muted-foreground">MIT Licensed. Multi-tenant from day one.</p>
+      <p className="relative mt-4 text-sm text-muted-foreground">MIT Licensed. Multi-tenant from day one.</p>
     </section>
+  );
+}
+
+function HeroBackground() {
+  return (
+    <div
+      className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,var(--color-primary)/0.06,transparent_70%)]"
+      aria-hidden="true"
+    />
   );
 }

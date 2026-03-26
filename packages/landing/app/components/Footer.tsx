@@ -1,5 +1,18 @@
 const GITHUB_URL = 'https://github.com/daviddominguezh/llm-graph-builder';
 
+const TECH = [
+  'Node.js',
+  'TypeScript',
+  'Next.js 16',
+  'React 19',
+  'TailwindCSS 4',
+  'Vercel AI SDK',
+  'OpenRouter',
+  'Supabase',
+  'Docker',
+  'Zod',
+] as const;
+
 function GitHubIcon() {
   return (
     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
@@ -8,24 +21,48 @@ function GitHubIcon() {
   );
 }
 
+function TechBadges() {
+  return (
+    <div className="flex flex-wrap justify-center gap-2">
+      {TECH.map((name) => (
+        <span
+          key={name}
+          className="rounded-md border border-border px-2 py-0.5 font-mono text-xs text-muted-foreground"
+        >
+          {name}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function FooterBottom() {
+  return (
+    <div className="mt-6 flex items-center justify-between border-t border-border pt-6">
+      <span className="text-sm text-muted-foreground">OpenFlow</span>
+      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+        <span>MIT License</span>
+        <a
+          href={GITHUB_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="transition-colors hover:text-foreground"
+          aria-label="GitHub"
+        >
+          <GitHubIcon />
+        </a>
+      </div>
+    </div>
+  );
+}
+
 export function Footer() {
   return (
-    <footer className="border-t border-border px-6 py-6">
-      <div className="mx-auto flex max-w-6xl items-center justify-between">
-        <span className="text-sm text-muted-foreground">OpenFlow</span>
-
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <span>MIT License</span>
-          <a
-            href={GITHUB_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="transition-colors hover:text-foreground"
-            aria-label="GitHub"
-          >
-            <GitHubIcon />
-          </a>
-        </div>
+    <footer className="px-6 py-8">
+      <div className="mx-auto max-w-6xl">
+        <p className="mb-4 text-center text-xs text-muted-foreground/60">Built with</p>
+        <TechBadges />
+        <FooterBottom />
       </div>
     </footer>
   );

@@ -22,7 +22,7 @@ function PainPointList() {
 
 export function Problem() {
   return (
-    <section className="bg-muted px-6 py-20">
+    <section className="bg-muted px-6 py-16">
       <div className="mx-auto max-w-4xl">
         <h2 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">The Problem</h2>
 
