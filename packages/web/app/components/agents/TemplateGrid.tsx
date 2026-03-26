@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { browseTemplatesAction, getTemplateVersionsAction } from '@/app/actions/templates';
+import { useDebouncedValue } from '@/app/hooks/useDebouncedValue';
 import type { TemplateListItem } from '@/app/lib/templates';
 
 import { BlankCanvasCard, TemplateCard } from './TemplateCard';
@@ -59,9 +60,10 @@ interface TemplateState {
   templates: TemplateListItem[];
   versionsMap: Record<string, number[]>;
   selectedVersions: Record<string, number>;
+  loaded: boolean;
 }
 
-const INITIAL_STATE: TemplateState = { templates: [], versionsMap: {}, selectedVersions: {} };
+const INITIAL_STATE: TemplateState = { templates: [], versionsMap: {}, selectedVersions: {}, loaded: false };
 
 function applyFetchResult(prev: TemplateState, result: FetchResult): TemplateState {
   const versionsMap = { ...prev.versionsMap };
@@ -72,7 +74,7 @@ function applyFetchResult(prev: TemplateState, result: FetchResult): TemplateSta
       selectedVersions[agentId] = nums[0];
     }
   }
-  return { templates: result.templates, versionsMap, selectedVersions };
+  return { templates: result.templates, versionsMap, selectedVersions, loaded: true };
 }
 
 /* ------------------------------------------------------------------ */
@@ -114,19 +116,21 @@ interface GridContentProps {
   selection: TemplateSelection | null;
   versionsMap: Record<string, number[]>;
   selectedVersions: Record<string, number>;
+  loaded: boolean;
   onSelectBlank: () => void;
   onSelectTemplate: (agentId: string) => void;
   onVersionChange: (agentId: string, version: number) => void;
   onPreview: (agentId: string, version: number) => void;
   noResultsLabel: string;
+  loadingLabel: string;
 }
 
 function GridContent(props: GridContentProps) {
-  const { templates, selection, versionsMap, selectedVersions } = props;
+  const { templates, selection, versionsMap, selectedVersions, loaded } = props;
   const hasTemplates = templates.length > 0;
 
   return (
-    <div className="grid grid-cols-3 gap-2 max-h-[380px] overflow-y-auto pr-1">
+    <div className="grid grid-cols-1 gap-2 max-h-[50vh] overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
       <BlankCanvasCard selected={selection?.type === 'blank'} onSelect={props.onSelectBlank} />
       {hasTemplates
         ? templates.map((tpl) => (
@@ -142,8 +146,11 @@ function GridContent(props: GridContentProps) {
             />
           ))
         : null}
-      {!hasTemplates && (
-        <p className="col-span-3 py-8 text-center text-sm text-muted-foreground">{props.noResultsLabel}</p>
+      {!hasTemplates && !loaded && (
+        <p className="col-span-full py-8 text-center text-sm text-muted-foreground">{props.loadingLabel}</p>
+      )}
+      {!hasTemplates && loaded && (
+        <p className="col-span-full py-8 text-center text-sm text-muted-foreground">{props.noResultsLabel}</p>
       )}
     </div>
   );
@@ -155,9 +162,12 @@ function GridContent(props: GridContentProps) {
 
 export function TemplateGrid({ selection, onSelectionChange, onPreview }: TemplateGridProps) {
   const t = useTranslations('marketplace');
+  const tCommon = useTranslations('common');
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [category, setCategory] = useState<TemplateCategory | ''>('');
-  const { templates, versionsMap, selectedVersions, setSelectedVersion } = useTemplateData(search, category);
+  const data = useTemplateData(debouncedSearch, category);
+  const { templates, versionsMap, selectedVersions, setSelectedVersion } = data;
 
   const handleSelectBlank = useCallback(() => {
     onSelectionChange({ type: 'blank' });
@@ -190,11 +200,13 @@ export function TemplateGrid({ selection, onSelectionChange, onPreview }: Templa
         selection={selection}
         versionsMap={versionsMap}
         selectedVersions={selectedVersions}
+        loaded={data.loaded}
         onSelectBlank={handleSelectBlank}
         onSelectTemplate={handleSelectTemplate}
         onVersionChange={handleVersionChange}
         onPreview={onPreview}
         noResultsLabel={t('noResults')}
+        loadingLabel={tCommon('loading')}
       />
     </div>
   );

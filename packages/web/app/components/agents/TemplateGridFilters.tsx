@@ -18,7 +18,7 @@ function PillButton({ active, onClick, label }: { active: boolean; onClick: () =
     : 'bg-muted text-muted-foreground hover:bg-muted/80';
 
   return (
-    <button type="button" onClick={onClick} className={`${base} ${variant}`}>
+    <button type="button" aria-pressed={active} onClick={onClick} className={`${base} ${variant}`}>
       {label}
     </button>
   );
@@ -38,7 +38,14 @@ export function CategoryPills({ value, onChange }: CategoryPillsProps) {
   const tc = useTranslations('categories');
 
   return (
-    <div className="flex gap-1 overflow-x-auto pb-1">
+    <div
+      className="flex gap-1 overflow-x-auto pb-1"
+      style={{
+        maskImage: 'linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%)',
+        WebkitMaskImage:
+          'linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%)',
+      }}
+    >
       <PillButton active={value === ''} onClick={() => onChange('')} label={t('allCategories')} />
       {TEMPLATE_CATEGORIES.map((cat) => (
         <PillButton key={cat} active={value === cat} onClick={() => onChange(cat)} label={tc(cat)} />
