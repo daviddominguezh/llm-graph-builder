@@ -14,12 +14,15 @@ interface CategorySectionProps {
   initialCategory: string;
 }
 
+const VALID_CATEGORIES = new Set<string>(TEMPLATE_CATEGORIES);
+
 export function CategorySection({ agentId, initialCategory }: CategorySectionProps) {
   const t = useTranslations('settings');
   const tc = useTranslations('categories');
-  const [value, setValue] = useState(initialCategory);
+  const startValue = VALID_CATEGORIES.has(initialCategory) ? initialCategory : '';
+  const [value, setValue] = useState(startValue);
   const [saving, setSaving] = useState(false);
-  const unchanged = value === initialCategory;
+  const unchanged = value === startValue;
 
   async function handleSave() {
     setSaving(true);
@@ -37,9 +40,11 @@ export function CategorySection({ agentId, initialCategory }: CategorySectionPro
   return (
     <div className="flex flex-col gap-1.5">
       <Label>{t('category')}</Label>
-      <Select value={value} onValueChange={(v) => v !== null && setValue(v)}>
+      <Select value={value === '' ? null : value} onValueChange={(v) => v !== null && setValue(v)}>
         <SelectTrigger className="w-full">
-          <SelectValue>{tc(value)}</SelectValue>
+          <SelectValue>
+            {value !== '' ? tc(value) : <span className="text-muted-foreground">{t('categoryPlaceholder')}</span>}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent alignItemWithTrigger={false} align="end" style={{ maxHeight: '30vh' }}>
           {TEMPLATE_CATEGORIES.map((cat) => (
