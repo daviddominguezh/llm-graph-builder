@@ -50,14 +50,6 @@ function isVersionSummaryArray(value: unknown): value is TemplateVersionSummary[
   return Array.isArray(value);
 }
 
-interface SnapshotEnvelope {
-  graphData: TemplateGraphData;
-}
-
-function isSnapshotEnvelope(value: unknown): value is SnapshotEnvelope {
-  return typeof value === 'object' && value !== null && 'graphData' in value;
-}
-
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
@@ -113,10 +105,12 @@ export async function getTemplateSnapshot(
 ): Promise<{ graphData: TemplateGraphData | null; error: string | null }> {
   try {
     const id = encodeURIComponent(agentId);
-    const path = `/templates/${id}/versions/${String(version)}/snapshot`;
+    const path = `/templates/${id}/versions/${String(version)}`;
     const data = await fetchFromBackend('GET', path);
-    if (!isSnapshotEnvelope(data)) return { graphData: null, error: 'Invalid response' };
-    return { graphData: data.graphData, error: null };
+    if (typeof data !== 'object' || data === null || !('startNode' in data)) {
+      return { graphData: null, error: 'Invalid response' };
+    }
+    return { graphData: data as TemplateGraphData, error: null };
   } catch (err) {
     return { graphData: null, error: extractError(err) };
   }
