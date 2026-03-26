@@ -1,11 +1,10 @@
-import type { Request } from 'express';
-
 import { TemplateCategorySchema } from '@daviddh/graph-types';
+import type { Request } from 'express';
 
 import { insertAgent } from '../../db/queries/agentQueries.js';
 import { assembleTemplateSafeGraph } from '../../db/queries/assembleTemplateSafeGraph.js';
 import { cloneTemplateGraph } from '../../db/queries/cloneTemplateGraph.js';
-import { type SupabaseClient } from '../../db/queries/operationHelpers.js';
+import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { findUniqueSlug, generateSlug } from '../../db/queries/slugQueries.js';
 import { getTemplateByAgentId, incrementDownloads } from '../../db/queries/templateQueries.js';
 import {
@@ -36,7 +35,7 @@ function parseIsPublic(body: unknown): boolean {
 function parseTemplateVersion(body: unknown): number | undefined {
   if (typeof body !== 'object' || body === null) return undefined;
   if (!('templateVersion' in body)) return undefined;
-  const raw = body.templateVersion;
+  const { templateVersion: raw } = body;
   if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
   return undefined;
 }
@@ -72,25 +71,49 @@ async function cloneFromTemplate(
 }
 
 /* ------------------------------------------------------------------ */
+/*  Request parsing                                                    */
+/* ------------------------------------------------------------------ */
+
+interface CreateAgentInput {
+  orgId: string;
+  name: string;
+  description: string;
+  category: string;
+  isPublic: boolean;
+  templateAgentId: string | undefined;
+  templateVersion: number | undefined;
+}
+
+function parseCreateAgentBody(body: unknown): CreateAgentInput | null {
+  const orgId = parseStringField(body, 'orgId');
+  const name = parseStringField(body, 'name');
+  if (orgId === undefined || name === undefined) return null;
+
+  return {
+    orgId,
+    name,
+    description: parseStringField(body, 'description') ?? '',
+    category: parseCategory(body),
+    isPublic: parseIsPublic(body),
+    templateAgentId: parseStringField(body, 'templateAgentId'),
+    templateVersion: parseTemplateVersion(body),
+  };
+}
+
+/* ------------------------------------------------------------------ */
 /*  Handler                                                            */
 /* ------------------------------------------------------------------ */
 
 export async function handleCreateAgent(req: Request, res: AuthenticatedResponse): Promise<void> {
   const { supabase }: AuthenticatedLocals = res.locals;
-  const orgId = parseStringField(req.body, 'orgId');
-  const name = parseStringField(req.body, 'name');
-  const description = parseStringField(req.body, 'description');
-  const category = parseCategory(req.body);
-  const isPublic = parseIsPublic(req.body);
-  const templateAgentId = parseStringField(req.body, 'templateAgentId');
-  const templateVersion = parseTemplateVersion(req.body);
+  const input = parseCreateAgentBody(req.body);
 
-  if (orgId === undefined || name === undefined) {
+  if (input === null) {
     res.status(HTTP_BAD_REQUEST).json({ error: 'orgId and name are required' });
     return;
   }
 
-  const baseSlug = generateSlug(name);
+  const baseSlug = generateSlug(input.name);
   if (baseSlug === '') {
     res.status(HTTP_BAD_REQUEST).json({ error: 'Invalid agent name' });
     return;
@@ -99,12 +122,12 @@ export async function handleCreateAgent(req: Request, res: AuthenticatedResponse
   try {
     const slug = await findUniqueSlug(supabase, baseSlug, 'agents');
     const { result, error } = await insertAgent(supabase, {
-      orgId,
-      name,
+      orgId: input.orgId,
+      name: input.name,
       slug,
-      description: description ?? '',
-      category,
-      isPublic,
+      description: input.description,
+      category: input.category,
+      isPublic: input.isPublic,
     });
 
     if (error !== null || result === null) {
@@ -112,8 +135,8 @@ export async function handleCreateAgent(req: Request, res: AuthenticatedResponse
       return;
     }
 
-    if (templateAgentId !== undefined && templateVersion !== undefined) {
-      await cloneFromTemplate(supabase, result.id, templateAgentId, templateVersion);
+    if (input.templateAgentId !== undefined && input.templateVersion !== undefined) {
+      await cloneFromTemplate(supabase, result.id, input.templateAgentId, input.templateVersion);
     }
 
     res.status(HTTP_OK).json(result);

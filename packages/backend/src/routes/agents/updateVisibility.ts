@@ -14,8 +14,9 @@ import {
 
 function parseBooleanField(body: unknown): boolean | undefined {
   if (typeof body !== 'object' || body === null) return undefined;
-  const record = body as Record<string, unknown>;
-  if (typeof record.isPublic === 'boolean') return record.isPublic;
+  if (!('isPublic' in body)) return undefined;
+  const { isPublic } = body;
+  if (typeof isPublic === 'boolean') return isPublic;
   return undefined;
 }
 

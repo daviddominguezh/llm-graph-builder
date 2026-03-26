@@ -40,8 +40,12 @@ const VALID_SORT_VALUES = new Set(['downloads', 'newest', 'updated']);
 
 type SortValue = 'downloads' | 'newest' | 'updated';
 
+function isSortValue(value: string): value is SortValue {
+  return VALID_SORT_VALUES.has(value);
+}
+
 function parseSortParam(raw: unknown): SortValue | undefined {
-  if (typeof raw === 'string' && VALID_SORT_VALUES.has(raw)) return raw as SortValue;
+  if (typeof raw === 'string' && isSortValue(raw)) return raw;
   return undefined;
 }
 

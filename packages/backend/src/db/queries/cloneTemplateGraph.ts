@@ -58,9 +58,7 @@ interface RpcContextPreconditions {
   jumpTo: string | undefined;
 }
 
-function buildEdgePreconditions(
-  edge: TemplateGraphData['edges'][number]
-): RpcPrecondition[] {
+function buildEdgePreconditions(edge: TemplateGraphData['edges'][number]): RpcPrecondition[] {
   if (edge.preconditions === undefined) return [];
   return edge.preconditions.map((p) => ({
     type: p.type,
@@ -148,15 +146,13 @@ function buildOutputSchemaRow(
   };
 }
 
+const EMPTY_LENGTH = 0;
+
 /* ------------------------------------------------------------------ */
 /*  Insert operations                                                  */
 /* ------------------------------------------------------------------ */
 
-async function insertStartNode(
-  supabase: SupabaseClient,
-  agentId: string,
-  startNode: string
-): Promise<void> {
+async function insertStartNode(supabase: SupabaseClient, agentId: string, startNode: string): Promise<void> {
   const result = await supabase.from('agents').update({ start_node: startNode }).eq('id', agentId);
   throwOnMutationError(result, 'cloneTemplateGraph:startNode');
 }
@@ -194,9 +190,11 @@ async function insertEdges(
   agentId: string,
   edges: TemplateGraphData['edges']
 ): Promise<void> {
-  for (const edge of edges) {
-    await insertSingleEdge(supabase, agentId, edge);
-  }
+  await Promise.all(
+    edges.map(async (edge) => {
+      await insertSingleEdge(supabase, agentId, edge);
+    })
+  );
 }
 
 async function insertAgents(
@@ -218,7 +216,7 @@ async function insertMcpServers(
   agentId: string,
   servers: TemplateMcpServer[]
 ): Promise<void> {
-  if (servers.length === 0) return;
+  if (servers.length === EMPTY_LENGTH) return;
   const rows = servers.map((s, i) => buildMcpServerRow(agentId, i, s));
   const result = await supabase.from('graph_mcp_servers').insert(rows);
   throwOnMutationError(result, 'cloneTemplateGraph:mcpServers');
@@ -229,7 +227,7 @@ async function insertOutputSchemas(
   agentId: string,
   schemas: TemplateGraphData['outputSchemas']
 ): Promise<void> {
-  if (schemas === undefined || schemas.length === 0) return;
+  if (schemas === undefined || schemas.length === EMPTY_LENGTH) return;
   const rows = schemas.map((s) => buildOutputSchemaRow(agentId, s));
   const result = await supabase.from('graph_output_schemas').insert(rows);
   throwOnMutationError(result, 'cloneTemplateGraph:outputSchemas');

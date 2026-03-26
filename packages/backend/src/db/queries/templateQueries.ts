@@ -208,10 +208,11 @@ export async function updateTemplateMetadata(
 
 function buildMetadataPayload(fields: TemplateMetadataFields): Record<string, string> {
   const payload: Record<string, string> = {};
-  if (fields.agent_name !== undefined) payload.agent_name = fields.agent_name;
-  if (fields.description !== undefined) payload.description = fields.description;
-  if (fields.category !== undefined) payload.category = fields.category;
-  if (fields.agent_slug !== undefined) payload.agent_slug = fields.agent_slug;
+  const { agent_name: agentName, description, category, agent_slug: agentSlug } = fields;
+  if (agentName !== undefined) payload.agent_name = agentName;
+  if (description !== undefined) payload.description = description;
+  if (category !== undefined) payload.category = category;
+  if (agentSlug !== undefined) payload.agent_slug = agentSlug;
   return payload;
 }
 
@@ -228,8 +229,9 @@ export async function updateTemplateOrgInfo(
 
 function buildOrgPayload(fields: TemplateOrgFields): Record<string, string | null> {
   const payload: Record<string, string | null> = {};
-  if (fields.org_slug !== undefined) payload.org_slug = fields.org_slug;
-  if (fields.org_avatar_url !== undefined) payload.org_avatar_url = fields.org_avatar_url;
+  const { org_slug: orgSlug, org_avatar_url: orgAvatarUrl } = fields;
+  if (orgSlug !== undefined) payload.org_slug = orgSlug;
+  if (orgAvatarUrl !== undefined) payload.org_avatar_url = orgAvatarUrl;
   return payload;
 }
 

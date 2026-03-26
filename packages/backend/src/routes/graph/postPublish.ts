@@ -28,7 +28,7 @@ export async function handlePostPublish(req: Request, res: AuthenticatedResponse
 
   try {
     const version = await publishVersion(supabase, agentId);
-    await syncTemplateAfterPublish(supabase, agentId).catch((syncErr) => {
+    await syncTemplateAfterPublish(supabase, agentId).catch((syncErr: unknown) => {
       logError(agentId, `template sync failed: ${extractErrorMessage(syncErr)}`);
     });
     res.status(HTTP_OK).json({ version });

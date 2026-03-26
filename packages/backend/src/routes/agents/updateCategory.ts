@@ -1,6 +1,5 @@
-import type { Request } from 'express';
-
 import { TemplateCategorySchema } from '@daviddh/graph-types';
+import type { Request } from 'express';
 
 import { updateAgentCategory } from '../../db/queries/agentQueries.js';
 import { updateTemplateMetadata } from '../../db/queries/templateQueries.js';
@@ -16,8 +15,9 @@ import {
 
 function parseCategoryField(body: unknown): string | undefined {
   if (typeof body !== 'object' || body === null) return undefined;
-  const record = body as Record<string, unknown>;
-  const parsed = TemplateCategorySchema.safeParse(record.category);
+  if (!('category' in body)) return undefined;
+  const { category } = body;
+  const parsed = TemplateCategorySchema.safeParse(category);
   if (parsed.success) return parsed.data;
   return undefined;
 }

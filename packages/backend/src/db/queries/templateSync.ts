@@ -2,7 +2,7 @@ import type { TemplateGraphData } from '@daviddh/graph-types';
 
 import { assembleTemplateSafeGraph } from './assembleTemplateSafeGraph.js';
 import type { SupabaseClient } from './operationHelpers.js';
-import { upsertTemplate, removeTemplate } from './templateQueries.js';
+import { removeTemplate, upsertTemplate } from './templateQueries.js';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -59,11 +59,7 @@ async function fetchAgentForSync(
   supabase: SupabaseClient,
   agentId: string
 ): Promise<{ result: AgentSyncRow | null; error: string | null }> {
-  const { data, error } = await supabase
-    .from('agents')
-    .select(AGENT_SYNC_COLUMNS)
-    .eq('id', agentId)
-    .single();
+  const { data, error } = await supabase.from('agents').select(AGENT_SYNC_COLUMNS).eq('id', agentId).single();
 
   if (error !== null) return { result: null, error: error.message };
   if (!isAgentSyncRow(data)) return { result: null, error: 'Invalid agent data' };
@@ -111,7 +107,7 @@ export async function syncTemplateAfterPublish(
 
   if (shouldSkipSync(agentResult.result)) return { error: null };
 
-  return performUpsertSync(supabase, agentResult.result);
+  return await performUpsertSync(supabase, agentResult.result);
 }
 
 async function performUpsertSync(
@@ -125,7 +121,7 @@ async function performUpsertSync(
   const graph = await assembleTemplateSafeGraph(supabase, agent.id, agent.current_version);
   if (graph === null) return { error: 'Failed to assemble template graph data' };
 
-  return executeUpsert(supabase, agent, orgResult.result, graph);
+  return await executeUpsert(supabase, agent, orgResult.result, graph);
 }
 
 async function executeUpsert(
@@ -161,8 +157,8 @@ export async function syncTemplateOnPublicToggle(
   agentId: string,
   isPublic: boolean
 ): Promise<{ error: string | null }> {
-  if (!isPublic) return removeTemplate(supabase, agentId);
-  return handleMakePublic(supabase, agentId);
+  if (!isPublic) return await removeTemplate(supabase, agentId);
+  return await handleMakePublic(supabase, agentId);
 }
 
 async function handleMakePublic(
@@ -177,5 +173,5 @@ async function handleMakePublic(
     return { error: 'Publish your agent at least once before making it public' };
   }
 
-  return syncTemplateAfterPublish(supabase, agentId);
+  return await syncTemplateAfterPublish(supabase, agentId);
 }
