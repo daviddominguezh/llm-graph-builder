@@ -42,7 +42,7 @@ export function DescriptionSection({ agentId, initialDescription }: DescriptionS
         rows={3}
       />
       <Button size="sm" onClick={handleSave} disabled={unchanged || saving} className="self-end">
-        {t('save')}
+        {saving ? t('saving') : t('save')}
       </Button>
     </div>
   );

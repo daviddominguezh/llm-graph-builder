@@ -58,10 +58,13 @@ function NameField({ value, onChange }: { value: string; onChange: (v: string) =
 
 function DescriptionField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const t = useTranslations('settings');
+  const tCommon = useTranslations('common');
 
   return (
     <div className="flex flex-col gap-1">
-      <Label htmlFor="wizard-description">{t('description')}</Label>
+      <Label htmlFor="wizard-description">
+        {t('description')} <span className="text-muted-foreground font-normal">({tCommon('optional')})</span>
+      </Label>
       <Textarea
         id="wizard-description"
         value={value}
@@ -101,8 +104,8 @@ function PublicCheckbox({ checked, onChange }: { checked: boolean; onChange: (v:
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-2">
-        <Checkbox checked={checked} onCheckedChange={onChange} />
-        <Label>{t('visibilityPublic')}</Label>
+        <Checkbox id="wizard-public" checked={checked} onCheckedChange={onChange} />
+        <Label htmlFor="wizard-public">{t('visibilityPublic')}</Label>
       </div>
       <p className="text-muted-foreground text-xs">{t('publicExplanation')}</p>
     </div>

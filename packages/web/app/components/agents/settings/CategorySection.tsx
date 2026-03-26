@@ -50,7 +50,7 @@ export function CategorySection({ agentId, initialCategory }: CategorySectionPro
         </SelectContent>
       </Select>
       <Button size="sm" onClick={handleSave} disabled={unchanged || saving} className="self-end">
-        {t('save')}
+        {saving ? t('saving') : t('save')}
       </Button>
     </div>
   );

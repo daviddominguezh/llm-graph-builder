@@ -114,8 +114,10 @@ export function VisibilityToggle({ agentId, currentVersion, initialIsPublic }: V
   return (
     <>
       <div className="flex items-center gap-2">
-        <Checkbox checked={state.isPublic} onCheckedChange={onCheckboxChange} />
-        <Label>{state.isPublic ? t('visibilityPublic') : t('visibilityPrivate')}</Label>
+        <Checkbox id="visibility-toggle" checked={state.isPublic} onCheckedChange={onCheckboxChange} />
+        <Label htmlFor="visibility-toggle">
+          {state.isPublic ? t('visibilityPublic') : t('visibilityPrivate')}
+        </Label>
       </div>
       <p className="text-muted-foreground text-xs mt-1">{t('publicExplanation')}</p>
       <VisibilityDialog

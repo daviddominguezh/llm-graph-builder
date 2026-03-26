@@ -40,6 +40,7 @@ export function TemplateVersionSelector({ versions, value, onValueChange }: Temp
       <div ref={anchorRef} onClick={(e) => e.stopPropagation()}>
         <button
           type="button"
+          aria-label={t('selectVersion')}
           className="h-5 border-none bg-transparent text-[11px] text-muted-foreground transition-colors rounded-md hover:bg-card px-1 cursor-pointer"
         >
           {displayLabel}
