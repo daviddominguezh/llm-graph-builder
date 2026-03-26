@@ -1,1 +1,22 @@
 @import 'tailwindcss';
+
+@theme inline {
+  --color-primary: oklch(0.51 0.23 277);
+  --color-primary-foreground: oklch(0.96 0.02 272);
+  --color-background: oklch(1 0 0);
+  --color-foreground: oklch(0.141 0.005 285.823);
+  --color-muted: oklch(0.967 0.001 286.375);
+  --color-muted-foreground: oklch(0.552 0.016 285.938);
+  --color-border: oklch(0.92 0.004 286.32);
+  --color-accent: oklch(0.59 0.20 277);
+  --color-amber: oklch(0.75 0.15 75);
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  color: var(--color-foreground);
+  background-color: var(--color-background);
+}
