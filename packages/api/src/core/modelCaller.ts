@@ -123,7 +123,7 @@ export const TERMINAL_OUTPUT_SCHEMA = z.object({
   messageToUser: z.string().nonempty(),
 });
 
-export type OutputSchema = z.ZodObject<Record<string, z.ZodType>>;
+export type OutputSchema = z.ZodObject;
 
 interface ModelCallOptions {
   expectedTool: string | undefined;

@@ -47,7 +47,7 @@ function buildArrayType(items: OutputSchemaField | undefined): z.ZodType {
 }
 
 /** Convert OutputSchemaField[] to a Zod object schema for structured output. */
-export function outputSchemaToZod(fields: OutputSchemaField[]): z.ZodObject<Record<string, z.ZodType>> {
+export function outputSchemaToZod(fields: OutputSchemaField[]): z.ZodObject {
   const shape: Record<string, z.ZodType> = {};
   for (const field of fields) {
     shape[field.name] = fieldToZodType(field);
