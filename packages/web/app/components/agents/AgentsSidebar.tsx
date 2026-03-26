@@ -24,7 +24,7 @@ function SidebarHeader({ onCreateClick, onHide }: { onCreateClick: () => void; o
   const t = useTranslations('agents');
 
   return (
-    <div className="flex items-center justify-between pl-3 pr-1 py-2">
+    <div className="flex items-center justify-between pl-3 pr-1 py-2 border-b mb-2.5">
       <h2 className="text-sm font-semibold">{t('title')}</h2>
       <div className="flex items-center">
         <Button variant="ghost" size="icon-sm" onClick={onCreateClick}>

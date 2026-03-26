@@ -1,10 +1,9 @@
-import { redirect } from 'next/navigation';
-
 import { getAgentBySlug } from '@/app/lib/agents';
 import { getApiKeysByOrg } from '@/app/lib/apiKeys';
 import { getOrgBySlug } from '@/app/lib/orgs';
+import { redirect } from 'next/navigation';
 
-import { EditorClient } from './EditorClient';
+import { EditorTabs } from './EditorTabs';
 
 interface EditorPageProps {
   params: Promise<{ slug: string; agentSlug: string }>;
@@ -25,9 +24,9 @@ export default async function EditorPage({ params }: EditorPageProps): Promise<R
   }
 
   return (
-    <EditorClient
-      agentId={agent.id}
+    <EditorTabs
       agentSlug={agent.slug}
+      agentId={agent.id}
       agentName={agent.name}
       orgSlug={org.slug}
       orgId={org.id}

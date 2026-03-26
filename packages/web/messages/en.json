@@ -147,7 +147,14 @@
     "deleteEdgeTitle": "Delete edge?",
     "deleteEdgeDescription": "This action cannot be undone. This will permanently delete the edge.",
     "deleteConfirm": "Delete",
-    "deleteCancel": "Cancel"
+    "deleteCancel": "Cancel",
+    "tabs": {
+      "agent": "Agent",
+      "channels": "Channels",
+      "settings": "Settings",
+      "channelsPlaceholder": "Channels coming soon",
+      "settingsPlaceholder": "Settings coming soon"
+    }
   },
   "simulation": {
     "toolInput": "Input",

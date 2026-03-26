@@ -76,7 +76,7 @@ export function GraphCanvas({
 
   return (
     <div className="relative h-full w-full flex-1 overflow-hidden">
-      <main ref={reactFlowWrapper} className="absolute inset-0">
+      <div ref={reactFlowWrapper} className="absolute inset-0">
         <ReactFlow
           nodes={displayNodes}
           edges={edges}
@@ -115,7 +115,7 @@ export function GraphCanvas({
             onStop={simulation.stop}
           />
         )}
-      </main>
+      </div>
     </div>
   );
 }

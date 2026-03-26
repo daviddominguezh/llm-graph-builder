@@ -20,7 +20,7 @@ export default async function OrgLayout({ children, params }: OrgLayoutProps): P
     <AgentsSidebarProvider>
       <div className="relative h-screen bg-sidebar">
         <OrgSidebar org={org} />
-        <main className="relative z-11 h-full bg-background ml-12.5 border rounded-xl shadow-sm overflow-hidden">
+        <main className="relative z-11 h-full bg-background ml-12.5 border rounded-s-xl shadow-sm overflow-hidden">
           {children}
         </main>
       </div>
