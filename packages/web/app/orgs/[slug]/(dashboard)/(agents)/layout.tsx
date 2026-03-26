@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 
 import { AgentsSidebar } from '@/app/components/agents/AgentsSidebar';
-import { CopilotShell } from '@/app/components/copilot/CopilotProvider';
 import { getCachedAgentsByOrg } from '@/app/lib/agents';
 import { getOrgBySlug } from '@/app/lib/orgs';
 
@@ -23,9 +22,7 @@ export default async function AgentsLayout({ children, params }: AgentsLayoutPro
   return (
     <div className="flex h-full p-0 bg-sidebar-accent">
       <AgentsSidebar agents={agents} orgId={org.id} orgSlug={org.slug} />
-      <CopilotShell>
-        <div className="flex-1 overflow-hidden bg-background">{children}</div>
-      </CopilotShell>
+      <div className="flex-1 overflow-hidden bg-background">{children}</div>
     </div>
   );
 }

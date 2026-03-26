@@ -2,7 +2,6 @@
 
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
-import { CopilotProvider } from '@/app/components/copilot/CopilotProvider';
 
 interface SlotRect {
   top: number;
@@ -67,7 +66,7 @@ function CachedEditor({
       className={isVisible ? 'fixed z-30' : 'fixed inset-0 -z-[9999] invisible pointer-events-none'}
       style={isVisible && slotRect ? slotRect : undefined}
     >
-      <CopilotProvider>{children}</CopilotProvider>
+      {children}
     </div>
   );
 }

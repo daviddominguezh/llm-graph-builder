@@ -387,6 +387,7 @@ function LoadedEditor(props: LoadedEditorProps) {
         />}
 
         <GraphCanvas
+          agentId={props.agentId ?? ''}
           reactFlowWrapper={h.reactFlowWrapper}
           displayNodes={h.displayNodes}
           edges={h.edges}

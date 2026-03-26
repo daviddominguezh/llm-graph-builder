@@ -11,7 +11,7 @@ export function CopilotButton() {
   if (isOpen) return null;
 
   return (
-    <div className="fixed bottom-1 right-1 z-50">
+    <div className="fixed bottom-1 right-1 z-100">
       <Button
         variant="default"
         size="sm"

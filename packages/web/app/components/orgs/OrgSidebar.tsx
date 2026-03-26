@@ -285,7 +285,14 @@ function useSidebarState() {
     if (!switcherOpen) collapse();
   };
 
-  return { collapsed, contentCollapsed, switcherOpen, handleSwitcherChange, handleMouseEnter, handleMouseLeave };
+  return {
+    collapsed,
+    contentCollapsed,
+    switcherOpen,
+    handleSwitcherChange,
+    handleMouseEnter,
+    handleMouseLeave,
+  };
 }
 
 function useAgentsNavClick(activeSegment: string) {
@@ -323,7 +330,6 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
       >
         {sidebar.contentCollapsed ? <CollapsedTrigger org={org} /> : <ExpandedTrigger org={org} />}
       </OrgSwitcherPopover>
-      <Separator />
       {sidebar.contentCollapsed ? (
         <NavList items={TOP_NAV_ITEMS} basePath={basePath} segment={segment} onItemClick={handleNavClick} />
       ) : (

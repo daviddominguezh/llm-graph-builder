@@ -23,6 +23,7 @@ import { nodeTypes } from './nodes';
 import { SimulationPanel } from './panels/simulation';
 
 interface GraphCanvasProps {
+  agentId: string;
   reactFlowWrapper: React.RefObject<HTMLDivElement | null>;
   displayNodes: Array<Node<RFNodeData>>;
   edges: Array<Edge<RFEdgeData>>;
@@ -53,6 +54,7 @@ function ZoomViewOverlay({
 }
 
 export function GraphCanvas({
+  agentId,
   reactFlowWrapper,
   displayNodes,
   edges,
@@ -78,6 +80,7 @@ export function GraphCanvas({
     <div className="relative h-full w-full flex-1 overflow-hidden">
       <div ref={reactFlowWrapper} className="absolute inset-0">
         <ReactFlow
+          id={`flow-${agentId}`}
           nodes={displayNodes}
           edges={edges}
           onNodesChange={onNodesChange}
