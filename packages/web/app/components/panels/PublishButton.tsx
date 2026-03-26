@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Check, Copy, Loader2 } from 'lucide-react';
+import { Check, ChevronDown, Copy, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
 import { useCallback, useState } from 'react';
@@ -228,9 +228,10 @@ export function PublishButton(props: PublishButtonProps) {
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger
-        render={<Button variant="default" size="sm" className="h-10 gap-1.5 px-3 rounded-md" />}
+        render={<Button variant="default" size="sm" className="h-10 gap-1.5 px-3 rounded-md pr-2" />}
       >
         {t('publish')}
+        <ChevronDown className='size-4' />
       </PopoverTrigger>
       <PopoverContent side="bottom" align="end" sideOffset={8} className="w-96">
         <PopoverBody

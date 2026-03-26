@@ -1,7 +1,5 @@
 'use client';
 
-import type { TemplateCategory } from '@daviddh/graph-types';
-import { TEMPLATE_CATEGORIES } from '@daviddh/graph-types';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DialogFooter } from '@/components/ui/dialog';
@@ -9,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import type { TemplateCategory } from '@daviddh/graph-types';
+import { TEMPLATE_CATEGORIES } from '@daviddh/graph-types';
 import { useTranslations } from 'next-intl';
 
 /* ------------------------------------------------------------------ */
@@ -58,13 +58,10 @@ function NameField({ value, onChange }: { value: string; onChange: (v: string) =
 
 function DescriptionField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const t = useTranslations('settings');
-  const tCommon = useTranslations('common');
 
   return (
     <div className="flex flex-col gap-1">
-      <Label htmlFor="wizard-description">
-        {t('description')} <span className="text-muted-foreground font-normal">({tCommon('optional')})</span>
-      </Label>
+      <Label htmlFor="wizard-description">{t('description')}</Label>
       <Textarea
         id="wizard-description"
         value={value}
@@ -75,7 +72,13 @@ function DescriptionField({ value, onChange }: { value: string; onChange: (v: st
   );
 }
 
-function CategoryField({ value, onChange }: { value: TemplateCategory; onChange: (v: TemplateCategory) => void }) {
+function CategoryField({
+  value,
+  onChange,
+}: {
+  value: TemplateCategory;
+  onChange: (v: TemplateCategory) => void;
+}) {
   const t = useTranslations('settings');
   const tc = useTranslations('categories');
 
@@ -105,9 +108,15 @@ function PublicCheckbox({ checked, onChange }: { checked: boolean; onChange: (v:
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-2">
         <Checkbox id="wizard-public" checked={checked} onCheckedChange={onChange} />
-        <Label htmlFor="wizard-public">{t('visibilityPublic')}</Label>
+        <Label htmlFor="wizard-public">{t('publishToMarketplace')}</Label>
       </div>
-      <p className="text-muted-foreground text-xs">{t('publicExplanation')}</p>
+      {checked && (
+        <div className="w-full px-0 mb-4 mt-1">
+          <p className="text-muted-foreground text-xs w-full bg-card rounded-md p-2 px-3">
+            {t('publicExplanation')}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -118,16 +127,13 @@ function PublicCheckbox({ checked, onChange }: { checked: boolean; onChange: (v:
 
 function DetailsFields({ state, onChange }: DetailsFieldsProps) {
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <NameField value={state.name} onChange={(name) => onChange({ ...state, name })} />
       <DescriptionField
         value={state.description}
         onChange={(description) => onChange({ ...state, description })}
       />
-      <CategoryField
-        value={state.category}
-        onChange={(category) => onChange({ ...state, category })}
-      />
+      <CategoryField value={state.category} onChange={(category) => onChange({ ...state, category })} />
       <PublicCheckbox checked={state.isPublic} onChange={(isPublic) => onChange({ ...state, isPublic })} />
     </div>
   );
@@ -137,7 +143,12 @@ function DetailsFields({ state, onChange }: DetailsFieldsProps) {
 /*  Footer                                                             */
 /* ------------------------------------------------------------------ */
 
-function DetailsFooter({ onBack, onSubmit, loading, disabled }: {
+function DetailsFooter({
+  onBack,
+  onSubmit,
+  loading,
+  disabled,
+}: {
   onBack: () => void;
   onSubmit: () => void;
   loading: boolean;

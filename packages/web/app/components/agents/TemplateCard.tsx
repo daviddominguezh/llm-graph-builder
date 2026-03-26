@@ -187,7 +187,7 @@ export function BlankCanvasCard({ selected, onSelect }: { selected: boolean; onS
     <button
       type="button"
       onClick={onSelect}
-      className={`flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-lg border p-3 text-center transition-[background-color,border-color,box-shadow,transform] duration-150 hover:-translate-y-px hover:bg-card/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${blankBorderClass(selected)}`}
+      className={`flex min-h-[120px] max-h-[120px] cursor-pointer flex-col items-center justify-center rounded-lg border p-3 text-center transition-[background-color,border-color,box-shadow,transform] duration-150 hover:bg-card/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${blankBorderClass(selected)}`}
     >
       <GitFork className="size-5 text-muted-foreground" aria-hidden="true" />
       <span className="mt-1.5 text-xs font-medium text-foreground">{t('blankCanvas')}</span>
