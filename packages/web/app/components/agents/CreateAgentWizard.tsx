@@ -1,6 +1,5 @@
 'use client';
 
-import type { TemplateCategory } from '@daviddh/graph-types';
 import { createAgentAction } from '@/app/actions/agents';
 import type { TemplatesPrefetchState } from '@/app/hooks/useTemplatesPrefetch';
 import { Button } from '@/components/ui/button';
@@ -41,7 +40,7 @@ interface PreviewState {
 const INITIAL_DETAILS: DetailsFormState = {
   name: '',
   description: '',
-  category: 'other' as TemplateCategory,
+  category: '',
   isPublic: false,
 };
 

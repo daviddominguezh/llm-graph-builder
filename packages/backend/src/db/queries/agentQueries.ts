@@ -17,6 +17,9 @@ export interface AgentRow {
   updated_at: string;
   staging_api_key_id: string | null;
   production_api_key_id: string | null;
+  is_public: boolean;
+  category: string;
+  created_from_template_id: string | null;
 }
 
 export type AgentMetadata = Pick<

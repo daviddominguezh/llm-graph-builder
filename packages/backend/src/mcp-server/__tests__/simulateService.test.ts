@@ -81,6 +81,9 @@ const agentRow: AgentRow = {
   updated_at: '2024-01-01T00:00:00Z',
   staging_api_key_id: 'key-abc',
   production_api_key_id: null,
+  is_public: false,
+  category: 'engineering',
+  created_from_template_id: null,
 };
 
 const graph: Graph = {

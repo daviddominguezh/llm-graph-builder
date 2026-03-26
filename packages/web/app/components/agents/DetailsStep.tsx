@@ -18,7 +18,7 @@ import { useTranslations } from 'next-intl';
 export interface DetailsFormState {
   name: string;
   description: string;
-  category: TemplateCategory;
+  category: TemplateCategory | '';
   isPublic: boolean;
 }
 
@@ -77,7 +77,7 @@ function CategoryField({
   value,
   onChange,
 }: {
-  value: TemplateCategory;
+  value: TemplateCategory | '';
   onChange: (v: TemplateCategory) => void;
 }) {
   const t = useTranslations('settings');
@@ -86,9 +86,14 @@ function CategoryField({
   return (
     <div className="flex flex-col gap-1">
       <Label>{t('category')}</Label>
-      <Select value={value} onValueChange={(v) => v !== null && onChange(v as TemplateCategory)}>
+      <Select
+        value={value || undefined}
+        onValueChange={(v) => v !== null && onChange(v as TemplateCategory)}
+      >
         <SelectTrigger className="w-full">
-          <SelectValue>{tc(value)}</SelectValue>
+          <SelectValue>
+            {value !== '' ? tc(value) : <span className="text-muted-foreground">{t('categoryPlaceholder')}</span>}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent alignItemWithTrigger={false} align="end" style={{ maxHeight: '30vh' }}>
           {TEMPLATE_CATEGORIES.map((cat) => (
@@ -209,7 +214,7 @@ function DetailsFooter({
 /* ------------------------------------------------------------------ */
 
 export function DetailsStep({ state, onChange, onBack, onSubmit, loading }: DetailsStepProps) {
-  const canSubmit = state.name.trim() !== '' && state.description.trim() !== '' && !loading;
+  const canSubmit = state.name.trim() !== '' && state.description.trim() !== '' && state.category !== '' && !loading;
 
   return (
     <>

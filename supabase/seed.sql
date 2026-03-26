@@ -1,5 +1,5 @@
 -- =============================================================================
--- Seed: "Closer" org with david@usecloser.ai + 32 published MCP servers
+-- Seed: "OpenFlow" org with david@usecloser.ai + 30 published MCP servers
 -- Runs automatically on `supabase db reset`
 -- =============================================================================
 
@@ -58,7 +58,7 @@ ON CONFLICT (id) DO NOTHING;
 
 -- 4. Create "Closer" organization (avatar served from Next.js public/)
 INSERT INTO public.organizations (id, name, slug, avatar_url) VALUES
-  (v_org_id, 'Closer', 'closer', '/logoCloser.png')
+  (v_org_id, 'OpenFlow', 'openflow', '/logoOpenflow.png')
 ON CONFLICT (id) DO NOTHING;
 
 -- 5. Add user as org owner

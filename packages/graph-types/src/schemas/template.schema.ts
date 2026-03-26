@@ -14,7 +14,6 @@ export const TEMPLATE_CATEGORIES = [
   'finance',
   'education',
   'e-commerce',
-  'other',
 ] as const;
 
 export const TemplateCategorySchema = z.enum(TEMPLATE_CATEGORIES);

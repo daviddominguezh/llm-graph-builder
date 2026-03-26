@@ -50,7 +50,7 @@ function CreateAgentForm({ orgId, orgSlug, onOpenChange }: CreateAgentFormProps)
       orgId,
       name,
       description,
-      category: 'other',
+      category: 'customer-support',
       isPublic: false,
     });
 

@@ -1,3 +1,4 @@
+import { TemplateCategorySchema } from '@daviddh/graph-types';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
@@ -15,6 +16,7 @@ const LIST_AGENTS_SCHEMA = { search: z.string().optional().describe('Filter by n
 const CREATE_AGENT_SCHEMA = {
   name: z.string().describe('Agent name'),
   description: z.string().describe('Agent description'),
+  category: TemplateCategorySchema.describe('Agent category'),
 };
 
 const GET_AGENT_SCHEMA = { agentSlug: z.string().describe('Agent slug') };
@@ -61,9 +63,9 @@ function registerCreateAgent(
   server.registerTool(
     'create_agent',
     { description: 'Create a new agent in the organization', inputSchema: CREATE_AGENT_SCHEMA },
-    async ({ name, description }) => {
+    async ({ name, description, category }) => {
       const ctx = getContext();
-      const result = await createAgent(ctx, name, description);
+      const result = await createAgent(ctx, name, description, category);
       return textResult(result);
     }
   );

@@ -583,14 +583,14 @@
     "legal-compliance": "Legal & Compliance",
     "finance": "Finance",
     "education": "Education",
-    "e-commerce": "E-commerce",
-    "other": "Other"
+    "e-commerce": "E-commerce"
   },
   "settings": {
     "title": "Settings",
     "description": "Description",
     "descriptionPlaceholder": "Describe what this agent does...",
     "category": "Category",
+    "categoryPlaceholder": "Select a category",
     "visibility": "Visibility",
     "visibilityPublic": "Public",
     "publishToMarketplace": "Publish to Marketplace",

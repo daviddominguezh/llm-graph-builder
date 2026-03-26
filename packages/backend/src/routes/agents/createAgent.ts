@@ -21,11 +21,11 @@ import { parseStringField } from './agentCrudHelpers.js';
 /*  Parsing helpers                                                    */
 /* ------------------------------------------------------------------ */
 
-function parseCategory(body: unknown): string {
+function parseCategory(body: unknown): string | undefined {
   const raw = parseStringField(body, 'category');
-  if (raw === undefined) return 'other';
+  if (raw === undefined) return undefined;
   const parsed = TemplateCategorySchema.safeParse(raw);
-  return parsed.success ? parsed.data : 'other';
+  return parsed.success ? parsed.data : undefined;
 }
 
 function parseIsPublic(body: unknown): boolean {
@@ -87,13 +87,14 @@ interface CreateAgentInput {
 function parseCreateAgentBody(body: unknown): CreateAgentInput | null {
   const orgId = parseStringField(body, 'orgId');
   const name = parseStringField(body, 'name');
-  if (orgId === undefined || name === undefined) return null;
+  const category = parseCategory(body);
+  if (orgId === undefined || name === undefined || category === undefined) return null;
 
   return {
     orgId,
     name,
     description: parseStringField(body, 'description') ?? '',
-    category: parseCategory(body),
+    category,
     isPublic: parseIsPublic(body),
     templateAgentId: parseStringField(body, 'templateAgentId'),
     templateVersion: parseTemplateVersion(body),
