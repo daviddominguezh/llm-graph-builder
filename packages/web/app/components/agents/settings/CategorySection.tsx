@@ -39,7 +39,7 @@ export function CategorySection({ agentId, initialCategory }: CategorySectionPro
       <Label>{t('category')}</Label>
       <Select value={value} onValueChange={(v) => v !== null && setValue(v)}>
         <SelectTrigger className="w-full">
-          <SelectValue />
+          <SelectValue>{tc(value)}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           {TEMPLATE_CATEGORIES.map((cat) => (

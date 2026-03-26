@@ -88,7 +88,7 @@ function CategoryField({
       <Label>{t('category')}</Label>
       <Select value={value} onValueChange={(v) => v !== null && onChange(v as TemplateCategory)}>
         <SelectTrigger className="w-full">
-          <SelectValue />
+          <SelectValue>{tc(value)}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           {TEMPLATE_CATEGORIES.map((cat) => (
