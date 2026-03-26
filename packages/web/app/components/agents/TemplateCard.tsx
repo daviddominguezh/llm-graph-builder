@@ -80,9 +80,9 @@ function TemplateCardHeader({ template }: { template: TemplateListItem }) {
         </div>
         <div className="truncate text-xs font-medium text-foreground text-[11px]">{template.agent_slug}</div>
       </div>
-      <span className="shrink-0 bg-background text-muted-foreground text-[10px]">
-        {tc(template.category)}
-      </span>
+      <div className="flex flex-col shrink-0 items-end">
+        <span className="bg-background text-muted-foreground text-[10px]">{tc(template.category)}</span>
+      </div>
     </div>
   );
 }
@@ -169,9 +169,16 @@ export function TemplateCard({
   versions,
 }: TemplateCardProps) {
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
       className={`flex cursor-pointer flex-col rounded-lg border p-3 text-left transition-[background-color,border-color,box-shadow,transform] duration-150 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${cardBorderClass(selected)}`}
     >
       <TemplateCardHeader template={template} />
@@ -183,7 +190,7 @@ export function TemplateCard({
         onVersionChange={onVersionChange}
         onPreview={onPreview}
       />
-    </button>
+    </div>
   );
 }
 
