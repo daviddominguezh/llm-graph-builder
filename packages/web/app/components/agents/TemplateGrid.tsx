@@ -154,7 +154,7 @@ function GridContent(props: GridContentProps) {
   const showNoResults = !hasTemplates && loaded && hasActiveFilter;
 
   return (
-    <div className="grid grid-cols-1 gap-3 max-h-[50vh] min-h-[50vh] overflow-y-auto p-1 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 overflow-y-auto p-1 sm:grid-cols-2 lg:grid-cols-3">
       {showBlank && (
         <BlankCanvasCard selected={selection?.type === 'blank'} onSelect={props.onSelectBlank} />
       )}
@@ -223,7 +223,7 @@ export function TemplateGrid({ selection, onSelectionChange, onPreview, prefetch
   );
 
   return (
-    <div className="flex min-w-0 flex-col gap-3 overflow-hidden p-1">
+    <div className="flex min-w-0 flex-col gap-3 overflow-hidden p-1 flex-1 min-h-[0px]">
       <SearchBar value={search} onChange={setSearch} />
       <CategoryPills value={category} onChange={setCategory} />
       <GridContent

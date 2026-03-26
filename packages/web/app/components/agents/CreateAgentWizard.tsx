@@ -74,7 +74,7 @@ function TemplateStep({
         onPreview={onPreview}
         prefetchedTemplates={prefetchedTemplates}
       />
-      <DialogFooter>
+      <DialogFooter className='shrink-0'>
         <Button onClick={onNext} disabled={selection === null}>
           {t('next')}
         </Button>
@@ -178,7 +178,7 @@ function WizardBody({
       <DialogHeader>
         <DialogTitle>{title}</DialogTitle>
       </DialogHeader>
-      <div key={state.step} className="min-w-0 animate-in fade-in duration-200">
+      <div key={state.step} className="min-w-0 animate-in fade-in duration-200 max-h-[50vh] min-h-[50vh] flex flex-col flex-1 min-h-[0px]">
         {state.step === 'template' ? (
           <TemplateStep
             selection={state.selection}

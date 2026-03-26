@@ -162,7 +162,7 @@ function VisibilityCards({ isPublic, onChange }: { isPublic: boolean; onChange: 
 
 function DetailsFields({ state, onChange }: DetailsFieldsProps) {
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5 flex-1">
       <NameField value={state.name} onChange={(name) => onChange({ ...state, name })} />
       <DescriptionField
         value={state.description}
@@ -193,7 +193,7 @@ function DetailsFooter({
   const tAgents = useTranslations('agents');
 
   return (
-    <DialogFooter className='mt-4.5'>
+    <DialogFooter className='mt-4.5 shrink-0'>
       <Button variant="outline" onClick={onBack} disabled={loading}>
         {t('back')}
       </Button>
