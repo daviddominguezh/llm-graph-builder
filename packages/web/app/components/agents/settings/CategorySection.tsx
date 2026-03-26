@@ -41,7 +41,7 @@ export function CategorySection({ agentId, initialCategory }: CategorySectionPro
         <SelectTrigger className="w-full">
           <SelectValue>{tc(value)}</SelectValue>
         </SelectTrigger>
-        <SelectContent alignItemWithTrigger={false} style={{ maxHeight: '30vh' }}>
+        <SelectContent alignItemWithTrigger={false} align="end" style={{ maxHeight: '30vh' }}>
           {TEMPLATE_CATEGORIES.map((cat) => (
             <SelectItem key={cat} value={cat}>
               {tc(cat)}

@@ -90,7 +90,7 @@ function CategoryField({
         <SelectTrigger className="w-full">
           <SelectValue>{tc(value)}</SelectValue>
         </SelectTrigger>
-        <SelectContent alignItemWithTrigger={false} style={{ maxHeight: '30vh' }}>
+        <SelectContent alignItemWithTrigger={false} align="end" style={{ maxHeight: '30vh' }}>
           {TEMPLATE_CATEGORIES.map((cat) => (
             <SelectItem key={cat} value={cat}>
               {tc(cat)}
@@ -193,7 +193,7 @@ function DetailsFooter({
   const tAgents = useTranslations('agents');
 
   return (
-    <DialogFooter className='mt-4.5 shrink-0'>
+    <DialogFooter className="mt-4.5 shrink-0">
       <Button variant="outline" onClick={onBack} disabled={loading}>
         {t('back')}
       </Button>
