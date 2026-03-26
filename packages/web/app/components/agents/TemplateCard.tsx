@@ -1,12 +1,10 @@
 'use client';
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Download, Eye, GitFork, Network, Puzzle } from 'lucide-react';
-import Image from 'next/image';
-import { useTranslations } from 'next-intl';
-
 import type { TemplateListItem } from '@/app/lib/templates';
+import { Button } from '@/components/ui/button';
+import { Download, GitFork, Network, Puzzle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 
 import { TemplateVersionSelector } from './TemplateVersionSelector';
 
@@ -22,9 +20,9 @@ function OrgAvatar({ url, slug }: { url: string | null; slug: string }) {
       <Image
         src={url}
         alt={slug}
-        width={20}
-        height={20}
-        className="size-5 shrink-0 rounded-full object-cover"
+        width={22}
+        height={22}
+        className="size-6.5 shrink-0 rounded-full object-cover"
         aria-hidden="true"
       />
     );
@@ -42,7 +40,10 @@ function OrgAvatar({ url, slug }: { url: string | null; slug: string }) {
 
 function StatItem({ icon, value, label }: { icon: React.ReactNode; value: number; label: string }) {
   return (
-    <span className="flex items-center gap-0.5 text-[11px] text-muted-foreground" aria-label={`${value} ${label}`}>
+    <span
+      className="flex items-center gap-0.5 text-[11px] text-muted-foreground"
+      aria-label={`${value} ${label}`}
+    >
       {icon}
       {value}
     </span>
@@ -71,14 +72,17 @@ function TemplateCardHeader({ template }: { template: TemplateListItem }) {
   const tc = useTranslations('categories');
 
   return (
-    <div className="flex items-center gap-1.5 min-w-0">
+    <div className="flex items-center gap-1.5 min-w-0 justify-between">
       <OrgAvatar url={template.org_avatar_url} slug={template.org_slug} />
-      <span className="truncate text-xs font-medium text-foreground">
-        {template.org_slug}/{template.agent_slug}
-      </span>
-      <Badge variant="secondary" className="ml-auto shrink-0">
+      <div className="flex flex-col flex-1 min-w-[0px]">
+        <div className="truncate text-xs font-medium text-muted-foreground text-[10px]">
+          {template.org_slug.toUpperCase()}
+        </div>
+        <div className="truncate text-xs font-medium text-foreground text-[11px]">{template.agent_slug}</div>
+      </div>
+      <span className="shrink-0 bg-background text-muted-foreground text-[10px]">
         {tc(template.category)}
-      </Badge>
+      </span>
     </div>
   );
 }
@@ -107,9 +111,21 @@ function TemplateCardStats({
   return (
     <div className="mt-auto flex items-center gap-2 pt-1">
       <div className="flex items-center gap-2">
-        <StatItem icon={<Network className="size-3 text-primary/60" />} value={template.node_count} label={t('nodes')} />
-        <StatItem icon={<Puzzle className="size-3 text-blue-500/60 dark:text-blue-400/60" />} value={template.mcp_server_count} label={t('mcpServers')} />
-        <StatItem icon={<Download className="size-3 text-green-600/60 dark:text-green-400/60" />} value={template.download_count} label={t('downloads')} />
+        <StatItem
+          icon={<Network className="size-3 text-primary/60" />}
+          value={template.node_count}
+          label={t('nodes')}
+        />
+        <StatItem
+          icon={<Puzzle className="size-3 text-blue-500/60 dark:text-blue-400/60" />}
+          value={template.mcp_server_count}
+          label={t('mcpServers')}
+        />
+        <StatItem
+          icon={<Download className="size-3 text-green-600/60 dark:text-green-400/60" />}
+          value={template.download_count}
+          label={t('downloads')}
+        />
       </div>
       <div className="ml-auto flex items-center gap-0.5">
         <TemplateVersionSelector
@@ -118,8 +134,8 @@ function TemplateCardStats({
           onValueChange={onVersionChange}
         />
         <Button
-          variant="ghost"
-          size="icon-xs"
+          variant="outline"
+          size="xs"
           className="group/preview"
           onClick={(e) => {
             e.stopPropagation();
@@ -127,7 +143,7 @@ function TemplateCardStats({
           }}
           aria-label={t('preview')}
         >
-          <Eye className="size-3 transition-transform duration-150 group-hover/preview:scale-110" />
+          {t('preview')}
         </Button>
       </div>
     </div>
@@ -156,7 +172,7 @@ export function TemplateCard({
     <button
       type="button"
       onClick={onSelect}
-      className={`flex cursor-pointer flex-col rounded-lg border p-3 text-left transition-[background-color,border-color,box-shadow,transform] duration-150 hover:-translate-y-px hover:bg-card/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${cardBorderClass(selected)}`}
+      className={`flex cursor-pointer flex-col rounded-lg border p-3 text-left transition-[background-color,border-color,box-shadow,transform] duration-150 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${cardBorderClass(selected)}`}
     >
       <TemplateCardHeader template={template} />
       <p className="mt-1.5 line-clamp-2 text-[11px] text-muted-foreground">{template.description}</p>

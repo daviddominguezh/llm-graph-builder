@@ -8,6 +8,7 @@ import {
   ComboboxList,
   useComboboxAnchor,
 } from '@/components/ui/combobox';
+import { ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface TemplateVersionSelectorProps {
@@ -37,13 +38,15 @@ export function TemplateVersionSelector({ versions, value, onValueChange }: Temp
       }}
       itemToStringLabel={(v) => buildLabel(Number(v), latest)}
     >
-      <div ref={anchorRef} onClick={(e) => e.stopPropagation()}>
+      <div ref={anchorRef} onClick={(e) => e.stopPropagation()} className='flex items-center gap-1'>
+        <span className='text-[10px] font-semibold text-foreground'>v:</span>
         <button
           type="button"
           aria-label={t('selectVersion')}
-          className="h-5 border-none bg-transparent text-[11px] text-muted-foreground transition-colors rounded-md hover:bg-card px-1 cursor-pointer"
+          className="gap-0.5 flex items-center h-5 border-none bg-transparent text-[11px] text-muted-foreground transition-colors rounded-md hover:bg-card px-1 cursor-pointer"
         >
           {displayLabel}
+          <ChevronDown className="size-3" />
         </button>
       </div>
       <ComboboxContent className="w-[120px]" align="end" anchor={anchorRef}>

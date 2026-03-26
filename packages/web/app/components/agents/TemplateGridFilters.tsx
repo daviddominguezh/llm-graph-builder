@@ -39,7 +39,7 @@ export function CategoryPills({ value, onChange }: CategoryPillsProps) {
 
   return (
     <div
-      className="flex min-w-0 gap-1 overflow-x-auto"
+      className="flex min-w-0 gap-1 overflow-x-auto shrink-0"
       style={{
         maskImage: 'linear-gradient(to right, black 0, black calc(100% - 24px), transparent 100%)',
         WebkitMaskImage: 'linear-gradient(to right, black 0, black calc(100% - 24px), transparent 100%)',

@@ -1,15 +1,13 @@
 'use client';
 
-import type { TemplateCategory } from '@daviddh/graph-types';
-import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useState } from 'react';
-
 import { browseTemplatesAction, getTemplateVersionsAction } from '@/app/actions/templates';
 import { useDebouncedValue } from '@/app/hooks/useDebouncedValue';
 import type { TemplatesPrefetchState } from '@/app/hooks/useTemplatesPrefetch';
 import type { TemplateListItem } from '@/app/lib/templates';
-
+import type { TemplateCategory } from '@daviddh/graph-types';
 import { Search } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { BlankCanvasCard, TemplateCard } from './TemplateCard';
 import { CategoryPills, SearchBar } from './TemplateGridFilters';
@@ -95,7 +93,9 @@ function useTemplateData(
   const appliedPrefetch = useRef(false);
 
   useEffect(() => {
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   // Use prefetched data as initial set (no filters active)
@@ -155,9 +155,7 @@ function GridContent(props: GridContentProps) {
 
   return (
     <div className="grid grid-cols-1 gap-3 overflow-y-auto p-1 sm:grid-cols-2 lg:grid-cols-3">
-      {showBlank && (
-        <BlankCanvasCard selected={selection?.type === 'blank'} onSelect={props.onSelectBlank} />
-      )}
+      {showBlank && <BlankCanvasCard selected={selection?.type === 'blank'} onSelect={props.onSelectBlank} />}
       {hasTemplates
         ? templates.map((tpl) => (
             <TemplateCard
@@ -165,7 +163,121 @@ function GridContent(props: GridContentProps) {
               template={tpl}
               selected={selection?.type === 'template' && selection.agentId === tpl.agent_id}
               onSelect={() => props.onSelectTemplate(tpl.agent_id)}
-              onPreview={() => props.onPreview(tpl.agent_id, selectedVersions[tpl.agent_id] ?? tpl.latest_version)}
+              onPreview={() =>
+                props.onPreview(tpl.agent_id, selectedVersions[tpl.agent_id] ?? tpl.latest_version)
+              }
+              versions={versionsMap[tpl.agent_id] ?? [tpl.latest_version]}
+              selectedVersion={selectedVersions[tpl.agent_id] ?? tpl.latest_version}
+              onVersionChange={(v) => props.onVersionChange(tpl.agent_id, v)}
+            />
+          ))
+        : null}
+      {hasTemplates
+        ? templates.map((tpl) => (
+            <TemplateCard
+              key={`${tpl.agent_id}2`}
+              template={tpl}
+              selected={selection?.type === 'template' && selection.agentId === tpl.agent_id}
+              onSelect={() => props.onSelectTemplate(tpl.agent_id)}
+              onPreview={() =>
+                props.onPreview(tpl.agent_id, selectedVersions[tpl.agent_id] ?? tpl.latest_version)
+              }
+              versions={versionsMap[tpl.agent_id] ?? [tpl.latest_version]}
+              selectedVersion={selectedVersions[tpl.agent_id] ?? tpl.latest_version}
+              onVersionChange={(v) => props.onVersionChange(tpl.agent_id, v)}
+            />
+          ))
+        : null}
+      {hasTemplates
+        ? templates.map((tpl) => (
+            <TemplateCard
+              key={`${tpl.agent_id}3`}
+              template={tpl}
+              selected={selection?.type === 'template' && selection.agentId === tpl.agent_id}
+              onSelect={() => props.onSelectTemplate(tpl.agent_id)}
+              onPreview={() =>
+                props.onPreview(tpl.agent_id, selectedVersions[tpl.agent_id] ?? tpl.latest_version)
+              }
+              versions={versionsMap[tpl.agent_id] ?? [tpl.latest_version]}
+              selectedVersion={selectedVersions[tpl.agent_id] ?? tpl.latest_version}
+              onVersionChange={(v) => props.onVersionChange(tpl.agent_id, v)}
+            />
+          ))
+        : null}
+      {hasTemplates
+        ? templates.map((tpl) => (
+            <TemplateCard
+              key={`${tpl.agent_id}4`}
+              template={tpl}
+              selected={selection?.type === 'template' && selection.agentId === tpl.agent_id}
+              onSelect={() => props.onSelectTemplate(tpl.agent_id)}
+              onPreview={() =>
+                props.onPreview(tpl.agent_id, selectedVersions[tpl.agent_id] ?? tpl.latest_version)
+              }
+              versions={versionsMap[tpl.agent_id] ?? [tpl.latest_version]}
+              selectedVersion={selectedVersions[tpl.agent_id] ?? tpl.latest_version}
+              onVersionChange={(v) => props.onVersionChange(tpl.agent_id, v)}
+            />
+          ))
+        : null}
+      {hasTemplates
+        ? templates.map((tpl) => (
+            <TemplateCard
+              key={`${tpl.agent_id}5`}
+              template={tpl}
+              selected={selection?.type === 'template' && selection.agentId === tpl.agent_id}
+              onSelect={() => props.onSelectTemplate(tpl.agent_id)}
+              onPreview={() =>
+                props.onPreview(tpl.agent_id, selectedVersions[tpl.agent_id] ?? tpl.latest_version)
+              }
+              versions={versionsMap[tpl.agent_id] ?? [tpl.latest_version]}
+              selectedVersion={selectedVersions[tpl.agent_id] ?? tpl.latest_version}
+              onVersionChange={(v) => props.onVersionChange(tpl.agent_id, v)}
+            />
+          ))
+        : null}
+      {hasTemplates
+        ? templates.map((tpl) => (
+            <TemplateCard
+              key={`${tpl.agent_id}6`}
+              template={tpl}
+              selected={selection?.type === 'template' && selection.agentId === tpl.agent_id}
+              onSelect={() => props.onSelectTemplate(tpl.agent_id)}
+              onPreview={() =>
+                props.onPreview(tpl.agent_id, selectedVersions[tpl.agent_id] ?? tpl.latest_version)
+              }
+              versions={versionsMap[tpl.agent_id] ?? [tpl.latest_version]}
+              selectedVersion={selectedVersions[tpl.agent_id] ?? tpl.latest_version}
+              onVersionChange={(v) => props.onVersionChange(tpl.agent_id, v)}
+            />
+          ))
+        : null}
+      {hasTemplates
+        ? templates.map((tpl) => (
+            <TemplateCard
+              key={`${tpl.agent_id}7`}
+              template={tpl}
+              selected={selection?.type === 'template' && selection.agentId === tpl.agent_id}
+              onSelect={() => props.onSelectTemplate(tpl.agent_id)}
+              onPreview={() =>
+                props.onPreview(tpl.agent_id, selectedVersions[tpl.agent_id] ?? tpl.latest_version)
+              }
+              versions={versionsMap[tpl.agent_id] ?? [tpl.latest_version]}
+              selectedVersion={selectedVersions[tpl.agent_id] ?? tpl.latest_version}
+              onVersionChange={(v) => props.onVersionChange(tpl.agent_id, v)}
+            />
+          ))
+        : null}
+      {hasTemplates
+        ? templates.map((tpl) => (
+            <TemplateCard
+              key={`${tpl.agent_id}8`}
+              template={tpl}
+              selected={selection?.type === 'template' && selection.agentId === tpl.agent_id}
+              onSelect={() => props.onSelectTemplate(tpl.agent_id)}
+              onPreview={() =>
+                props.onPreview(tpl.agent_id, selectedVersions[tpl.agent_id] ?? tpl.latest_version)
+              }
               versions={versionsMap[tpl.agent_id] ?? [tpl.latest_version]}
               selectedVersion={selectedVersions[tpl.agent_id] ?? tpl.latest_version}
               onVersionChange={(v) => props.onVersionChange(tpl.agent_id, v)}
@@ -177,9 +289,9 @@ function GridContent(props: GridContentProps) {
       )}
       {showNoResults && (
         <div className="col-span-full row-span-full flex flex-col items-center justify-center">
-          <div className='w-fit h-fit px-12 py-6 rounded-xl bg-card rounded-md flex flex-col justify-center items-center gap-2'>
-          <Search className="size-5 text-muted-foreground/90" />
-          <p className="text-xs text-muted-foreground">{props.noResultsLabel}</p>
+          <div className="w-fit h-fit px-12 py-6 rounded-xl bg-card rounded-md flex flex-col justify-center items-center gap-2">
+            <Search className="size-5 text-muted-foreground/90" />
+            <p className="text-xs text-muted-foreground">{props.noResultsLabel}</p>
           </div>
         </div>
       )}
@@ -191,7 +303,12 @@ function GridContent(props: GridContentProps) {
 /*  TemplateGrid                                                       */
 /* ------------------------------------------------------------------ */
 
-export function TemplateGrid({ selection, onSelectionChange, onPreview, prefetchedTemplates }: TemplateGridProps) {
+export function TemplateGrid({
+  selection,
+  onSelectionChange,
+  onPreview,
+  prefetchedTemplates,
+}: TemplateGridProps) {
   const t = useTranslations('marketplace');
   const tCommon = useTranslations('common');
   const [search, setSearch] = useState('');
