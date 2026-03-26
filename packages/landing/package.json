@@ -12,9 +12,12 @@
     "check": "npm run format && npm run lint && npm run typecheck"
   },
   "dependencies": {
+    "lucide-react": "^1.7.0",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "tailwindcss": "^4"
   },
   "devDependencies": {

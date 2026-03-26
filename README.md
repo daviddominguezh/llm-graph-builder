@@ -60,7 +60,7 @@ Deploy any agent as an API endpoint. Call it from your app, your backend, your m
 
 ## Quick Comparison
 
-|                                             | AgentStack | Dify    | Langflow | n8n     | LangSmith |
+|                                             | OpenFlow | Dify    | Langflow | n8n     | LangSmith |
 | ------------------------------------------- | ---------- | ------- | -------- | ------- | --------- |
 | Visual agent builder                        | ✅          | ✅       | ✅        | ✅       | ✅         |
 | Multi-tenant isolation                      | ✅          | ❌       | ❌        | ❌       | ❌         |
