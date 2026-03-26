@@ -2,12 +2,22 @@
 
 import { getTemplateSnapshotAction } from '@/app/actions/templates';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import type { Graph } from '@/app/schemas/graph.schema';
 import type { TemplateGraphData } from '@daviddh/graph-types';
-import { Background, Controls, type Edge, type Node, ReactFlow } from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
 import { useTranslations } from 'next-intl';
-import { useTheme } from 'next-themes';
-import React, { useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
+import { useEffect, useRef, useState } from 'react';
+
+import type { GraphBuilderProps } from '../GraphBuilder';
+
+/* ------------------------------------------------------------------ */
+/*  Lazy-load GraphBuilder (no SSR, same as EditorClient)              */
+/* ------------------------------------------------------------------ */
+
+const GraphBuilder = dynamic<GraphBuilderProps>(
+  () => import('@/app/components/GraphBuilder').then((mod) => mod.GraphBuilder),
+  { ssr: false }
+);
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -20,118 +30,61 @@ interface TemplatePreviewModalProps {
   version: number | null;
 }
 
-type PreviewNodeData = Record<string, unknown> & {
-  label: string;
-  kind: string;
-  description: string;
-};
+/* ------------------------------------------------------------------ */
+/*  Convert TemplateGraphData → Graph                                  */
+/* ------------------------------------------------------------------ */
 
-type PreviewEdgeData = Record<string, unknown> & {
-  label: string;
-};
+function templateToGraph(data: TemplateGraphData): Graph {
+  return {
+    startNode: data.startNode,
+    nodes: data.nodes.map((n) => ({
+      id: n.id,
+      text: n.text,
+      kind: n.kind as 'agent' | 'agent_decision',
+      description: n.description,
+      agent: n.agent,
+      nextNodeIsUser: n.nextNodeIsUser,
+      fallbackNodeId: n.fallbackNodeId,
+      global: n.global,
+      defaultFallback: n.defaultFallback,
+      outputSchemaId: n.outputSchemaId,
+      outputPrompt: n.outputPrompt,
+      position: n.position,
+    })),
+    edges: data.edges.map((e) => ({
+      from: e.from,
+      to: e.to,
+      preconditions: e.preconditions?.map((p) => ({
+        type: p.type as 'user_said' | 'agent_decision' | 'tool_call',
+        value: p.value,
+        description: p.description,
+      })),
+      contextPreconditions: e.contextPreconditions,
+    })),
+    agents: data.agents,
+    mcpServers: undefined,
+    outputSchemas: undefined,
+  };
+}
 
-const DEFAULT_POSITION = { x: 0, y: 0 };
+/* ------------------------------------------------------------------ */
+/*  Data fetcher (outside React)                                       */
+/* ------------------------------------------------------------------ */
 
-async function fetchPreviewGraph(aid: string, ver: number): Promise<TemplateGraphData | null> {
+async function fetchPreviewGraph(aid: string, ver: number): Promise<Graph | null> {
   const result = await getTemplateSnapshotAction(aid, ver);
-  return result.graphData;
+  if (result.graphData === null) return null;
+  return templateToGraph(result.graphData);
 }
 
 /* ------------------------------------------------------------------ */
-/*  Conversion helpers                                                 */
-/* ------------------------------------------------------------------ */
-
-function buildEdgeLabel(
-  preconditions: Array<{ type: string; value: string; description?: string }> | undefined
-): string {
-  if (!preconditions || preconditions.length === 0) return '';
-  return preconditions.map((p) => p.value).join(', ');
-}
-
-function toPreviewNodes(graphData: TemplateGraphData): Array<Node<PreviewNodeData>> {
-  return graphData.nodes.map((node) => ({
-    id: node.id,
-    position: node.position ?? DEFAULT_POSITION,
-    data: { label: node.text, kind: node.kind, description: node.description },
-    type: 'default',
-  }));
-}
-
-function toPreviewEdges(graphData: TemplateGraphData): Array<Edge<PreviewEdgeData>> {
-  return graphData.edges.map((edge, index) => ({
-    id: `e-${String(index)}`,
-    source: edge.from,
-    target: edge.to,
-    label: buildEdgeLabel(edge.preconditions),
-  }));
-}
-
-/* ------------------------------------------------------------------ */
-/*  Subcomponents                                                      */
+/*  Loading state                                                      */
 /* ------------------------------------------------------------------ */
 
 function LoadingState({ message }: { message: string }) {
   return (
     <div className="flex flex-1 items-center justify-center">
       <span className="text-sm text-muted-foreground">{message}</span>
-    </div>
-  );
-}
-
-interface ErrorBoundaryProps {
-  children: React.ReactNode;
-  fallback: React.ReactNode;
-}
-
-interface ErrorBoundaryState {
-  hasError: boolean;
-}
-
-class PreviewErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(): ErrorBoundaryState {
-    return { hasError: true };
-  }
-
-  render() {
-    if (this.state.hasError) return this.props.fallback;
-    return this.props.children;
-  }
-}
-
-// <div className="w-full flex flex-1 min-h-[0px]">
-
-function PreviewGraph({
-  nodes,
-  edges,
-  colorMode,
-}: {
-  nodes: Array<Node<PreviewNodeData>>;
-  edges: Array<Edge<PreviewEdgeData>>;
-  colorMode: 'dark' | 'light';
-}) {
-  return (
-    <div style={{ width: '100%', height: '100%' }}>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodesDraggable={false}
-        nodesConnectable={false}
-        elementsSelectable={false}
-        edgesFocusable={false}
-        nodesFocusable={false}
-        panOnDrag={true}
-        zoomOnScroll={true}
-        fitView
-        colorMode={colorMode}
-      >
-        <Background color="var(--canvas-dots)" />
-        <Controls showInteractive={false} />
-      </ReactFlow>
     </div>
   );
 }
@@ -143,8 +96,7 @@ function PreviewGraph({
 export function TemplatePreviewModal({ open, onOpenChange, agentId, version }: TemplatePreviewModalProps) {
   const t = useTranslations('marketplace');
   const tCommon = useTranslations('common');
-  const { resolvedTheme } = useTheme();
-  const [graphData, setGraphData] = useState<TemplateGraphData | null>(null);
+  const [graph, setGraph] = useState<Graph | null>(null);
   const [loadedKey, setLoadedKey] = useState('');
   const mountedRef = useRef(true);
 
@@ -155,7 +107,7 @@ export function TemplatePreviewModal({ open, onOpenChange, agentId, version }: T
     if (requestKey === '') return;
     void fetchPreviewGraph(agentId!, version!).then((data) => {
       if (mountedRef.current) {
-        setGraphData(data);
+        setGraph(data);
         setLoadedKey(requestKey);
       }
     });
@@ -167,23 +119,19 @@ export function TemplatePreviewModal({ open, onOpenChange, agentId, version }: T
   const isLoaded = requestKey !== '' && loadedKey === requestKey;
   const loading = requestKey !== '' && !isLoaded;
 
-  const nodes = isLoaded && graphData ? toPreviewNodes(graphData) : [];
-  const edges = isLoaded && graphData ? toPreviewEdges(graphData) : [];
-  const colorMode = resolvedTheme === 'dark' ? 'dark' : 'light';
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex w-[1100px] min-w-[1100px] h-[670px] min-h-[670px] flex-col p-0 gap-0!">
         <DialogHeader className="shrink-0 border-b px-4 py-3">
           <DialogTitle>{t('previewTitle')}</DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col flex-1 min-h-[0px] w-full">
-          {loading ? (
-            <LoadingState message={tCommon('loading')} />
-          ) : (
-            <PreviewErrorBoundary fallback={<LoadingState message={t('previewError')} />}>
-              <PreviewGraph nodes={nodes} edges={edges} colorMode={colorMode} />
-            </PreviewErrorBoundary>
+        <div className="flex flex-1 min-h-0 w-full">
+          {loading && <LoadingState message={tCommon('loading')} />}
+          {!loading && isLoaded && graph !== null && (
+            <GraphBuilder readOnly graphOverride={graph} />
+          )}
+          {!loading && isLoaded && graph === null && (
+            <LoadingState message={t('previewError')} />
           )}
         </div>
       </DialogContent>

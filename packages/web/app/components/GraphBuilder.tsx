@@ -41,11 +41,23 @@ import { useSimulation } from '../hooks/useSimulation';
 import { useVersions } from '../hooks/useVersions';
 import { useZoomView } from '../hooks/useZoomView';
 import { useInitialViewport, useSearchKeyboard, useContextPreconditions } from '../hooks/useGraphBuilderHelpers';
+import { buildInitialEdges, buildInitialNodes } from '../utils/graphInitializer';
 import { serializeGraphData } from '../utils/graphSerializer';
 import type { RFNodeData } from '../utils/graphTransformers';
 import { useFormatGraph } from '../hooks/useFormatGraph';
 
 const DEFAULT_VERSION = 0;
+
+function buildLoadResultFromGraph(graph: Graph): GraphLoadResult {
+  return {
+    nodes: buildInitialNodes(graph),
+    edges: buildInitialEdges(graph),
+    agents: graph.agents,
+    mcpServers: graph.mcpServers ?? [],
+    outputSchemas: graph.outputSchemas ?? [],
+    graphData: graph,
+  };
+}
 
 export interface GraphBuilderProps {
   agentId?: string;
@@ -59,6 +71,8 @@ export interface GraphBuilderProps {
   orgApiKeys?: ApiKeyRow[];
   stagingApiKeyId?: string | null;
   productionApiKeyId?: string | null;
+  readOnly?: boolean;
+  graphOverride?: Graph;
 }
 
 interface LoadedEditorProps extends GraphBuilderProps {
@@ -224,7 +238,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     hasPendingOps: opQueue.hasPendingOps,
     flushSeq: opQueue.flushSeq,
     flush: opQueue.flush,
-    enabled: agentId !== undefined,
+    enabled: agentId !== undefined && props.readOnly !== true,
   });
 
   const canPublish = serializedGraph !== null;
@@ -333,10 +347,12 @@ function LoadedEditor(props: LoadedEditorProps) {
     onZoomToNode: h.zoomView.handleZoomToNode,
   };
 
+  const isReadOnly = props.readOnly === true;
+
   return (
     <HandleContext.Provider value={handleContextValue}>
       <div className="relative flex h-full w-full flex-col items-center ml-0">
-        {!h.simulation.active && <Toolbar
+        {!isReadOnly && !h.simulation.active && <Toolbar
           onAddNode={h.graphActions.handleAddNode}
           onImport={h.handleImport}
           onExport={h.handleExport}
@@ -391,15 +407,16 @@ function LoadedEditor(props: LoadedEditorProps) {
           reactFlowWrapper={h.reactFlowWrapper}
           displayNodes={h.displayNodes}
           edges={h.edges}
-          onNodesChange={h.onNodesChange}
-          onEdgesChange={h.onEdgesChange}
-          onConnect={h.graphActions.onConnect}
+          onNodesChange={isReadOnly ? () => {} : h.onNodesChange}
+          onEdgesChange={isReadOnly ? () => {} : h.onEdgesChange}
+          onConnect={isReadOnly ? () => {} : h.graphActions.onConnect}
           onNodeClick={h.selection.onNodeClick}
           onEdgeClick={h.selection.onEdgeClick}
           onPaneClick={h.selection.onPaneClick}
           zoomViewNodeId={h.zoomView.zoomViewNodeId}
           simulation={h.simulation}
           onExitZoomView={h.zoomView.handleExitZoomView}
+          readOnly={isReadOnly}
         />
 
         <SearchDialog
@@ -410,6 +427,7 @@ function LoadedEditor(props: LoadedEditorProps) {
         />
 
         <SidePanels
+          readOnly={isReadOnly}
           selection={h.selection}
           simulation={h.simulation}
           nodes={h.nodes}
@@ -445,13 +463,15 @@ function LoadedEditor(props: LoadedEditorProps) {
           pushOperation={h.pushOperation}
         />
 
-        <DeleteConfirmDialog
-          pendingDelete={h.deleteConfirmation.pendingDelete}
-          onConfirm={h.deleteConfirmation.confirmDelete}
-          onCancel={h.deleteConfirmation.cancelDelete}
-        />
+        {!isReadOnly && (
+          <DeleteConfirmDialog
+            pendingDelete={h.deleteConfirmation.pendingDelete}
+            onConfirm={h.deleteConfirmation.confirmDelete}
+            onCancel={h.deleteConfirmation.cancelDelete}
+          />
+        )}
 
-        {h.graphActions.connectionMenu !== null && (
+        {!isReadOnly && h.graphActions.connectionMenu !== null && (
           <ConnectionMenu
             position={h.graphActions.connectionMenu.position}
             sourceNodeId={h.graphActions.connectionMenu.sourceNodeId}
@@ -468,6 +488,33 @@ function LoadedEditor(props: LoadedEditorProps) {
 }
 
 function GraphBuilderInner(props: GraphBuilderProps) {
+  if (props.graphOverride !== undefined) {
+    return (
+      <GraphBuilderWithOverride {...props} graph={props.graphOverride} />
+    );
+  }
+
+  return <GraphBuilderWithLoader {...props} />;
+}
+
+function GraphBuilderWithOverride(props: GraphBuilderProps & { graph: Graph }) {
+  const loadResult: GraphLoadResult = useMemo(
+    () => buildLoadResultFromGraph(props.graph),
+    [props.graph]
+  );
+  const noop = useCallback(() => {}, []);
+
+  return (
+    <LoadedEditor
+      {...props}
+      loadResult={loadResult}
+      reload={noop}
+      initialDiscoveredTools={{}}
+    />
+  );
+}
+
+function GraphBuilderWithLoader(props: GraphBuilderProps) {
   const loader = useGraphLoader(props.agentId);
   const mcpServers = loader.loading ? undefined : loader.result.mcpServers;
   const discovery = useMcpDiscovery(mcpServers, undefined, props.orgId);

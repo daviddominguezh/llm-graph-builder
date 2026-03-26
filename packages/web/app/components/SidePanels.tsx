@@ -49,6 +49,7 @@ interface PresetsHook {
 export { type CtxPreconditionsState };
 
 export interface SidePanelsProps {
+  readOnly?: boolean;
   selection: UseGraphSelectionReturn;
   simulation: { active: boolean };
   nodes: NodeArray;
@@ -203,8 +204,10 @@ export function SidePanels(props: SidePanelsProps) {
   const publish = usePublishState(props.mcpHook);
   const installedIds = getInstalledLibraryIds(props.mcpHook.servers);
 
+  const readOnlyClass = props.readOnly === true ? '[&_input]:pointer-events-none [&_textarea]:pointer-events-none [&_button]:pointer-events-none [&_[role=checkbox]]:pointer-events-none [&_select]:pointer-events-none [&_[role=combobox]]:pointer-events-none' : '';
+
   return (
-    <>
+    <div className={readOnlyClass}>
       <OutputSchemaDialog
         schema={schema.editingSchema}
         onSave={props.outputSchemasHook.updateSchema}
@@ -259,6 +262,6 @@ export function SidePanels(props: SidePanelsProps) {
           orgSlug={props.orgSlug}
         />
       )}
-    </>
+    </div>
   );
 }

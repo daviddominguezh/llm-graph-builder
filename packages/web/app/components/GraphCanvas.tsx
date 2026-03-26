@@ -36,6 +36,7 @@ interface GraphCanvasProps {
   zoomViewNodeId: string | null;
   simulation: SimulationState;
   onExitZoomView: () => void;
+  readOnly?: boolean;
 }
 
 function ZoomViewOverlay({
@@ -67,6 +68,7 @@ export function GraphCanvas({
   zoomViewNodeId,
   simulation,
   onExitZoomView,
+  readOnly,
 }: GraphCanvasProps) {
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -91,6 +93,8 @@ export function GraphCanvas({
           onPaneClick={onPaneClick}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
+          nodesDraggable={readOnly !== true}
+          nodesConnectable={readOnly !== true}
           deleteKeyCode={null}
           defaultViewport={{ x: 0, y: 0, zoom: 1 }}
           colorMode={colorMode}
