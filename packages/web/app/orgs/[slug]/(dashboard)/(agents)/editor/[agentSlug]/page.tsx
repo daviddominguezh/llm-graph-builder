@@ -36,6 +36,9 @@ export default async function EditorPage({ params }: EditorPageProps): Promise<R
       orgApiKeys={orgApiKeys}
       stagingApiKeyId={agent.staging_api_key_id}
       productionApiKeyId={agent.production_api_key_id}
+      agentDescription={agent.description}
+      agentCategory={agent.category}
+      agentIsPublic={agent.is_public}
     />
   );
 }

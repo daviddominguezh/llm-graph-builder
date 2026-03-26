@@ -11,6 +11,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { useAgentsSidebar } from '@/app/components/agents/AgentsSidebarContext';
 
+import { SettingsPanel } from '@/app/components/agents/SettingsPanel';
+
 import { EditorClient } from './EditorClient';
 
 type TabId = 'agent' | 'channels' | 'settings';
@@ -27,6 +29,9 @@ interface EditorTabsProps {
   orgApiKeys: ApiKeyRow[];
   stagingApiKeyId: string | null;
   productionApiKeyId: string | null;
+  agentDescription: string;
+  agentCategory: string;
+  agentIsPublic: boolean;
 }
 
 const TAB_ICONS: Record<TabId, LucideIcon> = {
@@ -137,7 +142,17 @@ export function EditorTabs(props: EditorTabsProps) {
       />
       <div ref={slotRef} className={activeTab === 'agent' ? 'flex-1' : 'hidden'} />
       {activeTab === 'channels' && <Placeholder label={t('channelsPlaceholder')} />}
-      {activeTab === 'settings' && <Placeholder label={t('settingsPlaceholder')} />}
+      {activeTab === 'settings' && (
+        <SettingsPanel
+          agentId={props.agentId}
+          agentName={props.agentName}
+          agentSlug={props.agentSlug}
+          initialDescription={props.agentDescription}
+          initialCategory={props.agentCategory}
+          initialIsPublic={props.agentIsPublic}
+          currentVersion={props.initialVersion}
+        />
+      )}
     </div>
   );
 }
