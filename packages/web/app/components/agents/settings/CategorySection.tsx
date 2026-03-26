@@ -35,7 +35,7 @@ export function CategorySection({ agentId, initialCategory }: CategorySectionPro
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1.5">
       <Label>{t('category')}</Label>
       <Select value={value} onValueChange={(v) => v !== null && setValue(v)}>
         <SelectTrigger className="w-full">
@@ -49,7 +49,7 @@ export function CategorySection({ agentId, initialCategory }: CategorySectionPro
           ))}
         </SelectContent>
       </Select>
-      <Button size="sm" onClick={handleSave} disabled={unchanged || saving} className="self-end">
+      <Button size="sm" onClick={handleSave} disabled={unchanged || saving} className="mt-1 self-end">
         {saving ? t('saving') : t('save')}
       </Button>
     </div>

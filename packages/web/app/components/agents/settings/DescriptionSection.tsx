@@ -33,7 +33,7 @@ export function DescriptionSection({ agentId, initialDescription }: DescriptionS
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1.5">
       <Label>{t('description')}</Label>
       <Textarea
         value={value}
@@ -41,7 +41,7 @@ export function DescriptionSection({ agentId, initialDescription }: DescriptionS
         placeholder={t('descriptionPlaceholder')}
         rows={3}
       />
-      <Button size="sm" onClick={handleSave} disabled={unchanged || saving} className="self-end">
+      <Button size="sm" onClick={handleSave} disabled={unchanged || saving} className="mt-1 self-end">
         {saving ? t('saving') : t('save')}
       </Button>
     </div>

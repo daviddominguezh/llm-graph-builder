@@ -130,7 +130,7 @@ function GridContent(props: GridContentProps) {
   const hasTemplates = templates.length > 0;
 
   return (
-    <div className="grid grid-cols-1 gap-2 max-h-[50vh] overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 max-h-[50vh] overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
       <BlankCanvasCard selected={selection?.type === 'blank'} onSelect={props.onSelectBlank} />
       {hasTemplates
         ? templates.map((tpl) => (

@@ -105,7 +105,7 @@ function TemplateCardStats({
   const t = useTranslations('marketplace');
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="mt-auto flex items-center gap-2 pt-1">
       <div className="flex items-center gap-2">
         <StatItem icon={<Network className="size-3 text-primary/60" />} value={template.node_count} label={t('nodes')} />
         <StatItem icon={<Puzzle className="size-3 text-blue-500/60 dark:text-blue-400/60" />} value={template.mcp_server_count} label={t('mcpServers')} />
@@ -155,10 +155,10 @@ export function TemplateCard({
     <button
       type="button"
       onClick={onSelect}
-      className={`flex cursor-pointer flex-col gap-2 rounded-lg border p-3 text-left transition-[background-color,border-color,box-shadow] duration-150 hover:bg-card/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${cardBorderClass(selected)}`}
+      className={`flex cursor-pointer flex-col rounded-lg border p-3 text-left transition-[background-color,border-color,box-shadow] duration-150 hover:bg-card/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${cardBorderClass(selected)}`}
     >
       <TemplateCardHeader template={template} />
-      <p className="line-clamp-2 text-[11px] text-muted-foreground">{template.description}</p>
+      <p className="mt-1.5 line-clamp-2 text-[11px] text-muted-foreground">{template.description}</p>
       <TemplateCardStats
         template={template}
         versions={versions}
@@ -186,11 +186,11 @@ export function BlankCanvasCard({ selected, onSelect }: { selected: boolean; onS
     <button
       type="button"
       onClick={onSelect}
-      className={`flex min-h-[120px] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border p-3 text-center transition-[background-color,border-color,box-shadow] duration-150 hover:bg-card/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${blankBorderClass(selected)}`}
+      className={`flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-lg border p-3 text-center transition-[background-color,border-color,box-shadow] duration-150 hover:bg-card/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${blankBorderClass(selected)}`}
     >
       <GitFork className="size-5 text-muted-foreground" aria-hidden="true" />
-      <span className="text-xs font-medium text-foreground">{t('blankCanvas')}</span>
-      <p className="text-[11px] text-muted-foreground">{t('blankCanvasDescription')}</p>
+      <span className="mt-1.5 text-xs font-medium text-foreground">{t('blankCanvas')}</span>
+      <p className="mt-1 text-[11px] text-muted-foreground">{t('blankCanvasDescription')}</p>
     </button>
   );
 }
