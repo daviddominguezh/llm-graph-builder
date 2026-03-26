@@ -12,6 +12,9 @@ export {
   PreconditionSchema,
   PreconditionTypeSchema,
   PreconditionsArraySchema,
+  TemplateCategorySchema,
+  TemplateGraphDataSchema,
+  TEMPLATE_CATEGORIES,
 } from '@daviddh/graph-types';
 
 export type {
@@ -27,5 +30,8 @@ export type {
   Position,
   Precondition,
   PreconditionType,
+  TemplateCategory,
+  TemplateGraphData,
+  TemplateMcpServer,
   ToolFieldValue,
 } from '@daviddh/graph-types';
