@@ -2,6 +2,7 @@
 
 import type { TemplateCategory } from '@daviddh/graph-types';
 import { createAgentAction } from '@/app/actions/agents';
+import type { TemplatesPrefetchState } from '@/app/hooks/useTemplatesPrefetch';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useTranslations } from 'next-intl';
@@ -24,6 +25,7 @@ interface CreateAgentWizardProps {
   onOpenChange: (open: boolean) => void;
   orgId: string;
   orgSlug: string;
+  prefetchedTemplates: TemplatesPrefetchState;
 }
 
 interface PreviewState {
@@ -54,17 +56,24 @@ function TemplateStep({
   onSelectionChange,
   onPreview,
   onNext,
+  prefetchedTemplates,
 }: {
   selection: TemplateSelection | null;
   onSelectionChange: (s: TemplateSelection) => void;
   onPreview: (agentId: string, version: number) => void;
   onNext: () => void;
+  prefetchedTemplates: TemplatesPrefetchState;
 }) {
   const t = useTranslations('marketplace');
 
   return (
     <>
-      <TemplateGrid selection={selection} onSelectionChange={onSelectionChange} onPreview={onPreview} />
+      <TemplateGrid
+        selection={selection}
+        onSelectionChange={onSelectionChange}
+        onPreview={onPreview}
+        prefetchedTemplates={prefetchedTemplates}
+      />
       <DialogFooter>
         <Button onClick={onNext} disabled={selection === null}>
           {t('next')}
@@ -138,11 +147,13 @@ function WizardBody({
   orgId,
   orgSlug,
   onClose,
+  prefetchedTemplates,
 }: {
   state: ReturnType<typeof useWizardState>;
   orgId: string;
   orgSlug: string;
   onClose: () => void;
+  prefetchedTemplates: TemplatesPrefetchState;
 }) {
   const router = useRouter();
   const t = useTranslations('marketplace');
@@ -174,6 +185,7 @@ function WizardBody({
             onSelectionChange={state.setSelection}
             onPreview={handlePreview}
             onNext={() => state.setStep('details')}
+            prefetchedTemplates={prefetchedTemplates}
           />
         ) : (
           <DetailsStep
@@ -199,7 +211,7 @@ function WizardBody({
 /*  CreateAgentWizard                                                  */
 /* ------------------------------------------------------------------ */
 
-export function CreateAgentWizard({ open, onOpenChange, orgId, orgSlug }: CreateAgentWizardProps) {
+export function CreateAgentWizard({ open, onOpenChange, orgId, orgSlug, prefetchedTemplates }: CreateAgentWizardProps) {
   const state = useWizardState();
 
   const handleOpenChange = useCallback(
@@ -213,7 +225,13 @@ export function CreateAgentWizard({ open, onOpenChange, orgId, orgSlug }: Create
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-3xl overflow-hidden">
-        <WizardBody state={state} orgId={orgId} orgSlug={orgSlug} onClose={() => handleOpenChange(false)} />
+        <WizardBody
+          state={state}
+          orgId={orgId}
+          orgSlug={orgSlug}
+          onClose={() => handleOpenChange(false)}
+          prefetchedTemplates={prefetchedTemplates}
+        />
       </DialogContent>
     </Dialog>
   );

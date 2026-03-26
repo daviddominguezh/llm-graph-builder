@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { browseTemplatesAction, getTemplateVersionsAction } from '@/app/actions/templates';
 import { useDebouncedValue } from '@/app/hooks/useDebouncedValue';
+import type { TemplatesPrefetchState } from '@/app/hooks/useTemplatesPrefetch';
 import type { TemplateListItem } from '@/app/lib/templates';
 
 import { Search } from 'lucide-react';
@@ -27,6 +28,7 @@ interface TemplateGridProps {
   selection: TemplateSelection | null;
   onSelectionChange: (selection: TemplateSelection) => void;
   onPreview: (agentId: string, version: number) => void;
+  prefetchedTemplates: TemplatesPrefetchState;
 }
 
 /* ------------------------------------------------------------------ */
@@ -83,17 +85,34 @@ function applyFetchResult(prev: TemplateState, result: FetchResult): TemplateSta
 /*  Hook                                                               */
 /* ------------------------------------------------------------------ */
 
-function useTemplateData(search: string, category: TemplateCategory | '') {
+function useTemplateData(
+  search: string,
+  category: TemplateCategory | '',
+  prefetched: TemplatesPrefetchState
+) {
   const [state, setState] = useState<TemplateState>(INITIAL_STATE);
   const mountedRef = useRef(true);
+  const appliedPrefetch = useRef(false);
 
   useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
+    return () => { mountedRef.current = false; };
   }, []);
 
+  // Use prefetched data as initial set (no filters active)
   useEffect(() => {
+    if (appliedPrefetch.current || prefetched.loading) return;
+    if (search !== '' || category !== '') return;
+    appliedPrefetch.current = true;
+    void Promise.all(prefetched.items.map(fetchVersionEntry)).then((entries) => {
+      if (mountedRef.current) {
+        setState((prev) => applyFetchResult(prev, { templates: prefetched.items, versionEntries: entries }));
+      }
+    });
+  }, [prefetched, search, category]);
+
+  // Fetch fresh when filters change (skip initial load if prefetch covers it)
+  useEffect(() => {
+    if (search === '' && category === '' && appliedPrefetch.current) return;
     void fetchTemplatesAndVersions(search, category).then((result) => {
       if (mountedRef.current) setState((prev) => applyFetchResult(prev, result));
     });
@@ -170,13 +189,13 @@ function GridContent(props: GridContentProps) {
 /*  TemplateGrid                                                       */
 /* ------------------------------------------------------------------ */
 
-export function TemplateGrid({ selection, onSelectionChange, onPreview }: TemplateGridProps) {
+export function TemplateGrid({ selection, onSelectionChange, onPreview, prefetchedTemplates }: TemplateGridProps) {
   const t = useTranslations('marketplace');
   const tCommon = useTranslations('common');
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 300);
   const [category, setCategory] = useState<TemplateCategory | ''>('');
-  const data = useTemplateData(debouncedSearch, category);
+  const data = useTemplateData(debouncedSearch, category, prefetchedTemplates);
   const { templates, versionsMap, selectedVersions, setSelectedVersion } = data;
 
   const handleSelectBlank = useCallback(() => {

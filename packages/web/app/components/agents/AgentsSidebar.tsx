@@ -10,6 +10,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
+import { useTemplatesPrefetch } from '@/app/hooks/useTemplatesPrefetch';
+
 import { useAgentsSidebar } from './AgentsSidebarContext';
 import { CreateAgentWizard } from './CreateAgentWizard';
 import { getAgentStatus, STATUS_COLORS } from './agentStatus';
@@ -128,10 +130,17 @@ export function AgentsSidebar({ agents, orgId, orgSlug }: AgentsSidebarProps) {
   const [createOpen, setCreateOpen] = useState(false);
   const [search, setSearch] = useState('');
   const { collapsed } = useAgentsSidebar();
+  const prefetchedTemplates = useTemplatesPrefetch();
 
   if (collapsed) {
     return (
-      <CreateAgentWizard open={createOpen} onOpenChange={setCreateOpen} orgId={orgId} orgSlug={orgSlug} />
+      <CreateAgentWizard
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        orgId={orgId}
+        orgSlug={orgSlug}
+        prefetchedTemplates={prefetchedTemplates}
+      />
     );
   }
 
@@ -142,7 +151,13 @@ export function AgentsSidebar({ agents, orgId, orgSlug }: AgentsSidebarProps) {
       <div className="flex-1 overflow-y-auto">
         <AgentList agents={agents} orgSlug={orgSlug} pathname={pathname} search={search} />
       </div>
-      <CreateAgentWizard open={createOpen} onOpenChange={setCreateOpen} orgId={orgId} orgSlug={orgSlug} />
+      <CreateAgentWizard
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        orgId={orgId}
+        orgSlug={orgSlug}
+        prefetchedTemplates={prefetchedTemplates}
+      />
     </aside>
   );
 }
