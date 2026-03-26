@@ -17,6 +17,9 @@ import { handleGetAgentBySlug } from './getAgentBySlug.js';
 import { handleGetAgentsByOrg } from './getAgentsByOrg.js';
 import { handleSaveProductionKey } from './saveProductionKey.js';
 import { handleSaveStagingKey } from './saveStagingKey.js';
+import { handleUpdateCategory } from './updateCategory.js';
+import { handleUpdateMetadata } from './updateMetadata.js';
+import { handleUpdateVisibility } from './updateVisibility.js';
 
 export const agentRouter = express.Router();
 agentRouter.use(requireAuth);
@@ -27,6 +30,9 @@ agentRouter.post('/', handleCreateAgent);
 agentRouter.delete('/:agentId', handleDeleteAgent);
 agentRouter.patch('/:agentId/staging-key', handleSaveStagingKey);
 agentRouter.patch('/:agentId/production-key', handleSaveProductionKey);
+agentRouter.patch('/:agentId/visibility', handleUpdateVisibility);
+agentRouter.patch('/:agentId/category', handleUpdateCategory);
+agentRouter.patch('/:agentId/metadata', handleUpdateMetadata);
 
 agentRouter.get('/:agentId/graph', handleGetGraph);
 agentRouter.post('/:agentId/graph/operations', handlePostOperations);

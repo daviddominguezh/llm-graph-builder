@@ -211,3 +211,36 @@ export async function deleteAgent(
   if (error !== null) return { error: error.message };
   return { error: null };
 }
+
+export async function updateAgentVisibility(
+  supabase: SupabaseClient,
+  agentId: string,
+  isPublic: boolean
+): Promise<{ error: string | null }> {
+  const payload: Record<string, unknown> = { is_public: isPublic };
+  const { error } = await supabase.from('agents').update(payload).eq('id', agentId);
+  if (error !== null) return { error: error.message };
+  return { error: null };
+}
+
+export async function updateAgentCategory(
+  supabase: SupabaseClient,
+  agentId: string,
+  category: string
+): Promise<{ error: string | null }> {
+  const payload: Record<string, unknown> = { category };
+  const { error } = await supabase.from('agents').update(payload).eq('id', agentId);
+  if (error !== null) return { error: error.message };
+  return { error: null };
+}
+
+export async function updateAgentMetadata(
+  supabase: SupabaseClient,
+  agentId: string,
+  fields: AgentUpdateFields
+): Promise<{ error: string | null }> {
+  const payload = buildAgentPayload(fields);
+  const { error } = await supabase.from('agents').update(payload).eq('id', agentId);
+  if (error !== null) return { error: error.message };
+  return { error: null };
+}
