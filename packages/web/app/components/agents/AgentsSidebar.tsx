@@ -4,7 +4,7 @@ import type { AgentMetadata } from '@/app/lib/agents';
 import { formatRelativeTime } from '@/app/utils/formatRelativeTime';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { PanelLeftClose, Plus, Search } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -20,20 +20,15 @@ interface AgentsSidebarProps {
   orgSlug: string;
 }
 
-function SidebarHeader({ onCreateClick, onHide }: { onCreateClick: () => void; onHide: () => void }) {
+function SidebarHeader({ onCreateClick }: { onCreateClick: () => void }) {
   const t = useTranslations('agents');
 
   return (
-    <div className="flex items-center justify-between pl-3 pr-1 py-2 border-b mb-2.5">
+    <div className="flex items-center justify-between pl-3 pr-1 py-1.5 border-b mb-2.5">
       <h2 className="text-sm font-semibold">{t('title')}</h2>
-      <div className="flex items-center">
-        <Button variant="ghost" size="icon-sm" onClick={onCreateClick}>
-          <Plus />
-        </Button>
-        <Button variant="ghost" size="icon-sm" onClick={onHide} title={t('hideSidebar')}>
-          <PanelLeftClose />
-        </Button>
-      </div>
+      <Button variant="ghost" size="icon" onClick={onCreateClick}>
+        <Plus />
+      </Button>
     </div>
   );
 }
@@ -132,7 +127,7 @@ export function AgentsSidebar({ agents, orgId, orgSlug }: AgentsSidebarProps) {
   const pathname = usePathname();
   const [createOpen, setCreateOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const { collapsed, setCollapsed } = useAgentsSidebar();
+  const { collapsed } = useAgentsSidebar();
 
   if (collapsed) {
     return (
@@ -142,7 +137,7 @@ export function AgentsSidebar({ agents, orgId, orgSlug }: AgentsSidebarProps) {
 
   return (
     <aside className="flex h-full w-[240px] shrink-0 flex-col border-r bg-background">
-      <SidebarHeader onCreateClick={() => setCreateOpen(true)} onHide={() => setCollapsed(true)} />
+      <SidebarHeader onCreateClick={() => setCreateOpen(true)} />
       <SearchInput value={search} onChange={setSearch} />
       <div className="flex-1 overflow-y-auto">
         <AgentList agents={agents} orgSlug={orgSlug} pathname={pathname} search={search} />

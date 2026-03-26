@@ -117,7 +117,8 @@
     "createFirst": "Create your first agent",
     "createFirstDescription": "Agents are workflows that connect LLM steps, tools, and decisions.",
     "createError": "Failed to create agent. Please try again.",
-    "hideSidebar": "Hide sidebar"
+    "hideSidebar": "Hide sidebar",
+    "showSidebar": "Show sidebar"
   },
   "editor": {
     "publish": "Publish",

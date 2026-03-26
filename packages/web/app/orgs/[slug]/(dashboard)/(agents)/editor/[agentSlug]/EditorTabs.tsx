@@ -1,12 +1,15 @@
 'use client';
 
-import { Bot, Radio, Settings } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import type { LucideIcon } from 'lucide-react';
-import { useState } from 'react';
-
 import type { ApiKeyRow } from '@/app/lib/apiKeys';
+import { useEditorCache } from '@/app/components/editors/EditorCacheProvider';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Bot, PanelLeftClose, PanelLeftOpen, Radio, Settings } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+
+import { useAgentsSidebar } from '@/app/components/agents/AgentsSidebarContext';
 
 import { EditorClient } from './EditorClient';
 
@@ -46,55 +49,23 @@ function TabButton({ tab, active, onClick, label }: TabButtonProps) {
   return (
     <button
       onClick={() => onClick(tab)}
-      className={`w-[100px] h-full text-xs font-medium transition-colors relative flex items-center justify-center gap-1.5 cursor-pointer ${
+      className={`w-[100px] h-full text-xs font-semibold transition-colors relative flex items-center justify-center gap-1.5 cursor-pointer ${
         active
-          ? 'text-primary border-b-2 border-primary'
-          : 'text-muted-foreground hover:text-foreground border-b-2 border-background'
+          ? 'text-primary shadow-[inset_0_-2px_0_0_var(--color-primary)]'
+          : 'text-muted-foreground hover:text-foreground'
       }`}
     >
-      <Icon className="size-3.5" />
+      <Icon strokeWidth={2.5} className="size-3.5" />
       {label}
     </button>
   );
 }
 
 function Placeholder({ label }: { label: string }) {
-  return (
-    <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
-      {label}
-    </div>
-  );
+  return <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">{label}</div>;
 }
 
-export function EditorTabs(props: EditorTabsProps) {
-  const [activeTab, setActiveTab] = useState<TabId>('agent');
-  const t = useTranslations('editor.tabs');
-
-  return (
-    <div className="w-full h-full flex flex-col">
-      <div className="w-full h-[41px] bg-background shrink-0 border-b flex items-center px-4">
-        <div className="text-sm font-semibold mr-4">{props.agentSlug}</div>
-        <Separator orientation="vertical" />
-        <div className="flex h-full">
-          {TABS.map((tab) => (
-            <TabButton
-              key={tab}
-              tab={tab}
-              active={activeTab === tab}
-              onClick={setActiveTab}
-              label={t(tab)}
-            />
-          ))}
-        </div>
-      </div>
-      {activeTab === 'agent' && <AgentTab {...props} />}
-      {activeTab === 'channels' && <Placeholder label={t('channelsPlaceholder')} />}
-      {activeTab === 'settings' && <Placeholder label={t('settingsPlaceholder')} />}
-    </div>
-  );
-}
-
-function AgentTab(props: EditorTabsProps) {
+function buildEditorElement(props: EditorTabsProps): React.ReactNode {
   return (
     <EditorClient
       agentId={props.agentId}
@@ -109,5 +80,98 @@ function AgentTab(props: EditorTabsProps) {
       stagingApiKeyId={props.stagingApiKeyId}
       productionApiKeyId={props.productionApiKeyId}
     />
+  );
+}
+
+function useEditorRegistration(props: EditorTabsProps) {
+  const { register, setActiveEditor } = useEditorCache();
+  const propsRef = useRef(props);
+
+  useLayoutEffect(() => {
+    register(props.agentId, buildEditorElement(propsRef.current));
+    setActiveEditor(props.agentId);
+    return () => setActiveEditor(null);
+  }, [props.agentId, register, setActiveEditor]);
+}
+
+function useSlotSync(slotRef: React.RefObject<HTMLDivElement | null>, activeTab: TabId) {
+  const { setSlotRect } = useEditorCache();
+
+  useEffect(() => {
+    const el = slotRef.current;
+    if (!el || activeTab !== 'agent') {
+      setSlotRect(null);
+      return undefined;
+    }
+    const update = () => {
+      const r = el.getBoundingClientRect();
+      setSlotRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      setSlotRect(null);
+    };
+  }, [activeTab, setSlotRect, slotRef]);
+}
+
+export function EditorTabs(props: EditorTabsProps) {
+  const [activeTab, setActiveTab] = useState<TabId>('agent');
+  const t = useTranslations('editor.tabs');
+  const tAgents = useTranslations('agents');
+  const slotRef = useRef<HTMLDivElement>(null);
+
+  useEditorRegistration(props);
+  useSlotSync(slotRef, activeTab);
+
+  return (
+    <div className="w-full h-full flex flex-col">
+      <EditorTabBar
+        agentSlug={props.agentSlug}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        t={t}
+        tAgents={tAgents}
+      />
+      <div ref={slotRef} className={activeTab === 'agent' ? 'flex-1' : 'hidden'} />
+      {activeTab === 'channels' && <Placeholder label={t('channelsPlaceholder')} />}
+      {activeTab === 'settings' && <Placeholder label={t('settingsPlaceholder')} />}
+    </div>
+  );
+}
+
+function EditorTabBar({
+  agentSlug,
+  activeTab,
+  onTabChange,
+  t,
+  tAgents,
+}: {
+  agentSlug: string;
+  activeTab: TabId;
+  onTabChange: (tab: TabId) => void;
+  t: (key: string) => string;
+  tAgents: (key: string) => string;
+}) {
+  const { collapsed, setCollapsed } = useAgentsSidebar();
+  const SidebarIcon = collapsed ? PanelLeftOpen : PanelLeftClose;
+  const sidebarLabel = collapsed ? tAgents('showSidebar') : tAgents('hideSidebar');
+
+  return (
+    <div className="w-full h-[41px] bg-background shrink-0 border-b flex items-center px-2">
+      <Button variant="ghost" size="icon" className="mr-2" onClick={() => setCollapsed(!collapsed)} title={sidebarLabel}>
+        <SidebarIcon />
+      </Button>
+      <Separator orientation="vertical" className="my-2" />
+      <div className="text-xs font-medium mx-2 cursor-default">{agentSlug}</div>
+      <Separator orientation="vertical" className="my-2" />
+      <div className="flex h-full ml-2">
+        {TABS.map((tab) => (
+          <TabButton key={tab} tab={tab} active={activeTab === tab} onClick={onTabChange} label={t(tab)} />
+        ))}
+      </div>
+    </div>
   );
 }

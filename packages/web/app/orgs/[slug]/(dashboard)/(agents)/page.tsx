@@ -1,9 +1,8 @@
-import { useTranslations } from 'next-intl';
-import { redirect } from 'next/navigation';
-
 import { AgentEmptyState } from '@/app/components/agents/AgentEmptyState';
 import { getCachedAgentsByOrg } from '@/app/lib/agents';
 import { getOrgBySlug } from '@/app/lib/orgs';
+import { useTranslations } from 'next-intl';
+import { redirect } from 'next/navigation';
 
 interface AgentsPageProps {
   params: Promise<{ slug: string }>;
@@ -25,8 +24,24 @@ function GraphIllustration() {
       <circle cx="24" cy="40" r="3" fill="currentColor" className="text-primary/40" />
       <circle cx="60" cy="40" r="3" fill="currentColor" className="text-primary/40" />
       <circle cx="96" cy="40" r="3" fill="currentColor" className="text-primary/40" />
-      <line x1="40" y1="40" x2="44" y2="40" stroke="currentColor" strokeWidth="1.5" className="text-primary/30" />
-      <line x1="76" y1="40" x2="80" y2="40" stroke="currentColor" strokeWidth="1.5" className="text-primary/30" />
+      <line
+        x1="40"
+        y1="40"
+        x2="44"
+        y2="40"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        className="text-primary/30"
+      />
+      <line
+        x1="76"
+        y1="40"
+        x2="80"
+        y2="40"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        className="text-primary/30"
+      />
     </svg>
   );
 }
@@ -35,11 +50,13 @@ function SelectAgentPrompt() {
   const t = useTranslations('agents');
 
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-0">
-      <GraphIllustration />
-      <div className="flex flex-col items-center gap-1">
-        <h2 className="text-lg font-medium text-foreground">{t('selectAgent')}</h2>
-        <p className="max-w-xs text-center text-sm text-muted-foreground">{t('selectAgentDescription')}</p>
+    <div className="flex h-full flex-col items-center justify-center gap-0 bg-card">
+      <div className="w-fit h-fit flex flex-col items-center justify-center px-6 py-10 pt-4">
+        <GraphIllustration />
+        <div className="flex flex-col items-center gap-1">
+          <h2 className="text-lg font-medium text-foreground">{t('selectAgent')}</h2>
+          <p className="max-w-xs text-center text-sm text-muted-foreground">{t('selectAgentDescription')}</p>
+        </div>
       </div>
     </div>
   );
