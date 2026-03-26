@@ -16,7 +16,7 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Build package
-        run: npm run build
+        run: npm run build:api
       - name: Run format, lint, and typecheck
         run: npm run check
       - name: Run tests
