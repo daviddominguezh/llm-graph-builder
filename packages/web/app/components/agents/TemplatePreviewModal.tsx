@@ -7,7 +7,7 @@ import { Background, Controls, type Edge, type Node, ReactFlow } from '@xyflow/r
 import '@xyflow/react/dist/style.css';
 import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -31,6 +31,11 @@ type PreviewEdgeData = Record<string, unknown> & {
 };
 
 const DEFAULT_POSITION = { x: 0, y: 0 };
+
+async function fetchPreviewGraph(aid: string, ver: number): Promise<TemplateGraphData | null> {
+  const result = await getTemplateSnapshot(aid, ver);
+  return result.graphData;
+}
 
 /* ------------------------------------------------------------------ */
 /*  Conversion helpers                                                 */
@@ -113,17 +118,24 @@ export function TemplatePreviewModal({ open, onOpenChange, agentId, version }: T
   const tCommon = useTranslations('common');
   const { resolvedTheme } = useTheme();
   const [graphData, setGraphData] = useState<TemplateGraphData | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loadedKey, setLoadedKey] = useState('');
+  const mountedRef = useRef(true);
+
+  const requestKey = open && agentId && version !== null ? `${agentId}:${String(version)}` : '';
 
   useEffect(() => {
-    if (!open || !agentId || version === null) return;
-    setLoading(true);
-    setGraphData(null);
-    getTemplateSnapshot(agentId, version).then((result) => {
-      setGraphData(result.graphData);
-      setLoading(false);
+    mountedRef.current = true;
+    if (requestKey === '') return;
+    void fetchPreviewGraph(agentId!, version!).then((data) => {
+      if (mountedRef.current) {
+        setGraphData(data);
+        setLoadedKey(requestKey);
+      }
     });
-  }, [open, agentId, version]);
+    return () => { mountedRef.current = false; };
+  }, [requestKey, agentId, version]);
+
+  const loading = requestKey !== '' && loadedKey !== requestKey;
 
   const nodes = graphData ? toPreviewNodes(graphData) : [];
   const edges = graphData ? toPreviewEdges(graphData) : [];
