@@ -21,6 +21,7 @@ import { handleUniqueSlug } from './routes/orgs/uniqueSlug.js';
 import { handleUpdateOrg } from './routes/orgs/updateOrg.js';
 import { secretsRouter } from './routes/secrets/secretsRouter.js';
 import { handleSimulate } from './routes/simulateHandler.js';
+import { templateRouter } from './routes/templates/templateRouter.js';
 import { handleToolCall } from './routes/toolCall.js';
 
 function requestLogger(req: Request, _res: Response, next: NextFunction): void {
@@ -69,6 +70,7 @@ export function createApp(): Express {
   app.use('/secrets', secretsRouter);
   app.use('/dashboard', dashboardRouter);
   app.use('/mcp-library', mcpLibraryRouter);
+  app.use('/templates', templateRouter);
 
   return app;
 }
