@@ -56,6 +56,7 @@ function PreconditionEdgeComponent({
   };
 
   const getTypeColors = () => {
+    if (muted) return "bg-muted text-muted-foreground/50 border-border";
     switch (preconditionType) {
       case "user_said":
         return "bg-green-100 text-green-700 border-green-300";
@@ -64,12 +65,13 @@ function PreconditionEdgeComponent({
       case "tool_call":
         return "bg-orange-100 text-orange-700 border-orange-300";
       default:
-        return "bg-gray-100 text-gray-700 border-gray-300";
+        return "bg-muted text-muted-foreground border-border";
     }
   };
 
   const getStrokeColor = () => {
-    if (selected) return "#000000";
+    if (selected) return "var(--foreground)";
+    if (muted) return "var(--border)";
     switch (preconditionType) {
       case "user_said":
         return "#22c55e"; // green-500
@@ -91,9 +93,8 @@ function PreconditionEdgeComponent({
           stroke: getStrokeColor(),
           strokeWidth: selected ? 2 : 1.5,
           strokeDasharray: selected ? "none" : "5 5",
-          opacity: muted ? 0.4 : 1,
-          transition: "opacity 150ms",
           animation: selected ? "none" : "dash-flow 1s linear infinite",
+          pointerEvents: muted ? "none" : "auto",
         }}
       />
       {hasPreconditions && (
@@ -102,9 +103,7 @@ function PreconditionEdgeComponent({
             style={{
               position: "absolute",
               transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-              pointerEvents: "all",
-              opacity: muted ? 0.4 : 1,
-              transition: "opacity 150ms",
+              pointerEvents: muted ? "none" : "all",
             }}
           >
             <Tooltip>

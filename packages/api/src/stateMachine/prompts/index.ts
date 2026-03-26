@@ -3,6 +3,8 @@ import type { Context } from '@src/types/tools.js';
 import { insertValuesInText } from '../format/utils.js';
 import { getNode } from '../graph/index.js';
 
+const MESSAGE_TO_USER_RULE = `IMPORTANT: In "messageToUser", use [nl] for line breaks. Example: "Line one[nl]Line two[nl]Line three". Never put all content on a single line.`;
+
 export const buildAgentReplySchema = (ids: string): string => `\`\`\`json
 {
   "nextNodeID": "${ids}",
@@ -18,7 +20,35 @@ export const buildOutputFormatPrompt = (ids: string): string => `## Output forma
 
 Return ONLY valid JSON. No tools. No extra text.
 
+${MESSAGE_TO_USER_RULE}
+
 ${buildAgentReplySchema(ids)}`;
+
+export const buildDecisionOnlySchema = (ids: string): string => `\`\`\`json
+{
+  "nextNodeID": "${ids}"
+}
+\`\`\``;
+
+export const buildDecisionOnlyOutputFormatPrompt = (ids: string): string => `## Output format
+
+Return ONLY valid JSON. No tools. No extra text.
+
+${buildDecisionOnlySchema(ids)}`;
+
+export const buildTerminalNodeSchema = (): string => `\`\`\`json
+{
+  "messageToUser": "Your reply in the same language the user is writing"
+}
+\`\`\``;
+
+export const buildTerminalOutputFormatPrompt = (): string => `## Output format
+
+Return ONLY valid JSON. No tools. No extra text.
+
+${MESSAGE_TO_USER_RULE}
+
+${buildTerminalNodeSchema()}`;
 
 export const SM_BASE_PROMPT_NEXT_OPTION_IS_AGENT_DECISION = `You are a routing node. Your only job is to classify the user's message and return a JSON object.
 
@@ -42,7 +72,7 @@ export const SM_TOOLREPLY_EXAMPLE_REPLY = `This is an example of the reply you s
 export const SM_BASE_JSON_PROMPT = `Return ONLY valid JSON:`;
 
 export const buildSchemaAgentReplyPrompt = (ids: string): string =>
-  `${SM_BASE_JSON_PROMPT}\n\n${buildAgentReplySchema(ids)}`;
+  `${SM_BASE_JSON_PROMPT}\n\n${MESSAGE_TO_USER_RULE}\n\n${buildAgentReplySchema(ids)}`;
 
 interface GenerateToolReplyPromptParams {
   ctx: Context;

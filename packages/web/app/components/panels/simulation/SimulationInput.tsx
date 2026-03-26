@@ -1,25 +1,30 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Loader2, OctagonX, Send } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowUp, Loader2, OctagonX } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useCallback, useRef, useState } from 'react';
+
+import { useOpenRouterModels } from '../../../hooks/useOpenRouterModels';
+import { SimulationModelSelector } from './SimulationModelSelector';
+import type { ThinkingEffort } from './SimulationThinkingEffort';
 
 interface SimulationInputProps {
   loading: boolean;
   terminated: boolean;
   terminatedLabel: string;
   terminatedDescription: string;
+  modelId: string;
+  onModelIdChange: (id: string) => void;
   onSendMessage: (text: string) => void;
 }
 
 function TerminatedBanner({ label, description }: { label: string; description: string }) {
   return (
-    <div className="flex flex-col w-full">
-      <div className="w-full h-[1px] bg-gray-200"></div>
-
-      <div className="flex gap-2 p-2 text-xs bg-gray-100 m-2 rounded-md">
-        <OctagonX className="size-3.5 mt-0.5" />
+    <div className="flex w-full flex-col">
+      <div className="h-[1px] w-full bg-border mt-1" />
+      <div className="m-2 flex gap-2 rounded-md bg-muted p-2 text-xs">
+        <OctagonX className="mt-0.5 size-3.5" />
         <div className="flex flex-col">
           <span>{label}</span>
           <span className="text-muted-foreground">{description}</span>
@@ -29,43 +34,125 @@ function TerminatedBanner({ label, description }: { label: string; description: 
   );
 }
 
-export function SimulationInput({
+function SendButton({ disabled, loading, onClick }: { disabled: boolean; loading: boolean; onClick: () => void }) {
+  return (
+    <Button disabled={disabled} onClick={onClick} size="icon" className="size-7">
+      {loading ? <Loader2 className="size-3.5 animate-spin" /> : <ArrowUp className="size-3.5" />}
+    </Button>
+  );
+}
+
+function ChatInputControls({
+  models,
+  modelId,
+  effort,
+  onModelChange,
+  onEffortChange,
+  sendDisabled,
   loading,
-  terminated,
-  terminatedLabel,
-  terminatedDescription,
+  onSubmit,
+}: {
+  models: ReturnType<typeof useOpenRouterModels>;
+  modelId: string;
+  effort: ThinkingEffort;
+  onModelChange: (v: string) => void;
+  onEffortChange: (v: ThinkingEffort) => void;
+  sendDisabled: boolean;
+  loading: boolean;
+  onSubmit: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 px-2 pb-0">
+      <div className="flex-1" />
+      <SimulationModelSelector
+        models={models}
+        value={modelId}
+        onValueChange={onModelChange}
+        effort={effort}
+        onEffortChange={onEffortChange}
+      />
+      <SendButton disabled={sendDisabled} loading={loading} onClick={onSubmit} />
+    </div>
+  );
+}
+
+function ChatInput({
+  loading,
+  modelId,
+  onModelIdChange,
   onSendMessage,
-}: SimulationInputProps) {
+}: Pick<SimulationInputProps, 'loading' | 'modelId' | 'onModelIdChange' | 'onSendMessage'>) {
   const [text, setText] = useState('');
+  const [effort, setEffort] = useState<ThinkingEffort>('high');
+  const t = useTranslations('simulation');
+  const models = useOpenRouterModels();
 
-  if (terminated) return <TerminatedBanner label={terminatedLabel} description={terminatedDescription} />;
+  const editorRef = useRef<HTMLDivElement>(null);
 
-  const handleSubmit = () => {
+  const clearEditor = useCallback(() => {
+    if (editorRef.current) {
+      editorRef.current.textContent = '';
+    }
+    setText('');
+  }, []);
+
+  const handleInput = useCallback(() => {
+    const content = editorRef.current?.textContent ?? '';
+    setText(content);
+    if (content === '' && editorRef.current) {
+      editorRef.current.innerHTML = '';
+    }
+  }, []);
+
+  const handleEditorSubmit = useCallback(() => {
     const trimmed = text.trim();
     if (trimmed.length === 0) return;
     onSendMessage(trimmed);
-    setText('');
-  };
+    clearEditor();
+  }, [text, onSendMessage, clearEditor]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !loading) {
-      handleSubmit();
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey && !loading) {
+      e.preventDefault();
+      handleEditorSubmit();
     }
   };
 
+  const isEmpty = text.trim().length === 0;
+
   return (
-    <div className="flex items-center gap-1 border-t p-1.5">
-      <Input
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="Type a message..."
-        disabled={loading}
-        className="flex-1"
+    <div className="mx-2 flex flex-col overflow-hidden rounded-lg border bg-muted/30 py-1 gap-1 my-2">
+      <div className="max-h-96 min-h-6 w-full overflow-y-auto break-words px-3 py-2 text-xs transition-opacity">
+        <div
+          ref={editorRef}
+          contentEditable={!loading}
+          role="textbox"
+          aria-label={t('placeholder')}
+          aria-multiline="true"
+          tabIndex={0}
+          onInput={handleInput}
+          onKeyDown={handleKeyDown}
+          data-placeholder={t('placeholder')}
+          className="min-h-4 outline-none empty:before:pointer-events-none empty:before:text-muted-foreground empty:before:content-[attr(data-placeholder)]"
+        />
+      </div>
+      <ChatInputControls
+        models={models}
+        modelId={modelId}
+        effort={effort}
+        onModelChange={onModelIdChange}
+        onEffortChange={setEffort}
+        sendDisabled={loading || isEmpty}
+        loading={loading}
+        onSubmit={handleEditorSubmit}
       />
-      <Button disabled={loading || text.trim().length === 0} onClick={handleSubmit}>
-        {loading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-      </Button>
     </div>
   );
+}
+
+export function SimulationInput(props: SimulationInputProps) {
+  const { loading, terminated, terminatedLabel, terminatedDescription } = props;
+  const { modelId, onModelIdChange, onSendMessage } = props;
+  if (terminated) return <TerminatedBanner label={terminatedLabel} description={terminatedDescription} />;
+  return <ChatInput loading={loading} modelId={modelId} onModelIdChange={onModelIdChange} onSendMessage={onSendMessage} />;
 }

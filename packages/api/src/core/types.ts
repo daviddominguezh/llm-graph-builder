@@ -1,3 +1,4 @@
+import type { OutputSchemaField } from '@daviddh/graph-types';
 import type {
   AssistantContent,
   AssistantModelMessage,
@@ -27,6 +28,7 @@ export interface CallAgentInput {
   tokensLog: ActionTokenUsage[];
   currentNode: string;
   indicatorOriginalId?: string;
+  structuredOutputs: Record<string, unknown[]>;
 }
 
 /**
@@ -40,6 +42,7 @@ export interface CallAgentOutput {
   parsedResults?: ParsedResult[];
   text?: string;
   debugMessages: Record<string, ModelMessage[][]>;
+  structuredOutputs?: Array<{ nodeId: string; data: unknown }>;
 }
 
 /**
@@ -61,6 +64,7 @@ export interface AgentExecutionResult {
   messages: Array<AssistantModelMessage | ToolModelMessage>;
   tokens: TokenLog;
   toolCalls: Array<TypedToolCall<Record<string, Tool>>>;
+  toolResults: Array<{ toolName: string; output: unknown }>;
   lastMessage: AssistantModelMessage;
   copyMsgs: ModelMessage[][];
   error: boolean;
@@ -75,13 +79,14 @@ export interface ReplyGenerationResult {
   toolCalls: Array<TypedToolCall<Record<string, Tool>>>;
   lastMessage: AssistantModelMessage;
   copyMsgs: ModelMessage[][];
+  reasoning?: string;
 }
 
 /**
  * Configuration for node processing
  */
 export interface NodeProcessingConfig {
-  kind: 'tool_call' | 'agent_decision' | 'user_reply' | undefined;
+  kind: 'tool_call' | 'agent_decision' | 'user_reply' | 'structured_output' | undefined;
   promptWithoutToolPreconditions: string;
   toolsByEdge: Record<
     string,
@@ -91,6 +96,9 @@ export interface NodeProcessingConfig {
     }
   >;
   nodes: Record<string, string>;
+  outputSchema?: OutputSchemaField[];
+  skipMessageToUser?: boolean;
+  isTerminal?: boolean;
 }
 
 /**
@@ -115,6 +123,7 @@ export interface ReplyWithObject {
   toolResults?: Array<{ toolName: string; output: unknown }>;
   usage?: ReplyUsageInfo;
   response?: { messages?: Array<AssistantModelMessage | ToolModelMessage> };
+  costUSD?: number;
 }
 
 export interface ExecuteAgentParams {

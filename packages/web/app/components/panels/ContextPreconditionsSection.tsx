@@ -30,7 +30,7 @@ function PreconditionHeader({ name, expanded, onToggle, onRemove }: {
         {name}
       </span>
       <div onClick={(e) => e.stopPropagation()}>
-        <Button variant="ghost" size="icon-xs" onClick={onRemove}>
+        <Button variant="destructive" size="icon-xs" onClick={onRemove}>
           <Trash2 className="size-3" />
         </Button>
       </div>
@@ -80,7 +80,7 @@ export function ContextPreconditionsSection({
   onUpdate,
 }: ContextPreconditionsSectionProps) {
   return (
-    <div className="mb-4">
+    <div className="mb-3">
       <div className="flex items-center justify-between mb-1">
         <Label>Context Preconditions</Label>
         <Button variant="ghost" size="icon-xs" onClick={onAdd}>

@@ -5,10 +5,17 @@ import type {
   McpServerConfig,
   McpTransport,
   Node,
+  OutputSchemaEntity,
+  OutputSchemaField,
   Precondition,
   ToolFieldValue,
 } from '@daviddh/graph-types';
-import { McpTransportSchema, ToolFieldValueSchema } from '@daviddh/graph-types';
+import {
+  McpTransportSchema,
+  OutputSchemaFieldSchema,
+  ToolFieldValueSchema,
+  VariableValueSchema,
+} from '@daviddh/graph-types';
 import { z } from 'zod';
 
 import type {
@@ -18,6 +25,7 @@ import type {
   EdgeRow,
   McpServerRow,
   NodeRow,
+  OutputSchemaRow,
 } from './graphRowTypes.js';
 
 const EMPTY_LENGTH = 0;
@@ -29,6 +37,11 @@ function parseToolFields(raw: Record<string, unknown> | null): Record<string, To
   if (raw === null) return undefined;
   const result = ToolFieldsSchema.safeParse(raw);
   return result.success ? result.data : undefined;
+}
+
+function parseOutputSchemaFields(raw: Array<Record<string, unknown>>): OutputSchemaField[] {
+  const result = z.array(OutputSchemaFieldSchema).safeParse(raw);
+  return result.success ? result.data : [];
 }
 
 function buildPosition(row: NodeRow): { x: number; y: number } | undefined {
@@ -48,6 +61,8 @@ export function assembleNode(row: NodeRow): Node {
     global: row.global,
     defaultFallback: row.default_fallback ?? undefined,
     position: buildPosition(row),
+    outputSchemaId: row.output_schema_id ?? undefined,
+    outputPrompt: row.output_prompt ?? undefined,
   };
 }
 
@@ -129,6 +144,15 @@ function buildTransport(row: McpServerRow): McpTransport {
   return McpTransportSchema.parse(raw);
 }
 
+function parseVariableValues(
+  raw: Record<string, unknown> | null
+): Record<string, z.infer<typeof VariableValueSchema>> | undefined {
+  if (raw === null) return undefined;
+  const schema = z.record(z.string(), VariableValueSchema);
+  const result = schema.safeParse(raw);
+  return result.success ? result.data : undefined;
+}
+
 export function assembleMcpServers(rows: McpServerRow[]): McpServerConfig[] | undefined {
   if (rows.length === EMPTY_LENGTH) return undefined;
 
@@ -137,5 +161,17 @@ export function assembleMcpServers(rows: McpServerRow[]): McpServerConfig[] | un
     name: row.name,
     transport: buildTransport(row),
     enabled: row.enabled,
+    libraryItemId: row.library_item_id ?? undefined,
+    variableValues: parseVariableValues(row.variable_values),
+  }));
+}
+
+export function assembleOutputSchemas(rows: OutputSchemaRow[]): OutputSchemaEntity[] | undefined {
+  if (rows.length === EMPTY_LENGTH) return undefined;
+
+  return rows.map((row) => ({
+    id: row.schema_id,
+    name: row.name,
+    fields: parseOutputSchemaFields(row.fields),
   }));
 }

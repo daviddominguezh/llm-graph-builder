@@ -12,12 +12,12 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import type { OutputSchemaEntity } from '@daviddh/graph-types';
 import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
 import type { Edge, Node } from '@xyflow/react';
 import { ArrowLeft, ArrowRight, Box, Brain, Cable, MessageCircle, Send, Trash2, Wrench } from 'lucide-react';
@@ -25,11 +25,13 @@ import { useState } from 'react';
 
 import type { Agent, PreconditionType } from '../../schemas/graph.schema';
 import type { ContextPreset } from '../../types/preset';
-import type { PushOperation } from '../../utils/operationBuilders';
 import type { RFEdgeData, RFNodeData } from '../../utils/graphTransformers';
+import type { PushOperation } from '../../utils/operationBuilders';
 import { FallbackNodeSelect } from './FallbackNodeSelect';
+import { NodePanelOutputSchema } from './NodePanelOutputSchema';
 import { NodePromptDialog } from './NodePromptDialog';
 import { pushDeleteNode, pushRenameNode, pushUpdateNode } from './nodePanelOps';
+import { hasToolCallEdge } from './toolCallGuard';
 
 interface NodePanelProps {
   nodeId: string;
@@ -44,6 +46,10 @@ interface NodePanelProps {
   onSelectEdge?: (edgeId: string) => void;
   onSelectNode?: (nodeId: string) => void;
   pushOperation: PushOperation;
+  outputSchemas: OutputSchemaEntity[];
+  onAddOutputSchema: () => string;
+  onEditOutputSchema: (id: string) => void;
+  onEditNewOutputSchema: (id: string) => void;
 }
 
 export function NodePanel({
@@ -59,6 +65,10 @@ export function NodePanel({
   onSelectEdge,
   onSelectNode,
   pushOperation,
+  outputSchemas,
+  onAddOutputSchema,
+  onEditOutputSchema,
+  onEditNewOutputSchema,
 }: NodePanelProps) {
   const nodes = useNodes<Node<RFNodeData>>();
   const edges = useEdges<Edge<RFEdgeData>>();
@@ -67,6 +77,10 @@ export function NodePanel({
   // Get incoming and outgoing edges
   const incomingEdges = edges.filter((e) => e.target === nodeId);
   const outgoingEdges = edges.filter((e) => e.source === nodeId);
+  const isToolCallNode = hasToolCallEdge(outgoingEdges);
+  const isUserSaidNode = outgoingEdges.some((e) =>
+    e.data?.preconditions?.some((p) => p.type === 'user_said')
+  );
 
   const node = nodes.find((n) => n.id === nodeId);
   const nodeData = node?.data;
@@ -147,17 +161,13 @@ export function NodePanel({
               presets={presets}
               activePresetId={activePresetId}
               onSetActivePreset={onSetActivePreset}
+              outputSchemas={outputSchemas}
             />
 
             <AlertDialog>
               <AlertDialogTrigger
                 render={
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-muted-foreground hover:text-destructive"
-                    title="Delete node"
-                  >
+                  <Button variant="destructive" size="icon" title="Delete node">
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 }
@@ -195,42 +205,42 @@ export function NodePanel({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={nodeData.description}
-              onChange={(e) => updateNodeData({ description: e.target.value })}
-              rows={2}
-              placeholder="Node description..."
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="text">Text</Label>
-            <Textarea
-              id="text"
-              value={nodeData.text}
-              onChange={(e) => updateNodeData({ text: e.target.value })}
-              rows={3}
-              placeholder="Node text..."
-            />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="nextNodeIsUser"
-                checked={nodeData.nextNodeIsUser ?? false}
-                onCheckedChange={(checked) =>
-                  updateNodeData({
-                    nextNodeIsUser: checked === true || undefined,
-                  })
-                }
+          {!isToolCallNode && (
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={nodeData.description}
+                onChange={(e) => updateNodeData({ description: e.target.value })}
+                rows={2}
+                placeholder="Node description..."
               />
-              <Label htmlFor="nextNodeIsUser">Next node expects user input</Label>
             </div>
-          </div>
+          )}
+
+          {isUserSaidNode && (
+            <div className="space-y-2">
+              <Label htmlFor="text">Text</Label>
+              <Textarea
+                id="text"
+                value={nodeData.text}
+                onChange={(e) => updateNodeData({ text: e.target.value })}
+                rows={3}
+                placeholder="Node text..."
+              />
+            </div>
+          )}
+
+          <NodePanelOutputSchema
+            nodeData={nodeData}
+            nodeType={node.type}
+            outgoingEdges={outgoingEdges}
+            outputSchemas={outputSchemas}
+            onUpdateNodeData={updateNodeData}
+            onAddOutputSchema={onAddOutputSchema}
+            onEditOutputSchema={onEditOutputSchema}
+            onEditNewOutputSchema={onEditNewOutputSchema}
+          />
         </div>
 
         <Separator />
@@ -256,16 +266,16 @@ export function NodePanel({
                   return (
                     <div key={edge.id}>
                       <div className="w-full flex justify-between items-center text-xs gap-1 py-1">
-                        <div className="flex flex-col">
+                        <div className="flex flex-1 min-w-[0px] flex-col">
                           <div className="flex items-center">
                             {getEdgeTypeIcon(edge)}
                             <span className="ml-0.5 text-[11px]">{edge.source}</span>
                           </div>
                           {(value || hasContext) && (
-                            <div className="flex w-full gap-3 mt-1">
-                              <div className="shrink-0 ml-1 w-[2px] bg-zinc-200 self-stretch"></div>
-                              <div className="text-[10px] text-muted-foreground">
-                                {value && <div>{value}</div>}
+                            <div className="flex w-full gap-3 mt-1 bg-card rounded-sm py-1">
+                              <div className="shrink-0 w-[2px] bg-ring self-stretch"></div>
+                              <div className="w-full text-[10px] text-muted-foreground">
+                                {value && <div className="w-full">{value}</div>}
                                 {hasContext && (
                                   <div className={value ? 'mt-1' : ''}>
                                     <span>Context:</span> {contextPreconditions.preconditions.join(', ')}
@@ -325,16 +335,16 @@ export function NodePanel({
                   return (
                     <div key={edge.id}>
                       <div className="w-full flex justify-between items-center text-xs gap-1 py-1">
-                        <div className="flex flex-col">
+                        <div className="flex flex-1 flex-col min-w-[0px]">
                           <div className="flex items-center">
                             {getEdgeTypeIcon(edge)}
                             <span className="ml-0.5 text-[11px]">{edge.target}</span>
                           </div>
                           {(value || hasContext) && (
-                            <div className="flex w-full gap-3 mt-1">
-                              <div className="shrink-0 ml-1 w-[2px] bg-zinc-200 self-stretch"></div>
-                              <div className="text-[10px] text-muted-foreground">
-                                {value && <div>{value}</div>}
+                            <div className="flex w-full gap-3 mt-1 bg-card rounded-sm py-1">
+                              <div className="shrink-0 ml-0 w-[2px] bg-ring self-stretch"></div>
+                              <div className="w-full text-[10px] text-muted-foreground">
+                                {value && <div className="w-full">{value}</div>}
                                 {hasContext && (
                                   <div className={value ? 'mt-1' : ''}>
                                     <span>Context:</span> {contextPreconditions.preconditions.join(', ')}
@@ -345,7 +355,7 @@ export function NodePanel({
                           )}
                         </div>
 
-                        <div className="flex items-center">
+                        <div className="flex items-center shrink-0">
                           <Tooltip>
                             <TooltipTrigger
                               render={

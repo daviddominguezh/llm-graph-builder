@@ -1,5 +1,10 @@
 import { z } from 'zod';
 
+export const VariableValueSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('direct'), value: z.string() }),
+  z.object({ type: z.literal('env_ref'), envVariableId: z.string() }),
+]);
+
 export const StdioTransportSchema = z.object({
   type: z.literal('stdio'),
   command: z.string(),
@@ -30,4 +35,6 @@ export const McpServerConfigSchema = z.object({
   name: z.string(),
   transport: McpTransportSchema,
   enabled: z.boolean().default(true),
+  libraryItemId: z.string().optional(),
+  variableValues: z.record(z.string(), VariableValueSchema).optional(),
 });

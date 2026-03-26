@@ -1,7 +1,7 @@
 'use client';
 
-import { getApiKeysByOrgAction } from '@/app/actions/api-keys';
-import type { ApiKeyRow } from '@/app/lib/api-keys';
+import { getApiKeysByOrgAction } from '@/app/actions/apiKeys';
+import type { ApiKeyRow } from '@/app/lib/apiKeys';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Trash2 } from 'lucide-react';
@@ -18,23 +18,29 @@ interface ApiKeyItemProps {
 
 function ApiKeyItem({ apiKey, onDeleteClick }: ApiKeyItemProps) {
   return (
-    <div className="flex items-center justify-between rounded-md border px-3 py-2">
+    <div className="flex items-center justify-between rounded-md border px-3 py-2 bg-card">
       <div className="flex flex-col gap-0.5">
         <span className="text-sm font-medium">{apiKey.name}</span>
         <span className="text-muted-foreground font-mono text-xs">{apiKey.key_preview}</span>
       </div>
-      <Button variant="ghost" size="icon-sm" onClick={() => onDeleteClick(apiKey)}>
-        <Trash2 className="size-4" />
+      <Button variant="destructive" onClick={() => onDeleteClick(apiKey)}>
+        <Trash2 className="size-3.5" />
       </Button>
     </div>
   );
 }
 
-function ApiKeysList({ keys, onDeleteClick }: { keys: ApiKeyRow[]; onDeleteClick: (key: ApiKeyRow) => void }) {
+function ApiKeysList({
+  keys,
+  onDeleteClick,
+}: {
+  keys: ApiKeyRow[];
+  onDeleteClick: (key: ApiKeyRow) => void;
+}) {
   const t = useTranslations('apiKeys');
 
   if (keys.length === 0) {
-    return <p className="text-muted-foreground text-xs bg-gray-100 py-2 px-3 rounded-md">{t('noKeys')}</p>;
+    return <p className="text-muted-foreground text-xs bg-card py-2 px-3 rounded-md">{t('noKeys')}</p>;
   }
 
   return (
@@ -63,7 +69,7 @@ export function ApiKeysSection({ orgId, initialKeys }: ApiKeysSectionProps) {
   }, [orgId]);
 
   return (
-    <Card>
+    <Card className="bg-background ring-0">
       <CardHeader>
         <CardTitle>{t('title')}</CardTitle>
         <CardDescription>{t('description')}</CardDescription>
@@ -77,7 +83,12 @@ export function ApiKeysSection({ orgId, initialKeys }: ApiKeysSectionProps) {
       <CardContent>
         <ApiKeysList keys={keys} onDeleteClick={setDeleteTarget} />
       </CardContent>
-      <CreateApiKeyDialog open={createOpen} onOpenChange={setCreateOpen} orgId={orgId} onCreated={refreshKeys} />
+      <CreateApiKeyDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        orgId={orgId}
+        onCreated={refreshKeys}
+      />
       {deleteTarget !== null && (
         <DeleteApiKeyDialog
           open={deleteTarget !== null}

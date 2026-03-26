@@ -11,8 +11,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronDown, History } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { Calendar, Clock, History } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 
@@ -32,14 +33,43 @@ function formatDate(iso: string): string {
   });
 }
 
-function VersionItemLabel({ version, publishedAt }: { version: number; publishedAt: string }) {
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+interface VersionItemProps {
+  version: number;
+  publishedAt: string;
+}
+
+function VersionItemLabel({ version, publishedAt }: VersionItemProps) {
   const t = useTranslations('editor');
 
   return (
-    <span className="flex flex-col gap-0.5">
-      <span className="text-xs font-medium">{t('versionLabel', { version: String(version) })}</span>
-      <span className="text-muted-foreground text-[10px]">
-        {t('versionPublishedAt', { date: formatDate(publishedAt) })}
+    <span className="flex flex-col gap-1 py-0.5 pr-5">
+      <span className="flex items-center gap-2">
+        <Badge
+          variant="outline"
+          className="h-4 bg-muted/40 group-focus:bg-background px-1.5 font-mono text-[9px] font-semibold tabular-nums"
+        >
+          {t('versionLabel', { version: String(version) })}
+        </Badge>
+        <span className="flex items-center gap-1 text-xs text-foreground">
+          <Calendar aria-hidden="true" className="size-3 shrink-0" />
+          {formatDate(publishedAt)}
+        </span>
+      </span>
+      <span className="flex items-center gap-2">
+        <span className="h-4 border px-1.5 font-mono text-[9px] font-semibold invisible" aria-hidden="true">
+          {t('versionLabel', { version: String(version) })}
+        </span>
+        <span className="flex items-center gap-1 text-xs text-foreground">
+          <Clock aria-hidden="true" className="size-3 shrink-0" />
+          {formatTime(publishedAt)}
+        </span>
       </span>
     </span>
   );
@@ -79,11 +109,12 @@ function buildOpenChangeHandler(isOpen: boolean, onClose: () => void) {
 }
 
 function EmptyVersionsTrigger() {
+  const t = useTranslations('editor');
+
   return (
-    <div className="flex h-10 items-center gap-1.5 rounded-md border bg-background px-3 text-xs text-muted-foreground">
-      <History className="size-3.5" />
-      <span className="font-bold">v0</span>
-      <ChevronDown className="size-3.5" />
+    <div className="flex h-10 items-center gap-1.5 rounded-md border bg-background px-3 text-xs text-foreground">
+      <History className="size-4" />
+      <span className="font-bold">{t('versionDraft')}</span>
     </div>
   );
 }
@@ -91,8 +122,8 @@ function EmptyVersionsTrigger() {
 export function VersionSelector(props: VersionSelectorProps) {
   const { versions, currentVersion, loading, hasPendingOps, onSwitchVersion } = props;
   const t = useTranslations('editor');
-
   const [pendingVersion, setPendingVersion] = useState<number | null>(null);
+  const triggerLabel = currentVersion === 0 ? t('versionDraft') : `v${currentVersion}`;
 
   const handleValueChange = useCallback(
     (raw: string | null) => {
@@ -126,13 +157,20 @@ export function VersionSelector(props: VersionSelectorProps) {
   return (
     <>
       <Select value={String(currentVersion)} onValueChange={handleValueChange} disabled={loading}>
-        <SelectTrigger size="sm" className="h-10 min-w-[90px] text-xs font-bold">
-          <History className="size-3.5" />
-          <SelectValue placeholder={t('versionLabel', { version: String(currentVersion) })} />
+        <SelectTrigger
+          size="sm"
+          className="h-10 data-[size=sm]:h-10 bg-background px-3 text-xs font-bold [&>svg:last-child]:hidden bg-background! hover:bg-card!"
+        >
+          <History className="size-4" />
+          <span>{triggerLabel}</span>
         </SelectTrigger>
-        <SelectContent side="bottom" align="end">
+        <SelectContent side="bottom" align="end" alignItemWithTrigger={false} className="w-auto min-w-56">
           {versions.map((v) => (
-            <SelectItem key={v.version} value={String(v.version)}>
+            <SelectItem
+              key={v.version}
+              value={String(v.version)}
+              
+            >
               <VersionItemLabel version={v.version} publishedAt={v.publishedAt} />
             </SelectItem>
           ))}

@@ -13,7 +13,7 @@ const INITIAL_STEP_WIDTH = 100;
 const INITIAL_STEP_HEIGHT = 44;
 const DEFAULT_NODE_HEIGHT = 130;
 const FIXED_NODE_HEIGHT = 220;
-const NO_SPACING = 0;
+const VERTICAL_SPACING = 80;
 const HALF_DIVISOR = 2;
 
 function calculateNodeWidth(nodes: Graph['nodes']): number {
@@ -55,7 +55,7 @@ function ensureNodePositions(graph: Graph, nodeWidth: number): Graph {
 
   const layoutResult = layoutGraph(graph.nodes, graph.edges, {
     horizontalSpacing: nodeWidth,
-    verticalSpacing: NO_SPACING,
+    verticalSpacing: VERTICAL_SPACING,
     defaultNodeWidth: nodeWidth,
     defaultNodeHeight: DEFAULT_NODE_HEIGHT,
     nodeDimensions,
@@ -77,7 +77,7 @@ export function relayoutGraph(graph: Graph): LoadGraphResult {
   const nodeDimensions = calculateNodeDimensions(graph.nodes, nodeWidth);
   const layoutResult = layoutGraph(graph.nodes, graph.edges, {
     horizontalSpacing: nodeWidth,
-    verticalSpacing: NO_SPACING,
+    verticalSpacing: VERTICAL_SPACING,
     defaultNodeWidth: nodeWidth,
     defaultNodeHeight: DEFAULT_NODE_HEIGHT,
     nodeDimensions,

@@ -2,6 +2,7 @@ export interface TokenLog {
   input: number;
   output: number;
   cached: number;
+  costUSD?: number;
 }
 
 export interface ActionTokenUsage {

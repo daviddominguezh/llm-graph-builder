@@ -1,6 +1,8 @@
 'use client';
 
-import { ArrowDownToLine, ArrowUpFromLine, Clock, Database } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpFromLine, Clock, Database, DollarSign } from 'lucide-react';
+
+import { cn } from '@/lib/utils';
 
 import type { SimulationTokens } from '../../../types/simulation';
 
@@ -20,13 +22,18 @@ function formatDuration(ms: number): string {
   return `${String(ms)}ms`;
 }
 
+function formatCost(usd: number): string {
+  if (usd < 0.01) return `$${usd.toFixed(4)}`;
+  return `$${usd.toFixed(2)}`;
+}
+
 function Separator() {
   return <span className="mx-1 text-muted-foreground/40">|</span>;
 }
 
 export function TokenDisplay({ tokens, durationMs, className = '' }: TokenDisplayProps) {
   return (
-    <span className={`inline-flex items-center font-mono text-[10px] text-muted-foreground ${className}`}>
+    <span className={cn('inline-flex items-center font-mono text-[10px] text-muted-foreground', className)}>
       <ArrowDownToLine className="mr-0.5 size-2.5" />
       <span title="Input tokens">{formatCount(tokens.input)}</span>
       <Separator />
@@ -40,6 +47,13 @@ export function TokenDisplay({ tokens, durationMs, className = '' }: TokenDispla
           <Separator />
           <Clock className="mr-0.5 size-2.5" />
           <span title="Processing time">{formatDuration(durationMs)}</span>
+        </>
+      )}
+      {tokens.costUSD !== undefined && tokens.costUSD > 0 && (
+        <>
+          <Separator />
+          <DollarSign className="mr-0.5 size-2.5" />
+          <span title="Cost (USD)">{formatCost(tokens.costUSD)}</span>
         </>
       )}
     </span>

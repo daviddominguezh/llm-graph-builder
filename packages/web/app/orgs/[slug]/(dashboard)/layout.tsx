@@ -1,8 +1,7 @@
-import { redirect } from 'next/navigation';
-
+import { AgentsSidebarProvider } from '@/app/components/agents/AgentsSidebarContext';
 import { OrgSidebar } from '@/app/components/orgs/OrgSidebar';
 import { getOrgBySlug } from '@/app/lib/orgs';
-import { createClient } from '@/app/lib/supabase/server';
+import { redirect } from 'next/navigation';
 
 interface OrgLayoutProps {
   children: React.ReactNode;
@@ -11,17 +10,20 @@ interface OrgLayoutProps {
 
 export default async function OrgLayout({ children, params }: OrgLayoutProps): Promise<React.JSX.Element> {
   const { slug } = await params;
-  const supabase = await createClient();
-  const { result: org } = await getOrgBySlug(supabase, slug);
+  const { result: org } = await getOrgBySlug(slug);
 
   if (!org) {
     redirect('/');
   }
 
   return (
-    <div className="relative h-screen">
-      <OrgSidebar org={org} />
-      <main className="h-full overflow-y-auto p-6 pl-16">{children}</main>
-    </div>
+    <AgentsSidebarProvider>
+      <div className="relative h-screen bg-sidebar">
+        <OrgSidebar org={org} />
+        <main className="relative z-11 h-full bg-background ml-12.5 border rounded-xl shadow-sm overflow-hidden">
+          {children}
+        </main>
+      </div>
+    </AgentsSidebarProvider>
   );
 }

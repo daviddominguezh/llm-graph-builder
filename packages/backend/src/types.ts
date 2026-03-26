@@ -20,12 +20,36 @@ export interface SimulateRequest {
   messages: Message[];
   currentNode: string;
   apiKey: string;
+  modelId: string;
   sessionID: string;
   tenantID: string;
   userID: string;
   data: Record<string, unknown>;
   quickReplies: Record<string, string>;
+  structuredOutputs?: Record<string, unknown[]>;
 }
+
+export interface ToolCallRequest {
+  transport: McpTransport;
+  toolName: string;
+  args: Record<string, unknown>;
+}
+
+export interface ToolCallSuccessResponse {
+  success: true;
+  result: unknown;
+}
+
+export interface ToolCallErrorResponse {
+  success: false;
+  error: {
+    message: string;
+    code?: string;
+    details?: unknown;
+  };
+}
+
+export type ToolCallResponse = ToolCallSuccessResponse | ToolCallErrorResponse;
 
 export type SimulationEvent =
   | { type: 'node_visited'; nodeId: string }
@@ -33,9 +57,13 @@ export type SimulationEvent =
       type: 'node_processed';
       nodeId: string;
       text: string;
-      toolCalls: Array<{ toolName: string; input: unknown }>;
-      tokens: { input: number; output: number; cached: number };
+      output?: unknown;
+      toolCalls: Array<{ toolName: string; input: unknown; output?: unknown }>;
+      reasoning?: string;
+      error?: string;
+      tokens: { input: number; output: number; cached: number; costUSD?: number };
       durationMs: number;
+      structuredOutput?: { nodeId: string; data: unknown };
     }
   | {
       type: 'agent_response';

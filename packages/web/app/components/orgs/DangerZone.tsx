@@ -73,7 +73,7 @@ export function DangerZone({ org }: DangerZoneProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   return (
-    <Card className="ring-destructive/20">
+    <Card className="ring-destructive/20 bg-background ring-0">
       <CardHeader>
         <CardTitle className="text-destructive">{t('dangerZone')}</CardTitle>
         <CardDescription>{t('dangerDescription')}</CardDescription>

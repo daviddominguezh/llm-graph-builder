@@ -31,6 +31,7 @@ export interface ModelCallResult {
   output?: unknown;
   toolCalls?: unknown[];
   toolResults?: unknown[];
+  costUSD?: number;
 }
 
 interface ModelCallContext {
@@ -66,6 +67,35 @@ function safeGetOutput(obj: Record<string, unknown>): unknown {
   }
 }
 
+function getNestedRecord(obj: Record<string, unknown>, key: string): Record<string, unknown> | undefined {
+  const { [key]: value } = obj;
+  return isRecord(value) ? value : undefined;
+}
+
+function getNumericCost(obj: Record<string, unknown>): number | undefined {
+  return typeof obj.cost === 'number' ? obj.cost : undefined;
+}
+
+function extractOpenRouterCost(result: Record<string, unknown>): number | undefined {
+  const metadata = getNestedRecord(result, 'providerMetadata');
+  if (metadata === undefined) return undefined;
+  const openrouter = getNestedRecord(metadata, 'openrouter');
+  if (openrouter === undefined) return undefined;
+  const orUsage = getNestedRecord(openrouter, 'usage');
+  return orUsage === undefined ? undefined : getNumericCost(orUsage);
+}
+
+function extractRawUsageCost(result: Record<string, unknown>): number | undefined {
+  const usage = getNestedRecord(result, 'usage');
+  if (usage === undefined) return undefined;
+  const raw = getNestedRecord(usage, 'raw');
+  return raw === undefined ? undefined : getNumericCost(raw);
+}
+
+function extractCostFromResult(result: Record<string, unknown>): number | undefined {
+  return extractOpenRouterCost(result) ?? extractRawUsageCost(result);
+}
+
 function toModelCallResult(result: unknown): ModelCallResult {
   if (!isRecord(result)) return {};
   return {
@@ -74,16 +104,38 @@ function toModelCallResult(result: unknown): ModelCallResult {
     output: safeGetOutput(result),
     toolCalls: Array.isArray(result.toolCalls) ? (result.toolCalls as unknown[]) : undefined,
     toolResults: Array.isArray(result.toolResults) ? (result.toolResults as unknown[]) : undefined,
+    costUSD: extractCostFromResult(result),
   };
 }
 
 const MODEL_CALL_TIMEOUT_MS = 90000;
 
+const DEFAULT_OUTPUT_SCHEMA = z.object({
+  nextNodeID: z.string().nonempty(),
+  messageToUser: z.string().nonempty(),
+});
+
+export const DECISION_ONLY_OUTPUT_SCHEMA = z.object({
+  nextNodeID: z.string().nonempty(),
+});
+
+export const TERMINAL_OUTPUT_SCHEMA = z.object({
+  messageToUser: z.string().nonempty(),
+});
+
+export type OutputSchema = z.ZodObject;
+
+interface ModelCallOptions {
+  expectedTool: string | undefined;
+  outputSchema?: OutputSchema;
+  timeoutMs?: number;
+}
+
 async function executeModelCall(
   config: ToolModelConfig & { model: LanguageModel },
-  expectedTool: string | undefined,
-  timeoutMs = MODEL_CALL_TIMEOUT_MS
+  options: ModelCallOptions
 ): Promise<ModelCallResult> {
+  const { expectedTool, outputSchema, timeoutMs = MODEL_CALL_TIMEOUT_MS } = options;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
     controller.abort();
@@ -96,14 +148,11 @@ async function executeModelCall(
       const result = await generateText(configWithAbort);
       return toModelCallResult(result);
     }
+
+    const schema = outputSchema ?? DEFAULT_OUTPUT_SCHEMA;
     const result = await generateText({
       ...configWithAbort,
-      output: Output.object({
-        schema: z.object({
-          nextNodeID: z.string().nonempty(),
-          messageToUser: z.string().nonempty(),
-        }),
-      }),
+      output: Output.object({ schema }),
     });
     return toModelCallResult(result);
   } finally {
@@ -118,12 +167,16 @@ interface AttemptResult {
   newState?: RetryState;
 }
 
-async function executeAttempt(
-  ctx: ModelCallContext,
-  config: ToolModelConfig,
-  expectedTool: string | undefined,
-  state: RetryState
-): Promise<AttemptResult> {
+interface AttemptParams {
+  ctx: ModelCallContext;
+  config: ToolModelConfig;
+  state: RetryState;
+  options: ModelCallOptions;
+}
+
+async function executeAttempt(params: AttemptParams): Promise<AttemptResult> {
+  const { ctx, config, state, options } = params;
+  const { expectedTool } = options;
   const attemptStartTime = Date.now();
   const newConfig = {
     ...config,
@@ -140,7 +193,7 @@ async function executeAttempt(
   }
 
   try {
-    const result = await executeModelCall(newConfig, expectedTool);
+    const result = await executeModelCall(newConfig, options);
     const duration = Date.now() - attemptStartTime;
     const totalDuration = Date.now() - ctx.requestStartTime;
     logSuccess({ ctx, state, attemptDuration: duration, totalDuration, usage: result.usage, result });
@@ -160,28 +213,34 @@ async function executeAttempt(
 async function executeWithRetries(
   ctx: ModelCallContext,
   config: ToolModelConfig,
-  expectedTool: string | undefined,
-  state: RetryState
+  state: RetryState,
+  options: ModelCallOptions
 ): Promise<ModelCallResult> {
-  const result = await executeAttempt(ctx, config, expectedTool, state);
+  const result = await executeAttempt({ ctx, config, state, options });
 
   if (result.success && result.result !== undefined) {
     return result.result;
   }
 
   if (result.shouldRetry && result.newState !== undefined) {
-    return await executeWithRetries(ctx, config, expectedTool, result.newState);
+    return await executeWithRetries(ctx, config, result.newState, options);
   }
 
   throw new Error('Unexpected: model call failed without throwing');
 }
 
+interface CallModelParams {
+  expectedTool: string | undefined;
+  model: LanguageModel;
+  outputSchema?: OutputSchema;
+}
+
 export async function callModel(
   context: Context,
   config: ToolModelConfig,
-  expectedTool: string | undefined,
-  model: LanguageModel
+  params: CallModelParams
 ): Promise<ModelCallResult> {
+  const { expectedTool, model, outputSchema } = params;
   const requestStartTime = Date.now();
   const correlationId = `${context.tenantID}-${context.userID}-${requestStartTime}`;
   const modelName = getModelId(model);
@@ -192,8 +251,9 @@ export async function callModel(
     usedFallback: false,
     networkRetryCount: FIRST_ATTEMPT,
   };
+  const options: ModelCallOptions = { expectedTool, outputSchema };
 
   logStartingCall({ ctx, modelName, expectedTool, messageCount: config.messages.length });
 
-  return await executeWithRetries(ctx, config, expectedTool, initialState);
+  return await executeWithRetries(ctx, config, initialState, options);
 }

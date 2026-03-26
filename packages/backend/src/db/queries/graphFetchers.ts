@@ -6,10 +6,12 @@ import type {
   EdgeRow,
   McpServerRow,
   NodeRow,
+  OutputSchemaRow,
 } from './graphRowTypes.js';
 import type { SupabaseClient } from './operationHelpers.js';
 
 const EMPTY_LENGTH = 0;
+const IN_FILTER_BATCH_SIZE = 50;
 
 interface QueryResult<T> {
   data: T | null;
@@ -24,6 +26,14 @@ function throwOnError<T>(result: QueryResult<T>): T {
     throw new Error('Supabase query returned null data');
   }
   return result.data;
+}
+
+function chunk<T>(arr: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size));
+  }
+  return chunks;
 }
 
 export async function fetchStartNode(supabase: SupabaseClient, agentId: string): Promise<string | null> {
@@ -52,8 +62,11 @@ export async function fetchEdgePreconditions(
   edgeIds: string[]
 ): Promise<EdgePreconditionRow[]> {
   if (edgeIds.length === EMPTY_LENGTH) return [];
-  const result = await supabase.from('graph_edge_preconditions').select('*').in('edge_id', edgeIds);
-  return throwOnError<EdgePreconditionRow[]>(result);
+  const batches = chunk(edgeIds, IN_FILTER_BATCH_SIZE);
+  const results = await Promise.all(
+    batches.map((batch) => supabase.from('graph_edge_preconditions').select('*').in('edge_id', batch))
+  );
+  return results.flatMap((r) => throwOnError<EdgePreconditionRow[]>(r));
 }
 
 export async function fetchEdgeContextPreconditions(
@@ -62,8 +75,11 @@ export async function fetchEdgeContextPreconditions(
   edgeIds: string[]
 ): Promise<EdgeContextPreconditionRow[]> {
   if (edgeIds.length === EMPTY_LENGTH) return [];
-  const result = await supabase.from('graph_edge_context_preconditions').select('*').in('edge_id', edgeIds);
-  return throwOnError<EdgeContextPreconditionRow[]>(result);
+  const batches = chunk(edgeIds, IN_FILTER_BATCH_SIZE);
+  const results = await Promise.all(
+    batches.map((batch) => supabase.from('graph_edge_context_preconditions').select('*').in('edge_id', batch))
+  );
+  return results.flatMap((r) => throwOnError<EdgeContextPreconditionRow[]>(r));
 }
 
 export async function fetchAgents(supabase: SupabaseClient, agentId: string): Promise<AgentRow[]> {
@@ -74,4 +90,12 @@ export async function fetchAgents(supabase: SupabaseClient, agentId: string): Pr
 export async function fetchMcpServers(supabase: SupabaseClient, agentId: string): Promise<McpServerRow[]> {
   const result = await supabase.from('graph_mcp_servers').select('*').eq('agent_id', agentId);
   return throwOnError<McpServerRow[]>(result);
+}
+
+export async function fetchOutputSchemas(
+  supabase: SupabaseClient,
+  agentId: string
+): Promise<OutputSchemaRow[]> {
+  const result = await supabase.from('graph_output_schemas').select('*').eq('agent_id', agentId);
+  return throwOnError<OutputSchemaRow[]>(result);
 }

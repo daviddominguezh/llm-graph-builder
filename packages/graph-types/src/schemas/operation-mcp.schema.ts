@@ -1,12 +1,14 @@
 import { z } from 'zod';
 
-import { McpTransportSchema } from './mcp.schema.js';
+import { McpTransportSchema, VariableValueSchema } from './mcp.schema.js';
 
 const McpServerDataSchema = z.object({
   serverId: z.string(),
   name: z.string(),
   transport: McpTransportSchema,
   enabled: z.boolean().optional(),
+  libraryItemId: z.string().optional(),
+  variableValues: z.record(z.string(), VariableValueSchema).optional(),
 });
 
 export const InsertMcpServerOperationSchema = z.object({

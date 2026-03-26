@@ -2,6 +2,7 @@ import { type Connection, type Edge, type Node, type ReactFlowInstance, addEdge 
 import { nanoid } from 'nanoid';
 import { useCallback, useState } from 'react';
 
+import type { Precondition } from '../schemas/graph.schema';
 import {
   DEFAULT_NODE_HEIGHT,
   DEFAULT_NODE_WIDTH,
@@ -107,14 +108,10 @@ function useOnConnect(
 }
 
 function useSourceHandleClick(
-  edges: EdgeArray,
   setMenu: (v: ConnectionMenuState | null) => void
 ): (nodeId: string, handleId: string, event: React.MouseEvent) => void {
   return useCallback(
     (nodeId: string, handleId: string, event: React.MouseEvent) => {
-      if (nodeId === START_NODE_ID && edges.some((e) => e.source === START_NODE_ID)) {
-        return;
-      }
       const { currentTarget } = event;
       const rect = currentTarget.getBoundingClientRect();
       setMenu({
@@ -123,8 +120,14 @@ function useSourceHandleClick(
         sourceHandleId: handleId,
       });
     },
-    [edges, setMenu]
+    [setMenu]
   );
+}
+
+const DEFAULT_USER_SAID: Precondition = { type: 'user_said', value: '' };
+
+function buildStartEdgeData(): RFEdgeData {
+  return { preconditions: [{ ...DEFAULT_USER_SAID }] };
 }
 
 function useMenuSelectNode(
@@ -136,6 +139,8 @@ function useMenuSelectNode(
   return useCallback(
     (targetNodeId: string) => {
       if (menu === null) return;
+      const isFromStart = menu.sourceNodeId === START_NODE_ID;
+      const edgeData: RFEdgeData | undefined = isFromStart ? buildStartEdgeData() : undefined;
       setEdges((eds) =>
         addEdge(
           {
@@ -144,11 +149,12 @@ function useMenuSelectNode(
             sourceHandle: menu.sourceHandleId,
             targetHandle: 'left-target',
             type: 'precondition',
+            data: edgeData,
           },
           eds
         )
       );
-      pushOperation(buildInsertEdgeOp(menu.sourceNodeId, targetNodeId));
+      pushOperation(buildInsertEdgeOp(menu.sourceNodeId, targetNodeId, edgeData));
       setMenu(null);
     },
     [menu, setEdges, setMenu, pushOperation]
@@ -168,6 +174,8 @@ function useMenuCreateNode(
     const sourceNode = params.nodes.find((n) => n.id === menu.sourceNodeId);
     const newPosition = computeNewNodePosition(menu, sourceNode, params.reactFlow.screenToFlowPosition);
     const targetHandle = resolveTargetHandle(menu.sourceHandleId);
+    const isFromStart = menu.sourceNodeId === START_NODE_ID;
+    const edgeData: RFEdgeData | undefined = isFromStart ? buildStartEdgeData() : undefined;
 
     const newNode: Node<RFNodeData> = {
       id,
@@ -185,12 +193,13 @@ function useMenuCreateNode(
           sourceHandle: menu.sourceHandleId,
           targetHandle,
           type: 'precondition',
+          data: edgeData,
         },
         eds
       )
     );
     pushOperation(buildInsertNodeOp(newNode));
-    pushOperation(buildInsertEdgeOp(menu.sourceNodeId, id));
+    pushOperation(buildInsertEdgeOp(menu.sourceNodeId, id, edgeData));
     setMenu(null);
     params.setSelectedNodeId(id);
   }, [menu, params, setMenu, pushOperation]);
@@ -232,7 +241,7 @@ export function useGraphActions(params: UseGraphActionsParams): UseGraphActionsR
   return {
     connectionMenu,
     onConnect: useOnConnect(params.setEdges, setConnectionMenu, params.pushOperation),
-    onSourceHandleClick: useSourceHandleClick(params.edges, setConnectionMenu),
+    onSourceHandleClick: useSourceHandleClick(setConnectionMenu),
     handleConnectionMenuSelectNode: useMenuSelectNode(
       connectionMenu,
       params.setEdges,

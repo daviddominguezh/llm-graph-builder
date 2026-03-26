@@ -1,6 +1,7 @@
 'use client';
 
 import { toProxyImageSrc } from '@/app/lib/supabase/image';
+import { Button } from '@/components/ui/button';
 import { Camera } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
@@ -35,7 +36,7 @@ function AvatarImage({ src, name }: { src: string; name: string }) {
       alt={name}
       width={48}
       height={48}
-      className="size-12 rounded-full object-cover"
+      className="size-12 rounded-full object-cover border"
     />
   );
 }
@@ -79,17 +80,17 @@ export function AvatarUpload({ currentUrl, previewUrl, name, onFileSelect, onRem
   const hasImage = (previewUrl ?? currentUrl) !== null;
 
   return (
-    <div className="flex shrink-0 flex-col items-center gap-1">
-      <button type="button" onClick={openPicker} className="group relative cursor-pointer rounded-full">
+    <div className="flex shrink-0 flex-col items-center gap-0 h-fit">
+      <Button variant="ghost" type="button" onClick={openPicker} className="mt-1 group relative cursor-pointer rounded-full p-0 h-fit">
         <AvatarPreview currentUrl={currentUrl} previewUrl={previewUrl} name={name} />
         <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 transition-colors group-hover:bg-black/40">
           <Camera className="size-4 text-white opacity-0 transition-opacity group-hover:opacity-100" />
         </div>
-      </button>
+      </Button>
       {hasImage && onRemove !== undefined && (
-        <button type="button" className="text-muted-foreground text-[11px] hover:underline" onClick={onRemove}>
+        <Button variant="link" type="button" onClick={onRemove} className="h-auto p-0 pt-0 text-muted-foreground text-[11px]">
           {t('remove')}
-        </button>
+        </Button>
       )}
       <input ref={inputRef} type="file" accept={ACCEPTED_TYPES} className="hidden" onChange={handleChange} />
     </div>

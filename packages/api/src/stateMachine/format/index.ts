@@ -31,10 +31,14 @@ export const formatOption = (params: FormatOptionParams): string => {
   parts.push(`**Option ${index}** — \`nextNodeID: ${index}\``);
   const label = description !== undefined && description !== '' ? description : nodeText;
   if (label !== undefined && label !== '') {
-    parts.push(label);
+    parts.push(`Description: ${label}`);
   }
   if (precondition !== undefined) {
-    parts.push(`Select when: ${formatPrecondition(precondition)}`);
+    if (precondition.type === 'user_said') {
+      parts.push(`Select when the user says something similar to: "${precondition.value}"`);
+    } else {
+      parts.push(`Select when: ${formatPrecondition(precondition)}`);
+    }
   }
   if (example !== undefined && example !== '') {
     const escapedExample = example.replace(/\n/gv, '\\n');
@@ -61,27 +65,36 @@ const getUserSaidExamples = async (
   return undefined;
 };
 
+interface ConvertEdgeParams {
+  graph: Graph;
+  context: Context;
+  index: number;
+  edge: Edge;
+  isAgentDecision?: boolean;
+}
+
 export const convertEdgeToStr = async (
-  graph: Graph,
-  context: Context,
-  index: number,
-  edge: Edge
+  params: ConvertEdgeParams
 ): Promise<{ withPreconditions: string; withoutToolPreconditions: string }> => {
+  const { graph, context, index, edge, isAgentDecision } = params;
   const { to } = edge;
   const node = getNode(graph, to);
   const description = getNodeDescription(graph, edge.to);
   const { [FIRST_INDEX]: firstPrecondition } = edge.preconditions ?? [];
   let example: string | undefined = undefined;
 
-  if (node.nextNodeIsUser === true) {
+  if (isAgentDecision !== true && node.nextNodeIsUser === true) {
     example = insertValuesInText(context, node.text);
     await getUserSaidExamples(graph, context, node.id);
   }
 
+  const optionDescription = isAgentDecision === true ? undefined : description;
+  const optionNodeText = isAgentDecision === true ? undefined : node.text;
+
   const withPreconditions = formatOption({
     index,
-    description,
-    nodeText: node.text,
+    description: optionDescription,
+    nodeText: optionNodeText,
     example,
     precondition: firstPrecondition,
   });
@@ -91,8 +104,8 @@ export const convertEdgeToStr = async (
 
   const withoutToolPreconditions = formatOption({
     index,
-    description,
-    nodeText: node.text,
+    description: optionDescription,
+    nodeText: optionNodeText,
     example,
     precondition: nonToolPrecondition,
   });
@@ -103,7 +116,8 @@ export const convertEdgeToStr = async (
 export const convertEdgesToStr = async (
   graph: Graph,
   context: Context,
-  edges: Edge[]
+  edges: Edge[],
+  isAgentDecision?: boolean
 ): Promise<{
   withPreconditions: string;
   withoutToolPreconditions: string;
@@ -117,7 +131,7 @@ export const convertEdgesToStr = async (
   const edgeResults = await Promise.allSettled(
     edges.map(async (edge, i) => {
       const edgeIndex = i + INCREMENT_BY_ONE;
-      const res = await convertEdgeToStr(graph, context, edgeIndex, edge);
+      const res = await convertEdgeToStr({ graph, context, index: edgeIndex, edge, isAgentDecision });
       return { index: edgeIndex, res, to: edge.to };
     })
   );

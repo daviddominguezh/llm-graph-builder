@@ -1,37 +1,37 @@
 'use client';
 
-import type { Edge, Node } from '@xyflow/react';
-import { nanoid } from 'nanoid';
+import type { Edge } from '@xyflow/react';
 
-import type { ApiKeyRow } from '../lib/api-keys';
-import type { Agent } from '../schemas/graph.schema';
+import type { ApiKeyRow } from '../lib/apiKeys';
+import type { OrgEnvVariableRow } from '../lib/orgEnvVariables';
+import type { Agent, McpServerConfig } from '../schemas/graph.schema';
 import type { McpServersState } from '../hooks/useMcpServers';
-import type { ContextPrecondition } from '../types/contextPrecondition';
-import { createEmptyGroup } from '../types/contextPrecondition';
-import { DEFAULT_NODE_WIDTH } from '../utils/graphInitializer';
-import {
-  buildDeleteNodeOp,
-  buildInsertNodeOp,
-  buildUpdateNodeOp,
-} from '../utils/operationBuilders';
+import type { OutputSchemasState } from '../hooks/useOutputSchemas';
 import type { PushOperation } from '../utils/operationBuilders';
-import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
+import type { RFEdgeData } from '../utils/graphTransformers';
 import type { UseGraphSelectionReturn } from '../hooks/useGraphSelection';
+import type { McpLibraryState } from '../hooks/useMcpLibrary';
 import type { ContextPreset } from '../types/preset';
 
-import { NodePanel } from './panels/NodePanel';
+import { START_NODE_ID } from '../utils/graphInitializer';
 import { EdgePanel } from './panels/EdgePanel';
 import { GlobalNodesPanel } from './panels/GlobalNodesPanel';
-import { PresetsPanel } from './panels/PresetsPanel';
+import { NodePanel } from './panels/NodePanel';
+import { OutputSchemaDialog } from './panels/OutputSchemaDialog';
+import { StartNodePanel } from './panels/StartNodePanel';
 import { ToolsPanel } from './panels/ToolsPanel';
+import { McpDialogs, PresetsAside } from './SidePanelAsides';
+import type { CtxPreconditionsState, EdgeSetter, NodeArray, NodeSetter } from './sidePanelHelpers';
+import {
+  handleGlobalAddNode,
+  handleGlobalDeleteNode,
+  handleGlobalSetFallback,
+  handleGlobalUpdateNode,
+} from './sidePanelHelpers';
+import { getInstalledLibraryIds } from './sidePanelMcpHelpers';
+import { usePublishState, useSchemaDialogState } from './useSidePanelState';
 
-const NANOID_LENGTH = 8;
-const NAME_SLICE_END = 4;
-
-type NodeArray = Array<Node<RFNodeData>>;
 type EdgeArray = Array<Edge<RFEdgeData>>;
-type NodeSetter = (nodes: NodeArray | ((nds: NodeArray) => NodeArray)) => void;
-type EdgeSetter = (edges: EdgeArray | ((eds: EdgeArray) => EdgeArray)) => void;
 
 interface PresetsHook {
   presets: ContextPreset[];
@@ -46,11 +46,7 @@ interface PresetsHook {
   renameContextKey: (old: string, newKey: string) => void;
 }
 
-interface CtxPreconditionsState {
-  customContextPreconditions: ContextPrecondition[];
-  setCustomContextPreconditions: React.Dispatch<React.SetStateAction<ContextPrecondition[]>>;
-  allContextPreconditions: string[];
-}
+export { type CtxPreconditionsState };
 
 export interface SidePanelsProps {
   selection: UseGraphSelectionReturn;
@@ -60,25 +56,54 @@ export interface SidePanelsProps {
   agents: Agent[];
   presetsHook: PresetsHook;
   mcpHook: McpServersState;
+  outputSchemasHook: OutputSchemasState;
   globalPanelOpen: boolean;
   presetsOpen: boolean;
   toolsOpen: boolean;
+  libraryOpen: boolean;
+  mcpLibrary: McpLibraryState;
   setNodes: NodeSetter;
   setEdges: EdgeSetter;
   ctxPreconditions: CtxPreconditionsState;
   orgApiKeys: ApiKeyRow[];
+  orgId: string;
+  agentId: string;
+  agentName: string;
+  orgSlug: string;
+  envVariables: OrgEnvVariableRow[];
   stagingKeyId: string | null;
   productionKeyId: string | null;
   onStagingKeyChange: (keyId: string | null) => void;
+  onProductionKeyChange: (keyId: string | null) => void;
+  onPublishMcpServer: (server: McpServerConfig) => void;
+  onOpenMcpLibrary: () => void;
+  onCloseLibrary: () => void;
   pushOperation: PushOperation;
 }
 
-function SelectionPanel(props: SidePanelsProps) {
-  const { selection, nodes, agents, presetsHook, mcpHook, ctxPreconditions, pushOperation } = props;
+interface SelectionPanelProps extends SidePanelsProps {
+  onEditSchema: (id: string) => void;
+  onEditNewSchema: (id: string) => void;
+}
+
+function SelectionPanel(props: SelectionPanelProps) {
+  const { selection, nodes, agents, presetsHook, ctxPreconditions, pushOperation } = props;
+  const isStartNode = selection.selectedNodeId === START_NODE_ID;
 
   return (
-    <aside className="absolute right-0 top-0 bottom-0 z-10 w-80 border-l border-gray-200 bg-white">
-      {selection.selectedNodeId !== null && (
+    <aside className="absolute right-0 top-0 bottom-0 z-10 w-80 border-border bg-background border-l rounded-s-md shadow-sm">
+      {selection.selectedNodeId !== null && isStartNode && (
+        <StartNodePanel
+          nodeId={selection.selectedNodeId}
+          allNodes={nodes}
+          agents={agents}
+          presets={presetsHook.presets}
+          activePresetId={presetsHook.activePresetId}
+          onSetActivePreset={presetsHook.setActivePresetId}
+          outputSchemas={props.outputSchemasHook.schemas}
+        />
+      )}
+      {selection.selectedNodeId !== null && !isStartNode && (
         <NodePanel
           nodeId={selection.selectedNodeId}
           allNodes={nodes}
@@ -92,6 +117,10 @@ function SelectionPanel(props: SidePanelsProps) {
           onSelectEdge={selection.selectEdge}
           onSelectNode={selection.navigateToNode}
           pushOperation={pushOperation}
+          outputSchemas={props.outputSchemasHook.schemas}
+          onAddOutputSchema={props.outputSchemasHook.addSchema}
+          onEditOutputSchema={props.onEditSchema}
+          onEditNewOutputSchema={props.onEditNewSchema}
         />
       )}
       {selection.selectedEdgeId !== null && (
@@ -99,7 +128,9 @@ function SelectionPanel(props: SidePanelsProps) {
           edgeId={selection.selectedEdgeId}
           onEdgeDeleted={() => selection.setSelectedEdgeId(null)}
           availableContextPreconditions={ctxPreconditions.allContextPreconditions}
-          availableMcpTools={mcpHook.allTools}
+          availableMcpTools={props.mcpHook.allTools}
+          mcpServers={props.mcpHook.servers}
+          mcpDiscoveredTools={props.mcpHook.discoveredTools}
           onSelectNode={selection.navigateToNode}
           pushOperation={pushOperation}
         />
@@ -110,65 +141,13 @@ function SelectionPanel(props: SidePanelsProps) {
 
 type GlobalPanelProps = Pick<SidePanelsProps, 'setNodes' | 'setEdges' | 'nodes' | 'pushOperation'>;
 
-function handleGlobalAddNode(setNodes: NodeSetter, pushOp: PushOperation): void {
-  const id = `node_${nanoid(NANOID_LENGTH)}`;
-  const newNode: Node<RFNodeData> = {
-    id,
-    type: 'agent',
-    position: { x: 0, y: 0 },
-    data: { nodeId: id, text: 'New global node', description: '', global: true, nodeWidth: DEFAULT_NODE_WIDTH },
-  };
-  setNodes((nds) => [...nds, newNode]);
-  pushOp(buildInsertNodeOp(newNode));
-}
-
-function handleGlobalUpdateNode(
-  nodeId: string,
-  updates: Partial<RFNodeData>,
-  nodes: NodeArray,
-  setNodes: NodeSetter,
-  pushOp: PushOperation
-): void {
-  setNodes((nds) => nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, ...updates } } : n)));
-  const node = nodes.find((n) => n.id === nodeId);
-  if (node) {
-    const updated: Node<RFNodeData> = { ...node, data: { ...node.data, ...updates } };
-    pushOp(buildUpdateNodeOp(updated));
-  }
-}
-
-function handleGlobalSetFallback(
-  nodeId: string | undefined,
-  nodes: NodeArray,
-  setNodes: NodeSetter,
-  pushOp: PushOperation
-): void {
-  setNodes((nds) =>
-    nds.map((n) => ({
-      ...n,
-      data: { ...n.data, defaultFallback: n.id === nodeId ? true : undefined },
-    }))
-  );
-  for (const n of nodes) {
-    const isNewFallback = n.id === nodeId;
-    const wasFallback = n.data.defaultFallback === true;
-    if (isNewFallback === wasFallback) continue;
-    const updated = { ...n, data: { ...n.data, defaultFallback: isNewFallback ? true : undefined } };
-    pushOp(buildUpdateNodeOp(updated));
-  }
-}
-
 function GlobalPanel({ setNodes, setEdges, nodes, pushOperation }: GlobalPanelProps) {
   return (
-    <aside className="absolute right-0 top-0 bottom-0 z-10 w-80 border-l border-gray-200 bg-white">
+    <aside className="absolute right-0 top-0 bottom-0 z-10 w-80 border-border bg-background border-l rounded-s-md">
       <GlobalNodesPanel
         nodes={nodes}
         onAddNode={() => handleGlobalAddNode(setNodes, pushOperation)}
-        onDeleteNode={(nodeId) => {
-          setNodes((nds) => nds.filter((n) => n.id !== nodeId));
-          setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
-          pushOperation(buildDeleteNodeOp(nodeId));
-        }}
+        onDeleteNode={(nodeId) => handleGlobalDeleteNode(nodeId, setNodes, setEdges, pushOperation)}
         onUpdateNode={(nodeId, updates) => {
           handleGlobalUpdateNode(nodeId, updates, nodes, setNodes, pushOperation);
         }}
@@ -180,105 +159,78 @@ function GlobalPanel({ setNodes, setEdges, nodes, pushOperation }: GlobalPanelPr
   );
 }
 
-function handlePreconditionRemove(
-  id: string,
-  ctx: CtxPreconditionsState,
-  setEdges: EdgeSetter
-): void {
-  const target = ctx.customContextPreconditions.find((p) => p.id === id);
-  ctx.setCustomContextPreconditions((prev) => prev.filter((p) => p.id !== id));
-  if (target === undefined) return;
-  setEdges((eds) =>
-    eds.map((e) => {
-      const cp = (e.data as RFEdgeData | undefined)?.contextPreconditions;
-      if (cp === undefined) return e;
-      const filtered = cp.preconditions.filter((p: string) => p !== target.name);
-      return {
-        ...e,
-        data: { ...e.data, contextPreconditions: filtered.length > 0 ? { ...cp, preconditions: filtered } : undefined },
-      };
-    })
-  );
+interface ToolsPanelSlotProps {
+  sidePanelProps: SidePanelsProps;
+  onPublishServer: (server: McpServerConfig) => void;
 }
 
-function handlePreconditionUpdate(
-  id: string,
-  updates: Partial<ContextPrecondition>,
-  ctx: CtxPreconditionsState,
-  setEdges: EdgeSetter
-): void {
-  const old = ctx.customContextPreconditions.find((p) => p.id === id);
-  ctx.setCustomContextPreconditions((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
-  if (updates.name !== undefined && old !== undefined && updates.name !== old.name) {
-    setEdges((eds) =>
-      eds.map((e) => {
-        const cp = (e.data as RFEdgeData | undefined)?.contextPreconditions;
-        if (cp === undefined) return e;
-        const renamed = cp.preconditions.map((p: string) => (p === old.name ? updates.name! : p));
-        return { ...e, data: { ...e.data, contextPreconditions: { ...cp, preconditions: renamed } } };
-      })
-    );
-  }
-}
-
-type PresetsAsideProps = Pick<
-  SidePanelsProps,
-  'presetsHook' | 'mcpHook' | 'ctxPreconditions' | 'setEdges' | 'orgApiKeys' | 'stagingKeyId' | 'productionKeyId' | 'onStagingKeyChange'
->;
-
-function PresetsAside(props: PresetsAsideProps) {
-  const { presetsHook, mcpHook, ctxPreconditions, setEdges } = props;
-
+function ToolsPanelSlot({ sidePanelProps: p, onPublishServer }: ToolsPanelSlotProps) {
   return (
-    <aside className="absolute left-0 top-0 bottom-0 w-80 border-r border-gray-200 bg-white z-10">
-      <PresetsPanel
-        presets={presetsHook.presets}
-        contextKeys={presetsHook.contextKeys}
-        orgApiKeys={props.orgApiKeys}
-        stagingKeyId={props.stagingKeyId}
-        productionKeyId={props.productionKeyId}
-        onStagingKeyChange={props.onStagingKeyChange}
-        onAdd={presetsHook.addPreset}
-        onDelete={presetsHook.deletePreset}
-        onUpdate={presetsHook.updatePreset}
-        context={{
-          keys: presetsHook.contextKeys,
-          onAdd: presetsHook.addContextKey,
-          onRemove: presetsHook.removeContextKey,
-          onRename: presetsHook.renameContextKey,
-        }}
-        contextPreconditions={{
-          preconditions: ctxPreconditions.customContextPreconditions,
-          onAdd: () => {
-            const id = nanoid();
-            const name = `precondition_${id.slice(0, NAME_SLICE_END)}`;
-            ctxPreconditions.setCustomContextPreconditions((prev) => [...prev, { id, name, root: createEmptyGroup() }]);
-          },
-          onRemove: (id) => handlePreconditionRemove(id, ctxPreconditions, setEdges),
-          onUpdate: (id, updates) => handlePreconditionUpdate(id, updates, ctxPreconditions, setEdges),
-        }}
-        mcp={{
-          servers: mcpHook.servers,
-          discovering: mcpHook.discovering,
-          serverStatus: mcpHook.serverStatus,
-          onAddServer: mcpHook.addServer,
-          onRemoveServer: mcpHook.removeServer,
-          onUpdateServer: mcpHook.updateServer,
-          onDiscoverTools: mcpHook.discoverTools,
-        }}
-      />
-    </aside>
+    <ToolsPanel
+      servers={p.mcpHook.servers}
+      discoveredTools={p.mcpHook.discoveredTools}
+      mcp={{
+        servers: p.mcpHook.servers,
+        discovering: p.mcpHook.discovering,
+        serverStatus: p.mcpHook.serverStatus,
+        orgId: p.orgId,
+        envVariables: p.envVariables,
+        libraryItems: p.mcpLibrary.items,
+        onAddServer: p.mcpHook.addServer,
+        onRemoveServer: p.mcpHook.removeServer,
+        onUpdateServer: p.mcpHook.updateServer,
+        onDiscoverTools: p.mcpHook.discoverTools,
+        onPublishServer,
+        onOpenLibrary: p.onOpenMcpLibrary,
+      }}
+      open={p.toolsOpen}
+      onClose={() => {}}
+    />
   );
 }
 
 export function SidePanels(props: SidePanelsProps) {
-  const { selection, simulation, globalPanelOpen, presetsOpen, toolsOpen } = props;
+  const { selection, simulation, globalPanelOpen, presetsOpen, libraryOpen } = props;
   const hasSelection = selection.selectedNodeId !== null || selection.selectedEdgeId !== null;
   const showSelectionPanel = !simulation.active && hasSelection;
 
+  const schema = useSchemaDialogState({
+    outputSchemasHook: props.outputSchemasHook,
+    selection: props.selection,
+    setNodes: props.setNodes,
+  });
+
+  const publish = usePublishState(props.mcpHook);
+  const installedIds = getInstalledLibraryIds(props.mcpHook.servers);
+
   return (
     <>
-      {showSelectionPanel && <SelectionPanel {...props} />}
+      <OutputSchemaDialog
+        schema={schema.editingSchema}
+        onSave={props.outputSchemasHook.updateSchema}
+        onSaved={schema.handleSchemaSaved}
+        open={schema.editingSchemaId !== null}
+        onOpenChange={(open) => {
+          if (!open) schema.handleSchemaDialogClose();
+        }}
+      />
+      <McpDialogs
+        publishServer={publish.publishServer}
+        orgId={props.orgId}
+        onPublishClose={() => publish.setPublishServer(null)}
+        onPublished={() => publish.setPublishServer(null)}
+        libraryOpen={libraryOpen}
+        mcpLibrary={props.mcpLibrary}
+        installedLibraryIds={installedIds}
+        onInstall={publish.handleInstallFromLibrary}
+      />
+      {showSelectionPanel && (
+        <SelectionPanel
+          {...props}
+          onEditSchema={schema.handleEditSchema}
+          onEditNewSchema={schema.handleEditNewSchema}
+        />
+      )}
       {globalPanelOpen && (
         <GlobalPanel
           setNodes={props.setNodes}
@@ -287,17 +239,24 @@ export function SidePanels(props: SidePanelsProps) {
           pushOperation={props.pushOperation}
         />
       )}
-      <ToolsPanel servers={props.mcpHook.servers} discoveredTools={props.mcpHook.discoveredTools} open={toolsOpen} onClose={() => {}} />
-      {presetsOpen && (
+      <ToolsPanelSlot sidePanelProps={props} onPublishServer={publish.setPublishServer} />
+      {presetsOpen && !libraryOpen && (
         <PresetsAside
           presetsHook={props.presetsHook}
-          mcpHook={props.mcpHook}
           ctxPreconditions={props.ctxPreconditions}
           setEdges={props.setEdges}
           orgApiKeys={props.orgApiKeys}
           stagingKeyId={props.stagingKeyId}
           productionKeyId={props.productionKeyId}
           onStagingKeyChange={props.onStagingKeyChange}
+          onProductionKeyChange={props.onProductionKeyChange}
+          outputSchemasHook={props.outputSchemasHook}
+          onEditSchema={schema.handleEditSchema}
+          onEditNewSchema={schema.handleEditNewSchema}
+          onRemoveSchema={schema.handleRemoveSchema}
+          agentId={props.agentId}
+          agentName={props.agentName}
+          orgSlug={props.orgSlug}
         />
       )}
     </>

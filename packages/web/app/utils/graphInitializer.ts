@@ -21,8 +21,9 @@ export const defaultStartNode: Node<RFNodeData> = {
   id: START_NODE_ID,
   type: 'start',
   position: { x: START_X, y: START_Y },
-  selectable: false,
+  selectable: true,
   draggable: false,
+  deletable: false,
   data: { nodeId: START_NODE_ID, text: '', description: '' },
 };
 
@@ -67,8 +68,9 @@ function mapSchemaNode(n: Graph['nodes'][number], i: number, nodeWidth: number):
   return {
     ...baseNode,
     type: isStartNode ? 'start' : baseNode.type,
-    selectable: !isStartNode,
+    selectable: true,
     draggable: false,
+    deletable: !isStartNode,
     data: { ...baseNode.data, nodeWidth },
   };
 }

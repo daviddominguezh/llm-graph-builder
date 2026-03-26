@@ -149,3 +149,4 @@ dist
 # Supabase
 supabase/.temp/
 supabase/.branches/
+.worktrees/

@@ -1,4 +1,4 @@
-import type { Operation } from '@daviddh/graph-types';
+import type { Operation, OutputSchemaField } from '@daviddh/graph-types';
 import type { Node } from '@xyflow/react';
 
 import type { NodeKind } from '../schemas/graph.schema';
@@ -26,6 +26,8 @@ export function buildInsertNodeOp(node: Node<RFNodeData>): Operation {
       fallbackNodeId: node.data.fallbackNodeId,
       global: node.data.global,
       defaultFallback: node.data.defaultFallback,
+      outputSchemaId: node.data.outputSchemaId,
+      outputPrompt: node.data.outputPrompt,
       position: node.position,
     },
   };
@@ -44,6 +46,8 @@ export function buildUpdateNodeOp(node: Node<RFNodeData>): Operation {
       fallbackNodeId: node.data.fallbackNodeId,
       global: node.data.global,
       defaultFallback: node.data.defaultFallback,
+      outputSchemaId: node.data.outputSchemaId,
+      outputPrompt: node.data.outputPrompt,
       position: node.position,
     },
   };
@@ -79,4 +83,24 @@ export function buildUpdateEdgeOp(from: string, to: string, edgeData?: RFEdgeDat
 
 export function buildDeleteEdgeOp(from: string, to: string): Operation {
   return { type: 'deleteEdge', from, to };
+}
+
+export function buildInsertOutputSchemaOp(
+  schemaId: string,
+  name: string,
+  fields: OutputSchemaField[]
+): Operation {
+  return { type: 'insertOutputSchema', data: { schemaId, name, fields } };
+}
+
+export function buildUpdateOutputSchemaOp(
+  schemaId: string,
+  name: string,
+  fields: OutputSchemaField[]
+): Operation {
+  return { type: 'updateOutputSchema', data: { schemaId, name, fields } };
+}
+
+export function buildDeleteOutputSchemaOp(schemaId: string): Operation {
+  return { type: 'deleteOutputSchema', schemaId };
 }

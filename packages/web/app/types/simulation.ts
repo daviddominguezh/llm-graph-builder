@@ -23,7 +23,10 @@ export interface SimulationStep {
 export interface NodeResult {
   nodeId: string;
   text: string;
+  output?: unknown;
   toolCalls: SimulationToolCall[];
+  reasoning?: string;
+  error?: string;
   tokens: TokenLog;
   durationMs?: number;
 }
@@ -32,6 +35,7 @@ export interface SimulationTokens {
   input: number;
   output: number;
   cached: number;
+  costUSD?: number;
 }
 
 export function sumTokensFromLogs(logs: ActionTokenUsage[]): TokenLog {

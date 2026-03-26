@@ -50,7 +50,7 @@
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
-  --card: oklch(1 0 0);
+  --card: oklch(0.967 0.001 286.375);
   --card-foreground: oklch(0.141 0.005 285.823);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.141 0.005 285.823);
@@ -72,18 +72,20 @@
   --chart-4: oklch(0.51 0.23 277);
   --chart-5: oklch(0.46 0.21 277);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
+  --sidebar: lab(98.26% 0 0);
   --sidebar-foreground: oklch(0.141 0.005 285.823);
   --sidebar-primary: oklch(0.51 0.23 277);
   --sidebar-primary-foreground: oklch(0.96 0.02 272);
-  --sidebar-accent: oklch(0.51 0.23 277);
+  --sidebar-accent: lab(96.52% -.0000298023 .0000119209);
   --sidebar-accent-foreground: oklch(0.96 0.02 272);
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.705 0.015 286.067);
+  --canvas: #f5f5f5;
+  --canvas-dots: lab(50% 0 0);
 }
 
 .dark {
-  --background: oklch(0.141 0.005 285.823);
+  --background: lab(2.75381% 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.21 0.006 285.885);
   --card-foreground: oklch(0.985 0 0);
@@ -93,27 +95,29 @@
   --primary-foreground: oklch(0.96 0.02 272);
   --secondary: oklch(0.274 0.006 286.033);
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.274 0.006 286.033);
+  --muted: oklch(0% 0 0);
   --muted-foreground: oklch(0.705 0.015 286.067);
   --accent: oklch(0.59 0.20 277);
   --accent-foreground: oklch(0.96 0.02 272);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  --border: oklch(25.197% 0.00003 271.152);
+  --input: lab(100% 0 0/.15);
   --ring: oklch(0.552 0.016 285.938);
   --chart-1: oklch(0.79 0.10 275);
   --chart-2: oklch(0.68 0.16 277);
   --chart-3: oklch(0.59 0.20 277);
   --chart-4: oklch(0.51 0.23 277);
   --chart-5: oklch(0.46 0.21 277);
-  --sidebar: oklch(0.21 0.006 285.885);
+  --sidebar: lab(7.78201% -.0000149012 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.68 0.16 277);
   --sidebar-primary-foreground: oklch(0.96 0.02 272);
-  --sidebar-accent: oklch(0.59 0.20 277);
+  --sidebar-accent: lab(15.204% 0 -.00000596046);
   --sidebar-accent-foreground: oklch(0.96 0.02 272);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.552 0.016 285.938);
+  --canvas: #0F0F0F;
+  --canvas-dots: lab(100% 0 0/.2);
 }
 
 @layer base {
@@ -123,6 +127,13 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Model selector trigger: suppress focus ring/border when dropdown is open */
+div.model-selector-trigger[data-slot="input-group"] {
+  box-shadow: none;
+  border-color: transparent;
+  outline: none;
 }
 
 /* Revert Tailwind Preflight inside markdown so browser defaults apply */
@@ -135,10 +146,12 @@
 .markdown-content > :is(h1, h2, h3, h4, h5, h6) {
   border-bottom: 1px solid #DDD !important;
   padding-bottom: 4px !important;
+  margin-bottom: 8px !important;
+  margin-top: 8px !important;
 }
 
 .markdown-content pre {
-  background-color: #f6f8fa;
+  background-color: var(--muted);
   padding: 1rem;
   border-radius: 0.375rem;
   overflow-x: auto;
@@ -146,13 +159,14 @@
 
 /* React Flow Theme */
 .react-flow {
-  --xy-background-color: #f7f9fb;
+  --xy-background-color: var(--canvas);
   --xy-theme-selected: var(--primary);
   --xy-theme-hover: var(--secondary);
   --xy-theme-edge-hover: black;
   --xy-theme-color-focus: #e8e8e8;
 
   --xy-node-border-default: 1px solid var(--secondary);
+  --xy-node-border-selected: 1px solid var(--secondary);
   --xy-node-boxshadow-default:
     0px 3.54px 4.55px 0px #00000005, 0px 3.54px 4.55px 0px #0000000d,
     0px 0.51px 1.01px 0px #0000001a;
@@ -165,6 +179,10 @@
 }
 
 .react-flow.dark {
+  --xy-background-color: var(--canvas);
+  --xy-theme-edge-hover: white;
+  --xy-handle-background-color-default: var(--background);
+  --xy-edge-label-color-default: var(--muted-foreground);
   --xy-node-boxshadow-default:
     0px 3.54px 4.55px 0px rgba(255, 255, 255, 0.05),
     0px 3.54px 4.55px 0px rgba(255, 255, 255, 0.13),
@@ -172,17 +190,28 @@
   --xy-theme-color-focus: #535353;
 }
 
+.react-flow__controls {
+  --xy-controls-button-background-color: var(--background);
+  --xy-controls-button-background-color-hover: var(--card);
+  --xy-controls-button-color: var(--foreground);
+  --xy-controls-button-border-color: transparent;
+  border-style: var(--tw-border-style);
+  border-width: 1px;
+  border-color: var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
 .react-flow__node-agent,
-.react-flow__node-agent_decision {
+.react-flow__node-agent_decision,
+.react-flow__node-start {
   border-radius: var(--radius-lg);
 }
 
-.react-flow__node.selectable:focus {
-  box-shadow: 0px 0px 0px 4px var(--xy-theme-color-focus);
-}
-
+.react-flow__node.selectable:focus,
 .react-flow__node.selectable:focus:active {
-  box-shadow: var(--xy-node-boxshadow-default);
+  box-shadow: none;
+  outline: none;
 }
 
 .react-flow__node.selectable:hover,
@@ -190,9 +219,13 @@
   border-color: var(--xy-theme-hover);
 }
 
-.react-flow__node.selectable.selected {
-  border-color: var(--xy-theme-selected);
-  box-shadow: var(--xy-node-boxshadow-default);
+.react-flow__node.selectable.selected,
+.react-flow__node.selectable.selected:focus,
+.react-flow__node.selectable.selected:focus:active,
+.react-flow__node.selectable.selected:focus-visible {
+  box-shadow: none;
+  outline: none;
+  border-color: transparent;
 }
 
 .react-flow__edge.selectable:hover .react-flow__edge-path,
@@ -245,5 +278,49 @@
 /* Hide React Flow attribution */
 .react-flow__attribution {
   display: none;
+}
+
+/* Auth page animations */
+@keyframes auth-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.auth-card-enter {
+  animation: auth-card-enter 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes auth-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  15%,
+  45%,
+  75% {
+    transform: translateX(-3px);
+  }
+  30%,
+  60%,
+  90% {
+    transform: translateX(3px);
+  }
+}
+
+.auth-shake {
+  animation: auth-shake 0.4s ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-card-enter,
+  .auth-shake {
+    animation: none;
+  }
 }
 

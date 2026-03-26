@@ -1,11 +1,14 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useReactFlow, ReactFlowProvider, useNodesState, useEdgesState } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { useRouter } from 'next/navigation';
 
+import { useCopilotContext } from './copilot/CopilotProvider';
 import { GraphBuilderLoading } from './GraphBuilderLoading';
 import { HandleContext } from './nodes/HandleContext';
+import { DeleteConfirmDialog } from './panels/DeleteConfirmDialog';
 import { PublishButton } from './panels/PublishButton';
 import { Toolbar } from './panels/Toolbar';
 import { StatusButton } from './panels/StatusButton';
@@ -15,10 +18,12 @@ import { VersionSwitcherSlot } from './panels/VersionSwitcherSlot';
 import { GraphCanvas } from './GraphCanvas';
 import { SidePanels } from './SidePanels';
 import type { DiscoveredTool } from '../lib/api';
-import type { ApiKeyRow } from '../lib/api-keys';
+import type { ApiKeyRow } from '../lib/apiKeys';
 import type { Agent, Graph } from '../schemas/graph.schema';
 import { useApiKeySelection } from '../hooks/useApiKeySelection';
 import { useAutoSave } from '../hooks/useAutoSave';
+import { useEnvVariables } from '../hooks/useEnvVariables';
+import { useMcpLibrary } from '../hooks/useMcpLibrary';
 import { useGraphActions } from '../hooks/useGraphActions';
 import type { GraphLoadResult } from '../hooks/useGraphLoader';
 import { useGraphLoader } from '../hooks/useGraphLoader';
@@ -28,7 +33,9 @@ import { useExportGraph } from '../hooks/useExportGraph';
 import { useGraphSelection } from '../hooks/useGraphSelection';
 import { useMcpServers } from '../hooks/useMcpServers';
 import { useOperationQueue } from '../hooks/useOperationQueue';
+import { useOutputSchemas } from '../hooks/useOutputSchemas';
 import { usePresets } from '../hooks/usePresets';
+import { useDeleteConfirmation } from '../hooks/useDeleteConfirmation';
 import { useSeedInitialGraph } from '../hooks/useSeedInitialGraph';
 import { useSimulation } from '../hooks/useSimulation';
 import { useVersions } from '../hooks/useVersions';
@@ -42,8 +49,10 @@ const DEFAULT_VERSION = 0;
 
 export interface GraphBuilderProps {
   agentId?: string;
+  agentSlug?: string;
   agentName?: string;
   orgSlug?: string;
+  orgId?: string;
   orgName?: string;
   orgAvatarUrl?: string | null;
   initialVersion?: number;
@@ -78,10 +87,14 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     flush: opQueue.flush,
   });
 
+  const mcpLibrary = useMcpLibrary();
+
   const mcpHook = useMcpServers({
     initialServers: loadResult.mcpServers,
     initialDiscoveredTools: props.initialDiscoveredTools,
     pushOperation: opQueue.pushOperation,
+    libraryItems: mcpLibrary.items,
+    orgId: props.orgId,
   });
 
   const apiKeys = useApiKeySelection({
@@ -94,15 +107,57 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
   const [presetsOpen, setPresetsOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+
+  const envVariables = useEnvVariables(props.orgId);
 
   const presetsHook = usePresets(opQueue.pushOperation);
 
-  const panels = useMemo(() => ({ setGlobalPanelOpen, setPresetsOpen, setToolsOpen, setSearchOpen }), []);
+  const outputSchemasHook = useOutputSchemas({
+    initialSchemas: loadResult.outputSchemas,
+    pushOperation: opQueue.pushOperation,
+  });
+
+  const { setOpen: setCopilotOpen, onOpenRef: copilotOnOpenRef } = useCopilotContext();
+
+  const panels = useMemo(
+    () => ({
+      setGlobalPanelOpen,
+      setPresetsOpen,
+      setToolsOpen,
+      setSearchOpen,
+      setLibraryOpen,
+      setCopilotOpen,
+    }),
+    [setCopilotOpen]
+  );
 
   const selection = useGraphSelection(
     { nodes, setNodes, setEdges, reactFlow: rf, reactFlowWrapper },
     panels
   );
+
+  const deleteConfirmation = useDeleteConfirmation({
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    pushOperation: opQueue.pushOperation,
+    onNodeDeleted: () => selection.setSelectedNodeId(null),
+    onEdgeDeleted: () => selection.setSelectedEdgeId(null),
+  });
+
+  const onCopilotOpen = useCallback(() => {
+    selection.setSelectedNodeId(null);
+    selection.setSelectedEdgeId(null);
+    setGlobalPanelOpen(false);
+    setPresetsOpen(false);
+    setToolsOpen(false);
+  }, [selection]);
+
+  useEffect(() => {
+    copilotOnOpenRef.current = onCopilotOpen;
+  }, [copilotOnOpenRef, onCopilotOpen]);
 
   const zoomView = useZoomView({
     nodes,
@@ -139,21 +194,28 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     getCurrentMcpServers: getMcpServers,
   });
 
-  const handleExport = useExportGraph({ nodes, edges, agents, mcpServers: mcpHook.servers });
+  const handleExport = useExportGraph({
+    nodes,
+    edges,
+    agents,
+    mcpServers: mcpHook.servers,
+    outputSchemas: outputSchemasHook.schemas,
+  });
 
   const handleFormat = useFormatGraph({
     nodes,
     edges,
     agents,
     mcpServers: mcpHook.servers,
+    outputSchemas: outputSchemasHook.schemas,
     setNodes,
     setEdges,
     pushOperation: opQueue.pushOperation,
   });
 
   const serializedGraph = useMemo(
-    () => serializeGraphData({ nodes, edges, agents, mcpServers: mcpHook.servers }),
-    [nodes, edges, agents, mcpHook.servers]
+    () => serializeGraphData({ nodes, edges, agents, mcpServers: mcpHook.servers, outputSchemas: outputSchemasHook.schemas }),
+    [nodes, edges, agents, mcpHook.servers, outputSchemasHook.schemas]
   );
 
   const getGraphData = useCallback((): Graph | null => serializedGraph, [serializedGraph]);
@@ -170,6 +232,25 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
   useInitialViewport(reactFlowWrapper, rf.setViewport, loadResult.graphData);
   useSearchKeyboard(setSearchOpen);
 
+  const initialLayoutDone = useRef(false);
+  useEffect(() => {
+    if (initialLayoutDone.current) return;
+    initialLayoutDone.current = true;
+    handleFormat({ skipPersist: true });
+  }, [handleFormat]);
+
+  const prevNodeCount = useRef(nodes.length);
+  const prevEdgeCount = useRef(edges.length);
+  useEffect(() => {
+    const nodesChanged = nodes.length !== prevNodeCount.current;
+    const edgesChanged = edges.length !== prevEdgeCount.current;
+    if (nodesChanged || edgesChanged) {
+      prevNodeCount.current = nodes.length;
+      prevEdgeCount.current = edges.length;
+      handleFormat();
+    }
+  }, [nodes.length, edges.length, handleFormat]);
+
   const handleSimSelectNode = useCallback(
     (nodeId: string) => {
       setNodes((nds) => nds.map((n) => ({ ...n, selected: n.id === nodeId })));
@@ -185,6 +266,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     preset: presetsHook.activePreset,
     apiKeyId: apiKeys.stagingKeyId ?? '',
     mcpServers: mcpHook.servers,
+    outputSchemas: outputSchemasHook.schemas,
     onZoomToNode: zoomView.handleZoomToNode,
     onSelectNode: handleSimSelectNode,
     onExitZoomView: zoomView.handleExitZoomView,
@@ -201,6 +283,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     agents,
     onNodesChange,
     onEdgesChange,
+    deleteConfirmation,
     setNodes,
     setEdges,
     displayNodes,
@@ -216,6 +299,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     simulation,
     presetsHook,
     mcpHook,
+    outputSchemasHook,
     ctxPreconditions,
     globalPanelOpen,
     setGlobalPanelOpen,
@@ -225,6 +309,10 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     setToolsOpen,
     searchOpen,
     setSearchOpen,
+    libraryOpen,
+    setLibraryOpen,
+    envVariables,
+    mcpLibrary,
     version,
     setVersion,
     apiKeys,
@@ -238,6 +326,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
 function LoadedEditor(props: LoadedEditorProps) {
   const h = useGraphBuilderHooks(props);
   const versionsHook = useVersions(props.agentId, props.initialVersion ?? DEFAULT_VERSION);
+  const router = useRouter();
 
   const handleContextValue = {
     onSourceHandleClick: h.graphActions.onSourceHandleClick,
@@ -246,7 +335,7 @@ function LoadedEditor(props: LoadedEditorProps) {
 
   return (
     <HandleContext.Provider value={handleContextValue}>
-      <div className="flex h-screen w-screen flex-col items-center">
+      <div className="relative flex h-full w-full flex-col items-center ml-0">
         {!h.simulation.active && <Toolbar
           onAddNode={h.graphActions.handleAddNode}
           onImport={h.handleImport}
@@ -259,6 +348,7 @@ function LoadedEditor(props: LoadedEditorProps) {
           onToggleGlobalPanel={() => h.setGlobalPanelOpen((prev) => !prev)}
           onTogglePresets={() => h.setPresetsOpen((prev) => !prev)}
           onToggleTools={() => h.setToolsOpen((prev) => !prev)}
+          onToggleLibrary={() => h.setLibraryOpen((prev) => !prev)}
           stagingKeyId={h.apiKeys.stagingKeyId}
           orgSlug={props.orgSlug}
           orgName={props.orgName}
@@ -268,14 +358,17 @@ function LoadedEditor(props: LoadedEditorProps) {
             props.agentId !== undefined ? (
               <PublishButton
                 agentId={props.agentId}
+                agentSlug={props.agentSlug ?? ''}
+                version={h.version}
                 canPublish={h.canPublish}
-                hasApiKey={h.apiKeys.stagingKeyId !== null}
+                hasApiKey={h.apiKeys.productionKeyId !== null}
                 flush={h.flush}
                 onPublished={(newVersion) => {
                   h.setVersion(newVersion);
                   versionsHook.setCurrentVersion(newVersion);
                   h.apiKeys.setProductionKeyId(h.apiKeys.stagingKeyId);
                   void versionsHook.refresh();
+                  router.refresh();
                 }}
               />
             ) : undefined
@@ -323,17 +416,38 @@ function LoadedEditor(props: LoadedEditorProps) {
           agents={h.agents}
           presetsHook={h.presetsHook}
           mcpHook={h.mcpHook}
+          outputSchemasHook={h.outputSchemasHook}
           globalPanelOpen={h.globalPanelOpen}
           presetsOpen={h.presetsOpen}
           toolsOpen={h.toolsOpen}
+          libraryOpen={h.libraryOpen}
+          mcpLibrary={h.mcpLibrary}
           setNodes={h.setNodes}
           setEdges={h.setEdges}
           ctxPreconditions={h.ctxPreconditions}
           orgApiKeys={props.orgApiKeys ?? []}
+          orgId={props.orgId ?? ''}
+          agentId={props.agentId ?? ''}
+          agentName={props.agentName ?? ''}
+          orgSlug={props.orgSlug ?? ''}
+          envVariables={h.envVariables}
           stagingKeyId={h.apiKeys.stagingKeyId}
           productionKeyId={h.apiKeys.productionKeyId}
           onStagingKeyChange={h.apiKeys.handleStagingKeyChange}
+          onProductionKeyChange={h.apiKeys.handleProductionKeyChange}
+          onPublishMcpServer={() => {}}
+          onOpenMcpLibrary={() => {
+            h.setLibraryOpen(true);
+            h.setPresetsOpen(false);
+          }}
+          onCloseLibrary={() => h.setLibraryOpen(false)}
           pushOperation={h.pushOperation}
+        />
+
+        <DeleteConfirmDialog
+          pendingDelete={h.deleteConfirmation.pendingDelete}
+          onConfirm={h.deleteConfirmation.confirmDelete}
+          onCancel={h.deleteConfirmation.cancelDelete}
         />
 
         {h.graphActions.connectionMenu !== null && (
@@ -355,7 +469,7 @@ function LoadedEditor(props: LoadedEditorProps) {
 function GraphBuilderInner(props: GraphBuilderProps) {
   const loader = useGraphLoader(props.agentId);
   const mcpServers = loader.loading ? undefined : loader.result.mcpServers;
-  const discovery = useMcpDiscovery(mcpServers);
+  const discovery = useMcpDiscovery(mcpServers, undefined, props.orgId);
 
   if (loader.loading) return <GraphBuilderLoading />;
   if (discovery.loading) return <GraphBuilderLoading serverProgress={discovery.serverProgress} />;

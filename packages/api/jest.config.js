@@ -5,6 +5,8 @@ export default {
   extensionsToTreatAsEsm: ['.ts'],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
+    '^@src/(.*)\\.js$': '<rootDir>/src/$1',
+    '^@src/(.*)$': '<rootDir>/src/$1',
   },
   transform: {
     '^.+\\.tsx?$': [
@@ -15,7 +17,7 @@ export default {
       },
     ],
   },
-  testMatch: ['**/__tests__/**/*.test.ts'],
+  testMatch: ['**/__tests__/**/*.test.ts', '**/src/**/*.test.ts'],
   collectCoverage: true,
   coverageProvider: 'v8',
   coverageDirectory: 'coverage',

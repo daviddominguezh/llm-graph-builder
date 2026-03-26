@@ -1,20 +1,24 @@
 'use client';
 
+import { Check, Pencil } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 
 import type { DiscoveredTool } from '../../lib/api';
 import type { ToolFieldValue } from '../../schemas/graph.schema';
+import type { FieldMode } from './FieldModeToggle';
+import { FieldModeToggle } from './FieldModeToggle';
 
 interface SchemaProperty {
   type?: string;
   description?: string;
   enum?: string[];
   required?: boolean;
+  properties?: Record<string, SchemaProperty>;
+  items?: SchemaProperty;
 }
 
 interface ToolSchema {
@@ -27,6 +31,7 @@ export interface ToolParamsCardProps {
   tools: DiscoveredTool[];
   toolFields?: Record<string, ToolFieldValue>;
   onToolFieldsChange?: (toolFields: Record<string, ToolFieldValue> | undefined) => void;
+  onOpenReference?: (fieldName: string) => void;
   readOnly?: boolean;
 }
 
@@ -69,56 +74,61 @@ function getSortedProperties(schema: ToolSchema, requiredSet: Set<string>): Sort
   return [...requiredFields, ...optionalFields];
 }
 
-interface FieldRowProps {
-  entry: SortedProperty;
-  fieldValue: ToolFieldValue | undefined;
-  onToggle: (name: string) => void;
-  onValueChange: (name: string, value: string) => void;
-  readOnly: boolean;
+function getFieldMode(field: ToolFieldValue | undefined): FieldMode {
+  if (field === undefined) return 'inferred';
+  return field.type;
+}
+
+interface ReferenceChipProps {
+  name: string;
+  onOpenReference?: (fieldName: string) => void;
   t: (key: string) => string;
 }
 
-function AgentInferredCheckbox({ isFixed, onToggle, readOnly, fieldName, t }: {
-  isFixed: boolean;
-  onToggle: () => void;
-  readOnly: boolean;
-  fieldName: string;
-  t: (key: string) => string;
-}) {
-  if (readOnly) return null;
-  const id = `agent-inferred-${fieldName}`;
+function ReferenceChip({ name, onOpenReference, t }: ReferenceChipProps) {
   return (
-    <div className="flex items-center gap-1.5">
-      <Checkbox id={id} checked={!isFixed} onCheckedChange={onToggle} className="size-3" />
-      <Label htmlFor={id} className="text-[10px] text-muted-foreground font-normal cursor-pointer">
-        {t('agentInferred')}
-      </Label>
+    <div className="flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-[10px] text-blue-700">
+      <Check className="size-3" />
+      <span>{t('referencesSet')}</span>
+      <Button variant="ghost" size="icon-xs" onClick={() => onOpenReference?.(name)}>
+        <Pencil className="size-2.5" />
+      </Button>
     </div>
   );
 }
 
-function PropertyRow({ entry, fieldValue, onToggle, onValueChange, readOnly, t }: FieldRowProps) {
-  const { name, prop, isRequired } = entry;
-  const isFixed = fieldValue?.type === 'fixed';
+interface FieldRowProps {
+  entry: SortedProperty;
+  fieldValue: ToolFieldValue | undefined;
+  onModeChange: (name: string, mode: FieldMode) => void;
+  onValueChange: (name: string, value: string) => void;
+  onOpenReference?: (fieldName: string) => void;
+  readOnly: boolean;
+  t: (key: string) => string;
+}
+
+function PropertyRowHeader({ name, prop, isRequired, t }: { name: string; prop: SchemaProperty; isRequired: boolean; t: (key: string) => string }) {
+  return (
+    <div className="flex min-w-0 items-baseline gap-1">
+      <code className="shrink-0 font-mono text-[11px] font-semibold">{name}</code>
+      {prop.type && <span className="text-[10px] text-muted-foreground">({prop.type})</span>}
+      {isRequired
+        ? <span className="text-[10px] font-medium text-orange-600">*</span>
+        : <span className="text-[10px] italic text-muted-foreground/60">{t('optionalField')}</span>}
+    </div>
+  );
+}
+
+function PropertyRowBody({ entry, fieldValue, onModeChange, onValueChange, onOpenReference, readOnly, t }: FieldRowProps) {
+  const { name, prop } = entry;
+  const mode = getFieldMode(fieldValue);
 
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex min-w-0 items-baseline gap-1">
-        <code className="shrink-0 font-mono text-[11px] font-semibold">{name}</code>
-        {prop.type && <span className="text-[10px] text-muted-foreground">({prop.type})</span>}
-        {isRequired
-          ? <span className="text-[10px] font-medium text-orange-600">*</span>
-          : <span className="text-[10px] italic text-muted-foreground/60">{t('optionalField')}</span>}
-      </div>
-      {prop.description && (
-        <span className="text-[10px] leading-tight text-muted-foreground">{prop.description}</span>
-      )}
-      <AgentInferredCheckbox
-        isFixed={isFixed}
-        onToggle={() => onToggle(name)}
+    <>
+      <FieldModeToggle
+        mode={mode}
+        onModeChange={(m) => onModeChange(name, m)}
         readOnly={readOnly}
-        fieldName={name}
-        t={t}
       />
       {prop.enum && prop.enum.length > 0 && (
         <div className="flex flex-wrap gap-0.5">
@@ -127,7 +137,7 @@ function PropertyRow({ entry, fieldValue, onToggle, onValueChange, readOnly, t }
           ))}
         </div>
       )}
-      {isFixed && (
+      {mode === 'fixed' && fieldValue?.type === 'fixed' && (
         <Input
           value={fieldValue.value}
           onChange={(e) => onValueChange(name, e.target.value)}
@@ -136,11 +146,63 @@ function PropertyRow({ entry, fieldValue, onToggle, onValueChange, readOnly, t }
           readOnly={readOnly}
         />
       )}
+      {mode === 'reference' && (
+        <ReferenceChip name={name} onOpenReference={onOpenReference} t={t} />
+      )}
+    </>
+  );
+}
+
+function PropertyRow({ entry, fieldValue, onModeChange, onValueChange, onOpenReference, readOnly, t }: FieldRowProps) {
+  const { name, prop, isRequired } = entry;
+
+  return (
+    <div className="flex flex-col gap-1">
+      <PropertyRowHeader name={name} prop={prop} isRequired={isRequired} t={t} />
+      {prop.description && (
+        <span className="text-[10px] leading-tight text-muted-foreground">{prop.description}</span>
+      )}
+      <PropertyRowBody
+        entry={entry}
+        fieldValue={fieldValue}
+        onModeChange={onModeChange}
+        onValueChange={onValueChange}
+        onOpenReference={onOpenReference}
+        readOnly={readOnly}
+        t={t}
+      />
     </div>
   );
 }
 
-export function ToolParamsCard({ toolName, tools, toolFields, onToolFieldsChange, readOnly = false }: ToolParamsCardProps) {
+interface ModeChangeParams {
+  fieldName: string;
+  mode: FieldMode;
+  toolFields: Record<string, ToolFieldValue> | undefined;
+  onToolFieldsChange: (toolFields: Record<string, ToolFieldValue> | undefined) => void;
+  onOpenReference?: (fieldName: string) => void;
+}
+
+function applyModeChange({ fieldName, mode, toolFields, onToolFieldsChange, onOpenReference }: ModeChangeParams) {
+  const current = toolFields ?? {};
+  if (mode === 'inferred') {
+    const rest = Object.fromEntries(Object.entries(current).filter(([k]) => k !== fieldName));
+    onToolFieldsChange(Object.keys(rest).length > 0 ? rest : undefined);
+  } else if (mode === 'fixed') {
+    onToolFieldsChange({ ...current, [fieldName]: { type: 'fixed', value: '' } });
+  } else {
+    onOpenReference?.(fieldName);
+  }
+}
+
+export function ToolParamsCard({
+  toolName,
+  tools,
+  toolFields,
+  onToolFieldsChange,
+  onOpenReference,
+  readOnly = false,
+}: ToolParamsCardProps) {
   const t = useTranslations('edgePanel');
   const tool = findTool(toolName, tools);
 
@@ -152,15 +214,9 @@ export function ToolParamsCard({ toolName, tools, toolFields, onToolFieldsChange
   const requiredSet = buildRequiredSet(schema);
   const sorted = getSortedProperties(schema, requiredSet);
 
-  const handleToggle = (fieldName: string) => {
+  const handleModeChange = (fieldName: string, mode: FieldMode) => {
     if (!onToolFieldsChange) return;
-    const current = toolFields ?? {};
-    if (current[fieldName]?.type === 'fixed') {
-      const rest = Object.fromEntries(Object.entries(current).filter(([k]) => k !== fieldName));
-      onToolFieldsChange(Object.keys(rest).length > 0 ? rest : undefined);
-    } else {
-      onToolFieldsChange({ ...current, [fieldName]: { type: 'fixed', value: '' } });
-    }
+    applyModeChange({ fieldName, mode, toolFields, onToolFieldsChange, onOpenReference });
   };
 
   const handleValueChange = (fieldName: string, value: string) => {
@@ -182,8 +238,9 @@ export function ToolParamsCard({ toolName, tools, toolFields, onToolFieldsChange
             <PropertyRow
               entry={entry}
               fieldValue={toolFields?.[entry.name]}
-              onToggle={handleToggle}
+              onModeChange={handleModeChange}
               onValueChange={handleValueChange}
+              onOpenReference={onOpenReference}
               readOnly={readOnly}
               t={t}
             />

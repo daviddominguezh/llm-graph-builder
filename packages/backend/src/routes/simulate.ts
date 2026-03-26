@@ -46,6 +46,7 @@ export function buildContext(body: SimulateRequest): Omit<Context, 'toolsOverrid
   return {
     graph: body.graph,
     apiKey: body.apiKey,
+    modelId: body.modelId,
     sessionID: body.sessionID,
     tenantID: body.tenantID,
     userID: body.userID,

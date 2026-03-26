@@ -1,13 +1,8 @@
 import type { McpTransport } from '@/app/schemas/graph.schema';
 import { z } from 'zod';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const SSE_DATA_PREFIX = 'data: ';
 const EMPTY_LENGTH = 0;
-
-function apiUrl(path: string): string {
-  return `${API_URL}${path}`;
-}
 
 export interface DiscoveredTool {
   name: string;
@@ -40,11 +35,25 @@ async function parseDiscoverError(res: Response): Promise<string> {
   return parsed.success ? (parsed.data.error ?? 'Discovery failed') : 'Discovery failed';
 }
 
-export async function discoverMcpTools(transport: McpTransport): Promise<DiscoveredTool[]> {
-  const res = await fetch(apiUrl('/mcp/discover'), {
+export interface DiscoverOptions {
+  variableValues?: Record<string, unknown>;
+  orgId?: string;
+  libraryItemId?: string;
+}
+
+export async function discoverMcpTools(
+  transport: McpTransport,
+  options?: DiscoverOptions
+): Promise<DiscoveredTool[]> {
+  const res = await fetch('/api/mcp/discover', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ transport }),
+    body: JSON.stringify({
+      transport,
+      variableValues: options?.variableValues,
+      orgId: options?.orgId,
+      libraryItemId: options?.libraryItemId,
+    }),
   });
   if (!res.ok) {
     const message = await parseDiscoverError(res);
@@ -55,16 +64,72 @@ export async function discoverMcpTools(transport: McpTransport): Promise<Discove
   return data.tools;
 }
 
+export interface ToolCallOptions {
+  variableValues?: Record<string, unknown>;
+  orgId?: string;
+  libraryItemId?: string;
+}
+
+export interface ToolCallResult {
+  success: true;
+  result: unknown;
+}
+
+export interface ToolCallError {
+  success: false;
+  error: { message: string; code?: string; details?: unknown };
+}
+
+export type ToolCallResponse = ToolCallResult | ToolCallError;
+
+const ToolCallResponseSchema = z.union([
+  z.object({ success: z.literal(true), result: z.unknown() }),
+  z.object({
+    success: z.literal(false),
+    error: z.object({
+      message: z.string(),
+      code: z.string().optional(),
+      details: z.unknown().optional(),
+    }),
+  }),
+]);
+
+export async function callMcpTool(
+  transport: McpTransport,
+  toolName: string,
+  args: Record<string, unknown>,
+  options?: ToolCallOptions,
+  signal?: AbortSignal
+): Promise<ToolCallResponse> {
+  const res = await fetch('/api/mcp/tools/call', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      transport,
+      toolName,
+      args,
+      variableValues: options?.variableValues,
+      orgId: options?.orgId,
+      libraryItemId: options?.libraryItemId,
+    }),
+    signal,
+  });
+  const raw = await fetchJsonUnknown(res);
+  return ToolCallResponseSchema.parse(raw) as ToolCallResponse;
+}
+
 export interface SimulateRequestBody {
   graph: Record<string, unknown>;
   messages: unknown[];
   currentNode: string;
   apiKeyId: string;
+  modelId: string;
   sessionID: string;
   tenantID: string;
   userID: string;
   data: Record<string, unknown>;
   quickReplies: Record<string, string>;
+  structuredOutputs?: Record<string, unknown[]>;
 }
 
 interface SseToolCall {
@@ -75,7 +140,7 @@ interface SseToolCall {
 
 interface SseNodeTokens {
   node: string;
-  tokens: { input: number; output: number; cached: number };
+  tokens: { input: number; output: number; cached: number; costUSD?: number };
 }
 
 interface AgentResponseEvent {
@@ -90,9 +155,13 @@ interface AgentResponseEvent {
 export interface NodeProcessedEvent {
   nodeId: string;
   text: string;
+  output?: unknown;
   toolCalls: SseToolCall[];
-  tokens: { input: number; output: number; cached: number };
+  reasoning?: string;
+  error?: string;
+  tokens: { input: number; output: number; cached: number; costUSD?: number };
   durationMs?: number;
+  structuredOutput?: { nodeId: string; data: unknown };
 }
 
 export interface StreamCallbacks {
@@ -114,12 +183,23 @@ const SseNodeTokensSchema = z.object({
   tokens: z.object({ input: z.number(), output: z.number(), cached: z.number() }),
 });
 
-const TokensSchema = z.object({ input: z.number(), output: z.number(), cached: z.number() });
+const TokensSchema = z.object({
+  input: z.number(),
+  output: z.number(),
+  cached: z.number(),
+  costUSD: z.number().optional(),
+});
+
+const StructuredOutputSchema = z.object({
+  nodeId: z.string(),
+  data: z.unknown(),
+});
 
 const SseEventSchema = z.object({
   type: z.string(),
   nodeId: z.string().optional(),
   text: z.string().optional(),
+  output: z.unknown().optional(),
   visitedNodes: z.array(z.string()).optional(),
   toolCalls: z.array(SseToolCallSchema).optional(),
   nodeTokens: z.array(SseNodeTokensSchema).optional(),
@@ -127,6 +207,9 @@ const SseEventSchema = z.object({
   tokenUsage: TokensSchema.optional(),
   durationMs: z.number().optional(),
   message: z.string().optional(),
+  structuredOutput: StructuredOutputSchema.optional(),
+  reasoning: z.string().optional(),
+  error: z.string().optional(),
 });
 
 type SseEvent = z.infer<typeof SseEventSchema>;
@@ -142,9 +225,13 @@ function handleNodeProcessed(event: SseEvent, callbacks: StreamCallbacks): void 
     callbacks.onNodeProcessed?.({
       nodeId: event.nodeId,
       text: event.text ?? '',
+      output: event.output,
       toolCalls: event.toolCalls ?? [],
+      reasoning: event.reasoning,
+      error: event.error,
       tokens: event.tokens,
       durationMs: event.durationMs,
+      structuredOutput: event.structuredOutput,
     });
   }
 }
@@ -230,12 +317,14 @@ async function readSseStream(
 
 export async function streamSimulation(
   params: SimulateRequestBody,
-  callbacks: StreamCallbacks
+  callbacks: StreamCallbacks,
+  signal?: AbortSignal
 ): Promise<void> {
   const res = await fetch('/api/simulate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
+    signal,
   });
 
   if (!res.ok) {

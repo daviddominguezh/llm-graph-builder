@@ -20,17 +20,14 @@ interface FallbackNodeSelectProps {
   onChange: (nodeId: string | undefined) => void;
 }
 
-function hasNonToolEdges(edges: Edge<RFEdgeData>[]): boolean {
-  return edges.some((e) => {
-    const type = e.data?.preconditions?.[0]?.type;
-    return type !== "tool_call";
-  });
+function hasAgentDecisionEdges(edges: Edge<RFEdgeData>[]): boolean {
+  return edges.some((e) => e.data?.preconditions?.[0]?.type === "agent_decision");
 }
 
 export function FallbackNodeSelect({ nodeId, edges, globalNodeIds, value, onChange }: FallbackNodeSelectProps) {
   const outgoing = useMemo(() => edges.filter((e) => e.source === nodeId), [edges, nodeId]);
 
-  if (outgoing.length === 0 || !hasNonToolEdges(outgoing)) return null;
+  if (outgoing.length === 0 || !hasAgentDecisionEdges(outgoing)) return null;
 
   const targetIds = outgoing.map((e) => e.target);
   const globalOptions = globalNodeIds.filter((id) => !targetIds.includes(id));

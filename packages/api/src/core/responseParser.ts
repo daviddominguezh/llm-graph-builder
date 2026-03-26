@@ -103,24 +103,29 @@ export const parseJSONMarkdown = (
 };
 
 interface ParsedData {
-  nextNodeID: unknown;
+  nextNodeID?: unknown;
   messageToUser?: unknown;
 }
 
 const isValidParsedData = (data: unknown): data is ParsedData =>
-  typeof data === 'object' && data !== null && 'nextNodeID' in data;
+  typeof data === 'object' && data !== null && ('nextNodeID' in data || 'messageToUser' in data);
+
+const BR_TAG = '[nl]';
+const NEWLINE = '\n';
+
+const normalizeLineBreaks = (text: string): string => text.replaceAll(BR_TAG, NEWLINE);
 
 const extractParsedResult = (data: ParsedData): ParsedResult => {
-  const messageToUser =
+  const rawMessage =
     data.messageToUser === undefined
       ? undefined
       : typeof data.messageToUser === 'string'
         ? data.messageToUser
         : undefined;
-  return {
-    nextNodeID: String(data.nextNodeID),
-    messageToUser,
-  };
+  const messageToUser = rawMessage === undefined ? undefined : normalizeLineBreaks(rawMessage);
+  const nextNodeID =
+    typeof data.nextNodeID === 'string' || typeof data.nextNodeID === 'number' ? String(data.nextNodeID) : '';
+  return { nextNodeID, messageToUser };
 };
 
 const tryParseJSON = (str: string): ParsedResult | null => {

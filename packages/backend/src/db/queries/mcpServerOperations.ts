@@ -13,6 +13,8 @@ interface McpServerInsertRow {
   transport_type: string;
   transport_config: Record<string, unknown>;
   enabled: boolean | undefined;
+  library_item_id: string | undefined;
+  variable_values: Record<string, unknown> | undefined;
 }
 
 function extractTransportConfig(transport: McpTransport): Record<string, unknown> {
@@ -28,6 +30,8 @@ function buildMcpServerRow(agentId: string, data: InsertMcpOp['data']): McpServe
     transport_type: data.transport.type,
     transport_config: extractTransportConfig(data.transport),
     enabled: data.enabled,
+    library_item_id: data.libraryItemId,
+    variable_values: data.variableValues,
   };
 }
 

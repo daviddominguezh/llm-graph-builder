@@ -1,7 +1,8 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { fetchFromBackend } from './backendProxy';
 
-import { removeOrgAvatar } from './org-storage';
-import { findUniqueSlug, generateSlug } from './slug';
+/* ------------------------------------------------------------------ */
+/*  Types                                                              */
+/* ------------------------------------------------------------------ */
 
 export interface OrgRow {
   id: string;
@@ -16,158 +17,100 @@ export interface OrgWithAgentCount extends OrgRow {
   agent_count: number;
 }
 
-interface AgentCountShape {
-  count: number;
-}
+/* ------------------------------------------------------------------ */
+/*  Type guards                                                        */
+/* ------------------------------------------------------------------ */
 
-interface OrgRowWithAgents extends OrgRow {
-  agents: AgentCountShape[];
-}
-
-const ORG_COLUMNS = 'id, name, slug, avatar_url, created_at, updated_at';
-const DEFAULT_AGENT_COUNT = 0;
-const FIRST_INDEX = 0;
-
-/**
- * Supabase returns untyped data for schemas without codegen.
- * This type predicate enables safe narrowing from query results.
- */
 export function isOrgRow(value: unknown): value is OrgRow {
   return typeof value === 'object' && value !== null && 'id' in value && 'slug' in value;
 }
 
-function isObjectWithAgents(value: unknown): value is Record<string, unknown> & { agents: unknown } {
-  return typeof value === 'object' && value !== null && 'agents' in value;
+function isOrgWithCountArray(val: unknown): val is OrgWithAgentCount[] {
+  return Array.isArray(val);
 }
 
-function hasAgentsArray(value: unknown): value is OrgRowWithAgents {
-  if (!isOrgRow(value)) return false;
-  if (!isObjectWithAgents(value)) return false;
-  return Array.isArray(value.agents);
+interface UpdateOrgResult {
+  result: string | null;
+  error: string | null;
 }
 
-function extractAgentCount(row: OrgRowWithAgents): number {
-  const { agents } = row;
-  if (agents.length === DEFAULT_AGENT_COUNT) return DEFAULT_AGENT_COUNT;
-  return agents[FIRST_INDEX].count;
+function isUpdateOrgResult(val: unknown): val is UpdateOrgResult {
+  return typeof val === 'object' && val !== null && 'result' in val;
 }
 
-function toOrgWithCount(row: unknown): OrgWithAgentCount | null {
-  if (!hasAgentsArray(row)) return null;
-  const { agents: _agents, ...orgFields } = row;
-  return { ...orgFields, agent_count: extractAgentCount(row) };
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+function extractError(err: unknown): string {
+  return err instanceof Error ? err.message : 'Unknown error';
 }
 
-function mapOrgsWithCounts(data: unknown[]): OrgWithAgentCount[] {
-  return data.reduce<OrgWithAgentCount[]>((acc, row) => {
-    const org = toOrgWithCount(row);
-    if (org !== null) acc.push(org);
-    return acc;
-  }, []);
-}
+/* ------------------------------------------------------------------ */
+/*  Queries via backend proxy                                          */
+/* ------------------------------------------------------------------ */
 
-export async function getOrgsByUser(
-  supabase: SupabaseClient
-): Promise<{ result: OrgWithAgentCount[]; error: string | null }> {
-  const { data, error } = await supabase
-    .from('organizations')
-    .select(`${ORG_COLUMNS}, agents(count)`)
-    .order('updated_at', { ascending: false });
-
-  if (error !== null) return { result: [], error: error.message };
-  const rows: unknown[] = (data as unknown[] | null) ?? [];
-  return { result: mapOrgsWithCounts(rows), error: null };
-}
-
-export async function getOrgBySlug(
-  supabase: SupabaseClient,
-  slug: string
-): Promise<{ result: OrgRow | null; error: string | null }> {
-  const result = await supabase.from('organizations').select(ORG_COLUMNS).eq('slug', slug).single();
-
-  if (result.error !== null) return { result: null, error: result.error.message };
-  if (!isOrgRow(result.data)) return { result: null, error: 'Invalid organization data' };
-  return { result: result.data, error: null };
-}
-
-export async function createOrg(
-  supabase: SupabaseClient,
-  name: string
-): Promise<{ result: OrgRow | null; error: string | null }> {
-  const baseSlug = generateSlug(name);
-  if (baseSlug === '') {
-    return { result: null, error: 'Invalid organization name' };
+export async function getOrgsByUser(): Promise<{ result: OrgWithAgentCount[]; error: string | null }> {
+  try {
+    const data = await fetchFromBackend('GET', '/orgs');
+    if (!isOrgWithCountArray(data)) return { result: [], error: 'Invalid response' };
+    return { result: data, error: null };
+  } catch (err) {
+    return { result: [], error: extractError(err) };
   }
-
-  const slug = await findUniqueSlug(supabase, baseSlug, 'organizations');
-  return await insertOrg(supabase, name, slug);
 }
 
-async function insertOrg(
-  supabase: SupabaseClient,
-  name: string,
-  slug: string
-): Promise<{ result: OrgRow | null; error: string | null }> {
-  // Insert without .select() — the AFTER INSERT trigger adds the creator to
-  // org_members, but it fires AFTER the RETURNING clause is evaluated.
-  // A separate SELECT lets the trigger complete first.
-  const { error } = await supabase.from('organizations').insert({ name, slug });
-  if (error !== null) return { result: null, error: error.message };
-
-  return await getOrgBySlug(supabase, slug);
+export async function getOrgBySlug(slug: string): Promise<{ result: OrgRow | null; error: string | null }> {
+  try {
+    const data = await fetchFromBackend('GET', `/orgs/by-slug/${encodeURIComponent(slug)}`);
+    if (!isOrgRow(data)) return { result: null, error: 'Invalid response' };
+    return { result: data, error: null };
+  } catch (err) {
+    return { result: null, error: extractError(err) };
+  }
 }
 
-async function fetchCurrentSlug(supabase: SupabaseClient, orgId: string): Promise<string | null> {
-  const { data } = await supabase.from('organizations').select('slug').eq('id', orgId).single();
-  if (data === null || typeof data !== 'object' || !('slug' in data)) return null;
-  return (data as { slug: string }).slug;
-}
-
-function currentSlugMatchesBase(currentSlug: string, baseSlug: string): boolean {
-  if (currentSlug === baseSlug) return true;
-  const suffix = currentSlug.slice(baseSlug.length);
-  return /^-\d+$/v.test(suffix);
+export async function createOrg(name: string): Promise<{ result: OrgRow | null; error: string | null }> {
+  try {
+    const data = await fetchFromBackend('POST', '/orgs', { name });
+    if (!isOrgRow(data)) return { result: null, error: 'Invalid response' };
+    return { result: data, error: null };
+  } catch (err) {
+    return { result: null, error: extractError(err) };
+  }
 }
 
 export async function updateOrgName(
-  supabase: SupabaseClient,
   orgId: string,
   name: string
 ): Promise<{ result: string | null; error: string | null }> {
-  const baseSlug = generateSlug(name);
-  if (baseSlug === '') {
-    return { result: null, error: 'Invalid organization name' };
+  try {
+    const data = await fetchFromBackend('PATCH', `/orgs/${encodeURIComponent(orgId)}`, { name });
+    if (!isUpdateOrgResult(data)) return { result: null, error: 'Invalid response' };
+    return data;
+  } catch (err) {
+    return { result: null, error: extractError(err) };
   }
-
-  const currentSlug = await fetchCurrentSlug(supabase, orgId);
-  const currentBase = currentSlug ?? '';
-  const slugChanged = !currentSlugMatchesBase(currentBase, baseSlug);
-  const slug = slugChanged ? await findUniqueSlug(supabase, baseSlug, 'organizations') : currentBase;
-  const payload: Record<string, string> = { name };
-  if (slugChanged) payload.slug = slug;
-  const { error } = await supabase.from('organizations').update(payload).eq('id', orgId);
-
-  if (error !== null) return { result: null, error: error.message };
-  return { result: slug, error: null };
 }
 
-export async function updateOrgAvatar(
-  supabase: SupabaseClient,
-  orgId: string,
-  avatarUrl: string | null
-): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('organizations').update({ avatar_url: avatarUrl }).eq('id', orgId);
-
-  if (error !== null) return { error: error.message };
-  return { error: null };
+export async function deleteOrg(orgId: string): Promise<{ error: string | null }> {
+  try {
+    await fetchFromBackend('DELETE', `/orgs/${encodeURIComponent(orgId)}`);
+    return { error: null };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
 }
 
-export async function deleteOrg(supabase: SupabaseClient, orgId: string): Promise<{ error: string | null }> {
-  // Best-effort: remove avatar from storage before deleting the org row
-  await removeOrgAvatar(supabase, orgId);
-
-  const { error } = await supabase.from('organizations').delete().eq('id', orgId);
-
-  if (error !== null) return { error: error.message };
-  return { error: null };
+export async function getOrgRole(orgId: string): Promise<string | null> {
+  try {
+    const data = await fetchFromBackend('GET', `/orgs/${encodeURIComponent(orgId)}/role`);
+    if (typeof data === 'object' && data !== null && 'role' in data) {
+      const { role } = data;
+      return typeof role === 'string' ? role : null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }

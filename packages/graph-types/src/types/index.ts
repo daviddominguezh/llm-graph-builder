@@ -12,6 +12,7 @@ import type {
   NodeSchema,
   OperationSchema,
   OperationsBatchSchema,
+  OutputSchemaEntitySchema,
   PositionSchema,
   PreconditionSchema,
   PreconditionTypeSchema,
@@ -19,7 +20,6 @@ import type {
   RuntimeGraphSchema,
   RuntimeNodeKindSchema,
   RuntimeNodeSchema,
-  ToolFieldValueSchema,
 } from '../schemas/index.js';
 
 export type Agent = z.infer<typeof AgentSchema>;
@@ -31,7 +31,7 @@ export type Node = z.infer<typeof NodeSchema>;
 export type RuntimeNode = z.infer<typeof RuntimeNodeSchema>;
 export type PreconditionType = z.infer<typeof PreconditionTypeSchema>;
 export type Precondition = z.infer<typeof PreconditionSchema>;
-export type ToolFieldValue = z.infer<typeof ToolFieldValueSchema>;
+export type { ToolFieldValue } from '../schemas/edge.schema.js';
 export type ContextPreconditions = z.infer<typeof ContextPreconditionsSchema>;
 export type Edge = z.infer<typeof EdgeSchema>;
 export type RuntimeEdge = z.infer<typeof RuntimeEdgeSchema>;
@@ -41,3 +41,5 @@ export type McpTransport = z.infer<typeof McpTransportSchema>;
 export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
 export type Operation = z.infer<typeof OperationSchema>;
 export type OperationsBatch = z.infer<typeof OperationsBatchSchema>;
+export type OutputSchemaEntity = z.infer<typeof OutputSchemaEntitySchema>;
+export type { OutputSchemaField } from '../schemas/output-schema.schema.js';

@@ -1,7 +1,10 @@
-import { getApiKeyValueById } from '@/app/lib/api-keys';
+import { getApiKeyValueById } from '@/app/lib/apiKeys';
+import { resolveOAuthServers } from '@/app/lib/resolveOauthServers';
+import { resolveTransportVariables } from '@/app/lib/resolveVariablesServer';
 import { createClient } from '@/app/lib/supabase/server';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { McpTransportSchema, VariableValueSchema } from '@daviddh/graph-types';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const HTTP_BAD_REQUEST = 400;
@@ -18,16 +21,39 @@ function isSimulateBody(value: unknown): value is SimulateBody {
   return typeof value === 'object' && value !== null;
 }
 
-async function resolveApiKey(
-  supabase: SupabaseClient,
-  body: SimulateBody
-): Promise<{ apiKey: string; error: string | null }> {
+const McpServerEntrySchema = z
+  .object({
+    transport: McpTransportSchema,
+    variableValues: z.record(z.string(), VariableValueSchema).optional(),
+  })
+  .passthrough();
+
+async function resolveServerVariables(server: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const parsed = McpServerEntrySchema.safeParse(server);
+  if (!parsed.success) return server;
+  const { variableValues } = parsed.data;
+  if (variableValues === undefined) return server;
+  const resolved = await resolveTransportVariables(parsed.data.transport, variableValues);
+  return { ...server, transport: resolved, variableValues: undefined };
+}
+
+async function resolveMcpServersInGraph(graph: unknown): Promise<void> {
+  if (typeof graph !== 'object' || graph === null || !('mcpServers' in graph)) return;
+  const g = graph as Record<string, unknown>;
+  const servers = g.mcpServers;
+  if (!Array.isArray(servers)) return;
+  g.mcpServers = await Promise.all(
+    servers.map((s: unknown) => resolveServerVariables(s as Record<string, unknown>))
+  );
+}
+
+async function resolveApiKey(body: SimulateBody): Promise<{ apiKey: string; error: string | null }> {
   const { apiKeyId } = body;
   if (typeof apiKeyId !== 'string' || apiKeyId === '') {
     return { apiKey: '', error: 'Missing apiKeyId' };
   }
 
-  const { value, error } = await getApiKeyValueById(supabase, apiKeyId);
+  const { value, error } = await getApiKeyValueById(apiKeyId);
   if (error !== null || value === null) {
     return { apiKey: '', error: error ?? 'API key not found' };
   }
@@ -90,11 +116,20 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ error: 'Unauthorized' }, { status: HTTP_UNAUTHORIZED });
   }
 
-  const { apiKey, error } = await resolveApiKey(supabase, raw);
+  const { apiKey, error } = await resolveApiKey(raw);
   if (error !== null) {
     return NextResponse.json({ error }, { status: HTTP_BAD_REQUEST });
   }
 
   const rest = Object.fromEntries(Object.entries(raw).filter(([k]) => k !== 'apiKeyId'));
+  await resolveMcpServersInGraph(rest.graph);
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (session !== null) {
+    await resolveOAuthServers(supabase, rest.graph, `Bearer ${session.access_token}`);
+  }
+
   return await fetchUpstream({ ...rest, apiKey });
 }

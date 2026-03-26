@@ -29,6 +29,8 @@ function CreateAgentForm({ orgId, orgSlug, onOpenChange }: CreateAgentFormProps)
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState('');
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -58,9 +60,15 @@ function CreateAgentForm({ orgId, orgSlug, onOpenChange }: CreateAgentFormProps)
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <CreateAgentFields nameError={nameError} />
+      <CreateAgentFields
+        nameError={nameError}
+        name={name}
+        onNameChange={setName}
+        description={description}
+        onDescriptionChange={setDescription}
+      />
       <DialogFooter>
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading || name.trim() === '' || description.trim() === ''}>
           {t('create')}
         </Button>
       </DialogFooter>
@@ -68,19 +76,41 @@ function CreateAgentForm({ orgId, orgSlug, onOpenChange }: CreateAgentFormProps)
   );
 }
 
-function CreateAgentFields({ nameError }: { nameError: string }) {
+interface CreateAgentFieldsProps {
+  nameError: string;
+  name: string;
+  onNameChange: (value: string) => void;
+  description: string;
+  onDescriptionChange: (value: string) => void;
+}
+
+function CreateAgentFields(props: CreateAgentFieldsProps) {
+  const { nameError, name, onNameChange, description, onDescriptionChange } = props;
   const t = useTranslations('agents');
 
   return (
     <>
       <div className="flex flex-col gap-1">
         <Label htmlFor="agent-name">{t('name')}</Label>
-        <Input id="agent-name" name="name" placeholder={t('namePlaceholder')} required />
+        <Input
+          id="agent-name"
+          name="name"
+          placeholder={t('namePlaceholder')}
+          required
+          value={name}
+          onChange={(e) => onNameChange(e.target.value)}
+        />
         {nameError !== '' && <p className="text-destructive text-xs">{nameError}</p>}
       </div>
       <div className="flex flex-col gap-1">
         <Label htmlFor="agent-description">{t('description')}</Label>
-        <Textarea id="agent-description" name="description" placeholder={t('descriptionPlaceholder')} />
+        <Textarea
+          id="agent-description"
+          name="description"
+          placeholder={t('descriptionPlaceholder')}
+          value={description}
+          onChange={(e) => onDescriptionChange(e.target.value)}
+        />
       </div>
     </>
   );

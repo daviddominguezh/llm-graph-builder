@@ -28,6 +28,7 @@ export const execute = async (
     messages,
     tokensLog: [],
     currentNode: currentNode ?? INITIAL_STEP_NODE,
+    structuredOutputs: {},
   });
 };
 
@@ -39,6 +40,7 @@ export interface ExecuteWithCallbacksOptions {
   toolsOverride?: Record<string, Tool>;
   onNodeVisited?: (nodeId: string) => void;
   onNodeProcessed?: (event: NodeProcessedEvent) => void;
+  structuredOutputs?: Record<string, unknown[]>;
 }
 
 export const executeWithCallbacks = async (
@@ -55,5 +57,6 @@ export const executeWithCallbacks = async (
     messages: options.messages,
     tokensLog: [],
     currentNode: options.currentNode ?? INITIAL_STEP_NODE,
+    structuredOutputs: options.structuredOutputs ?? {},
   });
 };

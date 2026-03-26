@@ -148,11 +148,10 @@ export interface ModelSelection {
 /**
  * Selects the appropriate model based on attempt count and expected tool
  */
-export function getModel(apiKey: string): ModelSelection {
-  const model = 'google/gemini-3.1-flash-lite-preview';
+export function getModel(apiKey: string, modelId: string): ModelSelection {
   return {
-    model: getOpenRouterModel(apiKey, model),
-    name: model,
+    model: getOpenRouterModel(apiKey, modelId),
+    name: modelId,
   };
 }
 

@@ -18,12 +18,17 @@ function sendNodeProcessed(res: Response, event: NodeProcessedEvent): void {
     type: 'node_processed',
     nodeId: event.nodeId,
     text: event.text ?? '',
+    output: event.output,
     toolCalls: event.toolCalls.map((tc) => ({
       toolName: tc.toolName,
-      input: tc.input as unknown,
+      input: tc.input,
+      output: tc.output,
     })),
+    reasoning: event.reasoning,
+    error: event.error,
     tokens: event.tokens,
     durationMs: event.durationMs,
+    structuredOutput: event.structuredOutput,
   });
 }
 
@@ -71,6 +76,7 @@ async function runSimulation(body: SimulateRequest, session: McpSession, res: Re
     currentNode: body.currentNode,
     toolsOverride: session.tools,
     logger: consoleLogger,
+    structuredOutputs: body.structuredOutputs,
     onNodeVisited: (nodeId: string) => {
       sendNodeVisited(res, nodeId);
     },

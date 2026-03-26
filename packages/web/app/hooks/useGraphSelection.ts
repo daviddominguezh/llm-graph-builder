@@ -1,12 +1,7 @@
 import type { Edge, Node, ReactFlowInstance } from '@xyflow/react';
 import { useCallback, useState } from 'react';
 
-import {
-  DEFAULT_NODE_HEIGHT,
-  DEFAULT_NODE_WIDTH,
-  START_NODE_HEIGHT,
-  START_NODE_ID,
-} from '../utils/graphInitializer';
+import { DEFAULT_NODE_HEIGHT, DEFAULT_NODE_WIDTH, START_NODE_HEIGHT } from '../utils/graphInitializer';
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
 
 const HALF = 2;
@@ -42,6 +37,8 @@ interface PanelCloseState {
   setPresetsOpen: (v: boolean) => void;
   setToolsOpen: (v: boolean) => void;
   setSearchOpen: (v: boolean) => void;
+  setLibraryOpen: (v: boolean) => void;
+  setCopilotOpen: (v: boolean) => void;
 }
 
 function centerViewOnNode(
@@ -71,12 +68,12 @@ function useClickHandlers(
 ): Pick<UseGraphSelectionReturn, 'onNodeClick' | 'onEdgeClick' | 'onPaneClick'> {
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
-      if (node.id === START_NODE_ID) return;
       setSelectedNodeId(node.id);
       setSelectedEdgeId(null);
       panels.setGlobalPanelOpen(false);
       panels.setPresetsOpen(false);
       panels.setToolsOpen(false);
+      panels.setCopilotOpen(false);
     },
     [setSelectedNodeId, setSelectedEdgeId, panels]
   );
@@ -86,6 +83,7 @@ function useClickHandlers(
       setSelectedEdgeId(edge.id);
       setSelectedNodeId(null);
       panels.setToolsOpen(false);
+      panels.setCopilotOpen(false);
     },
     [setSelectedEdgeId, setSelectedNodeId, panels]
   );
@@ -97,6 +95,8 @@ function useClickHandlers(
     panels.setPresetsOpen(false);
     panels.setToolsOpen(false);
     panels.setSearchOpen(false);
+    panels.setLibraryOpen(false);
+    panels.setCopilotOpen(false);
   }, [setSelectedNodeId, setSelectedEdgeId, panels]);
 
   return { onNodeClick, onEdgeClick, onPaneClick };

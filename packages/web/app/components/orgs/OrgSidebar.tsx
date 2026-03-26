@@ -1,12 +1,24 @@
 'use client';
 
+import { useAgentsSidebar } from '@/app/components/agents/AgentsSidebarContext';
 import type { OrgRow } from '@/app/lib/orgs';
 import { createClient } from '@/app/lib/supabase/client';
 import { toProxyImageSrc } from '@/app/lib/supabase/image';
 import { Button } from '@/components/ui/button';
-import { ChevronsUpDown, LogOut, Settings, Zap } from 'lucide-react';
-import Image from 'next/image';
+import { Separator } from '@/components/ui/separator';
+import type { LucideIcon } from 'lucide-react';
+import {
+  ChevronsUpDown,
+  KeyRound,
+  LayoutDashboard,
+  LogOut,
+  MessageSquare,
+  Settings,
+  Users,
+  Zap,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
@@ -27,30 +39,44 @@ function OrgAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null
         alt={name}
         width={20}
         height={20}
-        className="h-5 w-5 shrink-0 rounded-full object-cover"
+        className="h-5 w-5 shrink-0 rounded-full object-cover border"
       />
     );
   }
 
   return (
-    <div className="bg-muted flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-medium">
+    <div className="bg-muted flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-medium border">
       {initial}
     </div>
   );
 }
 
-function NavItem({ href, icon, active }: { href: string; icon: React.ReactNode; active: boolean }) {
+function NavItem({
+  href,
+  icon,
+  active,
+  onClick,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  active: boolean;
+  onClick?: (e: React.MouseEvent) => void;
+}) {
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className={`h-8 w-full justify-start px-2 ${
-        active ? 'bg-black/[0.04] text-foreground' : 'text-muted-foreground hover:text-foreground/70'
-      }`}
-      render={<Link href={href} />}
-    >
-      {icon}
-    </Button>
+    <div className={`group flex flex-col justify-center py-1 ${active ? 'bg-primary/15 rounded-[5px]' : ''}`}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className={`h-6 w-full justify-start px-2 border-x-0 border-y-0 rounded-none ${
+          active
+            ? 'border-l border-l-2 border-primary bg-transparent text-primary hover:text-primary'
+            : 'border-l border-l-2 group-hover:border-foreground text-muted-foreground hover:text-foreground/70 hover:bg-sidebar-accent'
+        }`}
+        render={<Link href={href} onClick={onClick} />}
+      >
+        {icon}
+      </Button>
+    </div>
   );
 }
 
@@ -59,24 +85,32 @@ function NavItemExpanded({
   icon,
   label,
   active,
+  onClick,
 }: {
   href: string;
   icon: React.ReactNode;
   label: string;
   active: boolean;
+  onClick?: (e: React.MouseEvent) => void;
 }) {
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className={`h-8 w-full justify-start gap-2 px-2 text-sm ${
-        active ? 'bg-black/[0.04] text-foreground' : 'text-muted-foreground hover:text-foreground/70'
-      }`}
-      render={<Link href={href} />}
+    <div
+      className={`group flex flex-col justify-center py-1 rounded-[5px] ${active ? 'bg-primary/15' : 'hover:bg-sidebar-accent'}`}
     >
-      {icon}
-      <span className="whitespace-nowrap">{label}</span>
-    </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        className={`h-6 w-full justify-start gap-2 px-2 text-sm border-x-0 border-y-0 rounded-none ${
+          active
+            ? 'border-l border-l-2 border-primary bg-transparent hover:bg-transparent! text-primary hover:text-primary'
+            : 'border-l border-l-2 group-hover:border-foreground text-muted-foreground hover:text-foreground hover:bg-transparent!'
+        }`}
+        render={<Link href={href} onClick={onClick} />}
+      >
+        {icon}
+        <span className={`whitespace-nowrap font-normal ${active ? 'font-semibold' : ''}`}>{label}</span>
+      </Button>
+    </div>
   );
 }
 
@@ -90,7 +124,7 @@ function CollapsedTrigger({ org }: { org: OrgRow }) {
 
 function ExpandedTrigger({ org }: { org: OrgRow }) {
   return (
-    <div className="flex h-8 items-center overflow-hidden px-2">
+    <div className="flex h-8 rounded-md items-center overflow-hidden px-2 hover:bg-sidebar-accent">
       <div className="flex min-w-0 items-center gap-2">
         <OrgAvatar name={org.name} avatarUrl={org.avatar_url} />
         <span className="truncate text-sm font-semibold">{org.name}</span>
@@ -100,27 +134,83 @@ function ExpandedTrigger({ org }: { org: OrgRow }) {
   );
 }
 
-function CollapsedNav({ basePath, isSettings }: { basePath: string; isSettings: boolean }) {
+interface NavItemDef {
+  segment: string;
+  path: string;
+  Icon: LucideIcon;
+  labelKey: string;
+}
+
+const TOP_NAV_ITEMS: NavItemDef[] = [
+  { segment: '', path: '', Icon: Zap, labelKey: 'agents' },
+  { segment: 'dashboard', path: '/dashboard', Icon: LayoutDashboard, labelKey: 'dashboard' },
+  { segment: 'chats', path: '/chats', Icon: MessageSquare, labelKey: 'chats' },
+];
+
+const BOTTOM_NAV_ITEMS: NavItemDef[] = [
+  { segment: 'api-keys', path: '/api-keys', Icon: KeyRound, labelKey: 'apiKeys' },
+  { segment: 'team', path: '/team', Icon: Users, labelKey: 'team' },
+  { segment: 'settings', path: '/settings', Icon: Settings, labelKey: 'settings' },
+];
+
+function getActiveSegment(pathname: string, basePath: string): string {
+  const rest = pathname.slice(basePath.length);
+  const segment = rest.split('/')[1] ?? '';
+  if (segment === 'editor') return '';
+  return segment;
+}
+
+function NavList({
+  items,
+  basePath,
+  segment,
+  onItemClick,
+}: {
+  items: NavItemDef[];
+  basePath: string;
+  segment: string;
+  onItemClick?: (item: NavItemDef, e: React.MouseEvent) => void;
+}) {
   return (
     <nav className="flex flex-col gap-0.5">
-      <NavItem href={basePath} icon={<Zap className="size-4" />} active={!isSettings} />
-      <NavItem href={`${basePath}/settings`} icon={<Settings className="size-4" />} active={isSettings} />
+      {items.map((item) => (
+        <NavItem
+          key={item.labelKey}
+          href={`${basePath}${item.path}`}
+          icon={<item.Icon className="size-4" />}
+          active={segment === item.segment}
+          onClick={onItemClick ? (e) => onItemClick(item, e) : undefined}
+        />
+      ))}
     </nav>
   );
 }
 
-function ExpandedNav({ basePath, isSettings }: { basePath: string; isSettings: boolean }) {
+function NavListExpanded({
+  items,
+  basePath,
+  segment,
+  onItemClick,
+}: {
+  items: NavItemDef[];
+  basePath: string;
+  segment: string;
+  onItemClick?: (item: NavItemDef, e: React.MouseEvent) => void;
+}) {
   const t = useTranslations('orgs');
 
   return (
     <nav className="flex flex-col gap-0.5">
-      <NavItemExpanded href={basePath} icon={<Zap className="size-4" />} label={t('agents')} active={!isSettings} />
-      <NavItemExpanded
-        href={`${basePath}/settings`}
-        icon={<Settings className="size-4" />}
-        label={t('settings')}
-        active={isSettings}
-      />
+      {items.map((item) => (
+        <NavItemExpanded
+          key={item.labelKey}
+          href={`${basePath}${item.path}`}
+          icon={<item.Icon className="size-4" />}
+          label={t(item.labelKey)}
+          active={segment === item.segment}
+          onClick={onItemClick ? (e) => onItemClick(item, e) : undefined}
+        />
+      ))}
     </nav>
   );
 }
@@ -144,60 +234,114 @@ function LogoutButton({ collapsed }: { collapsed: boolean }) {
     <Button
       variant="ghost"
       size="sm"
-      className="h-8 w-full justify-start gap-2 px-2 text-muted-foreground hover:text-destructive"
+      className="h-8 w-full justify-start gap-2 px-2 text-muted-foreground hover:text-destructive hover:bg-sidebar-accent!"
       onClick={handleLogout}
     >
       <LogOut className="size-4 shrink-0" />
-      {!collapsed && <span className="whitespace-nowrap text-sm">{t('logout')}</span>}
+      {!collapsed && <span className="whitespace-nowrap text-sm font-normal">{t('logout')}</span>}
     </Button>
   );
 }
 
+const SIDEBAR_TRANSITION_MS = 100;
+
 function useSidebarState() {
   const [collapsed, setCollapsed] = useState(true);
+  const [contentCollapsed, setContentCollapsed] = useState(true);
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const isHovered = useRef(false);
+  const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function clearCollapseTimer() {
+    if (collapseTimer.current !== null) {
+      clearTimeout(collapseTimer.current);
+      collapseTimer.current = null;
+    }
+  }
+
+  function collapse() {
+    setCollapsed(true);
+    collapseTimer.current = setTimeout(() => setContentCollapsed(true), SIDEBAR_TRANSITION_MS);
+  }
+
+  function expand() {
+    clearCollapseTimer();
+    setCollapsed(false);
+    setContentCollapsed(false);
+  }
 
   const handleSwitcherChange = (open: boolean) => {
     setSwitcherOpen(open);
-    if (!open && !isHovered.current) setCollapsed(true);
+    if (!open && !isHovered.current) collapse();
   };
 
   const handleMouseEnter = () => {
     isHovered.current = true;
-    setCollapsed(false);
+    expand();
   };
 
   const handleMouseLeave = () => {
     isHovered.current = false;
-    if (!switcherOpen) setCollapsed(true);
+    if (!switcherOpen) collapse();
   };
 
-  return { collapsed, switcherOpen, handleSwitcherChange, handleMouseEnter, handleMouseLeave };
+  return { collapsed, contentCollapsed, switcherOpen, handleSwitcherChange, handleMouseEnter, handleMouseLeave };
+}
+
+function useAgentsNavClick(activeSegment: string) {
+  const { collapsed, setCollapsed } = useAgentsSidebar();
+
+  return (item: NavItemDef, e: React.MouseEvent) => {
+    if (item.segment !== '') return;
+
+    if (collapsed && activeSegment === '') {
+      e.preventDefault();
+      setCollapsed(false);
+    } else {
+      setCollapsed(false);
+    }
+  };
 }
 
 export function OrgSidebar({ org }: OrgSidebarProps) {
   const pathname = usePathname();
   const basePath = `/orgs/${org.slug}`;
-  const isSettings = pathname.endsWith('/settings');
+  const segment = getActiveSegment(pathname, basePath);
   const sidebar = useSidebarState();
+  const handleNavClick = useAgentsNavClick(segment);
 
   return (
     <aside
-      className={`absolute left-2 top-2 bottom-2 z-10 flex flex-col gap-4 rounded-xl border bg-background p-2 shadow-sm transition-[width] duration-100 ${sidebar.collapsed ? 'w-13' : 'w-48 shadow-lg'}`}
+      className={`absolute left-0 top-0 bottom-0 z-11 flex flex-col gap-2 overflow-hidden p-2 pl-1.5 transition-[width,background-color] duration-100 ${sidebar.collapsed ? 'w-[52px] bg-sidebar' : 'w-50 bg-background'} ${sidebar.contentCollapsed ? 'border border-transparent' : 'shadow-lg border rounded-e-md z-12'}`}
       onMouseEnter={sidebar.handleMouseEnter}
       onMouseLeave={sidebar.handleMouseLeave}
     >
-      <OrgSwitcherPopover currentOrg={org} open={sidebar.switcherOpen} onOpenChange={sidebar.handleSwitcherChange}>
-        {sidebar.collapsed ? <CollapsedTrigger org={org} /> : <ExpandedTrigger org={org} />}
+      <OrgSwitcherPopover
+        currentOrg={org}
+        open={sidebar.switcherOpen}
+        onOpenChange={sidebar.handleSwitcherChange}
+      >
+        {sidebar.contentCollapsed ? <CollapsedTrigger org={org} /> : <ExpandedTrigger org={org} />}
       </OrgSwitcherPopover>
-      {sidebar.collapsed ? (
-        <CollapsedNav basePath={basePath} isSettings={isSettings} />
+      <Separator />
+      {sidebar.contentCollapsed ? (
+        <NavList items={TOP_NAV_ITEMS} basePath={basePath} segment={segment} onItemClick={handleNavClick} />
       ) : (
-        <ExpandedNav basePath={basePath} isSettings={isSettings} />
+        <NavListExpanded
+          items={TOP_NAV_ITEMS}
+          basePath={basePath}
+          segment={segment}
+          onItemClick={handleNavClick}
+        />
       )}
-      <div className="mt-auto">
-        <LogoutButton collapsed={sidebar.collapsed} />
+      <div className="mt-auto flex flex-col gap-2">
+        {sidebar.contentCollapsed ? (
+          <NavList items={BOTTOM_NAV_ITEMS} basePath={basePath} segment={segment} />
+        ) : (
+          <NavListExpanded items={BOTTOM_NAV_ITEMS} basePath={basePath} segment={segment} />
+        )}
+        <Separator />
+        <LogoutButton collapsed={sidebar.contentCollapsed} />
       </div>
     </aside>
   );

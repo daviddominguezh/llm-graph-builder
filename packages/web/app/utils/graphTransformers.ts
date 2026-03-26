@@ -10,7 +10,7 @@ import type {
 // Grid layout constants
 const GRID_COLUMNS = 5;
 const GRID_COLUMN_WIDTH = 300;
-const GRID_ROW_HEIGHT = 150;
+const GRID_ROW_HEIGHT = 200;
 const INITIAL_INDEX = 0;
 
 interface HandlePair {
@@ -55,7 +55,10 @@ export interface RFNodeData extends Record<string, unknown> {
   fallbackNodeId?: string;
   global?: boolean;
   defaultFallback?: boolean;
+  outputSchemaId?: string;
+  outputPrompt?: string;
   muted?: boolean;
+  hasError?: boolean;
   nodeWidth?: number | null;
 }
 
@@ -90,6 +93,8 @@ export function schemaNodeToRFNode(node: SchemaNode, index = INITIAL_INDEX): RFN
       fallbackNodeId: node.fallbackNodeId,
       global: node.global,
       defaultFallback: node.defaultFallback,
+      outputSchemaId: node.outputSchemaId,
+      outputPrompt: node.outputPrompt,
     },
   };
 }
@@ -109,7 +114,16 @@ function resolveTextFields(
 function resolveOptionalFields(
   data: RFNodeData | undefined,
   original: SchemaNode
-): Pick<SchemaNode, 'agent' | 'nextNodeIsUser' | 'fallbackNodeId' | 'global' | 'defaultFallback'> {
+): Pick<
+  SchemaNode,
+  | 'agent'
+  | 'nextNodeIsUser'
+  | 'fallbackNodeId'
+  | 'global'
+  | 'defaultFallback'
+  | 'outputSchemaId'
+  | 'outputPrompt'
+> {
   if (data === undefined) {
     return {
       agent: original.agent,
@@ -117,6 +131,8 @@ function resolveOptionalFields(
       fallbackNodeId: original.fallbackNodeId,
       global: original.global,
       defaultFallback: original.defaultFallback,
+      outputSchemaId: original.outputSchemaId,
+      outputPrompt: original.outputPrompt,
     };
   }
   return {
@@ -125,6 +141,8 @@ function resolveOptionalFields(
     fallbackNodeId: data.fallbackNodeId ?? original.fallbackNodeId,
     global: data.global ?? original.global,
     defaultFallback: data.defaultFallback ?? original.defaultFallback,
+    outputSchemaId: data.outputSchemaId ?? original.outputSchemaId,
+    outputPrompt: data.outputPrompt ?? original.outputPrompt,
   };
 }
 

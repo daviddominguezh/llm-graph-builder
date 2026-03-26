@@ -1,7 +1,4 @@
-"use client";
-
-import { useState } from "react";
-import { ChevronDown, Plus, Trash2, Settings, X } from "lucide-react";
+'use client';
 
 import {
   AlertDialog,
@@ -13,29 +10,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import type { ApiKeyRow } from "../../lib/api-keys";
-import { ApiKeySelectSection } from "./ApiKeySelectSection";
-import { type ContextPreset, DEFAULT_PRESET } from "../../types/preset";
-import type { McpServerConfig } from "../../schemas/graph.schema";
-import type { McpServerStatus } from "../../hooks/useMcpServers";
-import type { ContextPrecondition } from "../../types/contextPrecondition";
-import { McpServersSection } from "./McpServersSection";
-import { ContextPreconditionsSection } from "./ContextPreconditionsSection";
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import type { OutputSchemaEntity } from '@daviddh/graph-types';
+import { ChevronDown, Plus, Trash2, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 
-interface McpProps {
-  servers: McpServerConfig[];
-  discovering: Record<string, boolean>;
-  serverStatus: Record<string, McpServerStatus>;
-  onAddServer: () => void;
-  onRemoveServer: (id: string) => void;
-  onUpdateServer: (id: string, updates: Partial<McpServerConfig>) => void;
-  onDiscoverTools: (id: string) => void;
-}
+import type { ApiKeyRow } from '../../lib/apiKeys';
+import type { ContextPrecondition } from '../../types/contextPrecondition';
+import { type ContextPreset, DEFAULT_PRESET } from '../../types/preset';
+import { AgentDangerZone } from './AgentDangerZone';
+import { ApiKeySelectSection } from './ApiKeySelectSection';
+import { ContextPreconditionsSection } from './ContextPreconditionsSection';
+import { OutputSchemasSection } from './OutputSchemasSection';
 
 interface ContextKeysProps {
   keys: string[];
@@ -51,6 +42,13 @@ interface ContextPreconditionsProps {
   onUpdate: (id: string, updates: Partial<ContextPrecondition>) => void;
 }
 
+interface OutputSchemasProps {
+  schemas: OutputSchemaEntity[];
+  onAdd: () => void;
+  onRemove: (id: string) => void;
+  onEdit: (id: string) => void;
+}
+
 interface PresetsPanelProps {
   presets: ContextPreset[];
   contextKeys: string[];
@@ -58,12 +56,16 @@ interface PresetsPanelProps {
   stagingKeyId: string | null;
   productionKeyId: string | null;
   onStagingKeyChange: (keyId: string | null) => void;
+  onProductionKeyChange: (keyId: string | null) => void;
+  agentId: string;
+  agentName: string;
+  orgSlug: string;
   onAdd: () => void;
   onDelete: (id: string) => void;
   onUpdate: (id: string, updates: Partial<ContextPreset>) => void;
   context: ContextKeysProps;
   contextPreconditions: ContextPreconditionsProps;
-  mcp: McpProps;
+  outputSchemas: OutputSchemasProps;
 }
 
 interface PresetFieldsProps {
@@ -72,7 +74,11 @@ interface PresetFieldsProps {
   onUpdate: (id: string, updates: Partial<ContextPreset>) => void;
 }
 
-function ContextValueField({ preset, keyName, onUpdate }: {
+function ContextValueField({
+  preset,
+  keyName,
+  onUpdate,
+}: {
   preset: ContextPreset;
   keyName: string;
   onUpdate: (id: string, updates: Partial<ContextPreset>) => void;
@@ -94,10 +100,7 @@ function PresetFields({ preset, contextKeys, onUpdate }: PresetFieldsProps) {
     <div className="space-y-2 mt-2">
       <div className="space-y-1">
         <Label>Name</Label>
-        <Input
-          value={preset.name}
-          onChange={(e) => onUpdate(preset.id, { name: e.target.value })}
-        />
+        <Input value={preset.name} onChange={(e) => onUpdate(preset.id, { name: e.target.value })} />
       </div>
       <div className="space-y-1">
         <Label>Session ID</Label>
@@ -108,42 +111,31 @@ function PresetFields({ preset, contextKeys, onUpdate }: PresetFieldsProps) {
       </div>
       <div className="space-y-1">
         <Label>Tenant ID</Label>
-        <Input
-          value={preset.tenantID}
-          onChange={(e) => onUpdate(preset.id, { tenantID: e.target.value })}
-        />
+        <Input value={preset.tenantID} onChange={(e) => onUpdate(preset.id, { tenantID: e.target.value })} />
       </div>
       <div className="space-y-1">
         <Label>User ID</Label>
-        <Input
-          value={preset.userID}
-          onChange={(e) => onUpdate(preset.id, { userID: e.target.value })}
-        />
+        <Input value={preset.userID} onChange={(e) => onUpdate(preset.id, { userID: e.target.value })} />
       </div>
       {contextKeys.map((key) => (
-        <ContextValueField
-          key={key}
-          preset={preset}
-          keyName={key}
-          onUpdate={onUpdate}
-        />
+        <ContextValueField key={key} preset={preset} keyName={key} onUpdate={onUpdate} />
       ))}
     </div>
   );
 }
 
-function ContextKeyRow({ keyName, onRemove, onRename }: {
+function ContextKeyRow({
+  keyName,
+  onRemove,
+  onRename,
+}: {
   keyName: string;
   onRemove: () => void;
   onRename: (newKey: string) => void;
 }) {
   return (
     <div className="flex items-center gap-1">
-      <Input
-        value={keyName}
-        onChange={(e) => onRename(e.target.value)}
-        className="flex-1"
-      />
+      <Input value={keyName} onChange={(e) => onRename(e.target.value)} className="flex-1" />
       <Button variant="ghost" size="icon-xs" onClick={onRemove}>
         <X className="size-3" />
       </Button>
@@ -153,7 +145,7 @@ function ContextKeyRow({ keyName, onRemove, onRename }: {
 
 function ContextKeysSection({ keys, onAdd, onRemove, onRename }: ContextKeysProps) {
   return (
-    <div className="mb-4">
+    <div className="mb-3">
       <div className="flex items-center justify-between mb-1">
         <Label>Context</Label>
         <Button variant="ghost" size="icon-xs" onClick={() => onAdd('')}>
@@ -199,9 +191,7 @@ function PresetItem({
         onClick={() => setExpanded(!expanded)}
       >
         <span className="flex items-center gap-1.5 text-xs font-medium">
-          <ChevronDown
-            className={`size-3 transition-transform ${expanded ? "" : "-rotate-90"}`}
-          />
+          <ChevronDown className={`size-3 transition-transform ${expanded ? '' : '-rotate-90'}`} />
           {preset.name}
         </span>
         {!isDefault && (
@@ -237,74 +227,60 @@ function PresetItem({
   );
 }
 
-export function PresetsPanel({
-  presets,
-  contextKeys,
-  orgApiKeys,
-  stagingKeyId,
-  productionKeyId,
-  onStagingKeyChange,
-  onAdd,
-  onDelete,
-  onUpdate,
-  context,
-  contextPreconditions,
-  mcp,
-}: PresetsPanelProps) {
+export function PresetsPanel(props: PresetsPanelProps) {
+  const t = useTranslations('toolbar');
+
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2 border-b px-4 py-3">
-        <Settings className="size-4" />
-        <h2 className="text-sm font-semibold">Context Presets</h2>
+      <div className="flex items-center gap-2 border-b px-3 py-2.5">
+        <h2 className="text-sm font-semibold">{t('settings')}</h2>
       </div>
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-3 px-2">
         <ApiKeySelectSection
-          orgApiKeys={orgApiKeys}
-          stagingKeyId={stagingKeyId}
-          productionKeyId={productionKeyId}
-          onStagingKeyChange={onStagingKeyChange}
+          orgApiKeys={props.orgApiKeys}
+          stagingKeyId={props.stagingKeyId}
+          productionKeyId={props.productionKeyId}
+          onStagingKeyChange={props.onStagingKeyChange}
+          onProductionKeyChange={props.onProductionKeyChange}
         />
         <ContextKeysSection
-          keys={contextKeys}
-          onAdd={context.onAdd}
-          onRemove={context.onRemove}
-          onRename={context.onRename}
+          keys={props.contextKeys}
+          onAdd={props.context.onAdd}
+          onRemove={props.context.onRemove}
+          onRename={props.context.onRename}
+        />
+        <OutputSchemasSection
+          schemas={props.outputSchemas.schemas}
+          onAdd={props.outputSchemas.onAdd}
+          onRemove={props.outputSchemas.onRemove}
+          onEdit={props.outputSchemas.onEdit}
         />
         <ContextPreconditionsSection
-          preconditions={contextPreconditions.preconditions}
-          contextKeys={contextKeys}
-          onAdd={contextPreconditions.onAdd}
-          onRemove={contextPreconditions.onRemove}
-          onUpdate={contextPreconditions.onUpdate}
+          preconditions={props.contextPreconditions.preconditions}
+          contextKeys={props.contextKeys}
+          onAdd={props.contextPreconditions.onAdd}
+          onRemove={props.contextPreconditions.onRemove}
+          onUpdate={props.contextPreconditions.onUpdate}
         />
         <div className="flex items-center justify-between mb-1">
           <Label>Testing Presets</Label>
-          <Button variant="ghost" size="icon-xs" onClick={onAdd}>
+          <Button variant="ghost" size="icon-xs" onClick={props.onAdd}>
             <Plus className="size-3" />
           </Button>
         </div>
         <ul className="space-y-2">
-          {presets.map((preset) => (
+          {props.presets.map((preset) => (
             <PresetItem
               key={preset.id}
               preset={preset}
-              contextKeys={contextKeys}
+              contextKeys={props.contextKeys}
               isDefault={preset.id === DEFAULT_PRESET.id}
-              onDelete={() => onDelete(preset.id)}
-              onUpdate={onUpdate}
+              onDelete={() => props.onDelete(preset.id)}
+              onUpdate={props.onUpdate}
             />
           ))}
         </ul>
-        <Separator className="mt-4" />
-        <McpServersSection
-          servers={mcp.servers}
-          discovering={mcp.discovering}
-          serverStatus={mcp.serverStatus}
-          onAdd={mcp.onAddServer}
-          onRemove={mcp.onRemoveServer}
-          onUpdate={mcp.onUpdateServer}
-          onDiscover={mcp.onDiscoverTools}
-        />
+        <AgentDangerZone agentId={props.agentId} agentName={props.agentName} orgSlug={props.orgSlug} />
       </div>
     </div>
   );

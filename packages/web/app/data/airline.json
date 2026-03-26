@@ -19,8 +19,7 @@
       "id": "INITIAL_STEP",
       "text": "START",
       "kind": "agent",
-      "description": "Entry point for all conversations",
-      "nextNodeIsUser": true
+      "description": "Entry point for all conversations"
     },
     {
       "id": "R_IdentifyAction",

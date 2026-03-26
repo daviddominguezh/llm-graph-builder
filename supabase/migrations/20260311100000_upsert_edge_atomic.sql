@@ -38,10 +38,10 @@ begin
   delete from public.graph_edge_preconditions where edge_id = v_edge_id;
   delete from public.graph_edge_context_preconditions where edge_id = v_edge_id;
 
-  -- Insert new preconditions
+  -- Insert new preconditions (deduplicated by type + value)
   if jsonb_array_length(p_preconditions) > 0 then
     insert into public.graph_edge_preconditions (edge_id, type, value, description, tool_fields)
-    select
+    select distinct on ((elem->>'type'), (elem->>'value'))
       v_edge_id,
       (elem->>'type')::text,
       (elem->>'value')::text,

@@ -8,7 +8,7 @@ import { isError } from '@src/utils/typeGuards.js';
 import { getEscalationReason, getModel } from './agentExecutorHelpers.js';
 import { AGENT_CONSTANTS } from './constants.js';
 import { MessageProcessor } from './messageProcessor.js';
-import { callModel } from './modelCaller.js';
+import { type OutputSchema, callModel } from './modelCaller.js';
 import { processReply } from './replyProcessing.js';
 import type { ExecutionState } from './types.js';
 
@@ -22,10 +22,12 @@ export interface AttemptExecParams {
   messages: Message[];
   step: string;
   expectedTool?: string;
+  outputSchema?: OutputSchema;
   sessionId: string;
   executionStartTime: number;
   tokens: TokenLog;
   allToolCalls: Array<TypedToolCall<Record<string, Tool<unknown, unknown>>>>;
+  allToolResults: Array<{ toolName: string; output: unknown }>;
   copyMsgs: ModelMessage[][];
 }
 
@@ -97,27 +99,37 @@ function handleFinalError(
   return { modelWorkedFine: false, msgs: [], lastError: err, shouldBreak: true };
 }
 
-async function tryExecuteAttempt(
-  apiKey: string,
-  execParams: AttemptExecParams,
-  attemptCount: number
-): Promise<AttemptResult> {
-  const { context, config, expectedTool, tokens, allToolCalls, copyMsgs, sessionId } = execParams;
-  const attemptStartTime = Date.now();
-  const { model, name: modelName } = getModel(apiKey);
-
+function logAttemptDetails(execParams: AttemptExecParams, attemptCount: number, modelName: string): void {
+  const { context, config, expectedTool, copyMsgs, sessionId } = execParams;
   logAttemptStart({ context, sessionId, attemptCount, modelName });
   logger.info(`[ATTEMPT] Messages count: ${config.messages.length}`);
   logger.info(`[ATTEMPT] Expected tool: ${expectedTool ?? 'none'}`);
   logger.info(`[ATTEMPT] Tools in config: ${Object.keys(config.tools ?? {}).join(', ')}`);
   copyMsgs.push(MessageProcessor.cleanMessagesBeforeSending(MessageProcessor.cloneMessages(config.messages)));
+}
+
+function logReplyDetails(reply: unknown): void {
+  logger.info(`[ATTEMPT] Model returned, reply type: ${typeof reply}`);
+  const keys = typeof reply === 'object' && reply !== null ? Object.keys(reply).join(', ') : 'N/A';
+  logger.info(`[ATTEMPT] Reply keys: ${keys}`);
+}
+
+async function tryExecuteAttempt(
+  apiKey: string,
+  execParams: AttemptExecParams,
+  attemptCount: number
+): Promise<AttemptResult> {
+  const { context, config, expectedTool, outputSchema, tokens, allToolCalls, allToolResults, sessionId } =
+    execParams;
+  const attemptStartTime = Date.now();
+  const { model, name: modelName } = getModel(apiKey, context.modelId);
+
+  logAttemptDetails(execParams, attemptCount, modelName);
 
   logger.info('[ATTEMPT] Calling model...');
-  const reply: unknown = await callModel(context, config, expectedTool, model);
-  logger.info(`[ATTEMPT] Model returned, reply type: ${typeof reply}`);
-  logger.info(
-    `[ATTEMPT] Reply keys: ${typeof reply === 'object' && reply !== null ? Object.keys(reply).join(', ') : 'N/A'}`
-  );
+  const reply: unknown = await callModel(context, config, { expectedTool, model, outputSchema });
+  logReplyDetails(reply);
+
   const result = processReply(reply, {
     context,
     sessionId,
@@ -127,11 +139,10 @@ async function tryExecuteAttempt(
     attemptStartTime,
     tokens,
     allToolCalls,
+    allToolResults,
     modelName,
   });
-  logger.info(
-    `[ATTEMPT] processReply result: modelWorkedFine=${String(result.modelWorkedFine)}, msgs=${result.msgs.length}`
-  );
+  logger.info(`[ATTEMPT] processReply result: modelWorkedFine=${String(result.modelWorkedFine)}`);
   return { modelWorkedFine: result.modelWorkedFine, msgs: result.msgs, shouldBreak: false };
 }
 
@@ -141,7 +152,7 @@ export async function executeAttempt(
 ): Promise<AttemptResult> {
   const { context, config, executionStartTime, sessionId } = execParams;
   const attemptStartTime = Date.now();
-  const { name: modelName } = getModel(context.apiKey);
+  const { name: modelName } = getModel(context.apiKey, context.modelId);
 
   try {
     return await tryExecuteAttempt(context.apiKey, execParams, attemptCount);

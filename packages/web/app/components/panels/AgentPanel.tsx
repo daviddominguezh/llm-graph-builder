@@ -155,10 +155,10 @@ export function AgentPanel({
                     <Edit2 className="h-3 w-3" />
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="destructive"
                     size="icon"
                     onClick={() => handleDelete(agent.id)}
-                    className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                    className="h-6 w-6"
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
@@ -169,7 +169,7 @@ export function AgentPanel({
         ))}
 
         {isAdding && (
-          <Card className="bg-white p-2">
+          <Card className="bg-background p-2">
             <div className="flex flex-col gap-2">
               <Input
                 value={newId}

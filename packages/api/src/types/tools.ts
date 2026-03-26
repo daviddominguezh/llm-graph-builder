@@ -1,19 +1,30 @@
-import type { Tool, TypedToolCall } from 'ai';
+import type { Tool } from 'ai';
 
 import type { TokenLog } from './ai/logs.js';
 import type { Graph } from './graph.js';
 
+export interface SimToolCall {
+  toolName: string;
+  input: unknown;
+  output?: unknown;
+}
+
 export interface NodeProcessedEvent {
   nodeId: string;
   text?: string;
-  toolCalls: Array<TypedToolCall<Record<string, Tool>>>;
+  output?: unknown;
+  toolCalls: SimToolCall[];
+  reasoning?: string;
+  error?: string;
   tokens: TokenLog;
   durationMs: number;
+  structuredOutput?: { nodeId: string; data: unknown };
 }
 
 export interface Context {
   graph: Graph;
   apiKey: string;
+  modelId: string;
   sessionID: string;
   tenantID: string;
   userID: string;

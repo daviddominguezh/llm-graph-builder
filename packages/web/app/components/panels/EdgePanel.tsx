@@ -10,7 +10,8 @@ import {
   Wrench,
   Pencil,
 } from "lucide-react";
-import { useEdges, useReactFlow } from "@xyflow/react";
+import { useEdges, useNodes, useReactFlow } from "@xyflow/react";
+import type { Node } from "@xyflow/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,13 +36,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Card } from "@/components/ui/card";
 import type {
+  McpServerConfig,
   Precondition,
   PreconditionType,
   ToolFieldValue,
 } from "../../schemas/graph.schema";
 import type { DiscoveredTool } from "../../lib/api";
 import type { PushOperation } from "../../utils/operationBuilders";
-import type { RFEdgeData } from "../../utils/graphTransformers";
+import type { RFEdgeData, RFNodeData } from "../../utils/graphTransformers";
 import type { Edge } from "@xyflow/react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
@@ -50,7 +52,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useTranslations } from "next-intl";
+import { useRef } from "react";
 import { pushDeleteEdge, pushTypeChangeOps, pushUpdateEdge } from "./edgePanelOps";
+import { pushUpdateNode } from "./nodePanelOps";
+import { nodeHasContent } from "./toolCallGuard";
+import { ToolCombobox } from "./ToolCombobox";
 import { ToolParamsCard } from "./ToolParamsCard";
 
 const START_NODE_ID = "INITIAL_STEP";
@@ -61,6 +68,8 @@ interface EdgePanelProps {
   onSelectNode?: (nodeId: string) => void;
   availableContextPreconditions?: string[];
   availableMcpTools?: DiscoveredTool[];
+  mcpServers?: McpServerConfig[];
+  mcpDiscoveredTools?: Record<string, DiscoveredTool[]>;
   pushOperation: PushOperation;
 }
 
@@ -75,15 +84,20 @@ export function EdgePanel({
   onSelectNode,
   availableContextPreconditions = [],
   availableMcpTools = [],
+  mcpServers = [],
+  mcpDiscoveredTools = {},
   pushOperation,
 }: EdgePanelProps) {
   const edges = useEdges<Edge<RFEdgeData>>();
-  const { setEdges } = useReactFlow();
+  const nodes = useNodes<Node<RFNodeData>>();
+  const { setEdges, setNodes } = useReactFlow();
+  const t = useTranslations("edgePanel");
 
   // Find edge by ID
   const edge = edges.find((e) => e.id === edgeId);
   const from = edge?.source ?? "";
   const to = edge?.target ?? "";
+  const sourceNode = nodes.find((n) => n.id === from);
   const edgeData = edge?.data;
 
   const [prevEdgeId, setPrevEdgeId] = useState(edgeId);
@@ -114,6 +128,10 @@ export function EdgePanel({
   const [multiEdgeInputs, setMultiEdgeInputs] = useState<
     Record<string, EdgePreconditionInput>
   >({});
+
+  // Tool-call warning modal state
+  const [showToolCallWarning, setShowToolCallWarning] = useState(false);
+  const pendingToolCallAction = useRef<(() => void) | null>(null);
 
   // Reset form when selecting a different edge
   if (edgeId !== prevEdgeId) {
@@ -148,6 +166,33 @@ export function EdgePanel({
     pushUpdateEdge(from, to, merged, pushOperation);
   };
 
+  const clearSourceNodeContent = () => {
+    if (!sourceNode) return;
+    const updates = { text: "", description: "" };
+    setNodes((nds) =>
+      nds.map((n) =>
+        n.id === from ? { ...n, data: { ...n.data, ...updates } } : n,
+      ),
+    );
+    pushUpdateNode(sourceNode, updates, pushOperation);
+  };
+
+  const guardToolCall = (type: PreconditionType, action: () => void) => {
+    if (type !== "tool_call" || !nodeHasContent(sourceNode?.data)) {
+      action();
+      return;
+    }
+    pendingToolCallAction.current = action;
+    setShowToolCallWarning(true);
+  };
+
+  const confirmToolCallWarning = () => {
+    clearSourceNodeContent();
+    pendingToolCallAction.current?.();
+    pendingToolCallAction.current = null;
+    setShowToolCallWarning(false);
+  };
+
   const doAddPrecondition = () => {
     if (newPreconditionValue.trim()) {
       const newPrecondition: Precondition = {
@@ -167,7 +212,8 @@ export function EdgePanel({
   };
 
   const handleAddPrecondition = () => {
-    doAddPrecondition();
+    const effectiveType = existingType ?? newPreconditionType;
+    guardToolCall(effectiveType, doAddPrecondition);
   };
 
   const handleToolFieldsChange = (index: number, toolFields: Record<string, ToolFieldValue> | undefined) => {
@@ -184,7 +230,7 @@ export function EdgePanel({
     setShowEditModal(true);
   };
 
-  const handleSaveEditedPrecondition = () => {
+  const doSaveEditedPrecondition = () => {
     if (editingPreconditionIndex === null) return;
     if (!editingPreconditionValue.trim()) return;
 
@@ -205,6 +251,17 @@ export function EdgePanel({
     handleCancelEdit();
   };
 
+  const handleSaveEditedPrecondition = () => {
+    const canChangeType = siblingEdges.length === 0;
+    const wasToolCall = existingType === "tool_call";
+    const isChangingToToolCall = canChangeType && editingPreconditionType === "tool_call" && !wasToolCall;
+    if (isChangingToToolCall) {
+      guardToolCall("tool_call", doSaveEditedPrecondition);
+      return;
+    }
+    doSaveEditedPrecondition();
+  };
+
   const handleCancelEdit = () => {
     setEditingPreconditionIndex(null);
     setEditingPreconditionValue("");
@@ -221,7 +278,7 @@ export function EdgePanel({
     setMultiEdgeInputs(inputs);
   };
 
-  const handleConfirmTypeChange = () => {
+  const doConfirmTypeChange = () => {
     setEdges((eds) =>
       eds.map((e) => {
         const input = multiEdgeInputs[e.id];
@@ -259,6 +316,10 @@ export function EdgePanel({
 
     setShowTypeChangeConfirm(false);
     setMultiEdgeInputs({});
+  };
+
+  const handleConfirmTypeChange = () => {
+    guardToolCall(newPreconditionType, doConfirmTypeChange);
   };
 
   const handleDeleteEdge = () => {
@@ -353,9 +414,8 @@ export function EdgePanel({
               className={!isFromStartNode ? "visible" : "invisible"}
               render={
                 <Button
-                  variant="ghost"
+                  variant="destructive"
                   size="icon"
-                  className="text-muted-foreground hover:text-destructive"
                   title="Delete edge"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -467,7 +527,7 @@ export function EdgePanel({
 
             <div className="flex flex-col gap-2 mt-2">
               {preconditions.map((p, index) => (
-                <Card key={index} className="p-2">
+                <Card key={index} className="p-2 bg-background">
                   <div className="flex items-start justify-between">
                     <div className="min-w-0 flex-1 flex flex-col gap-2">
                       <div className="flex items-center justify-between">
@@ -490,17 +550,17 @@ export function EdgePanel({
                         </Button>
                       </div>
 
-                      <div className="flex text-sm items-start gap-1 bg-muted rounded-md p-2">
+                      <div className="flex text-sm items-start gap-1 bg-card rounded-md p-2">
                         {p.type === "user_said" && "\u201C"}
-                        <div className="text-gray-600 text-[13px]">
+                        <div className="text-muted-foreground text-[13px]">
                           {p.value}
                         </div>
                         {p.type === "user_said" && "\u201D"}
                       </div>
 
                       {(p.description || (edgeData?.contextPreconditions && edgeData.contextPreconditions.preconditions.length > 0)) && (
-                        <div className="flex w-full gap-1">
-                          <div className="ml-0.5 w-[2px] bg-zinc-200 self-stretch"></div>
+                        <div className="flex w-full gap-1 bg-card rounded-sm py-1">
+                          <div className="ml-0 w-[2px] bg-ring self-stretch shrink-0"></div>
                           <div className="text-xs text-muted-foreground">
                             {p.description && <div>{p.description}</div>}
                             {edgeData?.contextPreconditions && edgeData.contextPreconditions.preconditions.length > 0 && (
@@ -565,31 +625,26 @@ export function EdgePanel({
                     )}
                     <div className="space-y-1">
                       <Label className="text-xs">Value</Label>
-                      <Textarea
-                        value={newPreconditionValue}
-                        onChange={(e) =>
-                          setNewPreconditionValue(e.target.value)
-                        }
-                        placeholder="Precondition value..."
-                        rows={2}
-                        className="text-xs"
-                        autoFocus
-                      />
-                      {newPreconditionType === "tool_call" &&
-                        availableMcpTools.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {availableMcpTools.map((tool) => (
-                              <button
-                                key={tool.name}
-                                type="button"
-                                className="rounded bg-muted px-1.5 py-0.5 text-[10px] hover:bg-muted-foreground/20"
-                                onClick={() => setNewPreconditionValue(tool.name)}
-                              >
-                                {tool.name}
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                      {(existingType ?? newPreconditionType) === "tool_call" ? (
+                        <ToolCombobox
+                          value={newPreconditionValue}
+                          onValueChange={setNewPreconditionValue}
+                          servers={mcpServers}
+                          discoveredTools={mcpDiscoveredTools}
+                          placeholder="Select tool..."
+                        />
+                      ) : (
+                        <Textarea
+                          value={newPreconditionValue}
+                          onChange={(e) =>
+                            setNewPreconditionValue(e.target.value)
+                          }
+                          placeholder="Precondition value..."
+                          rows={2}
+                          className="text-xs"
+                          autoFocus
+                        />
+                      )}
                       {newPreconditionType === "tool_call" &&
                         newPreconditionValue &&
                         availableMcpTools.length > 0 && (
@@ -734,14 +789,26 @@ export function EdgePanel({
                 <div className="space-y-2">
                   <div className="space-y-1">
                     <Label className="text-xs">Value</Label>
-                    <Input
-                      value={multiEdgeInputs[e.id]?.value ?? ""}
-                      onChange={(ev) =>
-                        updateMultiEdgeInput(e.id, "value", ev.target.value)
-                      }
-                      placeholder="Precondition value..."
-                      className="h-8 text-xs"
-                    />
+                    {newPreconditionType === "tool_call" ? (
+                      <ToolCombobox
+                        value={multiEdgeInputs[e.id]?.value ?? ""}
+                        onValueChange={(v) =>
+                          updateMultiEdgeInput(e.id, "value", v)
+                        }
+                        servers={mcpServers}
+                        discoveredTools={mcpDiscoveredTools}
+                        placeholder="Select tool..."
+                      />
+                    ) : (
+                      <Input
+                        value={multiEdgeInputs[e.id]?.value ?? ""}
+                        onChange={(ev) =>
+                          updateMultiEdgeInput(e.id, "value", ev.target.value)
+                        }
+                        placeholder="Precondition value..."
+                        className="h-8 text-xs"
+                      />
+                    )}
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Description</Label>
@@ -816,13 +883,23 @@ export function EdgePanel({
             )}
             <div className="space-y-2">
               <Label htmlFor="edit-value">Value</Label>
-              <Textarea
-                id="edit-value"
-                value={editingPreconditionValue}
-                onChange={(e) => setEditingPreconditionValue(e.target.value)}
-                placeholder="Precondition value..."
-                rows={3}
-              />
+              {editingPreconditionType === "tool_call" ? (
+                <ToolCombobox
+                  value={editingPreconditionValue}
+                  onValueChange={setEditingPreconditionValue}
+                  servers={mcpServers}
+                  discoveredTools={mcpDiscoveredTools}
+                  placeholder="Select tool..."
+                />
+              ) : (
+                <Textarea
+                  id="edit-value"
+                  value={editingPreconditionValue}
+                  onChange={(e) => setEditingPreconditionValue(e.target.value)}
+                  placeholder="Precondition value..."
+                  rows={3}
+                />
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-description">Description (optional)</Label>
@@ -847,6 +924,24 @@ export function EdgePanel({
               disabled={!editingPreconditionValue.trim()}
             >
               Save
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Tool call warning modal — source node text/description will be cleared */}
+      <AlertDialog open={showToolCallWarning} onOpenChange={setShowToolCallWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("toolCallWarningTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("toolCallWarningDescription", { nodeId: from })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("toolCallWarningCancel")}</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={confirmToolCallWarning}>
+              {t("toolCallWarningConfirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

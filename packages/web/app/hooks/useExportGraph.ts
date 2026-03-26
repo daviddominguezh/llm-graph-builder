@@ -3,7 +3,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 import { toast } from 'sonner';
 
-import type { Agent, McpServerConfig } from '../schemas/graph.schema';
+import type { Agent, McpServerConfig, OutputSchemaEntity } from '../schemas/graph.schema';
 import { serializeGraphData } from '../utils/graphSerializer';
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
 
@@ -14,13 +14,20 @@ interface UseExportGraphParams {
   edges: Array<Edge<RFEdgeData>>;
   agents: Agent[];
   mcpServers: McpServerConfig[];
+  outputSchemas: OutputSchemaEntity[];
 }
 
-export function useExportGraph({ nodes, edges, agents, mcpServers }: UseExportGraphParams): () => void {
+export function useExportGraph({
+  nodes,
+  edges,
+  agents,
+  mcpServers,
+  outputSchemas,
+}: UseExportGraphParams): () => void {
   const t = useTranslations('editor');
 
   return useCallback(() => {
-    const graph = serializeGraphData({ nodes, edges, agents, mcpServers });
+    const graph = serializeGraphData({ nodes, edges, agents, mcpServers, outputSchemas });
 
     if (graph === null) {
       toast.error(t('exportValidationError'));
@@ -35,5 +42,5 @@ export function useExportGraph({ nodes, edges, agents, mcpServers }: UseExportGr
     a.download = 'graph.json';
     a.click();
     URL.revokeObjectURL(url);
-  }, [nodes, edges, agents, mcpServers, t]);
+  }, [nodes, edges, agents, mcpServers, outputSchemas, t]);
 }

@@ -9,6 +9,7 @@ import { runExecutionLoop } from './attemptExecutor.js';
 import type { AttemptExecParams } from './attemptExecutor.js';
 import { AGENT_CONSTANTS } from './constants.js';
 import { MessageProcessor } from './messageProcessor.js';
+import type { OutputSchema } from './modelCaller.js';
 import { createEmptyTokenLog } from './tokenTracker.js';
 import type { AgentExecutionResult, ExecutionState } from './types.js';
 
@@ -21,6 +22,7 @@ export interface ExecuteAgentOptions {
   messages: Message[];
   step: string;
   expectedTool?: string;
+  outputSchema?: OutputSchema;
 }
 
 function getLastMessage(
@@ -42,6 +44,7 @@ function createExecParams(
   const tokens: TokenLog = createEmptyTokenLog();
   const copyMsgs: ModelMessage[][] = [];
   const allToolCalls: Array<TypedToolCall<Record<string, Tool<unknown, unknown>>>> = [];
+  const allToolResults: Array<{ toolName: string; output: unknown }> = [];
 
   return {
     context: options.context,
@@ -50,10 +53,12 @@ function createExecParams(
     messages: options.messages,
     step: options.step,
     expectedTool: options.expectedTool,
+    outputSchema: options.outputSchema,
     sessionId,
     executionStartTime,
     tokens,
     allToolCalls,
+    allToolResults,
     copyMsgs,
   };
 }
@@ -90,6 +95,7 @@ function buildResult(
     messages: processedMsgs,
     tokens: execParams.tokens,
     toolCalls: execParams.allToolCalls,
+    toolResults: execParams.allToolResults,
     lastMessage: getLastMessage(processedMsgs),
     copyMsgs: execParams.copyMsgs,
     error: !state.modelWorkedFine,

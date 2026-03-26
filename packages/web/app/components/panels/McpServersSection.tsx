@@ -1,226 +1,190 @@
 'use client';
 
-import { useState } from 'react';
-import { AlertTriangle, CheckCircle, ChevronDown, Loader2, Plus, RefreshCw, Search, Trash2, X } from 'lucide-react';
-
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { McpServerConfig } from '../../schemas/graph.schema';
+import { AlertTriangle, BookOpen, CheckCircle, ChevronDown, Loader2, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+
 import type { McpServerStatus } from '../../hooks/useMcpServers';
+import { useOAuthStatus } from '../../hooks/useOAuthStatus';
+import type { OrgEnvVariableRow } from '../../lib/orgEnvVariables';
+import type { McpAuthType, McpLibraryRow } from '../../lib/mcpLibraryTypes';
+import type { McpServerConfig } from '../../schemas/graph.schema';
+import { LibraryServerFields, areVariablesComplete } from './LibraryServerFields';
+import type { VariableValueShape } from './LibraryServerFields';
+import { StdioTransportFields, TransportTypeSelector, UrlTransportFields } from './TransportFields';
 
 interface McpServersSectionProps {
   servers: McpServerConfig[];
   discovering: Record<string, boolean>;
   serverStatus: Record<string, McpServerStatus>;
+  orgId: string;
+  envVariables: OrgEnvVariableRow[];
+  libraryItems?: McpLibraryRow[];
   onAdd: () => void;
   onRemove: (id: string) => void;
   onUpdate: (id: string, updates: Partial<McpServerConfig>) => void;
   onDiscover: (id: string) => void;
+  onPublish: (server: McpServerConfig) => void;
+  onOpenLibrary: () => void;
 }
 
 interface ServerItemProps {
   server: McpServerConfig;
   status: McpServerStatus;
   isDiscovering: boolean;
+  envVariables: OrgEnvVariableRow[];
+  orgId: string;
+  authType?: McpAuthType;
   onRemove: () => void;
   onUpdate: (updates: Partial<McpServerConfig>) => void;
   onDiscover: () => void;
+  onPublish: () => void;
 }
 
-interface HeaderEntry {
-  key: string;
-  value: string;
-}
-
-function headersToEntries(headers: Record<string, string> | undefined): HeaderEntry[] {
-  if (headers === undefined) return [];
-  return Object.entries(headers).map(([key, value]) => ({ key, value }));
-}
-
-function entriesToHeaders(entries: HeaderEntry[]): Record<string, string> | undefined {
-  if (entries.length === 0) return undefined;
-  return Object.fromEntries(entries.map((e) => [e.key, e.value]));
-}
-
-function HeaderRow({ entry, onChange, onRemove }: { entry: HeaderEntry; onChange: (e: HeaderEntry) => void; onRemove: () => void }) {
-  return (
-    <div className="flex items-center gap-1">
-      <Input
-        value={entry.key}
-        onChange={(e) => onChange({ ...entry, key: e.target.value })}
-        placeholder="Header name"
-        className="flex-1"
-      />
-      <Input
-        value={entry.value}
-        onChange={(e) => onChange({ ...entry, value: e.target.value })}
-        placeholder="Value"
-        className="flex-1"
-      />
-      <Button variant="ghost" size="icon-xs" onClick={onRemove}>
-        <X className="size-3" />
-      </Button>
-    </div>
-  );
-}
-
-function HeadersEditor({ headers, onHeadersChange }: { headers: Record<string, string> | undefined; onHeadersChange: (h: Record<string, string> | undefined) => void }) {
-  const entries = headersToEntries(headers);
-
-  function updateEntry(index: number, updated: HeaderEntry): void {
-    const next = entries.map((e, i) => (i === index ? updated : e));
-    onHeadersChange(entriesToHeaders(next));
-  }
-
-  function removeEntry(index: number): void {
-    const next = entries.filter((_, i) => i !== index);
-    onHeadersChange(entriesToHeaders(next));
-  }
-
-  function addEntry(): void {
-    onHeadersChange(entriesToHeaders([...entries, { key: '', value: '' }]));
-  }
-
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between">
-        <Label>Headers</Label>
-        <Button variant="ghost" size="icon-xs" onClick={addEntry}>
-          <Plus className="size-3" />
-        </Button>
-      </div>
-      {entries.length > 0 && (
-        <div className="space-y-1">
-          {entries.map((entry, index) => (
-            <HeaderRow
-              key={index}
-              entry={entry}
-              onChange={(e) => updateEntry(index, e)}
-              onRemove={() => removeEntry(index)}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function UrlTransportFields({ server, onUpdate }: { server: McpServerConfig; onUpdate: (u: Partial<McpServerConfig>) => void }) {
-  const transport = server.transport;
-  if (transport.type !== 'sse' && transport.type !== 'http') return null;
-
-  return (
-    <>
-      <div className="space-y-1">
-        <Label>URL</Label>
-        <Input
-          value={transport.url}
-          onChange={(e) => onUpdate({ transport: { ...transport, url: e.target.value } })}
-          placeholder="https://example.com/mcp"
-        />
-      </div>
-      <HeadersEditor
-        headers={transport.headers}
-        onHeadersChange={(h) => onUpdate({ transport: { ...transport, headers: h } })}
-      />
-    </>
-  );
-}
-
-function StdioTransportFields({ server, onUpdate }: { server: McpServerConfig; onUpdate: (u: Partial<McpServerConfig>) => void }) {
-  const transport = server.transport;
-  if (transport.type !== 'stdio') return null;
-
-  return (
-    <>
-      <div className="space-y-1">
-        <Label>Command</Label>
-        <Input
-          value={transport.command}
-          onChange={(e) => onUpdate({ transport: { ...transport, command: e.target.value } })}
-          placeholder="npx"
-        />
-      </div>
-      <div className="space-y-1">
-        <Label>Arguments</Label>
-        <Input
-          value={transport.args?.join(' ') ?? ''}
-          onChange={(e) =>
-            onUpdate({ transport: { ...transport, args: e.target.value.split(' ').filter(Boolean) } })
-          }
-          placeholder="mcp-server --port 3001"
-        />
-      </div>
-    </>
-  );
-}
-
-function TransportTypeSelector({
-  server,
-  onUpdate,
+function DiscoverButton({
+  status,
+  isDiscovering,
+  onDiscover,
+  disabled,
+  className,
 }: {
-  server: McpServerConfig;
-  onUpdate: (u: Partial<McpServerConfig>) => void;
+  status: McpServerStatus;
+  isDiscovering: boolean;
+  onDiscover: () => void;
+  disabled?: boolean;
+  className?: string;
 }) {
-  return (
-    <div className="space-y-1">
-      <Label>Transport</Label>
-      <Select
-        value={server.transport.type}
-        onValueChange={(value) => {
-          if (value === 'http') {
-            onUpdate({ transport: { type: 'http', url: '' } });
-          } else if (value === 'sse') {
-            onUpdate({ transport: { type: 'sse', url: '' } });
-          } else if (value === 'stdio') {
-            onUpdate({ transport: { type: 'stdio', command: '' } });
-          }
-        }}
-      >
-        <SelectTrigger className="w-full">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="http">HTTP</SelectItem>
-          <SelectItem value="sse">SSE</SelectItem>
-          <SelectItem value="stdio">Stdio</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-  );
-}
-
-function DiscoverButton({ status, isDiscovering, onDiscover }: { status: McpServerStatus; isDiscovering: boolean; onDiscover: () => void }) {
   const isActive = status === 'active';
-  const icon = isDiscovering
-    ? <Loader2 className="size-4 animate-spin mr-1" />
-    : isActive ? <RefreshCw className="size-4 mr-1" /> : <Search className="size-4 mr-1" />;
   const label = isActive ? 'Reload Tools' : 'Discover Tools';
 
   return (
-    <Button variant="outline" size="sm" className="w-full" onClick={onDiscover} disabled={isDiscovering}>
-      {icon}
-      {label}
+    <Button
+      variant="default"
+      size="sm"
+      className={className}
+      onClick={onDiscover}
+      disabled={isDiscovering || (disabled ?? false)}
+    >
+      {isDiscovering ? <Loader2 className="size-3 animate-spin text-white" /> : label}
     </Button>
   );
 }
 
-function ServerItemExpanded({ server, status, isDiscovering, onUpdate, onDiscover }: Omit<ServerItemProps, 'onRemove'>) {
+function EditableServerFields({
+  server,
+  status,
+  isDiscovering,
+  onUpdate,
+  onDiscover,
+  onPublish,
+}: Omit<ServerItemProps, 'onRemove' | 'envVariables' | 'orgId' | 'authType'>) {
   return (
-    <div className="space-y-2 mt-2">
+    <>
       <div className="space-y-1">
         <Label>Name</Label>
-        <Input
-          value={server.name}
-          onChange={(e) => onUpdate({ name: e.target.value })}
-        />
+        <Input value={server.name} onChange={(e) => onUpdate({ name: e.target.value })} />
       </div>
       <TransportTypeSelector server={server} onUpdate={onUpdate} />
       <UrlTransportFields server={server} onUpdate={onUpdate} />
       <StdioTransportFields server={server} onUpdate={onUpdate} />
-      <DiscoverButton status={status} isDiscovering={isDiscovering} onDiscover={onDiscover} />
+      <div className="flex gap-2">
+        <Button variant="outline" size="sm" className="flex-1" onClick={onPublish}>
+          Publish
+        </Button>
+        <DiscoverButton
+          status={status}
+          isDiscovering={isDiscovering}
+          onDiscover={onDiscover}
+          className="flex-1"
+        />
+      </div>
+    </>
+  );
+}
+
+interface LibraryExpandedProps {
+  server: McpServerConfig;
+  status: McpServerStatus;
+  isDiscovering: boolean;
+  envVariables: OrgEnvVariableRow[];
+  orgId: string;
+  authType?: McpAuthType;
+  onUpdate: (updates: Partial<McpServerConfig>) => void;
+  onDiscover: () => void;
+}
+
+function LibraryExpandedFields({
+  server,
+  status,
+  isDiscovering,
+  envVariables,
+  orgId,
+  authType,
+  onUpdate,
+  onDiscover,
+}: LibraryExpandedProps) {
+  const variableValues = server.variableValues as Record<string, VariableValueShape> | undefined;
+  const varsComplete = areVariablesComplete(variableValues);
+  const oauthStatus = useOAuthStatus(orgId, authType === 'oauth' ? server.libraryItemId : undefined);
+
+  return (
+    <>
+      <LibraryServerFields
+        server={server}
+        envVariables={envVariables}
+        authType={authType}
+        oauthConnected={oauthStatus.connected}
+        onUpdate={onUpdate}
+      />
+      <DiscoverButton
+        status={status}
+        isDiscovering={isDiscovering}
+        onDiscover={onDiscover}
+        disabled={authType !== 'oauth' && !varsComplete}
+        className="w-full"
+      />
+    </>
+  );
+}
+
+function ServerItemExpanded({
+  server,
+  status,
+  isDiscovering,
+  envVariables,
+  orgId,
+  authType,
+  onUpdate,
+  onDiscover,
+  onPublish,
+}: Omit<ServerItemProps, 'onRemove'>) {
+  const isFromLibrary = server.libraryItemId !== undefined;
+
+  return (
+    <div className="space-y-2 mt-2">
+      {isFromLibrary ? (
+        <LibraryExpandedFields
+          server={server}
+          status={status}
+          isDiscovering={isDiscovering}
+          envVariables={envVariables}
+          orgId={orgId}
+          authType={authType}
+          onUpdate={onUpdate}
+          onDiscover={onDiscover}
+        />
+      ) : (
+        <EditableServerFields
+          server={server}
+          status={status}
+          isDiscovering={isDiscovering}
+          onUpdate={onUpdate}
+          onDiscover={onDiscover}
+          onPublish={onPublish}
+        />
+      )}
     </div>
   );
 }
@@ -232,11 +196,22 @@ function StatusIcon({ status }: { status: McpServerStatus }) {
   return <AlertTriangle className="size-3 text-orange-400" />;
 }
 
-function ServerItem({ server, status, isDiscovering, onRemove, onUpdate, onDiscover }: ServerItemProps) {
+function ServerItem({
+  server,
+  status,
+  isDiscovering,
+  envVariables,
+  orgId,
+  authType,
+  onRemove,
+  onUpdate,
+  onDiscover,
+  onPublish,
+}: ServerItemProps) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <li className="rounded-md border px-3 py-2">
+    <li className="rounded-md border px-3 py-2 bg-background">
       <div
         className="flex items-center justify-between cursor-pointer"
         onClick={() => setExpanded(!expanded)}
@@ -250,7 +225,10 @@ function ServerItem({ server, status, isDiscovering, onRemove, onUpdate, onDisco
           variant="destructive"
           size="icon-xs"
           title="Remove server"
-          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
         >
           <Trash2 className="size-3" />
         </Button>
@@ -260,43 +238,70 @@ function ServerItem({ server, status, isDiscovering, onRemove, onUpdate, onDisco
           server={server}
           status={status}
           isDiscovering={isDiscovering}
+          envVariables={envVariables}
+          orgId={orgId}
+          authType={authType}
           onUpdate={onUpdate}
           onDiscover={onDiscover}
+          onPublish={onPublish}
         />
       )}
     </li>
   );
 }
 
+function getAuthType(server: McpServerConfig, libraryItems: McpLibraryRow[]): McpAuthType | undefined {
+  if (server.libraryItemId === undefined) return undefined;
+  return libraryItems.find((i) => i.id === server.libraryItemId)?.auth_type;
+}
+
 export function McpServersSection({
   servers,
   discovering,
   serverStatus,
+  envVariables,
+  orgId,
+  libraryItems,
   onAdd,
   onRemove,
   onUpdate,
   onDiscover,
+  onPublish,
+  onOpenLibrary,
 }: McpServersSectionProps) {
+  const items = libraryItems ?? [];
+
   return (
-    <div className="mt-4">
+    <div className="mt-2">
       <div className="flex items-center justify-between mb-2">
         <Label>MCP Servers</Label>
-        <Button variant="ghost" size="icon-xs" onClick={onAdd}>
-          <Plus className="size-3" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon-xs" onClick={onOpenLibrary}>
+            <BookOpen className="size-3" />
+          </Button>
+          <Button variant="ghost" size="icon-xs" onClick={onAdd}>
+            <Plus className="size-3" />
+          </Button>
+        </div>
       </div>
       <ul className="space-y-2">
-        {servers.map((server) => (
-          <ServerItem
-            key={server.id}
-            server={server}
-            status={serverStatus[server.id] ?? 'pending'}
-            isDiscovering={discovering[server.id] ?? false}
-            onRemove={() => onRemove(server.id)}
-            onUpdate={(updates) => onUpdate(server.id, updates)}
-            onDiscover={() => onDiscover(server.id)}
-          />
-        ))}
+        {[...servers]
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((server) => (
+            <ServerItem
+              key={server.id}
+              server={server}
+              status={serverStatus[server.id] ?? 'pending'}
+              isDiscovering={discovering[server.id] ?? false}
+              envVariables={envVariables}
+              orgId={orgId}
+              authType={getAuthType(server, items)}
+              onRemove={() => onRemove(server.id)}
+              onUpdate={(updates) => onUpdate(server.id, updates)}
+              onDiscover={() => onDiscover(server.id)}
+              onPublish={() => onPublish(server)}
+            />
+          ))}
       </ul>
     </div>
   );

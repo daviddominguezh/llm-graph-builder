@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-import { saveStagingKeyIdAction } from '../actions/agents';
+import { saveProductionKeyIdAction, saveStagingKeyIdAction } from '../actions/agents';
 
 interface UseApiKeySelectionParams {
   agentId: string | undefined;
@@ -14,6 +14,7 @@ export interface ApiKeySelectionState {
   productionKeyId: string | null;
   setProductionKeyId: React.Dispatch<React.SetStateAction<string | null>>;
   handleStagingKeyChange: (keyId: string | null) => Promise<void>;
+  handleProductionKeyChange: (keyId: string | null) => Promise<void>;
 }
 
 export function useApiKeySelection(params: UseApiKeySelectionParams): ApiKeySelectionState {
@@ -21,7 +22,8 @@ export function useApiKeySelection(params: UseApiKeySelectionParams): ApiKeySele
 
   const [stagingKeyId, setStagingKeyId] = useState<string | null>(initialStagingKeyId);
   const [productionKeyId, setProductionKeyId] = useState<string | null>(initialProductionKeyId);
-  const lastSavedKeyIdRef = useRef(initialStagingKeyId);
+  const lastSavedStagingRef = useRef(initialStagingKeyId);
+  const lastSavedProductionRef = useRef(initialProductionKeyId);
 
   const handleStagingKeyChange = useCallback(
     async (keyId: string | null) => {
@@ -29,9 +31,9 @@ export function useApiKeySelection(params: UseApiKeySelectionParams): ApiKeySele
       if (agentId !== undefined) {
         const { error } = await saveStagingKeyIdAction(agentId, keyId);
         if (error === null) {
-          lastSavedKeyIdRef.current = keyId;
+          lastSavedStagingRef.current = keyId;
         } else {
-          setStagingKeyId(lastSavedKeyIdRef.current);
+          setStagingKeyId(lastSavedStagingRef.current);
           toast.error(error);
         }
       }
@@ -39,5 +41,27 @@ export function useApiKeySelection(params: UseApiKeySelectionParams): ApiKeySele
     [agentId]
   );
 
-  return { stagingKeyId, productionKeyId, setProductionKeyId, handleStagingKeyChange };
+  const handleProductionKeyChange = useCallback(
+    async (keyId: string | null) => {
+      setProductionKeyId(keyId);
+      if (agentId !== undefined) {
+        const { error } = await saveProductionKeyIdAction(agentId, keyId);
+        if (error === null) {
+          lastSavedProductionRef.current = keyId;
+        } else {
+          setProductionKeyId(lastSavedProductionRef.current);
+          toast.error(error);
+        }
+      }
+    },
+    [agentId]
+  );
+
+  return {
+    stagingKeyId,
+    productionKeyId,
+    setProductionKeyId,
+    handleStagingKeyChange,
+    handleProductionKeyChange,
+  };
 }

@@ -8,6 +8,7 @@ import { NodeHeader, type NodeKind } from "./NodeHeader";
 import { NodeBody } from "./NodeBody";
 import { Handles } from "./Handles";
 import type { Edge } from "@xyflow/react";
+import { AlertCircle } from "lucide-react";
 
 function getNodeKind(nodeId: string, edges: Edge<RFEdgeData>[]): NodeKind {
   // Find outgoing edges from this node
@@ -38,32 +39,34 @@ function getNodeKind(nodeId: string, edges: Edge<RFEdgeData>[]): NodeKind {
   return "agent";
 }
 
-function AgentNodeComponent({ data, selected, id }: NodeProps) {
+function AgentNodeComponent({ data, id, selected }: NodeProps) {
   const nodeData = data as RFNodeData;
   const edges = useEdges<Edge<RFEdgeData>>();
 
   const width = nodeData.nodeWidth ?? 180;
   const muted = nodeData.muted ?? false;
+  const hasError = nodeData.hasError ?? false;
   const nodeKind = getNodeKind(id, edges);
   const nextNodeIsUser = nodeData.nextNodeIsUser ?? false;
 
-  const borderWidth = nextNodeIsUser ? "border-2" : "border";
-  const borderColor = nextNodeIsUser
-    ? "border-red-500"
-    : selected
-      ? "border-primary"
-      : "border-secondary";
-  const opacity = muted ? "opacity-40" : "opacity-100";
+  const borderWidth = hasError || nextNodeIsUser ? "border-2" : "border";
+  const borderColor = hasError ? "border-destructive" : nextNodeIsUser ? "border-red-500" : "border-input";
+  const mutedStyle = muted ? "border-border bg-muted grayscale contrast-85 pointer-events-none" : "";
+  const selectionRing = selected ? "ring-2 ring-primary" : "";
 
-  const containerBaseStyle =
-    "rounded-lg bg-white p-1 transition-opacity overflow-hidden";
-  const containerClassname = `${containerBaseStyle} ${borderWidth} ${borderColor} ${opacity}`;
+  const containerBaseStyle = "rounded-lg bg-background p-1 relative";
+  const containerClassname = `${containerBaseStyle} ${borderWidth} ${borderColor} ${mutedStyle} ${selectionRing}`;
 
   return (
     <div
       className={containerClassname}
       style={{ width: `${width}px`, minHeight: "220px", maxHeight: "220px" }}
     >
+      {hasError && (
+        <div className="absolute -right-2 -top-2 z-10 flex size-5 items-center justify-center rounded-full bg-destructive">
+          <AlertCircle className="size-3 text-white" />
+        </div>
+      )}
       <Handles nodeId={id} nextNodeIsUser={nextNodeIsUser} />
       <NodeHeader nodeKind={nodeKind} agent={nodeData.agent} nodeId={id} />
       <Separator />

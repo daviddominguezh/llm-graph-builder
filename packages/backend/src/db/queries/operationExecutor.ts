@@ -9,7 +9,7 @@ async function runSequentially(
   agentId: string,
   operations: Operation[]
 ): Promise<undefined> {
-  await operations.reduce<Promise<undefined>>(async (chain, op) => {
+  await operations.reduce(async (chain, op) => {
     await chain;
     await executeSingleOperation(supabase, agentId, op);
     return undefined;

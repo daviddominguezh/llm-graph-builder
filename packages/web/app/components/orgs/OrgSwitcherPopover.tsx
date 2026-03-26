@@ -34,9 +34,9 @@ function ListAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | nul
       <Image
         src={toProxyImageSrc(avatarUrl)}
         alt={name}
-        width={24}
-        height={24}
-        className="h-6 w-6 shrink-0 rounded-full object-cover"
+        width={20}
+        height={20}
+        className="h-5 w-5 shrink-0 rounded-full object-cover border"
       />
     );
   }
@@ -84,7 +84,7 @@ export function OrgSwitcherPopover({ currentOrg, children, open, onOpenChange }:
     <>
       <DropdownMenu open={open} onOpenChange={onOpenChange}>
         <DropdownMenuTrigger className="w-full cursor-pointer">{children}</DropdownMenuTrigger>
-        <DropdownMenuContent side="bottom" align="start" className="w-56">
+        <DropdownMenuContent side="bottom" align="start" className="w-46">
           <DropdownMenuGroup>
             {orgs.map((org) => (
               <DropdownMenuItem key={org.id} onClick={() => router.push(`/orgs/${org.slug}`)}>

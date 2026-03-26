@@ -25,6 +25,11 @@ import {
   InsertNodeOperationSchema,
   UpdateNodeOperationSchema,
 } from './operation-node.schema.js';
+import {
+  DeleteOutputSchemaOperationSchema,
+  InsertOutputSchemaOperationSchema,
+  UpdateOutputSchemaOperationSchema,
+} from './operation-output-schema.schema.js';
 import { UpdateStartNodeOperationSchema } from './operation-start-node.schema.js';
 
 export const OperationSchema = z.discriminatedUnion('type', [
@@ -40,6 +45,9 @@ export const OperationSchema = z.discriminatedUnion('type', [
   InsertMcpServerOperationSchema,
   UpdateMcpServerOperationSchema,
   DeleteMcpServerOperationSchema,
+  InsertOutputSchemaOperationSchema,
+  UpdateOutputSchemaOperationSchema,
+  DeleteOutputSchemaOperationSchema,
   InsertContextPresetOperationSchema,
   UpdateContextPresetOperationSchema,
   DeleteContextPresetOperationSchema,
@@ -75,4 +83,9 @@ export {
   UpdateContextPresetOperationSchema,
   DeleteContextPresetOperationSchema,
 } from './operation-context-preset.schema.js';
+export {
+  InsertOutputSchemaOperationSchema,
+  UpdateOutputSchemaOperationSchema,
+  DeleteOutputSchemaOperationSchema,
+} from './operation-output-schema.schema.js';
 export { UpdateStartNodeOperationSchema } from './operation-start-node.schema.js';

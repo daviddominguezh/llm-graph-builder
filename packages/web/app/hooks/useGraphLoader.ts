@@ -1,7 +1,7 @@
 'use client';
 
 import { fetchGraph } from '@/app/lib/graphApi';
-import type { Agent, Graph, McpServerConfig } from '@/app/schemas/graph.schema';
+import type { Agent, Graph, McpServerConfig, OutputSchemaEntity } from '@/app/schemas/graph.schema';
 import { buildInitialEdges, buildInitialNodes } from '@/app/utils/graphInitializer';
 import type { RFEdgeData, RFNodeData } from '@/app/utils/graphTransformers';
 import type { Edge, Node } from '@xyflow/react';
@@ -14,6 +14,7 @@ export interface GraphLoadResult {
   edges: Array<Edge<RFEdgeData>>;
   agents: Agent[];
   mcpServers: McpServerConfig[];
+  outputSchemas: OutputSchemaEntity[];
   graphData: Graph | undefined;
 }
 
@@ -23,11 +24,21 @@ export interface UseGraphLoaderReturn {
   reload: () => void;
 }
 
-const EMPTY_RESULT: GraphLoadResult = {
+const NEW_AGENT_RESULT: GraphLoadResult = {
   nodes: buildInitialNodes(undefined),
   edges: buildInitialEdges(undefined),
   agents: [],
   mcpServers: [],
+  outputSchemas: [],
+  graphData: undefined,
+};
+
+const LOADING_RESULT: GraphLoadResult = {
+  nodes: [],
+  edges: [],
+  agents: [],
+  mcpServers: [],
+  outputSchemas: [],
   graphData: undefined,
 };
 
@@ -37,6 +48,7 @@ function buildLoadResult(graph: Graph): GraphLoadResult {
     edges: buildInitialEdges(graph),
     agents: graph.agents,
     mcpServers: graph.mcpServers ?? [],
+    outputSchemas: graph.outputSchemas ?? [],
     graphData: graph,
   };
 }
@@ -74,7 +86,7 @@ export function useGraphLoader(agentId: string | undefined): UseGraphLoaderRetur
   const t = useTranslations('editor');
   const [state, setState] = useState<LoaderState>({
     loading: agentId !== undefined,
-    result: EMPTY_RESULT,
+    result: agentId !== undefined ? LOADING_RESULT : NEW_AGENT_RESULT,
   });
 
   const handleSuccess = useCallback((loadResult: GraphLoadResult) => {

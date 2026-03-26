@@ -45,3 +45,50 @@ export async function proxyToBackend(method: string, backendPath: string, body?:
     headers: upstream.headers,
   });
 }
+
+export async function fetchFromBackend(
+  method: string,
+  backendPath: string,
+  body?: unknown
+): Promise<unknown> {
+  const sessionData = await getAccessToken();
+  if (sessionData === null) {
+    throw new Error('Unauthorized');
+  }
+
+  const init = buildFetchInit(method, sessionData.access_token, body);
+  const res = await fetch(`${API_URL}${backendPath}`, init);
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => 'Unknown error');
+    throw new Error(`Backend request failed (${String(res.status)}): ${text}`);
+  }
+
+  const text = await res.text();
+  return JSON.parse(text) as unknown;
+}
+
+export async function uploadToBackend(backendPath: string, formData: FormData): Promise<unknown> {
+  const sessionData = await getAccessToken();
+  if (sessionData === null) {
+    throw new Error('Unauthorized');
+  }
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${sessionData.access_token}`,
+  };
+
+  const res = await fetch(`${API_URL}${backendPath}`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => 'Unknown error');
+    throw new Error(`Backend upload failed (${String(res.status)}): ${text}`);
+  }
+
+  const text = await res.text();
+  return JSON.parse(text) as unknown;
+}
