@@ -38,8 +38,8 @@ export function TemplateVersionSelector({ versions, value, onValueChange }: Temp
       }}
       itemToStringLabel={(v) => buildLabel(Number(v), latest)}
     >
-      <div ref={anchorRef} onClick={(e) => e.stopPropagation()} className="flex items-center gap-1">
-        <span className="text-[10px] font-semibold text-foreground">v:</span>
+      <div ref={anchorRef} onClick={(e) => e.stopPropagation()} className="flex items-center gap-0.5">
+        <span className="text-[10px] font-semibold text-foreground">Version:</span>
         <ComboboxTrigger
           aria-label={t('selectVersion')}
           className="flex h-5 items-center gap-0.5 rounded-md border-none bg-transparent px-1 text-[11px] text-muted-foreground transition-colors hover:bg-card cursor-pointer"

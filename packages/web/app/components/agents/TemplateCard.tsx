@@ -2,7 +2,7 @@
 
 import type { TemplateListItem } from '@/app/lib/templates';
 import { Button } from '@/components/ui/button';
-import { Download, GitFork, Network, Puzzle } from 'lucide-react';
+import { Download, Eye, GitFork, Network, Puzzle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 
@@ -68,8 +68,9 @@ export interface TemplateCardProps {
 /*  Header row                                                          */
 /* ------------------------------------------------------------------ */
 
-function TemplateCardHeader({ template }: { template: TemplateListItem }) {
+function TemplateCardHeader({ template, onPreview }: { template: TemplateListItem; onPreview: () => void }) {
   const tc = useTranslations('categories');
+  const t = useTranslations('marketplace');
 
   return (
     <div className="flex items-center gap-1.5 min-w-0 justify-between">
@@ -81,7 +82,22 @@ function TemplateCardHeader({ template }: { template: TemplateListItem }) {
         <div className="truncate text-xs font-medium text-foreground text-[11px]">{template.agent_slug}</div>
       </div>
       <div className="flex flex-col shrink-0 items-end">
-        <span className="bg-background text-muted-foreground text-[10px]">{tc(template.category)}</span>
+        <Button
+          variant="outline"
+          size="xs"
+          className="group/preview"
+          onClick={(e) => {
+            e.stopPropagation();
+            onPreview();
+          }}
+          aria-label={t('preview')}
+        >
+          <Eye />
+          {t('preview')}
+        </Button>
+        <span className="bg-background text-muted-foreground text-[10px] pr-0.5 font-medium">
+          {tc(template.category).toUpperCase()}
+        </span>
       </div>
     </div>
   );
@@ -96,16 +112,9 @@ interface TemplateCardStatsProps {
   versions: number[];
   selectedVersion: number;
   onVersionChange: (version: number) => void;
-  onPreview: () => void;
 }
 
-function TemplateCardStats({
-  template,
-  versions,
-  selectedVersion,
-  onVersionChange,
-  onPreview,
-}: TemplateCardStatsProps) {
+function TemplateCardStats({ template, versions, selectedVersion, onVersionChange }: TemplateCardStatsProps) {
   const t = useTranslations('marketplace');
 
   return (
@@ -133,18 +142,6 @@ function TemplateCardStats({
           value={selectedVersion}
           onValueChange={onVersionChange}
         />
-        <Button
-          variant="outline"
-          size="xs"
-          className="group/preview"
-          onClick={(e) => {
-            e.stopPropagation();
-            onPreview();
-          }}
-          aria-label={t('preview')}
-        >
-          {t('preview')}
-        </Button>
       </div>
     </div>
   );
@@ -179,16 +176,15 @@ export function TemplateCard({
           onSelect();
         }
       }}
-      className={`flex cursor-pointer flex-col rounded-lg border p-3 text-left transition-[background-color,border-color,box-shadow,transform] duration-150 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${cardBorderClass(selected)}`}
+      className={`flex cursor-pointer flex-col rounded-lg border p-3 py-2 text-left transition-[background-color,border-color,box-shadow,transform] duration-150 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${cardBorderClass(selected)}`}
     >
-      <TemplateCardHeader template={template} />
+      <TemplateCardHeader onPreview={onPreview} template={template} />
       <p className="mt-1.5 line-clamp-2 text-[11px] text-muted-foreground">{template.description}</p>
       <TemplateCardStats
         template={template}
         versions={versions}
         selectedVersion={selectedVersion}
         onVersionChange={onVersionChange}
-        onPreview={onPreview}
       />
     </div>
   );

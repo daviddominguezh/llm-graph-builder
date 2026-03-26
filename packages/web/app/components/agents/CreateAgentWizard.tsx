@@ -177,7 +177,7 @@ function WizardBody({
       <DialogHeader>
         <DialogTitle>{title}</DialogTitle>
       </DialogHeader>
-      <div key={state.step} className="min-w-0 animate-in fade-in duration-200 max-h-[68vh] min-h-[68vh] flex flex-col flex-1 min-h-[0px]">
+      <div key={state.step} className="min-w-0 animate-in fade-in duration-200 max-h-[69vh] min-h-[69vh] flex flex-col flex-1 min-h-[0px]">
         {state.step === 'template' ? (
           <TemplateStep
             selection={state.selection}
