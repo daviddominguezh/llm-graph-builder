@@ -1,4 +1,7 @@
+import icon from '@/app/icon.png';
+import logoBlack from '@/app/openflowLogoBlack.png';
 import { Star } from 'lucide-react';
+import Image from 'next/image';
 
 import { fetchGitHubStars, formatStarCount } from '@/app/lib/github';
 
@@ -65,8 +68,9 @@ export async function Navbar() {
   return (
     <nav className="fixed top-0 z-50 w-full border-b border-border/50 bg-background/70 backdrop-blur-xl">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
-        <a href="#" className="font-heading text-lg font-bold tracking-tight transition-colors hover:text-primary">
-          OpenFlow
+        <a href="#" className="flex items-center gap-2 transition-colors hover:text-primary">
+          <Image className="mb-0.5" src={icon} alt="OpenFlow" height={26} priority />
+          <Image src={logoBlack} alt="OpenFlow" height={20} priority />
         </a>
 
         <div className="flex items-center gap-6">
