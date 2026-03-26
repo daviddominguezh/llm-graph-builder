@@ -113,9 +113,8 @@ function PreviewGraph({
   colorMode: 'dark' | 'light';
 }) {
   return (
-    <div className="h-0 flex-1">
+    <div style={{ width: '100%', height: '100%' }}>
       <ReactFlow
-        style={{ width: '100%', height: '100%' }}
         nodes={nodes}
         edges={edges}
         nodesDraggable={false}

@@ -172,9 +172,6 @@ function GridContent(props: GridContentProps) {
             />
           ))
         : null}
-      {!hasTemplates && !loaded && (
-        <p className="col-span-full py-8 text-center text-sm text-muted-foreground">{props.loadingLabel}</p>
-      )}
       {showNoResults && (
         <div className="col-span-full row-span-full flex flex-col items-center justify-center">
           <div className="w-fit h-fit px-12 py-6 rounded-xl bg-card rounded-md flex flex-col justify-center items-center gap-2">
