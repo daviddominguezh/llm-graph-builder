@@ -64,7 +64,8 @@
     "formatGraph": "Auto-layout",
     "copyJson": "Copy JSON",
     "copyCurl": "Copy cURL",
-    "copied": "Copied"
+    "copied": "Copied",
+    "optional": "optional"
   },
   "copilot": {
     "title": "Copilot",
@@ -564,7 +565,9 @@
     "step2Title": "Agent details",
     "version": "v{version}",
     "latest": "latest",
-    "allCategories": "All"
+    "allCategories": "All",
+    "previewError": "Unable to preview this graph",
+    "selectVersion": "Select version"
   },
   "categories": {
     "customer-support": "Customer Support",
@@ -602,6 +605,7 @@
     "dangerZone": "Danger Zone",
     "deleteAgent": "Delete this agent",
     "deleteAgentDescription": "Once deleted, this agent and all its data will be permanently removed.",
-    "mustPublishFirst": "Publish your agent at least once before making it public."
+    "mustPublishFirst": "Publish your agent at least once before making it public.",
+    "saving": "Saving..."
   }
 }

@@ -7,7 +7,7 @@ import { Background, Controls, type Edge, type Node, ReactFlow } from '@xyflow/r
 import '@xyflow/react/dist/style.css';
 import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -78,6 +78,31 @@ function LoadingState({ message }: { message: string }) {
   );
 }
 
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+  fallback: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+class PreviewErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): ErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) return this.props.fallback;
+    return this.props.children;
+  }
+}
+
 function PreviewGraph({
   nodes,
   edges,
@@ -135,22 +160,25 @@ export function TemplatePreviewModal({ open, onOpenChange, agentId, version }: T
     return () => { mountedRef.current = false; };
   }, [requestKey, agentId, version]);
 
-  const loading = requestKey !== '' && loadedKey !== requestKey;
+  const isLoaded = requestKey !== '' && loadedKey === requestKey;
+  const loading = requestKey !== '' && !isLoaded;
 
-  const nodes = graphData ? toPreviewNodes(graphData) : [];
-  const edges = graphData ? toPreviewEdges(graphData) : [];
+  const nodes = isLoaded && graphData ? toPreviewNodes(graphData) : [];
+  const edges = isLoaded && graphData ? toPreviewEdges(graphData) : [];
   const colorMode = resolvedTheme === 'dark' ? 'dark' : 'light';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-w-4xl flex-col p-0 h-[600px]">
+      <DialogContent className="flex max-w-4xl flex-col p-0 h-[min(600px,80vh)]">
         <DialogHeader className="px-4 pt-4">
           <DialogTitle>{t('previewTitle')}</DialogTitle>
         </DialogHeader>
         {loading ? (
           <LoadingState message={tCommon('loading')} />
         ) : (
-          <PreviewGraph nodes={nodes} edges={edges} colorMode={colorMode} />
+          <PreviewErrorBoundary fallback={<LoadingState message={t('previewError')} />}>
+            <PreviewGraph nodes={nodes} edges={edges} colorMode={colorMode} />
+          </PreviewErrorBoundary>
         )}
       </DialogContent>
     </Dialog>
