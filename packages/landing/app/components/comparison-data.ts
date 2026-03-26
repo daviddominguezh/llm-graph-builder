@@ -10,9 +10,30 @@ export interface ComparisonRow {
 }
 
 export const ROWS: ComparisonRow[] = [
-  { feature: 'Visual agent builder', openflow: 'yes', dify: 'yes', langflow: 'yes', n8n: 'yes', langsmith: 'yes' },
-  { feature: 'Multi-tenant isolation', openflow: 'yes', dify: 'no', langflow: 'no', n8n: 'no', langsmith: 'no' },
-  { feature: 'Per-tenant channels', openflow: 'yes', dify: 'no', langflow: 'no', n8n: 'partial', langsmith: 'no' },
+  {
+    feature: 'Visual agent builder',
+    openflow: 'yes',
+    dify: 'yes',
+    langflow: 'yes',
+    n8n: 'yes',
+    langsmith: 'yes',
+  },
+  {
+    feature: 'Multi-tenant isolation',
+    openflow: 'yes',
+    dify: 'no',
+    langflow: 'no',
+    n8n: 'no',
+    langsmith: 'no',
+  },
+  {
+    feature: 'Per-tenant channels',
+    openflow: 'yes',
+    dify: 'no',
+    langflow: 'no',
+    n8n: 'partial',
+    langsmith: 'no',
+  },
   {
     feature: 'Per-tenant cost tracking',
     openflow: 'yes',
@@ -37,7 +58,14 @@ export const ROWS: ComparisonRow[] = [
     n8n: 'partial',
     langsmith: 'yes',
   },
-  { feature: 'API-first execution', openflow: 'yes', dify: 'yes', langflow: 'yes', n8n: 'yes', langsmith: 'yes' },
+  {
+    feature: 'API-first execution',
+    openflow: 'yes',
+    dify: 'yes',
+    langflow: 'yes',
+    n8n: 'yes',
+    langsmith: 'yes',
+  },
   {
     feature: 'Built-in observability',
     openflow: 'yes',
@@ -47,7 +75,14 @@ export const ROWS: ComparisonRow[] = [
     langsmith: 'yes',
   },
   { feature: 'Open source', openflow: 'yes', dify: 'yes', langflow: 'yes', n8n: 'yes', langsmith: 'no' },
-  { feature: 'Built for SaaS resale', openflow: 'yes', dify: 'no', langflow: 'no', n8n: 'no', langsmith: 'no' },
+  {
+    feature: 'Built for SaaS resale',
+    openflow: 'yes',
+    dify: 'no',
+    langflow: 'no',
+    n8n: 'no',
+    langsmith: 'no',
+  },
 ];
 
 export const COMPETITORS = ['OpenFlow', 'Dify', 'Langflow', 'n8n', 'LangSmith'] as const;
