@@ -87,7 +87,7 @@ function CategoryField({
     <div className="flex flex-col gap-1">
       <Label>{t('category')}</Label>
       <Select
-        value={value || undefined}
+        value={value === '' ? null : value}
         onValueChange={(v) => v !== null && onChange(v as TemplateCategory)}
       >
         <SelectTrigger className="w-full">
