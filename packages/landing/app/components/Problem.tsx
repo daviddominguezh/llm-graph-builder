@@ -34,7 +34,7 @@ export function Problem() {
 
         <PainPointList />
 
-        <p className="mt-8 text-lg font-medium text-foreground">
+        <p className="mt-8 text-xl font-semibold text-foreground">
           You end up building months of SaaS infrastructure from scratch.
         </p>
       </div>

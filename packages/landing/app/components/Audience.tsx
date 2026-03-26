@@ -10,22 +10,22 @@ interface AudienceCard {
 const AUDIENCES: AudienceCard[] = [
   {
     title: 'AI Agencies',
-    description: 'Building custom agents for multiple clients.',
+    description: 'Ten clients, ten different AI setups. Each with isolated channels, history, and billing.',
     icon: BriefcaseBusiness,
   },
   {
     title: 'SaaS Founders',
-    description: 'Adding AI agents as a core product feature.',
+    description: 'AI agents are your product. You need multi-tenant infrastructure yesterday.',
     icon: Lightbulb,
   },
   {
     title: 'Consultancies',
-    description: 'Deploying tailored AI solutions per customer.',
+    description: 'Custom AI solutions per customer. Configure once, deploy in minutes.',
     icon: Users,
   },
   {
     title: 'Teams',
-    description: 'Ship agent-powered products fast, without building multi-tenant infrastructure from scratch.',
+    description: 'Ship AI-powered features fast. Skip the months of infrastructure plumbing.',
     icon: Code,
   },
 ];

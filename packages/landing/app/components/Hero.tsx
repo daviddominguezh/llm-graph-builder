@@ -2,6 +2,8 @@ import { Star } from 'lucide-react';
 
 import { fetchGitHubStars, formatStarCount } from '@/app/lib/github';
 
+import { HeroVisual } from './HeroVisual';
+
 const GITHUB_URL = 'https://github.com/daviddominguezh/llm-graph-builder';
 
 function GitHubIcon() {
@@ -56,6 +58,8 @@ export async function Hero() {
       <GitHubCta stars={stars} />
 
       <p className="relative mt-4 text-sm text-muted-foreground">MIT Licensed. Multi-tenant from day one.</p>
+
+      <HeroVisual />
     </section>
   );
 }

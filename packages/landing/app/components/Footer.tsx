@@ -60,9 +60,7 @@ export function Footer() {
   return (
     <footer className="px-6 py-8">
       <div className="mx-auto max-w-6xl">
-        <p className="mb-4 text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Built with
-        </p>
+        <p className="mb-4 text-center text-xs text-muted-foreground">Built with</p>
         <TechBadges />
         <FooterBottom />
       </div>
