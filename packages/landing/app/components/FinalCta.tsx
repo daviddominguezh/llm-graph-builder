@@ -22,7 +22,7 @@ export function FinalCta() {
           href={GITHUB_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-8 inline-flex items-center gap-2 rounded-xl bg-background px-6 py-3 text-sm font-semibold text-foreground shadow-lg transition-colors hover:bg-background/90"
+          className="mt-8 inline-flex items-center gap-2 rounded-xl bg-background px-6 py-3 text-sm font-semibold text-foreground transition-[background-color,transform] hover:scale-[1.02] hover:bg-background/90 active:scale-[0.98]"
         >
           <GitHubIcon />
           View on GitHub

@@ -23,7 +23,9 @@ function TableHead() {
   return (
     <thead>
       <tr>
-        <th className="pb-4 text-left font-medium text-muted-foreground" />
+        <th className="pb-4 text-left font-medium text-muted-foreground">
+          <span className="sr-only">Feature</span>
+        </th>
         {COMPETITORS.map((name, i) => (
           <th
             key={name}
@@ -39,7 +41,7 @@ function TableHead() {
 
 function TableRow({ row }: { row: ComparisonRow }) {
   return (
-    <tr className="border-t border-border">
+    <tr className="border-t border-border transition-colors hover:bg-foreground/[0.02]">
       <td className="py-3 pr-4 text-sm text-foreground">{row.feature}</td>
       {COMPETITOR_KEYS.map((key, i) => (
         <td key={key} className={`py-3 text-center ${i === 0 ? 'bg-primary/8' : ''}`}>

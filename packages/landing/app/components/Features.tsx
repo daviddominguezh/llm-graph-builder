@@ -5,7 +5,7 @@ function LargeFeatureCard({ feature }: { feature: Feature }) {
   const Icon = feature.icon;
 
   return (
-    <div className="rounded-xl border border-border bg-background p-8 transition-all hover:-translate-y-0.5 hover:shadow-md">
+    <div className="rounded-xl border border-border bg-background p-8 transition-[transform,box-shadow,border-color] hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md">
       <Icon className="h-7 w-7 text-primary" />
       <h3 className="mt-5 font-heading text-lg font-semibold">{feature.title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{feature.description}</p>
@@ -17,7 +17,7 @@ function SmallFeatureCard({ feature }: { feature: Feature }) {
   const Icon = feature.icon;
 
   return (
-    <div className="rounded-xl border border-border bg-background p-6 transition-all hover:-translate-y-0.5 hover:shadow-md">
+    <div className="rounded-xl border border-border bg-background p-6 transition-[transform,box-shadow,border-color] hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md">
       <Icon className="h-5 w-5 text-primary" />
       <h3 className="mt-3 font-heading text-base font-semibold">{feature.title}</h3>
       <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{feature.description}</p>

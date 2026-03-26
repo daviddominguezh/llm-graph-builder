@@ -35,7 +35,9 @@ function AudienceCardItem({ audience }: { audience: AudienceCard }) {
 
   return (
     <div className="rounded-xl border border-border bg-background p-6 text-center">
-      <Icon className="mx-auto h-6 w-6 text-primary" />
+      <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg bg-primary/8">
+        <Icon className="h-5 w-5 text-primary" />
+      </div>
       <h3 className="mt-4 font-heading text-base font-semibold">{audience.title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{audience.description}</p>
     </div>
