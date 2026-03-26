@@ -84,14 +84,101 @@ Deploy any agent as an API endpoint. Call it from your app, your backend, your m
 
 ---
 
+## Tech Stack
+
+- **Runtime:** Node.js 22+, ESM modules
+- **Monorepo:** npm workspaces
+- **Agent runtime:** [Vercel AI SDK](https://sdk.vercel.ai) + [OpenRouter](https://openrouter.ai)
+- **Web:** Next.js 16 (App Router), React 19, TailwindCSS 4, shadcn/ui
+- **Graph editor:** [@xyflow/react](https://reactflow.dev)
+- **Backend:** Express 5, MCP SDK
+- **Types:** Zod 4, TypeScript (strict mode)
+- **Auth & DB:** Supabase
+- **Deploy:** Docker, Fly.io
+
+---
+
+## Project Structure
+
+```
+packages/
+├── api/           # State machine runtime — executes LLM graph workflows
+├── backend/       # Express server with MCP support (port 4000)
+├── web/           # Next.js visual graph editor (port 3101)
+├── graph-types/   # Shared Zod schemas & TypeScript types
+└── landing/       # Landing page
+```
+
+---
+
 ## Getting Started
 
+### Prerequisites
+
+- **Node.js** >= 18 (22+ recommended)
+- **npm** >= 9
+
+### Install
+
 ```bash
-# TODO: Add installation / setup instructions
+git clone https://github.com/your-org/openflow.git
+cd openflow
+npm install
 ```
+
+### Environment
+
+Create a `.env` file inside `packages/backend/` with your required credentials (Supabase, OpenRouter, etc.).
+
+### Development
+
+```bash
+# Start both backend (port 4000) and web (port 3101) in dev mode
+npm run dev
+
+# Or run them separately
+npm run dev -w packages/web       # Web only
+npm run dev -w packages/backend   # Backend only
+```
+
+### Build
+
+```bash
+npm run build          # All packages
+npm run build:web      # Web only
+npm run build:api      # API only
+```
+
+### Checks
+
+```bash
+npm run check          # Format + lint + typecheck (all packages)
+npm run lint           # ESLint
+npm run format         # Prettier
+npm run typecheck      # TypeScript
+npm test               # Tests
+```
+
+### Docker
+
+```bash
+docker build -t openflow .
+docker run -p 4000:4000 --env-file packages/backend/.env openflow
+```
+
+---
+
+## Contributing
+
+1. Fork the repo and create a feature branch
+2. Follow the code style enforced by ESLint and Prettier (`npm run check`)
+3. Never use `any` — always use explicit TypeScript types
+4. Use shadcn/ui components for UI work
+5. Add translations for all user-facing text
+6. Open a PR against `main`
 
 ---
 
 ## License
 
-<!-- TODO: Add license -->
+[MIT](./LICENSE)
