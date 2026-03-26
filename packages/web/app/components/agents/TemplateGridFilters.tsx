@@ -39,10 +39,11 @@ export function CategoryPills({ value, onChange }: CategoryPillsProps) {
 
   return (
     <div
-      className="flex gap-1 overflow-x-auto pb-1"
+      className="flex min-w-0 gap-1 overflow-x-auto"
       style={{
         maskImage: 'linear-gradient(to right, black 0, black calc(100% - 24px), transparent 100%)',
         WebkitMaskImage: 'linear-gradient(to right, black 0, black calc(100% - 24px), transparent 100%)',
+        scrollbarWidth: 'none',
       }}
     >
       <PillButton active={value === ''} onClick={() => onChange('')} label={t('allCategories')} />

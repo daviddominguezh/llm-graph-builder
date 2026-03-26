@@ -197,7 +197,7 @@ export function TemplateGrid({ selection, onSelectionChange, onPreview }: Templa
   );
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex min-w-0 flex-col gap-3 overflow-hidden">
       <SearchBar value={search} onChange={setSearch} />
       <CategoryPills value={category} onChange={setCategory} />
       <GridContent
