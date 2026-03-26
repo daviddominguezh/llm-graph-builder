@@ -140,6 +140,8 @@ interface InsertAgentInput {
   name: string;
   slug: string;
   description: string;
+  category: string;
+  isPublic: boolean;
 }
 
 export async function insertAgent(
@@ -148,7 +150,14 @@ export async function insertAgent(
 ): Promise<{ result: AgentRow | null; error: string | null }> {
   const queryResult = await supabase
     .from('agents')
-    .insert({ org_id: input.orgId, name: input.name, slug: input.slug, description: input.description })
+    .insert({
+      org_id: input.orgId,
+      name: input.name,
+      slug: input.slug,
+      description: input.description,
+      category: input.category,
+      is_public: input.isPublic,
+    })
     .select()
     .single();
 

@@ -26,6 +26,8 @@ export async function createAgent(ctx: ServiceContext, name: string, description
     name,
     slug,
     description,
+    category: 'other',
+    isPublic: false,
   });
   if (error !== null || result === null) throw new Error(error ?? 'Failed to create agent');
   return result;
