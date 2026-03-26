@@ -1,6 +1,6 @@
 'use client';
 
-import { getTemplateSnapshot } from '@/app/lib/templates';
+import { getTemplateSnapshotAction } from '@/app/actions/templates';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { TemplateGraphData } from '@daviddh/graph-types';
 import { Background, Controls, type Edge, type Node, ReactFlow } from '@xyflow/react';
@@ -33,7 +33,7 @@ type PreviewEdgeData = Record<string, unknown> & {
 const DEFAULT_POSITION = { x: 0, y: 0 };
 
 async function fetchPreviewGraph(aid: string, ver: number): Promise<TemplateGraphData | null> {
-  const result = await getTemplateSnapshot(aid, ver);
+  const result = await getTemplateSnapshotAction(aid, ver);
   return result.graphData;
 }
 
