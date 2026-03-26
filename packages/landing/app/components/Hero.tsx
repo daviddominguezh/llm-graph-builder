@@ -27,7 +27,7 @@ function GitHubCta({ stars }: { stars: number | null }) {
       href={GITHUB_URL}
       target="_blank"
       rel="noopener noreferrer"
-      className="mt-10 inline-flex items-center gap-2.5 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-accent"
+      className="relative mt-10 inline-flex items-center gap-2.5 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-accent"
     >
       <GitHubIcon />
       View on GitHub

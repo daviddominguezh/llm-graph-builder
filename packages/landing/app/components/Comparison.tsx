@@ -42,7 +42,7 @@ function TableRow({ row }: { row: ComparisonRow }) {
     <tr className="border-t border-border">
       <td className="py-3 pr-4 text-sm text-foreground">{row.feature}</td>
       {COMPETITOR_KEYS.map((key, i) => (
-        <td key={key} className={`py-3 text-center ${i === 0 ? 'bg-primary/5' : ''}`}>
+        <td key={key} className={`py-3 text-center ${i === 0 ? 'bg-primary/8' : ''}`}>
           <CellDisplay value={row[key]} highlight={i === 0} />
         </td>
       ))}
