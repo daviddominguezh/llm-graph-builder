@@ -14,21 +14,21 @@ ALTER TABLE public.agents
 
 CREATE TABLE public.agent_templates (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  agent_id uuid UNIQUE NOT NULL REFERENCES public.agents(id) ON DELETE CASCADE,
+  agent_id uuid NOT NULL UNIQUE REFERENCES public.agents(id) ON DELETE CASCADE,
   org_id uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
-  org_slug text,
+  org_slug text NOT NULL,
   org_avatar_url text,
-  agent_slug text,
-  agent_name text,
-  description text DEFAULT '',
-  category text DEFAULT 'other',
-  node_count integer DEFAULT 0,
-  mcp_server_count integer DEFAULT 0,
-  download_count integer DEFAULT 0,
-  latest_version integer DEFAULT 1,
-  template_graph_data jsonb DEFAULT '{}',
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
+  agent_slug text NOT NULL,
+  agent_name text NOT NULL,
+  description text NOT NULL DEFAULT '',
+  category text NOT NULL DEFAULT 'other',
+  node_count integer NOT NULL DEFAULT 0,
+  mcp_server_count integer NOT NULL DEFAULT 0,
+  download_count integer NOT NULL DEFAULT 0,
+  latest_version integer NOT NULL DEFAULT 1,
+  template_graph_data jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 -- ============================================================================
@@ -86,11 +86,15 @@ CREATE POLICY agent_templates_delete ON public.agent_templates
 -- 7. Atomic download counter (SECURITY DEFINER)
 -- ============================================================================
 
-CREATE OR REPLACE FUNCTION increment_template_downloads(p_template_id uuid)
-RETURNS void AS $$
+CREATE OR REPLACE FUNCTION public.increment_template_downloads(p_template_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
 BEGIN
   UPDATE public.agent_templates
   SET download_count = download_count + 1
   WHERE id = p_template_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
