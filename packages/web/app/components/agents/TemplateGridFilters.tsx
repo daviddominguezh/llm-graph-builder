@@ -41,9 +41,8 @@ export function CategoryPills({ value, onChange }: CategoryPillsProps) {
     <div
       className="flex gap-1 overflow-x-auto pb-1"
       style={{
-        maskImage: 'linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%)',
-        WebkitMaskImage:
-          'linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%)',
+        maskImage: 'linear-gradient(to right, black 0, black calc(100% - 24px), transparent 100%)',
+        WebkitMaskImage: 'linear-gradient(to right, black 0, black calc(100% - 24px), transparent 100%)',
       }}
     >
       <PillButton active={value === ''} onClick={() => onChange('')} label={t('allCategories')} />

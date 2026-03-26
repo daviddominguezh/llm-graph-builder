@@ -119,7 +119,7 @@ export function VisibilityToggle({ agentId, currentVersion, initialIsPublic }: V
           {state.isPublic ? t('visibilityPublic') : t('visibilityPrivate')}
         </Label>
       </div>
-      <p className="text-muted-foreground text-xs mt-1">{t('publicExplanation')}</p>
+      <p className="text-muted-foreground text-xs">{t('publicExplanation')}</p>
       <VisibilityDialog
         open={state.dialogOpen}
         pendingValue={state.pendingValue}

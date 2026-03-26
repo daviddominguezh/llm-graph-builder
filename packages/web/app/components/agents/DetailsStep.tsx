@@ -152,7 +152,7 @@ function DetailsFooter({ onBack, onSubmit, loading, disabled }: {
         {t('back')}
       </Button>
       <Button onClick={onSubmit} disabled={disabled}>
-        {tAgents('create')}
+        {loading ? tAgents('creating') : tAgents('create')}
       </Button>
     </DialogFooter>
   );

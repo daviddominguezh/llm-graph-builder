@@ -96,6 +96,7 @@
     "title": "Agents",
     "empty": "No agents yet. Create your first one.",
     "create": "Create agent",
+    "creating": "Creating...",
     "name": "Name",
     "namePlaceholder": "My Agent",
     "nameRequired": "Agent name is required.",

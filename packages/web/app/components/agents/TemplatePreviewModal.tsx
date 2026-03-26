@@ -170,7 +170,7 @@ export function TemplatePreviewModal({ open, onOpenChange, agentId, version }: T
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-w-4xl flex-col p-0 h-[min(600px,80vh)]">
-        <DialogHeader className="px-4 pt-4">
+        <DialogHeader className="shrink-0 border-b px-4 py-3">
           <DialogTitle>{t('previewTitle')}</DialogTitle>
         </DialogHeader>
         {loading ? (
