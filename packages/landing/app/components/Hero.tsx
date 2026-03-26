@@ -16,7 +16,7 @@ function GitHubIcon() {
 
 function StarsBadge({ stars }: { stars: number }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-lg bg-white/20 px-2 py-0.5 text-xs">
+    <span className="inline-flex items-center gap-1 rounded-lg bg-white/20 px-2 py-0.5 text-xs tabular-nums">
       <Star className="h-3 w-3 fill-current" />
       {formatStarCount(stars)}
     </span>
@@ -45,7 +45,7 @@ export async function Hero() {
     <section className="relative flex flex-col items-center overflow-hidden px-6 pt-36 pb-28 text-center">
       <HeroBackground />
 
-      <h1 className="font-heading relative max-w-4xl text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
+      <h1 className="font-heading relative max-w-4xl text-5xl font-bold leading-[1.1] tracking-tight text-balance sm:text-6xl lg:text-7xl">
         Making it easier to build{' '}
         <span className="text-primary">AI agents</span>
       </h1>

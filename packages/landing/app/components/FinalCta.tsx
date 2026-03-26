@@ -12,10 +12,10 @@ export function FinalCta() {
   return (
     <section className="bg-primary px-6 py-24 text-center">
       <div className="mx-auto max-w-3xl">
-        <h2 className="font-heading text-3xl font-semibold tracking-tight text-primary-foreground sm:text-4xl">
+        <h2 className="font-heading text-3xl font-semibold leading-tight tracking-tight text-balance text-primary-foreground sm:text-4xl">
           Ready to build your agent-powered SaaS?
         </h2>
-        <p className="mt-4 text-lg text-primary-foreground/70">
+        <p className="mt-4 text-lg text-primary-foreground/80">
           MIT licensed. Multi-tenant from day one. No license restrictions, no enterprise upsell.
         </p>
         <a

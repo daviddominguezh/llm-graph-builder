@@ -37,7 +37,7 @@ function StarsBadge({ stars }: { stars: number | null }) {
   if (stars === null) return null;
 
   return (
-    <span className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+    <span className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-xs tabular-nums text-muted-foreground">
       <Star className="h-3 w-3 fill-current" />
       {formatStarCount(stars)}
     </span>

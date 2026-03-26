@@ -48,7 +48,7 @@ export function Audience() {
   return (
     <section className="px-6 py-16">
       <div className="mx-auto max-w-6xl">
-        <h2 className="font-heading text-center text-3xl font-semibold tracking-tight sm:text-4xl">
+        <h2 className="font-heading text-center text-3xl font-semibold leading-tight tracking-tight text-balance sm:text-4xl">
           Who Is This For
         </h2>
 

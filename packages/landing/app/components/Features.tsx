@@ -49,7 +49,7 @@ export function Features() {
   return (
     <section id="features" className="px-6 py-24">
       <div className="mx-auto max-w-6xl">
-        <h2 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
+        <h2 className="font-heading text-3xl font-semibold leading-tight tracking-tight text-balance sm:text-4xl">
           How We&#39;re Different
         </h2>
         <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">

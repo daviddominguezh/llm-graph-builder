@@ -72,7 +72,7 @@ export function Comparison() {
   return (
     <section id="comparison" className="bg-muted px-6 py-20">
       <div className="mx-auto max-w-6xl">
-        <h2 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
+        <h2 className="font-heading text-3xl font-semibold leading-tight tracking-tight text-balance sm:text-4xl">
           Quick Comparison
         </h2>
 

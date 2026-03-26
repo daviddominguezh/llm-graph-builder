@@ -24,7 +24,9 @@ export function Problem() {
   return (
     <section className="bg-muted px-6 py-16">
       <div className="mx-auto max-w-4xl">
-        <h2 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">The Problem</h2>
+        <h2 className="font-heading text-3xl font-semibold leading-tight tracking-tight text-balance sm:text-4xl">
+          The Problem
+        </h2>
 
         <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
           Every no-code agent builder assumes{' '}
