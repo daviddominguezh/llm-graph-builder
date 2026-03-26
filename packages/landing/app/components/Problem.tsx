@@ -12,7 +12,7 @@ function PainPointList() {
     <ul className="mt-8 space-y-4">
       {PAIN_POINTS.map((point) => (
         <li key={point} className="flex items-start gap-3">
-          <CircleHelp className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground/60" />
+          <CircleHelp className="mt-0.5 h-5 w-5 shrink-0 text-warm" />
           <span className="text-base text-muted-foreground">{point}</span>
         </li>
       ))}

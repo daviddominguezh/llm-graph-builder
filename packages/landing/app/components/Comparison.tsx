@@ -7,7 +7,7 @@ import { COMPETITOR_KEYS, COMPETITORS, ROWS } from './comparison-data';
 function CellDisplay({ value, highlight }: { value: CellValue; highlight: boolean }): ReactNode {
   switch (value) {
     case 'yes':
-      return <Check className={`mx-auto h-4 w-4 ${highlight ? 'text-primary' : 'text-muted-foreground'}`} />;
+      return <Check className={`mx-auto h-4 w-4 ${highlight ? 'text-success' : 'text-muted-foreground'}`} />;
     case 'no':
       return <X className="mx-auto h-4 w-4 text-muted-foreground/40" />;
     case 'partial':
@@ -45,7 +45,7 @@ function TableRow({ row }: { row: ComparisonRow }) {
     <tr className="border-t border-border transition-colors hover:bg-foreground/[0.02]">
       <td className="py-3 pr-4 text-sm text-foreground">{row.feature}</td>
       {COMPETITOR_KEYS.map((key, i) => (
-        <td key={key} className={`py-3 text-center ${i === 0 ? 'bg-primary/8' : ''}`}>
+        <td key={key} className={`py-3 text-center ${i === 0 ? 'bg-success/6' : ''}`}>
           <CellDisplay value={row[key]} highlight={i === 0} />
         </td>
       ))}

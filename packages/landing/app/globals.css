@@ -4,12 +4,14 @@
   --color-primary: oklch(0.51 0.23 277);
   --color-primary-foreground: oklch(0.96 0.02 272);
   --color-background: oklch(1 0 0);
-  --color-foreground: oklch(0.141 0.005 285.823);
-  --color-muted: oklch(0.967 0.001 286.375);
-  --color-muted-foreground: oklch(0.552 0.016 285.938);
-  --color-border: oklch(0.92 0.004 286.32);
+  --color-foreground: oklch(0.145 0.01 277);
+  --color-muted: oklch(0.967 0.008 277);
+  --color-muted-foreground: oklch(0.556 0.02 277);
+  --color-border: oklch(0.92 0.012 277);
   --color-accent: oklch(0.59 0.20 277);
   --color-amber: oklch(0.75 0.15 75);
+  --color-success: oklch(0.55 0.17 155);
+  --color-warm: oklch(0.60 0.08 25);
   --font-sans: var(--font-inter);
   --font-heading: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
