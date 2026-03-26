@@ -67,6 +67,7 @@ function DescriptionField({ value, onChange }: { value: string; onChange: (v: st
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={t('descriptionPlaceholder')}
+        required
       />
     </div>
   );
@@ -174,7 +175,7 @@ function DetailsFooter({
 /* ------------------------------------------------------------------ */
 
 export function DetailsStep({ state, onChange, onBack, onSubmit, loading }: DetailsStepProps) {
-  const canSubmit = state.name.trim() !== '' && !loading;
+  const canSubmit = state.name.trim() !== '' && state.description.trim() !== '' && !loading;
 
   return (
     <>
