@@ -11,7 +11,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
 import { useAgentsSidebar } from './AgentsSidebarContext';
-import { CreateAgentDialog } from './CreateAgentDialog';
+import { CreateAgentWizard } from './CreateAgentWizard';
 import { getAgentStatus, STATUS_COLORS } from './agentStatus';
 
 interface AgentsSidebarProps {
@@ -131,7 +131,7 @@ export function AgentsSidebar({ agents, orgId, orgSlug }: AgentsSidebarProps) {
 
   if (collapsed) {
     return (
-      <CreateAgentDialog open={createOpen} onOpenChange={setCreateOpen} orgId={orgId} orgSlug={orgSlug} />
+      <CreateAgentWizard open={createOpen} onOpenChange={setCreateOpen} orgId={orgId} orgSlug={orgSlug} />
     );
   }
 
@@ -142,7 +142,7 @@ export function AgentsSidebar({ agents, orgId, orgSlug }: AgentsSidebarProps) {
       <div className="flex-1 overflow-y-auto">
         <AgentList agents={agents} orgSlug={orgSlug} pathname={pathname} search={search} />
       </div>
-      <CreateAgentDialog open={createOpen} onOpenChange={setCreateOpen} orgId={orgId} orgSlug={orgSlug} />
+      <CreateAgentWizard open={createOpen} onOpenChange={setCreateOpen} orgId={orgId} orgSlug={orgSlug} />
     </aside>
   );
 }
