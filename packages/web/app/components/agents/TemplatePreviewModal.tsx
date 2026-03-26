@@ -103,6 +103,8 @@ class PreviewErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 }
 
+// <div className="w-full flex flex-1 min-h-[0px]">
+
 function PreviewGraph({
   nodes,
   edges,
@@ -157,7 +159,9 @@ export function TemplatePreviewModal({ open, onOpenChange, agentId, version }: T
         setLoadedKey(requestKey);
       }
     });
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, [requestKey, agentId, version]);
 
   const isLoaded = requestKey !== '' && loadedKey === requestKey;
@@ -169,17 +173,19 @@ export function TemplatePreviewModal({ open, onOpenChange, agentId, version }: T
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex min-w-[70vw] max-w-4xl flex-col p-0 max-h-[90vh] min-h-[90vh]">
+      <DialogContent className="flex w-[1100px] min-w-[1100px] h-[670px] min-h-[670px] flex-col p-0 gap-0!">
         <DialogHeader className="shrink-0 border-b px-4 py-3">
           <DialogTitle>{t('previewTitle')}</DialogTitle>
         </DialogHeader>
-        {loading ? (
-          <LoadingState message={tCommon('loading')} />
-        ) : (
-          <PreviewErrorBoundary fallback={<LoadingState message={t('previewError')} />}>
-            <PreviewGraph nodes={nodes} edges={edges} colorMode={colorMode} />
-          </PreviewErrorBoundary>
-        )}
+        <div className="flex flex-col flex-1 min-h-[0px] w-full">
+          {loading ? (
+            <LoadingState message={tCommon('loading')} />
+          ) : (
+            <PreviewErrorBoundary fallback={<LoadingState message={t('previewError')} />}>
+              <PreviewGraph nodes={nodes} edges={edges} colorMode={colorMode} />
+            </PreviewErrorBoundary>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

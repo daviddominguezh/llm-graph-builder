@@ -69,11 +69,10 @@ export interface TemplateCardProps {
 /* ------------------------------------------------------------------ */
 
 function TemplateCardHeader({ template, onPreview }: { template: TemplateListItem; onPreview: () => void }) {
-  const tc = useTranslations('categories');
   const t = useTranslations('marketplace');
 
   return (
-    <div className="flex items-center gap-1.5 min-w-0 justify-between">
+    <div className="relative flex items-center gap-1.5 min-w-0 justify-between">
       <OrgAvatar url={template.org_avatar_url} slug={template.org_slug} />
       <div className="flex flex-col flex-1 min-w-[0px]">
         <div className="truncate text-xs font-medium text-muted-foreground text-[10px]">
@@ -81,24 +80,20 @@ function TemplateCardHeader({ template, onPreview }: { template: TemplateListIte
         </div>
         <div className="truncate text-xs font-medium text-foreground text-[11px]">{template.agent_slug}</div>
       </div>
-      <div className="flex flex-col shrink-0 items-end">
-        <Button
-          variant="outline"
-          size="xs"
-          className="group/preview"
-          onClick={(e) => {
-            e.stopPropagation();
-            onPreview();
-          }}
-          aria-label={t('preview')}
-        >
-          <Eye />
-          {t('preview')}
-        </Button>
-        <span className="bg-background text-muted-foreground text-[10px] pr-0.5 font-medium">
-          {tc(template.category).toUpperCase()}
-        </span>
-      </div>
+
+      <Button
+        variant="outline"
+        size="xs"
+        className="group/preview absolute top-0 right-0"
+        onClick={(e) => {
+          e.stopPropagation();
+          onPreview();
+        }}
+        aria-label={t('preview')}
+      >
+        <Eye />
+        {t('preview')}
+      </Button>
     </div>
   );
 }
