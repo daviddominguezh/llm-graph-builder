@@ -1,12 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-
+import { JsonBlock as JsonViewer, isJsonObject } from '@/app/components/panels/JsonDisplay';
+import type { NodeVisitRow } from '@/app/lib/dashboard';
 import { AlertTriangle, Braces, LayoutList } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-
-import { isJsonObject, JsonBlock as JsonViewer } from '@/app/components/panels/JsonDisplay';
-import type { NodeVisitRow } from '@/app/lib/dashboard';
+import { useState } from 'react';
 
 import { JsonBlock } from './JsonBlock';
 import { ResponseMessageCards } from './ResponseMessageCards';
@@ -39,19 +37,31 @@ function RawJsonView({ data }: { data: unknown }) {
   return <JsonBlock label={t('llmResponse')} data={data} />;
 }
 
-const activeTab = 'bg-background text-foreground shadow-sm';
-const inactiveTab = 'text-muted-foreground hover:text-foreground';
-const tabBase = 'inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-medium transition-colors';
+const activeTab = 'bg-popover dark:bg-input text-foreground shadow-sm';
+const inactiveTab = 'text-muted-foreground hover:text-foreground border-transparent hover:bg-input dark:hover:bg-card';
+const tabBase =
+  'cursor-pointer inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-medium transition-colors border border-transparent';
 
 function ViewTabs({ showRaw, onChange }: { showRaw: boolean; onChange: (raw: boolean) => void }) {
   const t = useTranslations('dashboard.debug');
   return (
-    <div className="inline-flex rounded-md border bg-muted/50 p-0.5" onClick={(e) => e.preventDefault()}>
-      <button type="button" onClick={() => onChange(false)} className={`${tabBase} ${showRaw ? inactiveTab : activeTab}`}>
+    <div
+      className="inline-flex gap-1 dark:gap-0.5 rounded-sm border bg-muted/50 p-0.5"
+      onClick={(e) => e.preventDefault()}
+    >
+      <button
+        type="button"
+        onClick={() => onChange(false)}
+        className={`${tabBase} ${showRaw ? inactiveTab : activeTab}`}
+      >
         <LayoutList className="size-3" />
         {t('viewFormatted')}
       </button>
-      <button type="button" onClick={() => onChange(true)} className={`${tabBase} ${showRaw ? activeTab : inactiveTab}`}>
+      <button
+        type="button"
+        onClick={() => onChange(true)}
+        className={`${tabBase} ${showRaw ? activeTab : inactiveTab}`}
+      >
         <Braces className="size-3" />
         {t('viewRaw')}
       </button>
@@ -83,8 +93,8 @@ export function ResponseSection({ visit }: { visit: NodeVisitRow }) {
         {hasMessageFormat && !showRaw ? (
           <ResponseMessageCards data={visit.response} />
         ) : (
-          <div className='p-0 rounded-md bg-background border'>
-          <RawJsonView data={visit.response} />
+          <div className="p-0 rounded-md bg-background border mt-2">
+            <RawJsonView data={visit.response} />
           </div>
         )}
       </div>
