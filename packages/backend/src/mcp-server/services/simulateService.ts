@@ -62,10 +62,7 @@ export async function simulateAgent(
   runSimulation: RunSimulationFn
 ): Promise<SimulationResult> {
   const { ctx, agentId, agentSlug, input } = params;
-  const [apiKey, graph] = await Promise.all([
-    fetchStagingApiKey(ctx, agentSlug),
-    prepareGraph(ctx, agentId),
-  ]);
+  const [apiKey, graph] = await Promise.all([fetchStagingApiKey(ctx, agentSlug), prepareGraph(ctx, agentId)]);
   const mcpServers = graph.mcpServers ?? [];
   const session = await createMcpSession(mcpServers);
 

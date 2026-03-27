@@ -16,7 +16,11 @@ export type {
   NodeVisitRow,
   PaginatedResult,
   SessionRow,
+  TenantExecutionRow,
+  TenantSummaryRow,
 } from './dashboardTypes.js';
+
+export { getExecutionsByTenant, getTenantSummary } from './tenantDashboardQueries.js';
 
 const EMPTY_LENGTH = 0;
 const DEFAULT_NUMERIC = 0;

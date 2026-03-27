@@ -22,6 +22,7 @@ export interface AgentSummaryRow {
 export interface SessionRow {
   [key: string]: unknown;
   id: string;
+  agent_id: string;
   tenant_id: string;
   user_id: string;
   session_id: string;
@@ -256,7 +257,97 @@ export async function getNodeVisitsForExecution(
 }
 
 /* ------------------------------------------------------------------ */
-/*  6. Delete Session                                                  */
+/*  6. Tenant Summary                                                  */
+/* ------------------------------------------------------------------ */
+
+export interface TenantSummaryRow {
+  [key: string]: unknown;
+  tenant_id: string;
+  total_executions: number;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_cost: number;
+  unique_agents: number;
+  unique_users: number;
+  unique_sessions: number;
+  last_execution_at: string | null;
+}
+
+export async function getTenantSummary(
+  orgId: string,
+  params: DashboardParams
+): Promise<PaginatedResult<TenantSummaryRow>> {
+  try {
+    const qs = buildQueryString(params);
+    const url = `/dashboard/${encodeURIComponent(orgId)}/tenant-summary?${qs}`;
+    const data = await fetchFromBackend('GET', url);
+
+    if (!isPaginatedResult(data)) {
+      return { rows: [], totalCount: 0, error: 'Invalid response' };
+    }
+
+    return {
+      rows: isRowArray(data.rows) ? (data.rows as TenantSummaryRow[]) : [],
+      totalCount: data.totalCount,
+      error: null,
+    };
+  } catch (err) {
+    return { rows: [], totalCount: 0, error: extractError(err) };
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  7. Executions by Tenant                                            */
+/* ------------------------------------------------------------------ */
+
+export interface TenantExecutionRow {
+  [key: string]: unknown;
+  id: string;
+  agent_id: string;
+  agent_name: string;
+  session_id: string;
+  user_id: string;
+  channel: string;
+  version: number;
+  model: string;
+  status: string;
+  error: string | null;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_cost: number;
+  total_duration_ms: number;
+  started_at: string;
+  completed_at: string | null;
+}
+
+export async function getExecutionsByTenant(
+  orgId: string,
+  tenantId: string,
+  params: DashboardParams
+): Promise<PaginatedResult<TenantExecutionRow>> {
+  try {
+    const qs = buildQueryString(params);
+    const orgEnc = encodeURIComponent(orgId);
+    const tenantEnc = encodeURIComponent(tenantId);
+    const url = `/dashboard/${orgEnc}/tenants/${tenantEnc}/executions?${qs}`;
+    const data = await fetchFromBackend('GET', url);
+
+    if (!isPaginatedResult(data)) {
+      return { rows: [], totalCount: 0, error: 'Invalid response' };
+    }
+
+    return {
+      rows: isRowArray(data.rows) ? (data.rows as TenantExecutionRow[]) : [],
+      totalCount: data.totalCount,
+      error: null,
+    };
+  } catch (err) {
+    return { rows: [], totalCount: 0, error: extractError(err) };
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  8. Delete Session                                                  */
 /* ------------------------------------------------------------------ */
 
 export async function deleteSession(sessionId: string): Promise<{ error: string | null }> {

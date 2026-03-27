@@ -1,9 +1,9 @@
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
-import { AgentSummaryView } from '@/app/components/dashboard/AgentSummaryView';
+import { TenantSummaryView } from '@/app/components/dashboard/TenantSummaryView';
 import { Separator } from '@/components/ui/separator';
-import { getAgentSummary } from '@/app/lib/dashboard';
+import { getTenantSummary } from '@/app/lib/dashboard';
 import { getOrgBySlug } from '@/app/lib/orgs';
 
 interface DashboardPageProps {
@@ -22,7 +22,7 @@ export default async function DashboardPage({ params }: DashboardPageProps): Pro
 
   const t = await getTranslations('dashboard');
 
-  const { rows, totalCount } = await getAgentSummary(org.id, {
+  const { rows, totalCount } = await getTenantSummary(org.id, {
     page: 0,
     pageSize: DEFAULT_PAGE_SIZE,
     sortKey: 'last_execution_at',
@@ -40,7 +40,7 @@ export default async function DashboardPage({ params }: DashboardPageProps): Pro
       <Separator />
 
       <div className="flex-1 overflow-y-auto px-6 py-4">
-        <AgentSummaryView orgId={org.id} slug={slug} initialRows={rows} initialTotal={totalCount} />
+        <TenantSummaryView orgId={org.id} slug={slug} initialRows={rows} initialTotal={totalCount} />
       </div>
     </div>
   );

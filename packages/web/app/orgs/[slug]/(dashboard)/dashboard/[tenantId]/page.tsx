@@ -3,43 +3,32 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
-import { SessionsView } from '@/app/components/dashboard/SessionsView';
+import { ExecutionsView } from '@/app/components/dashboard/ExecutionsView';
 import { Separator } from '@/components/ui/separator';
-import { getAgentsByOrg } from '@/app/lib/agents';
-import { getSessionsByAgent } from '@/app/lib/dashboard';
+import { getExecutionsByTenant } from '@/app/lib/dashboard';
 import { getOrgBySlug } from '@/app/lib/orgs';
 
-interface AgentSessionsPageProps {
-  params: Promise<{ slug: string; agentSlug: string }>;
+interface TenantExecutionsPageProps {
+  params: Promise<{ slug: string; tenantId: string }>;
 }
 
 const DEFAULT_PAGE_SIZE = 50;
 
-async function resolveAgent(orgId: string, agentSlug: string) {
-  const { agents } = await getAgentsByOrg(orgId);
-  return agents.find((a) => a.slug === agentSlug) ?? null;
-}
-
-export default async function AgentSessionsPage({ params }: AgentSessionsPageProps): Promise<React.JSX.Element> {
-  const { slug, agentSlug } = await params;
+export default async function TenantExecutionsPage({ params }: TenantExecutionsPageProps): Promise<React.JSX.Element> {
+  const { slug, tenantId: rawTenantId } = await params;
+  const tenantId = decodeURIComponent(rawTenantId);
   const { result: org } = await getOrgBySlug(slug);
 
   if (!org) {
     redirect('/');
   }
 
-  const agent = await resolveAgent(org.id, agentSlug);
-
-  if (!agent) {
-    redirect(`/orgs/${slug}/dashboard`);
-  }
-
   const t = await getTranslations('dashboard');
 
-  const { rows, totalCount } = await getSessionsByAgent(org.id, agent.id, {
+  const { rows, totalCount } = await getExecutionsByTenant(org.id, tenantId, {
     page: 0,
     pageSize: DEFAULT_PAGE_SIZE,
-    sortKey: 'updated_at',
+    sortKey: 'started_at',
     sortDirection: 'desc',
   });
 
@@ -51,18 +40,17 @@ export default async function AgentSessionsPage({ params }: AgentSessionsPagePro
             {t('title')}
           </Link>
           <ChevronRight className="size-3" />
-          <span className="text-foreground font-medium">{agent.name}</span>
+          <span className="text-foreground font-medium">{tenantId}</span>
         </nav>
       </div>
 
       <Separator />
 
       <div className="flex-1 overflow-y-auto px-6 py-4">
-        <SessionsView
+        <ExecutionsView
           orgId={org.id}
-          agentId={agent.id}
+          tenantId={tenantId}
           slug={slug}
-          agentSlug={agentSlug}
           initialRows={rows}
           initialTotal={totalCount}
         />

@@ -1,5 +1,7 @@
 'use client';
 
+import { useMemo } from 'react';
+
 import { TableBody, TableCell, TableRow } from '@/components/ui/table';
 
 import type { Column } from './sortableTableTypes';
@@ -10,6 +12,16 @@ interface SortableTableBodyProps<T extends Record<string, unknown>> {
   rowKey: keyof T;
   onRowClick?: (row: T) => void;
   emptyMessage?: string;
+}
+
+function deduplicateRows<T extends Record<string, unknown>>(rows: T[], key: keyof T): T[] {
+  const seen = new Set<string>();
+  return rows.filter((row) => {
+    const k = String(row[key]);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
 }
 
 function EmptyRow({ colSpan, message }: { colSpan: number; message: string }) {
@@ -36,7 +48,9 @@ export function SortableTableBody<T extends Record<string, unknown>>({
   onRowClick,
   emptyMessage = 'No data',
 }: SortableTableBodyProps<T>) {
-  if (rows.length === 0) {
+  const uniqueRows = useMemo(() => deduplicateRows(rows, rowKey), [rows, rowKey]);
+
+  if (uniqueRows.length === 0) {
     return (
       <TableBody>
         <EmptyRow colSpan={columns.length} message={emptyMessage} />
@@ -46,7 +60,7 @@ export function SortableTableBody<T extends Record<string, unknown>>({
 
   return (
     <TableBody>
-      {rows.map((row) => (
+      {uniqueRows.map((row) => (
         <TableRow
           key={String(row[rowKey])}
           className={onRowClick !== undefined ? 'cursor-pointer' : ''}

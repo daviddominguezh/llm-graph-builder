@@ -22,7 +22,8 @@ interface DebugViewProps {
   graph: Graph;
   orgSlug: string;
   agentName: string;
-  agentSlug: string;
+  breadcrumbLabel: string;
+  breadcrumbSlug: string;
 }
 
 const FIRST_INDEX = 0;
@@ -216,7 +217,7 @@ function useDebugViewState(props: DebugViewProps) {
 }
 
 export function DebugView(props: DebugViewProps) {
-  const { session, graph, orgSlug, agentName, agentSlug } = props;
+  const { session, graph, orgSlug, agentName, breadcrumbLabel, breadcrumbSlug } = props;
   const t = useTranslations('dashboard');
   const { state, visitedNodeIds, errorNodeIds, mutedNodeIds, selectedExecution } =
     useDebugViewState(props);
@@ -236,8 +237,8 @@ export function DebugView(props: DebugViewProps) {
     <div className="flex h-full flex-col bg-background">
       <DebugHeader
         orgSlug={orgSlug}
-        agentName={agentName}
-        agentSlug={agentSlug}
+        agentName={breadcrumbLabel}
+        agentSlug={breadcrumbSlug}
         sessionId={session.session_id}
         dashboardLabel={t('title')}
       />

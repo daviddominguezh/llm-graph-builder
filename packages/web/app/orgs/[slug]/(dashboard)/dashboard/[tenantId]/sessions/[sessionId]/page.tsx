@@ -10,12 +10,12 @@ import { getExecutionsForSession, getNodeVisitsForExecution, getSessionDetail } 
 import { getOrgBySlug } from '@/app/lib/orgs';
 
 interface SessionDebugPageProps {
-  params: Promise<{ slug: string; agentSlug: string; sessionId: string }>;
+  params: Promise<{ slug: string; tenantId: string; sessionId: string }>;
 }
 
-async function resolveAgent(orgId: string, agentSlug: string) {
+async function resolveAgentById(orgId: string, agentId: string) {
   const { agents } = await getAgentsByOrg(orgId);
-  return agents.find((a) => a.slug === agentSlug) ?? null;
+  return agents.find((a) => a.id === agentId) ?? null;
 }
 
 const FIRST_INDEX = 0;
@@ -27,23 +27,24 @@ async function fetchInitialNodeVisits(executionId: string | undefined) {
 }
 
 export default async function SessionDebugPage({ params }: SessionDebugPageProps): Promise<React.JSX.Element> {
-  const { slug, agentSlug, sessionId } = await params;
+  const { slug, tenantId: rawTenantId, sessionId } = await params;
+  const tenantId = decodeURIComponent(rawTenantId);
   const { result: org } = await getOrgBySlug(slug);
 
   if (!org) redirect('/');
-
-  const agent = await resolveAgent(org.id, agentSlug);
-
-  if (!agent) redirect(`/orgs/${slug}/dashboard`);
 
   const [sessionResult, executionsResult] = await Promise.all([
     getSessionDetail(sessionId),
     getExecutionsForSession(sessionId),
   ]);
 
-  if (!sessionResult.session) redirect(`/orgs/${slug}/dashboard/${agentSlug}`);
+  if (!sessionResult.session) redirect(`/orgs/${slug}/dashboard/${encodeURIComponent(tenantId)}`);
 
   const session = sessionResult.session;
+  const agent = await resolveAgentById(org.id, session.agent_id);
+
+  if (!agent) redirect(`/orgs/${slug}/dashboard/${encodeURIComponent(tenantId)}`);
+
   const executions = executionsResult.rows;
   const firstExecution = executions[FIRST_INDEX];
 
@@ -61,7 +62,8 @@ export default async function SessionDebugPage({ params }: SessionDebugPageProps
       graph={graph}
       orgSlug={slug}
       agentName={agent.name}
-      agentSlug={agentSlug}
+      breadcrumbLabel={tenantId}
+      breadcrumbSlug={encodeURIComponent(tenantId)}
     />
   );
 }

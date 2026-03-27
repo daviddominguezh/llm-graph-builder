@@ -449,6 +449,7 @@
     "description": "Overview of execution metrics per agent.",
     "sessions": "Sessions",
     "sessionsFor": "Sessions for {agentName}",
+    "executionsFor": "Executions for {tenantId}",
     "sessionDebug": "Session Trace",
     "searchPlaceholder": "Search sessions...",
     "columns": {
@@ -471,13 +472,20 @@
       "model": "Model",
       "version": "Version",
       "created": "Created",
-      "lastActivity": "Last Activity"
+      "lastActivity": "Last Activity",
+      "uniqueAgents": "Agents",
+      "totalDuration": "Duration",
+      "started": "Started",
+      "statusCompleted": "Completed",
+      "statusRunning": "Running"
     },
     "filters": {
       "addFilter": "Add filter",
       "status": "Status",
       "statusSuccess": "Success",
       "statusError": "Error",
+      "statusCompleted": "Completed",
+      "statusRunning": "Running",
       "dateRange": "Date range",
       "tenant": "Tenant",
       "user": "User",
@@ -539,6 +547,7 @@
     },
     "empty": "No execution data yet. Agents will appear here after they receive API calls.",
     "noSessions": "No sessions found for this agent.",
+    "noExecutions": "No executions found for this tenant.",
     "actions": "Actions",
     "debugSession": "Debug session",
     "deleteSession": "Delete session",

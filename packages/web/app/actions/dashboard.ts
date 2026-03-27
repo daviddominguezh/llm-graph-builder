@@ -6,14 +6,18 @@ import type {
   ExecutionSummaryRow,
   NodeVisitRow,
   SessionRow,
+  TenantExecutionRow,
+  TenantSummaryRow,
 } from '@/app/lib/dashboard';
 import {
   deleteSession as deleteSessionLib,
   getAgentSummary as getAgentSummaryLib,
+  getExecutionsByTenant as getExecutionsByTenantLib,
   getExecutionsForSession as getExecutionsForSessionLib,
   getNodeVisitsForExecution as getNodeVisitsForExecutionLib,
   getSessionDetail as getSessionDetailLib,
   getSessionsByAgent as getSessionsByAgentLib,
+  getTenantSummary as getTenantSummaryLib,
 } from '@/app/lib/dashboard';
 import { serverError, serverLog } from '@/app/lib/serverLogger';
 
@@ -75,5 +79,26 @@ export async function fetchNodeVisitsForExecution(
   serverLog('[fetchNodeVisitsForExecution] executionId:', executionId);
   const res = await getNodeVisitsForExecutionLib(executionId);
   if (res.error !== null) serverError('[fetchNodeVisitsForExecution] error:', res.error);
+  return res;
+}
+
+export async function fetchTenantSummary(
+  orgId: string,
+  params: DashboardParams
+): Promise<PaginatedResult<TenantSummaryRow>> {
+  serverLog('[fetchTenantSummary] orgId:', orgId);
+  const res = await getTenantSummaryLib(orgId, params);
+  if (res.error !== null) serverError('[fetchTenantSummary] error:', res.error);
+  return res;
+}
+
+export async function fetchExecutionsByTenant(
+  orgId: string,
+  tenantId: string,
+  params: DashboardParams
+): Promise<PaginatedResult<TenantExecutionRow>> {
+  serverLog('[fetchExecutionsByTenant] orgId:', orgId, 'tenantId:', tenantId);
+  const res = await getExecutionsByTenantLib(orgId, tenantId, params);
+  if (res.error !== null) serverError('[fetchExecutionsByTenant] error:', res.error);
   return res;
 }
