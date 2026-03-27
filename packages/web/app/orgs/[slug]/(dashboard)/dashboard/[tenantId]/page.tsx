@@ -34,19 +34,19 @@ export default async function TenantExecutionsPage({ params }: TenantExecutionsP
 
   return (
     <div className="flex h-full flex-col bg-background">
-      <div className="px-6 py-4 shrink-0 bg-background">
+      <div className="px-4 py-3 shrink-0 bg-background">
         <nav className="flex items-center gap-1 text-sm text-muted-foreground">
-          <Link href={`/orgs/${slug}/dashboard`} className="hover:text-foreground">
+          <Link href={`/orgs/${slug}/dashboard`} className="hover:text-foreground text-xs font-medium">
             {t('title')}
           </Link>
           <ChevronRight className="size-3" />
-          <span className="text-foreground font-medium">{tenantId}</span>
+          <span className="text-foreground text-xs font-medium">{tenantId}</span>
         </nav>
       </div>
 
       <Separator />
 
-      <div className="flex-1 overflow-y-auto px-6 py-4">
+      <div className="flex-1 overflow-y-auto px-4 py-3">
         <ExecutionsView
           orgId={org.id}
           tenantId={tenantId}

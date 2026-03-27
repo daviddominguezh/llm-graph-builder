@@ -31,15 +31,15 @@ export default async function DashboardPage({ params }: DashboardPageProps): Pro
 
   return (
     <div className="flex h-full flex-col bg-background">
-      <div className="px-6 py-4 shrink-0 bg-background">
+      <div className="px-4 py-3 shrink-0 bg-background">
         <nav className="flex items-center gap-1 text-sm text-muted-foreground">
-          <span className="text-foreground font-medium">{t('title')}</span>
+          <span className="text-foreground font-medium text-xs">{t('title')}</span>
         </nav>
       </div>
 
       <Separator />
 
-      <div className="flex-1 overflow-y-auto px-6 py-4">
+      <div className="flex-1 overflow-y-auto px-4 py-3">
         <TenantSummaryView orgId={org.id} slug={slug} initialRows={rows} initialTotal={totalCount} />
       </div>
     </div>
