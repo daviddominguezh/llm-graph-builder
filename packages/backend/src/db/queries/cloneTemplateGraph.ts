@@ -92,27 +92,31 @@ interface McpServerRow {
   variable_values: null;
 }
 
+const PLACEHOLDER_URL = 'https://configure-me.example.com';
+
 function buildLibraryMcpRow(agentId: string, index: number, server: TemplateMcpServer): McpServerRow {
   return {
     agent_id: agentId,
     server_id: `mcp-${String(index)}`,
     name: server.name,
     transport_type: 'http',
-    transport_config: {},
-    enabled: true,
+    transport_config: { url: PLACEHOLDER_URL },
+    enabled: false,
     library_item_id: server.type === 'library' ? server.libraryItemId : null,
     variable_values: null,
   };
 }
 
 function buildCustomMcpRow(agentId: string, index: number, server: TemplateMcpServer): McpServerRow {
+  const transportType = server.type === 'custom' ? server.transportType : 'http';
+  const needsUrl = transportType === 'http' || transportType === 'sse';
   return {
     agent_id: agentId,
     server_id: `mcp-${String(index)}`,
     name: server.name,
-    transport_type: server.type === 'custom' ? server.transportType : 'http',
-    transport_config: {},
-    enabled: true,
+    transport_type: transportType,
+    transport_config: needsUrl ? { url: PLACEHOLDER_URL } : {},
+    enabled: false,
     library_item_id: null,
     variable_values: null,
   };
