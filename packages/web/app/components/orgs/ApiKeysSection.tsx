@@ -19,7 +19,7 @@ interface ApiKeyItemProps {
 function ApiKeyItem({ apiKey, onDeleteClick }: ApiKeyItemProps) {
   return (
     <div className="flex items-center justify-between rounded-md border px-3 py-2 bg-card">
-      <span className="text-sm font-medium font-mono mr-6">{apiKey.name}</span>
+      <span className="w-[200px] shrink-0 truncate text-sm font-medium font-mono mr-6">{apiKey.name}</span>
       <span className="flex-1 text-xs text-muted-foreground font-mono">{apiKey.key_preview}</span>
       <div className="flex items-center gap-1">
         <Button variant="destructive" onClick={() => onDeleteClick(apiKey)}>

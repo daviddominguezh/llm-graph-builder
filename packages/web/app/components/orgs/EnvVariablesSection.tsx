@@ -60,7 +60,7 @@ function RevealableValue({ variableId }: { variableId: string }) {
 function VariableRow({ variable, onDeleteClick, onEditClick }: VariableRowProps) {
   return (
     <div className="flex items-center justify-between rounded-md border px-3 py-2 bg-card">
-      <span className="text-sm font-medium font-mono mr-6">{variable.name}</span>
+      <span className="w-[200px] shrink-0 truncate text-sm font-medium font-mono mr-6">{variable.name}</span>
       <RevealableValue variableId={variable.id} />
       <div className="flex items-center gap-1">
         <Button variant="ghost" onClick={() => onEditClick(variable)}>
