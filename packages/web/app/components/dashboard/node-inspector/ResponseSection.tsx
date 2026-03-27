@@ -71,11 +71,11 @@ export function ResponseSection({ visit }: { visit: NodeVisitRow }) {
 
   return (
     <details className="group relative" open>
-      <summary className="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground">
+      <summary className="h-6 cursor-pointer leading-6 text-xs font-medium text-muted-foreground hover:text-foreground">
         {t('llmResponse')}
       </summary>
       {hasMessageFormat && (
-        <div className="absolute right-0 top-0">
+        <div className="absolute right-0 top-0 flex h-6 items-center">
           <ViewTabs showRaw={showRaw} onChange={setShowRaw} />
         </div>
       )}
@@ -83,7 +83,9 @@ export function ResponseSection({ visit }: { visit: NodeVisitRow }) {
         {hasMessageFormat && !showRaw ? (
           <ResponseMessageCards data={visit.response} />
         ) : (
+          <div className='p-0 rounded-md bg-background border'>
           <RawJsonView data={visit.response} />
+          </div>
         )}
       </div>
     </details>
