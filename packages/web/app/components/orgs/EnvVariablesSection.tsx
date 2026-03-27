@@ -4,6 +4,7 @@ import { getEnvVariableValueAction, getEnvVariablesByOrgAction } from '@/app/act
 import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Eye, EyeOff, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
@@ -45,14 +46,31 @@ function RevealableValue({ variableId }: { variableId: string }) {
 
   const Icon = revealed ? EyeOff : Eye;
 
+  async function handleCopy() {
+    const val = value ?? (await getEnvVariableValueAction(variableId)).value;
+    if (val === null) {
+      toast.error(t('copyError'));
+      return;
+    }
+    await navigator.clipboard.writeText(val);
+    toast.success(t('copied'));
+  }
+
   return (
-    <div className="flex flex-1 items-center gap-1.5">
+    <div className="flex flex-1 min-w-0 items-center gap-1.5">
       <Button variant="ghost" size="icon-sm" onClick={handleReveal}>
         <Icon className="size-3" />
       </Button>
-      <span className="text-xs text-muted-foreground font-mono">
-        {revealed && value !== null ? value : '••••••••'}
-      </span>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <button type="button" className="truncate text-xs text-muted-foreground font-mono cursor-pointer" onClick={handleCopy}>
+              {revealed && value !== null ? value : '••••••••'}
+            </button>
+          }
+        />
+        <TooltipContent side="top">{t('clickToCopy')}</TooltipContent>
+      </Tooltip>
     </div>
   );
 }

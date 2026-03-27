@@ -378,7 +378,10 @@
     "deleteError": "Failed to delete variable.",
     "editTitle": "Edit variable",
     "enterNewValue": "Enter new value (leave empty to keep current)",
-    "save": "Save"
+    "save": "Save",
+    "clickToCopy": "Click to copy",
+    "copied": "Copied!",
+    "copyError": "Failed to copy value."
   },
   "toolTest": {
     "emptyState": "Run a tool to see the result here.",
@@ -512,6 +515,8 @@
       "nodeDetails": "Node Details",
       "messagesSent": "Messages Sent to LLM",
       "llmResponse": "LLM Response",
+      "viewRaw": "Raw",
+      "viewFormatted": "Formatted",
       "structuredOutput": "Structured Output",
       "tokenUsage": "Token Usage",
       "duration": "Duration",
