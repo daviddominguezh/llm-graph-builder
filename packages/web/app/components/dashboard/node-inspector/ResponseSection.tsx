@@ -70,15 +70,15 @@ export function ResponseSection({ visit }: { visit: NodeVisitRow }) {
   }
 
   return (
-    <details className="group" open>
+    <details className="group relative" open>
       <summary className="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground">
-        <span className="inline-flex items-center gap-2">
-          {t('llmResponse')}
-          {hasMessageFormat && (
-            <ViewTabs showRaw={showRaw} onChange={setShowRaw} />
-          )}
-        </span>
+        {t('llmResponse')}
       </summary>
+      {hasMessageFormat && (
+        <div className="absolute right-0 top-0">
+          <ViewTabs showRaw={showRaw} onChange={setShowRaw} />
+        </div>
+      )}
       <div className="mt-1">
         {hasMessageFormat && !showRaw ? (
           <ResponseMessageCards data={visit.response} />

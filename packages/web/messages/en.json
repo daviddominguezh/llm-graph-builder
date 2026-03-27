@@ -547,7 +547,7 @@
       "roleToolCall": "Tool Call",
       "roleToolResult": "Tool Result",
       "showReasoning": "Show reasoning",
-      "encryptedByProvider": "This content was encrypted by the provider and cannot be displayed",
+      "encryptedByProvider": "This content was encrypted by the provider and cannot be displayed.",
       "executionError": "Execution Error"
     },
     "empty": "No execution data yet. Agents will appear here after they receive API calls.",
