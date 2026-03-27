@@ -1,5 +1,4 @@
 import type { TenantExecutionRow } from '@/app/lib/dashboard';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Bug, CircleAlert, CircleCheck, Clock } from 'lucide-react';
 
@@ -88,7 +87,7 @@ function buildBaseColumns(t: (key: string) => string): Column<TenantExecutionRow
       key: 'channel',
       label: t('columns.channel'),
       sortable: true,
-      render: (row) => <Badge variant="secondary">{row.channel}</Badge>,
+      render: (row) => <span className="font-mono text-xs">{row.channel.toUpperCase()}</span>,
     },
     {
       key: 'model',
