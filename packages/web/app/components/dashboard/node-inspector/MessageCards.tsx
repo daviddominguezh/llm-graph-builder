@@ -115,7 +115,7 @@ function CardContent({ card }: { card: MessageCard }) {
 
 function MessageCardItem({ card }: { card: MessageCard }) {
   return (
-    <div className="flex flex-col gap-1.5 rounded-md border bg-muted p-3">
+    <div className="flex flex-col gap-1.5 rounded-md border bg-white dark:bg-black p-3">
       <RoleBadge kind={card.kind} />
       <CardContent card={card} />
     </div>

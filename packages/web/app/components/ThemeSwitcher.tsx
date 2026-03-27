@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Moon, Sun } from 'lucide-react';
@@ -9,8 +11,11 @@ import { useTranslations } from 'next-intl';
 export function ThemeSwitcher() {
   const { resolvedTheme, setTheme } = useTheme();
   const t = useTranslations('theme');
+  const [mounted, setMounted] = useState(false);
 
-  if (resolvedTheme === undefined) return null;
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) return null;
 
   const isLight = resolvedTheme === 'light';
 

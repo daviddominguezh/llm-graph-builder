@@ -16,7 +16,7 @@ interface NodeInspectorProps {
 }
 
 function EmptyState({ message }: { message: string }) {
-  return <p className="text-sm text-muted-foreground bg-input p-3 rounded-md">{message}</p>;
+  return <p className="text-xs text-muted-foreground bg-input p-3 rounded-md border border-secondary/10">{message}</p>;
 }
 
 function MutedNodeContent({ node, message }: { node: SchemaNode; message: string }) {
