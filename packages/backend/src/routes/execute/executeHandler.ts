@@ -143,7 +143,11 @@ async function fetchAllData(params: FetchAllParams): Promise<FetchedData> {
     fetchGraphAndKeys({ supabase, agentId, version, orgId, productionApiKeyId: productionKeyId }),
     fetchSessionData({ supabase, agentId, orgId, version, input, model }),
   ]);
-  const envResolvedGraph = resolveMcpTransportVariables(graphAndKeys.graph, graphAndKeys.envVars);
+  const envResolvedGraph = resolveMcpTransportVariables(
+    graphAndKeys.graph,
+    graphAndKeys.envVars.byName,
+    graphAndKeys.envVars.byId
+  );
   const resolvedGraph = await resolveOAuthForExecution(supabase, envResolvedGraph, orgId);
   return { ...graphAndKeys, ...sessionData, graph: resolvedGraph };
 }

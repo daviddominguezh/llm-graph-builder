@@ -159,27 +159,37 @@ async function decryptEnvVariable(supabase: SupabaseClient, variableId: string):
   return typeof result.data === 'string' ? result.data : null;
 }
 
+export interface DecryptedEnvVars {
+  byName: Record<string, string>;
+  byId: Record<string, string>;
+}
+
 export async function getDecryptedEnvVariables(
   supabase: SupabaseClient,
   orgId: string
-): Promise<Record<string, string>> {
+): Promise<DecryptedEnvVars> {
   const rows = await fetchEnvVariableNames(supabase, orgId);
-  const entries: Array<[string, string]> = [];
+  const nameEntries: Array<[string, string]> = [];
+  const idEntries: Array<[string, string]> = [];
 
   const decrypted = await Promise.all(
     rows.map(async (row) => {
       const value = await decryptEnvVariable(supabase, row.id);
-      return { name: row.name, value };
+      return { id: row.id, name: row.name, value };
     })
   );
 
   for (const item of decrypted) {
     if (item.value !== null) {
-      entries.push([item.name, item.value]);
+      nameEntries.push([item.name, item.value]);
+      idEntries.push([item.id, item.value]);
     }
   }
 
-  return Object.fromEntries(entries);
+  return {
+    byName: Object.fromEntries(nameEntries),
+    byId: Object.fromEntries(idEntries),
+  };
 }
 
 export async function updateKeyLastUsed(supabase: SupabaseClient, keyId: string): Promise<void> {

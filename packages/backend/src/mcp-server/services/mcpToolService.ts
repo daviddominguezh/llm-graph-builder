@@ -60,11 +60,26 @@ function resolveTransportVars(transport: McpTransport, vars: Record<string, stri
   };
 }
 
+function resolveServerVars(server: McpServerConfig, envVars: Record<string, string>): Record<string, string> {
+  const { variableValues } = server;
+  if (variableValues === undefined) return envVars;
+  const resolved: Record<string, string> = {};
+  for (const [templateName, val] of Object.entries(variableValues)) {
+    if (val.type === 'direct') {
+      resolved[templateName] = val.value;
+    } else {
+      resolved[templateName] = envVars[val.envVariableId] ?? '';
+    }
+  }
+  return resolved;
+}
+
 async function openClient(ctx: ServiceContext, agentId: string, serverId: string): Promise<McpClient> {
   const graph = requireGraph(await assembleGraph(ctx.supabase, agentId), agentId);
   const server = requireServer(graph, serverId);
-  const envVars = await getDecryptedEnvVariables(ctx.supabase, ctx.orgId);
-  const transport = resolveTransportVars(server.transport, envVars);
+  const { byId } = await getDecryptedEnvVariables(ctx.supabase, ctx.orgId);
+  const vars = resolveServerVars(server, byId);
+  const transport = resolveTransportVars(server.transport, vars);
   return await connectMcpClient(transport);
 }
 

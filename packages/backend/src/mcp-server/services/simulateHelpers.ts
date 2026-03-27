@@ -56,12 +56,32 @@ function resolveTransportVars(transport: McpTransport, vars: Record<string, stri
   return { ...transport, url: replaceVars(transport.url, vars) };
 }
 
-export function resolveMcpEnvVars(graph: Graph, envVars: Record<string, string>): Graph {
+function resolveServerVars(
+  server: { variableValues?: Record<string, { type: string; value?: string; envVariableId?: string }> },
+  envById: Record<string, string>
+): Record<string, string> {
+  const { variableValues } = server;
+  if (variableValues === undefined) return envById;
+  const resolved: Record<string, string> = {};
+  for (const [templateName, val] of Object.entries(variableValues)) {
+    if (val.type === 'direct' && val.value !== undefined) {
+      resolved[templateName] = val.value;
+    } else if (val.envVariableId !== undefined) {
+      resolved[templateName] = envById[val.envVariableId] ?? '';
+    }
+  }
+  return resolved;
+}
+
+export function resolveMcpEnvVars(graph: Graph, envById: Record<string, string>): Graph {
   const { mcpServers: servers } = graph;
   if (servers === undefined) return graph;
   return {
     ...graph,
-    mcpServers: servers.map((s) => ({ ...s, transport: resolveTransportVars(s.transport, envVars) })),
+    mcpServers: servers.map((s) => {
+      const vars = resolveServerVars(s, envById);
+      return { ...s, transport: resolveTransportVars(s.transport, vars) };
+    }),
   };
 }
 

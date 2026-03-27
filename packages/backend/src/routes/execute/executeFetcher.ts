@@ -4,6 +4,7 @@ import type { Message } from '@daviddh/llm-graph-runner';
 import { MESSAGES_PROVIDER } from '@daviddh/llm-graph-runner';
 
 import {
+  type DecryptedEnvVars,
   getDecryptedApiKeyValue,
   getDecryptedEnvVariables,
   getPublishedGraphData,
@@ -32,7 +33,7 @@ export class HttpError extends Error {
 export interface FetchedData {
   graph: RuntimeGraph;
   apiKey: string;
-  envVars: Record<string, string>;
+  envVars: DecryptedEnvVars;
   sessionDbId: string;
   currentNodeId: string;
   structuredOutputs: Record<string, unknown[]>;
@@ -61,7 +62,7 @@ export async function getProductionKeyId(supabase: SupabaseClient, agentId: stri
 export interface GraphAndKeys {
   graph: RuntimeGraph;
   apiKey: string;
-  envVars: Record<string, string>;
+  envVars: DecryptedEnvVars;
 }
 
 interface GraphFetchParams {
