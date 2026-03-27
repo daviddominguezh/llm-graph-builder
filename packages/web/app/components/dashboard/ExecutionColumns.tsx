@@ -129,12 +129,13 @@ function buildActionsColumn(
 ): Column<TenantExecutionRow> {
   return {
     key: 'actions',
-    label: t('actions'),
+    label: '',
     sortable: false,
     render: (row) => (
       <div className="flex items-center justify-end gap-1">
         <Button
           variant="ghost"
+          className="text-accent hover:text-accent"
           size="icon"
           onClick={(e) => {
             stopPropagation(e);

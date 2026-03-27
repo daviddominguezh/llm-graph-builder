@@ -220,7 +220,9 @@ function handleNodeProcessed(
     toolCalls: mapRawToolCalls(event.toolCalls),
     durationMs: toNum(event.durationMs),
     error: toOptStr(event.error),
-    responseMessages: Array.isArray(event.responseMessages) ? (event.responseMessages as unknown[]) : undefined,
+    responseMessages: Array.isArray(event.responseMessages)
+      ? (event.responseMessages as unknown[])
+      : undefined,
   });
   processNodeProcessed(event, callbacks);
 }
