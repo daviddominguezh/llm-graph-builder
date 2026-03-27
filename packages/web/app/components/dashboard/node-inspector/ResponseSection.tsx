@@ -39,17 +39,23 @@ function RawJsonView({ data }: { data: unknown }) {
   return <JsonBlock label={t('llmResponse')} data={data} />;
 }
 
-function ViewToggle({ showRaw, onToggle }: { showRaw: boolean; onToggle: () => void }) {
+const activeTab = 'bg-background text-foreground shadow-sm';
+const inactiveTab = 'text-muted-foreground hover:text-foreground';
+const tabBase = 'inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-medium transition-colors';
+
+function ViewTabs({ showRaw, onChange }: { showRaw: boolean; onChange: (raw: boolean) => void }) {
   const t = useTranslations('dashboard.debug');
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-    >
-      {showRaw ? <LayoutList className="size-3" /> : <Braces className="size-3" />}
-      {showRaw ? t('viewFormatted') : t('viewRaw')}
-    </button>
+    <div className="inline-flex rounded-md border bg-muted/50 p-0.5" onClick={(e) => e.preventDefault()}>
+      <button type="button" onClick={() => onChange(false)} className={`${tabBase} ${showRaw ? inactiveTab : activeTab}`}>
+        <LayoutList className="size-3" />
+        {t('viewFormatted')}
+      </button>
+      <button type="button" onClick={() => onChange(true)} className={`${tabBase} ${showRaw ? activeTab : inactiveTab}`}>
+        <Braces className="size-3" />
+        {t('viewRaw')}
+      </button>
+    </div>
   );
 }
 
@@ -69,7 +75,7 @@ export function ResponseSection({ visit }: { visit: NodeVisitRow }) {
         <span className="inline-flex items-center gap-2">
           {t('llmResponse')}
           {hasMessageFormat && (
-            <ViewToggle showRaw={showRaw} onToggle={() => setShowRaw((v) => !v)} />
+            <ViewTabs showRaw={showRaw} onChange={setShowRaw} />
           )}
         </span>
       </summary>
