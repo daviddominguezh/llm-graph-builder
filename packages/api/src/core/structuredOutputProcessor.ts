@@ -23,6 +23,7 @@ interface StructuredOutputResult {
   nextNodeID: string;
   toolCalls: ToolCallsArray;
   structuredOutput: { nodeId: string; data: unknown };
+  responseMessages?: unknown[];
 }
 
 interface ProcessStructuredOutputParams {
@@ -94,5 +95,6 @@ export async function processStructuredOutputNode(
     nextNodeID,
     toolCalls: [],
     structuredOutput: { nodeId: currentNodeID, data: output },
+    responseMessages: result.response?.messages,
   };
 }

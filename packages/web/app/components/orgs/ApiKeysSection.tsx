@@ -19,13 +19,13 @@ interface ApiKeyItemProps {
 function ApiKeyItem({ apiKey, onDeleteClick }: ApiKeyItemProps) {
   return (
     <div className="flex items-center justify-between rounded-md border px-3 py-2 bg-card">
-      <div className="flex flex-col gap-0.5">
-        <span className="text-sm font-medium">{apiKey.name}</span>
-        <span className="text-muted-foreground font-mono text-xs">{apiKey.key_preview}</span>
+      <span className="text-sm font-medium font-mono mr-6">{apiKey.name}</span>
+      <span className="flex-1 text-xs text-muted-foreground font-mono">{apiKey.key_preview}</span>
+      <div className="flex items-center gap-1">
+        <Button variant="destructive" onClick={() => onDeleteClick(apiKey)}>
+          <Trash2 className="size-3.5" />
+        </Button>
       </div>
-      <Button variant="destructive" onClick={() => onDeleteClick(apiKey)}>
-        <Trash2 className="size-3.5" />
-      </Button>
     </div>
   );
 }

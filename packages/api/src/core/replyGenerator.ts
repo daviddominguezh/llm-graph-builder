@@ -147,5 +147,6 @@ export async function generateReply(params: GenerateReplyParams): Promise<ReplyG
     lastMessage: lastMsg,
     copyMsgs,
     reasoning,
+    responseMessages: msgs,
   };
 }

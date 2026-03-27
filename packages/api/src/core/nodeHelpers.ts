@@ -23,6 +23,7 @@ export interface ProcessNodeResult {
   reasoning?: string;
   toolResults?: Array<{ toolName: string; output: unknown }>;
   errorMessage?: string;
+  responseMessages?: unknown[];
 }
 
 export interface ProcessNodeParams {
@@ -126,6 +127,7 @@ async function processStructuredOutputCallNode(
     error: false,
     toolCalls: result.toolCalls,
     structuredOutput: result.structuredOutput,
+    responseMessages: result.responseMessages,
   };
 }
 

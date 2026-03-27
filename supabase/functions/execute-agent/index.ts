@@ -232,6 +232,7 @@ Deno.serve(async (req: Request) => {
               tokens: event.tokens,
               durationMs: event.durationMs,
               structuredOutput: event.structuredOutput,
+              responseMessages: event.responseMessages,
             });
           },
         });

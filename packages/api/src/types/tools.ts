@@ -19,6 +19,7 @@ export interface NodeProcessedEvent {
   tokens: TokenLog;
   durationMs: number;
   structuredOutput?: { nodeId: string; data: unknown };
+  responseMessages?: unknown[];
 }
 
 export interface Context {

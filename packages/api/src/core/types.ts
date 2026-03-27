@@ -80,6 +80,7 @@ export interface ReplyGenerationResult {
   lastMessage: AssistantModelMessage;
   copyMsgs: ModelMessage[][];
   reasoning?: string;
+  responseMessages: Array<AssistantModelMessage | ToolModelMessage>;
 }
 
 /**

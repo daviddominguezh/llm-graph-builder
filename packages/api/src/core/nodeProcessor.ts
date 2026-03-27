@@ -91,6 +91,7 @@ interface ReplyNodeResult {
   nextNodeID: string;
   toolCalls: ToolCallsArray;
   reasoning?: string;
+  responseMessages?: unknown[];
 }
 
 export async function processReplyNode(params: ProcessReplyNodeParams): Promise<ReplyNodeResult> {
@@ -125,6 +126,7 @@ export async function processReplyNode(params: ProcessReplyNodeParams): Promise<
     nextNodeID: nextNodeID ?? '',
     toolCalls: res.toolCalls,
     reasoning: res.reasoning,
+    responseMessages: res.responseMessages,
   };
 }
 
@@ -184,6 +186,7 @@ interface ToolNodeResult {
   reasoning?: string;
   toolResults?: Array<{ toolName: string; output: unknown }>;
   errorMessage?: string;
+  responseMessages?: unknown[];
 }
 
 function extractReasoningFromResult(agentRes: AgentExecutionResult): string | undefined {
@@ -236,5 +239,6 @@ export async function processToolNode(params: ProcessToolNodeParams): Promise<To
     toolCalls: finalToolCalls,
     reasoning,
     toolResults,
+    responseMessages: agentRes.messages,
   };
 }

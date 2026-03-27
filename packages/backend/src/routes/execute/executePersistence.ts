@@ -143,7 +143,10 @@ function processedFields(processed: NodeProcessedData | undefined): Record<strin
   return fields;
 }
 
-function buildNodeResponse(ctx: NodeResponseContext): Record<string, unknown> {
+function buildNodeResponse(ctx: NodeResponseContext): unknown {
+  if (ctx.processed?.responseMessages !== undefined) {
+    return ctx.processed.responseMessages;
+  }
   const { parsedResult, structuredOutput, processed } = ctx;
   return {
     ...parsedResultFields(parsedResult),

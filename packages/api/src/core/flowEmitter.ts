@@ -20,6 +20,7 @@ interface EmitNodeProcessedParams {
   reasoning?: string;
   toolResults?: Array<{ toolName: string; output: unknown }>;
   error?: string;
+  responseMessages?: unknown[];
 }
 
 function resolveOutput(
@@ -50,7 +51,7 @@ function mergeToolCallsWithResults(
 
 function emitNodeProcessed(params: EmitNodeProcessedParams): void {
   const { context, input, nodeId, parsedResult, toolCalls, durationMs, structuredOutput } = params;
-  const { reasoning, toolResults, error } = params;
+  const { reasoning, toolResults, error, responseMessages } = params;
   if (context.onNodeProcessed === undefined) return;
   const lastLog = input.tokensLog.at(-LAST_INDEX_OFFSET);
   const tokens = lastLog?.tokens ?? createEmptyTokenLog();
@@ -65,6 +66,7 @@ function emitNodeProcessed(params: EmitNodeProcessedParams): void {
     tokens,
     durationMs,
     structuredOutput,
+    responseMessages,
   });
 }
 
@@ -91,6 +93,7 @@ export function emitResultForNode(params: EmitResultParams): void {
     reasoning: result.reasoning,
     toolResults: result.toolResults,
     error: errorOverride,
+    responseMessages: result.responseMessages,
   });
 }
 

@@ -129,6 +129,7 @@ export interface NodeProcessedData {
   toolCalls: ToolCallData[];
   durationMs: number;
   error?: string;
+  responseMessages?: unknown[];
 }
 
 function mapRawToolCalls(raw: unknown): ToolCallData[] {
@@ -219,6 +220,7 @@ function handleNodeProcessed(
     toolCalls: mapRawToolCalls(event.toolCalls),
     durationMs: toNum(event.durationMs),
     error: toOptStr(event.error),
+    responseMessages: Array.isArray(event.responseMessages) ? (event.responseMessages as unknown[]) : undefined,
   });
   processNodeProcessed(event, callbacks);
 }
