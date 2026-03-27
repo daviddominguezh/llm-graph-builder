@@ -262,7 +262,7 @@
     "settingsTitle": "Organization Settings",
     "generalSection": "General",
     "generalDescription": "Update your organization name and profile picture.",
-    "dangerDescription": "Irreversible actions that affect your entire organization.",
+    "dangerDescription": "Once you delete the org, there is no going back. Be certain.",
     "saveName": "Save",
     "profilePicture": "Profile picture",
     "upload": "Upload",
@@ -282,7 +282,7 @@
   },
   "apiKeys": {
     "title": "OpenRouter API Keys",
-    "add": "Add OpenRouter key",
+    "add": "Add",
     "description": "Manage OpenRouter API keys used by your agents to connect to LLM providers.",
     "name": "Name",
     "namePlaceholder": "OPENROUTER_KEY",
@@ -355,8 +355,8 @@
   },
   "envVariables": {
     "title": "Environment Variables",
-    "description": "Manage environment variables used by MCP servers installed from the library.",
-    "add": "Add environment variable",
+    "description": "Manage your environment variables.",
+    "add": "Add",
     "name": "Name",
     "namePlaceholder": "MY_API_TOKEN",
     "nameRequired": "Variable name is required.",
