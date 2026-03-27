@@ -21,7 +21,8 @@ interface ToolResultPart {
   type: 'tool-result';
   toolCallId?: string;
   toolName: string;
-  result: unknown;
+  result?: unknown;
+  output?: unknown;
 }
 
 export type ContentPart = TextPart | ReasoningPart | ToolCallPart | ToolResultPart;

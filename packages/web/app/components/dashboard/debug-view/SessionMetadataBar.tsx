@@ -1,9 +1,10 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
-
 import { TokenDisplay } from '@/app/components/panels/simulation/TokenDisplay';
 import type { SessionRow } from '@/app/lib/dashboard';
+import { Separator } from '@/components/ui/separator';
+import { useTranslations } from 'next-intl';
+import React from 'react';
 
 interface SessionMetadataBarProps {
   session: SessionRow;
@@ -24,8 +25,8 @@ function formatDateTime(dateStr: string): string {
 
 function MetadataItem({ label, value }: MetadataItemProps) {
   return (
-    <div className="flex flex-col">
-      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</span>
+    <div className="flex flex-col items-center">
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</span>
       <span className="truncate text-xs font-mono">{value}</span>
     </div>
   );
@@ -48,25 +49,33 @@ export function SessionMetadataBar({ session, agentName }: SessionMetadataBarPro
   const t = useTranslations('dashboard.debug');
 
   const items: MetadataItemProps[] = [
+    { label: t('tenant'), value: session.tenant_id },
     { label: t('agent'), value: agentName },
     { label: t('version'), value: `v${String(session.version)}` },
-    { label: t('tenant'), value: session.tenant_id },
     { label: t('user'), value: session.user_id },
-    { label: t('session'), value: session.session_id },
     { label: t('channel'), value: session.channel.toUpperCase() },
+    { label: t('session'), value: session.session_id },
   ];
 
   return (
-    <div className="flex flex-wrap items-end justify-around rounded-md border bg-card p-3">
+    <div className="px-4 py-3 flex flex-wrap items-end justify-evenly">
       {items.map((item) => (
-        <MetadataItem key={item.label} label={item.label} value={item.value} />
+        <React.Fragment key={`${item.label}-fragment`}>
+          <MetadataItem key={item.label} label={item.label} value={item.value} />
+          <Separator orientation="vertical" />
+        </React.Fragment>
       ))}
-      <MetadataItem label={t('totalCost')} value={formatCost(session.total_cost)} />
-      <div className="flex flex-col">
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('totalTokens')}</span>
+      <MetadataItem label={t('createdAt')} value={formatDateTime(session.created_at)} />
+
+      <Separator orientation="vertical" />
+      <div className="flex flex-col items-center">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+          {t('totalTokens')}
+        </span>
         <TokenDisplay tokens={sessionToTokens(session)} className="text-foreground text-xs" />
       </div>
-      <MetadataItem label={t('createdAt')} value={formatDateTime(session.created_at)} />
+      <Separator orientation="vertical" />
+      <MetadataItem label={t('totalCost')} value={formatCost(session.total_cost)} />
     </div>
   );
 }

@@ -31,7 +31,7 @@ function contentPartToCard(role: string, part: ContentPart): MessageCard | null 
     return { kind: 'tool-call', toolName: part.toolName, args: part.args };
   }
   if (part.type === 'tool-result') {
-    return { kind: 'tool-result', toolName: part.toolName, result: part.result };
+    return { kind: 'tool-result', toolName: part.toolName, result: part.result ?? part.output };
   }
   return null;
 }
