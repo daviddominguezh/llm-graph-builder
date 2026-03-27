@@ -1,13 +1,12 @@
 'use client';
 
-import { Bot, Brain, Cog, Lock, User, Wrench } from 'lucide-react';
+import { SmallJsonBlock, isJsonObject, tryParseJson } from '@/app/components/panels/JsonDisplay';
+import '@/app/styles/starry-night.css';
+import { Bot, Brackets, Brain, Cog, Lock, User, Wrench } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { MarkdownHooks } from 'react-markdown';
 import rehypeStarryNight from 'rehype-starry-night';
 import remarkGfm from 'remark-gfm';
-import '@/app/styles/starry-night.css';
-
-import { SmallJsonBlock, isJsonObject, tryParseJson } from '@/app/components/panels/JsonDisplay';
 
 import { parseMessages } from './messageParser';
 import type { MessageCard } from './messageTypes';
@@ -44,7 +43,9 @@ function RoleBadge({ kind }: { kind: MessageCard['kind'] }) {
 function MarkdownContent({ text }: { text: string }) {
   return (
     <div className="markdown-content text-xs leading-relaxed">
-      <MarkdownHooks remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeStarryNight]}>{text}</MarkdownHooks>
+      <MarkdownHooks remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeStarryNight]}>
+        {text}
+      </MarkdownHooks>
     </div>
   );
 }
@@ -59,7 +60,12 @@ function ToolJsonContent({ label, data }: { label: string; data: unknown }) {
   return (
     <div className="flex flex-col gap-0.5">
       <span className="text-[9px] uppercase text-muted-foreground">{label}</span>
-      {isJsonObject(data) ? (
+      {data === undefined ? (
+        <span className="flex gap-1.5 items-center text-xs text-muted-foreground p-2 px-3 rounded-md bg-card italic">
+          <Brackets className='size-3' />
+          No args.
+        </span>
+      ) : isJsonObject(data) ? (
         <SmallJsonBlock value={data} />
       ) : (
         <pre className="max-h-28 overflow-auto whitespace-pre-wrap rounded bg-muted p-1.5 font-mono text-[10px]">
