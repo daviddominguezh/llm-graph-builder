@@ -95,7 +95,7 @@ function NavItemExpanded({
 }) {
   return (
     <div
-      className={`group flex flex-col justify-center py-1 rounded-[5px] ${active ? 'bg-primary/15' : 'hover:bg-sidebar-accent'}`}
+      className={`cursor-pointer group flex flex-col justify-center py-1 rounded-[5px] ${active ? 'bg-primary/15' : 'hover:bg-sidebar-accent'}`}
     >
       <Button
         variant="ghost"
