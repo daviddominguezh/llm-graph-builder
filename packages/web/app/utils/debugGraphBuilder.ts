@@ -8,6 +8,18 @@ export interface DebugGraphResult {
   errorNodeIds: Set<string>;
 }
 
+function deriveTraversedEdges(visitedNodeIds: string[]): Set<string> {
+  const edges = new Set<string>();
+  for (let i = 0; i < visitedNodeIds.length - 1; i++) {
+    const from = visitedNodeIds[i];
+    const to = visitedNodeIds[i + 1];
+    if (from !== undefined && to !== undefined) {
+      edges.add(`${from}-${to}`);
+    }
+  }
+  return edges;
+}
+
 interface MutedCollector {
   mutedNodes: SchemaNode[];
   mutedNodeIds: Set<string>;
@@ -64,22 +76,30 @@ function processKeptEdge(edge: SchemaEdge, mutedNodeIds: Set<string>, collector:
   collector.keptEdges.push(edge);
 }
 
+function isNonTraversedVisitedEdge(
+  edge: SchemaEdge,
+  mutedNodeIds: Set<string>,
+  traversedEdges: Set<string>
+): boolean {
+  const bothVisited = !mutedNodeIds.has(edge.from) && !mutedNodeIds.has(edge.to);
+  return bothVisited && !traversedEdges.has(`${edge.from}-${edge.to}`);
+}
+
 function collectKeptEdges(
   allEdges: SchemaEdge[],
   keptNodeIds: Set<string>,
   mutedNodeIds: Set<string>,
-  errorNodeIds: Set<string>
+  errorNodeIds: Set<string>,
+  traversedEdges: Set<string>
 ): KeptEdgesCollector {
   const collector: KeptEdgesCollector = { keptEdges: [], mutedEdgeIds: new Set<string>() };
 
   for (const edge of allEdges) {
     if (errorNodeIds.has(edge.from)) continue;
-    const fromKept = keptNodeIds.has(edge.from);
-    const toKept = keptNodeIds.has(edge.to);
+    if (!keptNodeIds.has(edge.from) || !keptNodeIds.has(edge.to)) continue;
+    if (isNonTraversedVisitedEdge(edge, mutedNodeIds, traversedEdges)) continue;
 
-    if (fromKept && toKept) {
-      processKeptEdge(edge, mutedNodeIds, collector);
-    }
+    processKeptEdge(edge, mutedNodeIds, collector);
   }
 
   return collector;
@@ -99,13 +119,14 @@ export function buildDebugGraph(
   const errors = errorNodeIds ?? new Set<string>();
   const allNodesMap = new Map(allNodes.map((n) => [n.id, n]));
 
+  const traversedEdges = deriveTraversedEdges(visitedNodeIds);
   const visitedNodes = allNodes.filter((n) => visitedSet.has(n.id));
   const { mutedNodes, mutedNodeIds } = collectMutedNeighbors(visitedSet, errors, allEdges, allNodesMap);
 
   const allKeptNodes = [...visitedNodes, ...mutedNodes];
   const keptNodeIds = new Set(allKeptNodes.map((n) => n.id));
 
-  const { keptEdges, mutedEdgeIds } = collectKeptEdges(allEdges, keptNodeIds, mutedNodeIds, errors);
+  const { keptEdges, mutedEdgeIds } = collectKeptEdges(allEdges, keptNodeIds, mutedNodeIds, errors, traversedEdges);
 
   return {
     nodes: allKeptNodes,
