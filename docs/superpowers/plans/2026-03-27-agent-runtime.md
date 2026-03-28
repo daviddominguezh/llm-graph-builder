@@ -886,42 +886,67 @@ const [graphData, apiKey, envVars, appType] = await Promise.all([
 return { graph: ensureGraphData(graphData), apiKey: ensureApiKey(apiKey), envVars, appType };
 ```
 
-- [ ] **Step 2: Add agent config fetching to executeFetcher**
+- [ ] **Step 2: Add agent config fetching from published version snapshot**
 
-The agent config (system_prompt, max_steps, context) is fetched from the `agents` and `agent_context_items` tables at execution time, not from the version snapshot's graph data. Add new query functions and extend `FetchedData` in `executeFetcher.ts`:
+The agent config is read from the published version's `graph_data` JSONB column in `agent_versions`, NOT from the live `agents` / `agent_context_items` tables. This ensures production executions always use the config that was snapshotted at publish time (written by `publish_agent_version_tx` in Plan 2, Task 4). The `graph_data` JSONB has the shape: `{ appType, systemPrompt, maxSteps, contextItems: [{ sortOrder, content }], mcpServers }`.
+
+Add new types and a query function in `executeFetcher.ts`:
 
 ```ts
-interface AgentConfigRow {
-  system_prompt: string | null;
-  max_steps: number | null;
-}
-
-interface AgentContextRow {
-  content: string;
-}
-
 export interface AgentConfig {
   systemPrompt: string;
   context: string;
   maxSteps: number | null;
 }
 
-export async function fetchAgentConfig(supabase: SupabaseClient, agentId: string): Promise<AgentConfig> {
-  const [agentResult, contextResult] = await Promise.all([
-    supabase.from('agents').select('system_prompt, max_steps').eq('id', agentId).single(),
-    supabase.from('agent_context_items').select('content').eq('agent_id', agentId).order('position'),
-  ]);
+interface AgentGraphData {
+  systemPrompt?: string;
+  maxSteps?: number | null;
+  contextItems?: Array<{ sortOrder?: number; content: string }>;
+}
 
-  const agentRow = agentResult.data as AgentConfigRow | null;
-  const contextRows = (contextResult.data ?? []) as AgentContextRow[];
-  const context = contextRows.map((r) => r.content).join('\n\n');
+function isAgentGraphData(val: unknown): val is AgentGraphData {
+  return typeof val === 'object' && val !== null;
+}
+
+function flattenContextItems(items: Array<{ content: string }> | undefined): string {
+  if (items === undefined || items.length === 0) return '';
+  return items.map((item) => item.content).join('\n\n');
+}
+
+export async function fetchAgentConfig(
+  supabase: SupabaseClient,
+  agentId: string,
+  version: number
+): Promise<AgentConfig> {
+  const result = await supabase
+    .from('agent_versions')
+    .select('graph_data')
+    .eq('agent_id', agentId)
+    .eq('version', version)
+    .single();
+
+  const row = result.data as { graph_data?: unknown } | null;
+  const graphData = row?.graph_data;
+
+  if (!isAgentGraphData(graphData)) {
+    return { systemPrompt: '', context: '', maxSteps: null };
+  }
 
   return {
-    systemPrompt: agentRow?.system_prompt ?? '',
-    context,
-    maxSteps: agentRow?.max_steps ?? null,
+    systemPrompt: graphData.systemPrompt ?? '',
+    context: flattenContextItems(graphData.contextItems),
+    maxSteps: graphData.maxSteps ?? null,
   };
 }
+```
+
+Note: `fetchAgentConfig` now takes a `version` parameter. Update the call site in `fetchAllData` accordingly:
+
+```ts
+const agentConfig = graphAndKeys.appType === 'agent'
+  ? await fetchAgentConfig(supabase, agentId, version)
+  : null;
 ```
 
 Update the full `FetchedData` interface to include both `appType` and `agentConfig`:
@@ -945,7 +970,7 @@ In `fetchAllData` (in `executeHandler.ts`), propagate `appType` and conditionall
 
 ```ts
 const agentConfig = graphAndKeys.appType === 'agent'
-  ? await fetchAgentConfig(supabase, agentId)
+  ? await fetchAgentConfig(supabase, agentId, version)
   : null;
 return { ...graphAndKeys, ...sessionData, graph: resolvedGraph, agentConfig };
 ```
@@ -956,7 +981,7 @@ In `executeHandler.ts`, add the agent execution path. Create a new file `package
 
 ```ts
 // packages/backend/src/routes/execute/executeAgentPath.ts
-import type { AgentLoopResult } from '@daviddh/llm-graph-runner';
+import type { AgentLoopResult, AgentStepEvent } from '@daviddh/llm-graph-runner';
 import { executeAgentLoop } from '@daviddh/llm-graph-runner';
 import type { Response } from 'express';
 
@@ -1019,12 +1044,18 @@ async function createAgentMcpSession(fetched: FetchedData): Promise<McpSession> 
 
 /* ─── Core agent execution ─── */
 
+interface AgentRunResult {
+  loopResult: AgentLoopResult;
+  stepEvents: AgentStepEvent[];
+}
+
 async function runAgentLoop(
   ctx: AgentExecContext,
   session: McpSession,
   onStepStarted?: (step: number) => void
-): Promise<AgentLoopResult> {
-  return await executeAgentLoop(
+): Promise<AgentRunResult> {
+  const stepEvents: AgentStepEvent[] = [];
+  const loopResult = await executeAgentLoop(
     {
       systemPrompt: ctx.agentConfig.systemPrompt,
       context: ctx.agentConfig.context,
@@ -1036,20 +1067,25 @@ async function runAgentLoop(
     },
     {
       onStepStarted,
-      onStepProcessed: () => {},
+      onStepProcessed: (event) => {
+        stepEvents.push(event);
+      },
     }
   );
+  return { loopResult, stepEvents };
 }
 
 async function persistAgentResult(
   ctx: AgentExecContext,
   result: AgentLoopResult,
+  stepEvents: AgentStepEvent[],
   durationMs: number
 ): Promise<void> {
   await persistAgentPostExecution(ctx.supabase, {
     executionId: ctx.executionId,
     sessionDbId: ctx.sessionDbId,
     agentResult: result,
+    stepEvents,
     currentNodeId: '',
     structuredOutputs: {},
     durationMs,
@@ -1069,13 +1105,13 @@ export async function handleAgentStreaming(
 
   try {
     session = await createAgentMcpSession(ctx.fetched);
-    const result = await runAgentLoop(ctx, session, (step) => {
+    const { loopResult, stepEvents } = await runAgentLoop(ctx, session, (step) => {
       writePublicSSE(res, { type: 'node_visited', nodeId: `step-${String(step)}` });
     });
     const durationMs = Date.now() - startTime;
-    const response = buildAgentExecResponse(result, durationMs);
+    const response = buildAgentExecResponse(loopResult, durationMs);
     writePublicSSE(res, { type: 'done', response });
-    await persistAgentResult(ctx, result, durationMs);
+    await persistAgentResult(ctx, loopResult, stepEvents, durationMs);
   } finally {
     await closeMcpSession(session);
   }
@@ -1092,10 +1128,10 @@ export async function handleAgentNonStreaming(
 
   try {
     session = await createAgentMcpSession(ctx.fetched);
-    const result = await runAgentLoop(ctx, session);
+    const { loopResult, stepEvents } = await runAgentLoop(ctx, session);
     const durationMs = Date.now() - startTime;
-    res.json(buildAgentExecResponse(result, durationMs));
-    await persistAgentResult(ctx, result, durationMs);
+    res.json(buildAgentExecResponse(loopResult, durationMs));
+    await persistAgentResult(ctx, loopResult, stepEvents, durationMs);
   } finally {
     await closeMcpSession(session);
   }
@@ -1162,7 +1198,7 @@ The agent loop produces step-level data that needs to be persisted into `agent_e
 
 ```ts
 // packages/backend/src/routes/execute/agentExecutionPersistence.ts
-import type { AgentLoopResult } from '@daviddh/llm-graph-runner';
+import type { AgentLoopResult, AgentStepEvent } from '@daviddh/llm-graph-runner';
 import type { ActionTokenUsage } from '@daviddh/llm-graph-runner';
 
 import {
@@ -1181,19 +1217,25 @@ const ZERO = 0;
 interface AgentStepPersistenceParams {
   supabase: SupabaseClient;
   executionId: string;
+  stepEvents: AgentStepEvent[];
   tokensLogs: ActionTokenUsage[];
   model: string;
 }
 
 async function persistAgentSteps(params: AgentStepPersistenceParams): Promise<void> {
-  const { supabase, executionId, tokensLogs, model } = params;
+  const { supabase, executionId, stepEvents, tokensLogs, model } = params;
   const saves = tokensLogs.map(async (log, index) => {
+    const stepEvent = stepEvents[index];
+    const messagesSent = stepEvent !== undefined ? stepEvent.messagesSent : [];
+    const response = stepEvent !== undefined
+      ? { text: stepEvent.responseText, toolCalls: stepEvent.toolCalls }
+      : {};
     await saveNodeVisit(supabase, {
       executionId,
       nodeId: log.action,
       stepOrder: index,
-      messagesSent: [],
-      response: {},
+      messagesSent,
+      response,
       inputTokens: log.tokens.input,
       outputTokens: log.tokens.output,
       cachedTokens: log.tokens.cached,
@@ -1251,6 +1293,7 @@ export interface AgentPostExecutionParams {
   executionId: string;
   sessionDbId: string;
   agentResult: AgentLoopResult;
+  stepEvents: AgentStepEvent[];
   currentNodeId: string;
   structuredOutputs: Record<string, unknown[]>;
   durationMs: number;
@@ -1265,6 +1308,7 @@ export async function persistAgentPostExecution(
     await persistAgentSteps({
       supabase,
       executionId: params.executionId,
+      stepEvents: params.stepEvents,
       tokensLogs: params.agentResult.tokensLogs,
       model: params.model,
     });
