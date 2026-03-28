@@ -33,6 +33,8 @@ export async function createAgent(
     description,
     category,
     isPublic: false,
+    appType: 'workflow',
+    systemPrompt: null,
   });
   if (error !== null || result === null) throw new Error(error ?? 'Failed to create agent');
   return result;

@@ -27,6 +27,8 @@ type InsertAgentFn = (
     description: string;
     category: string;
     isPublic: boolean;
+    appType: string;
+    systemPrompt: string | null;
   }
 ) => Promise<{ result: AgentRow | null; error: string | null }>;
 
@@ -107,6 +109,9 @@ const agentRow: AgentRow = {
   is_public: false,
   category: 'engineering',
   created_from_template_id: null,
+  app_type: 'workflow',
+  system_prompt: null,
+  max_steps: null,
 };
 
 beforeEach(() => {
@@ -174,6 +179,8 @@ describe('createAgent', () => {
       description: 'A test agent',
       category: 'engineering',
       isPublic: false,
+      appType: 'workflow',
+      systemPrompt: null,
     });
     expect(result).toEqual(agentRow);
   });

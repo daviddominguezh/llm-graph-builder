@@ -20,6 +20,9 @@ export interface AgentRow {
   is_public: boolean;
   category: string;
   created_from_template_id: string | null;
+  app_type: string;
+  system_prompt: string | null;
+  max_steps: number | null;
 }
 
 export type AgentMetadata = Pick<
@@ -145,6 +148,8 @@ interface InsertAgentInput {
   description: string;
   category: string;
   isPublic: boolean;
+  appType: string;
+  systemPrompt: string | null;
 }
 
 export async function insertAgent(
@@ -160,6 +165,8 @@ export async function insertAgent(
       description: input.description,
       category: input.category,
       is_public: input.isPublic,
+      app_type: input.appType,
+      system_prompt: input.systemPrompt,
     })
     .select()
     .single();

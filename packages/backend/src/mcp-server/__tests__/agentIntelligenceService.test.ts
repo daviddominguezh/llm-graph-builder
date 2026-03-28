@@ -81,6 +81,9 @@ const AGENT_ROW: AgentRow = {
   is_public: false,
   category: 'engineering',
   created_from_template_id: null,
+  app_type: 'workflow',
+  system_prompt: null,
+  max_steps: null,
 };
 
 const CLEAN_GRAPH: Graph = {
