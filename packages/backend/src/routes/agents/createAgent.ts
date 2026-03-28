@@ -32,6 +32,13 @@ function parseIsPublic(body: unknown): boolean {
   return typeof body === 'object' && body !== null && 'isPublic' in body && body.isPublic === true;
 }
 
+function parseAppType(body: unknown): 'workflow' | 'agent' {
+  if (typeof body === 'object' && body !== null && 'appType' in body && body.appType === 'agent') {
+    return 'agent';
+  }
+  return 'workflow';
+}
+
 function parseTemplateVersion(body: unknown): number | undefined {
   if (typeof body !== 'object' || body === null) return undefined;
   if (!('templateVersion' in body)) return undefined;
@@ -80,6 +87,8 @@ interface CreateAgentInput {
   description: string;
   category: string;
   isPublic: boolean;
+  appType: 'workflow' | 'agent';
+  systemPrompt: string | null;
   templateAgentId: string | undefined;
   templateVersion: number | undefined;
 }
@@ -90,12 +99,15 @@ function parseCreateAgentBody(body: unknown): CreateAgentInput | null {
   const category = parseCategory(body);
   if (orgId === undefined || name === undefined || category === undefined) return null;
 
+  const appType = parseAppType(body);
   return {
     orgId,
     name,
     description: parseStringField(body, 'description') ?? '',
     category,
     isPublic: parseIsPublic(body),
+    appType,
+    systemPrompt: appType === 'agent' ? '' : null,
     templateAgentId: parseStringField(body, 'templateAgentId'),
     templateVersion: parseTemplateVersion(body),
   };
@@ -129,6 +141,8 @@ export async function handleCreateAgent(req: Request, res: AuthenticatedResponse
       description: input.description,
       category: input.category,
       isPublic: input.isPublic,
+      appType: input.appType,
+      systemPrompt: input.systemPrompt,
     });
 
     if (error !== null || result === null) {
