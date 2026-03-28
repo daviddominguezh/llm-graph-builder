@@ -26,7 +26,9 @@ export interface ExecutionMessageRow {
   execution_id: string;
   node_id: string;
   role: string;
-  content: Record<string, unknown>;
+  content: unknown;
+  tool_calls: unknown;
+  tool_call_id: string | null;
   created_at: string;
 }
 ```
@@ -71,7 +73,7 @@ export async function getMessagesForExecution(
 ): Promise<{ rows: ExecutionMessageRow[]; error: string | null }> {
   const { data, error } = await supabase
     .from('agent_execution_messages')
-    .select('id, execution_id, node_id, role, content, created_at')
+    .select('id, execution_id, node_id, role, content, tool_calls, tool_call_id, created_at')
     .eq('execution_id', executionId)
     .order('created_at', { ascending: true });
 
@@ -190,7 +192,9 @@ export interface ExecutionMessageRow {
   execution_id: string;
   node_id: string;
   role: string;
-  content: Record<string, unknown>;
+  content: unknown;
+  tool_calls: unknown;
+  tool_call_id: string | null;
   created_at: string;
 }
 ```
@@ -398,12 +402,51 @@ function buildTurnFromGroup(group: ExecutionMessageRow[], turnIndex: number): Ag
   return { turnIndex, userMessage, assistantMessages, steps: [] };
 }
 
-function assignStepsToTurns(turns: AgentTurn[], steps: AgentStep[]): void {
-  const FIRST_TURN = 0;
+/**
+ * Assign steps to turns based on step_order relative to message ordering.
+ *
+ * Each turn covers a range of step_orders: from after the previous user
+ * message's position to before the next user message. We derive the
+ * boundary for each turn from its messages' created_at timestamps and
+ * compare against step_order (which reflects execution order).
+ *
+ * Algorithm:
+ * 1. Build an array of "turn boundaries" — each turn owns the step_orders
+ *    that fall between the previous turn's last message index and this
+ *    turn's last message index (inclusive).
+ * 2. Since both messages and steps are ordered chronologically, we use
+ *    a single pass with a turn pointer.
+ */
+function buildTurnUpperBounds(turns: AgentTurn[], totalMessages: number): number[] {
+  let messageIndex = 0;
+  return turns.map((turn) => {
+    const turnMessageCount =
+      (turn.userMessage !== null ? 1 : 0) + turn.assistantMessages.length;
+    messageIndex += turnMessageCount;
+    return messageIndex;
+  });
+}
+
+function assignStepsToTurns(
+  turns: AgentTurn[],
+  steps: AgentStep[],
+  totalMessages: number
+): void {
   if (turns.length === 0) return;
 
+  const upperBounds = buildTurnUpperBounds(turns, totalMessages);
+  const FIRST_TURN = 0;
+  let turnIdx = FIRST_TURN;
+
   for (const step of steps) {
-    const target = turns[turns.length - 1] ?? turns[FIRST_TURN];
+    // Advance turn pointer while the step's order exceeds the current turn's upper bound
+    while (
+      turnIdx < turns.length - 1 &&
+      step.stepOrder >= upperBounds[turnIdx]!
+    ) {
+      turnIdx++;
+    }
+    const target = turns[turnIdx];
     if (target !== undefined) {
       target.steps.push(step);
     }
@@ -418,7 +461,7 @@ export function groupTurnsAndSteps(
   const messageGroups = splitByUserMessages(messages);
   const turns = messageGroups.map((g, i) => buildTurnFromGroup(g, i));
 
-  assignStepsToTurns(turns, steps);
+  assignStepsToTurns(turns, steps, messages.length);
 
   return { turns, totalSteps: steps.length };
 }
@@ -524,6 +567,139 @@ git commit -m "feat: add StepCard component for agent debug view"
 
 ---
 
+## Task 5b: ToolCallDisplay Component
+
+**Files:**
+- Create: `packages/web/app/components/dashboard/agent-debug/ToolCallDisplay.tsx`
+
+The spec requires "Tool calls shown inline with their results." This component renders a tool call's name, arguments (formatted JSON), and result within the chat timeline.
+
+- [ ] **Step 1: Create ToolCallDisplay component**
+
+Create `packages/web/app/components/dashboard/agent-debug/ToolCallDisplay.tsx`:
+
+```ts
+'use client';
+
+import type { ExecutionMessageRow } from '@/app/lib/dashboard';
+import { Wrench } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+
+interface ToolCallDisplayProps {
+  message: ExecutionMessageRow;
+  resultMessage: ExecutionMessageRow | null;
+}
+
+interface ToolCallEntry {
+  id: string;
+  name: string;
+  arguments: string;
+}
+
+function parseToolCalls(toolCalls: unknown): ToolCallEntry[] {
+  if (!Array.isArray(toolCalls)) return [];
+  return toolCalls
+    .filter(
+      (tc): tc is Record<string, unknown> =>
+        typeof tc === 'object' && tc !== null
+    )
+    .map((tc) => ({
+      id: typeof tc['id'] === 'string' ? tc['id'] : '',
+      name:
+        typeof tc['function'] === 'object' &&
+        tc['function'] !== null &&
+        typeof (tc['function'] as Record<string, unknown>)['name'] === 'string'
+          ? ((tc['function'] as Record<string, unknown>)['name'] as string)
+          : 'unknown',
+      arguments:
+        typeof tc['function'] === 'object' &&
+        tc['function'] !== null &&
+        typeof (tc['function'] as Record<string, unknown>)['arguments'] === 'string'
+          ? ((tc['function'] as Record<string, unknown>)['arguments'] as string)
+          : '{}',
+    }));
+}
+
+function formatArguments(args: string): string {
+  try {
+    return JSON.stringify(JSON.parse(args), null, 2);
+  } catch {
+    return args;
+  }
+}
+
+function extractResultText(msg: ExecutionMessageRow | null): string | null {
+  if (msg === null) return null;
+  if (typeof msg.content === 'string') return msg.content;
+  if (typeof msg.content === 'object' && msg.content !== null) {
+    const rec = msg.content as Record<string, unknown>;
+    if (typeof rec['text'] === 'string') return rec['text'];
+  }
+  return JSON.stringify(msg.content);
+}
+
+function ToolCallEntryCard({ entry, result }: { entry: ToolCallEntry; result: string | null }) {
+  const t = useTranslations('dashboard.agentDebug');
+
+  return (
+    <div className="rounded-md border bg-muted/30 p-2.5 text-xs">
+      <div className="flex items-center gap-1.5 font-semibold font-mono">
+        <Wrench className="size-3 text-muted-foreground" />
+        {entry.name}
+      </div>
+      <div className="mt-1.5">
+        <span className="text-[10px] uppercase text-muted-foreground font-semibold">
+          {t('toolCallArgs')}
+        </span>
+        <pre className="mt-0.5 whitespace-pre-wrap break-all text-[11px] text-muted-foreground font-mono">
+          {formatArguments(entry.arguments)}
+        </pre>
+      </div>
+      {result !== null && (
+        <div className="mt-1.5">
+          <span className="text-[10px] uppercase text-muted-foreground font-semibold">
+            {t('toolCallResult')}
+          </span>
+          <pre className="mt-0.5 whitespace-pre-wrap break-all text-[11px] text-muted-foreground font-mono">
+            {result}
+          </pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function ToolCallDisplay({ message, resultMessage }: ToolCallDisplayProps) {
+  const entries = parseToolCalls(message.tool_calls);
+  if (entries.length === 0) return null;
+
+  const result = extractResultText(resultMessage);
+
+  return (
+    <div className="ml-8 flex flex-col gap-1.5">
+      {entries.map((entry) => (
+        <ToolCallEntryCard key={entry.id} entry={entry} result={result} />
+      ))}
+    </div>
+  );
+}
+```
+
+- [ ] **Step 2: Verify types compile**
+
+```bash
+npm run typecheck -w packages/web
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add packages/web/app/components/dashboard/agent-debug/ToolCallDisplay.tsx
+git commit -m "feat: add ToolCallDisplay component for inline tool call rendering"
+```
+
+---
+
 ## Task 6: TurnGroup Component
 
 **Files:**
@@ -542,6 +718,7 @@ import { useTranslations } from 'next-intl';
 
 import type { AgentStep, AgentTurn } from './agentDebugTypes';
 import { StepCard } from './StepCard';
+import { ToolCallDisplay } from './ToolCallDisplay';
 
 interface TurnGroupProps {
   turn: AgentTurn;
@@ -550,11 +727,31 @@ interface TurnGroupProps {
 }
 
 function extractMessageText(msg: ExecutionMessageRow): string {
+  if (typeof msg.content === 'string') return msg.content;
   if (typeof msg.content === 'object' && msg.content !== null) {
-    const text: unknown = msg.content['text'];
-    if (typeof text === 'string') return text;
+    const rec = msg.content as Record<string, unknown>;
+    if (typeof rec['text'] === 'string') return rec['text'];
   }
   return JSON.stringify(msg.content);
+}
+
+function hasToolCalls(msg: ExecutionMessageRow): boolean {
+  return Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0;
+}
+
+function findToolResult(
+  messages: ExecutionMessageRow[],
+  afterIndex: number,
+  toolCallId: string | null
+): ExecutionMessageRow | null {
+  if (toolCallId === null) return null;
+  for (let i = afterIndex + 1; i < messages.length; i++) {
+    const m = messages[i];
+    if (m !== undefined && m.role === 'tool' && m.tool_call_id === toolCallId) {
+      return m;
+    }
+  }
+  return null;
 }
 
 function UserMessageBubble({ message }: { message: ExecutionMessageRow }) {
@@ -613,14 +810,46 @@ function TurnHeader({ turnIndex }: { turnIndex: number }) {
   );
 }
 
+function AssistantMessageWithToolCalls({
+  msg,
+  index,
+  allMessages,
+}: {
+  msg: ExecutionMessageRow;
+  index: number;
+  allMessages: ExecutionMessageRow[];
+}) {
+  const firstToolCallId =
+    Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0
+      ? ((msg.tool_calls[0] as Record<string, unknown>)?.['id'] as string | undefined) ?? null
+      : null;
+
+  return (
+    <>
+      <AssistantMessageBubble message={msg} />
+      {hasToolCalls(msg) && (
+        <ToolCallDisplay
+          message={msg}
+          resultMessage={findToolResult(allMessages, index, firstToolCallId)}
+        />
+      )}
+    </>
+  );
+}
+
 export function TurnGroup({ turn, selectedStepOrder, onSelectStep }: TurnGroupProps) {
   return (
     <div className="flex flex-col gap-2.5">
       <TurnHeader turnIndex={turn.turnIndex} />
       {turn.userMessage !== null && <UserMessageBubble message={turn.userMessage} />}
       <TurnSteps turn={turn} selectedStepOrder={selectedStepOrder} onSelectStep={onSelectStep} />
-      {turn.assistantMessages.map((msg) => (
-        <AssistantMessageBubble key={msg.id} message={msg} />
+      {turn.assistantMessages.map((msg, idx) => (
+        <AssistantMessageWithToolCalls
+          key={msg.id}
+          msg={msg}
+          index={idx}
+          allMessages={turn.assistantMessages}
+        />
       ))}
     </div>
   );
@@ -803,6 +1032,68 @@ git commit -m "feat: add StepInspector component for agent debug view"
 
 ---
 
+## Task 8b: Extract ExecutionErrorBanner to Shared File
+
+**Files:**
+- Create: `packages/web/app/components/dashboard/debug-view/ExecutionErrorBanner.tsx`
+- Modify: `packages/web/app/components/dashboard/DebugView.tsx`
+
+The `ExecutionErrorBanner` component currently lives inside `DebugView.tsx`. Extract it to a shared file so both `DebugView` and the new `AgentDebugView` can import it without duplication.
+
+- [ ] **Step 1: Create the shared ExecutionErrorBanner component**
+
+Create `packages/web/app/components/dashboard/debug-view/ExecutionErrorBanner.tsx`:
+
+```ts
+import type { ExecutionSummaryRow } from '@/app/lib/dashboard';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
+
+interface ExecutionErrorBannerProps {
+  execution: ExecutionSummaryRow;
+  label: string;
+}
+
+export function ExecutionErrorBanner({ execution, label }: ExecutionErrorBannerProps) {
+  if (execution.status !== 'failed' || execution.error === null || execution.error === '') {
+    return null;
+  }
+
+  return (
+    <Alert variant="destructive">
+      <AlertCircle />
+      <AlertTitle>{label}</AlertTitle>
+      <AlertDescription>{execution.error}</AlertDescription>
+    </Alert>
+  );
+}
+```
+
+- [ ] **Step 2: Update DebugView.tsx to import from the shared file**
+
+In `packages/web/app/components/dashboard/DebugView.tsx`:
+
+Remove the local `ExecutionErrorBanner` function and the `Alert`, `AlertDescription`, `AlertTitle`, and `AlertCircle` imports that are only used by it. Add the import:
+
+```ts
+import { ExecutionErrorBanner } from './debug-view/ExecutionErrorBanner';
+```
+
+- [ ] **Step 3: Verify types compile**
+
+```bash
+npm run typecheck -w packages/web
+```
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add packages/web/app/components/dashboard/debug-view/ExecutionErrorBanner.tsx packages/web/app/components/dashboard/DebugView.tsx
+git commit -m "refactor: extract ExecutionErrorBanner to shared debug-view file"
+```
+
+---
+
 ## Task 9: AgentDebugView Component
 
 **Files:**
@@ -917,15 +1208,15 @@ Create `packages/web/app/components/dashboard/AgentDebugView.tsx`:
 'use client';
 
 import type { ExecutionMessageRow, ExecutionSummaryRow, NodeVisitRow, SessionRow } from '@/app/lib/dashboard';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { AlertCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { AgentChatTimeline } from './agent-debug/AgentChatTimeline';
 import { StepInspector } from './agent-debug/StepInspector';
 import { useAgentDebugState } from './agent-debug/useAgentDebugState';
 import { DebugBreadcrumb } from './debug-view/DebugBreadcrumb';
+import { ExecutionErrorBanner } from './debug-view/ExecutionErrorBanner';
 import { SessionMetadataBar } from './debug-view/SessionMetadataBar';
 
 interface AgentDebugViewProps {
@@ -939,17 +1230,32 @@ interface AgentDebugViewProps {
   breadcrumbSlug: string;
 }
 
-function ExecutionErrorBanner({ execution, label }: { execution: ExecutionSummaryRow; label: string }) {
-  if (execution.status !== 'failed' || execution.error === null || execution.error === '') {
-    return null;
-  }
+interface ExecutionSelectorProps {
+  executions: ExecutionSummaryRow[];
+  selectedExecutionId: string;
+  onSelectExecution: (executionId: string) => void;
+}
+
+function ExecutionSelector({ executions, selectedExecutionId, onSelectExecution }: ExecutionSelectorProps) {
+  const t = useTranslations('dashboard.debug');
+
+  if (executions.length <= 1) return null;
 
   return (
-    <Alert variant="destructive">
-      <AlertCircle />
-      <AlertTitle>{label}</AlertTitle>
-      <AlertDescription>{execution.error}</AlertDescription>
-    </Alert>
+    <div className="px-4 py-2">
+      <Select value={selectedExecutionId} onValueChange={onSelectExecution}>
+        <SelectTrigger className="w-[220px] h-7 text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {executions.map((exec, idx) => (
+            <SelectItem key={exec.id} value={exec.id} className="text-xs">
+              {t('executionN', { n: idx + 1 })} - {exec.status}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }
 
@@ -989,6 +1295,11 @@ function AgentDebugPanels(props: AgentDebugViewProps) {
     <div className="px-0 pb-3 flex flex-col gap-0 flex-1 min-h-[0px]">
       <SessionMetadataBar session={props.session} agentName={props.agentName} />
       <Separator />
+      <ExecutionSelector
+        executions={props.executions}
+        selectedExecutionId={state.selectedExecutionId}
+        onSelectExecution={state.handleSelectExecution}
+      />
       {state.selectedExecution !== undefined && (
         <div className="px-4">
           <ExecutionErrorBanner execution={state.selectedExecution} label={t('debug.executionError')} />
@@ -1096,8 +1407,6 @@ const [graphRaw, initialNodeVisits, initialMessages] = await Promise.all([
 Replace the existing return statement with:
 
 ```ts
-const graph: Graph = GraphSchema.parse(graphRaw);
-
 if (isAgentApp) {
   return (
     <AgentDebugView
@@ -1112,6 +1421,9 @@ if (isAgentApp) {
     />
   );
 }
+
+// Only parse graph schema for workflow apps — agent-type apps may not conform to the Graph schema
+const graph: Graph = GraphSchema.parse(graphRaw);
 
 return (
   <DebugView
@@ -1161,7 +1473,9 @@ Add the following block inside the `"dashboard"` object, after the existing `"de
   "noMessages": "No messages found for this execution.",
   "chatTimeline": "Chat Timeline",
   "stepInspector": "Step Inspector",
-  "totalSteps": "Total Steps"
+  "totalSteps": "Total Steps",
+  "toolCallArgs": "Arguments",
+  "toolCallResult": "Result"
 }
 ```
 
