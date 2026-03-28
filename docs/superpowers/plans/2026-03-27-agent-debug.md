@@ -585,9 +585,11 @@ import type { ExecutionMessageRow } from '@/app/lib/dashboard';
 import { Wrench } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+import { extractMessageText } from './agentDebugUtils';
+
 interface ToolCallDisplayProps {
   message: ExecutionMessageRow;
-  resultMessage: ExecutionMessageRow | null;
+  resultMessages: ExecutionMessageRow[];
 }
 
 interface ToolCallEntry {
@@ -628,14 +630,13 @@ function formatArguments(args: string): string {
   }
 }
 
-function extractResultText(msg: ExecutionMessageRow | null): string | null {
-  if (msg === null) return null;
-  if (typeof msg.content === 'string') return msg.content;
-  if (typeof msg.content === 'object' && msg.content !== null) {
-    const rec = msg.content as Record<string, unknown>;
-    if (typeof rec['text'] === 'string') return rec['text'];
-  }
-  return JSON.stringify(msg.content);
+function findResultForToolCall(
+  resultMessages: ExecutionMessageRow[],
+  toolCallId: string
+): string | null {
+  const match = resultMessages.find((m) => m.tool_call_id === toolCallId);
+  if (match === undefined) return null;
+  return extractMessageText(match);
 }
 
 function ToolCallEntryCard({ entry, result }: { entry: ToolCallEntry; result: string | null }) {
@@ -669,16 +670,18 @@ function ToolCallEntryCard({ entry, result }: { entry: ToolCallEntry; result: st
   );
 }
 
-export function ToolCallDisplay({ message, resultMessage }: ToolCallDisplayProps) {
+export function ToolCallDisplay({ message, resultMessages }: ToolCallDisplayProps) {
   const entries = parseToolCalls(message.tool_calls);
   if (entries.length === 0) return null;
-
-  const result = extractResultText(resultMessage);
 
   return (
     <div className="ml-8 flex flex-col gap-1.5">
       {entries.map((entry) => (
-        <ToolCallEntryCard key={entry.id} entry={entry} result={result} />
+        <ToolCallEntryCard
+          key={entry.id}
+          entry={entry}
+          result={findResultForToolCall(resultMessages, entry.id)}
+        />
       ))}
     </div>
   );
@@ -700,6 +703,69 @@ git commit -m "feat: add ToolCallDisplay component for inline tool call renderin
 
 ---
 
+## Task 5c: Shared Agent Debug Utilities
+
+**Files:**
+- Create: `packages/web/app/components/dashboard/agent-debug/agentDebugUtils.ts`
+
+Extract `extractMessageText` into a shared utility so both `TurnGroup.tsx` and `ToolCallDisplay.tsx` can import it without duplication.
+
+- [ ] **Step 1: Create the shared utility file**
+
+Create `packages/web/app/components/dashboard/agent-debug/agentDebugUtils.ts`:
+
+```ts
+import type { ExecutionMessageRow } from '@/app/lib/dashboard';
+
+interface ContentBlock {
+  type: string;
+  text?: string;
+}
+
+function isContentBlockArray(val: unknown): val is ContentBlock[] {
+  return (
+    Array.isArray(val) &&
+    val.length > 0 &&
+    typeof val[0] === 'object' &&
+    val[0] !== null &&
+    'type' in val[0]
+  );
+}
+
+export function extractMessageText(msg: ExecutionMessageRow): string {
+  if (typeof msg.content === 'string') return msg.content;
+
+  if (isContentBlockArray(msg.content)) {
+    const textBlock = msg.content.find((block) => block.type === 'text');
+    if (textBlock !== undefined && typeof textBlock.text === 'string') {
+      return textBlock.text;
+    }
+  }
+
+  if (typeof msg.content === 'object' && msg.content !== null) {
+    const rec = msg.content as Record<string, unknown>;
+    if (typeof rec['text'] === 'string') return rec['text'];
+  }
+
+  return JSON.stringify(msg.content);
+}
+```
+
+- [ ] **Step 2: Verify types compile**
+
+```bash
+npm run typecheck -w packages/web
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add packages/web/app/components/dashboard/agent-debug/agentDebugUtils.ts
+git commit -m "feat: add shared extractMessageText utility for agent debug"
+```
+
+---
+
 ## Task 6: TurnGroup Component
 
 **Files:**
@@ -717,6 +783,7 @@ import { Bot, User } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import type { AgentStep, AgentTurn } from './agentDebugTypes';
+import { extractMessageText } from './agentDebugUtils';
 import { StepCard } from './StepCard';
 import { ToolCallDisplay } from './ToolCallDisplay';
 
@@ -726,32 +793,24 @@ interface TurnGroupProps {
   onSelectStep: (step: AgentStep) => void;
 }
 
-function extractMessageText(msg: ExecutionMessageRow): string {
-  if (typeof msg.content === 'string') return msg.content;
-  if (typeof msg.content === 'object' && msg.content !== null) {
-    const rec = msg.content as Record<string, unknown>;
-    if (typeof rec['text'] === 'string') return rec['text'];
-  }
-  return JSON.stringify(msg.content);
-}
-
 function hasToolCalls(msg: ExecutionMessageRow): boolean {
   return Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0;
 }
 
-function findToolResult(
+function findToolResultMessages(
   messages: ExecutionMessageRow[],
-  afterIndex: number,
-  toolCallId: string | null
-): ExecutionMessageRow | null {
-  if (toolCallId === null) return null;
+  afterIndex: number
+): ExecutionMessageRow[] {
+  const results: ExecutionMessageRow[] = [];
   for (let i = afterIndex + 1; i < messages.length; i++) {
     const m = messages[i];
-    if (m !== undefined && m.role === 'tool' && m.tool_call_id === toolCallId) {
-      return m;
+    if (m !== undefined && m.role === 'tool') {
+      results.push(m);
+    } else if (m !== undefined && m.role !== 'tool') {
+      break;
     }
   }
-  return null;
+  return results;
 }
 
 function UserMessageBubble({ message }: { message: ExecutionMessageRow }) {
@@ -819,18 +878,13 @@ function AssistantMessageWithToolCalls({
   index: number;
   allMessages: ExecutionMessageRow[];
 }) {
-  const firstToolCallId =
-    Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0
-      ? ((msg.tool_calls[0] as Record<string, unknown>)?.['id'] as string | undefined) ?? null
-      : null;
-
   return (
     <>
       <AssistantMessageBubble message={msg} />
       {hasToolCalls(msg) && (
         <ToolCallDisplay
           message={msg}
-          resultMessage={findToolResult(allMessages, index, firstToolCallId)}
+          resultMessages={findToolResultMessages(allMessages, index)}
         />
       )}
     </>
@@ -1243,7 +1297,7 @@ function ExecutionSelector({ executions, selectedExecutionId, onSelectExecution 
 
   return (
     <div className="px-4 py-2">
-      <Select value={selectedExecutionId} onValueChange={onSelectExecution}>
+      <Select value={selectedExecutionId} onValueChange={(val) => { if (val !== null) onSelectExecution(val); }}>
         <SelectTrigger className="w-[220px] h-7 text-xs">
           <SelectValue />
         </SelectTrigger>
