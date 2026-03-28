@@ -32,15 +32,16 @@ function AreaGradient({ id, colorVar }: { id: string; colorVar: string }) {
 /* ─── Range selector ─── */
 
 const RANGES: TimeRange[] = ['1d', '7d', '30d'];
-const active = 'bg-background text-foreground shadow-sm';
-const inactive = 'text-muted-foreground hover:text-foreground';
-const btn = 'px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors cursor-pointer';
+const activeTab = 'bg-popover dark:bg-input text-foreground shadow-sm';
+const inactiveTab = 'text-muted-foreground hover:text-foreground border-transparent hover:bg-input dark:hover:bg-card';
+const tabBase =
+  'cursor-pointer inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-medium transition-colors border border-transparent';
 
 function RangeSelector({ value, onChange }: { value: TimeRange; onChange: (r: TimeRange) => void }) {
   return (
-    <div className="inline-flex rounded-md border bg-muted/50 p-0.5 gap-0.5">
+    <div className="inline-flex gap-1 dark:gap-0.5 rounded-sm border bg-muted/50 p-0.5">
       {RANGES.map((r) => (
-        <button key={r} type="button" onClick={() => onChange(r)} className={`${btn} ${r === value ? active : inactive}`}>
+        <button key={r} type="button" onClick={() => onChange(r)} className={`${tabBase} ${r === value ? activeTab : inactiveTab}`}>
           {r}
         </button>
       ))}
