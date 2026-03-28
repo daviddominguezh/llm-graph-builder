@@ -1495,10 +1495,82 @@ git commit -m "feat: hide workflow-specific toolbar buttons for agent type"
 ## Task 9: Frontend Simulation Hook Extended for Agent Type
 
 **Files:**
+- Modify: `packages/web/app/api/simulate/route.ts`
 - Modify: `packages/web/app/hooks/useSimulation.ts`
 - Modify: `packages/web/app/hooks/useSimulationHelpers.ts`
 - Modify: `packages/web/app/lib/api.ts`
 - Modify: `packages/web/app/components/GraphBuilder.tsx`
+
+- [ ] **Step 0: Update the simulate proxy to route agent requests**
+
+The existing Next.js proxy at `packages/web/app/api/simulate/route.ts` always forwards to `${API_URL}/simulate`. We need it to check the request body's `appType` and forward agent requests to `${API_URL}/simulate-agent` instead.
+
+In `packages/web/app/api/simulate/route.ts`, replace the `fetchUpstream` function with a version that picks the upstream URL based on `appType`:
+
+```ts
+function resolveUpstreamUrl(body: Record<string, unknown>): string {
+  if (body.appType === 'agent') {
+    return `${API_URL}/simulate-agent`;
+  }
+  return `${API_URL}/simulate`;
+}
+
+async function fetchUpstream(body: Record<string, unknown>): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, UPSTREAM_TIMEOUT_MS);
+
+  try {
+    const url = resolveUpstreamUrl(body);
+    const upstream = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (!upstream.ok) {
+      return new Response(upstream.body, { status: upstream.status });
+    }
+
+    return buildSseStreamResponse(upstream);
+  } catch (err) {
+    clearTimeout(timeout);
+    if (err instanceof Error && err.name === 'AbortError') {
+      return NextResponse.json({ error: 'Request timed out' }, { status: HTTP_GATEWAY_TIMEOUT });
+    }
+    throw err;
+  }
+}
+```
+
+For agent-type requests, the proxy also needs to flatten `contextItems` to a `context` string and strip fields the agent backend doesn't expect. Update the `POST` handler to add agent-specific body transformation before calling `fetchUpstream`:
+
+```ts
+function flattenContextItems(body: Record<string, unknown>): void {
+  if (body.appType !== 'agent') return;
+  const items = body.contextItems;
+  if (Array.isArray(items)) {
+    body.context = items
+      .map((item: unknown) => {
+        if (typeof item === 'object' && item !== null && 'content' in item) {
+          return (item as { content: string }).content;
+        }
+        return typeof item === 'string' ? item : '';
+      })
+      .join('\n\n');
+  } else {
+    body.context = '';
+  }
+  delete body.contextItems;
+}
+```
+
+Call `flattenContextItems(rest)` after building `rest` in the `POST` handler, before calling `fetchUpstream`.
+
+This way the frontend sends `contextItems` (matching its internal model) and the proxy flattens them into the `context: string` that the backend's `SimulateAgentRequestSchema` expects (see Plan 3, Task 5).
 
 - [ ] **Step 1: Add appType to UseSimulationParams**
 
@@ -1531,13 +1603,10 @@ export interface AgentSimulateRequestBody {
   messages: unknown[];
   apiKeyId: string;
   modelId: string;
-  sessionID: string;
-  tenantID: string;
-  userID: string;
-  data: Record<string, unknown>;
-  quickReplies: Record<string, string>;
 }
 ```
+
+Note: The frontend sends `apiKeyId` (not the resolved key value). The existing `/api/simulate` proxy already resolves the API key value from the `org_api_keys` table via `resolveApiKey` and replaces `apiKeyId` with `apiKey` before forwarding to the backend. This same pattern applies to agent simulation. The proxy also flattens `contextItems` to a `context: string` for the backend (see Step 0 above). Session-specific fields (`sessionID`, `tenantID`, `userID`, `data`, `quickReplies`) are not needed by the agent backend and have been removed.
 
 Add a `streamAgentSimulation` function:
 
@@ -1591,14 +1660,11 @@ export interface BuildAgentSimulateParamsOptions {
   };
   mcpServers: McpServerConfig[];
   allMessages: Message[];
-  preset: ContextPreset;
   apiKeyId: string;
   modelId: string;
 }
 
 export function buildAgentSimulateParams(opts: BuildAgentSimulateParamsOptions): AgentSimulateRequestBody {
-  const fullContext = buildContext(opts.preset, '');
-  const { sessionID, tenantID, userID, data, quickReplies } = fullContext;
   return {
     appType: 'agent',
     systemPrompt: opts.agentConfig.systemPrompt,
@@ -1608,11 +1674,6 @@ export function buildAgentSimulateParams(opts: BuildAgentSimulateParamsOptions):
     messages: opts.allMessages,
     apiKeyId: opts.apiKeyId,
     modelId: opts.modelId,
-    sessionID,
-    tenantID,
-    userID,
-    data,
-    quickReplies,
   };
 }
 ```
@@ -1684,7 +1745,6 @@ function useSimulationSend(deps: SendDepsWithAbort): (text: string) => void {
           agentConfig,
           mcpServers,
           allMessages,
-          preset,
           apiKeyId,
           modelId,
         });
