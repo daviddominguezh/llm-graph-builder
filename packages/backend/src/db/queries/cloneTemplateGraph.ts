@@ -92,39 +92,35 @@ interface McpServerRow {
   variable_values: null;
 }
 
-const PLACEHOLDER_URL = 'https://configure-me.example.com';
-
-function buildLibraryMcpRow(agentId: string, index: number, server: TemplateMcpServer): McpServerRow {
-  return {
-    agent_id: agentId,
-    server_id: `mcp-${String(index)}`,
-    name: server.name,
-    transport_type: 'http',
-    transport_config: { url: PLACEHOLDER_URL },
-    enabled: false,
-    library_item_id: server.type === 'library' ? server.libraryItemId : null,
-    variable_values: null,
-  };
+function buildCustomMcpRow(agentId: string, index: number, server: TemplateMcpServer): McpServerRow {
+  if (server.type === 'custom') {
+    const { url } = server;
+    const config: Record<string, unknown> = url === undefined ? {} : { url };
+    return {
+      agent_id: agentId,
+      server_id: `mcp-${String(index)}`,
+      name: server.name,
+      transport_type: server.transportType,
+      transport_config: config,
+      enabled: false,
+      library_item_id: null,
+      variable_values: null,
+    };
+  }
+  return buildFallbackRow(agentId, index, server.name);
 }
 
-function buildCustomMcpRow(agentId: string, index: number, server: TemplateMcpServer): McpServerRow {
-  const transportType = server.type === 'custom' ? server.transportType : 'http';
-  const needsUrl = transportType === 'http' || transportType === 'sse';
+function buildFallbackRow(agentId: string, index: number, name: string): McpServerRow {
   return {
     agent_id: agentId,
     server_id: `mcp-${String(index)}`,
-    name: server.name,
-    transport_type: transportType,
-    transport_config: needsUrl ? { url: PLACEHOLDER_URL } : {},
+    name,
+    transport_type: 'http',
+    transport_config: { url: '' },
     enabled: false,
     library_item_id: null,
     variable_values: null,
   };
-}
-
-function buildMcpServerRow(agentId: string, index: number, server: TemplateMcpServer): McpServerRow {
-  if (server.type === 'library') return buildLibraryMcpRow(agentId, index, server);
-  return buildCustomMcpRow(agentId, index, server);
 }
 
 /* ------------------------------------------------------------------ */
@@ -215,13 +211,52 @@ async function insertAgents(
   throwOnMutationError(result, 'cloneTemplateGraph:agents');
 }
 
+async function fetchLibraryItem(
+  supabase: SupabaseClient,
+  libraryItemId: string
+): Promise<{ transport_type: string; transport_config: Record<string, unknown> } | null> {
+  const { data, error } = await supabase
+    .from('mcp_library')
+    .select('transport_type, transport_config')
+    .eq('id', libraryItemId)
+    .maybeSingle();
+  if (error !== null || data === null) return null;
+  return data as { transport_type: string; transport_config: Record<string, unknown> };
+}
+
+async function buildLibraryMcpRow(
+  supabase: SupabaseClient,
+  agentId: string,
+  index: number,
+  server: TemplateMcpServer
+): Promise<McpServerRow> {
+  if (server.type !== 'library') return buildFallbackRow(agentId, index, server.name);
+  const lib = await fetchLibraryItem(supabase, server.libraryItemId);
+  if (lib === null) return buildFallbackRow(agentId, index, server.name);
+  return {
+    agent_id: agentId,
+    server_id: `mcp-${String(index)}`,
+    name: server.name,
+    transport_type: lib.transport_type,
+    transport_config: lib.transport_config,
+    enabled: true,
+    library_item_id: server.libraryItemId,
+    variable_values: null,
+  };
+}
+
 async function insertMcpServers(
   supabase: SupabaseClient,
   agentId: string,
   servers: TemplateMcpServer[]
 ): Promise<void> {
   if (servers.length === EMPTY_LENGTH) return;
-  const rows = servers.map((s, i) => buildMcpServerRow(agentId, i, s));
+  const rows = await Promise.all(
+    servers.map(async (s, i) => {
+      if (s.type === 'library') return await buildLibraryMcpRow(supabase, agentId, i, s);
+      return buildCustomMcpRow(agentId, i, s);
+    })
+  );
   const result = await supabase.from('graph_mcp_servers').insert(rows);
   throwOnMutationError(result, 'cloneTemplateGraph:mcpServers');
 }

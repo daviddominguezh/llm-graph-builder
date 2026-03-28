@@ -563,6 +563,15 @@
     "deleteSessionSuccess": "Session deleted",
     "deleteSessionError": "Failed to delete session"
   },
+  "status": {
+    "titleOk": "Status",
+    "titleIssues": "Issues Found",
+    "allPassed": "All checks passed. The graph is ready.",
+    "issuesFound": "Found {count} issue(s) that need attention:",
+    "close": "Close",
+    "mcpDisabled": "\"{name}\" is disabled. Enable it or remove it before publishing.",
+    "mcpNoTools": "\"{name}\" has no discovered tools. Run Discover Tools to connect it."
+  },
   "marketplace": {
     "searchPlaceholder": "Search templates...",
     "blankCanvas": "Blank Canvas",

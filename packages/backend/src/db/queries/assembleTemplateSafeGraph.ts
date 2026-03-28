@@ -139,6 +139,7 @@ function buildCustomSkeleton(server: RawMcpServer): TemplateMcpServer {
     type: 'custom' as const,
     name: server.name,
     transportType: server.transport.type,
+    url: server.transport.url,
     headerKeys: extractHeaderKeys(server.transport),
   };
 }

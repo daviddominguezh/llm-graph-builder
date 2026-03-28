@@ -11,7 +11,7 @@ import { HandleContext } from './nodes/HandleContext';
 import { DeleteConfirmDialog } from './panels/DeleteConfirmDialog';
 import { PublishButton } from './panels/PublishButton';
 import { Toolbar } from './panels/Toolbar';
-import { StatusButton } from './panels/StatusButton';
+import { StatusButton, hasMcpErrors } from './panels/StatusButton';
 import { ConnectionMenu } from './panels/ConnectionMenu';
 import { SearchDialog } from './panels/SearchDialog';
 import { VersionSwitcherSlot } from './panels/VersionSwitcherSlot';
@@ -241,7 +241,11 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     enabled: agentId !== undefined && props.readOnly !== true,
   });
 
-  const canPublish = serializedGraph !== null;
+  const mcpHealthInput = useMemo(
+    () => ({ servers: mcpHook.servers, discoveredTools: mcpHook.discoveredTools }),
+    [mcpHook.servers, mcpHook.discoveredTools]
+  );
+  const canPublish = serializedGraph !== null && !hasMcpErrors(mcpHealthInput);
 
   useInitialViewport(reactFlowWrapper, rf.setViewport, loadResult.graphData);
   useSearchKeyboard(setSearchOpen);
@@ -310,6 +314,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     getGraphData,
     pendingSave,
     canPublish,
+    mcpHealthInput,
     simulation,
     presetsHook,
     mcpHook,
@@ -359,7 +364,7 @@ function LoadedEditor(props: LoadedEditorProps) {
           onFormat={h.handleFormat}
           onPlay={h.simulation.start}
           simulationActive={h.simulation.active}
-          statusSlot={<StatusButton nodes={h.nodes} edges={h.edges} pendingSave={h.pendingSave} />}
+          statusSlot={<StatusButton nodes={h.nodes} edges={h.edges} pendingSave={h.pendingSave} mcpHealth={h.mcpHealthInput} />}
           globalPanelOpen={h.globalPanelOpen}
           onToggleGlobalPanel={() => h.setGlobalPanelOpen((prev) => !prev)}
           onTogglePresets={() => h.setPresetsOpen((prev) => !prev)}

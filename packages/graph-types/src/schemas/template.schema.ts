@@ -28,6 +28,7 @@ export const CustomMcpSkeletonSchema = z.object({
   type: z.literal('custom'),
   name: z.string(),
   transportType: z.string(),
+  url: z.string().optional(),
   headerKeys: z.array(z.string()),
 });
 
