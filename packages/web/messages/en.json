@@ -456,7 +456,13 @@
       "tokenUsage": "Token usage",
       "totalExecutions": "Executions",
       "totalCost": "Total cost",
-      "totalTokens": "Tokens"
+      "totalTokens": "Tokens",
+      "tenant": "Tenant",
+      "executionsOverTime": "Executions",
+      "costOverTime": "Cost",
+      "usersOverTime": "Users",
+      "tenantsOverTime": "Tenants",
+      "successRate": "Success rate"
     },
     "sessions": "Sessions",
     "sessionsFor": "Sessions for {agentName}",
@@ -470,6 +476,7 @@
       "totalCost": "Total Cost",
       "uniqueTenants": "Tenants",
       "uniqueUsers": "Users",
+      "successRate": "Success Rate",
       "uniqueSessions": "Sessions",
       "lastExecution": "Last Execution",
       "status": "Status",
@@ -512,9 +519,9 @@
       "clearAll": "Clear all"
     },
     "pagination": {
-      "pageOf": "Page {page} of {total}",
-      "previous": "Previous",
-      "next": "Next"
+      "showing": "Showing {from}-{to} of {total}",
+      "noItems": "No items",
+      "pageOf": "Page {page} of {total}"
     },
     "debug": {
       "metadata": "Session Metadata",

@@ -8,10 +8,12 @@ import type {
   SessionRow,
   TenantExecutionRow,
   TenantSummaryRow,
+  TimeSeriesPoint,
 } from '@/app/lib/dashboard';
 import {
   deleteSession as deleteSessionLib,
   getAgentSummary as getAgentSummaryLib,
+  getDashboardTimeSeries as getDashboardTimeSeriesLib,
   getExecutionsByTenant as getExecutionsByTenantLib,
   getExecutionsForSession as getExecutionsForSessionLib,
   getNodeVisitsForExecution as getNodeVisitsForExecutionLib,
@@ -100,5 +102,14 @@ export async function fetchExecutionsByTenant(
   serverLog('[fetchExecutionsByTenant] orgId:', orgId, 'tenantId:', tenantId);
   const res = await getExecutionsByTenantLib(orgId, tenantId, params);
   if (res.error !== null) serverError('[fetchExecutionsByTenant] error:', res.error);
+  return res;
+}
+
+export async function fetchDashboardTimeSeries(
+  orgId: string
+): Promise<{ rows: TimeSeriesPoint[]; error: string | null }> {
+  serverLog('[fetchDashboardTimeSeries] orgId:', orgId);
+  const res = await getDashboardTimeSeriesLib(orgId);
+  if (res.error !== null) serverError('[fetchDashboardTimeSeries] error:', res.error);
   return res;
 }

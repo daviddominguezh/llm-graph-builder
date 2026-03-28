@@ -126,7 +126,13 @@ export function buildDebugGraph(
   const allKeptNodes = [...visitedNodes, ...mutedNodes];
   const keptNodeIds = new Set(allKeptNodes.map((n) => n.id));
 
-  const { keptEdges, mutedEdgeIds } = collectKeptEdges(allEdges, keptNodeIds, mutedNodeIds, errors, traversedEdges);
+  const { keptEdges, mutedEdgeIds } = collectKeptEdges(
+    allEdges,
+    keptNodeIds,
+    mutedNodeIds,
+    errors,
+    traversedEdges
+  );
 
   return {
     nodes: allKeptNodes,

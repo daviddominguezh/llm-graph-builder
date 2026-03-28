@@ -264,6 +264,7 @@ export interface TenantSummaryRow {
   [key: string]: unknown;
   tenant_id: string;
   total_executions: number;
+  failed_executions: number;
   total_input_tokens: number;
   total_output_tokens: number;
   total_cost: number;
@@ -357,5 +358,39 @@ export async function deleteSession(sessionId: string): Promise<{ error: string 
     return { error: null };
   } catch (err) {
     return { error: extractError(err) };
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  9. Time Series                                                     */
+/* ------------------------------------------------------------------ */
+
+export interface TimeSeriesPoint {
+  date: string;
+  executions: number;
+  cost: number;
+  users: number;
+  tenants: number;
+}
+
+export async function getDashboardTimeSeries(
+  orgId: string
+): Promise<{ rows: TimeSeriesPoint[]; error: string | null }> {
+  try {
+    const url = `/dashboard/${encodeURIComponent(orgId)}/timeseries`;
+    const data = await fetchFromBackend('GET', url);
+
+    if (typeof data !== 'object' || data === null || !('rows' in data)) {
+      return { rows: [], error: 'Invalid response' };
+    }
+
+    return {
+      rows: Array.isArray((data as Record<string, unknown>).rows)
+        ? ((data as Record<string, unknown>).rows as TimeSeriesPoint[])
+        : [],
+      error: null,
+    };
+  } catch (err) {
+    return { rows: [], error: extractError(err) };
   }
 }

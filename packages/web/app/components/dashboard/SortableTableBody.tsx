@@ -27,7 +27,7 @@ function deduplicateRows<T extends Record<string, unknown>>(rows: T[], key: keyo
 function EmptyRow({ colSpan, message }: { colSpan: number; message: string }) {
   return (
     <TableRow>
-      <TableCell colSpan={colSpan} className="h-24 text-center text-muted-foreground rounded-b-md bg-card">
+      <TableCell colSpan={colSpan} className="h-24 px-5 text-center text-muted-foreground rounded-b-md bg-card">
         {message}
       </TableCell>
     </TableRow>
@@ -63,11 +63,14 @@ export function SortableTableBody<T extends Record<string, unknown>>({
       {uniqueRows.map((row) => (
         <TableRow
           key={String(row[rowKey])}
-          className={onRowClick !== undefined ? 'cursor-pointer' : ''}
+          className={onRowClick !== undefined ? 'cursor-pointer transition-colors hover:bg-muted/50' : ''}
           onClick={onRowClick !== undefined ? () => onRowClick(row) : undefined}
         >
-          {columns.map((col) => (
-            <TableCell key={col.key} className={col.className}>
+          {columns.map((col, i) => (
+            <TableCell
+              key={col.key}
+              className={`px-4 ${i === 0 ? 'pl-5' : ''} ${i === columns.length - 1 ? 'pr-5' : ''} ${col.className ?? ''}`}
+            >
               {getCellValue(row, col)}
             </TableCell>
           ))}

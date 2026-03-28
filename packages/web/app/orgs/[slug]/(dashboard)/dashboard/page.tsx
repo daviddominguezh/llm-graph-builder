@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server';
 
 import { TenantSummaryView } from '@/app/components/dashboard/TenantSummaryView';
 import { Separator } from '@/components/ui/separator';
-import { getTenantSummary } from '@/app/lib/dashboard';
+import { getDashboardTimeSeries, getTenantSummary } from '@/app/lib/dashboard';
 import { getOrgBySlug } from '@/app/lib/orgs';
 
 interface DashboardPageProps {
@@ -22,12 +22,15 @@ export default async function DashboardPage({ params }: DashboardPageProps): Pro
 
   const t = await getTranslations('dashboard');
 
-  const { rows, totalCount } = await getTenantSummary(org.id, {
-    page: 0,
-    pageSize: DEFAULT_PAGE_SIZE,
-    sortKey: 'last_execution_at',
-    sortDirection: 'desc',
-  });
+  const [{ rows, totalCount }, { rows: timeSeriesRows }] = await Promise.all([
+    getTenantSummary(org.id, {
+      page: 0,
+      pageSize: DEFAULT_PAGE_SIZE,
+      sortKey: 'last_execution_at',
+      sortDirection: 'desc',
+    }),
+    getDashboardTimeSeries(org.id),
+  ]);
 
   return (
     <div className="flex h-full flex-col bg-background">
@@ -39,8 +42,14 @@ export default async function DashboardPage({ params }: DashboardPageProps): Pro
 
       <Separator />
 
-      <div className="flex-1 overflow-y-auto px-4 py-3">
-        <TenantSummaryView orgId={org.id} slug={slug} initialRows={rows} initialTotal={totalCount} />
+      <div className="flex-1 overflow-hidden px-4 py-3">
+        <TenantSummaryView
+          orgId={org.id}
+          slug={slug}
+          initialRows={rows}
+          initialTotal={totalCount}
+          initialTimeSeries={timeSeriesRows}
+        />
       </div>
     </div>
   );

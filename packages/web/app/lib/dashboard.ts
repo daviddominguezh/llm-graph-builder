@@ -6,11 +6,13 @@ export type {
   SessionRow,
   TenantExecutionRow,
   TenantSummaryRow,
+  TimeSeriesPoint,
 } from './dashboardQueries';
 
 export {
   deleteSession,
   getAgentSummary,
+  getDashboardTimeSeries,
   getExecutionsByTenant,
   getExecutionsForSession,
   getNodeVisitsForExecution,

@@ -85,6 +85,8 @@ export function ExecutionsView({ orgId, tenantId, slug, initialRows, initialTota
         sortDirection={sortDirection}
         onSort={setSort}
         page={page}
+        pageSize={PAGE_SIZE}
+        totalCount={totalCount}
         totalPages={totalPages}
         onPageChange={setPage}
         loading={isPending}

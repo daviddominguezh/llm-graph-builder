@@ -18,9 +18,10 @@ export type {
   SessionRow,
   TenantExecutionRow,
   TenantSummaryRow,
+  TimeSeriesPoint,
 } from './dashboardTypes.js';
 
-export { getExecutionsByTenant, getTenantSummary } from './tenantDashboardQueries.js';
+export { getDashboardTimeSeries, getExecutionsByTenant, getTenantSummary } from './tenantDashboardQueries.js';
 
 const EMPTY_LENGTH = 0;
 const DEFAULT_NUMERIC = 0;

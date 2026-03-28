@@ -5,7 +5,14 @@ import type { TenantSummaryRow } from '@/app/lib/dashboard';
 import type { Column } from './sortableTableTypes';
 
 function formatCost(row: TenantSummaryRow): string {
-  return '$' + row.total_cost.toFixed(5);
+  if (row.total_cost < 0.01) return '$' + row.total_cost.toFixed(4);
+  return '$' + row.total_cost.toFixed(2);
+}
+
+function formatSuccessRate(row: TenantSummaryRow): string {
+  if (row.total_executions === 0) return '—';
+  const rate = ((row.total_executions - row.failed_executions) / row.total_executions) * 100;
+  return `${rate.toFixed(1)}%`;
 }
 
 export function buildTenantSummaryColumns(
@@ -39,10 +46,10 @@ export function buildTenantSummaryColumns(
       render: formatCost,
     },
     {
-      key: 'unique_users',
-      label: t('columns.uniqueUsers'),
+      key: 'failed_executions',
+      label: t('columns.successRate'),
       sortable: true,
-      render: (row) => row.unique_users.toLocaleString(),
+      render: formatSuccessRate,
     },
   ];
 }

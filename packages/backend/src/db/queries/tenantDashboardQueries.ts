@@ -3,6 +3,7 @@ import type {
   PaginatedResult,
   TenantExecutionRow,
   TenantSummaryRow,
+  TimeSeriesPoint,
 } from './dashboardTypes.js';
 import { paginationRange } from './dashboardTypes.js';
 import type { SupabaseClient } from './operationHelpers.js';
@@ -39,6 +40,7 @@ function mapTenantSummaryRow(r: TenantSummaryRawRow): TenantSummaryRow {
   return {
     tenant_id: r.tenant_id,
     total_executions: toNumber(r.total_executions),
+    failed_executions: toNumber(r.failed_executions),
     total_input_tokens: toNumber(r.total_input_tokens),
     total_output_tokens: toNumber(r.total_output_tokens),
     total_cost: toNumber(r.total_cost),
@@ -213,4 +215,35 @@ export async function getExecutionsByTenant(
   const totalCount = typeof result.count === 'number' ? result.count : DEFAULT_NUMERIC;
 
   return { rows, totalCount, error: null };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Time Series query                                                  */
+/* ------------------------------------------------------------------ */
+
+type TimeSeriesRawRow = Record<string, unknown>;
+
+function mapTimeSeriesRow(r: TimeSeriesRawRow): TimeSeriesPoint {
+  const dateVal: unknown = r.date;
+  return {
+    date: typeof dateVal === 'string' ? dateVal : '',
+    executions: toNumber(r.executions),
+    cost: toNumber(r.cost),
+    users: toNumber(r.users),
+    tenants: toNumber(r.tenants),
+  };
+}
+
+export async function getDashboardTimeSeries(
+  supabase: SupabaseClient,
+  orgId: string
+): Promise<{ rows: TimeSeriesPoint[]; error: string | null }> {
+  const result = await supabase.rpc('dashboard_timeseries', { p_org_id: orgId });
+
+  if (result.error !== null) return { rows: [], error: result.error.message };
+
+  const rawData: unknown = result.data;
+  const rows = Array.isArray(rawData) ? rawData.map((r: TimeSeriesRawRow) => mapTimeSeriesRow(r)) : [];
+
+  return { rows, error: null };
 }

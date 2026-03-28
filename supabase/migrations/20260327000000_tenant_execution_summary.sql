@@ -3,6 +3,7 @@ SELECT
   e.org_id,
   e.tenant_id,
   COUNT(*)::integer AS total_executions,
+  COUNT(*) FILTER (WHERE e.status = 'failed')::integer AS failed_executions,
   SUM(e.total_input_tokens) FILTER (WHERE e.status = 'completed')::integer AS total_input_tokens,
   SUM(e.total_output_tokens) FILTER (WHERE e.status = 'completed')::integer AS total_output_tokens,
   SUM(e.total_cost) FILTER (WHERE e.status = 'completed') AS total_cost,

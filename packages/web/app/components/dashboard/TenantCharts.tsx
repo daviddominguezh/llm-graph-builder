@@ -4,77 +4,15 @@ import { useMemo } from 'react';
 
 import { Activity, Coins, Cpu } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, XAxis, YAxis } from 'recharts';
 
 import type { TenantSummaryRow } from '@/app/lib/dashboard';
-import {
-  type ChartConfig,
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@/components/ui/chart';
 
 import { useCountUp } from './useCountUp';
 
-/* ─── Constants ─── */
-
-const MAX_ITEMS = 8;
-
-const PIE_COLORS = [
-  'var(--chart-1)',
-  'var(--chart-2)',
-  'var(--chart-3)',
-  'var(--chart-4)',
-  'var(--chart-5)',
-];
-
-const EXEC_CONFIG: ChartConfig = {
-  total_executions: { label: 'Executions', color: 'var(--chart-3)' },
-};
-
-const COST_CONFIG: ChartConfig = {
-  value: { label: 'Cost', color: 'var(--chart-2)' },
-};
-
-const TOKEN_CONFIG: ChartConfig = {
-  input: { label: 'Input tokens', color: 'var(--chart-1)' },
-  output: { label: 'Output tokens', color: 'var(--chart-4)' },
-};
-
 /* ─── Data helpers ─── */
-
-interface ChartDatum {
-  name: string;
-  tenant_id: string;
-  total_executions: number;
-  total_cost: number;
-  input: number;
-  output: number;
-}
 
 interface TenantChartsProps {
   rows: TenantSummaryRow[];
-}
-
-function truncateId(id: string): string {
-  const MAX_LEN = 12;
-  return id.length > MAX_LEN ? id.slice(0, MAX_LEN) + '\u2026' : id;
-}
-
-function useChartData(rows: TenantSummaryRow[]): ChartDatum[] {
-  return useMemo(() => {
-    const sorted = [...rows].sort((a, b) => b.total_executions - a.total_executions);
-    return sorted.slice(0, MAX_ITEMS).map((r) => ({
-      name: truncateId(r.tenant_id),
-      tenant_id: r.tenant_id,
-      total_executions: r.total_executions,
-      total_cost: r.total_cost,
-      input: r.total_input_tokens,
-      output: r.total_output_tokens,
-    }));
-  }, [rows]);
 }
 
 function useAggregates(rows: TenantSummaryRow[]) {
@@ -91,13 +29,21 @@ function useAggregates(rows: TenantSummaryRow[]) {
   }, [rows]);
 }
 
+function useSortedRows(rows: TenantSummaryRow[]): TenantSummaryRow[] {
+  return useMemo(
+    () => [...rows].sort((a, b) => b.total_executions - a.total_executions),
+    [rows]
+  );
+}
+
 function formatCompact(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return n.toLocaleString();
+  return String(n);
 }
 
 function formatCostValue(n: number): string {
+  if (n === 0) return '$0';
   if (n < 0.01) return `$${n.toFixed(4)}`;
   return `$${n.toFixed(2)}`;
 }
@@ -132,155 +78,111 @@ function Stat({ icon: Icon, label, value, format, index }: StatProps) {
   );
 }
 
-/* ─── Chart wrapper ─── */
+/* ─── Inline proportion bar ─── */
 
-function ChartCard({ label, children, index }: { label: string; children: React.ReactNode; index: number }) {
-  const delay = `${(index + 3) * 80}ms`;
+const BAR_COLORS = [
+  'bg-[oklch(0.59_0.20_277)]',
+  'bg-[oklch(0.68_0.16_277)]',
+  'bg-[oklch(0.79_0.10_275)]',
+  'bg-[oklch(0.51_0.23_277)]',
+  'bg-[oklch(0.46_0.21_277)]',
+  'bg-[oklch(0.72_0.13_277)]',
+];
+
+function ProportionBar({ ratio, colorIndex }: { ratio: number; colorIndex: number }) {
+  const pct = Math.max(ratio * 100, 2);
+  const color = BAR_COLORS[colorIndex % BAR_COLORS.length] ?? BAR_COLORS[0];
 
   return (
-    <div
-      className="rounded-lg border bg-card p-3 animate-in fade-in slide-in-from-bottom-2 fill-mode-both"
-      style={{ animationDelay: delay, animationDuration: '400ms' }}
-    >
-      <p className="mb-3 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
-      {children}
+    <div className="h-1.5 w-full rounded-full bg-muted/60">
+      <div
+        className={`h-full rounded-full transition-all duration-700 ease-out ${color}`}
+        style={{ width: `${String(pct)}%` }}
+      />
     </div>
   );
 }
 
-/* ─── Individual charts ─── */
+/* ─── Metric cell ─── */
 
-function ExecutionsChart({ data, label, index }: { data: ChartDatum[]; label: string; index: number }) {
+function MetricCell({ value, max, format, colorIndex }: {
+  value: number;
+  max: number;
+  format: (n: number) => string;
+  colorIndex: number;
+}) {
+  const ratio = max > 0 ? value / max : 0;
+
   return (
-    <ChartCard label={label} index={index}>
-      <ChartContainer config={EXEC_CONFIG} className="h-[140px] w-full">
-        <BarChart data={data} margin={{ left: -10, right: 4, top: 4, bottom: 0 }}>
-          <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-border/50" />
-          <XAxis
-            dataKey="name"
-            tick={{ fontSize: 9, fill: 'var(--muted-foreground)' }}
-            tickLine={false}
-            axisLine={false}
-            interval={0}
-            angle={-20}
-            dy={4}
-          />
-          <YAxis
-            tick={{ fontSize: 9, fill: 'var(--muted-foreground)' }}
-            tickLine={false}
-            axisLine={false}
-            width={32}
-            tickFormatter={formatCompact}
-          />
-          <ChartTooltip cursor={{ fill: 'var(--muted)', opacity: 0.3 }} content={<ChartTooltipContent />} />
-          <Bar
-            dataKey="total_executions"
-            fill="var(--color-total_executions)"
-            radius={[4, 4, 0, 0]}
-            maxBarSize={32}
-            animationDuration={800}
-            animationEasing="ease-out"
-          />
-        </BarChart>
-      </ChartContainer>
-    </ChartCard>
+    <div className="flex flex-col gap-1">
+      <span className="text-xs font-medium tabular-nums">{format(value)}</span>
+      <ProportionBar ratio={ratio} colorIndex={colorIndex} />
+    </div>
   );
 }
 
-function CostChart({ data, label, index }: { data: ChartDatum[]; label: string; index: number }) {
-  const pieData = useMemo(
-    () => data.filter((d) => d.total_cost > 0).map((d) => ({ name: d.tenant_id, value: d.total_cost })),
-    [data]
+/* ─── Tenant breakdown ─── */
+
+function TenantBreakdown({ rows }: { rows: TenantSummaryRow[] }) {
+  const t = useTranslations('dashboard.charts');
+  const sorted = useSortedRows(rows);
+
+  const maxExec = useMemo(() => Math.max(...sorted.map((r) => r.total_executions), 1), [sorted]);
+  const maxCost = useMemo(() => Math.max(...sorted.map((r) => r.total_cost), 0.0001), [sorted]);
+  const maxTokens = useMemo(
+    () => Math.max(...sorted.map((r) => r.total_input_tokens + r.total_output_tokens), 1),
+    [sorted]
   );
 
-  if (pieData.length === 0) return null;
-
   return (
-    <ChartCard label={label} index={index}>
-      <ChartContainer config={COST_CONFIG} className="mx-auto h-[140px] w-full">
-        <PieChart>
-          <ChartTooltip content={<ChartTooltipContent nameKey="name" />} />
-          <Pie
-            data={pieData}
-            dataKey="value"
-            nameKey="name"
-            innerRadius="45%"
-            outerRadius="80%"
-            paddingAngle={3}
-            strokeWidth={0}
-            animationDuration={900}
-            animationEasing="ease-out"
-          >
-            {pieData.map((_, i) => (
-              <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-            ))}
-          </Pie>
-        </PieChart>
-      </ChartContainer>
-    </ChartCard>
-  );
-}
-
-function TokenChart({ data, label, index }: { data: ChartDatum[]; label: string; index: number }) {
-  const hasTokens = data.some((d) => d.input > 0 || d.output > 0);
-  if (!hasTokens) return null;
-
-  return (
-    <ChartCard label={label} index={index}>
-      <ChartContainer config={TOKEN_CONFIG} className="h-[140px] w-full">
-        <BarChart data={data} margin={{ left: -10, right: 4, top: 4, bottom: 0 }}>
-          <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-border/50" />
-          <XAxis
-            dataKey="name"
-            tick={{ fontSize: 9, fill: 'var(--muted-foreground)' }}
-            tickLine={false}
-            axisLine={false}
-            interval={0}
-            angle={-20}
-            dy={4}
+    <div
+      className="rounded-lg border bg-card animate-in fade-in slide-in-from-bottom-2 fill-mode-both"
+      style={{ animationDelay: '240ms', animationDuration: '400ms' }}
+    >
+      <div className="grid grid-cols-[1fr_80px_80px_80px] gap-x-3 border-b px-3 py-2">
+        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          {t('tenant')}
+        </span>
+        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          {t('totalExecutions')}
+        </span>
+        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          {t('totalCost')}
+        </span>
+        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          {t('totalTokens')}
+        </span>
+      </div>
+      {sorted.map((row, i) => (
+        <div
+          key={row.tenant_id}
+          className="grid grid-cols-[1fr_80px_80px_80px] items-center gap-x-3 border-b last:border-b-0 px-3 py-2 animate-in fade-in fill-mode-both"
+          style={{ animationDelay: `${280 + i * 60}ms`, animationDuration: '300ms' }}
+        >
+          <span className="truncate text-xs font-medium" title={row.tenant_id}>
+            {row.tenant_id}
+          </span>
+          <MetricCell value={row.total_executions} max={maxExec} format={formatCompact} colorIndex={i} />
+          <MetricCell value={row.total_cost} max={maxCost} format={formatCostValue} colorIndex={i} />
+          <MetricCell
+            value={row.total_input_tokens + row.total_output_tokens}
+            max={maxTokens}
+            format={formatCompact}
+            colorIndex={i}
           />
-          <YAxis
-            tick={{ fontSize: 9, fill: 'var(--muted-foreground)' }}
-            tickLine={false}
-            axisLine={false}
-            width={32}
-            tickFormatter={formatCompact}
-          />
-          <ChartTooltip cursor={{ fill: 'var(--muted)', opacity: 0.3 }} content={<ChartTooltipContent />} />
-          <ChartLegend content={<ChartLegendContent />} />
-          <Bar
-            dataKey="input"
-            fill="var(--color-input)"
-            stackId="t"
-            radius={[0, 0, 0, 0]}
-            maxBarSize={32}
-            animationDuration={800}
-            animationEasing="ease-out"
-          />
-          <Bar
-            dataKey="output"
-            fill="var(--color-output)"
-            stackId="t"
-            radius={[4, 4, 0, 0]}
-            maxBarSize={32}
-            animationDuration={800}
-            animationBegin={200}
-            animationEasing="ease-out"
-          />
-        </BarChart>
-      </ChartContainer>
-    </ChartCard>
+        </div>
+      ))}
+    </div>
   );
 }
 
 /* ─── Public component ─── */
 
 export function TenantCharts({ rows }: TenantChartsProps) {
-  const data = useChartData(rows);
   const agg = useAggregates(rows);
   const t = useTranslations('dashboard.charts');
 
-  if (data.length === 0) return null;
+  if (rows.length === 0) return null;
 
   return (
     <div className="flex flex-col gap-3">
@@ -289,9 +191,7 @@ export function TenantCharts({ rows }: TenantChartsProps) {
         <Stat icon={Coins} label={t('totalCost')} value={agg.cost} format={formatCostValue} index={1} />
         <Stat icon={Cpu} label={t('totalTokens')} value={agg.tokens} format={formatCompact} index={2} />
       </div>
-      <ExecutionsChart data={data} label={t('executionsByTenant')} index={0} />
-      <CostChart data={data} label={t('costDistribution')} index={1} />
-      <TokenChart data={data} label={t('tokenUsage')} index={2} />
+      <TenantBreakdown rows={rows} />
     </div>
   );
 }

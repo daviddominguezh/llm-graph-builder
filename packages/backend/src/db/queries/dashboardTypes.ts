@@ -66,6 +66,7 @@ export interface TenantSummaryRow {
   [key: string]: unknown;
   tenant_id: string;
   total_executions: number;
+  failed_executions: number;
   total_input_tokens: number;
   total_output_tokens: number;
   total_cost: number;
@@ -93,6 +94,14 @@ export interface TenantExecutionRow {
   total_duration_ms: number;
   started_at: string;
   completed_at: string | null;
+}
+
+export interface TimeSeriesPoint {
+  date: string;
+  executions: number;
+  cost: number;
+  users: number;
+  tenants: number;
 }
 
 export interface DashboardParams {

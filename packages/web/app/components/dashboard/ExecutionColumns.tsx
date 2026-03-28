@@ -5,7 +5,8 @@ import { Bug, CircleAlert, CircleCheck, Clock } from 'lucide-react';
 import type { Column } from './sortableTableTypes';
 
 function formatCost(cost: number): string {
-  return `$${cost.toFixed(5)}`;
+  if (cost < 0.01) return `$${cost.toFixed(4)}`;
+  return `$${cost.toFixed(2)}`;
 }
 
 function formatDuration(ms: number): string {
@@ -41,14 +42,14 @@ function StatusIcon({ status, t }: { status: string; t: (key: string) => string 
   if (status === 'running') {
     return (
       <span title={t('columns.statusRunning')}>
-        <Clock className="size-4 text-yellow-500" />
+        <Clock className="size-4 text-amber-500 dark:text-amber-400" />
       </span>
     );
   }
 
   return (
     <span title={t('columns.statusCompleted')}>
-      <CircleCheck className="size-4 text-green-600" />
+      <CircleCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
     </span>
   );
 }

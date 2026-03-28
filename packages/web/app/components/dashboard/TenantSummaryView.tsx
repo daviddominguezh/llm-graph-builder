@@ -5,14 +5,12 @@ import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
-import { fetchTenantSummary } from '@/app/actions/dashboard';
-import type { TenantSummaryRow } from '@/app/lib/dashboard';
+import { fetchDashboardTimeSeries, fetchTenantSummary } from '@/app/actions/dashboard';
+import type { TenantSummaryRow, TimeSeriesPoint } from '@/app/lib/dashboard';
 
-import { FilterBar } from './FilterBar';
+import { DashboardTimeSeries } from './DashboardTimeSeries';
 import { SortableTable } from './SortableTable';
-import { TenantCharts } from './TenantCharts';
 import { buildTenantSummaryColumns } from './TenantSummaryColumns';
-import { buildTenantSummaryFilterDefs } from './tenantSummaryFilters';
 import { useDashboardParams } from './useDashboardParams';
 
 interface TenantSummaryViewProps {
@@ -20,6 +18,7 @@ interface TenantSummaryViewProps {
   slug: string;
   initialRows: TenantSummaryRow[];
   initialTotal: number;
+  initialTimeSeries: TimeSeriesPoint[];
 }
 
 const PAGE_SIZE = 50;
@@ -28,16 +27,24 @@ function computeTotalPages(totalCount: number): number {
   return Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 }
 
-export function TenantSummaryView({ orgId, slug, initialRows, initialTotal }: TenantSummaryViewProps) {
+export function TenantSummaryView({
+  orgId,
+  slug,
+  initialRows,
+  initialTotal,
+  initialTimeSeries,
+}: TenantSummaryViewProps) {
   const t = useTranslations('dashboard');
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  const { params, page, sortKey, sortDirection, filters, setSort, setPage, addFilter, removeFilter, clearFilters } =
+  const { params, page, sortKey, sortDirection, setSort, setPage } =
     useDashboardParams('last_execution_at');
 
   const [rows, setRows] = useState<TenantSummaryRow[]>(initialRows);
   const [totalCount, setTotalCount] = useState(initialTotal);
+  const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesPoint[]>(initialTimeSeries);
+  const tsLoaded = timeSeriesData.length > 0 || initialTimeSeries.length > 0;
 
   useEffect(() => {
     startTransition(async () => {
@@ -47,8 +54,16 @@ export function TenantSummaryView({ orgId, slug, initialRows, initialTotal }: Te
     });
   }, [orgId, params, startTransition]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void fetchDashboardTimeSeries(orgId).then((result) => {
+      if (cancelled) return;
+      if (result.error === null) setTimeSeriesData(result.rows);
+    });
+    return () => { cancelled = true; };
+  }, [orgId]);
+
   const columns = useMemo(() => buildTenantSummaryColumns(slug, t), [slug, t]);
-  const filterDefs = useMemo(() => buildTenantSummaryFilterDefs(t), [t]);
   const totalPages = computeTotalPages(totalCount);
 
   const handleRowClick = useCallback(
@@ -59,18 +74,11 @@ export function TenantSummaryView({ orgId, slug, initialRows, initialTotal }: Te
   );
 
   return (
-    <div className="grid grid-cols-2 gap-6">
-      <div className="min-w-0">
-        <TenantCharts rows={rows} />
+    <div className="grid h-full grid-cols-2 gap-3">
+      <div className="min-w-0 overflow-hidden">
+        <DashboardTimeSeries tenantRows={rows} timeSeriesData={timeSeriesData} loading={!tsLoaded} />
       </div>
-      <div className="min-w-0 flex flex-col gap-4">
-        <FilterBar
-          definitions={filterDefs}
-          active={filters}
-          onAdd={addFilter}
-          onRemove={removeFilter}
-          onClear={clearFilters}
-        />
+      <div className="min-w-0">
         <SortableTable<TenantSummaryRow>
           columns={columns}
           rows={rows}
@@ -79,6 +87,8 @@ export function TenantSummaryView({ orgId, slug, initialRows, initialTotal }: Te
           sortDirection={sortDirection}
           onSort={setSort}
           page={page}
+          pageSize={PAGE_SIZE}
+          totalCount={totalCount}
           totalPages={totalPages}
           onPageChange={setPage}
           onRowClick={handleRowClick}

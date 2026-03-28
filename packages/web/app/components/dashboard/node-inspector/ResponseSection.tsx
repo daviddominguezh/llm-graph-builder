@@ -93,7 +93,7 @@ export function ResponseSection({ visit }: { visit: NodeVisitRow }) {
         {hasMessageFormat && !showRaw ? (
           <ResponseMessageCards data={visit.response} />
         ) : (
-          <div className="p-0 rounded-md bg-background border mt-2">
+          <div className="rounded-md border bg-background">
             <RawJsonView data={visit.response} />
           </div>
         )}
