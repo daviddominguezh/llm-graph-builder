@@ -267,7 +267,7 @@ async function dispatchAgentConfigOps(
 }
 ```
 
-Update the existing `dispatchPresetOps` to call `dispatchAgentConfigOps` instead of throwing at the end. Change the final `throw` in `dispatchPresetOps` to:
+Update the existing `dispatchPresetOps` to call `dispatchAgentConfigOps` instead of throwing at the end. **Important:** all existing cases in `dispatchPresetOps` (including `updateStartNode`) remain unchanged. Only the final `throw new Error(...)` fallback at the bottom of the function is replaced with the `dispatchAgentConfigOps` call, so that any operation type not handled by `dispatchPresetOps` falls through to the agent config dispatcher:
 
 ```ts
 await dispatchAgentConfigOps(supabase, agentId, op);
@@ -431,14 +431,13 @@ async function respondWithAgentConfig(
   supabase: SupabaseClient,
   agentId: string,
   res: AuthenticatedResponse
-): Promise<boolean> {
+): Promise<void> {
   const config = await assembleAgentConfig(supabase, agentId);
   if (config === null) {
     res.status(HTTP_NOT_FOUND).json({ error: 'Agent not found' });
-    return true;
+    return;
   }
   res.status(HTTP_OK).json(config);
-  return true;
 }
 
 async function respondWithGraph(
@@ -1086,7 +1085,7 @@ export function ContextItemsList({ items, onInsert, onUpdate, onDelete }: Contex
       <div className="flex flex-col gap-1.5">
         {items.map((item) => (
           <ContextItemRow
-            key={item.sortOrder}
+            key={`${String(item.sortOrder)}-${item.content.slice(0, 10)}`}
             sortOrder={item.sortOrder}
             content={item.content}
             onContentChange={onUpdate}
@@ -1233,8 +1232,9 @@ git commit -m "feat: AgentEditor component with system prompt, context items, an
 **Files:**
 - Modify: `packages/web/app/components/GraphBuilder.tsx`
 - Create: `packages/web/app/components/AgentEditorWrapper.tsx`
+- Create: `packages/web/app/hooks/useAgentEditorHooks.ts`
 
-**Note:** `GraphBuilder.tsx` is already 547 lines. To avoid making it worse, agent-specific logic will be extracted into a new `AgentEditorWrapper.tsx` file (see Step 5).
+**Note:** `GraphBuilder.tsx` is already 547 lines. To avoid making it worse, agent-specific logic will be extracted into a new `AgentEditorWrapper.tsx` file (see Step 6) and agent-related hooks will live in a dedicated `useAgentEditorHooks.ts` file (see Step 5a).
 
 - [ ] **Step 1: Import AgentEditor and add appType to GraphLoadResult**
 
@@ -1302,6 +1302,65 @@ Or better, set these to `undefined` for agent type and handle in Toolbar (see Ta
 Wrap `SearchDialog`, `SidePanels` (node/edge panels), `DeleteConfirmDialog`, and `ConnectionMenu` in `{h.agentConfig === undefined && (...)}` guards. The `SidePanels` that contain tools/MCP should still render for agents. Only node/edge selection panels should be hidden.
 
 Note: If `SidePanels` is a monolithic component, keep it but agent mode won't select nodes/edges so the panels won't open.
+
+- [ ] **Step 5a: Extract agent-related hooks into useAgentEditorHooks.ts**
+
+Rather than adding agent config state, agent import/export, and simulation params all inline in `useGraphBuilderHooks`, extract them into a dedicated hooks file. Create `packages/web/app/hooks/useAgentEditorHooks.ts`:
+
+```ts
+import type { Operation } from '@daviddh/graph-types';
+import { useCallback, useState } from 'react';
+
+import type { AgentConfigData } from './useGraphLoader';
+
+interface UseAgentEditorHooksParams {
+  initialConfig: AgentConfigData | undefined;
+  pushOperation: (op: Operation) => void;
+}
+
+interface UseAgentEditorHooksReturn {
+  agentConfig: AgentConfigData | undefined;
+  setAgentConfig: (config: AgentConfigData) => void;
+  importCounter: number;
+  getCurrentContextItems: () => Array<{ sortOrder: number; content: string }>;
+}
+
+export function useAgentEditorHooks({
+  initialConfig,
+  pushOperation,
+}: UseAgentEditorHooksParams): UseAgentEditorHooksReturn {
+  const [agentConfig, setAgentConfigInternal] = useState(initialConfig);
+  const [importCounter, setImportCounter] = useState(0);
+
+  const setAgentConfig = useCallback((config: AgentConfigData) => {
+    setAgentConfigInternal(config);
+    setImportCounter((prev) => prev + 1);
+  }, []);
+
+  const getCurrentContextItems = useCallback(
+    () => agentConfig?.contextItems ?? [],
+    [agentConfig]
+  );
+
+  return { agentConfig, setAgentConfig, importCounter, getCurrentContextItems };
+}
+```
+
+This keeps `GraphBuilder.tsx` / `useGraphBuilderHooks` focused on orchestration. The extracted hook encapsulates:
+- **agentConfig state** (`useState` seeded from loadResult)
+- **importCounter** (incremented on import to force AgentEditor remount via `key`)
+- **getCurrentContextItems** (used by `useAgentImport` to clear existing items before importing)
+
+In `useGraphBuilderHooks`, replace the inline agent state with:
+
+```ts
+const agentHooks = useAgentEditorHooks({
+  initialConfig: loadResult.agentConfig,
+  pushOperation: opQueue.pushOperation,
+});
+```
+
+Then reference `agentHooks.agentConfig`, `agentHooks.importCounter`, etc.
 
 - [ ] **Step 5: Update canPublish logic for agents**
 
@@ -1508,7 +1567,16 @@ export async function streamAgentSimulation(
 }
 ```
 
-Note: the `readSseStream` function is already defined in the file but not exported. Either export it or refactor to share.
+**Pre-requisite:** The `readSseStream` function is already defined in `api.ts` but not exported. Before adding `streamAgentSimulation`, add the `export` keyword to the existing function declaration:
+
+```ts
+// Before:
+async function readSseStream(
+// After:
+export async function readSseStream(
+```
+
+This makes `readSseStream` available to `streamAgentSimulation` (same file) and to any future callers.
 
 - [ ] **Step 3: Add buildAgentSimulateParams to useSimulationHelpers.ts**
 
@@ -1767,7 +1835,6 @@ export type AgentConfigExport = z.infer<typeof AgentConfigExportSchema>;
 Create `packages/web/app/hooks/useAgentExport.ts`:
 
 ```ts
-import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 
 import type { McpServerConfig } from '../schemas/graph.schema';
@@ -1781,8 +1848,6 @@ interface UseAgentExportParams {
 }
 
 export function useAgentExport({ agentConfig, mcpServers }: UseAgentExportParams): () => void {
-  const t = useTranslations('agentEditor');
-
   return useCallback(() => {
     if (agentConfig === undefined) return;
 
@@ -1802,7 +1867,7 @@ export function useAgentExport({ agentConfig, mcpServers }: UseAgentExportParams
     a.download = 'agent-config.json';
     a.click();
     URL.revokeObjectURL(url);
-  }, [agentConfig, mcpServers, t]);
+  }, [agentConfig, mcpServers]);
 }
 ```
 
@@ -1917,33 +1982,42 @@ import { useAgentExport } from '../hooks/useAgentExport';
 import { useAgentImport } from '../hooks/useAgentImport';
 ```
 
-In `useGraphBuilderHooks`, conditionally use agent import/export when in agent mode:
+In `useGraphBuilderHooks`, use the `agentHooks` instance from `useAgentEditorHooks` (created in Task 7, Step 5a) to wire up import/export:
 
 ```ts
-const agentConfig = loadResult.agentConfig;
-const [agentConfigState, setAgentConfigState] = useState(agentConfig);
+// agentHooks is already available from Task 7 Step 5a:
+// const agentHooks = useAgentEditorHooks({ initialConfig: loadResult.agentConfig, pushOperation: opQueue.pushOperation });
 
 const agentExport = useAgentExport({
-  agentConfig: agentConfigState,
+  agentConfig: agentHooks.agentConfig,
   mcpServers: mcpHook.servers,
 });
 
-const getCurrentContextItems = useCallback(
-  () => agentConfigState?.contextItems ?? [],
-  [agentConfigState]
-);
-
 const agentImport = useAgentImport({
   pushOperation: opQueue.pushOperation,
-  setAgentConfig: setAgentConfigState,
-  getCurrentContextItems,
+  setAgentConfig: agentHooks.setAgentConfig,
+  getCurrentContextItems: agentHooks.getCurrentContextItems,
 });
 
-const effectiveImport = agentConfig !== undefined ? agentImport : handleImport;
-const effectiveExport = agentConfig !== undefined ? agentExport : handleExport;
+const effectiveImport = agentHooks.agentConfig !== undefined ? agentImport : handleImport;
+const effectiveExport = agentHooks.agentConfig !== undefined ? agentExport : handleExport;
 ```
 
 Pass `effectiveImport` and `effectiveExport` to `<Toolbar>` instead of `handleImport` and `handleExport`.
+
+**State sync on import:** The `AgentEditor` uses `useState` initializers seeded from props, so updating the parent state alone won't refresh the editor's internal state. To force React to remount the editor with the new config after an import, pass a `key` prop tied to `agentHooks.importCounter`:
+
+```tsx
+{h.agentConfig !== undefined && (
+  <AgentEditor
+    key={h.agentHooks.importCounter}
+    config={h.agentConfig}
+    pushOperation={h.pushOperation}
+  />
+)}
+```
+
+Return `agentHooks` (or its individual fields) from `useGraphBuilderHooks` alongside the other values. Each import increments the counter via `setAgentConfig` inside `useAgentEditorHooks`, which changes the `key` and forces React to destroy and recreate the `AgentEditor` component with the freshly imported config as initial state.
 
 - [ ] **Step 5: Verify types compile**
 
