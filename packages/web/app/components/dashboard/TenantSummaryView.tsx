@@ -10,6 +10,7 @@ import type { TenantSummaryRow } from '@/app/lib/dashboard';
 
 import { FilterBar } from './FilterBar';
 import { SortableTable } from './SortableTable';
+import { TenantCharts } from './TenantCharts';
 import { buildTenantSummaryColumns } from './TenantSummaryColumns';
 import { buildTenantSummaryFilterDefs } from './tenantSummaryFilters';
 import { useDashboardParams } from './useDashboardParams';
@@ -58,28 +59,33 @@ export function TenantSummaryView({ orgId, slug, initialRows, initialTotal }: Te
   );
 
   return (
-    <div className="flex flex-col gap-4">
-      <FilterBar
-        definitions={filterDefs}
-        active={filters}
-        onAdd={addFilter}
-        onRemove={removeFilter}
-        onClear={clearFilters}
-      />
-      <SortableTable<TenantSummaryRow>
-        columns={columns}
-        rows={rows}
-        rowKey="tenant_id"
-        sortKey={sortKey}
-        sortDirection={sortDirection}
-        onSort={setSort}
-        page={page}
-        totalPages={totalPages}
-        onPageChange={setPage}
-        onRowClick={handleRowClick}
-        loading={isPending}
-        emptyMessage={t('empty')}
-      />
+    <div className="grid grid-cols-2 gap-6">
+      <div className="min-w-0">
+        <TenantCharts rows={rows} />
+      </div>
+      <div className="min-w-0 flex flex-col gap-4">
+        <FilterBar
+          definitions={filterDefs}
+          active={filters}
+          onAdd={addFilter}
+          onRemove={removeFilter}
+          onClear={clearFilters}
+        />
+        <SortableTable<TenantSummaryRow>
+          columns={columns}
+          rows={rows}
+          rowKey="tenant_id"
+          sortKey={sortKey}
+          sortDirection={sortDirection}
+          onSort={setSort}
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          onRowClick={handleRowClick}
+          loading={isPending}
+          emptyMessage={t('empty')}
+        />
+      </div>
     </div>
   );
 }

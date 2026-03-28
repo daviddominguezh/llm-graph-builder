@@ -450,6 +450,14 @@
   "dashboard": {
     "title": "Dashboard",
     "description": "Overview of execution metrics per agent.",
+    "charts": {
+      "executionsByTenant": "Executions by tenant",
+      "costDistribution": "Cost distribution",
+      "tokenUsage": "Token usage",
+      "totalExecutions": "Executions",
+      "totalCost": "Total cost",
+      "totalTokens": "Tokens"
+    },
     "sessions": "Sessions",
     "sessionsFor": "Sessions for {agentName}",
     "executionsFor": "Executions for {tenantId}",
