@@ -125,7 +125,7 @@ function VisibilityOption({
     <button
       type="button"
       onClick={onClick}
-      className={`flex flex-1 cursor-pointer flex-col gap-1 rounded-lg border p-3 text-left transition-[border-color,box-shadow] duration-150 hover:bg-card/60 ${border}`}
+      className={`flex flex-1 cursor-pointer flex-col gap-1 rounded-lg border p-3 text-left transition-[border-color,box-shadow] duration-150 bg-background hover:bg-card/60 ${border}`}
     >
       <div className="flex items-center gap-1.5">
         {icon}
