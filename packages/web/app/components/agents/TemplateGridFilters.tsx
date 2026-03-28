@@ -15,7 +15,7 @@ function PillButton({ active, onClick, label }: { active: boolean; onClick: () =
   const base = 'shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium cursor-pointer transition-colors';
   const variant = active
     ? 'bg-primary text-primary-foreground'
-    : 'bg-muted text-muted-foreground hover:bg-muted/80';
+    : 'dark:bg-sidebar-accent dark:hover:bg-input bg-card hover:bg-input text-muted-foreground';
 
   return (
     <button type="button" aria-pressed={active} onClick={onClick} className={`${base} ${variant}`}>
