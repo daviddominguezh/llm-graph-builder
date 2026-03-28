@@ -297,6 +297,8 @@ git commit -m "feat: backend dispatch for agent config operations"
 Create `packages/backend/src/db/queries/agentConfigQueries.ts`:
 
 ```ts
+import type { McpServerConfig } from '@daviddh/graph-types';
+
 import { assembleMcpServers } from './graphAssemblers.js';
 import { fetchMcpServers } from './graphFetchers.js';
 import type { SupabaseClient } from './operationHelpers.js';
@@ -317,7 +319,7 @@ export interface AgentConfigResponse {
   systemPrompt: string;
   maxSteps: number | null;
   contextItems: Array<{ sortOrder: number; content: string }>;
-  mcpServers: Array<Record<string, unknown>>;
+  mcpServers: McpServerConfig[];
 }
 
 function isAgentConfigRow(val: unknown): val is AgentConfigRow {
@@ -380,7 +382,7 @@ export async function assembleAgentConfig(
     systemPrompt: agentRow.system_prompt ?? '',
     maxSteps: agentRow.max_steps,
     contextItems: contextItems.map((r) => ({ sortOrder: r.sort_order, content: r.content })),
-    mcpServers: mcpServers as unknown as Array<Record<string, unknown>>,
+    mcpServers,
   };
 }
 ```
@@ -705,7 +707,150 @@ git commit -m "feat: publish_agent_version_tx function, reorder helper, publish 
 
 ---
 
-## Task 5: Frontend AgentEditor Component
+## Task 5: Frontend useGraphLoader Extended for Agent Config Response
+
+**Files:**
+- Modify: `packages/web/app/hooks/useGraphLoader.ts`
+- Modify: `packages/web/app/lib/graphApi.ts`
+
+- [ ] **Step 1: Add AgentConfigData type and extend GraphLoadResult**
+
+In `packages/web/app/hooks/useGraphLoader.ts`, add a new exported interface:
+
+```ts
+export interface AgentConfigData {
+  systemPrompt: string;
+  maxSteps: number | null;
+  contextItems: Array<{ sortOrder: number; content: string }>;
+}
+```
+
+Extend `GraphLoadResult` with an optional `agentConfig` field:
+
+```ts
+export interface GraphLoadResult {
+  nodes: Array<Node<RFNodeData>>;
+  edges: Array<Edge<RFEdgeData>>;
+  agents: Agent[];
+  mcpServers: McpServerConfig[];
+  outputSchemas: OutputSchemaEntity[];
+  graphData: Graph | undefined;
+  agentConfig?: AgentConfigData;
+}
+```
+
+- [ ] **Step 2: Add fetchAgentConfig to graphApi.ts**
+
+In `packages/web/app/lib/graphApi.ts`, import `McpServerConfigSchema` and add a Zod schema and fetch function for agent config:
+
+```ts
+import { McpServerConfigSchema } from '@daviddh/graph-types';
+```
+
+```ts
+const AgentConfigResponseSchema = z.object({
+  appType: z.literal('agent'),
+  systemPrompt: z.string(),
+  maxSteps: z.number().nullable(),
+  contextItems: z.array(z.object({
+    sortOrder: z.number(),
+    content: z.string(),
+  })),
+  mcpServers: z.array(McpServerConfigSchema),
+});
+
+type AgentConfigResponse = z.infer<typeof AgentConfigResponseSchema>;
+
+function isAgentConfigResponse(raw: unknown): boolean {
+  return typeof raw === 'object' && raw !== null && 'appType' in raw;
+}
+
+export type { AgentConfigResponse };
+
+export async function fetchGraphOrAgentConfig(
+  agentId: string
+): Promise<Graph | AgentConfigResponse> {
+  const res = await fetch(agentPath(agentId, '/graph'));
+  await assertOk(res, 'Fetch graph');
+  const raw = await parseJsonResponse(res);
+  if (isAgentConfigResponse(raw)) {
+    return AgentConfigResponseSchema.parse(raw);
+  }
+  return GraphSchema.parse(raw);
+}
+```
+
+- [ ] **Step 3: Update useGraphLoader to handle agent config response**
+
+In `packages/web/app/hooks/useGraphLoader.ts`, update imports to use `fetchGraphOrAgentConfig` instead of `fetchGraph`.
+
+Add a helper to build a load result from agent config:
+
+```ts
+function buildAgentLoadResult(config: AgentConfigResponse): GraphLoadResult {
+  return {
+    nodes: [],
+    edges: [],
+    agents: [],
+    mcpServers: config.mcpServers,
+    outputSchemas: [],
+    graphData: undefined,
+    agentConfig: {
+      systemPrompt: config.systemPrompt,
+      maxSteps: config.maxSteps,
+      contextItems: config.contextItems,
+    },
+  };
+}
+```
+
+No cast is needed because `AgentConfigResponseSchema` already uses `McpServerConfigSchema`, so `config.mcpServers` is `McpServerConfig[]`.
+
+Update `buildLoadResult` to detect the response type:
+
+```ts
+function buildLoadResult(response: Graph | AgentConfigResponse): GraphLoadResult {
+  if ('appType' in response && response.appType === 'agent') {
+    return buildAgentLoadResult(response);
+  }
+  return buildWorkflowLoadResult(response);
+}
+```
+
+Rename the old `buildLoadResult` to `buildWorkflowLoadResult`.
+
+Update `useLoadOnMount` and the `reload` callback to call `fetchGraphOrAgentConfig` instead of `fetchGraph`.
+
+- [ ] **Step 4: Update NEW_AGENT_RESULT and LOADING_RESULT**
+
+Add `agentConfig: undefined` to `NEW_AGENT_RESULT` and `LOADING_RESULT`:
+
+```ts
+const NEW_AGENT_RESULT: GraphLoadResult = {
+  ...existingFields,
+  agentConfig: undefined,
+};
+
+const LOADING_RESULT: GraphLoadResult = {
+  ...existingFields,
+  agentConfig: undefined,
+};
+```
+
+- [ ] **Step 5: Verify types compile**
+
+Run: `npm run typecheck -w packages/web`
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add packages/web/app/hooks/useGraphLoader.ts packages/web/app/lib/graphApi.ts
+git commit -m "feat: useGraphLoader handles both workflow graph and agent config responses"
+```
+
+---
+
+## Task 6: Frontend AgentEditor Component
 
 **Files:**
 - Create: `packages/web/app/components/agent-editor/AgentEditor.tsx`
@@ -1083,10 +1228,13 @@ git commit -m "feat: AgentEditor component with system prompt, context items, an
 
 ---
 
-## Task 6: Frontend GraphBuilder Branching (Workflow vs Agent Rendering)
+## Task 7: Frontend GraphBuilder Branching (Workflow vs Agent Rendering)
 
 **Files:**
 - Modify: `packages/web/app/components/GraphBuilder.tsx`
+- Create: `packages/web/app/components/AgentEditorWrapper.tsx`
+
+**Note:** `GraphBuilder.tsx` is already 547 lines. To avoid making it worse, agent-specific logic will be extracted into a new `AgentEditorWrapper.tsx` file (see Step 5).
 
 - [ ] **Step 1: Import AgentEditor and add appType to GraphLoadResult**
 
@@ -1099,7 +1247,7 @@ import type { AgentConfigData } from '../hooks/useGraphLoader';
 
 - [ ] **Step 2: Add AgentConfigData to LoadedEditor props and conditional render**
 
-The `LoadedEditorProps` already extends `GraphBuilderProps` and receives `loadResult`. The `GraphLoadResult` will be extended in Task 7 to include an optional `agentConfig` field.
+The `LoadedEditorProps` already extends `GraphBuilderProps` and receives `loadResult`. The `GraphLoadResult` was extended in Task 5 to include an optional `agentConfig` field.
 
 In the `LoadedEditor` function, after the existing render, add a conditional before `<GraphCanvas>`:
 
@@ -1155,154 +1303,70 @@ Wrap `SearchDialog`, `SidePanels` (node/edge panels), `DeleteConfirmDialog`, and
 
 Note: If `SidePanels` is a monolithic component, keep it but agent mode won't select nodes/edges so the panels won't open.
 
-- [ ] **Step 5: Verify types compile**
+- [ ] **Step 5: Update canPublish logic for agents**
+
+The current `canPublish` in `useGraphBuilderHooks` is:
+
+```ts
+const canPublish = serializedGraph !== null && !hasMcpErrors(mcpHealthInput);
+```
+
+This breaks for agent-type apps because `serializedGraph` is built from graph nodes/edges which don't exist for agents. For agents, the publish gate should check that `agentConfig` is defined (meaning the agent config loaded successfully) and that MCP servers have no errors.
+
+Replace with:
+
+```ts
+const isAgentMode = loadResult.agentConfig !== undefined;
+const canPublish = isAgentMode
+  ? !hasMcpErrors(mcpHealthInput)
+  : serializedGraph !== null && !hasMcpErrors(mcpHealthInput);
+```
+
+This means:
+- **Agents:** `canPublish = !hasMcpErrors(mcpHealthInput)` (always publishable if MCP servers are healthy, since agent config is always valid once loaded)
+- **Workflows:** `canPublish = serializedGraph !== null && !hasMcpErrors(mcpHealthInput)` (unchanged existing logic)
+
+- [ ] **Step 6: Extract agent-specific wrapper into AgentEditorWrapper.tsx**
+
+`GraphBuilder.tsx` is already 547 lines (close to the 300-line max-lines ESLint limit is aspirational but the file is large). To prevent it from growing further, extract the agent-specific rendering logic into a new file.
+
+Create `packages/web/app/components/AgentEditorWrapper.tsx`:
+
+```tsx
+'use client';
+
+import type { Operation } from '@daviddh/graph-types';
+
+import { AgentEditor } from './agent-editor';
+import type { AgentConfigData } from '../hooks/useGraphLoader';
+
+interface AgentEditorWrapperProps {
+  agentConfig: AgentConfigData;
+  pushOperation: (op: Operation) => void;
+}
+
+export function AgentEditorWrapper({ agentConfig, pushOperation }: AgentEditorWrapperProps) {
+  return <AgentEditor config={agentConfig} pushOperation={pushOperation} />;
+}
+```
+
+In `GraphBuilder.tsx`, update the import:
+
+```ts
+import { AgentEditorWrapper } from './AgentEditorWrapper';
+```
+
+And replace the `<AgentEditor>` usage with `<AgentEditorWrapper>`. This keeps the GraphBuilder file focused on orchestration while agent-specific rendering lives in its own file. As more agent-specific features are added (simulation panel, toolbar adjustments), they can be composed inside `AgentEditorWrapper` rather than adding more branching to `GraphBuilder.tsx`.
+
+- [ ] **Step 7: Verify types compile**
 
 Run: `npm run typecheck -w packages/web`
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add packages/web/app/components/GraphBuilder.tsx
+git add packages/web/app/components/GraphBuilder.tsx packages/web/app/components/AgentEditorWrapper.tsx
 git commit -m "feat: GraphBuilder branches between GraphCanvas (workflow) and AgentEditor (agent)"
-```
-
----
-
-## Task 7: Frontend useGraphLoader Extended for Agent Config Response
-
-**Files:**
-- Modify: `packages/web/app/hooks/useGraphLoader.ts`
-- Modify: `packages/web/app/lib/graphApi.ts`
-
-- [ ] **Step 1: Add AgentConfigData type and extend GraphLoadResult**
-
-In `packages/web/app/hooks/useGraphLoader.ts`, add a new exported interface:
-
-```ts
-export interface AgentConfigData {
-  systemPrompt: string;
-  maxSteps: number | null;
-  contextItems: Array<{ sortOrder: number; content: string }>;
-}
-```
-
-Extend `GraphLoadResult` with an optional `agentConfig` field:
-
-```ts
-export interface GraphLoadResult {
-  nodes: Array<Node<RFNodeData>>;
-  edges: Array<Edge<RFEdgeData>>;
-  agents: Agent[];
-  mcpServers: McpServerConfig[];
-  outputSchemas: OutputSchemaEntity[];
-  graphData: Graph | undefined;
-  agentConfig?: AgentConfigData;
-}
-```
-
-- [ ] **Step 2: Add fetchAgentConfig to graphApi.ts**
-
-In `packages/web/app/lib/graphApi.ts`, add a Zod schema and fetch function for agent config:
-
-```ts
-const AgentConfigResponseSchema = z.object({
-  appType: z.literal('agent'),
-  systemPrompt: z.string(),
-  maxSteps: z.number().nullable(),
-  contextItems: z.array(z.object({
-    sortOrder: z.number(),
-    content: z.string(),
-  })),
-  mcpServers: z.array(z.record(z.string(), z.unknown())),
-});
-
-type AgentConfigResponse = z.infer<typeof AgentConfigResponseSchema>;
-
-function isAgentConfigResponse(raw: unknown): boolean {
-  return typeof raw === 'object' && raw !== null && 'appType' in raw;
-}
-
-export type { AgentConfigResponse };
-
-export async function fetchGraphOrAgentConfig(
-  agentId: string
-): Promise<Graph | AgentConfigResponse> {
-  const res = await fetch(agentPath(agentId, '/graph'));
-  await assertOk(res, 'Fetch graph');
-  const raw = await parseJsonResponse(res);
-  if (isAgentConfigResponse(raw)) {
-    return AgentConfigResponseSchema.parse(raw);
-  }
-  return GraphSchema.parse(raw);
-}
-```
-
-- [ ] **Step 3: Update useGraphLoader to handle agent config response**
-
-In `packages/web/app/hooks/useGraphLoader.ts`, update imports to use `fetchGraphOrAgentConfig` instead of `fetchGraph`.
-
-Add a helper to build a load result from agent config:
-
-```ts
-function buildAgentLoadResult(config: AgentConfigResponse): GraphLoadResult {
-  return {
-    nodes: [],
-    edges: [],
-    agents: [],
-    mcpServers: config.mcpServers as McpServerConfig[],
-    outputSchemas: [],
-    graphData: undefined,
-    agentConfig: {
-      systemPrompt: config.systemPrompt,
-      maxSteps: config.maxSteps,
-      contextItems: config.contextItems,
-    },
-  };
-}
-```
-
-Import `McpServerConfigSchema` from graph-types to safely parse the MCP servers array instead of casting. Or use a Zod parse on each server.
-
-Update `buildLoadResult` to detect the response type:
-
-```ts
-function buildLoadResult(response: Graph | AgentConfigResponse): GraphLoadResult {
-  if ('appType' in response && response.appType === 'agent') {
-    return buildAgentLoadResult(response);
-  }
-  return buildWorkflowLoadResult(response);
-}
-```
-
-Rename the old `buildLoadResult` to `buildWorkflowLoadResult`.
-
-Update `useLoadOnMount` and the `reload` callback to call `fetchGraphOrAgentConfig` instead of `fetchGraph`.
-
-- [ ] **Step 4: Update NEW_AGENT_RESULT and LOADING_RESULT**
-
-Add `agentConfig: undefined` to `NEW_AGENT_RESULT` and `LOADING_RESULT`:
-
-```ts
-const NEW_AGENT_RESULT: GraphLoadResult = {
-  ...existingFields,
-  agentConfig: undefined,
-};
-
-const LOADING_RESULT: GraphLoadResult = {
-  ...existingFields,
-  agentConfig: undefined,
-};
-```
-
-- [ ] **Step 5: Verify types compile**
-
-Run: `npm run typecheck -w packages/web`
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add packages/web/app/hooks/useGraphLoader.ts packages/web/app/lib/graphApi.ts
-git commit -m "feat: useGraphLoader handles both workflow graph and agent config responses"
 ```
 
 ---
@@ -1395,12 +1459,16 @@ agentConfig?: {
 In `packages/web/app/lib/api.ts`, add:
 
 ```ts
+import type { McpServerConfig } from '@daviddh/graph-types';
+```
+
+```ts
 export interface AgentSimulateRequestBody {
   appType: 'agent';
   systemPrompt: string;
   maxSteps: number | null;
   contextItems: Array<{ sortOrder: number; content: string }>;
-  mcpServers: Record<string, unknown>[];
+  mcpServers: McpServerConfig[];
   messages: unknown[];
   apiKeyId: string;
   modelId: string;
@@ -1468,7 +1536,7 @@ export function buildAgentSimulateParams(opts: BuildAgentSimulateParamsOptions):
     systemPrompt: opts.agentConfig.systemPrompt,
     maxSteps: opts.agentConfig.maxSteps,
     contextItems: opts.agentConfig.contextItems,
-    mcpServers: opts.mcpServers as unknown as Record<string, unknown>[],
+    mcpServers: opts.mcpServers,
     messages: opts.allMessages,
     apiKeyId: opts.apiKeyId,
     modelId: opts.modelId,
@@ -1485,11 +1553,152 @@ Import `AgentSimulateRequestBody` from `'../lib/api'`.
 
 - [ ] **Step 4: Branch simulation send by appType**
 
-In `useSimulation.ts`, update `useSimulationSend` to check if `appType === 'agent'` and use `buildAgentSimulateParams` + `streamAgentSimulation` instead of the workflow path.
+**4a. Extend `SendMessageDeps` in `useSimulationHelpers.ts`:**
 
-This requires extending `SendMessageDeps` and `SendDepsWithAbort` with the `appType` and `agentConfig` fields, and branching inside `useSimulationSend`.
+Add optional agent fields to `SendMessageDeps`:
 
-For agents, the start function should not zoom to `START_NODE_ID` (there are no graph nodes). Update `useSimulationStart` to skip zoom when `appType === 'agent'`.
+```ts
+export interface SendMessageDeps {
+  // ...existing fields...
+  appType?: 'workflow' | 'agent';
+  agentConfig?: {
+    systemPrompt: string;
+    maxSteps: number | null;
+    contextItems: Array<{ sortOrder: number; content: string }>;
+  };
+}
+```
+
+**4b. Extend `SendDepsWithAbort` and `UseSimulationParams` in `useSimulation.ts`:**
+
+`SendDepsWithAbort` already extends `SendMessageDeps`, so it inherits the new fields. Update `UseSimulationParams`:
+
+```ts
+interface UseSimulationParams {
+  // ...existing fields...
+  appType?: 'workflow' | 'agent';
+  agentConfig?: {
+    systemPrompt: string;
+    maxSteps: number | null;
+    contextItems: Array<{ sortOrder: number; content: string }>;
+  };
+}
+```
+
+**4c. Update `useSimulationSend` to branch by appType:**
+
+In `useSimulation.ts`, import the new helpers:
+
+```ts
+import { buildAgentSimulateParams, buildStreamCallbacks } from './useSimulationHelpers';
+import { streamAgentSimulation, streamSimulation } from '../lib/api';
+```
+
+Replace the body of the callback inside `useSimulationSend`:
+
+```ts
+function useSimulationSend(deps: SendDepsWithAbort): (text: string) => void {
+  const { preset, loading, messages, agents, apiKeyId, modelId, currentNode } = deps;
+  const { mcpServers, outputSchemas, structuredOutputs, setters, onZoomToNode, onSelectNode } = deps;
+  const { abortAndCreateSignal, appType, agentConfig } = deps;
+
+  return useCallback(
+    (text: string) => {
+      const snapshot = setters.getSnapshot();
+      if (preset === undefined || loading) return;
+      const signal = abortAndCreateSignal();
+      resetBeforeSend(setters, text);
+      const allMessages = [...messages, createUserMessage(text)];
+      const callbacks = buildStreamCallbacks({ setters, onZoomToNode, onSelectNode });
+
+      if (appType === 'agent' && agentConfig !== undefined) {
+        const params = buildAgentSimulateParams({
+          agentConfig,
+          mcpServers,
+          allMessages,
+          preset,
+          apiKeyId,
+          modelId,
+        });
+        void streamAgentSimulation(params, callbacks, signal).catch(() => {
+          setters.setLoading(false);
+        });
+        return;
+      }
+
+      if (snapshot === null) return;
+      const params = buildSimulateParams({
+        snapshot,
+        agents,
+        mcpServers,
+        outputSchemas,
+        allMessages,
+        currentNode,
+        preset,
+        apiKeyId,
+        modelId,
+        structuredOutputs,
+      });
+      void streamSimulation(params, callbacks, signal).catch(() => {
+        setters.setLoading(false);
+      });
+    },
+    [
+      preset, loading, messages, agents, apiKeyId, modelId, currentNode,
+      mcpServers, outputSchemas, structuredOutputs, setters, onZoomToNode,
+      onSelectNode, abortAndCreateSignal, appType, agentConfig,
+    ]
+  );
+}
+```
+
+**4d. Update `useSimulationStart` to skip zoom for agents:**
+
+```ts
+function useSimulationStart(deps: SimulationStartDeps & { appType?: string }): () => void {
+  const { setters, allNodes, edges, onZoomToNode, appType } = deps;
+
+  return useCallback(() => {
+    setters.saveSnapshot({ nodes: [...allNodes], edges: [...edges] });
+    setters.setActive(true);
+    setters.setCurrentNode(START_NODE_ID);
+    setters.setMessages([]);
+    setters.setNodeResults([]);
+    setters.setLastUserText('');
+    setters.setVisitedNodes([]);
+    setters.setTotalTokens(EMPTY_TOKENS);
+    setters.setStructuredOutputs({});
+    if (appType !== 'agent') {
+      onZoomToNode(START_NODE_ID);
+    }
+  }, [setters, allNodes, edges, onZoomToNode, appType]);
+}
+```
+
+**4e. Update `buildSendDeps` to pass through appType and agentConfig:**
+
+```ts
+function buildSendDeps(
+  params: UseSimulationParams,
+  s: SimulationHookState,
+  abortAndCreateSignal: () => AbortSignal
+): SendDepsWithAbort {
+  return {
+    // ...existing fields...
+    appType: params.appType,
+    agentConfig: params.agentConfig,
+    abortAndCreateSignal,
+  };
+}
+```
+
+**4f. Update `useSimulation` to pass appType to start:**
+
+```ts
+const start = useSimulationStart({
+  setters: s.setters, allNodes, edges, onZoomToNode, appType: params.appType,
+});
+```
 
 - [ ] **Step 5: Pass appType and agentConfig from GraphBuilder**
 
@@ -1613,9 +1822,24 @@ const FIRST_FILE_INDEX = 0;
 
 type PushOperation = (op: Operation) => void;
 
+interface ContextItem {
+  sortOrder: number;
+  content: string;
+}
+
 interface UseAgentImportParams {
   pushOperation: PushOperation;
   setAgentConfig: (config: AgentConfigData) => void;
+  getCurrentContextItems: () => ContextItem[];
+}
+
+function clearExistingContextItems(
+  existingItems: ContextItem[],
+  pushOperation: PushOperation
+): void {
+  for (const item of existingItems) {
+    pushOperation({ type: 'deleteContextItem', data: { sortOrder: item.sortOrder } });
+  }
 }
 
 function applyImportedConfig(
@@ -1632,6 +1856,10 @@ function applyImportedConfig(
     maxSteps: data.maxSteps,
     contextItems,
   };
+
+  // Clear existing context items before inserting imported ones
+  const existingItems = params.getCurrentContextItems();
+  clearExistingContextItems(existingItems, params.pushOperation);
 
   params.setAgentConfig(config);
   params.pushOperation({
@@ -1658,7 +1886,7 @@ function parseAndApply(text: string, params: UseAgentImportParams): void {
 }
 
 export function useAgentImport(params: UseAgentImportParams): () => void {
-  const { pushOperation, setAgentConfig } = params;
+  const { pushOperation, setAgentConfig, getCurrentContextItems } = params;
 
   return useCallback(() => {
     const input = document.createElement('input');
@@ -1669,14 +1897,14 @@ export function useAgentImport(params: UseAgentImportParams): () => void {
       if (file === undefined) return;
       void file.text().then((text) => {
         try {
-          parseAndApply(text, { pushOperation, setAgentConfig });
+          parseAndApply(text, { pushOperation, setAgentConfig, getCurrentContextItems });
         } catch {
           toast.error('Failed to parse JSON file');
         }
       });
     };
     input.click();
-  }, [pushOperation, setAgentConfig]);
+  }, [pushOperation, setAgentConfig, getCurrentContextItems]);
 }
 ```
 
@@ -1700,9 +1928,15 @@ const agentExport = useAgentExport({
   mcpServers: mcpHook.servers,
 });
 
+const getCurrentContextItems = useCallback(
+  () => agentConfigState?.contextItems ?? [],
+  [agentConfigState]
+);
+
 const agentImport = useAgentImport({
   pushOperation: opQueue.pushOperation,
   setAgentConfig: setAgentConfigState,
+  getCurrentContextItems,
 });
 
 const effectiveImport = agentConfig !== undefined ? agentImport : handleImport;
