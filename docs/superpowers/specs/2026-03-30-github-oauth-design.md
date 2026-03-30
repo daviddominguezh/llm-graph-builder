@@ -48,14 +48,14 @@ Every incoming webhook is verified against `GITHUB_APP_WEBHOOK_SECRET` using the
 
 ### Events handled
 
-| Event | Action |
-|---|---|
-| `installation.created` | Upsert installation record. Sync repo list. |
-| `installation.deleted` | Mark installation as revoked. Clean up agent configs. |
-| `installation.suspend` | Mark installation as suspended. |
-| `installation.unsuspend` | Mark installation as active. |
-| `installation_repositories.added` | Add repos to installation record. |
-| `installation_repositories.removed` | Remove repos from installation record. Clean up agent configs referencing removed repos. |
+| Event | Action field | Handler |
+|---|---|---|
+| `installation` | `created` | Upsert installation record. Sync repo list. |
+| `installation` | `deleted` | Mark installation as revoked. Delete `agent_vfs_configs` rows for this installation via application code. |
+| `installation` | `suspend` | Mark installation as suspended. |
+| `installation` | `unsuspend` | Mark installation as active. |
+| `installation_repositories` | `added` | Add repos to `github_installation_repos`. |
+| `installation_repositories` | `removed` | Remove repos from `github_installation_repos`. Delete `agent_vfs_configs` rows referencing removed repos via application code (`DELETE FROM agent_vfs_configs WHERE installation_id = $1 AND repo_id = ANY($2)`). |
 
 ### Why both callback + webhook
 
@@ -72,8 +72,8 @@ CREATE TABLE github_installations (
   org_id        UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   installation_id  BIGINT NOT NULL UNIQUE,  -- GitHub's installation ID
   account_name     TEXT NOT NULL,            -- GitHub org/user name
-  account_type     TEXT NOT NULL,            -- 'Organization' or 'User'
-  status           TEXT NOT NULL DEFAULT 'active',  -- 'active', 'suspended', 'revoked'
+  account_type     TEXT NOT NULL CHECK (account_type IN ('Organization', 'User')),
+  status           TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'suspended', 'revoked')),
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
