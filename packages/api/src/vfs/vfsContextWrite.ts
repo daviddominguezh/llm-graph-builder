@@ -1,15 +1,16 @@
 // vfsContextWrite.ts — write-path operations for VFSContext
 import type { DirtySetClient } from './dirtySet.js';
-import type { MemoryLayer } from './memoryLayer.js';
 import type { StorageLayer } from './storageLayer.js';
 import type { TreeIndex } from './treeIndex.js';
 import type { CreateFileResult, DeleteFileResult, Edit, EditFileResult, RenameFileResult } from './types.js';
 import { VFSError, VFSErrorCode } from './types.js';
 import { applyEdits, countContentLines } from './vfsContextHelpers.js';
+import type { ReadDeps } from './vfsContextRead.js';
 import { resolveFileContent } from './vfsContextRead.js';
-import type { WriteDeps } from './vfsContextWriteTypes.js';
 
-export type { WriteDeps };
+const FULL_CONTENT_COUNT = 1;
+
+export type WriteDeps = ReadDeps;
 
 // ─── Persist tree + mark dirty ───────────────────────────────────────────────
 
@@ -37,7 +38,7 @@ export async function createFileOp(deps: WriteDeps, path: string, content: strin
   deps.memoryLayer.set(path, content, timestamp);
   await deps.storageLayer.upload(path, content);
   await deps.dirtySet.markDirty(path, timestamp);
-  const sizeBytes = new TextEncoder().encode(content).length;
+  const { length: sizeBytes } = new TextEncoder().encode(content);
   deps.treeIndex.addFile(path, sizeBytes);
   await persistTree(deps.storageLayer, deps.dirtySet, deps.treeIndex, timestamp);
   return { path, linesWritten: countContentLines(content) };
@@ -68,6 +69,16 @@ function resolveNewContent(current: string, edits: Edit[] | undefined, fullConte
   return current;
 }
 
+async function writeEditedContent(deps: WriteDeps, path: string, newContent: string): Promise<void> {
+  const timestamp = Date.now();
+  deps.memoryLayer.set(path, newContent, timestamp);
+  await deps.storageLayer.upload(path, newContent);
+  await deps.dirtySet.markDirty(path, timestamp);
+  const { length: sizeBytes } = new TextEncoder().encode(newContent);
+  deps.treeIndex.updateFileSize(path, sizeBytes);
+  await persistTree(deps.storageLayer, deps.dirtySet, deps.treeIndex, timestamp);
+}
+
 export async function editFileOp(
   deps: WriteDeps,
   path: string,
@@ -78,14 +89,8 @@ export async function editFileOp(
   validateEditParams(edits, fullContent);
   const current = await resolveFileContent(deps, path);
   const newContent = resolveNewContent(current, edits, fullContent);
-  const timestamp = Date.now();
-  deps.memoryLayer.set(path, newContent, timestamp);
-  await deps.storageLayer.upload(path, newContent);
-  await deps.dirtySet.markDirty(path, timestamp);
-  const sizeBytes = new TextEncoder().encode(newContent).length;
-  deps.treeIndex.updateFileSize(path, sizeBytes);
-  await persistTree(deps.storageLayer, deps.dirtySet, deps.treeIndex, timestamp);
-  const editsApplied = edits !== undefined ? edits.length : 1;
+  await writeEditedContent(deps, path, newContent);
+  const editsApplied = edits !== undefined ? edits.length : FULL_CONTENT_COUNT;
   return { path, editsApplied, newLineCount: countContentLines(newContent) };
 }
 

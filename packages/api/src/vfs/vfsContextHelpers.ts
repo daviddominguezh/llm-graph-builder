@@ -8,12 +8,13 @@ const CONTEXT_LINES = 2;
 const FIRST_LINE = 1;
 const ZERO = 0;
 const TOKEN_CHARS_PER_TOKEN = 4;
+const PREVIEW_LENGTH = 40;
 
 // ─── Binary Detection ────────────────────────────────────────────────────────
 
 export function isBinary(bytes: Uint8Array): boolean {
   const limit = Math.min(bytes.length, BINARY_CHECK_SIZE);
-  for (let i = ZERO; i < limit; i++) {
+  for (let i = ZERO; i < limit; i += FIRST_LINE) {
     if (bytes[i] === NULL_BYTE) return true;
   }
   return false;
@@ -30,7 +31,7 @@ interface LineRangeResult {
 
 export function extractLineRange(content: string, start?: number, end?: number): LineRangeResult {
   const allLines = content.split('\n');
-  const totalLines = allLines.length;
+  const { length: totalLines } = allLines;
   const startLine = Math.max(FIRST_LINE, start ?? FIRST_LINE);
   const endLine = Math.min(totalLines, end ?? totalLines);
   const sliced = allLines.slice(startLine - FIRST_LINE, endLine);
@@ -48,11 +49,11 @@ export function estimateTokens(content: string): number {
 function findEditMatch(content: string, oldText: string): number {
   const firstIndex = content.indexOf(oldText);
   if (firstIndex < ZERO) {
-    throw new VFSError(VFSErrorCode.MATCH_NOT_FOUND, `No match found for edit: "${oldText.slice(ZERO, 40)}..."`);
+    throw new VFSError(VFSErrorCode.MATCH_NOT_FOUND, `No match found for edit: "${oldText.slice(ZERO, PREVIEW_LENGTH)}..."`);
   }
   const secondIndex = content.indexOf(oldText, firstIndex + FIRST_LINE);
   if (secondIndex >= ZERO) {
-    throw new VFSError(VFSErrorCode.AMBIGUOUS_MATCH, `Multiple matches found for: "${oldText.slice(ZERO, 40)}..."`);
+    throw new VFSError(VFSErrorCode.AMBIGUOUS_MATCH, `Multiple matches found for: "${oldText.slice(ZERO, PREVIEW_LENGTH)}..."`);
   }
   return firstIndex;
 }
@@ -77,15 +78,22 @@ export function applyEdits(content: string, edits: Edit[]): string {
 
 // ─── Text Search ─────────────────────────────────────────────────────────────
 
-const SPECIAL_REGEX_CHARS = /[.*+?^${}()|[\]\\]/gu;
-
 function escapeRegex(text: string): string {
-  return text.replace(SPECIAL_REGEX_CHARS, '\\$&');
+  // Escape each special regex char individually to avoid v-flag character class issues
+  let result = '';
+  for (const ch of text) {
+    if ('.*+?^${}()|[]\\'.includes(ch)) {
+      result += `\\${ch}`;
+    } else {
+      result += ch;
+    }
+  }
+  return result;
 }
 
 function buildRegex(pattern: string, isRegex: boolean, ignoreCase: boolean): RegExp {
   const source = isRegex ? pattern : escapeRegex(pattern);
-  const flags = ignoreCase ? 'giu' : 'gu';
+  const flags = ignoreCase ? 'giv' : 'gv';
   return new RegExp(source, flags);
 }
 
@@ -102,19 +110,21 @@ function buildMatch(filePath: string, allLines: string[], lineIdx: number, col: 
   };
 }
 
-export function searchInContent(
-  content: string,
-  filePath: string,
-  pattern: string,
-  isRegex: boolean,
-  ignoreCase: boolean
-): SearchTextMatch[] {
-  const regex = buildRegex(pattern, isRegex, ignoreCase);
-  const allLines = content.split('\n');
+interface SearchParams {
+  content: string;
+  filePath: string;
+  pattern: string;
+  isRegex: boolean;
+  ignoreCase: boolean;
+}
+
+export function searchInContent(params: SearchParams): SearchTextMatch[] {
+  const regex = buildRegex(params.pattern, params.isRegex, params.ignoreCase);
+  const allLines = params.content.split('\n');
   const matches: SearchTextMatch[] = [];
   for (const [lineIdx, line] of allLines.entries()) {
     for (const match of line.matchAll(regex)) {
-      matches.push(buildMatch(filePath, allLines, lineIdx, match.index));
+      matches.push(buildMatch(params.filePath, allLines, lineIdx, match.index));
     }
   }
   return matches;
@@ -129,7 +139,7 @@ export async function runWithConcurrency<T>(tasks: Array<() => Promise<T>>, limi
   async function runNext(): Promise<void> {
     while (nextIndex < tasks.length) {
       const currentIndex = nextIndex;
-      nextIndex++;
+      nextIndex += FIRST_LINE;
       const task = tasks[currentIndex];
       if (task !== undefined) {
         results[currentIndex] = await task();
@@ -137,7 +147,7 @@ export async function runWithConcurrency<T>(tasks: Array<() => Promise<T>>, limi
     }
   }
 
-  const workers = Array.from({ length: Math.min(limit, tasks.length) }, () => runNext());
+  const workers = Array.from({ length: Math.min(limit, tasks.length) }, async () => runNext());
   await Promise.all(workers);
   return results;
 }

@@ -28,10 +28,11 @@ import {
 const DEFAULT_FIND_LIMIT = 200;
 const DEFAULT_MAX_RESULTS = 100;
 const TREE_MAX_DEPTH = 5;
+const INITIAL_OFFSET = 0;
 
 // ─── Shared content resolver ─────────────────────────────────────────────────
 
-interface ReadDeps {
+export interface ReadDeps {
   memoryLayer: MemoryLayer;
   storageLayer: StorageLayer;
   dirtySet: DirtySetClient;
@@ -75,8 +76,7 @@ async function fetchFromSource(deps: ReadDeps, path: string): Promise<string> {
     throw new VFSError(VFSErrorCode.BINARY_FILE, `Binary file: ${path}`);
   }
   const content = new TextDecoder().decode(bytes);
-  const now = Date.now();
-  deps.memoryLayer.set(path, content, now);
+  deps.memoryLayer.set(path, content, Date.now());
   await deps.storageLayer.upload(path, content);
   return content;
 }
@@ -126,7 +126,7 @@ export function listDirectoryFromTree(treeIndex: TreeIndex, path: string): ListD
 export function findFilesFromTree(treeIndex: TreeIndex, pattern: string, path?: string): FindFilesResult {
   const matches = treeIndex.findFiles(pattern, path);
   const truncated = matches.length > DEFAULT_FIND_LIMIT;
-  const limited = truncated ? matches.slice(0, DEFAULT_FIND_LIMIT) : matches;
+  const limited = truncated ? matches.slice(INITIAL_OFFSET, DEFAULT_FIND_LIMIT) : matches;
   return { pattern, matches: limited, totalMatches: matches.length, truncated };
 }
 
@@ -140,7 +140,7 @@ export function getFileMetadataFromTree(
     throw new VFSError(VFSErrorCode.FILE_NOT_FOUND, `File not found: ${path}`);
   }
   const cached = memoryLayer.get(path);
-  const lineCount = cached !== undefined ? countContentLines(cached.content) : null;
+  const lineCount = cached === undefined ? null : countContentLines(cached.content);
   return { path, sizeBytes: meta.sizeBytes, lineCount, language: meta.language ?? 'unknown', isBinary: false };
 }
 
@@ -160,11 +160,7 @@ export function buildCountLinesResult(path: string, content: string): CountLines
 
 // ─── Search Text ─────────────────────────────────────────────────────────────
 
-function filterCandidates(
-  treeIndex: TreeIndex,
-  params: SearchTextParams,
-  candidateLimit: number
-): string[] {
+function filterCandidates(treeIndex: TreeIndex, params: SearchTextParams, candidateLimit: number): string[] {
   const pattern = params.includeGlob ?? '**/*';
   const candidates = treeIndex.findFiles(pattern, params.path);
   if (candidates.length > candidateLimit) {
@@ -174,12 +170,27 @@ function filterCandidates(
 }
 
 function collectMatches(
-  results: Array<SearchTextMatch[]>,
+  results: SearchTextMatch[][],
   maxResults: number
 ): { matches: SearchTextMatch[]; truncated: boolean } {
   const all: SearchTextMatch[] = results.flat();
   const truncated = all.length > maxResults;
-  return { matches: truncated ? all.slice(0, maxResults) : all, truncated };
+  const limited = truncated ? all.slice(INITIAL_OFFSET, maxResults) : all;
+  return { matches: limited, truncated };
+}
+
+function buildSearchTask(deps: ReadDeps, filePath: string, params: SearchTextParams): () => Promise<SearchTextMatch[]> {
+  return async (): Promise<SearchTextMatch[]> => {
+    const content = await resolveFileContent(deps, filePath).catch(() => null);
+    if (content === null) return [];
+    return searchInContent({
+      content,
+      filePath,
+      pattern: params.pattern,
+      isRegex: params.isRegex ?? false,
+      ignoreCase: params.ignoreCase ?? false,
+    });
+  };
 }
 
 export async function searchTextInFiles(
@@ -190,11 +201,7 @@ export async function searchTextInFiles(
 ): Promise<SearchTextResult> {
   const candidates = filterCandidates(deps.treeIndex, params, candidateLimit);
   const maxResults = params.maxResults ?? DEFAULT_MAX_RESULTS;
-  const tasks = candidates.map((filePath) => async (): Promise<SearchTextMatch[]> => {
-    const content = await resolveFileContent(deps, filePath).catch(() => null);
-    if (content === null) return [];
-    return searchInContent(content, filePath, params.pattern, params.isRegex ?? false, params.ignoreCase ?? false);
-  });
+  const tasks = candidates.map((fp) => buildSearchTask(deps, fp, params));
   const results = await runWithConcurrency(tasks, concurrency);
   const { matches, truncated } = collectMatches(results, maxResults);
   return { pattern: params.pattern, matches, totalMatches: matches.length, truncated };

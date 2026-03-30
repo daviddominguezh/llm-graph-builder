@@ -39,14 +39,14 @@ function SkillPreviewDialog({ skill, open, onOpenChange }: { skill: SkillEntry; 
   const body = stripFrontmatter(skill.content);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-w-2xl flex-col max-h-[80vh]">
+      <DialogContent className="flex max-w-4xl flex-col max-h-[80vh]">
         <DialogHeader>
           <DialogTitle className="text-sm">{skill.name}</DialogTitle>
           {skill.description !== '' && (
             <p className="text-xs text-muted-foreground">{skill.description}</p>
           )}
         </DialogHeader>
-        <div className="markdown-content flex-1 overflow-y-auto text-xs leading-relaxed">
+        <div className="markdown-content flex-1 overflow-y-auto whitespace-break-spaces text-xs leading-relaxed">
           <MarkdownHooks remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeStarryNight]}>
             {body}
           </MarkdownHooks>
