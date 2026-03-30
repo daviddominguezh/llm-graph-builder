@@ -43,7 +43,7 @@ export function makeRedis(): jest.Mocked<RedisClient> {
 
 function makeQueryBuilder(): SupabaseQueryBuilder {
   const qb: Record<string, unknown> = {};
-  const self = qb as SupabaseQueryBuilder;
+  const self = qb as unknown as SupabaseQueryBuilder;
   qb.upsert = jest.fn<SupabaseQueryBuilder['upsert']>().mockReturnValue(self);
   qb.update = jest.fn<SupabaseQueryBuilder['update']>().mockReturnValue(self);
   qb.delete = jest.fn<SupabaseQueryBuilder['delete']>().mockReturnValue(self);
@@ -51,9 +51,9 @@ function makeQueryBuilder(): SupabaseQueryBuilder {
   qb.select = jest.fn<SupabaseQueryBuilder['select']>().mockReturnValue(self);
   qb.lt = jest.fn<SupabaseQueryBuilder['lt']>().mockReturnValue(self);
   qb.single = jest.fn<SupabaseQueryBuilder['single']>().mockReturnValue(self);
-  qb.then = jest.fn().mockImplementation((fn: (val: { data: unknown; error: null }) => unknown) =>
-    Promise.resolve(fn({ data: {}, error: null }))
-  );
+  const thenFn: SupabaseQueryBuilder['then'] = (onfulfilled) =>
+    Promise.resolve(onfulfilled({ data: {}, error: null }));
+  qb.then = thenFn;
   return self;
 }
 

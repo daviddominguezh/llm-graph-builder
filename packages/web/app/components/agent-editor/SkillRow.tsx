@@ -14,7 +14,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Eye } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 import { MarkdownHooks } from 'react-markdown';
@@ -34,14 +35,24 @@ function stripFrontmatter(content: string): string {
   return content.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '').trim();
 }
 
-function SkillContent({ content }: { content: string }) {
-  const body = stripFrontmatter(content);
+function SkillPreviewDialog({ skill, open, onOpenChange }: { skill: SkillEntry; open: boolean; onOpenChange: (v: boolean) => void }) {
+  const body = stripFrontmatter(skill.content);
   return (
-    <div className="markdown-content max-h-64 overflow-y-auto rounded-md border bg-background p-3 text-xs leading-relaxed">
-      <MarkdownHooks remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeStarryNight]}>
-        {body}
-      </MarkdownHooks>
-    </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-w-2xl flex-col max-h-[80vh]">
+        <DialogHeader>
+          <DialogTitle className="text-sm">{skill.name}</DialogTitle>
+          {skill.description !== '' && (
+            <p className="text-xs text-muted-foreground">{skill.description}</p>
+          )}
+        </DialogHeader>
+        <div className="markdown-content flex-1 overflow-y-auto text-xs leading-relaxed">
+          <MarkdownHooks remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeStarryNight]}>
+            {body}
+          </MarkdownHooks>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -70,17 +81,13 @@ interface DeleteConfirmationProps {
 }
 
 export function SkillRow({ skill, selected, onToggleSelect, onDelete }: SkillRowProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const handleDeleteConfirmed = useCallback(() => {
     setConfirmOpen(false);
     onDelete(skill.name);
   }, [skill.name, onDelete]);
-
-  const toggleExpanded = useCallback(() => {
-    setExpanded((prev) => !prev);
-  }, []);
 
   return (
     <div className="animate-in fade-in slide-in-from-top-1 duration-200">
@@ -95,8 +102,16 @@ export function SkillRow({ skill, selected, onToggleSelect, onDelete }: SkillRow
             <span className="truncate text-[10px] text-muted-foreground">{skill.description}</span>
           )}
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+          onClick={() => setPreviewOpen(true)}
+        >
+          <Eye className="size-3" />
+        </Button>
       </div>
-      {expanded && <SkillContent content={skill.content} />}
+      <SkillPreviewDialog skill={skill} open={previewOpen} onOpenChange={setPreviewOpen} />
       <DeleteConfirmation open={confirmOpen} onOpenChange={setConfirmOpen} onConfirm={handleDeleteConfirmed} />
     </div>
   );
