@@ -68,10 +68,6 @@ interface DeleteConfirmationProps {
   onConfirm: () => void;
 }
 
-function truncateUrl(url: string): string {
-  return url.replace(/^https?:\/\//, '').slice(0, 40);
-}
-
 export function SkillRow({ skill, selected, onToggleSelect, onDelete }: SkillRowProps) {
   const t = useTranslations('agentEditor');
   const [expanded, setExpanded] = useState(false);
@@ -103,7 +99,6 @@ export function SkillRow({ skill, selected, onToggleSelect, onDelete }: SkillRow
           {skill.description !== '' && (
             <span className="truncate text-[10px] text-muted-foreground">{skill.description}</span>
           )}
-          <span className="truncate text-[10px] text-muted-foreground/50">{truncateUrl(skill.repoUrl)}</span>
         </div>
         <Button
           variant="ghost"
