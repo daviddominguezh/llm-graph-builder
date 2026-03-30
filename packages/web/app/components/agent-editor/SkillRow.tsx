@@ -1,7 +1,6 @@
 'use client';
 
 import '@/app/styles/starry-night.css';
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,15 +34,23 @@ function stripFrontmatter(content: string): string {
   return content.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '').trim();
 }
 
-function SkillPreviewDialog({ skill, open, onOpenChange }: { skill: SkillEntry; open: boolean; onOpenChange: (v: boolean) => void }) {
+function SkillPreviewDialog({
+  skill,
+  open,
+  onOpenChange,
+}: {
+  skill: SkillEntry;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
   const body = stripFrontmatter(skill.content);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex sm:max-w-4xl flex-col max-h-[80vh]">
-        <DialogHeader>
-          <DialogTitle className="text-sm">{skill.name}</DialogTitle>
+      <DialogContent className="flex sm:max-w-4xl flex-col max-h-[80vh] gap-0">
+        <DialogHeader className="border-b pb-2.5">
+          <DialogTitle className="text-sm font-mono">{skill.name.toUpperCase()}</DialogTitle>
           {skill.description !== '' && (
-            <p className="text-xs text-muted-foreground">{skill.description}</p>
+            <p className="text-xs text-muted-foreground bg-card border p-2 rounded-md">{skill.description}</p>
           )}
         </DialogHeader>
         <div className="markdown-content flex-1 overflow-y-auto text-xs leading-relaxed">
@@ -93,6 +100,7 @@ export function SkillRow({ skill, selected, onToggleSelect, onDelete }: SkillRow
     <div className="animate-in fade-in slide-in-from-top-1 duration-200">
       <div className="group flex items-center gap-2.5 p-1 px-0">
         <Checkbox
+          className="cursor-pointer"
           checked={selected}
           onCheckedChange={() => onToggleSelect(skill.name)}
         />
@@ -112,7 +120,11 @@ export function SkillRow({ skill, selected, onToggleSelect, onDelete }: SkillRow
         </Button>
       </div>
       <SkillPreviewDialog skill={skill} open={previewOpen} onOpenChange={setPreviewOpen} />
-      <DeleteConfirmation open={confirmOpen} onOpenChange={setConfirmOpen} onConfirm={handleDeleteConfirmed} />
+      <DeleteConfirmation
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        onConfirm={handleDeleteConfirmed}
+      />
     </div>
   );
 }
