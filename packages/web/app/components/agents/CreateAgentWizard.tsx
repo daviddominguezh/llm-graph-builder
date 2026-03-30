@@ -9,8 +9,8 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
-import { AppTypeCards, type AppType } from './AppTypeCards';
-import { DetailsStep, type DetailsFormState } from './DetailsStep';
+import { type AppType, AppTypeCards } from './AppTypeCards';
+import { type DetailsFormState, DetailsStep } from './DetailsStep';
 import { TemplateGrid, type TemplateSelection } from './TemplateGrid';
 import { TemplatePreviewModal } from './TemplatePreviewModal';
 
@@ -62,13 +62,16 @@ interface TemplateStepProps {
 }
 
 function TemplateStep(props: TemplateStepProps) {
-  const { selection, onSelectionChange, onPreview, onNext, prefetchedTemplates, appType, onAppTypeChange } = props;
+  const { selection, onSelectionChange, onPreview, onNext, prefetchedTemplates, appType, onAppTypeChange } =
+    props;
   const t = useTranslations('marketplace');
   const canProceed = appType !== null && selection !== null;
 
   return (
     <>
-      <AppTypeCards value={appType} onChange={onAppTypeChange} />
+      <div className={`flex ${appType !== null ? 'mb-2.5' : 'flex-1 mb-4'}`}>
+        <AppTypeCards value={appType} onChange={onAppTypeChange} />
+      </div>
       {appType !== null && (
         <TemplateGrid
           selection={selection}
@@ -109,8 +112,19 @@ function useWizardState() {
   }, []);
 
   return {
-    step, setStep, selection, setSelection, appType, setAppType,
-    details, setDetails, preview, setPreview, loading, setLoading, reset,
+    step,
+    setStep,
+    selection,
+    setSelection,
+    appType,
+    setAppType,
+    details,
+    setDetails,
+    preview,
+    setPreview,
+    loading,
+    setLoading,
+    reset,
   };
 }
 
@@ -186,10 +200,18 @@ function WizardBody({
   );
 
   const handleSubmit = useCallback(() => {
-    void submitWizard(orgId, orgSlug, state.details, state.selection, state.appType, state.setLoading, (slug) => {
-      onClose();
-      router.push(`/orgs/${orgSlug}/editor/${slug}`);
-    });
+    void submitWizard(
+      orgId,
+      orgSlug,
+      state.details,
+      state.selection,
+      state.appType,
+      state.setLoading,
+      (slug) => {
+        onClose();
+        router.push(`/orgs/${orgSlug}/editor/${slug}`);
+      }
+    );
   }, [orgId, orgSlug, state, onClose, router]);
 
   return (
@@ -197,7 +219,10 @@ function WizardBody({
       <DialogHeader>
         <DialogTitle>{title}</DialogTitle>
       </DialogHeader>
-      <div key={state.step} className="min-w-0 animate-in fade-in duration-200 max-h-[69vh] min-h-[69vh] flex flex-col flex-1 min-h-[0px]">
+      <div
+        key={state.step}
+        className="min-w-0 animate-in fade-in duration-200 max-h-[69vh] min-h-[69vh] flex flex-col flex-1 min-h-[0px]"
+      >
         {state.step === 'template' ? (
           <TemplateStep
             selection={state.selection}
@@ -232,7 +257,13 @@ function WizardBody({
 /*  CreateAgentWizard                                                  */
 /* ------------------------------------------------------------------ */
 
-export function CreateAgentWizard({ open, onOpenChange, orgId, orgSlug, prefetchedTemplates }: CreateAgentWizardProps) {
+export function CreateAgentWizard({
+  open,
+  onOpenChange,
+  orgId,
+  orgSlug,
+  prefetchedTemplates,
+}: CreateAgentWizardProps) {
   const state = useWizardState();
 
   const handleOpenChange = useCallback(

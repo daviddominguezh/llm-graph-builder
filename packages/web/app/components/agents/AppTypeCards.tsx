@@ -31,13 +31,13 @@ function AppTypeCard({
   label: string;
   description: string;
 }) {
-  const border = selected ? 'border-primary ring-1 ring-primary' : 'border-border';
+  const border = selected ? 'border-primary ring-1 ring-primary border-solid' : 'border-border';
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex flex-1 cursor-pointer flex-col gap-1 rounded-lg border p-3 text-left transition-[border-color,box-shadow,transform] duration-150 bg-background hover:-translate-y-px hover:bg-card/60 hover:shadow-sm ${border}`}
+      className={`flex h-[82px] cursor-pointer flex-col gap-1 rounded-lg border p-3 text-left transition-[border-color,box-shadow,transform] duration-150 bg-background hover:bg-card/60 hover:shadow-sm border-dashed ${border}`}
     >
       <div className="flex items-center gap-1.5">
         {icon}
