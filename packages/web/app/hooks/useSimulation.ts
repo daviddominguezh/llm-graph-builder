@@ -11,7 +11,7 @@ import { streamAgentSimulation } from '../lib/agentSimulationApi';
 import { streamSimulation } from '../lib/api';
 import type { Agent, McpServerConfig } from '../schemas/graph.schema';
 import type { ContextPreset } from '../types/preset';
-import type { NodeResult, SimulationTokens } from '../types/simulation';
+import type { ConversationEntry, NodeResult, SimulationTokens } from '../types/simulation';
 import { START_NODE_ID } from '../utils/graphContext';
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
 import type {
@@ -64,6 +64,7 @@ export interface SimulationState {
   visitedNodes: string[];
   lastUserText: string;
   nodeResults: NodeResult[];
+  conversationEntries: ConversationEntry[];
   totalTokens: SimulationTokens;
   modelId: string;
   setModelId: (id: string) => void;
@@ -134,6 +135,7 @@ function resetBeforeSend(setters: SimulationSetters, text: string, userMsg: Mess
   setters.setLoading(true);
   setters.setLastUserText(text);
   setters.setMessages((prev) => [...prev, userMsg]);
+  setters.setConversationEntries((prev) => [...prev, { type: 'user' as const, text }]);
 }
 
 interface SendDepsWithAbort extends SendMessageDeps {
@@ -147,6 +149,7 @@ function sendAgentSimulation(deps: SendDepsWithAbort, text: string): void {
   const signal = abortAndCreateSignal();
   const userMsg = createUserMessage(text);
   const allMessages = [...messages, userMsg];
+  console.log('[simulation] sending agent messages:', allMessages.length, allMessages.map((m) => m.message.role));
   resetBeforeSend(setters, text, userMsg);
   const params = buildAgentSimulateParams({ agentConfig, mcpServers, allMessages, apiKeyId, modelId });
   const callbacks = buildStreamCallbacks({ setters, onZoomToNode, onSelectNode });
@@ -251,6 +254,7 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
     visitedNodes: s.visitedNodes,
     lastUserText: s.lastUserText,
     nodeResults: s.nodeResults,
+    conversationEntries: s.conversationEntries,
     totalTokens: s.totalTokens,
     modelId: s.modelId,
     setModelId: s.setModelId,

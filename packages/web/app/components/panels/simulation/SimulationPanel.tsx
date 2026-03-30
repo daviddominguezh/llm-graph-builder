@@ -5,7 +5,7 @@ import { Loader2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef } from 'react';
 
-import type { NodeResult, SimulationTokens } from '../../../types/simulation';
+import type { ConversationEntry, NodeResult, SimulationTokens } from '../../../types/simulation';
 import { NodeResultItem } from './NodeResultItem';
 import { SimulationInput } from './SimulationInput';
 import { TokenDisplay } from './TokenDisplay';
@@ -13,6 +13,7 @@ import { TokenDisplay } from './TokenDisplay';
 interface SimulationPanelProps {
   lastUserText: string;
   nodeResults: NodeResult[];
+  conversationEntries: ConversationEntry[];
   visitedNodes: string[];
   terminated: boolean;
   loading: boolean;
@@ -81,19 +82,21 @@ function UserMessage({ text }: { text: string }) {
 }
 
 interface ContentAreaProps {
-  lastUserText: string;
-  nodeResults: NodeResult[];
+  conversationEntries: ConversationEntry[];
   scrollRef: React.RefObject<HTMLDivElement | null>;
 }
 
-function ContentArea({ lastUserText, nodeResults, scrollRef }: ContentAreaProps) {
+function ContentArea({ conversationEntries, scrollRef }: ContentAreaProps) {
   return (
     <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2">
       <div className="flex flex-col gap-4">
-        <UserMessage text={lastUserText} />
-        {nodeResults.map((result, i) => (
-          <NodeResultItem key={i} result={result} />
-        ))}
+        {conversationEntries.map((entry, i) =>
+          entry.type === 'user' ? (
+            <UserMessage key={i} text={entry.text} />
+          ) : (
+            <NodeResultItem key={i} result={entry.result} />
+          )
+        )}
       </div>
     </div>
   );
@@ -155,7 +158,7 @@ export function SimulationPanel(props: SimulationPanelProps) {
     <div className="absolute inset-y-0 left-0 z-10 flex w-[350px] p-0">
       <div className="relative flex h-full w-full flex-col rounded-e-md border-r bg-background">
         <SimulationHeader visitedNodes={visitedNodes} onStop={onStop} />
-        <ContentArea lastUserText={lastUserText} nodeResults={nodeResults} scrollRef={scrollRef} />
+        <ContentArea conversationEntries={props.conversationEntries} scrollRef={scrollRef} />
         <SimulationFooter totalTokens={totalTokens} loading={loading} currentNode={currentNode} />
         <SimulationInput
           loading={loading}

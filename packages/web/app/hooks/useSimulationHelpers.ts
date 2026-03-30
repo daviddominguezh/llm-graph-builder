@@ -8,7 +8,7 @@ import type { AgentSimulateRequestBody } from '../lib/agentSimulationApi';
 import type { NodeProcessedEvent, SimulateRequestBody, StreamCallbacks } from '../lib/api';
 import type { Agent, McpServerConfig } from '../schemas/graph.schema';
 import type { ContextPreset } from '../types/preset';
-import type { NodeResult, SimulationTokens } from '../types/simulation';
+import type { ConversationEntry, NodeResult, SimulationTokens } from '../types/simulation';
 import { type GraphBuildInputs, buildContext, buildGraph } from '../utils/graphContext';
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
 import { stableJsonStringify } from '../utils/stableJsonHash';
@@ -27,6 +27,7 @@ export interface SimulationSetters {
   setVisitedNodes: React.Dispatch<React.SetStateAction<string[]>>;
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
   setStructuredOutputs: React.Dispatch<React.SetStateAction<Record<string, unknown[]>>>;
+  setConversationEntries: React.Dispatch<React.SetStateAction<ConversationEntry[]>>;
   saveSnapshot: (s: GraphSnapshot | null) => void;
   getSnapshot: () => GraphSnapshot | null;
 }
@@ -115,6 +116,7 @@ function handleNodeProcessedEvent(setters: SimulationSetters, event: NodeProcess
     durationMs: event.durationMs,
   };
   setters.setNodeResults((prev) => [...prev, result]);
+  setters.setConversationEntries((prev) => [...prev, { type: 'result', result }]);
   setters.setTotalTokens((prev) => addTokens(prev, event.tokens));
   const { structuredOutput } = event;
   if (structuredOutput !== undefined) {

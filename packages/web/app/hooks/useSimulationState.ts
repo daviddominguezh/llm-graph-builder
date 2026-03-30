@@ -3,7 +3,7 @@
 import type { Message } from '@daviddh/llm-graph-runner';
 import { useCallback, useRef, useState } from 'react';
 
-import type { NodeResult, SimulationTokens } from '../types/simulation';
+import type { ConversationEntry, NodeResult, SimulationTokens } from '../types/simulation';
 import { START_NODE_ID } from '../utils/graphContext';
 import type { FullSetters, GraphSnapshot } from './useSimulationHelpers';
 
@@ -28,6 +28,7 @@ export interface SimulationHookState {
   visitedNodes: string[];
   totalTokens: SimulationTokens;
   structuredOutputs: Record<string, unknown[]>;
+  conversationEntries: ConversationEntry[];
   modelId: string;
   setModelId: React.Dispatch<React.SetStateAction<string>>;
   snapshotRef: React.RefObject<GraphSnapshot | null>;
@@ -79,6 +80,7 @@ interface CoreStateValues {
   visitedNodes: string[];
   totalTokens: SimulationTokens;
   structuredOutputs: Record<string, unknown[]>;
+  conversationEntries: ConversationEntry[];
 }
 
 interface CoreDispatchers {
@@ -91,6 +93,7 @@ interface CoreDispatchers {
   setVisitedNodes: React.Dispatch<React.SetStateAction<string[]>>;
   setTotalTokens: React.Dispatch<React.SetStateAction<SimulationTokens>>;
   setStructuredOutputs: React.Dispatch<React.SetStateAction<Record<string, unknown[]>>>;
+  setConversationEntries: React.Dispatch<React.SetStateAction<ConversationEntry[]>>;
 }
 
 interface CoreStateResult {
@@ -108,6 +111,7 @@ function useSimCoreState(): CoreStateResult {
   const [visitedNodes, setVisitedNodes] = useState<string[]>([]);
   const [totalTokens, setTotalTokens] = useState<SimulationTokens>(EMPTY_TOKENS);
   const [structuredOutputs, setStructuredOutputs] = useState<Record<string, unknown[]>>({});
+  const [conversationEntries, setConversationEntries] = useState<ConversationEntry[]>([]);
   return {
     values: {
       active,
@@ -119,6 +123,7 @@ function useSimCoreState(): CoreStateResult {
       visitedNodes,
       totalTokens,
       structuredOutputs,
+      conversationEntries,
     },
     dispatchers: {
       setActive,
@@ -130,6 +135,7 @@ function useSimCoreState(): CoreStateResult {
       setVisitedNodes,
       setTotalTokens,
       setStructuredOutputs,
+      setConversationEntries,
     },
   };
 }

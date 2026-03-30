@@ -111,6 +111,7 @@ export function GraphCanvas({
           <SimulationPanel
             lastUserText={simulation.lastUserText}
             nodeResults={simulation.nodeResults}
+            conversationEntries={simulation.conversationEntries}
             visitedNodes={simulation.visitedNodes}
             terminated={simulation.terminated}
             loading={simulation.loading}

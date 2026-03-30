@@ -452,6 +452,7 @@ function LoadedEditor(props: LoadedEditorProps) {
               <SimulationPanel
                 lastUserText={h.simulation.lastUserText}
                 nodeResults={h.simulation.nodeResults}
+                conversationEntries={h.simulation.conversationEntries}
                 visitedNodes={h.simulation.visitedNodes}
                 terminated={h.simulation.terminated}
                 loading={h.simulation.loading}
