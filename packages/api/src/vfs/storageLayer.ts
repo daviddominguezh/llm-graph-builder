@@ -1,4 +1,10 @@
-import { type StorageBucketApi, type StorageFileObject, type SupabaseVFSClient, VFSError, VFSErrorCode } from './types.js';
+import {
+  type StorageBucketApi,
+  type StorageFileObject,
+  type SupabaseVFSClient,
+  VFSError,
+  VFSErrorCode,
+} from './types.js';
 
 const BUCKET = 'vfs';
 const TREE_INDEX_FILE = '__tree_index.json';

@@ -51,7 +51,7 @@ function makeQueryBuilder(): SupabaseQueryBuilder {
   const lt = jest.fn<SupabaseQueryBuilder['lt']>();
   const single = jest.fn<SupabaseQueryBuilder['single']>();
   const thenFn: SupabaseQueryBuilder['then'] = async (onfulfilled) =>
-    onfulfilled({ data: {}, error: null });
+    await Promise.resolve(onfulfilled({ data: {}, error: null }));
 
   const qb: SupabaseQueryBuilder = { upsert, update, delete: del, eq, select, lt, single, then: thenFn };
   upsert.mockReturnValue(qb);

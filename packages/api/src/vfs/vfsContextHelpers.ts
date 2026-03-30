@@ -49,11 +49,17 @@ export function estimateTokens(content: string): number {
 function findEditMatch(content: string, oldText: string): number {
   const firstIndex = content.indexOf(oldText);
   if (firstIndex < ZERO) {
-    throw new VFSError(VFSErrorCode.MATCH_NOT_FOUND, `No match found for edit: "${oldText.slice(ZERO, PREVIEW_LENGTH)}..."`);
+    throw new VFSError(
+      VFSErrorCode.MATCH_NOT_FOUND,
+      `No match found for edit: "${oldText.slice(ZERO, PREVIEW_LENGTH)}..."`
+    );
   }
   const secondIndex = content.indexOf(oldText, firstIndex + FIRST_LINE);
   if (secondIndex >= ZERO) {
-    throw new VFSError(VFSErrorCode.AMBIGUOUS_MATCH, `Multiple matches found for: "${oldText.slice(ZERO, PREVIEW_LENGTH)}..."`);
+    throw new VFSError(
+      VFSErrorCode.AMBIGUOUS_MATCH,
+      `Multiple matches found for: "${oldText.slice(ZERO, PREVIEW_LENGTH)}..."`
+    );
   }
   return firstIndex;
 }
@@ -130,48 +136,30 @@ export function searchInContent(params: SearchParams): SearchTextMatch[] {
   return matches;
 }
 
-// ─── Concurrency Pool ────────────────────────────────────────────────────────
+// ─── Concurrency Pool (batch-based) ──────────────────────────────────────────
 
-class ConcurrencyPool<T> {
-  private nextIndex = ZERO;
-  private readonly results: T[] = [];
+function sliceBatch<T>(items: T[], start: number, size: number): T[] {
+  return items.slice(start, start + size);
+}
 
-  constructor(
-    private readonly tasks: Array<() => Promise<T>>,
-    private readonly concurrency: number
-  ) {}
+async function executeBatch<T>(batch: Array<() => Promise<T>>): Promise<T[]> {
+  return await Promise.all(batch.map(async (fn) => await fn()));
+}
 
-  async run(): Promise<T[]> {
-    const workerCount = Math.min(this.concurrency, this.tasks.length);
-    const workers = Array.from({ length: workerCount }, async () => this.processQueue());
-    await Promise.all(workers);
-    return this.results;
-  }
-
-  private async processQueue(): Promise<void> {
-    while (this.nextIndex < this.tasks.length) {
-      const idx = this.claimNext();
-      await this.executeAt(idx);
-    }
-  }
-
-  private claimNext(): number {
-    const idx = this.nextIndex;
-    this.nextIndex = idx + FIRST_LINE;
-    return idx;
-  }
-
-  private async executeAt(idx: number): Promise<void> {
-    const task = this.tasks[idx];
-    if (task !== undefined) {
-      this.results[idx] = await task();
-    }
-  }
+async function processBatches<T>(
+  tasks: Array<() => Promise<T>>,
+  limit: number,
+  offset: number,
+  accumulated: T[]
+): Promise<T[]> {
+  if (offset >= tasks.length) return accumulated;
+  const batch = sliceBatch(tasks, offset, limit);
+  const batchResults = await executeBatch(batch);
+  return await processBatches(tasks, limit, offset + limit, [...accumulated, ...batchResults]);
 }
 
 export async function runWithConcurrency<T>(tasks: Array<() => Promise<T>>, limit: number): Promise<T[]> {
-  const pool = new ConcurrencyPool(tasks, limit);
-  return await pool.run();
+  return await processBatches(tasks, limit, ZERO, []);
 }
 
 // ─── Line Counting ───────────────────────────────────────────────────────────

@@ -1,9 +1,9 @@
 import { describe, expect, it } from '@jest/globals';
+import type { jest } from '@jest/globals';
 
 import type { RedisClient, StorageBucketApi, SupabaseVFSClient } from '../types.js';
 import { VFSError, VFSErrorCode } from '../types.js';
 import { VFSContext } from '../vfsContext.js';
-import type { jest } from '@jest/globals';
 import type { MockSourceProvider } from './vfsContextMocks.js';
 import { makeBucket, makeRedis, makeSourceProvider, makeSupabase } from './vfsContextMocks.js';
 

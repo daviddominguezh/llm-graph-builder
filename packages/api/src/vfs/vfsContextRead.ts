@@ -141,7 +141,13 @@ export function getFileMetadataFromTree(
   }
   const cached = memoryLayer.get(path);
   const lineCount = cached === undefined ? null : countContentLines(cached.content);
-  return { path, sizeBytes: meta.sizeBytes, lineCount, language: meta.language ?? 'unknown', isBinary: false };
+  return {
+    path,
+    sizeBytes: meta.sizeBytes,
+    lineCount,
+    language: meta.language ?? 'unknown',
+    isBinary: false,
+  };
 }
 
 export function getFileTreeFromIndex(treeIndex: TreeIndex, path: string): FileTreeResult {
@@ -164,7 +170,10 @@ function filterCandidates(treeIndex: TreeIndex, params: SearchTextParams, candid
   const pattern = params.includeGlob ?? '**/*';
   const candidates = treeIndex.findFiles(pattern, params.path);
   if (candidates.length > candidateLimit) {
-    throw new VFSError(VFSErrorCode.TOO_LARGE, `Too many candidates: ${candidates.length} (limit ${candidateLimit})`);
+    throw new VFSError(
+      VFSErrorCode.TOO_LARGE,
+      `Too many candidates: ${candidates.length} (limit ${candidateLimit})`
+    );
   }
   return candidates;
 }
@@ -179,7 +188,11 @@ function collectMatches(
   return { matches: limited, truncated };
 }
 
-function buildSearchTask(deps: ReadDeps, filePath: string, params: SearchTextParams): () => Promise<SearchTextMatch[]> {
+function buildSearchTask(
+  deps: ReadDeps,
+  filePath: string,
+  params: SearchTextParams
+): () => Promise<SearchTextMatch[]> {
   return async (): Promise<SearchTextMatch[]> => {
     const content = await resolveFileContent(deps, filePath).catch(() => null);
     if (content === null) return [];

@@ -33,7 +33,11 @@ function assertNotExists(treeIndex: TreeIndex, path: string): void {
   }
 }
 
-export async function createFileOp(deps: WriteDeps, path: string, content: string): Promise<CreateFileResult> {
+export async function createFileOp(
+  deps: WriteDeps,
+  path: string,
+  content: string
+): Promise<CreateFileResult> {
   assertNotExists(deps.treeIndex, path);
   const timestamp = Date.now();
   deps.memoryLayer.set(path, content, timestamp);
@@ -64,7 +68,11 @@ function validateEditParams(edits: Edit[] | undefined, fullContent: string | und
   }
 }
 
-function resolveNewContent(current: string, edits: Edit[] | undefined, fullContent: string | undefined): string {
+function resolveNewContent(
+  current: string,
+  edits: Edit[] | undefined,
+  fullContent: string | undefined
+): string {
   if (fullContent !== undefined) return fullContent;
   if (edits !== undefined) return applyEdits(current, edits);
   return current;
@@ -115,7 +123,12 @@ function validateRenamePaths(treeIndex: TreeIndex, oldPath: string, newPath: str
   assertNotExists(treeIndex, newPath);
 }
 
-async function moveInLayers(deps: WriteDeps, oldPath: string, newPath: string, timestamp: number): Promise<void> {
+async function moveInLayers(
+  deps: WriteDeps,
+  oldPath: string,
+  newPath: string,
+  timestamp: number
+): Promise<void> {
   deps.memoryLayer.rename(oldPath, newPath);
   await deps.storageLayer.rename(oldPath, newPath);
   await deps.dirtySet.markDirty(oldPath, timestamp);
@@ -123,7 +136,11 @@ async function moveInLayers(deps: WriteDeps, oldPath: string, newPath: string, t
   deps.treeIndex.moveFile(oldPath, newPath);
 }
 
-export async function renameFileOp(deps: WriteDeps, oldPath: string, newPath: string): Promise<RenameFileResult> {
+export async function renameFileOp(
+  deps: WriteDeps,
+  oldPath: string,
+  newPath: string
+): Promise<RenameFileResult> {
   validateRenamePaths(deps.treeIndex, oldPath, newPath);
   const timestamp = Date.now();
   await moveInLayers(deps, oldPath, newPath, timestamp);
