@@ -36,7 +36,7 @@ function useExecutionFetcher(
   setMessages: (m: ExecutionMessageRow[]) => void,
   setSelectedStep: (s: AgentStep | null) => void,
   setSelectedExecutionId: (id: string) => void
-) {
+): (executionId: string) => void {
   const [, startTransition] = useTransition();
 
   return useCallback(
@@ -59,9 +59,9 @@ function useExecutionFetcher(
 
 export function useAgentDebugState(input: AgentDebugStateInput): AgentDebugState {
   const { executions, initialNodeVisits, initialMessages } = input;
-  const firstExecution = executions[FIRST_INDEX];
 
-  const [selectedExecutionId, setSelectedExecutionId] = useState(firstExecution?.id ?? '');
+  const { [FIRST_INDEX]: firstExecution } = executions;
+  const [selectedExecutionId, setSelectedExecutionId] = useState(firstExecution.id);
   const [nodeVisits, setNodeVisits] = useState<NodeVisitRow[]>(initialNodeVisits);
   const [messages, setMessages] = useState<ExecutionMessageRow[]>(initialMessages);
   const [selectedStep, setSelectedStep] = useState<AgentStep | null>(null);
