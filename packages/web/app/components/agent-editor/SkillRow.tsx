@@ -26,7 +26,7 @@ import type { SkillEntry } from './AddSkillDialog';
 interface SkillRowProps {
   skill: SkillEntry;
   selected: boolean;
-  onToggleSelect: (name: string) => void;
+  onToggleSelect: (name: string, shiftKey: boolean) => void;
   onDelete: (name: string) => void;
 }
 
@@ -99,11 +99,14 @@ export function SkillRow({ skill, selected, onToggleSelect, onDelete }: SkillRow
   return (
     <div className="animate-in fade-in slide-in-from-top-1 duration-200">
       <div className="group flex items-center gap-2.5 p-1 px-0">
-        <Checkbox
-          className="cursor-pointer"
-          checked={selected}
-          onCheckedChange={() => onToggleSelect(skill.name)}
-        />
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSelect(skill.name, e.shiftKey);
+          }}
+        >
+          <Checkbox className="cursor-pointer" checked={selected} />
+        </div>
         <div className="flex min-w-0 flex-1 flex-col">
           <span className="truncate text-[10px] font-medium">{skill.name}</span>
           {skill.description !== '' && (

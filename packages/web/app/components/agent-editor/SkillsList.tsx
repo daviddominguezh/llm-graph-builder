@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Plus, Sparkles, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 import type { SkillEntry } from './AddSkillDialog';
 import { AddSkillDialog } from './AddSkillDialog';
@@ -128,15 +128,37 @@ export function SkillsList({ skills, onAdd, onDelete, onDeleteMany }: SkillsList
   const providers = useMemo(() => groupByProvider(skills), [skills]);
   const resolvedActive = providers.find((g) => g.repoUrl === activeProvider) ?? providers[0];
   const activeSkills = resolvedActive?.skills ?? [];
+  const lastClickedRef = useRef<number>(-1);
 
-  const toggleSelect = useCallback((name: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
-  }, []);
+  const toggleSelect = useCallback(
+    (name: string, shiftKey: boolean) => {
+      const currentIndex = activeSkills.findIndex((s) => s.name === name);
+      if (shiftKey && lastClickedRef.current >= 0 && currentIndex >= 0) {
+        const start = Math.min(lastClickedRef.current, currentIndex);
+        const end = Math.max(lastClickedRef.current, currentIndex);
+        const willSelect = !selected.has(name);
+        setSelected((prev) => {
+          const next = new Set(prev);
+          for (let i = start; i <= end; i++) {
+            const s = activeSkills[i];
+            if (s === undefined) continue;
+            if (willSelect) next.add(s.name);
+            else next.delete(s.name);
+          }
+          return next;
+        });
+      } else {
+        setSelected((prev) => {
+          const next = new Set(prev);
+          if (next.has(name)) next.delete(name);
+          else next.add(name);
+          return next;
+        });
+      }
+      lastClickedRef.current = currentIndex;
+    },
+    [activeSkills, selected]
+  );
 
   const handleBatchDelete = useCallback(() => {
     onDeleteMany([...selected]);
@@ -188,7 +210,7 @@ export function SkillsList({ skills, onAdd, onDelete, onDeleteMany }: SkillsList
             activeUrl={resolvedActive?.repoUrl ?? ''}
             onSelect={setActiveProvider}
           />
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 max-h-70 overflow-y-scroll">
             {activeSkills.map((skill) => (
               <SkillRow
                 key={skill.name}
