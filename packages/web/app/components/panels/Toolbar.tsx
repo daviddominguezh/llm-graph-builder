@@ -54,6 +54,7 @@ interface ToolbarProps {
   orgName?: string;
   orgAvatarUrl?: string | null;
   agentName?: string;
+  hideWorkflowActions?: boolean;
 }
 
 function ToolbarTooltip({ label, children }: { label: string; children: ReactNode }) {
@@ -115,9 +116,10 @@ interface FileMenuItemsProps {
   onImport: () => void;
   onExport: () => void;
   onFormat: () => void;
+  hideWorkflowActions?: boolean;
 }
 
-function FileMenuItems({ onImport, onExport, onFormat }: FileMenuItemsProps) {
+function FileMenuItems({ onImport, onExport, onFormat, hideWorkflowActions }: FileMenuItemsProps) {
   const t = useTranslations('common');
   const tToolbar = useTranslations('toolbar');
   const tTheme = useTranslations('theme');
@@ -141,10 +143,12 @@ function FileMenuItems({ onImport, onExport, onFormat }: FileMenuItemsProps) {
           <Download className="size-4" />
           {t('export')}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onFormat}>
-          <AlignHorizontalSpaceAround className="size-4" />
-          {tToolbar('autoLayout')}
-        </DropdownMenuItem>
+        {!hideWorkflowActions && (
+          <DropdownMenuItem onClick={onFormat}>
+            <AlignHorizontalSpaceAround className="size-4" />
+            {tToolbar('autoLayout')}
+          </DropdownMenuItem>
+        )}
       </div>
     </>
   );
@@ -158,6 +162,7 @@ interface FileMenuProps {
   orgName?: string;
   orgAvatarUrl?: string | null;
   agentName?: string;
+  hideWorkflowActions?: boolean;
 }
 
 function FileMenu({
@@ -168,6 +173,7 @@ function FileMenu({
   orgName,
   orgAvatarUrl,
   agentName,
+  hideWorkflowActions,
 }: FileMenuProps) {
   return (
     <DropdownMenu>
@@ -188,7 +194,12 @@ function FileMenu({
           />
         )}
         <Separator />
-        <FileMenuItems onImport={onImport} onExport={onExport} onFormat={onFormat} />
+        <FileMenuItems
+          onImport={onImport}
+          onExport={onExport}
+          onFormat={onFormat}
+          hideWorkflowActions={hideWorkflowActions}
+        />
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -229,7 +240,7 @@ function ToolbarButtons(props: ToolbarProps) {
 
   return (
     <>
-      {onToggleGlobalPanel && (
+      {!props.hideWorkflowActions && onToggleGlobalPanel && (
         <ToolbarTooltip label={t('globalNodes')}>
           <Button
             className="h-10 w-10 hover:bg-card!"
@@ -293,6 +304,7 @@ export function Toolbar(props: ToolbarProps) {
           orgName={orgName}
           orgAvatarUrl={orgAvatarUrl}
           agentName={agentName}
+          hideWorkflowActions={props.hideWorkflowActions}
         />
       </div>
       <header className="absolute z-1 flex items-stretch justify-center gap-1 rounded-lg border bg-background p-1 top-1 shadow-lg">

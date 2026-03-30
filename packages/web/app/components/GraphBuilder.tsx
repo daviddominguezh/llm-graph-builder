@@ -374,6 +374,7 @@ function LoadedEditor(props: LoadedEditorProps) {
           onImport={h.handleImport}
           onExport={h.handleExport}
           onFormat={h.handleFormat}
+          hideWorkflowActions={h.agentConfig !== undefined}
           onPlay={h.simulation.start}
           simulationActive={h.simulation.active}
           statusSlot={<StatusButton nodes={h.nodes} edges={h.edges} pendingSave={h.pendingSave} mcpHealth={h.mcpHealthInput} />}
