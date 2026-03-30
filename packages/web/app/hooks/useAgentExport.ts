@@ -12,7 +12,15 @@ interface UseAgentExportParams {
   mcpServers: McpServerConfig[];
 }
 
-function buildExportData(agentConfig: AgentConfigData, mcpServers: McpServerConfig[]) {
+interface AgentExportData {
+  appType: 'agent';
+  systemPrompt: string;
+  maxSteps: number | null;
+  contextItems: string[];
+  mcpServers: McpServerConfig[];
+}
+
+function buildExportData(agentConfig: AgentConfigData, mcpServers: McpServerConfig[]): AgentExportData {
   return {
     appType: 'agent' as const,
     systemPrompt: agentConfig.systemPrompt,

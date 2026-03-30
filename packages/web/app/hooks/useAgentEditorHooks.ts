@@ -4,6 +4,9 @@ import { useCallback, useState } from 'react';
 
 import type { AgentConfigData } from './useGraphLoader';
 
+const INITIAL_COUNTER = 0;
+const INCREMENT = 1;
+
 interface UseAgentEditorHooksParams {
   initialConfig: AgentConfigData | undefined;
 }
@@ -15,21 +18,16 @@ interface UseAgentEditorHooksReturn {
   getCurrentContextItems: () => Array<{ sortOrder: number; content: string }>;
 }
 
-export function useAgentEditorHooks({
-  initialConfig,
-}: UseAgentEditorHooksParams): UseAgentEditorHooksReturn {
+export function useAgentEditorHooks({ initialConfig }: UseAgentEditorHooksParams): UseAgentEditorHooksReturn {
   const [agentConfig, setAgentConfigInternal] = useState(initialConfig);
-  const [importCounter, setImportCounter] = useState(0);
+  const [importCounter, setImportCounter] = useState(INITIAL_COUNTER);
 
   const setAgentConfig = useCallback((config: AgentConfigData) => {
     setAgentConfigInternal(config);
-    setImportCounter((prev) => prev + 1);
+    setImportCounter((prev) => prev + INCREMENT);
   }, []);
 
-  const getCurrentContextItems = useCallback(
-    () => agentConfig?.contextItems ?? [],
-    [agentConfig]
-  );
+  const getCurrentContextItems = useCallback(() => agentConfig?.contextItems ?? [], [agentConfig]);
 
   return { agentConfig, setAgentConfig, importCounter, getCurrentContextItems };
 }

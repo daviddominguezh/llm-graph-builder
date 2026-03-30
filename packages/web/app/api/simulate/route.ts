@@ -80,22 +80,19 @@ function resolveUpstreamUrl(body: Record<string, unknown>): string {
   return `${API_URL}/simulate`;
 }
 
-function flattenContextItems(body: Record<string, unknown>): void {
-  if (body.appType !== 'agent') return;
-  const items = body.contextItems;
-  if (Array.isArray(items)) {
-    body.context = items
-      .map((item: unknown) => {
-        if (typeof item === 'object' && item !== null && 'content' in item) {
-          return (item as { content: string }).content;
-        }
-        return typeof item === 'string' ? item : '';
-      })
-      .join('\n\n');
-  } else {
-    body.context = '';
+function extractContent(item: unknown): string {
+  if (typeof item === 'object' && item !== null && 'content' in item) {
+    const record = item as Record<string, unknown>;
+    return typeof record.content === 'string' ? record.content : '';
   }
-  delete body.contextItems;
+  return typeof item === 'string' ? item : '';
+}
+
+function flattenContextItems(body: Record<string, unknown>): Record<string, unknown> {
+  if (body.appType !== 'agent') return body;
+  const { contextItems, ...rest } = body;
+  const items = Array.isArray(contextItems) ? contextItems.map(extractContent).join('\n\n') : '';
+  return { ...rest, context: items };
 }
 
 async function fetchUpstream(body: Record<string, unknown>): Promise<Response> {
@@ -147,8 +144,8 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ error }, { status: HTTP_BAD_REQUEST });
   }
 
-  const rest = Object.fromEntries(Object.entries(raw).filter(([k]) => k !== 'apiKeyId'));
-  flattenContextItems(rest);
+  const stripped = Object.fromEntries(Object.entries(raw).filter(([k]) => k !== 'apiKeyId'));
+  const rest = flattenContextItems(stripped);
   await resolveMcpServersInGraph(rest.graph);
   await resolveMcpServersInGraph(rest);
 

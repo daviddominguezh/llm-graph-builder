@@ -27,10 +27,7 @@ function isAgentConfigRow(val: unknown): val is AgentConfigRow {
   return typeof val === 'object' && val !== null && 'app_type' in val;
 }
 
-async function fetchAgentRow(
-  supabase: SupabaseClient,
-  agentId: string
-): Promise<AgentConfigRow | null> {
+async function fetchAgentRow(supabase: SupabaseClient, agentId: string): Promise<AgentConfigRow | null> {
   const result = await supabase
     .from('agents')
     .select('system_prompt, max_steps, app_type')
@@ -45,10 +42,7 @@ function isContextItemRow(val: unknown): val is ContextItemRow {
   return typeof val === 'object' && val !== null && 'sort_order' in val;
 }
 
-async function fetchContextItems(
-  supabase: SupabaseClient,
-  agentId: string
-): Promise<ContextItemRow[]> {
+async function fetchContextItems(supabase: SupabaseClient, agentId: string): Promise<ContextItemRow[]> {
   const result = await supabase
     .from('agent_context_items')
     .select('sort_order, content')

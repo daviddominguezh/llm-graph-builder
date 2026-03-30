@@ -66,9 +66,7 @@ export async function fetchGraph(agentId: string): Promise<Graph> {
   return GraphSchema.parse(raw);
 }
 
-export async function fetchGraphOrAgentConfig(
-  agentId: string
-): Promise<Graph | AgentConfigResponse> {
+export async function fetchGraphOrAgentConfig(agentId: string): Promise<Graph | AgentConfigResponse> {
   const res = await fetch(agentPath(agentId, '/graph'));
   await assertOk(res, 'Fetch graph');
   const raw = await parseJsonResponse(res);

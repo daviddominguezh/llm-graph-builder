@@ -11,8 +11,9 @@ type ReorderItemsOp = Extract<Operation, { type: 'reorderContextItems' }>;
 
 function buildConfigPayload(data: UpdateConfigOp['data']): Record<string, unknown> {
   const payload: Record<string, unknown> = {};
-  if (data.systemPrompt !== undefined) payload.system_prompt = data.systemPrompt;
-  if (data.maxSteps !== undefined) payload.max_steps = data.maxSteps;
+  const { systemPrompt, maxSteps } = data;
+  if (systemPrompt !== undefined) payload.system_prompt = systemPrompt;
+  if (maxSteps !== undefined) payload.max_steps = maxSteps;
   return payload;
 }
 

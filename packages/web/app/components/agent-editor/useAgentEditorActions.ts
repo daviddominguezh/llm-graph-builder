@@ -17,7 +17,10 @@ interface AgentEditorState {
 
 type PushOperation = (op: Operation) => void;
 
-function usePromptAction(setState: Dispatch<SetStateAction<string>>, push: PushOperation) {
+function usePromptAction(
+  setState: Dispatch<SetStateAction<string>>,
+  push: PushOperation
+): (value: string) => void {
   return useCallback(
     (value: string) => {
       setState(value);
@@ -27,7 +30,10 @@ function usePromptAction(setState: Dispatch<SetStateAction<string>>, push: PushO
   );
 }
 
-function useMaxStepsAction(setState: Dispatch<SetStateAction<number | null>>, push: PushOperation) {
+function useMaxStepsAction(
+  setState: Dispatch<SetStateAction<number | null>>,
+  push: PushOperation
+): (value: number | null) => void {
   return useCallback(
     (value: number | null) => {
       setState(value);
@@ -37,7 +43,10 @@ function useMaxStepsAction(setState: Dispatch<SetStateAction<number | null>>, pu
   );
 }
 
-function useInsertItemAction(setState: Dispatch<SetStateAction<ContextItem[]>>, push: PushOperation) {
+function useInsertItemAction(
+  setState: Dispatch<SetStateAction<ContextItem[]>>,
+  push: PushOperation
+): (sortOrder: number, content: string) => void {
   return useCallback(
     (sortOrder: number, content: string) => {
       setState((prev) => [...prev, { sortOrder, content }]);
@@ -47,7 +56,10 @@ function useInsertItemAction(setState: Dispatch<SetStateAction<ContextItem[]>>, 
   );
 }
 
-function useUpdateItemAction(setState: Dispatch<SetStateAction<ContextItem[]>>, push: PushOperation) {
+function useUpdateItemAction(
+  setState: Dispatch<SetStateAction<ContextItem[]>>,
+  push: PushOperation
+): (sortOrder: number, content: string) => void {
   return useCallback(
     (sortOrder: number, content: string) => {
       setState((prev) => prev.map((item) => (item.sortOrder === sortOrder ? { ...item, content } : item)));
@@ -57,7 +69,10 @@ function useUpdateItemAction(setState: Dispatch<SetStateAction<ContextItem[]>>, 
   );
 }
 
-function useDeleteItemAction(setState: Dispatch<SetStateAction<ContextItem[]>>, push: PushOperation) {
+function useDeleteItemAction(
+  setState: Dispatch<SetStateAction<ContextItem[]>>,
+  push: PushOperation
+): (sortOrder: number) => void {
   return useCallback(
     (sortOrder: number) => {
       setState((prev) => prev.filter((item) => item.sortOrder !== sortOrder));
@@ -67,7 +82,18 @@ function useDeleteItemAction(setState: Dispatch<SetStateAction<ContextItem[]>>, 
   );
 }
 
-export function useAgentEditorActions(state: AgentEditorState, pushOperation: PushOperation) {
+interface AgentEditorActions {
+  handleSystemPromptChange: (value: string) => void;
+  handleMaxStepsChange: (value: number | null) => void;
+  handleInsertItem: (sortOrder: number, content: string) => void;
+  handleUpdateItem: (sortOrder: number, content: string) => void;
+  handleDeleteItem: (sortOrder: number) => void;
+}
+
+export function useAgentEditorActions(
+  state: AgentEditorState,
+  pushOperation: PushOperation
+): AgentEditorActions {
   return {
     handleSystemPromptChange: usePromptAction(state.setSystemPrompt, pushOperation),
     handleMaxStepsChange: useMaxStepsAction(state.setMaxSteps, pushOperation),

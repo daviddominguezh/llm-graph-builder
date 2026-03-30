@@ -2,12 +2,8 @@ import type { OutputSchemaEntity } from '@daviddh/graph-types';
 import type { Message } from '@daviddh/llm-graph-runner';
 import type { Edge as RFEdge, Node as RFNode } from '@xyflow/react';
 
-import type {
-  AgentSimulateRequestBody,
-  NodeProcessedEvent,
-  SimulateRequestBody,
-  StreamCallbacks,
-} from '../lib/api';
+import type { AgentSimulateRequestBody } from '../lib/agentSimulationApi';
+import type { NodeProcessedEvent, SimulateRequestBody, StreamCallbacks } from '../lib/api';
 import type { Agent, McpServerConfig } from '../schemas/graph.schema';
 import type { ContextPreset } from '../types/preset';
 import type { NodeResult, SimulationTokens } from '../types/simulation';

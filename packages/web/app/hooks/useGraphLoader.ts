@@ -81,7 +81,7 @@ function buildAgentLoadResult(config: AgentConfigResponse): GraphLoadResult {
 }
 
 function isAgentConfig(response: Graph | AgentConfigResponse): response is AgentConfigResponse {
-  return 'appType' in response && response.appType === 'agent';
+  return 'appType' in response;
 }
 
 function buildLoadResult(response: Graph | AgentConfigResponse): GraphLoadResult {

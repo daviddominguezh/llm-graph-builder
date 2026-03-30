@@ -1,10 +1,13 @@
+'use client';
+
 import type { OutputSchemaEntity } from '@daviddh/graph-types';
 import { MESSAGES_PROVIDER, type Message } from '@daviddh/llm-graph-runner';
 import type { Edge as RFEdge, Node as RFNode } from '@xyflow/react';
 import { nanoid } from 'nanoid';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback } from 'react';
 
-import { streamAgentSimulation, streamSimulation } from '../lib/api';
+import { streamAgentSimulation } from '../lib/agentSimulationApi';
+import { streamSimulation } from '../lib/api';
 import type { Agent, McpServerConfig } from '../schemas/graph.schema';
 import type { ContextPreset } from '../types/preset';
 import type { NodeResult, SimulationTokens } from '../types/simulation';
@@ -18,8 +21,13 @@ import type {
   SimulationStartDeps,
 } from './useSimulationHelpers';
 import { buildAgentSimulateParams, buildSimulateParams, buildStreamCallbacks } from './useSimulationHelpers';
+import {
+  EMPTY_TOKENS,
+  type SimulationHookState,
+  useAbortRef,
+  useSimulationState,
+} from './useSimulationState';
 
-const INITIAL_TOKEN_COUNT = 0;
 const ZERO_EDGES = 0;
 
 function isNodeTerminal(edges: Array<RFEdge<RFEdgeData>>, nodeId: string): boolean {
@@ -62,12 +70,6 @@ export interface SimulationState {
   stop: () => void;
   sendMessage: (text: string) => void;
 }
-
-const EMPTY_TOKENS: SimulationTokens = {
-  input: INITIAL_TOKEN_COUNT,
-  output: INITIAL_TOKEN_COUNT,
-  cached: INITIAL_TOKEN_COUNT,
-};
 
 function createUserMessage(text: string): Message {
   return {
@@ -162,7 +164,16 @@ function sendWorkflowSimulation(deps: SendDepsWithAbort, text: string): void {
   resetBeforeSend(setters, text);
   const allMessages = [...messages, createUserMessage(text)];
   const params = buildSimulateParams({
-    snapshot, agents, mcpServers, outputSchemas, allMessages, currentNode, preset, apiKeyId, modelId, structuredOutputs,
+    snapshot,
+    agents,
+    mcpServers,
+    outputSchemas,
+    allMessages,
+    currentNode,
+    preset,
+    apiKeyId,
+    modelId,
+    structuredOutputs,
   });
   const callbacks = buildStreamCallbacks({ setters, onZoomToNode, onSelectNode });
   void streamSimulation(params, callbacks, signal).catch(() => {
@@ -184,97 +195,6 @@ function useSimulationSend(deps: SendDepsWithAbort): (text: string) => void {
     },
     [deps, loading, appType]
   );
-}
-
-interface SimulationHookState {
-  active: boolean;
-  loading: boolean;
-  currentNode: string;
-  messages: Message[];
-  lastUserText: string;
-  nodeResults: NodeResult[];
-  visitedNodes: string[];
-  totalTokens: SimulationTokens;
-  structuredOutputs: Record<string, unknown[]>;
-  modelId: string;
-  setModelId: React.Dispatch<React.SetStateAction<string>>;
-  snapshotRef: React.RefObject<GraphSnapshot | null>;
-  setters: FullSetters;
-}
-
-function useSnapshotRef(): {
-  snapshotRef: React.RefObject<GraphSnapshot | null>;
-  saveSnapshot: (s: GraphSnapshot | null) => void;
-  getSnapshot: () => GraphSnapshot | null;
-} {
-  const snapshotRef = useRef<GraphSnapshot | null>(null);
-  const saveSnapshot = useCallback((s: GraphSnapshot | null) => {
-    snapshotRef.current = s;
-  }, []);
-  const getSnapshot = useCallback((): GraphSnapshot | null => snapshotRef.current, []);
-  return { snapshotRef, saveSnapshot, getSnapshot };
-}
-
-function useAbortRef(): {
-  abortSimulation: () => void;
-  abortAndCreateSignal: () => AbortSignal;
-} {
-  const abortRef = useRef<AbortController | null>(null);
-  const abortSimulation = useCallback(() => {
-    abortRef.current?.abort();
-    abortRef.current = null;
-  }, []);
-  const abortAndCreateSignal = useCallback((): AbortSignal => {
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-    return controller.signal;
-  }, []);
-  return { abortSimulation, abortAndCreateSignal };
-}
-
-function useSimulationState(): SimulationHookState {
-  const [active, setActive] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [currentNode, setCurrentNode] = useState(START_NODE_ID);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [lastUserText, setLastUserText] = useState('');
-  const [nodeResults, setNodeResults] = useState<NodeResult[]>([]);
-  const [visitedNodes, setVisitedNodes] = useState<string[]>([]);
-  const [totalTokens, setTotalTokens] = useState<SimulationTokens>(EMPTY_TOKENS);
-  const [structuredOutputs, setStructuredOutputs] = useState<Record<string, unknown[]>>({});
-  const [modelId, setModelId] = useState('x-ai/grok-4.1-fast');
-  const { snapshotRef, saveSnapshot, getSnapshot } = useSnapshotRef();
-
-  const setters: FullSetters = {
-    setMessages,
-    setNodeResults,
-    setLastUserText,
-    setTotalTokens,
-    setCurrentNode,
-    setVisitedNodes,
-    setLoading,
-    setStructuredOutputs,
-    setActive,
-    saveSnapshot,
-    getSnapshot,
-  };
-
-  return {
-    active,
-    loading,
-    currentNode,
-    messages,
-    lastUserText,
-    nodeResults,
-    visitedNodes,
-    totalTokens,
-    structuredOutputs,
-    modelId,
-    setModelId,
-    snapshotRef,
-    setters,
-  };
 }
 
 function buildSendDeps(
@@ -307,7 +227,13 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
   const s = useSimulationState();
   const { abortSimulation, abortAndCreateSignal } = useAbortRef();
 
-  const start = useSimulationStart({ setters: s.setters, allNodes, edges, onZoomToNode, appType: params.appType });
+  const start = useSimulationStart({
+    setters: s.setters,
+    allNodes,
+    edges,
+    onZoomToNode,
+    appType: params.appType,
+  });
   const stop = useSimulationStop(s.setters, abortSimulation, onExitZoomView);
   const sendMessage = useSimulationSend(buildSendDeps(params, s, abortAndCreateSignal));
   const terminated = checkTerminated(s.active, s.loading, s.snapshotRef.current, s.currentNode);
