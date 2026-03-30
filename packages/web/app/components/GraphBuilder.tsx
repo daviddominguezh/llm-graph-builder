@@ -395,7 +395,7 @@ function LoadedEditor(props: LoadedEditorProps) {
           hideWorkflowActions={h.agentConfig !== undefined}
           onPlay={h.simulation.start}
           simulationActive={h.simulation.active}
-          statusSlot={<StatusButton nodes={h.nodes} edges={h.edges} pendingSave={h.pendingSave} mcpHealth={h.mcpHealthInput} />}
+          statusSlot={<StatusButton nodes={h.nodes} edges={h.edges} pendingSave={h.pendingSave} mcpHealth={h.mcpHealthInput} skipGraphValidation={h.agentConfig !== undefined} />}
           globalPanelOpen={h.globalPanelOpen}
           onToggleGlobalPanel={() => h.setGlobalPanelOpen((prev) => !prev)}
           onTogglePresets={() => h.setPresetsOpen((prev) => !prev)}

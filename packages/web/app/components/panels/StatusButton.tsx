@@ -39,6 +39,7 @@ interface StatusButtonProps {
   edges: Edge<RFEdgeData>[];
   pendingSave?: boolean;
   mcpHealth?: McpHealthInput;
+  skipGraphValidation?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -92,9 +93,12 @@ function IssueList({ issues }: { issues: StatusIssue[] }) {
 /*  StatusButton                                                       */
 /* ------------------------------------------------------------------ */
 
-export function StatusButton({ nodes, edges, pendingSave, mcpHealth }: StatusButtonProps) {
+export function StatusButton({ nodes, edges, pendingSave, mcpHealth, skipGraphValidation }: StatusButtonProps) {
   const t = useTranslations('status');
-  const graphErrors = useMemo(() => validateGraph(nodes, edges), [nodes, edges]);
+  const graphErrors = useMemo(
+    () => (skipGraphValidation === true ? [] : validateGraph(nodes, edges)),
+    [nodes, edges, skipGraphValidation]
+  );
   const mcpIssues = useMemo(
     () => (mcpHealth !== undefined ? checkMcpHealth(mcpHealth, t) : []),
     [mcpHealth, t]

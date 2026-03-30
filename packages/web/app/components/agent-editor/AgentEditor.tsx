@@ -26,7 +26,7 @@ export function AgentEditor({ config, pushOperation }: AgentEditorProps) {
   const actions = useAgentEditorActions(state, pushOperation);
 
   return (
-    <div className="flex h-full w-full">
+    <div className="flex h-full w-full pt-12 border-t">
       <div className="flex min-w-0 flex-[3] flex-col p-4">
         <SystemPromptField value={state.systemPrompt} onChange={actions.handleSystemPromptChange} />
       </div>
