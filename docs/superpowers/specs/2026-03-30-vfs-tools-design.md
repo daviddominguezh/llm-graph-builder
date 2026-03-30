@@ -14,12 +14,16 @@ generateAllTools(context: Context): Record<string, Tool>
 generateVFSTools(context: Context, vfs: VFSContext): Record<string, Tool>
 ```
 
-In the Edge Function:
+`VFSContext` is constructed externally by the Edge Function bootstrap (which has the Supabase client, Redis client, and source provider). It is passed fully formed to `generateVFSTools`. The Edge Function determines `agentHasVFS` from the dispatch payload's `vfs` field (present when Spec 5's dispatch flow includes VFS config):
 
 ```typescript
+const vfsContext = payload.vfs
+  ? new VFSContext({ ...payload.vfs, supabase, redis, sourceProvider })
+  : undefined;
+
 const tools: Record<string, Tool> = {
   ...generateAllTools(context),
-  ...(agentHasVFS ? generateVFSTools(context, vfsContext) : {}),
+  ...(vfsContext ? generateVFSTools(context, vfsContext) : {}),
 };
 ```
 
@@ -29,6 +33,7 @@ const tools: Record<string, Tool> = {
 
 ```
 packages/api/src/vfs/tools/
+  toolResponse.ts   — toToolSuccess/toToolError helpers for VFS structured responses
   readFile.ts
   listDirectory.ts
   findFiles.ts
@@ -77,6 +82,17 @@ interface VFSToolErrorResponse {
 }
 ```
 
+VFS tools do **not** use the existing `createSuccessResult(string)` / `createErrorResult(string)` helpers from `abstractToolExecuter.ts`. Those helpers wrap results as `{ result: string }`. VFS tools return structured objects (with typed fields like `path`, `content`, `total_lines`). A new `toolResponse.ts` module provides:
+
+```typescript
+function toToolSuccess<T>(toolCallId: string, toolName: string, data: T): ToolResponsePrompt;
+function toToolError(toolCallId: string, toolName: string, error: VFSError): ToolResponsePrompt;
+```
+
+These set `result: { result: data }` with the structured object, compatible with the AI SDK's tool response format.
+
+**Wire format uses `snake_case`** for all tool response fields (e.g., `size_bytes`, `total_lines`, `start_line`). The tool layer maps from internal camelCase types (like `TreeNode.sizeBytes`) to snake_case in the response.
+
 ## Tool Specifications
 
 ### Read Tools
@@ -86,7 +102,7 @@ interface VFSToolErrorResponse {
 Parameters: `path` (required), `start_line` (optional), `end_line` (optional).
 
 - Returns full file or requested range with `total_lines` and `token_estimate` (chars / 4).
-- Hard ceiling: if requested content exceeds 10,000 lines, returns `TOO_LARGE` error with `total_lines` and `token_estimate` in the error response. No truncation.
+- Hard ceiling: if requested content exceeds `readLineCeiling` (default 10,000 lines), returns `TOO_LARGE` error with `total_lines` and `token_estimate` in the error details. No truncation.
 - Binary files return `BINARY_FILE` error.
 
 #### 2. list_directory
@@ -103,7 +119,7 @@ Parameters: `path` (optional, default root), `recursive` (optional, default fals
 Parameters: `pattern` (required, glob), `path` (optional), `exclude` (optional, glob array), `max_results` (optional, default 100).
 
 - Standard glob syntax: `*`, `**`, `?`.
-- Default ignores applied plus user-provided `exclude`.
+- Default ignores are applied at tree load time and cannot be overridden per-call. `exclude` adds additional patterns on top of the defaults.
 - Returns paths relative to repo root.
 - Sets `truncated: true` if matches exceed `max_results`.
 
@@ -141,7 +157,7 @@ Parameters: `path` (required, file only), `pattern` (optional), `is_regex` (opti
 
 - File-only for v1. No directory mode.
 - When `pattern` omitted, returns `total_lines` only.
-- When `pattern` provided, returns `total_lines` and `matching_lines`.
+- When `pattern` provided, returns `total_lines` and `matching_lines` (a count, not an array).
 
 #### 8. search_symbol
 
@@ -150,7 +166,7 @@ Parameters: `name` (required), `kind` (optional: "function", "class", "interface
 - Regex heuristics per language. v1 supports JS/TS, Python, Go.
 - Patterns defined in separate `symbolPatterns.ts` module.
 - Partial/prefix matching: "auth" matches "authenticateUser", "authMiddleware".
-- Returns `path`, `line`, `kind`, `signature` (full line) per match.
+- Returns `path`, `line`, `kind` (the detected specific kind, e.g. `"function"`, even when input `kind` was `"any"`), `signature` (full line) per match.
 - For unsupported languages (not JS/TS, Python, or Go), returns empty results — no error. The agent can fall back to `search_text` for those files.
 
 ### Write Tools
@@ -170,7 +186,14 @@ Parameters: `path` (required), `content` (required).
 
 #### 10. edit_file
 
-Parameters: `path` (required), `edits` (optional, Edit[]), `full_content` (optional, string).
+Parameters: `path` (required), `edits` (optional, `Edit[]`), `full_content` (optional, string).
+
+```typescript
+interface Edit {
+  old_text: string;  // must match exactly once in the file
+  new_text: string;  // replacement text; empty string to delete the matched section
+}
+```
 
 - **Hard mutual exclusivity:** if both `edits` and `full_content` provided, `INVALID_PARAMETER` error. If neither, `INVALID_PARAMETER` error.
 - **Atomic edits:** edits applied sequentially on a copy. If any edit fails, file is unchanged. Error says which edit failed and why.
@@ -183,7 +206,7 @@ Parameters: `path` (required), `edits` (optional, Edit[]), `full_content` (optio
 Parameters: `path` (required).
 
 - File only — no recursive directory deletion in v1.
-- Returns `deleted: true`.
+- Returns `path` and `deleted: true`.
 
 #### 12. rename_file
 
@@ -192,3 +215,4 @@ Parameters: `old_path` (required), `new_path` (required).
 - Fails if `new_path` already exists (`ALREADY_EXISTS`).
 - Auto-creates intermediate directories.
 - Both rename (same dir) and move (different dir) supported.
+- Returns `old_path` and `new_path`.

@@ -16,7 +16,7 @@ packages/api/src/vfs/
 ```typescript
 class GitHubSourceProvider implements SourceProvider {
   readonly commitSha: string;
-  readonly rateLimit: RateLimitInfo;
+  rateLimit: RateLimitInfo;  // fields mutated in-place after every API call
 
   constructor(config: {
     token: string;        // installation access token (1-hour lifetime)
@@ -48,8 +48,8 @@ Uses the GitHub Git Trees API:
 
 1. **Try recursive:** `GET /repos/{owner}/{repo}/git/trees/{commitSha}?recursive=1`.
 2. **Check truncation:** if response has `truncated: true`, fall back to non-recursive tree walking.
-3. **Recursive fallback:** fetch root tree non-recursively, then for each subtree SHA, fetch its children recursively. Walk until the full tree is built.
-4. **Map response** to `TreeEntry[]`: capture `path`, `type` (blob -> "file", tree -> "directory"), `size` (for files), and `sha` (blob SHA for files, tree SHA for directories).
+3. **Recursive fallback:** breadth-first walk — fetch root tree without `?recursive=1`, then for each entry of type `tree`, make a non-recursive API call for that subtree's SHA. Repeat until no unvisited subtree SHAs remain. Max depth: 20 levels (throws `VFSError(TOO_LARGE)` if exceeded).
+4. **Map response** to `TreeEntry[]`: capture `path`, `type` (blob -> "file", tree -> "directory"), GitHub `size` field -> `TreeEntry.sizeBytes`, and `sha` (blob SHA for files, tree SHA for directories).
 5. **Update `rateLimit`** from response headers after every API call.
 
 The recursive fallback consumes more rate limit budget (one call per directory vs. one call total). The rate limit tracking in VFSContext naturally surfaces this.
@@ -65,7 +65,7 @@ Uses the Git Blobs API with raw media type:
 
 The blob SHA comes from the tree (captured in `TreeEntry.sha` during `fetchTree`). This avoids path resolution on GitHub's side and guarantees we're reading the exact blob at the pinned commit.
 
-The provider maintains an internal `Map<string, string>` (path -> blob SHA) built during `fetchTree()`. When `fetchFileContent(path)` is called, it looks up the SHA from this internal map. This keeps the `SourceProvider` interface clean (path-based, provider-agnostic) while allowing the GitHub implementation to use the efficient Blobs API. If `fetchFileContent` is called before `fetchTree`, or for a path not in the tree, it throws `FILE_NOT_FOUND`.
+The provider maintains an internal `Map<string, string>` (path -> blob SHA) built during `fetchTree()`. When `fetchFileContent(path)` is called, it looks up the SHA from this internal map. This keeps the `SourceProvider` interface clean (path-based, provider-agnostic) while allowing the GitHub implementation to use the efficient Blobs API. If `fetchFileContent` is called before `fetchTree`, it throws `VFSError(INVALID_PARAMETER, "fetchTree() must be called before fetchFileContent()")`. If called for a path not in the tree, it throws `VFSError(FILE_NOT_FOUND)`.
 
 ## Rate Limit Tracking
 
@@ -73,7 +73,7 @@ The provider maintains an internal `Map<string, string>` (path -> blob SHA) buil
 rateLimit: RateLimitInfo = {
   remaining: Infinity,  // initial state, updated after first API call
   resetAt: new Date(0),
-  limit: 0,
+  limit: Infinity,  // "not yet determined" — updated after first API call
 };
 ```
 
@@ -92,6 +92,7 @@ VFSContext checks `rateLimit.remaining` before calling source provider methods. 
 
 - Per installation: base 5,000 requests/hour.
 - Scales with org size: +50 req/hour per user (if >20 users), +50 req/hour per repo (if >20 repos).
+- Maximum cap: 12,500 req/hour for standard installations. GitHub Enterprise Cloud organizations have a fixed limit of 15,000 req/hour regardless of scaling.
 - Different org installations have independent budgets.
 - The threshold of 100 remaining is configurable via `VFSContextConfig.rateLimitThreshold`.
 
@@ -102,9 +103,11 @@ GitHub API errors are mapped to `VFSError`:
 | GitHub status | VFSError code | Message |
 |---|---|---|
 | 401 | PERMISSION_DENIED | "GitHub access has been revoked. Please reconnect your repository." |
-| 403 (rate limit) | RATE_LIMITED | "GitHub API rate limit exceeded. Resets in N minutes." |
+| 403 + `x-ratelimit-remaining: 0` | RATE_LIMITED | "GitHub API rate limit exceeded. Resets in N minutes." |
+| 403 (other) | PERMISSION_DENIED | "GitHub App may be missing required permissions for this operation." |
 | 404 | FILE_NOT_FOUND | "File not found in repository at commit {sha}." |
-| 5xx | (generic) | "GitHub API error: {status} {message}" |
+| 422 | INVALID_PARAMETER | "Invalid or missing commit SHA: {sha}. Ensure the commit exists." |
+| 5xx | PROVIDER_ERROR | "GitHub API error: {status} {message}" |
 
 ## HTTP Client
 
@@ -114,7 +117,7 @@ Use the Deno-native `fetch` API (available in Edge Functions). No external HTTP 
 Authorization: Bearer {token}
 Accept: application/vnd.github+json  (for tree/metadata calls)
 Accept: application/vnd.github.raw+json  (for blob content calls)
-X-GitHub-Api-Version: 2022-11-28
+X-GitHub-Api-Version: 2022-11-28  (or latest stable at implementation time)
 ```
 
 ### Timeout and retry
@@ -124,6 +127,6 @@ X-GitHub-Api-Version: 2022-11-28
 - Retry: one retry on 5xx or network error, with 1-second delay. No retry on 4xx (client errors are deterministic).
 - If both attempts fail, throw a `VFSError` with the HTTP status and message.
 
-### Recursive fallback depth limit
+### Runtime environment note
 
-The non-recursive tree walking fallback (for repos with >100K entries) has a maximum depth of 20 levels. If exceeded, the tree is returned with `truncated: true` at the depth boundary. This prevents unbounded API calls on pathologically deep repos.
+The code lives in `packages/api/src/vfs/providers/` and runs inside the Supabase Edge Function (Deno). `fetch` is globally available in both Deno and Node.js 18+ (used for unit tests with Jest).

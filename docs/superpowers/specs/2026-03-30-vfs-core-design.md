@@ -43,10 +43,12 @@ packages/api/src/vfs/
 
 ## SourceProvider Interface
 
+Defined in `types.ts` (not `sourceProvider.ts`) alongside `TreeEntry`, `RateLimitInfo`, and all other shared types. `sourceProvider.ts` re-exports the interface for discoverability.
+
 ```typescript
 interface SourceProvider {
   readonly commitSha: string;
-  readonly rateLimit: RateLimitInfo;
+  rateLimit: RateLimitInfo;
   fetchTree(): Promise<TreeEntry[]>;
   fetchFileContent(path: string): Promise<Uint8Array>;
 }
@@ -66,7 +68,7 @@ interface RateLimitInfo {
 ```
 
 - `commitSha` is readonly — set at construction, immutable for the session.
-- `rateLimit` is updated in-place after every API call by the implementation.
+- `rateLimit` is **not** readonly. The implementation mutates its fields in-place (`this.rateLimit.remaining = ...`) after every API call. Consumers read the fields but never replace the object reference.
 - `fetchTree()` returns a flat list. `TreeIndex` builds the nested structure.
 - `fetchFileContent(path)` returns `Uint8Array`. The implementation maintains an internal path-to-SHA map (built during `fetchTree()`) to resolve paths to blob SHAs for the Git Blobs API. The interface uses `path` (not SHA) to stay provider-agnostic. Binary detection happens in the VFS layer, not the provider.
 - No `fetchFileMetadata` — metadata is derived from tree index (size) + extension-to-language utility + cached content (line count).
@@ -86,7 +88,7 @@ class MemoryLayer {
   get(path: string): CachedFile | undefined;
   set(path: string, content: string, updatedAt: number): void;
   delete(path: string): boolean;
-  rename(oldPath: string, newPath: string): boolean;
+  rename(oldPath: string, newPath: string): boolean;  // false if oldPath not found; overwrites newPath if exists
   has(path: string): boolean;
   paths(): string[];
   entries(): IterableIterator<[string, CachedFile]>;
@@ -111,8 +113,8 @@ class StorageLayer {
 }
 ```
 
-- Session prefix: `vfs/{tenantSlug}/{agentSlug}/{userId}/{sessionId}`.
-- `rename` is copy-then-delete. If delete fails after copy, a duplicate exists. Acceptable for v1 — documented, not worth solving now.
+- Session prefix: `{tenantSlug}/{agentSlug}/{userId}/{sessionId}` (no `vfs/` — the bucket name is already `vfs`, set via `supabase.storage.from('vfs')`).
+- `rename` uses `supabase.storage.from('vfs').copy(src, dest)` followed by `.remove([src])`. If copy succeeds but remove fails, a stale duplicate exists at the old path. Acceptable for v1 — not atomic, documented.
 - Supabase client uses anon key + user JWT for RLS-scoped access.
 - `deleteAll()` is for the cleanup Edge Function only.
 
@@ -134,7 +136,7 @@ class DirtySetClient {
 ```
 
 - Every `markDirty` also runs `EXPIRE` to reset the 15-minute TTL. Pipelined in one round-trip.
-- If Redis is unreachable: `getTimestamp` returns current timestamp (forces re-fetch from Storage), `markDirty` silently no-ops. Redis is an optimization, not a requirement.
+- If Redis is unreachable: `getTimestamp` returns current timestamp (forces re-fetch from Storage), `getTreeTimestamp` returns `null` (trusts local tree — avoids Storage hammering on every tool call during Redis outage), `markDirty` silently no-ops. Redis is an optimization, not a requirement.
 
 ## TreeIndex
 
@@ -206,10 +208,10 @@ class SessionTracker {
 
 ```sql
 CREATE TABLE vfs_sessions (
-  session_key      TEXT PRIMARY KEY,
+  session_key      TEXT PRIMARY KEY,  -- format: '{tenantSlug}/{agentSlug}/{userId}/{sessionId}'
   tenant_slug      TEXT NOT NULL,
   agent_slug       TEXT NOT NULL,
-  user_id          TEXT NOT NULL,
+  user_id          UUID NOT NULL,
   session_id       TEXT NOT NULL,
   commit_sha       TEXT NOT NULL,
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -219,6 +221,8 @@ CREATE TABLE vfs_sessions (
 CREATE INDEX idx_vfs_sessions_last_accessed ON vfs_sessions (last_accessed_at);
 ```
 
+- `session_key` is the composite `{tenantSlug}/{agentSlug}/{userId}/{sessionId}`. This matches the Storage `sessionPrefix` so the cleanup function can derive the Storage path directly.
+- `user_id` is `UUID` matching `auth.users.id` — consistent with the rest of the schema.
 - `initialize()` runs once at VFSContext creation. Uses `INSERT ... ON CONFLICT DO UPDATE SET last_accessed_at = now()`. Idempotent.
 - `touch()` called on every tool call, throttled to one DB write per 60 seconds.
 
@@ -229,8 +233,8 @@ ALTER TABLE vfs_sessions ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "vfs_sessions_user" ON vfs_sessions
 FOR ALL
-USING (user_id = auth.uid()::text)
-WITH CHECK (user_id = auth.uid()::text);
+USING (user_id = auth.uid())
+WITH CHECK (user_id = auth.uid());
 ```
 
 ## PathValidator
@@ -256,9 +260,9 @@ function validateWritePath(path: string, config?: PathValidationConfig): void;
 
 ```typescript
 interface VFSContextConfig {
-  tenantSlug: string;
-  agentSlug: string;
-  userId: string;
+  tenantSlug: string;       // org slug — resolved by the backend before dispatch (not from Context.tenantID)
+  agentSlug: string;        // agent slug — resolved by the backend before dispatch
+  userId: string;           // auth.uid() as string — used for Storage paths and session keys
   sessionId: string;
   commitSha: string;
   sourceProvider: SourceProvider;
@@ -343,15 +347,27 @@ Same coherence pattern as files — no special-casing:
 1. Ensure tree fresh.
 2. Filter tree entries by `path` scope and `include_glob`.
 3. If candidate count exceeds `searchCandidateLimit` (default 200), throw `VFSError(TOO_LARGE)`.
-4. Batch-check dirty set via `dirtySet.getTimestamps(paths)` for candidates in memory.
+4. Batch-check dirty set via `dirtySet.getTimestamps(paths)` for candidates already in `memoryLayer` (skip paths not in memory — they'll be fetched fresh from Storage/source anyway).
 5. For each candidate: resolve through read path (memory -> storage -> source). Use concurrency pool of 10.
 6. Search content (literal or regex). Collect matches, stop at `max_results`.
 7. Return results with `truncated: true` if more matches exist.
 
-### editFile — mutual exclusivity
+### editFile
 
-If both `edits` and `fullContent` are provided: `VFSError(INVALID_PARAMETER, "Provide either edits or full_content, not both")`.
-If neither: `VFSError(INVALID_PARAMETER, "Provide either edits or full_content")`.
+```typescript
+interface Edit {
+  old_text: string;  // must match exactly once in the file
+  new_text: string;  // replacement; empty string to delete
+}
+```
+
+**Mutual exclusivity:** if both `edits` and `fullContent` are provided: `VFSError(INVALID_PARAMETER, "Provide either edits or full_content, not both")`. If neither: `VFSError(INVALID_PARAMETER, "Provide either edits or full_content")`.
+
+**Atomicity:** edits are applied sequentially on a copy of the content. If any edit fails (`MATCH_NOT_FOUND` or `AMBIGUOUS_MATCH`), the file is unchanged. Error says which edit index failed and why.
+
+### countLines
+
+Follows the same read path as `readFile` (memory -> dirty check -> Storage -> source) but **bypasses `readLineCeiling`** — counting lines in a large file should always succeed. Returns the count, not the content.
 
 ## Error Handling
 
@@ -367,6 +383,7 @@ enum VFSErrorCode {
   TOO_LARGE = 'TOO_LARGE',
   INVALID_PARAMETER = 'INVALID_PARAMETER',
   RATE_LIMITED = 'RATE_LIMITED',
+  PROVIDER_ERROR = 'PROVIDER_ERROR',  // source provider 5xx or transient errors
 }
 
 class VFSError extends Error {
@@ -437,7 +454,7 @@ SELECT cron.schedule(
     BEGIN
       SELECT count(*) INTO stale_count
       FROM vfs_sessions
-      WHERE last_accessed_at < now() - interval '15 minutes';
+      WHERE last_accessed_at < now() - interval '30 minutes';
 
       IF stale_count > 0 THEN
         PERFORM net.http_post(
@@ -458,9 +475,9 @@ The cron runs every 15 minutes inside Postgres (free). Only invokes the Edge Fun
 
 ### vfs-cleanup Edge Function
 
-1. Query stale sessions: `SELECT session_key FROM vfs_sessions WHERE last_accessed_at < now() - interval '15 minutes'`.
+1. Query stale sessions: `SELECT session_key FROM vfs_sessions WHERE last_accessed_at < now() - interval '30 minutes'`.
 2. For each stale session (sequentially):
-   a. Delete Storage objects under `vfs/{session_key}/` (Storage first).
+   a. Delete Storage objects under `{session_key}/` in the `vfs` bucket (Storage first).
    b. Delete Redis dirty set key `vfs:dirty:{session_key}` (Redis second).
    c. Delete the `vfs_sessions` row (DB row last).
 3. Deletion order is critical: Storage -> Redis -> DB row. The row is the anchor — if the function crashes mid-way, the row survives and the next cycle retries.

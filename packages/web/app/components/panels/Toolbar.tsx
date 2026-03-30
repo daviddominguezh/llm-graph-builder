@@ -307,7 +307,7 @@ export function Toolbar(props: ToolbarProps) {
           hideWorkflowActions={props.hideWorkflowActions}
         />
       </div>
-      <header className="absolute z-1 flex items-stretch justify-center gap-1 rounded-lg border bg-background p-1 top-1 shadow-lg">
+      <header className={`absolute z-1 flex items-stretch justify-center gap-1 rounded-lg border bg-background p-1 top-1 ${props.hideWorkflowActions === true ? '' : 'shadow-lg'}`}>
         <PlayButton
           simulationActive={simulationActive ?? false}
           onPlay={onPlay}

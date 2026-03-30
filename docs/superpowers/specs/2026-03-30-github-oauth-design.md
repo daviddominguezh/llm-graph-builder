@@ -27,14 +27,16 @@ Set in backend `.env` and Edge Function `.env`. Same pattern as existing `EDGE_F
 ## OAuth Flow
 
 1. **User clicks "Connect GitHub"** in the agent editor (for a specific tenant).
-2. **Redirect to GitHub** — `https://github.com/apps/{app-name}/installations/new` with `state` parameter containing tenant info.
-3. **User authorizes** — chooses which repos to grant access to (all or selected).
-4. **GitHub redirects to callback** — Next.js API route `/api/auth/github/callback` with `code` and `installation_id`.
-5. **Next.js calls backend** — `POST /github/installations` with `code`, `installation_id`, user session.
-6. **Backend exchanges code** — calls GitHub API to validate the installation and get details.
-7. **Backend stores installation** — saves to `github_installations` table (see Data Model).
-8. **Backend fetches repo list** — calls `GET /user/installations/{installation_id}/repositories` and stores.
-9. **Redirect back** — user returns to agent editor, sees their connected repos.
+2. **Generate CSRF state** — backend generates a cryptographically random nonce, stores it in a short-lived server-side session (or signs it as a JWT with a secret + org ID + expiry), and includes it as the `state` parameter.
+3. **Redirect to GitHub** — `https://github.com/apps/{app-name}/installations/new?state={state}`.
+4. **User authorizes** — chooses which repos to grant access to (all or selected).
+5. **GitHub redirects to callback** — Next.js API route `/api/auth/github/callback` with `code`, `installation_id`, and `state`.
+6. **Next.js validates state** — verifies the returned `state` matches the stored nonce (or validates the signed JWT). Rejects the request if mismatched (CSRF protection).
+7. **Next.js calls backend** — `POST /github/installations` with `installation_id`, user session. The `code` is not needed — the `installation_id` is sufficient to call the Installations API using the App JWT (see Token Minting).
+8. **Backend fetches installation details** — calls `GET /app/installations/{installation_id}` using an App JWT to validate the installation and get account info.
+9. **Backend stores installation** — saves to `github_installations` table (see Data Model).
+10. **Backend fetches repo list** — calls `GET /user/installations/{installation_id}/repositories` and stores in `github_installation_repos`.
+11. **Redirect back** — user returns to agent editor, sees their connected repos.
 
 ## Webhook Handling
 
@@ -105,14 +107,14 @@ ALTER TABLE github_installation_repos ENABLE ROW LEVEL SECURITY;
 
 -- Users can read installations for orgs they belong to
 CREATE POLICY "github_installations_read" ON github_installations
-FOR SELECT USING (is_org_member(org_id, auth.uid()));
+FOR SELECT USING (public.is_org_member(org_id));
 
 -- Repos readable through their installation's org
 CREATE POLICY "github_repos_read" ON github_installation_repos
 FOR SELECT USING (
   installation_id IN (
     SELECT gi.installation_id FROM github_installations gi
-    WHERE is_org_member(gi.org_id, auth.uid())
+    WHERE public.is_org_member(gi.org_id)
   )
 );
 ```
@@ -122,9 +124,18 @@ Note: write operations on these tables go through the backend (service role), no
 ### updated_at trigger
 
 ```sql
+CREATE OR REPLACE FUNCTION update_github_installations_updated_at()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
+AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
 CREATE TRIGGER update_github_installations_updated_at
   BEFORE UPDATE ON github_installations
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  FOR EACH ROW EXECUTE FUNCTION update_github_installations_updated_at();
 ```
 
 ## Token Minting at Runtime
