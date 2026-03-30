@@ -26,13 +26,13 @@ export function SystemPromptField({ value, onChange }: SystemPromptFieldProps) {
   );
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex min-h-0 flex-1 flex-col gap-1.5">
       <Label className="text-xs font-medium">{t('systemPrompt')}</Label>
       <Textarea
         defaultValue={value}
         onChange={handleChange}
         placeholder={t('systemPromptPlaceholder')}
-        className="min-h-48 resize-y text-sm"
+        className="min-h-0 flex-1 resize-none text-sm"
       />
     </div>
   );

@@ -26,9 +26,11 @@ export function AgentEditor({ config, pushOperation }: AgentEditorProps) {
   const actions = useAgentEditorActions(state, pushOperation);
 
   return (
-    <div className="flex h-full w-full items-start justify-center overflow-y-auto p-6">
-      <div className="flex w-full max-w-2xl flex-col gap-6 pb-24">
+    <div className="flex h-full w-full">
+      <div className="flex min-w-0 flex-[3] flex-col p-4">
         <SystemPromptField value={state.systemPrompt} onChange={actions.handleSystemPromptChange} />
+      </div>
+      <div className="flex min-w-0 flex-[2] flex-col gap-6 overflow-y-auto border-l p-4">
         <ContextItemsList
           items={state.contextItems}
           onInsert={actions.handleInsertItem}
