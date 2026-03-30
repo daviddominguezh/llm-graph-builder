@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "@upstash/redis": "npm:@upstash/redis",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js"
+  }
+}
