@@ -1,11 +1,5 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { useCallback, useRef, useState } from 'react';
-import TextareaAutosize from 'react-textarea-autosize';
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,6 +10,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useCallback, useRef, useState } from 'react';
+import TextareaAutosize from 'react-textarea-autosize';
 
 const DEBOUNCE_MS = 500;
 
@@ -51,12 +50,13 @@ export function ContextItemRow({ sortOrder, content, onContentChange, onDelete }
       <span className="flex size-5 shrink-0 items-center justify-center rounded text-[10px] font-medium text-primary/70 bg-primary/10">
         {sortOrder + 1}
       </span>
+      <div className="w-[1px] h-full py-0.5"><div className='w-full h-full bg-border'></div></div>
       <TextareaAutosize
         defaultValue={content}
         onChange={handleChange}
         placeholder={t('contextItemPlaceholder')}
         minRows={1}
-        className="flex-1 resize-none rounded-md border bg-transparent px-3 py-1.5 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        className="flex-1 resize-none rounded-md border bg-transparent px-0 py-1.5 text-xs placeholder:text-muted-foreground focus-visible:outline-none border-none ring-0 outline-none"
       />
       <Button
         variant="ghost"
@@ -75,7 +75,9 @@ export function ContextItemRow({ sortOrder, content, onContentChange, onDelete }
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('deleteContextItemCancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirmed}>{t('deleteContextItemConfirm')}</AlertDialogAction>
+            <AlertDialogAction onClick={handleDeleteConfirmed}>
+              {t('deleteContextItemConfirm')}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
