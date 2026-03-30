@@ -74,7 +74,7 @@ function RepoItem({ slug, selected, onClick }: { slug: string; selected: boolean
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors ${
+      className={`flex w-full items-center gap-0 rounded-md px-2 py-1.5 text-left text-xs transition-colors ${
         selected ? 'bg-primary/10 text-primary' : 'hover:bg-muted'
       }`}
     >
@@ -109,7 +109,7 @@ function RepoPicker({ search, onSearchChange, selectedSlug, onSelect }: {
           className="h-7 pl-7 text-xs"
         />
       </div>
-      <div className="max-h-48 overflow-y-auto rounded-md border">
+      <div className="min-h-48 max-h-48 overflow-y-auto rounded-md border p-1">
         {filtered.map((slug) => (
           <RepoItem key={slug} slug={slug} selected={slug === selectedSlug} onClick={() => onSelect(slug)} />
         ))}
