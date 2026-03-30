@@ -210,6 +210,10 @@ const SseEventSchema = z.object({
   structuredOutput: StructuredOutputSchema.optional(),
   reasoning: z.string().optional(),
   error: z.string().optional(),
+  // Agent-specific fields
+  step: z.number().optional(),
+  responseText: z.string().optional(),
+  totalSteps: z.number().optional(),
 });
 
 type SseEvent = z.infer<typeof SseEventSchema>;
@@ -249,11 +253,34 @@ function handleAgentResponse(event: SseEvent, callbacks: StreamCallbacks): void 
   }
 }
 
+function handleStepStarted(event: SseEvent, callbacks: StreamCallbacks): void {
+  if (event.step !== undefined) {
+    callbacks.onNodeVisited?.(`step-${String(event.step)}`);
+  }
+}
+
+function handleStepProcessed(event: SseEvent, callbacks: StreamCallbacks): void {
+  if (event.step !== undefined) {
+    callbacks.onNodeProcessed?.({
+      nodeId: `step-${String(event.step)}`,
+      text: event.responseText ?? '',
+      output: undefined,
+      toolCalls: event.toolCalls ?? [],
+      tokens: event.tokens ?? { input: 0, output: 0, cached: 0 },
+      durationMs: event.durationMs,
+    });
+  }
+}
+
 function dispatchSseEvent(event: SseEvent, callbacks: StreamCallbacks): void {
   if (event.type === 'node_visited') {
     handleNodeVisited(event, callbacks);
   } else if (event.type === 'node_processed') {
     handleNodeProcessed(event, callbacks);
+  } else if (event.type === 'step_started') {
+    handleStepStarted(event, callbacks);
+  } else if (event.type === 'step_processed') {
+    handleStepProcessed(event, callbacks);
   } else if (event.type === 'agent_response') {
     handleAgentResponse(event, callbacks);
   } else if (event.type === 'error' && event.message !== undefined) {

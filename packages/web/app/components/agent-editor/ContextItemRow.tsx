@@ -47,7 +47,7 @@ export function ContextItemRow({ sortOrder, content, onContentChange, onDelete }
   }, [sortOrder, onDelete]);
 
   return (
-    <div className="group relative flex items-center gap-1.5 rounded-md border p-2 animate-in fade-in slide-in-from-top-1 duration-200">
+    <div className="group relative flex items-center gap-1.5 p-1 px-0 animate-in fade-in slide-in-from-top-1 duration-200">
       <span className="flex size-5 shrink-0 items-center justify-center rounded text-[10px] font-medium text-primary/70 bg-primary/10">
         {sortOrder + 1}
       </span>
@@ -61,7 +61,7 @@ export function ContextItemRow({ sortOrder, content, onContentChange, onDelete }
       <Button
         variant="ghost"
         size="sm"
-        className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
+        className="h-7 w-7 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
         onClick={() => setConfirmOpen(true)}
         aria-label={t('removeContextItem')}
       >

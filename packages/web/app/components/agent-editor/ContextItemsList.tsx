@@ -2,9 +2,11 @@
 
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { MessageSquare, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
+import React from 'react';
 
 import { ContextItemRow } from './ContextItemRow';
 
@@ -51,14 +53,17 @@ export function ContextItemsList({ items, onInsert, onUpdate, onDelete }: Contex
         <EmptyState title={t('emptyContextItems')} description={t('contextItemsDescription')} />
       )}
       <div className="flex flex-col gap-1.5">
-        {items.map((item) => (
-          <ContextItemRow
-            key={`${String(item.sortOrder)}-${item.content.slice(0, 10)}`}
-            sortOrder={item.sortOrder}
-            content={item.content}
-            onContentChange={onUpdate}
-            onDelete={onDelete}
-          />
+        {items.map((item, i) => (
+          <React.Fragment key={`${String(item.sortOrder)}-${item.content.slice(0, 10)}`}>
+            <ContextItemRow
+              key={`${String(item.sortOrder)}-${item.content.slice(0, 10)}`}
+              sortOrder={item.sortOrder}
+              content={item.content}
+              onContentChange={onUpdate}
+              onDelete={onDelete}
+            />
+            {i < items.length - 1 && <Separator />}
+          </React.Fragment>
         ))}
       </div>
     </div>

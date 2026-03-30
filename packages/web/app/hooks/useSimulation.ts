@@ -88,7 +88,7 @@ function useSimulationStart(deps: SimulationStartDeps & { appType?: string }): (
   return useCallback(() => {
     setters.saveSnapshot({ nodes: [...allNodes], edges: [...edges] });
     setters.setActive(true);
-    setters.setCurrentNode(START_NODE_ID);
+    setters.setCurrentNode(appType === 'agent' ? 'agent' : START_NODE_ID);
     setters.setMessages([]);
     setters.setNodeResults([]);
     setters.setLastUserText('');
