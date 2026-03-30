@@ -177,6 +177,18 @@
     "extendedThinking": "Extended thinking",
     "extendedThinkingDescription": "Think longer for complex tasks"
   },
+  "agentEditor": {
+    "systemPrompt": "System prompt",
+    "systemPromptPlaceholder": "Enter the system prompt for this agent...",
+    "contextItems": "Context items",
+    "addContextItem": "Add item",
+    "contextItemPlaceholder": "Enter context...",
+    "maxSteps": "Max steps",
+    "maxStepsPlaceholder": "Unlimited",
+    "maxStepsDescription": "Maximum number of tool-call loops before stopping. Leave empty for unlimited.",
+    "emptyContextItems": "No context items yet. Add one to provide additional context to the agent.",
+    "deleteContextItem": "Remove"
+  },
   "edgePanel": {
     "parameters": "Parameters:",
     "agentInferred": "Agent inferred",
