@@ -46,7 +46,7 @@ function SkillPreviewDialog({ skill, open, onOpenChange }: { skill: SkillEntry; 
             <p className="text-xs text-muted-foreground">{skill.description}</p>
           )}
         </DialogHeader>
-        <div className="markdown-content flex-1 overflow-y-auto whitespace-break-spaces text-xs leading-relaxed">
+        <div className="markdown-content flex-1 overflow-y-auto text-xs leading-relaxed">
           <MarkdownHooks remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeStarryNight]}>
             {body}
           </MarkdownHooks>

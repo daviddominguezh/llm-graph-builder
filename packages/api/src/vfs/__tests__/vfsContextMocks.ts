@@ -12,6 +12,7 @@ import type {
 
 const HELLO_SIZE = 100;
 const RATE_LIMIT_DEFAULT = 5000;
+const REDIS_OK = 1;
 
 // ─── Redis ───────────────────────────────────────────────────────────────────
 
@@ -32,9 +33,9 @@ export function makeRedis(): jest.Mocked<RedisClient> {
   return {
     hget: jest.fn<RedisClient['hget']>().mockResolvedValue(null),
     hmget: jest.fn<RedisClient['hmget']>().mockResolvedValue([]),
-    hset: jest.fn<RedisClient['hset']>().mockResolvedValue(1),
-    expire: jest.fn<RedisClient['expire']>().mockResolvedValue(1),
-    del: jest.fn<RedisClient['del']>().mockResolvedValue(1),
+    hset: jest.fn<RedisClient['hset']>().mockResolvedValue(REDIS_OK),
+    expire: jest.fn<RedisClient['expire']>().mockResolvedValue(REDIS_OK),
+    del: jest.fn<RedisClient['del']>().mockResolvedValue(REDIS_OK),
     pipeline: jest.fn<RedisClient['pipeline']>().mockReturnValue(pipeline),
   };
 }
@@ -42,26 +43,32 @@ export function makeRedis(): jest.Mocked<RedisClient> {
 // ─── Supabase Query Builder ──────────────────────────────────────────────────
 
 function makeQueryBuilder(): SupabaseQueryBuilder {
-  const qb: Record<string, unknown> = {};
-  const self = qb as unknown as SupabaseQueryBuilder;
-  qb.upsert = jest.fn<SupabaseQueryBuilder['upsert']>().mockReturnValue(self);
-  qb.update = jest.fn<SupabaseQueryBuilder['update']>().mockReturnValue(self);
-  qb.delete = jest.fn<SupabaseQueryBuilder['delete']>().mockReturnValue(self);
-  qb.eq = jest.fn<SupabaseQueryBuilder['eq']>().mockReturnValue(self);
-  qb.select = jest.fn<SupabaseQueryBuilder['select']>().mockReturnValue(self);
-  qb.lt = jest.fn<SupabaseQueryBuilder['lt']>().mockReturnValue(self);
-  qb.single = jest.fn<SupabaseQueryBuilder['single']>().mockReturnValue(self);
-  const thenFn: SupabaseQueryBuilder['then'] = (onfulfilled) =>
-    Promise.resolve(onfulfilled({ data: {}, error: null }));
-  qb.then = thenFn;
-  return self;
+  // Build chainable QB using a partial record, then finalize as the full type
+  const partial: Partial<SupabaseQueryBuilder> = {};
+
+  const chainMethods: Array<keyof SupabaseQueryBuilder> = [
+    'upsert', 'update', 'delete', 'eq', 'select', 'lt', 'single',
+  ];
+
+  for (const method of chainMethods) {
+    (partial[method] as unknown) = jest.fn().mockReturnValue(partial);
+  }
+
+  const thenFn: SupabaseQueryBuilder['then'] = async (onfulfilled) =>
+    onfulfilled({ data: {}, error: null });
+  partial.then = thenFn;
+
+  return partial as SupabaseQueryBuilder;
 }
 
 // ─── Supabase Storage Bucket ─────────────────────────────────────────────────
 
 export function makeBucket(): jest.Mocked<StorageBucketApi> {
   return {
-    upload: jest.fn<StorageBucketApi['upload']>().mockResolvedValue({ data: { name: 'ok', id: '1' }, error: null }),
+    upload: jest.fn<StorageBucketApi['upload']>().mockResolvedValue({
+      data: { name: 'ok', id: 'id-1' },
+      error: null,
+    }),
     download: jest.fn<StorageBucketApi['download']>().mockResolvedValue({
       data: null,
       error: { message: 'not found', statusCode: '404' },
@@ -77,17 +84,19 @@ export function makeBucket(): jest.Mocked<StorageBucketApi> {
 export function makeSupabase(bucket: jest.Mocked<StorageBucketApi>): SupabaseVFSClient {
   const qb = makeQueryBuilder();
   const storageFrom = jest.fn<(b: string) => StorageBucketApi>().mockReturnValue(bucket);
-  const from = jest.fn<(t: string) => SupabaseQueryBuilder>().mockReturnValue(qb);
-  return { storage: { from: storageFrom }, from };
+  const tableFrom = jest.fn<(t: string) => SupabaseQueryBuilder>().mockReturnValue(qb);
+  return { storage: { from: storageFrom }, from: tableFrom };
 }
 
 // ─── Source Provider ─────────────────────────────────────────────────────────
 
-export function makeSourceProvider(
-  contentBytes: Uint8Array,
-  commitSha: string
-): jest.Mocked<Pick<SourceProvider, 'fetchTree' | 'fetchFileContent'>> & SourceProvider {
-  const provider: SourceProvider = {
+export interface MockSourceProvider extends SourceProvider {
+  fetchTree: jest.Mock<SourceProvider['fetchTree']>;
+  fetchFileContent: jest.Mock<SourceProvider['fetchFileContent']>;
+}
+
+export function makeSourceProvider(contentBytes: Uint8Array, commitSha: string): MockSourceProvider {
+  return {
     commitSha,
     rateLimit: { remaining: RATE_LIMIT_DEFAULT, resetAt: new Date(), limit: RATE_LIMIT_DEFAULT },
     fetchTree: jest.fn<SourceProvider['fetchTree']>().mockResolvedValue([
@@ -96,5 +105,4 @@ export function makeSourceProvider(
     ]),
     fetchFileContent: jest.fn<SourceProvider['fetchFileContent']>().mockResolvedValue(contentBytes),
   };
-  return provider as jest.Mocked<Pick<SourceProvider, 'fetchTree' | 'fetchFileContent'>> & SourceProvider;
 }

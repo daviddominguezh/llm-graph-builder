@@ -132,22 +132,26 @@ export function searchInContent(params: SearchParams): SearchTextMatch[] {
 
 // ─── Concurrency Pool ────────────────────────────────────────────────────────
 
-export async function runWithConcurrency<T>(tasks: Array<() => Promise<T>>, limit: number): Promise<T[]> {
-  const results: T[] = [];
-  let nextIndex = ZERO;
+async function executeTask<T>(results: T[], index: number, task: () => Promise<T>): Promise<void> {
+  results[index] = await task();
+}
 
-  async function runNext(): Promise<void> {
-    while (nextIndex < tasks.length) {
-      const currentIndex = nextIndex;
-      nextIndex += FIRST_LINE;
-      const task = tasks[currentIndex];
-      if (task !== undefined) {
-        results[currentIndex] = await task();
-      }
+async function workerLoop<T>(tasks: Array<() => Promise<T>>, results: T[], cursor: { value: number }): Promise<void> {
+  while (cursor.value < tasks.length) {
+    const idx = cursor.value;
+    cursor.value = idx + FIRST_LINE;
+    const task = tasks[idx];
+    if (task !== undefined) {
+      await executeTask(results, idx, task);
     }
   }
+}
 
-  const workers = Array.from({ length: Math.min(limit, tasks.length) }, async () => runNext());
+export async function runWithConcurrency<T>(tasks: Array<() => Promise<T>>, limit: number): Promise<T[]> {
+  const results: T[] = [];
+  const cursor = { value: ZERO };
+  const workerCount = Math.min(limit, tasks.length);
+  const workers = Array.from({ length: workerCount }, async () => workerLoop(tasks, results, cursor));
   await Promise.all(workers);
   return results;
 }

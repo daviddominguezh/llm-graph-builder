@@ -1,9 +1,10 @@
 import { describe, expect, it } from '@jest/globals';
 
-import type { SourceProvider, StorageBucketApi } from '../types.js';
+import type { RedisClient, StorageBucketApi } from '../types.js';
 import { VFSError, VFSErrorCode } from '../types.js';
 import { VFSContext } from '../vfsContext.js';
 import type { jest } from '@jest/globals';
+import type { MockSourceProvider } from './vfsContextMocks.js';
 import { makeBucket, makeRedis, makeSourceProvider, makeSupabase } from './vfsContextMocks.js';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -18,12 +19,16 @@ const HELLO_CONTENT = 'console.log("hello");';
 const HELLO_BYTES = new TextEncoder().encode(HELLO_CONTENT);
 const HELLO_SIZE = 100;
 const RATE_LIMIT_LOW = 5;
+const STALE_OFFSET = 100000;
+const LINE_CEILING_SMALL = 3;
+const BIG_LINE_COUNT = 5;
+const EXPECTED_ONE = 1;
 
 // ─── Shared Setup ────────────────────────────────────────────────────────────
 
 interface MockDeps {
-  sourceProvider: jest.Mocked<Pick<SourceProvider, 'fetchTree' | 'fetchFileContent'>> & SourceProvider;
-  redis: jest.Mocked<import('../types.js').RedisClient>;
+  sourceProvider: MockSourceProvider;
+  redis: jest.Mocked<RedisClient>;
   supabase: import('../types.js').SupabaseVFSClient;
   bucket: jest.Mocked<StorageBucketApi>;
 }
@@ -53,6 +58,13 @@ async function initCtx(deps: MockDeps): Promise<VFSContext> {
   return ctx;
 }
 
+function assertVFSError(err: unknown, expectedCode: VFSErrorCode): void {
+  expect(err).toBeInstanceOf(VFSError);
+  if (err instanceof VFSError) {
+    expect(err.code).toBe(expectedCode);
+  }
+}
+
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 function describeReadFromSource(): void {
@@ -78,20 +90,24 @@ function describeReadFromMemory(): void {
   });
 }
 
+function buildTreeJson(): string {
+  return JSON.stringify({
+    entries: [
+      { path: 'src', type: 'directory' },
+      { path: HELLO_PATH, type: 'file', sizeBytes: HELLO_SIZE, sha: 'sha1' },
+    ],
+  });
+}
+
 function describeReadStaleCache(): void {
   it('re-fetches from storage when dirty set says stale', async () => {
     const deps = createMockDeps();
     const ctx = await initCtx(deps);
     await ctx.readFile(HELLO_PATH);
-    const futureTs = String(Date.now() + 100000);
+    const futureTs = String(Date.now() + STALE_OFFSET);
     deps.redis.hget.mockResolvedValue(futureTs);
     const updatedContent = 'console.log("updated");';
-    const treeJson = JSON.stringify({
-      entries: [
-        { path: 'src', type: 'directory' },
-        { path: HELLO_PATH, type: 'file', sizeBytes: HELLO_SIZE, sha: 'sha1' },
-      ],
-    });
+    const treeJson = buildTreeJson();
     deps.bucket.download.mockImplementation((fullPath: string) => {
       const isTree = fullPath.endsWith('__tree_index.json');
       const blob = new Blob([isTree ? treeJson : updatedContent]);
@@ -109,7 +125,7 @@ function describeCreateAndRead(): void {
     const newPath = 'src/new-file.ts';
     const createResult = await ctx.createFile(newPath, 'export const x = 1;');
     expect(createResult.path).toBe(newPath);
-    expect(createResult.linesWritten).toBe(1);
+    expect(createResult.linesWritten).toBe(EXPECTED_ONE);
     const readResult = await ctx.readFile(newPath);
     expect(readResult.content).toBe('export const x = 1;');
   });
@@ -121,7 +137,7 @@ function describeEditFile(): void {
     const ctx = await initCtx(deps);
     await ctx.readFile(HELLO_PATH);
     const result = await ctx.editFile(HELLO_PATH, [{ old_text: 'hello', new_text: 'world' }]);
-    expect(result.editsApplied).toBe(1);
+    expect(result.editsApplied).toBe(EXPECTED_ONE);
     const readBack = await ctx.readFile(HELLO_PATH);
     expect(readBack.content).toContain('world');
   });
@@ -180,14 +196,14 @@ function describeRenameFile(): void {
 function describeBinaryFile(): void {
   it('throws BINARY_FILE for files with null bytes', async () => {
     const deps = createMockDeps();
-    deps.sourceProvider.fetchFileContent.mockResolvedValue(new Uint8Array([72, 101, 0, 108]));
+    const binaryBytes = new Uint8Array([0x48, 0x65, 0x00, 0x6c]);
+    deps.sourceProvider.fetchFileContent.mockResolvedValue(binaryBytes);
     const ctx = await initCtx(deps);
     try {
       await ctx.readFile(HELLO_PATH);
       expect(true).toBe(false);
     } catch (err) {
-      expect(err).toBeInstanceOf(VFSError);
-      expect((err as VFSError).code).toBe(VFSErrorCode.BINARY_FILE);
+      assertVFSError(err, VFSErrorCode.BINARY_FILE);
     }
   });
 }
@@ -195,7 +211,7 @@ function describeBinaryFile(): void {
 function describeTooLarge(): void {
   it('throws TOO_LARGE when file exceeds readLineCeiling', async () => {
     const deps = createMockDeps();
-    const big = Array.from({ length: 5 }, (_, i) => `line ${i}`).join('\n');
+    const big = Array.from({ length: BIG_LINE_COUNT }, (_, i) => `line ${i}`).join('\n');
     deps.sourceProvider.fetchFileContent.mockResolvedValue(new TextEncoder().encode(big));
     const ctx = new VFSContext({
       tenantSlug: TENANT,
@@ -206,15 +222,14 @@ function describeTooLarge(): void {
       sourceProvider: deps.sourceProvider,
       supabase: deps.supabase,
       redis: deps.redis,
-      readLineCeiling: 3,
+      readLineCeiling: LINE_CEILING_SMALL,
     });
     await ctx.initialize();
     try {
       await ctx.readFile(HELLO_PATH);
       expect(true).toBe(false);
     } catch (err) {
-      expect(err).toBeInstanceOf(VFSError);
-      expect((err as VFSError).code).toBe(VFSErrorCode.TOO_LARGE);
+      assertVFSError(err, VFSErrorCode.TOO_LARGE);
     }
   });
 }
@@ -228,8 +243,7 @@ function describeRateLimit(): void {
       await ctx.readFile(HELLO_PATH);
       expect(true).toBe(false);
     } catch (err) {
-      expect(err).toBeInstanceOf(VFSError);
-      expect((err as VFSError).code).toBe(VFSErrorCode.RATE_LIMITED);
+      assertVFSError(err, VFSErrorCode.RATE_LIMITED);
     }
   });
 }
@@ -238,8 +252,8 @@ describe('VFSContext', () => {
   describe('readFile from source', describeReadFromSource);
   describe('readFile from memory', describeReadFromMemory);
   describe('readFile stale cache', describeReadStaleCache);
-  describe('createFile + readFile round-trip', describeCreateAndRead);
-  describe('editFile with search-and-replace', describeEditFile);
+  describe('createFile + readFile', describeCreateAndRead);
+  describe('editFile', describeEditFile);
   describe('editFile atomic failure', describeEditAtomicFailure);
   describe('editFile mutual exclusivity', describeEditMutualExclusivity);
   describe('deleteFile', describeDeleteFile);

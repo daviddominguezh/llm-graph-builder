@@ -9,6 +9,7 @@ import type { ReadDeps } from './vfsContextRead.js';
 import { resolveFileContent } from './vfsContextRead.js';
 
 const FULL_CONTENT_COUNT = 1;
+const EMPTY_LENGTH = 0;
 
 export type WriteDeps = ReadDeps;
 
@@ -53,7 +54,7 @@ function assertExists(treeIndex: TreeIndex, path: string): void {
 }
 
 function validateEditParams(edits: Edit[] | undefined, fullContent: string | undefined): void {
-  const hasEdits = edits !== undefined && edits.length > 0;
+  const hasEdits = edits !== undefined && edits.length > EMPTY_LENGTH;
   const hasFull = fullContent !== undefined;
   if (hasEdits && hasFull) {
     throw new VFSError(VFSErrorCode.INVALID_PARAMETER, 'Cannot provide both edits and fullContent');
@@ -90,7 +91,7 @@ export async function editFileOp(
   const current = await resolveFileContent(deps, path);
   const newContent = resolveNewContent(current, edits, fullContent);
   await writeEditedContent(deps, path, newContent);
-  const editsApplied = edits !== undefined ? edits.length : FULL_CONTENT_COUNT;
+  const editsApplied = edits === undefined ? FULL_CONTENT_COUNT : edits.length;
   return { path, editsApplied, newLineCount: countContentLines(newContent) };
 }
 
