@@ -24,12 +24,14 @@ const LINE_CEILING_SMALL = 3;
 const BIG_LINE_COUNT = 5;
 const EXPECTED_ONE = 1;
 
+const NULL_BYTE_VALUE = 0;
+const NULL_BYTE_INDEX = 2;
+
 function makeBinaryBytes(): Uint8Array {
   const bytes = new TextEncoder().encode('Hello');
   const withNull = new Uint8Array(bytes.length);
   withNull.set(bytes);
-  const NULL_BYTE_INDEX = 2;
-  withNull[NULL_BYTE_INDEX] = 0;
+  withNull[NULL_BYTE_INDEX] = NULL_BYTE_VALUE;
   return withNull;
 }
 
@@ -122,7 +124,7 @@ function describeReadStaleCache(): void {
     deps.bucket.download.mockImplementation(async (fullPath: string) => {
       const isTree = fullPath.endsWith('__tree_index.json');
       const blob = new Blob([isTree ? treeJson : updatedContent]);
-      return { data: blob, error: null };
+      return await Promise.resolve({ data: blob, error: null });
     });
     const result = await ctx.readFile(HELLO_PATH);
     expect(result.content).toBe(updatedContent);

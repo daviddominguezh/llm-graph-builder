@@ -43,26 +43,24 @@ export function makeRedis(): jest.Mocked<RedisClient> {
 // ─── Supabase Query Builder ──────────────────────────────────────────────────
 
 function makeQueryBuilder(): SupabaseQueryBuilder {
-  // Build a chainable query builder for test mocking.
-  // We assign methods explicitly to satisfy type requirements.
-  const qb: SupabaseQueryBuilder = {
-    upsert: jest.fn<SupabaseQueryBuilder['upsert']>(),
-    update: jest.fn<SupabaseQueryBuilder['update']>(),
-    delete: jest.fn<SupabaseQueryBuilder['delete']>(),
-    eq: jest.fn<SupabaseQueryBuilder['eq']>(),
-    select: jest.fn<SupabaseQueryBuilder['select']>(),
-    lt: jest.fn<SupabaseQueryBuilder['lt']>(),
-    single: jest.fn<SupabaseQueryBuilder['single']>(),
-    then: (onfulfilled) => Promise.resolve(onfulfilled({ data: {}, error: null })),
-  };
-  // Wire up chaining — each method returns the builder itself
-  (qb.upsert as jest.Mock).mockReturnValue(qb);
-  (qb.update as jest.Mock).mockReturnValue(qb);
-  (qb.delete as jest.Mock).mockReturnValue(qb);
-  (qb.eq as jest.Mock).mockReturnValue(qb);
-  (qb.select as jest.Mock).mockReturnValue(qb);
-  (qb.lt as jest.Mock).mockReturnValue(qb);
-  (qb.single as jest.Mock).mockReturnValue(qb);
+  const upsert = jest.fn<SupabaseQueryBuilder['upsert']>();
+  const update = jest.fn<SupabaseQueryBuilder['update']>();
+  const del = jest.fn<SupabaseQueryBuilder['delete']>();
+  const eq = jest.fn<SupabaseQueryBuilder['eq']>();
+  const select = jest.fn<SupabaseQueryBuilder['select']>();
+  const lt = jest.fn<SupabaseQueryBuilder['lt']>();
+  const single = jest.fn<SupabaseQueryBuilder['single']>();
+  const thenFn: SupabaseQueryBuilder['then'] = async (onfulfilled) =>
+    onfulfilled({ data: {}, error: null });
+
+  const qb: SupabaseQueryBuilder = { upsert, update, delete: del, eq, select, lt, single, then: thenFn };
+  upsert.mockReturnValue(qb);
+  update.mockReturnValue(qb);
+  del.mockReturnValue(qb);
+  eq.mockReturnValue(qb);
+  select.mockReturnValue(qb);
+  lt.mockReturnValue(qb);
+  single.mockReturnValue(qb);
   return qb;
 }
 
