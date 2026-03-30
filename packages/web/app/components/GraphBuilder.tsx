@@ -17,6 +17,7 @@ import { ConnectionMenu } from './panels/ConnectionMenu';
 import { SearchDialog } from './panels/SearchDialog';
 import { VersionSwitcherSlot } from './panels/VersionSwitcherSlot';
 import { GraphCanvas } from './GraphCanvas';
+import { SimulationPanel } from './panels/simulation';
 import { SidePanels } from './SidePanels';
 import type { DiscoveredTool } from '../lib/api';
 import type { ApiKeyRow } from '../lib/apiKeys';
@@ -439,11 +440,29 @@ function LoadedEditor(props: LoadedEditorProps) {
         />}
 
         {h.agentConfig !== undefined ? (
-          <AgentEditorWrapper
-            agentConfig={h.agentConfig}
-            pushOperation={h.pushOperation}
-            importCounter={h.agentHooks.importCounter}
-          />
+          <div className="relative flex h-full w-full flex-1 overflow-hidden">
+            <AgentEditorWrapper
+              agentConfig={h.agentConfig}
+              pushOperation={h.pushOperation}
+              importCounter={h.agentHooks.importCounter}
+              onBackgroundClick={h.selection.onPaneClick}
+            />
+            {h.simulation.active && (
+              <SimulationPanel
+                lastUserText={h.simulation.lastUserText}
+                nodeResults={h.simulation.nodeResults}
+                visitedNodes={h.simulation.visitedNodes}
+                terminated={h.simulation.terminated}
+                loading={h.simulation.loading}
+                currentNode={h.simulation.currentNode}
+                totalTokens={h.simulation.totalTokens}
+                modelId={h.simulation.modelId}
+                onModelIdChange={h.simulation.setModelId}
+                onSendMessage={h.simulation.sendMessage}
+                onStop={h.simulation.stop}
+              />
+            )}
+          </div>
         ) : (
           <GraphCanvas
             agentId={props.agentId ?? ''}

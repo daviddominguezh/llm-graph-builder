@@ -12,6 +12,7 @@ import { useAgentEditorActions } from './useAgentEditorActions';
 interface AgentEditorProps {
   config: AgentConfigData;
   pushOperation: (op: Operation) => void;
+  onBackgroundClick?: () => void;
 }
 
 function useAgentEditorState(config: AgentConfigData) {
@@ -21,13 +22,13 @@ function useAgentEditorState(config: AgentConfigData) {
   return { systemPrompt, setSystemPrompt, maxSteps, setMaxSteps, contextItems, setContextItems };
 }
 
-export function AgentEditor({ config, pushOperation }: AgentEditorProps) {
+export function AgentEditor({ config, pushOperation, onBackgroundClick }: AgentEditorProps) {
   const state = useAgentEditorState(config);
   const actions = useAgentEditorActions(state, pushOperation);
 
   return (
-    <div className="flex h-full w-full pt-14.5 bg-muted">
-      <div className="w-full h-full flex animate-in fade-in duration-300 gap-2 px-2">
+    <div className="flex h-full w-full pt-14.5 bg-muted" onClick={onBackgroundClick}>
+      <div className="w-full h-full flex animate-in fade-in duration-300 gap-2 px-2" onClick={(e) => e.stopPropagation()}>
         <div className="flex min-w-0 flex-[3] flex-col p-4 bg-popover rounded-md my-2 border">
           <SystemPromptField value={state.systemPrompt} onChange={actions.handleSystemPromptChange} />
         </div>
