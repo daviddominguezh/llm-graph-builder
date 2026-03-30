@@ -20,6 +20,15 @@ import type {
 const INCREMENT = 1;
 const ZERO = 0;
 
+function log(label: string, data?: unknown): void {
+  const prefix = '[agentLoop]';
+  if (data !== undefined) {
+    process.stderr.write(`${prefix} ${label}: ${JSON.stringify(data, null, 0)}\n`);
+  } else {
+    process.stderr.write(`${prefix} ${label}\n`);
+  }
+}
+
 interface LoopState {
   messages: ModelMessage[];
   step: number;
@@ -51,6 +60,7 @@ async function executeStep(
   callbacks: AgentLoopCallbacks
 ): Promise<StepResult> {
   const stepNum = state.step + INCREMENT;
+  log(`step ${String(stepNum)} starting`, { messageCount: state.messages.length, toolCount: Object.keys(config.tools).length });
   callbacks.onStepStarted?.(stepNum);
 
   const startTime = Date.now();
@@ -62,6 +72,7 @@ async function executeStep(
   });
 
   const durationMs = Date.now() - startTime;
+  log(`step ${String(stepNum)} completed`, { durationMs, text: result.text.slice(0, 100), toolCallCount: result.toolCalls.length, tokens: result.tokens });
   accumulateTokens(state.totalTokens, result.tokens);
 
   const actionLog: ActionTokenUsage = {
@@ -134,8 +145,11 @@ export async function executeAgentLoop(
   callbacks: AgentLoopCallbacks
 ): Promise<AgentLoopResult> {
   const maxSteps = resolveMaxSteps(config);
+  log('starting', { systemPrompt: config.systemPrompt.slice(0, 80), context: config.context.slice(0, 80), maxSteps, modelId: config.modelId, messageCount: config.messages.length, toolCount: Object.keys(config.tools).length });
   const state = createInitialState(config);
-  return await runLoop(config, state, maxSteps, callbacks);
+  const result = await runLoop(config, state, maxSteps, callbacks);
+  log('finished', { finalText: result.finalText.slice(0, 100), totalSteps: result.steps, tokens: result.totalTokens });
+  return result;
 }
 
 export async function executeAgentLoopSimple(config: AgentLoopConfig): Promise<AgentLoopResult> {

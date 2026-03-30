@@ -10,6 +10,15 @@ const TEMPERATURE = 0;
 const TIMEOUT_MS = 90000;
 const ZERO = 0;
 
+function log(label: string, data?: unknown): void {
+  const prefix = '[agentLlmCaller]';
+  if (data !== undefined) {
+    process.stderr.write(`${prefix} ${label}: ${JSON.stringify(data, null, 0)}\n`);
+  } else {
+    process.stderr.write(`${prefix} ${label}\n`);
+  }
+}
+
 export interface LlmCallParams {
   apiKey: string;
   modelId: string;
@@ -99,6 +108,7 @@ function populateToolOutputs(
 }
 
 export async function callAgentLlm(params: LlmCallParams): Promise<LlmCallResult> {
+  log('calling LLM', { modelId: params.modelId, messageCount: params.messages.length, toolNames: Object.keys(params.tools) });
   const model = getOpenRouterModel(params.apiKey, params.modelId);
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
@@ -116,11 +126,14 @@ export async function callAgentLlm(params: LlmCallParams): Promise<LlmCallResult
     });
 
     const raw = result as unknown as Record<string, unknown>;
+    log('LLM response received', { textLength: typeof result.text === 'string' ? result.text.length : 0, hasToolCalls: Array.isArray(raw.toolCalls) && (raw.toolCalls as unknown[]).length > ZERO });
     const tokens = extractTokens(raw.usage);
     tokens.costUSD = extractCostFromResult(raw);
     const responseMessages = extractResponseMessages(raw);
+    log('response messages', { count: responseMessages.length, roles: responseMessages.map((m) => m.role) });
     const outputMap = buildToolOutputMap(responseMessages);
     const toolCalls = populateToolOutputs(mapToolCalls(raw.toolCalls), outputMap);
+    log('tool calls', { count: toolCalls.length, names: toolCalls.map((tc) => tc.toolName) });
 
     return {
       text: typeof result.text === 'string' ? result.text : '',
@@ -129,6 +142,9 @@ export async function callAgentLlm(params: LlmCallParams): Promise<LlmCallResult
       tokens,
       costUSD: tokens.costUSD,
     };
+  } catch (err) {
+    log('LLM call FAILED', { error: err instanceof Error ? err.message : String(err) });
+    throw err;
   } finally {
     clearTimeout(timeoutId);
   }
