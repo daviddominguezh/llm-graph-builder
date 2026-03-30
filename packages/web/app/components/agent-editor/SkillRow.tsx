@@ -100,12 +100,19 @@ export function SkillRow({ skill, selected, onToggleSelect, onDelete }: SkillRow
     <div className="animate-in fade-in slide-in-from-top-1 duration-200">
       <div className="group flex items-center gap-2.5 p-1 px-0">
         <div
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleSelect(skill.name, e.shiftKey);
+          onClickCapture={(e) => {
+            if (e.shiftKey) {
+              e.stopPropagation();
+              e.preventDefault();
+              onToggleSelect(skill.name, true);
+            }
           }}
         >
-          <Checkbox className="cursor-pointer" checked={selected} />
+          <Checkbox
+            className="cursor-pointer"
+            checked={selected}
+            onCheckedChange={() => onToggleSelect(skill.name, false)}
+          />
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
           <span className="truncate text-[10px] font-medium">{skill.name}</span>
