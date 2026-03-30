@@ -119,10 +119,10 @@ function describeReadStaleCache(): void {
     deps.redis.hget.mockResolvedValue(futureTs);
     const updatedContent = 'console.log("updated");';
     const treeJson = buildTreeJson();
-    deps.bucket.download.mockImplementation((fullPath: string) => {
+    deps.bucket.download.mockImplementation(async (fullPath: string) => {
       const isTree = fullPath.endsWith('__tree_index.json');
       const blob = new Blob([isTree ? treeJson : updatedContent]);
-      return Promise.resolve({ data: blob, error: null });
+      return { data: blob, error: null };
     });
     const result = await ctx.readFile(HELLO_PATH);
     expect(result.content).toBe(updatedContent);
@@ -207,8 +207,7 @@ function describeRenameFile(): void {
 function describeBinaryFile(): void {
   it('throws BINARY_FILE for files with null bytes', async () => {
     const deps = createMockDeps();
-    const binaryBytes = new Uint8Array([0x48, 0x65, 0x00, 0x6c]);
-    deps.sourceProvider.fetchFileContent.mockResolvedValue(binaryBytes);
+    deps.sourceProvider.fetchFileContent.mockResolvedValue(BINARY_BYTES);
     const ctx = await initCtx(deps);
     try {
       await ctx.readFile(HELLO_PATH);

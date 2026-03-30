@@ -71,7 +71,7 @@ export async function ensureTreeFresh(
   currentTree: TreeIndex | null,
   deps: TreeDeps
 ): Promise<TreeIndex> {
-  if (currentTree === null || currentTree === undefined || !currentTree.isLoaded()) {
+  if (currentTree === null || !currentTree.isLoaded()) {
     return await loadInitialTree(deps);
   }
   const dirtyTimestamp = await deps.dirtySet.getTreeTimestamp();

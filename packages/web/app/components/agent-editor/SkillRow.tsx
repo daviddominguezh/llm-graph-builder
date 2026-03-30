@@ -97,7 +97,7 @@ export function SkillRow({ skill, selected, onToggleSelect, onDelete }: SkillRow
   }, [skill.name, onDelete]);
 
   return (
-    <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+    <div className="animate-in fade-in slide-in-from-top-1 duration-200 select-none">
       <div className="group flex items-center gap-2.5 p-1 px-0">
         <div
           onClickCapture={(e) => {

@@ -43,22 +43,27 @@ export function makeRedis(): jest.Mocked<RedisClient> {
 // ─── Supabase Query Builder ──────────────────────────────────────────────────
 
 function makeQueryBuilder(): SupabaseQueryBuilder {
-  // Build chainable QB using a partial record, then finalize as the full type
-  const partial: Partial<SupabaseQueryBuilder> = {};
-
-  const chainMethods: Array<keyof SupabaseQueryBuilder> = [
-    'upsert', 'update', 'delete', 'eq', 'select', 'lt', 'single',
-  ];
-
-  for (const method of chainMethods) {
-    (partial[method] as unknown) = jest.fn().mockReturnValue(partial);
-  }
-
-  const thenFn: SupabaseQueryBuilder['then'] = async (onfulfilled) =>
-    onfulfilled({ data: {}, error: null });
-  partial.then = thenFn;
-
-  return partial as SupabaseQueryBuilder;
+  // Build a chainable query builder for test mocking.
+  // We assign methods explicitly to satisfy type requirements.
+  const qb: SupabaseQueryBuilder = {
+    upsert: jest.fn<SupabaseQueryBuilder['upsert']>(),
+    update: jest.fn<SupabaseQueryBuilder['update']>(),
+    delete: jest.fn<SupabaseQueryBuilder['delete']>(),
+    eq: jest.fn<SupabaseQueryBuilder['eq']>(),
+    select: jest.fn<SupabaseQueryBuilder['select']>(),
+    lt: jest.fn<SupabaseQueryBuilder['lt']>(),
+    single: jest.fn<SupabaseQueryBuilder['single']>(),
+    then: (onfulfilled) => Promise.resolve(onfulfilled({ data: {}, error: null })),
+  };
+  // Wire up chaining — each method returns the builder itself
+  (qb.upsert as jest.Mock).mockReturnValue(qb);
+  (qb.update as jest.Mock).mockReturnValue(qb);
+  (qb.delete as jest.Mock).mockReturnValue(qb);
+  (qb.eq as jest.Mock).mockReturnValue(qb);
+  (qb.select as jest.Mock).mockReturnValue(qb);
+  (qb.lt as jest.Mock).mockReturnValue(qb);
+  (qb.single as jest.Mock).mockReturnValue(qb);
+  return qb;
 }
 
 // ─── Supabase Storage Bucket ─────────────────────────────────────────────────

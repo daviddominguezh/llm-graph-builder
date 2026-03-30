@@ -132,28 +132,46 @@ export function searchInContent(params: SearchParams): SearchTextMatch[] {
 
 // ─── Concurrency Pool ────────────────────────────────────────────────────────
 
-async function executeTask<T>(results: T[], index: number, task: () => Promise<T>): Promise<void> {
-  results[index] = await task();
-}
+class ConcurrencyPool<T> {
+  private nextIndex = ZERO;
+  private readonly results: T[] = [];
 
-async function workerLoop<T>(tasks: Array<() => Promise<T>>, results: T[], cursor: { value: number }): Promise<void> {
-  while (cursor.value < tasks.length) {
-    const idx = cursor.value;
-    cursor.value = idx + FIRST_LINE;
-    const task = tasks[idx];
+  constructor(
+    private readonly tasks: Array<() => Promise<T>>,
+    private readonly concurrency: number
+  ) {}
+
+  async run(): Promise<T[]> {
+    const workerCount = Math.min(this.concurrency, this.tasks.length);
+    const workers = Array.from({ length: workerCount }, async () => this.processQueue());
+    await Promise.all(workers);
+    return this.results;
+  }
+
+  private async processQueue(): Promise<void> {
+    while (this.nextIndex < this.tasks.length) {
+      const idx = this.claimNext();
+      await this.executeAt(idx);
+    }
+  }
+
+  private claimNext(): number {
+    const idx = this.nextIndex;
+    this.nextIndex = idx + FIRST_LINE;
+    return idx;
+  }
+
+  private async executeAt(idx: number): Promise<void> {
+    const task = this.tasks[idx];
     if (task !== undefined) {
-      await executeTask(results, idx, task);
+      this.results[idx] = await task();
     }
   }
 }
 
 export async function runWithConcurrency<T>(tasks: Array<() => Promise<T>>, limit: number): Promise<T[]> {
-  const results: T[] = [];
-  const cursor = { value: ZERO };
-  const workerCount = Math.min(limit, tasks.length);
-  const workers = Array.from({ length: workerCount }, async () => workerLoop(tasks, results, cursor));
-  await Promise.all(workers);
-  return results;
+  const pool = new ConcurrencyPool(tasks, limit);
+  return await pool.run();
 }
 
 // ─── Line Counting ───────────────────────────────────────────────────────────
