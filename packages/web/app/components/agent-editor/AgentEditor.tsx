@@ -47,7 +47,15 @@ function useSkillActions(setSkills: SetSkills) {
     [setSkills]
   );
 
-  return { handleAddSkills, handleDeleteSkill };
+  const handleDeleteManySkills = useCallback(
+    (names: string[]) => {
+      const toRemove = new Set(names);
+      setSkills((prev) => prev.filter((s) => !toRemove.has(s.name)));
+    },
+    [setSkills]
+  );
+
+  return { handleAddSkills, handleDeleteSkill, handleDeleteManySkills };
 }
 
 export function AgentEditor({ config, pushOperation, onBackgroundClick, onConfigChange }: AgentEditorProps) {
@@ -74,6 +82,7 @@ export function AgentEditor({ config, pushOperation, onBackgroundClick, onConfig
             skills={state.skills}
             onAdd={skillActions.handleAddSkills}
             onDelete={skillActions.handleDeleteSkill}
+            onDeleteMany={skillActions.handleDeleteManySkills}
           />
           <ContextItemsList
             items={state.contextItems}

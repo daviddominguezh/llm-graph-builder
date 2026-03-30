@@ -216,7 +216,10 @@
     "removeSkillConfirm": "Remove",
     "emptySkills": "No skills added yet.",
     "skillsDescription": "Skills are reusable capabilities from GitHub repositories that extend what your agent can do.",
-    "skillContent": "Skill content"
+    "skillContent": "Skill content",
+    "removeSelected": "Remove ({count})",
+    "removeSelectedTitle": "Remove {count} skill(s)?",
+    "removeSelectedDescription": "The selected skills will be removed from the agent."
   },
   "edgePanel": {
     "parameters": "Parameters:",

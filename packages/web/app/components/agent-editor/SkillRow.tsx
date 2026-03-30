@@ -24,14 +24,21 @@ import type { SkillEntry } from './AddSkillDialog';
 
 interface SkillRowProps {
   skill: SkillEntry;
+  selected: boolean;
+  onToggleSelect: (name: string) => void;
   onDelete: (name: string) => void;
 }
 
+function stripFrontmatter(content: string): string {
+  return content.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '').trim();
+}
+
 function SkillContent({ content }: { content: string }) {
+  const body = stripFrontmatter(content);
   return (
-    <div className="markdown-content overflow-y-auto rounded-md border bg-background p-3 text-xs leading-relaxed">
+    <div className="markdown-content max-h-64 overflow-y-auto rounded-md border bg-background p-3 text-xs leading-relaxed">
       <MarkdownHooks remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeStarryNight]}>
-        {content}
+        {body}
       </MarkdownHooks>
     </div>
   );
@@ -65,7 +72,7 @@ function truncateUrl(url: string): string {
   return url.replace(/^https?:\/\//, '').slice(0, 40);
 }
 
-export function SkillRow({ skill, onDelete }: SkillRowProps) {
+export function SkillRow({ skill, selected, onToggleSelect, onDelete }: SkillRowProps) {
   const t = useTranslations('agentEditor');
   const [expanded, setExpanded] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -82,12 +89,21 @@ export function SkillRow({ skill, onDelete }: SkillRowProps) {
   return (
     <div className="animate-in fade-in slide-in-from-top-1 duration-200">
       <div className="group flex items-center gap-1.5 p-1 px-0">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => onToggleSelect(skill.name)}
+          className="size-3.5 shrink-0 accent-primary"
+        />
         <button type="button" onClick={toggleExpanded} className="shrink-0 text-muted-foreground hover:text-foreground">
           {expanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
         </button>
         <div className="flex min-w-0 flex-1 flex-col">
           <span className="truncate text-xs font-medium">{skill.name}</span>
-          <span className="truncate text-[10px] text-muted-foreground">{truncateUrl(skill.repoUrl)}</span>
+          {skill.description !== '' && (
+            <span className="truncate text-[10px] text-muted-foreground">{skill.description}</span>
+          )}
+          <span className="truncate text-[10px] text-muted-foreground/50">{truncateUrl(skill.repoUrl)}</span>
         </div>
         <Button
           variant="ghost"

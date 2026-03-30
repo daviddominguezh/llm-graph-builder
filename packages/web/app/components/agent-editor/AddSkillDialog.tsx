@@ -19,6 +19,7 @@ import { useCallback, useState } from 'react';
 
 export interface SkillEntry {
   name: string;
+  description: string;
   content: string;
   repoUrl: string;
 }
@@ -30,9 +31,18 @@ interface AddSkillDialogProps {
 }
 
 const GITHUB_URL_RE = /^https?:\/\/github\.com\/[^/]+\/[^/]+/;
+const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 
 function isValidGitHubUrl(url: string): boolean {
   return GITHUB_URL_RE.test(url);
+}
+
+function extractFrontmatterField(content: string, field: string): string {
+  const fmMatch = content.match(FRONTMATTER_RE);
+  if (!fmMatch || fmMatch[1] === undefined) return '';
+  const line = fmMatch[1].split('\n').find((l) => l.startsWith(`${field}:`));
+  if (!line) return '';
+  return line.slice(field.length + 1).trim().replace(/^['"]|['"]$/g, '');
 }
 
 function DialogBody({ onSkillsAdded, onOpenChange }: Omit<AddSkillDialogProps, 'open'>) {
@@ -56,6 +66,7 @@ function DialogBody({ onSkillsAdded, onOpenChange }: Omit<AddSkillDialogProps, '
       }
       const entries: SkillEntry[] = Object.entries(skills).map(([name, content]) => ({
         name,
+        description: extractFrontmatterField(content, 'description'),
         content,
         repoUrl: url,
       }));
