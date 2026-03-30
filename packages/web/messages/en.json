@@ -189,7 +189,10 @@
     "maxStepsDescription": "Maximum number of tool-call loops before stopping. Leave empty for unlimited.",
     "emptyContextItems": "No context items yet. Add one to provide additional context to the agent.",
     "contextItemsDescription": "Context items are additional instructions or data included in every LLM call. Use them for reference material, rules, or structured data.",
-    "deleteContextItem": "Remove"
+    "deleteContextItem": "Remove",
+    "viewRaw": "Raw",
+    "viewRendered": "Rendered",
+    "emptyPromptPreview": "Nothing to preview. Start typing in the raw view."
   },
   "edgePanel": {
     "parameters": "Parameters:",

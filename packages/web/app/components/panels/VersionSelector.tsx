@@ -114,7 +114,7 @@ function EmptyVersionsTrigger() {
   return (
     <div className="flex h-10 items-center gap-1.5 rounded-md border bg-background px-3 text-xs text-foreground">
       <History className="size-4" />
-      <span className="font-bold">{t('versionDraft')}</span>
+      <span className="font-bold cursor-default">{t('versionDraft')}</span>
     </div>
   );
 }

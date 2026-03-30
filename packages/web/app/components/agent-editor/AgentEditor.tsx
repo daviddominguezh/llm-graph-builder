@@ -26,12 +26,12 @@ export function AgentEditor({ config, pushOperation }: AgentEditorProps) {
   const actions = useAgentEditorActions(state, pushOperation);
 
   return (
-    <div className="flex h-full w-full pt-14.5">
-      <div className="w-full h-full border-t flex animate-in fade-in duration-300">
-        <div className="flex min-w-0 flex-[3] flex-col p-4">
+    <div className="flex h-full w-full pt-14.5 bg-red-300 px-2">
+      <div className="w-full h-full border-t flex animate-in fade-in duration-300 gap-2">
+        <div className="flex min-w-0 flex-[3] flex-col p-4 bg-background rounded-md my-2">
           <SystemPromptField value={state.systemPrompt} onChange={actions.handleSystemPromptChange} />
         </div>
-        <div className="flex min-w-0 flex-[2] flex-col gap-6 overflow-y-auto border-l bg-muted/20 p-4">
+        <div className="flex min-w-0 flex-[2] flex-col gap-6 overflow-y-auto bg-background rounded-md p-4 my-2">
           <ContextItemsList
             items={state.contextItems}
             onInsert={actions.handleInsertItem}
