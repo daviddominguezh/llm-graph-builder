@@ -187,6 +187,7 @@
     "maxStepsPlaceholder": "Unlimited",
     "maxStepsDescription": "Maximum number of tool-call loops before stopping. Leave empty for unlimited.",
     "emptyContextItems": "No context items yet. Add one to provide additional context to the agent.",
+    "contextItemsDescription": "Context items are additional instructions or data included in every LLM call. Use them for reference material, rules, or structured data.",
     "deleteContextItem": "Remove"
   },
   "edgePanel": {
@@ -584,7 +585,7 @@
       "noMessages": "No messages found for this execution.",
       "chatTimeline": "Chat Timeline",
       "stepInspector": "Step Inspector",
-      "totalSteps": "Total Steps",
+      "totalSteps": "steps",
       "toolCallArgs": "Arguments",
       "toolCallResult": "Result"
     },

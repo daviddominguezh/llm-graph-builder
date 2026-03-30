@@ -3,7 +3,7 @@
 import { TokenDisplay } from '@/app/components/panels/simulation/TokenDisplay';
 import { MessageCards } from '@/app/components/dashboard/node-inspector/MessageCards';
 import { ResponseSection } from '@/app/components/dashboard/node-inspector/ResponseSection';
-import { Brain } from 'lucide-react';
+import { Brain, MousePointerClick } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import type { AgentStep } from './agentDebugTypes';
@@ -12,9 +12,12 @@ interface StepInspectorProps {
   step: AgentStep | null;
 }
 
-function EmptyState({ message }: { message: string }) {
+function InspectorEmptyState({ message }: { message: string }) {
   return (
-    <p className="text-xs text-muted-foreground bg-card p-3 rounded-md border border-secondary/10">{message}</p>
+    <div className="flex h-full flex-col items-center justify-center gap-2 py-12">
+      <MousePointerClick className="size-5 text-muted-foreground/40" />
+      <p className="text-xs text-muted-foreground">{message}</p>
+    </div>
   );
 }
 
@@ -49,7 +52,7 @@ export function StepInspector({ step }: StepInspectorProps) {
   const t = useTranslations('dashboard.agentDebug');
 
   if (step === null) {
-    return <EmptyState message={t('selectStep')} />;
+    return <InspectorEmptyState message={t('selectStep')} />;
   }
 
   return (

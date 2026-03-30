@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { GripVertical, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useRef } from 'react';
 
@@ -34,7 +34,9 @@ export function ContextItemRow({ sortOrder, content, onContentChange, onDelete }
 
   return (
     <div className="group flex items-start gap-1.5 rounded-md border p-2">
-      <GripVertical className="mt-1.5 size-3.5 shrink-0 text-muted-foreground" />
+      <span className="mt-2 flex size-5 shrink-0 items-center justify-center rounded text-[10px] font-medium text-muted-foreground bg-muted">
+        {sortOrder + 1}
+      </span>
       <Textarea
         defaultValue={content}
         onChange={handleChange}

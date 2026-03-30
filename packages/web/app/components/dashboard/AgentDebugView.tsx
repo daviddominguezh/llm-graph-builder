@@ -98,6 +98,14 @@ function AgentDebugContent({ state }: { state: AgentDebugState }) {
   );
 }
 
+function TotalStepsBadge({ count, label }: { count: number; label: string }) {
+  return (
+    <div className="px-4 py-1 text-[10px] text-muted-foreground">
+      {count} {label}
+    </div>
+  );
+}
+
 function AgentDebugPanels(props: AgentDebugViewProps) {
   const t = useTranslations('dashboard');
 
@@ -110,6 +118,7 @@ function AgentDebugPanels(props: AgentDebugViewProps) {
   return (
     <div className="px-0 pb-3 flex flex-col gap-0 flex-1 min-h-[0px]">
       <SessionMetadataBar session={props.session} agentName={props.agentName} />
+      <TotalStepsBadge count={state.debugData.totalSteps} label={t('agentDebug.totalSteps')} />
       <Separator />
       <ExecutionSelector
         executions={props.executions}

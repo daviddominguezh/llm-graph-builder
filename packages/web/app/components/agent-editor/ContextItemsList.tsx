@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Plus } from 'lucide-react';
+import { MessageSquare, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 
@@ -20,8 +20,14 @@ interface ContextItemsListProps {
   onDelete: (sortOrder: number) => void;
 }
 
-function EmptyState({ message }: { message: string }) {
-  return <p className="py-4 text-center text-xs text-muted-foreground">{message}</p>;
+function EmptyState({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="flex flex-col items-center gap-2 py-6 text-center">
+      <MessageSquare className="size-5 text-muted-foreground/50" />
+      <p className="text-xs text-muted-foreground">{title}</p>
+      <p className="max-w-xs text-[11px] text-muted-foreground/70">{description}</p>
+    </div>
+  );
 }
 
 export function ContextItemsList({ items, onInsert, onUpdate, onDelete }: ContextItemsListProps) {
@@ -41,7 +47,9 @@ export function ContextItemsList({ items, onInsert, onUpdate, onDelete }: Contex
           {t('addContextItem')}
         </Button>
       </div>
-      {items.length === 0 && <EmptyState message={t('emptyContextItems')} />}
+      {items.length === 0 && (
+        <EmptyState title={t('emptyContextItems')} description={t('contextItemsDescription')} />
+      )}
       <div className="flex flex-col gap-1.5">
         {items.map((item) => (
           <ContextItemRow

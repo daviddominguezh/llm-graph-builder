@@ -38,7 +38,7 @@ function UserMessageBubble({ message }: { message: ExecutionMessageRow }) {
       <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10">
         <User className="size-3 text-primary" />
       </div>
-      <div className="rounded-lg bg-primary/5 border border-primary/10 px-3 py-2 text-xs">
+      <div className="rounded-lg bg-muted border-l-2 border-l-primary px-3 py-2 text-xs">
         {extractMessageText(message)}
       </div>
     </div>
@@ -110,10 +110,10 @@ export function TurnGroup({ turn, selectedStepOrder, onSelectStep }: TurnGroupPr
     <div className="flex flex-col gap-2.5">
       <TurnHeader turnIndex={turn.turnIndex} />
       {turn.userMessage !== null && <UserMessageBubble message={turn.userMessage} />}
-      <TurnSteps turn={turn} selectedStepOrder={selectedStepOrder} onSelectStep={onSelectStep} />
       {turn.assistantMessages.map((msg, idx) => (
         <AssistantMessageWithToolCalls key={msg.id} msg={msg} index={idx} allMessages={turn.assistantMessages} />
       ))}
+      <TurnSteps turn={turn} selectedStepOrder={selectedStepOrder} onSelectStep={onSelectStep} />
     </div>
   );
 }
