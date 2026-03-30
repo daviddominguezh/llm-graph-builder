@@ -4,15 +4,14 @@ import { fetchNodeVisitsForExecution } from '@/app/actions/dashboard';
 import type { ExecutionSummaryRow, NodeVisitRow, SessionRow } from '@/app/lib/dashboard';
 import type { Graph } from '@/app/schemas/graph.schema';
 import { buildDebugGraph } from '@/app/utils/debugGraphBuilder';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { AlertCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState, useTransition } from 'react';
 
 import { DebugCanvas } from './DebugCanvas';
 import { NodeInspector } from './NodeInspector';
 import { DebugBreadcrumb } from './debug-view/DebugBreadcrumb';
+import { ExecutionErrorBanner } from './debug-view/ExecutionErrorBanner';
 import { SessionMetadataBar } from './debug-view/SessionMetadataBar';
 
 interface DebugViewProps {
@@ -53,20 +52,6 @@ function findExecution(
   selectedId: string
 ): ExecutionSummaryRow | undefined {
   return executions.find((e) => e.id === selectedId);
-}
-
-function ExecutionErrorBanner({ execution, label }: { execution: ExecutionSummaryRow; label: string }) {
-  if (execution.status !== 'failed' || execution.error === null || execution.error === '') {
-    return null;
-  }
-
-  return (
-    <Alert variant="destructive">
-      <AlertCircle />
-      <AlertTitle>{label}</AlertTitle>
-      <AlertDescription>{execution.error}</AlertDescription>
-    </Alert>
-  );
 }
 
 function useExecutionState(executions: ExecutionSummaryRow[], initialVisits: NodeVisitRow[]) {
