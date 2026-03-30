@@ -1,11 +1,13 @@
 'use client';
 
 import type { Operation } from '@daviddh/graph-types';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import type { AgentConfigData } from '../../hooks/useGraphLoader';
+import type { SkillEntry } from './AddSkillDialog';
 import { ContextItemsList } from './ContextItemsList';
 import { MaxStepsField } from './MaxStepsField';
+import { SkillsList } from './SkillsList';
 import { SystemPromptField } from './SystemPromptField';
 import { useAgentEditorActions } from './useAgentEditorActions';
 
@@ -20,12 +22,38 @@ function useAgentEditorState(config: AgentConfigData) {
   const [systemPrompt, setSystemPrompt] = useState(config.systemPrompt);
   const [maxSteps, setMaxSteps] = useState<number | null>(config.maxSteps);
   const [contextItems, setContextItems] = useState(config.contextItems);
-  return { systemPrompt, setSystemPrompt, maxSteps, setMaxSteps, contextItems, setContextItems };
+  const [skills, setSkills] = useState<SkillEntry[]>([]);
+  return { systemPrompt, setSystemPrompt, maxSteps, setMaxSteps, contextItems, setContextItems, skills, setSkills };
+}
+
+type SetSkills = ReturnType<typeof useAgentEditorState>['setSkills'];
+
+function useSkillActions(setSkills: SetSkills) {
+  const handleAddSkills = useCallback(
+    (entries: SkillEntry[]) => {
+      setSkills((prev) => {
+        const existing = new Set(prev.map((s) => s.name));
+        const fresh = entries.filter((e) => !existing.has(e.name));
+        return [...prev, ...fresh];
+      });
+    },
+    [setSkills]
+  );
+
+  const handleDeleteSkill = useCallback(
+    (name: string) => {
+      setSkills((prev) => prev.filter((s) => s.name !== name));
+    },
+    [setSkills]
+  );
+
+  return { handleAddSkills, handleDeleteSkill };
 }
 
 export function AgentEditor({ config, pushOperation, onBackgroundClick, onConfigChange }: AgentEditorProps) {
   const state = useAgentEditorState(config);
   const actions = useAgentEditorActions(state, pushOperation);
+  const skillActions = useSkillActions(state.setSkills);
 
   useEffect(() => {
     onConfigChange?.({
@@ -42,6 +70,11 @@ export function AgentEditor({ config, pushOperation, onBackgroundClick, onConfig
           <SystemPromptField value={state.systemPrompt} onChange={actions.handleSystemPromptChange} />
         </div>
         <div className="flex min-w-0 flex-[2] flex-col gap-6 overflow-y-auto bg-popover rounded-md p-4 pt-3.5 my-2 border">
+          <SkillsList
+            skills={state.skills}
+            onAdd={skillActions.handleAddSkills}
+            onDelete={skillActions.handleDeleteSkill}
+          />
           <ContextItemsList
             items={state.contextItems}
             onInsert={actions.handleInsertItem}
