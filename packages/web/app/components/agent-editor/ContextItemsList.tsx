@@ -22,7 +22,7 @@ interface ContextItemsListProps {
 
 function EmptyState({ title, description }: { title: string; description: string }) {
   return (
-    <div className="border border-dashed rounded-md flex flex-col items-center gap-2 py-6 text-center">
+    <div className="border border-ring/50 border-dashed rounded-md flex flex-col items-center gap-2 py-6 text-center bg-input/20">
       <MessageSquare className="size-5 text-muted-foreground/50" />
       <p className="text-xs text-muted-foreground">{title}</p>
       <p className="max-w-xs text-[11px] text-muted-foreground/70">{description}</p>
