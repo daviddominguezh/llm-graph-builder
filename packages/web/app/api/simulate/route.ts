@@ -73,6 +73,31 @@ function buildSseStreamResponse(upstream: Response): Response {
   });
 }
 
+function resolveUpstreamUrl(body: Record<string, unknown>): string {
+  if (body.appType === 'agent') {
+    return `${API_URL}/simulate-agent`;
+  }
+  return `${API_URL}/simulate`;
+}
+
+function flattenContextItems(body: Record<string, unknown>): void {
+  if (body.appType !== 'agent') return;
+  const items = body.contextItems;
+  if (Array.isArray(items)) {
+    body.context = items
+      .map((item: unknown) => {
+        if (typeof item === 'object' && item !== null && 'content' in item) {
+          return (item as { content: string }).content;
+        }
+        return typeof item === 'string' ? item : '';
+      })
+      .join('\n\n');
+  } else {
+    body.context = '';
+  }
+  delete body.contextItems;
+}
+
 async function fetchUpstream(body: Record<string, unknown>): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => {
@@ -80,7 +105,8 @@ async function fetchUpstream(body: Record<string, unknown>): Promise<Response> {
   }, UPSTREAM_TIMEOUT_MS);
 
   try {
-    const upstream = await fetch(`${API_URL}/simulate`, {
+    const url = resolveUpstreamUrl(body);
+    const upstream = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -122,7 +148,9 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const rest = Object.fromEntries(Object.entries(raw).filter(([k]) => k !== 'apiKeyId'));
+  flattenContextItems(rest);
   await resolveMcpServersInGraph(rest.graph);
+  await resolveMcpServersInGraph(rest);
 
   const {
     data: { session },

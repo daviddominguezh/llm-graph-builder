@@ -4,7 +4,7 @@ import type { Edge as RFEdge, Node as RFNode } from '@xyflow/react';
 import { nanoid } from 'nanoid';
 import { useCallback, useRef, useState } from 'react';
 
-import { streamSimulation } from '../lib/api';
+import { streamAgentSimulation, streamSimulation } from '../lib/api';
 import type { Agent, McpServerConfig } from '../schemas/graph.schema';
 import type { ContextPreset } from '../types/preset';
 import type { NodeResult, SimulationTokens } from '../types/simulation';
@@ -17,13 +17,19 @@ import type {
   SimulationSetters,
   SimulationStartDeps,
 } from './useSimulationHelpers';
-import { buildSimulateParams, buildStreamCallbacks } from './useSimulationHelpers';
+import { buildAgentSimulateParams, buildSimulateParams, buildStreamCallbacks } from './useSimulationHelpers';
 
 const INITIAL_TOKEN_COUNT = 0;
 const ZERO_EDGES = 0;
 
 function isNodeTerminal(edges: Array<RFEdge<RFEdgeData>>, nodeId: string): boolean {
   return nodeId !== START_NODE_ID && edges.filter((e) => e.source === nodeId).length === ZERO_EDGES;
+}
+
+interface AgentSimConfig {
+  systemPrompt: string;
+  maxSteps: number | null;
+  contextItems: Array<{ sortOrder: number; content: string }>;
 }
 
 interface UseSimulationParams {
@@ -37,6 +43,8 @@ interface UseSimulationParams {
   onZoomToNode: (nodeId: string) => void;
   onSelectNode: (nodeId: string) => void;
   onExitZoomView: () => void;
+  appType?: 'workflow' | 'agent';
+  agentConfig?: AgentSimConfig;
 }
 
 export interface SimulationState {
@@ -72,8 +80,8 @@ function createUserMessage(text: string): Message {
   };
 }
 
-function useSimulationStart(deps: SimulationStartDeps): () => void {
-  const { setters, allNodes, edges, onZoomToNode } = deps;
+function useSimulationStart(deps: SimulationStartDeps & { appType?: string }): () => void {
+  const { setters, allNodes, edges, onZoomToNode, appType } = deps;
 
   return useCallback(() => {
     setters.saveSnapshot({ nodes: [...allNodes], edges: [...edges] });
@@ -85,8 +93,10 @@ function useSimulationStart(deps: SimulationStartDeps): () => void {
     setters.setVisitedNodes([]);
     setters.setTotalTokens(EMPTY_TOKENS);
     setters.setStructuredOutputs({});
-    onZoomToNode(START_NODE_ID);
-  }, [setters, allNodes, edges, onZoomToNode]);
+    if (appType !== 'agent') {
+      onZoomToNode(START_NODE_ID);
+    }
+  }, [setters, allNodes, edges, onZoomToNode, appType]);
 }
 
 function useSimulationStop(
@@ -128,51 +138,51 @@ interface SendDepsWithAbort extends SendMessageDeps {
   abortAndCreateSignal: () => AbortSignal;
 }
 
-function useSimulationSend(deps: SendDepsWithAbort): (text: string) => void {
-  const { preset, loading, messages, agents, apiKeyId, modelId, currentNode } = deps;
-  const { mcpServers, outputSchemas, structuredOutputs, setters, onZoomToNode, onSelectNode } = deps;
+function sendAgentSimulation(deps: SendDepsWithAbort, text: string): void {
+  const { agentConfig, mcpServers, apiKeyId, modelId, messages, setters } = deps;
+  const { abortAndCreateSignal, onZoomToNode, onSelectNode } = deps;
+  if (agentConfig === undefined) return;
+  const signal = abortAndCreateSignal();
+  resetBeforeSend(setters, text);
+  const allMessages = [...messages, createUserMessage(text)];
+  const params = buildAgentSimulateParams({ agentConfig, mcpServers, allMessages, apiKeyId, modelId });
+  const callbacks = buildStreamCallbacks({ setters, onZoomToNode, onSelectNode });
+  void streamAgentSimulation(params, callbacks, signal).catch(() => {
+    setters.setLoading(false);
+  });
+}
+
+function sendWorkflowSimulation(deps: SendDepsWithAbort, text: string): void {
+  const { preset, messages, agents, mcpServers, outputSchemas, currentNode } = deps;
+  const { apiKeyId, modelId, structuredOutputs, setters, onZoomToNode, onSelectNode } = deps;
   const { abortAndCreateSignal } = deps;
+  const snapshot = setters.getSnapshot();
+  if (preset === undefined || snapshot === null) return;
+  const signal = abortAndCreateSignal();
+  resetBeforeSend(setters, text);
+  const allMessages = [...messages, createUserMessage(text)];
+  const params = buildSimulateParams({
+    snapshot, agents, mcpServers, outputSchemas, allMessages, currentNode, preset, apiKeyId, modelId, structuredOutputs,
+  });
+  const callbacks = buildStreamCallbacks({ setters, onZoomToNode, onSelectNode });
+  void streamSimulation(params, callbacks, signal).catch(() => {
+    setters.setLoading(false);
+  });
+}
+
+function useSimulationSend(deps: SendDepsWithAbort): (text: string) => void {
+  const { loading, appType } = deps;
 
   return useCallback(
     (text: string) => {
-      const snapshot = setters.getSnapshot();
-      if (preset === undefined || loading || snapshot === null) return;
-      const signal = abortAndCreateSignal();
-      resetBeforeSend(setters, text);
-      const allMessages = [...messages, createUserMessage(text)];
-      const params = buildSimulateParams({
-        snapshot,
-        agents,
-        mcpServers,
-        outputSchemas,
-        allMessages,
-        currentNode,
-        preset,
-        apiKeyId,
-        modelId,
-        structuredOutputs,
-      });
-      const callbacks = buildStreamCallbacks({ setters, onZoomToNode, onSelectNode });
-      void streamSimulation(params, callbacks, signal).catch(() => {
-        setters.setLoading(false);
-      });
+      if (loading) return;
+      if (appType === 'agent') {
+        sendAgentSimulation(deps, text);
+        return;
+      }
+      sendWorkflowSimulation(deps, text);
     },
-    [
-      preset,
-      loading,
-      messages,
-      agents,
-      apiKeyId,
-      modelId,
-      currentNode,
-      mcpServers,
-      outputSchemas,
-      structuredOutputs,
-      setters,
-      onZoomToNode,
-      onSelectNode,
-      abortAndCreateSignal,
-    ]
+    [deps, loading, appType]
   );
 }
 
@@ -286,6 +296,8 @@ function buildSendDeps(
     setters: s.setters,
     onZoomToNode: params.onZoomToNode,
     onSelectNode: params.onSelectNode,
+    appType: params.appType,
+    agentConfig: params.agentConfig,
     abortAndCreateSignal,
   };
 }
@@ -295,7 +307,7 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
   const s = useSimulationState();
   const { abortSimulation, abortAndCreateSignal } = useAbortRef();
 
-  const start = useSimulationStart({ setters: s.setters, allNodes, edges, onZoomToNode });
+  const start = useSimulationStart({ setters: s.setters, allNodes, edges, onZoomToNode, appType: params.appType });
   const stop = useSimulationStop(s.setters, abortSimulation, onExitZoomView);
   const sendMessage = useSimulationSend(buildSendDeps(params, s, abortAndCreateSignal));
   const terminated = checkTerminated(s.active, s.loading, s.snapshotRef.current, s.currentNode);

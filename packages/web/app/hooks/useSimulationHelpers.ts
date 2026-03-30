@@ -2,7 +2,12 @@ import type { OutputSchemaEntity } from '@daviddh/graph-types';
 import type { Message } from '@daviddh/llm-graph-runner';
 import type { Edge as RFEdge, Node as RFNode } from '@xyflow/react';
 
-import type { NodeProcessedEvent, SimulateRequestBody, StreamCallbacks } from '../lib/api';
+import type {
+  AgentSimulateRequestBody,
+  NodeProcessedEvent,
+  SimulateRequestBody,
+  StreamCallbacks,
+} from '../lib/api';
 import type { Agent, McpServerConfig } from '../schemas/graph.schema';
 import type { ContextPreset } from '../types/preset';
 import type { NodeResult, SimulationTokens } from '../types/simulation';
@@ -37,6 +42,12 @@ export interface SimulationStartDeps {
   onZoomToNode: (nodeId: string) => void;
 }
 
+interface AgentSimConfig {
+  systemPrompt: string;
+  maxSteps: number | null;
+  contextItems: Array<{ sortOrder: number; content: string }>;
+}
+
 export interface SendMessageDeps {
   preset: ContextPreset | undefined;
   loading: boolean;
@@ -51,6 +62,8 @@ export interface SendMessageDeps {
   setters: SimulationSetters;
   onZoomToNode: (nodeId: string) => void;
   onSelectNode: (nodeId: string) => void;
+  appType?: 'workflow' | 'agent';
+  agentConfig?: AgentSimConfig;
 }
 
 export interface BuildSimulateParamsOptions extends Pick<
@@ -159,5 +172,26 @@ export function buildSimulateParams(opts: BuildSimulateParamsOptions): SimulateR
     data,
     quickReplies,
     structuredOutputs: opts.structuredOutputs,
+  };
+}
+
+export interface BuildAgentSimulateParamsOptions {
+  agentConfig: AgentSimConfig;
+  mcpServers: McpServerConfig[];
+  allMessages: Message[];
+  apiKeyId: string;
+  modelId: string;
+}
+
+export function buildAgentSimulateParams(opts: BuildAgentSimulateParamsOptions): AgentSimulateRequestBody {
+  return {
+    appType: 'agent',
+    systemPrompt: opts.agentConfig.systemPrompt,
+    maxSteps: opts.agentConfig.maxSteps,
+    contextItems: opts.agentConfig.contextItems,
+    mcpServers: opts.mcpServers,
+    messages: opts.allMessages,
+    apiKeyId: opts.apiKeyId,
+    modelId: opts.modelId,
   };
 }

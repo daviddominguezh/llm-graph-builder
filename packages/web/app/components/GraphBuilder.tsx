@@ -298,6 +298,8 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     onZoomToNode: zoomView.handleZoomToNode,
     onSelectNode: handleSimSelectNode,
     onExitZoomView: zoomView.handleExitZoomView,
+    appType: loadResult.agentConfig !== undefined ? 'agent' : 'workflow',
+    agentConfig: agentHooks.agentConfig,
   });
 
   const ctxPreconditions = useContextPreconditions(edges);
