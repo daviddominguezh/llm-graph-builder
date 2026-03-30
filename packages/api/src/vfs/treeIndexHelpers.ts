@@ -133,11 +133,7 @@ function sortNodes(nodes: TreeNode[]): TreeNode[] {
 
 const EMPTY_DEPTH = 0;
 
-function buildChildrenList(
-  entries: Map<string, TreeEntry>,
-  rootPath: string,
-  maxDepth: number
-): TreeNode[] {
+function buildChildrenList(entries: Map<string, TreeEntry>, rootPath: string, maxDepth: number): TreeNode[] {
   if (maxDepth <= EMPTY_DEPTH) return [];
   const children = collectDirectChildren(entries, rootPath, maxDepth);
   return sortNodes(children);

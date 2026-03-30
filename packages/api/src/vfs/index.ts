@@ -1,7 +1,4 @@
-export {
-  VFSErrorCode,
-  VFSError,
-} from './types.js';
+export { VFSErrorCode, VFSError } from './types.js';
 
 export type {
   CachedFile,

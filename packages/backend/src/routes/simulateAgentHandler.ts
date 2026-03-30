@@ -69,13 +69,22 @@ export async function handleSimulateAgent(
   }
   const { body } = req;
   const { mcpServers } = body;
-  log('validated', { systemPrompt: body.systemPrompt?.slice(0, 80), context: body.context?.slice(0, 80), messageCount: body.messages?.length, mcpServerCount: mcpServers?.length, modelId: body.modelId });
+  log('validated', {
+    systemPrompt: body.systemPrompt?.slice(0, 80),
+    context: body.context?.slice(0, 80),
+    messageCount: body.messages?.length,
+    mcpServerCount: mcpServers?.length,
+    modelId: body.modelId,
+  });
   setSseHeaders(res);
   let session: McpSession = EMPTY_SESSION;
   try {
     log('creating MCP session', { serverCount: mcpServers?.length });
     session = await createMcpSession(mcpServers);
-    log('MCP session created', { toolCount: Object.keys(session.tools).length, toolNames: Object.keys(session.tools) });
+    log('MCP session created', {
+      toolCount: Object.keys(session.tools).length,
+      toolNames: Object.keys(session.tools),
+    });
     await runAgentSimulation(body, session, res);
     log('simulation complete');
     writeAgentSSE(res, { type: 'simulation_complete' });
