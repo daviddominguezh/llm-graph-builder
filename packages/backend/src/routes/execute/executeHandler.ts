@@ -5,6 +5,7 @@ import { failExecution } from '../../db/queries/executionQueries.js';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import type { ExecuteAgentParams, NodeProcessedData } from './edgeFunctionClient.js';
 import { executeAgent } from './edgeFunctionClient.js';
+import { routeAgentExecution } from './executeAgentPath.js';
 import type { ExecutionAuthLocals, ExecutionAuthResponse } from './executeAuth.js';
 import {
   type FetchedData,
@@ -14,7 +15,6 @@ import {
   fetchSessionData,
   getProductionKeyId,
 } from './executeFetcher.js';
-import { routeAgentExecution } from './executeAgentPath.js';
 import {
   buildUserMessage,
   extractTextFromInput,
@@ -93,7 +93,6 @@ function buildEmptyResponse(): AgentExecutionResponse {
     durationMs: ZERO,
   };
 }
-
 function mergeStructuredOutputs(
   existing: Record<string, unknown[]>,
   result: CallAgentOutput
@@ -286,7 +285,16 @@ export async function handleExecute(
     ({ supabase } = ctx);
 
     if (ctx.fetched.appType === 'agent') {
-      await routeAgentExecution(ctx.supabase, ctx.executionId, ctx.fetched, ctx.model, ctx.input.stream, res);
+      await routeAgentExecution(
+        {
+          supabase: ctx.supabase,
+          executionId: ctx.executionId,
+          fetched: ctx.fetched,
+          model: ctx.model,
+          stream: ctx.input.stream,
+        },
+        res
+      );
     } else if (ctx.input.stream) {
       await handleStreaming(ctx, res);
     } else {

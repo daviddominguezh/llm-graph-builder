@@ -45,7 +45,8 @@ interface AgentExecContext {
 
 /* ─── MCP session helper ─── */
 async function createAgentMcpSession(fetched: FetchedData): Promise<McpSession> {
-  const { mcpServers } = fetched.graph;
+  const { graph } = fetched;
+  const { mcpServers } = graph;
   if (mcpServers === undefined || mcpServers.length === ZERO) return EMPTY_SESSION;
   return await createMcpSession(mcpServers);
 }
@@ -135,25 +136,26 @@ async function handleAgentNonStreaming(ctx: AgentExecContext, res: Response): Pr
 }
 
 /* ─── Public routing function ─── */
-export async function routeAgentExecution(
-  supabase: SupabaseClient,
-  executionId: string,
-  fetched: FetchedData,
-  model: string,
-  stream: boolean,
-  res: Response
-): Promise<void> {
-  const { agentConfig } = fetched;
+export interface RouteAgentParams {
+  supabase: SupabaseClient;
+  executionId: string;
+  fetched: FetchedData;
+  model: string;
+  stream: boolean;
+}
+
+export async function routeAgentExecution(params: RouteAgentParams, res: Response): Promise<void> {
+  const { agentConfig } = params.fetched;
   if (agentConfig === null) throw new HttpError(HTTP_INTERNAL, 'Agent config not found');
   const ctx: AgentExecContext = {
-    supabase,
-    executionId,
-    sessionDbId: fetched.sessionDbId,
-    model,
+    supabase: params.supabase,
+    executionId: params.executionId,
+    sessionDbId: params.fetched.sessionDbId,
+    model: params.model,
     agentConfig,
-    fetched,
+    fetched: params.fetched,
   };
-  if (stream) {
+  if (params.stream) {
     await handleAgentStreaming(ctx, res);
   } else {
     await handleAgentNonStreaming(ctx, res);

@@ -48,7 +48,7 @@ async function runAgentSimulation(
 }
 
 export async function handleSimulateAgent(
-  req: Request<Record<string, string>, unknown, unknown>,
+  req: Request<Record<string, string>, unknown, SimulateAgentRequest>,
   res: Response
 ): Promise<void> {
   const parsed = SimulateAgentRequestSchema.safeParse(req.body);
@@ -56,8 +56,8 @@ export async function handleSimulateAgent(
     res.status(HTTP_BAD_REQUEST).json({ error: parsed.error.message });
     return;
   }
-  const body = req.body as SimulateAgentRequest;
-  const mcpServers = body.mcpServers ?? [];
+  const { body } = req;
+  const { mcpServers } = body;
   setSseHeaders(res);
   let session: McpSession = EMPTY_SESSION;
   try {

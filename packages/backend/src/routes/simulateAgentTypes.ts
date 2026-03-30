@@ -1,6 +1,5 @@
 import type { McpServerConfig } from '@daviddh/graph-types';
-import type { AgentToolCallRecord } from '@daviddh/llm-graph-runner';
-import type { Message } from '@daviddh/llm-graph-runner';
+import type { AgentToolCallRecord, Message } from '@daviddh/llm-graph-runner';
 import { z } from 'zod';
 
 /* --- Request schema --- */

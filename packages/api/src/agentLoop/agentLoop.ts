@@ -2,7 +2,7 @@ import type { ModelMessage } from 'ai';
 
 import type { ActionTokenUsage } from '@src/types/ai/logs.js';
 
-import { callAgentLlm, type LlmCallResult } from './agentLlmCaller.js';
+import { type LlmCallResult, callAgentLlm } from './agentLlmCaller.js';
 import {
   accumulateTokens,
   buildInitialMessages,
