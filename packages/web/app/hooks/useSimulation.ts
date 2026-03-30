@@ -130,11 +130,10 @@ function checkTerminated(
   return active && !loading && snapshot !== null && isNodeTerminal(snapshot.edges, currentNode);
 }
 
-function resetBeforeSend(setters: SimulationSetters, text: string): void {
+function resetBeforeSend(setters: SimulationSetters, text: string, userMsg: Message): void {
   setters.setLoading(true);
-  setters.setNodeResults([]);
   setters.setLastUserText(text);
-  setters.setVisitedNodes([]);
+  setters.setMessages((prev) => [...prev, userMsg]);
 }
 
 interface SendDepsWithAbort extends SendMessageDeps {
@@ -146,8 +145,9 @@ function sendAgentSimulation(deps: SendDepsWithAbort, text: string): void {
   const { abortAndCreateSignal, onZoomToNode, onSelectNode } = deps;
   if (agentConfig === undefined) return;
   const signal = abortAndCreateSignal();
-  resetBeforeSend(setters, text);
-  const allMessages = [...messages, createUserMessage(text)];
+  const userMsg = createUserMessage(text);
+  const allMessages = [...messages, userMsg];
+  resetBeforeSend(setters, text, userMsg);
   const params = buildAgentSimulateParams({ agentConfig, mcpServers, allMessages, apiKeyId, modelId });
   const callbacks = buildStreamCallbacks({ setters, onZoomToNode, onSelectNode });
   void streamAgentSimulation(params, callbacks, signal).catch((err: unknown) => {
@@ -163,8 +163,9 @@ function sendWorkflowSimulation(deps: SendDepsWithAbort, text: string): void {
   const snapshot = setters.getSnapshot();
   if (preset === undefined || snapshot === null) return;
   const signal = abortAndCreateSignal();
-  resetBeforeSend(setters, text);
-  const allMessages = [...messages, createUserMessage(text)];
+  const userMsg = createUserMessage(text);
+  const allMessages = [...messages, userMsg];
+  resetBeforeSend(setters, text, userMsg);
   const params = buildSimulateParams({
     snapshot,
     agents,

@@ -1,7 +1,7 @@
 import type { OutputSchemaEntity } from '@daviddh/graph-types';
-import type { Message } from '@daviddh/llm-graph-runner';
+import { MESSAGES_PROVIDER, type Message } from '@daviddh/llm-graph-runner';
 import type { Edge as RFEdge, Node as RFNode } from '@xyflow/react';
-
+import { nanoid } from 'nanoid';
 import { toast } from 'sonner';
 
 import type { AgentSimulateRequestBody } from '../lib/agentSimulationApi';
@@ -128,8 +128,20 @@ export interface StreamCallbackDeps {
   onSelectNode: (nodeId: string) => void;
 }
 
+function createAssistantMessage(text: string): Message {
+  return {
+    id: nanoid(),
+    provider: MESSAGES_PROVIDER.WEB,
+    type: 'text',
+    timestamp: Date.now(),
+    originalId: nanoid(),
+    message: { role: 'assistant', content: [{ type: 'text', text }] },
+  };
+}
+
 export function buildStreamCallbacks(deps: StreamCallbackDeps): StreamCallbacks {
   const { setters, onZoomToNode, onSelectNode } = deps;
+  let lastResponseText = '';
   return {
     onNodeVisited: (nodeId: string) => {
       setters.setCurrentNode(nodeId);
@@ -139,12 +151,16 @@ export function buildStreamCallbacks(deps: StreamCallbackDeps): StreamCallbacks 
     },
     onNodeProcessed: (event) => {
       handleNodeProcessedEvent(setters, event);
+      if (event.text !== '') lastResponseText = event.text;
     },
     onAgentResponse: () => {
       /* data already captured via onNodeProcessed */
     },
     onComplete: () => {
       setters.setLoading(false);
+      if (lastResponseText !== '') {
+        setters.setMessages((prev) => [...prev, createAssistantMessage(lastResponseText)]);
+      }
     },
     onError: (message: string) => {
       setters.setLoading(false);
