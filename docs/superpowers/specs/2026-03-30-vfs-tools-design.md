@@ -12,7 +12,7 @@ generateAllTools(context: Context): Record<string, Tool>
 
 // VFS tools — only called when the agent has VFS enabled
 generateVFSTools(context: Context, vfs: VFSContext): Record<string, Tool>
-// Context is used for sessionID (logging) and tenantID (telemetry). All VFS operations go through vfs.
+// Context is used for sessionID (logging) and tenantID (UUID, for telemetry correlation). All VFS operations go through vfs.
 ```
 
 `VFSContext` is constructed externally by the Edge Function bootstrap (which has the Supabase client, Redis client, and source provider). It is passed fully formed to `generateVFSTools`. The Edge Function determines `agentHasVFS` from the dispatch payload's `vfs` field (present when Spec 5's dispatch flow includes VFS config):

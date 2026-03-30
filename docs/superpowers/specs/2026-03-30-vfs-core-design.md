@@ -254,8 +254,8 @@ function validateWritePath(path: string, config?: PathValidationConfig): void;
 ```
 
 - `validatePath` (all operations): reject empty, leading `/`, `..`, null bytes, match against `HARDCODED_BLOCKED` (`.git/**`). Normalize: strip `./`, collapse `//`, strip trailing `/`.
-- `validateWritePath` (writes only): runs `validatePath` + checks configurable blocked patterns (defaults to `DEFAULT_BLOCKED`).
-- Two-tier: `.git/**` always blocked on all operations (no override). `node_modules`, `.env` configurable per-agent for writes only.
+- `validateWritePath` (writes only): runs `validatePath` + checks configurable blocked patterns. If `VFSContextConfig.protectedPaths` is provided, it **replaces** `DEFAULT_BLOCKED` entirely (not extends). If omitted, `DEFAULT_BLOCKED` is used.
+- Two-tier: `.git/**` always blocked on all operations (no override, `HARDCODED_BLOCKED`). The configurable patterns (`protectedPaths` or `DEFAULT_BLOCKED`) apply to writes only. An agent setting `protectedPaths: []` would allow writes to `.env` — this is intentional for agents that manage config files.
 
 ## VFSContext — Coordinator
 
@@ -286,6 +286,9 @@ class VFSContext {
   private config: VFSContextConfig;
 
   constructor(config: VFSContextConfig);
+  // Constructor builds sessionKey = `${tenantSlug}/${agentSlug}/${userID}/${sessionId}`
+  // and passes it to DirtySetClient, SessionTracker, and StorageLayer (as sessionPrefix).
+  // VFSContextConfig.sessionId maps from Context.sessionID (different casing convention).
   initialize(): Promise<void>;
 
   // Read operations
@@ -514,6 +517,46 @@ supabase/functions/
   vfs-cleanup/
     deno.json                  — function-specific deps (if needed)
 ```
+
+## Changes to Existing Code
+
+The following modifications to existing files are required when implementing VFS:
+
+### `ExecutePayload` (in `supabase/functions/execute-agent/index.ts`)
+
+Add an optional `vfs` field:
+
+```typescript
+interface ExecutePayload {
+  // ... existing fields ...
+  vfs?: {
+    token: string;         // GitHub installation access token
+    owner: string;         // repo owner (derived from repo_full_name split on '/')
+    repo: string;          // repo name (derived from repo_full_name split on '/')
+    commitSha: string;     // pinned commit SHA
+    tenantSlug: string;    // org slug (resolved by backend from org_id)
+    agentSlug: string;     // agent slug (resolved by backend from agent_id)
+    userJwt: string;       // user's Supabase JWT — required for Storage RLS and vfs_sessions RLS
+    settings: Omit<AgentVFSSettings, 'enabled'>;
+  };
+}
+```
+
+### Edge Function VFS bootstrap
+
+Between MCP connection and `executeWithCallbacks`, the Edge Function must:
+
+1. If `payload.vfs` is present:
+   - Construct a Supabase client with the anon key + `payload.vfs.userJwt` (so `auth.uid()` resolves for RLS).
+   - Construct an Upstash Redis client from env vars.
+   - Construct `GitHubSourceProvider` from `{ token, owner, repo, commitSha }`.
+   - Construct and initialize `VFSContext`.
+   - Call `generateVFSTools(context, vfsContext)` and merge into the tools map.
+2. `tenantSlug` and `agentSlug` are passed in `payload.vfs` (not derived from `Context.tenantID` — those are UUIDs, not slugs). The backend resolves slugs from the database before dispatch.
+
+### `Context` type (in `packages/api/src/types/tools.ts`)
+
+No changes required. `Context.tenantID` and `Context.userID` remain UUIDs. VFS-specific slugs travel in the `vfs` sub-payload, not in `Context`.
 
 ## Known Limitations (v1)
 

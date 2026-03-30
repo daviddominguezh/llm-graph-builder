@@ -128,17 +128,22 @@ The agent config stores no branch or SHA — it's always a property of the run, 
 
 When an agent with VFS is triggered:
 
-1. **Look up VFS config** — query `agent_vfs_configs` for `(agent_id, org_id)`. If not found but the agent has `vfs_settings != NULL`, return an error — the agent requires VFS but this tenant hasn't configured a repo. If `vfs_settings IS NULL`, the agent runs without VFS (VFS not enabled for this agent).
+1. **Look up VFS config** — query `agent_vfs_configs JOIN github_installation_repos USING (installation_id, repo_id)` for `(agent_id, org_id)`. The join validates that the repo is still accessible in the installation. If not found but the agent has `vfs_settings != NULL`, return an error — the agent requires VFS but this tenant hasn't configured a repo (or the repo was removed). If `vfs_settings IS NULL`, the agent runs without VFS.
 2. **Check installation status** — verify the `github_installations` record is `status = 'active'`. If suspended/revoked, return error.
 3. **Mint installation token** — sign JWT with App private key, exchange for installation access token via `POST /app/installations/{installation_id}/access_tokens`.
 4. **Resolve commit SHA** — from the trigger context ref (PR head, branch name, or default branch).
-5. **Build payload** — include in the Edge Function payload:
+5. **Resolve slugs** — look up `tenantSlug` from `organizations.slug` (via `org_id`) and `agentSlug` from `agents.slug` (via `agent_id`). These are human-readable slugs used for Storage paths, not UUIDs.
+6. **Derive owner/repo** — split `repo_full_name` on the first `/`: `owner = repo_full_name.split('/')[0]`, `repo = repo_full_name.split('/')[1]`.
+7. **Build payload** — include in the Edge Function payload:
    - `vfs.token` — the installation access token
-   - `vfs.owner` — repo owner
-   - `vfs.repo` — repo name
+   - `vfs.owner` — repo owner (from step 6)
+   - `vfs.repo` — repo name (from step 6)
    - `vfs.commitSha` — the resolved SHA
-   - `vfs.settings` — the agent's VFS runtime settings
-6. **Dispatch to Edge Function** — the Edge Function constructs `GitHubSourceProvider` and `VFSContext` from the payload. The `tenantSlug`, `agentSlug`, `userID`, and `sessionId` required by `VFSContextConfig` come from the agent run context (already present in the execution payload), not from the VFS config. The Edge Function spreads `vfs.settings` into `VFSContextConfig`, omitting the `enabled` field (VFS is enabled by virtue of `VFSContext` being constructed).
+   - `vfs.tenantSlug` — org slug (from step 5)
+   - `vfs.agentSlug` — agent slug (from step 5)
+   - `vfs.userJwt` — the authenticated user's Supabase JWT (required for Storage RLS and `vfs_sessions` RLS — `auth.uid()` must resolve)
+   - `vfs.settings` — the agent's VFS runtime settings (without `enabled`)
+8. **Dispatch to Edge Function** — the Edge Function constructs the Supabase client with anon key + `userJwt`, constructs `GitHubSourceProvider`, `VFSContext`, calls `generateVFSTools`, and merges into the tool map. See Spec 1 "Changes to Existing Code" for full bootstrap details.
 
 ## Cleanup on Installation Changes
 
