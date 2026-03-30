@@ -49,12 +49,9 @@ async function setAgentFields(
   throwOnMutationError(result, 'cloneAgentConfig:fields');
 }
 
-async function insertContextItems(
-  supabase: SupabaseClient,
-  agentId: string,
-  items: string[]
-): Promise<void> {
-  if (items.length === 0) return;
+async function insertContextItems(supabase: SupabaseClient, agentId: string, items: string[]): Promise<void> {
+  const EMPTY = 0;
+  if (items.length === EMPTY) return;
   const rows = items.map((content, i) => ({
     agent_id: agentId,
     sort_order: i,

@@ -30,7 +30,6 @@ function formatDateShort(d: Date): string {
   return `${SHORT_MONTHS[d.getMonth()] ?? 'Jan'} ${String(d.getDate())}`;
 }
 
-
 export const RANGE_CONFIGS: Record<TimeRange, RangeConfig> = {
   '1d': { intervalMs: MS_30MIN, daysBack: 1, formatTick: formatTime },
   '7d': { intervalMs: MS_6H, daysBack: 7, formatTick: formatDateShort },
@@ -75,7 +74,9 @@ function aggregateIntoSlots(
     }
   }
 
-  return slots.map((s) => buckets.get(s) ?? { date: new Date(s).toISOString(), executions: 0, cost: 0, users: 0, tenants: 0 });
+  return slots.map(
+    (s) => buckets.get(s) ?? { date: new Date(s).toISOString(), executions: 0, cost: 0, users: 0, tenants: 0 }
+  );
 }
 
 export function bucketData(rawData: TimeSeriesPoint[], range: TimeRange): TimeSeriesPoint[] {

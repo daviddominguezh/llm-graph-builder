@@ -82,6 +82,7 @@ const AGENT_SYNC_COLUMNS =
   'id, org_id, name, slug, description, category, app_type, is_public, current_version';
 const ORG_SYNC_COLUMNS = 'slug, avatar_url';
 const MIN_PUBLISHED_VERSION = 0;
+const AGENT_NODE_COUNT = 0;
 
 /* ------------------------------------------------------------------ */
 /*  Internal helpers                                                   */
@@ -261,7 +262,7 @@ async function performAgentUpsert(
   return await executeUpsert(supabase, agent, org, {
     template_graph_data: null,
     template_agent_config: config,
-    node_count: 0,
+    node_count: AGENT_NODE_COUNT,
     mcp_server_count: mcpServers.length,
   });
 }
