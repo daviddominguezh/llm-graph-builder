@@ -12,12 +12,29 @@ interface UseAgentExportParams {
   mcpServers: McpServerConfig[];
 }
 
+interface SkillExport {
+  name: string;
+  description: string;
+  content: string;
+  repoUrl: string;
+}
+
 interface AgentExportData {
   appType: 'agent';
   systemPrompt: string;
   maxSteps: number | null;
   contextItems: string[];
+  skills: SkillExport[];
   mcpServers: McpServerConfig[];
+}
+
+function mapSkillsForExport(agentConfig: AgentConfigData): SkillExport[] {
+  return agentConfig.skills.map((s) => ({
+    name: s.name,
+    description: s.description,
+    content: s.content,
+    repoUrl: s.repoUrl,
+  }));
 }
 
 function buildExportData(agentConfig: AgentConfigData, mcpServers: McpServerConfig[]): AgentExportData {
@@ -26,6 +43,7 @@ function buildExportData(agentConfig: AgentConfigData, mcpServers: McpServerConf
     systemPrompt: agentConfig.systemPrompt,
     maxSteps: agentConfig.maxSteps,
     contextItems: agentConfig.contextItems.map((item) => item.content),
+    skills: mapSkillsForExport(agentConfig),
     mcpServers,
   };
 }

@@ -38,6 +38,14 @@ function agentPath(agentId: string, suffix: string): string {
   return `/api/agents/${agentId}${suffix}`;
 }
 
+const SkillDataSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  content: z.string(),
+  repoUrl: z.string(),
+  sortOrder: z.number(),
+});
+
 const AgentConfigResponseSchema = z.object({
   appType: z.literal('agent'),
   systemPrompt: z.string(),
@@ -48,6 +56,7 @@ const AgentConfigResponseSchema = z.object({
       content: z.string(),
     })
   ),
+  skills: z.array(SkillDataSchema),
   mcpServers: z.array(McpServerConfigSchema),
 });
 

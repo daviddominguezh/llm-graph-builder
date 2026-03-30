@@ -37,3 +37,28 @@ export const ReorderContextItemsOperationSchema = z.object({
     sortOrders: z.array(z.number()),
   }),
 });
+
+export const InsertSkillOperationSchema = z.object({
+  type: z.literal('insertSkill'),
+  data: z.object({
+    name: z.string(),
+    description: z.string(),
+    content: z.string(),
+    repoUrl: z.string(),
+    sortOrder: z.number(),
+  }),
+});
+
+export const DeleteSkillOperationSchema = z.object({
+  type: z.literal('deleteSkill'),
+  data: z.object({
+    name: z.string(),
+  }),
+});
+
+export const DeleteManySkillsOperationSchema = z.object({
+  type: z.literal('deleteManySkills'),
+  data: z.object({
+    names: z.array(z.string()),
+  }),
+});

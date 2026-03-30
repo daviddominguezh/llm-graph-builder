@@ -41,6 +41,7 @@ function applyImportedConfig(
     systemPrompt: data.systemPrompt,
     maxSteps: data.maxSteps,
     contextItems,
+    skills: [],
   };
 
   const existingItems = params.getCurrentContextItems();

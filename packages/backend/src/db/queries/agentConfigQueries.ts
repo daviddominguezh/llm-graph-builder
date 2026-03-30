@@ -15,11 +15,28 @@ interface ContextItemRow {
   content: string;
 }
 
+interface SkillRow {
+  name: string;
+  description: string;
+  content: string;
+  repo_url: string;
+  sort_order: number;
+}
+
+export interface SkillData {
+  name: string;
+  description: string;
+  content: string;
+  repoUrl: string;
+  sortOrder: number;
+}
+
 export interface AgentConfigResponse {
   appType: 'agent';
   systemPrompt: string;
   maxSteps: number | null;
   contextItems: Array<{ sortOrder: number; content: string }>;
+  skills: SkillData[];
   mcpServers: McpServerConfig[];
 }
 
@@ -42,6 +59,10 @@ function isContextItemRow(val: unknown): val is ContextItemRow {
   return typeof val === 'object' && val !== null && 'sort_order' in val;
 }
 
+function isSkillRow(val: unknown): val is SkillRow {
+  return typeof val === 'object' && val !== null && 'name' in val && 'content' in val;
+}
+
 async function fetchContextItems(supabase: SupabaseClient, agentId: string): Promise<ContextItemRow[]> {
   const result = await supabase
     .from('agent_context_items')
@@ -53,6 +74,17 @@ async function fetchContextItems(supabase: SupabaseClient, agentId: string): Pro
   return result.data.filter(isContextItemRow);
 }
 
+async function fetchSkills(supabase: SupabaseClient, agentId: string): Promise<SkillRow[]> {
+  const result = await supabase
+    .from('agent_skills')
+    .select('name, description, content, repo_url, sort_order')
+    .eq('agent_id', agentId)
+    .order('sort_order', { ascending: true });
+  if (result.error !== null) return [];
+  if (!Array.isArray(result.data)) return [];
+  return result.data.filter(isSkillRow);
+}
+
 export async function isAgentType(supabase: SupabaseClient, agentId: string): Promise<boolean> {
   const row = await fetchAgentRow(supabase, agentId);
   return row !== null && row.app_type === 'agent';
@@ -62,6 +94,16 @@ function mapContextItems(items: ContextItemRow[]): Array<{ sortOrder: number; co
   return items.map((r) => ({ sortOrder: r.sort_order, content: r.content }));
 }
 
+function mapSkills(rows: SkillRow[]): SkillData[] {
+  return rows.map((r) => ({
+    name: r.name,
+    description: r.description,
+    content: r.content,
+    repoUrl: r.repo_url,
+    sortOrder: r.sort_order,
+  }));
+}
+
 export async function assembleAgentConfig(
   supabase: SupabaseClient,
   agentId: string
@@ -69,8 +111,9 @@ export async function assembleAgentConfig(
   const agentRow = await fetchAgentRow(supabase, agentId);
   if (agentRow === null) return null;
 
-  const [contextItems, mcpRows] = await Promise.all([
+  const [contextItems, skillRows, mcpRows] = await Promise.all([
     fetchContextItems(supabase, agentId),
+    fetchSkills(supabase, agentId),
     fetchMcpServers(supabase, agentId),
   ]);
 
@@ -81,6 +124,7 @@ export async function assembleAgentConfig(
     systemPrompt: agentRow.system_prompt ?? '',
     maxSteps: agentRow.max_steps,
     contextItems: mapContextItems(contextItems),
+    skills: mapSkills(skillRows),
     mcpServers,
   };
 }

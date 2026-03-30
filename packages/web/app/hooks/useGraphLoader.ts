@@ -10,10 +10,19 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
+export interface SkillData {
+  name: string;
+  description: string;
+  content: string;
+  repoUrl: string;
+  sortOrder: number;
+}
+
 export interface AgentConfigData {
   systemPrompt: string;
   maxSteps: number | null;
   contextItems: Array<{ sortOrder: number; content: string }>;
+  skills: SkillData[];
 }
 
 export interface GraphLoadResult {
@@ -76,6 +85,7 @@ function buildAgentLoadResult(config: AgentConfigResponse): GraphLoadResult {
       systemPrompt: config.systemPrompt,
       maxSteps: config.maxSteps,
       contextItems: config.contextItems,
+      skills: config.skills,
     },
   };
 }

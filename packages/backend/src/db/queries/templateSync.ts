@@ -1,9 +1,9 @@
-import type { TemplateGraphData, TemplateMcpServer } from '@daviddh/graph-types';
+import type { TemplateGraphData } from '@daviddh/graph-types';
 
 import { assembleTemplateSafeGraph } from './assembleTemplateSafeGraph.js';
-import type { McpTransportType } from './graphRowTypes.js';
 import type { SupabaseClient } from './operationHelpers.js';
 import { removeTemplate, upsertTemplate } from './templateQueries.js';
+import { filterContextItems, mapSkillSyncRows, stripMcpServerRowsToTemplate } from './templateSyncHelpers.js';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -26,21 +26,9 @@ interface OrgSyncRow {
   avatar_url: string | null;
 }
 
-interface McpServerDbRow {
-  server_id: string;
-  name: string;
-  transport_type: McpTransportType;
-  transport_config: Record<string, unknown>;
-  library_item_id: string | null;
-}
-
 interface AgentPromptRow {
   system_prompt: string | null;
   max_steps: number | null;
-}
-
-interface ContextItemRow {
-  content: string;
 }
 
 /* ------------------------------------------------------------------ */
@@ -62,16 +50,8 @@ function isOrgSyncRow(value: unknown): value is OrgSyncRow {
   return typeof value === 'object' && value !== null && 'slug' in value;
 }
 
-function isMcpServerDbRow(value: unknown): value is McpServerDbRow {
-  return typeof value === 'object' && value !== null && 'server_id' in value && 'name' in value;
-}
-
 function isAgentPromptRow(value: unknown): value is AgentPromptRow {
   return typeof value === 'object' && value !== null && 'system_prompt' in value;
-}
-
-function isContextItemRow(value: unknown): value is ContextItemRow {
-  return typeof value === 'object' && value !== null && 'content' in value;
 }
 
 /* ------------------------------------------------------------------ */
@@ -127,40 +107,6 @@ function shouldSkipSync(agent: AgentSyncRow): boolean {
 }
 
 /* ------------------------------------------------------------------ */
-/*  MCP row → TemplateMcpServer mapping                                */
-/* ------------------------------------------------------------------ */
-
-function extractHeaderKeysFromConfig(config: Record<string, unknown>): string[] {
-  const { headers } = config;
-  if (typeof headers === 'object' && headers !== null) return Object.keys(headers);
-  return [];
-}
-
-function mapDbRowToTemplate(row: McpServerDbRow): TemplateMcpServer {
-  if (row.library_item_id !== null) {
-    return { type: 'library' as const, libraryItemId: row.library_item_id, name: row.name };
-  }
-  const url = typeof row.transport_config.url === 'string' ? row.transport_config.url : undefined;
-  return {
-    type: 'custom' as const,
-    name: row.name,
-    transportType: row.transport_type,
-    url,
-    headerKeys: extractHeaderKeysFromConfig(row.transport_config),
-  };
-}
-
-function stripMcpServerRowsToTemplate(rows: unknown): TemplateMcpServer[] {
-  if (!Array.isArray(rows)) return [];
-  return rows.filter(isMcpServerDbRow).map(mapDbRowToTemplate);
-}
-
-function filterContextItems(rows: unknown): string[] {
-  if (!Array.isArray(rows)) return [];
-  return rows.filter(isContextItemRow).map((r) => r.content);
-}
-
-/* ------------------------------------------------------------------ */
 /*  Public: assemble agent template config                             */
 /* ------------------------------------------------------------------ */
 
@@ -176,20 +122,27 @@ export async function assembleAgentTemplateConfig(
 
   if (!isAgentPromptRow(agent)) return null;
 
-  const { data: contextRows } = await supabase
-    .from('agent_context_items')
-    .select('content')
-    .eq('agent_id', agentId)
-    .order('sort_order', { ascending: true });
-
-  const { data: mcpRows } = await supabase
-    .from('graph_mcp_servers')
-    .select('server_id, name, transport_type, transport_config, library_item_id')
-    .eq('agent_id', agentId);
+  const [{ data: contextRows }, { data: skillRows }, { data: mcpRows }] = await Promise.all([
+    supabase
+      .from('agent_context_items')
+      .select('content')
+      .eq('agent_id', agentId)
+      .order('sort_order', { ascending: true }),
+    supabase
+      .from('agent_skills')
+      .select('name, description, content, repo_url, sort_order')
+      .eq('agent_id', agentId)
+      .order('sort_order', { ascending: true }),
+    supabase
+      .from('graph_mcp_servers')
+      .select('server_id, name, transport_type, transport_config, library_item_id')
+      .eq('agent_id', agentId),
+  ]);
 
   return {
     systemPrompt: agent.system_prompt ?? '',
     contextItems: filterContextItems(contextRows),
+    skills: mapSkillSyncRows(skillRows),
     maxSteps: agent.max_steps ?? null,
     mcpServers: stripMcpServerRowsToTemplate(mcpRows),
   };

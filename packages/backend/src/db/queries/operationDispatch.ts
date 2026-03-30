@@ -2,7 +2,10 @@ import type { Operation } from '@daviddh/graph-types';
 
 import {
   deleteContextItem,
+  deleteManySkills,
+  deleteSkill,
   insertContextItem,
+  insertSkill,
   reorderContextItems,
   updateAgentConfig,
   updateContextItem,
@@ -144,6 +147,22 @@ async function dispatchAgentConfigOps(
   }
   if (op.type === 'reorderContextItems') {
     await reorderContextItems(supabase, agentId, op.data);
+    return;
+  }
+  await dispatchSkillOps(supabase, agentId, op);
+}
+
+async function dispatchSkillOps(supabase: SupabaseClient, agentId: string, op: Operation): Promise<void> {
+  if (op.type === 'insertSkill') {
+    await insertSkill(supabase, agentId, op.data);
+    return;
+  }
+  if (op.type === 'deleteSkill') {
+    await deleteSkill(supabase, agentId, op.data);
+    return;
+  }
+  if (op.type === 'deleteManySkills') {
+    await deleteManySkills(supabase, agentId, op.data);
     return;
   }
   throw new Error(`Unhandled operation type: ${op.type}`);

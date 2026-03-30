@@ -8,9 +8,18 @@ import { throwOnMutationError } from './operationHelpers.js';
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
+interface SkillTemplateEntry {
+  name: string;
+  description: string;
+  content: string;
+  repoUrl: string;
+  sortOrder: number;
+}
+
 interface AgentTemplateConfig {
   systemPrompt: string;
   contextItems: string[];
+  skills?: SkillTemplateEntry[];
   maxSteps: number | null;
   mcpServers: TemplateMcpServer[];
 }
@@ -61,6 +70,34 @@ async function insertContextItems(supabase: SupabaseClient, agentId: string, ite
   throwOnMutationError(result, 'cloneAgentConfig:contextItems');
 }
 
+function isSkillEntry(val: unknown): val is SkillTemplateEntry {
+  return typeof val === 'object' && val !== null && 'name' in val && 'content' in val;
+}
+
+function parseTemplateSkills(raw: unknown): SkillTemplateEntry[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(isSkillEntry);
+}
+
+async function insertSkills(
+  supabase: SupabaseClient,
+  agentId: string,
+  skills: SkillTemplateEntry[]
+): Promise<void> {
+  const EMPTY = 0;
+  if (skills.length === EMPTY) return;
+  const rows = skills.map((s) => ({
+    agent_id: agentId,
+    name: s.name,
+    description: s.description,
+    content: s.content,
+    repo_url: s.repoUrl,
+    sort_order: s.sortOrder,
+  }));
+  const result = await supabase.from('agent_skills').insert(rows);
+  throwOnMutationError(result, 'cloneAgentConfig:skills');
+}
+
 /* ------------------------------------------------------------------ */
 /*  Public entry point                                                 */
 /* ------------------------------------------------------------------ */
@@ -73,6 +110,8 @@ export async function cloneAgentConfig(
   if (!isAgentTemplateConfig(rawConfig)) return;
   await setAgentFields(supabase, agentId, rawConfig);
   await insertContextItems(supabase, agentId, rawConfig.contextItems);
+  const skills = parseTemplateSkills(rawConfig.skills);
+  await insertSkills(supabase, agentId, skills);
   const mcpServers = parseTemplateMcpServers(rawConfig.mcpServers);
   await insertMcpServers(supabase, agentId, mcpServers);
 }

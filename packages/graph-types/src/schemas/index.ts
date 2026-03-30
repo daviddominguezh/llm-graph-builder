@@ -71,4 +71,7 @@ export {
   UpdateContextItemOperationSchema,
   DeleteContextItemOperationSchema,
   ReorderContextItemsOperationSchema,
+  InsertSkillOperationSchema,
+  DeleteSkillOperationSchema,
+  DeleteManySkillsOperationSchema,
 } from './operation.schema.js';

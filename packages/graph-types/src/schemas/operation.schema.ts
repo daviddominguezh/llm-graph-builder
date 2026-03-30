@@ -2,7 +2,10 @@ import { z } from 'zod';
 
 import {
   DeleteContextItemOperationSchema,
+  DeleteManySkillsOperationSchema,
+  DeleteSkillOperationSchema,
   InsertContextItemOperationSchema,
+  InsertSkillOperationSchema,
   ReorderContextItemsOperationSchema,
   UpdateAgentConfigOperationSchema,
   UpdateContextItemOperationSchema,
@@ -64,6 +67,9 @@ export const OperationSchema = z.discriminatedUnion('type', [
   UpdateContextItemOperationSchema,
   DeleteContextItemOperationSchema,
   ReorderContextItemsOperationSchema,
+  InsertSkillOperationSchema,
+  DeleteSkillOperationSchema,
+  DeleteManySkillsOperationSchema,
 ]);
 
 export const OperationsBatchSchema = z.object({
@@ -107,4 +113,7 @@ export {
   UpdateContextItemOperationSchema,
   DeleteContextItemOperationSchema,
   ReorderContextItemsOperationSchema,
+  InsertSkillOperationSchema,
+  DeleteSkillOperationSchema,
+  DeleteManySkillsOperationSchema,
 } from './operation-agent-config.schema.js';

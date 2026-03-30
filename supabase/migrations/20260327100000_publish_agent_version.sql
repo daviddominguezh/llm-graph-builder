@@ -49,6 +49,19 @@ begin
       ) from public.agent_context_items ci where ci.agent_id = p_agent_id),
       '[]'::jsonb
     ),
+    'skills', coalesce(
+      (select jsonb_agg(
+        jsonb_build_object(
+          'name', sk.name,
+          'description', sk.description,
+          'content', sk.content,
+          'repoUrl', sk.repo_url,
+          'sortOrder', sk.sort_order
+        )
+        order by sk.sort_order
+      ) from public.agent_skills sk where sk.agent_id = p_agent_id),
+      '[]'::jsonb
+    ),
     'mcpServers', coalesce(
       (select jsonb_agg(jsonb_build_object(
         'id', m.server_id,

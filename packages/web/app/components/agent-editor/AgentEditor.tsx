@@ -1,7 +1,7 @@
 'use client';
 
 import type { Operation } from '@daviddh/graph-types';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import type { AgentConfigData } from '../../hooks/useGraphLoader';
 import type { SkillEntry } from './AddSkillDialog';
@@ -10,6 +10,7 @@ import { MaxStepsField } from './MaxStepsField';
 import { SkillsList } from './SkillsList';
 import { SystemPromptField } from './SystemPromptField';
 import { useAgentEditorActions } from './useAgentEditorActions';
+import { useSkillActions } from './useSkillActions';
 
 interface AgentEditorProps {
   config: AgentConfigData;
@@ -22,54 +23,25 @@ function useAgentEditorState(config: AgentConfigData) {
   const [systemPrompt, setSystemPrompt] = useState(config.systemPrompt);
   const [maxSteps, setMaxSteps] = useState<number | null>(config.maxSteps);
   const [contextItems, setContextItems] = useState(config.contextItems);
-  const [skills, setSkills] = useState<SkillEntry[]>([]);
+  const [skills, setSkills] = useState<SkillEntry[]>(
+    config.skills.map((s) => ({ name: s.name, description: s.description, content: s.content, repoUrl: s.repoUrl }))
+  );
   return { systemPrompt, setSystemPrompt, maxSteps, setMaxSteps, contextItems, setContextItems, skills, setSkills };
-}
-
-type SetSkills = ReturnType<typeof useAgentEditorState>['setSkills'];
-
-function useSkillActions(setSkills: SetSkills) {
-  const handleAddSkills = useCallback(
-    (entries: SkillEntry[]) => {
-      setSkills((prev) => {
-        const existing = new Set(prev.map((s) => s.name));
-        const fresh = entries.filter((e) => !existing.has(e.name));
-        return [...prev, ...fresh];
-      });
-    },
-    [setSkills]
-  );
-
-  const handleDeleteSkill = useCallback(
-    (name: string) => {
-      setSkills((prev) => prev.filter((s) => s.name !== name));
-    },
-    [setSkills]
-  );
-
-  const handleDeleteManySkills = useCallback(
-    (names: string[]) => {
-      const toRemove = new Set(names);
-      setSkills((prev) => prev.filter((s) => !toRemove.has(s.name)));
-    },
-    [setSkills]
-  );
-
-  return { handleAddSkills, handleDeleteSkill, handleDeleteManySkills };
 }
 
 export function AgentEditor({ config, pushOperation, onBackgroundClick, onConfigChange }: AgentEditorProps) {
   const state = useAgentEditorState(config);
   const actions = useAgentEditorActions(state, pushOperation);
-  const skillActions = useSkillActions(state.setSkills);
+  const skillActions = useSkillActions(state.setSkills, pushOperation);
 
   useEffect(() => {
     onConfigChange?.({
       systemPrompt: state.systemPrompt,
       maxSteps: state.maxSteps,
       contextItems: state.contextItems,
+      skills: state.skills.map((s, i) => ({ ...s, sortOrder: i })),
     });
-  }, [state.systemPrompt, state.maxSteps, state.contextItems, onConfigChange]);
+  }, [state.systemPrompt, state.maxSteps, state.contextItems, state.skills, onConfigChange]);
 
   return (
     <div className="flex h-full w-full pt-14.5 bg-muted" onClick={onBackgroundClick}>
