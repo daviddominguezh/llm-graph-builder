@@ -104,6 +104,7 @@ export function SkillRow({ skill, selected, onToggleSelect, onDelete }: SkillRow
             if (e.shiftKey) {
               e.stopPropagation();
               e.preventDefault();
+              window.getSelection()?.removeAllRanges();
               onToggleSelect(skill.name, true);
             }
           }}

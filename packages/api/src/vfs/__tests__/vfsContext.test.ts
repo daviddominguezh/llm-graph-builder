@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import type { RedisClient, StorageBucketApi } from '../types.js';
+import type { RedisClient, StorageBucketApi, SupabaseVFSClient } from '../types.js';
 import { VFSError, VFSErrorCode } from '../types.js';
 import { VFSContext } from '../vfsContext.js';
 import type { jest } from '@jest/globals';
@@ -24,12 +24,23 @@ const LINE_CEILING_SMALL = 3;
 const BIG_LINE_COUNT = 5;
 const EXPECTED_ONE = 1;
 
+function makeBinaryBytes(): Uint8Array {
+  const bytes = new TextEncoder().encode('Hello');
+  const withNull = new Uint8Array(bytes.length);
+  withNull.set(bytes);
+  const NULL_BYTE_INDEX = 2;
+  withNull[NULL_BYTE_INDEX] = 0;
+  return withNull;
+}
+
+const BINARY_BYTES = makeBinaryBytes();
+
 // ─── Shared Setup ────────────────────────────────────────────────────────────
 
 interface MockDeps {
   sourceProvider: MockSourceProvider;
   redis: jest.Mocked<RedisClient>;
-  supabase: import('../types.js').SupabaseVFSClient;
+  supabase: SupabaseVFSClient;
   bucket: jest.Mocked<StorageBucketApi>;
 }
 
