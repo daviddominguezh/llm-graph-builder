@@ -22,6 +22,9 @@ export interface AgentRow {
   is_public: boolean;
   category: string;
   created_from_template_id: string | null;
+  app_type: string;
+  system_prompt: string | null;
+  max_steps: number | null;
 }
 
 export type AgentMetadata = Pick<
@@ -89,6 +92,7 @@ export interface CreateAgentParams {
   isPublic: boolean;
   templateAgentId?: string;
   templateVersion?: number;
+  appType?: string;
 }
 
 export async function createAgent(

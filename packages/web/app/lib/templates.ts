@@ -22,6 +22,7 @@ export interface TemplateListItem {
   latest_version: number;
   created_at: string;
   updated_at: string;
+  app_type: string;
 }
 
 export interface TemplateVersionSummary {
@@ -33,6 +34,7 @@ export interface TemplateVersionSummary {
 export interface BrowseTemplateParams {
   search?: string;
   category?: string;
+  appType?: string;
   sort?: 'downloads' | 'newest' | 'updated';
   limit?: number;
   offset?: number;
@@ -63,6 +65,7 @@ function buildBrowseQuery(params?: BrowseTemplateParams): string {
   const parts: string[] = [];
   if (params.search) parts.push(`search=${encodeURIComponent(params.search)}`);
   if (params.category) parts.push(`category=${encodeURIComponent(params.category)}`);
+  if (params.appType) parts.push(`app_type=${encodeURIComponent(params.appType)}`);
   if (params.sort) parts.push(`sort=${encodeURIComponent(params.sort)}`);
   if (params.limit !== undefined) parts.push(`limit=${String(params.limit)}`);
   if (params.offset !== undefined) parts.push(`offset=${String(params.offset)}`);
