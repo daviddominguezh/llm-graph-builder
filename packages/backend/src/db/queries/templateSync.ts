@@ -16,6 +16,7 @@ interface AgentSyncRow {
   slug: string;
   description: string;
   category: string;
+  app_type: string;
   is_public: boolean;
   current_version: number;
 }
@@ -77,7 +78,8 @@ function isContextItemRow(value: unknown): value is ContextItemRow {
 /*  Constants                                                          */
 /* ------------------------------------------------------------------ */
 
-const AGENT_SYNC_COLUMNS = 'id, org_id, name, slug, description, category, is_public, current_version';
+const AGENT_SYNC_COLUMNS =
+  'id, org_id, name, slug, description, category, app_type, is_public, current_version';
 const ORG_SYNC_COLUMNS = 'slug, avatar_url';
 const MIN_PUBLISHED_VERSION = 0;
 
@@ -209,6 +211,13 @@ export async function syncTemplateAfterPublish(
   return await performUpsertSync(supabase, agentResult.result);
 }
 
+interface UpsertPayload {
+  template_graph_data: TemplateGraphData | null;
+  template_agent_config: Record<string, unknown> | null;
+  node_count: number;
+  mcp_server_count: number;
+}
+
 async function performUpsertSync(
   supabase: SupabaseClient,
   agent: AgentSyncRow
@@ -217,17 +226,51 @@ async function performUpsertSync(
   if (orgResult.error !== null) return { error: orgResult.error };
   if (orgResult.result === null) return { error: 'Organization not found' };
 
+  if (agent.app_type === 'agent') {
+    return await performAgentUpsert(supabase, agent, orgResult.result);
+  }
+  return await performWorkflowUpsert(supabase, agent, orgResult.result);
+}
+
+async function performWorkflowUpsert(
+  supabase: SupabaseClient,
+  agent: AgentSyncRow,
+  org: OrgSyncRow
+): Promise<{ error: string | null }> {
   const graph = await assembleTemplateSafeGraph(supabase, agent.id, agent.current_version);
   if (graph === null) return { error: 'Failed to assemble template graph data' };
 
-  return await executeUpsert(supabase, agent, orgResult.result, graph);
+  return await executeUpsert(supabase, agent, org, {
+    template_graph_data: graph,
+    template_agent_config: null,
+    node_count: countNodes(graph),
+    mcp_server_count: countMcpServers(graph),
+  });
+}
+
+async function performAgentUpsert(
+  supabase: SupabaseClient,
+  agent: AgentSyncRow,
+  org: OrgSyncRow
+): Promise<{ error: string | null }> {
+  const config = await assembleAgentTemplateConfig(supabase, agent.id);
+  if (config === null) return { error: 'Failed to assemble agent config' };
+
+  const mcpServers = Array.isArray(config.mcpServers) ? config.mcpServers : [];
+
+  return await executeUpsert(supabase, agent, org, {
+    template_graph_data: null,
+    template_agent_config: config,
+    node_count: 0,
+    mcp_server_count: mcpServers.length,
+  });
 }
 
 async function executeUpsert(
   supabase: SupabaseClient,
   agent: AgentSyncRow,
   org: OrgSyncRow,
-  graph: TemplateGraphData
+  payload: UpsertPayload
 ): Promise<{ error: string | null }> {
   const { error } = await upsertTemplate(supabase, {
     agent_id: agent.id,
@@ -238,10 +281,9 @@ async function executeUpsert(
     agent_name: agent.name,
     description: agent.description,
     category: agent.category,
-    node_count: countNodes(graph),
-    mcp_server_count: countMcpServers(graph),
+    app_type: agent.app_type,
     latest_version: agent.current_version,
-    template_graph_data: graph,
+    ...payload,
   });
 
   return { error };

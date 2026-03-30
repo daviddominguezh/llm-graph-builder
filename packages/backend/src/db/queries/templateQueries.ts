@@ -43,10 +43,12 @@ export interface UpsertTemplateInput {
   agent_name: string;
   description: string;
   category: string;
+  app_type: string;
   node_count: number;
   mcp_server_count: number;
   latest_version: number;
-  template_graph_data: TemplateGraphData;
+  template_graph_data: TemplateGraphData | null;
+  template_agent_config: Record<string, unknown> | null;
 }
 
 export interface TemplateMetadataFields {
