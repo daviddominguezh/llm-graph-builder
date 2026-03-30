@@ -5,6 +5,7 @@ import { useReactFlow, ReactFlowProvider, useNodesState, useEdgesState } from '@
 import '@xyflow/react/dist/style.css';
 import { useRouter } from 'next/navigation';
 
+import { AgentEditorWrapper } from './AgentEditorWrapper';
 import { useCopilotContext } from './copilot/CopilotProvider';
 import { GraphBuilderLoading } from './GraphBuilderLoading';
 import { HandleContext } from './nodes/HandleContext';
@@ -21,6 +22,7 @@ import type { DiscoveredTool } from '../lib/api';
 import type { ApiKeyRow } from '../lib/apiKeys';
 import type { Agent, Graph } from '../schemas/graph.schema';
 import { useApiKeySelection } from '../hooks/useApiKeySelection';
+import { useAgentEditorHooks } from '../hooks/useAgentEditorHooks';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { useEnvVariables } from '../hooks/useEnvVariables';
 import { useMcpLibrary } from '../hooks/useMcpLibrary';
@@ -56,6 +58,7 @@ function buildLoadResultFromGraph(graph: Graph): GraphLoadResult {
     mcpServers: graph.mcpServers ?? [],
     outputSchemas: graph.outputSchemas ?? [],
     graphData: graph,
+    agentConfig: undefined,
   };
 }
 
@@ -245,7 +248,14 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     () => ({ servers: mcpHook.servers, discoveredTools: mcpHook.discoveredTools }),
     [mcpHook.servers, mcpHook.discoveredTools]
   );
-  const canPublish = serializedGraph !== null && !hasMcpErrors(mcpHealthInput);
+  const agentHooks = useAgentEditorHooks({
+    initialConfig: loadResult.agentConfig,
+  });
+
+  const isAgentMode = loadResult.agentConfig !== undefined;
+  const canPublish = isAgentMode
+    ? !hasMcpErrors(mcpHealthInput)
+    : serializedGraph !== null && !hasMcpErrors(mcpHealthInput);
 
   useInitialViewport(reactFlowWrapper, rf.setViewport, loadResult.graphData);
   useSearchKeyboard(setSearchOpen);
@@ -339,6 +349,8 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     flush: opQueue.flush,
     hasPendingOps: opQueue.hasPendingOps,
     clearQueue: opQueue.clearQueue,
+    agentHooks,
+    agentConfig: agentHooks.agentConfig,
   };
 }
 
@@ -407,29 +419,39 @@ function LoadedEditor(props: LoadedEditorProps) {
           }
         />}
 
-        <GraphCanvas
-          agentId={props.agentId ?? ''}
-          reactFlowWrapper={h.reactFlowWrapper}
-          displayNodes={h.displayNodes}
-          edges={h.edges}
-          onNodesChange={isReadOnly ? () => {} : h.onNodesChange}
-          onEdgesChange={isReadOnly ? () => {} : h.onEdgesChange}
-          onConnect={isReadOnly ? () => {} : h.graphActions.onConnect}
-          onNodeClick={h.selection.onNodeClick}
-          onEdgeClick={h.selection.onEdgeClick}
-          onPaneClick={h.selection.onPaneClick}
-          zoomViewNodeId={h.zoomView.zoomViewNodeId}
-          simulation={h.simulation}
-          onExitZoomView={h.zoomView.handleExitZoomView}
-          readOnly={isReadOnly}
-        />
+        {h.agentConfig !== undefined ? (
+          <AgentEditorWrapper
+            agentConfig={h.agentConfig}
+            pushOperation={h.pushOperation}
+            importCounter={h.agentHooks.importCounter}
+          />
+        ) : (
+          <GraphCanvas
+            agentId={props.agentId ?? ''}
+            reactFlowWrapper={h.reactFlowWrapper}
+            displayNodes={h.displayNodes}
+            edges={h.edges}
+            onNodesChange={isReadOnly ? () => {} : h.onNodesChange}
+            onEdgesChange={isReadOnly ? () => {} : h.onEdgesChange}
+            onConnect={isReadOnly ? () => {} : h.graphActions.onConnect}
+            onNodeClick={h.selection.onNodeClick}
+            onEdgeClick={h.selection.onEdgeClick}
+            onPaneClick={h.selection.onPaneClick}
+            zoomViewNodeId={h.zoomView.zoomViewNodeId}
+            simulation={h.simulation}
+            onExitZoomView={h.zoomView.handleExitZoomView}
+            readOnly={isReadOnly}
+          />
+        )}
 
-        <SearchDialog
-          nodes={h.nodes.map((n) => ({ id: n.id, text: (n.data as RFNodeData).text }))}
-          open={h.searchOpen}
-          onClose={() => h.setSearchOpen(false)}
-          onSelectNode={h.selection.handleSearchSelectNode}
-        />
+        {h.agentConfig === undefined && (
+          <SearchDialog
+            nodes={h.nodes.map((n) => ({ id: n.id, text: (n.data as RFNodeData).text }))}
+            open={h.searchOpen}
+            onClose={() => h.setSearchOpen(false)}
+            onSelectNode={h.selection.handleSearchSelectNode}
+          />
+        )}
 
         <SidePanels
           readOnly={isReadOnly}
@@ -468,7 +490,7 @@ function LoadedEditor(props: LoadedEditorProps) {
           pushOperation={h.pushOperation}
         />
 
-        {!isReadOnly && (
+        {!isReadOnly && h.agentConfig === undefined && (
           <DeleteConfirmDialog
             pendingDelete={h.deleteConfirmation.pendingDelete}
             onConfirm={h.deleteConfirmation.confirmDelete}
@@ -476,7 +498,7 @@ function LoadedEditor(props: LoadedEditorProps) {
           />
         )}
 
-        {!isReadOnly && h.graphActions.connectionMenu !== null && (
+        {!isReadOnly && h.agentConfig === undefined && h.graphActions.connectionMenu !== null && (
           <ConnectionMenu
             position={h.graphActions.connectionMenu.position}
             sourceNodeId={h.graphActions.connectionMenu.sourceNodeId}
