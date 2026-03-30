@@ -16,6 +16,7 @@ export interface TemplateRow {
   agent_name: string;
   description: string;
   category: string;
+  app_type: string;
   node_count: number;
   mcp_server_count: number;
   download_count: number;
@@ -27,6 +28,7 @@ export interface TemplateRow {
 export interface BrowseTemplateOptions {
   search?: string;
   category?: string;
+  appType?: string;
   sort?: 'downloads' | 'newest' | 'updated';
   limit?: number;
   offset?: number;
@@ -92,6 +94,7 @@ const BROWSE_COLUMNS = [
   'agent_name',
   'description',
   'category',
+  'app_type',
   'node_count',
   'mcp_server_count',
   'download_count',
@@ -161,6 +164,9 @@ export async function browseTemplates(
     if (search !== null) query = query.or(search);
     const category = getCategoryFilter(options);
     if (category !== null) query = query.eq('category', category);
+    if (options.appType !== undefined && options.appType !== '') {
+      query = query.eq('app_type', options.appType);
+    }
     if (options.limit !== undefined) query = query.limit(options.limit);
     const range = computeRange(options);
     if (range !== null) query = query.range(range.from, range.to);

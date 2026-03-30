@@ -53,8 +53,9 @@ export function parseBrowseTemplateOptions(req: Request): BrowseTemplateOptions 
   const { query } = req;
   const search = typeof query.search === 'string' ? query.search : undefined;
   const category = typeof query.category === 'string' ? query.category : undefined;
+  const appType = typeof query.app_type === 'string' ? query.app_type : undefined;
   const sort = parseSortParam(query.sort);
   const limit = typeof query.limit === 'string' ? Number(query.limit) : DEFAULT_BROWSE_LIMIT;
   const offset = typeof query.offset === 'string' ? Number(query.offset) : DEFAULT_BROWSE_OFFSET;
-  return { search, category, sort, limit, offset };
+  return { search, category, appType, sort, limit, offset };
 }
