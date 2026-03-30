@@ -67,7 +67,7 @@ export function AppTypeCards({ value, onChange }: AppTypeCardsProps) {
       <AppTypeCard
         selected={value === 'agent'}
         onClick={() => onChange(value === 'agent' ? null : 'agent')}
-        icon={<Bot className={`size-3.5 transition-colors duration-150 ${value === 'agent' ? 'text-primary' : 'text-muted-foreground'}`} />}
+        icon={<Bot className={`size-3.5 transition-colors duration-150 ${value === 'agent' ? 'text-amber-500 dark:text-amber-400' : 'text-muted-foreground'}`} />}
         label={t('typeAgent')}
         description={t('typeAgentDescription')}
       />

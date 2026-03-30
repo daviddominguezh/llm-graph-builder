@@ -34,7 +34,7 @@ export function ContextItemRow({ sortOrder, content, onContentChange, onDelete }
 
   return (
     <div className="group flex items-start gap-1.5 rounded-md border p-2 animate-in fade-in slide-in-from-top-1 duration-200">
-      <span className="mt-1.5 flex size-5 shrink-0 items-center justify-center rounded text-[10px] font-medium text-muted-foreground bg-muted">
+      <span className="mt-1.5 flex size-5 shrink-0 items-center justify-center rounded text-[10px] font-medium text-primary/70 bg-primary/10">
         {sortOrder + 1}
       </span>
       <Textarea

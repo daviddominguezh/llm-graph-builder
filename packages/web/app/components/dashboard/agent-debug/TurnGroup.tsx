@@ -78,7 +78,7 @@ function TurnHeader({ turnIndex }: { turnIndex: number }) {
   return (
     <div className="flex items-center gap-2 py-1">
       <div className="h-px flex-1 bg-border" />
-      <span className="text-[10px] font-medium uppercase text-muted-foreground">
+      <span className="text-[10px] font-medium uppercase text-primary/60">
         {t('turnN', { n: turnIndex + 1 })}
       </span>
       <div className="h-px flex-1 bg-border" />
