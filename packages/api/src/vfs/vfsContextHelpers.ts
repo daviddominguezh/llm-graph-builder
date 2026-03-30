@@ -77,10 +77,16 @@ export function applyEdits(content: string, edits: Edit[]): string {
 
 // ─── Text Search ─────────────────────────────────────────────────────────────
 
+const SPECIAL_REGEX_CHARS = /[.*+?^${}()|[\]\\]/gu;
+
+function escapeRegex(text: string): string {
+  return text.replace(SPECIAL_REGEX_CHARS, '\\$&');
+}
+
 function buildRegex(pattern: string, isRegex: boolean, ignoreCase: boolean): RegExp {
-  const escaped = isRegex ? pattern : pattern.replace(/[.*+?^${}()|[\]\\]/gv, '\\$&');
-  const flags = ignoreCase ? 'giv' : 'gv';
-  return new RegExp(escaped, flags);
+  const source = isRegex ? pattern : escapeRegex(pattern);
+  const flags = ignoreCase ? 'giu' : 'gu';
+  return new RegExp(source, flags);
 }
 
 function buildMatch(filePath: string, allLines: string[], lineIdx: number, col: number): SearchTextMatch {
