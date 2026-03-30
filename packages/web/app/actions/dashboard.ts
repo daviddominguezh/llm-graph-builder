@@ -3,6 +3,7 @@
 import type {
   AgentSummaryRow,
   DashboardParams,
+  ExecutionMessageRow,
   ExecutionSummaryRow,
   NodeVisitRow,
   SessionRow,
@@ -16,6 +17,7 @@ import {
   getDashboardTimeSeries as getDashboardTimeSeriesLib,
   getExecutionsByTenant as getExecutionsByTenantLib,
   getExecutionsForSession as getExecutionsForSessionLib,
+  getMessagesForExecution as getMessagesForExecutionLib,
   getNodeVisitsForExecution as getNodeVisitsForExecutionLib,
   getSessionDetail as getSessionDetailLib,
   getSessionsByAgent as getSessionsByAgentLib,
@@ -81,6 +83,15 @@ export async function fetchNodeVisitsForExecution(
   serverLog('[fetchNodeVisitsForExecution] executionId:', executionId);
   const res = await getNodeVisitsForExecutionLib(executionId);
   if (res.error !== null) serverError('[fetchNodeVisitsForExecution] error:', res.error);
+  return res;
+}
+
+export async function fetchMessagesForExecution(
+  executionId: string
+): Promise<{ rows: ExecutionMessageRow[]; error: string | null }> {
+  serverLog('[fetchMessagesForExecution] executionId:', executionId);
+  const res = await getMessagesForExecutionLib(executionId);
+  if (res.error !== null) serverError('[fetchMessagesForExecution] error:', res.error);
   return res;
 }
 

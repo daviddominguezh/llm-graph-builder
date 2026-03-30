@@ -65,6 +65,17 @@ export interface NodeVisitRow {
   model: string;
 }
 
+export interface ExecutionMessageRow {
+  id: string;
+  execution_id: string;
+  node_id: string;
+  role: string;
+  content: unknown;
+  tool_calls: unknown;
+  tool_call_id: string | null;
+  created_at: string;
+}
+
 export interface DashboardParams {
   page: number;
   pageSize: number;
@@ -251,6 +262,27 @@ export async function getNodeVisitsForExecution(
     }
 
     return { rows: data as NodeVisitRow[], error: null };
+  } catch (err) {
+    return { rows: [], error: extractError(err) };
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  5b. Messages for Execution                                         */
+/* ------------------------------------------------------------------ */
+
+export async function getMessagesForExecution(
+  executionId: string
+): Promise<{ rows: ExecutionMessageRow[]; error: string | null }> {
+  try {
+    const url = `/dashboard/executions/${encodeURIComponent(executionId)}/messages`;
+    const data = await fetchFromBackend('GET', url);
+
+    if (!isRowArray(data)) {
+      return { rows: [], error: 'Invalid response' };
+    }
+
+    return { rows: data as ExecutionMessageRow[], error: null };
   } catch (err) {
     return { rows: [], error: extractError(err) };
   }

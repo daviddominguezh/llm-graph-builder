@@ -1,6 +1,7 @@
 export type {
   AgentSummaryRow,
   DashboardParams,
+  ExecutionMessageRow,
   ExecutionSummaryRow,
   NodeVisitRow,
   SessionRow,
@@ -15,6 +16,7 @@ export {
   getDashboardTimeSeries,
   getExecutionsByTenant,
   getExecutionsForSession,
+  getMessagesForExecution,
   getNodeVisitsForExecution,
   getSessionDetail,
   getSessionsByAgent,
