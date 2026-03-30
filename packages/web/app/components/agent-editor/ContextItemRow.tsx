@@ -47,10 +47,10 @@ export function ContextItemRow({ sortOrder, content, onContentChange, onDelete }
 
   return (
     <div className="group relative flex items-center gap-1.5 p-1 px-0 animate-in fade-in slide-in-from-top-1 duration-200">
-      <span className="flex size-5 shrink-0 items-center justify-center rounded text-[10px] font-medium text-primary/70 bg-primary/10">
+      <span className="cursor-default flex size-5 shrink-0 items-center justify-center rounded text-[10px] font-medium text-primary/70 bg-primary/10">
         {sortOrder + 1}
       </span>
-      <div className="w-[1px] h-full py-0.5"><div className='w-full h-full bg-border'></div></div>
+      <div className="w-0.5 h-full py-0.5 ml-0.5"><div className='w-full h-full'></div></div>
       <TextareaAutosize
         defaultValue={content}
         onChange={handleChange}

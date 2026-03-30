@@ -52,7 +52,7 @@ export function ContextItemsList({ items, onInsert, onUpdate, onDelete }: Contex
       {items.length === 0 && (
         <EmptyState title={t('emptyContextItems')} description={t('contextItemsDescription')} />
       )}
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1.5 pl-4 border-l-2 border-accent/20">
         {items.map((item, i) => (
           <React.Fragment key={`${String(item.sortOrder)}-${item.content.slice(0, 10)}`}>
             <ContextItemRow
@@ -62,7 +62,7 @@ export function ContextItemsList({ items, onInsert, onUpdate, onDelete }: Contex
               onContentChange={onUpdate}
               onDelete={onDelete}
             />
-            {i < items.length - 1 && <Separator />}
+            {i < items.length - 1 && <Separator className="ml-7 max-w-[calc(100%-var(--spacing)*7)]" />}
           </React.Fragment>
         ))}
       </div>
