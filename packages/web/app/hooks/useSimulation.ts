@@ -130,6 +130,7 @@ function useSimulationClear(
     setters.setMessages([]);
     setters.setNodeResults([]);
     setters.setConversationEntries([]);
+    setters.setTurnCount(0);
     setters.setLastUserText('');
     setters.setVisitedNodes([]);
     setters.setTotalTokens(EMPTY_TOKENS);
@@ -147,11 +148,18 @@ function checkTerminated(
   return active && !loading && snapshot !== null && isNodeTerminal(snapshot.edges, currentNode);
 }
 
-function resetBeforeSend(setters: SimulationSetters, text: string, userMsg: Message): void {
+const TURN_INCREMENT = 1;
+
+function resetBeforeSend(setters: SimulationSetters, text: string, userMsg: Message, isAgent: boolean): void {
   setters.setLoading(true);
   setters.setLastUserText(text);
   setters.setMessages((prev) => [...prev, userMsg]);
   setters.setConversationEntries((prev) => [...prev, { type: 'user' as const, text }]);
+  setters.setTurnCount((prev) => {
+    const next = prev + TURN_INCREMENT;
+    if (isAgent) setters.setCurrentNode(`Turn ${String(next)}`);
+    return next;
+  });
 }
 
 interface SendDepsWithAbort extends SendMessageDeps {
@@ -166,7 +174,7 @@ function sendAgentSimulation(deps: SendDepsWithAbort, text: string): void {
   const userMsg = createUserMessage(text);
   const allMessages = [...messages, userMsg];
   console.log('[simulation] sending agent messages:', allMessages.length, allMessages.map((m) => m.message.role));
-  resetBeforeSend(setters, text, userMsg);
+  resetBeforeSend(setters, text, userMsg, true);
   const params = buildAgentSimulateParams({ agentConfig, mcpServers, allMessages, apiKeyId, modelId });
   const callbacks = buildStreamCallbacks({ setters, onZoomToNode, onSelectNode });
   void streamAgentSimulation(params, callbacks, signal).catch((err: unknown) => {
@@ -184,7 +192,7 @@ function sendWorkflowSimulation(deps: SendDepsWithAbort, text: string): void {
   const signal = abortAndCreateSignal();
   const userMsg = createUserMessage(text);
   const allMessages = [...messages, userMsg];
-  resetBeforeSend(setters, text, userMsg);
+  resetBeforeSend(setters, text, userMsg, false);
   const params = buildSimulateParams({
     snapshot,
     agents,

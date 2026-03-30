@@ -29,6 +29,7 @@ export interface SimulationHookState {
   totalTokens: SimulationTokens;
   structuredOutputs: Record<string, unknown[]>;
   conversationEntries: ConversationEntry[];
+  turnCount: number;
   modelId: string;
   setModelId: React.Dispatch<React.SetStateAction<string>>;
   snapshotRef: React.RefObject<GraphSnapshot | null>;
@@ -81,6 +82,7 @@ interface CoreStateValues {
   totalTokens: SimulationTokens;
   structuredOutputs: Record<string, unknown[]>;
   conversationEntries: ConversationEntry[];
+  turnCount: number;
 }
 
 interface CoreDispatchers {
@@ -94,6 +96,7 @@ interface CoreDispatchers {
   setTotalTokens: React.Dispatch<React.SetStateAction<SimulationTokens>>;
   setStructuredOutputs: React.Dispatch<React.SetStateAction<Record<string, unknown[]>>>;
   setConversationEntries: React.Dispatch<React.SetStateAction<ConversationEntry[]>>;
+  setTurnCount: React.Dispatch<React.SetStateAction<number>>;
 }
 
 interface CoreStateResult {
@@ -112,6 +115,7 @@ function useSimCoreState(): CoreStateResult {
   const [totalTokens, setTotalTokens] = useState<SimulationTokens>(EMPTY_TOKENS);
   const [structuredOutputs, setStructuredOutputs] = useState<Record<string, unknown[]>>({});
   const [conversationEntries, setConversationEntries] = useState<ConversationEntry[]>([]);
+  const [turnCount, setTurnCount] = useState(INITIAL_TOKEN_COUNT);
   return {
     values: {
       active,
@@ -124,6 +128,7 @@ function useSimCoreState(): CoreStateResult {
       totalTokens,
       structuredOutputs,
       conversationEntries,
+      turnCount,
     },
     dispatchers: {
       setActive,
@@ -136,6 +141,7 @@ function useSimCoreState(): CoreStateResult {
       setTotalTokens,
       setStructuredOutputs,
       setConversationEntries,
+      setTurnCount,
     },
   };
 }

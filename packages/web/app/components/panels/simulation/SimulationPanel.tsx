@@ -179,9 +179,9 @@ export function SimulationPanel(props: SimulationPanelProps) {
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
     }
-  }, [nodeResults.length]);
+  }, [props.conversationEntries.length]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

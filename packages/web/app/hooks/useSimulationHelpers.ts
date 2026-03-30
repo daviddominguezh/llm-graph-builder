@@ -28,6 +28,7 @@ export interface SimulationSetters {
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
   setStructuredOutputs: React.Dispatch<React.SetStateAction<Record<string, unknown[]>>>;
   setConversationEntries: React.Dispatch<React.SetStateAction<ConversationEntry[]>>;
+  setTurnCount: React.Dispatch<React.SetStateAction<number>>;
   saveSnapshot: (s: GraphSnapshot | null) => void;
   getSnapshot: () => GraphSnapshot | null;
 }
