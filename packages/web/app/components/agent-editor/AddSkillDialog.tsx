@@ -13,9 +13,9 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 export interface SkillEntry {
   name: string;
@@ -30,12 +30,7 @@ interface AddSkillDialogProps {
   onSkillsAdded: (skills: SkillEntry[]) => void;
 }
 
-const GITHUB_URL_RE = /^https?:\/\/github\.com\/[^/]+\/[^/]+/;
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
-
-function isValidGitHubUrl(url: string): boolean {
-  return GITHUB_URL_RE.test(url);
-}
 
 function extractFrontmatterField(content: string, field: string): string {
   const fmMatch = content.match(FRONTMATTER_RE);
@@ -45,21 +40,122 @@ function extractFrontmatterField(content: string, field: string): string {
   return line.slice(field.length + 1).trim().replace(/^['"]|['"]$/g, '');
 }
 
+const SKILLS_REPOS = [
+  'vercel-labs/skills', 'vercel-labs/agent-skills', 'anthropics/skills',
+  'remotion-dev/skills', 'microsoft/github-copilot-for-azure', 'vercel-labs/agent-browser',
+  'microsoft/azure-skills', 'inferen-sh/skills', 'nextlevelbuilder/ui-ux-pro-max-skill',
+  'obra/superpowers', 'coreyhaines31/marketingskills', 'browser-use/browser-use',
+  'supabase/agent-skills', 'shadcn/ui', 'vercel-labs/next-skills',
+  'roin-orca/skills', 'squirrelscan/skills', 'pbakaus/impeccable',
+  'sleekdotdesign/agent-skills', 'better-auth/skills', 'xixu-me/skills',
+  'google-labs-code/stitch-skills', 'wshobson/agents', 'expo/skills',
+  'firecrawl/cli', 'charon-fan/agent-playbook', 'github/awesome-copilot',
+  'anthropics/claude-code', 'resciencelab/opc-skills',
+  'currents-dev/playwright-best-practices-skill', 'pexoai/pexo-skills',
+  'jimliu/baoyu-skills', 'larksuite/cli', 'neondatabase/agent-skills',
+  'vercel/ai', 'aaron-he-zhu/seo-geo-claude-skills', 'vercel/turborepo',
+  'supercent-io/skills-template', 'hyf0/vue-skills', 'antfu/skills',
+  'googleworkspace/cli', 'giuseppe-trisciuoglio/developer-kit',
+  'microsoft/playwright-cli', 'avdlee/swiftui-agent-skill',
+  'useai-pro/openclaw-skills-security', 'mattpocock/skills',
+];
+
+function toGitHubUrl(slug: string): string {
+  return `https://github.com/${slug}`;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Repo picker                                                        */
+/* ------------------------------------------------------------------ */
+
+function RepoItem({ slug, selected, onClick }: { slug: string; selected: boolean; onClick: () => void }) {
+  const [owner, repo] = slug.split('/');
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors ${
+        selected ? 'bg-primary/10 text-primary' : 'hover:bg-muted'
+      }`}
+    >
+      <span className="text-muted-foreground">{owner}/</span>
+      <span className="font-medium">{repo}</span>
+    </button>
+  );
+}
+
+function RepoPicker({ search, onSearchChange, selectedSlug, onSelect }: {
+  search: string;
+  onSearchChange: (v: string) => void;
+  selectedSlug: string;
+  onSelect: (slug: string) => void;
+}) {
+  const t = useTranslations('agentEditor');
+  const filtered = useMemo(() => {
+    if (search === '') return SKILLS_REPOS;
+    const lower = search.toLowerCase();
+    return SKILLS_REPOS.filter((s) => s.toLowerCase().includes(lower));
+  }, [search]);
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label className="text-xs">{t('popularRepos')}</Label>
+      <div className="relative">
+        <Search className="absolute left-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder={t('searchRepos')}
+          className="h-7 pl-7 text-xs"
+        />
+      </div>
+      <div className="max-h-48 overflow-y-auto rounded-md border">
+        {filtered.map((slug) => (
+          <RepoItem key={slug} slug={slug} selected={slug === selectedSlug} onClick={() => onSelect(slug)} />
+        ))}
+        {filtered.length === 0 && (
+          <p className="py-4 text-center text-xs text-muted-foreground">{t('noReposFound')}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Dialog body                                                        */
+/* ------------------------------------------------------------------ */
+
 function DialogBody({ onSkillsAdded, onOpenChange }: Omit<AddSkillDialogProps, 'open'>) {
   const t = useTranslations('agentEditor');
-  const [url, setUrl] = useState('');
+  const [repoSearch, setRepoSearch] = useState('');
+  const [selectedSlug, setSelectedSlug] = useState('');
+  const [customUrl, setCustomUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const effectiveUrl = selectedSlug !== '' ? toGitHubUrl(selectedSlug) : customUrl;
+
+  const handleSelectRepo = useCallback((slug: string) => {
+    setSelectedSlug((prev) => (prev === slug ? '' : slug));
+    setCustomUrl('');
+    setError(null);
+  }, []);
+
+  const handleCustomUrlChange = useCallback((value: string) => {
+    setCustomUrl(value);
+    setSelectedSlug('');
+    setError(null);
+  }, []);
+
   const handleSubmit = useCallback(async () => {
     setError(null);
-    if (!isValidGitHubUrl(url)) {
+    if (effectiveUrl === '') {
       setError(t('addSkillInvalidUrl'));
       return;
     }
     setLoading(true);
     try {
-      const skills = await getSkills(url);
+      const skills = await getSkills(effectiveUrl);
       if (!skills) {
         setError(t('addSkillError'));
         return;
@@ -68,7 +164,7 @@ function DialogBody({ onSkillsAdded, onOpenChange }: Omit<AddSkillDialogProps, '
         name,
         description: extractFrontmatterField(content, 'description'),
         content,
-        repoUrl: url,
+        repoUrl: effectiveUrl,
       }));
       onSkillsAdded(entries);
       onOpenChange(false);
@@ -77,7 +173,7 @@ function DialogBody({ onSkillsAdded, onOpenChange }: Omit<AddSkillDialogProps, '
     } finally {
       setLoading(false);
     }
-  }, [url, t, onSkillsAdded, onOpenChange]);
+  }, [effectiveUrl, t, onSkillsAdded, onOpenChange]);
 
   return (
     <>
@@ -85,24 +181,29 @@ function DialogBody({ onSkillsAdded, onOpenChange }: Omit<AddSkillDialogProps, '
         <DialogTitle>{t('addSkillTitle')}</DialogTitle>
         <DialogDescription>{t('skillsDescription')}</DialogDescription>
       </DialogHeader>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="skill-repo-url" className="text-xs">
-          URL
-        </Label>
+      <RepoPicker
+        search={repoSearch}
+        onSearchChange={setRepoSearch}
+        selectedSlug={selectedSlug}
+        onSelect={handleSelectRepo}
+      />
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="skill-custom-url" className="text-xs">{t('orCustomUrl')}</Label>
         <Input
-          id="skill-repo-url"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
+          id="skill-custom-url"
+          value={customUrl}
+          onChange={(e) => handleCustomUrlChange(e.target.value)}
           placeholder={t('addSkillPlaceholder')}
           disabled={loading}
+          className="text-xs"
         />
-        {error && <p className="text-xs text-destructive">{error}</p>}
       </div>
+      {error !== null && <p className="text-xs text-destructive">{error}</p>}
       <DialogFooter>
         <DialogClose render={<Button variant="outline" size="sm" disabled={loading} />}>
           {t('addSkillCancel')}
         </DialogClose>
-        <Button size="sm" onClick={handleSubmit} disabled={loading || url.trim() === ''}>
+        <Button size="sm" onClick={handleSubmit} disabled={loading || effectiveUrl === ''}>
           {loading && <Loader2 className="mr-1 size-3 animate-spin" />}
           {loading ? t('addSkillLoading') : t('addSkillConfirm')}
         </Button>
