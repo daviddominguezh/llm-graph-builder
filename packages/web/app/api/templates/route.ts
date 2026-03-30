@@ -16,6 +16,9 @@ export async function GET(request: Request): Promise<Response> {
   if (limit !== null) params.set('limit', limit);
   if (offset !== null) params.set('offset', offset);
 
+  const appType = searchParams.get('app_type');
+  if (appType !== null) params.set('app_type', appType);
+
   const qs = params.toString();
   const path = qs === '' ? '/templates' : `/templates?${qs}`;
   return proxyToBackend('GET', path);

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { TemplateListItem } from '../lib/templates';
 
-const TEMPLATE_LIMIT = 15;
+const TEMPLATE_LIMIT = 30;
 
 function isTemplateItem(value: unknown): value is TemplateListItem {
   return typeof value === 'object' && value !== null && 'agent_id' in value && 'org_slug' in value;
