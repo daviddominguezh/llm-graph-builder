@@ -210,7 +210,7 @@ export function SkillsList({ skills, onAdd, onDelete, onDeleteMany }: SkillsList
             activeUrl={resolvedActive?.repoUrl ?? ''}
             onSelect={setActiveProvider}
           />
-          <div className="flex flex-col gap-1 max-h-70 overflow-y-scroll">
+          <div className="flex flex-col gap-1 max-h-70 overflow-y-scroll border-l-2 border-accent/20 pl-4 mt-2">
             {activeSkills.map((skill) => (
               <SkillRow
                 key={skill.name}
