@@ -1,5 +1,5 @@
 import type { Graph, Operation } from '@daviddh/graph-types';
-import { GraphSchema } from '@daviddh/graph-types';
+import { GraphSchema, McpServerConfigSchema } from '@daviddh/graph-types';
 import { z } from 'zod';
 
 export interface VersionSummary {
@@ -38,10 +38,43 @@ function agentPath(agentId: string, suffix: string): string {
   return `/api/agents/${agentId}${suffix}`;
 }
 
+const AgentConfigResponseSchema = z.object({
+  appType: z.literal('agent'),
+  systemPrompt: z.string(),
+  maxSteps: z.number().nullable(),
+  contextItems: z.array(
+    z.object({
+      sortOrder: z.number(),
+      content: z.string(),
+    })
+  ),
+  mcpServers: z.array(McpServerConfigSchema),
+});
+
+type AgentConfigResponse = z.infer<typeof AgentConfigResponseSchema>;
+
+function isAgentConfigResponse(raw: unknown): boolean {
+  return typeof raw === 'object' && raw !== null && 'appType' in raw;
+}
+
+export type { AgentConfigResponse };
+
 export async function fetchGraph(agentId: string): Promise<Graph> {
   const res = await fetch(agentPath(agentId, '/graph'));
   await assertOk(res, 'Fetch graph');
   const raw = await parseJsonResponse(res);
+  return GraphSchema.parse(raw);
+}
+
+export async function fetchGraphOrAgentConfig(
+  agentId: string
+): Promise<Graph | AgentConfigResponse> {
+  const res = await fetch(agentPath(agentId, '/graph'));
+  await assertOk(res, 'Fetch graph');
+  const raw = await parseJsonResponse(res);
+  if (isAgentConfigResponse(raw)) {
+    return AgentConfigResponseSchema.parse(raw);
+  }
   return GraphSchema.parse(raw);
 }
 
