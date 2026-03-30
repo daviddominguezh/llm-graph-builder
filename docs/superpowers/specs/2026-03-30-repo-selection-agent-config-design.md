@@ -11,7 +11,7 @@ Lives in the agent editor, inline when the user enables the VFS tool group.
 1. **No GitHub connection for this tenant** — show a "Connect GitHub" button that kicks off the OAuth flow (Spec 4).
 2. **GitHub connected, no repo selected** — show a repository dropdown populated from `github_installation_repos` for this tenant's installation.
 3. **Repo selected** — show the selected repo with option to change.
-4. **Installation suspended or revoked** — show a "Reconnect GitHub" warning with the last-known account name. The agent cannot use VFS until the installation is restored or re-created.
+4. **Installation suspended or revoked** — show a "Reconnect GitHub" warning with the last-known account name. The agent cannot use VFS until the installation is restored or re-created. Note: if the user fully revokes and reinstalls the GitHub App, the old `github_installations` row is CASCADE-deleted (along with `agent_vfs_configs`), and a new row is created. The UI lands in state 2 (connected, no repo selected) — the user must reconfigure the repo binding.
 
 ### Per-tenant config table
 
@@ -68,7 +68,9 @@ These are properties of the agent's behavior, not the tenant's repo. Same values
 
 ```sql
 ALTER TABLE agents ADD COLUMN vfs_settings JSONB DEFAULT NULL
-  CHECK (vfs_settings IS NULL OR (vfs_settings->>'enabled')::boolean = true);
+  CHECK (vfs_settings IS NULL OR (
+    (vfs_settings ? 'enabled') AND (vfs_settings->>'enabled')::boolean = true
+  ));
 ```
 
 When `vfs_settings` is `NULL`, VFS is disabled for this agent. When present, `enabled` must be `true` (enforced by CHECK constraint).
@@ -98,7 +100,7 @@ FOR DELETE USING (public.is_org_member(org_id));
 ### updated_at trigger
 
 ```sql
-CREATE OR REPLACE FUNCTION update_agent_vfs_configs_updated_at()
+CREATE OR REPLACE FUNCTION public.update_agent_vfs_configs_updated_at()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
 AS $$
 BEGIN
@@ -109,7 +111,7 @@ $$;
 
 CREATE TRIGGER on_agent_vfs_configs_updated
   BEFORE UPDATE ON agent_vfs_configs
-  FOR EACH ROW EXECUTE FUNCTION update_agent_vfs_configs_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION public.update_agent_vfs_configs_updated_at();
 ```
 
 ## Commit SHA Resolution
@@ -126,7 +128,7 @@ The agent config stores no branch or SHA — it's always a property of the run, 
 
 When an agent with VFS is triggered:
 
-1. **Look up VFS config** — query `agent_vfs_configs` for `(agent_id, org_id)`. If not found, the agent runs without VFS (or errors if VFS is required).
+1. **Look up VFS config** — query `agent_vfs_configs` for `(agent_id, org_id)`. If not found but the agent has `vfs_settings != NULL`, return an error — the agent requires VFS but this tenant hasn't configured a repo. If `vfs_settings IS NULL`, the agent runs without VFS (VFS not enabled for this agent).
 2. **Check installation status** — verify the `github_installations` record is `status = 'active'`. If suspended/revoked, return error.
 3. **Mint installation token** — sign JWT with App private key, exchange for installation access token via `POST /app/installations/{installation_id}/access_tokens`.
 4. **Resolve commit SHA** — from the trigger context ref (PR head, branch name, or default branch).

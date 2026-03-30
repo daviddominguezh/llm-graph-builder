@@ -92,7 +92,7 @@ VFSContext checks `rateLimit.remaining` before calling source provider methods. 
 ### Rate limit budget
 
 - Per installation: base 5,000 requests/hour.
-- Scales with org size: +50 req/hour per user (if >20 users), +50 req/hour per repo (if >20 repos).
+- Scales on two independent axes: +50 req/hour per org member (if org has >20 members), +50 req/hour per installation repository (if installation covers >20 repos). These are distinct: org member count and installation repo count are independent.
 - Maximum cap: 12,500 req/hour for standard installations. GitHub Enterprise Cloud organizations have a fixed limit of 15,000 req/hour regardless of scaling.
 - Different org installations have independent budgets.
 - The threshold of 100 remaining is configurable via `VFSContextConfig.rateLimitThreshold`.
@@ -104,9 +104,10 @@ GitHub API errors are mapped to `VFSError`:
 | GitHub status | VFSError code | Message |
 |---|---|---|
 | 401 | PERMISSION_DENIED | "GitHub access has been revoked. Please reconnect your repository." |
-| 403 + `x-ratelimit-remaining: 0` or `retry-after` header | RATE_LIMITED | "GitHub API rate limit exceeded. Resets in N minutes." |
-| 403 (other — no rate limit headers) | PERMISSION_DENIED | "GitHub App may be missing required permissions for this operation." |
-| 403 (blob >100MB) | TOO_LARGE | "File exceeds GitHub's 100 MB blob API limit." |
+| 403 + `x-ratelimit-remaining: 0` | RATE_LIMITED | "GitHub API rate limit exceeded. Resets in N minutes." (use `x-ratelimit-reset`) |
+| 403 + `retry-after` header | RATE_LIMITED | "GitHub API secondary rate limit. Retry after N seconds." (use `retry-after`) |
+| 403 + `errors[].code === "too_large"` in body | TOO_LARGE | "File exceeds GitHub's 100 MB blob API limit." |
+| 403 (none of the above) | PERMISSION_DENIED | "GitHub App may be missing required permissions for this operation." |
 | 404 | FILE_NOT_FOUND | "File not found in repository at commit {sha}." |
 | 422 | INVALID_PARAMETER | "Invalid or missing commit SHA: {sha}. Ensure the commit exists." |
 | 429 | RATE_LIMITED | "GitHub API rate limit exceeded (secondary). Retry after N seconds." |

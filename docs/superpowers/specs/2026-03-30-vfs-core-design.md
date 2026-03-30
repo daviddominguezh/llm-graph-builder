@@ -117,7 +117,7 @@ class StorageLayer {
 - Session prefix: `{tenantSlug}/{agentSlug}/{userID}/{sessionId}` (no `vfs/` — the bucket name is already `vfs`, set via `supabase.storage.from('vfs')`).
 - `rename` uses `supabase.storage.from('vfs').copy(src, dest)` followed by `.remove([src])`. If copy succeeds but remove fails, a stale duplicate exists at the old path. Acceptable for v1 — not atomic, documented.
 - Supabase client uses anon key + user JWT for RLS-scoped access.
-- `deleteAll()` is for the cleanup Edge Function only. Must paginate the `list` call (default page size is 100) until exhausted before calling `remove()` in batches. The DB row is only deleted after all Storage objects are confirmed removed.
+- `deleteAll()` is for the cleanup Edge Function only. Must paginate `list()` recursively through all folder prefixes (not just the session root). Pseudo-folder entries (where `item.id` is null) must be recursed into, not passed to `remove()`. Collect all leaf object paths, then call `remove()` in batches. The DB row is only deleted after all Storage objects are confirmed removed.
 
 ## DirtySetClient
 
@@ -137,7 +137,7 @@ class DirtySetClient {
 ```
 
 - Every `markDirty` also runs `EXPIRE` to reset the 15-minute TTL. Pipelined in one round-trip.
-- If Redis is unreachable: `getTimestamp` returns current timestamp (forces re-fetch from Storage — acceptable because individual file fetches are cheap), `getTreeTimestamp` returns `null` (trusts local tree — tree re-fetch is expensive, so we preserve the local cache during Redis outage), `markDirty` silently no-ops. Redis is an optimization, not a requirement.
+- If Redis is unreachable: `getTimestamp` returns current timestamp (forces re-fetch from Storage — acceptable because individual file fetches are cheap), `getTimestamps` (batch) returns a Map with current timestamp for every requested path (same logic — forces Storage re-fetch for all candidates in `searchText`), `getTreeTimestamp` returns `null` (trusts local tree — tree re-fetch is expensive, so we preserve the local cache during Redis outage), `markDirty` silently no-ops. Redis is an optimization, not a requirement.
 
 ## TreeIndex
 
@@ -224,7 +224,7 @@ CREATE INDEX idx_vfs_sessions_last_accessed ON vfs_sessions (last_accessed_at);
 
 - `session_key` is the composite `{tenantSlug}/{agentSlug}/{userID}/{sessionId}`. This matches the Storage `sessionPrefix` so the cleanup function can derive the Storage path directly.
 - `user_id` is `UUID` matching `auth.users.id` — consistent with the rest of the schema.
-- `initialize()` runs once at VFSContext creation. Uses `INSERT ... ON CONFLICT DO UPDATE SET last_accessed_at = now()`. Idempotent.
+- `initialize()` runs once at VFSContext creation. Uses `INSERT ... ON CONFLICT DO UPDATE SET last_accessed_at = now()`. Idempotent. Must be called with a valid user JWT in the Supabase client — `auth.uid()` must resolve to the user's ID for the RLS INSERT policy to succeed.
 - `touch()` called on every tool call, throttled to one DB write per 60 seconds.
 
 ### RLS
@@ -366,7 +366,7 @@ interface Edit {
 
 **Atomicity:** edits are applied sequentially on a copy of the content. If any edit fails (`MATCH_NOT_FOUND` or `AMBIGUOUS_MATCH`), the file is unchanged. Error says which edit index failed and why.
 
-**Write path for editFile:** follows the same write path as `createFile` (steps 5–10), but replaces step 4 with reading the existing file, and step 8 uses `treeIndex.updateFileSize(path, newByteLength)` instead of `addFile`.
+**Write path for editFile:** steps 1–3 are identical to `createFile`. Step 4 is inverted: check `treeIndex.exists(path)` — if not found, throw `FILE_NOT_FOUND`, then read the existing content (following the read path). Steps 5–10 are identical, with step 8 using `treeIndex.updateFileSize(path, newByteLength)` instead of `addFile`.
 
 ### countLines
 

@@ -97,7 +97,9 @@ function toToolError(toolCallId: string, toolName: string, error: VFSError): Too
 //   result: { result: { success: false, error: error.message, error_code: error.code, details: error.details } } }
 ```
 
-Both follow the existing `ToolResponsePrompt` contract where the structured object is nested at `result.result`. `toToolError` sets `isError: true` on the outer wrapper (consistent with `createErrorResult` in `abstractToolExecuter.ts`).
+Both follow the `ToolResponsePrompt` contract where the payload is nested at `result.result`. Note: `createSuccessResult` wraps a `string` at `result.result`, while `toToolSuccess` wraps a structured `object` — both are valid since `ToolResponsePrompt.result` is typed as `{ result: unknown }`. `toToolError` sets `isError: true` on the outer wrapper (same as `createErrorResult`).
+
+**Important:** all typed response interfaces (`ReadFileResponse`, etc.) describe the shape of the `data` object inside `result.result`, not the top-level tool return. When reading a tool response, the structured fields are at `toolResult.result.result.path`, `toolResult.result.result.content`, etc.
 
 **Wire format uses `snake_case`** for all tool response fields (e.g., `size_bytes`, `total_lines`, `start_line`). The tool layer maps from internal camelCase types (like `TreeNode.sizeBytes`) to snake_case in the response.
 
@@ -203,7 +205,7 @@ interface Edit {
 }
 ```
 
-- **Hard mutual exclusivity:** if both `edits` and `full_content` provided, `INVALID_PARAMETER` error. If neither, `INVALID_PARAMETER` error. Enforced at Zod schema level via `.refine()` so the error is returned before VFSContext is reached.
+- **Hard mutual exclusivity:** if both `edits` and `full_content` provided, `INVALID_PARAMETER` error. If neither, `INVALID_PARAMETER` error. Enforced at Zod schema level via `.refine()` as the primary guard. VFSContext also validates as a defensive check (belt and suspenders).
 - **Atomic edits:** edits applied sequentially on a copy. If any edit fails, file is unchanged. Error says which edit failed and why.
 - Each `old_text` must match exactly once. Zero matches: `MATCH_NOT_FOUND`. Multiple matches: `AMBIGUOUS_MATCH`.
 - `full_content` replaces the entire file.

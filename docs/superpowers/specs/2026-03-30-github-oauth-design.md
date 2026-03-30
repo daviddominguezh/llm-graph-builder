@@ -32,7 +32,7 @@ Set in backend `.env` and Edge Function `.env`. Same pattern as existing `EDGE_F
 4. **User authorizes** — chooses which repos to grant access to (all or selected).
 5. **GitHub redirects to callback** — Next.js API route `/api/auth/github/callback` with `code`, `installation_id`, and `state`.
 6. **Next.js validates state** — verifies the returned `state` matches the stored nonce (or validates the signed JWT). Rejects the request if mismatched (CSRF protection).
-7. **Next.js calls backend** — `POST /github/installations` with `installation_id`, user session. The `code` is not needed — the `installation_id` is sufficient to call the Installations API using the App JWT (see Token Minting).
+7. **Next.js calls backend** — `POST /github/installations` with `installation_id`, user session. The `code` parameter is a user OAuth authorization code — do not exchange it. This flow uses App JWTs and installation access tokens exclusively. Discard the `code`.
 8. **Backend fetches installation details** — calls `GET /app/installations/{installation_id}` using an App JWT to validate the installation and get account info.
 9. **Backend stores installation** — saves to `github_installations` table (see Data Model).
 10. **Backend fetches repo list** — mints an installation access token (same as Token Minting step 3), then calls `GET /installation/repositories` (authenticated with the installation token, not the App JWT). Stores results in `github_installation_repos`.
@@ -126,7 +126,7 @@ The `agent_vfs_configs` table referenced in the webhook handlers above is define
 ### updated_at trigger
 
 ```sql
-CREATE OR REPLACE FUNCTION update_github_installations_updated_at()
+CREATE OR REPLACE FUNCTION public.update_github_installations_updated_at()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
 AS $$
 BEGIN
@@ -137,7 +137,7 @@ $$;
 
 CREATE TRIGGER update_github_installations_updated_at
   BEFORE UPDATE ON github_installations
-  FOR EACH ROW EXECUTE FUNCTION update_github_installations_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION public.update_github_installations_updated_at();
 ```
 
 ## Token Minting at Runtime
