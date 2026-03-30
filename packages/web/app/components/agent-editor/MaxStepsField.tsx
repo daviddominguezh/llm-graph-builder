@@ -36,16 +36,20 @@ export function MaxStepsField({ value, onChange }: MaxStepsFieldProps) {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <Label htmlFor="max-steps" className="text-xs font-medium">{t('maxSteps')}</Label>
-      <Input
-        id="max-steps"
-        type="number"
-        defaultValue={value ?? ''}
-        onChange={handleChange}
-        placeholder={t('maxStepsPlaceholder')}
-        className="w-32"
-      />
-      <p className="text-[11px] text-muted-foreground">{t('maxStepsDescription')}</p>
+      <Label htmlFor="max-steps" className="text-xs font-medium">
+        {t('maxSteps')}
+      </Label>
+      <div className="flex items-center">
+        <Input
+          id="max-steps"
+          type="number"
+          defaultValue={value ?? ''}
+          onChange={handleChange}
+          placeholder={t('maxStepsPlaceholder')}
+          className="w-32 shrink-0"
+        />
+        <p className="h-full items-center flex flex-1 text-[11px] text-muted-foreground ml-2 rounded-md p-1 px-2 bg-muted">{t('maxStepsDescription')}</p>
+      </div>
     </div>
   );
 }
