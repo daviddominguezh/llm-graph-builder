@@ -17,6 +17,17 @@ export type { TokenLog, ActionTokenUsage } from './types/ai/logs.js';
 export type { Context, NodeProcessedEvent } from './types/tools.js';
 export type { Logger } from './utils/logger.js';
 
+export { executeAgentLoop, executeAgentLoopSimple } from './agentLoop/index.js';
+export type {
+  AgentLoopCallbacks,
+  AgentLoopConfig,
+  AgentLoopResult,
+  AgentStepEvent,
+  AgentToolCallRecord,
+  AgentToolEvent,
+} from './agentLoop/index.js';
+export { AGENT_LOOP_HARD_LIMIT } from './agentLoop/index.js';
+
 export const execute = async (
   context: Context,
   messages: Message[],
