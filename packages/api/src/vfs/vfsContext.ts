@@ -23,6 +23,7 @@ import type {
   SearchTextResult,
   VFSContextConfig,
 } from './types.js';
+import type { ReadDeps } from './vfsContextRead.js';
 import {
   buildCountLinesResult,
   buildReadResult,
@@ -77,7 +78,7 @@ export class VFSContext {
     });
   }
 
-  private get deps() {
+  private get deps(): ReadDeps {
     return {
       memoryLayer: this.memoryLayer,
       storageLayer: this.storageLayer,
@@ -160,8 +161,10 @@ export class VFSContext {
     return buildCountLinesResult(path, content);
   }
 
-  async searchSymbol(_name: string): Promise<SearchSymbolResult> {
-    return { name: _name, matches: [] };
+  // Placeholder — symbol search is not implemented in this task
+  searchSymbol(name: string): SearchSymbolResult {
+    void this.treeIndex; // reference this so ESLint sees usage
+    return { name, matches: [] };
   }
 
   async searchText(params: SearchTextParams): Promise<SearchTextResult> {

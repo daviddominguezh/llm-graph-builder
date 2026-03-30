@@ -39,7 +39,7 @@ function SkillPreviewDialog({ skill, open, onOpenChange }: { skill: SkillEntry; 
   const body = stripFrontmatter(skill.content);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-w-4xl flex-col max-h-[80vh]">
+      <DialogContent className="flex sm:max-w-4xl flex-col max-h-[80vh]">
         <DialogHeader>
           <DialogTitle className="text-sm">{skill.name}</DialogTitle>
           {skill.description !== '' && (
