@@ -44,12 +44,12 @@ export function AgentEditor({ config, pushOperation, onBackgroundClick, onConfig
   }, [state.systemPrompt, state.maxSteps, state.contextItems, state.skills, onConfigChange]);
 
   return (
-    <div className="flex h-full w-full pt-14.5 bg-muted" onClick={onBackgroundClick}>
-      <div className="w-full h-full flex animate-in fade-in duration-300 gap-2 px-2" onClick={(e) => e.stopPropagation()}>
-        <div className="flex min-w-0 flex-[3] flex-col p-4 bg-popover rounded-md my-2 border">
+    <div className="flex h-full w-full pt-12.5 bg-muted" onClick={onBackgroundClick}>
+      <div className="w-full h-full flex animate-in fade-in duration-300 gap-1 px-1" onClick={(e) => e.stopPropagation()}>
+        <div className="flex min-w-0 flex-[3] flex-col p-4 bg-popover rounded-md mt-2 mb-1 border">
           <SystemPromptField value={state.systemPrompt} onChange={actions.handleSystemPromptChange} />
         </div>
-        <div className="flex min-w-0 flex-[2] flex-col gap-6 overflow-y-auto bg-popover rounded-md p-4 pt-3.5 my-2 border">
+        <div className="flex min-w-0 flex-[2] flex-col gap-6 overflow-y-auto bg-popover rounded-md p-4 pt-3.5 mt-2 mb-1 border">
           <SkillsList
             skills={state.skills}
             onAdd={skillActions.handleAddSkills}
