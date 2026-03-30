@@ -20,6 +20,7 @@ import { handleRemoveAvatar, handleUploadAvatar } from './routes/orgs/orgAvatar.
 import { handleUniqueSlug } from './routes/orgs/uniqueSlug.js';
 import { handleUpdateOrg } from './routes/orgs/updateOrg.js';
 import { secretsRouter } from './routes/secrets/secretsRouter.js';
+import { handleSimulateAgent } from './routes/simulateAgentHandler.js';
 import { handleSimulate } from './routes/simulateHandler.js';
 import { templateRouter } from './routes/templates/templateRouter.js';
 import { handleToolCall } from './routes/toolCall.js';
@@ -58,6 +59,7 @@ export function createApp(): Express {
   app.post('/mcp/discover', handleDiscover);
   app.post('/mcp/tools/call', handleToolCall);
   app.post('/simulate', handleSimulate);
+  app.post('/simulate-agent', handleSimulateAgent);
   app.get('/mcp/oauth/callback', handleCallback);
 
   app.post('/mcp', handleMcpRequest);
