@@ -62,6 +62,17 @@ export interface NodeVisitRow {
   model: string;
 }
 
+export interface ExecutionMessageRow {
+  id: string;
+  execution_id: string;
+  node_id: string;
+  role: string;
+  content: unknown;
+  tool_calls: unknown;
+  tool_call_id: string | null;
+  created_at: string;
+}
+
 export interface TenantSummaryRow {
   [key: string]: unknown;
   tenant_id: string;
