@@ -23,6 +23,7 @@ packages/api/src/vfs/
   vfsContext.ts         — Coordinator: orchestrates read/write through layers
   index.ts              — Public exports
   tools/
+    toolResponse.ts   — toToolSuccess/toToolError helpers for VFS structured responses
     readFile.ts
     listDirectory.ts
     findFiles.ts
@@ -113,10 +114,10 @@ class StorageLayer {
 }
 ```
 
-- Session prefix: `{tenantSlug}/{agentSlug}/{userId}/{sessionId}` (no `vfs/` — the bucket name is already `vfs`, set via `supabase.storage.from('vfs')`).
+- Session prefix: `{tenantSlug}/{agentSlug}/{userID}/{sessionId}` (no `vfs/` — the bucket name is already `vfs`, set via `supabase.storage.from('vfs')`).
 - `rename` uses `supabase.storage.from('vfs').copy(src, dest)` followed by `.remove([src])`. If copy succeeds but remove fails, a stale duplicate exists at the old path. Acceptable for v1 — not atomic, documented.
 - Supabase client uses anon key + user JWT for RLS-scoped access.
-- `deleteAll()` is for the cleanup Edge Function only.
+- `deleteAll()` is for the cleanup Edge Function only. Must paginate the `list` call (default page size is 100) until exhausted before calling `remove()` in batches. The DB row is only deleted after all Storage objects are confirmed removed.
 
 ## DirtySetClient
 
@@ -136,7 +137,7 @@ class DirtySetClient {
 ```
 
 - Every `markDirty` also runs `EXPIRE` to reset the 15-minute TTL. Pipelined in one round-trip.
-- If Redis is unreachable: `getTimestamp` returns current timestamp (forces re-fetch from Storage), `getTreeTimestamp` returns `null` (trusts local tree — avoids Storage hammering on every tool call during Redis outage), `markDirty` silently no-ops. Redis is an optimization, not a requirement.
+- If Redis is unreachable: `getTimestamp` returns current timestamp (forces re-fetch from Storage — acceptable because individual file fetches are cheap), `getTreeTimestamp` returns `null` (trusts local tree — tree re-fetch is expensive, so we preserve the local cache during Redis outage), `markDirty` silently no-ops. Redis is an optimization, not a requirement.
 
 ## TreeIndex
 
@@ -197,7 +198,7 @@ class SessionTracker {
   initialize(params: {
     tenantSlug: string;
     agentSlug: string;
-    userId: string;
+    userID: string;
     sessionId: string;
     commitSha: string;
   }): Promise<void>;
@@ -208,7 +209,7 @@ class SessionTracker {
 
 ```sql
 CREATE TABLE vfs_sessions (
-  session_key      TEXT PRIMARY KEY,  -- format: '{tenantSlug}/{agentSlug}/{userId}/{sessionId}'
+  session_key      TEXT PRIMARY KEY,  -- format: '{tenantSlug}/{agentSlug}/{userID}/{sessionId}'
   tenant_slug      TEXT NOT NULL,
   agent_slug       TEXT NOT NULL,
   user_id          UUID NOT NULL,
@@ -221,7 +222,7 @@ CREATE TABLE vfs_sessions (
 CREATE INDEX idx_vfs_sessions_last_accessed ON vfs_sessions (last_accessed_at);
 ```
 
-- `session_key` is the composite `{tenantSlug}/{agentSlug}/{userId}/{sessionId}`. This matches the Storage `sessionPrefix` so the cleanup function can derive the Storage path directly.
+- `session_key` is the composite `{tenantSlug}/{agentSlug}/{userID}/{sessionId}`. This matches the Storage `sessionPrefix` so the cleanup function can derive the Storage path directly.
 - `user_id` is `UUID` matching `auth.users.id` — consistent with the rest of the schema.
 - `initialize()` runs once at VFSContext creation. Uses `INSERT ... ON CONFLICT DO UPDATE SET last_accessed_at = now()`. Idempotent.
 - `touch()` called on every tool call, throttled to one DB write per 60 seconds.
@@ -240,9 +241,9 @@ WITH CHECK (user_id = auth.uid());
 ## PathValidator
 
 ```typescript
-const HARDCODED_BLOCKED: string[] = ['.git/**'];
+const HARDCODED_BLOCKED: readonly string[] = ['.git/**'];
 
-const DEFAULT_BLOCKED: string[] = [
+const DEFAULT_BLOCKED: readonly string[] = [
   'node_modules/**',
   '.env',
   '.env.*',
@@ -262,7 +263,7 @@ function validateWritePath(path: string, config?: PathValidationConfig): void;
 interface VFSContextConfig {
   tenantSlug: string;       // org slug — resolved by the backend before dispatch (not from Context.tenantID)
   agentSlug: string;        // agent slug — resolved by the backend before dispatch
-  userId: string;           // auth.uid() as string — used for Storage paths and session keys
+  userID: string;           // auth.uid() as string — used for Storage paths and session keys
   sessionId: string;
   commitSha: string;
   sourceProvider: SourceProvider;
@@ -311,7 +312,7 @@ class VFSContext {
 2. `sessionTracker.touch()` — throttled heartbeat.
 3. Check `memoryLayer.get(path)`:
    - If hit: `dirtySet.getTimestamp(path)`. If null or local `updatedAt >= dirtyTimestamp`, return from memory. If stale, fall through.
-4. `storageLayer.download(path)` — if found, populate memory layer, return.
+4. `storageLayer.download(path)` — if found, populate memory layer with `updatedAt = Date.now()` (ensures subsequent reads from this invocation are served from memory, not re-downloaded), return.
 5. Check `sourceProvider.rateLimit.remaining` against threshold. If low, throw `VFSError(RATE_LIMITED)`.
 6. Ensure tree is fresh (see below).
 7. Check `treeIndex.exists(path)`. If not, throw `VFSError(FILE_NOT_FOUND)`.
@@ -330,7 +331,7 @@ class VFSContext {
 5. `memoryLayer.set(path, content, timestamp)`.
 6. `storageLayer.upload(path, content)`.
 7. `dirtySet.markDirty(path, timestamp)`.
-8. `treeIndex.addFile(path, byteLength)`.
+8. `treeIndex.addFile(path, new TextEncoder().encode(content).length)`.
 9. `storageLayer.uploadTreeIndex(treeIndex.serialize())`.
 10. `dirtySet.markTreeDirty(timestamp)`.
 11. Return result.
@@ -340,7 +341,7 @@ class VFSContext {
 Same coherence pattern as files — no special-casing:
 
 1. If not loaded: check `storageLayer.downloadTreeIndex()`. If found, deserialize. If not, check rate limit, call `sourceProvider.fetchTree()`, build tree, persist to Storage, mark dirty.
-2. If loaded: check `dirtySet.getTreeTimestamp()`. If null or `treeIndex.getUpdatedAt() >= dirtyTimestamp`, local tree is current. If stale, re-fetch from Storage and reload.
+2. If loaded: check `dirtySet.getTreeTimestamp()`. If null or `treeIndex.getUpdatedAt() >= dirtyTimestamp`, local tree is current. If stale, re-fetch from Storage, deserialize with `updatedAt` set to the dirty timestamp (prevents re-fetching on the next call within this invocation).
 
 ### searchText — tree-guided selective fetch
 
@@ -364,6 +365,8 @@ interface Edit {
 **Mutual exclusivity:** if both `edits` and `fullContent` are provided: `VFSError(INVALID_PARAMETER, "Provide either edits or full_content, not both")`. If neither: `VFSError(INVALID_PARAMETER, "Provide either edits or full_content")`.
 
 **Atomicity:** edits are applied sequentially on a copy of the content. If any edit fails (`MATCH_NOT_FOUND` or `AMBIGUOUS_MATCH`), the file is unchanged. Error says which edit index failed and why.
+
+**Write path for editFile:** follows the same write path as `createFile` (steps 5–10), but replaces step 4 with reading the existing file, and step 8 uses `treeIndex.updateFileSize(path, newByteLength)` instead of `addFile`.
 
 ### countLines
 
@@ -437,7 +440,7 @@ USING (
 );
 ```
 
-The `name` column excludes the bucket. For `acme/pr-reviewer/user_123/sess_456/src/auth/login.ts`, `storage.foldername(name)` returns `['acme', 'pr-reviewer', 'user_123', ...]`. Postgres arrays are 1-indexed, so `[1]` = tenantSlug, `[2]` = agentSlug, `[3]` = userId.
+The `name` column excludes the bucket. For `acme/pr-reviewer/a1b2c3d4-e5f6-7890-abcd-ef1234567890/sess_456/src/auth/login.ts`, `storage.foldername(name)` returns `['acme', 'pr-reviewer', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', ...]`. Postgres arrays are 1-indexed: `[1]` = tenantSlug, `[2]` = agentSlug, `[3]` = userID (UUID from `auth.uid()`).
 
 ## Cleanup System
 
@@ -471,7 +474,12 @@ SELECT cron.schedule(
 );
 ```
 
-The cron runs every 15 minutes inside Postgres (free). Only invokes the Edge Function when stale rows exist.
+The cron runs every 15 minutes inside Postgres (free). Only invokes the Edge Function when stale rows exist. Requires `pg_net` and `pg_cron` extensions:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS pg_net;
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+```
 
 ### vfs-cleanup Edge Function
 

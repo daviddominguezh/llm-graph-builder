@@ -12,14 +12,18 @@ generateAllTools(context: Context): Record<string, Tool>
 
 // VFS tools — only called when the agent has VFS enabled
 generateVFSTools(context: Context, vfs: VFSContext): Record<string, Tool>
+// Context is used for sessionID (logging) and tenantID (telemetry). All VFS operations go through vfs.
 ```
 
 `VFSContext` is constructed externally by the Edge Function bootstrap (which has the Supabase client, Redis client, and source provider). It is passed fully formed to `generateVFSTools`. The Edge Function determines `agentHasVFS` from the dispatch payload's `vfs` field (present when Spec 5's dispatch flow includes VFS config):
 
 ```typescript
 const vfsContext = payload.vfs
-  ? new VFSContext({ ...payload.vfs, supabase, redis, sourceProvider })
+  ? await initVFSContext({ ...payload.vfs, supabase, redis, sourceProvider })
   : undefined;
+
+// where initVFSContext constructs and initializes:
+// const ctx = new VFSContext(config); await ctx.initialize(); return ctx;
 
 const tools: Record<string, Tool> = {
   ...generateAllTools(context),
@@ -86,10 +90,14 @@ VFS tools do **not** use the existing `createSuccessResult(string)` / `createErr
 
 ```typescript
 function toToolSuccess<T>(toolCallId: string, toolName: string, data: T): ToolResponsePrompt;
+// Returns: { type: 'tool-result', toolCallId, toolName, result: { result: data } }
+
 function toToolError(toolCallId: string, toolName: string, error: VFSError): ToolResponsePrompt;
+// Returns: { type: 'tool-result', toolCallId, toolName, isError: true,
+//   result: { result: { success: false, error: error.message, error_code: error.code, details: error.details } } }
 ```
 
-These set `result: { result: data }` with the structured object, compatible with the AI SDK's tool response format.
+Both follow the existing `ToolResponsePrompt` contract where the structured object is nested at `result.result`. `toToolError` sets `isError: true` on the outer wrapper (consistent with `createErrorResult` in `abstractToolExecuter.ts`).
 
 **Wire format uses `snake_case`** for all tool response fields (e.g., `size_bytes`, `total_lines`, `start_line`). The tool layer maps from internal camelCase types (like `TreeNode.sizeBytes`) to snake_case in the response.
 
@@ -155,7 +163,7 @@ Parameters: `path` (optional, default root), `max_depth` (optional, default 3).
 
 Parameters: `path` (required, file only), `pattern` (optional), `is_regex` (optional, default false).
 
-- File-only for v1. No directory mode.
+- File-only for v1. No directory mode. If `path` is a directory, returns `INVALID_PARAMETER` error.
 - When `pattern` omitted, returns `total_lines` only.
 - When `pattern` provided, returns `total_lines` and `matching_lines` (a count, not an array).
 
@@ -195,7 +203,7 @@ interface Edit {
 }
 ```
 
-- **Hard mutual exclusivity:** if both `edits` and `full_content` provided, `INVALID_PARAMETER` error. If neither, `INVALID_PARAMETER` error.
+- **Hard mutual exclusivity:** if both `edits` and `full_content` provided, `INVALID_PARAMETER` error. If neither, `INVALID_PARAMETER` error. Enforced at Zod schema level via `.refine()` so the error is returned before VFSContext is reached.
 - **Atomic edits:** edits applied sequentially on a copy. If any edit fails, file is unchanged. Error says which edit failed and why.
 - Each `old_text` must match exactly once. Zero matches: `MATCH_NOT_FOUND`. Multiple matches: `AMBIGUOUS_MATCH`.
 - `full_content` replaces the entire file.

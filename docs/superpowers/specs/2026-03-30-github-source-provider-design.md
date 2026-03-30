@@ -48,7 +48,7 @@ Uses the GitHub Git Trees API:
 
 1. **Try recursive:** `GET /repos/{owner}/{repo}/git/trees/{commitSha}?recursive=1`.
 2. **Check truncation:** if response has `truncated: true`, fall back to non-recursive tree walking.
-3. **Recursive fallback:** breadth-first walk — fetch root tree without `?recursive=1`, then for each entry of type `tree`, make a non-recursive API call for that subtree's SHA. Repeat until no unvisited subtree SHAs remain. Max depth: 20 levels (throws `VFSError(TOO_LARGE)` if exceeded).
+3. **Recursive fallback:** breadth-first walk — fetch root tree without `?recursive=1`. Each tree response includes `sha` for every entry. Newly discovered `tree`-type entries are added to the BFS queue. For each queued subtree SHA, make a non-recursive API call. Repeat until the queue is empty. Max depth: 20 levels (throws `VFSError(TOO_LARGE)` if exceeded). The recursive API (step 1) enforces its own limits server-side; the 20-level cap only applies to this manual BFS fallback.
 4. **Map response** to `TreeEntry[]`: capture `path`, `type` (blob -> "file", tree -> "directory"), GitHub `size` field -> `TreeEntry.sizeBytes`, and `sha` (blob SHA for files, tree SHA for directories).
 5. **Update `rateLimit`** from response headers after every API call.
 
@@ -60,7 +60,7 @@ Uses the Git Blobs API with raw media type:
 
 1. Look up the blob SHA for the given path (from the tree entries passed through VFSContext).
 2. `GET /repos/{owner}/{repo}/git/blobs/{sha}` with `Accept: application/vnd.github.raw+json`.
-3. Returns raw bytes as `Uint8Array`.
+3. Read response as `ArrayBuffer` via `response.arrayBuffer()`, wrap in `new Uint8Array(buffer)`. Do not use `.json()` or `.text()` (would corrupt binary content).
 4. **Update `rateLimit`** from response headers.
 
 The blob SHA comes from the tree (captured in `TreeEntry.sha` during `fetchTree`). This avoids path resolution on GitHub's side and guarantees we're reading the exact blob at the pinned commit.
@@ -70,6 +70,7 @@ The provider maintains an internal `Map<string, string>` (path -> blob SHA) buil
 ## Rate Limit Tracking
 
 ```typescript
+// Initialized once in constructor, reference never reassigned — only fields mutated in-place.
 rateLimit: RateLimitInfo = {
   remaining: Infinity,  // initial state, updated after first API call
   resetAt: new Date(0),
@@ -103,10 +104,12 @@ GitHub API errors are mapped to `VFSError`:
 | GitHub status | VFSError code | Message |
 |---|---|---|
 | 401 | PERMISSION_DENIED | "GitHub access has been revoked. Please reconnect your repository." |
-| 403 + `x-ratelimit-remaining: 0` | RATE_LIMITED | "GitHub API rate limit exceeded. Resets in N minutes." |
-| 403 (other) | PERMISSION_DENIED | "GitHub App may be missing required permissions for this operation." |
+| 403 + `x-ratelimit-remaining: 0` or `retry-after` header | RATE_LIMITED | "GitHub API rate limit exceeded. Resets in N minutes." |
+| 403 (other — no rate limit headers) | PERMISSION_DENIED | "GitHub App may be missing required permissions for this operation." |
+| 403 (blob >100MB) | TOO_LARGE | "File exceeds GitHub's 100 MB blob API limit." |
 | 404 | FILE_NOT_FOUND | "File not found in repository at commit {sha}." |
 | 422 | INVALID_PARAMETER | "Invalid or missing commit SHA: {sha}. Ensure the commit exists." |
+| 429 | RATE_LIMITED | "GitHub API rate limit exceeded (secondary). Retry after N seconds." |
 | 5xx | PROVIDER_ERROR | "GitHub API error: {status} {message}" |
 
 ## HTTP Client

@@ -34,6 +34,8 @@ CREATE TABLE agent_vfs_configs (
   id               BIGSERIAL PRIMARY KEY,
   agent_id         UUID NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
   org_id           UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  -- Intentionally references installation_id (GitHub's numeric ID / PK), not a surrogate,
+  -- so webhook handlers can correlate by GitHub's installation_id without a join.
   installation_id  BIGINT NOT NULL REFERENCES github_installations(installation_id) ON DELETE CASCADE,
   repo_id          BIGINT NOT NULL,
   repo_full_name   TEXT NOT NULL,
@@ -65,10 +67,11 @@ These are properties of the agent's behavior, not the tenant's repo. Same values
 ### AgentVFSSettings migration
 
 ```sql
-ALTER TABLE agents ADD COLUMN vfs_settings JSONB DEFAULT NULL;
+ALTER TABLE agents ADD COLUMN vfs_settings JSONB DEFAULT NULL
+  CHECK (vfs_settings IS NULL OR (vfs_settings->>'enabled')::boolean = true);
 ```
 
-When `vfs_settings` is `NULL`, VFS is disabled for this agent. When present, `enabled` must be `true`.
+When `vfs_settings` is `NULL`, VFS is disabled for this agent. When present, `enabled` must be `true` (enforced by CHECK constraint).
 
 ### RLS policies
 
@@ -84,7 +87,9 @@ CREATE POLICY "agent_vfs_configs_insert" ON agent_vfs_configs
 FOR INSERT WITH CHECK (public.is_org_member(org_id));
 
 CREATE POLICY "agent_vfs_configs_update" ON agent_vfs_configs
-FOR UPDATE USING (public.is_org_member(org_id));
+FOR UPDATE
+USING (public.is_org_member(org_id))
+WITH CHECK (public.is_org_member(org_id));
 
 CREATE POLICY "agent_vfs_configs_delete" ON agent_vfs_configs
 FOR DELETE USING (public.is_org_member(org_id));
@@ -102,7 +107,7 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER update_agent_vfs_configs_updated_at
+CREATE TRIGGER on_agent_vfs_configs_updated
   BEFORE UPDATE ON agent_vfs_configs
   FOR EACH ROW EXECUTE FUNCTION update_agent_vfs_configs_updated_at();
 ```
@@ -131,7 +136,7 @@ When an agent with VFS is triggered:
    - `vfs.repo` — repo name
    - `vfs.commitSha` — the resolved SHA
    - `vfs.settings` — the agent's VFS runtime settings
-6. **Dispatch to Edge Function** — the Edge Function constructs `GitHubSourceProvider` and `VFSContext` from the payload. The `tenantSlug`, `agentSlug`, `userId`, and `sessionId` required by `VFSContextConfig` come from the agent run context (already present in the execution payload), not from the VFS config.
+6. **Dispatch to Edge Function** — the Edge Function constructs `GitHubSourceProvider` and `VFSContext` from the payload. The `tenantSlug`, `agentSlug`, `userID`, and `sessionId` required by `VFSContextConfig` come from the agent run context (already present in the execution payload), not from the VFS config. The Edge Function spreads `vfs.settings` into `VFSContextConfig`, omitting the `enabled` field (VFS is enabled by virtue of `VFSContext` being constructed).
 
 ## Cleanup on Installation Changes
 

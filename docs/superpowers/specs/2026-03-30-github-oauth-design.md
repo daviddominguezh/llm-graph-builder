@@ -35,7 +35,7 @@ Set in backend `.env` and Edge Function `.env`. Same pattern as existing `EDGE_F
 7. **Next.js calls backend** — `POST /github/installations` with `installation_id`, user session. The `code` is not needed — the `installation_id` is sufficient to call the Installations API using the App JWT (see Token Minting).
 8. **Backend fetches installation details** — calls `GET /app/installations/{installation_id}` using an App JWT to validate the installation and get account info.
 9. **Backend stores installation** — saves to `github_installations` table (see Data Model).
-10. **Backend fetches repo list** — calls `GET /user/installations/{installation_id}/repositories` and stores in `github_installation_repos`.
+10. **Backend fetches repo list** — mints an installation access token (same as Token Minting step 3), then calls `GET /installation/repositories` (authenticated with the installation token, not the App JWT). Stores results in `github_installation_repos`.
 11. **Redirect back** — user returns to agent editor, sees their connected repos.
 
 ## Webhook Handling
@@ -68,9 +68,8 @@ Every incoming webhook is verified against `GITHUB_APP_WEBHOOK_SECRET` using the
 
 ```sql
 CREATE TABLE github_installations (
-  id               BIGSERIAL PRIMARY KEY,
-  org_id        UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  installation_id  BIGINT NOT NULL UNIQUE,  -- GitHub's installation ID
+  installation_id  BIGINT PRIMARY KEY,        -- GitHub's installation ID (natural key, no surrogate)
+  org_id           UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   account_name     TEXT NOT NULL,            -- GitHub org/user name
   account_type     TEXT NOT NULL CHECK (account_type IN ('Organization', 'User')),
   status           TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'suspended', 'revoked')),
@@ -91,6 +90,7 @@ CREATE TABLE github_installation_repos (
   repo_full_name   TEXT NOT NULL,            -- "owner/repo"
   private          BOOLEAN NOT NULL DEFAULT false,
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  -- No updated_at — rows are inserted or deleted, never updated in place.
   UNIQUE(installation_id, repo_id)
 );
 
@@ -119,7 +119,9 @@ FOR SELECT USING (
 );
 ```
 
-Note: write operations on these tables go through the backend (service role), not directly from the browser. Read-only RLS policies are sufficient.
+Note: write operations on these tables go through the backend (service role, which bypasses RLS entirely), not directly from the browser. The intentional absence of INSERT/UPDATE/DELETE policies is by design — only SELECT is needed for browser reads.
+
+The `agent_vfs_configs` table referenced in the webhook handlers above is defined in Spec 5 (Repo Selection & Agent Config).
 
 ### updated_at trigger
 
