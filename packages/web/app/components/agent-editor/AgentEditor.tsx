@@ -26,18 +26,20 @@ export function AgentEditor({ config, pushOperation }: AgentEditorProps) {
   const actions = useAgentEditorActions(state, pushOperation);
 
   return (
-    <div className="flex h-full w-full pt-12 border-t">
-      <div className="flex min-w-0 flex-[3] flex-col p-4">
-        <SystemPromptField value={state.systemPrompt} onChange={actions.handleSystemPromptChange} />
-      </div>
-      <div className="flex min-w-0 flex-[2] flex-col gap-6 overflow-y-auto border-l bg-muted/20 p-4">
-        <ContextItemsList
-          items={state.contextItems}
-          onInsert={actions.handleInsertItem}
-          onUpdate={actions.handleUpdateItem}
-          onDelete={actions.handleDeleteItem}
-        />
-        <MaxStepsField value={state.maxSteps} onChange={actions.handleMaxStepsChange} />
+    <div className="flex h-full w-full pt-14.5">
+      <div className="w-full h-full border-t flex">
+        <div className="flex min-w-0 flex-[3] flex-col p-4">
+          <SystemPromptField value={state.systemPrompt} onChange={actions.handleSystemPromptChange} />
+        </div>
+        <div className="flex min-w-0 flex-[2] flex-col gap-6 overflow-y-auto border-l bg-muted/20 p-4">
+          <ContextItemsList
+            items={state.contextItems}
+            onInsert={actions.handleInsertItem}
+            onUpdate={actions.handleUpdateItem}
+            onDelete={actions.handleDeleteItem}
+          />
+          <MaxStepsField value={state.maxSteps} onChange={actions.handleMaxStepsChange} />
+        </div>
       </div>
     </div>
   );
