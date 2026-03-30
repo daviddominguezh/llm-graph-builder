@@ -3,10 +3,11 @@ import type { Request } from 'express';
 
 import { insertAgent } from '../../db/queries/agentQueries.js';
 import { assembleTemplateSafeGraph } from '../../db/queries/assembleTemplateSafeGraph.js';
+import { cloneAgentConfig } from '../../db/queries/cloneAgentConfig.js';
 import { cloneTemplateGraph } from '../../db/queries/cloneTemplateGraph.js';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { findUniqueSlug, generateSlug } from '../../db/queries/slugQueries.js';
-import { getTemplateByAgentId, incrementDownloads } from '../../db/queries/templateQueries.js';
+import { getTemplateForClone, incrementDownloads } from '../../db/queries/templateQueries.js';
 import {
   type AuthenticatedLocals,
   type AuthenticatedResponse,
@@ -59,7 +60,7 @@ async function linkCreatedFromTemplate(
   await supabase.from('agents').update({ created_from_template_id: templateId }).eq('id', agentId);
 }
 
-async function cloneFromTemplate(
+async function cloneWorkflowTemplate(
   supabase: SupabaseClient,
   agentId: string,
   templateAgentId: string,
@@ -67,14 +68,26 @@ async function cloneFromTemplate(
 ): Promise<void> {
   const graph = await assembleTemplateSafeGraph(supabase, templateAgentId, templateVersion);
   if (graph === null) return;
-
   await cloneTemplateGraph(supabase, agentId, graph);
+}
 
-  const { result: template } = await getTemplateByAgentId(supabase, templateAgentId);
-  if (template !== null) {
-    await linkCreatedFromTemplate(supabase, agentId, template.id);
-    await incrementDownloads(supabase, template.id);
+async function cloneFromTemplate(
+  supabase: SupabaseClient,
+  agentId: string,
+  templateAgentId: string,
+  templateVersion: number
+): Promise<void> {
+  const { result: template } = await getTemplateForClone(supabase, templateAgentId);
+  if (template === null) return;
+
+  if (template.app_type === 'agent') {
+    await cloneAgentConfig(supabase, agentId, template.template_agent_config);
+  } else {
+    await cloneWorkflowTemplate(supabase, agentId, templateAgentId, templateVersion);
   }
+
+  await linkCreatedFromTemplate(supabase, agentId, template.id);
+  await incrementDownloads(supabase, template.id);
 }
 
 /* ------------------------------------------------------------------ */

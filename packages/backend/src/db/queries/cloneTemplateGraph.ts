@@ -245,7 +245,7 @@ async function buildLibraryMcpRow(
   };
 }
 
-async function insertMcpServers(
+export async function insertMcpServers(
   supabase: SupabaseClient,
   agentId: string,
   servers: TemplateMcpServer[]

@@ -269,3 +269,36 @@ export async function getTemplateByAgentId(
   if (!isTemplateRow(data)) return { result: null, error: 'Invalid template data' };
   return { result: data, error: null };
 }
+
+/* ------------------------------------------------------------------ */
+/*  Clone-specific fetcher                                             */
+/* ------------------------------------------------------------------ */
+
+const CLONE_COLUMNS = 'id, agent_id, app_type, template_graph_data, template_agent_config';
+
+interface CloneTemplateResult {
+  id: string;
+  app_type: string;
+  template_graph_data: unknown;
+  template_agent_config: unknown;
+}
+
+function isCloneTemplateResult(val: unknown): val is CloneTemplateResult {
+  return typeof val === 'object' && val !== null && 'id' in val && 'app_type' in val;
+}
+
+export async function getTemplateForClone(
+  supabase: SupabaseClient,
+  agentId: string
+): Promise<{ result: CloneTemplateResult | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from('agent_templates')
+    .select(CLONE_COLUMNS)
+    .eq('agent_id', agentId)
+    .maybeSingle();
+
+  if (error !== null) return { result: null, error: error.message };
+  if (data === null) return { result: null, error: null };
+  if (!isCloneTemplateResult(data)) return { result: null, error: 'Invalid template data' };
+  return { result: data, error: null };
+}
