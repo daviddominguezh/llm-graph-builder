@@ -2,6 +2,8 @@ import type { OutputSchemaEntity } from '@daviddh/graph-types';
 import type { Message } from '@daviddh/llm-graph-runner';
 import type { Edge as RFEdge, Node as RFNode } from '@xyflow/react';
 
+import { toast } from 'sonner';
+
 import type { AgentSimulateRequestBody } from '../lib/agentSimulationApi';
 import type { NodeProcessedEvent, SimulateRequestBody, StreamCallbacks } from '../lib/api';
 import type { Agent, McpServerConfig } from '../schemas/graph.schema';
@@ -144,8 +146,9 @@ export function buildStreamCallbacks(deps: StreamCallbackDeps): StreamCallbacks 
     onComplete: () => {
       setters.setLoading(false);
     },
-    onError: () => {
+    onError: (message: string) => {
       setters.setLoading(false);
+      toast.error(message);
     },
   };
 }

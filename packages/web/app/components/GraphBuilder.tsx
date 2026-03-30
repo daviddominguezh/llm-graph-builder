@@ -446,6 +446,7 @@ function LoadedEditor(props: LoadedEditorProps) {
               pushOperation={h.pushOperation}
               importCounter={h.agentHooks.importCounter}
               onBackgroundClick={h.selection.onPaneClick}
+              onConfigChange={h.agentHooks.setAgentConfigSilent}
             />
             {h.simulation.active && (
               <SimulationPanel

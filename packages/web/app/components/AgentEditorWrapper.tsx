@@ -10,8 +10,17 @@ interface AgentEditorWrapperProps {
   pushOperation: (op: Operation) => void;
   importCounter: number;
   onBackgroundClick?: () => void;
+  onConfigChange?: (config: AgentConfigData) => void;
 }
 
-export function AgentEditorWrapper({ agentConfig, pushOperation, importCounter, onBackgroundClick }: AgentEditorWrapperProps) {
-  return <AgentEditor key={importCounter} config={agentConfig} pushOperation={pushOperation} onBackgroundClick={onBackgroundClick} />;
+export function AgentEditorWrapper({ agentConfig, pushOperation, importCounter, onBackgroundClick, onConfigChange }: AgentEditorWrapperProps) {
+  return (
+    <AgentEditor
+      key={importCounter}
+      config={agentConfig}
+      pushOperation={pushOperation}
+      onBackgroundClick={onBackgroundClick}
+      onConfigChange={onConfigChange}
+    />
+  );
 }

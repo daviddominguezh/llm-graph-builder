@@ -5,6 +5,7 @@ import { MESSAGES_PROVIDER, type Message } from '@daviddh/llm-graph-runner';
 import type { Edge as RFEdge, Node as RFNode } from '@xyflow/react';
 import { nanoid } from 'nanoid';
 import { useCallback } from 'react';
+import { toast } from 'sonner';
 
 import { streamAgentSimulation } from '../lib/agentSimulationApi';
 import { streamSimulation } from '../lib/api';
@@ -149,8 +150,9 @@ function sendAgentSimulation(deps: SendDepsWithAbort, text: string): void {
   const allMessages = [...messages, createUserMessage(text)];
   const params = buildAgentSimulateParams({ agentConfig, mcpServers, allMessages, apiKeyId, modelId });
   const callbacks = buildStreamCallbacks({ setters, onZoomToNode, onSelectNode });
-  void streamAgentSimulation(params, callbacks, signal).catch(() => {
+  void streamAgentSimulation(params, callbacks, signal).catch((err: unknown) => {
     setters.setLoading(false);
+    toast.error(err instanceof Error ? err.message : 'Simulation failed');
   });
 }
 
@@ -176,8 +178,9 @@ function sendWorkflowSimulation(deps: SendDepsWithAbort, text: string): void {
     structuredOutputs,
   });
   const callbacks = buildStreamCallbacks({ setters, onZoomToNode, onSelectNode });
-  void streamSimulation(params, callbacks, signal).catch(() => {
+  void streamSimulation(params, callbacks, signal).catch((err: unknown) => {
     setters.setLoading(false);
+    toast.error(err instanceof Error ? err.message : 'Simulation failed');
   });
 }
 

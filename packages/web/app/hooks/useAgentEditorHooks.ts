@@ -14,6 +14,7 @@ interface UseAgentEditorHooksParams {
 interface UseAgentEditorHooksReturn {
   agentConfig: AgentConfigData | undefined;
   setAgentConfig: (config: AgentConfigData) => void;
+  setAgentConfigSilent: (config: AgentConfigData) => void;
   importCounter: number;
   getCurrentContextItems: () => Array<{ sortOrder: number; content: string }>;
 }
@@ -27,7 +28,11 @@ export function useAgentEditorHooks({ initialConfig }: UseAgentEditorHooksParams
     setImportCounter((prev) => prev + INCREMENT);
   }, []);
 
+  const setAgentConfigSilent = useCallback((config: AgentConfigData) => {
+    setAgentConfigInternal(config);
+  }, []);
+
   const getCurrentContextItems = useCallback(() => agentConfig?.contextItems ?? [], [agentConfig]);
 
-  return { agentConfig, setAgentConfig, importCounter, getCurrentContextItems };
+  return { agentConfig, setAgentConfig, setAgentConfigSilent, importCounter, getCurrentContextItems };
 }

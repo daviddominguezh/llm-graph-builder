@@ -1,7 +1,7 @@
 'use client';
 
 import type { Operation } from '@daviddh/graph-types';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import type { AgentConfigData } from '../../hooks/useGraphLoader';
 import { ContextItemsList } from './ContextItemsList';
@@ -13,6 +13,7 @@ interface AgentEditorProps {
   config: AgentConfigData;
   pushOperation: (op: Operation) => void;
   onBackgroundClick?: () => void;
+  onConfigChange?: (config: AgentConfigData) => void;
 }
 
 function useAgentEditorState(config: AgentConfigData) {
@@ -22,9 +23,17 @@ function useAgentEditorState(config: AgentConfigData) {
   return { systemPrompt, setSystemPrompt, maxSteps, setMaxSteps, contextItems, setContextItems };
 }
 
-export function AgentEditor({ config, pushOperation, onBackgroundClick }: AgentEditorProps) {
+export function AgentEditor({ config, pushOperation, onBackgroundClick, onConfigChange }: AgentEditorProps) {
   const state = useAgentEditorState(config);
   const actions = useAgentEditorActions(state, pushOperation);
+
+  useEffect(() => {
+    onConfigChange?.({
+      systemPrompt: state.systemPrompt,
+      maxSteps: state.maxSteps,
+      contextItems: state.contextItems,
+    });
+  }, [state.systemPrompt, state.maxSteps, state.contextItems, onConfigChange]);
 
   return (
     <div className="flex h-full w-full pt-14.5 bg-muted" onClick={onBackgroundClick}>
