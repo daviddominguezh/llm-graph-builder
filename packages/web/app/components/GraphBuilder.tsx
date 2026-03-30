@@ -23,6 +23,8 @@ import type { ApiKeyRow } from '../lib/apiKeys';
 import type { Agent, Graph } from '../schemas/graph.schema';
 import { useApiKeySelection } from '../hooks/useApiKeySelection';
 import { useAgentEditorHooks } from '../hooks/useAgentEditorHooks';
+import { useAgentExport } from '../hooks/useAgentExport';
+import { useAgentImport } from '../hooks/useAgentImport';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { useEnvVariables } from '../hooks/useEnvVariables';
 import { useMcpLibrary } from '../hooks/useMcpLibrary';
@@ -252,7 +254,21 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     initialConfig: loadResult.agentConfig,
   });
 
+  const agentExport = useAgentExport({
+    agentConfig: agentHooks.agentConfig,
+    mcpServers: mcpHook.servers,
+  });
+
+  const agentImport = useAgentImport({
+    pushOperation: opQueue.pushOperation,
+    setAgentConfig: agentHooks.setAgentConfig,
+    getCurrentContextItems: agentHooks.getCurrentContextItems,
+  });
+
   const isAgentMode = loadResult.agentConfig !== undefined;
+  const effectiveImport = isAgentMode ? agentImport : handleImport;
+  const effectiveExport = isAgentMode ? agentExport : handleExport;
+
   const canPublish = isAgentMode
     ? !hasMcpErrors(mcpHealthInput)
     : serializedGraph !== null && !hasMcpErrors(mcpHealthInput);
@@ -320,8 +336,8 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     selection,
     zoomView,
     graphActions,
-    handleImport,
-    handleExport,
+    handleImport: effectiveImport,
+    handleExport: effectiveExport,
     handleFormat,
     getGraphData,
     pendingSave,
