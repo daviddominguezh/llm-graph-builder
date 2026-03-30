@@ -577,6 +577,17 @@
       "encryptedByProvider": "This content was encrypted by the provider and cannot be displayed.",
       "executionError": "Execution Error"
     },
+    "agentDebug": {
+      "turnN": "Turn {n}",
+      "stepN": "Step {n}",
+      "selectStep": "Click a step to inspect its full LLM request and response.",
+      "noMessages": "No messages found for this execution.",
+      "chatTimeline": "Chat Timeline",
+      "stepInspector": "Step Inspector",
+      "totalSteps": "Total Steps",
+      "toolCallArgs": "Arguments",
+      "toolCallResult": "Result"
+    },
     "empty": "No execution data yet. Agents will appear here after they receive API calls.",
     "noSessions": "No sessions found for this agent.",
     "noExecutions": "No executions found for this tenant.",
