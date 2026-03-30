@@ -28,6 +28,14 @@ export class HttpError extends Error {
   }
 }
 
+/* ─── Agent config for agent-type apps ─── */
+
+export interface AgentConfig {
+  systemPrompt: string;
+  context: string;
+  maxSteps: number | null;
+}
+
 /* ─── Fetched data shape ─── */
 
 export interface FetchedData {
@@ -39,6 +47,8 @@ export interface FetchedData {
   structuredOutputs: Record<string, unknown[]>;
   isNew: boolean;
   messageHistory: Message[];
+  appType: string;
+  agentConfig: AgentConfig | null;
 }
 
 /* ─── Production API key lookup ─── */
@@ -63,6 +73,7 @@ export interface GraphAndKeys {
   graph: RuntimeGraph;
   apiKey: string;
   envVars: DecryptedEnvVars;
+  appType: string;
 }
 
 interface GraphFetchParams {
@@ -85,15 +96,22 @@ function ensureApiKey(apiKey: string | null): string {
   return apiKey;
 }
 
+async function fetchAppType(supabase: SupabaseClient, agentId: string): Promise<string> {
+  const result = await supabase.from('agents').select('app_type').eq('id', agentId).single();
+  const row = result.data as { app_type?: string } | null;
+  return row?.app_type ?? 'workflow';
+}
+
 export async function fetchGraphAndKeys(params: GraphFetchParams): Promise<GraphAndKeys> {
   const { supabase, agentId, version, orgId, productionApiKeyId } = params;
-  const [graphData, apiKey, envVars] = await Promise.all([
+  const [graphData, apiKey, envVars, appType] = await Promise.all([
     getPublishedGraphData(supabase, agentId, version),
     getDecryptedApiKeyValue(supabase, productionApiKeyId),
     getDecryptedEnvVariables(supabase, orgId),
+    fetchAppType(supabase, agentId),
   ]);
 
-  return { graph: ensureGraphData(graphData), apiKey: ensureApiKey(apiKey), envVars };
+  return { graph: ensureGraphData(graphData), apiKey: ensureApiKey(apiKey), envVars, appType };
 }
 
 /* ─── Session fetching ─── */
@@ -177,5 +195,48 @@ export async function fetchSessionData(params: SessionFetchParams): Promise<Sess
     structuredOutputs: session.structured_outputs,
     isNew: sessionResult.isNew,
     messageHistory: rows.map((row) => messageRowToMessage(row, channel)),
+  };
+}
+
+/* ─── Agent config from published version snapshot ─── */
+
+interface AgentGraphData {
+  systemPrompt?: string;
+  maxSteps?: number | null;
+  contextItems?: Array<{ sortOrder?: number; content: string }>;
+}
+
+function isAgentGraphData(val: unknown): val is AgentGraphData {
+  return typeof val === 'object' && val !== null;
+}
+
+function flattenContextItems(items: Array<{ content: string }> | undefined): string {
+  if (items === undefined || items.length === 0) return '';
+  return items.map((item) => item.content).join('\n\n');
+}
+
+export async function fetchAgentConfig(
+  supabase: SupabaseClient,
+  agentId: string,
+  version: number
+): Promise<AgentConfig> {
+  const result = await supabase
+    .from('agent_versions')
+    .select('graph_data')
+    .eq('agent_id', agentId)
+    .eq('version', version)
+    .single();
+
+  const row = result.data as { graph_data?: unknown } | null;
+  const graphData = row?.graph_data;
+
+  if (!isAgentGraphData(graphData)) {
+    return { systemPrompt: '', context: '', maxSteps: null };
+  }
+
+  return {
+    systemPrompt: graphData.systemPrompt ?? '',
+    context: flattenContextItems(graphData.contextItems),
+    maxSteps: graphData.maxSteps ?? null,
   };
 }

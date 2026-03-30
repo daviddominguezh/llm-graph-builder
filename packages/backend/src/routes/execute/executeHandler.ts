@@ -9,10 +9,12 @@ import type { ExecutionAuthLocals, ExecutionAuthResponse } from './executeAuth.j
 import {
   type FetchedData,
   HttpError,
+  fetchAgentConfig,
   fetchGraphAndKeys,
   fetchSessionData,
   getProductionKeyId,
 } from './executeFetcher.js';
+import { routeAgentExecution } from './executeAgentPath.js';
 import {
   buildUserMessage,
   extractTextFromInput,
@@ -36,7 +38,6 @@ const LAST_INDEX_OFFSET = 1;
 const ZERO = 0;
 
 /* ─── Execution context ─── */
-
 interface ExecutionContext {
   supabase: SupabaseClient;
   input: AgentExecutionInput;
@@ -50,7 +51,6 @@ interface ExecutionContext {
 }
 
 /* ─── Response builders ─── */
-
 function getLastVisitedNode(result: CallAgentOutput, fallback: string): string {
   const { visitedNodes } = result;
   return visitedNodes[visitedNodes.length - LAST_INDEX_OFFSET] ?? fallback;
@@ -107,7 +107,6 @@ function mergeStructuredOutputs(
 }
 
 /* ─── Params builder ─── */
-
 function buildExecuteParams(ctx: ExecutionContext): ExecuteAgentParams {
   return {
     graph: ctx.fetched.graph,
@@ -126,7 +125,6 @@ function buildExecuteParams(ctx: ExecutionContext): ExecuteAgentParams {
 }
 
 /* ─── Data fetching ─── */
-
 interface FetchAllParams {
   supabase: SupabaseClient;
   agentId: string;
@@ -149,11 +147,12 @@ async function fetchAllData(params: FetchAllParams): Promise<FetchedData> {
     graphAndKeys.envVars.byId
   );
   const resolvedGraph = await resolveOAuthForExecution(supabase, envResolvedGraph, orgId);
-  return { ...graphAndKeys, ...sessionData, graph: resolvedGraph };
+  const agentConfig =
+    graphAndKeys.appType === 'agent' ? await fetchAgentConfig(supabase, agentId, version) : null;
+  return { ...graphAndKeys, ...sessionData, graph: resolvedGraph, agentConfig };
 }
 
 /* ─── Preparation ─── */
-
 async function prepareExecution(
   req: Request<{ agentSlug: string; version: string }>,
   res: ExecutionAuthResponse
@@ -186,7 +185,6 @@ async function prepareExecution(
 }
 
 /* ─── Post-execution persistence ─── */
-
 async function persistResult(
   ctx: ExecutionContext,
   result: CallAgentOutput,
@@ -210,7 +208,6 @@ async function persistResult(
 }
 
 /* ─── Streaming handler ─── */
-
 function noop(): void {
   // intentionally empty — used as no-op callback
 }
@@ -235,7 +232,6 @@ async function handleStreaming(ctx: ExecutionContext, res: Response): Promise<vo
 }
 
 /* ─── Non-streaming handler ─── */
-
 async function handleNonStreaming(ctx: ExecutionContext, res: Response): Promise<void> {
   const startTime = Date.now();
   const { output, nodeData } = await executeAgent(buildExecuteParams(ctx), {
@@ -253,7 +249,6 @@ async function handleNonStreaming(ctx: ExecutionContext, res: Response): Promise
 }
 
 /* ─── Error handler ─── */
-
 async function handleExecutionError(
   err: unknown,
   executionId: string | undefined,
@@ -278,8 +273,6 @@ async function handleExecutionError(
   }
 }
 
-/* ─── Main handler ─── */
-
 export async function handleExecute(
   req: Request<{ agentSlug: string; version: string }>,
   res: ExecutionAuthResponse
@@ -292,7 +285,9 @@ export async function handleExecute(
     ({ executionId } = ctx);
     ({ supabase } = ctx);
 
-    if (ctx.input.stream) {
+    if (ctx.fetched.appType === 'agent') {
+      await routeAgentExecution(ctx.supabase, ctx.executionId, ctx.fetched, ctx.model, ctx.input.stream, res);
+    } else if (ctx.input.stream) {
       await handleStreaming(ctx, res);
     } else {
       await handleNonStreaming(ctx, res);
