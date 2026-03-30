@@ -121,6 +121,7 @@ export function GraphCanvas({
             onModelIdChange={simulation.setModelId}
             onSendMessage={simulation.sendMessage}
             onStop={simulation.stop}
+            onClear={simulation.clear}
           />
         )}
       </div>

@@ -175,7 +175,11 @@
     "effortMedium": "Medium",
     "effortHigh": "High",
     "extendedThinking": "Extended thinking",
-    "extendedThinkingDescription": "Think longer for complex tasks"
+    "extendedThinkingDescription": "Think longer for complex tasks",
+    "clearTitle": "Clear simulation?",
+    "clearDescription": "This will reset the conversation and all results.",
+    "clearCancel": "Cancel",
+    "clearConfirm": "Clear"
   },
   "agentEditor": {
     "systemPrompt": "System prompt",

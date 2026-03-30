@@ -192,7 +192,8 @@ function ToolsPanelSlot({ sidePanelProps: p, onPublishServer }: ToolsPanelSlotPr
 
 export function SidePanels(props: SidePanelsProps) {
   const { selection, simulation, globalPanelOpen, presetsOpen, libraryOpen } = props;
-  const hasSelection = selection.selectedNodeId !== null || selection.selectedEdgeId !== null;
+  const isVirtualNode = selection.selectedNodeId !== null && selection.selectedNodeId.startsWith('step-');
+  const hasSelection = !isVirtualNode && (selection.selectedNodeId !== null || selection.selectedEdgeId !== null);
   const showSelectionPanel = !simulation.active && hasSelection;
 
   const schema = useSchemaDialogState({

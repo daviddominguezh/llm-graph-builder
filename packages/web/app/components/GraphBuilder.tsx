@@ -462,6 +462,7 @@ function LoadedEditor(props: LoadedEditorProps) {
                 onModelIdChange={h.simulation.setModelId}
                 onSendMessage={h.simulation.sendMessage}
                 onStop={h.simulation.stop}
+                onClear={h.simulation.clear}
               />
             )}
           </div>

@@ -70,6 +70,7 @@ export interface SimulationState {
   setModelId: (id: string) => void;
   start: () => void;
   stop: () => void;
+  clear: () => void;
   sendMessage: (text: string) => void;
 }
 
@@ -106,6 +107,20 @@ function useSimulationStart(deps: SimulationStartDeps & { appType?: string }): (
 function useSimulationStop(
   setters: FullSetters,
   abortSimulation: () => void,
+  onExitZoomView: () => void,
+  clearSelection: () => void
+): () => void {
+  return useCallback(() => {
+    abortSimulation();
+    setters.setActive(false);
+    clearSelection();
+    onExitZoomView();
+  }, [setters, abortSimulation, onExitZoomView, clearSelection]);
+}
+
+function useSimulationClear(
+  setters: FullSetters,
+  abortSimulation: () => void,
   onExitZoomView: () => void
 ): () => void {
   return useCallback(() => {
@@ -114,6 +129,7 @@ function useSimulationStop(
     setters.setActive(false);
     setters.setMessages([]);
     setters.setNodeResults([]);
+    setters.setConversationEntries([]);
     setters.setLastUserText('');
     setters.setVisitedNodes([]);
     setters.setTotalTokens(EMPTY_TOKENS);
@@ -241,7 +257,9 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
     onZoomToNode,
     appType: params.appType,
   });
-  const stop = useSimulationStop(s.setters, abortSimulation, onExitZoomView);
+  const clearSelection = useCallback(() => { /* no-op, panels cleared by onPaneClick */ }, []);
+  const stop = useSimulationStop(s.setters, abortSimulation, onExitZoomView, clearSelection);
+  const clear = useSimulationClear(s.setters, abortSimulation, onExitZoomView);
   const sendMessage = useSimulationSend(buildSendDeps(params, s, abortAndCreateSignal));
   const isAgent = params.appType === 'agent';
   const terminated = isAgent ? false : checkTerminated(s.active, s.loading, s.snapshotRef.current, s.currentNode);
@@ -260,6 +278,7 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
     setModelId: s.setModelId,
     start,
     stop,
+    clear,
     sendMessage,
   };
 }

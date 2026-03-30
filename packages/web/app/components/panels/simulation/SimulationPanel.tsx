@@ -1,9 +1,19 @@
 'use client';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, X } from 'lucide-react';
+import { Loader2, Trash2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { ConversationEntry, NodeResult, SimulationTokens } from '../../../types/simulation';
 import { NodeResultItem } from './NodeResultItem';
@@ -23,6 +33,7 @@ interface SimulationPanelProps {
   onModelIdChange: (id: string) => void;
   onSendMessage: (text: string) => void;
   onStop: () => void;
+  onClear: () => void;
 }
 
 function Breadcrumbs({ nodes }: { nodes: string[] }) {
@@ -58,16 +69,42 @@ function Breadcrumbs({ nodes }: { nodes: string[] }) {
 function SimulationHeader({
   visitedNodes,
   onStop,
-}: Pick<SimulationPanelProps, 'visitedNodes' | 'onStop'>) {
+  onClear,
+}: Pick<SimulationPanelProps, 'visitedNodes' | 'onStop' | 'onClear'>) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const t = useTranslations('simulation');
+
   return (
     <div className="flex flex-col gap-1 border-b px-3 py-2">
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold">Simulation</span>
-        <Button variant="ghost" size="icon" className="size-7" onClick={onStop}>
-          <X className="size-3" />
-        </Button>
+        <div className="flex items-center gap-0.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={() => setConfirmOpen(true)}
+          >
+            <Trash2 className="size-3" />
+          </Button>
+          <Button variant="ghost" size="icon" className="size-7" onClick={onStop}>
+            <X className="size-3" />
+          </Button>
+        </div>
       </div>
       <Breadcrumbs nodes={visitedNodes} />
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('clearTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('clearDescription')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('clearCancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={onClear}>{t('clearConfirm')}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -157,7 +194,7 @@ export function SimulationPanel(props: SimulationPanelProps) {
   return (
     <div className="absolute inset-y-0 left-0 z-10 flex w-[350px] p-0">
       <div className="relative flex h-full w-full flex-col rounded-e-md border-r bg-background">
-        <SimulationHeader visitedNodes={visitedNodes} onStop={onStop} />
+        <SimulationHeader visitedNodes={visitedNodes} onStop={onStop} onClear={props.onClear} />
         <ContentArea conversationEntries={props.conversationEntries} scrollRef={scrollRef} />
         <SimulationFooter totalTokens={totalTokens} loading={loading} currentNode={currentNode} />
         <SimulationInput
