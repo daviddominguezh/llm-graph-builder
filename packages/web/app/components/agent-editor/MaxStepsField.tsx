@@ -36,8 +36,9 @@ export function MaxStepsField({ value, onChange }: MaxStepsFieldProps) {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <Label className="text-xs font-medium">{t('maxSteps')}</Label>
+      <Label htmlFor="max-steps" className="text-xs font-medium">{t('maxSteps')}</Label>
       <Input
+        id="max-steps"
         type="number"
         defaultValue={value ?? ''}
         onChange={handleChange}

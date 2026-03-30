@@ -182,6 +182,7 @@
     "systemPromptPlaceholder": "Enter the system prompt for this agent...",
     "contextItems": "Context items",
     "addContextItem": "Add item",
+    "removeContextItem": "Remove item",
     "contextItemPlaceholder": "Enter context...",
     "maxSteps": "Max steps",
     "maxStepsPlaceholder": "Unlimited",

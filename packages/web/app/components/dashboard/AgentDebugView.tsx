@@ -83,15 +83,15 @@ function AgentDebugHeader(props: {
 
 function AgentDebugContent({ state }: { state: AgentDebugState }) {
   return (
-    <div className="px-4 pt-4 flex flex-1 gap-4 min-h-0">
-      <div className="w-1/2 overflow-y-auto">
+    <div className="px-4 pt-4 flex flex-1 gap-0 min-h-0">
+      <div className="w-1/2 overflow-y-auto pr-4">
         <AgentChatTimeline
           debugData={state.debugData}
           selectedStepOrder={state.selectedStep?.stepOrder ?? null}
           onSelectStep={state.handleSelectStep}
         />
       </div>
-      <div className="w-1/2 overflow-y-auto">
+      <div className="w-1/2 overflow-y-auto border-l pl-4">
         <StepInspector step={state.selectedStep} />
       </div>
     </div>
@@ -99,6 +99,7 @@ function AgentDebugContent({ state }: { state: AgentDebugState }) {
 }
 
 function TotalStepsBadge({ count, label }: { count: number; label: string }) {
+  if (count === 0) return null;
   return (
     <div className="px-4 py-1 text-[10px] text-muted-foreground">
       {count} {label}

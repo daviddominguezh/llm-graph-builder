@@ -38,7 +38,7 @@ function UserMessageBubble({ message }: { message: ExecutionMessageRow }) {
       <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10">
         <User className="size-3 text-primary" />
       </div>
-      <div className="rounded-lg bg-muted border-l-2 border-l-primary px-3 py-2 text-xs">
+      <div className="rounded-lg bg-muted border-l-2 border-l-primary px-3 py-2 text-xs break-words">
         {extractMessageText(message)}
       </div>
     </div>
@@ -51,7 +51,7 @@ function AssistantMessageBubble({ message }: { message: ExecutionMessageRow }) {
       <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted">
         <Bot className="size-3 text-muted-foreground" />
       </div>
-      <div className="rounded-lg border bg-card px-3 py-2 text-xs">{extractMessageText(message)}</div>
+      <div className="rounded-lg border bg-card px-3 py-2 text-xs break-words">{extractMessageText(message)}</div>
     </div>
   );
 }

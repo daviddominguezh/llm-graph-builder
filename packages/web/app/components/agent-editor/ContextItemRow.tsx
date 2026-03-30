@@ -34,7 +34,7 @@ export function ContextItemRow({ sortOrder, content, onContentChange, onDelete }
 
   return (
     <div className="group flex items-start gap-1.5 rounded-md border p-2">
-      <span className="mt-2 flex size-5 shrink-0 items-center justify-center rounded text-[10px] font-medium text-muted-foreground bg-muted">
+      <span className="mt-1.5 flex size-5 shrink-0 items-center justify-center rounded text-[10px] font-medium text-muted-foreground bg-muted">
         {sortOrder + 1}
       </span>
       <Textarea
@@ -43,7 +43,7 @@ export function ContextItemRow({ sortOrder, content, onContentChange, onDelete }
         placeholder={t('contextItemPlaceholder')}
         className="min-h-16 flex-1 resize-y text-sm"
       />
-      <Button variant="ghost" size="sm" className="h-7 w-7 shrink-0" onClick={handleDelete}>
+      <Button variant="ghost" size="sm" className="h-7 w-7 shrink-0" onClick={handleDelete} aria-label={t('removeContextItem')}>
         <X className="size-3.5" />
       </Button>
     </div>

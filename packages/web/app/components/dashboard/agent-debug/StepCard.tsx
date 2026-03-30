@@ -44,7 +44,7 @@ export function StepCard({ step, isSelected, onSelect }: StepCardProps) {
     <button
       type="button"
       onClick={() => onSelect(step)}
-      className={`flex w-full items-center justify-between rounded-md border p-2.5 text-left transition-colors ${selectedClass}`}
+      className={`flex w-full items-center justify-between rounded-md border p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${selectedClass}`}
     >
       <div className="flex flex-col gap-1">
         <StepHeader step={step} />

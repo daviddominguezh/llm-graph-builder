@@ -27,8 +27,9 @@ export function SystemPromptField({ value, onChange }: SystemPromptFieldProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-1.5">
-      <Label className="text-xs font-medium">{t('systemPrompt')}</Label>
+      <Label htmlFor="system-prompt" className="text-xs font-medium">{t('systemPrompt')}</Label>
       <Textarea
+        id="system-prompt"
         defaultValue={value}
         onChange={handleChange}
         placeholder={t('systemPromptPlaceholder')}
