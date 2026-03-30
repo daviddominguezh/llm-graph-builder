@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
+import { AppTypeCards, type AppType } from './AppTypeCards';
 import { DetailsStep, type DetailsFormState } from './DetailsStep';
 import { TemplateGrid, type TemplateSelection } from './TemplateGrid';
 import { TemplatePreviewModal } from './TemplatePreviewModal';
@@ -50,31 +51,35 @@ const INITIAL_PREVIEW: PreviewState = { agentId: null, version: null, open: fals
 /*  TemplateStep                                                       */
 /* ------------------------------------------------------------------ */
 
-function TemplateStep({
-  selection,
-  onSelectionChange,
-  onPreview,
-  onNext,
-  prefetchedTemplates,
-}: {
+interface TemplateStepProps {
   selection: TemplateSelection | null;
   onSelectionChange: (s: TemplateSelection) => void;
   onPreview: (agentId: string, version: number) => void;
   onNext: () => void;
   prefetchedTemplates: TemplatesPrefetchState;
-}) {
+  appType: AppType | null;
+  onAppTypeChange: (type: AppType | null) => void;
+}
+
+function TemplateStep(props: TemplateStepProps) {
+  const { selection, onSelectionChange, onPreview, onNext, prefetchedTemplates, appType, onAppTypeChange } = props;
   const t = useTranslations('marketplace');
+  const canProceed = appType !== null && selection !== null;
 
   return (
     <>
-      <TemplateGrid
-        selection={selection}
-        onSelectionChange={onSelectionChange}
-        onPreview={onPreview}
-        prefetchedTemplates={prefetchedTemplates}
-      />
-      <DialogFooter className='shrink-0'>
-        <Button onClick={onNext} disabled={selection === null}>
+      <AppTypeCards value={appType} onChange={onAppTypeChange} />
+      {appType !== null && (
+        <TemplateGrid
+          selection={selection}
+          onSelectionChange={onSelectionChange}
+          onPreview={onPreview}
+          prefetchedTemplates={prefetchedTemplates}
+          appType={appType}
+        />
+      )}
+      <DialogFooter className="shrink-0">
+        <Button onClick={onNext} disabled={!canProceed}>
           {t('next')}
         </Button>
       </DialogFooter>
@@ -89,6 +94,7 @@ function TemplateStep({
 function useWizardState() {
   const [step, setStep] = useState<WizardStep>('template');
   const [selection, setSelection] = useState<TemplateSelection | null>(null);
+  const [appType, setAppType] = useState<AppType | null>(null);
   const [details, setDetails] = useState<DetailsFormState>(INITIAL_DETAILS);
   const [preview, setPreview] = useState<PreviewState>(INITIAL_PREVIEW);
   const [loading, setLoading] = useState(false);
@@ -96,12 +102,16 @@ function useWizardState() {
   const reset = useCallback(() => {
     setStep('template');
     setSelection(null);
+    setAppType(null);
     setDetails(INITIAL_DETAILS);
     setPreview(INITIAL_PREVIEW);
     setLoading(false);
   }, []);
 
-  return { step, setStep, selection, setSelection, details, setDetails, preview, setPreview, loading, setLoading, reset };
+  return {
+    step, setStep, selection, setSelection, appType, setAppType,
+    details, setDetails, preview, setPreview, loading, setLoading, reset,
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -113,6 +123,7 @@ async function submitWizard(
   orgSlug: string,
   details: DetailsFormState,
   selection: TemplateSelection | null,
+  appType: AppType | null,
   setLoading: (v: boolean) => void,
   onSuccess: (slug: string) => void
 ) {
@@ -124,6 +135,7 @@ async function submitWizard(
     description: details.description.trim(),
     category: details.category,
     isPublic: details.isPublic,
+    appType: appType ?? 'workflow',
     templateAgentId: selection?.type === 'template' ? selection.agentId : undefined,
     templateVersion: selection?.type === 'template' ? selection.version : undefined,
   });
@@ -165,8 +177,16 @@ function WizardBody({
     [state]
   );
 
+  const handleAppTypeChange = useCallback(
+    (type: AppType | null) => {
+      state.setAppType(type);
+      state.setSelection(null);
+    },
+    [state]
+  );
+
   const handleSubmit = useCallback(() => {
-    void submitWizard(orgId, orgSlug, state.details, state.selection, state.setLoading, (slug) => {
+    void submitWizard(orgId, orgSlug, state.details, state.selection, state.appType, state.setLoading, (slug) => {
       onClose();
       router.push(`/orgs/${orgSlug}/editor/${slug}`);
     });
@@ -185,6 +205,8 @@ function WizardBody({
             onPreview={handlePreview}
             onNext={() => state.setStep('details')}
             prefetchedTemplates={prefetchedTemplates}
+            appType={state.appType}
+            onAppTypeChange={handleAppTypeChange}
           />
         ) : (
           <DetailsStep

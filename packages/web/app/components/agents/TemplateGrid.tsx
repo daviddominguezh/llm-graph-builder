@@ -9,6 +9,7 @@ import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import type { AppType } from './AppTypeCards';
 import { BlankCanvasCard, TemplateCard } from './TemplateCard';
 import { CategoryPills, SearchBar } from './TemplateGridFilters';
 
@@ -27,6 +28,7 @@ interface TemplateGridProps {
   onSelectionChange: (selection: TemplateSelection) => void;
   onPreview: (agentId: string, version: number) => void;
   prefetchedTemplates: TemplatesPrefetchState;
+  appType: AppType;
 }
 
 /* ------------------------------------------------------------------ */
@@ -43,9 +45,10 @@ async function fetchVersionEntry(tpl: TemplateListItem): Promise<readonly [strin
   return [tpl.agent_id, versions.map((v) => v.version)] as const;
 }
 
-async function fetchTemplatesAndVersions(search: string, category: string): Promise<FetchResult> {
+async function fetchTemplatesAndVersions(search: string, category: string, appType: AppType): Promise<FetchResult> {
   const params = {
     limit: 15,
+    appType,
     ...(search ? { search } : {}),
     ...(category ? { category } : {}),
   };
@@ -86,11 +89,12 @@ function applyFetchResult(prev: TemplateState, result: FetchResult): TemplateSta
 function useTemplateData(
   search: string,
   category: TemplateCategory | '',
-  prefetched: TemplatesPrefetchState
+  prefetched: TemplatesPrefetchState,
+  appType: AppType
 ) {
   const [state, setState] = useState<TemplateState>(INITIAL_STATE);
   const mountedRef = useRef(true);
-  const appliedPrefetch = useRef(false);
+  const appliedPrefetchFor = useRef<AppType | null>(null);
 
   useEffect(() => {
     return () => {
@@ -100,23 +104,24 @@ function useTemplateData(
 
   // Use prefetched data as initial set (no filters active)
   useEffect(() => {
-    if (appliedPrefetch.current || prefetched.loading) return;
+    if (appliedPrefetchFor.current === appType || prefetched.loading) return;
     if (search !== '' || category !== '') return;
-    appliedPrefetch.current = true;
-    void Promise.all(prefetched.items.map(fetchVersionEntry)).then((entries) => {
+    appliedPrefetchFor.current = appType;
+    const filtered = prefetched.items.filter((item) => item.app_type === appType);
+    void Promise.all(filtered.map(fetchVersionEntry)).then((entries) => {
       if (mountedRef.current) {
-        setState((prev) => applyFetchResult(prev, { templates: prefetched.items, versionEntries: entries }));
+        setState((prev) => applyFetchResult(prev, { templates: filtered, versionEntries: entries }));
       }
     });
-  }, [prefetched, search, category]);
+  }, [prefetched, search, category, appType]);
 
   // Fetch fresh when filters change (skip initial load if prefetch covers it)
   useEffect(() => {
-    if (search === '' && category === '' && appliedPrefetch.current) return;
-    void fetchTemplatesAndVersions(search, category).then((result) => {
+    if (search === '' && category === '' && appliedPrefetchFor.current === appType) return;
+    void fetchTemplatesAndVersions(search, category, appType).then((result) => {
       if (mountedRef.current) setState((prev) => applyFetchResult(prev, result));
     });
-  }, [search, category]);
+  }, [search, category, appType]);
 
   const setSelectedVersion = useCallback((agentId: string, version: number) => {
     setState((prev) => ({
@@ -193,13 +198,14 @@ export function TemplateGrid({
   onSelectionChange,
   onPreview,
   prefetchedTemplates,
+  appType,
 }: TemplateGridProps) {
   const t = useTranslations('marketplace');
   const tCommon = useTranslations('common');
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 300);
   const [category, setCategory] = useState<TemplateCategory | ''>('');
-  const data = useTemplateData(debouncedSearch, category, prefetchedTemplates);
+  const data = useTemplateData(debouncedSearch, category, prefetchedTemplates, appType);
   const { templates, versionsMap, selectedVersions, setSelectedVersion } = data;
 
   const handleSelectBlank = useCallback(() => {
