@@ -66,4 +66,9 @@ export {
   UpdateContextPresetOperationSchema,
   DeleteContextPresetOperationSchema,
   UpdateStartNodeOperationSchema,
+  UpdateAgentConfigOperationSchema,
+  InsertContextItemOperationSchema,
+  UpdateContextItemOperationSchema,
+  DeleteContextItemOperationSchema,
+  ReorderContextItemsOperationSchema,
 } from './operation.schema.js';
