@@ -236,7 +236,8 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
   });
   const stop = useSimulationStop(s.setters, abortSimulation, onExitZoomView);
   const sendMessage = useSimulationSend(buildSendDeps(params, s, abortAndCreateSignal));
-  const terminated = checkTerminated(s.active, s.loading, s.snapshotRef.current, s.currentNode);
+  const isAgent = params.appType === 'agent';
+  const terminated = isAgent ? false : checkTerminated(s.active, s.loading, s.snapshotRef.current, s.currentNode);
 
   return {
     active: s.active,
