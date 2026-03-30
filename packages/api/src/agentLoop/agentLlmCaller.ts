@@ -108,7 +108,11 @@ function populateToolOutputs(
 }
 
 export async function callAgentLlm(params: LlmCallParams): Promise<LlmCallResult> {
-  log('calling LLM', { modelId: params.modelId, messageCount: params.messages.length, toolNames: Object.keys(params.tools) });
+  log('calling LLM', {
+    modelId: params.modelId,
+    messageCount: params.messages.length,
+    toolNames: Object.keys(params.tools),
+  });
   const model = getOpenRouterModel(params.apiKey, params.modelId);
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
@@ -126,7 +130,10 @@ export async function callAgentLlm(params: LlmCallParams): Promise<LlmCallResult
     });
 
     const raw = result as unknown as Record<string, unknown>;
-    log('LLM response received', { textLength: typeof result.text === 'string' ? result.text.length : 0, hasToolCalls: Array.isArray(raw.toolCalls) && (raw.toolCalls as unknown[]).length > ZERO });
+    log('LLM response received', {
+      textLength: typeof result.text === 'string' ? result.text.length : 0,
+      hasToolCalls: Array.isArray(raw.toolCalls) && (raw.toolCalls as unknown[]).length > ZERO,
+    });
     const tokens = extractTokens(raw.usage);
     tokens.costUSD = extractCostFromResult(raw);
     const responseMessages = extractResponseMessages(raw);

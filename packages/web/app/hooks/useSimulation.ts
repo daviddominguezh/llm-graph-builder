@@ -173,7 +173,11 @@ function sendAgentSimulation(deps: SendDepsWithAbort, text: string): void {
   const signal = abortAndCreateSignal();
   const userMsg = createUserMessage(text);
   const allMessages = [...messages, userMsg];
-  console.log('[simulation] sending agent messages:', allMessages.length, allMessages.map((m) => m.message.role));
+  console.log(
+    '[simulation] sending agent messages:',
+    allMessages.length,
+    allMessages.map((m) => m.message.role)
+  );
   resetBeforeSend(setters, text, userMsg, true);
   const params = buildAgentSimulateParams({ agentConfig, mcpServers, allMessages, apiKeyId, modelId });
   const callbacks = buildStreamCallbacks({ setters, onZoomToNode, onSelectNode });
@@ -265,12 +269,16 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
     onZoomToNode,
     appType: params.appType,
   });
-  const clearSelection = useCallback(() => { /* no-op, panels cleared by onPaneClick */ }, []);
+  const clearSelection = useCallback(() => {
+    /* no-op, panels cleared by onPaneClick */
+  }, []);
   const stop = useSimulationStop(s.setters, abortSimulation, onExitZoomView, clearSelection);
   const clear = useSimulationClear(s.setters, abortSimulation, onExitZoomView);
   const sendMessage = useSimulationSend(buildSendDeps(params, s, abortAndCreateSignal));
   const isAgent = params.appType === 'agent';
-  const terminated = isAgent ? false : checkTerminated(s.active, s.loading, s.snapshotRef.current, s.currentNode);
+  const terminated = isAgent
+    ? false
+    : checkTerminated(s.active, s.loading, s.snapshotRef.current, s.currentNode);
 
   return {
     active: s.active,

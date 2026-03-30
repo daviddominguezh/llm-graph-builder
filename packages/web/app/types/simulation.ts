@@ -31,9 +31,7 @@ export interface NodeResult {
   durationMs?: number;
 }
 
-export type ConversationEntry =
-  | { type: 'user'; text: string }
-  | { type: 'result'; result: NodeResult };
+export type ConversationEntry = { type: 'user'; text: string } | { type: 'result'; result: NodeResult };
 
 export interface SimulationTokens {
   input: number;

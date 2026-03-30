@@ -60,7 +60,10 @@ async function executeStep(
   callbacks: AgentLoopCallbacks
 ): Promise<StepResult> {
   const stepNum = state.step + INCREMENT;
-  log(`step ${String(stepNum)} starting`, { messageCount: state.messages.length, toolCount: Object.keys(config.tools).length });
+  log(`step ${String(stepNum)} starting`, {
+    messageCount: state.messages.length,
+    toolCount: Object.keys(config.tools).length,
+  });
   callbacks.onStepStarted?.(stepNum);
 
   const startTime = Date.now();
@@ -72,7 +75,12 @@ async function executeStep(
   });
 
   const durationMs = Date.now() - startTime;
-  log(`step ${String(stepNum)} completed`, { durationMs, text: result.text.slice(0, 100), toolCallCount: result.toolCalls.length, tokens: result.tokens });
+  log(`step ${String(stepNum)} completed`, {
+    durationMs,
+    text: result.text.slice(0, 100),
+    toolCallCount: result.toolCalls.length,
+    tokens: result.tokens,
+  });
   accumulateTokens(state.totalTokens, result.tokens);
 
   const actionLog: ActionTokenUsage = {
@@ -145,10 +153,21 @@ export async function executeAgentLoop(
   callbacks: AgentLoopCallbacks
 ): Promise<AgentLoopResult> {
   const maxSteps = resolveMaxSteps(config);
-  log('starting', { systemPrompt: config.systemPrompt.slice(0, 80), context: config.context.slice(0, 80), maxSteps, modelId: config.modelId, messageCount: config.messages.length, toolCount: Object.keys(config.tools).length });
+  log('starting', {
+    systemPrompt: config.systemPrompt.slice(0, 80),
+    context: config.context.slice(0, 80),
+    maxSteps,
+    modelId: config.modelId,
+    messageCount: config.messages.length,
+    toolCount: Object.keys(config.tools).length,
+  });
   const state = createInitialState(config);
   const result = await runLoop(config, state, maxSteps, callbacks);
-  log('finished', { finalText: result.finalText.slice(0, 100), totalSteps: result.steps, tokens: result.totalTokens });
+  log('finished', {
+    finalText: result.finalText.slice(0, 100),
+    totalSteps: result.steps,
+    tokens: result.totalTokens,
+  });
   return result;
 }
 
