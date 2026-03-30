@@ -162,7 +162,7 @@ export function VersionSelector(props: VersionSelectorProps) {
           className="h-10 data-[size=sm]:h-10 bg-background px-3 text-xs font-bold [&>svg:last-child]:hidden bg-background! hover:bg-card!"
         >
           <History className="size-4" />
-          <span>{triggerLabel}</span>
+          <span className='cursor-default'>{triggerLabel}</span>
         </SelectTrigger>
         <SelectContent side="bottom" align="end" alignItemWithTrigger={false} className="w-auto min-w-56">
           {versions.map((v) => (

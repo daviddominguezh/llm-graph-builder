@@ -50,7 +50,7 @@ export function StepCard({ step, isSelected, onSelect }: StepCardProps) {
         <StepHeader step={step} />
         <TokenDisplay tokens={visitToTokens(step.visit)} durationMs={step.visit.duration_ms} />
       </div>
-      <ChevronRight className="size-3.5 text-muted-foreground shrink-0" />
+      <ChevronRight className={`size-3.5 shrink-0 transition-[transform,color] duration-150 ${isSelected ? 'translate-x-0.5 text-primary' : 'text-muted-foreground'}`} />
     </button>
   );
 }

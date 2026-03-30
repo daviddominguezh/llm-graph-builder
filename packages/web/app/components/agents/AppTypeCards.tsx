@@ -37,7 +37,7 @@ function AppTypeCard({
     <button
       type="button"
       onClick={onClick}
-      className={`flex flex-1 cursor-pointer flex-col gap-1 rounded-lg border p-3 text-left transition-[border-color,box-shadow] duration-150 bg-background hover:bg-card/60 ${border}`}
+      className={`flex flex-1 cursor-pointer flex-col gap-1 rounded-lg border p-3 text-left transition-[border-color,box-shadow,transform] duration-150 bg-background hover:-translate-y-px hover:bg-card/60 hover:shadow-sm ${border}`}
     >
       <div className="flex items-center gap-1.5">
         {icon}
@@ -60,14 +60,14 @@ export function AppTypeCards({ value, onChange }: AppTypeCardsProps) {
       <AppTypeCard
         selected={value === 'workflow'}
         onClick={() => onChange(value === 'workflow' ? null : 'workflow')}
-        icon={<GitFork className="size-3.5 text-muted-foreground" />}
+        icon={<GitFork className={`size-3.5 transition-colors duration-150 ${value === 'workflow' ? 'text-primary' : 'text-muted-foreground'}`} />}
         label={t('typeWorkflow')}
         description={t('typeWorkflowDescription')}
       />
       <AppTypeCard
         selected={value === 'agent'}
         onClick={() => onChange(value === 'agent' ? null : 'agent')}
-        icon={<Bot className="size-3.5 text-muted-foreground" />}
+        icon={<Bot className={`size-3.5 transition-colors duration-150 ${value === 'agent' ? 'text-primary' : 'text-muted-foreground'}`} />}
         label={t('typeAgent')}
         description={t('typeAgentDescription')}
       />

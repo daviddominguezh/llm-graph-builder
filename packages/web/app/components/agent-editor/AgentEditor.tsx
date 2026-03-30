@@ -27,7 +27,7 @@ export function AgentEditor({ config, pushOperation }: AgentEditorProps) {
 
   return (
     <div className="flex h-full w-full pt-14.5">
-      <div className="w-full h-full border-t flex">
+      <div className="w-full h-full border-t flex animate-in fade-in duration-300">
         <div className="flex min-w-0 flex-[3] flex-col p-4">
           <SystemPromptField value={state.systemPrompt} onChange={actions.handleSystemPromptChange} />
         </div>
