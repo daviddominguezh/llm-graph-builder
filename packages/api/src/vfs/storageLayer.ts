@@ -1,8 +1,9 @@
-import { type StorageBucketApi, type SupabaseVFSClient, VFSError, VFSErrorCode } from './types.js';
+import { type StorageBucketApi, type StorageFileObject, type SupabaseVFSClient, VFSError, VFSErrorCode } from './types.js';
 
 const BUCKET = 'vfs';
 const TREE_INDEX_FILE = '__tree_index.json';
 const LIST_PAGE_SIZE = 100;
+const INITIAL_OFFSET = 0;
 
 function isNotFound(error: { message: string; statusCode?: string }): boolean {
   return error.statusCode === '404' || error.message.includes('not found');
@@ -38,7 +39,8 @@ export class StorageLayer {
       if (isNotFound(error)) return null;
       throw wrapStorageError(error, 'download', path);
     }
-    return data !== null ? await data.text() : null;
+    if (data === null) return null;
+    return await data.text();
   }
 
   async delete(path: string): Promise<void> {
@@ -55,19 +57,21 @@ export class StorageLayer {
   }
 
   async uploadTreeIndex(data: string): Promise<void> {
-    return this.upload(TREE_INDEX_FILE, data);
+    await this.upload(TREE_INDEX_FILE, data);
   }
 
   async downloadTreeIndex(): Promise<string | null> {
-    return this.download(TREE_INDEX_FILE);
+    return await this.download(TREE_INDEX_FILE);
   }
 
   async deleteAll(): Promise<void> {
-    const allPaths = await this.listAllRecursive(this.prefix);
-    for (let i = 0; i < allPaths.length; i += LIST_PAGE_SIZE) {
-      const batch = allPaths.slice(i, i + LIST_PAGE_SIZE);
-      await this.deleteBatch(batch);
-    }
+    const allPaths = await this.listAllPaths(this.prefix);
+    const batches = chunkArray(allPaths, LIST_PAGE_SIZE);
+    await Promise.all(
+      batches.map(async (batch) => {
+        await this.deleteBatch(batch);
+      })
+    );
   }
 
   private async deleteBatch(paths: string[]): Promise<void> {
@@ -79,36 +83,40 @@ export class StorageLayer {
     return `${this.prefix}/${path}`;
   }
 
-  private async processListItems(
-    items: { name: string; id: string | null }[],
-    prefix: string
-  ): Promise<string[]> {
-    const paths: string[] = [];
-    for (const item of items) {
-      const fullPath = `${prefix}/${item.name}`;
-      if (item.id === null) {
-        const nested = await this.listAllRecursive(fullPath);
-        paths.push(...nested);
-      } else {
-        paths.push(fullPath);
-      }
-    }
-    return paths;
+  private async listAllPaths(prefix: string): Promise<string[]> {
+    return await listAllRecursive(this.bucket, prefix, INITIAL_OFFSET);
   }
+}
 
-  private async listAllRecursive(prefix: string): Promise<string[]> {
-    const paths: string[] = [];
-    let offset = 0;
-    let hasMore = true;
-    while (hasMore) {
-      const { data, error } = await this.bucket.list(prefix, { limit: LIST_PAGE_SIZE, offset });
-      if (error !== null) throw wrapStorageError(error, 'list', prefix);
-      if (data === null || data.length === 0) break;
-      const pagePaths = await this.processListItems(data, prefix);
-      paths.push(...pagePaths);
-      hasMore = data.length === LIST_PAGE_SIZE;
-      offset += LIST_PAGE_SIZE;
-    }
-    return paths;
+function chunkArray<T>(arr: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = INITIAL_OFFSET; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size));
   }
+  return chunks;
+}
+
+async function resolveItems(
+  bucket: StorageBucketApi,
+  items: StorageFileObject[],
+  prefix: string
+): Promise<string[]> {
+  const results = await Promise.all(
+    items.map(async (item) => {
+      const fullPath = `${prefix}/${item.name}`;
+      if (item.id === null) return await listAllRecursive(bucket, fullPath, INITIAL_OFFSET);
+      return [fullPath];
+    })
+  );
+  return results.flat();
+}
+
+async function listAllRecursive(bucket: StorageBucketApi, prefix: string, offset: number): Promise<string[]> {
+  const { data, error } = await bucket.list(prefix, { limit: LIST_PAGE_SIZE, offset });
+  if (error !== null) throw wrapStorageError(error, 'list', prefix);
+  if (data === null || data.length === INITIAL_OFFSET) return [];
+  const pagePaths = await resolveItems(bucket, data, prefix);
+  if (data.length < LIST_PAGE_SIZE) return pagePaths;
+  const nextPaths = await listAllRecursive(bucket, prefix, offset + LIST_PAGE_SIZE);
+  return [...pagePaths, ...nextPaths];
 }

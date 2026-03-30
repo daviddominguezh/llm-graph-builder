@@ -2,6 +2,7 @@ import type { SupabaseVFSClient } from './types.js';
 
 const THROTTLE_MS = 60_000;
 const TABLE = 'vfs_sessions';
+const INITIAL_TOUCH_TIME = 0;
 
 interface InitializeParams {
   tenantSlug: string;
@@ -12,7 +13,7 @@ interface InitializeParams {
 }
 
 export class SessionTracker {
-  private lastTouchTime = 0;
+  private lastTouchTime = INITIAL_TOUCH_TIME;
 
   constructor(
     private readonly supabase: SupabaseVFSClient,
