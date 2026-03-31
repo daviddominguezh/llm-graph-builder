@@ -4,7 +4,7 @@ import type { OrgMemberRow, OrgRole } from '@/app/lib/orgMemberTypes';
 import { ORG_ROLES } from '@/app/lib/orgMemberTypes';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -91,7 +91,7 @@ function RoleSelect({ member, onRoleChange }: Pick<MemberRowProps, 'member' | 'o
   return (
     <Select value={member.role} onValueChange={handleChange}>
       <SelectTrigger className="w-28" size="sm">
-        <SelectValue />
+        <span className="flex flex-1 text-left">{t(`roles.${member.role}`)}</span>
       </SelectTrigger>
       <SelectContent>
         {ORG_ROLES.map((r) => (

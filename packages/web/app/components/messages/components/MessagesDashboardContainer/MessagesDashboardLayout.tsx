@@ -153,7 +153,7 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
   // Sync chatFilter with initialChatFilter prop when it changes (e.g., when switching tabs)
   useEffect(() => {
     if (initialChatFilter) {
-      setChatFilter(initialChatFilter);
+      queueMicrotask(() => setChatFilter(initialChatFilter));
     }
   }, [initialChatFilter]);
 
@@ -487,7 +487,7 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
   // Close mobile right panel when chat changes
   useEffect(() => {
     if (isMobile) {
-      setMobileRightPanelOpen(false);
+      queueMicrotask(() => setMobileRightPanelOpen(false));
     }
   }, [isMobile, activeChat]);
 

@@ -57,10 +57,7 @@ function MemberAndInvitationList(props: {
   onCancelInvite: (invitation: OrgInvitationRow) => void;
   onInvite: () => void;
 }) {
-  const hasOnlyOwner = props.members.length <= 1 && props.invitations.length === 0;
-  if (hasOnlyOwner) {
-    return <EmptyState isOwner={props.isOwner} onInvite={props.onInvite} />;
-  }
+  const showEmptyPrompt = props.members.length <= 1 && props.invitations.length === 0;
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -77,6 +74,7 @@ function MemberAndInvitationList(props: {
       {props.invitations.map((inv) => (
         <InvitationRow key={inv.id} invitation={inv} isOwner={props.isOwner} onCancel={props.onCancelInvite} />
       ))}
+      {showEmptyPrompt && <EmptyState isOwner={props.isOwner} onInvite={props.onInvite} />}
     </div>
   );
 }

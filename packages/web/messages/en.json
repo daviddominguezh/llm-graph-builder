@@ -793,6 +793,7 @@
     "email": "Email",
     "emailPlaceholder": "colleague@example.com",
     "emailRequired": "Email is required.",
+    "emailInvalid": "Enter a valid email address.",
     "role": "Role",
     "you": "you",
     "noMembers": "You're the only member",

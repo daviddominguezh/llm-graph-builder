@@ -53,7 +53,7 @@ INSERT INTO auth.identities (
 
 -- 3. Create public user
 INSERT INTO public.users (id, email, full_name) VALUES
-  (v_user_id, 'david@usecloser.ai', 'David')
+  (v_user_id, 'david@usecloser.ai', 'David Domínguez')
 ON CONFLICT (id) DO NOTHING;
 
 -- 4. Create "Closer" organization (avatar served from Next.js public/)

@@ -1,5 +1,5 @@
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useParams } from 'next/navigation';
 
@@ -85,8 +85,7 @@ export const UIProvider: React.FC<UIProviderProps> = ({ children }) => {
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
 
   // Create search service instance (persists across renders)
-  const searchServiceRef = useRef(createSearchService());
-  const searchService = searchServiceRef.current;
+  const [searchService] = useState(() => createSearchService());
 
   // Get current user email for filter logic
   useEffect(() => {

@@ -46,6 +46,8 @@ const WithFirebaseUploader: React.FC<WithFirebaseUploaderProps> = ({
   onImageFilePicked,
 }) => {
   const [isUploaded, setIsUploaded] = useState(false);
+  // Counter used as a stable React key for MediaFileList; increments each time files change
+  const [uploadCounter, setUploadCounter] = useState(0);
 
   const [files, setFiles] = useState<MediaFileDetailList | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -153,6 +155,7 @@ const WithFirebaseUploader: React.FC<WithFirebaseUploaderProps> = ({
     }
 
     setIsUploaded(true);
+    setUploadCounter((prev) => prev + 1);
     const mFiles: MediaFileDetailList = {};
     let mustShowWarning = false;
     let validFilesCount = 0;
@@ -230,7 +233,7 @@ const WithFirebaseUploader: React.FC<WithFirebaseUploaderProps> = ({
         <div style={{ width: '100%' }}>
           {isUploaded ? (
             <MediaFileList
-              key={Date.now().toString()}
+              key={`upload-${uploadCounter}`}
               files={files || undefined}
               fromUploader={true}
               onRemovefile={onRemovefile}

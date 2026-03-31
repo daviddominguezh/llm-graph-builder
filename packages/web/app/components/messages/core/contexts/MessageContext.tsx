@@ -1,5 +1,5 @@
 
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams } from 'next/navigation';
 
@@ -58,29 +58,23 @@ export const MessageProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Store input messages per chat ID
   const [inputMessages, setInputMessages] = useState<Record<string, string>>({});
-  const [inputMessage, setInputMessageState] = useState('');
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const [isSendingTestMessage, setIsSendingTestMessage] = useState(false);
 
   // Store pending image attachments per chat ID (image uploads deferred until send)
   const [pendingImageAttachments, setPendingImageAttachments] = useState<Record<string, PendingImageAttachment>>({});
-  const [pendingImageAttachment, setPendingImageAttachmentState] = useState<PendingImageAttachment | null>(null);
 
   // Track last processed files to prevent duplicate sends
   const lastProcessedFilesRef = useRef<string>('');
 
-  // Update current input message when active chat changes
-  useEffect(() => {
-    if (activeChat) {
-      setInputMessageState(inputMessages[activeChat] || '');
-    }
+  // Derive current input message from the per-chat map
+  const inputMessage = useMemo(() => {
+    return activeChat ? (inputMessages[activeChat] || '') : '';
   }, [activeChat, inputMessages]);
 
-  // Update current pending image attachment when active chat changes
-  useEffect(() => {
-    if (activeChat) {
-      setPendingImageAttachmentState(pendingImageAttachments[activeChat] || null);
-    }
+  // Derive current pending image attachment from the per-chat map
+  const pendingImageAttachment = useMemo(() => {
+    return activeChat ? (pendingImageAttachments[activeChat] || null) : null;
   }, [activeChat, pendingImageAttachments]);
 
   // Update input message handler to save per chat
@@ -91,7 +85,6 @@ export const MessageProvider: React.FC<{ children: React.ReactNode }> = ({ child
           ...prev,
           [activeChat]: value,
         }));
-        setInputMessageState(value);
       }
     },
     [activeChat]
@@ -109,7 +102,6 @@ export const MessageProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
         return { ...prev, [activeChat]: attachment };
       });
-      setPendingImageAttachmentState(attachment);
     },
     [activeChat]
   );
@@ -155,7 +147,6 @@ export const MessageProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       // Clear input immediately (before async send) for this specific chat
       setInputMessages((prev) => ({ ...prev, [activeChat]: '' }));
-      setInputMessageState('');
 
       // Clear pending image immediately if we're sending it
       if (currentPendingImage) {
@@ -164,7 +155,6 @@ export const MessageProvider: React.FC<{ children: React.ReactNode }> = ({ child
             Object.entries(prev).filter(([key]) => key !== activeChat)
           )
         );
-        setPendingImageAttachmentState(null);
       }
 
       // If mode is 'note', create a note instead of sending a message

@@ -1,5 +1,5 @@
 
-import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import Avatar from 'react-nice-avatar';
 import { useParams } from 'next/navigation';
@@ -185,49 +185,47 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
 
   // Effect to fetch user info and notes when activeChat changes
   useEffect(() => {
-    if (!activeChat || !projectName) {
-      // Clear notes and activities when no chat is active
-      setNotes({});
-      setActivities({});
-      setCurrentUserInfo(null);
-      return;
-    }
+    const run = async () => {
+      if (!activeChat || !projectName) {
+        // Clear notes and activities when no chat is active
+        setNotes({});
+        setActivities({});
+        setCurrentUserInfo(null);
+        return;
+      }
 
-    // Capture the current chat ID at the time of the effect
-    const chatIdAtFetchTime = activeChat;
+      // Capture the current chat ID at the time of the effect
+      const chatIdAtFetchTime = activeChat;
 
-    // Show cached data immediately if available
-    if (userInfoCache[chatIdAtFetchTime]) {
-      setCurrentUserInfo(userInfoCache[chatIdAtFetchTime]);
-    }
+      // Show cached data immediately if available
+      if (userInfoCache[chatIdAtFetchTime]) {
+        setCurrentUserInfo(userInfoCache[chatIdAtFetchTime]);
+      }
 
-    // Call API to get fresh data (even if cached)
-    const fetchUserInfo = async () => {
+      // Fetch all data in parallel
+      await Promise.all([
+        fetchUserInfoData(projectName, chatIdAtFetchTime),
+        fetchNotesData(projectName, chatIdAtFetchTime),
+        fetchActivitiesData(projectName, chatIdAtFetchTime),
+      ]);
+    };
+
+    const fetchUserInfoData = async (project: string, chatId: string) => {
       try {
-        const userInfo = await getFinalUserInfo(projectName, chatIdAtFetchTime);
-
-        // Only update if we're still on the same chat (check ref for latest value)
-        if (activeChatRef.current === chatIdAtFetchTime) {
+        const userInfo = await getFinalUserInfo(project, chatId);
+        if (activeChatRef.current === chatId) {
           setCurrentUserInfo(userInfo);
-
-          // Update cache
-          setUserInfoCache((prev) => ({
-            ...prev,
-            [chatIdAtFetchTime]: userInfo,
-          }));
+          setUserInfoCache((prev) => ({ ...prev, [chatId]: userInfo }));
         }
       } catch (error) {
         console.error('Error fetching user info:', error);
       }
     };
 
-    // Fetch notes for this chat
-    const fetchNotes = async () => {
+    const fetchNotesData = async (project: string, chatId: string) => {
       try {
-        const fetchedNotes = await getNotes(projectName, chatIdAtFetchTime);
-
-        // Only update if we're still on the same chat (check ref for latest value)
-        if (activeChatRef.current === chatIdAtFetchTime) {
+        const fetchedNotes = await getNotes(project, chatId);
+        if (activeChatRef.current === chatId) {
           setNotes(fetchedNotes);
         }
       } catch (error) {
@@ -235,13 +233,10 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
       }
     };
 
-    // Fetch activities for this chat
-    const fetchActivities = async () => {
+    const fetchActivitiesData = async (project: string, chatId: string) => {
       try {
-        const fetchedActivities = await getActivity(projectName, chatIdAtFetchTime);
-
-        // Only update if we're still on the same chat (check ref for latest value)
-        if (activeChatRef.current === chatIdAtFetchTime) {
+        const fetchedActivities = await getActivity(project, chatId);
+        if (activeChatRef.current === chatId) {
           setActivities(fetchedActivities);
         }
       } catch (error) {
@@ -249,23 +244,25 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
       }
     };
 
-    fetchUserInfo();
-    fetchNotes();
-    fetchActivities();
-  }, [activeChat, projectName, notesRefreshTrigger]);
+    run();
+  }, [activeChat, projectName, notesRefreshTrigger, setActivities, setNotes, userInfoCache]);
 
   // Initialize selected tags from currentChat when chat changes
   useEffect(() => {
-    if (!activeChat || !currentChat) return;
+    const run = async () => {
+      if (!activeChat || !currentChat) return;
 
-    // Initialize tags from currentChat if not already set
-    if (!selectedTagsByChat[activeChat] && currentChat.tags) {
-      setSelectedTagsByChat((prev) => ({
-        ...prev,
-        [activeChat]: currentChat.tags || [],
-      }));
-    }
-  }, [activeChat, currentChat]);
+      // Initialize tags from currentChat if not already set
+      if (!selectedTagsByChat[activeChat] && currentChat.tags) {
+        setSelectedTagsByChat((prev) => ({
+          ...prev,
+          [activeChat]: currentChat.tags || [],
+        }));
+      }
+    };
+
+    run();
+  }, [activeChat, currentChat, selectedTagsByChat]);
 
   // Handle note deletion
   const handleDeleteNote = async () => {
@@ -291,28 +288,31 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
   };
 
   // Handle tag selection changes
-  const handleTagsChange = async (tagIds: string[]) => {
-    if (!activeChat || !projectName) return;
+  const handleTagsChange = useCallback(
+    async (tagIds: string[]) => {
+      if (!activeChat || !projectName) return;
 
-    // Update local state
-    setSelectedTagsByChat((prev) => ({
-      ...prev,
-      [activeChat]: tagIds,
-    }));
+      // Update local state
+      setSelectedTagsByChat((prev) => ({
+        ...prev,
+        [activeChat]: tagIds,
+      }));
 
-    // Update LastMessage cache
-    updateChatTags(activeChat, tagIds);
+      // Update LastMessage cache
+      updateChatTags(activeChat, tagIds);
 
-    // Save tags to backend
-    try {
-      const success = await setChatTags(projectName, activeChat, tagIds);
-      if (!success) {
-        console.error(`[RightPanel] Failed to update tags for chat ${activeChat}`);
+      // Save tags to backend
+      try {
+        const success = await setChatTags(projectName, activeChat, tagIds);
+        if (!success) {
+          console.error(`[RightPanel] Failed to update tags for chat ${activeChat}`);
+        }
+      } catch (error) {
+        console.error('[RightPanel] Error updating tags:', error);
       }
-    } catch (error) {
-      console.error('[RightPanel] Error updating tags:', error);
-    }
-  };
+    },
+    [activeChat, projectName, updateChatTags]
+  );
 
   // Effect to fetch profile pictures for note creators
   useEffect(() => {
@@ -607,6 +607,7 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
     ],
     [
       t,
+      locale,
       mediaImages,
       onMessageClick,
       noteProfilePictures,
@@ -616,6 +617,7 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
       tagOptions,
       selectedTagsByChat,
       activeChat,
+      handleTagsChange,
     ]
   );
 

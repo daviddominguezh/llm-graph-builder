@@ -1,5 +1,5 @@
 
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import Avatar from 'react-nice-avatar';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
@@ -106,7 +106,7 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
     const [dropdownHorizontalOffset, setDropdownHorizontalOffset] = useState<number>(0);
     const dropdownTriggerRef = useRef<HTMLDivElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
-    const positionCalculatedRef = useRef<boolean>(false);
+    const [positionCalculated, setPositionCalculated] = useState(false);
     const highlightedMessageRef = useRef<HTMLDivElement>(null);
 
     // Handle click outside to close dropdown (must be before early return)
@@ -121,7 +121,7 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
           !dropdownTriggerRef.current.contains(event.target as Node)
         ) {
           setIsDropdownOpen(false);
-          positionCalculatedRef.current = false;
+          setPositionCalculated(false);
         }
       };
 
@@ -133,7 +133,7 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
 
     // Calculate dropdown position when dropdown opens (must be before early return)
     useEffect(() => {
-      if (!isDropdownOpen || positionCalculatedRef.current) {
+      if (!isDropdownOpen || positionCalculated) {
         return;
       }
 
@@ -141,7 +141,7 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
         if (!dropdownTriggerRef.current) {
           setDropdownPosition('above');
           setDropdownHorizontalOffset(0);
-          positionCalculatedRef.current = true;
+          setPositionCalculated(true);
           return;
         }
 
@@ -171,7 +171,7 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
 
         setDropdownPosition(decision);
         setDropdownHorizontalOffset(horizontalOffset);
-        positionCalculatedRef.current = true;
+        setPositionCalculated(true);
       });
     }, [isDropdownOpen]);
 
@@ -518,6 +518,46 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
 MessageItemComponent.displayName = 'MessageItemComponent';
 
 /**
+ * Reducer for tracking firstItemIndex for Virtuoso prepend support
+ */
+const INITIAL_ITEM_INDEX = 100000;
+
+interface PrependState {
+  firstItemIndex: number;
+  previousItemCount: number;
+  previousChatId: string | null;
+}
+
+interface PrependAction {
+  currentCount: number;
+  chatId: string | null;
+}
+
+function prependReducer(state: PrependState, action: PrependAction): PrependState {
+  const { currentCount, chatId } = action;
+
+  if (state.previousChatId !== chatId) {
+    return {
+      firstItemIndex: INITIAL_ITEM_INDEX,
+      previousItemCount: currentCount,
+      previousChatId: chatId,
+    };
+  }
+  if (state.previousItemCount > 0 && currentCount > state.previousItemCount) {
+    const itemsAdded = currentCount - state.previousItemCount;
+    return {
+      ...state,
+      firstItemIndex: state.firstItemIndex - itemsAdded,
+      previousItemCount: currentCount,
+    };
+  }
+  if (currentCount !== state.previousItemCount) {
+    return { ...state, previousItemCount: currentCount };
+  }
+  return state;
+}
+
+/**
  * MessageView component displays conversation messages
  * Handles message grouping by date, media rendering, virtualization, and scroll management
  */
@@ -583,44 +623,24 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
 
   // Refs for stable access to frequently-changing props (prevents useMemo invalidation)
   const collaboratorsRef = useRef(collaborators);
-  collaboratorsRef.current = collaborators;
   const tRef = useRef(t);
-  tRef.current = t;
 
-  // Stable references for object props - only update when content actually changes
-  // This prevents useMemo invalidation when parent creates new object references with same data
-  const stableNotesRef = useRef(notes);
-  const stableAssigneesRef = useRef(assignees);
-  const stableStatusesRef = useRef(statuses);
-  const prevNotesKeyRef = useRef<string>('');
-  const prevAssigneesKeyRef = useRef<string>('');
-  const prevStatusesKeyRef = useRef<string>('');
+  useEffect(() => {
+    collaboratorsRef.current = collaborators;
+  }, [collaborators]);
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
 
-  // Update stable refs only when content changes (shallow key comparison for performance)
-  const notesKey = Object.keys(notes).sort().join(',');
-  if (notesKey !== prevNotesKeyRef.current) {
-    prevNotesKeyRef.current = notesKey;
-    stableNotesRef.current = notes;
-  }
 
-  const assigneesKey = Object.keys(assignees).sort().join(',');
-  if (assigneesKey !== prevAssigneesKeyRef.current) {
-    prevAssigneesKeyRef.current = assigneesKey;
-    stableAssigneesRef.current = assignees;
-  }
-
-  const statusesKey = Object.keys(statuses).sort().join(',');
-  if (statusesKey !== prevStatusesKeyRef.current) {
-    prevStatusesKeyRef.current = statusesKey;
-    stableStatusesRef.current = statuses;
-  }
 
   // For prepending older messages - track firstItemIndex
   // We use a high starting index so we have room to prepend items
-  const INITIAL_ITEM_INDEX = 100000;
-  const firstItemIndexRef = useRef(INITIAL_ITEM_INDEX);
-  const previousItemCountRef = useRef(0);
-  const previousChatIdForPrependRef = useRef<string | null>(null);
+  const [prependState, dispatchPrepend] = useReducer(prependReducer, {
+    firstItemIndex: INITIAL_ITEM_INDEX,
+    previousItemCount: 0,
+    previousChatId: null,
+  });
 
   // Clear image orientations when chat changes
   useEffect(() => {
@@ -723,9 +743,8 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
   }, [assignees]);
 
   // Convert notes to Message format (memoized to prevent cascade re-renders)
-  // Use stable ref and key as dependency to only recalculate when content actually changes
   const notesAsMessages = useMemo<Message[]>(() => {
-    return Object.entries(stableNotesRef.current).map(([noteID, note]) => ({
+    return Object.entries(notes).map(([noteID, note]) => ({
       id: noteID,
       timestamp: note.timestamp,
       originalId: noteID,
@@ -737,17 +756,15 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
       type: 'note' as const,
       key: note.creator,
     }));
-  }, [notesKey]);
+  }, [notes]);
 
   // Convert assignees to Message format (memoized to prevent cascade re-renders)
-  // Uses refs for collaborators and t to prevent invalidation from parent re-renders
-  // Use stable ref and key as dependency to only recalculate when content actually changes
   const assigneesAsMessages = useMemo<Message[]>(() => {
-    return Object.entries(stableAssigneesRef.current).map(([assigneeID, assigneeData]) => {
+    return Object.entries(assignees).map(([assigneeID, assigneeData]) => {
       const assigneeName =
         assigneeData.assignee === 'none'
-          ? tRef.current('Unassigned')
-          : collaboratorsRef.current.find((c) => c.email === assigneeData.assignee)?.name ||
+          ? t('Unassigned')
+          : collaborators.find((c) => c.email === assigneeData.assignee)?.name ||
             assigneeData.assignee;
 
       return {
@@ -763,28 +780,26 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
         key: assigneeData.assignee,
       };
     });
-  }, [assigneesKey]);
+  }, [assignees, t, collaborators]);
 
   // Convert statuses to Message format (memoized to prevent cascade re-renders)
-  // Use stable ref and key as dependency to only recalculate when content actually changes
   const statusesAsMessages = useMemo<Message[]>(() => {
-    // Inline status label resolution to avoid dependency on getStatusDisplay callback
     const getStatusLabel = (statusValue: string): string => {
       switch (statusValue) {
         case 'open':
-          return tRef.current('chat-status-open');
+          return t('chat-status-open');
         case 'blocked':
-          return tRef.current('chat-status-blocked');
+          return t('chat-status-blocked');
         case 'closed':
-          return tRef.current('chat-status-closed');
+          return t('chat-status-closed');
         case 'verify-payment':
-          return tRef.current('chat-status-verify-payment');
+          return t('chat-status-verify-payment');
         default:
           return statusValue;
       }
     };
 
-    return Object.entries(stableStatusesRef.current).map(([statusID, statusData]) => {
+    return Object.entries(statuses).map(([statusID, statusData]) => {
       return {
         id: statusID,
         timestamp: statusData.timestamp,
@@ -798,7 +813,7 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
         key: statusData.status,
       };
     });
-  }, [statusesKey]);
+  }, [statuses, t]);
 
   // Sort and filter messages
   const regularMessages = useMemo(() => {
@@ -869,29 +884,14 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
   }, [groupedByDate]);
 
   // Compute firstItemIndex for prepending support
-  // This runs during render to ensure synchronous updates before Virtuoso renders
+  // Dispatch on every render to let reducer decide if state needs updating
   const currentCount = virtualizedItems.length;
-  const previousCount = previousItemCountRef.current;
 
-  if (previousChatIdForPrependRef.current !== chatId) {
-    // Chat changed - reset to initial state
+  useEffect(() => {
+    dispatchPrepend({ currentCount, chatId: chatId || null });
+  }, [currentCount, chatId]);
 
-    firstItemIndexRef.current = INITIAL_ITEM_INDEX;
-    previousItemCountRef.current = currentCount;
-    previousChatIdForPrependRef.current = chatId || null;
-  } else if (previousCount > 0 && currentCount > previousCount) {
-    // Items were prepended - decrease firstItemIndex to maintain scroll position
-    // This tells Virtuoso that new items were added at the beginning
-    const itemsAdded = currentCount - previousCount;
-    firstItemIndexRef.current -= itemsAdded;
-    previousItemCountRef.current = currentCount;
-  } else if (currentCount < previousCount) {
-    previousItemCountRef.current = currentCount;
-  } else {
-    previousItemCountRef.current = currentCount;
-  }
-
-  const firstItemIndex = firstItemIndexRef.current;
+  const firstItemIndex = prependState.firstItemIndex;
 
   // Scroll to highlighted message when it changes
   useEffect(() => {
@@ -911,7 +911,9 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
 
   // Ref for virtualizedItems to use in stable callbacks
   const virtualizedItemsRef = useRef(virtualizedItems);
-  virtualizedItemsRef.current = virtualizedItems;
+  useEffect(() => {
+    virtualizedItemsRef.current = virtualizedItems;
+  }, [virtualizedItems]);
 
   // Helper to get previous message item for role change detection - stable callback using ref
   const getPreviousMessageItem = useCallback((currentIndex: number): Message | null => {
@@ -936,15 +938,26 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
 
   // Refs for context values that change frequently but shouldn't trigger re-renders
   const sortedMessagesRef = useRef(sortedMessages);
-  sortedMessagesRef.current = sortedMessages;
   const noteProfilePicturesRef = useRef(noteProfilePictures);
-  noteProfilePicturesRef.current = noteProfilePictures;
   const assigneeProfilePicturesRef = useRef(assigneeProfilePictures);
-  assigneeProfilePicturesRef.current = assigneeProfilePictures;
   const highlightedMessageIdRef = useRef(highlightedMessageId);
-  highlightedMessageIdRef.current = highlightedMessageId;
   const messagesRef = useRef(messages);
-  messagesRef.current = messages;
+
+  useEffect(() => {
+    sortedMessagesRef.current = sortedMessages;
+  }, [sortedMessages]);
+  useEffect(() => {
+    noteProfilePicturesRef.current = noteProfilePictures;
+  }, [noteProfilePictures]);
+  useEffect(() => {
+    assigneeProfilePicturesRef.current = assigneeProfilePictures;
+  }, [assigneeProfilePictures]);
+  useEffect(() => {
+    highlightedMessageIdRef.current = highlightedMessageId;
+  }, [highlightedMessageId]);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Stable callbacks that use refs internally
   const stableFindRepliedMessage = useCallback((replyId: string): Message | null => {
@@ -1010,18 +1023,17 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
       noteProfilePictures: new Map(), // Use ref inside component instead
       assigneeProfilePictures: new Map(), // Use ref inside component instead
       sortedMessages: [], // Use ref inside component instead
-      t: tRef.current,
+      t,
       // Provide refs for values that change
       highlightedMessageIdRef,
       sortedMessagesRef,
       noteProfilePicturesRef,
       assigneeProfilePicturesRef,
     }),
-    [isTestChatActive, stableFindRepliedMessage, handleReplyClick, onAskAI, stableGetStatusDisplay]
+    [isTestChatActive, stableFindRepliedMessage, handleReplyClick, onAskAI, stableGetStatusDisplay, t]
   );
 
   // Render a single item (date header or message)
-  // This callback is now stable - uses refs for all frequently changing values
   const renderItem = useCallback(
     (index: number, item: VirtualizedItem) => {
       // Return a minimal placeholder if item not found - prevents zero-sized element warnings
@@ -1034,7 +1046,7 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
               className="bg-white cursor-default font-bold border-1 border-gray-200 text-gray-600"
             >
               {item.date === 'Today'
-                ? tRef.current('Today')
+                ? t('Today')
                 : item.date.length > 1
                   ? item.date.substring(0, 1).toUpperCase() + item.date.substring(1)
                   : item.date.toUpperCase()}
@@ -1056,7 +1068,7 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
         />
       );
     },
-    [getPreviousMessageItem, handleImageLoad, handleImageRef]
+    [getPreviousMessageItem, handleImageLoad, handleImageRef, t]
   );
 
   // Show loading spinner while messages are being fetched

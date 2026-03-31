@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { toProxyImageSrc } from '@/app/lib/supabase/image';
 import { Building2, Check, Copy, Pencil, Plus, Trash2 } from 'lucide-react';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -41,6 +43,28 @@ function formatRelativeDate(iso: string, labels: RelativeLabels): string {
   if (diffHr < 24) return labels.fmt('hoursAgo', { count: diffHr });
   if (diffDay < 30) return labels.fmt('daysAgo', { count: diffDay });
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function TenantAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
+  const initial = name.trim().charAt(0).toUpperCase() || '?';
+
+  if (avatarUrl !== null) {
+    return (
+      <Image
+        src={toProxyImageSrc(avatarUrl)}
+        alt={name}
+        width={24}
+        height={24}
+        className="size-6 shrink-0 rounded-full object-cover border"
+      />
+    );
+  }
+
+  return (
+    <div className="bg-muted text-muted-foreground flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-medium border">
+      {initial}
+    </div>
+  );
 }
 
 function CopyableId({ id }: { id: string }) {
@@ -171,7 +195,12 @@ function TenantsTable({
       <TableBody>
         {tenants.map((tenant) => (
           <TableRow key={tenant.id} className={`group/row ${newIds.has(tenant.id) ? 'row-enter' : ''}`}>
-            <TableCell className="max-w-[200px] truncate font-medium">{tenant.name}</TableCell>
+            <TableCell>
+              <div className="flex items-center gap-2 max-w-[200px]">
+                <TenantAvatar name={tenant.name} avatarUrl={tenant.avatar_url} />
+                <span className="truncate font-medium">{tenant.name}</span>
+              </div>
+            </TableCell>
             <TableCell>
               <CopyableId id={tenant.id} />
             </TableCell>

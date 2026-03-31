@@ -80,22 +80,29 @@ const OrderCard: React.FC<{
 
   // Fetch receipt URL when order has trackingReceipt and is expanded
   useEffect(() => {
-    if (isExpanded && order.trackingReceipt && !hasFetchedReceipt) {
+    if (!isExpanded || !order.trackingReceipt || hasFetchedReceipt) return;
+
+    let cancelled = false;
+    const fetchReceipt = async () => {
       setLoadingReceipt(true);
       setHasFetchedReceipt(true);
-      getOrderReceipt(projectName, order.trackingReceipt)
-        .then((response) => {
-          if (response?.receipt) {
-            setReceiptUrl(response.receipt);
-          }
-        })
-        .catch((error) => {
-          console.error('Error fetching receipt:', error);
-        })
-        .finally(() => {
+
+      try {
+        const response = await getOrderReceipt(projectName, order.trackingReceipt ?? '');
+        if (!cancelled && response?.receipt) {
+          setReceiptUrl(response.receipt);
+        }
+      } catch (error) {
+        console.error('Error fetching receipt:', error);
+      } finally {
+        if (!cancelled) {
           setLoadingReceipt(false);
-        });
-    }
+        }
+      }
+    };
+
+    fetchReceipt();
+    return () => { cancelled = true; };
   }, [isExpanded, order.trackingReceipt, projectName, hasFetchedReceipt]);
 
   return (

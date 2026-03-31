@@ -26,6 +26,11 @@ export const MentionDialog: React.FC<MentionDialogProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const dialogRef = useRef<HTMLDivElement>(null);
 
+  // Reset selected index when query changes
+  useEffect(() => {
+    queueMicrotask(() => setSelectedIndex(0));
+  }, [query]);
+
   // Filter collaborators by query and status
   const filteredCollaborators = collaborators.filter((collab) => {
     // Only show active or pending collaborators
@@ -40,11 +45,6 @@ export const MentionDialog: React.FC<MentionDialogProps> = ({
 
     return true;
   });
-
-  // Reset selected index when filtered list changes
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [query]);
 
   // Handle keyboard navigation
   useEffect(() => {

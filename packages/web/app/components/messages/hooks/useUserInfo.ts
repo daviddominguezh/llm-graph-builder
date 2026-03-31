@@ -29,26 +29,26 @@ export const useUserInfo = (chatId: string | null, isActive: boolean = false): F
   }, [chatId]);
 
   useEffect(() => {
-    if (!chatId || !projectName) {
-      setUserInfo(null);
-      return;
-    }
+    const run = async () => {
+      if (!chatId || !projectName) {
+        setUserInfo(null);
+        return;
+      }
 
-    // If not active and cached data is available, use cache
-    if (!isActive && userInfoCache[chatId]) {
-      // Use cached data, do not fetch again
-      setUserInfo(userInfoCache[chatId]);
-      return;
-    }
+      // If not active and cached data is available, use cache
+      if (!isActive && userInfoCache[chatId]) {
+        // Use cached data, do not fetch again
+        setUserInfo(userInfoCache[chatId]);
+        return;
+      }
 
-    // If active or not cached, fetch fresh data
-    const fetchUserInfo = async () => {
+      // Show cached data immediately if available (while fetching fresh data)
+      if (userInfoCache[chatId]) {
+        setUserInfo(userInfoCache[chatId]);
+      }
+
+      // If active or not cached, fetch fresh data
       try {
-        // Show cached data immediately if available (while fetching fresh data)
-        if (userInfoCache[chatId]) {
-          setUserInfo(userInfoCache[chatId]);
-        }
-
         const info = await getFinalUserInfo(projectName, chatId);
 
         // Only update if we're still on the same chat
@@ -61,7 +61,7 @@ export const useUserInfo = (chatId: string | null, isActive: boolean = false): F
       }
     };
 
-    fetchUserInfo();
+    run();
   }, [chatId, projectName, isActive]);
 
   return userInfo;

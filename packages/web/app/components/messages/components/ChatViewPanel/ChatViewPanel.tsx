@@ -8,6 +8,7 @@ import type { Conversation, LastMessage } from '@/app/types/chat';
 import { Collaborator } from '@/app/types/projectInnerSettings';
 
 import { useChat, useMessage } from '../../core/contexts';
+import { useNow } from '../../hooks/useNow';
 import { Slot } from '../../core/slots';
 import { MessageInput } from '../../domains/message/components/MessageInput';
 import { MessageView } from '../../domains/message/components/MessageView';
@@ -147,7 +148,7 @@ const ChatViewPanelComponent: React.FC<ChatViewPanelProps> = ({
     }
 
     return latestAssignee.assignee;
-  }, [currentChat?.assignees]);
+  }, [currentChat]);
 
   // Get current status from chat
   const currentStatus = currentChat?.status || 'open';
@@ -169,6 +170,10 @@ const ChatViewPanelComponent: React.FC<ChatViewPanelProps> = ({
     setAskAIQuestion(messageText);
   }, []);
 
+  // Current timestamp obtained via useSyncExternalStore (React Compiler-safe).
+  // Refreshes every 60 seconds so the 24-hour rule stays accurate.
+  const now = useNow(60_000);
+
   // Check if last user message was more than 23h 50m ago (86100000 milliseconds)
   // Never apply this rule to the test chat
   const isDisabledBy24HourRule = useMemo(() => {
@@ -182,12 +187,11 @@ const ChatViewPanelComponent: React.FC<ChatViewPanelProps> = ({
 
     // Sort by timestamp descending to get the last user message
     const lastUserMessage = userMessages.sort((a, b) => b.timestamp - a.timestamp)[0];
-    const now = Date.now();
     const timeDifference = now - lastUserMessage.timestamp;
 
     // 23 hours 50 minutes = 1430 minutes = 86100000 milliseconds
     return timeDifference > 86100000;
-  }, [messages, isTestChatActive]);
+  }, [messages, isTestChatActive, now]);
 
   // Disable input if:
   // 1. AI is enabled (disabled = true), OR

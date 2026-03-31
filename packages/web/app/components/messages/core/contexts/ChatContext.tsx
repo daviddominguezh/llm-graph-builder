@@ -170,6 +170,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return lastMessages?.[activeChat] || null;
   }, [activeChat, cachedConversations, lastMessages]);
 
+  // Stable timestamp for the default test chat fallback (only set once on mount)
+  const [defaultTestChatTimestamp] = useState(() => Date.now());
+
   // Build orderedChats from cached conversations (already sorted by timestamp)
   const orderedChats = useMemo(() => {
     // Map cached conversations to ChatWithId format
@@ -206,7 +209,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         key: TEST_PHONE,
         originalId: '',
         id: TEST_PHONE,
-        timestamp: Date.now(),
+        timestamp: defaultTestChatTimestamp,
         intent: INTENT.NONE,
         message: { role: 'assistant', content: '' },
         type: 'text',
@@ -218,7 +221,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Test chat is kept first
     return [testChat, ...regularChats];
-  }, [cachedConversations, lastMessages]);
+  }, [cachedConversations, lastMessages, defaultTestChatTimestamp]);
 
   const selectChat = useCallback(
     async (chatId: string | null, shouldMarkRead = false) => {

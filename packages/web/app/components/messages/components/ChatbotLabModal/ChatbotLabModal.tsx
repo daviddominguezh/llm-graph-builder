@@ -30,29 +30,35 @@ export const ChatbotLabModal = ({ open, onOpenChange }: ChatbotLabModalProps) =>
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (open && projectName) {
+    if (!open || !projectName) return;
+
+    let cancelled = false;
+    const generateQR = async () => {
       setIsLoading(true);
       setQrCodeUrl(null);
 
       const whatsappUrl = `https://wa.me/573223874864?text=join-test:${projectName}`;
 
-      QRCode.toDataURL(whatsappUrl, {
-        width: 256,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#ffffff',
-        },
-      })
-        .then((url) => {
+      try {
+        const url = await QRCode.toDataURL(whatsappUrl, {
+          width: 256,
+          margin: 2,
+          color: { dark: '#000000', light: '#ffffff' },
+        });
+        if (!cancelled) {
           setQrCodeUrl(url);
           setIsLoading(false);
-        })
-        .catch((err) => {
-          console.error('Error generating QR code:', err);
+        }
+      } catch (err) {
+        console.error('Error generating QR code:', err);
+        if (!cancelled) {
           setIsLoading(false);
-        });
-    }
+        }
+      }
+    };
+
+    generateQR();
+    return () => { cancelled = true; };
   }, [open, projectName]);
 
   return (

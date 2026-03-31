@@ -140,7 +140,7 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
         });
       }
     }
-  }, [chatListScrollRef.current, activeChat]);
+  }, [activeChat]);
 
   // Save scroll position before it potentially resets
   const handleChatSelect = (id: string | null, shouldMarkRead?: boolean) => {

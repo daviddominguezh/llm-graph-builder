@@ -264,7 +264,10 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplet
 
   // Start recording immediately when component mounts
   useEffect(() => {
-    startRecording();
+    const initRecording = async () => {
+      await startRecording();
+    };
+    initRecording();
 
     return () => {
       stopTimer();
