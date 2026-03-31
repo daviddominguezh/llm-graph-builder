@@ -1,10 +1,12 @@
 'use client';
 
 import { createOrgAction, uploadOrgAvatarAction } from '@/app/actions/orgs';
+import { useSlugAvailability } from '@/app/hooks/useSlugAvailability';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useRef, useState } from 'react';
@@ -20,6 +22,7 @@ interface CreateOrgDialogProps {
 
 interface CreateOrgFieldsProps {
   nameError: string;
+  nameTaken: boolean;
   name: string;
   onNameChange: (name: string) => void;
   previewUrl: string | null;
@@ -28,8 +31,9 @@ interface CreateOrgFieldsProps {
 }
 
 function CreateOrgFields(props: CreateOrgFieldsProps) {
-  const { nameError, name, onNameChange, previewUrl, onFileSelect, onRemove } = props;
+  const { nameError, nameTaken, name, onNameChange, previewUrl, onFileSelect, onRemove } = props;
   const t = useTranslations('orgs');
+  const tSlugs = useTranslations('slugs');
 
   return (
     <div className="flex items-center gap-4">
@@ -51,6 +55,9 @@ function CreateOrgFields(props: CreateOrgFieldsProps) {
           onChange={(e) => onNameChange(e.target.value)}
         />
         {nameError !== '' && <p className="text-destructive text-xs">{nameError}</p>}
+        {nameError === '' && nameTaken && (
+          <p className="text-destructive text-xs">{tSlugs('nameTaken')}</p>
+        )}
       </div>
     </div>
   );
@@ -114,6 +121,8 @@ function CreateOrgForm({ onOpenChange }: CreateOrgDialogProps) {
   const { loading, nameError, handleSubmit, setFile } = useCreateOrgSubmit(onOpenChange);
   const [name, setName] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const { checking, available } = useSlugAvailability(name, 'organizations');
+  const disabled = loading || checking || available === false || name.trim() === '';
 
   function handleFileSelect(file: File | null) {
     setFile(file);
@@ -129,6 +138,7 @@ function CreateOrgForm({ onOpenChange }: CreateOrgDialogProps) {
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <CreateOrgFields
         nameError={nameError}
+        nameTaken={available === false}
         name={name}
         onNameChange={setName}
         previewUrl={previewUrl}
@@ -136,8 +146,8 @@ function CreateOrgForm({ onOpenChange }: CreateOrgDialogProps) {
         onRemove={handleRemove}
       />
       <DialogFooter>
-        <Button type="submit" disabled={loading || name.trim() === ''}>
-          {t('create')}
+        <Button type="submit" disabled={disabled}>
+          {checking ? <Loader2 className="size-4 animate-spin" /> : t('create')}
         </Button>
       </DialogFooter>
     </form>
