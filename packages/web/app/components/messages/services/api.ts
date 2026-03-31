@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { isPublicEndpoint as checkIsPublicEndpoint } from '@constants/auth';
+import { isPublicEndpoint as checkIsPublicEndpoint } from '@/app/constants/auth';
 import { APIError, APIErrorCodes } from '@errors/projects';
 import { createCacheService } from '@features/messagesDashboard/core/services/CacheService';
 import type {
@@ -10,11 +10,11 @@ import type {
 } from '@features/messagesDashboard/core/types';
 import { getAuthToken, handleAuthError } from '@services/auth';
 
-import { getApiURL, isLocalDevelopment } from '@globalUtils/environment';
-import { getBusinessInfoFromCache, setBusinessInfoToCache } from '@globalUtils/storeDataCache';
+import { getApiURL, isLocalDevelopment } from '@/app/utils/environment';
+import { getBusinessInfoFromCache, setBusinessInfoToCache } from '@/app/utils/storeDataCache';
 
-import { ChatAuditReport } from '@globalTypes/audit';
-import { User } from '@globalTypes/auth';
+import { ChatAuditReport } from '@/app/types/audit';
+import { User } from '@/app/types/auth';
 import {
   BillingAddress,
   CalculateBillingFeesResponse,
@@ -24,8 +24,8 @@ import {
   GetBillingFeesResponse,
   GetPaymentCardsResponse,
   GetPurchasedCreditsResponse,
-} from '@globalTypes/billing';
-import { Booking, GetBookingResponse } from '@globalTypes/bookings';
+} from '@/app/types/billing';
+import { Booking, GetBookingResponse } from '@/app/types/bookings';
 import {
   BusinessSetupSchema,
   BusinessSetupSchemaAPIType,
@@ -34,26 +34,26 @@ import {
   ProductType,
   ProductsListResponse,
   StoreData,
-} from '@globalTypes/business';
+} from '@/app/types/business';
 // Shopping Cart API
-import { CartAPIResponse, CartItem } from '@globalTypes/cart';
-import { Conversation, LastMessage, LastMessages, Message } from '@globalTypes/chat';
-import { CRMAPIResponse } from '@globalTypes/crm';
-import { FinalUserInfoAPI } from '@globalTypes/finalUsers';
-import { MediaFileDetail, MediaFileDetailList, MediaFileKind } from '@globalTypes/media';
-import { Metrics } from '@globalTypes/metrics';
+import { CartAPIResponse, CartItem } from '@/app/types/cart';
+import { Conversation, LastMessage, LastMessages, Message } from '@/app/types/chat';
+import { CRMAPIResponse } from '@/app/types/crm';
+import { FinalUserInfoAPI } from '@/app/types/finalUsers';
+import { MediaFileDetail, MediaFileDetailList, MediaFileKind } from '@/app/types/media';
+import { Metrics } from '@/app/types/metrics';
 import {
   Order,
   OrdersAPIResponse,
   PersonalizationOrderDB,
   PersonalizationOrderDBType,
   StatusType,
-} from '@globalTypes/orders';
-import { PaymentCheckout, PaymentDetail } from '@globalTypes/payments';
-import { Collaborator, InnerSettings, ScheduleTemplate } from '@globalTypes/projectInnerSettings';
-import { RAGQueryResults } from '@globalTypes/rag';
-import { RAGFileStatus } from '@globalTypes/ragFiles';
-import { RAGRecordDetail, Records } from '@globalTypes/records';
+} from '@/app/types/orders';
+import { PaymentCheckout, PaymentDetail } from '@/app/types/payments';
+import { Collaborator, InnerSettings, ScheduleTemplate } from '@/app/types/projectInnerSettings';
+import { RAGQueryResults } from '@/app/types/rag';
+import { RAGFileStatus } from '@/app/types/ragFiles';
+import { RAGRecordDetail, Records } from '@/app/types/records';
 
 const API_BASE_URL = getApiURL();
 

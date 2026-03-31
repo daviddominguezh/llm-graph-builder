@@ -1,5 +1,5 @@
-import { firebaseConfig } from '@constants/firebase';
-import { COMPRESSION_OPTIONS } from '@constants/media';
+import { firebaseConfig } from '@/app/constants/firebase';
+import { COMPRESSION_OPTIONS } from '@/app/constants/media';
 import { getUserInfo, setMediaUploaded } from '@services/api';
 import { initializeToken } from '@services/auth';
 import imageCompression from 'browser-image-compression';
@@ -28,9 +28,9 @@ import {
 } from 'firebase/storage';
 import mixpanel from 'mixpanel-browser';
 
-import { isLocalDevelopment } from '@globalUtils/environment';
+import { isLocalDevelopment } from '@/app/utils/environment';
 
-import { MediaFileDetail, MediaStatus } from '@globalTypes/media';
+import { MediaFileDetail, MediaStatus } from '@/app/types/media';
 
 let firebaseApp: FirebaseApp | null = null;
 let auth: Auth | null = null;

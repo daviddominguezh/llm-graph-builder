@@ -3,13 +3,13 @@ import Avatar from 'react-nice-avatar';
 
 import { CheckCheck } from 'lucide-react';
 
-import { generateAvatarConfig } from '@globalUtils/avatar';
-import { getMessageText } from '@globalUtils/message';
-import { formatPhone, formatTimestamp, getNameFromLastMessage } from '@globalUtils/strs';
+import { generateAvatarConfig } from '@/app/utils/avatar';
+import { getMessageText } from '@/app/utils/message';
+import { formatPhone, formatTimestamp, getNameFromLastMessage } from '@/app/utils/strs';
 
-import { TEST_PHONE } from '@constants/messages';
+import { TEST_PHONE } from '@/app/constants/messages';
 
-import { Message } from '@globalTypes/chat';
+import { Message } from '@/app/types/chat';
 
 interface MessageSearchResultProps {
   message: Message;

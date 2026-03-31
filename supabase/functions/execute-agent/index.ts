@@ -5,7 +5,7 @@ import { createMCPClient } from '@ai-sdk/mcp';
 import type { McpServerConfig, McpTransport, RuntimeGraph } from '@daviddh/graph-types';
 import type { CallAgentOutput, Context, Message, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
 import { VFSContext, executeWithCallbacks, generateVFSTools } from '@daviddh/llm-graph-runner';
-import { GitHubSourceProvider } from '@daviddh/llm-graph-runner/providers';
+import { GitHubSourceProvider } from '@daviddh/vfs-providers';
 import type { Tool } from 'ai';
 
 interface VfsPayloadData {

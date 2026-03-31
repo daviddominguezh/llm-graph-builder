@@ -1,8 +1,8 @@
 import MiniSearch from 'minisearch';
 
-import { formatPhone } from '@globalUtils/strs';
+import { formatPhone } from '@/app/utils/strs';
 
-import { ChatSearchResults, Conversation, LastMessage, Message } from '@globalTypes/chat';
+import { ChatSearchResults, Conversation, LastMessage, Message } from '@/app/types/chat';
 
 /**
  * Document types for search indexing

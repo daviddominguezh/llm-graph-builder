@@ -1,4 +1,4 @@
-import { Conversation, LastMessage, Message } from '@globalTypes/chat';
+import { Conversation, LastMessage, Message } from '@/app/types/chat';
 
 import type { MessageRepository } from '../repositories/MessageRepository';
 

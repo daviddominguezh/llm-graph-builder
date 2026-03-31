@@ -1,4 +1,4 @@
-import type { Conversation, Message } from '@globalTypes/chat';
+import type { Conversation, Message } from '@/app/types/chat';
 
 /**
  * Cursor structure for pagination (matches API response)

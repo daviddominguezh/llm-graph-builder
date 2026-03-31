@@ -4,11 +4,11 @@ import { useParams } from 'react-router-dom';
 
 import { getCurrentFirebaseUser } from '@services/firebase';
 
-import { formatPhone } from '@globalUtils/strs';
+import { formatPhone } from '@/app/utils/strs';
 
 import { getLastMessagesFromStore } from '@reducers/messages';
 
-import type { ChatSearchResults, Conversation, LastMessage, Message } from '@globalTypes/chat';
+import type { ChatSearchResults, Conversation, LastMessage, Message } from '@/app/types/chat';
 
 import { createSearchService } from '../services';
 import { useChat } from './ChatContext';

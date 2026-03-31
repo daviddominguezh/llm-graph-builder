@@ -33,7 +33,7 @@ import { TAG_COLORS } from '@features/chatSettings/tagsUtils';
 
 import { MultiSelect } from '@components/form/multiselect';
 import type { MultiSelectOption } from '@components/form/multiselect';
-import { Button } from '@components/ui/button';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -41,18 +41,18 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@components/ui/dialog';
-import { Label } from '@components/ui/label';
-import { Switch } from '@components/ui/switch';
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 
-import { generateAvatarConfig } from '@globalUtils/avatar';
-import { useIsMobile } from '@globalUtils/device';
-import { formatTimestamp, formatWhatsapp } from '@globalUtils/strs';
+import { generateAvatarConfig } from '@/app/utils/avatar';
+import { useIsMobile } from '@/app/utils/device';
+import { formatTimestamp, formatWhatsapp } from '@/app/utils/strs';
 
 import { cn } from '@src/lib/utils';
 
-import type { Conversation } from '@globalTypes/chat';
-import { FinalUserInfoAPI } from '@globalTypes/finalUsers';
+import type { Conversation } from '@/app/types/chat';
+import { FinalUserInfoAPI } from '@/app/types/finalUsers';
 
 import { useChat } from '../../core/contexts';
 import { Slot } from '../../core/slots';

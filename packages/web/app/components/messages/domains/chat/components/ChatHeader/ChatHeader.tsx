@@ -17,10 +17,10 @@ import {
 
 import { updateChatAssignee, updateChatStatus } from '@services/api';
 
-import { Badge } from '@components/ui/badge';
-import { Button } from '@components/ui/button';
-import { WhatsAppIcon } from '@components/icons';
-import { Command, CommandItem, CommandList } from '@components/ui/command';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { WhatsAppIcon } from '@/app/components/messages/shared/icons';
+import { Command, CommandItem, CommandList } from '@/components/ui/command';
 import {
   Dialog,
   DialogClose,
@@ -29,22 +29,22 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@components/ui/dialog';
-import { Menubar, MenubarContent, MenubarMenu, MenubarTrigger } from '@components/ui/menubar';
-import { Select, SelectContent, SelectItem, SelectTrigger } from '@components/ui/select';
+} from '@/components/ui/dialog';
+import { Menubar, MenubarContent, MenubarMenu, MenubarTrigger } from '@/components/ui/menubar';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 
-import { generateAvatarConfig } from '@globalUtils/avatar';
-import { useIsMobile } from '@globalUtils/device';
-import { parseChatId, ChatSource } from '@globalUtils/strs';
+import { generateAvatarConfig } from '@/app/utils/avatar';
+import { useIsMobile } from '@/app/utils/device';
+import { parseChatId, ChatSource } from '@/app/utils/strs';
 
 import { useAppDispatch } from '@store/index';
 
 import { updateAssigneeOptimistic, updateStatusOptimistic } from '@reducers/messages';
 
-import { TEST_PHONE } from '@constants/messages';
+import { TEST_PHONE } from '@/app/constants/messages';
 
-import { LastMessage } from '@globalTypes/chat';
-import { Collaborator } from '@globalTypes/projectInnerSettings';
+import { LastMessage } from '@/app/types/chat';
+import { Collaborator } from '@/app/types/projectInnerSettings';
 
 /**
  * ChatHeader component displays conversation header with controls

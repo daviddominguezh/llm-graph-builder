@@ -3,8 +3,8 @@ import { Card } from 'react-bootstrap';
 
 import { getCurrentFirebaseUser } from '@services/firebase';
 
-import type { Conversation, LastMessage } from '@globalTypes/chat';
-import { Collaborator } from '@globalTypes/projectInnerSettings';
+import type { Conversation, LastMessage } from '@/app/types/chat';
+import { Collaborator } from '@/app/types/projectInnerSettings';
 
 import { useChat, useMessage } from '../../core/contexts';
 import { Slot } from '../../core/slots';

@@ -19,14 +19,14 @@ import {
   WandSparkles,
 } from 'lucide-react';
 
-import { Badge } from '@components/ui/badge';
-import { Button } from '@components/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
-// import { generateAvatarConfig } from '@globalUtils/avatar';
-import { useIsMobile } from '@globalUtils/device';
+// import { generateAvatarConfig } from '@/app/utils/avatar';
+import { useIsMobile } from '@/app/utils/device';
 
-import { Collaborator } from '@globalTypes/projectInnerSettings';
+import { Collaborator } from '@/app/types/projectInnerSettings';
 
 import { ChatWithId } from '../../core/contexts/ChatContext';
 import { Slot } from '../../core/slots';

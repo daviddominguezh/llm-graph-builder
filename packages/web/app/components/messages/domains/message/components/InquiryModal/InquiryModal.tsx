@@ -6,10 +6,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@components/ui/dialog';
-import { Alert, AlertTitle } from '@components/ui/alert';
-import { Textarea } from '@components/ui/textarea';
-import { Button } from '@components/ui/button';
+} from '@/components/ui/dialog';
+import { Alert, AlertTitle } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 import { AlertCircleIcon } from 'lucide-react';
 
 /**

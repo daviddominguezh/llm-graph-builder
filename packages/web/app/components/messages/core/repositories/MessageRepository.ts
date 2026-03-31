@@ -1,4 +1,4 @@
-import { TEST_PHONE } from '@constants/messages';
+import { TEST_PHONE } from '@/app/constants/messages';
 import { cleanFetchQueue, removeLastMessage, setAllLastMessages, setLastMessage } from '@reducers/messages';
 import {
   deleteConversation as deleteConversationAPI,
@@ -14,9 +14,9 @@ import {
 } from '@services/api';
 import { Dispatch } from 'redux';
 
-import { calculateUnansweredCount } from '@globalUtils/chatUtils';
+import { calculateUnansweredCount } from '@/app/utils/chatUtils';
 
-import { AI_MESSAGE_ROLES, Conversation, INTENT, LastMessage } from '@globalTypes/chat';
+import { AI_MESSAGE_ROLES, Conversation, INTENT, LastMessage } from '@/app/types/chat';
 
 import type { CacheServiceInterface } from '../../MessagesDashboard.types';
 import { ConversationMessagesCacheService } from '../services/ConversationMessagesCacheService';

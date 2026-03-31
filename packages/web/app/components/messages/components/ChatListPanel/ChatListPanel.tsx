@@ -5,16 +5,16 @@ import { MessageCircleOff } from 'lucide-react';
 
 import { getCurrentFirebaseUser } from '@services/firebase';
 
-import MessagePreview from '@components/messagePreview';
-import { Alert, AlertDescription, AlertTitle } from '@components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@components/ui/select';
+import MessagePreview from '@/app/components/messages/shared/messagePreview';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-import { useIsMobile } from '@globalUtils/device';
+import { useIsMobile } from '@/app/utils/device';
 
-import { TEST_PHONE } from '@constants/messages';
+import { TEST_PHONE } from '@/app/constants/messages';
 
-import type { LastMessage, Message } from '@globalTypes/chat';
-import { Collaborator } from '@globalTypes/projectInnerSettings';
+import type { LastMessage, Message } from '@/app/types/chat';
+import { Collaborator } from '@/app/types/projectInnerSettings';
 
 import { ChatsSearch } from '../../chatsSearch';
 import { useUI } from '../../core/contexts';

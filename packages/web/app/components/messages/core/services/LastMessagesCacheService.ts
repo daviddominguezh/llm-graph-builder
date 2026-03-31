@@ -3,9 +3,9 @@ import {
   LAST_MESSAGES_CACHE_STORE_NAME,
   LAST_MESSAGES_CACHE_VERSION,
   LAST_MESSAGES_EMPTY_CACHE,
-} from '@constants/lastMessages';
+} from '@/app/constants/lastMessages';
 
-import type { LastMessage } from '@globalTypes/chat';
+import type { LastMessage } from '@/app/types/chat';
 
 import type { LastMessagesCacheData } from '../types';
 

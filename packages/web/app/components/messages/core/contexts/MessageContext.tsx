@@ -8,18 +8,18 @@ import { v4 as uuidv4 } from 'uuid';
 import { createNote } from '@services/api';
 import { uploadFile } from '@services/firebase';
 
-import { playSoundMessageSent } from '@globalUtils/notifications';
-import { getMediaKind } from '@globalUtils/media';
+import { playSoundMessageSent } from '@/app/utils/notifications';
+import { getMediaKind } from '@/app/utils/media';
 
 import { setLastMessage } from '@reducers/messages';
 import { getLastMessagesFromStore } from '@reducers/messages';
 
-import { AI_MESSAGE_ROLES, INTENT } from '@globalTypes/chat';
-import type { LastMessage, Message } from '@globalTypes/chat';
-import type { MediaFileDetail, MediaFileDetailList } from '@globalTypes/media';
-import { MediaStatus } from '@globalTypes/media';
+import { AI_MESSAGE_ROLES, INTENT } from '@/app/types/chat';
+import type { LastMessage, Message } from '@/app/types/chat';
+import type { MediaFileDetail, MediaFileDetailList } from '@/app/types/media';
+import { MediaStatus } from '@/app/types/media';
 
-import { BUSINESS_MESSAGES_GROUP_NAME, IMAGE_FILE_EXTENSIONS } from '@constants/media';
+import { BUSINESS_MESSAGES_GROUP_NAME, IMAGE_FILE_EXTENSIONS } from '@/app/constants/media';
 
 import type { PendingImageAttachment } from '../../domains/message/components/MessageInput/types';
 import { useMessageRepository } from '../../hooks/useMessageRepository';

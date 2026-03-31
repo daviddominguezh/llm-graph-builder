@@ -2,7 +2,7 @@ import { getFinalUserInfo } from '@services/api';
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
-import type { FinalUserInfoAPI } from '@globalTypes/finalUsers';
+import type { FinalUserInfoAPI } from '@/app/types/finalUsers';
 
 interface UserInfoCache {
   [chatId: string]: FinalUserInfoAPI;

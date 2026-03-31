@@ -8,25 +8,25 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@components/ui/dialog';
-import { Button } from '@components/ui/button';
-import { Combobox } from '@components/ui/combobox';
-import { Input } from '@components/ui/input';
-import { Label } from '@components/ui/label';
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Combobox } from '@/components/ui/combobox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 import { getBusinessInfo, getStoreData } from '@services/api';
 
-import { PRODUCT_PLACEHOLDER_SVG } from '@constants/placeholders';
-import { formatCurrency } from '@globalUtils/forms';
+import { PRODUCT_PLACEHOLDER_SVG } from '@/app/constants/placeholders';
+import { formatCurrency } from '@/app/utils/forms';
 import {
   isPersonalizationCombinationInStock,
   getAvailableStock,
   getAvailablePersonalizationValues,
   isQuantityExceedsStock,
-} from '@globalUtils/stock';
+} from '@/app/utils/stock';
 
-import { BusinessSetupSchemaAPIType, ProductBusinessSetupSchemaAPIType } from '@globalTypes/business';
-import { CartItem } from '@globalTypes/cart';
+import { BusinessSetupSchemaAPIType, ProductBusinessSetupSchemaAPIType } from '@/app/types/business';
+import { CartItem } from '@/app/types/cart';
 
 // Define the ProductStock type locally
 type ProductStock = {

@@ -3,10 +3,10 @@ import { useTranslation } from 'react-i18next';
 
 import { FlaskConical } from 'lucide-react';
 
-import { Button } from '@components/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@components/ui/tooltip';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
-import { useIsMobile } from '@globalUtils/device';
+import { useIsMobile } from '@/app/utils/device';
 
 interface TestChatButtonProps {
   onClick: () => void;

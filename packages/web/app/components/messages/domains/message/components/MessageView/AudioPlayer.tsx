@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Pause, Play } from 'lucide-react';
 
-import { Button } from '@components/ui/button';
+import { Button } from '@/components/ui/button';
 
 interface AudioPlayerProps {
   src: string;

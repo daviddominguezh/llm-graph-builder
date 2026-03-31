@@ -5,12 +5,12 @@ import { ChevronDown, ChevronUp, ExternalLink, Package, RefreshCw, X } from 'luc
 
 import { getOrderReceipt } from '@services/api';
 
-import { Button } from '@components/ui/button';
+import { Button } from '@/components/ui/button';
 
-import { formatCurrency } from '@globalUtils/forms';
+import { formatCurrency } from '@/app/utils/forms';
 
-import type { BusinessSetupSchemaAPIType } from '@globalTypes/business';
-import type { Order } from '@globalTypes/orders';
+import type { BusinessSetupSchemaAPIType } from '@/app/types/business';
+import type { Order } from '@/app/types/orders';
 
 interface OrdersDialogProps {
   orders: Order[];

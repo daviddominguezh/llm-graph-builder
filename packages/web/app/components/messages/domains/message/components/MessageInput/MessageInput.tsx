@@ -33,17 +33,17 @@ import { replaceVariables } from '@features/chatSettings/quickRepliesUtils';
 import { BusinessSetup, Product } from '@features/discountTest';
 import { useUserInfo } from '@features/messagesDashboard/hooks/useUserInfo';
 
-import Spinner from '@components/spinner';
-import { Button } from '@components/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@components/ui/tooltip';
+import Spinner from '@/app/components/messages/shared/spinner';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
-import { useIsMobile } from '@globalUtils/device';
-import { loadQuill } from '@globalUtils/quillWrapper';
-import { formatPhone, htmlToWhatsappFormat } from '@globalUtils/strs';
+import { useIsMobile } from '@/app/utils/device';
+import { loadQuill } from '@/app/utils/quillWrapper';
+import { formatPhone, htmlToWhatsappFormat } from '@/app/utils/strs';
 
-import type { MediaFileDetailList } from '@globalTypes/media';
-import { MediaStatus } from '@globalTypes/media';
-import type { Collaborator } from '@globalTypes/projectInnerSettings';
+import type { MediaFileDetailList } from '@/app/types/media';
+import { MediaStatus } from '@/app/types/media';
+import type { Collaborator } from '@/app/types/projectInnerSettings';
 
 import { useChat } from '../../../../core/contexts/ChatContext';
 import { useMessage } from '../../../../core/contexts/MessageContext';

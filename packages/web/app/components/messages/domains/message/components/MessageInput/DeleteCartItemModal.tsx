@@ -8,10 +8,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@components/ui/dialog';
-import { Button } from '@components/ui/button';
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
-import { CartItem } from '@globalTypes/cart';
+import { CartItem } from '@/app/types/cart';
 
 interface DeleteCartItemModalProps {
   isOpen: boolean;

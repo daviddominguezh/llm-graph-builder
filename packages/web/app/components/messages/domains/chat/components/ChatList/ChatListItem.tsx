@@ -1,13 +1,13 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import Avatar from 'react-nice-avatar';
-import { Badge } from '@components/ui/badge';
-import { WhatsAppIcon } from '@components/icons';
-import { generateAvatarConfig } from '@globalUtils/avatar';
-import { formatTimestamp, parseChatId, ChatSource } from '@globalUtils/strs';
-import { getMessageText } from '@globalUtils/message';
-import { LastMessage } from '@globalTypes/chat';
+import { Badge } from '@/components/ui/badge';
+import { WhatsAppIcon } from '@/app/components/messages/shared/icons';
+import { generateAvatarConfig } from '@/app/utils/avatar';
+import { formatTimestamp, parseChatId, ChatSource } from '@/app/utils/strs';
+import { getMessageText } from '@/app/utils/message';
+import { LastMessage } from '@/app/types/chat';
 import { AlertTriangle, FlaskConical, Instagram } from 'lucide-react';
-import { TEST_PHONE } from '@constants/messages';
+import { TEST_PHONE } from '@/app/constants/messages';
 import styles from './ChatListItem.module.css';
 
 /**

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useMessageRepository } from '../../hooks/useMessageRepository';
 import { useChat } from './ChatContext';
-import { TEST_PHONE } from '@constants/messages';
+import { TEST_PHONE } from '@/app/constants/messages';
 
 interface AIContextValue {
   // AI state

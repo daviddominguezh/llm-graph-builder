@@ -8,9 +8,9 @@ import {
   getDefaultRouteForRole,
   getDefaultSettingsRouteForRole,
   getRolePermissions,
-} from '@globalUtils/rbac';
+} from '@/app/utils/rbac';
 
-import { COLLABORATOR_ROLE } from '@globalTypes/projectInnerSettings';
+import { COLLABORATOR_ROLE } from '@/app/types/projectInnerSettings';
 
 interface UseRBACReturn {
   currentRole: COLLABORATOR_ROLE | null;

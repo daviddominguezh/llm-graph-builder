@@ -4,16 +4,16 @@ import {
   SOCKET_RECONNECTION_DELAY,
   SOCKET_RECONNECT_WAIT_TIEMOUT_MS,
   SOCKET_TIMEOUT_MS,
-} from '@constants/socket';
+} from '@/app/constants/socket';
 import { Socket, io } from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
 
-import { getApiURL } from '@globalUtils/environment';
+import { getApiURL } from '@/app/utils/environment';
 
-import { LastMessage } from '@globalTypes/chat';
-import { FetchFilesOptions, FileFetchingData, FileFetchingStatus } from '@globalTypes/drive';
-import { MessageFetchingStatus } from '@globalTypes/messages';
-import { SocketCallback } from '@globalTypes/socket';
+import { LastMessage } from '@/app/types/chat';
+import { FetchFilesOptions, FileFetchingData, FileFetchingStatus } from '@/app/types/drive';
+import { MessageFetchingStatus } from '@/app/types/messages';
+import { SocketCallback } from '@/app/types/socket';
 
 let socket: Socket;
 const activeListeners: Record<string, SocketCallback> = {};

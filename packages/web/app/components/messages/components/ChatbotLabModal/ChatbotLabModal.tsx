@@ -5,8 +5,8 @@ import { useParams } from 'react-router-dom';
 import { FlaskConical } from 'lucide-react';
 import QRCode from 'qrcode';
 
-import Spinner from '@components/spinner';
-import { Button } from '@components/ui/button';
+import Spinner from '@/app/components/messages/shared/spinner';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -14,7 +14,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@components/ui/dialog';
+} from '@/components/ui/dialog';
 
 interface ChatbotLabModalProps {
   open: boolean;

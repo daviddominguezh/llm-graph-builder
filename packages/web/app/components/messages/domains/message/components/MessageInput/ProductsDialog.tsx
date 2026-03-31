@@ -3,11 +3,11 @@ import { useTranslation } from 'react-i18next';
 
 import { Check, RefreshCw, X } from 'lucide-react';
 
-import { Button } from '@components/ui/button';
+import { Button } from '@/components/ui/button';
 
-import { formatCurrency } from '@globalUtils/forms';
+import { formatCurrency } from '@/app/utils/forms';
 
-import type { BusinessSetupSchemaAPIType, ProductBusinessSetupSchemaAPIType } from '@globalTypes/business';
+import type { BusinessSetupSchemaAPIType, ProductBusinessSetupSchemaAPIType } from '@/app/types/business';
 
 import ProductBGImg from '@assets/productBG.png';
 

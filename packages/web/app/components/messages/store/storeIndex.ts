@@ -1,7 +1,7 @@
 import { type PayloadAction, createSlice } from '@reduxjs/toolkit';
 import { type StateType } from '@store/index';
 
-import { ProductBusinessSetupSchemaAPIType } from '@globalTypes/business';
+import { ProductBusinessSetupSchemaAPIType } from '@/app/types/business';
 
 export const StorePath = 'store';
 

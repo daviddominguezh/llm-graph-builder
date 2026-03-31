@@ -3,10 +3,10 @@ import { useTranslation } from 'react-i18next';
 
 import { Image } from 'lucide-react';
 
-import { getMessageText } from '@globalUtils/message';
-import { formatWhatsapp } from '@globalUtils/strs';
+import { getMessageText } from '@/app/utils/message';
+import { formatWhatsapp } from '@/app/utils/strs';
 
-import { AI_MESSAGE_ROLES, Message } from '@globalTypes/chat';
+import { AI_MESSAGE_ROLES, Message } from '@/app/types/chat';
 
 import styles from './index.module.css';
 

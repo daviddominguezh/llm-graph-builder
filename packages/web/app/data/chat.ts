@@ -1,4 +1,4 @@
-import { AI_MESSAGE_ROLES, INTENT, Message } from '@globalTypes/chat';
+import { AI_MESSAGE_ROLES, INTENT, Message } from '@/app/types/chat';
 
 const INITIAL_CHAT: Message[] = [
   {

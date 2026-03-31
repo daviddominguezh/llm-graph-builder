@@ -8,15 +8,15 @@ import { CheckCheck, ChevronDown, Loader2, MessageCircle, Sparkles } from 'lucid
 import type { Note } from '@services/api';
 import { getUserPictureByEmailCached } from '@services/api';
 
-import { MessageReplyPreview } from '@components/messageReplyPreview';
-import { Badge } from '@components/ui/badge';
+import { MessageReplyPreview } from '@/app/components/messages/shared/messageReplyPreview';
+import { Badge } from '@/components/ui/badge';
 
-import { generateAvatarConfig } from '@globalUtils/avatar';
-import { getMessageText } from '@globalUtils/message';
-import { formatTimestamp, formatWhatsapp } from '@globalUtils/strs';
+import { generateAvatarConfig } from '@/app/utils/avatar';
+import { getMessageText } from '@/app/utils/message';
+import { formatTimestamp, formatWhatsapp } from '@/app/utils/strs';
 
-import { Conversation, INTENT, Message } from '@globalTypes/chat';
-import { Collaborator } from '@globalTypes/projectInnerSettings';
+import { Conversation, INTENT, Message } from '@/app/types/chat';
+import { Collaborator } from '@/app/types/projectInnerSettings';
 
 import { Slot } from '../../../../core/slots';
 import { AudioPlayer } from './AudioPlayer';

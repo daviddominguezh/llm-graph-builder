@@ -1,4 +1,4 @@
-import type { LastMessage } from '@globalTypes/chat';
+import type { LastMessage } from '@/app/types/chat';
 
 /**
  * Cache data structure stored in IndexedDB

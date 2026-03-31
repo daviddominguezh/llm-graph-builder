@@ -2,9 +2,9 @@ import {
   CONVERSATION_MESSAGES_DB_NAME,
   CONVERSATION_MESSAGES_DB_VERSION,
   CONVERSATION_MESSAGES_STORE_NAME,
-} from '@constants/conversationMessages';
+} from '@/app/constants/conversationMessages';
 
-import type { Message } from '@globalTypes/chat';
+import type { Message } from '@/app/types/chat';
 
 import type {
   ConversationMessagesCacheData,

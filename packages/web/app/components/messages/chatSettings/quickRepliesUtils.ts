@@ -1,4 +1,4 @@
-import type { QuickReply } from '@globalTypes/quickReplies';
+import type { QuickReply } from '@/app/types/quickReplies';
 
 // Predefined categories for organization
 export const PREDEFINED_CATEGORIES = [

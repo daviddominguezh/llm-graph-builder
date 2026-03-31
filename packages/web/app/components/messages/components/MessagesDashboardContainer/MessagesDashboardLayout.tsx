@@ -14,29 +14,29 @@ import {
 } from '@services/api';
 import { getCurrentFirebaseUser, uploadFile } from '@services/firebase';
 
-import { MediaFileDetail, MediaFileKind, MediaStatus } from '@globalTypes/media';
+import { MediaFileDetail, MediaFileKind, MediaStatus } from '@/app/types/media';
 
 import WithFirebaseUploader from '@hocs/withFirebaseUploader';
 
 import { combineAllTags } from '@features/chatSettings/tagsUtils';
 
-import FilePicker from '@components/filePicker';
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@components/ui/resizable';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@components/ui/sheet';
+import FilePicker from '@/app/components/messages/shared/filePicker';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 import { useRBAC } from '@hooks/useRBAC';
 
-import { useIsMobile } from '@globalUtils/device';
+import { useIsMobile } from '@/app/utils/device';
 
 import { getFetchQueue, getRealtimeMessages } from '@reducers/messages';
 
-import { COLLABORATOR_ROLE } from '@globalTypes/projectInnerSettings';
+import { COLLABORATOR_ROLE } from '@/app/types/projectInnerSettings';
 
-import { BUSINESS_MESSAGES_GROUP_NAME, MEDIA_SUPPORTED_TYPES, INSTAGRAM_MEDIA_SUPPORTED_TYPES } from '@constants/media';
+import { BUSINESS_MESSAGES_GROUP_NAME, MEDIA_SUPPORTED_TYPES, INSTAGRAM_MEDIA_SUPPORTED_TYPES } from '@/app/constants/media';
 
-import { Collaborator } from '@globalTypes/projectInnerSettings';
+import { Collaborator } from '@/app/types/projectInnerSettings';
 
-import { TEST_PHONE } from '@constants/messages';
+import { TEST_PHONE } from '@/app/constants/messages';
 
 import { useAI, useChat, useMessage, useUI } from '../../core/contexts';
 import { createMessageQueueService } from '../../core/services';

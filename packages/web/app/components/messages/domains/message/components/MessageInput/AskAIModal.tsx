@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next';
 
 import { Loader2, Send, Sparkles } from 'lucide-react';
 
-import { Button } from '@components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@components/ui/dialog';
-import { Textarea } from '@components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 
 interface AskAIModalProps {
   isOpen: boolean;

@@ -15,17 +15,17 @@ import {
 import { TAG_COLORS } from '@features/chatSettings/tagsUtils';
 import { useChat } from '@features/messagesDashboard/core/contexts';
 
-import { WhatsAppIcon } from '@components/icons';
-import { Badge } from '@components/ui/badge';
+import { WhatsAppIcon } from '@/app/components/messages/shared/icons';
+import { Badge } from '@/components/ui/badge';
 
-import { generateAvatarConfig } from '@globalUtils/avatar';
-import { getMessageText } from '@globalUtils/message';
-import { formatTimestamp, parseChatId } from '@globalUtils/strs';
+import { generateAvatarConfig } from '@/app/utils/avatar';
+import { getMessageText } from '@/app/utils/message';
+import { formatTimestamp, parseChatId } from '@/app/utils/strs';
 
-import { TEST_PHONE } from '@constants/messages';
+import { TEST_PHONE } from '@/app/constants/messages';
 
-import { LastMessage } from '@globalTypes/chat';
-import { Collaborator } from '@globalTypes/projectInnerSettings';
+import { LastMessage } from '@/app/types/chat';
+import { Collaborator } from '@/app/types/projectInnerSettings';
 
 import styles from './index.module.css';
 

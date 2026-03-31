@@ -1,5 +1,5 @@
-import { ChatSearchResults, Conversation, LastMessage, Message } from '@globalTypes/chat';
-import { MediaFileDetailList } from '@globalTypes/media';
+import { ChatSearchResults, Conversation, LastMessage, Message } from '@/app/types/chat';
+import { MediaFileDetailList } from '@/app/types/media';
 
 // Core domain types
 export interface MessagesDashboardState {

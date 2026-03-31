@@ -4,14 +4,14 @@ import Avatar from 'react-nice-avatar';
 
 import { Filter, FlaskConical, Search, X } from 'lucide-react';
 
-import { Button } from '@components/ui/button';
-import { Input } from '@components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-import { generateAvatarConfig } from '@globalUtils/avatar';
-import { useIsMobile } from '@globalUtils/device';
+import { generateAvatarConfig } from '@/app/utils/avatar';
+import { useIsMobile } from '@/app/utils/device';
 
-import { Collaborator } from '@globalTypes/projectInnerSettings';
+import { Collaborator } from '@/app/types/projectInnerSettings';
 
 import { ChatbotLabModal } from './components/ChatbotLabModal';
 

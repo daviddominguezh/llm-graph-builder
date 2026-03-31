@@ -8,7 +8,7 @@ import { CONVERSATION_MESSAGES_EMPTY_CACHE } from '@features/messagesDashboard/c
 import { getMessagesFromSender, getMessagesFromSenderPaginated } from '@services/api';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import type { Conversation, Message } from '@globalTypes/chat';
+import type { Conversation, Message } from '@/app/types/chat';
 
 interface UseConversationMessagesWithCacheReturn {
   /** Sorted array of messages (oldest first for display) */

@@ -2,10 +2,10 @@ import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { useVirtualizer } from '@tanstack/react-virtual';
 
-import { TEST_PHONE } from '@constants/messages';
-import { LAST_MESSAGES_SCROLL_THRESHOLD } from '@constants/lastMessages';
+import { TEST_PHONE } from '@/app/constants/messages';
+import { LAST_MESSAGES_SCROLL_THRESHOLD } from '@/app/constants/lastMessages';
 
-import { AI_MESSAGE_ROLES, INTENT, LastMessage } from '@globalTypes/chat';
+import { AI_MESSAGE_ROLES, INTENT, LastMessage } from '@/app/types/chat';
 
 import { ChatFilters } from '../../../../MessagesDashboard.types';
 import styles from './ChatList.module.css';

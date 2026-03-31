@@ -13,7 +13,7 @@ import { DiscountAwareSummary } from '@features/discountTest/components/Discount
 import { calculateOrderTotal } from '@features/discountTest/utils/discountLogic';
 
 import { Address, AddressForm } from '@components/order/AddressForm';
-import { Button } from '@components/ui/button';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -21,14 +21,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@components/ui/dialog';
-import { Input } from '@components/ui/input';
-import { Label } from '@components/ui/label';
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
-import type { BusinessSetupSchemaAPIType } from '@globalTypes/business';
-import type { Cart, CartItem } from '@globalTypes/cart';
-import type { AddressSchemaType, Order, PaymentItem } from '@globalTypes/orders';
-import { PAYMENT_METHOD } from '@globalTypes/payments';
+import type { BusinessSetupSchemaAPIType } from '@/app/types/business';
+import type { Cart, CartItem } from '@/app/types/cart';
+import type { AddressSchemaType, Order, PaymentItem } from '@/app/types/orders';
+import { PAYMENT_METHOD } from '@/app/types/payments';
 
 interface CreateOrderFromCartModalProps {
   isOpen: boolean;

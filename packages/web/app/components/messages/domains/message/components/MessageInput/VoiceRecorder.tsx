@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import { Loader2, Mic, Pause, Play, Send, Square, Trash2 } from 'lucide-react';
 
-import { Button } from '@components/ui/button';
+import { Button } from '@/components/ui/button';
 
 type RecordingState = 'idle' | 'recording' | 'recorded' | 'uploading';
 

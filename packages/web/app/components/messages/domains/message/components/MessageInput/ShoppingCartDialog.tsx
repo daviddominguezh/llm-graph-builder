@@ -3,13 +3,13 @@ import { useTranslation } from 'react-i18next';
 
 import { Plus, RefreshCw, ShoppingCart as ShoppingCartIcon, Trash2, X } from 'lucide-react';
 
-import { Button } from '@components/ui/button';
+import { Button } from '@/components/ui/button';
 
-import { formatCurrency } from '@globalUtils/forms';
+import { formatCurrency } from '@/app/utils/forms';
 
-import type { BusinessSetupSchemaAPIType, ProductBusinessSetupSchemaAPIType } from '@globalTypes/business';
-import { Cart, CartItem } from '@globalTypes/cart';
-import type { AddressSchemaType } from '@globalTypes/orders';
+import type { BusinessSetupSchemaAPIType, ProductBusinessSetupSchemaAPIType } from '@/app/types/business';
+import { Cart, CartItem } from '@/app/types/cart';
+import type { AddressSchemaType } from '@/app/types/orders';
 
 import { AddToCartDialog } from './AddToCartDialog';
 import { CreateOrderFromCartModal } from './CreateOrderFromCartModal';

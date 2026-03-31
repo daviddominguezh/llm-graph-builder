@@ -1,6 +1,6 @@
 import { BusinessSetup, Product } from '@features/discountTest';
 
-import { formatCurrency } from '@globalUtils/forms';
+import { formatCurrency } from '@/app/utils/forms';
 
 // TODO: This is required for other than nike
 const MAP_PERSONALIZATION_TYPE_TO_EMOJI: Record<string, string> = {

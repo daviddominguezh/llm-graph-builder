@@ -1,15 +1,15 @@
 import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Filter, SortAsc, MoreVertical } from 'lucide-react';
-import { Badge } from '@components/ui/badge';
-import { Button } from '@components/ui/button';
-import { Menubar, MenubarContent, MenubarMenu, MenubarTrigger } from '@components/ui/menubar';
-import { Command, CommandItem, CommandList } from '@components/ui/command';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Menubar, MenubarContent, MenubarMenu, MenubarTrigger } from '@/components/ui/menubar';
+import { Command, CommandItem, CommandList } from '@/components/ui/command';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@components/ui/popover';
+} from '@/components/ui/popover';
 import { ChatFilters } from '../../../../MessagesDashboard.types';
 import styles from './ChatListHeader.module.css';
 

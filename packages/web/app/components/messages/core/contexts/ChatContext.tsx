@@ -15,11 +15,11 @@ import type { ChatActivity, Note, Tag, QuickReply } from '@services/api';
 import { getBusinessSetup } from '@reducers/business';
 import { getLastMessagesFromStore, setLastMessage } from '@reducers/messages';
 
-import { TEST_PHONE } from '@constants/messages';
+import { TEST_PHONE } from '@/app/constants/messages';
 
-import type { BusinessSetupSchemaAPIType } from '@globalTypes/business';
-import { INTENT } from '@globalTypes/chat';
-import type { Conversation, LastMessage, Message } from '@globalTypes/chat';
+import type { BusinessSetupSchemaAPIType } from '@/app/types/business';
+import { INTENT } from '@/app/types/chat';
+import type { Conversation, LastMessage, Message } from '@/app/types/chat';
 
 import { useMessageRepository } from '../../hooks/useMessageRepository';
 import { useLastMessagesWithCache } from '../../hooks/useLastMessagesWithCache';

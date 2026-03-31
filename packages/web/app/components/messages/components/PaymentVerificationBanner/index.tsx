@@ -6,8 +6,8 @@ import { AlertTriangle } from 'lucide-react';
 
 import { verifyPayment } from '@services/api';
 
-import { Alert, AlertDescription, AlertTitle } from '@components/ui/alert';
-import { Button } from '@components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -15,7 +15,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@components/ui/dialog';
+} from '@/components/ui/dialog';
 
 import { useAppDispatch } from '@store/index';
 

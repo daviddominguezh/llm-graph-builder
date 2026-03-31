@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Avatar from 'react-nice-avatar';
 
-import { generateAvatarConfig } from '@globalUtils/avatar';
+import { generateAvatarConfig } from '@/app/utils/avatar';
 
 import { MentionDialogProps } from './types';
 

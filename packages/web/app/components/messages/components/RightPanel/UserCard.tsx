@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next';
 
-import { parseChatId } from '@globalUtils/strs';
+import { parseChatId } from '@/app/utils/strs';
 
-import { FinalUserInfoAPI } from '@globalTypes/finalUsers';
+import { FinalUserInfoAPI } from '@/app/types/finalUsers';
 
 import { ShapeSVG } from './shape';
 

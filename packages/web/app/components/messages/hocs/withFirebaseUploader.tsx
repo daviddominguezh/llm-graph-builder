@@ -9,12 +9,12 @@ import { getFileDescription, setMediaUploaded } from '@services/api';
 import { uploadFile } from '@services/firebase';
 
 import MediaFileList from '@components/mediaFileList';
-import { Button } from '@components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
-import { getMediaKind } from '@globalUtils/media';
+import { getMediaKind } from '@/app/utils/media';
 
-import { MediaFileDetail, MediaFileDetailList, MediaStatus } from '@globalTypes/media';
+import { MediaFileDetail, MediaFileDetailList, MediaStatus } from '@/app/types/media';
 
 // Interface that child components must implement
 interface WithHandleChangeProps {

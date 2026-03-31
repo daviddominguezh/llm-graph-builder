@@ -6,7 +6,7 @@ import calendar from 'dayjs/plugin/calendar';
 
 import i18n from '@src/i18n';
 
-import { AddressSchemaType, PaymentItem } from '@globalTypes/orders';
+import { AddressSchemaType, PaymentItem } from '@/app/types/orders';
 
 dayjs.extend(calendar);
 dayjs.locale('es');

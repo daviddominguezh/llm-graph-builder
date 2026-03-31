@@ -5,7 +5,7 @@ import { X } from 'lucide-react';
 
 import type { Tag } from '@services/api';
 
-import { Button } from '@components/ui/button';
+import { Button } from '@/components/ui/button';
 
 import { TAG_COLORS } from '@features/chatSettings/tagsUtils';
 

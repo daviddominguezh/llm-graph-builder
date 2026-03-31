@@ -3,7 +3,7 @@ import { type PayloadAction, createSlice } from '@reduxjs/toolkit';
 import { type StateType } from '@store/index';
 import { castDraft } from 'immer';
 
-import { LastMessage, LastMessages } from '@globalTypes/chat';
+import { LastMessage, LastMessages } from '@/app/types/chat';
 
 export const MessagesPath = 'messages';
 
