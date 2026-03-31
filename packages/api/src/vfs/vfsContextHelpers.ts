@@ -30,6 +30,9 @@ interface LineRangeResult {
 }
 
 export function extractLineRange(content: string, start?: number, end?: number): LineRangeResult {
+  if (content.length === ZERO) {
+    return { lines: '', startLine: ZERO, endLine: ZERO, totalLines: ZERO };
+  }
   const allLines = content.split('\n');
   const { length: totalLines } = allLines;
   const startLine = Math.max(FIRST_LINE, start ?? FIRST_LINE);
@@ -103,6 +106,12 @@ function buildRegex(pattern: string, isRegex: boolean, ignoreCase: boolean): Reg
   return new RegExp(source, flags);
 }
 
+function buildTestRegex(pattern: string, isRegex: boolean, ignoreCase: boolean): RegExp {
+  const source = isRegex ? pattern : escapeRegex(pattern);
+  const flags = ignoreCase ? 'iv' : 'v';
+  return new RegExp(source, flags);
+}
+
 function buildMatch(filePath: string, allLines: string[], lineIdx: number, col: number): SearchTextMatch {
   const beforeStart = Math.max(ZERO, lineIdx - CONTEXT_LINES);
   const afterEnd = Math.min(allLines.length, lineIdx + CONTEXT_LINES + FIRST_LINE);
@@ -170,6 +179,6 @@ export function countContentLines(content: string): number {
 }
 
 export function countMatchingLines(content: string, pattern: string, isRegex: boolean): number {
-  const regex = buildRegex(pattern, isRegex, false);
+  const regex = buildTestRegex(pattern, isRegex, false);
   return content.split('\n').filter((line) => regex.test(line)).length;
 }
