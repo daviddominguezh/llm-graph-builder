@@ -1,4 +1,8 @@
 import React from 'react';
+import { Provider } from 'react-redux';
+
+import { store } from '@/app/components/messages/store/mainStore';
+
 import { ChatProvider, AIProvider, MessageProvider, UIProvider } from '../../core/contexts';
 import { SlotProvider } from '../../core/slots';
 import { FeatureRegistry } from '../../core/registry';
@@ -29,19 +33,21 @@ export const MessagesDashboardContainer: React.FC<MessagesDashboardContainerProp
   initialChatFilter,
 }) => {
   return (
-    <FeatureRegistry config={featureConfig}>
-      <SlotProvider>
-        <ChatProvider>
-          <AIProvider>
-            <MessageProvider>
-              <UIProvider>
-                <MessagesDashboardLayout onChangeSidebar={onChangeSidebar} initialChatFilter={initialChatFilter} />
-              </UIProvider>
-            </MessageProvider>
-          </AIProvider>
-        </ChatProvider>
-      </SlotProvider>
-    </FeatureRegistry>
+    <Provider store={store}>
+      <FeatureRegistry config={featureConfig}>
+        <SlotProvider>
+          <ChatProvider>
+            <AIProvider>
+              <MessageProvider>
+                <UIProvider>
+                  <MessagesDashboardLayout onChangeSidebar={onChangeSidebar} initialChatFilter={initialChatFilter} />
+                </UIProvider>
+              </MessageProvider>
+            </AIProvider>
+          </ChatProvider>
+        </SlotProvider>
+      </FeatureRegistry>
+    </Provider>
   );
 };
 
