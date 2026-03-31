@@ -145,7 +145,9 @@ export interface RouteAgentParams {
 }
 
 export async function routeAgentExecution(params: RouteAgentParams, res: Response): Promise<void> {
-  const { agentConfig } = params.fetched;
+  const {
+    fetched: { agentConfig },
+  } = params;
   if (agentConfig === null) throw new HttpError(HTTP_INTERNAL, 'Agent config not found');
   const ctx: AgentExecContext = {
     supabase: params.supabase,

@@ -1,5 +1,4 @@
-import type { AgentLoopResult, AgentStepEvent } from '@daviddh/llm-graph-runner';
-import type { ActionTokenUsage } from '@daviddh/llm-graph-runner';
+import type { ActionTokenUsage, AgentLoopResult, AgentStepEvent } from '@daviddh/llm-graph-runner';
 
 import {
   completeExecution,
@@ -29,8 +28,8 @@ function buildStepResponse(stepEvent: AgentStepEvent | undefined): unknown {
 async function persistAgentSteps(params: AgentStepPersistenceParams): Promise<void> {
   const { supabase, executionId, stepEvents, tokensLogs, model } = params;
   const saves = tokensLogs.map(async (log, index) => {
-    const stepEvent = stepEvents[index];
-    const messagesSent = stepEvent !== undefined ? stepEvent.messagesSent : [];
+    const stepEvent = stepEvents.at(index);
+    const messagesSent = stepEvent === undefined ? [] : stepEvent.messagesSent;
     await saveNodeVisit(supabase, {
       executionId,
       nodeId: log.action,

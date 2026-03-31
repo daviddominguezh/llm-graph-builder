@@ -9,14 +9,15 @@ import type { AgentToolCallRecord } from './agentLoopTypes.js';
 const TEMPERATURE = 0;
 const TIMEOUT_MS = 90000;
 const ZERO = 0;
+const JSON_NO_INDENT = 0;
 
 function log(label: string, data?: unknown): void {
   const prefix = '[agentLlmCaller]';
-  if (data !== undefined) {
-    process.stderr.write(`${prefix} ${label}: ${JSON.stringify(data, null, 0)}\n`);
-  } else {
+  if (data === undefined) {
     process.stderr.write(`${prefix} ${label}\n`);
+    return;
   }
+  process.stderr.write(`${prefix} ${label}: ${JSON.stringify(data, null, JSON_NO_INDENT)}\n`);
 }
 
 export interface LlmCallParams {
@@ -34,22 +35,29 @@ export interface LlmCallResult {
   costUSD: number | undefined;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return isRecord(value) ? value : null;
+}
+
 function extractCostFromResult(result: Record<string, unknown>): number | undefined {
-  const meta = result.providerMetadata;
-  if (typeof meta !== 'object' || meta === null) return undefined;
-  const or = (meta as Record<string, unknown>).openrouter;
-  if (typeof or !== 'object' || or === null) return undefined;
-  const usage = (or as Record<string, unknown>).usage;
-  if (typeof usage !== 'object' || usage === null) return undefined;
-  const cost = (usage as Record<string, unknown>).cost;
-  return typeof cost === 'number' ? cost : undefined;
+  const meta = asRecord(result.providerMetadata);
+  if (meta === null) return undefined;
+  const or = asRecord(meta.openrouter);
+  if (or === null) return undefined;
+  const usage = asRecord(or.usage);
+  if (usage === null) return undefined;
+  return typeof usage.cost === 'number' ? usage.cost : undefined;
 }
 
 function extractTokens(usage: unknown): TokenLog {
-  if (typeof usage !== 'object' || usage === null) {
+  const u = asRecord(usage);
+  if (u === null) {
     return { input: ZERO, output: ZERO, cached: ZERO };
   }
-  const u = usage as Record<string, unknown>;
   return {
     input: typeof u.promptTokens === 'number' ? u.promptTokens : ZERO,
     output: typeof u.completionTokens === 'number' ? u.completionTokens : ZERO,
@@ -64,34 +72,55 @@ interface RawToolCall {
   input?: unknown;
 }
 
+function toRawToolCall(item: unknown): RawToolCall {
+  if (!isRecord(item)) return {};
+  return {
+    toolCallId: typeof item.toolCallId === 'string' ? item.toolCallId : undefined,
+    toolName: typeof item.toolName === 'string' ? item.toolName : undefined,
+    args: item.args,
+    input: item.input,
+  };
+}
+
 function mapToolCalls(raw: unknown): AgentToolCallRecord[] {
   if (!Array.isArray(raw)) return [];
-  return (raw as RawToolCall[]).map((tc) => ({
-    toolCallId: typeof tc.toolCallId === 'string' ? tc.toolCallId : '',
-    toolName: typeof tc.toolName === 'string' ? tc.toolName : '',
+  return raw.map(toRawToolCall).map((tc) => ({
+    toolCallId: tc.toolCallId ?? '',
+    toolName: tc.toolName ?? '',
     input: tc.args ?? tc.input,
     output: undefined,
   }));
 }
 
+function isResponseMessages(value: unknown): value is LlmCallResult['responseMessages'] {
+  return Array.isArray(value);
+}
+
 function extractResponseMessages(result: Record<string, unknown>): LlmCallResult['responseMessages'] {
-  const resp = result.response;
-  if (typeof resp !== 'object' || resp === null) return [];
-  const msgs = (resp as Record<string, unknown>).messages;
-  if (!Array.isArray(msgs)) return [];
-  return msgs as LlmCallResult['responseMessages'];
+  const resp = asRecord(result.response);
+  if (resp === null) return [];
+  const { messages } = resp;
+  if (isResponseMessages(messages)) return messages;
+  return [];
+}
+
+function extractToolResultsFromMessage(
+  msg: LlmCallResult['responseMessages'][number],
+  outputMap: Map<string, unknown>
+): void {
+  if (msg.role !== 'tool') return;
+  for (const part of msg.content) {
+    if (part.type === 'tool-result') {
+      outputMap.set(part.toolCallId, part.output);
+    }
+  }
 }
 
 /** Build a map of toolCallId -> output from tool-result messages in responseMessages */
 function buildToolOutputMap(responseMessages: LlmCallResult['responseMessages']): Map<string, unknown> {
   const outputMap = new Map<string, unknown>();
   for (const msg of responseMessages) {
-    if (msg.role !== 'tool') continue;
-    for (const part of msg.content) {
-      if (part.type === 'tool-result') {
-        outputMap.set(part.toolCallId, part.output);
-      }
-    }
+    extractToolResultsFromMessage(msg, outputMap);
   }
   return outputMap;
 }
@@ -105,6 +134,28 @@ function populateToolOutputs(
     ...tc,
     output: outputMap.get(tc.toolCallId),
   }));
+}
+
+function processLlmResponse(result: Record<string, unknown>): LlmCallResult {
+  log('LLM response received', {
+    textLength: typeof result.text === 'string' ? result.text.length : ZERO,
+    hasToolCalls: Array.isArray(result.toolCalls) && (result.toolCalls as unknown[]).length > ZERO,
+  });
+  const tokens = extractTokens(result.usage);
+  tokens.costUSD = extractCostFromResult(result);
+  const responseMessages = extractResponseMessages(result);
+  log('response messages', { count: responseMessages.length, roles: responseMessages.map((m) => m.role) });
+  const outputMap = buildToolOutputMap(responseMessages);
+  const toolCalls = populateToolOutputs(mapToolCalls(result.toolCalls), outputMap);
+  log('tool calls', { count: toolCalls.length, names: toolCalls.map((tc) => tc.toolName) });
+
+  return {
+    text: typeof result.text === 'string' ? result.text : '',
+    toolCalls,
+    responseMessages,
+    tokens,
+    costUSD: tokens.costUSD,
+  };
 }
 
 export async function callAgentLlm(params: LlmCallParams): Promise<LlmCallResult> {
@@ -129,26 +180,8 @@ export async function callAgentLlm(params: LlmCallParams): Promise<LlmCallResult
       providerOptions: { openai: { store: true } },
     });
 
-    const raw = result as unknown as Record<string, unknown>;
-    log('LLM response received', {
-      textLength: typeof result.text === 'string' ? result.text.length : 0,
-      hasToolCalls: Array.isArray(raw.toolCalls) && (raw.toolCalls as unknown[]).length > ZERO,
-    });
-    const tokens = extractTokens(raw.usage);
-    tokens.costUSD = extractCostFromResult(raw);
-    const responseMessages = extractResponseMessages(raw);
-    log('response messages', { count: responseMessages.length, roles: responseMessages.map((m) => m.role) });
-    const outputMap = buildToolOutputMap(responseMessages);
-    const toolCalls = populateToolOutputs(mapToolCalls(raw.toolCalls), outputMap);
-    log('tool calls', { count: toolCalls.length, names: toolCalls.map((tc) => tc.toolName) });
-
-    return {
-      text: typeof result.text === 'string' ? result.text : '',
-      toolCalls,
-      responseMessages,
-      tokens,
-      costUSD: tokens.costUSD,
-    };
+    const raw: Record<string, unknown> = Object.fromEntries(Object.entries(result));
+    return processLlmResponse(raw);
   } catch (err) {
     log('LLM call FAILED', { error: err instanceof Error ? err.message : String(err) });
     throw err;

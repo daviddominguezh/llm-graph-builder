@@ -66,9 +66,11 @@ function resolveServerVars(server: McpServerConfig, envVars: Record<string, stri
   const resolved: Record<string, string> = {};
   for (const [templateName, val] of Object.entries(variableValues)) {
     if (val.type === 'direct') {
-      resolved[templateName] = val.value;
+      const { value } = val;
+      resolved[templateName] = value;
     } else {
-      resolved[templateName] = envVars[val.envVariableId] ?? '';
+      const { envVariableId } = val;
+      resolved[templateName] = envVars[envVariableId] ?? '';
     }
   }
   return resolved;

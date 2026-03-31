@@ -16,14 +16,17 @@ import { SimulateAgentRequestSchema } from './simulateAgentTypes.js';
 
 const EMPTY_SESSION: McpSession = { clients: [], tools: {} };
 const HTTP_BAD_REQUEST = 400;
+const JSON_NO_INDENT = 0;
+const PREVIEW_LENGTH = 80;
+const ZERO = 0;
 
 function log(label: string, data?: unknown): void {
   const prefix = '[simulateAgent]';
-  if (data !== undefined) {
-    process.stderr.write(`${prefix} ${label}: ${JSON.stringify(data, null, 0)}\n`);
-  } else {
+  if (data === undefined) {
     process.stderr.write(`${prefix} ${label}\n`);
+    return;
   }
+  process.stderr.write(`${prefix} ${label}: ${JSON.stringify(data, null, JSON_NO_INDENT)}\n`);
 }
 
 async function runAgentSimulation(
@@ -57,6 +60,16 @@ async function runAgentSimulation(
   sendAgentResponse(res, result);
 }
 
+function buildLogPayload(body: SimulateAgentRequest): Record<string, unknown> {
+  return {
+    systemPrompt: body.systemPrompt.slice(ZERO, PREVIEW_LENGTH),
+    context: body.context.slice(ZERO, PREVIEW_LENGTH),
+    messageCount: body.messages.length,
+    mcpServerCount: body.mcpServers.length,
+    modelId: body.modelId,
+  };
+}
+
 export async function handleSimulateAgent(
   req: Request<Record<string, string>, unknown, SimulateAgentRequest>,
   res: Response
@@ -70,17 +83,11 @@ export async function handleSimulateAgent(
   }
   const { body } = req;
   const { mcpServers } = body;
-  log('validated', {
-    systemPrompt: body.systemPrompt?.slice(0, 80),
-    context: body.context?.slice(0, 80),
-    messageCount: body.messages?.length,
-    mcpServerCount: mcpServers?.length,
-    modelId: body.modelId,
-  });
+  log('validated', buildLogPayload(body));
   setSseHeaders(res);
   let session: McpSession = EMPTY_SESSION;
   try {
-    log('creating MCP session', { serverCount: mcpServers?.length });
+    log('creating MCP session', { serverCount: mcpServers.length });
     session = await createMcpSession(mcpServers);
     log('MCP session created', {
       toolCount: Object.keys(session.tools).length,

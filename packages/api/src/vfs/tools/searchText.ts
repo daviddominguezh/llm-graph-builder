@@ -1,13 +1,15 @@
+import type { Tool } from 'ai';
 import { tool } from 'ai';
 
 import type { SearchTextMatch, SearchTextResult } from '../types.js';
 import { VFSError } from '../types.js';
 import type { VFSContext } from '../vfsContext.js';
+import type { SearchTextInput } from './schemas.js';
 import { SearchTextSchema } from './schemas.js';
 import { VFSTool } from './toolEnum.js';
 import { toToolError, toToolSuccess } from './toolResponse.js';
 
-function mapMatch(match: SearchTextMatch) {
+function mapMatch(match: SearchTextMatch): Record<string, unknown> {
   return {
     path: match.path,
     line: match.line,
@@ -18,7 +20,7 @@ function mapMatch(match: SearchTextMatch) {
   };
 }
 
-function mapSearchTextResult(result: SearchTextResult) {
+function mapSearchTextResult(result: SearchTextResult): Record<string, unknown> {
   return {
     pattern: result.pattern,
     matches: result.matches.map(mapMatch),
@@ -27,11 +29,11 @@ function mapSearchTextResult(result: SearchTextResult) {
   };
 }
 
-export function createSearchTextTool(vfs: VFSContext) {
+export function createSearchTextTool(vfs: VFSContext): Tool<SearchTextInput> {
   return tool({
     description: 'Search for text or regex patterns across files.',
     inputSchema: SearchTextSchema,
-    execute: async (data, { toolCallId }) => {
+    execute: async (data: SearchTextInput, { toolCallId }) => {
       try {
         const params = {
           pattern: data.pattern,

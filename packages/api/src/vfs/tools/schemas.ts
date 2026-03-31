@@ -1,22 +1,31 @@
 import z from 'zod';
 
+const MIN_LINE = 1;
+const MIN_DEPTH = 1;
+const DEFAULT_DEPTH = 2;
+const DEFAULT_TREE_DEPTH = 3;
+const MIN_RESULTS = 1;
+const DEFAULT_FIND_RESULTS = 100;
+const DEFAULT_SEARCH_RESULTS = 50;
+const ZERO = 0;
+
 export const ReadFileSchema = z.object({
   path: z.string().describe('Relative path from repo root'),
-  start_line: z.number().int().min(1).optional().describe('1-based start line'),
-  end_line: z.number().int().min(1).optional().describe('1-based end line (inclusive)'),
+  start_line: z.number().int().min(MIN_LINE).optional().describe('1-based start line'),
+  end_line: z.number().int().min(MIN_LINE).optional().describe('1-based end line (inclusive)'),
 });
 
 export const ListDirectorySchema = z.object({
   path: z.string().default('').describe('Directory path, defaults to repo root'),
   recursive: z.boolean().default(false),
-  max_depth: z.number().int().min(1).default(2),
+  max_depth: z.number().int().min(MIN_DEPTH).default(DEFAULT_DEPTH),
 });
 
 export const FindFilesSchema = z.object({
   pattern: z.string().describe('Glob pattern, e.g. "**/*.ts"'),
   path: z.string().optional().describe('Directory scope'),
   exclude: z.array(z.string()).optional().describe('Glob patterns to exclude'),
-  max_results: z.number().int().min(1).default(100),
+  max_results: z.number().int().min(MIN_RESULTS).default(DEFAULT_FIND_RESULTS),
 });
 
 export const SearchTextSchema = z.object({
@@ -25,7 +34,7 @@ export const SearchTextSchema = z.object({
   path: z.string().optional().describe('Directory scope'),
   include_glob: z.string().optional().describe('Only search matching files, e.g. "*.ts"'),
   ignore_case: z.boolean().default(false),
-  max_results: z.number().int().min(1).default(50),
+  max_results: z.number().int().min(MIN_RESULTS).default(DEFAULT_SEARCH_RESULTS),
 });
 
 export const GetFileMetadataSchema = z.object({
@@ -34,7 +43,7 @@ export const GetFileMetadataSchema = z.object({
 
 export const GetFileTreeSchema = z.object({
   path: z.string().default('').describe('Root of the subtree, defaults to repo root'),
-  max_depth: z.number().int().min(1).default(3),
+  max_depth: z.number().int().min(MIN_DEPTH).default(DEFAULT_TREE_DEPTH),
 });
 
 export const CountLinesSchema = z.object({
@@ -67,7 +76,7 @@ export const EditFileSchema = z
   })
   .refine(
     (data) => {
-      const hasEdits = data.edits !== undefined && data.edits.length > 0;
+      const hasEdits = data.edits !== undefined && data.edits.length > ZERO;
       const hasFullContent = data.full_content !== undefined;
       return hasEdits !== hasFullContent;
     },

@@ -127,7 +127,7 @@ export function SkillsList({ skills, onAdd, onDelete, onDeleteMany }: SkillsList
 
   const providers = useMemo(() => groupByProvider(skills), [skills]);
   const resolvedActive = providers.find((g) => g.repoUrl === activeProvider) ?? providers[0];
-  const activeSkills = resolvedActive?.skills ?? [];
+  const activeSkills = useMemo(() => resolvedActive?.skills ?? [], [resolvedActive]);
   const lastClickedRef = useRef<number>(-1);
 
   const toggleSelect = useCallback(

@@ -172,7 +172,7 @@ interface SimulationFooterProps {
 }
 
 export function SimulationPanel(props: SimulationPanelProps) {
-  const { lastUserText, nodeResults, visitedNodes, terminated, loading } = props;
+  const { visitedNodes, terminated, loading } = props;
   const { currentNode, totalTokens, modelId, onModelIdChange, onSendMessage, onStop } = props;
   const t = useTranslations('simulation');
   const scrollRef = useRef<HTMLDivElement | null>(null);

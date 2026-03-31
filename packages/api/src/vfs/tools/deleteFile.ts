@@ -1,16 +1,18 @@
+import type { Tool } from 'ai';
 import { tool } from 'ai';
 
 import { VFSError } from '../types.js';
 import type { VFSContext } from '../vfsContext.js';
+import type { DeleteFileInput } from './schemas.js';
 import { DeleteFileSchema } from './schemas.js';
 import { VFSTool } from './toolEnum.js';
 import { toToolError, toToolSuccess } from './toolResponse.js';
 
-export function createDeleteFileTool(vfs: VFSContext) {
+export function createDeleteFileTool(vfs: VFSContext): Tool<DeleteFileInput> {
   return tool({
     description: 'Delete a file. Fails if the file does not exist.',
     inputSchema: DeleteFileSchema,
-    execute: async (data, { toolCallId }) => {
+    execute: async (data: DeleteFileInput, { toolCallId }) => {
       try {
         const result = await vfs.deleteFile(data.path);
         return toToolSuccess(toolCallId, VFSTool.delete_file, {

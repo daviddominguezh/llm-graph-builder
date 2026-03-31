@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -8,12 +8,22 @@ import { Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useTranslations } from 'next-intl';
 
+function subscribe(): () => void {
+  return () => {};
+}
+
+function useIsMounted(): boolean {
+  return useSyncExternalStore(
+    subscribe,
+    () => true,
+    () => false
+  );
+}
+
 export function ThemeSwitcher() {
   const { resolvedTheme, setTheme } = useTheme();
   const t = useTranslations('theme');
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  const mounted = useIsMounted();
 
   if (!mounted) return null;
 

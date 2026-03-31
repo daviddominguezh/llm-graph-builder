@@ -20,14 +20,17 @@ import { buildSkillTool } from './skillTool.js';
 
 const INCREMENT = 1;
 const ZERO = 0;
+const JSON_NO_INDENT = 0;
+const TEXT_PREVIEW_LENGTH = 100;
+const PROMPT_PREVIEW_LENGTH = 80;
 
 function log(label: string, data?: unknown): void {
   const prefix = '[agentLoop]';
-  if (data !== undefined) {
-    process.stderr.write(`${prefix} ${label}: ${JSON.stringify(data, null, 0)}\n`);
-  } else {
+  if (data === undefined) {
     process.stderr.write(`${prefix} ${label}\n`);
+    return;
   }
+  process.stderr.write(`${prefix} ${label}: ${JSON.stringify(data, null, JSON_NO_INDENT)}\n`);
 }
 
 interface LoopState {
@@ -55,6 +58,25 @@ interface StepResult {
   done: boolean;
 }
 
+interface StepRecordParams {
+  stepNum: number;
+  result: LlmCallResult;
+  durationMs: number;
+}
+
+function recordStepResult(state: LoopState, params: StepRecordParams, callbacks: AgentLoopCallbacks): void {
+  accumulateTokens(state.totalTokens, params.result.tokens);
+  state.tokensLogs.push({ action: `step-${String(params.stepNum)}`, tokens: { ...params.result.tokens } });
+  callbacks.onStepProcessed({
+    step: params.stepNum,
+    messagesSent: [...state.messages],
+    responseText: params.result.text,
+    toolCalls: params.result.toolCalls,
+    tokens: params.result.tokens,
+    durationMs: params.durationMs,
+  });
+}
+
 async function executeStep(
   config: AgentLoopConfig,
   state: LoopState,
@@ -78,26 +100,11 @@ async function executeStep(
   const durationMs = Date.now() - startTime;
   log(`step ${String(stepNum)} completed`, {
     durationMs,
-    text: result.text.slice(0, 100),
+    text: result.text.slice(ZERO, TEXT_PREVIEW_LENGTH),
     toolCallCount: result.toolCalls.length,
     tokens: result.tokens,
   });
-  accumulateTokens(state.totalTokens, result.tokens);
-
-  const actionLog: ActionTokenUsage = {
-    action: `step-${String(stepNum)}`,
-    tokens: { ...result.tokens },
-  };
-  state.tokensLogs.push(actionLog);
-
-  callbacks.onStepProcessed({
-    step: stepNum,
-    messagesSent: [...state.messages],
-    responseText: result.text,
-    toolCalls: result.toolCalls,
-    tokens: result.tokens,
-    durationMs,
-  });
+  recordStepResult(state, { stepNum, result, durationMs }, callbacks);
 
   return {
     text: result.text,
@@ -123,30 +130,50 @@ function appendResponseMessages(
   }
 }
 
+function buildResult(state: LoopState, finalText: string): AgentLoopResult {
+  return buildLoopResult({
+    finalText,
+    step: state.step,
+    totalTokens: state.totalTokens,
+    tokensLogs: state.tokensLogs,
+    allToolCalls: state.allToolCalls,
+  });
+}
+
+function advanceStep(state: LoopState): void {
+  Object.assign(state, { step: state.step + INCREMENT });
+}
+
+async function runLoopStep(
+  config: AgentLoopConfig,
+  state: LoopState,
+  callbacks: AgentLoopCallbacks
+): Promise<AgentLoopResult | null> {
+  const stepResult = await executeStep(config, state, callbacks);
+  advanceStep(state);
+
+  if (stepResult.done) {
+    return buildResult(state, stepResult.text);
+  }
+
+  appendResponseMessages(state, stepResult, callbacks, state.step);
+  return null;
+}
+
 async function runLoop(
   config: AgentLoopConfig,
   state: LoopState,
   maxSteps: number,
   callbacks: AgentLoopCallbacks
 ): Promise<AgentLoopResult> {
-  while (state.step < maxSteps) {
-    const stepResult = await executeStep(config, state, callbacks);
-    state.step += INCREMENT;
-
-    if (stepResult.done) {
-      return buildLoopResult(
-        stepResult.text,
-        state.step,
-        state.totalTokens,
-        state.tokensLogs,
-        state.allToolCalls
-      );
-    }
-
-    appendResponseMessages(state, stepResult, callbacks, state.step);
+  if (state.step >= maxSteps) {
+    return buildResult(state, '');
   }
 
-  return buildLoopResult('', state.step, state.totalTokens, state.tokensLogs, state.allToolCalls);
+  const result = await runLoopStep(config, state, callbacks);
+  if (result !== null) return result;
+
+  return await runLoop(config, state, maxSteps, callbacks);
 }
 
 function mergeSkillTools(config: AgentLoopConfig): AgentLoopConfig {
@@ -162,8 +189,8 @@ export async function executeAgentLoop(
   const resolved = mergeSkillTools(config);
   const maxSteps = resolveMaxSteps(resolved);
   log('starting', {
-    systemPrompt: resolved.systemPrompt.slice(0, 80),
-    context: resolved.context.slice(0, 80),
+    systemPrompt: resolved.systemPrompt.slice(ZERO, PROMPT_PREVIEW_LENGTH),
+    context: resolved.context.slice(ZERO, PROMPT_PREVIEW_LENGTH),
     maxSteps,
     modelId: resolved.modelId,
     messageCount: resolved.messages.length,
@@ -173,14 +200,17 @@ export async function executeAgentLoop(
   const state = createInitialState(resolved);
   const result = await runLoop(resolved, state, maxSteps, callbacks);
   log('finished', {
-    finalText: result.finalText.slice(0, 100),
+    finalText: result.finalText.slice(ZERO, TEXT_PREVIEW_LENGTH),
     totalSteps: result.steps,
     tokens: result.totalTokens,
   });
   return result;
 }
 
+function noopStepProcessed(): void {
+  /* intentional no-op callback */
+}
+
 export async function executeAgentLoopSimple(config: AgentLoopConfig): Promise<AgentLoopResult> {
-  const noop = { onStepProcessed: () => {} };
-  return await executeAgentLoop(config, noop);
+  return await executeAgentLoop(config, { onStepProcessed: noopStepProcessed });
 }

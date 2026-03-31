@@ -129,18 +129,20 @@ export function listDirectoryFromTree(
   };
 }
 
-export function findFilesFromTree(
-  treeIndex: TreeIndex,
-  pattern: string,
-  path?: string,
-  exclude?: string[],
-  maxResults?: number
-): FindFilesResult {
-  const matches = treeIndex.findFiles(pattern, path, exclude);
-  const limit = maxResults ?? DEFAULT_FIND_LIMIT;
+export interface FindFilesFromTreeParams {
+  treeIndex: TreeIndex;
+  pattern: string;
+  path?: string;
+  exclude?: string[];
+  maxResults?: number;
+}
+
+export function findFilesFromTree(params: FindFilesFromTreeParams): FindFilesResult {
+  const matches = params.treeIndex.findFiles(params.pattern, params.path, params.exclude);
+  const limit = params.maxResults ?? DEFAULT_FIND_LIMIT;
   const truncated = matches.length > limit;
   const limited = truncated ? matches.slice(INITIAL_OFFSET, limit) : matches;
-  return { pattern, matches: limited, totalMatches: matches.length, truncated };
+  return { pattern: params.pattern, matches: limited, totalMatches: matches.length, truncated };
 }
 
 export function getFileMetadataFromTree(

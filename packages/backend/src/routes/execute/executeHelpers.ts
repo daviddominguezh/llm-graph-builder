@@ -116,9 +116,11 @@ function buildResolvedVars(server: McpServerConfig, env: EnvVarMaps): Record<str
   const resolved: Record<string, string> = {};
   for (const [templateName, val] of Object.entries(variableValues)) {
     if (val.type === 'direct') {
-      resolved[templateName] = val.value;
+      const { value } = val;
+      resolved[templateName] = value;
     } else {
-      resolved[templateName] = env.byId[val.envVariableId] ?? '';
+      const { envVariableId } = val;
+      resolved[templateName] = env.byId[envVariableId] ?? '';
     }
   }
   return resolved;

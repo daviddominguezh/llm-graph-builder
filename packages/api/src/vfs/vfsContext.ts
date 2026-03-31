@@ -144,7 +144,7 @@ export class VFSContext {
     maxResults?: number
   ): Promise<FindFilesResult> {
     await this.freshTree();
-    return findFilesFromTree(this.treeIndex, pattern, path, exclude, maxResults);
+    return findFilesFromTree({ treeIndex: this.treeIndex, pattern, path, exclude, maxResults });
   }
 
   async getFileMetadata(path: string): Promise<FileMetadataResult> {

@@ -1,7 +1,6 @@
 import type { ModelMessage } from 'ai';
 
 import type { ActionTokenUsage, TokenLog } from '@src/types/ai/logs.js';
-import type { Message } from '@src/types/ai/messages.js';
 
 import type { AgentLoopConfig, AgentLoopResult, AgentToolCallRecord } from './agentLoopTypes.js';
 import { AGENT_LOOP_HARD_LIMIT } from './agentLoopTypes.js';
@@ -15,7 +14,7 @@ export function resolveMaxSteps(config: AgentLoopConfig): number {
 }
 
 export function buildSystemMessage(config: AgentLoopConfig): ModelMessage {
-  let combined = config.context !== '' ? `${config.systemPrompt}\n\n${config.context}` : config.systemPrompt;
+  let combined = config.context === '' ? config.systemPrompt : `${config.systemPrompt}\n\n${config.context}`;
   if (config.skills !== undefined && config.skills.length > ZERO) {
     combined += buildSkillsPromptSuffix(config.skills);
   }
@@ -33,18 +32,28 @@ export function createEmptyTokens(): TokenLog {
 }
 
 export function accumulateTokens(target: TokenLog, source: TokenLog): void {
-  target.input += source.input;
-  target.output += source.output;
-  target.cached += source.cached;
-  target.costUSD = (target.costUSD ?? ZERO) + (source.costUSD ?? ZERO);
+  const updated = { ...target };
+  updated.input += source.input;
+  updated.output += source.output;
+  updated.cached += source.cached;
+  updated.costUSD = (updated.costUSD ?? ZERO) + (source.costUSD ?? ZERO);
+  Object.assign(target, updated);
 }
 
-export function buildLoopResult(
-  finalText: string,
-  step: number,
-  totalTokens: TokenLog,
-  tokensLogs: ActionTokenUsage[],
-  allToolCalls: AgentToolCallRecord[]
-): AgentLoopResult {
-  return { finalText, steps: step, totalTokens, tokensLogs, toolCalls: allToolCalls };
+export interface BuildLoopResultParams {
+  finalText: string;
+  step: number;
+  totalTokens: TokenLog;
+  tokensLogs: ActionTokenUsage[];
+  allToolCalls: AgentToolCallRecord[];
+}
+
+export function buildLoopResult(params: BuildLoopResultParams): AgentLoopResult {
+  return {
+    finalText: params.finalText,
+    steps: params.step,
+    totalTokens: params.totalTokens,
+    tokensLogs: params.tokensLogs,
+    toolCalls: params.allToolCalls,
+  };
 }

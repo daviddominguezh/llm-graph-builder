@@ -1,13 +1,15 @@
+import type { Tool } from 'ai';
 import { tool } from 'ai';
 
 import type { ReadFileResult } from '../types.js';
 import { VFSError } from '../types.js';
 import type { VFSContext } from '../vfsContext.js';
+import type { ReadFileInput } from './schemas.js';
 import { ReadFileSchema } from './schemas.js';
 import { VFSTool } from './toolEnum.js';
 import { toToolError, toToolSuccess } from './toolResponse.js';
 
-function mapReadFileResult(result: ReadFileResult) {
+function mapReadFileResult(result: ReadFileResult): Record<string, unknown> {
   return {
     path: result.path,
     content: result.content,
@@ -18,11 +20,11 @@ function mapReadFileResult(result: ReadFileResult) {
   };
 }
 
-export function createReadFileTool(vfs: VFSContext) {
+export function createReadFileTool(vfs: VFSContext): Tool<ReadFileInput> {
   return tool({
     description: 'Read file content. Use start_line/end_line for large files.',
     inputSchema: ReadFileSchema,
-    execute: async (data, { toolCallId }) => {
+    execute: async (data: ReadFileInput, { toolCallId }) => {
       try {
         const result = await vfs.readFile(data.path, data.start_line, data.end_line);
         return toToolSuccess(toolCallId, VFSTool.read_file, mapReadFileResult(result));

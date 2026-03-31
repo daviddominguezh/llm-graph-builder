@@ -1,9 +1,11 @@
 // searchSymbol.ts — search_symbol tool: finds symbol definitions across files
+import type { Tool } from 'ai';
 import { tool } from 'ai';
 
 import type { SymbolMatch } from '../types.js';
 import { VFSError } from '../types.js';
 import type { VFSContext } from '../vfsContext.js';
+import type { SearchSymbolInput } from './schemas.js';
 import { SearchSymbolSchema } from './schemas.js';
 import { findSymbolsInContent } from './symbolPatterns.js';
 import { VFSTool } from './toolEnum.js';
@@ -62,11 +64,11 @@ async function searchSymbols(
 
 // ─── Tool factory ─────────────────────────────────────────────────────────────
 
-export function createSearchSymbolTool(vfs: VFSContext) {
+export function createSearchSymbolTool(vfs: VFSContext): Tool<SearchSymbolInput> {
   return tool({
     description: 'Find function, class, or type definitions by name.',
     inputSchema: SearchSymbolSchema,
-    execute: async (data, { toolCallId }) => {
+    execute: async (data: SearchSymbolInput, { toolCallId }) => {
       try {
         const matches = await searchSymbols(vfs, data.name, data.kind, data.path);
         return toToolSuccess(toolCallId, VFSTool.search_symbol, { name: data.name, matches });

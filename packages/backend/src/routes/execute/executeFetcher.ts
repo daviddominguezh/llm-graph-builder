@@ -13,6 +13,7 @@ import { getOrCreateSession, getSessionMessages } from '../../db/queries/executi
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import type { AgentExecutionInput } from './executeTypes.js';
 
+const EMPTY_LENGTH = 0;
 const HTTP_UNPROCESSABLE = 422;
 const HTTP_TOO_MANY = 429;
 const HTTP_INTERNAL = 500;
@@ -211,7 +212,7 @@ function isAgentGraphData(val: unknown): val is AgentGraphData {
 }
 
 function flattenContextItems(items: Array<{ content: string }> | undefined): string {
-  if (items === undefined || items.length === 0) return '';
+  if (items === undefined || items.length === EMPTY_LENGTH) return '';
   return items.map((item) => item.content).join('\n\n');
 }
 

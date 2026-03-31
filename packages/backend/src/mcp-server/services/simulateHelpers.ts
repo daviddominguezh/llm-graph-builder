@@ -65,9 +65,11 @@ function resolveServerVars(
   const resolved: Record<string, string> = {};
   for (const [templateName, val] of Object.entries(variableValues)) {
     if (val.type === 'direct' && val.value !== undefined) {
-      resolved[templateName] = val.value;
+      const { value } = val;
+      resolved[templateName] = value;
     } else if (val.envVariableId !== undefined) {
-      resolved[templateName] = envById[val.envVariableId] ?? '';
+      const { envVariableId } = val;
+      resolved[templateName] = envById[envVariableId] ?? '';
     }
   }
   return resolved;
