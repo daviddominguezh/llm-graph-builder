@@ -717,6 +717,12 @@
     "installationRevoked": "GitHub installation was revoked. Click Reconnect to set up a new connection.",
     "repoRemoved": "This repository is no longer accessible. Select a different repository.",
     "noTenants": "No organizations found. Create an organization to configure repository access.",
+    "noTenantsTitle": "No organizations",
+    "noTenantsDescription": "Create an organization to configure repository access for this agent.",
+    "advancedSettings": "Advanced settings",
+    "searchCandidateLimitHint": "Max files scanned per search",
+    "readLineCeilingHint": "Max lines before read_file errors",
+    "rateLimitThresholdHint": "Warn when GitHub API calls remaining below this",
     "loadingConfigs": "Loading configurations..."
   },
   "settings": {

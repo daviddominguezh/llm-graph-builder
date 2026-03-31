@@ -2,14 +2,16 @@
 
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
+import { ChevronRight, GitBranch } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 
-import { getGitHubConnectUrl } from '@/app/actions/vfsConfig';
+import { fetchInstallationRepos, getGitHubConnectUrl } from '@/app/actions/vfsConfig';
+import type { RepoOption } from '@/app/actions/vfsConfig';
 import type { OrgInfo } from './VfsConfigTable';
 import { VfsConfigTable } from './VfsConfigTable';
 import { VfsSettingsPanel } from './VfsSettingsPanel';
-import type { RepoOption } from './VfsConfigRow';
 import { useVfsConfigState } from './useVfsConfigState';
 
 /* ------------------------------------------------------------------ */
@@ -35,49 +37,29 @@ function useRepoMap(organizations: OrgInfo[]) {
   return repos;
 }
 
-interface GitHubRepoApiItem {
-  id: number;
-  full_name: string;
-}
-
-interface GitHubRepoListApiResponse {
-  repositories?: GitHubRepoApiItem[];
-}
-
-function mapApiRepos(data: GitHubRepoListApiResponse): RepoOption[] {
-  return (data.repositories ?? []).map((r) => ({ repoId: r.id, repoFullName: r.full_name }));
-}
-
-async function loadReposForInstallation(installId: number): Promise<RepoOption[]> {
-  const { fetchFromBackend } = await import('@/app/lib/backendProxy');
-  const path = `/github/installations/${String(installId)}/repos`;
-  const data = (await fetchFromBackend('GET', path)) as GitHubRepoListApiResponse;
-  return mapApiRepos(data);
-}
-
 async function loadRepos(
   organizations: OrgInfo[],
   setRepos: (val: Map<number, RepoOption[]>) => void
 ): Promise<void> {
   const withInstall = organizations.filter((org) => org.installationId !== null);
-  const entries = await Promise.all(
-    withInstall.map(async (org) => {
-      const installId = org.installationId;
-      if (installId === null) return null;
-      try {
-        const repoList = await loadReposForInstallation(installId);
-        return [installId, repoList] as const;
-      } catch {
-        return null;
-      }
-    })
-  );
+  const entries = await Promise.all(withInstall.map(loadRepoEntry));
 
   const map = new Map<number, RepoOption[]>();
   for (const entry of entries) {
     if (entry !== null) map.set(entry[0], entry[1]);
   }
   setRepos(map);
+}
+
+async function loadRepoEntry(org: OrgInfo): Promise<readonly [number, RepoOption[]] | null> {
+  const installId = org.installationId;
+  if (installId === null) return null;
+  try {
+    const repoList = await fetchInstallationRepos(installId);
+    return [installId, repoList] as const;
+  } catch {
+    return null;
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -136,18 +118,65 @@ export function VfsConfigSection({ agentId, organizations }: VfsConfigSectionPro
 }
 
 /* ------------------------------------------------------------------ */
+/*  Empty state                                                        */
+/* ------------------------------------------------------------------ */
+
+function NoTenantsState({ t }: { t: (key: string) => string }) {
+  return (
+    <div className="border border-ring/50 border-dashed rounded-md flex flex-col items-center gap-2 py-6 text-center bg-input/20">
+      <GitBranch className="size-5 text-muted-foreground/50" />
+      <p className="text-xs text-muted-foreground">{t('noTenantsTitle')}</p>
+      <p className="max-w-xs text-[11px] text-muted-foreground/70">{t('noTenantsDescription')}</p>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Advanced settings toggle                                           */
+/* ------------------------------------------------------------------ */
+
+function AdvancedSettingsToggle({
+  open,
+  onToggle,
+  t,
+}: {
+  open: boolean;
+  onToggle: () => void;
+  t: (key: string) => string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors w-fit"
+    >
+      <ChevronRight className={cn('size-3.5 transition-transform', open && 'rotate-90')} />
+      {t('advancedSettings')}
+    </button>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Enabled content                                                    */
 /* ------------------------------------------------------------------ */
 
-function EnabledContent({ state, organizations, repos, handleConnect, t }: {
+function EnabledContent({
+  state,
+  organizations,
+  repos,
+  handleConnect,
+  t,
+}: {
   state: ReturnType<typeof useVfsConfigState>;
   organizations: OrgInfo[];
   repos: Map<number, RepoOption[]>;
   handleConnect: (orgId: string) => void;
   t: (key: string) => string;
 }) {
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
   if (organizations.length === 0) {
-    return <p className="text-xs text-muted-foreground">{t('noTenants')}</p>;
+    return <NoTenantsState t={t} />;
   }
 
   return (
@@ -164,7 +193,16 @@ function EnabledContent({ state, organizations, repos, handleConnect, t }: {
         />
       </div>
       {state.settings !== null && (
-        <VfsSettingsPanel settings={state.settings} onUpdate={state.handleUpdateSettings} />
+        <>
+          <AdvancedSettingsToggle
+            open={showAdvanced}
+            onToggle={() => setShowAdvanced((prev) => !prev)}
+            t={t}
+          />
+          {showAdvanced && (
+            <VfsSettingsPanel settings={state.settings} onUpdate={state.handleUpdateSettings} />
+          )}
+        </>
       )}
     </>
   );
