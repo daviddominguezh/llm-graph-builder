@@ -1,5 +1,5 @@
 import React, { memo, useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 
 // import Avatar from 'react-nice-avatar';
 
@@ -72,7 +72,7 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
   orderedChats = [],
   currentUserEmail = null,
 }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
   const isMobile = useIsMobile();
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(['chats', 'team', 'teammates'])
@@ -244,7 +244,7 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
         <div className={`w-full ${isCollapsed ? 'px-2' : 'px-3'}`}>
           {isCollapsed ? (
             <Tooltip>
-              <TooltipTrigger asChild>
+              <TooltipTrigger>
                 <Button
                   key={'inbox'}
                   variant="ghost"
@@ -324,7 +324,7 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
                   {section.items.map((item) =>
                     isCollapsed ? (
                       <Tooltip key={item.id}>
-                        <TooltipTrigger asChild>
+                        <TooltipTrigger>
                           <Button
                             variant="ghost"
                             onClick={() => onFilterChange(item.id)}
@@ -385,7 +385,7 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
         <div className={`${isCollapsed ? 'px-2' : 'px-3'}`}>
           {isCollapsed ? (
             <Tooltip>
-              <TooltipTrigger asChild>
+              <TooltipTrigger>
                 <Button
                   variant="ghost"
                   onClick={() => setIsLabModalOpen(true)}

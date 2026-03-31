@@ -1,4 +1,4 @@
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 
 import { parseChatId } from '@/app/utils/strs';
 
@@ -13,7 +13,7 @@ interface UserCardProps {
 }
 
 export const UserCard: React.FC<UserCardProps> = ({ userInfo, userID, memberSince }: UserCardProps) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
 
   const parsedChat = parseChatId(userID);
 

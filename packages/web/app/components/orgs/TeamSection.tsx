@@ -4,7 +4,7 @@ import { getOrgMembersAction, updateMemberRoleAction } from '@/app/actions/orgMe
 import type { OrgMemberRow, OrgRole } from '@/app/lib/orgMembers';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus } from 'lucide-react';
+import { Plus, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
@@ -26,21 +26,40 @@ interface TransferTarget {
   name: string;
 }
 
-function MemberList(props: {
+interface MemberListProps {
   members: OrgMemberRow[];
   isOwner: boolean;
   currentUserId: string;
   onRoleChange: (userId: string, name: string, role: OrgRole) => void;
   onRemove: (member: OrgMemberRow) => void;
-}) {
+  onInvite: () => void;
+}
+
+function EmptyState({ isOwner, onInvite }: { isOwner: boolean; onInvite: () => void }) {
   const t = useTranslations('team');
 
-  if (props.members.length === 0) {
-    return <p className="text-muted-foreground text-xs bg-card py-2 px-3 rounded-md">{t('noMembers')}</p>;
+  return (
+    <div className="flex flex-col items-center gap-2 rounded-md border border-dashed bg-card/50 px-4 py-8 text-center">
+      <Users className="size-6 text-muted-foreground/50" />
+      <p className="text-sm font-medium">{t('noMembers')}</p>
+      <p className="text-xs text-muted-foreground max-w-xs">{t('noMembersDescription')}</p>
+      {isOwner && (
+        <Button variant="outline" size="sm" className="mt-2" onClick={onInvite}>
+          <Plus className="size-3.5" />
+          {t('invite')}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function MemberList(props: MemberListProps) {
+  if (props.members.length <= 1) {
+    return <EmptyState isOwner={props.isOwner} onInvite={props.onInvite} />;
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1.5">
       {props.members.map((member) => (
         <MemberRow
           key={member.user_id}
@@ -63,8 +82,12 @@ function useTeamActions(orgId: string, refreshMembers: () => Promise<void>) {
       if (role === 'owner') return { userId, name };
 
       const { error } = await updateMemberRoleAction(orgId, userId, role);
-      if (error !== null) toast.error(t('roleChangeError'));
-      else await refreshMembers();
+      if (error !== null) {
+        toast.error(t('roleChangeError'));
+      } else {
+        toast.success(t('roleChangeSuccess', { name, role: t(`roles.${role}`) }));
+        await refreshMembers();
+      }
       return null;
     },
     [orgId, refreshMembers, t]
@@ -98,7 +121,12 @@ export function TeamSection({ orgId, initialMembers, currentUserRole, currentUse
     <Card className="bg-background ring-0">
       <CardHeader>
         <CardTitle>{t('title')}</CardTitle>
-        <CardDescription>{t('description')}</CardDescription>
+        <CardDescription>
+          {t('description')}
+          {members.length > 0 && (
+            <span className="ml-1 text-muted-foreground/60">{t('memberCount', { count: members.length })}</span>
+          )}
+        </CardDescription>
         {isOwner && (
           <CardAction>
             <Button variant="outline" size="sm" onClick={() => setInviteOpen(true)}>
@@ -115,6 +143,7 @@ export function TeamSection({ orgId, initialMembers, currentUserRole, currentUse
           currentUserId={currentUserId}
           onRoleChange={onRoleChange}
           onRemove={setRemoveTarget}
+          onInvite={() => setInviteOpen(true)}
         />
       </CardContent>
       <InviteMemberDialog

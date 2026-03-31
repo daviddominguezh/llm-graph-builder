@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 
 import { FlaskConical } from 'lucide-react';
 
@@ -20,7 +20,7 @@ interface TestChatButtonProps {
  * Only visible when no chat is selected.
  */
 export const TestChatButton: React.FC<TestChatButtonProps> = ({ onClick, visible }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
   const isMobile = useIsMobile();
 
   if (!visible) return null;
@@ -35,7 +35,7 @@ export const TestChatButton: React.FC<TestChatButtonProps> = ({ onClick, visible
       }}
     >
       <Tooltip>
-        <TooltipTrigger asChild>
+        <TooltipTrigger>
           <Button onClick={onClick} className="w-[40px] h-[40px] rounded-full">
             <FlaskConical />
           </Button>

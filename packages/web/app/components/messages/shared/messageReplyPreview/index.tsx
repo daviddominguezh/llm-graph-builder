@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 
 import { Image } from 'lucide-react';
 
@@ -10,7 +10,7 @@ import { AI_MESSAGE_ROLES, Message } from '@/app/types/chat';
 
 import styles from './index.module.css';
 
-import PDFImg from '@assets/pdfIcon.webp';
+import PDFImg from '@/app/components/messages/shared/assets';
 
 interface MessageReplyPreviewProps {
   repliedMessage: Message | null;
@@ -23,7 +23,7 @@ export const MessageReplyPreview: React.FC<MessageReplyPreviewProps> = ({
   onClick,
   isUserMessage,
 }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();

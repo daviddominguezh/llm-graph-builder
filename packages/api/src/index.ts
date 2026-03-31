@@ -33,7 +33,7 @@ export { VFSContext } from './vfs/index.js';
 export { generateVFSTools } from './vfs/index.js';
 export type { VFSContextConfig } from './vfs/index.js';
 // GitHubSourceProvider is NOT exported here — it uses Node/Deno APIs incompatible with browser bundles.
-// The Edge Function imports it directly: import { GitHubSourceProvider } from '@daviddh/llm-graph-runner/dist/vfs/providers/index.js'
+// The Edge Function imports it via the @daviddh/vfs-providers alias in its deno.json.
 
 export const execute = async (
   context: Context,

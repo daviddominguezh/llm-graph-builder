@@ -1,16 +1,14 @@
-import { selectCurrentProjectName, selectCurrentProjectRole } from '@reducers/user';
-import { useAppSelector } from '@store/index';
-import { useMemo } from 'react';
-
 import {
   APP_SECTION,
   canAccessSection,
   getDefaultRouteForRole,
   getDefaultSettingsRouteForRole,
   getRolePermissions,
-} from '@/app/utils/rbac';
-
+} from '@/app/components/messages/shared/utilStubs';
+import { useAppSelector } from '@/app/components/messages/store/mainStore';
+import { selectCurrentProjectName, selectCurrentProjectRole } from '@/app/components/messages/store/stubs';
 import { COLLABORATOR_ROLE } from '@/app/types/projectInnerSettings';
+import { useMemo } from 'react';
 
 interface UseRBACReturn {
   currentRole: COLLABORATOR_ROLE | null;

@@ -3,10 +3,12 @@
 import { getTenantsByOrgAction } from '@/app/actions/tenants';
 import type { TenantRow } from '@/app/lib/tenants';
 import { Button } from '@/components/ui/button';
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Building2, Check, Copy, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { CreateTenantDialog } from './CreateTenantDialog';
 import { DeleteTenantDialog } from './DeleteTenantDialog';
@@ -17,8 +19,71 @@ interface TenantsSectionProps {
   initialTenants: TenantRow[];
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+const COPY_FEEDBACK_MS = 1500;
+const ID_PREFIX_LEN = 8;
+const ID_SUFFIX_LEN = 4;
+
+interface RelativeLabels {
+  justNow: string;
+  fmt: (key: string, values: Record<string, number>) => string;
+}
+
+function formatRelativeDate(iso: string, labels: RelativeLabels): string {
+  const now = Date.now();
+  const then = new Date(iso).getTime();
+  const diffMs = now - then;
+  const diffMin = Math.floor(diffMs / 60_000);
+  const diffHr = Math.floor(diffMs / 3_600_000);
+  const diffDay = Math.floor(diffMs / 86_400_000);
+
+  if (diffMin < 1) return labels.justNow;
+  if (diffMin < 60) return labels.fmt('minutesAgo', { count: diffMin });
+  if (diffHr < 24) return labels.fmt('hoursAgo', { count: diffHr });
+  if (diffDay < 30) return labels.fmt('daysAgo', { count: diffDay });
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function CopyableId({ id }: { id: string }) {
+  const t = useTranslations('tenants');
+  const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  async function handleCopy() {
+    await navigator.clipboard.writeText(id);
+    setCopied(true);
+    if (timerRef.current !== null) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setCopied(false), COPY_FEEDBACK_MS);
+  }
+
+  const truncated = `${id.slice(0, ID_PREFIX_LEN)}\u2026${id.slice(-ID_SUFFIX_LEN)}`;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 font-mono text-muted-foreground cursor-pointer transition-colors hover:text-foreground"
+            onClick={handleCopy}
+          >
+            <span>{truncated}</span>
+            {copied ? (
+              <Check className="size-3 text-emerald-500 check-pop" />
+            ) : (
+              <Copy className="size-3 opacity-0 transition-opacity group-hover/row:opacity-100" />
+            )}
+          </button>
+        }
+      />
+      <TooltipContent side="top">{copied ? t('copied') : t('clickToCopy')}</TooltipContent>
+    </Tooltip>
+  );
 }
 
 function TenantRowActions({
@@ -27,16 +92,53 @@ function TenantRowActions({
   onDelete,
 }: {
   tenant: TenantRow;
-  onEdit: (t: TenantRow) => void;
-  onDelete: (t: TenantRow) => void;
+  onEdit: (row: TenantRow) => void;
+  onDelete: (row: TenantRow) => void;
 }) {
+  const t = useTranslations('tenants');
+
   return (
-    <div className="flex items-center justify-end gap-1">
-      <Button variant="ghost" size="icon-sm" onClick={() => onEdit(tenant)}>
-        <Pencil className="size-3.5" />
-      </Button>
-      <Button variant="ghost" size="icon-sm" className="text-destructive" onClick={() => onDelete(tenant)}>
-        <Trash2 className="size-3.5" />
+    <div className="flex items-center justify-end gap-0.5 opacity-0 transition-opacity group-hover/row:opacity-100">
+      <Tooltip>
+        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" onClick={() => onEdit(tenant)} />}>
+          <Pencil className="size-3" />
+        </TooltipTrigger>
+        <TooltipContent side="top">{t('editTitle')}</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="text-muted-foreground hover:text-destructive"
+              onClick={() => onDelete(tenant)}
+            />
+          }
+        >
+          <Trash2 className="size-3" />
+        </TooltipTrigger>
+        <TooltipContent side="top">{t('deleteTitle')}</TooltipContent>
+      </Tooltip>
+    </div>
+  );
+}
+
+function EmptyState({ onAdd }: { onAdd: () => void }) {
+  const t = useTranslations('tenants');
+
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+        <Building2 className="size-5 text-muted-foreground" />
+      </div>
+      <div className="flex flex-col gap-1">
+        <p className="text-sm font-medium">{t('noTenants')}</p>
+        <p className="max-w-xs text-xs text-muted-foreground">{t('emptyDescription')}</p>
+      </div>
+      <Button variant="outline" size="sm" onClick={onAdd}>
+        <Plus className="size-3.5" />
+        {t('add')}
       </Button>
     </div>
   );
@@ -44,18 +146,17 @@ function TenantRowActions({
 
 function TenantsTable({
   tenants,
+  newIds,
   onEdit,
   onDelete,
 }: {
   tenants: TenantRow[];
-  onEdit: (t: TenantRow) => void;
-  onDelete: (t: TenantRow) => void;
+  newIds: ReadonlySet<string>;
+  onEdit: (row: TenantRow) => void;
+  onDelete: (row: TenantRow) => void;
 }) {
   const t = useTranslations('tenants');
-
-  if (tenants.length === 0) {
-    return <p className="text-muted-foreground text-xs bg-card py-2 px-3 rounded-md">{t('noTenants')}</p>;
-  }
+  const dateLabels: RelativeLabels = { justNow: t('justNow'), fmt: (k, v) => t(k, v) };
 
   return (
     <Table>
@@ -64,15 +165,19 @@ function TenantsTable({
           <TableHead>{t('name')}</TableHead>
           <TableHead>{t('id')}</TableHead>
           <TableHead>{t('createdAt')}</TableHead>
-          <TableHead className="text-right">{t('actions')}</TableHead>
+          <TableHead />
         </TableRow>
       </TableHeader>
       <TableBody>
         {tenants.map((tenant) => (
-          <TableRow key={tenant.id}>
-            <TableCell className="font-medium">{tenant.name}</TableCell>
-            <TableCell className="font-mono text-muted-foreground">{tenant.id}</TableCell>
-            <TableCell className="text-muted-foreground">{formatDate(tenant.created_at)}</TableCell>
+          <TableRow key={tenant.id} className={`group/row ${newIds.has(tenant.id) ? 'row-enter' : ''}`}>
+            <TableCell className="max-w-[200px] truncate font-medium">{tenant.name}</TableCell>
+            <TableCell>
+              <CopyableId id={tenant.id} />
+            </TableCell>
+            <TableCell className="text-muted-foreground">
+              {formatRelativeDate(tenant.created_at, dateLabels)}
+            </TableCell>
             <TableCell className="text-right">
               <TenantRowActions tenant={tenant} onEdit={onEdit} onDelete={onDelete} />
             </TableCell>
@@ -83,31 +188,62 @@ function TenantsTable({
   );
 }
 
+function useTenantsWithNewTracking(initialTenants: TenantRow[]) {
+  const [tenants, setTenants] = useState<TenantRow[]>(initialTenants);
+  const knownIdsRef = useRef<Set<string>>(new Set(initialTenants.map((r) => r.id)));
+  const [newIds, setNewIds] = useState<Set<string>>(new Set());
+
+  const updateTenants = useCallback((next: TenantRow[]) => {
+    const fresh = new Set<string>();
+    for (const row of next) {
+      if (!knownIdsRef.current.has(row.id)) fresh.add(row.id);
+    }
+    knownIdsRef.current = new Set(next.map((r) => r.id));
+    setNewIds(fresh);
+    setTenants(next);
+  }, []);
+
+  return { tenants, newIds, updateTenants };
+}
+
 export function TenantsSection({ orgId, initialTenants }: TenantsSectionProps) {
   const t = useTranslations('tenants');
-  const [tenants, setTenants] = useState<TenantRow[]>(initialTenants);
+  const { tenants, newIds, updateTenants } = useTenantsWithNewTracking(initialTenants);
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<TenantRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TenantRow | null>(null);
 
   const refreshTenants = useCallback(async () => {
     const { result } = await getTenantsByOrgAction(orgId);
-    setTenants(result);
-  }, [orgId]);
+    updateTenants(result);
+  }, [orgId, updateTenants]);
+
+  const count = tenants.length;
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{t('title')}</h1>
-          <p className="text-sm text-muted-foreground">{t('description')}</p>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
-          <Plus className="size-4" />
-          {t('add')}
-        </Button>
-      </div>
-      <TenantsTable tenants={tenants} onEdit={setEditTarget} onDelete={setDeleteTarget} />
+    <Card className="bg-background ring-0">
+      <CardHeader>
+        <CardTitle>
+          {t('title')}
+          {count > 0 && (
+            <span className="ml-2 text-xs font-normal text-muted-foreground">{count}</span>
+          )}
+        </CardTitle>
+        <CardDescription>{t('description')}</CardDescription>
+        <CardAction>
+          <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus className="size-4" />
+            {t('add')}
+          </Button>
+        </CardAction>
+      </CardHeader>
+      <CardContent>
+        {count === 0 ? (
+          <EmptyState onAdd={() => setCreateOpen(true)} />
+        ) : (
+          <TenantsTable tenants={tenants} newIds={newIds} onEdit={setEditTarget} onDelete={setDeleteTarget} />
+        )}
+      </CardContent>
       <CreateTenantDialog open={createOpen} onOpenChange={setCreateOpen} orgId={orgId} onCreated={refreshTenants} />
       {editTarget !== null && (
         <EditTenantDialog
@@ -126,6 +262,6 @@ export function TenantsSection({ orgId, initialTenants }: TenantsSectionProps) {
           onDeleted={refreshTenants}
         />
       )}
-    </div>
+    </Card>
   );
 }

@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 
 import { ChevronDown, ChevronUp, ExternalLink, Package, RefreshCw, X } from 'lucide-react';
 
-import { getOrderReceipt } from '@services/api';
+import { getOrderReceipt } from '@/app/components/messages/services/api';
 
 import { Button } from '@/components/ui/button';
 
-import { formatCurrency } from '@/app/utils/forms';
+import { formatCurrency } from '@/app/components/messages/shared/utilStubs';
 
 import type { BusinessSetupSchemaAPIType } from '@/app/types/business';
 import type { Order } from '@/app/types/orders';
@@ -70,7 +70,7 @@ const OrderCard: React.FC<{
   onToggle: () => void;
   projectName: string;
 }> = ({ order, currency, isExpanded, onToggle, projectName }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
   const [loadingReceipt, setLoadingReceipt] = useState(false);
   const [hasFetchedReceipt, setHasFetchedReceipt] = useState(false);
@@ -264,7 +264,7 @@ export const OrdersDialog: React.FC<OrdersDialogProps> = ({
   onClose,
   onRefresh,
 }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
 

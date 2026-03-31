@@ -1,12 +1,10 @@
-import { BookingsPath, BookingsReducer } from '@reducers/bookings';
-import { BusinessPath, BusinessReducer } from '@reducers/business';
-import { MessagesPath, MessagesReducer } from '@reducers/messages';
-import { StorePath, StoreReducer } from '@reducers/store';
-import { UserPath, UserReducer } from '@reducers/user';
+import { MessagesPath, MessagesReducer } from '@/app/components/messages/store';
+import { StorePath, StoreReducer } from '@/app/components/messages/store/storeIndex';
+import { BookingsPath, BookingsReducer } from '@/app/components/messages/store/stubs';
+import { BusinessPath, BusinessReducer } from '@/app/components/messages/store/stubs';
+import { UserPath, UserReducer } from '@/app/components/messages/store/stubs';
 import { configureStore } from '@reduxjs/toolkit';
 import { type TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
-
-import { cartSyncMiddleware } from './middleware/cartSyncMiddleware';
 
 export const store = configureStore({
   reducer: {
@@ -16,7 +14,6 @@ export const store = configureStore({
     [StorePath]: StoreReducer,
     [UserPath]: UserReducer,
   },
-  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(cartSyncMiddleware),
 });
 
 export type StateType = ReturnType<typeof store.getState>;

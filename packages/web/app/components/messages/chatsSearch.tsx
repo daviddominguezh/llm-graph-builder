@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 import Avatar from 'react-nice-avatar';
 
 import { Filter, FlaskConical, Search, X } from 'lucide-react';
@@ -32,7 +32,7 @@ export const ChatsSearch = ({
   onStatusFilterChange,
   onAssigneeFilterChange,
 }: ChatsSearchProps) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
   const isMobile = useIsMobile();
 
   const [search, setSearch] = useState('');

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 import Avatar from 'react-nice-avatar';
 
 import {
@@ -12,8 +12,8 @@ import {
   User,
 } from 'lucide-react';
 
-import { TAG_COLORS } from '@features/chatSettings/tagsUtils';
-import { useChat } from '@features/messagesDashboard/core/contexts';
+import { TAG_COLORS } from '@/app/components/messages/chatSettings/tagsUtils';
+import { useChat } from '@/app/components/messages/core/contexts';
 
 import { WhatsAppIcon } from '@/app/components/messages/shared/icons';
 import { Badge } from '@/components/ui/badge';
@@ -29,7 +29,7 @@ import { Collaborator } from '@/app/types/projectInnerSettings';
 
 import styles from './index.module.css';
 
-import LogoImg from '@assets/logoRounded.png';
+import LogoImg from '@/app/components/messages/shared/assets';
 
 interface MessagePreviewProps {
   lastMessage?: LastMessage;
@@ -48,7 +48,7 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
   collaborators = [],
   profilePictures = new Map(),
 }: MessagePreviewProps) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
   const { availableTags } = useChat();
 
   const isTest = phone === TEST_PHONE;

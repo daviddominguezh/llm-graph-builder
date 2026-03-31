@@ -42,7 +42,6 @@ export { SessionTracker } from './sessionTracker.js';
 export { validatePath, validateWritePath } from './pathValidator.js';
 export { VFSContext } from './vfsContext.js';
 export { generateVFSTools, VFS_TOOLS_PREAMBLE, VFSTool } from './tools/index.js';
-// GitHubSourceProvider is NOT re-exported here — Supabase Edge Runtime resolves barrel
-// re-exports by appending to the parent file path, which breaks when the parent is a .js file.
+// GitHubSourceProvider and GitHubSourceConfig are NOT re-exported here.
+// Supabase CLI scans .d.ts files and follows re-exports, breaking when the parent is a .js file.
 // Import directly: import { GitHubSourceProvider } from '@daviddh/vfs-providers'
-export type { GitHubSourceConfig } from './providers/index.js';

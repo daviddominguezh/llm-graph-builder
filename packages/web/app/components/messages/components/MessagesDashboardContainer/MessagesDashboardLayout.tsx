@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 import { useSelector } from 'react-redux';
 import type { ImperativePanelHandle } from 'react-resizable-panels';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'next/navigation';
 
 import { v4 as uuidv4 } from 'uuid';
 
@@ -11,24 +11,24 @@ import {
   getQuickReplies,
   getTags,
   getUserPictureByEmailCached,
-} from '@services/api';
-import { getCurrentFirebaseUser, uploadFile } from '@services/firebase';
+} from '@/app/components/messages/services/api';
+import { getCurrentFirebaseUser, uploadFile } from '@/app/components/messages/services/firebase';
 
 import { MediaFileDetail, MediaFileKind, MediaStatus } from '@/app/types/media';
 
-import WithFirebaseUploader from '@hocs/withFirebaseUploader';
+import WithFirebaseUploader from '@/app/components/messages/hocs/withFirebaseUploader';
 
-import { combineAllTags } from '@features/chatSettings/tagsUtils';
+import { combineAllTags } from '@/app/components/messages/chatSettings/tagsUtils';
 
 import FilePicker from '@/app/components/messages/shared/filePicker';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
-import { useRBAC } from '@hooks/useRBAC';
+import { useRBAC } from '@/app/components/messages/hooks/useRBAC';
 
 import { useIsMobile } from '@/app/utils/device';
 
-import { getFetchQueue, getRealtimeMessages } from '@reducers/messages';
+import { getFetchQueue, getRealtimeMessages } from '@/app/components/messages/store';
 
 import { COLLABORATOR_ROLE } from '@/app/types/projectInnerSettings';
 
@@ -66,10 +66,11 @@ interface MessagesDashboardLayoutProps {
  * - Fetch queue orchestration (delegates to MessageQueueService)
  */
 export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = ({ onChangeSidebar, initialChatFilter }) => {
-  const { projectName } = useParams();
+  const params = useParams();
+  const projectName = typeof params.projectName === 'string' ? params.projectName : params.projectName?.[0] ?? '';
   const repository = useMessageRepository();
 
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
   const isMobile = useIsMobile();
   const { currentRole } = useRBAC();
 

@@ -1,7 +1,7 @@
 import React, { Suspense, lazy, memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Card } from 'react-bootstrap';
 
-import { getCurrentFirebaseUser } from '@services/firebase';
+import { getCurrentFirebaseUser } from '@/app/components/messages/services/firebase';
 
 import type { Conversation, LastMessage } from '@/app/types/chat';
 import { Collaborator } from '@/app/types/projectInnerSettings';

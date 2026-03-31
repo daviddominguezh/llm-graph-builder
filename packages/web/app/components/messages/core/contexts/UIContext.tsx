@@ -1,12 +1,12 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'next/navigation';
 
-import { getCurrentFirebaseUser } from '@services/firebase';
+import { getCurrentFirebaseUser } from '@/app/components/messages/services/firebase';
 
 import { formatPhone } from '@/app/utils/strs';
 
-import { getLastMessagesFromStore } from '@reducers/messages';
+import { getLastMessagesFromStore } from '@/app/components/messages/store';
 
 import type { ChatSearchResults, Conversation, LastMessage, Message } from '@/app/types/chat';
 
@@ -66,7 +66,8 @@ interface UIProviderProps {
 }
 
 export const UIProvider: React.FC<UIProviderProps> = ({ children }) => {
-  const { projectName } = useParams();
+  const params = useParams();
+  const projectName = typeof params.projectName === 'string' ? params.projectName : params.projectName?.[0] ?? '';
   // Get data from ChatContext
   const { activeChat, messages: loadedMessages, orderedChats } = useChat();
   // Get data from Redux

@@ -1,6 +1,5 @@
-import { BusinessSetup, Product } from '@features/discountTest';
-
-import { formatCurrency } from '@/app/utils/forms';
+import { BusinessSetup, Product } from '@/app/components/messages/shared/stubs';
+import { formatCurrency } from '@/app/components/messages/shared/utilStubs';
 
 // TODO: This is required for other than nike
 const MAP_PERSONALIZATION_TYPE_TO_EMOJI: Record<string, string> = {

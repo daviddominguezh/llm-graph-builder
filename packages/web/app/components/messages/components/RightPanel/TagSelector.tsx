@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 
 import { X } from 'lucide-react';
 
-import type { Tag } from '@services/api';
+import type { Tag } from '@/app/components/messages/services/api';
 
 import { Button } from '@/components/ui/button';
 
-import { TAG_COLORS } from '@features/chatSettings/tagsUtils';
+import { TAG_COLORS } from '@/app/components/messages/chatSettings/tagsUtils';
 
 interface TagSelectorProps {
   availableTags: Tag[];
@@ -22,7 +22,7 @@ interface TagSelectorProps {
  * Displays all available tags (predefined + custom) and allows selection.
  */
 export const TagSelector: React.FC<TagSelectorProps> = ({ availableTags, selectedTagIds, onTagsChange }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
   const [isExpanded, setIsExpanded] = useState(false);
 
   const capitalizeFirstLetter = (str: string) => {

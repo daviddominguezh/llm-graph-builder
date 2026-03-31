@@ -1,18 +1,18 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'next/navigation';
 
 import { getAuth } from 'firebase/auth';
 import { v4 as uuidv4 } from 'uuid';
 
-import { createNote } from '@services/api';
-import { uploadFile } from '@services/firebase';
+import { createNote } from '@/app/components/messages/services/api';
+import { uploadFile } from '@/app/components/messages/services/firebase';
 
-import { playSoundMessageSent } from '@/app/utils/notifications';
-import { getMediaKind } from '@/app/utils/media';
+import { playSoundMessageSent } from '@/app/components/messages/shared/utilStubs';
+import { getMediaKind } from '@/app/components/messages/shared/utilStubs';
 
-import { setLastMessage } from '@reducers/messages';
-import { getLastMessagesFromStore } from '@reducers/messages';
+import { setLastMessage } from '@/app/components/messages/store';
+import { getLastMessagesFromStore } from '@/app/components/messages/store';
 
 import { AI_MESSAGE_ROLES, INTENT } from '@/app/types/chat';
 import type { LastMessage, Message } from '@/app/types/chat';
@@ -48,7 +48,8 @@ interface MessageContextValue {
 const MessageContext = createContext<MessageContextValue>({} as MessageContextValue);
 
 export const MessageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { projectName } = useParams();
+  const params = useParams();
+  const projectName = typeof params.projectName === 'string' ? params.projectName : params.projectName?.[0] ?? '';
   const dispatch = useDispatch();
   const repository = useMessageRepository();
   const { activeChat, isTestChatActive, messages, currentChat, addMessage, triggerNotesRefresh, updateCachedConversation } = useChat();

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 import Avatar from 'react-nice-avatar';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'next/navigation';
 
 import {
   AlertTriangle,
@@ -15,7 +15,7 @@ import {
   Trash2,
 } from 'lucide-react';
 
-import { updateChatAssignee, updateChatStatus } from '@services/api';
+import { updateChatAssignee, updateChatStatus } from '@/app/components/messages/services/api';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -37,9 +37,9 @@ import { generateAvatarConfig } from '@/app/utils/avatar';
 import { useIsMobile } from '@/app/utils/device';
 import { parseChatId, ChatSource } from '@/app/utils/strs';
 
-import { useAppDispatch } from '@store/index';
+import { useAppDispatch } from '@/app/components/messages/store/mainStore';
 
-import { updateAssigneeOptimistic, updateStatusOptimistic } from '@reducers/messages';
+import { updateAssigneeOptimistic, updateStatusOptimistic } from '@/app/components/messages/store';
 
 import { TEST_PHONE } from '@/app/constants/messages';
 
@@ -76,8 +76,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   collaborators = [],
   profilePictures = new Map(),
 }) => {
-  const { t } = useTranslation();
-  const { projectName } = useParams();
+  const t = useTranslations('messages');
+  const params = useParams();
+  const projectName = typeof params.projectName === 'string' ? params.projectName : params.projectName?.[0] ?? '';
   const isMobile = useIsMobile();
   const dispatch = useAppDispatch();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -445,7 +446,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <DialogClose asChild>
+            <DialogClose>
               <Button variant="outline">{t('Cancel')}</Button>
             </DialogClose>
             <Button variant="destructive" onClick={handleConfirmDelete}>
@@ -463,7 +464,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             <DialogDescription>{t('Are you sure you want to change the chat status?')}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <DialogClose asChild>
+            <DialogClose>
               <Button variant="outline">{t('Cancel')}</Button>
             </DialogClose>
             <Button onClick={handleConfirmStatusChange}>{t('Confirm')}</Button>
@@ -479,7 +480,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             <DialogDescription>{t('Are you sure you want to change the assigned agent?')}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <DialogClose asChild>
+            <DialogClose>
               <Button variant="outline">{t('Cancel')}</Button>
             </DialogClose>
             <Button onClick={handleConfirmAssignedChange}>{t('Confirm')}</Button>

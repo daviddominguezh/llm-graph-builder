@@ -1,12 +1,11 @@
 /* eslint-disable no-useless-escape */
+import { AddressSchemaType, PaymentItem } from '@/app/types/orders';
 import crypto from 'crypto';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import calendar from 'dayjs/plugin/calendar';
 
 import i18n from '@src/i18n';
-
-import { AddressSchemaType, PaymentItem } from '@/app/types/orders';
 
 dayjs.extend(calendar);
 dayjs.locale('es');

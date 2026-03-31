@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -33,7 +33,7 @@ export const NodeSelectionModal: React.FC<NodeSelectionModalProps> = ({
   onNodeChange,
   onConfirm,
 }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {

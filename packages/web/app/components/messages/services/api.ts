@@ -1,18 +1,16 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { isPublicEndpoint as checkIsPublicEndpoint } from '@/app/constants/auth';
-import { APIError, APIErrorCodes } from '@errors/projects';
-import { createCacheService } from '@features/messagesDashboard/core/services/CacheService';
+import { createCacheService } from '@/app/components/messages/core/services/CacheService';
 import type {
   DeletedChatsResponse,
   DeltaLastMessagesResponse,
   PaginatedLastMessagesResponse,
   PaginationCursor,
-} from '@features/messagesDashboard/core/types';
-import { getAuthToken, handleAuthError } from '@services/auth';
-
-import { getApiURL, isLocalDevelopment } from '@/app/utils/environment';
-import { getBusinessInfoFromCache, setBusinessInfoToCache } from '@/app/utils/storeDataCache';
-
+} from '@/app/components/messages/core/types';
+import { getAuthToken, handleAuthError } from '@/app/components/messages/services/auth';
+import { isPublicEndpoint as checkIsPublicEndpoint } from '@/app/components/messages/shared/constStubs';
+import { APIError, APIErrorCodes } from '@/app/components/messages/shared/stubs';
+import { getApiURL, isLocalDevelopment } from '@/app/components/messages/shared/utilStubs';
+import { getBusinessInfoFromCache, setBusinessInfoToCache } from '@/app/components/messages/shared/utilStubs';
 import { ChatAuditReport } from '@/app/types/audit';
 import { User } from '@/app/types/auth';
 import {

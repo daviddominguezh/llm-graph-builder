@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 
 import { Plus, RefreshCw, ShoppingCart as ShoppingCartIcon, Trash2, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 
-import { formatCurrency } from '@/app/utils/forms';
+import { formatCurrency } from '@/app/components/messages/shared/utilStubs';
 
 import type { BusinessSetupSchemaAPIType, ProductBusinessSetupSchemaAPIType } from '@/app/types/business';
 import { Cart, CartItem } from '@/app/types/cart';
@@ -15,7 +15,7 @@ import { AddToCartDialog } from './AddToCartDialog';
 import { CreateOrderFromCartModal } from './CreateOrderFromCartModal';
 import { DeleteCartItemModal } from './DeleteCartItemModal';
 
-import ProductBGImg from '@assets/productBG.png';
+import ProductBGImg from '@/app/components/messages/shared/assets';
 
 interface ShoppingCartDialogProps {
   cart: Cart | null;
@@ -138,7 +138,7 @@ const CartItemCard: React.FC<{
   currency: string;
   onDelete: () => void;
 }> = ({ item, product, currency, onDelete }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
 
   if (!product) {
     return (
@@ -249,7 +249,7 @@ export const ShoppingCartDialog: React.FC<ShoppingCartDialogProps> = ({
   onOrderCreated,
   onPaymentLinkCreated,
 }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showCreateOrderModal, setShowCreateOrderModal] = useState(false);

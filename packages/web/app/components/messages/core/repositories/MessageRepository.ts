@@ -1,5 +1,3 @@
-import { TEST_PHONE } from '@/app/constants/messages';
-import { cleanFetchQueue, removeLastMessage, setAllLastMessages, setLastMessage } from '@reducers/messages';
 import {
   deleteConversation as deleteConversationAPI,
   fixInquiry as fixInquiryAPI,
@@ -11,12 +9,17 @@ import {
   sendMessage as sendMessageAPI,
   sendTestMessage as sendTestMessageAPI,
   setChatbotActiveState as setChatbotActiveStateAPI,
-} from '@services/api';
-import { Dispatch } from 'redux';
-
-import { calculateUnansweredCount } from '@/app/utils/chatUtils';
-
+} from '@/app/components/messages/services/api';
+import {
+  cleanFetchQueue,
+  removeLastMessage,
+  setAllLastMessages,
+  setLastMessage,
+} from '@/app/components/messages/store';
+import { TEST_PHONE } from '@/app/constants/messages';
 import { AI_MESSAGE_ROLES, Conversation, INTENT, LastMessage } from '@/app/types/chat';
+import { calculateUnansweredCount } from '@/app/utils/chatUtils';
+import { Dispatch } from 'redux';
 
 import type { CacheServiceInterface } from '../../MessagesDashboard.types';
 import { ConversationMessagesCacheService } from '../services/ConversationMessagesCacheService';

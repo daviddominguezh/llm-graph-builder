@@ -38,6 +38,7 @@ function useTransferOwnership(props: TransferOwnershipDialogProps) {
       return;
     }
 
+    toast.success(t('transferSuccess', { name: props.memberName }));
     props.onOpenChange(false);
     props.onTransferred();
   }
@@ -61,7 +62,7 @@ export function TransferOwnershipDialog(props: TransferOwnershipDialogProps) {
         <AlertDialogFooter>
           <AlertDialogCancel>{t('transferCancel')}</AlertDialogCancel>
           <AlertDialogAction onClick={handleTransfer} disabled={loading}>
-            {t('transferConfirm')}
+            {loading ? t('transferring') : t('transferConfirm')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

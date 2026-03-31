@@ -1,7 +1,7 @@
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 import Avatar from 'react-nice-avatar';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'next/navigation';
 
 import {
   AtSign,
@@ -27,12 +27,12 @@ import {
   getNotes,
   getUserPictureByEmailCached,
   setChatTags,
-} from '@services/api';
+} from '@/app/components/messages/services/api';
 
-import { TAG_COLORS } from '@features/chatSettings/tagsUtils';
+import { TAG_COLORS } from '@/app/components/messages/chatSettings/tagsUtils';
 
-import { MultiSelect } from '@components/form/multiselect';
-import type { MultiSelectOption } from '@components/form/multiselect';
+import { MultiSelect } from '@/app/components/messages/shared/stubs';
+import type { MultiSelectOption } from '@/app/components/messages/shared/stubs';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -49,7 +49,7 @@ import { generateAvatarConfig } from '@/app/utils/avatar';
 import { useIsMobile } from '@/app/utils/device';
 import { formatTimestamp, formatWhatsapp } from '@/app/utils/strs';
 
-import { cn } from '@src/lib/utils';
+import { cn } from '@/app/lib/utils';
 
 import type { Conversation } from '@/app/types/chat';
 import { FinalUserInfoAPI } from '@/app/types/finalUsers';
@@ -104,7 +104,8 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
   isTestChat = false,
 }) => {
   const { t, i18n } = useTranslation();
-  const { projectName } = useParams();
+  const params = useParams();
+  const projectName = typeof params.projectName === 'string' ? params.projectName : params.projectName?.[0] ?? '';
   const isMobile = useIsMobile();
   const {
     notes,

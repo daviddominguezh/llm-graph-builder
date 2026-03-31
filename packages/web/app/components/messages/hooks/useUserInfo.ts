@@ -1,8 +1,7 @@
-import { getFinalUserInfo } from '@services/api';
-import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
-
+import { getFinalUserInfo } from '@/app/components/messages/services/api';
 import type { FinalUserInfoAPI } from '@/app/types/finalUsers';
+import { useParams } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 
 interface UserInfoCache {
   [chatId: string]: FinalUserInfoAPI;
@@ -18,7 +17,8 @@ const userInfoCache: UserInfoCache = {};
  * @returns User information including userGender, or null if not available
  */
 export const useUserInfo = (chatId: string | null, isActive: boolean = false): FinalUserInfoAPI | null => {
-  const { projectName } = useParams();
+  const params = useParams();
+  const projectName = typeof params.projectName === 'string' ? params.projectName : params.projectName?.[0] ?? '';
   const [userInfo, setUserInfo] = useState<FinalUserInfoAPI | null>(null);
   const activeChatRef = useRef<string | null>(chatId);
 

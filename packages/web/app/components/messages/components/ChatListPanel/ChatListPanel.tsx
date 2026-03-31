@@ -1,9 +1,9 @@
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 
 import { MessageCircleOff } from 'lucide-react';
 
-import { getCurrentFirebaseUser } from '@services/firebase';
+import { getCurrentFirebaseUser } from '@/app/components/messages/services/firebase';
 
 import MessagePreview from '@/app/components/messages/shared/messagePreview';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -85,7 +85,7 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
   hasMore = false,
   isLoadingMore = false,
 }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
   const isMobile = useIsMobile();
   const chatListScrollRef = useRef<HTMLDivElement>(null);
   const SCROLL_STORAGE_KEY = 'chatListScrollPosition';

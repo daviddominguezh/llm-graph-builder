@@ -1,6 +1,6 @@
 import React from 'react';
 import { MessageCircleOff, Search, Filter } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import styles from './ChatListEmpty.module.css';
 
@@ -21,7 +21,7 @@ export const ChatListEmpty: React.FC<ChatListEmptyProps> = ({
   onClearFilters,
   onStartChat,
 }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
 
   // Search empty state
   if (isSearchActive) {

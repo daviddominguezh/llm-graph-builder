@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 
 import {
   Dialog,
@@ -14,16 +14,16 @@ import { Combobox } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-import { getBusinessInfo, getStoreData } from '@services/api';
+import { getBusinessInfo, getStoreData } from '@/app/components/messages/services/api';
 
-import { PRODUCT_PLACEHOLDER_SVG } from '@/app/constants/placeholders';
-import { formatCurrency } from '@/app/utils/forms';
+import { PRODUCT_PLACEHOLDER_SVG } from '@/app/components/messages/shared/constStubs';
+import { formatCurrency } from '@/app/components/messages/shared/utilStubs';
 import {
   isPersonalizationCombinationInStock,
   getAvailableStock,
   getAvailablePersonalizationValues,
   isQuantityExceedsStock,
-} from '@/app/utils/stock';
+} from '@/app/components/messages/shared/utilStubs';
 
 import { BusinessSetupSchemaAPIType, ProductBusinessSetupSchemaAPIType } from '@/app/types/business';
 import { CartItem } from '@/app/types/cart';
@@ -51,7 +51,7 @@ interface AddToCartDialogProps {
 }
 
 export const AddToCartDialog: React.FC<AddToCartDialogProps> = ({ isOpen, onClose, onAdd, projectName }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
 
   const [products, setProducts] = useState<ProductBusinessSetupSchemaAPIType[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);

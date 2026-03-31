@@ -1,18 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Check, Copy } from 'lucide-react';
 import { z } from 'zod';
 
-import { createOrder, createPaymentLink } from '@services/api';
+import { createOrder, createPaymentLink } from '@/app/components/messages/services/api';
 
-import { DiscountAwareSummary } from '@features/discountTest/components/DiscountAwareSummary';
-import { calculateOrderTotal } from '@features/discountTest/utils/discountLogic';
+import { DiscountAwareSummary } from '@/app/components/messages/shared/stubs';
+import { calculateOrderTotal } from '@/app/components/messages/shared/stubs';
 
-import { Address, AddressForm } from '@components/order/AddressForm';
+import { Address, AddressForm } from '@/app/components/messages/shared/stubs';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -70,7 +70,7 @@ export const CreateOrderFromCartModal: React.FC<CreateOrderFromCartModalProps> =
   onOrderCreated,
   onPaymentLinkCreated,
 }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
 
   const [step, setStep] = useState<'form' | 'payment-method' | 'payment-link'>('form');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cash' | 'online' | null>(null);

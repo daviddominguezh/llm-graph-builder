@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 
 import { MessageCircleOff } from 'lucide-react';
 
@@ -8,7 +8,7 @@ import { MessageCircleOff } from 'lucide-react';
  * Shows a friendly message prompting user to select a conversation
  */
 export const ChatEmptyState: React.FC = () => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
 
   return (
     <div className="h-full flex-1 flex items-center justify-center bg-[#f8f9fa] border-l">

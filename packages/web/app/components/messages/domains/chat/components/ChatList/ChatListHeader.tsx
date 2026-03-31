@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 import { Filter, SortAsc, MoreVertical } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -40,7 +40,7 @@ export const ChatListHeader: React.FC<ChatListHeaderProps> = ({
   onArchiveAll,
   onMarkAllRead,
 }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filters, setFilters] = useState<ChatFilters>({});
 
@@ -95,7 +95,7 @@ export const ChatListHeader: React.FC<ChatListHeaderProps> = ({
           {/* Filter button */}
           {onFilterChange && (
             <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-              <PopoverTrigger asChild>
+              <PopoverTrigger>
                 <Button
                   variant="ghost"
                   size="icon"

@@ -1,10 +1,10 @@
 import React, { useCallback, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useParams } from 'react-router-dom';
+import { useTranslations } from 'next-intl';
+import { useParams } from 'next/navigation';
 
 import { AlertTriangle } from 'lucide-react';
 
-import { verifyPayment } from '@services/api';
+import { verifyPayment } from '@/app/components/messages/services/api';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -17,9 +17,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
-import { useAppDispatch } from '@store/index';
+import { useAppDispatch } from '@/app/components/messages/store/mainStore';
 
-import { clearVerifyPaymentStatus } from '@reducers/messages';
+import { clearVerifyPaymentStatus } from '@/app/components/messages/store';
 
 interface PaymentVerificationBannerProps {
   chatId: string;
@@ -29,8 +29,9 @@ const PAYMENT_CONFIRMED_MESSAGE = 'Pago confirmado exitosamente';
 const PAYMENT_REJECTED_MESSAGE = 'Pago rechazado, informarle al usuario que su pago no fue recibido';
 
 export const PaymentVerificationBanner: React.FC<PaymentVerificationBannerProps> = ({ chatId }) => {
-  const { t } = useTranslation();
-  const { projectName } = useParams<{ projectName: string }>();
+  const t = useTranslations('messages');
+  const params = useParams();
+  const projectName = typeof params.projectName === 'string' ? params.projectName : params.projectName?.[0] ?? '';
   const dispatch = useAppDispatch();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);

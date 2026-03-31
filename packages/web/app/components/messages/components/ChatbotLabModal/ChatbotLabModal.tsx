@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useParams } from 'react-router-dom';
+import { useTranslations } from 'next-intl';
+import { useParams } from 'next/navigation';
 
 import { FlaskConical } from 'lucide-react';
 import QRCode from 'qrcode';
@@ -22,8 +22,9 @@ interface ChatbotLabModalProps {
 }
 
 export const ChatbotLabModal = ({ open, onOpenChange }: ChatbotLabModalProps) => {
-  const { t } = useTranslation();
-  const { projectName } = useParams<{ projectName: string }>();
+  const t = useTranslations('messages');
+  const params = useParams();
+  const projectName = typeof params.projectName === 'string' ? params.projectName : params.projectName?.[0] ?? '';
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 

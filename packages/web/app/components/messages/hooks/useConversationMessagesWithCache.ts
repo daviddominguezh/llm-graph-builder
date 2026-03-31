@@ -1,14 +1,16 @@
-import { ConversationMessagesCacheService } from '@features/messagesDashboard/core/services/ConversationMessagesCacheService';
+import { ConversationMessagesCacheService } from '@/app/components/messages/core/services/ConversationMessagesCacheService';
 import type {
   ConversationMessagesCacheData,
   ConversationMessagesCacheState,
   PaginationCursor,
-} from '@features/messagesDashboard/core/types/conversationMessagesCache.types';
-import { CONVERSATION_MESSAGES_EMPTY_CACHE } from '@features/messagesDashboard/core/types/conversationMessagesCache.types';
-import { getMessagesFromSender, getMessagesFromSenderPaginated } from '@services/api';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
+} from '@/app/components/messages/core/types/conversationMessagesCache.types';
+import { CONVERSATION_MESSAGES_EMPTY_CACHE } from '@/app/components/messages/core/types/conversationMessagesCache.types';
+import {
+  getMessagesFromSender,
+  getMessagesFromSenderPaginated,
+} from '@/app/components/messages/services/api';
 import type { Conversation, Message } from '@/app/types/chat';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface UseConversationMessagesWithCacheReturn {
   /** Sorted array of messages (oldest first for display) */

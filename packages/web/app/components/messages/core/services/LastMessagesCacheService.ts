@@ -4,7 +4,6 @@ import {
   LAST_MESSAGES_CACHE_VERSION,
   LAST_MESSAGES_EMPTY_CACHE,
 } from '@/app/constants/lastMessages';
-
 import type { LastMessage } from '@/app/types/chat';
 
 import type { LastMessagesCacheData } from '../types';

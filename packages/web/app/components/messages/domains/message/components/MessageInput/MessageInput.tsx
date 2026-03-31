@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 import { useQuill } from 'react-quilljs';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'next/navigation';
 
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import {
@@ -24,21 +24,21 @@ import {
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
-import * as api from '@services/api';
+import * as api from '@/app/components/messages/services/api';
 
-import { useOrders } from '@hooks/useOrders';
-import { useShoppingCart } from '@hooks/useShoppingCart';
+import { useOrders } from '@/app/components/messages/hooks/stubs';
+import { useShoppingCart } from '@/app/components/messages/hooks/stubs';
 
-import { replaceVariables } from '@features/chatSettings/quickRepliesUtils';
-import { BusinessSetup, Product } from '@features/discountTest';
-import { useUserInfo } from '@features/messagesDashboard/hooks/useUserInfo';
+import { replaceVariables } from '@/app/components/messages/chatSettings/quickRepliesUtils';
+import { BusinessSetup, Product } from '@/app/components/messages/shared/stubs';
+import { useUserInfo } from '@/app/components/messages/hooks/useUserInfo';
 
 import Spinner from '@/app/components/messages/shared/spinner';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { useIsMobile } from '@/app/utils/device';
-import { loadQuill } from '@/app/utils/quillWrapper';
+import { loadQuill } from '@/app/components/messages/shared/utilStubs';
 import { formatPhone, htmlToWhatsappFormat } from '@/app/utils/strs';
 
 import type { MediaFileDetailList } from '@/app/types/media';
@@ -93,7 +93,7 @@ interface MessageInputProps {
  */
 export const MessageInput: React.FC<MessageInputProps> = (props) => {
   const [isQuillLoaded, setIsQuillLoaded] = useState(false);
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
 
   // Pre-load Quill before react-quilljs tries to use it
   // This ensures Quill is available via ES modules in production builds
@@ -142,8 +142,9 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
   askAIQuestion = null,
   onAskAIQuestionHandled,
 }) => {
-  const { t } = useTranslation();
-  const { projectName } = useParams<{ projectName: string }>();
+  const t = useTranslations('messages');
+  const params = useParams();
+  const projectName = typeof params.projectName === 'string' ? params.projectName : params.projectName?.[0] ?? '';
   const {
     businessInfo,
     businessInfoLoading,
@@ -1507,7 +1508,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
                   </Button>
                 ) : (
                   <Tooltip>
-                    <TooltipTrigger asChild>
+                    <TooltipTrigger>
                       <Button
                         variant="ghost"
                         onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
@@ -1536,7 +1537,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
                 </Button>
               ) : (
                 <Tooltip>
-                  <TooltipTrigger asChild>
+                  <TooltipTrigger>
                     <Button
                       ref={emojiButtonRef}
                       variant="ghost"
@@ -1571,7 +1572,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
                     </Button>
                   ) : (
                     <Tooltip>
-                      <TooltipTrigger asChild>
+                      <TooltipTrigger>
                         <Button
                           variant="ghost"
                           onClick={() => setShowProductsDialog(!showProductsDialog)}
@@ -1603,7 +1604,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
                     </Button>
                   ) : (
                     <Tooltip>
-                      <TooltipTrigger asChild>
+                      <TooltipTrigger>
                         <Button
                           variant="ghost"
                           onClick={() => setShowShoppingCartDialog(!showShoppingCartDialog)}
@@ -1635,7 +1636,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
                     </Button>
                   ) : (
                     <Tooltip>
-                      <TooltipTrigger asChild>
+                      <TooltipTrigger>
                         <Button
                           variant="ghost"
                           onClick={() => setShowOrdersDialog(!showOrdersDialog)}
@@ -1663,7 +1664,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
                     </Button>
                   ) : (
                     <Tooltip>
-                      <TooltipTrigger asChild>
+                      <TooltipTrigger>
                         <Button
                           variant="ghost"
                           onClick={() => {
@@ -1701,7 +1702,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
                     </Button>
                   ) : (
                     <Tooltip>
-                      <TooltipTrigger asChild>
+                      <TooltipTrigger>
                         <Button
                           variant="ghost"
                           onClick={() => setShowAIDialog(!showAIDialog)}

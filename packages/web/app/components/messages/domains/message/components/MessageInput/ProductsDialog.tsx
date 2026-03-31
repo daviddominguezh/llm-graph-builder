@@ -1,15 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 
 import { Check, RefreshCw, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 
-import { formatCurrency } from '@/app/utils/forms';
+import { formatCurrency } from '@/app/components/messages/shared/utilStubs';
 
 import type { BusinessSetupSchemaAPIType, ProductBusinessSetupSchemaAPIType } from '@/app/types/business';
 
-import ProductBGImg from '@assets/productBG.png';
+import ProductBGImg from '@/app/components/messages/shared/assets';
 
 interface ProductsDialogProps {
   businessInfo: BusinessSetupSchemaAPIType | null;
@@ -90,7 +90,7 @@ const ProductImagesRow: React.FC<{
   onSendProductCard: () => void;
   onClose: () => void;
 }> = ({ product, selectedImageId, onImageSelect, onSendProductCard, onClose }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
   const images = product.media || [];
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(0);
@@ -246,7 +246,7 @@ export const ProductsDialog: React.FC<ProductsDialogProps> = ({
   onSendProductCard,
   onRefresh,
 }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);

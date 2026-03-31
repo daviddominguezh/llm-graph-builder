@@ -1,7 +1,6 @@
-import { Socket, io } from 'socket.io-client';
-
 import { Message } from '@/app/types/chat';
 import { LastMessage } from '@/app/types/chat';
+import { Socket, io } from 'socket.io-client';
 
 import { SyncServiceInterface } from '../../MessagesDashboard.types';
 

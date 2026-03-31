@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 
 import { Loader2, Send, Sparkles } from 'lucide-react';
 
@@ -34,7 +34,7 @@ export const AskAIModal: React.FC<AskAIModalProps> = ({
   initialQuestion = null,
   autoTrigger = false,
 }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
   const [isLoading, setIsLoading] = useState(false);

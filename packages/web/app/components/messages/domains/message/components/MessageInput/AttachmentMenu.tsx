@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 import { FileText, Mic } from 'lucide-react';
 
 interface AttachmentMenuOption {
@@ -29,7 +29,7 @@ export const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
   onSelectDocument,
   onClose,
 }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const dialogRef = useRef<HTMLDivElement>(null);
 

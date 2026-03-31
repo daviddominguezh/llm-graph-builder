@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 import {
   FileText,
   MessageSquare,
@@ -30,7 +30,7 @@ interface AIDialogProps {
  * - Styled to match MentionDialog component
  */
 export const AIDialog: React.FC<AIDialogProps> = ({ onSelect, onClose }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const dialogRef = useRef<HTMLDivElement>(null);
 

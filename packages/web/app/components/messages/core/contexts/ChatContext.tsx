@@ -8,12 +8,12 @@ import React, {
   useState,
 } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'next/navigation';
 
-import type { ChatActivity, Note, Tag, QuickReply } from '@services/api';
+import type { ChatActivity, Note, Tag, QuickReply } from '@/app/components/messages/services/api';
 
-import { getBusinessSetup } from '@reducers/business';
-import { getLastMessagesFromStore, setLastMessage } from '@reducers/messages';
+import { getBusinessSetup } from '@/app/components/messages/store/stubs';
+import { getLastMessagesFromStore, setLastMessage } from '@/app/components/messages/store';
 
 import { TEST_PHONE } from '@/app/constants/messages';
 
@@ -102,7 +102,8 @@ interface ChatContextValue {
 const ChatContext = createContext<ChatContextValue>({} as ChatContextValue);
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { projectName } = useParams();
+  const params = useParams();
+  const projectName = typeof params.projectName === 'string' ? params.projectName : params.projectName?.[0] ?? '';
   const repository = useMessageRepository();
   const dispatch = useDispatch();
   const lastMessages = useSelector(getLastMessagesFromStore);

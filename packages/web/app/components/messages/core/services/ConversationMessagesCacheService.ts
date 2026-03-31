@@ -3,7 +3,6 @@ import {
   CONVERSATION_MESSAGES_DB_VERSION,
   CONVERSATION_MESSAGES_STORE_NAME,
 } from '@/app/constants/conversationMessages';
-
 import type { Message } from '@/app/types/chat';
 
 import type {

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 
 import { Loader2, Mic, Pause, Play, Send, Square, Trash2 } from 'lucide-react';
 
@@ -33,7 +33,7 @@ export const getSupportedMimeType = (): string => {
  * - Records in WebM format, converts to OGG Opus for WhatsApp compatibility
  */
 export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onCancel }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
   const [state, setState] = useState<RecordingState>('idle');
   const [duration, setDuration] = useState(0);
   const [finalDuration, setFinalDuration] = useState(0);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 
 import {
   Dialog,
@@ -30,7 +30,7 @@ export const DeleteCartItemModal: React.FC<DeleteCartItemModalProps> = ({
   productName,
   isDeleting = false,
 }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
 
   if (!item) return null;
 

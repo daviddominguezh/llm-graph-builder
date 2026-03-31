@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'next/navigation';
 import { useMessageRepository } from '../../hooks/useMessageRepository';
 import { useChat } from './ChatContext';
 import { TEST_PHONE } from '@/app/constants/messages';
@@ -37,7 +37,8 @@ interface AIProviderProps {
 }
 
 export const AIProvider: React.FC<AIProviderProps> = ({ children }) => {
-  const { projectName } = useParams();
+  const params = useParams();
+  const projectName = typeof params.projectName === 'string' ? params.projectName : params.projectName?.[0] ?? '';
   const repository = useMessageRepository();
 
   // Import useChat to get activeChat and currentChat

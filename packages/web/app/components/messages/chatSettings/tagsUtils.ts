@@ -1,4 +1,4 @@
-import type { Tag } from '@services/api';
+import type { Tag } from '@/app/components/messages/services/api';
 
 export const PREDEFINED_TAGS = [
   'lead',

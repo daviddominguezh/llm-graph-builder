@@ -31,7 +31,12 @@ function RoleSelectField({ role, onRoleChange }: { role: OrgRole; onRoleChange: 
         <SelectContent>
           {ASSIGNABLE_ROLES.map((r) => (
             <SelectItem key={r} value={r}>
-              {t(`roles.${r}`)}
+              <div className="flex flex-col">
+                <span>{t(`roles.${r}`)}</span>
+                <span className="text-muted-foreground text-[10px] leading-tight">
+                  {t(`roleHints.${r}`)}
+                </span>
+              </div>
             </SelectItem>
           ))}
         </SelectContent>
@@ -67,6 +72,7 @@ function InviteForm({ orgId, onOpenChange, onInvited }: InviteMemberDialogProps)
       return;
     }
 
+    toast.success(t('inviteSuccess', { name: email }));
     onOpenChange(false);
     onInvited();
   }
@@ -79,6 +85,7 @@ function InviteForm({ orgId, onOpenChange, onInvited }: InviteMemberDialogProps)
           id="invite-email"
           name="email"
           type="email"
+          autoFocus
           autoComplete="off"
           placeholder={t('emailPlaceholder')}
           required
@@ -89,7 +96,7 @@ function InviteForm({ orgId, onOpenChange, onInvited }: InviteMemberDialogProps)
       <RoleSelectField role={role} onRoleChange={setRole} />
       <DialogFooter>
         <Button type="submit" disabled={loading}>
-          {t('invite')}
+          {loading ? t('inviting') : t('invite')}
         </Button>
       </DialogFooter>
     </form>
@@ -105,7 +112,7 @@ export function InviteMemberDialog(props: InviteMemberDialogProps) {
         <DialogHeader>
           <DialogTitle>{t('inviteTitle')}</DialogTitle>
         </DialogHeader>
-        <InviteForm {...props} />
+        {props.open && <InviteForm {...props} />}
       </DialogContent>
     </Dialog>
   );

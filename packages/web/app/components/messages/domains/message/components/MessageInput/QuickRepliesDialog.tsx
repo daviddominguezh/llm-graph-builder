@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 import { Search, Zap, Hash } from 'lucide-react';
 
-import type { QuickReply } from '@services/api';
+import type { QuickReply } from '@/app/components/messages/services/api';
 
-import { groupByCategory } from '@features/chatSettings/quickRepliesUtils';
+import { groupByCategory } from '@/app/components/messages/chatSettings/quickRepliesUtils';
 
 interface QuickRepliesDialogProps {
   quickReplies: QuickReply[];
@@ -30,7 +30,7 @@ export const QuickRepliesDialog: React.FC<QuickRepliesDialogProps> = ({
   onClose,
   shortcutQuery,
 }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const dialogRef = useRef<HTMLDivElement>(null);

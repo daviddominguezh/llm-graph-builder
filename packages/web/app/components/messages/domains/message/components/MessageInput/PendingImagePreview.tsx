@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 
 import { X } from 'lucide-react';
 
@@ -21,7 +21,7 @@ export const PendingImagePreview: React.FC<PendingImagePreviewProps> = ({
   fileName,
   onRemove,
 }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
 
   return (
     <div className="flex items-center gap-2 px-2 py-1.5 border-b border-gray-200">

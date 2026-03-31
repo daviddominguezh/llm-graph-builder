@@ -1,12 +1,12 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 import Avatar from 'react-nice-avatar';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 
 import { CheckCheck, ChevronDown, Loader2, MessageCircle, Sparkles } from 'lucide-react';
 
-import type { Note } from '@services/api';
-import { getUserPictureByEmailCached } from '@services/api';
+import type { Note } from '@/app/components/messages/services/api';
+import { getUserPictureByEmailCached } from '@/app/components/messages/services/api';
 
 import { MessageReplyPreview } from '@/app/components/messages/shared/messageReplyPreview';
 import { Badge } from '@/components/ui/badge';
@@ -21,7 +21,7 @@ import { Collaborator } from '@/app/types/projectInnerSettings';
 import { Slot } from '../../../../core/slots';
 import { AudioPlayer } from './AudioPlayer';
 
-import PDFImg from '@assets/pdfIcon.webp';
+import PDFImg from '@/app/components/messages/shared/assets';
 
 /**
  * Custom List component for Virtuoso with padding
@@ -568,7 +568,7 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
   isLoadingMessages = false,
   isLoadingOlderMessages = false,
 }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const previousChatIdRef = useRef<string | null>(null);
   const [, setImageOrientations] = useState<Record<string, 'landscape' | 'portrait'>>({});

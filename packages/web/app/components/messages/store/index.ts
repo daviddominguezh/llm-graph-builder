@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-dynamic-delete */
-import { type PayloadAction, createSlice } from '@reduxjs/toolkit';
-import { type StateType } from '@store/index';
-import { castDraft } from 'immer';
-
+import { type StateType } from '@/app/components/messages/store/mainStore';
 import { LastMessage, LastMessages } from '@/app/types/chat';
+import { type PayloadAction, createSlice } from '@reduxjs/toolkit';
+import { castDraft } from 'immer';
 
 export const MessagesPath = 'messages';
 

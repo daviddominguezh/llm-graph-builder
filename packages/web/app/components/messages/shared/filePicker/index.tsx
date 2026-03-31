@@ -1,6 +1,6 @@
 import React from 'react';
 import { FileUploader } from 'react-drag-drop-files';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 
 import styles from './index.module.css';
 
@@ -17,7 +17,7 @@ const FilePicker: React.FC<FilePickerProps> = ({
   label,
   handleChange,
 }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
   const displayLabel = label || t('Drag files here or browse');
 
   return (

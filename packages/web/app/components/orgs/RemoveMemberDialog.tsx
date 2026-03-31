@@ -38,6 +38,7 @@ function useRemoveMember(props: RemoveMemberDialogProps) {
       return;
     }
 
+    toast.success(t('removeSuccess', { name: props.memberName }));
     props.onOpenChange(false);
     props.onRemoved();
   }
@@ -61,7 +62,7 @@ export function RemoveMemberDialog(props: RemoveMemberDialogProps) {
         <AlertDialogFooter>
           <AlertDialogCancel>{t('removeCancel')}</AlertDialogCancel>
           <AlertDialogAction variant="destructive" onClick={handleRemove} disabled={loading}>
-            {t('removeConfirm')}
+            {loading ? t('removing') : t('removeConfirm')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

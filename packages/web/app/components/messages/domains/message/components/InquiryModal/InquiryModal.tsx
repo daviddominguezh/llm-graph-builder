@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 import {
   Dialog,
   DialogContent,
@@ -34,11 +34,11 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({
   onResolve,
   isLoading = false,
 }) => {
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
+      <DialogTrigger>
         <div
           onClick={() => onOpenChange(true)}
           className="items-center mt-[-16px] ml-[-1px] absolute z-10 left-0 w-[calc(100%+2px)] flex"

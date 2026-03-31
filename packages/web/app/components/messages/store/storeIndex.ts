@@ -1,7 +1,6 @@
-import { type PayloadAction, createSlice } from '@reduxjs/toolkit';
-import { type StateType } from '@store/index';
-
+import { type StateType } from '@/app/components/messages/store/mainStore';
 import { ProductBusinessSetupSchemaAPIType } from '@/app/types/business';
+import { type PayloadAction, createSlice } from '@reduxjs/toolkit';
 
 export const StorePath = 'store';
 
@@ -40,18 +39,25 @@ interface InitialStoreState {
   carts: Record<string, StoreProduct[]>;
 }
 
-const cachedData: { carts: string[] } = JSON.parse(
-  window.localStorage.getItem('store-carts') || '{"carts": []}'
-);
-
-const cachedCart: Record<string, StoreProduct[]> = {};
-cachedData.carts.forEach((namespace) => {
-  const data = window.localStorage.getItem(`store-cart-${namespace}`);
-  if (data && data.length > 0) cachedCart[namespace] = JSON.parse(data);
-});
+function loadCachedCarts(): Record<string, StoreProduct[]> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const cachedData: { carts: string[] } = JSON.parse(
+      window.localStorage.getItem('store-carts') || '{"carts": []}'
+    );
+    const cachedCart: Record<string, StoreProduct[]> = {};
+    cachedData.carts.forEach((namespace) => {
+      const data = window.localStorage.getItem(`store-cart-${namespace}`);
+      if (data && data.length > 0) cachedCart[namespace] = JSON.parse(data) as StoreProduct[];
+    });
+    return cachedCart;
+  } catch {
+    return {};
+  }
+}
 
 const initialData: InitialStoreState = {
-  carts: cachedCart,
+  carts: loadCachedCarts(),
 };
 
 export const StoreSlice = createSlice({

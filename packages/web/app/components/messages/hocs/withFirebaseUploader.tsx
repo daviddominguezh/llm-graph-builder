@@ -1,18 +1,18 @@
 /* eslint-disable @typescript-eslint/no-dynamic-delete */
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslations } from 'next-intl';
 
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 
-import { getFileDescription, setMediaUploaded } from '@services/api';
-import { uploadFile } from '@services/firebase';
+import { getFileDescription, setMediaUploaded } from '@/app/components/messages/services/api';
+import { uploadFile } from '@/app/components/messages/services/firebase';
 
-import MediaFileList from '@components/mediaFileList';
+import MediaFileList from '@/app/components/messages/shared/stubs';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
-import { getMediaKind } from '@/app/utils/media';
+import { getMediaKind } from '@/app/components/messages/shared/utilStubs';
 
 import { MediaFileDetail, MediaFileDetailList, MediaStatus } from '@/app/types/media';
 
@@ -50,7 +50,7 @@ const WithFirebaseUploader: React.FC<WithFirebaseUploaderProps> = ({
   const [files, setFiles] = useState<MediaFileDetailList | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { t } = useTranslation();
+  const t = useTranslations('messages');
 
   const onFileUpdate = (fileId: string, progress: number) => {
     setFiles((prev) => {

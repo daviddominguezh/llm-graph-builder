@@ -1,3 +1,4 @@
+import { getApiURL } from '@/app/components/messages/shared/utilStubs';
 import {
   SOCKET_HEARTBEAT_INTERVAL_MS,
   SOCKET_RECONNECTION_ATTEMPTS,
@@ -5,15 +6,12 @@ import {
   SOCKET_RECONNECT_WAIT_TIEMOUT_MS,
   SOCKET_TIMEOUT_MS,
 } from '@/app/constants/socket';
-import { Socket, io } from 'socket.io-client';
-import { v4 as uuidv4 } from 'uuid';
-
-import { getApiURL } from '@/app/utils/environment';
-
 import { LastMessage } from '@/app/types/chat';
 import { FetchFilesOptions, FileFetchingData, FileFetchingStatus } from '@/app/types/drive';
 import { MessageFetchingStatus } from '@/app/types/messages';
 import { SocketCallback } from '@/app/types/socket';
+import { Socket, io } from 'socket.io-client';
+import { v4 as uuidv4 } from 'uuid';
 
 let socket: Socket;
 const activeListeners: Record<string, SocketCallback> = {};

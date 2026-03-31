@@ -1,15 +1,18 @@
+import { ConversationMessagesCacheService } from '@/app/components/messages/core/services/ConversationMessagesCacheService';
+import { LastMessagesCacheService } from '@/app/components/messages/core/services/LastMessagesCacheService';
+import type { LastMessagesCacheData, LastMessagesCacheState } from '@/app/components/messages/core/types';
+import {
+  getDeletedChats,
+  getLastMessagesDelta,
+  getLastMessagesPaginated,
+} from '@/app/components/messages/services/api';
+import { getLastMessagesFromStore } from '@/app/components/messages/store';
 import { LAST_MESSAGES_EMPTY_CACHE } from '@/app/constants/lastMessages';
 import { TEST_PHONE } from '@/app/constants/messages';
-import { ConversationMessagesCacheService } from '@features/messagesDashboard/core/services/ConversationMessagesCacheService';
-import { LastMessagesCacheService } from '@features/messagesDashboard/core/services/LastMessagesCacheService';
-import type { LastMessagesCacheData, LastMessagesCacheState } from '@features/messagesDashboard/core/types';
-import { getLastMessagesFromStore } from '@reducers/messages';
-import { getDeletedChats, getLastMessagesDelta, getLastMessagesPaginated } from '@services/api';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
-
 import type { LastMessage } from '@/app/types/chat';
 import { INTENT } from '@/app/types/chat';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSelector } from 'react-redux';
 
 interface UseLastMessagesWithCacheReturn {
   /** Sorted array of conversations (newest first) */
