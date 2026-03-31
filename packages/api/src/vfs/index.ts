@@ -42,3 +42,5 @@ export { SessionTracker } from './sessionTracker.js';
 export { validatePath, validateWritePath } from './pathValidator.js';
 export { VFSContext } from './vfsContext.js';
 export { generateVFSTools, VFS_TOOLS_PREAMBLE, VFSTool } from './tools/index.js';
+export { GitHubSourceProvider } from './providers/index.js';
+export type { GitHubSourceConfig } from './providers/index.js';
