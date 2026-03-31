@@ -12,7 +12,8 @@ import { MediaFileKind } from '@/app/types/media';
 // ---------------------------------------------------------------------------
 // Currency formatting
 // ---------------------------------------------------------------------------
-export const formatCurrency = (value: string, _currency?: string): string => {
+export const formatCurrency = (value: string, currency?: string): string => {
+  void currency;
   const num = Number(value);
   if (Number.isNaN(num)) return value;
   return num.toLocaleString('en-US', {
@@ -55,11 +56,14 @@ export const isLocalDevelopment = (): boolean => {
 // ---------------------------------------------------------------------------
 // Business info cache stubs
 // ---------------------------------------------------------------------------
-export const getBusinessInfoFromCache = (_namespace: string): BusinessSetupSchemaAPIType | null => {
+export const getBusinessInfoFromCache = (namespace: string): BusinessSetupSchemaAPIType | null => {
+  void namespace;
   return null;
 };
 
-export const setBusinessInfoToCache = (_namespace: string, _info: BusinessSetupSchemaAPIType): void => {
+export const setBusinessInfoToCache = (namespace: string, info: BusinessSetupSchemaAPIType): void => {
+  void namespace;
+  void info;
   /* no-op */
 };
 
@@ -77,19 +81,24 @@ export enum APP_SECTION {
   CRM = 'crm',
 }
 
-export const getRolePermissions = (_role: string | null): APP_SECTION[] => {
+export const getRolePermissions = (role: string | null): APP_SECTION[] => {
+  void role;
   return Object.values(APP_SECTION);
 };
 
-export const canAccessSection = (_role: string | null, _section: APP_SECTION): boolean => {
+export const canAccessSection = (role: string | null, section: APP_SECTION): boolean => {
+  void role;
+  void section;
   return true;
 };
 
-export const getDefaultRouteForRole = (_role: string | null, projectName: string): string => {
+export const getDefaultRouteForRole = (role: string | null, projectName: string): string => {
+  void role;
   return `/${projectName}/messages`;
 };
 
-export const getDefaultSettingsRouteForRole = (_role: string | null, projectName: string): string => {
+export const getDefaultSettingsRouteForRole = (role: string | null, projectName: string): string => {
+  void role;
   return `/${projectName}/settings`;
 };
 
@@ -102,36 +111,51 @@ interface PersonalizationOption {
 }
 
 export const isPersonalizationCombinationInStock = (
-  _productId: string,
-  _personalizations: PersonalizationOption[],
-  _stockData: ProductStockType[] | undefined
+  productId: string,
+  personalizations: PersonalizationOption[],
+  stockData: ProductStockType[] | undefined
 ): boolean => {
+  void productId;
+  void personalizations;
+  void stockData;
   return true;
 };
 
 export const getAvailableStock = (
-  _productId: string,
-  _personalizations: PersonalizationOption[],
-  _stockData: ProductStockType[] | undefined
+  productId: string,
+  personalizations: PersonalizationOption[],
+  stockData: ProductStockType[] | undefined
 ): number | null => {
+  void productId;
+  void personalizations;
+  void stockData;
   return null;
 };
 
 export const getAvailablePersonalizationValues = (
-  _productId: string,
-  _personalizationType: string,
-  _selectedPersonalizations: PersonalizationOption[],
-  _stockData: ProductStockType[] | undefined,
-  _products: ProductBusinessSetupSchemaAPIType[]
+  productId: string,
+  personalizationType: string,
+  selectedPersonalizations: PersonalizationOption[],
+  stockData: ProductStockType[] | undefined,
+  products: ProductBusinessSetupSchemaAPIType[]
 ): string[] => {
+  void productId;
+  void personalizationType;
+  void selectedPersonalizations;
+  void stockData;
+  void products;
   return [];
 };
 
 export const isQuantityExceedsStock = (
-  _productId: string,
-  _personalizations: PersonalizationOption[],
-  _quantity: number,
-  _stockData: ProductStockType[] | undefined
+  productId: string,
+  personalizations: PersonalizationOption[],
+  quantity: number,
+  stockData: ProductStockType[] | undefined
 ): boolean => {
+  void productId;
+  void personalizations;
+  void quantity;
+  void stockData;
   return false;
 };

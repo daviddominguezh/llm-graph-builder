@@ -16,7 +16,10 @@ interface UseOrdersReturn {
   refreshOrders: () => Promise<void>;
 }
 
-export const useOrders = (_projectName: string, _userID: string): UseOrdersReturn => {
+export const useOrders = (projectName: string, userID: string): UseOrdersReturn => {
+  void projectName;
+  void userID;
+
   const [orders] = useState<Order[]>([]);
   const [loading] = useState(false);
 
@@ -39,7 +42,10 @@ interface UseShoppingCartReturn {
   removeItem: (itemId: string) => Promise<void>;
 }
 
-export const useShoppingCart = (_projectName: string, _userID: string): UseShoppingCartReturn => {
+export const useShoppingCart = (projectName: string, userID: string): UseShoppingCartReturn => {
+  void projectName;
+  void userID;
+
   const [cart] = useState<Cart | null>(null);
   const [loading] = useState(false);
 
@@ -47,11 +53,13 @@ export const useShoppingCart = (_projectName: string, _userID: string): UseShopp
     /* no-op stub */
   }, []);
 
-  const addItem = useCallback(async (_item: CartItem): Promise<void> => {
+  const addItem = useCallback(async (item: CartItem): Promise<void> => {
+    void item;
     /* no-op stub */
   }, []);
 
-  const removeItem = useCallback(async (_itemId: string): Promise<void> => {
+  const removeItem = useCallback(async (itemId: string): Promise<void> => {
+    void itemId;
     /* no-op stub */
   }, []);
 

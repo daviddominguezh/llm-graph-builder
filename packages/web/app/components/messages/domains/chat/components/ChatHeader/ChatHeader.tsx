@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import Avatar from 'react-nice-avatar';
 import { useParams } from 'next/navigation';
 
@@ -246,11 +247,13 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
     if (pictureUrl) {
       return (
-        <img
+        <Image
           src={pictureUrl}
           alt={assignedCollaborator.name}
-          style={{ width: `${HEADER_ICON_SIZE}px`, height: `${HEADER_ICON_SIZE}px` }}
+          width={HEADER_ICON_SIZE}
+          height={HEADER_ICON_SIZE}
           className="rounded-full object-cover"
+          unoptimized
         />
       );
     }
@@ -349,11 +352,13 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 <SelectItem className="cursor-pointer" key={collaborator.email} value={collaborator.email}>
                   <div className="flex items-center gap-2">
                     {pictureUrl ? (
-                      <img
+                      <Image
                         src={pictureUrl}
                         alt={collaborator.name}
-                        style={{ width: `${HEADER_ICON_SIZE}px`, height: `${HEADER_ICON_SIZE}px` }}
+                        width={HEADER_ICON_SIZE}
+                        height={HEADER_ICON_SIZE}
                         className="rounded-full object-cover"
+                        unoptimized
                       />
                     ) : (
                       <Avatar

@@ -117,7 +117,7 @@ export const ChatListItem: React.FC<ChatListItemProps> = memo(({
         }
       }}
       aria-label={`Chat with ${displayName}`}
-      aria-selected={isActive}
+      aria-pressed={isActive}
     >
       <div className={styles.avatarContainer}>
         <Avatar

@@ -8,8 +8,8 @@ import { cloneAgentConfig } from '../../db/queries/cloneAgentConfig.js';
 import { cloneTemplateGraph } from '../../db/queries/cloneTemplateGraph.js';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { findUniqueSlug, generateSlug } from '../../db/queries/slugQueries.js';
-import { buildBitmask } from '../../utils/bloomFilter.js';
 import { getTemplateForClone, incrementDownloads } from '../../db/queries/templateQueries.js';
+import { buildBitmask } from '../../utils/bloomFilter.js';
 import {
   type AuthenticatedLocals,
   type AuthenticatedResponse,

@@ -62,8 +62,9 @@ export const DiscountAwareSummary: React.FC<
 // calculateOrderTotal stub
 // ---------------------------------------------------------------------------
 export const calculateOrderTotal = (
-  ..._args: unknown[]
+  ...args: unknown[]
 ): OrderCalculationResult => {
+  void args;
   return { subtotal: 0, shipping: 0, discount: 0, total: 0 };
 };
 

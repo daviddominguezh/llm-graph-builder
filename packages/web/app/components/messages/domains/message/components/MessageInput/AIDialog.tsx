@@ -1,11 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { FileText, MessageSquare, Sparkles, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import {
-  FileText,
-  MessageSquare,
-  Sparkles,
-  UserRound,
-} from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 export interface AIDialogOption {
   id: string;
@@ -34,33 +29,36 @@ export const AIDialog: React.FC<AIDialogProps> = ({ onSelect, onClose }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  // Define AI options
-  const options: AIDialogOption[] = [
-    {
-      id: 'friendly',
-      label: t('Make it more friendly'),
-      description: t('Transform your message to a friendlier tone'),
-      icon: <MessageSquare size={16} strokeWidth={2} />,
-    },
-    {
-      id: 'formal',
-      label: t('Make it more formal'),
-      description: t('Transform your message to a more formal tone'),
-      icon: <UserRound size={16} strokeWidth={2} />,
-    },
-    {
-      id: 'fix-grammar',
-      label: t('Fix grammar'),
-      description: t('Correct grammar and spelling mistakes'),
-      icon: <FileText size={16} strokeWidth={2} />,
-    },
-    {
-      id: 'ask-ai',
-      label: t('Ask AI'),
-      description: t('Get AI assistance for your message'),
-      icon: <Sparkles size={16} strokeWidth={2} />,
-    },
-  ];
+  // Define AI options (memoized to keep a stable reference for useEffect deps)
+  const options: AIDialogOption[] = useMemo(
+    () => [
+      {
+        id: 'friendly',
+        label: t('Make it more friendly'),
+        description: t('Transform your message to a friendlier tone'),
+        icon: <MessageSquare size={16} strokeWidth={2} />,
+      },
+      {
+        id: 'formal',
+        label: t('Make it more formal'),
+        description: t('Transform your message to a more formal tone'),
+        icon: <UserRound size={16} strokeWidth={2} />,
+      },
+      {
+        id: 'fix-grammar',
+        label: t('Fix grammar'),
+        description: t('Correct grammar and spelling mistakes'),
+        icon: <FileText size={16} strokeWidth={2} />,
+      },
+      {
+        id: 'ask-ai',
+        label: t('Ask AI'),
+        description: t('Get AI assistance for your message'),
+        icon: <Sparkles size={16} strokeWidth={2} />,
+      },
+    ],
+    [t]
+  );
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -121,9 +119,7 @@ export const AIDialog: React.FC<AIDialogProps> = ({ onSelect, onClose }) => {
         <div
           key={option.id}
           className={`relative flex cursor-pointer select-none items-start rounded-sm px-3 py-2.5 text-sm outline-none transition-colors ${
-            index === selectedIndex
-              ? 'bg-gray-100 text-gray-900'
-              : 'hover:bg-gray-100 hover:text-gray-900'
+            index === selectedIndex ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-100 hover:text-gray-900'
           }`}
           onMouseDown={(e) => {
             // Prevent the click-outside handler from firing

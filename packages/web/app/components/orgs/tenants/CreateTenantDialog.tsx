@@ -28,7 +28,10 @@ async function submitTenant(orgId: string, name: string, file: File | null): Pro
   if (file !== null) {
     const formData = new FormData();
     formData.append('file', file);
-    await uploadTenantAvatarAction(tenant.id, formData);
+    const uploadResult = await uploadTenantAvatarAction(tenant.id, formData);
+    if (uploadResult.error !== null) {
+      console.error('[submitTenant] avatar upload failed:', uploadResult.error);
+    }
   }
 }
 

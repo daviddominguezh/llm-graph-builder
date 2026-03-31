@@ -1,5 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import Avatar from 'react-nice-avatar';
 
 import { generateAvatarConfig } from '@/app/utils/avatar';
@@ -128,11 +129,14 @@ export const MentionDialog: React.FC<MentionDialogProps> = ({
           >
             <div className="flex items-center gap-2">
               {collaborator.profilePic ? (
-                <img
+                <Image
                   src={collaborator.profilePic}
                   alt={collaborator.name}
-                  style={{ width: '16px', height: '16px', minWidth: '16px' }}
+                  width={16}
+                  height={16}
                   className="rounded-full object-cover"
+                  style={{ minWidth: '16px' }}
+                  unoptimized
                 />
               ) : (
                 <Avatar

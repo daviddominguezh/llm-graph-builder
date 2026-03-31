@@ -57,34 +57,37 @@ export const checkFirebaseAuth = async (): Promise<boolean> => {
   return false;
 };
 
-export const signInWithEmailPassword = async (
-  _email: string,
-  _password: string
-): Promise<StubFirebaseUser> => {
+export const signInWithEmailPassword = async (email: string, password: string): Promise<StubFirebaseUser> => {
+  void email;
+  void password;
   throw new Error('Firebase is not available in this environment.');
 };
 
-export const signUpWithEmailPassword = async (
-  _email: string,
-  _password: string
-): Promise<StubFirebaseUser> => {
+export const signUpWithEmailPassword = async (email: string, password: string): Promise<StubFirebaseUser> => {
+  void email;
+  void password;
   throw new Error('Firebase is not available in this environment.');
 };
 
 export const signInOrSignUp = async (
-  _email: string,
-  _password: string
+  email: string,
+  password: string
 ): Promise<{ user: StubFirebaseUser; isNewUser: boolean }> => {
+  void email;
+  void password;
   throw new Error('Firebase is not available in this environment.');
 };
 
 export const uploadFile = async (
-  _groupName: string,
-  _namespace: string,
+  groupName: string,
+  namespace: string,
   id: string,
   file: MediaFileDetail,
-  _onUpdate: (fileId: string, progress: number) => void
+  onUpdate: (fileId: string, progress: number) => void
 ): Promise<MediaFileDetail> => {
+  void groupName;
+  void namespace;
+  void onUpdate;
   console.warn('[firebase stub] uploadFile called – returning stub result');
   return {
     ...file,
@@ -98,33 +101,40 @@ export const signOutFromFirebase = async (): Promise<void> => {
   // no-op
 };
 
-export const initializeRecaptcha = (_containerId: string): StubRecaptchaVerifier => {
+export const initializeRecaptcha = (containerId: string): StubRecaptchaVerifier => {
+  void containerId;
   return { clear: () => {} };
 };
 
 export const sendSMSVerification = async (
-  _phoneNumber: string,
-  _recaptcha: StubRecaptchaVerifier
+  phoneNumber: string,
+  recaptcha: StubRecaptchaVerifier
 ): Promise<StubConfirmationResult> => {
+  void phoneNumber;
+  void recaptcha;
   throw new Error('Firebase is not available in this environment.');
 };
 
 export const verifySMSCode = async (
-  _confirmationResult: StubConfirmationResult,
-  _code: string
+  confirmationResult: StubConfirmationResult,
+  code: string
 ): Promise<StubFirebaseUser> => {
+  void confirmationResult;
+  void code;
   throw new Error('Firebase is not available in this environment.');
 };
 
-export const updateUserPhotoURL = async (_photoURL: string): Promise<void> => {
+export const updateUserPhotoURL = async (photoURL: string): Promise<void> => {
+  void photoURL;
   // no-op
 };
 
-export const resetPassword = async (_email: string): Promise<void> => {
+export const resetPassword = async (email: string): Promise<void> => {
+  void email;
   // no-op
 };
 
-export default {
+const firebaseService = {
   initializeFirebase,
   checkFirebaseAuth,
   getCurrentFirebaseUser,
@@ -139,3 +149,5 @@ export default {
   updateUserPhotoURL,
   resetPassword,
 };
+
+export default firebaseService;

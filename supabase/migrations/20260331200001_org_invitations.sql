@@ -38,6 +38,8 @@ CREATE POLICY "Org owners can delete invitations"
 -- 3. Replace add_org_member_by_email to handle invitations + return status
 -- ============================================================================
 
+DROP FUNCTION IF EXISTS public.add_org_member_by_email(uuid, text, text);
+
 CREATE OR REPLACE FUNCTION public.add_org_member_by_email(
   p_org_id uuid,
   p_email  text,

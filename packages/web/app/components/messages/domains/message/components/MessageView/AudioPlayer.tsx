@@ -1,8 +1,6 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-
-import { Pause, Play } from 'lucide-react';
-
 import { Button } from '@/components/ui/button';
+import { Pause, Play } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 interface AudioPlayerProps {
   src: string;
@@ -20,6 +18,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ src, className = '' })
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const durationRef = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Format duration as mm:ss
@@ -38,14 +37,16 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ src, className = '' })
     audio.onloadedmetadata = () => {
       // WebM files often report Infinity duration initially
       if (isFinite(audio.duration)) {
+        durationRef.current = audio.duration;
         setDuration(audio.duration);
       }
     };
 
     audio.ontimeupdate = () => {
       setCurrentTime(audio.currentTime);
-      // Try to get duration again if it was Infinity before
-      if (duration === 0 && isFinite(audio.duration)) {
+      // Try to get duration again if it was Infinity before (use ref to avoid stale closure)
+      if (durationRef.current === 0 && isFinite(audio.duration)) {
+        durationRef.current = audio.duration;
         setDuration(audio.duration);
       }
     };

@@ -1,6 +1,7 @@
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
+import NextImage from 'next/image';
 import Avatar from 'react-nice-avatar';
 import { useParams } from 'next/navigation';
 
@@ -12,7 +13,7 @@ import {
   ClipboardList,
   History,
   IdCard,
-  Image,
+  Image as ImageIcon,
   Map as MapIcon,
   MapPin,
   NotepadText,
@@ -544,10 +545,13 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
                 {/* Avatar */}
                 <div className="shrink-0">
                   {pictureUrl ? (
-                    <img
+                    <NextImage
                       src={pictureUrl}
                       alt={note.creator}
-                      className="w-6 h-6 rounded-full object-cover"
+                      width={24}
+                      height={24}
+                      className="rounded-full object-cover"
+                      unoptimized
                     />
                   ) : (
                     <Avatar {...avatarConfig} className="w-6 h-6" />
@@ -589,7 +593,7 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
       {
         id: 'media',
         label: t('Media'),
-        icon: <Image size={iconSize} />,
+        icon: <ImageIcon size={iconSize} />,
         className: 'w-full flex flex-wrap gap-[1px]',
         items: mediaImages.map((media) => ({
           id: media.id,
@@ -599,7 +603,15 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
               className="mb-2 w-[calc(50%-3px)] aspect-square rounded-md border overflow-hidden cursor-pointer p-0 bg-transparent"
               onClick={() => onMessageClick?.(media.id)}
             >
-              <img className="w-full h-full object-cover" src={media.url} alt="Media" />
+              <NextImage
+                className="w-full h-full object-cover"
+                src={media.url}
+                alt={t('Media')}
+                width={0}
+                height={0}
+                sizes="100vw"
+                unoptimized
+              />
             </button>
           ),
         })),

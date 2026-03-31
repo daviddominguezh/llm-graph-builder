@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useTranslations } from 'next-intl';
 import { FileText, Mic } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface AttachmentMenuOption {
   id: string;
@@ -33,27 +33,33 @@ export const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  const options: AttachmentMenuOption[] = [
-    {
-      id: 'voice-note',
-      label: t('Audio'),
-      icon: <Mic size={16} strokeWidth={2} />,
-    },
-    {
-      id: 'document',
-      label: t('Documento'),
-      icon: <FileText size={16} strokeWidth={2} />,
-    },
-  ];
+  const options: AttachmentMenuOption[] = useMemo(
+    () => [
+      {
+        id: 'voice-note',
+        label: t('Audio'),
+        icon: <Mic size={16} strokeWidth={2} />,
+      },
+      {
+        id: 'document',
+        label: t('Documento'),
+        icon: <FileText size={16} strokeWidth={2} />,
+      },
+    ],
+    [t]
+  );
 
-  const handleSelect = (optionId: string) => {
-    if (optionId === 'voice-note') {
-      onSelectVoiceNote();
-    } else if (optionId === 'document') {
-      onSelectDocument();
-    }
-    onClose();
-  };
+  const handleSelect = useCallback(
+    (optionId: string) => {
+      if (optionId === 'voice-note') {
+        onSelectVoiceNote();
+      } else if (optionId === 'document') {
+        onSelectDocument();
+      }
+      onClose();
+    },
+    [onSelectVoiceNote, onSelectDocument, onClose]
+  );
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -82,7 +88,7 @@ export const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIndex, onClose, options]);
+  }, [selectedIndex, onClose, options, handleSelect]);
 
   // Scroll selected item into view
   useEffect(() => {
@@ -114,9 +120,7 @@ export const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
         <div
           key={option.id}
           className={`relative flex cursor-pointer select-none items-center rounded-sm px-3 py-2 text-sm outline-none transition-colors ${
-            index === selectedIndex
-              ? 'bg-gray-100 text-gray-900'
-              : 'hover:bg-gray-100 hover:text-gray-900'
+            index === selectedIndex ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-100 hover:text-gray-900'
           }`}
           onMouseDown={(e) => {
             // Prevent the click-outside handler from firing

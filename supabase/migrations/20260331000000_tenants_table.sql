@@ -30,6 +30,14 @@ CREATE POLICY "Org members can delete tenants"
   ON public.tenants FOR DELETE
   USING (is_org_member(org_id, auth.uid()));
 
+-- Helper to look up tenant org_id bypassing RLS (for use in storage policies)
+CREATE OR REPLACE FUNCTION public.tenant_org_id(p_tenant_id uuid)
+RETURNS uuid AS $$
+BEGIN
+  RETURN (SELECT org_id FROM public.tenants WHERE id = p_tenant_id);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- Tenant avatar storage bucket and policies
 INSERT INTO storage.buckets (id, name, public) VALUES ('tenant-avatars', 'tenant-avatars', true)
   ON CONFLICT (id) DO NOTHING;
@@ -40,7 +48,7 @@ CREATE POLICY "Org members can upload tenant avatars"
   WITH CHECK (
     bucket_id = 'tenant-avatars'
     AND is_org_member(
-      (SELECT org_id FROM public.tenants WHERE id = (storage.foldername(name))[1]::uuid),
+      tenant_org_id((storage.foldername(name))[1]::uuid),
       auth.uid()
     )
   );
@@ -51,7 +59,7 @@ CREATE POLICY "Org members can update tenant avatars"
   USING (
     bucket_id = 'tenant-avatars'
     AND is_org_member(
-      (SELECT org_id FROM public.tenants WHERE id = (storage.foldername(name))[1]::uuid),
+      tenant_org_id((storage.foldername(name))[1]::uuid),
       auth.uid()
     )
   );
@@ -62,7 +70,7 @@ CREATE POLICY "Org members can delete tenant avatars"
   USING (
     bucket_id = 'tenant-avatars'
     AND is_org_member(
-      (SELECT org_id FROM public.tenants WHERE id = (storage.foldername(name))[1]::uuid),
+      tenant_org_id((storage.foldername(name))[1]::uuid),
       auth.uid()
     )
   );

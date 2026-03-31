@@ -1,15 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslations } from 'next-intl';
-
-import { Check, RefreshCw, X } from 'lucide-react';
-
-import { Button } from '@/components/ui/button';
-
-import { formatCurrency } from '@/app/components/messages/shared/utilStubs';
-
-import type { BusinessSetupSchemaAPIType, ProductBusinessSetupSchemaAPIType } from '@/app/types/business';
-
 import ProductBGImg from '@/app/components/messages/shared/assets';
+import { formatCurrency } from '@/app/components/messages/shared/utilStubs';
+import type { BusinessSetupSchemaAPIType, ProductBusinessSetupSchemaAPIType } from '@/app/types/business';
+import { Button } from '@/components/ui/button';
+import { Check, RefreshCw, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import Image from 'next/image';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 interface ProductsDialogProps {
   businessInfo: BusinessSetupSchemaAPIType | null;
@@ -44,17 +40,29 @@ const ProductCardSimple: React.FC<{
       }`}
       style={{ width: appliedWidth }}
     >
-      <img src={ProductBGImg} className="absolute top-0 w-full h-full object-cover" />
+      <Image
+        src={ProductBGImg}
+        alt=""
+        width={0}
+        height={0}
+        sizes="100vw"
+        className="absolute top-0 w-full h-full object-cover"
+        unoptimized
+      />
 
       <div className="z-0 flex-1 top-0 absolute w-full h-full shrink-0 flex items-center justify-center overflow-hidden">
         <div className="flex transition-transform duration-300 ease-in-out w-full h-full">
           {images.map((image, index) =>
             index === 0 ? (
-              <img
+              <Image
                 key={index}
                 className="w-full h-full object-cover object-center shrink-0"
                 src={image.url || ''}
                 alt={product.name}
+                width={0}
+                height={0}
+                sizes="100vw"
+                unoptimized
               />
             ) : (
               <React.Fragment key={index}></React.Fragment>
@@ -91,7 +99,7 @@ const ProductImagesRow: React.FC<{
   onClose: () => void;
 }> = ({ product, selectedImageId, onImageSelect, onSendProductCard, onClose }) => {
   const t = useTranslations('messages');
-  const images = product.media || [];
+  const images = useMemo(() => product.media || [], [product.media]);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(0);
 
@@ -123,7 +131,7 @@ const ProductImagesRow: React.FC<{
     if (totalImages === 0) {
       return {
         imageSize: 0,
-        imageRows: [] as typeof images[],
+        imageRows: [] as (typeof images)[],
       };
     }
 
@@ -169,7 +177,7 @@ const ProductImagesRow: React.FC<{
     const calculatedImageSize = Math.floor(widthForImages / finalImagesPerRow);
 
     // Group images into rows
-    const rows: typeof images[] = [];
+    const rows: (typeof images)[] = [];
     for (let i = 0; i < totalImages; i += finalImagesPerRow) {
       rows.push(images.slice(i, i + finalImagesPerRow));
     }
@@ -212,7 +220,15 @@ const ProductImagesRow: React.FC<{
                   height: `${imageSize}px`,
                 }}
               >
-                <img src={image.url} alt={image.description} className="w-full h-full object-cover" />
+                <Image
+                  src={image.url}
+                  alt={image.description}
+                  width={0}
+                  height={0}
+                  sizes="100vw"
+                  className="w-full h-full object-cover"
+                  unoptimized
+                />
                 {selectedImageId === image.id && (
                   <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
                     <div className="bg-blue-500 rounded-full p-1">
@@ -277,8 +293,8 @@ export const ProductsDialog: React.FC<ProductsDialogProps> = ({
     };
   }, []);
 
-  // Get products from business info
-  const products = businessInfo?.products?.products || [];
+  // Get products from business info (memoized to stabilize reference when businessInfo is null)
+  const products = useMemo(() => businessInfo?.products?.products || [], [businessInfo?.products?.products]);
 
   // Get currency based on country code
   const getCurrency = (countryCode?: string): string => {
@@ -364,7 +380,8 @@ export const ProductsDialog: React.FC<ProductsDialogProps> = ({
     setSelectedImageMap((prev) => {
       // If clicking the already selected image, unselect it
       if (prev[productId] === imageId) {
-        const { [productId]: _removed, ...rest } = prev;
+        const { [productId]: removed, ...rest } = prev;
+        void removed;
         return rest;
       }
       // Otherwise, select the new image

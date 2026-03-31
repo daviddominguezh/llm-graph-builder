@@ -1,122 +1,152 @@
 'use client';
 
 import { addOrgMemberAction } from '@/app/actions/orgMembers';
-import { ASSIGNABLE_ROLES, type OrgRole } from '@/app/lib/orgMemberTypes';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type FormEvent, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
-interface InviteMemberDialogProps {
+import type { InviteEntry } from './InviteRowEntry';
+import { InviteRowEntry } from './InviteRowEntry';
+
+export interface InviteMemberDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   orgId: string;
+  existingEmails: string[];
   onInvited: () => void;
-}
-
-function RoleSelectField({ role, onRoleChange }: { role: OrgRole; onRoleChange: (r: OrgRole) => void }) {
-  const t = useTranslations('team');
-
-  return (
-    <div className="flex flex-col gap-1">
-      <Label>{t('role')}</Label>
-      <Select value={role} onValueChange={(val) => val !== null && onRoleChange(val as OrgRole)}>
-        <SelectTrigger className="w-full">
-          <span className="flex flex-1 text-left">{t(`roles.${role}`)}</span>
-        </SelectTrigger>
-        <SelectContent side="bottom" alignItemWithTrigger={false}>
-          {ASSIGNABLE_ROLES.map((r) => (
-            <SelectItem key={r} value={r} label={t(`roles.${r}`)}>
-              <div className="flex flex-col">
-                <span>{t(`roles.${r}`)}</span>
-                <span className="text-muted-foreground text-[10px] leading-tight">
-                  {t(`roleHints.${r}`)}
-                </span>
-              </div>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
 }
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function isValidEmail(value: string): boolean {
-  return value !== '' && EMAIL_REGEX.test(value);
+function createEntry(): InviteEntry {
+  return { id: crypto.randomUUID(), email: '', role: 'developer', error: '' };
 }
 
-function InviteForm({ orgId, onOpenChange, onInvited }: InviteMemberDialogProps) {
+function validateEntry(
+  entry: InviteEntry,
+  allEmails: string[],
+  existingEmails: Set<string>,
+  t: (key: string) => string
+): string {
+  const trimmed = entry.email.trim().toLowerCase();
+  if (trimmed === '') return '';
+  if (!EMAIL_REGEX.test(trimmed)) return t('emailInvalid');
+  if (existingEmails.has(trimmed)) return t('alreadyMemberShort');
+  const dupes = allEmails.filter((e) => e === trimmed);
+  if (dupes.length > 1) return t('duplicateEmail');
+  return '';
+}
+
+function validateAll(entries: InviteEntry[], existingEmails: Set<string>, t: (key: string) => string): InviteEntry[] {
+  const allEmails = entries.map((e) => e.email.trim().toLowerCase());
+  return entries.map((entry) => ({
+    ...entry,
+    error: validateEntry(entry, allEmails, existingEmails, t),
+  }));
+}
+
+function canSubmitEntries(entries: InviteEntry[]): boolean {
+  const filled = entries.filter((e) => e.email.trim() !== '');
+  if (filled.length === 0) return false;
+  return filled.every((e) => e.error === '' && EMAIL_REGEX.test(e.email.trim()));
+}
+
+async function submitEntries(
+  entries: InviteEntry[],
+  orgId: string,
+  t: (key: string, values?: Record<string, string | number>) => string
+): Promise<{ succeeded: number; failed: number }> {
+  const filled = entries.filter((e) => e.email.trim() !== '');
+  const results = await Promise.all(
+    filled.map(async (entry) => {
+      const { result, error } = await addOrgMemberAction(orgId, entry.email.trim(), entry.role);
+      if (error !== null || result === null) return false;
+      if (result === 'already_member' || result === 'already_invited') {
+        toast.info(t(result === 'already_member' ? 'alreadyMember' : 'alreadyInvited', { email: entry.email }));
+        return true;
+      }
+      return true;
+    })
+  );
+  const succeeded = results.filter(Boolean).length;
+  return { succeeded, failed: results.length - succeeded };
+}
+
+function InviteForm({ orgId, existingEmails, onOpenChange, onInvited }: InviteMemberDialogProps) {
   const t = useTranslations('team');
+  const [entries, setEntries] = useState<InviteEntry[]>([createEntry()]);
   const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [role, setRole] = useState<OrgRole>('developer');
-  const canSubmit = isValidEmail(email) && !loading;
+  const existingSet = new Set(existingEmails.map((e) => e.toLowerCase()));
+  const validated = validateAll(entries, existingSet, t);
+  const canSubmit = canSubmitEntries(validated) && !loading;
 
-  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const trimmed = email.trim();
+  const updateEntry = useCallback((id: string, field: 'email' | 'role', value: string) => {
+    setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, [field]: value, error: '' } : e)));
+  }, []);
 
-    if (!isValidEmail(trimmed)) {
-      setEmailError(t('emailInvalid'));
+  function addRow() {
+    setEntries((prev) => [...prev, createEntry()]);
+  }
+
+  function removeRow(id: string) {
+    setEntries((prev) => prev.filter((e) => e.id !== id));
+  }
+
+  async function handleSubmit() {
+    const checked = validateAll(entries, existingSet, t);
+    if (!canSubmitEntries(checked)) {
+      setEntries(checked);
       return;
     }
 
     setLoading(true);
-    setEmailError('');
+    const { succeeded, failed } = await submitEntries(checked, orgId, t);
+    setLoading(false);
 
-    const { result, error } = await addOrgMemberAction(orgId, trimmed, role);
-
-    if (error !== null || result === null) {
-      setLoading(false);
-      toast.error(error ?? t('inviteError'));
-      return;
+    if (failed > 0) {
+      toast.error(t('batchInvitePartial', { failed }));
     }
-
-    if (result === 'already_member' || result === 'already_invited') {
-      setLoading(false);
-      const key = result === 'already_member' ? 'alreadyMember' : 'alreadyInvited';
-      toast.info(t(key, { email: trimmed }));
-      return;
+    if (succeeded > 0) {
+      toast.success(t('batchInviteSuccess', { count: succeeded }));
+      onOpenChange(false);
+      onInvited();
     }
-
-    const toastKey = result === 'invited' ? 'invitePendingSuccess' : 'inviteSuccess';
-    toast.success(t(toastKey, { email: trimmed }));
-    onOpenChange(false);
-    onInvited();
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <Label htmlFor="invite-email">{t('email')}</Label>
-        <Input
-          id="invite-email"
-          type="email"
-          autoFocus
-          autoComplete="off"
-          placeholder={t('emailPlaceholder')}
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            setEmailError('');
-          }}
-        />
-        {emailError !== '' && <p className="text-destructive text-xs">{emailError}</p>}
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
+        {validated.map((entry) => (
+          <InviteRowEntry
+            key={entry.id}
+            entry={entry}
+            canRemove={entries.length > 1}
+            onEmailChange={(id, email) => updateEntry(id, 'email', email)}
+            onRoleChange={(id, role) => updateEntry(id, 'role', role)}
+            onRemove={removeRow}
+          />
+        ))}
+        <Button variant="ghost" size="sm" className="self-start shrink-0 text-muted-foreground" onClick={addRow}>
+          <Plus className="size-3.5" />
+          {t('addAnother')}
+        </Button>
       </div>
-      <RoleSelectField role={role} onRoleChange={setRole} />
-      <DialogFooter>
-        <Button type="submit" disabled={!canSubmit}>
-          {loading ? t('inviting') : t('invite')}
+      <DialogFooter className="shrink-0">
+        <Button onClick={handleSubmit} disabled={!canSubmit}>
+          {loading ? t('inviting') : t('inviteCount', { count: validated.filter((e) => e.email.trim() !== '').length })}
         </Button>
       </DialogFooter>
-    </form>
+    </div>
   );
 }
 
@@ -125,9 +155,10 @@ export function InviteMemberDialog(props: InviteMemberDialogProps) {
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg sm:h-[420px] flex flex-col">
         <DialogHeader>
           <DialogTitle>{t('inviteTitle')}</DialogTitle>
+          <DialogDescription>{t('inviteDescription')}</DialogDescription>
         </DialogHeader>
         {props.open && <InviteForm {...props} />}
       </DialogContent>

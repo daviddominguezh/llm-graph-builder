@@ -1,10 +1,7 @@
-
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useTranslations } from 'next-intl';
-
-import { Loader2, Mic, Pause, Play, Send, Square, Trash2 } from 'lucide-react';
-
 import { Button } from '@/components/ui/button';
+import { Loader2, Mic, Pause, Play, Send, Square, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 type RecordingState = 'idle' | 'recording' | 'recorded' | 'uploading';
 
@@ -288,7 +285,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplet
         audioRef.current = null;
       }
     };
-  }, []);
+  }, [startRecording, stopTimer]);
 
   // Get the effective duration for the range slider
   const effectiveDuration = audioDuration || finalDuration || duration || 1;

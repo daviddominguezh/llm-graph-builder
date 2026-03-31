@@ -3,7 +3,7 @@
 -- Check: (bitmap & bitmask) = bitmask  -> slug MIGHT exist
 -- Update: bitmap = bitmap | bitmask    -> add slug to filter
 
-CREATE TABLE slug_bloom_filters (
+CREATE TABLE IF NOT EXISTS slug_bloom_filters (
   table_name TEXT PRIMARY KEY,
   bitmap     BIT(9600) NOT NULL,
   item_count INTEGER NOT NULL DEFAULT 0,
@@ -14,7 +14,8 @@ CREATE TABLE slug_bloom_filters (
 INSERT INTO slug_bloom_filters (table_name, bitmap, item_count)
 VALUES
   ('organizations', repeat('0', 9600)::bit(9600), 0),
-  ('agents', repeat('0', 9600)::bit(9600), 0);
+  ('agents', repeat('0', 9600)::bit(9600), 0)
+ON CONFLICT (table_name) DO NOTHING;
 
 -- RPC function: check if a slug might exist in the bloom filter.
 -- Returns a single row with { might_exist: boolean }.

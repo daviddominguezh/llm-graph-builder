@@ -322,10 +322,12 @@ export const cancelFileFetch = (requestId: string) => {
   return true;
 };
 
-export default {
+const socketService = {
   initializeSocket,
   fetchFilesViaSocket,
   cancelFileFetch,
   getConnectionStatus,
   stopHeartbeat,
 };
+
+export default socketService;

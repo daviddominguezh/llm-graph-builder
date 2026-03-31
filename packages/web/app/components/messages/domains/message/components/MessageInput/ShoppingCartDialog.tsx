@@ -1,21 +1,17 @@
-import React, { useMemo, useState } from 'react';
-import { useTranslations } from 'next-intl';
-
-import { Plus, RefreshCw, ShoppingCart as ShoppingCartIcon, Trash2, X } from 'lucide-react';
-
-import { Button } from '@/components/ui/button';
-
+import ProductBGImg from '@/app/components/messages/shared/assets';
 import { formatCurrency } from '@/app/components/messages/shared/utilStubs';
-
 import type { BusinessSetupSchemaAPIType, ProductBusinessSetupSchemaAPIType } from '@/app/types/business';
 import { Cart, CartItem } from '@/app/types/cart';
 import type { AddressSchemaType } from '@/app/types/orders';
+import { Button } from '@/components/ui/button';
+import { Plus, RefreshCw, ShoppingCart as ShoppingCartIcon, Trash2, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import Image from 'next/image';
+import React, { useMemo, useState } from 'react';
 
 import { AddToCartDialog } from './AddToCartDialog';
 import { CreateOrderFromCartModal } from './CreateOrderFromCartModal';
 import { DeleteCartItemModal } from './DeleteCartItemModal';
-
-import ProductBGImg from '@/app/components/messages/shared/assets';
 
 interface ShoppingCartDialogProps {
   cart: Cart | null;
@@ -168,16 +164,24 @@ const CartItemCard: React.FC<{
       <div className="flex gap-3">
         {/* Product Image */}
         <div className="relative w-16 h-16 rounded overflow-hidden shrink-0">
-          <img
+          <Image
             src={ProductBGImg}
-            className="absolute inset-0 w-full h-full object-cover"
             alt=""
+            width={0}
+            height={0}
+            sizes="100vw"
+            className="absolute inset-0 w-full h-full object-cover"
+            unoptimized
           />
           {itemImage && (
-            <img
+            <Image
               src={itemImage}
               alt={product.name}
+              width={0}
+              height={0}
+              sizes="100vw"
               className="absolute inset-0 w-full h-full object-cover z-10"
+              unoptimized
             />
           )}
         </div>
@@ -257,7 +261,7 @@ export const ShoppingCartDialog: React.FC<ShoppingCartDialogProps> = ({
   const [itemToDelete, setItemToDelete] = useState<CartItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const products = businessInfo?.products?.products || [];
+  const products = useMemo(() => businessInfo?.products?.products || [], [businessInfo?.products?.products]);
 
   // Get currency based on country code
   const getCurrency = (countryCode?: string): string => {

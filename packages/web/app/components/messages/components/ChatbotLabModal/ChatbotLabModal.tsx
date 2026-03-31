@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import { useParams } from 'next/navigation';
 
 import { FlaskConical } from 'lucide-react';
@@ -77,7 +78,7 @@ export const ChatbotLabModal = ({ open, onOpenChange }: ChatbotLabModalProps) =>
             <Spinner size="big" />
           ) : qrCodeUrl ? (
             <div className="flex flex-col items-center gap-4">
-              <img src={qrCodeUrl} alt={t('QR Code')} className="w-64 h-64" />
+              <Image src={qrCodeUrl} alt={t('QR Code')} width={256} height={256} unoptimized />
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">{t('Unable to generate QR code')}</p>

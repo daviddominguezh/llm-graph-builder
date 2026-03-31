@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import Avatar from 'react-nice-avatar';
 
 import {
@@ -313,15 +314,25 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
               {/* Show logo if AI enabled, otherwise show assignee profile pic or user icon */}
               {lastMessage?.enabled ? (
                 <div className="shrink-0">
-                  <img src={LogoImg} alt="AI" className="w-4 h-4 rounded-full object-cover" />
+                  <Image
+                    src={LogoImg}
+                    alt="AI"
+                    width={16}
+                    height={16}
+                    className="rounded-full object-cover"
+                    unoptimized
+                  />
                 </div>
               ) : assigneeDisplay ? (
                 <div className="shrink-0">
                   {assigneeDisplay.pictureUrl ? (
-                    <img
+                    <Image
                       src={assigneeDisplay.pictureUrl}
                       alt={assigneeDisplay.name}
-                      className="w-4 h-4 rounded-full object-cover"
+                      width={16}
+                      height={16}
+                      className="rounded-full object-cover"
+                      unoptimized
                     />
                   ) : (
                     <Avatar

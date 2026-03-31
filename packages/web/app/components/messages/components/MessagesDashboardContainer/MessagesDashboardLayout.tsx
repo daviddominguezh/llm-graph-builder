@@ -1,12 +1,6 @@
-
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslations } from 'next-intl';
-import { useSelector } from 'react-redux';
-import { usePanelRef } from 'react-resizable-panels';
-import { useParams } from 'next/navigation';
-
-import { v4 as uuidv4 } from 'uuid';
-
+import { combineAllTags } from '@/app/components/messages/chatSettings/tagsUtils';
+import WithFirebaseUploader from '@/app/components/messages/hocs/withFirebaseUploader';
+import { useRBAC } from '@/app/components/messages/hooks/useRBAC';
 import {
   getProjectCollaborators,
   getQuickReplies,
@@ -14,33 +8,31 @@ import {
   getUserPictureByEmailCached,
 } from '@/app/components/messages/services/api';
 import { getCurrentFirebaseUser, uploadFile } from '@/app/components/messages/services/firebase';
-
-import { MediaFileDetail, MediaFileKind, MediaStatus } from '@/app/types/media';
-
-import WithFirebaseUploader from '@/app/components/messages/hocs/withFirebaseUploader';
-
-import { combineAllTags } from '@/app/components/messages/chatSettings/tagsUtils';
-
 import FilePicker from '@/app/components/messages/shared/filePicker';
+import { getFetchQueue, getRealtimeMessages } from '@/app/components/messages/store';
+import {
+  BUSINESS_MESSAGES_GROUP_NAME,
+  INSTAGRAM_MEDIA_SUPPORTED_TYPES,
+  MEDIA_SUPPORTED_TYPES,
+} from '@/app/constants/media';
+import { TEST_PHONE } from '@/app/constants/messages';
+import { Conversation, LastMessage } from '@/app/types/chat';
+import { MediaFileDetail, MediaFileKind, MediaStatus } from '@/app/types/media';
+import { COLLABORATOR_ROLE } from '@/app/types/projectInnerSettings';
+import { Collaborator } from '@/app/types/projectInnerSettings';
+import { useIsMobile } from '@/app/utils/device';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-
-import { useRBAC } from '@/app/components/messages/hooks/useRBAC';
-
-import { useIsMobile } from '@/app/utils/device';
-
-import { getFetchQueue, getRealtimeMessages } from '@/app/components/messages/store';
-
-import { COLLABORATOR_ROLE } from '@/app/types/projectInnerSettings';
-
-import { BUSINESS_MESSAGES_GROUP_NAME, MEDIA_SUPPORTED_TYPES, INSTAGRAM_MEDIA_SUPPORTED_TYPES } from '@/app/constants/media';
-
-import { Collaborator } from '@/app/types/projectInnerSettings';
-
-import { TEST_PHONE } from '@/app/constants/messages';
+import { useTranslations } from 'next-intl';
+import { useParams } from 'next/navigation';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSelector } from 'react-redux';
+import { usePanelRef } from 'react-resizable-panels';
+import { v4 as uuidv4 } from 'uuid';
 
 import { useAI, useChat, useMessage, useUI } from '../../core/contexts';
-import { createMessageQueueService } from '../../core/services';
+import type { MessageRepository } from '../../core/repositories/MessageRepository';
+import { MessageQueueService, createMessageQueueService } from '../../core/services';
 import { ChatEmptyState } from '../../domains/chat/components/ChatEmptyState';
 import { ChatHeader } from '../../domains/chat/components/ChatHeader';
 import { useMessageRepository } from '../../hooks/useMessageRepository';
@@ -49,6 +41,19 @@ import { ChatListPanel } from '../ChatListPanel';
 import { ChatViewPanel } from '../ChatViewPanel';
 import { LeftPanel } from '../LeftPanel/LeftPanel';
 import { RightPanel } from '../RightPanel/RightPanel';
+
+/** Snapshot of values used by the fetch queue effect (kept in a ref to avoid re-triggering) */
+interface QueueEffectSnapshot {
+  activeChat: string | null;
+  messages: Conversation;
+  currentChat: LastMessage | null;
+  projectName: string;
+  repository: MessageRepository;
+  queueService: MessageQueueService;
+  realtimeMessages: Record<string, LastMessage>;
+  addMessages: (newMessages: Conversation) => void;
+  removeMessages: (messageIds: string[]) => void;
+}
 
 interface MessagesDashboardLayoutProps {
   onChangeSidebar: (val: boolean) => void;
@@ -66,9 +71,13 @@ interface MessagesDashboardLayoutProps {
  * - Mobile sidebar management (presentational concern)
  * - Fetch queue orchestration (delegates to MessageQueueService)
  */
-export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = ({ onChangeSidebar, initialChatFilter }) => {
+export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = ({
+  onChangeSidebar,
+  initialChatFilter,
+}) => {
   const params = useParams();
-  const projectName = typeof params.projectName === 'string' ? params.projectName : params.projectName?.[0] ?? '';
+  const projectName =
+    typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? '');
   const repository = useMessageRepository();
 
   const t = useTranslations('messages');
@@ -248,7 +257,7 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
       rightPanel: rightPanelSize,
       rightPanelInChatView: rightPanelInChatView,
     };
-  }, [isMobile, containerWidth, activeChat, leftPanelCollapsed]);
+  }, [isMobile, containerWidth, leftPanelCollapsed]);
 
   // Resize left panel when collapse state changes
   useEffect(() => {
@@ -378,37 +387,64 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
     // 1. This is a new message (not just the initial load)
     // 2. The message is from the assistant (AI response)
     // 3. The message type is text (not image, audio, etc.)
-    if (
-      isNewMessage &&
-      testChatMessage.message?.role === 'assistant' &&
-      testChatMessage.type === 'text'
-    ) {
+    if (isNewMessage && testChatMessage.message?.role === 'assistant' && testChatMessage.type === 'text') {
       stopTestMessageTyping();
     }
   }, [realtimeMessages, stopTestMessageTyping]);
+
+  // Ref holding the latest values needed by the fetch queue effect.
+  // This avoids listing volatile deps (activeChat, messages, etc.) that would cause infinite loops.
+  const queueSnapshotRef = useRef<QueueEffectSnapshot>({
+    activeChat,
+    messages,
+    currentChat,
+    projectName,
+    repository,
+    queueService,
+    realtimeMessages,
+    addMessages,
+    removeMessages,
+  });
+
+  // Keep the ref in sync with the latest values on every render
+  useEffect(() => {
+    queueSnapshotRef.current = {
+      activeChat,
+      messages,
+      currentChat,
+      projectName,
+      repository,
+      queueService,
+      realtimeMessages,
+      addMessages,
+      removeMessages,
+    };
+  });
 
   // Handle fetch queue using MessageQueueService
   useEffect(() => {
     const queuedChatIds = Object.keys(fetchQueue);
     if (queuedChatIds.length === 0) return;
 
+    const snap = queueSnapshotRef.current;
+
     // Capture current state BEFORE clearing queue to prevent race conditions
     const currentState = {
-      activeChat,
-      currentMessages: messages,
-      currentChat,
-      projectName: projectName || '',
+      activeChat: snap.activeChat,
+      currentMessages: snap.messages,
+      currentChat: snap.currentChat,
+      projectName: snap.projectName || '',
     };
 
     // Clear queue IMMEDIATELY to prevent infinite loop
-    repository.clearFetchQueue();
+    snap.repository.clearFetchQueue();
 
     // Process queue using service
     const processQueue = async () => {
       try {
-        const results = await queueService.processQueue(queuedChatIds, currentState, {
-          repository,
-          realtimeMessages,
+        const results = await snap.queueService.processQueue(queuedChatIds, currentState, {
+          repository: snap.repository,
+          realtimeMessages: snap.realtimeMessages,
         });
 
         // Apply results for active chat only
@@ -418,16 +454,19 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
           if (activeChatResult) {
             // Update messages if needed
             if (activeChatResult.messagesToRemove && activeChatResult.messagesToRemove.length > 0) {
-              removeMessages(activeChatResult.messagesToRemove);
+              snap.removeMessages(activeChatResult.messagesToRemove);
             }
 
-            if (activeChatResult.messagesToMerge && Object.keys(activeChatResult.messagesToMerge).length > 0) {
-              addMessages(activeChatResult.messagesToMerge);
+            if (
+              activeChatResult.messagesToMerge &&
+              Object.keys(activeChatResult.messagesToMerge).length > 0
+            ) {
+              snap.addMessages(activeChatResult.messagesToMerge);
             }
 
             // Mark as read if needed
             if (activeChatResult.shouldMarkAsRead && currentState.currentChat) {
-              await repository.markAsRead(
+              await snap.repository.markAsRead(
                 currentState.projectName,
                 currentState.activeChat,
                 currentState.currentChat
@@ -539,7 +578,9 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
         >
           <FilePicker
             multiple
-            types={activeChat?.startsWith('instagram:') ? INSTAGRAM_MEDIA_SUPPORTED_TYPES : MEDIA_SUPPORTED_TYPES}
+            types={
+              activeChat?.startsWith('instagram:') ? INSTAGRAM_MEDIA_SUPPORTED_TYPES : MEDIA_SUPPORTED_TYPES
+            }
           />
         </WithFirebaseUploader>
       )}
@@ -654,7 +695,6 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
             {/* Left navigation panel - hidden for agents who have tabs for filtering */}
             {!isAgent && (
               <ResizablePanel
-                
                 id="left-panel"
                 defaultSize={panelSizes.leftPanel}
                 minSize={panelSizes.leftPanelMin}
@@ -768,10 +808,7 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
 
                           <ResizableHandle />
 
-                          <ResizablePanel
-                            id="right-panel"
-                            defaultSize={panelSizes.rightPanelInChatView}
-                          >
+                          <ResizablePanel id="right-panel" defaultSize={panelSizes.rightPanelInChatView}>
                             <RightPanel
                               activeChat={activeChat}
                               messages={messages}

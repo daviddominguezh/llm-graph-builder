@@ -1,6 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useTranslations } from 'next-intl';
-
+import { getBusinessInfo, getStoreData } from '@/app/components/messages/services/api';
+import { formatCurrency } from '@/app/components/messages/shared/utilStubs';
+import {
+  getAvailablePersonalizationValues,
+  getAvailableStock,
+  isPersonalizationCombinationInStock,
+  isQuantityExceedsStock,
+} from '@/app/components/messages/shared/utilStubs';
+import { BusinessSetupSchemaAPIType, ProductBusinessSetupSchemaAPIType } from '@/app/types/business';
+import { CartItem } from '@/app/types/cart';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -9,24 +17,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-
-import { getBusinessInfo, getStoreData } from '@/app/components/messages/services/api';
-
-import { PRODUCT_PLACEHOLDER_SVG } from '@/app/components/messages/shared/constStubs';
-import { formatCurrency } from '@/app/components/messages/shared/utilStubs';
-import {
-  isPersonalizationCombinationInStock,
-  getAvailableStock,
-  getAvailablePersonalizationValues,
-  isQuantityExceedsStock,
-} from '@/app/components/messages/shared/utilStubs';
-
-import { BusinessSetupSchemaAPIType, ProductBusinessSetupSchemaAPIType } from '@/app/types/business';
-import { CartItem } from '@/app/types/cart';
+import { useTranslations } from 'next-intl';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 // Define the ProductStock type locally
 type ProductStock = {
@@ -63,17 +57,7 @@ export const AddToCartDialog: React.FC<AddToCartDialogProps> = ({ isOpen, onClos
   const [quantity, setQuantity] = useState<number>(1);
   const [personalizations, setPersonalizations] = useState<Array<{ type: string; value: string }>>([]);
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchProducts();
-      // Reset form when dialog opens
-      setSelectedProductId('');
-      setQuantity(1);
-      setPersonalizations([]);
-    }
-  }, [isOpen, projectName]);
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     if (!projectName) return;
 
     setIsLoadingProducts(true);
@@ -94,18 +78,17 @@ export const AddToCartDialog: React.FC<AddToCartDialogProps> = ({ isOpen, onClos
     } finally {
       setIsLoadingProducts(false);
     }
-  };
+  }, [projectName]);
 
-  // Get product image preview
-  const getProductImagePreview = (product: ProductBusinessSetupSchemaAPIType): string => {
-    if (product.media && product.media.length > 0) {
-      const firstMedia = product.media[0];
-      if (firstMedia.url) {
-        return firstMedia.url;
-      }
+  useEffect(() => {
+    if (isOpen) {
+      fetchProducts();
+      // Reset form when dialog opens
+      setSelectedProductId('');
+      setQuantity(1);
+      setPersonalizations([]);
     }
-    return PRODUCT_PLACEHOLDER_SVG;
-  };
+  }, [isOpen, fetchProducts]);
 
   const selectedProduct = useMemo(
     () => products.find((p) => p.id === selectedProductId),
@@ -196,7 +179,9 @@ export const AddToCartDialog: React.FC<AddToCartDialogProps> = ({ isOpen, onClos
       <DialogContent className="max-w-2xl z-[150]">
         <DialogHeader>
           <DialogTitle>{t('Add Item to Cart')}</DialogTitle>
-          <DialogDescription>{t('Select a product and its options to add to your shopping cart.')}</DialogDescription>
+          <DialogDescription>
+            {t('Select a product and its options to add to your shopping cart.')}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -209,9 +194,7 @@ export const AddToCartDialog: React.FC<AddToCartDialogProps> = ({ isOpen, onClos
               disabled={isLoadingProducts || products.length === 0}
               className="w-full rounded-md border bg-background px-3 py-2 text-sm"
             >
-              <option value="">
-                {isLoadingProducts ? t('Loading products...') : t('Select a product')}
-              </option>
+              <option value="">{isLoadingProducts ? t('Loading products...') : t('Select a product')}</option>
               {products.map((product) => (
                 <option key={product.id} value={product.id}>
                   {product.name} - ${formatCurrency(product.price.toString())}
@@ -221,41 +204,45 @@ export const AddToCartDialog: React.FC<AddToCartDialogProps> = ({ isOpen, onClos
           </div>
 
           {/* Personalizations Section */}
-          {selectedProduct && selectedProduct.personalizations && selectedProduct.personalizations.length > 0 && (
-            <div className="space-y-3">
-              <Label className="font-semibold">{t('Personalizations')}</Label>
-              {selectedProduct.personalizations
-                .sort((a, b) => a.type.localeCompare(b.type))
-                .map((personalizationType) => (
-                  <div key={personalizationType.type} className="space-y-1">
-                    <Label className="text-sm">{personalizationType.type} *</Label>
-                    <select
-                      value={personalizations.find((p) => p.type === personalizationType.type)?.value || ''}
-                      onChange={(e) => handlePersonalizationChange(personalizationType.type, e.target.value)}
-                      className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                    >
-                      <option value="">{t('Select')}</option>
-                      {getAvailablePersonalizationValues(
-                        selectedProductId,
-                        personalizationType.type,
-                        personalizations,
-                        stockData,
-                        products
-                      ).map((value) => (
-                        <option key={value} value={value}>
-                          {value}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ))}
+          {selectedProduct &&
+            selectedProduct.personalizations &&
+            selectedProduct.personalizations.length > 0 && (
+              <div className="space-y-3">
+                <Label className="font-semibold">{t('Personalizations')}</Label>
+                {selectedProduct.personalizations
+                  .sort((a, b) => a.type.localeCompare(b.type))
+                  .map((personalizationType) => (
+                    <div key={personalizationType.type} className="space-y-1">
+                      <Label className="text-sm">{personalizationType.type} *</Label>
+                      <select
+                        value={personalizations.find((p) => p.type === personalizationType.type)?.value || ''}
+                        onChange={(e) =>
+                          handlePersonalizationChange(personalizationType.type, e.target.value)
+                        }
+                        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                      >
+                        <option value="">{t('Select')}</option>
+                        {getAvailablePersonalizationValues(
+                          selectedProductId,
+                          personalizationType.type,
+                          personalizations,
+                          stockData,
+                          products
+                        ).map((value) => (
+                          <option key={value} value={value}>
+                            {value}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
 
-              {/* Stock Warning */}
-              {allPersonalizationsSelected && !isInStock && (
-                <div className="text-red-600 text-sm mt-2">⚠️ {t('This combination is out of stock')}</div>
-              )}
-            </div>
-          )}
+                {/* Stock Warning */}
+                {allPersonalizationsSelected && !isInStock && (
+                  <div className="text-red-600 text-sm mt-2">⚠️ {t('This combination is out of stock')}</div>
+                )}
+              </div>
+            )}
 
           {/* Quantity */}
           {selectedProduct && (

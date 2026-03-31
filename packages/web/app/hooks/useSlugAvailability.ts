@@ -1,7 +1,12 @@
 import { checkSlugAvailabilityAction } from '@/app/actions/slugs';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 
 type SlugTable = 'agents' | 'organizations';
+
+interface SlugResult {
+  available: boolean | null;
+  slug: string | null;
+}
 
 interface SlugAvailability {
   checking: boolean;
@@ -12,31 +17,23 @@ interface SlugAvailability {
 const DEBOUNCE_MS = 1200;
 
 export function useSlugAvailability(name: string, table: SlugTable): SlugAvailability {
-  const [state, setState] = useState<SlugAvailability>({
-    checking: false,
-    available: null,
-    slug: null,
-  });
+  const [result, setResult] = useState<SlugResult>({ available: null, slug: null });
+  const [isPending, startTransition] = useTransition();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const trimmed = name.trim();
 
   useEffect(() => {
-    const trimmed = name.trim();
-
-    if (trimmed === '') {
-      setState({ checking: false, available: null, slug: null });
-      return;
-    }
-
-    setState((prev) => ({ ...prev, checking: true, available: null }));
-
     if (timerRef.current !== null) clearTimeout(timerRef.current);
 
+    if (trimmed === '') return;
+
     timerRef.current = setTimeout(() => {
-      void checkSlugAvailabilityAction(trimmed, table).then((result) => {
-        if (result === null) {
-          setState({ checking: false, available: null, slug: null });
+      startTransition(async () => {
+        const res = await checkSlugAvailabilityAction(trimmed, table);
+        if (res === null) {
+          setResult({ available: null, slug: null });
         } else {
-          setState({ checking: false, available: result.available, slug: result.slug });
+          setResult({ available: res.available, slug: res.slug });
         }
       });
     }, DEBOUNCE_MS);
@@ -44,7 +41,9 @@ export function useSlugAvailability(name: string, table: SlugTable): SlugAvailab
     return () => {
       if (timerRef.current !== null) clearTimeout(timerRef.current);
     };
-  }, [name, table]);
+  }, [trimmed, table]);
 
-  return state;
+  if (trimmed === '') return { checking: false, available: null, slug: null };
+
+  return { checking: isPending, available: result.available, slug: result.slug };
 }

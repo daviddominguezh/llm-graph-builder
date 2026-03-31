@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 
 import { X } from 'lucide-react';
 
@@ -26,10 +27,13 @@ export const PendingImagePreview: React.FC<PendingImagePreviewProps> = ({
   return (
     <div className="flex items-center gap-2 px-2 py-1.5 border-b border-gray-200">
       <div className="relative shrink-0">
-        <img
+        <Image
           src={imageUrl}
           alt={fileName}
-          className="w-16 h-16 object-cover rounded-md border border-gray-200"
+          width={64}
+          height={64}
+          className="object-cover rounded-md border border-gray-200"
+          unoptimized
         />
         <button
           type="button"

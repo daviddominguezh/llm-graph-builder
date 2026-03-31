@@ -1,4 +1,3 @@
-
 import { getFinalUserInfo } from '@/app/components/messages/services/api';
 import type { FinalUserInfoAPI } from '@/app/types/finalUsers';
 import { useParams } from 'next/navigation';

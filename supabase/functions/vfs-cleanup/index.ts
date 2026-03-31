@@ -1,5 +1,5 @@
+import { type SupabaseClient, createClient } from '@supabase/supabase-js';
 import { Redis } from '@upstash/redis';
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 interface VfsSession {
   session_key: string;
@@ -23,10 +23,7 @@ function buildRedisClient(): Redis {
   });
 }
 
-async function listStorageObjects(
-  supabase: SupabaseClient,
-  prefix: string
-): Promise<string[]> {
+async function listStorageObjects(supabase: SupabaseClient, prefix: string): Promise<string[]> {
   const paths: string[] = [];
   const { data, error } = await supabase.storage.from('vfs').list(prefix, { limit: 1000 });
   if (error != null || data == null) return [];
@@ -58,11 +55,7 @@ async function deleteDbRow(supabase: SupabaseClient, sessionKey: string): Promis
   await supabase.from('vfs_sessions').delete().eq('session_key', sessionKey);
 }
 
-async function cleanupSession(
-  supabase: SupabaseClient,
-  redis: Redis,
-  session: VfsSession
-): Promise<void> {
+async function cleanupSession(supabase: SupabaseClient, redis: Redis, session: VfsSession): Promise<void> {
   await deleteStorageObjects(supabase, session);
   await deleteRedisKeys(redis, session.session_key);
   await deleteDbRow(supabase, session.session_key);

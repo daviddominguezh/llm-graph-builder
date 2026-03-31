@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import Avatar from 'react-nice-avatar';
 
 import { Filter, FlaskConical, Search, X } from 'lucide-react';
@@ -145,10 +146,13 @@ export const ChatsSearch = ({
           <SelectTrigger className="w-fit border-0 shadow-none px-0 gap-0 cursor-pointer [&_svg[class*=chevron]]:hidden focus-visible:ring-0 focus-visible:border-0">
             {selectedTeammate ? (
               selectedTeammatePicture ? (
-                <img
+                <Image
                   src={selectedTeammatePicture}
                   alt={selectedTeammate.name}
-                  className="w-5 h-5 rounded-full object-cover"
+                  width={20}
+                  height={20}
+                  className="rounded-full object-cover"
+                  unoptimized
                 />
               ) : (
                 <Avatar {...selectedTeammateAvatar} className="rounded-full w-5 h-5 min-w-5" />
@@ -169,10 +173,13 @@ export const ChatsSearch = ({
                 <SelectItem className="cursor-pointer" key={collaborator.email} value={collaborator.email}>
                   <div className="flex items-center gap-2">
                     {pictureUrl ? (
-                      <img
+                      <Image
                         src={pictureUrl}
                         alt={collaborator.name}
-                        className="w-5 h-5 rounded-full object-cover"
+                        width={20}
+                        height={20}
+                        className="rounded-full object-cover"
+                        unoptimized
                       />
                     ) : (
                       <Avatar {...avatarConfig} className="rounded-full w-5 h-5 min-w-5" />

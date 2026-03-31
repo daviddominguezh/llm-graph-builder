@@ -23,6 +23,7 @@ export const firebaseConfig: Record<string, string> = {
 // ---------------------------------------------------------------------------
 // Public endpoint check
 // ---------------------------------------------------------------------------
-export const isPublicEndpoint = (_url: string): boolean => {
+export const isPublicEndpoint = (url: string): boolean => {
+  void url;
   return false;
 };

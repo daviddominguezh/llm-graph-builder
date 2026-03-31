@@ -1,6 +1,7 @@
 
 import React, { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import NextImage from 'next/image';
 import Avatar from 'react-nice-avatar';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 
@@ -58,11 +59,9 @@ type VirtualizedItem = DateHeaderItem | MessageItem;
 
 /**
  * Context for sharing stable callbacks with memoized message items
- * Uses refs for values that change frequently to prevent context-triggered re-renders
  */
 interface MessageContextValue {
   isTestChatActive: boolean;
-  highlightedMessageId: string | null; // Deprecated, use ref
   findRepliedMessage: (replyId: string) => Message | null;
   handleReplyClick: (messageId: string) => void;
   onAskAI?: (messageText: string) => void;
@@ -72,15 +71,7 @@ interface MessageContextValue {
     bgColor: string;
     borderColor: string;
   };
-  noteProfilePictures: Map<string, string>; // Deprecated, use ref
-  assigneeProfilePictures: Map<string, string>; // Deprecated, use ref
-  sortedMessages: Message[]; // Deprecated, use ref
   t: (key: string) => string;
-  // Refs for frequently changing values
-  highlightedMessageIdRef: React.MutableRefObject<string | null>;
-  sortedMessagesRef: React.MutableRefObject<Message[]>;
-  noteProfilePicturesRef: React.MutableRefObject<Map<string, string>>;
-  assigneeProfilePicturesRef: React.MutableRefObject<Map<string, string>>;
 }
 
 const MessageContext = React.createContext<MessageContextValue | null>(null);
@@ -94,10 +85,24 @@ interface MessageItemComponentProps {
   imageOrientation: 'landscape' | 'portrait' | undefined;
   onImageLoad: (e: React.SyntheticEvent<HTMLImageElement>, messageId: string) => void;
   onImageRef: (imgElement: HTMLImageElement | null, messageId: string) => void;
+  isHighlighted: boolean;
+  noteProfilePicUrl: string | null | undefined;
+  assigneeProfilePicUrl: string | null | undefined;
+  hasUserReplyAfter: boolean;
 }
 
 const MessageItemComponent = memo<MessageItemComponentProps>(
-  ({ item, previousMessage, imageOrientation, onImageLoad, onImageRef }) => {
+  ({
+    item,
+    previousMessage,
+    imageOrientation,
+    onImageLoad,
+    onImageRef,
+    isHighlighted,
+    noteProfilePicUrl,
+    assigneeProfilePicUrl,
+    hasUserReplyAfter,
+  }) => {
     const context = React.useContext(MessageContext);
     const [isHovered, setIsHovered] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -173,23 +178,11 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
         setDropdownHorizontalOffset(horizontalOffset);
         setPositionCalculated(true);
       });
-    }, [isDropdownOpen]);
+    }, [isDropdownOpen, positionCalculated]);
 
     if (!context) return null;
 
-    const {
-      isTestChatActive,
-      findRepliedMessage,
-      handleReplyClick,
-      onAskAI,
-      getStatusDisplay,
-      t,
-      // Use refs for frequently changing values to avoid re-renders
-      highlightedMessageIdRef,
-      sortedMessagesRef,
-      noteProfilePicturesRef,
-      assigneeProfilePicturesRef,
-    } = context;
+    const { isTestChatActive, findRepliedMessage, handleReplyClick, onAskAI, getStatusDisplay, t } = context;
 
     const { message, isNote, isAssigneeChange, isStatusChange } = item;
 
@@ -202,8 +195,6 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
             ? false
             : true;
 
-    // Use refs for values that change frequently
-    const isHighlighted = highlightedMessageIdRef.current === message.id;
     const hasImage = message.mediaUrl && (message.type || '').startsWith('image');
 
     // Check if role changed from previous message
@@ -217,35 +208,22 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
       previousMessage.type !== 'status-change' &&
       message.message.role !== previousMessage.message.role;
 
-    // Get note creator info - use ref
+    // Get note creator info
     const noteCreator = isNote ? message.key : null;
-    const noteProfilePicUrl = noteCreator ? noteProfilePicturesRef.current.get(noteCreator) : null;
     const noteAvatarConfig = noteCreator ? generateAvatarConfig(noteCreator) : null;
 
-    // Get assignee info - use ref
+    // Get assignee info
     const assigneeEmail = isAssigneeChange ? message.key : null;
     const isUnassigned = assigneeEmail === 'none';
-    const assigneeProfilePicUrl =
-      assigneeEmail && !isUnassigned ? assigneeProfilePicturesRef.current.get(assigneeEmail) : null;
     const assigneeAvatarConfig = assigneeEmail && !isUnassigned ? generateAvatarConfig(assigneeEmail) : null;
 
     // Get status display info
     const statusValue = isStatusChange ? message.key : null;
     const statusDisplay = statusValue ? getStatusDisplay(statusValue) : null;
 
-    // Check if there's a user message after this assistant message - use ref
+    // Whether this is an assistant message (used for double-check icon display)
     const isAssistantMessage =
       message.message.role === 'assistant' && !isNote && !isAssigneeChange && !isStatusChange;
-    const hasUserReplyAfter = isAssistantMessage
-      ? sortedMessagesRef.current.some(
-          (m) =>
-            m.timestamp > message.timestamp &&
-            m.message.role === 'user' &&
-            m.type !== 'note' &&
-            m.type !== 'assignee-change' &&
-            m.type !== 'status-change'
-        )
-      : false;
 
     return (
       <div
@@ -320,7 +298,7 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
                   }`}
                   style={{
                     right: `${dropdownHorizontalOffset}px`,
-                    visibility: positionCalculatedRef.current ? 'visible' : 'hidden',
+                    visibility: positionCalculated ? 'visible' : 'hidden',
                   }}
                 >
                   <div
@@ -382,12 +360,15 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
                 return (
                   <div className="relative">
                     {/* Hidden image to detect orientation */}
-                    <img
+                    <NextImage
                       ref={(el) => onImageRef(el, message.id)}
                       onLoad={(e) => onImageLoad(e, message.id)}
                       src={message.mediaUrl}
                       alt=""
-                      className="absolute w-px h-px opacity-0 pointer-events-none"
+                      width={1}
+                      height={1}
+                      className="absolute opacity-0 pointer-events-none"
+                      unoptimized
                     />
                     {/* Loading placeholder */}
                     <div className="w-[120px] h-[90px] bg-gray-100 rounded-[5px] flex items-center justify-center">
@@ -401,11 +382,15 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
               const width = imageOrientation === 'landscape' ? '330px' : '240px';
               return (
                 <a href={message.mediaUrl} target="_blank" rel="noreferrer" className="p-0.5">
-                  <img
+                  <NextImage
                     className="h-auto block rounded-[5px] cursor-pointer"
                     style={{ width }}
                     src={message.mediaUrl}
-                    alt="Message attachment"
+                    alt={t('Message attachment')}
+                    width={0}
+                    height={0}
+                    sizes="100vw"
+                    unoptimized
                   />
                 </a>
               );
@@ -415,10 +400,14 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
           {message.mediaUrl && (message.type === 'pdf' || message.type === 'document') && (
             <a href={message.mediaUrl} target="_blank" rel="noreferrer">
               <div className="cursor-pointer border border-[#e4e4e7] p-4 overflow-hidden flex justify-center items-center w-full h-[100px]">
-                <img
+                <NextImage
                   src={PDFImg}
                   alt="PDF"
+                  width={0}
+                  height={0}
+                  sizes="100vw"
                   className="h-full w-auto object-contain object-center"
+                  unoptimized
                 />
               </div>
             </a>
@@ -433,10 +422,13 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
               <span className="text-xs text-gray-500 font-semibold">{t('Note')}</span>
               <div className="shrink-0">
                 {noteProfilePicUrl ? (
-                  <img
+                  <NextImage
                     src={noteProfilePicUrl}
                     alt={noteCreator || 'Creator'}
-                    className="w-5 h-5 rounded-full object-cover"
+                    width={20}
+                    height={20}
+                    className="rounded-full object-cover"
+                    unoptimized
                   />
                 ) : (
                   noteAvatarConfig && <Avatar {...noteAvatarConfig} className="w-5 h-5" />
@@ -464,10 +456,13 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
                 </span>
                 <div className="shrink-0">
                   {assigneeProfilePicUrl ? (
-                    <img
+                    <NextImage
                       src={assigneeProfilePicUrl}
                       alt={assigneeEmail || 'Assignee'}
-                      className="w-5 h-5 rounded-full object-cover"
+                      width={20}
+                      height={20}
+                      className="rounded-full object-cover"
+                      unoptimized
                     />
                   ) : (
                     assigneeAvatarConfig && (
@@ -510,7 +505,11 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
     return (
       prevProps.item.id === nextProps.item.id &&
       prevProps.imageOrientation === nextProps.imageOrientation &&
-      prevProps.previousMessage?.id === nextProps.previousMessage?.id
+      prevProps.previousMessage?.id === nextProps.previousMessage?.id &&
+      prevProps.isHighlighted === nextProps.isHighlighted &&
+      prevProps.noteProfilePicUrl === nextProps.noteProfilePicUrl &&
+      prevProps.assigneeProfilePicUrl === nextProps.assigneeProfilePicUrl &&
+      prevProps.hasUserReplyAfter === nextProps.hasUserReplyAfter
     );
   }
 );
@@ -621,16 +620,6 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
   // Track if loading older messages
   const isLoadingOlderRef = useRef(false);
 
-  // Refs for stable access to frequently-changing props (prevents useMemo invalidation)
-  const collaboratorsRef = useRef(collaborators);
-  const tRef = useRef(t);
-
-  useEffect(() => {
-    collaboratorsRef.current = collaborators;
-  }, [collaborators]);
-  useEffect(() => {
-    tRef.current = t;
-  }, [t]);
 
 
 
@@ -970,65 +959,58 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
     return null;
   }, []);
 
-  const stableGetStatusDisplay = useCallback((statusValue: string) => {
-    switch (statusValue) {
-      case 'open':
-        return {
-          label: tRef.current('chat-status-open'),
-          textColor: 'text-gray-600',
-          bgColor: 'bg-gray-50',
-          borderColor: 'border-gray-300',
-        };
-      case 'blocked':
-        return {
-          label: tRef.current('chat-status-blocked'),
-          textColor: 'text-yellow-600',
-          bgColor: 'bg-yellow-50',
-          borderColor: 'border-yellow-300',
-        };
-      case 'closed':
-        return {
-          label: tRef.current('chat-status-closed'),
-          textColor: 'text-green-700',
-          bgColor: 'bg-green-50',
-          borderColor: 'border-green-300',
-        };
-      case 'verify-payment':
-        return {
-          label: tRef.current('chat-status-verify-payment'),
-          textColor: 'text-amber-600',
-          bgColor: 'bg-amber-50',
-          borderColor: 'border-amber-300',
-        };
-      default:
-        return {
-          label: statusValue,
-          textColor: 'text-gray-600',
-          bgColor: 'bg-gray-50',
-          borderColor: 'border-gray-300',
-        };
-    }
-  }, []);
+  const stableGetStatusDisplay = useCallback(
+    (statusValue: string) => {
+      switch (statusValue) {
+        case 'open':
+          return {
+            label: t('chat-status-open'),
+            textColor: 'text-gray-600',
+            bgColor: 'bg-gray-50',
+            borderColor: 'border-gray-300',
+          };
+        case 'blocked':
+          return {
+            label: t('chat-status-blocked'),
+            textColor: 'text-yellow-600',
+            bgColor: 'bg-yellow-50',
+            borderColor: 'border-yellow-300',
+          };
+        case 'closed':
+          return {
+            label: t('chat-status-closed'),
+            textColor: 'text-green-700',
+            bgColor: 'bg-green-50',
+            borderColor: 'border-green-300',
+          };
+        case 'verify-payment':
+          return {
+            label: t('chat-status-verify-payment'),
+            textColor: 'text-amber-600',
+            bgColor: 'bg-amber-50',
+            borderColor: 'border-amber-300',
+          };
+        default:
+          return {
+            label: statusValue,
+            textColor: 'text-gray-600',
+            bgColor: 'bg-gray-50',
+            borderColor: 'border-gray-300',
+          };
+      }
+    },
+    [t]
+  );
 
-  // Create context value - now with stable references
-  // Using refs means the context value itself is stable and won't cause re-renders
+  // Create context value with stable callbacks
   const contextValue = useMemo<MessageContextValue>(
     () => ({
       isTestChatActive,
-      highlightedMessageId: null, // Use ref inside component instead
       findRepliedMessage: stableFindRepliedMessage,
       handleReplyClick,
       onAskAI,
       getStatusDisplay: stableGetStatusDisplay,
-      noteProfilePictures: new Map(), // Use ref inside component instead
-      assigneeProfilePictures: new Map(), // Use ref inside component instead
-      sortedMessages: [], // Use ref inside component instead
       t,
-      // Provide refs for values that change
-      highlightedMessageIdRef,
-      sortedMessagesRef,
-      noteProfilePicturesRef,
-      assigneeProfilePicturesRef,
     }),
     [isTestChatActive, stableFindRepliedMessage, handleReplyClick, onAskAI, stableGetStatusDisplay, t]
   );
@@ -1058,13 +1040,46 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
       // Get previous message for role change detection
       const previousMessage = getPreviousMessageItem(index);
 
+      // Compute per-item derived values from refs (safe inside useCallback)
+      const msg = item.message;
+      const itemIsHighlighted = highlightedMessageIdRef.current === msg.id;
+
+      const noteCreator = item.isNote ? msg.key : null;
+      const itemNoteProfilePicUrl = noteCreator
+        ? noteProfilePicturesRef.current.get(noteCreator)
+        : null;
+
+      const assigneeEmail = item.isAssigneeChange ? msg.key : null;
+      const isUnassigned = assigneeEmail === 'none';
+      const itemAssigneeProfilePicUrl =
+        assigneeEmail && !isUnassigned
+          ? assigneeProfilePicturesRef.current.get(assigneeEmail)
+          : null;
+
+      const isAssistantMsg =
+        msg.message.role === 'assistant' && !item.isNote && !item.isAssigneeChange && !item.isStatusChange;
+      const itemHasUserReplyAfter = isAssistantMsg
+        ? sortedMessagesRef.current.some(
+            (m) =>
+              m.timestamp > msg.timestamp &&
+              m.message.role === 'user' &&
+              m.type !== 'note' &&
+              m.type !== 'assignee-change' &&
+              m.type !== 'status-change'
+          )
+        : false;
+
       return (
         <MessageItemComponent
           item={item}
           previousMessage={previousMessage}
-          imageOrientation={imageOrientationsRef.current[item.message.id]}
+          imageOrientation={imageOrientationsRef.current[msg.id]}
           onImageLoad={handleImageLoad}
           onImageRef={handleImageRef}
+          isHighlighted={itemIsHighlighted}
+          noteProfilePicUrl={itemNoteProfilePicUrl}
+          assigneeProfilePicUrl={itemAssigneeProfilePicUrl}
+          hasUserReplyAfter={itemHasUserReplyAfter}
         />
       );
     },

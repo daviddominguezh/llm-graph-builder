@@ -123,6 +123,7 @@ export function TeamSection(props: TeamSectionProps) {
 
   const { handleRoleChange } = useTeamActions(orgId, refreshAll);
   const totalCount = members.length + invitations.length;
+  const existingEmails = [...members.map((m) => m.email), ...invitations.map((i) => i.email)];
 
   async function onRoleChange(userId: string, name: string, role: OrgRole) {
     const pending = await handleRoleChange(userId, name, role);
@@ -146,6 +147,7 @@ export function TeamSection(props: TeamSectionProps) {
       </CardContent>
       <TeamDialogs
         orgId={orgId}
+        existingEmails={existingEmails}
         inviteOpen={inviteOpen}
         setInviteOpen={setInviteOpen}
         removeTarget={removeTarget}
@@ -186,6 +188,7 @@ function TeamHeader({ isOwner, totalCount, onInvite }: { isOwner: boolean; total
 
 function TeamDialogs({
   orgId,
+  existingEmails,
   inviteOpen,
   setInviteOpen,
   removeTarget,
@@ -197,6 +200,7 @@ function TeamDialogs({
   refreshAll,
 }: {
   orgId: string;
+  existingEmails: string[];
   inviteOpen: boolean;
   setInviteOpen: (open: boolean) => void;
   removeTarget: OrgMemberRow | null;
@@ -209,7 +213,13 @@ function TeamDialogs({
 }) {
   return (
     <>
-      <InviteMemberDialog open={inviteOpen} onOpenChange={setInviteOpen} orgId={orgId} onInvited={refreshAll} />
+      <InviteMemberDialog
+        open={inviteOpen}
+        onOpenChange={setInviteOpen}
+        orgId={orgId}
+        existingEmails={existingEmails}
+        onInvited={refreshAll}
+      />
       {removeTarget !== null && (
         <RemoveMemberDialog
           open={removeTarget !== null}

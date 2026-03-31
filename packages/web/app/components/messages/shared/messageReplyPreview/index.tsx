@@ -1,7 +1,8 @@
 import React from 'react';
 import { useTranslations } from 'next-intl';
+import NextImage from 'next/image';
 
-import { Image } from 'lucide-react';
+import { Image as ImageIcon } from 'lucide-react';
 
 import { getMessageText } from '@/app/utils/message';
 import { formatWhatsapp } from '@/app/utils/strs';
@@ -66,26 +67,38 @@ export const MessageReplyPreview: React.FC<MessageReplyPreviewProps> = ({
 
     if (repliedMessage.type === 'image') {
       return (
-        <img
+        <NextImage
           src={repliedMessage.mediaUrl}
-          alt="Preview"
+          alt={t('Preview')}
+          width={32}
+          height={32}
           className={styles['media-thumbnail']}
           onError={(e) => {
             // Fallback to icon if image fails to load
             e.currentTarget.style.display = 'none';
           }}
+          unoptimized
         />
       );
     }
 
     if (repliedMessage.type === 'pdf') {
-      return <img src={PDFImg} alt="PDF" className={styles['media-thumbnail']} />;
+      return (
+        <NextImage
+          src={PDFImg}
+          alt="PDF"
+          width={32}
+          height={32}
+          className={styles['media-thumbnail']}
+          unoptimized
+        />
+      );
     }
 
     if (repliedMessage.type === 'video' || repliedMessage.type === 'audio') {
       return (
         <div className={styles['media-thumbnail']}>
-          <Image size={20} className={styles['media-icon']} />
+          <ImageIcon size={20} className={styles['media-icon']} />
         </div>
       );
     }
