@@ -4,8 +4,29 @@
 import { createMCPClient } from '@ai-sdk/mcp';
 import type { McpServerConfig, McpTransport, RuntimeGraph } from '@daviddh/graph-types';
 import type { CallAgentOutput, Context, Message, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
-import { executeWithCallbacks } from '@daviddh/llm-graph-runner';
+import {
+  GitHubSourceProvider,
+  VFSContext,
+  executeWithCallbacks,
+  generateVFSTools,
+} from '@daviddh/llm-graph-runner';
 import type { Tool } from 'ai';
+
+interface VfsPayloadData {
+  token: string;
+  owner: string;
+  repo: string;
+  commitSha: string;
+  tenantSlug: string;
+  agentSlug: string;
+  userJwt: string;
+  settings: {
+    protectedPaths?: string[];
+    searchCandidateLimit?: number;
+    readLineCeiling?: number;
+    rateLimitThreshold?: number;
+  };
+}
 
 interface ExecutePayload {
   graph: RuntimeGraph;
@@ -20,6 +41,7 @@ interface ExecutePayload {
   tenantID: string;
   userID: string;
   isFirstMessage: boolean;
+  vfs?: VfsPayloadData;
 }
 
 const SSE_HEADERS = {
@@ -129,6 +151,72 @@ function buildContext(
   };
 }
 
+/* ─── VFS bootstrap ─── */
+
+interface VfsBootstrapResult {
+  tools: Record<string, Tool>;
+}
+
+function buildSourceProvider(vfs: VfsPayloadData): InstanceType<typeof GitHubSourceProvider> {
+  return new GitHubSourceProvider({
+    token: vfs.token,
+    owner: vfs.owner,
+    repo: vfs.repo,
+    commitSha: vfs.commitSha,
+  });
+}
+
+function buildVfsContextConfig(
+  vfs: VfsPayloadData,
+  payload: ExecutePayload,
+  sourceProvider: InstanceType<typeof GitHubSourceProvider>,
+  supabaseClient: unknown,
+  redisClient: unknown
+) {
+  return {
+    tenantSlug: vfs.tenantSlug,
+    agentSlug: vfs.agentSlug,
+    userID: payload.userID,
+    sessionId: payload.sessionID,
+    commitSha: vfs.commitSha,
+    sourceProvider,
+    supabase: supabaseClient,
+    redis: redisClient,
+    protectedPaths: vfs.settings.protectedPaths,
+    searchCandidateLimit: vfs.settings.searchCandidateLimit,
+    readLineCeiling: vfs.settings.readLineCeiling,
+    rateLimitThreshold: vfs.settings.rateLimitThreshold,
+  };
+}
+
+async function bootstrapVfs(
+  payload: ExecutePayload,
+  context: Omit<Context, 'toolsOverride' | 'onNodeVisited' | 'onNodeProcessed'>
+): Promise<VfsBootstrapResult | null> {
+  if (payload.vfs === undefined) return null;
+
+  const { createClient } = await import('@supabase/supabase-js');
+  const { Redis } = await import('@upstash/redis');
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+  const redisUrl = Deno.env.get('UPSTASH_REDIS_REST_URL') ?? '';
+  const redisToken = Deno.env.get('UPSTASH_REDIS_REST_TOKEN') ?? '';
+
+  const supabaseForVfs = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: `Bearer ${payload.vfs.userJwt}` } },
+  });
+  const redis = new Redis({ url: redisUrl, token: redisToken });
+
+  const sourceProvider = buildSourceProvider(payload.vfs);
+  const config = buildVfsContextConfig(payload.vfs, payload, sourceProvider, supabaseForVfs, redis);
+  const vfsContext = new VFSContext(config);
+  await vfsContext.initialize();
+
+  const tools = generateVFSTools(context, vfsContext);
+  return { tools };
+}
+
 /* ─── Token summation ─── */
 
 function sumTokens(result: CallAgentOutput): { input: number; output: number; cached: number; cost: number } {
@@ -207,11 +295,18 @@ Deno.serve(async (req: Request) => {
         clients = validation.success.clients;
 
         const context = buildContext(payload);
+        const allTools: Record<string, Tool> = { ...validation.success.tools };
+
+        const vfsResult = await bootstrapVfs(payload, context);
+        if (vfsResult !== null) {
+          Object.assign(allTools, vfsResult.tools);
+        }
+
         const result = await executeWithCallbacks({
           context,
           messages: payload.messages,
           currentNode: payload.currentNodeId,
-          toolsOverride: validation.success.tools,
+          toolsOverride: allTools,
           structuredOutputs: payload.structuredOutputs,
           onNodeVisited: (nodeId: string) => {
             write({ type: 'node_visited', nodeId });

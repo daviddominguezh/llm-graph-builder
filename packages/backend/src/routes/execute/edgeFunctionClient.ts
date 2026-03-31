@@ -1,6 +1,7 @@
 import type { RuntimeGraph } from '@daviddh/graph-types';
 import type { CallAgentOutput, Message, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
 
+import type { NodeProcessedData, ToolCallData, VfsEdgeFunctionPayload } from './executeSharedTypes.js';
 import {
   type SseEvent,
   extractLineEvents,
@@ -12,6 +13,8 @@ import {
   toStr,
   toStringArray,
 } from './sseHelpers.js';
+
+export type { NodeProcessedData, VfsEdgeFunctionPayload } from './executeSharedTypes.js';
 
 export interface ExecuteAgentParams {
   graph: RuntimeGraph;
@@ -26,6 +29,7 @@ export interface ExecuteAgentParams {
   tenantID: string;
   userID: string;
   isFirstMessage: boolean;
+  vfs?: VfsEdgeFunctionPayload;
 }
 
 export interface ExecuteAgentCallbacks {
@@ -116,21 +120,6 @@ function processNodeProcessed(event: SseEvent, callbacks: ExecuteAgentCallbacks)
 }
 
 /* ─── Agent output parsers ─── */
-
-interface ToolCallData {
-  name: string;
-  args: unknown;
-  result: unknown;
-}
-
-export interface NodeProcessedData {
-  nodeId: string;
-  text: string;
-  toolCalls: ToolCallData[];
-  durationMs: number;
-  error?: string;
-  responseMessages?: unknown[];
-}
 
 function mapRawToolCalls(raw: unknown): ToolCallData[] {
   if (!Array.isArray(raw)) return [];

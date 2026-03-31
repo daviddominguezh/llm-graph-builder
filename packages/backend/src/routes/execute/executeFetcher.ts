@@ -11,6 +11,7 @@ import {
 } from '../../db/queries/executionAuthQueries.js';
 import { getOrCreateSession, getSessionMessages } from '../../db/queries/executionQueries.js';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
+import type { AgentVfsSettings } from '../../db/queries/vfsConfigTypes.js';
 import type { AgentExecutionInput } from './executeTypes.js';
 
 const EMPTY_LENGTH = 0;
@@ -50,6 +51,7 @@ export interface FetchedData {
   messageHistory: Message[];
   appType: string;
   agentConfig: AgentConfig | null;
+  vfsSettings: AgentVfsSettings | null;
 }
 
 /* ─── Production API key lookup ─── */

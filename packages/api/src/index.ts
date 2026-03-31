@@ -29,6 +29,10 @@ export type {
 } from './agentLoop/index.js';
 export { AGENT_LOOP_HARD_LIMIT } from './agentLoop/index.js';
 
+export { VFSContext } from './vfs/index.js';
+export { generateVFSTools, GitHubSourceProvider } from './vfs/index.js';
+export type { VFSContextConfig, GitHubSourceConfig } from './vfs/index.js';
+
 export const execute = async (
   context: Context,
   messages: Message[],

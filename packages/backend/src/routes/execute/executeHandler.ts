@@ -3,7 +3,8 @@ import type { Request, Response } from 'express';
 
 import { failExecution } from '../../db/queries/executionQueries.js';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
-import type { ExecuteAgentParams, NodeProcessedData } from './edgeFunctionClient.js';
+import { getAgentVfsSettings } from '../../db/queries/vfsConfigQueries.js';
+import type { ExecuteAgentParams, NodeProcessedData, VfsEdgeFunctionPayload } from './edgeFunctionClient.js';
 import { executeAgent } from './edgeFunctionClient.js';
 import { routeAgentExecution } from './executeAgentPath.js';
 import type { ExecutionAuthLocals, ExecutionAuthResponse } from './executeAuth.js';
@@ -23,19 +24,22 @@ import {
   sendNodeProcessedEvent,
   sendNodeVisitedEvent,
   setSseHeaders,
-  sumTokens,
-  sumTotalCost,
   writePublicSSE,
 } from './executeHelpers.js';
 import { persistPostExecution, persistPreExecution } from './executePersistence.js';
-import type { AgentExecutionInput, AgentExecutionResponse } from './executeTypes.js';
+import {
+  buildAgentResponse,
+  buildEmptyResponse,
+  getLastVisitedNode,
+  mergeStructuredOutputs,
+} from './executeResponseBuilders.js';
+import type { AgentExecutionInput } from './executeTypes.js';
 import { AgentExecutionInputSchema } from './executeTypes.js';
+import { buildVfsPayload } from './vfsDispatch.js';
 
 const DEFAULT_MODEL = 'x-ai/grok-4.1-fast';
 const HTTP_BAD_REQUEST = 400;
 const HTTP_INTERNAL = 500;
-const LAST_INDEX_OFFSET = 1;
-const ZERO = 0;
 
 /* ─── Execution context ─── */
 interface ExecutionContext {
@@ -48,61 +52,7 @@ interface ExecutionContext {
   fetched: FetchedData;
   userMessage: Message;
   executionId: string;
-}
-
-/* ─── Response builders ─── */
-function getLastVisitedNode(result: CallAgentOutput, fallback: string): string {
-  const { visitedNodes } = result;
-  return visitedNodes[visitedNodes.length - LAST_INDEX_OFFSET] ?? fallback;
-}
-
-function buildToolCalls(result: CallAgentOutput): AgentExecutionResponse['toolCalls'] {
-  return result.toolCalls.map((tc) => ({
-    name: tc.toolName,
-    args: tc.input as unknown,
-    result: undefined,
-  }));
-}
-
-function buildAgentResponse(result: CallAgentOutput, durationMs: number): AgentExecutionResponse {
-  const tokens = sumTokens(result);
-  return {
-    text: result.text ?? '',
-    currentNodeId: getLastVisitedNode(result, ''),
-    visitedNodes: result.visitedNodes,
-    toolCalls: buildToolCalls(result),
-    structuredOutputs: {},
-    tokenUsage: {
-      inputTokens: tokens.input,
-      outputTokens: tokens.output,
-      cachedTokens: tokens.cached,
-      totalCost: sumTotalCost(result),
-    },
-    durationMs,
-  };
-}
-
-function buildEmptyResponse(): AgentExecutionResponse {
-  return {
-    text: '',
-    currentNodeId: '',
-    visitedNodes: [],
-    toolCalls: [],
-    structuredOutputs: {},
-    tokenUsage: { inputTokens: ZERO, outputTokens: ZERO, cachedTokens: ZERO, totalCost: ZERO },
-    durationMs: ZERO,
-  };
-}
-function mergeStructuredOutputs(
-  existing: Record<string, unknown[]>,
-  result: CallAgentOutput
-): Record<string, unknown[]> {
-  const merged = { ...existing };
-  for (const so of result.structuredOutputs ?? []) {
-    const current = merged[so.nodeId] ?? [];
-    merged[so.nodeId] = [...current, so.data];
-  }
-  return merged;
+  vfsPayload?: VfsEdgeFunctionPayload;
 }
 
 /* ─── Params builder ─── */
@@ -120,6 +70,7 @@ function buildExecuteParams(ctx: ExecutionContext): ExecuteAgentParams {
     tenantID: ctx.input.tenantId,
     userID: ctx.input.userId,
     isFirstMessage: ctx.fetched.isNew,
+    vfs: ctx.vfsPayload,
   };
 }
 
@@ -136,9 +87,10 @@ interface FetchAllParams {
 async function fetchAllData(params: FetchAllParams): Promise<FetchedData> {
   const { supabase, agentId, orgId, version, input, model } = params;
   const productionKeyId = await getProductionKeyId(supabase, agentId);
-  const [graphAndKeys, sessionData] = await Promise.all([
+  const [graphAndKeys, sessionData, vfsSettings] = await Promise.all([
     fetchGraphAndKeys({ supabase, agentId, version, orgId, productionApiKeyId: productionKeyId }),
     fetchSessionData({ supabase, agentId, orgId, version, input, model }),
+    getAgentVfsSettings(supabase, agentId),
   ]);
   const envResolvedGraph = resolveMcpTransportVariables(
     graphAndKeys.graph,
@@ -148,7 +100,25 @@ async function fetchAllData(params: FetchAllParams): Promise<FetchedData> {
   const resolvedGraph = await resolveOAuthForExecution(supabase, envResolvedGraph, orgId);
   const agentConfig =
     graphAndKeys.appType === 'agent' ? await fetchAgentConfig(supabase, agentId, version) : null;
-  return { ...graphAndKeys, ...sessionData, graph: resolvedGraph, agentConfig };
+  return { ...graphAndKeys, ...sessionData, graph: resolvedGraph, agentConfig, vfsSettings };
+}
+
+/* ─── VFS payload resolution ─── */
+async function resolveVfsPayload(
+  supabase: SupabaseClient,
+  fetched: FetchedData,
+  agentId: string,
+  orgId: string
+): Promise<VfsEdgeFunctionPayload | undefined> {
+  if (fetched.vfsSettings === null) return undefined;
+  const payload = await buildVfsPayload(supabase, {
+    agentId,
+    orgId,
+    vfsSettings: fetched.vfsSettings,
+    userJwt: '',
+    ref: undefined,
+  });
+  return { ...payload, settings: payload.settings as Record<string, unknown> };
 }
 
 /* ─── Preparation ─── */
@@ -167,20 +137,23 @@ async function prepareExecution(
   const userMessage = buildUserMessage(input);
   fetched.messageHistory = [...fetched.messageHistory, userMessage];
 
-  const { executionId } = await persistPreExecution(supabase, {
-    sessionDbId: fetched.sessionDbId,
-    agentId,
-    orgId,
-    version,
-    model,
-    channel: input.channel,
-    tenantId: input.tenantId,
-    userId: input.userId,
-    userMessageContent: extractTextFromInput(input),
-    currentNodeId: fetched.currentNodeId,
-  });
+  const [{ executionId }, vfsPayload] = await Promise.all([
+    persistPreExecution(supabase, {
+      sessionDbId: fetched.sessionDbId,
+      agentId,
+      orgId,
+      version,
+      model,
+      channel: input.channel,
+      tenantId: input.tenantId,
+      userId: input.userId,
+      userMessageContent: extractTextFromInput(input),
+      currentNodeId: fetched.currentNodeId,
+    }),
+    resolveVfsPayload(supabase, fetched, agentId, orgId),
+  ]);
 
-  return { supabase, input, agentId, orgId, version, model, fetched, userMessage, executionId };
+  return { supabase, input, agentId, orgId, version, model, fetched, userMessage, executionId, vfsPayload };
 }
 
 /* ─── Post-execution persistence ─── */
