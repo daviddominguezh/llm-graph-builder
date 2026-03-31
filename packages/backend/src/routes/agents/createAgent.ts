@@ -3,10 +3,12 @@ import type { Request } from 'express';
 
 import { insertAgent } from '../../db/queries/agentQueries.js';
 import { assembleTemplateSafeGraph } from '../../db/queries/assembleTemplateSafeGraph.js';
+import { updateBloomFilter } from '../../db/queries/bloomFilterQueries.js';
 import { cloneAgentConfig } from '../../db/queries/cloneAgentConfig.js';
 import { cloneTemplateGraph } from '../../db/queries/cloneTemplateGraph.js';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { findUniqueSlug, generateSlug } from '../../db/queries/slugQueries.js';
+import { buildBitmask } from '../../utils/bloomFilter.js';
 import { getTemplateForClone, incrementDownloads } from '../../db/queries/templateQueries.js';
 import {
   type AuthenticatedLocals,
@@ -162,6 +164,8 @@ export async function handleCreateAgent(req: Request, res: AuthenticatedResponse
       res.status(HTTP_INTERNAL_ERROR).json({ error: error ?? 'Failed to create agent' });
       return;
     }
+
+    await updateBloomFilter(supabase, buildBitmask(slug), 'agents');
 
     if (input.templateAgentId !== undefined && input.templateVersion !== undefined) {
       await cloneFromTemplate(supabase, result.id, input.templateAgentId, input.templateVersion);

@@ -1,7 +1,9 @@
 import type { Request } from 'express';
 
+import { updateBloomFilter } from '../../db/queries/bloomFilterQueries.js';
 import { insertOrg } from '../../db/queries/orgQueries.js';
 import { findUniqueSlug, generateSlug } from '../../db/queries/slugQueries.js';
+import { buildBitmask } from '../../utils/bloomFilter.js';
 import {
   type AuthenticatedLocals,
   type AuthenticatedResponse,
@@ -36,6 +38,7 @@ export async function handleCreateOrg(req: Request, res: AuthenticatedResponse):
       return;
     }
 
+    await updateBloomFilter(supabase, buildBitmask(slug), 'organizations');
     res.status(HTTP_OK).json(result);
   } catch (err) {
     res.status(HTTP_INTERNAL_ERROR).json({ error: extractErrorMessage(err) });
