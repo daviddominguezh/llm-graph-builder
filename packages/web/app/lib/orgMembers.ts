@@ -1,0 +1,94 @@
+import { fetchFromBackend } from './backendProxy';
+
+/* ------------------------------------------------------------------ */
+/*  Types                                                              */
+/* ------------------------------------------------------------------ */
+
+export interface OrgMemberRow {
+  user_id: string;
+  role: string;
+  email: string;
+  full_name: string;
+  joined_at: string;
+}
+
+export type OrgRole = 'owner' | 'admin' | 'developer' | 'agent';
+
+export const ORG_ROLES: OrgRole[] = ['owner', 'admin', 'developer', 'agent'];
+
+export const ASSIGNABLE_ROLES: OrgRole[] = ['admin', 'developer', 'agent'];
+
+/* ------------------------------------------------------------------ */
+/*  Type guards                                                        */
+/* ------------------------------------------------------------------ */
+
+function isOrgMemberArray(val: unknown): val is OrgMemberRow[] {
+  return Array.isArray(val);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+function extractError(err: unknown): string {
+  return err instanceof Error ? err.message : 'Unknown error';
+}
+
+function orgMembersPath(orgId: string): string {
+  return `/orgs/${encodeURIComponent(orgId)}/members`;
+}
+
+function memberPath(orgId: string, userId: string): string {
+  return `${orgMembersPath(orgId)}/${encodeURIComponent(userId)}`;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Queries via backend proxy                                          */
+/* ------------------------------------------------------------------ */
+
+export async function getOrgMembers(
+  orgId: string
+): Promise<{ result: OrgMemberRow[]; error: string | null }> {
+  try {
+    const data = await fetchFromBackend('GET', orgMembersPath(orgId));
+    if (!isOrgMemberArray(data)) return { result: [], error: 'Invalid response' };
+    return { result: data, error: null };
+  } catch (err) {
+    return { result: [], error: extractError(err) };
+  }
+}
+
+export async function addOrgMember(
+  orgId: string,
+  email: string,
+  role: string
+): Promise<{ error: string | null }> {
+  try {
+    await fetchFromBackend('POST', orgMembersPath(orgId), { email, role });
+    return { error: null };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
+}
+
+export async function updateMemberRole(
+  orgId: string,
+  userId: string,
+  role: string
+): Promise<{ error: string | null }> {
+  try {
+    await fetchFromBackend('PATCH', memberPath(orgId, userId), { role });
+    return { error: null };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
+}
+
+export async function removeMember(orgId: string, userId: string): Promise<{ error: string | null }> {
+  try {
+    await fetchFromBackend('DELETE', memberPath(orgId, userId));
+    return { error: null };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
+}

@@ -1,0 +1,7 @@
+.activeBG {
+  background-color: var(--bg-color);
+}
+
+.bg:hover {
+  background-color: var(--bg-color);
+}

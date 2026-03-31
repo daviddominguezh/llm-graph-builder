@@ -1,0 +1,30 @@
+.file-picker {
+  min-width: 0 !important;
+  width: 100% !important;
+  height: 200px !important;
+  max-width: 100% !important;
+  border: dashed 2px #ccc !important;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.file-picker div {
+  height: fit-content;
+  flex-grow: initial;
+}
+
+.file-picker div span {
+  font-family: var(--font-family) !important;
+  font-size: 1rem !important;
+  margin-top: 12px;
+  text-align: center;
+}
+
+.file-picker div span[title] {
+  display: none !important;
+}
+
+.file-picker span {
+  text-decoration: none !important;
+}

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import type { LucideIcon } from 'lucide-react';
 import {
+  Building2,
   ChevronsUpDown,
   KeyRound,
   LayoutDashboard,
@@ -145,6 +146,7 @@ const TOP_NAV_ITEMS: NavItemDef[] = [
   { segment: '', path: '', Icon: Zap, labelKey: 'agents' },
   { segment: 'dashboard', path: '/dashboard', Icon: LayoutDashboard, labelKey: 'dashboard' },
   { segment: 'chats', path: '/chats', Icon: MessageSquare, labelKey: 'chats' },
+  { segment: 'tenants', path: '/tenants', Icon: Building2, labelKey: 'tenants' },
 ];
 
 const BOTTOM_NAV_ITEMS: NavItemDef[] = [

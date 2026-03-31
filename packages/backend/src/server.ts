@@ -13,18 +13,23 @@ import { handleGitHubWebhook } from './routes/github/webhookRoute.js';
 import { mcpLibraryRouter } from './routes/mcp-library/mcpLibraryRouter.js';
 import { handleCallback } from './routes/oauth/oauthCallback.js';
 import { handleGetOpenRouterModels } from './routes/openrouterModels.js';
+import { handleAddMember } from './routes/orgs/addMember.js';
 import { handleCreateOrg } from './routes/orgs/createOrg.js';
 import { handleDeleteOrg } from './routes/orgs/deleteOrg.js';
+import { handleGetMembers } from './routes/orgs/getMembers.js';
 import { handleGetOrgBySlug } from './routes/orgs/getOrgBySlug.js';
 import { handleGetOrgRole } from './routes/orgs/getOrgRole.js';
 import { handleGetOrgs } from './routes/orgs/getOrgs.js';
 import { handleRemoveAvatar, handleUploadAvatar } from './routes/orgs/orgAvatar.js';
+import { handleRemoveMember } from './routes/orgs/removeMember.js';
 import { handleUniqueSlug } from './routes/orgs/uniqueSlug.js';
+import { handleUpdateMemberRole } from './routes/orgs/updateMemberRole.js';
 import { handleUpdateOrg } from './routes/orgs/updateOrg.js';
 import { secretsRouter } from './routes/secrets/secretsRouter.js';
 import { handleSimulateAgent } from './routes/simulateAgentHandler.js';
 import { handleSimulate } from './routes/simulateHandler.js';
 import { templateRouter } from './routes/templates/templateRouter.js';
+import { tenantRouter } from './routes/tenants/tenantRouter.js';
 import { handleToolCall } from './routes/toolCall.js';
 
 function requestLogger(req: Request, _res: Response, next: NextFunction): void {
@@ -45,6 +50,10 @@ function buildOrgRouter(): express.Router {
   router.patch('/:orgId', handleUpdateOrg);
   router.delete('/:orgId', handleDeleteOrg);
   router.get('/:orgId/role', handleGetOrgRole);
+  router.get('/:orgId/members', handleGetMembers);
+  router.post('/:orgId/members', handleAddMember);
+  router.patch('/:orgId/members/:userId', handleUpdateMemberRole);
+  router.delete('/:orgId/members/:userId', handleRemoveMember);
   router.post('/:orgId/avatar', upload.single('file'), handleUploadAvatar);
   router.delete('/:orgId/avatar', handleRemoveAvatar);
   return router;
@@ -79,6 +88,7 @@ export function createApp(): Express {
   app.use('/secrets', secretsRouter);
   app.use('/dashboard', dashboardRouter);
   app.use('/mcp-library', mcpLibraryRouter);
+  app.use('/tenants', tenantRouter);
   app.use('/templates', templateRouter);
   app.use('/github', buildGitHubRouter());
 

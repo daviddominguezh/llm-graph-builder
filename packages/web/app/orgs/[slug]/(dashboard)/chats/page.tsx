@@ -1,13 +1,17 @@
-import { useTranslations } from 'next-intl';
+'use client';
+
+import { useCallback } from 'react';
+
+import MessagesDashboard from '@/app/components/messages';
 
 export default function ChatsPage(): React.JSX.Element {
-  const t = useTranslations('orgs');
+  const handleSidebarChange = useCallback((_val: boolean) => {
+    // Sidebar visibility is managed by OrgSidebar in this app
+  }, []);
 
   return (
-    <div className="h-full overflow-y-auto p-6">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-        <h1 className="text-2xl font-bold">{t('chats')}</h1>
-      </div>
+    <div className="h-full overflow-hidden">
+      <MessagesDashboard onChangeSidebar={handleSidebarChange} />
     </div>
   );
 }

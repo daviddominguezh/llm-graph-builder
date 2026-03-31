@@ -306,6 +306,7 @@
     "logs": "Logs",
     "team": "Team",
     "chats": "Chats",
+    "tenants": "Tenants",
     "settings": "Settings",
     "settingsTitle": "Organization Settings",
     "generalSection": "General",
@@ -430,6 +431,27 @@
     "clickToCopy": "Click to copy",
     "copied": "Copied!",
     "copyError": "Failed to copy value."
+  },
+  "tenants": {
+    "title": "Tenants",
+    "description": "Manage tenants for your organization.",
+    "add": "Add tenant",
+    "name": "Name",
+    "id": "ID",
+    "createdAt": "Created",
+    "actions": "Actions",
+    "namePlaceholder": "e.g. Acme Corp",
+    "noTenants": "No tenants yet.",
+    "createTitle": "Create tenant",
+    "createError": "Failed to create tenant.",
+    "editTitle": "Edit tenant",
+    "updateError": "Failed to update tenant.",
+    "save": "Save",
+    "deleteTitle": "Delete tenant",
+    "deleteDescription": "This will permanently delete \"{name}\". This action cannot be undone.",
+    "deleteConfirm": "Delete",
+    "deleteCancel": "Cancel",
+    "deleteError": "Failed to delete tenant."
   },
   "toolTest": {
     "emptyState": "Run a tool to see the result here.",
@@ -751,5 +773,33 @@
     "deleteAgentDescription": "Once deleted, this app and all its data will be permanently removed.",
     "mustPublishFirst": "Publish your agent at least once before making it public.",
     "saving": "Saving..."
+  },
+  "team": {
+    "title": "Team",
+    "description": "Manage who has access to this organization.",
+    "invite": "Invite",
+    "inviteTitle": "Invite member",
+    "email": "Email",
+    "emailPlaceholder": "colleague@example.com",
+    "emailRequired": "Email is required.",
+    "role": "Role",
+    "noMembers": "No members yet.",
+    "roles": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "developer": "Developer",
+      "agent": "Agent"
+    },
+    "removeTitle": "Remove member",
+    "removeDescription": "This will remove \"{name}\" from the organization. They will lose access immediately.",
+    "removeConfirm": "Remove",
+    "removeCancel": "Cancel",
+    "removeError": "Failed to remove member. Please try again.",
+    "transferTitle": "Transfer ownership",
+    "transferDescription": "This will make \"{name}\" the new owner. You will be demoted to admin. This action cannot be undone.",
+    "transferConfirm": "Transfer",
+    "transferCancel": "Cancel",
+    "transferError": "Failed to transfer ownership. Please try again.",
+    "roleChangeError": "Failed to change role. Please try again."
   }
 }

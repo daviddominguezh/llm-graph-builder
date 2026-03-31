@@ -1,12 +1,46 @@
-import { useTranslations } from 'next-intl';
+import { TeamSection } from '@/app/components/orgs/TeamSection';
+import { getOrgMembers } from '@/app/lib/orgMembers';
+import { getOrgBySlug, getOrgRole } from '@/app/lib/orgs';
+import { createClient } from '@/app/lib/supabase/server';
+import { redirect } from 'next/navigation';
 
-export default function TeamPage(): React.JSX.Element {
-  const t = useTranslations('orgs');
+interface TeamPageProps {
+  params: Promise<{ slug: string }>;
+}
+
+async function getCurrentUserId(): Promise<string | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  return data.user?.id ?? null;
+}
+
+export default async function TeamPage({ params }: TeamPageProps): Promise<React.JSX.Element> {
+  const { slug } = await params;
+  const { result: org } = await getOrgBySlug(slug);
+
+  if (!org) {
+    redirect('/');
+  }
+
+  const [role, { result: members }, userId] = await Promise.all([
+    getOrgRole(org.id),
+    getOrgMembers(org.id),
+    getCurrentUserId(),
+  ]);
+
+  if (userId === null) {
+    redirect('/login');
+  }
 
   return (
     <div className="h-full overflow-y-auto p-6">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-        <h1 className="text-2xl font-bold">{t('team')}</h1>
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+        <TeamSection
+          orgId={org.id}
+          initialMembers={members}
+          currentUserRole={role}
+          currentUserId={userId}
+        />
       </div>
     </div>
   );
