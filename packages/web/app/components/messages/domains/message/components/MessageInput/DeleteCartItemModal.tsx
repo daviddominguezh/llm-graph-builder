@@ -38,17 +38,6 @@ export const DeleteCartItemModal: React.FC<DeleteCartItemModalProps> = ({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         className="z-[150]"
-        overlayClassName="z-[150]"
-        onPointerDownOutside={(e) => {
-          if (isDeleting) {
-            e.preventDefault();
-          }
-        }}
-        onEscapeKeyDown={(e) => {
-          if (isDeleting) {
-            e.preventDefault();
-          }
-        }}
       >
         <DialogHeader>
           <DialogTitle>{t('Remove item from cart')}</DialogTitle>

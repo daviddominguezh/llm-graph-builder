@@ -318,7 +318,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
       {/* Assigned To Select */}
       <div className="flex shrink-0 items-center">
-        <Select value={assignedTo} onValueChange={handleAssignedToChange}>
+        <Select value={assignedTo} onValueChange={(value) => value && handleAssignedToChange(value)}>
           <SelectTrigger
             style={{
               width: `${HEADER_ICON_CONTAINER_SIZE}px`,
@@ -377,7 +377,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
       {/* Status Select */}
       <div className="flex shrink-0 items-center">
-        <Select value={status} onValueChange={handleStatusChange}>
+        <Select value={status} onValueChange={(value) => value && handleStatusChange(value)}>
           <SelectTrigger
             style={{
               width: `${HEADER_ICON_CONTAINER_SIZE}px`,

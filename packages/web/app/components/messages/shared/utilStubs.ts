@@ -8,6 +8,7 @@ import type {
   ProductBusinessSetupSchemaAPIType,
   ProductStockType,
 } from '@/app/types/business';
+import { MediaFileKind } from '@/app/types/media';
 
 // ---------------------------------------------------------------------------
 // Currency formatting
@@ -41,9 +42,9 @@ export const playSoundMessageSent = (): void => {
 // ---------------------------------------------------------------------------
 // Media helpers
 // ---------------------------------------------------------------------------
-export const getMediaKind = (filename: string): string => {
+export const getMediaKind = (filename: string): MediaFileKind => {
   const ext = filename.split('.').pop()?.toLowerCase() ?? '';
-  return ext;
+  return ext as MediaFileKind;
 };
 
 // ---------------------------------------------------------------------------
@@ -58,12 +59,14 @@ export const isLocalDevelopment = (): boolean => {
 // ---------------------------------------------------------------------------
 // Business info cache stubs
 // ---------------------------------------------------------------------------
-export const getBusinessInfoFromCache =
-  (): BusinessSetupSchemaAPIType | null => {
-    return null;
-  };
+export const getBusinessInfoFromCache = (
+  _namespace: string
+): BusinessSetupSchemaAPIType | null => {
+  return null;
+};
 
 export const setBusinessInfoToCache = (
+  _namespace: string,
   _info: BusinessSetupSchemaAPIType
 ): void => {
   /* no-op */

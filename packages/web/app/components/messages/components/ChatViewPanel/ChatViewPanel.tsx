@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { Card } from 'react-bootstrap';
+import { Card, CardContent } from '@/components/ui/card';
 
 import { getCurrentFirebaseUser } from '@/app/components/messages/services/firebase';
 
@@ -214,7 +214,7 @@ const ChatViewPanelComponent: React.FC<ChatViewPanelProps> = ({
       {/* Main content area with chat view */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left side: Chat messages and input */}
-        <Card.Body
+        <CardContent
           className="overflow-y-auto p-0 bg-transparent flex-1"
           style={{
             display: 'flex',
@@ -300,7 +300,7 @@ const ChatViewPanelComponent: React.FC<ChatViewPanelProps> = ({
 
           {/* Slot: After message input - for formatting toolbar, send options, etc. */}
           <Slot name="message-input-after" />
-        </Card.Body>
+        </CardContent>
       </div>
     </Card>
   );

@@ -221,7 +221,7 @@ class LastMessagesCacheServiceImpl {
       // Recalculate newestTimestamp from all conversations
       let maxTimestamp = 0;
       for (const conv of Object.values(data.conversations)) {
-        if (conv.timestamp > maxTimestamp) {
+        if (conv && conv.timestamp > maxTimestamp) {
           maxTimestamp = conv.timestamp;
         }
       }

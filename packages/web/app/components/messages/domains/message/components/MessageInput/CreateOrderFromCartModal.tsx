@@ -185,7 +185,7 @@ export const CreateOrderFromCartModal: React.FC<CreateOrderFromCartModalProps> =
 
   // Handle form submission (customer info step)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const onFormSubmit = handleSubmit((_data) => {
+  const onFormSubmit = handleSubmit((_data: CustomerFormData) => {
     if (!address.ciudadId || !address.barrio || !address.direccion) {
       setError(t('Please fill all required fields'));
       return;
@@ -326,7 +326,6 @@ export const CreateOrderFromCartModal: React.FC<CreateOrderFromCartModalProps> =
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
         className="max-w-3xl z-[150] max-h-[90vh] overflow-hidden flex flex-col"
-        overlayClassName="z-[150]"
       >
         <DialogHeader className="border-b pb-4">
           <DialogTitle>{t('Order from Shopping Cart')}</DialogTitle>

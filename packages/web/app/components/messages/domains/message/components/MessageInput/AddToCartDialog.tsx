@@ -193,7 +193,7 @@ export const AddToCartDialog: React.FC<AddToCartDialogProps> = ({ isOpen, onClos
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl z-[150]" overlayClassName="z-[150]">
+      <DialogContent className="max-w-2xl z-[150]">
         <DialogHeader>
           <DialogTitle>{t('Add Item to Cart')}</DialogTitle>
           <DialogDescription>{t('Select a product and its options to add to your shopping cart.')}</DialogDescription>

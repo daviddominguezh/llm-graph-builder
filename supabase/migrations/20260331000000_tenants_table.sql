@@ -2,7 +2,7 @@
 
 CREATE TABLE public.tenants (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  org_id     uuid NOT NULL REFERENCES public.orgs(id) ON DELETE CASCADE,
+  org_id     uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
   name       text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),

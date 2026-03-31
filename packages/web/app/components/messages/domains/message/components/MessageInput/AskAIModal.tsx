@@ -111,7 +111,7 @@ export const AskAIModal: React.FC<AskAIModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogChange}>
-      <DialogContent className="sm:max-w-[525px] z-[150]" overlayClassName="z-[150]">
+      <DialogContent className="sm:max-w-[525px] z-[150]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles size={20} />

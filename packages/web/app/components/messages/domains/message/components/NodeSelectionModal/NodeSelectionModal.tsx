@@ -63,7 +63,7 @@ export const NodeSelectionModal: React.FC<NodeSelectionModalProps> = ({
         <div className="flex flex-col gap-4 py-4 overflow-hidden w-full">
           <div className="text-gray-600">{t('Please select the node where the AI should start:')}</div>
 
-          <Select value={selectedNode} onValueChange={onNodeChange}>
+          <Select value={selectedNode} onValueChange={(value) => value && onNodeChange(value)}>
             <SelectTrigger className="cursor-pointer w-full! truncate!">
               <SelectValue
                 className="truncate! w-full! overflow-hidden"

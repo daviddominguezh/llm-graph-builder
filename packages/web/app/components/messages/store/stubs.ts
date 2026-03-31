@@ -4,6 +4,7 @@
  */
 import type { StateType } from '@/app/components/messages/store/mainStore';
 import type { BusinessSetupSchemaAPIType } from '@/app/types/business';
+import { COLLABORATOR_ROLE } from '@/app/types/projectInnerSettings';
 import { createSlice } from '@reduxjs/toolkit';
 
 // ---------------------------------------------------------------------------
@@ -83,8 +84,7 @@ export const selectCurrentProjectName = (
 
 export const selectCurrentProjectRole = (
   state: StateType
-): string => {
-  return (
-    (state[UserPath] as UserState | undefined)?.projectRole ?? ''
-  );
+): COLLABORATOR_ROLE | null => {
+  const role = (state[UserPath] as UserState | undefined)?.projectRole;
+  return (role as COLLABORATOR_ROLE) || null;
 };

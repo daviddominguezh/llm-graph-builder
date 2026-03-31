@@ -291,7 +291,7 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
       {/* Mobile-only filter select (hidden for agents who have tabs for filtering) */}
       {isMobile && !hideFilterDropdown && (
         <div className="px-4 pb-2 mt-4">
-          <Select value={chatFilter} onValueChange={onFilterChange}>
+          <Select value={chatFilter} onValueChange={(value) => value && onFilterChange(value)}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder={t('Select filter')} />
             </SelectTrigger>

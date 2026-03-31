@@ -76,7 +76,7 @@ const getAuthHeaders = async (url: string): Promise<HeadersInit> => {
   }
 
   // Get Firebase user to extract UID
-  const { getCurrentFirebaseUser } = await import('@services/firebase');
+  const { getCurrentFirebaseUser } = await import('@/app/components/messages/services/firebase');
   const firebaseUser = await getCurrentFirebaseUser();
 
   if (!firebaseUser) {
@@ -109,7 +109,7 @@ const authenticatedFetch = async (url: string, options: RequestInit = {}): Promi
       ...authHeaders,
     };
 
-    if (isLocalDevelopment) {
+    if (isLocalDevelopment()) {
       // DEBUG: Log all API requests to track excessive calls
       console.debug('[API Request]', {
         method: options.method || 'GET',
@@ -128,7 +128,7 @@ const authenticatedFetch = async (url: string, options: RequestInit = {}): Promi
     // Handle authentication errors
     if (response.status === 401 || response.status === 403) {
       console.error('[API] Authentication error:', response.status);
-      handleAuthError(); // Triggers immediate redirect, no await needed
+      handleAuthError(new Error(`Auth error: ${response.status}`)); // Triggers immediate redirect, no await needed
       throw new Error('Authentication failed');
     }
 

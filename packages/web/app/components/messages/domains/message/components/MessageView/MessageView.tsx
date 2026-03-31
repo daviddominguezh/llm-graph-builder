@@ -1096,7 +1096,7 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
             initialTopMostItemIndex={virtualizedItems.length - 1}
             startReached={handleStartReached}
             // Stable key generation for each item to prevent unnecessary re-renders
-            computeItemKey={(index, item) => item?.id || `item-${index}`}
+            computeItemKey={(index: number, item: VirtualizedItem) => item?.id || `item-${index}`}
             // Increase overscan to reduce flickering during fast scroll
             overscan={200}
             // Keep more items rendered to reduce mount/unmount cycles

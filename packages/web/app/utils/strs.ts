@@ -5,10 +5,14 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import calendar from 'dayjs/plugin/calendar';
 
-import i18n from '@src/i18n';
-
 dayjs.extend(calendar);
 dayjs.locale('es');
+
+/**
+ * Minimal i18n stub – provides the `language` property used by formatTimestamp.
+ * In the original app this came from i18next; here we default to 'es'.
+ */
+const i18n: { language: string } = { language: 'es' };
 
 export const getHash = (obj: object) => {
   const jsonString = JSON.stringify(obj);

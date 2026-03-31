@@ -2,7 +2,6 @@
 import { type StateType } from '@/app/components/messages/store/mainStore';
 import { LastMessage, LastMessages } from '@/app/types/chat';
 import { type PayloadAction, createSlice } from '@reduxjs/toolkit';
-import { castDraft } from 'immer';
 
 export const MessagesPath = 'messages';
 
@@ -104,8 +103,7 @@ export const MessagesSlice = createSlice({
       };
 
       // Store the full message for real-time access
-      // Use castDraft to handle complex nested types with Immer
-      state.realtimeMessages[id] = castDraft(msgs[id]);
+      state.realtimeMessages[id] = msgs[id] as typeof state.realtimeMessages[string];
 
       if (preventFetch == undefined || !preventFetch) {
         state.fetchQueue[id] = true;
@@ -220,8 +218,8 @@ export const MessagesSlice = createSlice({
         const existing = state.lastMessages[id];
         // Only update if new message has higher timestamp or doesn't exist
         if (!existing || newMsg.timestamp > existing.timestamp) {
-          state.lastMessages[id] = castDraft(newMsg);
-          state.realtimeMessages[id] = castDraft(newMsg);
+          state.lastMessages[id] = newMsg as typeof state.lastMessages[string];
+          state.realtimeMessages[id] = newMsg as typeof state.realtimeMessages[string];
         }
       }
     },

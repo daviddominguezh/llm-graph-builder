@@ -2,11 +2,10 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams } from 'next/navigation';
 
-import { getAuth } from 'firebase/auth';
 import { v4 as uuidv4 } from 'uuid';
 
 import { createNote } from '@/app/components/messages/services/api';
-import { uploadFile } from '@/app/components/messages/services/firebase';
+import { getCurrentFirebaseUser, uploadFile } from '@/app/components/messages/services/firebase';
 
 import { playSoundMessageSent } from '@/app/components/messages/shared/utilStubs';
 import { getMediaKind } from '@/app/components/messages/shared/utilStubs';
@@ -170,8 +169,8 @@ export const MessageProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // If mode is 'note', create a note instead of sending a message
       if (mode === 'note') {
         if (!trimmedMsg) return;
-        const auth = getAuth();
-        const userEmail = auth.currentUser?.email;
+        const firebaseUser = await getCurrentFirebaseUser();
+        const userEmail = firebaseUser?.email;
 
         if (!userEmail) {
           console.error('Cannot create note: user email not found');

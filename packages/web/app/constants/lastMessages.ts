@@ -1,7 +1,7 @@
 /**
  * Constants for lastMessages pagination and caching
  */
-import type { LastMessagesCacheData } from '@features/messagesDashboard/core/types';
+import type { LastMessagesCacheData } from '@/app/components/messages/core/types';
 
 /** Number of conversations returned per page */
 export const LAST_MESSAGES_PAGE_SIZE = 50;

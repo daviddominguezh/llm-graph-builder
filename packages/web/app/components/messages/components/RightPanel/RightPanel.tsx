@@ -1,5 +1,5 @@
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import Avatar from 'react-nice-avatar';
 import { useParams } from 'next/navigation';
 
@@ -49,7 +49,7 @@ import { generateAvatarConfig } from '@/app/utils/avatar';
 import { useIsMobile } from '@/app/utils/device';
 import { formatTimestamp, formatWhatsapp } from '@/app/utils/strs';
 
-import { cn } from '@/app/lib/utils';
+import { cn } from '@/lib/utils';
 
 import type { Conversation } from '@/app/types/chat';
 import { FinalUserInfoAPI } from '@/app/types/finalUsers';

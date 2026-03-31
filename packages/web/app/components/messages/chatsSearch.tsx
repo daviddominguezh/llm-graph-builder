@@ -73,7 +73,7 @@ export const ChatsSearch = ({
   return (
     <div className="h-[46px] px-4 border-b-1 flex w-full items-center justify-between gap-2 border-b border-gray-200 pb-0">
       {/* Status filter select - always visible */}
-      <Select value={searchFilter} onValueChange={setSearchFilter}>
+      <Select value={searchFilter} onValueChange={(value) => value && setSearchFilter(value)}>
         <SelectTrigger className="w-fit border-0 shadow-none px-0 gap-1 cursor-pointer [&_span]:text-sm [&_span]:text-black [&_span]:font-semibold focus-visible:ring-0 focus-visible:border-0 [&_svg]:!text-black [&_svg]:!opacity-100">
           <SelectValue />
         </SelectTrigger>
@@ -141,7 +141,7 @@ export const ChatsSearch = ({
         )}
 
         {/* Teammate filter select */}
-        <Select value={teammateFilter} onValueChange={setTeammateFilter}>
+        <Select value={teammateFilter} onValueChange={(value) => value && setTeammateFilter(value)}>
           <SelectTrigger className="w-fit border-0 shadow-none px-0 gap-0 cursor-pointer [&_svg[class*=chevron]]:hidden focus-visible:ring-0 focus-visible:border-0">
             {selectedTeammate ? (
               selectedTeammatePicture ? (
