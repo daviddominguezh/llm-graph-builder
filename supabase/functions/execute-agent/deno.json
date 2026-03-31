@@ -2,6 +2,7 @@
   "imports": {
     "@daviddh/graph-types": "../../../packages/graph-types/dist/index.js",
     "@daviddh/llm-graph-runner": "../../../packages/api/dist/index.js",
+    "@daviddh/llm-graph-runner/providers": "../../../packages/api/dist/vfs/providers/index.js",
     "@ai-sdk/mcp": "npm:@ai-sdk/mcp",
     "@openrouter/ai-sdk-provider": "npm:@openrouter/ai-sdk-provider",
     "@supabase/supabase-js": "npm:@supabase/supabase-js",

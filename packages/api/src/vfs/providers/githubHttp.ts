@@ -1,5 +1,10 @@
 // GitHub HTTP client — fetch wrapper with retry, timeout, rate limit parsing, error mapping
-import { setTimeout as delay } from 'node:timers/promises';
+// Browser-compatible delay (no node:timers/promises — this module runs in Deno Edge Functions too)
+async function delay(ms: number): Promise<void> {
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
 
 import { VFSError, VFSErrorCode } from '../types.js';
 import type {

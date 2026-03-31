@@ -123,6 +123,35 @@ export async function updateVfsSettingsAction(
 }
 
 /* ------------------------------------------------------------------ */
+/*  GitHub installation repos                                          */
+/* ------------------------------------------------------------------ */
+
+export interface RepoOption {
+  repoId: number;
+  repoFullName: string;
+}
+
+interface GitHubRepoApiItem {
+  id: number;
+  full_name: string;
+}
+
+interface GitHubRepoListApiResponse {
+  repositories?: GitHubRepoApiItem[];
+}
+
+export async function fetchInstallationRepos(installationId: number): Promise<RepoOption[]> {
+  try {
+    const path = `/github/installations/${String(installationId)}/repos`;
+    const data = (await fetchFromBackend('GET', path)) as GitHubRepoListApiResponse;
+    return (data.repositories ?? []).map((r) => ({ repoId: r.id, repoFullName: r.full_name }));
+  } catch (err) {
+    serverError('[fetchInstallationRepos]', extractError(err));
+    return [];
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /*  GitHub connect URL                                                 */
 /* ------------------------------------------------------------------ */
 
