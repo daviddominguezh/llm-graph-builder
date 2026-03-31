@@ -8,6 +8,8 @@ import { agentRouter } from './routes/agents/agentRouter.js';
 import { dashboardRouter } from './routes/dashboard/dashboardRouter.js';
 import { handleDiscover } from './routes/discover.js';
 import { executeRouter } from './routes/execute/executeRoute.js';
+import { buildGitHubRouter } from './routes/github/githubRouter.js';
+import { handleGitHubWebhook } from './routes/github/webhookRoute.js';
 import { mcpLibraryRouter } from './routes/mcp-library/mcpLibraryRouter.js';
 import { handleCallback } from './routes/oauth/oauthCallback.js';
 import { handleGetOpenRouterModels } from './routes/openrouterModels.js';
@@ -50,6 +52,11 @@ export function createApp(): Express {
   const app = express();
 
   app.use(cors());
+
+  // Webhook route must be registered BEFORE express.json() so the body
+  // arrives as a raw string for HMAC-SHA256 signature verification.
+  app.post('/webhooks/github', express.text({ type: 'application/json' }), handleGitHubWebhook);
+
   app.use(express.json({ limit: '10mb' }));
   app.use(requestLogger);
 
@@ -69,6 +76,7 @@ export function createApp(): Express {
   app.use('/secrets', secretsRouter);
   app.use('/dashboard', dashboardRouter);
   app.use('/mcp-library', mcpLibraryRouter);
+  app.use('/github', buildGitHubRouter());
 
   return app;
 }
