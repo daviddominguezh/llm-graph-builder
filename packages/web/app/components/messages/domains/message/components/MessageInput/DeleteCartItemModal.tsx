@@ -74,7 +74,7 @@ export const DeleteCartItemModal: React.FC<DeleteCartItemModalProps> = ({
             {t('Cancel')}
           </Button>
           <Button variant="destructive" onClick={onConfirm} disabled={isDeleting}>
-            {isDeleting ? t('Removing...') : t('Remove')}
+            {isDeleting ? t('Removing…') : t('Remove')}
           </Button>
         </DialogFooter>
       </DialogContent>

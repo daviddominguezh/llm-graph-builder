@@ -252,7 +252,7 @@ const OrderCard: React.FC<{
                 {loadingReceipt && (
                   <div>
                     <span className="text-gray-600 text-xs">{t('order-receipt')}:</span>
-                    <p className="text-xs text-gray-500">{t('Loading...')}</p>
+                    <p className="text-xs text-gray-500">{t('Loading…')}</p>
                   </div>
                 )}
               </div>
@@ -358,7 +358,7 @@ export const OrdersDialog: React.FC<OrdersDialogProps> = ({
         ) : isEmpty ? (
           <div className="flex flex-col items-center justify-center h-full gap-4">
             <Package size={48} className="text-gray-300" />
-            <p className="text-gray-500">{t('You do not have orders yet.')}</p>
+            <p className="text-gray-500">{t('You do not have orders yet·')}</p>
           </div>
         ) : (
           <div className="space-y-3">

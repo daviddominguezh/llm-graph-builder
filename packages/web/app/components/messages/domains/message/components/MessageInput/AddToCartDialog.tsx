@@ -180,7 +180,7 @@ export const AddToCartDialog: React.FC<AddToCartDialogProps> = ({ isOpen, onClos
         <DialogHeader>
           <DialogTitle>{t('Add Item to Cart')}</DialogTitle>
           <DialogDescription>
-            {t('Select a product and its options to add to your shopping cart.')}
+            {t('Select a product and its options to add to your shopping cart·')}
           </DialogDescription>
         </DialogHeader>
 
@@ -194,7 +194,7 @@ export const AddToCartDialog: React.FC<AddToCartDialogProps> = ({ isOpen, onClos
               disabled={isLoadingProducts || products.length === 0}
               className="w-full rounded-md border bg-background px-3 py-2 text-sm"
             >
-              <option value="">{isLoadingProducts ? t('Loading products...') : t('Select a product')}</option>
+              <option value="">{isLoadingProducts ? t('Loading products…') : t('Select a product')}</option>
               {products.map((product) => (
                 <option key={product.id} value={product.id}>
                   {product.name} - ${formatCurrency(product.price.toString())}
@@ -271,7 +271,7 @@ export const AddToCartDialog: React.FC<AddToCartDialogProps> = ({ isOpen, onClos
             {t('Cancel')}
           </Button>
           <Button onClick={handleAdd} disabled={!canAdd || isAdding}>
-            {isAdding ? t('Adding...') : t('Place in Cart')}
+            {isAdding ? t('Adding…') : t('Place in Cart')}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -128,7 +128,7 @@ export const AskAIModal: React.FC<AskAIModalProps> = ({
             </label>
             <Textarea
               id="question"
-              placeholder={t('Enter your question here...')}
+              placeholder={t('Enter your question here…')}
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               disabled={isLoading}
@@ -147,7 +147,7 @@ export const AskAIModal: React.FC<AskAIModalProps> = ({
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {t('Asking...')}
+                {t('Asking…')}
               </>
             ) : (
               <>

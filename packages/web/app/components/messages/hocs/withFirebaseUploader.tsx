@@ -261,7 +261,7 @@ const WithFirebaseUploader: React.FC<WithFirebaseUploaderProps> = ({
               borderRadius: '4px',
             }}
           >
-            {isLoading ? t('Uploading...') : t('Upload')}
+            {isLoading ? t('Uploading…') : t('Upload')}
           </Button>
         </div>
       </DialogContent>

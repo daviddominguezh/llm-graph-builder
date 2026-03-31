@@ -480,8 +480,8 @@ export const CreateOrderFromCartModal: React.FC<CreateOrderFromCartModalProps> =
               <Button onClick={handleCreateOrder} disabled={!selectedPaymentMethod || isSubmitting}>
                 {isSubmitting
                   ? selectedPaymentMethod === 'cash'
-                    ? t('Creating order...')
-                    : t('Creating payment link...')
+                    ? t('Creating order…')
+                    : t('Creating payment link…')
                   : t('Create Order')}
               </Button>
             </>

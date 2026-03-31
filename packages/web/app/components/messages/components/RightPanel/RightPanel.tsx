@@ -735,7 +735,7 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
           <DialogHeader>
             <DialogTitle>{t('Delete Note')}</DialogTitle>
             <DialogDescription>
-              {t('Are you sure you want to delete this note? This action cannot be undone.')}
+              {t('Are you sure you want to delete this note? This action cannot be undone·')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

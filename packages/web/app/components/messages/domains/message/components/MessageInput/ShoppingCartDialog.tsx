@@ -375,7 +375,7 @@ export const ShoppingCartDialog: React.FC<ShoppingCartDialogProps> = ({
         <div className="flex-1 overflow-auto p-4">
           {loading ? (
             <div className="flex items-center justify-center h-full">
-              <p className="text-gray-500">{t('Loading...')}</p>
+              <p className="text-gray-500">{t('Loading…')}</p>
             </div>
           ) : isEmpty ? (
             <div className="flex flex-col items-center justify-center h-full gap-4">

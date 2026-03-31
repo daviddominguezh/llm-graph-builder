@@ -110,7 +110,7 @@ export const ChatsSearch = ({
           >
             <div className="relative">
               <Input
-                placeholder={t('Search chats by phone or message...')}
+                placeholder={t('Search chats by phone or message…')}
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value || '');

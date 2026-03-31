@@ -447,7 +447,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           <DialogHeader>
             <DialogTitle>{t('Delete chat')}</DialogTitle>
             <DialogDescription>
-              {t('Are you sure you want to delete this chat? This action cannot be undone.')}
+              {t('Are you sure you want to delete this chat? This action cannot be undone·')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

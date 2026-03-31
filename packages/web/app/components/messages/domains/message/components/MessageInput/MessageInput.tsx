@@ -112,7 +112,7 @@ export const MessageInput: React.FC<MessageInputProps> = (props) => {
     return (
       <div className={`relative ${props.className || ''}`}>
         <div className="bg-white rounded-t-md border border-b-0 z-20 overflow-hidden bottom-0 flex flex-col m-0">
-          <div className="p-4 text-gray-400 text-sm text-center">{t('Loading editor...')}</div>
+          <div className="p-4 text-gray-400 text-sm text-center">{t('Loading editor…')}</div>
         </div>
       </div>
     );

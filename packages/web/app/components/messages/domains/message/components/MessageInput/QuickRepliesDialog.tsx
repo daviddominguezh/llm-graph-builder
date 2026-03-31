@@ -147,7 +147,7 @@ export const QuickRepliesDialog: React.FC<QuickRepliesDialogProps> = ({
             <input
               ref={searchInputRef}
               type="text"
-              placeholder={t('Search quick replies...')}
+              placeholder={t('Search quick replies…')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-3 py-2 text-sm border rounded-md outline-none focus:ring-2 focus:ring-blue-500"

@@ -418,7 +418,7 @@ export const ProductsDialog: React.FC<ProductsDialogProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t('Search products...')}
+            placeholder={t('Search products…')}
             className="w-full px-3 py-2 pr-10 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           {searchQuery && (
@@ -452,7 +452,7 @@ export const ProductsDialog: React.FC<ProductsDialogProps> = ({
       <div ref={containerRef} className="flex-1 overflow-auto">
         {businessInfoLoading ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-gray-500">{t('Loading products...')}</p>
+            <p className="text-gray-500">{t('Loading products…')}</p>
           </div>
         ) : products.length === 0 ? (
           <div className="flex items-center justify-center h-full">

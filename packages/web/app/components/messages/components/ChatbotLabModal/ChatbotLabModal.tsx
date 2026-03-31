@@ -70,7 +70,7 @@ export const ChatbotLabModal = ({ open, onOpenChange }: ChatbotLabModalProps) =>
             <FlaskConical className="h-5 w-5" />
             {t('Chatbot Lab')}
           </DialogTitle>
-          <DialogDescription>{t('Test and experiment with your chatbot settings.')}</DialogDescription>
+          <DialogDescription>{t('Test and experiment with your chatbot settings·')}</DialogDescription>
         </DialogHeader>
 
         <div className="py-4 flex flex-col items-center justify-center min-h-[280px]">

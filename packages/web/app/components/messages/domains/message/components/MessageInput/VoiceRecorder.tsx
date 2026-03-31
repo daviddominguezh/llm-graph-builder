@@ -342,7 +342,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplet
               {/* Animated recording indicator */}
               <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse shrink-0" />
               <span className="text-sm font-medium text-gray-700">
-                {t('Recording...')} {formatDuration(displayDuration)}
+                {t('Recording…')} {formatDuration(displayDuration)}
               </span>
             </div>
           ) : state === 'recorded' ? (
@@ -395,12 +395,12 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplet
             /* Uploading state - single row with spinner */
             <div className="flex items-center justify-center gap-2">
               <Loader2 size={20} className="animate-spin text-gray-600 shrink-0" />
-              <span className="text-sm font-medium text-gray-700">{t('Sending...')}</span>
+              <span className="text-sm font-medium text-gray-700">{t('Sending…')}</span>
             </div>
           ) : (
             /* Idle/Starting state */
             <div className="flex items-center justify-center">
-              <span className="text-sm text-gray-500">{t('Starting...')}</span>
+              <span className="text-sm text-gray-500">{t('Starting…')}</span>
             </div>
           )}
         </div>

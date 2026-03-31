@@ -389,7 +389,7 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
           <MessageCircleOff />
           <AlertTitle>{t('No results found')}</AlertTitle>
           <AlertDescription>
-            {t('No chats or messages match your search. Try a different search term.')}
+            {t('No chats or messages match your search· Try a different search term·')}
           </AlertDescription>
         </Alert>
       ) : displayedChatsFiltered.length > 0 ? (
