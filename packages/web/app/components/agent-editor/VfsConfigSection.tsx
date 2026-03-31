@@ -105,13 +105,15 @@ export function VfsConfigSection({ agentId, organizations }: VfsConfigSectionPro
         </div>
       </div>
       {isEnabled && (
-        <EnabledContent
-          state={state}
-          organizations={organizations}
-          repos={repos}
-          handleConnect={handleConnect}
-          t={t}
-        />
+        <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+          <EnabledContent
+            state={state}
+            organizations={organizations}
+            repos={repos}
+            handleConnect={handleConnect}
+            t={t}
+          />
+        </div>
       )}
     </div>
   );
@@ -200,7 +202,9 @@ function EnabledContent({
             t={t}
           />
           {showAdvanced && (
-            <VfsSettingsPanel settings={state.settings} onUpdate={state.handleUpdateSettings} />
+            <div className="animate-in fade-in slide-in-from-top-1 duration-150">
+              <VfsSettingsPanel settings={state.settings} onUpdate={state.handleUpdateSettings} />
+            </div>
           )}
         </>
       )}

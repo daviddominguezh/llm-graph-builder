@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { X } from 'lucide-react';
+import { Github, RefreshCw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import type { RepoOption, VfsConfigRow as VfsConfigRowData } from '@/app/actions/vfsConfig';
@@ -49,7 +49,15 @@ const STATUS_DOT_COLORS: Record<RowStatus, string> = {
 };
 
 function StatusDot({ status }: { status: RowStatus }) {
-  return <span className={cn('inline-block size-1.5 rounded-full', STATUS_DOT_COLORS[status])} />;
+  return (
+    <span
+      className={cn(
+        'inline-block size-1.5 rounded-full',
+        STATUS_DOT_COLORS[status],
+        status === 'pending' && 'animate-pulse'
+      )}
+    />
+  );
 }
 
 function isErrorStatus(config: VfsConfigRowData | null): boolean {
@@ -93,7 +101,8 @@ function NoConnectionState({
       <td className="px-3 py-2 text-xs text-muted-foreground"><span className="text-muted-foreground/40">&mdash;</span></td>
       <td className="px-3 py-2 text-xs text-muted-foreground"><span className="text-muted-foreground/40">&mdash;</span></td>
       <td className="px-3 py-2">
-        <Button variant="default" size="sm" className="h-7 text-xs" onClick={() => onConnect(orgId)}>
+        <Button variant="default" size="sm" className="h-7 text-xs gap-1.5" onClick={() => onConnect(orgId)}>
+          <Github className="size-3.5" />
           {t('connectGitHub')}
         </Button>
       </td>
@@ -158,7 +167,8 @@ function ConnectedState({
         <div className="flex items-center gap-2">
           <StatusBadge config={config} t={t} />
           {hasError && (
-            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => onConnect(orgId)}>
+            <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={() => onConnect(orgId)}>
+              <RefreshCw className="size-3" />
               {t('reconnectGitHub')}
             </Button>
           )}
@@ -189,7 +199,7 @@ export function VfsConfigRow(props: VfsConfigRowProps) {
   const rowBg = isErrorStatus(config) ? 'bg-destructive/5' : '';
 
   return (
-    <tr className={cn('border-b last:border-b-0', rowBg)}>
+    <tr className={cn('border-b last:border-b-0 transition-colors duration-100 hover:bg-muted/50', rowBg)}>
       <td className="px-3 py-2 text-xs font-medium">
         <div className="flex items-center gap-2">
           <StatusDot status={status} />
