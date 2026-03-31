@@ -267,6 +267,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
         bindings: {
           enter: {
             key: 'Enter',
+            // eslint-disable-next-line react-hooks/unsupported-syntax -- Quill requires `this` for keyboard handlers (React Compiler limitation)
             handler: function (this: { quill: any }) {
               // Don't send message if Quick Replies dialog is open
               if (showQuickRepliesDialogRef.current) {

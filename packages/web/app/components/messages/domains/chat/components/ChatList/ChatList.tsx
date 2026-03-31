@@ -196,6 +196,7 @@ export const ChatList: React.FC<ChatListProps> = memo(
     }, [groupedConversations]);
 
     // Virtualization setup
+    // eslint-disable-next-line react-hooks/incompatible-library -- useVirtualizer returns unmemoizable functions (React Compiler limitation)
     const virtualizer = useVirtualizer({
       count: enableVirtualization ? flatItems.length : 0,
       getScrollElement: () => containerRef.current,
