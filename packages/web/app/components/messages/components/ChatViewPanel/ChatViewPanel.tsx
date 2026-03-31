@@ -1,4 +1,3 @@
-'use no memo';
 
 import React, { Suspense, lazy, memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';

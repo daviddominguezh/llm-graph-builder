@@ -1,7 +1,6 @@
 'use client';
 
 import { addOrgMemberAction } from '@/app/actions/orgMembers';
-import type { InviteStatus } from '@/app/lib/orgMemberTypes';
 import { ASSIGNABLE_ROLES, type OrgRole } from '@/app/lib/orgMemberTypes';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -11,20 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useState } from 'react';
 import { toast } from 'sonner';
-
-const STATUS_TOAST_KEYS: Record<InviteStatus, { key: string; level: 'success' | 'info' }> = {
-  added: { key: 'inviteSuccess', level: 'success' },
-  invited: { key: 'invitePendingSuccess', level: 'success' },
-  already_member: { key: 'alreadyMember', level: 'info' },
-  already_invited: { key: 'alreadyInvited', level: 'info' },
-};
-
-function showStatusToast(status: InviteStatus, email: string, t: (key: string, values?: Record<string, unknown>) => string) {
-  const { key, level } = STATUS_TOAST_KEYS[status];
-  const message = t(key, { email });
-  if (level === 'success') toast.success(message);
-  else toast.info(message);
-}
 
 interface InviteMemberDialogProps {
   open: boolean;
@@ -87,7 +72,15 @@ function InviteForm({ orgId, onOpenChange, onInvited }: InviteMemberDialogProps)
       return;
     }
 
-    showStatusToast(result, email, t);
+    if (result === 'already_member' || result === 'already_invited') {
+      setLoading(false);
+      const key = result === 'already_member' ? 'alreadyMember' : 'alreadyInvited';
+      toast.info(t(key, { email }));
+      return;
+    }
+
+    const toastKey = result === 'invited' ? 'invitePendingSuccess' : 'inviteSuccess';
+    toast.success(t(toastKey, { email }));
     onOpenChange(false);
     onInvited();
   }

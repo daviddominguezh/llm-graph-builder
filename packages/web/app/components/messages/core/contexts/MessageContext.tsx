@@ -1,4 +1,3 @@
-'use no memo';
 
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';

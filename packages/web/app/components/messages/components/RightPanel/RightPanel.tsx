@@ -1,4 +1,3 @@
-'use no memo';
 
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';

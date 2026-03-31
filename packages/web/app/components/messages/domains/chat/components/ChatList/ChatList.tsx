@@ -1,4 +1,3 @@
-'use no memo';
 
 import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 

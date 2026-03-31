@@ -105,7 +105,6 @@ function useTeamActions(orgId: string, refreshAll: () => Promise<void>) {
 
 export function TeamSection(props: TeamSectionProps) {
   const { orgId, initialMembers, initialInvitations, currentUserRole, currentUserId } = props;
-  const t = useTranslations('team');
   const isOwner = currentUserRole === 'owner';
 
   const [members, setMembers] = useState<OrgMemberRow[]>(initialMembers);
@@ -134,7 +133,7 @@ export function TeamSection(props: TeamSectionProps) {
 
   return (
     <Card className="bg-background ring-0">
-      <TeamHeader t={t} isOwner={isOwner} totalCount={totalCount} onInvite={() => setInviteOpen(true)} />
+      <TeamHeader isOwner={isOwner} totalCount={totalCount} onInvite={() => setInviteOpen(true)} />
       <CardContent>
         <MemberAndInvitationList
           members={members}
@@ -163,17 +162,9 @@ export function TeamSection(props: TeamSectionProps) {
   );
 }
 
-function TeamHeader({
-  t,
-  isOwner,
-  totalCount,
-  onInvite,
-}: {
-  t: (key: string, values?: Record<string, unknown>) => string;
-  isOwner: boolean;
-  totalCount: number;
-  onInvite: () => void;
-}) {
+function TeamHeader({ isOwner, totalCount, onInvite }: { isOwner: boolean; totalCount: number; onInvite: () => void }) {
+  const t = useTranslations('team');
+
   return (
     <CardHeader>
       <CardTitle>{t('title')}</CardTitle>

@@ -1,5 +1,5 @@
 import { TeamSection } from '@/app/components/orgs/TeamSection';
-import { getOrgMembers } from '@/app/lib/orgMembers';
+import { getOrgInvitations, getOrgMembers } from '@/app/lib/orgMembers';
 import { getOrgBySlug, getOrgRole } from '@/app/lib/orgs';
 import { createClient } from '@/app/lib/supabase/server';
 import { redirect } from 'next/navigation';
@@ -22,9 +22,10 @@ export default async function TeamPage({ params }: TeamPageProps): Promise<React
     redirect('/');
   }
 
-  const [role, { result: members }, userId] = await Promise.all([
+  const [role, { result: members }, { result: invitations }, userId] = await Promise.all([
     getOrgRole(org.id),
     getOrgMembers(org.id),
+    getOrgInvitations(org.id),
     getCurrentUserId(),
   ]);
 
@@ -38,6 +39,7 @@ export default async function TeamPage({ params }: TeamPageProps): Promise<React
         <TeamSection
           orgId={org.id}
           initialMembers={members}
+          initialInvitations={invitations}
           currentUserRole={role}
           currentUserId={userId}
         />

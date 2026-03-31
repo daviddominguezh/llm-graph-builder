@@ -1,4 +1,3 @@
-'use no memo';
 
 import { getFinalUserInfo } from '@/app/components/messages/services/api';
 import type { FinalUserInfoAPI } from '@/app/types/finalUsers';
