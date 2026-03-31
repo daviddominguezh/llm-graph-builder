@@ -131,15 +131,15 @@ export class VFSContext {
     return await renameFileOp(this.deps, oldPath, newPath);
   }
 
-  async listDirectory(path: string): Promise<ListDirectoryResult> {
+  async listDirectory(path: string, recursive?: boolean, maxDepth?: number): Promise<ListDirectoryResult> {
     validatePath(path);
     await this.freshTree();
-    return listDirectoryFromTree(this.treeIndex, path);
+    return listDirectoryFromTree(this.treeIndex, path, recursive, maxDepth);
   }
 
-  async findFiles(pattern: string, path?: string): Promise<FindFilesResult> {
+  async findFiles(pattern: string, path?: string, exclude?: string[], maxResults?: number): Promise<FindFilesResult> {
     await this.freshTree();
-    return findFilesFromTree(this.treeIndex, pattern, path);
+    return findFilesFromTree(this.treeIndex, pattern, path, exclude, maxResults);
   }
 
   async getFileMetadata(path: string): Promise<FileMetadataResult> {
@@ -153,12 +153,12 @@ export class VFSContext {
     return getFileTreeFromIndex(this.treeIndex, path ?? '');
   }
 
-  async countLines(path: string): Promise<CountLinesResult> {
+  async countLines(path: string, pattern?: string, isRegex?: boolean): Promise<CountLinesResult> {
     validatePath(path);
     await this.sessionTracker.touch();
     await this.freshTree();
     const content = await resolveFileContent(this.deps, path);
-    return buildCountLinesResult(path, content);
+    return buildCountLinesResult(path, content, pattern, isRegex);
   }
 
   // Placeholder — symbol search is not implemented in this task

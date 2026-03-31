@@ -3,9 +3,6 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 interface VfsSession {
   session_key: string;
-  tenant_slug: string;
-  agent_slug: string;
-  user_id: string;
 }
 
 function authenticate(req: Request): boolean {
@@ -30,15 +27,24 @@ async function listStorageObjects(
   supabase: SupabaseClient,
   prefix: string
 ): Promise<string[]> {
+  const paths: string[] = [];
   const { data, error } = await supabase.storage.from('vfs').list(prefix, { limit: 1000 });
   if (error != null || data == null) return [];
-  return data.map((obj) => `${prefix}/${obj.name}`);
+  for (const item of data) {
+    const fullPath = `${prefix}/${item.name}`;
+    if (item.id == null) {
+      // Pseudo-folder — recurse into it
+      const nested = await listStorageObjects(supabase, fullPath);
+      paths.push(...nested);
+    } else {
+      paths.push(fullPath);
+    }
+  }
+  return paths;
 }
 
 async function deleteStorageObjects(supabase: SupabaseClient, session: VfsSession): Promise<void> {
-  const { tenant_slug, agent_slug, user_id, session_key } = session;
-  const prefix = `${tenant_slug}/${agent_slug}/${user_id}/${session_key}`;
-  const paths = await listStorageObjects(supabase, prefix);
+  const paths = await listStorageObjects(supabase, session.session_key);
   if (paths.length > 0) {
     await supabase.storage.from('vfs').remove(paths);
   }
@@ -66,7 +72,7 @@ async function fetchStaleSessions(supabase: SupabaseClient): Promise<VfsSession[
   const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
   const { data, error } = await supabase
     .from('vfs_sessions')
-    .select('session_key, tenant_slug, agent_slug, user_id')
+    .select('session_key')
     .lt('last_accessed_at', cutoff);
 
   if (error != null || data == null) return [];
@@ -86,7 +92,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   const sessions = await fetchStaleSessions(supabase);
 
-  await Promise.all(sessions.map((session) => cleanupSession(supabase, redis, session)));
+  for (const session of sessions) {
+    await cleanupSession(supabase, redis, session);
+  }
 
   return new Response(JSON.stringify({ cleaned: sessions.length }), {
     status: 200,

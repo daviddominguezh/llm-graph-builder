@@ -18,6 +18,7 @@ import type {
 import { VFSError, VFSErrorCode } from './types.js';
 import {
   countContentLines,
+  countMatchingLines,
   estimateTokens,
   extractLineRange,
   isBinary,
@@ -115,18 +116,30 @@ export function enforceLineCeiling(content: string, path: string, ceiling: numbe
 
 // ─── List / Find / Metadata ──────────────────────────────────────────────────
 
-export function listDirectoryFromTree(treeIndex: TreeIndex, path: string): ListDirectoryResult {
-  const entries = treeIndex.listDirectory(path);
+export function listDirectoryFromTree(
+  treeIndex: TreeIndex,
+  path: string,
+  recursive?: boolean,
+  maxDepth?: number
+): ListDirectoryResult {
+  const entries = treeIndex.listDirectory(path, recursive, maxDepth);
   return {
     path,
     entries: entries.map((e) => ({ name: e.path.split('/').pop() ?? e.path, type: e.type })),
   };
 }
 
-export function findFilesFromTree(treeIndex: TreeIndex, pattern: string, path?: string): FindFilesResult {
-  const matches = treeIndex.findFiles(pattern, path);
-  const truncated = matches.length > DEFAULT_FIND_LIMIT;
-  const limited = truncated ? matches.slice(INITIAL_OFFSET, DEFAULT_FIND_LIMIT) : matches;
+export function findFilesFromTree(
+  treeIndex: TreeIndex,
+  pattern: string,
+  path?: string,
+  exclude?: string[],
+  maxResults?: number
+): FindFilesResult {
+  const matches = treeIndex.findFiles(pattern, path, exclude);
+  const limit = maxResults ?? DEFAULT_FIND_LIMIT;
+  const truncated = matches.length > limit;
+  const limited = truncated ? matches.slice(INITIAL_OFFSET, limit) : matches;
   return { pattern, matches: limited, totalMatches: matches.length, truncated };
 }
 
@@ -160,8 +173,16 @@ export function getFileTreeFromIndex(treeIndex: TreeIndex, path: string): FileTr
 
 // ─── Count Lines ─────────────────────────────────────────────────────────────
 
-export function buildCountLinesResult(path: string, content: string): CountLinesResult {
-  return { path, totalLines: countContentLines(content) };
+export function buildCountLinesResult(
+  path: string,
+  content: string,
+  pattern?: string,
+  isRegex?: boolean
+): CountLinesResult {
+  const totalLines = countContentLines(content);
+  if (pattern === undefined) return { path, totalLines };
+  const matchingLines = countMatchingLines(content, pattern, isRegex ?? false);
+  return { path, totalLines, matchingLines, pattern };
 }
 
 // ─── Search Text ─────────────────────────────────────────────────────────────

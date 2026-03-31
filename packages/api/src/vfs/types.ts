@@ -17,8 +17,8 @@ export enum VFSErrorCode {
 }
 
 export class VFSError extends Error {
-  code: VFSErrorCode;
-  details?: Record<string, unknown>;
+  readonly code: VFSErrorCode;
+  readonly details?: Record<string, unknown>;
 
   constructor(code: VFSErrorCode, message: string, details?: Record<string, unknown>) {
     super(message);

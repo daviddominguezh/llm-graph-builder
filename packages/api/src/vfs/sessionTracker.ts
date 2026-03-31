@@ -1,3 +1,4 @@
+import { VFSError, VFSErrorCode } from './types.js';
 import type { SupabaseVFSClient } from './types.js';
 
 const THROTTLE_MS = 60_000;
@@ -36,7 +37,7 @@ export class SessionTracker {
       )
       .select()
       .single();
-    if (error !== null) throw new Error(`Failed to initialize VFS session: ${error.message}`);
+    if (error !== null) throw new VFSError(VFSErrorCode.PROVIDER_ERROR, `Failed to initialize VFS session: ${error.message}`);
     this.lastTouchTime = Date.now();
   }
 

@@ -168,3 +168,8 @@ export function countContentLines(content: string): number {
   if (content.length === ZERO) return ZERO;
   return content.split('\n').length;
 }
+
+export function countMatchingLines(content: string, pattern: string, isRegex: boolean): number {
+  const regex = buildRegex(pattern, isRegex, false);
+  return content.split('\n').filter((line) => regex.test(line)).length;
+}
