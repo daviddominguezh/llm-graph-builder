@@ -1,6 +1,7 @@
 'use client';
 
 import { createAgentAction } from '@/app/actions/agents';
+import { useSlugAvailability } from '@/app/hooks/useSlugAvailability';
 import type { TemplatesPrefetchState } from '@/app/hooks/useTemplatesPrefetch';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -183,6 +184,7 @@ function WizardBody({
   const router = useRouter();
   const t = useTranslations('marketplace');
   const title = state.step === 'template' ? t('step1Title') : t('step2Title');
+  const { checking, available } = useSlugAvailability(state.details.name, 'agents');
 
   const handlePreview = useCallback(
     (agentId: string, version: number) => {
@@ -240,6 +242,8 @@ function WizardBody({
             onBack={() => state.setStep('template')}
             onSubmit={handleSubmit}
             loading={state.loading}
+            checking={checking}
+            available={available}
           />
         )}
       </div>

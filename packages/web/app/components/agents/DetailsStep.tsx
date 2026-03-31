@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import type { TemplateCategory } from '@daviddh/graph-types';
 import { TEMPLATE_CATEGORIES } from '@daviddh/graph-types';
-import { Globe, Lock } from 'lucide-react';
+import { Globe, Loader2, Lock } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 /* ------------------------------------------------------------------ */
@@ -25,6 +25,7 @@ export interface DetailsFormState {
 interface DetailsFieldsProps {
   state: DetailsFormState;
   onChange: (next: DetailsFormState) => void;
+  nameTaken: boolean;
 }
 
 interface DetailsStepProps {
@@ -33,14 +34,25 @@ interface DetailsStepProps {
   onBack: () => void;
   onSubmit: () => void;
   loading: boolean;
+  checking: boolean;
+  available: boolean | null;
 }
 
 /* ------------------------------------------------------------------ */
 /*  Fields                                                             */
 /* ------------------------------------------------------------------ */
 
-function NameField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function NameField({
+  value,
+  onChange,
+  nameTaken,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  nameTaken: boolean;
+}) {
   const t = useTranslations('agents');
+  const tSlugs = useTranslations('slugs');
 
   return (
     <div className="flex flex-col gap-1">
@@ -52,6 +64,7 @@ function NameField({ value, onChange }: { value: string; onChange: (v: string) =
         placeholder={t('namePlaceholder')}
         required
       />
+      {nameTaken && <p className="text-destructive text-xs">{tSlugs('nameTaken')}</p>}
     </div>
   );
 }
@@ -165,10 +178,10 @@ function VisibilityCards({ isPublic, onChange }: { isPublic: boolean; onChange: 
 /*  Details fields group                                               */
 /* ------------------------------------------------------------------ */
 
-function DetailsFields({ state, onChange }: DetailsFieldsProps) {
+function DetailsFields({ state, onChange, nameTaken }: DetailsFieldsProps) {
   return (
     <div className="flex flex-col gap-5 flex-1">
-      <NameField value={state.name} onChange={(name) => onChange({ ...state, name })} />
+      <NameField value={state.name} onChange={(name) => onChange({ ...state, name })} nameTaken={nameTaken} />
       <DescriptionField
         value={state.description}
         onChange={(description) => onChange({ ...state, description })}
@@ -203,7 +216,7 @@ function DetailsFooter({
         {t('back')}
       </Button>
       <Button onClick={onSubmit} disabled={disabled}>
-        {loading ? tAgents('creating') : tAgents('create')}
+        {loading ? <Loader2 className="size-4 animate-spin" /> : tAgents('create')}
       </Button>
     </DialogFooter>
   );
@@ -213,13 +226,19 @@ function DetailsFooter({
 /*  DetailsStep                                                        */
 /* ------------------------------------------------------------------ */
 
-export function DetailsStep({ state, onChange, onBack, onSubmit, loading }: DetailsStepProps) {
-  const canSubmit = state.name.trim() !== '' && state.description.trim() !== '' && state.category !== '' && !loading;
+export function DetailsStep({ state, onChange, onBack, onSubmit, loading, checking, available }: DetailsStepProps) {
+  const canSubmit =
+    state.name.trim() !== '' &&
+    state.description.trim() !== '' &&
+    state.category !== '' &&
+    !loading &&
+    !checking &&
+    available !== false;
 
   return (
     <>
-      <DetailsFields state={state} onChange={onChange} />
-      <DetailsFooter onBack={onBack} onSubmit={onSubmit} loading={loading} disabled={!canSubmit} />
+      <DetailsFields state={state} onChange={onChange} nameTaken={available === false} />
+      <DetailsFooter onBack={onBack} onSubmit={onSubmit} loading={loading || checking} disabled={!canSubmit} />
     </>
   );
 }
