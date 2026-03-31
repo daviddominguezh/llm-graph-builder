@@ -22,6 +22,7 @@ import { handleGetOrgRole } from './routes/orgs/getOrgRole.js';
 import { handleGetOrgs } from './routes/orgs/getOrgs.js';
 import { handleRemoveAvatar, handleUploadAvatar } from './routes/orgs/orgAvatar.js';
 import { handleRemoveMember } from './routes/orgs/removeMember.js';
+import { handleCheckAvailability } from './routes/slugs/checkAvailability.js';
 import { handleUniqueSlug } from './routes/orgs/uniqueSlug.js';
 import { handleUpdateMemberRole } from './routes/orgs/updateMemberRole.js';
 import { handleUpdateOrg } from './routes/orgs/updateOrg.js';
@@ -59,6 +60,13 @@ function buildOrgRouter(): express.Router {
   return router;
 }
 
+function buildSlugRouter(): express.Router {
+  const router = express.Router();
+  router.use(requireAuth);
+  router.post('/check-availability', handleCheckAvailability);
+  return router;
+}
+
 export function createApp(): Express {
   const app = express();
 
@@ -84,6 +92,7 @@ export function createApp(): Express {
 
   app.use('/api/agents', executeRouter);
   app.use('/orgs', buildOrgRouter());
+  app.use('/slugs', buildSlugRouter());
   app.use('/agents', agentRouter);
   app.use('/secrets', secretsRouter);
   app.use('/dashboard', dashboardRouter);
