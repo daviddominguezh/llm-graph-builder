@@ -44,7 +44,7 @@ export function TenantSummaryView({
   const [rows, setRows] = useState<TenantSummaryRow[]>(initialRows);
   const [totalCount, setTotalCount] = useState(initialTotal);
   const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesPoint[]>(initialTimeSeries);
-  const tsLoaded = timeSeriesData.length > 0 || initialTimeSeries.length > 0;
+  const [tsFetched, setTsFetched] = useState(false);
 
   useEffect(() => {
     startTransition(async () => {
@@ -59,6 +59,7 @@ export function TenantSummaryView({
     void fetchDashboardTimeSeries(orgId).then((result) => {
       if (cancelled) return;
       if (result.error === null) setTimeSeriesData(result.rows);
+      setTsFetched(true);
     });
     return () => { cancelled = true; };
   }, [orgId]);
@@ -76,7 +77,7 @@ export function TenantSummaryView({
   return (
     <div className="grid h-full grid-cols-2 gap-3">
       <div className="min-w-0 overflow-hidden">
-        <DashboardTimeSeries tenantRows={rows} timeSeriesData={timeSeriesData} loading={!tsLoaded} />
+        <DashboardTimeSeries tenantRows={rows} timeSeriesData={timeSeriesData} loading={!tsFetched} />
       </div>
       <div className="min-w-0">
         <SortableTable<TenantSummaryRow>
