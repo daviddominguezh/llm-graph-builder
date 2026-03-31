@@ -72,11 +72,7 @@ function matchLine(
 
 const LINE_NUMBER_OFFSET = 1;
 
-function collectMatches(
-  lines: string[],
-  patterns: readonly SymbolPattern[],
-  name: string
-): SymbolMatch[] {
+function collectMatches(lines: string[], patterns: readonly SymbolPattern[], name: string): SymbolMatch[] {
   const results: SymbolMatch[] = [];
   for (const [idx, line] of lines.entries()) {
     const match = matchLine(line, idx + LINE_NUMBER_OFFSET, patterns, name);

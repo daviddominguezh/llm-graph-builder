@@ -39,6 +39,7 @@ interface AgentSimConfig {
   systemPrompt: string;
   maxSteps: number | null;
   contextItems: Array<{ sortOrder: number; content: string }>;
+  skills: Array<{ name: string; description: string; content: string }>;
 }
 
 interface UseSimulationParams {

@@ -12,6 +12,7 @@ export interface AgentSimulateRequestBody {
   messages: unknown[];
   apiKeyId: string;
   modelId: string;
+  skills?: Array<{ name: string; description: string; content: string }>;
 }
 
 export async function streamAgentSimulation(

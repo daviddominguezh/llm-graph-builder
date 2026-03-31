@@ -25,6 +25,7 @@ export type {
   AgentStepEvent,
   AgentToolCallRecord,
   AgentToolEvent,
+  SkillDefinition,
 } from './agentLoop/index.js';
 export { AGENT_LOOP_HARD_LIMIT } from './agentLoop/index.js';
 

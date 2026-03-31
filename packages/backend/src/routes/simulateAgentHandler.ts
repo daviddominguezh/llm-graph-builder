@@ -40,6 +40,7 @@ async function runAgentSimulation(
       modelId: body.modelId,
       maxSteps: body.maxSteps,
       tools: session.tools,
+      skills: body.skills,
     },
     {
       onStepStarted: (step: number) => {

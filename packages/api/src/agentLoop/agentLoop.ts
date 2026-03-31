@@ -16,6 +16,7 @@ import type {
   AgentLoopResult,
   AgentToolCallRecord,
 } from './agentLoopTypes.js';
+import { buildSkillTool } from './skillTool.js';
 
 const INCREMENT = 1;
 const ZERO = 0;
@@ -148,21 +149,29 @@ async function runLoop(
   return buildLoopResult('', state.step, state.totalTokens, state.tokensLogs, state.allToolCalls);
 }
 
+function mergeSkillTools(config: AgentLoopConfig): AgentLoopConfig {
+  if (config.skills === undefined || config.skills.length === ZERO) return config;
+  const skillTools = buildSkillTool(config.skills);
+  return { ...config, tools: { ...config.tools, ...skillTools } };
+}
+
 export async function executeAgentLoop(
   config: AgentLoopConfig,
   callbacks: AgentLoopCallbacks
 ): Promise<AgentLoopResult> {
-  const maxSteps = resolveMaxSteps(config);
+  const resolved = mergeSkillTools(config);
+  const maxSteps = resolveMaxSteps(resolved);
   log('starting', {
-    systemPrompt: config.systemPrompt.slice(0, 80),
-    context: config.context.slice(0, 80),
+    systemPrompt: resolved.systemPrompt.slice(0, 80),
+    context: resolved.context.slice(0, 80),
     maxSteps,
-    modelId: config.modelId,
-    messageCount: config.messages.length,
-    toolCount: Object.keys(config.tools).length,
+    modelId: resolved.modelId,
+    messageCount: resolved.messages.length,
+    toolCount: Object.keys(resolved.tools).length,
+    skillCount: resolved.skills?.length ?? ZERO,
   });
-  const state = createInitialState(config);
-  const result = await runLoop(config, state, maxSteps, callbacks);
+  const state = createInitialState(resolved);
+  const result = await runLoop(resolved, state, maxSteps, callbacks);
   log('finished', {
     finalText: result.finalText.slice(0, 100),
     totalSteps: result.steps,

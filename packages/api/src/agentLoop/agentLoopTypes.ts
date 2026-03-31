@@ -6,6 +6,12 @@ import type { Message } from '@src/types/ai/messages.js';
 /** Hard ceiling on steps to prevent infinite loops */
 export const AGENT_LOOP_HARD_LIMIT = 50;
 
+export interface SkillDefinition {
+  name: string;
+  description: string;
+  content: string;
+}
+
 export interface AgentLoopConfig {
   systemPrompt: string;
   context: string;
@@ -14,6 +20,7 @@ export interface AgentLoopConfig {
   modelId: string;
   maxSteps: number | null;
   tools: Record<string, Tool>;
+  skills?: SkillDefinition[];
 }
 
 export interface AgentStepEvent {

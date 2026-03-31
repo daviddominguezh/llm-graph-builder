@@ -116,10 +116,7 @@ function describeSearchColumn(): void {
 
 function describeRunWithConcurrency(): void {
   it('collects all results in order', async () => {
-    const tasks = Array.from(
-      { length: TASK_COUNT_FIVE },
-      (_, i) => async () => await Promise.resolve(i)
-    );
+    const tasks = Array.from({ length: TASK_COUNT_FIVE }, (_, i) => async () => await Promise.resolve(i));
     const results = await runWithConcurrency(tasks, CONCURRENCY_TWO);
     expect(results).toHaveLength(TASK_COUNT_FIVE);
   });

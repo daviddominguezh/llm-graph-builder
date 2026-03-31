@@ -3,7 +3,6 @@ import type { Tool } from 'ai';
 import type { Context } from '@src/types/tools.js';
 
 import type { VFSContext } from '../vfsContext.js';
-
 import { createCountLinesTool } from './countLines.js';
 import { createCreateFileTool } from './createFile.js';
 import { createDeleteFileTool } from './deleteFile.js';

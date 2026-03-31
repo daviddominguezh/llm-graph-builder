@@ -80,11 +80,7 @@ function describeHappyPathWithEdits(): void {
   it('calls vfs.editFile with mapped edits', async () => {
     const vfs = makeMockVfs();
     await executeEditFileWithEdits(vfs);
-    expect(vfs.editFile).toHaveBeenCalledWith(
-      'src/a.ts',
-      [{ old_text: 'foo', new_text: 'bar' }],
-      undefined
-    );
+    expect(vfs.editFile).toHaveBeenCalledWith('src/a.ts', [{ old_text: 'foo', new_text: 'bar' }], undefined);
   });
 }
 

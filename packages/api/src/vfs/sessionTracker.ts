@@ -37,7 +37,8 @@ export class SessionTracker {
       )
       .select()
       .single();
-    if (error !== null) throw new VFSError(VFSErrorCode.PROVIDER_ERROR, `Failed to initialize VFS session: ${error.message}`);
+    if (error !== null)
+      throw new VFSError(VFSErrorCode.PROVIDER_ERROR, `Failed to initialize VFS session: ${error.message}`);
     this.lastTouchTime = Date.now();
   }
 

@@ -256,9 +256,7 @@ function describeRootFile(): void {
       { path: 'root.txt', type: 'file', sizeBytes: HELLO_SIZE, sha: 'sha1' },
     ]);
     const rootContent = 'root file content';
-    deps.sourceProvider.fetchFileContent.mockResolvedValue(
-      new TextEncoder().encode(rootContent)
-    );
+    deps.sourceProvider.fetchFileContent.mockResolvedValue(new TextEncoder().encode(rootContent));
     const ctx = await initCtx(deps);
     const result = await ctx.readFile('root.txt');
     expect(result.content).toBe(rootContent);

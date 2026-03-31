@@ -137,7 +137,12 @@ export class VFSContext {
     return listDirectoryFromTree(this.treeIndex, path, recursive, maxDepth);
   }
 
-  async findFiles(pattern: string, path?: string, exclude?: string[], maxResults?: number): Promise<FindFilesResult> {
+  async findFiles(
+    pattern: string,
+    path?: string,
+    exclude?: string[],
+    maxResults?: number
+  ): Promise<FindFilesResult> {
     await this.freshTree();
     return findFilesFromTree(this.treeIndex, pattern, path, exclude, maxResults);
   }

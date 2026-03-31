@@ -5,6 +5,7 @@ import type { Message } from '@src/types/ai/messages.js';
 
 import type { AgentLoopConfig, AgentLoopResult, AgentToolCallRecord } from './agentLoopTypes.js';
 import { AGENT_LOOP_HARD_LIMIT } from './agentLoopTypes.js';
+import { buildSkillsPromptSuffix } from './skillTool.js';
 
 const ZERO = 0;
 
@@ -14,8 +15,10 @@ export function resolveMaxSteps(config: AgentLoopConfig): number {
 }
 
 export function buildSystemMessage(config: AgentLoopConfig): ModelMessage {
-  const combined =
-    config.context !== '' ? `${config.systemPrompt}\n\n${config.context}` : config.systemPrompt;
+  let combined = config.context !== '' ? `${config.systemPrompt}\n\n${config.context}` : config.systemPrompt;
+  if (config.skills !== undefined && config.skills.length > ZERO) {
+    combined += buildSkillsPromptSuffix(config.skills);
+  }
   return { role: 'system', content: combined };
 }
 

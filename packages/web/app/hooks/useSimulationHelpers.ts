@@ -46,6 +46,7 @@ interface AgentSimConfig {
   systemPrompt: string;
   maxSteps: number | null;
   contextItems: Array<{ sortOrder: number; content: string }>;
+  skills: Array<{ name: string; description: string; content: string }>;
 }
 
 export interface SendMessageDeps {
@@ -201,15 +202,22 @@ export interface BuildAgentSimulateParamsOptions {
   modelId: string;
 }
 
+const EMPTY = 0;
+
 export function buildAgentSimulateParams(opts: BuildAgentSimulateParamsOptions): AgentSimulateRequestBody {
+  const { agentConfig, mcpServers, allMessages, apiKeyId, modelId } = opts;
+  const { skills } = agentConfig;
   return {
     appType: 'agent',
-    systemPrompt: opts.agentConfig.systemPrompt,
-    maxSteps: opts.agentConfig.maxSteps,
-    contextItems: opts.agentConfig.contextItems,
-    mcpServers: opts.mcpServers,
-    messages: opts.allMessages,
-    apiKeyId: opts.apiKeyId,
-    modelId: opts.modelId,
+    systemPrompt: agentConfig.systemPrompt,
+    maxSteps: agentConfig.maxSteps,
+    contextItems: agentConfig.contextItems,
+    mcpServers,
+    messages: allMessages,
+    apiKeyId,
+    modelId,
+    ...(skills.length > EMPTY
+      ? { skills: skills.map((s) => ({ name: s.name, description: s.description, content: s.content })) }
+      : {}),
   };
 }

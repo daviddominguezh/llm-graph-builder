@@ -1,5 +1,5 @@
 import type { McpServerConfig } from '@daviddh/graph-types';
-import type { AgentToolCallRecord, Message } from '@daviddh/llm-graph-runner';
+import type { AgentToolCallRecord, Message, SkillDefinition } from '@daviddh/llm-graph-runner';
 import { z } from 'zod';
 
 /* --- Request schema --- */
@@ -41,6 +41,12 @@ const McpServerSchema = z.object({
   variableValues: z.record(z.string(), z.union([DirectValueSchema, EnvRefValueSchema])).optional(),
 });
 
+const SkillSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  content: z.string(),
+});
+
 export const SimulateAgentRequestSchema = z.object({
   appType: z.literal('agent'),
   systemPrompt: z.string(),
@@ -50,6 +56,7 @@ export const SimulateAgentRequestSchema = z.object({
   modelId: z.string(),
   maxSteps: z.number().nullable(),
   mcpServers: z.array(McpServerSchema),
+  skills: z.array(SkillSchema).optional(),
 });
 
 export interface SimulateAgentRequest {
@@ -61,6 +68,7 @@ export interface SimulateAgentRequest {
   modelId: string;
   maxSteps: number | null;
   mcpServers: McpServerConfig[];
+  skills?: SkillDefinition[];
 }
 
 /* --- SSE event types --- */
