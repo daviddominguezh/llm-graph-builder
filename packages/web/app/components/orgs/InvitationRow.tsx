@@ -3,7 +3,7 @@
 import type { OrgInvitationRow } from '@/app/lib/orgMemberTypes';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface InvitationRowProps {
@@ -53,7 +53,7 @@ export function InvitationRow({ invitation, isOwner, onCancel }: InvitationRowPr
   const roleBadgeClass = ROLE_BADGE_VARIANTS[invitation.role] ?? '';
 
   return (
-    <div className="flex items-center gap-3 rounded-md border border-dashed bg-card/50 px-3 py-2 transition-colors">
+    <div className="flex h-12 items-center gap-3 rounded-md border border-dashed bg-card px-3 transition-colors">
       <InvitationAvatar email={invitation.email} />
       <div className="flex min-w-0 flex-col">
         <span className="truncate text-sm text-muted-foreground">{invitation.email}</span>
@@ -73,7 +73,7 @@ export function InvitationRow({ invitation, isOwner, onCancel }: InvitationRowPr
             onClick={() => onCancel(invitation)}
             aria-label={t('cancelInviteConfirm')}
           >
-            <X className="size-3.5" />
+            <Trash2 className="size-3.5" />
           </Button>
         )}
       </div>

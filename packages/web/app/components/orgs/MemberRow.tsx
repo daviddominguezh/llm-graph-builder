@@ -105,7 +105,7 @@ function RoleSelect({ member, onRoleChange }: Pick<MemberRowProps, 'member' | 'o
 }
 
 function formatJoinDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 function canEditRole(props: MemberRowProps): boolean {
@@ -122,7 +122,7 @@ export function MemberRow(props: MemberRowProps) {
   const isCurrentUser = member.user_id === props.currentUserId;
 
   return (
-    <div className="flex items-center gap-3 rounded-md border bg-card px-3 py-2 transition-colors hover:bg-card/80">
+    <div className="flex h-12 items-center gap-3 rounded-md border bg-card px-3 transition-colors hover:bg-card/80">
       <MemberAvatar name={member.full_name || member.email} email={member.email} />
       <MemberInfo member={member} isCurrentUser={isCurrentUser} />
       <div className="ml-auto flex items-center gap-2">

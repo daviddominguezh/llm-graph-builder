@@ -834,6 +834,14 @@
     "transferError": "Failed to transfer ownership. Please try again.",
     "transferSuccess": "Ownership transferred to {name}.",
     "roleChangeError": "Failed to change role. Please try again.",
-    "roleChangeSuccess": "{name} is now {role}."
+    "roleChangeSuccess": "{name} is now {role}.",
+    "pending": "Pending",
+    "cancelInviteTitle": "Cancel invitation",
+    "cancelInviteDescription": "This will cancel the pending invitation for \"{email}\". They will no longer be able to join.",
+    "cancelInviteConfirm": "Cancel invitation",
+    "cancelInviteCancel": "Keep",
+    "cancelInviteError": "Failed to cancel invitation. Please try again.",
+    "cancelInviteSuccess": "Invitation for {email} has been cancelled.",
+    "cancelling": "Cancelling..."
   }
 }
