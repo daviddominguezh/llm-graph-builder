@@ -1,7 +1,7 @@
 'use client';
 
-import { getOrgMembersAction, updateMemberRoleAction } from '@/app/actions/orgMembers';
-import type { OrgMemberRow, OrgRole } from '@/app/lib/orgMemberTypes';
+import { getOrgInvitationsAction, getOrgMembersAction, updateMemberRoleAction } from '@/app/actions/orgMembers';
+import type { OrgInvitationRow, OrgMemberRow, OrgRole } from '@/app/lib/orgMemberTypes';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Users } from 'lucide-react';
@@ -9,7 +9,9 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
+import { CancelInvitationDialog } from './CancelInvitationDialog';
 import { InviteMemberDialog } from './InviteMemberDialog';
+import { InvitationRow } from './InvitationRow';
 import { MemberRow } from './MemberRow';
 import { RemoveMemberDialog } from './RemoveMemberDialog';
 import { TransferOwnershipDialog } from './TransferOwnershipDialog';
@@ -17,6 +19,7 @@ import { TransferOwnershipDialog } from './TransferOwnershipDialog';
 interface TeamSectionProps {
   orgId: string;
   initialMembers: OrgMemberRow[];
+  initialInvitations: OrgInvitationRow[];
   currentUserRole: string | null;
   currentUserId: string;
 }
@@ -24,15 +27,6 @@ interface TeamSectionProps {
 interface TransferTarget {
   userId: string;
   name: string;
-}
-
-interface MemberListProps {
-  members: OrgMemberRow[];
-  isOwner: boolean;
-  currentUserId: string;
-  onRoleChange: (userId: string, name: string, role: OrgRole) => void;
-  onRemove: (member: OrgMemberRow) => void;
-  onInvite: () => void;
 }
 
 function EmptyState({ isOwner, onInvite }: { isOwner: boolean; onInvite: () => void }) {
@@ -53,8 +47,18 @@ function EmptyState({ isOwner, onInvite }: { isOwner: boolean; onInvite: () => v
   );
 }
 
-function MemberList(props: MemberListProps) {
-  if (props.members.length <= 1) {
+function MemberAndInvitationList(props: {
+  members: OrgMemberRow[];
+  invitations: OrgInvitationRow[];
+  isOwner: boolean;
+  currentUserId: string;
+  onRoleChange: (userId: string, name: string, role: OrgRole) => void;
+  onRemove: (member: OrgMemberRow) => void;
+  onCancelInvite: (invitation: OrgInvitationRow) => void;
+  onInvite: () => void;
+}) {
+  const hasOnlyOwner = props.members.length <= 1 && props.invitations.length === 0;
+  if (hasOnlyOwner) {
     return <EmptyState isOwner={props.isOwner} onInvite={props.onInvite} />;
   }
 
@@ -70,11 +74,14 @@ function MemberList(props: MemberListProps) {
           onRemove={props.onRemove}
         />
       ))}
+      {props.invitations.map((inv) => (
+        <InvitationRow key={inv.id} invitation={inv} isOwner={props.isOwner} onCancel={props.onCancelInvite} />
+      ))}
     </div>
   );
 }
 
-function useTeamActions(orgId: string, refreshMembers: () => Promise<void>) {
+function useTeamActions(orgId: string, refreshAll: () => Promise<void>) {
   const t = useTranslations('team');
 
   const handleRoleChange = useCallback(
@@ -86,31 +93,39 @@ function useTeamActions(orgId: string, refreshMembers: () => Promise<void>) {
         toast.error(t('roleChangeError'));
       } else {
         toast.success(t('roleChangeSuccess', { name, role: t(`roles.${role}`) }));
-        await refreshMembers();
+        await refreshAll();
       }
       return null;
     },
-    [orgId, refreshMembers, t]
+    [orgId, refreshAll, t]
   );
 
   return { handleRoleChange };
 }
 
-export function TeamSection({ orgId, initialMembers, currentUserRole, currentUserId }: TeamSectionProps) {
+export function TeamSection(props: TeamSectionProps) {
+  const { orgId, initialMembers, initialInvitations, currentUserRole, currentUserId } = props;
   const t = useTranslations('team');
   const isOwner = currentUserRole === 'owner';
 
   const [members, setMembers] = useState<OrgMemberRow[]>(initialMembers);
+  const [invitations, setInvitations] = useState<OrgInvitationRow[]>(initialInvitations);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<OrgMemberRow | null>(null);
   const [transferTarget, setTransferTarget] = useState<TransferTarget | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<OrgInvitationRow | null>(null);
 
-  const refreshMembers = useCallback(async () => {
-    const { result } = await getOrgMembersAction(orgId);
-    setMembers(result);
+  const refreshAll = useCallback(async () => {
+    const [membersRes, invitationsRes] = await Promise.all([
+      getOrgMembersAction(orgId),
+      getOrgInvitationsAction(orgId),
+    ]);
+    setMembers(membersRes.result);
+    setInvitations(invitationsRes.result);
   }, [orgId]);
 
-  const { handleRoleChange } = useTeamActions(orgId, refreshMembers);
+  const { handleRoleChange } = useTeamActions(orgId, refreshAll);
+  const totalCount = members.length + invitations.length;
 
   async function onRoleChange(userId: string, name: string, role: OrgRole) {
     const pending = await handleRoleChange(userId, name, role);
@@ -119,39 +134,93 @@ export function TeamSection({ orgId, initialMembers, currentUserRole, currentUse
 
   return (
     <Card className="bg-background ring-0">
-      <CardHeader>
-        <CardTitle>{t('title')}</CardTitle>
-        <CardDescription>
-          {t('description')}
-          {members.length > 0 && (
-            <span className="ml-1 text-muted-foreground/60">{t('memberCount', { count: members.length })}</span>
-          )}
-        </CardDescription>
-        {isOwner && (
-          <CardAction>
-            <Button variant="outline" size="sm" onClick={() => setInviteOpen(true)}>
-              <Plus className="size-4" />
-              {t('invite')}
-            </Button>
-          </CardAction>
-        )}
-      </CardHeader>
+      <TeamHeader t={t} isOwner={isOwner} totalCount={totalCount} onInvite={() => setInviteOpen(true)} />
       <CardContent>
-        <MemberList
+        <MemberAndInvitationList
           members={members}
+          invitations={invitations}
           isOwner={isOwner}
           currentUserId={currentUserId}
           onRoleChange={onRoleChange}
           onRemove={setRemoveTarget}
+          onCancelInvite={setCancelTarget}
           onInvite={() => setInviteOpen(true)}
         />
       </CardContent>
-      <InviteMemberDialog
-        open={inviteOpen}
-        onOpenChange={setInviteOpen}
+      <TeamDialogs
         orgId={orgId}
-        onInvited={refreshMembers}
+        inviteOpen={inviteOpen}
+        setInviteOpen={setInviteOpen}
+        removeTarget={removeTarget}
+        setRemoveTarget={setRemoveTarget}
+        transferTarget={transferTarget}
+        setTransferTarget={setTransferTarget}
+        cancelTarget={cancelTarget}
+        setCancelTarget={setCancelTarget}
+        refreshAll={refreshAll}
       />
+    </Card>
+  );
+}
+
+function TeamHeader({
+  t,
+  isOwner,
+  totalCount,
+  onInvite,
+}: {
+  t: (key: string, values?: Record<string, unknown>) => string;
+  isOwner: boolean;
+  totalCount: number;
+  onInvite: () => void;
+}) {
+  return (
+    <CardHeader>
+      <CardTitle>{t('title')}</CardTitle>
+      <CardDescription>
+        {t('description')}
+        {totalCount > 0 && (
+          <span className="ml-1 text-muted-foreground/60">{t('memberCount', { count: totalCount })}</span>
+        )}
+      </CardDescription>
+      {isOwner && (
+        <CardAction>
+          <Button variant="outline" size="sm" onClick={onInvite}>
+            <Plus className="size-4" />
+            {t('invite')}
+          </Button>
+        </CardAction>
+      )}
+    </CardHeader>
+  );
+}
+
+function TeamDialogs({
+  orgId,
+  inviteOpen,
+  setInviteOpen,
+  removeTarget,
+  setRemoveTarget,
+  transferTarget,
+  setTransferTarget,
+  cancelTarget,
+  setCancelTarget,
+  refreshAll,
+}: {
+  orgId: string;
+  inviteOpen: boolean;
+  setInviteOpen: (open: boolean) => void;
+  removeTarget: OrgMemberRow | null;
+  setRemoveTarget: (target: OrgMemberRow | null) => void;
+  transferTarget: TransferTarget | null;
+  setTransferTarget: (target: TransferTarget | null) => void;
+  cancelTarget: OrgInvitationRow | null;
+  setCancelTarget: (target: OrgInvitationRow | null) => void;
+  refreshAll: () => Promise<void>;
+}) {
+  return (
+    <>
+      <InviteMemberDialog open={inviteOpen} onOpenChange={setInviteOpen} orgId={orgId} onInvited={refreshAll} />
       {removeTarget !== null && (
         <RemoveMemberDialog
           open={removeTarget !== null}
@@ -159,7 +228,7 @@ export function TeamSection({ orgId, initialMembers, currentUserRole, currentUse
           orgId={orgId}
           userId={removeTarget.user_id}
           memberName={removeTarget.full_name || removeTarget.email}
-          onRemoved={refreshMembers}
+          onRemoved={refreshAll}
         />
       )}
       {transferTarget !== null && (
@@ -169,9 +238,19 @@ export function TeamSection({ orgId, initialMembers, currentUserRole, currentUse
           orgId={orgId}
           userId={transferTarget.userId}
           memberName={transferTarget.name}
-          onTransferred={refreshMembers}
+          onTransferred={refreshAll}
         />
       )}
-    </Card>
+      {cancelTarget !== null && (
+        <CancelInvitationDialog
+          open={cancelTarget !== null}
+          onOpenChange={() => setCancelTarget(null)}
+          orgId={orgId}
+          invitationId={cancelTarget.id}
+          email={cancelTarget.email}
+          onCancelled={refreshAll}
+        />
+      )}
+    </>
   );
 }

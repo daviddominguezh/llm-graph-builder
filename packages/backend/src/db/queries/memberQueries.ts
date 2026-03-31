@@ -12,6 +12,14 @@ export interface OrgMemberRow {
   joined_at: string;
 }
 
+export interface OrgInvitationRow {
+  id: string;
+  email: string;
+  role: string;
+  invited_by: string;
+  created_at: string;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Type guards                                                        */
 /* ------------------------------------------------------------------ */
@@ -95,6 +103,47 @@ export async function removeOrgMember(
   const { error } = await supabase.rpc('remove_org_member', {
     p_org_id: orgId,
     p_user_id: userId,
+  });
+
+  if (error !== null) return { error: error.message };
+  return { error: null };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Invitation queries                                                 */
+/* ------------------------------------------------------------------ */
+
+function isOrgInvitationRow(value: unknown): value is OrgInvitationRow {
+  return typeof value === 'object' && value !== null && 'id' in value && 'email' in value && 'role' in value;
+}
+
+function mapInvitationRows(data: unknown[]): OrgInvitationRow[] {
+  return data.reduce<OrgInvitationRow[]>((acc, row) => {
+    if (isOrgInvitationRow(row)) acc.push(row);
+    return acc;
+  }, []);
+}
+
+export async function getOrgInvitations(
+  supabase: SupabaseClient,
+  orgId: string
+): Promise<{ result: OrgInvitationRow[]; error: string | null }> {
+  const result = await supabase.rpc('get_org_invitations', { p_org_id: orgId });
+
+  if (result.error !== null) return { result: [], error: result.error.message };
+  const rawData: unknown = result.data;
+  if (!isUnknownArray(rawData)) return { result: [], error: 'Invalid invitations data' };
+  return { result: mapInvitationRows(rawData), error: null };
+}
+
+export async function cancelOrgInvitation(
+  supabase: SupabaseClient,
+  orgId: string,
+  invitationId: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('cancel_org_invitation', {
+    p_org_id: orgId,
+    p_invitation_id: invitationId,
   });
 
   if (error !== null) return { error: error.message };

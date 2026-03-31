@@ -28,7 +28,7 @@ export async function handleAddMember(req: Request, res: AuthenticatedResponse):
       res.status(HTTP_BAD_REQUEST).json({ error });
       return;
     }
-    res.status(HTTP_OK).json({ user_id: result });
+    res.status(HTTP_OK).json({ status: result });
   } catch (err) {
     res.status(HTTP_INTERNAL_ERROR).json({ error: extractErrorMessage(err) });
   }
