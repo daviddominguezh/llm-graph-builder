@@ -247,7 +247,7 @@ function EnabledContent({
   return (
     <>
       <Label className="text-xs font-medium">{t('sectionTitle')}</Label>
-      <div className="rounded-md border">
+      <div>
         <VfsConfigTable
           configs={state.configs}
           organizations={organizations}

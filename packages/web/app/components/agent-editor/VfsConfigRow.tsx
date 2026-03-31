@@ -100,7 +100,7 @@ function NoConnectionState({
     <>
       <td className="px-3 py-2 text-xs text-muted-foreground"><span className="text-muted-foreground/40">&mdash;</span></td>
       <td className="px-3 py-2 text-xs text-muted-foreground"><span className="text-muted-foreground/40">&mdash;</span></td>
-      <td className="px-3 py-2">
+      <td className="pl-3 pr-0 py-2">
         <Button variant="default" size="sm" className="h-7 text-xs gap-1.5" onClick={() => onConnect(orgId)}>
           <Github className="size-3.5" />
           {t('connectGitHub')}
@@ -124,7 +124,7 @@ function RepoSelectState({
   onSelectRepo: VfsConfigRowProps['onSelectRepo'];
 }) {
   return (
-    <td className="px-3 py-2" colSpan={2}>
+    <td className="pl-3 pr-0 py-2" colSpan={2}>
       <Select
         onValueChange={(val) => {
           const repo = repos.find((r) => String(r.repoId) === val);
@@ -163,7 +163,7 @@ function ConnectedState({
   return (
     <>
       <td className="px-3 py-2 text-xs font-mono">{config.repo_full_name}</td>
-      <td className="px-3 py-2">
+      <td className="pl-3 pr-0 py-2">
         <div className="flex items-center gap-2">
           <StatusBadge config={config} t={t} />
           {hasError && (
@@ -200,7 +200,7 @@ export function VfsConfigRow(props: VfsConfigRowProps) {
 
   return (
     <tr className={cn('border-b last:border-b-0 transition-colors duration-100 hover:bg-muted/50', rowBg)}>
-      <td className="px-3 py-2 text-xs font-medium">
+      <td className="pl-0 pr-3 py-2 text-xs font-medium">
         <div className="flex items-center gap-2">
           <StatusDot status={status} />
           {orgName}
