@@ -125,7 +125,7 @@ function InviteForm({ orgId, existingEmails, onOpenChange, onInvited }: InviteMe
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
-      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-1">
         {validated.map((entry) => (
           <InviteRowEntry
             key={entry.id}

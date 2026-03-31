@@ -61,6 +61,15 @@ Graphs have **nodes** (kinds: `agent`, `agent_decision`, `tool`) and **edges** w
 - **Client components never talk to the database.** The data flow is: Client → Next.js backend (Server Components, Server Actions, Route Handlers) → dedicated backend. No direct Supabase calls from the browser.
 - Auth flows (login, signup, OAuth, password reset) are the only exception — these use the Supabase browser client for auth token management.
 
+### Supabase storage (image/file uploads)
+
+When adding a new storage bucket for file uploads:
+
+1. **Always create a SELECT policy** — even for public buckets. Supabase storage uses `INSERT ... RETURNING *` and upsert (`ON CONFLICT DO UPDATE ... RETURNING *`), which require SELECT permission on `storage.objects`. Without it, uploads fail with "new row violates row-level security policy".
+2. **Use `SECURITY DEFINER` helpers** for RLS policies that need to look up data from other RLS-protected tables. A storage policy subquery like `SELECT org_id FROM tenants WHERE ...` will fail because the subquery runs under the user's RLS context. Create a `SECURITY DEFINER` function to bypass this.
+3. **Use the single-argument `is_org_member(org_id)`** in storage policies (not the two-argument version with explicit `auth.uid()`). The 1-arg version calls `auth.uid()` internally within its `SECURITY DEFINER` context.
+4. **Reference pattern**: see `org-avatars` bucket policies in `20260309400000_fix_storage_policies_and_publish.sql` and `tenant-avatars` in `20260331000000_tenants_table.sql`.
+
 ## Code style and constraints
 
 ### ESLint (strict, do not disable)

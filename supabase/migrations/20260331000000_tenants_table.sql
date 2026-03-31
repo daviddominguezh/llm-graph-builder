@@ -42,14 +42,17 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 INSERT INTO storage.buckets (id, name, public) VALUES ('tenant-avatars', 'tenant-avatars', true)
   ON CONFLICT (id) DO NOTHING;
 
+CREATE POLICY "Anyone can read tenant avatars"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'tenant-avatars');
+
 CREATE POLICY "Org members can upload tenant avatars"
   ON storage.objects FOR INSERT
   TO authenticated
   WITH CHECK (
     bucket_id = 'tenant-avatars'
     AND is_org_member(
-      tenant_org_id((storage.foldername(name))[1]::uuid),
-      auth.uid()
+      tenant_org_id((storage.foldername(name))[1]::uuid)
     )
   );
 
@@ -59,8 +62,7 @@ CREATE POLICY "Org members can update tenant avatars"
   USING (
     bucket_id = 'tenant-avatars'
     AND is_org_member(
-      tenant_org_id((storage.foldername(name))[1]::uuid),
-      auth.uid()
+      tenant_org_id((storage.foldername(name))[1]::uuid)
     )
   );
 
@@ -70,7 +72,6 @@ CREATE POLICY "Org members can delete tenant avatars"
   USING (
     bucket_id = 'tenant-avatars'
     AND is_org_member(
-      tenant_org_id((storage.foldername(name))[1]::uuid),
-      auth.uid()
+      tenant_org_id((storage.foldername(name))[1]::uuid)
     )
   );
