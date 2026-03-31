@@ -52,7 +52,7 @@ export function AgentEditor({ config, pushOperation, onBackgroundClick, onConfig
         <div className="flex min-w-0 flex-1 shrink-0 flex-col p-4 bg-popover rounded-md mt-2 mb-1 border">
           <SystemPromptField value={state.systemPrompt} onChange={actions.handleSystemPromptChange} />
         </div>
-        <div className="flex min-w-0 flex-1 shrink-0 flex-col gap-6 overflow-y-auto bg-popover rounded-md p-4 pt-3.5 mt-2 mb-1 border">
+        <div className="flex min-w-0 flex-1 shrink-0 flex-col gap-6 overflow-y-auto bg-popover rounded-md p-4 pt-3.5 mt-2 pb-12 border">
           <SkillsList
             skills={state.skills}
             onAdd={skillActions.handleAddSkills}

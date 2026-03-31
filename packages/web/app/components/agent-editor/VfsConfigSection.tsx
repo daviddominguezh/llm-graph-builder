@@ -133,28 +133,31 @@ export function VfsConfigSection({ agentId, orgId }: VfsConfigSectionProps) {
       <Label htmlFor="vfs-enabled" className="text-xs font-medium cursor-pointer">
         {t('enableVfs')}
       </Label>
-      <div className="flex items-center gap-2 border-l-2 border-accent/20 pl-4 py-2">
-        <Checkbox
-          className="cursor-pointer"
-          id="vfs-enabled"
-          checked={isEnabled}
-          onCheckedChange={(checked) => state.handleToggleEnabled(checked === true)}
-        />
-        <span className="text-[11px] text-muted-foreground">{t('enableVfsDescription')}</span>
-      </div>
-      {isEnabled && (
-        <div className="animate-in fade-in slide-in-from-top-1 duration-200">
-          <EnabledContent
-            state={state}
-            orgId={orgId}
-            organizations={tenants.organizations}
-            repos={repos}
-            handleConnect={handleConnect}
-            onTenantCreated={tenants.refresh}
-            t={t}
+      <div className="flex flex-col gap-2 border-l-2 border-accent/20 pl-4 py-2">
+        <div className="flex items-center gap-2">
+          <Checkbox
+            className="cursor-pointer"
+            id="vfs-enabled"
+            checked={isEnabled}
+            onCheckedChange={(checked) => state.handleToggleEnabled(checked === true)}
           />
+          <span className="text-[11px] text-muted-foreground">{t('enableVfsDescription')}</span>
         </div>
-      )}
+
+        {isEnabled && (
+          <div className="animate-in fade-in slide-in-from-top-1 duration-200 mt-4">
+            <EnabledContent
+              state={state}
+              orgId={orgId}
+              organizations={tenants.organizations}
+              repos={repos}
+              handleConnect={handleConnect}
+              onTenantCreated={tenants.refresh}
+              t={t}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
