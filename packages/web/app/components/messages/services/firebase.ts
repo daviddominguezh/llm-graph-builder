@@ -4,7 +4,6 @@
  * Replaces the real Firebase SDK integration with no-op implementations so the
  * messages feature can compile and render without a Firebase dependency.
  */
-
 import { type MediaFileDetail, MediaStatus } from '@/app/types/media';
 
 // ---------------------------------------------------------------------------

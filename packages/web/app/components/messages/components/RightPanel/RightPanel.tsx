@@ -1,3 +1,5 @@
+'use no memo';
+
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import Avatar from 'react-nice-avatar';
@@ -103,7 +105,8 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
   onAIToggle,
   isTestChat = false,
 }) => {
-  const { t, i18n } = useTranslation();
+  const t = useTranslations('messages');
+  const locale = useLocale();
   const params = useParams();
   const projectName = typeof params.projectName === 'string' ? params.projectName : params.projectName?.[0] ?? '';
   const isMobile = useIsMobile();
@@ -159,8 +162,8 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
 
     // Format the date using the user's locale
     const date = new Date(oldestMessage.timestamp);
-    return date.toLocaleDateString(i18n.language, { month: 'long', year: 'numeric' });
-  }, [messages, t, i18n.language]);
+    return date.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
+  }, [messages, t, locale]);
 
   // Extract images from conversation messages
   const mediaImages = useMemo(() => {
@@ -335,11 +338,6 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
 
     fetchNoteProfilePictures();
   }, [notes]);
-
-  // Hide panel if no active chat or on mobile (unless forceRender is true for modal)
-  if (!activeChat || (isMobile && !forceRender)) {
-    return null;
-  }
 
   const firstUppercase = (str: string) => str.substring(0, 1).toUpperCase() + str.substring(1);
 
@@ -519,7 +517,7 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
                 </div>
                 <p className="text-[10px] text-gray-500 mt-1 break-words word-break-break-all">
                   {formatTimestamp(activity.timestamp)} •{' '}
-                  {new Date(activity.timestamp).toLocaleDateString(i18n.language, {
+                  {new Date(activity.timestamp).toLocaleDateString(locale, {
                     month: 'short',
                     day: 'numeric',
                     year: 'numeric',
@@ -567,7 +565,7 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
                   />
                   <p className="text-[10px] text-gray-500 mt-1">
                     {formatTimestamp(note.timestamp)} •{' '}
-                    {new Date(note.timestamp).toLocaleDateString(i18n.language, {
+                    {new Date(note.timestamp).toLocaleDateString(locale, {
                       month: 'short',
                       day: 'numeric',
                       year: 'numeric',
@@ -621,6 +619,11 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
       activeChat,
     ]
   );
+
+  // Hide panel if no active chat or on mobile (unless forceRender is true for modal)
+  if (!activeChat || (isMobile && !forceRender)) {
+    return null;
+  }
 
   const toggleSection = (sectionId: string) => {
     setExpandedSections((prev) => {

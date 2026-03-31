@@ -128,7 +128,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
   const t = useTranslations('tenants');
 
   return (
-    <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+    <div className="flex flex-col items-center justify-center gap-3 py-12 text-center bg-background rounded-md border border-dashed">
       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
         <Building2 className="size-5 text-muted-foreground" />
       </div>

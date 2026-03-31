@@ -1,5 +1,6 @@
 'use server';
 
+import { fetchFromBackend, uploadToBackend } from '@/app/lib/backendProxy';
 import { serverError, serverLog } from '@/app/lib/serverLogger';
 import type { TenantRow } from '@/app/lib/tenants';
 import {
@@ -46,4 +47,43 @@ export async function deleteTenantAction(tenantId: string): Promise<{ error: str
   const res = await deleteTenantLib(tenantId);
   if (res.error !== null) serverError('[deleteTenantAction] error:', res.error);
   return res;
+}
+
+export async function uploadTenantAvatarAction(
+  tenantId: string,
+  formData: FormData
+): Promise<{ error: string | null }> {
+  const file = formData.get('file');
+  serverLog(
+    '[uploadTenantAvatarAction] tenantId:',
+    tenantId,
+    'file:',
+    file instanceof File ? file.name : 'none'
+  );
+  if (!(file instanceof File)) return { error: 'No file provided' };
+
+  try {
+    const backendForm = new FormData();
+    backendForm.append('file', file);
+    await uploadToBackend(`/tenants/${encodeURIComponent(tenantId)}/avatar`, backendForm);
+    serverLog('[uploadTenantAvatarAction] uploaded successfully');
+    return { error: null };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Upload failed';
+    serverError('[uploadTenantAvatarAction] error:', message);
+    return { error: message };
+  }
+}
+
+export async function removeTenantAvatarAction(tenantId: string): Promise<{ error: string | null }> {
+  serverLog('[removeTenantAvatarAction] tenantId:', tenantId);
+  try {
+    await fetchFromBackend('DELETE', `/tenants/${encodeURIComponent(tenantId)}/avatar`);
+    serverLog('[removeTenantAvatarAction] removed successfully');
+    return { error: null };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Remove failed';
+    serverError('[removeTenantAvatarAction] error:', message);
+    return { error: message };
+  }
 }

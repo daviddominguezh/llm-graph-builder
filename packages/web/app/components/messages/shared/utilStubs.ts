@@ -2,7 +2,6 @@
  * Utility stubs — placeholder functions for utilities not yet
  * migrated from the closer-front codebase.
  */
-
 import type {
   BusinessSetupSchemaAPIType,
   ProductBusinessSetupSchemaAPIType,
@@ -13,10 +12,7 @@ import { MediaFileKind } from '@/app/types/media';
 // ---------------------------------------------------------------------------
 // Currency formatting
 // ---------------------------------------------------------------------------
-export const formatCurrency = (
-  value: string,
-  _currency?: string
-): string => {
+export const formatCurrency = (value: string, _currency?: string): string => {
   const num = Number(value);
   if (Number.isNaN(num)) return value;
   return num.toLocaleString('en-US', {
@@ -59,16 +55,11 @@ export const isLocalDevelopment = (): boolean => {
 // ---------------------------------------------------------------------------
 // Business info cache stubs
 // ---------------------------------------------------------------------------
-export const getBusinessInfoFromCache = (
-  _namespace: string
-): BusinessSetupSchemaAPIType | null => {
+export const getBusinessInfoFromCache = (_namespace: string): BusinessSetupSchemaAPIType | null => {
   return null;
 };
 
-export const setBusinessInfoToCache = (
-  _namespace: string,
-  _info: BusinessSetupSchemaAPIType
-): void => {
+export const setBusinessInfoToCache = (_namespace: string, _info: BusinessSetupSchemaAPIType): void => {
   /* no-op */
 };
 
@@ -86,30 +77,19 @@ export enum APP_SECTION {
   CRM = 'crm',
 }
 
-export const getRolePermissions = (
-  _role: string | null
-): APP_SECTION[] => {
+export const getRolePermissions = (_role: string | null): APP_SECTION[] => {
   return Object.values(APP_SECTION);
 };
 
-export const canAccessSection = (
-  _role: string | null,
-  _section: APP_SECTION
-): boolean => {
+export const canAccessSection = (_role: string | null, _section: APP_SECTION): boolean => {
   return true;
 };
 
-export const getDefaultRouteForRole = (
-  _role: string | null,
-  projectName: string
-): string => {
+export const getDefaultRouteForRole = (_role: string | null, projectName: string): string => {
   return `/${projectName}/messages`;
 };
 
-export const getDefaultSettingsRouteForRole = (
-  _role: string | null,
-  projectName: string
-): string => {
+export const getDefaultSettingsRouteForRole = (_role: string | null, projectName: string): string => {
   return `/${projectName}/settings`;
 };
 

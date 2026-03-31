@@ -3,7 +3,6 @@
 import type { Operation } from '@daviddh/graph-types';
 
 import { AgentEditor } from './agent-editor';
-import type { OrgInfo } from './agent-editor/VfsConfigTable';
 import type { AgentConfigData } from '../hooks/useGraphLoader';
 
 interface AgentEditorWrapperProps {
@@ -13,7 +12,7 @@ interface AgentEditorWrapperProps {
   onBackgroundClick?: () => void;
   onConfigChange?: (config: AgentConfigData) => void;
   agentId?: string;
-  organizations?: OrgInfo[];
+  orgId?: string;
 }
 
 export function AgentEditorWrapper({
@@ -23,7 +22,7 @@ export function AgentEditorWrapper({
   onBackgroundClick,
   onConfigChange,
   agentId,
-  organizations,
+  orgId,
 }: AgentEditorWrapperProps) {
   return (
     <AgentEditor
@@ -33,7 +32,7 @@ export function AgentEditorWrapper({
       onBackgroundClick={onBackgroundClick}
       onConfigChange={onConfigChange}
       agentId={agentId}
-      organizations={organizations}
+      orgId={orgId}
     />
   );
 }

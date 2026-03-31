@@ -50,7 +50,7 @@ interface CreateOrderFromCartModalProps {
 const customerFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email address'),
-  userNationalId: z.coerce.string().min(1, 'National ID is required'),
+  userNationalId: z.string().min(1, 'National ID is required'),
 });
 
 type CustomerFormData = z.infer<typeof customerFormSchema>;
@@ -184,8 +184,7 @@ export const CreateOrderFromCartModal: React.FC<CreateOrderFromCartModalProps> =
   }, [businessInfo, orderItems, address, t]);
 
   // Handle form submission (customer info step)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const onFormSubmit = handleSubmit((_data: CustomerFormData) => {
+  const onFormSubmit = handleSubmit(() => {
     if (!address.ciudadId || !address.barrio || !address.direccion) {
       setError(t('Please fill all required fields'));
       return;

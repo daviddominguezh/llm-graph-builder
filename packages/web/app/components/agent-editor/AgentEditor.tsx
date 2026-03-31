@@ -10,7 +10,6 @@ import { MaxStepsField } from './MaxStepsField';
 import { SkillsList } from './SkillsList';
 import { SystemPromptField } from './SystemPromptField';
 import { VfsConfigSection } from './VfsConfigSection';
-import type { OrgInfo } from './VfsConfigTable';
 import { useAgentEditorActions } from './useAgentEditorActions';
 import { useSkillActions } from './useSkillActions';
 
@@ -20,7 +19,7 @@ interface AgentEditorProps {
   onBackgroundClick?: () => void;
   onConfigChange?: (config: AgentConfigData) => void;
   agentId?: string;
-  organizations?: OrgInfo[];
+  orgId?: string;
 }
 
 function useAgentEditorState(config: AgentConfigData) {
@@ -33,7 +32,7 @@ function useAgentEditorState(config: AgentConfigData) {
   return { systemPrompt, setSystemPrompt, maxSteps, setMaxSteps, contextItems, setContextItems, skills, setSkills };
 }
 
-export function AgentEditor({ config, pushOperation, onBackgroundClick, onConfigChange, agentId, organizations }: AgentEditorProps) {
+export function AgentEditor({ config, pushOperation, onBackgroundClick, onConfigChange, agentId, orgId }: AgentEditorProps) {
   const state = useAgentEditorState(config);
   const actions = useAgentEditorActions(state, pushOperation);
   const skillActions = useSkillActions(state.setSkills, pushOperation);
@@ -67,8 +66,8 @@ export function AgentEditor({ config, pushOperation, onBackgroundClick, onConfig
             onDelete={actions.handleDeleteItem}
           />
           <MaxStepsField value={state.maxSteps} onChange={actions.handleMaxStepsChange} />
-          {agentId !== undefined && (
-            <VfsConfigSection agentId={agentId} organizations={organizations ?? []} />
+          {agentId !== undefined && orgId !== undefined && (
+            <VfsConfigSection agentId={agentId} orgId={orgId} />
           )}
         </div>
       </div>

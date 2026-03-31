@@ -1,3 +1,5 @@
+'use no memo';
+
 import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -83,22 +85,6 @@ export const ChatList: React.FC<ChatListProps> = memo(
         onLoadMore();
       }
     }, [onLoadMore, hasMore]);
-
-    // Show skeleton during initial load
-    if (isLoading) {
-      return (
-        <div className={`${styles.container} ${className}`}>
-          <ChatListHeader
-            totalCount={0}
-            filteredCount={0}
-            onFilterChange={onFilterChange}
-          />
-          <div className={styles.scrollContainer}>
-            <ChatListSkeleton />
-          </div>
-        </div>
-      );
-    }
 
     // Filter conversations
     const filteredConversations = useMemo(() => {
@@ -222,6 +208,22 @@ export const ChatList: React.FC<ChatListProps> = memo(
       ),
       overscan: 5,
     });
+
+    // Show skeleton during initial load
+    if (isLoading) {
+      return (
+        <div className={`${styles.container} ${className}`}>
+          <ChatListHeader
+            totalCount={0}
+            filteredCount={0}
+            onFilterChange={onFilterChange}
+          />
+          <div className={styles.scrollContainer}>
+            <ChatListSkeleton />
+          </div>
+        </div>
+      );
+    }
 
     // Handle empty state
     if (filteredConversations.length === 0) {

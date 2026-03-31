@@ -1,3 +1,5 @@
+'use no memo';
+
 import { useRef } from 'react';
 import { useDispatch } from 'react-redux';
 

@@ -2,10 +2,9 @@
  * Hook stubs — placeholder hooks for features not yet migrated
  * (orders, shopping cart).
  */
-import { useCallback, useState } from 'react';
-
 import type { Cart, CartItem } from '@/app/types/cart';
 import type { Order } from '@/app/types/orders';
+import { useCallback, useState } from 'react';
 
 // ---------------------------------------------------------------------------
 // useOrders
@@ -17,19 +16,13 @@ interface UseOrdersReturn {
   refreshOrders: () => Promise<void>;
 }
 
-export const useOrders = (
-  _projectName: string,
-  _userID: string
-): UseOrdersReturn => {
+export const useOrders = (_projectName: string, _userID: string): UseOrdersReturn => {
   const [orders] = useState<Order[]>([]);
   const [loading] = useState(false);
 
-  const refreshOrders = useCallback(
-    async (): Promise<void> => {
-      /* no-op stub */
-    },
-    []
-  );
+  const refreshOrders = useCallback(async (): Promise<void> => {
+    /* no-op stub */
+  }, []);
 
   return { orders, loading, refreshOrders };
 };
@@ -46,33 +39,21 @@ interface UseShoppingCartReturn {
   removeItem: (itemId: string) => Promise<void>;
 }
 
-export const useShoppingCart = (
-  _projectName: string,
-  _userID: string
-): UseShoppingCartReturn => {
+export const useShoppingCart = (_projectName: string, _userID: string): UseShoppingCartReturn => {
   const [cart] = useState<Cart | null>(null);
   const [loading] = useState(false);
 
-  const refreshCart = useCallback(
-    async (): Promise<void> => {
-      /* no-op stub */
-    },
-    []
-  );
+  const refreshCart = useCallback(async (): Promise<void> => {
+    /* no-op stub */
+  }, []);
 
-  const addItem = useCallback(
-    async (_item: CartItem): Promise<void> => {
-      /* no-op stub */
-    },
-    []
-  );
+  const addItem = useCallback(async (_item: CartItem): Promise<void> => {
+    /* no-op stub */
+  }, []);
 
-  const removeItem = useCallback(
-    async (_itemId: string): Promise<void> => {
-      /* no-op stub */
-    },
-    []
-  );
+  const removeItem = useCallback(async (_itemId: string): Promise<void> => {
+    /* no-op stub */
+  }, []);
 
   return { cart, loading, refreshCart, addItem, removeItem };
 };

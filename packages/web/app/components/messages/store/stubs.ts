@@ -66,25 +66,15 @@ export const UserReducer = userSlice.reducer;
 // Selectors
 // ---------------------------------------------------------------------------
 
-export const getBusinessSetup = (
-  state: StateType
-): BusinessSetupSchemaAPIType | null => {
-  return (
-    (state[BusinessPath] as BusinessState | undefined)?.setup ?? null
-  );
+export const getBusinessSetup = (state: StateType): BusinessSetupSchemaAPIType | null => {
+  return (state[BusinessPath] as BusinessState | undefined)?.setup ?? null;
 };
 
-export const selectCurrentProjectName = (
-  state: StateType
-): string => {
-  return (
-    (state[UserPath] as UserState | undefined)?.projectName ?? ''
-  );
+export const selectCurrentProjectName = (state: StateType): string => {
+  return (state[UserPath] as UserState | undefined)?.projectName ?? '';
 };
 
-export const selectCurrentProjectRole = (
-  state: StateType
-): COLLABORATOR_ROLE | null => {
+export const selectCurrentProjectRole = (state: StateType): COLLABORATOR_ROLE | null => {
   const role = (state[UserPath] as UserState | undefined)?.projectRole;
   return (role as COLLABORATOR_ROLE) || null;
 };

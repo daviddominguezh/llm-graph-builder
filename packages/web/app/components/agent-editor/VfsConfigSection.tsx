@@ -1,14 +1,17 @@
 'use client';
 
+import { getTenantsByOrgAction } from '@/app/actions/tenants';
+import { fetchInstallationRepos, getGitHubConnectUrl } from '@/app/actions/vfsConfig';
+import type { RepoOption } from '@/app/actions/vfsConfig';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { ChevronRight, GitBranch } from 'lucide-react';
+import { ChevronRight, GitBranch, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 
-import { fetchInstallationRepos, getGitHubConnectUrl } from '@/app/actions/vfsConfig';
-import type { RepoOption } from '@/app/actions/vfsConfig';
+import { CreateTenantDialog } from '../orgs/tenants/CreateTenantDialog';
 import type { OrgInfo } from './VfsConfigTable';
 import { VfsConfigTable } from './VfsConfigTable';
 import { VfsSettingsPanel } from './VfsSettingsPanel';
@@ -20,7 +23,42 @@ import { useVfsConfigState } from './useVfsConfigState';
 
 interface VfsConfigSectionProps {
   agentId: string;
-  organizations: OrgInfo[];
+  orgId: string;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Tenant loading hook                                                */
+/* ------------------------------------------------------------------ */
+
+function mapTenants(result: Array<{ id: string; name: string }>): OrgInfo[] {
+  return result.map((t) => ({ id: t.id, name: t.name, installationId: null }));
+}
+
+function fetchAndSetTenants(
+  orgId: string,
+  setData: (val: { organizations: OrgInfo[]; loading: boolean }) => void
+): void {
+  void getTenantsByOrgAction(orgId).then(({ result }) => {
+    setData({ organizations: mapTenants(result), loading: false });
+  });
+}
+
+function useTenants(orgId: string) {
+  const [data, setData] = useState<{ organizations: OrgInfo[]; loading: boolean }>({
+    organizations: [],
+    loading: true,
+  });
+
+  useEffect(() => {
+    fetchAndSetTenants(orgId, setData);
+  }, [orgId]);
+
+  const refresh = useCallback(async () => {
+    const { result } = await getTenantsByOrgAction(orgId);
+    setData({ organizations: mapTenants(result), loading: false });
+  }, [orgId]);
+
+  return { ...data, refresh };
 }
 
 /* ------------------------------------------------------------------ */
@@ -77,15 +115,16 @@ function useConnectHandler() {
 /*  Main component                                                     */
 /* ------------------------------------------------------------------ */
 
-export function VfsConfigSection({ agentId, organizations }: VfsConfigSectionProps) {
+export function VfsConfigSection({ agentId, orgId }: VfsConfigSectionProps) {
   const t = useTranslations('vfsConfig');
+  const tenants = useTenants(orgId);
   const state = useVfsConfigState(agentId);
-  const repos = useRepoMap(organizations);
+  const repos = useRepoMap(tenants.organizations);
   const handleConnect = useConnectHandler();
 
   const isEnabled = state.settings !== null;
 
-  if (state.loading) {
+  if (state.loading || tenants.loading) {
     return <LoadingState t={t} />;
   }
 
@@ -108,9 +147,11 @@ export function VfsConfigSection({ agentId, organizations }: VfsConfigSectionPro
         <div className="animate-in fade-in slide-in-from-top-1 duration-200">
           <EnabledContent
             state={state}
-            organizations={organizations}
+            orgId={orgId}
+            organizations={tenants.organizations}
             repos={repos}
             handleConnect={handleConnect}
+            onTenantCreated={tenants.refresh}
             t={t}
           />
         </div>
@@ -123,13 +164,31 @@ export function VfsConfigSection({ agentId, organizations }: VfsConfigSectionPro
 /*  Empty state                                                        */
 /* ------------------------------------------------------------------ */
 
-function NoTenantsState({ t }: { t: (key: string) => string }) {
+function NoTenantsState({
+  orgId,
+  onCreated,
+  t,
+}: {
+  orgId: string;
+  onCreated: () => void;
+  t: (key: string) => string;
+}) {
+  const tTenants = useTranslations('tenants');
+  const [showCreate, setShowCreate] = useState(false);
+
   return (
-    <div className="border border-ring/50 border-dashed rounded-md flex flex-col items-center gap-2 py-6 text-center bg-input/20">
-      <GitBranch className="size-5 text-muted-foreground/50" />
-      <p className="text-xs text-muted-foreground">{t('noTenantsTitle')}</p>
-      <p className="max-w-xs text-[11px] text-muted-foreground/70">{t('noTenantsDescription')}</p>
-    </div>
+    <>
+      <div className="border border-ring/50 border-dashed rounded-md flex flex-col items-center gap-2 py-6 text-center bg-input/20">
+        <GitBranch className="size-5 text-muted-foreground/50" />
+        <p className="text-xs text-muted-foreground">{t('noTenantsTitle')}</p>
+        <p className="max-w-xs text-[11px] text-muted-foreground/70">{t('noTenantsDescription')}</p>
+        <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5 mt-1" onClick={() => setShowCreate(true)}>
+          <Plus className="size-3" />
+          {tTenants('add')}
+        </Button>
+      </div>
+      <CreateTenantDialog orgId={orgId} open={showCreate} onOpenChange={setShowCreate} onCreated={onCreated} />
+    </>
   );
 }
 
@@ -164,21 +223,25 @@ function AdvancedSettingsToggle({
 
 function EnabledContent({
   state,
+  orgId,
   organizations,
   repos,
   handleConnect,
+  onTenantCreated,
   t,
 }: {
   state: ReturnType<typeof useVfsConfigState>;
+  orgId: string;
   organizations: OrgInfo[];
   repos: Map<number, RepoOption[]>;
   handleConnect: (orgId: string) => void;
+  onTenantCreated: () => Promise<void>;
   t: (key: string) => string;
 }) {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   if (organizations.length === 0) {
-    return <NoTenantsState t={t} />;
+    return <NoTenantsState orgId={orgId} onCreated={onTenantCreated} t={t} />;
   }
 
   return (

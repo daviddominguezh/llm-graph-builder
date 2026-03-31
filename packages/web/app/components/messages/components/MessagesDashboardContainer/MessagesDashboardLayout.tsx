@@ -1,7 +1,9 @@
+'use no memo';
+
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useSelector } from 'react-redux';
-import type { ImperativePanelHandle } from 'react-resizable-panels';
+import { usePanelRef } from 'react-resizable-panels';
 import { useParams } from 'next/navigation';
 
 import { v4 as uuidv4 } from 'uuid';
@@ -171,7 +173,7 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
 
   // Panel size calculations for resizable panels (desktop only)
   const containerRef = useRef<HTMLDivElement>(null);
-  const leftPanelRef = useRef<ImperativePanelHandle>(null);
+  const leftPanelRef = usePanelRef();
   const [containerWidth, setContainerWidth] = useState(0);
 
   // Track container width
@@ -251,10 +253,11 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
 
   // Resize left panel when collapse state changes
   useEffect(() => {
-    if (leftPanelRef.current && !isMobile) {
-      leftPanelRef.current.resize(panelSizes.leftPanel);
+    const panel = leftPanelRef.current;
+    if (panel && !isMobile && 'resize' in panel) {
+      (panel as { resize: (size: number) => void }).resize(panelSizes.leftPanel);
     }
-  }, [isMobile, leftPanelCollapsed, panelSizes.leftPanel]);
+  }, [isMobile, leftPanelCollapsed, panelSizes.leftPanel, leftPanelRef]);
 
   // Hide mobile sidebar when chat is selected, show when deselected
   useEffect(() => {
@@ -652,12 +655,11 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
             {/* Left navigation panel - hidden for agents who have tabs for filtering */}
             {!isAgent && (
               <ResizablePanel
-                ref={leftPanelRef}
+                
                 id="left-panel"
                 defaultSize={panelSizes.leftPanel}
                 minSize={panelSizes.leftPanelMin}
                 maxSize={panelSizes.leftPanelMax}
-                order={1}
               >
                 <LeftPanel
                   projectName={projectName}
@@ -676,10 +678,10 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
             {!isAgent && !leftPanelCollapsed && <ResizableHandle />}
 
             {/* Remaining panels wrapper - takes rest of space (100% for agents) */}
-            <ResizablePanel id="remaining-panels" defaultSize={isAgent ? 100 : 100 - panelSizes.leftPanel} order={2}>
+            <ResizablePanel id="remaining-panels" defaultSize={isAgent ? 100 : 100 - panelSizes.leftPanel}>
               <ResizablePanelGroup direction="horizontal" className="h-full">
                 {/* Chat list panel - resizable (calculated to be 280px initially) */}
-                <ResizablePanel id="chat-list-panel" defaultSize={panelSizes.chatList} order={1}>
+                <ResizablePanel id="chat-list-panel" defaultSize={panelSizes.chatList}>
                   <ChatListPanel
                     orderedChats={orderedChats}
                     activeChat={activeChat}
@@ -705,7 +707,7 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
                 <ResizableHandle />
 
                 {/* Chat view and right panel wrapper - takes remaining space */}
-                <ResizablePanel id="chat-view-panel" defaultSize={panelSizes.chatView} order={2}>
+                <ResizablePanel id="chat-view-panel" defaultSize={panelSizes.chatView}>
                   {activeChat && (currentChat || isTestChatActive) ? (
                     <div className="flex flex-col h-full">
                       {/* Shared header for both chat view and right panel */}
@@ -727,7 +729,6 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
                           <ResizablePanel
                             id="chat-messages"
                             defaultSize={100 - panelSizes.rightPanelInChatView}
-                            order={1}
                           >
                             <ChatViewPanel
                               currentChat={currentChat}
@@ -771,7 +772,6 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
                           <ResizablePanel
                             id="right-panel"
                             defaultSize={panelSizes.rightPanelInChatView}
-                            order={2}
                           >
                             <RightPanel
                               activeChat={activeChat}

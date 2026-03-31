@@ -1,3 +1,5 @@
+'use no memo';
+
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 

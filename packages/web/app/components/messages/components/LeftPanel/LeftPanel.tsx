@@ -1,3 +1,5 @@
+'use no memo';
+
 import React, { memo, useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 
@@ -85,47 +87,28 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
     onCollapseChange?.(isCollapsed);
   }, [isCollapsed, onCollapseChange]);
 
-  // Hide panel on mobile devices
-  if (isMobile) {
-    return null;
-  }
-
-  // const bigIconSize = 20;
-  const iconSize = 16;
-  // const smallIconSize = 14;
-
-  // Helper function to get latest assignee from chat (highest timestamp)
-  const getLatestAssignee = (chat: ChatWithId): string | null => {
-    if (!chat.assignees) return null;
-    const assigneeEntries = Object.values(chat.assignees);
-    if (assigneeEntries.length === 0) return null;
-    const latest = assigneeEntries.reduce((prev, curr) => (curr.timestamp > prev.timestamp ? curr : prev));
-    return latest.assignee;
-  };
-
-  // Helper function to get status from chat
-  // Default status is 'open' if no status has been set
-  const getChatStatus = (chat: ChatWithId): string => {
-    return chat.status || 'open';
-  };
-
-  // Calculate badge count for a filter
-  // Counts the number of conversations with unanswered messages (AI disabled only)
-  // A chat has unanswered messages if the last message was from the user (not us)
-  const calculateBadgeCount = (filterFn: (chat: ChatWithId) => boolean): number => {
-    return orderedChats
-      .filter(filterFn)
-      .filter((chat) => !chat.enabled) // Only count chats with AI disabled
-      .filter((chat) => chat.message?.role === 'user').length; // Last message from user = unanswered
-  };
-
-  // Calculate badges for each filter
+  // Calculate badges for each filter (must be before early return)
   const badges = useMemo(() => {
+    const getLatestAssignee = (chat: ChatWithId): string | null => {
+      if (!chat.assignees) return null;
+      const assigneeEntries = Object.values(chat.assignees);
+      if (assigneeEntries.length === 0) return null;
+      const latest = assigneeEntries.reduce((prev, curr) =>
+        curr.timestamp > prev.timestamp ? curr : prev
+      );
+      return latest.assignee;
+    };
+
+    const getChatStatus = (chat: ChatWithId): string => chat.status || 'open';
+
+    const calculateBadgeCount = (filterFn: (chat: ChatWithId) => boolean): number =>
+      orderedChats
+        .filter(filterFn)
+        .filter((chat) => !chat.enabled)
+        .filter((chat) => chat.message?.role === 'user').length;
+
     return {
-      inbox: calculateBadgeCount((chat) => {
-        const lastAssignee = getLatestAssignee(chat);
-        return lastAssignee === currentUserEmail;
-      }),
+      inbox: calculateBadgeCount((chat) => getLatestAssignee(chat) === currentUserEmail),
       withBot: calculateBadgeCount((chat) => chat.enabled === true),
       unassigned: calculateBadgeCount((chat) => {
         const lastAssignee = getLatestAssignee(chat);
@@ -141,6 +124,15 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
       all: calculateBadgeCount(() => true),
     };
   }, [orderedChats, currentUserEmail]);
+
+  // Hide panel on mobile devices
+  if (isMobile) {
+    return null;
+  }
+
+  // const bigIconSize = 20;
+  const iconSize = 16;
+  // const smallIconSize = 14;
 
   // Generate teammates items from collaborators
   /*

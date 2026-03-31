@@ -780,6 +780,10 @@
     "mustPublishFirst": "Publish your agent at least once before making it public.",
     "saving": "Saving..."
   },
+  "slugs": {
+    "checking": "Checking availability...",
+    "nameTaken": "This name is already taken"
+  },
   "team": {
     "title": "Team",
     "description": "Manage who has access to this organization.",

@@ -1,7 +1,7 @@
 'use client';
 
-import type { OrgMemberRow, OrgRole } from '@/app/lib/orgMembers';
-import { ORG_ROLES } from '@/app/lib/orgMembers';
+import type { OrgMemberRow, OrgRole } from '@/app/lib/orgMemberTypes';
+import { ORG_ROLES } from '@/app/lib/orgMemberTypes';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';

@@ -1,3 +1,5 @@
+'use no memo';
+
 import { getFinalUserInfo } from '@/app/components/messages/services/api';
 import type { FinalUserInfoAPI } from '@/app/types/finalUsers';
 import { useParams } from 'next/navigation';
@@ -18,7 +20,8 @@ const userInfoCache: UserInfoCache = {};
  */
 export const useUserInfo = (chatId: string | null, isActive: boolean = false): FinalUserInfoAPI | null => {
   const params = useParams();
-  const projectName = typeof params.projectName === 'string' ? params.projectName : params.projectName?.[0] ?? '';
+  const projectName =
+    typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? '');
   const [userInfo, setUserInfo] = useState<FinalUserInfoAPI | null>(null);
   const activeChatRef = useRef<string | null>(chatId);
 

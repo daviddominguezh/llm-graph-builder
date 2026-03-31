@@ -1,22 +1,8 @@
 import { fetchFromBackend } from './backendProxy';
+import type { OrgMemberRow } from './orgMemberTypes';
 
-/* ------------------------------------------------------------------ */
-/*  Types                                                              */
-/* ------------------------------------------------------------------ */
-
-export interface OrgMemberRow {
-  user_id: string;
-  role: string;
-  email: string;
-  full_name: string;
-  joined_at: string;
-}
-
-export type OrgRole = 'owner' | 'admin' | 'developer' | 'agent';
-
-export const ORG_ROLES: OrgRole[] = ['owner', 'admin', 'developer', 'agent'];
-
-export const ASSIGNABLE_ROLES: OrgRole[] = ['admin', 'developer', 'agent'];
+export type { OrgMemberRow, OrgRole } from './orgMemberTypes';
+export { ASSIGNABLE_ROLES, ORG_ROLES } from './orgMemberTypes';
 
 /* ------------------------------------------------------------------ */
 /*  Type guards                                                        */

@@ -1,4 +1,5 @@
-/* eslint-disable @typescript-eslint/no-dynamic-delete */
+'use no memo';
+
 import React, { useState } from 'react';
 import { useTranslations } from 'next-intl';
 

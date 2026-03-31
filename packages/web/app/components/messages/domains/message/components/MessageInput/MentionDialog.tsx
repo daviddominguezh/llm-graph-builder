@@ -1,3 +1,5 @@
+'use no memo';
+
 import React, { useEffect, useRef, useState } from 'react';
 import Avatar from 'react-nice-avatar';
 

@@ -35,6 +35,5 @@ export const getAuthToken = async (): Promise<string | null> => {
  * Stub: logs the error to the console.
  */
 export const handleAuthError = (error: unknown): void => {
-  // eslint-disable-next-line no-console
   console.warn('[auth stub] handleAuthError:', error);
 };

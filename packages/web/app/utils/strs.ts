@@ -1,4 +1,3 @@
-/* eslint-disable no-useless-escape */
 import { AddressSchemaType, PaymentItem } from '@/app/types/orders';
 import crypto from 'crypto';
 import dayjs from 'dayjs';

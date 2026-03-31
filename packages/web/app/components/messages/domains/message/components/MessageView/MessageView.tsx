@@ -1,3 +1,5 @@
+'use no memo';
+
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import Avatar from 'react-nice-avatar';
@@ -108,6 +110,72 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
     const positionCalculatedRef = useRef<boolean>(false);
     const highlightedMessageRef = useRef<HTMLDivElement>(null);
 
+    // Handle click outside to close dropdown (must be before early return)
+    useEffect(() => {
+      if (!isDropdownOpen) return;
+
+      const handleClickOutside = (event: MouseEvent) => {
+        if (
+          dropdownRef.current &&
+          dropdownTriggerRef.current &&
+          !dropdownRef.current.contains(event.target as Node) &&
+          !dropdownTriggerRef.current.contains(event.target as Node)
+        ) {
+          setIsDropdownOpen(false);
+          positionCalculatedRef.current = false;
+        }
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }, [isDropdownOpen]);
+
+    // Calculate dropdown position when dropdown opens (must be before early return)
+    useEffect(() => {
+      if (!isDropdownOpen || positionCalculatedRef.current) {
+        return;
+      }
+
+      requestAnimationFrame(() => {
+        if (!dropdownTriggerRef.current) {
+          setDropdownPosition('above');
+          setDropdownHorizontalOffset(0);
+          positionCalculatedRef.current = true;
+          return;
+        }
+
+        const triggerRect = dropdownTriggerRef.current.getBoundingClientRect();
+        const dropdownHeight = 100;
+        const dropdownWidth = 240;
+
+        const container = dropdownTriggerRef.current.closest('[data-virtuoso-scroller]');
+        const containerRect = container?.getBoundingClientRect() || document.body.getBoundingClientRect();
+
+        const spaceAbove = triggerRect.top - containerRect.top;
+        const spaceBelow = containerRect.bottom - triggerRect.bottom;
+
+        let horizontalOffset = 0;
+        const defaultLeftEdge = triggerRect.right - dropdownWidth;
+        const defaultRightEdge = triggerRect.right;
+
+        if (defaultRightEdge <= containerRect.right && defaultLeftEdge >= containerRect.left) {
+          horizontalOffset = 0;
+        } else if (defaultRightEdge > containerRect.right) {
+          horizontalOffset = defaultRightEdge - containerRect.right;
+        } else if (defaultLeftEdge < containerRect.left) {
+          horizontalOffset = -(containerRect.left - defaultLeftEdge);
+        }
+
+        const decision = spaceAbove < dropdownHeight && spaceBelow >= dropdownHeight ? 'below' : 'above';
+
+        setDropdownPosition(decision);
+        setDropdownHorizontalOffset(horizontalOffset);
+        positionCalculatedRef.current = true;
+      });
+    }, [isDropdownOpen]);
+
     if (!context) return null;
 
     const {
@@ -179,72 +247,6 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
             m.type !== 'status-change'
         )
       : false;
-
-    // Handle click outside to close dropdown
-    useEffect(() => {
-      if (!isDropdownOpen) return;
-
-      const handleClickOutside = (event: MouseEvent) => {
-        if (
-          dropdownRef.current &&
-          dropdownTriggerRef.current &&
-          !dropdownRef.current.contains(event.target as Node) &&
-          !dropdownTriggerRef.current.contains(event.target as Node)
-        ) {
-          setIsDropdownOpen(false);
-          positionCalculatedRef.current = false;
-        }
-      };
-
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
-    }, [isDropdownOpen]);
-
-    // Calculate dropdown position when dropdown opens
-    useEffect(() => {
-      if (!isDropdownOpen || positionCalculatedRef.current) {
-        return;
-      }
-
-      requestAnimationFrame(() => {
-        if (!dropdownTriggerRef.current) {
-          setDropdownPosition('above');
-          setDropdownHorizontalOffset(0);
-          positionCalculatedRef.current = true;
-          return;
-        }
-
-        const triggerRect = dropdownTriggerRef.current.getBoundingClientRect();
-        const dropdownHeight = 100;
-        const dropdownWidth = 240;
-
-        const container = dropdownTriggerRef.current.closest('[data-virtuoso-scroller]');
-        const containerRect = container?.getBoundingClientRect() || document.body.getBoundingClientRect();
-
-        const spaceAbove = triggerRect.top - containerRect.top;
-        const spaceBelow = containerRect.bottom - triggerRect.bottom;
-
-        let horizontalOffset = 0;
-        const defaultLeftEdge = triggerRect.right - dropdownWidth;
-        const defaultRightEdge = triggerRect.right;
-
-        if (defaultRightEdge <= containerRect.right && defaultLeftEdge >= containerRect.left) {
-          horizontalOffset = 0;
-        } else if (defaultRightEdge > containerRect.right) {
-          horizontalOffset = defaultRightEdge - containerRect.right;
-        } else if (defaultLeftEdge < containerRect.left) {
-          horizontalOffset = -(containerRect.left - defaultLeftEdge);
-        }
-
-        const decision = spaceAbove < dropdownHeight && spaceBelow >= dropdownHeight ? 'below' : 'above';
-
-        setDropdownPosition(decision);
-        setDropdownHorizontalOffset(horizontalOffset);
-        positionCalculatedRef.current = true;
-      });
-    }, [isDropdownOpen]);
 
     return (
       <div

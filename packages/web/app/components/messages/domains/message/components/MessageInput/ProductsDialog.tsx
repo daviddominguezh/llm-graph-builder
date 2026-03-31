@@ -364,10 +364,8 @@ export const ProductsDialog: React.FC<ProductsDialogProps> = ({
     setSelectedImageMap((prev) => {
       // If clicking the already selected image, unselect it
       if (prev[productId] === imageId) {
-        const newMap = { ...prev };
-        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-        delete newMap[productId];
-        return newMap;
+        const { [productId]: _removed, ...rest } = prev;
+        return rest;
       }
       // Otherwise, select the new image
       return {

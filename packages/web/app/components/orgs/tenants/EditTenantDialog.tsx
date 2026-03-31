@@ -1,14 +1,16 @@
 'use client';
 
-import { updateTenantAction } from '@/app/actions/tenants';
+import { removeTenantAvatarAction, updateTenantAction, uploadTenantAvatarAction } from '@/app/actions/tenants';
 import type { TenantRow } from '@/app/lib/tenants';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useTranslations } from 'next-intl';
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useRef, useState } from 'react';
 import { toast } from 'sonner';
+
+import { AvatarUpload } from '../AvatarUpload';
 
 interface EditTenantDialogProps {
   tenant: TenantRow;
@@ -20,35 +22,79 @@ interface EditTenantDialogProps {
 function EditForm({ tenant, onOpenChange, onSaved }: Omit<EditTenantDialogProps, 'open'>) {
   const t = useTranslations('tenants');
   const [loading, setLoading] = useState(false);
+  const [name, setName] = useState(tenant.name);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileRef = useRef<File | null>(null);
+  const [pendingRemove, setPendingRemove] = useState(false);
+
+  function handleFileSelect(file: File | null) {
+    fileRef.current = file;
+    setPreviewUrl(file !== null ? URL.createObjectURL(file) : null);
+    setPendingRemove(false);
+  }
+
+  function handleRemove() {
+    fileRef.current = null;
+    setPreviewUrl(null);
+    setPendingRemove(true);
+  }
+
+  const currentUrl = pendingRemove ? null : tenant.avatar_url;
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const name = (formData.get('name') as string).trim();
-
-    if (name === '') return;
+    const trimmed = name.trim();
+    if (trimmed === '') return;
 
     setLoading(true);
-    const { error } = await updateTenantAction(tenant.id, name);
-    setLoading(false);
+    try {
+      const { error } = await updateTenantAction(tenant.id, trimmed);
+      if (error !== null) {
+        toast.error(t('updateError'));
+        setLoading(false);
+        return;
+      }
 
-    if (error !== null) {
+      if (fileRef.current !== null) {
+        const formData = new FormData();
+        formData.append('file', fileRef.current);
+        await uploadTenantAvatarAction(tenant.id, formData);
+      } else if (pendingRemove && tenant.avatar_url !== null) {
+        await removeTenantAvatarAction(tenant.id);
+      }
+
+      onOpenChange(false);
+      onSaved();
+    } catch {
       toast.error(t('updateError'));
-      return;
+    } finally {
+      setLoading(false);
     }
-
-    onOpenChange(false);
-    onSaved();
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <Label htmlFor="edit-tenant-name">{t('name')}</Label>
-        <Input id="edit-tenant-name" name="name" defaultValue={tenant.name} required />
+      <div className="flex items-center gap-4">
+        <AvatarUpload
+          currentUrl={currentUrl}
+          previewUrl={previewUrl}
+          name={name}
+          onFileSelect={handleFileSelect}
+          onRemove={(previewUrl ?? currentUrl) !== null ? handleRemove : undefined}
+        />
+        <div className="flex flex-1 flex-col gap-1">
+          <Label htmlFor="edit-tenant-name">{t('name')}</Label>
+          <Input
+            id="edit-tenant-name"
+            name="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+        </div>
       </div>
       <DialogFooter>
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading || name.trim() === ''}>
           {t('save')}
         </Button>
       </DialogFooter>

@@ -448,6 +448,7 @@ function LoadedEditor(props: LoadedEditorProps) {
               onBackgroundClick={h.selection.onPaneClick}
               onConfigChange={h.agentHooks.setAgentConfigSilent}
               agentId={props.agentId}
+              orgId={props.orgId}
             />
             {h.simulation.active && (
               <SimulationPanel

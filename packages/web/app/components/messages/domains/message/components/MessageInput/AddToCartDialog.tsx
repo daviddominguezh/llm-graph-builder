@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Combobox } from '@/components/ui/combobox';
+
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -203,18 +203,21 @@ export const AddToCartDialog: React.FC<AddToCartDialogProps> = ({ isOpen, onClos
           {/* Product Selection */}
           <div>
             <Label className="mb-2 inline-block">{t('Product')} *</Label>
-            <Combobox
+            <select
               value={selectedProductId}
-              onValueChange={handleProductSelect}
-              options={products.map((product) => ({
-                label: `${product.name} - $${formatCurrency(product.price.toString())}`,
-                value: product.id,
-                image: getProductImagePreview(product),
-              }))}
-              placeholder={isLoadingProducts ? t('Loading products...') : t('Select a product')}
+              onChange={(e) => handleProductSelect(e.target.value)}
               disabled={isLoadingProducts || products.length === 0}
-              popoverClassName="z-[160]"
-            />
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+            >
+              <option value="">
+                {isLoadingProducts ? t('Loading products...') : t('Select a product')}
+              </option>
+              {products.map((product) => (
+                <option key={product.id} value={product.id}>
+                  {product.name} - ${formatCurrency(product.price.toString())}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Personalizations Section */}
@@ -226,22 +229,24 @@ export const AddToCartDialog: React.FC<AddToCartDialogProps> = ({ isOpen, onClos
                 .map((personalizationType) => (
                   <div key={personalizationType.type} className="space-y-1">
                     <Label className="text-sm">{personalizationType.type} *</Label>
-                    <Combobox
+                    <select
                       value={personalizations.find((p) => p.type === personalizationType.type)?.value || ''}
-                      onValueChange={(value) => handlePersonalizationChange(personalizationType.type, value)}
-                      options={getAvailablePersonalizationValues(
+                      onChange={(e) => handlePersonalizationChange(personalizationType.type, e.target.value)}
+                      className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="">{t('Select')}</option>
+                      {getAvailablePersonalizationValues(
                         selectedProductId,
                         personalizationType.type,
                         personalizations,
                         stockData,
                         products
-                      ).map((value) => ({
-                        label: value,
-                        value: value,
-                      }))}
-                      placeholder={t('Select')}
-                      popoverClassName="z-[160]"
-                    />
+                      ).map((value) => (
+                        <option key={value} value={value}>
+                          {value}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 ))}
 

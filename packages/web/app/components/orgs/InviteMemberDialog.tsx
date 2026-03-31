@@ -1,7 +1,7 @@
 'use client';
 
 import { addOrgMemberAction } from '@/app/actions/orgMembers';
-import { ASSIGNABLE_ROLES, type OrgRole } from '@/app/lib/orgMembers';
+import { ASSIGNABLE_ROLES, type OrgRole } from '@/app/lib/orgMemberTypes';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';

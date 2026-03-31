@@ -1,7 +1,7 @@
 'use client';
 
 import { getOrgMembersAction, updateMemberRoleAction } from '@/app/actions/orgMembers';
-import type { OrgMemberRow, OrgRole } from '@/app/lib/orgMembers';
+import type { OrgMemberRow, OrgRole } from '@/app/lib/orgMemberTypes';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Users } from 'lucide-react';
@@ -39,7 +39,7 @@ function EmptyState({ isOwner, onInvite }: { isOwner: boolean; onInvite: () => v
   const t = useTranslations('team');
 
   return (
-    <div className="flex flex-col items-center gap-2 rounded-md border border-dashed bg-card/50 px-4 py-8 text-center">
+    <div className="flex flex-col items-center gap-2 rounded-md border border-dashed bg-background px-4 py-8 text-center">
       <Users className="size-6 text-muted-foreground/50" />
       <p className="text-sm font-medium">{t('noMembers')}</p>
       <p className="text-xs text-muted-foreground max-w-xs">{t('noMembersDescription')}</p>

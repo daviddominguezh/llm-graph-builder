@@ -8,6 +8,7 @@ export interface TenantRow {
   id: string;
   org_id: string;
   name: string;
+  avatar_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -31,7 +32,7 @@ function mapRows(data: unknown[]): TenantRow[] {
   }, []);
 }
 
-const LIST_COLUMNS = 'id, org_id, name, created_at, updated_at';
+const LIST_COLUMNS = 'id, org_id, name, avatar_url, created_at, updated_at';
 
 /* ------------------------------------------------------------------ */
 /*  Queries                                                            */
@@ -85,6 +86,16 @@ export async function updateTenant(
   const row: unknown = data;
   if (!isTenantRow(row)) return { result: null, error: 'Invalid tenant data' };
   return { result: row, error: null };
+}
+
+export async function updateTenantFields(
+  supabase: SupabaseClient,
+  tenantId: string,
+  payload: Record<string, string | null>
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('tenants').update(payload).eq('id', tenantId);
+  if (error !== null) return { error: error.message };
+  return { error: null };
 }
 
 export async function deleteTenant(
