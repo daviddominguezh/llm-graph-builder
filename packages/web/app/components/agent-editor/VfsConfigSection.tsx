@@ -150,7 +150,7 @@ function AdvancedSettingsToggle({
       onClick={onToggle}
       className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors w-fit"
     >
-      <ChevronRight className={cn('size-3.5 transition-transform', open && 'rotate-90')} />
+      <ChevronRight className={cn('size-3 transition-transform duration-150', open && 'rotate-90')} />
       {t('advancedSettings')}
     </button>
   );
@@ -212,7 +212,10 @@ function LoadingState({ t }: { t: (key: string) => string }) {
   return (
     <div className="flex flex-col gap-2">
       <Label className="text-xs font-medium">{t('sectionTitle')}</Label>
-      <p className="text-xs text-muted-foreground">{t('loadingConfigs')}</p>
+      <div className="rounded-md border p-3 space-y-2">
+        <div className="h-3 w-32 animate-pulse rounded bg-muted" />
+        <div className="h-3 w-48 animate-pulse rounded bg-muted" />
+      </div>
     </div>
   );
 }

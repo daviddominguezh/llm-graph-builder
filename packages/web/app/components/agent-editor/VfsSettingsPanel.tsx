@@ -37,7 +37,6 @@ function NumberField({
   return (
     <div className="flex flex-col gap-1">
       <Label className="text-[11px] text-muted-foreground">{label}</Label>
-      <p className="text-[10px] text-muted-foreground/70">{hint}</p>
       <Input
         type="number"
         min={1}
@@ -49,6 +48,7 @@ function NumberField({
           onChange(e.target.value === '' ? undefined : num);
         }}
       />
+      <p className="text-[10px] text-muted-foreground/60 leading-tight">{hint}</p>
     </div>
   );
 }
@@ -76,8 +76,7 @@ export function VfsSettingsPanel({ settings, onUpdate }: VfsSettingsPanelProps) 
   );
 
   return (
-    <div className="flex flex-col gap-3 rounded-md border p-3">
-      <Label className="text-xs font-medium">{t('settingsTitle')}</Label>
+    <div className="flex flex-col gap-3 rounded-md border border-muted p-3">
       <div className="flex flex-col gap-1">
         <Label className="text-[11px] text-muted-foreground">{t('protectedPaths')}</Label>
         <Textarea

@@ -90,8 +90,8 @@ function NoConnectionState({
 }) {
   return (
     <>
-      <td className="px-3 py-2 text-xs text-muted-foreground">-</td>
-      <td className="px-3 py-2 text-xs text-muted-foreground">-</td>
+      <td className="px-3 py-2 text-xs text-muted-foreground"><span className="text-muted-foreground/40">&mdash;</span></td>
+      <td className="px-3 py-2 text-xs text-muted-foreground"><span className="text-muted-foreground/40">&mdash;</span></td>
       <td className="px-3 py-2">
         <Button variant="default" size="sm" className="h-7 text-xs" onClick={() => onConnect(orgId)}>
           {t('connectGitHub')}
@@ -162,7 +162,13 @@ function ConnectedState({
               {t('reconnectGitHub')}
             </Button>
           )}
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => onRemove(orgId)}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+            onClick={() => onRemove(orgId)}
+            aria-label={t('removeConfig')}
+          >
             <X className="size-3" />
           </Button>
         </div>
@@ -190,7 +196,9 @@ export function VfsConfigRow(props: VfsConfigRowProps) {
           {orgName}
         </div>
       </td>
-      <td className="px-3 py-2 text-xs text-muted-foreground">{config?.account_name ?? '-'}</td>
+      <td className="px-3 py-2 text-xs text-muted-foreground">
+        {config?.account_name ?? <span className="text-muted-foreground/40">&mdash;</span>}
+      </td>
       {renderRowContent(orgId, config, installationId, repos, t, onSelectRepo, onRemove, onConnect)}
     </tr>
   );
