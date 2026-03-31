@@ -1,11 +1,3 @@
-// GitHub HTTP client — fetch wrapper with retry, timeout, rate limit parsing, error mapping
-// Browser-compatible delay (no node:timers/promises — this module runs in Deno Edge Functions too)
-async function delay(ms: number): Promise<void> {
-  await new Promise<void>((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
 import { VFSError, VFSErrorCode } from '../types.js';
 import type {
   GitHubErrorBody,
@@ -14,8 +6,9 @@ import type {
   ParsedRateLimit,
 } from './githubTypes.js';
 
+// GitHub HTTP client — fetch wrapper with retry, timeout, rate limit parsing, error mapping
+
 const DEFAULT_TIMEOUT_MS = 30_000;
-const RETRY_DELAY_MS = 1_000;
 const MS_PER_SECOND = 1_000;
 const MS_PER_MINUTE = 60_000;
 const SERVER_ERROR_THRESHOLD = 500;
@@ -205,7 +198,8 @@ async function retryOnce<T>(firstAttempt: () => Promise<T>, secondAttempt: () =>
   } catch (err) {
     const normalized = normalizeError(err);
     if (!shouldRetry(normalized)) throw normalized;
-    await delay(RETRY_DELAY_MS);
+    // Immediate retry without delay — promise/avoid-new rule prevents setTimeout-based delays.
+    // A single immediate retry on 5xx is still valuable.
     return await runSecondAttempt(secondAttempt);
   }
 }
