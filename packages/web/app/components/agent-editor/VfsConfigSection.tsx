@@ -130,18 +130,17 @@ export function VfsConfigSection({ agentId, orgId }: VfsConfigSectionProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2">
+      <Label htmlFor="vfs-enabled" className="text-xs font-medium cursor-pointer">
+        {t('enableVfs')}
+      </Label>
+      <div className="flex items-center gap-2 border-l-2 border-accent/20 pl-4 py-2">
         <Checkbox
+          className="cursor-pointer"
           id="vfs-enabled"
           checked={isEnabled}
           onCheckedChange={(checked) => state.handleToggleEnabled(checked === true)}
         />
-        <div className="flex flex-col">
-          <Label htmlFor="vfs-enabled" className="text-xs font-medium cursor-pointer">
-            {t('enableVfs')}
-          </Label>
-          <span className="text-[11px] text-muted-foreground">{t('enableVfsDescription')}</span>
-        </div>
+        <span className="text-[11px] text-muted-foreground">{t('enableVfsDescription')}</span>
       </div>
       {isEnabled && (
         <div className="animate-in fade-in slide-in-from-top-1 duration-200">
@@ -182,12 +181,22 @@ function NoTenantsState({
         <GitBranch className="size-5 text-muted-foreground/50" />
         <p className="text-xs text-muted-foreground">{t('noTenantsTitle')}</p>
         <p className="max-w-xs text-[11px] text-muted-foreground/70">{t('noTenantsDescription')}</p>
-        <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5 mt-1" onClick={() => setShowCreate(true)}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs gap-1.5 mt-1"
+          onClick={() => setShowCreate(true)}
+        >
           <Plus className="size-3" />
           {tTenants('add')}
         </Button>
       </div>
-      <CreateTenantDialog orgId={orgId} open={showCreate} onOpenChange={setShowCreate} onCreated={onCreated} />
+      <CreateTenantDialog
+        orgId={orgId}
+        open={showCreate}
+        onOpenChange={setShowCreate}
+        onCreated={onCreated}
+      />
     </>
   );
 }
