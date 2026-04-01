@@ -83,12 +83,14 @@ const getAuthHeaders = async (url: string): Promise<HeadersInit> => {
     console.warn('[API] No Firebase user available for protected endpoint:', url);
     return {
       Authorization: `Bearer ${token}`,
+      api_key: process.env.NEXT_PUBLIC_CLOSER_API_KEY || '',
     };
   }
 
   return {
     Authorization: `Bearer ${token}`,
     uid: firebaseUser.uid,
+    api_key: process.env.NEXT_PUBLIC_CLOSER_API_KEY || '',
   };
 };
 
