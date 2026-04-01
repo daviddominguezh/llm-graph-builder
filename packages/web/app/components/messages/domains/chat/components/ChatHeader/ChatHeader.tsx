@@ -273,12 +273,12 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
   return (
     <div
-      className={`border-l w-full bg-white px-3 py-[6px] flex items-center gap-3 border-[#e4e4e7] z-10 ${className}`}
+      className={`h-[41px] border-l w-full bg-background px-3 flex items-center gap-3 z-10 ${className}`}
     >
       {/* Back button (mobile) */}
       {showBackButton && onBack && (
         <div
-          className="cursor-pointer flex items-center justify-center p-1 px-0 rounded transition-colors hover:bg-[#f4f4f5]"
+          className="cursor-pointer flex items-center justify-center p-1 px-0 rounded"
           onClick={onBack}
         >
           <ChevronLeft size={24} />
@@ -298,7 +298,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         <div className="shrink-0 relative">
           <Avatar
             {...avatarConfig}
-            style={{ width: '35px', height: '35px', minWidth: '35px' }}
+            style={{ width: '20px', height: '20px', minWidth: '20px' }}
             className="rounded-full"
           />
           {!isTestChat && chatId !== TEST_PHONE && renderPlatformBadge(parsedChat.source)}
