@@ -56,59 +56,60 @@ Exhaustive list of all API calls defined in `packages/web/app/components/message
 |---|----------|--------|----------|
 | 19 | `sendMessage` | POST | `/messages/message` |
 | 20 | `fixInquiry` | POST | `/messages/inquiry` |
-| 21 | `deleteConversation` | DELETE | `/messages/{namespace}/{from}` |
-| 22 | `sendMediaTestMessage` | POST | `/messages/test` |
-| 23 | `sendMediaMessage` | POST | `/messages/message` |
+| 21 | `sendTestMessage` | POST | `/messages/test` |
+| 22 | `deleteConversation` | DELETE | `/messages/{namespace}/{from}` |
+| 23 | `sendMediaTestMessage` | POST | `/messages/test` |
+| 24 | `sendMediaMessage` | POST | `/messages/message` |
 
 ## Last Messages / Inbox
 
 | # | Function | Method | Endpoint |
 |---|----------|--------|----------|
-| 24 | `getLastMessages` | GET | `/projects/{namespace}/last-messages` |
-| 25 | `getLastMessagesPaginated` | GET | `/projects/{namespace}/last-messages/paginated` |
-| 26 | `getLastMessagesDelta` | GET | `/projects/{namespace}/last-messages/delta` |
-| 27 | `getDeletedChats` | GET | `/projects/{namespace}/last-messages/deleted` |
-| 28 | `readConversation` | POST | `/projects/{namespace}/conversations/{phone}/read` |
+| 25 | `getLastMessages` | GET | `/projects/{namespace}/last-messages` |
+| 26 | `getLastMessagesPaginated` | GET | `/projects/{namespace}/last-messages/paginated` |
+| 27 | `getLastMessagesDelta` | GET | `/projects/{namespace}/last-messages/delta` |
+| 28 | `getDeletedChats` | GET | `/projects/{namespace}/last-messages/deleted` |
+| 29 | `readConversation` | POST | `/projects/{namespace}/conversations/{phone}/read` |
 
 ## Orders
 
 | # | Function | Method | Endpoint |
 |---|----------|--------|----------|
-| 29 | `createOrder` | POST | `/projects/{namespace}/orders` |
-| 30 | `getUserOrders` | GET | `/projects/{namespace}/conversations/{userID}/orders` |
-| 31 | `getOrderReceipt` | GET | `/projects/{namespace}/orders/{orderId}/receipt` |
+| 30 | `createOrder` | POST | `/projects/{namespace}/orders` |
+| 31 | `getUserOrders` | GET | `/projects/{namespace}/conversations/{userID}/orders` |
+| 32 | `getOrderReceipt` | GET | `/projects/{namespace}/orders/{orderId}/receipt` |
 
 ## Storefront
 
 | # | Function | Method | Endpoint |
 |---|----------|--------|----------|
-| 32 | `getStoreData` | GET | `/store/{key}` |
+| 33 | `getStoreData` | GET | `/store/{key}` |
 
 ## Project Settings
 
 | # | Function | Method | Endpoint |
 |---|----------|--------|----------|
-| 33 | `getProjectInnerSettings` | GET | `/projects/{namespace}/settings` |
-| 34 | `getProjectInnerSettingsCached` | — | Cached wrapper around `getProjectInnerSettings` |
-| 35 | `getProjectCollaborators` | GET | `/projects/{namespace}/collaborators` |
+| 34 | `getProjectInnerSettings` | GET | `/projects/{namespace}/settings` |
+| 35 | `getProjectInnerSettingsCached` | — | Cached wrapper around `getProjectInnerSettings` |
+| 36 | `getProjectCollaborators` | GET | `/projects/{namespace}/collaborators` |
 
 ## Payments
 
 | # | Function | Method | Endpoint |
 |---|----------|--------|----------|
-| 36 | `createPaymentLink` | POST | `/projects/{namespace}/conversations/{userID}/payment-link` |
+| 37 | `createPaymentLink` | POST | `/projects/{namespace}/conversations/{userID}/payment-link` |
 
 ## AI Text Helpers
 
 | # | Function | Method | Endpoint |
 |---|----------|--------|----------|
-| 37 | `makeFriendly` | POST | `/projects/{namespace}/ai/friendly` |
-| 38 | `makeFormal` | POST | `/projects/{namespace}/ai/formal` |
-| 39 | `fixGrammar` | POST | `/projects/{namespace}/ai/grammar` |
-| 40 | `answerQuestion` | POST | `/projects/{namespace}/ai/answer` |
+| 38 | `makeFriendly` | POST | `/projects/{namespace}/ai/friendly` |
+| 39 | `makeFormal` | POST | `/projects/{namespace}/ai/formal` |
+| 40 | `fixGrammar` | POST | `/projects/{namespace}/ai/grammar` |
+| 41 | `answerQuestion` | POST | `/projects/{namespace}/ai/answer` |
 
 ## Payment Verification
 
 | # | Function | Method | Endpoint |
 |---|----------|--------|----------|
-| 41 | `verifyPayment` | POST | `/messages/verify-payment` |
+| 42 | `verifyPayment` | POST | `/messages/verify-payment` |

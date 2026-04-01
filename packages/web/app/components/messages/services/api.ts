@@ -24,35 +24,29 @@ const API_BASE_URL = getApiURL();
  * @returns Headers object with Authorization and uid headers if needed
  */
 const getAuthHeaders = async (url: string): Promise<HeadersInit> => {
-  // Check if this is a public endpoint that doesn't need auth
   if (checkIsPublicEndpoint(url)) {
     return {};
   }
 
-  // Get valid token for protected endpoints
-  const token = await getAuthToken();
+  const headers: Record<string, string> = {};
 
-  if (!token) {
-    // If we can't get a token, this might indicate auth issues
-    console.warn('[API] No auth token available for protected endpoint:', url);
-    return {};
+  const apiKey = process.env.NEXT_PUBLIC_CLOSER_API_KEY;
+  if (apiKey) {
+    headers.api_key = apiKey;
   }
 
-  // Get Firebase user to extract UID
+  const token = await getAuthToken();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
   const { getCurrentFirebaseUser } = await import('@/app/components/messages/services/firebase');
   const firebaseUser = await getCurrentFirebaseUser();
-
-  if (!firebaseUser) {
-    console.warn('[API] No Firebase user available for protected endpoint:', url);
-    return {
-      Authorization: `Bearer ${token}`,
-    };
+  if (firebaseUser) {
+    headers.uid = firebaseUser.uid;
   }
 
-  return {
-    Authorization: `Bearer ${token}`,
-    uid: firebaseUser.uid,
-  };
+  return headers;
 };
 
 /**
