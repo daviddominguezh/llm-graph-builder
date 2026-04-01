@@ -323,7 +323,7 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
           )}
         </div>
       </div>
-      <div className="w-full px-4 absolute bottom-[0px] left-0">
+      <div className="w-full px-4 pl-15 absolute bottom-[0px] left-0">
         <div className="w-full border-b-0 lg:border-b-1"></div>
       </div>
     </button>

@@ -2,7 +2,7 @@ import { Collaborator } from '@/app/types/projectInnerSettings';
 import { useIsMobile } from '@/app/utils/device';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   ChevronDown,
@@ -127,71 +127,78 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
     <div className="relative flex flex-col h-full w-full bg-white border-r border-gray-200 overflow-y-auto">
       <Slot name="left-panel-top" />
 
-      {/* Header: title + collapse toggle */}
-      <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between px-2'} mb-1`}>
-        {!isCollapsed && <span className="text-sm font-semibold">{t('Inbox')}</span>}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground cursor-pointer"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-        >
+      <div
+        className={`flex w-full items-center py-1.5 ${
+          isCollapsed ? 'justify-center px-2' : 'justify-between pl-3 pr-1 border-b mb-2.5'
+        }`}
+      >
+        {!isCollapsed && <div className="cursor-default text-sm font-semibold">{t('Inbox')}</div>}
+        <Button variant="ghost" className="cursor-pointer" onClick={() => setIsCollapsed(!isCollapsed)}>
           {isCollapsed ? <PanelRight className="size-4" /> : <PanelLeft className="size-4" />}
         </Button>
       </div>
 
-      <Separator className="mb-2" />
-
-      {/* Inbox item */}
-      <nav className="flex flex-col gap-0.5">
-        <NavItemRow
-          icon={<Inbox className="size-4" />}
-          label={t('Your inbox')}
-          active={activeFilter === 'inbox'}
-          collapsed={isCollapsed}
-          badge={badges.inbox}
-          onClick={() => onFilterChange('inbox')}
-        />
-      </nav>
-
-      <Separator className="my-2" />
-
-      {/* Sections */}
-      {sections.map((section) => (
-        <div key={section.id} className="flex flex-col gap-0.5">
-          {/* Section header (expanded only) */}
-          {!isCollapsed && (
-            <button
-              className="flex items-center gap-1 px-2 py-1.5 text-xs font-semibold text-muted-foreground cursor-pointer"
-              onClick={() => toggleSection(section.id)}
-            >
-              {expandedSections.has(section.id) ? (
-                <ChevronDown className="size-3.5" />
-              ) : (
-                <ChevronRight className="size-3.5" />
-              )}
-              {section.label}
-            </button>
-          )}
-
-          {/* Section items */}
-          {section.items && (isCollapsed || expandedSections.has(section.id)) && (
-            <nav className="flex flex-col gap-0.5">
-              {section.items.map((item) => (
-                <NavItemRow
-                  key={item.id}
-                  icon={item.icon}
-                  label={item.label}
-                  active={activeFilter === item.id}
-                  collapsed={isCollapsed}
-                  badge={item.badge}
-                  onClick={() => onFilterChange(item.id)}
-                />
-              ))}
-            </nav>
-          )}
+      {/* Navigation sections */}
+      <div className="flex flex-col py-0 gap-3">
+        <div className={`w-full ${isCollapsed ? 'px-2' : 'px-3'}`}>
+          <NavItemRow
+            icon={<Inbox className="size-4" />}
+            label={t('Your inbox')}
+            active={activeFilter === 'inbox'}
+            collapsed={isCollapsed}
+            badge={badges.inbox}
+            onClick={() => onFilterChange('inbox')}
+          />
         </div>
-      ))}
+
+        {isCollapsed && <div className="w-auto h-px mx-4 bg-gray-200 my-2" />}
+
+        {sections.map((section, sectionIndex) => (
+          <React.Fragment key={section.id}>
+            <div className={`mb-1 ${isCollapsed ? 'px-2' : 'px-3'}`}>
+              {!isCollapsed && (
+                <button
+                  className={`w-full flex items-center gap-1 py-2 text-sm font-medium text-gray-500 ${
+                    section.items ? 'cursor-pointer' : ''
+                  }`}
+                  onClick={() => section.items && toggleSection(section.id)}
+                >
+                  {section.items && (
+                    <div className="text-gray-400">
+                      {expandedSections.has(section.id) ? (
+                        <ChevronDown className="size-4" />
+                      ) : (
+                        <ChevronRight className="size-4" />
+                      )}
+                    </div>
+                  )}
+                  <span className="text-xs font-semibold">{section.label}</span>
+                </button>
+              )}
+
+              {section.items && (isCollapsed || expandedSections.has(section.id)) && (
+                <div className="flex flex-col">
+                  {section.items.map((item) => (
+                    <NavItemRow
+                      key={item.id}
+                      icon={item.icon}
+                      label={item.label}
+                      active={activeFilter === item.id}
+                      collapsed={isCollapsed}
+                      badge={item.badge}
+                      onClick={() => onFilterChange(item.id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {isCollapsed && sectionIndex < sections.length - 1 && (
+              <div className="w-auto h-px mx-4 bg-gray-200 my-2" />
+            )}
+          </React.Fragment>
+        ))}
+      </div>
 
       <div className="flex-grow" />
       <Slot name="left-panel-bottom" />
