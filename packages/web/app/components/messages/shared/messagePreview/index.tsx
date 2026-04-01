@@ -156,7 +156,7 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
     >
       <div
         onClick={() => onClickMsg(phone)}
-        className={`hover:bg-sidebar-accent! ${styles['bg']} ${selected ? styles['activeBG'] : ''} ${isHighlightedImportant ? 'border-red-500 border-1 bg-red-50' : ''}`}
+        className={`hover:bg-card! ${styles['bg']} ${selected ? styles['activeBG'] : ''} ${isHighlightedImportant ? 'border-red-500 border-1 bg-red-50' : ''}`}
         style={{
           width: '100%',
           paddingTop: '12px',
@@ -268,7 +268,7 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
                     alt="AI"
                     width={16}
                     height={16}
-                    className="rounded-full object-cover"
+                    className="rounded-full object-cover border"
                     unoptimized
                   />
                 </div>

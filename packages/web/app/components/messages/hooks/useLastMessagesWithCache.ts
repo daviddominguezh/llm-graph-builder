@@ -399,31 +399,28 @@ export const useLastMessagesWithCache = (projectName: string): UseLastMessagesWi
   const reduxLastMessages = useSelector(getLastMessagesFromStore);
 
   /**
-   * Sync from Redux when it has newer data
-   * This handles real-time socket updates that go to Redux but not to the hook's state.
-   * The socket handler in project/index.tsx updates Redux, and this effect
-   * syncs those updates to the hook's local state.
+   * Sync from Redux when it has newer data.
+   * We read cacheData via ref to avoid the dependency cycle:
+   * effect sets cacheData → cacheData changes → effect re-fires.
    */
+  const cacheDataRef = useRef(cacheData);
   useEffect(() => {
-    if (!reduxLastMessages || !cacheData?.conversations) return;
+    cacheDataRef.current = cacheData;
+  }, [cacheData]);
 
-    // Check if any Redux message is newer than our cached version
+  useEffect(() => {
+    const currentCache = cacheDataRef.current;
+    if (!reduxLastMessages || !currentCache?.conversations) return;
+
     let hasUpdates = false;
     const updates: Record<string, LastMessage> = {};
 
     for (const [chatId, reduxMsg] of Object.entries(reduxLastMessages)) {
-      const cachedMsg = cacheData.conversations[chatId];
+      const cachedMsg = currentCache.conversations[chatId];
 
-      // Sync when:
-      // 1. We don't have this chat cached, OR
-      // 2. Redux has a STRICTLY newer timestamp, OR
-      // 3. Redux has the same timestamp but a NEW message ID we haven't synced before
-      //    (This handles rapid messages with same timestamp while avoiding Redux resets)
       const isNewChat = !cachedMsg;
       const isNewerTimestamp = cachedMsg && reduxMsg.timestamp > cachedMsg.timestamp;
 
-      // Check if this is a new message with same timestamp
-      // We track synced IDs to distinguish "new message" from "Redux reset to old message"
       const isSameTimestampNewMessage =
         cachedMsg &&
         reduxMsg.timestamp === cachedMsg.timestamp &&
@@ -433,7 +430,6 @@ export const useLastMessagesWithCache = (projectName: string): UseLastMessagesWi
       if (isNewChat || isNewerTimestamp || isSameTimestampNewMessage) {
         hasUpdates = true;
         updates[chatId] = reduxMsg;
-        // Track this message ID as synced
         syncedMessageIdsRef.current.add(reduxMsg.id);
       }
     }
@@ -451,14 +447,13 @@ export const useLastMessagesWithCache = (projectName: string): UseLastMessagesWi
         };
       });
 
-      // Also persist the updates to IndexedDB
       for (const [chatId, msg] of Object.entries(updates)) {
         LastMessagesCacheService.updateConversation(projectName, chatId, msg).catch((err) => {
           console.error('[useLastMessagesWithCache] Failed to persist Redux sync to IndexedDB:', err);
         });
       }
     }
-  }, [reduxLastMessages, cacheData?.conversations, projectName]);
+  }, [reduxLastMessages, projectName]);
 
   /**
    * Initial load on mount
