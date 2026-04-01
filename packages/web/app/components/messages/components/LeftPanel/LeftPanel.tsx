@@ -204,8 +204,8 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
       <Slot name="left-panel-top" />
 
       <div
-        className={`flex w-full items-center py-2 pt-1 ${
-          isCollapsed ? 'justify-center px-2' : 'justify-between pl-4 pr-1.5'
+        className={`flex w-full items-center py-1.5 ${
+          isCollapsed ? 'justify-center px-2' : 'justify-between pl-3 pr-1 border-b mb-2.5'
         }`}
       >
         {!isCollapsed && <div className="cursor-default text-sm font-semibold">{t('Inbox')}</div>}
