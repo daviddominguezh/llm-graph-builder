@@ -410,15 +410,17 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
         </div>
       ) : (
         // Empty state
-        <Alert className="cursor-default! m-4 w-[calc(100%-8*var(--spacing))]">
-          <MessageCircleOff />
-          <AlertTitle>{t("You don't have chats yet")}</AlertTitle>
-          <AlertDescription>
-            <div className="cursor-default!">
+        <div className="w-full px-2 pt-2.5">
+          <div className="w-full p-2 px-3 rounded-md border border-dashed flex flex-col">
+            <div className="flex gap-1 text-xs font-medium items-center cursor-default">
+              <MessageCircleOff className="size-3.5 text-muted-foreground" />
+              {t("You don't have chats yet")}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1 cursor-default">
               {t('Send yourself a message, or try to send one to a customer!')}
             </div>
-          </AlertDescription>
-        </Alert>
+          </div>
+        </div>
       )}
 
       {/* Slot: After chat list - for stats, footer, actions */}
