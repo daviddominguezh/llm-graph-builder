@@ -694,12 +694,7 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
           <ResizablePanelGroup direction="horizontal" className="flex-1">
             {/* Left navigation panel - hidden for agents who have tabs for filtering */}
             {!isAgent && (
-              <ResizablePanel
-                id="left-panel"
-                defaultSize={panelSizes.leftPanel}
-                minSize={panelSizes.leftPanelMin}
-                maxSize={panelSizes.leftPanelMax}
-              >
+              <ResizablePanel id="left-panel" defaultSize={'200px'} minSize={'200px'} maxSize={'200px'} disabled>
                 <LeftPanel
                   projectName={projectName}
                   activeFilter={chatFilter}
