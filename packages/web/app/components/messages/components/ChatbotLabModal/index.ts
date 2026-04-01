@@ -1,1 +1,0 @@
-export { ChatbotLabModal } from './ChatbotLabModal';

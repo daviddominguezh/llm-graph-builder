@@ -1,17 +1,14 @@
-
-import React, { memo, useEffect, useMemo, useState } from 'react';
-import { useTranslations } from 'next-intl';
-
-// import Avatar from 'react-nice-avatar';
-
+import { Collaborator } from '@/app/types/projectInnerSettings';
+import { useIsMobile } from '@/app/utils/device';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   ChevronDown,
   ChevronRight,
   CircleCheck,
   CircleEllipsis,
   Construction,
-  FlaskConical,
-  // Hash,
   Inbox,
   MessagesSquare,
   PanelLeft,
@@ -19,19 +16,11 @@ import {
   UserRoundX,
   WandSparkles,
 } from 'lucide-react';
-
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-
-// import { generateAvatarConfig } from '@/app/utils/avatar';
-import { useIsMobile } from '@/app/utils/device';
-
-import { Collaborator } from '@/app/types/projectInnerSettings';
+import { useTranslations } from 'next-intl';
+import React, { memo, useEffect, useMemo, useState } from 'react';
 
 import { ChatWithId } from '../../core/contexts/ChatContext';
 import { Slot } from '../../core/slots';
-import { ChatbotLabModal } from '../ChatbotLabModal';
 
 interface SectionItem {
   id: string;
@@ -79,7 +68,6 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
     new Set(['chats', 'team', 'teammates'])
   );
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
-  const [isLabModalOpen, setIsLabModalOpen] = useState<boolean>(false);
 
   // Notify parent of collapse state changes
   useEffect(() => {
@@ -92,9 +80,7 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
       if (!chat.assignees) return null;
       const assigneeEntries = Object.values(chat.assignees);
       if (assigneeEntries.length === 0) return null;
-      const latest = assigneeEntries.reduce((prev, curr) =>
-        curr.timestamp > prev.timestamp ? curr : prev
-      );
+      const latest = assigneeEntries.reduce((prev, curr) => (curr.timestamp > prev.timestamp ? curr : prev));
       return latest.assignee;
     };
 
@@ -261,9 +247,7 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
               key={'inbox'}
               onClick={() => onFilterChange('inbox')}
               className={`cursor-pointer rounded-md w-full flex items-center justify-between gap-3 pl-4 pr-2 py-1 text-sm transition-colors ${
-                activeFilter === 'inbox'
-                  ? 'bg-gray-100 text-black'
-                  : 'text-gray-600 hover:bg-gray-100'
+                activeFilter === 'inbox' ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
               <div className="flex items-center gap-3">
@@ -371,40 +355,10 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
             )}
           </React.Fragment>
         ))}
-
-        {/* Test your chatbot button */}
-        <div className={`${isCollapsed ? 'px-2' : 'px-3'}`}>
-          {isCollapsed ? (
-            <Tooltip>
-              <TooltipTrigger>
-                <Button
-                  variant="ghost"
-                  onClick={() => setIsLabModalOpen(true)}
-                  className="cursor-pointer w-full"
-                >
-                  <FlaskConical size={iconSize} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{t('Test your bot')}</p>
-              </TooltipContent>
-            </Tooltip>
-          ) : (
-            <button
-              onClick={() => setIsLabModalOpen(true)}
-              className="cursor-pointer rounded-md w-full flex items-center gap-3 pl-4 pr-2 py-1 text-sm text-gray-600 transition-colors hover:bg-gray-100"
-            >
-              <FlaskConical size={iconSize} />
-              {t('Test your bot')}
-            </button>
-          )}
-        </div>
       </div>
 
       {/* Spacer to push bottom content */}
       <div className="flex-grow"></div>
-
-      <ChatbotLabModal open={isLabModalOpen} onOpenChange={setIsLabModalOpen} />
 
       {/* Slot: Bottom of left panel - for additional actions */}
       <Slot name="left-panel-bottom" />

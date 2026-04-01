@@ -1,21 +1,14 @@
-
-import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslations } from 'next-intl';
-
-import { MessageCircleOff } from 'lucide-react';
-
 import { getCurrentFirebaseUser } from '@/app/components/messages/services/firebase';
-
 import MessagePreview from '@/app/components/messages/shared/messagePreview';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
-import { useIsMobile } from '@/app/utils/device';
-
 import { TEST_PHONE } from '@/app/constants/messages';
-
 import type { LastMessage, Message } from '@/app/types/chat';
 import { Collaborator } from '@/app/types/projectInnerSettings';
+import { useIsMobile } from '@/app/utils/device';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MessageCircleOff } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ChatsSearch } from '../../chatsSearch';
 import { useUI } from '../../core/contexts';
@@ -293,8 +286,10 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
       {isMobile && !hideFilterDropdown && (
         <div className="px-4 pb-2 mt-4">
           <Select value={chatFilter} onValueChange={(value) => value && onFilterChange(value)}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder={t('Select filter')} />
+            <SelectTrigger className="w-full bg-background">
+              <SelectValue>
+                {filterOptions.find((o) => o.value === chatFilter)?.label ?? t('Select filter')}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {filterOptions.map((option) => (
@@ -308,7 +303,7 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
       )}
 
       {/* Search input */}
-      <div className="px-0 pb-2 mt-1">
+      <div className="px-0 pb-0 mt-0">
         <ChatsSearch
           onChange={onSearchChange}
           onClear={onClearSearch}
@@ -394,11 +389,7 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
         </Alert>
       ) : displayedChatsFiltered.length > 0 ? (
         // All chats
-        <div
-          ref={chatListScrollRef}
-          className="w-full h-fit pb-9 overflow-y-auto"
-          onScroll={handleScroll}
-        >
+        <div ref={chatListScrollRef} className="w-full h-fit pb-9 overflow-y-auto" onScroll={handleScroll}>
           {displayedChatsFiltered.map((chat) => (
             <MessagePreview
               key={chat.chatId}

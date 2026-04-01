@@ -65,10 +65,11 @@ export const NodeSelectionModal: React.FC<NodeSelectionModalProps> = ({
 
           <Select value={selectedNode} onValueChange={(value) => value && onNodeChange(value)}>
             <SelectTrigger className="cursor-pointer w-full! truncate!">
-              <SelectValue
-                className="truncate! w-full! overflow-hidden"
-                placeholder={t('Select a node')}
-              />
+              <SelectValue className="truncate! w-full! overflow-hidden">
+                {selectedNode
+                  ? (nodes.find((n) => n.nodeId === selectedNode)?.nodeId ?? t('Select a node'))
+                  : t('Select a node')}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent className="w-[calc(100vw-calc(2px+var(--tw-spacing)*20))] lg:w-[calc(750px_-_(calc(2px+var(--tw-spacing)*12)))]">
               {nodes.map((node) => (

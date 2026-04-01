@@ -1,20 +1,13 @@
-import { useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
-import Image from 'next/image';
-import Avatar from 'react-nice-avatar';
-
-import { Filter, FlaskConical, Search, X } from 'lucide-react';
-
+import { Collaborator } from '@/app/types/projectInnerSettings';
+import { generateAvatarConfig } from '@/app/utils/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
-import { generateAvatarConfig } from '@/app/utils/avatar';
-import { useIsMobile } from '@/app/utils/device';
-
-import { Collaborator } from '@/app/types/projectInnerSettings';
-
-import { ChatbotLabModal } from './components/ChatbotLabModal';
+import { Filter, Search, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import Image from 'next/image';
+import { useEffect, useState } from 'react';
+import Avatar from 'react-nice-avatar';
 
 interface ChatsSearchProps {
   onChange: (searchTerm: string) => void;
@@ -34,13 +27,19 @@ export const ChatsSearch = ({
   onAssigneeFilterChange,
 }: ChatsSearchProps) => {
   const t = useTranslations('messages');
-  const isMobile = useIsMobile();
 
   const [search, setSearch] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [searchFilter, setSearchFilter] = useState('all');
   const [teammateFilter, setTeammateFilter] = useState('none');
-  const [isLabModalOpen, setIsLabModalOpen] = useState(false);
+
+  const statusLabels: Record<string, string> = {
+    all: t('All'),
+    unanswered: t('Unanswered'),
+    open: t('Opened'),
+    blocked: t('Blocked'),
+    closed: t('Closed'),
+  };
 
   // Notify parent when status filter changes
   useEffect(() => {
@@ -72,11 +71,11 @@ export const ChatsSearch = ({
   const selectedTeammateAvatar = selectedTeammate ? generateAvatarConfig(selectedTeammate.email) : null;
 
   return (
-    <div className="h-[46px] px-4 border-b-1 flex w-full items-center justify-between gap-2 border-b border-gray-200 pb-0">
+    <div className="h-[41px] px-2 border-b-1 flex w-full items-center justify-between gap-2 border-b border-gray-200 pb-0">
       {/* Status filter select - always visible */}
       <Select value={searchFilter} onValueChange={(value) => value && setSearchFilter(value)}>
-        <SelectTrigger className="w-fit border-0 shadow-none px-0 gap-1 cursor-pointer [&_span]:text-sm [&_span]:text-black [&_span]:font-semibold focus-visible:ring-0 focus-visible:border-0 [&_svg]:!text-black [&_svg]:!opacity-100">
-          <SelectValue />
+        <SelectTrigger className="bg-background text-xs font-semibold w-fit border-0 shadow-none px-0 gap-1 cursor-pointer [&_span]:text-xs [&_span]:text-black [&_span]:font-semibold focus-visible:ring-0 focus-visible:border-0 [&_svg]:!text-black [&_svg]:!opacity-100">
+          <SelectValue>{statusLabels[searchFilter] ?? searchFilter}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem className="cursor-pointer" value="all">
@@ -120,11 +119,11 @@ export const ChatsSearch = ({
               <Button
                 type="button"
                 variant="ghost"
-                size="sm"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                size="icon-xs"
+                className="absolute right-1 top-1/2 -translate-y-1/2"
                 onClick={handleClear}
               >
-                <X className="h-4 w-4" />
+                <X />
               </Button>
             </div>
           </form>
@@ -137,30 +136,36 @@ export const ChatsSearch = ({
             className="shrink-0 cursor-pointer"
             onClick={handleSearchClick}
           >
-            <Search className="h-5! w-5!" strokeWidth={2} />
+            <Search />
           </Button>
         )}
 
         {/* Teammate filter select */}
         <Select value={teammateFilter} onValueChange={(value) => value && setTeammateFilter(value)}>
-          <SelectTrigger className="w-fit border-0 shadow-none px-0 gap-0 cursor-pointer [&_svg[class*=chevron]]:hidden focus-visible:ring-0 focus-visible:border-0">
-            {selectedTeammate ? (
-              selectedTeammatePicture ? (
-                <Image
-                  src={selectedTeammatePicture}
-                  alt={selectedTeammate.name}
-                  width={20}
-                  height={20}
-                  className="rounded-full object-cover"
-                  unoptimized
-                />
-              ) : (
-                <Avatar {...selectedTeammateAvatar} className="rounded-full w-5 h-5 min-w-5" />
-              )
-            ) : (
-              <Filter className="h-5! w-5! text-black" strokeWidth={2} />
-            )}
-          </SelectTrigger>
+          <SelectTrigger
+            nativeButton={true}
+            className="bg-background cursor-pointer ring-0 border-none px-[calc(1px+var(--spacing)*1.5)]"
+            render={
+              <Button type="button" variant="ghost" size="icon" className="shrink-0 cursor-pointer">
+                {selectedTeammate ? (
+                  selectedTeammatePicture ? (
+                    <Image
+                      src={selectedTeammatePicture}
+                      alt={selectedTeammate.name}
+                      width={15}
+                      height={15}
+                      className="rounded-full object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    <Avatar {...selectedTeammateAvatar} className="rounded-full " />
+                  )
+                ) : (
+                  <Filter className="text-black" strokeWidth={2} />
+                )}
+              </Button>
+            }
+          />
           <SelectContent>
             <SelectItem className="cursor-pointer" value="none">
               {t('No filter')}
@@ -191,23 +196,7 @@ export const ChatsSearch = ({
             })}
           </SelectContent>
         </Select>
-
-        {/* Flask icon button - mobile only */}
-        {isMobile && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="shrink-0 cursor-pointer"
-            aria-label={t('Lab features')}
-            onClick={() => setIsLabModalOpen(true)}
-          >
-            <FlaskConical className="h-5! w-5!" strokeWidth={2} />
-          </Button>
-        )}
       </div>
-
-      {isMobile && <ChatbotLabModal open={isLabModalOpen} onOpenChange={setIsLabModalOpen} />}
     </div>
   );
 };
