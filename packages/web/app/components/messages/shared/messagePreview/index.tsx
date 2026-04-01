@@ -176,11 +176,10 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
           style={{
             width: 'fit-content',
             height: 'fit-content',
-            border: '2px solid white',
             borderRadius: '100px',
           }}
         >
-          <Avatar className="w-8 h-8" {...avatarConfig} />
+          <Avatar className="w-7.5 h-7.5" {...avatarConfig} />
           {isTest && (
             <div className="absolute bottom-[-2px] right-[-2px] bg-[#3b82f6] text-white rounded-full w-5 h-5 flex items-center justify-center border-2 border-white">
               <FlaskConical size={9} />
@@ -266,9 +265,9 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
                   <Image
                     src={LogoImg}
                     alt="AI"
-                    width={16}
-                    height={16}
-                    className="rounded-full object-cover border"
+                    width={17}
+                    height={17}
+                    className="rounded-full object-cover border border-muted-foreground"
                     unoptimized
                   />
                 </div>
@@ -278,8 +277,8 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
                     <Image
                       src={assigneeDisplay.pictureUrl}
                       alt={assigneeDisplay.name}
-                      width={16}
-                      height={16}
+                      width={18}
+                      height={18}
                       className="rounded-full object-cover"
                       unoptimized
                     />
@@ -300,7 +299,7 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
               {/* Status icon */}
               <div className="shrink-0">
                 {React.createElement(statusDisplay.icon, {
-                  size: 16,
+                  size: 18,
                   color: statusDisplay.color,
                   strokeWidth: 2,
                 })}

@@ -246,7 +246,7 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
     };
 
     run();
-  }, [activeChat, projectName, notesRefreshTrigger, setActivities, setNotes, userInfoCache]);
+  }, [activeChat, projectName, notesRefreshTrigger, setActivities, setNotes]);
 
   // Initialize selected tags from currentChat when chat changes
   useEffect(() => {
