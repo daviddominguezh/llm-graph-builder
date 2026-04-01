@@ -1081,6 +1081,16 @@
     "No chats or messages match your search· Try a different search term·": "No chats or messages match your search· Try a different search term·",
     "Are you sure you want to delete this note? This action cannot be undone·": "Are you sure you want to delete this note? This action cannot be undone·",
     "Test and experiment with your chatbot settings·": "Test and experiment with your chatbot settings·",
-    "You don't have chats yet": "You don't have chats yet"
+    "You don't have chats yet": "You don't have chats yet",
+    "tag-lead": "Lead",
+    "tag-active": "Active",
+    "tag-vip": "VIP",
+    "tag-support": "Support",
+    "tag-churned": "Churned",
+    "tag-frequent": "Frequent",
+    "tag-hot": "Hot",
+    "tag-browser": "Browser",
+    "tag-escalated": "Escalated",
+    "tag-abandoned": "Abandoned"
   }
 }

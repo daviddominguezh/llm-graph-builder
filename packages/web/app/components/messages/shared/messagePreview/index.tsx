@@ -1,8 +1,12 @@
-import React, { useMemo } from 'react';
-import { useTranslations } from 'next-intl';
-import Image from 'next/image';
-import Avatar from 'react-nice-avatar';
-
+import LogoImg from '@/app/components/messages/shared/assets';
+import { WhatsAppIcon } from '@/app/components/messages/shared/icons';
+import { TEST_PHONE } from '@/app/constants/messages';
+import { LastMessage } from '@/app/types/chat';
+import { Collaborator } from '@/app/types/projectInnerSettings';
+import { generateAvatarConfig } from '@/app/utils/avatar';
+import { getMessageText } from '@/app/utils/message';
+import { formatTimestamp, parseChatId } from '@/app/utils/strs';
+import { Badge } from '@/components/ui/badge';
 import {
   CheckCheck,
   CircleCheck,
@@ -12,25 +16,12 @@ import {
   Instagram,
   User,
 } from 'lucide-react';
-
-import { TAG_COLORS } from '@/app/components/messages/chatSettings/tagsUtils';
-import { useChat } from '@/app/components/messages/core/contexts';
-
-import { WhatsAppIcon } from '@/app/components/messages/shared/icons';
-import { Badge } from '@/components/ui/badge';
-
-import { generateAvatarConfig } from '@/app/utils/avatar';
-import { getMessageText } from '@/app/utils/message';
-import { formatTimestamp, parseChatId } from '@/app/utils/strs';
-
-import { TEST_PHONE } from '@/app/constants/messages';
-
-import { LastMessage } from '@/app/types/chat';
-import { Collaborator } from '@/app/types/projectInnerSettings';
+import { useTranslations } from 'next-intl';
+import Image from 'next/image';
+import React, { useMemo } from 'react';
+import Avatar from 'react-nice-avatar';
 
 import styles from './index.module.css';
-
-import LogoImg from '@/app/components/messages/shared/assets';
 
 interface MessagePreviewProps {
   lastMessage?: LastMessage;
@@ -50,7 +41,6 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
   profilePictures = new Map(),
 }: MessagePreviewProps) => {
   const t = useTranslations('messages');
-  const { availableTags } = useChat();
 
   const isTest = phone === TEST_PHONE;
 
@@ -80,33 +70,6 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
   }, [phone]);
 
   const isHighlightedImportant = lastMessage && lastMessage.status === 'boss';
-
-  // Format badge label: first letter uppercase, except "vip" which is all uppercase
-  const formatBadgeLabel = (label: string): string => {
-    if (label.toLowerCase() === 'vip') return 'VIP';
-    return label.charAt(0).toUpperCase() + label.slice(1);
-  };
-
-  // Get tag information
-  const chatTags = useMemo(() => {
-    if (!lastMessage?.tags || lastMessage.tags.length === 0) return [];
-
-    const tags = lastMessage.tags
-      .map((tagId) => {
-        const tag = availableTags.find((t) => t.tagID === tagId);
-        if (!tag) return null;
-
-        const isPredefined = TAG_COLORS[tagId];
-        const color = isPredefined ? TAG_COLORS[tagId] : '#6b7280';
-        const rawLabel = isPredefined ? t(`tag-${tagId}`) : tag.tag;
-        const label = formatBadgeLabel(rawLabel);
-
-        return { tagId, label, color };
-      })
-      .filter((tag): tag is { tagId: string; label: string; color: string } => tag !== null);
-
-    return tags;
-  }, [lastMessage?.tags, availableTags, t]);
 
   // Get current assignee (the one with highest timestamp)
   const currentAssignee = useMemo(() => {
@@ -259,9 +222,7 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flex: '1 1 0', minWidth: 0 }}>
               {name ? (
                 <>
-                  <span
-                    className={`text-[15px] text-black font-semibold text-start whitespace-nowrap`}
-                  >
+                  <span className={`text-[15px] text-black font-semibold text-start whitespace-nowrap`}>
                     {name}
                   </span>
                   {!isTest && parsedChat.source !== 'instagram' && (
@@ -274,9 +235,7 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
                   )}
                 </>
               ) : (
-                <span
-                  className={`text-[15px] text-black font-semibold text-start whitespace-nowrap`}
-                >
+                <span className={`text-[15px] text-black font-semibold text-start whitespace-nowrap`}>
                   {formattedPhone}
                 </span>
               )}
@@ -370,43 +329,6 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
                   !
                 </Badge>
               )}
-            </div>
-          )}
-          {/* Tags display */}
-          {chatTags.length > 0 && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                marginTop: '4px',
-                flexWrap: 'wrap',
-              }}
-            >
-              {chatTags.map((tag) => (
-                <div
-                  key={tag.tagId}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '2px 6px',
-                    borderRadius: '200px',
-                    backgroundColor: 'white',
-                    border: `1px solid ${tag.color}`,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: '6px',
-                      height: '6px',
-                      borderRadius: '50%',
-                      backgroundColor: tag.color,
-                    }}
-                  />
-                  <span className="font-semibold text-gray-500 text-[10px]">{tag.label}</span>
-                </div>
-              ))}
             </div>
           )}
         </div>

@@ -1,12 +1,7 @@
-/**
- * Asset stubs — placeholder image paths for assets not yet migrated
- * from the closer-front codebase.
- */
+export const PDFImg = '/assets/messages/pdfIcon.webp';
+export const ProductBGImg = '/assets/messages/productBG.png';
+export const LogoImg = '/assets/messages/logoRounded.png';
+export const CardShapeImg = '/assets/messages/cardShape.png';
 
-export const PDFImg = '';
-export const ProductBGImg = '';
-export const LogoImg = '';
-export const CardShapeImg = '';
-
-const defaultAsset = '';
+const defaultAsset = LogoImg;
 export default defaultAsset;
