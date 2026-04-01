@@ -10,7 +10,6 @@ import { useIsMobile } from '@/app/utils/device';
 import { ChatSource, parseChatId } from '@/app/utils/strs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Command, CommandItem, CommandList } from '@/components/ui/command';
 import {
   Dialog,
   DialogClose,
@@ -20,7 +19,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Menubar, MenubarContent, MenubarMenu, MenubarTrigger } from '@/components/ui/menubar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import {
   AlertTriangle,
@@ -404,30 +408,23 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       </div>
 
       {/* Actions menu */}
-      <Menubar className="w-[37px] h-[37px] p-0! m-0! shrink-0 flex border-0 shadow-none bg-transparent px-0">
-        <MenubarMenu>
-          <MenubarTrigger className="p-0 px-0 w-[37px] h-[37px] flex items-center justify-center bg-transparent cursor-pointer">
-            <div
-              style={{ width: `${HEADER_ICON_SIZE}px`, height: `${HEADER_ICON_SIZE}px` }}
-              className="cursor-pointer flex items-center justify-center"
-            >
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button variant="ghost" className="shrink-0">
               <EllipsisVertical size={HEADER_ICON_SIZE} />
-            </div>
-          </MenubarTrigger>
-          <MenubarContent>
-            <Command>
-              <CommandList>
-                {onDelete && (
-                  <CommandItem onSelect={handleDeleteClick} className="cursor-pointer">
-                    <Trash2 className="text-[#ef4444]" />
-                    <span className="text-[#ef4444]">{t('Delete chat')}</span>
-                  </CommandItem>
-                )}
-              </CommandList>
-            </Command>
-          </MenubarContent>
-        </MenubarMenu>
-      </Menubar>
+            </Button>
+          }
+        />
+        <DropdownMenuContent align="end">
+          {onDelete && (
+            <DropdownMenuItem onClick={handleDeleteClick} className="cursor-pointer text-destructive">
+              <Trash2 className="size-4" />
+              {t('Delete chat')}
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {/* Delete confirmation modal */}
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
