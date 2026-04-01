@@ -1497,7 +1497,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
                   </Button>
                 ) : (
                   <Tooltip>
-                    <TooltipTrigger>
+                    <TooltipTrigger render={<div />}>
                       <Button
                         variant="ghost"
                         onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
@@ -1526,7 +1526,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
                 </Button>
               ) : (
                 <Tooltip>
-                  <TooltipTrigger>
+                  <TooltipTrigger render={<div />}>
                     <Button
                       ref={emojiButtonRef}
                       variant="ghost"
@@ -1561,7 +1561,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
                     </Button>
                   ) : (
                     <Tooltip>
-                      <TooltipTrigger>
+                      <TooltipTrigger render={<div />}>
                         <Button
                           variant="ghost"
                           onClick={() => setShowProductsDialog(!showProductsDialog)}
@@ -1593,7 +1593,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
                     </Button>
                   ) : (
                     <Tooltip>
-                      <TooltipTrigger>
+                      <TooltipTrigger render={<div />}>
                         <Button
                           variant="ghost"
                           onClick={() => setShowShoppingCartDialog(!showShoppingCartDialog)}
@@ -1625,7 +1625,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
                     </Button>
                   ) : (
                     <Tooltip>
-                      <TooltipTrigger>
+                      <TooltipTrigger render={<div />}>
                         <Button
                           variant="ghost"
                           onClick={() => setShowOrdersDialog(!showOrdersDialog)}
@@ -1653,7 +1653,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
                     </Button>
                   ) : (
                     <Tooltip>
-                      <TooltipTrigger>
+                      <TooltipTrigger render={<div />}>
                         <Button
                           variant="ghost"
                           onClick={() => {
@@ -1691,7 +1691,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
                     </Button>
                   ) : (
                     <Tooltip>
-                      <TooltipTrigger>
+                      <TooltipTrigger render={<div />}>
                         <Button
                           variant="ghost"
                           onClick={() => setShowAIDialog(!showAIDialog)}

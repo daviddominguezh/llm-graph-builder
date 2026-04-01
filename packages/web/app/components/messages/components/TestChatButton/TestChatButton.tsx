@@ -35,7 +35,7 @@ export const TestChatButton: React.FC<TestChatButtonProps> = ({ onClick, visible
       }}
     >
       <Tooltip>
-        <TooltipTrigger>
+        <TooltipTrigger render={<div />}>
           <Button onClick={onClick} className="w-[40px] h-[40px] rounded-full">
             <FlaskConical />
           </Button>
