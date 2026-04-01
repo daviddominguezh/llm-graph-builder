@@ -5,8 +5,6 @@ import { Button } from '@/components/ui/button';
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
-  ChevronDown,
-  ChevronRight,
   CircleCheck,
   CircleEllipsis,
   Construction,
@@ -18,7 +16,7 @@ import {
   WandSparkles,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import React, { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 
 import { ChatWithId } from '../../core/contexts/ChatContext';
 import { Slot } from '../../core/slots';
@@ -30,11 +28,6 @@ interface SectionItem {
   badge?: number;
 }
 
-interface Section {
-  id: string;
-  label: string;
-  items?: SectionItem[];
-}
 
 interface LeftPanelProps {
   projectName?: string;
@@ -60,7 +53,6 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
 }) => {
   const t = useTranslations('messages');
   const isMobile = useIsMobile();
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['chats']));
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
 
   useEffect(() => {
@@ -94,34 +86,20 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
 
   if (isMobile) return null;
 
-  const sections: Section[] = [
+  const allItems: SectionItem[] = [
+    { id: 'inbox', label: t('Your inbox'), icon: <Inbox className="size-4" />, badge: badges.inbox },
+    { id: 'with-bot', label: t('With bot'), icon: <WandSparkles className="size-4" />, badge: badges.withBot },
     {
-      id: 'chats',
-      label: t('Chats'),
-      items: [
-        { id: 'with-bot', label: t('With bot'), icon: <WandSparkles className="size-4" />, badge: badges.withBot },
-        {
-          id: 'unassigned',
-          label: t('Unassigned'),
-          icon: <UserRoundX className="size-4" />,
-          badge: badges.unassigned,
-        },
-        { id: 'open', label: t('Opened'), icon: <CircleEllipsis className="size-4" />, badge: badges.open },
-        { id: 'blocked', label: t('Blocked'), icon: <Construction className="size-4" />, badge: badges.blocked },
-        { id: 'closed', label: t('Closed'), icon: <CircleCheck className="size-4" />, badge: badges.closed },
-        { id: 'all', label: t('All'), icon: <MessagesSquare className="size-4" />, badge: badges.all },
-      ],
+      id: 'unassigned',
+      label: t('Unassigned'),
+      icon: <UserRoundX className="size-4" />,
+      badge: badges.unassigned,
     },
+    { id: 'open', label: t('Opened'), icon: <CircleEllipsis className="size-4" />, badge: badges.open },
+    { id: 'blocked', label: t('Blocked'), icon: <Construction className="size-4" />, badge: badges.blocked },
+    { id: 'closed', label: t('Closed'), icon: <CircleCheck className="size-4" />, badge: badges.closed },
+    { id: 'all', label: t('All'), icon: <MessagesSquare className="size-4" />, badge: badges.all },
   ];
-
-  const toggleSection = (sectionId: string) => {
-    setExpandedSections((prev) => {
-      const next = new Set(prev);
-      if (next.has(sectionId)) next.delete(sectionId);
-      else next.add(sectionId);
-      return next;
-    });
-  };
 
   return (
     <div className="relative flex flex-col h-full w-full bg-white border-r border-gray-200 overflow-y-auto">
@@ -138,65 +116,17 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
         </Button>
       </div>
 
-      {/* Navigation sections */}
-      <div className="flex flex-col py-0 gap-3">
-        <div className={`w-full ${isCollapsed ? 'px-2' : 'px-3'}`}>
+      <div className={`flex flex-col ${isCollapsed ? 'px-2' : 'px-3'}`}>
+        {allItems.map((item) => (
           <NavItemRow
-            icon={<Inbox className="size-4" />}
-            label={t('Your inbox')}
-            active={activeFilter === 'inbox'}
+            key={item.id}
+            icon={item.icon}
+            label={item.label}
+            active={activeFilter === item.id}
             collapsed={isCollapsed}
-            badge={badges.inbox}
-            onClick={() => onFilterChange('inbox')}
+            badge={item.badge}
+            onClick={() => onFilterChange(item.id)}
           />
-        </div>
-
-        {isCollapsed && <div className="w-auto h-px mx-4 bg-gray-200 my-2" />}
-
-        {sections.map((section, sectionIndex) => (
-          <React.Fragment key={section.id}>
-            <div className={`mb-1 ${isCollapsed ? 'px-2' : 'px-3'}`}>
-              {!isCollapsed && (
-                <button
-                  className={`w-full flex items-center gap-1 py-2 text-sm font-medium text-gray-500 ${
-                    section.items ? 'cursor-pointer' : ''
-                  }`}
-                  onClick={() => section.items && toggleSection(section.id)}
-                >
-                  {section.items && (
-                    <div className="text-gray-400">
-                      {expandedSections.has(section.id) ? (
-                        <ChevronDown className="size-4" />
-                      ) : (
-                        <ChevronRight className="size-4" />
-                      )}
-                    </div>
-                  )}
-                  <span className="text-xs font-semibold">{section.label}</span>
-                </button>
-              )}
-
-              {section.items && (isCollapsed || expandedSections.has(section.id)) && (
-                <div className="flex flex-col">
-                  {section.items.map((item) => (
-                    <NavItemRow
-                      key={item.id}
-                      icon={item.icon}
-                      label={item.label}
-                      active={activeFilter === item.id}
-                      collapsed={isCollapsed}
-                      badge={item.badge}
-                      onClick={() => onFilterChange(item.id)}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {isCollapsed && sectionIndex < sections.length - 1 && (
-              <div className="w-auto h-px mx-4 bg-gray-200 my-2" />
-            )}
-          </React.Fragment>
         ))}
       </div>
 
