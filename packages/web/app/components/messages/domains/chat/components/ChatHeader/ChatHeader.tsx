@@ -88,11 +88,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   const [pendingStatus, setPendingStatus] = useState<string>('');
 
   const HEADER_ICON_SIZE = isMobile ? 20 : 16;
-  const HEADER_ICON_CLASSNAME = isMobile
-    ? '[&_svg]:w-[16px]! [&_svg]:h-[16px]!'
-    : '[&_svg]:w-[16px]! [&_svg]:h-[16px]!';
-  // Icon size + padding (6px * 2)
-  const HEADER_ICON_CONTAINER_SIZE = HEADER_ICON_SIZE + 10;
 
   // Parse chat ID to get source and display name
   const parsedChat = parseChatId(chatId || '');
@@ -217,26 +212,26 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   const getStatusIcon = () => {
     switch (status) {
       case 'open':
-        return <CircleEllipsis size={HEADER_ICON_SIZE} strokeWidth={2} className="text-foreground" />;
+        return <CircleEllipsis className="text-foreground" />;
       case 'blocked':
-        return <Construction size={HEADER_ICON_SIZE} strokeWidth={2} className="text-yellow-500" />;
+        return <Construction className="text-yellow-500" />;
       case 'closed':
-        return <CircleCheck size={HEADER_ICON_SIZE} strokeWidth={2} className="text-green-700" />;
+        return <CircleCheck className="text-green-700" />;
       case 'verify-payment':
-        return <AlertTriangle size={HEADER_ICON_SIZE} strokeWidth={2} className="text-amber-500" />;
+        return <AlertTriangle className="text-amber-500" />;
       default:
-        return <CircleEllipsis size={HEADER_ICON_SIZE} strokeWidth={2} className="text-foreground" />;
+        return <CircleEllipsis className="text-foreground" />;
     }
   };
 
   const getAssignedToDisplay = () => {
     if (!assignedTo || assignedTo === 'unassigned') {
-      return <CircleUserRound size={HEADER_ICON_SIZE} strokeWidth={2} className="text-foreground" />;
+      return <CircleUserRound className="text-foreground" />;
     }
 
     const assignedCollaborator = collaborators.find((c) => c.email === assignedTo);
     if (!assignedCollaborator) {
-      return <CircleUserRound size={HEADER_ICON_SIZE} strokeWidth={2} className="text-foreground" />;
+      return <CircleUserRound className="text-foreground" />;
     }
 
     const pictureUrl = profilePictures.get(assignedTo);
@@ -247,8 +242,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         <Image
           src={pictureUrl}
           alt={assignedCollaborator.name}
-          width={HEADER_ICON_SIZE}
-          height={HEADER_ICON_SIZE}
+          width={16}
+          height={16}
           className="rounded-full object-cover"
           unoptimized
         />
@@ -315,23 +310,14 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       <div className="flex shrink-0 items-center">
         <Select value={assignedTo} onValueChange={(value) => value && handleAssignedToChange(value)}>
           <SelectTrigger
-            style={{
-              width: `${HEADER_ICON_CONTAINER_SIZE}px`,
-              height: `${HEADER_ICON_CONTAINER_SIZE}px`,
-              padding: '6px',
-            }}
-            className={`cursor-pointer border-0 shadow-none bg-transparent rounded [&_svg[class*=chevron]]:hidden ${HEADER_ICON_CLASSNAME}`}
-          >
-            <div
-              style={{
-                width: `${HEADER_ICON_SIZE}px`,
-                height: `${HEADER_ICON_SIZE}px`,
-              }}
-              className={`flex items-center justify-center shrink-0 text-foreground ${HEADER_ICON_CLASSNAME}`}
-            >
-              {getAssignedToDisplay()}
-            </div>
-          </SelectTrigger>
+            nativeButton={true}
+            className="bg-background dark:bg-background dark:hover:bg-input text-foreground! cursor-pointer ring-0 border-none px-[calc(1px+var(--spacing)*1.5)] [&_span]:text-foreground [&_svg]:!text-foreground"
+            render={
+              <Button type="button" variant="ghost" size="icon" className="shrink-0 cursor-pointer">
+                {getAssignedToDisplay()}
+              </Button>
+            }
+          />
           <SelectContent>
             <SelectItem className="cursor-pointer" value="unassigned">
               {t('Unassigned')}
@@ -376,23 +362,14 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       <div className="flex shrink-0 items-center">
         <Select value={status} onValueChange={(value) => value && handleStatusChange(value)}>
           <SelectTrigger
-            style={{
-              width: `${HEADER_ICON_CONTAINER_SIZE}px`,
-              height: `${HEADER_ICON_CONTAINER_SIZE}px`,
-              padding: '6px',
-            }}
-            className="cursor-pointer border-0 shadow-none bg-transparent rounded [&_svg[class*=chevron]]:hidden"
-          >
-            <div
-              style={{
-                width: `${HEADER_ICON_SIZE}px`,
-                height: `${HEADER_ICON_SIZE}px`,
-              }}
-              className="flex items-center justify-center shrink-0 [&_svg]:w-full! [&_svg]:h-full!"
-            >
-              {getStatusIcon()}
-            </div>
-          </SelectTrigger>
+            nativeButton={true}
+            className="bg-background dark:bg-background dark:hover:bg-input text-foreground! cursor-pointer ring-0 border-none px-[calc(1px+var(--spacing)*1.5)] [&_span]:text-foreground [&_svg]:!text-foreground"
+            render={
+              <Button type="button" variant="ghost" size="icon" className="shrink-0 cursor-pointer">
+                {getStatusIcon()}
+              </Button>
+            }
+          />
           <SelectContent>
             <SelectItem className="cursor-pointer" value="open">
               {t('chat-status-open')}
