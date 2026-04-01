@@ -1,26 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
-import Image from 'next/image';
-import Avatar from 'react-nice-avatar';
-import { useParams } from 'next/navigation';
-
-import {
-  AlertTriangle,
-  ChevronLeft,
-  CircleCheck,
-  CircleEllipsis,
-  CircleUserRound,
-  Construction,
-  EllipsisVertical,
-  Instagram,
-  Trash2,
-} from 'lucide-react';
-
 import { updateChatAssignee, updateChatStatus } from '@/app/components/messages/services/api';
-
+import { WhatsAppIcon } from '@/app/components/messages/shared/icons';
+import { updateAssigneeOptimistic, updateStatusOptimistic } from '@/app/components/messages/store';
+import { useAppDispatch } from '@/app/components/messages/store/mainStore';
+import { TEST_PHONE } from '@/app/constants/messages';
+import { LastMessage } from '@/app/types/chat';
+import { Collaborator } from '@/app/types/projectInnerSettings';
+import { generateAvatarConfig } from '@/app/utils/avatar';
+import { useIsMobile } from '@/app/utils/device';
+import { ChatSource, parseChatId } from '@/app/utils/strs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { WhatsAppIcon } from '@/app/components/messages/shared/icons';
 import { Command, CommandItem, CommandList } from '@/components/ui/command';
 import {
   Dialog,
@@ -33,19 +22,22 @@ import {
 } from '@/components/ui/dialog';
 import { Menubar, MenubarContent, MenubarMenu, MenubarTrigger } from '@/components/ui/menubar';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
-
-import { generateAvatarConfig } from '@/app/utils/avatar';
-import { useIsMobile } from '@/app/utils/device';
-import { parseChatId, ChatSource } from '@/app/utils/strs';
-
-import { useAppDispatch } from '@/app/components/messages/store/mainStore';
-
-import { updateAssigneeOptimistic, updateStatusOptimistic } from '@/app/components/messages/store';
-
-import { TEST_PHONE } from '@/app/constants/messages';
-
-import { LastMessage } from '@/app/types/chat';
-import { Collaborator } from '@/app/types/projectInnerSettings';
+import {
+  AlertTriangle,
+  ChevronLeft,
+  CircleCheck,
+  CircleEllipsis,
+  CircleUserRound,
+  Construction,
+  EllipsisVertical,
+  Instagram,
+  Trash2,
+} from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import Image from 'next/image';
+import { useParams } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
+import Avatar from 'react-nice-avatar';
 
 /**
  * ChatHeader component displays conversation header with controls
@@ -79,7 +71,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 }) => {
   const t = useTranslations('messages');
   const params = useParams();
-  const projectName = typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? 'nike');
+  const projectName =
+    typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? 'nike');
   const isMobile = useIsMobile();
   const dispatch = useAppDispatch();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -90,12 +83,12 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   const [status, setStatus] = useState<string>('open');
   const [pendingStatus, setPendingStatus] = useState<string>('');
 
-  const HEADER_ICON_SIZE = isMobile ? 25 : 20;
+  const HEADER_ICON_SIZE = isMobile ? 20 : 16;
   const HEADER_ICON_CLASSNAME = isMobile
-    ? '[&_svg]:w-[25px]! [&_svg]:h-[25px]!'
-    : '[&_svg]:w-[20px]! [&_svg]:h-[20px]!';
+    ? '[&_svg]:w-[16px]! [&_svg]:h-[16px]!'
+    : '[&_svg]:w-[16px]! [&_svg]:h-[16px]!';
   // Icon size + padding (6px * 2)
-  const HEADER_ICON_CONTAINER_SIZE = HEADER_ICON_SIZE + 12;
+  const HEADER_ICON_CONTAINER_SIZE = HEADER_ICON_SIZE + 10;
 
   // Parse chat ID to get source and display name
   const parsedChat = parseChatId(chatId || '');
@@ -272,15 +265,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   };
 
   return (
-    <div
-      className={`h-[41px] border-l w-full bg-background px-3 flex items-center gap-3 z-10 ${className}`}
-    >
+    <div className={`h-[41px] border-l w-full bg-background px-3 flex items-center gap-3 z-10 ${className}`}>
       {/* Back button (mobile) */}
       {showBackButton && onBack && (
-        <div
-          className="cursor-pointer flex items-center justify-center p-1 px-0 rounded"
-          onClick={onBack}
-        >
+        <div className="cursor-pointer flex items-center justify-center p-1 px-0 rounded" onClick={onBack}>
           <ChevronLeft size={24} />
         </div>
       )}

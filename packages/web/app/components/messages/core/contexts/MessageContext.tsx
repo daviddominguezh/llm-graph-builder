@@ -501,21 +501,38 @@ export const MessageProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setIsSendingTestMessage(false);
   }, []);
 
-  const value: MessageContextValue = {
-    inputMessage,
-    highlightedMessageId,
-    isSendingTestMessage,
-    pendingImageAttachment,
-    setInputMessage,
-    handleSendMessage,
-    handleSendMessageUIOnly,
-    handleMediaUpload,
-    handleImageFilePicked,
-    highlightMessage,
-    replyToMessage,
-    stopTestMessageTyping,
-    clearPendingImageAttachment,
-  };
+  const value: MessageContextValue = useMemo(
+    () => ({
+      inputMessage,
+      highlightedMessageId,
+      isSendingTestMessage,
+      pendingImageAttachment,
+      setInputMessage,
+      handleSendMessage,
+      handleSendMessageUIOnly,
+      handleMediaUpload,
+      handleImageFilePicked,
+      highlightMessage,
+      replyToMessage,
+      stopTestMessageTyping,
+      clearPendingImageAttachment,
+    }),
+    [
+      inputMessage,
+      highlightedMessageId,
+      isSendingTestMessage,
+      pendingImageAttachment,
+      setInputMessage,
+      handleSendMessage,
+      handleSendMessageUIOnly,
+      handleMediaUpload,
+      handleImageFilePicked,
+      highlightMessage,
+      replyToMessage,
+      stopTestMessageTyping,
+      clearPendingImageAttachment,
+    ]
+  );
 
   return <MessageContext.Provider value={value}>{children}</MessageContext.Provider>;
 };

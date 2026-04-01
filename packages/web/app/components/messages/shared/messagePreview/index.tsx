@@ -6,7 +6,7 @@ import { generateAvatarConfig } from '@/app/utils/avatar';
 import { getMessageText } from '@/app/utils/message';
 import { formatTimestamp, parseChatId } from '@/app/utils/strs';
 import { Badge } from '@/components/ui/badge';
-import { Check, CheckCheck, CircleX, FlaskConical, Instagram, Loader, User, Zap } from 'lucide-react';
+import { Check, CheckCheck, FlaskConical, Instagram, Loader, User, X, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import React, { useMemo } from 'react';
@@ -261,11 +261,14 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
               {/* Status icon */}
               <div className="shrink-0">
                 {currentStatus === 'blocked' ? (
-                  <CircleX className="rounded-full w-[18px] h-[18px] p-[3px] border border-[1px] border-[#eab308] text-[#eab308]" />
+                  <X className="rounded-full w-[18px] h-[18px] p-[3px] border border-[1px] border-[#eab308] text-[#eab308]" />
                 ) : currentStatus === 'closed' ? (
                   <Check className="rounded-full w-[18px] h-[18px] p-[3px] border border-[1px] border-[#22c55e] text-[#22c55e]" />
                 ) : (
-                  <Loader className="rounded-full w-[18px] h-[18px] p-[3px] border border-[1px] border-[#6b7280] text-[#6b7280]" />
+                  <Loader
+                    strokeWidth={2.5}
+                    className="rounded-full w-[18px] h-[18px] p-[3px] border border-[1px] border-[#6b7280] text-[#6b7280]"
+                  />
                 )}
               </div>
 

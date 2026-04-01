@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { useMessageRepository } from '../../hooks/useMessageRepository';
 import { useChat } from './ChatContext';
@@ -143,24 +143,44 @@ export const AIProvider: React.FC<AIProviderProps> = ({ children }) => {
     }
   }, [activeChat, inquiryResponse, projectName, repository]);
 
-  const value: AIContextValue = {
-    isAIEnabled,
-    setIsAIEnabled,
-    selectedNode,
-    setSelectedNode,
-    isNodeSelectionModalOpen,
-    openNodeSelectionModal,
-    closeNodeSelectionModal,
-    confirmNode,
-    toggleAI,
-    inquiryResponse,
-    setInquiryResponse,
-    isInquiryModalOpen,
-    openInquiryModal,
-    closeInquiryModal,
-    inquiryLoading,
-    resolveInquiry,
-  };
+  const value: AIContextValue = useMemo(
+    () => ({
+      isAIEnabled,
+      setIsAIEnabled,
+      selectedNode,
+      setSelectedNode,
+      isNodeSelectionModalOpen,
+      openNodeSelectionModal,
+      closeNodeSelectionModal,
+      confirmNode,
+      toggleAI,
+      inquiryResponse,
+      setInquiryResponse,
+      isInquiryModalOpen,
+      openInquiryModal,
+      closeInquiryModal,
+      inquiryLoading,
+      resolveInquiry,
+    }),
+    [
+      isAIEnabled,
+      setIsAIEnabled,
+      selectedNode,
+      setSelectedNode,
+      isNodeSelectionModalOpen,
+      openNodeSelectionModal,
+      closeNodeSelectionModal,
+      confirmNode,
+      toggleAI,
+      inquiryResponse,
+      setInquiryResponse,
+      isInquiryModalOpen,
+      openInquiryModal,
+      closeInquiryModal,
+      inquiryLoading,
+      resolveInquiry,
+    ]
+  );
 
   return <AIContext.Provider value={value}>{children}</AIContext.Provider>;
 };

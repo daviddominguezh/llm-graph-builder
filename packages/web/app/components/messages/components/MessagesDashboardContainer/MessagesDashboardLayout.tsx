@@ -507,13 +507,22 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
     [activeChat, selectChat, replyToMessage]
   );
 
+  // Keep a ref to messages so the highlight effect can read without re-triggering
+  const messagesRef = useRef(messages);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  // Derive a stable count to detect when messages finish loading
+  const messagesCount = useMemo(() => Object.keys(messages).length, [messages]);
+
   // Highlight pending message after chat switch completes
   useEffect(() => {
-    if (pendingHighlightRef.current && activeChat && messages && Object.keys(messages).length > 0) {
+    if (pendingHighlightRef.current && activeChat && messagesCount > 0) {
       const messageId = pendingHighlightRef.current;
 
       // Check if the target message is in the loaded messages
-      if (messages[messageId]) {
+      if (messagesRef.current[messageId]) {
         // Wait for next render cycle to ensure MessageView has rendered
         setTimeout(() => {
           replyToMessage(messageId);
@@ -521,7 +530,7 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
         }, 100);
       }
     }
-  }, [activeChat, messages, replyToMessage]);
+  }, [activeChat, messagesCount, replyToMessage]);
 
   // Close mobile right panel when chat changes
   useEffect(() => {

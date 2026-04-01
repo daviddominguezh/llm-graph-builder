@@ -248,22 +248,23 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
     run();
   }, [activeChat, projectName, notesRefreshTrigger, setActivities, setNotes]);
 
-  // Initialize selected tags from currentChat when chat changes
+  // Initialize selected tags from currentChat when chat changes.
+  // Uses functional updater to read current state without adding selectedTagsByChat as a dep.
+  // Deferred via queueMicrotask to avoid synchronous cascading renders.
   useEffect(() => {
-    const run = async () => {
-      if (!activeChat || !currentChat) return;
+    if (!activeChat || !currentChat?.tags) return;
 
-      // Initialize tags from currentChat if not already set
-      if (!selectedTagsByChat[activeChat] && currentChat.tags) {
-        setSelectedTagsByChat((prev) => ({
-          ...prev,
-          [activeChat]: currentChat.tags || [],
-        }));
-      }
-    };
+    const chatId = activeChat;
+    const chatTags = currentChat.tags;
 
-    run();
-  }, [activeChat, currentChat, selectedTagsByChat]);
+    queueMicrotask(() => {
+      setSelectedTagsByChat((prev) => {
+        // Only initialize if not already set
+        if (prev[chatId]) return prev;
+        return { ...prev, [chatId]: chatTags };
+      });
+    });
+  }, [activeChat, currentChat]);
 
   // Handle note deletion
   const handleDeleteNote = async () => {
