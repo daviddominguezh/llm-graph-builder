@@ -98,7 +98,7 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
   ];
 
   return (
-    <div className="relative flex flex-col h-full w-full bg-white border-r border-gray-200 overflow-y-auto">
+    <div className="relative flex flex-col h-full w-full bg-background border-r overflow-y-auto">
       <Slot name="left-panel-top" />
 
       <div className={`h-[41px] flex w-full items-center py-1.5  justify-between pl-3 pr-1 border-b mb-2.5`}>

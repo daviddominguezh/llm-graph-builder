@@ -212,12 +212,12 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flex: '1 1 0', minWidth: 0 }}>
               {name ? (
                 <>
-                  <span className={`text-xs text-black font-semibold text-start whitespace-nowrap`}>
+                  <span className={`text-xs text-foreground font-semibold text-start whitespace-nowrap`}>
                     {name}
                   </span>
                   {!isTest && parsedChat.source !== 'instagram' && (
                     <span
-                      className="text-[10px] font-medium text-gray-600 truncate"
+                      className="text-[10px] font-medium text-muted-foreground truncate"
                       style={{ marginTop: '0px', marginRight: '6px' }}
                     >
                       {formattedPhone}

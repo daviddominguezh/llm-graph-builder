@@ -71,10 +71,10 @@ export const ChatsSearch = ({
   const selectedTeammateAvatar = selectedTeammate ? generateAvatarConfig(selectedTeammate.email) : null;
 
   return (
-    <div className="h-[41px] px-2 pl-3 border-b-1 flex w-full items-center justify-between gap-2 border-b border-gray-200 pb-0">
+    <div className="h-[41px] px-2 pl-3 border-b-1 flex w-full items-center justify-between gap-2 border-b pb-0">
       {/* Status filter select - always visible */}
       <Select value={searchFilter} onValueChange={(value) => value && setSearchFilter(value)}>
-        <SelectTrigger className="bg-background text-xs font-semibold w-fit border-0 shadow-none px-0 gap-1 cursor-pointer [&_span]:text-xs [&_span]:text-black [&_span]:font-semibold focus-visible:ring-0 focus-visible:border-0 [&_svg]:!text-black [&_svg]:!opacity-100">
+        <SelectTrigger className="bg-background dark:bg-background! text-xs font-semibold w-fit border-0 shadow-none px-0 gap-1 cursor-pointer [&_span]:text-xs [&_span]:text-foreground [&_span]:font-semibold focus-visible:ring-0 focus-visible:border-0 [&_svg]:!text-foreground [&_svg]:!opacity-100">
           <SelectValue>{statusLabels[searchFilter] ?? searchFilter}</SelectValue>
         </SelectTrigger>
         <SelectContent>
@@ -144,7 +144,7 @@ export const ChatsSearch = ({
         <Select value={teammateFilter} onValueChange={(value) => value && setTeammateFilter(value)}>
           <SelectTrigger
             nativeButton={true}
-            className="bg-background cursor-pointer ring-0 border-none px-[calc(1px+var(--spacing)*1.5)]"
+            className="bg-background dark:bg-background dark:hover:bg-input text-foreground! cursor-pointer ring-0 border-none px-[calc(1px+var(--spacing)*1.5)] [&_span]:text-foreground [&_svg]:!text-foreground"
             render={
               <Button type="button" variant="ghost" size="icon" className="shrink-0 cursor-pointer">
                 {selectedTeammate ? (

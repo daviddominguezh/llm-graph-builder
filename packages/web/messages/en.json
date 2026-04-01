@@ -1091,6 +1091,9 @@
     "tag-hot": "Hot",
     "tag-browser": "Browser",
     "tag-escalated": "Escalated",
-    "tag-abandoned": "Abandoned"
+    "tag-abandoned": "Abandoned",
+    "male": "Male",
+    "female": "Female",
+    "other": "Other"
   }
 }

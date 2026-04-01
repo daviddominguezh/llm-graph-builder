@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useQuill } from 'react-quilljs';
+import { useQuillStable } from './useQuillStable';
 import { useParams } from 'next/navigation';
 
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
@@ -92,33 +92,6 @@ interface MessageInputProps {
  * This prevents react-quilljs from trying to use require() before Quill is available
  */
 export const MessageInput: React.FC<MessageInputProps> = (props) => {
-  const [isQuillLoaded, setIsQuillLoaded] = useState(false);
-  const t = useTranslations('messages');
-
-  // Pre-load Quill before react-quilljs tries to use it
-  // This ensures Quill is available via ES modules in production builds
-  useEffect(() => {
-    loadQuill()
-      .then(() => {
-        setIsQuillLoaded(true);
-      })
-      .catch((error) => {
-        console.error('[MessageInput] Failed to load Quill:', error);
-      });
-  }, []);
-
-  // Show loading state while Quill is being loaded
-  if (!isQuillLoaded) {
-    return (
-      <div className={`relative ${props.className || ''}`}>
-        <div className="bg-white rounded-t-md border border-b-0 z-20 overflow-hidden bottom-0 flex flex-col m-0">
-          <div className="p-4 text-gray-400 text-sm text-center">{t('Loading editor…')}</div>
-        </div>
-      </div>
-    );
-  }
-
-  // Only render the actual component once Quill is loaded
   return <MessageInputInner {...props} />;
 };
 
@@ -258,8 +231,20 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
     onSendRef.current = onSend;
   }, [onSend]);
 
+  // Refs for values used inside Quill keyboard bindings (which are registered once)
+  const disabledRef = useRef(disabled);
+  useEffect(() => {
+    disabledRef.current = disabled;
+  }, [disabled]);
+
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
   // Quill configuration - disable toolbar, we'll use custom
-  // Memoize modules to prevent recreation on every render
+  // Memoize with NO external deps so the object identity never changes
+  // All live values are accessed through refs inside the handler
   const modules = useMemo(
     () => ({
       toolbar: false,
@@ -269,13 +254,11 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
             key: 'Enter',
             // eslint-disable-next-line react-hooks/unsupported-syntax -- Quill requires `this` for keyboard handlers (React Compiler limitation)
             handler: function (this: { quill: any }) {
-              // Don't send message if Quick Replies dialog is open
               if (showQuickRepliesDialogRef.current) {
-                return false; // Prevent default Enter behavior
+                return false;
               }
 
-              // Allow sending if: not disabled OR (disabled but mode is 'note')
-              const canSend = !disabled || modeRef.current === 'note';
+              const canSend = !disabledRef.current || modeRef.current === 'note';
               if (canSend) {
                 const quill = this.quill;
                 const text = quill.getText().trim();
@@ -287,29 +270,25 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
 
                   onSendRef.current(whatsappMessage, modeRef.current);
                   quill.setText('');
-                  onChange('');
-                  // Clear mentions after sending
+                  onChangeRef.current('');
                   setMentions([]);
                 }
               }
-              return false; // Prevent default Enter behavior
+              return false;
             },
           },
           'shift-enter': {
             key: 'Enter',
             shiftKey: true,
-            handler: () => {
-              // Allow Shift+Enter to create new line
-              return true;
-            },
+            handler: () => true,
           },
         },
       },
     }),
-    [disabled, onChange]
+    [showQuickRepliesDialogRef, disabledRef, modeRef, pendingImageAttachmentRef, onSendRef, onChangeRef]
   );
 
-  const { quill, quillRef } = useQuill({
+  const { quill, quillRef } = useQuillStable({
     modules,
     placeholder: placeholder || t('Type a message'),
     theme: 'snow',
@@ -331,32 +310,41 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
     [quill]
   );
 
+  // Track whether we are programmatically setting quill text to suppress text-change
+  const isSyncingRef = useRef(false);
+
   // Sync Quill content with external value changes (e.g., chat switching)
   useEffect(() => {
     if (quill) {
       const currentText = quill.getText().trim();
       const newValue = value.trim();
 
-      // Only update if the value is different from what's in the editor
-      // This prevents interference with user typing
       if (currentText !== newValue) {
-        if (newValue === '') {
-          quill.setText('');
-        } else {
-          // For now, we'll just set plain text
-          // In the future, we could store HTML and restore formatting
-          quill.setText(newValue);
+        isSyncingRef.current = true;
+        try {
+          if (newValue === '') {
+            quill.setText('');
+          } else {
+            quill.setText(newValue);
+          }
+        } finally {
+          // Use setTimeout to reset AFTER Quill's synchronous text-change fires
+          setTimeout(() => {
+            isSyncingRef.current = false;
+          }, 0);
         }
       }
     }
   }, [quill, value]);
 
-  // Handle text changes
+  // Handle text changes from user typing
   useEffect(() => {
     if (quill) {
       const handler = () => {
-        const text = quill.getText();
-        onChange(text);
+        // Skip if this text-change was triggered by our sync effect
+        if (isSyncingRef.current) return;
+        const text = quill.getText().trim();
+        onChangeRef.current(text);
       };
 
       quill.on('text-change', handler);
@@ -368,7 +356,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
         quill.off('text-change', handler);
       };
     }
-  }, [quill, onChange, isEditorDisabled]);
+  }, [quill, isEditorDisabled, onChangeRef]);
 
   // Focus Quill editor when returning from voice recording mode
   const prevIsRecordingVoice = useRef(isRecordingVoice);
@@ -660,13 +648,13 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
 
         onSend(whatsappMessage, mode);
         quill.setText('');
-        onChange('');
+        onChangeRef.current('');
 
         // Clear mentions after sending
         setMentions([]);
       }
     }
-  }, [quill, disabled, onSend, onChange, mode]);
+  }, [quill, disabled, onSend,  mode]);
 
   // Handle AI option selection
   const handleAIOptionSelect = useCallback(
@@ -714,7 +702,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
         // Replace the text in the editor with the AI response
         if (response?.text) {
           quill.setText(response.text);
-          onChange(response.text);
+          onChangeRef.current(response.text);
           // Move cursor to the end
           quill.setSelection(response.text.length, 0);
         }
@@ -725,7 +713,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
         setIsAIProcessing(false);
       }
     },
-    [quill, projectName, onChange]
+    [quill, projectName, onChangeRef]
   );
 
   // Handle Ask AI modal question
@@ -754,7 +742,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
 
       // Set the new text
       quill.setText(newText);
-      onChange(newText);
+      onChangeRef.current(newText);
 
       // Move cursor to the end
       quill.setSelection(newText.length, 0);
@@ -762,7 +750,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
       // Focus the editor
       quill.focus();
     },
-    [quill, onChange]
+    [quill, onChangeRef]
   );
 
   // Handle quick reply selection
@@ -826,7 +814,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
       }
 
       // Update the onChange handler
-      onChange(quill.getText());
+      onChangeRef.current(quill.getText());
 
       // Close the dialog
       setShowQuickRepliesDialog(false);
@@ -834,7 +822,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
       // Focus the editor
       quill.focus();
     },
-    [quill, activeChat, userInfo, businessInfo, onChange, shortcutState]
+    [quill, activeChat, userInfo, businessInfo,  shortcutState]
   );
 
   // Handle order created from shopping cart
@@ -853,7 +841,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
 
       // Set the new text
       quill.setText(newText);
-      onChange(newText);
+      onChangeRef.current(newText);
 
       // Move cursor to the end
       quill.setSelection(newText.length, 0);
@@ -861,7 +849,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
       // Focus the editor
       quill.focus();
     },
-    [quill, onChange]
+    [quill, onChangeRef]
   );
 
   // Handle voice recording completion
