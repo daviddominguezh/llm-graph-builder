@@ -31,7 +31,7 @@ const PAYMENT_REJECTED_MESSAGE = 'Pago rechazado, informarle al usuario que su p
 export const PaymentVerificationBanner: React.FC<PaymentVerificationBannerProps> = ({ chatId }) => {
   const t = useTranslations('messages');
   const params = useParams();
-  const projectName = typeof params.projectName === 'string' ? params.projectName : params.projectName?.[0] ?? '';
+  const projectName = typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? 'nike');
   const dispatch = useAppDispatch();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);

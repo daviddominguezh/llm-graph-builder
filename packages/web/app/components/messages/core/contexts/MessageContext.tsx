@@ -49,7 +49,7 @@ const MessageContext = createContext<MessageContextValue>({} as MessageContextVa
 
 export const MessageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const params = useParams();
-  const projectName = typeof params.projectName === 'string' ? params.projectName : params.projectName?.[0] ?? '';
+  const projectName = typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? 'nike');
   const dispatch = useDispatch();
   const repository = useMessageRepository();
   const { activeChat, isTestChatActive, messages, currentChat, addMessage, triggerNotesRefresh, updateCachedConversation } = useChat();

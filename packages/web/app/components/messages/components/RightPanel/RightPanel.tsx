@@ -108,7 +108,7 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
   const t = useTranslations('messages');
   const locale = useLocale();
   const params = useParams();
-  const projectName = typeof params.projectName === 'string' ? params.projectName : params.projectName?.[0] ?? '';
+  const projectName = typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? 'nike');
   const isMobile = useIsMobile();
   const {
     notes,

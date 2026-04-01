@@ -47,7 +47,7 @@ export const getMediaKind = (filename: string): MediaFileKind => {
 // ---------------------------------------------------------------------------
 // Environment helpers
 // ---------------------------------------------------------------------------
-export const getApiURL = (): string => '';
+export const getApiURL = (): string => 'http://localhost:5006';
 
 export const isLocalDevelopment = (): boolean => {
   return process.env.NODE_ENV === 'development';

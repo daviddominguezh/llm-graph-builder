@@ -68,7 +68,7 @@ interface UIProviderProps {
 
 export const UIProvider: React.FC<UIProviderProps> = ({ children }) => {
   const params = useParams();
-  const projectName = typeof params.projectName === 'string' ? params.projectName : params.projectName?.[0] ?? '';
+  const projectName = typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? 'nike');
   // Get data from ChatContext
   const { activeChat, messages: loadedMessages, orderedChats } = useChat();
   // Get data from Redux

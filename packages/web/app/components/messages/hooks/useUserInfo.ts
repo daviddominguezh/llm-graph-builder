@@ -19,7 +19,7 @@ const userInfoCache: UserInfoCache = {};
 export const useUserInfo = (chatId: string | null, isActive: boolean = false): FinalUserInfoAPI | null => {
   const params = useParams();
   const projectName =
-    typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? '');
+    typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? 'nike');
   const [userInfo, setUserInfo] = useState<FinalUserInfoAPI | null>(null);
   const activeChatRef = useRef<string | null>(chatId);
 

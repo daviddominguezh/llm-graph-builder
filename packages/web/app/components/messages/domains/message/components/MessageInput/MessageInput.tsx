@@ -144,7 +144,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
 }) => {
   const t = useTranslations('messages');
   const params = useParams();
-  const projectName = typeof params.projectName === 'string' ? params.projectName : params.projectName?.[0] ?? '';
+  const projectName = typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? 'nike');
   const {
     businessInfo,
     businessInfoLoading,

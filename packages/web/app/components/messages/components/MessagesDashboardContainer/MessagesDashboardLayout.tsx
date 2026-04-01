@@ -77,7 +77,7 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
 }) => {
   const params = useParams();
   const projectName =
-    typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? '');
+    typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? 'nike');
   const repository = useMessageRepository();
 
   const t = useTranslations('messages');

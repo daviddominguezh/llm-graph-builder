@@ -46,7 +46,11 @@ export const initializeFirebase = (): StubFirebaseServices => {
 };
 
 export const getCurrentFirebaseUser = async (): Promise<StubFirebaseUser | null> => {
-  return null;
+  return {
+    uid: 'f1uHTF4TsjMzSAL5r8hPm6N7lZo1',
+    email: 'luisa@repsy.co',
+    getIdToken: async () => '',
+  };
 };
 
 export const checkSimpleFirebaseAuth = async (): Promise<StubFirebaseUser | null> => {

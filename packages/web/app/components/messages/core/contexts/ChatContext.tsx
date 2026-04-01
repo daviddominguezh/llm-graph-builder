@@ -104,7 +104,7 @@ const ChatContext = createContext<ChatContextValue>({} as ChatContextValue);
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const params = useParams();
-  const projectName = typeof params.projectName === 'string' ? params.projectName : params.projectName?.[0] ?? '';
+  const projectName = typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? 'nike');
   const repository = useMessageRepository();
   const dispatch = useDispatch();
   const lastMessages = useSelector(getLastMessagesFromStore);

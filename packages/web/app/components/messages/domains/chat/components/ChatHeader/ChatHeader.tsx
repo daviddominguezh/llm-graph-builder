@@ -79,7 +79,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 }) => {
   const t = useTranslations('messages');
   const params = useParams();
-  const projectName = typeof params.projectName === 'string' ? params.projectName : params.projectName?.[0] ?? '';
+  const projectName = typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? 'nike');
   const isMobile = useIsMobile();
   const dispatch = useAppDispatch();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
