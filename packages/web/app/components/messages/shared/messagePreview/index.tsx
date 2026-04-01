@@ -145,21 +145,18 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
     }
   }, [currentStatus]);
 
-  // Check if this is a verify-payment status (needs warning border)
-  const isVerifyPayment = lastMessage?.status === 'verify-payment';
-
   // Determine if there are unanswered messages
   // If the last message is from the user (not us), it's unanswered
   const hasUnansweredMessages = lastMessage?.message?.role === 'user';
 
   return (
     <button
-      className={`relative border-b-1 lg:border-b-0`}
+      className={`relative`}
       style={{ width: '100%', height: 'fit-content', overflowX: 'hidden', padding: '0px 6px' }}
     >
       <div
         onClick={() => onClickMsg(phone)}
-        className={`${styles['bg']} ${selected ? styles['activeBG'] : ''} ${isHighlightedImportant ? 'border-red-500 border-1 bg-red-50' : ''} ${isVerifyPayment ? 'border-amber-500! border-1 bg-amber-50' : ''}`}
+        className={`hover:bg-sidebar-accent! ${styles['bg']} ${selected ? styles['activeBG'] : ''} ${isHighlightedImportant ? 'border-red-500 border-1 bg-red-50' : ''}`}
         style={{
           width: '100%',
           paddingTop: '12px',
@@ -172,13 +169,6 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
           cursor: 'pointer',
           borderRadius: '8px',
           overflowX: 'hidden',
-          ...(isVerifyPayment && {
-            backgroundColor: '#fffbeb',
-            borderWidth: '1px',
-            borderColor: '#f59e0b',
-            borderStyle: 'solid',
-            marginBottom: '1px',
-          }),
         }}
       >
         <div
@@ -222,12 +212,12 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flex: '1 1 0', minWidth: 0 }}>
               {name ? (
                 <>
-                  <span className={`text-[15px] text-black font-semibold text-start whitespace-nowrap`}>
+                  <span className={`text-xs text-black font-semibold text-start whitespace-nowrap`}>
                     {name}
                   </span>
                   {!isTest && parsedChat.source !== 'instagram' && (
                     <span
-                      className="text-xs font-medium text-gray-600 truncate"
+                      className="text-[10px] font-medium text-gray-600 truncate"
                       style={{ marginTop: '0px', marginRight: '6px' }}
                     >
                       {formattedPhone}
@@ -242,7 +232,7 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
             </div>
             <div
               style={{ marginTop: '0px' }}
-              className={`text-xs text-gray-500 ${isHighlightedImportant ? 'text-red-500' : ''}`}
+              className={`text-[10px] text-gray-500 ${isHighlightedImportant ? 'text-red-500' : ''}`}
             >
               {formatTimestamp(lastMessage?.timestamp || Date.now())}
             </div>
@@ -260,7 +250,7 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
                   overflow: 'hidden',
                   whiteSpace: 'nowrap',
                 }}
-                className={`text-[13px] ${isHighlightedImportant ? 'text-black font-medium' : 'text-gray-500'}`}
+                className={`text-xs ${isHighlightedImportant ? 'text-black font-medium' : 'text-gray-500'}`}
               >
                 {lastMessage.type === 'image' || lastMessage.type === 'video'
                   ? `📷 ${t('Image')}`
@@ -334,7 +324,7 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
         </div>
       </div>
       <div className="w-full px-4 absolute bottom-[0px] left-0">
-        <div className="w-full border-b-0 lg:border-b-1 border-(--bg-color)"></div>
+        <div className="w-full border-b-0 lg:border-b-1"></div>
       </div>
     </button>
   );

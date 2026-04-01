@@ -319,7 +319,7 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
 
       {/* Search results */}
       {isSearchActive && hasSearchResults ? (
-        <div ref={chatListScrollRef} className="w-full h-fit pb-9 overflow-y-auto">
+        <div ref={chatListScrollRef} className="w-full h-fit pb-9 overflow-y-auto pt-2">
           {/* Chats by phone */}
           {filteredChatsPhoneVisible.length > 0 && (
             <div>
@@ -389,7 +389,7 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
         </Alert>
       ) : displayedChatsFiltered.length > 0 ? (
         // All chats
-        <div ref={chatListScrollRef} className="w-full h-fit pb-9 overflow-y-auto" onScroll={handleScroll}>
+        <div ref={chatListScrollRef} className="w-full h-fit pb-9 overflow-y-auto pt-2" onScroll={handleScroll}>
           {displayedChatsFiltered.map((chat) => (
             <MessagePreview
               key={chat.chatId}
