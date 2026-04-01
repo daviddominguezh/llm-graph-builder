@@ -161,7 +161,7 @@ export const ChatsSearch = ({
                     <Avatar {...selectedTeammateAvatar} className="rounded-full " />
                   )
                 ) : (
-                  <Filter className="text-black" strokeWidth={2} />
+                  <Filter className="text-foreground" strokeWidth={2} />
                 )}
               </Button>
             }

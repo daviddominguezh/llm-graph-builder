@@ -220,7 +220,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   const getStatusIcon = () => {
     switch (status) {
       case 'open':
-        return <CircleEllipsis size={HEADER_ICON_SIZE} strokeWidth={2} className="text-black" />;
+        return <CircleEllipsis size={HEADER_ICON_SIZE} strokeWidth={2} className="text-foreground" />;
       case 'blocked':
         return <Construction size={HEADER_ICON_SIZE} strokeWidth={2} className="text-yellow-500" />;
       case 'closed':
@@ -228,18 +228,18 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       case 'verify-payment':
         return <AlertTriangle size={HEADER_ICON_SIZE} strokeWidth={2} className="text-amber-500" />;
       default:
-        return <CircleEllipsis size={HEADER_ICON_SIZE} strokeWidth={2} className="text-black" />;
+        return <CircleEllipsis size={HEADER_ICON_SIZE} strokeWidth={2} className="text-foreground" />;
     }
   };
 
   const getAssignedToDisplay = () => {
     if (!assignedTo || assignedTo === 'unassigned') {
-      return <CircleUserRound size={HEADER_ICON_SIZE} strokeWidth={2} className="text-black" />;
+      return <CircleUserRound size={HEADER_ICON_SIZE} strokeWidth={2} className="text-foreground" />;
     }
 
     const assignedCollaborator = collaborators.find((c) => c.email === assignedTo);
     if (!assignedCollaborator) {
-      return <CircleUserRound size={HEADER_ICON_SIZE} strokeWidth={2} className="text-black" />;
+      return <CircleUserRound size={HEADER_ICON_SIZE} strokeWidth={2} className="text-foreground" />;
     }
 
     const pictureUrl = profilePictures.get(assignedTo);
@@ -298,7 +298,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         <div className="shrink-0 relative">
           <Avatar
             {...avatarConfig}
-            style={{ width: '20px', height: '20px', minWidth: '20px' }}
+            style={{ width: '25px', height: '25px', minWidth: '25px' }}
             className="rounded-full"
           />
           {!isTestChat && chatId !== TEST_PHONE && renderPlatformBadge(parsedChat.source)}
@@ -306,7 +306,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
         {/* Name and status */}
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-semibold m-0 flex items-center gap-2">
+          <h3 className="text-xs font-semibold m-0 flex items-center gap-2">
             <span className="cursor-default overflow-hidden text-ellipsis whitespace-nowrap">
               {displayName}
             </span>
@@ -335,7 +335,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 width: `${HEADER_ICON_SIZE}px`,
                 height: `${HEADER_ICON_SIZE}px`,
               }}
-              className={`flex items-center justify-center shrink-0 ${HEADER_ICON_CLASSNAME}`}
+              className={`flex items-center justify-center shrink-0 text-foreground ${HEADER_ICON_CLASSNAME}`}
             >
               {getAssignedToDisplay()}
             </div>

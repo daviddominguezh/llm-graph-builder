@@ -404,7 +404,7 @@ export const CreateOrderFromCartModal: React.FC<CreateOrderFromCartModalProps> =
 
           {step === 'payment-method' && (
             <div className="space-y-3">
-              <p className="text-sm text-black">{t('Select your payment method')}:</p>
+              <p className="text-sm text-foreground">{t('Select your payment method')}:</p>
 
               <div className="grid grid-cols-2 gap-4">
                 <button

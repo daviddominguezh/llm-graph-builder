@@ -193,7 +193,7 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
                   )}
                 </>
               ) : (
-                <span className={`text-[15px] text-black font-semibold text-start whitespace-nowrap`}>
+                <span className={`text-[15px] text-foreground font-semibold text-start whitespace-nowrap`}>
                   {formattedPhone}
                 </span>
               )}
@@ -218,7 +218,7 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
                   overflow: 'hidden',
                   whiteSpace: 'nowrap',
                 }}
-                className={`text-xs ${isHighlightedImportant ? 'text-black font-medium' : 'text-gray-500'}`}
+                className={`text-xs ${isHighlightedImportant ? 'text-foreground font-medium' : 'text-gray-500'}`}
               >
                 {lastMessage.type === 'image' || lastMessage.type === 'video'
                   ? `📷 ${t('Image')}`

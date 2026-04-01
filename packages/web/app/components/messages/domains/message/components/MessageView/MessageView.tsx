@@ -477,7 +477,7 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
             !(hasImage && getMessageText(message.message) === '[image]') && (
               <div
                 className={`px-2 py-1 break-words whitespace-pre-wrap text-[14px] leading-[1.5] ${
-                  isNote ? 'text-gray-600 text-right text-xs!' : 'text-black'
+                  isNote ? 'text-gray-600 text-right text-xs!' : 'text-foreground'
                 }`}
                 dangerouslySetInnerHTML={{
                   __html: formatWhatsapp(getMessageText(message.message) || ''),

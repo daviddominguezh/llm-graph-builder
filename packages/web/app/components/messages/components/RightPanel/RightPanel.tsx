@@ -374,7 +374,7 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
 
   const infoIconSize = 14;
   const infoLabelClassname = 'flex gap-1 items-center text-gray-500 cursor-default text-xs';
-  const infoValueClassname = 'text-xs text-black ml-0 flex';
+  const infoValueClassname = 'text-xs text-foreground ml-0 flex';
 
   const cardClass =
     'cursor-default relative w-full border p-3 py-1 rounded-lg bg-white shadow-lg overflow-hidden';
@@ -688,7 +688,7 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
             <React.Fragment key={section.id}>
               <div className={cn(`mb-0`, cardClass)}>
                 <button
-                  className={`w-full flex justify-between items-center py-2 text-sm font-medium text-black ${
+                  className={`w-full flex justify-between items-center py-2 text-sm font-medium text-foreground ${
                     section.items ? 'cursor-pointer' : ''
                   }`}
                   onClick={() => section.items && toggleSection(section.id)}
