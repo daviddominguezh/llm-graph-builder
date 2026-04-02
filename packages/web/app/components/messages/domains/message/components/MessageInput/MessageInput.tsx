@@ -1420,30 +1420,30 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
 
             <div className="flex items-center gap-1">
               {/* Mode selector: Note or Reply - Always enabled */}
-              <div className="flex items-center bg-gray-100 rounded-md p-0.5">
+              <div className="inline-flex gap-1 dark:gap-0.5 rounded-sm border bg-muted/50 p-0.5">
                 <button
                   type="button"
                   onClick={() => setMode('note')}
-                  className={`flex items-center gap-1.5 px-2 py-1 rounded transition-all text-sm cursor-pointer ${
+                  className={`cursor-pointer inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-medium transition-colors border border-transparent ${
                     mode === 'note'
-                      ? 'bg-white text-yellow-600 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'bg-popover dark:bg-input text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground border-transparent hover:bg-input dark:hover:bg-card'
                   }`}
                 >
-                  <NotepadText size={16} strokeWidth={2} />
-                  {mode === 'note' && <span className="font-medium">{t('Note')}</span>}
+                  <NotepadText size={14} strokeWidth={2} />
+                  {t('Note')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setMode('reply')}
-                  className={`flex items-center gap-1.5 px-2 py-1 rounded transition-all text-sm cursor-pointer ${
+                  className={`cursor-pointer inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-medium transition-colors border border-transparent ${
                     mode === 'reply'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'bg-popover dark:bg-input text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground border-transparent hover:bg-input dark:hover:bg-card'
                   }`}
                 >
-                  <MessageCircle size={16} strokeWidth={2} />
-                  {mode === 'reply' && <span className="font-medium">{t('Reply')}</span>}
+                  <MessageCircle size={14} strokeWidth={2} />
+                  {t('Reply')}
                 </button>
               </div>
             </div>

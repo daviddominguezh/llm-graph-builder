@@ -275,8 +275,8 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
           {(isHovered || isDropdownOpen) && !isNote && !isAssigneeChange && !isStatusChange && (
             <div
               ref={isDropdownOpen ? dropdownTriggerRef : null}
-              className={`absolute top-2 right-2 z-20 rounded ${
-                isHighlighted ? 'bg-[#fff3cd]' : styleAsAssistant ? 'bg-[#f3f7fe]' : 'bg-[#f7f7f7]'
+              className={`absolute top-2 right-2 z-20 rounded hover:bg-border ${
+                isHighlighted ? 'bg-card' : 'bg-card'
               }`}
             >
               <button
@@ -286,7 +286,7 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
                 }}
                 className="w-6 h-6 flex items-center justify-center cursor-pointer transition-colors"
               >
-                <ChevronDown size={16} className="text-gray-500 hover:text-gray-700" />
+                <ChevronDown size={16} className="text-muted-foreground" />
               </button>
 
               {/* Dropdown menu */}
