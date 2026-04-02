@@ -4,7 +4,7 @@ import { useTemplatesPrefetch } from '@/app/hooks/useTemplatesPrefetch';
 import { Button } from '@/components/ui/button';
 import { Bot, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { CreateAgentWizard } from './CreateAgentWizard';
 
@@ -15,7 +15,12 @@ interface AgentEmptyStateProps {
 
 export function AgentEmptyState({ orgId, orgSlug }: AgentEmptyStateProps) {
   const t = useTranslations('agents');
-  const [createOpen, setCreateOpen] = useState(true);
+  const [createOpen, setCreateOpen] = useState(false);
+
+  useEffect(() => {
+    const id = setTimeout(() => setCreateOpen(true), 300);
+    return () => clearTimeout(id);
+  }, []);
   const prefetchedTemplates = useTemplatesPrefetch();
 
   return (
