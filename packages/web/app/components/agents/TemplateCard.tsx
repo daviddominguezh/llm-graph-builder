@@ -173,7 +173,7 @@ export function TemplateCard({
           onSelect();
         }
       }}
-      className={`bg-background border-dashed flex cursor-pointer flex-col rounded-lg border p-3 py-2 text-left transition-[background-color,border-color,box-shadow,transform] duration-150 hover:shadow-sm hover:bg-card/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${cardBorderClass(selected)}`}
+      className={`flex min-h-[120px] max-h-[120px] cursor-pointer flex-col gap-1 rounded-lg border border-ring/60 dark:border-ring p-3 text-left transition-[border-color,box-shadow,transform] duration-150 dark:hover:bg-input/30 hover:bg-input border-dashed ${cardStateClass(selected)}`}
     >
       <TemplateCardHeader onPreview={onPreview} template={template} />
       <p className="mt-1.5 line-clamp-2 text-[11px] text-muted-foreground">{template.description}</p>
@@ -191,11 +191,6 @@ export function TemplateCard({
 /*  BlankCanvasCard                                                     */
 /* ------------------------------------------------------------------ */
 
-function blankBorderClass(selected: boolean): string {
-  if (selected) return 'border-primary ring-1 ring-primary border-solid';
-  return 'border-dashed border-border';
-}
-
 export function BlankCanvasCard({ selected, onSelect }: { selected: boolean; onSelect: () => void }) {
   const t = useTranslations('marketplace');
 
@@ -203,11 +198,16 @@ export function BlankCanvasCard({ selected, onSelect }: { selected: boolean; onS
     <button
       type="button"
       onClick={onSelect}
-      className={`bg-background flex min-h-[120px] max-h-[120px] cursor-pointer flex-col items-center justify-center rounded-lg border p-3 text-center transition-[background-color,border-color,box-shadow,transform] duration-150 hover:bg-card/60 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${blankBorderClass(selected)}`}
+      className={`flex min-h-[120px] max-h-[120px] cursor-pointer flex-col gap-1 rounded-lg border border-ring/60 dark:border-ring p-3 text-left transition-[border-color,box-shadow,transform] duration-150 dark:hover:bg-input/30 hover:bg-input border-dashed ${cardStateClass(selected)}`}
     >
-      <GitFork className="size-5 text-muted-foreground" aria-hidden="true" />
-      <span className="mt-1.5 text-xs font-medium text-foreground">{t('blankCanvas')}</span>
-      <p className="mt-1 text-[11px] text-muted-foreground">{t('blankCanvasDescription')}</p>
+      <div className="flex items-center gap-1.5">
+        <GitFork
+          className={`size-3.5 transition-colors duration-150 ${selected ? 'text-primary' : 'text-muted-foreground'}`}
+          aria-hidden="true"
+        />
+        <span className="text-xs font-medium">{t('blankCanvas')}</span>
+      </div>
+      <p className="text-[11px] text-muted-foreground">{t('blankCanvasDescription')}</p>
     </button>
   );
 }
