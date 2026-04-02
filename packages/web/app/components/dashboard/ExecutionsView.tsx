@@ -6,13 +6,12 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
 import { fetchExecutionsByTenant } from '@/app/actions/dashboard';
-import type { TenantExecutionRow } from '@/app/lib/dashboard';
+import type { DashboardParams, TenantExecutionRow } from '@/app/lib/dashboard';
 
-import { buildExecutionColumns } from './ExecutionColumns';
 import { buildExecutionFilterDefs } from './executionFilters';
 import { FilterBar } from './FilterBar';
+import { GroupedExecutionsTable } from './GroupedExecutionsTable';
 import { SearchBar } from './SearchBar';
-import { SortableTable } from './SortableTable';
 import { useDashboardParams } from './useDashboardParams';
 
 interface ExecutionsViewProps {
@@ -24,32 +23,32 @@ interface ExecutionsViewProps {
   initialTotal: number;
 }
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 200;
 
-function computeTotalPages(totalCount: number): number {
-  return Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-}
-
-export function ExecutionsView({ orgId, tenantId, tenantSlug, slug, initialRows, initialTotal }: ExecutionsViewProps) {
-  const t = useTranslations('dashboard');
-  const router = useRouter();
+function useExecutionData(orgId: string, tenantId: string, params: DashboardParams, initial: TenantExecutionRow[]) {
+  const [rows, setRows] = useState<TenantExecutionRow[]>(initial);
   const [isPending, startTransition] = useTransition();
-
-  const {
-    params, page, sortKey, sortDirection, filters, search,
-    setSort, setPage, addFilter, removeFilter, clearFilters, setSearch,
-  } = useDashboardParams('started_at');
-
-  const [rows, setRows] = useState<TenantExecutionRow[]>(initialRows);
-  const [totalCount, setTotalCount] = useState(initialTotal);
 
   useEffect(() => {
     startTransition(async () => {
       const result = await fetchExecutionsByTenant(orgId, tenantId, params);
       setRows(result.rows);
-      setTotalCount(result.totalCount);
     });
   }, [orgId, tenantId, params, startTransition]);
+
+  return { rows, isPending };
+}
+
+export function ExecutionsView({ orgId, tenantId, tenantSlug, slug, initialRows }: ExecutionsViewProps) {
+  const t = useTranslations('dashboard');
+  const router = useRouter();
+
+  const { params, filters, search, addFilter, removeFilter, clearFilters, setSearch } =
+    useDashboardParams('started_at');
+
+  const fetchParams = useMemo(() => ({ ...params, pageSize: PAGE_SIZE }), [params]);
+  const { rows, isPending } = useExecutionData(orgId, tenantId, fetchParams, initialRows);
+  const filterDefs = buildExecutionFilterDefs(t);
 
   const handleDebug = useCallback(
     (row: TenantExecutionRow) => {
@@ -58,13 +57,6 @@ export function ExecutionsView({ orgId, tenantId, tenantSlug, slug, initialRows,
     },
     [router, slug, tenantSlug]
   );
-
-  const columns = useMemo(
-    () => buildExecutionColumns(t, { onDebug: handleDebug }),
-    [t, handleDebug]
-  );
-  const filterDefs = useMemo(() => buildExecutionFilterDefs(t), [t]);
-  const totalPages = computeTotalPages(totalCount);
 
   return (
     <div className="flex flex-col gap-4">
@@ -78,20 +70,11 @@ export function ExecutionsView({ orgId, tenantId, tenantSlug, slug, initialRows,
           onClear={clearFilters}
         />
       </div>
-      <SortableTable<TenantExecutionRow>
-        columns={columns}
+      <GroupedExecutionsTable
         rows={rows}
-        rowKey="id"
-        sortKey={sortKey}
-        sortDirection={sortDirection}
-        onSort={setSort}
-        page={page}
-        pageSize={PAGE_SIZE}
-        totalCount={totalCount}
-        totalPages={totalPages}
-        onPageChange={setPage}
         loading={isPending}
         emptyMessage={t('noExecutions')}
+        onDebug={handleDebug}
       />
     </div>
   );

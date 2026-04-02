@@ -633,7 +633,11 @@
       "totalDuration": "Duration",
       "started": "Started",
       "statusCompleted": "Completed",
-      "statusRunning": "Running"
+      "statusRunning": "Running",
+      "lastStatus": "Last Status",
+      "executions": "Turns",
+      "firstExecution": "First Execution",
+      "lastExecution": "Last Execution"
     },
     "filters": {
       "addFilter": "Add filter",
