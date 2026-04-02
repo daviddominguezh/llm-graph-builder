@@ -1,7 +1,6 @@
 'use client';
 
 import type { ExecutionMessageRow, ExecutionSummaryRow, NodeVisitRow, SessionRow } from '@/app/lib/dashboard';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { useTranslations } from 'next-intl';
 
@@ -11,6 +10,7 @@ import type { AgentDebugState } from './agent-debug/useAgentDebugState';
 import { useAgentDebugState } from './agent-debug/useAgentDebugState';
 import { DebugBreadcrumb } from './debug-view/DebugBreadcrumb';
 import { ExecutionErrorBanner } from './debug-view/ExecutionErrorBanner';
+import { ExecutionSidebar } from './debug-view/ExecutionSidebar';
 import { SessionMetadataBar } from './debug-view/SessionMetadataBar';
 
 export interface AgentDebugViewProps {
@@ -23,40 +23,6 @@ export interface AgentDebugViewProps {
   agentName: string;
   breadcrumbLabel: string;
   breadcrumbSlug: string;
-}
-
-interface ExecutionSelectorProps {
-  executions: ExecutionSummaryRow[];
-  selectedExecutionId: string;
-  onSelectExecution: (executionId: string) => void;
-}
-
-function ExecutionSelector({ executions, selectedExecutionId, onSelectExecution }: ExecutionSelectorProps) {
-  const t = useTranslations('dashboard.debug');
-
-  if (executions.length <= 1) return null;
-
-  return (
-    <div className="px-4 py-2">
-      <Select
-        value={selectedExecutionId}
-        onValueChange={(val) => {
-          if (val !== null) onSelectExecution(val);
-        }}
-      >
-        <SelectTrigger className="w-[220px] h-7 text-xs">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {executions.map((exec, idx) => (
-            <SelectItem key={exec.id} value={exec.id} className="text-xs">
-              {t('executionN', { n: idx + 1 })} - {exec.status}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
 }
 
 function AgentDebugHeader(props: {
@@ -108,26 +74,15 @@ function TotalStepsBadge({ count, label }: { count: number; label: string }) {
   );
 }
 
-function AgentDebugPanels(props: AgentDebugViewProps) {
+function AgentDebugPanelsInner(props: AgentDebugViewProps & { state: AgentDebugState }) {
   const t = useTranslations('dashboard');
-
-  const state = useAgentDebugState({
-    executions: props.executions,
-    initialNodeVisits: props.initialNodeVisits,
-    initialMessages: props.initialMessages,
-    initialExecutionId: props.initialExecutionId,
-  });
+  const { state } = props;
 
   return (
     <div className="px-0 pb-3 flex flex-col gap-0 flex-1 min-h-[0px]">
       <SessionMetadataBar session={props.session} agentName={props.agentName} tenantName={props.breadcrumbLabel} />
       <TotalStepsBadge count={state.debugData.totalSteps} label={t('agentDebug.totalSteps')} />
       <Separator />
-      <ExecutionSelector
-        executions={props.executions}
-        selectedExecutionId={state.selectedExecutionId}
-        onSelectExecution={state.handleSelectExecution}
-      />
       {state.selectedExecution !== undefined && (
         <div className="px-4">
           <ExecutionErrorBanner execution={state.selectedExecution} label={t('debug.executionError')} />
@@ -140,6 +95,12 @@ function AgentDebugPanels(props: AgentDebugViewProps) {
 
 export function AgentDebugView(props: AgentDebugViewProps) {
   const t = useTranslations('dashboard');
+  const state = useAgentDebugState({
+    executions: props.executions,
+    initialNodeVisits: props.initialNodeVisits,
+    initialMessages: props.initialMessages,
+    initialExecutionId: props.initialExecutionId,
+  });
 
   return (
     <div className="flex h-full flex-col bg-background">
@@ -150,7 +111,16 @@ export function AgentDebugView(props: AgentDebugViewProps) {
         sessionId={props.session.session_id}
         dashboardLabel={t('title')}
       />
-      <AgentDebugPanels {...props} />
+      <div className="flex flex-1 min-h-0">
+        <ExecutionSidebar
+          executions={props.executions}
+          selectedId={state.selectedExecutionId}
+          onSelect={state.handleSelectExecution}
+        />
+        <div className="flex-1 min-w-0 flex flex-col">
+          <AgentDebugPanelsInner {...props} state={state} />
+        </div>
+      </div>
     </div>
   );
 }

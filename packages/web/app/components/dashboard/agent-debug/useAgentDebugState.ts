@@ -61,8 +61,8 @@ function useExecutionFetcher(
 export function useAgentDebugState(input: AgentDebugStateInput): AgentDebugState {
   const { executions, initialNodeVisits, initialMessages, initialExecutionId } = input;
 
-  const { [FIRST_INDEX]: firstExecution } = executions;
-  const [selectedExecutionId, setSelectedExecutionId] = useState(initialExecutionId ?? firstExecution.id);
+  const lastExecution = executions[executions.length - 1] ?? executions[FIRST_INDEX];
+  const [selectedExecutionId, setSelectedExecutionId] = useState(initialExecutionId ?? lastExecution.id);
   const [nodeVisits, setNodeVisits] = useState<NodeVisitRow[]>(initialNodeVisits);
   const [messages, setMessages] = useState<ExecutionMessageRow[]>(initialMessages);
   const [selectedStep, setSelectedStep] = useState<AgentStep | null>(null);

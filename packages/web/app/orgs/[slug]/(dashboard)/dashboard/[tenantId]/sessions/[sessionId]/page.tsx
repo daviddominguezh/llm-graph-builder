@@ -49,7 +49,7 @@ function pickExecution(executions: ExecutionSummaryRow[], targetId: string | und
     const match = executions.find((e) => e.id === targetId);
     if (match !== undefined) return match;
   }
-  return executions[0];
+  return executions[executions.length - 1];
 }
 
 interface SessionData {

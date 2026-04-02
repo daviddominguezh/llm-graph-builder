@@ -9,6 +9,7 @@ import { fetchExecutionsByTenant } from '@/app/actions/dashboard';
 import type { DashboardParams, TenantExecutionRow } from '@/app/lib/dashboard';
 
 import { buildExecutionFilterDefs } from './executionFilters';
+import type { SessionGroup } from './executionGrouping';
 import { FilterBar } from './FilterBar';
 import { GroupedExecutionsTable } from './GroupedExecutionsTable';
 import { SearchBar } from './SearchBar';
@@ -51,9 +52,9 @@ export function ExecutionsView({ orgId, tenantId, tenantSlug, slug, initialRows 
   const filterDefs = buildExecutionFilterDefs(t);
 
   const handleDebug = useCallback(
-    (row: TenantExecutionRow) => {
+    (group: SessionGroup) => {
       const encodedTenant = encodeURIComponent(tenantSlug);
-      router.push(`/orgs/${slug}/dashboard/${encodedTenant}/sessions/${row.session_db_id}?execution=${row.id}`);
+      router.push(`/orgs/${slug}/dashboard/${encodedTenant}/sessions/${group.session_db_id}`);
     },
     [router, slug, tenantSlug]
   );

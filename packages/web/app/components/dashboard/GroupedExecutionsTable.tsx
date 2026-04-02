@@ -2,7 +2,16 @@
 
 import { useMemo, useState } from 'react';
 
-import { Bug, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CircleAlert, CircleCheck, Clock } from 'lucide-react';
+import {
+  Bug,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  CircleAlert,
+  CircleCheck,
+  Clock,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import type { TenantExecutionRow } from '@/app/lib/dashboard';
@@ -16,7 +25,7 @@ import { groupExecutions } from './executionGrouping';
 
 const GROUPS_PER_PAGE = 20;
 const SINGLE_GROUP = 1;
-const COL_SPAN = 9;
+const MASTER_COL_SPAN = 10;
 
 /* ─── Formatters ─── */
 
@@ -39,6 +48,11 @@ function formatDateTime(dateStr: string): string {
   return `${mo}/${dy} ${hr}:${mn}`;
 }
 
+function truncateSession(id: string): string {
+  const MAX_LEN = 12;
+  return id.length > MAX_LEN ? `${id.slice(0, MAX_LEN)}\u2026` : id;
+}
+
 /* ─── Status icon ─── */
 
 function StatusIcon({ status, t }: { status: string; t: (key: string) => string }) {
@@ -53,7 +67,7 @@ function StatusIcon({ status, t }: { status: string; t: (key: string) => string 
 
 /* ─── Inner execution table ─── */
 
-function InnerRow({ exec, onDebug }: { exec: TenantExecutionRow; onDebug: (row: TenantExecutionRow) => void }) {
+function InnerRow({ exec }: { exec: TenantExecutionRow }) {
   const t = useTranslations('dashboard');
   return (
     <TableRow className="border-border/40">
@@ -64,16 +78,11 @@ function InnerRow({ exec, onDebug }: { exec: TenantExecutionRow; onDebug: (row: 
       <TableCell className="text-center px-3 tabular-nums">{formatCost(exec.total_cost)}</TableCell>
       <TableCell className="text-center px-3 tabular-nums">{formatDuration(exec.total_duration_ms)}</TableCell>
       <TableCell className="text-center px-3 tabular-nums">{formatDateTime(exec.started_at)}</TableCell>
-      <TableCell className="px-3">
-        <Button variant="ghost" className="text-accent hover:text-accent" size="icon" onClick={() => onDebug(exec)} title={t('debugSession')}>
-          <Bug className="size-4" />
-        </Button>
-      </TableCell>
     </TableRow>
   );
 }
 
-function InnerTable({ executions, onDebug }: { executions: TenantExecutionRow[]; onDebug: (row: TenantExecutionRow) => void }) {
+function InnerTable({ executions }: { executions: TenantExecutionRow[] }) {
   const t = useTranslations('dashboard');
 
   return (
@@ -86,12 +95,11 @@ function InnerTable({ executions, onDebug }: { executions: TenantExecutionRow[];
             <TableHead className="text-center px-3">{t('columns.cost')}</TableHead>
             <TableHead className="text-center px-3">{t('columns.totalDuration')}</TableHead>
             <TableHead className="text-center px-3">{t('columns.started')}</TableHead>
-            <TableHead className="px-3 w-12" />
           </TableRow>
         </TableHeader>
         <TableBody>
           {executions.map((exec) => (
-            <InnerRow key={exec.id} exec={exec} onDebug={onDebug} />
+            <InnerRow key={exec.id} exec={exec} />
           ))}
         </TableBody>
       </Table>
@@ -101,16 +109,15 @@ function InnerTable({ executions, onDebug }: { executions: TenantExecutionRow[];
 
 /* ─── Master row ─── */
 
-function truncateSession(id: string): string {
-  const MAX_LEN = 12;
-  return id.length > MAX_LEN ? `${id.slice(0, MAX_LEN)}\u2026` : id;
+function stopPropagation(e: React.MouseEvent) {
+  e.stopPropagation();
 }
 
 function MasterRow({ group, expanded, onToggle, onDebug }: {
   group: SessionGroup;
   expanded: boolean;
   onToggle: () => void;
-  onDebug: (row: TenantExecutionRow) => void;
+  onDebug: (group: SessionGroup) => void;
 }) {
   const t = useTranslations('dashboard');
 
@@ -135,12 +142,23 @@ function MasterRow({ group, expanded, onToggle, onDebug }: {
         </TableCell>
         <TableCell className="text-center px-4 tabular-nums">{group.executionCount}</TableCell>
         <TableCell className="text-center px-4 tabular-nums">{formatCost(group.totalCost)}</TableCell>
-        <TableCell className="text-center px-4 pr-5 tabular-nums">{formatDateTime(group.lastExecution)}</TableCell>
+        <TableCell className="text-center px-4 tabular-nums">{formatDateTime(group.lastExecution)}</TableCell>
+        <TableCell className="px-4 pr-5">
+          <Button
+            variant="ghost"
+            className="text-accent hover:text-accent"
+            size="icon"
+            onClick={(e) => { stopPropagation(e); onDebug(group); }}
+            title={t('debugSession')}
+          >
+            <Bug className="size-4" />
+          </Button>
+        </TableCell>
       </TableRow>
       {expanded && (
         <TableRow className="border-0 hover:bg-transparent">
-          <TableCell colSpan={COL_SPAN} className="p-0 bg-muted/10">
-            <InnerTable executions={group.executions} onDebug={onDebug} />
+          <TableCell colSpan={MASTER_COL_SPAN} className="p-0 bg-muted/10">
+            <InnerTable executions={group.executions} />
           </TableCell>
         </TableRow>
       )}
@@ -150,15 +168,13 @@ function MasterRow({ group, expanded, onToggle, onDebug }: {
 
 /* ─── Pagination ─── */
 
-interface PaginationProps {
+function GroupPagination({ page, totalPages, totalGroups, totalRows, onPageChange }: {
   page: number;
   totalPages: number;
   totalGroups: number;
   totalRows: number;
   onPageChange: (page: number) => void;
-}
-
-function GroupPagination({ page, totalPages, totalGroups, totalRows, onPageChange }: PaginationProps) {
+}) {
   const t = useTranslations('dashboard.pagination');
   const isFirst = page === 0;
   const isLast = page >= totalPages - 1;
@@ -166,9 +182,7 @@ function GroupPagination({ page, totalPages, totalGroups, totalRows, onPageChang
   return (
     <div className="flex items-center justify-between px-3 py-1.5">
       <span className="text-[11px] text-muted-foreground tabular-nums">
-        {totalRows > 0
-          ? t('showingSessions', { sessions: totalGroups, executions: totalRows })
-          : t('noItems')}
+        {totalRows > 0 ? t('showingSessions', { sessions: totalGroups, executions: totalRows }) : t('noItems')}
       </span>
       <div className="flex items-center gap-1">
         <span className="mr-1 text-[11px] text-muted-foreground tabular-nums">
@@ -197,7 +211,7 @@ interface GroupedExecutionsTableProps {
   rows: TenantExecutionRow[];
   loading?: boolean;
   emptyMessage: string;
-  onDebug: (row: TenantExecutionRow) => void;
+  onDebug: (group: SessionGroup) => void;
 }
 
 export function GroupedExecutionsTable({ rows, loading, emptyMessage, onDebug }: GroupedExecutionsTableProps) {
@@ -251,13 +265,14 @@ export function GroupedExecutionsTable({ rows, loading, emptyMessage, onDebug }:
               <TableHead className="px-4">{t('columns.sessionId')}</TableHead>
               <TableHead className="text-center px-4">{t('columns.executions')}</TableHead>
               <TableHead className="text-center px-4">{t('columns.totalCost')}</TableHead>
-              <TableHead className="text-center px-4 pr-5">{t('columns.lastExecution')}</TableHead>
+              <TableHead className="text-center px-4">{t('columns.lastExecution')}</TableHead>
+              <TableHead className="w-12 px-4 pr-5" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {pageGroups.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={COL_SPAN} className="h-24 text-center text-muted-foreground">{emptyMessage}</TableCell>
+                <TableCell colSpan={MASTER_COL_SPAN} className="h-24 text-center text-muted-foreground">{emptyMessage}</TableCell>
               </TableRow>
             ) : (
               pageGroups.map((group) => (

@@ -12,6 +12,7 @@ import { DebugCanvas } from './DebugCanvas';
 import { NodeInspector } from './NodeInspector';
 import { DebugBreadcrumb } from './debug-view/DebugBreadcrumb';
 import { ExecutionErrorBanner } from './debug-view/ExecutionErrorBanner';
+import { ExecutionSidebar } from './debug-view/ExecutionSidebar';
 import { SessionMetadataBar } from './debug-view/SessionMetadataBar';
 
 interface DebugViewProps {
@@ -26,7 +27,6 @@ interface DebugViewProps {
   breadcrumbSlug: string;
 }
 
-const FIRST_INDEX = 0;
 
 function deriveVisitedNodeIds(visits: NodeVisitRow[]): string[] {
   return visits.map((v) => v.node_id);
@@ -56,8 +56,8 @@ function findExecution(
 }
 
 function useExecutionState(executions: ExecutionSummaryRow[], initialVisits: NodeVisitRow[], initialId?: string) {
-  const firstExecution = executions[FIRST_INDEX];
-  const [selectedExecutionId, setSelectedExecutionId] = useState(initialId ?? firstExecution?.id ?? '');
+  const lastExecution = executions[executions.length - 1];
+  const [selectedExecutionId, setSelectedExecutionId] = useState(initialId ?? lastExecution?.id ?? '');
   const [nodeVisits, setNodeVisits] = useState<NodeVisitRow[]>(initialVisits);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
@@ -232,14 +232,23 @@ export function DebugView(props: DebugViewProps) {
         sessionId={session.session_id}
         dashboardLabel={t('title')}
       />
-      <DebugBody
-        session={session}
-        agentName={agentName}
-        tenantName={breadcrumbLabel}
-        selectedExecution={selectedExecution}
-        errorBannerLabel={t('debug.executionError')}
-        canvasAreaProps={canvasAreaProps}
-      />
+      <div className="flex flex-1 min-h-0">
+        <ExecutionSidebar
+          executions={props.executions}
+          selectedId={state.selectedExecutionId}
+          onSelect={state.handleSelectExecution}
+        />
+        <div className="flex-1 min-w-0 flex flex-col">
+          <DebugBody
+            session={session}
+            agentName={agentName}
+            tenantName={breadcrumbLabel}
+            selectedExecution={selectedExecution}
+            errorBannerLabel={t('debug.executionError')}
+            canvasAreaProps={canvasAreaProps}
+          />
+        </div>
+      </div>
     </div>
   );
 }
