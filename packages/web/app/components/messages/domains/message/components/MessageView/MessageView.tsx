@@ -254,7 +254,7 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
               : isAssigneeChange
                 ? 'bg-background border border-input border-dashed text-foreground'
                 : isStatusChange && statusDisplay
-                  ? `${statusDisplay.bgColor} border ${statusDisplay.borderColor} text-foreground!`
+                  ? `${statusDisplay.bgColor} border ${statusDisplay.borderColor} text-foreground`
                   : styleAsAssistant
                     ? 'bg-accent/10 dark:bg-accent/30 text-foreground'
                     : 'bg-card border-[#c4dbf0]'
