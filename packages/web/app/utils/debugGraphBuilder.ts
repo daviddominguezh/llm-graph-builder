@@ -105,6 +105,36 @@ function collectKeptEdges(
   return collector;
 }
 
+export const PREV_EXEC_NODE_ID = '__PREV_EXEC__';
+
+const INITIAL_STEP_ID = 'INITIAL_STEP';
+
+interface PrevExecConfig {
+  label: string;
+  executionId: string;
+}
+
+export interface BuildDebugGraphOptions {
+  prevExec?: PrevExecConfig;
+}
+
+function injectPrevExecNode(
+  nodes: SchemaNode[],
+  edges: SchemaEdge[],
+  firstVisitedId: string,
+  prevExec: PrevExecConfig
+): { nodes: SchemaNode[]; edges: SchemaEdge[] } {
+  const prevNode: SchemaNode = {
+    id: PREV_EXEC_NODE_ID,
+    kind: 'agent',
+    text: prevExec.label,
+    description: '',
+    global: false,
+  };
+  const prevEdge: SchemaEdge = { from: PREV_EXEC_NODE_ID, to: firstVisitedId, preconditions: [] };
+  return { nodes: [prevNode, ...nodes], edges: [prevEdge, ...edges] };
+}
+
 /**
  * Trims a published graph to show only visited nodes and the first nodes
  * of unchosen branches (shown as muted/dimmed).
@@ -113,7 +143,8 @@ export function buildDebugGraph(
   allNodes: SchemaNode[],
   allEdges: SchemaEdge[],
   visitedNodeIds: string[],
-  errorNodeIds?: Set<string>
+  errorNodeIds?: Set<string>,
+  options?: BuildDebugGraphOptions
 ): DebugGraphResult {
   const visitedSet = new Set(visitedNodeIds);
   const errors = errorNodeIds ?? new Set<string>();
@@ -123,9 +154,10 @@ export function buildDebugGraph(
   const visitedNodes = allNodes.filter((n) => visitedSet.has(n.id));
   const { mutedNodes, mutedNodeIds } = collectMutedNeighbors(visitedSet, errors, allEdges, allNodesMap);
 
-  const allKeptNodes = [...visitedNodes, ...mutedNodes];
-  const keptNodeIds = new Set(allKeptNodes.map((n) => n.id));
+  let allKeptNodes = [...visitedNodes, ...mutedNodes];
+  let allKeptEdges: SchemaEdge[] = [];
 
+  const keptNodeIds = new Set(allKeptNodes.map((n) => n.id));
   const { keptEdges, mutedEdgeIds } = collectKeptEdges(
     allEdges,
     keptNodeIds,
@@ -133,10 +165,22 @@ export function buildDebugGraph(
     errors,
     traversedEdges
   );
+  allKeptEdges = keptEdges;
+
+  const firstVisited = visitedNodeIds[0];
+  const shouldInjectPrev =
+    options?.prevExec !== undefined && firstVisited !== undefined && firstVisited !== INITIAL_STEP_ID;
+
+  if (shouldInjectPrev && options?.prevExec !== undefined) {
+    const injected = injectPrevExecNode(allKeptNodes, allKeptEdges, firstVisited, options.prevExec);
+    allKeptNodes = injected.nodes;
+    allKeptEdges = injected.edges;
+    traversedEdges.add(`${PREV_EXEC_NODE_ID}-${firstVisited}`);
+  }
 
   return {
     nodes: allKeptNodes,
-    edges: keptEdges,
+    edges: allKeptEdges,
     mutedNodeIds,
     mutedEdgeIds,
     errorNodeIds: errors,

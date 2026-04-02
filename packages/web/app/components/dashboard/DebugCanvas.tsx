@@ -13,7 +13,7 @@ import '@xyflow/react/dist/style.css';
 import { useTheme } from 'next-themes';
 
 import type { Graph, Node as SchemaNode } from '@/app/schemas/graph.schema';
-import { buildDebugGraph } from '@/app/utils/debugGraphBuilder';
+import { type BuildDebugGraphOptions, PREV_EXEC_NODE_ID, buildDebugGraph } from '@/app/utils/debugGraphBuilder';
 import type { RFEdgeData, RFNodeData } from '@/app/utils/graphTransformers';
 import { schemaEdgeToRFEdge, schemaNodeToRFNode } from '@/app/utils/graphTransformers';
 import { layoutGraph } from '@/app/utils/layoutGraph';
@@ -29,6 +29,7 @@ interface DebugCanvasProps {
   selectedNodeId: string | null;
   onNodeClick: (nodeId: string) => void;
   onDeselectNode: () => void;
+  debugGraphOptions?: BuildDebugGraphOptions;
 }
 
 const readOnlyHandleContext = { readOnly: true };
@@ -48,14 +49,19 @@ function calcNodeWidth(nodes: SchemaNode[]): number {
 function calcNodeDimensions(nodes: SchemaNode[], width: number): Record<string, { width: number; height: number }> {
   const dims: Record<string, { width: number; height: number }> = {};
   for (const node of nodes) {
-    dims[node.id] =
-      node.id === INITIAL_STEP_ID ? { width: INITIAL_STEP_WIDTH, height: INITIAL_STEP_HEIGHT } : { width, height: NODE_HEIGHT };
+    if (node.id === INITIAL_STEP_ID) {
+      dims[node.id] = { width: INITIAL_STEP_WIDTH, height: INITIAL_STEP_HEIGHT };
+    } else if (node.id === PREV_EXEC_NODE_ID) {
+      dims[node.id] = { width: 160, height: INITIAL_STEP_HEIGHT };
+    } else {
+      dims[node.id] = { width, height: NODE_HEIGHT };
+    }
   }
   return dims;
 }
 
-function buildLayoutedData(graph: Graph, visitedNodeIds: string[], errorNodeIds: Set<string>) {
-  const debug = buildDebugGraph(graph.nodes, graph.edges, visitedNodeIds, errorNodeIds);
+function buildLayoutedData(graph: Graph, visitedNodeIds: string[], errorNodeIds: Set<string>, options?: BuildDebugGraphOptions) {
+  const debug = buildDebugGraph(graph.nodes, graph.edges, visitedNodeIds, errorNodeIds, options);
   const nodeWidth = calcNodeWidth(debug.nodes);
   const layouted = layoutGraph(debug.nodes, debug.edges, {
     horizontalSpacing: nodeWidth,
@@ -79,17 +85,20 @@ function toRFNodes(
   return layouted.nodes.map((node, i) => {
     const rfNode = schemaNodeToRFNode(node, i);
     const isStart = node.id === startNodeId;
-
+    const isPrevExec = node.id === PREV_EXEC_NODE_ID;
     const isMuted = mutedNodeIds.has(node.id);
+
+    const type = isPrevExec ? 'prev_exec' : isStart ? 'start' : rfNode.type;
 
     return {
       ...rfNode,
-      type: isStart ? 'start' : rfNode.type,
+      type,
       data: {
         ...rfNode.data,
         muted: isMuted,
         hasError: errors.has(node.id),
         nodeWidth,
+        label: isPrevExec ? node.text : undefined,
       },
       selected: node.id === selectedNodeId,
       selectable: !isMuted,
@@ -133,6 +142,7 @@ export function DebugCanvas({
   selectedNodeId,
   onNodeClick,
   onDeselectNode,
+  debugGraphOptions,
 }: DebugCanvasProps) {
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -146,12 +156,13 @@ export function DebugCanvas({
     const { layouted, nodeWidth, mutedNodeIds, mutedEdgeIds, errorNodeIds: errors } = buildLayoutedData(
       graph,
       visitedNodeIds,
-      errorNodeIds
+      errorNodeIds,
+      debugGraphOptions
     );
     const rfNodes = toRFNodes(layouted, mutedNodeIds, errors, graph.startNode, selectedNodeId, nodeWidth);
     const rfEdges = toRFEdges(layouted, mutedEdgeIds);
     return { nodes: rfNodes, edges: rfEdges };
-  }, [graph, visitedNodeIds, errorNodeIds, selectedNodeId]);
+  }, [graph, visitedNodeIds, errorNodeIds, selectedNodeId, debugGraphOptions]);
 
   return (
     <HandleContext.Provider value={readOnlyHandleContext}>

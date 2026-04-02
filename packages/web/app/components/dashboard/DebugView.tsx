@@ -3,7 +3,7 @@
 import { fetchNodeVisitsForExecution } from '@/app/actions/dashboard';
 import type { ExecutionSummaryRow, NodeVisitRow, SessionRow } from '@/app/lib/dashboard';
 import type { Graph } from '@/app/schemas/graph.schema';
-import { buildDebugGraph } from '@/app/utils/debugGraphBuilder';
+import { type BuildDebugGraphOptions, buildDebugGraph } from '@/app/utils/debugGraphBuilder';
 import { Separator } from '@/components/ui/separator';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState, useTransition } from 'react';
@@ -123,6 +123,9 @@ interface DebugCanvasAreaProps {
   nodeVisits: NodeVisitRow[];
   onNodeClick: (id: string) => void;
   onDeselectNode: () => void;
+  prevExecLabel?: string;
+  onGoToPrevExec?: () => void;
+  debugGraphOptions?: BuildDebugGraphOptions;
 }
 
 function DebugCanvasArea({
@@ -134,6 +137,9 @@ function DebugCanvasArea({
   nodeVisits,
   onNodeClick,
   onDeselectNode,
+  prevExecLabel,
+  onGoToPrevExec,
+  debugGraphOptions,
 }: DebugCanvasAreaProps) {
   return (
     <div className="px-4 pt-4 flex flex-1 gap-4 min-h-0">
@@ -145,6 +151,7 @@ function DebugCanvasArea({
           selectedNodeId={selectedNodeId}
           onNodeClick={onNodeClick}
           onDeselectNode={onDeselectNode}
+          debugGraphOptions={debugGraphOptions}
         />
       </div>
       <div className="w-1/3 overflow-y-auto">
@@ -153,6 +160,8 @@ function DebugCanvasArea({
           nodeVisits={nodeVisits}
           mutedNodeIds={mutedNodeIds}
           graphNodes={graph.nodes}
+          prevExecLabel={prevExecLabel}
+          onGoToPrevExec={onGoToPrevExec}
         />
       </div>
     </div>
@@ -190,27 +199,45 @@ function DebugBody({
   );
 }
 
+function derivePrevExecOptions(executions: ExecutionSummaryRow[], selectedId: string): BuildDebugGraphOptions {
+  const idx = executions.findIndex((e) => e.id === selectedId);
+  if (idx <= 0) return {};
+  const prev = executions[idx - 1];
+  if (prev === undefined) return {};
+  return { prevExec: { label: `Execution ${String(idx)}`, executionId: prev.id } };
+}
+
 function useDebugViewState(props: DebugViewProps) {
   const { executions, initialNodeVisits, graph } = props;
   const state = useExecutionState(executions, initialNodeVisits, props.initialExecutionId);
   const visitedNodeIds = useMemo(() => deriveVisitedNodeIds(state.nodeVisits), [state.nodeVisits]);
   const errorNodeIds = useMemo(() => deriveErrorNodeIds(state.nodeVisits), [state.nodeVisits]);
-  const mutedNodeIds = useMemo(
-    () => buildDebugGraph(graph.nodes, graph.edges, visitedNodeIds, errorNodeIds).mutedNodeIds,
-    [graph, visitedNodeIds, errorNodeIds]
+
+  const prevExecOptions = useMemo(
+    () => derivePrevExecOptions(executions, state.selectedExecutionId),
+    [executions, state.selectedExecutionId]
   );
+
+  const debugGraph = useMemo(
+    () => buildDebugGraph(graph.nodes, graph.edges, visitedNodeIds, errorNodeIds, prevExecOptions),
+    [graph, visitedNodeIds, errorNodeIds, prevExecOptions]
+  );
+
   const selectedExecution = useMemo(
     () => findExecution(executions, state.selectedExecutionId),
     [executions, state.selectedExecutionId]
   );
 
-  return { state, visitedNodeIds, errorNodeIds, mutedNodeIds, selectedExecution };
+  return { state, visitedNodeIds, errorNodeIds, mutedNodeIds: debugGraph.mutedNodeIds, selectedExecution, prevExecOptions };
 }
 
 export function DebugView(props: DebugViewProps) {
   const { session, graph, orgSlug, agentName, breadcrumbLabel, breadcrumbSlug } = props;
   const t = useTranslations('dashboard');
-  const { state, visitedNodeIds, errorNodeIds, mutedNodeIds, selectedExecution } = useDebugViewState(props);
+  const { state, visitedNodeIds, errorNodeIds, mutedNodeIds, selectedExecution, prevExecOptions } =
+    useDebugViewState(props);
+
+  const prevExec = prevExecOptions.prevExec;
 
   const canvasAreaProps: DebugCanvasAreaProps = {
     graph,
@@ -221,6 +248,9 @@ export function DebugView(props: DebugViewProps) {
     nodeVisits: state.nodeVisits,
     onNodeClick: state.setSelectedNodeId,
     onDeselectNode: state.handleDeselectNode,
+    prevExecLabel: prevExec?.label,
+    onGoToPrevExec: prevExec !== undefined ? () => state.handleSelectExecution(prevExec.executionId) : undefined,
+    debugGraphOptions: prevExecOptions,
   };
 
   return (

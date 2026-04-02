@@ -2,7 +2,9 @@
 
 import type { NodeVisitRow } from '@/app/lib/dashboard';
 import type { Node as SchemaNode } from '@/app/schemas/graph.schema';
-import { ArrowRight, MousePointerClick } from 'lucide-react';
+import { PREV_EXEC_NODE_ID } from '@/app/utils/debugGraphBuilder';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft, ArrowRight, MousePointerClick } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
@@ -14,14 +16,14 @@ interface NodeInspectorProps {
   nodeVisits: NodeVisitRow[];
   mutedNodeIds: Set<string>;
   graphNodes: SchemaNode[];
+  prevExecLabel?: string;
+  onGoToPrevExec?: () => void;
 }
 
-const INITIAL_STEP = 'INITIAL_STEP';
-
 function deriveEndpoints(visits: NodeVisitRow[]): { first: string | undefined; last: string | undefined } {
-  const real = visits.filter((v) => v.node_id !== INITIAL_STEP);
-  const first = real[0]?.node_id;
-  const last = real[real.length - 1]?.node_id;
+  if (visits.length === 0) return { first: undefined, last: undefined };
+  const first = visits[0]?.node_id;
+  const last = visits[visits.length - 1]?.node_id;
   return { first, last };
 }
 
@@ -60,9 +62,44 @@ function MutedNodeContent({ node, message }: { node: SchemaNode; message: string
   );
 }
 
-export function NodeInspector({ nodeId, nodeVisits, mutedNodeIds, graphNodes }: NodeInspectorProps) {
+function PrevExecPanel({ label, onGo }: { label: string; onGo: () => void }) {
   const t = useTranslations('dashboard.debug');
-  const { first, last } = useMemo(() => deriveEndpoints(nodeVisits), [nodeVisits]);
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
+        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          {t('previousExecution')}
+        </span>
+        <span className="text-sm font-semibold">{label}</span>
+      </div>
+      <p className="text-xs text-muted-foreground">{t('previousExecDescription')}</p>
+      <Button variant="outline" size="sm" onClick={onGo} className="w-fit">
+        <ArrowLeft className="size-3.5" />
+        {t('goToPrevExec')}
+      </Button>
+    </div>
+  );
+}
+
+function DefaultPanel({ nodeVisits, message }: { nodeVisits: NodeVisitRow[]; message: string }) {
+  const { first, last } = deriveEndpoints(nodeVisits);
+  return (
+    <div className="flex flex-col gap-3">
+      {first !== undefined && last !== undefined && <ExecutionPath first={first} last={last} />}
+      <EmptyState message={message} />
+    </div>
+  );
+}
+
+export function NodeInspector({
+  nodeId,
+  nodeVisits,
+  mutedNodeIds,
+  graphNodes,
+  prevExecLabel,
+  onGoToPrevExec,
+}: NodeInspectorProps) {
+  const t = useTranslations('dashboard.debug');
 
   const graphNode = useMemo(() => {
     if (nodeId === null) return undefined;
@@ -74,13 +111,12 @@ export function NodeInspector({ nodeId, nodeVisits, mutedNodeIds, graphNodes }: 
     return nodeVisits.find((v) => v.node_id === nodeId);
   }, [nodeId, nodeVisits]);
 
+  if (nodeId === PREV_EXEC_NODE_ID && prevExecLabel !== undefined && onGoToPrevExec !== undefined) {
+    return <PrevExecPanel label={prevExecLabel} onGo={onGoToPrevExec} />;
+  }
+
   if (nodeId === null || graphNode === undefined) {
-    return (
-      <div className="flex flex-col gap-3">
-        {first !== undefined && last !== undefined && <ExecutionPath first={first} last={last} />}
-        <EmptyState message={t('selectNode')} />
-      </div>
-    );
+    return <DefaultPanel nodeVisits={nodeVisits} message={t('selectNode')} />;
   }
 
   if (mutedNodeIds.has(nodeId)) {
