@@ -381,7 +381,12 @@
     "updateError": "Failed to update organization. Please try again.",
     "deleteError": "Failed to delete organization. Please try again.",
     "uploadError": "Failed to upload image. Please try again.",
-    "back": "Back"
+    "back": "Back",
+    "welcome": {
+      "title": "Welcome to OpenFlow",
+      "description": "Create your first organization to start building agents.",
+      "cta": "Get started"
+    }
   },
   "apiKeys": {
     "title": "OpenRouter API Keys",

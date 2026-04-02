@@ -18,6 +18,7 @@ const DEBOUNCE_MS = 1200;
 
 export function useSlugAvailability(name: string, table: SlugTable): SlugAvailability {
   const [result, setResult] = useState<SlugResult>({ available: null, slug: null });
+  const [checkedName, setCheckedName] = useState('');
   const [isPending, startTransition] = useTransition();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const trimmed = name.trim();
@@ -30,6 +31,7 @@ export function useSlugAvailability(name: string, table: SlugTable): SlugAvailab
     timerRef.current = setTimeout(() => {
       startTransition(async () => {
         const res = await checkSlugAvailabilityAction(trimmed, table);
+        setCheckedName(trimmed);
         if (res === null) {
           setResult({ available: null, slug: null });
         } else {
@@ -43,7 +45,9 @@ export function useSlugAvailability(name: string, table: SlugTable): SlugAvailab
     };
   }, [trimmed, table]);
 
-  if (trimmed === '') return { checking: false, available: null, slug: null };
+  if (trimmed === '' || trimmed !== checkedName) {
+    return { checking: trimmed !== '', available: null, slug: null };
+  }
 
   return { checking: isPending, available: result.available, slug: result.slug };
 }

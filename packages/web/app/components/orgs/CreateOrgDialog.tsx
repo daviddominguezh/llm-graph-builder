@@ -30,7 +30,7 @@ interface CreateOrgFieldsProps {
   onRemove: () => void;
 }
 
-function CreateOrgFields(props: CreateOrgFieldsProps) {
+export function CreateOrgFields(props: CreateOrgFieldsProps) {
   const { nameError, nameTaken, name, onNameChange, previewUrl, onFileSelect, onRemove } = props;
   const t = useTranslations('orgs');
   const tSlugs = useTranslations('slugs');
@@ -63,7 +63,7 @@ function CreateOrgFields(props: CreateOrgFieldsProps) {
   );
 }
 
-async function submitOrg(name: string, file: File | null): Promise<string> {
+export async function submitOrg(name: string, file: File | null): Promise<string> {
   const { result: org, error } = await createOrgAction(name);
 
   if (error !== null || org === null) {
@@ -122,7 +122,7 @@ function CreateOrgForm({ onOpenChange }: CreateOrgDialogProps) {
   const [name, setName] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const { checking, available } = useSlugAvailability(name, 'organizations');
-  const disabled = loading || checking || available === false || name.trim() === '';
+  const disabled = loading || checking || available !== true || name.trim() === '';
 
   function handleFileSelect(file: File | null) {
     setFile(file);
