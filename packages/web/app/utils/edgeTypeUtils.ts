@@ -1,7 +1,7 @@
 import type { Edge } from '@xyflow/react';
 
-import type { RFEdgeData } from './graphTransformers';
 import { START_NODE_ID } from './graphInitializer';
+import type { RFEdgeData } from './graphTransformers';
 
 export type ExistingEdgeType = 'none' | 'user_said' | 'agent_decision' | 'tool_call' | 'unset';
 
@@ -27,10 +27,7 @@ function getEdgePreconditionType(edge: Edge<RFEdgeData>): ExistingEdgeType {
  * - 'unset' means no outgoing edges (or only context-precondition edges) — all options valid.
  * - 'none' | 'user_said' | 'agent_decision' | 'tool_call' — only compatible options valid.
  */
-export function getSourceEdgeType(
-  sourceNodeId: string,
-  edges: Array<Edge<RFEdgeData>>
-): ExistingEdgeType {
+export function getSourceEdgeType(sourceNodeId: string, edges: Array<Edge<RFEdgeData>>): ExistingEdgeType {
   const outgoing = edges
     .filter((e) => e.source === sourceNodeId)
     .filter((e) => !hasContextPreconditionsOnly(e));
