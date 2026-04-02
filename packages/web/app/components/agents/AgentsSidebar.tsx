@@ -104,7 +104,7 @@ function AgentList({
   const filtered = agents.filter((a) => a.name.toLowerCase().includes(search.toLowerCase()));
 
   if (agents.length === 0) {
-    return <p className="px-3 py-4 text-center text-xs text-muted-foreground bg-muted mt-1 mx-3 rounded-md">{t('empty')}</p>;
+    return <p className="px-3 py-4 text-center text-xs text-muted-foreground bg-input/20 dark:bg-input/30 mt-1 mx-3 rounded-md">{t('empty')}</p>;
   }
 
   if (filtered.length === 0) {

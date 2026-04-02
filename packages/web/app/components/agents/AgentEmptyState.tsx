@@ -1,11 +1,12 @@
 'use client';
 
+import { useTemplatesPrefetch } from '@/app/hooks/useTemplatesPrefetch';
 import { Button } from '@/components/ui/button';
 import { Bot, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
-import { CreateAgentDialog } from './CreateAgentDialog';
+import { CreateAgentWizard } from './CreateAgentWizard';
 
 interface AgentEmptyStateProps {
   orgId: string;
@@ -15,6 +16,7 @@ interface AgentEmptyStateProps {
 export function AgentEmptyState({ orgId, orgSlug }: AgentEmptyStateProps) {
   const t = useTranslations('agents');
   const [createOpen, setCreateOpen] = useState(false);
+  const prefetchedTemplates = useTemplatesPrefetch();
 
   return (
     <div className="flex w-full h-full items-center justify-center bg-background">
@@ -27,7 +29,13 @@ export function AgentEmptyState({ orgId, orgSlug }: AgentEmptyStateProps) {
           {t('create')}
         </Button>
       </div>
-      <CreateAgentDialog open={createOpen} onOpenChange={setCreateOpen} orgId={orgId} orgSlug={orgSlug} />
+      <CreateAgentWizard
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        orgId={orgId}
+        orgSlug={orgSlug}
+        prefetchedTemplates={prefetchedTemplates}
+      />
     </div>
   );
 }
