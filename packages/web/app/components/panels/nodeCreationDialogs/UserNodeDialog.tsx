@@ -59,7 +59,7 @@ export function UserNodeDialog({ open, onOpenChange, sourceNodeLabel, onCreate }
           <Button variant="outline" size="sm" onClick={handleCancel}>
             {t('cancel')}
           </Button>
-          <Button size="sm" onClick={handleCreate} disabled={value.trim() === ''}>
+          <Button size="sm" onClick={handleCreate} disabled={value.trim() === ''} className="active:scale-[0.97] transition-transform">
             {t('create')}
           </Button>
         </DialogFooter>

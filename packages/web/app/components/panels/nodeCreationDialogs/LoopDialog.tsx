@@ -180,7 +180,7 @@ export function LoopDialog({
           <Button variant="outline" size="sm" onClick={handleCancel}>
             {t('cancel')}
           </Button>
-          <Button size="sm" onClick={handleCreate} disabled={!canCreate}>
+          <Button size="sm" onClick={handleCreate} disabled={!canCreate} className="active:scale-[0.97] transition-transform">
             {t('create')}
           </Button>
         </DialogFooter>

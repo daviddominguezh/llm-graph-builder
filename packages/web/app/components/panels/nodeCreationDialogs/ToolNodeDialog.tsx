@@ -69,7 +69,7 @@ export function ToolNodeDialog({
           <Button variant="outline" size="sm" onClick={handleCancel}>
             {t('cancel')}
           </Button>
-          <Button size="sm" onClick={handleCreate} disabled={toolName === ''}>
+          <Button size="sm" onClick={handleCreate} disabled={toolName === ''} className="active:scale-[0.97] transition-transform">
             {t('create')}
           </Button>
         </DialogFooter>
