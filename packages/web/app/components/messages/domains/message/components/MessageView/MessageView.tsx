@@ -250,7 +250,7 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
             isNote || isAssigneeChange || isStatusChange ? 'w-[255px]' : 'max-w-[70%]'
           } ${
             isNote
-              ? 'bg-yellow-50 border border-yellow-300 text-foreground'
+              ? 'bg-yellow-50 dark:bg-background border border-yellow-300 dark:border-yellow-400 text-foreground'
               : isAssigneeChange
                 ? 'bg-background border border-input border-dashed text-foreground'
                 : isStatusChange && statusDisplay
@@ -966,7 +966,7 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
           return {
             label: t('chat-status-open'),
             textColor: 'text-gray-600',
-            bgColor: 'bg-gray-50',
+            bgColor: 'bg-gray-50 dark:bg-gray-800',
             borderColor: 'border-gray-300',
           };
         case 'blocked':
@@ -979,9 +979,9 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
         case 'closed':
           return {
             label: t('chat-status-closed'),
-            textColor: 'text-green-700',
-            bgColor: 'bg-green-50',
-            borderColor: 'border-green-300',
+            textColor: 'text-green-700 dark:text-green-400',
+            bgColor: 'bg-green-50 dark:bg-background',
+            borderColor: 'border-green-300 dark:border-green-400',
           };
         case 'verify-payment':
           return {
