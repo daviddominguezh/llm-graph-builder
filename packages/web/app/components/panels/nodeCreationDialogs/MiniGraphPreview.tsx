@@ -69,10 +69,18 @@ export function IfElsePreview({ sourceLabel }: { sourceLabel: string }) {
   );
 }
 
-/* Loop layout (px): Node=76, Arrow=40, Gap=6 → Row=332
-   Source center=38, LoopBody center=166 */
-const LOOP_W = 332;
-const LOOP_BACK_PATH = 'M 166,4 C 182,4 182,24 166,24 L 38,24 C 22,24 22,4 38,4';
+/*
+ * Loop layout (px at 16px root):
+ *   Source=76  gap=6  Arrow=40  gap=6  LoopBody=96  gap=6  Arrow=40  gap=6  Exit=76
+ *   Total row width = 352
+ *   Source center   = 38
+ *   LoopBody center = 76+6+40+6+48 = 176
+ *
+ * Back-arrow SVG spans full row width.
+ * Path curves from LoopBody bottom-center down and left to Source bottom-center.
+ */
+const LOOP_W = 352;
+const LOOP_BACK = 'M 176,0 L 176,12 C 176,20 168,24 160,24 L 54,24 C 46,24 38,20 38,12 L 38,0';
 
 export function LoopPreview({
   sourceLabel,
@@ -86,13 +94,13 @@ export function LoopPreview({
       <div className="flex items-center gap-1.5" style={{ width: LOOP_W }}>
         <NodeBox label={sourceLabel} className="w-[76px]" />
         <ArrowLine color={connectionColor} />
-        <NodeBox label="Loop Body" variant="new" tintColor="purple" className="w-[76px]" />
+        <NodeBox label="Loop Body" variant="new" tintColor="purple" className="w-[96px]" />
         <ArrowLine color="purple" />
         <NodeBox label="Exit" variant="new" tintColor="purple" className="w-[76px]" />
       </div>
-      <svg viewBox="0 0 332 28" className="-mt-px" style={{ width: LOOP_W, height: 28 }}>
-        <path d={LOOP_BACK_PATH} fill="none" className="stroke-purple-500" strokeWidth="1.5" strokeDasharray="4 2" />
-        <polygon points="42,0 34,4 42,8" className="fill-purple-500" />
+      <svg viewBox="0 0 352 26" style={{ width: LOOP_W, height: 26 }}>
+        <path d={LOOP_BACK} fill="none" className="stroke-purple-500" strokeWidth="1.5" strokeDasharray="4 2" />
+        <polygon points="34,0 42,0 38,6" className="fill-purple-500" />
       </svg>
     </div>
   );

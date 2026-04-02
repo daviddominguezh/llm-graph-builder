@@ -45,6 +45,11 @@ function isConnectionEnabled(
   return connType === sourceEdgeType;
 }
 
+const TAB_BASE =
+  'cursor-pointer inline-flex flex-1 items-center justify-center rounded px-2 py-0.5 text-[10px] font-medium transition-colors border border-transparent';
+const TAB_ACTIVE = 'bg-popover dark:bg-input text-foreground shadow-sm';
+const TAB_INACTIVE = 'text-muted-foreground hover:text-foreground hover:bg-input dark:hover:bg-card';
+
 function ConnectionTypeButton({
   label,
   active,
@@ -56,16 +61,13 @@ function ConnectionTypeButton({
   disabled: boolean;
   onClick: () => void;
 }) {
+  const state = active ? TAB_ACTIVE : TAB_INACTIVE;
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-        active
-          ? 'bg-foreground text-background'
-          : 'bg-muted text-muted-foreground hover:bg-accent'
-      } disabled:opacity-40 disabled:pointer-events-none`}
+      className={`${TAB_BASE} ${state} disabled:opacity-40 disabled:pointer-events-none`}
     >
       {label}
     </button>
@@ -120,7 +122,7 @@ export function LoopDialog({
         <div className="space-y-4 px-1">
           <div className="space-y-2">
             <Label className="text-xs">{t('connectionType')}</Label>
-            <div className="flex gap-1 rounded-lg bg-muted p-1">
+            <div className="inline-flex gap-1 dark:gap-0.5 rounded-sm border bg-muted/50 p-0.5">
               <ConnectionTypeButton
                 label={t('connectionAgent')}
                 active={connectionType === 'none'}
