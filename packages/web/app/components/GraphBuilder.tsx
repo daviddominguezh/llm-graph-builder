@@ -50,6 +50,13 @@ import { buildInitialEdges, buildInitialNodes } from '../utils/graphInitializer'
 import { serializeGraphData } from '../utils/graphSerializer';
 import type { RFNodeData } from '../utils/graphTransformers';
 import { useFormatGraph } from '../hooks/useFormatGraph';
+import { getSourceEdgeType } from '../utils/edgeTypeUtils';
+import {
+  useCreateUserNode,
+  useCreateToolNode,
+  useCreateIfElse,
+  useCreateLoop,
+} from '../hooks/useStructuredNodeCreation';
 
 const DEFAULT_VERSION = 0;
 
@@ -199,6 +206,24 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     reactFlow: rf,
     pushOperation: opQueue.pushOperation,
   });
+
+  const structuredCreationParams = useMemo(
+    () => ({
+      nodes,
+      setNodes,
+      setEdges,
+      setSelectedNodeId: selection.setSelectedNodeId,
+      pushOperation: opQueue.pushOperation,
+      menu: graphActions.connectionMenu,
+      closeMenu: graphActions.handleConnectionMenuClose,
+    }),
+    [nodes, setNodes, setEdges, selection.setSelectedNodeId, opQueue.pushOperation, graphActions.connectionMenu, graphActions.handleConnectionMenuClose]
+  );
+
+  const createUserNode = useCreateUserNode(structuredCreationParams);
+  const createToolNode = useCreateToolNode(structuredCreationParams);
+  const createIfElse = useCreateIfElse(structuredCreationParams);
+  const createLoop = useCreateLoop(structuredCreationParams);
 
   const getNodes = useCallback(() => nodes, [nodes]);
   const getMcpServers = useCallback(() => mcpHook.servers, [mcpHook.servers]);
@@ -370,6 +395,10 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     clearQueue: opQueue.clearQueue,
     agentHooks,
     agentConfig: agentHooks.agentConfig,
+    createUserNode,
+    createToolNode,
+    createIfElse,
+    createLoop,
   };
 }
 
@@ -546,10 +575,17 @@ function LoadedEditor(props: LoadedEditorProps) {
             position={h.graphActions.connectionMenu.position}
             sourceNodeId={h.graphActions.connectionMenu.sourceNodeId}
             sourceHandleId={h.graphActions.connectionMenu.sourceHandleId}
+            sourceEdgeType={getSourceEdgeType(h.graphActions.connectionMenu.sourceNodeId, h.edges)}
             nodes={h.nodes.map((n) => ({ id: n.id, text: (n.data as RFNodeData).text }))}
             onSelectNode={h.graphActions.handleConnectionMenuSelectNode}
             onCreateNode={h.graphActions.handleConnectionMenuCreateNode}
+            onCreateUserNode={h.createUserNode}
+            onCreateToolNode={h.createToolNode}
+            onCreateIfElse={h.createIfElse}
+            onCreateLoop={h.createLoop}
             onClose={h.graphActions.handleConnectionMenuClose}
+            mcpServers={h.mcpHook.servers}
+            mcpDiscoveredTools={h.mcpHook.discoveredTools}
           />
         )}
       </div>
