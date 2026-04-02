@@ -682,6 +682,7 @@
       "model": "Model",
       "notVisited": "Not visited — agent took a different path.",
       "selectNode": "Select a node to inspect its details.",
+      "executionPath": "Path",
       "inputTokens": "Input",
       "outputTokens": "Output",
       "cachedTokens": "Cached",
