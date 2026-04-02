@@ -240,7 +240,7 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
       >
         {/* Dashed line for notes, assignee changes, and status changes */}
         {(isNote || isAssigneeChange || isStatusChange) && (
-          <div className="flex-1 border-b border-dashed border-gray-300 mr-2" />
+          <div className="flex-1 border-b border-dashed border-input mr-2" />
         )}
 
         <div
@@ -250,13 +250,13 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
             isNote || isAssigneeChange || isStatusChange ? 'w-[255px]' : 'max-w-[70%]'
           } ${
             isNote
-              ? 'bg-yellow-50 border border-yellow-300 text-[#111111]'
+              ? 'bg-yellow-50 border border-yellow-300 text-foreground'
               : isAssigneeChange
-                ? 'bg-white border border-gray-300 text-[#111111]'
+                ? 'bg-background border border-input border-dashed text-foreground'
                 : isStatusChange && statusDisplay
-                  ? `${statusDisplay.bgColor} border ${statusDisplay.borderColor} text-[#111111]`
+                  ? `${statusDisplay.bgColor} border ${statusDisplay.borderColor} text-foreground!`
                   : styleAsAssistant
-                    ? 'bg-accent/10 dark:bg-accent/30 text-[#111111]'
+                    ? 'bg-accent/10 dark:bg-accent/30 text-foreground'
                     : 'bg-card border-[#c4dbf0]'
           } ${
             isHighlighted
@@ -1025,7 +1025,7 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
           <div className="w-full flex justify-center my-2">
             <Badge
               variant="secondary"
-              className="bg-white cursor-default font-bold border-1 border-gray-200 text-gray-600"
+              className="bg-background cursor-default font-bold border-1 border-border text-muted-foreground"
             >
               {item.date === 'Today'
                 ? t('Today')
