@@ -58,6 +58,7 @@ export async function getAgentsForKey(
 export async function createExecutionKey(
   orgId: string,
   name: string,
+  allAgents: boolean,
   agentIds: string[],
   expiresAt: string | null
 ): Promise<{ result: CreateExecutionKeyResult | null; error: string | null }> {
@@ -65,6 +66,7 @@ export async function createExecutionKey(
     const data = await fetchFromBackend('POST', '/secrets/execution-keys', {
       orgId,
       name,
+      allAgents,
       agentIds,
       expiresAt,
     });

@@ -24,12 +24,13 @@ type GetAgentsForKeyFn = (
 
 type CreateExecutionKeyQueryFn = (
   supabase: SupabaseClient,
-  input: { orgId: string; name: string; agentIds: string[]; expiresAt: string | null }
+  input: { orgId: string; name: string; allAgents: boolean; agentIds: string[]; expiresAt: string | null }
 ) => Promise<{ result: CreateExecutionKeyResult | null; error: string | null }>;
 
 type UpdateExecutionKeyAgentsFn = (
   supabase: SupabaseClient,
   keyId: string,
+  allAgents: boolean,
   agentIds: string[]
 ) => Promise<{ error: string | null }>;
 
@@ -85,6 +86,7 @@ const execKeyRow: ExecutionKeyRow = {
   org_id: 'org-1',
   name: 'Test Exec Key',
   key_prefix: 'clr_abc123...',
+  all_agents: false,
   expires_at: null,
   created_at: '2024-01-01T00:00:00Z',
   last_used_at: null,
@@ -146,11 +148,13 @@ describe('createExecutionKey', () => {
     const ctx = buildCtx();
     mockCreateExecutionKeyQuery.mockResolvedValue({ result: createKeyResult, error: null });
 
-    const result = await createExecutionKey(ctx, 'Test Key', ['agent-1'], '2025-01-01T00:00:00Z');
+    const input = { name: 'Test Key', agentIds: ['agent-1'], expiresAt: '2025-01-01T00:00:00Z' };
+    const result = await createExecutionKey(ctx, input);
 
     expect(mockCreateExecutionKeyQuery).toHaveBeenCalledWith(ctx.supabase, {
       orgId: 'org-1',
       name: 'Test Key',
+      allAgents: false,
       agentIds: ['agent-1'],
       expiresAt: '2025-01-01T00:00:00Z',
     });
@@ -161,11 +165,12 @@ describe('createExecutionKey', () => {
     const ctx = buildCtx();
     mockCreateExecutionKeyQuery.mockResolvedValue({ result: createKeyResult, error: null });
 
-    await createExecutionKey(ctx, 'Test Key', []);
+    await createExecutionKey(ctx, { name: 'Test Key', agentIds: [] });
 
     expect(mockCreateExecutionKeyQuery).toHaveBeenCalledWith(ctx.supabase, {
       orgId: 'org-1',
       name: 'Test Key',
+      allAgents: false,
       agentIds: [],
       expiresAt: null,
     });
@@ -174,13 +179,15 @@ describe('createExecutionKey', () => {
   it('throws when creation fails', async () => {
     mockCreateExecutionKeyQuery.mockResolvedValue({ result: null, error: 'Create failed' });
 
-    await expect(createExecutionKey(buildCtx(), 'Test Key', [])).rejects.toThrow('Create failed');
+    await expect(createExecutionKey(buildCtx(), { name: 'Test Key', agentIds: [] })).rejects.toThrow(
+      'Create failed'
+    );
   });
 
   it('throws with default message when result is null and no error', async () => {
     mockCreateExecutionKeyQuery.mockResolvedValue({ result: null, error: null });
 
-    await expect(createExecutionKey(buildCtx(), 'Test Key', [])).rejects.toThrow(
+    await expect(createExecutionKey(buildCtx(), { name: 'Test Key', agentIds: [] })).rejects.toThrow(
       'Failed to create execution key'
     );
   });
@@ -207,7 +214,7 @@ describe('updateExecutionKey', () => {
 
     await updateExecutionKey(ctx, 'execkey-1', { agentIds: ['agent-2'] });
 
-    expect(mockUpdateExecutionKeyAgents).toHaveBeenCalledWith(ctx.supabase, 'execkey-1', ['agent-2']);
+    expect(mockUpdateExecutionKeyAgents).toHaveBeenCalledWith(ctx.supabase, 'execkey-1', false, ['agent-2']);
     expect(mockUpdateExecutionKeyName).not.toHaveBeenCalled();
   });
 
@@ -219,7 +226,7 @@ describe('updateExecutionKey', () => {
     await updateExecutionKey(ctx, 'execkey-1', { name: 'New Name', agentIds: ['agent-2'] });
 
     expect(mockUpdateExecutionKeyName).toHaveBeenCalledWith(ctx.supabase, 'execkey-1', 'New Name');
-    expect(mockUpdateExecutionKeyAgents).toHaveBeenCalledWith(ctx.supabase, 'execkey-1', ['agent-2']);
+    expect(mockUpdateExecutionKeyAgents).toHaveBeenCalledWith(ctx.supabase, 'execkey-1', false, ['agent-2']);
   });
 
   it('throws when name update fails', async () => {

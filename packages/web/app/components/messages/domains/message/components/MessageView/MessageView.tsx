@@ -256,8 +256,8 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
                 : isStatusChange && statusDisplay
                   ? `${statusDisplay.bgColor} border ${statusDisplay.borderColor} text-[#111111]`
                   : styleAsAssistant
-                    ? 'bg-[#f3f7fe] text-[#111111]'
-                    : 'bg-[#f7f7f7] border-[#c4dbf0]'
+                    ? 'bg-accent/10 dark:bg-accent/30 text-[#111111]'
+                    : 'bg-card border-[#c4dbf0]'
           } ${
             isHighlighted
               ? 'bg-[#fff3cd] border-[#ffc107] shadow-[0_0_12px_rgba(255,193,7,0.3)]'

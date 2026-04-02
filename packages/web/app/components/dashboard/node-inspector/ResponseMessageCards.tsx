@@ -21,6 +21,7 @@ function roleMeta(kind: MessageCard['kind'], t: (key: string) => string) {
     reasoning: { label: t('roleReasoning'), icon: Brain },
     'tool-call': { label: t('roleToolCall'), icon: Wrench },
     'tool-result': { label: t('roleToolResult'), icon: Wrench },
+    'tool-group': { label: t('roleToolCall'), icon: Wrench },
   };
   return map[kind];
 }
@@ -94,6 +95,16 @@ function CardContent({ card }: { card: MessageCard }) {
       );
     }
     return <MarkdownContent text={card.text} />;
+  }
+  if (card.kind === 'tool-group') {
+    return (
+      <div className="flex flex-col gap-2">
+        <span className="font-mono text-[11px] font-medium">{card.toolName}</span>
+        <ToolJsonContent label={t('toolCallArgs')} data={card.args} />
+        <div className="border-t" />
+        <ToolJsonContent label={t('toolCallOutput')} data={card.result} />
+      </div>
+    );
   }
   if (card.kind === 'tool-call') {
     return (

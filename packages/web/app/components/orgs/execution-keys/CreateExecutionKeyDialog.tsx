@@ -4,6 +4,7 @@ import { createExecutionKeyAction } from '@/app/actions/executionKeys';
 import type { AgentMetadata } from '@/app/lib/agents';
 import type { ExecutionKeyRow } from '@/app/lib/executionKeys';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Combobox,
   ComboboxChip,
@@ -44,9 +45,14 @@ function buildAgentOptions(agents: AgentMetadata[]): AgentOption[] {
   return agents.map((a) => ({ value: a.id, label: a.name }));
 }
 
-function validateForm(name: string, selectedIds: string[], t: (key: string) => string): FormErrors | null {
+function validateForm(
+  name: string,
+  allAgents: boolean,
+  selectedIds: string[],
+  t: (key: string) => string
+): FormErrors | null {
   const nameError = name === '' ? t('nameRequired') : '';
-  const agentsError = selectedIds.length === 0 ? t('agentsRequired') : '';
+  const agentsError = !allAgents && selectedIds.length === 0 ? t('agentsRequired') : '';
 
   if (nameError !== '' || agentsError !== '') {
     return { nameError, agentsError };
@@ -137,6 +143,7 @@ function ExpirationField() {
 
 function useCreateKeyForm(
   orgId: string,
+  allAgents: boolean,
   selectedAgents: AgentOption[],
   onCreated: CreateExecutionKeyDialogProps['onCreated']
 ) {
@@ -151,7 +158,7 @@ function useCreateKeyForm(
     const expiresAt = (formData.get('expiresAt') as string) || null;
     const selectedIds = selectedAgents.map((a) => a.value);
 
-    const validationErrors = validateForm(name, selectedIds, t);
+    const validationErrors = validateForm(name, allAgents, selectedIds, t);
     if (validationErrors !== null) {
       setErrors(validationErrors);
       return;
@@ -160,7 +167,7 @@ function useCreateKeyForm(
     setLoading(true);
     setErrors({ nameError: '', agentsError: '' });
 
-    const { result, error } = await createExecutionKeyAction(orgId, name, selectedIds, expiresAt);
+    const { result, error } = await createExecutionKeyAction(orgId, name, allAgents, selectedIds, expiresAt);
     setLoading(false);
 
     if (error !== null || result === null) {
@@ -174,6 +181,30 @@ function useCreateKeyForm(
   return { loading, errors, handleSubmit };
 }
 
+function AllAgentsToggle({
+  checked,
+  onCheckedChange,
+}: {
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}) {
+  const t = useTranslations('executionKeys');
+
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-2">
+        <Checkbox
+          id="exec-key-all-agents"
+          checked={checked}
+          onCheckedChange={(val) => onCheckedChange(val === true)}
+        />
+        <Label htmlFor="exec-key-all-agents">{t('allAgents')}</Label>
+      </div>
+      <p className="text-muted-foreground text-xs">{t('allAgentsDescription')}</p>
+    </div>
+  );
+}
+
 export function CreateExecutionKeyDialog({
   open,
   onOpenChange,
@@ -183,8 +214,9 @@ export function CreateExecutionKeyDialog({
 }: CreateExecutionKeyDialogProps) {
   const t = useTranslations('executionKeys');
   const options = useMemo(() => buildAgentOptions(agents), [agents]);
+  const [allAgents, setAllAgents] = useState(false);
   const [selectedAgents, setSelectedAgents] = useState<AgentOption[]>([]);
-  const { loading, errors, handleSubmit } = useCreateKeyForm(orgId, selectedAgents, onCreated);
+  const { loading, errors, handleSubmit } = useCreateKeyForm(orgId, allAgents, selectedAgents, onCreated);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -194,12 +226,15 @@ export function CreateExecutionKeyDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <NameField error={errors.nameError} />
-          <AgentMultiSelect
-            options={options}
-            selected={selectedAgents}
-            onSelectedChange={setSelectedAgents}
-            error={errors.agentsError}
-          />
+          <AllAgentsToggle checked={allAgents} onCheckedChange={setAllAgents} />
+          {!allAgents && (
+            <AgentMultiSelect
+              options={options}
+              selected={selectedAgents}
+              onSelectedChange={setSelectedAgents}
+              error={errors.agentsError}
+            />
+          )}
           <ExpirationField />
           <DialogFooter>
             <Button type="submit" disabled={loading}>

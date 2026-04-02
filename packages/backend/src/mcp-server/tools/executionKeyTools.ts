@@ -19,13 +19,17 @@ const LIST_EXECUTION_KEYS_SCHEMA = {};
 
 const CREATE_EXECUTION_KEY_SCHEMA = {
   name: z.string().describe('Execution key name'),
-  agentIds: z.array(z.string()).describe('Agent IDs this key grants access to'),
+  agentIds: z
+    .array(z.string())
+    .describe('Agent IDs this key grants access to (ignored when allAgents is true)'),
   expiresAt: z.string().nullable().optional().describe('Expiry date (ISO 8601) or null'),
+  allAgents: z.boolean().optional().describe('Grant access to all agents in the org'),
 };
 
 const UPDATE_EXECUTION_KEY_SCHEMA = {
   keyId: z.string().describe('Execution key ID'),
   name: z.string().optional().describe('New name'),
+  allAgents: z.boolean().optional().describe('Grant access to all agents in the org'),
   agentIds: z.array(z.string()).optional().describe('New agent IDs to assign'),
 };
 
@@ -70,9 +74,9 @@ function registerCreateExecutionKey(
       description: 'Create a new execution key in the organization',
       inputSchema: CREATE_EXECUTION_KEY_SCHEMA,
     },
-    async ({ name, agentIds, expiresAt }) => {
+    async ({ name, agentIds, expiresAt, allAgents }) => {
       const ctx = getContext();
-      const result = await createExecutionKey(ctx, name, agentIds, expiresAt);
+      const result = await createExecutionKey(ctx, { name, agentIds, expiresAt, allAgents });
       return textResult(result);
     }
   );
@@ -95,9 +99,9 @@ function registerUpdateExecutionKey(
       description: 'Update an execution key name or agent assignments',
       inputSchema: UPDATE_EXECUTION_KEY_SCHEMA,
     },
-    async ({ keyId, name, agentIds }) => {
+    async ({ keyId, name, allAgents, agentIds }) => {
       const ctx = getContext();
-      await updateExecutionKey(ctx, keyId, { name, agentIds });
+      await updateExecutionKey(ctx, keyId, { name, allAgents, agentIds });
       return textResult({ success: true });
     }
   );

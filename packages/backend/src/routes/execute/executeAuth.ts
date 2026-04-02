@@ -56,24 +56,24 @@ function parseRouteParams(req: Request): { slug: string; version: number } | nul
 async function validateToken(
   supabase: SupabaseClient,
   token: string
-): Promise<{ keyId: string; orgId: string } | null> {
+): Promise<{ keyId: string; orgId: string; allAgents: boolean } | null> {
   const keyHash = hashToken(token);
   const result = await validateExecutionKey(supabase, keyHash);
   if (result === null) return null;
-  return { keyId: result.id, orgId: result.orgId };
+  return { keyId: result.id, orgId: result.orgId, allAgents: result.allAgents };
 }
 
 async function validateAgentAccess(
   supabase: SupabaseClient,
-  keyId: string,
-  slug: string,
-  orgId: string
+  ctx: { keyId: string; slug: string; orgId: string; allAgents: boolean }
 ): Promise<{ agentId: string } | null> {
-  const agent = await getAgentBySlugAndOrg(supabase, slug, orgId);
+  const agent = await getAgentBySlugAndOrg(supabase, ctx.slug, ctx.orgId);
   if (agent === null) return null;
 
-  const hasAccess = await validateKeyAgentAccess(supabase, keyId, agent.id);
-  if (!hasAccess) return null;
+  if (!ctx.allAgents) {
+    const hasAccess = await validateKeyAgentAccess(supabase, ctx.keyId, agent.id);
+    if (!hasAccess) return null;
+  }
 
   return { agentId: agent.id };
 }
@@ -95,7 +95,7 @@ async function authenticateKey(
   req: Request,
   res: Response,
   supabase: SupabaseClient
-): Promise<{ keyId: string; orgId: string } | null> {
+): Promise<{ keyId: string; orgId: string; allAgents: boolean } | null> {
   const token = extractBearerToken(req.headers.authorization);
   if (token === null) {
     sendError(res, HTTP_UNAUTHORIZED, 'Missing or malformed Authorization header');
@@ -115,6 +115,7 @@ interface AuthContext {
   supabase: SupabaseClient;
   keyId: string;
   orgId: string;
+  allAgents: boolean;
 }
 
 async function authorizeAgent(
@@ -128,7 +129,12 @@ async function authorizeAgent(
     return null;
   }
 
-  const agentAccess = await validateAgentAccess(ctx.supabase, ctx.keyId, routeParams.slug, ctx.orgId);
+  const agentAccess = await validateAgentAccess(ctx.supabase, {
+    keyId: ctx.keyId,
+    slug: routeParams.slug,
+    orgId: ctx.orgId,
+    allAgents: ctx.allAgents,
+  });
   if (agentAccess === null) {
     sendError(res, HTTP_FORBIDDEN, 'Access denied for this agent');
     return null;
@@ -149,7 +155,12 @@ export async function requireExecutionAuth(req: Request, res: Response, next: Ne
   const keyResult = await authenticateKey(req, res, supabase);
   if (keyResult === null) return;
 
-  const ctx: AuthContext = { supabase, keyId: keyResult.keyId, orgId: keyResult.orgId };
+  const ctx: AuthContext = {
+    supabase,
+    keyId: keyResult.keyId,
+    orgId: keyResult.orgId,
+    allAgents: keyResult.allAgents,
+  };
   const agentResult = await authorizeAgent(req, res, ctx);
   if (agentResult === null) return;
 

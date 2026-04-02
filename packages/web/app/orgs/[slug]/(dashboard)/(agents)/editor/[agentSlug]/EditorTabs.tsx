@@ -11,6 +11,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { useAgentsSidebar } from '@/app/components/agents/AgentsSidebarContext';
 
+import { ChannelsPanel } from '@/app/components/agents/channels/ChannelsPanel';
 import { SettingsPanel } from '@/app/components/agents/SettingsPanel';
 
 import { EditorClient } from './EditorClient';
@@ -66,9 +67,6 @@ function TabButton({ tab, active, onClick, label }: TabButtonProps) {
   );
 }
 
-function Placeholder({ label }: { label: string }) {
-  return <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">{label}</div>;
-}
 
 function buildEditorElement(props: EditorTabsProps): React.ReactNode {
   return (
@@ -141,7 +139,7 @@ export function EditorTabs(props: EditorTabsProps) {
         tAgents={tAgents}
       />
       <div ref={slotRef} className={activeTab === 'agent' ? 'flex-1' : 'hidden'} />
-      {activeTab === 'channels' && <Placeholder label={t('channelsPlaceholder')} />}
+      {activeTab === 'channels' && <ChannelsPanel orgId={props.orgId} />}
       {activeTab === 'settings' && (
         <SettingsPanel
           agentId={props.agentId}

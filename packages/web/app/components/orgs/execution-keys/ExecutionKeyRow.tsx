@@ -32,7 +32,12 @@ function AgentBadge({ slug }: { slug: string }) {
   return <span className="rounded-full border bg-background px-1.5 font-mono text-[10px]">{slug}</span>;
 }
 
-function AgentBadges({ keyData }: { keyData: ExecutionKeyWithAgents }) {
+function AllAgentsBadge() {
+  const t = useTranslations('executionKeys');
+  return <span className="rounded-full border bg-background px-1.5 font-mono text-[10px]">{t('allAgents')}</span>;
+}
+
+function SpecificAgentBadges({ keyData }: { keyData: ExecutionKeyWithAgents }) {
   const t = useTranslations('executionKeys');
   const { agents } = keyData;
   if (agents.length === 0) return null;
@@ -63,6 +68,11 @@ function AgentBadges({ keyData }: { keyData: ExecutionKeyWithAgents }) {
       </Tooltip>
     </div>
   );
+}
+
+function AgentBadges({ keyData }: { keyData: ExecutionKeyWithAgents }) {
+  if (keyData.all_agents) return <AllAgentsBadge />;
+  return <SpecificAgentBadges keyData={keyData} />;
 }
 
 function MaskedKeyPrefix({ prefix }: { prefix: string }) {

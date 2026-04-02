@@ -53,9 +53,40 @@ function messageToCards(msg: RawMessage): MessageCard[] {
   return cards;
 }
 
+/* ─── Tool call grouping ─── */
+
+function groupToolCalls(cards: MessageCard[]): MessageCard[] {
+  const grouped: MessageCard[] = [];
+  const pendingCalls = new Map<string, { index: number; card: MessageCard & { kind: 'tool-call' } }>();
+
+  for (const card of cards) {
+    if (card.kind === 'tool-call') {
+      pendingCalls.set(card.toolName, { index: grouped.length, card });
+      grouped.push(card);
+    } else if (card.kind === 'tool-result') {
+      const pending = pendingCalls.get(card.toolName);
+      if (pending !== undefined) {
+        grouped[pending.index] = {
+          kind: 'tool-group',
+          toolName: card.toolName,
+          args: pending.card.args,
+          result: card.result,
+        };
+        pendingCalls.delete(card.toolName);
+      } else {
+        grouped.push(card);
+      }
+    } else {
+      grouped.push(card);
+    }
+  }
+
+  return grouped;
+}
+
 /* ─── Public API ─── */
 
-export function parseMessages(data: unknown): MessageCard[] {
+function collectCards(data: unknown): MessageCard[] {
   if (!Array.isArray(data)) return [];
 
   const cards: MessageCard[] = [];
@@ -71,4 +102,8 @@ export function parseMessages(data: unknown): MessageCard[] {
     }
   }
   return cards;
+}
+
+export function parseMessages(data: unknown): MessageCard[] {
+  return groupToolCalls(collectCards(data));
 }

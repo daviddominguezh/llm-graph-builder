@@ -76,6 +76,7 @@ export interface ExecutionMessageRow {
 export interface TenantSummaryRow {
   [key: string]: unknown;
   tenant_id: string;
+  tenant_name: string;
   total_executions: number;
   failed_executions: number;
   total_input_tokens: number;

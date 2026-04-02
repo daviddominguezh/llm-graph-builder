@@ -10,7 +10,12 @@ import {
   HTTP_OK,
   extractErrorMessage,
 } from '../routeHelpers.js';
-import { getKeyIdParam, parseStringArrayField, parseStringField } from './secretsHelpers.js';
+import {
+  getKeyIdParam,
+  parseBooleanField,
+  parseStringArrayField,
+  parseStringField,
+} from './secretsHelpers.js';
 
 async function applyNameUpdate(
   supabase: SupabaseClient,
@@ -25,10 +30,11 @@ async function applyNameUpdate(
 async function applyAgentIdsUpdate(
   supabase: SupabaseClient,
   keyId: string,
+  allAgents: boolean | undefined,
   agentIds: string[] | undefined
 ): Promise<string | null> {
-  if (agentIds === undefined) return null;
-  const { error } = await updateExecutionKeyAgents(supabase, keyId, agentIds);
+  if (allAgents === undefined && agentIds === undefined) return null;
+  const { error } = await updateExecutionKeyAgents(supabase, keyId, allAgents ?? false, agentIds ?? []);
   return error;
 }
 
@@ -42,10 +48,11 @@ export async function handleUpdateExecutionKey(req: Request, res: AuthenticatedR
   }
 
   const name = parseStringField(req.body, 'name');
+  const allAgents = parseBooleanField(req.body, 'allAgents');
   const agentIds = parseStringArrayField(req.body, 'agentIds');
 
-  if (name === undefined && agentIds === undefined) {
-    res.status(HTTP_BAD_REQUEST).json({ error: 'At least name or agentIds is required' });
+  if (name === undefined && allAgents === undefined && agentIds === undefined) {
+    res.status(HTTP_BAD_REQUEST).json({ error: 'At least name, allAgents, or agentIds is required' });
     return;
   }
 
@@ -56,7 +63,7 @@ export async function handleUpdateExecutionKey(req: Request, res: AuthenticatedR
       return;
     }
 
-    const agentError = await applyAgentIdsUpdate(supabase, keyId, agentIds);
+    const agentError = await applyAgentIdsUpdate(supabase, keyId, allAgents, agentIds);
     if (agentError !== null) {
       res.status(HTTP_INTERNAL_ERROR).json({ error: agentError });
       return;

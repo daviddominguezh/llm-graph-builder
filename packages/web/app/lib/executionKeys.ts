@@ -7,6 +7,7 @@ export interface ExecutionKeyRow {
   org_id: string;
   name: string;
   key_prefix: string;
+  all_agents: boolean;
   expires_at: string | null;
   created_at: string;
   last_used_at: string | null;

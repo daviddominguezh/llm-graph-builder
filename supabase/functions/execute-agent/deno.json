@@ -9,6 +9,7 @@
     "@upstash/redis": "npm:@upstash/redis",
     "ai": "npm:ai",
     "zod": "npm:zod",
-    "uuid": "npm:uuid"
+    "uuid": "npm:uuid",
+    "picomatch": "npm:picomatch"
   }
 }

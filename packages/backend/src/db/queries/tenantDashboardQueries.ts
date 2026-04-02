@@ -39,6 +39,7 @@ function toString(val: unknown): string {
 function mapTenantSummaryRow(r: TenantSummaryRawRow): TenantSummaryRow {
   return {
     tenant_id: r.tenant_id,
+    tenant_name: toString(r.tenant_name),
     total_executions: toNumber(r.total_executions),
     failed_executions: toNumber(r.failed_executions),
     total_input_tokens: toNumber(r.total_input_tokens),

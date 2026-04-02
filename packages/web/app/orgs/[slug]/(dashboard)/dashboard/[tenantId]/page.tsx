@@ -5,7 +5,7 @@ import { getTranslations } from 'next-intl/server';
 
 import { ExecutionsView } from '@/app/components/dashboard/ExecutionsView';
 import { Separator } from '@/components/ui/separator';
-import { getExecutionsByTenant } from '@/app/lib/dashboard';
+import { getExecutionsByTenant, getTenantSummary } from '@/app/lib/dashboard';
 import { getOrgBySlug } from '@/app/lib/orgs';
 
 interface TenantExecutionsPageProps {
@@ -25,12 +25,21 @@ export default async function TenantExecutionsPage({ params }: TenantExecutionsP
 
   const t = await getTranslations('dashboard');
 
-  const { rows, totalCount } = await getExecutionsByTenant(org.id, tenantId, {
-    page: 0,
-    pageSize: DEFAULT_PAGE_SIZE,
-    sortKey: 'started_at',
-    sortDirection: 'desc',
-  });
+  const [{ rows, totalCount }, { rows: summaryRows }] = await Promise.all([
+    getExecutionsByTenant(org.id, tenantId, {
+      page: 0,
+      pageSize: DEFAULT_PAGE_SIZE,
+      sortKey: 'started_at',
+      sortDirection: 'desc',
+    }),
+    getTenantSummary(org.id, {
+      page: 0,
+      pageSize: 1,
+      filters: { tenant_id: tenantId },
+    }),
+  ]);
+
+  const tenantName = summaryRows[0]?.tenant_name ?? tenantId;
 
   return (
     <div className="flex h-full flex-col bg-background">
@@ -40,7 +49,7 @@ export default async function TenantExecutionsPage({ params }: TenantExecutionsP
             {t('title')}
           </Link>
           <ChevronRight className="size-3" />
-          <span className="text-foreground text-xs font-medium">{tenantId}</span>
+          <span className="text-foreground text-xs font-medium">{tenantName}</span>
         </nav>
       </div>
 

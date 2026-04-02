@@ -1337,7 +1337,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
           <div
             className={`ml-3 mr-2 text-xs font-medium px-2 py-1 rounded-t-md w-fit ${
               disabledByAI
-                ? 'text-white bg-black'
+                ? 'text-background bg-foreground'
                 : disabledBy24HourRule
                   ? 'text-white bg-orange-500'
                   : 'text-gray-700 bg-gray-300'
@@ -1354,13 +1354,13 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
         <div
           ref={inputContainerRef}
           style={{ paddingBottom: 'var(--padding-bottom-safe-extra)' }}
-          className={`bg-white rounded-t-md border border-b-0 z-20 overflow-hidden bottom-0 flex flex-col ${
+          className={`bg-background rounded-t-md border border-b-0 z-20 overflow-hidden bottom-0 flex flex-col ${
             disabled
               ? disabledByAI
-                ? 'm-0 mt-0 border-black border-2 border-b-0'
+                ? 'm-0 mt-0 border-foreground border-2 border-b-0'
                 : disabledBy24HourRule
                   ? 'm-0 mt-0 border-orange-500 border-2 border-b-0'
-                  : 'm-0 mt-0 border-gray-400 border-2 border-b-0'
+                  : 'm-0 mt-0 border-muted-foreground border-2 border-b-0'
               : 'm-0'
           }`}
         >
@@ -1454,9 +1454,9 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
             {/* Quill Editor */}
             <div className="flex-1 relative">
               <div
-                className={`quill-editor-wrapper rounded-md bg-white ${isEditorDisabled || isAIProcessing ? '!cursor-default [&_*]:!cursor-default' : ''}`}
+                className={`quill-editor-wrapper rounded-md bg-background text-foreground placeholder-foreground ${isEditorDisabled || isAIProcessing ? '!cursor-default [&_*]:!cursor-default' : ''}`}
               >
-                <div ref={quillRef} />
+                <div className='[&_.ql-blank::before]:text-muted-foreground!' ref={quillRef} />
               </div>
 
               {/* AI Processing Overlay */}

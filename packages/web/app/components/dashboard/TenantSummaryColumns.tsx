@@ -21,7 +21,7 @@ export function buildTenantSummaryColumns(
 ): Column<TenantSummaryRow>[] {
   return [
     {
-      key: 'tenant_id',
+      key: 'tenant_name',
       label: t('columns.tenantId'),
       sortable: true,
       render: (row) => (
@@ -29,7 +29,7 @@ export function buildTenantSummaryColumns(
           href={`/orgs/${slug}/dashboard/${encodeURIComponent(row.tenant_id)}`}
           className="font-medium text-primary hover:underline"
         >
-          {row.tenant_id}
+          {row.tenant_name}
         </Link>
       ),
     },

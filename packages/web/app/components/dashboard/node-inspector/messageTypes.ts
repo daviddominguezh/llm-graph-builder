@@ -66,10 +66,18 @@ export interface ToolResultCard {
   result: unknown;
 }
 
+export interface ToolCallGroupCard {
+  kind: 'tool-group';
+  toolName: string;
+  args: unknown;
+  result: unknown;
+}
+
 export type MessageCard =
   | UserCard
   | SystemCard
   | AssistantTextCard
   | ReasoningCard
   | ToolCallCard
-  | ToolResultCard;
+  | ToolResultCard
+  | ToolCallGroupCard;

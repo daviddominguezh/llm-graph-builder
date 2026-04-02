@@ -30,12 +30,14 @@ export function createServiceClient(): ServiceClient {
 interface ExecutionKeyRow {
   id: string;
   org_id: string;
+  all_agents: boolean;
   expires_at: string | null;
 }
 
 interface ValidatedKey {
   id: string;
   orgId: string;
+  allAgents: boolean;
 }
 
 function isExpired(expiresAt: string | null): boolean {
@@ -49,13 +51,13 @@ export async function validateExecutionKey(
 ): Promise<ValidatedKey | null> {
   const result: QueryResult<ExecutionKeyRow> = await supabase
     .from('agent_execution_keys')
-    .select('id, org_id, expires_at')
+    .select('id, org_id, all_agents, expires_at')
     .eq('key_hash', keyHash)
     .single();
   if (result.error !== null || result.data === null) return null;
   if (isExpired(result.data.expires_at)) return null;
 
-  return { id: result.data.id, orgId: result.data.org_id };
+  return { id: result.data.id, orgId: result.data.org_id, allAgents: result.data.all_agents };
 }
 
 export async function validateKeyAgentAccess(
