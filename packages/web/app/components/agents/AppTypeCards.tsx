@@ -31,13 +31,13 @@ function AppTypeCard({
   label: string;
   description: string;
 }) {
-  const border = selected ? 'border-primary ring-1 ring-primary border-solid' : 'border-border';
+  const active = selected ? 'bg-background hover:bg-background! dark:hover:bg-input/30 dark:bg-input/30! ring-1 ring-primary border-solid' : 'bg-card dark:bg-transparent border-border';
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex h-[82px] cursor-pointer flex-col gap-1 rounded-lg border p-3 text-left transition-[border-color,box-shadow,transform] duration-150 bg-background hover:bg-card/60 hover:shadow-sm border-dashed ${border}`}
+      className={`flex h-[82px] cursor-pointer flex-col gap-1 rounded-lg border border-ring/60 dark:border-ring p-3 text-left transition-[border-color,box-shadow,transform] duration-150 dark:hover:bg-input/30 hover:bg-input border-dashed ${active}`}
     >
       <div className="flex items-center gap-1.5">
         {icon}
@@ -56,7 +56,7 @@ export function AppTypeCards({ value, onChange }: AppTypeCardsProps) {
   const t = useTranslations('marketplace');
 
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-2 px-[calc(var(--spacing)*1.8)]">
       <AppTypeCard
         selected={value === 'workflow'}
         onClick={() => onChange(value === 'workflow' ? null : 'workflow')}
@@ -67,7 +67,7 @@ export function AppTypeCards({ value, onChange }: AppTypeCardsProps) {
       <AppTypeCard
         selected={value === 'agent'}
         onClick={() => onChange(value === 'agent' ? null : 'agent')}
-        icon={<Bot className={`size-3.5 transition-colors duration-150 ${value === 'agent' ? 'text-amber-500 dark:text-amber-400' : 'text-muted-foreground'}`} />}
+        icon={<Bot className={`size-3.5 transition-colors duration-150 ${value === 'agent' ? 'text-primary' : 'text-muted-foreground'}`} />}
         label={t('typeAgent')}
         description={t('typeAgentDescription')}
       />

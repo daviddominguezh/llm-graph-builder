@@ -15,7 +15,7 @@ interface AgentEmptyStateProps {
 
 export function AgentEmptyState({ orgId, orgSlug }: AgentEmptyStateProps) {
   const t = useTranslations('agents');
-  const [createOpen, setCreateOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(true);
   const prefetchedTemplates = useTemplatesPrefetch();
 
   return (
