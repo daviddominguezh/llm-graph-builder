@@ -11,13 +11,11 @@ export const ChatEmptyState: React.FC = () => {
   const t = useTranslations('messages');
 
   return (
-    <div className="h-full flex-1 flex items-center justify-center bg-card border-l">
-      <div className="text-center p-8">
-        <MessageCircleOff className="w-8 h-8 mx-auto mb-4 text-foreground" />
-        <h3 className="cursor-default text-lg font-semibold mt-1">
-          {t('No chat selected')}
-        </h3>
-        <p className="cursor-default text-muted-foreground">
+    <div className="h-full flex-1 flex items-center justify-center bg-background border-l px-8">
+      <div className="flex w-full flex-col items-center gap-0 rounded-md  border-dashed bg-background px-4 py-8 text-center">
+        <MessageCircleOff className="size-6 text-muted-foreground/50" />
+        <p className="text-sm font-medium mt-2">{t('No chat selected')}</p>
+        <p className="text-xs text-muted-foreground max-w-xs">
           {t('Select a conversation from the list to start messaging')}
         </p>
       </div>
