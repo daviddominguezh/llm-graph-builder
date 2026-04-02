@@ -293,7 +293,7 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
               {isDropdownOpen && (
                 <div
                   ref={dropdownRef}
-                  className={`absolute bg-white border border-gray-200 rounded-md shadow-lg min-w-[240px] py-1 z-30 ${
+                  className={`absolute bg-background border border-input rounded-md shadow-lg min-w-[240px] py-1 z-30 ${
                     dropdownPosition === 'above' ? 'bottom-full mb-1' : 'top-full mt-1'
                   }`}
                   style={{
@@ -314,8 +314,8 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
                     onMouseLeave={() => setHoveredDropdownOption(null)}
                     className={`w-full px-3 py-2 text-sm flex items-center gap-2 transition-colors cursor-pointer ${
                       hoveredDropdownOption === 'ask-ai'
-                        ? 'bg-gray-100 text-gray-900'
-                        : 'bg-transparent text-gray-700'
+                        ? 'bg-card text-foreground'
+                        : 'bg-transparent text-muted-foreground'
                     }`}
                   >
                     <Sparkles size={16} />
@@ -330,8 +330,8 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
                     onMouseLeave={() => setHoveredDropdownOption(null)}
                     className={`w-full px-3 py-2 text-sm flex items-center gap-2 transition-colors cursor-pointer ${
                       hoveredDropdownOption === 'reply-internally'
-                        ? 'bg-gray-100 text-gray-900'
-                        : 'bg-transparent text-gray-700'
+                        ? 'bg-card text-foreground'
+                        : 'bg-transparent text-muted-foreground'
                     }`}
                   >
                     <MessageCircle size={16} />
