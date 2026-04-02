@@ -57,7 +57,7 @@ export default async function TenantExecutionsPage({ params }: TenantExecutionsP
 
       <Separator />
 
-      <div className="flex-1 overflow-y-auto px-4 py-3">
+      <div className="flex-1 overflow-hidden px-4 py-3">
         <ExecutionsView
           orgId={org.id}
           tenantId={tenantId}

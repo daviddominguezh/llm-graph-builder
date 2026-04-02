@@ -37,18 +37,21 @@ export function buildTenantSummaryColumns(
       key: 'total_executions',
       label: t('columns.totalExecutions'),
       sortable: true,
+      className: 'text-center',
       render: (row) => row.total_executions.toLocaleString(),
     },
     {
       key: 'total_cost',
       label: t('columns.totalCost'),
       sortable: true,
+      className: 'text-center',
       render: formatCost,
     },
     {
       key: 'failed_executions',
       label: t('columns.successRate'),
       sortable: true,
+      className: 'text-center',
       render: formatSuccessRate,
     },
   ];

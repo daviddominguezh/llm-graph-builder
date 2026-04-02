@@ -10,6 +10,7 @@ export interface SessionGroup {
   session_db_id: string;
   lastStatus: string;
   executionCount: number;
+  totalCost: number;
   firstExecution: string;
   lastExecution: string;
   executions: TenantExecutionRow[];
@@ -53,6 +54,7 @@ export function groupExecutions(rows: TenantExecutionRow[]): SessionGroup[] {
       session_db_id: first.session_db_id,
       lastStatus: last.status,
       executionCount: sorted.length,
+      totalCost: sorted.reduce((sum, r) => sum + r.total_cost, 0),
       firstExecution: first.started_at,
       lastExecution: last.started_at,
       executions: sorted,

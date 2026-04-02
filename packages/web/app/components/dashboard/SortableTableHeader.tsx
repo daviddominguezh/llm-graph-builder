@@ -28,7 +28,7 @@ export function SortableTableHeader<T>({
 }: SortableTableHeaderProps<T>) {
   return (
     <TableHeader className="bg-sidebar sticky top-0 z-10">
-      <TableRow>
+      <TableRow className="hover:bg-transparent">
         {columns.map((col, i) => (
           <TableHead
             key={col.key}

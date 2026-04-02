@@ -360,5 +360,12 @@ div.model-selector-trigger[data-slot="input-group"] {
   .check-pop {
     animation: none;
   }
+
+  .animate-in {
+    --tw-enter-opacity: 1;
+    --tw-enter-translate-y: 0;
+    --tw-enter-translate-x: 0;
+    animation-duration: 0.01ms;
+  }
 }
 

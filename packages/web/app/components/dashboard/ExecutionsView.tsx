@@ -59,8 +59,8 @@ export function ExecutionsView({ orgId, tenantId, tenantSlug, slug, initialRows 
   );
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-3">
+    <div className="flex h-full flex-col gap-3">
+      <div className="shrink-0 flex items-center gap-3">
         <SearchBar value={search} onChange={setSearch} />
         <FilterBar
           definitions={filterDefs}
