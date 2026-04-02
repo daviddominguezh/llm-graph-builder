@@ -13,7 +13,7 @@ export function ExecutionErrorBanner({ execution, label }: ExecutionErrorBannerP
   }
 
   return (
-    <Alert variant="destructive">
+    <Alert variant="destructive" className="mt-4">
       <AlertCircle />
       <AlertTitle>{label}</AlertTitle>
       <AlertDescription>{execution.error}</AlertDescription>

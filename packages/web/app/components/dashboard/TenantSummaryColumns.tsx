@@ -26,7 +26,7 @@ export function buildTenantSummaryColumns(
       sortable: true,
       render: (row) => (
         <Link
-          href={`/orgs/${slug}/dashboard/${encodeURIComponent(row.tenant_id)}`}
+          href={`/orgs/${slug}/dashboard/${encodeURIComponent(row.tenant_name)}`}
           className="font-medium text-primary hover:underline"
         >
           {row.tenant_name}

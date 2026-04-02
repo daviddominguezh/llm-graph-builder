@@ -69,7 +69,7 @@ export function TenantSummaryView({
 
   const handleRowClick = useCallback(
     (row: TenantSummaryRow) => {
-      router.push(`/orgs/${slug}/dashboard/${encodeURIComponent(row.tenant_id)}`);
+      router.push(`/orgs/${slug}/dashboard/${encodeURIComponent(row.tenant_name)}`);
     },
     [router, slug]
   );

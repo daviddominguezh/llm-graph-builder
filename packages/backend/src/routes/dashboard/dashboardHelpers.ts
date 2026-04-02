@@ -87,7 +87,7 @@ function parseSortDirection(val: unknown): 'asc' | 'desc' {
 
 function parseFilters(req: Request): Record<string, string> | undefined {
   const filters: Record<string, string> = {};
-  const filterKeys = ['tenant_id', 'user_id', 'channel', 'model', 'status', 'session_id', 'version'];
+  const filterKeys = ['tenant_id', 'tenant_name', 'user_id', 'channel', 'model', 'status', 'session_id', 'version'];
   let hasFilters = false;
 
   for (const key of filterKeys) {

@@ -82,7 +82,7 @@ function ChartSkeleton({ index }: { index: number }) {
         {SKELETON_HEIGHTS.map((height, i) => (
           <div
             key={i}
-            className="flex-1 rounded-t bg-muted/60 animate-pulse"
+            className="flex-1 rounded-t bg-border animate-pulse"
             style={{ height: `${String(height)}%`, animationDelay: `${i * 50}ms` }}
           />
         ))}

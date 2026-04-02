@@ -14,32 +14,34 @@ interface TenantExecutionsPageProps {
 
 const DEFAULT_PAGE_SIZE = 50;
 
+async function resolveTenant(orgId: string, tenantSlug: string) {
+  const { rows } = await getTenantSummary(orgId, {
+    page: 0,
+    pageSize: 1,
+    filters: { tenant_name: tenantSlug },
+  });
+  return rows[0] ?? null;
+}
+
 export default async function TenantExecutionsPage({ params }: TenantExecutionsPageProps): Promise<React.JSX.Element> {
-  const { slug, tenantId: rawTenantId } = await params;
-  const tenantId = decodeURIComponent(rawTenantId);
+  const { slug, tenantId: rawTenantSlug } = await params;
+  const tenantSlug = decodeURIComponent(rawTenantSlug);
   const { result: org } = await getOrgBySlug(slug);
 
-  if (!org) {
-    redirect('/');
-  }
+  if (!org) redirect('/');
+
+  const tenant = await resolveTenant(org.id, tenantSlug);
+  if (!tenant) redirect(`/orgs/${slug}/dashboard`);
 
   const t = await getTranslations('dashboard');
+  const tenantId = tenant.tenant_id;
 
-  const [{ rows, totalCount }, { rows: summaryRows }] = await Promise.all([
-    getExecutionsByTenant(org.id, tenantId, {
-      page: 0,
-      pageSize: DEFAULT_PAGE_SIZE,
-      sortKey: 'started_at',
-      sortDirection: 'desc',
-    }),
-    getTenantSummary(org.id, {
-      page: 0,
-      pageSize: 1,
-      filters: { tenant_id: tenantId },
-    }),
-  ]);
-
-  const tenantName = summaryRows[0]?.tenant_name ?? tenantId;
+  const { rows, totalCount } = await getExecutionsByTenant(org.id, tenantId, {
+    page: 0,
+    pageSize: DEFAULT_PAGE_SIZE,
+    sortKey: 'started_at',
+    sortDirection: 'desc',
+  });
 
   return (
     <div className="flex h-full flex-col bg-background">
@@ -49,7 +51,7 @@ export default async function TenantExecutionsPage({ params }: TenantExecutionsP
             {t('title')}
           </Link>
           <ChevronRight className="size-3" />
-          <span className="text-foreground text-xs font-medium">{tenantName}</span>
+          <span className="text-foreground text-xs font-medium">{tenant.tenant_name}</span>
         </nav>
       </div>
 
@@ -59,6 +61,7 @@ export default async function TenantExecutionsPage({ params }: TenantExecutionsP
         <ExecutionsView
           orgId={org.id}
           tenantId={tenantId}
+          tenantSlug={tenantSlug}
           slug={slug}
           initialRows={rows}
           initialTotal={totalCount}

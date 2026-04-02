@@ -18,6 +18,7 @@ interface DebugViewProps {
   session: SessionRow;
   executions: ExecutionSummaryRow[];
   initialNodeVisits: NodeVisitRow[];
+  initialExecutionId?: string;
   graph: Graph;
   orgSlug: string;
   agentName: string;
@@ -54,9 +55,9 @@ function findExecution(
   return executions.find((e) => e.id === selectedId);
 }
 
-function useExecutionState(executions: ExecutionSummaryRow[], initialVisits: NodeVisitRow[]) {
+function useExecutionState(executions: ExecutionSummaryRow[], initialVisits: NodeVisitRow[], initialId?: string) {
   const firstExecution = executions[FIRST_INDEX];
-  const [selectedExecutionId, setSelectedExecutionId] = useState(firstExecution?.id ?? '');
+  const [selectedExecutionId, setSelectedExecutionId] = useState(initialId ?? firstExecution?.id ?? '');
   const [nodeVisits, setNodeVisits] = useState<NodeVisitRow[]>(initialVisits);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
@@ -161,6 +162,7 @@ function DebugCanvasArea({
 interface DebugBodyProps {
   session: SessionRow;
   agentName: string;
+  tenantName: string;
   selectedExecution: ExecutionSummaryRow | undefined;
   errorBannerLabel: string;
   canvasAreaProps: DebugCanvasAreaProps;
@@ -169,13 +171,14 @@ interface DebugBodyProps {
 function DebugBody({
   session,
   agentName,
+  tenantName,
   selectedExecution,
   errorBannerLabel,
   canvasAreaProps,
 }: DebugBodyProps) {
   return (
     <div className="px-0 pb-3 flex flex-col gap-0 flex-1 min-h-[0px]">
-      <SessionMetadataBar session={session} agentName={agentName} />
+      <SessionMetadataBar session={session} agentName={agentName} tenantName={tenantName} />
       <Separator />
       {selectedExecution !== undefined && (
         <div className="px-4">
@@ -189,7 +192,7 @@ function DebugBody({
 
 function useDebugViewState(props: DebugViewProps) {
   const { executions, initialNodeVisits, graph } = props;
-  const state = useExecutionState(executions, initialNodeVisits);
+  const state = useExecutionState(executions, initialNodeVisits, props.initialExecutionId);
   const visitedNodeIds = useMemo(() => deriveVisitedNodeIds(state.nodeVisits), [state.nodeVisits]);
   const errorNodeIds = useMemo(() => deriveErrorNodeIds(state.nodeVisits), [state.nodeVisits]);
   const mutedNodeIds = useMemo(
@@ -232,6 +235,7 @@ export function DebugView(props: DebugViewProps) {
       <DebugBody
         session={session}
         agentName={agentName}
+        tenantName={breadcrumbLabel}
         selectedExecution={selectedExecution}
         errorBannerLabel={t('debug.executionError')}
         canvasAreaProps={canvasAreaProps}

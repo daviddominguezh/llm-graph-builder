@@ -9,6 +9,7 @@ import type { AgentMetadata } from '@/app/lib/agents';
 import { getAgentsByOrg } from '@/app/lib/agents';
 import { fetchFromBackend } from '@/app/lib/backendProxy';
 import {
+  type ExecutionSummaryRow,
   getExecutionsForSession,
   getMessagesForExecution,
   getNodeVisitsForExecution,
@@ -18,14 +19,13 @@ import { getOrgBySlug } from '@/app/lib/orgs';
 
 interface SessionDebugPageProps {
   params: Promise<{ slug: string; tenantId: string; sessionId: string }>;
+  searchParams: Promise<{ execution?: string }>;
 }
 
 async function resolveAgentById(orgId: string, agentId: string) {
   const { agents } = await getAgentsByOrg(orgId);
   return agents.find((a) => a.id === agentId) ?? null;
 }
-
-const FIRST_INDEX = 0;
 
 async function fetchInitialNodeVisits(executionId: string | undefined) {
   if (executionId === undefined) return [];
@@ -44,16 +44,30 @@ function resolveAppType(agent: AgentMetadata): string {
   return typeof rec['app_type'] === 'string' ? (rec['app_type'] as string) : 'workflow';
 }
 
-interface SessionData {
-  slug: string;
-  tenantId: string;
-  session: NonNullable<Awaited<ReturnType<typeof getSessionDetail>>['session']>;
-  agent: AgentMetadata;
-  executions: Awaited<ReturnType<typeof getExecutionsForSession>>['rows'];
+function pickExecution(executions: ExecutionSummaryRow[], targetId: string | undefined): ExecutionSummaryRow | undefined {
+  if (targetId !== undefined) {
+    const match = executions.find((e) => e.id === targetId);
+    if (match !== undefined) return match;
+  }
+  return executions[0];
 }
 
-async function loadSessionData(slug: string, rawTenantId: string, sessionId: string): Promise<SessionData | null> {
-  const tenantId = decodeURIComponent(rawTenantId);
+interface SessionData {
+  slug: string;
+  tenantSlug: string;
+  session: NonNullable<Awaited<ReturnType<typeof getSessionDetail>>['session']>;
+  agent: AgentMetadata;
+  executions: ExecutionSummaryRow[];
+  selectedExecution: ExecutionSummaryRow | undefined;
+}
+
+async function loadSessionData(
+  slug: string,
+  rawTenantSlug: string,
+  sessionId: string,
+  executionId: string | undefined
+): Promise<SessionData | null> {
+  const tenantSlug = decodeURIComponent(rawTenantSlug);
   const { result: org } = await getOrgBySlug(slug);
 
   if (!org) return null;
@@ -68,15 +82,15 @@ async function loadSessionData(slug: string, rawTenantId: string, sessionId: str
   const agent = await resolveAgentById(org.id, sessionResult.session.agent_id);
   if (!agent) return null;
 
-  return { slug, tenantId, session: sessionResult.session, agent, executions: executionsResult.rows };
+  const selectedExecution = pickExecution(executionsResult.rows, executionId);
+
+  return { slug, tenantSlug, session: sessionResult.session, agent, executions: executionsResult.rows, selectedExecution };
 }
 
 async function renderAgentDebug(data: SessionData) {
-  const firstExecution = data.executions[FIRST_INDEX];
-
   const [initialNodeVisits, initialMessages] = await Promise.all([
-    fetchInitialNodeVisits(firstExecution?.id),
-    fetchInitialMessages(firstExecution?.id),
+    fetchInitialNodeVisits(data.selectedExecution?.id),
+    fetchInitialMessages(data.selectedExecution?.id),
   ]);
 
   return (
@@ -85,20 +99,19 @@ async function renderAgentDebug(data: SessionData) {
       executions={data.executions}
       initialNodeVisits={initialNodeVisits}
       initialMessages={initialMessages}
+      initialExecutionId={data.selectedExecution?.id}
       orgSlug={data.slug}
       agentName={data.agent.name}
-      breadcrumbLabel={data.tenantId}
-      breadcrumbSlug={encodeURIComponent(data.tenantId)}
+      breadcrumbLabel={data.tenantSlug}
+      breadcrumbSlug={encodeURIComponent(data.tenantSlug)}
     />
   );
 }
 
 async function renderWorkflowDebug(data: SessionData) {
-  const firstExecution = data.executions[FIRST_INDEX];
-
   const [graphRaw, initialNodeVisits] = await Promise.all([
     fetchFromBackend('GET', `/agents/${data.agent.id}/versions/${String(data.session.version)}`),
-    fetchInitialNodeVisits(firstExecution?.id),
+    fetchInitialNodeVisits(data.selectedExecution?.id),
   ]);
   const graph: Graph = GraphSchema.parse(graphRaw);
 
@@ -107,22 +120,24 @@ async function renderWorkflowDebug(data: SessionData) {
       session={data.session}
       executions={data.executions}
       initialNodeVisits={initialNodeVisits}
+      initialExecutionId={data.selectedExecution?.id}
       graph={graph}
       orgSlug={data.slug}
       agentName={data.agent.name}
-      breadcrumbLabel={data.tenantId}
-      breadcrumbSlug={encodeURIComponent(data.tenantId)}
+      breadcrumbLabel={data.tenantSlug}
+      breadcrumbSlug={encodeURIComponent(data.tenantSlug)}
     />
   );
 }
 
-export default async function SessionDebugPage({ params }: SessionDebugPageProps): Promise<React.JSX.Element> {
-  const { slug, tenantId: rawTenantId, sessionId } = await params;
-  const tenantId = decodeURIComponent(rawTenantId);
+export default async function SessionDebugPage({ params, searchParams }: SessionDebugPageProps): Promise<React.JSX.Element> {
+  const { slug, tenantId: rawTenantSlug, sessionId } = await params;
+  const { execution: executionId } = await searchParams;
+  const tenantSlug = decodeURIComponent(rawTenantSlug);
 
-  const data = await loadSessionData(slug, rawTenantId, sessionId);
+  const data = await loadSessionData(slug, rawTenantSlug, sessionId, executionId);
 
-  if (!data) redirect(`/orgs/${slug}/dashboard/${encodeURIComponent(tenantId)}`);
+  if (!data) redirect(`/orgs/${slug}/dashboard/${encodeURIComponent(tenantSlug)}`);
 
   const isAgentApp = resolveAppType(data.agent) === 'agent';
 

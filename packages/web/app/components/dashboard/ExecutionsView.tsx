@@ -18,6 +18,7 @@ import { useDashboardParams } from './useDashboardParams';
 interface ExecutionsViewProps {
   orgId: string;
   tenantId: string;
+  tenantSlug: string;
   slug: string;
   initialRows: TenantExecutionRow[];
   initialTotal: number;
@@ -29,7 +30,7 @@ function computeTotalPages(totalCount: number): number {
   return Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 }
 
-export function ExecutionsView({ orgId, tenantId, slug, initialRows, initialTotal }: ExecutionsViewProps) {
+export function ExecutionsView({ orgId, tenantId, tenantSlug, slug, initialRows, initialTotal }: ExecutionsViewProps) {
   const t = useTranslations('dashboard');
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -52,10 +53,10 @@ export function ExecutionsView({ orgId, tenantId, slug, initialRows, initialTota
 
   const handleDebug = useCallback(
     (row: TenantExecutionRow) => {
-      const encodedTenant = encodeURIComponent(tenantId);
-      router.push(`/orgs/${slug}/dashboard/${encodedTenant}/sessions/${row.session_id}`);
+      const encodedTenant = encodeURIComponent(tenantSlug);
+      router.push(`/orgs/${slug}/dashboard/${encodedTenant}/sessions/${row.session_id}?execution=${row.id}`);
     },
-    [router, slug, tenantId]
+    [router, slug, tenantSlug]
   );
 
   const columns = useMemo(

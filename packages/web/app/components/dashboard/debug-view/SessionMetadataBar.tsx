@@ -9,6 +9,7 @@ import React from 'react';
 interface SessionMetadataBarProps {
   session: SessionRow;
   agentName: string;
+  tenantName?: string;
 }
 
 interface MetadataItemProps {
@@ -45,11 +46,11 @@ function sessionToTokens(session: SessionRow) {
   };
 }
 
-export function SessionMetadataBar({ session, agentName }: SessionMetadataBarProps) {
+export function SessionMetadataBar({ session, agentName, tenantName }: SessionMetadataBarProps) {
   const t = useTranslations('dashboard.debug');
 
   const items: MetadataItemProps[] = [
-    { label: t('tenant'), value: session.tenant_id },
+    { label: t('tenant'), value: tenantName ?? session.tenant_id },
     { label: t('agent'), value: agentName },
     { label: t('version'), value: `v${String(session.version)}` },
     { label: t('user'), value: session.user_id },

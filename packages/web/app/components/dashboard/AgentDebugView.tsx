@@ -18,6 +18,7 @@ export interface AgentDebugViewProps {
   executions: ExecutionSummaryRow[];
   initialNodeVisits: NodeVisitRow[];
   initialMessages: ExecutionMessageRow[];
+  initialExecutionId?: string;
   orgSlug: string;
   agentName: string;
   breadcrumbLabel: string;
@@ -114,11 +115,12 @@ function AgentDebugPanels(props: AgentDebugViewProps) {
     executions: props.executions,
     initialNodeVisits: props.initialNodeVisits,
     initialMessages: props.initialMessages,
+    initialExecutionId: props.initialExecutionId,
   });
 
   return (
     <div className="px-0 pb-3 flex flex-col gap-0 flex-1 min-h-[0px]">
-      <SessionMetadataBar session={props.session} agentName={props.agentName} />
+      <SessionMetadataBar session={props.session} agentName={props.agentName} tenantName={props.breadcrumbLabel} />
       <TotalStepsBadge count={state.debugData.totalSteps} label={t('agentDebug.totalSteps')} />
       <Separator />
       <ExecutionSelector

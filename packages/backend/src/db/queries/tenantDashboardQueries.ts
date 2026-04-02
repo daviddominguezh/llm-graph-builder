@@ -116,12 +116,17 @@ export async function getTenantSummary(
   const sortCol = params.sortKey ?? 'total_executions';
   const ascending = params.sortDirection === 'asc';
 
-  const query = supabase
+  let query = supabase
     .from('tenant_execution_summary')
     .select('*', { count: 'exact' })
     .eq('org_id', orgId)
     .order(sortCol, { ascending })
     .range(from, to);
+
+  const tenantNameFilter = params.filters?.tenant_name;
+  if (tenantNameFilter !== undefined) {
+    query = query.eq('tenant_name', String(tenantNameFilter));
+  }
 
   const result = await query;
 
