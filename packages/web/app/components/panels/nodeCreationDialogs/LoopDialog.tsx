@@ -1,13 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useTranslations } from 'next-intl';
@@ -26,7 +20,11 @@ interface LoopDialogProps {
   onOpenChange: (open: boolean) => void;
   sourceNodeLabel: string;
   sourceEdgeType: ExistingEdgeType;
-  onCreate: (connection: { type: LoopConnectionType; value: string }, continueValue: string, exitValue: string) => void;
+  onCreate: (
+    connection: { type: LoopConnectionType; value: string },
+    continueValue: string,
+    exitValue: string
+  ) => void;
   servers: McpServerConfig[];
   discoveredTools: Record<string, DiscoveredTool[]>;
 }
@@ -37,10 +35,7 @@ const CONNECTION_COLOR_MAP = {
   tool_call: 'orange',
 } as const;
 
-function isConnectionEnabled(
-  connType: LoopConnectionType,
-  sourceEdgeType: ExistingEdgeType
-): boolean {
+function isConnectionEnabled(connType: LoopConnectionType, sourceEdgeType: ExistingEdgeType): boolean {
   if (sourceEdgeType === 'unset') return true;
   return connType === sourceEdgeType;
 }
@@ -114,12 +109,12 @@ export function LoopDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg h-[500px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-lg h-[500px] flex flex-col">
+        <DialogHeader className="shrink-0">
           <DialogTitle>{t('createLoop')}</DialogTitle>
         </DialogHeader>
         <LoopPreview sourceLabel={sourceNodeLabel} connectionColor={CONNECTION_COLOR_MAP[connectionType]} />
-        <div className="space-y-4 px-1">
+        <div className="space-y-4 px-1 flex-1 mt-2">
           <div className="space-y-2">
             <Label className="text-xs">{t('connectionType')}</Label>
             <div className="inline-flex gap-1 dark:gap-0.5 rounded-sm border bg-muted/50 p-0.5">
@@ -127,19 +122,28 @@ export function LoopDialog({
                 label={t('connectionAgent')}
                 active={connectionType === 'none'}
                 disabled={!isConnectionEnabled('none', sourceEdgeType)}
-                onClick={() => { setConnectionType('none'); setConnectionValue(''); }}
+                onClick={() => {
+                  setConnectionType('none');
+                  setConnectionValue('');
+                }}
               />
               <ConnectionTypeButton
                 label={t('connectionUser')}
                 active={connectionType === 'user_said'}
                 disabled={!isConnectionEnabled('user_said', sourceEdgeType)}
-                onClick={() => { setConnectionType('user_said'); setConnectionValue(''); }}
+                onClick={() => {
+                  setConnectionType('user_said');
+                  setConnectionValue('');
+                }}
               />
               <ConnectionTypeButton
                 label={t('connectionTool')}
                 active={connectionType === 'tool_call'}
                 disabled={!isConnectionEnabled('tool_call', sourceEdgeType)}
-                onClick={() => { setConnectionType('tool_call'); setConnectionValue(''); }}
+                onClick={() => {
+                  setConnectionType('tool_call');
+                  setConnectionValue('');
+                }}
               />
             </div>
           </div>
@@ -164,13 +168,15 @@ export function LoopDialog({
             <Input
               value={exitValue}
               onChange={(e) => setExitValue(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && canCreate) handleCreate(); }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && canCreate) handleCreate();
+              }}
               placeholder={t('exitLoopPlaceholder')}
               className="h-8 text-xs"
             />
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="shrink-0">
           <Button variant="outline" size="sm" onClick={handleCancel}>
             {t('cancel')}
           </Button>

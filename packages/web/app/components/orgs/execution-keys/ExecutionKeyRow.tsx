@@ -106,7 +106,7 @@ export function ExecutionKeyRow({ keyData, onDelete }: ExecutionKeyRowProps) {
   const locale = useLocale();
 
   return (
-    <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-3 rounded-md border px-3 py-2 bg-card">
+    <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-3 rounded-md border px-3 py-2 bg-card transition-colors hover:bg-card/80">
       <KeyIdentity keyData={keyData} />
       <AgentBadges keyData={keyData} />
       <span className="text-muted-foreground text-[11px] whitespace-nowrap">
