@@ -32,7 +32,7 @@ export function SortableTableHeader<T>({
         {columns.map((col, i) => (
           <TableHead
             key={col.key}
-            className={`px-4 ${i === 0 ? 'pl-5' : ''} ${i === columns.length - 1 ? 'pr-5' : ''} ${col.sortable === true ? 'cursor-pointer select-none' : ''}`}
+            className={`px-4 ${i === 0 ? 'pl-5' : ''} ${i === columns.length - 1 ? 'pr-5' : ''} ${col.className ?? ''} ${col.sortable === true ? 'cursor-pointer select-none' : ''}`}
             onClick={col.sortable === true ? () => onSort(col.key) : undefined}
           >
             {col.label}

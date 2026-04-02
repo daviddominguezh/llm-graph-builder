@@ -54,7 +54,7 @@ export function ExecutionsView({ orgId, tenantId, tenantSlug, slug, initialRows,
   const handleDebug = useCallback(
     (row: TenantExecutionRow) => {
       const encodedTenant = encodeURIComponent(tenantSlug);
-      router.push(`/orgs/${slug}/dashboard/${encodedTenant}/sessions/${row.session_id}?execution=${row.id}`);
+      router.push(`/orgs/${slug}/dashboard/${encodedTenant}/sessions/${row.session_db_id}?execution=${row.id}`);
     },
     [router, slug, tenantSlug]
   );

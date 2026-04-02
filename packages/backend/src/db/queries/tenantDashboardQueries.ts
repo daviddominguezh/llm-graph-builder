@@ -82,12 +82,21 @@ async function fetchAgentNameMap(supabase: SupabaseClient, agentIds: string[]): 
   return new Map(agents.map((a) => [a.id, a.name]));
 }
 
+function extractUserSessionId(r: ExecutionRawRow): string {
+  const joined = r.agent_sessions;
+  if (typeof joined === 'object' && joined !== null && 'session_id' in joined) {
+    return toString((joined as Record<string, unknown>).session_id);
+  }
+  return toString(r.session_id);
+}
+
 function mapExecutionRow(r: ExecutionRawRow, agentNameMap: Map<string, string>): TenantExecutionRow {
   return {
     id: toString(r.id),
     agent_id: r.agent_id,
     agent_name: agentNameMap.get(r.agent_id) ?? '',
-    session_id: toString(r.session_id),
+    session_db_id: toString(r.session_id),
+    session_id: extractUserSessionId(r),
     user_id: toString(r.external_user_id),
     channel: toString(r.channel),
     version: toNumber(r.version),
@@ -200,7 +209,7 @@ export async function getExecutionsByTenant(
 
   const baseQuery = supabase
     .from('agent_executions')
-    .select('*', { count: 'exact' })
+    .select('*, agent_sessions!inner(session_id)', { count: 'exact' })
     .eq('org_id', orgId)
     .eq('tenant_id', tenantId)
     .order(sortCol, { ascending })

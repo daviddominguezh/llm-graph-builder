@@ -93,6 +93,7 @@ export interface TenantExecutionRow {
   id: string;
   agent_id: string;
   agent_name: string;
+  session_db_id: string;
   session_id: string;
   user_id: string;
   channel: string;

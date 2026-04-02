@@ -64,7 +64,15 @@ function buildBaseColumns(t: (key: string) => string): Column<TenantExecutionRow
       key: 'status',
       label: t('columns.status'),
       sortable: true,
-      render: (row) => <StatusIcon status={row.status} t={t} />,
+      className: 'text-center',
+      render: (row) => <div className="flex justify-center"><StatusIcon status={row.status} t={t} /></div>,
+    },
+    {
+      key: 'channel',
+      label: t('columns.channel'),
+      sortable: true,
+      className: 'text-center',
+      render: (row) => <span className="font-mono text-xs">{row.channel.toUpperCase()}</span>,
     },
     {
       key: 'agent_name',
@@ -73,10 +81,11 @@ function buildBaseColumns(t: (key: string) => string): Column<TenantExecutionRow
       render: (row) => row.agent_name,
     },
     {
-      key: 'session_id',
-      label: t('columns.sessionId'),
-      sortable: false,
-      render: (row) => <span className="font-mono text-xs">{truncateUuid(row.session_id)}</span>,
+      key: 'version',
+      label: t('columns.version'),
+      sortable: true,
+      className: 'text-center',
+      render: (row) => `v${String(row.version)}`,
     },
     {
       key: 'user_id',
@@ -85,22 +94,16 @@ function buildBaseColumns(t: (key: string) => string): Column<TenantExecutionRow
       render: (row) => row.user_id,
     },
     {
-      key: 'channel',
-      label: t('columns.channel'),
-      sortable: true,
-      render: (row) => <span className="font-mono text-xs">{row.channel.toUpperCase()}</span>,
+      key: 'session_id',
+      label: t('columns.sessionId'),
+      sortable: false,
+      render: (row) => <span className="font-mono text-xs">{truncateUuid(row.session_id)}</span>,
     },
     {
       key: 'model',
       label: t('columns.model'),
       sortable: true,
       render: (row) => row.model,
-    },
-    {
-      key: 'version',
-      label: t('columns.version'),
-      sortable: true,
-      render: (row) => `v${String(row.version)}`,
     },
     {
       key: 'total_cost',
@@ -112,6 +115,7 @@ function buildBaseColumns(t: (key: string) => string): Column<TenantExecutionRow
       key: 'total_duration_ms',
       label: t('columns.totalDuration'),
       sortable: true,
+      className: 'text-center',
       render: (row) => formatDuration(row.total_duration_ms),
     },
     {
