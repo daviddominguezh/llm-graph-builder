@@ -572,6 +572,8 @@
     "deleteCancel": "Cancel",
     "deleteError": "Failed to delete key. Please try again.",
     "noKeys": "No execution API keys yet. Create your first key to start using your agents via API.",
+    "noKeysTitle": "No execution keys yet",
+    "noKeysDescription": "Create an API key to authenticate external callers invoking your published agents.",
     "prefix": "Key",
     "created": "Created",
     "lastUsed": "Last used",

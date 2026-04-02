@@ -5,7 +5,7 @@ import type { AgentMetadata } from '@/app/lib/agents';
 import type { ExecutionKeyRow as ExecutionKeyRowType, ExecutionKeyWithAgents } from '@/app/lib/executionKeys';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus } from 'lucide-react';
+import { Braces, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 
@@ -35,19 +35,32 @@ async function fetchAgentsForKeys(keys: ExecutionKeyRowType[]): Promise<Executio
   return results;
 }
 
-function EmptyState() {
+function EmptyState({ onCreateClick }: { onCreateClick: () => void }) {
   const t = useTranslations('executionKeys');
-  return <p className="text-muted-foreground text-xs bg-card py-2 px-3 rounded-md">{t('noKeys')}</p>;
+
+  return (
+    <div className="flex flex-col items-center gap-2 rounded-md border border-dashed bg-background px-4 py-8 text-center">
+      <Braces className="size-6 text-muted-foreground/50" />
+      <p className="text-sm font-medium">{t('noKeysTitle')}</p>
+      <p className="text-muted-foreground max-w-xs text-xs">{t('noKeysDescription')}</p>
+      <Button variant="outline" size="sm" className="mt-2" onClick={onCreateClick}>
+        <Plus className="size-3.5" />
+        {t('add')}
+      </Button>
+    </div>
+  );
 }
 
 function KeysList({
   keys,
   onDelete,
+  onCreateClick,
 }: {
   keys: ExecutionKeyWithAgents[];
   onDelete: (id: string, name: string) => void;
+  onCreateClick: () => void;
 }) {
-  if (keys.length === 0) return <EmptyState />;
+  if (keys.length === 0) return <EmptyState onCreateClick={onCreateClick} />;
 
   return (
     <div className="flex flex-col gap-2">
@@ -125,7 +138,7 @@ export function ExecutionKeysSection({ orgId, initialKeys, agents }: ExecutionKe
     <Card className="bg-background ring-0">
       <SectionHeader onCreateClick={() => state.setCreateOpen(true)} />
       <CardContent>
-        <KeysList keys={state.keys} onDelete={handleDelete} />
+        <KeysList keys={state.keys} onDelete={handleDelete} onCreateClick={() => state.setCreateOpen(true)} />
       </CardContent>
       <CreateExecutionKeyDialog
         open={state.createOpen}

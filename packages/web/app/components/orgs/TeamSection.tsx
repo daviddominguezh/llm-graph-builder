@@ -33,7 +33,7 @@ function EmptyState({ isOwner, onInvite }: { isOwner: boolean; onInvite: () => v
   const t = useTranslations('team');
 
   return (
-    <div className="flex flex-col items-center gap-2 rounded-md border border-dashed bg-background px-4 py-8 text-center">
+    <div className="flex flex-col items-center gap-2 rounded-md border border-dashed bg-background px-4 py-8 text-center mt-3.5">
       <Users className="size-6 text-muted-foreground/50" />
       <p className="text-sm font-medium">{t('noMembers')}</p>
       <p className="text-xs text-muted-foreground max-w-xs">{t('noMembersDescription')}</p>

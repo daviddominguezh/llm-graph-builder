@@ -88,7 +88,7 @@ function AgentMultiSelect({
 
   return (
     <div className="flex flex-col gap-1">
-      <Label>{t('agents')}</Label>
+      <Label htmlFor="exec-key-agents">{t('agents')}</Label>
       <p className="text-muted-foreground text-xs">{t('agentsDescription')}</p>
       <Combobox
         multiple
@@ -100,7 +100,7 @@ function AgentMultiSelect({
       >
         <ComboboxChips ref={anchor}>
           <AgentChipsList selected={selected} />
-          <ComboboxChipsInput placeholder={t('agentsPlaceholder')} />
+          <ComboboxChipsInput id="exec-key-agents" placeholder={t('agentsPlaceholder')} />
         </ComboboxChips>
         <ComboboxContent anchor={anchor}>
           <ComboboxEmpty>{t('agentsPlaceholder')}</ComboboxEmpty>
@@ -124,7 +124,7 @@ function NameField({ error }: { error: string }) {
   return (
     <div className="flex flex-col gap-1">
       <Label htmlFor="exec-key-name">{t('name')}</Label>
-      <Input id="exec-key-name" name="name" placeholder={t('namePlaceholder')} required />
+      <Input id="exec-key-name" name="name" placeholder={t('namePlaceholder')} required autoFocus />
       {error !== '' && <p className="text-destructive text-xs">{error}</p>}
     </div>
   );
@@ -233,17 +233,18 @@ export function CreateExecutionKeyDialog({
   const options = useMemo(() => buildAgentOptions(agents), [agents]);
   const [allAgents, setAllAgents] = useState(true);
   const [selectedAgents, setSelectedAgents] = useState<AgentOption[]>([]);
-  const { loading, errors, handleSubmit } = useCreateKeyForm(orgId, allAgents, selectedAgents, onCreated);
+  const { loading, errors, handleSubmit, resetErrors } = useCreateKeyForm(orgId, allAgents, selectedAgents, onCreated);
 
   const handleOpenChange = useCallback(
     (next: boolean) => {
       if (next) {
         setAllAgents(true);
         setSelectedAgents([]);
+        resetErrors();
       }
       onOpenChange(next);
     },
-    [onOpenChange]
+    [onOpenChange, resetErrors]
   );
 
   return (
