@@ -46,7 +46,16 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
       if (entries.length === 0) return null;
       return entries.reduce((a, b) => (b.timestamp > a.timestamp ? b : a)).assignee;
     };
-    const status = (chat: ChatWithId): string => chat.status || 'open';
+    const status = (chat: ChatWithId): string => {
+      if (chat.status) return chat.status;
+      if (chat.statuses) {
+        const entries = Object.values(chat.statuses);
+        if (entries.length > 0) {
+          return entries.reduce((a, b) => (b.timestamp > a.timestamp ? b : a)).status;
+        }
+      }
+      return 'open';
+    };
     const count = (fn: (c: ChatWithId) => boolean): number =>
       orderedChats
         .filter(fn)

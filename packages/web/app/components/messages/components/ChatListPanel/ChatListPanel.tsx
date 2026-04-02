@@ -154,9 +154,16 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
   };
 
   // Helper function to get status from chat
-  // Default status is 'open' if no status has been set
+  // Derives from `statuses` map (timestamped entries) when `status` field is not set
   const getChatStatus = (chat: ChatWithId): string => {
-    return chat.status || 'open';
+    if (chat.status) return chat.status;
+    if (chat.statuses) {
+      const entries = Object.values(chat.statuses);
+      if (entries.length > 0) {
+        return entries.reduce((a, b) => (b.timestamp > a.timestamp ? b : a)).status;
+      }
+    }
+    return 'open';
   };
 
   // Filter chats based on active filter (shared between mobile and desktop)

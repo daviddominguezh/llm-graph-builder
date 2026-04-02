@@ -1368,7 +1368,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
           <Slot name="message-input-toolbar" />
 
           {/* Custom Toolbar with Lucide Icons */}
-          <div className="flex items-center justify-between px-2 py-1 border-b border-gray-200">
+          <div className="flex items-center justify-between px-2 py-1 border-b border-ring">
             <div className="flex items-center gap-1">
               <Button
                 onClick={() => handleFormat('bold')}
@@ -1397,7 +1397,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
               >
                 <Strikethrough size={16} />
               </Button>
-              <div className="w-px h-5 bg-gray-300 mx-1" />
+              <div className="w-px h-5 bg-ring mx-1" />
               <Button
                 onClick={() => handleFormat('list', 'ordered')}
                 variant="ghost"
