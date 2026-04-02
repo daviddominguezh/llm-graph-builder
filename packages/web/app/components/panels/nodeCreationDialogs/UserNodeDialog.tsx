@@ -49,6 +49,7 @@ export function UserNodeDialog({ open, onOpenChange, sourceNodeLabel, onCreate }
           <Input
             value={value}
             onChange={(e) => setValue(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && value.trim() !== '') handleCreate(); }}
             placeholder={t('userSaysPlaceholder')}
             className="h-8 text-xs"
             autoFocus

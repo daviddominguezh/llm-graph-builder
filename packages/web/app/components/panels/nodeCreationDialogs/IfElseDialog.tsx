@@ -65,6 +65,7 @@ export function IfElseDialog({ open, onOpenChange, sourceNodeLabel, onCreate }: 
             <Input
               value={branchB}
               onChange={(e) => setBranchB(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && canCreate) handleCreate(); }}
               placeholder={t('branchBPlaceholder')}
               className="h-8 text-xs"
             />

@@ -162,6 +162,7 @@ export function LoopDialog({
             <Input
               value={exitValue}
               onChange={(e) => setExitValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && canCreate) handleCreate(); }}
               placeholder={t('exitLoopPlaceholder')}
               className="h-8 text-xs"
             />
