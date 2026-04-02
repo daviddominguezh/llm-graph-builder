@@ -74,7 +74,7 @@ export function KeyRevealDialog({ open, onOpenChange, fullKey }: KeyRevealDialog
         <KeyDisplay fullKey={fullKey} onCopy={handleCopy} />
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {t('deleteCancel')}
+            {t('close')}
           </Button>
         </DialogFooter>
       </DialogContent>

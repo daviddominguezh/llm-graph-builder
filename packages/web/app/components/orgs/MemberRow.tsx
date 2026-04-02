@@ -40,7 +40,9 @@ function MemberAvatar({ name, email }: { name: string; email: string }) {
   const colorClass = AVATAR_COLORS[hashToIndex(email)] ?? AVATAR_COLORS[0];
 
   return (
-    <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${colorClass}`}>
+    <div
+      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${colorClass}`}
+    >
       {initial}
     </div>
   );
@@ -90,10 +92,10 @@ function RoleSelect({ member, onRoleChange }: Pick<MemberRowProps, 'member' | 'o
 
   return (
     <Select value={member.role} onValueChange={handleChange}>
-      <SelectTrigger className="w-28" size="sm">
+      <SelectTrigger className="w-28 bg-background cursor-pointer hover:bg-input" size="sm">
         <span className="flex flex-1 text-left">{t(`roles.${member.role}`)}</span>
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent side="bottom" alignItemWithTrigger={false}>
         {ORG_ROLES.map((r) => (
           <SelectItem key={r} value={r}>
             {t(`roles.${r}`)}

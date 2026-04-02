@@ -19,8 +19,9 @@ import {
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { LoaderCircle, TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type FormEvent, useMemo, useState } from 'react';
+import { type FormEvent, useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 interface AgentOption {
@@ -178,7 +179,22 @@ function useCreateKeyForm(
     onCreated(result);
   }
 
-  return { loading, errors, handleSubmit };
+  function resetErrors() {
+    setErrors({ nameError: '', agentsError: '' });
+  }
+
+  return { loading, errors, handleSubmit, resetErrors };
+}
+
+function AllAgentsWarning() {
+  const t = useTranslations('executionKeys');
+
+  return (
+    <div className="flex items-start gap-2 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+      <TriangleAlert className="size-3.5 shrink-0 mt-0.5" />
+      <p>{t('allAgentsWarning')}</p>
+    </div>
+  );
 }
 
 function AllAgentsToggle({
@@ -191,7 +207,7 @@ function AllAgentsToggle({
   const t = useTranslations('executionKeys');
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-2">
         <Checkbox
           id="exec-key-all-agents"
@@ -201,6 +217,7 @@ function AllAgentsToggle({
         <Label htmlFor="exec-key-all-agents">{t('allAgents')}</Label>
       </div>
       <p className="text-muted-foreground text-xs">{t('allAgentsDescription')}</p>
+      {checked && <AllAgentsWarning />}
     </div>
   );
 }
@@ -214,12 +231,23 @@ export function CreateExecutionKeyDialog({
 }: CreateExecutionKeyDialogProps) {
   const t = useTranslations('executionKeys');
   const options = useMemo(() => buildAgentOptions(agents), [agents]);
-  const [allAgents, setAllAgents] = useState(false);
+  const [allAgents, setAllAgents] = useState(true);
   const [selectedAgents, setSelectedAgents] = useState<AgentOption[]>([]);
   const { loading, errors, handleSubmit } = useCreateKeyForm(orgId, allAgents, selectedAgents, onCreated);
 
+  const handleOpenChange = useCallback(
+    (next: boolean) => {
+      if (next) {
+        setAllAgents(true);
+        setSelectedAgents([]);
+      }
+      onOpenChange(next);
+    },
+    [onOpenChange]
+  );
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('add')}</DialogTitle>
@@ -238,7 +266,8 @@ export function CreateExecutionKeyDialog({
           <ExpirationField />
           <DialogFooter>
             <Button type="submit" disabled={loading}>
-              {t('add')}
+              {loading && <LoaderCircle className="size-4 animate-spin" />}
+              {loading ? t('creating') : t('add')}
             </Button>
           </DialogFooter>
         </form>
