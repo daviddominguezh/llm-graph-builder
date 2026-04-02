@@ -1,15 +1,7 @@
 import { Collaborator } from '@/app/types/projectInnerSettings';
 import { useIsMobile } from '@/app/utils/device';
 import { Button } from '@/components/ui/button';
-import {
-  CircleCheck,
-  CircleEllipsis,
-  Construction,
-  Inbox,
-  MessagesSquare,
-  UserRoundX,
-  WandSparkles,
-} from 'lucide-react';
+import { CircleAlert, CircleCheck, Inbox, Loader, MessagesSquare, UserRoundX, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { memo, useMemo } from 'react';
 
@@ -79,10 +71,11 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
 
   const allItems: SectionItem[] = [
     { id: 'inbox', label: t('Your inbox'), icon: <Inbox className="size-4" />, badge: badges.inbox },
+    { id: 'all', label: t('All'), icon: <MessagesSquare className="size-4" />, badge: badges.all },
     {
       id: 'with-bot',
       label: t('With bot'),
-      icon: <WandSparkles className="size-4" />,
+      icon: <Zap className="size-4" />,
       badge: badges.withBot,
     },
     {
@@ -91,10 +84,9 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
       icon: <UserRoundX className="size-4" />,
       badge: badges.unassigned,
     },
-    { id: 'open', label: t('Opened'), icon: <CircleEllipsis className="size-4" />, badge: badges.open },
-    { id: 'blocked', label: t('Blocked'), icon: <Construction className="size-4" />, badge: badges.blocked },
+    { id: 'open', label: t('Opened'), icon: <Loader className="size-4" />, badge: badges.open },
+    { id: 'blocked', label: t('Blocked'), icon: <CircleAlert className="size-4" />, badge: badges.blocked },
     { id: 'closed', label: t('Closed'), icon: <CircleCheck className="size-4" />, badge: badges.closed },
-    { id: 'all', label: t('All'), icon: <MessagesSquare className="size-4" />, badge: badges.all },
   ];
 
   return (
