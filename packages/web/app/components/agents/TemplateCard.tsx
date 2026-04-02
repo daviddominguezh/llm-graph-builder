@@ -146,9 +146,11 @@ function TemplateCardStats({ template, versions, selectedVersion, onVersionChang
 /*  TemplateCard                                                        */
 /* ------------------------------------------------------------------ */
 
-function cardBorderClass(selected: boolean): string {
-  if (selected) return 'border-primary ring-1 ring-primary';
-  return 'border-border';
+function cardStateClass(selected: boolean): string {
+  if (selected) {
+    return 'bg-background hover:bg-background! dark:hover:bg-input/30 dark:bg-input/30! ring-1 ring-primary border-solid';
+  }
+  return 'bg-card dark:bg-transparent border-border';
 }
 
 export function TemplateCard({

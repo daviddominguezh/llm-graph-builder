@@ -37,7 +37,7 @@ function AppTypeCard({
     <button
       type="button"
       onClick={onClick}
-      className={`flex h-[82px] cursor-pointer flex-col gap-1 rounded-lg border border-ring/60 dark:border-ring p-3 text-left transition-[border-color,box-shadow,transform] duration-150 dark:hover:bg-input/30 hover:bg-input border-dashed ${active}`}
+      className={`flex flex-1 h-[82px] cursor-pointer flex-col gap-1 rounded-lg border border-ring/60 dark:border-ring p-3 text-left transition-[border-color,box-shadow,transform] duration-150 dark:hover:bg-input/30 hover:bg-input border-dashed ${active}`}
     >
       <div className="flex items-center gap-1.5">
         {icon}
@@ -56,7 +56,7 @@ export function AppTypeCards({ value, onChange }: AppTypeCardsProps) {
   const t = useTranslations('marketplace');
 
   return (
-    <div className="flex gap-2 px-[calc(var(--spacing)*1.8)]">
+    <div className="w-full flex gap-3 px-[calc(var(--spacing)*1.8)]">
       <AppTypeCard
         selected={value === 'workflow'}
         onClick={() => onChange(value === 'workflow' ? null : 'workflow')}
