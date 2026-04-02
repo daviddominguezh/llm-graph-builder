@@ -35,12 +35,12 @@ function makeNodeId(): string {
   return `node_${nanoid(NANOID_LENGTH)}`;
 }
 
-function makeNode(id: string, position: { x: number; y: number }, text: string): Node<RFNodeData> {
+function makeNode(id: string, position: { x: number; y: number }, description: string): Node<RFNodeData> {
   return {
     id,
     type: 'agent',
     position,
-    data: { nodeId: id, text, description: '', nodeWidth: DEFAULT_NODE_WIDTH },
+    data: { nodeId: id, text: '', description, nodeWidth: DEFAULT_NODE_WIDTH },
   };
 }
 
