@@ -23,7 +23,7 @@ function NodeBox({ label, variant = 'source', tintColor, stretch, className }: N
   const base = `flex ${height} items-center justify-center rounded-md border px-3 text-[10px] font-medium`;
   const visual = isNew && tintColor
     ? `border-dashed ${COLORS[tintColor].tint}`
-    : 'border-border bg-card text-foreground shadow-sm';
+    : 'border-border bg-input text-foreground shadow-sm';
 
   return (
     <div className={`${base} ${visual} ${className ?? ''}`}>
@@ -90,7 +90,7 @@ export function LoopPreview({
   connectionColor: PreviewColor;
 }) {
   return (
-    <div className="flex flex-col items-center py-4 px-2">
+    <div className="flex flex-col items-center py-4 px-2 shrink-0">
       <div className="flex items-center gap-1.5" style={{ width: LOOP_W }}>
         <NodeBox label={sourceLabel} className="w-[76px]" />
         <ArrowLine color={connectionColor} />
