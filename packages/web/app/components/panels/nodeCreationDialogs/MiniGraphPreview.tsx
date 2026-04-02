@@ -100,7 +100,7 @@ export function LoopPreview({
       </div>
       <svg viewBox="0 0 352 26" style={{ width: LOOP_W, height: 26 }}>
         <path d={LOOP_BACK} fill="none" className="stroke-purple-500" strokeWidth="1.5" strokeDasharray="4 2" />
-        <polygon points="34,0 42,0 38,6" className="fill-purple-500" />
+        <polygon points="34,6 42,6 38,0" className="fill-purple-500" />
       </svg>
     </div>
   );

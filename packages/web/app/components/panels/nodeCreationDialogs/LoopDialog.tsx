@@ -114,7 +114,7 @@ export function LoopDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg h-[500px]">
         <DialogHeader>
           <DialogTitle>{t('createLoop')}</DialogTitle>
         </DialogHeader>
