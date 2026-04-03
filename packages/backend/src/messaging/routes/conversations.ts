@@ -1,6 +1,7 @@
 import express from 'express';
 import type { Request } from 'express';
 
+import { addAssignee, addStatus } from '../queries/assignmentQueries.js';
 import {
   deleteConversation,
   insertDeletedConversation,
@@ -9,7 +10,7 @@ import {
 } from '../queries/conversationMutations.js';
 import { findConversationByUserChannelId } from '../queries/conversationQueries.js';
 import { getAllMessages, getMessagePage } from '../queries/messageQueries.js';
-import type { ConversationRow } from '../types/index.js';
+import type { AssigneeBody, ConversationRow, StatusBody } from '../types/index.js';
 import type { MessagingResponse } from './routeHelpers.js';
 import {
   HTTP_INTERNAL,
@@ -141,8 +142,44 @@ async function handleDeleteConversation(req: Request, res: MessagingResponse): P
   }
 }
 
+/* POST /projects/:tenantId/conversations/:userId/assignee */
+async function handleAddAssignee(req: Request, res: MessagingResponse): Promise<void> {
+  try {
+    const conversation = await lookupConversation(req, res);
+    if (conversation === null) {
+      res.status(HTTP_NOT_FOUND).json({ error: 'Conversation not found' });
+      return;
+    }
+
+    const body = req.body as AssigneeBody;
+    await addAssignee(getSupabase(res), conversation.id, body.assignee);
+    res.status(HTTP_OK).json({ success: true });
+  } catch (err) {
+    res.status(HTTP_INTERNAL).json({ error: extractErrorMessage(err) });
+  }
+}
+
+/* POST /projects/:tenantId/conversations/:userId/status */
+async function handleAddStatus(req: Request, res: MessagingResponse): Promise<void> {
+  try {
+    const conversation = await lookupConversation(req, res);
+    if (conversation === null) {
+      res.status(HTTP_NOT_FOUND).json({ error: 'Conversation not found' });
+      return;
+    }
+
+    const body = req.body as StatusBody;
+    await addStatus(getSupabase(res), conversation.id, body.status);
+    res.status(HTTP_OK).json({ success: true });
+  } catch (err) {
+    res.status(HTTP_INTERNAL).json({ error: extractErrorMessage(err) });
+  }
+}
+
 export const conversationsRouter = express.Router({ mergeParams: true });
 conversationsRouter.get('/:userId', handleGetMessages);
 conversationsRouter.post('/:userId/read', handleMarkRead);
 conversationsRouter.post('/:userId/chatbot', handleToggleChatbot);
+conversationsRouter.post('/:userId/assignee', handleAddAssignee);
+conversationsRouter.post('/:userId/status', handleAddStatus);
 conversationsRouter.delete('/:userId', handleDeleteConversation);

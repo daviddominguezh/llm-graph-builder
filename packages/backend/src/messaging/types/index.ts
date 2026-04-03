@@ -260,3 +260,18 @@ export interface AiHelperRequest {
 export interface AiHelperResponse {
   text: string;
 }
+
+// --- Route Body Types ---
+
+export interface CreateNoteBody {
+  creator: string;
+  content: string;
+}
+
+export interface AssigneeBody {
+  assignee: string;
+}
+
+export interface StatusBody {
+  status: string;
+}
