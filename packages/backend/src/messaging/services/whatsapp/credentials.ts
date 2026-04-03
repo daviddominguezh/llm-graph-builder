@@ -4,6 +4,7 @@ import {
   getChannelConnection,
   getWhatsAppCredential,
 } from '../../queries/channelQueries.js';
+import { REDIS_KEYS, buildRedisKey } from '../../types/redisKeys.js';
 import { getCachedCredential, setCachedCredential } from '../credentialCache.js';
 
 export interface WhatsAppSendCredentials {
@@ -12,7 +13,7 @@ export interface WhatsAppSendCredentials {
 }
 
 function buildCacheKey(agentId: string, tenantId: string): string {
-  return `wa-cred:${agentId}:${tenantId}`;
+  return buildRedisKey(REDIS_KEYS.CREDENTIAL_CACHE_WA, `${agentId}:${tenantId}`);
 }
 
 function isWhatsAppCredentials(value: unknown): value is WhatsAppSendCredentials {

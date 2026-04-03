@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import type { ProviderSendResult } from '../../types/index.js';
+import { REDIS_KEYS, buildRedisKey } from '../../types/redisKeys.js';
 import { readRedis, setWithTTL } from '../redis.js';
 import { withRetry } from '../retry.js';
 
@@ -69,7 +70,7 @@ async function callWhatsAppApi(
 
 function buildMediaCacheKey(sourceUrl: string): string {
   const hash = createHash('sha256').update(sourceUrl).digest('hex');
-  return `media:${hash}`;
+  return buildRedisKey(REDIS_KEYS.MEDIA_UPLOAD_CACHE, hash);
 }
 
 async function downloadFileBuffer(url: string): Promise<{ buffer: Buffer; contentType: string }> {

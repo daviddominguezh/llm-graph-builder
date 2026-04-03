@@ -1,4 +1,5 @@
 import type { ProviderSendResult } from '../../types/index.js';
+import { REDIS_KEYS, buildRedisKey } from '../../types/redisKeys.js';
 import { waitForRateLimit } from '../rateLimiter.js';
 import { withRetry } from '../retry.js';
 
@@ -19,7 +20,7 @@ interface ErrorWithStatusCode extends Error {
 }
 
 function buildRateLimitKey(igUserId: string): string {
-  return `ratelimit:ig:${igUserId}`;
+  return buildRedisKey(REDIS_KEYS.RATE_LIMIT, `ig:${igUserId}`);
 }
 
 function isInstagramApiResponse(data: unknown): data is InstagramApiResponse {

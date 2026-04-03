@@ -1,6 +1,9 @@
+import { randomUUID } from 'node:crypto';
 import { setTimeout as sleepMs } from 'node:timers/promises';
 
 import { Redis } from '@upstash/redis';
+
+import { REDIS_KEYS, buildRedisKey } from '../types/redisKeys.js';
 
 /* ─── Constants ─── */
 
@@ -36,56 +39,93 @@ export function getRedis(): Redis {
 /* ─── Channel helpers ─── */
 
 export function buildRedisChannel(tenantId: string): string {
-  return `tenant:${tenantId}`;
+  return buildRedisKey(REDIS_KEYS.TENANT_CHANNEL, tenantId);
 }
 
 export async function publishToTenant(tenantId: string, payload: unknown): Promise<void> {
-  const redis = getRedis();
-  const channel = buildRedisChannel(tenantId);
-  await redis.publish(channel, JSON.stringify(payload));
+  try {
+    const redis = getRedis();
+    const channel = buildRedisChannel(tenantId);
+    await redis.publish(channel, JSON.stringify(payload));
+  } catch (err) {
+    process.stdout.write(`[redis] publishToTenant error: ${String(err)}\n`);
+  }
 }
 
 /* ─── Generic read / write ─── */
 
 export async function readRedis<T>(key: string): Promise<T | null> {
-  const redis = getRedis();
-  const data = await redis.get<T>(key);
-  return data ?? null;
+  try {
+    const redis = getRedis();
+    const data = await redis.get<T>(key);
+    return data ?? null;
+  } catch (err) {
+    process.stdout.write(`[redis] readRedis error for key "${key}": ${String(err)}\n`);
+    return null;
+  }
 }
 
 export async function writeRedis(key: string, data: unknown): Promise<void> {
-  const redis = getRedis();
-  await redis.set(key, JSON.stringify(data));
+  if (data === null || data === undefined) return;
+  try {
+    const redis = getRedis();
+    await redis.set(key, JSON.stringify(data));
+  } catch (err) {
+    process.stdout.write(`[redis] writeRedis error for key "${key}": ${String(err)}\n`);
+  }
 }
 
 export async function setWithTTL(key: string, data: unknown, ttlSeconds: number): Promise<void> {
-  const redis = getRedis();
-  await redis.set(key, JSON.stringify(data), { ex: ttlSeconds });
+  if (data === null || data === undefined) return;
+  try {
+    const redis = getRedis();
+    await redis.set(key, JSON.stringify(data), { ex: ttlSeconds });
+  } catch (err) {
+    process.stdout.write(`[redis] setWithTTL error for key "${key}": ${String(err)}\n`);
+  }
 }
 
 export async function deleteKey(key: string): Promise<void> {
-  const redis = getRedis();
-  await redis.del(key);
+  try {
+    const redis = getRedis();
+    await redis.del(key);
+  } catch (err) {
+    process.stdout.write(`[redis] deleteKey error for key "${key}": ${String(err)}\n`);
+  }
 }
 
-/* ─── Distributed locking (Fix 6, 21) ─── */
+/* ─── Distributed locking (R2-4: token-based release) ─── */
 
 /**
  * Acquire a distributed lock using SET NX (atomic).
- * Returns `true` if the lock was acquired, `false` if already held.
+ * Stores a unique token so only the owner can release it.
+ * Returns the token string on success, `null` if already held.
  */
-export async function acquireLock(key: string, ttlSeconds: number): Promise<boolean> {
-  const redis = getRedis();
-  const result = await redis.set(key, 'locked', { nx: true, ex: ttlSeconds });
-  return result === 'OK';
+export async function acquireLock(key: string, ttlSeconds: number): Promise<string | null> {
+  try {
+    const redis = getRedis();
+    const token = randomUUID();
+    const result = await redis.set(key, token, { nx: true, ex: ttlSeconds });
+    return result === 'OK' ? token : null;
+  } catch (err) {
+    process.stdout.write(`[redis] acquireLock error for key "${key}": ${String(err)}\n`);
+    return null;
+  }
 }
 
 /**
- * Release a distributed lock.
+ * Release a distributed lock — only if the stored token matches.
+ * Uses GET + compare + DEL as best-effort (Upstash REST doesn't support EVAL).
  */
-export async function releaseLock(key: string): Promise<void> {
-  const redis = getRedis();
-  await redis.del(key);
+export async function releaseLock(key: string, token: string): Promise<void> {
+  try {
+    const redis = getRedis();
+    const current = await redis.get<string>(key);
+    if (current !== token) return;
+    await redis.del(key);
+  } catch (err) {
+    process.stdout.write(`[redis] releaseLock error for key "${key}": ${String(err)}\n`);
+  }
 }
 
 /* ─── Lock polling helpers ─── */
@@ -94,12 +134,16 @@ function getRemainingTime(deadline: number): number {
   return deadline - Date.now();
 }
 
-async function pollUntilAcquired(key: string, ttlSeconds: number, deadline: number): Promise<boolean> {
+async function pollUntilAcquired(
+  key: string,
+  ttlSeconds: number,
+  deadline: number
+): Promise<string | null> {
   const remaining = getRemainingTime(deadline);
-  if (remaining <= DEADLINE_EXPIRED) return false;
+  if (remaining <= DEADLINE_EXPIRED) return null;
 
-  const acquired = await acquireLock(key, ttlSeconds);
-  if (acquired) return true;
+  const token = await acquireLock(key, ttlSeconds);
+  if (token !== null) return token;
 
   const delay = Math.min(LOCK_POLL_INTERVAL_MS, remaining);
   await sleepMs(delay);
@@ -112,32 +156,40 @@ async function pollUntilAcquired(key: string, ttlSeconds: number, deadline: numb
  *
  * 1. Try to acquire immediately.
  * 2. If another process holds it, poll until it is released, then acquire.
- * 3. Returns `false` if `timeoutMs` expires before the lock is acquired.
+ * 3. Returns the lock token string, or `null` if `timeoutMs` expires.
  */
-export async function waitForLock(key: string, ttlSeconds: number, timeoutMs: number): Promise<boolean> {
+export async function waitForLock(
+  key: string,
+  ttlSeconds: number,
+  timeoutMs: number
+): Promise<string | null> {
   const deadline = Date.now() + timeoutMs;
   return await pollUntilAcquired(key, ttlSeconds, deadline);
 }
 
 /* ─── Subscribe ─── */
 
+interface UpstashMessage {
+  channel?: string;
+  message?: string;
+}
+
 /**
  * Subscribe to a Redis pub/sub channel.
  *
  * Uses @upstash/redis's built-in subscribe (HTTP long-polling).
- * Returns an unsubscribe function (best-effort cleanup — Upstash does not
- * support removing specific listeners, matching closer-back's pattern).
- *
- * The shared namespace subscription model (one subscription per tenant,
- * fanned out to N sockets) is managed by the Socket.io subscription layer,
- * not here. This is the low-level Redis primitive.
+ * Extracts the inner `message` field if present (matches closer-back pattern).
+ * Returns an unsubscribe function (best-effort cleanup).
  */
 export function subscribe(channel: string, callback: (msg: string) => void): () => void {
   const redis = getRedis();
   const subscriber = redis.subscribe<string>(channel);
 
-  subscriber.on('message', (message) => {
-    if (typeof message === 'string') {
+  subscriber.on('message', (message: unknown) => {
+    const upstashMsg = message as UpstashMessage;
+    if (upstashMsg !== null && typeof upstashMsg === 'object' && upstashMsg.message !== undefined) {
+      callback(upstashMsg.message);
+    } else if (typeof message === 'string') {
       callback(message);
     } else {
       callback(JSON.stringify(message));

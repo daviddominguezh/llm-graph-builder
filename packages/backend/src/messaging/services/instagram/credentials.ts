@@ -4,6 +4,7 @@ import {
   getChannelConnection,
   getInstagramCredential,
 } from '../../queries/channelQueries.js';
+import { REDIS_KEYS, buildRedisKey } from '../../types/redisKeys.js';
 import { getCachedCredential, setCachedCredential } from '../credentialCache.js';
 
 export interface InstagramSendCredentials {
@@ -12,7 +13,7 @@ export interface InstagramSendCredentials {
 }
 
 function buildCacheKey(agentId: string, tenantId: string): string {
-  return `ig-cred:${agentId}:${tenantId}`;
+  return buildRedisKey(REDIS_KEYS.CREDENTIAL_CACHE_IG, `${agentId}:${tenantId}`);
 }
 
 function isInstagramCredentials(value: unknown): value is InstagramSendCredentials {

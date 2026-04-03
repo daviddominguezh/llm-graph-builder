@@ -4,6 +4,7 @@ import { findOrCreateConversation } from '../queries/conversationQueries.js';
 import { insertMessage, insertMessageAi } from '../queries/messageQueries.js';
 import { publishToTenant, releaseLock, waitForLock } from '../services/redis.js';
 import type { ChannelConnectionRow, ConversationRow, IncomingMessage } from '../types/index.js';
+import { REDIS_KEYS, buildRedisKey } from '../types/redisKeys.js';
 import { invokeAgent } from './agentInvoker.js';
 import { enrichIncomingMessage } from './mediaEnricher.js';
 import { deliverToProvider } from './messageProcessor.js';
@@ -216,10 +217,10 @@ async function invokeAiWithLock(
   userContent: string,
   tenantId: string
 ): Promise<void> {
-  const lockKey = `reply:${tenantId}:${conversation.user_channel_id}`;
-  const acquired = await waitForLock(lockKey, LOCK_TTL_SECONDS, LOCK_TIMEOUT_MS);
+  const lockKey = buildRedisKey(REDIS_KEYS.REPLY_LOCK, `${tenantId}:${conversation.user_channel_id}`);
+  const token = await waitForLock(lockKey, LOCK_TTL_SECONDS, LOCK_TIMEOUT_MS);
 
-  if (!acquired) {
+  if (token === null) {
     process.stdout.write(`[messaging] Lock timeout for ${lockKey}, skipping AI\n`);
     return;
   }
@@ -230,7 +231,7 @@ async function invokeAiWithLock(
 
     await processAiResponse(supabase, conversation, aiResult.responseText, tenantId);
   } finally {
-    await releaseLock(lockKey);
+    await releaseLock(lockKey, token);
   }
 }
 
