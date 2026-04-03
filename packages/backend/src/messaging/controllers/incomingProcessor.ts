@@ -2,7 +2,7 @@ import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { updateConversationLastMessage } from '../queries/conversationMutations.js';
 import { findOrCreateConversation } from '../queries/conversationQueries.js';
 import { insertMessage, insertMessageAi } from '../queries/messageQueries.js';
-import { publishToTenant } from '../services/redis.js';
+import { publishToTenant, releaseLock, waitForLock } from '../services/redis.js';
 import type { ChannelConnectionRow, ConversationRow, IncomingMessage } from '../types/index.js';
 import { TEST_USER_CHANNEL_ID } from '../types/index.js';
 import { invokeAgent } from './agentInvoker.js';
@@ -10,6 +10,8 @@ import { deliverToProvider } from './messageProcessor.js';
 
 const ZERO_UNANSWERED = 0;
 const INCREMENT = 1;
+const LOCK_TTL_SECONDS = 300;
+const LOCK_TIMEOUT_MS = 120_000; // 2 minutes
 
 /* ─── Upsert end user ─── */
 
@@ -186,10 +188,33 @@ export async function processIncomingMessage(params: ProcessIncomingParams): Pro
   // If AI is disabled, stop here
   if (!conversation.enabled) return;
 
-  const aiResult = await invokeAgent({ supabase, conversation, userMessageContent: incoming.content });
-  if (aiResult === null || aiResult.responseText === '') return;
+  await invokeAiWithLock(supabase, conversation, incoming.content, connection.tenant_id);
+}
 
-  await processAiResponse(supabase, conversation, aiResult.responseText, connection.tenant_id);
+/* ─── Invoke AI with distributed lock for strict turn ordering ─── */
+
+async function invokeAiWithLock(
+  supabase: SupabaseClient,
+  conversation: ConversationRow,
+  userContent: string,
+  tenantId: string
+): Promise<void> {
+  const lockKey = `reply:${tenantId}:${conversation.user_channel_id}`;
+  const acquired = await waitForLock(lockKey, LOCK_TTL_SECONDS, LOCK_TIMEOUT_MS);
+
+  if (!acquired) {
+    process.stdout.write(`[messaging] Lock timeout for ${lockKey}, skipping AI\n`);
+    return;
+  }
+
+  try {
+    const aiResult = await invokeAgent({ supabase, conversation, userMessageContent: userContent });
+    if (aiResult === null || aiResult.responseText === '') return;
+
+    await processAiResponse(supabase, conversation, aiResult.responseText, tenantId);
+  } finally {
+    await releaseLock(lockKey);
+  }
 }
 
 /* ─── Process: test message (invoke AI, no channel delivery) ─── */

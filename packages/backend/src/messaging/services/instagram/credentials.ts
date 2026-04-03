@@ -4,13 +4,23 @@ import {
   getChannelConnection,
   getInstagramCredential,
 } from '../../queries/channelQueries.js';
+import { getCachedCredential, setCachedCredential } from '../credentialCache.js';
 
 export interface InstagramSendCredentials {
   accessToken: string;
   igUserId: string;
 }
 
-export async function resolveInstagramCredentials(
+function buildCacheKey(agentId: string, tenantId: string): string {
+  return `ig-cred:${agentId}:${tenantId}`;
+}
+
+function isInstagramCredentials(value: unknown): value is InstagramSendCredentials {
+  if (value === null || typeof value !== 'object') return false;
+  return 'accessToken' in value && 'igUserId' in value;
+}
+
+async function fetchFromDb(
   supabase: SupabaseClient,
   agentId: string,
   tenantId: string
@@ -27,4 +37,21 @@ export async function resolveInstagramCredentials(
 
   const accessToken = await decryptInstagramToken(supabase, credential.id);
   return { accessToken, igUserId: credential.ig_user_id };
+}
+
+export async function resolveInstagramCredentials(
+  supabase: SupabaseClient,
+  agentId: string,
+  tenantId: string
+): Promise<InstagramSendCredentials> {
+  const cacheKey = buildCacheKey(agentId, tenantId);
+
+  // Tier 1 + 2: in-memory -> Redis
+  const cached = await getCachedCredential(cacheKey);
+  if (isInstagramCredentials(cached)) return cached;
+
+  // Tier 3: DB
+  const credentials = await fetchFromDb(supabase, agentId, tenantId);
+  await setCachedCredential(cacheKey, credentials);
+  return credentials;
 }
