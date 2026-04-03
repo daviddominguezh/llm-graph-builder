@@ -109,9 +109,5 @@ export function createApp(): Express {
   // Messaging routes (auth middleware applied inside the router)
   app.use(messagingRouter);
 
-  // Socket.io will be initialized in Task 24:
-  // import { initializeSocketIO } from './messaging/socket/index.js';
-  // initializeSocketIO(httpServer);
-
   return app;
 }
