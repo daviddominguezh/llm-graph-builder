@@ -6,7 +6,7 @@ Enable agents and workflows to invoke each other via tool calls. A workflow can 
 
 ## Core Abstraction: The Agent Stack
 
-Every session has an `agent_stack` — a JSONB array on `agent_sessions`. Messages always route to the stack top. The external client never changes endpoint or session ID.
+Every session has an agent stack — stored as individual rows in `agent_stack_entries` table (not JSONB on `agent_sessions`). Messages always route to the topmost entry. The external client never changes endpoint or session ID.
 
 ```
 Initial:              stack = [ParentAgent]
@@ -16,41 +16,56 @@ C calls finish:       stack = [ParentAgent, AgentB]  ← B resumes
 B calls finish:       stack = [ParentAgent]           ← Parent resumes
 ```
 
-### Stack Entry Schema
+### Stack Storage: `agent_stack_entries` Table
 
-```typescript
-interface AgentStackEntry {
-  executionId: string;
-  agentConfig: ResolvedAgentConfig;
-  parentExecutionId: string;
-  parentToolOutputMessageId: string;
-  parentSessionState: {
-    currentNodeId: string;
-    structuredOutputs: Record<string, unknown[]>;
-  };
-  appType: 'agent' | 'workflow';
-  dispatchedAt: string; // ISO timestamp for timeout detection
-}
+```sql
+CREATE TABLE agent_stack_entries (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id uuid NOT NULL REFERENCES agent_sessions(id) ON DELETE CASCADE,
+  depth integer NOT NULL,  -- 0 = root, 1 = first child, etc.
+  execution_id uuid NOT NULL REFERENCES agent_executions(id),
+  parent_execution_id uuid REFERENCES agent_executions(id),
+  parent_tool_output_message_id uuid,
+  parent_session_state jsonb,  -- { currentNodeId, structuredOutputs }
+  agent_config jsonb NOT NULL, -- ResolvedAgentConfig
+  app_type text NOT NULL CHECK (app_type IN ('agent', 'workflow')),
+  dispatched_at timestamptz NOT NULL DEFAULT now(),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(session_id, depth)
+);
+
+CREATE INDEX idx_stack_entries_session ON agent_stack_entries(session_id);
+CREATE INDEX idx_stack_entries_execution ON agent_stack_entries(execution_id);
 ```
 
-The `parentSessionState` snapshot preserves the parent's `currentNodeId` and `structuredOutputs` at the moment of dispatch. When the child completes and the parent resumes, these values are restored to `agent_sessions` before the parent's agent loop continues. This prevents the child's execution from overwriting the parent's workflow position.
+**Push = INSERT** a new row with `depth = current_max + 1`. **Pop = DELETE** the row with the highest depth. **Get top = SELECT** with `ORDER BY depth DESC LIMIT 1`. No JSONB rewrites on hot session rows. Each operation is a single-row insert or delete.
+
+### Stack Entry Fields
+
+- `execution_id` — the child's execution
+- `parent_execution_id` — the parent's execution (null for root)
+- `parent_tool_output_message_id` — which message to update on completion
+- `parent_session_state` — snapshot of parent's `currentNodeId` and `structuredOutputs` at dispatch time, restored on resume
+- `agent_config` — the resolved config for this stack level
+- `app_type` — `'agent'` or `'workflow'`
+- `dispatched_at` — ISO timestamp for timeout detection
 
 ### Message Routing
 
 When a message arrives at `/api/agents/:slug/:version`:
 
-1. Load session, check `agent_stack`
-2. Stack empty → route to root agent
-3. Stack non-empty → route to top entry's agent config
+1. Load session, query `agent_stack_entries` for this session (top entry)
+2. No entries → route to root agent
+3. Entry exists → route to top entry's agent config
 4. Execute against top agent's context (system prompt, tools, model, conversation history)
 
 Each agent in the stack has its own conversation history in `agent_execution_messages`, keyed by `execution_id`. Children never see parent messages. Context items are the only cross-boundary data.
 
 ### Nesting Depth
 
-Default maximum: 10 levels. Configurable per agent in the UI. Enforced at dispatch time — if pushing onto the stack would exceed the limit, the dispatch tool returns an error instead of dispatching. This prevents runaway recursive agents.
+Default maximum: 10 levels. Configurable per agent in the UI via `AgentConfig.maxNestingDepth`. Enforced at dispatch time — if pushing onto the stack would exceed the limit, the dispatch tool returns an error instead of dispatching. This prevents runaway recursive agents.
 
-**Future consideration:** The stack model is currently single-child (one active child at a time). A future version will support parallel children by replacing the stack with a tree structure. For now, if the LLM calls multiple dispatch tools in a single step, only the first is executed; the others return an error: `"Only one child dispatch per step is supported."` The architecture should avoid assumptions that make parallel dispatch harder later (e.g., don't hardcode "stack top" checks — use an `activeChildExecutionId` accessor that can evolve).
+**Future consideration:** The stack model is currently single-child (one active child at a time). A future version will support parallel children by allowing multiple entries at the same depth (tree structure). For now, if the LLM calls multiple dispatch tools in a single step, only the first is executed; the others return an error: `"Only one child dispatch per step is supported."` The architecture should avoid assumptions that make parallel dispatch harder later (e.g., use an `activeChildExecutionId` accessor that can evolve into `activeChildExecutionIds`).
 
 ---
 
@@ -106,6 +121,8 @@ Children inherit the parent's security context. No re-authentication needed.
 
 **For `create_agent`:** No slug or `agent_id` exists. The child execution uses the parent's `agent_id` with a special flag (`is_dynamic_child: true`) so it can be distinguished in analytics. Cost tracking uses the parent's `agent_id` but the execution is marked as a dynamic child in `agent_executions`.
 
+**Internal endpoints** (`/internal/execute-child`, `/internal/resume-parent`) use a service-level bearer token. The parent passes its `orgId`, `apiKeyId`, and `executionKeyId` in the request body so the child inherits the full auth context without re-resolving.
+
 ---
 
 ## Tool Name Conflicts
@@ -145,16 +162,19 @@ When you have completed your task, you MUST call the `__system_finish` tool with
 ### What `finish` Triggers
 
 1. Update the parent's tool output message in `agent_execution_messages` — replace the sentinel placeholder with the actual output
-2. Pop the child from `agent_sessions.agent_stack`
-3. Restore parent's session state (`currentNodeId`, `structuredOutputs`) from the stack entry's `parentSessionState`
-4. Trigger parent resumption (see Resume Mechanism below)
-5. Mark the child's execution as completed in `agent_executions`
+2. Delete the child's `agent_stack_entries` row (pop)
+3. Restore parent's session state (`currentNodeId`, `structuredOutputs`) from the stack entry's `parent_session_state`
+4. Write a resume intent to `pending_resumes` table (see Resume Mechanism)
+5. Attempt direct resume via `POST /internal/resume-parent`
+6. Mark the child's execution as completed in `agent_executions`
 
 ### Workflows as Children
 
 No `finish` tool needed. Reaching a terminal node triggers the same pop/resume/update flow. The terminal node's output (text or structured output) becomes the value that replaces the parent's tool output message.
 
 **Constraint:** Child workflows must not contain `user_reply` nodes (nodes with `nextNodeIsUser: true`). This is validated at dispatch time — if the referenced workflow has `user_reply` nodes, the dispatch tool returns an error. Workflows as children must be fully deterministic and complete in one pass.
+
+**In-process optimization:** Since workflow children always complete in one pass (no multi-turn), they execute **in-process within the parent's serverless instance**. No HTTP dispatch, no new instance, no terminate-and-resume. The parent calls the workflow execution function directly, gets the result, and continues. This eliminates 2 unnecessary serverless instance starts per workflow child invocation.
 
 ---
 
@@ -203,6 +223,8 @@ interface AgentConfig {
   contextItems?: ContextItem[];
   mcpServers?: McpServerConfig[];
   skills?: SkillDefinition[];
+  childTimeout?: number;    // seconds, default 600 (10 minutes)
+  maxNestingDepth?: number; // default 10
   // Future: vfs, memory, sandboxes, etc.
 }
 ```
@@ -231,73 +253,105 @@ When `tools: "all"` is specified, the parent's MCP server configs are stored in 
 
 ### Execution Flow on Dispatch
 
+**For agent children (`create_agent` / `invoke_agent`):**
+
 1. Dispatch tool `execute` function returns a `DispatchSentinel` immediately
 2. Agent loop detects the sentinel after the step, stops the loop
 3. The dispatch handler:
    - Validates nesting depth (rejects if at max)
-   - Validates the referenced agent/workflow belongs to the same org
-   - For `invoke_workflow`: validates the workflow has no `user_reply` nodes
+   - Validates the referenced agent belongs to the same org
    - Creates new `agent_executions` record (status: 'running', `parent_execution_id` set)
    - Saves sentinel as tool output message to parent's execution
    - Snapshots parent's session state (`currentNodeId`, `structuredOutputs`)
-   - Pushes stack entry onto `agent_sessions.agent_stack`
-   - Parent's serverless instance terminates
-4. Resume mechanism triggers the child execution (see below)
+   - Inserts stack entry into `agent_stack_entries`
+   - Posts to `/internal/execute-child` and **waits for 2xx acknowledgment** before proceeding
+   - If POST fails: rolls back (deletes stack entry, marks child execution as failed), returns error to agent loop
+4. Parent's serverless instance terminates (only after confirmed child start)
+5. Child instance runs first turn with `task` as initial user message
 
-For `create_agent` / `invoke_agent`: The `task` parameter is inserted as the first user message in the child's execution. The child auto-executes its first turn immediately (no waiting for user input).
+**For workflow children (`invoke_workflow`):**
 
-For `invoke_workflow`: The `user_said` parameter is the initial input. The workflow runs to completion (no multi-turn) — terminal node output triggers immediate parent resumption.
+1-2. Same sentinel detection
+3. The dispatch handler:
+   - Validates the workflow belongs to the same org
+   - Validates workflow has no `user_reply` nodes
+   - **Executes the workflow in-process** (no HTTP dispatch, no new instance)
+   - Returns the terminal node output directly as the tool result
+4. The agent loop continues with the workflow result — no stack push, no terminate-and-resume
 
 ---
 
 ## Resume Mechanism
 
-When a child completes (via `finish` tool or workflow terminal node) or when a child is dispatched, a new serverless instance must be started. This is done via an **authenticated HTTP POST to the backend**.
+When a child agent completes (via `finish` tool) or when an agent child is dispatched, serverless instances must coordinate. This uses a **two-layer approach**: direct HTTP POST for the fast path, with a durable `pending_resumes` table as the reliability layer.
 
-### Child Start (after parent dispatches)
+### Pending Resumes Table
 
-The parent's dispatch handler makes an HTTP POST to an internal endpoint:
+```sql
+CREATE TABLE pending_resumes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id uuid NOT NULL REFERENCES agent_sessions(id),
+  parent_execution_id uuid NOT NULL REFERENCES agent_executions(id),
+  parent_tool_output_message_id uuid NOT NULL,
+  child_output text NOT NULL,
+  child_status text NOT NULL CHECK (child_status IN ('success', 'error')),
+  parent_session_state jsonb NOT NULL,
+  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+  attempts integer NOT NULL DEFAULT 0,
+  last_attempt_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  -- Idempotency: one resume per parent execution
+  UNIQUE(parent_execution_id)
+);
 
+CREATE INDEX idx_pending_resumes_status ON pending_resumes(status) WHERE status = 'pending';
 ```
-POST /internal/execute-child
-Authorization: Bearer <service-key>
-Body: {
-  sessionId,
-  executionId: <child-execution-id>,
-  initialMessage: <task or user_said>,
-  agentConfig: <resolved config>,
-  orgId,
-  apiKeyId,
-  mcpServerConfigs: [...],  // if tools: "all"
-}
-```
 
-This is an internal-only endpoint (not exposed publicly). It starts the child execution on a new serverless instance.
+### Child Start (after parent dispatches agent child)
+
+The parent's dispatch handler:
+
+1. POSTs to `/internal/execute-child` with the child's config, auth context (`orgId`, `apiKeyId`, `executionKeyId`), and initial message
+2. **Waits for 2xx response** (the child endpoint returns 2xx immediately upon accepting the work, before executing)
+3. If 2xx: parent terminates
+4. If non-2xx or timeout: parent rolls back (delete stack entry, mark child failed, return error to agent loop)
+
+The child endpoint is **idempotent**: it checks if the execution already exists (by `executionId`) before starting. Duplicate POSTs are safe.
 
 ### Parent Resume (after child completes)
 
-The child's completion handler makes an HTTP POST:
+The child's completion handler:
 
+1. Writes a row to `pending_resumes` (durable intent — survives any subsequent failure)
+2. Updates parent's tool output message in `agent_execution_messages`
+3. Deletes the stack entry (pop)
+4. Restores parent session state on `agent_sessions`
+5. Marks child execution as completed
+6. Attempts direct `POST /internal/resume-parent`
+7. If POST succeeds: marks `pending_resumes` row as `completed`
+8. If POST fails: row stays `pending` — the resume worker will pick it up
+
+### Resume Worker
+
+A background worker (or pg_cron job) runs every 5 seconds:
+
+```sql
+SELECT * FROM pending_resumes
+WHERE status = 'pending'
+  AND (last_attempt_at IS NULL OR last_attempt_at < now() - interval '5 seconds')
+ORDER BY created_at
+LIMIT 10
+FOR UPDATE SKIP LOCKED
 ```
-POST /internal/resume-parent
-Authorization: Bearer <service-key>
-Body: {
-  sessionId,
-  parentExecutionId,
-  parentToolOutputMessageId,
-  childOutput: <finish output or terminal node output>,
-  childStatus: <success or error>,
-  parentSessionState: { currentNodeId, structuredOutputs },
-}
-```
 
-This endpoint:
-1. Updates the parent's tool output message with `childOutput`
-2. Restores the parent's session state
-3. Pops the stack entry
-4. Resumes the parent's agent loop (loads messages, continues from where it left off)
+For each pending resume:
+1. Set status = 'processing', increment attempts, set last_attempt_at
+2. POST to `/internal/resume-parent`
+3. If success: set status = 'completed'
+4. If failure and attempts < 10: set status = 'pending' (will retry)
+5. If failure and attempts >= 10: set status = 'failed', mark parent execution as failed
 
-Both internal endpoints use a service-level bearer token (not user-facing execution keys) for authentication.
+The resume endpoint is **idempotent**: it checks if the parent is already resumed (execution status, stack state) before processing.
 
 ---
 
@@ -309,44 +363,57 @@ Children can fail in multiple ways. The system uses a layered detection approach
 
 The child execution handler wraps all work in a try/catch. On any uncaught exception:
 1. Mark child's `agent_executions.status = 'failed'` with error message
-2. Update parent's tool output message with error: `{ status: 'error', output: 'Child execution failed: <error>' }`
-3. Pop the stack entry, restore parent session state
-4. Trigger parent resumption via `POST /internal/resume-parent`
+2. Write a `pending_resumes` row with `child_status = 'error'` and the error message as output
+3. Update parent's tool output message with the error
+4. Delete the stack entry, restore parent session state
+5. Attempt direct `POST /internal/resume-parent`
 
 This handles: runtime exceptions, model API failures, MCP tool failures, out-of-memory, etc.
 
-### Layer 2: Detect edge function / serverless platform errors
+### Layer 2: Detect child start failure
 
-If the serverless platform itself fails (e.g., cold start timeout, infrastructure error), the HTTP POST to `/internal/execute-child` returns a non-2xx status. The parent's dispatch handler:
-1. Detects the failure
-2. Rolls back: removes stack entry, marks child execution as failed
-3. Returns an error to the parent's agent loop (the dispatch tool "failed"), allowing the parent to continue or surface the error
+If `/internal/execute-child` returns non-2xx, the parent (still alive at this point) rolls back:
+1. Delete stack entry, mark child execution as failed
+2. Return error to agent loop (dispatch tool "failed")
+3. Parent continues or surfaces the error
 
 ### Layer 3: Timeout (last resort)
 
-A configurable timeout per agent, with a default of **10 minutes**. Stored in `AgentConfig` as `childTimeout` (in seconds). Displayed and editable in the agent editor UI.
+A configurable timeout per agent, with a default of **10 minutes**. Stored in `AgentConfig` as `childTimeout` (in seconds). Displayed and editable in the agent editor UI with an explicit default value shown.
 
-**Implementation:** A scheduled job (cron or Supabase pg_cron) runs every minute:
+**Implementation:** A scheduled job (pg_cron) runs every minute:
 
 ```sql
--- Find orphaned parent executions
-SELECT ae.id, ae.session_id, ase.agent_stack
-FROM agent_executions ae
-JOIN agent_sessions ase ON ase.id = ae.session_id
+SELECT ase.id, ase.session_id, ase.execution_id, ase.parent_execution_id,
+       ase.parent_tool_output_message_id, ase.parent_session_state
+FROM agent_stack_entries ase
+JOIN agent_executions ae ON ae.id = ase.execution_id
 WHERE ae.status = 'running'
-  AND jsonb_array_length(ase.agent_stack) > 0
-  AND (ase.agent_stack->-1->>'dispatchedAt')::timestamptz
-      + interval '1 second' * <childTimeout>
-      < now()
+  AND ase.dispatched_at + interval '1 second' * <childTimeout> < now()
+  AND NOT EXISTS (
+    SELECT 1 FROM pending_resumes pr
+    WHERE pr.parent_execution_id = ase.parent_execution_id
+      AND pr.status IN ('pending', 'processing')
+  )
 ```
 
-For each orphaned execution:
+For each timed-out entry:
 1. Mark child as failed: `agent_executions.status = 'failed'`, error: `'Child execution timed out'`
-2. Update parent's tool output with error
-3. Pop stack, restore parent session state
-4. Trigger parent resumption
+2. Write `pending_resumes` row with error status
+3. Delete stack entry, restore parent session state
+4. The resume worker handles the actual parent resumption
 
 The timeout is the **last resort** — Layers 1 and 2 should catch the vast majority of failures immediately.
+
+---
+
+## Session Locking
+
+**For user-facing requests** (external API calls, simulate): Keep existing `FOR UPDATE NOWAIT`. If locked, return 429 immediately — the client retries.
+
+**For internal/system requests** (resume-parent, execute-child): Use `FOR UPDATE` with a `statement_timeout` of 10 seconds. These operations must not fail silently — they retry via the `pending_resumes` worker if they can't acquire the lock immediately.
+
+This split prevents internal coordination from competing with user-facing requests in a way that causes hard failures.
 
 ---
 
@@ -354,15 +421,17 @@ The timeout is the **last resort** — Layers 1 and 2 should catch the vast majo
 
 ### Schema Changes
 
-**`agent_sessions` — new column:**
-- `agent_stack` JSONB DEFAULT '[]' — the stack of active child agents
+**New table:** `agent_stack_entries` (see Core Abstraction section above)
+
+**New table:** `pending_resumes` (see Resume Mechanism section above)
 
 **`agent_executions` — new columns:**
 - `parent_execution_id` uuid REFERENCES agent_executions(id) — null for top-level, set for children
 - `is_dynamic_child` boolean DEFAULT false — true for `create_agent` children (no slug)
 
-**Index:**
+**Indexes:**
 - `CREATE INDEX idx_agent_executions_parent ON agent_executions(parent_execution_id) WHERE parent_execution_id IS NOT NULL`
+- `CREATE INDEX idx_agent_executions_top_level ON agent_executions(org_id, agent_id, version) WHERE parent_execution_id IS NULL AND status = 'completed'` — supports the execution summary view
 
 ### Dispatch Sequence (Agent Children)
 
@@ -373,8 +442,9 @@ The timeout is the **last resort** — Layers 1 and 2 should catch the vast majo
    - Resolves agent config from slug (must be same org)
    - Creates new `agent_executions` record (status: 'running', `parent_execution_id` set)
    - Saves sentinel as tool output message to parent's execution
-   - Snapshots parent session state, pushes stack entry
-   - Posts to `/internal/execute-child`
+   - Snapshots parent session state, inserts stack entry
+   - Posts to `/internal/execute-child`, waits for 2xx ack
+   - On failure: rolls back stack entry and child execution
 5. Parent's execution stays status: 'running' (suspended)
 6. Parent instance terminates
 7. Child instance starts → inserts `task` as user message → runs child's first turn
@@ -382,13 +452,18 @@ The timeout is the **last resort** — Layers 1 and 2 should catch the vast majo
 9. User sends next message → routed to child (stack top) → child continues
 10. Child calls `__system_finish(output, status)` → Layers 1-3 completion flow → resume parent
 
-### Dispatch Sequence (Workflow Children)
+### Dispatch Sequence (Workflow Children — In-Process)
 
 1. Parent calls `__system_invoke_workflow({ workflowSlug: 'order-flow', user_said: 'return item' })`
-2. Same steps 2-6 as above
-3. Child instance starts → runs workflow with `user_said` → traverses graph to terminal node
-4. Terminal node reached → output captured → completion flow → resume parent
-5. Workflows complete in one server-side chain (no multi-turn)
+2. `execute` function returns `DispatchSentinel`
+3. Agent loop detects sentinel
+4. Dispatch handler executes the workflow **in-process**:
+   - Resolves workflow graph from slug (must be same org)
+   - Validates no `user_reply` nodes
+   - Calls workflow execution function directly with `user_said` as input
+   - Gets terminal node output
+5. Returns the output as the tool result — agent loop continues with it
+6. No stack push, no terminate-and-resume, no HTTP dispatch
 
 ### Cost Tracking
 
@@ -396,15 +471,11 @@ Each child execution tracks its own costs in `agent_executions`. Parent does NOT
 
 **Dynamic children (`create_agent`):** Use the parent's `agent_id` with `is_dynamic_child = true`. This keeps cost attribution under the parent agent but allows filtering in analytics.
 
-**`agent_execution_summary` materialized view:** Add a `WHERE parent_execution_id IS NULL` filter to exclude child executions from top-level counts. Child costs are accessible via the parent's drill-down view.
+**`agent_execution_summary` view:** Uses the `idx_agent_executions_top_level` partial index with `WHERE parent_execution_id IS NULL` to exclude child executions from top-level counts.
 
 ### Conversation History Isolation
 
 Messages are loaded by `execution_id`, not `session_id`, when a child is active. The current `getSessionMessages` function is modified to accept an optional `executionId` parameter. When provided, it filters by `execution_id` instead of loading all session messages.
-
-### Session Locking
-
-Existing `lock_session_for_update` unchanged. One message at a time — lock, check stack top, route, execute, unlock. The lock is acquired before stack inspection and held through the entire execution, ensuring atomicity during the dispatch-to-child-start transition.
 
 ---
 
@@ -451,39 +522,41 @@ The agent editor UI displays a "Child execution timeout" field (in the advanced/
 CREATE TABLE agent_execution_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   execution_id uuid NOT NULL REFERENCES agent_executions(id),
-  sequence integer NOT NULL GENERATED ALWAYS AS IDENTITY,
+  org_id uuid NOT NULL,  -- denormalized for fast RLS checks
+  sequence integer NOT NULL DEFAULT 0,  -- per-execution counter, set by application
   event_type text NOT NULL,
   payload jsonb NOT NULL,
   created_at timestamptz DEFAULT now(),
   UNIQUE(execution_id, sequence)
 );
 
+CREATE INDEX idx_execution_events_replay ON agent_execution_events(execution_id, sequence);
+
 ALTER TABLE agent_execution_events ENABLE ROW LEVEL SECURITY;
 
--- SELECT: org members can read events for their org's executions
+-- SELECT: org members can read events (uses denormalized org_id, no join needed)
 CREATE POLICY "org_members_select_events" ON agent_execution_events
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM agent_executions ae
-      WHERE ae.id = agent_execution_events.execution_id
-        AND is_org_member(ae.org_id)
-    )
-  );
+  FOR SELECT USING (is_org_member(org_id));
 
--- INSERT: service role only (backend inserts events)
--- No explicit INSERT policy needed — backend uses service role key which bypasses RLS
+-- INSERT: service role only (backend inserts events, bypasses RLS)
 ```
 
-**Sequence generation:** Uses `GENERATED ALWAYS AS IDENTITY` — a global auto-increment. This is monotonically increasing within each execution (since events are inserted sequentially per execution) and works correctly with the `?after=<sequence>` replay mechanism. No application-level counter needed.
+**Sequence generation:** Application-level per-execution counter. The backend maintains a counter per execution and increments it for each event. This avoids global sequence contention and guarantees monotonic ordering within each execution. The counter is a simple in-memory integer that starts at 0 and increments — no database round-trip needed for sequence allocation.
 
-Every SSE event gets persisted to this table before being sent to the client.
+**`org_id` denormalization:** The `org_id` column is copied from `agent_executions` at insert time. This avoids the expensive JOIN in the SELECT RLS policy that was flagged in the scalability review.
+
+### Event Persistence Scope
+
+**Production API path:** All events are persisted. Replay is needed for SSE handoff during child dispatch/resume.
+
+**Simulate (preview) path:** Events are NOT persisted by default. The simulate path is ephemeral — no session, no execution records, no replay needed. A `persistEvents` flag on the execution context controls this. This eliminates unnecessary write load during development/testing.
 
 ### New Event Types
 
 - `child_dispatched` — emitted by parent before terminating: `{ childExecutionId, childAgentSlug?, childAppType, task }`
 - `child_completed` — emitted by child on completion: `{ parentExecutionId, output, status }`
 
-All existing event types remain unchanged and also get persisted.
+All existing event types remain unchanged and also get persisted (in production path).
 
 ### Replay Support
 
@@ -513,7 +586,7 @@ If `after` omitted, start from beginning or live-only if execution hasn't starte
 **`stream=false`:** No SSE. Each API call is one turn, routed to stack top, response returned synchronously. No connection management needed.
 
 - When a child agent is multi-turn: the API call returns the child's response (e.g., a question to the user). Subsequent API calls route to the child. When the child calls `finish`, the parent resumes and the parent's response is returned in that same API call.
-- For workflows-as-children: the entire child→parent chain completes in one API call.
+- For workflows-as-children: executed in-process, result returned in same API call. No SSE involvement.
 
 ---
 
@@ -523,39 +596,42 @@ If `after` omitted, start from beginning or live-only if execution hasn't starte
 - `packages/api/src/tools/finishTool.ts` — The `__system_finish` tool definition with `FinishSentinel`
 - `packages/api/src/tools/dispatchTools.ts` — `__system_create_agent`, `__system_invoke_agent`, `__system_invoke_workflow` with `DispatchSentinel`
 - `packages/api/src/types/agentConfig.ts` — Unified `AgentConfig` interface (stored config shape)
-- `packages/api/src/core/agentStack.ts` — Stack push/pop/routing logic, parent state snapshot/restore
+- `packages/api/src/core/agentStack.ts` — Stack push/pop/routing logic via `agent_stack_entries` table
 - `packages/api/src/core/childDispatcher.ts` — Dispatch orchestration, child start, parent resume
 - `packages/api/src/core/sentinelDetector.ts` — Post-step sentinel detection in tool results
-- `packages/backend/src/routes/internal/executeChildHandler.ts` — `/internal/execute-child` endpoint
-- `packages/backend/src/routes/internal/resumeParentHandler.ts` — `/internal/resume-parent` endpoint
+- `packages/backend/src/routes/internal/executeChildHandler.ts` — `/internal/execute-child` endpoint (idempotent)
+- `packages/backend/src/routes/internal/resumeParentHandler.ts` — `/internal/resume-parent` endpoint (idempotent)
+- `packages/backend/src/workers/resumeWorker.ts` — Background worker processing `pending_resumes`
 - `packages/web/app/components/dashboard/ExecutionBreadcrumb.tsx` — Breadcrumb navigation for nested executions
-- `supabase/migrations/YYYYMMDD_agent_composition.sql` — Schema changes (agent_stack, parent_execution_id, agent_execution_events)
+- `supabase/migrations/YYYYMMDD_agent_composition.sql` — Schema changes (agent_stack_entries, pending_resumes, parent_execution_id, agent_execution_events)
 
 ### Modified files
 - `packages/api/src/agentLoop/agentLoop.ts` — Post-step sentinel detection, new exit conditions for finish/dispatch
 - `packages/api/src/agentLoop/agentLoopTypes.ts` — `AgentLoopResult` extended with `dispatchResult?` and `finishResult?` fields
-- `packages/api/src/core/index.ts` — Workflow terminal node triggers child completion flow when session has parent
+- `packages/api/src/core/index.ts` — Workflow terminal node triggers child completion flow when session has parent; in-process workflow execution for `invoke_workflow`
 - `packages/api/src/core/toolCallExecutor.ts` — Inject system tools alongside MCP tools
 - `packages/api/src/stateMachine/index.ts` — Inject dispatch tools into workflow node tool sets via `toolsByEdge` augmentation
-- `packages/backend/src/routes/execute/executeHandler.ts` — Stack-based message routing, dispatch/resume orchestration
-- `packages/backend/src/routes/execute/executePersistence.ts` — Persist events to `agent_execution_events`, handle stack updates
-- `packages/backend/src/routes/execute/executeFetcher.ts` — Load `agent_stack` from session, execution-scoped message retrieval
+- `packages/backend/src/routes/execute/executeHandler.ts` — Stack-based message routing, dispatch/resume orchestration, split locking (NOWAIT for users, FOR UPDATE for internal)
+- `packages/backend/src/routes/execute/executePersistence.ts` — Persist events to `agent_execution_events`, handle stack updates via `agent_stack_entries`
+- `packages/backend/src/routes/execute/executeFetcher.ts` — Load stack top from `agent_stack_entries`, execution-scoped message retrieval
 - `packages/backend/src/routes/execute/executeAgentPath.ts` — Dispatch detection, MCP config inheritance
-- `packages/backend/src/db/queries/executionQueries.ts` — `parent_execution_id` in `createExecution`, `agent_stack` updates, execution-scoped `getSessionMessages`
-- `packages/backend/src/routes/simulateHandler.ts` — Same dispatch/resume flow for simulate path
+- `packages/backend/src/db/queries/executionQueries.ts` — `parent_execution_id` in `createExecution`, stack entry CRUD, execution-scoped `getSessionMessages`, `pending_resumes` operations
+- `packages/backend/src/routes/simulateHandler.ts` — Same dispatch/resume flow for simulate path (without event persistence)
 - `packages/backend/src/routes/simulateAgentHandler.ts` — Same for agent simulate
-- `packages/backend/src/routes/simulate.ts` — Event persistence for simulate SSE events
-- `packages/backend/src/routes/simulateAgentSse.ts` — Event persistence for agent simulate SSE events
+- `packages/backend/src/routes/simulate.ts` — Conditional event persistence based on `persistEvents` flag
+- `packages/backend/src/routes/simulateAgentSse.ts` — Same conditional persistence
 - `packages/backend/src/server.ts` — Register `/internal/execute-child` and `/internal/resume-parent` routes
 - `packages/web/app/hooks/useSimulation.ts` — SSE connection stack management
 - `packages/web/app/lib/api.ts` — Replay support (`?after=`), new event types, connection stack state machine
 - `packages/web/app/components/dashboard/node-inspector/` — Child execution display + drill-down link
-- `packages/web/app/components/agent-editor/` — Child timeout configuration field
+- `packages/web/app/components/agent-editor/` — Child timeout configuration field, nesting depth configuration
 
 ### Schema changes
-- `agent_sessions` — add `agent_stack JSONB DEFAULT '[]'` column
+- New table: `agent_stack_entries` with indexes
+- New table: `pending_resumes` with indexes
+- New table: `agent_execution_events` with RLS policies and indexes
 - `agent_executions` — add `parent_execution_id uuid REFERENCES agent_executions(id)`, add `is_dynamic_child boolean DEFAULT false`
 - `agent_executions` — add index `idx_agent_executions_parent` on `parent_execution_id`
-- `agent_execution_summary` — add `WHERE parent_execution_id IS NULL` filter
-- New table: `agent_execution_events` with RLS policies
+- `agent_executions` — add partial index `idx_agent_executions_top_level` for summary view
+- `agent_execution_summary` view — add `WHERE parent_execution_id IS NULL` filter
 - `agent_execution_messages` — add UPDATE policy for service role (to replace sentinel with child output)
