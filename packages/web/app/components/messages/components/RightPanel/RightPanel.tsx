@@ -1,40 +1,8 @@
-
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocale, useTranslations } from 'next-intl';
-import NextImage from 'next/image';
-import Avatar from 'react-nice-avatar';
-import { useParams } from 'next/navigation';
-
-import {
-  AtSign,
-  ChevronDown,
-  ChevronRight,
-  CircleUser,
-  ClipboardList,
-  History,
-  IdCard,
-  Image as ImageIcon,
-  Map as MapIcon,
-  MapPin,
-  NotepadText,
-  Tag,
-  VenusAndMars,
-  X,
-} from 'lucide-react';
-
-import {
-  deleteNote,
-  getActivity,
-  getFinalUserInfo,
-  getNotes,
-  getUserPictureByEmailCached,
-  setChatTags,
-} from '@/app/components/messages/services/api';
-
-import { TAG_COLORS } from '@/app/components/messages/chatSettings/tagsUtils';
-
-import { MultiSelect } from '@/app/components/messages/shared/stubs';
-import type { MultiSelectOption } from '@/app/components/messages/shared/stubs';
+import { deleteNote, getNotes, getUserPictureByEmailCached } from '@/app/components/messages/services/api';
+import type { Conversation } from '@/app/types/chat';
+import { generateAvatarConfig } from '@/app/utils/avatar';
+import { useIsMobile } from '@/app/utils/device';
+import { formatTimestamp, formatWhatsapp } from '@/app/utils/strs';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -46,23 +14,16 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-
-import { generateAvatarConfig } from '@/app/utils/avatar';
-import { useIsMobile } from '@/app/utils/device';
-import { formatTimestamp, formatWhatsapp } from '@/app/utils/strs';
-
 import { cn } from '@/lib/utils';
-
-import type { Conversation } from '@/app/types/chat';
-import { FinalUserInfoAPI } from '@/app/types/finalUsers';
+import { ChevronDown, ChevronRight, Image as ImageIcon, NotepadText, X } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+import NextImage from 'next/image';
+import { useParams } from 'next/navigation';
+import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
+import Avatar from 'react-nice-avatar';
 
 import { useChat } from '../../core/contexts';
 import { Slot } from '../../core/slots';
-import { UserCard } from './UserCard';
-
-interface UserInfoCache {
-  [chatId: string]: FinalUserInfoAPI;
-}
 
 interface RightPanelProps {
   activeChat: string | null;
@@ -108,26 +69,13 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
   const t = useTranslations('messages');
   const locale = useLocale();
   const params = useParams();
-  const projectName = typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? 'nike');
+  const projectName =
+    typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? 'nike');
   const isMobile = useIsMobile();
-  const {
-    notes,
-    setNotes,
-    notesRefreshTrigger,
-    triggerNotesRefresh,
-    activities,
-    setActivities,
-    availableTags,
-    currentChat,
-    updateChatTags,
-  } = useChat();
+  const { notes, setNotes, notesRefreshTrigger, triggerNotesRefresh } = useChat();
 
   // Ref to track the current active chat (to prevent race conditions)
   const activeChatRef = useRef<string | null>(activeChat);
-
-  // State for caching user info per chat
-  const [userInfoCache, setUserInfoCache] = useState<UserInfoCache>({});
-  const [currentUserInfo, setCurrentUserInfo] = useState<FinalUserInfoAPI | null>(null);
 
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(['info', 'notes', 'tags', 'activity', 'media'])
@@ -141,29 +89,11 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   // State for selected tags per chat
-  const [selectedTagsByChat, setSelectedTagsByChat] = useState<Record<string, string[]>>({});
 
   // Update ref whenever activeChat changes
   useEffect(() => {
     activeChatRef.current = activeChat;
   }, [activeChat]);
-
-  // Calculate member since date from first message
-  const memberSince = useMemo(() => {
-    if (!messages || Object.keys(messages).length === 0) {
-      return t('Unknown');
-    }
-
-    // Find the oldest message (first message)
-    const messageArray = Object.values(messages);
-    const oldestMessage = messageArray.reduce((oldest, current) => {
-      return current.timestamp < oldest.timestamp ? current : oldest;
-    });
-
-    // Format the date using the user's locale
-    const date = new Date(oldestMessage.timestamp);
-    return date.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
-  }, [messages, t, locale]);
 
   // Extract images from conversation messages
   const mediaImages = useMemo(() => {
@@ -190,37 +120,15 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
       if (!activeChat || !projectName) {
         // Clear notes and activities when no chat is active
         setNotes({});
-        setActivities({});
-        setCurrentUserInfo(null);
+
         return;
       }
 
       // Capture the current chat ID at the time of the effect
       const chatIdAtFetchTime = activeChat;
 
-      // Show cached data immediately if available
-      if (userInfoCache[chatIdAtFetchTime]) {
-        setCurrentUserInfo(userInfoCache[chatIdAtFetchTime]);
-      }
-
       // Fetch all data in parallel
-      await Promise.all([
-        fetchUserInfoData(projectName, chatIdAtFetchTime),
-        fetchNotesData(projectName, chatIdAtFetchTime),
-        fetchActivitiesData(projectName, chatIdAtFetchTime),
-      ]);
-    };
-
-    const fetchUserInfoData = async (project: string, chatId: string) => {
-      try {
-        const userInfo = await getFinalUserInfo(project, chatId);
-        if (activeChatRef.current === chatId) {
-          setCurrentUserInfo(userInfo);
-          setUserInfoCache((prev) => ({ ...prev, [chatId]: userInfo }));
-        }
-      } catch (error) {
-        console.error('Error fetching user info:', error);
-      }
+      await Promise.all([fetchNotesData(projectName, chatIdAtFetchTime)]);
     };
 
     const fetchNotesData = async (project: string, chatId: string) => {
@@ -234,37 +142,8 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
       }
     };
 
-    const fetchActivitiesData = async (project: string, chatId: string) => {
-      try {
-        const fetchedActivities = await getActivity(project, chatId);
-        if (activeChatRef.current === chatId) {
-          setActivities(fetchedActivities);
-        }
-      } catch (error) {
-        console.error('Error fetching activities:', error);
-      }
-    };
-
     run();
-  }, [activeChat, projectName, notesRefreshTrigger, setActivities, setNotes]);
-
-  // Initialize selected tags from currentChat when chat changes.
-  // Uses functional updater to read current state without adding selectedTagsByChat as a dep.
-  // Deferred via queueMicrotask to avoid synchronous cascading renders.
-  useEffect(() => {
-    if (!activeChat || !currentChat?.tags) return;
-
-    const chatId = activeChat;
-    const chatTags = currentChat.tags;
-
-    queueMicrotask(() => {
-      setSelectedTagsByChat((prev) => {
-        // Only initialize if not already set
-        if (prev[chatId]) return prev;
-        return { ...prev, [chatId]: chatTags };
-      });
-    });
-  }, [activeChat, currentChat]);
+  }, [activeChat, projectName, notesRefreshTrigger, setNotes]);
 
   // Handle note deletion
   const handleDeleteNote = async () => {
@@ -288,33 +167,6 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
     setDeleteNoteId(noteID);
     setIsDeleteDialogOpen(true);
   };
-
-  // Handle tag selection changes
-  const handleTagsChange = useCallback(
-    async (tagIds: string[]) => {
-      if (!activeChat || !projectName) return;
-
-      // Update local state
-      setSelectedTagsByChat((prev) => ({
-        ...prev,
-        [activeChat]: tagIds,
-      }));
-
-      // Update LastMessage cache
-      updateChatTags(activeChat, tagIds);
-
-      // Save tags to backend
-      try {
-        const success = await setChatTags(projectName, activeChat, tagIds);
-        if (!success) {
-          console.error(`[RightPanel] Failed to update tags for chat ${activeChat}`);
-        }
-      } catch (error) {
-        console.error('[RightPanel] Error updating tags:', error);
-      }
-    },
-    [activeChat, projectName, updateChatTags]
-  );
 
   // Effect to fetch profile pictures for note creators
   useEffect(() => {
@@ -340,195 +192,11 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
     fetchNoteProfilePictures();
   }, [notes]);
 
-  const firstUppercase = (str: string) => str.substring(0, 1).toUpperCase() + str.substring(1);
-
-  // Convert tags to MultiSelectOption format with colored dots
-  const tagOptions: MultiSelectOption[] = useMemo(() => {
-    return availableTags.map((tag) => {
-      const isPredefinedTag = TAG_COLORS[tag.tagID];
-      const tagColor = isPredefinedTag ? TAG_COLORS[tag.tagID] : '#6b7280';
-
-      // For predefined tags, use translation; for custom tags, use tag name
-      const label = isPredefinedTag ? firstUppercase(t(`tag-${tag.tagID}`)) : firstUppercase(tag.tag);
-
-      // Create a colored dot icon component
-      const ColoredDot = ({ className }: { className?: string }) => (
-        <div
-          className={className}
-          style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            backgroundColor: tagColor,
-            display: 'inline-block',
-          }}
-        />
-      );
-
-      return {
-        label,
-        value: tag.tagID,
-        icon: ColoredDot,
-      };
-    });
-  }, [availableTags, t]);
-
-  const infoIconSize = 14;
-  const infoLabelClassname = 'flex gap-1 items-center text-gray-500 cursor-default text-xs';
-  const infoValueClassname = 'text-xs text-foreground ml-0 flex';
-
   const cardClass =
-    'cursor-default relative w-full border p-3 py-1 rounded-lg bg-white shadow-lg overflow-hidden';
+    'cursor-default relative w-full border p-3 py-1 rounded-lg bg-background shadow-lg overflow-hidden';
 
   const sections: Section[] = useMemo(
     () => [
-      {
-        id: 'info',
-        label: t('Contact Info'),
-        icon: <ClipboardList size={iconSize} />,
-        className: '',
-        items: [
-          {
-            id: '1',
-            element: (
-              <div className="w-full flex flex-col items-start justify-between border-b py-1.5 gap-0.5">
-                <div className={infoLabelClassname}>
-                  <CircleUser size={infoIconSize} />
-                  {t('Name')}:
-                </div>
-                <div className={infoValueClassname}>
-                  {firstUppercase(currentUserInfo?.name || t('Unknown'))}
-                </div>
-              </div>
-            ),
-          },
-          {
-            id: '2',
-            element: (
-              <div className="w-full flex flex-col items-start justify-between border-b py-1.5 gap-0.5">
-                <div className={infoLabelClassname}>
-                  <VenusAndMars size={infoIconSize} />
-                  {t('Gender')}:
-                </div>
-                <div className={infoValueClassname}>
-                  {firstUppercase(currentUserInfo?.userGender ? t(currentUserInfo.userGender) : t('Unknown'))}
-                </div>
-              </div>
-            ),
-          },
-          {
-            id: '3',
-            element: (
-              <div className="w-full flex flex-col items-start justify-between border-b py-1.5 gap-0.5">
-                <div className={infoLabelClassname}>
-                  <AtSign size={infoIconSize} />
-                  {t('Email')}:
-                </div>
-                <div className={infoValueClassname}>{currentUserInfo?.email || t('Unknown')}</div>
-              </div>
-            ),
-          },
-          {
-            id: '4',
-            element: (
-              <div className="w-full flex flex-col items-start justify-between border-b py-1.5 gap-0.5">
-                <div className={infoLabelClassname}>
-                  <IdCard size={infoIconSize} />
-                  {t('NIC')}:
-                </div>
-                <div className={infoValueClassname}>{currentUserInfo?.nic || t('Unknown')}</div>
-              </div>
-            ),
-          },
-          {
-            id: '5',
-            element: (
-              <div className="w-full flex flex-col items-start justify-between border-b py-1.5 gap-0.5">
-                <div className={infoLabelClassname}>
-                  <MapIcon size={infoIconSize} />
-                  {t('Address')}:
-                </div>
-                <div className={infoValueClassname}>{currentUserInfo?.address || t('Unknown')}</div>
-              </div>
-            ),
-          },
-          {
-            id: '6',
-            element: (
-              <div className="w-full flex flex-col items-start justify-between pb-1.5 py-1.5 gap-0.5">
-                <div className={infoLabelClassname}>
-                  <MapPin size={infoIconSize} />
-                  {t('City')}:
-                </div>
-                <div className={infoValueClassname}>
-                  {currentUserInfo?.city ? currentUserInfo.city : t('Unknown')}
-                </div>
-              </div>
-            ),
-          },
-        ],
-      },
-      {
-        id: 'tags',
-        label: t('Tags'),
-        icon: <Tag size={iconSize} />,
-        className: '',
-        items: [
-          {
-            id: 'tag-selector',
-            element: (
-              <MultiSelect
-                options={tagOptions}
-                onValueChange={handleTagsChange}
-                defaultValue={selectedTagsByChat[activeChat || ''] || []}
-                placeholder={t('Select tags')}
-                searchable={true}
-                maxCount={3}
-                variant="default"
-                className="mb-2"
-              />
-            ),
-          },
-        ],
-      },
-      {
-        id: 'activity',
-        label: t('Recent Activity'),
-        icon: <History size={iconSize} />,
-        className: '',
-        items: (() => {
-          const sortedActivities = Object.entries(activities).sort(
-            ([, a], [, b]) => a.timestamp - b.timestamp
-          ); // Sort by timestamp, oldest first
-          const totalActivities = sortedActivities.length;
-
-          return sortedActivities.map(([activityID, activity], index) => ({
-            id: activityID,
-            element: (
-              <div
-                className={cn(
-                  'py-2 text-xs max-w-full overflow-hidden',
-                  index < totalActivities - 1 && 'border-b border-gray-200'
-                )}
-              >
-                <div className="flex items-start gap-2 w-full">
-                  <span className="text-gray-800 whitespace-pre-wrap break-words word-break-break-all flex-1 min-w-0">
-                    {activity.activity}
-                  </span>
-                </div>
-                <p className="text-[10px] text-gray-500 mt-1 break-words word-break-break-all">
-                  {formatTimestamp(activity.timestamp)} •{' '}
-                  {new Date(activity.timestamp).toLocaleDateString(locale, {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}
-                </p>
-              </div>
-            ),
-          }));
-        })(),
-      },
       {
         id: 'notes',
         label: t('Notes'),
@@ -618,20 +286,7 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
         })),
       },
     ],
-    [
-      t,
-      locale,
-      mediaImages,
-      onMessageClick,
-      noteProfilePictures,
-      currentUserInfo,
-      notes,
-      activities,
-      tagOptions,
-      selectedTagsByChat,
-      activeChat,
-      handleTagsChange,
-    ]
+    [t, locale, mediaImages, onMessageClick, noteProfilePictures, notes]
   );
 
   // Hide panel if no active chat or on mobile (unless forceRender is true for modal)
@@ -653,22 +308,19 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
 
   return (
     <div
-      className={`${isMobile ? '' : 'border-t'} bg-white relative flex flex-col h-full w-full border-l border-gray-200 overflow-y-auto`}
+      className={`${isMobile ? '' : 'border-t'} bg-background relative flex flex-col h-full w-full border-l border-border overflow-y-auto`}
     >
       {/* Slot: Top of right panel */}
       <Slot name="right-panel-top" />
 
       {/* Contact information section */}
-      <div className={cn('p-4', isMobile && 'pt-0')}>
+      <div className={cn('p-2', isMobile && 'pt-0')}>
         <div className="flex flex-col gap-4">
           {/* AI Toggle */}
           {!isTestChat && onAIToggle && (
-            <div className="flex items-center justify-between p-3 border rounded-lg bg-white shadow-sm">
+            <div className="flex items-center justify-between p-3 border rounded-lg bg-background shadow-sm">
               <div className="flex items-center gap-2">
-                <Label
-                  htmlFor="ai-toggle-right"
-                  className="text-sm font-medium m-0 cursor-pointer"
-                >
+                <Label htmlFor="ai-toggle-right" className="text-sm font-medium m-0 cursor-pointer">
                   {t('Bot active')}
                 </Label>
               </div>
@@ -679,10 +331,6 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
                 onCheckedChange={onAIToggle}
               />
             </div>
-          )}
-
-          {currentUserInfo && (
-            <UserCard userInfo={currentUserInfo} userID={activeChat} memberSince={memberSince} />
           )}
 
           {sections.map((section) => (
