@@ -17,6 +17,7 @@ interface WhatsAppMessage {
   audio?: { id: string };
   video?: { id: string; caption?: string };
   document?: { id: string; filename?: string; caption?: string };
+  sticker?: { id: string; mime_type: string };
   context?: { message_id: string };
 }
 
@@ -87,6 +88,11 @@ function extractDocument(msg: WhatsAppMessage): ExtractedContent | null {
   return { content: msg.document.caption ?? '', mediaId: msg.document.id };
 }
 
+function extractSticker(msg: WhatsAppMessage): ExtractedContent | null {
+  if (msg.sticker === undefined) return null;
+  return { content: '', mediaId: msg.sticker.id };
+}
+
 type ContentExtractor = (msg: WhatsAppMessage) => ExtractedContent | null;
 
 const EXTRACTORS: Record<string, ContentExtractor> = {
@@ -95,6 +101,7 @@ const EXTRACTORS: Record<string, ContentExtractor> = {
   audio: extractAudio,
   video: extractVideo,
   document: extractDocument,
+  sticker: extractSticker,
 };
 
 function extractMessageContent(msg: WhatsAppMessage): ExtractedContent {
@@ -112,6 +119,7 @@ const WA_TYPE_MAP: Record<string, string> = {
   audio: 'audio',
   video: 'video',
   document: 'document',
+  sticker: 'image',
 };
 
 function mapWhatsAppType(waType: string): string {

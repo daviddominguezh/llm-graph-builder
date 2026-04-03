@@ -14,6 +14,10 @@ interface InstagramApiResponse {
   error?: { message: string; code: number };
 }
 
+interface ErrorWithStatusCode extends Error {
+  statusCode?: number;
+}
+
 function buildRateLimitKey(igUserId: string): string {
   return `ratelimit:ig:${igUserId}`;
 }
@@ -25,6 +29,14 @@ function isInstagramApiResponse(data: unknown): data is InstagramApiResponse {
 function throwOnApiError(data: InstagramApiResponse): void {
   if (data.error !== undefined) {
     throw new Error(`Instagram API error: ${data.error.message}`);
+  }
+}
+
+function throwOnHttpError(response: Response): void {
+  if (!response.ok) {
+    const err = new Error(`Instagram API HTTP ${String(response.status)}`) as ErrorWithStatusCode;
+    err.statusCode = response.status;
+    throw err;
   }
 }
 
@@ -45,6 +57,8 @@ async function callInstagramApi(
     body: JSON.stringify(body),
   });
 
+  throwOnHttpError(response);
+
   const data: unknown = await response.json();
   if (!isInstagramApiResponse(data)) {
     throw new Error('Instagram API: unexpected response format');
@@ -55,7 +69,7 @@ async function callInstagramApi(
 
 /* ─── Send text message ─── */
 
-export async function sendInstagramMessage(
+export async function sendInstagramTextMessage(
   igUserId: string,
   accessToken: string,
   recipientId: string,
@@ -65,6 +79,69 @@ export async function sendInstagramMessage(
     callInstagramApi(igUserId, accessToken, {
       recipient: { id: recipientId },
       message: { text },
+    })
+  );
+
+  throwOnApiError(data);
+  return { originalId: data.message_id ?? '' };
+}
+
+/* ─── Image message (URL-based attachment) ─── */
+
+export async function sendInstagramImageMessage(
+  igUserId: string,
+  accessToken: string,
+  recipientId: string,
+  imageUrl: string
+): Promise<ProviderSendResult> {
+  const data = await withRetry(() =>
+    callInstagramApi(igUserId, accessToken, {
+      recipient: { id: recipientId },
+      message: {
+        attachment: { type: 'image', payload: { url: imageUrl } },
+      },
+    })
+  );
+
+  throwOnApiError(data);
+  return { originalId: data.message_id ?? '' };
+}
+
+/* ─── Audio message (URL-based attachment) ─── */
+
+export async function sendInstagramAudioMessage(
+  igUserId: string,
+  accessToken: string,
+  recipientId: string,
+  audioUrl: string
+): Promise<ProviderSendResult> {
+  const data = await withRetry(() =>
+    callInstagramApi(igUserId, accessToken, {
+      recipient: { id: recipientId },
+      message: {
+        attachment: { type: 'audio', payload: { url: audioUrl } },
+      },
+    })
+  );
+
+  throwOnApiError(data);
+  return { originalId: data.message_id ?? '' };
+}
+
+/* ─── Video message (URL-based attachment) ─── */
+
+export async function sendInstagramVideoMessage(
+  igUserId: string,
+  accessToken: string,
+  recipientId: string,
+  videoUrl: string
+): Promise<ProviderSendResult> {
+  const data = await withRetry(() =>
+    callInstagramApi(igUserId, accessToken, {
+      recipient: { id: recipientId },
+      message: {
+        attachment: { type: 'video', payload: { url: videoUrl } },
+      },
     })
   );
 

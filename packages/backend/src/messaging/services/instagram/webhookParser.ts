@@ -16,6 +16,10 @@ interface InstagramMessaging {
     }>;
     reply_to?: { mid: string };
   };
+  story?: {
+    url: string;
+    id: string;
+  };
 }
 
 interface InstagramEntry {
@@ -41,6 +45,11 @@ const MEDIA_TYPE_MAP: Record<string, string> = {
   video: 'video',
   audio: 'audio',
   file: 'document',
+  share: 'image',
+  ig_post: 'image',
+  reel: 'video',
+  ig_reel: 'video',
+  story_mention: 'image',
 };
 
 function mapAttachmentType(igType: string): string | undefined {
@@ -109,14 +118,38 @@ function parseTextMessage(event: InstagramMessaging, results: IncomingMessage[])
   return recipient.id;
 }
 
+function parseStoryReply(event: InstagramMessaging, results: IncomingMessage[]): string {
+  const { story, sender, recipient, timestamp } = event;
+  if (story === undefined) return '';
+
+  results.push({
+    userChannelId: `instagram:${sender.id}`,
+    channelIdentifier: recipient.id,
+    content: story.url,
+    type: 'image',
+    originalId: story.id,
+    userName: undefined,
+    mediaId: story.url,
+    replyOriginalId: undefined,
+    timestamp,
+  });
+
+  return recipient.id;
+}
+
 function parseEvent(event: InstagramMessaging, results: IncomingMessage[]): string {
+  // Handle story replies (no message field, only story field)
+  if (event.story !== undefined) {
+    return parseStoryReply(event, results);
+  }
+
   const { message } = event;
   if (message === undefined) return '';
 
   // Fix 19: Filter out echo messages (messages sent by the business page)
   if (isEchoMessage(event)) return '';
 
-  // Handle attachments (image/video/audio/file)
+  // Handle attachments (image/video/audio/file/share/reel/ig_post/story_mention)
   const hasAttachments = message.attachments !== undefined && message.attachments.length > EMPTY_LENGTH;
   if (hasAttachments) {
     return parseAttachment(event, results);

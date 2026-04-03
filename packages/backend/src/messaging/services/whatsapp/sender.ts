@@ -1,7 +1,11 @@
+import { createHash } from 'node:crypto';
+
 import type { ProviderSendResult } from '../../types/index.js';
+import { readRedis, setWithTTL } from '../redis.js';
 import { withRetry } from '../retry.js';
 
-const WA_API_BASE = 'https://graph.facebook.com/v20.0';
+const WA_API_BASE = 'https://graph.facebook.com/v23.0';
+const MEDIA_CACHE_TTL_SECONDS = 604_800; // 7 days
 const WAMID_PREFIX = 'wamid.';
 const EMPTY_LENGTH = 0;
 
@@ -30,6 +34,18 @@ function throwOnApiError(result: WhatsAppApiResponse): void {
   }
 }
 
+interface ErrorWithStatusCode extends Error {
+  statusCode?: number;
+}
+
+function throwOnHttpError(response: Response): void {
+  if (!response.ok) {
+    const err = new Error(`WhatsApp API HTTP ${String(response.status)}`) as ErrorWithStatusCode;
+    err.statusCode = response.status;
+    throw err;
+  }
+}
+
 async function callWhatsAppApi(
   phoneNumberId: string,
   accessToken: string,
@@ -45,10 +61,16 @@ async function callWhatsAppApi(
     body: JSON.stringify(body),
   });
 
+  throwOnHttpError(response);
   return (await response.json()) as WhatsAppApiResponse;
 }
 
-/* ─── Media upload (Fix 15) ─── */
+/* ─── Media upload (Fix 15, R2-11 cache) ─── */
+
+function buildMediaCacheKey(sourceUrl: string): string {
+  const hash = createHash('sha256').update(sourceUrl).digest('hex');
+  return `media:${hash}`;
+}
 
 async function downloadFileBuffer(url: string): Promise<{ buffer: Buffer; contentType: string }> {
   const response = await fetch(url);
@@ -74,7 +96,7 @@ function getFilenameFromContentType(contentType: string): string {
   return extensionMap[contentType] ?? 'file.bin';
 }
 
-async function uploadMediaToWhatsApp(
+async function uploadMediaRaw(
   phoneNumberId: string,
   accessToken: string,
   fileUrl: string
@@ -97,6 +119,7 @@ async function uploadMediaToWhatsApp(
     body: form,
   });
 
+  throwOnHttpError(response);
   const data = (await response.json()) as WhatsAppMediaUploadResponse;
 
   if (data.id === undefined || data.id.length === EMPTY_LENGTH) {
@@ -105,6 +128,20 @@ async function uploadMediaToWhatsApp(
   }
 
   return data.id;
+}
+
+async function uploadMediaToWhatsApp(
+  phoneNumberId: string,
+  accessToken: string,
+  fileUrl: string
+): Promise<string> {
+  const cacheKey = buildMediaCacheKey(fileUrl);
+  const cached = await readRedis<string>(cacheKey);
+  if (cached !== null) return cached;
+
+  const mediaId = await uploadMediaRaw(phoneNumberId, accessToken, fileUrl);
+  await setWithTTL(cacheKey, mediaId, MEDIA_CACHE_TTL_SECONDS);
+  return mediaId;
 }
 
 /* ─── Text message ─── */
@@ -118,6 +155,7 @@ export async function sendWhatsAppTextMessage(
   const result = await withRetry(() =>
     callWhatsAppApi(phoneNumberId, accessToken, {
       messaging_product: 'whatsapp',
+      recipient_type: 'individual',
       to: recipientPhone,
       type: 'text',
       text: { body: text },
@@ -145,6 +183,7 @@ export async function sendWhatsAppImageMessage(
   const result = await withRetry(() =>
     callWhatsAppApi(phoneNumberId, accessToken, {
       messaging_product: 'whatsapp',
+      recipient_type: 'individual',
       to: recipientPhone,
       type: 'image',
       image: imagePayload,
@@ -168,6 +207,7 @@ export async function sendWhatsAppAudioMessage(
   const result = await withRetry(() =>
     callWhatsAppApi(phoneNumberId, accessToken, {
       messaging_product: 'whatsapp',
+      recipient_type: 'individual',
       to: recipientPhone,
       type: 'audio',
       audio: { id: mediaId },
@@ -195,6 +235,7 @@ export async function sendWhatsAppDocumentMessage(
   const result = await withRetry(() =>
     callWhatsAppApi(phoneNumberId, accessToken, {
       messaging_product: 'whatsapp',
+      recipient_type: 'individual',
       to: recipientPhone,
       type: 'document',
       document: docPayload,

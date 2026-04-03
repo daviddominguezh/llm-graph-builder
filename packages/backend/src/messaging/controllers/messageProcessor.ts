@@ -3,7 +3,7 @@ import { updateConversationLastMessage } from '../queries/conversationMutations.
 import { findOrCreateConversation } from '../queries/conversationQueries.js';
 import { insertMessage, insertMessageAi } from '../queries/messageQueries.js';
 import { resolveInstagramCredentials } from '../services/instagram/credentials.js';
-import { sendInstagramMessage } from '../services/instagram/sender.js';
+import { sendInstagramTextMessage } from '../services/instagram/sender.js';
 import { publishToTenant } from '../services/redis.js';
 import { resolveWhatsAppCredentials } from '../services/whatsapp/credentials.js';
 import { sendWhatsAppTextMessage } from '../services/whatsapp/sender.js';
@@ -40,7 +40,7 @@ async function deliverToInstagram(
     conversation.agent_id,
     conversation.tenant_id
   );
-  return await sendInstagramMessage(creds.igUserId, creds.accessToken, recipient, content);
+  return await sendInstagramTextMessage(creds.igUserId, creds.accessToken, recipient, content);
 }
 
 export async function deliverToProvider(

@@ -4,8 +4,8 @@ import { findOrCreateConversation } from '../queries/conversationQueries.js';
 import { insertMessage, insertMessageAi } from '../queries/messageQueries.js';
 import { publishToTenant, releaseLock, waitForLock } from '../services/redis.js';
 import type { ChannelConnectionRow, ConversationRow, IncomingMessage } from '../types/index.js';
-import { TEST_USER_CHANNEL_ID } from '../types/index.js';
 import { invokeAgent } from './agentInvoker.js';
+import { enrichIncomingMessage } from './mediaEnricher.js';
 import { deliverToProvider } from './messageProcessor.js';
 import { sendTypingIndicator } from './typingIndicators.js';
 
@@ -38,6 +38,7 @@ interface SaveUserParams {
   supabase: SupabaseClient;
   conversationId: string;
   incoming: IncomingMessage;
+  mediaUrl?: string;
   clientMessageId?: string;
 }
 
@@ -49,6 +50,7 @@ async function saveUserMessage(params: SaveUserParams): Promise<void> {
       role: 'user',
       type: params.incoming.type,
       content: params.incoming.content,
+      mediaUrl: params.mediaUrl,
       originalId: params.incoming.originalId,
       timestamp: params.incoming.timestamp,
     }),
@@ -57,6 +59,7 @@ async function saveUserMessage(params: SaveUserParams): Promise<void> {
       role: 'user',
       type: params.incoming.type,
       content: params.incoming.content,
+      mediaUrl: params.mediaUrl,
       originalId: params.incoming.originalId,
       timestamp: params.incoming.timestamp,
     }),
@@ -173,8 +176,17 @@ export async function processIncomingMessage(params: ProcessIncomingParams): Pro
     name: incoming.userName,
   });
 
+  // R2-1: Download media from provider, R2-2: Audio placeholder
+  const enriched = await enrichIncomingMessage(supabase, connection, incoming);
+  incoming.content = enriched.content;
+
   await upsertEndUser(supabase, connection.tenant_id, incoming.userChannelId, incoming.userName);
-  await saveUserMessage({ supabase, conversationId: conversation.id, incoming });
+  await saveUserMessage({
+    supabase,
+    conversationId: conversation.id,
+    incoming,
+    mediaUrl: enriched.mediaUrl,
+  });
 
   const newUnansweredCount = conversation.enabled
     ? conversation.unanswered_count
@@ -222,92 +234,5 @@ async function invokeAiWithLock(
   }
 }
 
-/* ─── Process: test message (invoke AI, no channel delivery) ─── */
-
-interface ProcessTestParams {
-  supabase: SupabaseClient;
-  orgId: string;
-  agentId: string;
-  tenantId: string;
-  content: string;
-  type: string;
-  clientMessageId?: string;
-}
-
-export async function processTestMessage(params: ProcessTestParams): Promise<void> {
-  const userChannelId = TEST_USER_CHANNEL_ID;
-  const threadId = userChannelId;
-
-  const conversation = await findOrCreateConversation(params.supabase, {
-    orgId: params.orgId,
-    agentId: params.agentId,
-    tenantId: params.tenantId,
-    userChannelId,
-    threadId,
-    channel: 'api',
-  });
-
-  const now = Date.now();
-  const incoming: IncomingMessage = {
-    userChannelId,
-    channelIdentifier: '',
-    content: params.content,
-    type: params.type,
-    originalId: '',
-    userName: undefined,
-    mediaId: undefined,
-    replyOriginalId: undefined,
-    timestamp: now,
-  };
-
-  await saveUserMessage({
-    supabase: params.supabase,
-    conversationId: conversation.id,
-    incoming,
-    clientMessageId: params.clientMessageId,
-  });
-
-  await updateConversationLastMessage(params.supabase, conversation.id, {
-    lastMessageContent: params.content,
-    lastMessageRole: 'user',
-    lastMessageType: params.type,
-    lastMessageAt: new Date(now).toISOString(),
-    read: true,
-    unansweredCount: ZERO_UNANSWERED,
-  });
-
-  await publishUpdate(params.tenantId, conversation.id);
-
-  void invokeAiAndSaveTestResponse(params.supabase, conversation, params.content, params.tenantId);
-}
-
-/* ─── Invoke AI and save response for test messages ─── */
-
-async function invokeAiAndSaveTestResponse(
-  supabase: SupabaseClient,
-  conversation: ConversationRow,
-  userContent: string,
-  tenantId: string
-): Promise<void> {
-  try {
-    const aiResult = await invokeAgent({ supabase, conversation, userMessageContent: userContent });
-    if (aiResult === null || aiResult.responseText === '') return;
-
-    const responseTimestamp = Date.now();
-    await saveAiResponse(supabase, conversation.id, aiResult.responseText, responseTimestamp);
-
-    await updateConversationLastMessage(supabase, conversation.id, {
-      lastMessageContent: aiResult.responseText,
-      lastMessageRole: 'assistant',
-      lastMessageType: 'text',
-      lastMessageAt: new Date(responseTimestamp).toISOString(),
-      read: true,
-      unansweredCount: ZERO_UNANSWERED,
-    });
-
-    await publishUpdate(tenantId, conversation.id);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
-    process.stdout.write(`[messaging] AI invocation for test failed: ${msg}\n`);
-  }
-}
+// Re-export processTestMessage from its dedicated module
+export { processTestMessage } from './testMessageProcessor.js';
