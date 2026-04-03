@@ -73,17 +73,6 @@ Call the tool "${toolName}" RIGHT NOW.`;
   },
   GLOBAL_NODE_REPLY_SUFFIX:
     '\n\nYour message to the user MUST address the question the user asked with a summary of the information you got from calling the tool.\nONLY IF you have not said hello yet, do it.',
-  NO_ORDERS_WARNING:
-    '\nDO NOT ASK THE USER IF THEY WANT TO SEE/KNOW ANYTHING ABOUT THEIR ORDERS. THE USER DOES NOT HAVE ANY ORDER, SO DO NOT MENTION IT.',
-  NO_PRODUCT_LISTING_IN_CUSTOMIZATION: `
-
-**CRITICAL - DO NOT LIST SPECIFIC PRODUCTS:**
-When sending the customization link, do NOT list specific product names.
-- ❌ WRONG: "personaliza tu orden seleccionando talla para las Zapatillas XYZ y ABC"
-- ✅ CORRECT: "por favor revisa tus personalizaciones, y confirma que tengan los valores adecuados"
-
-Products shown in search results are NOT necessarily in the cart. ONLY the addMultipleItemsToCart tool confirms what's in the cart.
-Keep the message generic - the user will see their actual cart items in the customization form.`,
   PERSONALIZATION_EXACT_NAMES_REQUIRED: (
     toolName: string,
     typesWithValues: Record<string, string[]>,

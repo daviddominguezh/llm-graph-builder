@@ -286,13 +286,6 @@ export const BusinessSetupSchema = {
   }),
 };
 
-export interface StoreData {
-  products: ProductsType | undefined;
-  services: ServiceType[];
-  policies: PoliciesType;
-  info: InfoType;
-}
-
 export interface ProductsListResponse {
   products: ProductBusinessSetupSchemaAPIType[];
   page: number;

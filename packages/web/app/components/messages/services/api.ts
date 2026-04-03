@@ -9,11 +9,9 @@ import type {
 import { getAuthToken, handleAuthError } from '@/app/components/messages/services/auth';
 import { isPublicEndpoint as checkIsPublicEndpoint } from '@/app/components/messages/shared/constStubs';
 import { getApiURL, isLocalDevelopment } from '@/app/components/messages/shared/utilStubs';
-import { BusinessSetupSchemaAPIType, StoreData } from '@/app/types/business';
 import { Conversation, LastMessage, LastMessages } from '@/app/types/chat';
 import { FinalUserInfoAPI } from '@/app/types/finalUsers';
 import { MediaFileDetail, MediaFileKind } from '@/app/types/media';
-import { Order } from '@/app/types/orders';
 import { Collaborator, InnerSettings } from '@/app/types/projectInnerSettings';
 
 const API_BASE_URL = getApiURL();
@@ -260,26 +258,6 @@ export const getFileDescription = async (
   }
 };
 
-export const getBusinessInfo = async (
-  namespace: string,
-  options?: { skipAuth?: boolean }
-): Promise<BusinessSetupSchemaAPIType | null> => {
-  try {
-    const url = `${API_BASE_URL}/projects/${namespace}/business`;
-
-    // Use plain fetch for public ecommerce access, authenticatedFetch for admin
-    const response = options?.skipAuth
-      ? await fetch(url, { credentials: 'include' })
-      : await authenticatedFetch(url, { credentials: 'include' });
-
-    if (!response.ok) return null;
-
-    return await response.json();
-  } catch (error) {
-    return null;
-  }
-};
-
 export const getMessagesFromSender = async (
   namespace: string,
   sender: string,
@@ -452,41 +430,6 @@ export const deleteNote = async (projectName: string, userID: string, noteID: st
   } catch (error) {
     console.error('Error deleting note:', error);
     return false;
-  }
-};
-
-// Activity types
-export interface ChatActivity {
-  timestamp: number;
-  activity: string;
-}
-
-export interface ChatActivityAPI {
-  activity: Record<string, ChatActivity>;
-}
-
-// Get activity for a specific user/chat
-export const getActivity = async (
-  projectName: string,
-  userID: string
-): Promise<Record<string, ChatActivity>> => {
-  try {
-    const response = await authenticatedFetch(
-      `${API_BASE_URL}/projects/${projectName}/messages/activity/${userID}`,
-      {
-        credentials: 'include',
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch activity: ${response.status}`);
-    }
-
-    const data: ChatActivityAPI = await response.json();
-    return data.activity || {};
-  } catch (error) {
-    console.error('Error fetching activity:', error);
-    return {};
   }
 };
 
@@ -869,98 +812,6 @@ export const readConversation = async (namespace: string, phone: string): Promis
   }
 };
 
-// TODO: Must change
-export const createOrder = async (namespace: string, orderData: Order) => {
-  try {
-    const res = await authenticatedFetch(`${API_BASE_URL}/projects/${namespace}/orders`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(orderData),
-    });
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error('API Error Response:', errorText);
-      throw new Error(`Failed to create order: ${res.status} - ${errorText}`);
-    }
-
-    return await res.json();
-  } catch (error) {
-    console.error('Error creating order:', error);
-    throw error;
-  }
-};
-
-export interface UserOrdersAPIResponse {
-  orders: Order[];
-  count: number;
-}
-
-export const getUserOrders = async (projectName: string, userID: string): Promise<UserOrdersAPIResponse> => {
-  try {
-    const res = await authenticatedFetch(`${API_BASE_URL}/projects/${projectName}/orders/user/${userID}`, {
-      credentials: 'include',
-    });
-
-    if (!res.ok) {
-      throw new Error(`Failed to fetch user orders: ${res.statusText}`);
-    }
-
-    return await res.json();
-  } catch (error) {
-    console.error('Error fetching user orders:', error);
-    throw error;
-  }
-};
-
-export interface OrderReceiptResponse {
-  orderId: string;
-  receipt: string;
-}
-
-export const getOrderReceipt = async (
-  projectName: string,
-  trackingReceiptId: string
-): Promise<OrderReceiptResponse | null> => {
-  try {
-    const res = await authenticatedFetch(
-      `${API_BASE_URL}/projects/${projectName}/orders/${trackingReceiptId}/receipt`,
-      {
-        credentials: 'include',
-      }
-    );
-
-    if (!res.ok) {
-      // If receipt doesn't exist, return null instead of throwing
-      if (res.status === 404) {
-        return null;
-      }
-      throw new Error(`Failed to fetch order receipt: ${res.statusText}`);
-    }
-
-    return await res.json();
-  } catch (error) {
-    console.error('Error fetching order receipt:', error);
-    return null;
-  }
-};
-
-export const getStoreData = async (key: string): Promise<StoreData | null> => {
-  try {
-    const res = await authenticatedFetch(`${API_BASE_URL}/stores/${key}`);
-    const json = await res.json();
-    if ('error' in json) return null;
-    return json as StoreData;
-  } catch (error) {
-    const e = error as Error;
-    console.error(e);
-    return null;
-  }
-};
-
 export const getProjectInnerSettings = async (namespace: string): Promise<InnerSettings | null> => {
   try {
     const url = `${API_BASE_URL}/projects/${namespace}/settings`;
@@ -1053,48 +904,6 @@ export const getProjectCollaborators = async (
     return collaborators;
   } catch (error) {
     return null;
-  }
-};
-
-export const createPaymentLink = async (
-  projectName: string,
-  userID: string,
-  paymentData: {
-    name: string;
-    email: string;
-    userNationalId: string;
-    address: {
-      ciudadId: string;
-      direccion: string;
-      departamentoId: string;
-      barrio: string;
-    };
-  }
-): Promise<{ paymentLink: string; orderId: string; amount: number }> => {
-  try {
-    const response = await authenticatedFetch(
-      `${API_BASE_URL}/projects/${encodeURIComponent(projectName)}/orders/${encodeURIComponent(userID)}/payment-link`,
-      {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(paymentData),
-      }
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Failed to create payment link: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    return data;
-  } catch (error) {
-    console.error('[createPaymentLink] Error creating payment link:', error);
-    throw error;
   }
 };
 
