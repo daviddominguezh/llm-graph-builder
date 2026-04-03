@@ -27,9 +27,12 @@ export interface AgentStepEvent {
   step: number;
   messagesSent: ModelMessage[];
   responseText: string;
+  responseMessages: unknown[];
+  reasoning?: string;
   toolCalls: AgentToolCallRecord[];
   tokens: TokenLog;
   durationMs: number;
+  error?: string;
 }
 
 export interface AgentToolCallRecord {
