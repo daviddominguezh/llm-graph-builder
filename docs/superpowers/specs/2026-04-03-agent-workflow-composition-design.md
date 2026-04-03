@@ -143,6 +143,8 @@ Injected only into child agents (agents with a parent in the stack). NOT availab
 - `output` (string, required) — the result to return to the parent
 - `status` (`'success' | 'error'`, required) — completion status
 
+**Optional output schema validation:** The parent can specify an `outputSchema` (JSON Schema) on the dispatch tool. When provided, the `finish` tool validates the `output` string against the schema before accepting. If validation fails, the tool returns an error to the agent with a message explaining what's wrong, and the agent loop continues (giving the agent a chance to fix its output and call `finish` again). This ensures the parent receives output in the expected format.
+
 ### Agent Loop Behavior
 
 Current behavior preserved: "no tool calls" = present message to user, wait for next input. This does NOT signal child completion.
@@ -151,17 +153,44 @@ When the agent loop detects a `FinishSentinel` in tool results after a step:
 1. Stop the loop immediately (no further iterations)
 2. Return a `FinishResult` carrying the output and status
 
+**maxSteps exhaustion in child agents:** When a child agent hits its `maxSteps` limit, the loop auto-finishes with `status: 'error'` and `output: 'Agent reached maximum step limit without completing the task.'` instead of silently returning an empty string. This triggers the normal child completion flow (update parent tool output, pop stack, resume parent) with an error status. The parent sees a clear error and can decide to retry or handle it.
+
 ### System Prompt Injection
 
-Appended to child agent system prompts:
+Child agent system prompts receive completion instructions in a structured XML-tagged section, placed at **both the start and end** of the system prompt for maximum model attention:
 
+```xml
+<system-instructions>
+You are a sub-agent dispatched to complete a specific task. When you have fully completed your task, you MUST call the `__system_finish` tool with your final output. Do not simply respond with text — always use `__system_finish` to signal completion.
+
+If you encountered an error and cannot complete the task, call `__system_finish` with status "error" and describe what went wrong in the output.
+
+IMPORTANT: Only call `__system_finish` when you are truly done. If you need more information from the user, respond with a text message instead — the user will reply, and you can continue working.
+</system-instructions>
 ```
-When you have completed your task, you MUST call the `__system_finish` tool with your final output. Do not simply respond with text — always use the `__system_finish` tool to signal completion. If you encountered an error and cannot complete the task, call `__system_finish` with status "error" and describe what went wrong in the output.
+
+### Structured Error Responses
+
+When a child fails (whether via `finish(status: 'error')`, maxSteps exhaustion, or crash), the parent's tool output message is replaced with a structured error object, not a plain string:
+
+```typescript
+interface ChildErrorOutput {
+  status: 'error';
+  error: string;            // human-readable error description
+  errorCode: 'finish_error' | 'max_steps' | 'crash' | 'timeout';
+  stepsCompleted: number;   // how far the child got
+  lastToolCall?: string;    // last tool the child called (if any)
+  partialOutput?: string;   // last text the child produced (if any)
+}
 ```
+
+This gives the parent enough information to make intelligent recovery decisions (retry, try a different agent, surface error to user, etc.).
+
+For success, the output is the raw string (or schema-validated output) from the `finish` call.
 
 ### What `finish` Triggers
 
-1. Update the parent's tool output message in `agent_execution_messages` — replace the sentinel placeholder with the actual output
+1. Update the parent's tool output message in `agent_execution_messages` — replace the sentinel placeholder with the actual output (or structured error)
 2. Delete the child's `agent_stack_entries` row (pop)
 3. Restore parent's session state (`currentNodeId`, `structuredOutputs`) from the stack entry's `parent_session_state`
 4. Write a resume intent to `pending_resumes` table (see Resume Mechanism)
@@ -186,7 +215,7 @@ All registered with `__system_` prefix to avoid MCP tool name collisions.
 
 **`__system_create_agent`** — Dynamically define and dispatch an agent inline.
 
-Parameters follow the unified `AgentConfig` interface (required: `systemPrompt`, `model`, `task`). Optional: `tools`, `contextItems`, `maxSteps`, and all other `AgentConfig` fields.
+Parameters follow the unified `AgentConfig` interface (required: `systemPrompt`, `task`; `model` defaults to parent's). Optional: `tools`, `contextItems`, `maxSteps`, `fewShotExamples`, `outputSchema`, and all other `AgentConfig` fields.
 
 **`__system_invoke_agent`** — Dispatch a predefined agent by slug.
 
@@ -195,6 +224,7 @@ Parameters:
 - `task` (string, required) — initial instruction, inserted as first user message
 - `contextItems` (array, optional) — concatenated with agent's own context items
 - `model` (string, optional) — override the agent's configured model
+- `outputSchema` (JSON Schema, optional) — validate the child's `finish` output against this schema
 
 **`__system_invoke_workflow`** — Dispatch a predefined workflow by slug.
 
@@ -216,17 +246,40 @@ A single TypeScript interface shared between:
 - The execution layer's config resolution
 
 ```typescript
+// Context items are strings — same type used in the agent editor UI.
+// Each string is a piece of context injected into the agent's system prompt.
+// Defined in agentConfig.schema.ts as z.array(z.string()).
+type ContextItem = string;
+
+interface FewShotExample {
+  input: string;   // example user message or task
+  output: string;  // expected agent response
+}
+
 interface AgentConfig {
   systemPrompt: string;
-  model?: string;           // Required for create_agent, optional for invoke (uses agent's default)
+  model?: string;           // For create_agent: defaults to parent's model if omitted.
+                            // For invoke_agent: defaults to the agent's own configured model.
   maxSteps?: number | null;
   contextItems?: ContextItem[];
   mcpServers?: McpServerConfig[];
   skills?: SkillDefinition[];
+  fewShotExamples?: FewShotExample[];  // injected as conversation history before the task
   childTimeout?: number;    // seconds, default 600 (10 minutes)
   maxNestingDepth?: number; // default 10
   // Future: vfs, memory, sandboxes, etc.
 }
+```
+
+**`model` defaults for `create_agent`:** When `model` is omitted in a `__system_create_agent` call, the child inherits the parent's model. This prevents LLMs from hallucinating model names. The `model` field is only truly required when there is no parent model to inherit from (which cannot happen, since `create_agent` is always called from within a running agent).
+
+**`fewShotExamples`:** Injected as synthetic user/assistant message pairs in the child's conversation history, before the `task` message. This dramatically improves output quality for dynamic agents by showing the model concrete examples of expected behavior. Example:
+
+```
+[system prompt]
+[few-shot user 1] → [few-shot assistant 1]
+[few-shot user 2] → [few-shot assistant 2]
+[task message]     → (agent generates response)
 ```
 
 This is the **stored config** shape — what gets persisted. The **runtime config** (`AgentLoopConfig`) extends this with runtime-only fields (`apiKey`, `messages`, `tools` as resolved Tool objects). The stored config is a strict subset.
@@ -590,6 +643,159 @@ If `after` omitted, start from beginning or live-only if execution hasn't starte
 
 ---
 
+## Tenant-Level Cost Budget Validation
+
+A cost validation function is called before each LLM call in the agent loop. For the MVP, this is a skeleton that always allows execution:
+
+```typescript
+// packages/api/src/core/costGuard.ts
+
+interface CostCheckParams {
+  orgId: string;
+  tenantId: string;
+  currentCostUSD: number;
+}
+
+// TODO: Implement tenant-level cost budget validation.
+// This should check the tenant's configured budget against accumulated cost
+// (across all executions in the current billing period) and reject if exceeded.
+// For now, always allows execution.
+export async function validateTenantCostBudget(params: CostCheckParams): Promise<boolean> {
+  return true;
+}
+```
+
+Called in the agent loop after each step, passing the cumulative cost so far. If it returns `false`, the agent loop auto-finishes with `status: 'error'` and `output: 'Tenant cost budget exceeded.'` This applies to both top-level and child agents.
+
+---
+
+## Execution Data Capture (Agent Parity Fix)
+
+### Problem
+
+Workflows currently capture comprehensive execution data for debugging (full prompts, raw model responses, reasoning, tool calls with results). Agents capture prompts and tool calls but are missing:
+- Raw model response objects (only `responseText` is stored, not the full response)
+- Reasoning / extended thinking output
+- Per-step duration
+- Error details per step
+
+This gap affects both standalone agents and sub-agents. The fix brings agent capture to full parity with workflows.
+
+### What Must Be Captured Per Agent Step
+
+Every agent loop step must persist ALL of the following to `agent_execution_nodes`:
+
+| Field | Column | Currently captured? | Fix |
+|-------|--------|-------------------|-----|
+| Full messages sent to model | `messages_sent` (JSONB) | Yes (`messagesSent`) | No change |
+| Raw model response (full objects) | `response` (JSONB) | **No** — only `responseText` + `toolCalls` | Add `responseMessages` to `AgentStepEvent` and persist in `buildStepResponse` |
+| Reasoning / extended thinking | `response` (JSONB) | **No** | Add `reasoning` field to `AgentStepEvent`, include in response JSONB |
+| Tool calls with inputs | `response` (JSONB) | Yes (via `toolCalls`) | No change |
+| Tool call results/outputs | `response` (JSONB) | Yes (via `toolCalls[].output`) | No change |
+| Token usage (input/output/cached) | Dedicated columns | Yes | No change |
+| Cost per step | `cost` column | Yes | No change |
+| Duration per step | `duration_ms` column | **No** — always stored as 0 | Pass actual `durationMs` from `AgentStepEvent` |
+| Model used | `model` column | Yes | No change |
+| Error details | `response` (JSONB) | **No** | Add `error` field to `AgentStepEvent`, include in response JSONB |
+
+### Changes to `AgentStepEvent`
+
+```typescript
+// Current:
+interface AgentStepEvent {
+  step: number;
+  messagesSent: ModelMessage[];
+  responseText: string;
+  toolCalls: AgentToolCallRecord[];
+  tokens: TokenLog;
+  durationMs: number;
+}
+
+// Updated:
+interface AgentStepEvent {
+  step: number;
+  messagesSent: ModelMessage[];
+  responseText: string;
+  responseMessages: unknown[];    // NEW: full raw model response objects
+  reasoning?: string;             // NEW: extended thinking / chain-of-thought
+  toolCalls: AgentToolCallRecord[];
+  tokens: TokenLog;
+  durationMs: number;
+  error?: string;                 // NEW: error details for this step
+}
+```
+
+### Changes to `buildStepResponse`
+
+```typescript
+// Current:
+function buildStepResponse(stepEvent: AgentStepEvent | undefined): unknown {
+  if (stepEvent === undefined) return {};
+  return { text: stepEvent.responseText, toolCalls: stepEvent.toolCalls };
+}
+
+// Updated:
+function buildStepResponse(stepEvent: AgentStepEvent | undefined): unknown {
+  if (stepEvent === undefined) return {};
+  return {
+    text: stepEvent.responseText,
+    toolCalls: stepEvent.toolCalls,
+    responseMessages: stepEvent.responseMessages,
+    reasoning: stepEvent.reasoning,
+    error: stepEvent.error,
+  };
+}
+```
+
+### Changes to Agent Loop (`agentLoop.ts`)
+
+The `onStepProcessed` callback must include the new fields:
+
+```typescript
+callbacks.onStepProcessed({
+  step: params.stepNum,
+  messagesSent: [...state.messages],
+  responseText: params.result.text,
+  responseMessages: params.result.responseMessages,  // NEW
+  reasoning: params.result.reasoning,                 // NEW
+  toolCalls: params.result.toolCalls,
+  tokens: params.result.tokens,
+  durationMs: params.durationMs,
+  error: params.result.error,                         // NEW
+});
+```
+
+### Changes to Duration Tracking
+
+Currently, `agentExecutionPersistence.ts` passes `durationMs: ZERO` for every step. Fix: use the actual `stepEvent.durationMs` value which is already computed in the agent loop.
+
+### Sub-agent and Sub-workflow Capture
+
+**Sub-agents:** Run through the same agent loop, so they automatically get the same capture improvements. No additional work needed.
+
+**Sub-workflows (in-process):** Run through the existing workflow execution path (`executeWithCallbacks`), which already captures comprehensive data. The in-process execution returns `FlowResult` with `parsedResults`, `debugMessages`, and `toolCalls`. These are persisted using the same `persistNodeVisits` function as standalone workflows. No additional work needed — sub-workflows inherit full workflow capture.
+
+### SSE Event Enhancement
+
+The `step_processed` SSE event for agents should also include the new fields so the client-side debug view can show them in real-time:
+
+```typescript
+// Updated step_processed SSE event payload
+{
+  type: 'step_processed',
+  step: number,
+  responseText: string,
+  responseMessages: unknown[],  // NEW
+  reasoning?: string,           // NEW
+  toolCalls: AgentToolCallRecord[],
+  tokens: TokenLog,
+  durationMs: number,
+  error?: string,               // NEW
+}
+```
+
+---
+
 ## File Changes Summary
 
 ### New files
@@ -599,6 +805,7 @@ If `after` omitted, start from beginning or live-only if execution hasn't starte
 - `packages/api/src/core/agentStack.ts` — Stack push/pop/routing logic via `agent_stack_entries` table
 - `packages/api/src/core/childDispatcher.ts` — Dispatch orchestration, child start, parent resume
 - `packages/api/src/core/sentinelDetector.ts` — Post-step sentinel detection in tool results
+- `packages/api/src/core/costGuard.ts` — Tenant-level cost budget validation skeleton (TODO)
 - `packages/backend/src/routes/internal/executeChildHandler.ts` — `/internal/execute-child` endpoint (idempotent)
 - `packages/backend/src/routes/internal/resumeParentHandler.ts` — `/internal/resume-parent` endpoint (idempotent)
 - `packages/backend/src/workers/resumeWorker.ts` — Background worker processing `pending_resumes`
@@ -606,8 +813,8 @@ If `after` omitted, start from beginning or live-only if execution hasn't starte
 - `supabase/migrations/YYYYMMDD_agent_composition.sql` — Schema changes (agent_stack_entries, pending_resumes, parent_execution_id, agent_execution_events)
 
 ### Modified files
-- `packages/api/src/agentLoop/agentLoop.ts` — Post-step sentinel detection, new exit conditions for finish/dispatch
-- `packages/api/src/agentLoop/agentLoopTypes.ts` — `AgentLoopResult` extended with `dispatchResult?` and `finishResult?` fields
+- `packages/api/src/agentLoop/agentLoop.ts` — Post-step sentinel detection, new exit conditions for finish/dispatch, populate new AgentStepEvent fields, auto-finish on maxSteps for children, call validateTenantCostBudget
+- `packages/api/src/agentLoop/agentLoopTypes.ts` — `AgentLoopResult` extended with `dispatchResult?` and `finishResult?` fields; `AgentStepEvent` extended with `responseMessages`, `reasoning`, `error`
 - `packages/api/src/core/index.ts` — Workflow terminal node triggers child completion flow when session has parent; in-process workflow execution for `invoke_workflow`
 - `packages/api/src/core/toolCallExecutor.ts` — Inject system tools alongside MCP tools
 - `packages/api/src/stateMachine/index.ts` — Inject dispatch tools into workflow node tool sets via `toolsByEdge` augmentation
@@ -615,6 +822,7 @@ If `after` omitted, start from beginning or live-only if execution hasn't starte
 - `packages/backend/src/routes/execute/executePersistence.ts` — Persist events to `agent_execution_events`, handle stack updates via `agent_stack_entries`
 - `packages/backend/src/routes/execute/executeFetcher.ts` — Load stack top from `agent_stack_entries`, execution-scoped message retrieval
 - `packages/backend/src/routes/execute/executeAgentPath.ts` — Dispatch detection, MCP config inheritance
+- `packages/backend/src/routes/execute/agentExecutionPersistence.ts` — `buildStepResponse` updated to include responseMessages, reasoning, error; pass actual durationMs
 - `packages/backend/src/db/queries/executionQueries.ts` — `parent_execution_id` in `createExecution`, stack entry CRUD, execution-scoped `getSessionMessages`, `pending_resumes` operations
 - `packages/backend/src/routes/simulateHandler.ts` — Same dispatch/resume flow for simulate path (without event persistence)
 - `packages/backend/src/routes/simulateAgentHandler.ts` — Same for agent simulate
