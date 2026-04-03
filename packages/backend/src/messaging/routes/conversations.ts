@@ -5,6 +5,7 @@ import { addAssignee, addStatus, getAssignees } from '../queries/assignmentQueri
 import {
   deleteConversationWithTombstone,
   markConversationRead,
+  updateConversationChatbot,
   updateConversationEnabled,
 } from '../queries/conversationMutations.js';
 import { findConversationByUserChannelId } from '../queries/conversationQueries.js';
@@ -118,7 +119,14 @@ async function handleToggleChatbot(req: Request, res: MessagingResponse): Promis
     }
 
     const enabled = getOptionalQuery(req, 'enabled') === 'true';
-    await updateConversationEnabled(getSupabase(res), conversation.id, enabled);
+    const nextNode = getOptionalQuery(req, 'nextNode');
+
+    if (enabled && nextNode === undefined) {
+      res.status(HTTP_BAD_REQUEST).json({ error: 'nextNode is required when enabling chatbot' });
+      return;
+    }
+
+    await updateConversationChatbot(getSupabase(res), conversation.id, enabled, conversation, nextNode);
     res.status(HTTP_OK).json({ success: true });
   } catch (err) {
     res.status(HTTP_INTERNAL).json({ error: extractErrorMessage(err) });

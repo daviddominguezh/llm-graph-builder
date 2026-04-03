@@ -189,9 +189,7 @@ export async function processIncomingMessage(params: ProcessIncomingParams): Pro
     mediaUrl: enriched.mediaUrl,
   });
 
-  const newUnansweredCount = conversation.enabled
-    ? conversation.unanswered_count
-    : conversation.unanswered_count + INCREMENT;
+  const newUnansweredCount = conversation.unanswered_count + INCREMENT;
 
   await updateConversationLastMessage(supabase, conversation.id, {
     lastMessageContent: incoming.content,

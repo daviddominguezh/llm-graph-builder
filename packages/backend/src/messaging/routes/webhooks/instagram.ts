@@ -5,8 +5,10 @@ import { createServiceClient } from '../../../db/queries/executionAuthQueries.js
 import { processIncomingMessage } from '../../controllers/incomingProcessor.js';
 import { captureRawBody, verifyInstagramSignature } from '../../middleware/webhookSignature.js';
 import { getChannelConnectionByIdentifier } from '../../queries/channelQueries.js';
-import type { IncomingMessage } from '../../types/index.js';
+import { resolveInstagramCredentials } from '../../services/instagram/credentials.js';
+import { fetchInstagramProfile } from '../../services/instagram/profile.js';
 import { parseInstagramWebhook } from '../../services/instagram/webhookParser.js';
+import type { ChannelConnectionRow, IncomingMessage } from '../../types/index.js';
 
 const HTTP_OK = 200;
 const HTTP_FORBIDDEN = 403;
@@ -36,6 +38,30 @@ function handleVerify(req: Request, res: Response): void {
 
 /* POST /instagram/webhook -- incoming messages */
 
+function extractSenderId(userChannelId: string): string {
+  const PREFIX = 'instagram:';
+  return userChannelId.startsWith(PREFIX) ? userChannelId.slice(PREFIX.length) : userChannelId;
+}
+
+async function enrichUserName(
+  supabase: ReturnType<typeof createServiceClient>,
+  connection: ChannelConnectionRow,
+  incoming: IncomingMessage
+): Promise<void> {
+  if (incoming.userName !== undefined) return;
+
+  try {
+    const creds = await resolveInstagramCredentials(supabase, connection.agent_id, connection.tenant_id);
+    const senderId = extractSenderId(incoming.userChannelId);
+    const profile = await fetchInstagramProfile(senderId, creds.accessToken);
+    if (profile !== null) {
+      incoming.userName = profile.username || profile.name || undefined;
+    }
+  } catch {
+    // Non-critical: leave userName undefined
+  }
+}
+
 async function processOneMessage(incoming: IncomingMessage): Promise<void> {
   const supabase = createServiceClient();
   const connection = await getChannelConnectionByIdentifier(supabase, incoming.channelIdentifier);
@@ -43,6 +69,7 @@ async function processOneMessage(incoming: IncomingMessage): Promise<void> {
     process.stdout.write(`[instagram] No channel connection for ${incoming.channelIdentifier}\n`);
     return;
   }
+  await enrichUserName(supabase, connection, incoming);
   await processIncomingMessage({ supabase, connection, incoming });
 }
 

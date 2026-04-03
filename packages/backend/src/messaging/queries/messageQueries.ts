@@ -165,7 +165,10 @@ export async function getMessagePage(
     .limit(PAGE_SIZE + FETCH_EXTRA);
 
   if (params.cursor !== undefined) {
-    query = query.lt('timestamp', params.cursor.timestamp);
+    query = query.or(
+      `timestamp.lt.${params.cursor.timestamp},` +
+        `and(timestamp.eq.${params.cursor.timestamp},id.lt.${params.cursor.key})`
+    );
   }
 
   const result: QueryResult<MessageRow[]> = await query;
@@ -203,7 +206,7 @@ export async function getAllMessages(
     .order('timestamp', { ascending: true });
 
   if (params.fromTimestamp !== undefined) {
-    query = query.gt('timestamp', params.fromTimestamp);
+    query = query.gte('timestamp', params.fromTimestamp);
   }
 
   const result: QueryResult<MessageRow[]> = await query;

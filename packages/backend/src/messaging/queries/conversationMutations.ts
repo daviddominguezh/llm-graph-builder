@@ -1,5 +1,10 @@
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 
+interface QueryResult<T> {
+  data: T | null;
+  error: { message: string } | null;
+}
+
 /* ─── Update last message fields ─── */
 
 interface UpdateLastMessageParams {
@@ -47,6 +52,67 @@ export async function updateConversationEnabled(
 
   if (result.error !== null) {
     throw new Error(`updateConversationEnabled: ${result.error.message}`);
+  }
+}
+
+/* ─── Toggle chatbot with nextNode (reset agent session) ─── */
+
+interface AgentSessionRow {
+  id: string;
+}
+
+async function findAgentSession(
+  supabase: SupabaseClient,
+  conversation: { agent_id: string; tenant_id: string; user_channel_id: string }
+): Promise<AgentSessionRow | null> {
+  const result: QueryResult<AgentSessionRow> = await supabase
+    .from('agent_sessions')
+    .select('id')
+    .eq('agent_id', conversation.agent_id)
+    .eq('tenant_id', conversation.tenant_id)
+    .eq('user_id', conversation.user_channel_id)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  return result.data ?? null;
+}
+
+async function resetAgentSessionNode(
+  supabase: SupabaseClient,
+  sessionId: string,
+  nextNode: string
+): Promise<void> {
+  const result = await supabase
+    .from('agent_sessions')
+    .update({ current_node_id: nextNode, updated_at: new Date().toISOString() })
+    .eq('id', sessionId);
+
+  if (result.error !== null) {
+    throw new Error(`resetAgentSessionNode: ${result.error.message}`);
+  }
+}
+
+interface ConversationLookup {
+  agent_id: string;
+  tenant_id: string;
+  user_channel_id: string;
+}
+
+export async function updateConversationChatbot(
+  supabase: SupabaseClient,
+  conversationId: string,
+  enabled: boolean,
+  conversation: ConversationLookup,
+  nextNode?: string
+): Promise<void> {
+  await updateConversationEnabled(supabase, conversationId, enabled);
+
+  if (enabled && nextNode !== undefined && nextNode !== '') {
+    const session = await findAgentSession(supabase, conversation);
+    if (session !== null) {
+      await resetAgentSessionNode(supabase, session.id, nextNode);
+    }
   }
 }
 

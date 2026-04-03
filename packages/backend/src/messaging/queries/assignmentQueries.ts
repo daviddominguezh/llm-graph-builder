@@ -52,6 +52,10 @@ export async function getAssignees(
     .eq('conversation_id', conversationId)
     .order('created_at', { ascending: false });
 
+  if (result.error !== null) {
+    throw new Error(`getAssignees: ${result.error.message}`);
+  }
+
   return result.data ?? [];
 }
 
@@ -64,6 +68,10 @@ export async function getStatuses(
     .select('*')
     .eq('conversation_id', conversationId)
     .order('created_at', { ascending: false });
+
+  if (result.error !== null) {
+    throw new Error(`getStatuses: ${result.error.message}`);
+  }
 
   return result.data ?? [];
 }

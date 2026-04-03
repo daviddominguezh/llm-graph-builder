@@ -116,10 +116,12 @@ export async function getInboxPage(supabase: SupabaseClient, params: InboxPagePa
     .order('last_message_at', { ascending: false })
     .limit(PAGE_SIZE + FETCH_EXTRA);
 
+  query = query.not('last_message_at', 'is', null);
+
   if (params.cursor !== undefined) {
     query = query.or(
       `last_message_at.lt.${new Date(params.cursor.timestamp).toISOString()},` +
-        `and(last_message_at.eq.${new Date(params.cursor.timestamp).toISOString()},id.gt.${params.cursor.key})`
+        `and(last_message_at.eq.${new Date(params.cursor.timestamp).toISOString()},id.lt.${params.cursor.key})`
     );
   }
 
@@ -167,8 +169,8 @@ export async function getInboxDelta(
     .from('conversations')
     .select('*')
     .eq('tenant_id', tenantId)
-    .gte('updated_at', sinceTimestamp)
-    .order('updated_at', { ascending: false });
+    .gte('last_message_at', sinceTimestamp)
+    .order('last_message_at', { ascending: false });
 
   if (result.error !== null) {
     throw new Error(`getInboxDelta: ${result.error.message}`);

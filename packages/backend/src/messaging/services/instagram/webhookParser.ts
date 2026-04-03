@@ -35,7 +35,9 @@ interface InstagramWebhookPayload {
 /* ─── Validators ─── */
 
 function isValidPayload(body: unknown): body is InstagramWebhookPayload {
-  return typeof body === 'object' && body !== null && 'entry' in body;
+  if (typeof body !== 'object' || body === null || !('entry' in body)) return false;
+  if (!('object' in body) || (body as InstagramWebhookPayload).object !== 'instagram') return false;
+  return true;
 }
 
 /* ─── Attachment type mapping ─── */
