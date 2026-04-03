@@ -2,6 +2,7 @@ import type { ModelMessage, Tool } from 'ai';
 
 import type { ActionTokenUsage, TokenLog } from '@src/types/ai/logs.js';
 import type { Message } from '@src/types/ai/messages.js';
+import type { DispatchSentinel, FinishSentinel } from '@src/types/sentinels.js';
 
 /** Hard ceiling on steps to prevent infinite loops */
 export const AGENT_LOOP_HARD_LIMIT = 50;
@@ -59,4 +60,6 @@ export interface AgentLoopResult {
   totalTokens: TokenLog;
   tokensLogs: ActionTokenUsage[];
   toolCalls: AgentToolCallRecord[];
+  finishResult?: FinishSentinel;
+  dispatchResult?: DispatchSentinel;
 }
