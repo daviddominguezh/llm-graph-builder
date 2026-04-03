@@ -1,17 +1,25 @@
 import type { NextFunction, Request, Response } from 'express';
 
 const INTERNAL_SERVICE_KEY = process.env.INTERNAL_SERVICE_KEY ?? '';
+const HTTP_UNAUTHORIZED = 401;
+const BEARER_PREFIX = 'Bearer ';
+
+function extractBearerToken(header: string | undefined): string | null {
+  if (header === undefined) return null;
+  if (!header.startsWith(BEARER_PREFIX)) return null;
+  return header.slice(BEARER_PREFIX.length);
+}
 
 export function requireInternalAuth(req: Request, res: Response, next: NextFunction): void {
-  const authHeader = req.headers.authorization;
-  if (authHeader === undefined || !authHeader.startsWith('Bearer ')) {
-    res.status(401).json({ error: 'Missing authorization header' });
+  const token = extractBearerToken(req.headers.authorization);
+
+  if (token === null) {
+    res.status(HTTP_UNAUTHORIZED).json({ error: 'Missing authorization header' });
     return;
   }
 
-  const token = authHeader.slice('Bearer '.length);
   if (token !== INTERNAL_SERVICE_KEY || INTERNAL_SERVICE_KEY === '') {
-    res.status(401).json({ error: 'Invalid service key' });
+    res.status(HTTP_UNAUTHORIZED).json({ error: 'Invalid service key' });
     return;
   }
 

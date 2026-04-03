@@ -12,16 +12,18 @@ export interface FinishSentinel {
 
 export type Sentinel = DispatchSentinel | FinishSentinel;
 
+function hasSentinelField(value: object, expected: string): boolean {
+  return '__sentinel' in value && (value as { __sentinel: unknown }).__sentinel === expected;
+}
+
 export function isDispatchSentinel(value: unknown): value is DispatchSentinel {
   if (typeof value !== 'object' || value === null) return false;
-  const record = value as Record<string, unknown>;
-  return record.__sentinel === 'dispatch';
+  return hasSentinelField(value, 'dispatch');
 }
 
 export function isFinishSentinel(value: unknown): value is FinishSentinel {
   if (typeof value !== 'object' || value === null) return false;
-  const record = value as Record<string, unknown>;
-  return record.__sentinel === 'finish';
+  return hasSentinelField(value, 'finish');
 }
 
 export function isSentinel(value: unknown): value is Sentinel {

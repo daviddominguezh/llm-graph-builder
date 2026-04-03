@@ -1,5 +1,7 @@
 import type { Request, Response } from 'express';
 
+const HTTP_ACCEPTED = 202;
+
 /**
  * POST /internal/execute-child
  *
@@ -9,12 +11,12 @@ import type { Request, Response } from 'express';
  * Returns 202 immediately upon accepting the work (before executing).
  * The actual execution happens asynchronously after the response.
  */
-export async function handleExecuteChild(req: Request, res: Response): Promise<void> {
+export function handleExecuteChild(_req: Request, res: Response): void {
   // TODO: Implement child execution startup
   // 1. Extract executionId, agentConfig, initialMessage, orgId, apiKeyId from body
   // 2. Check if execution already exists (idempotency)
   // 3. Accept the work immediately (return 202)
   // 4. Execute asynchronously (after response)
-  process.stderr.write(`[internal] execute-child called\n`);
-  res.status(202).json({ accepted: true });
+  process.stderr.write('[internal] execute-child called\n');
+  res.status(HTTP_ACCEPTED).json({ accepted: true });
 }

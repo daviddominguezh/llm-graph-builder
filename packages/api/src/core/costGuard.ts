@@ -12,6 +12,6 @@ interface CostCheckParams {
  * (across all executions in the current billing period) and reject if exceeded.
  * For now, always allows execution.
  */
-export async function validateTenantCostBudget(_params: CostCheckParams): Promise<boolean> {
+export function validateTenantCostBudget(_params: CostCheckParams): boolean {
   return true;
 }

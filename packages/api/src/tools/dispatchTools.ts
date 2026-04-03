@@ -54,9 +54,8 @@ function createAgentTool(): Tool {
       'Create a new agent dynamically and dispatch it to handle a task. ' +
       'You must provide a system prompt and task. The agent will execute independently.',
     inputSchema: zodSchema(createAgentSchema),
-    execute: (args: z.infer<typeof createAgentSchema>): DispatchSentinel => {
-      return buildSentinel('create_agent', args);
-    },
+    execute: (args: z.infer<typeof createAgentSchema>): DispatchSentinel =>
+      buildSentinel('create_agent', args),
   };
 }
 
@@ -66,9 +65,8 @@ function invokeAgentTool(): Tool {
       'Invoke an existing agent by its slug to handle a task. ' +
       'The agent will execute independently and return its result.',
     inputSchema: zodSchema(invokeAgentSchema),
-    execute: (args: z.infer<typeof invokeAgentSchema>): DispatchSentinel => {
-      return buildSentinel('invoke_agent', args);
-    },
+    execute: (args: z.infer<typeof invokeAgentSchema>): DispatchSentinel =>
+      buildSentinel('invoke_agent', args),
   };
 }
 
@@ -78,9 +76,8 @@ function invokeWorkflowTool(): Tool {
       'Invoke an existing workflow by its slug. ' +
       'Provide a user message that matches the workflow routing.',
     inputSchema: zodSchema(invokeWorkflowSchema),
-    execute: (args: z.infer<typeof invokeWorkflowSchema>): DispatchSentinel => {
-      return buildSentinel('invoke_workflow', args);
-    },
+    execute: (args: z.infer<typeof invokeWorkflowSchema>): DispatchSentinel =>
+      buildSentinel('invoke_workflow', args),
   };
 }
 

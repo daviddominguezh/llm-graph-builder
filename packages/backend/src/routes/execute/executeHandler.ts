@@ -262,7 +262,7 @@ export async function handleExecute(
       // TODO: Route to child agent config
       // For now, log and continue with root agent (to be implemented in execute-child/resume-parent tasks)
       process.stderr.write(
-        `[execute] Stack routing: child active at depth ${String(ctx.fetched.stackTop.depth)}, execution ${ctx.fetched.stackTop.executionId}\n`
+        `[execute] Stack routing: child active at depth ${String(ctx.fetched.stackTop.depth)}, execution ${ctx.fetched.stackTop.execution_id}\n`
       );
     }
 

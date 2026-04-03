@@ -8,6 +8,11 @@ export interface ExecutionEvent {
   payload: Record<string, unknown>;
 }
 
+interface QueryResult<T> {
+  data: T | null;
+  error: { message: string } | null;
+}
+
 export async function persistEvent(supabase: SupabaseClient, event: ExecutionEvent): Promise<void> {
   const { error } = await supabase.from('agent_execution_events').insert({
     execution_id: event.executionId,
@@ -27,13 +32,13 @@ export async function getEventsAfter(
   executionId: string,
   afterSequence: number
 ): Promise<ExecutionEvent[]> {
-  const { data, error } = await supabase
+  const result: QueryResult<ExecutionEvent[]> = await supabase
     .from('agent_execution_events')
     .select('*')
     .eq('execution_id', executionId)
     .gt('sequence', afterSequence)
     .order('sequence', { ascending: true });
 
-  if (error !== null) throw new Error(`Failed to get events: ${error.message}`);
-  return (data ?? []) as ExecutionEvent[];
+  if (result.error !== null) throw new Error(`Failed to get events: ${result.error.message}`);
+  return result.data ?? [];
 }

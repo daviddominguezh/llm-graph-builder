@@ -1,15 +1,22 @@
 import type { SupabaseClient } from './operationHelpers.js';
 
+const INCREMENT = 1;
+
 export interface PendingResume {
   id: string;
-  sessionId: string;
-  parentExecutionId: string;
-  parentToolOutputMessageId: string;
-  childOutput: string;
-  childStatus: 'success' | 'error';
-  parentSessionState: Record<string, unknown>;
+  session_id: string;
+  parent_execution_id: string;
+  parent_tool_output_message_id: string;
+  child_output: string;
+  child_status: 'success' | 'error';
+  parent_session_state: Record<string, unknown>;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   attempts: number;
+}
+
+interface QueryResult<T> {
+  data: T | null;
+  error: { message: string } | null;
 }
 
 export async function createPendingResume(
@@ -52,24 +59,26 @@ export async function markResumeCompleted(
 }
 
 export async function fetchPendingResumes(supabase: SupabaseClient, limit: number): Promise<PendingResume[]> {
-  const { data, error } = await supabase
+  const result: QueryResult<PendingResume[]> = await supabase
     .from('pending_resumes')
     .select('*')
     .eq('status', 'pending')
     .order('created_at', { ascending: true })
     .limit(limit);
 
-  if (error !== null) throw new Error(`Failed to fetch pending resumes: ${error.message}`);
-  return (data ?? []) as PendingResume[];
+  if (result.error !== null) throw new Error(`Failed to fetch pending resumes: ${result.error.message}`);
+  return result.data ?? [];
 }
 
 export async function updateResumeStatus(
   supabase: SupabaseClient,
   resumeId: string,
-  status: 'processing' | 'completed' | 'failed'
+  newStatus: 'processing' | 'completed' | 'failed'
 ): Promise<void> {
-  const updateData: Record<string, unknown> = { status, last_attempt_at: new Date().toISOString() };
-  const { error } = await supabase.from('pending_resumes').update(updateData).eq('id', resumeId);
+  const { error } = await supabase
+    .from('pending_resumes')
+    .update({ status: newStatus, last_attempt_at: new Date().toISOString() })
+    .eq('id', resumeId);
 
   if (error !== null) throw new Error(`Failed to update resume status: ${error.message}`);
 }
@@ -81,7 +90,7 @@ export async function incrementResumeAttempts(
 ): Promise<void> {
   const { error } = await supabase
     .from('pending_resumes')
-    .update({ attempts: currentAttempts + 1, last_attempt_at: new Date().toISOString() })
+    .update({ attempts: currentAttempts + INCREMENT, last_attempt_at: new Date().toISOString() })
     .eq('id', resumeId);
 
   if (error !== null) throw new Error(`Failed to increment resume attempts: ${error.message}`);

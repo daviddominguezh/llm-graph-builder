@@ -1,29 +1,37 @@
 import type { SupabaseClient } from './operationHelpers.js';
 
+const ZERO = 0;
+const ONE = 1;
+
 export interface StackEntry {
   id: string;
-  sessionId: string;
+  session_id: string;
   depth: number;
-  executionId: string;
-  parentExecutionId: string | null;
-  parentToolOutputMessageId: string | null;
-  parentSessionState: Record<string, unknown> | null;
-  agentConfig: Record<string, unknown>;
-  appType: 'agent' | 'workflow';
-  dispatchedAt: string;
+  execution_id: string;
+  parent_execution_id: string | null;
+  parent_tool_output_message_id: string | null;
+  parent_session_state: Record<string, unknown> | null;
+  agent_config: Record<string, unknown>;
+  app_type: 'agent' | 'workflow';
+  dispatched_at: string;
+}
+
+interface QueryResult<T> {
+  data: T | null;
+  error: { message: string } | null;
 }
 
 export async function getStackTop(supabase: SupabaseClient, sessionId: string): Promise<StackEntry | null> {
-  const { data, error } = await supabase
+  const result: QueryResult<StackEntry> = await supabase
     .from('agent_stack_entries')
     .select('*')
     .eq('session_id', sessionId)
     .order('depth', { ascending: false })
-    .limit(1)
+    .limit(ONE)
     .maybeSingle();
 
-  if (error !== null) throw new Error(`Failed to get stack top: ${error.message}`);
-  return data as StackEntry | null;
+  if (result.error !== null) throw new Error(`Failed to get stack top: ${result.error.message}`);
+  return result.data;
 }
 
 export async function getStackDepth(supabase: SupabaseClient, sessionId: string): Promise<number> {
@@ -33,7 +41,7 @@ export async function getStackDepth(supabase: SupabaseClient, sessionId: string)
     .eq('session_id', sessionId);
 
   if (error !== null) throw new Error(`Failed to get stack depth: ${error.message}`);
-  return count ?? 0;
+  return typeof count === 'number' ? count : ZERO;
 }
 
 export interface PushStackEntryParams {

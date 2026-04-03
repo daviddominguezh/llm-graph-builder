@@ -17,13 +17,11 @@ function createFinishTool(): Tool {
       'Signal that you have completed your task. Call this when you are done. ' +
       'Pass your final output and whether you succeeded or encountered an error.',
     inputSchema: zodSchema(finishToolSchema),
-    execute: (args: z.infer<typeof finishToolSchema>): FinishSentinel => {
-      return {
-        __sentinel: 'finish',
-        output: args.output,
-        status: args.status,
-      };
-    },
+    execute: (args: z.infer<typeof finishToolSchema>): FinishSentinel => ({
+      __sentinel: 'finish',
+      output: args.output,
+      status: args.status,
+    }),
   };
 }
 
