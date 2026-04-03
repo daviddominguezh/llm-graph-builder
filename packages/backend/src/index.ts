@@ -2,6 +2,7 @@
 import { initializeSocketIO } from './messaging/socket/index.js';
 import { fetchAndCacheModels } from './openrouter/modelCache.js';
 import { createApp } from './server.js';
+import { startResumeWorker } from './workers/resumeWorker.js';
 
 const DEFAULT_PORT = 4000;
 
@@ -16,3 +17,4 @@ const server = app.listen(port, () => {
 });
 
 initializeSocketIO(server);
+startResumeWorker();

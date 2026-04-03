@@ -5,6 +5,7 @@ import multer from 'multer';
 import { handleMcpRequest } from './mcp-server/server.js';
 import { messagingRouter } from './messaging/routes/index.js';
 import { requireAuth } from './middleware/auth.js';
+import { internalRouter } from './routes/internal/internalRouter.js';
 import { agentRouter } from './routes/agents/agentRouter.js';
 import { dashboardRouter } from './routes/dashboard/dashboardRouter.js';
 import { handleDiscover } from './routes/discover.js';
@@ -108,6 +109,8 @@ export function createApp(): Express {
 
   // Messaging routes (auth middleware applied inside the router)
   app.use(messagingRouter);
+
+  app.use('/internal', internalRouter);
 
   return app;
 }
