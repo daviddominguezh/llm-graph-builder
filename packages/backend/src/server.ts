@@ -34,6 +34,7 @@ import { handleCheckAvailability } from './routes/slugs/checkAvailability.js';
 import { templateRouter } from './routes/templates/templateRouter.js';
 import { tenantRouter } from './routes/tenants/tenantRouter.js';
 import { handleToolCall } from './routes/toolCall.js';
+import { messagingRouter } from './messaging/routes/index.js';
 
 function requestLogger(req: Request, _res: Response, next: NextFunction): void {
   process.stdout.write(`[server] ${req.method} ${req.path}\n`);
@@ -104,6 +105,13 @@ export function createApp(): Express {
   app.use('/tenants', tenantRouter);
   app.use('/templates', templateRouter);
   app.use('/github', buildGitHubRouter());
+
+  // Messaging routes (auth middleware applied inside the router)
+  app.use(messagingRouter);
+
+  // Socket.io will be initialized in Task 24:
+  // import { initializeSocketIO } from './messaging/socket/index.js';
+  // initializeSocketIO(httpServer);
 
   return app;
 }
