@@ -43,7 +43,7 @@ export class SyncService implements SyncServiceInterface {
     this.socket = io(socketUrl, {
       transports: ['websocket'],
       query: {
-        projectName: this.projectName,
+        tenantId: this.projectName,
       },
       reconnection: true,
       reconnectionAttempts: this.maxReconnectAttempts,
@@ -57,8 +57,8 @@ export class SyncService implements SyncServiceInterface {
    * Get the WebSocket server URL
    */
   private getSocketUrl(): string {
-    // Get from environment or default to current origin
-    const wsUrl = process.env.REACT_APP_WS_URL;
+    // Use new backend URL (port 4000)
+    const wsUrl = process.env.NEXT_PUBLIC_API_URL;
     if (wsUrl) return wsUrl;
 
     // Use same protocol and host as current page
@@ -76,7 +76,7 @@ export class SyncService implements SyncServiceInterface {
     this.socket.on('connect', () => {
       this.reconnectAttempts = 0;
       this.reconnectDelay = 1000;
-      this.emit('sync:connected', { projectName: this.projectName });
+      this.emit('sync:connected', { tenantId: this.projectName });
     });
 
     this.socket.on('disconnect', (reason) => {
@@ -269,11 +269,11 @@ export class SyncService implements SyncServiceInterface {
    * Typing indicators
    */
   startTyping(chatId: string): void {
-    this.sendToServer('typing:start', { chatId, projectName: this.projectName });
+    this.sendToServer('typing:start', { chatId, tenantId: this.projectName });
   }
 
   stopTyping(chatId: string): void {
-    this.sendToServer('typing:stop', { chatId, projectName: this.projectName });
+    this.sendToServer('typing:stop', { chatId, tenantId: this.projectName });
   }
 
   /**
@@ -298,7 +298,7 @@ export class SyncService implements SyncServiceInterface {
   requestSync(chatId: string): void {
     this.sendToServer('sync:request', {
       chatId,
-      projectName: this.projectName,
+      tenantId: this.projectName,
       timestamp: Date.now(),
     });
   }
@@ -309,7 +309,7 @@ export class SyncService implements SyncServiceInterface {
   acknowledgeMessage(messageId: string): void {
     this.sendToServer('message:acknowledge', {
       messageId,
-      projectName: this.projectName,
+      tenantId: this.projectName,
       timestamp: Date.now(),
     });
   }

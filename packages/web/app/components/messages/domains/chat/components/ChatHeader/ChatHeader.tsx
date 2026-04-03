@@ -1,3 +1,4 @@
+import { useTenantId } from '@/app/components/messages/core/contexts/TenantContext';
 import { updateChatAssignee, updateChatStatus } from '@/app/components/messages/services/api';
 import { WhatsAppIcon } from '@/app/components/messages/shared/icons';
 import { updateAssigneeOptimistic, updateStatusOptimistic } from '@/app/components/messages/store';
@@ -38,7 +39,6 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
-import { useParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import Avatar from 'react-nice-avatar';
 
@@ -73,9 +73,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   profilePictures = new Map(),
 }) => {
   const t = useTranslations('messages');
-  const params = useParams();
-  const projectName =
-    typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? 'nike');
+  const projectName = useTenantId();
   const isMobile = useIsMobile();
   const dispatch = useAppDispatch();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);

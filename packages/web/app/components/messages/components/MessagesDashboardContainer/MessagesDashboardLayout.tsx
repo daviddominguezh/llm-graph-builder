@@ -21,13 +21,12 @@ import { useIsMobile } from '@/app/utils/device';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useTranslations } from 'next-intl';
-import { useParams } from 'next/navigation';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { usePanelRef } from 'react-resizable-panels';
 import { v4 as uuidv4 } from 'uuid';
 
-import { useAI, useChat, useMessage, useUI } from '../../core/contexts';
+import { useAI, useChat, useMessage, useUI, useTenantId } from '../../core/contexts';
 import type { MessageRepository } from '../../core/repositories/MessageRepository';
 import { MessageQueueService, createMessageQueueService } from '../../core/services';
 import { ChatEmptyState } from '../../domains/chat/components/ChatEmptyState';
@@ -72,9 +71,7 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
   onChangeSidebar,
   initialChatFilter,
 }) => {
-  const params = useParams();
-  const projectName =
-    typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? '');
+  const projectName = useTenantId();
   const repository = useMessageRepository();
 
   const t = useTranslations('messages');

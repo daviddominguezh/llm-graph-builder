@@ -139,7 +139,7 @@ const resubscribeToNamespace = (
   });
 
   socket.emit('messages:subscribe', {
-    namespace,
+    tenantId: namespace,
     requestId,
   });
 };
@@ -255,7 +255,7 @@ export const subscribeToMessages = async (
 
   // Send the request to subscribe to messages
   socket.emit('messages:subscribe', {
-    namespace,
+    tenantId: namespace,
     requestId,
   });
 };

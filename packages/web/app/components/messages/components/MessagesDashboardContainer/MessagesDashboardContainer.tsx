@@ -3,7 +3,7 @@ import { Provider } from 'react-redux';
 
 import { store } from '@/app/components/messages/store/mainStore';
 
-import { ChatProvider, AIProvider, MessageProvider, UIProvider } from '../../core/contexts';
+import { ChatProvider, AIProvider, MessageProvider, UIProvider, TenantProvider } from '../../core/contexts';
 import { SlotProvider } from '../../core/slots';
 import { FeatureRegistry } from '../../core/registry';
 import { featureConfig } from '../../featureConfig';
@@ -12,6 +12,7 @@ import { MessagesDashboardLayout } from './MessagesDashboardLayout';
 interface MessagesDashboardContainerProps {
   onChangeSidebar: (val: boolean) => void;
   initialChatFilter?: string;
+  tenantId: string;
 }
 
 /**
@@ -31,20 +32,26 @@ interface MessagesDashboardContainerProps {
 export const MessagesDashboardContainer: React.FC<MessagesDashboardContainerProps> = ({
   onChangeSidebar,
   initialChatFilter,
+  tenantId,
 }) => {
   return (
     <Provider store={store}>
       <FeatureRegistry config={featureConfig}>
         <SlotProvider>
-          <ChatProvider>
-            <AIProvider>
-              <MessageProvider>
-                <UIProvider>
-                  <MessagesDashboardLayout onChangeSidebar={onChangeSidebar} initialChatFilter={initialChatFilter} />
-                </UIProvider>
-              </MessageProvider>
-            </AIProvider>
-          </ChatProvider>
+          <TenantProvider tenantId={tenantId}>
+            <ChatProvider>
+              <AIProvider>
+                <MessageProvider>
+                  <UIProvider>
+                    <MessagesDashboardLayout
+                      onChangeSidebar={onChangeSidebar}
+                      initialChatFilter={initialChatFilter}
+                    />
+                  </UIProvider>
+                </MessageProvider>
+              </AIProvider>
+            </ChatProvider>
+          </TenantProvider>
         </SlotProvider>
       </FeatureRegistry>
     </Provider>

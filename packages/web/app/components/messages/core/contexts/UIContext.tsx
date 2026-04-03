@@ -1,7 +1,6 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { useParams } from 'next/navigation';
 
 import { getCurrentFirebaseUser } from '@/app/components/messages/services/firebase';
 
@@ -13,6 +12,7 @@ import type { ChatSearchResults, Conversation, LastMessage, Message } from '@/ap
 
 import { createSearchService } from '../services';
 import { useChat } from './ChatContext';
+import { useTenantId } from './TenantContext';
 
 interface Modal {
   id: string;
@@ -67,8 +67,7 @@ interface UIProviderProps {
 }
 
 export const UIProvider: React.FC<UIProviderProps> = ({ children }) => {
-  const params = useParams();
-  const projectName = typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? 'nike');
+  const projectName = useTenantId();
   // Get data from ChatContext
   const { activeChat, messages: loadedMessages, orderedChats } = useChat();
   // Get data from Redux

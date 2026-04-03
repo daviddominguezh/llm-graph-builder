@@ -1,17 +1,23 @@
-'use client';
+import { getOrgBySlug } from '@/app/lib/orgs';
+import { getTenantsByOrg } from '@/app/lib/tenants';
+import { redirect } from 'next/navigation';
 
-import { useCallback } from 'react';
+import { ChatsClient } from './ChatsClient';
 
-import MessagesDashboard from '@/app/components/messages';
+interface ChatsPageProps {
+  params: Promise<{ slug: string }>;
+}
 
-export default function ChatsPage(): React.JSX.Element {
-  const handleSidebarChange = useCallback(() => {
-    /* sidebar managed by OrgSidebar */
-  }, []);
+export default async function ChatsPage({ params }: ChatsPageProps): Promise<React.JSX.Element> {
+  const { slug } = await params;
+  const { result: org } = await getOrgBySlug(slug);
 
-  return (
-    <div className="h-full overflow-hidden">
-      <MessagesDashboard onChangeSidebar={handleSidebarChange} />
-    </div>
-  );
+  if (!org) {
+    redirect('/');
+  }
+
+  const { result: tenants } = await getTenantsByOrg(org.id);
+  const defaultTenantId = tenants[0]?.id ?? '';
+
+  return <ChatsClient tenants={tenants} defaultTenantId={defaultTenantId} />;
 }

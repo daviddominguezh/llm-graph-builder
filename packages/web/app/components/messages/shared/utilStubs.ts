@@ -47,7 +47,7 @@ export const getMediaKind = (filename: string): MediaFileKind => {
 // ---------------------------------------------------------------------------
 // Environment helpers
 // ---------------------------------------------------------------------------
-export const getApiURL = (): string => process.env.NEXT_PUBLIC_CLOSER_API_URL || '';
+export const getApiURL = (): string => process.env.NEXT_PUBLIC_API_URL || '';
 
 export const isLocalDevelopment = (): boolean => {
   return process.env.NODE_ENV === 'development';

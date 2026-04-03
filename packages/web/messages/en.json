@@ -388,6 +388,9 @@
       "cta": "Get started"
     }
   },
+  "chats": {
+    "tenant": "Tenant"
+  },
   "apiKeys": {
     "title": "OpenRouter API Keys",
     "add": "Add",

@@ -1,7 +1,6 @@
 
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useParams } from 'next/navigation';
 
 import { v4 as uuidv4 } from 'uuid';
 
@@ -25,6 +24,7 @@ import type { PendingImageAttachment } from '../../domains/message/components/Me
 import { useMessageRepository } from '../../hooks/useMessageRepository';
 import { useAI } from './AIContext';
 import { useChat } from './ChatContext';
+import { useTenantId } from './TenantContext';
 
 interface MessageContextValue {
   // State
@@ -48,8 +48,7 @@ interface MessageContextValue {
 const MessageContext = createContext<MessageContextValue>({} as MessageContextValue);
 
 export const MessageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const params = useParams();
-  const projectName = typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? 'nike');
+  const projectName = useTenantId();
   const dispatch = useDispatch();
   const repository = useMessageRepository();
   const { activeChat, isTestChatActive, messages, currentChat, addMessage, triggerNotesRefresh, updateCachedConversation } = useChat();

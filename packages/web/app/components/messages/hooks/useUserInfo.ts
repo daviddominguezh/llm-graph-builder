@@ -1,6 +1,6 @@
+import { useTenantId } from '@/app/components/messages/core/contexts/TenantContext';
 import { getFinalUserInfo } from '@/app/components/messages/services/api';
 import type { FinalUserInfoAPI } from '@/app/types/finalUsers';
-import { useParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 interface UserInfoCache {
@@ -17,9 +17,7 @@ const userInfoCache: UserInfoCache = {};
  * @returns User information including userGender, or null if not available
  */
 export const useUserInfo = (chatId: string | null, isActive: boolean = false): FinalUserInfoAPI | null => {
-  const params = useParams();
-  const projectName =
-    typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? 'nike');
+  const projectName = useTenantId();
   const [userInfo, setUserInfo] = useState<FinalUserInfoAPI | null>(null);
   const activeChatRef = useRef<string | null>(chatId);
 

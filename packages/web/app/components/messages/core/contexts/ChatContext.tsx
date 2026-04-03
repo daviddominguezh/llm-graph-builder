@@ -5,7 +5,6 @@ import { TEST_PHONE } from '@/app/constants/messages';
 import type { BusinessSetupSchemaAPIType } from '@/app/types/business';
 import { INTENT } from '@/app/types/chat';
 import type { Conversation, LastMessage, Message } from '@/app/types/chat';
-import { useParams } from 'next/navigation';
 import React, {
   createContext,
   startTransition,
@@ -20,6 +19,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useConversationMessagesWithCache } from '../../hooks/useConversationMessagesWithCache';
 import { useLastMessagesWithCache } from '../../hooks/useLastMessagesWithCache';
 import { useMessageRepository } from '../../hooks/useMessageRepository';
+import { useTenantId } from './TenantContext';
 
 export interface ChatWithId extends LastMessage {
   chatId: string;
@@ -83,9 +83,7 @@ interface ChatContextValue {
 const ChatContext = createContext<ChatContextValue>({} as ChatContextValue);
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const params = useParams();
-  const projectName =
-    typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? 'nike');
+  const projectName = useTenantId();
   const repository = useMessageRepository();
   const dispatch = useDispatch();
   const lastMessages = useSelector(getLastMessagesFromStore);

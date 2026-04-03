@@ -18,11 +18,10 @@ import { cn } from '@/lib/utils';
 import { ChevronDown, ChevronRight, Image as ImageIcon, NotepadText, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import NextImage from 'next/image';
-import { useParams } from 'next/navigation';
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import Avatar from 'react-nice-avatar';
 
-import { useChat } from '../../core/contexts';
+import { useChat, useTenantId } from '../../core/contexts';
 import { Slot } from '../../core/slots';
 
 interface RightPanelProps {
@@ -68,9 +67,7 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
 }) => {
   const t = useTranslations('messages');
   const locale = useLocale();
-  const params = useParams();
-  const projectName =
-    typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? 'nike');
+  const projectName = useTenantId();
   const isMobile = useIsMobile();
   const { notes, setNotes, notesRefreshTrigger, triggerNotesRefresh } = useChat();
 

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { useTenantId } from '@/app/components/messages/core/contexts/TenantContext';
 import * as api from '@/app/components/messages/services/api';
 import Spinner from '@/app/components/messages/shared/spinner';
 import type { Collaborator } from '@/app/types/projectInnerSettings';
@@ -21,7 +22,6 @@ import {
   Strikethrough,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useParams } from 'next/navigation';
 import 'quill/dist/quill.snow.css';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -88,9 +88,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
   onAskAIQuestionHandled,
 }) => {
   const t = useTranslations('messages');
-  const params = useParams();
-  const projectName =
-    typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? 'nike');
+  const projectName = useTenantId();
   const { pendingImageAttachment, clearPendingImageAttachment } = useMessage();
 
   const [mode, setMode] = useState<'reply' | 'note'>('reply');

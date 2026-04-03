@@ -5,6 +5,7 @@ import { MessagesDashboardContainer } from './components/MessagesDashboardContai
 interface MessagesDashboardProps {
   onChangeSidebar: (val: boolean) => void;
   initialChatFilter?: string;
+  tenantId: string;
 }
 
 /**
@@ -19,8 +20,14 @@ interface MessagesDashboardProps {
  * - Dependency Injection: Repository pattern for testable data access
  * - Composability: Small, focused components that work together
  */
-const MessagesDashboard: React.FC<MessagesDashboardProps> = ({ onChangeSidebar, initialChatFilter }) => {
-  return <MessagesDashboardContainer onChangeSidebar={onChangeSidebar} initialChatFilter={initialChatFilter} />;
+const MessagesDashboard: React.FC<MessagesDashboardProps> = ({ onChangeSidebar, initialChatFilter, tenantId }) => {
+  return (
+    <MessagesDashboardContainer
+      onChangeSidebar={onChangeSidebar}
+      initialChatFilter={initialChatFilter}
+      tenantId={tenantId}
+    />
+  );
 };
 
 MessagesDashboard.displayName = 'MessagesDashboard';

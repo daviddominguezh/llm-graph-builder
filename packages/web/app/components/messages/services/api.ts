@@ -264,7 +264,7 @@ export const getMessagesFromSender = async (
   fromMessageId: string | undefined
 ): Promise<Conversation | null> => {
   try {
-    let url = `${API_BASE_URL}/projects/${namespace}/messages/${sender}`;
+    let url = `${API_BASE_URL}/projects/${namespace}/conversations/${sender}`;
     if (fromMessageId) url += `?from=${fromMessageId}`;
     const response = await authenticatedFetch(url, {
       credentials: 'include',
@@ -310,7 +310,7 @@ export const getMessagesFromSenderPaginated = async (
       params.set('from', options.from);
     }
 
-    const url = `${API_BASE_URL}/projects/${namespace}/messages/${sender}?${params.toString()}`;
+    const url = `${API_BASE_URL}/projects/${namespace}/conversations/${sender}?${params.toString()}`;
     const response = await authenticatedFetch(url, {
       credentials: 'include',
     });
@@ -330,7 +330,7 @@ export const setChatbotActiveState = async (
   nextNode?: string
 ) => {
   try {
-    let url = `${API_BASE_URL}/projects/${namespace}/messages/${sender}/active?enabled=${active}`;
+    let url = `${API_BASE_URL}/projects/${namespace}/conversations/${sender}/chatbot?enabled=${active}`;
     if (active && nextNode) {
       url += `&nextNode=${nextNode}`;
     }
@@ -367,7 +367,7 @@ export const createNote = async (
 ): Promise<Note | null> => {
   try {
     const response = await authenticatedFetch(
-      `${API_BASE_URL}/projects/${projectName}/messages/notes/${userID}`,
+      `${API_BASE_URL}/projects/${projectName}/conversations/${userID}/notes`,
       {
         method: 'POST',
         credentials: 'include',
@@ -393,7 +393,7 @@ export const createNote = async (
 export const getNotes = async (projectName: string, userID: string): Promise<Record<string, Note>> => {
   try {
     const response = await authenticatedFetch(
-      `${API_BASE_URL}/projects/${projectName}/messages/notes/${userID}`,
+      `${API_BASE_URL}/projects/${projectName}/conversations/${userID}/notes`,
       {
         credentials: 'include',
       }
@@ -415,7 +415,7 @@ export const getNotes = async (projectName: string, userID: string): Promise<Rec
 export const deleteNote = async (projectName: string, userID: string, noteID: string): Promise<boolean> => {
   try {
     const response = await authenticatedFetch(
-      `${API_BASE_URL}/projects/${projectName}/messages/notes/${userID}/${noteID}`,
+      `${API_BASE_URL}/projects/${projectName}/conversations/${userID}/notes/${noteID}`,
       {
         method: 'DELETE',
         credentials: 'include',
@@ -441,7 +441,7 @@ export const updateChatAssignee = async (
 ): Promise<boolean> => {
   try {
     const response = await authenticatedFetch(
-      `${API_BASE_URL}/projects/${projectName}/messages/assignee/${userID}`,
+      `${API_BASE_URL}/projects/${projectName}/conversations/${userID}/assignee`,
       {
         method: 'POST',
         credentials: 'include',
@@ -470,7 +470,7 @@ export const updateChatStatus = async (
 ): Promise<boolean> => {
   try {
     const response = await authenticatedFetch(
-      `${API_BASE_URL}/projects/${projectName}/messages/status/${userID}`,
+      `${API_BASE_URL}/projects/${projectName}/conversations/${userID}/status`,
       {
         method: 'POST',
         credentials: 'include',
@@ -511,6 +511,8 @@ export const sendMessage = async (
         userID: to,
         from: namespace,
         namespace,
+        tenantId: namespace,
+        agentId: '',
         id,
         type,
       }),
@@ -556,6 +558,8 @@ export const sendTestMessage = async (
         id: msgId,
         message: msg,
         namespace,
+        tenantId: namespace,
+        agentId: '',
         type,
       }),
     });
@@ -587,6 +591,8 @@ export const sendMediaTestMessage = async (
       id: msgId,
       mediaUrl,
       namespace,
+      tenantId: namespace,
+      agentId: '',
       type,
     };
     if (caption) {
@@ -620,6 +626,8 @@ export const sendMediaMessage = async (
       userID: to,
       from: namespace,
       namespace,
+      tenantId: namespace,
+      agentId: '',
       type,
     };
     if (caption) {
@@ -735,7 +743,7 @@ export const getLastMessagesDelta = async (
 ): Promise<DeltaLastMessagesResponse | null> => {
   try {
     const response = await authenticatedFetch(
-      `${API_BASE_URL}/projects/${namespace}/messages/last?timestamp=${timestamp}`,
+      `${API_BASE_URL}/projects/${namespace}/messages/last/delta?timestamp=${timestamp}`,
       {
         credentials: 'include',
       }
@@ -782,7 +790,7 @@ export const getDeletedChats = async (
 ): Promise<DeletedChatsResponse | null> => {
   try {
     const response = await authenticatedFetch(
-      `${API_BASE_URL}/projects/${namespace}/messages/deletedChats?from=${fromTimestamp}`,
+      `${API_BASE_URL}/projects/${namespace}/messages/last/deleted?since=${fromTimestamp}`,
       {
         credentials: 'include',
       }
@@ -800,7 +808,7 @@ export const getDeletedChats = async (
 
 export const readConversation = async (namespace: string, phone: string): Promise<void> => {
   try {
-    await authenticatedFetch(`${API_BASE_URL}/projects/${namespace}/messages/read/${phone}`, {
+    await authenticatedFetch(`${API_BASE_URL}/projects/${namespace}/conversations/${phone}/read`, {
       credentials: 'include',
       method: 'POST',
       headers: {
