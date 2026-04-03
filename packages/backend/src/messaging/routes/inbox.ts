@@ -1,0 +1,105 @@
+import express from 'express';
+import type { Request } from 'express';
+
+import { buildSnapshots } from '../controllers/snapshotBuilder.js';
+import { getDeletedConversations } from '../queries/conversationMutations.js';
+import { getAllInbox, getInboxDelta, getInboxPage } from '../queries/conversationQueries.js';
+import type { MessagingResponse } from './routeHelpers.js';
+import {
+  HTTP_BAD_REQUEST,
+  HTTP_INTERNAL,
+  HTTP_OK,
+  extractErrorMessage,
+  getOptionalQuery,
+  getRequiredParam,
+  getSupabase,
+} from './routeHelpers.js';
+
+/* GET /projects/:tenantId/messages/last */
+async function handlePaginatedInbox(req: Request, res: MessagingResponse): Promise<void> {
+  const supabase = getSupabase(res);
+  const tenantId = getRequiredParam(req, 'tenantId');
+  const cursorTimestamp = getOptionalQuery(req, 'cursorTimestamp');
+  const cursorKey = getOptionalQuery(req, 'cursorKey');
+  const cursor =
+    cursorTimestamp !== undefined && cursorKey !== undefined
+      ? { timestamp: Number(cursorTimestamp), key: cursorKey }
+      : undefined;
+
+  const page = await getInboxPage(supabase, { tenantId, cursor });
+  const snapshots = await buildSnapshots(supabase, page.conversations);
+
+  res.status(HTTP_OK).json({
+    data: snapshots,
+    hasMore: page.hasMore,
+    nextCursor: page.nextCursor,
+  });
+}
+
+async function handleFullInbox(req: Request, res: MessagingResponse): Promise<void> {
+  const supabase = getSupabase(res);
+  const tenantId = getRequiredParam(req, 'tenantId');
+
+  const conversations = await getAllInbox(supabase, tenantId);
+  const snapshots = await buildSnapshots(supabase, conversations);
+  res.status(HTTP_OK).json(snapshots);
+}
+
+async function handleGetInbox(req: Request, res: MessagingResponse): Promise<void> {
+  try {
+    const paginate = getOptionalQuery(req, 'paginate') === 'true';
+
+    if (paginate) {
+      await handlePaginatedInbox(req, res);
+      return;
+    }
+
+    await handleFullInbox(req, res);
+  } catch (err) {
+    res.status(HTTP_INTERNAL).json({ error: extractErrorMessage(err) });
+  }
+}
+
+/* GET /projects/:tenantId/messages/last/delta */
+async function handleGetDelta(req: Request, res: MessagingResponse): Promise<void> {
+  try {
+    const supabase = getSupabase(res);
+    const tenantId = getRequiredParam(req, 'tenantId');
+    const timestamp = getOptionalQuery(req, 'timestamp');
+
+    if (timestamp === undefined) {
+      res.status(HTTP_BAD_REQUEST).json({ error: 'Missing timestamp query param' });
+      return;
+    }
+
+    const conversations = await getInboxDelta(supabase, tenantId, timestamp);
+    const snapshots = await buildSnapshots(supabase, conversations);
+    res.status(HTTP_OK).json(snapshots);
+  } catch (err) {
+    res.status(HTTP_INTERNAL).json({ error: extractErrorMessage(err) });
+  }
+}
+
+/* GET /projects/:tenantId/messages/last/deleted */
+async function handleGetDeleted(req: Request, res: MessagingResponse): Promise<void> {
+  try {
+    const supabase = getSupabase(res);
+    const tenantId = getRequiredParam(req, 'tenantId');
+    const since = getOptionalQuery(req, 'since');
+
+    if (since === undefined) {
+      res.status(HTTP_BAD_REQUEST).json({ error: 'Missing since query param' });
+      return;
+    }
+
+    const ids = await getDeletedConversations(supabase, tenantId, since);
+    res.status(HTTP_OK).json({ deletedIds: ids });
+  } catch (err) {
+    res.status(HTTP_INTERNAL).json({ error: extractErrorMessage(err) });
+  }
+}
+
+export const inboxRouter = express.Router({ mergeParams: true });
+inboxRouter.get('/last', handleGetInbox);
+inboxRouter.get('/last/delta', handleGetDelta);
+inboxRouter.get('/last/deleted', handleGetDeleted);

@@ -113,6 +113,21 @@ export interface InstagramCredentialRow {
 
 // --- API / Wire Types ---
 
+export interface ConversationSnapshotMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface AssigneeEntry {
+  assignee: string;
+  timestamp: number;
+}
+
+export interface StatusEntry {
+  status: string;
+  timestamp: number;
+}
+
 export interface ConversationSnapshot {
   id: string;
   key: string;
@@ -122,15 +137,12 @@ export interface ConversationSnapshot {
   status: string | null;
   name: string | undefined;
   unansweredCount: number;
-  message: {
-    role: 'user' | 'assistant';
-    content: string;
-  };
+  message: ConversationSnapshotMessage;
   type: string;
   originalId: string;
   intent: string;
-  assignees: Record<string, { assignee: string; timestamp: number }>;
-  statuses: Record<string, { status: string; timestamp: number }>;
+  assignees: Record<string, AssigneeEntry>;
+  statuses: Record<string, StatusEntry>;
 }
 
 export interface PaginationCursor {

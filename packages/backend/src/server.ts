@@ -3,6 +3,7 @@ import express, { type Express, type NextFunction, type Request, type Response }
 import multer from 'multer';
 
 import { handleMcpRequest } from './mcp-server/server.js';
+import { messagingRouter } from './messaging/routes/index.js';
 import { requireAuth } from './middleware/auth.js';
 import { agentRouter } from './routes/agents/agentRouter.js';
 import { dashboardRouter } from './routes/dashboard/dashboardRouter.js';
@@ -34,7 +35,6 @@ import { handleCheckAvailability } from './routes/slugs/checkAvailability.js';
 import { templateRouter } from './routes/templates/templateRouter.js';
 import { tenantRouter } from './routes/tenants/tenantRouter.js';
 import { handleToolCall } from './routes/toolCall.js';
-import { messagingRouter } from './messaging/routes/index.js';
 
 function requestLogger(req: Request, _res: Response, next: NextFunction): void {
   process.stdout.write(`[server] ${req.method} ${req.path}\n`);
