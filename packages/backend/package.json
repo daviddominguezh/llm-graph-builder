@@ -34,10 +34,12 @@
     "@modelcontextprotocol/sdk": "^1.28.0",
     "@supabase/supabase-js": "^2.99.0",
     "@types/multer": "^2.1.0",
+    "@upstash/redis": "^1.37.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "jose": "^6.2.1",
     "multer": "^2.1.1",
+    "socket.io": "^4.8.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {
