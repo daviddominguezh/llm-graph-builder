@@ -27,7 +27,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import {
-  AlertTriangle,
   ChevronLeft,
   CircleCheck,
   CircleEllipsis,
@@ -217,8 +216,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         return <Construction className="text-yellow-500" />;
       case 'closed':
         return <CircleCheck className="text-green-700" />;
-      case 'verify-payment':
-        return <AlertTriangle className="text-amber-500" />;
       default:
         return <CircleEllipsis className="text-foreground" />;
     }

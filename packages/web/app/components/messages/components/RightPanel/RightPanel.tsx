@@ -78,7 +78,7 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
   const activeChatRef = useRef<string | null>(activeChat);
 
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set(['info', 'notes', 'tags', 'activity', 'media'])
+    new Set(['info', 'notes', 'activity', 'media'])
   );
 
   // State for note creator profile pictures
@@ -87,8 +87,6 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
   // State for delete confirmation dialog
   const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-
-  // State for selected tags per chat
 
   // Update ref whenever activeChat changes
   useEffect(() => {

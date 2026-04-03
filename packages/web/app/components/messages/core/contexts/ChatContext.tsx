@@ -11,7 +11,7 @@ import React, {
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams } from 'next/navigation';
 
-import type { ChatActivity, Note, Tag, QuickReply } from '@/app/components/messages/services/api';
+import type { ChatActivity, Note } from '@/app/components/messages/services/api';
 
 import { getBusinessSetup } from '@/app/components/messages/store/stubs';
 import { getLastMessagesFromStore, setLastMessage } from '@/app/components/messages/store';
@@ -71,17 +71,6 @@ interface ChatContextValue {
   // Activities
   activities: Record<string, ChatActivity>;
   setActivities: React.Dispatch<React.SetStateAction<Record<string, ChatActivity>>>;
-
-  // Tags (all available tags for the project)
-  availableTags: Tag[];
-  setAvailableTags: React.Dispatch<React.SetStateAction<Tag[]>>;
-
-  // Update chat tags in LastMessage
-  updateChatTags: (chatId: string, tags: string[]) => void;
-
-  // Quick Replies (all available quick replies for the project)
-  availableQuickReplies: QuickReply[];
-  setAvailableQuickReplies: React.Dispatch<React.SetStateAction<QuickReply[]>>;
 
   // Business info (cached, fetched on mount)
   businessInfo: BusinessSetupSchemaAPIType | null;
@@ -151,9 +140,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [notes, setNotes] = useState<Record<string, Note>>({});
   const [notesRefreshTrigger, setNotesRefreshTrigger] = useState(0);
   const [activities, setActivities] = useState<Record<string, ChatActivity>>({});
-  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
-  const [availableQuickReplies, setAvailableQuickReplies] = useState<QuickReply[]>([]);
-
   // Read business info from Redux store (populated by project/index.tsx)
   const businessInfo = useSelector(getBusinessSetup);
   const businessInfoLoading = !businessInfo;
@@ -372,26 +358,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setNotesRefreshTrigger((prev) => prev + 1);
   }, []);
 
-  const updateChatTags = useCallback(
-    (chatId: string, tags: string[]) => {
-      const chat = lastMessages?.[chatId];
-      if (!chat) return;
-
-      // Update the lastMessage with new tags
-      dispatch(
-        setLastMessage({
-          id: chatId,
-          lastMessage: {
-            ...chat,
-            tags,
-          },
-          preventFetch: true,
-        })
-      );
-    },
-    [lastMessages, dispatch]
-  );
-
   const value: ChatContextValue = useMemo(
     () => ({
       activeChat,
@@ -420,11 +386,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       triggerNotesRefresh,
       activities,
       setActivities,
-      availableTags,
-      setAvailableTags,
-      updateChatTags,
-      availableQuickReplies,
-      setAvailableQuickReplies,
       businessInfo,
       businessInfoLoading,
       refetchBusinessInfo,
@@ -463,11 +424,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       triggerNotesRefresh,
       activities,
       setActivities,
-      availableTags,
-      setAvailableTags,
-      updateChatTags,
-      availableQuickReplies,
-      setAvailableQuickReplies,
       businessInfo,
       businessInfoLoading,
       refetchBusinessInfo,

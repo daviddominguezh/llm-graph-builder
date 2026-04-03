@@ -195,7 +195,7 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
         return orderedChats.filter((chat) => {
           if (chat.chatId === TEST_PHONE) return false; // Exclude test chat
           const chatStatus = getChatStatus(chat);
-          return chatStatus === 'open' || chatStatus === 'verify-payment';
+          return chatStatus === 'open';
         });
 
       case 'blocked':

@@ -41,7 +41,6 @@ export interface Message {
 export interface LastMessage extends Message {
   read: boolean;
   enabled: boolean;
-  tags?: string[] | null;
   assignees?: Record<
     string,
     {

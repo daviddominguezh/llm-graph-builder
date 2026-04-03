@@ -37,79 +37,60 @@ Exhaustive list of all API calls defined in `packages/web/app/components/message
 | 14 | `updateChatAssignee` | POST | `/projects/{namespace}/conversations/{userID}/assignee` |
 | 15 | `updateChatStatus` | POST | `/projects/{namespace}/conversations/{userID}/status` |
 
-## Tags
-
-| # | Function | Method | Endpoint |
-|---|----------|--------|----------|
-| 16 | `getTags` | GET | `/projects/{namespace}/tags` |
-| 17 | `setChatTags` | POST | `/projects/{namespace}/conversations/{userID}/tags` |
-
-## Quick Replies
-
-| # | Function | Method | Endpoint |
-|---|----------|--------|----------|
-| 18 | `getQuickReplies` | GET | `/projects/{namespace}/quick-replies` |
-
 ## Send Messages
 
 | # | Function | Method | Endpoint |
 |---|----------|--------|----------|
-| 19 | `sendMessage` | POST | `/messages/message` |
-| 20 | `fixInquiry` | POST | `/messages/inquiry` |
-| 21 | `sendTestMessage` | POST | `/messages/test` |
-| 22 | `deleteConversation` | DELETE | `/messages/{namespace}/{from}` |
-| 23 | `sendMediaTestMessage` | POST | `/messages/test` |
-| 24 | `sendMediaMessage` | POST | `/messages/message` |
+| 16 | `sendMessage` | POST | `/messages/message` |
+| 17 | `fixInquiry` | POST | `/messages/inquiry` |
+| 18 | `sendTestMessage` | POST | `/messages/test` |
+| 19 | `deleteConversation` | DELETE | `/messages/{namespace}/{from}` |
+| 20 | `sendMediaTestMessage` | POST | `/messages/test` |
+| 21 | `sendMediaMessage` | POST | `/messages/message` |
 
 ## Last Messages / Inbox
 
 | # | Function | Method | Endpoint |
 |---|----------|--------|----------|
-| 25 | `getLastMessages` | GET | `/projects/{namespace}/last-messages` |
-| 26 | `getLastMessagesPaginated` | GET | `/projects/{namespace}/last-messages/paginated` |
-| 27 | `getLastMessagesDelta` | GET | `/projects/{namespace}/last-messages/delta` |
-| 28 | `getDeletedChats` | GET | `/projects/{namespace}/last-messages/deleted` |
-| 29 | `readConversation` | POST | `/projects/{namespace}/conversations/{phone}/read` |
+| 22 | `getLastMessages` | GET | `/projects/{namespace}/last-messages` |
+| 23 | `getLastMessagesPaginated` | GET | `/projects/{namespace}/last-messages/paginated` |
+| 24 | `getLastMessagesDelta` | GET | `/projects/{namespace}/last-messages/delta` |
+| 25 | `getDeletedChats` | GET | `/projects/{namespace}/last-messages/deleted` |
+| 26 | `readConversation` | POST | `/projects/{namespace}/conversations/{phone}/read` |
 
 ## Orders
 
 | # | Function | Method | Endpoint |
 |---|----------|--------|----------|
-| 30 | `createOrder` | POST | `/projects/{namespace}/orders` |
-| 31 | `getUserOrders` | GET | `/projects/{namespace}/conversations/{userID}/orders` |
-| 32 | `getOrderReceipt` | GET | `/projects/{namespace}/orders/{orderId}/receipt` |
+| 27 | `createOrder` | POST | `/projects/{namespace}/orders` |
+| 28 | `getUserOrders` | GET | `/projects/{namespace}/conversations/{userID}/orders` |
+| 29 | `getOrderReceipt` | GET | `/projects/{namespace}/orders/{orderId}/receipt` |
 
 ## Storefront
 
 | # | Function | Method | Endpoint |
 |---|----------|--------|----------|
-| 33 | `getStoreData` | GET | `/store/{key}` |
+| 30 | `getStoreData` | GET | `/store/{key}` |
 
 ## Project Settings
 
 | # | Function | Method | Endpoint |
 |---|----------|--------|----------|
-| 34 | `getProjectInnerSettings` | GET | `/projects/{namespace}/settings` |
-| 35 | `getProjectInnerSettingsCached` | — | Cached wrapper around `getProjectInnerSettings` |
-| 36 | `getProjectCollaborators` | GET | `/projects/{namespace}/collaborators` |
+| 31 | `getProjectInnerSettings` | GET | `/projects/{namespace}/settings` |
+| 32 | `getProjectInnerSettingsCached` | — | Cached wrapper around `getProjectInnerSettings` |
+| 33 | `getProjectCollaborators` | GET | `/projects/{namespace}/collaborators` |
 
 ## Payments
 
 | # | Function | Method | Endpoint |
 |---|----------|--------|----------|
-| 37 | `createPaymentLink` | POST | `/projects/{namespace}/conversations/{userID}/payment-link` |
+| 34 | `createPaymentLink` | POST | `/projects/{namespace}/conversations/{userID}/payment-link` |
 
 ## AI Text Helpers
 
 | # | Function | Method | Endpoint |
 |---|----------|--------|----------|
-| 38 | `makeFriendly` | POST | `/projects/{namespace}/ai/friendly` |
-| 39 | `makeFormal` | POST | `/projects/{namespace}/ai/formal` |
-| 40 | `fixGrammar` | POST | `/projects/{namespace}/ai/grammar` |
-| 41 | `answerQuestion` | POST | `/projects/{namespace}/ai/answer` |
-
-## Payment Verification
-
-| # | Function | Method | Endpoint |
-|---|----------|--------|----------|
-| 42 | `verifyPayment` | POST | `/messages/verify-payment` |
+| 35 | `makeFriendly` | POST | `/projects/{namespace}/ai/friendly` |
+| 36 | `makeFormal` | POST | `/projects/{namespace}/ai/formal` |
+| 37 | `fixGrammar` | POST | `/projects/{namespace}/ai/grammar` |
+| 38 | `answerQuestion` | POST | `/projects/{namespace}/ai/answer` |

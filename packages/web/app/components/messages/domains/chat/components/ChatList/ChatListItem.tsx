@@ -6,7 +6,7 @@ import { generateAvatarConfig } from '@/app/utils/avatar';
 import { formatTimestamp, parseChatId, ChatSource } from '@/app/utils/strs';
 import { getMessageText } from '@/app/utils/message';
 import { LastMessage } from '@/app/types/chat';
-import { AlertTriangle, FlaskConical, Instagram } from 'lucide-react';
+import { FlaskConical, Instagram } from 'lucide-react';
 import { TEST_PHONE } from '@/app/constants/messages';
 import styles from './ChatListItem.module.css';
 
@@ -82,9 +82,6 @@ export const ChatListItem: React.FC<ChatListItemProps> = memo(({
     return formatTimestamp(chat.timestamp);
   }, [chat.timestamp]);
 
-  // Check if this is a verify-payment status (needs warning border)
-  const isVerifyPayment = chat.status === 'verify-payment';
-
   // Render platform badge icon
   const renderPlatformBadge = (source: ChatSource) => {
     if (source === 'whatsapp') {
@@ -106,7 +103,7 @@ export const ChatListItem: React.FC<ChatListItemProps> = memo(({
 
   return (
     <div
-      className={`${styles.chatItem} ${isActive ? styles.active : ''} ${isVerifyPayment ? 'border-amber-500 border-1 bg-amber-50 rounded-md mx-1' : ''} ${className}`}
+      className={`${styles.chatItem} ${isActive ? styles.active : ''} ${className}`}
       onClick={handleClick}
       role="button"
       tabIndex={0}
@@ -144,9 +141,6 @@ export const ChatListItem: React.FC<ChatListItemProps> = memo(({
               <Badge variant="destructive" className={styles.inquiryBadge}>
                 Inquiry
               </Badge>
-            )}
-            {isVerifyPayment && (
-              <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
             )}
           </h3>
           <span className={styles.timestamp}>{formattedTime}</span>

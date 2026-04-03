@@ -31,10 +31,6 @@ interface UpdateStatusPayload {
   status: string;
 }
 
-interface ClearVerifyPaymentStatusPayload {
-  chatId: string;
-}
-
 interface MergeLastMessagesPayload {
   /** New conversations to merge */
   conversations: Record<string, LastMessage>;
@@ -184,25 +180,6 @@ export const MessagesSlice = createSlice({
         };
       }
     },
-    clearVerifyPaymentStatus: (state, action: PayloadAction<ClearVerifyPaymentStatusPayload>) => {
-      const { chatId } = action.payload;
-      if (!state.lastMessages || !state.lastMessages[chatId]) return;
-
-      const lastMessage = state.lastMessages[chatId];
-
-      // Clear the status field (used for verify-payment)
-      if (lastMessage.status === 'verify-payment') {
-        lastMessage.status = null;
-      }
-
-      // Update realtimeMessages as well
-      if (state.realtimeMessages[chatId]) {
-        const rtMessage = state.realtimeMessages[chatId];
-        if (rtMessage.status === 'verify-payment') {
-          rtMessage.status = null;
-        }
-      }
-    },
     /**
      * Merge new conversations with existing ones
      * Uses highest timestamp wins strategy for conflicts
@@ -251,7 +228,6 @@ export const {
   removeLastMessage,
   updateAssigneeOptimistic,
   updateStatusOptimistic,
-  clearVerifyPaymentStatus,
   mergeLastMessages,
   removeMultipleLastMessages,
 } = MessagesSlice.actions;

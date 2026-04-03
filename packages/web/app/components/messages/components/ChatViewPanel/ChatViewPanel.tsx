@@ -13,8 +13,6 @@ import { Slot } from '../../core/slots';
 import { MessageInput } from '../../domains/message/components/MessageInput';
 import { MessageView } from '../../domains/message/components/MessageView';
 import { TypingIndicator } from '../../domains/message/components/TypingIndicator';
-import { PaymentVerificationBanner } from '../PaymentVerificationBanner';
-
 // Code splitting: Lazy load modals (only loaded when opened)
 const InquiryModal = lazy(() =>
   import('../../domains/message/components/InquiryModal').then((module) => ({
@@ -150,9 +148,6 @@ const ChatViewPanelComponent: React.FC<ChatViewPanelProps> = ({
     return latestAssignee.assignee;
   }, [currentChat]);
 
-  // Get current status from chat
-  const currentStatus = currentChat?.status || 'open';
-
   // Get assignee name for display
   const assigneeName = useMemo(() => {
     if (!currentAssignee) return null;
@@ -212,9 +207,6 @@ const ChatViewPanelComponent: React.FC<ChatViewPanelProps> = ({
     >
       {/* Slot: After chat header - for notifications, banners, etc. */}
       <Slot name="chat-header-after" />
-
-      {/* Payment verification banner - shown when status is verify-payment */}
-      {currentStatus === 'verify-payment' && <PaymentVerificationBanner chatId={activeChatId} />}
 
       {/* Main content area with chat view */}
       <div className="flex flex-1 overflow-hidden">

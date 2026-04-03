@@ -69,7 +69,7 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
         const a = getLatestAssignee(c);
         return (!a || a === 'unassigned' || a === 'none') && !c.enabled;
       }),
-      open: count((c) => status(c) === 'open' || status(c) === 'verify-payment'),
+      open: count((c) => status(c) === 'open'),
       blocked: count((c) => status(c) === 'blocked'),
       closed: count((c) => status(c) === 'closed'),
       all: count(() => true),

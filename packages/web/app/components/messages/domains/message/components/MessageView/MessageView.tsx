@@ -781,8 +781,6 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
           return t('chat-status-blocked');
         case 'closed':
           return t('chat-status-closed');
-        case 'verify-payment':
-          return t('chat-status-verify-payment');
         default:
           return statusValue;
       }
@@ -982,13 +980,6 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
             textColor: 'text-green-700 dark:text-green-400',
             bgColor: 'bg-green-50 dark:bg-background',
             borderColor: 'border-green-300 dark:border-green-400',
-          };
-        case 'verify-payment':
-          return {
-            label: t('chat-status-verify-payment'),
-            textColor: 'text-amber-600',
-            bgColor: 'bg-amber-50',
-            borderColor: 'border-amber-300',
           };
         default:
           return {

@@ -1,10 +1,7 @@
-import { combineAllTags } from '@/app/components/messages/chatSettings/tagsUtils';
 import WithFirebaseUploader from '@/app/components/messages/hocs/withFirebaseUploader';
 import { useRBAC } from '@/app/components/messages/hooks/useRBAC';
 import {
   getProjectCollaborators,
-  getQuickReplies,
-  getTags,
   getUserPictureByEmailCached,
 } from '@/app/components/messages/services/api';
 import { getCurrentFirebaseUser, uploadFile } from '@/app/components/messages/services/firebase';
@@ -105,8 +102,6 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
     deleteChat,
     addMessages,
     removeMessages,
-    setAvailableTags,
-    setAvailableQuickReplies,
     loadMoreConversations,
     hasMoreConversations,
     isLoadingMoreConversations,
@@ -273,50 +268,6 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
       onChangeSidebar(!activeChat);
     }
   }, [isMobile, activeChat, onChangeSidebar]);
-
-  // Fetch and log all tags (predefined + custom) on mount
-  useEffect(() => {
-    const fetchAndStoreTags = async () => {
-      if (!projectName) return;
-
-      try {
-        // Fetch custom tags from API
-        const customTags = await getTags(projectName);
-
-        // Combine with predefined tags
-        const allTags = combineAllTags(customTags);
-
-        // Store in context for use across components
-        setAvailableTags(allTags);
-      } catch (error) {
-        console.error('[MessagesDashboard] Error fetching tags:', error);
-      }
-    };
-
-    fetchAndStoreTags();
-  }, [projectName, setAvailableTags]);
-
-  // Fetch quick replies on mount
-  useEffect(() => {
-    const fetchAndStoreQuickReplies = async () => {
-      if (!projectName) return;
-
-      try {
-        // Fetch quick replies from API
-        const quickRepliesRecord = await getQuickReplies(projectName);
-
-        // Convert Record to Array for easier use
-        const quickRepliesArray = Object.values(quickRepliesRecord);
-
-        // Store in context for use across components
-        setAvailableQuickReplies(quickRepliesArray);
-      } catch (error) {
-        console.error('[MessagesDashboard] Error fetching quick replies:', error);
-      }
-    };
-
-    fetchAndStoreQuickReplies();
-  }, [projectName, setAvailableQuickReplies]);
 
   // Fetch collaborators for teammate filter
   useEffect(() => {

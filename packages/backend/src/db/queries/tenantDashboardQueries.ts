@@ -83,7 +83,7 @@ async function fetchAgentNameMap(supabase: SupabaseClient, agentIds: string[]): 
 }
 
 function extractUserSessionId(r: ExecutionRawRow): string {
-  const joined = r.agent_sessions;
+  const { agent_sessions: joined } = r;
   if (typeof joined === 'object' && joined !== null && 'session_id' in joined) {
     return toString((joined as Record<string, unknown>).session_id);
   }
