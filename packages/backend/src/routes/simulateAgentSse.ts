@@ -35,6 +35,9 @@ export function sendStepProcessed(res: Response, event: AgentStepEvent): void {
     toolCalls: event.toolCalls,
     tokens: event.tokens,
     durationMs: event.durationMs,
+    responseMessages: event.responseMessages,
+    reasoning: event.reasoning,
+    error: event.error,
   });
 }
 

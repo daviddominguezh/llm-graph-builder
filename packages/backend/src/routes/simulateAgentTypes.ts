@@ -85,6 +85,9 @@ export interface AgentStepProcessedEvent {
   toolCalls: AgentToolCallRecord[];
   tokens: { input: number; output: number; cached: number; costUSD?: number };
   durationMs: number;
+  responseMessages: unknown[];
+  reasoning?: string;
+  error?: string;
 }
 
 export interface AgentToolExecutedEvent {
