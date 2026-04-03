@@ -59,7 +59,9 @@ async function handleCreateNote(req: Request, res: MessagingResponse): Promise<v
     const userChannelId = decodeUserId(req);
     const body = req.body as CreateNoteBody;
 
-    if (!body.creator || !body.content) {
+    const content = (body.content ?? '').trim();
+    const creator = (body.creator ?? '').trim();
+    if (creator === '' || content === '') {
       res.status(HTTP_BAD_REQUEST).json({ error: 'creator and content are required' });
       return;
     }
@@ -70,7 +72,7 @@ async function handleCreateNote(req: Request, res: MessagingResponse): Promise<v
       return;
     }
 
-    const note = await createNote(supabase, conversation.id, body.creator, body.content);
+    const note = await createNote(supabase, conversation.id, creator, content);
     res.status(HTTP_OK).json(noteToPayload(note));
   } catch (err) {
     res.status(HTTP_INTERNAL).json({ error: extractErrorMessage(err) });
@@ -80,8 +82,17 @@ async function handleCreateNote(req: Request, res: MessagingResponse): Promise<v
 async function handleDeleteNote(req: Request, res: MessagingResponse): Promise<void> {
   try {
     const supabase = getSupabase(res);
+    const tenantId = getRequiredParam(req, 'tenantId');
+    const userChannelId = decodeUserId(req);
     const noteId = getRequiredParam(req, 'noteId');
-    await deleteNote(supabase, noteId);
+
+    const conversation = await findConversationByUserChannelId(supabase, tenantId, userChannelId);
+    if (conversation === null) {
+      res.status(HTTP_NOT_FOUND).json({ error: 'Conversation not found' });
+      return;
+    }
+
+    await deleteNote(supabase, noteId, conversation.id);
     res.status(HTTP_OK).json({ success: true });
   } catch (err) {
     res.status(HTTP_INTERNAL).json({ error: extractErrorMessage(err) });

@@ -3,8 +3,7 @@ import type { Request } from 'express';
 
 import { addAssignee, addStatus } from '../queries/assignmentQueries.js';
 import {
-  deleteConversation,
-  insertDeletedConversation,
+  deleteConversationWithTombstone,
   markConversationRead,
   updateConversationEnabled,
 } from '../queries/conversationMutations.js';
@@ -13,6 +12,7 @@ import { getAllMessages, getMessagePage } from '../queries/messageQueries.js';
 import type { AssigneeBody, ConversationRow, StatusBody } from '../types/index.js';
 import type { MessagingResponse } from './routeHelpers.js';
 import {
+  HTTP_BAD_REQUEST,
   HTTP_INTERNAL,
   HTTP_NOT_FOUND,
   HTTP_OK,
@@ -134,8 +134,7 @@ async function handleDeleteConversation(req: Request, res: MessagingResponse): P
     }
 
     const supabase = getSupabase(res);
-    await insertDeletedConversation(supabase, conversation.id, tenantId);
-    await deleteConversation(supabase, conversation.id);
+    await deleteConversationWithTombstone(supabase, conversation.id, tenantId);
     res.status(HTTP_OK).json({ success: true });
   } catch (err) {
     res.status(HTTP_INTERNAL).json({ error: extractErrorMessage(err) });
@@ -152,7 +151,12 @@ async function handleAddAssignee(req: Request, res: MessagingResponse): Promise<
     }
 
     const body = req.body as AssigneeBody;
-    await addAssignee(getSupabase(res), conversation.id, body.assignee);
+    const assignee = (body.assignee ?? '').trim();
+    if (assignee === '') {
+      res.status(HTTP_BAD_REQUEST).json({ error: 'assignee is required' });
+      return;
+    }
+    await addAssignee(getSupabase(res), conversation.id, assignee);
     res.status(HTTP_OK).json({ success: true });
   } catch (err) {
     res.status(HTTP_INTERNAL).json({ error: extractErrorMessage(err) });
@@ -169,7 +173,12 @@ async function handleAddStatus(req: Request, res: MessagingResponse): Promise<vo
     }
 
     const body = req.body as StatusBody;
-    await addStatus(getSupabase(res), conversation.id, body.status);
+    const status = (body.status ?? '').trim();
+    if (status === '') {
+      res.status(HTTP_BAD_REQUEST).json({ error: 'status is required' });
+      return;
+    }
+    await addStatus(getSupabase(res), conversation.id, status);
     res.status(HTTP_OK).json({ success: true });
   } catch (err) {
     res.status(HTTP_INTERNAL).json({ error: extractErrorMessage(err) });

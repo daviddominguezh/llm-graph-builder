@@ -56,7 +56,7 @@ function conversationToSnapshot(
     unansweredCount: row.unanswered_count,
     message: buildMessage(row),
     type: row.last_message_type ?? 'text',
-    originalId: '',
+    originalId: row.last_original_id ?? '',
     intent: 'NONE',
     assignees: buildAssigneeMap(assignees),
     statuses: buildStatusMap(statuses),

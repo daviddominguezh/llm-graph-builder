@@ -4,10 +4,7 @@ import type { Request } from 'express';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { processTestMessage } from '../controllers/incomingProcessor.js';
 import { processSendMessage } from '../controllers/messageProcessor.js';
-import {
-  deleteConversation,
-  insertDeletedConversation,
-} from '../queries/conversationMutations.js';
+import { deleteConversationWithTombstone } from '../queries/conversationMutations.js';
 import { findConversationByUserChannelId } from '../queries/conversationQueries.js';
 import type { SendMessageBody, SendTestMessageBody } from '../types/index.js';
 import type { MessagingResponse } from './routeHelpers.js';
@@ -133,8 +130,7 @@ async function handleDeleteFromSend(req: Request, res: MessagingResponse): Promi
       return;
     }
 
-    await insertDeletedConversation(supabase, conversation.id, tenantId);
-    await deleteConversation(supabase, conversation.id);
+    await deleteConversationWithTombstone(supabase, conversation.id, tenantId);
     res.status(HTTP_OK).json({ success: true });
   } catch (err) {
     res.status(HTTP_INTERNAL).json({ error: extractErrorMessage(err) });

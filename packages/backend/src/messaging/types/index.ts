@@ -21,6 +21,7 @@ export interface ConversationRow {
   status: 'open' | 'blocked' | 'closed';
   name: string | null;
   unanswered_count: number;
+  last_original_id: string | null;
   created_at: string;
   updated_at: string;
 }

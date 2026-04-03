@@ -7,6 +7,7 @@ interface UpdateLastMessageParams {
   lastMessageRole: string;
   lastMessageType: string;
   lastMessageAt: string;
+  lastOriginalId?: string;
   read: boolean;
   unansweredCount: number;
 }
@@ -23,10 +24,12 @@ export async function updateConversationLastMessage(
       last_message_role: params.lastMessageRole,
       last_message_type: params.lastMessageType,
       last_message_at: params.lastMessageAt,
+      last_original_id: params.lastOriginalId ?? null,
       read: params.read,
       unanswered_count: params.unansweredCount,
     })
-    .eq('id', conversationId);
+    .eq('id', conversationId)
+    .or(`last_message_at.is.null,last_message_at.lt.${params.lastMessageAt}`);
 
   if (result.error !== null) {
     throw new Error(`updateConversationLastMessage: ${result.error.message}`);
@@ -57,29 +60,20 @@ export async function markConversationRead(supabase: SupabaseClient, conversatio
   }
 }
 
-/* ─── Delete conversation ─── */
+/* ─── Delete conversation (atomic: tombstone + delete via RPC) ─── */
 
-export async function deleteConversation(supabase: SupabaseClient, conversationId: string): Promise<void> {
-  const result = await supabase.from('conversations').delete().eq('id', conversationId);
-
-  if (result.error !== null) {
-    throw new Error(`deleteConversation: ${result.error.message}`);
-  }
-}
-
-/* ─── Insert deleted conversation record ─── */
-
-export async function insertDeletedConversation(
+export async function deleteConversationWithTombstone(
   supabase: SupabaseClient,
   conversationId: string,
   tenantId: string
 ): Promise<void> {
-  const result = await supabase
-    .from('deleted_conversations')
-    .insert({ conversation_id: conversationId, tenant_id: tenantId });
+  const result = await supabase.rpc('delete_conversation_with_tombstone', {
+    p_conversation_id: conversationId,
+    p_tenant_id: tenantId,
+  });
 
   if (result.error !== null) {
-    throw new Error(`insertDeletedConversation: ${result.error.message}`);
+    throw new Error(`deleteConversationWithTombstone: ${result.error.message}`);
   }
 }
 

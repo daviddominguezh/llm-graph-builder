@@ -65,14 +65,21 @@ async function handleGetDelta(req: Request, res: MessagingResponse): Promise<voi
   try {
     const supabase = getSupabase(res);
     const tenantId = getRequiredParam(req, 'tenantId');
-    const timestamp = getOptionalQuery(req, 'timestamp');
+    const timestampRaw = getOptionalQuery(req, 'timestamp');
 
-    if (timestamp === undefined) {
+    if (timestampRaw === undefined) {
       res.status(HTTP_BAD_REQUEST).json({ error: 'Missing timestamp query param' });
       return;
     }
 
-    const conversations = await getInboxDelta(supabase, tenantId, timestamp);
+    const timestampNum = Number(timestampRaw);
+    if (Number.isNaN(timestampNum) || timestampNum <= 0) {
+      res.status(HTTP_BAD_REQUEST).json({ error: 'Invalid timestamp query param' });
+      return;
+    }
+
+    const sinceIso = new Date(timestampNum).toISOString();
+    const conversations = await getInboxDelta(supabase, tenantId, sinceIso);
     const snapshots = await buildSnapshots(supabase, conversations);
     res.status(HTTP_OK).json(snapshots);
   } catch (err) {

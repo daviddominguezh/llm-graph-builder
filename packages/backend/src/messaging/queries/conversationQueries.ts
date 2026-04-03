@@ -34,7 +34,41 @@ export async function findOrCreateConversation(
   supabase: SupabaseClient,
   params: FindOrCreateParams
 ): Promise<ConversationRow> {
-  const existing: QueryResult<ConversationRow> = await supabase
+  const upserted = await upsertConversation(supabase, params);
+  if (upserted !== null) return upserted;
+
+  return await refetchExistingConversation(supabase, params);
+}
+
+async function upsertConversation(
+  supabase: SupabaseClient,
+  params: FindOrCreateParams
+): Promise<ConversationRow | null> {
+  const result: QueryResult<ConversationRow> = await supabase
+    .from('conversations')
+    .upsert(
+      {
+        org_id: params.orgId,
+        agent_id: params.agentId,
+        tenant_id: params.tenantId,
+        user_channel_id: params.userChannelId,
+        thread_id: params.threadId,
+        channel: params.channel,
+        name: params.name ?? null,
+      },
+      { onConflict: 'agent_id,tenant_id,user_channel_id,thread_id', ignoreDuplicates: true }
+    )
+    .select('*')
+    .single();
+
+  return result.data ?? null;
+}
+
+async function refetchExistingConversation(
+  supabase: SupabaseClient,
+  params: FindOrCreateParams
+): Promise<ConversationRow> {
+  const fetched: QueryResult<ConversationRow> = await supabase
     .from('conversations')
     .select('*')
     .eq('agent_id', params.agentId)
@@ -43,34 +77,11 @@ export async function findOrCreateConversation(
     .eq('thread_id', params.threadId)
     .single();
 
-  if (existing.data !== null) return existing.data;
-
-  return await insertNewConversation(supabase, params);
-}
-
-async function insertNewConversation(
-  supabase: SupabaseClient,
-  params: FindOrCreateParams
-): Promise<ConversationRow> {
-  const inserted: QueryResult<ConversationRow> = await supabase
-    .from('conversations')
-    .insert({
-      org_id: params.orgId,
-      agent_id: params.agentId,
-      tenant_id: params.tenantId,
-      user_channel_id: params.userChannelId,
-      thread_id: params.threadId,
-      channel: params.channel,
-      name: params.name ?? null,
-    })
-    .select('*')
-    .single();
-
-  if (inserted.error !== null || inserted.data === null) {
-    throw new Error(`findOrCreateConversation: ${inserted.error?.message ?? 'No data'}`);
+  if (fetched.error !== null || fetched.data === null) {
+    throw new Error(`findOrCreateConversation: ${fetched.error?.message ?? 'No data'}`);
   }
 
-  return inserted.data;
+  return fetched.data;
 }
 
 /* ─── Inbox pagination (cursor-based) ─── */
@@ -93,7 +104,7 @@ function buildInboxCursor(page: ConversationRow[]): PaginationCursor | undefined
   if (lastRow === undefined) return undefined;
   return {
     timestamp: new Date(lastRow.last_message_at ?? lastRow.created_at).getTime(),
-    key: lastRow.user_channel_id,
+    key: lastRow.id,
   };
 }
 
@@ -108,7 +119,7 @@ export async function getInboxPage(supabase: SupabaseClient, params: InboxPagePa
   if (params.cursor !== undefined) {
     query = query.or(
       `last_message_at.lt.${new Date(params.cursor.timestamp).toISOString()},` +
-        `and(last_message_at.eq.${new Date(params.cursor.timestamp).toISOString()},user_channel_id.gt.${params.cursor.key})`
+        `and(last_message_at.eq.${new Date(params.cursor.timestamp).toISOString()},id.gt.${params.cursor.key})`
     );
   }
 

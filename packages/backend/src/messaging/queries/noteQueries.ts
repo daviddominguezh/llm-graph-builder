@@ -42,11 +42,16 @@ export async function createNote(
   return result.data;
 }
 
-export async function deleteNote(supabase: SupabaseClient, noteId: string): Promise<void> {
+export async function deleteNote(
+  supabase: SupabaseClient,
+  noteId: string,
+  conversationId: string
+): Promise<void> {
   const result: QueryResult<null> = await supabase
     .from('conversation_notes')
     .delete()
-    .eq('id', noteId);
+    .eq('id', noteId)
+    .eq('conversation_id', conversationId);
 
   if (result.error !== null) {
     throw new Error(`deleteNote: ${result.error.message}`);

@@ -50,10 +50,12 @@ function buildMessageInsertData(params: InsertMessageParams): Record<string, unk
   return data;
 }
 
+const DUPLICATE_KEY_CODE = '23505';
+
 export async function insertMessage(
   supabase: SupabaseClient,
   params: InsertMessageParams
-): Promise<MessageRow> {
+): Promise<MessageRow | null> {
   const insertData = buildMessageInsertData(params);
 
   const result: QueryResult<MessageRow> = await supabase
@@ -62,8 +64,13 @@ export async function insertMessage(
     .select('*')
     .single();
 
-  if (result.error !== null || result.data === null) {
-    throw new Error(`insertMessage: ${result.error?.message ?? 'No data'}`);
+  if (result.error !== null) {
+    if (result.error.code === DUPLICATE_KEY_CODE) return null;
+    throw new Error(`insertMessage: ${result.error.message}`);
+  }
+
+  if (result.data === null) {
+    throw new Error('insertMessage: No data');
   }
 
   return result.data;
@@ -104,7 +111,7 @@ function buildMessageAiInsertData(params: InsertMessageAiParams): Record<string,
 export async function insertMessageAi(
   supabase: SupabaseClient,
   params: InsertMessageAiParams
-): Promise<MessageAiRow> {
+): Promise<MessageAiRow | null> {
   const insertData = buildMessageAiInsertData(params);
 
   const result: QueryResult<MessageAiRow> = await supabase
@@ -113,8 +120,13 @@ export async function insertMessageAi(
     .select('*')
     .single();
 
-  if (result.error !== null || result.data === null) {
-    throw new Error(`insertMessageAi: ${result.error?.message ?? 'No data'}`);
+  if (result.error !== null) {
+    if (result.error.code === DUPLICATE_KEY_CODE) return null;
+    throw new Error(`insertMessageAi: ${result.error.message}`);
+  }
+
+  if (result.data === null) {
+    throw new Error('insertMessageAi: No data');
   }
 
   return result.data;
@@ -138,7 +150,7 @@ function buildMessageCursor(page: MessageRow[]): PaginationCursor | undefined {
   if (length === EMPTY_LENGTH) return undefined;
   const [lastRow] = page.slice(length - LAST_INDEX_OFFSET);
   if (lastRow === undefined) return undefined;
-  return { timestamp: new Date(lastRow.created_at).getTime(), key: lastRow.id };
+  return { timestamp: lastRow.timestamp, key: lastRow.id };
 }
 
 export async function getMessagePage(
@@ -149,11 +161,11 @@ export async function getMessagePage(
     .from('messages')
     .select('*')
     .eq('conversation_id', params.conversationId)
-    .order('created_at', { ascending: false })
+    .order('timestamp', { ascending: false })
     .limit(PAGE_SIZE + FETCH_EXTRA);
 
   if (params.cursor !== undefined) {
-    query = query.lt('created_at', new Date(params.cursor.timestamp).toISOString());
+    query = query.lt('timestamp', params.cursor.timestamp);
   }
 
   const result: QueryResult<MessageRow[]> = await query;
