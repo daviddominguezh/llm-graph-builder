@@ -1,4 +1,9 @@
-import type { ActionTokenUsage, AgentLoopResult, AgentStepEvent } from '@daviddh/llm-graph-runner';
+import type {
+  ActionTokenUsage,
+  AgentLoopResult,
+  AgentStepEvent,
+  AgentToolCallRecord,
+} from '@daviddh/llm-graph-runner';
 
 import {
   completeExecution,
@@ -11,6 +16,14 @@ import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 
 const ZERO = 0;
 
+interface StepResponse {
+  text: string;
+  toolCalls: AgentToolCallRecord[];
+  responseMessages: unknown[];
+  reasoning: string | undefined;
+  stepError: string | undefined;
+}
+
 /* ─── Agent step persistence ─── */
 interface AgentStepPersistenceParams {
   supabase: SupabaseClient;
@@ -20,9 +33,18 @@ interface AgentStepPersistenceParams {
   model: string;
 }
 
-function buildStepResponse(stepEvent: AgentStepEvent | undefined): unknown {
+function buildStepResponse(stepEvent: AgentStepEvent | undefined): StepResponse | Record<string, never> {
   if (stepEvent === undefined) return {};
-  return { text: stepEvent.responseText, toolCalls: stepEvent.toolCalls };
+  const responseMessages: unknown[] = stepEvent.responseMessages;
+  const reasoning: string | undefined = stepEvent.reasoning;
+  const stepError: string | undefined = stepEvent.error;
+  return {
+    text: stepEvent.responseText,
+    toolCalls: stepEvent.toolCalls,
+    responseMessages,
+    reasoning,
+    stepError,
+  };
 }
 
 async function persistAgentSteps(params: AgentStepPersistenceParams): Promise<void> {
@@ -40,7 +62,7 @@ async function persistAgentSteps(params: AgentStepPersistenceParams): Promise<vo
       outputTokens: log.tokens.output,
       cachedTokens: log.tokens.cached,
       cost: log.tokens.costUSD ?? ZERO,
-      durationMs: ZERO,
+      durationMs: stepEvent?.durationMs ?? ZERO,
       model,
     });
   });
