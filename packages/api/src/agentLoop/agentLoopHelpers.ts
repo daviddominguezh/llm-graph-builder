@@ -13,8 +13,22 @@ export function resolveMaxSteps(config: AgentLoopConfig): number {
   return Math.min(config.maxSteps, AGENT_LOOP_HARD_LIMIT);
 }
 
+const CHILD_AGENT_INSTRUCTIONS = `<system-instructions>
+You are a sub-agent dispatched to complete a specific task. When you have fully completed your task, you MUST call the \`__system_finish\` tool with your final output. Do not simply respond with text — always use \`__system_finish\` to signal completion.
+
+If you encountered an error and cannot complete the task, call \`__system_finish\` with status "error" and describe what went wrong in the output.
+
+IMPORTANT: Only call \`__system_finish\` when you are truly done. If you need more information from the user, respond with a text message instead — the user will reply, and you can continue working.
+</system-instructions>`;
+
 export function buildSystemMessage(config: AgentLoopConfig): ModelMessage {
-  let combined = config.context === '' ? config.systemPrompt : `${config.systemPrompt}\n\n${config.context}`;
+  let combined =
+    config.context === '' ? config.systemPrompt : `${config.systemPrompt}\n\n${config.context}`;
+
+  if (config.isChildAgent === true) {
+    combined = `${CHILD_AGENT_INSTRUCTIONS}\n\n${combined}\n\n${CHILD_AGENT_INSTRUCTIONS}`;
+  }
+
   if (config.skills !== undefined && config.skills.length > ZERO) {
     combined += buildSkillsPromptSuffix(config.skills);
   }

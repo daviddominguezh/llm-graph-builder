@@ -23,6 +23,7 @@ export interface AgentLoopConfig {
   tools: Record<string, Tool>;
   skills?: SkillDefinition[];
   fewShotExamples?: Array<{ input: string; output: string }>;
+  isChildAgent?: boolean;
 }
 
 export interface AgentStepEvent {
