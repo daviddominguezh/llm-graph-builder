@@ -419,7 +419,7 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
           {/* Note label with creator */}
           {isNote && (
             <div className="px-2 pt-2 pb-1 flex items-center justify-end gap-2">
-              <span className="text-xs text-gray-500 font-semibold">{t('Note')}</span>
+              <span className="text-xs text-muted-foreground font-semibold">{t('Note')}</span>
               <div className="shrink-0">
                 {noteProfilePicUrl ? (
                   <NextImage
@@ -477,7 +477,7 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
             !(hasImage && getMessageText(message.message) === '[image]') && (
               <div
                 className={`px-2 py-1 break-words whitespace-pre-wrap text-[14px] leading-[1.5] ${
-                  isNote ? 'text-gray-600 text-right text-xs!' : 'text-foreground'
+                  isNote ? 'text-muted-foreground text-right text-xs!' : 'text-foreground'
                 }`}
                 dangerouslySetInnerHTML={{
                   __html: formatWhatsapp(getMessageText(message.message) || ''),
