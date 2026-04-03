@@ -1,4 +1,5 @@
-import { tool } from 'ai';
+import type { Tool } from 'ai';
+import { zodSchema } from 'ai';
 import { z } from 'zod';
 
 import type { FinishSentinel } from '@src/types/sentinels.js';
@@ -10,20 +11,20 @@ const finishToolSchema = z.object({
   status: z.enum(['success', 'error']).describe('Whether the task completed successfully or with an error'),
 });
 
-function createFinishTool() {
-  return tool({
+function createFinishTool(): Tool {
+  return {
     description:
       'Signal that you have completed your task. Call this when you are done. ' +
       'Pass your final output and whether you succeeded or encountered an error.',
-    parameters: finishToolSchema,
-    execute: async (params): Promise<FinishSentinel> => {
+    inputSchema: zodSchema(finishToolSchema),
+    execute: (args: z.infer<typeof finishToolSchema>): FinishSentinel => {
       return {
         __sentinel: 'finish',
-        output: params.output,
-        status: params.status,
+        output: args.output,
+        status: args.status,
       };
     },
-  });
+  };
 }
 
 export { TOOL_NAME as FINISH_TOOL_NAME, createFinishTool };
