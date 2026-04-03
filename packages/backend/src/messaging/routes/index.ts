@@ -5,10 +5,16 @@ import { conversationsRouter } from './conversations.js';
 import { inboxRouter } from './inbox.js';
 import { notesRouter } from './notes.js';
 import { sendRouter } from './send.js';
+import { instagramWebhookRouter } from './webhooks/instagram.js';
+import { whatsappWebhookRouter } from './webhooks/whatsapp.js';
 
 export const messagingRouter = express.Router();
 
-// All messaging routes use the messaging auth middleware
+// Webhook routes — no auth, use signature verification instead
+messagingRouter.use('/whatsapp', whatsappWebhookRouter);
+messagingRouter.use('/instagram', instagramWebhookRouter);
+
+// All remaining messaging routes use the messaging auth middleware
 messagingRouter.use(ensureMessagingAuth);
 
 // Sub-routers

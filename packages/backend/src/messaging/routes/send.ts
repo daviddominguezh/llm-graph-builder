@@ -2,6 +2,7 @@ import express from 'express';
 import type { Request } from 'express';
 
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
+import { processTestMessage } from '../controllers/incomingProcessor.js';
 import { processSendMessage } from '../controllers/messageProcessor.js';
 import {
   deleteConversation,
@@ -16,6 +17,7 @@ import {
   HTTP_NOT_FOUND,
   HTTP_OK,
   extractErrorMessage,
+  getRequiredParam,
   getSupabase,
 } from './routeHelpers.js';
 
@@ -32,27 +34,45 @@ async function getOrgIdFromAgent(supabase: SupabaseClient, agentId: string): Pro
   return row.org_id;
 }
 
-/* ─── Validation helpers ─── */
+/* ─── Type guards ─── */
 
-function isValidSendBody(body: SendMessageBody): boolean {
-  return Boolean(body.message && body.userID && body.tenantId && body.agentId);
+function isRecord(body: unknown): body is Record<string, unknown> {
+  return typeof body === 'object' && body !== null;
 }
 
-function isValidTestBody(body: SendTestMessageBody): boolean {
-  return Boolean(body.message && body.tenantId && body.agentId);
+function hasNonEmptyString(rec: Record<string, unknown>, key: string): boolean {
+  return typeof rec[key] === 'string' && rec[key] !== '';
+}
+
+function isSendMessageBody(body: unknown): body is SendMessageBody {
+  if (!isRecord(body)) return false;
+  return (
+    hasNonEmptyString(body, 'message') &&
+    hasNonEmptyString(body, 'userID') &&
+    hasNonEmptyString(body, 'tenantId') &&
+    hasNonEmptyString(body, 'agentId')
+  );
+}
+
+function isTestMessageBody(body: unknown): body is SendTestMessageBody {
+  if (!isRecord(body)) return false;
+  return (
+    hasNonEmptyString(body, 'message') &&
+    hasNonEmptyString(body, 'tenantId') &&
+    hasNonEmptyString(body, 'agentId')
+  );
 }
 
 /* POST /messages/message */
 async function handleSendMessage(req: Request, res: MessagingResponse): Promise<void> {
   try {
     const supabase = getSupabase(res);
-    const body = req.body as SendMessageBody;
+    const body: unknown = req.body;
 
-    if (!isValidSendBody(body)) {
+    if (!isSendMessageBody(body)) {
       res.status(HTTP_BAD_REQUEST).json({ error: 'Missing required fields' });
       return;
     }
-
     const orgId = await getOrgIdFromAgent(supabase, body.agentId);
 
     await processSendMessage({
@@ -62,7 +82,7 @@ async function handleSendMessage(req: Request, res: MessagingResponse): Promise<
       tenantId: body.tenantId,
       userChannelId: body.userID,
       content: body.message,
-      type: body.type ?? 'text',
+      type: body.type,
       clientMessageId: body.id,
     });
 
@@ -75,16 +95,25 @@ async function handleSendMessage(req: Request, res: MessagingResponse): Promise<
 /* POST /messages/test */
 async function handleTestMessage(req: Request, res: MessagingResponse): Promise<void> {
   try {
-    const body = req.body as SendTestMessageBody;
+    const supabase = getSupabase(res);
+    const body: unknown = req.body;
 
-    if (!isValidTestBody(body)) {
+    if (!isTestMessageBody(body)) {
       res.status(HTTP_BAD_REQUEST).json({ error: 'Missing required fields' });
       return;
     }
+    const orgId = await getOrgIdFromAgent(supabase, body.agentId);
 
-    // Test messages save as 'user' role and invoke AI.
-    // This will be completed in Task 22 (processIncomingMessage).
-    // For now, respond 200.
+    await processTestMessage({
+      supabase,
+      orgId,
+      agentId: body.agentId,
+      tenantId: body.tenantId,
+      content: body.message,
+      type: body.type,
+      clientMessageId: body.id,
+    });
+
     res.status(HTTP_OK).json({ success: true });
   } catch (err) {
     res.status(HTTP_INTERNAL).json({ error: extractErrorMessage(err) });
@@ -95,8 +124,8 @@ async function handleTestMessage(req: Request, res: MessagingResponse): Promise<
 async function handleDeleteFromSend(req: Request, res: MessagingResponse): Promise<void> {
   try {
     const supabase = getSupabase(res);
-    const tenantId = req.params.tenantId as string;
-    const userChannelId = decodeURIComponent(req.params.from as string);
+    const tenantId = getRequiredParam(req, 'tenantId');
+    const userChannelId = decodeURIComponent(getRequiredParam(req, 'from'));
 
     const conversation = await findConversationByUserChannelId(supabase, tenantId, userChannelId);
     if (conversation === null) {

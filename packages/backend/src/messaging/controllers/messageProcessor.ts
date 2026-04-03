@@ -24,7 +24,7 @@ async function deliverToWhatsApp(
     conversation.agent_id,
     conversation.tenant_id
   );
-  return sendWhatsAppTextMessage(creds.phoneNumberId, creds.accessToken, recipient, content);
+  return await sendWhatsAppTextMessage(creds.phoneNumberId, creds.accessToken, recipient, content);
 }
 
 async function deliverToInstagram(
@@ -38,10 +38,10 @@ async function deliverToInstagram(
     conversation.agent_id,
     conversation.tenant_id
   );
-  return sendInstagramMessage(creds.igUserId, creds.accessToken, recipient, content);
+  return await sendInstagramMessage(creds.igUserId, creds.accessToken, recipient, content);
 }
 
-async function deliverToProvider(
+export async function deliverToProvider(
   supabase: SupabaseClient,
   conversation: ConversationRow,
   content: string
@@ -53,11 +53,11 @@ async function deliverToProvider(
   const channel = detectChannel(conversation.user_channel_id);
 
   if (channel === 'whatsapp') {
-    return deliverToWhatsApp(supabase, conversation, content);
+    return await deliverToWhatsApp(supabase, conversation, content);
   }
 
   if (channel === 'instagram') {
-    return deliverToInstagram(supabase, conversation, content);
+    return await deliverToInstagram(supabase, conversation, content);
   }
 
   return { originalId: '' };
@@ -111,8 +111,9 @@ interface ProcessSendParams {
 }
 
 export async function processSendMessage(params: ProcessSendParams): Promise<void> {
-  const channel = detectChannel(params.userChannelId);
-  const threadId = params.userChannelId;
+  const { userChannelId } = params;
+  const channel = detectChannel(userChannelId);
+  const threadId = userChannelId;
 
   const conversation = await findOrCreateConversation(params.supabase, {
     orgId: params.orgId,

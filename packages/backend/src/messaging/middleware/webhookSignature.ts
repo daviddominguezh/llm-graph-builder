@@ -3,9 +3,13 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 
 const HTTP_UNAUTHORIZED = 401;
 
+function readEnv(name: string): string {
+  return process.env[name] ?? '';
+}
+
 /**
  * Verify HMAC-SHA256 signature from WhatsApp/Instagram webhooks.
- * The raw body must be available on req.body as a Buffer.
+ * The raw body must be available on req.body as a string (use express.text()).
  */
 export function verifyWebhookSignature(appSecret: string) {
   return (req: Request, res: Response, next: NextFunction): void => {
@@ -30,4 +34,16 @@ export function verifyWebhookSignature(appSecret: string) {
 
     next();
   };
+}
+
+/* ─── Named middleware for WhatsApp and Instagram ─── */
+
+export function verifyWhatsAppSignature(req: Request, res: Response, next: NextFunction): void {
+  const secret = readEnv('WHATSAPP_APP_SECRET');
+  verifyWebhookSignature(secret)(req, res, next);
+}
+
+export function verifyInstagramSignature(req: Request, res: Response, next: NextFunction): void {
+  const secret = readEnv('INSTAGRAM_APP_SECRET');
+  verifyWebhookSignature(secret)(req, res, next);
 }

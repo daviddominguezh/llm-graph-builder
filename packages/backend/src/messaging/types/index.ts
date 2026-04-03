@@ -181,6 +181,20 @@ export interface ProviderSendResult {
   originalId: string;
 }
 
+// --- Incoming Webhook Parsed Message ---
+
+export interface IncomingMessage {
+  userChannelId: string;
+  channelIdentifier: string;
+  content: string;
+  type: string;
+  originalId: string;
+  userName: string | undefined;
+  mediaId: string | undefined;
+  replyOriginalId: string | undefined;
+  timestamp: number;
+}
+
 // --- Channel Types ---
 
 export type ChannelType = 'whatsapp' | 'instagram' | 'api';
