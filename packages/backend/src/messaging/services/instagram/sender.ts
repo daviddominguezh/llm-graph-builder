@@ -77,11 +77,12 @@ export async function sendInstagramTextMessage(
   recipientId: string,
   text: string
 ): Promise<ProviderSendResult> {
-  const data = await withRetry(async () =>
-    await callInstagramApi(igUserId, accessToken, {
-      recipient: { id: recipientId },
-      message: { text },
-    })
+  const data = await withRetry(
+    async () =>
+      await callInstagramApi(igUserId, accessToken, {
+        recipient: { id: recipientId },
+        message: { text },
+      })
   );
 
   throwOnApiError(data);
@@ -96,13 +97,14 @@ export async function sendInstagramImageMessage(
   recipientId: string,
   imageUrl: string
 ): Promise<ProviderSendResult> {
-  const data = await withRetry(async () =>
-    await callInstagramApi(igUserId, accessToken, {
-      recipient: { id: recipientId },
-      message: {
-        attachment: { type: 'image', payload: { url: imageUrl } },
-      },
-    })
+  const data = await withRetry(
+    async () =>
+      await callInstagramApi(igUserId, accessToken, {
+        recipient: { id: recipientId },
+        message: {
+          attachment: { type: 'image', payload: { url: imageUrl } },
+        },
+      })
   );
 
   throwOnApiError(data);
@@ -117,13 +119,14 @@ export async function sendInstagramAudioMessage(
   recipientId: string,
   audioUrl: string
 ): Promise<ProviderSendResult> {
-  const data = await withRetry(async () =>
-    await callInstagramApi(igUserId, accessToken, {
-      recipient: { id: recipientId },
-      message: {
-        attachment: { type: 'audio', payload: { url: audioUrl } },
-      },
-    })
+  const data = await withRetry(
+    async () =>
+      await callInstagramApi(igUserId, accessToken, {
+        recipient: { id: recipientId },
+        message: {
+          attachment: { type: 'audio', payload: { url: audioUrl } },
+        },
+      })
   );
 
   throwOnApiError(data);
@@ -138,13 +141,14 @@ export async function sendInstagramVideoMessage(
   recipientId: string,
   videoUrl: string
 ): Promise<ProviderSendResult> {
-  const data = await withRetry(async () =>
-    await callInstagramApi(igUserId, accessToken, {
-      recipient: { id: recipientId },
-      message: {
-        attachment: { type: 'video', payload: { url: videoUrl } },
-      },
-    })
+  const data = await withRetry(
+    async () =>
+      await callInstagramApi(igUserId, accessToken, {
+        recipient: { id: recipientId },
+        message: {
+          attachment: { type: 'video', payload: { url: videoUrl } },
+        },
+      })
   );
 
   throwOnApiError(data);

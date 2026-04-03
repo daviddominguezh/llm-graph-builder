@@ -244,10 +244,7 @@ function buildEmptyMessageAiRow(): MessageAiRow {
   };
 }
 
-export function compactConversation(
-  _conversationId: string,
-  messages: MessageAiRow[]
-): CompactionResult {
+export function compactConversation(_conversationId: string, messages: MessageAiRow[]): CompactionResult {
   // TODO: Remove this no-op body and implement Steps 1–7 above.
   void MESSAGES_TO_SUMMARIZE;
   void MESSAGES_TO_KEEP;

@@ -87,9 +87,10 @@ function parseAttachment(event: InstagramMessaging, results: IncomingMessage[]):
   const [attachment] = attachments;
   if (attachment === undefined) return '';
 
-  const mappedType = mapAttachmentType(attachment.type);
+  const { type: attachmentType, payload } = attachment;
+  const mappedType = mapAttachmentType(attachmentType);
   const messageType = mappedType ?? 'text';
-  const { url: mediaUrl } = attachment.payload;
+  const { url: mediaUrl } = payload;
 
   results.push({
     userChannelId: `instagram:${sender.id}`,
