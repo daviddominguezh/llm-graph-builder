@@ -1,4 +1,11 @@
-
+import type { Note } from '@/app/components/messages/services/api';
+import { getLastMessagesFromStore, setLastMessage } from '@/app/components/messages/store';
+import { getBusinessSetup } from '@/app/components/messages/store/stubs';
+import { TEST_PHONE } from '@/app/constants/messages';
+import type { BusinessSetupSchemaAPIType } from '@/app/types/business';
+import { INTENT } from '@/app/types/chat';
+import type { Conversation, LastMessage, Message } from '@/app/types/chat';
+import { useParams } from 'next/navigation';
 import React, {
   createContext,
   startTransition,
@@ -9,22 +16,10 @@ import React, {
   useState,
 } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useParams } from 'next/navigation';
 
-import type { ChatActivity, Note } from '@/app/components/messages/services/api';
-
-import { getBusinessSetup } from '@/app/components/messages/store/stubs';
-import { getLastMessagesFromStore, setLastMessage } from '@/app/components/messages/store';
-
-import { TEST_PHONE } from '@/app/constants/messages';
-
-import type { BusinessSetupSchemaAPIType } from '@/app/types/business';
-import { INTENT } from '@/app/types/chat';
-import type { Conversation, LastMessage, Message } from '@/app/types/chat';
-
-import { useMessageRepository } from '../../hooks/useMessageRepository';
-import { useLastMessagesWithCache } from '../../hooks/useLastMessagesWithCache';
 import { useConversationMessagesWithCache } from '../../hooks/useConversationMessagesWithCache';
+import { useLastMessagesWithCache } from '../../hooks/useLastMessagesWithCache';
+import { useMessageRepository } from '../../hooks/useMessageRepository';
 
 export interface ChatWithId extends LastMessage {
   chatId: string;
@@ -68,10 +63,6 @@ interface ChatContextValue {
   notesRefreshTrigger: number;
   triggerNotesRefresh: () => void;
 
-  // Activities
-  activities: Record<string, ChatActivity>;
-  setActivities: React.Dispatch<React.SetStateAction<Record<string, ChatActivity>>>;
-
   // Business info (cached, fetched on mount)
   businessInfo: BusinessSetupSchemaAPIType | null;
   businessInfoLoading: boolean;
@@ -93,7 +84,8 @@ const ChatContext = createContext<ChatContextValue>({} as ChatContextValue);
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const params = useParams();
-  const projectName = typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? 'nike');
+  const projectName =
+    typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? 'nike');
   const repository = useMessageRepository();
   const dispatch = useDispatch();
   const lastMessages = useSelector(getLastMessagesFromStore);
@@ -134,12 +126,14 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // The hook manages message state now, so this is a no-op for external callers
     // Direct state manipulation should use addMessage/addMessages/updateMessage instead
     void updater; // Parameter required for type compatibility but intentionally unused
-    console.warn('[ChatContext] setMessages is deprecated. Use addMessage/addMessages/updateMessage instead.');
+    console.warn(
+      '[ChatContext] setMessages is deprecated. Use addMessage/addMessages/updateMessage instead.'
+    );
   }, []);
 
   const [notes, setNotes] = useState<Record<string, Note>>({});
   const [notesRefreshTrigger, setNotesRefreshTrigger] = useState(0);
-  const [activities, setActivities] = useState<Record<string, ChatActivity>>({});
+
   // Read business info from Redux store (populated by project/index.tsx)
   const businessInfo = useSelector(getBusinessSetup);
   const businessInfoLoading = !businessInfo;
@@ -384,8 +378,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setNotes,
       notesRefreshTrigger,
       triggerNotesRefresh,
-      activities,
-      setActivities,
       businessInfo,
       businessInfoLoading,
       refetchBusinessInfo,
@@ -422,8 +414,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setNotes,
       notesRefreshTrigger,
       triggerNotesRefresh,
-      activities,
-      setActivities,
       businessInfo,
       businessInfoLoading,
       refetchBusinessInfo,
