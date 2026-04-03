@@ -53,9 +53,10 @@
 | File | Changes |
 |------|---------|
 | `packages/api/src/agentLoop/agentLoop.ts` | Sentinel detection after each step, maxSteps auto-finish for children, cost guard |
-| `packages/api/src/agentLoop/agentLoopTypes.ts` | `AgentLoopResult` extended with `dispatchResult?`, `finishResult?` |
+| `packages/api/src/agentLoop/agentLoopTypes.ts` | `AgentLoopResult` extended with `dispatchResult?`, `finishResult?`; `AgentLoopConfig` extended with `isChildAgent`, `fewShotExamples` |
+| `packages/api/src/agentLoop/agentLoopHelpers.ts` | `buildInitialMessages` injects few-shot examples; `buildSystemMessage` injects child XML instructions |
 | `packages/backend/src/server.ts` | Register internal router |
-| `packages/backend/src/routes/execute/executeHandler.ts` | Stack-based message routing |
+| `packages/backend/src/routes/execute/executeHandler.ts` | Stack-based message routing (check stack top, route to child or root) |
 | `packages/backend/src/routes/execute/executeFetcher.ts` | Load stack top, execution-scoped messages |
 | `packages/backend/src/routes/execute/executePersistence.ts` | Event persistence |
 | `packages/backend/src/db/queries/executionQueries.ts` | `parent_execution_id`, execution-scoped `getSessionMessages` |
@@ -807,7 +808,223 @@ git commit -m "feat: add sentinel detection and maxSteps auto-finish to agent lo
 
 ---
 
-### Task 11: Stack queries (push, pop, getTop)
+### Task 11: Few-shot example injection in agent loop
+
+**Files:**
+- Modify: `packages/api/src/agentLoop/agentLoopTypes.ts`
+- Modify: `packages/api/src/agentLoop/agentLoopHelpers.ts`
+
+This task ensures that when a child agent is created with `fewShotExamples`, those examples are injected as synthetic user/assistant message pairs in the conversation history before the task message.
+
+- [ ] **Step 1: Add fewShotExamples to AgentLoopConfig**
+
+In `packages/api/src/agentLoop/agentLoopTypes.ts`, update `AgentLoopConfig` (line 15-24):
+
+```typescript
+export interface AgentLoopConfig {
+  systemPrompt: string;
+  context: string;
+  messages: Message[];
+  apiKey: string;
+  modelId: string;
+  maxSteps: number | null;
+  tools: Record<string, Tool>;
+  skills?: SkillDefinition[];
+  fewShotExamples?: Array<{ input: string; output: string }>;  // NEW
+}
+```
+
+- [ ] **Step 2: Update buildInitialMessages to inject few-shot examples**
+
+In `packages/api/src/agentLoop/agentLoopHelpers.ts`, update `buildInitialMessages` (line 24-28):
+
+```typescript
+export function buildInitialMessages(config: AgentLoopConfig): ModelMessage[] {
+  const system = buildSystemMessage(config);
+  const fewShot = buildFewShotMessages(config.fewShotExamples);
+  const history = config.messages.map((m) => m.message);
+  return [system, ...fewShot, ...history];
+}
+
+function buildFewShotMessages(
+  examples: Array<{ input: string; output: string }> | undefined
+): ModelMessage[] {
+  if (examples === undefined || examples.length === 0) return [];
+  const messages: ModelMessage[] = [];
+  for (const example of examples) {
+    messages.push({ role: 'user', content: example.input });
+    messages.push({ role: 'assistant', content: example.output });
+  }
+  return messages;
+}
+```
+
+- [ ] **Step 3: Run typecheck and tests**
+
+```bash
+npm run typecheck -w packages/api && npm run test -w packages/api
+```
+
+Expected: PASS
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add packages/api/src/agentLoop/agentLoopTypes.ts packages/api/src/agentLoop/agentLoopHelpers.ts
+git commit -m "feat: inject few-shot examples into agent conversation history"
+```
+
+---
+
+### Task 12: Child system prompt XML injection
+
+**Files:**
+- Modify: `packages/api/src/agentLoop/agentLoopTypes.ts`
+- Modify: `packages/api/src/agentLoop/agentLoopHelpers.ts`
+
+This task ensures that child agents (dispatched by a parent) receive the `<system-instructions>` XML block at both the start and end of their system prompt, instructing them to call `__system_finish` when done.
+
+- [ ] **Step 1: Add isChildAgent to AgentLoopConfig**
+
+In `packages/api/src/agentLoop/agentLoopTypes.ts`, add to `AgentLoopConfig`:
+
+```typescript
+export interface AgentLoopConfig {
+  systemPrompt: string;
+  context: string;
+  messages: Message[];
+  apiKey: string;
+  modelId: string;
+  maxSteps: number | null;
+  tools: Record<string, Tool>;
+  skills?: SkillDefinition[];
+  fewShotExamples?: Array<{ input: string; output: string }>;
+  isChildAgent?: boolean;  // NEW
+}
+```
+
+- [ ] **Step 2: Update buildSystemMessage to inject child instructions**
+
+In `packages/api/src/agentLoop/agentLoopHelpers.ts`, update `buildSystemMessage` (line 16-22):
+
+```typescript
+const CHILD_AGENT_INSTRUCTIONS = `<system-instructions>
+You are a sub-agent dispatched to complete a specific task. When you have fully completed your task, you MUST call the \`__system_finish\` tool with your final output. Do not simply respond with text — always use \`__system_finish\` to signal completion.
+
+If you encountered an error and cannot complete the task, call \`__system_finish\` with status "error" and describe what went wrong in the output.
+
+IMPORTANT: Only call \`__system_finish\` when you are truly done. If you need more information from the user, respond with a text message instead — the user will reply, and you can continue working.
+</system-instructions>`;
+
+export function buildSystemMessage(config: AgentLoopConfig): ModelMessage {
+  let combined = config.context === ''
+    ? config.systemPrompt
+    : `${config.systemPrompt}\n\n${config.context}`;
+
+  if (config.isChildAgent === true) {
+    combined = `${CHILD_AGENT_INSTRUCTIONS}\n\n${combined}\n\n${CHILD_AGENT_INSTRUCTIONS}`;
+  }
+
+  if (config.skills !== undefined && config.skills.length > ZERO) {
+    combined += buildSkillsPromptSuffix(config.skills);
+  }
+  return { role: 'system', content: combined };
+}
+```
+
+- [ ] **Step 3: Remove isChildAgent param from executeAgentLoop (use config instead)**
+
+In `packages/api/src/agentLoop/agentLoop.ts`, the `isChildAgent` parameter added in Task 10 should now be read from `config.isChildAgent` instead of being a separate parameter. Update the `executeAgentLoop` function:
+
+```typescript
+export async function executeAgentLoop(
+  config: AgentLoopConfig,
+  callbacks: AgentLoopCallbacks
+): Promise<AgentLoopResult> {
+  const resolved = mergeSkillTools(config);
+  const maxSteps = resolveMaxSteps(resolved);
+  const isChild = resolved.isChildAgent === true;
+  // ... rest uses `isChild` instead of the separate parameter
+```
+
+Update all `runLoop` and `runLoopStep` calls to pass `isChild` derived from `config.isChildAgent`.
+
+- [ ] **Step 4: Run typecheck and tests**
+
+```bash
+npm run typecheck -w packages/api && npm run test -w packages/api
+```
+
+Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add packages/api/src/agentLoop/agentLoopTypes.ts packages/api/src/agentLoop/agentLoopHelpers.ts packages/api/src/agentLoop/agentLoop.ts
+git commit -m "feat: inject child agent XML instructions into system prompt"
+```
+
+---
+
+### Task 13: Stack-based message routing in executeHandler
+
+**Files:**
+- Modify: `packages/backend/src/routes/execute/executeHandler.ts`
+- Modify: `packages/backend/src/routes/execute/executeFetcher.ts`
+
+This task modifies the main execution handler to check the agent stack before routing a message. If a child is active (stack is non-empty), the message is routed to the child's agent config instead of the root agent.
+
+- [ ] **Step 1: Add stack-aware routing to executeFetcher**
+
+In `packages/backend/src/routes/execute/executeFetcher.ts`, after loading the session, query `agent_stack_entries` for the top entry:
+
+```typescript
+import { getStackTop, type StackEntry } from '../../db/queries/stackQueries.js';
+
+// Add to the session fetch flow:
+const stackTop = await getStackTop(supabase, sessionDbId);
+```
+
+Return `stackTop` alongside the session data so the handler can use it for routing.
+
+- [ ] **Step 2: Add routing logic to executeHandler**
+
+In `packages/backend/src/routes/execute/executeHandler.ts`, after acquiring the session lock and loading session data:
+
+```typescript
+// If stack has entries, route to the child agent
+if (stackTop !== null) {
+  // Use stackTop.agentConfig instead of the root agent config
+  // Use stackTop.executionId to scope message retrieval
+  // Load messages by execution_id, not session_id
+  const childMessages = await getExecutionMessages(supabase, stackTop.executionId);
+  // Execute with child's config (systemPrompt, model, tools, etc.)
+  // ... rest of execution uses the child's context
+} else {
+  // Normal root agent execution (existing behavior)
+}
+```
+
+- [ ] **Step 3: Ensure execution-scoped message loading**
+
+When routing to a child, messages must be loaded by `execution_id` (the child's), not `session_id`. This uses the `getExecutionMessages` function added in Task 18 (execution queries). The child only sees its own messages.
+
+- [ ] **Step 4: Run typecheck**
+
+```bash
+npm run typecheck -w packages/backend
+```
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add packages/backend/src/routes/execute/executeHandler.ts packages/backend/src/routes/execute/executeFetcher.ts
+git commit -m "feat: add stack-based message routing in execute handler"
+```
+
+---
+
+### Task 14: Stack queries (push, pop, getTop)
 
 **Files:**
 - Create: `packages/backend/src/db/queries/stackQueries.ts`
@@ -916,7 +1133,7 @@ git commit -m "feat: add agent stack CRUD queries (push, pop, getTop)"
 
 ---
 
-### Task 12: Resume queries
+### Task 15: Resume queries
 
 **Files:**
 - Create: `packages/backend/src/db/queries/resumeQueries.ts`
@@ -1018,7 +1235,7 @@ git commit -m "feat: add pending resume query functions"
 
 ---
 
-### Task 13: Event persistence queries
+### Task 16: Event persistence queries
 
 **Files:**
 - Create: `packages/backend/src/db/queries/eventQueries.ts`
@@ -1081,7 +1298,7 @@ git commit -m "feat: add execution event persistence queries"
 
 ---
 
-### Task 14: Internal auth middleware
+### Task 17: Internal auth middleware
 
 **Files:**
 - Create: `packages/backend/src/routes/internal/internalAuth.ts`
@@ -1121,7 +1338,7 @@ git commit -m "feat: add internal service-key auth middleware"
 
 ---
 
-### Task 15: Internal router + execute-child endpoint
+### Task 18: Internal router + execute-child endpoint
 
 **Files:**
 - Create: `packages/backend/src/routes/internal/internalRouter.ts`
@@ -1199,7 +1416,7 @@ git commit -m "feat: add internal execute-child endpoint with service auth"
 
 ---
 
-### Task 16: Resume-parent endpoint
+### Task 19: Resume-parent endpoint
 
 **Files:**
 - Modify: `packages/backend/src/routes/internal/internalRouter.ts`
@@ -1258,7 +1475,7 @@ git commit -m "feat: add internal resume-parent endpoint"
 
 ---
 
-### Task 17: Resume worker
+### Task 20: Resume worker
 
 **Files:**
 - Create: `packages/backend/src/workers/resumeWorker.ts`
@@ -1326,7 +1543,7 @@ git commit -m "feat: add resume worker for processing pending resumes"
 
 ---
 
-### Task 18: Update execution queries for composition
+### Task 21: Update execution queries for composition
 
 **Files:**
 - Modify: `packages/backend/src/db/queries/executionQueries.ts`
@@ -1399,7 +1616,7 @@ git commit -m "feat: add composition support to execution queries"
 
 ---
 
-### Task 19: Update client-side SSE for new event types
+### Task 22: Update client-side SSE for new event types
 
 **Files:**
 - Modify: `packages/web/app/lib/api.ts`
@@ -1441,7 +1658,7 @@ git commit -m "feat: add child_dispatched and child_completed SSE event handlers
 
 ---
 
-### Task 20: Execution breadcrumb component
+### Task 23: Execution breadcrumb component
 
 **Files:**
 - Create: `packages/web/app/components/dashboard/ExecutionBreadcrumb.tsx`
@@ -1503,7 +1720,7 @@ git commit -m "feat: add execution breadcrumb component for nested executions"
 
 ---
 
-### Task 21: Run full check
+### Task 24: Run full check
 
 - [ ] **Step 1: Run all checks**
 
