@@ -1,7 +1,7 @@
 import express from 'express';
 import type { Request } from 'express';
 
-import { addAssignee, addStatus } from '../queries/assignmentQueries.js';
+import { addAssignee, addStatus, getAssignees } from '../queries/assignmentQueries.js';
 import {
   deleteConversationWithTombstone,
   markConversationRead,
@@ -9,6 +9,8 @@ import {
 } from '../queries/conversationMutations.js';
 import { findConversationByUserChannelId } from '../queries/conversationQueries.js';
 import { getAllMessages, getMessagePage } from '../queries/messageQueries.js';
+import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
+import { assignChatToAgent, reassignChat, releaseChat } from '../services/workloadManager.js';
 import type { AssigneeBody, ConversationRow, StatusBody } from '../types/index.js';
 import type { MessagingResponse } from './routeHelpers.js';
 import {
@@ -141,6 +143,21 @@ async function handleDeleteConversation(req: Request, res: MessagingResponse): P
   }
 }
 
+async function applyAssigneeWorkload(
+  supabase: SupabaseClient,
+  conversation: ConversationRow,
+  assignee: string
+): Promise<void> {
+  const assignees = await getAssignees(supabase, conversation.id);
+  const previousAssignee = assignees[0]?.assignee;
+
+  if (previousAssignee !== undefined && previousAssignee !== assignee) {
+    await reassignChat(supabase, conversation.tenant_id, conversation.user_channel_id, previousAssignee, assignee);
+  } else if (previousAssignee === undefined) {
+    await assignChatToAgent(supabase, conversation.tenant_id, conversation.user_channel_id, assignee);
+  }
+}
+
 /* POST /projects/:tenantId/conversations/:userId/assignee */
 async function handleAddAssignee(req: Request, res: MessagingResponse): Promise<void> {
   try {
@@ -156,10 +173,33 @@ async function handleAddAssignee(req: Request, res: MessagingResponse): Promise<
       res.status(HTTP_BAD_REQUEST).json({ error: 'assignee is required' });
       return;
     }
-    await addAssignee(getSupabase(res), conversation.id, assignee);
+
+    const supabase = getSupabase(res);
+    await applyAssigneeWorkload(supabase, conversation, assignee);
+    await addAssignee(supabase, conversation.id, assignee);
+    await updateConversationEnabled(supabase, conversation.id, false);
     res.status(HTTP_OK).json({ success: true });
   } catch (err) {
     res.status(HTTP_INTERNAL).json({ error: extractErrorMessage(err) });
+  }
+}
+
+async function applyStatusSideEffects(
+  supabase: SupabaseClient,
+  conversation: ConversationRow,
+  status: string
+): Promise<void> {
+  const isTerminal = status === 'closed' || status === 'blocked';
+  if (!isTerminal) {
+    return;
+  }
+
+  await updateConversationEnabled(supabase, conversation.id, false);
+
+  const assignees = await getAssignees(supabase, conversation.id);
+  const currentAssignee = assignees[0]?.assignee;
+  if (currentAssignee !== undefined) {
+    await releaseChat(supabase, conversation.tenant_id, conversation.user_channel_id, currentAssignee);
   }
 }
 
@@ -178,7 +218,10 @@ async function handleAddStatus(req: Request, res: MessagingResponse): Promise<vo
       res.status(HTTP_BAD_REQUEST).json({ error: 'status is required' });
       return;
     }
-    await addStatus(getSupabase(res), conversation.id, status);
+
+    const supabase = getSupabase(res);
+    await addStatus(supabase, conversation.id, status);
+    await applyStatusSideEffects(supabase, conversation, status);
     res.status(HTTP_OK).json({ success: true });
   } catch (err) {
     res.status(HTTP_INTERNAL).json({ error: extractErrorMessage(err) });
