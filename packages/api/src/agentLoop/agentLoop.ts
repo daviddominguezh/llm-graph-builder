@@ -1,5 +1,6 @@
 import type { ModelMessage } from 'ai';
 
+import { detectSentinels } from '@src/core/sentinelDetector.js';
 import type { ActionTokenUsage } from '@src/types/ai/logs.js';
 
 import { type LlmCallResult, callAgentLlm } from './agentLlmCaller.js';
@@ -154,6 +155,16 @@ async function runLoopStep(
   const stepResult = await executeStep(config, state, callbacks);
   advanceStep(state);
 
+  // Check for sentinels in tool call results
+  const sentinel = detectSentinels(stepResult.toolCalls);
+  if (sentinel.type === 'finish') {
+    return { ...buildResult(state, stepResult.text), finishResult: sentinel.finishSentinel };
+  }
+  if (sentinel.type === 'dispatch') {
+    appendResponseMessages(state, stepResult, callbacks, state.step);
+    return { ...buildResult(state, stepResult.text), dispatchResult: sentinel.dispatchSentinel };
+  }
+
   if (stepResult.done) {
     return buildResult(state, stepResult.text);
   }
@@ -169,11 +180,19 @@ async function runLoop(
   callbacks: AgentLoopCallbacks
 ): Promise<AgentLoopResult> {
   if (state.step >= maxSteps) {
-    return buildResult(state, '');
+    const result = buildResult(state, '');
+    if (config.isChildAgent === true) {
+      result.finishResult = {
+        __sentinel: 'finish',
+        output: 'Agent reached maximum step limit without completing the task.',
+        status: 'error',
+      };
+    }
+    return result;
   }
 
-  const result = await runLoopStep(config, state, callbacks);
-  if (result !== null) return result;
+  const stepResult = await runLoopStep(config, state, callbacks);
+  if (stepResult !== null) return stepResult;
 
   return await runLoop(config, state, maxSteps, callbacks);
 }
@@ -198,6 +217,7 @@ export async function executeAgentLoop(
     messageCount: resolved.messages.length,
     toolCount: Object.keys(resolved.tools).length,
     skillCount: resolved.skills?.length ?? ZERO,
+    isChildAgent: resolved.isChildAgent ?? false,
   });
   const state = createInitialState(resolved);
   const result = await runLoop(resolved, state, maxSteps, callbacks);
@@ -205,6 +225,8 @@ export async function executeAgentLoop(
     finalText: result.finalText.slice(ZERO, TEXT_PREVIEW_LENGTH),
     totalSteps: result.steps,
     tokens: result.totalTokens,
+    hasFinish: result.finishResult !== undefined,
+    hasDispatch: result.dispatchResult !== undefined,
   });
   return result;
 }
