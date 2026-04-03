@@ -33,6 +33,7 @@ export interface LlmCallResult {
   responseMessages: Array<AssistantModelMessage | ToolModelMessage>;
   tokens: TokenLog;
   costUSD: number | undefined;
+  reasoning: string | undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -96,6 +97,30 @@ function isResponseMessages(value: unknown): value is LlmCallResult['responseMes
   return Array.isArray(value);
 }
 
+function findReasoningText(part: unknown): string | undefined {
+  if (!isRecord(part)) return undefined;
+  if (part.type !== 'reasoning') return undefined;
+  return typeof part.text === 'string' ? part.text : undefined;
+}
+
+function findReasoningInAssistantMessage(msg: AssistantModelMessage): string | undefined {
+  if (typeof msg.content === 'string') return undefined;
+  for (const part of msg.content) {
+    const text = findReasoningText(part);
+    if (text !== undefined) return text;
+  }
+  return undefined;
+}
+
+function extractReasoning(responseMessages: LlmCallResult['responseMessages']): string | undefined {
+  for (const msg of responseMessages) {
+    if (msg.role !== 'assistant') continue;
+    const text = findReasoningInAssistantMessage(msg);
+    if (text !== undefined) return text;
+  }
+  return undefined;
+}
+
 function extractResponseMessages(result: Record<string, unknown>): LlmCallResult['responseMessages'] {
   const resp = asRecord(result.response);
   if (resp === null) return [];
@@ -145,6 +170,7 @@ function processLlmResponse(result: Record<string, unknown>): LlmCallResult {
   tokens.costUSD = extractCostFromResult(result);
   const responseMessages = extractResponseMessages(result);
   log('response messages', { count: responseMessages.length, roles: responseMessages.map((m) => m.role) });
+  const reasoning = extractReasoning(responseMessages);
   const outputMap = buildToolOutputMap(responseMessages);
   const toolCalls = populateToolOutputs(mapToolCalls(result.toolCalls), outputMap);
   log('tool calls', { count: toolCalls.length, names: toolCalls.map((tc) => tc.toolName) });
@@ -155,6 +181,7 @@ function processLlmResponse(result: Record<string, unknown>): LlmCallResult {
     responseMessages,
     tokens,
     costUSD: tokens.costUSD,
+    reasoning,
   };
 }
 
