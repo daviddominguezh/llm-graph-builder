@@ -22,6 +22,7 @@ export interface AgentLoopConfig {
   maxSteps: number | null;
   tools: Record<string, Tool>;
   skills?: SkillDefinition[];
+  fewShotExamples?: Array<{ input: string; output: string }>;
 }
 
 export interface AgentStepEvent {

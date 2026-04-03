@@ -21,10 +21,23 @@ export function buildSystemMessage(config: AgentLoopConfig): ModelMessage {
   return { role: 'system', content: combined };
 }
 
+function buildFewShotMessages(
+  examples: Array<{ input: string; output: string }> | undefined
+): ModelMessage[] {
+  if (examples === undefined || examples.length === ZERO) return [];
+  const messages: ModelMessage[] = [];
+  for (const example of examples) {
+    messages.push({ role: 'user', content: example.input });
+    messages.push({ role: 'assistant', content: example.output });
+  }
+  return messages;
+}
+
 export function buildInitialMessages(config: AgentLoopConfig): ModelMessage[] {
   const system = buildSystemMessage(config);
+  const fewShot = buildFewShotMessages(config.fewShotExamples);
   const history = config.messages.map((m) => m.message);
-  return [system, ...history];
+  return [system, ...fewShot, ...history];
 }
 
 export function createEmptyTokens(): TokenLog {
