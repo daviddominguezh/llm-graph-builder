@@ -1,13 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslations } from 'next-intl';
-import { useQuillStable } from './useQuillStable';
-import { useParams } from 'next/navigation';
-
+import * as api from '@/app/components/messages/services/api';
+import Spinner from '@/app/components/messages/shared/spinner';
+import type { Collaborator } from '@/app/types/projectInnerSettings';
+import { useIsMobile } from '@/app/utils/device';
+import { htmlToWhatsappFormat } from '@/app/utils/strs';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import {
   Bold,
-  Handbag,
   Italic,
   List,
   ListOrdered,
@@ -15,55 +16,26 @@ import {
   NotepadText,
   Paperclip,
   SendHorizontal,
-  ShoppingCart,
   Smile,
   Sparkles,
-  Store,
   Strikethrough,
-  Zap,
 } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid';
+import { useTranslations } from 'next-intl';
+import { useParams } from 'next/navigation';
+import 'quill/dist/quill.snow.css';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import * as api from '@/app/components/messages/services/api';
-
-import { useOrders } from '@/app/components/messages/hooks/stubs';
-import { useShoppingCart } from '@/app/components/messages/hooks/stubs';
-
-import { replaceVariables } from '@/app/components/messages/chatSettings/quickRepliesUtils';
-import { BusinessSetup, Product } from '@/app/components/messages/shared/stubs';
-import { useUserInfo } from '@/app/components/messages/hooks/useUserInfo';
-
-import Spinner from '@/app/components/messages/shared/spinner';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-
-import { useIsMobile } from '@/app/utils/device';
-import { loadQuill } from '@/app/components/messages/shared/utilStubs';
-import { formatPhone, htmlToWhatsappFormat } from '@/app/utils/strs';
-
-import type { MediaFileDetailList } from '@/app/types/media';
-import { MediaStatus } from '@/app/types/media';
-import type { Collaborator } from '@/app/types/projectInnerSettings';
-
-import { useChat } from '../../../../core/contexts/ChatContext';
 import { useMessage } from '../../../../core/contexts/MessageContext';
 import { Slot } from '../../../../core/slots';
-import { useMessageRepository } from '../../../../hooks/useMessageRepository';
 import { AIDialog } from './AIDialog';
 import { AskAIModal } from './AskAIModal';
 import { AttachmentMenu } from './AttachmentMenu';
 import { MentionDialog } from './MentionDialog';
 import './MessageInput.css';
-import { OrdersDialog } from './OrdersDialog';
 import { PendingImagePreview } from './PendingImagePreview';
-import { ProductsDialog } from './ProductsDialog';
-import { QuickRepliesDialog } from './QuickRepliesDialog';
-import { ShoppingCartDialog } from './ShoppingCartDialog';
 import { VoiceRecorder } from './VoiceRecorder';
 import type { Mention, MentionState, PendingImageAttachment } from './types';
-import { createProductCardsStr } from './utils';
-
-import 'quill/dist/quill.snow.css';
+import { useQuillStable } from './useQuillStable';
 
 /**
  * MessageInput component handles message composition and sending
@@ -117,26 +89,16 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
 }) => {
   const t = useTranslations('messages');
   const params = useParams();
-  const projectName = typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? 'nike');
-  const {
-    businessInfo,
-    businessInfoLoading,
-    activeChat,
-    isTestChatActive,
-    refetchBusinessInfo,
-    availableQuickReplies,
-  } = useChat();
-  const { handleMediaUpload, handleSendMessageUIOnly, pendingImageAttachment, clearPendingImageAttachment } =
-    useMessage();
-  const repository = useMessageRepository();
+  const projectName =
+    typeof params.projectName === 'string' ? params.projectName : (params.projectName?.[0] ?? 'nike');
+  const { pendingImageAttachment, clearPendingImageAttachment } = useMessage();
 
   const [mode, setMode] = useState<'reply' | 'note'>('reply');
+
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [showProductsDialog, setShowProductsDialog] = useState(false);
-  const [showShoppingCartDialog, setShowShoppingCartDialog] = useState(false);
-  const [showOrdersDialog, setShowOrdersDialog] = useState(false);
   const [showAIDialog, setShowAIDialog] = useState(false);
   const [showAskAIModal, setShowAskAIModal] = useState(false);
+
   const [isAIProcessing, setIsAIProcessing] = useState(false);
   const [currentAIQuestion, setCurrentAIQuestion] = useState<string | null>(null);
   const [showQuickRepliesDialog, setShowQuickRepliesDialog] = useState(false);
@@ -145,11 +107,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
   const inputContainerRef = useRef<HTMLDivElement>(null);
-  const productsDialogRef = useRef<HTMLDivElement>(null);
-  const shoppingCartDialogRef = useRef<HTMLDivElement>(null);
-  const ordersDialogRef = useRef<HTMLDivElement>(null);
   const aiDialogRef = useRef<HTMLDivElement>(null);
-  const quickRepliesDialogRef = useRef<HTMLDivElement>(null);
   const attachmentMenuRef = useRef<HTMLDivElement>(null);
 
   const isMobile = useIsMobile();
@@ -157,21 +115,6 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
   const iconContainerClassname = isMobile ? 'w-10! h-10!' : 'w-8! h-8!';
   const iconClassname = isMobile ? 'w-5! h-5!' : 'w-4! h-4!';
   const iconStrokeWidth = 2;
-
-  // Shopping cart hook - use activeChat as userID
-  const {
-    cart,
-    loading: cartLoading,
-    refreshCart,
-    addItem,
-    removeItem,
-  } = useShoppingCart(projectName || '', activeChat || '');
-
-  // Orders hook - use activeChat as userID
-  const { orders, loading: ordersLoading, refreshOrders } = useOrders(projectName || '', activeChat || '');
-
-  // User info hook - get customer data
-  const userInfo = useUserInfo(activeChat, true);
 
   // Mention state for @ tagging
   const [mentionState, setMentionState] = useState<MentionState>({
@@ -654,7 +597,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
         setMentions([]);
       }
     }
-  }, [quill, disabled, onSend,  mode]);
+  }, [quill, disabled, onSend, mode]);
 
   // Handle AI option selection
   const handleAIOptionSelect = useCallback(
@@ -739,105 +682,6 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
 
       // Append the answer to the current text
       const newText = currentText ? `${currentText}\n\n${answer}` : answer;
-
-      // Set the new text
-      quill.setText(newText);
-      onChangeRef.current(newText);
-
-      // Move cursor to the end
-      quill.setSelection(newText.length, 0);
-
-      // Focus the editor
-      quill.focus();
-    },
-    [quill, onChangeRef]
-  );
-
-  // Handle quick reply selection
-  const handleQuickReplySelect = useCallback(
-    (quickReply: { text: string }) => {
-      if (!quill) return;
-
-      // Format user phone by removing "whatsapp:" prefix and formatting
-      let formattedUserPhone = activeChat || '';
-      if (formattedUserPhone.startsWith('whatsapp:')) {
-        const phoneWithoutPrefix = formattedUserPhone.replace('whatsapp:', '');
-        const formatted = formatPhone(phoneWithoutPrefix);
-        formattedUserPhone = formatted || phoneWithoutPrefix;
-      }
-
-      // Replace variables in the text
-      const processedText = replaceVariables(quickReply.text, {
-        userName: userInfo?.name || '',
-        userEmail: userInfo?.email || '',
-        userNIC: userInfo?.nic || '',
-        userAddress:
-          userInfo?.address ||
-          (userInfo?.addressSchema
-            ? `${userInfo.addressSchema.direccion}, ${userInfo.addressSchema.barrio}, ${userInfo.addressSchema.cityName}`
-            : ''),
-        userPhone: formattedUserPhone,
-        businessName: businessInfo?.info?.businessName || '',
-        businessDescription: businessInfo?.info?.businessDescription || '',
-        businessAddress: businessInfo?.info?.address || '',
-      });
-
-      // If triggered by slash, replace the slash trigger text
-      if (shortcutState.isActive) {
-        const selection = quill.getSelection();
-        const cursorPosition = selection ? selection.index : quill.getLength() - 1;
-
-        // Calculate the length of text to delete (from / to cursor)
-        const deleteLength = cursorPosition - shortcutState.startIndex;
-
-        // Delete the slash trigger text (e.g., "/hi")
-        quill.deleteText(shortcutState.startIndex, deleteLength);
-
-        // Insert the quick reply text at the slash position
-        quill.insertText(shortcutState.startIndex, processedText);
-
-        // Move cursor to the end of inserted text
-        quill.setSelection(shortcutState.startIndex + processedText.length, 0);
-
-        // Reset shortcut state
-        setShortcutState({ isActive: false, query: '', startIndex: 0 });
-      } else {
-        // Normal insertion at cursor position
-        const selection = quill.getSelection();
-        const cursorPosition = selection ? selection.index : quill.getLength() - 1;
-
-        // Insert the quick reply text at cursor position
-        quill.insertText(cursorPosition, processedText);
-
-        // Move cursor to the end of inserted text
-        quill.setSelection(cursorPosition + processedText.length, 0);
-      }
-
-      // Update the onChange handler
-      onChangeRef.current(quill.getText());
-
-      // Close the dialog
-      setShowQuickRepliesDialog(false);
-
-      // Focus the editor
-      quill.focus();
-    },
-    [quill, activeChat, userInfo, businessInfo,  shortcutState]
-  );
-
-  // Handle order created from shopping cart
-  const handleOrderCreated = useCallback(() => {
-    // Refresh orders list when a new order is created
-    refreshOrders();
-  }, [refreshOrders]);
-
-  // Handle payment link from shopping cart
-  const handlePaymentLinkCreated = useCallback(
-    (paymentLink: string) => {
-      if (!quill) return;
-
-      const currentText = quill.getText().trim();
-      const newText = currentText ? `${currentText}\n\n${paymentLink}` : paymentLink;
 
       // Set the new text
       quill.setText(newText);
@@ -944,96 +788,6 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
     [quill, disabled, mode]
   );
 
-  // Handle send product card from ProductsDialog
-  const handleSendProductCard = useCallback(
-    async (productId: string, selectedImageId: string | null) => {
-      // Find the product from business info
-      const product: Product | undefined = businessInfo?.products?.products.find(
-        (prod) => prod.id === productId
-      );
-
-      if (!product) {
-        console.error('[MessageInput] Product not found:', productId);
-        return;
-      }
-
-      // Close the products dialog immediately for instant feedback
-      setShowProductsDialog(false);
-
-      // Determine which image to send
-      let imageToSend = null;
-      if (selectedImageId) {
-        // Use the selected image
-        imageToSend = product.media?.find((m) => m.id === selectedImageId);
-      } else if (product.media && product.media.length > 0) {
-        // Use the first image if none is selected
-        imageToSend = product.media[0];
-      }
-
-      // Create the product card message string (with stock-based filtering)
-      const messageStr = createProductCardsStr(
-        product,
-        selectedImageId ?? undefined,
-        (businessInfo ?? undefined) as BusinessSetup | undefined
-      );
-
-      // Generate message ID for the text message
-      const textMessageId = uuidv4();
-
-      // Handle image and text backend sending
-      if (imageToSend?.url) {
-        const mediaFiles: MediaFileDetailList = {
-          [imageToSend.id]: {
-            id: imageToSend.id,
-            name: product.name,
-            link: imageToSend.url,
-            kind: 'image' as any, // Using 'image' as the kind for product images
-            status: MediaStatus.READY,
-          },
-        };
-
-        // Send image first (appears in UI immediately via handleMediaUpload, sends to backend)
-        handleMediaUpload(mediaFiles).catch((error) => {
-          console.error('[MessageInput] Failed to send product image:', error);
-        });
-
-        // Show text message in UI immediately after image (optimistic update)
-        handleSendMessageUIOnly(messageStr, textMessageId);
-
-        // Wait 5 seconds then send text to backend (already showing in UI)
-        setTimeout(() => {
-          if (activeChat && projectName) {
-            repository
-              .sendMessage(projectName, activeChat, messageStr, 'text', textMessageId, isTestChatActive)
-              .catch((error) => {
-                console.error('[MessageInput] Failed to send product card text:', error);
-              });
-          }
-        }, 5000);
-      } else {
-        // No image, show text in UI and send to backend immediately
-        handleSendMessageUIOnly(messageStr, textMessageId);
-
-        if (activeChat && projectName) {
-          repository
-            .sendMessage(projectName, activeChat, messageStr, 'text', textMessageId, isTestChatActive)
-            .catch((error) => {
-              console.error('[MessageInput] Failed to send product card text:', error);
-            });
-        }
-      }
-    },
-    [
-      businessInfo,
-      handleMediaUpload,
-      handleSendMessageUIOnly,
-      activeChat,
-      projectName,
-      isTestChatActive,
-      repository,
-    ]
-  );
-
   // Close emoji picker when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -1050,89 +804,6 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showEmojiPicker]);
-
-  // Close products dialog when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (productsDialogRef.current && !productsDialogRef.current.contains(event.target as Node)) {
-        setShowProductsDialog(false);
-      }
-    };
-
-    if (showProductsDialog) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showProductsDialog]);
-
-  // Close shopping cart dialog when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-
-      // Don't close if clicking inside the shopping cart dialog
-      if (shoppingCartDialogRef.current && shoppingCartDialogRef.current.contains(target)) {
-        return;
-      }
-
-      // Don't close if clicking on a modal/dialog (check for dialog elements or high z-index overlays)
-      const clickedElement = event.target as HTMLElement;
-      const isClickingOnModal =
-        clickedElement.closest('[role="dialog"]') ||
-        clickedElement.closest('[data-radix-portal]') ||
-        clickedElement.closest('.tw\\:z-\\[150\\]');
-
-      if (isClickingOnModal) {
-        return;
-      }
-
-      setShowShoppingCartDialog(false);
-    };
-
-    if (showShoppingCartDialog) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showShoppingCartDialog]);
-
-  // Close orders dialog when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-
-      // Don't close if clicking inside the orders dialog
-      if (ordersDialogRef.current && ordersDialogRef.current.contains(target)) {
-        return;
-      }
-
-      // Don't close if clicking on a modal/dialog (check for dialog elements or high z-index overlays)
-      const clickedElement = event.target as HTMLElement;
-      const isClickingOnModal =
-        clickedElement.closest('[role="dialog"]') ||
-        clickedElement.closest('[data-radix-portal]') ||
-        clickedElement.closest('.tw\\:z-\\[150\\]');
-
-      if (isClickingOnModal) {
-        return;
-      }
-
-      setShowOrdersDialog(false);
-    };
-
-    if (showOrdersDialog) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showOrdersDialog]);
 
   // Close AI dialog when clicking outside
   useEffect(() => {
@@ -1183,105 +854,10 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
 
       {/* Emoji Picker - positioned outside to avoid clipping */}
       {showEmojiPicker && (
-        <div
-          ref={emojiPickerRef}
-          className="absolute bottom-full left-0 right-0 mb-0 z-[100]"
-        >
+        <div ref={emojiPickerRef} className="absolute bottom-full left-0 right-0 mb-0 z-[100]">
           <div className="w-full">
             <EmojiPicker onEmojiClick={handleEmojiClick} width="100%" />
           </div>
-        </div>
-      )}
-
-      {/* Products Dialog - positioned above input box */}
-      {showProductsDialog && (
-        <div
-          ref={productsDialogRef}
-          className="absolute bottom-full left-0 right-0 z-[100]"
-          style={{
-            height: '65vh',
-          }}
-        >
-          <ProductsDialog
-            businessInfo={businessInfo}
-            businessInfoLoading={businessInfoLoading}
-            projectName={projectName || ''}
-            onClose={() => setShowProductsDialog(false)}
-            onSendProductCard={handleSendProductCard}
-            onRefresh={refetchBusinessInfo}
-          />
-        </div>
-      )}
-
-      {/* Shopping Cart Dialog - positioned above input box */}
-      {showShoppingCartDialog && (
-        <div
-          ref={shoppingCartDialogRef}
-          className="absolute bottom-full left-0 right-0 z-[100]"
-          style={{
-            height: '65vh',
-          }}
-        >
-          <ShoppingCartDialog
-            cart={cart}
-            loading={cartLoading}
-            businessInfo={businessInfo}
-            projectName={projectName || ''}
-            userID={activeChat || ''}
-            customerName={userInfo?.name || ''}
-            customerEmail={userInfo?.email || ''}
-            customerPhone={activeChat || ''}
-            customerNationalId={userInfo?.nic || ''}
-            customerAddress={userInfo?.addressSchema}
-            onClose={() => setShowShoppingCartDialog(false)}
-            onRefresh={refreshCart}
-            onAddItem={addItem}
-            onRemoveItem={removeItem}
-            onOrderCreated={handleOrderCreated}
-            onPaymentLinkCreated={handlePaymentLinkCreated}
-          />
-        </div>
-      )}
-
-      {/* Orders Dialog - positioned above input box */}
-      {showOrdersDialog && (
-        <div
-          ref={ordersDialogRef}
-          className="absolute bottom-full left-0 right-0 z-[100]"
-          style={{
-            height: '65vh',
-          }}
-        >
-          <OrdersDialog
-            orders={orders}
-            loading={ordersLoading}
-            businessInfo={businessInfo}
-            projectName={projectName || ''}
-            userID={activeChat || ''}
-            onClose={() => setShowOrdersDialog(false)}
-            onRefresh={refreshOrders}
-          />
-        </div>
-      )}
-
-      {/* Quick Replies Dialog - positioned above input box */}
-      {showQuickRepliesDialog && (
-        <div
-          ref={quickRepliesDialogRef}
-          className="absolute bottom-full left-0 right-0 z-[100] mb-0"
-          style={{
-            height: '60vh',
-          }}
-        >
-          <QuickRepliesDialog
-            quickReplies={availableQuickReplies}
-            onSelect={handleQuickReplySelect}
-            onClose={() => {
-              setShowQuickRepliesDialog(false);
-              setShortcutState({ isActive: false, query: '', startIndex: 0 });
-            }}
-            shortcutQuery={shortcutState.isActive ? shortcutState.query : undefined}
-          />
         </div>
       )}
 
@@ -1456,12 +1032,12 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
               <div
                 className={`quill-editor-wrapper rounded-md bg-background text-foreground placeholder-foreground ${isEditorDisabled || isAIProcessing ? '!cursor-default [&_*]:!cursor-default' : ''}`}
               >
-                <div className='[&_.ql-blank::before]:text-muted-foreground!' ref={quillRef} />
+                <div className="[&_.ql-blank::before]:text-muted-foreground! border-0!" ref={quillRef} />
               </div>
 
               {/* AI Processing Overlay */}
               {isAIProcessing && (
-                <div className="absolute inset-0 bg-white/80 flex items-end justify-center pb-3 rounded-md z-10">
+                <div className="absolute inset-0 bg-background/80 flex items-end justify-center pb-3 rounded-md z-10">
                   <Spinner size="small" />
                 </div>
               )}
@@ -1546,136 +1122,6 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
 
               {mode === 'reply' && (
                 <>
-                  {disabled ? (
-                    <Button
-                      variant="ghost"
-                      onClick={() => setShowProductsDialog(!showProductsDialog)}
-                      className={`${iconContainerClassname} rounded-md shrink-0`}
-                      disabled={disabled}
-                    >
-                      <Store
-                        strokeWidth={iconStrokeWidth}
-                        size={msgInputIconSize}
-                        className={iconClassname}
-                      />
-                    </Button>
-                  ) : (
-                    <Tooltip>
-                      <TooltipTrigger render={<div />}>
-                        <Button
-                          variant="ghost"
-                          onClick={() => setShowProductsDialog(!showProductsDialog)}
-                          className={`${iconContainerClassname} rounded-md shrink-0`}
-                        >
-                          <Store
-                            strokeWidth={iconStrokeWidth}
-                            size={msgInputIconSize}
-                            className={iconClassname}
-                          />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>{t('Products')}</TooltipContent>
-                    </Tooltip>
-                  )}
-
-                  {disabled ? (
-                    <Button
-                      variant="ghost"
-                      onClick={() => setShowShoppingCartDialog(!showShoppingCartDialog)}
-                      className={`${iconContainerClassname} rounded-md shrink-0`}
-                      disabled={disabled}
-                    >
-                      <ShoppingCart
-                        strokeWidth={iconStrokeWidth}
-                        size={msgInputIconSize}
-                        className={iconClassname}
-                      />
-                    </Button>
-                  ) : (
-                    <Tooltip>
-                      <TooltipTrigger render={<div />}>
-                        <Button
-                          variant="ghost"
-                          onClick={() => setShowShoppingCartDialog(!showShoppingCartDialog)}
-                          className={`${iconContainerClassname} rounded-md shrink-0`}
-                        >
-                          <ShoppingCart
-                            strokeWidth={iconStrokeWidth}
-                            size={msgInputIconSize}
-                            className={iconClassname}
-                          />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>{t('Shopping Cart')}</TooltipContent>
-                    </Tooltip>
-                  )}
-
-                  {disabled ? (
-                    <Button
-                      variant="ghost"
-                      onClick={() => setShowOrdersDialog(!showOrdersDialog)}
-                      className={`${iconContainerClassname} rounded-md shrink-0`}
-                      disabled={disabled}
-                    >
-                      <Handbag
-                        strokeWidth={iconStrokeWidth}
-                        size={msgInputIconSize}
-                        className={iconClassname}
-                      />
-                    </Button>
-                  ) : (
-                    <Tooltip>
-                      <TooltipTrigger render={<div />}>
-                        <Button
-                          variant="ghost"
-                          onClick={() => setShowOrdersDialog(!showOrdersDialog)}
-                          className={`${iconContainerClassname} rounded-md shrink-0`}
-                        >
-                          <Handbag
-                            strokeWidth={iconStrokeWidth}
-                            size={msgInputIconSize}
-                            className={iconClassname}
-                          />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>{t('Orders')}</TooltipContent>
-                    </Tooltip>
-                  )}
-
-                  {disabled ? (
-                    <Button
-                      variant="ghost"
-                      onClick={() => {}}
-                      className={`${iconContainerClassname} rounded-md shrink-0`}
-                      disabled={disabled}
-                    >
-                      <Zap strokeWidth={iconStrokeWidth} size={msgInputIconSize} className={iconClassname} />
-                    </Button>
-                  ) : (
-                    <Tooltip>
-                      <TooltipTrigger render={<div />}>
-                        <Button
-                          variant="ghost"
-                          onClick={() => {
-                            // Close slash-triggered state if active
-                            if (shortcutState.isActive) {
-                              setShortcutState({ isActive: false, query: '', startIndex: 0 });
-                            }
-                            setShowQuickRepliesDialog(!showQuickRepliesDialog);
-                          }}
-                          className={`${iconContainerClassname} rounded-md shrink-0`}
-                        >
-                          <Zap
-                            strokeWidth={iconStrokeWidth}
-                            size={msgInputIconSize}
-                            className={iconClassname}
-                          />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>{t('Quick Replies')}</TooltipContent>
-                    </Tooltip>
-                  )}
-
                   {disabled ? (
                     <Button
                       variant="ghost"

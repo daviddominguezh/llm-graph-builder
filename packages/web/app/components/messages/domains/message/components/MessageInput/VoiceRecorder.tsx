@@ -293,7 +293,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplet
   // Render error state
   if (error) {
     return (
-      <div className="bg-white rounded-t-md border border-b-0 p-4">
+      <div className="bg-background rounded-t-md border border-b-0 p-4">
         <div className="flex items-center gap-4">
           {/* Left container - fixed width for centering */}
           <div className="w-24 shrink-0" />
@@ -319,7 +319,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplet
   const displayDuration = state === 'recorded' || state === 'uploading' ? finalDuration : duration;
 
   return (
-    <div className="bg-white rounded-t-md border border-b-0 p-4">
+    <div className="bg-background rounded-t-md border border-b-0 p-4">
       <div className="flex items-center gap-4">
         {/* 1.1 Trash bin button */}
         <div className="shrink-0">
