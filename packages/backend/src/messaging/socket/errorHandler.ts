@@ -2,7 +2,12 @@ import type { Socket } from 'socket.io';
 
 /* ─── Stream error detection ─── */
 
-const STREAM_ERROR_PATTERNS = ['terminated', 'BodyTimeoutError', 'UND_ERR_BODY_TIMEOUT', 'Stream reading error'];
+const STREAM_ERROR_PATTERNS = [
+  'terminated',
+  'BodyTimeoutError',
+  'UND_ERR_BODY_TIMEOUT',
+  'Stream reading error',
+];
 
 function isStreamError(message: string): boolean {
   return STREAM_ERROR_PATTERNS.some((pattern) => message.includes(pattern));

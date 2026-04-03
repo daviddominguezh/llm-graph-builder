@@ -51,10 +51,7 @@ export async function markResumeCompleted(
   if (error !== null) throw new Error(`Failed to mark resume completed: ${error.message}`);
 }
 
-export async function fetchPendingResumes(
-  supabase: SupabaseClient,
-  limit: number
-): Promise<PendingResume[]> {
+export async function fetchPendingResumes(supabase: SupabaseClient, limit: number): Promise<PendingResume[]> {
   const { data, error } = await supabase
     .from('pending_resumes')
     .select('*')
@@ -72,10 +69,7 @@ export async function updateResumeStatus(
   status: 'processing' | 'completed' | 'failed'
 ): Promise<void> {
   const updateData: Record<string, unknown> = { status, last_attempt_at: new Date().toISOString() };
-  const { error } = await supabase
-    .from('pending_resumes')
-    .update(updateData)
-    .eq('id', resumeId);
+  const { error } = await supabase.from('pending_resumes').update(updateData).eq('id', resumeId);
 
   if (error !== null) throw new Error(`Failed to update resume status: ${error.message}`);
 }

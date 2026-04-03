@@ -8,10 +8,7 @@ export interface ExecutionEvent {
   payload: Record<string, unknown>;
 }
 
-export async function persistEvent(
-  supabase: SupabaseClient,
-  event: ExecutionEvent
-): Promise<void> {
+export async function persistEvent(supabase: SupabaseClient, event: ExecutionEvent): Promise<void> {
   const { error } = await supabase.from('agent_execution_events').insert({
     execution_id: event.executionId,
     org_id: event.orgId,

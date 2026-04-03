@@ -1,5 +1,4 @@
 import type http from 'node:http';
-
 import type { Socket } from 'socket.io';
 import { Server } from 'socket.io';
 

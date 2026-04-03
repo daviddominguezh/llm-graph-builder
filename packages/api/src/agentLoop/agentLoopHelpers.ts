@@ -22,8 +22,7 @@ IMPORTANT: Only call \`__system_finish\` when you are truly done. If you need mo
 </system-instructions>`;
 
 export function buildSystemMessage(config: AgentLoopConfig): ModelMessage {
-  let combined =
-    config.context === '' ? config.systemPrompt : `${config.systemPrompt}\n\n${config.context}`;
+  let combined = config.context === '' ? config.systemPrompt : `${config.systemPrompt}\n\n${config.context}`;
 
   if (config.isChildAgent === true) {
     combined = `${CHILD_AGENT_INSTRUCTIONS}\n\n${combined}\n\n${CHILD_AGENT_INSTRUCTIONS}`;

@@ -1,6 +1,5 @@
 import type { Tool } from 'ai';
 
-import { FINISH_TOOL_NAME, createFinishTool } from './finishTool.js';
 import {
   CREATE_AGENT_TOOL_NAME,
   INVOKE_AGENT_TOOL_NAME,
@@ -9,6 +8,7 @@ import {
   invokeAgentTool,
   invokeWorkflowTool,
 } from './dispatchTools.js';
+import { FINISH_TOOL_NAME, createFinishTool } from './finishTool.js';
 
 const SYSTEM_TOOL_PREFIX = '__system_';
 

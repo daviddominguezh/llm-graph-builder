@@ -18,7 +18,10 @@ const createAgentSchema = z.object({
     .describe('Tools to give the agent: "all" for all your tools, or a list of tool names'),
   contextItems: z.array(z.string()).optional().describe('Context items to inject'),
   maxSteps: z.number().optional().describe('Maximum number of steps'),
-  outputSchema: z.record(z.string(), z.unknown()).optional().describe('JSON Schema to validate the agent output'),
+  outputSchema: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .describe('JSON Schema to validate the agent output'),
 });
 
 const invokeAgentSchema = z.object({
@@ -27,7 +30,10 @@ const invokeAgentSchema = z.object({
   task: z.string().describe('The task for the agent to complete'),
   contextItems: z.array(z.string()).optional().describe('Additional context items'),
   model: z.string().optional().describe('Override the agent model'),
-  outputSchema: z.record(z.string(), z.unknown()).optional().describe('JSON Schema to validate the agent output'),
+  outputSchema: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .describe('JSON Schema to validate the agent output'),
 });
 
 const invokeWorkflowSchema = z.object({

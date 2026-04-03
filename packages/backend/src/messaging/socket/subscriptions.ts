@@ -122,7 +122,10 @@ function handleSubscribeEvent(socket: Socket): (data: unknown) => void {
 
 export function initializeSubscriptionHandlers(io: Server): void {
   io.on('connection', (socket) => {
-    socket.on('messages:subscribe', wrapSocketHandler(handleSubscribeEvent(socket), socket, 'messages:subscribe'));
+    socket.on(
+      'messages:subscribe',
+      wrapSocketHandler(handleSubscribeEvent(socket), socket, 'messages:subscribe')
+    );
 
     socket.on('disconnect', () => {
       removeSocketFromAllTenants(socket.id);

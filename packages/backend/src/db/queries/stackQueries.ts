@@ -13,10 +13,7 @@ export interface StackEntry {
   dispatchedAt: string;
 }
 
-export async function getStackTop(
-  supabase: SupabaseClient,
-  sessionId: string
-): Promise<StackEntry | null> {
+export async function getStackTop(supabase: SupabaseClient, sessionId: string): Promise<StackEntry | null> {
   const { data, error } = await supabase
     .from('agent_stack_entries')
     .select('*')
@@ -29,10 +26,7 @@ export async function getStackTop(
   return data as StackEntry | null;
 }
 
-export async function getStackDepth(
-  supabase: SupabaseClient,
-  sessionId: string
-): Promise<number> {
+export async function getStackDepth(supabase: SupabaseClient, sessionId: string): Promise<number> {
   const { count, error } = await supabase
     .from('agent_stack_entries')
     .select('*', { count: 'exact', head: true })
@@ -53,10 +47,7 @@ export interface PushStackEntryParams {
   appType: 'agent' | 'workflow';
 }
 
-export async function pushStackEntry(
-  supabase: SupabaseClient,
-  params: PushStackEntryParams
-): Promise<void> {
+export async function pushStackEntry(supabase: SupabaseClient, params: PushStackEntryParams): Promise<void> {
   const { error } = await supabase.from('agent_stack_entries').insert({
     session_id: params.sessionId,
     depth: params.depth,
@@ -71,17 +62,11 @@ export async function pushStackEntry(
   if (error !== null) throw new Error(`Failed to push stack entry: ${error.message}`);
 }
 
-export async function popStackEntry(
-  supabase: SupabaseClient,
-  sessionId: string
-): Promise<StackEntry | null> {
+export async function popStackEntry(supabase: SupabaseClient, sessionId: string): Promise<StackEntry | null> {
   const top = await getStackTop(supabase, sessionId);
   if (top === null) return null;
 
-  const { error } = await supabase
-    .from('agent_stack_entries')
-    .delete()
-    .eq('id', top.id);
+  const { error } = await supabase.from('agent_stack_entries').delete().eq('id', top.id);
 
   if (error !== null) throw new Error(`Failed to pop stack entry: ${error.message}`);
   return top;
