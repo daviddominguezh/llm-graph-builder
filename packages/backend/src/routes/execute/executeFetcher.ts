@@ -11,6 +11,7 @@ import {
 } from '../../db/queries/executionAuthQueries.js';
 import { getOrCreateSession, getSessionMessages } from '../../db/queries/executionQueries.js';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
+import { type StackEntry, getStackTop } from '../../db/queries/stackQueries.js';
 import type { AgentVfsSettings } from '../../db/queries/vfsConfigTypes.js';
 import type { AgentExecutionInput } from './executeTypes.js';
 
@@ -52,6 +53,7 @@ export interface FetchedData {
   appType: string;
   agentConfig: AgentConfig | null;
   vfsSettings: AgentVfsSettings | null;
+  stackTop: StackEntry | null;
 }
 
 /* ─── Production API key lookup ─── */
@@ -125,6 +127,7 @@ interface SessionData {
   structuredOutputs: Record<string, unknown[]>;
   isNew: boolean;
   messageHistory: Message[];
+  stackTop: StackEntry | null;
 }
 
 export interface SessionFetchParams {
@@ -189,7 +192,10 @@ export async function fetchSessionData(params: SessionFetchParams): Promise<Sess
   if (sessionResult.session === null) throw new HttpError(HTTP_INTERNAL, 'Failed to create session');
 
   const { session } = sessionResult;
-  const rows = await getSessionMessages(params.supabase, session.id);
+  const [rows, stackTop] = await Promise.all([
+    getSessionMessages(params.supabase, session.id),
+    getStackTop(params.supabase, session.id),
+  ]);
   const channel = resolveChannelProvider(params.input.channel);
 
   return {
@@ -198,6 +204,7 @@ export async function fetchSessionData(params: SessionFetchParams): Promise<Sess
     structuredOutputs: session.structured_outputs,
     isNew: sessionResult.isNew,
     messageHistory: rows.map((row) => messageRowToMessage(row, channel)),
+    stackTop,
   };
 }
 

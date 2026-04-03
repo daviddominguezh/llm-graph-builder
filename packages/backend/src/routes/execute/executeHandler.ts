@@ -257,6 +257,15 @@ export async function handleExecute(
     ({ executionId } = ctx);
     ({ supabase } = ctx);
 
+    // Stack-based routing: if a child agent is active, route to it
+    if (ctx.fetched.stackTop !== null) {
+      // TODO: Route to child agent config
+      // For now, log and continue with root agent (to be implemented in execute-child/resume-parent tasks)
+      process.stderr.write(
+        `[execute] Stack routing: child active at depth ${String(ctx.fetched.stackTop.depth)}, execution ${ctx.fetched.stackTop.executionId}\n`
+      );
+    }
+
     if (ctx.fetched.appType === 'agent') {
       await routeAgentExecution(
         {

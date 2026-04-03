@@ -168,6 +168,8 @@ export interface StreamCallbacks {
   onNodeVisited?: (nodeId: string) => void;
   onNodeProcessed?: (event: NodeProcessedEvent) => void;
   onAgentResponse?: (event: AgentResponseEvent) => void;
+  onChildDispatched?: (event: { childExecutionId: string; childAppType: string }) => void;
+  onChildCompleted?: (event: { parentExecutionId: string; output: string; status: string }) => void;
   onError?: (message: string) => void;
   onComplete?: () => void;
 }
@@ -214,6 +216,11 @@ const SseEventSchema = z.object({
   step: z.number().optional(),
   responseText: z.string().optional(),
   totalSteps: z.number().optional(),
+  // Child workflow fields
+  childExecutionId: z.string().optional(),
+  childAppType: z.string().optional(),
+  parentExecutionId: z.string().optional(),
+  status: z.string().optional(),
 });
 
 type SseEvent = z.infer<typeof SseEventSchema>;
@@ -272,6 +279,25 @@ function handleStepProcessed(event: SseEvent, callbacks: StreamCallbacks): void 
   }
 }
 
+function handleChildDispatched(event: SseEvent, callbacks: StreamCallbacks): void {
+  if (event.childExecutionId !== undefined && event.childAppType !== undefined) {
+    callbacks.onChildDispatched?.({
+      childExecutionId: event.childExecutionId,
+      childAppType: event.childAppType,
+    });
+  }
+}
+
+function handleChildCompleted(event: SseEvent, callbacks: StreamCallbacks): void {
+  if (event.parentExecutionId !== undefined && event.text !== undefined && event.status !== undefined) {
+    callbacks.onChildCompleted?.({
+      parentExecutionId: event.parentExecutionId,
+      output: event.text,
+      status: event.status,
+    });
+  }
+}
+
 function dispatchSseEvent(event: SseEvent, callbacks: StreamCallbacks): void {
   if (event.type === 'node_visited') {
     handleNodeVisited(event, callbacks);
@@ -283,6 +309,10 @@ function dispatchSseEvent(event: SseEvent, callbacks: StreamCallbacks): void {
     handleStepProcessed(event, callbacks);
   } else if (event.type === 'agent_response') {
     handleAgentResponse(event, callbacks);
+  } else if (event.type === 'child_dispatched') {
+    handleChildDispatched(event, callbacks);
+  } else if (event.type === 'child_completed') {
+    handleChildCompleted(event, callbacks);
   } else if (event.type === 'error' && event.message !== undefined) {
     callbacks.onError?.(event.message);
   } else if (event.type === 'simulation_complete') {
