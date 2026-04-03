@@ -83,7 +83,7 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
     { id: 'all', label: t('All'), icon: <MessagesSquare className="size-4" />, badge: badges.all },
     {
       id: 'with-bot',
-      label: t('With bot'),
+      label: t('With agent'),
       icon: <Zap className="size-4" />,
       badge: badges.withBot,
     },

@@ -252,7 +252,7 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
   // Filter options for mobile dropdown
   const filterOptions = [
     { value: 'inbox', label: t('Your inbox') },
-    { value: 'with-bot', label: t('With bot') },
+    { value: 'with-bot', label: t('With agent') },
     { value: 'unassigned', label: t('Unassigned') },
     { value: 'open', label: t('Opened') },
     { value: 'blocked', label: t('Blocked') },
