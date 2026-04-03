@@ -175,6 +175,12 @@ export interface SendTestMessageBody {
   id?: string;
 }
 
+// --- Provider Send Result ---
+
+export interface ProviderSendResult {
+  originalId: string;
+}
+
 // --- Channel Types ---
 
 export type ChannelType = 'whatsapp' | 'instagram' | 'api';
