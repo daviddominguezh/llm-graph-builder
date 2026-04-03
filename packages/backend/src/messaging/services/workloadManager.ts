@@ -30,13 +30,15 @@ export async function assignChatToAgent(
 }
 
 // TODO: Implement
-export async function reassignChat(
-  _supabase: SupabaseClient,
-  _tenantId: string,
-  _userChannelId: string,
-  _oldAssignee: string,
-  _newAssignee: string
-): Promise<void> {
+interface ReassignChatParams {
+  supabase: SupabaseClient;
+  tenantId: string;
+  userChannelId: string;
+  oldAssignee: string;
+  newAssignee: string;
+}
+
+export async function reassignChat(_params: ReassignChatParams): Promise<void> {
   // TODO: Decrement old assignee's counter, increment new
 }
 

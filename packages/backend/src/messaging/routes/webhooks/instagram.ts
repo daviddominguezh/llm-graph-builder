@@ -43,23 +43,29 @@ function extractSenderId(userChannelId: string): string {
   return userChannelId.startsWith(PREFIX) ? userChannelId.slice(PREFIX.length) : userChannelId;
 }
 
-async function enrichUserName(
+function pickNonEmptyName(profile: { username: string; name: string }): string | undefined {
+  if (profile.username !== '') return profile.username;
+  if (profile.name !== '') return profile.name;
+  return undefined;
+}
+
+async function resolveUserName(
   supabase: ReturnType<typeof createServiceClient>,
   connection: ChannelConnectionRow,
   incoming: IncomingMessage
-): Promise<void> {
-  if (incoming.userName !== undefined) return;
+): Promise<string | undefined> {
+  if (incoming.userName !== undefined) return incoming.userName;
 
   try {
     const creds = await resolveInstagramCredentials(supabase, connection.agent_id, connection.tenant_id);
     const senderId = extractSenderId(incoming.userChannelId);
     const profile = await fetchInstagramProfile(senderId, creds.accessToken);
-    if (profile !== null) {
-      incoming.userName = profile.username || profile.name || undefined;
-    }
+    if (profile !== null) return pickNonEmptyName(profile);
   } catch {
     // Non-critical: leave userName undefined
   }
+
+  return undefined;
 }
 
 async function processOneMessage(incoming: IncomingMessage): Promise<void> {
@@ -69,8 +75,9 @@ async function processOneMessage(incoming: IncomingMessage): Promise<void> {
     process.stdout.write(`[instagram] No channel connection for ${incoming.channelIdentifier}\n`);
     return;
   }
-  await enrichUserName(supabase, connection, incoming);
-  await processIncomingMessage({ supabase, connection, incoming });
+  const userName = await resolveUserName(supabase, connection, incoming);
+  const enrichedIncoming: IncomingMessage = { ...incoming, userName };
+  await processIncomingMessage({ supabase, connection, incoming: enrichedIncoming });
 }
 
 async function processWebhookMessages(messages: IncomingMessage[]): Promise<void> {

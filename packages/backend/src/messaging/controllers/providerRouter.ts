@@ -8,10 +8,13 @@ export function detectChannel(userChannelId: string): ChannelType {
   return 'api';
 }
 
+const NOT_FOUND = -1;
+const AFTER_COLON = 1;
+
 export function stripChannelPrefix(userChannelId: string): string {
   const colonIndex = userChannelId.indexOf(':');
-  if (colonIndex === -1) return userChannelId;
-  const stripped = userChannelId.slice(colonIndex + 1);
+  if (colonIndex === NOT_FOUND) return userChannelId;
+  const stripped = userChannelId.slice(colonIndex + AFTER_COLON);
   if (!stripped.startsWith('+')) return `+${stripped}`;
   return stripped;
 }

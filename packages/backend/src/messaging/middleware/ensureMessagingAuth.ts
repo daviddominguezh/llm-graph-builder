@@ -4,6 +4,10 @@ import { createServiceClient } from '../../db/queries/executionAuthQueries.js';
 
 const MESSAGING_MASTER_API_KEY = process.env.MESSAGING_MASTER_API_KEY ?? '';
 
+function setLocals(locals: Record<string, unknown>, values: Record<string, unknown>): void {
+  Object.assign(locals, values);
+}
+
 /**
  * Messaging auth middleware.
  * Checks api_key header against MESSAGING_MASTER_API_KEY.
@@ -19,7 +23,7 @@ export function ensureMessagingAuth(req: Request, res: Response, next: NextFunct
   }
 
   const supabase = createServiceClient();
-  res.locals.supabase = supabase;
+  setLocals(res.locals, { supabase });
 
   next();
 }

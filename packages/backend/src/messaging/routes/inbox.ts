@@ -15,6 +15,8 @@ import {
   getSupabase,
 } from './routeHelpers.js';
 
+const MIN_TIMESTAMP = 0;
+
 /* GET /projects/:tenantId/messages/last */
 async function handlePaginatedInbox(req: Request, res: MessagingResponse): Promise<void> {
   const supabase = getSupabase(res);
@@ -73,7 +75,7 @@ async function handleGetDelta(req: Request, res: MessagingResponse): Promise<voi
     }
 
     const timestampNum = Number(timestampRaw);
-    if (Number.isNaN(timestampNum) || timestampNum <= 0) {
+    if (Number.isNaN(timestampNum) || timestampNum <= MIN_TIMESTAMP) {
       res.status(HTTP_BAD_REQUEST).json({ error: 'Invalid timestamp query param' });
       return;
     }
@@ -100,7 +102,7 @@ async function handleGetDeleted(req: Request, res: MessagingResponse): Promise<v
     }
 
     const sinceNum = Number(sinceRaw);
-    if (Number.isNaN(sinceNum) || sinceNum <= 0) {
+    if (Number.isNaN(sinceNum) || sinceNum <= MIN_TIMESTAMP) {
       res.status(HTTP_BAD_REQUEST).json({ error: 'Invalid since query param' });
       return;
     }

@@ -87,7 +87,7 @@ function resolveTestModeDecision(conversation: ConversationRow): AiDecisionResul
   // TODO: If conversation.enabled === false (human explicitly took over),
   //       fall through to normal processing so the disable is respected.
   //       See closer-back lines 513–520.
-  const shouldInvokeAi = conversation.enabled;
+  const { enabled: shouldInvokeAi } = conversation;
   return { shouldInvokeAi, assignedAgent: undefined };
 }
 
@@ -164,7 +164,7 @@ function resolveExistingConversationDecision(
   _config: AiDecisionConfig
 ): AiDecisionResult {
   // TODO: Implement blocked / ai / human / no-assignee / closed-reopening paths.
-  const shouldInvokeAi = conversation.enabled;
+  const { enabled: shouldInvokeAi } = conversation;
   return { shouldInvokeAi, assignedAgent: undefined };
 }
 

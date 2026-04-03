@@ -22,10 +22,32 @@ interface WhatsAppMediaUploadResponse {
   error?: { message: string; code: number };
 }
 
+/* ─── Type guards ─── */
+
+function isApiResponse(value: unknown): value is WhatsAppApiResponse {
+  return typeof value === 'object' && value !== null;
+}
+
+function toWhatsAppApiResponse(value: unknown): WhatsAppApiResponse {
+  if (isApiResponse(value)) return value;
+  return {};
+}
+
+function isMediaUploadResponse(value: unknown): value is WhatsAppMediaUploadResponse {
+  return typeof value === 'object' && value !== null;
+}
+
+function toMediaUploadResponse(value: unknown): WhatsAppMediaUploadResponse {
+  if (isMediaUploadResponse(value)) return value;
+  return {};
+}
+
 /* ─── Helpers ─── */
 
+const FIRST_INDEX = 0;
+
 function extractOriginalId(result: WhatsAppApiResponse): string {
-  const firstMessage = result.messages?.[0];
+  const firstMessage = result.messages?.[FIRST_INDEX];
   return firstMessage?.id ?? '';
 }
 
@@ -41,8 +63,9 @@ interface ErrorWithStatusCode extends Error {
 
 function throwOnHttpError(response: Response): void {
   if (!response.ok) {
-    const err = new Error(`WhatsApp API HTTP ${String(response.status)}`) as ErrorWithStatusCode;
-    err.statusCode = response.status;
+    const { status } = response;
+    const err = new Error(`WhatsApp API HTTP ${String(status)}`) as ErrorWithStatusCode;
+    err.statusCode = status;
     throw err;
   }
 }
@@ -63,7 +86,8 @@ async function callWhatsAppApi(
   });
 
   throwOnHttpError(response);
-  return (await response.json()) as WhatsAppApiResponse;
+  const data: unknown = await response.json();
+  return toWhatsAppApiResponse(data);
 }
 
 /* ─── Media upload (Fix 15, R2-11 cache) ─── */
@@ -117,7 +141,7 @@ async function uploadMediaRaw(phoneNumberId: string, accessToken: string, fileUr
   });
 
   throwOnHttpError(response);
-  const data = (await response.json()) as WhatsAppMediaUploadResponse;
+  const data = toMediaUploadResponse(await response.json());
 
   if (data.id === undefined || data.id.length === EMPTY_LENGTH) {
     const errDetail = data.error?.message ?? JSON.stringify(data);
@@ -149,7 +173,7 @@ export async function sendWhatsAppTextMessage(
   recipientPhone: string,
   text: string
 ): Promise<ProviderSendResult> {
-  const result = await withRetry(() =>
+  const result = await withRetry(async () =>
     callWhatsAppApi(phoneNumberId, accessToken, {
       messaging_product: 'whatsapp',
       recipient_type: 'individual',
@@ -165,19 +189,22 @@ export async function sendWhatsAppTextMessage(
 
 /* ─── Image message (upload first, then send by ID) ─── */
 
-export async function sendWhatsAppImageMessage(
-  phoneNumberId: string,
-  accessToken: string,
-  recipientPhone: string,
-  imageUrl: string,
-  caption?: string
-): Promise<ProviderSendResult> {
-  const mediaId = await withRetry(() => uploadMediaToWhatsApp(phoneNumberId, accessToken, imageUrl));
+interface SendImageParams {
+  phoneNumberId: string;
+  accessToken: string;
+  recipientPhone: string;
+  imageUrl: string;
+  caption?: string;
+}
+
+export async function sendWhatsAppImageMessage(params: SendImageParams): Promise<ProviderSendResult> {
+  const { phoneNumberId, accessToken, recipientPhone, imageUrl, caption } = params;
+  const mediaId = await withRetry(async () => uploadMediaToWhatsApp(phoneNumberId, accessToken, imageUrl));
 
   const imagePayload: Record<string, string> = { id: mediaId };
   if (caption !== undefined) imagePayload.caption = caption;
 
-  const result = await withRetry(() =>
+  const result = await withRetry(async () =>
     callWhatsAppApi(phoneNumberId, accessToken, {
       messaging_product: 'whatsapp',
       recipient_type: 'individual',
@@ -199,9 +226,9 @@ export async function sendWhatsAppAudioMessage(
   recipientPhone: string,
   audioUrl: string
 ): Promise<ProviderSendResult> {
-  const mediaId = await withRetry(() => uploadMediaToWhatsApp(phoneNumberId, accessToken, audioUrl));
+  const mediaId = await withRetry(async () => uploadMediaToWhatsApp(phoneNumberId, accessToken, audioUrl));
 
-  const result = await withRetry(() =>
+  const result = await withRetry(async () =>
     callWhatsAppApi(phoneNumberId, accessToken, {
       messaging_product: 'whatsapp',
       recipient_type: 'individual',
@@ -217,19 +244,22 @@ export async function sendWhatsAppAudioMessage(
 
 /* ─── Document message (upload first, then send by ID) ─── */
 
-export async function sendWhatsAppDocumentMessage(
-  phoneNumberId: string,
-  accessToken: string,
-  recipientPhone: string,
-  documentUrl: string,
-  filename?: string
-): Promise<ProviderSendResult> {
-  const mediaId = await withRetry(() => uploadMediaToWhatsApp(phoneNumberId, accessToken, documentUrl));
+interface SendDocumentParams {
+  phoneNumberId: string;
+  accessToken: string;
+  recipientPhone: string;
+  documentUrl: string;
+  filename?: string;
+}
+
+export async function sendWhatsAppDocumentMessage(params: SendDocumentParams): Promise<ProviderSendResult> {
+  const { phoneNumberId, accessToken, recipientPhone, documentUrl, filename } = params;
+  const mediaId = await withRetry(async () => uploadMediaToWhatsApp(phoneNumberId, accessToken, documentUrl));
 
   const docPayload: Record<string, string> = { id: mediaId };
   if (filename !== undefined) docPayload.filename = filename;
 
-  const result = await withRetry(() =>
+  const result = await withRetry(async () =>
     callWhatsAppApi(phoneNumberId, accessToken, {
       messaging_product: 'whatsapp',
       recipient_type: 'individual',
@@ -260,7 +290,7 @@ export async function sendWhatsAppTypingIndicator(
   recipientPhone: string,
   lastMessageId?: string
 ): Promise<void> {
-  if (lastMessageId === undefined || !lastMessageId.startsWith(WAMID_PREFIX)) {
+  if (!lastMessageId?.startsWith(WAMID_PREFIX)) {
     return; // Cannot send typing without a valid wamid
   }
 

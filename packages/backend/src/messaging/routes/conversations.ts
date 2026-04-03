@@ -12,7 +12,7 @@ import {
 import { findConversationByUserChannelId } from '../queries/conversationQueries.js';
 import { getAllMessages, getMessagePage } from '../queries/messageQueries.js';
 import { assignChatToAgent, reassignChat, releaseChat } from '../services/workloadManager.js';
-import type { AssigneeBody, ConversationRow, StatusBody } from '../types/index.js';
+import type { ConversationRow } from '../types/index.js';
 import type { MessagingResponse } from './routeHelpers.js';
 import {
   HTTP_BAD_REQUEST,
@@ -25,8 +25,20 @@ import {
   getSupabase,
 } from './routeHelpers.js';
 
+const FIRST_INDEX = 0;
+
 function decodeUserId(req: Request): string {
   return decodeURIComponent(getRequiredParam(req, 'userId'));
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function parseStringField(body: unknown, field: string): string {
+  if (!isRecord(body)) return '';
+  const value: unknown = body[field];
+  return typeof value === 'string' ? value : '';
 }
 
 async function lookupConversation(req: Request, res: MessagingResponse): Promise<ConversationRow | null> {
@@ -126,7 +138,13 @@ async function handleToggleChatbot(req: Request, res: MessagingResponse): Promis
       return;
     }
 
-    await updateConversationChatbot(getSupabase(res), conversation.id, enabled, conversation, nextNode);
+    await updateConversationChatbot({
+      supabase: getSupabase(res),
+      conversationId: conversation.id,
+      enabled,
+      conversation,
+      nextNode,
+    });
     res.status(HTTP_OK).json({ success: true });
   } catch (err) {
     res.status(HTTP_INTERNAL).json({ error: extractErrorMessage(err) });
@@ -157,16 +175,16 @@ async function applyAssigneeWorkload(
   assignee: string
 ): Promise<void> {
   const assignees = await getAssignees(supabase, conversation.id);
-  const previousAssignee = assignees[0]?.assignee;
+  const previousAssignee = assignees[FIRST_INDEX]?.assignee;
 
   if (previousAssignee !== undefined && previousAssignee !== assignee) {
-    await reassignChat(
+    await reassignChat({
       supabase,
-      conversation.tenant_id,
-      conversation.user_channel_id,
-      previousAssignee,
-      assignee
-    );
+      tenantId: conversation.tenant_id,
+      userChannelId: conversation.user_channel_id,
+      oldAssignee: previousAssignee,
+      newAssignee: assignee,
+    });
   } else if (previousAssignee === undefined) {
     await assignChatToAgent(supabase, conversation.tenant_id, conversation.user_channel_id, assignee);
   }
@@ -181,8 +199,7 @@ async function handleAddAssignee(req: Request, res: MessagingResponse): Promise<
       return;
     }
 
-    const body = req.body as AssigneeBody;
-    const assignee = (body.assignee ?? '').trim();
+    const assignee = parseStringField(req.body, 'assignee').trim();
     if (assignee === '') {
       res.status(HTTP_BAD_REQUEST).json({ error: 'assignee is required' });
       return;
@@ -211,7 +228,7 @@ async function applyStatusSideEffects(
   await updateConversationEnabled(supabase, conversation.id, false);
 
   const assignees = await getAssignees(supabase, conversation.id);
-  const currentAssignee = assignees[0]?.assignee;
+  const currentAssignee = assignees[FIRST_INDEX]?.assignee;
   if (currentAssignee !== undefined) {
     await releaseChat(supabase, conversation.tenant_id, conversation.user_channel_id, currentAssignee);
   }
@@ -226,8 +243,7 @@ async function handleAddStatus(req: Request, res: MessagingResponse): Promise<vo
       return;
     }
 
-    const body = req.body as StatusBody;
-    const status = (body.status ?? '').trim();
+    const status = parseStringField(req.body, 'status').trim();
     if (status === '') {
       res.status(HTTP_BAD_REQUEST).json({ error: 'status is required' });
       return;

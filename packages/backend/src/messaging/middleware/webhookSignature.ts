@@ -22,8 +22,12 @@ function readEnv(name: string): string {
  * Usage:
  *   express.json({ verify: captureRawBody })
  */
+function setRequestProperty(target: Record<string, unknown>, values: Record<string, unknown>): void {
+  Object.assign(target, values);
+}
+
 export function captureRawBody(req: Request, _res: Response, buf: Buffer): void {
-  req.rawBody = buf;
+  setRequestProperty(req, { rawBody: buf });
 }
 
 /**
@@ -40,7 +44,7 @@ export function verifyWebhookSignature(appSecret: string) {
       return;
     }
 
-    const rawBody = req.rawBody;
+    const { rawBody } = req;
     if (rawBody === undefined) {
       res.status(HTTP_FORBIDDEN).json({ error: 'Missing raw body for HMAC verification' });
       return;

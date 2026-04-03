@@ -61,6 +61,7 @@ async function findAgentSession(
   supabase: SupabaseClient,
   conversation: { agent_id: string; tenant_id: string; user_channel_id: string }
 ): Promise<AgentSessionRow | null> {
+  const SINGLE_RESULT = 1;
   const result: QueryResult<AgentSessionRow> = await supabase
     .from('agent_sessions')
     .select('id')
@@ -68,7 +69,7 @@ async function findAgentSession(
     .eq('tenant_id', conversation.tenant_id)
     .eq('user_id', conversation.user_channel_id)
     .order('updated_at', { ascending: false })
-    .limit(1)
+    .limit(SINGLE_RESULT)
     .single();
 
   return result.data ?? null;
@@ -95,13 +96,16 @@ interface ConversationLookup {
   user_channel_id: string;
 }
 
-export async function updateConversationChatbot(
-  supabase: SupabaseClient,
-  conversationId: string,
-  enabled: boolean,
-  conversation: ConversationLookup,
-  nextNode?: string
-): Promise<void> {
+interface UpdateChatbotParams {
+  supabase: SupabaseClient;
+  conversationId: string;
+  enabled: boolean;
+  conversation: ConversationLookup;
+  nextNode?: string;
+}
+
+export async function updateConversationChatbot(params: UpdateChatbotParams): Promise<void> {
+  const { supabase, conversationId, enabled, conversation, nextNode } = params;
   await updateConversationEnabled(supabase, conversationId, enabled);
 
   if (enabled && nextNode !== undefined && nextNode !== '') {

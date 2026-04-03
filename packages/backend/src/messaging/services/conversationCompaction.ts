@@ -47,6 +47,7 @@ const MESSAGES_TO_SUMMARIZE = 15;
  * (closer-back/src/ai/actions/compactConversation/index.ts line 18)
  */
 const MESSAGES_TO_KEEP = 5;
+const EMPTY_TIMESTAMP = 0;
 
 /**
  * Tool call results that must NEVER be discarded during compaction because
@@ -107,16 +108,16 @@ export interface CompactionResult {
  * @param messages - The AI message history (from messages_ai table).
  */
 function isPreservedToolMessage(msg: MessageAiRow): boolean {
-  const role: string = msg.role;
+  const { role } = msg;
   if (role !== 'tool') return false;
   if (msg.metadata === null) return false;
-  const toolName = msg.metadata.toolName;
+  const { toolName } = msg.metadata;
   if (typeof toolName !== 'string') return false;
   return PRESERVED_TOOL_NAMES.includes(toolName);
 }
 
 function isSummaryMessage(msg: MessageAiRow): boolean {
-  return msg.is_summary === true;
+  return msg.is_summary;
 }
 
 export function shouldCompact(messages: MessageAiRow[]): boolean {
@@ -225,10 +226,28 @@ function buildCompactionPrompt(_messages: MessageAiRow[]): string {
  * @param messages - Full AI message history from messages_ai.
  * @returns CompactionResult with compacted context, summary, and wasCompacted flag.
  */
-export async function compactConversation(
+function buildEmptyMessageAiRow(): MessageAiRow {
+  return {
+    id: '',
+    conversation_id: '',
+    role: 'assistant',
+    type: 'text',
+    content: '',
+    media_url: null,
+    reply_id: null,
+    original_id: null,
+    channel_thread_id: null,
+    metadata: null,
+    timestamp: EMPTY_TIMESTAMP,
+    created_at: '',
+    is_summary: false,
+  };
+}
+
+export function compactConversation(
   _conversationId: string,
   messages: MessageAiRow[]
-): Promise<CompactionResult> {
+): CompactionResult {
   // TODO: Remove this no-op body and implement Steps 1–7 above.
   void MESSAGES_TO_SUMMARIZE;
   void MESSAGES_TO_KEEP;
@@ -237,7 +256,7 @@ export async function compactConversation(
   // Placeholder: return the messages unchanged, as if no compaction occurred.
   const [firstMessage] = messages;
   const placeholderSummary: MessageAiRow = {
-    ...(firstMessage ?? ({} as MessageAiRow)),
+    ...(firstMessage ?? buildEmptyMessageAiRow()),
     is_summary: true,
   };
 

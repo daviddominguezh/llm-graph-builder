@@ -84,8 +84,9 @@ const MIME_EXTENSION_MAP: Record<string, string> = {
 };
 
 function extractExtension(contentType: string): string {
-  const mimeOnly = contentType.split(';')[0]?.trim() ?? contentType;
-  const mapped = MIME_EXTENSION_MAP[mimeOnly];
+  const [mimeSegment] = contentType.split(';');
+  const mimeOnly = mimeSegment?.trim() ?? contentType;
+  const { [mimeOnly]: mapped } = MIME_EXTENSION_MAP;
   if (mapped !== undefined) return mapped;
   return mimeOnly.split('/').pop() ?? 'bin';
 }

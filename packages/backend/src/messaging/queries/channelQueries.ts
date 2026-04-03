@@ -49,6 +49,11 @@ export async function getWhatsAppCredential(
   return result.data;
 }
 
+function ensureString(value: unknown, label: string): string {
+  if (typeof value === 'string') return value;
+  throw new Error(`${label}: expected string, got ${typeof value}`);
+}
+
 export async function decryptWhatsAppToken(supabase: SupabaseClient, credentialId: string): Promise<string> {
   const result = await supabase.rpc('get_whatsapp_access_token', {
     p_credential_id: credentialId,
@@ -58,7 +63,7 @@ export async function decryptWhatsAppToken(supabase: SupabaseClient, credentialI
     throw new Error(`decryptWhatsAppToken: ${result.error.message}`);
   }
 
-  return result.data as string;
+  return ensureString(result.data, 'decryptWhatsAppToken');
 }
 
 /* ─── Instagram credentials ─── */
@@ -85,5 +90,5 @@ export async function decryptInstagramToken(supabase: SupabaseClient, credential
     throw new Error(`decryptInstagramToken: ${result.error.message}`);
   }
 
-  return result.data as string;
+  return ensureString(result.data, 'decryptInstagramToken');
 }

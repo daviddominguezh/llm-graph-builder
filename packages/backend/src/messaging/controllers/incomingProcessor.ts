@@ -179,7 +179,8 @@ export async function processIncomingMessage(params: ProcessIncomingParams): Pro
 
   // R2-1: Download media from provider, R2-2: Audio placeholder
   const enriched = await enrichIncomingMessage(supabase, connection, incoming);
-  incoming.content = enriched.content;
+  const { content: enrichedContent } = enriched;
+  incoming.content = enrichedContent;
 
   await upsertEndUser(supabase, connection.tenant_id, incoming.userChannelId, incoming.userName);
   await saveUserMessage({

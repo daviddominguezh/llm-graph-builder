@@ -50,10 +50,15 @@ interface WhatsAppWebhookPayload {
 
 /* ─── Validators ─── */
 
+function hasObjectField(body: object): body is { object: unknown } {
+  return 'object' in body;
+}
+
 function isValidPayload(body: unknown): body is WhatsAppWebhookPayload {
   if (typeof body !== 'object' || body === null || !('entry' in body)) return false;
-  if (!('object' in body) || (body as WhatsAppWebhookPayload).object !== 'whatsapp_business_account')
+  if (!hasObjectField(body) || body.object !== 'whatsapp_business_account') {
     return false;
+  }
   return true;
 }
 

@@ -134,18 +134,17 @@ function getRemainingTime(deadline: number): number {
 }
 
 async function pollUntilAcquired(key: string, ttlSeconds: number, deadline: number): Promise<string | null> {
-  while (getRemainingTime(deadline) > DEADLINE_EXPIRED) {
-    const token = await acquireLock(key, ttlSeconds);
-    if (token !== null) return token;
+  if (getRemainingTime(deadline) <= DEADLINE_EXPIRED) return null;
 
-    const remaining = getRemainingTime(deadline);
-    if (remaining <= DEADLINE_EXPIRED) break;
+  const token = await acquireLock(key, ttlSeconds);
+  if (token !== null) return token;
 
-    const delay = Math.min(LOCK_POLL_INTERVAL_MS, remaining);
-    await sleepMs(delay);
-  }
+  const remaining = getRemainingTime(deadline);
+  if (remaining <= DEADLINE_EXPIRED) return null;
 
-  return null;
+  const delay = Math.min(LOCK_POLL_INTERVAL_MS, remaining);
+  await sleepMs(delay);
+  return pollUntilAcquired(key, ttlSeconds, deadline);
 }
 
 /**
@@ -171,6 +170,10 @@ interface UpstashMessage {
   message?: string;
 }
 
+function isUpstashMessage(value: unknown): value is UpstashMessage {
+  return typeof value === 'object' && value !== null;
+}
+
 /**
  * Subscribe to a Redis pub/sub channel.
  *
@@ -183,13 +186,11 @@ export function subscribe(channel: string, callback: (msg: string) => void): () 
   const subscriber = redis.subscribe<string>(channel);
 
   subscriber.on('message', (message: unknown) => {
-    const upstashMsg = message as UpstashMessage;
+    if (isUpstashMessage(message)) {
+      if (message.channel !== undefined && message.channel !== channel) return;
 
-    if (upstashMsg !== null && typeof upstashMsg === 'object') {
-      if (upstashMsg.channel !== undefined && upstashMsg.channel !== channel) return;
-
-      if (upstashMsg.message !== undefined) {
-        callback(upstashMsg.message);
+      if (message.message !== undefined) {
+        callback(message.message);
         return;
       }
     }

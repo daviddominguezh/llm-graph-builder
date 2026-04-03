@@ -36,9 +36,13 @@ interface InstagramWebhookPayload {
 
 /* ─── Validators ─── */
 
+function hasObjectField(body: object): body is { object: unknown } {
+  return 'object' in body;
+}
+
 function isValidPayload(body: unknown): body is InstagramWebhookPayload {
   if (typeof body !== 'object' || body === null || !('entry' in body)) return false;
-  if (!('object' in body) || (body as InstagramWebhookPayload).object !== 'instagram') return false;
+  if (!hasObjectField(body) || body.object !== 'instagram') return false;
   return true;
 }
 
@@ -68,7 +72,6 @@ export interface ParsedInstagramWebhook {
 }
 
 const EMPTY_LENGTH = 0;
-const FIRST_ATTACHMENT = 0;
 
 function isEchoMessage(event: InstagramMessaging): boolean {
   return event.message?.is_echo === true;
@@ -78,15 +81,15 @@ function parseAttachment(event: InstagramMessaging, results: IncomingMessage[]):
   const { message, sender, recipient, timestamp } = event;
   if (message === undefined) return '';
 
-  const attachments = message.attachments;
+  const { attachments } = message;
   if (attachments === undefined || attachments.length === EMPTY_LENGTH) return '';
 
-  const attachment = attachments[FIRST_ATTACHMENT];
+  const [attachment] = attachments;
   if (attachment === undefined) return '';
 
   const mappedType = mapAttachmentType(attachment.type);
   const messageType = mappedType ?? 'text';
-  const mediaUrl = attachment.payload.url;
+  const { url: mediaUrl } = attachment.payload;
 
   results.push({
     userChannelId: `instagram:${sender.id}`,

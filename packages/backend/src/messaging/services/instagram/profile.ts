@@ -9,6 +9,15 @@ interface InstagramProfileData {
   name?: string;
 }
 
+function isInstagramProfileData(value: unknown): value is InstagramProfileData {
+  return typeof value === 'object' && value !== null;
+}
+
+function toInstagramProfileData(value: unknown): InstagramProfileData {
+  if (isInstagramProfileData(value)) return value;
+  return {};
+}
+
 export interface InstagramProfile {
   username: string;
   name: string;
@@ -22,7 +31,8 @@ export async function fetchInstagramProfile(
     const url = `${IG_API_BASE}/${igUserId}?fields=username,name&access_token=${accessToken}`;
     const response = await fetch(url);
     if (!response.ok) return null;
-    const data = (await response.json()) as InstagramProfileData;
+    const raw: unknown = await response.json();
+    const data = toInstagramProfileData(raw);
     return {
       username: data.username ?? '',
       name: data.name ?? '',

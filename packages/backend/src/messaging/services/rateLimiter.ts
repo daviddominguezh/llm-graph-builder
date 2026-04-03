@@ -14,6 +14,7 @@ import { getRedis } from './redis.js';
 
 const MS_TO_SECONDS = 1_000;
 const NEW_KEY_COUNT = 1;
+const INITIAL_COUNT = 0;
 
 /* ─── Rate limit check ─── */
 
@@ -29,7 +30,7 @@ function parseCount(result: unknown): number {
 async function readCurrentCount(key: string): Promise<number> {
   const redis = getRedis();
   const raw = await redis.get<number>(key);
-  return raw ?? 0;
+  return raw ?? INITIAL_COUNT;
 }
 
 /**

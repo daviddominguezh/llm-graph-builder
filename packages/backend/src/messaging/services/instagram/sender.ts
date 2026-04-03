@@ -35,8 +35,9 @@ function throwOnApiError(data: InstagramApiResponse): void {
 
 function throwOnHttpError(response: Response): void {
   if (!response.ok) {
-    const err = new Error(`Instagram API HTTP ${String(response.status)}`) as ErrorWithStatusCode;
-    err.statusCode = response.status;
+    const { status } = response;
+    const err = new Error(`Instagram API HTTP ${String(status)}`) as ErrorWithStatusCode;
+    err.statusCode = status;
     throw err;
   }
 }
@@ -76,8 +77,8 @@ export async function sendInstagramTextMessage(
   recipientId: string,
   text: string
 ): Promise<ProviderSendResult> {
-  const data = await withRetry(() =>
-    callInstagramApi(igUserId, accessToken, {
+  const data = await withRetry(async () =>
+    await callInstagramApi(igUserId, accessToken, {
       recipient: { id: recipientId },
       message: { text },
     })
@@ -95,8 +96,8 @@ export async function sendInstagramImageMessage(
   recipientId: string,
   imageUrl: string
 ): Promise<ProviderSendResult> {
-  const data = await withRetry(() =>
-    callInstagramApi(igUserId, accessToken, {
+  const data = await withRetry(async () =>
+    await callInstagramApi(igUserId, accessToken, {
       recipient: { id: recipientId },
       message: {
         attachment: { type: 'image', payload: { url: imageUrl } },
@@ -116,8 +117,8 @@ export async function sendInstagramAudioMessage(
   recipientId: string,
   audioUrl: string
 ): Promise<ProviderSendResult> {
-  const data = await withRetry(() =>
-    callInstagramApi(igUserId, accessToken, {
+  const data = await withRetry(async () =>
+    await callInstagramApi(igUserId, accessToken, {
       recipient: { id: recipientId },
       message: {
         attachment: { type: 'audio', payload: { url: audioUrl } },
@@ -137,8 +138,8 @@ export async function sendInstagramVideoMessage(
   recipientId: string,
   videoUrl: string
 ): Promise<ProviderSendResult> {
-  const data = await withRetry(() =>
-    callInstagramApi(igUserId, accessToken, {
+  const data = await withRetry(async () =>
+    await callInstagramApi(igUserId, accessToken, {
       recipient: { id: recipientId },
       message: {
         attachment: { type: 'video', payload: { url: videoUrl } },

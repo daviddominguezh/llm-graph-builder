@@ -3,7 +3,7 @@ import type { Request } from 'express';
 
 import { findConversationByUserChannelId } from '../queries/conversationQueries.js';
 import { createNote, deleteNote, getNotes } from '../queries/noteQueries.js';
-import type { ConversationNoteRow, CreateNoteBody } from '../types/index.js';
+import type { ConversationNoteRow } from '../types/index.js';
 import type { MessagingResponse } from './routeHelpers.js';
 import {
   HTTP_BAD_REQUEST,
@@ -17,6 +17,16 @@ import {
 
 function decodeUserId(req: Request): string {
   return decodeURIComponent(getRequiredParam(req, 'userId'));
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function parseStringField(body: unknown, field: string): string {
+  if (!isRecord(body)) return '';
+  const value: unknown = body[field];
+  return typeof value === 'string' ? value : '';
 }
 
 function noteToPayload(note: ConversationNoteRow): Record<string, unknown> {
@@ -57,10 +67,8 @@ async function handleCreateNote(req: Request, res: MessagingResponse): Promise<v
     const supabase = getSupabase(res);
     const tenantId = getRequiredParam(req, 'tenantId');
     const userChannelId = decodeUserId(req);
-    const body = req.body as CreateNoteBody;
-
-    const content = (body.content ?? '').trim();
-    const creator = (body.creator ?? '').trim();
+    const content = parseStringField(req.body, 'content').trim();
+    const creator = parseStringField(req.body, 'creator').trim();
     if (creator === '' || content === '') {
       res.status(HTTP_BAD_REQUEST).json({ error: 'creator and content are required' });
       return;
