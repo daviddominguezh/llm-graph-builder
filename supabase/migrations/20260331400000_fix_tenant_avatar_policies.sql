@@ -1,6 +1,7 @@
 -- Fix tenant avatar storage policies to use single-arg is_org_member
 -- (matches the working org-avatars pattern)
 
+DROP POLICY IF EXISTS "Anyone can read tenant avatars" ON storage.objects;
 DROP POLICY IF EXISTS "Org members can upload tenant avatars" ON storage.objects;
 DROP POLICY IF EXISTS "Org members can update tenant avatars" ON storage.objects;
 DROP POLICY IF EXISTS "Org members can delete tenant avatars" ON storage.objects;
