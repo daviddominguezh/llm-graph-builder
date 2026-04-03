@@ -2012,7 +2012,7 @@ Message: `feat(messaging): add conversation routes — messages, read, chatbot t
 
 ---
 
-## Phase 3: Notes + Assignment + Activity
+## Phase 3: Notes + Assignment
 
 ### Task 10: Notes Queries + Route
 
@@ -2291,7 +2291,7 @@ export async function getStatuses(
 }
 ```
 
-- [ ] **Step 2: Add assignee, status, and activity handlers to conversations.ts**
+- [ ] **Step 2: Add assignee and status handlers to conversations.ts**
 
 Add to `packages/backend/src/messaging/routes/conversations.ts`:
 
@@ -2355,67 +2355,6 @@ Run: `npm run typecheck -w packages/backend`
 Message: `feat(messaging): add assignee and status routes with queries`
 
 ---
-
-### Task 12: Activity Route
-
-**Files:**
-- Modify: `packages/backend/src/messaging/routes/conversations.ts`
-
-- [ ] **Step 1: Add activity handler to conversations.ts**
-
-```ts
-/* GET /projects/:tenantId/conversations/:userId/activity */
-async function handleGetActivity(req: Request, res: Response): Promise<void> {
-  try {
-    const supabase = getSupabase(res);
-    const tenantId = req.params.tenantId as string;
-    const userChannelId = decodeUserId(req);
-
-    const conversation = await findConversationByUserChannelId(supabase, tenantId, userChannelId);
-    if (conversation === null) {
-      res.status(HTTP_NOT_FOUND).json({ error: 'Conversation not found' });
-      return;
-    }
-
-    const [assignees, statuses] = await Promise.all([
-      getAssignees(supabase, conversation.id),
-      getStatuses(supabase, conversation.id),
-    ]);
-
-    // Merge into a single chronological activity feed
-    const activity: Record<string, { timestamp: number; activity: string }> = {};
-
-    for (const a of assignees) {
-      activity[a.id] = {
-        timestamp: new Date(a.created_at).getTime(),
-        activity: `Assigned to ${a.assignee}`,
-      };
-    }
-
-    for (const s of statuses) {
-      activity[s.id] = {
-        timestamp: new Date(s.created_at).getTime(),
-        activity: `Status changed to ${s.status}`,
-      };
-    }
-
-    res.status(HTTP_OK).json({ activity });
-  } catch (err) {
-    res.status(HTTP_INTERNAL).json({ error: extractErrorMessage(err) });
-  }
-}
-
-// Register on the conversationsRouter:
-conversationsRouter.get('/:userId/activity', handleGetActivity);
-```
-
-- [ ] **Step 2: Verify build**
-
-Run: `npm run typecheck -w packages/backend`
-
-- [ ] **Step 3: Commit**
-
-Message: `feat(messaging): add activity feed route merging assignees and statuses`
 
 ---
 
@@ -4887,7 +4826,7 @@ For each function in `api.ts`, update the URL path from the old closer-back form
 | `createNote` | `/projects/${ns}/messages/notes/${userId}` | `/projects/${tenantId}/conversations/${userId}/notes` |
 | `getNotes` | `/projects/${ns}/messages/notes/${userId}` | `/projects/${tenantId}/conversations/${userId}/notes` |
 | `deleteNote` | `/projects/${ns}/messages/notes/${userId}/${noteId}` | `/projects/${tenantId}/conversations/${userId}/notes/${noteId}` |
-| `getActivity` | `/projects/${ns}/messages/activity/${userId}` | `/projects/${tenantId}/conversations/${userId}/activity` |
+
 | `updateChatAssignee` | `/projects/${ns}/messages/assignee/${userId}` | `/projects/${tenantId}/conversations/${userId}/assignee` |
 | `updateChatStatus` | `/projects/${ns}/messages/status/${userId}` | `/projects/${tenantId}/conversations/${userId}/status` |
 | `readConversation` | `/projects/${ns}/messages/read/${phone}` | `/projects/${tenantId}/conversations/${userId}/read` |
