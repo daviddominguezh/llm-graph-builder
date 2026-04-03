@@ -71,6 +71,8 @@ function recordStepResult(state: LoopState, params: StepRecordParams, callbacks:
     step: params.stepNum,
     messagesSent: [...state.messages],
     responseText: params.result.text,
+    responseMessages: params.result.responseMessages,
+    reasoning: params.result.reasoning,
     toolCalls: params.result.toolCalls,
     tokens: params.result.tokens,
     durationMs: params.durationMs,
