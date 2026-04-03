@@ -107,11 +107,15 @@ export interface CompactionResult {
  *
  * @param messages - The AI message history (from messages_ai table).
  */
+function isToolRole(role: string): boolean {
+  return role === 'tool';
+}
+
 function isPreservedToolMessage(msg: MessageAiRow): boolean {
-  const { role } = msg;
-  if (role !== 'tool') return false;
-  if (msg.metadata === null) return false;
-  const { toolName } = msg.metadata;
+  const { role, metadata } = msg;
+  if (!isToolRole(role)) return false;
+  if (metadata === null) return false;
+  const { toolName } = metadata;
   if (typeof toolName !== 'string') return false;
   return PRESERVED_TOOL_NAMES.includes(toolName);
 }

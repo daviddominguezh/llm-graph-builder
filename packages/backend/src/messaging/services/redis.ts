@@ -144,7 +144,7 @@ async function pollUntilAcquired(key: string, ttlSeconds: number, deadline: numb
 
   const delay = Math.min(LOCK_POLL_INTERVAL_MS, remaining);
   await sleepMs(delay);
-  return pollUntilAcquired(key, ttlSeconds, deadline);
+  return await pollUntilAcquired(key, ttlSeconds, deadline);
 }
 
 /**

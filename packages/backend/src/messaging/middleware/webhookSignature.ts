@@ -22,12 +22,12 @@ function readEnv(name: string): string {
  * Usage:
  *   express.json({ verify: captureRawBody })
  */
-function setRequestProperty(target: Record<string, unknown>, values: Record<string, unknown>): void {
-  Object.assign(target, values);
+function assignRawBody(target: Request, buf: Buffer): void {
+  Object.assign(target, { rawBody: buf });
 }
 
 export function captureRawBody(req: Request, _res: Response, buf: Buffer): void {
-  setRequestProperty(req, { rawBody: buf });
+  assignRawBody(req, buf);
 }
 
 /**
