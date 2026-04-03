@@ -491,6 +491,7 @@ function invokeAgentTool() {
       'The agent will execute independently and return its result.',
     parameters: z.object({
       agentSlug: z.string().describe('The slug of the agent to invoke'),
+      version: z.union([z.number(), z.literal('latest')]).describe('Which published version to execute'),
       task: z.string().describe('The task for the agent to complete'),
       contextItems: z.array(z.string()).optional().describe('Additional context items'),
       model: z.string().optional().describe('Override the agent model'),
@@ -509,6 +510,7 @@ function invokeWorkflowTool() {
       'Provide a user message that matches the workflow routing.',
     parameters: z.object({
       workflowSlug: z.string().describe('The slug of the workflow to invoke'),
+      version: z.union([z.number(), z.literal('latest')]).describe('Which published version to execute'),
       user_said: z.string().describe('The user message for workflow routing'),
       contextItems: z.array(z.string()).optional().describe('Additional context items'),
       model: z.string().optional().describe('Override the workflow model'),

@@ -221,6 +221,7 @@ Parameters follow the unified `AgentConfig` interface (required: `systemPrompt`,
 
 Parameters:
 - `agentSlug` (string, required)
+- `version` (number | `'latest'`, required) — which published version to execute
 - `task` (string, required) — initial instruction, inserted as first user message
 - `contextItems` (array, optional) — concatenated with agent's own context items
 - `model` (string, optional) — override the agent's configured model
@@ -230,9 +231,19 @@ Parameters:
 
 Parameters:
 - `workflowSlug` (string, required)
+- `version` (number | `'latest'`, required) — which published version to execute
 - `user_said` (string, required) — initial input for workflow routing (matched against edge preconditions from `INITIAL_STEP`)
 - `contextItems` (array, optional)
 - `model` (string, optional) — override
+
+### Dynamic Agent Lifecycle (`create_agent`)
+
+Dynamic agents created via `__system_create_agent` are ephemeral:
+
+- **No UI visibility:** No `agents` or `agent_versions` row is created. The agent does not appear in the app list.
+- **Multi-turn persistence:** The dynamic agent's state lives in `agent_execution_messages` (keyed by `execution_id`) and `agent_stack_entries`. This is sufficient for multi-turn conversations — when the user sends a new message, the stack top points to the dynamic agent's config, and its messages are loaded by execution ID.
+- **Cleanup on completion:** When the dynamic agent calls `finish`, the stack entry is deleted. The `agent_executions` and `agent_execution_messages` records remain for debugging and cost tracking (marked with `is_dynamic_child = true`).
+- **Cleanup on crash:** Same — the stack entry is deleted during crash recovery (Layer 1 or Layer 3). Execution records are kept with `status = 'failed'`.
 
 ### Tool Availability
 
