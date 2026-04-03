@@ -4,11 +4,7 @@ import type {
   InstagramCredentialRow,
   WhatsAppCredentialRow,
 } from '../types/index.js';
-
-interface QueryResult<T> {
-  data: T | null;
-  error: { message: string } | null;
-}
+import type { QueryResult } from './queryHelpers.js';
 
 /* ─── Channel connection lookups ─── */
 

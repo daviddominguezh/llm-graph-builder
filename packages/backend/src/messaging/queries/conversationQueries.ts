@@ -5,11 +5,7 @@ import type {
   ConversationStatusRow,
   PaginationCursor,
 } from '../types/index.js';
-
-interface QueryResult<T> {
-  data: T | null;
-  error: { message: string; code?: string } | null;
-}
+import type { QueryResult } from './queryHelpers.js';
 
 const PAGE_SIZE = 20;
 const FETCH_EXTRA = 1;
@@ -238,4 +234,5 @@ export async function findConversationByUserChannelId(
   return result.data;
 }
 
-export { type FindOrCreateParams, type InboxPageParams, type QueryResult };
+export { type FindOrCreateParams, type InboxPageParams };
+export type { QueryResult } from './queryHelpers.js';

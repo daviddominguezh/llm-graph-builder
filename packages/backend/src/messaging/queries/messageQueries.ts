@@ -1,10 +1,6 @@
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import type { MessageAiRow, MessageRow, PaginationCursor } from '../types/index.js';
-
-interface QueryResult<T> {
-  data: T | null;
-  error: { message: string; code?: string } | null;
-}
+import type { QueryResult } from './queryHelpers.js';
 
 const PAGE_SIZE = 50;
 const FETCH_EXTRA = 1;

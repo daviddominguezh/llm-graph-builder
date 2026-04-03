@@ -1,11 +1,14 @@
 import type { NextFunction, Request, Response } from 'express';
 
+import { createServiceClient } from '../../db/queries/executionAuthQueries.js';
+
 const MESSAGING_MASTER_API_KEY = process.env.MESSAGING_MASTER_API_KEY ?? '';
 
 /**
  * Messaging auth middleware.
  * Checks api_key header against MESSAGING_MASTER_API_KEY.
- * For now, always calls next() — structure in place for real auth later.
+ * Creates a service client and attaches it to res.locals.supabase
+ * so downstream handlers can access the database.
  */
 export function ensureMessagingAuth(req: Request, res: Response, next: NextFunction): void {
   const headerValue: unknown = req.headers.api_key;
@@ -15,6 +18,8 @@ export function ensureMessagingAuth(req: Request, res: Response, next: NextFunct
     // Authenticated via API key
   }
 
-  // Always pass through for now
+  const supabase = createServiceClient();
+  res.locals.supabase = supabase;
+
   next();
 }

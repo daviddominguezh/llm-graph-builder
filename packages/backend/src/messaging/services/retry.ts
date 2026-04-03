@@ -36,7 +36,10 @@ function isNetworkError(error: Error): boolean {
     (error instanceof TypeError && msg.includes('fetch failed')) ||
     msg.includes('econnrefused') ||
     msg.includes('econnreset') ||
-    msg.includes('etimedout')
+    msg.includes('etimedout') ||
+    msg.includes('network') ||
+    msg.includes('timeout') ||
+    msg.includes('socket')
   );
 }
 

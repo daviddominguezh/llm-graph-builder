@@ -3,7 +3,7 @@ import { REDIS_KEYS, buildRedisKey } from '../../types/redisKeys.js';
 import { waitForRateLimit } from '../rateLimiter.js';
 import { withRetry } from '../retry.js';
 
-const IG_API_BASE = 'https://graph.instagram.com/v18.0';
+const IG_API_BASE = 'https://graph.instagram.com/v23.0';
 
 /** Instagram rate limit: 150 requests per 1-second window */
 const IG_RATE_LIMIT_MAX = 150;

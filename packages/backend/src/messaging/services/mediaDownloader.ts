@@ -68,8 +68,31 @@ async function downloadBinary(url: string, accessToken?: string): Promise<Downlo
 
 /* ─── Upload to Supabase Storage ─── */
 
+const MIME_EXTENSION_MAP: Record<string, string> = {
+  'audio/ogg': 'ogg',
+  'audio/mpeg': 'mp3',
+  'audio/mp4': 'm4a',
+  'audio/wav': 'wav',
+  'audio/webm': 'webm',
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+  'video/mp4': 'mp4',
+  'video/webm': 'webm',
+  'application/pdf': 'pdf',
+  'application/octet-stream': 'bin',
+};
+
+function extractExtension(contentType: string): string {
+  const mimeOnly = contentType.split(';')[0]?.trim() ?? contentType;
+  const mapped = MIME_EXTENSION_MAP[mimeOnly];
+  if (mapped !== undefined) return mapped;
+  return mimeOnly.split('/').pop() ?? 'bin';
+}
+
 function buildStoragePath(conversationPrefix: string, contentType: string): string {
-  const ext = contentType.split('/').pop() ?? 'bin';
+  const ext = extractExtension(contentType);
   return `${conversationPrefix}/${randomUUID()}.${ext}`;
 }
 

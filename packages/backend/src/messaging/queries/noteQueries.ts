@@ -1,10 +1,6 @@
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import type { ConversationNoteRow } from '../types/index.js';
-
-interface QueryResult<T> {
-  data: T | null;
-  error: { message: string } | null;
-}
+import type { QueryResult } from './queryHelpers.js';
 
 export async function getNotes(
   supabase: SupabaseClient,

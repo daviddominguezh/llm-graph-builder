@@ -11,7 +11,9 @@ export function detectChannel(userChannelId: string): ChannelType {
 export function stripChannelPrefix(userChannelId: string): string {
   const colonIndex = userChannelId.indexOf(':');
   if (colonIndex === -1) return userChannelId;
-  return userChannelId.slice(colonIndex + 1);
+  const stripped = userChannelId.slice(colonIndex + 1);
+  if (!stripped.startsWith('+')) return `+${stripped}`;
+  return stripped;
 }
 
 export function isTestChannel(userChannelId: string): boolean {

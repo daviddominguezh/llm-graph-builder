@@ -220,6 +220,9 @@ async function handleExecutionResult(
 
 async function callAndPersist(ctx: ExecutionContext): Promise<InvokeResult | null> {
   const aiRows = await getAiMessages(ctx.supabase, ctx.conversation.id);
+  // TODO: closer-back calls reorderUnrepliedMessages(messages) here to ensure
+  // unreplied user messages appear after the last assistant message.
+  // See: closer-back/src/controllers/messages/index.ts lines 1439–1443
   const messageHistory = hydrateAiMessages(aiRows);
   const executionId = await createPreExecution(ctx);
   const startTime = Date.now();

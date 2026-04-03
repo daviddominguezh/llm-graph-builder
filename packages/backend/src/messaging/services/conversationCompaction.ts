@@ -107,11 +107,22 @@ export interface CompactionResult {
  *
  * @param messages - The AI message history (from messages_ai table).
  */
+function isPreservedToolMessage(msg: MessageAiRow): boolean {
+  const role: string = msg.role;
+  if (role !== 'tool') return false;
+  if (msg.metadata === null) return false;
+  const toolName = msg.metadata.toolName;
+  if (typeof toolName !== 'string') return false;
+  return PRESERVED_TOOL_NAMES.includes(toolName);
+}
+
+function isSummaryMessage(msg: MessageAiRow): boolean {
+  return msg.is_summary === true;
+}
+
 export function shouldCompact(messages: MessageAiRow[]): boolean {
-  // TODO: Filter out preserved tool results, then check count > COMPACTION_THRESHOLD.
-  void COMPACTION_THRESHOLD;
-  void PRESERVED_TOOL_NAMES;
-  return messages.length > COMPACTION_THRESHOLD;
+  const countable = messages.filter((m) => !isPreservedToolMessage(m) && !isSummaryMessage(m));
+  return countable.length > COMPACTION_THRESHOLD;
 }
 
 // ---------------------------------------------------------------------------

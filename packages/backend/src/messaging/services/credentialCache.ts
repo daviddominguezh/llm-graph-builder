@@ -13,6 +13,7 @@ import { deleteKey, readRedis, setWithTTL } from './redis.js';
 /* ─── Constants ─── */
 
 const DEFAULT_TTL_SECONDS = 10_800; // 3 hours
+const BACKFILL_TTL_SECONDS = 1_800; // 30 minutes — approximation; TODO: use redis.ttl(key) for exact remaining TTL
 const MS_PER_SECOND = 1_000;
 
 /* ─── In-memory LRU cache ─── */
@@ -59,8 +60,8 @@ export async function getCachedCredential(key: string): Promise<unknown> {
   // Tier 2: Redis
   const redisResult = await readRedis<unknown>(key);
   if (redisResult !== null) {
-    // Backfill in-memory cache
-    writeMemory(key, redisResult, DEFAULT_TTL_SECONDS);
+    // Backfill in-memory cache with shorter TTL as approximation
+    writeMemory(key, redisResult, BACKFILL_TTL_SECONDS);
     return redisResult;
   }
 

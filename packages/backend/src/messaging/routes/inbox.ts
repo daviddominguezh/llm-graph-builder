@@ -92,14 +92,21 @@ async function handleGetDeleted(req: Request, res: MessagingResponse): Promise<v
   try {
     const supabase = getSupabase(res);
     const tenantId = getRequiredParam(req, 'tenantId');
-    const since = getOptionalQuery(req, 'since');
+    const sinceRaw = getOptionalQuery(req, 'since');
 
-    if (since === undefined) {
+    if (sinceRaw === undefined) {
       res.status(HTTP_BAD_REQUEST).json({ error: 'Missing since query param' });
       return;
     }
 
-    const ids = await getDeletedConversations(supabase, tenantId, since);
+    const sinceNum = Number(sinceRaw);
+    if (Number.isNaN(sinceNum) || sinceNum <= 0) {
+      res.status(HTTP_BAD_REQUEST).json({ error: 'Invalid since query param' });
+      return;
+    }
+
+    const sinceIso = new Date(sinceNum).toISOString();
+    const ids = await getDeletedConversations(supabase, tenantId, sinceIso);
     res.status(HTTP_OK).json({ deletedIds: ids });
   } catch (err) {
     res.status(HTTP_INTERNAL).json({ error: extractErrorMessage(err) });

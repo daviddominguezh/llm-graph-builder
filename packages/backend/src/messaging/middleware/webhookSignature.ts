@@ -9,7 +9,7 @@ declare module 'express' {
   }
 }
 
-const HTTP_UNAUTHORIZED = 401;
+const HTTP_FORBIDDEN = 403;
 
 function readEnv(name: string): string {
   return process.env[name] ?? '';
@@ -36,13 +36,13 @@ export function verifyWebhookSignature(appSecret: string) {
     const signature = typeof signatureHeader === 'string' ? signatureHeader : undefined;
 
     if (signature === undefined) {
-      res.status(HTTP_UNAUTHORIZED).json({ error: 'Missing signature header' });
+      res.status(HTTP_FORBIDDEN).json({ error: 'Missing signature header' });
       return;
     }
 
     const rawBody = req.rawBody;
     if (rawBody === undefined) {
-      res.status(HTTP_UNAUTHORIZED).json({ error: 'Missing raw body for HMAC verification' });
+      res.status(HTTP_FORBIDDEN).json({ error: 'Missing raw body for HMAC verification' });
       return;
     }
 
@@ -52,7 +52,7 @@ export function verifyWebhookSignature(appSecret: string) {
     const expectedBuffer = Buffer.from(expectedSignature);
 
     if (sigBuffer.length !== expectedBuffer.length || !timingSafeEqual(sigBuffer, expectedBuffer)) {
-      res.status(HTTP_UNAUTHORIZED).json({ error: 'Invalid signature' });
+      res.status(HTTP_FORBIDDEN).json({ error: 'Invalid signature' });
       return;
     }
 

@@ -139,16 +139,18 @@ async function pollUntilAcquired(
   ttlSeconds: number,
   deadline: number
 ): Promise<string | null> {
-  const remaining = getRemainingTime(deadline);
-  if (remaining <= DEADLINE_EXPIRED) return null;
+  while (getRemainingTime(deadline) > DEADLINE_EXPIRED) {
+    const token = await acquireLock(key, ttlSeconds);
+    if (token !== null) return token;
 
-  const token = await acquireLock(key, ttlSeconds);
-  if (token !== null) return token;
+    const remaining = getRemainingTime(deadline);
+    if (remaining <= DEADLINE_EXPIRED) break;
 
-  const delay = Math.min(LOCK_POLL_INTERVAL_MS, remaining);
-  await sleepMs(delay);
+    const delay = Math.min(LOCK_POLL_INTERVAL_MS, remaining);
+    await sleepMs(delay);
+  }
 
-  return await pollUntilAcquired(key, ttlSeconds, deadline);
+  return null;
 }
 
 /**
@@ -187,9 +189,17 @@ export function subscribe(channel: string, callback: (msg: string) => void): () 
 
   subscriber.on('message', (message: unknown) => {
     const upstashMsg = message as UpstashMessage;
-    if (upstashMsg !== null && typeof upstashMsg === 'object' && upstashMsg.message !== undefined) {
-      callback(upstashMsg.message);
-    } else if (typeof message === 'string') {
+
+    if (upstashMsg !== null && typeof upstashMsg === 'object') {
+      if (upstashMsg.channel !== undefined && upstashMsg.channel !== channel) return;
+
+      if (upstashMsg.message !== undefined) {
+        callback(upstashMsg.message);
+        return;
+      }
+    }
+
+    if (typeof message === 'string') {
       callback(message);
     } else {
       callback(JSON.stringify(message));

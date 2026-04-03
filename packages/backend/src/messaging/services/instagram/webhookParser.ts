@@ -2,6 +2,11 @@ import type { IncomingMessage } from '../../types/index.js';
 
 /* ─── Instagram webhook payload types ─── */
 
+interface StoryReplyTo {
+  link: string;
+  id: string;
+}
+
 interface InstagramMessaging {
   sender: { id: string };
   recipient: { id: string };
@@ -15,10 +20,7 @@ interface InstagramMessaging {
       payload: { url: string };
     }>;
     reply_to?: { mid: string };
-  };
-  story?: {
-    url: string;
-    id: string;
+    story?: { reply_to: StoryReplyTo };
   };
 }
 
@@ -121,17 +123,18 @@ function parseTextMessage(event: InstagramMessaging, results: IncomingMessage[])
 }
 
 function parseStoryReply(event: InstagramMessaging, results: IncomingMessage[]): string {
-  const { story, sender, recipient, timestamp } = event;
-  if (story === undefined) return '';
+  const { message, sender, recipient, timestamp } = event;
+  const storyReply = message?.story?.reply_to;
+  if (storyReply === undefined) return '';
 
   results.push({
     userChannelId: `instagram:${sender.id}`,
     channelIdentifier: recipient.id,
-    content: story.url,
+    content: storyReply.link,
     type: 'image',
-    originalId: story.id,
+    originalId: message?.mid ?? storyReply.id,
     userName: undefined,
-    mediaId: story.url,
+    mediaId: storyReply.link,
     replyOriginalId: undefined,
     timestamp,
   });
@@ -140,13 +143,13 @@ function parseStoryReply(event: InstagramMessaging, results: IncomingMessage[]):
 }
 
 function parseEvent(event: InstagramMessaging, results: IncomingMessage[]): string {
-  // Handle story replies (no message field, only story field)
-  if (event.story !== undefined) {
-    return parseStoryReply(event, results);
-  }
-
   const { message } = event;
   if (message === undefined) return '';
+
+  // Handle story replies (message.story.reply_to field)
+  if (message.story?.reply_to !== undefined) {
+    return parseStoryReply(event, results);
+  }
 
   // Fix 19: Filter out echo messages (messages sent by the business page)
   if (isEchoMessage(event)) return '';

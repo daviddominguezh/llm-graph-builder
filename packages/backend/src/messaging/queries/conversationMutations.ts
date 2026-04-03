@@ -1,9 +1,5 @@
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
-
-interface QueryResult<T> {
-  data: T | null;
-  error: { message: string } | null;
-}
+import type { QueryResult } from './queryHelpers.js';
 
 /* ─── Update last message fields ─── */
 
