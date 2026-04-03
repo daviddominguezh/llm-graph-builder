@@ -1,6 +1,14 @@
 import type { NextFunction, Request, Response } from 'express';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
+/* ─── Module augmentation for rawBody on Request ─── */
+
+declare module 'express' {
+  interface Request {
+    rawBody?: Buffer;
+  }
+}
+
 const HTTP_UNAUTHORIZED = 401;
 
 function readEnv(name: string): string {
@@ -8,8 +16,19 @@ function readEnv(name: string): string {
 }
 
 /**
+ * Middleware that captures the raw request body as a Buffer for HMAC verification.
+ * Use as the `verify` callback in `express.json()`.
+ *
+ * Usage:
+ *   express.json({ verify: captureRawBody })
+ */
+export function captureRawBody(req: Request, _res: Response, buf: Buffer): void {
+  req.rawBody = buf;
+}
+
+/**
  * Verify HMAC-SHA256 signature from WhatsApp/Instagram webhooks.
- * The raw body must be available on req.body as a string (use express.text()).
+ * Requires `captureRawBody` to have been called via express.json({ verify }).
  */
 export function verifyWebhookSignature(appSecret: string) {
   return (req: Request, res: Response, next: NextFunction): void => {
@@ -21,7 +40,12 @@ export function verifyWebhookSignature(appSecret: string) {
       return;
     }
 
-    const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    const rawBody = req.rawBody;
+    if (rawBody === undefined) {
+      res.status(HTTP_UNAUTHORIZED).json({ error: 'Missing raw body for HMAC verification' });
+      return;
+    }
+
     const expectedSignature = `sha256=${createHmac('sha256', appSecret).update(rawBody).digest('hex')}`;
 
     const sigBuffer = Buffer.from(signature);

@@ -7,6 +7,7 @@ import type { ChannelConnectionRow, ConversationRow, IncomingMessage } from '../
 import { TEST_USER_CHANNEL_ID } from '../types/index.js';
 import { invokeAgent } from './agentInvoker.js';
 import { deliverToProvider } from './messageProcessor.js';
+import { sendTypingIndicator } from './typingIndicators.js';
 
 const ZERO_UNANSWERED = 0;
 const INCREMENT = 1;
@@ -104,18 +105,23 @@ async function processAiResponse(
   responseText: string,
   tenantId: string
 ): Promise<void> {
+  // Fix 26: Send typing indicator before delivering AI response
+  await sendTypingIndicator(supabase, conversation);
+
+  // Fix 16: Deliver first, only save if successful
+  const sendResult = await deliverToProvider(supabase, conversation, responseText);
+  if (sendResult === null) {
+    process.stdout.write(`[messaging] AI send failed for ${conversation.user_channel_id}\n`);
+    return;
+  }
+
   const responseTimestamp = Date.now();
   await saveAiResponse(supabase, conversation.id, responseText, responseTimestamp);
 
-  // Deliver AI response to channel
-  const sendResult = await deliverToProvider(supabase, conversation, responseText);
-
-  // Update original_id on the message row if provider returned one
   if (sendResult.originalId !== '') {
     updateSentMessageId(supabase, conversation.id, responseTimestamp, sendResult.originalId);
   }
 
-  // Update conversation with assistant response
   await updateConversationLastMessage(supabase, conversation.id, {
     lastMessageContent: responseText,
     lastMessageRole: 'assistant',
@@ -125,6 +131,7 @@ async function processAiResponse(
     unansweredCount: ZERO_UNANSWERED,
   });
 
+  // Fix 2: Publish to Redis for real-time inbox
   await publishUpdate(tenantId, conversation.id);
 }
 
@@ -169,7 +176,6 @@ export async function processIncomingMessage(params: ProcessIncomingParams): Pro
   await upsertEndUser(supabase, connection.tenant_id, incoming.userChannelId, incoming.userName);
   await saveUserMessage({ supabase, conversationId: conversation.id, incoming });
 
-  // Compute unanswered count
   const newUnansweredCount = conversation.enabled
     ? conversation.unanswered_count
     : conversation.unanswered_count + INCREMENT;
@@ -185,13 +191,12 @@ export async function processIncomingMessage(params: ProcessIncomingParams): Pro
 
   await publishUpdate(connection.tenant_id, conversation.id);
 
-  // If AI is disabled, stop here
   if (!conversation.enabled) return;
 
   await invokeAiWithLock(supabase, conversation, incoming.content, connection.tenant_id);
 }
 
-/* ─── Invoke AI with distributed lock for strict turn ordering ─── */
+/* ─── Invoke AI with distributed lock ─── */
 
 async function invokeAiWithLock(
   supabase: SupabaseClient,
@@ -273,7 +278,6 @@ export async function processTestMessage(params: ProcessTestParams): Promise<voi
 
   await publishUpdate(params.tenantId, conversation.id);
 
-  // Invoke AI (async, don't await for the HTTP response)
   void invokeAiAndSaveTestResponse(params.supabase, conversation, params.content, params.tenantId);
 }
 

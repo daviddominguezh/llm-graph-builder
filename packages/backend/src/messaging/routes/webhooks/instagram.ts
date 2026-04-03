@@ -3,7 +3,7 @@ import type { Request, Response } from 'express';
 
 import { createServiceClient } from '../../../db/queries/executionAuthQueries.js';
 import { processIncomingMessage } from '../../controllers/incomingProcessor.js';
-import { verifyInstagramSignature } from '../../middleware/webhookSignature.js';
+import { captureRawBody, verifyInstagramSignature } from '../../middleware/webhookSignature.js';
 import { getChannelConnectionByIdentifier } from '../../queries/channelQueries.js';
 import type { IncomingMessage } from '../../types/index.js';
 import { parseInstagramWebhook } from '../../services/instagram/webhookParser.js';
@@ -19,7 +19,7 @@ function queryString(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }
 
-/* GET /instagram/webhook — verification challenge */
+/* GET /instagram/webhook -- verification challenge */
 
 function handleVerify(req: Request, res: Response): void {
   const mode = queryString(req.query['hub.mode']);
@@ -34,7 +34,7 @@ function handleVerify(req: Request, res: Response): void {
   res.status(HTTP_FORBIDDEN).send('Forbidden');
 }
 
-/* POST /instagram/webhook — incoming messages */
+/* POST /instagram/webhook -- incoming messages */
 
 async function processOneMessage(incoming: IncomingMessage): Promise<void> {
   const supabase = createServiceClient();
@@ -55,9 +55,7 @@ function handleIncoming(req: Request, res: Response): void {
   // Return 200 immediately to Instagram
   res.status(HTTP_OK).send('EVENT_RECEIVED');
 
-  // Parse the body — it comes as a string from express.text()
-  const body: unknown = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-  const parsed = parseInstagramWebhook(body);
+  const parsed = parseInstagramWebhook(req.body);
   if (parsed === null) return;
 
   // Process async (don't await)
@@ -71,7 +69,7 @@ export const instagramWebhookRouter = express.Router();
 instagramWebhookRouter.get('/webhook', handleVerify);
 instagramWebhookRouter.post(
   '/webhook',
-  express.text({ type: 'application/json' }),
+  express.json({ verify: captureRawBody }),
   verifyInstagramSignature,
   handleIncoming
 );

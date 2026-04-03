@@ -1,5 +1,6 @@
 import type { ProviderSendResult } from '../../types/index.js';
 import { waitForRateLimit } from '../rateLimiter.js';
+import { withRetry } from '../retry.js';
 
 const IG_API_BASE = 'https://graph.instagram.com/v18.0';
 
@@ -21,13 +22,17 @@ function isInstagramApiResponse(data: unknown): data is InstagramApiResponse {
   return data !== null && typeof data === 'object';
 }
 
-export async function sendInstagramMessage(
+function throwOnApiError(data: InstagramApiResponse): void {
+  if (data.error !== undefined) {
+    throw new Error(`Instagram API error: ${data.error.message}`);
+  }
+}
+
+async function callInstagramApi(
   igUserId: string,
   accessToken: string,
-  recipientId: string,
-  text: string
-): Promise<ProviderSendResult> {
-  // Check rate limit before calling the API
+  body: Record<string, unknown>
+): Promise<InstagramApiResponse> {
   await waitForRateLimit(buildRateLimitKey(igUserId), IG_RATE_LIMIT_MAX, IG_RATE_LIMIT_WINDOW_MS);
 
   const url = `${IG_API_BASE}/${igUserId}/messages`;
@@ -37,10 +42,7 @@ export async function sendInstagramMessage(
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      recipient: { id: recipientId },
-      message: { text },
-    }),
+    body: JSON.stringify(body),
   });
 
   const data: unknown = await response.json();
@@ -48,9 +50,47 @@ export async function sendInstagramMessage(
     throw new Error('Instagram API: unexpected response format');
   }
 
-  if (data.error !== undefined) {
-    throw new Error(`Instagram API error: ${data.error.message}`);
-  }
+  return data;
+}
 
+/* ─── Send text message ─── */
+
+export async function sendInstagramMessage(
+  igUserId: string,
+  accessToken: string,
+  recipientId: string,
+  text: string
+): Promise<ProviderSendResult> {
+  const data = await withRetry(() =>
+    callInstagramApi(igUserId, accessToken, {
+      recipient: { id: recipientId },
+      message: { text },
+    })
+  );
+
+  throwOnApiError(data);
   return { originalId: data.message_id ?? '' };
+}
+
+/* ─── Typing indicator (Fix 26) ─── */
+
+/**
+ * Send Instagram typing indicator via Sender Actions API.
+ * POST /{igUserId}/messages with sender_action: 'typing_on'
+ *
+ * This is non-critical; errors are swallowed.
+ */
+export async function sendInstagramTypingIndicator(
+  igUserId: string,
+  accessToken: string,
+  recipientId: string
+): Promise<void> {
+  try {
+    await callInstagramApi(igUserId, accessToken, {
+      recipient: { id: recipientId },
+      sender_action: 'typing_on',
+    });
+  } catch {
+    // Typing indicator is non-critical; swallow errors
+  }
 }

@@ -3,7 +3,7 @@ import type { Request, Response } from 'express';
 
 import { createServiceClient } from '../../../db/queries/executionAuthQueries.js';
 import { processIncomingMessage } from '../../controllers/incomingProcessor.js';
-import { verifyWhatsAppSignature } from '../../middleware/webhookSignature.js';
+import { captureRawBody, verifyWhatsAppSignature } from '../../middleware/webhookSignature.js';
 import { getChannelConnectionByIdentifier } from '../../queries/channelQueries.js';
 import type { IncomingMessage } from '../../types/index.js';
 import { parseWhatsAppWebhook } from '../../services/whatsapp/webhookParser.js';
@@ -19,7 +19,7 @@ function queryString(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }
 
-/* GET /whatsapp/webhook — verification challenge */
+/* GET /whatsapp/webhook -- verification challenge */
 
 function handleVerify(req: Request, res: Response): void {
   const mode = queryString(req.query['hub.mode']);
@@ -34,7 +34,7 @@ function handleVerify(req: Request, res: Response): void {
   res.status(HTTP_FORBIDDEN).send('Forbidden');
 }
 
-/* POST /whatsapp/webhook — incoming messages */
+/* POST /whatsapp/webhook -- incoming messages */
 
 async function processOneMessage(incoming: IncomingMessage): Promise<void> {
   const supabase = createServiceClient();
@@ -55,9 +55,7 @@ function handleIncoming(req: Request, res: Response): void {
   // Return 200 immediately to WhatsApp
   res.status(HTTP_OK).send('EVENT_RECEIVED');
 
-  // Parse the body — it comes as a string from express.text()
-  const body: unknown = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-  const parsed = parseWhatsAppWebhook(body);
+  const parsed = parseWhatsAppWebhook(req.body);
   if (parsed === null) return;
 
   // Process async (don't await)
@@ -71,7 +69,7 @@ export const whatsappWebhookRouter = express.Router();
 whatsappWebhookRouter.get('/webhook', handleVerify);
 whatsappWebhookRouter.post(
   '/webhook',
-  express.text({ type: 'application/json' }),
+  express.json({ verify: captureRawBody }),
   verifyWhatsAppSignature,
   handleIncoming
 );

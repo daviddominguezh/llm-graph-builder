@@ -4,10 +4,12 @@ import { findOrCreateConversation } from '../queries/conversationQueries.js';
 import { insertMessage, insertMessageAi } from '../queries/messageQueries.js';
 import { resolveInstagramCredentials } from '../services/instagram/credentials.js';
 import { sendInstagramMessage } from '../services/instagram/sender.js';
+import { publishToTenant } from '../services/redis.js';
 import { resolveWhatsAppCredentials } from '../services/whatsapp/credentials.js';
 import { sendWhatsAppTextMessage } from '../services/whatsapp/sender.js';
 import type { ConversationRow, ProviderSendResult } from '../types/index.js';
 import { detectChannel, isTestChannel, stripChannelPrefix } from './providerRouter.js';
+import { sendTypingIndicator } from './typingIndicators.js';
 
 const ZERO_UNANSWERED = 0;
 
@@ -45,19 +47,23 @@ export async function deliverToProvider(
   supabase: SupabaseClient,
   conversation: ConversationRow,
   content: string
-): Promise<ProviderSendResult> {
+): Promise<ProviderSendResult | null> {
   if (isTestChannel(conversation.user_channel_id)) {
     return { originalId: '' };
   }
 
   const channel = detectChannel(conversation.user_channel_id);
 
-  if (channel === 'whatsapp') {
-    return await deliverToWhatsApp(supabase, conversation, content);
-  }
+  try {
+    if (channel === 'whatsapp') {
+      return await deliverToWhatsApp(supabase, conversation, content);
+    }
 
-  if (channel === 'instagram') {
-    return await deliverToInstagram(supabase, conversation, content);
+    if (channel === 'instagram') {
+      return await deliverToInstagram(supabase, conversation, content);
+    }
+  } catch {
+    return null; // Fix 16: signal send failure
   }
 
   return { originalId: '' };
@@ -97,6 +103,14 @@ async function saveMessagePair(params: SaveParams): Promise<void> {
   ]);
 }
 
+/* ─── Publish snapshot to Redis (Fix 2) ─── */
+
+async function publishConversationUpdate(tenantId: string, conversationId: string): Promise<void> {
+  await publishToTenant(tenantId, { conversationId, tenantId }).catch(() => {
+    process.stdout.write('[messaging] Redis publish failed (non-fatal)\n');
+  });
+}
+
 /* ─── Process: agent sends message from dashboard ─── */
 
 interface ProcessSendParams {
@@ -124,7 +138,16 @@ export async function processSendMessage(params: ProcessSendParams): Promise<voi
     channel,
   });
 
+  // Fix 26: Send typing indicator before delivering
+  await sendTypingIndicator(params.supabase, conversation);
+
+  // Fix 16: Don't save message if send fails
   const sendResult = await deliverToProvider(params.supabase, conversation, params.content);
+  if (sendResult === null) {
+    process.stdout.write(`[messaging] Send failed for ${userChannelId}, not saving message\n`);
+    return;
+  }
+
   const now = Date.now();
 
   await saveMessagePair({
@@ -146,5 +169,6 @@ export async function processSendMessage(params: ProcessSendParams): Promise<voi
     unansweredCount: ZERO_UNANSWERED,
   });
 
-  // Redis publish will be wired in Task 26
+  // Fix 2: Publish to Redis for real-time inbox
+  await publishConversationUpdate(params.tenantId, conversation.id);
 }
