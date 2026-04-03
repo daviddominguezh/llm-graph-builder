@@ -119,30 +119,34 @@ export async function waitForLock(key: string, ttlSeconds: number, timeoutMs: nu
   return await pollUntilAcquired(key, ttlSeconds, deadline);
 }
 
-/* ─── Subscribe (Fix 20) ─── */
+/* ─── Subscribe ─── */
 
 /**
  * Subscribe to a Redis pub/sub channel.
  *
- * Note: Upstash REST-based Redis does NOT support the traditional blocking
- * SUBSCRIBE command. The `@upstash/redis` client does not expose a `.subscribe()`
- * method. Real-time subscriptions require either:
- *   - Upstash QStash (push-based)
- *   - A polling approach
- *   - A persistent-connection Redis client (ioredis)
+ * Uses @upstash/redis's built-in subscribe (HTTP long-polling).
+ * Returns an unsubscribe function (best-effort cleanup — Upstash does not
+ * support removing specific listeners, matching closer-back's pattern).
  *
- * This stub logs a warning and returns a no-op unsubscribe function.
- * The full shared-namespace subscription model will be implemented in Phase 6
- * (Tasks 24-26) when the Socket.io layer is added, likely using QStash or
- * a secondary ioredis client for real-time pub/sub.
+ * The shared namespace subscription model (one subscription per tenant,
+ * fanned out to N sockets) is managed by the Socket.io subscription layer,
+ * not here. This is the low-level Redis primitive.
  */
-export function subscribe(channel: string, _callback: (msg: string) => void): () => void {
-  process.stdout.write(
-    `[redis] subscribe called for "${channel}" — Upstash REST does not support SUBSCRIBE. ` +
-      'Real-time pub/sub will be implemented in Phase 6.\n'
-  );
+export function subscribe(channel: string, callback: (msg: string) => void): () => void {
+  const redis = getRedis();
+  const subscriber = redis.subscribe<string>(channel);
 
+  subscriber.on('message', (message) => {
+    if (typeof message === 'string') {
+      callback(message);
+    } else {
+      callback(JSON.stringify(message));
+    }
+  });
+
+  // Best-effort cleanup — Upstash does not provide a way to unsubscribe
+  // from specific channels. Same limitation as closer-back.
   return () => {
-    process.stdout.write(`[redis] unsubscribe called for "${channel}" (no-op)\n`);
+    process.stdout.write(`[redis] cleanup requested for channel "${channel}" (best-effort)\n`);
   };
 }
