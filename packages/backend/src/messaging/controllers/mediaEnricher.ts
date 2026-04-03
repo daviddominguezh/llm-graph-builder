@@ -4,7 +4,6 @@
  * Downloads media from provider APIs and uploads to Supabase Storage.
  * Sets placeholder content for audio messages pending transcription.
  */
-
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { downloadInstagramMedia, downloadWhatsAppMedia } from '../services/mediaDownloader.js';
 import { resolveWhatsAppCredentials } from '../services/whatsapp/credentials.js';

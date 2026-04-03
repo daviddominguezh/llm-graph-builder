@@ -3,7 +3,6 @@
  *
  * Pattern adapted from closer-back's replySendersHelpers.ts.
  */
-
 import { setTimeout as sleepMs } from 'node:timers/promises';
 
 /* ─── Constants ─── */
@@ -77,7 +76,12 @@ function logRetry(attempt: number, maxAttempts: number, backoffMs: number): void
   process.stdout.write(`${tag} failed, retrying in ${String(backoffMs)}ms\n`);
 }
 
-async function handleFailure(error: Error, attempt: number, maxAttempts: number, maxBackoffMs: number): Promise<void> {
+async function handleFailure(
+  error: Error,
+  attempt: number,
+  maxAttempts: number,
+  maxBackoffMs: number
+): Promise<void> {
   if (isLastAttempt(attempt, maxAttempts) || !isRetryableError(error)) {
     throw error;
   }

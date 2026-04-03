@@ -10,7 +10,6 @@
  * Reference: closer-back/src/controllers/messages/index.ts, lines 459–848
  * (the full `processCloserMessage` function).
  */
-
 import type { ConversationRow } from '../types/index.js';
 
 // ---------------------------------------------------------------------------
@@ -191,10 +190,7 @@ function resolveExistingConversationDecision(
  *
  * This function is a placeholder; implement it alongside billing integration.
  */
-export async function deductAiCredit(
-  _tenantId: string,
-  _isTestMode: boolean
-): Promise<void> {
+export async function deductAiCredit(_tenantId: string, _isTestMode: boolean): Promise<void> {
   // TODO: Implement credit deduction after AI reply.
   // Check availableChatsInPlan: if > 0, decrement plan counter;
   // otherwise deduct from org.credits.
@@ -218,10 +214,7 @@ export async function deductAiCredit(
  * - The channel/provider
  * - Whether it was a test message
  */
-export async function recordIncomingMessageMetrics(
-  _tenantId: string,
-  _userChannelId: string
-): Promise<void> {
+export async function recordIncomingMessageMetrics(_tenantId: string, _userChannelId: string): Promise<void> {
   // TODO: Persist metrics to analytics/metrics table.
 }
 

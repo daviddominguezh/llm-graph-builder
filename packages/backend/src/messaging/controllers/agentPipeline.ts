@@ -11,10 +11,7 @@ import { executeAgent } from '../../routes/execute/edgeFunctionClient.js';
 import type { GraphAndKeys } from '../../routes/execute/executeFetcher.js';
 import { fetchGraphAndKeys, getProductionKeyId } from '../../routes/execute/executeFetcher.js';
 import { persistPostExecution, persistPreExecution } from '../../routes/execute/executePersistence.js';
-import {
-  getLastVisitedNode,
-  mergeStructuredOutputs,
-} from '../../routes/execute/executeResponseBuilders.js';
+import { getLastVisitedNode, mergeStructuredOutputs } from '../../routes/execute/executeResponseBuilders.js';
 import { getAiMessages } from '../queries/messageQueries.js';
 import type { ConversationRow } from '../types/index.js';
 import type { InvokeResult } from './agentInvoker.js';
@@ -32,11 +29,7 @@ interface AgentRow {
 }
 
 async function getAgentInfo(supabase: SupabaseClient, agentId: string): Promise<AgentRow> {
-  const result = await supabase
-    .from('agents')
-    .select('org_id, current_version')
-    .eq('id', agentId)
-    .single();
+  const result = await supabase.from('agents').select('org_id, current_version').eq('id', agentId).single();
 
   const row = result.data as AgentRow | null;
   if (row === null) throw new Error('Agent not found');

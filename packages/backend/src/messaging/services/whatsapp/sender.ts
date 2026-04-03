@@ -97,11 +97,7 @@ function getFilenameFromContentType(contentType: string): string {
   return extensionMap[contentType] ?? 'file.bin';
 }
 
-async function uploadMediaRaw(
-  phoneNumberId: string,
-  accessToken: string,
-  fileUrl: string
-): Promise<string> {
+async function uploadMediaRaw(phoneNumberId: string, accessToken: string, fileUrl: string): Promise<string> {
   const { buffer, contentType } = await downloadFileBuffer(fileUrl);
   const filename = getFilenameFromContentType(contentType);
   const uploadUrl = `${WA_API_BASE}/${phoneNumberId}/media`;

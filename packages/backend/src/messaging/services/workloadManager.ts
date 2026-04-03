@@ -17,7 +17,6 @@
  * 4. On status closed/blocked: decrement current assignee
  * 5. Use Redis counter for hot-path reads, persist to DB periodically
  */
-
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 
 // TODO: Implement with Redis counters + DB persistence

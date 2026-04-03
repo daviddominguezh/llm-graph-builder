@@ -1,9 +1,5 @@
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
-import type {
-  ChannelConnectionRow,
-  InstagramCredentialRow,
-  WhatsAppCredentialRow,
-} from '../types/index.js';
+import type { ChannelConnectionRow, InstagramCredentialRow, WhatsAppCredentialRow } from '../types/index.js';
 import type { QueryResult } from './queryHelpers.js';
 
 /* ─── Channel connection lookups ─── */
@@ -53,10 +49,7 @@ export async function getWhatsAppCredential(
   return result.data;
 }
 
-export async function decryptWhatsAppToken(
-  supabase: SupabaseClient,
-  credentialId: string
-): Promise<string> {
+export async function decryptWhatsAppToken(supabase: SupabaseClient, credentialId: string): Promise<string> {
   const result = await supabase.rpc('get_whatsapp_access_token', {
     p_credential_id: credentialId,
   });
@@ -83,10 +76,7 @@ export async function getInstagramCredential(
   return result.data;
 }
 
-export async function decryptInstagramToken(
-  supabase: SupabaseClient,
-  credentialId: string
-): Promise<string> {
+export async function decryptInstagramToken(supabase: SupabaseClient, credentialId: string): Promise<string> {
   const result = await supabase.rpc('get_instagram_access_token', {
     p_credential_id: credentialId,
   });

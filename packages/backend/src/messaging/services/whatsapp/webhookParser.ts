@@ -52,7 +52,8 @@ interface WhatsAppWebhookPayload {
 
 function isValidPayload(body: unknown): body is WhatsAppWebhookPayload {
   if (typeof body !== 'object' || body === null || !('entry' in body)) return false;
-  if (!('object' in body) || (body as WhatsAppWebhookPayload).object !== 'whatsapp_business_account') return false;
+  if (!('object' in body) || (body as WhatsAppWebhookPayload).object !== 'whatsapp_business_account')
+    return false;
   return true;
 }
 

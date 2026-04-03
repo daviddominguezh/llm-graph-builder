@@ -5,8 +5,8 @@ import { createServiceClient } from '../../../db/queries/executionAuthQueries.js
 import { processIncomingMessage } from '../../controllers/incomingProcessor.js';
 import { captureRawBody, verifyWhatsAppSignature } from '../../middleware/webhookSignature.js';
 import { getChannelConnectionByIdentifier } from '../../queries/channelQueries.js';
-import type { IncomingMessage } from '../../types/index.js';
 import { parseWhatsAppWebhook } from '../../services/whatsapp/webhookParser.js';
+import type { IncomingMessage } from '../../types/index.js';
 
 const HTTP_OK = 200;
 const HTTP_FORBIDDEN = 403;

@@ -3,7 +3,6 @@
  *
  * Handles messages from the built-in test console (no channel delivery).
  */
-
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { updateConversationLastMessage } from '../queries/conversationMutations.js';
 import { findOrCreateConversation } from '../queries/conversationQueries.js';

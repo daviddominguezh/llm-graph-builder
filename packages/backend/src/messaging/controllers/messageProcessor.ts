@@ -21,11 +21,7 @@ async function deliverToWhatsApp(
   content: string
 ): Promise<ProviderSendResult> {
   const recipient = stripChannelPrefix(conversation.user_channel_id);
-  const creds = await resolveWhatsAppCredentials(
-    supabase,
-    conversation.agent_id,
-    conversation.tenant_id
-  );
+  const creds = await resolveWhatsAppCredentials(supabase, conversation.agent_id, conversation.tenant_id);
   return await sendWhatsAppTextMessage(creds.phoneNumberId, creds.accessToken, recipient, content);
 }
 
@@ -35,11 +31,7 @@ async function deliverToInstagram(
   content: string
 ): Promise<ProviderSendResult> {
   const recipient = stripChannelPrefix(conversation.user_channel_id);
-  const creds = await resolveInstagramCredentials(
-    supabase,
-    conversation.agent_id,
-    conversation.tenant_id
-  );
+  const creds = await resolveInstagramCredentials(supabase, conversation.agent_id, conversation.tenant_id);
   return await sendInstagramTextMessage(creds.igUserId, creds.accessToken, recipient, content);
 }
 

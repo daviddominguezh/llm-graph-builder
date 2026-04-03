@@ -1,6 +1,7 @@
 import express from 'express';
 import type { Request } from 'express';
 
+import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { addAssignee, addStatus, getAssignees } from '../queries/assignmentQueries.js';
 import {
   deleteConversationWithTombstone,
@@ -10,7 +11,6 @@ import {
 } from '../queries/conversationMutations.js';
 import { findConversationByUserChannelId } from '../queries/conversationQueries.js';
 import { getAllMessages, getMessagePage } from '../queries/messageQueries.js';
-import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { assignChatToAgent, reassignChat, releaseChat } from '../services/workloadManager.js';
 import type { AssigneeBody, ConversationRow, StatusBody } from '../types/index.js';
 import type { MessagingResponse } from './routeHelpers.js';
@@ -160,7 +160,13 @@ async function applyAssigneeWorkload(
   const previousAssignee = assignees[0]?.assignee;
 
   if (previousAssignee !== undefined && previousAssignee !== assignee) {
-    await reassignChat(supabase, conversation.tenant_id, conversation.user_channel_id, previousAssignee, assignee);
+    await reassignChat(
+      supabase,
+      conversation.tenant_id,
+      conversation.user_channel_id,
+      previousAssignee,
+      assignee
+    );
   } else if (previousAssignee === undefined) {
     await assignChatToAgent(supabase, conversation.tenant_id, conversation.user_channel_id, assignee);
   }

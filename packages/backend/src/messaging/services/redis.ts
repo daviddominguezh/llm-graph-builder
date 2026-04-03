@@ -1,7 +1,6 @@
+import { Redis } from '@upstash/redis';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as sleepMs } from 'node:timers/promises';
-
-import { Redis } from '@upstash/redis';
 
 import { REDIS_KEYS, buildRedisKey } from '../types/redisKeys.js';
 
@@ -134,11 +133,7 @@ function getRemainingTime(deadline: number): number {
   return deadline - Date.now();
 }
 
-async function pollUntilAcquired(
-  key: string,
-  ttlSeconds: number,
-  deadline: number
-): Promise<string | null> {
+async function pollUntilAcquired(key: string, ttlSeconds: number, deadline: number): Promise<string | null> {
   while (getRemainingTime(deadline) > DEADLINE_EXPIRED) {
     const token = await acquireLock(key, ttlSeconds);
     if (token !== null) return token;

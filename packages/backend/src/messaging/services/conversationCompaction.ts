@@ -15,7 +15,6 @@
  *   closer-back/src/ai/actions/compactConversation/prompt.ts (prompt)
  *   closer-back/src/controllers/messages/index.ts lines 1439–1466 (call site in reply())
  */
-
 import type { MessageAiRow } from '../types/index.js';
 
 // ---------------------------------------------------------------------------

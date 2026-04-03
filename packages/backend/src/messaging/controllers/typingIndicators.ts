@@ -4,7 +4,6 @@
  * Sends typing indicators before delivering AI responses.
  * Non-critical: errors are swallowed.
  */
-
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { resolveInstagramCredentials } from '../services/instagram/credentials.js';
 import { sendInstagramTypingIndicator } from '../services/instagram/sender.js';
@@ -18,11 +17,7 @@ async function sendWhatsAppTyping(
   conversation: ConversationRow,
   recipient: string
 ): Promise<void> {
-  const creds = await resolveWhatsAppCredentials(
-    supabase,
-    conversation.agent_id,
-    conversation.tenant_id
-  );
+  const creds = await resolveWhatsAppCredentials(supabase, conversation.agent_id, conversation.tenant_id);
   await sendWhatsAppTypingIndicator(
     creds.phoneNumberId,
     creds.accessToken,
@@ -36,11 +31,7 @@ async function sendInstagramTyping(
   conversation: ConversationRow,
   recipient: string
 ): Promise<void> {
-  const creds = await resolveInstagramCredentials(
-    supabase,
-    conversation.agent_id,
-    conversation.tenant_id
-  );
+  const creds = await resolveInstagramCredentials(supabase, conversation.agent_id, conversation.tenant_id);
   await sendInstagramTypingIndicator(creds.igUserId, creds.accessToken, recipient);
 }
 

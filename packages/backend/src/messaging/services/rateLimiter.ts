@@ -6,7 +6,6 @@
  *
  * Upstash pipeline.exec() returns values directly (not [error, result] tuples).
  */
-
 import { setTimeout as sleepMs } from 'node:timers/promises';
 
 import { getRedis } from './redis.js';

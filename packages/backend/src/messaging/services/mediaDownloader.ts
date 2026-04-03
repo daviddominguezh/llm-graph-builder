@@ -5,7 +5,6 @@
  * - WhatsApp: GET media URL via Graph API, download binary, upload to Storage
  * - Instagram: attachment URL already present in parsed webhook payload
  */
-
 import { randomUUID } from 'node:crypto';
 
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
