@@ -165,7 +165,7 @@ export async function getInboxDelta(
     .from('conversations')
     .select('*')
     .eq('tenant_id', tenantId)
-    .gte('last_message_at', sinceTimestamp)
+    .gt('last_message_at', sinceTimestamp)
     .order('last_message_at', { ascending: false });
 
   if (result.error !== null) {
