@@ -33,8 +33,32 @@ interface WhatsAppValue {
   messages?: WhatsAppMessage[];
 }
 
+/* ─── Echo (SMB message echo) types ─── */
+
+export interface HistoricMessage {
+  id: string;
+  from: string;
+  to: string;
+  timestamp: string;
+  type: 'text' | 'image' | 'audio' | 'video' | 'document' | 'sticker';
+  text?: { body: string };
+  image?: { id: string; mime_type: string; caption?: string };
+  audio?: { id: string; mime_type: string };
+  video?: { id: string; mime_type: string; caption?: string };
+  document?: { id: string; mime_type: string; filename?: string; caption?: string };
+  sticker?: { id: string; mime_type: string };
+}
+
+interface MessageEchoValue {
+  messaging_product: string;
+  metadata: WhatsAppMetadata;
+  message_echoes: HistoricMessage[];
+}
+
+/* ─── Shared change / entry / payload ─── */
+
 interface WhatsAppChange {
-  value: WhatsAppValue;
+  value: WhatsAppValue | MessageEchoValue;
   field: string;
 }
 
@@ -136,9 +160,19 @@ function mapWhatsAppType(waType: string): string {
 
 /* ─── Parse ─── */
 
+export interface ParsedEchoMessage {
+  userChannelId: string;
+  channelIdentifier: string;
+  content: string;
+  type: string;
+  originalId: string;
+  timestamp: number;
+}
+
 export interface ParsedWhatsAppWebhook {
   phoneNumberId: string;
   messages: IncomingMessage[];
+  echoMessages: ParsedEchoMessage[];
 }
 
 const SECONDS_TO_MS = 1000;
@@ -166,43 +200,99 @@ function buildIncomingMessage(
   };
 }
 
-function parseChange(change: WhatsAppChange, results: IncomingMessage[]): string {
-  // Only process real-time message events (field === 'messages').
-  // History sync events (field === 'history') and message echoes
-  // (field === 'smb_message_echoes') are intentionally ignored —
-  // the webhook returns 200 without saving or processing them.
-  if (change.field !== 'messages') return '';
-  const { value } = change;
+function extractEchoContent(msg: HistoricMessage): string {
+  if (msg.type === 'text') return msg.text?.body ?? '';
+  if (msg.type === 'image') return msg.image?.caption ?? '[image]';
+  if (msg.type === 'video') return msg.video?.caption ?? '[video]';
+  if (msg.type === 'document') return msg.document?.caption ?? '[document]';
+  if (msg.type === 'audio') return '[audio]';
+  return '[sticker]';
+}
+
+function buildEchoMessage(msg: HistoricMessage, phoneNumberId: string): ParsedEchoMessage {
+  const timestamp = Number(msg.timestamp) * SECONDS_TO_MS;
+  return {
+    userChannelId: `whatsapp:+${msg.to}`,
+    channelIdentifier: phoneNumberId,
+    content: extractEchoContent(msg),
+    type: mapWhatsAppType(msg.type),
+    originalId: msg.id,
+    timestamp: Number.isNaN(timestamp) ? Date.now() : timestamp,
+  };
+}
+
+function isMessageEchoValue(value: WhatsAppValue | MessageEchoValue): value is MessageEchoValue {
+  return 'message_echoes' in value;
+}
+
+interface ParseChangeResult {
+  phoneNumberId: string;
+}
+
+function parseMessagesChange(
+  value: WhatsAppValue,
+  results: IncomingMessage[]
+): ParseChangeResult {
   const { contacts: rawContacts, metadata, messages: rawMessages } = value;
   const contacts = rawContacts ?? [];
   const { phone_number_id: phoneNumberId } = metadata;
-
   for (const msg of rawMessages ?? []) {
     results.push(buildIncomingMessage(msg, contacts, phoneNumberId));
   }
+  return { phoneNumberId };
+}
 
-  return phoneNumberId;
+function parseEchoChange(
+  value: MessageEchoValue,
+  echoResults: ParsedEchoMessage[]
+): ParseChangeResult {
+  const { metadata, message_echoes: echoes } = value;
+  const { phone_number_id: phoneNumberId } = metadata;
+  for (const msg of echoes) {
+    echoResults.push(buildEchoMessage(msg, phoneNumberId));
+  }
+  return { phoneNumberId };
+}
+
+interface ParseAccumulator {
+  messages: IncomingMessage[];
+  echoMessages: ParsedEchoMessage[];
+  phoneNumberId: string;
+}
+
+function parseChange(change: WhatsAppChange, acc: ParseAccumulator): void {
+  if (change.field === 'history') return;
+
+  if (change.field === 'smb_message_echoes' && isMessageEchoValue(change.value)) {
+    const result = parseEchoChange(change.value, acc.echoMessages);
+    if (result.phoneNumberId !== '') acc.phoneNumberId = result.phoneNumberId;
+    return;
+  }
+
+  if (change.field === 'messages') {
+    const result = parseMessagesChange(change.value as WhatsAppValue, acc.messages);
+    if (result.phoneNumberId !== '') acc.phoneNumberId = result.phoneNumberId;
+  }
 }
 
 function flattenChanges(entries: WhatsAppEntry[]): WhatsAppChange[] {
   return entries.flatMap((entry) => entry.changes);
 }
 
-function parseEntries(entries: WhatsAppEntry[], results: IncomingMessage[]): string {
-  let phoneNumberId = '';
+function parseEntries(entries: WhatsAppEntry[], acc: ParseAccumulator): void {
   for (const change of flattenChanges(entries)) {
-    const id = parseChange(change, results);
-    if (id !== '') phoneNumberId = id;
+    parseChange(change, acc);
   }
-  return phoneNumberId;
 }
 
 export function parseWhatsAppWebhook(body: unknown): ParsedWhatsAppWebhook | null {
   if (!isValidPayload(body)) return null;
 
-  const results: IncomingMessage[] = [];
-  const phoneNumberId = parseEntries(body.entry, results);
+  const acc: ParseAccumulator = { messages: [], echoMessages: [], phoneNumberId: '' };
+  parseEntries(body.entry, acc);
 
-  if (results.length === EMPTY_LENGTH) return null;
-  return { phoneNumberId, messages: results };
+  const hasContent = acc.messages.length > EMPTY_LENGTH || acc.echoMessages.length > EMPTY_LENGTH;
+  if (!hasContent) return null;
+
+  return { phoneNumberId: acc.phoneNumberId, messages: acc.messages, echoMessages: acc.echoMessages };
 }

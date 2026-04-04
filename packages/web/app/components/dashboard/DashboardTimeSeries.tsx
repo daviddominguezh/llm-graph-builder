@@ -175,7 +175,7 @@ export function DashboardTimeSeries({ tenantRows, timeSeriesData, loading }: Das
   if (loading === true) return <LoadingSkeleton />;
 
   return (
-    <div className="flex flex-col gap-3 bg-sidebar p-3 rounded-md h-full overflow-y-auto border">
+    <div className="flex flex-col gap-3 h-full overflow-y-auto">
       <StatCards rows={tenantRows} />
       <TimeSeriesCharts data={timeSeriesData} />
     </div>

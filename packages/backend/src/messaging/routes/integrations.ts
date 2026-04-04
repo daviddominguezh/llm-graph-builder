@@ -7,17 +7,8 @@
 import express from 'express';
 import type { Request } from 'express';
 
-import { REDIS_KEYS, buildRedisKey } from '../types/redisKeys.js';
 import { invalidateCredentialCache } from '../services/credentialCache.js';
-import type { MessagingResponse } from './routeHelpers.js';
-import {
-  HTTP_BAD_REQUEST,
-  HTTP_INTERNAL,
-  HTTP_OK,
-  extractErrorMessage,
-  getRequiredParam,
-  getSupabase,
-} from './routeHelpers.js';
+import { REDIS_KEYS, buildRedisKey } from '../types/redisKeys.js';
 import {
   deleteWhatsAppConnection,
   getOrgIdFromTenant,
@@ -28,6 +19,15 @@ import {
   performMetaOnboarding,
 } from './integrationHelpers.js';
 import type { IntegrationResult } from './integrationHelpers.js';
+import type { MessagingResponse } from './routeHelpers.js';
+import {
+  HTTP_BAD_REQUEST,
+  HTTP_INTERNAL,
+  HTTP_OK,
+  extractErrorMessage,
+  getRequiredParam,
+  getSupabase,
+} from './routeHelpers.js';
 
 /* ─── Error classifier ─── */
 
@@ -36,7 +36,11 @@ function classifyError(err: Error): { status: number; code: string; message: str
     return { status: HTTP_BAD_REQUEST, code: 'auth_failed', message: 'Failed to authenticate with Meta.' };
   }
   if (err.message.includes('registering phone') || err.message.includes('Cloud API')) {
-    return { status: HTTP_BAD_REQUEST, code: 'phone_registration_failed', message: 'Phone registration failed.' };
+    return {
+      status: HTTP_BAD_REQUEST,
+      code: 'phone_registration_failed',
+      message: 'Phone registration failed.',
+    };
   }
   if (err.message.includes('webhook') || err.message.includes('Webhook')) {
     return { status: HTTP_BAD_REQUEST, code: 'webhook_failed', message: 'Webhook registration failed.' };
@@ -59,7 +63,9 @@ async function handleConnect(req: Request, res: MessagingResponse): Promise<void
 
     const duplicate = await isPhoneAlreadyRegistered(supabase, body.phoneNumberId);
     if (duplicate) {
-      res.status(HTTP_BAD_REQUEST).json({ error: 'Phone already registered', code: 'phone_already_registered' });
+      res
+        .status(HTTP_BAD_REQUEST)
+        .json({ error: 'Phone already registered', code: 'phone_already_registered' });
       return;
     }
 

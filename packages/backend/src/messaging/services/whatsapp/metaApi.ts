@@ -68,10 +68,7 @@ export async function exchangeAuthCodeForToken(authCode: string): Promise<string
 
 /* ─── Business App Check ─── */
 
-export async function isOnWhatsAppBusinessApp(
-  accessToken: string,
-  phoneNumberId: string
-): Promise<boolean> {
+export async function isOnWhatsAppBusinessApp(accessToken: string, phoneNumberId: string): Promise<boolean> {
   const url = `${GRAPH_BASE}/${phoneNumberId}?fields=is_on_biz_app,platform_type`;
 
   const res = await fetch(url, {
@@ -146,10 +143,7 @@ export async function requestWhatsAppSynchronization(
 
 /* ─── Webhook Subscription ─── */
 
-export async function registerWebhookSubscription(
-  accessToken: string,
-  wabaId: string
-): Promise<boolean> {
+export async function registerWebhookSubscription(accessToken: string, wabaId: string): Promise<boolean> {
   const url = `${GRAPH_BASE}/${wabaId}/subscribed_apps`;
 
   const res = await fetch(url, {

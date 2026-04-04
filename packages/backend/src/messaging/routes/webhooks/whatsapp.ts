@@ -2,9 +2,11 @@ import express from 'express';
 import type { Request, Response } from 'express';
 
 import { createServiceClient } from '../../../db/queries/executionAuthQueries.js';
+import { processEchoMessage } from '../../controllers/echoProcessor.js';
 import { processIncomingMessage } from '../../controllers/incomingProcessor.js';
 import { captureRawBody, verifyWhatsAppSignature } from '../../middleware/webhookSignature.js';
 import { getChannelConnectionByIdentifier } from '../../queries/channelQueries.js';
+import type { ParsedEchoMessage, ParsedWhatsAppWebhook } from '../../services/whatsapp/webhookParser.js';
 import { parseWhatsAppWebhook } from '../../services/whatsapp/webhookParser.js';
 import type { IncomingMessage } from '../../types/index.js';
 
@@ -46,9 +48,20 @@ async function processOneMessage(incoming: IncomingMessage): Promise<void> {
   await processIncomingMessage({ supabase, connection, incoming });
 }
 
-async function processWebhookMessages(messages: IncomingMessage[]): Promise<void> {
-  const tasks = messages.map(processOneMessage);
-  await Promise.allSettled(tasks);
+async function processOneEcho(echo: ParsedEchoMessage): Promise<void> {
+  const supabase = createServiceClient();
+  const connection = await getChannelConnectionByIdentifier(supabase, echo.channelIdentifier);
+  if (connection === null) {
+    process.stdout.write(`[whatsapp] No channel connection for echo ${echo.channelIdentifier}\n`);
+    return;
+  }
+  await processEchoMessage({ supabase, connection, echo });
+}
+
+async function processWebhookMessages(parsed: ParsedWhatsAppWebhook): Promise<void> {
+  const messageTasks = parsed.messages.map(processOneMessage);
+  const echoTasks = parsed.echoMessages.map(processOneEcho);
+  await Promise.allSettled([...messageTasks, ...echoTasks]);
 }
 
 function handleIncoming(req: Request, res: Response): void {
@@ -59,7 +72,7 @@ function handleIncoming(req: Request, res: Response): void {
   if (parsed === null) return;
 
   // Process async (don't await)
-  processWebhookMessages(parsed.messages).catch((err: unknown) => {
+  processWebhookMessages(parsed).catch((err: unknown) => {
     const msg = err instanceof Error ? err.message : 'Unknown error';
     process.stdout.write(`[whatsapp] Webhook processing error: ${msg}\n`);
   });

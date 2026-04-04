@@ -20,7 +20,7 @@ export function CopilotButton() {
   if (isOpen || !isAgentsTab(pathname)) return null;
 
   return (
-    <div className="fixed bottom-1 right-1 z-100">
+    <div className="fixed bottom-2 right-2 z-100">
       <Button
         variant="default"
         size="sm"
