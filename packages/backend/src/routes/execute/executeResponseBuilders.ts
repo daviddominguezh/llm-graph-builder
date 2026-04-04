@@ -36,10 +36,19 @@ export function buildWorkflowResponse(result: CallAgentOutput, durationMs: numbe
     currentNodeId: getLastVisitedNode(result, ''),
     visitedNodes: result.visitedNodes,
     toolCalls: buildToolCalls(result),
-    structuredOutputs: {},
+    structuredOutputs: buildStructuredOutputsMap(result),
     tokenUsage: buildTokenUsage(result),
     durationMs,
   };
+}
+
+function buildStructuredOutputsMap(result: CallAgentOutput): Record<string, unknown[]> {
+  const map: Record<string, unknown[]> = {};
+  for (const so of result.structuredOutputs ?? []) {
+    const current = map[so.nodeId] ?? [];
+    map[so.nodeId] = [...current, so.data];
+  }
+  return map;
 }
 
 export function buildAgentResponse(result: CallAgentOutput, durationMs: number): AgentAppResponse {
@@ -72,7 +81,7 @@ export function buildEmptyResponse(appType: string): AgentExecutionResponse {
     currentNodeId: '',
     visitedNodes: [],
     toolCalls: [],
-    structuredOutputs: {},
+    structuredOutputs: {},  // empty response has no outputs
     tokenUsage,
     durationMs: ZERO,
   };
