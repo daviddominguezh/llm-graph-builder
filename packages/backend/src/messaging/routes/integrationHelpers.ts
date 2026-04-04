@@ -125,8 +125,11 @@ export async function performMetaOnboarding(
     // Phone is on WhatsApp Business app — request co-existence sync.
     // Sync contacts/state first, then history.
     // History sync webhooks will arrive but we return 200 without processing.
-    await requestWhatsAppSynchronization(accessToken, body.phoneNumberId, 'smb_app_state_sync');
-    await requestWhatsAppSynchronization(accessToken, body.phoneNumberId, 'history');
+    const stateSyncId = await requestWhatsAppSynchronization(accessToken, body.phoneNumberId, 'smb_app_state_sync');
+    if (stateSyncId === null) throw new Error('WhatsApp state sync request failed');
+
+    const historySyncId = await requestWhatsAppSynchronization(accessToken, body.phoneNumberId, 'history');
+    if (historySyncId === null) throw new Error('WhatsApp history sync request failed');
   } else {
     // Phone not on app — register directly with Cloud API.
     await registerPhoneWithCloudApi(accessToken, body.phoneNumberId);

@@ -99,6 +99,7 @@ async function runConversion(
     })
     .on('error', (err: Error) => {
       process.stdout.write(`${logKey}FFmpeg error: ${err.message}\n`);
+      outputStream.destroy(err);
     })
     .on('end', () => {
       process.stdout.write(`${logKey}FFmpeg conversion completed\n`);

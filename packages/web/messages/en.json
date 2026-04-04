@@ -185,7 +185,8 @@
         "launchButton": "Continue with Facebook",
         "waitingFacebook": "Complete the setup in the Facebook popup...",
         "success": "WhatsApp Business number connected successfully.",
-        "connectError": "Failed to connect WhatsApp. Please try again."
+        "connectError": "Failed to connect WhatsApp. Please try again.",
+        "authFailed": "Failed to authenticate with Facebook"
       }
     }
   },

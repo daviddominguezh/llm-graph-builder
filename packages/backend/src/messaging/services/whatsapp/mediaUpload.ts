@@ -133,15 +133,27 @@ async function postMediaToWhatsApp(
 
 /* ─── Public API ─── */
 
-function buildMediaCacheKey(sourceUrl: string): string {
+function buildMediaCacheKey(sourceUrl: string, converted: boolean): string {
+  const suffix = converted ? ':converted' : '';
   const hash = createHash('sha256').update(sourceUrl).digest('hex');
-  return buildRedisKey(REDIS_KEYS.MEDIA_UPLOAD_CACHE, hash);
+  return buildRedisKey(REDIS_KEYS.MEDIA_UPLOAD_CACHE, `${hash}${suffix}`);
 }
 
-async function uploadMediaRaw(phoneNumberId: string, accessToken: string, fileUrl: string): Promise<string> {
+interface RawUploadResult {
+  mediaId: string;
+  converted: boolean;
+}
+
+async function uploadMediaRaw(
+  phoneNumberId: string,
+  accessToken: string,
+  fileUrl: string
+): Promise<RawUploadResult> {
   const { buffer, contentType } = await downloadFileBuffer(fileUrl);
+  const wasConverted = contentType.startsWith('audio/') && needsConversion(contentType);
   const media = await prepareMediaForUpload(buffer, contentType);
-  return await postMediaToWhatsApp(phoneNumberId, accessToken, media);
+  const mediaId = await postMediaToWhatsApp(phoneNumberId, accessToken, media);
+  return { mediaId, converted: wasConverted };
 }
 
 export async function uploadMediaToWhatsApp(
@@ -149,11 +161,12 @@ export async function uploadMediaToWhatsApp(
   accessToken: string,
   fileUrl: string
 ): Promise<string> {
-  const cacheKey = buildMediaCacheKey(fileUrl);
-  const cached = await readRedis<string>(cacheKey);
+  const originalCacheKey = buildMediaCacheKey(fileUrl, false);
+  const cached = await readRedis<string>(originalCacheKey);
   if (cached !== null) return cached;
 
-  const mediaId = await uploadMediaRaw(phoneNumberId, accessToken, fileUrl);
+  const { mediaId, converted } = await uploadMediaRaw(phoneNumberId, accessToken, fileUrl);
+  const cacheKey = buildMediaCacheKey(fileUrl, converted);
   await setWithTTL(cacheKey, mediaId, MEDIA_CACHE_TTL_SECONDS);
   return mediaId;
 }

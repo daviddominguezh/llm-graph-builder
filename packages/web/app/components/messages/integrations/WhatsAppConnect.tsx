@@ -177,7 +177,7 @@ function LaunchButton(props: {
     // Clear stale signup data before launching a new FB login attempt
     signup.reset();
     setFlow((s) => ({ ...s, phone: normalized, status: 'waiting_fb', errorMessage: '' }));
-    launchFBLogin(setFlow);
+    launchFBLogin(setFlow, t('authFailed'));
   };
 
   const busy = flow.status === 'waiting_fb' || flow.status === 'connecting';
@@ -222,14 +222,17 @@ function StatusFeedback(props: { status: FlowStatus; errorMessage: string }) {
 // FB login launcher (extracted pure function, no hook)
 // ---------------------------------------------------------------------------
 
-function launchFBLogin(setFlow: React.Dispatch<React.SetStateAction<FlowState>>): void {
+function launchFBLogin(
+  setFlow: React.Dispatch<React.SetStateAction<FlowState>>,
+  authFailedMessage: string
+): void {
   window.FB.login(
     (response) => {
       const auth = response.authResponse;
       if (response.status === 'connected' && auth?.code) {
         setFlow((s) => ({ ...s, authCode: auth.code ?? '' }));
       } else {
-        setFlow((s) => ({ ...s, status: 'error', errorMessage: 'Failed to authenticate with Facebook' }));
+        setFlow((s) => ({ ...s, status: 'error', errorMessage: authFailedMessage }));
       }
     },
     {
