@@ -108,7 +108,7 @@ export async function fetchVfsSettings(agentId: string): Promise<AgentVfsSetting
 
 export async function updateVfsSettingsAction(
   agentId: string,
-  settings: AgentVfsSettings | null
+  settings: AgentVfsSettings | { enabled: false }
 ): Promise<{ error: string | null }> {
   serverLog('[updateVfsSettings]', `agent=${agentId}`);
   try {

@@ -146,9 +146,10 @@ async function toggleEnabled(
   setSettings: SetSettings,
   setError: SetError
 ): Promise<void> {
-  const value = enabled ? { enabled: true as const } : null;
+  const value: AgentVfsSettings | null = enabled ? { enabled: true } : null;
   setSettings(() => value); // optimistic update
-  const result = await updateVfsSettingsAction(agentId, value);
+  const payload = enabled ? { enabled: true } : { enabled: false };
+  const result = await updateVfsSettingsAction(agentId, payload);
   if (result.error !== null) {
     setSettings(() => (enabled ? null : { enabled: true })); // revert on error
     setError(result.error);

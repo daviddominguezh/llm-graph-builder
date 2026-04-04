@@ -7,15 +7,13 @@ import { HTTP_INTERNAL_ERROR, HTTP_NOT_FOUND, extractErrorMessage, getAgentId } 
 
 const HTTP_BAD_REQUEST = 400;
 
-const VfsSettingsSchema = z
-  .object({
-    enabled: z.literal(true),
-    protectedPaths: z.array(z.string()).optional(),
-    searchCandidateLimit: z.number().positive().optional(),
-    readLineCeiling: z.number().positive().optional(),
-    rateLimitThreshold: z.number().positive().optional(),
-  })
-  .nullable();
+const VfsSettingsSchema = z.object({
+  enabled: z.boolean(),
+  protectedPaths: z.array(z.string()).optional(),
+  searchCandidateLimit: z.number().positive().optional(),
+  readLineCeiling: z.number().positive().optional(),
+  rateLimitThreshold: z.number().positive().optional(),
+});
 
 export async function handleUpdateVfsSettings(req: Request, res: AuthenticatedResponse): Promise<void> {
   const { supabase }: AuthenticatedLocals = res.locals;
@@ -33,8 +31,9 @@ export async function handleUpdateVfsSettings(req: Request, res: AuthenticatedRe
   }
 
   try {
-    await updateAgentVfsSettings(supabase, agentId, parsed.data);
-    res.json({ settings: parsed.data });
+    const dbValue = parsed.data.enabled ? parsed.data : null;
+    await updateAgentVfsSettings(supabase, agentId, dbValue);
+    res.json({ settings: dbValue });
   } catch (err) {
     res.status(HTTP_INTERNAL_ERROR).json({ error: extractErrorMessage(err) });
   }
