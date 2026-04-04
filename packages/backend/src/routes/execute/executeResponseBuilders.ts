@@ -42,11 +42,16 @@ export function buildWorkflowResponse(result: CallAgentOutput, durationMs: numbe
   };
 }
 
-function buildStructuredOutputsMap(result: CallAgentOutput): Record<string, unknown[]> {
-  const map: Record<string, unknown[]> = {};
+const FIRST_REPEAT = 2;
+
+function buildStructuredOutputsMap(result: CallAgentOutput): Record<string, unknown> {
+  const map: Record<string, unknown> = {};
+  const counts = new Map<string, number>();
   for (const so of result.structuredOutputs ?? []) {
-    const current = map[so.nodeId] ?? [];
-    map[so.nodeId] = [...current, so.data];
+    const seen = counts.get(so.nodeId) ?? 0;
+    const key = seen === 0 ? so.nodeId : `${so.nodeId}-${String(seen + FIRST_REPEAT - 1)}`;
+    map[key] = so.data;
+    counts.set(so.nodeId, seen + 1);
   }
   return map;
 }

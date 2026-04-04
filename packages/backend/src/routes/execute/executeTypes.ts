@@ -16,7 +16,7 @@ export const AgentExecutionInputSchema = z.object({
   message: IncomingMessageSchema,
   model: z.string().optional(),
   context: z.record(z.string(), z.unknown()).optional(),
-  channel: z.enum(['whatsapp', 'web']).optional().default('web'),
+  channel: z.enum(['whatsapp', 'web', 'instagram', 'api']).optional().default('web'),
   stream: z.boolean().optional().default(false),
 });
 
@@ -151,7 +151,7 @@ export interface WorkflowExecutionResponse {
   currentNodeId: string;
   visitedNodes: string[];
   toolCalls: ToolCallRecord[];
-  structuredOutputs: Record<string, unknown[]>;
+  structuredOutputs: Record<string, unknown>;
   tokenUsage: TokenUsage;
   durationMs: number;
 }
