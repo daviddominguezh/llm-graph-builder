@@ -45,7 +45,7 @@ export function ChannelsTable({ tenants, agentId }: ChannelsTableProps) {
           </TableHead>
           {CHANNELS.map((ch) => (
             <TableHead key={ch.key} className="text-center">
-              <ChannelHeaderIcon channelKey={ch.key} label={t(ch.labelKey)} />
+              <ChannelHeaderIcon channelKey={ch.key} label={t(ch.labelKey)} enabled={ch.enabled} />
             </TableHead>
           ))}
         </TableRow>
