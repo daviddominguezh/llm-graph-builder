@@ -1,4 +1,3 @@
-import cors from 'cors';
 import express, { type Express, type NextFunction, type Request, type Response } from 'express';
 import multer from 'multer';
 
@@ -76,7 +75,9 @@ function buildSlugRouter(): express.Router {
 export function createApp(): Express {
   const app = express();
 
-  app.use(cors());
+  // CORS disabled — the backend must NEVER be called directly from browsers.
+  // All frontend requests go through Next.js server-side (API routes / Server Actions).
+  // Any CORS error in the browser means a route is violating this rule.
 
   // Webhook route must be registered BEFORE express.json() so the body
   // arrives as a raw string for HMAC-SHA256 signature verification.
