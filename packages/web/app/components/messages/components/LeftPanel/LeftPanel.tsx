@@ -162,7 +162,7 @@ function NavItemRow({
         onClick={onClick}
       >
         {icon}
-        <span className={`whitespace-nowrap font-normal flex-1 text-left ${active ? 'font-semibold' : ''}`}>
+        <span className={`whitespace-nowrap text-xs font-medium flex-1 text-left ${active ? 'font-semibold' : ''}`}>
           {label}
         </span>
         {badge !== undefined && badge > 0 && (

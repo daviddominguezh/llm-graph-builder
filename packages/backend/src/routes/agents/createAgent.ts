@@ -1,7 +1,8 @@
 import { TemplateCategorySchema } from '@daviddh/graph-types';
 import type { Request } from 'express';
 
-import { insertAgent } from '../../db/queries/agentQueries.js';
+import { insertAgent, updateProductionKeyId, updateStagingKeyId } from '../../db/queries/agentQueries.js';
+import { getApiKeysByOrg } from '../../db/queries/apiKeyQueries.js';
 import { assembleTemplateSafeGraph } from '../../db/queries/assembleTemplateSafeGraph.js';
 import { updateBloomFilter } from '../../db/queries/bloomFilterQueries.js';
 import { cloneAgentConfig } from '../../db/queries/cloneAgentConfig.js';
@@ -9,6 +10,7 @@ import { cloneTemplateGraph } from '../../db/queries/cloneTemplateGraph.js';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { findUniqueSlug, generateSlug } from '../../db/queries/slugQueries.js';
 import { getTemplateForClone, incrementDownloads } from '../../db/queries/templateQueries.js';
+import { OPENFLOW_KEY_NAME } from '../../openrouter/managementKeys.js';
 import { buildBitmask } from '../../utils/bloomFilter.js';
 import {
   type AuthenticatedLocals,
@@ -129,6 +131,26 @@ function parseCreateAgentBody(body: unknown): CreateAgentInput | null {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Default API key assignment                                         */
+/* ------------------------------------------------------------------ */
+
+async function assignDefaultApiKey(supabase: SupabaseClient, orgId: string, agentId: string): Promise<void> {
+  try {
+    const { result: keys } = await getApiKeysByOrg(supabase, orgId);
+    const openflowKey = keys.find((k) => k.name === OPENFLOW_KEY_NAME);
+    if (openflowKey === undefined) return;
+
+    await Promise.all([
+      updateStagingKeyId(supabase, agentId, openflowKey.id),
+      updateProductionKeyId(supabase, agentId, openflowKey.id),
+    ]);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    process.stderr.write(`[agents] Failed to assign default API key for agent ${agentId}: ${msg}\n`);
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /*  Handler                                                            */
 /* ------------------------------------------------------------------ */
 
@@ -166,6 +188,7 @@ export async function handleCreateAgent(req: Request, res: AuthenticatedResponse
     }
 
     await updateBloomFilter(supabase, buildBitmask(slug), 'agents');
+    await assignDefaultApiKey(supabase, input.orgId, result.id);
 
     if (input.templateAgentId !== undefined && input.templateVersion !== undefined) {
       await cloneFromTemplate(supabase, result.id, input.templateAgentId, input.templateVersion);
