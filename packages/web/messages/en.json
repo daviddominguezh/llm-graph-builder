@@ -172,7 +172,20 @@
       "connected": "Connected",
       "loadError": "Failed to load tenants: {error}",
       "noTenants": "No tenants",
-      "noTenantsDescription": "Create tenants in the org settings to configure channels."
+      "noTenantsDescription": "Create tenants in the org settings to configure channels.",
+      "whatsappConnect": {
+        "connectButton": "Connect",
+        "title": "Connect WhatsApp Business",
+        "description": "Link your WhatsApp Business number through Facebook Embedded Signup.",
+        "phoneLabel": "Phone number",
+        "phonePlaceholder": "+1 555 000 0000",
+        "phoneHint": "Enter the WhatsApp Business phone number you are connecting.",
+        "phoneRequired": "Please enter a phone number.",
+        "launchButton": "Continue with Facebook",
+        "waitingFacebook": "Complete the setup in the Facebook popup...",
+        "success": "WhatsApp Business number connected successfully.",
+        "connectError": "Failed to connect WhatsApp. Please try again."
+      }
     }
   },
   "simulation": {
