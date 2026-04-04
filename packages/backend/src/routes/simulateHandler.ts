@@ -93,6 +93,7 @@ export async function handleSimulate(
   req: Request<Record<string, string>, unknown, SimulateRequest>,
   res: Response
 ): Promise<void> {
+  process.stdout.write(`[simulate] workflow request received, currentNode=${String(req.body.currentNode)}\n`);
   const { body } = req;
   const mcpServers = body.graph.mcpServers ?? [];
   setSseHeaders(res);
@@ -101,7 +102,10 @@ export async function handleSimulate(
     session = await createMcpSession(mcpServers);
     await runSimulation(body, session, res);
     writeSSE(res, { type: 'simulation_complete' });
+    process.stdout.write('[simulate] workflow completed\n');
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    process.stdout.write(`[simulate] workflow error: ${msg}\n`);
     sendError(res, err);
   } finally {
     await closeMcpSession(session);

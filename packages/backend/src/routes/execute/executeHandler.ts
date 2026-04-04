@@ -122,18 +122,31 @@ async function resolveVfsPayload(
 }
 
 /* ─── Preparation ─── */
+function logExec(label: string, data?: Record<string, unknown>): void {
+  const suffix = data !== undefined ? `: ${JSON.stringify(data)}` : '';
+  process.stdout.write(`[execute] ${label}${suffix}\n`);
+}
+
 async function prepareExecution(
   req: Request<{ agentSlug: string; version: string }>,
   res: ExecutionAuthResponse
 ): Promise<ExecutionContext> {
+  logExec('prepareExecution start', { slug: req.params.agentSlug, version: req.params.version });
+
   const parsed = AgentExecutionInputSchema.safeParse(req.body);
-  if (!parsed.success) throw new HttpError(HTTP_BAD_REQUEST, parsed.error.message);
+  if (!parsed.success) {
+    logExec('input validation failed', { error: parsed.error.message });
+    throw new HttpError(HTTP_BAD_REQUEST, parsed.error.message);
+  }
 
   const { data: input } = parsed;
   const { orgId, agentId, version, supabase }: ExecutionAuthLocals = res.locals;
   const model = input.model ?? DEFAULT_MODEL;
+  logExec('auth resolved', { agentId, orgId, version, model, tenantId: input.tenantId });
 
   const fetched = await fetchAllData({ supabase, agentId, orgId, version, input, model });
+  logExec('data fetched', { appType: fetched.appType, sessionDbId: fetched.sessionDbId, currentNodeId: fetched.currentNodeId, hasAgentConfig: fetched.agentConfig !== null, messageCount: fetched.messageHistory.length, hasStack: fetched.stackTop !== null });
+
   const userMessage = buildUserMessage(input);
   fetched.messageHistory = [...fetched.messageHistory, userMessage];
 
@@ -152,6 +165,7 @@ async function prepareExecution(
     }),
     resolveVfsPayload(supabase, fetched, agentId, orgId),
   ]);
+  logExec('execution persisted', { executionId, hasVfs: vfsPayload !== null });
 
   return { supabase, input, agentId, orgId, version, model, fetched, userMessage, executionId, vfsPayload };
 }
@@ -259,14 +273,11 @@ export async function handleExecute(
 
     // Stack-based routing: if a child agent is active, route to it
     if (ctx.fetched.stackTop !== null) {
-      // TODO: Route to child agent config
-      // For now, log and continue with root agent (to be implemented in execute-child/resume-parent tasks)
-      process.stderr.write(
-        `[execute] Stack routing: child active at depth ${String(ctx.fetched.stackTop.depth)}, execution ${ctx.fetched.stackTop.execution_id}\n`
-      );
+      logExec('stack routing: child active', { depth: ctx.fetched.stackTop.depth, childExecution: ctx.fetched.stackTop.execution_id });
     }
 
     if (ctx.fetched.appType === 'agent') {
+      logExec('routing to agent execution', { executionId: ctx.executionId, stream: ctx.input.stream });
       await routeAgentExecution(
         {
           supabase: ctx.supabase,
@@ -277,12 +288,19 @@ export async function handleExecute(
         },
         res
       );
+      logExec('agent execution completed', { executionId: ctx.executionId });
     } else if (ctx.input.stream) {
+      logExec('routing to workflow streaming', { executionId: ctx.executionId });
       await handleStreaming(ctx, res);
+      logExec('workflow streaming completed', { executionId: ctx.executionId });
     } else {
+      logExec('routing to workflow non-streaming', { executionId: ctx.executionId });
       await handleNonStreaming(ctx, res);
+      logExec('workflow non-streaming completed', { executionId: ctx.executionId });
     }
   } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    logExec('execution error', { executionId, error: errMsg });
     await handleExecutionError(err, executionId, supabase, res);
   } finally {
     if (res.headersSent && !res.writableEnded) {

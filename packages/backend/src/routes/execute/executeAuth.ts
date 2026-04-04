@@ -150,10 +150,14 @@ async function authorizeAgent(
 }
 
 export async function requireExecutionAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+  process.stdout.write(`[executeAuth] authenticating ${req.method} ${req.path}\n`);
   const supabase = createServiceClient();
 
   const keyResult = await authenticateKey(req, res, supabase);
-  if (keyResult === null) return;
+  if (keyResult === null) {
+    process.stdout.write('[executeAuth] key authentication failed\n');
+    return;
+  }
 
   const ctx: AuthContext = {
     supabase,
@@ -162,7 +166,11 @@ export async function requireExecutionAuth(req: Request, res: Response, next: Ne
     allAgents: keyResult.allAgents,
   };
   const agentResult = await authorizeAgent(req, res, ctx);
-  if (agentResult === null) return;
+  if (agentResult === null) {
+    process.stdout.write('[executeAuth] agent authorization failed\n');
+    return;
+  }
+  process.stdout.write(`[executeAuth] authorized: agentId=${agentResult.agentId}, version=${String(agentResult.version)}\n`);
 
   setExecutionLocals(res, {
     orgId: keyResult.orgId,
