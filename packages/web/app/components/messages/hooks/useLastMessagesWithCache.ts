@@ -144,7 +144,7 @@ export const useLastMessagesWithCache = (projectName: string): UseLastMessagesWi
       setCacheState({ status: 'loading-cache' });
       const cached = await LastMessagesCacheService.getCache(projectName);
 
-      if (cached && Object.keys(cached.conversations).length > 0) {
+      if (cached && cached.conversations && Object.keys(cached.conversations).length > 0) {
         // Cache exists - show immediately and do delta sync
         isFirstLoadRef.current = false;
         setCacheData(cached);

@@ -855,32 +855,15 @@ export const getProjectInnerSettingsCached = async (namespace: string): Promise<
  */
 export const getProjectCollaborators = async (
   namespace: string,
-  cache = false
+  _cache = false
 ): Promise<Collaborator[] | null> => {
-  const cacheService = createCacheService('localStorage');
-  const cacheKey = `collaborators-${namespace}`;
-
-  // Try to get from cache if caching is enabled
-  if (cache) {
-    const cached = await cacheService.get('collaborators', namespace);
-    if (cached && cached.data) {
-      return cached.data as Collaborator[];
-    }
-  }
-
-  // Fetch from API (using cached version to prevent duplicate fetches)
   try {
-    const settings = await getProjectInnerSettingsCached(namespace);
-    const collaborators = settings?.collaborators || null;
-
-    // Cache if enabled and data exists
-    if (cache && collaborators) {
-      const TTL = 15 * 60 * 1000; // 15 minutes
-      await cacheService.set('collaborators', namespace, collaborators, TTL);
-    }
-
-    return collaborators;
-  } catch (error) {
+    const url = `${API_BASE_URL}/projects/${namespace}/collaborators`;
+    const response = await authenticatedFetch(url, {});
+    if (!response.ok) return null;
+    const data = await response.json();
+    return (data as { collaborators: Collaborator[] }).collaborators ?? null;
+  } catch {
     return null;
   }
 };
