@@ -161,8 +161,8 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
             </div>
           )}
           {!isTest && (
-            <div className="absolute bottom-[-10px] right-[-10px]">
-              <ChannelBadge channel={lastMessage?.channel ?? parsedChat.source} size={24} />
+            <div className="absolute bottom-[-8px] right-[-8px]">
+              <ChannelBadge channel={lastMessage?.channel ?? parsedChat.source} size={22} />
             </div>
           )}
         </div>

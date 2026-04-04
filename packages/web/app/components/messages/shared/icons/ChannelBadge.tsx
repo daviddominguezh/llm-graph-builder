@@ -39,7 +39,7 @@ function ChannelIcon({ channel, iconSize }: { channel: string; iconSize: number 
 }
 
 export function ChannelBadge({ channel, size = 18, className }: ChannelBadgeProps) {
-  const iconSize = Math.round(size * 0.8);
+  const iconSize = Math.round(size * 0.7);
 
   return (
     <div
