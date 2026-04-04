@@ -161,8 +161,8 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
             </div>
           )}
           {!isTest && (
-            <div className="absolute bottom-[-2px] right-[-2px]">
-              <ChannelBadge channel={lastMessage.channel ?? parsedChat.source} size={18} />
+            <div className="absolute bottom-[-10px] right-[-10px]">
+              <ChannelBadge channel={lastMessage?.channel ?? parsedChat.source} size={24} />
             </div>
           )}
         </div>
@@ -186,7 +186,7 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
                   </span>
                   {!isTest && parsedChat.source !== 'instagram' && (
                     <span
-                      className="text-[10px] font-medium text-muted-foreground truncate"
+                      className="text-xs font-medium text-muted-foreground truncate"
                       style={{ marginTop: '0px', marginRight: '6px' }}
                     >
                       {toFirstUppercase(formattedPhone)}
@@ -194,7 +194,7 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
                   )}
                 </>
               ) : (
-                <span className={`text-[15px] text-foreground font-semibold text-start whitespace-nowrap`}>
+                <span className={`text-xs text-foreground font-semibold text-start whitespace-nowrap`}>
                   {toFirstUppercase(formattedPhone)}
                 </span>
               )}

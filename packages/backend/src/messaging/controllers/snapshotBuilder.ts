@@ -83,10 +83,7 @@ async function batchGetAgentSlugs(
   const unique = [...new Set(agentIds)];
   if (unique.length === EMPTY_LENGTH) return new Map();
 
-  const result = await supabase
-    .from('agents')
-    .select('id, slug')
-    .in('id', unique);
+  const result = await supabase.from('agents').select('id, slug').in('id', unique);
 
   const map = new Map<string, string>();
   if (Array.isArray(result.data)) {
