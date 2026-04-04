@@ -61,6 +61,9 @@ export interface LastMessage extends Message {
   key?: string;
   isTestChat?: boolean;
   unansweredCount?: number;
+  channel?: string;
+  agentId?: string;
+  agentSlug?: string;
 }
 
 export type LastMessages = Record<string, LastMessage>;

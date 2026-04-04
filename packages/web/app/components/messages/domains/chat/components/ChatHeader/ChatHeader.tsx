@@ -265,7 +265,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           />
           {!isTestChat && chatId !== TEST_PHONE && (
             <div className="absolute bottom-[-2px] right-[-2px]">
-              <ChannelBadge channel={parsedChat.source} size={16} />
+              <ChannelBadge channel={chat?.channel ?? parsedChat.source} size={16} />
             </div>
           )}
         </div>

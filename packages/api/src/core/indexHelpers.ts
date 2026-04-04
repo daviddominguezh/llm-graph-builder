@@ -3,6 +3,7 @@ import type { AssistantModelMessage, ModelMessage } from 'ai';
 import { INITIAL_STEP_NODE } from '@src/constants/index.js';
 import { getNode } from '@src/stateMachine/graph/index.js';
 import type { ParsedResult } from '@src/types/ai/index.js';
+import { MESSAGES_PROVIDER, type Message } from '@src/types/ai/messages.js';
 import type { Graph } from '@src/types/graph.js';
 import type { Context } from '@src/types/tools.js';
 
@@ -16,6 +17,65 @@ export { getRequiredTool } from './nodeHelpers.js';
 
 const LAST_INDEX_OFFSET = 1;
 const EMPTY_LENGTH = 0;
+
+/* ─── Structured output → synthetic message injection ─── */
+
+/**
+ * Converts a node ID like "create_recipe" or "my-node" to a tool name
+ * like "generateSchemaCreateRecipe" or "generateSchemaMyNode".
+ * Replaces underscores and hyphens with camelCase boundaries.
+ */
+function nodeIdToToolName(nodeId: string): string {
+  const camelized = nodeId.replace(/[\-_](?<ch>.)/gv, (_match, char: string) => char.toUpperCase());
+  const capitalized = camelized.charAt(0).toUpperCase() + camelized.slice(1);
+  return `generateSchema${capitalized}`;
+}
+
+function buildSyntheticToolCallId(nodeId: string): string {
+  return `schema-${nodeId}-${String(Date.now())}`;
+}
+
+/**
+ * Injects a synthetic tool call + tool result message pair into the
+ * conversation history so downstream nodes can see structured output
+ * produced by a previous node.
+ */
+function injectStructuredOutputMessages(
+  messages: Message[],
+  nodeId: string,
+  data: unknown
+): void {
+  const toolName = nodeIdToToolName(nodeId);
+  const toolCallId = buildSyntheticToolCallId(nodeId);
+  const outputJson = JSON.stringify(data);
+  const now = Date.now();
+
+  const assistantMsg: Message = {
+    provider: MESSAGES_PROVIDER.WEB,
+    id: `synthetic-call-${nodeId}`,
+    timestamp: now,
+    originalId: `synthetic-call-${nodeId}`,
+    type: 'text',
+    message: {
+      role: 'assistant',
+      content: [{ type: 'tool-call', toolCallId, toolName, input: {} }],
+    },
+  };
+
+  const toolResultMsg: Message = {
+    provider: MESSAGES_PROVIDER.WEB,
+    id: `synthetic-result-${nodeId}`,
+    timestamp: now,
+    originalId: `synthetic-result-${nodeId}`,
+    type: 'text',
+    message: {
+      role: 'tool',
+      content: [{ type: 'tool-result', toolCallId, toolName, output: { type: 'text', value: outputJson } }],
+    },
+  };
+
+  messages.push(assistantMsg, toolResultMsg);
+}
 
 interface FlowState {
   currentNodeID: string;
@@ -100,6 +160,10 @@ function handleNodeSuccess(params: NodeHandlerParams, state: FlowState): void {
   const { context, input, nodeId, result } = params;
   emitResultForNode({ context, input, nodeId, result });
   applySuccessResult(state.allToolCalls, result, state.structuredOutputs, state.newStructuredOutputs);
+
+  if (result.structuredOutput !== undefined) {
+    injectStructuredOutputMessages(input.messages, nodeId, result.structuredOutput.data);
+  }
 }
 
 function handleNodeError(params: NodeHandlerParams): void {

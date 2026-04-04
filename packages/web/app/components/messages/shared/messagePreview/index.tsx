@@ -114,6 +114,12 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
     return latestStatus.status;
   }, [lastMessage?.statuses]);
 
+  const toFirstUppercase = (name: string) => {
+    if (name === undefined || name === null) return '';
+    if (name.length < 2) return name.toUpperCase();
+    return name.substring(0, 1).toUpperCase() + name.substring(1);
+  };
+
   // Determine if there are unanswered messages
   // If the last message is from the user (not us), it's unanswered
   const hasUnansweredMessages = lastMessage?.message?.role === 'user';
@@ -156,7 +162,7 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
           )}
           {!isTest && (
             <div className="absolute bottom-[-2px] right-[-2px]">
-              <ChannelBadge channel={parsedChat.source} size={18} />
+              <ChannelBadge channel={lastMessage.channel ?? parsedChat.source} size={18} />
             </div>
           )}
         </div>
@@ -176,20 +182,20 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
               {name ? (
                 <>
                   <span className={`text-xs text-foreground font-semibold text-start whitespace-nowrap`}>
-                    {name}
+                    {toFirstUppercase(name)}
                   </span>
                   {!isTest && parsedChat.source !== 'instagram' && (
                     <span
                       className="text-[10px] font-medium text-muted-foreground truncate"
                       style={{ marginTop: '0px', marginRight: '6px' }}
                     >
-                      {formattedPhone}
+                      {toFirstUppercase(formattedPhone)}
                     </span>
                   )}
                 </>
               ) : (
                 <span className={`text-[15px] text-foreground font-semibold text-start whitespace-nowrap`}>
-                  {formattedPhone}
+                  {toFirstUppercase(formattedPhone)}
                 </span>
               )}
             </div>

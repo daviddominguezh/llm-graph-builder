@@ -110,7 +110,7 @@ export const ChatListItem: React.FC<ChatListItemProps> = memo(({
         )}
         {!isTestChat && (
           <div className="absolute bottom-[-2px] right-[-2px]">
-            <ChannelBadge channel={parsedChat.source} size={20} />
+            <ChannelBadge channel={chat.channel ?? parsedChat.source} size={20} />
           </div>
         )}
         {!chat.read && (
