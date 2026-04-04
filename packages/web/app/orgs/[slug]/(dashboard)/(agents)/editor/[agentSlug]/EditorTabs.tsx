@@ -139,7 +139,7 @@ export function EditorTabs(props: EditorTabsProps) {
         tAgents={tAgents}
       />
       <div ref={slotRef} className={activeTab === 'agent' ? 'flex-1' : 'hidden'} />
-      {activeTab === 'channels' && <ChannelsPanel orgId={props.orgId} />}
+      {activeTab === 'channels' && <ChannelsPanel orgId={props.orgId} agentId={props.agentId} />}
       {activeTab === 'settings' && (
         <SettingsPanel
           agentId={props.agentId}

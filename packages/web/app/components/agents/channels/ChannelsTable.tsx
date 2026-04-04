@@ -14,6 +14,7 @@ import { CHANNELS } from './channelDefinitions';
 
 interface ChannelsTableProps {
   tenants: TenantRow[];
+  agentId: string;
 }
 
 function ApiToggleCell() {
@@ -31,7 +32,7 @@ function ApiHeader({ label }: { label: string }) {
   );
 }
 
-export function ChannelsTable({ tenants }: ChannelsTableProps) {
+export function ChannelsTable({ tenants, agentId }: ChannelsTableProps) {
   const t = useTranslations('editor.channels');
 
   return (
@@ -63,7 +64,7 @@ export function ChannelsTable({ tenants }: ChannelsTableProps) {
             </TableCell>
             {CHANNELS.map((ch) => (
               <TableCell key={ch.key} className="text-center">
-                <ChannelCell />
+                <ChannelCell tenantId={tenant.id} channelKey={ch.key} agentId={agentId} />
               </TableCell>
             ))}
           </TableRow>

@@ -11,6 +11,7 @@ import { ChannelsTable } from './ChannelsTable';
 
 interface ChannelsPanelProps {
   orgId: string;
+  agentId: string;
 }
 
 interface TenantsData {
@@ -41,7 +42,7 @@ function ErrorMessage({ message }: { message: string }) {
   );
 }
 
-export function ChannelsPanel({ orgId }: ChannelsPanelProps) {
+export function ChannelsPanel({ orgId, agentId }: ChannelsPanelProps) {
   const t = useTranslations('editor.channels');
   const [data, setData] = useState<TenantsData>({ tenants: [], loading: true, error: null });
 
@@ -55,7 +56,7 @@ export function ChannelsPanel({ orgId }: ChannelsPanelProps) {
 
   return (
     <div className="flex-1 overflow-auto p-4">
-      <ChannelsTable tenants={data.tenants} />
+      <ChannelsTable tenants={data.tenants} agentId={agentId} />
     </div>
   );
 }
