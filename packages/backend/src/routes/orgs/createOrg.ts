@@ -1,8 +1,11 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Request } from 'express';
 
+import { createApiKey } from '../../db/queries/apiKeyQueries.js';
 import { updateBloomFilter } from '../../db/queries/bloomFilterQueries.js';
 import { insertOrg } from '../../db/queries/orgQueries.js';
 import { findUniqueSlug, generateSlug } from '../../db/queries/slugQueries.js';
+import { createOpenRouterKey, OPENFLOW_KEY_NAME } from '../../openrouter/managementKeys.js';
 import { buildBitmask } from '../../utils/bloomFilter.js';
 import {
   type AuthenticatedLocals,
@@ -13,6 +16,25 @@ import {
   extractErrorMessage,
 } from '../routeHelpers.js';
 import { parseStringField } from './orgHelpers.js';
+
+async function provisionOpenRouterKey(
+  supabase: SupabaseClient,
+  orgId: string,
+  orgName: string
+): Promise<void> {
+  try {
+    const orKey = await createOpenRouterKey(orgName);
+    if (orKey === null) return;
+
+    const { error } = await createApiKey(supabase, orgId, OPENFLOW_KEY_NAME, orKey.key);
+    if (error !== null) {
+      process.stderr.write(`[openrouter] Failed to store key for org ${orgId}: ${error}\n`);
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    process.stderr.write(`[openrouter] Key provisioning failed for org ${orgId}: ${msg}\n`);
+  }
+}
 
 export async function handleCreateOrg(req: Request, res: AuthenticatedResponse): Promise<void> {
   const { supabase }: AuthenticatedLocals = res.locals;
@@ -39,6 +61,7 @@ export async function handleCreateOrg(req: Request, res: AuthenticatedResponse):
     }
 
     await updateBloomFilter(supabase, buildBitmask(slug), 'organizations');
+    await provisionOpenRouterKey(supabase, result.id, name);
     res.status(HTTP_OK).json(result);
   } catch (err) {
     res.status(HTTP_INTERNAL_ERROR).json({ error: extractErrorMessage(err) });
