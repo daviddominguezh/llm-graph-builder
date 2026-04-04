@@ -9,8 +9,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PhoneInput } from '@/components/ui/phone-input';
+import type { Value as E164Value } from 'react-phone-number-input';
 import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
@@ -136,13 +137,13 @@ function PhoneField(props: {
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor="wa-phone">{t('phoneLabel')}</Label>
-      <Input
+      <PhoneInput
         id="wa-phone"
-        type="tel"
+        defaultCountry="CO"
         placeholder={t('phonePlaceholder')}
-        value={props.phone}
+        value={props.phone as E164Value}
         disabled={props.disabled}
-        onChange={(e) => props.setFlow((s) => ({ ...s, phone: e.target.value }))}
+        onChange={(value) => props.setFlow((s) => ({ ...s, phone: (value as string) || '' }))}
       />
       <p className="text-xs text-muted-foreground">{t('phoneHint')}</p>
     </div>
@@ -150,8 +151,9 @@ function PhoneField(props: {
 }
 
 function normalizePhone(raw: string): string {
-  const stripped = raw.replace(/[\s\-.()]/g, '');
-  return stripped.startsWith('+') ? stripped : `+${stripped}`;
+  // react-phone-number-input already returns E.164 format (e.g., +573001234567)
+  // Just strip any remaining whitespace as a safety net
+  return raw.replace(/\s/g, '');
 }
 
 function isValidPhone(phone: string): boolean {

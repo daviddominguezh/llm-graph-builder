@@ -42,6 +42,7 @@
     "react-hook-form": "^7.72.0",
     "react-markdown": "^10.1.0",
     "react-nice-avatar": "^1.5.0",
+    "react-phone-number-input": "^3.4.16",
     "react-quilljs": "^2.0.5",
     "react-redux": "^9.2.0",
     "react-resizable-panels": "^4.8.0",
