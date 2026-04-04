@@ -50,11 +50,13 @@ class ConversationMessagesCacheServiceImpl {
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
 
-        if (!db.objectStoreNames.contains(CONVERSATION_MESSAGES_STORE_NAME)) {
-          db.createObjectStore(CONVERSATION_MESSAGES_STORE_NAME, {
-            keyPath: 'cacheKey',
-          });
+        // Drop and recreate store on version upgrade to clear stale data
+        if (db.objectStoreNames.contains(CONVERSATION_MESSAGES_STORE_NAME)) {
+          db.deleteObjectStore(CONVERSATION_MESSAGES_STORE_NAME);
         }
+        db.createObjectStore(CONVERSATION_MESSAGES_STORE_NAME, {
+          keyPath: 'cacheKey',
+        });
       };
     });
 

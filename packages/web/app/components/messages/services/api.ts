@@ -9,7 +9,7 @@ import type {
 import { getAuthToken, handleAuthError } from '@/app/components/messages/services/auth';
 import { isPublicEndpoint as checkIsPublicEndpoint } from '@/app/components/messages/shared/constStubs';
 import { isLocalDevelopment } from '@/app/components/messages/shared/utilStubs';
-import { Conversation, LastMessage, LastMessages } from '@/app/types/chat';
+import { Conversation, INTENT, LastMessage, LastMessages, Message } from '@/app/types/chat';
 import { FinalUserInfoAPI } from '@/app/types/finalUsers';
 import { MediaFileDetail, MediaFileKind } from '@/app/types/media';
 import { Collaborator, InnerSettings } from '@/app/types/projectInnerSettings';
@@ -253,6 +253,45 @@ export const getFileDescription = async (
   }
 };
 
+/** Raw message row from the backend (snake_case DB columns) */
+interface RawMessageRow {
+  id: string;
+  conversation_id: string;
+  role: 'user' | 'assistant';
+  type: string;
+  content: string | null;
+  media_url: string | null;
+  reply_id: string | null;
+  original_id: string | null;
+  channel_thread_id: string | null;
+  metadata: Record<string, unknown> | null;
+  timestamp: number;
+  created_at: string;
+}
+
+/** Transform a flat DB row into the frontend Message shape */
+function toMessage(row: RawMessageRow): Message {
+  return {
+    id: row.id,
+    timestamp: row.timestamp,
+    originalId: row.original_id ?? row.id,
+    intent: INTENT.NONE,
+    message: { role: row.role, content: row.content ?? '' },
+    type: (row.type ?? 'text') as Message['type'],
+    mediaUrl: row.media_url,
+    replyId: row.reply_id,
+  };
+}
+
+/** Convert an array of raw rows into a keyed Conversation record */
+function toConversation(rows: RawMessageRow[]): Conversation {
+  const result: Conversation = {};
+  for (const row of rows) {
+    result[row.id] = toMessage(row);
+  }
+  return result;
+}
+
 export const getMessagesFromSender = async (
   namespace: string,
   sender: string,
@@ -265,7 +304,8 @@ export const getMessagesFromSender = async (
 
     if (!response.ok) return null;
 
-    return await response.json();
+    const data: { messages: RawMessageRow[] } = await response.json();
+    return toConversation(data.messages ?? []);
   } catch (error) {
     return null;
   }
@@ -308,7 +348,17 @@ export const getMessagesFromSenderPaginated = async (
 
     if (!response.ok) return null;
 
-    return await response.json();
+    const data: {
+      messages: RawMessageRow[];
+      hasMore: boolean;
+      nextCursor?: { timestamp: number; key: string };
+    } = await response.json();
+
+    return {
+      messages: toConversation(data.messages ?? []),
+      hasMore: data.hasMore,
+      nextCursor: data.nextCursor,
+    };
   } catch (error) {
     return null;
   }

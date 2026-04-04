@@ -15,4 +15,4 @@ export const CONVERSATION_MESSAGES_DB_NAME = 'conversationMessagesCacheDB';
 export const CONVERSATION_MESSAGES_STORE_NAME = 'conversationMessagesStore';
 
 /** IndexedDB database version */
-export const CONVERSATION_MESSAGES_DB_VERSION = 1;
+export const CONVERSATION_MESSAGES_DB_VERSION = 2;
