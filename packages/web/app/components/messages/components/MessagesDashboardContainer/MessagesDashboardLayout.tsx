@@ -156,7 +156,7 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
   } = useAI();
 
   // Chat filter state (shared between LeftPanel and ChatListPanel)
-  const [chatFilter, setChatFilter] = useState<string>(initialChatFilter || 'inbox');
+  const [chatFilter, setChatFilter] = useState<string>(initialChatFilter || 'all');
 
   // Sync chatFilter with initialChatFilter prop when it changes (e.g., when switching tabs)
   useEffect(() => {

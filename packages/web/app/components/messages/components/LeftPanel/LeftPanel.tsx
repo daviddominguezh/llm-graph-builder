@@ -87,8 +87,8 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
   if (isMobile) return null;
 
   const allItems: SectionItem[] = [
-    { id: 'inbox', label: t('Your inbox'), icon: <Inbox className="size-4" />, badge: badges.inbox },
     { id: 'all', label: t('All'), icon: <MessagesSquare className="size-4" />, badge: badges.all },
+    { id: 'inbox', label: t('Your inbox'), icon: <Inbox className="size-4" />, badge: badges.inbox },
     {
       id: 'with-bot',
       label: t('With agent'),
