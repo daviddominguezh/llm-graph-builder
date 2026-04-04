@@ -1,19 +1,20 @@
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
+import { executeAgentCore } from '../../routes/execute/executeCore.js';
 import { updateConversationLastMessage } from '../queries/conversationMutations.js';
 import { findOrCreateConversation } from '../queries/conversationQueries.js';
 import { insertMessage, insertMessageAi } from '../queries/messageQueries.js';
 import { publishToTenant, releaseLock, waitForLock } from '../services/redis.js';
 import type { ChannelConnectionRow, ConversationRow, IncomingMessage } from '../types/index.js';
 import { REDIS_KEYS, buildRedisKey } from '../types/redisKeys.js';
-import { invokeAgent } from './agentInvoker.js';
+import { resolveAgentForChannel } from './agentResolver.js';
 import { enrichIncomingMessage } from './mediaEnricher.js';
 import { deliverToProvider } from './messageProcessor.js';
 import { sendTypingIndicator } from './typingIndicators.js';
 
-const ZERO_UNANSWERED = 0;
 const INCREMENT = 1;
+const SINGLE_RESULT = 1;
 const LOCK_TTL_SECONDS = 300;
-const LOCK_TIMEOUT_MS = 120_000; // 2 minutes
+const LOCK_TIMEOUT_MS = 120_000;
 
 /* ─── Upsert end user ─── */
 
@@ -33,20 +34,18 @@ async function upsertEndUser(
   );
 }
 
-/* ─── Save user message ─── */
+/* ─── Save user message to messaging tables ─── */
 
 interface SaveUserParams {
   supabase: SupabaseClient;
   conversationId: string;
   incoming: IncomingMessage;
   mediaUrl?: string;
-  clientMessageId?: string;
 }
 
 async function saveUserMessage(params: SaveUserParams): Promise<void> {
   await Promise.all([
     insertMessage(params.supabase, {
-      id: params.clientMessageId,
       conversationId: params.conversationId,
       role: 'user',
       type: params.incoming.type,
@@ -67,32 +66,6 @@ async function saveUserMessage(params: SaveUserParams): Promise<void> {
   ]);
 }
 
-/* ─── Save AI response ─── */
-
-async function saveAiResponse(
-  supabase: SupabaseClient,
-  conversationId: string,
-  content: string,
-  timestamp: number
-): Promise<void> {
-  await Promise.all([
-    insertMessage(supabase, {
-      conversationId,
-      role: 'assistant',
-      type: 'text',
-      content,
-      timestamp,
-    }),
-    insertMessageAi(supabase, {
-      conversationId,
-      role: 'assistant',
-      type: 'text',
-      content,
-      timestamp,
-    }),
-  ]);
-}
-
 /* ─── Publish conversation update to Redis ─── */
 
 async function publishUpdate(tenantId: string, conversationId: string): Promise<void> {
@@ -101,58 +74,56 @@ async function publishUpdate(tenantId: string, conversationId: string): Promise<
   });
 }
 
-/* ─── Process AI response (deliver + persist) ─── */
+/* ─── Update conversation for incoming user message ─── */
 
-async function processAiResponse(
+async function updateConversationForUser(
   supabase: SupabaseClient,
   conversation: ConversationRow,
-  responseText: string,
+  incoming: IncomingMessage,
   tenantId: string
 ): Promise<void> {
-  // Fix 26: Send typing indicator before delivering AI response
+  await updateConversationLastMessage(supabase, conversation.id, {
+    lastMessageContent: incoming.content,
+    lastMessageRole: 'user',
+    lastMessageType: incoming.type,
+    lastMessageAt: new Date(incoming.timestamp).toISOString(),
+    read: false,
+    unansweredCount: conversation.unanswered_count + INCREMENT,
+  });
+
+  await publishUpdate(tenantId, conversation.id);
+}
+
+/* ─── Deliver AI response via channel ─── */
+
+async function deliverAiResponse(
+  supabase: SupabaseClient,
+  conversation: ConversationRow,
+  responseText: string
+): Promise<void> {
   await sendTypingIndicator(supabase, conversation);
 
-  // Fix 16: Deliver first, only save if successful
   const sendResult = await deliverToProvider(supabase, conversation, responseText);
   if (sendResult === null) {
     process.stdout.write(`[messaging] AI send failed for ${conversation.user_channel_id}\n`);
     return;
   }
 
-  const responseTimestamp = Date.now();
-  await saveAiResponse(supabase, conversation.id, responseText, responseTimestamp);
-
   if (sendResult.originalId !== '') {
-    updateSentMessageId(supabase, conversation.id, responseTimestamp, sendResult.originalId);
+    updateSentMessageId(supabase, conversation.id, sendResult.originalId);
   }
-
-  await updateConversationLastMessage(supabase, conversation.id, {
-    lastMessageContent: responseText,
-    lastMessageRole: 'assistant',
-    lastMessageType: 'text',
-    lastMessageAt: new Date(responseTimestamp).toISOString(),
-    read: true,
-    unansweredCount: ZERO_UNANSWERED,
-  });
-
-  // Fix 2: Publish to Redis for real-time inbox
-  await publishUpdate(tenantId, conversation.id);
 }
 
 /* ─── Update sent message original_id (fire-and-forget) ─── */
 
-function updateSentMessageId(
-  supabase: SupabaseClient,
-  conversationId: string,
-  timestamp: number,
-  originalId: string
-): void {
+function updateSentMessageId(supabase: SupabaseClient, conversationId: string, originalId: string): void {
   const query = supabase
     .from('messages')
     .update({ original_id: originalId })
     .eq('conversation_id', conversationId)
     .eq('role', 'assistant')
-    .eq('timestamp', timestamp);
+    .order('timestamp', { ascending: false })
+    .limit(SINGLE_RESULT);
 
   void Promise.resolve(query).catch((err: unknown) => {
     process.stdout.write(`[messaging] Failed to update sent message ID: ${String(err)}\n`);
@@ -181,35 +152,17 @@ export async function processIncomingMessage(params: ProcessIncomingParams): Pro
     name: incoming.userName,
   });
 
-  // R2-1: Download media from provider, R2-2: Audio placeholder
-  const enriched = await enrichIncomingMessage(supabase, connection, incoming);
-  const { content: enrichedContent } = enriched;
+  const { content: enrichedContent, mediaUrl } = await enrichIncomingMessage(supabase, connection, incoming);
   incoming.content = enrichedContent;
 
   await upsertEndUser(supabase, connection.tenant_id, incoming.userChannelId, incoming.userName);
-  await saveUserMessage({
-    supabase,
-    conversationId: conversation.id,
-    incoming,
-    mediaUrl: enriched.mediaUrl,
-  });
+  await saveUserMessage({ supabase, conversationId: conversation.id, incoming, mediaUrl });
 
-  const newUnansweredCount = conversation.unanswered_count + INCREMENT;
-
-  await updateConversationLastMessage(supabase, conversation.id, {
-    lastMessageContent: incoming.content,
-    lastMessageRole: 'user',
-    lastMessageType: incoming.type,
-    lastMessageAt: new Date(incoming.timestamp).toISOString(),
-    read: false,
-    unansweredCount: newUnansweredCount,
-  });
-
-  await publishUpdate(connection.tenant_id, conversation.id);
+  await updateConversationForUser(supabase, conversation, incoming, connection.tenant_id);
 
   if (!conversation.enabled) return;
 
-  await invokeAiWithLock(supabase, conversation, incoming.content, connection.tenant_id);
+  await invokeAiWithLock(supabase, conversation, incoming.content, connection);
 }
 
 /* ─── Invoke AI with distributed lock ─── */
@@ -218,9 +171,12 @@ async function invokeAiWithLock(
   supabase: SupabaseClient,
   conversation: ConversationRow,
   userContent: string,
-  tenantId: string
+  connection: ChannelConnectionRow
 ): Promise<void> {
-  const lockKey = buildRedisKey(REDIS_KEYS.REPLY_LOCK, `${tenantId}:${conversation.user_channel_id}`);
+  const lockKey = buildRedisKey(
+    REDIS_KEYS.REPLY_LOCK,
+    `${connection.tenant_id}:${conversation.user_channel_id}`
+  );
   const token = await waitForLock(lockKey, LOCK_TTL_SECONDS, LOCK_TIMEOUT_MS);
 
   if (token === null) {
@@ -229,12 +185,46 @@ async function invokeAiWithLock(
   }
 
   try {
-    const aiResult = await invokeAgent({ supabase, conversation, userMessageContent: userContent });
-    if (aiResult === null || aiResult.responseText === '') return;
-
-    await processAiResponse(supabase, conversation, aiResult.responseText, tenantId);
+    await executeAndDeliver(supabase, conversation, userContent, connection);
   } finally {
     await releaseLock(lockKey, token);
+  }
+}
+
+/* ─── Execute AI and deliver response ─── */
+
+async function executeAndDeliver(
+  supabase: SupabaseClient,
+  conversation: ConversationRow,
+  userContent: string,
+  connection: ChannelConnectionRow
+): Promise<void> {
+  try {
+    const agent = await resolveAgentForChannel(supabase, connection);
+
+    const result = await executeAgentCore({
+      supabase,
+      orgId: agent.orgId,
+      agentId: agent.agentId,
+      version: agent.version,
+      conversationId: conversation.id,
+      input: {
+        tenantId: connection.tenant_id,
+        userId: conversation.user_channel_id,
+        sessionId: conversation.thread_id,
+        channel: connection.channel_type,
+        stream: false,
+        message: { text: userContent },
+      },
+    });
+
+    const responseText = result.output?.text ?? '';
+    if (responseText === '') return;
+
+    await deliverAiResponse(supabase, conversation, responseText);
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : 'AI invocation failed';
+    process.stdout.write(`[messaging] AI execution failed: ${errMsg}\n`);
   }
 }
 

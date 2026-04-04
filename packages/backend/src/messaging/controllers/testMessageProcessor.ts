@@ -2,74 +2,13 @@
  * Test message processor.
  *
  * Handles messages from the built-in test console (no channel delivery).
+ * Uses executeAgentCore for the unified execution pipeline.
  */
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
-import { updateConversationLastMessage } from '../queries/conversationMutations.js';
-import { findOrCreateConversation } from '../queries/conversationQueries.js';
-import { insertMessage, insertMessageAi } from '../queries/messageQueries.js';
+import { executeAgentCore } from '../../routes/execute/executeCore.js';
 import { publishToTenant } from '../services/redis.js';
-import type { ConversationRow, IncomingMessage } from '../types/index.js';
 import { TEST_USER_CHANNEL_ID } from '../types/index.js';
-import { invokeAgent } from './agentInvoker.js';
-
-const ZERO_UNANSWERED = 0;
-
-/* ─── Save message pair ─── */
-
-interface SaveParams {
-  supabase: SupabaseClient;
-  conversationId: string;
-  incoming: IncomingMessage;
-  clientMessageId?: string;
-}
-
-async function saveUserMessage(params: SaveParams): Promise<void> {
-  await Promise.all([
-    insertMessage(params.supabase, {
-      id: params.clientMessageId,
-      conversationId: params.conversationId,
-      role: 'user',
-      type: params.incoming.type,
-      content: params.incoming.content,
-      originalId: params.incoming.originalId,
-      timestamp: params.incoming.timestamp,
-    }),
-    insertMessageAi(params.supabase, {
-      conversationId: params.conversationId,
-      role: 'user',
-      type: params.incoming.type,
-      content: params.incoming.content,
-      originalId: params.incoming.originalId,
-      timestamp: params.incoming.timestamp,
-    }),
-  ]);
-}
-
-/* ─── Save AI response ─── */
-
-async function saveAiResponse(
-  supabase: SupabaseClient,
-  conversationId: string,
-  content: string,
-  timestamp: number
-): Promise<void> {
-  await Promise.all([
-    insertMessage(supabase, {
-      conversationId,
-      role: 'assistant',
-      type: 'text',
-      content,
-      timestamp,
-    }),
-    insertMessageAi(supabase, {
-      conversationId,
-      role: 'assistant',
-      type: 'text',
-      content,
-      timestamp,
-    }),
-  ]);
-}
+import { resolveAgentForChannel } from './agentResolver.js';
 
 /* ─── Publish to Redis ─── */
 
@@ -79,31 +18,42 @@ async function publishUpdate(tenantId: string, conversationId: string): Promise<
   });
 }
 
-/* ─── Invoke AI and save response ─── */
+/* ─── Invoke AI via executeAgentCore ─── */
 
-async function invokeAiAndSave(
-  supabase: SupabaseClient,
-  conversation: ConversationRow,
-  userContent: string,
-  tenantId: string
-): Promise<void> {
+interface InvokeTestAiParams {
+  supabase: SupabaseClient;
+  orgId: string;
+  agentId: string;
+  tenantId: string;
+  content: string;
+}
+
+async function invokeAiAndPublish(params: InvokeTestAiParams): Promise<void> {
   try {
-    const aiResult = await invokeAgent({ supabase, conversation, userMessageContent: userContent });
-    if (aiResult === null || aiResult.responseText === '') return;
+    const agent = await resolveAgentForChannel(params.supabase, { agent_id: params.agentId });
 
-    const responseTimestamp = Date.now();
-    await saveAiResponse(supabase, conversation.id, aiResult.responseText, responseTimestamp);
-
-    await updateConversationLastMessage(supabase, conversation.id, {
-      lastMessageContent: aiResult.responseText,
-      lastMessageRole: 'assistant',
-      lastMessageType: 'text',
-      lastMessageAt: new Date(responseTimestamp).toISOString(),
-      read: true,
-      unansweredCount: ZERO_UNANSWERED,
+    const result = await executeAgentCore({
+      supabase: params.supabase,
+      orgId: agent.orgId,
+      agentId: agent.agentId,
+      version: agent.version,
+      input: {
+        tenantId: params.tenantId,
+        userId: TEST_USER_CHANNEL_ID,
+        sessionId: TEST_USER_CHANNEL_ID,
+        channel: 'web',
+        stream: false,
+        message: { text: params.content },
+      },
     });
 
-    await publishUpdate(tenantId, conversation.id);
+    const responseText = result.output?.text ?? '';
+    if (responseText === '') return;
+
+    // No channel delivery needed for test console
+    // executeAgentCore already persisted to messaging tables
+    // Just publish a Redis update so the test UI refreshes
+    await publishUpdate(params.tenantId, '');
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
     process.stdout.write(`[messaging] AI invocation for test failed: ${msg}\n`);
@@ -122,52 +72,13 @@ interface ProcessTestParams {
   clientMessageId?: string;
 }
 
-function buildTestIncoming(content: string, type: string, timestamp: number): IncomingMessage {
-  return {
-    userChannelId: TEST_USER_CHANNEL_ID,
-    channelIdentifier: '',
-    content,
-    type,
-    originalId: '',
-    userName: undefined,
-    mediaId: undefined,
-    replyOriginalId: undefined,
-    timestamp,
-  };
-}
-
-export async function processTestMessage(params: ProcessTestParams): Promise<void> {
-  const userChannelId = TEST_USER_CHANNEL_ID;
-
-  const conversation = await findOrCreateConversation(params.supabase, {
+export function processTestMessage(params: ProcessTestParams): void {
+  // Fire-and-forget: executeAgentCore handles all persistence
+  void invokeAiAndPublish({
+    supabase: params.supabase,
     orgId: params.orgId,
     agentId: params.agentId,
     tenantId: params.tenantId,
-    userChannelId,
-    threadId: userChannelId,
-    channel: 'api',
+    content: params.content,
   });
-
-  const now = Date.now();
-  const incoming = buildTestIncoming(params.content, params.type, now);
-
-  await saveUserMessage({
-    supabase: params.supabase,
-    conversationId: conversation.id,
-    incoming,
-    clientMessageId: params.clientMessageId,
-  });
-
-  await updateConversationLastMessage(params.supabase, conversation.id, {
-    lastMessageContent: params.content,
-    lastMessageRole: 'user',
-    lastMessageType: params.type,
-    lastMessageAt: new Date(now).toISOString(),
-    read: true,
-    unansweredCount: ZERO_UNANSWERED,
-  });
-
-  await publishUpdate(params.tenantId, conversation.id);
-
-  void invokeAiAndSave(params.supabase, conversation, params.content, params.tenantId);
 }

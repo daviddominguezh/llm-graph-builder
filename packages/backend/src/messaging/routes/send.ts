@@ -101,7 +101,7 @@ async function handleTestMessage(req: Request, res: MessagingResponse): Promise<
     }
     const orgId = await getOrgIdFromAgent(supabase, body.agentId);
 
-    await processTestMessage({
+    processTestMessage({
       supabase,
       orgId,
       agentId: body.agentId,

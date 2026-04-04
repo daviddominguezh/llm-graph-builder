@@ -29,7 +29,10 @@ function buildTokenUsage(result: CallAgentOutput): AgentAppResponse['tokenUsage'
   };
 }
 
-export function buildWorkflowResponse(result: CallAgentOutput, durationMs: number): WorkflowExecutionResponse {
+export function buildWorkflowResponse(
+  result: CallAgentOutput,
+  durationMs: number
+): WorkflowExecutionResponse {
   return {
     appType: 'workflow',
     text: result.text ?? '',
@@ -42,16 +45,24 @@ export function buildWorkflowResponse(result: CallAgentOutput, durationMs: numbe
   };
 }
 
+const FIRST_SEEN = 0;
+const INCREMENT = 1;
 const FIRST_REPEAT = 2;
+
+function buildOutputKey(nodeId: string, seen: number): string {
+  if (seen === FIRST_SEEN) return nodeId;
+  return `${nodeId}-${String(seen + FIRST_REPEAT - INCREMENT)}`;
+}
 
 function buildStructuredOutputsMap(result: CallAgentOutput): Record<string, unknown> {
   const map: Record<string, unknown> = {};
   const counts = new Map<string, number>();
   for (const so of result.structuredOutputs ?? []) {
-    const seen = counts.get(so.nodeId) ?? 0;
-    const key = seen === 0 ? so.nodeId : `${so.nodeId}-${String(seen + FIRST_REPEAT - 1)}`;
-    map[key] = so.data;
-    counts.set(so.nodeId, seen + 1);
+    const { nodeId, data } = so;
+    const seen = counts.get(nodeId) ?? FIRST_SEEN;
+    const key = buildOutputKey(nodeId, seen);
+    map[key] = data;
+    counts.set(nodeId, seen + INCREMENT);
   }
   return map;
 }
@@ -86,7 +97,7 @@ export function buildEmptyResponse(appType: string): AgentExecutionResponse {
     currentNodeId: '',
     visitedNodes: [],
     toolCalls: [],
-    structuredOutputs: {},  // empty response has no outputs
+    structuredOutputs: {}, // empty response has no outputs
     tokenUsage,
     durationMs: ZERO,
   };
