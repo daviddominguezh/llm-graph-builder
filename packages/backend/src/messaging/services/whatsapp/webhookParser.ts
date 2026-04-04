@@ -200,13 +200,20 @@ function buildIncomingMessage(
   };
 }
 
+type EchoContentExtractor = (msg: HistoricMessage) => string;
+
+const ECHO_EXTRACTORS: Record<string, EchoContentExtractor> = {
+  text: (msg) => msg.text?.body ?? '',
+  image: (msg) => msg.image?.caption ?? '[image]',
+  video: (msg) => msg.video?.caption ?? '[video]',
+  document: (msg) => msg.document?.caption ?? '[document]',
+  audio: () => '[audio]',
+  sticker: () => '[sticker]',
+};
+
 function extractEchoContent(msg: HistoricMessage): string {
-  if (msg.type === 'text') return msg.text?.body ?? '';
-  if (msg.type === 'image') return msg.image?.caption ?? '[image]';
-  if (msg.type === 'video') return msg.video?.caption ?? '[video]';
-  if (msg.type === 'document') return msg.document?.caption ?? '[document]';
-  if (msg.type === 'audio') return '[audio]';
-  return '[sticker]';
+  const { [msg.type]: extractor } = ECHO_EXTRACTORS;
+  return extractor === undefined ? '' : extractor(msg);
 }
 
 function buildEchoMessage(msg: HistoricMessage, phoneNumberId: string): ParsedEchoMessage {
@@ -229,10 +236,7 @@ interface ParseChangeResult {
   phoneNumberId: string;
 }
 
-function parseMessagesChange(
-  value: WhatsAppValue,
-  results: IncomingMessage[]
-): ParseChangeResult {
+function parseMessagesChange(value: WhatsAppValue, results: IncomingMessage[]): ParseChangeResult {
   const { contacts: rawContacts, metadata, messages: rawMessages } = value;
   const contacts = rawContacts ?? [];
   const { phone_number_id: phoneNumberId } = metadata;
@@ -242,10 +246,7 @@ function parseMessagesChange(
   return { phoneNumberId };
 }
 
-function parseEchoChange(
-  value: MessageEchoValue,
-  echoResults: ParsedEchoMessage[]
-): ParseChangeResult {
+function parseEchoChange(value: MessageEchoValue, echoResults: ParsedEchoMessage[]): ParseChangeResult {
   const { metadata, message_echoes: echoes } = value;
   const { phone_number_id: phoneNumberId } = metadata;
   for (const msg of echoes) {
@@ -260,37 +261,38 @@ interface ParseAccumulator {
   phoneNumberId: string;
 }
 
-function parseChange(change: WhatsAppChange, acc: ParseAccumulator): void {
-  if (change.field === 'history') return;
+function resolvePhoneNumberId(change: WhatsAppChange, acc: ParseAccumulator): string {
+  if (change.field === 'history') return acc.phoneNumberId;
 
   if (change.field === 'smb_message_echoes' && isMessageEchoValue(change.value)) {
-    const result = parseEchoChange(change.value, acc.echoMessages);
-    if (result.phoneNumberId !== '') acc.phoneNumberId = result.phoneNumberId;
-    return;
+    const { phoneNumberId } = parseEchoChange(change.value, acc.echoMessages);
+    return phoneNumberId === '' ? acc.phoneNumberId : phoneNumberId;
   }
 
   if (change.field === 'messages') {
-    const result = parseMessagesChange(change.value as WhatsAppValue, acc.messages);
-    if (result.phoneNumberId !== '') acc.phoneNumberId = result.phoneNumberId;
+    const { phoneNumberId } = parseMessagesChange(change.value as WhatsAppValue, acc.messages);
+    return phoneNumberId === '' ? acc.phoneNumberId : phoneNumberId;
   }
+
+  return acc.phoneNumberId;
 }
 
 function flattenChanges(entries: WhatsAppEntry[]): WhatsAppChange[] {
   return entries.flatMap((entry) => entry.changes);
 }
 
-function parseEntries(entries: WhatsAppEntry[], acc: ParseAccumulator): void {
+function parseEntries(entries: WhatsAppEntry[]): ParseAccumulator {
+  let acc: ParseAccumulator = { messages: [], echoMessages: [], phoneNumberId: '' };
   for (const change of flattenChanges(entries)) {
-    parseChange(change, acc);
+    acc = { ...acc, phoneNumberId: resolvePhoneNumberId(change, acc) };
   }
+  return acc;
 }
 
 export function parseWhatsAppWebhook(body: unknown): ParsedWhatsAppWebhook | null {
   if (!isValidPayload(body)) return null;
 
-  const acc: ParseAccumulator = { messages: [], echoMessages: [], phoneNumberId: '' };
-  parseEntries(body.entry, acc);
-
+  const acc = parseEntries(body.entry);
   const hasContent = acc.messages.length > EMPTY_LENGTH || acc.echoMessages.length > EMPTY_LENGTH;
   if (!hasContent) return null;
 
