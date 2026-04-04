@@ -32,6 +32,7 @@ export type AgentMetadata = Pick<
   'id' | 'name' | 'slug' | 'description' | 'version' | 'updated_at'
 > & {
   published_at: string | null;
+  app_type?: string;
 };
 
 /* ------------------------------------------------------------------ */

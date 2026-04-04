@@ -53,7 +53,7 @@ function isVersionRow(value: unknown): value is VersionRow {
 /*  Constants                                                          */
 /* ------------------------------------------------------------------ */
 
-const METADATA_COLUMNS = 'id, name, slug, description, version:current_version, updated_at';
+const METADATA_COLUMNS = 'id, name, slug, description, version:current_version, updated_at, app_type';
 const EMPTY_LENGTH = 0;
 
 /* ------------------------------------------------------------------ */
