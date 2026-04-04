@@ -1,6 +1,6 @@
 import { useTenantId } from '@/app/components/messages/core/contexts/TenantContext';
 import { updateChatAssignee, updateChatStatus } from '@/app/components/messages/services/api';
-import { WhatsAppIcon } from '@/app/components/messages/shared/icons';
+import { ChannelBadge } from '@/app/components/messages/shared/icons';
 import { updateAssigneeOptimistic, updateStatusOptimistic } from '@/app/components/messages/store';
 import { useAppDispatch } from '@/app/components/messages/store/mainStore';
 import { TEST_PHONE } from '@/app/constants/messages';
@@ -8,7 +8,7 @@ import { LastMessage } from '@/app/types/chat';
 import { Collaborator } from '@/app/types/projectInnerSettings';
 import { generateAvatarConfig } from '@/app/utils/avatar';
 import { useIsMobile } from '@/app/utils/device';
-import { ChatSource, parseChatId } from '@/app/utils/strs';
+import { parseChatId } from '@/app/utils/strs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,7 +34,6 @@ import {
   CircleUserRound,
   Construction,
   EllipsisVertical,
-  Instagram,
   Trash2,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -95,25 +94,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     // For Instagram, prepend @ to the name and make lowercase
     return parsedChat.source === 'instagram' ? `@${baseName.toLowerCase()}` : baseName;
   })();
-
-  // Render platform badge icon
-  const renderPlatformBadge = (source: ChatSource) => {
-    if (source === 'whatsapp') {
-      return (
-        <div className="absolute bottom-[-2px] right-[-2px] bg-white rounded-full w-[16px] h-[16px] flex items-center justify-center border border-gray-200 shadow-sm">
-          <WhatsAppIcon size={10} className="text-[#25D366]" />
-        </div>
-      );
-    }
-    if (source === 'instagram') {
-      return (
-        <div className="absolute bottom-[-2px] right-[-2px] bg-white rounded-full w-[16px] h-[16px] flex items-center justify-center border border-gray-200 shadow-sm">
-          <Instagram size={10} className="text-[#E4405F]" />
-        </div>
-      );
-    }
-    return null;
-  };
 
   // Generate avatar config for the chat user
   const avatarConfig = generateAvatarConfig(chatId);
@@ -283,7 +263,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             style={{ width: '25px', height: '25px', minWidth: '25px' }}
             className="rounded-full"
           />
-          {!isTestChat && chatId !== TEST_PHONE && renderPlatformBadge(parsedChat.source)}
+          {!isTestChat && chatId !== TEST_PHONE && (
+            <div className="absolute bottom-[-2px] right-[-2px]">
+              <ChannelBadge channel={parsedChat.source} size={16} />
+            </div>
+          )}
         </div>
 
         {/* Name and status */}

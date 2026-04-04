@@ -7,6 +7,7 @@ export interface ChannelDef {
 /** API is handled separately as the first column with a toggle. */
 export const CHANNELS: ChannelDef[] = [
   { key: 'whatsapp', labelKey: 'whatsapp', enabled: true },
+  { key: 'web', labelKey: 'web', enabled: true },
   { key: 'instagram', labelKey: 'instagram', enabled: false },
   { key: 'slack', labelKey: 'slack', enabled: false },
   { key: 'teams', labelKey: 'teams', enabled: false },

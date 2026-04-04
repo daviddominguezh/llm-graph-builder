@@ -1,6 +1,8 @@
 'use client';
 
+import { Compass, Globe } from 'lucide-react';
 import Image from 'next/image';
+import React from 'react';
 
 interface ChannelHeaderIconProps {
   channelKey: string;
@@ -20,20 +22,27 @@ const ICON_FILE: Record<string, string> = {
   discord: '/channels/discord.svg',
 };
 
-export function ChannelHeaderIcon({ channelKey, label, enabled = true }: ChannelHeaderIconProps) {
-  const src = ICON_FILE[channelKey];
+const LUCIDE_ICONS: Record<string, React.ReactNode> = {
+  web: <Compass className="size-3.5 text-primary" />,
+  api: <Globe className="size-3.5 text-primary" />,
+};
 
+function ChannelIconElement({ channelKey, label }: { channelKey: string; label: string }) {
+  const lucideIcon = LUCIDE_ICONS[channelKey];
+  if (lucideIcon) return <>{lucideIcon}</>;
+
+  const src = ICON_FILE[channelKey];
+  if (src !== undefined) {
+    return <Image src={src} alt={label} width={ICON_SIZE} height={ICON_SIZE} />;
+  }
+
+  return null;
+}
+
+export function ChannelHeaderIcon({ channelKey, label, enabled = true }: ChannelHeaderIconProps) {
   return (
     <div className={`flex items-center justify-center gap-1.5 ${enabled ? '' : 'opacity-40'}`}>
-      {src !== undefined && (
-        <Image
-          src={src}
-          alt={label}
-          width={ICON_SIZE}
-          height={ICON_SIZE}
-          className={enabled ? '' : 'grayscale'}
-        />
-      )}
+      <ChannelIconElement channelKey={channelKey} label={label} />
       <span>{label}</span>
     </div>
   );

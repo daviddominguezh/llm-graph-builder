@@ -161,6 +161,7 @@
     "channels": {
       "tenant": "Tenant",
       "whatsapp": "WhatsApp",
+      "web": "Web",
       "slack": "Slack",
       "teams": "Teams",
       "googleChat": "Google Chat",

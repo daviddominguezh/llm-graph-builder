@@ -1,12 +1,12 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import Avatar from 'react-nice-avatar';
 import { Badge } from '@/components/ui/badge';
-import { WhatsAppIcon } from '@/app/components/messages/shared/icons';
+import { ChannelBadge } from '@/app/components/messages/shared/icons';
 import { generateAvatarConfig } from '@/app/utils/avatar';
-import { formatTimestamp, parseChatId, ChatSource } from '@/app/utils/strs';
+import { formatTimestamp, parseChatId } from '@/app/utils/strs';
 import { getMessageText } from '@/app/utils/message';
 import { LastMessage } from '@/app/types/chat';
-import { FlaskConical, Instagram } from 'lucide-react';
+import { FlaskConical } from 'lucide-react';
 import { TEST_PHONE } from '@/app/constants/messages';
 import styles from './ChatListItem.module.css';
 
@@ -82,25 +82,6 @@ export const ChatListItem: React.FC<ChatListItemProps> = memo(({
     return formatTimestamp(chat.timestamp);
   }, [chat.timestamp]);
 
-  // Render platform badge icon
-  const renderPlatformBadge = (source: ChatSource) => {
-    if (source === 'whatsapp') {
-      return (
-        <div className={styles.platformBadge}>
-          <WhatsAppIcon size={12} className="text-[#25D366]" />
-        </div>
-      );
-    }
-    if (source === 'instagram') {
-      return (
-        <div className={styles.platformBadge}>
-          <Instagram size={12} className="text-[#E4405F]" />
-        </div>
-      );
-    }
-    return null;
-  };
-
   return (
     <div
       className={`${styles.chatItem} ${isActive ? styles.active : ''} ${className}`}
@@ -127,7 +108,11 @@ export const ChatListItem: React.FC<ChatListItemProps> = memo(({
             <FlaskConical size={16} />
           </div>
         )}
-        {!isTestChat && renderPlatformBadge(parsedChat.source)}
+        {!isTestChat && (
+          <div className="absolute bottom-[-2px] right-[-2px]">
+            <ChannelBadge channel={parsedChat.source} size={20} />
+          </div>
+        )}
         {!chat.read && (
           <div className={styles.unreadDot} aria-label="Unread messages" />
         )}
