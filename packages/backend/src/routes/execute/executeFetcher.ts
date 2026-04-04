@@ -97,10 +97,43 @@ const EMPTY_GRAPH: RuntimeGraph = {
   initialUserMessage: '',
 };
 
+/**
+ * Transforms design-time graph data to runtime format.
+ *
+ * Design-time format: nodes have `outputSchemaId`, schemas in separate `outputSchemas` array.
+ * Runtime format: nodes have inline `outputSchema` (resolved fields), no top-level `outputSchemas`.
+ */
+function isRecordArray(value: unknown): value is Array<Record<string, unknown>> {
+  return Array.isArray(value) && value.every((item) => typeof item === 'object' && item !== null);
+}
+
+function toRuntimeFormat(graphData: Record<string, unknown>): Record<string, unknown> {
+  const { nodes: rawNodes, outputSchemas: rawSchemas, ...restGraph } = graphData;
+  if (!isRecordArray(rawNodes)) return graphData;
+  const schemas = isRecordArray(rawSchemas) ? rawSchemas : [];
+
+  const schemaMap = new Map<string, unknown>();
+  for (const s of schemas) {
+    if (typeof s.id === 'string') schemaMap.set(s.id, s.fields);
+  }
+
+  const runtimeNodes = rawNodes.map((node) => {
+    const { outputSchemaId, ...rest } = node;
+    const fields = typeof outputSchemaId === 'string' ? schemaMap.get(outputSchemaId) : undefined;
+    return { ...rest, outputSchema: fields };
+  });
+
+  return { ...restGraph, nodes: runtimeNodes };
+}
+
 function ensureGraphData(graphData: Record<string, unknown> | null): RuntimeGraph {
   if (graphData === null) throw new HttpError(HTTP_UNPROCESSABLE, 'Graph data not found');
-  const parsed = RuntimeGraphSchema.safeParse(graphData);
-  if (!parsed.success) throw new HttpError(HTTP_UNPROCESSABLE, 'Invalid graph data');
+  const runtime = toRuntimeFormat(graphData);
+  const parsed = RuntimeGraphSchema.safeParse(runtime);
+  if (!parsed.success) {
+    process.stdout.write(`[execute] graph validation failed: ${JSON.stringify(parsed.error.issues)}\n`);
+    throw new HttpError(HTTP_UNPROCESSABLE, 'Invalid graph data');
+  }
   return parsed.data;
 }
 
