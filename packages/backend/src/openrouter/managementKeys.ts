@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const OPENROUTER_KEYS_URL = 'https://openrouter.ai/api/v1/keys';
 
-const OPENFLOW_KEY_NAME = 'OPENFLOW-KEY';
+export const OPENFLOW_KEY_NAME = 'OPENFLOW-KEY';
 const OPENFLOW_KEY_BUDGET = 1;
 const OPENFLOW_KEY_BUDGET_RESET = 'monthly';
 
@@ -19,8 +19,8 @@ export interface OpenRouterKeyResult {
 }
 
 export async function createOpenRouterKey(orgName: string): Promise<OpenRouterKeyResult | null> {
-  const managementKey = process.env['OPENROUTER_MANAGEMENT_KEY'];
-  if (managementKey === undefined || managementKey === '') {
+  const managementKey = process.env.OPENROUTER_MANAGEMENT_KEY ?? '';
+  if (managementKey === '') {
     process.stderr.write('[openrouter] OPENROUTER_MANAGEMENT_KEY not set, skipping key creation\n');
     return null;
   }
@@ -45,5 +45,6 @@ export async function createOpenRouterKey(orgName: string): Promise<OpenRouterKe
 
   const json: unknown = await res.json();
   const parsed = CreateKeyResponseSchema.parse(json);
+  process.stdout.write(`[openrouter] Created key for org "${orgName}" (hash: ${parsed.data.hash})\n`);
   return parsed.data;
 }
