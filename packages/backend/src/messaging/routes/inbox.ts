@@ -120,7 +120,7 @@ async function handleGetDeleted(req: Request, res: MessagingResponse): Promise<v
 
     const sinceIso = new Date(sinceNum).toISOString();
     const ids = await getDeletedConversations(supabase, tenantId, sinceIso);
-    res.status(HTTP_OK).json({ deletedIds: ids });
+    res.status(HTTP_OK).json({ deletedChats: ids });
   } catch (err) {
     res.status(HTTP_INTERNAL).json({ error: extractErrorMessage(err) });
   }
