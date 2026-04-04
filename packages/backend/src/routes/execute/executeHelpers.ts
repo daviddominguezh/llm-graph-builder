@@ -280,3 +280,10 @@ export async function resolveOAuthForExecution(
   );
   return { ...graph, mcpServers: resolved };
 }
+
+/* ─── Execution logging ─── */
+
+export function logExec(label: string, data?: Record<string, unknown>): void {
+  const suffix = data === undefined ? '' : `: ${JSON.stringify(data)}`;
+  process.stdout.write(`[execute] ${label}${suffix}\n`);
+}

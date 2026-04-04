@@ -18,6 +18,7 @@ import {
 import {
   buildUserMessage,
   extractTextFromInput,
+  logExec,
   resolveMcpTransportVariables,
   resolveOAuthForExecution,
   sendNodeProcessedEvent,
@@ -128,30 +129,26 @@ async function resolveVfsPayload(
 }
 
 /* ─── Preparation ─── */
-function logExec(label: string, data?: Record<string, unknown>): void {
-  const suffix = data === undefined ? '' : `: ${JSON.stringify(data)}`;
-  process.stdout.write(`[execute] ${label}${suffix}\n`);
-}
 
 async function prepareExecution(
   req: Request<{ agentSlug: string; version: string }>,
   res: ExecutionAuthResponse
 ): Promise<ExecutionContext> {
-  logExec('prepareExecution start', { slug: req.params.agentSlug, version: req.params.version });
+  logExec('prepareExecution', { slug: req.params.agentSlug, version: req.params.version });
 
   const parsed = AgentExecutionInputSchema.safeParse(req.body);
-  if (!parsed.success) {
-    logExec('input validation failed', { error: parsed.error.message });
-    throw new HttpError(HTTP_BAD_REQUEST, parsed.error.message);
-  }
+  if (!parsed.success) throw new HttpError(HTTP_BAD_REQUEST, parsed.error.message);
 
   const { data: input } = parsed;
   const { orgId, agentId, version, supabase }: ExecutionAuthLocals = res.locals;
   const model = input.model ?? DEFAULT_MODEL;
-  logExec('auth resolved', { agentId, orgId, version, model, tenantId: input.tenantId });
 
   const fetched = await fetchAllData({ supabase, agentId, orgId, version, input, model });
-  logExec('data fetched', { appType: fetched.appType, sessionDbId: fetched.sessionDbId, currentNodeId: fetched.currentNodeId, hasAgentConfig: fetched.agentConfig !== null, messageCount: fetched.messageHistory.length, hasStack: fetched.stackTop !== null });
+  logExec('fetched', {
+    appType: fetched.appType,
+    node: fetched.currentNodeId,
+    msgs: fetched.messageHistory.length,
+  });
 
   const userMessage = buildUserMessage(input);
   fetched.messageHistory = [...fetched.messageHistory, userMessage];
@@ -279,10 +276,17 @@ export async function handleExecute(
 
     // Stack-based routing: if a child agent is active, route to it
     if (ctx.fetched.stackTop !== null) {
-      logExec('stack routing: child active', { depth: ctx.fetched.stackTop.depth, childExecution: ctx.fetched.stackTop.execution_id });
+      logExec('stack routing: child active', {
+        depth: ctx.fetched.stackTop.depth,
+        childExecution: ctx.fetched.stackTop.execution_id,
+      });
     }
 
-    logExec('routing execution', { appType: ctx.fetched.appType, executionId: ctx.executionId, stream: ctx.input.stream });
+    logExec('routing execution', {
+      appType: ctx.fetched.appType,
+      executionId: ctx.executionId,
+      stream: ctx.input.stream,
+    });
 
     if (ctx.input.stream) {
       await handleStreaming(ctx, res);
