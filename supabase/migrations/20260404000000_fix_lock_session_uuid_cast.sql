@@ -1,10 +1,15 @@
--- Fix: explicit uuid cast in lock_session_for_update to prevent
--- "operator does not exist: uuid = text" when called via Supabase RPC.
--- The JS client sends all parameters as JSON strings, and PostgreSQL
--- may not implicitly cast text → uuid depending on the context.
+-- Fix: accept p_agent_id as text and cast internally.
+-- The Supabase JS client sends RPC params as JSON strings, so PostgREST
+-- passes them as text. If the function signature expects uuid, PostgREST
+-- cannot find a matching function overload → "operator does not exist: uuid = text".
+--
+-- Solution: drop the old function (uuid signature) and recreate with text,
+-- casting to uuid inside the WHERE clause.
+
+DROP FUNCTION IF EXISTS lock_session_for_update(uuid, integer, text, text, text, text);
 
 CREATE OR REPLACE FUNCTION lock_session_for_update(
-  p_agent_id uuid,
+  p_agent_id text,
   p_version integer,
   p_tenant_id text,
   p_user_id text,
