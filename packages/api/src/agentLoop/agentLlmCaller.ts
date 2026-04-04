@@ -207,8 +207,13 @@ export async function callAgentLlm(params: LlmCallParams): Promise<LlmCallResult
     log('call config', config);
     const result = await generateText(config);
 
-    const raw: Record<string, unknown> = Object.fromEntries(Object.entries(result));
-    return processLlmResponse(raw);
+    return processLlmResponse({
+      text: result.text,
+      toolCalls: result.toolCalls,
+      usage: result.usage,
+      response: result.response,
+      providerMetadata: result.providerMetadata,
+    });
   } catch (err) {
     log('LLM call FAILED', { error: err instanceof Error ? err.message : String(err) });
     throw err;
