@@ -4,6 +4,8 @@ import { generateText } from 'ai';
 import { getOpenRouterModel } from '@src/provider/openRouter.js';
 import type { TokenLog } from '@src/types/ai/logs.js';
 
+import { logger } from '@src/utils/logger.js';
+
 import type { AgentToolCallRecord } from './agentLoopTypes.js';
 
 const TEMPERATURE = 0;
@@ -12,12 +14,8 @@ const ZERO = 0;
 const JSON_NO_INDENT = 0;
 
 function log(label: string, data?: unknown): void {
-  const prefix = '[agentLlmCaller]';
-  if (data === undefined) {
-    process.stderr.write(`${prefix} ${label}\n`);
-    return;
-  }
-  process.stderr.write(`${prefix} ${label}: ${JSON.stringify(data, null, JSON_NO_INDENT)}\n`);
+  const msg = data === undefined ? label : `${label}: ${JSON.stringify(data, null, JSON_NO_INDENT)}`;
+  logger.debug('[agentLlmCaller]', msg);
 }
 
 export interface LlmCallParams {

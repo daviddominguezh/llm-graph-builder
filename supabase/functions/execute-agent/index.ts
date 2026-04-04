@@ -8,6 +8,7 @@ import type {
   AgentStepEvent,
   CallAgentOutput,
   Context,
+  Logger,
   Message,
   NodeProcessedEvent,
 } from '@daviddh/llm-graph-runner';
@@ -270,6 +271,33 @@ function authenticateRequest(req: Request): Response | null {
   return null;
 }
 
+/* ─── Logging ─── */
+
+const log = {
+  info: (msg: string) => console.info(`[edge] ${msg}`),
+  error: (msg: string) => console.error(`[edge] ${msg}`),
+  debug: (msg: string) => console.debug(`[edge] ${msg}`),
+  warn: (msg: string) => console.warn(`[edge] ${msg}`),
+};
+
+function prefixed(fn: (...args: unknown[]) => void): (...args: unknown[]) => void {
+  return (...args: unknown[]) => fn('[runner]', ...args);
+}
+
+const runnerLogger: Logger = {
+  error: prefixed(console.error),
+  warn: prefixed(console.warn),
+  help: prefixed(console.info),
+  data: prefixed(console.debug),
+  info: prefixed(console.info),
+  debug: prefixed(console.debug),
+  prompt: prefixed(console.debug),
+  http: prefixed(console.debug),
+  verbose: prefixed(console.debug),
+  input: prefixed(console.debug),
+  silly: prefixed(console.debug),
+};
+
 /* ─── Agent loop execution ─── */
 
 type WriteEvent = (event: Record<string, unknown>) => void;
@@ -279,6 +307,8 @@ async function runAgentExecution(
   allTools: Record<string, Tool>,
   write: WriteEvent
 ): Promise<void> {
+  log.info(`agent start model=${payload.modelId} msgs=${payload.messages.length} tools=${Object.keys(allTools).length} prompt=${(payload.systemPrompt ?? '').slice(0, 80)}`);
+
   const result = await executeAgentLoop(
     {
       systemPrompt: payload.systemPrompt ?? '',
@@ -291,9 +321,11 @@ async function runAgentExecution(
     },
     {
       onStepStarted: (step: number) => {
+        log.debug(`step ${step} started`);
         write({ type: 'step_started', step });
       },
       onStepProcessed: (event: AgentStepEvent) => {
+        log.info(`step ${event.step} done text=${event.responseText.length}chars tools=${event.toolCalls.length} tokens=${JSON.stringify(event.tokens)} dur=${event.durationMs}ms`);
         write({
           type: 'step_processed',
           step: event.step,
@@ -306,8 +338,11 @@ async function runAgentExecution(
           error: event.error,
         });
       },
-    }
+    },
+    runnerLogger
   );
+
+  log.info(`agent done text=${result.finalText.length}chars steps=${result.steps} tokens=${JSON.stringify(result.totalTokens)}`);
 
   write({
     type: 'agent_response',
@@ -332,6 +367,7 @@ async function runWorkflowExecution(
 
   const result = await executeWithCallbacks({
     context,
+    logger: runnerLogger,
     messages: payload.messages,
     currentNode: payload.currentNodeId,
     toolsOverride: allTools,
@@ -392,6 +428,7 @@ Deno.serve(async (req: Request) => {
 
   const payload: ExecutePayload = await req.json();
   const isAgent = payload.appType === 'agent';
+  log.info(`request appType=${payload.appType ?? 'workflow'} model=${payload.modelId}`);
   const mcpServers = isAgent ? [] : (payload.graph.mcpServers ?? []);
 
   const stream = new ReadableStream({
@@ -430,6 +467,7 @@ Deno.serve(async (req: Request) => {
         write({ type: 'execution_complete' });
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Execution failed';
+        log.error(message);
         write({ type: 'error', message });
       } finally {
         await closeMcpClients(clients);

@@ -2,6 +2,8 @@ import type { ModelMessage } from 'ai';
 
 import { detectSentinels } from '@src/core/sentinelDetector.js';
 import type { ActionTokenUsage } from '@src/types/ai/logs.js';
+import { logger, setLogger } from '@src/utils/logger.js';
+import type { Logger } from '@src/utils/logger.js';
 
 import { type LlmCallResult, callAgentLlm } from './agentLlmCaller.js';
 import {
@@ -26,12 +28,8 @@ const TEXT_PREVIEW_LENGTH = 100;
 const PROMPT_PREVIEW_LENGTH = 80;
 
 function log(label: string, data?: unknown): void {
-  const prefix = '[agentLoop]';
-  if (data === undefined) {
-    process.stderr.write(`${prefix} ${label}\n`);
-    return;
-  }
-  process.stderr.write(`${prefix} ${label}: ${JSON.stringify(data, null, JSON_NO_INDENT)}\n`);
+  const msg = data === undefined ? label : `${label}: ${JSON.stringify(data, null, JSON_NO_INDENT)}`;
+  logger.debug('[agentLoop]', msg);
 }
 
 interface LoopState {
@@ -205,8 +203,10 @@ function mergeSkillTools(config: AgentLoopConfig): AgentLoopConfig {
 
 export async function executeAgentLoop(
   config: AgentLoopConfig,
-  callbacks: AgentLoopCallbacks
+  callbacks: AgentLoopCallbacks,
+  loggerInstance?: Logger
 ): Promise<AgentLoopResult> {
+  if (loggerInstance !== undefined) setLogger(loggerInstance);
   const resolved = mergeSkillTools(config);
   const maxSteps = resolveMaxSteps(resolved);
   log('starting', {
@@ -235,6 +235,6 @@ function noopStepProcessed(): void {
   /* intentional no-op callback */
 }
 
-export async function executeAgentLoopSimple(config: AgentLoopConfig): Promise<AgentLoopResult> {
-  return await executeAgentLoop(config, { onStepProcessed: noopStepProcessed });
+export async function executeAgentLoopSimple(config: AgentLoopConfig, loggerInstance?: Logger): Promise<AgentLoopResult> {
+  return await executeAgentLoop(config, { onStepProcessed: noopStepProcessed }, loggerInstance);
 }
