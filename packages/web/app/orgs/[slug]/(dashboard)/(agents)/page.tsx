@@ -1,7 +1,7 @@
 import { AgentEmptyState } from '@/app/components/agents/AgentEmptyState';
 import { getCachedAgentsByOrg } from '@/app/lib/agents';
 import { getOrgBySlug } from '@/app/lib/orgs';
-import { Bot } from 'lucide-react';
+import { Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { redirect } from 'next/navigation';
 
@@ -14,10 +14,10 @@ function SelectAgentPrompt() {
 
   return (
     <div className="flex h-full items-center justify-center bg-background">
-      <div className="flex w-full max-w-3xl flex-col items-center gap-2 rounded-md border border-dashed bg-background px-4 py-8 text-center">
-        <Bot className="size-6 text-muted-foreground/50" />
-        <p className="text-sm font-medium">{t('selectAgent')}</p>
-        <p className="text-xs text-muted-foreground max-w-xs">{t('selectAgentDescription')}</p>
+      <div className="flex w-full max-w-3xl flex-col items-center gap-0 rounded-md bg-background px-4 py-8 text-center">
+        <Zap className="size-6 text-muted-foreground/50" />
+        <p className="text-sm font-medium mt-1">{t('selectAgent')}</p>
+        <p className="text-xs text-muted-foreground max-w-sm">{t('selectAgentDescription')}</p>
       </div>
     </div>
   );
