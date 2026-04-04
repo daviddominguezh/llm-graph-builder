@@ -1,4 +1,4 @@
-import { WhatsAppIcon } from '@/app/components/messages/shared/icons';
+import { ChannelBadge } from '@/app/components/messages/shared/icons';
 import { TEST_PHONE } from '@/app/constants/messages';
 import { LastMessage } from '@/app/types/chat';
 import { Collaborator } from '@/app/types/projectInnerSettings';
@@ -6,7 +6,7 @@ import { generateAvatarConfig } from '@/app/utils/avatar';
 import { getMessageText } from '@/app/utils/message';
 import { formatTimestamp, parseChatId } from '@/app/utils/strs';
 import { Badge } from '@/components/ui/badge';
-import { Check, CheckCheck, CircleAlert, FlaskConical, Instagram, Loader, User, Zap } from 'lucide-react';
+import { Check, CheckCheck, CircleAlert, FlaskConical, Loader, User, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import React, { useMemo } from 'react';
@@ -154,14 +154,9 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
               <FlaskConical size={9} />
             </div>
           )}
-          {!isTest && parsedChat.source === 'whatsapp' && (
-            <div className="absolute bottom-[-2px] right-[-2px] bg-white rounded-full w-[18px] h-[18px] flex items-center justify-center border border-gray-200 shadow-sm">
-              <WhatsAppIcon size={10} className="text-[#25D366]" />
-            </div>
-          )}
-          {!isTest && parsedChat.source === 'instagram' && (
-            <div className="absolute bottom-[-2px] right-[-2px] bg-white rounded-full w-[18px] h-[18px] flex items-center justify-center border border-gray-200 shadow-sm">
-              <Instagram size={10} className="text-[#E4405F]" />
+          {!isTest && (
+            <div className="absolute bottom-[-2px] right-[-2px]">
+              <ChannelBadge channel={parsedChat.source} size={18} />
             </div>
           )}
         </div>
