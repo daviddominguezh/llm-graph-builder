@@ -112,6 +112,20 @@ export async function getOrgIdFromTenant(supabase: SupabaseClient, tenantId: str
   return extractOrgId(result.data);
 }
 
+/* ─── Webhook subscription with retry ─── */
+
+async function registerWebhookWithRetry(accessToken: string, waba: string): Promise<void> {
+  try {
+    await registerWebhookSubscription(accessToken, waba);
+  } catch (_firstErr) {
+    try {
+      await registerWebhookSubscription(accessToken, waba);
+    } catch (retryErr) {
+      throw new Error('webhook_subscription_failed_after_phone_registered', { cause: retryErr });
+    }
+  }
+}
+
 /* ─── Meta API orchestration ─── */
 
 export async function performMetaOnboarding(
@@ -135,7 +149,7 @@ export async function performMetaOnboarding(
     await registerPhoneWithCloudApi(accessToken, body.phoneNumberId);
   }
 
-  await registerWebhookSubscription(accessToken, body.waba);
+  await registerWebhookWithRetry(accessToken, body.waba);
   return { accessToken, isOnApp };
 }
 

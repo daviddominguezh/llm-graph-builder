@@ -150,7 +150,7 @@ function PhoneField(props: {
 }
 
 function normalizePhone(raw: string): string {
-  const stripped = raw.replace(/[\s\-()]/g, '');
+  const stripped = raw.replace(/[\s\-.()]/g, '');
   return stripped.startsWith('+') ? stripped : `+${stripped}`;
 }
 

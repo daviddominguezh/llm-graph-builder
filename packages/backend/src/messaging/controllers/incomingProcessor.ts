@@ -147,12 +147,16 @@ function updateSentMessageId(
   timestamp: number,
   originalId: string
 ): void {
-  void supabase
+  const query = supabase
     .from('messages')
     .update({ original_id: originalId })
     .eq('conversation_id', conversationId)
     .eq('role', 'assistant')
     .eq('timestamp', timestamp);
+
+  void Promise.resolve(query).catch((err: unknown) => {
+    process.stdout.write(`[messaging] Failed to update sent message ID: ${String(err)}\n`);
+  });
 }
 
 /* ─── Process: incoming webhook message ─── */

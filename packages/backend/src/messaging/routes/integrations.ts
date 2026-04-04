@@ -42,6 +42,13 @@ function classifyError(err: Error): { status: number; code: string; message: str
       message: 'Phone registration failed.',
     };
   }
+  if (err.message === 'webhook_subscription_failed_after_phone_registered') {
+    return {
+      status: HTTP_BAD_REQUEST,
+      code: 'webhook_subscription_failed_after_phone_registered',
+      message: 'Phone was registered but webhook subscription failed. Please try again or contact support.',
+    };
+  }
   if (err.message.includes('webhook') || err.message.includes('Webhook')) {
     return { status: HTTP_BAD_REQUEST, code: 'webhook_failed', message: 'Webhook registration failed.' };
   }

@@ -165,8 +165,7 @@ export async function uploadMediaToWhatsApp(
   const cached = await readRedis<string>(originalCacheKey);
   if (cached !== null) return cached;
 
-  const { mediaId, converted } = await uploadMediaRaw(phoneNumberId, accessToken, fileUrl);
-  const cacheKey = buildMediaCacheKey(fileUrl, converted);
-  await setWithTTL(cacheKey, mediaId, MEDIA_CACHE_TTL_SECONDS);
+  const { mediaId } = await uploadMediaRaw(phoneNumberId, accessToken, fileUrl);
+  await setWithTTL(originalCacheKey, mediaId, MEDIA_CACHE_TTL_SECONDS);
   return mediaId;
 }
