@@ -198,14 +198,17 @@ export async function callAgentLlm(params: LlmCallParams): Promise<LlmCallResult
   }, TIMEOUT_MS);
 
   try {
-    const result = await generateText({
+    const config = {
       model,
       temperature: TEMPERATURE,
       messages: params.messages,
       tools: params.tools,
       abortSignal: controller.signal,
       providerOptions: { openai: { store: true } },
-    });
+    };
+
+    log('call config', config);
+    const result = await generateText(config);
 
     const raw: Record<string, unknown> = Object.fromEntries(Object.entries(result));
     return processLlmResponse(raw);

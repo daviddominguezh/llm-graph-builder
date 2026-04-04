@@ -170,7 +170,9 @@ export async function requireExecutionAuth(req: Request, res: Response, next: Ne
     process.stdout.write('[executeAuth] agent authorization failed\n');
     return;
   }
-  process.stdout.write(`[executeAuth] authorized: agentId=${agentResult.agentId}, version=${String(agentResult.version)}\n`);
+  process.stdout.write(
+    `[executeAuth] authorized: agentId=${agentResult.agentId}, version=${String(agentResult.version)}\n`
+  );
 
   setExecutionLocals(res, {
     orgId: keyResult.orgId,

@@ -90,13 +90,8 @@ export function handleStepProcessed(
 
 /* ─── Agent loop result builder ─── */
 
-export function buildAgentLoopResult(
-  event: SseEvent,
-  nodeTexts: NodeProcessedData[]
-): CallAgentOutput {
-  const tokensLogs = Array.isArray(event.tokensLogs)
-    ? mapNodeTokensToTokensLogs(event.tokensLogs)
-    : [];
+export function buildAgentLoopResult(event: SseEvent, nodeTexts: NodeProcessedData[]): CallAgentOutput {
+  const tokensLogs = Array.isArray(event.tokensLogs) ? mapNodeTokensToTokensLogs(event.tokensLogs) : [];
   return {
     message: null,
     text: toStr(event.text),
