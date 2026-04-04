@@ -144,7 +144,7 @@ export const ChatsSearch = ({
         <Select value={teammateFilter} onValueChange={(value) => value && setTeammateFilter(value)}>
           <SelectTrigger
             nativeButton={true}
-            className="bg-background dark:bg-background dark:hover:bg-input text-foreground! cursor-pointer ring-0 border-none px-[calc(1px+var(--spacing)*1.5)] [&_span]:text-foreground [&_svg]:!text-foreground"
+            className="rounded-full bg-background dark:bg-background dark:hover:bg-input text-foreground! cursor-pointer ring-0 border-none px-[calc(1px+var(--spacing)*1.5)] [&_span]:text-foreground [&_svg]:!text-foreground"
             render={
               <Button type="button" variant="ghost" size="icon" className="shrink-0 cursor-pointer">
                 {selectedTeammate ? (
