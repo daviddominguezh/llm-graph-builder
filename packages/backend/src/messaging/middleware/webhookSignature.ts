@@ -34,8 +34,18 @@ export function captureRawBody(req: Request, _res: Response, buf: Buffer): void 
  * Verify HMAC-SHA256 signature from WhatsApp/Instagram webhooks.
  * Requires `captureRawBody` to have been called via express.json({ verify }).
  */
+function logPreSignatureDiagnostics(req: Request): void {
+  const contentLength = req.headers['content-length'] ?? 'unknown';
+  const hasRawBody = req.rawBody !== undefined;
+  process.stdout.write(
+    `[webhook-sig] ${req.method} content-length=${contentLength} rawBody=${hasRawBody.toString()}\n`
+  );
+}
+
 export function verifyWebhookSignature(appSecret: string) {
   return (req: Request, res: Response, next: NextFunction): void => {
+    logPreSignatureDiagnostics(req);
+
     const signatureHeader: unknown = req.headers['x-hub-signature-256'];
     const signature = typeof signatureHeader === 'string' ? signatureHeader : undefined;
 

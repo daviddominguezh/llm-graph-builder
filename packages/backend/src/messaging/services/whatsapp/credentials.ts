@@ -10,6 +10,7 @@ import { getCachedCredential, setCachedCredential } from '../credentialCache.js'
 export interface WhatsAppSendCredentials {
   accessToken: string;
   phoneNumberId: string;
+  wabaId: string;
 }
 
 function buildCacheKey(agentId: string, tenantId: string): string {
@@ -18,7 +19,7 @@ function buildCacheKey(agentId: string, tenantId: string): string {
 
 function isWhatsAppCredentials(value: unknown): value is WhatsAppSendCredentials {
   if (value === null || typeof value !== 'object') return false;
-  return 'accessToken' in value && 'phoneNumberId' in value;
+  return 'accessToken' in value && 'phoneNumberId' in value && 'wabaId' in value;
 }
 
 async function fetchFromDb(
@@ -37,7 +38,11 @@ async function fetchFromDb(
   }
 
   const accessToken = await decryptWhatsAppToken(supabase, credential.id);
-  return { accessToken, phoneNumberId: credential.phone_number_id };
+  return {
+    accessToken,
+    phoneNumberId: credential.phone_number_id,
+    wabaId: credential.waba_id,
+  };
 }
 
 export async function resolveWhatsAppCredentials(

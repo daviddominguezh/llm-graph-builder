@@ -61,7 +61,7 @@ async function handleConnect(req: Request, res: MessagingResponse): Promise<void
       return;
     }
 
-    const duplicate = await isPhoneAlreadyRegistered(supabase, body.phoneNumberId);
+    const duplicate = await isPhoneAlreadyRegistered(supabase, body.phoneNumberId, body.phone);
     if (duplicate) {
       res
         .status(HTTP_BAD_REQUEST)
@@ -88,7 +88,7 @@ async function executeOnboarding(
   const connectionId = await insertChannelConnection(supabase, orgId, parsedBody, tenantId);
   await insertWhatsAppCredentials(supabase, connectionId, accessToken, parsedBody);
 
-  return { phone: parsedBody.phone, isOnApp };
+  return { phone: parsedBody.phone, isOnApp, historySyncBatchId: null };
 }
 
 /* ─── DELETE: disconnect WhatsApp ─── */

@@ -27,6 +27,7 @@ interface WhatsAppConnectProps {
 }
 
 const FB_CONFIG_ID = '1429125948415457';
+const MIN_PHONE_DIGITS = 10;
 
 type FlowStatus = 'idle' | 'waiting_fb' | 'connecting' | 'success' | 'error';
 
@@ -115,7 +116,7 @@ function ConnectForm(props: ConnectFormProps) {
   return (
     <div className="flex flex-col gap-4">
       <PhoneField phone={flow.phone} setFlow={setFlow} disabled={flow.status !== 'idle'} />
-      <LaunchButton flow={flow} setFlow={setFlow} sdkReady={sdkReady} />
+      <LaunchButton flow={flow} setFlow={setFlow} signup={signup} sdkReady={sdkReady} />
       <StatusFeedback status={flow.status} errorMessage={flow.errorMessage} />
     </div>
   );
@@ -148,20 +149,34 @@ function PhoneField(props: {
   );
 }
 
+function normalizePhone(raw: string): string {
+  const stripped = raw.replace(/[\s\-()]/g, '');
+  return stripped.startsWith('+') ? stripped : `+${stripped}`;
+}
+
+function isValidPhone(phone: string): boolean {
+  const digits = phone.replace(/\D/g, '');
+  return phone.startsWith('+') && digits.length >= MIN_PHONE_DIGITS;
+}
+
 function LaunchButton(props: {
   flow: FlowState;
   setFlow: React.Dispatch<React.SetStateAction<FlowState>>;
+  signup: ReturnType<typeof useEmbeddedSignup>;
   sdkReady: boolean;
 }) {
-  const { flow, setFlow, sdkReady } = props;
+  const { flow, setFlow, signup, sdkReady } = props;
   const t = useTranslations('editor.channels.whatsappConnect');
 
   const handleClick = () => {
-    if (!flow.phone.trim()) {
-      setFlow((s) => ({ ...s, status: 'error', errorMessage: t('phoneRequired') }));
+    const normalized = normalizePhone(flow.phone);
+    if (!isValidPhone(normalized)) {
+      setFlow((s) => ({ ...s, status: 'error', errorMessage: t('phoneInvalid') }));
       return;
     }
-    setFlow((s) => ({ ...s, status: 'waiting_fb', errorMessage: '' }));
+    // Clear stale signup data before launching a new FB login attempt
+    signup.reset();
+    setFlow((s) => ({ ...s, phone: normalized, status: 'waiting_fb', errorMessage: '' }));
     launchFBLogin(setFlow);
   };
 

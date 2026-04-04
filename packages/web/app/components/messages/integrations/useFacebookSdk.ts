@@ -27,24 +27,23 @@ export function useFacebookSdk(): boolean {
       return;
     }
 
+    // Assign fbAsyncInit BEFORE injecting the script tag.
+    // The FB SDK calls this callback automatically once loaded.
+    window.fbAsyncInit = () => {
+      window.FB.init({
+        appId,
+        autoLogAppEvents: true,
+        xfbml: true,
+        version: FB_SDK_VERSION,
+      });
+      setReady(true);
+    };
+
     const script = document.createElement('script');
     script.src = FB_SDK_URL;
     script.async = true;
     script.defer = true;
     script.crossOrigin = 'anonymous';
-
-    script.onload = () => {
-      window.fbAsyncInit = () => {
-        window.FB.init({
-          appId,
-          autoLogAppEvents: true,
-          xfbml: true,
-          version: FB_SDK_VERSION,
-        });
-        setReady(true);
-      };
-      window.fbAsyncInit();
-    };
 
     document.body.appendChild(script);
   }, [ready]);

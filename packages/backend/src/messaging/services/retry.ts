@@ -18,13 +18,22 @@ const NEXT_OFFSET = 1;
 
 /* ─── Types ─── */
 
-interface RetryOptions {
+export type ShouldRetryFn = (error: Error) => boolean;
+
+export interface RetryOptions {
   maxAttempts?: number;
   maxBackoffMs?: number;
+  shouldRetry?: ShouldRetryFn;
 }
 
 interface ErrorWithStatusCode extends Error {
   statusCode?: number;
+}
+
+interface RetryConfig {
+  maxAttempts: number;
+  maxBackoffMs: number;
+  predicate: ShouldRetryFn | undefined;
 }
 
 /* ─── Error classification ─── */
@@ -76,40 +85,45 @@ function logRetry(attempt: number, maxAttempts: number, backoffMs: number): void
   process.stdout.write(`${tag} failed, retrying in ${String(backoffMs)}ms\n`);
 }
 
-async function handleFailure(
-  error: Error,
-  attempt: number,
-  maxAttempts: number,
-  maxBackoffMs: number
-): Promise<void> {
-  if (isLastAttempt(attempt, maxAttempts) || !isRetryableError(error)) {
+function shouldRetryError(error: Error, predicate: ShouldRetryFn | undefined): boolean {
+  if (predicate !== undefined) return predicate(error);
+  return isRetryableError(error);
+}
+
+async function handleFailure(error: Error, attempt: number, config: RetryConfig): Promise<void> {
+  if (isLastAttempt(attempt, config.maxAttempts) || !shouldRetryError(error, config.predicate)) {
     throw error;
   }
 
-  const backoffMs = computeBackoff(attempt, maxBackoffMs);
-  logRetry(attempt, maxAttempts, backoffMs);
+  const backoffMs = computeBackoff(attempt, config.maxBackoffMs);
+  logRetry(attempt, config.maxAttempts, backoffMs);
   await sleepMs(backoffMs);
 }
 
 /* ─── Retry wrapper ─── */
 
-export async function withRetry<T>(fn: () => Promise<T>, opts?: RetryOptions): Promise<T> {
-  const maxAttempts = opts?.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
-  const maxBackoffMs = opts?.maxBackoffMs ?? DEFAULT_MAX_BACKOFF_MS;
+function buildConfig(opts: RetryOptions | undefined): RetryConfig {
+  return {
+    maxAttempts: opts?.maxAttempts ?? DEFAULT_MAX_ATTEMPTS,
+    maxBackoffMs: opts?.maxBackoffMs ?? DEFAULT_MAX_BACKOFF_MS,
+    predicate: opts?.shouldRetry,
+  };
+}
 
-  return await executeWithRetry(fn, FIRST_ATTEMPT, maxAttempts, maxBackoffMs);
+export async function withRetry<T>(fn: () => Promise<T>, opts?: RetryOptions): Promise<T> {
+  const config = buildConfig(opts);
+  return await executeWithRetry(fn, FIRST_ATTEMPT, config);
 }
 
 async function executeWithRetry<T>(
   fn: () => Promise<T>,
   attempt: number,
-  maxAttempts: number,
-  maxBackoffMs: number
+  config: RetryConfig
 ): Promise<T> {
   try {
     return await fn();
   } catch (err) {
-    await handleFailure(toError(err), attempt, maxAttempts, maxBackoffMs);
-    return await executeWithRetry(fn, attempt + NEXT_OFFSET, maxAttempts, maxBackoffMs);
+    await handleFailure(toError(err), attempt, config);
+    return await executeWithRetry(fn, attempt + NEXT_OFFSET, config);
   }
 }

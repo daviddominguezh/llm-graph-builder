@@ -1,76 +1,19 @@
 import type { IncomingMessage } from '../../types/index.js';
+import type {
+  HistoricMessage,
+  MessageEchoValue,
+  ParsedEchoMessage,
+  ParsedWhatsAppWebhook,
+  WhatsAppChange,
+  WhatsAppContact,
+  WhatsAppEntry,
+  WhatsAppMessage,
+  WhatsAppValue,
+  WhatsAppWebhookPayload,
+} from './webhookTypes.js';
+import { EMPTY_LENGTH, SECONDS_TO_MS, mapWhatsAppType } from './webhookTypes.js';
 
-/* ─── WhatsApp webhook payload types ─── */
-
-interface WhatsAppContact {
-  profile?: { name?: string };
-  wa_id?: string;
-}
-
-interface WhatsAppMessage {
-  id: string;
-  from: string;
-  timestamp: string;
-  type: string;
-  text?: { body: string };
-  image?: { id: string; caption?: string };
-  audio?: { id: string };
-  video?: { id: string; caption?: string };
-  document?: { id: string; filename?: string; caption?: string };
-  sticker?: { id: string; mime_type: string };
-  context?: { message_id: string };
-}
-
-interface WhatsAppMetadata {
-  phone_number_id: string;
-  display_phone_number: string;
-}
-
-interface WhatsAppValue {
-  messaging_product: string;
-  metadata: WhatsAppMetadata;
-  contacts?: WhatsAppContact[];
-  messages?: WhatsAppMessage[];
-}
-
-/* ─── Echo (SMB message echo) types ─── */
-
-export interface HistoricMessage {
-  id: string;
-  from: string;
-  to: string;
-  timestamp: string;
-  type: 'text' | 'image' | 'audio' | 'video' | 'document' | 'sticker';
-  text?: { body: string };
-  image?: { id: string; mime_type: string; caption?: string };
-  audio?: { id: string; mime_type: string };
-  video?: { id: string; mime_type: string; caption?: string };
-  document?: { id: string; mime_type: string; filename?: string; caption?: string };
-  sticker?: { id: string; mime_type: string };
-}
-
-interface MessageEchoValue {
-  messaging_product: string;
-  metadata: WhatsAppMetadata;
-  message_echoes: HistoricMessage[];
-}
-
-/* ─── Shared change / entry / payload ─── */
-
-interface WhatsAppChange {
-  value: WhatsAppValue | MessageEchoValue;
-  field: string;
-}
-
-interface WhatsAppEntry {
-  id: string;
-  changes: WhatsAppChange[];
-}
-
-interface WhatsAppWebhookPayload {
-  object: string;
-  entry: WhatsAppEntry[];
-}
+export type { HistoricMessage, ParsedEchoMessage, ParsedWhatsAppWebhook } from './webhookTypes.js';
 
 /* ─── Validators ─── */
 
@@ -95,88 +38,25 @@ interface ExtractedContent {
 
 const EMPTY_CONTENT: ExtractedContent = { content: '', mediaId: undefined };
 
-function extractText(msg: WhatsAppMessage): ExtractedContent | null {
-  if (msg.text === undefined) return null;
-  return { content: msg.text.body, mediaId: undefined };
-}
-
-function extractImage(msg: WhatsAppMessage): ExtractedContent | null {
-  if (msg.image === undefined) return null;
-  return { content: msg.image.caption ?? '', mediaId: msg.image.id };
-}
-
-function extractAudio(msg: WhatsAppMessage): ExtractedContent | null {
-  if (msg.audio === undefined) return null;
-  return { content: '', mediaId: msg.audio.id };
-}
-
-function extractVideo(msg: WhatsAppMessage): ExtractedContent | null {
-  if (msg.video === undefined) return null;
-  return { content: msg.video.caption ?? '', mediaId: msg.video.id };
-}
-
-function extractDocument(msg: WhatsAppMessage): ExtractedContent | null {
-  if (msg.document === undefined) return null;
-  return { content: msg.document.caption ?? '', mediaId: msg.document.id };
-}
-
-function extractSticker(msg: WhatsAppMessage): ExtractedContent | null {
-  if (msg.sticker === undefined) return null;
-  return { content: '', mediaId: msg.sticker.id };
-}
-
 type ContentExtractor = (msg: WhatsAppMessage) => ExtractedContent | null;
 
 const EXTRACTORS: Record<string, ContentExtractor> = {
-  text: extractText,
-  image: extractImage,
-  audio: extractAudio,
-  video: extractVideo,
-  document: extractDocument,
-  sticker: extractSticker,
+  text: (msg) => (msg.text === undefined ? null : { content: msg.text.body, mediaId: undefined }),
+  image: (msg) => (msg.image === undefined ? null : { content: msg.image.caption ?? '', mediaId: msg.image.id }),
+  audio: (msg) => (msg.audio === undefined ? null : { content: '', mediaId: msg.audio.id }),
+  video: (msg) => (msg.video === undefined ? null : { content: msg.video.caption ?? '', mediaId: msg.video.id }),
+  document: (msg) =>
+    msg.document === undefined ? null : { content: msg.document.caption ?? '', mediaId: msg.document.id },
+  sticker: (msg) => (msg.sticker === undefined ? null : { content: '', mediaId: msg.sticker.id }),
 };
 
 function extractMessageContent(msg: WhatsAppMessage): ExtractedContent {
-  const { type } = msg;
-  const { [type]: extractor } = EXTRACTORS;
+  const { [msg.type]: extractor } = EXTRACTORS;
   if (extractor === undefined) return EMPTY_CONTENT;
   return extractor(msg) ?? EMPTY_CONTENT;
 }
 
-/* ─── Type mapping ─── */
-
-const WA_TYPE_MAP: Record<string, string> = {
-  text: 'text',
-  image: 'image',
-  audio: 'audio',
-  video: 'video',
-  document: 'document',
-  sticker: 'image',
-};
-
-function mapWhatsAppType(waType: string): string {
-  return WA_TYPE_MAP[waType] ?? 'text';
-}
-
-/* ─── Parse ─── */
-
-export interface ParsedEchoMessage {
-  userChannelId: string;
-  channelIdentifier: string;
-  content: string;
-  type: string;
-  originalId: string;
-  timestamp: number;
-}
-
-export interface ParsedWhatsAppWebhook {
-  phoneNumberId: string;
-  messages: IncomingMessage[];
-  echoMessages: ParsedEchoMessage[];
-}
-
-const SECONDS_TO_MS = 1000;
-const EMPTY_LENGTH = 0;
+/* ─── Incoming message builder ─── */
 
 function buildIncomingMessage(
   msg: WhatsAppMessage,
@@ -200,6 +80,8 @@ function buildIncomingMessage(
   };
 }
 
+/* ─── Echo message builders ─── */
+
 type EchoContentExtractor = (msg: HistoricMessage) => string;
 
 const ECHO_EXTRACTORS: Record<string, EchoContentExtractor> = {
@@ -211,22 +93,33 @@ const ECHO_EXTRACTORS: Record<string, EchoContentExtractor> = {
   sticker: () => '[sticker]',
 };
 
-function extractEchoContent(msg: HistoricMessage): string {
-  const { [msg.type]: extractor } = ECHO_EXTRACTORS;
-  return extractor === undefined ? '' : extractor(msg);
-}
+type EchoMediaExtractor = (msg: HistoricMessage) => string | undefined;
+
+const ECHO_MEDIA_EXTRACTORS: Record<string, EchoMediaExtractor> = {
+  image: (msg) => msg.image?.id,
+  audio: (msg) => msg.audio?.id,
+  video: (msg) => msg.video?.id,
+  document: (msg) => msg.document?.id,
+  sticker: (msg) => msg.sticker?.id,
+};
 
 function buildEchoMessage(msg: HistoricMessage, phoneNumberId: string): ParsedEchoMessage {
+  const { [msg.type]: contentExtractor } = ECHO_EXTRACTORS;
+  const { [msg.type]: mediaExtractor } = ECHO_MEDIA_EXTRACTORS;
   const timestamp = Number(msg.timestamp) * SECONDS_TO_MS;
+
   return {
     userChannelId: `whatsapp:+${msg.to}`,
     channelIdentifier: phoneNumberId,
-    content: extractEchoContent(msg),
+    content: contentExtractor === undefined ? '' : contentExtractor(msg),
     type: mapWhatsAppType(msg.type),
     originalId: msg.id,
+    mediaId: mediaExtractor === undefined ? undefined : mediaExtractor(msg),
     timestamp: Number.isNaN(timestamp) ? Date.now() : timestamp,
   };
 }
+
+/* ─── Change parsers ─── */
 
 function isMessageEchoValue(value: WhatsAppValue | MessageEchoValue): value is MessageEchoValue {
   return 'message_echoes' in value;
@@ -240,6 +133,12 @@ function parseMessagesChange(value: WhatsAppValue, results: IncomingMessage[]): 
   const { contacts: rawContacts, metadata, messages: rawMessages } = value;
   const contacts = rawContacts ?? [];
   const { phone_number_id: phoneNumberId } = metadata;
+
+  if (phoneNumberId === '') {
+    process.stdout.write('[webhookParser] Empty phoneNumberId in messages change, skipping\n');
+    return { phoneNumberId };
+  }
+
   for (const msg of rawMessages ?? []) {
     results.push(buildIncomingMessage(msg, contacts, phoneNumberId));
   }
@@ -254,6 +153,8 @@ function parseEchoChange(value: MessageEchoValue, echoResults: ParsedEchoMessage
   }
   return { phoneNumberId };
 }
+
+/* ─── Entry processing ─── */
 
 interface ParseAccumulator {
   messages: IncomingMessage[];

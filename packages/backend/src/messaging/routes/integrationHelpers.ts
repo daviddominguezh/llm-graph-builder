@@ -28,6 +28,7 @@ export interface WhatsAppIntegrationBody {
 export interface IntegrationResult {
   phone: string;
   isOnApp: boolean;
+  historySyncBatchId: string | null;
 }
 
 /* ─── Validation ─── */
@@ -55,12 +56,37 @@ export function parseIntegrationBody(body: unknown): WhatsAppIntegrationBody | n
 
 /* ─── Duplicate check ─── */
 
-export async function isPhoneAlreadyRegistered(
+async function isPhoneNumberIdRegistered(
   supabase: SupabaseClient,
   phoneNumberId: string
 ): Promise<boolean> {
   const existing = await getChannelConnectionByIdentifier(supabase, phoneNumberId);
   return existing !== null;
+}
+
+const SINGLE_ROW = 1;
+const EMPTY_LENGTH = 0;
+
+async function isE164PhoneRegistered(supabase: SupabaseClient, phone: string): Promise<boolean> {
+  const result = await supabase
+    .from('whatsapp_credentials')
+    .select('id')
+    .eq('phone_number', phone)
+    .limit(SINGLE_ROW);
+  const rows: unknown = result.data;
+  return Array.isArray(rows) && rows.length > EMPTY_LENGTH;
+}
+
+export async function isPhoneAlreadyRegistered(
+  supabase: SupabaseClient,
+  phoneNumberId: string,
+  phone: string
+): Promise<boolean> {
+  const [byId, byPhone] = await Promise.all([
+    isPhoneNumberIdRegistered(supabase, phoneNumberId),
+    isE164PhoneRegistered(supabase, phone),
+  ]);
+  return byId || byPhone;
 }
 
 /* ─── Tenant → org_id lookup ─── */

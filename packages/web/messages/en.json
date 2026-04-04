@@ -181,6 +181,7 @@
         "phonePlaceholder": "+1 555 000 0000",
         "phoneHint": "Enter the WhatsApp Business phone number you are connecting.",
         "phoneRequired": "Please enter a phone number.",
+        "phoneInvalid": "Enter a valid phone number starting with + (e.g. +1555000000).",
         "launchButton": "Continue with Facebook",
         "waitingFacebook": "Complete the setup in the Facebook popup...",
         "success": "WhatsApp Business number connected successfully.",

@@ -1,40 +1,66 @@
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import {
+  decryptWhatsAppToken,
+  getWhatsAppCredential,
+} from '../queries/channelQueries.js';
+import {
   updateConversationEnabled,
   updateConversationLastMessage,
 } from '../queries/conversationMutations.js';
 import { findOrCreateConversation } from '../queries/conversationQueries.js';
 import { insertMessage, insertMessageAi } from '../queries/messageQueries.js';
+import { downloadWhatsAppMedia } from '../services/mediaDownloader.js';
 import { publishToTenant } from '../services/redis.js';
 import type { ParsedEchoMessage } from '../services/whatsapp/webhookParser.js';
 import type { ChannelConnectionRow } from '../types/index.js';
 
 const ZERO_UNANSWERED = 0;
 
+/* ─── Media download for echo messages ─── */
+
+async function downloadEchoMedia(
+  supabase: SupabaseClient,
+  connection: ChannelConnectionRow,
+  echo: ParsedEchoMessage,
+  conversationId: string
+): Promise<string | undefined> {
+  if (echo.mediaId === undefined) return undefined;
+
+  const credential = await getWhatsAppCredential(supabase, connection.id);
+  if (credential === null) {
+    process.stdout.write('[echo] No WA credential found for media download\n');
+    return undefined;
+  }
+
+  const accessToken = await decryptWhatsAppToken(supabase, credential.id);
+  const prefix = `echo/${conversationId}`;
+  return await downloadWhatsAppMedia(supabase, echo.mediaId, accessToken, prefix);
+}
+
 /* ─── Save echo as assistant message ─── */
 
-async function saveEchoMessage(
-  supabase: SupabaseClient,
-  conversationId: string,
-  echo: ParsedEchoMessage
-): Promise<void> {
+interface SaveEchoParams {
+  supabase: SupabaseClient;
+  conversationId: string;
+  echo: ParsedEchoMessage;
+  mediaUrl: string | undefined;
+}
+
+async function saveEchoMessage(params: SaveEchoParams): Promise<void> {
+  const { supabase, conversationId, echo, mediaUrl } = params;
+  const messageData = {
+    conversationId,
+    role: 'assistant' as const,
+    type: echo.type,
+    content: echo.content,
+    originalId: echo.originalId,
+    timestamp: echo.timestamp,
+    mediaUrl,
+  };
+
   await Promise.all([
-    insertMessage(supabase, {
-      conversationId,
-      role: 'assistant',
-      type: echo.type,
-      content: echo.content,
-      originalId: echo.originalId,
-      timestamp: echo.timestamp,
-    }),
-    insertMessageAi(supabase, {
-      conversationId,
-      role: 'assistant',
-      type: echo.type,
-      content: echo.content,
-      originalId: echo.originalId,
-      timestamp: echo.timestamp,
-    }),
+    insertMessage(supabase, messageData),
+    insertMessageAi(supabase, messageData),
   ]);
 }
 
@@ -77,7 +103,15 @@ export async function processEchoMessage(params: ProcessEchoParams): Promise<voi
     channel: connection.channel_type,
   });
 
-  await saveEchoMessage(supabase, conversation.id, echo);
+  const mediaUrl = await downloadEchoMedia(supabase, connection, echo, conversation.id).catch(
+    (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'unknown';
+      process.stdout.write(`[echo] Media download failed (non-fatal): ${msg}\n`);
+      return undefined;
+    }
+  );
+
+  await saveEchoMessage({ supabase, conversationId: conversation.id, echo, mediaUrl });
   await updateConversationForEcho(supabase, conversation.id, echo);
   await publishToTenant(connection.tenant_id, {
     conversationId: conversation.id,
