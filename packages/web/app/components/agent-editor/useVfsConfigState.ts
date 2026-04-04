@@ -147,12 +147,12 @@ async function toggleEnabled(
   setError: SetError
 ): Promise<void> {
   const value = enabled ? { enabled: true as const } : null;
+  setSettings(() => value); // optimistic update
   const result = await updateVfsSettingsAction(agentId, value);
   if (result.error !== null) {
+    setSettings(() => (enabled ? null : { enabled: true })); // revert on error
     setError(result.error);
-    return;
   }
-  setSettings(() => value);
 }
 
 async function saveSettings(
