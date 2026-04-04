@@ -98,7 +98,6 @@ export const getUserPictureByEmail = async (email: string): Promise<string | nul
   try {
     const response = await authenticatedFetch(`${API_BASE_URL}/auth/${email}/pic`, {
       method: 'GET',
-
     });
     if (!response.ok) {
       return null;
@@ -171,7 +170,6 @@ export const getFinalUserInfo = async (namespace: string, id: string): Promise<F
   try {
     const response = await authenticatedFetch(`${API_BASE_URL}/projects/${namespace}/users/${id}`, {
       method: 'GET',
-
     });
 
     if (!response.ok) {
@@ -203,7 +201,6 @@ export const setMediaUploaded = async (
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
-  
       }
     );
 
@@ -242,9 +239,7 @@ export const getFileDescription = async (
 
     const response = await authenticatedFetch(
       `${API_BASE_URL}/projects/${namespace}/media/analyze?url=${encoded64URL}&kind=${kind}&path=${encodedPath}&namespace=${namespace}`,
-      {
-  
-      }
+      {}
     );
 
     if (!response.ok) {
@@ -266,9 +261,7 @@ export const getMessagesFromSender = async (
   try {
     let url = `${API_BASE_URL}/projects/${namespace}/conversations/${sender}`;
     if (fromMessageId) url += `?from=${fromMessageId}`;
-    const response = await authenticatedFetch(url, {
-
-    });
+    const response = await authenticatedFetch(url, {});
 
     if (!response.ok) return null;
 
@@ -311,9 +304,7 @@ export const getMessagesFromSenderPaginated = async (
     }
 
     const url = `${API_BASE_URL}/projects/${namespace}/conversations/${sender}?${params.toString()}`;
-    const response = await authenticatedFetch(url, {
-
-    });
+    const response = await authenticatedFetch(url, {});
 
     if (!response.ok) return null;
 
@@ -335,7 +326,6 @@ export const setChatbotActiveState = async (
       url += `&nextNode=${nextNode}`;
     }
     await authenticatedFetch(url, {
-
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -370,7 +360,7 @@ export const createNote = async (
       `${API_BASE_URL}/projects/${projectName}/conversations/${userID}/notes`,
       {
         method: 'POST',
-  
+
         headers: {
           'Content-Type': 'application/json',
         },
@@ -394,9 +384,7 @@ export const getNotes = async (projectName: string, userID: string): Promise<Rec
   try {
     const response = await authenticatedFetch(
       `${API_BASE_URL}/projects/${projectName}/conversations/${userID}/notes`,
-      {
-  
-      }
+      {}
     );
 
     if (!response.ok) {
@@ -418,7 +406,6 @@ export const deleteNote = async (projectName: string, userID: string, noteID: st
       `${API_BASE_URL}/projects/${projectName}/conversations/${userID}/notes/${noteID}`,
       {
         method: 'DELETE',
-  
       }
     );
 
@@ -444,7 +431,7 @@ export const updateChatAssignee = async (
       `${API_BASE_URL}/projects/${projectName}/conversations/${userID}/assignee`,
       {
         method: 'POST',
-  
+
         headers: {
           'Content-Type': 'application/json',
         },
@@ -473,7 +460,7 @@ export const updateChatStatus = async (
       `${API_BASE_URL}/projects/${projectName}/conversations/${userID}/status`,
       {
         method: 'POST',
-  
+
         headers: {
           'Content-Type': 'application/json',
         },
@@ -501,7 +488,6 @@ export const sendMessage = async (
 ) => {
   try {
     await authenticatedFetch(`${API_BASE_URL}/messages/message`, {
-
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -525,7 +511,6 @@ export const sendMessage = async (
 export const fixInquiry = async (namespace: string, to: string, msg: string) => {
   try {
     await authenticatedFetch(`${API_BASE_URL}/messages/inquiry`, {
-
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -549,7 +534,6 @@ export const sendTestMessage = async (
 ) => {
   try {
     await authenticatedFetch(`${API_BASE_URL}/messages/test`, {
-
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -571,7 +555,6 @@ export const sendTestMessage = async (
 export const deleteConversation = async (namespace: string, from: string) => {
   try {
     await authenticatedFetch(`${API_BASE_URL}/messages/${namespace}/${from}`, {
-
       method: 'DELETE',
     });
   } catch (error) {
@@ -599,7 +582,6 @@ export const sendMediaTestMessage = async (
       body.message = caption;
     }
     await authenticatedFetch(`${API_BASE_URL}/messages/test`, {
-
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -634,7 +616,6 @@ export const sendMediaMessage = async (
       body.message = caption;
     }
     await authenticatedFetch(`${API_BASE_URL}/messages/message`, {
-
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -668,9 +649,7 @@ export const getLastMessages = async (namespace: string): Promise<LastMessages |
   // 3. Create and track the fetch promise
   const fetchPromise = (async () => {
     try {
-      const response = await authenticatedFetch(`${API_BASE_URL}/projects/${namespace}/messages/last`, {
-  
-      });
+      const response = await authenticatedFetch(`${API_BASE_URL}/projects/${namespace}/messages/last`, {});
 
       if (!response.ok) return null;
 
@@ -709,9 +688,7 @@ export const getLastMessagesPaginated = async (
       url += `&cursorTimestamp=${cursor.timestamp}&cursorKey=${cursor.key}`;
     }
 
-    const response = await authenticatedFetch(url, {
-
-    });
+    const response = await authenticatedFetch(url, {});
 
     if (!response.ok) return null;
 
@@ -744,9 +721,7 @@ export const getLastMessagesDelta = async (
   try {
     const response = await authenticatedFetch(
       `${API_BASE_URL}/projects/${namespace}/messages/last/delta?timestamp=${timestamp}`,
-      {
-  
-      }
+      {}
     );
 
     if (!response.ok) return null;
@@ -791,9 +766,7 @@ export const getDeletedChats = async (
   try {
     const response = await authenticatedFetch(
       `${API_BASE_URL}/projects/${namespace}/messages/last/deleted?since=${fromTimestamp}`,
-      {
-  
-      }
+      {}
     );
 
     if (!response.ok) return null;
@@ -809,7 +782,6 @@ export const getDeletedChats = async (
 export const readConversation = async (namespace: string, phone: string): Promise<void> => {
   try {
     await authenticatedFetch(`${API_BASE_URL}/projects/${namespace}/conversations/${phone}/read`, {
-
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -823,9 +795,7 @@ export const readConversation = async (namespace: string, phone: string): Promis
 export const getProjectInnerSettings = async (namespace: string): Promise<InnerSettings | null> => {
   try {
     const url = `${API_BASE_URL}/projects/${namespace}/settings`;
-    const response = await authenticatedFetch(url, {
-
-    });
+    const response = await authenticatedFetch(url, {});
     return await response.json();
   } catch (error) {
     return null;
@@ -922,7 +892,7 @@ export const makeFriendly = async (projectName: string, text: string): Promise<{
       `${API_BASE_URL}/projects/${encodeURIComponent(projectName)}/ai/make-friendly`,
       {
         method: 'POST',
-  
+
         headers: {
           'Content-Type': 'application/json',
         },
@@ -950,7 +920,7 @@ export const makeFormal = async (projectName: string, text: string): Promise<{ t
       `${API_BASE_URL}/projects/${encodeURIComponent(projectName)}/ai/make-formal`,
       {
         method: 'POST',
-  
+
         headers: {
           'Content-Type': 'application/json',
         },
@@ -977,7 +947,7 @@ export const fixGrammar = async (projectName: string, text: string): Promise<{ t
       `${API_BASE_URL}/projects/${encodeURIComponent(projectName)}/ai/fix-grammar`,
       {
         method: 'POST',
-  
+
         headers: {
           'Content-Type': 'application/json',
         },

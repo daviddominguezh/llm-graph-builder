@@ -56,10 +56,7 @@ export function parseIntegrationBody(body: unknown): WhatsAppIntegrationBody | n
 
 /* ─── Duplicate check ─── */
 
-async function isPhoneNumberIdRegistered(
-  supabase: SupabaseClient,
-  phoneNumberId: string
-): Promise<boolean> {
+async function isPhoneNumberIdRegistered(supabase: SupabaseClient, phoneNumberId: string): Promise<boolean> {
   const existing = await getChannelConnectionByIdentifier(supabase, phoneNumberId);
   return existing !== null;
 }
@@ -139,7 +136,11 @@ export async function performMetaOnboarding(
     // Phone is on WhatsApp Business app — request co-existence sync.
     // Sync contacts/state first, then history.
     // History sync webhooks will arrive but we return 200 without processing.
-    const stateSyncId = await requestWhatsAppSynchronization(accessToken, body.phoneNumberId, 'smb_app_state_sync');
+    const stateSyncId = await requestWhatsAppSynchronization(
+      accessToken,
+      body.phoneNumberId,
+      'smb_app_state_sync'
+    );
     if (stateSyncId === null) throw new Error('WhatsApp state sync request failed');
 
     const historySyncId = await requestWhatsAppSynchronization(accessToken, body.phoneNumberId, 'history');

@@ -42,9 +42,11 @@ type ContentExtractor = (msg: WhatsAppMessage) => ExtractedContent | null;
 
 const EXTRACTORS: Record<string, ContentExtractor> = {
   text: (msg) => (msg.text === undefined ? null : { content: msg.text.body, mediaId: undefined }),
-  image: (msg) => (msg.image === undefined ? null : { content: msg.image.caption ?? '', mediaId: msg.image.id }),
+  image: (msg) =>
+    msg.image === undefined ? null : { content: msg.image.caption ?? '', mediaId: msg.image.id },
   audio: (msg) => (msg.audio === undefined ? null : { content: '', mediaId: msg.audio.id }),
-  video: (msg) => (msg.video === undefined ? null : { content: msg.video.caption ?? '', mediaId: msg.video.id }),
+  video: (msg) =>
+    msg.video === undefined ? null : { content: msg.video.caption ?? '', mediaId: msg.video.id },
   document: (msg) =>
     msg.document === undefined ? null : { content: msg.document.caption ?? '', mediaId: msg.document.id },
   sticker: (msg) => (msg.sticker === undefined ? null : { content: '', mediaId: msg.sticker.id }),

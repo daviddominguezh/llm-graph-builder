@@ -115,11 +115,7 @@ export async function withRetry<T>(fn: () => Promise<T>, opts?: RetryOptions): P
   return await executeWithRetry(fn, FIRST_ATTEMPT, config);
 }
 
-async function executeWithRetry<T>(
-  fn: () => Promise<T>,
-  attempt: number,
-  config: RetryConfig
-): Promise<T> {
+async function executeWithRetry<T>(fn: () => Promise<T>, attempt: number, config: RetryConfig): Promise<T> {
   try {
     return await fn();
   } catch (err) {

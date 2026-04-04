@@ -1,8 +1,5 @@
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
-import {
-  decryptWhatsAppToken,
-  getWhatsAppCredential,
-} from '../queries/channelQueries.js';
+import { decryptWhatsAppToken, getWhatsAppCredential } from '../queries/channelQueries.js';
 import {
   updateConversationEnabled,
   updateConversationLastMessage,
@@ -58,10 +55,7 @@ async function saveEchoMessage(params: SaveEchoParams): Promise<void> {
     mediaUrl,
   };
 
-  await Promise.all([
-    insertMessage(supabase, messageData),
-    insertMessageAi(supabase, messageData),
-  ]);
+  await Promise.all([insertMessage(supabase, messageData), insertMessageAi(supabase, messageData)]);
 }
 
 /* ─── Update conversation state for echo ─── */

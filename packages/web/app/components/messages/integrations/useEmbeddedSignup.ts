@@ -51,7 +51,10 @@ export function useEmbeddedSignup(): EmbeddedSignupState & { reset: () => void }
           const phoneNumberId = parsed.data.phone_number_id ?? '';
           const wabaId = parsed.data.waba_id ?? '';
           if (phoneNumberId === '' || wabaId === '') {
-            setState({ data: null, error: 'WhatsApp setup completed but phone number or WABA ID is missing' });
+            setState({
+              data: null,
+              error: 'WhatsApp setup completed but phone number or WABA ID is missing',
+            });
           } else {
             setState({ data: { phoneNumberId, wabaId }, error: null });
           }
