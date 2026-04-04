@@ -90,8 +90,25 @@ export function handleStepProcessed(
 
 /* ─── Agent loop result builder ─── */
 
+function buildTokensLogsFromEvent(event: SseEvent): CallAgentOutput['tokensLogs'] {
+  const mapped = Array.isArray(event.tokensLogs) ? mapNodeTokensToTokensLogs(event.tokensLogs) : [];
+  const EMPTY = 0;
+  if (mapped.length > EMPTY) return mapped;
+  // Fallback: build from totalTokens if tokensLogs is empty
+  const total = toRecord(event.totalTokens);
+  return [{
+    action: 'total',
+    tokens: {
+      input: toNum(total.input),
+      output: toNum(total.output),
+      cached: toNum(total.cached),
+      costUSD: typeof total.costUSD === 'number' ? total.costUSD : undefined,
+    },
+  }];
+}
+
 export function buildAgentLoopResult(event: SseEvent, nodeTexts: NodeProcessedData[]): CallAgentOutput {
-  const tokensLogs = Array.isArray(event.tokensLogs) ? mapNodeTokensToTokensLogs(event.tokensLogs) : [];
+  const tokensLogs = buildTokensLogsFromEvent(event);
   return {
     message: null,
     text: toStr(event.text),

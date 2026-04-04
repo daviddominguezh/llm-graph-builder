@@ -145,7 +145,8 @@ export interface TokenUsage {
   totalCost: number;
 }
 
-export interface AgentExecutionResponse {
+export interface WorkflowExecutionResponse {
+  appType: 'workflow';
   text: string;
   currentNodeId: string;
   visitedNodes: string[];
@@ -154,3 +155,13 @@ export interface AgentExecutionResponse {
   tokenUsage: TokenUsage;
   durationMs: number;
 }
+
+export interface AgentAppResponse {
+  appType: 'agent';
+  text: string;
+  toolCalls: ToolCallRecord[];
+  tokenUsage: TokenUsage;
+  durationMs: number;
+}
+
+export type AgentExecutionResponse = WorkflowExecutionResponse | AgentAppResponse;

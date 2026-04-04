@@ -28,8 +28,8 @@ import {
 } from './executeHelpers.js';
 import { persistPostExecution, persistPreExecution } from './executePersistence.js';
 import {
-  buildAgentResponse,
   buildEmptyResponse,
+  buildResponseByType,
   getLastVisitedNode,
   mergeStructuredOutputs,
 } from './executeResponseBuilders.js';
@@ -214,7 +214,7 @@ async function handleStreaming(ctx: ExecutionContext, res: Response): Promise<vo
   });
 
   if (output !== null) {
-    const response = buildAgentResponse(output, Date.now() - startTime);
+    const response = buildResponseByType(ctx.fetched.appType, output, Date.now() - startTime);
     writePublicSSE(res, { type: 'done', response });
     await persistResult(ctx, output, startTime, nodeData);
   }
@@ -229,12 +229,12 @@ async function handleNonStreaming(ctx: ExecutionContext, res: Response): Promise
   });
 
   if (output !== null) {
-    res.json(buildAgentResponse(output, Date.now() - startTime));
+    res.json(buildResponseByType(ctx.fetched.appType, output, Date.now() - startTime));
     await persistResult(ctx, output, startTime, nodeData);
     return;
   }
 
-  res.json(buildEmptyResponse());
+  res.json(buildEmptyResponse(ctx.fetched.appType));
 }
 
 /* ─── Error handler ─── */

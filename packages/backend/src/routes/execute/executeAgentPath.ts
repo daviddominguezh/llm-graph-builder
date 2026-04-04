@@ -18,11 +18,9 @@ const HTTP_INTERNAL = 500;
 function buildAgentExecResponse(result: AgentLoopResult, durationMs: number): AgentExecutionResponse {
   const { totalTokens } = result;
   return {
+    appType: 'agent',
     text: result.finalText,
-    currentNodeId: '',
-    visitedNodes: [],
     toolCalls: result.toolCalls.map((tc) => ({ name: tc.toolName, args: tc.input, result: tc.output })),
-    structuredOutputs: {},
     tokenUsage: {
       inputTokens: totalTokens.input,
       outputTokens: totalTokens.output,
