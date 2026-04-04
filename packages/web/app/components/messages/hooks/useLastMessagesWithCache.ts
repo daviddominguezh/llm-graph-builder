@@ -151,7 +151,7 @@ export const useLastMessagesWithCache = (projectName: string): UseLastMessagesWi
 
         // Populate synced message IDs with existing cache IDs
         // This prevents re-syncing messages we already have when Redux "resets"
-        for (const conv of Object.values(cached.conversations)) {
+        for (const conv of Object.values(cached.conversations ?? {})) {
           syncedMessageIdsRef.current.add(conv.id);
         }
         setCacheState({ status: 'loading-delta' });
@@ -219,7 +219,7 @@ export const useLastMessagesWithCache = (projectName: string): UseLastMessagesWi
           await LastMessagesCacheService.setCache(projectName, newCacheData);
 
           // Populate synced message IDs with fetched message IDs
-          for (const conv of Object.values(paginatedResponse.messages)) {
+          for (const conv of Object.values(paginatedResponse.messages ?? {})) {
             syncedMessageIdsRef.current.add(conv.id);
           }
         } else {
@@ -496,7 +496,7 @@ export const useLastMessagesWithCache = (projectName: string): UseLastMessagesWi
       return [emptyTestChat];
     }
 
-    const entries = Object.entries(cacheData.conversations);
+    const entries = Object.entries(cacheData.conversations ?? {});
     const hasTestChat = entries.some(([k]) => k === TEST_PHONE);
 
     const mapped = entries.map(([chatId, conv]) => ({
