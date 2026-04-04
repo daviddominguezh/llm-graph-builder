@@ -1,3 +1,4 @@
+import type { TenantRow } from '@/app/lib/tenants';
 import React from 'react';
 import { Provider } from 'react-redux';
 
@@ -13,6 +14,8 @@ interface MessagesDashboardContainerProps {
   onChangeSidebar: (val: boolean) => void;
   initialChatFilter?: string;
   tenantId: string;
+  tenants: TenantRow[];
+  onTenantChange: (tenantId: string) => void;
 }
 
 /**
@@ -33,6 +36,8 @@ export const MessagesDashboardContainer: React.FC<MessagesDashboardContainerProp
   onChangeSidebar,
   initialChatFilter,
   tenantId,
+  tenants,
+  onTenantChange,
 }) => {
   return (
     <Provider store={store}>
@@ -46,6 +51,9 @@ export const MessagesDashboardContainer: React.FC<MessagesDashboardContainerProp
                     <MessagesDashboardLayout
                       onChangeSidebar={onChangeSidebar}
                       initialChatFilter={initialChatFilter}
+                      tenants={tenants}
+                      currentTenantId={tenantId}
+                      onTenantChange={onTenantChange}
                     />
                   </UIProvider>
                 </MessageProvider>

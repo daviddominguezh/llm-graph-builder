@@ -1,3 +1,4 @@
+import type { TenantRow } from '@/app/lib/tenants';
 import WithFirebaseUploader from '@/app/components/messages/hocs/withFirebaseUploader';
 import { useRBAC } from '@/app/components/messages/hooks/useRBAC';
 import {
@@ -54,6 +55,9 @@ interface QueueEffectSnapshot {
 interface MessagesDashboardLayoutProps {
   onChangeSidebar: (val: boolean) => void;
   initialChatFilter?: string;
+  tenants: TenantRow[];
+  currentTenantId: string;
+  onTenantChange: (tenantId: string) => void;
 }
 
 /**
@@ -70,6 +74,9 @@ interface MessagesDashboardLayoutProps {
 export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = ({
   onChangeSidebar,
   initialChatFilter,
+  tenants,
+  currentTenantId,
+  onTenantChange,
 }) => {
   const projectName = useTenantId();
   const repository = useMessageRepository();
@@ -661,6 +668,9 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
                   profilePictures={profilePictures}
                   orderedChats={orderedChats}
                   currentUserEmail={currentUserEmail}
+                  tenants={tenants}
+                  currentTenantId={currentTenantId}
+                  onTenantChange={onTenantChange}
                 />
               </ResizablePanel>
             )}

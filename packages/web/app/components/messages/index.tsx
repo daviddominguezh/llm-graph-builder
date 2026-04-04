@@ -1,3 +1,4 @@
+import type { TenantRow } from '@/app/lib/tenants';
 import React from 'react';
 
 import { MessagesDashboardContainer } from './components/MessagesDashboardContainer';
@@ -6,6 +7,8 @@ interface MessagesDashboardProps {
   onChangeSidebar: (val: boolean) => void;
   initialChatFilter?: string;
   tenantId: string;
+  tenants: TenantRow[];
+  onTenantChange: (tenantId: string) => void;
 }
 
 /**
@@ -20,12 +23,20 @@ interface MessagesDashboardProps {
  * - Dependency Injection: Repository pattern for testable data access
  * - Composability: Small, focused components that work together
  */
-const MessagesDashboard: React.FC<MessagesDashboardProps> = ({ onChangeSidebar, initialChatFilter, tenantId }) => {
+const MessagesDashboard: React.FC<MessagesDashboardProps> = ({
+  onChangeSidebar,
+  initialChatFilter,
+  tenantId,
+  tenants,
+  onTenantChange,
+}) => {
   return (
     <MessagesDashboardContainer
       onChangeSidebar={onChangeSidebar}
       initialChatFilter={initialChatFilter}
       tenantId={tenantId}
+      tenants={tenants}
+      onTenantChange={onTenantChange}
     />
   );
 };

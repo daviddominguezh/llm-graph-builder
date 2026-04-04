@@ -1,3 +1,4 @@
+import type { TenantRow } from '@/app/lib/tenants';
 import { Collaborator } from '@/app/types/projectInnerSettings';
 import { useIsMobile } from '@/app/utils/device';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,7 @@ import { memo, useMemo } from 'react';
 
 import { ChatWithId } from '../../core/contexts/ChatContext';
 import { Slot } from '../../core/slots';
+import { TenantSwitcher } from '../TenantSwitcher';
 
 interface SectionItem {
   id: string;
@@ -24,6 +26,9 @@ interface LeftPanelProps {
   profilePictures?: Map<string, string>;
   orderedChats?: ChatWithId[];
   currentUserEmail?: string | null;
+  tenants: TenantRow[];
+  currentTenantId: string;
+  onTenantChange: (tenantId: string) => void;
 }
 
 /**
@@ -35,6 +40,9 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
   onFilterChange,
   orderedChats = [],
   currentUserEmail = null,
+  tenants,
+  currentTenantId,
+  onTenantChange,
 }) => {
   const t = useTranslations('messages');
   const isMobile = useIsMobile();
@@ -102,8 +110,8 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
     <div className="relative flex flex-col h-full w-full bg-background border-r overflow-y-auto">
       <Slot name="left-panel-top" />
 
-      <div className={`h-[41px] flex w-full items-center py-1.5  justify-between pl-3 pr-1 border-b mb-2.5`}>
-        <div className="cursor-default text-sm font-semibold">{t('Inbox')}</div>
+      <div className="h-[41px] flex w-full items-center py-1.5 pl-1 pr-1 border-b mb-2.5">
+        <TenantSwitcher tenants={tenants} currentTenantId={currentTenantId} onTenantChange={onTenantChange} />
       </div>
 
       <div className={`flex flex-col px-2 gap-0.5`}>
