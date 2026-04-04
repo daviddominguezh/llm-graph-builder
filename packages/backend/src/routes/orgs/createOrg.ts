@@ -5,7 +5,7 @@ import { createApiKey } from '../../db/queries/apiKeyQueries.js';
 import { updateBloomFilter } from '../../db/queries/bloomFilterQueries.js';
 import { insertOrg } from '../../db/queries/orgQueries.js';
 import { findUniqueSlug, generateSlug } from '../../db/queries/slugQueries.js';
-import { createOpenRouterKey, OPENFLOW_KEY_NAME } from '../../openrouter/managementKeys.js';
+import { OPENFLOW_KEY_NAME, createOpenRouterKey } from '../../openrouter/managementKeys.js';
 import { buildBitmask } from '../../utils/bloomFilter.js';
 import {
   type AuthenticatedLocals,
