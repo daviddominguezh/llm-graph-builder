@@ -1,6 +1,4 @@
-import { getApiURL } from '@/app/components/messages/shared/utilStubs';
-
-const API_BASE_URL = getApiURL();
+const API_BASE_URL = '/api/messaging';
 
 export interface WhatsAppConnectParams {
   phone: string;
@@ -37,7 +35,7 @@ export async function connectWhatsAppIntegration(
 
   const response = await fetch(url, {
     method: 'POST',
-    credentials: 'include',
+
     headers,
     body: JSON.stringify(params),
   });

@@ -8,13 +8,13 @@ import type {
 } from '@/app/components/messages/core/types';
 import { getAuthToken, handleAuthError } from '@/app/components/messages/services/auth';
 import { isPublicEndpoint as checkIsPublicEndpoint } from '@/app/components/messages/shared/constStubs';
-import { getApiURL, isLocalDevelopment } from '@/app/components/messages/shared/utilStubs';
+import { isLocalDevelopment } from '@/app/components/messages/shared/utilStubs';
 import { Conversation, LastMessage, LastMessages } from '@/app/types/chat';
 import { FinalUserInfoAPI } from '@/app/types/finalUsers';
 import { MediaFileDetail, MediaFileKind } from '@/app/types/media';
 import { Collaborator, InnerSettings } from '@/app/types/projectInnerSettings';
 
-const API_BASE_URL = getApiURL();
+const API_BASE_URL = '/api/messaging';
 
 /**
  * Get authorization headers for protected API endpoints
@@ -98,7 +98,7 @@ export const getUserPictureByEmail = async (email: string): Promise<string | nul
   try {
     const response = await authenticatedFetch(`${API_BASE_URL}/auth/${email}/pic`, {
       method: 'GET',
-      credentials: 'include',
+
     });
     if (!response.ok) {
       return null;
@@ -171,7 +171,7 @@ export const getFinalUserInfo = async (namespace: string, id: string): Promise<F
   try {
     const response = await authenticatedFetch(`${API_BASE_URL}/projects/${namespace}/users/${id}`, {
       method: 'GET',
-      credentials: 'include',
+
     });
 
     if (!response.ok) {
@@ -203,7 +203,7 @@ export const setMediaUploaded = async (
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
-        credentials: 'include',
+  
       }
     );
 
@@ -243,7 +243,7 @@ export const getFileDescription = async (
     const response = await authenticatedFetch(
       `${API_BASE_URL}/projects/${namespace}/media/analyze?url=${encoded64URL}&kind=${kind}&path=${encodedPath}&namespace=${namespace}`,
       {
-        credentials: 'include',
+  
       }
     );
 
@@ -267,7 +267,7 @@ export const getMessagesFromSender = async (
     let url = `${API_BASE_URL}/projects/${namespace}/conversations/${sender}`;
     if (fromMessageId) url += `?from=${fromMessageId}`;
     const response = await authenticatedFetch(url, {
-      credentials: 'include',
+
     });
 
     if (!response.ok) return null;
@@ -312,7 +312,7 @@ export const getMessagesFromSenderPaginated = async (
 
     const url = `${API_BASE_URL}/projects/${namespace}/conversations/${sender}?${params.toString()}`;
     const response = await authenticatedFetch(url, {
-      credentials: 'include',
+
     });
 
     if (!response.ok) return null;
@@ -335,7 +335,7 @@ export const setChatbotActiveState = async (
       url += `&nextNode=${nextNode}`;
     }
     await authenticatedFetch(url, {
-      credentials: 'include',
+
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -370,7 +370,7 @@ export const createNote = async (
       `${API_BASE_URL}/projects/${projectName}/conversations/${userID}/notes`,
       {
         method: 'POST',
-        credentials: 'include',
+  
         headers: {
           'Content-Type': 'application/json',
         },
@@ -395,7 +395,7 @@ export const getNotes = async (projectName: string, userID: string): Promise<Rec
     const response = await authenticatedFetch(
       `${API_BASE_URL}/projects/${projectName}/conversations/${userID}/notes`,
       {
-        credentials: 'include',
+  
       }
     );
 
@@ -418,7 +418,7 @@ export const deleteNote = async (projectName: string, userID: string, noteID: st
       `${API_BASE_URL}/projects/${projectName}/conversations/${userID}/notes/${noteID}`,
       {
         method: 'DELETE',
-        credentials: 'include',
+  
       }
     );
 
@@ -444,7 +444,7 @@ export const updateChatAssignee = async (
       `${API_BASE_URL}/projects/${projectName}/conversations/${userID}/assignee`,
       {
         method: 'POST',
-        credentials: 'include',
+  
         headers: {
           'Content-Type': 'application/json',
         },
@@ -473,7 +473,7 @@ export const updateChatStatus = async (
       `${API_BASE_URL}/projects/${projectName}/conversations/${userID}/status`,
       {
         method: 'POST',
-        credentials: 'include',
+  
         headers: {
           'Content-Type': 'application/json',
         },
@@ -501,7 +501,7 @@ export const sendMessage = async (
 ) => {
   try {
     await authenticatedFetch(`${API_BASE_URL}/messages/message`, {
-      credentials: 'include',
+
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -525,7 +525,7 @@ export const sendMessage = async (
 export const fixInquiry = async (namespace: string, to: string, msg: string) => {
   try {
     await authenticatedFetch(`${API_BASE_URL}/messages/inquiry`, {
-      credentials: 'include',
+
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -549,7 +549,7 @@ export const sendTestMessage = async (
 ) => {
   try {
     await authenticatedFetch(`${API_BASE_URL}/messages/test`, {
-      credentials: 'include',
+
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -571,7 +571,7 @@ export const sendTestMessage = async (
 export const deleteConversation = async (namespace: string, from: string) => {
   try {
     await authenticatedFetch(`${API_BASE_URL}/messages/${namespace}/${from}`, {
-      credentials: 'include',
+
       method: 'DELETE',
     });
   } catch (error) {
@@ -599,7 +599,7 @@ export const sendMediaTestMessage = async (
       body.message = caption;
     }
     await authenticatedFetch(`${API_BASE_URL}/messages/test`, {
-      credentials: 'include',
+
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -634,7 +634,7 @@ export const sendMediaMessage = async (
       body.message = caption;
     }
     await authenticatedFetch(`${API_BASE_URL}/messages/message`, {
-      credentials: 'include',
+
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -669,7 +669,7 @@ export const getLastMessages = async (namespace: string): Promise<LastMessages |
   const fetchPromise = (async () => {
     try {
       const response = await authenticatedFetch(`${API_BASE_URL}/projects/${namespace}/messages/last`, {
-        credentials: 'include',
+  
       });
 
       if (!response.ok) return null;
@@ -710,7 +710,7 @@ export const getLastMessagesPaginated = async (
     }
 
     const response = await authenticatedFetch(url, {
-      credentials: 'include',
+
     });
 
     if (!response.ok) return null;
@@ -745,7 +745,7 @@ export const getLastMessagesDelta = async (
     const response = await authenticatedFetch(
       `${API_BASE_URL}/projects/${namespace}/messages/last/delta?timestamp=${timestamp}`,
       {
-        credentials: 'include',
+  
       }
     );
 
@@ -792,7 +792,7 @@ export const getDeletedChats = async (
     const response = await authenticatedFetch(
       `${API_BASE_URL}/projects/${namespace}/messages/last/deleted?since=${fromTimestamp}`,
       {
-        credentials: 'include',
+  
       }
     );
 
@@ -809,7 +809,7 @@ export const getDeletedChats = async (
 export const readConversation = async (namespace: string, phone: string): Promise<void> => {
   try {
     await authenticatedFetch(`${API_BASE_URL}/projects/${namespace}/conversations/${phone}/read`, {
-      credentials: 'include',
+
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -824,7 +824,7 @@ export const getProjectInnerSettings = async (namespace: string): Promise<InnerS
   try {
     const url = `${API_BASE_URL}/projects/${namespace}/settings`;
     const response = await authenticatedFetch(url, {
-      credentials: 'include',
+
     });
     return await response.json();
   } catch (error) {
@@ -922,7 +922,7 @@ export const makeFriendly = async (projectName: string, text: string): Promise<{
       `${API_BASE_URL}/projects/${encodeURIComponent(projectName)}/ai/make-friendly`,
       {
         method: 'POST',
-        credentials: 'include',
+  
         headers: {
           'Content-Type': 'application/json',
         },
@@ -950,7 +950,7 @@ export const makeFormal = async (projectName: string, text: string): Promise<{ t
       `${API_BASE_URL}/projects/${encodeURIComponent(projectName)}/ai/make-formal`,
       {
         method: 'POST',
-        credentials: 'include',
+  
         headers: {
           'Content-Type': 'application/json',
         },
@@ -977,7 +977,7 @@ export const fixGrammar = async (projectName: string, text: string): Promise<{ t
       `${API_BASE_URL}/projects/${encodeURIComponent(projectName)}/ai/fix-grammar`,
       {
         method: 'POST',
-        credentials: 'include',
+  
         headers: {
           'Content-Type': 'application/json',
         },
@@ -1003,7 +1003,7 @@ export const answerQuestion = async (projectName: string, text: string): Promise
     `${API_BASE_URL}/projects/${encodeURIComponent(projectName)}/ai/answer-question`,
     {
       method: 'POST',
-      credentials: 'include',
+
       headers: {
         'Content-Type': 'application/json',
       },
