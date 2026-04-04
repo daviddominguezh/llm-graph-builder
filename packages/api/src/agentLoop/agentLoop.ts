@@ -235,6 +235,9 @@ function noopStepProcessed(): void {
   /* intentional no-op callback */
 }
 
-export async function executeAgentLoopSimple(config: AgentLoopConfig, loggerInstance?: Logger): Promise<AgentLoopResult> {
+export async function executeAgentLoopSimple(
+  config: AgentLoopConfig,
+  loggerInstance?: Logger
+): Promise<AgentLoopResult> {
   return await executeAgentLoop(config, { onStepProcessed: noopStepProcessed }, loggerInstance);
 }

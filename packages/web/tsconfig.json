@@ -33,5 +33,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", ".next/dev/build"]
+  "exclude": ["node_modules", "dist", ".next/dev/build"]
 }

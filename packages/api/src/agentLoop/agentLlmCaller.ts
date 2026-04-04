@@ -3,7 +3,6 @@ import { generateText } from 'ai';
 
 import { getOpenRouterModel } from '@src/provider/openRouter.js';
 import type { TokenLog } from '@src/types/ai/logs.js';
-
 import { logger } from '@src/utils/logger.js';
 
 import type { AgentToolCallRecord } from './agentLoopTypes.js';
