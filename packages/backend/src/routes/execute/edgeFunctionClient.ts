@@ -1,6 +1,7 @@
 import type { RuntimeGraph } from '@daviddh/graph-types';
 import type { CallAgentOutput, Message, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
 
+import { buildAgentLoopResult, handleStepProcessed } from './edgeFunctionAgentEvents.js';
 import type { NodeProcessedData, ToolCallData, VfsEdgeFunctionPayload } from './executeSharedTypes.js';
 import {
   type SseEvent,
@@ -17,6 +18,7 @@ import {
 export type { NodeProcessedData, VfsEdgeFunctionPayload } from './executeSharedTypes.js';
 
 export interface ExecuteAgentParams {
+  appType?: 'workflow' | 'agent';
   graph: RuntimeGraph;
   apiKey: string;
   modelId: string;
@@ -30,6 +32,10 @@ export interface ExecuteAgentParams {
   userID: string;
   isFirstMessage: boolean;
   vfs?: VfsEdgeFunctionPayload;
+  // Agent-specific fields (used when appType === 'agent')
+  systemPrompt?: string;
+  context?: string;
+  maxSteps?: number | null;
 }
 
 export interface ExecuteAgentCallbacks {
@@ -184,6 +190,10 @@ function buildParsedResults(
 }
 
 function buildResultFromResponse(event: SseEvent, nodeTexts: NodeProcessedData[]): CallAgentOutput {
+  // Agent loop response has 'steps' field; workflow response has 'visitedNodes'
+  if (event.steps !== undefined) {
+    return buildAgentLoopResult(event, nodeTexts);
+  }
   return {
     message: null,
     text: toStr(event.text),
@@ -227,8 +237,12 @@ function handleSseEvent(
 ): SseEventResult {
   if (event.type === 'node_visited') {
     callbacks.onNodeVisited(toStr(event.nodeId));
+  } else if (event.type === 'step_started') {
+    callbacks.onNodeVisited(`step-${String(toNum(event.step))}`);
   } else if (event.type === 'node_processed') {
     handleNodeProcessed(event, nodeTexts, callbacks);
+  } else if (event.type === 'step_processed') {
+    handleStepProcessed(event, nodeTexts, callbacks);
   } else if (event.type === 'agent_response') {
     return { agentOutput: buildResultFromResponse(event, nodeTexts) };
   } else if (event.type === 'error') {

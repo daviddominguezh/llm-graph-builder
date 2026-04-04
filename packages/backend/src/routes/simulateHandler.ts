@@ -93,7 +93,7 @@ export async function handleSimulate(
   req: Request<Record<string, string>, unknown, SimulateRequest>,
   res: Response
 ): Promise<void> {
-  process.stdout.write(`[simulate] workflow request received, currentNode=${String(req.body.currentNode)}\n`);
+  process.stdout.write(`[simulate] workflow request received, currentNode=${req.body.currentNode}\n`);
   const { body } = req;
   const mcpServers = body.graph.mcpServers ?? [];
   setSseHeaders(res);

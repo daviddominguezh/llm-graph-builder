@@ -6,7 +6,6 @@ import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { getAgentVfsSettings } from '../../db/queries/vfsConfigQueries.js';
 import type { ExecuteAgentParams, NodeProcessedData, VfsEdgeFunctionPayload } from './edgeFunctionClient.js';
 import { executeAgent } from './edgeFunctionClient.js';
-import { routeAgentExecution } from './executeAgentPath.js';
 import type { ExecutionAuthLocals, ExecutionAuthResponse } from './executeAuth.js';
 import {
   type FetchedData,
@@ -57,7 +56,8 @@ interface ExecutionContext {
 
 /* ─── Params builder ─── */
 function buildExecuteParams(ctx: ExecutionContext): ExecuteAgentParams {
-  return {
+  const base: ExecuteAgentParams = {
+    appType: ctx.fetched.appType === 'agent' ? 'agent' : 'workflow',
     graph: ctx.fetched.graph,
     apiKey: ctx.fetched.apiKey,
     modelId: ctx.model,
@@ -72,6 +72,12 @@ function buildExecuteParams(ctx: ExecutionContext): ExecuteAgentParams {
     isFirstMessage: ctx.fetched.isNew,
     vfs: ctx.vfsPayload,
   };
+
+  if (ctx.fetched.appType === 'agent' && ctx.fetched.agentConfig !== null) {
+    return { ...base, ...ctx.fetched.agentConfig };
+  }
+
+  return base;
 }
 
 /* ─── Data fetching ─── */
@@ -123,7 +129,7 @@ async function resolveVfsPayload(
 
 /* ─── Preparation ─── */
 function logExec(label: string, data?: Record<string, unknown>): void {
-  const suffix = data !== undefined ? `: ${JSON.stringify(data)}` : '';
+  const suffix = data === undefined ? '' : `: ${JSON.stringify(data)}`;
   process.stdout.write(`[execute] ${label}${suffix}\n`);
 }
 
@@ -165,7 +171,7 @@ async function prepareExecution(
     }),
     resolveVfsPayload(supabase, fetched, agentId, orgId),
   ]);
-  logExec('execution persisted', { executionId, hasVfs: vfsPayload !== null });
+  logExec('execution persisted', { executionId, hasVfs: vfsPayload !== undefined });
 
   return { supabase, input, agentId, orgId, version, model, fetched, userMessage, executionId, vfsPayload };
 }
@@ -276,28 +282,15 @@ export async function handleExecute(
       logExec('stack routing: child active', { depth: ctx.fetched.stackTop.depth, childExecution: ctx.fetched.stackTop.execution_id });
     }
 
-    if (ctx.fetched.appType === 'agent') {
-      logExec('routing to agent execution', { executionId: ctx.executionId, stream: ctx.input.stream });
-      await routeAgentExecution(
-        {
-          supabase: ctx.supabase,
-          executionId: ctx.executionId,
-          fetched: ctx.fetched,
-          model: ctx.model,
-          stream: ctx.input.stream,
-        },
-        res
-      );
-      logExec('agent execution completed', { executionId: ctx.executionId });
-    } else if (ctx.input.stream) {
-      logExec('routing to workflow streaming', { executionId: ctx.executionId });
+    logExec('routing execution', { appType: ctx.fetched.appType, executionId: ctx.executionId, stream: ctx.input.stream });
+
+    if (ctx.input.stream) {
       await handleStreaming(ctx, res);
-      logExec('workflow streaming completed', { executionId: ctx.executionId });
     } else {
-      logExec('routing to workflow non-streaming', { executionId: ctx.executionId });
       await handleNonStreaming(ctx, res);
-      logExec('workflow non-streaming completed', { executionId: ctx.executionId });
     }
+
+    logExec('execution completed', { executionId: ctx.executionId });
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     logExec('execution error', { executionId, error: errMsg });
