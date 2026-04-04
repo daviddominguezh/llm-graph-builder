@@ -167,6 +167,10 @@ function buildIncomingMessage(
 }
 
 function parseChange(change: WhatsAppChange, results: IncomingMessage[]): string {
+  // Only process real-time message events (field === 'messages').
+  // History sync events (field === 'history') and message echoes
+  // (field === 'smb_message_echoes') are intentionally ignored —
+  // the webhook returns 200 without saving or processing them.
   if (change.field !== 'messages') return '';
   const { value } = change;
   const { contacts: rawContacts, metadata, messages: rawMessages } = value;
