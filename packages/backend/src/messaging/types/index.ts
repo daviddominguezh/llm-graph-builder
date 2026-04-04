@@ -11,7 +11,7 @@ export interface ConversationRow {
   tenant_id: string;
   user_channel_id: string;
   thread_id: string;
-  channel: 'whatsapp' | 'instagram' | 'api';
+  channel: 'whatsapp' | 'instagram' | 'api' | 'web';
   last_message_content: string | null;
   last_message_role: string | null;
   last_message_type: string | null;
@@ -142,6 +142,9 @@ export interface ConversationSnapshot {
   type: string;
   originalId: string;
   intent: string;
+  channel: string;
+  agentId: string;
+  agentSlug: string;
   assignees: Record<string, AssigneeEntry>;
   statuses: Record<string, StatusEntry>;
 }

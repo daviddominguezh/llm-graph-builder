@@ -43,7 +43,8 @@ function buildStatusMap(rows: ConversationStatusRow[]): Record<string, StatusEnt
 function conversationToSnapshot(
   row: ConversationRow,
   assignees: ConversationAssigneeRow[],
-  statuses: ConversationStatusRow[]
+  statuses: ConversationStatusRow[],
+  agentSlug?: string
 ): ConversationSnapshot {
   return {
     id: row.id,
@@ -58,6 +59,9 @@ function conversationToSnapshot(
     type: row.last_message_type ?? 'text',
     originalId: row.last_original_id ?? '',
     intent: 'NONE',
+    channel: row.channel,
+    agentId: row.agent_id,
+    agentSlug: agentSlug ?? '',
     assignees: buildAssigneeMap(assignees),
     statuses: buildStatusMap(statuses),
   };
@@ -66,9 +70,32 @@ function conversationToSnapshot(
 export function buildSnapshotFromRow(
   row: ConversationRow,
   assignees: ConversationAssigneeRow[],
-  statuses: ConversationStatusRow[]
+  statuses: ConversationStatusRow[],
+  agentSlug?: string
 ): ConversationSnapshot {
-  return conversationToSnapshot(row, assignees, statuses);
+  return conversationToSnapshot(row, assignees, statuses, agentSlug);
+}
+
+async function batchGetAgentSlugs(
+  supabase: SupabaseClient,
+  agentIds: string[]
+): Promise<Map<string, string>> {
+  const unique = [...new Set(agentIds)];
+  if (unique.length === EMPTY_LENGTH) return new Map();
+
+  const result = await supabase
+    .from('agents')
+    .select('id, slug')
+    .in('id', unique);
+
+  const map = new Map<string, string>();
+  if (Array.isArray(result.data)) {
+    for (const row of result.data) {
+      const r = row as { id: string; slug: string };
+      map.set(r.id, r.slug);
+    }
+  }
+  return map;
 }
 
 export async function buildSnapshots(
@@ -78,12 +105,19 @@ export async function buildSnapshots(
   if (conversations.length === EMPTY_LENGTH) return [];
 
   const ids = conversations.map((c) => c.id);
-  const [assigneeMap, statusMap] = await Promise.all([
+  const agentIds = conversations.map((c) => c.agent_id);
+  const [assigneeMap, statusMap, agentSlugMap] = await Promise.all([
     batchGetAssignees(supabase, ids),
     batchGetStatuses(supabase, ids),
+    batchGetAgentSlugs(supabase, agentIds),
   ]);
 
   return conversations.map((conv) =>
-    conversationToSnapshot(conv, assigneeMap.get(conv.id) ?? [], statusMap.get(conv.id) ?? [])
+    conversationToSnapshot(
+      conv,
+      assigneeMap.get(conv.id) ?? [],
+      statusMap.get(conv.id) ?? [],
+      agentSlugMap.get(conv.agent_id)
+    )
   );
 }
