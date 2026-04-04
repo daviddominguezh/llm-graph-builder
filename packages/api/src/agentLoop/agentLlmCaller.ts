@@ -57,9 +57,9 @@ function extractTokens(usage: unknown): TokenLog {
     return { input: ZERO, output: ZERO, cached: ZERO };
   }
   return {
-    input: typeof u.promptTokens === 'number' ? u.promptTokens : ZERO,
-    output: typeof u.completionTokens === 'number' ? u.completionTokens : ZERO,
-    cached: typeof u.cachedTokens === 'number' ? u.cachedTokens : ZERO,
+    input: typeof u.inputTokens === 'number' ? u.inputTokens : ZERO,
+    output: typeof u.outputTokens === 'number' ? u.outputTokens : ZERO,
+    cached: typeof u.cachedInputTokens === 'number' ? u.cachedInputTokens : ZERO,
   };
 }
 
