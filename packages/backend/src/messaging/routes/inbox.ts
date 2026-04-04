@@ -31,10 +31,16 @@ async function handlePaginatedInbox(req: Request, res: MessagingResponse): Promi
   const page = await getInboxPage(supabase, { tenantId, cursor });
   const snapshots = await buildSnapshots(supabase, page.conversations);
 
+  // Frontend expects { messages: Record<key, LastMessage>, hasMore, nextCursor }
+  const messages: Record<string, (typeof snapshots)[number]> = {};
+  for (const snap of snapshots) {
+    messages[snap.key] = snap;
+  }
+
   res.status(HTTP_OK).json({
-    data: snapshots,
+    messages,
     hasMore: page.hasMore,
-    nextCursor: page.nextCursor,
+    nextCursor: page.nextCursor ?? undefined,
   });
 }
 
@@ -44,7 +50,12 @@ async function handleFullInbox(req: Request, res: MessagingResponse): Promise<vo
 
   const conversations = await getAllInbox(supabase, tenantId);
   const snapshots = await buildSnapshots(supabase, conversations);
-  res.status(HTTP_OK).json(snapshots);
+
+  const messages: Record<string, (typeof snapshots)[number]> = {};
+  for (const snap of snapshots) {
+    messages[snap.key] = snap;
+  }
+  res.status(HTTP_OK).json(messages);
 }
 
 async function handleGetInbox(req: Request, res: MessagingResponse): Promise<void> {
