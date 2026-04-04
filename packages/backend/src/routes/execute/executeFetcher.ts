@@ -89,6 +89,14 @@ interface GraphFetchParams {
   productionApiKeyId: string;
 }
 
+const EMPTY_GRAPH: RuntimeGraph = {
+  startNode: 'INITIAL_STEP',
+  agents: [],
+  nodes: [],
+  edges: [],
+  initialUserMessage: '',
+};
+
 function ensureGraphData(graphData: Record<string, unknown> | null): RuntimeGraph {
   if (graphData === null) throw new HttpError(HTTP_UNPROCESSABLE, 'Graph data not found');
   const parsed = RuntimeGraphSchema.safeParse(graphData);
@@ -116,7 +124,8 @@ export async function fetchGraphAndKeys(params: GraphFetchParams): Promise<Graph
     fetchAppType(supabase, agentId),
   ]);
 
-  return { graph: ensureGraphData(graphData), apiKey: ensureApiKey(apiKey), envVars, appType };
+  const graph = appType === 'agent' ? EMPTY_GRAPH : ensureGraphData(graphData);
+  return { graph, apiKey: ensureApiKey(apiKey), envVars, appType };
 }
 
 /* ─── Session fetching ─── */
