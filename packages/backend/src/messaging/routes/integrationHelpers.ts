@@ -12,6 +12,7 @@ import {
   isOnWhatsAppBusinessApp,
   registerPhoneWithCloudApi,
   registerWebhookSubscription,
+  requestWhatsAppSynchronization,
 } from '../services/whatsapp/metaApi.js';
 
 /* ─── Types ─── */
@@ -93,7 +94,15 @@ export async function performMetaOnboarding(
   const accessToken = await exchangeAuthCodeForToken(body.authCode);
 
   const isOnApp = await isOnWhatsAppBusinessApp(accessToken, body.phoneNumberId);
-  if (!isOnApp) {
+
+  if (isOnApp) {
+    // Phone is on WhatsApp Business app — request co-existence sync.
+    // Sync contacts/state first, then history.
+    // History sync webhooks will arrive but we return 200 without processing.
+    await requestWhatsAppSynchronization(accessToken, body.phoneNumberId, 'smb_app_state_sync');
+    await requestWhatsAppSynchronization(accessToken, body.phoneNumberId, 'history');
+  } else {
+    // Phone not on app — register directly with Cloud API.
     await registerPhoneWithCloudApi(accessToken, body.phoneNumberId);
   }
 

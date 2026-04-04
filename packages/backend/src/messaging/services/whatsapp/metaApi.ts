@@ -103,6 +103,47 @@ export async function registerPhoneWithCloudApi(
   return true;
 }
 
+/* ─── WhatsApp Business App Synchronization ─── */
+
+/**
+ * Request synchronization from WhatsApp Business app.
+ * Called when the phone is already on the WhatsApp Business app (co-existence mode).
+ *
+ * Two sync types:
+ * - 'smb_app_state_sync': sync contacts/state from the app
+ * - 'history': sync message history from the app
+ *
+ * We call both during onboarding. The history sync webhooks will arrive
+ * but we return 200 without processing them (history import is not implemented).
+ */
+export async function requestWhatsAppSynchronization(
+  accessToken: string,
+  phoneNumberId: string,
+  syncType: 'smb_app_state_sync' | 'history'
+): Promise<string | null> {
+  const url = `${GRAPH_BASE}/${phoneNumberId}/smb_app_data`;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      sync_type: syncType,
+    }),
+  });
+
+  const data: unknown = await res.json();
+
+  if (!isRecord(data)) return null;
+
+  // The API returns a request_id on success
+  const { request_id: requestId } = data;
+  return typeof requestId === 'string' ? requestId : null;
+}
+
 /* ─── Webhook Subscription ─── */
 
 export async function registerWebhookSubscription(
