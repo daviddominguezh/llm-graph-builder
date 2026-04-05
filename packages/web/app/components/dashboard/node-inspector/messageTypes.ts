@@ -14,7 +14,8 @@ interface ToolCallPart {
   type: 'tool-call';
   toolCallId?: string;
   toolName: string;
-  args: unknown;
+  args?: unknown;
+  input?: unknown;
 }
 
 interface ToolResultPart {

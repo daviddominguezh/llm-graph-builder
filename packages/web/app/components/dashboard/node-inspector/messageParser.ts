@@ -28,7 +28,7 @@ function contentPartToCard(role: string, part: ContentPart): MessageCard | null 
   if (part.type === 'text') return textPartToCard(role, part.text);
   if (part.type === 'reasoning') return { kind: 'reasoning', text: part.text };
   if (part.type === 'tool-call') {
-    return { kind: 'tool-call', toolName: part.toolName, args: part.args };
+    return { kind: 'tool-call', toolName: part.toolName, args: part.input ?? part.args };
   }
   if (part.type === 'tool-result') {
     return { kind: 'tool-result', toolName: part.toolName, result: part.result ?? part.output };
