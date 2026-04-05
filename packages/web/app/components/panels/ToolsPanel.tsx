@@ -53,6 +53,33 @@ interface ToolGroup {
   tools: FlatTool[];
 }
 
+const SYSTEM_SERVER_ID = '__system__';
+const SYSTEM_SERVER_NAME = 'System';
+
+const SYSTEM_TOOLS: FlatTool[] = [
+  {
+    serverId: SYSTEM_SERVER_ID,
+    serverName: SYSTEM_SERVER_NAME,
+    name: '__system_create_agent',
+    description: 'Create a dynamic sub-agent with a custom system prompt and dispatch it to handle a task.',
+    inputSchema: undefined,
+  },
+  {
+    serverId: SYSTEM_SERVER_ID,
+    serverName: SYSTEM_SERVER_NAME,
+    name: '__system_invoke_agent',
+    description: 'Invoke an existing agent by slug to handle a task independently.',
+    inputSchema: undefined,
+  },
+  {
+    serverId: SYSTEM_SERVER_ID,
+    serverName: SYSTEM_SERVER_NAME,
+    name: '__system_invoke_workflow',
+    description: 'Invoke an existing workflow by slug with a routing message.',
+    inputSchema: undefined,
+  },
+];
+
 function buildToolGroups(
   servers: McpServerConfig[],
   discovered: Record<string, DiscoveredTool[]>
@@ -72,6 +99,7 @@ function buildToolGroups(
     }
   }
   groups.sort((a, b) => a.serverName.localeCompare(b.serverName));
+  groups.push({ serverName: SYSTEM_SERVER_NAME, tools: SYSTEM_TOOLS });
   return groups;
 }
 
