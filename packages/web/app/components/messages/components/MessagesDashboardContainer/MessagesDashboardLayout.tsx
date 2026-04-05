@@ -543,7 +543,7 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
           <FilePicker
             multiple
             types={
-              activeChat?.startsWith('instagram:') ? INSTAGRAM_MEDIA_SUPPORTED_TYPES : MEDIA_SUPPORTED_TYPES
+              currentChat?.channel === 'instagram' ? INSTAGRAM_MEDIA_SUPPORTED_TYPES : MEDIA_SUPPORTED_TYPES
             }
           />
         </WithFirebaseUploader>

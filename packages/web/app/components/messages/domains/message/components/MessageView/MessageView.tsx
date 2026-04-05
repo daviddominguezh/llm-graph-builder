@@ -15,13 +15,15 @@ import { Badge } from '@/components/ui/badge';
 
 import { generateAvatarConfig } from '@/app/utils/avatar';
 import { getMessageText } from '@/app/utils/message';
-import { formatTimestamp, formatWhatsapp } from '@/app/utils/strs';
+import { formatTimestamp } from '@/app/utils/strs';
 
 import { Conversation, INTENT, Message } from '@/app/types/chat';
 import { Collaborator } from '@/app/types/projectInnerSettings';
 
 import { Slot } from '../../../../core/slots';
 import { AudioPlayer } from './AudioPlayer';
+import { MessageContent } from './MessageContent';
+import { MessageViewSkeleton } from './MessageViewSkeleton';
 
 import PDFImg from '@/app/components/messages/shared/assets';
 
@@ -62,6 +64,7 @@ type VirtualizedItem = DateHeaderItem | MessageItem;
  */
 interface MessageContextValue {
   isTestChatActive: boolean;
+  channel: string;
   findRepliedMessage: (replyId: string) => Message | null;
   handleReplyClick: (messageId: string) => void;
   onAskAI?: (messageText: string) => void;
@@ -182,7 +185,7 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
 
     if (!context) return null;
 
-    const { isTestChatActive, findRepliedMessage, handleReplyClick, onAskAI, getStatusDisplay, t } = context;
+    const { isTestChatActive, channel, findRepliedMessage, handleReplyClick, onAskAI, getStatusDisplay, t } = context;
 
     const { message, isNote, isAssigneeChange, isStatusChange } = item;
 
@@ -475,14 +478,7 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
           ) : (
             // Don't show text content if it's an image message with '[image]' placeholder
             !(hasImage && getMessageText(message.message) === '[image]') && (
-              <div
-                className={`px-2 py-1 break-words whitespace-pre-wrap text-[14px] leading-[1.5] ${
-                  isNote ? 'text-muted-foreground text-right text-xs!' : 'text-foreground'
-                }`}
-                dangerouslySetInnerHTML={{
-                  __html: formatWhatsapp(getMessageText(message.message) || ''),
-                }}
-              />
+              <MessageContent message={message.message} channel={channel} isNote={isNote} />
             )
           )}
 
@@ -579,6 +575,7 @@ interface MessageViewProps {
   >;
   collaborators?: Collaborator[];
   isTestChatActive: boolean;
+  channel?: string;
   highlightedMessageId: string | null;
   onReplyClick?: (messageId: string) => void;
   onAskAI?: (messageText: string) => void;
@@ -598,6 +595,7 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
   statuses = {},
   collaborators = [],
   isTestChatActive,
+  channel = 'web',
   highlightedMessageId,
   onReplyClick,
   onAskAI,
@@ -997,13 +995,14 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
   const contextValue = useMemo<MessageContextValue>(
     () => ({
       isTestChatActive,
+      channel,
       findRepliedMessage: stableFindRepliedMessage,
       handleReplyClick,
       onAskAI,
       getStatusDisplay: stableGetStatusDisplay,
       t,
     }),
-    [isTestChatActive, stableFindRepliedMessage, handleReplyClick, onAskAI, stableGetStatusDisplay, t]
+    [isTestChatActive, channel, stableFindRepliedMessage, handleReplyClick, onAskAI, stableGetStatusDisplay, t]
   );
 
   // Render a single item (date header or message)
@@ -1077,15 +1076,9 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
     [getPreviousMessageItem, handleImageLoad, handleImageRef, t]
   );
 
-  // Show loading spinner while messages are being fetched
+  // Show skeleton while messages are being fetched
   if (isLoadingMessages) {
-    return (
-      <div
-        className={`overflow-y-auto z-20 flex-1 flex flex-col items-center justify-center p-4 ${className}`}
-      >
-        <Loader2 className="animate-spin text-gray-400" size={32} />
-      </div>
-    );
+    return <MessageViewSkeleton className={className} />;
   }
 
   // Show empty state when loading is done but there are no messages

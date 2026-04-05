@@ -234,5 +234,20 @@ export async function findConversationByUserChannelId(
   return result.data;
 }
 
+/* ─── Find conversation by primary key ─── */
+
+export async function findConversationById(
+  supabase: SupabaseClient,
+  conversationId: string
+): Promise<ConversationRow | null> {
+  const result: QueryResult<ConversationRow> = await supabase
+    .from('conversations')
+    .select('*')
+    .eq('id', conversationId)
+    .single();
+
+  return result.data ?? null;
+}
+
 export { type FindOrCreateParams, type InboxPageParams };
 export type { QueryResult } from './queryHelpers.js';

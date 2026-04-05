@@ -42,11 +42,13 @@ class LastMessagesCacheServiceImpl {
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
 
-        if (!db.objectStoreNames.contains(LAST_MESSAGES_CACHE_STORE_NAME)) {
-          db.createObjectStore(LAST_MESSAGES_CACHE_STORE_NAME, {
-            keyPath: 'projectName',
-          });
+        // Drop and recreate store on version upgrade to clear stale data
+        if (db.objectStoreNames.contains(LAST_MESSAGES_CACHE_STORE_NAME)) {
+          db.deleteObjectStore(LAST_MESSAGES_CACHE_STORE_NAME);
         }
+        db.createObjectStore(LAST_MESSAGES_CACHE_STORE_NAME, {
+          keyPath: 'projectName',
+        });
       };
     });
 

@@ -5,7 +5,7 @@ import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { processTestMessage } from '../controllers/incomingProcessor.js';
 import { processSendMessage } from '../controllers/messageProcessor.js';
 import { deleteConversationWithTombstone } from '../queries/conversationMutations.js';
-import { findConversationByUserChannelId } from '../queries/conversationQueries.js';
+import { findConversationById } from '../queries/conversationQueries.js';
 import type { SendMessageBody, SendTestMessageBody } from '../types/index.js';
 import type { MessagingResponse } from './routeHelpers.js';
 import {
@@ -45,9 +45,8 @@ function isSendMessageBody(body: unknown): body is SendMessageBody {
   if (!isRecord(body)) return false;
   return (
     hasNonEmptyString(body, 'message') &&
-    hasNonEmptyString(body, 'userID') &&
-    hasNonEmptyString(body, 'tenantId') &&
-    hasNonEmptyString(body, 'agentId')
+    hasNonEmptyString(body, 'conversationId') &&
+    hasNonEmptyString(body, 'tenantId')
   );
 }
 
@@ -70,14 +69,19 @@ async function handleSendMessage(req: Request, res: MessagingResponse): Promise<
       res.status(HTTP_BAD_REQUEST).json({ error: 'Missing required fields' });
       return;
     }
-    const orgId = await getOrgIdFromAgent(supabase, body.agentId);
+
+    const conversation = await findConversationById(supabase, body.conversationId);
+    if (conversation === null) {
+      res.status(HTTP_NOT_FOUND).json({ error: 'Conversation not found' });
+      return;
+    }
+
+    const orgId = await getOrgIdFromAgent(supabase, conversation.agent_id);
 
     await processSendMessage({
       supabase,
+      conversation,
       orgId,
-      agentId: body.agentId,
-      tenantId: body.tenantId,
-      userChannelId: body.userID,
       content: body.message,
       type: body.type,
       clientMessageId: body.id,
@@ -117,14 +121,14 @@ async function handleTestMessage(req: Request, res: MessagingResponse): Promise<
   }
 }
 
-/* DELETE /messages/:tenantId/:from */
+/* DELETE /messages/:tenantId/:conversationId */
 async function handleDeleteFromSend(req: Request, res: MessagingResponse): Promise<void> {
   try {
     const supabase = getSupabase(res);
     const tenantId = getRequiredParam(req, 'tenantId');
-    const userChannelId = decodeURIComponent(getRequiredParam(req, 'from'));
+    const conversationId = getRequiredParam(req, 'conversationId');
 
-    const conversation = await findConversationByUserChannelId(supabase, tenantId, userChannelId);
+    const conversation = await findConversationById(supabase, conversationId);
     if (conversation === null) {
       res.status(HTTP_NOT_FOUND).json({ error: 'Conversation not found' });
       return;
@@ -137,7 +141,7 @@ async function handleDeleteFromSend(req: Request, res: MessagingResponse): Promi
   }
 }
 
-export const sendRouter = express.Router();
-sendRouter.post('/message', handleSendMessage);
-sendRouter.post('/test', handleTestMessage);
-sendRouter.delete('/:tenantId/:from', handleDeleteFromSend);
+export const sendRouter = express.Router({ mergeParams: true });
+sendRouter.post('/messages/message', handleSendMessage);
+sendRouter.post('/messages/test', handleTestMessage);
+sendRouter.delete('/messages/:tenantId/:conversationId', handleDeleteFromSend);

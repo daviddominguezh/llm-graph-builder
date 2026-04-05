@@ -1,7 +1,7 @@
 import express from 'express';
 import type { Request } from 'express';
 
-import { findConversationByUserChannelId } from '../queries/conversationQueries.js';
+import { findConversationById } from '../queries/conversationQueries.js';
 import { createNote, deleteNote, getNotes } from '../queries/noteQueries.js';
 import type { ConversationNoteRow } from '../types/index.js';
 import type { MessagingResponse } from './routeHelpers.js';
@@ -14,10 +14,6 @@ import {
   getRequiredParam,
   getSupabase,
 } from './routeHelpers.js';
-
-function decodeUserId(req: Request): string {
-  return decodeURIComponent(getRequiredParam(req, 'userId'));
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -41,10 +37,9 @@ function noteToPayload(note: ConversationNoteRow): Record<string, unknown> {
 async function handleGetNotes(req: Request, res: MessagingResponse): Promise<void> {
   try {
     const supabase = getSupabase(res);
-    const tenantId = getRequiredParam(req, 'tenantId');
-    const userChannelId = decodeUserId(req);
+    const conversationId = getRequiredParam(req, 'conversationId');
 
-    const conversation = await findConversationByUserChannelId(supabase, tenantId, userChannelId);
+    const conversation = await findConversationById(supabase, conversationId);
     if (conversation === null) {
       res.status(HTTP_NOT_FOUND).json({ error: 'Conversation not found' });
       return;
@@ -65,8 +60,7 @@ async function handleGetNotes(req: Request, res: MessagingResponse): Promise<voi
 async function handleCreateNote(req: Request, res: MessagingResponse): Promise<void> {
   try {
     const supabase = getSupabase(res);
-    const tenantId = getRequiredParam(req, 'tenantId');
-    const userChannelId = decodeUserId(req);
+    const conversationId = getRequiredParam(req, 'conversationId');
     const content = parseStringField(req.body, 'content').trim();
     const creator = parseStringField(req.body, 'creator').trim();
     if (creator === '' || content === '') {
@@ -74,7 +68,7 @@ async function handleCreateNote(req: Request, res: MessagingResponse): Promise<v
       return;
     }
 
-    const conversation = await findConversationByUserChannelId(supabase, tenantId, userChannelId);
+    const conversation = await findConversationById(supabase, conversationId);
     if (conversation === null) {
       res.status(HTTP_NOT_FOUND).json({ error: 'Conversation not found' });
       return;
@@ -90,11 +84,10 @@ async function handleCreateNote(req: Request, res: MessagingResponse): Promise<v
 async function handleDeleteNote(req: Request, res: MessagingResponse): Promise<void> {
   try {
     const supabase = getSupabase(res);
-    const tenantId = getRequiredParam(req, 'tenantId');
-    const userChannelId = decodeUserId(req);
+    const conversationId = getRequiredParam(req, 'conversationId');
     const noteId = getRequiredParam(req, 'noteId');
 
-    const conversation = await findConversationByUserChannelId(supabase, tenantId, userChannelId);
+    const conversation = await findConversationById(supabase, conversationId);
     if (conversation === null) {
       res.status(HTTP_NOT_FOUND).json({ error: 'Conversation not found' });
       return;
@@ -108,6 +101,6 @@ async function handleDeleteNote(req: Request, res: MessagingResponse): Promise<v
 }
 
 export const notesRouter = express.Router({ mergeParams: true });
-notesRouter.get('/:userId/notes', handleGetNotes);
-notesRouter.post('/:userId/notes', handleCreateNote);
-notesRouter.delete('/:userId/notes/:noteId', handleDeleteNote);
+notesRouter.get('/:conversationId/notes', handleGetNotes);
+notesRouter.post('/:conversationId/notes', handleCreateNote);
+notesRouter.delete('/:conversationId/notes/:noteId', handleDeleteNote);

@@ -1,6 +1,5 @@
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { updateConversationLastMessage } from '../queries/conversationMutations.js';
-import { findOrCreateConversation } from '../queries/conversationQueries.js';
 import { insertMessage, insertMessageAi } from '../queries/messageQueries.js';
 import { resolveInstagramCredentials } from '../services/instagram/credentials.js';
 import { sendInstagramTextMessage } from '../services/instagram/sender.js';
@@ -107,28 +106,15 @@ async function publishConversationUpdate(tenantId: string, conversationId: strin
 
 interface ProcessSendParams {
   supabase: SupabaseClient;
+  conversation: ConversationRow;
   orgId: string;
-  agentId: string;
-  tenantId: string;
-  userChannelId: string;
   content: string;
   type: string;
   clientMessageId?: string;
 }
 
 export async function processSendMessage(params: ProcessSendParams): Promise<void> {
-  const { userChannelId } = params;
-  const channel = detectChannel(userChannelId);
-  const threadId = userChannelId;
-
-  const conversation = await findOrCreateConversation(params.supabase, {
-    orgId: params.orgId,
-    agentId: params.agentId,
-    tenantId: params.tenantId,
-    userChannelId: params.userChannelId,
-    threadId,
-    channel,
-  });
+  const { conversation } = params;
 
   // Fix 26: Send typing indicator before delivering
   await sendTypingIndicator(params.supabase, conversation);
@@ -136,7 +122,7 @@ export async function processSendMessage(params: ProcessSendParams): Promise<voi
   // Fix 16: Don't save message if send fails
   const sendResult = await deliverToProvider(params.supabase, conversation, params.content);
   if (sendResult === null) {
-    process.stdout.write(`[messaging] Send failed for ${userChannelId}, not saving message\n`);
+    process.stdout.write(`[messaging] Send failed for ${conversation.user_channel_id}, not saving message\n`);
     return;
   }
 
@@ -162,5 +148,5 @@ export async function processSendMessage(params: ProcessSendParams): Promise<voi
   });
 
   // Fix 2: Publish to Redis for real-time inbox
-  await publishConversationUpdate(params.tenantId, conversation.id);
+  await publishConversationUpdate(conversation.tenant_id, conversation.id);
 }

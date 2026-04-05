@@ -9,7 +9,7 @@ import {
   updateConversationChatbot,
   updateConversationEnabled,
 } from '../queries/conversationMutations.js';
-import { findConversationByUserChannelId } from '../queries/conversationQueries.js';
+import { findConversationById } from '../queries/conversationQueries.js';
 import { getAllMessages, getMessagePage } from '../queries/messageQueries.js';
 import { assignChatToAgent, reassignChat, releaseChat } from '../services/workloadManager.js';
 import type { ConversationRow } from '../types/index.js';
@@ -27,10 +27,6 @@ import {
 
 const FIRST_INDEX = 0;
 
-function decodeUserId(req: Request): string {
-  return decodeURIComponent(getRequiredParam(req, 'userId'));
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -43,9 +39,8 @@ function parseStringField(body: unknown, field: string): string {
 
 async function lookupConversation(req: Request, res: MessagingResponse): Promise<ConversationRow | null> {
   const supabase = getSupabase(res);
-  const tenantId = getRequiredParam(req, 'tenantId');
-  const userChannelId = decodeUserId(req);
-  return await findConversationByUserChannelId(supabase, tenantId, userChannelId);
+  const conversationId = getRequiredParam(req, 'conversationId');
+  return await findConversationById(supabase, conversationId);
 }
 
 async function handlePaginatedMessages(
@@ -259,9 +254,9 @@ async function handleAddStatus(req: Request, res: MessagingResponse): Promise<vo
 }
 
 export const conversationsRouter = express.Router({ mergeParams: true });
-conversationsRouter.get('/:userId', handleGetMessages);
-conversationsRouter.post('/:userId/read', handleMarkRead);
-conversationsRouter.post('/:userId/chatbot', handleToggleChatbot);
-conversationsRouter.post('/:userId/assignee', handleAddAssignee);
-conversationsRouter.post('/:userId/status', handleAddStatus);
-conversationsRouter.delete('/:userId', handleDeleteConversation);
+conversationsRouter.get('/:conversationId', handleGetMessages);
+conversationsRouter.post('/:conversationId/read', handleMarkRead);
+conversationsRouter.post('/:conversationId/chatbot', handleToggleChatbot);
+conversationsRouter.post('/:conversationId/assignee', handleAddAssignee);
+conversationsRouter.post('/:conversationId/status', handleAddStatus);
+conversationsRouter.delete('/:conversationId', handleDeleteConversation);

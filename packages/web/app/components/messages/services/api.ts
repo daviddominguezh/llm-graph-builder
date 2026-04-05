@@ -294,11 +294,11 @@ function toConversation(rows: RawMessageRow[]): Conversation {
 
 export const getMessagesFromSender = async (
   namespace: string,
-  sender: string,
+  conversationId: string,
   fromMessageId: string | undefined
 ): Promise<Conversation | null> => {
   try {
-    let url = `${API_BASE_URL}/projects/${namespace}/conversations/${sender}`;
+    let url = `${API_BASE_URL}/projects/${namespace}/conversations/${conversationId}`;
     if (fromMessageId) url += `?from=${fromMessageId}`;
     const response = await authenticatedFetch(url, {});
 
@@ -322,7 +322,7 @@ export const getMessagesFromSender = async (
  */
 export const getMessagesFromSenderPaginated = async (
   namespace: string,
-  sender: string,
+  conversationId: string,
   options?: { cursorKey?: string; cursorTimestamp?: number; from?: string }
 ): Promise<{
   messages: Conversation;
@@ -343,7 +343,7 @@ export const getMessagesFromSenderPaginated = async (
       params.set('from', options.from);
     }
 
-    const url = `${API_BASE_URL}/projects/${namespace}/conversations/${sender}?${params.toString()}`;
+    const url = `${API_BASE_URL}/projects/${namespace}/conversations/${conversationId}?${params.toString()}`;
     const response = await authenticatedFetch(url, {});
 
     if (!response.ok) return null;
@@ -366,12 +366,12 @@ export const getMessagesFromSenderPaginated = async (
 
 export const setChatbotActiveState = async (
   namespace: string,
-  sender: string,
+  conversationId: string,
   active: boolean,
   nextNode?: string
 ) => {
   try {
-    let url = `${API_BASE_URL}/projects/${namespace}/conversations/${sender}/chatbot?enabled=${active}`;
+    let url = `${API_BASE_URL}/projects/${namespace}/conversations/${conversationId}/chatbot?enabled=${active}`;
     if (active && nextNode) {
       url += `&nextNode=${nextNode}`;
     }
@@ -401,13 +401,13 @@ export interface NotesResponse {
 // Create a note for a specific user/chat
 export const createNote = async (
   projectName: string,
-  userID: string,
+  conversationId: string,
   content: string,
   creator: string
 ): Promise<Note | null> => {
   try {
     const response = await authenticatedFetch(
-      `${API_BASE_URL}/projects/${projectName}/conversations/${userID}/notes`,
+      `${API_BASE_URL}/projects/${projectName}/conversations/${conversationId}/notes`,
       {
         method: 'POST',
 
@@ -430,10 +430,13 @@ export const createNote = async (
 };
 
 // Get all notes for a specific user/chat
-export const getNotes = async (projectName: string, userID: string): Promise<Record<string, Note>> => {
+export const getNotes = async (
+  projectName: string,
+  conversationId: string
+): Promise<Record<string, Note>> => {
   try {
     const response = await authenticatedFetch(
-      `${API_BASE_URL}/projects/${projectName}/conversations/${userID}/notes`,
+      `${API_BASE_URL}/projects/${projectName}/conversations/${conversationId}/notes`,
       {}
     );
 
@@ -450,10 +453,14 @@ export const getNotes = async (projectName: string, userID: string): Promise<Rec
 };
 
 // Delete a note for a specific user/chat
-export const deleteNote = async (projectName: string, userID: string, noteID: string): Promise<boolean> => {
+export const deleteNote = async (
+  projectName: string,
+  conversationId: string,
+  noteID: string
+): Promise<boolean> => {
   try {
     const response = await authenticatedFetch(
-      `${API_BASE_URL}/projects/${projectName}/conversations/${userID}/notes/${noteID}`,
+      `${API_BASE_URL}/projects/${projectName}/conversations/${conversationId}/notes/${noteID}`,
       {
         method: 'DELETE',
       }
@@ -473,12 +480,12 @@ export const deleteNote = async (projectName: string, userID: string, noteID: st
 // Update chat assignee
 export const updateChatAssignee = async (
   projectName: string,
-  userID: string,
+  conversationId: string,
   assignee: string
 ): Promise<boolean> => {
   try {
     const response = await authenticatedFetch(
-      `${API_BASE_URL}/projects/${projectName}/conversations/${userID}/assignee`,
+      `${API_BASE_URL}/projects/${projectName}/conversations/${conversationId}/assignee`,
       {
         method: 'POST',
 
@@ -502,12 +509,12 @@ export const updateChatAssignee = async (
 
 export const updateChatStatus = async (
   projectName: string,
-  userID: string,
+  conversationId: string,
   status: string
 ): Promise<boolean> => {
   try {
     const response = await authenticatedFetch(
-      `${API_BASE_URL}/projects/${projectName}/conversations/${userID}/status`,
+      `${API_BASE_URL}/projects/${projectName}/conversations/${conversationId}/status`,
       {
         method: 'POST',
 
@@ -531,7 +538,7 @@ export const updateChatStatus = async (
 
 export const sendMessage = async (
   namespace: string,
-  to: string,
+  conversationId: string,
   msg: string,
   type: 'text' | 'image' | 'audio' | 'pdf',
   id?: string
@@ -544,11 +551,8 @@ export const sendMessage = async (
       },
       body: JSON.stringify({
         message: msg,
-        userID: to,
-        from: namespace,
-        namespace,
+        conversationId,
         tenantId: namespace,
-        agentId: '',
         id,
         type,
       }),
@@ -558,7 +562,7 @@ export const sendMessage = async (
   }
 };
 
-export const fixInquiry = async (namespace: string, to: string, msg: string) => {
+export const fixInquiry = async (namespace: string, conversationId: string, msg: string) => {
   try {
     await authenticatedFetch(`${API_BASE_URL}/messages/inquiry`, {
       method: 'POST',
@@ -567,7 +571,7 @@ export const fixInquiry = async (namespace: string, to: string, msg: string) => 
       },
       body: JSON.stringify({
         message: msg,
-        userID: to,
+        conversationId,
         namespace,
       }),
     });
@@ -602,9 +606,9 @@ export const sendTestMessage = async (
   }
 };
 
-export const deleteConversation = async (namespace: string, from: string) => {
+export const deleteConversation = async (namespace: string, conversationId: string) => {
   try {
-    await authenticatedFetch(`${API_BASE_URL}/messages/${namespace}/${from}`, {
+    await authenticatedFetch(`${API_BASE_URL}/messages/${namespace}/${conversationId}`, {
       method: 'DELETE',
     });
   } catch (error) {
@@ -645,7 +649,7 @@ export const sendMediaTestMessage = async (
 
 export const sendMediaMessage = async (
   namespace: string,
-  to: string,
+  conversationId: string,
   mediaUrl: string,
   type: 'text' | 'image' | 'audio' | 'pdf' | 'video',
   id: string,
@@ -655,11 +659,8 @@ export const sendMediaMessage = async (
     const body: Record<string, string> = {
       id,
       mediaUrl,
-      userID: to,
-      from: namespace,
-      namespace,
+      conversationId,
       tenantId: namespace,
-      agentId: '',
       type,
     };
     if (caption) {
@@ -829,9 +830,9 @@ export const getDeletedChats = async (
   }
 };
 
-export const readConversation = async (namespace: string, phone: string): Promise<void> => {
+export const readConversation = async (namespace: string, conversationId: string): Promise<void> => {
   try {
-    await authenticatedFetch(`${API_BASE_URL}/projects/${namespace}/conversations/${phone}/read`, {
+    await authenticatedFetch(`${API_BASE_URL}/projects/${namespace}/conversations/${conversationId}/read`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

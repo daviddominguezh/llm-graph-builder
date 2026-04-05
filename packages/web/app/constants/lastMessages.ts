@@ -16,7 +16,7 @@ export const LAST_MESSAGES_CACHE_DB_NAME = 'lastMessagesCacheDB';
 export const LAST_MESSAGES_CACHE_STORE_NAME = 'lastMessagesStore';
 
 /** IndexedDB schema version */
-export const LAST_MESSAGES_CACHE_VERSION = 1;
+export const LAST_MESSAGES_CACHE_VERSION = 2;
 
 /** Default empty cache data */
 export const LAST_MESSAGES_EMPTY_CACHE: LastMessagesCacheData = {

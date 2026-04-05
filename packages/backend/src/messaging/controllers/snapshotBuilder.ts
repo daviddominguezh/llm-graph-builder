@@ -48,7 +48,9 @@ function conversationToSnapshot(
 ): ConversationSnapshot {
   return {
     id: row.id,
-    key: row.user_channel_id,
+    key: row.id,
+    userChannelId: row.user_channel_id,
+    threadId: row.thread_id,
     timestamp: row.last_message_at === null ? NO_TIMESTAMP : new Date(row.last_message_at).getTime(),
     read: row.read,
     enabled: row.enabled,

@@ -34,11 +34,12 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
   const t = useTranslations('messages');
 
   const isTest = phone === TEST_PHONE;
+  const userChannelId = lastMessage?.userChannelId ?? phone;
 
-  // Parse chat ID to get source and display name
+  // Parse userChannelId to get source and display name
   const parsedChat = useMemo(() => {
-    return parseChatId(phone);
-  }, [phone]);
+    return parseChatId(userChannelId);
+  }, [userChannelId]);
 
   const formattedPhone = parsedChat.displayName;
 

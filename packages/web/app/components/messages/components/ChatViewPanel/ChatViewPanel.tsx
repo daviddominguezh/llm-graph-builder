@@ -259,6 +259,7 @@ const ChatViewPanelComponent: React.FC<ChatViewPanelProps> = ({
             statuses={currentChat?.statuses}
             collaborators={collaborators}
             isTestChatActive={isTestChatActive}
+            channel={currentChat?.channel}
             highlightedMessageId={highlightedMessageId}
             onReplyClick={onReplyClick}
             onAskAI={handleAskAI}

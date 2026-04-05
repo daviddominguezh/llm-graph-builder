@@ -61,6 +61,8 @@ export interface LastMessage extends Message {
   key?: string;
   isTestChat?: boolean;
   unansweredCount?: number;
+  userChannelId?: string;
+  threadId?: string;
   channel?: string;
   agentId?: string;
   agentSlug?: string;

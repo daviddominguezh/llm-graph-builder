@@ -132,6 +132,8 @@ export interface StatusEntry {
 export interface ConversationSnapshot {
   id: string;
   key: string;
+  userChannelId: string;
+  threadId: string;
   timestamp: number;
   read: boolean;
   enabled: boolean;
@@ -164,9 +166,8 @@ export interface PaginatedResponse<T> {
 
 export interface SendMessageBody {
   message: string;
-  userID: string;
+  conversationId: string;
   tenantId: string;
-  agentId: string;
   type: 'text' | 'image' | 'audio' | 'pdf';
   id?: string;
 }

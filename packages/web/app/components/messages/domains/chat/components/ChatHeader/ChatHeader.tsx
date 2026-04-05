@@ -85,8 +85,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
   const HEADER_ICON_SIZE = isMobile ? 20 : 16;
 
-  // Parse chat ID to get source and display name
-  const parsedChat = parseChatId(chatId || '');
+  // Parse userChannelId for display (chatId is now a UUID)
+  const userChannelId = chat?.userChannelId ?? chatId;
+  const parsedChat = parseChatId(userChannelId || '');
 
   const displayName = (() => {
     if (isTestChat || chatId === TEST_PHONE) return 'Test Chat';
@@ -96,7 +97,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   })();
 
   // Generate avatar config for the chat user
-  const avatarConfig = generateAvatarConfig(chatId);
+  const avatarConfig = generateAvatarConfig(userChannelId);
 
   // Initialize assignedTo from chat's assignees (find the one with highest timestamp)
   useEffect(() => {

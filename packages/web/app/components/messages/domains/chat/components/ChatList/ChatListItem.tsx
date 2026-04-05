@@ -33,8 +33,9 @@ export const ChatListItem: React.FC<ChatListItemProps> = memo(({
   showActions = false,
   className = '',
 }) => {
-  // Get chatId from key field
+  // Conversation UUID for routing, userChannelId for display
   const chatId = chat.key ?? '';
+  const userChannelId = chat.userChannelId ?? chatId;
 
   const handleClick = useCallback(() => {
     onClick(chatId);
@@ -45,10 +46,10 @@ export const ChatListItem: React.FC<ChatListItemProps> = memo(({
     onDelete?.(chatId);
   }, [onDelete, chatId]);
 
-  // Parse chat ID to get source and display name
+  // Parse userChannelId to get source and display name
   const parsedChat = useMemo(() => {
-    return parseChatId(chatId);
-  }, [chatId]);
+    return parseChatId(userChannelId);
+  }, [userChannelId]);
 
   // Determine display name
   const displayName = useMemo(() => {
