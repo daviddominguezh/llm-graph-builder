@@ -506,7 +506,7 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
 
           {/* Group action buttons — shown below the last message in each group */}
           {isLastInGroup && !isNote && !isAssigneeChange && !isStatusChange && (
-            <div className="flex items-center gap-0.5 mt-0.5">
+            <div className="flex items-center gap-0.5 mt-0.5 mb-2">
               <Button
                 variant="ghost"
                 size="icon"
