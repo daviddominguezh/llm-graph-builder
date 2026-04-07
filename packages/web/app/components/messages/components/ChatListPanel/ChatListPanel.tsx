@@ -396,7 +396,7 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
         </Alert>
       ) : displayedChatsFiltered.length > 0 ? (
         // All chats
-        <div ref={chatListScrollRef} className="w-full h-fit pb-9 overflow-y-auto pt-2" onScroll={handleScroll}>
+        <div ref={chatListScrollRef} className="flex flex-col w-full h-fit pb-9 overflow-y-auto pt-2 gap-1" onScroll={handleScroll}>
           {displayedChatsFiltered.map((chat) => (
             <MessagePreview
               key={chat.chatId}

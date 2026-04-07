@@ -12,7 +12,6 @@ import Image from 'next/image';
 import React, { useMemo } from 'react';
 import Avatar from 'react-nice-avatar';
 
-
 interface MessagePreviewProps {
   lastMessage?: LastMessage;
   phone: string;
@@ -126,25 +125,11 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
 
   return (
     <button
-      className={`relative`}
-      style={{ width: '100%', height: 'fit-content', overflowX: 'hidden', padding: '0px 6px' }}
+      className={`relative mx-2 w-[calc(100%-var(--spacing)*4)] overflow-hidden cursor-pointer group py-1.5 rounded-md ${selected ? 'bg-primary/15' : 'hover:bg-sidebar-accent'} ${isHighlightedImportant ? 'border-red-500 border-1 bg-red-50' : ''}`}
+      onClick={() => onClickMsg(phone)}
     >
       <div
-        onClick={() => onClickMsg(phone)}
-        className={`${selected ? 'bg-primary/15 border-l-2 border-primary' : 'hover:bg-sidebar-accent'} ${isHighlightedImportant ? 'border-red-500 border-1 bg-red-50' : ''}`}
-        style={{
-          width: '100%',
-          paddingTop: '12px',
-          paddingBottom: '12px',
-          paddingLeft: '6px',
-          paddingRight: '12px',
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          cursor: 'pointer',
-          borderRadius: '8px',
-          overflowX: 'hidden',
-        }}
+        className={`flex w-full items-center overflow-hidden rounded-none py-1 pl-1.5 pr-3 ${selected ? 'border-l-2 border-primary' : 'border-l-2 border-transparent group-hover:border-foreground'}`}
       >
         <div
           className="relative"
@@ -287,9 +272,7 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
           )}
         </div>
       </div>
-      <div className="w-full px-4 pl-15 absolute bottom-[0px] left-0">
-        <div className="w-full border-b-0 lg:border-b-1"></div>
-      </div>
+
     </button>
   );
 };
