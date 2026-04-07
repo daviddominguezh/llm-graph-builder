@@ -88,6 +88,7 @@
     "settings": "Settings",
     "mcpServersTab": "MCP Servers",
     "toolsTab": "Tools",
+    "searchTools": "Search tools...",
     "dangerZone": "Danger zone",
     "deleteAgent": "Delete this app",
     "deleteAgentDescription": "Permanently delete this app and all its data. This action cannot be undone."

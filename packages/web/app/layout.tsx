@@ -37,7 +37,7 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} className={inter.variable} suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased overflow-hidden`}>
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider>
             <OpenRouterModelsLogger />

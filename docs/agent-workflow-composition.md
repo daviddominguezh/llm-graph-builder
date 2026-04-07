@@ -4,12 +4,12 @@ This document describes the agent/workflow composition system — the ability fo
 
 ## What's Now Possible
 
-- **An agent can create and dispatch a dynamic sub-agent** (`__system_create_agent`) with an inline system prompt, model, tools, and task. The child runs independently, interacts with the user if needed, and returns its output to the parent.
-- **An agent can invoke a predefined agent** (`__system_invoke_agent`) by slug and version. The child agent's own config is loaded from the database, optionally augmented with parent-provided context items and model overrides.
-- **An agent can invoke a predefined workflow** (`__system_invoke_workflow`) by slug and version. Workflows execute in-process (no HTTP dispatch) and return their terminal node output immediately.
+- **An agent can create and dispatch a dynamic sub-agent** (`create_agent`) with an inline system prompt, model, tools, and task. The child runs independently, interacts with the user if needed, and returns its output to the parent.
+- **An agent can invoke a predefined agent** (`invoke_agent`) by slug and version. The child agent's own config is loaded from the database, optionally augmented with parent-provided context items and model overrides.
+- **An agent can invoke a predefined workflow** (`invoke_workflow`) by slug and version. Workflows execute in-process (no HTTP dispatch) and return their terminal node output immediately.
 - **Workflows can also dispatch agents and other workflows** using the same three tools, injected into every workflow node's tool set.
 - **Nesting is unlimited** (default max depth: 10, configurable per agent). Agent A can invoke Agent B, which invokes Agent C, and so on.
-- **Multi-turn child agents** interact with the user directly. The parent suspends, and the user's messages route to the active child until it calls `__system_finish`.
+- **Multi-turn child agents** interact with the user directly. The parent suspends, and the user's messages route to the active child until it calls `finish`.
 - **The external API caller never changes endpoint or session ID.** An agent stack manages routing transparently.
 
 ## Architecture Overview
@@ -34,7 +34,7 @@ Each stack entry contains:
 
 ### Sentinel-Based Tool Interception
 
-The four system tools (`__system_finish`, `__system_create_agent`, `__system_invoke_agent`, `__system_invoke_workflow`) don't execute real work. Their `execute` functions return **sentinel objects** — special markers that the agent loop detects after each step.
+The four system tools (`finish`, `create_agent`, `invoke_agent`, `invoke_workflow`) don't execute real work. Their `execute` functions return **sentinel objects** — special markers that the agent loop detects after each step.
 
 ```typescript
 // Finish sentinel — signals child completion
@@ -49,7 +49,7 @@ After each `generateText` call, the agent loop inspects tool results for sentine
 ### Execution Flow: Agent Child
 
 ```
-1. Parent agent calls __system_invoke_agent({ agentSlug: 'recipe-bot', version: 'latest', task: '...' })
+1. Parent agent calls invoke_agent({ agentSlug: 'recipe-bot', version: 'latest', task: '...' })
 2. Tool returns DispatchSentinel → agent loop stops
 3. Dispatch handler:
    a. Creates child execution record (status: 'running', parent_execution_id set)
@@ -61,7 +61,7 @@ After each `generateText` call, the agent loop inspects tool results for sentine
 5. Child instance starts → runs first turn with 'task' as user message
 6. Child responds with text → instance terminates → user sees response
 7. User sends messages → routed to child (stack top)
-8. Child calls __system_finish(output, status) → completion flow:
+8. Child calls finish(output, status) → completion flow:
    a. Writes pending_resumes row (durable intent)
    b. Updates parent's tool output message with child's output
    c. Pops stack entry, restores parent session state
@@ -90,7 +90,7 @@ Three layers, from fastest to slowest:
 
 ## System Tools
 
-### `__system_finish`
+### `finish`
 
 Available only to child agents (not top-level). Signals task completion.
 
@@ -101,9 +101,9 @@ Available only to child agents (not top-level). Signals task completion.
 
 When called, the agent loop stops immediately and triggers the child completion flow.
 
-**maxSteps auto-finish:** If a child agent hits its step limit without calling `__system_finish`, the system auto-finishes with `status: 'error'` and `output: 'Agent reached maximum step limit without completing the task.'`
+**maxSteps auto-finish:** If a child agent hits its step limit without calling `finish`, the system auto-finishes with `status: 'error'` and `output: 'Agent reached maximum step limit without completing the task.'`
 
-### `__system_create_agent`
+### `create_agent`
 
 Dynamically defines and dispatches an agent inline. The agent is ephemeral — it does not appear in the UI app list and is cleaned up on completion or crash.
 
@@ -117,7 +117,7 @@ Dynamically defines and dispatches an agent inline. The agent is ephemeral — i
 | `maxSteps` | number | no | Maximum steps before auto-finish |
 | `outputSchema` | object | no | JSON Schema to validate the finish output |
 
-### `__system_invoke_agent`
+### `invoke_agent`
 
 Dispatches a predefined agent by slug and version.
 
@@ -130,7 +130,7 @@ Dispatches a predefined agent by slug and version.
 | `model` | string | no | Override the agent's configured model |
 | `outputSchema` | object | no | JSON Schema to validate the finish output |
 
-### `__system_invoke_workflow`
+### `invoke_workflow`
 
 Dispatches a predefined workflow by slug and version. Executes in-process (no HTTP dispatch).
 
@@ -144,7 +144,7 @@ Dispatches a predefined workflow by slug and version. Executes in-process (no HT
 
 ## Unified AgentConfig Interface
 
-A single TypeScript interface shared between the UI agent editor, the `__system_create_agent` tool, and the execution layer:
+A single TypeScript interface shared between the UI agent editor, the `create_agent` tool, and the execution layer:
 
 ```typescript
 interface AgentConfig {
@@ -164,7 +164,7 @@ When new capabilities are added (VFS, memory, sandboxes), they are added to this
 
 ## Tool Name Conflicts
 
-All system tools use the `__system_` prefix. If an MCP server exposes a tool with this prefix, it is rejected at session creation time with a warning logged. This prevents collisions between user-defined tools and system tools.
+System tools use reserved names (`finish`, `create_agent`, `invoke_agent`, `invoke_workflow`). If an MCP server exposes a tool with one of these names, it is rejected at session creation time with a warning logged. This prevents collisions between user-defined tools and system tools.
 
 ## Context and Communication
 
@@ -174,7 +174,7 @@ All system tools use the `__system_` prefix. If an MCP server exposes a tool wit
 - `fewShotExamples` — synthetic conversation examples injected before the task
 
 **Child to parent:**
-- `__system_finish` output — the final result string
+- `finish` output — the final result string
 - Structured error responses on failure (error code, steps completed, last tool call, partial output)
 
 **Child system prompt injection:**
@@ -183,7 +183,7 @@ Child agents receive XML-tagged completion instructions at both the start and en
 ```xml
 <system-instructions>
 You are a sub-agent dispatched to complete a specific task. When you have fully
-completed your task, you MUST call the `__system_finish` tool with your final output...
+completed your task, you MUST call the `finish` tool with your final output...
 </system-instructions>
 ```
 
@@ -281,8 +281,8 @@ A `validateTenantCostBudget` function is called in the agent loop (currently a s
 |------|---------|
 | `packages/api/src/types/sentinels.ts` | Sentinel types and type guards |
 | `packages/api/src/types/agentConfig.ts` | Unified AgentConfig interface |
-| `packages/api/src/tools/finishTool.ts` | `__system_finish` tool |
-| `packages/api/src/tools/dispatchTools.ts` | `__system_create_agent/invoke_agent/invoke_workflow` |
+| `packages/api/src/tools/finishTool.ts` | `finish` tool |
+| `packages/api/src/tools/dispatchTools.ts` | `create_agent/invoke_agent/invoke_workflow` |
 | `packages/api/src/tools/systemToolInjector.ts` | Injects system tools, filters conflicts |
 | `packages/api/src/core/sentinelDetector.ts` | Post-step sentinel detection |
 | `packages/api/src/core/costGuard.ts` | Tenant cost budget skeleton |

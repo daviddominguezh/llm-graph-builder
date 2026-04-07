@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import type { FinishSentinel } from '@src/types/sentinels.js';
 
-const TOOL_NAME = '__system_finish';
+const TOOL_NAME = 'finish';
 
 const finishToolSchema = z.object({
   output: z.string().describe('The final output to return to the parent agent'),

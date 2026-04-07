@@ -1,5 +1,5 @@
 const SKELETON_WIDTHS = ['60%', '45%', '70%', '40%', '55%'] as const;
-const SKELETON_COUNT = 5;
+const SKELETON_COUNT = 7;
 
 function BubbleSkeleton({ index }: { index: number }) {
   const isRight = index % 2 === 0;
@@ -12,14 +12,14 @@ function BubbleSkeleton({ index }: { index: number }) {
       style={{ animationDelay: delay, animationDuration: '400ms' }}
     >
       <div
-        className={`rounded-lg ${isRight ? 'rounded-tr-sm' : 'rounded-tl-sm'} bg-muted animate-pulse`}
+        className={`rounded-lg ${isRight ? 'rounded-tr-sm' : 'rounded-tl-sm'} bg-sidebar animate-pulse border border-border/25 dark:border-0`}
         style={{ width, maxWidth: '280px', minWidth: '120px' }}
       >
         <div className="px-3 py-2.5 flex flex-col gap-1.5">
-          <div className="h-2.5 w-full rounded bg-muted-foreground/10" />
-          <div className="h-2.5 w-3/4 rounded bg-muted-foreground/10" />
-          {index % 3 === 0 && <div className="h-2.5 w-1/2 rounded bg-muted-foreground/10" />}
-          <div className="h-2 w-10 rounded bg-muted-foreground/10 self-end mt-0.5" />
+          <div className="h-2.5 w-full rounded bg-sidebar-accent" />
+          <div className="h-2.5 w-3/4 rounded bg-sidebar-accent" />
+          {index % 3 === 0 && <div className="h-2.5 w-1/2 rounded bg-sidebar-accent" />}
+          <div className="h-2 w-10 rounded bg-sidebar-accent self-end mt-0.5" />
         </div>
       </div>
     </div>

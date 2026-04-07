@@ -1,8 +1,8 @@
 import { deleteNote, getNotes, getUserPictureByEmailCached } from '@/app/components/messages/services/api';
-import type { Conversation } from '@/app/types/chat';
+import type { Conversation, LastMessage } from '@/app/types/chat';
 import { generateAvatarConfig } from '@/app/utils/avatar';
 import { useIsMobile } from '@/app/utils/device';
-import { formatTimestamp, formatWhatsapp } from '@/app/utils/strs';
+import { formatTimestamp, formatWhatsapp, parseChatId } from '@/app/utils/strs';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -15,17 +15,19 @@ import {
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
-import { ChevronDown, ChevronRight, Image as ImageIcon, NotepadText, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Image as ImageIcon, NotepadText, X, Zap } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import NextImage from 'next/image';
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import Avatar from 'react-nice-avatar';
 
 import { useChat, useTenantId } from '../../core/contexts';
+import { ChannelBadge } from '../../shared/icons';
 import { Slot } from '../../core/slots';
 
 interface RightPanelProps {
   activeChat: string | null;
+  chat: LastMessage | null;
   messages: Conversation;
   onMessageClick?: (messageId: string) => void;
   forceRender?: boolean;
@@ -58,6 +60,7 @@ const iconSize = 16;
  */
 const RightPanelComponent: React.FC<RightPanelProps> = ({
   activeChat,
+  chat,
   messages,
   onMessageClick,
   forceRender,
@@ -74,9 +77,12 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
   // Ref to track the current active chat (to prevent race conditions)
   const activeChatRef = useRef<string | null>(activeChat);
 
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set(['info', 'notes', 'activity', 'media'])
-  );
+  const userChannelId = chat?.userChannelId ?? activeChat;
+  const parsedChat = useMemo(() => (userChannelId ? parseChatId(userChannelId) : null), [userChannelId]);
+  const channelType = chat?.channel ?? parsedChat?.source ?? 'unknown';
+  const contactName = chat?.name || (parsedChat?.source !== 'unknown' ? parsedChat?.displayName : '') || '';
+
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['notes', 'media']));
 
   // State for note creator profile pictures
   const [noteProfilePictures, setNoteProfilePictures] = useState<Map<string, string>>(new Map());
@@ -122,8 +128,7 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
       // Capture the current chat ID at the time of the effect
       const chatIdAtFetchTime = activeChat;
 
-      // Fetch all data in parallel
-      await Promise.all([fetchNotesData(projectName, chatIdAtFetchTime)]);
+      await fetchNotesData(projectName, chatIdAtFetchTime);
     };
 
     const fetchNotesData = async (project: string, chatId: string) => {
@@ -187,8 +192,7 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
     fetchNoteProfilePictures();
   }, [notes]);
 
-  const cardClass =
-    'cursor-default relative w-full border p-3 py-1 rounded-lg bg-background shadow-lg overflow-hidden';
+  const sectionClass = 'cursor-default relative w-full overflow-hidden';
 
   const sections: Section[] = useMemo(
     () => [
@@ -196,7 +200,7 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
         id: 'notes',
         label: t('Notes'),
         icon: <NotepadText size={iconSize} />,
-        className: '',
+        className: 'flex flex-col gap-2',
         items: Object.entries(notes).map(([noteID, note]) => {
           const pictureUrl = noteProfilePictures.get(note.creator);
           // Notes are created by team members, not the chat user, so don't use chat user's gender
@@ -205,7 +209,7 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
           return {
             id: noteID,
             element: (
-              <div className="relative cursor-default border border-yellow-300 flex items-start gap-2 p-2 bg-yellow-50 rounded-md mb-2">
+              <div className="relative cursor-default border border-amber-200 dark:border-amber-800 flex items-start gap-2 p-2 bg-amber-50 dark:bg-amber-950/30 rounded-md">
                 {/* Avatar */}
                 <div className="shrink-0">
                   {pictureUrl ? (
@@ -225,12 +229,12 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
                 {/* Note content */}
                 <div className="flex-1 min-w-0">
                   <div
-                    className="text-xs text-gray-800 break-words whitespace-pre-wrap"
+                    className="text-xs leading-relaxed text-foreground break-words whitespace-pre-wrap"
                     dangerouslySetInnerHTML={{
                       __html: formatWhatsapp(note.content || ''),
                     }}
                   />
-                  <p className="text-[10px] text-gray-500 mt-1">
+                  <p className="text-[10px] text-muted-foreground mt-1">
                     {formatTimestamp(note.timestamp)} •{' '}
                     {new Date(note.timestamp).toLocaleDateString(locale, {
                       month: 'short',
@@ -244,7 +248,7 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
                 <button
                   type="button"
                   onClick={() => handleDeleteClick(noteID)}
-                  className="cursor-pointer absolute top-2 right-2 p-0.5 rounded hover:bg-red-100 hover:text-red-600 transition-colors"
+                  className="cursor-pointer absolute top-2 right-2 p-0.5 rounded hover:bg-destructive/10 hover:text-destructive transition-colors"
                   title={t('Delete note')}
                 >
                   <X size={14} />
@@ -258,13 +262,13 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
         id: 'media',
         label: t('Media'),
         icon: <ImageIcon size={iconSize} />,
-        className: 'w-full flex flex-wrap gap-[1px]',
+        className: 'w-full flex flex-wrap gap-1.5',
         items: mediaImages.map((media) => ({
           id: media.id,
           element: (
             <button
               type="button"
-              className="mb-2 w-[calc(50%-3px)] aspect-square rounded-md border overflow-hidden cursor-pointer p-0 bg-transparent"
+              className="w-[calc(50%-3px)] aspect-square rounded-md border border-border overflow-hidden cursor-pointer p-0 bg-transparent hover:opacity-80 transition-opacity"
               onClick={() => onMessageClick?.(media.id)}
             >
               <NextImage
@@ -283,6 +287,9 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
     ],
     [t, locale, mediaImages, onMessageClick, noteProfilePictures, notes]
   );
+
+  // Filter out sections with no items
+  const visibleSections = useMemo(() => sections.filter((s) => s.items.length > 0), [sections]);
 
   // Hide panel if no active chat or on mobile (unless forceRender is true for modal)
   if (!activeChat || (isMobile && !forceRender)) {
@@ -308,60 +315,84 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
       {/* Slot: Top of right panel */}
       <Slot name="right-panel-top" />
 
-      {/* Contact information section */}
-      <div className={cn('p-2', isMobile && 'pt-0')}>
-        <div className="flex flex-col gap-4">
-          {/* AI Toggle */}
+      <div className={cn('px-3 pt-3 pb-1', isMobile && 'pt-0')}>
+        {/* Identity + controls block — tight grouping */}
+        <div className="flex flex-col gap-2">
+          {/* Contact identity */}
+          {parsedChat && contactName && (
+            <div className="flex items-center gap-2.5">
+              <ChannelBadge channel={channelType} size={28} />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-foreground truncate">{contactName}</p>
+                {chat?.name &&
+                  parsedChat.source !== 'unknown' &&
+                  parsedChat.displayName !== chat.name && (
+                    <p className="text-xs text-muted-foreground truncate">{parsedChat.displayName}</p>
+                  )}
+              </div>
+            </div>
+          )}
+
+          {/* Bot toggle */}
           {!isTestChat && onAIToggle && (
-            <div className="flex items-center justify-between p-3 border rounded-lg bg-background shadow-sm">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="ai-toggle-right" className="text-sm font-medium m-0 cursor-pointer">
-                  {t('Bot active')}
-                </Label>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 min-w-0">
+                <Zap size={14} className="shrink-0 text-muted-foreground" />
+                <div className="min-w-0">
+                  <Label htmlFor="ai-toggle-right" className="text-xs font-medium m-0 cursor-pointer">
+                    {t('Bot active')}
+                  </Label>
+                  {isAIEnabled && chat?.agentSlug && (
+                    <p className="text-[10px] text-muted-foreground truncate">{chat.agentSlug}</p>
+                  )}
+                </div>
               </div>
               <Switch
-                className="cursor-pointer"
+                className="shrink-0 cursor-pointer"
                 id="ai-toggle-right"
                 checked={isAIEnabled}
                 onCheckedChange={onAIToggle}
               />
             </div>
           )}
+        </div>
+      </div>
 
-          {sections.map((section) => (
-            <React.Fragment key={section.id}>
-              <div className={cn(`mb-0`, cardClass)}>
-                <button
-                  className={`w-full flex justify-between items-center py-2 text-sm font-medium text-foreground ${
-                    section.items ? 'cursor-pointer' : ''
-                  }`}
-                  onClick={() => section.items && toggleSection(section.id)}
-                >
-                  <div className="flex items-center gap-2">
-                    {section.icon}
-                    <span className="text-xs font-semibold">{section.label}</span>
-                  </div>
+      {/* Separator between identity block and content sections */}
+      {visibleSections.length > 0 && <div className="border-t border-border mx-3 mt-2" />}
 
-                  <div className="text-gray-400">
-                    {expandedSections.has(section.id) ? (
-                      <ChevronDown size={iconSize} />
-                    ) : (
-                      <ChevronRight size={iconSize} />
-                    )}
-                  </div>
-                </button>
+      {/* Content sections — generous spacing between distinct groups */}
+      <div className="flex flex-col gap-1 px-3 pt-2 pb-3">
+        {visibleSections.map((section) => (
+          <div key={section.id} className={sectionClass}>
+            <button
+              className="w-full flex justify-between items-center py-1.5 text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-sm"
+              onClick={() => toggleSection(section.id)}
+            >
+              <div className="flex items-center gap-2">
+                {section.icon}
+                <span className="text-xs font-medium">{section.label}</span>
+                <span className="text-[10px] tabular-nums text-muted-foreground">{section.items.length}</span>
+              </div>
 
-                {section.items && expandedSections.has(section.id) && (
-                  <div className={cn('px-0 mt-0', section.className)}>
-                    {section.items.map((item) => (
-                      <React.Fragment key={item.id}>{item.element}</React.Fragment>
-                    ))}
-                  </div>
+              <div className="text-muted-foreground">
+                {expandedSections.has(section.id) ? (
+                  <ChevronDown size={iconSize} />
+                ) : (
+                  <ChevronRight size={iconSize} />
                 )}
               </div>
-            </React.Fragment>
-          ))}
-        </div>
+            </button>
+
+            {expandedSections.has(section.id) && (
+              <div className={cn('pt-1 pb-2', section.className)}>
+                {section.items.map((item) => (
+                  <React.Fragment key={item.id}>{item.element}</React.Fragment>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
 
       {/* Slot: Content area for additional info */}
@@ -379,7 +410,7 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
           <DialogHeader>
             <DialogTitle>{t('Delete Note')}</DialogTitle>
             <DialogDescription>
-              {t('Are you sure you want to delete this note? This action cannot be undone·')}
+              {t('Are you sure you want to delete this note? This action cannot be undone')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

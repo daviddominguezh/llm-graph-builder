@@ -78,7 +78,11 @@ async function processPendingResumes(): Promise<void> {
   if (resumes.length === EMPTY) return;
 
   log(`processing ${String(resumes.length)} pending resumes`);
-  await Promise.all(resumes.map(async (resume) => { await processOneResume(supabase, resume); }));
+  await Promise.all(
+    resumes.map(async (resume) => {
+      await processOneResume(supabase, resume);
+    })
+  );
 }
 
 /**

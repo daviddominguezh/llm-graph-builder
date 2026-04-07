@@ -24,7 +24,7 @@ export default async function OrgLayout({ children, params }: OrgLayoutProps): P
     <AgentsSidebarProvider>
       <CopilotProvider>
         <EditorCacheProvider>
-          <div className="relative h-screen bg-sidebar pl-0 pr-1.5 py-1.5">
+          <div className="relative h-screen bg-sidebar pl-0 pr-1.5 py-1.5 overflow-hidden">
             <OrgSidebar org={org} />
             <main className="relative z-11 h-full bg-background ml-12.5 border border-border shadow-xs rounded-xl overflow-hidden">
               {children}

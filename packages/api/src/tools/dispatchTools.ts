@@ -4,9 +4,9 @@ import { z } from 'zod';
 
 import type { DispatchSentinel } from '@src/types/sentinels.js';
 
-const CREATE_AGENT_TOOL_NAME = '__system_create_agent';
-const INVOKE_AGENT_TOOL_NAME = '__system_invoke_agent';
-const INVOKE_WORKFLOW_TOOL_NAME = '__system_invoke_workflow';
+const CREATE_AGENT_TOOL_NAME = 'create_agent';
+const INVOKE_AGENT_TOOL_NAME = 'invoke_agent';
+const INVOKE_WORKFLOW_TOOL_NAME = 'invoke_workflow';
 
 const createAgentSchema = z.object({
   systemPrompt: z.string().describe('The system prompt for the new agent'),

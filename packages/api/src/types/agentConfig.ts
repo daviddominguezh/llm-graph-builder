@@ -14,7 +14,7 @@ export interface FewShotExample {
  *
  * Shared between:
  * - UI agent editor (saved to agent_versions.graph_data)
- * - __system_create_agent tool input schema
+ * - create_agent tool input schema
  * - Execution layer config resolution
  *
  * When adding new capabilities (VFS, memory, sandboxes),

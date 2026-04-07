@@ -10,14 +10,19 @@ import {
 } from './dispatchTools.js';
 import { FINISH_TOOL_NAME, createFinishTool } from './finishTool.js';
 
-const SYSTEM_TOOL_PREFIX = '__system_';
+const RESERVED_TOOL_NAMES = new Set([
+  CREATE_AGENT_TOOL_NAME,
+  INVOKE_AGENT_TOOL_NAME,
+  INVOKE_WORKFLOW_TOOL_NAME,
+  FINISH_TOOL_NAME,
+]);
 
 /**
- * Checks if a tool name uses the reserved __system_ prefix.
- * MCP tools with this prefix should be rejected.
+ * Checks if a tool name conflicts with a reserved system tool name.
+ * MCP tools with these names should be rejected.
  */
-export function hasSystemPrefix(toolName: string): boolean {
-  return toolName.startsWith(SYSTEM_TOOL_PREFIX);
+export function isReservedToolName(toolName: string): boolean {
+  return RESERVED_TOOL_NAMES.has(toolName);
 }
 
 interface InjectSystemToolsParams {
@@ -35,9 +40,9 @@ export function injectSystemTools(params: InjectSystemToolsParams): Record<strin
   // Filter out conflicting MCP tools
   const filtered: Record<string, Tool> = {};
   for (const [name, t] of Object.entries(existingTools)) {
-    if (hasSystemPrefix(name)) {
+    if (isReservedToolName(name)) {
       process.stderr.write(
-        `[systemTools] WARNING: Rejecting MCP tool "${name}" — reserved __system_ prefix\n`
+        `[systemTools] WARNING: Rejecting MCP tool "${name}" — reserved system tool name\n`
       );
       continue;
     }

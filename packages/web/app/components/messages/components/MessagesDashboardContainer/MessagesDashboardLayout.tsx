@@ -634,6 +634,7 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
                 {activeChat && (
                   <RightPanel
                     activeChat={activeChat}
+                    chat={currentChat}
                     messages={messages}
                     onMessageClick={(messageId) => {
                       replyToMessage(messageId);
@@ -773,6 +774,7 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
                           <ResizablePanel id="right-panel" defaultSize={panelSizes.rightPanelInChatView}>
                             <RightPanel
                               activeChat={activeChat}
+                              chat={currentChat}
                               messages={messages}
                               onMessageClick={replyToMessage}
                               isAIEnabled={isAIEnabled}

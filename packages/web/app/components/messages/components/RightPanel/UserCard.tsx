@@ -24,10 +24,12 @@ export const UserCard: React.FC<UserCardProps> = ({ userInfo, userID, memberSinc
     : userInfo.name;
 
   return (
-    <div className="h-[106px] cursor-default relative w-full border p-3 rounded-lg bg-white shadow-lg overflow-hidden">
-      <div className="text-sm font-medium">{displayName}</div>
-      {parsedChat.source !== 'instagram' && <div className="text-xs text-gray-600">{parsedChat.displayName}</div>}
-      <div className="text-xs text-gray-600 mt-3">{t('Client since')}</div>
+    <div className="h-[106px] cursor-default relative w-full border border-border p-3 rounded-lg bg-background overflow-hidden">
+      <div className="text-sm font-medium text-foreground">{displayName}</div>
+      {parsedChat.source !== 'instagram' && (
+        <div className="text-xs text-muted-foreground">{parsedChat.displayName}</div>
+      )}
+      <div className="text-xs text-muted-foreground mt-3">{t('Client since')}</div>
       <div className="text-xs font-medium">
         {memberSince.substring(0, 1).toUpperCase() + memberSince.substring(1)}
       </div>

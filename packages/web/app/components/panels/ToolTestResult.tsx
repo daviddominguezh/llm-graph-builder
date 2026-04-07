@@ -20,7 +20,7 @@ interface ToolTestResultProps {
 function EmptyState({ message }: { message: string }) {
   return (
     <div className="flex flex-1 items-center justify-center p-4">
-      <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed p-8">
+      <div className="flex flex-col items-center gap-3 rounded-lg p-8">
         <Terminal className="size-8 text-muted-foreground/40" />
         <p className="text-xs text-muted-foreground">{message}</p>
       </div>

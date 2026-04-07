@@ -23,6 +23,35 @@ function log(msg: string): void {
   process.stdout.write(`[resume-parent] ${msg}\n`);
 }
 
+type ResumeParentData = z.infer<typeof ResumeParentBodySchema>;
+type SupabaseClient = ReturnType<typeof createServiceClient>;
+
+function parseStructuredOutputs(raw: unknown): Record<string, unknown[]> {
+  const outputs: Record<string, unknown[]> = {};
+  const source = raw !== null && typeof raw === 'object' ? raw : {};
+  for (const [key, val] of Object.entries(source)) {
+    outputs[key] = Array.isArray(val) ? val : [];
+  }
+  return outputs;
+}
+
+async function restoreParentState(supabase: SupabaseClient, data: ResumeParentData): Promise<void> {
+  await updateToolOutputMessage(supabase, data.parentToolOutputMessageId, { text: data.childOutput });
+  log('tool output message updated');
+
+  const nodeId =
+    typeof data.parentSessionState.currentNodeId === 'string' ? data.parentSessionState.currentNodeId : '';
+  const outputs = parseStructuredOutputs(data.parentSessionState.structuredOutputs);
+  await updateSessionState(supabase, data.sessionId, { currentNodeId: nodeId, structuredOutputs: outputs });
+  log('session state restored');
+
+  await popStackEntry(supabase, data.sessionId);
+  log('stack entry popped');
+
+  await markResumeCompleted(supabase, data.parentExecutionId);
+  log('pending resume marked completed');
+}
+
 /**
  * POST /internal/resume-parent
  *
@@ -37,18 +66,15 @@ export async function handleResumeParent(req: Request, res: Response): Promise<v
     return;
   }
 
-    const { data } = parsed;
-  const { sessionId, parentExecutionId, parentToolOutputMessageId, childOutput, childStatus, parentSessionState } =
-    data;
-  log(`received parentExecution=${parentExecutionId} status=${childStatus}`);
+  const { data } = parsed;
+  log(`received parentExecution=${data.parentExecutionId} status=${data.childStatus}`);
 
   const supabase = createServiceClient();
 
-  // Idempotency: check if parent execution is still running (suspended)
   const { data: parentExec } = await supabase
     .from('agent_executions')
     .select('status')
-    .eq('id', parentExecutionId)
+    .eq('id', data.parentExecutionId)
     .maybeSingle();
 
   const parentStatus = (parentExec as Record<string, unknown> | null)?.status;
@@ -58,28 +84,7 @@ export async function handleResumeParent(req: Request, res: Response): Promise<v
     return;
   }
 
-  // 1. Update the parent's tool output message with the child's output
-  await updateToolOutputMessage(supabase, parentToolOutputMessageId, { text: childOutput });
-  log('tool output message updated');
-
-  // 2. Restore parent session state
-  const nodeId = typeof parentSessionState.currentNodeId === 'string' ? parentSessionState.currentNodeId : '';
-  const { structuredOutputs: rawOutputs } = parentSessionState;
-  const outputs: Record<string, unknown[]> = {};
-  for (const [key, val] of Object.entries(rawOutputs !== null && typeof rawOutputs === 'object' ? rawOutputs : {})) {
-    outputs[key] = Array.isArray(val) ? val : [];
-  }
-  await updateSessionState(supabase, sessionId, { currentNodeId: nodeId, structuredOutputs: outputs });
-  log('session state restored');
-
-  // 3. Pop the stack entry
-  await popStackEntry(supabase, sessionId);
-  log('stack entry popped');
-
-  // 4. Mark the pending resume as completed
-  await markResumeCompleted(supabase, parentExecutionId);
-  log('pending resume marked completed');
-
-  log(`parent resumed parentExecution=${parentExecutionId}`);
-  res.status(HTTP_OK).json({ resumed: true, parentExecutionId });
+  await restoreParentState(supabase, data);
+  log(`parent resumed parentExecution=${data.parentExecutionId}`);
+  res.status(HTTP_OK).json({ resumed: true, parentExecutionId: data.parentExecutionId });
 }

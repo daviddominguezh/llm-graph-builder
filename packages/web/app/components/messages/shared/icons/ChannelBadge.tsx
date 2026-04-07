@@ -43,7 +43,7 @@ export function ChannelBadge({ channel, size = 18, className }: ChannelBadgeProp
 
   return (
     <div
-      className={`bg-white rounded-full flex items-center justify-center border border-border shadow-sm ${className ?? ''}`}
+      className={`bg-background rounded-full flex items-center justify-center border border-border shadow-sm ${className ?? ''}`}
       style={{ width: size, height: size }}
     >
       <ChannelIcon channel={channel} iconSize={iconSize} />
