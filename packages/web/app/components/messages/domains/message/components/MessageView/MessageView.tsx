@@ -246,14 +246,14 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
               : 'justify-end'
         } ${isNote || isAssigneeChange || isStatusChange ? '' : 'mb-px'} ${
           isHighlighted ? 'animate-pulse relative' : ''
-        } ${roleChanged ? 'mt-3' : ''}`}
+        } ${roleChanged ? 'mt-[2px]' : ''}`}
       >
         {/* Dashed line for notes, assignee changes, and status changes */}
         {(isNote || isAssigneeChange || isStatusChange) && (
           <div className="flex-1 border-b border-dashed border-input mr-2" />
         )}
 
-        <div className={`flex flex-col ${isNote || isAssigneeChange || isStatusChange ? 'w-[255px]' : 'max-w-[70%]'}`}>
+        <div className={`flex flex-col ${isNote || isAssigneeChange || isStatusChange ? 'w-[255px]' : 'max-w-[90%]'}`}>
         <div
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}

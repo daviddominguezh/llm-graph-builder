@@ -1,7 +1,7 @@
 .activeBG {
-  background-color: var(--bg-color);
+  background-color: var(--color-sidebar-accent);
 }
 
 .bg:hover {
-  background-color: var(--bg-color);
+  background-color: var(--color-sidebar-accent);
 }
