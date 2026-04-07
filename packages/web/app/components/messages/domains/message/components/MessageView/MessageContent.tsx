@@ -35,7 +35,7 @@ export function MessageContent({ message, channel, isNote }: MessageContentProps
   }
 
   return (
-    <div className={`px-2 py-1 break-words text-[14px] leading-[1.5] ${baseClass}`}>
+    <div className={`px-3 py-1.5 break-words text-xs leading-[1.5] ${baseClass}`}>
       <div className="markdown-content">
         <MarkdownHooks remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeStarryNight]}>
           {text}
