@@ -290,10 +290,10 @@ function McpTab({ mcp }: { mcp: McpProps }) {
 }
 
 const PANEL_TABS = ['tools', 'mcp'] as const;
-const activeTabCls = 'bg-card dark:bg-input text-foreground shadow-sm';
+const activeTabCls = 'bg-background dark:bg-input text-foreground shadow-sm';
 const inactiveTabCls = 'text-muted-foreground hover:text-foreground border-transparent hover:bg-input dark:hover:bg-card';
 const tabBaseCls =
-  'cursor-pointer inline-flex flex-1 items-center justify-center gap-1 rounded px-2.5 py-1 text-[11px] font-medium transition-colors border border-transparent';
+  'cursor-pointer inline-flex flex-1 items-center justify-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors border border-transparent';
 
 function PanelTabs({
   value,
@@ -306,7 +306,7 @@ function PanelTabs({
 }) {
   const labels: Record<string, string> = { tools: t('toolsTab'), mcp: t('mcpServersTab') };
   return (
-    <div className="flex w-full gap-0.5 rounded-md border bg-background p-0.5">
+    <div className="flex w-full gap-0.5 bg-card dark:bg-background p-0.5">
       {PANEL_TABS.map((tab) => (
         <button
           key={tab}
@@ -383,12 +383,12 @@ export function ToolsPanel({ servers, discoveredTools, mcp, open, onClose }: Too
     <>
       <div
         ref={containerRef}
-        className="absolute top-14.5 left-1/2 z-20 -translate-x-1/2 w-[28rem] h-96 flex flex-col rounded-lg border bg-background shadow-lg"
+        className="absolute top-14.5 left-1/2 z-20 -translate-x-1/2 w-[28rem] h-96 flex flex-col rounded-md border bg-background shadow-lg overflow-hidden"
         onKeyDown={(e) => {
           if (e.key === 'Escape') onClose();
         }}
       >
-        <div className="flex items-center border-b p-1">
+        <div className="flex items-center border-y-0 border-x-0 border-b p-0 overflow-hidden">
           <PanelTabs value={activeTab} onChange={setActiveTab} t={t} />
         </div>
         {activeTab === 'tools' && (
