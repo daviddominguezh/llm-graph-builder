@@ -5,13 +5,14 @@ import NextImage from 'next/image';
 import Avatar from 'react-nice-avatar';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 
-import { CheckCheck, ChevronDown, Loader2, MessageCircle, Sparkles } from 'lucide-react';
+import { CheckCheck, ChevronDown, Copy, Loader2, MessageCircle, Sparkles, ThumbsDown, ThumbsUp } from 'lucide-react';
 
 import type { Note } from '@/app/components/messages/services/api';
 import { getUserPictureByEmailCached } from '@/app/components/messages/services/api';
 
 import { MessageReplyPreview } from '@/app/components/messages/shared/messageReplyPreview';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 import { generateAvatarConfig } from '@/app/utils/avatar';
 import { getMessageText } from '@/app/utils/message';
@@ -92,6 +93,8 @@ interface MessageItemComponentProps {
   noteProfilePicUrl: string | null | undefined;
   assigneeProfilePicUrl: string | null | undefined;
   hasUserReplyAfter: boolean;
+  isLastInGroup: boolean;
+  groupText: string;
 }
 
 const MessageItemComponent = memo<MessageItemComponentProps>(
@@ -105,8 +108,12 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
     noteProfilePicUrl,
     assigneeProfilePicUrl,
     hasUserReplyAfter,
+    isLastInGroup,
+    groupText,
   }) => {
     const context = React.useContext(MessageContext);
+    const [copied, setCopied] = useState(false);
+    const [feedback, setFeedback] = useState<'up' | 'down' | null>(null);
     const [isHovered, setIsHovered] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [hoveredDropdownOption, setHoveredDropdownOption] = useState<string | null>(null);
@@ -231,13 +238,13 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
     return (
       <div
         ref={isHighlighted ? highlightedMessageRef : null}
-        className={`flex w-full items-center ${
+        className={`flex w-full ${
           isNote || isAssigneeChange || isStatusChange
-            ? 'justify-end my-4'
+            ? 'items-center justify-end my-4'
             : styleAsAssistant
               ? 'justify-start'
               : 'justify-end'
-        } ${isNote || isAssigneeChange || isStatusChange ? '' : 'mb-[2px]'} ${
+        } ${isNote || isAssigneeChange || isStatusChange ? '' : 'mb-px'} ${
           isHighlighted ? 'animate-pulse relative' : ''
         } ${roleChanged ? 'mt-3' : ''}`}
       >
@@ -246,12 +253,11 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
           <div className="flex-1 border-b border-dashed border-input mr-2" />
         )}
 
+        <div className={`flex flex-col ${isNote || isAssigneeChange || isStatusChange ? 'w-[255px]' : 'max-w-[70%]'}`}>
         <div
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
           className={`${hasImage && imageOrientation ? 'px-0 pt-0 pb-[2px]' : 'p-1 pt-1 pb-[2px]'} rounded-lg relative flex flex-col ${
-            isNote || isAssigneeChange || isStatusChange ? 'w-[255px]' : 'max-w-[70%]'
-          } ${
             isNote
               ? 'bg-yellow-50 dark:bg-background border border-yellow-300 dark:border-yellow-400 text-foreground'
               : isAssigneeChange
@@ -259,8 +265,8 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
                 : isStatusChange && statusDisplay
                   ? `${statusDisplay.bgColor} border ${statusDisplay.borderColor} text-foreground`
                   : styleAsAssistant
-                    ? 'bg-accent/10 dark:bg-accent/20 text-foreground'
-                    : 'bg-card border-[#c4dbf0]'
+                    ? 'bg-card text-foreground'
+                    : 'bg-background text-foreground'
           } ${
             isHighlighted
               ? 'bg-[#fff3cd] border-[#ffc107] shadow-[0_0_12px_rgba(255,193,7,0.3)]'
@@ -493,6 +499,41 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
           {/* Slot: Message item actions */}
           <Slot name="message-item-actions" />
         </div>
+
+        {/* Group action buttons — shown below the last message in each group */}
+        {isLastInGroup && !isNote && !isAssigneeChange && !isStatusChange && (
+          <div className="flex items-center gap-0.5 mt-0.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                navigator.clipboard.writeText(groupText);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1500);
+              }}
+              title={t('Copy')}
+            >
+              <Copy size={12} className={copied ? 'text-primary' : ''} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setFeedback((prev) => (prev === 'up' ? null : 'up'))}
+              title={t('Good response')}
+            >
+              <ThumbsUp size={12} className={feedback === 'up' ? 'text-primary fill-primary' : ''} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setFeedback((prev) => (prev === 'down' ? null : 'down'))}
+              title={t('Bad response')}
+            >
+              <ThumbsDown size={12} className={feedback === 'down' ? 'text-destructive fill-destructive' : ''} />
+            </Button>
+          </div>
+        )}
+        </div>
       </div>
     );
   },
@@ -505,7 +546,9 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
       prevProps.isHighlighted === nextProps.isHighlighted &&
       prevProps.noteProfilePicUrl === nextProps.noteProfilePicUrl &&
       prevProps.assigneeProfilePicUrl === nextProps.assigneeProfilePicUrl &&
-      prevProps.hasUserReplyAfter === nextProps.hasUserReplyAfter
+      prevProps.hasUserReplyAfter === nextProps.hasUserReplyAfter &&
+      prevProps.isLastInGroup === nextProps.isLastInGroup &&
+      prevProps.groupText === nextProps.groupText
     );
   }
 );
@@ -900,6 +943,12 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
     virtualizedItemsRef.current = virtualizedItems;
   }, [virtualizedItems]);
 
+  // Ref for firstItemIndex to convert Virtuoso indices to array indices in stable callbacks
+  const firstItemIndexRef = useRef(firstItemIndex);
+  useEffect(() => {
+    firstItemIndexRef.current = firstItemIndex;
+  }, [firstItemIndex]);
+
   // Helper to get previous message item for role change detection - stable callback using ref
   const getPreviousMessageItem = useCallback((currentIndex: number): Message | null => {
     for (let i = currentIndex - 1; i >= 0; i--) {
@@ -1059,6 +1108,41 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
           )
         : false;
 
+      // Convert Virtuoso index to array index
+      const arrayIndex = index - firstItemIndexRef.current;
+
+      // Determine if this message is the last in its role group
+      const isRegularMessage = !item.isNote && !item.isAssigneeChange && !item.isStatusChange;
+      const itemIsLastInGroup = isRegularMessage && (() => {
+        const items = virtualizedItemsRef.current;
+        for (let i = arrayIndex + 1; i < items.length; i++) {
+          const next = items[i];
+          if (!next || next.type === 'date-header') return true;
+          if (next.type === 'message') {
+            if (next.isNote || next.isAssigneeChange || next.isStatusChange) continue;
+            return next.message.message.role !== msg.message.role;
+          }
+        }
+        return true;
+      })();
+
+      // Collect all text in this group (walking backwards from last message)
+      const itemGroupText = itemIsLastInGroup ? (() => {
+        const texts: string[] = [];
+        const items = virtualizedItemsRef.current;
+        for (let i = arrayIndex; i >= 0; i--) {
+          const cur = items[i];
+          if (!cur || cur.type === 'date-header') break;
+          if (cur.type === 'message') {
+            if (cur.isNote || cur.isAssigneeChange || cur.isStatusChange) continue;
+            if (cur.message.message.role !== msg.message.role) break;
+            const text = getMessageText(cur.message.message);
+            if (text) texts.unshift(text);
+          }
+        }
+        return texts.join('\n');
+      })() : '';
+
       return (
         <MessageItemComponent
           item={item}
@@ -1070,6 +1154,8 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
           noteProfilePicUrl={itemNoteProfilePicUrl}
           assigneeProfilePicUrl={itemAssigneeProfilePicUrl}
           hasUserReplyAfter={itemHasUserReplyAfter}
+          isLastInGroup={itemIsLastInGroup}
+          groupText={itemGroupText}
         />
       );
     },
