@@ -335,24 +335,26 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
 
           {/* Bot toggle */}
           {!isTestChat && onAIToggle && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 min-w-0">
-                <Zap size={14} className="shrink-0 text-muted-foreground" />
-                <div className="min-w-0">
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Zap size={14} className="shrink-0 text-muted-foreground" />
                   <Label htmlFor="ai-toggle-right" className="text-xs font-medium m-0 cursor-pointer">
                     {t('Bot active')}
                   </Label>
-                  {isAIEnabled && chat?.agentSlug && (
-                    <p className="text-[10px] text-muted-foreground truncate">{chat.agentSlug}</p>
-                  )}
                 </div>
+                <Switch
+                  className="shrink-0 cursor-pointer"
+                  id="ai-toggle-right"
+                  checked={isAIEnabled}
+                  onCheckedChange={onAIToggle}
+                />
               </div>
-              <Switch
-                className="shrink-0 cursor-pointer"
-                id="ai-toggle-right"
-                checked={isAIEnabled}
-                onCheckedChange={onAIToggle}
-              />
+              {isAIEnabled && chat?.agentSlug && (
+                <p className="text-[10px] font-medium font-mono uppercase text-muted-foreground truncate">
+                  {chat.agentSlug}
+                </p>
+              )}
             </div>
           )}
         </div>
