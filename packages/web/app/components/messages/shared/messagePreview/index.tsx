@@ -12,7 +12,6 @@ import Image from 'next/image';
 import React, { useMemo } from 'react';
 import Avatar from 'react-nice-avatar';
 
-import styles from './index.module.css';
 
 interface MessagePreviewProps {
   lastMessage?: LastMessage;
@@ -132,7 +131,7 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
     >
       <div
         onClick={() => onClickMsg(phone)}
-        className={`hover:bg-card! ${styles['bg']} ${selected ? styles['activeBG'] : ''} ${isHighlightedImportant ? 'border-red-500 border-1 bg-red-50' : ''}`}
+        className={`${selected ? 'bg-primary/15 border-l-2 border-primary' : 'hover:bg-sidebar-accent'} ${isHighlightedImportant ? 'border-red-500 border-1 bg-red-50' : ''}`}
         style={{
           width: '100%',
           paddingTop: '12px',

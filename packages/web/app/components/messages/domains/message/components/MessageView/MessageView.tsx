@@ -1,32 +1,34 @@
-
-import React, { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { useTranslations } from 'next-intl';
-import NextImage from 'next/image';
-import Avatar from 'react-nice-avatar';
-import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
-
-import { CheckCheck, ChevronDown, Copy, Loader2, MessageCircle, Sparkles, ThumbsDown, ThumbsUp } from 'lucide-react';
-
 import type { Note } from '@/app/components/messages/services/api';
 import { getUserPictureByEmailCached } from '@/app/components/messages/services/api';
-
+import PDFImg from '@/app/components/messages/shared/assets';
 import { MessageReplyPreview } from '@/app/components/messages/shared/messageReplyPreview';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-
+import { Conversation, INTENT, Message } from '@/app/types/chat';
+import { Collaborator } from '@/app/types/projectInnerSettings';
 import { generateAvatarConfig } from '@/app/utils/avatar';
 import { getMessageText } from '@/app/utils/message';
 import { formatTimestamp } from '@/app/utils/strs';
-
-import { Conversation, INTENT, Message } from '@/app/types/chat';
-import { Collaborator } from '@/app/types/projectInnerSettings';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  CheckCheck,
+  ChevronDown,
+  Copy,
+  Loader2,
+  MessageCircle,
+  Sparkles,
+  ThumbsDown,
+  ThumbsUp,
+} from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import NextImage from 'next/image';
+import React, { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import Avatar from 'react-nice-avatar';
+import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 
 import { Slot } from '../../../../core/slots';
 import { AudioPlayer } from './AudioPlayer';
 import { MessageContent } from './MessageContent';
 import { MessageViewSkeleton } from './MessageViewSkeleton';
-
-import PDFImg from '@/app/components/messages/shared/assets';
 
 /**
  * Custom List component for Virtuoso with padding
@@ -192,7 +194,8 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
 
     if (!context) return null;
 
-    const { isTestChatActive, channel, findRepliedMessage, handleReplyClick, onAskAI, getStatusDisplay, t } = context;
+    const { isTestChatActive, channel, findRepliedMessage, handleReplyClick, onAskAI, getStatusDisplay, t } =
+      context;
 
     const { message, isNote, isAssigneeChange, isStatusChange } = item;
 
@@ -253,286 +256,293 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
           <div className="flex-1 border-b border-dashed border-input mr-2" />
         )}
 
-        <div className={`flex flex-col ${isNote || isAssigneeChange || isStatusChange ? 'w-[255px]' : 'max-w-[90%]'}`}>
         <div
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-          className={`${hasImage && imageOrientation ? 'px-0 pt-0 pb-[2px]' : 'p-1 pt-1 pb-[2px]'} rounded-lg relative flex flex-col ${
-            isNote
-              ? 'bg-yellow-50 dark:bg-background border border-yellow-300 dark:border-yellow-400 text-foreground'
-              : isAssigneeChange
-                ? 'bg-background border border-input border-dashed text-foreground'
-                : isStatusChange && statusDisplay
-                  ? `${statusDisplay.bgColor} border ${statusDisplay.borderColor} text-foreground`
-                  : styleAsAssistant
-                    ? 'bg-card text-foreground'
-                    : 'bg-background text-foreground'
-          } ${
-            isHighlighted
-              ? 'bg-[#fff3cd] border-[#ffc107] shadow-[0_0_12px_rgba(255,193,7,0.3)]'
-              : ''
-          }`}
-          style={{
-            ...(hasImage && imageOrientation
-              ? {
-                  width: imageOrientation === 'landscape' ? '330px' : '240px',
-                }
-              : {}),
-          }}
+          className={`flex flex-col ${isNote || isAssigneeChange || isStatusChange ? 'w-[255px]' : 'max-w-[90%]'}`}
         >
-          {/* Chevron dropdown button - appears on hover */}
-          {(isHovered || isDropdownOpen) && !isNote && !isAssigneeChange && !isStatusChange && (
-            <div
-              ref={isDropdownOpen ? dropdownTriggerRef : null}
-              className={`absolute top-2 right-2 z-20 rounded hover:bg-border ${
-                isHighlighted ? 'bg-card' : 'bg-card'
-              }`}
-            >
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsDropdownOpen(!isDropdownOpen);
-                }}
-                className="w-6 h-6 flex items-center justify-center cursor-pointer transition-colors"
+          <div
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className={`${hasImage && imageOrientation ? 'px-0 pt-0 pb-[2px]' : 'p-1 pt-1 pb-[2px]'} rounded-lg relative flex flex-col ${
+              isNote
+                ? 'bg-yellow-50 dark:bg-background border border-yellow-300 dark:border-yellow-400 text-foreground'
+                : isAssigneeChange
+                  ? 'bg-background border border-input border-dashed text-foreground'
+                  : isStatusChange && statusDisplay
+                    ? `${statusDisplay.bgColor} border ${statusDisplay.borderColor} text-foreground`
+                    : styleAsAssistant
+                      ? 'bg-card text-foreground'
+                      : 'bg-background text-foreground'
+            } ${isHighlighted ? 'bg-[#fff3cd] border-[#ffc107] shadow-[0_0_12px_rgba(255,193,7,0.3)]' : ''}`}
+            style={{
+              ...(hasImage && imageOrientation
+                ? {
+                    width: imageOrientation === 'landscape' ? '330px' : '240px',
+                  }
+                : {}),
+            }}
+          >
+            {/* Chevron dropdown button - appears on hover */}
+            {(isHovered || isDropdownOpen) && !isNote && !isAssigneeChange && !isStatusChange && (
+              <div
+                ref={isDropdownOpen ? dropdownTriggerRef : null}
+                className={`absolute top-2 right-2 z-20 rounded hover:bg-border ${
+                  isHighlighted || styleAsAssistant ? 'bg-card' : 'bg-background'
+                }`}
               >
-                <ChevronDown size={16} className="text-muted-foreground" />
-              </button>
-
-              {/* Dropdown menu */}
-              {isDropdownOpen && (
-                <div
-                  ref={dropdownRef}
-                  className={`absolute bg-background border border-input rounded-md shadow-lg min-w-[240px] py-1 z-30 ${
-                    dropdownPosition === 'above' ? 'bottom-full mb-1' : 'top-full mt-1'
-                  }`}
-                  style={{
-                    right: `${dropdownHorizontalOffset}px`,
-                    visibility: positionCalculated ? 'visible' : 'hidden',
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsDropdownOpen(!isDropdownOpen);
                   }}
+                  className="w-6 h-6 flex items-center justify-center cursor-pointer transition-colors"
                 >
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const messageText = getMessageText(message.message) || '';
-                      if (onAskAI && messageText) {
-                        onAskAI(messageText);
-                      }
-                      setIsDropdownOpen(false);
-                    }}
-                    onMouseEnter={() => setHoveredDropdownOption('ask-ai')}
-                    onMouseLeave={() => setHoveredDropdownOption(null)}
-                    className={`w-full px-3 py-2 text-sm flex items-center gap-2 transition-colors cursor-pointer ${
-                      hoveredDropdownOption === 'ask-ai'
-                        ? 'bg-card text-foreground'
-                        : 'bg-transparent text-muted-foreground'
-                    }`}
-                  >
-                    <Sparkles size={16} />
-                    <span>{t('Ask AI')}</span>
-                  </div>
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsDropdownOpen(false);
-                    }}
-                    onMouseEnter={() => setHoveredDropdownOption('reply-internally')}
-                    onMouseLeave={() => setHoveredDropdownOption(null)}
-                    className={`w-full px-3 py-2 text-sm flex items-center gap-2 transition-colors cursor-pointer ${
-                      hoveredDropdownOption === 'reply-internally'
-                        ? 'bg-card text-foreground'
-                        : 'bg-transparent text-muted-foreground'
-                    }`}
-                  >
-                    <MessageCircle size={16} />
-                    <span>{t('Reply Internally')}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+                  <ChevronDown size={16} className="text-muted-foreground" />
+                </button>
 
-          {/* Reply preview */}
-          {message.replyId && (
-            <MessageReplyPreview
-              repliedMessage={findRepliedMessage(message.replyId)}
-              onClick={handleReplyClick}
-              isUserMessage={styleAsAssistant}
-            />
-          )}
-
-          {/* Image media */}
-          {message.mediaUrl &&
-            (message.type || '').startsWith('image') &&
-            (() => {
-              // While loading: show small placeholder + hidden image to detect orientation
-              if (!imageOrientation) {
-                return (
-                  <div className="relative">
-                    {/* Hidden image to detect orientation */}
-                    <NextImage
-                      ref={(el) => onImageRef(el, message.id)}
-                      onLoad={(e) => onImageLoad(e, message.id)}
-                      src={message.mediaUrl}
-                      alt=""
-                      width={1}
-                      height={1}
-                      className="absolute opacity-0 pointer-events-none"
-                      unoptimized
-                    />
-                    {/* Loading placeholder */}
-                    <div className="w-[120px] h-[90px] bg-gray-100 rounded-[5px] flex items-center justify-center">
-                      <Loader2 className="animate-spin text-gray-400" size={20} />
+                {/* Dropdown menu */}
+                {isDropdownOpen && (
+                  <div
+                    ref={dropdownRef}
+                    className={`absolute bg-background border border-input rounded-md shadow-lg min-w-[240px] py-1 z-30 ${
+                      dropdownPosition === 'above' ? 'bottom-full mb-1' : 'top-full mt-1'
+                    }`}
+                    style={{
+                      right: `${dropdownHorizontalOffset}px`,
+                      visibility: positionCalculated ? 'visible' : 'hidden',
+                    }}
+                  >
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const messageText = getMessageText(message.message) || '';
+                        if (onAskAI && messageText) {
+                          onAskAI(messageText);
+                        }
+                        setIsDropdownOpen(false);
+                      }}
+                      onMouseEnter={() => setHoveredDropdownOption('ask-ai')}
+                      onMouseLeave={() => setHoveredDropdownOption(null)}
+                      className={`w-full px-3 py-2 text-sm flex items-center gap-2 transition-colors cursor-pointer ${
+                        hoveredDropdownOption === 'ask-ai'
+                          ? 'bg-card text-foreground'
+                          : 'bg-transparent text-muted-foreground'
+                      }`}
+                    >
+                      <Sparkles size={16} />
+                      <span>{t('Ask AI')}</span>
+                    </div>
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsDropdownOpen(false);
+                      }}
+                      onMouseEnter={() => setHoveredDropdownOption('reply-internally')}
+                      onMouseLeave={() => setHoveredDropdownOption(null)}
+                      className={`w-full px-3 py-2 text-sm flex items-center gap-2 transition-colors cursor-pointer ${
+                        hoveredDropdownOption === 'reply-internally'
+                          ? 'bg-card text-foreground'
+                          : 'bg-transparent text-muted-foreground'
+                      }`}
+                    >
+                      <MessageCircle size={16} />
+                      <span>{t('Reply Internally')}</span>
                     </div>
                   </div>
-                );
-              }
+                )}
+              </div>
+            )}
 
-              // Once orientation is known: render actual image at correct size
-              const width = imageOrientation === 'landscape' ? '330px' : '240px';
-              return (
-                <a href={message.mediaUrl} target="_blank" rel="noreferrer" className="p-0.5">
+            {/* Reply preview */}
+            {message.replyId && (
+              <MessageReplyPreview
+                repliedMessage={findRepliedMessage(message.replyId)}
+                onClick={handleReplyClick}
+                isUserMessage={styleAsAssistant}
+              />
+            )}
+
+            {/* Image media */}
+            {message.mediaUrl &&
+              (message.type || '').startsWith('image') &&
+              (() => {
+                // While loading: show small placeholder + hidden image to detect orientation
+                if (!imageOrientation) {
+                  return (
+                    <div className="relative">
+                      {/* Hidden image to detect orientation */}
+                      <NextImage
+                        ref={(el) => onImageRef(el, message.id)}
+                        onLoad={(e) => onImageLoad(e, message.id)}
+                        src={message.mediaUrl}
+                        alt=""
+                        width={1}
+                        height={1}
+                        className="absolute opacity-0 pointer-events-none"
+                        unoptimized
+                      />
+                      {/* Loading placeholder */}
+                      <div className="w-[120px] h-[90px] bg-gray-100 rounded-[5px] flex items-center justify-center">
+                        <Loader2 className="animate-spin text-gray-400" size={20} />
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Once orientation is known: render actual image at correct size
+                const width = imageOrientation === 'landscape' ? '330px' : '240px';
+                return (
+                  <a href={message.mediaUrl} target="_blank" rel="noreferrer" className="p-0.5">
+                    <NextImage
+                      className="h-auto block rounded-[5px] cursor-pointer"
+                      style={{ width }}
+                      src={message.mediaUrl}
+                      alt={t('Message attachment')}
+                      width={0}
+                      height={0}
+                      sizes="100vw"
+                      unoptimized
+                    />
+                  </a>
+                );
+              })()}
+
+            {/* PDF/Document media */}
+            {message.mediaUrl && (message.type === 'pdf' || message.type === 'document') && (
+              <a href={message.mediaUrl} target="_blank" rel="noreferrer">
+                <div className="cursor-pointer border border-[#e4e4e7] p-4 overflow-hidden flex justify-center items-center w-full h-[100px]">
                   <NextImage
-                    className="h-auto block rounded-[5px] cursor-pointer"
-                    style={{ width }}
-                    src={message.mediaUrl}
-                    alt={t('Message attachment')}
+                    src={PDFImg}
+                    alt="PDF"
                     width={0}
                     height={0}
                     sizes="100vw"
+                    className="h-full w-auto object-contain object-center"
                     unoptimized
                   />
-                </a>
-              );
-            })()}
+                </div>
+              </a>
+            )}
 
-          {/* PDF/Document media */}
-          {message.mediaUrl && (message.type === 'pdf' || message.type === 'document') && (
-            <a href={message.mediaUrl} target="_blank" rel="noreferrer">
-              <div className="cursor-pointer border border-[#e4e4e7] p-4 overflow-hidden flex justify-center items-center w-full h-[100px]">
-                <NextImage
-                  src={PDFImg}
-                  alt="PDF"
-                  width={0}
-                  height={0}
-                  sizes="100vw"
-                  className="h-full w-auto object-contain object-center"
-                  unoptimized
-                />
-              </div>
-            </a>
-          )}
+            {/* Audio media */}
+            {message.mediaUrl && message.type === 'audio' && <AudioPlayer src={message.mediaUrl} />}
 
-          {/* Audio media */}
-          {message.mediaUrl && message.type === 'audio' && <AudioPlayer src={message.mediaUrl} />}
-
-          {/* Note label with creator */}
-          {isNote && (
-            <div className="px-2 pt-2 pb-1 flex items-center justify-end gap-2">
-              <span className="text-xs text-muted-foreground font-semibold">{t('Note')}</span>
-              <div className="shrink-0">
-                {noteProfilePicUrl ? (
-                  <NextImage
-                    src={noteProfilePicUrl}
-                    alt={noteCreator || 'Creator'}
-                    width={20}
-                    height={20}
-                    className="rounded-full object-cover"
-                    unoptimized
-                  />
-                ) : (
-                  noteAvatarConfig && <Avatar {...noteAvatarConfig} className="w-5 h-5" />
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Status change content */}
-          {isStatusChange && statusDisplay ? (
-            <div className="px-2 pt-2 pb-1 flex items-center justify-end gap-1">
-              <span className={`text-xs font-semibold ${statusDisplay.textColor}`}>
-                {t('Status changed to')} {statusDisplay.label}
-              </span>
-            </div>
-          ) : isAssigneeChange ? (
-            isUnassigned ? (
-              <div className="px-2 pt-2 pb-1 text-xs text-gray-500 font-semibold text-right">
-                {getMessageText(message.message)}
-              </div>
-            ) : (
+            {/* Note label with creator */}
+            {isNote && (
               <div className="px-2 pt-2 pb-1 flex items-center justify-end gap-2">
-                <span className="text-xs text-gray-500 font-semibold">
-                  {t('Assigned to')} {getMessageText(message.message)}
-                </span>
+                <span className="text-xs text-muted-foreground font-semibold">{t('Note')}</span>
                 <div className="shrink-0">
-                  {assigneeProfilePicUrl ? (
+                  {noteProfilePicUrl ? (
                     <NextImage
-                      src={assigneeProfilePicUrl}
-                      alt={assigneeEmail || 'Assignee'}
+                      src={noteProfilePicUrl}
+                      alt={noteCreator || 'Creator'}
                       width={20}
                       height={20}
                       className="rounded-full object-cover"
                       unoptimized
                     />
                   ) : (
-                    assigneeAvatarConfig && (
-                      <Avatar {...assigneeAvatarConfig} style={{ width: '20px', height: '20px' }} />
-                    )
+                    noteAvatarConfig && <Avatar {...noteAvatarConfig} className="w-5 h-5" />
                   )}
                 </div>
               </div>
-            )
-          ) : (
-            // Don't show text content if it's an image message with '[image]' placeholder
-            !(hasImage && getMessageText(message.message) === '[image]') && (
-              <MessageContent message={message.message} channel={channel} isNote={isNote} />
-            )
-          )}
-
-          {/* Timestamp with double check for assistant messages */}
-          <div className="text-[11px] text-[#71717a] text-right px-2 pb-[2px] mt-[2px] opacity-80 flex items-center justify-end gap-1">
-            <span>{formatTimestamp(message.timestamp, true)}</span>
-            {isAssistantMessage && (
-              <CheckCheck size={14} className={hasUserReplyAfter ? 'text-blue-500' : 'text-gray-400'} />
             )}
+
+            {/* Status change content */}
+            {isStatusChange && statusDisplay ? (
+              <div className="px-2 pt-2 pb-1 flex items-center justify-end gap-1">
+                <span className={`text-xs font-semibold ${statusDisplay.textColor}`}>
+                  {t('Status changed to')} {statusDisplay.label}
+                </span>
+              </div>
+            ) : isAssigneeChange ? (
+              isUnassigned ? (
+                <div className="px-2 pt-2 pb-1 text-xs text-gray-500 font-semibold text-right">
+                  {getMessageText(message.message)}
+                </div>
+              ) : (
+                <div className="px-2 pt-2 pb-1 flex items-center justify-end gap-2">
+                  <span className="text-xs text-gray-500 font-semibold">
+                    {t('Assigned to')} {getMessageText(message.message)}
+                  </span>
+                  <div className="shrink-0">
+                    {assigneeProfilePicUrl ? (
+                      <NextImage
+                        src={assigneeProfilePicUrl}
+                        alt={assigneeEmail || 'Assignee'}
+                        width={20}
+                        height={20}
+                        className="rounded-full object-cover"
+                        unoptimized
+                      />
+                    ) : (
+                      assigneeAvatarConfig && (
+                        <Avatar {...assigneeAvatarConfig} style={{ width: '20px', height: '20px' }} />
+                      )
+                    )}
+                  </div>
+                </div>
+              )
+            ) : (
+              // Don't show text content if it's an image message with '[image]' placeholder
+              !(hasImage && getMessageText(message.message) === '[image]') && (
+                <MessageContent message={message.message} channel={channel} isNote={isNote} />
+              )
+            )}
+
+            {/* Timestamp with double check for assistant messages */}
+            <div className="relative cursor-default text-[10px] text-muted-foreground text-right px-2 pb-[2px] -mt-4 opacity-80 flex items-center justify-end gap-1">
+              <span>{formatTimestamp(message.timestamp, true)}</span>
+              {isAssistantMessage && (
+                <CheckCheck
+                  size={14}
+                  className={hasUserReplyAfter ? 'text-blue-500' : 'text-muted-foreground'}
+                />
+              )}
+            </div>
+
+            {/* Slot: Message item actions */}
+            <Slot name="message-item-actions" />
           </div>
 
-          {/* Slot: Message item actions */}
-          <Slot name="message-item-actions" />
-        </div>
-
-        {/* Group action buttons — shown below the last message in each group */}
-        {isLastInGroup && !isNote && !isAssigneeChange && !isStatusChange && (
-          <div className="flex items-center gap-0.5 mt-0.5">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                navigator.clipboard.writeText(groupText);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 1500);
-              }}
-              title={t('Copy')}
-            >
-              <Copy size={12} className={copied ? 'text-primary' : ''} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setFeedback((prev) => (prev === 'up' ? null : 'up'))}
-              title={t('Good response')}
-            >
-              <ThumbsUp size={12} className={feedback === 'up' ? 'text-primary fill-primary' : ''} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setFeedback((prev) => (prev === 'down' ? null : 'down'))}
-              title={t('Bad response')}
-            >
-              <ThumbsDown size={12} className={feedback === 'down' ? 'text-destructive fill-destructive' : ''} />
-            </Button>
-          </div>
-        )}
+          {/* Group action buttons — shown below the last message in each group */}
+          {isLastInGroup && !isNote && !isAssigneeChange && !isStatusChange && (
+            <div className="flex items-center gap-0.5 mt-0.5">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  navigator.clipboard.writeText(groupText);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1500);
+                }}
+                className="text-muted-foreground"
+                title={t('Copy')}
+              >
+                <Copy size={12} className={copied ? 'text-primary' : ''} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setFeedback((prev) => (prev === 'up' ? null : 'up'))}
+                className="text-muted-foreground"
+                title={t('Good response')}
+              >
+                <ThumbsUp size={12} className={feedback === 'up' ? 'text-primary fill-primary' : ''} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setFeedback((prev) => (prev === 'down' ? null : 'down'))}
+                className="text-muted-foreground"
+                title={t('Bad response')}
+              >
+                <ThumbsDown
+                  size={12}
+                  className={feedback === 'down' ? 'text-destructive fill-destructive' : ''}
+                />
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -660,9 +670,6 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
 
   // Track if loading older messages
   const isLoadingOlderRef = useRef(false);
-
-
-
 
   // For prepending older messages - track firstItemIndex
   // We use a high starting index so we have room to prepend items
@@ -794,8 +801,7 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
       const assigneeName =
         assigneeData.assignee === 'none'
           ? t('Unassigned')
-          : collaborators.find((c) => c.email === assigneeData.assignee)?.name ||
-            assigneeData.assignee;
+          : collaborators.find((c) => c.email === assigneeData.assignee)?.name || assigneeData.assignee;
 
       return {
         id: assigneeID,
@@ -1051,7 +1057,15 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
       getStatusDisplay: stableGetStatusDisplay,
       t,
     }),
-    [isTestChatActive, channel, stableFindRepliedMessage, handleReplyClick, onAskAI, stableGetStatusDisplay, t]
+    [
+      isTestChatActive,
+      channel,
+      stableFindRepliedMessage,
+      handleReplyClick,
+      onAskAI,
+      stableGetStatusDisplay,
+      t,
+    ]
   );
 
   // Render a single item (date header or message)
@@ -1084,16 +1098,12 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
       const itemIsHighlighted = highlightedMessageIdRef.current === msg.id;
 
       const noteCreator = item.isNote ? msg.key : null;
-      const itemNoteProfilePicUrl = noteCreator
-        ? noteProfilePicturesRef.current.get(noteCreator)
-        : null;
+      const itemNoteProfilePicUrl = noteCreator ? noteProfilePicturesRef.current.get(noteCreator) : null;
 
       const assigneeEmail = item.isAssigneeChange ? msg.key : null;
       const isUnassigned = assigneeEmail === 'none';
       const itemAssigneeProfilePicUrl =
-        assigneeEmail && !isUnassigned
-          ? assigneeProfilePicturesRef.current.get(assigneeEmail)
-          : null;
+        assigneeEmail && !isUnassigned ? assigneeProfilePicturesRef.current.get(assigneeEmail) : null;
 
       const isAssistantMsg =
         msg.message.role === 'assistant' && !item.isNote && !item.isAssigneeChange && !item.isStatusChange;
@@ -1113,35 +1123,39 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
 
       // Determine if this message is the last in its role group
       const isRegularMessage = !item.isNote && !item.isAssigneeChange && !item.isStatusChange;
-      const itemIsLastInGroup = isRegularMessage && (() => {
-        const items = virtualizedItemsRef.current;
-        for (let i = arrayIndex + 1; i < items.length; i++) {
-          const next = items[i];
-          if (!next || next.type === 'date-header') return true;
-          if (next.type === 'message') {
-            if (next.isNote || next.isAssigneeChange || next.isStatusChange) continue;
-            return next.message.message.role !== msg.message.role;
+      const itemIsLastInGroup =
+        isRegularMessage &&
+        (() => {
+          const items = virtualizedItemsRef.current;
+          for (let i = arrayIndex + 1; i < items.length; i++) {
+            const next = items[i];
+            if (!next || next.type === 'date-header') return true;
+            if (next.type === 'message') {
+              if (next.isNote || next.isAssigneeChange || next.isStatusChange) continue;
+              return next.message.message.role !== msg.message.role;
+            }
           }
-        }
-        return true;
-      })();
+          return true;
+        })();
 
       // Collect all text in this group (walking backwards from last message)
-      const itemGroupText = itemIsLastInGroup ? (() => {
-        const texts: string[] = [];
-        const items = virtualizedItemsRef.current;
-        for (let i = arrayIndex; i >= 0; i--) {
-          const cur = items[i];
-          if (!cur || cur.type === 'date-header') break;
-          if (cur.type === 'message') {
-            if (cur.isNote || cur.isAssigneeChange || cur.isStatusChange) continue;
-            if (cur.message.message.role !== msg.message.role) break;
-            const text = getMessageText(cur.message.message);
-            if (text) texts.unshift(text);
-          }
-        }
-        return texts.join('\n');
-      })() : '';
+      const itemGroupText = itemIsLastInGroup
+        ? (() => {
+            const texts: string[] = [];
+            const items = virtualizedItemsRef.current;
+            for (let i = arrayIndex; i >= 0; i--) {
+              const cur = items[i];
+              if (!cur || cur.type === 'date-header') break;
+              if (cur.type === 'message') {
+                if (cur.isNote || cur.isAssigneeChange || cur.isStatusChange) continue;
+                if (cur.message.message.role !== msg.message.role) break;
+                const text = getMessageText(cur.message.message);
+                if (text) texts.unshift(text);
+              }
+            }
+            return texts.join('\n');
+          })()
+        : '';
 
       return (
         <MessageItemComponent
