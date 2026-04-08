@@ -22,8 +22,6 @@ export interface AddFromLibraryConfig {
 export interface McpServersState {
   servers: McpServerConfig[];
   discoveredTools: Record<string, DiscoveredTool[]>;
-  allToolNames: string[];
-  allTools: DiscoveredTool[];
   discovering: Record<string, boolean>;
   serverStatus: Record<string, McpServerStatus>;
   addServer: () => void;
@@ -41,26 +39,6 @@ function createDefaultServer(): McpServerConfig {
     transport: { type: 'http', url: '' },
     enabled: true,
   };
-}
-
-function collectToolNames(discoveredTools: Record<string, DiscoveredTool[]>): string[] {
-  const names = new Set<string>();
-  for (const tools of Object.values(discoveredTools)) {
-    for (const tool of tools) {
-      names.add(tool.name);
-    }
-  }
-  return [...names];
-}
-
-function collectAllTools(discoveredTools: Record<string, DiscoveredTool[]>): DiscoveredTool[] {
-  const seen = new Set<string>();
-  const allTools = Object.values(discoveredTools).flat();
-  return allTools.filter((tool) => {
-    if (seen.has(tool.name)) return false;
-    seen.add(tool.name);
-    return true;
-  });
 }
 
 function removeKeyFromRecord<T>(record: Record<string, T>, key: string): Record<string, T> {
@@ -304,14 +282,9 @@ export function useMcpServers(options: UseMcpServersOptions): McpServersState {
     orgId: options.orgId ?? '',
     setters,
   });
-  const allToolNames = collectToolNames(discoveredTools);
-  const allTools = collectAllTools(discoveredTools);
-
   return {
     servers,
     discoveredTools,
-    allToolNames,
-    allTools,
     discovering,
     serverStatus,
     ...mutations,
