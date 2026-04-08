@@ -16,8 +16,6 @@ import { ChevronDown, Info, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
-import type { DiscoveredTool } from '../../lib/api';
-import type { McpServerConfig } from '../../schemas/graph.schema';
 import type { ExistingEdgeType } from '../../utils/edgeTypeUtils';
 import { IfElseDialog, LoopDialog, ToolNodeDialog, UserNodeDialog } from './nodeCreationDialogs';
 import { NodeTypeDropdown, type NodeCreationType } from './NodeTypeDropdown';
@@ -43,8 +41,6 @@ interface ConnectionMenuProps {
     exitValue: string,
   ) => void;
   onClose: () => void;
-  mcpServers: McpServerConfig[];
-  mcpDiscoveredTools: Record<string, DiscoveredTool[]>;
 }
 
 interface DialogsProps {
@@ -60,8 +56,6 @@ interface DialogsProps {
     continueValue: string,
     exitValue: string,
   ) => void;
-  mcpServers: McpServerConfig[];
-  mcpDiscoveredTools: Record<string, DiscoveredTool[]>;
 }
 
 function ConnectionDialogs({
@@ -73,8 +67,6 @@ function ConnectionDialogs({
   onCreateToolNode,
   onCreateIfElse,
   onCreateLoop,
-  mcpServers,
-  mcpDiscoveredTools,
 }: DialogsProps) {
   const handleOpenChange = (open: boolean) => {
     if (!open) onClose();
@@ -93,8 +85,6 @@ function ConnectionDialogs({
         onOpenChange={handleOpenChange}
         sourceNodeLabel={sourceLabel}
         onCreate={onCreateToolNode}
-        servers={mcpServers}
-        discoveredTools={mcpDiscoveredTools}
       />
       <IfElseDialog
         open={activeDialog === 'ifElse'}
@@ -108,8 +98,6 @@ function ConnectionDialogs({
         sourceNodeLabel={sourceLabel}
         sourceEdgeType={sourceEdgeType}
         onCreate={onCreateLoop}
-        servers={mcpServers}
-        discoveredTools={mcpDiscoveredTools}
       />
     </>
   );
@@ -127,8 +115,6 @@ export function ConnectionMenu({
   onCreateIfElse,
   onCreateLoop,
   onClose,
-  mcpServers,
-  mcpDiscoveredTools,
 }: ConnectionMenuProps) {
   const t = useTranslations('connectionMenu');
   const [activeDialog, setActiveDialog] = useState<ActiveDialog>(null);
@@ -219,8 +205,6 @@ export function ConnectionMenu({
         onCreateToolNode={onCreateToolNode}
         onCreateIfElse={onCreateIfElse}
         onCreateLoop={onCreateLoop}
-        mcpServers={mcpServers}
-        mcpDiscoveredTools={mcpDiscoveredTools}
       />
     </>
   );

@@ -12,43 +12,33 @@ import {
   ComboboxList,
 } from '@/components/ui/combobox';
 import { useMemo } from 'react';
-import type { DiscoveredTool } from '../../lib/api';
-import type { McpServerConfig } from '../../schemas/graph.schema';
+
+import { useToolRegistry } from '../ToolRegistryProvider';
 
 interface ToolGroupItem {
   value: string;
   items: string[];
 }
 
-const SYSTEM_GROUP_NAME = 'OpenFlow/Composition';
-const SYSTEM_TOOL_NAMES = ['create_agent', 'invoke_agent', 'invoke_workflow'];
-
-function buildGroups(servers: McpServerConfig[], discovered: Record<string, DiscoveredTool[]>): ToolGroupItem[] {
-  const groups: ToolGroupItem[] = [];
-  for (const server of servers) {
-    const tools = (discovered[server.id] ?? []).map((t) => t.name).sort((a, b) => a.localeCompare(b));
-    if (tools.length > 0) {
-      groups.push({ value: server.name, items: tools });
-    }
-  }
-  groups.sort((a, b) => a.value.localeCompare(b.value));
-  groups.push({ value: SYSTEM_GROUP_NAME, items: SYSTEM_TOOL_NAMES });
-  return groups;
-}
-
 interface ToolComboboxProps {
   value: string;
   onValueChange: (value: string) => void;
-  servers: McpServerConfig[];
-  discoveredTools: Record<string, DiscoveredTool[]>;
   placeholder?: string;
 }
 
-export function ToolCombobox({ value, onValueChange, servers, discoveredTools, placeholder }: ToolComboboxProps) {
-  const groups = useMemo(() => buildGroups(servers, discoveredTools), [servers, discoveredTools]);
+function buildGroupItems(groups: ReadonlyArray<{ groupName: string; tools: ReadonlyArray<{ name: string }> }>): ToolGroupItem[] {
+  return groups.map((g) => ({
+    value: g.groupName,
+    items: g.tools.map((t) => t.name),
+  }));
+}
+
+export function ToolCombobox({ value, onValueChange, placeholder }: ToolComboboxProps) {
+  const { groups } = useToolRegistry();
+  const groupItems = useMemo(() => buildGroupItems(groups), [groups]);
 
   return (
-    <Combobox items={groups} value={value} onValueChange={(v) => onValueChange(v ?? '')}>
+    <Combobox items={groupItems} value={value} onValueChange={(v) => onValueChange(v ?? '')}>
       <ComboboxInput placeholder={placeholder ?? 'Select tool...'} className="h-8 text-xs" />
       <ComboboxContent>
         <ComboboxEmpty>No tools found</ComboboxEmpty>

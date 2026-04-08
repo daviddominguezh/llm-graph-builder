@@ -12,8 +12,6 @@ import { Label } from '@/components/ui/label';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
-import type { DiscoveredTool } from '../../../lib/api';
-import type { McpServerConfig } from '../../../schemas/graph.schema';
 import { ToolCombobox } from '../ToolCombobox';
 import { SingleEdgePreview } from './MiniGraphPreview';
 
@@ -22,8 +20,6 @@ interface ToolNodeDialogProps {
   onOpenChange: (open: boolean) => void;
   sourceNodeLabel: string;
   onCreate: (toolName: string) => void;
-  servers: McpServerConfig[];
-  discoveredTools: Record<string, DiscoveredTool[]>;
 }
 
 export function ToolNodeDialog({
@@ -31,8 +27,6 @@ export function ToolNodeDialog({
   onOpenChange,
   sourceNodeLabel,
   onCreate,
-  servers,
-  discoveredTools,
 }: ToolNodeDialogProps) {
   const t = useTranslations('connectionMenu');
   const [toolName, setToolName] = useState('');
@@ -60,8 +54,6 @@ export function ToolNodeDialog({
           <ToolCombobox
             value={toolName}
             onValueChange={setToolName}
-            servers={servers}
-            discoveredTools={discoveredTools}
             placeholder={t('selectTool')}
           />
         </div>

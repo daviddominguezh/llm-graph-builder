@@ -7,8 +7,6 @@ import { Label } from '@/components/ui/label';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
-import type { DiscoveredTool } from '../../../lib/api';
-import type { McpServerConfig } from '../../../schemas/graph.schema';
 import type { ExistingEdgeType } from '../../../utils/edgeTypeUtils';
 import { ToolCombobox } from '../ToolCombobox';
 import { LoopPreview } from './MiniGraphPreview';
@@ -25,8 +23,6 @@ interface LoopDialogProps {
     continueValue: string,
     exitValue: string
   ) => void;
-  servers: McpServerConfig[];
-  discoveredTools: Record<string, DiscoveredTool[]>;
 }
 
 const CONNECTION_COLOR_MAP = {
@@ -75,8 +71,6 @@ export function LoopDialog({
   sourceNodeLabel,
   sourceEdgeType,
   onCreate,
-  servers,
-  discoveredTools,
 }: LoopDialogProps) {
   const t = useTranslations('connectionMenu');
 
@@ -151,8 +145,6 @@ export function LoopDialog({
             connectionType={connectionType}
             value={connectionValue}
             onChange={setConnectionValue}
-            servers={servers}
-            discoveredTools={discoveredTools}
           />
           <div className="space-y-2">
             <Label className="text-xs">{t('continueLoop')}</Label>
@@ -193,14 +185,10 @@ function ConnectionValueField({
   connectionType,
   value,
   onChange,
-  servers,
-  discoveredTools,
 }: {
   connectionType: LoopConnectionType;
   value: string;
   onChange: (v: string) => void;
-  servers: McpServerConfig[];
-  discoveredTools: Record<string, DiscoveredTool[]>;
 }) {
   const t = useTranslations('connectionMenu');
   if (connectionType === 'none') return null;
@@ -211,8 +199,6 @@ function ConnectionValueField({
         <ToolCombobox
           value={value}
           onValueChange={onChange}
-          servers={servers}
-          discoveredTools={discoveredTools}
           placeholder={t('selectTool')}
         />
       </div>

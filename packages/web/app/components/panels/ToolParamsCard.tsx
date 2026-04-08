@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 
-import type { DiscoveredTool } from '../../lib/api';
+import type { RegistryTool } from '../../lib/toolRegistry';
 import type { ToolFieldValue } from '../../schemas/graph.schema';
+import { useToolRegistry } from '../ToolRegistryProvider';
 import type { FieldMode } from './FieldModeToggle';
 import { FieldModeToggle } from './FieldModeToggle';
 
@@ -28,7 +29,6 @@ interface ToolSchema {
 
 export interface ToolParamsCardProps {
   toolName: string;
-  tools: DiscoveredTool[];
   toolFields?: Record<string, ToolFieldValue>;
   onToolFieldsChange?: (toolFields: Record<string, ToolFieldValue> | undefined) => void;
   onOpenReference?: (fieldName: string) => void;
@@ -41,7 +41,7 @@ interface SortedProperty {
   isRequired: boolean;
 }
 
-function findTool(name: string, tools: DiscoveredTool[]): DiscoveredTool | undefined {
+function findTool(name: string, tools: RegistryTool[]): RegistryTool | undefined {
   return tools.find((t) => t.name === name);
 }
 
@@ -197,13 +197,13 @@ function applyModeChange({ fieldName, mode, toolFields, onToolFieldsChange, onOp
 
 export function ToolParamsCard({
   toolName,
-  tools,
   toolFields,
   onToolFieldsChange,
   onOpenReference,
   readOnly = false,
 }: ToolParamsCardProps) {
   const t = useTranslations('edgePanel');
+  const { tools } = useToolRegistry();
   const tool = findTool(toolName, tools);
 
   if (!tool?.inputSchema) return null;

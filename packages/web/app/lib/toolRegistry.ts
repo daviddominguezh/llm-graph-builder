@@ -1,5 +1,5 @@
-import type { DiscoveredTool } from './api';
 import type { McpServerConfig } from '../schemas/graph.schema';
+import type { DiscoveredTool } from './api';
 
 export interface RegistryTool {
   name: string;
@@ -74,7 +74,10 @@ const SYSTEM_TOOLS: RegistryTool[] = [
   },
 ];
 
-function buildMcpTools(servers: McpServerConfig[], discovered: Record<string, DiscoveredTool[]>): RegistryTool[] {
+function buildMcpTools(
+  servers: McpServerConfig[],
+  discovered: Record<string, DiscoveredTool[]>
+): RegistryTool[] {
   const tools: RegistryTool[] = [];
   for (const server of servers) {
     for (const tool of discovered[server.id] ?? []) {

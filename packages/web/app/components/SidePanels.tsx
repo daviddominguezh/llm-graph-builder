@@ -129,9 +129,6 @@ function SelectionPanel(props: SelectionPanelProps) {
           edgeId={selection.selectedEdgeId}
           onEdgeDeleted={() => selection.setSelectedEdgeId(null)}
           availableContextPreconditions={ctxPreconditions.allContextPreconditions}
-          availableMcpTools={props.mcpHook.allTools}
-          mcpServers={props.mcpHook.servers}
-          mcpDiscoveredTools={props.mcpHook.discoveredTools}
           onSelectNode={selection.navigateToNode}
           pushOperation={pushOperation}
         />
@@ -168,8 +165,6 @@ interface ToolsPanelSlotProps {
 function ToolsPanelSlot({ sidePanelProps: p, onPublishServer }: ToolsPanelSlotProps) {
   return (
     <ToolsPanel
-      servers={p.mcpHook.servers}
-      discoveredTools={p.mcpHook.discoveredTools}
       mcp={{
         servers: p.mcpHook.servers,
         discovering: p.mcpHook.discovering,

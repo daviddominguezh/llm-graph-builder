@@ -586,8 +586,6 @@ function LoadedEditor(props: LoadedEditorProps) {
             onCreateIfElse={h.createIfElse}
             onCreateLoop={h.createLoop}
             onClose={h.graphActions.handleConnectionMenuClose}
-            mcpServers={h.mcpHook.servers}
-            mcpDiscoveredTools={h.mcpHook.discoveredTools}
           />
         )}
       </div>
