@@ -19,6 +19,7 @@ import { VersionSwitcherSlot } from './panels/VersionSwitcherSlot';
 import { GraphCanvas } from './GraphCanvas';
 import { SimulationPanel } from './panels/simulation';
 import { SidePanels } from './SidePanels';
+import { ToolRegistryProvider } from './ToolRegistryProvider';
 import type { DiscoveredTool } from '../lib/api';
 import type { ApiKeyRow } from '../lib/apiKeys';
 import type { Agent, Graph } from '../schemas/graph.schema';
@@ -416,6 +417,7 @@ function LoadedEditor(props: LoadedEditorProps) {
 
   return (
     <HandleContext.Provider value={handleContextValue}>
+      <ToolRegistryProvider servers={h.mcpHook.servers} discoveredTools={h.mcpHook.discoveredTools}>
       <div className="relative flex h-full w-full flex-col items-center ml-0">
         {!isReadOnly && !h.simulation.active && <Toolbar
           onAddNode={h.graphActions.handleAddNode}
@@ -589,6 +591,7 @@ function LoadedEditor(props: LoadedEditorProps) {
           />
         )}
       </div>
+      </ToolRegistryProvider>
     </HandleContext.Provider>
   );
 }
