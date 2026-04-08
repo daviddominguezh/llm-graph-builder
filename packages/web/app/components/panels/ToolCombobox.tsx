@@ -20,6 +20,9 @@ interface ToolGroupItem {
   items: string[];
 }
 
+const SYSTEM_GROUP_NAME = 'OpenFlow/Composition';
+const SYSTEM_TOOL_NAMES = ['create_agent', 'invoke_agent', 'invoke_workflow'];
+
 function buildGroups(servers: McpServerConfig[], discovered: Record<string, DiscoveredTool[]>): ToolGroupItem[] {
   const groups: ToolGroupItem[] = [];
   for (const server of servers) {
@@ -29,6 +32,7 @@ function buildGroups(servers: McpServerConfig[], discovered: Record<string, Disc
     }
   }
   groups.sort((a, b) => a.value.localeCompare(b.value));
+  groups.push({ value: SYSTEM_GROUP_NAME, items: SYSTEM_TOOL_NAMES });
   return groups;
 }
 
