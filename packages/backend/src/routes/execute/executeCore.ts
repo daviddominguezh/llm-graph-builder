@@ -3,6 +3,7 @@ import type { CallAgentOutput, NodeProcessedEvent } from '@daviddh/llm-graph-run
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import type { NodeProcessedData } from './edgeFunctionClient.js';
 import { executeAgent } from './edgeFunctionClient.js';
+import { dispatchIfNeeded } from './executeCoreDispatch.js';
 import {
   buildCoreExecuteParams,
   fetchAllCoreData,
@@ -26,6 +27,8 @@ export interface ExecuteCoreInput {
   input: AgentExecutionInput;
   /** Pre-existing conversation ID (webhook channels pass this to skip messaging pre-writes) */
   conversationId?: string;
+  /** When set, reuse an existing execution record instead of creating a new one */
+  continueExecutionId?: string;
 }
 
 export interface ExecuteCoreOutput {
@@ -66,6 +69,10 @@ async function setupExecution(params: ExecuteCoreInput): Promise<SetupResult> {
   logExec('core:fetched', { appType: fetched.appType, node: fetched.currentNodeId });
 
   fetched.messageHistory = [...fetched.messageHistory, buildUserMessage(input)];
+
+  if (params.continueExecutionId !== undefined) {
+    return { fetched, executionId: params.continueExecutionId, conversationId: null, model };
+  }
 
   const [{ executionId }, conversationId] = await Promise.all([
     persistPreExecution(supabase, {
@@ -136,6 +143,8 @@ export async function executeAgentCore(
       conversationId,
       input,
     });
+
+    await dispatchIfNeeded({ supabase, params, executionId, fetched, output });
   }
 
   logExec('core:complete', { executionId, durationMs, hasOutput: output !== null });
