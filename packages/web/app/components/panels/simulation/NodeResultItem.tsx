@@ -89,7 +89,7 @@ function ReasoningRow({ reasoning }: { reasoning: string }) {
         <span className="font-mono text-[11px]">{t('reasoning')}</span>
       </Button>
       {open && (
-        <pre className="ml-[30px] mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded bg-muted p-1.5 font-mono text-[10px]">
+        <pre className="ml-[30px] mt-1 overflow-auto whitespace-pre-wrap rounded bg-muted p-1.5 font-mono text-[10px]">
           {reasoning}
         </pre>
       )}
