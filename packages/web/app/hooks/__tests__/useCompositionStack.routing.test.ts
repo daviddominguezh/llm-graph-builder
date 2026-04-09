@@ -2,8 +2,10 @@ import { describe, expect, it } from '@jest/globals';
 
 import {
   type CompositionLevel,
+  accumulateDepthTokens,
   appendUserMessage,
   buildCompositionPayload,
+  createEmptyDepthTokens,
   getActiveDepth,
   getActiveMessages,
   popChild,
@@ -152,5 +154,37 @@ describe('Request Payload', () => {
 
     expect(payload!.stack[1]!.parentToolCallId).toBe('tc-2');
     expect(payload!.stack[1]!.parentMessages).toEqual(childWithTc);
+  });
+});
+
+describe('Token Tracking', () => {
+  it('5a-1: tracks per-depth and aggregate totals', () => {
+    const tokens = createEmptyDepthTokens();
+
+    const after0 = accumulateDepthTokens(tokens, 0, { input: 100, output: 50, cached: 10 });
+    const after1 = accumulateDepthTokens(after0, 1, { input: 200, output: 80, cached: 20 });
+    const after2 = accumulateDepthTokens(after1, 2, { input: 50, output: 30, cached: 5 });
+
+    expect(after2.byDepth[0]).toEqual({ input: 100, output: 50, cached: 10 });
+    expect(after2.byDepth[1]).toEqual({ input: 200, output: 80, cached: 20 });
+    expect(after2.byDepth[2]).toEqual({ input: 50, output: 30, cached: 5 });
+    expect(after2.aggregate).toEqual({ input: 350, output: 160, cached: 35 });
+  });
+
+  it('5a-2: accumulates multiple calls at the same depth', () => {
+    const tokens = createEmptyDepthTokens();
+
+    const after1 = accumulateDepthTokens(tokens, 0, { input: 50, output: 20, cached: 5 });
+    const after2 = accumulateDepthTokens(after1, 0, { input: 50, output: 30, cached: 5 });
+
+    expect(after2.byDepth[0]).toEqual({ input: 100, output: 50, cached: 10 });
+    expect(after2.aggregate).toEqual({ input: 100, output: 50, cached: 10 });
+  });
+
+  it('5a-3: starts with zero totals', () => {
+    const tokens = createEmptyDepthTokens();
+
+    expect(tokens.aggregate).toEqual({ input: 0, output: 0, cached: 0 });
+    expect(Object.keys(tokens.byDepth)).toHaveLength(0);
   });
 });
