@@ -1,7 +1,7 @@
 import type { AgentLoopResult, AgentStepEvent, AgentToolEvent } from '@daviddh/llm-graph-runner';
 import type { Response } from 'express';
 
-import type { AgentSimulationEvent } from './simulateAgentTypes.js';
+import type { AgentSimulationEvent, ChildDispatchedEvent, ChildFinishedEvent } from './simulateAgentTypes.js';
 
 interface Flushable {
   flush: () => void;
@@ -23,14 +23,17 @@ export function writeAgentSSE(res: Response, event: AgentSimulationEvent): void 
   }
 }
 
-export function sendStepStarted(res: Response, step: number): void {
-  writeAgentSSE(res, { type: 'step_started', step });
+const ROOT_DEPTH = 0;
+
+export function sendStepStarted(res: Response, step: number, depth = ROOT_DEPTH): void {
+  writeAgentSSE(res, { type: 'step_started', step, depth });
 }
 
-export function sendStepProcessed(res: Response, event: AgentStepEvent): void {
+export function sendStepProcessed(res: Response, event: AgentStepEvent, depth = ROOT_DEPTH): void {
   writeAgentSSE(res, {
     type: 'step_processed',
     step: event.step,
+    depth,
     responseText: event.responseText,
     toolCalls: event.toolCalls,
     tokens: event.tokens,
@@ -41,17 +44,19 @@ export function sendStepProcessed(res: Response, event: AgentStepEvent): void {
   });
 }
 
-export function sendToolExecuted(res: Response, event: AgentToolEvent): void {
+export function sendToolExecuted(res: Response, event: AgentToolEvent, depth = ROOT_DEPTH): void {
   writeAgentSSE(res, {
     type: 'tool_executed',
     step: event.step,
+    depth,
     toolCall: event.toolCall,
   });
 }
 
-export function sendAgentResponse(res: Response, result: AgentLoopResult): void {
+export function sendAgentResponse(res: Response, result: AgentLoopResult, depth = ROOT_DEPTH): void {
   writeAgentSSE(res, {
     type: 'agent_response',
+    depth,
     text: result.finalText,
     steps: result.steps,
     totalTokens: result.totalTokens,
@@ -62,4 +67,27 @@ export function sendAgentResponse(res: Response, result: AgentLoopResult): void 
 export function sendAgentError(res: Response, err: unknown): void {
   const message = err instanceof Error ? err.message : 'Agent simulation failed';
   writeAgentSSE(res, { type: 'error', message });
+}
+
+type ChildDispatchedOptions = Omit<ChildDispatchedEvent, 'type'>;
+
+export function sendChildDispatched(res: Response, options: ChildDispatchedOptions): void {
+  writeAgentSSE(res, { type: 'child_dispatched', ...options });
+}
+
+type ChildFinishedOptions = Omit<ChildFinishedEvent, 'type'>;
+
+export function sendChildFinished(res: Response, options: ChildFinishedOptions): void {
+  writeAgentSSE(res, { type: 'child_finished', ...options });
+}
+
+export function sendChildWaiting(res: Response, depth: number, text: string): void {
+  writeAgentSSE(res, { type: 'child_waiting', depth, text });
+}
+
+export function sendKeepAlive(res: Response): void {
+  res.write(': keepalive\n\n');
+  if (isFlushable(res)) {
+    res.flush();
+  }
 }
