@@ -3,6 +3,14 @@ import type { McpServerConfig } from '@daviddh/graph-types';
 import type { StreamCallbacks } from './api';
 import { readSseStream } from './api';
 
+export interface CompositionStackEntry {
+  appType: 'agent' | 'workflow';
+  parentToolCallId: string;
+  parentMessages: unknown[];
+  parentCurrentNodeId?: string;
+  parentStructuredOutputs?: Record<string, unknown[]>;
+}
+
 export interface AgentSimulateRequestBody {
   appType: 'agent';
   systemPrompt: string;
@@ -13,6 +21,11 @@ export interface AgentSimulateRequestBody {
   apiKeyId: string;
   modelId: string;
   skills?: Array<{ name: string; description: string; content: string }>;
+  orgId?: string;
+  composition?: {
+    depth: number;
+    stack: CompositionStackEntry[];
+  };
 }
 
 export async function streamAgentSimulation(
