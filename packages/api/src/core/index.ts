@@ -62,7 +62,7 @@ async function executeFlow(context: Context, input: CallAgentInput): Promise<Cal
   const initialState = createInitialFlowState(input, context.graph);
 
   try {
-    const { visitedNodes, error, toolCalls, newStructuredOutputs, parsedResults } =
+    const { visitedNodes, error, toolCalls, newStructuredOutputs, parsedResults, dispatchResult } =
       await executeAgentFlowRecursive(context, input, debugMessages, initialState);
 
     const accumulated: AccumulatedState = {
@@ -76,7 +76,11 @@ async function executeFlow(context: Context, input: CallAgentInput): Promise<Cal
       return buildErrorOutput(context, input, accumulated);
     }
 
-    return buildSuccessOutput(input, accumulated, toolCalls);
+    const output = buildSuccessOutput(input, accumulated, toolCalls);
+    if (dispatchResult !== undefined) {
+      output.dispatchResult = dispatchResult;
+    }
+    return output;
   } catch (e) {
     handleCatchError(context, e);
     return buildErrorOutput(context, input, {

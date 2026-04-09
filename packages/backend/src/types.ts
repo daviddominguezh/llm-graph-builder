@@ -75,4 +75,5 @@ export type SimulationEvent =
       tokenUsage: { input: number; output: number; cached: number };
     }
   | { type: 'error'; message: string }
-  | { type: 'simulation_complete' };
+  | { type: 'simulation_complete' }
+  | { type: 'child_dispatched'; dispatchType: string; params: Record<string, unknown> };

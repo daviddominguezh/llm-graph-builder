@@ -3,6 +3,7 @@ import type { ModelMessage, ToolChoice, ToolSet } from 'ai';
 import { getEdgesFromNode, getNode } from '@src/stateMachine/graph/index.js';
 import { buildNextAgentConfig } from '@src/stateMachine/index.js';
 import type { ParsedResult } from '@src/types/ai/index.js';
+import type { DispatchSentinel } from '@src/types/sentinels.js';
 import type { Context } from '@src/types/tools.js';
 import { logger } from '@src/utils/logger.js';
 
@@ -24,6 +25,7 @@ export interface ProcessNodeResult {
   toolResults?: Array<{ toolName: string; output: unknown }>;
   errorMessage?: string;
   responseMessages?: unknown[];
+  dispatchResult?: DispatchSentinel;
 }
 
 export interface ProcessNodeParams {
@@ -99,6 +101,10 @@ async function processToolCallNode(
 
   if (result.error) {
     return { ...result, errorMessage: result.errorMessage };
+  }
+
+  if (result.dispatchResult !== undefined) {
+    return { ...result };
   }
 
   const finalNextNodeID = await applyJumpTo(context, currentNodeID, result.nextNodeID);

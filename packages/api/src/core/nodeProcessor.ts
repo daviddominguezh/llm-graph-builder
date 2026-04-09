@@ -4,6 +4,8 @@ import { getNode, getToolsFromEdges } from '@src/stateMachine/graph/index.js';
 import { generateToolReplyPrompt } from '@src/stateMachine/prompts/index.js';
 import type { ParsedResult } from '@src/types/ai/ai.js';
 import type { Graph, ToolFieldValue } from '@src/types/graph.js';
+import type { DispatchSentinel } from '@src/types/sentinels.js';
+import { isDispatchSentinel } from '@src/types/sentinels.js';
 import type { Context } from '@src/types/tools.js';
 import { logger } from '@src/utils/logger.js';
 import { formatMessages } from '@src/utils/messages.js';
@@ -187,6 +189,17 @@ interface ToolNodeResult {
   toolResults?: Array<{ toolName: string; output: unknown }>;
   errorMessage?: string;
   responseMessages?: unknown[];
+  dispatchResult?: DispatchSentinel;
+}
+
+function findDispatchInToolResults(
+  toolResults: Array<{ toolName: string; output: unknown }> | undefined
+): DispatchSentinel | undefined {
+  if (toolResults === undefined) return undefined;
+  for (const tr of toolResults) {
+    if (isDispatchSentinel(tr.output)) return tr.output;
+  }
+  return undefined;
 }
 
 function extractReasoningFromResult(agentRes: AgentExecutionResult): string | undefined {
@@ -199,33 +212,34 @@ function createErrorResult(errorMessage?: string): ToolNodeResult {
   return { parsedResult: { nextNodeID: '' }, nextNodeID: '', error: true, toolCalls: [], errorMessage };
 }
 
-export async function processToolNode(params: ProcessToolNodeParams): Promise<ToolNodeResult> {
-  const { context, config, input, currentNodeID, isGlobal, debugMessages, requiredTool } = params;
-  const { toolsByEdge, nodes } = config;
+interface ToolCallOutcome {
+  toolCalls: ToolCallsArray;
+  reasoning: string | undefined;
+  toolResults: Array<{ toolName: string; output: unknown }> | undefined;
+  messages: unknown[];
+}
 
-  const toolsByEdgeKeys = Object.keys(toolsByEdge);
-  const [firstNextNodeID] = toolsByEdgeKeys;
-  if (firstNextNodeID === undefined) {
-    logger.error(`callAgentStep/${context.tenantID}/${context.userID}| No edges found in toolsByEdge`);
-    return createErrorResult('No edges found in toolsByEdge');
-  }
+function buildDispatchResult(sentinel: DispatchSentinel, outcome: ToolCallOutcome): ToolNodeResult {
+  return {
+    parsedResult: { nextNodeID: '' },
+    nextNodeID: '',
+    error: false,
+    toolCalls: outcome.toolCalls,
+    reasoning: outcome.reasoning,
+    toolResults: outcome.toolResults,
+    responseMessages: outcome.messages,
+    dispatchResult: sentinel,
+  };
+}
 
-  const nextNodeID = firstNextNodeID;
+async function buildToolSuccessResult(
+  params: ProcessToolNodeParams,
+  nextNodeID: string,
+  outcome: ToolCallOutcome
+): Promise<ToolNodeResult> {
+  const { context, input, currentNodeID, isGlobal, debugMessages, config } = params;
+  const { nodes } = config;
   const nextNode = getNode(context.graph, nextNodeID);
-
-  const { agentRes, hasError, finalToolCalls } = await executeToolCall(params);
-  const reasoning = extractReasoningFromResult(agentRes);
-  const { toolResults } = agentRes;
-
-  if (hasError) {
-    const errMsg = `Tool node failed: ${requiredTool ?? 'unknown'}`;
-    logger.error(`callAgentStep/${context.tenantID}/${context.userID}| Tool node failed`, {
-      currentNodeID,
-      requiredTool: requiredTool ?? 'none',
-    });
-    return createErrorResult(errMsg);
-  }
-
   const shouldGenerateReply = nextNode.nextNodeIsUser === true || isGlobal;
   const parsedResult: ParsedResult = shouldGenerateReply
     ? await generateToolReply({ context, input, currentNodeID, nextNodeID, nodes, isGlobal, debugMessages })
@@ -236,9 +250,48 @@ export async function processToolNode(params: ProcessToolNodeParams): Promise<To
     parsedResult,
     nextNodeID: finalNextNodeID ?? '',
     error: false,
+    toolCalls: outcome.toolCalls,
+    reasoning: outcome.reasoning,
+    toolResults: outcome.toolResults,
+    responseMessages: outcome.messages,
+  };
+}
+
+export async function processToolNode(params: ProcessToolNodeParams): Promise<ToolNodeResult> {
+  const { context, config, currentNodeID, requiredTool } = params;
+  const toolsByEdgeKeys = Object.keys(config.toolsByEdge);
+  const [firstNextNodeID] = toolsByEdgeKeys;
+  if (firstNextNodeID === undefined) {
+    logger.error(`callAgentStep/${context.tenantID}/${context.userID}| No edges found in toolsByEdge`);
+    return createErrorResult('No edges found in toolsByEdge');
+  }
+
+  const { agentRes, hasError, finalToolCalls } = await executeToolCall(params);
+  const reasoning = extractReasoningFromResult(agentRes);
+  const { toolResults } = agentRes;
+
+  if (hasError) {
+    logger.error(`callAgentStep/${context.tenantID}/${context.userID}| Tool node failed`, {
+      currentNodeID,
+      requiredTool: requiredTool ?? 'none',
+    });
+    return createErrorResult(`Tool node failed: ${requiredTool ?? 'unknown'}`);
+  }
+
+  const outcome: ToolCallOutcome = {
     toolCalls: finalToolCalls,
     reasoning,
     toolResults,
-    responseMessages: agentRes.messages,
+    messages: agentRes.messages,
   };
+  const sentinel = findDispatchInToolResults(toolResults);
+  if (sentinel !== undefined) {
+    logger.info(`callAgentStep/${context.tenantID}/${context.userID}| Dispatch sentinel detected`, {
+      currentNodeID,
+      dispatchType: sentinel.type,
+    });
+    return buildDispatchResult(sentinel, outcome);
+  }
+
+  return await buildToolSuccessResult(params, firstNextNodeID, outcome);
 }
