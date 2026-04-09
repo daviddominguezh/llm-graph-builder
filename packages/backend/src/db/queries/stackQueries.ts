@@ -70,12 +70,18 @@ export async function pushStackEntry(supabase: SupabaseClient, params: PushStack
   if (error !== null) throw new Error(`Failed to push stack entry: ${error.message}`);
 }
 
+function isStackEntry(value: unknown): value is StackEntry {
+  return typeof value === 'object' && value !== null && 'id' in value && 'session_id' in value;
+}
+
 export async function popStackEntry(supabase: SupabaseClient, sessionId: string): Promise<StackEntry | null> {
-  const top = await getStackTop(supabase, sessionId);
-  if (top === null) return null;
-
-  const { error } = await supabase.from('agent_stack_entries').delete().eq('id', top.id);
-
+  const { data, error } = (await supabase.rpc('pop_stack_entry', { p_session_id: sessionId })) as {
+    data: unknown;
+    error: { message: string } | null;
+  };
   if (error !== null) throw new Error(`Failed to pop stack entry: ${error.message}`);
-  return top;
+  const rows: unknown = Array.isArray(data) ? data : [];
+  const first: unknown = Array.isArray(rows) ? rows[ZERO] : undefined;
+  if (!isStackEntry(first)) return null;
+  return first;
 }
