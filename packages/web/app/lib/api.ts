@@ -133,6 +133,7 @@ export interface SimulateRequestBody {
   data: Record<string, unknown>;
   quickReplies: Record<string, string>;
   structuredOutputs?: Record<string, unknown[]>;
+  orgId?: string;
 }
 
 interface SseToolCall {

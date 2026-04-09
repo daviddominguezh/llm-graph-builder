@@ -54,6 +54,7 @@ interface UseSimulationParams {
   onZoomToNode: (nodeId: string) => void;
   onSelectNode: (nodeId: string) => void;
   onExitZoomView: () => void;
+  orgId?: string;
   appType?: 'workflow' | 'agent';
   agentConfig?: AgentSimConfig;
 }
@@ -195,6 +196,7 @@ function sendWorkflowSim(
     apiKeyId,
     modelId,
     structuredOutputs,
+    orgId: deps.orgId,
   });
   const fullDeps = { ...deps, ...refs };
   void streamSimulation(params, buildMergedCallbacks(fullDeps), signal).catch((err: unknown) => {
@@ -239,6 +241,7 @@ function buildSendDeps(params: UseSimulationParams, s: SimulationHookState): Sen
     setters: s.setters,
     onZoomToNode: params.onZoomToNode,
     onSelectNode: params.onSelectNode,
+    orgId: params.orgId,
     appType: params.appType,
     agentConfig: params.agentConfig,
   };

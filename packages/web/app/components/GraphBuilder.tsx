@@ -343,6 +343,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     onExitZoomView: zoomView.handleExitZoomView,
     appType: loadResult.agentConfig !== undefined ? 'agent' : 'workflow',
     agentConfig: agentHooks.agentConfig,
+    orgId: props.orgId,
   });
 
   const ctxPreconditions = useContextPreconditions(edges);

@@ -26,7 +26,9 @@ const createAgentSchema = z.object({
 
 const invokeAgentSchema = z.object({
   agentSlug: z.string().describe('The slug of the agent to invoke'),
-  version: z.union([z.number(), z.string()]).describe('Which published version to execute (number or "latest")'),
+  version: z
+    .union([z.number(), z.string()])
+    .describe('Which published version to execute (number or "latest")'),
   task: z.string().describe('The task for the agent to complete'),
   contextItems: z.array(z.string()).optional().describe('Additional context items'),
   model: z.string().optional().describe('Override the agent model'),
@@ -38,7 +40,9 @@ const invokeAgentSchema = z.object({
 
 const invokeWorkflowSchema = z.object({
   workflowSlug: z.string().describe('The slug of the workflow to invoke'),
-  version: z.union([z.number(), z.string()]).describe('Which published version to execute (number or "latest")'),
+  version: z
+    .union([z.number(), z.string()])
+    .describe('Which published version to execute (number or "latest")'),
   user_said: z.string().describe('The user message for workflow routing'),
   contextItems: z.array(z.string()).optional().describe('Additional context items'),
   model: z.string().optional().describe('Override the workflow model'),

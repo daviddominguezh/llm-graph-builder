@@ -65,6 +65,7 @@ export interface SendMessageDeps {
   setters: SimulationSetters;
   onZoomToNode: (nodeId: string) => void;
   onSelectNode: (nodeId: string) => void;
+  orgId?: string;
   appType?: 'workflow' | 'agent';
   agentConfig?: AgentSimConfig;
 }
@@ -80,6 +81,7 @@ export interface BuildSimulateParamsOptions extends Pick<
   apiKeyId: string;
   modelId: string;
   structuredOutputs?: Record<string, unknown[]>;
+  orgId?: string;
 }
 
 function addCost(a: number | undefined, b: number | undefined): number | undefined {
@@ -193,6 +195,7 @@ export function buildSimulateParams(opts: BuildSimulateParamsOptions): SimulateR
     data,
     quickReplies,
     structuredOutputs: opts.structuredOutputs,
+    orgId: opts.orgId,
   };
 }
 
