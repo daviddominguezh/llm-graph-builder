@@ -76,4 +76,13 @@ export type SimulationEvent =
     }
   | { type: 'error'; message: string }
   | { type: 'simulation_complete' }
-  | { type: 'child_dispatched'; dispatchType: string; params: Record<string, unknown> };
+  | {
+      type: 'child_dispatched';
+      depth: number;
+      parentDepth: number;
+      dispatchType: string;
+      task: string;
+      parentToolCallId: string;
+      toolName: string;
+      params: Record<string, unknown>;
+    };

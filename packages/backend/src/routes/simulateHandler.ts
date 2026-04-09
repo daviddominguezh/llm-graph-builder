@@ -8,6 +8,13 @@ import type { SimulateRequest } from '../types.js';
 import { buildContext, setSseHeaders, sumTokens, writeSSE } from './simulate.js';
 
 const EMPTY_SESSION: McpSession = { clients: [], tools: {} };
+const CHILD_DEPTH = 1;
+const ROOT_DEPTH = 0;
+
+function extractTaskFromParams(params: Record<string, unknown>): string {
+  const raw = params.task ?? params.user_said ?? '';
+  return typeof raw === 'string' ? raw : JSON.stringify(raw);
+}
 
 function sendNodeVisited(res: Response, nodeId: string): void {
   writeSSE(res, { type: 'node_visited', nodeId });
@@ -89,7 +96,12 @@ async function runSimulation(body: SimulateRequest, session: McpSession, res: Re
     if (result.dispatchResult !== undefined) {
       writeSSE(res, {
         type: 'child_dispatched',
+        depth: CHILD_DEPTH,
+        parentDepth: ROOT_DEPTH,
         dispatchType: result.dispatchResult.type,
+        task: extractTaskFromParams(result.dispatchResult.params),
+        parentToolCallId: '',
+        toolName: result.dispatchResult.type,
         params: result.dispatchResult.params,
       });
     }
