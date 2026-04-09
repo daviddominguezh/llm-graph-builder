@@ -47,6 +47,19 @@ const SkillSchema = z.object({
   content: z.string(),
 });
 
+const SimulationCompositionStackEntrySchema = z.object({
+  appType: z.enum(['agent', 'workflow']),
+  parentToolCallId: z.string(),
+  parentMessages: z.array(z.unknown()),
+  parentCurrentNodeId: z.string().optional(),
+  parentStructuredOutputs: z.record(z.string(), z.array(z.unknown())).optional(),
+});
+
+const SimulationCompositionSchema = z.object({
+  depth: z.number(),
+  stack: z.array(SimulationCompositionStackEntrySchema),
+});
+
 export const SimulateAgentRequestSchema = z.object({
   appType: z.literal('agent'),
   systemPrompt: z.string(),
@@ -57,6 +70,8 @@ export const SimulateAgentRequestSchema = z.object({
   maxSteps: z.number().nullable(),
   mcpServers: z.array(McpServerSchema),
   skills: z.array(SkillSchema).optional(),
+  composition: SimulationCompositionSchema.optional(),
+  orgId: z.string().optional(),
 });
 
 export interface SimulateAgentRequest {
@@ -69,6 +84,17 @@ export interface SimulateAgentRequest {
   maxSteps: number | null;
   mcpServers: McpServerConfig[];
   skills?: SkillDefinition[];
+  orgId?: string;
+  composition?: {
+    depth: number;
+    stack: Array<{
+      appType: 'agent' | 'workflow';
+      parentToolCallId: string;
+      parentMessages: unknown[];
+      parentCurrentNodeId?: string;
+      parentStructuredOutputs?: Record<string, unknown[]>;
+    }>;
+  };
 }
 
 /* --- SSE event types --- */
@@ -76,11 +102,13 @@ export interface SimulateAgentRequest {
 export interface AgentStepStartedEvent {
   type: 'step_started';
   step: number;
+  depth?: number;
 }
 
 export interface AgentStepProcessedEvent {
   type: 'step_processed';
   step: number;
+  depth?: number;
   responseText: string;
   toolCalls: AgentToolCallRecord[];
   tokens: { input: number; output: number; cached: number; costUSD?: number };
@@ -93,11 +121,13 @@ export interface AgentStepProcessedEvent {
 export interface AgentToolExecutedEvent {
   type: 'tool_executed';
   step: number;
+  depth?: number;
   toolCall: AgentToolCallRecord;
 }
 
 export interface AgentResponseEvent {
   type: 'agent_response';
+  depth?: number;
   text: string;
   steps: number;
   totalTokens: { input: number; output: number; cached: number; costUSD?: number };
@@ -113,10 +143,37 @@ export interface AgentSimulationCompleteEvent {
   type: 'simulation_complete';
 }
 
+export interface ChildDispatchedEvent {
+  type: 'child_dispatched';
+  depth: number;
+  parentDepth: number;
+  dispatchType: 'create_agent' | 'invoke_agent' | 'invoke_workflow';
+  task: string;
+  parentToolCallId: string;
+  toolName: string;
+}
+
+export interface ChildFinishedEvent {
+  type: 'child_finished';
+  depth: number;
+  output: string;
+  status: 'success' | 'error';
+  tokens: { input: number; output: number; cached: number; costUSD?: number };
+}
+
+export interface ChildWaitingEvent {
+  type: 'child_waiting';
+  depth: number;
+  text: string;
+}
+
 export type AgentSimulationEvent =
   | AgentStepStartedEvent
   | AgentStepProcessedEvent
   | AgentToolExecutedEvent
   | AgentResponseEvent
   | AgentSimulationErrorEvent
-  | AgentSimulationCompleteEvent;
+  | AgentSimulationCompleteEvent
+  | ChildDispatchedEvent
+  | ChildFinishedEvent
+  | ChildWaitingEvent;
