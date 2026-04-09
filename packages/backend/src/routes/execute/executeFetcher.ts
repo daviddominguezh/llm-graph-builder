@@ -9,7 +9,11 @@ import {
   getDecryptedEnvVariables,
   getPublishedGraphData,
 } from '../../db/queries/executionAuthQueries.js';
-import { getOrCreateSession, getSessionMessages } from '../../db/queries/executionQueries.js';
+import {
+  getExecutionMessages,
+  getOrCreateSession,
+  getSessionMessages,
+} from '../../db/queries/executionQueries.js';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { type StackEntry, getStackTop } from '../../db/queries/stackQueries.js';
 import type { AgentVfsSettings } from '../../db/queries/vfsConfigTypes.js';
@@ -207,7 +211,7 @@ function buildModelMessage(role: string, content: string): Message['message'] {
   return { role: 'user', content };
 }
 
-function messageRowToMessage(row: MessageRow, provider: MESSAGES_PROVIDER): Message {
+export function messageRowToMessage(row: MessageRow, provider: MESSAGES_PROVIDER): Message {
   return {
     provider,
     id: row.id,
@@ -248,6 +252,16 @@ export async function fetchSessionData(params: SessionFetchParams): Promise<Sess
     messageHistory: rows.map((row) => messageRowToMessage(row, channel)),
     stackTop,
   };
+}
+
+export async function fetchExecutionMessages(
+  supabase: SupabaseClient,
+  executionId: string,
+  channel: string
+): Promise<Message[]> {
+  const rows = await getExecutionMessages(supabase, executionId);
+  const provider = resolveChannelProvider(channel);
+  return rows.map((row) => messageRowToMessage(row, provider));
 }
 
 /* ─── Agent config from published version snapshot ─── */
