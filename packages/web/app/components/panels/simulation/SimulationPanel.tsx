@@ -160,13 +160,33 @@ function ContentArea({ conversationEntries, scrollRef }: ContentAreaProps) {
   return (
     <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2">
       <div className="flex flex-col gap-4">
-        {conversationEntries.map((entry, i) =>
-          entry.type === 'user' ? (
-            <UserMessage key={i} text={entry.text} />
-          ) : (
-            <NodeResultItem key={i} result={entry.result} />
-          )
-        )}
+        {conversationEntries.map((entry, i) => {
+          if (entry.type === 'user') return <UserMessage key={i} text={entry.text} />;
+          if (entry.type === 'result') return <NodeResultItem key={i} result={entry.result} />;
+          if (entry.type === 'child_start') {
+            return (
+              <div key={i} className="flex items-center gap-2 py-1">
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground">
+                  {entry.label} started
+                </span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+            );
+          }
+          if (entry.type === 'child_end') {
+            return (
+              <div key={i} className="flex items-center gap-2 py-1">
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground">
+                  child finished ({entry.label})
+                </span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+            );
+          }
+          return null;
+        })}
       </div>
     </div>
   );

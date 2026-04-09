@@ -177,6 +177,7 @@ function sendAgentSim(deps: SendMessageDeps, refs: CompositionRefs, signal: Abor
       task: dispatch.task.slice(0, 50),
       hasConfig: dispatch.childConfig !== undefined,
     });
+    setters.setConversationEntries((prev) => [...prev, { type: 'child_start', label: dispatch.label }]);
     const newSignal = new AbortController().signal;
     sendAgentSim(deps, refs, newSignal, dispatch.task);
   };
@@ -228,6 +229,7 @@ function sendWorkflowSim(
       console.error('[sim:autoSend:workflow] no childConfig in dispatch, cannot auto-send');
       return;
     }
+    setters.setConversationEntries((prev) => [...prev, { type: 'child_start', label: dispatch.label }]);
     const newSignal = new AbortController().signal;
     const childAgentConfig: AgentSimConfig = {
       systemPrompt: dispatch.childConfig.systemPrompt,
@@ -338,9 +340,11 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
   });
   const sendMessage = useSimulationSend(sendDepsRef, compRefs, abortAndCreateSignal);
   const isAgent = params.appType === 'agent';
-  const terminated = isAgent
-    ? false
-    : checkTerminated(s.active, s.loading, s.snapshotRef.current, s.currentNode);
+  const hasActiveChild = s.compositionStack.length > 0;
+  const terminated =
+    isAgent || hasActiveChild
+      ? false
+      : checkTerminated(s.active, s.loading, s.snapshotRef.current, s.currentNode);
 
   return {
     active: s.active,

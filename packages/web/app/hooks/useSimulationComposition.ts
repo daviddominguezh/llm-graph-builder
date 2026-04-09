@@ -21,12 +21,16 @@ import { type StreamCallbackDeps, buildStreamCallbacks } from './useSimulationHe
 export interface PendingChildDispatch {
   task: string;
   childConfig: SimChildDispatchedEvent['childConfig'];
+  label: string;
 }
 
 export interface CompositionCallbackDeps {
   compositionStackRef: React.RefObject<CompositionLevel[]>;
   messagesRef: React.RefObject<Message[]>;
-  setters: Pick<SimulationSetters, 'setCompositionStack' | 'setMessages' | 'setLoading'>;
+  setters: Pick<
+    SimulationSetters,
+    'setCompositionStack' | 'setMessages' | 'setLoading' | 'setConversationEntries'
+  >;
   pendingChildRef: React.MutableRefObject<PendingChildDispatch | null>;
 }
 
@@ -136,7 +140,11 @@ export function buildCompositionSseCallbacks(deps: CompositionCallbackDeps): Sim
         });
         return next;
       });
-      deps.pendingChildRef.current = { task: event.task, childConfig: event.childConfig };
+      deps.pendingChildRef.current = {
+        task: event.task,
+        childConfig: event.childConfig,
+        label: event.dispatchType === 'invoke_agent' ? 'Agent' : event.dispatchType,
+      };
       console.log('[composition:callback] pendingChild set:', {
         task: event.task,
         hasConfig: event.childConfig !== undefined,
@@ -148,6 +156,7 @@ export function buildCompositionSseCallbacks(deps: CompositionCallbackDeps): Sim
         status: event.status,
         output: event.output.slice(0, 100),
       });
+      setters.setConversationEntries((prev) => [...prev, { type: 'child_end', label: event.status }]);
       const status = event.status === 'error' ? 'error' : 'success';
       setters.setCompositionStack((prev) => {
         const root = messagesRef.current;
