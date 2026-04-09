@@ -1,11 +1,14 @@
 import type { CallAgentOutput, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
 import { executeWithCallbacks, injectSystemTools } from '@daviddh/llm-graph-runner';
+import type { Tool } from 'ai';
 import type { Request, Response } from 'express';
 
+import { createServiceClient } from '../db/queries/executionAuthQueries.js';
 import { consoleLogger } from '../logger.js';
 import { type McpSession, closeMcpSession, createMcpSession } from '../mcp/lifecycle.js';
 import type { SimulateRequest } from '../types.js';
 import { buildContext, setSseHeaders, sumTokens, writeSSE } from './simulate.js';
+import { wrapDispatchToolsForSimulation } from './simulateWorkflowDispatch.js';
 
 const EMPTY_SESSION: McpSession = { clients: [], tools: {} };
 
@@ -68,13 +71,25 @@ function sendError(res: Response, err: unknown): void {
   writeSSE(res, { type: 'error', message });
 }
 
+function buildToolsForWorkflowSim(session: McpSession, body: SimulateRequest): Record<string, Tool> {
+  const base = injectSystemTools({ existingTools: session.tools, isChildAgent: false });
+  const supabase = createServiceClient();
+  return wrapDispatchToolsForSimulation(base, {
+    supabase,
+    orgId: body.orgId ?? '',
+    parentApiKey: body.apiKey,
+    parentModelId: body.modelId,
+    parentSession: session,
+  });
+}
+
 async function runSimulation(body: SimulateRequest, session: McpSession, res: Response): Promise<void> {
   const context = buildContext(body);
   const result = await executeWithCallbacks({
     context,
     messages: body.messages,
     currentNode: body.currentNode,
-    toolsOverride: injectSystemTools({ existingTools: session.tools, isChildAgent: false }),
+    toolsOverride: buildToolsForWorkflowSim(session, body),
     logger: consoleLogger,
     structuredOutputs: body.structuredOutputs,
     onNodeVisited: (nodeId: string) => {

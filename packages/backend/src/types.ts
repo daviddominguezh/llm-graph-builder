@@ -27,6 +27,7 @@ export interface SimulateRequest {
   data: Record<string, unknown>;
   quickReplies: Record<string, string>;
   structuredOutputs?: Record<string, unknown[]>;
+  orgId?: string;
 }
 
 export interface ToolCallRequest {
