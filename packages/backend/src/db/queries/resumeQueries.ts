@@ -74,7 +74,7 @@ export async function fetchPendingResumes(supabase: SupabaseClient, limit: numbe
 export async function updateResumeStatus(
   supabase: SupabaseClient,
   resumeId: string,
-  newStatus: 'processing' | 'completed' | 'failed'
+  newStatus: 'pending' | 'processing' | 'completed' | 'failed'
 ): Promise<void> {
   const { error } = await supabase
     .from('pending_resumes')

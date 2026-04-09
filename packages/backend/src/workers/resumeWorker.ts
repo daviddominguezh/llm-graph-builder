@@ -1,7 +1,7 @@
 import { createServiceClient } from '../db/queries/executionAuthQueries.js';
 import {
   type PendingResume,
-  fetchPendingResumes,
+  fetchAndClaimPendingResumes,
   incrementResumeAttempts,
   updateResumeStatus,
 } from '../db/queries/resumeQueries.js';
@@ -53,7 +53,6 @@ async function processOneResume(
   try {
     const success = await attemptResume(resume);
     if (success) {
-      await updateResumeStatus(supabase, resume.id, 'completed');
       log(`completed parentExecution=${resume.parent_execution_id}`);
       return;
     }
@@ -64,6 +63,7 @@ async function processOneResume(
   }
 
   const INCREMENT = 1;
+  await updateResumeStatus(supabase, resume.id, 'pending');
   await incrementResumeAttempts(supabase, resume.id, resume.attempts);
   if (resume.attempts + INCREMENT >= MAX_ATTEMPTS) {
     await updateResumeStatus(supabase, resume.id, 'failed');
@@ -74,7 +74,7 @@ async function processOneResume(
 async function processPendingResumes(): Promise<void> {
   const supabase = createServiceClient();
   const EMPTY = 0;
-  const resumes = await fetchPendingResumes(supabase, BATCH_SIZE);
+  const resumes = await fetchAndClaimPendingResumes(supabase, BATCH_SIZE);
   if (resumes.length === EMPTY) return;
 
   log(`processing ${String(resumes.length)} pending resumes`);
