@@ -12,7 +12,7 @@ export { buildNextAgentConfig } from './stateMachine/index.js';
 export { createDummyToolsForGraph } from './tools/dummyTools.js';
 export { injectSystemTools } from './tools/systemToolInjector.js';
 export type { DispatchSentinel, FinishSentinel } from './types/sentinels.js';
-export { isDispatchSentinel } from './types/sentinels.js';
+export { isDispatchSentinel, isFinishSentinel } from './types/sentinels.js';
 export type { CallAgentOutput } from './core/index.js';
 export type { Message } from './types/ai/messages.js';
 export { MESSAGES_PROVIDER } from './types/ai/messages.js';

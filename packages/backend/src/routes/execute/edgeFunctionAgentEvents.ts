@@ -1,3 +1,4 @@
+import { isDispatchSentinel, isFinishSentinel } from '@daviddh/llm-graph-runner';
 import type { CallAgentOutput, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
 
 import type { NodeProcessedData, ToolCallData } from './executeSharedTypes.js';
@@ -123,5 +124,7 @@ export function buildAgentLoopResult(event: SseEvent, nodeTexts: NodeProcessedDa
       nextNodeID: '',
       messageToUser: nt.text === '' ? undefined : nt.text,
     })),
+    dispatchResult: isDispatchSentinel(event.dispatchResult) ? event.dispatchResult : undefined,
+    finishResult: isFinishSentinel(event.finishResult) ? event.finishResult : undefined,
   };
 }
