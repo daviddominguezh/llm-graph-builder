@@ -163,7 +163,12 @@ describe('Pop and Inject', () => {
       defaultPushParams({ parentToolCallId: 'tc-2', task: 'grandchild', parentMessages: childWithTc })
     );
 
-    const { stack: afterPop, rootMessages: afterRoot } = popChild(stack2, rootMessages, 'gc-result', 'success');
+    const { stack: afterPop, rootMessages: afterRoot } = popChild(
+      stack2,
+      rootMessages,
+      'gc-result',
+      'success'
+    );
 
     expect(afterPop).toHaveLength(1);
     expect(afterRoot).toHaveLength(2);

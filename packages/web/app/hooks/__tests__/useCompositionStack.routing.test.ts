@@ -11,11 +11,7 @@ import {
   popChild,
   pushChild,
 } from '../useCompositionStack';
-import {
-  defaultPushParams,
-  makeToolCallMessage,
-  makeUserMessage,
-} from './compositionStack.helpers';
+import { defaultPushParams, makeToolCallMessage, makeUserMessage } from './compositionStack.helpers';
 
 describe('Active Level and Routing', () => {
   it('3a: active depth tracking across push and pop', () => {
@@ -27,10 +23,7 @@ describe('Active Level and Routing', () => {
     expect(getActiveDepth(stack1)).toBe(1);
 
     const childMsgs = getActiveMessages(stack1, rootMessages);
-    const stack2 = pushChild(
-      stack1,
-      defaultPushParams({ task: 'grandchild', parentMessages: childMsgs })
-    );
+    const stack2 = pushChild(stack1, defaultPushParams({ task: 'grandchild', parentMessages: childMsgs }));
     expect(getActiveDepth(stack2)).toBe(2);
 
     const pop1 = popChild(stack2, rootMessages, 'gc-done', 'success');
@@ -45,10 +38,7 @@ describe('Active Level and Routing', () => {
 
   it('3b: user message routes to active depth', () => {
     const rootMessages = [makeUserMessage('root')];
-    const stack = pushChild(
-      [],
-      defaultPushParams({ task: 'child task', parentMessages: rootMessages })
-    );
+    const stack = pushChild([], defaultPushParams({ task: 'child task', parentMessages: rootMessages }));
 
     const result = appendUserMessage(stack, rootMessages, 'user reply');
 
@@ -72,19 +62,13 @@ describe('Active Level and Routing', () => {
     const stack1 = pushChild([], defaultPushParams({ parentMessages: rootMessages }));
     const childMsgs = getActiveMessages(stack1, rootMessages);
 
-    const stack2 = pushChild(
-      stack1,
-      defaultPushParams({ task: 'grandchild', parentMessages: childMsgs })
-    );
+    const stack2 = pushChild(stack1, defaultPushParams({ task: 'grandchild', parentMessages: childMsgs }));
 
     const result = appendUserMessage(stack2, rootMessages, 'msg to grandchild');
 
     expect(result.rootMessages).toHaveLength(1);
 
-    const childAfter = getActiveMessages(
-      result.stack.slice(0, 1) as CompositionLevel[],
-      result.rootMessages
-    );
+    const childAfter = getActiveMessages(result.stack.slice(0, 1) as CompositionLevel[], result.rootMessages);
     expect(childAfter).toHaveLength(1);
 
     const grandchildMsgs = getActiveMessages(result.stack, result.rootMessages);
