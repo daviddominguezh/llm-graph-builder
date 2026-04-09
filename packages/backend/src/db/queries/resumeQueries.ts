@@ -1,6 +1,7 @@
 import type { SupabaseClient } from './operationHelpers.js';
 
 const INCREMENT = 1;
+const ZERO = 0;
 
 export interface PendingResume {
   id: string;
@@ -94,4 +95,36 @@ export async function incrementResumeAttempts(
     .eq('id', resumeId);
 
   if (error !== null) throw new Error(`Failed to increment resume attempts: ${error.message}`);
+}
+
+export async function claimPendingResume(
+  supabase: SupabaseClient,
+  parentExecutionId: string
+): Promise<PendingResume | null> {
+  const result: QueryResult<PendingResume[]> = await supabase
+    .from('pending_resumes')
+    .update({ status: 'processing', last_attempt_at: new Date().toISOString() })
+    .eq('parent_execution_id', parentExecutionId)
+    .eq('status', 'pending')
+    .select('*');
+
+  if (result.error !== null) throw new Error(`Failed to claim pending resume: ${result.error.message}`);
+  const rows = result.data ?? [];
+  return rows.length > ZERO ? (rows[ZERO] ?? null) : null;
+}
+
+export async function fetchAndClaimPendingResumes(
+  supabase: SupabaseClient,
+  limit: number
+): Promise<PendingResume[]> {
+  const result: QueryResult<PendingResume[]> = await supabase
+    .from('pending_resumes')
+    .update({ status: 'processing', last_attempt_at: new Date().toISOString() })
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true })
+    .limit(limit)
+    .select('*');
+
+  if (result.error !== null) throw new Error(`Failed to claim pending resumes: ${result.error.message}`);
+  return result.data ?? [];
 }
