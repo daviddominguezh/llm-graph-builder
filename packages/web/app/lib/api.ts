@@ -332,7 +332,15 @@ function parseSseLine(line: string, callbacks: StreamCallbacks): void {
   const raw: unknown = JSON.parse(line.slice(SSE_DATA_PREFIX.length));
   const result = SseEventSchema.safeParse(raw);
   if (result.success) {
+    console.log('[sse:parse] event type:', result.data.type, 'depth:', result.data.depth);
     dispatchSseEvent(result.data, callbacks);
+  } else {
+    console.warn(
+      '[sse:parse] failed to parse event:',
+      result.error.message,
+      'raw:',
+      JSON.stringify(raw).slice(0, 200)
+    );
   }
 }
 

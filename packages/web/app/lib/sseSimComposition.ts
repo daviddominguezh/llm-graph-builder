@@ -7,6 +7,13 @@ export interface SimChildDispatchedEvent {
   task: string;
   parentToolCallId: string;
   toolName: string;
+  childConfig?: {
+    systemPrompt: string;
+    context: string;
+    modelId: string;
+    maxSteps: number | null;
+    apiKey: string;
+  };
 }
 
 export interface SimChildFinishedEvent {
@@ -48,6 +55,13 @@ interface CompositionSseEvent {
   text?: string;
   status?: string;
   tokens?: { input: number; output: number; cached: number };
+  childConfig?: {
+    systemPrompt: string;
+    context: string;
+    modelId: string;
+    maxSteps: number | null;
+    apiKey: string;
+  };
 }
 
 function handleSimChildDispatched(event: CompositionSseEvent, cbs: SimCompositionCallbacks): void {
@@ -59,6 +73,7 @@ function handleSimChildDispatched(event: CompositionSseEvent, cbs: SimCompositio
     task: event.task ?? '',
     parentToolCallId: event.parentToolCallId ?? '',
     toolName: event.toolName ?? '',
+    childConfig: event.childConfig,
   });
 }
 
@@ -90,17 +105,35 @@ export function dispatchSimCompositionEvent(
   event: CompositionSseEvent,
   callbacks: SimCompositionCallbacks
 ): boolean {
-  if (event.type === 'child_dispatched' && event.depth !== undefined) {
-    handleSimChildDispatched(event, callbacks);
-    return true;
+  if (event.type === 'child_dispatched') {
+    console.log('[composition:sse] child_dispatched event received', {
+      depth: event.depth,
+      dispatchType: event.dispatchType,
+      task: event.task,
+      hasCallback: callbacks.onSimChildDispatched !== undefined,
+    });
+    if (event.depth !== undefined) {
+      handleSimChildDispatched(event, callbacks);
+      return true;
+    }
+    console.warn('[composition:sse] child_dispatched missing depth field, skipped');
+    return false;
   }
-  if (event.type === 'child_finished' && event.depth !== undefined) {
-    handleSimChildFinished(event, callbacks);
-    return true;
+  if (event.type === 'child_finished') {
+    console.log('[composition:sse] child_finished event received', { depth: event.depth });
+    if (event.depth !== undefined) {
+      handleSimChildFinished(event, callbacks);
+      return true;
+    }
+    return false;
   }
-  if (event.type === 'child_waiting' && event.depth !== undefined) {
-    handleSimChildWaiting(event, callbacks);
-    return true;
+  if (event.type === 'child_waiting') {
+    console.log('[composition:sse] child_waiting event received', { depth: event.depth });
+    if (event.depth !== undefined) {
+      handleSimChildWaiting(event, callbacks);
+      return true;
+    }
+    return false;
   }
   return false;
 }

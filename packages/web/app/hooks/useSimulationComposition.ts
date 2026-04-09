@@ -2,7 +2,7 @@ import { MESSAGES_PROVIDER, type Message } from '@daviddh/llm-graph-runner';
 import { nanoid } from 'nanoid';
 
 import type { AgentSimulateRequestBody } from '../lib/agentSimulationApi';
-import type { SimCompositionCallbacks } from '../lib/sseSimComposition';
+import type { SimChildDispatchedEvent, SimCompositionCallbacks } from '../lib/sseSimComposition';
 import {
   type CompositionLevel,
   type PushChildParams,
@@ -18,10 +18,16 @@ import { type StreamCallbackDeps, buildStreamCallbacks } from './useSimulationHe
 
 /* ─── Types ─── */
 
+export interface PendingChildDispatch {
+  task: string;
+  childConfig: SimChildDispatchedEvent['childConfig'];
+}
+
 export interface CompositionCallbackDeps {
   compositionStackRef: React.RefObject<CompositionLevel[]>;
   messagesRef: React.RefObject<Message[]>;
   setters: Pick<SimulationSetters, 'setCompositionStack' | 'setMessages' | 'setLoading'>;
+  pendingChildRef: React.MutableRefObject<PendingChildDispatch | null>;
 }
 
 export interface CompositionRequestOverrides {
@@ -115,31 +121,80 @@ export function buildCompositionSseCallbacks(deps: CompositionCallbackDeps): Sim
 
   return {
     onSimChildDispatched: (event) => {
+      console.log('[composition:callback] onSimChildDispatched', {
+        task: event.task,
+        depth: event.depth,
+        dispatchType: event.dispatchType,
+      });
       const parentMsgs = getActiveMessages(compositionStackRef.current, messagesRef.current);
       const params = buildPushParams(event, parentMsgs);
-      setters.setCompositionStack((prev) => pushChild(prev, params));
+      setters.setCompositionStack((prev) => {
+        const next = pushChild(prev, params);
+        console.log('[composition:callback] stack after push', {
+          prevDepth: prev.length,
+          newDepth: next.length,
+        });
+        return next;
+      });
+      deps.pendingChildRef.current = { task: event.task, childConfig: event.childConfig };
+      console.log('[composition:callback] pendingChild set:', {
+        task: event.task,
+        hasConfig: event.childConfig !== undefined,
+      });
     },
     onSimChildFinished: (event) => {
+      console.log('[composition:callback] onSimChildFinished', {
+        depth: event.depth,
+        status: event.status,
+        output: event.output.slice(0, 100),
+      });
       const status = event.status === 'error' ? 'error' : 'success';
       setters.setCompositionStack((prev) => {
         const root = messagesRef.current;
         const result = popChild(prev, root, event.output, status);
         setters.setMessages(result.rootMessages);
+        console.log('[composition:callback] stack after pop', {
+          prevDepth: prev.length,
+          newDepth: result.stack.length,
+        });
         return result.stack;
       });
     },
     onSimChildWaiting: () => {
+      console.log('[composition:callback] onSimChildWaiting');
       setters.setLoading(false);
     },
   };
 }
 
 export function buildMergedCallbacks(
-  deps: StreamCallbackDeps & CompositionCallbackDeps
+  deps: StreamCallbackDeps & CompositionCallbackDeps,
+  autoSendChild?: (dispatch: PendingChildDispatch) => void
 ): ReturnType<typeof buildStreamCallbacks> {
   const base = buildStreamCallbacks(deps);
   const comp = buildCompositionSseCallbacks(deps);
-  return { ...base, ...comp };
+  const baseOnComplete = base.onComplete;
+  return {
+    ...base,
+    ...comp,
+    onComplete: () => {
+      const pending = deps.pendingChildRef.current;
+      console.log(
+        '[composition:onComplete] stream ended, pending:',
+        pending !== null,
+        'hasAutoSend:',
+        autoSendChild !== undefined
+      );
+      baseOnComplete?.();
+      if (pending !== null) {
+        deps.pendingChildRef.current = null;
+        console.log('[composition:onComplete] auto-sending child:', pending.task.slice(0, 50));
+        autoSendChild?.(pending);
+      } else {
+        console.log('[composition:onComplete] no pending child');
+      }
+    },
+  };
 }
 
 /* ─── Request Overrides ─── */

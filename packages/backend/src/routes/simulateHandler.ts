@@ -2,10 +2,12 @@ import type { CallAgentOutput, NodeProcessedEvent } from '@daviddh/llm-graph-run
 import { executeWithCallbacks, injectSystemTools } from '@daviddh/llm-graph-runner';
 import type { Request, Response } from 'express';
 
+import { createServiceClient } from '../db/queries/executionAuthQueries.js';
 import { consoleLogger } from '../logger.js';
 import { type McpSession, closeMcpSession, createMcpSession } from '../mcp/lifecycle.js';
 import type { SimulateRequest } from '../types.js';
 import { buildContext, setSseHeaders, sumTokens, writeSSE } from './simulate.js';
+import { resolveChildConfig } from './simulateChildResolver.js';
 
 const EMPTY_SESSION: McpSession = { clients: [], tools: {} };
 const CHILD_DEPTH = 1;
@@ -14,6 +16,44 @@ const ROOT_DEPTH = 0;
 function extractTaskFromParams(params: Record<string, unknown>): string {
   const raw = params.task ?? params.user_said ?? '';
   return typeof raw === 'string' ? raw : JSON.stringify(raw);
+}
+
+async function emitChildDispatched(
+  res: Response,
+  dispatch: NonNullable<CallAgentOutput['dispatchResult']>,
+  orgId: string,
+  apiKey: string
+): Promise<void> {
+  const task = extractTaskFromParams(dispatch.params);
+  const supabase = createServiceClient();
+  try {
+    const childConfig = await resolveChildConfig({
+      supabase,
+      dispatchType: dispatch.type,
+      params: dispatch.params,
+      orgId,
+    });
+    writeSSE(res, {
+      type: 'child_dispatched',
+      depth: CHILD_DEPTH,
+      parentDepth: ROOT_DEPTH,
+      dispatchType: dispatch.type,
+      task,
+      parentToolCallId: '',
+      toolName: dispatch.type,
+      params: dispatch.params,
+      childConfig: {
+        systemPrompt: childConfig.systemPrompt,
+        context: childConfig.context,
+        modelId: childConfig.modelId,
+        maxSteps: childConfig.maxSteps,
+        apiKey,
+      },
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Failed to resolve child config';
+    writeSSE(res, { type: 'error', message: msg });
+  }
 }
 
 function sendNodeVisited(res: Response, nodeId: string): void {
@@ -94,16 +134,7 @@ async function runSimulation(body: SimulateRequest, session: McpSession, res: Re
   });
   if (result !== null) {
     if (result.dispatchResult !== undefined) {
-      writeSSE(res, {
-        type: 'child_dispatched',
-        depth: CHILD_DEPTH,
-        parentDepth: ROOT_DEPTH,
-        dispatchType: result.dispatchResult.type,
-        task: extractTaskFromParams(result.dispatchResult.params),
-        parentToolCallId: '',
-        toolName: result.dispatchResult.type,
-        params: result.dispatchResult.params,
-      });
+      await emitChildDispatched(res, result.dispatchResult, body.orgId ?? '', body.apiKey);
     }
     sendAgentResponse(res, result);
   }

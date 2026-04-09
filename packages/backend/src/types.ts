@@ -85,4 +85,11 @@ export type SimulationEvent =
       parentToolCallId: string;
       toolName: string;
       params: Record<string, unknown>;
+      childConfig?: {
+        systemPrompt: string;
+        context: string;
+        modelId: string;
+        maxSteps: number | null;
+        apiKey: string;
+      };
     };

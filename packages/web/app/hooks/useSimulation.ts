@@ -15,6 +15,7 @@ import { START_NODE_ID } from '../utils/graphContext';
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
 import type { CompositionLevel } from './useCompositionStack';
 import {
+  type PendingChildDispatch,
   buildMergedCallbacks,
   createUserMessage,
   getCompositionRequestOverrides,
@@ -146,9 +147,14 @@ function checkTerminated(
 interface CompositionRefs {
   compositionStackRef: React.RefObject<CompositionLevel[]>;
   messagesRef: React.RefObject<Message[]>;
+  pendingChildRef: React.MutableRefObject<PendingChildDispatch | null>;
 }
 
 function sendAgentSim(deps: SendMessageDeps, refs: CompositionRefs, signal: AbortSignal, text: string): void {
+  console.log('[sim:sendAgentSim] sending', {
+    text: text.slice(0, 50),
+    stackDepth: refs.compositionStackRef.current.length,
+  });
   const { agentConfig, mcpServers, apiKeyId, modelId, messages, setters } = deps;
   if (agentConfig === undefined) return;
   const userMsg = createUserMessage(text);
@@ -166,10 +172,20 @@ function sendAgentSim(deps: SendMessageDeps, refs: CompositionRefs, signal: Abor
     params.composition = overrides.composition;
     params.orgId = overrides.orgId;
   }
-  void streamAgentSimulation(params, buildMergedCallbacks(fullDeps), signal).catch((err: unknown) => {
-    setters.setLoading(false);
-    toast.error(err instanceof Error ? err.message : 'Simulation failed');
-  });
+  const autoSend = (dispatch: PendingChildDispatch) => {
+    console.log('[sim:autoSend] dispatching child directly', {
+      task: dispatch.task.slice(0, 50),
+      hasConfig: dispatch.childConfig !== undefined,
+    });
+    const newSignal = new AbortController().signal;
+    sendAgentSim(deps, refs, newSignal, dispatch.task);
+  };
+  void streamAgentSimulation(params, buildMergedCallbacks(fullDeps, autoSend), signal).catch(
+    (err: unknown) => {
+      setters.setLoading(false);
+      toast.error(err instanceof Error ? err.message : 'Simulation failed');
+    }
+  );
 }
 
 function sendWorkflowSim(
@@ -178,6 +194,10 @@ function sendWorkflowSim(
   signal: AbortSignal,
   text: string
 ): void {
+  console.log('[sim:sendWorkflowSim] sending', {
+    text: text.slice(0, 50),
+    stackDepth: refs.compositionStackRef.current.length,
+  });
   const { preset, messages, agents, mcpServers, outputSchemas, currentNode } = deps;
   const { apiKeyId, modelId, structuredOutputs, setters } = deps;
   const snapshot = setters.getSnapshot();
@@ -199,7 +219,31 @@ function sendWorkflowSim(
     orgId: deps.orgId,
   });
   const fullDeps = { ...deps, ...refs };
-  void streamSimulation(params, buildMergedCallbacks(fullDeps), signal).catch((err: unknown) => {
+  const autoSend = (dispatch: PendingChildDispatch) => {
+    console.log('[sim:autoSend:workflow] dispatching child from workflow parent', {
+      task: dispatch.task.slice(0, 50),
+      hasConfig: dispatch.childConfig !== undefined,
+    });
+    if (dispatch.childConfig === undefined) {
+      console.error('[sim:autoSend:workflow] no childConfig in dispatch, cannot auto-send');
+      return;
+    }
+    const newSignal = new AbortController().signal;
+    const childAgentConfig: AgentSimConfig = {
+      systemPrompt: dispatch.childConfig.systemPrompt,
+      maxSteps: dispatch.childConfig.maxSteps,
+      contextItems: [],
+      skills: [],
+    };
+    const childDeps: SendMessageDeps = {
+      ...deps,
+      agentConfig: childAgentConfig,
+      appType: 'agent',
+      modelId: dispatch.childConfig.modelId === '' ? deps.modelId : dispatch.childConfig.modelId,
+    };
+    sendAgentSim(childDeps, refs, newSignal, dispatch.task);
+  };
+  void streamSimulation(params, buildMergedCallbacks(fullDeps, autoSend), signal).catch((err: unknown) => {
     setters.setLoading(false);
     toast.error(err instanceof Error ? err.message : 'Simulation failed');
   });
@@ -214,7 +258,16 @@ function useSimulationSend(
     (text: string) => {
       const deps = depsRef.current;
       const refs = refsRef.current;
-      if (deps.loading) return;
+      console.log('[sim:send] routing message', {
+        text: text.slice(0, 50),
+        appType: deps.appType,
+        loading: deps.loading,
+        stackDepth: refs.compositionStackRef.current.length,
+      });
+      if (deps.loading) {
+        console.log('[sim:send] BLOCKED: loading=true, ignoring');
+        return;
+      }
       const signal = abortAndCreateSignal();
       if (deps.appType === 'agent') {
         sendAgentSim(deps, refs, signal, text);
@@ -272,7 +325,12 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
   }, []);
   const stop = useSimulationStop(s.setters, abortSimulation, onExitZoomView, clearSelection);
   const clear = useSimulationClear(s.setters, abortSimulation, onExitZoomView);
-  const compRefs = useRef<CompositionRefs>({ compositionStackRef, messagesRef });
+  const pendingChildRef = useRef<PendingChildDispatch | null>(null);
+  const compRefs = useRef<CompositionRefs>({
+    compositionStackRef,
+    messagesRef,
+    pendingChildRef,
+  });
   const sendDeps = buildSendDeps(params, s);
   const sendDepsRef = useRef(sendDeps);
   useEffect(() => {
