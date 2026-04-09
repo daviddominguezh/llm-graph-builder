@@ -3,12 +3,19 @@ import { z } from 'zod';
 
 import { createServiceClient } from '../../db/queries/executionAuthQueries.js';
 import { updateSessionState, updateToolOutputMessage } from '../../db/queries/executionQueries.js';
-import { markResumeCompleted } from '../../db/queries/resumeQueries.js';
+import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
+import {
+  type PendingResume,
+  claimPendingResume,
+  markResumeCompleted,
+} from '../../db/queries/resumeQueries.js';
 import { popStackEntry } from '../../db/queries/stackQueries.js';
+import { executeAgentCore } from '../execute/executeCore.js';
 
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
 const HTTP_CONFLICT = 409;
+const HTTP_INTERNAL = 500;
 
 const ResumeParentBodySchema = z.object({
   sessionId: z.string(),
@@ -24,7 +31,58 @@ function log(msg: string): void {
 }
 
 type ResumeParentData = z.infer<typeof ResumeParentBodySchema>;
-type SupabaseClient = ReturnType<typeof createServiceClient>;
+
+/* ─── Parent execution record shape ─── */
+
+interface ParentExecutionRow {
+  agent_id: string;
+  org_id: string;
+  version: number;
+  channel: string;
+  tenant_id: string;
+  external_user_id: string;
+  model: string;
+  session_id: string;
+}
+
+type Channel = 'whatsapp' | 'web' | 'instagram' | 'api';
+
+const CHANNEL_MAP: Record<string, Channel> = {
+  whatsapp: 'whatsapp',
+  web: 'web',
+  instagram: 'instagram',
+  api: 'api',
+};
+
+function toChannel(value: string): Channel {
+  return CHANNEL_MAP[value] ?? 'web';
+}
+
+/* ─── Helpers ─── */
+
+function extractToolMeta(sessionState: Record<string, unknown>): { toolCallId: string; toolName: string } {
+  const toolCallId = typeof sessionState.toolCallId === 'string' ? sessionState.toolCallId : '';
+  const toolName = typeof sessionState.toolName === 'string' ? sessionState.toolName : '';
+  return { toolCallId, toolName };
+}
+
+function buildToolResultContent(
+  toolCallId: string,
+  toolName: string,
+  childOutput: string
+): Record<string, unknown> {
+  return {
+    role: 'tool',
+    content: [
+      {
+        type: 'tool-result',
+        toolCallId,
+        toolName,
+        output: { type: 'text', value: childOutput },
+      },
+    ],
+  };
+}
 
 function parseStructuredOutputs(raw: unknown): Record<string, unknown[]> {
   const outputs: Record<string, unknown[]> = {};
@@ -35,28 +93,84 @@ function parseStructuredOutputs(raw: unknown): Record<string, unknown[]> {
   return outputs;
 }
 
-async function restoreParentState(supabase: SupabaseClient, data: ResumeParentData): Promise<void> {
-  await updateToolOutputMessage(supabase, data.parentToolOutputMessageId, { text: data.childOutput });
-  log('tool output message updated');
+async function fetchParentExecution(
+  supabase: SupabaseClient,
+  executionId: string
+): Promise<ParentExecutionRow> {
+  const result = await supabase
+    .from('agent_executions')
+    .select('agent_id, org_id, version, channel, tenant_id, external_user_id, model, session_id')
+    .eq('id', executionId)
+    .single();
 
+  if (result.error !== null) {
+    throw new Error(`Failed to fetch parent execution: ${result.error.message}`);
+  }
+  return result.data as ParentExecutionRow;
+}
+
+/* ─── Restore parent state ─── */
+
+async function updateToolOutput(
+  supabase: SupabaseClient,
+  claimed: PendingResume,
+  data: ResumeParentData
+): Promise<void> {
+  const { toolCallId, toolName } = extractToolMeta(claimed.parent_session_state);
+  const content = buildToolResultContent(toolCallId, toolName, data.childOutput);
+  await updateToolOutputMessage(supabase, claimed.parent_tool_output_message_id, content);
+  log('tool output message updated with AI SDK format');
+}
+
+async function restoreSessionState(supabase: SupabaseClient, data: ResumeParentData): Promise<void> {
   const nodeId =
     typeof data.parentSessionState.currentNodeId === 'string' ? data.parentSessionState.currentNodeId : '';
   const outputs = parseStructuredOutputs(data.parentSessionState.structuredOutputs);
   await updateSessionState(supabase, data.sessionId, { currentNodeId: nodeId, structuredOutputs: outputs });
   log('session state restored');
+}
 
-  await popStackEntry(supabase, data.sessionId);
-  log('stack entry popped');
-
+async function popAndMarkComplete(supabase: SupabaseClient, data: ResumeParentData): Promise<void> {
+  const popped = await popStackEntry(supabase, data.sessionId);
+  if (popped === null) {
+    log('warning: stack already popped');
+  } else {
+    log('stack entry popped');
+  }
   await markResumeCompleted(supabase, data.parentExecutionId);
   log('pending resume marked completed');
+}
+
+/* ─── Re-invoke parent execution ─── */
+
+async function reinvokeParent(
+  supabase: SupabaseClient,
+  parentExec: ParentExecutionRow,
+  data: ResumeParentData
+): Promise<void> {
+  await executeAgentCore({
+    supabase,
+    orgId: parentExec.org_id,
+    agentId: parentExec.agent_id,
+    version: parentExec.version,
+    input: {
+      tenantId: parentExec.tenant_id,
+      userId: parentExec.external_user_id,
+      sessionId: data.sessionId,
+      message: { text: data.childOutput },
+      channel: toChannel(parentExec.channel),
+      stream: false,
+    },
+    continueExecutionId: data.parentExecutionId,
+  });
+  log(`parent re-invoked executionId=${data.parentExecutionId}`);
 }
 
 /**
  * POST /internal/resume-parent
  *
  * Resumes a parent agent execution after a child completes.
- * Idempotent: checks if the parent is already resumed before processing.
+ * Uses atomic claim to prevent duplicate processing.
  */
 export async function handleResumeParent(req: Request, res: Response): Promise<void> {
   const parsed = ResumeParentBodySchema.safeParse(req.body);
@@ -71,20 +185,25 @@ export async function handleResumeParent(req: Request, res: Response): Promise<v
 
   const supabase = createServiceClient();
 
-  const { data: parentExec } = await supabase
-    .from('agent_executions')
-    .select('status')
-    .eq('id', data.parentExecutionId)
-    .maybeSingle();
-
-  const parentStatus = (parentExec as Record<string, unknown> | null)?.status;
-  if (parentStatus !== 'running') {
-    log(`parent already resumed or completed: ${String(parentStatus)}`);
-    res.status(HTTP_CONFLICT).json({ error: 'Parent not in running state' });
+  const claimed = await claimPendingResume(supabase, data.parentExecutionId);
+  if (claimed === null) {
+    log('resume already claimed by another process');
+    res.status(HTTP_CONFLICT).json({ error: 'Resume already claimed' });
     return;
   }
 
-  await restoreParentState(supabase, data);
-  log(`parent resumed parentExecution=${data.parentExecutionId}`);
-  res.status(HTTP_OK).json({ resumed: true, parentExecutionId: data.parentExecutionId });
+  try {
+    const parentExec = await fetchParentExecution(supabase, data.parentExecutionId);
+    await updateToolOutput(supabase, claimed, data);
+    await restoreSessionState(supabase, data);
+    await popAndMarkComplete(supabase, data);
+    await reinvokeParent(supabase, parentExec, data);
+
+    log(`parent resumed parentExecution=${data.parentExecutionId}`);
+    res.status(HTTP_OK).json({ resumed: true, parentExecutionId: data.parentExecutionId });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    log(`error resuming parent: ${message}`);
+    res.status(HTTP_INTERNAL).json({ error: message });
+  }
 }
