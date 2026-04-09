@@ -85,9 +85,7 @@ export function appendUserMessage(
   throw new Error('not implemented');
 }
 
-export function buildCompositionPayload(
-  _stack: CompositionLevel[]
-): SimulationComposition | undefined {
+export function buildCompositionPayload(_stack: CompositionLevel[]): SimulationComposition | undefined {
   throw new Error('not implemented');
 }
 
