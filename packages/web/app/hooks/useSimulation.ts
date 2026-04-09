@@ -1,10 +1,9 @@
 'use client';
 
 import type { OutputSchemaEntity } from '@daviddh/graph-types';
-import { MESSAGES_PROVIDER, type Message } from '@daviddh/llm-graph-runner';
+import type { Message } from '@daviddh/llm-graph-runner';
 import type { Edge as RFEdge, Node as RFNode } from '@xyflow/react';
-import { nanoid } from 'nanoid';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
 import { streamAgentSimulation } from '../lib/agentSimulationApi';
@@ -14,14 +13,23 @@ import type { ContextPreset } from '../types/preset';
 import type { ConversationEntry, NodeResult, SimulationTokens } from '../types/simulation';
 import { START_NODE_ID } from '../utils/graphContext';
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
+import type { CompositionLevel } from './useCompositionStack';
+import {
+  buildMergedCallbacks,
+  createUserMessage,
+  getCompositionRequestOverrides,
+  resetBeforeSend,
+  resetBeforeSendComposition,
+  routeUserMessage,
+} from './useSimulationComposition';
 import type {
+  AgentSimConfig,
   FullSetters,
   GraphSnapshot,
   SendMessageDeps,
-  SimulationSetters,
   SimulationStartDeps,
 } from './useSimulationHelpers';
-import { buildAgentSimulateParams, buildSimulateParams, buildStreamCallbacks } from './useSimulationHelpers';
+import { buildAgentSimulateParams, buildSimulateParams } from './useSimulationHelpers';
 import {
   EMPTY_TOKENS,
   type SimulationHookState,
@@ -33,13 +41,6 @@ const ZERO_EDGES = 0;
 
 function isNodeTerminal(edges: Array<RFEdge<RFEdgeData>>, nodeId: string): boolean {
   return nodeId !== START_NODE_ID && edges.filter((e) => e.source === nodeId).length === ZERO_EDGES;
-}
-
-interface AgentSimConfig {
-  systemPrompt: string;
-  maxSteps: number | null;
-  contextItems: Array<{ sortOrder: number; content: string }>;
-  skills: Array<{ name: string; description: string; content: string }>;
 }
 
 interface UseSimulationParams {
@@ -67,23 +68,13 @@ export interface SimulationState {
   nodeResults: NodeResult[];
   conversationEntries: ConversationEntry[];
   totalTokens: SimulationTokens;
+  compositionStack: CompositionLevel[];
   modelId: string;
   setModelId: (id: string) => void;
   start: () => void;
   stop: () => void;
   clear: () => void;
   sendMessage: (text: string) => void;
-}
-
-function createUserMessage(text: string): Message {
-  return {
-    id: nanoid(),
-    provider: MESSAGES_PROVIDER.WEB,
-    type: 'text',
-    timestamp: Date.now(),
-    originalId: nanoid(),
-    message: { role: 'user', content: [{ type: 'text', text }] },
-  };
 }
 
 function useSimulationStart(deps: SimulationStartDeps & { appType?: string }): () => void {
@@ -99,6 +90,7 @@ function useSimulationStart(deps: SimulationStartDeps & { appType?: string }): (
     setters.setVisitedNodes([]);
     setters.setTotalTokens(EMPTY_TOKENS);
     setters.setStructuredOutputs({});
+    setters.setCompositionStack([]);
     if (appType !== 'agent') {
       onZoomToNode(START_NODE_ID);
     }
@@ -136,6 +128,7 @@ function useSimulationClear(
     setters.setVisitedNodes([]);
     setters.setTotalTokens(EMPTY_TOKENS);
     setters.setStructuredOutputs({});
+    setters.setCompositionStack([]);
     onExitZoomView();
   }, [setters, abortSimulation, onExitZoomView]);
 }
@@ -149,52 +142,45 @@ function checkTerminated(
   return active && !loading && snapshot !== null && isNodeTerminal(snapshot.edges, currentNode);
 }
 
-const TURN_INCREMENT = 1;
-
-function resetBeforeSend(setters: SimulationSetters, text: string, userMsg: Message, isAgent: boolean): void {
-  setters.setLoading(true);
-  setters.setLastUserText(text);
-  setters.setMessages((prev) => [...prev, userMsg]);
-  setters.setConversationEntries((prev) => [...prev, { type: 'user' as const, text }]);
-  setters.setTurnCount((prev) => {
-    const next = prev + TURN_INCREMENT;
-    if (isAgent) setters.setCurrentNode(`Turn ${String(next)}`);
-    return next;
-  });
+interface CompositionRefs {
+  compositionStackRef: React.RefObject<CompositionLevel[]>;
+  messagesRef: React.RefObject<Message[]>;
 }
 
-interface SendDepsWithAbort extends SendMessageDeps {
-  abortAndCreateSignal: () => AbortSignal;
-}
-
-function sendAgentSimulation(deps: SendDepsWithAbort, text: string): void {
+function sendAgentSim(deps: SendMessageDeps, refs: CompositionRefs, signal: AbortSignal, text: string): void {
   const { agentConfig, mcpServers, apiKeyId, modelId, messages, setters } = deps;
-  const { abortAndCreateSignal, onZoomToNode, onSelectNode } = deps;
   if (agentConfig === undefined) return;
-  const signal = abortAndCreateSignal();
   const userMsg = createUserMessage(text);
+  const fullDeps = { ...deps, ...refs };
+  routeUserMessage(fullDeps, text, userMsg);
+  resetBeforeSendComposition(setters, text, true);
   const allMessages = [...messages, userMsg];
-  console.log(
-    '[simulation] sending agent messages:',
-    allMessages.length,
-    allMessages.map((m) => m.message.role)
-  );
-  resetBeforeSend(setters, text, userMsg, true);
   const params = buildAgentSimulateParams({ agentConfig, mcpServers, allMessages, apiKeyId, modelId });
-  const callbacks = buildStreamCallbacks({ setters, onZoomToNode, onSelectNode });
-  void streamAgentSimulation(params, callbacks, signal).catch((err: unknown) => {
+  const overrides = getCompositionRequestOverrides(
+    refs.compositionStackRef.current,
+    refs.messagesRef.current
+  );
+  if (overrides !== undefined) {
+    params.messages = overrides.messages;
+    params.composition = overrides.composition;
+    params.orgId = overrides.orgId;
+  }
+  void streamAgentSimulation(params, buildMergedCallbacks(fullDeps), signal).catch((err: unknown) => {
     setters.setLoading(false);
     toast.error(err instanceof Error ? err.message : 'Simulation failed');
   });
 }
 
-function sendWorkflowSimulation(deps: SendDepsWithAbort, text: string): void {
+function sendWorkflowSim(
+  deps: SendMessageDeps,
+  refs: CompositionRefs,
+  signal: AbortSignal,
+  text: string
+): void {
   const { preset, messages, agents, mcpServers, outputSchemas, currentNode } = deps;
-  const { apiKeyId, modelId, structuredOutputs, setters, onZoomToNode, onSelectNode } = deps;
-  const { abortAndCreateSignal } = deps;
+  const { apiKeyId, modelId, structuredOutputs, setters } = deps;
   const snapshot = setters.getSnapshot();
   if (preset === undefined || snapshot === null) return;
-  const signal = abortAndCreateSignal();
   const userMsg = createUserMessage(text);
   const allMessages = [...messages, userMsg];
   resetBeforeSend(setters, text, userMsg, false);
@@ -210,34 +196,35 @@ function sendWorkflowSimulation(deps: SendDepsWithAbort, text: string): void {
     modelId,
     structuredOutputs,
   });
-  const callbacks = buildStreamCallbacks({ setters, onZoomToNode, onSelectNode });
-  void streamSimulation(params, callbacks, signal).catch((err: unknown) => {
+  const fullDeps = { ...deps, ...refs };
+  void streamSimulation(params, buildMergedCallbacks(fullDeps), signal).catch((err: unknown) => {
     setters.setLoading(false);
     toast.error(err instanceof Error ? err.message : 'Simulation failed');
   });
 }
 
-function useSimulationSend(deps: SendDepsWithAbort): (text: string) => void {
-  const { loading, appType } = deps;
-
+function useSimulationSend(
+  depsRef: React.RefObject<SendMessageDeps>,
+  refsRef: React.RefObject<CompositionRefs>,
+  abortAndCreateSignal: () => AbortSignal
+): (text: string) => void {
   return useCallback(
     (text: string) => {
-      if (loading) return;
-      if (appType === 'agent') {
-        sendAgentSimulation(deps, text);
+      const deps = depsRef.current;
+      const refs = refsRef.current;
+      if (deps.loading) return;
+      const signal = abortAndCreateSignal();
+      if (deps.appType === 'agent') {
+        sendAgentSim(deps, refs, signal, text);
         return;
       }
-      sendWorkflowSimulation(deps, text);
+      sendWorkflowSim(deps, refs, signal, text);
     },
-    [deps, loading, appType]
+    [depsRef, refsRef, abortAndCreateSignal]
   );
 }
 
-function buildSendDeps(
-  params: UseSimulationParams,
-  s: SimulationHookState,
-  abortAndCreateSignal: () => AbortSignal
-): SendDepsWithAbort {
+function buildSendDeps(params: UseSimulationParams, s: SimulationHookState): SendMessageDeps {
   return {
     preset: params.preset,
     loading: s.loading,
@@ -254,7 +241,6 @@ function buildSendDeps(
     onSelectNode: params.onSelectNode,
     appType: params.appType,
     agentConfig: params.agentConfig,
-    abortAndCreateSignal,
   };
 }
 
@@ -262,6 +248,14 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
   const { allNodes, edges, onZoomToNode, onExitZoomView } = params;
   const s = useSimulationState();
   const { abortSimulation, abortAndCreateSignal } = useAbortRef();
+  const compositionStackRef = useRef<CompositionLevel[]>([]);
+  const messagesRef = useRef<Message[]>([]);
+  useEffect(() => {
+    compositionStackRef.current = s.compositionStack;
+  }, [s.compositionStack]);
+  useEffect(() => {
+    messagesRef.current = s.messages;
+  }, [s.messages]);
 
   const start = useSimulationStart({
     setters: s.setters,
@@ -275,7 +269,13 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
   }, []);
   const stop = useSimulationStop(s.setters, abortSimulation, onExitZoomView, clearSelection);
   const clear = useSimulationClear(s.setters, abortSimulation, onExitZoomView);
-  const sendMessage = useSimulationSend(buildSendDeps(params, s, abortAndCreateSignal));
+  const compRefs = useRef<CompositionRefs>({ compositionStackRef, messagesRef });
+  const sendDeps = buildSendDeps(params, s);
+  const sendDepsRef = useRef(sendDeps);
+  useEffect(() => {
+    sendDepsRef.current = sendDeps;
+  });
+  const sendMessage = useSimulationSend(sendDepsRef, compRefs, abortAndCreateSignal);
   const isAgent = params.appType === 'agent';
   const terminated = isAgent
     ? false
@@ -291,6 +291,7 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
     nodeResults: s.nodeResults,
     conversationEntries: s.conversationEntries,
     totalTokens: s.totalTokens,
+    compositionStack: s.compositionStack,
     modelId: s.modelId,
     setModelId: s.setModelId,
     start,

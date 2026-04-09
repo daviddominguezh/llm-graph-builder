@@ -44,7 +44,7 @@ export interface SimulationStartDeps {
   onZoomToNode: (nodeId: string) => void;
 }
 
-interface AgentSimConfig {
+export interface AgentSimConfig {
   systemPrompt: string;
   maxSteps: number | null;
   contextItems: Array<{ sortOrder: number; content: string }>;
