@@ -121,3 +121,113 @@ describe('State Preservation', () => {
     expect(getTextFromMessage(active[0]!)).toContain('grandchild');
   });
 });
+
+describe('Pop and Inject', () => {
+  it('2a: pop injects tool result at root level', () => {
+    const rootMessages = [makeUserMessage('hello'), makeToolCallMessage('tc-1', 'invoke_agent')];
+    const stack = pushChild(
+      [],
+      defaultPushParams({ parentToolCallId: 'tc-1', toolName: 'invoke_agent', parentMessages: rootMessages })
+    );
+
+    const { stack: poppedStack, rootMessages: updatedRoot } = popChild(
+      stack,
+      rootMessages,
+      'result-text',
+      'success'
+    );
+
+    expect(poppedStack).toHaveLength(0);
+    expect(updatedRoot).toHaveLength(3);
+
+    const toolResult = getToolResultFromMessage(updatedRoot[2]!);
+    expect(toolResult).not.toBeNull();
+    expect(toolResult!.toolCallId).toBe('tc-1');
+    expect(toolResult!.toolName).toBe('invoke_agent');
+    expect(toolResult!.value).toBe('result-text');
+  });
+
+  it('2b: pop at depth 2 injects into depth 1, not root', () => {
+    const rootMessages = [makeUserMessage('hello'), makeToolCallMessage('tc-1')];
+    const stack1 = pushChild(
+      [],
+      defaultPushParams({ parentToolCallId: 'tc-1', parentMessages: rootMessages })
+    );
+
+    const childMsgs = getActiveMessages(stack1, rootMessages);
+    const childWithTc = [...childMsgs, makeToolCallMessage('tc-2')];
+    const updatedStack = stack1.map((level) => ({ ...level, messages: childWithTc }));
+
+    const stack2 = pushChild(
+      updatedStack,
+      defaultPushParams({ parentToolCallId: 'tc-2', task: 'grandchild', parentMessages: childWithTc })
+    );
+
+    const { stack: afterPop, rootMessages: afterRoot } = popChild(stack2, rootMessages, 'gc-result', 'success');
+
+    expect(afterPop).toHaveLength(1);
+    expect(afterRoot).toHaveLength(2);
+
+    const childAfterPop = getActiveMessages(afterPop, afterRoot);
+    expect(childAfterPop.length).toBeGreaterThan(childWithTc.length);
+
+    const lastChildMsg = childAfterPop[childAfterPop.length - 1]!;
+    const toolResult = getToolResultFromMessage(lastChildMsg);
+    expect(toolResult).not.toBeNull();
+    expect(toolResult!.value).toBe('gc-result');
+  });
+
+  it('2c: pop with error status', () => {
+    const rootMessages = [makeToolCallMessage('tc-1', 'invoke_agent')];
+    const stack = pushChild(
+      [],
+      defaultPushParams({ parentToolCallId: 'tc-1', toolName: 'invoke_agent', parentMessages: rootMessages })
+    );
+
+    const { rootMessages: updatedRoot } = popChild(stack, rootMessages, 'something went wrong', 'error');
+
+    expect(updatedRoot).toHaveLength(2);
+
+    const toolResult = getToolResultFromMessage(updatedRoot[1]!);
+    expect(toolResult).not.toBeNull();
+    expect(toolResult!.value).toBe('something went wrong');
+  });
+
+  it('2d: sequential pops (grandchild then child)', () => {
+    const rootMessages = [makeUserMessage('hello'), makeToolCallMessage('tc-1')];
+    const stack1 = pushChild(
+      [],
+      defaultPushParams({ parentToolCallId: 'tc-1', parentMessages: rootMessages })
+    );
+
+    const childMsgs = getActiveMessages(stack1, rootMessages);
+    const childWithTc = [...childMsgs, makeToolCallMessage('tc-2')];
+    const updatedStack = stack1.map((level) => ({ ...level, messages: childWithTc }));
+
+    const stack2 = pushChild(
+      updatedStack,
+      defaultPushParams({ parentToolCallId: 'tc-2', task: 'grandchild', parentMessages: childWithTc })
+    );
+
+    const pop1 = popChild(stack2, rootMessages, 'gc-out', 'success');
+    expect(pop1.stack).toHaveLength(1);
+    expect(pop1.rootMessages).toHaveLength(2);
+
+    const pop2 = popChild(pop1.stack, pop1.rootMessages, 'child-out', 'success');
+    expect(pop2.stack).toHaveLength(0);
+    expect(pop2.rootMessages).toHaveLength(3);
+
+    const toolResult = getToolResultFromMessage(pop2.rootMessages[2]!);
+    expect(toolResult).not.toBeNull();
+    expect(toolResult!.value).toBe('child-out');
+  });
+
+  it('2e: pop from empty stack', () => {
+    const rootMessages = [makeUserMessage('hello')];
+
+    const { stack, rootMessages: returnedRoot } = popChild([], rootMessages, 'output', 'success');
+
+    expect(stack).toHaveLength(0);
+    expect(returnedRoot).toBe(rootMessages);
+  });
+});
