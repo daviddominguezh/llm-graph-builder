@@ -4,6 +4,14 @@ import { createToolResultMessage, createUserMessage, sumByDepth } from './compos
 
 /* ─── Types ─── */
 
+export interface ChildAgentConfig {
+  systemPrompt: string;
+  context: string;
+  modelId: string;
+  maxSteps: number | null;
+  apiKey: string;
+}
+
 export interface CompositionLevel {
   appType: 'agent' | 'workflow';
   messages: Message[];
@@ -13,6 +21,7 @@ export interface CompositionLevel {
   dispatchParams: Record<string, unknown>;
   parentToolCallId: string;
   toolName: string;
+  childConfig?: ChildAgentConfig;
 }
 
 export interface SimulationComposition {
@@ -33,6 +42,7 @@ export interface PushChildParams {
   toolName: string;
   task: string;
   parentMessages: Message[];
+  childConfig?: ChildAgentConfig;
 }
 
 export interface PopChildResult {
@@ -67,6 +77,7 @@ export function pushChild(stack: CompositionLevel[], params: PushChildParams): C
     dispatchParams: params.dispatchParams,
     parentToolCallId: params.parentToolCallId,
     toolName: params.toolName,
+    childConfig: params.childConfig,
   };
   return [...stack, level];
 }

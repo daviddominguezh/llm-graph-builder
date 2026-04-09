@@ -136,7 +136,7 @@ export interface StreamCallbackDeps {
   onSelectNode: (nodeId: string) => void;
 }
 
-function createAssistantMessage(text: string): Message {
+export function createAssistantMessage(text: string): Message {
   return {
     id: nanoid(),
     provider: MESSAGES_PROVIDER.WEB,

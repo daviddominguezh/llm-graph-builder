@@ -14,7 +14,11 @@ import {
   pushChild,
 } from './useCompositionStack';
 import type { SimulationSetters } from './useSimulationHelpers';
-import { type StreamCallbackDeps, buildStreamCallbacks } from './useSimulationHelpers';
+import {
+  type StreamCallbackDeps,
+  buildStreamCallbacks,
+  createAssistantMessage,
+} from './useSimulationHelpers';
 
 /* ─── Types ─── */
 
@@ -92,24 +96,27 @@ export interface CompositionAwareDeps {
   setters: SimulationSetters;
 }
 
-export function routeUserMessage(deps: CompositionAwareDeps, text: string, userMsg: Message): void {
+export interface RouteResult {
+  updatedStack: CompositionLevel[];
+  updatedRootMessages: Message[];
+}
+
+export function routeUserMessage(deps: CompositionAwareDeps, text: string, userMsg: Message): RouteResult {
   const { compositionStackRef, messages, setters } = deps;
   const depth = getActiveDepth(compositionStackRef.current);
   if (depth > 0) {
     const result = appendUserMessage(compositionStackRef.current, messages, text);
     setters.setCompositionStack(result.stack);
     setters.setMessages(result.rootMessages);
-  } else {
-    setters.setMessages((prev) => [...prev, userMsg]);
+    return { updatedStack: result.stack, updatedRootMessages: result.rootMessages };
   }
+  setters.setMessages((prev) => [...prev, userMsg]);
+  return { updatedStack: compositionStackRef.current, updatedRootMessages: [...messages, userMsg] };
 }
 
 /* ─── SSE Callback Builders ─── */
 
-function buildPushParams(
-  event: { parentToolCallId: string; toolName: string; task: string; dispatchType: string },
-  parentMessages: Message[]
-): PushChildParams {
+function buildPushParams(event: SimChildDispatchedEvent, parentMessages: Message[]): PushChildParams {
   return {
     appType: 'agent',
     dispatchParams: { dispatchType: event.dispatchType },
@@ -117,6 +124,7 @@ function buildPushParams(
     toolName: event.toolName,
     task: event.task,
     parentMessages,
+    childConfig: event.childConfig,
   };
 }
 
@@ -183,18 +191,45 @@ export function buildMergedCallbacks(
   const base = buildStreamCallbacks(deps);
   const comp = buildCompositionSseCallbacks(deps);
   const baseOnComplete = base.onComplete;
+  let lastResponseText = '';
+  const baseOnNodeProcessed = base.onNodeProcessed;
+  base.onNodeProcessed = (event) => {
+    baseOnNodeProcessed?.(event);
+    if (event.text !== undefined && event.text !== '') {
+      lastResponseText = event.text;
+    }
+  };
   return {
     ...base,
     ...comp,
     onComplete: () => {
       const pending = deps.pendingChildRef.current;
+      const stackDepth = deps.compositionStackRef.current.length;
       console.log(
         '[composition:onComplete] stream ended, pending:',
         pending !== null,
         'hasAutoSend:',
-        autoSendChild !== undefined
+        autoSendChild !== undefined,
+        'stackDepth:',
+        stackDepth
       );
-      baseOnComplete?.();
+      if (stackDepth > 0 && pending === null) {
+        // Child responded — move the assistant message to the child's stack level, not root
+        deps.setters.setLoading(false);
+        if (lastResponseText !== '') {
+          deps.setters.setCompositionStack((prev) => {
+            if (prev.length === 0) return prev;
+            const updated = [...prev];
+            const lastIdx = updated.length - 1;
+            const last = updated[lastIdx]!;
+            const assistantMsg = createAssistantMessage(lastResponseText);
+            updated[lastIdx] = { ...last, messages: [...last.messages, assistantMsg] };
+            return updated;
+          });
+        }
+      } else {
+        baseOnComplete?.();
+      }
       if (pending !== null) {
         deps.pendingChildRef.current = null;
         console.log('[composition:onComplete] auto-sending child:', pending.task.slice(0, 50));

@@ -151,22 +151,37 @@ interface CompositionRefs {
 }
 
 function sendAgentSim(deps: SendMessageDeps, refs: CompositionRefs, signal: AbortSignal, text: string): void {
+  const stack = refs.compositionStackRef.current;
+  const activeChild = stack.length > 0 ? stack[stack.length - 1] : undefined;
   console.log('[sim:sendAgentSim] sending', {
     text: text.slice(0, 50),
-    stackDepth: refs.compositionStackRef.current.length,
+    stackDepth: stack.length,
+    hasAgentConfig: deps.agentConfig !== undefined,
+    hasChildConfig: activeChild?.childConfig !== undefined,
   });
-  const { agentConfig, mcpServers, apiKeyId, modelId, messages, setters } = deps;
+  const { mcpServers, apiKeyId, messages, setters } = deps;
+  const agentConfig: AgentSimConfig | undefined =
+    deps.agentConfig ??
+    (activeChild?.childConfig !== undefined
+      ? {
+          systemPrompt: activeChild.childConfig.systemPrompt,
+          maxSteps: activeChild.childConfig.maxSteps,
+          contextItems: [],
+          skills: [],
+        }
+      : undefined);
+  const modelId =
+    activeChild?.childConfig?.modelId !== undefined && activeChild.childConfig.modelId !== ''
+      ? activeChild.childConfig.modelId
+      : deps.modelId;
   if (agentConfig === undefined) return;
   const userMsg = createUserMessage(text);
   const fullDeps = { ...deps, ...refs };
-  routeUserMessage(fullDeps, text, userMsg);
+  const { updatedStack, updatedRootMessages } = routeUserMessage(fullDeps, text, userMsg);
   resetBeforeSendComposition(setters, text, true);
   const allMessages = [...messages, userMsg];
   const params = buildAgentSimulateParams({ agentConfig, mcpServers, allMessages, apiKeyId, modelId });
-  const overrides = getCompositionRequestOverrides(
-    refs.compositionStackRef.current,
-    refs.messagesRef.current
-  );
+  const overrides = getCompositionRequestOverrides(updatedStack, updatedRootMessages);
   if (overrides !== undefined) {
     params.messages = overrides.messages;
     params.composition = overrides.composition;
@@ -260,18 +275,21 @@ function useSimulationSend(
     (text: string) => {
       const deps = depsRef.current;
       const refs = refsRef.current;
+      const stackDepth = refs.compositionStackRef.current.length;
+      const isChildActive = stackDepth > 0;
       console.log('[sim:send] routing message', {
         text: text.slice(0, 50),
         appType: deps.appType,
         loading: deps.loading,
-        stackDepth: refs.compositionStackRef.current.length,
+        stackDepth,
+        isChildActive,
       });
       if (deps.loading) {
         console.log('[sim:send] BLOCKED: loading=true, ignoring');
         return;
       }
       const signal = abortAndCreateSignal();
-      if (deps.appType === 'agent') {
+      if (deps.appType === 'agent' || isChildActive) {
         sendAgentSim(deps, refs, signal, text);
         return;
       }
