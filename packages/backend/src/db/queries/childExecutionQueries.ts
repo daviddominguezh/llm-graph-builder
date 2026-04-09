@@ -83,3 +83,26 @@ export async function incrementChildAttempts(
     .eq('id', id);
   if (error !== null) throw new Error(`Failed to increment child execution attempts: ${error.message}`);
 }
+
+export interface ExecutionDetails {
+  agent_id: string;
+  version: number;
+  channel: string;
+  tenant_id: string;
+  external_user_id: string;
+}
+
+export async function getExecutionDetails(
+  supabase: SupabaseClient,
+  executionId: string
+): Promise<ExecutionDetails> {
+  const result: QueryResult<ExecutionDetails> = await supabase
+    .from('agent_executions')
+    .select('agent_id, version, channel, tenant_id, external_user_id')
+    .eq('id', executionId)
+    .single();
+  if (result.error !== null || result.data === null) {
+    throw new Error(`Failed to get execution details: ${result.error?.message ?? 'not found'}`);
+  }
+  return result.data;
+}
