@@ -8,7 +8,7 @@ interface QueryResult<T> {
   error: { message: string; code?: string } | null;
 }
 
-interface MessageRow {
+export interface MessageRow {
   id: string;
   session_id: string;
   execution_id: string;
@@ -74,20 +74,13 @@ export async function createExecution(
   return result.data.id;
 }
 
-interface ExecutionMessageRow {
-  role: string;
-  content: unknown;
-  tool_calls: unknown;
-  tool_call_id: unknown;
-}
-
 export async function getExecutionMessages(
   supabase: SupabaseClient,
   executionId: string
-): Promise<Array<{ role: string; content: unknown }>> {
-  const result: QueryResult<ExecutionMessageRow[]> = await supabase
+): Promise<MessageRow[]> {
+  const result: QueryResult<MessageRow[]> = await supabase
     .from('agent_execution_messages')
-    .select('role, content, tool_calls, tool_call_id')
+    .select('*')
     .eq('execution_id', executionId)
     .order('created_at', { ascending: true });
 
@@ -131,6 +124,36 @@ export async function saveExecutionMessage(
   if (result.error !== null) {
     throw new Error(`saveExecutionMessage: ${result.error.message}`);
   }
+}
+
+interface SaveRawMessageParams {
+  sessionId: string;
+  executionId: string;
+  nodeId: string;
+  role: string;
+  content: Record<string, unknown>;
+}
+
+export async function saveExecutionMessageRaw(
+  supabase: SupabaseClient,
+  params: SaveRawMessageParams
+): Promise<string> {
+  const result: QueryResult<{ id: string }> = await supabase
+    .from('agent_execution_messages')
+    .insert({
+      session_id: params.sessionId,
+      execution_id: params.executionId,
+      node_id: params.nodeId,
+      role: params.role,
+      content: params.content,
+    })
+    .select('id')
+    .single();
+
+  if (result.error !== null || result.data === null) {
+    throw new Error(`saveExecutionMessageRaw: ${result.error?.message ?? 'No data'}`);
+  }
+  return result.data.id;
 }
 
 interface SaveNodeVisitParams {
