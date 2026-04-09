@@ -1,5 +1,5 @@
 import type { CallAgentOutput, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
-import { executeWithCallbacks } from '@daviddh/llm-graph-runner';
+import { executeWithCallbacks, injectSystemTools } from '@daviddh/llm-graph-runner';
 import type { Request, Response } from 'express';
 
 import { consoleLogger } from '../logger.js';
@@ -74,7 +74,7 @@ async function runSimulation(body: SimulateRequest, session: McpSession, res: Re
     context,
     messages: body.messages,
     currentNode: body.currentNode,
-    toolsOverride: session.tools,
+    toolsOverride: injectSystemTools({ existingTools: session.tools, isChildAgent: false }),
     logger: consoleLogger,
     structuredOutputs: body.structuredOutputs,
     onNodeVisited: (nodeId: string) => {

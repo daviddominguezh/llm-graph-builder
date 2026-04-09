@@ -12,7 +12,7 @@ import type {
   Message,
   NodeProcessedEvent,
 } from '@daviddh/llm-graph-runner';
-import { VFSContext, executeAgentLoop, executeWithCallbacks, generateVFSTools } from '@daviddh/llm-graph-runner';
+import { VFSContext, executeAgentLoop, executeWithCallbacks, generateVFSTools, injectSystemTools } from '@daviddh/llm-graph-runner';
 import { GitHubSourceProvider } from '@daviddh/vfs-providers';
 import type { Tool } from 'ai';
 
@@ -317,7 +317,7 @@ async function runAgentExecution(
       apiKey: payload.apiKey,
       modelId: payload.modelId,
       maxSteps: payload.maxSteps ?? null,
-      tools: allTools,
+      tools: injectSystemTools({ existingTools: allTools, isChildAgent: false }),
     },
     {
       onStepStarted: (step: number) => {
@@ -370,7 +370,7 @@ async function runWorkflowExecution(
     logger: runnerLogger,
     messages: payload.messages,
     currentNode: payload.currentNodeId,
-    toolsOverride: allTools,
+    toolsOverride: injectSystemTools({ existingTools: allTools, isChildAgent: false }),
     structuredOutputs: payload.structuredOutputs,
     onNodeVisited: (nodeId: string) => {
       write({ type: 'node_visited', nodeId });
