@@ -13,10 +13,12 @@ export interface OrchestratorConfig {
   supabase: SupabaseClient;
 }
 
+export type DispatchType = 'create_agent' | 'invoke_agent' | 'invoke_workflow';
+
 export interface ChildDispatchedInfo {
   depth: number;
   parentDepth: number;
-  dispatchType: string;
+  dispatchType: DispatchType;
   task: string;
   parentToolCallId: string;
   toolName: string;

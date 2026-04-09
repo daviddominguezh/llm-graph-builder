@@ -1,11 +1,14 @@
-import { executeAgentLoop } from '@daviddh/llm-graph-runner';
 import type { Request, Response } from 'express';
 
+import { createServiceClient } from '../db/queries/executionAuthQueries.js';
 import { type McpSession, closeMcpSession, createMcpSession } from '../mcp/lifecycle.js';
 import { setSseHeaders } from './simulate.js';
 import {
   sendAgentError,
   sendAgentResponse,
+  sendChildDispatched,
+  sendChildFinished,
+  sendChildWaiting,
   sendStepProcessed,
   sendStepStarted,
   sendToolExecuted,
@@ -13,12 +16,19 @@ import {
 } from './simulateAgentSse.js';
 import type { SimulateAgentRequest } from './simulateAgentTypes.js';
 import { SimulateAgentRequestSchema } from './simulateAgentTypes.js';
+import { runSimulationOrchestration } from './simulationOrchestrator.js';
+import type {
+  OrchestratorCallbacks,
+  OrchestratorConfig,
+  OrchestratorResult,
+} from './simulationOrchestratorTypes.js';
 
 const EMPTY_SESSION: McpSession = { clients: [], tools: {} };
 const HTTP_BAD_REQUEST = 400;
 const JSON_NO_INDENT = 0;
 const PREVIEW_LENGTH = 80;
 const ZERO = 0;
+const DEFAULT_MAX_NESTING_DEPTH = 10;
 
 function log(label: string, data?: unknown): void {
   const prefix = '[simulateAgent]';
@@ -29,37 +39,6 @@ function log(label: string, data?: unknown): void {
   process.stderr.write(`${prefix} ${label}: ${JSON.stringify(data, null, JSON_NO_INDENT)}\n`);
 }
 
-async function runAgentSimulation(
-  body: SimulateAgentRequest,
-  session: McpSession,
-  res: Response
-): Promise<void> {
-  const result = await executeAgentLoop(
-    {
-      systemPrompt: body.systemPrompt,
-      context: body.context,
-      messages: body.messages,
-      apiKey: body.apiKey,
-      modelId: body.modelId,
-      maxSteps: body.maxSteps,
-      tools: session.tools,
-      skills: body.skills,
-    },
-    {
-      onStepStarted: (step: number) => {
-        sendStepStarted(res, step);
-      },
-      onStepProcessed: (event) => {
-        sendStepProcessed(res, event);
-      },
-      onToolExecuted: (event) => {
-        sendToolExecuted(res, event);
-      },
-    }
-  );
-  sendAgentResponse(res, result);
-}
-
 function buildLogPayload(body: SimulateAgentRequest): Record<string, unknown> {
   return {
     systemPrompt: body.systemPrompt.slice(ZERO, PREVIEW_LENGTH),
@@ -68,6 +47,48 @@ function buildLogPayload(body: SimulateAgentRequest): Record<string, unknown> {
     mcpServerCount: body.mcpServers.length,
     modelId: body.modelId,
   };
+}
+
+function buildCallbacks(res: Response): OrchestratorCallbacks {
+  return {
+    onStepStarted: (step, depth) => {
+      sendStepStarted(res, step, depth);
+    },
+    onStepProcessed: (event, depth) => {
+      sendStepProcessed(res, event, depth);
+    },
+    onToolExecuted: (event, depth) => {
+      sendToolExecuted(res, event, depth);
+    },
+    onChildDispatched: (info) => {
+      sendChildDispatched(res, info);
+    },
+    onChildFinished: (info) => {
+      sendChildFinished(res, info);
+    },
+    onChildWaiting: (depth, text) => {
+      sendChildWaiting(res, depth, text);
+    },
+  };
+}
+
+function buildOrchestratorConfig(body: SimulateAgentRequest, session: McpSession): OrchestratorConfig {
+  const depth = body.composition?.depth ?? ZERO;
+  const supabase = createServiceClient();
+  return {
+    body,
+    session,
+    depth,
+    maxNestingDepth: DEFAULT_MAX_NESTING_DEPTH,
+    orgId: body.orgId ?? '',
+    supabase,
+  };
+}
+
+function handleOrchestratorResult(res: Response, result: OrchestratorResult, depth: number): void {
+  if (result.type === 'completed' && depth === ZERO) {
+    sendAgentResponse(res, result.result);
+  }
 }
 
 export async function handleSimulateAgent(
@@ -82,18 +103,20 @@ export async function handleSimulateAgent(
     return;
   }
   const { body } = req;
-  const { mcpServers } = body;
   log('validated', buildLogPayload(body));
   setSseHeaders(res);
   let session: McpSession = EMPTY_SESSION;
   try {
-    log('creating MCP session', { serverCount: mcpServers.length });
-    session = await createMcpSession(mcpServers);
+    log('creating MCP session', { serverCount: body.mcpServers.length });
+    session = await createMcpSession(body.mcpServers);
     log('MCP session created', {
       toolCount: Object.keys(session.tools).length,
       toolNames: Object.keys(session.tools),
     });
-    await runAgentSimulation(body, session, res);
+    const config = buildOrchestratorConfig(body, session);
+    const callbacks = buildCallbacks(res);
+    const result = await runSimulationOrchestration(config, callbacks);
+    handleOrchestratorResult(res, result, config.depth);
     log('simulation complete');
     writeAgentSSE(res, { type: 'simulation_complete' });
   } catch (err) {

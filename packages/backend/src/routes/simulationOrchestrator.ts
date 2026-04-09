@@ -12,6 +12,7 @@ import {
   findDispatchToolCall,
 } from './simulationOrchestratorHelpers.js';
 import type {
+  DispatchType,
   OrchestratorCallbacks,
   OrchestratorConfig,
   OrchestratorResult,
@@ -164,7 +165,7 @@ interface DispatchContext {
   toolName: string;
 }
 
-function notifyChildDispatched(ctx: DispatchContext, dispatchType: string, task: string): void {
+function notifyChildDispatched(ctx: DispatchContext, dispatchType: DispatchType, task: string): void {
   const childDepth = ctx.config.depth + INCREMENT;
   ctx.callbacks.onChildDispatched({
     depth: childDepth,
