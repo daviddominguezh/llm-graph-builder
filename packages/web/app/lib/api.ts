@@ -227,6 +227,18 @@ const SseEventSchema = z.object({
   status: z.string().optional(),
   // Simulation composition fields
   ...SimCompositionSchemaFields,
+  // Child config (resolved by backend for workflow dispatch)
+  childConfig: z
+    .object({
+      systemPrompt: z.string(),
+      context: z.string(),
+      modelId: z.string(),
+      maxSteps: z.number().nullable(),
+      apiKey: z.string(),
+    })
+    .optional(),
+  // Dispatch params passthrough
+  params: z.record(z.string(), z.unknown()).optional(),
 });
 
 type SseEvent = z.infer<typeof SseEventSchema>;
