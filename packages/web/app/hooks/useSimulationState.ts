@@ -5,6 +5,7 @@ import { useCallback, useRef, useState } from 'react';
 
 import type { ConversationEntry, NodeResult, SimulationTokens } from '../types/simulation';
 import { START_NODE_ID } from '../utils/graphContext';
+import type { CompositionLevel } from './useCompositionStack';
 import type { FullSetters, GraphSnapshot } from './useSimulationHelpers';
 
 const DEFAULT_MODEL_ID = 'x-ai/grok-4.1-fast';
@@ -30,6 +31,7 @@ export interface SimulationHookState {
   structuredOutputs: Record<string, unknown[]>;
   conversationEntries: ConversationEntry[];
   turnCount: number;
+  compositionStack: CompositionLevel[];
   modelId: string;
   setModelId: React.Dispatch<React.SetStateAction<string>>;
   snapshotRef: React.RefObject<GraphSnapshot | null>;
@@ -83,6 +85,7 @@ interface CoreStateValues {
   structuredOutputs: Record<string, unknown[]>;
   conversationEntries: ConversationEntry[];
   turnCount: number;
+  compositionStack: CompositionLevel[];
 }
 
 interface CoreDispatchers {
@@ -97,6 +100,7 @@ interface CoreDispatchers {
   setStructuredOutputs: React.Dispatch<React.SetStateAction<Record<string, unknown[]>>>;
   setConversationEntries: React.Dispatch<React.SetStateAction<ConversationEntry[]>>;
   setTurnCount: React.Dispatch<React.SetStateAction<number>>;
+  setCompositionStack: React.Dispatch<React.SetStateAction<CompositionLevel[]>>;
 }
 
 interface CoreStateResult {
@@ -116,6 +120,7 @@ function useSimCoreState(): CoreStateResult {
   const [structuredOutputs, setStructuredOutputs] = useState<Record<string, unknown[]>>({});
   const [conversationEntries, setConversationEntries] = useState<ConversationEntry[]>([]);
   const [turnCount, setTurnCount] = useState(INITIAL_TOKEN_COUNT);
+  const [compositionStack, setCompositionStack] = useState<CompositionLevel[]>([]);
   return {
     values: {
       active,
@@ -129,6 +134,7 @@ function useSimCoreState(): CoreStateResult {
       structuredOutputs,
       conversationEntries,
       turnCount,
+      compositionStack,
     },
     dispatchers: {
       setActive,
@@ -142,6 +148,7 @@ function useSimCoreState(): CoreStateResult {
       setStructuredOutputs,
       setConversationEntries,
       setTurnCount,
+      setCompositionStack,
     },
   };
 }
