@@ -1,6 +1,9 @@
 import type { McpTransport } from '@/app/schemas/graph.schema';
 import { z } from 'zod';
 
+import type { SimCompositionCallbacks } from './sseSimComposition';
+import { SimCompositionSchemaFields, dispatchSimCompositionEvent } from './sseSimComposition';
+
 const SSE_DATA_PREFIX = 'data: ';
 const EMPTY_LENGTH = 0;
 
@@ -164,7 +167,7 @@ export interface NodeProcessedEvent {
   structuredOutput?: { nodeId: string; data: unknown };
 }
 
-export interface StreamCallbacks {
+export interface StreamCallbacks extends SimCompositionCallbacks {
   onNodeVisited?: (nodeId: string) => void;
   onNodeProcessed?: (event: NodeProcessedEvent) => void;
   onAgentResponse?: (event: AgentResponseEvent) => void;
@@ -221,6 +224,8 @@ const SseEventSchema = z.object({
   childAppType: z.string().optional(),
   parentExecutionId: z.string().optional(),
   status: z.string().optional(),
+  // Simulation composition fields
+  ...SimCompositionSchemaFields,
 });
 
 type SseEvent = z.infer<typeof SseEventSchema>;
@@ -299,6 +304,7 @@ function handleChildCompleted(event: SseEvent, callbacks: StreamCallbacks): void
 }
 
 function dispatchSseEvent(event: SseEvent, callbacks: StreamCallbacks): void {
+  if (dispatchSimCompositionEvent(event, callbacks)) return;
   if (event.type === 'node_visited') {
     handleNodeVisited(event, callbacks);
   } else if (event.type === 'node_processed') {
