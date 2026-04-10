@@ -62,7 +62,7 @@ function handleStart(state: CompositionState, rootMessages: Message[]): Composit
 
 function buildPushParams(event: SimChildDispatchedEvent, parentMessages: Message[]): PushChildParams {
   return {
-    appType: (event.dispatchType as 'agent' | 'workflow') || 'agent',
+    appType: event.dispatchType === 'invoke_workflow' ? 'workflow' : 'agent',
     dispatchParams: {},
     parentToolCallId: event.parentToolCallId,
     toolName: event.toolName,
