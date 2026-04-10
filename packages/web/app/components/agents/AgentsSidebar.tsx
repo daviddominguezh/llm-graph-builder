@@ -8,7 +8,7 @@ import { Plus, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useTemplatesPrefetch } from '@/app/hooks/useTemplatesPrefetch';
 
@@ -128,12 +128,15 @@ function AgentList({
   );
 }
 
-export function AgentsSidebar({ agents, orgId, orgSlug }: AgentsSidebarProps) {
+export function AgentsSidebar({ agents: serverAgents, orgId, orgSlug }: AgentsSidebarProps) {
   const pathname = usePathname();
   const [createOpen, setCreateOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const { collapsed } = useAgentsSidebar();
+  const { collapsed, agents: contextAgents, syncAgents } = useAgentsSidebar();
   const prefetchedTemplates = useTemplatesPrefetch();
+  const agents = contextAgents.length > 0 ? contextAgents : serverAgents;
+
+  useEffect(() => syncAgents(serverAgents), [serverAgents, syncAgents]);
 
   if (collapsed) {
     return (

@@ -1,5 +1,6 @@
 'use client';
 
+import { useAgentsSidebar } from '@/app/components/agents/AgentsSidebarContext';
 import { sendOperations } from '@/app/lib/graphApi';
 import type { Operation } from '@daviddh/graph-types';
 import { useCallback, useRef, useState } from 'react';
@@ -17,6 +18,7 @@ export interface UseOperationQueueReturn {
 }
 
 export function useOperationQueue(agentId: string | undefined): UseOperationQueueReturn {
+  const { touchAgent } = useAgentsSidebar();
   const queueRef = useRef<Operation[]>([]);
   const flushGenRef = useRef(EMPTY_COUNT);
   const [pendingCount, setPendingCount] = useState(EMPTY_COUNT);
@@ -39,6 +41,7 @@ export function useOperationQueue(agentId: string | undefined): UseOperationQueu
     try {
       await sendOperations(agentId, ops);
       setPendingCount(queueRef.current.length);
+      touchAgent(agentId);
     } catch (error: unknown) {
       if (gen === flushGenRef.current) {
         queueRef.current = [...ops, ...queueRef.current];
@@ -46,7 +49,7 @@ export function useOperationQueue(agentId: string | undefined): UseOperationQueu
       setPendingCount(queueRef.current.length);
       throw error;
     }
-  }, [agentId]);
+  }, [agentId, touchAgent]);
 
   const clearQueue = useCallback(() => {
     flushGenRef.current++;
