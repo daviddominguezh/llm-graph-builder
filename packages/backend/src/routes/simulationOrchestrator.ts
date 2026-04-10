@@ -123,10 +123,7 @@ async function continueParentAfterError(
   );
   params.config.body.messages.push(toolResultMsg);
 
-  const loopConfig = buildLoopConfig(params.config);
-  const loopCallbacks = buildLoopCallbacks(params.config, params.callbacks);
-  const parentResult = await executeAgentLoop(loopConfig, loopCallbacks);
-  return completedResult(parentResult);
+  return await rerunParentWithToolResult(params);
 }
 
 /* ─── Process child outcome ─── */
