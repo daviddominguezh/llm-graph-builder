@@ -157,7 +157,7 @@ async function reinvokeParent(
       tenantId: parentExec.tenant_id,
       userId: parentExec.external_user_id,
       sessionId: data.sessionId,
-      message: { text: data.childOutput },
+      message: { text: '' },
       channel: toChannel(parentExec.channel),
       stream: false,
     },

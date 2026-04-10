@@ -19,6 +19,14 @@ import type { AgentExecutionInput } from './executeTypes.js';
 
 /* ─── Public types ─── */
 
+export interface OverrideAgentConfig {
+  systemPrompt: string;
+  context: string;
+  maxSteps: number | null;
+  modelId?: string;
+  isChildAgent?: boolean;
+}
+
 export interface ExecuteCoreInput {
   supabase: SupabaseClient;
   orgId: string;
@@ -29,6 +37,11 @@ export interface ExecuteCoreInput {
   conversationId?: string;
   /** When set, reuse an existing execution record instead of creating a new one */
   continueExecutionId?: string;
+  /**
+   * When set, overrides the agent config loaded from the published agent version.
+   * Used for dynamically created children (create_agent) which have no published agent.
+   */
+  overrideAgentConfig?: OverrideAgentConfig;
 }
 
 export interface ExecuteCoreOutput {
@@ -68,11 +81,12 @@ async function setupExecution(params: ExecuteCoreInput): Promise<SetupResult> {
   const fetched = await fetchAllCoreData({ supabase, agentId, orgId, version, input, model });
   logExec('core:fetched', { appType: fetched.appType, node: fetched.currentNodeId });
 
-  fetched.messageHistory = [...fetched.messageHistory, buildUserMessage(input)];
-
+  /* On continue, the parent's message history already contains the tool result — skip adding a user message */
   if (params.continueExecutionId !== undefined) {
     return { fetched, executionId: params.continueExecutionId, conversationId: null, model };
   }
+
+  fetched.messageHistory = [...fetched.messageHistory, buildUserMessage(input)];
 
   const [{ executionId }, conversationId] = await Promise.all([
     persistPreExecution(supabase, {
@@ -179,9 +193,12 @@ async function persistCoreResult(supabase: SupabaseClient, params: PersistCorePa
     nodeData: params.nodeData,
   });
 
-  await persistMessagingPostExecution(supabase, {
-    conversationId: params.conversationId,
-    responseText: params.output.text ?? '',
-    tenantId: params.input.tenantId,
-  });
+  /* Skip messaging persistence on continue — conversationId is null when resuming a parent */
+  if (params.conversationId !== null) {
+    await persistMessagingPostExecution(supabase, {
+      conversationId: params.conversationId,
+      responseText: params.output.text ?? '',
+      tenantId: params.input.tenantId,
+    });
+  }
 }

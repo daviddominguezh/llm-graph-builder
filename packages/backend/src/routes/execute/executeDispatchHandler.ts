@@ -221,7 +221,19 @@ async function suspendParentExecution(supabase: SupabaseClient, executionId: str
   }
 }
 
-/* ─── Main handler ─── */
+/*
+ * ─── Main handler ───
+ *
+ * Idempotency guarantees:
+ * - `pending_child_executions.execution_id` has a UNIQUE constraint, preventing duplicate dispatch
+ *   rows for the same child execution.
+ * - If a stack entry exists but the pending row was not written (partial failure), the child
+ *   will never execute — the pending-child worker only picks up rows from the pending table.
+ * - Orphaned "suspended" parent executions are recovered by the resume worker timeout, which
+ *   marks them as failed after a configurable interval.
+ * - Full transaction wrapping is not possible with the Supabase JS client; the above constraints
+ *   provide equivalent safety via idempotent writes and timeout-based recovery.
+ */
 
 export async function handleDispatchResult(params: DispatchHandlerParams): Promise<void> {
   const currentDepth = await assertDepthLimit(params.supabase, params.sessionId);
