@@ -110,7 +110,7 @@ export function useAutoResumeParent(
       mcpServers: deps.mcpServers,
       outputSchemas: deps.outputSchemas,
       allMessages: snap.rootMessages,
-      currentNode: deps.currentNode,
+      currentNode: snap.parentCurrentNode ?? deps.currentNode,
       preset: deps.preset,
       apiKeyId: deps.apiKeyId,
       modelId: deps.modelId,

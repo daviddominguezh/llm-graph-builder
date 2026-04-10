@@ -50,6 +50,12 @@ export function buildMergedCallbacks(deps: SendMessageDeps, store: CompositionSt
   let lastResponseText = '';
   const baseOnNodeProcessed = base.onNodeProcessed;
 
+  const baseOnNodeVisited = base.onNodeVisited;
+  base.onNodeVisited = (nodeId: string) => {
+    const snap = store.getSnapshot();
+    if (snap.stack.length > 0) return; // Child active — don't update canvas/currentNode
+    baseOnNodeVisited?.(nodeId);
+  };
   base.onNodeProcessed = (event) => {
     baseOnNodeProcessed?.(event);
     if (event.text !== undefined && event.text !== '') {
@@ -61,7 +67,12 @@ export function buildMergedCallbacks(deps: SendMessageDeps, store: CompositionSt
     ...base,
     onSimChildDispatched: (event) => {
       const snap = store.getSnapshot();
-      store.dispatch({ type: 'CHILD_DISPATCHED', event, parentMessages: snap.rootMessages });
+      store.dispatch({
+        type: 'CHILD_DISPATCHED',
+        event,
+        parentMessages: snap.rootMessages,
+        parentCurrentNode: deps.currentNode,
+      });
     },
     onSimChildFinished: (event) => {
       const status = event.status === 'error' ? 'error' : 'success';

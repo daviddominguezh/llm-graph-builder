@@ -4,7 +4,7 @@ import type { ApiKeyRow } from '@/app/lib/apiKeys';
 import { useEditorCache } from '@/app/components/editors/EditorCacheProvider';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Bot, PanelLeftClose, PanelLeftOpen, Radio, Settings } from 'lucide-react';
+import { Brain, PanelLeftClose, PanelLeftOpen, Radio, Settings } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -36,7 +36,7 @@ interface EditorTabsProps {
 }
 
 const TAB_ICONS: Record<TabId, LucideIcon> = {
-  agent: Bot,
+  agent: Brain,
   channels: Radio,
   settings: Settings,
 };

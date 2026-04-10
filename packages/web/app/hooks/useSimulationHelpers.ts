@@ -150,7 +150,8 @@ export function buildStreamCallbacks(deps: StreamCallbackDeps): StreamCallbacks 
   let lastResponseText = '';
   return {
     onNodeVisited: (nodeId: string) => {
-      setters.setCurrentNode(nodeId);
+      const displayId = nodeId.startsWith('step-') ? `Step ${nodeId.slice('step-'.length)}` : nodeId;
+      setters.setCurrentNode(displayId);
       setters.setVisitedNodes((prev) => [...prev, nodeId]);
       onZoomToNode(nodeId);
       onSelectNode(nodeId);

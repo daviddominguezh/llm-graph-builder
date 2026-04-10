@@ -49,6 +49,7 @@ describe('compositionMachine – transition', () => {
       type: 'CHILD_DISPATCHED',
       event,
       parentMessages: parentMsgs,
+      parentCurrentNode: 'test-node',
     });
 
     expect(next.stack).toHaveLength(1);
@@ -74,6 +75,7 @@ describe('compositionMachine – transition', () => {
       type: 'CHILD_DISPATCHED',
       event,
       parentMessages: parentMsgs,
+      parentCurrentNode: 'test-node',
     });
 
     expect(next.childConfig).toEqual(childConfig);
@@ -100,6 +102,7 @@ describe('compositionMachine – transition', () => {
       type: 'CHILD_DISPATCHED',
       event: makeDispatchedEvent(),
       parentMessages: parentMsgs,
+      parentCurrentNode: 'test-node',
     });
 
     const next = transition(dispatched, { type: 'USER_MESSAGE', text: 'hello child' });
@@ -135,6 +138,7 @@ describe('compositionMachine – transition', () => {
       type: 'CHILD_DISPATCHED',
       event: makeDispatchedEvent(),
       parentMessages: parentMsgs,
+      parentCurrentNode: 'test-node',
     });
     const childRunning = transition(dispatched, { type: 'CHILD_AUTO_SENT' });
 
@@ -155,6 +159,7 @@ describe('compositionMachine – transition', () => {
       type: 'CHILD_DISPATCHED',
       event: makeDispatchedEvent(),
       parentMessages: rootMsgs,
+      parentCurrentNode: 'test-node',
     });
     const childRunning = transition(dispatched, { type: 'CHILD_AUTO_SENT' });
 
@@ -208,6 +213,7 @@ describe('compositionMachine – transition', () => {
         type: 'CHILD_DISPATCHED',
         event: makeDispatchedEvent(),
         parentMessages: rootMsgs,
+        parentCurrentNode: 'test-node',
       });
       expect(state.phase).toBe('child_dispatched');
       expect(state.stack).toHaveLength(1);

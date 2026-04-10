@@ -27,6 +27,7 @@ export interface CompositionState {
   phase: CompositionPhase;
   pendingDispatch: PendingChildDispatch | null;
   childConfig: ChildAgentConfig | null;
+  parentCurrentNode: string | null;
 }
 
 export interface PendingChildDispatch {
@@ -37,7 +38,12 @@ export interface PendingChildDispatch {
 
 export type CompositionEvent =
   | { type: 'START'; rootMessages: Message[] }
-  | { type: 'CHILD_DISPATCHED'; event: SimChildDispatchedEvent; parentMessages: Message[] }
+  | {
+      type: 'CHILD_DISPATCHED';
+      event: SimChildDispatchedEvent;
+      parentMessages: Message[];
+      parentCurrentNode: string;
+    }
   | { type: 'CHILD_AUTO_SENT' }
   | { type: 'CHILD_RESPONSE'; text: string }
   | { type: 'USER_MESSAGE'; text: string }
@@ -52,6 +58,7 @@ export const INITIAL_STATE: CompositionState = {
   phase: 'idle',
   pendingDispatch: null,
   childConfig: null,
+  parentCurrentNode: null,
 };
 
 /* ─── Event handlers ─── */
@@ -75,7 +82,8 @@ function buildPushParams(event: SimChildDispatchedEvent, parentMessages: Message
 function handleChildDispatched(
   state: CompositionState,
   event: SimChildDispatchedEvent,
-  parentMessages: Message[]
+  parentMessages: Message[],
+  parentCurrentNode: string
 ): CompositionState {
   const params = buildPushParams(event, parentMessages);
   const stack = pushChild(state.stack, params);
@@ -90,6 +98,7 @@ function handleChildDispatched(
     phase: 'child_dispatched',
     pendingDispatch: pending,
     childConfig: event.childConfig ?? null,
+    parentCurrentNode,
   };
 }
 
@@ -140,7 +149,7 @@ export function transition(state: CompositionState, event: CompositionEvent): Co
     case 'START':
       return handleStart(state, event.rootMessages);
     case 'CHILD_DISPATCHED':
-      return handleChildDispatched(state, event.event, event.parentMessages);
+      return handleChildDispatched(state, event.event, event.parentMessages, event.parentCurrentNode);
     case 'CHILD_AUTO_SENT':
       return handleChildAutoSent(state);
     case 'USER_MESSAGE':
