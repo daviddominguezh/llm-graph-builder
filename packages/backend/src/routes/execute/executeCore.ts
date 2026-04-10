@@ -5,13 +5,14 @@ import type { NodeProcessedData } from './edgeFunctionClient.js';
 import { executeAgent } from './edgeFunctionClient.js';
 import { dispatchIfNeeded } from './executeCoreDispatch.js';
 import {
+  type BuildCoreParamsOptions,
   buildCoreExecuteParams,
   fetchAllCoreData,
   persistMessagingPostExecution,
   persistMessagingPreExecution,
   resolveVfsCorePayload,
 } from './executeCoreHelpers.js';
-import type { FetchedData } from './executeFetcher.js';
+import type { FetchedData, OverrideAgentConfig } from './executeFetcher.js';
 import { buildUserMessage, extractTextFromInput, logExec } from './executeHelpers.js';
 import { persistPostExecution, persistPreExecution } from './executePersistence.js';
 import { getLastVisitedNode, mergeStructuredOutputs } from './executeResponseBuilders.js';
@@ -19,13 +20,7 @@ import type { AgentExecutionInput } from './executeTypes.js';
 
 /* ─── Public types ─── */
 
-export interface OverrideAgentConfig {
-  systemPrompt: string;
-  context: string;
-  maxSteps: number | null;
-  modelId?: string;
-  isChildAgent?: boolean;
-}
+export type { OverrideAgentConfig };
 
 export interface ExecuteCoreInput {
   supabase: SupabaseClient;
@@ -76,9 +71,17 @@ interface SetupResult {
 
 async function setupExecution(params: ExecuteCoreInput): Promise<SetupResult> {
   const { supabase, orgId, agentId, version, input } = params;
-  const model = input.model ?? DEFAULT_MODEL;
+  const model = params.overrideAgentConfig?.modelId ?? input.model ?? DEFAULT_MODEL;
 
-  const fetched = await fetchAllCoreData({ supabase, agentId, orgId, version, input, model });
+  const fetched = await fetchAllCoreData({
+    supabase,
+    agentId,
+    orgId,
+    version,
+    input,
+    model,
+    overrideAgentConfig: params.overrideAgentConfig,
+  });
   logExec('core:fetched', { appType: fetched.appType, node: fetched.currentNodeId });
 
   /* On continue, the parent's message history already contains the tool result — skip adding a user message */
@@ -136,7 +139,11 @@ export async function executeAgentCore(
 
   const { fetched, executionId, conversationId, model } = await setupExecution(params);
   const vfsPayload = await resolveVfsCorePayload(supabase, fetched, params.agentId, params.orgId);
-  const edgeParams = buildCoreExecuteParams(fetched, input, model, vfsPayload);
+  const buildOptions: BuildCoreParamsOptions = {
+    vfsPayload,
+    overrideAgentConfig: params.overrideAgentConfig,
+  };
+  const edgeParams = buildCoreExecuteParams(fetched, input, model, buildOptions);
   const startTime = Date.now();
 
   const { output, nodeData } = await executeAgent(edgeParams, {

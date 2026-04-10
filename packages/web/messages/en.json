@@ -193,6 +193,7 @@
     }
   },
   "simulation": {
+    "title": "Simulation",
     "toolInput": "Input",
     "toolOutput": "Output",
     "reasoning": "Reasoning",

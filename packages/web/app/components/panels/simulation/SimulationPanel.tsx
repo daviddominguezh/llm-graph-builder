@@ -110,7 +110,7 @@ function SimulationHeader({
   return (
     <div className="flex flex-col gap-1 border-b px-3 py-2">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold">Simulation</span>
+        <span className="text-sm font-semibold">{t('title')}</span>
         <div className="flex items-center gap-0.5">
           <Button
             variant="ghost"

@@ -5,7 +5,7 @@ import { findOrCreateConversation } from '../../messaging/queries/conversationQu
 import { insertMessage, insertMessageAi } from '../../messaging/queries/messageQueries.js';
 import { publishToTenant } from '../../messaging/services/redis.js';
 import type { ExecuteAgentParams, VfsEdgeFunctionPayload } from './edgeFunctionClient.js';
-import type { FetchedData } from './executeFetcher.js';
+import type { AgentConfig, FetchedData, OverrideAgentConfig } from './executeFetcher.js';
 import {
   fetchAgentConfig,
   fetchGraphAndKeys,
@@ -28,6 +28,19 @@ interface FetchAllParams {
   version: number;
   input: AgentExecutionInput;
   model: string;
+  overrideAgentConfig?: OverrideAgentConfig;
+}
+
+function resolveAgentConfig(params: FetchAllParams, appType: string): Promise<AgentConfig> | null {
+  const { overrideAgentConfig } = params;
+  if (overrideAgentConfig !== undefined) {
+    const { systemPrompt, context, maxSteps } = overrideAgentConfig;
+    return Promise.resolve({ systemPrompt, context, maxSteps });
+  }
+  if (appType === 'agent') {
+    return fetchAgentConfig(params.supabase, params.agentId, params.version);
+  }
+  return null;
 }
 
 export async function fetchAllCoreData(params: FetchAllParams): Promise<FetchedData> {
@@ -44,8 +57,7 @@ export async function fetchAllCoreData(params: FetchAllParams): Promise<FetchedD
     graphAndKeys.envVars.byId
   );
   const resolvedGraph = await resolveOAuthForExecution(supabase, envResolvedGraph, orgId);
-  const agentConfig =
-    graphAndKeys.appType === 'agent' ? await fetchAgentConfig(supabase, agentId, version) : null;
+  const agentConfig = await resolveAgentConfig(params, graphAndKeys.appType);
   return { ...graphAndKeys, ...sessionData, graph: resolvedGraph, agentConfig, vfsSettings };
 }
 
@@ -70,11 +82,29 @@ export async function resolveVfsCorePayload(
 
 /* ─── Build edge function params ─── */
 
+export interface BuildCoreParamsOptions {
+  vfsPayload: VfsEdgeFunctionPayload | undefined;
+  overrideAgentConfig?: OverrideAgentConfig;
+}
+
+function buildAgentExecuteParams(
+  base: ExecuteAgentParams,
+  fetched: FetchedData,
+  options: BuildCoreParamsOptions
+): ExecuteAgentParams {
+  if (fetched.agentConfig === null) return base;
+  const agentParams = { ...base, ...fetched.agentConfig };
+  if (options.overrideAgentConfig?.isChildAgent === true) {
+    return { ...agentParams, isChildAgent: true };
+  }
+  return agentParams;
+}
+
 export function buildCoreExecuteParams(
   fetched: FetchedData,
   input: AgentExecutionInput,
   model: string,
-  vfsPayload: VfsEdgeFunctionPayload | undefined
+  options: BuildCoreParamsOptions
 ): ExecuteAgentParams {
   const base: ExecuteAgentParams = {
     appType: fetched.appType === 'agent' ? 'agent' : 'workflow',
@@ -90,11 +120,11 @@ export function buildCoreExecuteParams(
     tenantID: input.tenantId,
     userID: input.userId,
     isFirstMessage: fetched.isNew,
-    vfs: vfsPayload,
+    vfs: options.vfsPayload,
   };
 
-  if (fetched.appType === 'agent' && fetched.agentConfig !== null) {
-    return { ...base, ...fetched.agentConfig };
+  if (fetched.appType === 'agent') {
+    return buildAgentExecuteParams(base, fetched, options);
   }
 
   return base;

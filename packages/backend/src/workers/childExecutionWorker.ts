@@ -13,6 +13,7 @@ import { createPendingResume } from '../db/queries/resumeQueries.js';
 import { getStackTop } from '../db/queries/stackQueries.js';
 import type { ExecuteCoreInput, ExecuteCoreOutput } from '../routes/execute/executeCore.js';
 import { executeAgentCore } from '../routes/execute/executeCore.js';
+import type { OverrideAgentConfig } from '../routes/execute/executeFetcher.js';
 
 const POLL_INTERVAL_MS = 5000;
 const BATCH_SIZE = 10;
@@ -28,6 +29,21 @@ function log(msg: string): void {
 function extractTask(config: Record<string, unknown>): string {
   const { task } = config;
   return typeof task === 'string' ? task : '';
+}
+
+/* ─── Extract dynamic child override config ─── */
+
+function isDynamicChildConfig(config: Record<string, unknown>): boolean {
+  return typeof config.systemPrompt === 'string';
+}
+
+function extractOverrideConfig(config: Record<string, unknown>): OverrideAgentConfig {
+  const systemPrompt = typeof config.systemPrompt === 'string' ? config.systemPrompt : '';
+  const context = typeof config.context === 'string' ? config.context : '';
+  const maxSteps = typeof config.maxSteps === 'number' ? config.maxSteps : null;
+  const modelId = typeof config.modelId === 'string' ? config.modelId : undefined;
+  const isChildAgent = config.isChildAgent === true;
+  return { systemPrompt, context, maxSteps, modelId, isChildAgent };
 }
 
 /* ─── Validate channel value ─── */
@@ -54,7 +70,7 @@ async function buildCoreInput(
   const details = await getExecutionDetails(supabase, child.execution_id);
   const task = extractTask(child.agent_config);
 
-  return {
+  const base: ExecuteCoreInput = {
     supabase,
     orgId: child.org_id,
     agentId: details.agent_id,
@@ -68,6 +84,14 @@ async function buildCoreInput(
       stream: false,
     },
   };
+
+  // For dynamically created children (create_agent), the published agent is the parent.
+  // Use the resolved config stored in the pending row instead of loading the parent's config.
+  if (isDynamicChildConfig(child.agent_config)) {
+    return { ...base, overrideAgentConfig: extractOverrideConfig(child.agent_config) };
+  }
+
+  return base;
 }
 
 /* ─── Create pending resume from a finish result ─── */

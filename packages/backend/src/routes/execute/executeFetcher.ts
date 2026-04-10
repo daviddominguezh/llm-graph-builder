@@ -43,6 +43,8 @@ export interface AgentConfig {
   maxSteps: number | null;
 }
 
+export type { OverrideAgentConfig } from './executeOverrideTypes.js';
+
 /* ─── Fetched data shape ─── */
 
 export interface FetchedData {
