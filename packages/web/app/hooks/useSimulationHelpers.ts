@@ -12,7 +12,6 @@ import type { ConversationEntry, NodeResult, SimulationTokens } from '../types/s
 import { type GraphBuildInputs, buildContext, buildGraph } from '../utils/graphContext';
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
 import { stableJsonStringify } from '../utils/stableJsonHash';
-import type { CompositionLevel } from './useCompositionStack';
 
 export interface GraphSnapshot {
   nodes: Array<RFNode<RFNodeData>>;
@@ -30,7 +29,6 @@ export interface SimulationSetters {
   setStructuredOutputs: React.Dispatch<React.SetStateAction<Record<string, unknown[]>>>;
   setConversationEntries: React.Dispatch<React.SetStateAction<ConversationEntry[]>>;
   setTurnCount: React.Dispatch<React.SetStateAction<number>>;
-  setCompositionStack: React.Dispatch<React.SetStateAction<CompositionLevel[]>>;
   saveSnapshot: (s: GraphSnapshot | null) => void;
   getSnapshot: () => GraphSnapshot | null;
 }
