@@ -76,13 +76,13 @@ function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: 
       <StatusBar active={active} />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-1">
         <span className="flex items-center gap-1.5 truncate text-[10px] font-semibold font-mono">
-          <span className={`size-[7px] shrink-0 rounded-full ${colorClass}`} />
+          <span className={`size-[7px] ml-[2px] shrink-0 rounded-full ${colorClass}`} />
           {agent.name.toUpperCase()}
         </span>
         {agent.description ? (
-          <span className="line-clamp-1 text-[10px] text-muted-foreground">{agent.description}</span>
+          <span className="line-clamp-1 ml-[2px] text-[10px] text-muted-foreground">{agent.description}</span>
         ) : null}
-        <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
+        <div className="flex items-center ml-[2px] gap-2 text-[9px] text-muted-foreground">
           <span>v{agent.version}</span>
           <span>·</span>
           <span suppressHydrationWarning>{formatRelativeTime(agent.updated_at)}</span>

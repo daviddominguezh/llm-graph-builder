@@ -90,14 +90,16 @@ function findNextNodeAfterDispatch(
   sourceNodeId: string
 ): string | undefined {
   const edge = edges.find(
-    (e) =>
-      e.source === sourceNodeId &&
-      e.data?.preconditions?.some((p) => p.type === 'tool_call')
+    (e) => e.source === sourceNodeId && e.data?.preconditions?.some((p) => p.type === 'tool_call')
   );
   return edge?.target;
 }
 
-function resolveResumeNode(snapshot: GraphSnapshot | null, parentCurrentNode: string | null, fallback: string): string {
+function resolveResumeNode(
+  snapshot: GraphSnapshot | null,
+  parentCurrentNode: string | null,
+  fallback: string
+): string {
   if (parentCurrentNode === null) return fallback;
   if (snapshot === null) return parentCurrentNode;
   const nextNode = findNextNodeAfterDispatch(snapshot.edges, parentCurrentNode);
