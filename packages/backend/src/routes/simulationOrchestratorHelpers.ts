@@ -1,5 +1,5 @@
 import type { AgentToolCallRecord, DispatchSentinel, Message } from '@daviddh/llm-graph-runner';
-import { MESSAGES_PROVIDER, isDispatchSentinel } from '@daviddh/llm-graph-runner';
+import { MESSAGES_PROVIDER, isDispatchSentinel, unwrapToolOutput } from '@daviddh/llm-graph-runner';
 import { randomUUID } from 'node:crypto';
 
 import type { McpSession } from '../mcp/lifecycle.js';
@@ -81,7 +81,8 @@ export interface DispatchToolCallInfo {
  */
 export function findDispatchToolCall(toolCalls: AgentToolCallRecord[]): DispatchToolCallInfo | null {
   for (const tc of toolCalls) {
-    if (isDispatchSentinel(tc.output)) {
+    const raw = unwrapToolOutput(tc.output);
+    if (isDispatchSentinel(raw)) {
       return { toolCallId: tc.toolCallId, toolName: tc.toolName };
     }
   }
