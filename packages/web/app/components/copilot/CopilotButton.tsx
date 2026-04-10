@@ -19,15 +19,15 @@ export function CopilotButton() {
   const pathname = usePathname();
   const t = useTranslations('copilot');
 
-  if (isOpen || !isAgentsTab(pathname)) return null;
+  if (!isAgentsTab(pathname)) return null;
 
   return (
-    <div className="ml-12.5 flex shrink-0 justify-end">
+    <div className="mr-2 flex shrink-0 justify-end">
       <Button
         variant="ghost"
         size="sm"
-        className="h-6 gap-1 rounded-sm px-2 text-xs text-muted-foreground"
-        onClick={() => setOpen(true)}
+        className="h-6 gap-1 rounded-sm px-2 text-xs text-muted-foreground relative -mt-[1px]"
+        onClick={() => setOpen(!isOpen)}
       >
         <WandSparkles className="size-3" />
         {t('title')}
