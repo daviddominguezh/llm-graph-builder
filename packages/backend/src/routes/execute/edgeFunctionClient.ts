@@ -36,6 +36,7 @@ export interface ExecuteAgentParams {
   systemPrompt?: string;
   context?: string;
   maxSteps?: number | null;
+  isChildAgent?: boolean;
 }
 
 export interface ExecuteAgentCallbacks {

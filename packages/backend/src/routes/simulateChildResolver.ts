@@ -41,6 +41,7 @@ interface PublishedAgentGraphData {
 
 const EMPTY_LENGTH = 0;
 const DEFAULT_VERSION = 1;
+const LATEST_VERSION_LIMIT = 1;
 
 /* ─── Param extraction helpers ─── */
 
@@ -85,6 +86,33 @@ async function lookupAgentId(supabase: SupabaseClient, slug: string, orgId: stri
     throw new Error(`Agent not found: slug="${slug}" in org="${orgId}"`);
   }
   return row.id;
+}
+
+/* ─── Resolve version number, supporting 'latest' ─── */
+
+interface VersionRow {
+  version: number;
+}
+
+async function resolveVersion(
+  supabase: SupabaseClient,
+  params: Record<string, unknown>,
+  agentId: string
+): Promise<number> {
+  const { version: raw } = params;
+  if (raw === 'latest') {
+    const result = await supabase
+      .from('agent_versions')
+      .select('version')
+      .eq('agent_id', agentId)
+      .order('version', { ascending: false })
+      .limit(LATEST_VERSION_LIMIT)
+      .maybeSingle();
+    const row = result.data as VersionRow | null;
+    if (row === null) throw new Error(`No published versions for agent "${agentId}"`);
+    return row.version;
+  }
+  return numberOrNull(params, 'version') ?? DEFAULT_VERSION;
 }
 
 /* ─── Published version graph_data fetch ─── */
@@ -159,10 +187,10 @@ async function resolveInvokeAgent(
   orgId: string
 ): Promise<ResolvedChildConfig> {
   const slug = stringParam(params, 'agentSlug', '');
-  const version = numberOrNull(params, 'version') ?? DEFAULT_VERSION;
   if (slug === '') throw new Error('invoke_agent requires "agentSlug" param');
 
   const agentId = await lookupAgentId(supabase, slug, orgId);
+  const version = await resolveVersion(supabase, params, agentId);
   const graphData = await fetchVersionGraphData(supabase, agentId, version);
 
   return buildConfigFromGraphData(graphData, params);
@@ -190,10 +218,10 @@ async function resolveInvokeWorkflow(
   orgId: string
 ): Promise<ResolvedChildConfig> {
   const slug = stringParam(params, 'workflowSlug', '');
-  const version = numberOrNull(params, 'version') ?? DEFAULT_VERSION;
   if (slug === '') throw new Error('invoke_workflow requires "workflowSlug" param');
 
   const agentId = await lookupAgentId(supabase, slug, orgId);
+  const version = await resolveVersion(supabase, params, agentId);
   const graphData = await fetchVersionGraphData(supabase, agentId, version);
   const gd: PublishedAgentGraphData = isAgentGraphData(graphData) ? graphData : {};
   const baseContext = flattenContextItems(gd.contextItems);

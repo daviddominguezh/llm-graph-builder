@@ -51,6 +51,7 @@ interface ExecutePayload {
   systemPrompt?: string;
   context?: string;
   maxSteps?: number | null;
+  isChildAgent?: boolean;
 }
 
 const SSE_HEADERS = {
@@ -317,7 +318,7 @@ async function runAgentExecution(
       apiKey: payload.apiKey,
       modelId: payload.modelId,
       maxSteps: payload.maxSteps ?? null,
-      tools: injectSystemTools({ existingTools: allTools, isChildAgent: false }),
+      tools: injectSystemTools({ existingTools: allTools, isChildAgent: payload.isChildAgent ?? false }),
     },
     {
       onStepStarted: (step: number) => {
