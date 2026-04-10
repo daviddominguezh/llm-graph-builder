@@ -48,10 +48,12 @@ export function buildMergedCallbacks(deps: SendMessageDeps, store: CompositionSt
   const base = buildStreamCallbacks(deps);
   const baseOnComplete = base.onComplete;
   let lastResponseText = '';
+  let lastVisitedNode = deps.currentNode;
   const baseOnNodeProcessed = base.onNodeProcessed;
 
   const baseOnNodeVisited = base.onNodeVisited;
   base.onNodeVisited = (nodeId: string) => {
+    lastVisitedNode = nodeId; // Always track synchronously for dispatch
     const snap = store.getSnapshot();
     if (snap.stack.length > 0 || deps.appType === 'agent') {
       // Agent mode or child active: track visited nodes but keep currentNode as "Turn N"
@@ -75,7 +77,7 @@ export function buildMergedCallbacks(deps: SendMessageDeps, store: CompositionSt
         type: 'CHILD_DISPATCHED',
         event,
         parentMessages: snap.rootMessages,
-        parentCurrentNode: deps.currentNode,
+        parentCurrentNode: lastVisitedNode,
       });
     },
     onSimChildFinished: (event) => {
