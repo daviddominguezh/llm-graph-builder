@@ -54,6 +54,11 @@ export function buildMergedCallbacks(deps: SendMessageDeps, store: CompositionSt
   base.onNodeVisited = (nodeId: string) => {
     const snap = store.getSnapshot();
     if (snap.stack.length > 0) return; // Child active — don't update canvas/currentNode
+    if (deps.appType === 'agent') {
+      // Agent mode: track visited nodes but keep currentNode as "Turn N"
+      deps.setters.setVisitedNodes((prev) => [...prev, nodeId]);
+      return;
+    }
     baseOnNodeVisited?.(nodeId);
   };
   base.onNodeProcessed = (event) => {
@@ -155,9 +160,11 @@ export function sendAgentSim(
   signal: AbortSignal,
   text: string
 ): void {
-  store.dispatch({ type: 'USER_MESSAGE', text });
   const { setters } = deps;
-  resetBeforeSendComposition(setters, text);
+  const preSnap = store.getSnapshot();
+  const isTopLevelAgent = preSnap.stack.length === 0 && deps.appType === 'agent';
+  store.dispatch({ type: 'USER_MESSAGE', text });
+  resetBeforeSendComposition(setters, text, isTopLevelAgent);
   const snap = store.getSnapshot();
   const allMessages = getActiveMessages(snap.stack, [...deps.messages]);
   const params = buildAgentParams(deps, store, allMessages);
@@ -223,10 +230,18 @@ function resetBeforeSend(setters: SimulationSetters, text: string, userMsg: Mess
   advanceTurnCount(setters, false);
 }
 
-function resetBeforeSendComposition(setters: SimulationSetters, text: string): void {
+function resetBeforeSendComposition(
+  setters: SimulationSetters,
+  text: string,
+  isTopLevelAgent: boolean
+): void {
   setters.setLoading(true);
   setters.setLastUserText(text);
   setters.setConversationEntries((prev) => [...prev, { type: 'user' as const, text }]);
-  // Don't set currentNode — child turns should not pollute the workflow's current node
-  setters.setTurnCount((prev) => prev + TURN_INCREMENT);
+  setters.setTurnCount((prev) => {
+    const next = prev + TURN_INCREMENT;
+    // Only set currentNode for top-level agent sends — child turns must not pollute the parent's node
+    if (isTopLevelAgent) setters.setCurrentNode(`Turn ${String(next)}`);
+    return next;
+  });
 }

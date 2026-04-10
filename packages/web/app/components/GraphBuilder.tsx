@@ -492,6 +492,7 @@ function LoadedEditor(props: LoadedEditorProps) {
                 loading={h.simulation.loading}
                 currentNode={h.simulation.currentNode}
                 totalTokens={h.simulation.totalTokens}
+                turnCount={h.simulation.turnCount}
                 modelId={h.simulation.modelId}
                 onModelIdChange={h.simulation.setModelId}
                 onSendMessage={h.simulation.sendMessage}

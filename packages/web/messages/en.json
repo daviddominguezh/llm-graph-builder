@@ -213,7 +213,8 @@
     "clearTitle": "Clear simulation?",
     "clearDescription": "This will reset the conversation and all results.",
     "clearCancel": "Cancel",
-    "clearConfirm": "Clear"
+    "clearConfirm": "Clear",
+    "turn": "Turn"
   },
   "agentEditor": {
     "systemPrompt": "System prompt",

@@ -29,6 +29,7 @@ interface SimulationPanelProps {
   loading: boolean;
   currentNode: string;
   totalTokens: SimulationTokens;
+  turnCount: number;
   modelId: string;
   onModelIdChange: (id: string) => void;
   onSendMessage: (text: string) => void;
@@ -162,34 +163,39 @@ function ContentArea({ conversationEntries, scrollRef }: ContentAreaProps) {
   );
 }
 
-function ExecutingIndicator({ currentNode, hasTokens }: { currentNode: string, hasTokens: boolean }) {
+function ExecutingIndicator({ currentNode }: { currentNode: string }) {
   const t = useTranslations('simulation');
   return (
-    <div className={`flex items-center gap-1.5 px-3 pt-1.5 text-xs text-muted-foreground ${hasTokens ? '' : 'pb-0'}`}>
+    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
       <Loader2 className="size-3 animate-spin" />
       <span className="truncate text-[10px]">{t('executingNode', { node: currentNode })}</span>
     </div>
   );
 }
 
-function SimulationFooter({ totalTokens, loading, currentNode }: SimulationFooterProps) {
+function SimulationFooter({ totalTokens, turnCount, loading, currentNode }: SimulationFooterProps) {
   const t = useTranslations('simulation');
   const hasTokens = totalTokens.input > 0 || totalTokens.output > 0;
+  const showFooter = loading || hasTokens || turnCount > 0;
+  if (!showFooter) return null;
   return (
-    <div className="flex flex-col border-t">
-      {loading && <ExecutingIndicator hasTokens={hasTokens} currentNode={currentNode} />}
-      {hasTokens && (
-        <div className="flex items-center gap-1.5 px-3 pt-1">
-          <span className="text-[10px] font-medium text-muted-foreground">{t('totalTokens')}:</span>
-          <TokenDisplay tokens={totalTokens} />
-        </div>
-      )}
+    <div className="flex flex-col gap-0.5 border-t px-3 py-1.5">
+      {loading && <ExecutingIndicator currentNode={currentNode} />}
+      <div className="flex items-center gap-3">
+        {turnCount > 0 && (
+          <span className="text-[10px] font-medium text-muted-foreground">
+            {t('turn')} {String(turnCount)}
+          </span>
+        )}
+        {hasTokens && <TokenDisplay tokens={totalTokens} />}
+      </div>
     </div>
   );
 }
 
 interface SimulationFooterProps {
   totalTokens: SimulationTokens;
+  turnCount: number;
   loading: boolean;
   currentNode: string;
 }
@@ -219,7 +225,7 @@ export function SimulationPanel(props: SimulationPanelProps) {
       <div className="relative flex h-full w-full flex-col rounded-e-md border-r bg-background">
         <SimulationHeader visitedNodes={visitedNodes} onStop={onStop} onClear={props.onClear} />
         <ContentArea conversationEntries={props.conversationEntries} scrollRef={scrollRef} />
-        <SimulationFooter totalTokens={totalTokens} loading={loading} currentNode={currentNode} />
+        <SimulationFooter totalTokens={totalTokens} turnCount={props.turnCount} loading={loading} currentNode={currentNode} />
         <SimulationInput
           loading={loading}
           terminated={terminated}

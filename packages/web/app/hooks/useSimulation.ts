@@ -58,6 +58,7 @@ export interface SimulationState {
   nodeResults: NodeResult[];
   conversationEntries: ConversationEntry[];
   totalTokens: SimulationTokens;
+  turnCount: number;
   compositionPhase: CompositionPhase;
   modelId: string;
   setModelId: (id: string) => void;
@@ -202,6 +203,7 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
     nodeResults: s.nodeResults,
     conversationEntries: s.conversationEntries,
     totalTokens: s.totalTokens,
+    turnCount: s.turnCount,
     compositionPhase: comp.phase,
     modelId: s.modelId,
     setModelId: s.setModelId,
