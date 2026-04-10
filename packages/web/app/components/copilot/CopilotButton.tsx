@@ -30,7 +30,7 @@ export function CopilotButton() {
           size="sm"
           className={
             isOpen
-              ? 'relative h-6 gap-1 rounded-sm px-2 text-xs bg-accent text-accent-foreground -mt-[1px]'
+              ? 'relative h-6 gap-1 rounded-sm px-2 text-xs bg-accent text-accent-foreground hover:bg-accent/85 hover:text-accent-foreground -mt-[1px]'
               : 'relative h-6 gap-1 rounded-sm px-2 text-xs text-muted-foreground -mt-[1px]'
           }
           onClick={() => setOpen(!isOpen)}

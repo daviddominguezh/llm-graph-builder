@@ -30,6 +30,7 @@ interface SimulationPanelProps {
   currentNode: string;
   totalTokens: SimulationTokens;
   turnCount: number;
+  isAgent: boolean;
   modelId: string;
   onModelIdChange: (id: string) => void;
   onSendMessage: (text: string) => void;
@@ -173,16 +174,17 @@ function ExecutingIndicator({ currentNode }: { currentNode: string }) {
   );
 }
 
-function SimulationFooter({ totalTokens, turnCount, loading, currentNode }: SimulationFooterProps) {
+function SimulationFooter({ totalTokens, turnCount, isAgent, loading, currentNode }: SimulationFooterProps) {
   const t = useTranslations('simulation');
   const hasTokens = totalTokens.input > 0 || totalTokens.output > 0;
-  const showFooter = loading || hasTokens || turnCount > 0;
+  const showTurn = isAgent && turnCount > 0;
+  const showFooter = loading || hasTokens || showTurn;
   if (!showFooter) return null;
   return (
     <div className="flex flex-col gap-0.5 border-t px-3 py-1.5">
       {loading && <ExecutingIndicator currentNode={currentNode} />}
       <div className="flex items-center gap-3">
-        {turnCount > 0 && (
+        {showTurn && (
           <span className="text-[10px] font-medium text-muted-foreground">
             {t('turn')} {String(turnCount)}
           </span>
@@ -196,6 +198,7 @@ function SimulationFooter({ totalTokens, turnCount, loading, currentNode }: Simu
 interface SimulationFooterProps {
   totalTokens: SimulationTokens;
   turnCount: number;
+  isAgent: boolean;
   loading: boolean;
   currentNode: string;
 }
@@ -225,7 +228,13 @@ export function SimulationPanel(props: SimulationPanelProps) {
       <div className="relative flex h-full w-full flex-col rounded-e-md border-r bg-background">
         <SimulationHeader visitedNodes={visitedNodes} onStop={onStop} onClear={props.onClear} />
         <ContentArea conversationEntries={props.conversationEntries} scrollRef={scrollRef} />
-        <SimulationFooter totalTokens={totalTokens} turnCount={props.turnCount} loading={loading} currentNode={currentNode} />
+        <SimulationFooter
+          totalTokens={totalTokens}
+          turnCount={props.turnCount}
+          isAgent={props.isAgent}
+          loading={loading}
+          currentNode={currentNode}
+        />
         <SimulationInput
           loading={loading}
           terminated={terminated}

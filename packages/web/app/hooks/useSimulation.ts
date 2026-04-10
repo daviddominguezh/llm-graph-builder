@@ -59,6 +59,7 @@ export interface SimulationState {
   conversationEntries: ConversationEntry[];
   totalTokens: SimulationTokens;
   turnCount: number;
+  isAgent: boolean;
   compositionPhase: CompositionPhase;
   modelId: string;
   setModelId: (id: string) => void;
@@ -204,6 +205,7 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
     conversationEntries: s.conversationEntries,
     totalTokens: s.totalTokens,
     turnCount: s.turnCount,
+    isAgent: params.appType === 'agent',
     compositionPhase: comp.phase,
     modelId: s.modelId,
     setModelId: s.setModelId,
