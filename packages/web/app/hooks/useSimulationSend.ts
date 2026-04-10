@@ -74,9 +74,9 @@ export function useAutoDispatchChild(
     const deps = depsRef.current;
     deps.setters.setConversationEntries((prev) => [...prev, { type: 'child_start', label: pending.label }]);
     store.dispatch({ type: 'CHILD_AUTO_SENT' });
-    const signal = abortAndCreateSignal();
+    const controller = new AbortController();
     const childDeps = buildChildDeps(deps, childCfg);
-    sendAgentSim(childDeps, store, signal, pending.task);
+    sendAgentSim(childDeps, store, controller.signal, pending.task);
   }, [phase, store, depsRef, abortAndCreateSignal]);
 }
 
@@ -100,7 +100,7 @@ export function useAutoResumeParent(
     const snap = store.getSnapshot();
     store.dispatch({ type: 'PARENT_RESUMED' });
     deps.setters.setLoading(true);
-    const signal = abortAndCreateSignal();
+    const controller = new AbortController();
     if (deps.preset === undefined) return;
     const snapshot = deps.setters.getSnapshot();
     if (snapshot === null) return;
@@ -118,7 +118,7 @@ export function useAutoResumeParent(
       orgId: deps.orgId,
     });
     const callbacks = buildMergedCallbacks(deps, store);
-    void streamSimulation(params, callbacks, signal).catch((err: unknown) => {
+    void streamSimulation(params, callbacks, controller.signal).catch((err: unknown) => {
       deps.setters.setLoading(false);
       toast.error(err instanceof Error ? err.message : 'Workflow resume failed');
     });
