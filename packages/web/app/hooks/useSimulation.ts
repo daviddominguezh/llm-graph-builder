@@ -205,7 +205,7 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
     conversationEntries: s.conversationEntries,
     totalTokens: s.totalTokens,
     turnCount: s.turnCount,
-    isAgent: params.appType === 'agent',
+    isAgent: isAgent || hasActiveChild,
     compositionPhase: comp.phase,
     modelId: s.modelId,
     setModelId: s.setModelId,

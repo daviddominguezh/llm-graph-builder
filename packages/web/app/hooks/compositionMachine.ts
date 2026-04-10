@@ -1,6 +1,7 @@
 import type { Message } from '@daviddh/llm-graph-runner';
 
 import type { SimChildDispatchedEvent } from '../lib/sseSimComposition';
+import { createToolCallMessage } from './compositionStackHelpers';
 import {
   type ChildAgentConfig,
   type CompositionLevel,
@@ -79,6 +80,14 @@ function buildPushParams(event: SimChildDispatchedEvent, parentMessages: Message
   };
 }
 
+function buildToolCallInput(event: SimChildDispatchedEvent): Record<string, unknown> {
+  const input: Record<string, unknown> = { task: event.task };
+  if (event.dispatchType === 'invoke_agent') {
+    input['agentSlug'] = '';
+  }
+  return input;
+}
+
 function handleChildDispatched(
   state: CompositionState,
   event: SimChildDispatchedEvent,
@@ -92,9 +101,16 @@ function handleChildDispatched(
     childConfig: event.childConfig,
     label: event.toolName,
   };
+  // Inject synthetic tool-call message so message history has both call and result
+  const toolCallMsg = createToolCallMessage(
+    event.parentToolCallId,
+    event.toolName,
+    buildToolCallInput(event)
+  );
   return {
     ...state,
     stack,
+    rootMessages: [...state.rootMessages, toolCallMsg],
     phase: 'child_dispatched',
     pendingDispatch: pending,
     childConfig: event.childConfig ?? null,

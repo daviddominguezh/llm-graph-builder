@@ -236,7 +236,7 @@ function LogoutButton({ collapsed }: { collapsed: boolean }) {
     <Button
       variant="ghost"
       size="sm"
-      className="h-8 w-full justify-start gap-2 px-2 text-muted-foreground hover:text-destructive hover:bg-sidebar-accent!"
+      className="h-8 w-full rounded-md! justify-start gap-2 px-2 text-muted-foreground hover:text-destructive hover:bg-sidebar-accent!"
       onClick={handleLogout}
     >
       <LogOut className="size-4 shrink-0" />
@@ -321,7 +321,7 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
 
   return (
     <aside
-      className={`absolute left-0 top-0 bottom-0 z-11 flex flex-col gap-2 overflow-hidden p-2 pl-1.5 py-2.5 transition-[width,background-color] duration-100 ${sidebar.collapsed ? 'w-[52px] bg-sidebar' : 'w-58.5 bg-background'} ${sidebar.contentCollapsed ? 'border border-transparent' : 'shadow-lg border rounded-e-md z-12'}`}
+      className={`absolute left-0 top-0 bottom-0 z-11 flex flex-col gap-2 overflow-hidden p-2 pl-1.5 pt-2.5 pb-6.5 transition-[width,background-color] duration-100 ${sidebar.collapsed ? 'w-[52px] bg-sidebar' : 'w-58.5 bg-background'} ${sidebar.contentCollapsed ? 'border border-transparent' : 'shadow-lg border rounded-e-md z-12'}`}
       onMouseEnter={sidebar.handleMouseEnter}
       onMouseLeave={sidebar.handleMouseLeave}
     >
@@ -350,6 +350,7 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
         )}
         <Separator />
         <LogoutButton collapsed={sidebar.contentCollapsed} />
+        <Separator />
       </div>
     </aside>
   );

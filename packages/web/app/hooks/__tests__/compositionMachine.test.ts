@@ -107,7 +107,8 @@ describe('compositionMachine – transition', () => {
 
     const next = transition(dispatched, { type: 'USER_MESSAGE', text: 'hello child' });
 
-    expect(next.rootMessages).toHaveLength(1);
+    // rootMessages: 1 original + 1 synthetic tool-call from dispatch
+    expect(next.rootMessages).toHaveLength(2);
     const childMsgs = next.stack[0]?.messages;
     expect(childMsgs).toBeDefined();
     // 1 task message (from push) + 1 user message
@@ -173,7 +174,8 @@ describe('compositionMachine – transition', () => {
     expect(next.phase).toBe('resuming_parent');
     expect(next.childConfig).toBeNull();
 
-    // Root should have tool result appended
+    // Root: 2 original + 1 synthetic tool-call from dispatch + 1 tool result from finish = 4
+    expect(next.rootMessages).toHaveLength(4);
     const lastRoot = next.rootMessages[next.rootMessages.length - 1];
     expect(lastRoot).toBeDefined();
     const toolResult = getToolResultFromMessage(lastRoot!);
@@ -230,7 +232,7 @@ describe('compositionMachine – transition', () => {
       // 5. USER_MESSAGE (to child)
       state = transition(state, { type: 'USER_MESSAGE', text: 'user replies to child' });
       expect(state.stack[0]?.messages).toHaveLength(3);
-      expect(state.rootMessages).toHaveLength(2); // root unchanged
+      expect(state.rootMessages).toHaveLength(3); // 2 original + 1 synthetic tool-call
 
       // 6. CHILD_FINISHED
       state = transition(state, {
@@ -240,7 +242,7 @@ describe('compositionMachine – transition', () => {
       });
       expect(state.phase).toBe('resuming_parent');
       expect(state.stack).toHaveLength(0);
-      expect(state.rootMessages).toHaveLength(3); // original 2 + tool result
+      expect(state.rootMessages).toHaveLength(4); // 2 original + 1 tool-call + 1 tool result
 
       // 7. PARENT_RESUMED
       state = transition(state, { type: 'PARENT_RESUMED' });

@@ -53,9 +53,8 @@ export function buildMergedCallbacks(deps: SendMessageDeps, store: CompositionSt
   const baseOnNodeVisited = base.onNodeVisited;
   base.onNodeVisited = (nodeId: string) => {
     const snap = store.getSnapshot();
-    if (snap.stack.length > 0) return; // Child active — don't update canvas/currentNode
-    if (deps.appType === 'agent') {
-      // Agent mode: track visited nodes but keep currentNode as "Turn N"
+    if (snap.stack.length > 0 || deps.appType === 'agent') {
+      // Agent mode or child active: track visited nodes but keep currentNode as "Turn N"
       deps.setters.setVisitedNodes((prev) => [...prev, nodeId]);
       return;
     }
@@ -161,10 +160,9 @@ export function sendAgentSim(
   text: string
 ): void {
   const { setters } = deps;
-  const preSnap = store.getSnapshot();
-  const isTopLevelAgent = preSnap.stack.length === 0 && deps.appType === 'agent';
   store.dispatch({ type: 'USER_MESSAGE', text });
-  resetBeforeSendComposition(setters, text, isTopLevelAgent);
+  // All agent sends (top-level or child) show "Turn N"
+  resetBeforeSendComposition(setters, text, true);
   const snap = store.getSnapshot();
   const allMessages = getActiveMessages(snap.stack, [...deps.messages]);
   const params = buildAgentParams(deps, store, allMessages);

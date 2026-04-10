@@ -14,6 +14,24 @@ export function createUserMessage(text: string): Message {
   } as Message;
 }
 
+export function createToolCallMessage(
+  toolCallId: string,
+  toolName: string,
+  input: Record<string, unknown>
+): Message {
+  return {
+    id: nanoid(),
+    provider: MESSAGES_PROVIDER.WEB,
+    type: 'text',
+    timestamp: Date.now(),
+    originalId: nanoid(),
+    message: {
+      role: 'assistant',
+      content: [{ type: 'tool-call', toolCallId, toolName, input }],
+    },
+  } as Message;
+}
+
 export function createToolResultMessage(
   parentToolCallId: string,
   toolName: string,

@@ -1,6 +1,11 @@
 import type { Message } from '@daviddh/llm-graph-runner';
 
-import { createToolResultMessage, createUserMessage, sumByDepth } from './compositionStackHelpers';
+import {
+  createToolCallMessage,
+  createToolResultMessage,
+  createUserMessage,
+  sumByDepth,
+} from './compositionStackHelpers';
 
 /* ─── Types ─── */
 
