@@ -63,7 +63,7 @@ function CachedEditor({
 }) {
   return (
     <div
-      className={isVisible ? 'fixed z-30 rounded-xl overflow-hidden' : 'fixed inset-0 -z-[9999] invisible pointer-events-none'}
+      className={isVisible ? 'fixed z-30 rounded-e-xl overflow-hidden' : 'fixed inset-0 -z-[9999] invisible pointer-events-none'}
       style={isVisible && slotRect ? slotRect : undefined}
     >
       {children}
