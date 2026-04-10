@@ -79,7 +79,7 @@ export function useAutoDispatchChild(
     store.dispatch({ type: 'CHILD_AUTO_SENT' });
     const controller = new AbortController();
     const childDeps = buildChildDeps(deps, childCfg);
-    sendAgentSim(childDeps, store, controller.signal, pending.task);
+    sendAgentSim(childDeps, store, controller.signal, pending.task, true);
   }, [phase, store, depsRef, abortAndCreateSignal]);
 }
 
@@ -144,6 +144,12 @@ export function useAutoResumeParent(
       structuredOutputs: deps.structuredOutputs,
       orgId: deps.orgId,
     });
+    console.log(
+      '[resumeParent] currentNode:',
+      resumeNode,
+      'messages:',
+      JSON.stringify(params.messages, null, 2)
+    );
     const callbacks = buildMergedCallbacks(deps, store);
     void streamSimulation(params, callbacks, controller.signal).catch((err: unknown) => {
       deps.setters.setLoading(false);

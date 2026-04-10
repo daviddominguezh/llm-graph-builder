@@ -5,6 +5,7 @@ import type { AgentSimulateRequestBody } from '../lib/agentSimulationApi';
 import { streamAgentSimulation } from '../lib/agentSimulationApi';
 import type { StreamCallbacks } from '../lib/api';
 import { streamSimulation } from '../lib/api';
+import { createUserMessage } from './compositionStackHelpers';
 import type { CompositionStore } from './compositionStore';
 import {
   type CompositionLevel,
@@ -13,12 +14,7 @@ import {
   getActiveMessages,
 } from './useCompositionStack';
 import type { AgentSimConfig, SendMessageDeps, SimulationSetters } from './useSimulationHelpers';
-import {
-  buildAgentSimulateParams,
-  buildSimulateParams,
-  buildStreamCallbacks,
-  createAssistantMessage,
-} from './useSimulationHelpers';
+import { buildAgentSimulateParams, buildSimulateParams, buildStreamCallbacks } from './useSimulationHelpers';
 
 /* ─── Types ─── */
 
@@ -159,15 +155,17 @@ export function sendAgentSim(
   deps: SendMessageDeps,
   store: CompositionStore,
   signal: AbortSignal,
-  text: string
+  text: string,
+  skipUserMessage = false
 ): void {
   const { setters } = deps;
-  store.dispatch({ type: 'USER_MESSAGE', text });
+  if (!skipUserMessage) store.dispatch({ type: 'USER_MESSAGE', text });
   resetBeforeSendAgent(setters, text);
   const snap = store.getSnapshot();
   const allMessages = getActiveMessages(snap.stack, [...deps.messages]);
   const params = buildAgentParams(deps, store, allMessages);
   if (params === undefined) return;
+  console.log('[sendAgentSim] messages:', JSON.stringify(params.messages, null, 2));
   const callbacks = buildMergedCallbacks(deps, store);
   void streamAgentSimulation(params, callbacks, signal).catch((err: unknown) => {
     setters.setLoading(false);
@@ -185,7 +183,7 @@ export function sendWorkflowSim(
   const { apiKeyId, modelId, structuredOutputs, setters } = deps;
   const snapshot = setters.getSnapshot();
   if (preset === undefined || snapshot === null) return;
-  const userMsg = createAssistantMessage(text);
+  const userMsg = createUserMessage(text);
   const allMessages = [...messages, userMsg];
   resetBeforeSend(setters, text, userMsg);
   store.dispatch({ type: 'START', rootMessages: allMessages });
@@ -202,6 +200,7 @@ export function sendWorkflowSim(
     structuredOutputs,
     orgId: deps.orgId,
   });
+  console.log('[sendWorkflowSim] messages:', JSON.stringify(params.messages, null, 2));
   const callbacks = buildMergedCallbacks(deps, store);
   void streamSimulation(params, callbacks, signal).catch((err: unknown) => {
     setters.setLoading(false);
