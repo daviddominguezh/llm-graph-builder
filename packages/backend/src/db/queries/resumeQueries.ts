@@ -113,18 +113,19 @@ export async function claimPendingResume(
   return rows.length > ZERO ? (rows[ZERO] ?? null) : null;
 }
 
+function isPendingResume(value: unknown): value is PendingResume {
+  return typeof value === 'object' && value !== null && 'id' in value && 'session_id' in value;
+}
+
 export async function fetchAndClaimPendingResumes(
   supabase: SupabaseClient,
   limit: number
 ): Promise<PendingResume[]> {
-  const result: QueryResult<PendingResume[]> = await supabase
-    .from('pending_resumes')
-    .update({ status: 'processing', last_attempt_at: new Date().toISOString() })
-    .eq('status', 'pending')
-    .order('created_at', { ascending: true })
-    .limit(limit)
-    .select('*');
-
-  if (result.error !== null) throw new Error(`Failed to claim pending resumes: ${result.error.message}`);
-  return result.data ?? [];
+  const { data, error } = (await supabase.rpc('claim_pending_resumes', { p_limit: limit })) as {
+    data: unknown;
+    error: { message: string } | null;
+  };
+  if (error !== null) throw new Error(`Failed to claim pending resumes: ${error.message}`);
+  const rows: unknown[] = Array.isArray(data) ? data : [];
+  return rows.filter(isPendingResume);
 }

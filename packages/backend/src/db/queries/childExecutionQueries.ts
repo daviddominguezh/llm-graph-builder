@@ -44,20 +44,21 @@ export async function createPendingChildExecution(
   if (error !== null) throw new Error(`Failed to create pending child execution: ${error.message}`);
 }
 
+function isPendingChildExecution(value: unknown): value is PendingChildExecution {
+  return typeof value === 'object' && value !== null && 'id' in value && 'session_id' in value;
+}
+
 export async function fetchAndClaimChildExecutions(
   supabase: SupabaseClient,
   limit: number
 ): Promise<PendingChildExecution[]> {
-  const result: QueryResult<PendingChildExecution[]> = await supabase
-    .from('pending_child_executions')
-    .update({ status: 'processing', last_attempt_at: new Date().toISOString() })
-    .eq('status', 'pending')
-    .order('created_at', { ascending: true })
-    .limit(limit)
-    .select('*');
-
-  if (result.error !== null) throw new Error(`Failed to claim child executions: ${result.error.message}`);
-  return result.data ?? [];
+  const { data, error } = (await supabase.rpc('claim_pending_child_executions', { p_limit: limit })) as {
+    data: unknown;
+    error: { message: string } | null;
+  };
+  if (error !== null) throw new Error(`Failed to claim child executions: ${error.message}`);
+  const rows: unknown[] = Array.isArray(data) ? data : [];
+  return rows.filter(isPendingChildExecution);
 }
 
 export async function updateChildExecutionStatus(
