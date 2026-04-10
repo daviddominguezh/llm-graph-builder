@@ -36,6 +36,8 @@ export interface CompositionCallbackDeps {
     'setCompositionStack' | 'setMessages' | 'setLoading' | 'setConversationEntries'
   >;
   pendingChildRef: React.MutableRefObject<PendingChildDispatch | null>;
+  pendingParentResumeRef: React.MutableRefObject<boolean>;
+  autoResumeParentRef: React.MutableRefObject<(() => void) | null>;
 }
 
 export interface CompositionRequestOverrides {
@@ -165,6 +167,7 @@ export function buildCompositionSseCallbacks(deps: CompositionCallbackDeps): Sim
         output: event.output.slice(0, 100),
       });
       setters.setConversationEntries((prev) => [...prev, { type: 'child_end', label: event.status }]);
+      deps.pendingParentResumeRef.current = true;
       const status = event.status === 'error' ? 'error' : 'success';
       setters.setCompositionStack((prev) => {
         const root = messagesRef.current;
@@ -234,8 +237,12 @@ export function buildMergedCallbacks(
         deps.pendingChildRef.current = null;
         console.log('[composition:onComplete] auto-sending child:', pending.task.slice(0, 50));
         autoSendChild?.(pending);
+      } else if (deps.pendingParentResumeRef.current) {
+        deps.pendingParentResumeRef.current = false;
+        console.log('[composition:onComplete] resuming parent workflow');
+        deps.autoResumeParentRef.current?.();
       } else {
-        console.log('[composition:onComplete] no pending child');
+        console.log('[composition:onComplete] no pending child or resume');
       }
     },
   };

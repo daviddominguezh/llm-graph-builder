@@ -85,9 +85,28 @@ function buildOrchestratorConfig(body: SimulateAgentRequest, session: McpSession
   };
 }
 
+function handleCompletedChild(
+  res: Response,
+  result: OrchestratorResult & { type: 'completed' },
+  depth: number
+): void {
+  if (result.result.finishResult === undefined) {
+    sendAgentResponse(res, result.result, depth);
+    return;
+  }
+  sendChildFinished(res, {
+    depth,
+    output: result.result.finishResult.output,
+    status: result.result.finishResult.status,
+    tokens: result.result.totalTokens,
+  });
+}
+
 function handleOrchestratorResult(res: Response, result: OrchestratorResult, depth: number): void {
   if (result.type === 'completed' && depth === ZERO) {
     sendAgentResponse(res, result.result);
+  } else if (result.type === 'completed') {
+    handleCompletedChild(res, result, depth);
   }
 }
 

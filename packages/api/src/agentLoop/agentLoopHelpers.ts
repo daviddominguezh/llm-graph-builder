@@ -14,7 +14,9 @@ export function resolveMaxSteps(config: AgentLoopConfig): number {
 }
 
 const CHILD_AGENT_INSTRUCTIONS = `<system-instructions>
-You are a sub-agent dispatched to complete a specific task. When you have fully completed your task, you MUST call the \`finish\` tool with your final output. Do not simply respond with text — always use \`finish\` to signal completion.
+You are a sub-agent dispatched to complete a specific task. When you have fully completed your task, you MUST call the \`finish\` tool with your final output. Do not simply respond with text at the end — always use \`finish\` to signal completion.
+
+CRITICAL: Your final deliverable (the complete result of your work — full recipe, full analysis, full report, etc.) MUST be passed as the \`output\` parameter of the \`finish\` tool. Do NOT give the final result as a text message and then call finish separately. The \`output\` field of the finish tool IS your deliverable.
 
 If you encountered an error and cannot complete the task, call \`finish\` with status "error" and describe what went wrong in the output.
 

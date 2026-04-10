@@ -148,6 +148,8 @@ interface CompositionRefs {
   compositionStackRef: React.RefObject<CompositionLevel[]>;
   messagesRef: React.RefObject<Message[]>;
   pendingChildRef: React.MutableRefObject<PendingChildDispatch | null>;
+  pendingParentResumeRef: React.MutableRefObject<boolean>;
+  autoResumeParentRef: React.MutableRefObject<(() => void) | null>;
 }
 
 function sendAgentSim(deps: SendMessageDeps, refs: CompositionRefs, signal: AbortSignal, text: string): void {
@@ -260,6 +262,33 @@ function sendWorkflowSim(
     };
     sendAgentSim(childDeps, refs, newSignal, dispatch.task);
   };
+  refs.autoResumeParentRef.current = () => {
+    console.log('[sim:autoResume] resuming parent workflow after child finished');
+    const newSignal = new AbortController().signal;
+    setters.setLoading(true);
+    const resumeSnapshot = setters.getSnapshot();
+    if (resumeSnapshot === null || preset === undefined) return;
+    const resumeParams = buildSimulateParams({
+      snapshot: resumeSnapshot,
+      agents,
+      mcpServers,
+      outputSchemas,
+      allMessages: refs.messagesRef.current,
+      currentNode,
+      preset,
+      apiKeyId,
+      modelId,
+      structuredOutputs,
+      orgId: deps.orgId,
+    });
+    const resumeDeps = { ...deps, ...refs };
+    void streamSimulation(resumeParams, buildMergedCallbacks(resumeDeps, autoSend), newSignal).catch(
+      (err: unknown) => {
+        setters.setLoading(false);
+        toast.error(err instanceof Error ? err.message : 'Workflow resume failed');
+      }
+    );
+  };
   void streamSimulation(params, buildMergedCallbacks(fullDeps, autoSend), signal).catch((err: unknown) => {
     setters.setLoading(false);
     toast.error(err instanceof Error ? err.message : 'Simulation failed');
@@ -346,10 +375,14 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
   const stop = useSimulationStop(s.setters, abortSimulation, onExitZoomView, clearSelection);
   const clear = useSimulationClear(s.setters, abortSimulation, onExitZoomView);
   const pendingChildRef = useRef<PendingChildDispatch | null>(null);
+  const pendingParentResumeRef = useRef(false);
+  const autoResumeParentRef = useRef<(() => void) | null>(null);
   const compRefs = useRef<CompositionRefs>({
     compositionStackRef,
     messagesRef,
     pendingChildRef,
+    pendingParentResumeRef,
+    autoResumeParentRef,
   });
   const sendDeps = buildSendDeps(params, s);
   const sendDepsRef = useRef(sendDeps);
