@@ -181,7 +181,7 @@ function SimulationFooter({ totalTokens, turnCount, isAgent, loading, currentNod
   const showFooter = loading || hasTokens || showTurn;
   if (!showFooter) return null;
   return (
-    <div className="flex flex-col gap-0.5 border-t px-3 py-1.5">
+    <div className="flex flex-col gap-0.5 border-t border-b px-3 py-1.5">
       {loading && <ExecutingIndicator currentNode={currentNode} />}
       <div className="flex items-center gap-3">
         {showTurn && (

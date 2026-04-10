@@ -75,6 +75,7 @@ export function useAutoDispatchChild(
     if (childCfg === undefined) return;
     const deps = depsRef.current;
     deps.setters.setConversationEntries((prev) => [...prev, { type: 'child_start', label: pending.label }]);
+    deps.setters.setTurnCount(0); // Each child agent starts fresh at Turn 1
     store.dispatch({ type: 'CHILD_AUTO_SENT' });
     const controller = new AbortController();
     const childDeps = buildChildDeps(deps, childCfg);

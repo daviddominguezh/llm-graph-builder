@@ -161,8 +161,7 @@ export function sendAgentSim(
 ): void {
   const { setters } = deps;
   store.dispatch({ type: 'USER_MESSAGE', text });
-  // All agent sends (top-level or child) show "Turn N"
-  resetBeforeSendComposition(setters, text, true);
+  resetBeforeSendAgent(setters, text);
   const snap = store.getSnapshot();
   const allMessages = getActiveMessages(snap.stack, [...deps.messages]);
   const params = buildAgentParams(deps, store, allMessages);
@@ -212,34 +211,21 @@ export function sendWorkflowSim(
 
 const TURN_INCREMENT = 1;
 
-function advanceTurnCount(setters: SimulationSetters, isAgent: boolean): void {
-  setters.setTurnCount((prev) => {
-    const next = prev + TURN_INCREMENT;
-    if (isAgent) setters.setCurrentNode(`Turn ${String(next)}`);
-    return next;
-  });
-}
-
 function resetBeforeSend(setters: SimulationSetters, text: string, userMsg: Message): void {
   setters.setLoading(true);
   setters.setLastUserText(text);
   setters.setMessages((prev) => [...prev, userMsg]);
   setters.setConversationEntries((prev) => [...prev, { type: 'user' as const, text }]);
-  advanceTurnCount(setters, false);
+  // Workflows don't use turnCount — only agents display turns
 }
 
-function resetBeforeSendComposition(
-  setters: SimulationSetters,
-  text: string,
-  isTopLevelAgent: boolean
-): void {
+function resetBeforeSendAgent(setters: SimulationSetters, text: string): void {
   setters.setLoading(true);
   setters.setLastUserText(text);
   setters.setConversationEntries((prev) => [...prev, { type: 'user' as const, text }]);
   setters.setTurnCount((prev) => {
     const next = prev + TURN_INCREMENT;
-    // Only set currentNode for top-level agent sends — child turns must not pollute the parent's node
-    if (isTopLevelAgent) setters.setCurrentNode(`Turn ${String(next)}`);
+    setters.setCurrentNode(`Turn ${String(next)}`);
     return next;
   });
 }
