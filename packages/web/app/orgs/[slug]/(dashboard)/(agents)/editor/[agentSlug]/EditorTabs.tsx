@@ -178,7 +178,7 @@ function EditorTabBar({
         <SidebarIcon />
       </Button>
       <Separator orientation="vertical" className="my-2" />
-      <div className="text-xs font-medium mx-2 cursor-default">{agentSlug}</div>
+      <div className="text-xs font-medium mx-4 cursor-default">{agentSlug}</div>
       <Separator orientation="vertical" className="my-2" />
       <div className="flex h-full ml-2">
         {TABS.map((tab) => (
