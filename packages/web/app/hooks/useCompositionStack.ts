@@ -85,8 +85,9 @@ export function popChild(
   stack: CompositionLevel[],
   rootMessages: Message[],
   childOutput: string,
-  _childStatus: 'success' | 'error'
+  childStatus: 'success' | 'error'
 ): PopChildResult {
+  void childStatus; // Reserved for future use — parent may handle error status differently
   if (stack.length === 0) {
     return { stack: [], rootMessages };
   }
