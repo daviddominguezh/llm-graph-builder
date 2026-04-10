@@ -1,5 +1,6 @@
 import type { ModelMessage } from 'ai';
 
+import { unwrapToolOutput } from '@src/core/sentinelDetector.js';
 import { getNode, getToolsFromEdges } from '@src/stateMachine/graph/index.js';
 import { generateToolReplyPrompt } from '@src/stateMachine/prompts/index.js';
 import type { ParsedResult } from '@src/types/ai/ai.js';
@@ -197,7 +198,8 @@ function findDispatchInToolResults(
 ): DispatchSentinel | undefined {
   if (toolResults === undefined) return undefined;
   for (const tr of toolResults) {
-    if (isDispatchSentinel(tr.output)) return tr.output;
+    const raw = unwrapToolOutput(tr.output);
+    if (isDispatchSentinel(raw)) return raw;
   }
   return undefined;
 }
