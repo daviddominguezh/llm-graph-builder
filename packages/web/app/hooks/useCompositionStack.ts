@@ -9,7 +9,6 @@ export interface ChildAgentConfig {
   context: string;
   modelId: string;
   maxSteps: number | null;
-  apiKey: string;
 }
 
 export interface CompositionLevel {

@@ -234,7 +234,6 @@ const SseEventSchema = z.object({
       context: z.string(),
       modelId: z.string(),
       maxSteps: z.number().nullable(),
-      apiKey: z.string(),
     })
     .optional(),
   // Dispatch params passthrough

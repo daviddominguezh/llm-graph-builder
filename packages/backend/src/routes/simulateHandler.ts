@@ -1,6 +1,7 @@
 import type { CallAgentOutput, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
 import { executeWithCallbacks, injectSystemTools } from '@daviddh/llm-graph-runner';
 import type { Request, Response } from 'express';
+import { randomUUID } from 'node:crypto';
 
 import { createServiceClient } from '../db/queries/executionAuthQueries.js';
 import { consoleLogger } from '../logger.js';
@@ -18,13 +19,16 @@ function extractTaskFromParams(params: Record<string, unknown>): string {
   return typeof raw === 'string' ? raw : JSON.stringify(raw);
 }
 
-async function emitChildDispatched(
-  res: Response,
-  dispatch: NonNullable<CallAgentOutput['dispatchResult']>,
-  orgId: string,
-  apiKey: string
-): Promise<void> {
+function findDispatchToolCallId(result: CallAgentOutput, dispatchType: string): string {
+  const match = result.toolCalls.find((tc) => tc.toolName === dispatchType);
+  return match?.toolCallId ?? randomUUID();
+}
+
+async function emitChildDispatched(res: Response, result: CallAgentOutput, orgId: string): Promise<void> {
+  const { dispatchResult: dispatch } = result;
+  if (dispatch === undefined) return;
   const task = extractTaskFromParams(dispatch.params);
+  const parentToolCallId = findDispatchToolCallId(result, dispatch.type);
   const supabase = createServiceClient();
   try {
     const childConfig = await resolveChildConfig({
@@ -39,7 +43,7 @@ async function emitChildDispatched(
       parentDepth: ROOT_DEPTH,
       dispatchType: dispatch.type,
       task,
-      parentToolCallId: '',
+      parentToolCallId,
       toolName: dispatch.type,
       params: dispatch.params,
       childConfig: {
@@ -47,7 +51,6 @@ async function emitChildDispatched(
         context: childConfig.context,
         modelId: childConfig.modelId,
         maxSteps: childConfig.maxSteps,
-        apiKey,
       },
     });
   } catch (err) {
@@ -134,7 +137,7 @@ async function runSimulation(body: SimulateRequest, session: McpSession, res: Re
   });
   if (result !== null) {
     if (result.dispatchResult !== undefined) {
-      await emitChildDispatched(res, result.dispatchResult, body.orgId ?? '', body.apiKey);
+      await emitChildDispatched(res, result, body.orgId ?? '');
     }
     sendAgentResponse(res, result);
   }

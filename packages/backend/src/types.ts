@@ -90,6 +90,5 @@ export type SimulationEvent =
         context: string;
         modelId: string;
         maxSteps: number | null;
-        apiKey: string;
       };
     };

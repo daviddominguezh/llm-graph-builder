@@ -12,7 +12,6 @@ export interface SimChildDispatchedEvent {
     context: string;
     modelId: string;
     maxSteps: number | null;
-    apiKey: string;
   };
 }
 
@@ -60,7 +59,6 @@ interface CompositionSseEvent {
     context: string;
     modelId: string;
     maxSteps: number | null;
-    apiKey: string;
   };
 }
 
