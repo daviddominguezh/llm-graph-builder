@@ -14,7 +14,7 @@ export function getAgentStatus(agent: AgentStatusInput): AgentStatus {
 }
 
 export const STATUS_COLORS: Record<AgentStatus, string> = {
-  draft: 'bg-muted-foreground/30',
-  published: 'bg-green-500',
-  unpublished: 'bg-amber-500',
+  draft: 'bg-foreground',
+  published: 'bg-green-600 dark:bg-green-500',
+  unpublished: 'bg-amber-600 dark:bg-amber-500',
 };

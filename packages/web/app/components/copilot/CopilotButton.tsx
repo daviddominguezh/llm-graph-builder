@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { WandSparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { usePathname } from 'next/navigation';
 
 import { useCopilotContext } from './CopilotProvider';
@@ -16,18 +17,20 @@ function isAgentsTab(pathname: string): boolean {
 export function CopilotButton() {
   const { isOpen, setOpen } = useCopilotContext();
   const pathname = usePathname();
+  const t = useTranslations('copilot');
 
   if (isOpen || !isAgentsTab(pathname)) return null;
 
   return (
-    <div className="fixed bottom-2 right-2 z-100">
+    <div className="ml-12.5 flex shrink-0 justify-end">
       <Button
-        variant="default"
+        variant="ghost"
         size="sm"
-        className="h-12 w-12 rounded-full shadow-lg"
+        className="h-6 gap-1 rounded-sm px-2 text-xs text-muted-foreground"
         onClick={() => setOpen(true)}
       >
-        <WandSparkles className="size-5" />
+        <WandSparkles className="size-3" />
+        {t('title')}
       </Button>
     </div>
   );

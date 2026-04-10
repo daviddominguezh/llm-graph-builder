@@ -497,7 +497,6 @@ function LoadedEditor(props: LoadedEditorProps) {
                 onSendMessage={h.simulation.sendMessage}
                 onStop={h.simulation.stop}
                 onClear={h.simulation.clear}
-                compositionStack={h.simulation.compositionStack}
               />
             )}
           </div>

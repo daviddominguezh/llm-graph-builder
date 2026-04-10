@@ -104,21 +104,13 @@ export function dispatchSimCompositionEvent(
   callbacks: SimCompositionCallbacks
 ): boolean {
   if (event.type === 'child_dispatched') {
-    console.log('[composition:sse] child_dispatched event received', {
-      depth: event.depth,
-      dispatchType: event.dispatchType,
-      task: event.task,
-      hasCallback: callbacks.onSimChildDispatched !== undefined,
-    });
     if (event.depth !== undefined) {
       handleSimChildDispatched(event, callbacks);
       return true;
     }
-    console.warn('[composition:sse] child_dispatched missing depth field, skipped');
     return false;
   }
   if (event.type === 'child_finished') {
-    console.log('[composition:sse] child_finished event received', { depth: event.depth });
     if (event.depth !== undefined) {
       handleSimChildFinished(event, callbacks);
       return true;
@@ -126,7 +118,6 @@ export function dispatchSimCompositionEvent(
     return false;
   }
   if (event.type === 'child_waiting') {
-    console.log('[composition:sse] child_waiting event received', { depth: event.depth });
     if (event.depth !== undefined) {
       handleSimChildWaiting(event, callbacks);
       return true;

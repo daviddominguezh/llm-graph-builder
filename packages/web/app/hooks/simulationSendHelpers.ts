@@ -227,5 +227,6 @@ function resetBeforeSendComposition(setters: SimulationSetters, text: string): v
   setters.setLoading(true);
   setters.setLastUserText(text);
   setters.setConversationEntries((prev) => [...prev, { type: 'user' as const, text }]);
-  advanceTurnCount(setters, true);
+  // Don't set currentNode — child turns should not pollute the workflow's current node
+  setters.setTurnCount((prev) => prev + TURN_INCREMENT);
 }

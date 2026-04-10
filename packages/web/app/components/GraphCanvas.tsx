@@ -122,7 +122,6 @@ export function GraphCanvas({
             onSendMessage={simulation.sendMessage}
             onStop={simulation.stop}
             onClear={simulation.clear}
-            compositionStack={simulation.compositionStack}
           />
         )}
       </div>

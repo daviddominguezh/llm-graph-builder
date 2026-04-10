@@ -11,7 +11,6 @@ import { START_NODE_ID } from '../utils/graphContext';
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
 import type { CompositionPhase } from './compositionMachine';
 import { CompositionStore } from './compositionStore';
-import type { CompositionLevel } from './useCompositionStack';
 import type {
   AgentSimConfig,
   FullSetters,
@@ -59,7 +58,6 @@ export interface SimulationState {
   nodeResults: NodeResult[];
   conversationEntries: ConversationEntry[];
   totalTokens: SimulationTokens;
-  compositionStack: CompositionLevel[];
   compositionPhase: CompositionPhase;
   modelId: string;
   setModelId: (id: string) => void;
@@ -204,7 +202,6 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
     nodeResults: s.nodeResults,
     conversationEntries: s.conversationEntries,
     totalTokens: s.totalTokens,
-    compositionStack: comp.stack,
     compositionPhase: comp.phase,
     modelId: s.modelId,
     setModelId: s.setModelId,

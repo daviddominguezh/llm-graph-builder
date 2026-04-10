@@ -11,11 +11,10 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, Loader2, Trash2, X } from 'lucide-react';
+import { Loader2, Trash2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { CompositionLevel } from '../../../hooks/useCompositionStack';
 import type { ConversationEntry, NodeResult, SimulationTokens } from '../../../types/simulation';
 import { NodeResultItem } from './NodeResultItem';
 import { SimulationInput } from './SimulationInput';
@@ -35,7 +34,6 @@ interface SimulationPanelProps {
   onSendMessage: (text: string) => void;
   onStop: () => void;
   onClear: () => void;
-  compositionStack: CompositionLevel[];
 }
 
 function Breadcrumbs({ nodes }: { nodes: string[] }) {
@@ -68,36 +66,8 @@ function Breadcrumbs({ nodes }: { nodes: string[] }) {
   );
 }
 
-function getCompositionLevelLabel(level: CompositionLevel, index: number): string {
-  const agentSlug = level.dispatchParams['agentSlug'];
-  const workflowSlug = level.dispatchParams['workflowSlug'];
-  if (typeof agentSlug === 'string') return agentSlug;
-  if (typeof workflowSlug === 'string') return workflowSlug;
-  return `Child ${String(index + 1)}`;
-}
-
-interface CompositionBreadcrumbProps {
-  compositionStack: CompositionLevel[];
-}
-
-function CompositionBreadcrumb({ compositionStack }: CompositionBreadcrumbProps) {
-  if (compositionStack.length === 0) return null;
-  return (
-    <div className="flex items-center gap-1 px-3 py-1 text-[10px] text-muted-foreground border-b">
-      <span>Root</span>
-      {compositionStack.map((level, i) => {
-        const label = getCompositionLevelLabel(level, i);
-        const isLast = i === compositionStack.length - 1;
-        return (
-          <span key={i} className="flex items-center gap-1">
-            <ChevronRight className="size-2.5" />
-            <span className={isLast ? 'font-medium text-foreground' : ''}>{label}</span>
-          </span>
-        );
-      })}
-    </div>
-  );
-}
+/* Composition breadcrumb removed — the child_start/child_end separators in the conversation
+   stream are sufficient to indicate nesting. */
 
 function SimulationHeader({
   visitedNodes,
@@ -225,7 +195,7 @@ interface SimulationFooterProps {
 }
 
 export function SimulationPanel(props: SimulationPanelProps) {
-  const { visitedNodes, terminated, loading, compositionStack } = props;
+  const { visitedNodes, terminated, loading } = props;
   const { currentNode, totalTokens, modelId, onModelIdChange, onSendMessage, onStop } = props;
   const t = useTranslations('simulation');
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -248,7 +218,6 @@ export function SimulationPanel(props: SimulationPanelProps) {
     <div className="absolute inset-y-0 left-0 z-10 flex w-[350px] p-0">
       <div className="relative flex h-full w-full flex-col rounded-e-md border-r bg-background">
         <SimulationHeader visitedNodes={visitedNodes} onStop={onStop} onClear={props.onClear} />
-        <CompositionBreadcrumb compositionStack={compositionStack} />
         <ContentArea conversationEntries={props.conversationEntries} scrollRef={scrollRef} />
         <SimulationFooter totalTokens={totalTokens} loading={loading} currentNode={currentNode} />
         <SimulationInput
