@@ -53,10 +53,10 @@ function SearchInput({ value, onChange }: { value: string; onChange: (v: string)
   );
 }
 
-function StatusBar({ status, active }: { status: string; active: boolean }) {
+function StatusBar({ active }: { active: boolean }) {
   return (
     <div
-      className={`w-0.5 my-2 shrink-0 self-stretch ${active ? 'bg-primary' : status}`}
+      className={`w-0.5 my-2 shrink-0 self-stretch ${active ? 'bg-primary' : 'bg-transparent group-hover:bg-foreground'}`}
     />
   );
 }
@@ -69,13 +69,16 @@ function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: 
   return (
     <Link
       href={href}
-      className={`flex gap-2 rounded-md pr-2 py-0 transition-colors ${
+      className={`group flex gap-2 rounded-md pr-2 py-0 transition-colors ${
         active ? 'bg-primary/15 text-foreground' : 'hover:bg-card text-foreground'
       }`}
     >
-      <StatusBar status={colorClass} active={active} />
+      <StatusBar active={active} />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-1">
-        <span className="truncate text-[10px] font-semibold font-mono">{agent.name.toUpperCase()}</span>
+        <span className="flex items-center gap-1.5 truncate text-[10px] font-semibold font-mono">
+          <span className={`size-1.5 shrink-0 rounded-full ${colorClass}`} />
+          {agent.name.toUpperCase()}
+        </span>
         {agent.description ? (
           <span className="line-clamp-1 text-[10px] text-muted-foreground">{agent.description}</span>
         ) : null}
