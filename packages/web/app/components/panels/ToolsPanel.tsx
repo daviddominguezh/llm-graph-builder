@@ -287,7 +287,7 @@ export function ToolsPanel({ mcp, open, onClose }: ToolsPanelProps) {
     <>
       <div
         ref={containerRef}
-        className="absolute top-14.5 left-1/2 z-20 -translate-x-1/2 w-[28rem] h-96 flex flex-col rounded-md border bg-background shadow-lg overflow-hidden"
+        className="absolute top-12.5 left-1/2 z-20 -translate-x-1/2 w-[28rem] h-96 flex flex-col rounded-md border bg-background shadow-lg overflow-hidden"
         onKeyDown={(e) => {
           if (e.key === 'Escape') onClose();
         }}

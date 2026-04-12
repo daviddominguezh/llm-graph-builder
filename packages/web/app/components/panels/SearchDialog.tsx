@@ -98,7 +98,7 @@ export function SearchDialog({ nodes, open, onClose, onSelectNode }: SearchDialo
   return (
     <div
       ref={containerRef}
-      className="absolute top-14.5 left-1/2 z-20 -translate-x-1/2 w-[28rem] h-80 flex flex-col rounded-lg border bg-background shadow-lg"
+      className="absolute top-12.5 left-1/2 z-20 -translate-x-1/2 w-[28rem] h-80 flex flex-col rounded-lg border bg-background shadow-lg"
     >
       <div className="flex items-center gap-2 px-3 py-2 border-b">
         <Search className="size-3.5 text-muted-foreground shrink-0" />
