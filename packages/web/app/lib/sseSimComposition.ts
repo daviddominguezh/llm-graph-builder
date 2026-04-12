@@ -7,6 +7,7 @@ export interface SimChildDispatchedEvent {
   task: string;
   parentToolCallId: string;
   toolName: string;
+  params?: Record<string, unknown>;
   childConfig?: {
     systemPrompt: string;
     context: string;
@@ -50,6 +51,7 @@ interface CompositionSseEvent {
   task?: string;
   parentToolCallId?: string;
   toolName?: string;
+  params?: Record<string, unknown>;
   output?: unknown;
   text?: string;
   status?: string;
@@ -71,6 +73,7 @@ function handleSimChildDispatched(event: CompositionSseEvent, cbs: SimCompositio
     task: event.task ?? '',
     parentToolCallId: event.parentToolCallId ?? '',
     toolName: event.toolName ?? '',
+    params: event.params,
     childConfig: event.childConfig,
   });
 }

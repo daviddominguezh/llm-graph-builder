@@ -1,5 +1,6 @@
 'use client';
 
+import { useTemplatesPrefetch } from '@/app/hooks/useTemplatesPrefetch';
 import type { AgentMetadata } from '@/app/lib/agents';
 import { formatRelativeTime } from '@/app/utils/formatRelativeTime';
 import { Button } from '@/components/ui/button';
@@ -10,11 +11,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-import { useTemplatesPrefetch } from '@/app/hooks/useTemplatesPrefetch';
-
 import { useAgentsSidebar } from './AgentsSidebarContext';
 import { CreateAgentWizard } from './CreateAgentWizard';
-import { getAgentStatus, STATUS_COLORS } from './agentStatus';
+import { STATUS_COLORS, getAgentStatus } from './agentStatus';
 
 interface AgentsSidebarProps {
   agents: AgentMetadata[];
@@ -75,18 +74,18 @@ function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: 
     >
       <StatusBar active={active} />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-1">
-        <span className="flex items-center gap-1.5 truncate text-[10px] font-semibold font-mono">
-          <span className={`size-[7px] ml-[2px] shrink-0 rounded-full ${colorClass}`} />
-          {agent.name.toUpperCase()}
+        <span className="flex items-center gap-1">
+          <span className={`shrink-0 size-[7px] ml-[2px] shrink-0 rounded-full ${colorClass}`} />
+          <span className="shrink-0 flex-1 min-w-[0px] truncate text-[10px] font-medium font-mono">{agent.name}</span>
+          <div className="shrink-0 flex items-center ml-[2px] gap-1 text-[9px] text-muted-foreground">
+            <span>v{agent.version}</span>
+            <span>·</span>
+            <span suppressHydrationWarning>{formatRelativeTime(agent.updated_at, 'en', 'compact')}</span>
+          </div>
         </span>
         {agent.description ? (
           <span className="line-clamp-1 ml-[2px] text-[10px] text-muted-foreground">{agent.description}</span>
         ) : null}
-        <div className="flex items-center ml-[2px] gap-2 text-[9px] text-muted-foreground">
-          <span>v{agent.version}</span>
-          <span>·</span>
-          <span suppressHydrationWarning>{formatRelativeTime(agent.updated_at)}</span>
-        </div>
       </div>
     </Link>
   );
@@ -107,11 +106,19 @@ function AgentList({
   const filtered = agents.filter((a) => a.name.toLowerCase().includes(search.toLowerCase()));
 
   if (agents.length === 0) {
-    return <p className="px-3 py-4 text-center text-xs text-muted-foreground bg-input/20 dark:bg-input/30 mt-1 mx-3 rounded-md">{t('empty')}</p>;
+    return (
+      <p className="px-3 py-4 text-center text-xs text-muted-foreground bg-input/20 dark:bg-input/30 mt-1 mx-3 rounded-md">
+        {t('empty')}
+      </p>
+    );
   }
 
   if (filtered.length === 0) {
-    return <p className="px-3 py-4 text-center text-xs text-muted-foreground bg-muted mt-1 mx-3 rounded-md">{t('noResults')}</p>;
+    return (
+      <p className="px-3 py-4 text-center text-xs text-muted-foreground bg-muted mt-1 mx-3 rounded-md">
+        {t('noResults')}
+      </p>
+    );
   }
 
   return (

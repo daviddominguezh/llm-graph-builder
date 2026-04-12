@@ -80,14 +80,6 @@ function buildPushParams(event: SimChildDispatchedEvent, parentMessages: Message
   };
 }
 
-function buildToolCallInput(event: SimChildDispatchedEvent): Record<string, unknown> {
-  const input: Record<string, unknown> = { task: event.task };
-  if (event.dispatchType === 'invoke_agent') {
-    input['agentSlug'] = '';
-  }
-  return input;
-}
-
 function handleChildDispatched(
   state: CompositionState,
   event: SimChildDispatchedEvent,
@@ -102,11 +94,7 @@ function handleChildDispatched(
     label: event.toolName,
   };
   // Inject synthetic tool-call message so message history has both call and result
-  const toolCallMsg = createToolCallMessage(
-    event.parentToolCallId,
-    event.toolName,
-    buildToolCallInput(event)
-  );
+  const toolCallMsg = createToolCallMessage(event.parentToolCallId, event.toolName, event.params ?? {});
   return {
     ...state,
     stack,
