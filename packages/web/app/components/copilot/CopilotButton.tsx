@@ -1,7 +1,7 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { BorderBeam } from '@/components/ui/border-beam';
+import { Button } from '@/components/ui/button';
 import { WandSparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { usePathname } from 'next/navigation';
@@ -23,16 +23,17 @@ export function CopilotButton() {
   if (!isAgentsTab(pathname)) return null;
 
   return (
-    <div className="mr-2 flex shrink-0 justify-end">
-      <div className="relative rounded-md">
+    <div className="mr-4 flex shrink-0 justify-end">
+      <div className="relative rounded-full">
         <Button
           variant="ghost"
           size="sm"
-          className={
-            isOpen
-              ? 'relative h-6 gap-1 rounded-sm px-2 text-xs bg-accent text-accent-foreground hover:bg-accent/85 hover:text-accent-foreground -mt-[1px]'
-              : 'relative h-6 gap-1 rounded-sm px-2 text-xs text-muted-foreground -mt-[1px]'
-          }
+          className={`relative h-6 gap-1 px-3 text-xs -mt-[1px]
+            ${
+              isOpen
+                ? 'bg-accent text-accent-foreground hover:bg-accent/85 hover:text-accent-foreground '
+                : 'text-muted-foreground'
+            }`}
           onClick={() => setOpen(!isOpen)}
         >
           <WandSparkles className="size-3" />

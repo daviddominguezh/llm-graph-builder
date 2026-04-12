@@ -68,8 +68,8 @@ function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: 
   return (
     <Link
       href={href}
-      className={`group flex gap-2 rounded-md pr-2 py-0 transition-colors ${
-        active ? 'bg-primary/15 text-foreground' : 'hover:bg-card text-foreground'
+      className={`group flex gap-2 rounded-sm pr-2 py-0 ${
+        active ? 'bg-primary/10 text-foreground' : 'hover:bg-card text-foreground'
       }`}
     >
       <StatusBar active={active} />
@@ -77,7 +77,7 @@ function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: 
         <span className="flex items-center gap-1">
           <span className={`shrink-0 size-[7px] ml-[2px] shrink-0 rounded-full ${colorClass}`} />
           <span className="shrink-0 flex-1 min-w-[0px] truncate text-[10px] font-medium font-mono">{agent.name}</span>
-          <div className="shrink-0 flex items-center ml-[2px] gap-1 text-[9px] text-muted-foreground">
+          <div className="w-[40px] shrink-0 flex items-center ml-[2px] gap-1 text-[9px] text-muted-foreground">
             <span>v{agent.version}</span>
             <span>·</span>
             <span suppressHydrationWarning>{formatRelativeTime(agent.updated_at, 'en', 'compact')}</span>
