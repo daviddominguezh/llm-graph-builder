@@ -210,13 +210,13 @@ function PlayButton({ simulationActive, onPlay, disabled, label }: PlayButtonPro
 
   const button = (
     <Button
-      className="h-10 w-10 hover:bg-card!"
+      className="hover:bg-card! aspect-square! px-0"
       variant={simulationActive ? 'default' : 'ghost'}
-      size="sm"
+      size="lg"
       onClick={disabled ? undefined : onPlay}
       disabled={disabled}
     >
-      <Play className="size-4" />
+      <Play />
     </Button>
   );
 
@@ -243,35 +243,49 @@ function ToolbarButtons(props: ToolbarProps) {
       {!props.hideWorkflowActions && onToggleGlobalPanel && (
         <ToolbarTooltip label={t('globalNodes')}>
           <Button
-            className="h-10 w-10 hover:bg-card!"
+            className="hover:bg-card! aspect-square! px-0"
             variant="ghost"
-            size="sm"
+            size="lg"
             onClick={onToggleGlobalPanel}
           >
-            <Waypoints className="size-4" />
+            <Waypoints />
           </Button>
         </ToolbarTooltip>
       )}
       {onToggleTools && (
         <ToolbarTooltip label={t('tools')}>
-          <Button className="h-10 w-10 hover:bg-card!" variant="ghost" size="sm" onClick={onToggleTools}>
-            <SquareFunction className="size-4" />
+          <Button
+            className="hover:bg-card! aspect-square! px-0"
+            variant="ghost"
+            size="lg"
+            onClick={onToggleTools}
+          >
+            <SquareFunction />
           </Button>
         </ToolbarTooltip>
       )}
       {onToggleLibrary && (
         <ToolbarTooltip label={t('mcpLibrary')}>
-          <Button className="h-10 w-10 hover:bg-card!" variant="ghost" size="sm" onClick={onToggleLibrary}>
-            <Blocks className="size-4" />
+          <Button
+            className="hover:bg-card! aspect-square! px-0"
+            variant="ghost"
+            size="lg"
+            onClick={onToggleLibrary}
+          >
+            <Blocks />
           </Button>
         </ToolbarTooltip>
       )}
       {onTogglePresets && (
         <>
-          <Separator orientation="vertical" />
           <ToolbarTooltip label={t('settings')}>
-            <Button className="h-10 w-10 hover:bg-card!" variant="ghost" size="sm" onClick={onTogglePresets}>
-              <Settings className="size-4" />
+            <Button
+              className="hover:bg-card! aspect-square! px-0"
+              variant="ghost"
+              size="lg"
+              onClick={onTogglePresets}
+            >
+              <Settings />
             </Button>
           </ToolbarTooltip>
         </>
@@ -308,7 +322,7 @@ export function Toolbar(props: ToolbarProps) {
         />
       </div>
       <header
-        className={`absolute z-1 flex items-stretch justify-center gap-1 rounded-lg border bg-background p-1 top-1 ${props.hideWorkflowActions === true ? '' : 'shadow-lg'}`}
+        className={`absolute z-1 flex items-stretch justify-center gap-1.5 rounded-full border border-[0.5px] bg-background p-1 top-1 ${props.hideWorkflowActions === true ? '' : 'shadow-sm'}`}
       >
         <PlayButton
           simulationActive={simulationActive ?? false}
@@ -316,7 +330,6 @@ export function Toolbar(props: ToolbarProps) {
           disabled={stagingKeyId === null || stagingKeyId === undefined}
           label={t('simulate')}
         />
-        <Separator orientation="vertical" />
         <ToolbarButtons {...props} />
       </header>
       {(props.statusSlot ?? props.publishSlot ?? props.versionSlot) && (
