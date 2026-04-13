@@ -39,7 +39,7 @@ export function PresetsAside(props: PresetsAsideProps) {
   const { presetsHook, ctxPreconditions, setEdges } = props;
 
   return (
-    <GlassPanel className="w-[240px] absolute left-0 top-0 bottom-0 w-80 rounded-e-md z-10 pointer-events-auto">
+    <GlassPanel className="w-[240px] absolute left-1.5 top-1.5 bottom-0 w-80 rounded-md z-10 pointer-events-auto">
       <PresetsPanel
         presets={presetsHook.presets}
         contextKeys={presetsHook.contextKeys}
