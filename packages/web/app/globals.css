@@ -414,3 +414,43 @@ div.model-selector-trigger[data-slot="input-group"] {
     animation-duration: 0.01ms;
   }
 }
+
+/* Glass panel effect */
+.glass-panel {
+  position: relative;
+}
+
+.glass-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  box-shadow:
+    inset 2px 2px 0px -2px rgba(255, 255, 255, 0.7),
+    inset 0 0 3px 1px rgba(255, 255, 255, 0.7);
+}
+
+.glass-panel::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: inherit;
+  backdrop-filter: blur(0px);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.glass-panel--background::after {
+  filter: url(#glass-bg);
+}
+
+.glass-panel--foreground::before {
+  background-color: rgb(255 255 255 / 10%);
+}
+
+.glass-panel--foreground::after {
+  filter: url(#glass-fg);
+}

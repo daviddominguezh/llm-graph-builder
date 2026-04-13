@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import { Geist, Geist_Mono, Inter } from 'next/font/google';
 
+import { GlassFilters } from '@/components/ui/glass-panel';
 import { Toaster } from '@/components/ui/sonner';
 
 import './globals.css';
@@ -42,6 +43,7 @@ export default async function RootLayout({
           <ThemeProvider>
             <OpenRouterModelsLogger />
             {children}
+            <GlassFilters />
             <Toaster />
           </ThemeProvider>
         </NextIntlClientProvider>
