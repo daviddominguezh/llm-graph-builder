@@ -4,6 +4,7 @@ import { useTemplatesPrefetch } from '@/app/hooks/useTemplatesPrefetch';
 import type { AgentMetadata } from '@/app/lib/agents';
 import { formatRelativeTime } from '@/app/utils/formatRelativeTime';
 import { Button } from '@/components/ui/button';
+import { GlassPanel } from '@/components/ui/glass-panel';
 import { Input } from '@/components/ui/input';
 import { Plus, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -158,7 +159,7 @@ export function AgentsSidebar({ agents: serverAgents, orgId, orgSlug }: AgentsSi
   }
 
   return (
-    <aside className="flex h-full w-[240px] shrink-0 flex-col border-r bg-background pointer-events-auto">
+    <GlassPanel variant="foreground" className="flex h-full w-[240px] shrink-0 flex-col pointer-events-auto rounded-xl">
       <SidebarHeader onCreateClick={() => setCreateOpen(true)} />
       <SearchInput value={search} onChange={setSearch} />
       <div className="flex-1 overflow-y-auto">
@@ -171,6 +172,6 @@ export function AgentsSidebar({ agents: serverAgents, orgId, orgSlug }: AgentsSi
         orgSlug={orgSlug}
         prefetchedTemplates={prefetchedTemplates}
       />
-    </aside>
+    </GlassPanel>
   );
 }
