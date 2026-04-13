@@ -35,7 +35,7 @@ export function ContentBeam({
           {
             color: colorFrom,
             WebkitTextFillColor: 'transparent',
-            backgroundImage: `linear-gradient(90deg, ${colorFrom}, ${colorTo})`,
+            backgroundImage: `linear-gradient(90deg, ${colorFrom}, ${colorTo} 50%, ${colorFrom}, ${colorTo})`,
             WebkitBackgroundClip: 'text',
             backgroundClip: 'text',
             maskImage: mask,

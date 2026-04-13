@@ -1,6 +1,5 @@
 'use client';
 
-import { BorderBeam } from '@/components/ui/border-beam';
 import { Button } from '@/components/ui/button';
 import { ContentBeam } from '@/components/ui/content-beam';
 import { WandSparkles } from 'lucide-react';
@@ -49,9 +48,6 @@ export function CopilotButton() {
             </ContentBeam>
           )}
         </Button>
-        {!isOpen && (
-          <BorderBeam size={30} duration={4} borderWidth={1.5} colorFrom="#ffaa40" colorTo="#9c40ff" />
-        )}
       </div>
     </div>
   );
