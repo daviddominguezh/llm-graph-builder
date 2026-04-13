@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface SearchableNode {
@@ -24,6 +25,7 @@ function filterNodes(nodes: SearchableNode[], query: string): SearchableNode[] {
 }
 
 export function SearchDialog({ nodes, open, onClose, onSelectNode }: SearchDialogProps) {
+  const t = useTranslations('connectionMenu');
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const [prevOpen, setPrevOpen] = useState(false);
@@ -110,13 +112,13 @@ export function SearchDialog({ nodes, open, onClose, onSelectNode }: SearchDialo
             setActiveIndex(0);
           }}
           onKeyDown={handleKeyDown}
-          placeholder="Search nodes..."
+          placeholder={t('searchNodes')}
           className="h-7 border-0 bg-transparent! p-0 text-xs shadow-none focus-visible:ring-0"
         />
       </div>
       <ul className="flex-1 overflow-y-auto p-1 gap-1 flex flex-col px-2 pt-2.5">
         {results.length === 0 ? (
-          <li className="px-3 py-2 text-xs text-muted-foreground bg-card rounded-md">No results</li>
+          <li className="px-3 py-2 text-xs text-muted-foreground bg-card rounded-md">{t('noNodesFound')}</li>
         ) : (
           results.map((node, i) => (
             <li
