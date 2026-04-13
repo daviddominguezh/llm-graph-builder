@@ -3,6 +3,7 @@
 import type { ApiKeyRow } from '@/app/lib/apiKeys';
 import { useEditorCache } from '@/app/components/editors/EditorCacheProvider';
 import { Button } from '@/components/ui/button';
+import { GlassPanel } from '@/components/ui/glass-panel';
 import { Separator } from '@/components/ui/separator';
 import { Brain, PanelLeftClose, PanelLeftOpen, Radio, Settings } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -173,7 +174,7 @@ function EditorTabBar({
   const sidebarLabel = collapsed ? tAgents('showSidebar') : tAgents('hideSidebar');
 
   return (
-    <div className="w-full h-[41px] bg-background shrink-0 border-b flex items-center px-2 pointer-events-auto">
+    <GlassPanel className="w-[calc(100%-(var(--spacing)*2))] rounded-full h-[41px] shrink-0 flex items-center px-2 mt-1 mx-1 pointer-events-auto">
       <Button variant="ghost" size="icon" className="mr-2" onClick={() => setCollapsed(!collapsed)} title={sidebarLabel}>
         <SidebarIcon />
       </Button>
@@ -185,6 +186,6 @@ function EditorTabBar({
           <TabButton key={tab} tab={tab} active={activeTab === tab} onClick={onTabChange} label={t(tab)} />
         ))}
       </div>
-    </div>
+    </GlassPanel>
   );
 }
