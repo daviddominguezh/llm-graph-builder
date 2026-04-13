@@ -49,16 +49,18 @@ interface TabButtonProps {
   label: string;
 }
 
+const TAB_BASE =
+  'cursor-pointer inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors border border-transparent';
+const TAB_ACTIVE = 'bg-popover dark:bg-input text-foreground shadow-sm';
+const TAB_INACTIVE = 'text-muted-foreground hover:text-foreground border-transparent hover:bg-input dark:hover:bg-card';
+
 function TabButton({ tab, active, onClick, label }: TabButtonProps) {
   const Icon = TAB_ICONS[tab];
   return (
     <button
+      type="button"
       onClick={() => onClick(tab)}
-      className={`w-[100px] h-full text-xs font-semibold transition-colors relative flex items-center justify-center gap-1.5 cursor-pointer ${
-        active
-          ? 'text-primary shadow-[inset_0_-2px_0_0_var(--color-primary)]'
-          : 'text-muted-foreground hover:text-foreground'
-      }`}
+      className={`${TAB_BASE} ${active ? TAB_ACTIVE : TAB_INACTIVE}`}
     >
       <Icon strokeWidth={2.5} className="size-3.5" />
       {label}
@@ -183,7 +185,7 @@ function EditorTabBar({
         <SidebarIcon />
       </Button>
       <Separator orientation="vertical" className="my-2" />
-      <div className="flex h-full ml-2">
+      <div className="inline-flex gap-1 dark:gap-0.5 rounded-sm border bg-muted/50 p-0.5 ml-2">
         {TABS.map((tab) => (
           <TabButton key={tab} tab={tab} active={activeTab === tab} onClick={onTabChange} label={t(tab)} />
         ))}

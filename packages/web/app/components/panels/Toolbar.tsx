@@ -309,6 +309,13 @@ export function Toolbar(props: ToolbarProps) {
   const t = useTranslations('toolbar');
   return (
     <div className="flex items-center gap-1.5">
+      <PlayButton
+        simulationActive={simulationActive ?? false}
+        onPlay={onPlay}
+        disabled={stagingKeyId === null || stagingKeyId === undefined}
+        label={t('simulate')}
+      />
+      <ToolbarButtons {...props} />
       <FileMenu
         onImport={onImport}
         onExport={onExport}
@@ -319,13 +326,6 @@ export function Toolbar(props: ToolbarProps) {
         agentName={agentName}
         hideWorkflowActions={props.hideWorkflowActions}
       />
-      <PlayButton
-        simulationActive={simulationActive ?? false}
-        onPlay={onPlay}
-        disabled={stagingKeyId === null || stagingKeyId === undefined}
-        label={t('simulate')}
-      />
-      <ToolbarButtons {...props} />
       {(props.statusSlot ?? props.publishSlot ?? props.versionSlot) && (
         <>
           <Separator orientation="vertical" className="my-2" />
