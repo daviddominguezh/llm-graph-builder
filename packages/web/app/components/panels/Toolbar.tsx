@@ -309,7 +309,7 @@ export function Toolbar(props: ToolbarProps) {
   const t = useTranslations('toolbar');
   return (
     <>
-      <div className={`absolute top-1 left-1 z-1 ${props.hideWorkflowActions === true ? 'top-2.5' : ''}`}>
+      <div className={`absolute top-1 left-1 z-1 pointer-events-auto ${props.hideWorkflowActions === true ? 'top-2.5' : ''}`}>
         <FileMenu
           onImport={onImport}
           onExport={onExport}
@@ -322,7 +322,7 @@ export function Toolbar(props: ToolbarProps) {
         />
       </div>
       <header
-        className={`absolute z-1 flex items-stretch justify-center gap-1.5 rounded-full border border-[0.5px] bg-background p-1 top-1 ${props.hideWorkflowActions === true ? '' : 'shadow-sm'}`}
+        className={`absolute z-1 flex items-stretch justify-center gap-1.5 rounded-full border border-[0.5px] bg-background p-1 top-1 pointer-events-auto ${props.hideWorkflowActions === true ? '' : 'shadow-sm'}`}
       >
         <PlayButton
           simulationActive={simulationActive ?? false}
@@ -334,7 +334,7 @@ export function Toolbar(props: ToolbarProps) {
       </header>
       {(props.statusSlot ?? props.publishSlot ?? props.versionSlot) && (
         <div
-          className={`absolute top-1 right-1 z-1 flex items-center gap-1  ${props.hideWorkflowActions === true ? 'top-2.5' : ''}`}
+          className={`absolute top-1 right-1 z-1 flex items-center gap-1 pointer-events-auto ${props.hideWorkflowActions === true ? 'top-2.5' : ''}`}
         >
           {props.statusSlot}
           {props.versionSlot}

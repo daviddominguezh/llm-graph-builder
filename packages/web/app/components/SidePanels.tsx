@@ -203,7 +203,7 @@ export function SidePanels(props: SidePanelsProps) {
   const readOnlyClass = props.readOnly === true ? '[&_input]:pointer-events-none [&_textarea]:pointer-events-none [&_button]:pointer-events-none [&_[role=checkbox]]:pointer-events-none [&_select]:pointer-events-none [&_[role=combobox]]:pointer-events-none' : '';
 
   return (
-    <div className={readOnlyClass}>
+    <div className={`pointer-events-auto ${readOnlyClass}`}>
       <OutputSchemaDialog
         schema={schema.editingSchema}
         onSave={props.outputSchemasHook.updateSchema}

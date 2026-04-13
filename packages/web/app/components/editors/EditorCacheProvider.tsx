@@ -9,12 +9,20 @@ interface ElementRect {
   height: number;
 }
 
+interface PanelInsets {
+  top: number;
+  left: number;
+  right: number;
+  bottom: number;
+}
+
 interface EditorCacheContextType {
   register: (agentId: string, content: React.ReactNode) => void;
   setActiveEditor: (id: string | null) => void;
   setSlotRect: (rect: ElementRect | null) => void;
   setMainRect: (rect: ElementRect | null) => void;
   isEditorActive: boolean;
+  panelInsets: PanelInsets | null;
 }
 
 const EditorCacheContext = createContext<EditorCacheContextType | null>(null);
@@ -42,9 +50,19 @@ export function EditorCacheProvider({ children }: { children: React.ReactNode })
 
   const isEditorActive = activeId !== null && slotRect !== null;
 
+  const panelInsets = useMemo((): PanelInsets | null => {
+    if (!mainRect || !slotRect) return null;
+    return {
+      top: slotRect.top - mainRect.top,
+      left: slotRect.left - mainRect.left,
+      right: mainRect.left + mainRect.width - (slotRect.left + slotRect.width),
+      bottom: mainRect.top + mainRect.height - (slotRect.top + slotRect.height),
+    };
+  }, [mainRect, slotRect]);
+
   const value = useMemo(
-    () => ({ register, setActiveEditor: setActiveId, setSlotRect, setMainRect, isEditorActive }),
-    [register, isEditorActive]
+    () => ({ register, setActiveEditor: setActiveId, setSlotRect, setMainRect, isEditorActive, panelInsets }),
+    [register, isEditorActive, panelInsets]
   );
 
   return (

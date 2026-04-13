@@ -46,6 +46,7 @@ import { useSeedInitialGraph } from '../hooks/useSeedInitialGraph';
 import { useSimulation } from '../hooks/useSimulation';
 import { useVersions } from '../hooks/useVersions';
 import { useZoomView } from '../hooks/useZoomView';
+import { useEditorCache } from './editors/EditorCacheProvider';
 import { useInitialViewport, useSearchKeyboard, useContextPreconditions } from '../hooks/useGraphBuilderHelpers';
 import { buildInitialEdges, buildInitialNodes } from '../utils/graphInitializer';
 import { serializeGraphData } from '../utils/graphSerializer';
@@ -416,63 +417,18 @@ function LoadedEditor(props: LoadedEditorProps) {
 
   const isReadOnly = props.readOnly === true;
 
+  const { panelInsets } = useEditorCache();
+  const insetStyle = panelInsets
+    ? { top: panelInsets.top, left: panelInsets.left, right: panelInsets.right, bottom: panelInsets.bottom }
+    : { top: 0, left: 0, right: 0, bottom: 0 };
+
   return (
     <HandleContext.Provider value={handleContextValue}>
       <ToolRegistryProvider servers={h.mcpHook.servers} discoveredTools={h.mcpHook.discoveredTools}>
-      <div className="relative flex h-full w-full flex-col items-center ml-0">
-        {!isReadOnly && !h.simulation.active && <Toolbar
-          onAddNode={h.graphActions.handleAddNode}
-          onImport={h.handleImport}
-          onExport={h.handleExport}
-          onFormat={h.handleFormat}
-          hideWorkflowActions={h.agentConfig !== undefined}
-          onPlay={h.simulation.start}
-          simulationActive={h.simulation.active}
-          statusSlot={<StatusButton nodes={h.nodes} edges={h.edges} pendingSave={h.pendingSave} mcpHealth={h.mcpHealthInput} skipGraphValidation={h.agentConfig !== undefined} />}
-          globalPanelOpen={h.globalPanelOpen}
-          onToggleGlobalPanel={() => h.setGlobalPanelOpen((prev) => !prev)}
-          onTogglePresets={() => h.setPresetsOpen((prev) => !prev)}
-          onToggleTools={() => h.setToolsOpen((prev) => !prev)}
-          onToggleLibrary={() => h.setLibraryOpen((prev) => !prev)}
-          stagingKeyId={h.apiKeys.stagingKeyId}
-          orgSlug={props.orgSlug}
-          orgName={props.orgName}
-          orgAvatarUrl={props.orgAvatarUrl}
-          agentName={props.agentName}
-          publishSlot={
-            props.agentId !== undefined ? (
-              <PublishButton
-                agentId={props.agentId}
-                agentSlug={props.agentSlug ?? ''}
-                version={h.version}
-                canPublish={h.canPublish}
-                hasApiKey={h.apiKeys.productionKeyId !== null}
-                flush={h.flush}
-                onPublished={(newVersion) => {
-                  h.setVersion(newVersion);
-                  versionsHook.setCurrentVersion(newVersion);
-                  h.apiKeys.setProductionKeyId(h.apiKeys.stagingKeyId);
-                  void versionsHook.refresh();
-                  router.refresh();
-                }}
-              />
-            ) : undefined
-          }
-          versionSlot={
-            props.agentId !== undefined ? (
-              <VersionSwitcherSlot
-                agentId={props.agentId}
-                versionsHook={versionsHook}
-                hasPendingOps={h.hasPendingOps}
-                clearQueue={h.clearQueue}
-                reload={props.reload}
-              />
-            ) : undefined
-          }
-        />}
-
+      <div className="relative h-full w-full">
+        {/* Canvas layer — fills entire main area */}
         {h.agentConfig !== undefined ? (
-          <div className="relative flex h-full w-full flex-1 overflow-hidden">
+          <div className="absolute inset-0 overflow-hidden">
             <AgentEditorWrapper
               agentConfig={h.agentConfig}
               pushOperation={h.pushOperation}
@@ -503,94 +459,152 @@ function LoadedEditor(props: LoadedEditorProps) {
             )}
           </div>
         ) : (
-          <GraphCanvas
-            agentId={props.agentId ?? ''}
-            reactFlowWrapper={h.reactFlowWrapper}
-            displayNodes={h.displayNodes}
-            edges={h.edges}
-            onNodesChange={isReadOnly ? () => {} : h.onNodesChange}
-            onEdgesChange={isReadOnly ? () => {} : h.onEdgesChange}
-            onConnect={isReadOnly ? () => {} : h.graphActions.onConnect}
-            onNodeClick={h.selection.onNodeClick}
-            onEdgeClick={h.selection.onEdgeClick}
-            onPaneClick={h.selection.onPaneClick}
-            zoomViewNodeId={h.zoomView.zoomViewNodeId}
-            simulation={h.simulation}
-            onExitZoomView={h.zoomView.handleExitZoomView}
-            readOnly={isReadOnly}
-          />
+          <div className="absolute inset-0">
+            <GraphCanvas
+              agentId={props.agentId ?? ''}
+              reactFlowWrapper={h.reactFlowWrapper}
+              displayNodes={h.displayNodes}
+              edges={h.edges}
+              onNodesChange={isReadOnly ? () => {} : h.onNodesChange}
+              onEdgesChange={isReadOnly ? () => {} : h.onEdgesChange}
+              onConnect={isReadOnly ? () => {} : h.graphActions.onConnect}
+              onNodeClick={h.selection.onNodeClick}
+              onEdgeClick={h.selection.onEdgeClick}
+              onPaneClick={h.selection.onPaneClick}
+              zoomViewNodeId={h.zoomView.zoomViewNodeId}
+              simulation={h.simulation}
+              onExitZoomView={h.zoomView.handleExitZoomView}
+              readOnly={isReadOnly}
+            />
+          </div>
         )}
 
-        {h.agentConfig === undefined && (
-          <SearchDialog
-            nodes={h.nodes.map((n) => ({ id: n.id, text: (n.data as RFNodeData).text }))}
-            open={h.searchOpen}
-            onClose={() => h.setSearchOpen(false)}
-            onSelectNode={h.selection.handleSearchSelectNode}
-          />
-        )}
+        {/* Panels layer — positioned within the slot area */}
+        <div className="absolute z-10 pointer-events-none" style={insetStyle}>
+          <div className="relative flex h-full w-full flex-col items-center">
+            {!isReadOnly && !h.simulation.active && <Toolbar
+              onAddNode={h.graphActions.handleAddNode}
+              onImport={h.handleImport}
+              onExport={h.handleExport}
+              onFormat={h.handleFormat}
+              hideWorkflowActions={h.agentConfig !== undefined}
+              onPlay={h.simulation.start}
+              simulationActive={h.simulation.active}
+              statusSlot={<StatusButton nodes={h.nodes} edges={h.edges} pendingSave={h.pendingSave} mcpHealth={h.mcpHealthInput} skipGraphValidation={h.agentConfig !== undefined} />}
+              globalPanelOpen={h.globalPanelOpen}
+              onToggleGlobalPanel={() => h.setGlobalPanelOpen((prev) => !prev)}
+              onTogglePresets={() => h.setPresetsOpen((prev) => !prev)}
+              onToggleTools={() => h.setToolsOpen((prev) => !prev)}
+              onToggleLibrary={() => h.setLibraryOpen((prev) => !prev)}
+              stagingKeyId={h.apiKeys.stagingKeyId}
+              orgSlug={props.orgSlug}
+              orgName={props.orgName}
+              orgAvatarUrl={props.orgAvatarUrl}
+              agentName={props.agentName}
+              publishSlot={
+                props.agentId !== undefined ? (
+                  <PublishButton
+                    agentId={props.agentId}
+                    agentSlug={props.agentSlug ?? ''}
+                    version={h.version}
+                    canPublish={h.canPublish}
+                    hasApiKey={h.apiKeys.productionKeyId !== null}
+                    flush={h.flush}
+                    onPublished={(newVersion) => {
+                      h.setVersion(newVersion);
+                      versionsHook.setCurrentVersion(newVersion);
+                      h.apiKeys.setProductionKeyId(h.apiKeys.stagingKeyId);
+                      void versionsHook.refresh();
+                      router.refresh();
+                    }}
+                  />
+                ) : undefined
+              }
+              versionSlot={
+                props.agentId !== undefined ? (
+                  <VersionSwitcherSlot
+                    agentId={props.agentId}
+                    versionsHook={versionsHook}
+                    hasPendingOps={h.hasPendingOps}
+                    clearQueue={h.clearQueue}
+                    reload={props.reload}
+                  />
+                ) : undefined
+              }
+            />}
 
-        <SidePanels
-          readOnly={isReadOnly}
-          selection={h.selection}
-          simulation={h.simulation}
-          nodes={h.nodes}
-          edges={h.edges}
-          agents={h.agents}
-          presetsHook={h.presetsHook}
-          mcpHook={h.mcpHook}
-          outputSchemasHook={h.outputSchemasHook}
-          globalPanelOpen={h.globalPanelOpen}
-          presetsOpen={h.presetsOpen}
-          toolsOpen={h.toolsOpen}
-          libraryOpen={h.libraryOpen}
-          mcpLibrary={h.mcpLibrary}
-          setNodes={h.setNodes}
-          setEdges={h.setEdges}
-          ctxPreconditions={h.ctxPreconditions}
-          orgApiKeys={props.orgApiKeys ?? []}
-          orgId={props.orgId ?? ''}
-          agentId={props.agentId ?? ''}
-          agentName={props.agentName ?? ''}
-          orgSlug={props.orgSlug ?? ''}
-          envVariables={h.envVariables}
-          stagingKeyId={h.apiKeys.stagingKeyId}
-          productionKeyId={h.apiKeys.productionKeyId}
-          onStagingKeyChange={h.apiKeys.handleStagingKeyChange}
-          onProductionKeyChange={h.apiKeys.handleProductionKeyChange}
-          onPublishMcpServer={() => {}}
-          onOpenMcpLibrary={() => {
-            h.setLibraryOpen(true);
-            h.setPresetsOpen(false);
-          }}
-          onCloseLibrary={() => h.setLibraryOpen(false)}
-          pushOperation={h.pushOperation}
-        />
+            {h.agentConfig === undefined && (
+              <SearchDialog
+                nodes={h.nodes.map((n) => ({ id: n.id, text: (n.data as RFNodeData).text }))}
+                open={h.searchOpen}
+                onClose={() => h.setSearchOpen(false)}
+                onSelectNode={h.selection.handleSearchSelectNode}
+              />
+            )}
 
-        {!isReadOnly && h.agentConfig === undefined && (
-          <DeleteConfirmDialog
-            pendingDelete={h.deleteConfirmation.pendingDelete}
-            onConfirm={h.deleteConfirmation.confirmDelete}
-            onCancel={h.deleteConfirmation.cancelDelete}
-          />
-        )}
+            <SidePanels
+              readOnly={isReadOnly}
+              selection={h.selection}
+              simulation={h.simulation}
+              nodes={h.nodes}
+              edges={h.edges}
+              agents={h.agents}
+              presetsHook={h.presetsHook}
+              mcpHook={h.mcpHook}
+              outputSchemasHook={h.outputSchemasHook}
+              globalPanelOpen={h.globalPanelOpen}
+              presetsOpen={h.presetsOpen}
+              toolsOpen={h.toolsOpen}
+              libraryOpen={h.libraryOpen}
+              mcpLibrary={h.mcpLibrary}
+              setNodes={h.setNodes}
+              setEdges={h.setEdges}
+              ctxPreconditions={h.ctxPreconditions}
+              orgApiKeys={props.orgApiKeys ?? []}
+              orgId={props.orgId ?? ''}
+              agentId={props.agentId ?? ''}
+              agentName={props.agentName ?? ''}
+              orgSlug={props.orgSlug ?? ''}
+              envVariables={h.envVariables}
+              stagingKeyId={h.apiKeys.stagingKeyId}
+              productionKeyId={h.apiKeys.productionKeyId}
+              onStagingKeyChange={h.apiKeys.handleStagingKeyChange}
+              onProductionKeyChange={h.apiKeys.handleProductionKeyChange}
+              onPublishMcpServer={() => {}}
+              onOpenMcpLibrary={() => {
+                h.setLibraryOpen(true);
+                h.setPresetsOpen(false);
+              }}
+              onCloseLibrary={() => h.setLibraryOpen(false)}
+              pushOperation={h.pushOperation}
+            />
 
-        {!isReadOnly && h.agentConfig === undefined && h.graphActions.connectionMenu !== null && (
-          <ConnectionMenu
-            position={h.graphActions.connectionMenu.position}
-            sourceNodeId={h.graphActions.connectionMenu.sourceNodeId}
-            sourceHandleId={h.graphActions.connectionMenu.sourceHandleId}
-            sourceEdgeType={getSourceEdgeType(h.graphActions.connectionMenu.sourceNodeId, h.edges)}
-            nodes={h.nodes.map((n) => ({ id: n.id, text: (n.data as RFNodeData).text }))}
-            onSelectNode={h.graphActions.handleConnectionMenuSelectNode}
-            onCreateNode={h.graphActions.handleConnectionMenuCreateNode}
-            onCreateUserNode={h.createUserNode}
-            onCreateToolNode={h.createToolNode}
-            onCreateIfElse={h.createIfElse}
-            onCreateLoop={h.createLoop}
-            onClose={h.graphActions.handleConnectionMenuClose}
-          />
-        )}
+            {!isReadOnly && h.agentConfig === undefined && (
+              <DeleteConfirmDialog
+                pendingDelete={h.deleteConfirmation.pendingDelete}
+                onConfirm={h.deleteConfirmation.confirmDelete}
+                onCancel={h.deleteConfirmation.cancelDelete}
+              />
+            )}
+
+            {!isReadOnly && h.agentConfig === undefined && h.graphActions.connectionMenu !== null && (
+              <ConnectionMenu
+                position={h.graphActions.connectionMenu.position}
+                sourceNodeId={h.graphActions.connectionMenu.sourceNodeId}
+                sourceHandleId={h.graphActions.connectionMenu.sourceHandleId}
+                sourceEdgeType={getSourceEdgeType(h.graphActions.connectionMenu.sourceNodeId, h.edges)}
+                nodes={h.nodes.map((n) => ({ id: n.id, text: (n.data as RFNodeData).text }))}
+                onSelectNode={h.graphActions.handleConnectionMenuSelectNode}
+                onCreateNode={h.graphActions.handleConnectionMenuCreateNode}
+                onCreateUserNode={h.createUserNode}
+                onCreateToolNode={h.createToolNode}
+                onCreateIfElse={h.createIfElse}
+                onCreateLoop={h.createLoop}
+                onClose={h.graphActions.handleConnectionMenuClose}
+              />
+            )}
+          </div>
+        </div>
       </div>
       </ToolRegistryProvider>
     </HandleContext.Provider>
