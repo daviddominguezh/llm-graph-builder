@@ -106,7 +106,7 @@ function OrgSection({ orgName, orgAvatarUrl, orgSlug, agentName }: OrgSectionPro
           {orgName}
         </Link>
         <span className="text-xs text-muted-foreground cursor-default">/</span>
-        <span className="text-xs text-foreground cursor-default">{agentName}</span>
+        <span className="text-xs text-foreground cursor-default truncate">{agentName}</span>
       </DropdownMenuLabel>
     </DropdownMenuGroup>
   );
@@ -184,7 +184,7 @@ export function FileMenu({
           </Button>
         }
       />
-      <DropdownMenuContent side="bottom" align="start" className="w-52">
+      <DropdownMenuContent side="bottom" align="start" className="w-58">
         {orgName !== undefined && orgSlug !== undefined && agentName !== undefined && (
           <OrgSection
             orgName={orgName}
