@@ -330,13 +330,11 @@ export function Toolbar(props: ToolbarProps) {
         <ToolbarButtons {...props} />
       </GlassPanel>
       {(props.statusSlot ?? props.publishSlot ?? props.versionSlot) && (
-        <div
-          className={`absolute top-1 right-1 z-1 flex items-center gap-1 pointer-events-auto ${props.hideWorkflowActions === true ? 'top-2.5' : ''}`}
-        >
+        <GlassPanel variant="foreground" className="absolute top-1 right-1 z-1 flex items-stretch gap-1.5 rounded-full p-1 pointer-events-auto shadow-md">
           {props.statusSlot}
           {props.versionSlot}
           {props.publishSlot}
-        </div>
+        </GlassPanel>
       )}
     </>
   );

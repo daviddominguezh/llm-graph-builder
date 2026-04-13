@@ -112,7 +112,7 @@ function EmptyVersionsTrigger() {
   const t = useTranslations('editor');
 
   return (
-    <div className="flex h-10 items-center gap-1.5 rounded-md border bg-background px-3 text-xs text-foreground">
+    <div className="flex items-center gap-1.5 rounded-full px-3 text-xs text-foreground">
       <History className="size-4" />
       <span className="font-bold cursor-default">{t('versionDraft')}</span>
     </div>
@@ -159,7 +159,7 @@ export function VersionSelector(props: VersionSelectorProps) {
       <Select value={String(currentVersion)} onValueChange={handleValueChange} disabled={loading}>
         <SelectTrigger
           size="sm"
-          className="h-10 data-[size=sm]:h-10 bg-background px-3 text-xs font-bold [&>svg:last-child]:hidden bg-background! hover:bg-card!"
+          className="data-[size=sm]:h-auto border-0 bg-transparent px-3 text-xs font-bold [&>svg:last-child]:hidden hover:bg-card!"
         >
           <History className="size-4" />
           <span className='cursor-default'>{triggerLabel}</span>
