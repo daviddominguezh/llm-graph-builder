@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useReactFlow, ReactFlowProvider, useNodesState, useEdgesState } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useRouter } from 'next/navigation';
@@ -417,7 +418,7 @@ function LoadedEditor(props: LoadedEditorProps) {
 
   const isReadOnly = props.readOnly === true;
 
-  const { panelInsets } = useEditorCache();
+  const { panelInsets, toolbarPortal } = useEditorCache();
   const insetStyle = panelInsets
     ? { top: panelInsets.top, left: panelInsets.left, right: panelInsets.right, bottom: panelInsets.bottom }
     : { top: 0, left: 0, right: 0, bottom: 0 };
@@ -479,59 +480,64 @@ function LoadedEditor(props: LoadedEditorProps) {
           </div>
         )}
 
+        {/* Toolbar — portaled into the main header */}
+        {!isReadOnly && !h.simulation.active && toolbarPortal && createPortal(
+          <Toolbar
+            onAddNode={h.graphActions.handleAddNode}
+            onImport={h.handleImport}
+            onExport={h.handleExport}
+            onFormat={h.handleFormat}
+            hideWorkflowActions={h.agentConfig !== undefined}
+            onPlay={h.simulation.start}
+            simulationActive={h.simulation.active}
+            statusSlot={<StatusButton nodes={h.nodes} edges={h.edges} pendingSave={h.pendingSave} mcpHealth={h.mcpHealthInput} skipGraphValidation={h.agentConfig !== undefined} />}
+            globalPanelOpen={h.globalPanelOpen}
+            onToggleGlobalPanel={() => h.setGlobalPanelOpen((prev) => !prev)}
+            onTogglePresets={() => h.setPresetsOpen((prev) => !prev)}
+            onToggleTools={() => h.setToolsOpen((prev) => !prev)}
+            onToggleLibrary={() => h.setLibraryOpen((prev) => !prev)}
+            stagingKeyId={h.apiKeys.stagingKeyId}
+            orgSlug={props.orgSlug}
+            orgName={props.orgName}
+            orgAvatarUrl={props.orgAvatarUrl}
+            agentName={props.agentName}
+            publishSlot={
+              props.agentId !== undefined ? (
+                <PublishButton
+                  agentId={props.agentId}
+                  agentSlug={props.agentSlug ?? ''}
+                  version={h.version}
+                  canPublish={h.canPublish}
+                  hasApiKey={h.apiKeys.productionKeyId !== null}
+                  flush={h.flush}
+                  onPublished={(newVersion) => {
+                    h.setVersion(newVersion);
+                    versionsHook.setCurrentVersion(newVersion);
+                    h.apiKeys.setProductionKeyId(h.apiKeys.stagingKeyId);
+                    void versionsHook.refresh();
+                    router.refresh();
+                  }}
+                />
+              ) : undefined
+            }
+            versionSlot={
+              props.agentId !== undefined ? (
+                <VersionSwitcherSlot
+                  agentId={props.agentId}
+                  versionsHook={versionsHook}
+                  hasPendingOps={h.hasPendingOps}
+                  clearQueue={h.clearQueue}
+                  reload={props.reload}
+                />
+              ) : undefined
+            }
+          />,
+          toolbarPortal
+        )}
+
         {/* Panels layer — positioned within the slot area */}
         <div className="absolute z-10 pointer-events-none" style={insetStyle}>
           <div className="relative flex h-full w-full flex-col items-center">
-            {!isReadOnly && !h.simulation.active && <Toolbar
-              onAddNode={h.graphActions.handleAddNode}
-              onImport={h.handleImport}
-              onExport={h.handleExport}
-              onFormat={h.handleFormat}
-              hideWorkflowActions={h.agentConfig !== undefined}
-              onPlay={h.simulation.start}
-              simulationActive={h.simulation.active}
-              statusSlot={<StatusButton nodes={h.nodes} edges={h.edges} pendingSave={h.pendingSave} mcpHealth={h.mcpHealthInput} skipGraphValidation={h.agentConfig !== undefined} />}
-              globalPanelOpen={h.globalPanelOpen}
-              onToggleGlobalPanel={() => h.setGlobalPanelOpen((prev) => !prev)}
-              onTogglePresets={() => h.setPresetsOpen((prev) => !prev)}
-              onToggleTools={() => h.setToolsOpen((prev) => !prev)}
-              onToggleLibrary={() => h.setLibraryOpen((prev) => !prev)}
-              stagingKeyId={h.apiKeys.stagingKeyId}
-              orgSlug={props.orgSlug}
-              orgName={props.orgName}
-              orgAvatarUrl={props.orgAvatarUrl}
-              agentName={props.agentName}
-              publishSlot={
-                props.agentId !== undefined ? (
-                  <PublishButton
-                    agentId={props.agentId}
-                    agentSlug={props.agentSlug ?? ''}
-                    version={h.version}
-                    canPublish={h.canPublish}
-                    hasApiKey={h.apiKeys.productionKeyId !== null}
-                    flush={h.flush}
-                    onPublished={(newVersion) => {
-                      h.setVersion(newVersion);
-                      versionsHook.setCurrentVersion(newVersion);
-                      h.apiKeys.setProductionKeyId(h.apiKeys.stagingKeyId);
-                      void versionsHook.refresh();
-                      router.refresh();
-                    }}
-                  />
-                ) : undefined
-              }
-              versionSlot={
-                props.agentId !== undefined ? (
-                  <VersionSwitcherSlot
-                    agentId={props.agentId}
-                    versionsHook={versionsHook}
-                    hasPendingOps={h.hasPendingOps}
-                    clearQueue={h.clearQueue}
-                    reload={props.reload}
-                  />
-                ) : undefined
-              }
-            />}
 
             {h.agentConfig === undefined && (
               <SearchDialog

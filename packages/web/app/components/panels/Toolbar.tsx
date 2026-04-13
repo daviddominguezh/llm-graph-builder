@@ -30,7 +30,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-import { GlassPanel } from '@/components/ui/glass-panel';
 import { ThemeSwitcher } from '../ThemeSwitcher';
 
 const TOOLTIP_DELAY = 1000;
@@ -309,33 +308,32 @@ export function Toolbar(props: ToolbarProps) {
   } = props;
   const t = useTranslations('toolbar');
   return (
-    <>
-      <GlassPanel variant="foreground" className={`absolute z-1 flex items-stretch justify-center gap-1.5 rounded-full p-1 top-1 pointer-events-auto shadow-md`}>
-        <FileMenu
-          onImport={onImport}
-          onExport={onExport}
-          onFormat={props.onFormat}
-          orgSlug={orgSlug}
-          orgName={orgName}
-          orgAvatarUrl={orgAvatarUrl}
-          agentName={agentName}
-          hideWorkflowActions={props.hideWorkflowActions}
-        />
-        <PlayButton
-          simulationActive={simulationActive ?? false}
-          onPlay={onPlay}
-          disabled={stagingKeyId === null || stagingKeyId === undefined}
-          label={t('simulate')}
-        />
-        <ToolbarButtons {...props} />
-      </GlassPanel>
+    <div className="flex items-center gap-1.5">
+      <FileMenu
+        onImport={onImport}
+        onExport={onExport}
+        onFormat={props.onFormat}
+        orgSlug={orgSlug}
+        orgName={orgName}
+        orgAvatarUrl={orgAvatarUrl}
+        agentName={agentName}
+        hideWorkflowActions={props.hideWorkflowActions}
+      />
+      <PlayButton
+        simulationActive={simulationActive ?? false}
+        onPlay={onPlay}
+        disabled={stagingKeyId === null || stagingKeyId === undefined}
+        label={t('simulate')}
+      />
+      <ToolbarButtons {...props} />
       {(props.statusSlot ?? props.publishSlot ?? props.versionSlot) && (
-        <GlassPanel variant="foreground" className="absolute top-1 right-1 z-1 flex items-stretch gap-1.5 rounded-full p-1 pointer-events-auto shadow-md">
+        <>
+          <Separator orientation="vertical" className="my-2" />
           {props.statusSlot}
           {props.versionSlot}
           {props.publishSlot}
-        </GlassPanel>
+        </>
       )}
-    </>
+    </div>
   );
 }

@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Brain, PanelLeftClose, PanelLeftOpen, Radio, Settings } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { EditorClient } from './EditorClient';
 
@@ -159,8 +159,14 @@ function EditorTabBar({
   tAgents: (key: string) => string;
 }) {
   const { collapsed, setCollapsed } = useAgentsSidebar();
+  const { setToolbarPortal } = useEditorCache();
   const SidebarIcon = collapsed ? PanelLeftOpen : PanelLeftClose;
   const sidebarLabel = collapsed ? tAgents('showSidebar') : tAgents('hideSidebar');
+
+  const toolbarRef = useCallback(
+    (el: HTMLDivElement | null) => setToolbarPortal(el),
+    [setToolbarPortal]
+  );
 
   return (
     <GlassPanel
@@ -182,6 +188,8 @@ function EditorTabBar({
           <TabButton key={tab} tab={tab} active={activeTab === tab} onClick={onTabChange} label={t(tab)} />
         ))}
       </div>
+      <div className="flex-1" />
+      <div ref={toolbarRef} className="flex items-center gap-1.5" />
     </GlassPanel>
   );
 }
