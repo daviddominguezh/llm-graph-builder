@@ -87,7 +87,13 @@ export function MainContainer({ children, className }: { children: React.ReactNo
 
     const update = () => {
       const r = el.getBoundingClientRect();
-      setMainRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+      const root = getComputedStyle(document.documentElement);
+      const spacingRaw = root.getPropertyValue('--spacing').trim();
+      const spacingPx = spacingRaw.endsWith('px')
+        ? parseFloat(spacingRaw)
+        : parseFloat(spacingRaw) * (parseFloat(root.fontSize) || 16);
+      console.log(spacingPx);
+      setMainRect({ top: r.top, left: r.left + spacingPx, width: r.width, height: r.height - spacingPx });
     };
     update();
 
