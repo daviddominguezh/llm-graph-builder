@@ -158,7 +158,7 @@ export function AgentsSidebar({ agents: serverAgents, orgId, orgSlug }: AgentsSi
   }
 
   return (
-    <aside className="flex h-full w-[240px] shrink-0 flex-col border-r bg-background">
+    <aside className="flex h-full w-[240px] shrink-0 flex-col border-r bg-background pointer-events-auto">
       <SidebarHeader onCreateClick={() => setCreateOpen(true)} />
       <SearchInput value={search} onChange={setSearch} />
       <div className="flex-1 overflow-y-auto">

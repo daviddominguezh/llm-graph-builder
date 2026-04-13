@@ -20,9 +20,9 @@ export default async function AgentsLayout({ children, params }: AgentsLayoutPro
   const { agents } = await getCachedAgentsByOrg(org.id);
 
   return (
-    <div className="flex h-full p-0 bg-sidebar-accent">
+    <div className="flex h-full p-0 bg-transparent">
       <AgentsSidebar agents={agents} orgId={org.id} orgSlug={org.slug} />
-      <div className="flex-1 overflow-hidden bg-background">{children}</div>
+      <div className="flex-1 overflow-hidden bg-transparent">{children}</div>
     </div>
   );
 }

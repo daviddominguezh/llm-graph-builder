@@ -173,7 +173,7 @@ function EditorTabBar({
   const sidebarLabel = collapsed ? tAgents('showSidebar') : tAgents('hideSidebar');
 
   return (
-    <div className="w-full h-[41px] bg-background shrink-0 border-b flex items-center px-2">
+    <div className="w-full h-[41px] bg-background shrink-0 border-b flex items-center px-2 pointer-events-auto">
       <Button variant="ghost" size="icon" className="mr-2" onClick={() => setCollapsed(!collapsed)} title={sidebarLabel}>
         <SidebarIcon />
       </Button>

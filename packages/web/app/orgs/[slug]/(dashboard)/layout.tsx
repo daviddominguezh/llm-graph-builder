@@ -2,7 +2,7 @@ import { AgentsSidebarProvider } from '@/app/components/agents/AgentsSidebarCont
 import { CopilotButton } from '@/app/components/copilot/CopilotButton';
 import { CopilotPanel } from '@/app/components/copilot/CopilotPanel';
 import { CopilotProvider } from '@/app/components/copilot/CopilotProvider';
-import { EditorCacheProvider } from '@/app/components/editors/EditorCacheProvider';
+import { EditorCacheProvider, MainContainer } from '@/app/components/editors/EditorCacheProvider';
 import { OrgSidebar } from '@/app/components/orgs/OrgSidebar';
 import { getOrgBySlug } from '@/app/lib/orgs';
 import { redirect } from 'next/navigation';
@@ -26,9 +26,9 @@ export default async function OrgLayout({ children, params }: OrgLayoutProps): P
         <EditorCacheProvider>
           <div className="relative flex h-screen flex-col bg-sidebar pl-0 pr-1.5 pt-1.5 overflow-hidden">
             <OrgSidebar org={org} />
-            <main className="relative z-11 min-h-0 flex-1 bg-background ml-12.5 border border-border shadow-xs rounded-xl overflow-hidden">
+            <MainContainer className="relative z-11 min-h-0 flex-1 bg-transparent ml-12.5 border border-border shadow-xs rounded-xl overflow-hidden">
               {children}
-            </main>
+            </MainContainer>
             <CopilotButton />
           </div>
         </EditorCacheProvider>

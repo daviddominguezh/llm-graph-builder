@@ -1,9 +1,8 @@
 'use client';
 
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
-
-interface SlotRect {
+interface ElementRect {
   top: number;
   left: number;
   width: number;
@@ -13,7 +12,9 @@ interface SlotRect {
 interface EditorCacheContextType {
   register: (agentId: string, content: React.ReactNode) => void;
   setActiveEditor: (id: string | null) => void;
-  setSlotRect: (rect: SlotRect | null) => void;
+  setSlotRect: (rect: ElementRect | null) => void;
+  setMainRect: (rect: ElementRect | null) => void;
+  isEditorActive: boolean;
 }
 
 const EditorCacheContext = createContext<EditorCacheContextType | null>(null);
@@ -27,7 +28,8 @@ export function useEditorCache(): EditorCacheContextType {
 export function EditorCacheProvider({ children }: { children: React.ReactNode }) {
   const [entries, setEntries] = useState<Map<string, React.ReactNode>>(new Map());
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [slotRect, setSlotRect] = useState<SlotRect | null>(null);
+  const [slotRect, setSlotRect] = useState<ElementRect | null>(null);
+  const [mainRect, setMainRect] = useState<ElementRect | null>(null);
 
   const register = useCallback((agentId: string, content: React.ReactNode) => {
     setEntries((prev) => {
@@ -38,13 +40,18 @@ export function EditorCacheProvider({ children }: { children: React.ReactNode })
     });
   }, []);
 
-  const value = useMemo(() => ({ register, setActiveEditor: setActiveId, setSlotRect }), [register]);
+  const isEditorActive = activeId !== null && slotRect !== null;
+
+  const value = useMemo(
+    () => ({ register, setActiveEditor: setActiveId, setSlotRect, setMainRect, isEditorActive }),
+    [register, isEditorActive]
+  );
 
   return (
     <EditorCacheContext.Provider value={value}>
       {children}
       {Array.from(entries.entries()).map(([agentId, content]) => (
-        <CachedEditor key={agentId} isVisible={agentId === activeId && slotRect !== null} slotRect={slotRect}>
+        <CachedEditor key={agentId} isVisible={agentId === activeId && slotRect !== null} mainRect={mainRect}>
           {content}
         </CachedEditor>
       ))}
@@ -52,19 +59,48 @@ export function EditorCacheProvider({ children }: { children: React.ReactNode })
   );
 }
 
+export function MainContainer({ children, className }: { children: React.ReactNode; className?: string }) {
+  const mainRef = useRef<HTMLElement>(null);
+  const { setMainRect, isEditorActive } = useEditorCache();
+
+  useEffect(() => {
+    const el = mainRef.current;
+    if (!el) return undefined;
+
+    const update = () => {
+      const r = el.getBoundingClientRect();
+      setMainRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+    };
+    update();
+
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      setMainRect(null);
+    };
+  }, [setMainRect]);
+
+  return (
+    <main ref={mainRef} className={`${className ?? ''} ${isEditorActive ? 'pointer-events-none' : ''}`}>
+      {children}
+    </main>
+  );
+}
+
 function CachedEditor({
   children,
   isVisible,
-  slotRect,
+  mainRect,
 }: {
   children: React.ReactNode;
   isVisible: boolean;
-  slotRect: SlotRect | null;
+  mainRect: ElementRect | null;
 }) {
   return (
     <div
-      className={isVisible ? 'fixed z-30 rounded-e-xl overflow-hidden' : 'fixed inset-0 -z-[9999] invisible pointer-events-none'}
-      style={isVisible && slotRect ? slotRect : undefined}
+      className={isVisible ? 'fixed z-0 overflow-hidden rounded-xl' : 'fixed inset-0 -z-[9999] invisible pointer-events-none'}
+      style={isVisible && mainRect ? mainRect : undefined}
     >
       {children}
     </div>
