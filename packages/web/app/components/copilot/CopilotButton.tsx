@@ -23,8 +23,8 @@ export function CopilotButton() {
   if (!isAgentsTab(pathname)) return null;
 
   return (
-    <div className="mr-4 flex shrink-0 justify-end">
-      <div className="relative rounded-full">
+    <div className="flex shrink-0 justify-end bg-sidebar-accent">
+      <div className="relative rounded-full mr-4">
         <Button
           variant="ghost"
           size="sm"

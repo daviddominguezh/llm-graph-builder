@@ -173,7 +173,7 @@ function EditorTabBar({
   return (
     <GlassPanel
       variant="background"
-      className="relative w-[calc(100%-(var(--spacing)*1.5))] rounded-full h-[41px] shrink-0 flex items-center px-2 ml-1.5 pointer-events-auto"
+      className="relative w-[calc(100%-(var(--spacing)*3))] rounded-full h-[41px] shrink-0 flex items-center px-2 mx-1.5 pointer-events-auto"
     >
       <Button
         variant="ghost"
@@ -185,7 +185,7 @@ function EditorTabBar({
         <SidebarIcon />
       </Button>
       <Separator orientation="vertical" className="my-2" />
-      <div className="inline-flex gap-1 dark:gap-0.5 rounded-sm border bg-muted/50 p-0.5 ml-2">
+      <div className="inline-flex gap-1 dark:gap-0.5 rounded-sm border border-[0.5px] bg-muted/50 p-0.5 ml-5">
         {TABS.map((tab) => (
           <TabButton key={tab} tab={tab} active={activeTab === tab} onClick={onTabChange} label={t(tab)} />
         ))}
