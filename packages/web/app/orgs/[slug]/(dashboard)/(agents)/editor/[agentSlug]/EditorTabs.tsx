@@ -1,7 +1,10 @@
 'use client';
 
-import type { ApiKeyRow } from '@/app/lib/apiKeys';
+import { useAgentsSidebar } from '@/app/components/agents/AgentsSidebarContext';
+import { SettingsPanel } from '@/app/components/agents/SettingsPanel';
+import { ChannelsPanel } from '@/app/components/agents/channels/ChannelsPanel';
 import { useEditorCache } from '@/app/components/editors/EditorCacheProvider';
+import type { ApiKeyRow } from '@/app/lib/apiKeys';
 import { Button } from '@/components/ui/button';
 import { GlassPanel } from '@/components/ui/glass-panel';
 import { Separator } from '@/components/ui/separator';
@@ -9,11 +12,6 @@ import { Brain, PanelLeftClose, PanelLeftOpen, Radio, Settings } from 'lucide-re
 import type { LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-
-import { useAgentsSidebar } from '@/app/components/agents/AgentsSidebarContext';
-
-import { ChannelsPanel } from '@/app/components/agents/channels/ChannelsPanel';
-import { SettingsPanel } from '@/app/components/agents/SettingsPanel';
 
 import { EditorClient } from './EditorClient';
 
@@ -67,7 +65,6 @@ function TabButton({ tab, active, onClick, label }: TabButtonProps) {
     </button>
   );
 }
-
 
 function buildEditorElement(props: EditorTabsProps): React.ReactNode {
   return (
@@ -132,13 +129,7 @@ export function EditorTabs(props: EditorTabsProps) {
 
   return (
     <div className="w-full h-full flex flex-col">
-      <EditorTabBar
-        agentSlug={props.agentSlug}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        t={t}
-        tAgents={tAgents}
-      />
+      <EditorTabBar activeTab={activeTab} onTabChange={setActiveTab} t={t} tAgents={tAgents} />
       <div ref={slotRef} className={activeTab === 'agent' ? 'flex-1' : 'hidden'} />
       {activeTab === 'channels' && <ChannelsPanel orgId={props.orgId} agentId={props.agentId} />}
       {activeTab === 'settings' && (
@@ -157,13 +148,11 @@ export function EditorTabs(props: EditorTabsProps) {
 }
 
 function EditorTabBar({
-  agentSlug,
   activeTab,
   onTabChange,
   t,
   tAgents,
 }: {
-  agentSlug: string;
   activeTab: TabId;
   onTabChange: (tab: TabId) => void;
   t: (key: string) => string;
@@ -174,12 +163,20 @@ function EditorTabBar({
   const sidebarLabel = collapsed ? tAgents('showSidebar') : tAgents('hideSidebar');
 
   return (
-    <GlassPanel variant="background" className="w-[calc(100%-(var(--spacing)*1))] rounded-full h-[41px] shrink-0 flex items-center px-2 ml-1 pointer-events-auto">
-      <Button variant="ghost" size="icon" className="mr-2" onClick={() => setCollapsed(!collapsed)} title={sidebarLabel}>
+    <GlassPanel
+      variant="background"
+      className="w-[calc(100%-(var(--spacing)*1.5))] rounded-full h-[41px] shrink-0 flex items-center px-2 ml-1.5 pointer-events-auto"
+    >
+      <Button
+        variant="ghost"
+        size="icon"
+        className="mr-2"
+        onClick={() => setCollapsed(!collapsed)}
+        title={sidebarLabel}
+      >
         <SidebarIcon />
       </Button>
       <Separator orientation="vertical" className="my-2" />
-      <div className="text-xs font-medium mx-4 cursor-default">{agentSlug}</div>
       <Separator orientation="vertical" className="my-2" />
       <div className="flex h-full ml-2">
         {TABS.map((tab) => (
