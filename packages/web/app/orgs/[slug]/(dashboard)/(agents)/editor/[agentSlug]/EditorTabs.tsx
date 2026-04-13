@@ -165,7 +165,7 @@ function EditorTabBar({
   return (
     <GlassPanel
       variant="background"
-      className="w-[calc(100%-(var(--spacing)*1.5))] rounded-full h-[41px] shrink-0 flex items-center px-2 ml-1.5 pointer-events-auto"
+      className="relative w-[calc(100%-(var(--spacing)*1.5))] rounded-full h-[41px] shrink-0 flex items-center px-2 ml-1.5 pointer-events-auto"
     >
       <Button
         variant="ghost"
@@ -176,7 +176,6 @@ function EditorTabBar({
       >
         <SidebarIcon />
       </Button>
-      <Separator orientation="vertical" className="my-2" />
       <Separator orientation="vertical" className="my-2" />
       <div className="flex h-full ml-2">
         {TABS.map((tab) => (

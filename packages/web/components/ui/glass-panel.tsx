@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 type GlassVariant = 'background' | 'foreground';
 
@@ -8,11 +8,12 @@ interface GlassPanelProps {
   children: ReactNode;
   className?: string;
   variant?: GlassVariant;
+  style?: CSSProperties;
 }
 
-export function GlassPanel({ children, className, variant = 'background' }: GlassPanelProps) {
+export function GlassPanel({ children, className, variant = 'background', style }: GlassPanelProps) {
   return (
-    <div className={`glass-panel shadow-sm border border-[0.5px] glass-panel--${variant} ${className ?? ''}`}>
+    <div className={`glass-panel shadow-sm border border-[0.5px] glass-panel--${variant} ${className ?? ''}`} style={style}>
       {children}
     </div>
   );

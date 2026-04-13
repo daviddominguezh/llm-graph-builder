@@ -16,11 +16,20 @@ interface PanelInsets {
   bottom: number;
 }
 
+interface ToolbarActions {
+  onImport: () => void;
+  onExport: () => void;
+  onFormat: () => void;
+  hideWorkflowActions: boolean;
+}
+
 interface EditorCacheContextType {
   register: (agentId: string, content: React.ReactNode) => void;
   setActiveEditor: (id: string | null) => void;
   setSlotRect: (rect: ElementRect | null) => void;
   setMainRect: (rect: ElementRect | null) => void;
+  setToolbarActions: (actions: ToolbarActions | null) => void;
+  toolbarActions: ToolbarActions | null;
   isEditorActive: boolean;
   panelInsets: PanelInsets | null;
 }
@@ -38,6 +47,7 @@ export function EditorCacheProvider({ children }: { children: React.ReactNode })
   const [activeId, setActiveId] = useState<string | null>(null);
   const [slotRect, setSlotRect] = useState<ElementRect | null>(null);
   const [mainRect, setMainRect] = useState<ElementRect | null>(null);
+  const [toolbarActions, setToolbarActions] = useState<ToolbarActions | null>(null);
 
   const register = useCallback((agentId: string, content: React.ReactNode) => {
     setEntries((prev) => {
@@ -61,8 +71,17 @@ export function EditorCacheProvider({ children }: { children: React.ReactNode })
   }, [mainRect, slotRect]);
 
   const value = useMemo(
-    () => ({ register, setActiveEditor: setActiveId, setSlotRect, setMainRect, isEditorActive, panelInsets }),
-    [register, isEditorActive, panelInsets]
+    () => ({
+      register,
+      setActiveEditor: setActiveId,
+      setSlotRect,
+      setMainRect,
+      setToolbarActions,
+      toolbarActions,
+      isEditorActive,
+      panelInsets,
+    }),
+    [register, isEditorActive, panelInsets, toolbarActions]
   );
 
   return (

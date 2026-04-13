@@ -166,7 +166,7 @@ interface FileMenuProps {
   hideWorkflowActions?: boolean;
 }
 
-function FileMenu({
+export function FileMenu({
   onImport,
   onExport,
   onFormat,
@@ -180,8 +180,8 @@ function FileMenu({
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button className="h-9 w-9 bg-background! hover:bg-card!" variant="outline" size="sm">
-            <Menu className="size-4" />
+          <Button className="hover:bg-card! aspect-square! px-0" variant="ghost" size="lg">
+            <Menu />
           </Button>
         }
       />
@@ -310,7 +310,7 @@ export function Toolbar(props: ToolbarProps) {
   const t = useTranslations('toolbar');
   return (
     <>
-      <div className={`absolute top-1 left-1 z-1 pointer-events-auto ${props.hideWorkflowActions === true ? 'top-2.5' : ''}`}>
+      <GlassPanel variant="foreground" className={`absolute z-1 flex items-stretch justify-center gap-1.5 rounded-full p-1 top-1 pointer-events-auto shadow-md`}>
         <FileMenu
           onImport={onImport}
           onExport={onExport}
@@ -321,8 +321,6 @@ export function Toolbar(props: ToolbarProps) {
           agentName={agentName}
           hideWorkflowActions={props.hideWorkflowActions}
         />
-      </div>
-      <GlassPanel variant="foreground" className={`absolute z-1 flex items-stretch justify-center gap-1.5 rounded-full p-1 top-1 pointer-events-auto shadow-md`}>
         <PlayButton
           simulationActive={simulationActive ?? false}
           onPlay={onPlay}

@@ -13,6 +13,7 @@ import type { UseGraphSelectionReturn } from '../hooks/useGraphSelection';
 import type { McpLibraryState } from '../hooks/useMcpLibrary';
 import type { ContextPreset } from '../types/preset';
 
+import { GlassPanel } from '@/components/ui/glass-panel';
 import { START_NODE_ID } from '../utils/graphInitializer';
 import { EdgePanel } from './panels/EdgePanel';
 import { GlobalNodesPanel } from './panels/GlobalNodesPanel';
@@ -92,7 +93,7 @@ function SelectionPanel(props: SelectionPanelProps) {
   const isStartNode = selection.selectedNodeId === START_NODE_ID;
 
   return (
-    <aside className="absolute right-0 top-0 bottom-0 z-10 w-80 border-border bg-background border-l rounded-s-md shadow-sm">
+    <GlassPanel className="absolute right-0 top-0 bottom-0 z-10 w-80 rounded-s-md pointer-events-auto">
       {selection.selectedNodeId !== null && isStartNode && (
         <StartNodePanel
           nodeId={selection.selectedNodeId}
@@ -133,7 +134,7 @@ function SelectionPanel(props: SelectionPanelProps) {
           pushOperation={pushOperation}
         />
       )}
-    </aside>
+    </GlassPanel>
   );
 }
 
@@ -141,7 +142,7 @@ type GlobalPanelProps = Pick<SidePanelsProps, 'setNodes' | 'setEdges' | 'nodes' 
 
 function GlobalPanel({ setNodes, setEdges, nodes, pushOperation }: GlobalPanelProps) {
   return (
-    <aside className="absolute right-0 top-0 bottom-0 z-10 w-80 border-border bg-background border-l rounded-s-md">
+    <GlassPanel className="absolute right-0 top-0 bottom-0 z-10 w-80 rounded-s-md pointer-events-auto">
       <GlobalNodesPanel
         nodes={nodes}
         onAddNode={() => handleGlobalAddNode(setNodes, pushOperation)}
@@ -153,7 +154,7 @@ function GlobalPanel({ setNodes, setEdges, nodes, pushOperation }: GlobalPanelPr
           handleGlobalSetFallback(nodeId, nodes, setNodes, pushOperation);
         }}
       />
-    </aside>
+    </GlassPanel>
   );
 }
 

@@ -159,7 +159,7 @@ export function AgentsSidebar({ agents: serverAgents, orgId, orgSlug }: AgentsSi
   }
 
   return (
-    <GlassPanel variant="background" className="flex h-full w-[240px] shrink-0 flex-col pointer-events-auto rounded-xl">
+    <GlassPanel variant="background" className="relative flex h-full w-[240px] shrink-0 flex-col pointer-events-auto rounded-xl">
       <SidebarHeader onCreateClick={() => setCreateOpen(true)} />
       <SearchInput value={search} onChange={setSearch} />
       <div className="flex-1 overflow-y-auto">

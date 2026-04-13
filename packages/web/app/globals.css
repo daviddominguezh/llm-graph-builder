@@ -417,7 +417,6 @@ div.model-selector-trigger[data-slot="input-group"] {
 
 /* Glass panel effect */
 .glass-panel {
-  position: relative;
   isolation: isolate;
 }
 

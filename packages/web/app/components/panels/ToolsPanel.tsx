@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { GlassPanel } from '@/components/ui/glass-panel';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Play, Search } from 'lucide-react';
@@ -285,13 +286,14 @@ export function ToolsPanel({ mcp, open, onClose }: ToolsPanelProps) {
 
   return (
     <>
-      <div
-        ref={containerRef}
-        className="absolute top-12.5 left-1/2 z-20 -translate-x-1/2 w-[28rem] h-96 flex flex-col rounded-md border bg-background shadow-lg overflow-hidden"
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') onClose();
-        }}
-      >
+      <GlassPanel className="absolute top-12.5 left-1/2 z-20 -translate-x-1/2 w-[28rem] h-96 rounded-md shadow-lg overflow-hidden pointer-events-auto">
+        <div
+          ref={containerRef}
+          className="flex h-full flex-col"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') onClose();
+          }}
+        >
         <div className="flex items-center border-y-0 border-x-0 border-b p-0 overflow-hidden">
           <PanelTabs value={activeTab} onChange={setActiveTab} t={t} />
         </div>
@@ -322,7 +324,8 @@ export function ToolsPanel({ mcp, open, onClose }: ToolsPanelProps) {
             <McpTab mcp={mcp} />
           </div>
         )}
-      </div>
+        </div>
+      </GlassPanel>
       <ToolTestModal
         tool={tt.testingTool}
         transport={tt.transport}
