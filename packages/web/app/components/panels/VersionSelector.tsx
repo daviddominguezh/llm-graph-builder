@@ -121,9 +121,7 @@ function EmptyVersionsTrigger() {
 
 export function VersionSelector(props: VersionSelectorProps) {
   const { versions, currentVersion, loading, hasPendingOps, onSwitchVersion } = props;
-  const t = useTranslations('editor');
   const [pendingVersion, setPendingVersion] = useState<number | null>(null);
-  const triggerLabel = currentVersion === 0 ? t('versionDraft') : `v${currentVersion}`;
 
   const handleValueChange = useCallback(
     (raw: string | null) => {
@@ -159,28 +157,19 @@ export function VersionSelector(props: VersionSelectorProps) {
       <Select value={String(currentVersion)} onValueChange={handleValueChange} disabled={loading}>
         <SelectTrigger
           size="sm"
-          className="data-[size=sm]:h-auto border-0 bg-transparent px-3 text-xs font-bold [&>svg:last-child]:hidden hover:bg-card!"
+          className="data-[size=sm]:h-auto border-0 bg-transparent px-2 text-xs font-bold [&>svg:last-child]:hidden hover:bg-card! relative"
         >
           <History className="size-4" />
-          <span className='cursor-default'>{triggerLabel}</span>
         </SelectTrigger>
         <SelectContent side="bottom" align="end" alignItemWithTrigger={false} className="w-auto min-w-56">
           {versions.map((v) => (
-            <SelectItem
-              key={v.version}
-              value={String(v.version)}
-              
-            >
+            <SelectItem key={v.version} value={String(v.version)}>
               <VersionItemLabel version={v.version} publishedAt={v.publishedAt} />
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
-      <SwitchConfirmDialog
-        open={pendingVersion !== null}
-        onConfirm={handleConfirm}
-        onCancel={handleCancel}
-      />
+      <SwitchConfirmDialog open={pendingVersion !== null} onConfirm={handleConfirm} onCancel={handleCancel} />
     </>
   );
 }

@@ -326,7 +326,7 @@ export function Toolbar(props: ToolbarProps) {
         agentName={agentName}
         hideWorkflowActions={props.hideWorkflowActions}
       />
-      <Separator orientation="vertical" className="my-2" />
+      <Separator orientation="vertical" className="my-2 mx-2" />
       {props.statusSlot}
       {props.versionSlot}
       {props.publishSlot}
