@@ -30,6 +30,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
+import { GlassPanel } from '@/components/ui/glass-panel';
 import { ThemeSwitcher } from '../ThemeSwitcher';
 
 const TOOLTIP_DELAY = 1000;
@@ -321,9 +322,7 @@ export function Toolbar(props: ToolbarProps) {
           hideWorkflowActions={props.hideWorkflowActions}
         />
       </div>
-      <header
-        className={`absolute z-1 flex items-stretch justify-center gap-1.5 rounded-full border border-[0.5px] bg-background p-1 top-1 pointer-events-auto ${props.hideWorkflowActions === true ? '' : 'shadow-sm'}`}
-      >
+      <GlassPanel variant="foreground" className={`absolute z-1 flex items-stretch justify-center gap-1.5 rounded-full p-1 top-1 pointer-events-auto shadow-md`}>
         <PlayButton
           simulationActive={simulationActive ?? false}
           onPlay={onPlay}
@@ -331,7 +330,7 @@ export function Toolbar(props: ToolbarProps) {
           label={t('simulate')}
         />
         <ToolbarButtons {...props} />
-      </header>
+      </GlassPanel>
       {(props.statusSlot ?? props.publishSlot ?? props.versionSlot) && (
         <div
           className={`absolute top-1 right-1 z-1 flex items-center gap-1 pointer-events-auto ${props.hideWorkflowActions === true ? 'top-2.5' : ''}`}
