@@ -2,7 +2,7 @@
 
 import { BorderBeam } from '@/components/ui/border-beam';
 import { Button } from '@/components/ui/button';
-import { TextBeam } from '@/components/ui/text-beam';
+import { ContentBeam } from '@/components/ui/content-beam';
 import { WandSparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { usePathname } from 'next/navigation';
@@ -37,13 +37,16 @@ export function CopilotButton() {
             }`}
           onClick={() => setOpen(!isOpen)}
         >
-          <WandSparkles className="size-3" />
           {isOpen ? (
-            t('title')
-          ) : (
-            <TextBeam duration={4} colorFrom="#ffaa40" colorTo="#9c40ff">
+            <>
+              <WandSparkles className="size-3" />
               {t('title')}
-            </TextBeam>
+            </>
+          ) : (
+            <ContentBeam duration={4} colorFrom="#ffaa40" colorTo="#9c40ff">
+              <WandSparkles className="size-3" />
+              {t('title')}
+            </ContentBeam>
           )}
         </Button>
         {!isOpen && (
