@@ -137,10 +137,10 @@ export function ConnectionMenu({
 
   return (
     <>
-      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div className="fixed inset-0 z-40 pointer-events-auto" onClick={onClose} />
 
       <div
-        className="fixed z-50 w-64 overflow-hidden rounded-lg bg-popover text-popover-foreground shadow-md ring-1 ring-foreground/10 animate-in fade-in-0 zoom-in-95"
+        className="fixed z-50 w-64 overflow-hidden rounded-lg bg-popover text-popover-foreground shadow-md ring-1 ring-foreground/10 animate-in fade-in-0 zoom-in-95 pointer-events-auto"
         style={{ left: position.x, top: position.y }}
       >
         <p className="text-xs text-muted-foreground p-3 px-3 pb-1">{t('connectToExisting')}</p>
