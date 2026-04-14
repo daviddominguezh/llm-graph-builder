@@ -200,6 +200,17 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     }
   };
 
+  const firstLetterUppercase = (str?: string) => {
+    if (str === undefined || str === null) return '';
+    if (typeof str !== 'string') return '';
+    const trimmed = str.trim();
+    if (trimmed.length === 0) return '';
+    if (trimmed.length === 1) return trimmed.toUpperCase();
+    return trimmed.substring(0, 1).toUpperCase() + trimmed.substring(1);
+  };
+
+  console.log(firstLetterUppercase('luisa'));
+
   const getAssignedToDisplay = () => {
     if (!assignedTo || assignedTo === 'unassigned') {
       return <CircleUserRound className="text-foreground" />;
@@ -275,7 +286,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         <div className="flex-1 min-w-0">
           <h3 className="text-xs font-semibold m-0 flex items-center gap-2">
             <span className="cursor-default overflow-hidden text-ellipsis whitespace-nowrap">
-              {displayName}
+              {firstLetterUppercase(displayName)}
             </span>
             {chat?.status === 'boss' && (
               <Badge variant="destructive" className="shrink-0">
@@ -291,7 +302,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         <Select value={assignedTo} onValueChange={(value) => value && handleAssignedToChange(value)}>
           <SelectTrigger
             nativeButton={true}
-            className="bg-background dark:bg-background dark:hover:bg-input text-foreground! cursor-pointer ring-0 border-none px-[calc(1px+var(--spacing)*1.5)] [&_span]:text-foreground [&_svg]:!text-foreground"
+            className="bg-background dark:bg-background dark:hover:bg-input rounded-full text-foreground! cursor-pointer ring-0 border-none px-[calc(1px+var(--spacing)*1.5)] [&_span]:text-foreground [&_svg]:!text-foreground"
             render={
               <Button type="button" variant="ghost" size="icon" className="shrink-0 cursor-pointer">
                 {getAssignedToDisplay()}
@@ -343,7 +354,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         <Select value={status} onValueChange={(value) => value && handleStatusChange(value)}>
           <SelectTrigger
             nativeButton={true}
-            className="bg-background dark:bg-background dark:hover:bg-input text-foreground! cursor-pointer ring-0 border-none px-[calc(1px+var(--spacing)*1.5)] [&_span]:text-foreground [&_svg]:!text-foreground"
+            className="bg-background dark:bg-background dark:hover:bg-input rounded-full text-foreground! cursor-pointer ring-0 border-none px-[calc(1px+var(--spacing)*1.5)] [&_span]:text-foreground [&_svg]:!text-foreground"
             render={
               <Button type="button" variant="ghost" size="icon" className="shrink-0 cursor-pointer">
                 {getStatusIcon()}
@@ -368,7 +379,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
-            <Button variant="ghost" className="shrink-0">
+            <Button variant="ghost" className="shrink-0 p-0 h-7 aspect-square">
               <EllipsisVertical size={HEADER_ICON_SIZE} />
             </Button>
           }

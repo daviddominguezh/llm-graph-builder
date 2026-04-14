@@ -1093,7 +1093,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
                   ref={emojiButtonRef}
                   variant="ghost"
                   onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                  className={`${iconContainerClassname} rounded-md shrink-0`}
+                  className={`${iconContainerClassname} rounded-full shrink-0`}
                   disabled={isEditorDisabled}
                 >
                   <Smile strokeWidth={iconStrokeWidth} size={msgInputIconSize} className={iconClassname} />
@@ -1105,7 +1105,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
                       ref={emojiButtonRef}
                       variant="ghost"
                       onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                      className={`${iconContainerClassname} rounded-md shrink-0`}
+                      className={`${iconContainerClassname} rounded-full shrink-0`}
                     >
                       <Smile
                         strokeWidth={iconStrokeWidth}

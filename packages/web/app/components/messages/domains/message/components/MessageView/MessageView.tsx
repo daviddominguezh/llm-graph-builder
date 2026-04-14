@@ -285,7 +285,7 @@ const MessageItemComponent = memo<MessageItemComponentProps>(
             {(isHovered || isDropdownOpen) && !isNote && !isAssigneeChange && !isStatusChange && (
               <div
                 ref={isDropdownOpen ? dropdownTriggerRef : null}
-                className={`absolute top-2 right-2 z-20 rounded hover:bg-border ${
+                className={`absolute top-2 right-2 z-20 rounded-full hover:bg-border ${
                   isHighlighted || styleAsAssistant ? 'bg-card' : 'bg-background'
                 }`}
               >
