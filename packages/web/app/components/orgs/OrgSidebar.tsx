@@ -40,7 +40,7 @@ function OrgAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null
         alt={name}
         width={20}
         height={20}
-        className="h-5 w-5 shrink-0 rounded-full object-cover border"
+        className="h-5 w-5 shrink-0 rounded-full object-cover border border-input border-[1px]"
       />
     );
   }
@@ -64,14 +64,14 @@ function NavItem({
   onClick?: (e: React.MouseEvent) => void;
 }) {
   return (
-    <div className={`group flex flex-col justify-center py-1 ${active ? 'bg-primary/15 rounded-[5px]' : ''}`}>
+    <div className={`cursor-pointer group flex flex-col justify-center py-1 rounded-[5px] ${active ? 'bg-primary/15 hover:bg-primary/15' : 'hover:bg-sidebar-accent'}`}>
       <Button
         variant="ghost"
         size="sm"
-        className={`h-6 w-full justify-start px-2 border-x-0 border-y-0 rounded-none ${
+        className={`h-6 w-full justify-start px-2 border-x-0 border-y-0 rounded-none group-hover:bg-transparent! ${
           active
-            ? 'border-l border-l-2 border-primary bg-transparent text-primary hover:text-primary'
-            : 'border-l border-l-2 group-hover:border-foreground text-muted-foreground hover:text-foreground/70 hover:bg-sidebar-accent'
+            ? 'border-l border-l-2 border-transparent bg-transparent text-primary hover:text-primary'
+            : 'border-l border-l-2 group-hover:border-transparent text-muted-foreground group-hover:text-foreground!'
         }`}
         render={<Link href={href} onClick={onClick} />}
       >
