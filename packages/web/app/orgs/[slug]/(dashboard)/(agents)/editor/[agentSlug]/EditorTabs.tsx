@@ -173,7 +173,7 @@ function EditorTabBar({
   return (
     <GlassPanel
       variant="background"
-      className="relative w-[calc(100%-(var(--spacing)*3))] rounded-full h-[41px] shrink-0 flex items-center px-2 mx-1.5 pointer-events-auto"
+      className="relative w-[calc(100%-(var(--spacing)*5))] rounded-full h-[41px] shrink-0 flex items-center px-2 mx-2.5 pointer-events-auto"
     >
       <Button
         variant="ghost"

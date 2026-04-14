@@ -135,6 +135,27 @@ async function resolveConversationId(
   });
 }
 
+/* ─── Child routing: when a child is active on the stack, route to it ─── */
+
+function resolveChildOverride(fetched: FetchedData, params: ExecuteCoreInput): OverrideAgentConfig | undefined {
+  // Only redirect if there's an active child AND this is NOT already a child/resume execution
+  if (fetched.stackTop === null) return undefined;
+  if (params.continueExecutionId !== undefined) return undefined;
+
+  const config = fetched.stackTop.agent_config;
+  const systemPrompt = typeof config['systemPrompt'] === 'string' ? config['systemPrompt'] : '';
+  const context = typeof config['context'] === 'string' ? config['context'] : '';
+  const maxSteps = typeof config['maxSteps'] === 'number' ? config['maxSteps'] : null;
+  const modelId = typeof config['modelId'] === 'string' ? config['modelId'] : undefined;
+
+  // Switch to agent mode so the edge function runs the child agent, not the parent workflow
+  fetched.appType = 'agent';
+
+  logExec('routing to active child', { childExecId: fetched.stackTop.execution_id });
+
+  return { systemPrompt, context, maxSteps, modelId, isChildAgent: true };
+}
+
 /* ─── Core execution function ─── */
 
 export async function executeAgentCore(
@@ -144,10 +165,14 @@ export async function executeAgentCore(
   const { supabase, input } = params;
 
   const { fetched, executionId, conversationId, model } = await setupExecution(params);
+
+  // When there's an active child on the stack, route to the child agent instead of the parent
+  const childOverride = resolveChildOverride(fetched, params);
+
   const vfsPayload = await resolveVfsCorePayload(supabase, fetched, params.agentId, params.orgId);
   const buildOptions: BuildCoreParamsOptions = {
     vfsPayload,
-    overrideAgentConfig: params.overrideAgentConfig,
+    overrideAgentConfig: childOverride ?? params.overrideAgentConfig,
   };
   const edgeParams = buildCoreExecuteParams(fetched, input, model, buildOptions);
   const startTime = Date.now();

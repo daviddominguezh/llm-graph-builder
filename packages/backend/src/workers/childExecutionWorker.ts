@@ -135,15 +135,30 @@ async function handleChildResult(
     return; // Multi-level dispatch: child itself dispatched a grandchild (handled by dispatchIfNeeded)
   }
 
-  // Agent completed without calling finish — use its text response as the result
+  // Child responded without calling finish — it's asking a question (multi-turn).
+  // Notify the HTTP handler so the cURL gets the response. Parent stays suspended.
   const text = result.output?.text ?? '';
   if (text !== '') {
-    const syntheticFinish = { output: text, status: 'success' as const };
-    await createResumeFromFinish(supabase, child, syntheticFinish);
+    await notifyChildWaiting(child.root_execution_id, text);
     return;
   }
 
   throw new Error('Child agent completed without calling finish or producing text');
+}
+
+/* ─── Notify HTTP handler: child is waiting for user input ─── */
+
+async function notifyChildWaiting(rootExecutionId: string, text: string): Promise<void> {
+  try {
+    const notifier = getNotifier();
+    await notifier.notifyCompletion(rootExecutionId, {
+      status: 'completed',
+      text,
+      executionId: rootExecutionId,
+    });
+  } catch (err: unknown) {
+    log(`notify child-waiting error: ${String(err)}`);
+  }
 }
 
 /* ─── Notify root of permanent failure ─── */

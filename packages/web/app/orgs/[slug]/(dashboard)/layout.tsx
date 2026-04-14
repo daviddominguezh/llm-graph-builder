@@ -24,12 +24,16 @@ export default async function OrgLayout({ children, params }: OrgLayoutProps): P
     <AgentsSidebarProvider>
       <CopilotProvider>
         <EditorCacheProvider>
-          <div className="relative flex h-screen flex-col bg-red pl-0 pr-0 pt-0 overflow-hidden">
-            <OrgSidebar org={org} />
-            <MainContainer className="relative z-11 min-h-0 flex-1 bg-transparent pb-1.5 mt-1.5 ml-11.5 pl-1 rounded-lg overflow-hidden">
-              {children}
-            </MainContainer>
-            <CopilotButton />
+          <div className="relative flex h-screen flex-col pl-0 pr-0 pt-0 overflow-hidden bg-transparent">
+            <div className="w-full flex-1 shrink-0 flex">
+              <OrgSidebar org={org} />
+              <MainContainer className="relative z-11 min-h-0 flex-1 shrink- bg-transparent pb-1.5 mt-1.5 rounded-lg overflow-hidden">
+                {children}
+              </MainContainer>
+            </div>
+            <div className="shrink-0 flex flex-col">
+              <CopilotButton />
+            </div>
           </div>
         </EditorCacheProvider>
         <CopilotPanel />
