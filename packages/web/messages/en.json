@@ -579,7 +579,7 @@
     "allAgents": "All agents",
     "allAgentsDescription": "Access all agents, including future ones.",
     "allAgentsWarning": "Anyone with this key can invoke any agent in your organization. Rotate regularly and use scoped keys for third-party integrations.",
-    "allBadge": "All",
+    "allBadge": "All agents",
     "agents": "Agents",
     "agentsDescription": "Select which published agents this key can access.",
     "agentsRequired": "Select at least one agent.",

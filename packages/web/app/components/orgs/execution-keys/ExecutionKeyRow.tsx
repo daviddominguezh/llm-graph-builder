@@ -106,13 +106,13 @@ export function ExecutionKeyRow({ keyData, onDelete }: ExecutionKeyRowProps) {
   const locale = useLocale();
 
   return (
-    <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-3 rounded-md border border-transparent px-3 py-2 bg-card transition-colors">
+    <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-3 rounded-md border border-transparent px-3 py-2 bg-card dark:bg-input/70 transition-colors">
       <KeyIdentity keyData={keyData} />
       <AgentBadges keyData={keyData} />
-      <span className="text-muted-foreground text-[11px] whitespace-nowrap">
+      <span className="text-muted-foreground text-[11px] whitespace-nowrap ml-2">
         {t('created')} {formatRelativeTime(keyData.created_at, locale)}
       </span>
-      <span className="text-muted-foreground text-[11px] whitespace-nowrap">
+      <span className="text-muted-foreground text-[11px] whitespace-nowrap ml-2">
         {keyData.expires_at !== null
           ? `${t('expiresAt')} ${formatRelativeDate(keyData.expires_at)}`
           : t('noExpiration')}
