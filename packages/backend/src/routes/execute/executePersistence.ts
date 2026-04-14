@@ -25,6 +25,7 @@ interface PreExecutionParams {
   userMessageContent: string;
   currentNodeId: string;
   executionId?: string;
+  parentExecutionId?: string;
 }
 
 interface PreExecutionResult {
@@ -45,6 +46,7 @@ export async function persistPreExecution(
     tenantId: params.tenantId,
     userId: params.userId,
     executionId: params.executionId,
+    parentExecutionId: params.parentExecutionId,
   });
 
   await saveExecutionMessage(supabase, {

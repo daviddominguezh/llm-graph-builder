@@ -12,7 +12,7 @@ import {
   persistMessagingPreExecution,
   resolveVfsCorePayload,
 } from './executeCoreHelpers.js';
-import type { FetchedData, OverrideAgentConfig } from './executeFetcher.js';
+import { type FetchedData, type OverrideAgentConfig, fetchChildMessages } from './executeFetcher.js';
 import { buildUserMessage, extractTextFromInput, logExec } from './executeHelpers.js';
 import { persistPostExecution, persistPreExecution } from './executePersistence.js';
 import { getLastVisitedNode, mergeStructuredOutputs } from './executeResponseBuilders.js';
@@ -41,6 +41,8 @@ export interface ExecuteCoreInput {
   executionId?: string;
   /** Root execution ID for composition notification routing */
   rootExecutionId?: string;
+  /** Parent execution ID — set for child executions so they're findable by parent */
+  parentExecutionId?: string;
 }
 
 export interface ExecuteCoreOutput {
@@ -109,6 +111,7 @@ async function setupExecution(params: ExecuteCoreInput): Promise<SetupResult> {
       userMessageContent: extractTextFromInput(input),
       currentNodeId: fetched.currentNodeId,
       executionId: params.executionId,
+      parentExecutionId: params.parentExecutionId,
     }),
     resolveConversationId(supabase, params),
   ]);
@@ -137,23 +140,46 @@ async function resolveConversationId(
 
 /* ─── Child routing: when a child is active on the stack, route to it ─── */
 
-function resolveChildOverride(fetched: FetchedData, params: ExecuteCoreInput): OverrideAgentConfig | undefined {
+function extractChildConfig(config: Record<string, unknown>): OverrideAgentConfig {
+  return {
+    systemPrompt: typeof config['systemPrompt'] === 'string' ? config['systemPrompt'] : '',
+    context: typeof config['context'] === 'string' ? config['context'] : '',
+    maxSteps: typeof config['maxSteps'] === 'number' ? config['maxSteps'] : null,
+    modelId: typeof config['modelId'] === 'string' ? config['modelId'] : undefined,
+    isChildAgent: true,
+  };
+}
+
+async function resolveChildOverride(
+  fetched: FetchedData,
+  params: ExecuteCoreInput
+): Promise<OverrideAgentConfig | undefined> {
   // Only redirect if there's an active child AND this is NOT already a child/resume execution
   if (fetched.stackTop === null) return undefined;
   if (params.continueExecutionId !== undefined) return undefined;
 
-  const config = fetched.stackTop.agent_config;
-  const systemPrompt = typeof config['systemPrompt'] === 'string' ? config['systemPrompt'] : '';
-  const context = typeof config['context'] === 'string' ? config['context'] : '';
-  const maxSteps = typeof config['maxSteps'] === 'number' ? config['maxSteps'] : null;
-  const modelId = typeof config['modelId'] === 'string' ? config['modelId'] : undefined;
+  const parentExecId = fetched.stackTop.parent_execution_id ?? '';
+  logExec('routing to active child', { parentExecId });
 
-  // Switch to agent mode so the edge function runs the child agent, not the parent workflow
+  // Load ONLY messages from child executions (not the parent workflow's messages).
+  // The new user message was already appended to messageHistory by setupExecution — preserve it.
+  const newUserMessage = fetched.messageHistory[fetched.messageHistory.length - 1];
+  const stackExecId = fetched.stackTop.execution_id;
+  const childMessages = await fetchChildMessages(
+    params.supabase,
+    parentExecId,
+    params.input.channel,
+    stackExecId
+  );
+  fetched.messageHistory = newUserMessage !== undefined ? [...childMessages, newUserMessage] : childMessages;
+
+  // Switch to agent mode and clear parent's agentConfig so the child override takes effect cleanly
   fetched.appType = 'agent';
+  fetched.agentConfig = null;
+  // Mark this execution as a child so its messages are findable on subsequent turns
+  params.parentExecutionId = parentExecId;
 
-  logExec('routing to active child', { childExecId: fetched.stackTop.execution_id });
-
-  return { systemPrompt, context, maxSteps, modelId, isChildAgent: true };
+  return extractChildConfig(fetched.stackTop.agent_config);
 }
 
 /* ─── Core execution function ─── */
@@ -167,7 +193,7 @@ export async function executeAgentCore(
   const { fetched, executionId, conversationId, model } = await setupExecution(params);
 
   // When there's an active child on the stack, route to the child agent instead of the parent
-  const childOverride = resolveChildOverride(fetched, params);
+  const childOverride = await resolveChildOverride(fetched, params);
 
   const vfsPayload = await resolveVfsCorePayload(supabase, fetched, params.agentId, params.orgId);
   const buildOptions: BuildCoreParamsOptions = {

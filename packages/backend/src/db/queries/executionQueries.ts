@@ -18,6 +18,59 @@ export interface MessageRow {
   created_at: string;
 }
 
+export async function getExecutionMessages(supabase: SupabaseClient, executionId: string): Promise<MessageRow[]> {
+  const result: QueryResult<MessageRow[]> = await supabase
+    .from('agent_execution_messages')
+    .select('*')
+    .eq('execution_id', executionId)
+    .order('created_at', { ascending: true });
+
+  if (result.error !== null) {
+    throw new Error(`getExecutionMessages: ${result.error.message}`);
+  }
+
+  return result.data ?? [];
+}
+
+export async function getChildExecutionMessages(
+  supabase: SupabaseClient,
+  parentExecutionId: string,
+  excludeExecutionId?: string
+): Promise<MessageRow[]> {
+  // Get all execution IDs that are children of the parent (across any session)
+  const execResult = (
+    excludeExecutionId !== undefined
+      ? await supabase
+          .from('agent_executions')
+          .select('id')
+          .eq('parent_execution_id', parentExecutionId)
+          .neq('id', excludeExecutionId)
+      : await supabase
+          .from('agent_executions')
+          .select('id')
+          .eq('parent_execution_id', parentExecutionId)
+  ) as { data: Array<{ id: string }> | null; error: { message: string } | null };
+
+  if (execResult.error !== null) {
+    throw new Error(`getChildExecutionMessages(execs): ${execResult.error.message}`);
+  }
+
+  const childExecIds = (execResult.data ?? []).map((r) => r.id);
+  if (childExecIds.length === 0) return [];
+
+  const result: QueryResult<MessageRow[]> = await supabase
+    .from('agent_execution_messages')
+    .select('*')
+    .in('execution_id', childExecIds)
+    .order('created_at', { ascending: true });
+
+  if (result.error !== null) {
+    throw new Error(`getChildExecutionMessages(msgs): ${result.error.message}`);
+  }
+
+  return result.data ?? [];
+}
+
 export async function getSessionMessages(supabase: SupabaseClient, sessionId: string): Promise<MessageRow[]> {
   const result: QueryResult<MessageRow[]> = await supabase
     .from('agent_execution_messages')
@@ -78,19 +131,6 @@ export async function createExecution(
   return result.data.id;
 }
 
-export async function getExecutionMessages(
-  supabase: SupabaseClient,
-  executionId: string
-): Promise<MessageRow[]> {
-  const result: QueryResult<MessageRow[]> = await supabase
-    .from('agent_execution_messages')
-    .select('*')
-    .eq('execution_id', executionId)
-    .order('created_at', { ascending: true });
-
-  if (result.error !== null) throw new Error(`Failed to get execution messages: ${result.error.message}`);
-  return result.data ?? [];
-}
 
 export async function updateToolOutputMessage(
   supabase: SupabaseClient,

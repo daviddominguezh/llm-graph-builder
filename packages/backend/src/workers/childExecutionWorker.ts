@@ -85,6 +85,7 @@ async function buildCoreInput(
       stream: false,
     },
     rootExecutionId: child.root_execution_id,
+    parentExecutionId: child.parent_execution_id,
   };
 
   // For dynamically created children (create_agent), the published agent is the parent.

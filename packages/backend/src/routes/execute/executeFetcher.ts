@@ -10,6 +10,7 @@ import {
   getPublishedGraphData,
 } from '../../db/queries/executionAuthQueries.js';
 import {
+  getChildExecutionMessages,
   getExecutionMessages,
   getOrCreateSession,
   getSessionMessages,
@@ -262,6 +263,17 @@ export async function fetchExecutionMessages(
   channel: string
 ): Promise<Message[]> {
   const rows = await getExecutionMessages(supabase, executionId);
+  const provider = resolveChannelProvider(channel);
+  return rows.map((row) => messageRowToMessage(row, provider));
+}
+
+export async function fetchChildMessages(
+  supabase: SupabaseClient,
+  parentExecutionId: string,
+  channel: string,
+  excludeExecutionId?: string
+): Promise<Message[]> {
+  const rows = await getChildExecutionMessages(supabase, parentExecutionId, excludeExecutionId);
   const provider = resolveChannelProvider(channel);
   return rows.map((row) => messageRowToMessage(row, provider));
 }

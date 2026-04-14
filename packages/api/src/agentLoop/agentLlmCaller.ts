@@ -204,6 +204,7 @@ export async function callAgentLlm(params: LlmCallParams): Promise<LlmCallResult
       providerOptions: { openai: { store: true } },
     };
 
+    log('Messages', JSON.stringify(params.messages));
     const result = await generateText(config);
 
     return processLlmResponse({
