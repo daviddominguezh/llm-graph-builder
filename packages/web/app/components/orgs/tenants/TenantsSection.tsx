@@ -124,7 +124,16 @@ function TenantRowActions({
   return (
     <div className="flex items-center justify-end gap-0.5 opacity-0 transition-opacity group-hover/row:opacity-100">
       <Tooltip>
-        <TooltipTrigger render={<Button variant="ghost" size="icon-sm" onClick={() => onEdit(tenant)} />}>
+        <TooltipTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon"
+              className="p-0! h-7 aspect-square"
+              onClick={() => onEdit(tenant)}
+            />
+          }
+        >
           <Pencil className="size-3" />
         </TooltipTrigger>
         <TooltipContent side="top">{t('editTitle')}</TooltipContent>
@@ -133,9 +142,9 @@ function TenantRowActions({
         <TooltipTrigger
           render={
             <Button
-              variant="ghost"
-              size="icon-sm"
-              className="text-muted-foreground hover:text-destructive"
+              variant="destructive"
+              size="icon"
+              className="p-0! h-7 aspect-square"
               onClick={() => onDelete(tenant)}
             />
           }
@@ -258,7 +267,12 @@ export function TenantsSection({ orgId, initialTenants }: TenantsSectionProps) {
         </CardTitle>
         <CardDescription>{t('description')}</CardDescription>
         <CardAction>
-          <Button variant="outline" size="sm" className="border-[0.5px] rounded-md" onClick={() => setCreateOpen(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-[0.5px] rounded-md"
+            onClick={() => setCreateOpen(true)}
+          >
             <Plus className="size-4" />
             {t('add')}
           </Button>
