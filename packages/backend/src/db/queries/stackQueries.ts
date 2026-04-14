@@ -13,6 +13,7 @@ export interface StackEntry {
   parent_session_state: Record<string, unknown> | null;
   agent_config: Record<string, unknown>;
   app_type: 'agent' | 'workflow';
+  root_execution_id: string;
   dispatched_at: string;
 }
 
@@ -53,6 +54,7 @@ export interface PushStackEntryParams {
   parentSessionState: Record<string, unknown>;
   agentConfig: Record<string, unknown>;
   appType: 'agent' | 'workflow';
+  rootExecutionId: string;
 }
 
 export async function pushStackEntry(supabase: SupabaseClient, params: PushStackEntryParams): Promise<void> {
@@ -65,6 +67,7 @@ export async function pushStackEntry(supabase: SupabaseClient, params: PushStack
     parent_session_state: params.parentSessionState,
     agent_config: params.agentConfig,
     app_type: params.appType,
+    root_execution_id: params.rootExecutionId,
   });
 
   if (error !== null) throw new Error(`Failed to push stack entry: ${error.message}`);

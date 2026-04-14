@@ -13,6 +13,7 @@ export interface PendingResume {
   parent_session_state: Record<string, unknown>;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   attempts: number;
+  root_execution_id: string;
 }
 
 interface QueryResult<T> {
@@ -29,6 +30,7 @@ export async function createPendingResume(
     childOutput: string;
     childStatus: 'success' | 'error';
     parentSessionState: Record<string, unknown>;
+    rootExecutionId: string;
   }
 ): Promise<void> {
   const { error } = await supabase.from('pending_resumes').upsert(
@@ -39,6 +41,7 @@ export async function createPendingResume(
       child_output: params.childOutput,
       child_status: params.childStatus,
       parent_session_state: params.parentSessionState,
+      root_execution_id: params.rootExecutionId,
       status: 'pending',
     },
     { onConflict: 'parent_execution_id' }

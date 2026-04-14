@@ -13,6 +13,7 @@ export interface PendingChildExecution {
   app_type: 'agent' | 'workflow';
   status: 'pending' | 'processing' | 'completed' | 'failed';
   attempts: number;
+  root_execution_id: string;
 }
 
 interface QueryResult<T> {
@@ -30,6 +31,7 @@ export async function createPendingChildExecution(
     orgId: string;
     apiKeyEnc: string;
     appType: 'agent' | 'workflow';
+    rootExecutionId: string;
   }
 ): Promise<void> {
   const { error } = await supabase.from('pending_child_executions').insert({
@@ -40,6 +42,7 @@ export async function createPendingChildExecution(
     org_id: params.orgId,
     api_key_enc: params.apiKeyEnc,
     app_type: params.appType,
+    root_execution_id: params.rootExecutionId,
   });
   if (error !== null) throw new Error(`Failed to create pending child execution: ${error.message}`);
 }
