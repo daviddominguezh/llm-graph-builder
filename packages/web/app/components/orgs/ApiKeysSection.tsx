@@ -18,7 +18,7 @@ interface ApiKeyItemProps {
 
 function ApiKeyItem({ apiKey, onDeleteClick }: ApiKeyItemProps) {
   return (
-    <div className="flex items-center justify-between rounded-md border border-transparent px-3 py-2 bg-card">
+    <div className="flex items-center justify-between rounded-md border border-transparent px-3 py-2 bg-card dark:bg-input/30">
       <span className="w-[200px] shrink-0 truncate text-sm font-medium font-mono mr-6">{apiKey.name}</span>
       <span className="cursor-default flex-1 min-w-0 truncate text-xs text-muted-foreground font-mono">
         •••{apiKey.key_preview.replaceAll('•', '')}

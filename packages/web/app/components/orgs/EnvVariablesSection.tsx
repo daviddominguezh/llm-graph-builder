@@ -81,7 +81,7 @@ function RevealableValue({ variableId }: { variableId: string }) {
 
 function VariableRow({ variable, onDeleteClick, onEditClick }: VariableRowProps) {
   return (
-    <div className="flex items-center justify-between rounded-md border border-transparent px-3 py-2 bg-card">
+    <div className="flex items-center justify-between rounded-md border border-transparent px-3 py-2 bg-card dark:bg-input/30">
       <span className="w-[200px] shrink-0 truncate text-sm font-medium font-mono mr-6">{variable.name}</span>
       <RevealableValue variableId={variable.id} />
       <div className="flex items-center gap-1">
