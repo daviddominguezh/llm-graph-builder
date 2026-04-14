@@ -1,6 +1,10 @@
 'use client';
 
-import { getOrgInvitationsAction, getOrgMembersAction, updateMemberRoleAction } from '@/app/actions/orgMembers';
+import {
+  getOrgInvitationsAction,
+  getOrgMembersAction,
+  updateMemberRoleAction,
+} from '@/app/actions/orgMembers';
 import type { OrgInvitationRow, OrgMemberRow, OrgRole } from '@/app/lib/orgMemberTypes';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,8 +14,8 @@ import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
 import { CancelInvitationDialog } from './CancelInvitationDialog';
-import { InviteMemberDialog } from './InviteMemberDialog';
 import { InvitationRow } from './InvitationRow';
+import { InviteMemberDialog } from './InviteMemberDialog';
 import { MemberRow } from './MemberRow';
 import { RemoveMemberDialog } from './RemoveMemberDialog';
 import { TransferOwnershipDialog } from './TransferOwnershipDialog';
@@ -72,7 +76,12 @@ function MemberAndInvitationList(props: {
         />
       ))}
       {props.invitations.map((inv) => (
-        <InvitationRow key={inv.id} invitation={inv} isOwner={props.isOwner} onCancel={props.onCancelInvite} />
+        <InvitationRow
+          key={inv.id}
+          invitation={inv}
+          isOwner={props.isOwner}
+          onCancel={props.onCancelInvite}
+        />
       ))}
       {showEmptyPrompt && <EmptyState isOwner={props.isOwner} onInvite={props.onInvite} />}
     </div>
@@ -162,7 +171,15 @@ export function TeamSection(props: TeamSectionProps) {
   );
 }
 
-function TeamHeader({ isOwner, totalCount, onInvite }: { isOwner: boolean; totalCount: number; onInvite: () => void }) {
+function TeamHeader({
+  isOwner,
+  totalCount,
+  onInvite,
+}: {
+  isOwner: boolean;
+  totalCount: number;
+  onInvite: () => void;
+}) {
   const t = useTranslations('team');
 
   return (
@@ -176,7 +193,7 @@ function TeamHeader({ isOwner, totalCount, onInvite }: { isOwner: boolean; total
       </CardDescription>
       {isOwner && (
         <CardAction>
-          <Button variant="outline" size="sm" onClick={onInvite}>
+          <Button variant="outline" size="sm" className="border-[0.5px] rounded-md" onClick={onInvite}>
             <Plus className="size-4" />
             {t('invite')}
           </Button>
