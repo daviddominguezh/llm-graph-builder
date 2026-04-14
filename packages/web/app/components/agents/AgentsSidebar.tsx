@@ -56,7 +56,7 @@ function SearchInput({ value, onChange }: { value: string; onChange: (v: string)
 function StatusBar({ active }: { active: boolean }) {
   return (
     <div
-      className={`w-0.5 my-2 shrink-0 self-stretch ${active ? 'bg-primary' : 'bg-transparent group-hover:bg-foreground'}`}
+      className={`w-0.5 my-2 shrink-0 self-stretch ${active ? 'bg-transparent' : 'bg-transparent group-hover:bg-transparent'}`}
     />
   );
 }
@@ -70,7 +70,7 @@ function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: 
     <Link
       href={href}
       className={`group flex gap-2 rounded-sm pr-2 py-0 ${
-        active ? 'bg-primary/10 text-foreground' : 'hover:bg-card text-foreground'
+        active ? 'bg-input/30 text-foreground' : 'hover:bg-input/20 text-foreground'
       }`}
     >
       <StatusBar active={active} />
