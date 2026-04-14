@@ -43,27 +43,31 @@ interface CreateExecutionParams {
   userId: string;
   parentExecutionId?: string;
   isDynamicChild?: boolean;
+  executionId?: string;
 }
 
 export async function createExecution(
   supabase: SupabaseClient,
   params: CreateExecutionParams
 ): Promise<string> {
+  const insertRow = {
+    session_id: params.sessionId,
+    agent_id: params.agentId,
+    org_id: params.orgId,
+    version: params.version,
+    model: params.model,
+    channel: params.channel,
+    tenant_id: params.tenantId,
+    external_user_id: params.userId,
+    status: 'running',
+    parent_execution_id: params.parentExecutionId ?? null,
+    is_dynamic_child: params.isDynamicChild ?? false,
+    ...(params.executionId === undefined ? {} : { id: params.executionId }),
+  };
+
   const result: QueryResult<{ id: string }> = await supabase
     .from('agent_executions')
-    .insert({
-      session_id: params.sessionId,
-      agent_id: params.agentId,
-      org_id: params.orgId,
-      version: params.version,
-      model: params.model,
-      channel: params.channel,
-      tenant_id: params.tenantId,
-      external_user_id: params.userId,
-      status: 'running',
-      parent_execution_id: params.parentExecutionId ?? null,
-      is_dynamic_child: params.isDynamicChild ?? false,
-    })
+    .insert(insertRow)
     .select('id')
     .single();
 

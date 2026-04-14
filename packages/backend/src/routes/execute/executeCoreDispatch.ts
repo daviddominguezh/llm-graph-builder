@@ -49,5 +49,6 @@ export async function dispatchIfNeeded(ctx: DispatchCheckParams): Promise<void> 
     tenantId: ctx.params.input.tenantId,
     userId: ctx.params.input.userId,
     parentToolCalls: mapToolCalls(ctx.output),
+    rootExecutionId: ctx.params.rootExecutionId ?? ctx.executionId,
   });
 }

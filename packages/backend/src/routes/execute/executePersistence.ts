@@ -24,6 +24,7 @@ interface PreExecutionParams {
   userId: string;
   userMessageContent: string;
   currentNodeId: string;
+  executionId?: string;
 }
 
 interface PreExecutionResult {
@@ -43,6 +44,7 @@ export async function persistPreExecution(
     channel: params.channel,
     tenantId: params.tenantId,
     userId: params.userId,
+    executionId: params.executionId,
   });
 
   await saveExecutionMessage(supabase, {

@@ -42,6 +42,7 @@ export interface DispatchHandlerParams {
   tenantId: string;
   userId: string;
   parentToolCalls: ParentToolCall[];
+  rootExecutionId: string;
 }
 
 /* ─── Depth check ─── */
@@ -169,6 +170,7 @@ interface StackAndPendingParams {
   parentSessionState: ParentSessionState;
   matched: MatchedToolCall;
   childConfig: ResolvedChildConfig;
+  rootExecutionId: string;
 }
 
 async function pushStackAndPending(params: StackAndPendingParams): Promise<void> {
@@ -187,6 +189,7 @@ async function pushStackAndPending(params: StackAndPendingParams): Promise<void>
     },
     agentConfig: childConfigToRecord(params.childConfig),
     appType,
+    rootExecutionId: params.rootExecutionId,
   });
 }
 
@@ -205,6 +208,7 @@ async function writePendingChild(
     orgId: params.orgId,
     apiKeyEnc: params.apiKey,
     appType,
+    rootExecutionId: params.rootExecutionId,
   });
 }
 
@@ -255,6 +259,7 @@ export async function handleDispatchResult(params: DispatchHandlerParams): Promi
     parentSessionState: params.parentSessionState,
     matched,
     childConfig,
+    rootExecutionId: params.rootExecutionId,
   });
 
   await writePendingChild(params, childExecId, childConfig);

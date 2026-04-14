@@ -37,6 +37,10 @@ export interface ExecuteCoreInput {
    * Used for dynamically created children (create_agent) which have no published agent.
    */
   overrideAgentConfig?: OverrideAgentConfig;
+  /** Pre-generated execution ID (enables subscribe-before-dispatch) */
+  executionId?: string;
+  /** Root execution ID for composition notification routing */
+  rootExecutionId?: string;
 }
 
 export interface ExecuteCoreOutput {
@@ -103,6 +107,7 @@ async function setupExecution(params: ExecuteCoreInput): Promise<SetupResult> {
       userId: input.userId,
       userMessageContent: extractTextFromInput(input),
       currentNodeId: fetched.currentNodeId,
+      executionId: params.executionId,
     }),
     resolveConversationId(supabase, params),
   ]);
