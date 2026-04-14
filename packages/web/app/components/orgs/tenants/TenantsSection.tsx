@@ -1,15 +1,15 @@
 'use client';
 
 import { getTenantsByOrgAction } from '@/app/actions/tenants';
+import { toProxyImageSrc } from '@/app/lib/supabase/image';
 import type { TenantRow } from '@/app/lib/tenants';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { toProxyImageSrc } from '@/app/lib/supabase/image';
 import { Building2, Check, Copy, Pencil, Plus, Trash2 } from 'lucide-react';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { CreateTenantDialog } from './CreateTenantDialog';
@@ -55,7 +55,7 @@ function TenantAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | n
         alt={name}
         width={24}
         height={24}
-        className="size-6 shrink-0 rounded-full object-cover border"
+        className="size-6 shrink-0 rounded-full object-cover border border-input border-[1px]"
       />
     );
   }
@@ -252,15 +252,13 @@ export function TenantsSection({ orgId, initialTenants }: TenantsSectionProps) {
   return (
     <Card className="bg-background ring-0">
       <CardHeader>
-        <CardTitle>
+        <CardTitle className="flex items-center">
           {t('title')}
-          {count > 0 && (
-            <span className="ml-2 text-xs font-normal text-muted-foreground">{count}</span>
-          )}
+          {count > 0 && <span className="ml-2 text-[10px] font-normal text-muted-foreground">{count}</span>}
         </CardTitle>
         <CardDescription>{t('description')}</CardDescription>
         <CardAction>
-          <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
+          <Button variant="outline" size="sm" className="border-[0.5px] rounded-md" onClick={() => setCreateOpen(true)}>
             <Plus className="size-4" />
             {t('add')}
           </Button>
@@ -273,7 +271,12 @@ export function TenantsSection({ orgId, initialTenants }: TenantsSectionProps) {
           <TenantsTable tenants={tenants} newIds={newIds} onEdit={setEditTarget} onDelete={setDeleteTarget} />
         )}
       </CardContent>
-      <CreateTenantDialog open={createOpen} onOpenChange={setCreateOpen} orgId={orgId} onCreated={refreshTenants} />
+      <CreateTenantDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        orgId={orgId}
+        onCreated={refreshTenants}
+      />
       {editTarget !== null && (
         <EditTenantDialog
           open={editTarget !== null}

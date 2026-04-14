@@ -4,8 +4,8 @@ import type { OrgRow } from '@/app/lib/orgs';
 import { toProxyImageSrc } from '@/app/lib/supabase/image';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Settings } from 'lucide-react';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import Link from 'next/link';
 
 interface OrgHeaderProps {
@@ -16,7 +16,15 @@ function OrgAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null
   const initial = name.trim().charAt(0).toUpperCase() || '?';
 
   if (avatarUrl !== null) {
-    return <Image src={toProxyImageSrc(avatarUrl)} alt={name} width={40} height={40} className="h-10 w-10 rounded-full object-cover border" />;
+    return (
+      <Image
+        src={toProxyImageSrc(avatarUrl)}
+        alt={name}
+        width={40}
+        height={40}
+        className="h-10 w-10 rounded-full object-cover border border-input border-[1px]"
+      />
+    );
   }
 
   return (

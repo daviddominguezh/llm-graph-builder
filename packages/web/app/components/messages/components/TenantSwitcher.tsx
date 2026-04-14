@@ -10,8 +10,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Check, ChevronsUpDown } from 'lucide-react';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import { useState } from 'react';
 
 interface TenantSwitcherProps {
@@ -30,7 +30,7 @@ function TenantAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | n
         alt={name}
         width={20}
         height={20}
-        className="h-5 w-5 shrink-0 rounded-full object-cover border"
+        className="h-5 w-5 shrink-0 rounded-full object-cover border border-input border-[1px]"
       />
     );
   }
