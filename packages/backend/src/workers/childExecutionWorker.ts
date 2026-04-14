@@ -1,5 +1,6 @@
 import type { FinishSentinel } from '@daviddh/llm-graph-runner';
 
+import { getNotifier } from '../notifications/notifierSingleton.js';
 import {
   type PendingChildExecution,
   fetchAndClaimChildExecutions,
@@ -137,6 +138,37 @@ async function handleChildResult(
   throw new Error('Child agent completed without calling finish');
 }
 
+/* ─── Notify root of permanent failure ─── */
+
+async function notifyPermanentChildFailure(rootExecutionId: string, msg: string): Promise<void> {
+  try {
+    const notifier = getNotifier();
+    await notifier.notifyCompletion(rootExecutionId, {
+      status: 'error',
+      text: `Child execution failed after ${String(MAX_ATTEMPTS)} attempts: ${msg}`,
+      executionId: rootExecutionId,
+    });
+  } catch (notifyErr: unknown) {
+    log(`notify error: ${String(notifyErr)}`);
+  }
+}
+
+/* ─── Handle permanent child failure ─── */
+
+async function handleChildFailure(
+  supabase: SupabaseClient,
+  child: PendingChildExecution,
+  msg: string
+): Promise<void> {
+  await incrementChildAttempts(supabase, child.id, child.attempts);
+  if (child.attempts + INCREMENT < MAX_ATTEMPTS) return;
+
+  await updateChildExecutionStatus(supabase, child.id, 'failed');
+  log(`max attempts reached execution=${child.execution_id}`);
+  // Notify root that the chain has permanently failed
+  await notifyPermanentChildFailure(child.root_execution_id, msg);
+}
+
 /* ─── Process a single child execution ─── */
 
 async function processOneChildExecution(
@@ -154,12 +186,7 @@ async function processOneChildExecution(
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     log(`error execution=${child.execution_id}: ${msg}`);
-
-    await incrementChildAttempts(supabase, child.id, child.attempts);
-    if (child.attempts + INCREMENT >= MAX_ATTEMPTS) {
-      await updateChildExecutionStatus(supabase, child.id, 'failed');
-      log(`max attempts reached execution=${child.execution_id}`);
-    }
+    await handleChildFailure(supabase, child, msg);
   }
 }
 
@@ -188,12 +215,24 @@ async function processPendingChildExecutions(): Promise<void> {
 export function startChildExecutionWorker(): void {
   log('Starting child execution worker');
 
-  setInterval(() => {
-    processPendingChildExecutions().catch((err: unknown) => {
+  async function pollLoop(): Promise<void> {
+    try {
+      await processPendingChildExecutions();
+    } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       log(`Error: ${msg}`);
+    } finally {
+      setTimeout(scheduleNextPoll, POLL_INTERVAL_MS);
+    }
+  }
+
+  function scheduleNextPoll(): void {
+    pollLoop().catch((err: unknown) => {
+      log(`Unhandled poll error: ${String(err)}`);
     });
-  }, POLL_INTERVAL_MS);
+  }
+
+  scheduleNextPoll();
 }
 
 export { MAX_ATTEMPTS, BATCH_SIZE };

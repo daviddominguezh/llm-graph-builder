@@ -1,3 +1,4 @@
+import { getNotifier } from '../notifications/notifierSingleton.js';
 import { createServiceClient } from '../db/queries/executionAuthQueries.js';
 import {
   type PendingResume,
@@ -69,6 +70,17 @@ async function processOneResume(
   if (resume.attempts + INCREMENT >= MAX_ATTEMPTS) {
     await updateResumeStatus(supabase, resume.id, 'failed');
     log(`max attempts reached parentExecution=${resume.parent_execution_id}`);
+    // Notify root that the chain has permanently failed
+    try {
+      const notifier = getNotifier();
+      await notifier.notifyCompletion(resume.root_execution_id, {
+        status: 'error',
+        text: `Parent resume failed after ${String(MAX_ATTEMPTS)} attempts`,
+        executionId: resume.root_execution_id,
+      });
+    } catch (notifyErr: unknown) {
+      log(`notify error: ${String(notifyErr)}`);
+    }
   }
 }
 
@@ -94,12 +106,24 @@ async function processPendingResumes(): Promise<void> {
 export function startResumeWorker(): void {
   log('Starting resume worker');
 
-  setInterval(() => {
-    processPendingResumes().catch((err: unknown) => {
+  async function pollLoop(): Promise<void> {
+    try {
+      await processPendingResumes();
+    } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       log(`Error: ${msg}`);
+    } finally {
+      setTimeout(scheduleNextPoll, POLL_INTERVAL_MS);
+    }
+  }
+
+  function scheduleNextPoll(): void {
+    pollLoop().catch((err: unknown) => {
+      log(`Unhandled poll error: ${String(err)}`);
     });
-  }, POLL_INTERVAL_MS);
+  }
+
+  scheduleNextPoll();
 }
 
 export { MAX_ATTEMPTS, BATCH_SIZE };
