@@ -7,7 +7,7 @@ import { useIsMobile } from '@/app/utils/device';
 import { htmlToWhatsappFormat } from '@/app/utils/strs';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
+import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
 import {
   Bold,
   Italic,
@@ -22,6 +22,7 @@ import {
   Strikethrough,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 import 'quill/dist/quill.snow.css';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -89,6 +90,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
 }) => {
   const t = useTranslations('messages');
   const projectName = useTenantId();
+  const { resolvedTheme } = useTheme();
   const { pendingImageAttachment, clearPendingImageAttachment } = useMessage();
 
   const [mode, setMode] = useState<'reply' | 'note'>('reply');
@@ -854,7 +856,11 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
       {showEmojiPicker && (
         <div ref={emojiPickerRef} className="absolute bottom-full left-0 right-0 mb-0 z-[100]">
           <div className="w-full">
-            <EmojiPicker onEmojiClick={handleEmojiClick} width="100%" />
+            <EmojiPicker
+              onEmojiClick={handleEmojiClick}
+              width="100%"
+              theme={resolvedTheme === 'dark' ? Theme.DARK : Theme.LIGHT}
+            />
           </div>
         </div>
       )}

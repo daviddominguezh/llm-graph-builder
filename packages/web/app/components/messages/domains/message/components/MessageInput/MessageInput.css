@@ -45,6 +45,41 @@
   background: #555;
 }
 
+/* Emoji picker theme overrides — map to app design tokens */
+.EmojiPickerReact {
+  --epr-bg-color: var(--background);
+  --epr-text-color: var(--card-foreground);
+  --epr-category-label-bg-color: var(--background);
+  --epr-category-label-text-color: var(--card-foreground);
+  --epr-category-icon-active-color: var(--primary);
+  --epr-picker-border-color: var(--border);
+  --epr-search-input-bg-color: var(--input);
+  --epr-search-input-bg-color-active: var(--input);
+  --epr-search-border-color: var(--border);
+  --epr-search-border-color-active: var(--primary);
+  --epr-search-input-text-color: var(--card-foreground);
+  --epr-search-input-placeholder-color: var(--card-foreground);
+  --epr-hover-bg-color: var(--primary);
+  --epr-focus-bg-color: var(--primary);
+  --epr-highlight-color: var(--primary);
+  --epr-preview-border-color: var(--border);
+  --epr-preview-text-color: var(--card-foreground);
+}
+
+.dark .EmojiPickerReact {
+  --epr-dark-bg-color: var(--background);
+  --epr-dark-text-color: var(--card-foreground);
+  --epr-dark-category-label-bg-color: var(--background);
+  --epr-dark-category-icon-active-color: var(--primary);
+  --epr-dark-picker-border-color: var(--border);
+  --epr-dark-search-input-bg-color: var(--input);
+  --epr-dark-search-input-bg-color-active: var(--input);
+  --epr-dark-hover-bg-color: var(--primary);
+  --epr-dark-focus-bg-color: var(--primary);
+  --epr-dark-highlight-color: var(--primary);
+  --epr-dark-reactions-bg-color: var(--card);
+}
+
 /* Disable state */
 .message-textarea-wrapper textarea:disabled {
   cursor: default;
