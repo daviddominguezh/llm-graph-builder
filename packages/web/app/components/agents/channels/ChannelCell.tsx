@@ -18,7 +18,10 @@ function ConnectedBadge({ phone }: { phone: string | null }) {
   const t = useTranslations('editor.channels');
 
   return (
-    <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400">
+    <Badge
+      variant="outline"
+      className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400"
+    >
       <CheckCircle2 className="size-3" />
       {phone ? phone : t('connected')}
     </Badge>
@@ -43,7 +46,7 @@ function StubConnectButton() {
   const t = useTranslations('editor.channels');
 
   return (
-    <Button variant="outline" size="xs" disabled>
+    <Button variant="outline" size="xs" className="border-transparent! ring-0!" disabled>
       {t('connect')}
     </Button>
   );

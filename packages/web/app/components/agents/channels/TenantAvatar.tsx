@@ -18,7 +18,7 @@ export function TenantAvatar({ name, avatarUrl }: TenantAvatarProps) {
         alt={name}
         width={24}
         height={24}
-        className="size-6 shrink-0 rounded-full object-cover border"
+        className="size-6 shrink-0 rounded-full object-cover border border-input border-[1px]"
       />
     );
   }

@@ -445,7 +445,7 @@ div.model-selector-trigger[data-slot="input-group"] {
 }
 
 .glass-panel--background::before {
-  background-color: rgb(245 245 245 / 90%);
+  background-color: rgb(247 247 247 / 85%);
 }
 
 .glass-panel--foreground::before {

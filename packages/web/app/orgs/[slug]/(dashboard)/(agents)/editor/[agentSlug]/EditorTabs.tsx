@@ -52,7 +52,8 @@ interface TabButtonProps {
 const TAB_BASE =
   'cursor-pointer inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors border border-transparent';
 const TAB_ACTIVE = 'bg-popover dark:bg-input text-foreground shadow-sm';
-const TAB_INACTIVE = 'text-muted-foreground hover:text-foreground border-transparent hover:bg-input dark:hover:bg-card';
+const TAB_INACTIVE =
+  'text-muted-foreground hover:text-foreground border-transparent hover:bg-input dark:hover:bg-card';
 
 function TabButton({ tab, active, onClick, label }: TabButtonProps) {
   const Icon = TAB_ICONS[tab];
@@ -133,18 +134,20 @@ export function EditorTabs(props: EditorTabsProps) {
     <div className="w-full h-full flex flex-col">
       <EditorTabBar activeTab={activeTab} onTabChange={setActiveTab} t={t} tAgents={tAgents} />
       <div ref={slotRef} className={activeTab === 'agent' ? 'flex-1' : 'hidden'} />
-      {activeTab === 'channels' && <ChannelsPanel orgId={props.orgId} agentId={props.agentId} />}
-      {activeTab === 'settings' && (
-        <SettingsPanel
-          agentId={props.agentId}
-          agentName={props.agentName}
-          agentSlug={props.agentSlug}
-          initialDescription={props.agentDescription}
-          initialCategory={props.agentCategory}
-          initialIsPublic={props.agentIsPublic}
-          currentVersion={props.initialVersion}
-        />
-      )}
+      <div className={`flex flex-col bg-background ${activeTab === 'agent' ? 'hidden' : 'flex-1'}`}>
+        {activeTab === 'channels' && <ChannelsPanel orgId={props.orgId} agentId={props.agentId} />}
+        {activeTab === 'settings' && (
+          <SettingsPanel
+            agentId={props.agentId}
+            agentName={props.agentName}
+            agentSlug={props.agentSlug}
+            initialDescription={props.agentDescription}
+            initialCategory={props.agentCategory}
+            initialIsPublic={props.agentIsPublic}
+            currentVersion={props.initialVersion}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -165,10 +168,7 @@ function EditorTabBar({
   const SidebarIcon = collapsed ? PanelLeftOpen : PanelLeftClose;
   const sidebarLabel = collapsed ? tAgents('showSidebar') : tAgents('hideSidebar');
 
-  const toolbarRef = useCallback(
-    (el: HTMLDivElement | null) => setToolbarPortal(el),
-    [setToolbarPortal]
-  );
+  const toolbarRef = useCallback((el: HTMLDivElement | null) => setToolbarPortal(el), [setToolbarPortal]);
 
   return (
     <GlassPanel
@@ -177,15 +177,15 @@ function EditorTabBar({
     >
       <Button
         variant="ghost"
-        size="icon"
-        className="mr-2"
+        size="lg"
+        className="mr-2 hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
         onClick={() => setCollapsed(!collapsed)}
         title={sidebarLabel}
       >
         <SidebarIcon />
       </Button>
       <Separator orientation="vertical" className="my-2" />
-      <div className="inline-flex gap-1 dark:gap-0.5 rounded-sm border border-[0.5px] bg-muted/50 p-0.5 ml-5">
+      <div className="inline-flex gap-1 dark:gap-0.5 rounded-sm border border-[0.5px] bg-input/40 dark:bg-muted/50 p-0.5 ml-5">
         {TABS.map((tab) => (
           <TabButton key={tab} tab={tab} active={activeTab === tab} onClick={onTabChange} label={t(tab)} />
         ))}

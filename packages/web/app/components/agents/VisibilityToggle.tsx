@@ -58,12 +58,14 @@ function VisibilityOption({
   label: string;
   description: string;
 }) {
-  const border = selected ? 'border-primary ring-1 ring-primary' : 'border-border';
+  const border = selected ? 'border-primary ring-1 ring-primary' : 'border-transparent';
+  const background = selected ? 'bg-input/20' : 'bg-input/20';
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex flex-1 cursor-pointer flex-col gap-1 rounded-lg border p-3 text-left transition-[border-color,box-shadow] duration-150 hover:bg-card/60 ${border}`}
+      className={`flex flex-1 cursor-pointer flex-col gap-1 rounded-lg border p-3 text-left transition-[border-color,box-shadow] duration-150 hover:bg-input/40 ${border} ${background}`}
     >
       <div className="flex items-center gap-1.5">
         {icon}

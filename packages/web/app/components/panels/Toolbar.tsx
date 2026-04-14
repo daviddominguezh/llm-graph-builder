@@ -179,7 +179,7 @@ export function FileMenu({
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button className="hover:bg-card! aspect-square! px-0" variant="ghost" size="lg">
+          <Button className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0" variant="ghost" size="lg">
             <Menu />
           </Button>
         }
@@ -210,7 +210,7 @@ function PlayButton({ simulationActive, onPlay, disabled, label }: PlayButtonPro
 
   const button = (
     <Button
-      className="hover:bg-card! aspect-square! px-0"
+      className="hover:bg-input! dark:hover:bg-input aspect-square! px-0"
       variant={simulationActive ? 'default' : 'ghost'}
       size="lg"
       onClick={disabled ? undefined : onPlay}
@@ -243,7 +243,7 @@ function ToolbarButtons(props: ToolbarProps) {
       {!props.hideWorkflowActions && onToggleGlobalPanel && (
         <ToolbarTooltip label={t('globalNodes')}>
           <Button
-            className="hover:bg-card! aspect-square! px-0"
+            className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
             variant="ghost"
             size="lg"
             onClick={onToggleGlobalPanel}
@@ -255,7 +255,7 @@ function ToolbarButtons(props: ToolbarProps) {
       {onToggleTools && (
         <ToolbarTooltip label={t('tools')}>
           <Button
-            className="hover:bg-card! aspect-square! px-0"
+            className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
             variant="ghost"
             size="lg"
             onClick={onToggleTools}
@@ -267,7 +267,7 @@ function ToolbarButtons(props: ToolbarProps) {
       {onToggleLibrary && (
         <ToolbarTooltip label={t('mcpLibrary')}>
           <Button
-            className="hover:bg-card! aspect-square! px-0"
+            className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
             variant="ghost"
             size="lg"
             onClick={onToggleLibrary}
@@ -280,7 +280,7 @@ function ToolbarButtons(props: ToolbarProps) {
         <>
           <ToolbarTooltip label={t('settings')}>
             <Button
-              className="hover:bg-card! aspect-square! px-0"
+              className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
               variant="ghost"
               size="lg"
               onClick={onTogglePresets}

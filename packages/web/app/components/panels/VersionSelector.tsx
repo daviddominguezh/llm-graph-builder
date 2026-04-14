@@ -157,13 +157,13 @@ export function VersionSelector(props: VersionSelectorProps) {
       <Select value={String(currentVersion)} onValueChange={handleValueChange} disabled={loading}>
         <SelectTrigger
           size="sm"
-          className="data-[size=sm]:h-auto border-0 bg-transparent px-2 text-xs font-bold [&>svg:last-child]:hidden hover:bg-card! relative"
+          className="cursor-pointer data-[size=sm]:h-auto border-0 bg-transparent dark:bg-transparent px-2 text-xs font-bold [&>svg:last-child]:hidden hover:bg-input dark:hover:bg-input rounded-full relative aspect-square h-8"
         >
           <History className="size-4" />
         </SelectTrigger>
         <SelectContent side="bottom" align="end" alignItemWithTrigger={false} className="w-auto min-w-56">
           {versions.map((v) => (
-            <SelectItem key={v.version} value={String(v.version)}>
+            <SelectItem key={v.version} value={String(v.version)} className="cursor-pointer">
               <VersionItemLabel version={v.version} publishedAt={v.publishedAt} />
             </SelectItem>
           ))}

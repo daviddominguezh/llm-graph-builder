@@ -68,7 +68,7 @@ export function WhatsAppConnect({ tenantId, agentId, onSuccess }: WhatsAppConnec
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={<Button variant="outline" size="xs" />}>
+      <DialogTrigger render={<Button variant="outline" size="xs" className="border-transparent! ring-0!" />}>
         <WhatsAppIcon size={14} className="text-emerald-500" />
         {t('connectButton')}
       </DialogTrigger>
