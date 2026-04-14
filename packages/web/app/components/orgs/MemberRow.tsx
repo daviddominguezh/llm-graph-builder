@@ -76,7 +76,7 @@ function RoleBadge({ role }: { role: string }) {
   const classes = ROLE_BADGE_VARIANTS[role] ?? '';
 
   return (
-    <Badge variant="outline" className={classes}>
+    <Badge variant="outline" className={`bg-background! ${classes}`}>
       {t(`roles.${role}`)}
     </Badge>
   );
@@ -124,7 +124,7 @@ export function MemberRow(props: MemberRowProps) {
   const isCurrentUser = member.user_id === props.currentUserId;
 
   return (
-    <div className="flex h-12 items-center gap-3 rounded-md border bg-card px-3 transition-colors hover:bg-card/80">
+    <div className="flex h-12 items-center gap-3 rounded-md border border-transparent bg-card dark:bg-input/70 px-3 transition-colors">
       <MemberAvatar name={member.full_name || member.email} email={member.email} />
       <MemberInfo member={member} isCurrentUser={isCurrentUser} />
       <div className="ml-auto flex items-center gap-2">
