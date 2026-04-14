@@ -64,7 +64,11 @@ function RevealableValue({ variableId }: { variableId: string }) {
       <Tooltip>
         <TooltipTrigger
           render={
-            <button type="button" className="truncate text-xs text-muted-foreground font-mono cursor-pointer" onClick={handleCopy}>
+            <button
+              type="button"
+              className="truncate text-xs text-muted-foreground font-mono cursor-pointer"
+              onClick={handleCopy}
+            >
               {revealed && value !== null ? value : '••••••••'}
             </button>
           }
@@ -77,14 +81,14 @@ function RevealableValue({ variableId }: { variableId: string }) {
 
 function VariableRow({ variable, onDeleteClick, onEditClick }: VariableRowProps) {
   return (
-    <div className="flex items-center justify-between rounded-md border px-3 py-2 bg-card">
+    <div className="flex items-center justify-between rounded-md border border-transparent px-3 py-2 bg-card">
       <span className="w-[200px] shrink-0 truncate text-sm font-medium font-mono mr-6">{variable.name}</span>
       <RevealableValue variableId={variable.id} />
       <div className="flex items-center gap-1">
-        <Button variant="ghost" onClick={() => onEditClick(variable)}>
+        <Button variant="ghost" className="p-0 aspect-square h-7" onClick={() => onEditClick(variable)}>
           <Pencil className="size-3.5" />
         </Button>
-        <Button variant="destructive" onClick={() => onDeleteClick(variable)}>
+        <Button variant="destructive" className="p-0 aspect-square h-7" onClick={() => onDeleteClick(variable)}>
           <Trash2 className="size-3.5" />
         </Button>
       </div>
@@ -132,12 +136,17 @@ export function EnvVariablesSection({ orgId, initialVariables }: EnvVariablesSec
   }, [orgId]);
 
   return (
-    <Card className="bg-background ring-0">
+    <Card className="bg-background ring-0 border-transparent">
       <CardHeader>
         <CardTitle>{t('title')}</CardTitle>
         <CardDescription>{t('description')}</CardDescription>
         <CardAction>
-          <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-transparent"
+            onClick={() => setCreateOpen(true)}
+          >
             <Plus className="size-4" />
             {t('add')}
           </Button>

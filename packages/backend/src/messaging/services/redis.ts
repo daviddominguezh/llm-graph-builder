@@ -1,8 +1,21 @@
-import { Redis } from '@upstash/redis';
-import { randomUUID } from 'node:crypto';
+/**
+ * Redis service — dual client architecture:
+ *
+ * - **Upstash** (@upstash/redis, HTTP REST): simple cache operations (GET/SET/DEL)
+ * - **Redis Cloud** (ioredis, TCP): pub/sub, distributed locking, rate limiting
+ *
+ * Consumers import from this file — the underlying client is an implementation detail.
+ */
+import { Redis as UpstashRedis } from '@upstash/redis';
 import { setTimeout as sleepMs } from 'node:timers/promises';
 
 import { REDIS_KEYS, buildRedisKey } from '../types/redisKeys.js';
+import {
+  acquireCloudLock,
+  publishMessage,
+  releaseCloudLock,
+  subscribeToChannel,
+} from './redisCloud.js';
 
 /* ─── Constants ─── */
 
@@ -11,47 +24,39 @@ const DEADLINE_EXPIRED = 0;
 
 /* ─── Environment ─── */
 
-function getEnvValue(name: string): string | undefined {
-  return process.env[name];
-}
-
 function getRequiredEnv(name: string): string {
-  const value = getEnvValue(name);
+  const { env } = process;
+  const value: string | undefined = env[name];
   if (value === undefined || value === '') {
     throw new Error(`Missing required env var: ${name}`);
   }
   return value;
 }
 
-/* ─── Singleton ─── */
+/* ─── Upstash singleton (cache only) ─── */
 
-let redisInstance: Redis | null = null;
+let upstashInstance: UpstashRedis | null = null;
 
-export function getRedis(): Redis {
-  redisInstance ??= new Redis({
+export function getRedis(): UpstashRedis {
+  upstashInstance ??= new UpstashRedis({
     url: getRequiredEnv('UPSTASH_REDIS_REST_URL'),
     token: getRequiredEnv('UPSTASH_REDIS_REST_TOKEN'),
   });
-  return redisInstance;
+  return upstashInstance;
 }
 
-/* ─── Channel helpers ─── */
+/* ─── Channel helpers (Redis Cloud) ─── */
 
 export function buildRedisChannel(tenantId: string): string {
   return buildRedisKey(REDIS_KEYS.TENANT_CHANNEL, tenantId);
 }
 
 export async function publishToTenant(tenantId: string, payload: unknown): Promise<void> {
-  try {
-    const redis = getRedis();
-    const channel = buildRedisChannel(tenantId);
-    await redis.publish(channel, JSON.stringify(payload));
-  } catch (err) {
-    process.stdout.write(`[redis] publishToTenant error: ${String(err)}\n`);
-  }
+  const channel = buildRedisChannel(tenantId);
+  await publishMessage(channel, JSON.stringify(payload));
 }
 
-/* ─── Generic read / write ─── */
+/* ─── Generic read / write (Upstash cache) ─── */
 
 export async function readRedis<T>(key: string): Promise<T | null> {
   try {
@@ -93,7 +98,7 @@ export async function deleteKey(key: string): Promise<void> {
   }
 }
 
-/* ─── Distributed locking (R2-4: token-based release) ─── */
+/* ─── Distributed locking (Redis Cloud — atomic Lua) ─── */
 
 /**
  * Acquire a distributed lock using SET NX (atomic).
@@ -101,30 +106,15 @@ export async function deleteKey(key: string): Promise<void> {
  * Returns the token string on success, `null` if already held.
  */
 export async function acquireLock(key: string, ttlSeconds: number): Promise<string | null> {
-  try {
-    const redis = getRedis();
-    const token = randomUUID();
-    const result = await redis.set(key, token, { nx: true, ex: ttlSeconds });
-    return result === 'OK' ? token : null;
-  } catch (err) {
-    process.stdout.write(`[redis] acquireLock error for key "${key}": ${String(err)}\n`);
-    return null;
-  }
+  return await acquireCloudLock(key, ttlSeconds);
 }
 
 /**
- * Release a distributed lock — only if the stored token matches.
- * Uses GET + compare + DEL as best-effort (Upstash REST doesn't support EVAL).
+ * Release a distributed lock atomically — DEL only if stored token matches.
+ * Uses Lua script on Redis Cloud (safe, unlike Upstash GET+DEL race).
  */
 export async function releaseLock(key: string, token: string): Promise<void> {
-  try {
-    const redis = getRedis();
-    const current = await redis.get<string>(key);
-    if (current !== token) return;
-    await redis.del(key);
-  } catch (err) {
-    process.stdout.write(`[redis] releaseLock error for key "${key}": ${String(err)}\n`);
-  }
+  await releaseCloudLock(key, token);
 }
 
 /* ─── Lock polling helpers ─── */
@@ -149,62 +139,19 @@ async function pollUntilAcquired(key: string, ttlSeconds: number, deadline: numb
 
 /**
  * Wait until the lock can be acquired, polling every 500ms.
- *
- * 1. Try to acquire immediately.
- * 2. If another process holds it, poll until it is released, then acquire.
- * 3. Returns the lock token string, or `null` if `timeoutMs` expires.
  */
-export async function waitForLock(
-  key: string,
-  ttlSeconds: number,
-  timeoutMs: number
-): Promise<string | null> {
+export async function waitForLock(key: string, ttlSeconds: number, timeoutMs: number): Promise<string | null> {
   const deadline = Date.now() + timeoutMs;
   return await pollUntilAcquired(key, ttlSeconds, deadline);
 }
 
-/* ─── Subscribe ─── */
-
-interface UpstashMessage {
-  channel?: string;
-  message?: string;
-}
-
-function isUpstashMessage(value: unknown): value is UpstashMessage {
-  return typeof value === 'object' && value !== null;
-}
+/* ─── Subscribe (Redis Cloud — proper TCP pub/sub) ─── */
 
 /**
  * Subscribe to a Redis pub/sub channel.
- *
- * Uses @upstash/redis's built-in subscribe (HTTP long-polling).
- * Extracts the inner `message` field if present (matches closer-back pattern).
- * Returns an unsubscribe function (best-effort cleanup).
+ * Uses ioredis with dedicated TCP subscriber connection.
+ * Returns a proper unsubscribe function (cleans up connection).
  */
 export function subscribe(channel: string, callback: (msg: string) => void): () => void {
-  const redis = getRedis();
-  const subscriber = redis.subscribe<string>(channel);
-
-  subscriber.on('message', (message: unknown) => {
-    if (isUpstashMessage(message)) {
-      if (message.channel !== undefined && message.channel !== channel) return;
-
-      if (message.message !== undefined) {
-        callback(message.message);
-        return;
-      }
-    }
-
-    if (typeof message === 'string') {
-      callback(message);
-    } else {
-      callback(JSON.stringify(message));
-    }
-  });
-
-  // Best-effort cleanup — Upstash does not provide a way to unsubscribe
-  // from specific channels. Same limitation as closer-back.
-  return () => {
-    process.stdout.write(`[redis] cleanup requested for channel "${channel}" (best-effort)\n`);
-  };
+  return subscribeToChannel(channel, callback);
 }

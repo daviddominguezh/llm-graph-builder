@@ -1,51 +1,16 @@
 /**
  * Redis-based sliding window rate limiter.
  *
- * Uses INCR + conditional EXPIRE pattern for simple rate limiting.
- * Each key represents a time window; the counter resets when the key expires.
- *
- * Upstash pipeline.exec() returns values directly (not [error, result] tuples).
+ * Uses atomic Lua script (INCR + conditional EXPIRE) via Redis Cloud.
+ * Single round-trip per check — no race between INCR and EXPIRE.
  */
 import { setTimeout as sleepMs } from 'node:timers/promises';
 
-import { getRedis } from './redis.js';
+import { atomicIncrWithExpire, readCounter } from './redisCloud.js';
 
 /* ─── Constants ─── */
 
 const MS_TO_SECONDS = 1_000;
-const NEW_KEY_COUNT = 1;
-const INITIAL_COUNT = 0;
-
-/* ─── Rate limit check ─── */
-
-function parseCount(result: unknown): number {
-  if (typeof result === 'number') return result;
-  return Number(result);
-}
-
-/**
- * Read the current count without incrementing.
- * Returns 0 if the key does not exist.
- */
-async function readCurrentCount(key: string): Promise<number> {
-  const redis = getRedis();
-  const raw = await redis.get<number>(key);
-  return raw ?? INITIAL_COUNT;
-}
-
-/**
- * Increment the counter and set TTL only when the key is new (count === 1).
- */
-async function incrementAndExpire(key: string, ttlSeconds: number): Promise<number> {
-  const redis = getRedis();
-  const count = parseCount(await redis.incr(key));
-
-  if (count === NEW_KEY_COUNT) {
-    await redis.expire(key, ttlSeconds);
-  }
-
-  return count;
-}
 
 /**
  * Check whether the given key is under the rate limit.
@@ -57,7 +22,7 @@ async function incrementAndExpire(key: string, ttlSeconds: number): Promise<numb
  */
 export async function checkRateLimit(key: string, maxRequests: number, windowMs: number): Promise<boolean> {
   const ttlSeconds = Math.ceil(windowMs / MS_TO_SECONDS);
-  const count = await incrementAndExpire(key, ttlSeconds);
+  const count = await atomicIncrWithExpire(key, ttlSeconds);
   return count <= maxRequests;
 }
 
@@ -67,11 +32,11 @@ export async function checkRateLimit(key: string, maxRequests: number, windowMs:
  * If under the limit, increments and returns immediately.
  */
 export async function waitForRateLimit(key: string, maxRequests: number, windowMs: number): Promise<void> {
-  const current = await readCurrentCount(key);
+  const current = await readCounter(key);
 
   if (current < maxRequests) {
     const ttlSeconds = Math.ceil(windowMs / MS_TO_SECONDS);
-    await incrementAndExpire(key, ttlSeconds);
+    await atomicIncrWithExpire(key, ttlSeconds);
     return;
   }
 
