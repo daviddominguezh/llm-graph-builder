@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 
-import { InProcessCompletionNotifier } from '../inProcessCompletionNotifier.js';
 import type { ExecutionResult } from '../completionNotifier.js';
+import { InProcessCompletionNotifier } from '../inProcessCompletionNotifier.js';
 
 /* ─── Constants ─── */
 

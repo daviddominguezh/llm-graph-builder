@@ -1,6 +1,5 @@
 import type { FinishSentinel } from '@daviddh/llm-graph-runner';
 
-import { getNotifier } from '../notifications/notifierSingleton.js';
 import {
   type PendingChildExecution,
   fetchAndClaimChildExecutions,
@@ -12,6 +11,7 @@ import { createServiceClient } from '../db/queries/executionAuthQueries.js';
 import type { SupabaseClient } from '../db/queries/operationHelpers.js';
 import { createPendingResume } from '../db/queries/resumeQueries.js';
 import { getStackTop } from '../db/queries/stackQueries.js';
+import { getNotifier } from '../notifications/notifierSingleton.js';
 import type { ExecuteCoreInput, ExecuteCoreOutput } from '../routes/execute/executeCore.js';
 import { executeAgentCore } from '../routes/execute/executeCore.js';
 import type { OverrideAgentConfig } from '../routes/execute/executeFetcher.js';

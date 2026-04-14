@@ -1,4 +1,3 @@
-import { getNotifier } from '../notifications/notifierSingleton.js';
 import { createServiceClient } from '../db/queries/executionAuthQueries.js';
 import {
   type PendingResume,
@@ -6,6 +5,7 @@ import {
   incrementResumeAttempts,
   updateResumeStatus,
 } from '../db/queries/resumeQueries.js';
+import { getNotifier } from '../notifications/notifierSingleton.js';
 
 const POLL_INTERVAL_MS = 5000;
 const BATCH_SIZE = 10;

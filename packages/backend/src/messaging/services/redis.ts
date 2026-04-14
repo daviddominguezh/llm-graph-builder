@@ -10,12 +10,7 @@ import { Redis as UpstashRedis } from '@upstash/redis';
 import { setTimeout as sleepMs } from 'node:timers/promises';
 
 import { REDIS_KEYS, buildRedisKey } from '../types/redisKeys.js';
-import {
-  acquireCloudLock,
-  publishMessage,
-  releaseCloudLock,
-  subscribeToChannel,
-} from './redisCloud.js';
+import { acquireCloudLock, publishMessage, releaseCloudLock, subscribeToChannel } from './redisCloud.js';
 
 /* ─── Constants ─── */
 
@@ -140,7 +135,11 @@ async function pollUntilAcquired(key: string, ttlSeconds: number, deadline: numb
 /**
  * Wait until the lock can be acquired, polling every 500ms.
  */
-export async function waitForLock(key: string, ttlSeconds: number, timeoutMs: number): Promise<string | null> {
+export async function waitForLock(
+  key: string,
+  ttlSeconds: number,
+  timeoutMs: number
+): Promise<string | null> {
   const deadline = Date.now() + timeoutMs;
   return await pollUntilAcquired(key, ttlSeconds, deadline);
 }

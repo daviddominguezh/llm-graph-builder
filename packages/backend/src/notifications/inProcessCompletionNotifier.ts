@@ -5,7 +5,6 @@
  * in-memory Maps; the first notification wins (idempotent). shutdown() resolves
  * all active waiters with null.
  */
-
 import type { CompletionNotifier, ExecutionResult } from './completionNotifier.js';
 import { logCompletion } from './completionNotifier.js';
 
@@ -24,7 +23,11 @@ const ALLOWED_ENVS = new Set(['development', 'test', '']);
 
 /* ─── Helpers ─── */
 
-function resolveAndClear(waiters: Map<string, Waiter>, executionId: string, value: ExecutionResult | null): void {
+function resolveAndClear(
+  waiters: Map<string, Waiter>,
+  executionId: string,
+  value: ExecutionResult | null
+): void {
   const waiter = waiters.get(executionId);
   if (waiter === undefined) return;
   clearTimeout(waiter.timer);
@@ -35,7 +38,7 @@ function resolveAndClear(waiters: Map<string, Waiter>, executionId: string, valu
 async function registerWaiter(
   waiters: Map<string, Waiter>,
   executionId: string,
-  timeoutMs: number,
+  timeoutMs: number
 ): Promise<ExecutionResult | null> {
   const { promise, resolve } = Promise.withResolvers<ExecutionResult | null>();
   const timer = setTimeout(() => {

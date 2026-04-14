@@ -4,9 +4,8 @@
  * These tests require a live Redis connection via REDIS_URL.
  * They are skipped automatically when REDIS_URL is not set.
  */
-import { setTimeout as setTimeoutPromise } from 'node:timers/promises';
-
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+import { setTimeout as setTimeoutPromise } from 'node:timers/promises';
 
 import type { ExecutionResult } from '../completionNotifier.js';
 import { RedisCompletionNotifier } from '../redisCompletionNotifier.js';
@@ -96,7 +95,7 @@ describeOrSkip('RedisCompletionNotifier (integration)', () => {
     async () => {
       await testNullOnTimeout(notifier);
     },
-    TIMEOUT_NULL_TEST_MS,
+    TIMEOUT_NULL_TEST_MS
   );
 
   it('first notification wins (NX)', async () => {

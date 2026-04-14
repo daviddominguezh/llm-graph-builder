@@ -10,7 +10,6 @@
  * 4. Pub/Sub: subscribe-before-publish (race condition safety)
  * 5. Cleanup
  */
-
 import Redis from 'ioredis';
 
 const REDIS_URL = process.env['REDIS_URL'] ?? '';
@@ -48,10 +47,17 @@ async function testPubSub(redis: Redis): Promise<void> {
 
   // ioredis requires a SEPARATE connection for subscribe mode
   const subscriber = new Redis(REDIS_URL);
-  const payload = JSON.stringify({ status: 'completed', text: 'child agent result', executionId: 'exec-test-001' });
+  const payload = JSON.stringify({
+    status: 'completed',
+    text: 'child agent result',
+    executionId: 'exec-test-001',
+  });
 
   const received = await new Promise<string>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('Pub/Sub timeout — no message received within 10s')), TIMEOUT_MS);
+    const timer = setTimeout(
+      () => reject(new Error('Pub/Sub timeout — no message received within 10s')),
+      TIMEOUT_MS
+    );
 
     subscriber.subscribe(TEST_CHANNEL, (err) => {
       if (err !== null) {
@@ -79,7 +85,8 @@ async function testPubSub(redis: Redis): Promise<void> {
   if (typeof parsed !== 'object' || parsed === null) fail('Parsed message is not an object');
   const obj = parsed as Record<string, unknown>;
   if (obj['status'] !== 'completed') fail(`Expected status=completed, got: ${String(obj['status'])}`);
-  if (obj['executionId'] !== 'exec-test-001') fail(`Expected executionId=exec-test-001, got: ${String(obj['executionId'])}`);
+  if (obj['executionId'] !== 'exec-test-001')
+    fail(`Expected executionId=exec-test-001, got: ${String(obj['executionId'])}`);
   log('3/5', 'Pub/Sub message received and validated ✓');
 
   await subscriber.unsubscribe(TEST_CHANNEL);

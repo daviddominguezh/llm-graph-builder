@@ -5,13 +5,13 @@ import { z } from 'zod';
 import { createServiceClient } from '../../db/queries/executionAuthQueries.js';
 import { updateSessionState, updateToolOutputMessage } from '../../db/queries/executionQueries.js';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
-import { getNotifier } from '../../notifications/notifierSingleton.js';
 import {
   type PendingResume,
   claimPendingResume,
   markResumeCompleted,
 } from '../../db/queries/resumeQueries.js';
 import { popStackEntry } from '../../db/queries/stackQueries.js';
+import { getNotifier } from '../../notifications/notifierSingleton.js';
 import { executeAgentCore } from '../execute/executeCore.js';
 
 const HTTP_OK = 200;
@@ -173,10 +173,7 @@ async function reinvokeParent(
 
 /* ─── Completion notification ─── */
 
-async function notifyIfChainComplete(
-  output: CallAgentOutput | null,
-  rootExecutionId: string
-): Promise<void> {
+async function notifyIfChainComplete(output: CallAgentOutput | null, rootExecutionId: string): Promise<void> {
   if (output === null || output.dispatchResult !== undefined) return;
   try {
     const notifier = getNotifier();
@@ -192,7 +189,11 @@ async function notifyIfChainComplete(
 
 /* ─── Resume execution core ─── */
 
-async function resumeExecution(supabase: SupabaseClient, claimed: PendingResume, data: ResumeParentData): Promise<void> {
+async function resumeExecution(
+  supabase: SupabaseClient,
+  claimed: PendingResume,
+  data: ResumeParentData
+): Promise<void> {
   const parentExec = await fetchParentExecution(supabase, data.parentExecutionId);
   await updateToolOutput(supabase, claimed, data);
   await restoreSessionState(supabase, data);
