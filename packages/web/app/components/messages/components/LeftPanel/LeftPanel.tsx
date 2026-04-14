@@ -149,15 +149,15 @@ function NavItemRow({
 }) {
   return (
     <div
-      className={`cursor-pointer group flex flex-col justify-center py-1 rounded-[5px] ${active ? 'bg-primary/15' : 'hover:bg-sidebar-accent'}`}
+      className={`cursor-pointer group flex flex-col justify-center py-1 rounded-[5px] ${active ? 'bg-primary/15' : 'hover:bg-input/30'}`}
     >
       <Button
         variant="ghost"
         size="sm"
         className={`h-6 w-full justify-start gap-2 px-2 text-sm border-x-0 border-y-0 rounded-none cursor-pointer ${
           active
-            ? 'border-l border-l-2 border-primary bg-transparent hover:bg-transparent! text-primary hover:text-primary'
-            : 'border-l border-l-2 group-hover:border-foreground text-muted-foreground hover:text-foreground hover:bg-transparent!'
+            ? 'border-l border-l-2 border-transparent bg-transparent hover:bg-transparent! text-primary hover:text-primary'
+            : 'border-l border-l-2 border-transparent text-muted-foreground group-hover:text-foreground hover:bg-transparent!'
         }`}
         onClick={onClick}
       >

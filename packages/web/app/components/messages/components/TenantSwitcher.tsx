@@ -55,7 +55,7 @@ function SingleTenantLabel({ name, avatarUrl }: { name: string; avatarUrl: strin
 
 function MultiTenantTriggerContent({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
   return (
-    <div className="flex h-8 rounded-md items-center overflow-hidden px-2 hover:bg-sidebar-accent w-full">
+    <div className="flex h-8 rounded-md items-center overflow-hidden px-2 hover:bg-input/30 w-full">
       <div className="flex min-w-0 items-center gap-2 flex-1">
         <TenantAvatar name={name} avatarUrl={avatarUrl} />
         <span className="truncate text-xs font-semibold">{name}</span>
