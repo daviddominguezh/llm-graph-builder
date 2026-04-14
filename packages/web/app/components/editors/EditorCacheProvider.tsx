@@ -104,7 +104,6 @@ export function MainContainer({ children, className }: { children: React.ReactNo
       const spacingPx = spacingRaw.endsWith('px')
         ? parseFloat(spacingRaw)
         : parseFloat(spacingRaw) * (parseFloat(root.fontSize) || 16);
-      console.log(spacingPx);
       setMainRect({ top: r.top, left: r.left + spacingPx, width: r.width, height: r.height - spacingPx });
     };
     update();

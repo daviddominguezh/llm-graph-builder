@@ -68,13 +68,18 @@ async function resolveChild(params: DispatchHandlerParams): Promise<ResolvedChil
 
 /* ─── Create child execution record ─── */
 
-async function createChildExecution(params: DispatchHandlerParams, model: string): Promise<string> {
+async function createChildExecution(
+  params: DispatchHandlerParams,
+  childConfig: ResolvedChildConfig
+): Promise<string> {
   return await createExecution(params.supabase, {
     sessionId: params.sessionId,
-    agentId: params.agentId,
+    // Use the child's resolved agentId/version (for invoke_agent/invoke_workflow),
+    // or fall back to parent's (for create_agent dynamic children with no published agent)
+    agentId: childConfig.agentId ?? params.agentId,
     orgId: params.orgId,
-    version: params.version,
-    model,
+    version: childConfig.version ?? params.version,
+    model: childConfig.modelId,
     channel: params.channel,
     tenantId: params.tenantId,
     userId: params.userId,
@@ -242,7 +247,7 @@ async function suspendParentExecution(supabase: SupabaseClient, executionId: str
 export async function handleDispatchResult(params: DispatchHandlerParams): Promise<void> {
   const currentDepth = await assertDepthLimit(params.supabase, params.sessionId);
   const childConfig = await resolveChild(params);
-  const childExecId = await createChildExecution(params, childConfig.modelId);
+  const childExecId = await createChildExecution(params, childConfig);
 
   await writeChildTask(params, childExecId, childConfig.task);
 

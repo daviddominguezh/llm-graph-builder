@@ -12,6 +12,10 @@ export interface ResolvedChildConfig {
   mcpServers: McpServerConfig[];
   isChildAgent: boolean;
   task: string;
+  /** Resolved child agent ID (undefined for create_agent dynamic children) */
+  agentId?: string;
+  /** Resolved child agent version (undefined for create_agent dynamic children) */
+  version?: number;
 }
 
 type DispatchType = 'create_agent' | 'invoke_agent' | 'invoke_workflow';
@@ -193,7 +197,7 @@ async function resolveInvokeAgent(
   const version = await resolveVersion(supabase, params, agentId);
   const graphData = await fetchVersionGraphData(supabase, agentId, version);
 
-  return buildConfigFromGraphData(graphData, params);
+  return { ...buildConfigFromGraphData(graphData, params), agentId, version };
 }
 
 /* ─── resolve create_agent ─── */
@@ -234,6 +238,8 @@ async function resolveInvokeWorkflow(
     mcpServers: Array.isArray(gd.mcpServers) ? gd.mcpServers : [],
     isChildAgent: false,
     task: stringParam(params, 'user_said', ''),
+    agentId,
+    version,
   };
 }
 

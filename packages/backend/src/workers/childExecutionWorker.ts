@@ -132,10 +132,18 @@ async function handleChildResult(
   }
 
   if (result.output?.dispatchResult !== undefined) {
+    return; // Multi-level dispatch: child itself dispatched a grandchild (handled by dispatchIfNeeded)
+  }
+
+  // Agent completed without calling finish — use its text response as the result
+  const text = result.output?.text ?? '';
+  if (text !== '') {
+    const syntheticFinish = { output: text, status: 'success' as const };
+    await createResumeFromFinish(supabase, child, syntheticFinish);
     return;
   }
 
-  throw new Error('Child agent completed without calling finish');
+  throw new Error('Child agent completed without calling finish or producing text');
 }
 
 /* ─── Notify root of permanent failure ─── */
@@ -161,7 +169,11 @@ async function handleChildFailure(
   msg: string
 ): Promise<void> {
   await incrementChildAttempts(supabase, child.id, child.attempts);
-  if (child.attempts + INCREMENT < MAX_ATTEMPTS) return;
+  if (child.attempts + INCREMENT < MAX_ATTEMPTS) {
+    // Reset to pending so the worker retries on next poll
+    await updateChildExecutionStatus(supabase, child.id, 'pending');
+    return;
+  }
 
   await updateChildExecutionStatus(supabase, child.id, 'failed');
   log(`max attempts reached execution=${child.execution_id}`);

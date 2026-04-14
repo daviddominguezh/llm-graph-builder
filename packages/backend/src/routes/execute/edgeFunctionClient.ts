@@ -1,4 +1,5 @@
 import type { RuntimeGraph } from '@daviddh/graph-types';
+import { isDispatchSentinel, isFinishSentinel } from '@daviddh/llm-graph-runner';
 import type { CallAgentOutput, Message, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
 
 import { buildAgentLoopResult, handleStepProcessed } from './edgeFunctionAgentEvents.js';
@@ -204,6 +205,8 @@ function buildResultFromResponse(event: SseEvent, nodeTexts: NodeProcessedData[]
     debugMessages: isDebugMessages(event.debugMessages) ? event.debugMessages : {},
     structuredOutputs: parseStructuredOutputs(event.structuredOutputs),
     parsedResults: buildParsedResults(event, nodeTexts),
+    dispatchResult: isDispatchSentinel(event.dispatchResult) ? event.dispatchResult : undefined,
+    finishResult: isFinishSentinel(event.finishResult) ? event.finishResult : undefined,
   };
 }
 

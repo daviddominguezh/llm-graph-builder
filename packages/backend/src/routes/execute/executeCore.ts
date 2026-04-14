@@ -75,7 +75,8 @@ interface SetupResult {
 
 async function setupExecution(params: ExecuteCoreInput): Promise<SetupResult> {
   const { supabase, orgId, agentId, version, input } = params;
-  const model = params.overrideAgentConfig?.modelId ?? input.model ?? DEFAULT_MODEL;
+  const configModel = params.overrideAgentConfig?.modelId;
+  const model = (configModel !== undefined && configModel !== '') ? configModel : (input.model ?? DEFAULT_MODEL);
 
   const fetched = await fetchAllCoreData({
     supabase,
