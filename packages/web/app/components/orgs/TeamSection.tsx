@@ -42,7 +42,7 @@ function EmptyState({ isOwner, onInvite }: { isOwner: boolean; onInvite: () => v
       <p className="text-sm font-medium">{t('noMembers')}</p>
       <p className="text-xs text-muted-foreground max-w-xs">{t('noMembersDescription')}</p>
       {isOwner && (
-        <Button variant="outline" size="sm" className="mt-2" onClick={onInvite}>
+        <Button size="sm" className="mt-2 rounded-full" onClick={onInvite}>
           <Plus className="size-3.5" />
           {t('invite')}
         </Button>

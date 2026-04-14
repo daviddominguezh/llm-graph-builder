@@ -103,7 +103,7 @@ function SectionHeader({ onCreateClick }: { onCreateClick: () => void }) {
       <CardTitle>{t('title')}</CardTitle>
       <CardDescription>{t('description')}</CardDescription>
       <CardAction>
-        <Button variant="outline" size="sm" onClick={onCreateClick}>
+        <Button variant="outline" size="sm" className="border-[0.5px] rounded-md" onClick={onCreateClick}>
           <Plus className="size-4" />
           {t('add')}
         </Button>

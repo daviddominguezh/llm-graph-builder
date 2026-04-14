@@ -29,12 +29,12 @@ function isExpired(expiresAt: string | null): boolean {
 }
 
 function AgentBadge({ slug }: { slug: string }) {
-  return <span className="rounded-full border bg-background px-1.5 font-mono text-[10px]">{slug}</span>;
+  return <span className="rounded-full border border-transparent bg-background px-1.5 font-mono text-[10px]">{slug}</span>;
 }
 
 function AllAgentsBadge() {
   const t = useTranslations('executionKeys');
-  return <span className="rounded-full border bg-background px-1.5 font-mono text-[10px]">{t('allBadge')}</span>;
+  return <span className="rounded-full border border-transparent bg-background px-1.5 font-mono text-[10px]">{t('allBadge')}</span>;
 }
 
 function SpecificAgentBadges({ keyData }: { keyData: ExecutionKeyWithAgents }) {
@@ -87,7 +87,7 @@ function KeyIdentity({ keyData }: { keyData: ExecutionKeyWithAgents }) {
 
   return (
     <div className="flex items-center gap-2.5 min-w-0">
-      <div className="bg-background rounded-full p-1.5 border shrink-0">
+      <div className="bg-background rounded-full p-1.5 border border-transparent shrink-0">
         <Braces className="size-4.5" />
       </div>
       <div className="flex flex-col min-w-0">
@@ -106,7 +106,7 @@ export function ExecutionKeyRow({ keyData, onDelete }: ExecutionKeyRowProps) {
   const locale = useLocale();
 
   return (
-    <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-3 rounded-md border px-3 py-2 bg-card transition-colors hover:bg-card/80">
+    <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-3 rounded-md border border-transparent px-3 py-2 bg-card transition-colors">
       <KeyIdentity keyData={keyData} />
       <AgentBadges keyData={keyData} />
       <span className="text-muted-foreground text-[11px] whitespace-nowrap">
@@ -119,8 +119,8 @@ export function ExecutionKeyRow({ keyData, onDelete }: ExecutionKeyRowProps) {
       </span>
       <Button
         variant="destructive"
-        className="shrink-0"
-        size="icon-sm"
+        className="shrink-0 aspect-square p-0 h-7"
+        size="icon"
         onClick={() => onDelete(keyData.id, keyData.name)}
       >
         <Trash2 className="size-4" />
