@@ -5,9 +5,8 @@
  * the subscriber misses the publish (race or reconnect). A circuit breaker
  * degrades to polling when Pub/Sub is repeatedly failing.
  */
-import { setTimeout as setTimeoutPromise } from 'node:timers/promises';
-
 import { Redis } from 'ioredis';
+import { setTimeout as setTimeoutPromise } from 'node:timers/promises';
 
 import { getRedisCloud } from '../messaging/services/redisCloud.js';
 import { CircuitBreaker } from './circuitBreaker.js';
@@ -157,8 +156,8 @@ export class RedisCompletionNotifier implements CompletionNotifier {
   private readonly waiters = new Map<string, Waiter>();
   private readonly circuit: CircuitBreaker;
 
-  constructor() {
-    this.config = loadCompletionConfig();
+  constructor(config?: CompletionConfig) {
+    this.config = config ?? loadCompletionConfig();
     this.pub = getRedisCloud();
     this.sub = new Redis(getRedisUrl());
     this.circuit = new CircuitBreaker({
