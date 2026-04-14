@@ -83,6 +83,7 @@ async function buildCoreInput(
       channel: toChannel(details.channel),
       stream: false,
     },
+    rootExecutionId: child.root_execution_id,
   };
 
   // For dynamically created children (create_agent), the published agent is the parent.
@@ -113,6 +114,7 @@ async function createResumeFromFinish(
     childOutput: finishResult.output,
     childStatus: finishResult.status,
     parentSessionState: stackEntry.parent_session_state ?? {},
+    rootExecutionId: child.root_execution_id,
   });
 }
 

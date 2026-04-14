@@ -40,6 +40,7 @@ async function attemptResume(resume: PendingResume): Promise<boolean> {
       childOutput: resume.child_output,
       childStatus: resume.child_status,
       parentSessionState: resume.parent_session_state,
+      rootExecutionId: resume.root_execution_id,
     }),
   });
 

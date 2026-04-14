@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 
+import type { CallAgentOutput } from '@daviddh/llm-graph-runner';
 import { createServiceClient } from '../../db/queries/executionAuthQueries.js';
 import { updateSessionState, updateToolOutputMessage } from '../../db/queries/executionQueries.js';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
@@ -24,6 +25,7 @@ const ResumeParentBodySchema = z.object({
   childOutput: z.string(),
   childStatus: z.enum(['success', 'error']),
   parentSessionState: z.record(z.string(), z.unknown()),
+  rootExecutionId: z.string(),
 });
 
 function log(msg: string): void {
@@ -147,8 +149,8 @@ async function reinvokeParent(
   supabase: SupabaseClient,
   parentExec: ParentExecutionRow,
   data: ResumeParentData
-): Promise<void> {
-  await executeAgentCore({
+): Promise<CallAgentOutput | null> {
+  const result = await executeAgentCore({
     supabase,
     orgId: parentExec.org_id,
     agentId: parentExec.agent_id,
@@ -162,8 +164,10 @@ async function reinvokeParent(
       stream: false,
     },
     continueExecutionId: data.parentExecutionId,
+    rootExecutionId: data.rootExecutionId,
   });
   log(`parent re-invoked executionId=${data.parentExecutionId}`);
+  return result.output;
 }
 
 /**
@@ -197,9 +201,9 @@ export async function handleResumeParent(req: Request, res: Response): Promise<v
     await updateToolOutput(supabase, claimed, data);
     await restoreSessionState(supabase, data);
     await popAndMarkComplete(supabase, data);
-    await reinvokeParent(supabase, parentExec, data);
+    const output = await reinvokeParent(supabase, parentExec, data);
 
-    log(`parent resumed parentExecution=${data.parentExecutionId}`);
+    log(`parent resumed parentExecution=${data.parentExecutionId} output=${JSON.stringify(output)}`);
     res.status(HTTP_OK).json({ resumed: true, parentExecutionId: data.parentExecutionId });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
