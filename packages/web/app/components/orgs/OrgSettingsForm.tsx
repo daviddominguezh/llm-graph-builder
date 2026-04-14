@@ -68,7 +68,7 @@ function NameSection({ org }: OrgSettingsFormProps) {
       <Label htmlFor="org-name">{t('name')}</Label>
       <div className="flex items-center gap-2">
         <Input id="org-name" name="name" defaultValue={org.name} placeholder={t('namePlaceholder')} required />
-        <Button type="submit" variant="outline" size="sm" disabled={loading}>
+        <Button type="submit" variant="outline" className="border-[0.5px] rounded-md" size="sm" disabled={loading}>
           {t('saveName')}
         </Button>
       </div>
@@ -137,7 +137,7 @@ export function OrgSettingsForm({ org }: OrgSettingsFormProps) {
   const t = useTranslations('orgs');
 
   return (
-    <Card className='bg-background ring-0'>
+    <Card className='bg-transparent ring-0'>
       <CardHeader>
         <CardTitle>{t('generalSection')}</CardTitle>
         <CardDescription>{t('generalDescription')}</CardDescription>

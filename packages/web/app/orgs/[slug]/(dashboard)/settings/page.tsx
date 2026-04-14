@@ -32,7 +32,7 @@ export default async function OrgSettingsPage({ params }: OrgSettingsPageProps):
   const envVariables = envVarsResult.error === null ? envVarsResult.result : [];
 
   return (
-    <div className="h-full overflow-y-auto p-6">
+    <div className="h-full overflow-y-auto p-6 border rounded-xl mr-1.5 overflow-hidden">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
         <OrgSettingsForm org={org} />
         <Separator />

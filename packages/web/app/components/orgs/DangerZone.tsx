@@ -73,14 +73,14 @@ export function DangerZone({ org }: DangerZoneProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   return (
-    <Card className="border-destructive/20 bg-background border-1 flex flex-col gap-0 mx-4 ring-0 mb-16">
+    <Card className="border-transparent bg-red-50 border-1 flex flex-col gap-0 mx-4 ring-0 mb-16">
       <CardHeader>
         <CardTitle className="text-destructive">{t('dangerZone')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className='flex items-center justify-between mt-1'>
           <CardDescription>{t('dangerDescription')}</CardDescription>
-          <Button variant="destructive" size="sm" onClick={() => setConfirmOpen(true)}>
+          <Button variant="destructive" size="sm" className="border-[0.5px] rounded-md" onClick={() => setConfirmOpen(true)}>
             {t('delete')}
           </Button>
         </div>

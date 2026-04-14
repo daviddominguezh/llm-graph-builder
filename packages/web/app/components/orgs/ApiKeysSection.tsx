@@ -71,7 +71,7 @@ export function ApiKeysSection({ orgId, initialKeys }: ApiKeysSectionProps) {
   }, [orgId]);
 
   return (
-    <Card className="bg-background ring-0 border-transparent">
+    <Card className="bg-transparent ring-0 border-transparent">
       <CardHeader>
         <CardTitle>{t('title')}</CardTitle>
         <CardDescription>{t('description')}</CardDescription>
@@ -79,7 +79,7 @@ export function ApiKeysSection({ orgId, initialKeys }: ApiKeysSectionProps) {
           <Button
             variant="outline"
             size="sm"
-            className="border-transparent"
+            className="border-[0.5px] rounded-md"
             onClick={() => setCreateOpen(true)}
           >
             <Plus className="size-4" />
