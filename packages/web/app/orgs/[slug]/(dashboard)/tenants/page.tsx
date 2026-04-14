@@ -18,7 +18,7 @@ export default async function TenantsPage({ params }: TenantsPageProps): Promise
   const { result: tenants } = await getTenantsByOrg(org.id);
 
   return (
-    <div className="h-full overflow-y-auto p-6">
+    <div className="h-full overflow-y-auto p-6 border mr-1.5 rounded-xl">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
         <TenantsSection orgId={org.id} initialTenants={tenants} />
       </div>
