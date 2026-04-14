@@ -67,7 +67,7 @@ function ToolJsonContent({ label, data }: { label: string; data: unknown }) {
           No args.
         </span>
       ) : isJsonObject(data) ? (
-        <SmallJsonBlock value={data} />
+        <SmallJsonBlock value={data} className='bg-card!' />
       ) : (
         <pre className="max-h-28 overflow-auto whitespace-pre-wrap rounded bg-muted p-1.5 font-mono text-[10px]">
           {String(data ?? '')}
@@ -88,7 +88,7 @@ function CardContent({ card }: { card: MessageCard }) {
   if (card.kind === 'reasoning') {
     if (card.text === '[REDACTED]') {
       return (
-        <p className="flex items-center gap-1.5 text-xs italic text-muted-foreground bg-card rounded-md p-3">
+        <p className="flex items-center gap-1.5 text-xs italic text-muted-foreground bg-input rounded-md p-3">
           <Lock className="size-3" />
           {t('encryptedByProvider')}
         </p>
@@ -131,7 +131,7 @@ export function ResponseMessageCards({ data }: { data: unknown }) {
   return (
     <div className="mt-2 flex flex-col gap-2">
       {cards.map((card, i) => (
-        <div key={i} className="flex flex-col gap-1.5 rounded-md border bg-white dark:bg-black p-3">
+        <div key={i} className="flex flex-col gap-1.5 rounded-md border border-transparent bg-card p-3">
           <RoleBadge kind={card.kind} />
           <CardContent card={card} />
         </div>

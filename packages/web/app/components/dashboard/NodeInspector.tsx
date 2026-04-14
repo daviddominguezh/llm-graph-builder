@@ -31,7 +31,7 @@ function ExecutionPath({ first, last }: { first: string; last: string }) {
   const t = useTranslations('dashboard.debug');
 
   return (
-    <div className="flex items-center gap-2 rounded-md border bg-card px-3 py-2">
+    <div className="flex items-center gap-2 rounded-md border border-transparent bg-card px-3 py-2">
       <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground shrink-0">{t('executionPath')}</span>
       <span className="font-mono text-[11px] text-foreground truncate">{first}</span>
       {first !== last && (

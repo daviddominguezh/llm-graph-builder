@@ -254,7 +254,7 @@ export function DebugView(props: DebugViewProps) {
   };
 
   return (
-    <div className="flex h-full flex-col bg-background">
+    <div className="flex h-full flex-col bg-background overflow-hidden border border mr-1.5 rounded-xl">
       <DebugHeader
         orgSlug={orgSlug}
         agentName={breadcrumbLabel}

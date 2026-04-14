@@ -35,7 +35,7 @@ export function SearchBar({ value, onChange }: SearchBarProps) {
   };
 
   return (
-    <InputGroup className="w-64">
+    <InputGroup className="w-64 border-transparent">
       <InputGroupAddon>
         <Search className="size-3.5 text-muted-foreground" />
       </InputGroupAddon>
