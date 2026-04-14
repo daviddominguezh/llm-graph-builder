@@ -96,7 +96,7 @@ function CopyableId({ id }: { id: string }) {
             className="inline-flex items-center gap-1 font-mono text-muted-foreground cursor-pointer transition-colors hover:text-foreground"
             onClick={handleCopy}
           >
-            <span>{truncated}</span>
+            <span className='mr-2'>{truncated}</span>
             {copied ? (
               <Check className="size-3 text-emerald-500 check-pop" />
             ) : (
