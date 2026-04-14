@@ -191,7 +191,7 @@ function EditorTabBar({
         ))}
       </div>
       <div className="flex-1" />
-      <div ref={toolbarRef} className="flex items-center gap-1.5" />
+      <div ref={toolbarRef} className={`flex items-center gap-1.5 ${activeTab !== 'agent' ? 'hidden' : ''}`} />
     </GlassPanel>
   );
 }
