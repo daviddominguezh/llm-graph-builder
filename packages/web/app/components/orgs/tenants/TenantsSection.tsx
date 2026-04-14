@@ -96,7 +96,7 @@ function CopyableId({ id }: { id: string }) {
             className="inline-flex items-center gap-1 font-mono text-muted-foreground cursor-pointer transition-colors hover:text-foreground"
             onClick={handleCopy}
           >
-            <span className='mr-2'>{truncated}</span>
+            <span className="mr-2">{truncated}</span>
             {copied ? (
               <Check className="size-3 text-emerald-500 check-pop" />
             ) : (
@@ -169,7 +169,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
         <p className="text-sm font-medium">{t('noTenants')}</p>
         <p className="max-w-xs text-xs text-muted-foreground">{t('emptyDescription')}</p>
       </div>
-      <Button variant="outline" size="sm" onClick={onAdd}>
+      <Button size="sm" className="rounded-full" onClick={onAdd}>
         <Plus className="size-3.5" />
         {t('add')}
       </Button>
@@ -203,7 +203,7 @@ function TenantsTable({
       </TableHeader>
       <TableBody>
         {tenants.map((tenant) => (
-          <TableRow key={tenant.id} className={`group/row ${newIds.has(tenant.id) ? 'row-enter' : ''}`}>
+          <TableRow key={tenant.id} className={`group/row hover:bg-transparent ${newIds.has(tenant.id) ? 'row-enter' : ''}`}>
             <TableCell>
               <div className="flex items-center gap-2 max-w-[200px]">
                 <TenantAvatar name={tenant.name} avatarUrl={tenant.avatar_url} />

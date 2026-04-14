@@ -43,7 +43,7 @@ function EmptyState({ onCreateClick }: { onCreateClick: () => void }) {
       <Braces className="size-6 text-muted-foreground/50" />
       <p className="text-sm font-medium">{t('noKeysTitle')}</p>
       <p className="text-muted-foreground max-w-xs text-xs">{t('noKeysDescription')}</p>
-      <Button variant="outline" size="sm" className="mt-2" onClick={onCreateClick}>
+      <Button size="sm" className="mt-2 rounded-full" onClick={onCreateClick}>
         <Plus className="size-3.5" />
         {t('add')}
       </Button>
