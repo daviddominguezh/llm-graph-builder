@@ -33,7 +33,7 @@ function Stat({ icon: Icon, label, value, format, index }: StatProps) {
 
   return (
     <div
-      className="group flex items-center gap-2.5 rounded-lg border bg-background px-3 py-2 animate-in fade-in slide-in-from-bottom-1 fill-mode-both"
+      className="group flex items-center gap-2.5 rounded-lg border border-transparent bg-input/35 px-3 py-2 animate-in fade-in slide-in-from-bottom-1 fill-mode-both"
       style={{ animationDelay: delay, animationDuration: '400ms' }}
     >
       <div className="flex size-7 items-center justify-center rounded-md bg-primary/10 transition-colors duration-200 group-hover:bg-primary/20">
@@ -102,7 +102,7 @@ function StaticStat({ icon: Icon, label, value, index }: {
   const delay = `${index * 80}ms`;
   return (
     <div
-      className="group flex items-center gap-2.5 rounded-lg border bg-background px-3 py-2 animate-in fade-in slide-in-from-bottom-1 fill-mode-both"
+      className="group flex items-center gap-2.5 rounded-lg border border-transparent bg-input/35 px-3 py-2 animate-in fade-in slide-in-from-bottom-1 fill-mode-both"
       style={{ animationDelay: delay, animationDuration: '400ms' }}
     >
       <div className="flex size-7 items-center justify-center rounded-md bg-primary/10 transition-colors duration-200 group-hover:bg-primary/20">

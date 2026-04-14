@@ -91,7 +91,7 @@ export function MiniAreaChart({ data, def, label, index }: MiniAreaChartProps) {
 
   return (
     <div
-      className="rounded-lg border bg-background p-3 animate-in fade-in slide-in-from-bottom-1 fill-mode-both"
+      className="rounded-lg border border-transparent bg-input/35 p-3 animate-in fade-in slide-in-from-bottom-1 fill-mode-both"
       style={{ animationDelay: delay, animationDuration: '400ms' }}
     >
       <ChartHeader label={label} value={def.formatValue(rangeTotal)} range={range} onRange={setRange} />
@@ -100,7 +100,7 @@ export function MiniAreaChart({ data, def, label, index }: MiniAreaChartProps) {
           <defs>
             <AreaGradient id={def.gradientId} colorVar={`var(--color-${def.configKey})`} />
           </defs>
-          <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-border/40" />
+          <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-input/60!" />
           <XAxis
             dataKey="date"
             tickLine={false}
