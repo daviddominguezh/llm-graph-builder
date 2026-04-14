@@ -413,6 +413,8 @@ async function runWorkflowExecution(
       debugMessages: result.debugMessages,
       structuredOutputs: result.structuredOutputs,
       parsedResults: result.parsedResults,
+      dispatchResult: result.dispatchResult,
+      finishResult: result.finishResult,
     });
   }
 }

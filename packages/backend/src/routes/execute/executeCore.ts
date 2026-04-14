@@ -159,18 +159,23 @@ export async function executeAgentCore(
   const durationMs = Date.now() - startTime;
 
   if (output !== null) {
-    await persistCoreResult(supabase, {
-      executionId,
-      fetched,
-      output,
-      nodeData,
-      durationMs,
-      model,
-      conversationId,
-      input,
-    });
-
+    // Dispatch BEFORE persisting — dispatchIfNeeded suspends the parent,
+    // and persistCoreResult completes it. Wrong order = completed before suspended.
     await dispatchIfNeeded({ supabase, params, executionId, fetched, output });
+
+    // Skip completion persistence when dispatch happened — parent is now suspended
+    if (output.dispatchResult === undefined) {
+      await persistCoreResult(supabase, {
+        executionId,
+        fetched,
+        output,
+        nodeData,
+        durationMs,
+        model,
+        conversationId,
+        input,
+      });
+    }
   }
 
   logExec('core:complete', { executionId, durationMs, hasOutput: output !== null });
