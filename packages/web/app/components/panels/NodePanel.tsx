@@ -258,7 +258,7 @@ export function NodePanel({
                 Incoming
                 <ArrowLeft className="h-3 w-3 mr-1" />
               </div>
-              <div className="flex flex-col ml-1 gap-1">
+              <div className="flex flex-col ml-2 gap-1">
                 {incomingEdges.map((edge) => {
                   const value = edge.data?.preconditions?.[0]?.value;
                   const contextPreconditions = edge.data?.contextPreconditions;
@@ -272,9 +272,9 @@ export function NodePanel({
                             <span className="ml-0.5 text-[11px]">{edge.source}</span>
                           </div>
                           {(value || hasContext) && (
-                            <div className="flex w-full gap-3 mt-1 bg-card rounded-sm py-1">
+                            <div className="flex w-full gap-3 mt-1 bg-card rounded-e-sm py-0">
                               <div className="shrink-0 w-[2px] bg-ring self-stretch"></div>
-                              <div className="w-full text-[10px] text-muted-foreground">
+                              <div className="w-full text-[10px] text-muted-foreground py-1">
                                 {value && <div className="w-full">{value}</div>}
                                 {hasContext && (
                                   <div className={value ? 'mt-1' : ''}>
@@ -290,7 +290,12 @@ export function NodePanel({
                           <Tooltip>
                             <TooltipTrigger
                               render={
-                                <Button variant="ghost" size="sm" onClick={() => onSelectNode?.(edge.source)}>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="aspect-square p-0 h-6"
+                                  onClick={() => onSelectNode?.(edge.source)}
+                                >
                                   <Box />
                                 </Button>
                               }
@@ -303,7 +308,12 @@ export function NodePanel({
                           <Tooltip>
                             <TooltipTrigger
                               render={
-                                <Button variant="ghost" size="sm" onClick={() => onSelectEdge?.(edge.id)}>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="aspect-square p-0 h-6"
+                                  onClick={() => onSelectEdge?.(edge.id)}
+                                >
                                   <Cable />
                                 </Button>
                               }
@@ -327,7 +337,7 @@ export function NodePanel({
                 Outgoing
                 <ArrowRight className="h-3 w-3 mr-1" />
               </div>
-              <div className="flex flex-col ml-1 gap-1">
+              <div className="flex flex-col ml-2 gap-1">
                 {outgoingEdges.map((edge) => {
                   const value = edge.data?.preconditions?.[0]?.value;
                   const contextPreconditions = edge.data?.contextPreconditions;
@@ -341,9 +351,9 @@ export function NodePanel({
                             <span className="ml-0.5 text-[11px]">{edge.target}</span>
                           </div>
                           {(value || hasContext) && (
-                            <div className="flex w-full gap-3 mt-1 bg-card rounded-sm py-1">
+                            <div className="flex w-full gap-3 mt-1 bg-card rounded-e-sm py-0">
                               <div className="shrink-0 ml-0 w-[2px] bg-ring self-stretch"></div>
-                              <div className="w-full text-[10px] text-muted-foreground">
+                              <div className="w-full text-[10px] text-muted-foreground py-1">
                                 {value && <div className="w-full">{value}</div>}
                                 {hasContext && (
                                   <div className={value ? 'mt-1' : ''}>
@@ -359,7 +369,12 @@ export function NodePanel({
                           <Tooltip>
                             <TooltipTrigger
                               render={
-                                <Button variant="ghost" size="sm" onClick={() => onSelectNode?.(edge.target)}>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="aspect-square p-0 h-6"
+                                  onClick={() => onSelectNode?.(edge.target)}
+                                >
                                   <Box />
                                 </Button>
                               }
@@ -372,7 +387,12 @@ export function NodePanel({
                           <Tooltip>
                             <TooltipTrigger
                               render={
-                                <Button variant="ghost" size="sm" onClick={() => onSelectEdge?.(edge.id)}>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="aspect-square p-0 h-6"
+                                  onClick={() => onSelectEdge?.(edge.id)}
+                                >
                                   <Cable />
                                 </Button>
                               }
