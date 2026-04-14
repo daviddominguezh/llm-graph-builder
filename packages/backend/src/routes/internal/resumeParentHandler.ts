@@ -1,10 +1,11 @@
+import type { CallAgentOutput } from '@daviddh/llm-graph-runner';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 
-import type { CallAgentOutput } from '@daviddh/llm-graph-runner';
 import { createServiceClient } from '../../db/queries/executionAuthQueries.js';
 import { updateSessionState, updateToolOutputMessage } from '../../db/queries/executionQueries.js';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
+import { getNotifier } from '../../notifications/notifierSingleton.js';
 import {
   type PendingResume,
   claimPendingResume,
@@ -170,6 +171,37 @@ async function reinvokeParent(
   return result.output;
 }
 
+/* ─── Completion notification ─── */
+
+async function notifyIfChainComplete(
+  output: CallAgentOutput | null,
+  rootExecutionId: string
+): Promise<void> {
+  if (output === null || output.dispatchResult !== undefined) return;
+  try {
+    const notifier = getNotifier();
+    await notifier.notifyCompletion(rootExecutionId, {
+      status: 'completed',
+      text: output.text ?? '',
+      executionId: rootExecutionId,
+    });
+  } catch (notifyErr: unknown) {
+    log(`notify error: ${String(notifyErr)}`);
+  }
+}
+
+/* ─── Resume execution core ─── */
+
+async function resumeExecution(supabase: SupabaseClient, claimed: PendingResume, data: ResumeParentData): Promise<void> {
+  const parentExec = await fetchParentExecution(supabase, data.parentExecutionId);
+  await updateToolOutput(supabase, claimed, data);
+  await restoreSessionState(supabase, data);
+  await popAndMarkComplete(supabase, data);
+  const output = await reinvokeParent(supabase, parentExec, data);
+  log(`parent resumed parentExecution=${data.parentExecutionId} output=${JSON.stringify(output)}`);
+  await notifyIfChainComplete(output, data.rootExecutionId);
+}
+
 /**
  * POST /internal/resume-parent
  *
@@ -197,13 +229,7 @@ export async function handleResumeParent(req: Request, res: Response): Promise<v
   }
 
   try {
-    const parentExec = await fetchParentExecution(supabase, data.parentExecutionId);
-    await updateToolOutput(supabase, claimed, data);
-    await restoreSessionState(supabase, data);
-    await popAndMarkComplete(supabase, data);
-    const output = await reinvokeParent(supabase, parentExec, data);
-
-    log(`parent resumed parentExecution=${data.parentExecutionId} output=${JSON.stringify(output)}`);
+    await resumeExecution(supabase, claimed, data);
     res.status(HTTP_OK).json({ resumed: true, parentExecutionId: data.parentExecutionId });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';

@@ -1,10 +1,14 @@
+import { randomUUID } from 'node:crypto';
+
 import type { Request, Response } from 'express';
 
 import { failExecution } from '../../db/queries/executionQueries.js';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
+import type { ExecutionResult } from '../../notifications/completionNotifier.js';
+import { getCompletionConfig, getNotifier } from '../../notifications/notifierSingleton.js';
 import type { ExecutionAuthLocals, ExecutionAuthResponse } from './executeAuth.js';
+import type { ExecuteCoreCallbacks, ExecuteCoreOutput } from './executeCore.js';
 import { executeAgentCore } from './executeCore.js';
-import type { ExecuteCoreCallbacks } from './executeCore.js';
 import { HttpError } from './executeFetcher.js';
 import {
   logExec,
@@ -14,7 +18,7 @@ import {
   writePublicSSE,
 } from './executeHelpers.js';
 import { buildEmptyResponse, buildResponseByType } from './executeResponseBuilders.js';
-import type { AgentExecutionInput } from './executeTypes.js';
+import type { AgentExecutionInput, AgentExecutionResponse } from './executeTypes.js';
 import { AgentExecutionInputSchema } from './executeTypes.js';
 
 const HTTP_BAD_REQUEST = 400;
@@ -72,23 +76,65 @@ async function handleStreaming(parsed: ParsedInput, res: Response): Promise<void
   }
 }
 
+/* ─── Non-streaming handler helpers ─── */
+
+function respondNormally(result: ExecuteCoreOutput, res: Response): void {
+  if (result.output === null) {
+    res.json(buildEmptyResponse(result.appType));
+  } else {
+    res.json(buildResponseByType(result.appType, result.output, result.durationMs));
+  }
+}
+
+function buildBaseResponse(result: ExecuteCoreOutput): AgentExecutionResponse {
+  if (result.output === null) {
+    return buildEmptyResponse(result.appType);
+  }
+  return buildResponseByType(result.appType, result.output, result.durationMs);
+}
+
+function respondWithCompletion(
+  result: ExecuteCoreOutput,
+  completionResult: ExecutionResult | null,
+  executionId: string,
+  res: Response
+): void {
+  const response = buildBaseResponse(result);
+
+  if (completionResult === null) {
+    res.json({ ...response, executionId });
+  } else {
+    res.json({ ...response, text: completionResult.text, executionId });
+  }
+}
+
 /* ─── Non-streaming handler ─── */
 
 async function handleNonStreaming(parsed: ParsedInput, res: Response): Promise<void> {
+  const notifier = getNotifier();
+  const config = getCompletionConfig();
+  const executionId = randomUUID();
+
+  const waitPromise = notifier.waitForCompletion(executionId, config.timeoutMs);
+
   const result = await executeAgentCore({
     supabase: parsed.supabase,
     orgId: parsed.orgId,
     agentId: parsed.agentId,
     version: parsed.version,
     input: parsed.input,
+    executionId,
+    rootExecutionId: executionId,
   });
 
-  if (result.output !== null) {
-    res.json(buildResponseByType(result.appType, result.output, result.durationMs));
+  if (result.output?.dispatchResult === undefined) {
+    respondNormally(result, res);
     return;
   }
 
-  res.json(buildEmptyResponse(result.appType));
+  logExec('waiting for composition', { executionId });
+  const completionResult = await waitPromise;
+  respondWithCompletion(result, completionResult, executionId, res);
 }
 
 /* ─── Error handler ─── */
