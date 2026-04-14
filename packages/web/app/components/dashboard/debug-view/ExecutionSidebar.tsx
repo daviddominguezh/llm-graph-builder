@@ -36,14 +36,14 @@ function ExecutionItem({ execution, index, selected, onSelect }: {
 
   return (
     <div
-      className={`cursor-pointer group flex flex-col justify-center py-1 rounded-[5px] ${selected ? 'bg-primary/15' : 'hover:bg-sidebar-accent'}`}
+      className={`cursor-pointer group flex flex-col justify-center py-1 rounded-[5px] ${selected ? 'bg-card dark:bg-input/30' : 'hover:bg-sidebar-accent'}`}
     >
       <button
         type="button"
         onClick={() => onSelect(execution.id)}
         className={`cursor-pointer w-full flex items-center gap-2 px-2 h-6 text-left rounded-none border-x-0 border-y-0 ${
           selected
-            ? 'border-l border-l-2 border-primary text-primary'
+            ? 'border-l border-l-2 border-transparent text-foreground'
             : 'border-l border-l-2 border-transparent group-hover:border-foreground text-muted-foreground hover:text-foreground'
         }`}
       >
