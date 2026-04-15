@@ -12,8 +12,12 @@ interface GlassPanelProps {
 }
 
 export function GlassPanel({ children, className, variant = 'background', style }: GlassPanelProps) {
+  const shadow = variant === 'background' ? 'shadow-xl' : 'shadow-sm';
   return (
-    <div className={`glass-panel shadow-sm border border-[0.5px] glass-panel--${variant} ${className ?? ''}`} style={style}>
+    <div
+      className={`glass-panel ${shadow} border border-[0.5px] glass-panel--${variant} ${className ?? ''}`}
+      style={style}
+    >
       {children}
     </div>
   );
@@ -25,17 +29,16 @@ export function GlassFilters() {
       <filter id="glass-bg" x="0%" y="0%" width="100%" height="100%">
         <feTurbulence type="fractalNoise" baseFrequency="0.02 0.02" numOctaves="3" seed="92" result="noise" />
         <feGaussianBlur in="noise" stdDeviation="0.02" result="blur" />
-        <feDisplacementMap in="SourceGraphic" in2="blur" scale="20" xChannelSelector="R" yChannelSelector="G" />
+        <feDisplacementMap
+          in="SourceGraphic"
+          in2="blur"
+          scale="20"
+          xChannelSelector="R"
+          yChannelSelector="G"
+        />
       </filter>
       <filter id="glass-fg" primitiveUnits="objectBoundingBox">
-        <feImage
-          href={GLASS_FG_MAP}
-          x="0"
-          y="0"
-          width="1"
-          height="1"
-          result="map"
-        />
+        <feImage href={GLASS_FG_MAP} x="0" y="0" width="1" height="1" result="map" />
         <feGaussianBlur in="SourceGraphic" stdDeviation="0.02" result="blur" />
         <feDisplacementMap in="blur" in2="map" scale="1" xChannelSelector="R" yChannelSelector="G" />
       </filter>

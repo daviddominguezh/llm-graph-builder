@@ -278,54 +278,26 @@ export async function fetchChildMessages(
   return rows.map((row) => messageRowToMessage(row, provider));
 }
 
-/* ─── Resume messages: execution-scoped, flattened for workflow compatibility ─── */
+/* ─── Resume messages: execution-scoped with structured content pass-through ─── */
 
-function isStructuredContent(content: Record<string, unknown>): boolean {
+function isStructuredModelMsg(
+  content: Record<string, unknown>
+): content is Record<string, unknown> & Message['message'] {
   return (content.role === 'assistant' || content.role === 'tool') && Array.isArray(content.content);
 }
 
-interface ToolResultPart {
-  type: string;
-  output?: unknown;
-}
-
-function isToolResultPart(value: unknown): value is ToolResultPart {
-  return typeof value === 'object' && value !== null && 'type' in value && value.type === 'tool-result';
-}
-
-function extractOutputText(output: unknown): string {
-  if (typeof output === 'string') return output;
-  if (typeof output !== 'object' || output === null) return '';
-  const { value } = output as { value?: unknown };
-  return typeof value === 'string' ? value : JSON.stringify(output);
-}
-
-function extractToolResultValue(content: Record<string, unknown>): string {
-  const { content: parts } = content;
-  if (!Array.isArray(parts)) return '';
-  for (const part of parts) {
-    if (!isToolResultPart(part)) continue;
-    return extractOutputText(part.output);
-  }
-  return '';
-}
-
-function convertResumeRow(row: MessageRow, provider: MESSAGES_PROVIDER): Message[] {
-  if (!isStructuredContent(row.content)) return [messageRowToMessage(row, provider)];
-  if (row.content.role === 'assistant') return [];
-  if (row.content.role !== 'tool') return [messageRowToMessage(row, provider)];
-  const text = extractToolResultValue(row.content);
-  if (text === '') return [];
-  return [
-    {
+function rowToStructuredMessage(row: MessageRow, provider: MESSAGES_PROVIDER): Message {
+  if (isStructuredModelMsg(row.content)) {
+    return {
       provider,
       id: row.id,
       timestamp: new Date(row.created_at).getTime(),
       originalId: row.id,
       type: 'text',
-      message: { role: 'assistant', content: text },
-    },
-  ];
+      message: row.content,
+    };
+  }
+  return messageRowToMessage(row, provider);
 }
 
 export async function fetchResumeMessages(
@@ -335,7 +307,7 @@ export async function fetchResumeMessages(
 ): Promise<Message[]> {
   const rows = await getExecutionMessages(supabase, executionId);
   const provider = resolveChannelProvider(channel);
-  return rows.flatMap((row) => convertResumeRow(row, provider));
+  return rows.map((row) => rowToStructuredMessage(row, provider));
 }
 
 /* ─── Agent config from published version snapshot ─── */

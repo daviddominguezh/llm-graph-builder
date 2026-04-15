@@ -229,7 +229,7 @@ async function saveAssistantToolCallMsg(
 ): Promise<void> {
   const tc = output.toolCalls.find((t) => DISPATCH_TOOLS.has(t.toolName));
   if (tc === undefined) return;
-  const callId = tc.toolCallId === '' ? tc.toolName : tc.toolCallId;
+  const callId = findToolCallId(output);
   const toolInput: unknown = tc.input;
   await saveExecutionMessageRaw(supabase, {
     sessionId: fetched.sessionDbId,
