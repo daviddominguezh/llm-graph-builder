@@ -278,6 +278,38 @@ export async function fetchChildMessages(
   return rows.map((row) => messageRowToMessage(row, provider));
 }
 
+/* ─── Resume messages: execution-scoped with structured content support ─── */
+
+function isStructuredModelMsg(
+  content: Record<string, unknown>
+): content is Record<string, unknown> & Message['message'] {
+  return (content.role === 'assistant' || content.role === 'tool') && Array.isArray(content.content);
+}
+
+function rowToStructuredMessage(row: MessageRow, provider: MESSAGES_PROVIDER): Message {
+  if (isStructuredModelMsg(row.content)) {
+    return {
+      provider,
+      id: row.id,
+      timestamp: new Date(row.created_at).getTime(),
+      originalId: row.id,
+      type: 'text',
+      message: row.content,
+    };
+  }
+  return messageRowToMessage(row, provider);
+}
+
+export async function fetchResumeMessages(
+  supabase: SupabaseClient,
+  executionId: string,
+  channel: string
+): Promise<Message[]> {
+  const rows = await getExecutionMessages(supabase, executionId);
+  const provider = resolveChannelProvider(channel);
+  return rows.map((row) => rowToStructuredMessage(row, provider));
+}
+
 /* ─── Agent config from published version snapshot ─── */
 
 interface AgentGraphData {

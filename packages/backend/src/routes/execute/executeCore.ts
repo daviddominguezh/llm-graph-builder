@@ -14,7 +14,12 @@ import {
   persistMessagingPreExecution,
   resolveVfsCorePayload,
 } from './executeCoreHelpers.js';
-import { type FetchedData, type OverrideAgentConfig, fetchChildMessages } from './executeFetcher.js';
+import {
+  type FetchedData,
+  type OverrideAgentConfig,
+  fetchChildMessages,
+  fetchResumeMessages,
+} from './executeFetcher.js';
 import { buildUserMessage, extractTextFromInput, logExec } from './executeHelpers.js';
 import { persistPostExecution, persistPreExecution } from './executePersistence.js';
 import { getLastVisitedNode, mergeStructuredOutputs } from './executeResponseBuilders.js';
@@ -80,7 +85,8 @@ interface SetupResult {
 async function setupExecution(params: ExecuteCoreInput): Promise<SetupResult> {
   const { supabase, orgId, agentId, version, input } = params;
   const configModel = params.overrideAgentConfig?.modelId;
-  const model = (configModel !== undefined && configModel !== '') ? configModel : (input.model ?? DEFAULT_MODEL);
+  const model =
+    configModel !== undefined && configModel !== '' ? configModel : (input.model ?? DEFAULT_MODEL);
 
   const fetched = await fetchAllCoreData({
     supabase,
@@ -93,8 +99,10 @@ async function setupExecution(params: ExecuteCoreInput): Promise<SetupResult> {
   });
   logExec('core:fetched', { appType: fetched.appType, node: fetched.currentNodeId });
 
-  /* On continue, the parent's message history already contains the tool result — skip adding a user message */
+  /* On continue (parent resume after child finishes), load only the parent execution's own messages.
+     This prevents child multi-turn conversation from leaking into the parent's message array. */
   if (params.continueExecutionId !== undefined) {
+    fetched.messageHistory = await fetchResumeMessages(supabase, params.continueExecutionId, input.channel);
     return { fetched, executionId: params.continueExecutionId, conversationId: null, model };
   }
 
@@ -211,13 +219,36 @@ async function presetParentExecutionId(supabase: SupabaseClient, params: Execute
 
 /* ─── Inline dispatch: resolve child and execute recursively ─── */
 
+const DISPATCH_TOOLS = new Set(['invoke_agent', 'create_agent', 'invoke_workflow']);
+
+async function saveAssistantToolCallMsg(
+  supabase: SupabaseClient,
+  fetched: FetchedData,
+  executionId: string,
+  output: CallAgentOutput
+): Promise<void> {
+  const tc = output.toolCalls.find((t) => DISPATCH_TOOLS.has(t.toolName));
+  if (tc === undefined) return;
+  const callId = tc.toolCallId === '' ? tc.toolName : tc.toolCallId;
+  const toolInput: unknown = tc.input;
+  await saveExecutionMessageRaw(supabase, {
+    sessionId: fetched.sessionDbId,
+    executionId,
+    nodeId: getDispatchNode(output, fetched.currentNodeId),
+    role: 'assistant',
+    content: {
+      role: 'assistant',
+      content: [{ type: 'tool-call', toolCallId: callId, toolName: tc.toolName, input: toolInput }],
+    },
+  });
+}
+
 async function handleInlineDispatch(
   supabase: SupabaseClient,
   params: ExecuteCoreInput,
   parentExecutionId: string,
   fetched: FetchedData,
   output: CallAgentOutput,
-  _durationMs: number,
   startTime: number
 ): Promise<ExecuteCoreOutput> {
   const dispatch = output.dispatchResult!;
@@ -232,6 +263,9 @@ async function handleInlineDispatch(
     orgId: params.orgId,
   });
 
+  // Save the assistant's tool-call message (the invoke_agent/invoke_workflow call)
+  await saveAssistantToolCallMsg(supabase, fetched, parentExecutionId, output);
+
   // Write placeholder tool result (will be updated with real output when child finishes)
   const placeholderMsgId = await writePlaceholder(supabase, fetched.sessionDbId, parentExecutionId, output);
 
@@ -239,7 +273,16 @@ async function handleInlineDispatch(
   await suspendExecution(supabase, parentExecutionId);
 
   // Push stack entry for composition tracking
-  await pushStackForInlineDispatch(supabase, params, parentExecutionId, fetched, dispatch, childConfig, placeholderMsgId, output);
+  await pushStackForInlineDispatch(
+    supabase,
+    params,
+    parentExecutionId,
+    fetched,
+    dispatch,
+    childConfig,
+    placeholderMsgId,
+    output
+  );
 
   // Build child execution input
   const childInput: ExecuteCoreInput = {
@@ -253,9 +296,7 @@ async function handleInlineDispatch(
     },
     rootExecutionId: params.rootExecutionId ?? parentExecutionId,
     parentExecutionId,
-    overrideAgentConfig: extractChildConfig(
-      childConfigToRecord(childConfig)
-    ),
+    overrideAgentConfig: extractChildConfig(childConfigToRecord(childConfig)),
   };
 
   // Recursive call — if the child dispatches too, this recurses
@@ -273,7 +314,12 @@ async function suspendExecution(supabase: SupabaseClient, executionId: string): 
   if (error !== null) logExec('suspend error', { executionId, error: error.message });
 }
 
-function childConfigToRecord(config: { systemPrompt: string; context: string; modelId: string; maxSteps: number | null }): Record<string, unknown> {
+function childConfigToRecord(config: {
+  systemPrompt: string;
+  context: string;
+  modelId: string;
+  maxSteps: number | null;
+}): Record<string, unknown> {
   return {
     systemPrompt: config.systemPrompt,
     context: config.context,
@@ -284,7 +330,6 @@ function childConfigToRecord(config: { systemPrompt: string; context: string; mo
 }
 
 function findToolCallId(output: CallAgentOutput): string {
-  const DISPATCH_TOOLS = new Set(['invoke_agent', 'create_agent', 'invoke_workflow']);
   const match = output.toolCalls.find((tc) => DISPATCH_TOOLS.has(tc.toolName));
   return match?.toolCallId ?? match?.toolName ?? 'dispatch';
 }
@@ -342,12 +387,21 @@ async function pushStackForInlineDispatch(
     parentSessionState: {
       currentNodeId: fetched.currentNodeId,
       structuredOutputs: fetched.structuredOutputs,
-      // Pre-compute next node from parent's graph (not available later when child's graph is loaded)
-      nextNodeId: findNextNodeAfterDispatch(fetched.graph, fetched.currentNodeId) ?? fetched.currentNodeId,
+      // Use the LAST visited node (the actual dispatch node), not fetched.currentNodeId (session start)
+      nextNodeId:
+        findNextNodeAfterDispatch(fetched.graph, getDispatchNode(output, fetched.currentNodeId)) ??
+        fetched.currentNodeId,
       toolCallId: findToolCallId(output),
       toolName: dispatch.type,
     },
-    agentConfig: childConfigToRecord(childConfig as unknown as { systemPrompt: string; context: string; modelId: string; maxSteps: number | null }),
+    agentConfig: childConfigToRecord(
+      childConfig as unknown as {
+        systemPrompt: string;
+        context: string;
+        modelId: string;
+        maxSteps: number | null;
+      }
+    ),
     appType: dispatch.type === 'invoke_workflow' ? 'workflow' : 'agent',
     rootExecutionId: params.rootExecutionId ?? parentExecutionId,
   });
@@ -388,7 +442,7 @@ export async function executeAgentCore(
   if (output !== null) {
     if (output.dispatchResult !== undefined) {
       // Child dispatch detected — handle inline (recursive execution, no workers)
-      return await handleInlineDispatch(supabase, params, executionId, fetched, output, durationMs, startTime);
+      return await handleInlineDispatch(supabase, params, executionId, fetched, output, startTime);
     }
 
     await persistCoreResult(supabase, {
@@ -430,28 +484,37 @@ async function handleChildFinish(
   const toolCallId = typeof state['toolCallId'] === 'string' ? state['toolCallId'] : 'dispatch';
   const toolName = typeof state['toolName'] === 'string' ? state['toolName'] : 'invoke_agent';
   const nextNodeId = typeof state['nextNodeId'] === 'string' ? state['nextNodeId'] : '';
-  const structuredOutputs = typeof state['structuredOutputs'] === 'object' && state['structuredOutputs'] !== null
-    ? state['structuredOutputs'] as Record<string, unknown[]>
-    : {};
+  const structuredOutputs =
+    typeof state['structuredOutputs'] === 'object' && state['structuredOutputs'] !== null
+      ? (state['structuredOutputs'] as Record<string, unknown[]>)
+      : {};
 
   // Use the PARENT's session (from the stack entry, not the child's fetched data)
   const parentSessionId = stack.session_id;
 
   // Update placeholder tool result with the child's actual output
-  const { updateToolOutputMessage, updateSessionState } = await import('../../db/queries/executionQueries.js');
+  const { updateToolOutputMessage, updateSessionState } =
+    await import('../../db/queries/executionQueries.js');
   if (stack.parent_tool_output_message_id !== null) {
     await updateToolOutputMessage(supabase, stack.parent_tool_output_message_id, {
       role: 'tool',
-      content: [{
-        type: 'tool-result',
-        toolCallId,
-        toolName,
-        output: { type: 'text', value: finishOutput },
-      }],
+      content: [
+        {
+          type: 'tool-result',
+          toolCallId,
+          toolName,
+          output: { type: 'text', value: finishOutput },
+        },
+      ],
     });
   }
 
   // Advance parent session to the next node (pre-computed from parent's graph during dispatch)
+  logExec('handleChildFinish session update', {
+    parentSessionId,
+    nextNodeId,
+    parentExecId: stack.parent_execution_id,
+  });
   await updateSessionState(supabase, parentSessionId, {
     currentNodeId: nextNodeId,
     structuredOutputs,
@@ -477,7 +540,16 @@ async function handleChildFinish(
   return { ...parentResult, durationMs: totalDuration };
 }
 
-function findNextNodeAfterDispatch(graph: { edges: Array<{ from: string; to: string; preconditions?: Array<{ type: string }> }> }, sourceNode: string): string | undefined {
+function getDispatchNode(output: CallAgentOutput, fallback: string): string {
+  const visited = output.visitedNodes;
+  const LAST_OFFSET = 1;
+  return visited.length > 0 ? (visited[visited.length - LAST_OFFSET] ?? fallback) : fallback;
+}
+
+function findNextNodeAfterDispatch(
+  graph: { edges: Array<{ from: string; to: string; preconditions?: Array<{ type: string }> }> },
+  sourceNode: string
+): string | undefined {
   const edge = graph.edges.find(
     (e) => e.from === sourceNode && e.preconditions?.some((p) => p.type === 'tool_call')
   );
