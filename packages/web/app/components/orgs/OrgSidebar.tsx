@@ -239,13 +239,15 @@ function LogoutButton() {
   const handleLogout = useLogout();
 
   return (
-    <Button
-      variant="ghost"
-      className="aspect-square! w-full rounded-md! p-0 text-muted-foreground hover:text-destructive hover:bg-sidebar-accent!"
-      onClick={handleLogout}
-    >
-      <LogOut />
-    </Button>
+    <div className="flex flex-col justify-center items-center p-0 w-full aspect-square rounded-[5px] hover:bg-sidebar-accent">
+      <Button
+        variant="ghost"
+        className="w-full h-full p-0! border-0 rounded-none hover:bg-transparent! text-muted-foreground hover:text-destructive"
+        onClick={handleLogout}
+      >
+        <LogOut />
+      </Button>
+    </div>
   );
 }
 
