@@ -64,16 +64,23 @@ function NavItem({
   onClick?: (e: React.MouseEvent) => void;
 }) {
   return (
-    <div className={`cursor-pointer group flex flex-col justify-center py-1 rounded-[5px] ${active ? 'bg-primary/15 hover:bg-primary/15' : 'hover:bg-sidebar-accent'}`}>
+    <div
+      className={`cursor-pointer group flex flex-col justify-center items-center p-0 w-full aspect-square rounded-[5px] ${active ? 'bg-primary/15 hover:bg-primary/15' : 'hover:bg-sidebar-accent'}`}
+    >
       <Button
         variant="ghost"
-        size="sm"
-        className={`h-6 w-full justify-start px-2 border-x-0 border-y-0 rounded-none group-hover:bg-transparent! ${
+        className={`h-5 aspect-square w-full justify-start p-0! border-x-0 border-y-0 rounded-none group-hover:bg-transparent! ${
           active
             ? 'border-l border-l-2 border-transparent bg-transparent text-primary hover:text-primary'
             : 'border-l border-l-2 group-hover:border-transparent text-muted-foreground group-hover:text-foreground!'
         }`}
-        render={<Link href={href} onClick={onClick} />}
+        render={
+          <Link
+            className="border-none w-full h-full p-0 m-0 flex! items-center! justify-center!"
+            href={href}
+            onClick={onClick}
+          />
+        }
       >
         {icon}
       </Button>
@@ -179,7 +186,7 @@ function NavList({
         <NavItem
           key={item.labelKey}
           href={`${basePath}${item.path}`}
-          icon={<item.Icon className="size-4" />}
+          icon={<item.Icon />}
           active={segment === item.segment}
           onClick={onItemClick ? (e) => onItemClick(item, e) : undefined}
         />
@@ -228,19 +235,16 @@ function useLogout() {
   };
 }
 
-function LogoutButton({ collapsed }: { collapsed: boolean }) {
-  const t = useTranslations('common');
+function LogoutButton() {
   const handleLogout = useLogout();
 
   return (
     <Button
       variant="ghost"
-      size="sm"
-      className="h-8 w-full rounded-md! justify-start gap-2 px-2 text-muted-foreground hover:text-destructive hover:bg-sidebar-accent!"
+      className="aspect-square! w-full rounded-md! p-0 text-muted-foreground hover:text-destructive hover:bg-sidebar-accent!"
       onClick={handleLogout}
     >
-      <LogOut className="size-4 shrink-0" />
-      {!collapsed && <span className="whitespace-nowrap text-sm font-normal">{t('logout')}</span>}
+      <LogOut />
     </Button>
   );
 }
@@ -321,7 +325,7 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
 
   return (
     <aside
-      className={`shrink-0 flex flex-col gap-2 overflow-hidden p-2 pl-1.5 pr-0 pt-2.5 pb-2 transition-[width,background-color] duration-100 ${sidebar.collapsed ? 'w-[calc(52px-var(--spacing)*1.5)] bg-background' : 'w-58.5 bg-background'} ${sidebar.contentCollapsed ? 'border border-transparent' : 'shadow-lg border rounded-e-md z-12'}`}
+      className={`shrink-0 flex flex-col gap-2 overflow-hidden p-2 pl-1.5 pr-0 pt-2.5 pb-2 transition-[width,background-color] duration-100 ${sidebar.collapsed ? 'w-[calc(45px-var(--spacing)*1.5)] bg-background' : 'w-58.5 bg-background'} ${sidebar.contentCollapsed ? 'border border-transparent' : 'shadow-lg border rounded-e-md z-12'}`}
     >
       <OrgSwitcherPopover
         currentOrg={org}
@@ -347,7 +351,7 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
           <NavListExpanded items={BOTTOM_NAV_ITEMS} basePath={basePath} segment={segment} />
         )}
         <Separator />
-        <LogoutButton collapsed={sidebar.contentCollapsed} />
+        <LogoutButton />
       </div>
     </aside>
   );
