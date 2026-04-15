@@ -265,7 +265,7 @@ export function NodePanel({
                   const hasContext = contextPreconditions && contextPreconditions.preconditions.length > 0;
                   return (
                     <div key={edge.id}>
-                      <div className="w-full flex justify-between items-center text-xs gap-1 py-1">
+                      <div className="w-full flex justify-between items-start text-xs gap-1 py-1">
                         <div className="flex flex-1 min-w-[0px] flex-col">
                           <div className="flex items-center">
                             {getEdgeTypeIcon(edge)}
@@ -344,14 +344,14 @@ export function NodePanel({
                   const hasContext = contextPreconditions && contextPreconditions.preconditions.length > 0;
                   return (
                     <div key={edge.id}>
-                      <div className="w-full flex justify-between items-center text-xs gap-1 py-1">
+                      <div className="w-full flex justify-between items-start text-xs gap-1 py-1">
                         <div className="flex flex-1 flex-col min-w-[0px]">
                           <div className="flex items-center">
                             {getEdgeTypeIcon(edge)}
                             <span className="ml-0.5 text-[11px]">{edge.target}</span>
                           </div>
                           {(value || hasContext) && (
-                            <div className="flex w-full gap-3 mt-1 bg-card rounded-e-sm py-0">
+                            <div className="flex w-full gap-3 mt-1 bg-input dark:bg-input/30 rounded-e-sm py-0">
                               <div className="shrink-0 ml-0 w-[2px] bg-ring self-stretch"></div>
                               <div className="w-full text-[10px] text-muted-foreground py-1">
                                 {value && <div className="w-full">{value}</div>}
