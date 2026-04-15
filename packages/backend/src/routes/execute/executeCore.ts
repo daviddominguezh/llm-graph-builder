@@ -1,9 +1,11 @@
 import type { CallAgentOutput, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
 
+import { saveExecutionMessageRaw } from '../../db/queries/executionQueries.js';
+import { getOrCreateSession } from '../../db/queries/executionQueries.js';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
+import { getStackTop } from '../../db/queries/stackQueries.js';
 import type { NodeProcessedData } from './edgeFunctionClient.js';
 import { executeAgent } from './edgeFunctionClient.js';
-import { dispatchIfNeeded } from './executeCoreDispatch.js';
 import {
   type BuildCoreParamsOptions,
   buildCoreExecuteParams,
@@ -162,16 +164,15 @@ async function resolveChildOverride(
   logExec('routing to active child', { parentExecId });
 
   // Load ONLY messages from child executions (not the parent workflow's messages).
-  // The new user message was already appended to messageHistory by setupExecution — preserve it.
-  const newUserMessage = fetched.messageHistory[fetched.messageHistory.length - 1];
+  // The current user message is already persisted by setupExecution with parent_execution_id set,
+  // so the DB query will include it — no need to append manually.
   const stackExecId = fetched.stackTop.execution_id;
-  const childMessages = await fetchChildMessages(
+  fetched.messageHistory = await fetchChildMessages(
     params.supabase,
     parentExecId,
     params.input.channel,
     stackExecId
   );
-  fetched.messageHistory = newUserMessage !== undefined ? [...childMessages, newUserMessage] : childMessages;
 
   // Switch to agent mode and clear parent's agentConfig so the child override takes effect cleanly
   fetched.appType = 'agent';
@@ -182,6 +183,171 @@ async function resolveChildOverride(
   return extractChildConfig(fetched.stackTop.agent_config);
 }
 
+/* ─── Pre-check: set parentExecutionId before setupExecution ─── */
+
+async function presetParentExecutionId(supabase: SupabaseClient, params: ExecuteCoreInput): Promise<void> {
+  if (params.parentExecutionId !== undefined) return; // Already set (child worker or recursive)
+  if (params.continueExecutionId !== undefined) return; // Resume path
+
+  // Quick check: does this session have an active child on the stack?
+  const sessionResult = await getOrCreateSession(supabase, {
+    agentId: params.agentId,
+    orgId: params.orgId,
+    version: params.version,
+    tenantId: params.input.tenantId,
+    userId: params.input.userId,
+    sessionId: params.input.sessionId,
+    channel: params.input.channel,
+    model: '',
+  });
+  if (sessionResult.session === null) return;
+
+  const stackTop = await getStackTop(supabase, sessionResult.session.id);
+  if (stackTop === null) return;
+
+  // Active child exists — mark this execution as a child of the parent
+  params.parentExecutionId = stackTop.parent_execution_id ?? undefined;
+}
+
+/* ─── Inline dispatch: resolve child and execute recursively ─── */
+
+async function handleInlineDispatch(
+  supabase: SupabaseClient,
+  params: ExecuteCoreInput,
+  parentExecutionId: string,
+  fetched: FetchedData,
+  output: CallAgentOutput,
+  _durationMs: number,
+  startTime: number
+): Promise<ExecuteCoreOutput> {
+  const dispatch = output.dispatchResult!;
+  logExec('inline dispatch', { type: dispatch.type, parentExecId: parentExecutionId });
+
+  // Resolve child agent config (same as what the worker/simulation does)
+  const { resolveChildConfig } = await import('../simulateChildResolver.js');
+  const childConfig = await resolveChildConfig({
+    supabase,
+    dispatchType: dispatch.type as 'invoke_agent' | 'invoke_workflow' | 'create_agent',
+    params: dispatch.params,
+    orgId: params.orgId,
+  });
+
+  // Write placeholder tool result (will be updated with real output when child finishes)
+  const placeholderMsgId = await writePlaceholder(supabase, fetched.sessionDbId, parentExecutionId, output);
+
+  // Suspend the parent
+  await suspendExecution(supabase, parentExecutionId);
+
+  // Push stack entry for composition tracking
+  await pushStackForInlineDispatch(supabase, params, parentExecutionId, fetched, dispatch, childConfig, placeholderMsgId);
+
+  // Build child execution input
+  const childInput: ExecuteCoreInput = {
+    supabase,
+    orgId: params.orgId,
+    agentId: childConfig.agentId ?? params.agentId,
+    version: childConfig.version ?? params.version,
+    input: {
+      ...params.input,
+      message: { text: childConfig.task },
+    },
+    rootExecutionId: params.rootExecutionId ?? parentExecutionId,
+    parentExecutionId,
+    overrideAgentConfig: extractChildConfig(
+      childConfigToRecord(childConfig)
+    ),
+  };
+
+  // Recursive call — if the child dispatches too, this recurses
+  const childResult = await executeAgentCore(childInput);
+
+  const totalDuration = Date.now() - startTime;
+  return { ...childResult, durationMs: totalDuration, appType: fetched.appType };
+}
+
+async function suspendExecution(supabase: SupabaseClient, executionId: string): Promise<void> {
+  const { error } = await supabase
+    .from('agent_executions')
+    .update({ status: 'suspended' })
+    .eq('id', executionId);
+  if (error !== null) logExec('suspend error', { executionId, error: error.message });
+}
+
+function childConfigToRecord(config: { systemPrompt: string; context: string; modelId: string; maxSteps: number | null }): Record<string, unknown> {
+  return {
+    systemPrompt: config.systemPrompt,
+    context: config.context,
+    modelId: config.modelId,
+    maxSteps: config.maxSteps,
+    isChildAgent: true,
+  };
+}
+
+function findToolCallId(output: CallAgentOutput): string {
+  const DISPATCH_TOOLS = new Set(['invoke_agent', 'create_agent', 'invoke_workflow']);
+  const match = output.toolCalls.find((tc) => DISPATCH_TOOLS.has(tc.toolName));
+  return match?.toolCallId ?? match?.toolName ?? 'dispatch';
+}
+
+async function writePlaceholder(
+  supabase: SupabaseClient,
+  sessionId: string,
+  executionId: string,
+  output: CallAgentOutput
+): Promise<string> {
+  const toolCallId = findToolCallId(output);
+  const toolName = output.dispatchResult?.type ?? 'invoke_agent';
+  return await saveExecutionMessageRaw(supabase, {
+    sessionId,
+    executionId,
+    nodeId: 'child-dispatch',
+    role: 'tool',
+    content: {
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-result',
+          toolCallId,
+          toolName,
+          output: { type: 'text', value: '__CHILD_PENDING__' },
+        },
+      ],
+    },
+  });
+}
+
+async function pushStackForInlineDispatch(
+  supabase: SupabaseClient,
+  params: ExecuteCoreInput,
+  parentExecutionId: string,
+  fetched: FetchedData,
+  dispatch: { type: string; params: Record<string, unknown> },
+  childConfig: { task: string },
+  placeholderMsgId: string
+): Promise<void> {
+  const { getStackDepth, pushStackEntry } = await import('../../db/queries/stackQueries.js');
+  const depth = await getStackDepth(supabase, fetched.sessionDbId);
+  const MAX_DEPTH = 10;
+  const INCREMENT = 1;
+  if (depth + INCREMENT > MAX_DEPTH) {
+    throw new Error(`Max nesting depth (${String(MAX_DEPTH)}) exceeded`);
+  }
+  await pushStackEntry(supabase, {
+    sessionId: fetched.sessionDbId,
+    depth: depth + INCREMENT,
+    executionId: parentExecutionId,
+    parentExecutionId,
+    parentToolOutputMessageId: placeholderMsgId,
+    parentSessionState: {
+      currentNodeId: fetched.currentNodeId,
+      structuredOutputs: fetched.structuredOutputs,
+    },
+    agentConfig: childConfigToRecord(childConfig as unknown as { systemPrompt: string; context: string; modelId: string; maxSteps: number | null }),
+    appType: dispatch.type === 'invoke_workflow' ? 'workflow' : 'agent',
+    rootExecutionId: params.rootExecutionId ?? parentExecutionId,
+  });
+}
+
 /* ─── Core execution function ─── */
 
 export async function executeAgentCore(
@@ -189,6 +355,10 @@ export async function executeAgentCore(
   callbacks?: ExecuteCoreCallbacks
 ): Promise<ExecuteCoreOutput> {
   const { supabase, input } = params;
+
+  // Pre-check: if there's already an active child from a previous turn, set parentExecutionId
+  // BEFORE setupExecution so the new execution record gets parent_execution_id set correctly.
+  await presetParentExecutionId(supabase, params);
 
   const { fetched, executionId, conversationId, model } = await setupExecution(params);
 
@@ -211,23 +381,21 @@ export async function executeAgentCore(
   const durationMs = Date.now() - startTime;
 
   if (output !== null) {
-    // Dispatch BEFORE persisting — dispatchIfNeeded suspends the parent,
-    // and persistCoreResult completes it. Wrong order = completed before suspended.
-    await dispatchIfNeeded({ supabase, params, executionId, fetched, output });
-
-    // Skip completion persistence when dispatch happened — parent is now suspended
-    if (output.dispatchResult === undefined) {
-      await persistCoreResult(supabase, {
-        executionId,
-        fetched,
-        output,
-        nodeData,
-        durationMs,
-        model,
-        conversationId,
-        input,
-      });
+    if (output.dispatchResult !== undefined) {
+      // Child dispatch detected — handle inline (recursive execution, no workers)
+      return await handleInlineDispatch(supabase, params, executionId, fetched, output, durationMs, startTime);
     }
+
+    await persistCoreResult(supabase, {
+      executionId,
+      fetched,
+      output,
+      nodeData,
+      durationMs,
+      model,
+      conversationId,
+      input,
+    });
   }
 
   logExec('core:complete', { executionId, durationMs, hasOutput: output !== null });

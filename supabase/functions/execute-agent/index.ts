@@ -319,6 +319,7 @@ async function runAgentExecution(
       modelId: payload.modelId,
       maxSteps: payload.maxSteps ?? null,
       tools: injectSystemTools({ existingTools: allTools, isChildAgent: payload.isChildAgent ?? false }),
+      isChildAgent: payload.isChildAgent ?? false,
     },
     {
       onStepStarted: (step: number) => {
