@@ -239,7 +239,7 @@ async function handleInlineDispatch(
   await suspendExecution(supabase, parentExecutionId);
 
   // Push stack entry for composition tracking
-  await pushStackForInlineDispatch(supabase, params, parentExecutionId, fetched, dispatch, childConfig, placeholderMsgId);
+  await pushStackForInlineDispatch(supabase, params, parentExecutionId, fetched, dispatch, childConfig, placeholderMsgId, output);
 
   // Build child execution input
   const childInput: ExecuteCoreInput = {
@@ -323,7 +323,8 @@ async function pushStackForInlineDispatch(
   fetched: FetchedData,
   dispatch: { type: string; params: Record<string, unknown> },
   childConfig: { task: string },
-  placeholderMsgId: string
+  placeholderMsgId: string,
+  output: CallAgentOutput
 ): Promise<void> {
   const { getStackDepth, pushStackEntry } = await import('../../db/queries/stackQueries.js');
   const depth = await getStackDepth(supabase, fetched.sessionDbId);
@@ -341,6 +342,10 @@ async function pushStackForInlineDispatch(
     parentSessionState: {
       currentNodeId: fetched.currentNodeId,
       structuredOutputs: fetched.structuredOutputs,
+      // Pre-compute next node from parent's graph (not available later when child's graph is loaded)
+      nextNodeId: findNextNodeAfterDispatch(fetched.graph, fetched.currentNodeId) ?? fetched.currentNodeId,
+      toolCallId: findToolCallId(output),
+      toolName: dispatch.type,
     },
     agentConfig: childConfigToRecord(childConfig as unknown as { systemPrompt: string; context: string; modelId: string; maxSteps: number | null }),
     appType: dispatch.type === 'invoke_workflow' ? 'workflow' : 'agent',
@@ -396,10 +401,87 @@ export async function executeAgentCore(
       conversationId,
       input,
     });
+
+    // Child called finish — pop stack, resume parent workflow
+    if (output.finishResult !== undefined && fetched.stackTop !== null) {
+      return await handleChildFinish(supabase, params, fetched, output, startTime);
+    }
   }
 
   logExec('core:complete', { executionId, durationMs, hasOutput: output !== null });
   return { executionId, output, nodeData, durationMs, appType: fetched.appType };
+}
+
+/* ─── Handle child finish: pop stack, resume parent ─── */
+
+async function handleChildFinish(
+  supabase: SupabaseClient,
+  params: ExecuteCoreInput,
+  fetched: FetchedData,
+  output: CallAgentOutput,
+  startTime: number
+): Promise<ExecuteCoreOutput> {
+  const stack = fetched.stackTop!;
+  const finishOutput = output.finishResult!.output;
+  logExec('child finished, resuming parent', { parentExecId: stack.parent_execution_id });
+
+  // Read pre-computed values from the stack's parentSessionState
+  const state = stack.parent_session_state ?? {};
+  const toolCallId = typeof state['toolCallId'] === 'string' ? state['toolCallId'] : 'dispatch';
+  const toolName = typeof state['toolName'] === 'string' ? state['toolName'] : 'invoke_agent';
+  const nextNodeId = typeof state['nextNodeId'] === 'string' ? state['nextNodeId'] : '';
+  const structuredOutputs = typeof state['structuredOutputs'] === 'object' && state['structuredOutputs'] !== null
+    ? state['structuredOutputs'] as Record<string, unknown[]>
+    : {};
+
+  // Use the PARENT's session (from the stack entry, not the child's fetched data)
+  const parentSessionId = stack.session_id;
+
+  // Update placeholder tool result with the child's actual output
+  const { updateToolOutputMessage, updateSessionState } = await import('../../db/queries/executionQueries.js');
+  if (stack.parent_tool_output_message_id !== null) {
+    await updateToolOutputMessage(supabase, stack.parent_tool_output_message_id, {
+      role: 'tool',
+      content: [{
+        type: 'tool-result',
+        toolCallId,
+        toolName,
+        output: { type: 'text', value: finishOutput },
+      }],
+    });
+  }
+
+  // Advance parent session to the next node (pre-computed from parent's graph during dispatch)
+  await updateSessionState(supabase, parentSessionId, {
+    currentNodeId: nextNodeId,
+    structuredOutputs,
+  });
+
+  // Pop stack
+  const { popStackEntry } = await import('../../db/queries/stackQueries.js');
+  await popStackEntry(supabase, parentSessionId);
+
+  // Resume parent workflow
+  const parentExecId = stack.parent_execution_id ?? '';
+  const parentResult = await executeAgentCore({
+    supabase,
+    orgId: params.orgId,
+    agentId: params.agentId,
+    version: params.version,
+    input: { ...params.input, message: { text: '' } },
+    continueExecutionId: parentExecId,
+    rootExecutionId: params.rootExecutionId,
+  });
+
+  const totalDuration = Date.now() - startTime;
+  return { ...parentResult, durationMs: totalDuration };
+}
+
+function findNextNodeAfterDispatch(graph: { edges: Array<{ from: string; to: string; preconditions?: Array<{ type: string }> }> }, sourceNode: string): string | undefined {
+  const edge = graph.edges.find(
+    (e) => e.from === sourceNode && e.preconditions?.some((p) => p.type === 'tool_call')
+  );
+  return edge?.to;
 }
 
 /* ─── Post-execution persistence ─── */

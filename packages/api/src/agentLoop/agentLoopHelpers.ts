@@ -27,7 +27,7 @@ export function buildSystemMessage(config: AgentLoopConfig): ModelMessage {
   let combined = config.context === '' ? config.systemPrompt : `${config.systemPrompt}\n\n${config.context}`;
 
   if (config.isChildAgent === true) {
-    combined = `${CHILD_AGENT_INSTRUCTIONS}\n\n${combined}\n\n${CHILD_AGENT_INSTRUCTIONS}`;
+    combined = `${CHILD_AGENT_INSTRUCTIONS}\n\n${combined}`;
   }
 
   if (config.skills !== undefined && config.skills.length > ZERO) {
