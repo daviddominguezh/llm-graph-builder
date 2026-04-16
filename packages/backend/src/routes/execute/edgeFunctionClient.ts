@@ -38,6 +38,7 @@ export interface ExecuteAgentParams {
   context?: string;
   maxSteps?: number | null;
   isChildAgent?: boolean;
+  conversationId?: string;
 }
 
 export interface ExecuteAgentCallbacks {

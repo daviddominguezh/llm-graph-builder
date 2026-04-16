@@ -85,6 +85,7 @@ export async function resolveVfsCorePayload(
 export interface BuildCoreParamsOptions {
   vfsPayload: VfsEdgeFunctionPayload | undefined;
   overrideAgentConfig?: OverrideAgentConfig;
+  conversationId?: string;
 }
 
 function buildAgentExecuteParams(
@@ -121,6 +122,7 @@ export function buildCoreExecuteParams(
     userID: input.userId,
     isFirstMessage: fetched.isNew,
     vfs: options.vfsPayload,
+    conversationId: options.conversationId,
   };
 
   if (fetched.appType === 'agent') {

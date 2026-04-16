@@ -428,6 +428,7 @@ export async function executeAgentCore(
   const buildOptions: BuildCoreParamsOptions = {
     vfsPayload,
     overrideAgentConfig: childOverride ?? params.overrideAgentConfig,
+    conversationId: conversationId ?? undefined,
   };
   const edgeParams = buildCoreExecuteParams(fetched, input, model, buildOptions);
   const startTime = Date.now();
