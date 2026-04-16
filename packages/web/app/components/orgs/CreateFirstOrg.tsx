@@ -114,7 +114,7 @@ export function CreateFirstOrg() {
       <div className="flex flex-col items-center gap-3 mb-14">
         <WelcomeLogo />
         <WelcomeHeading />
-        <Card className="mt-3 welcome-stagger-3 w-full max-w-sm shadow-xl w-[400px]">
+        <Card className="mt-3 welcome-stagger-3 w-full max-w-sm shadow-xl w-[400px] bg-background border-[0.5px]! ring-0 outline-none">
           <CardContent>
             <WelcomeForm />
           </CardContent>
