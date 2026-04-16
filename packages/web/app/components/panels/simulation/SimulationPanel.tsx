@@ -15,6 +15,7 @@ import { GlassPanel } from '@/components/ui/glass-panel';
 import { Loader2, Trash2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import type { ConversationEntry, NodeResult, SimulationTokens } from '../../../types/simulation';
 import { NodeResultItem } from './NodeResultItem';
@@ -224,8 +225,10 @@ export function SimulationPanel(props: SimulationPanelProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onStop]);
 
-  return (
-    <div className="absolute inset-y-0 top-[calc(41px+var(--spacing)*1.5)] bottom-1.5 left-[calc(240px+var(--spacing)*1.5)] z-10 flex w-[350px] p-0">
+  // 
+
+  return createPortal(
+    <div className="fixed inset-y-0 top-[calc(41px+var(--spacing)*3)] bottom-[calc(var(--spacing)*7.5)] left-[calc(calc(240px+var(--spacing)*1)+44px)] z-200 flex w-[350px]">
       <GlassPanel variant="background" className="w-full h-full rounded-xl">
         <div className="relative flex h-full w-full flex-col">
           <SimulationHeader visitedNodes={visitedNodes} onStop={onStop} onClear={props.onClear} />
@@ -248,6 +251,7 @@ export function SimulationPanel(props: SimulationPanelProps) {
           />
         </div>
       </GlassPanel>
-    </div>
+    </div>,
+    document.body
   );
 }
