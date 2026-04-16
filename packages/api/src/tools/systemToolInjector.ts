@@ -9,12 +9,20 @@ import {
   invokeWorkflowTool,
 } from './dispatchTools.js';
 import { FINISH_TOOL_NAME, createFinishTool } from './finishTool.js';
+import {
+  GET_LEAD_SCORE_TOOL_NAME,
+  type LeadScoringServices,
+  SET_LEAD_SCORE_TOOL_NAME,
+  createLeadScoringTools,
+} from './leadScoringTools.js';
 
 const RESERVED_TOOL_NAMES = new Set([
   CREATE_AGENT_TOOL_NAME,
   INVOKE_AGENT_TOOL_NAME,
   INVOKE_WORKFLOW_TOOL_NAME,
   FINISH_TOOL_NAME,
+  SET_LEAD_SCORE_TOOL_NAME,
+  GET_LEAD_SCORE_TOOL_NAME,
 ]);
 
 /**
@@ -28,6 +36,8 @@ export function isReservedToolName(toolName: string): boolean {
 interface InjectSystemToolsParams {
   existingTools: Record<string, Tool>;
   isChildAgent: boolean;
+  leadScoringServices?: LeadScoringServices;
+  contextData?: Record<string, unknown>;
 }
 
 /**
@@ -61,6 +71,13 @@ export function injectSystemTools(params: InjectSystemToolsParams): Record<strin
   if (isChildAgent) {
     systemTools[FINISH_TOOL_NAME] = createFinishTool();
   }
+
+  // Add lead scoring tools (always available)
+  const leadScoringTools = createLeadScoringTools({
+    services: params.leadScoringServices,
+    contextData: params.contextData,
+  });
+  Object.assign(systemTools, leadScoringTools);
 
   return systemTools;
 }
