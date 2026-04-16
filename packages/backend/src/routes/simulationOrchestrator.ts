@@ -1,6 +1,7 @@
 import type { AgentLoopCallbacks, AgentLoopConfig, AgentLoopResult } from '@daviddh/llm-graph-runner';
 import { executeAgentLoop, injectSystemTools } from '@daviddh/llm-graph-runner';
 
+import { consoleLogger } from '../logger.js';
 import { closeMcpSession, createMcpSession } from '../mcp/lifecycle.js';
 import { resolveChildConfig } from './simulateChildResolver.js';
 import {
@@ -81,7 +82,7 @@ async function rerunParentWithToolResult(params: ContinueParentParams): Promise<
   const { config, callbacks } = params;
   const loopConfig = buildLoopConfig(config);
   const loopCallbacks = buildLoopCallbacks(config, callbacks);
-  const parentResult = await executeAgentLoop(loopConfig, loopCallbacks);
+  const parentResult = await executeAgentLoop(loopConfig, loopCallbacks, consoleLogger);
 
   if (parentResult.dispatchResult !== undefined) {
     return await handleDispatch(config, callbacks, parentResult);
@@ -264,7 +265,7 @@ export async function runSimulationOrchestration(
 ): Promise<OrchestratorResult> {
   const loopConfig = buildLoopConfig(config);
   const loopCallbacks = buildLoopCallbacks(config, callbacks);
-  const result = await executeAgentLoop(loopConfig, loopCallbacks);
+  const result = await executeAgentLoop(loopConfig, loopCallbacks, consoleLogger);
 
   if (result.dispatchResult !== undefined) {
     return await handleDispatch(config, callbacks, result);
