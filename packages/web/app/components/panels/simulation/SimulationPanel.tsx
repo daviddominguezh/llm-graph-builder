@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { GlassPanel } from '@/components/ui/glass-panel';
 import { Loader2, Trash2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -224,27 +225,29 @@ export function SimulationPanel(props: SimulationPanelProps) {
   }, [onStop]);
 
   return (
-    <div className="absolute inset-y-0 left-0 z-10 flex w-[350px] p-0">
-      <div className="relative flex h-full w-full flex-col rounded-e-md border-r bg-background">
-        <SimulationHeader visitedNodes={visitedNodes} onStop={onStop} onClear={props.onClear} />
-        <ContentArea conversationEntries={props.conversationEntries} scrollRef={scrollRef} />
-        <SimulationFooter
-          totalTokens={totalTokens}
-          turnCount={props.turnCount}
-          isAgent={props.isAgent}
-          loading={loading}
-          currentNode={currentNode}
-        />
-        <SimulationInput
-          loading={loading}
-          terminated={terminated}
-          terminatedLabel={t('terminated')}
-          terminatedDescription={t('terminatedDescription')}
-          modelId={modelId}
-          onModelIdChange={onModelIdChange}
-          onSendMessage={onSendMessage}
-        />
-      </div>
+    <div className="absolute inset-y-0 top-[calc(41px+var(--spacing)*1.5)] bottom-1.5 left-[calc(240px+var(--spacing)*1.5)] z-10 flex w-[350px] p-0">
+      <GlassPanel variant="background" className="w-full h-full rounded-xl">
+        <div className="relative flex h-full w-full flex-col">
+          <SimulationHeader visitedNodes={visitedNodes} onStop={onStop} onClear={props.onClear} />
+          <ContentArea conversationEntries={props.conversationEntries} scrollRef={scrollRef} />
+          <SimulationFooter
+            totalTokens={totalTokens}
+            turnCount={props.turnCount}
+            isAgent={props.isAgent}
+            loading={loading}
+            currentNode={currentNode}
+          />
+          <SimulationInput
+            loading={loading}
+            terminated={terminated}
+            terminatedLabel={t('terminated')}
+            terminatedDescription={t('terminatedDescription')}
+            modelId={modelId}
+            onModelIdChange={onModelIdChange}
+            onSendMessage={onSendMessage}
+          />
+        </div>
+      </GlassPanel>
     </div>
   );
 }
