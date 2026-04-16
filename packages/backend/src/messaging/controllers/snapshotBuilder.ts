@@ -66,6 +66,7 @@ function conversationToSnapshot(
     agentSlug: agentSlug ?? '',
     assignees: buildAssigneeMap(assignees),
     statuses: buildStatusMap(statuses),
+    metadata: row.metadata ?? null,
   };
 }
 
