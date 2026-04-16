@@ -17,6 +17,9 @@ export interface ToolGroup {
 const SYSTEM_SERVER_ID = '__system__';
 const SYSTEM_SERVER_NAME = 'OpenFlow/Composition';
 
+const LEAD_SCORING_SERVER_ID = '__lead_scoring__';
+const LEAD_SCORING_SERVER_NAME = 'OpenFlow/LeadScoring';
+
 const SYSTEM_TOOLS: RegistryTool[] = [
   {
     sourceId: SYSTEM_SERVER_ID,
@@ -74,6 +77,38 @@ const SYSTEM_TOOLS: RegistryTool[] = [
   },
 ];
 
+const LEAD_SCORING_TOOLS: RegistryTool[] = [
+  {
+    sourceId: LEAD_SCORING_SERVER_ID,
+    group: LEAD_SCORING_SERVER_NAME,
+    name: 'set_lead_score',
+    description: 'Set the lead score for the current conversation. Score must be 0-100.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        score: {
+          type: 'number',
+          description: 'Lead score from 0 to 100',
+          minimum: 0,
+          maximum: 100,
+        },
+      },
+      required: ['score'],
+    },
+  },
+  {
+    sourceId: LEAD_SCORING_SERVER_ID,
+    group: LEAD_SCORING_SERVER_NAME,
+    name: 'get_lead_score',
+    description:
+      'Get the current lead score for this conversation. Returns the score (0-100) or null.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+];
+
 function buildMcpTools(
   servers: McpServerConfig[],
   discovered: Record<string, DiscoveredTool[]>
@@ -105,8 +140,9 @@ function buildGroups(tools: RegistryTool[]): ToolGroup[] {
     groupTools.sort((a, b) => a.name.localeCompare(b.name));
     groups.push({ groupName, tools: groupTools });
   }
-  const system = groups.filter((g) => g.groupName === SYSTEM_SERVER_NAME);
-  const rest = groups.filter((g) => g.groupName !== SYSTEM_SERVER_NAME);
+  const systemGroupNames = new Set([SYSTEM_SERVER_NAME, LEAD_SCORING_SERVER_NAME]);
+  const system = groups.filter((g) => systemGroupNames.has(g.groupName));
+  const rest = groups.filter((g) => !systemGroupNames.has(g.groupName));
   rest.sort((a, b) => a.groupName.localeCompare(b.groupName));
   return [...rest, ...system];
 }
@@ -116,6 +152,6 @@ export function buildToolRegistry(
   discovered: Record<string, DiscoveredTool[]>
 ): { tools: RegistryTool[]; groups: ToolGroup[] } {
   const mcpTools = buildMcpTools(servers, discovered);
-  const allTools = [...mcpTools, ...SYSTEM_TOOLS];
+  const allTools = [...mcpTools, ...LEAD_SCORING_TOOLS, ...SYSTEM_TOOLS];
   return { tools: allTools, groups: buildGroups(allTools) };
 }
