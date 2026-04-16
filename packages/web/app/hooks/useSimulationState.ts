@@ -139,8 +139,26 @@ function useSessionState(): { values: SessionState; dispatchers: SessionDispatch
   const [turnCount, setTurnCount] = useState(INITIAL_TOKEN_COUNT);
   const [simulationLeadScore, setSimulationLeadScore] = useState<number | null>(null);
   return {
-    values: { active, loading, currentNode, messages, lastUserText, visitedNodes, turnCount, simulationLeadScore },
-    dispatchers: { setActive, setLoading, setCurrentNode, setMessages, setLastUserText, setVisitedNodes, setTurnCount, setSimulationLeadScore },
+    values: {
+      active,
+      loading,
+      currentNode,
+      messages,
+      lastUserText,
+      visitedNodes,
+      turnCount,
+      simulationLeadScore,
+    },
+    dispatchers: {
+      setActive,
+      setLoading,
+      setCurrentNode,
+      setMessages,
+      setLastUserText,
+      setVisitedNodes,
+      setTurnCount,
+      setSimulationLeadScore,
+    },
   };
 }
 

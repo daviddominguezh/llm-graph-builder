@@ -180,10 +180,7 @@ export async function updateConversationMetadata(
   const existing = await getConversationMetadata(supabase, conversationId);
   const merged = { ...existing, ...metadata };
 
-  const result = await supabase
-    .from('conversations')
-    .update({ metadata: merged })
-    .eq('id', conversationId);
+  const result = await supabase.from('conversations').update({ metadata: merged }).eq('id', conversationId);
 
   if (result.error !== null) {
     throw new Error(`updateConversationMetadata: ${result.error.message}`);

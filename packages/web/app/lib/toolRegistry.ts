@@ -100,8 +100,7 @@ const LEAD_SCORING_TOOLS: RegistryTool[] = [
     sourceId: LEAD_SCORING_SERVER_ID,
     group: LEAD_SCORING_SERVER_NAME,
     name: 'get_lead_score',
-    description:
-      'Get the current lead score for this conversation. Returns the score (0-100) or null.',
+    description: 'Get the current lead score for this conversation. Returns the score (0-100) or null.',
     inputSchema: {
       type: 'object',
       properties: {},
