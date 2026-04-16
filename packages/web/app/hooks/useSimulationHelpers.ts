@@ -31,6 +31,7 @@ export interface SimulationSetters {
   setTurnCount: React.Dispatch<React.SetStateAction<number>>;
   saveSnapshot: (s: GraphSnapshot | null) => void;
   getSnapshot: () => GraphSnapshot | null;
+  setSimulationLeadScore?: (score: number | null) => void;
 }
 
 export type FullSetters = SimulationSetters & { setActive: React.Dispatch<React.SetStateAction<boolean>> };
@@ -66,6 +67,7 @@ export interface SendMessageDeps {
   orgId?: string;
   appType?: 'workflow' | 'agent';
   agentConfig?: AgentSimConfig;
+  simulationLeadScore?: number | null;
 }
 
 export interface BuildSimulateParamsOptions extends Pick<
@@ -80,6 +82,7 @@ export interface BuildSimulateParamsOptions extends Pick<
   modelId: string;
   structuredOutputs?: Record<string, unknown[]>;
   orgId?: string;
+  simulationLeadScore?: number | null;
 }
 
 function addCost(a: number | undefined, b: number | undefined): number | undefined {
@@ -108,6 +111,11 @@ function mergeStructuredOutput(
   return { ...prev, [nodeId]: [...existing, data] };
 }
 
+function isSetLeadScoreInput(input: unknown): input is { score: number } {
+  if (typeof input !== 'object' || input === null) return false;
+  return 'score' in input && typeof (input as Record<string, unknown>).score === 'number';
+}
+
 function handleNodeProcessedEvent(setters: SimulationSetters, event: NodeProcessedEvent): void {
   const result: NodeResult = {
     nodeId: event.nodeId,
@@ -125,6 +133,12 @@ function handleNodeProcessedEvent(setters: SimulationSetters, event: NodeProcess
   const { structuredOutput } = event;
   if (structuredOutput !== undefined) {
     setters.setStructuredOutputs((prev) => mergeStructuredOutput(prev, structuredOutput));
+  }
+  // Capture lead score from set_lead_score tool calls for simulation persistence
+  for (const tc of event.toolCalls) {
+    if (tc.toolName === 'set_lead_score' && isSetLeadScoreInput(tc.input)) {
+      setters.setSimulationLeadScore?.(tc.input.score);
+    }
   }
 }
 
@@ -182,6 +196,10 @@ export function buildSimulateParams(opts: BuildSimulateParamsOptions): SimulateR
   };
   const fullContext = buildContext(opts.preset, '');
   const { sessionID, tenantID, userID, data, quickReplies } = fullContext;
+  const enrichedData =
+    opts.simulationLeadScore !== undefined && opts.simulationLeadScore !== null
+      ? { ...data, lead_score: opts.simulationLeadScore }
+      : data;
   return {
     graph,
     messages: opts.allMessages,
@@ -191,7 +209,7 @@ export function buildSimulateParams(opts: BuildSimulateParamsOptions): SimulateR
     sessionID,
     tenantID,
     userID,
-    data,
+    data: enrichedData,
     quickReplies,
     structuredOutputs: opts.structuredOutputs,
     orgId: opts.orgId,
