@@ -22,6 +22,7 @@ export interface ConversationRow {
   name: string | null;
   unanswered_count: number;
   last_original_id: string | null;
+  metadata: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }
@@ -149,6 +150,7 @@ export interface ConversationSnapshot {
   agentSlug: string;
   assignees: Record<string, AssigneeEntry>;
   statuses: Record<string, StatusEntry>;
+  metadata: Record<string, unknown> | null;
 }
 
 export interface PaginationCursor {
