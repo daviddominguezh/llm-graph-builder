@@ -12,6 +12,20 @@ import Image from 'next/image';
 import React, { useMemo } from 'react';
 import Avatar from 'react-nice-avatar';
 
+const HOT_THRESHOLD = 70;
+const WARM_THRESHOLD = 40;
+
+function getLeadScoreBadge(
+  metadata: Record<string, unknown> | null | undefined
+): { score: number; color: string } | null {
+  if (metadata === null || metadata === undefined) return null;
+  const score = metadata['lead_score'];
+  if (typeof score !== 'number') return null;
+  if (score >= HOT_THRESHOLD) return { score, color: 'bg-green-500' };
+  if (score >= WARM_THRESHOLD) return { score, color: 'bg-yellow-500' };
+  return { score, color: 'bg-gray-400' };
+}
+
 interface MessagePreviewProps {
   lastMessage?: LastMessage;
   phone: string;
@@ -112,6 +126,11 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
 
     return latestStatus.status;
   }, [lastMessage?.statuses]);
+
+  const leadScoreBadge = useMemo(
+    () => getLeadScoreBadge(lastMessage?.metadata),
+    [lastMessage?.metadata]
+  );
 
   const toFirstUppercase = (name: string) => {
     if (name === undefined || name === null) return '';
@@ -266,6 +285,15 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
               {!lastMessage?.enabled && hasUnansweredMessages && (
                 <Badge className="h-4 min-w-4 rounded-full px-1 font-mono font-medium tabular-nums text-[10px] bg-red-500">
                   !
+                </Badge>
+              )}
+              {/* Lead score badge */}
+              {leadScoreBadge !== null && (
+                <Badge
+                  className={`h-4 min-w-4 rounded-full px-1 font-mono font-medium tabular-nums text-[10px] ${leadScoreBadge.color}`}
+                  title={`${t('Lead score')}: ${String(leadScoreBadge.score)}`}
+                >
+                  {leadScoreBadge.score}
                 </Badge>
               )}
             </div>

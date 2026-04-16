@@ -66,6 +66,7 @@ export interface LastMessage extends Message {
   channel?: string;
   agentId?: string;
   agentSlug?: string;
+  metadata?: Record<string, unknown> | null;
 }
 
 export type LastMessages = Record<string, LastMessage>;
