@@ -169,3 +169,39 @@ export async function getDeletedConversations(
 
   return (result.data ?? []).map((r) => r.conversation_id);
 }
+
+/* ─── Update conversation metadata (JSONB merge) ─── */
+
+export async function updateConversationMetadata(
+  supabase: SupabaseClient,
+  conversationId: string,
+  metadata: Record<string, unknown>
+): Promise<void> {
+  const existing = await getConversationMetadata(supabase, conversationId);
+  const merged = { ...existing, ...metadata };
+
+  const result = await supabase
+    .from('conversations')
+    .update({ metadata: merged })
+    .eq('id', conversationId);
+
+  if (result.error !== null) {
+    throw new Error(`updateConversationMetadata: ${result.error.message}`);
+  }
+}
+
+/* ─── Get conversation metadata ─── */
+
+export async function getConversationMetadata(
+  supabase: SupabaseClient,
+  conversationId: string
+): Promise<Record<string, unknown> | null> {
+  const result: QueryResult<{ metadata: Record<string, unknown> | null }> = await supabase
+    .from('conversations')
+    .select('metadata')
+    .eq('id', conversationId)
+    .single();
+
+  if (result.error !== null || result.data === null) return null;
+  return result.data.metadata;
+}
