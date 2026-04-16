@@ -22,7 +22,7 @@ export function ChatsClient({ tenants, defaultTenantId }: ChatsClientProps): Rea
   }, []);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden border mr-1.5 rounded-xl">
+    <div className="flex h-[calc(100%-var(--spacing)*1.5)] flex-col overflow-hidden border mr-1.5 rounded-xl">
       <div className="min-h-0 flex-1">
         <MessagesDashboard
           onChangeSidebar={handleSidebarChange}

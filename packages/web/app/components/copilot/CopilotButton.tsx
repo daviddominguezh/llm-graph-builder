@@ -2,26 +2,15 @@
 
 import { Button } from '@/components/ui/button';
 import { ContentBeam } from '@/components/ui/content-beam';
-import { GlassPanel } from '@/components/ui/glass-panel';
 import { WandSparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { usePathname } from 'next/navigation';
 
 import { useCopilotContext } from './CopilotProvider';
 
-function isAgentsTab(pathname: string): boolean {
-  const match = pathname.match(/^\/orgs\/[^/]+(?:\/(.*))?$/);
-  const rest = match?.[1] ?? '';
-  const segment = rest.split('/')[0] ?? '';
-  return segment === '' || segment === 'editor';
-}
-
 export function CopilotButton() {
   const { isOpen, setOpen } = useCopilotContext();
-  const pathname = usePathname();
-  const t = useTranslations('copilot');
 
-  if (!isAgentsTab(pathname)) return null;
+  const t = useTranslations('copilot');
 
   return (
     <div className="relative flex w-full shrink-0 h-6 border-t border-[0.5px]">
