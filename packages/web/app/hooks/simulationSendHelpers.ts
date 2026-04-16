@@ -162,7 +162,7 @@ export function sendAgentSim(
   if (!skipUserMessage) store.dispatch({ type: 'USER_MESSAGE', text });
   resetBeforeSendAgent(setters, text);
   const snap = store.getSnapshot();
-  const allMessages = getActiveMessages(snap.stack, [...deps.messages]);
+  const allMessages = getActiveMessages(snap.stack, snap.rootMessages);
   const params = buildAgentParams(deps, store, allMessages);
   if (params === undefined) return;
   console.log('[sendAgentSim] messages:', JSON.stringify(params.messages, null, 2));
