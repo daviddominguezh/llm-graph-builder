@@ -52,6 +52,7 @@ interface ExecutePayload {
   context?: string;
   maxSteps?: number | null;
   isChildAgent?: boolean;
+  conversationId?: string;
 }
 
 const SSE_HEADERS = {
@@ -141,6 +142,65 @@ async function validateAndConnectMcpServers(servers: McpServerConfig[]): Promise
 
 async function closeMcpClients(clients: McpClient[]): Promise<void> {
   await Promise.all(clients.map((c) => c.close().catch(() => {})));
+}
+
+/* ─── Lead scoring services (production only) ─── */
+
+interface LeadScoringServices {
+  setLeadScore: (score: number) => Promise<void>;
+  getLeadScore: () => Promise<number | null>;
+}
+
+async function buildSupabaseForLeadScoring() {
+  const { createClient } = await import('@supabase/supabase-js');
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  return createClient(supabaseUrl, serviceKey);
+}
+
+async function setLeadScoreOnConversation(
+  supabase: Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>,
+  conversationId: string,
+  score: number
+): Promise<void> {
+  const { data: existing } = await supabase
+    .from('conversations')
+    .select('metadata')
+    .eq('id', conversationId)
+    .single();
+  const currentMetadata =
+    existing !== null && typeof existing.metadata === 'object' && existing.metadata !== null
+      ? (existing.metadata as Record<string, unknown>)
+      : {};
+  const merged = { ...currentMetadata, lead_score: score };
+  const { error } = await supabase.from('conversations').update({ metadata: merged }).eq('id', conversationId);
+  if (error !== null) {
+    log.error(`set_lead_score failed: ${error.message}`);
+  }
+}
+
+async function getLeadScoreFromConversation(
+  supabase: Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>,
+  conversationId: string
+): Promise<number | null> {
+  const { data } = await supabase
+    .from('conversations')
+    .select('metadata')
+    .eq('id', conversationId)
+    .single();
+  if (data === null || data.metadata === null || typeof data.metadata !== 'object') {
+    return null;
+  }
+  const meta = data.metadata as Record<string, unknown>;
+  return typeof meta['lead_score'] === 'number' ? meta['lead_score'] : null;
+}
+
+async function buildLeadScoringServices(conversationId: string): Promise<LeadScoringServices> {
+  const supabase = await buildSupabaseForLeadScoring();
+  return {
+    setLeadScore: (score: number) => setLeadScoreOnConversation(supabase, conversationId, score),
+    getLeadScore: () => getLeadScoreFromConversation(supabase, conversationId),
+  };
 }
 
 /* ─── Context builder ─── */
@@ -306,7 +366,8 @@ type WriteEvent = (event: Record<string, unknown>) => void;
 async function runAgentExecution(
   payload: ExecutePayload,
   allTools: Record<string, Tool>,
-  write: WriteEvent
+  write: WriteEvent,
+  leadScoringServices?: LeadScoringServices
 ): Promise<void> {
   log.info(`agent start model=${payload.modelId} msgs=${payload.messages.length} tools=${Object.keys(allTools).length} prompt=${(payload.systemPrompt ?? '').slice(0, 80)}`);
 
@@ -318,7 +379,12 @@ async function runAgentExecution(
       apiKey: payload.apiKey,
       modelId: payload.modelId,
       maxSteps: payload.maxSteps ?? null,
-      tools: injectSystemTools({ existingTools: allTools, isChildAgent: payload.isChildAgent ?? false }),
+      tools: injectSystemTools({
+        existingTools: allTools,
+        isChildAgent: payload.isChildAgent ?? false,
+        leadScoringServices,
+        contextData: payload.data,
+      }),
       isChildAgent: payload.isChildAgent ?? false,
     },
     {
@@ -363,7 +429,8 @@ async function runAgentExecution(
 async function runWorkflowExecution(
   payload: ExecutePayload,
   allTools: Record<string, Tool>,
-  write: WriteEvent
+  write: WriteEvent,
+  leadScoringServices?: LeadScoringServices
 ): Promise<void> {
   const context = buildContext(payload);
 
@@ -372,7 +439,12 @@ async function runWorkflowExecution(
     logger: runnerLogger,
     messages: payload.messages,
     currentNode: payload.currentNodeId,
-    toolsOverride: injectSystemTools({ existingTools: allTools, isChildAgent: false }),
+    toolsOverride: injectSystemTools({
+      existingTools: allTools,
+      isChildAgent: false,
+      leadScoringServices,
+      contextData: payload.data,
+    }),
     structuredOutputs: payload.structuredOutputs,
     onNodeVisited: (nodeId: string) => {
       write({ type: 'node_visited', nodeId });
@@ -462,10 +534,16 @@ Deno.serve(async (req: Request) => {
           }
         }
 
+        // Build lead scoring services when we have a real conversation
+        const leadScoringServices =
+          payload.conversationId !== undefined
+            ? await buildLeadScoringServices(payload.conversationId)
+            : undefined;
+
         if (isAgent) {
-          await runAgentExecution(payload, allTools, write);
+          await runAgentExecution(payload, allTools, write, leadScoringServices);
         } else {
-          await runWorkflowExecution(payload, allTools, write);
+          await runWorkflowExecution(payload, allTools, write, leadScoringServices);
         }
 
         write({ type: 'execution_complete' });
