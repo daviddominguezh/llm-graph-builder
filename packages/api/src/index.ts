@@ -11,6 +11,8 @@ import { Pipeline } from './utils/pipeline.js';
 export { buildNextAgentConfig } from './stateMachine/index.js';
 export { createDummyToolsForGraph } from './tools/dummyTools.js';
 export { injectSystemTools } from './tools/systemToolInjector.js';
+export type { LeadScoringServices } from './tools/leadScoringTools.js';
+export { SET_LEAD_SCORE_TOOL_NAME, GET_LEAD_SCORE_TOOL_NAME } from './tools/leadScoringTools.js';
 export type { DispatchSentinel, FinishSentinel } from './types/sentinels.js';
 export { isDispatchSentinel, isFinishSentinel } from './types/sentinels.js';
 export { unwrapToolOutput } from './core/sentinelDetector.js';
