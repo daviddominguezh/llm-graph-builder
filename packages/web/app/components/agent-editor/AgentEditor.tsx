@@ -73,8 +73,8 @@ export function AgentEditor({
   console.log(insets);
 
   return (
-    <div className="absolute pepeg" style={insets}>
-      <div className="flex h-full w-full bg-background px-1.5 pb-1.5" onClick={onBackgroundClick}>
+    <div className="absolute pepeg" style={insets} onClick={onBackgroundClick}>
+      <div className="flex h-full w-full bg-background px-1.5 pb-1.5">
         <div
           className="w-full h-full flex animate-in fade-in duration-300 gap-1 px-1"
           onClick={(e) => e.stopPropagation()}
