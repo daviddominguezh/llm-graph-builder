@@ -17,6 +17,7 @@ interface AgentEditorProps {
   config: AgentConfigData;
   pushOperation: (op: Operation) => void;
   onBackgroundClick?: () => void;
+  insets: { top: number; left: number; right: number; bottom: number };
   onConfigChange?: (config: AgentConfigData) => void;
   agentId?: string;
   orgId?: string;
@@ -27,12 +28,34 @@ function useAgentEditorState(config: AgentConfigData) {
   const [maxSteps, setMaxSteps] = useState<number | null>(config.maxSteps);
   const [contextItems, setContextItems] = useState(config.contextItems);
   const [skills, setSkills] = useState<SkillEntry[]>(
-    config.skills.map((s) => ({ name: s.name, description: s.description, content: s.content, repoUrl: s.repoUrl }))
+    config.skills.map((s) => ({
+      name: s.name,
+      description: s.description,
+      content: s.content,
+      repoUrl: s.repoUrl,
+    }))
   );
-  return { systemPrompt, setSystemPrompt, maxSteps, setMaxSteps, contextItems, setContextItems, skills, setSkills };
+  return {
+    systemPrompt,
+    setSystemPrompt,
+    maxSteps,
+    setMaxSteps,
+    contextItems,
+    setContextItems,
+    skills,
+    setSkills,
+  };
 }
 
-export function AgentEditor({ config, pushOperation, onBackgroundClick, onConfigChange, agentId, orgId }: AgentEditorProps) {
+export function AgentEditor({
+  config,
+  pushOperation,
+  onBackgroundClick,
+  onConfigChange,
+  agentId,
+  orgId,
+  insets,
+}: AgentEditorProps) {
   const state = useAgentEditorState(config);
   const actions = useAgentEditorActions(state, pushOperation);
   const skillActions = useSkillActions(state.setSkills, pushOperation);
@@ -46,29 +69,37 @@ export function AgentEditor({ config, pushOperation, onBackgroundClick, onConfig
     });
   }, [state.systemPrompt, state.maxSteps, state.contextItems, state.skills, onConfigChange]);
 
+  // packages/web/app/components/agent-editor/AgentEditor.tsx
+  console.log(insets);
+
   return (
-    <div className="flex h-full w-full pt-12.5 bg-muted" onClick={onBackgroundClick}>
-      <div className="w-full h-full flex animate-in fade-in duration-300 gap-1 px-1" onClick={(e) => e.stopPropagation()}>
-        <div className="flex min-w-0 flex-1 shrink-0 flex-col p-4 bg-popover rounded-md mt-2 mb-0 border">
-          <SystemPromptField value={state.systemPrompt} onChange={actions.handleSystemPromptChange} />
-        </div>
-        <div className="flex min-w-0 flex-1 shrink-0 flex-col gap-6 overflow-y-auto bg-popover rounded-md p-4 pt-3.5 mt-2 pb-12 border">
-          <SkillsList
-            skills={state.skills}
-            onAdd={skillActions.handleAddSkills}
-            onDelete={skillActions.handleDeleteSkill}
-            onDeleteMany={skillActions.handleDeleteManySkills}
-          />
-          <ContextItemsList
-            items={state.contextItems}
-            onInsert={actions.handleInsertItem}
-            onUpdate={actions.handleUpdateItem}
-            onDelete={actions.handleDeleteItem}
-          />
-          <MaxStepsField value={state.maxSteps} onChange={actions.handleMaxStepsChange} />
-          {agentId !== undefined && orgId !== undefined && (
-            <VfsConfigSection agentId={agentId} orgId={orgId} />
-          )}
+    <div className="absolute pepeg" style={insets}>
+      <div className="flex h-full w-full bg-background px-1.5 pb-1.5" onClick={onBackgroundClick}>
+        <div
+          className="w-full h-full flex animate-in fade-in duration-300 gap-1 px-1"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex min-w-0 flex-1 shrink-0 flex-col p-4 bg-popover rounded-md mt-2 mb-0 border">
+            <SystemPromptField value={state.systemPrompt} onChange={actions.handleSystemPromptChange} />
+          </div>
+          <div className="flex min-w-0 flex-1 shrink-0 flex-col gap-6 overflow-y-auto bg-popover rounded-md p-4 pt-3.5 mt-2 pb-12 border">
+            <SkillsList
+              skills={state.skills}
+              onAdd={skillActions.handleAddSkills}
+              onDelete={skillActions.handleDeleteSkill}
+              onDeleteMany={skillActions.handleDeleteManySkills}
+            />
+            <ContextItemsList
+              items={state.contextItems}
+              onInsert={actions.handleInsertItem}
+              onUpdate={actions.handleUpdateItem}
+              onDelete={actions.handleDeleteItem}
+            />
+            <MaxStepsField value={state.maxSteps} onChange={actions.handleMaxStepsChange} />
+            {agentId !== undefined && orgId !== undefined && (
+              <VfsConfigSection agentId={agentId} orgId={orgId} />
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -2,13 +2,14 @@
 
 import type { Operation } from '@daviddh/graph-types';
 
-import { AgentEditor } from './agent-editor';
 import type { AgentConfigData } from '../hooks/useGraphLoader';
+import { AgentEditor } from './agent-editor';
 
 interface AgentEditorWrapperProps {
   agentConfig: AgentConfigData;
   pushOperation: (op: Operation) => void;
   importCounter: number;
+  insets?: { top: number; left: number; right: number; bottom: number };
   onBackgroundClick?: () => void;
   onConfigChange?: (config: AgentConfigData) => void;
   agentId?: string;
@@ -23,6 +24,7 @@ export function AgentEditorWrapper({
   onConfigChange,
   agentId,
   orgId,
+  insets = { top: 0, left: 0, right: 0, bottom: 0 },
 }: AgentEditorWrapperProps) {
   return (
     <AgentEditor
@@ -33,6 +35,7 @@ export function AgentEditorWrapper({
       onConfigChange={onConfigChange}
       agentId={agentId}
       orgId={orgId}
+      insets={insets}
     />
   );
 }

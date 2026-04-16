@@ -438,6 +438,7 @@ function LoadedEditor(props: LoadedEditorProps) {
               onConfigChange={h.agentHooks.setAgentConfigSilent}
               agentId={props.agentId}
               orgId={props.orgId}
+              insets={insetStyle}
             />
             {h.simulation.active && (
               <SimulationPanel
