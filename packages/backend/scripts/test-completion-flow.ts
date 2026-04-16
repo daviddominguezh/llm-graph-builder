@@ -8,7 +8,7 @@
  * 2. Durable key fallback: notify first → subscribe → verify result found via key
  * 3. NX idempotency: notify twice with different results → verify first wins
  */
-import { loadCompletionConfig, type ExecutionResult } from '../src/notifications/completionNotifier.js';
+import { type ExecutionResult, loadCompletionConfig } from '../src/notifications/completionNotifier.js';
 import { RedisCompletionNotifier } from '../src/notifications/redisCompletionNotifier.js';
 
 function log(label: string, msg: string): void {
@@ -71,7 +71,8 @@ async function testNxIdempotency(): Promise<void> {
 
   const received = await notifier.waitForCompletion(execId, 10_000);
   if (received === null) throw new Error('Expected result, got null');
-  if (received.text !== 'first result') throw new Error(`Expected first result to win, got: ${received.text}`);
+  if (received.text !== 'first result')
+    throw new Error(`Expected first result to win, got: ${received.text}`);
   if (received.status !== 'completed') throw new Error(`Expected first status, got: ${received.status}`);
 
   log('3/3', 'PASS');

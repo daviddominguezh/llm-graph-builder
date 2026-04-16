@@ -18,7 +18,10 @@ export interface MessageRow {
   created_at: string;
 }
 
-export async function getExecutionMessages(supabase: SupabaseClient, executionId: string): Promise<MessageRow[]> {
+export async function getExecutionMessages(
+  supabase: SupabaseClient,
+  executionId: string
+): Promise<MessageRow[]> {
   const result: QueryResult<MessageRow[]> = await supabase
     .from('agent_execution_messages')
     .select('*')
@@ -45,10 +48,7 @@ export async function getChildExecutionMessages(
           .select('id')
           .eq('parent_execution_id', parentExecutionId)
           .neq('id', excludeExecutionId)
-      : await supabase
-          .from('agent_executions')
-          .select('id')
-          .eq('parent_execution_id', parentExecutionId)
+      : await supabase.from('agent_executions').select('id').eq('parent_execution_id', parentExecutionId)
   ) as { data: Array<{ id: string }> | null; error: { message: string } | null };
 
   if (execResult.error !== null) {
@@ -130,7 +130,6 @@ export async function createExecution(
 
   return result.data.id;
 }
-
 
 export async function updateToolOutputMessage(
   supabase: SupabaseClient,
