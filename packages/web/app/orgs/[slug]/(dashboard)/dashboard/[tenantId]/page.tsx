@@ -44,7 +44,7 @@ export default async function TenantExecutionsPage({ params }: TenantExecutionsP
   });
 
   return (
-    <div className="flex h-full flex-col bg-background overflow-hidden border border mr-1.5 rounded-xl">
+    <div className="flex h-[calc(100%-var(--spacing)*1.5)] flex-col bg-background overflow-hidden border border mr-1.5 rounded-xl">
       <div className="px-4 py-3 shrink-0 bg-background">
         <nav className="flex items-center gap-1 text-sm text-muted-foreground">
           <Link href={`/orgs/${slug}/dashboard`} className="hover:text-foreground text-xs font-medium">
