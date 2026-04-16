@@ -199,6 +199,7 @@ export function sendWorkflowSim(
     modelId,
     structuredOutputs,
     orgId: deps.orgId,
+    simulationLeadScore: deps.simulationLeadScore,
   });
   console.log('[sendWorkflowSim] messages:', JSON.stringify(params.messages, null, 2));
   const callbacks = buildMergedCallbacks(deps, store);

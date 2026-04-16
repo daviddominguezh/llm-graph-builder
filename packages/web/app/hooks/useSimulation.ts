@@ -123,6 +123,7 @@ function useSimulationClear(
     setters.setVisitedNodes([]);
     setters.setTotalTokens(EMPTY_TOKENS);
     setters.setStructuredOutputs({});
+    setters.setSimulationLeadScore?.(null);
     store.dispatch({ type: 'RESET' });
     onExitZoomView();
   }, [setters, abortSimulation, onExitZoomView, store]);
@@ -155,6 +156,7 @@ function buildSendDeps(params: UseSimulationParams, s: SimulationHookState): Sen
     orgId: params.orgId,
     appType: params.appType,
     agentConfig: params.agentConfig,
+    simulationLeadScore: s.simulationLeadScore,
   };
 }
 
