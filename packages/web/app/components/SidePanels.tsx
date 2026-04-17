@@ -93,7 +93,7 @@ function SelectionPanel(props: SelectionPanelProps) {
   const isStartNode = selection.selectedNodeId === START_NODE_ID;
 
   return (
-    <GlassPanel className="absolute right-1.5 top-1.5 bottom-0 z-10 w-80 rounded-md pointer-events-auto">
+    <GlassPanel className="absolute! h-[calc(100%-var(--spacing)*4)] right-2 top-2 bottom-2 z-10 w-80! rounded-md pointer-events-auto">
       {selection.selectedNodeId !== null && isStartNode && (
         <StartNodePanel
           nodeId={selection.selectedNodeId}
@@ -204,7 +204,7 @@ export function SidePanels(props: SidePanelsProps) {
   const readOnlyClass = props.readOnly === true ? '[&_input]:pointer-events-none [&_textarea]:pointer-events-none [&_button]:pointer-events-none [&_[role=checkbox]]:pointer-events-none [&_select]:pointer-events-none [&_[role=combobox]]:pointer-events-none' : '';
 
   return (
-    <div className={`pointer-events-auto ${readOnlyClass}`}>
+    <div className={`absolute w-full h-full pointer-events-auto ${readOnlyClass}`}>
       <OutputSchemaDialog
         schema={schema.editingSchema}
         onSave={props.outputSchemasHook.updateSchema}
