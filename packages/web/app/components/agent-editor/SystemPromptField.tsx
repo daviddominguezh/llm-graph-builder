@@ -89,7 +89,7 @@ export function SystemPromptField({ value, onChange }: SystemPromptFieldProps) {
         <ViewTabs showRendered={showRendered} onChange={setShowRendered} />
       </div>
       {showRendered ? (
-        <div className="min-h-0 flex-1 overflow-y-auto rounded-md border bg-background">
+        <div className="min-h-0 flex-1 overflow-y-auto rounded-md bg-background">
           <RenderedView text={liveText} />
         </div>
       ) : (

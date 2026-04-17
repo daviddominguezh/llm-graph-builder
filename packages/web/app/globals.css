@@ -57,13 +57,13 @@
   --card-foreground: oklch(0.141 0.005 285.823);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.51 0.23 277);
+  --primary: black;
   --primary-foreground: oklch(0.96 0.02 272);
   --secondary: oklch(0.55 0 0);
   --secondary-foreground: oklch(0.98 0 0);
   --muted: oklch(0.967 0.001 286.375);
   --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.51 0.23 277);
+  --accent: black;
   --accent-foreground: oklch(0.96 0.02 272);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.92 0.004 286.32);
@@ -77,7 +77,7 @@
   --radius: 0.625rem;
   --sidebar: lab(98.26% 0 0);
   --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.51 0.23 277);
+  --sidebar-primary: black;
   --sidebar-primary-foreground: oklch(0.96 0.02 272);
   --sidebar-accent: lab(96.52% -.0000298023 .0000119209);
   --sidebar-accent-foreground: oklch(0.96 0.02 272);
@@ -96,13 +96,13 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.21 0.006 285.885);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.59 0.20 277);
-  --primary-foreground: oklch(0.96 0.02 272);
+  --primary: white;
+  --primary-foreground: black;
   --secondary: oklch(0.274 0.006 286.033);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0% 0 0);
   --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.59 0.20 277);
+  --accent: white;
   --accent-foreground: oklch(0.96 0.02 272);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(25.197% 0.00003 271.152);
@@ -115,7 +115,7 @@
   --chart-5: oklch(0.46 0.21 277);
   --sidebar: lab(7.78201% -.0000149012 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.68 0.16 277);
+  --sidebar-primary: white;
   --sidebar-primary-foreground: oklch(0.96 0.02 272);
   --sidebar-accent: lab(15.204% 0 -.00000596046);
   --sidebar-accent-foreground: oklch(0.96 0.02 272);
@@ -489,8 +489,8 @@ div.model-selector-trigger[data-slot="input-group"] {
   border-radius: inherit;
   pointer-events: none;
   box-shadow:
-    inset 2px 2px 0px -2px rgba(255, 255, 255, 0),
-    inset -2px -2px 0px -2px rgba(255, 255, 255, 0);
+    inset 2px 2px 0px -2px rgba(251, 251, 251, 1),
+    inset -2px -2px 0px -2px rgba(251, 251, 251, 1);
 }
 
 .dark .glass-panel::before {
@@ -524,5 +524,5 @@ div.model-selector-trigger[data-slot="input-group"] {
   pointer-events: none;
   backdrop-filter: blur(16px);
   overflow: hidden;
-  box-shadow: inset 3px -2px 0px -2px var(--border), -0.5px 1px 0px -0.5px var(--border), 1.5px -1.5px 0px -1px var(--border);
+  box-shadow: inset 3px -1px 0px -2px var(--ring), -0.5px 1px 0px -0.5px var(--border), 1.5px -1.5px 0px -1px var(--border);;
 }
