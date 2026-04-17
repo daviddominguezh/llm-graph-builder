@@ -84,9 +84,9 @@ export function AgentEditor({
           <GlassPanel className="flex min-w-0 flex-1 h-[calc(100%-var(--spacing)*2.5)] shrink-0 flex-col p-4 mt-2 mb-2.5 rounded-xl shadow-none">
             <SystemPromptField value={state.systemPrompt} onChange={actions.handleSystemPromptChange} />
           </GlassPanel>
-          <GlassPanel className="flex min-w-0 flex-1 h-[calc(100%-var(--spacing)*2.5)] shrink-0 flex-col p-4 mt-2 mb-2.5 rounded-xl shadow-none gap-6 pt-3.5 overflow-hidden">
+          <GlassPanel className="flex min-w-0 flex-1 h-[calc(100%-var(--spacing)*2.5)] shrink-0 flex-col mt-2 mb-2.5 rounded-xl shadow-none gap-6 pt-3.5 overflow-hidden">
             <ScrollArea className="h-full w-full">
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-6 p-4">
                 <SkillsList
                   skills={state.skills}
                   onAdd={skillActions.handleAddSkills}
