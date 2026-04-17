@@ -8,6 +8,7 @@ import { Toaster } from '@/components/ui/sonner';
 
 import './globals.css';
 
+import { GlobalScrollbarOverlay } from './components/GlobalScrollbarOverlay';
 import { OpenRouterModelsLogger } from './components/OpenRouterModelsLogger';
 import { ThemeProvider } from './components/ThemeProvider';
 
@@ -41,6 +42,7 @@ export default async function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased overflow-hidden`}>
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider>
+            <GlobalScrollbarOverlay />
             <OpenRouterModelsLogger />
             {children}
             <GlassFilters />

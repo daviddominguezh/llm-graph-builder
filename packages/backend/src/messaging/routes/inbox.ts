@@ -92,9 +92,14 @@ async function handleGetDelta(req: Request, res: MessagingResponse): Promise<voi
     }
 
     const sinceIso = new Date(timestampNum).toISOString();
-    const conversations = await getInboxDelta(supabase, tenantId, sinceIso);
-    const snapshots = await buildSnapshots(supabase, conversations);
-    res.status(HTTP_OK).json(snapshots);
+    const rows = await getInboxDelta(supabase, tenantId, sinceIso);
+    const snapshots = await buildSnapshots(supabase, rows);
+
+    const conversations: Record<string, (typeof snapshots)[number]> = {};
+    for (const snap of snapshots) {
+      conversations[snap.key] = snap;
+    }
+    res.status(HTTP_OK).json({ conversations });
   } catch (err) {
     res.status(HTTP_INTERNAL).json({ error: extractErrorMessage(err) });
   }

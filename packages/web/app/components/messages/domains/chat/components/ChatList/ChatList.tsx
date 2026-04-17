@@ -1,20 +1,16 @@
-
-import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
-
-import { useVirtualizer } from '@tanstack/react-virtual';
-
-import { TEST_PHONE } from '@/app/constants/messages';
 import { LAST_MESSAGES_SCROLL_THRESHOLD } from '@/app/constants/lastMessages';
-
+import { TEST_PHONE } from '@/app/constants/messages';
 import { AI_MESSAGE_ROLES, INTENT, LastMessage } from '@/app/types/chat';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { ChatFilters } from '../../../../MessagesDashboard.types';
 import styles from './ChatList.module.css';
 import { ChatListEmpty } from './ChatListEmpty';
 import { ChatListHeader } from './ChatListHeader';
 import { ChatListItem } from './ChatListItem';
-import { ChatListSkeleton } from './ChatListSkeleton';
 import { ChatListItemSkeleton } from './ChatListItemSkeleton';
+import { ChatListSkeleton } from './ChatListSkeleton';
 
 /**
  * Chat list component with virtualization support
@@ -196,7 +192,6 @@ export const ChatList: React.FC<ChatListProps> = memo(
     }, [groupedConversations]);
 
     // Virtualization setup
-    // eslint-disable-next-line react-hooks/incompatible-library -- useVirtualizer returns unmemoizable functions (React Compiler limitation)
     const virtualizer = useVirtualizer({
       count: enableVirtualization ? flatItems.length : 0,
       getScrollElement: () => containerRef.current,
@@ -213,11 +208,7 @@ export const ChatList: React.FC<ChatListProps> = memo(
     if (isLoading) {
       return (
         <div className={`${styles.container} ${className}`}>
-          <ChatListHeader
-            totalCount={0}
-            filteredCount={0}
-            onFilterChange={onFilterChange}
-          />
+          <ChatListHeader totalCount={0} filteredCount={0} onFilterChange={onFilterChange} />
           <div className={styles.scrollContainer}>
             <ChatListSkeleton />
           </div>
@@ -251,11 +242,7 @@ export const ChatList: React.FC<ChatListProps> = memo(
             filteredCount={filteredConversations.length}
             onFilterChange={onFilterChange}
           />
-          <div
-            ref={containerRef}
-            className={styles.scrollContainer}
-            onScroll={handleScroll}
-          >
+          <div ref={containerRef} className={styles.scrollContainer} onScroll={handleScroll}>
             <div
               style={{
                 height: `${virtualizer.getTotalSize()}px`,
@@ -330,11 +317,7 @@ export const ChatList: React.FC<ChatListProps> = memo(
           filteredCount={filteredConversations.length}
           onFilterChange={onFilterChange}
         />
-        <div
-          ref={containerRef}
-          className={styles.scrollContainer}
-          onScroll={handleScroll}
-        >
+        <div ref={containerRef} className={styles.scrollContainer} onScroll={handleScroll}>
           {groupedConversations.map((group, groupIndex) => (
             <div key={groupIndex} className={styles.group}>
               {group.label && <div className={styles.groupHeader}>{group.label}</div>}

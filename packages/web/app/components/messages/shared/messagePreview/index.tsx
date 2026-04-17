@@ -144,7 +144,7 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
 
   return (
     <button
-      className={`relative mx-1.5 w-[calc(100%-var(--spacing)*3)] overflow-hidden cursor-pointer group py-1.5 rounded-md ${selected ? 'bg-primary/8' : 'hover:bg-primary/8'} ${isHighlightedImportant ? 'border-red-500 border-1 bg-red-50' : ''}`}
+      className={`shrink-0 relative mx-1.5 w-[calc(100%-var(--spacing)*3)] overflow-hidden cursor-pointer group py-1.5 rounded-md ${selected ? 'bg-primary/8' : 'hover:bg-primary/8'} ${isHighlightedImportant ? 'border-red-500 border-1 bg-red-50' : ''}`}
       onClick={() => onClickMsg(phone)}
     >
       <div

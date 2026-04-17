@@ -131,40 +131,35 @@ function UserMessage({ text }: { text: string }) {
 
 interface ContentAreaProps {
   conversationEntries: ConversationEntry[];
-  scrollRef: React.RefObject<HTMLDivElement | null>;
+  bottomRef: React.RefObject<HTMLDivElement | null>;
 }
 
-function ContentArea({ conversationEntries, scrollRef }: ContentAreaProps) {
+function ChildSeparator({ text }: { text: string }) {
   return (
-    <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2">
+    <div className="flex items-center gap-2 py-1">
+      <div className="h-px flex-1 bg-border" />
+      <span className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground">{text}</span>
+      <div className="h-px flex-1 bg-border" />
+    </div>
+  );
+}
+
+function ConversationEntryItem({ entry }: { entry: ConversationEntry }) {
+  if (entry.type === 'user') return <UserMessage text={entry.text} />;
+  if (entry.type === 'result') return <NodeResultItem result={entry.result} />;
+  if (entry.type === 'child_start') return <ChildSeparator text={`${entry.label} started`} />;
+  if (entry.type === 'child_end') return <ChildSeparator text={`child finished (${entry.label})`} />;
+  return null;
+}
+
+function ContentArea({ conversationEntries, bottomRef }: ContentAreaProps) {
+  return (
+    <div className="flex-1 overflow-y-auto px-3 py-2">
       <div className="flex flex-col gap-4">
-        {conversationEntries.map((entry, i) => {
-          if (entry.type === 'user') return <UserMessage key={i} text={entry.text} />;
-          if (entry.type === 'result') return <NodeResultItem key={i} result={entry.result} />;
-          if (entry.type === 'child_start') {
-            return (
-              <div key={i} className="flex items-center gap-2 py-1">
-                <div className="h-px flex-1 bg-border" />
-                <span className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground">
-                  {entry.label} started
-                </span>
-                <div className="h-px flex-1 bg-border" />
-              </div>
-            );
-          }
-          if (entry.type === 'child_end') {
-            return (
-              <div key={i} className="flex items-center gap-2 py-1">
-                <div className="h-px flex-1 bg-border" />
-                <span className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground">
-                  child finished ({entry.label})
-                </span>
-                <div className="h-px flex-1 bg-border" />
-              </div>
-            );
-          }
-          return null;
-        })}
+        {conversationEntries.map((entry, i) => (
+          <ConversationEntryItem key={i} entry={entry} />
+        ))}
+        <div ref={bottomRef} />
       </div>
     </div>
   );
@@ -211,10 +206,10 @@ interface SimulationFooterProps {
 
 interface SimulationBodyProps {
   props: SimulationPanelProps;
-  scrollRef: React.RefObject<HTMLDivElement | null>;
+  bottomRef: React.RefObject<HTMLDivElement | null>;
 }
 
-function SimulationBody({ props, scrollRef }: SimulationBodyProps) {
+function SimulationBody({ props, bottomRef }: SimulationBodyProps) {
   const t = useTranslations('simulation');
   const { visitedNodes, terminated, loading, currentNode, totalTokens } = props;
   const { modelId, onModelIdChange, onSendMessage, onStop } = props;
@@ -227,7 +222,7 @@ function SimulationBody({ props, scrollRef }: SimulationBodyProps) {
           onClear={props.onClear}
           embedded={props.embedded}
         />
-        <ContentArea conversationEntries={props.conversationEntries} scrollRef={scrollRef} />
+        <ContentArea conversationEntries={props.conversationEntries} bottomRef={bottomRef} />
         <SimulationFooter
           totalTokens={totalTokens}
           turnCount={props.turnCount}
@@ -250,14 +245,12 @@ function SimulationBody({ props, scrollRef }: SimulationBodyProps) {
 }
 
 function useAutoScrollToEnd(
-  scrollRef: React.RefObject<HTMLDivElement | null>,
+  bottomRef: React.RefObject<HTMLDivElement | null>,
   length: number
 ) {
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-    }
-  }, [length, scrollRef]);
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [length, bottomRef]);
 }
 
 function useEscapeToStop(onStop: () => void, enabled: boolean) {
@@ -272,13 +265,13 @@ function useEscapeToStop(onStop: () => void, enabled: boolean) {
 }
 
 export function SimulationPanel(props: SimulationPanelProps) {
-  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
   const embedded = props.embedded === true;
 
-  useAutoScrollToEnd(scrollRef, props.conversationEntries.length);
+  useAutoScrollToEnd(bottomRef, props.conversationEntries.length);
   useEscapeToStop(props.onStop, !embedded);
 
-  const body = <SimulationBody props={props} scrollRef={scrollRef} />;
+  const body = <SimulationBody props={props} bottomRef={bottomRef} />;
 
   if (embedded) {
     return body;

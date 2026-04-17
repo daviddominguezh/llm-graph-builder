@@ -75,8 +75,6 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
   collaborators,
   profilePictures,
   hideFilterDropdown = false,
-  onLoadMore,
-  hasMore = false,
   isLoadingMore = false,
 }) => {
   const t = useTranslations('messages');
@@ -91,19 +89,6 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
   useEffect(() => {
     isLoadingMoreRef.current = isLoadingMore;
   }, [isLoadingMore]);
-
-  // Handle scroll for infinite loading
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (!onLoadMore || !hasMore || isLoadingMoreRef.current) return;
-
-    const target = e.currentTarget;
-    const scrollPercentage = (target.scrollTop + target.clientHeight) / target.scrollHeight;
-
-    // Load more when scrolled past 50%
-    if (scrollPercentage > 0.5) {
-      onLoadMore();
-    }
-  };
 
   // Get current user email for "inbox" filter
   useEffect(() => {
@@ -326,7 +311,7 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
 
       {/* Search results */}
       {isSearchActive && hasSearchResults ? (
-        <div ref={chatListScrollRef} className="w-full h-fit pb-9 overflow-y-auto pt-2">
+        <div ref={chatListScrollRef} data-native-scroll className="w-full h-fit pb-9 overflow-y-auto pt-2">
           {/* Chats by phone */}
           {filteredChatsPhoneVisible.length > 0 && (
             <div>
@@ -396,7 +381,7 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
         </Alert>
       ) : displayedChatsFiltered.length > 0 ? (
         // All chats
-        <div ref={chatListScrollRef} className="flex flex-col w-full h-fit pb-9 overflow-y-auto pt-2.5 gap-1" onScroll={handleScroll}>
+        <div ref={chatListScrollRef} className="flex flex-col w-full h-fit pb-9 overflow-y-auto pt-2.5 gap-1">
           {displayedChatsFiltered.map((chat) => (
             <MessagePreview
               key={chat.chatId}
@@ -408,7 +393,6 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
               profilePictures={profilePictures}
             />
           ))}
-          {/* Loading more indicator */}
           {isLoadingMore && (
             <div className="flex justify-center py-4">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900" />

@@ -739,11 +739,22 @@ export const getLastMessagesPaginated = async (
       url += `&cursorTimestamp=${cursor.timestamp}&cursorKey=${cursor.key}`;
     }
 
+    console.log('[DEBUG] getLastMessagesPaginated request:', { namespace, url, cursor });
     const response = await authenticatedFetch(url, {});
+    console.log('[DEBUG] getLastMessagesPaginated response status:', response.status);
 
-    if (!response.ok) return null;
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log('[DEBUG] getLastMessagesPaginated error body:', errorText);
+      return null;
+    }
 
     const data: PaginatedLastMessagesResponse = await response.json();
+    console.log('[DEBUG] getLastMessagesPaginated response:', {
+      messageCount: data.messages ? Object.keys(data.messages).length : 0,
+      hasMore: data.hasMore,
+      messageKeys: data.messages ? Object.keys(data.messages) : [],
+    });
 
     // Ensure each message has key set to the Record key (phone number)
     if (data.messages) {
@@ -770,14 +781,17 @@ export const getLastMessagesDelta = async (
   timestamp: number
 ): Promise<DeltaLastMessagesResponse | null> => {
   try {
-    const response = await authenticatedFetch(
-      `${API_BASE_URL}/projects/${namespace}/messages/last/delta?timestamp=${timestamp}`,
-      {}
-    );
+    const deltaUrl = `${API_BASE_URL}/projects/${namespace}/messages/last/delta?timestamp=${timestamp}`;
+    console.log('[DEBUG] getLastMessagesDelta request:', { namespace, deltaUrl, timestamp });
+    const response = await authenticatedFetch(deltaUrl, {});
+    console.log('[DEBUG] getLastMessagesDelta response status:', response.status);
 
     if (!response.ok) return null;
 
     const data: DeltaLastMessagesResponse = await response.json();
+    console.log('[DEBUG] getLastMessagesDelta response:', {
+      conversationCount: data.conversations ? Object.keys(data.conversations).length : 0,
+    });
 
     // API returns "messages" field but type expects "conversations"
     // Handle both field names for backwards compatibility

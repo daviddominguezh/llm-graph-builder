@@ -84,6 +84,7 @@ const ChatContext = createContext<ChatContextValue>({} as ChatContextValue);
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const projectName = useTenantId();
+  console.log('[ChatContext] tenantId/projectName:', projectName);
   const repository = useMessageRepository();
   const dispatch = useDispatch();
   const lastMessages = useSelector(getLastMessagesFromStore);
