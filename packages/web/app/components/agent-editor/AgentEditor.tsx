@@ -6,6 +6,7 @@ import type { Operation } from '@daviddh/graph-types';
 import { FileText, Sparkles } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 
 import type { AgentConfigData } from '../../hooks/useGraphLoader';
@@ -26,6 +27,7 @@ interface AgentEditorProps {
   onConfigChange?: (config: AgentConfigData) => void;
   agentId?: string;
   orgId?: string;
+  rightSlot?: ReactNode;
 }
 
 function useAgentEditorState(config: AgentConfigData) {
@@ -157,6 +159,7 @@ export function AgentEditor({
   agentId,
   orgId,
   insets,
+  rightSlot,
 }: AgentEditorProps) {
   const [activeTab, setActiveTab] = useState<TabId>('prompt');
   const state = useAgentEditorState(config);
@@ -167,7 +170,10 @@ export function AgentEditor({
   return (
     <div className="absolute" style={insets} onClick={onBackgroundClick}>
       <div className="flex h-full w-full bg-background px-2 pb-1.5">
-        <div className="w-full h-full flex animate-in fade-in duration-300" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="w-full h-full flex animate-in fade-in duration-300 gap-2"
+          onClick={(e) => e.stopPropagation()}
+        >
           <GlassPanel className="flex min-w-0 flex-1 h-[calc(100%-var(--spacing)*2.5)] shrink-0 flex-col p-4 mt-2 mb-2.5 rounded-xl shadow-none">
             <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
             <div className={activeTab === 'prompt' ? 'flex min-h-0 flex-1 flex-col' : 'hidden'}>
@@ -183,6 +189,9 @@ export function AgentEditor({
               />
             </div>
           </GlassPanel>
+          {rightSlot !== undefined && (
+            <div className="w-[360px] shrink-0 h-[calc(100%-var(--spacing)*2.5)] mt-2 mb-2.5">{rightSlot}</div>
+          )}
         </div>
       </div>
     </div>

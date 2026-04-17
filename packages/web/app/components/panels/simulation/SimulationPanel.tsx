@@ -38,6 +38,7 @@ interface SimulationPanelProps {
   onSendMessage: (text: string) => void;
   onStop: () => void;
   onClear: () => void;
+  embedded?: boolean;
 }
 
 function Breadcrumbs({ nodes }: { nodes: string[] }) {
@@ -77,7 +78,8 @@ function SimulationHeader({
   visitedNodes,
   onStop,
   onClear,
-}: Pick<SimulationPanelProps, 'visitedNodes' | 'onStop' | 'onClear'>) {
+  embedded,
+}: Pick<SimulationPanelProps, 'visitedNodes' | 'onStop' | 'onClear' | 'embedded'>) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const t = useTranslations('simulation');
 
@@ -94,9 +96,11 @@ function SimulationHeader({
           >
             <Trash2 className="size-3" />
           </Button>
-          <Button variant="ghost" size="icon" className="size-7" onClick={onStop}>
-            <X className="size-3" />
-          </Button>
+          {embedded !== true && (
+            <Button variant="ghost" size="icon" className="size-7" onClick={onStop}>
+              <X className="size-3" />
+            </Button>
+          )}
         </div>
       </div>
       <Breadcrumbs nodes={visitedNodes} />
@@ -205,52 +209,84 @@ interface SimulationFooterProps {
   currentNode: string;
 }
 
-export function SimulationPanel(props: SimulationPanelProps) {
-  const { visitedNodes, terminated, loading } = props;
-  const { currentNode, totalTokens, modelId, onModelIdChange, onSendMessage, onStop } = props;
-  const t = useTranslations('simulation');
-  const scrollRef = useRef<HTMLDivElement | null>(null);
+interface SimulationBodyProps {
+  props: SimulationPanelProps;
+  scrollRef: React.RefObject<HTMLDivElement | null>;
+}
 
+function SimulationBody({ props, scrollRef }: SimulationBodyProps) {
+  const t = useTranslations('simulation');
+  const { visitedNodes, terminated, loading, currentNode, totalTokens } = props;
+  const { modelId, onModelIdChange, onSendMessage, onStop } = props;
+  return (
+    <GlassPanel variant="background" className="w-full h-full rounded-xl">
+      <div className="relative flex h-full w-full flex-col">
+        <SimulationHeader
+          visitedNodes={visitedNodes}
+          onStop={onStop}
+          onClear={props.onClear}
+          embedded={props.embedded}
+        />
+        <ContentArea conversationEntries={props.conversationEntries} scrollRef={scrollRef} />
+        <SimulationFooter
+          totalTokens={totalTokens}
+          turnCount={props.turnCount}
+          isAgent={props.isAgent}
+          loading={loading}
+          currentNode={currentNode}
+        />
+        <SimulationInput
+          loading={loading}
+          terminated={terminated}
+          terminatedLabel={t('terminated')}
+          terminatedDescription={t('terminatedDescription')}
+          modelId={modelId}
+          onModelIdChange={onModelIdChange}
+          onSendMessage={onSendMessage}
+        />
+      </div>
+    </GlassPanel>
+  );
+}
+
+function useAutoScrollToEnd(
+  scrollRef: React.RefObject<HTMLDivElement | null>,
+  length: number
+) {
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
     }
-  }, [props.conversationEntries.length]);
+  }, [length, scrollRef]);
+}
 
+function useEscapeToStop(onStop: () => void, enabled: boolean) {
   useEffect(() => {
+    if (!enabled) return undefined;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onStop();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onStop]);
+  }, [onStop, enabled]);
+}
 
-  // 
+export function SimulationPanel(props: SimulationPanelProps) {
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const embedded = props.embedded === true;
+
+  useAutoScrollToEnd(scrollRef, props.conversationEntries.length);
+  useEscapeToStop(props.onStop, !embedded);
+
+  const body = <SimulationBody props={props} scrollRef={scrollRef} />;
+
+  if (embedded) {
+    return body;
+  }
 
   return createPortal(
     <div className="fixed inset-y-0 top-[calc(41px+var(--spacing)*3)] bottom-[calc(var(--spacing)*7.5)] left-[calc(calc(240px+var(--spacing)*1)+44px)] z-200 flex w-[350px]">
-      <GlassPanel variant="background" className="w-full h-full rounded-xl">
-        <div className="relative flex h-full w-full flex-col">
-          <SimulationHeader visitedNodes={visitedNodes} onStop={onStop} onClear={props.onClear} />
-          <ContentArea conversationEntries={props.conversationEntries} scrollRef={scrollRef} />
-          <SimulationFooter
-            totalTokens={totalTokens}
-            turnCount={props.turnCount}
-            isAgent={props.isAgent}
-            loading={loading}
-            currentNode={currentNode}
-          />
-          <SimulationInput
-            loading={loading}
-            terminated={terminated}
-            terminatedLabel={t('terminated')}
-            terminatedDescription={t('terminatedDescription')}
-            modelId={modelId}
-            onModelIdChange={onModelIdChange}
-            onSendMessage={onSendMessage}
-          />
-        </div>
-      </GlassPanel>
+      {body}
     </div>,
     document.body
   );

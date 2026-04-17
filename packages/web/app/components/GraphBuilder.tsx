@@ -406,6 +406,35 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
   };
 }
 
+function useAutoStartAgentSimulation(isAgent: boolean, active: boolean, start: () => void) {
+  useEffect(() => {
+    if (isAgent && !active) start();
+  }, [isAgent, active, start]);
+}
+
+function buildEmbeddedSimulationPanel(simulation: ReturnType<typeof useGraphBuilderHooks>['simulation']) {
+  return (
+    <SimulationPanel
+      embedded
+      lastUserText={simulation.lastUserText}
+      nodeResults={simulation.nodeResults}
+      conversationEntries={simulation.conversationEntries}
+      visitedNodes={simulation.visitedNodes}
+      terminated={simulation.terminated}
+      loading={simulation.loading}
+      currentNode={simulation.currentNode}
+      totalTokens={simulation.totalTokens}
+      turnCount={simulation.turnCount}
+      isAgent={simulation.isAgent}
+      modelId={simulation.modelId}
+      onModelIdChange={simulation.setModelId}
+      onSendMessage={simulation.sendMessage}
+      onStop={simulation.stop}
+      onClear={simulation.clear}
+    />
+  );
+}
+
 function LoadedEditor(props: LoadedEditorProps) {
   const h = useGraphBuilderHooks(props);
   const versionsHook = useVersions(props.agentId, props.initialVersion ?? DEFAULT_VERSION);
@@ -417,11 +446,16 @@ function LoadedEditor(props: LoadedEditorProps) {
   };
 
   const isReadOnly = props.readOnly === true;
+  const isAgentMode = h.agentConfig !== undefined;
 
   const { panelInsets, toolbarPortal } = useEditorCache();
   const insetStyle = panelInsets
     ? { top: panelInsets.top, left: panelInsets.left, right: panelInsets.right, bottom: panelInsets.bottom }
     : { top: 0, left: 0, right: 0, bottom: 0 };
+
+  useAutoStartAgentSimulation(isAgentMode, h.simulation.active, h.simulation.start);
+
+  const showToolbar = !isReadOnly && toolbarPortal !== null && (isAgentMode || !h.simulation.active);
 
   return (
     <HandleContext.Provider value={handleContextValue}>
@@ -439,26 +473,8 @@ function LoadedEditor(props: LoadedEditorProps) {
               agentId={props.agentId}
               orgId={props.orgId}
               insets={insetStyle}
+              rightSlot={buildEmbeddedSimulationPanel(h.simulation)}
             />
-            {h.simulation.active && (
-              <SimulationPanel
-                lastUserText={h.simulation.lastUserText}
-                nodeResults={h.simulation.nodeResults}
-                conversationEntries={h.simulation.conversationEntries}
-                visitedNodes={h.simulation.visitedNodes}
-                terminated={h.simulation.terminated}
-                loading={h.simulation.loading}
-                currentNode={h.simulation.currentNode}
-                totalTokens={h.simulation.totalTokens}
-                turnCount={h.simulation.turnCount}
-                isAgent={h.simulation.isAgent}
-                modelId={h.simulation.modelId}
-                onModelIdChange={h.simulation.setModelId}
-                onSendMessage={h.simulation.sendMessage}
-                onStop={h.simulation.stop}
-                onClear={h.simulation.clear}
-              />
-            )}
           </div>
         ) : (
           <div className="absolute inset-0">
@@ -482,7 +498,7 @@ function LoadedEditor(props: LoadedEditorProps) {
         )}
 
         {/* Toolbar — portaled into the main header */}
-        {!isReadOnly && !h.simulation.active && toolbarPortal && createPortal(
+        {showToolbar && toolbarPortal && createPortal(
           <Toolbar
             onAddNode={h.graphActions.handleAddNode}
             onImport={h.handleImport}
