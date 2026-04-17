@@ -211,7 +211,7 @@ div.model-selector-trigger[data-slot="input-group"] {
   margin-top: 8px !important;
 }
 
-.markdown-content> p:not(:has(+ ul)):not(:has(+ ol)) {
+.markdown-content>p:not(:has(+ ul)):not(:has(+ ol)) {
   margin-bottom: 8px;
 }
 
@@ -489,8 +489,30 @@ div.model-selector-trigger[data-slot="input-group"] {
   border-radius: inherit;
   pointer-events: none;
   box-shadow:
-    inset 1px 1px 0px -1px rgba(0, 0, 0, 0.06),
-    inset 0 0 1px 0.5px rgba(0, 0, 0, 0.04);
+    inset 2px 2px 0px -2px rgba(255, 255, 255, 0),
+    inset -2px -2px 0px -2px rgba(255, 255, 255, 0);
+}
+
+.dark .glass-panel::before {
+  box-shadow:
+    inset 2px 2px 0px -2px rgba(255, 255, 255, 0.15),
+    inset -2px -2px 0px -2px rgba(255, 255, 255, 0.15);
+}
+
+.glass-panel--background::before {
+  background-color: rgb(250 250 250 / 85%);
+}
+
+.glass-panel--foreground::before {
+  background-color: rgb(245 245 245 / 20%);
+}
+
+.dark .glass-panel--background::before {
+  background-color: rgb(20 20 20 / 85%);
+}
+
+.dark .glass-panel--foreground::before {
+  background-color: rgb(30 30 30 / 40%);
 }
 
 .glass-panel::after {
@@ -502,26 +524,4 @@ div.model-selector-trigger[data-slot="input-group"] {
   pointer-events: none;
   backdrop-filter: blur(16px);
   overflow: hidden;
-}
-
-.glass-panel--background::before {
-  background-color: rgb(250 250 250 / 85%);
-}
-
-.glass-panel--foreground::before {
-  background-color: rgb(245 245 245 / 20%);
-}
-
-.dark .glass-panel::before {
-  box-shadow:
-    inset 2px 2px 0px -2px rgba(255, 255, 255, 0.15),
-    inset 0 0 3px 1px rgba(255, 255, 255, 0.08);
-}
-
-.dark .glass-panel--background::before {
-  background-color: rgb(20 20 20 / 85%);
-}
-
-.dark .glass-panel--foreground::before {
-  background-color: rgb(30 30 30 / 40%);
 }

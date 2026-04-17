@@ -18,7 +18,7 @@ export function GlassPanel({ children, className, variant = 'background', style 
       : 'shadow-sm';
   return (
     <div
-      className={`relative glass-panel ${shadow} border border-[0.5px] glass-panel--${variant} ${className ?? ''}`}
+      className={`relative glass-panel ${shadow} glass-panel--${variant} ${className ?? ''}`}
       style={style}
     >
       {children}
