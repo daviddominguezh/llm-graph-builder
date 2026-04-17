@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Plus, Sparkles, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useRef, useState } from 'react';
@@ -210,17 +211,19 @@ export function SkillsList({ skills, onAdd, onDelete, onDeleteMany }: SkillsList
             activeUrl={resolvedActive?.repoUrl ?? ''}
             onSelect={setActiveProvider}
           />
-          <div className="flex flex-col gap-1 max-h-70 overflow-y-scroll border-l-2 border-accent/20 pl-4 mt-2">
-            {activeSkills.map((skill) => (
-              <SkillRow
-                key={skill.name}
-                skill={skill}
-                selected={selected.has(skill.name)}
-                onToggleSelect={toggleSelect}
-                onDelete={handleSingleDelete}
-              />
-            ))}
-          </div>
+          <ScrollArea className="max-h-70 border-l-2 border-accent/20 mt-2">
+            <div className="flex flex-col gap-1 pl-4">
+              {activeSkills.map((skill) => (
+                <SkillRow
+                  key={skill.name}
+                  skill={skill}
+                  selected={selected.has(skill.name)}
+                  onToggleSelect={toggleSelect}
+                  onDelete={handleSingleDelete}
+                />
+              ))}
+            </div>
+          </ScrollArea>
         </>
       )}
       <AddSkillDialog open={dialogOpen} onOpenChange={setDialogOpen} onSkillsAdded={onAdd} />

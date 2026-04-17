@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "overlayscrollbars/overlayscrollbars.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -49,6 +50,7 @@
 
 :root {
   --scrollbar-thumb: rgb(107 114 128 / 0.7);
+  --scrollbar-thumb-hover: rgb(75 85 99 / 0.9);
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(0.967 0.001 286.375);
@@ -87,6 +89,7 @@
 
 .dark {
   --scrollbar-thumb: rgb(156 163 175 / 0.6);
+  --scrollbar-thumb-hover: rgb(209 213 219 / 0.85);
   --background: lab(2.75381% 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.21 0.006 285.885);
@@ -132,10 +135,8 @@
   }
 }
 
-/* Global scrollbars: thin thumb, no track, grows on hover. Always visible (not overlay). */
-/* Firefox: scrollbar-color themes the thumb. We intentionally avoid scrollbar-width
-   because its new Chrome implementation conflicts with ::-webkit-scrollbar styling
-   and re-introduces macOS overlay fade behavior. */
+/* Native scrollbar fallback for elements not wrapped in <ScrollArea>. On macOS these
+   still fade with the OS overlay setting — use <ScrollArea> when always-visible matters. */
 * {
   scrollbar-color: var(--scrollbar-thumb) transparent;
 }
@@ -166,6 +167,27 @@
 
 ::-webkit-scrollbar-button {
   display: none;
+}
+
+/* OverlayScrollbars custom theme: thin 3px thumb → 6px on hover, no track, rounded. */
+.os-theme-closer {
+  --os-size: 12px;
+  --os-padding-perpendicular: 0;
+  --os-padding-axis: 2px;
+  --os-track-border-radius: 0;
+  --os-handle-interactive-area-offset: 0;
+  --os-handle-border-radius: 9999px;
+  --os-handle-bg: var(--scrollbar-thumb);
+  --os-handle-bg-hover: var(--scrollbar-thumb-hover);
+  --os-handle-bg-active: var(--scrollbar-thumb-hover);
+  --os-handle-perpendicular-size: 25%;
+  --os-handle-perpendicular-size-hover: 50%;
+  --os-handle-perpendicular-size-active: 50%;
+  --os-handle-min-size: 40px;
+}
+
+.os-theme-closer .os-scrollbar-handle {
+  transition: width 150ms ease, height 150ms ease, background-color 150ms ease;
 }
 
 /* Model selector trigger: suppress focus ring/border when dropdown is open */

@@ -1,6 +1,7 @@
 'use client';
 
 import { GlassPanel } from '@/components/ui/glass-panel';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Operation } from '@daviddh/graph-types';
 import { useEffect, useState } from 'react';
 
@@ -74,34 +75,36 @@ export function AgentEditor({
   console.log(insets);
 
   return (
-    <div className="absolute pepeg" style={insets} onClick={onBackgroundClick}>
-      <div className="flex h-full w-full bg-background px-1.5 pb-1.5">
+    <div className="absolute" style={insets} onClick={onBackgroundClick}>
+      <div className="flex h-full w-full bg-background px-2 pb-1.5">
         <div
-          className="w-full h-full flex animate-in fade-in duration-300 gap-2 px-1"
+          className="w-full h-full flex animate-in fade-in duration-300 gap-2"
           onClick={(e) => e.stopPropagation()}
         >
           <GlassPanel className="flex min-w-0 flex-1 h-[calc(100%-var(--spacing)*2.5)] shrink-0 flex-col p-4 mt-2 mb-2.5 rounded-xl shadow-none">
             <SystemPromptField value={state.systemPrompt} onChange={actions.handleSystemPromptChange} />
           </GlassPanel>
           <GlassPanel className="flex min-w-0 flex-1 h-[calc(100%-var(--spacing)*2.5)] shrink-0 flex-col p-4 mt-2 mb-2.5 rounded-xl shadow-none gap-6 pt-3.5 overflow-hidden">
-            <div className="flex flex-col gap-6 h-full overflow-y-auto">
-              <SkillsList
-                skills={state.skills}
-                onAdd={skillActions.handleAddSkills}
-                onDelete={skillActions.handleDeleteSkill}
-                onDeleteMany={skillActions.handleDeleteManySkills}
-              />
-              <ContextItemsList
-                items={state.contextItems}
-                onInsert={actions.handleInsertItem}
-                onUpdate={actions.handleUpdateItem}
-                onDelete={actions.handleDeleteItem}
-              />
-              <MaxStepsField value={state.maxSteps} onChange={actions.handleMaxStepsChange} />
-              {agentId !== undefined && orgId !== undefined && (
-                <VfsConfigSection agentId={agentId} orgId={orgId} />
-              )}
-            </div>
+            <ScrollArea className="h-full w-full">
+              <div className="flex flex-col gap-6">
+                <SkillsList
+                  skills={state.skills}
+                  onAdd={skillActions.handleAddSkills}
+                  onDelete={skillActions.handleDeleteSkill}
+                  onDeleteMany={skillActions.handleDeleteManySkills}
+                />
+                <ContextItemsList
+                  items={state.contextItems}
+                  onInsert={actions.handleInsertItem}
+                  onUpdate={actions.handleUpdateItem}
+                  onDelete={actions.handleDeleteItem}
+                />
+                <MaxStepsField value={state.maxSteps} onChange={actions.handleMaxStepsChange} />
+                {agentId !== undefined && orgId !== undefined && (
+                  <VfsConfigSection agentId={agentId} orgId={orgId} />
+                )}
+              </div>
+            </ScrollArea>
           </GlassPanel>
         </div>
       </div>
