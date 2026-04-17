@@ -135,12 +135,10 @@
   }
 }
 
-/* Native scrollbar fallback for elements not wrapped in <ScrollArea>. On macOS these
-   still fade with the OS overlay setting — use <ScrollArea> when always-visible matters. */
-* {
-  scrollbar-color: var(--scrollbar-thumb) transparent;
-}
-
+/* Native scrollbar fallback for elements not wrapped in <ScrollArea>. We intentionally
+   do NOT set the standard scrollbar-color / scrollbar-width properties: Chrome 121+
+   treats them as the primary scrollbar implementation and stops applying
+   ::-webkit-scrollbar rules when they are set. Firefox gets default native scrollbars. */
 ::-webkit-scrollbar {
   -webkit-appearance: none;
   width: 12px;
@@ -163,6 +161,7 @@
 
 ::-webkit-scrollbar-thumb:hover {
   border-width: 3px;
+  cursor: pointer;
 }
 
 ::-webkit-scrollbar-button {
@@ -188,6 +187,10 @@
 
 .os-theme-closer .os-scrollbar-handle {
   transition: width 150ms ease, height 150ms ease, background-color 150ms ease;
+}
+
+.os-theme-closer .os-scrollbar-handle:hover {
+  cursor: pointer;
 }
 
 /* Model selector trigger: suppress focus ring/border when dropdown is open */

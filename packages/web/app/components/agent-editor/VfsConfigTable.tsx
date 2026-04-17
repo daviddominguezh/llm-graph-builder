@@ -46,10 +46,10 @@ function TableHeader({ t }: { t: (key: string) => string }) {
   return (
     <thead>
       <tr className="border-b">
-        <th className="pl-0 pr-3 py-1.5 text-left text-[11px] font-medium text-muted-foreground/70 whitespace-nowrap">{t('tenantColumn')}</th>
-        <th className="px-3 py-1.5 text-left text-[11px] font-medium text-muted-foreground/70 whitespace-nowrap">{t('githubAccountColumn')}</th>
-        <th className="px-3 py-1.5 text-left text-[11px] font-medium text-muted-foreground/70 whitespace-nowrap">{t('repositoryColumn')}</th>
-        <th className="pl-3 pr-0 py-1.5 text-left text-[11px] font-medium text-muted-foreground/70 whitespace-nowrap">{t('statusColumn')}</th>
+        <th className="pl-0 pr-3 py-1.5 text-left text-[11px] font-medium text-muted-foreground whitespace-nowrap">{t('tenantColumn')}</th>
+        <th className="px-3 py-1.5 text-left text-[11px] font-medium text-muted-foreground whitespace-nowrap">{t('githubAccountColumn')}</th>
+        <th className="px-3 py-1.5 text-left text-[11px] font-medium text-muted-foreground whitespace-nowrap">{t('repositoryColumn')}</th>
+        <th className="pl-3 pr-0 py-1.5 text-left text-[11px] font-medium text-muted-foreground whitespace-nowrap">{t('statusColumn')}</th>
       </tr>
     </thead>
   );
