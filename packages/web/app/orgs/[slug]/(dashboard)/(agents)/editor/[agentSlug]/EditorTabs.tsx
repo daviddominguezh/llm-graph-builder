@@ -131,7 +131,7 @@ export function EditorTabs(props: EditorTabsProps) {
   useSlotSync(slotRef, activeTab);
 
   return (
-    <div className="w-full h-full flex flex-col">
+    <div className="w-full h-full flex flex-col pt-[1px]">
       <EditorTabBar activeTab={activeTab} onTabChange={setActiveTab} t={t} tAgents={tAgents} />
       <div ref={slotRef} className={activeTab === 'agent' ? 'flex-1' : 'hidden'} />
       <div className={`flex flex-col bg-background ${activeTab === 'agent' ? 'hidden' : 'flex-1'}`}>
