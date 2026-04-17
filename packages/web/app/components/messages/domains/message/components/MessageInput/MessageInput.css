@@ -26,25 +26,6 @@
   font-style: normal;
 }
 
-/* Scrollbar styling */
-.message-textarea-wrapper textarea::-webkit-scrollbar {
-  width: 6px;
-}
-
-.message-textarea-wrapper textarea::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-.message-textarea-wrapper textarea::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 3px;
-}
-
-.message-textarea-wrapper textarea::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
-
 /* Emoji picker theme overrides — map to app design tokens */
 .EmojiPickerReact {
   --epr-bg-color: var(--background);

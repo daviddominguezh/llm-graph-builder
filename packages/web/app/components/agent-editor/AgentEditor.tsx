@@ -77,13 +77,13 @@ export function AgentEditor({
     <div className="absolute pepeg" style={insets} onClick={onBackgroundClick}>
       <div className="flex h-full w-full bg-background px-1.5 pb-1.5">
         <div
-          className="w-full h-full flex animate-in fade-in duration-300 gap-1 px-1"
+          className="w-full h-full flex animate-in fade-in duration-300 gap-2 px-1"
           onClick={(e) => e.stopPropagation()}
         >
           <GlassPanel className="flex min-w-0 flex-1 shrink-0 flex-col p-4 mt-2 mb-0 rounded-xl shadow-none">
             <SystemPromptField value={state.systemPrompt} onChange={actions.handleSystemPromptChange} />
           </GlassPanel>
-          <GlassPanel className="flex min-w-0 flex-1 shrink-0 flex-col gap-6 overflow-y-auto p-4 pt-3.5 mt-2 pb-12 rounded-xl shadow-none">
+          <GlassPanel className="flex min-w-0 flex-1 h-full shrink-0 flex-col gap-6 p-4 pt-3.5 mt-2 pb-12 rounded-xl shadow-none">
             <SkillsList
               skills={state.skills}
               onAdd={skillActions.handleAddSkills}

@@ -175,23 +175,28 @@ function EditorTabBar({
       variant="background"
       className="relative w-[calc(100%-(var(--spacing)*5))] rounded-full h-[41px] shrink-0 flex items-center px-2 mx-2.5 pointer-events-auto"
     >
-      <Button
-        variant="ghost"
-        size="lg"
-        className="mr-2 hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
-        onClick={() => setCollapsed(!collapsed)}
-        title={sidebarLabel}
-      >
-        <SidebarIcon />
-      </Button>
-      <Separator orientation="vertical" className="my-2" />
-      <div className="inline-flex gap-1 dark:gap-0.5 rounded-sm border border-[0.5px] border-transparent bg-input dark:bg-input/40 dark:bg-muted/50 p-0.5 ml-5">
-        {TABS.map((tab) => (
-          <TabButton key={tab} tab={tab} active={activeTab === tab} onClick={onTabChange} label={t(tab)} />
-        ))}
+      <div className="flex flex-row  w-full">
+        <Button
+          variant="ghost"
+          size="lg"
+          className="mr-2 hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
+          onClick={() => setCollapsed(!collapsed)}
+          title={sidebarLabel}
+        >
+          <SidebarIcon />
+        </Button>
+        <Separator orientation="vertical" className="my-2" />
+        <div className="inline-flex gap-1 dark:gap-0.5 rounded-sm border border-[0.5px] border-transparent bg-input dark:bg-input/40 dark:bg-muted/50 p-0.5 ml-5">
+          {TABS.map((tab) => (
+            <TabButton key={tab} tab={tab} active={activeTab === tab} onClick={onTabChange} label={t(tab)} />
+          ))}
+        </div>
+        <div className="flex-1" />
+        <div
+          ref={toolbarRef}
+          className={`flex items-center gap-1.5 ${activeTab !== 'agent' ? 'hidden' : ''}`}
+        />
       </div>
-      <div className="flex-1" />
-      <div ref={toolbarRef} className={`flex items-center gap-1.5 ${activeTab !== 'agent' ? 'hidden' : ''}`} />
     </GlassPanel>
   );
 }

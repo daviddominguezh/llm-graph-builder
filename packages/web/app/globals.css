@@ -48,6 +48,7 @@
 }
 
 :root {
+  --scrollbar-thumb: rgb(107 114 128 / 0.5);
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(0.967 0.001 286.375);
@@ -85,6 +86,7 @@
 }
 
 .dark {
+  --scrollbar-thumb: rgb(156 163 175 / 0.4);
   --background: lab(2.75381% 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.21 0.006 285.885);
@@ -128,6 +130,38 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Global scrollbars: thin thumb, no track, grows on hover. Always visible (not overlay). */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  background-clip: padding-box;
+  border: 4.5px solid transparent;
+  border-radius: 9999px;
+  transition: border-width 150ms ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  border-width: 3px;
+}
+
+::-webkit-scrollbar-button {
+  display: none;
 }
 
 /* Model selector trigger: suppress focus ring/border when dropdown is open */
