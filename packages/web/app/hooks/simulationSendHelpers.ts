@@ -93,6 +93,9 @@ export function buildMergedCallbacks(deps: SendMessageDeps, store: CompositionSt
         }
       } else {
         baseOnComplete?.();
+        if (lastResponseText !== '') {
+          store.dispatch({ type: 'ASSISTANT_RESPONSE', text: lastResponseText });
+        }
       }
       store.dispatch({ type: 'STREAM_COMPLETED' });
     },

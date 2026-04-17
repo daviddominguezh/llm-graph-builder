@@ -48,6 +48,7 @@ export type CompositionEvent =
   | { type: 'CHILD_AUTO_SENT' }
   | { type: 'CHILD_RESPONSE'; text: string }
   | { type: 'USER_MESSAGE'; text: string }
+  | { type: 'ASSISTANT_RESPONSE'; text: string }
   | { type: 'CHILD_FINISHED'; output: string; status: 'success' | 'error' }
   | { type: 'PARENT_RESUMED' }
   | { type: 'STREAM_COMPLETED' }
@@ -123,6 +124,11 @@ function appendAssistantToStack(stack: CompositionLevel[], text: string): Compos
   return [...stack.slice(0, -1), updated];
 }
 
+function handleAssistantResponse(state: CompositionState, text: string): CompositionState {
+  const msg = createAssistantMessage(text);
+  return { ...state, rootMessages: [...state.rootMessages, msg] };
+}
+
 function handleChildResponse(state: CompositionState, text: string): CompositionState {
   return { ...state, stack: appendAssistantToStack(state.stack, text) };
 }
@@ -158,6 +164,8 @@ export function transition(state: CompositionState, event: CompositionEvent): Co
       return handleChildAutoSent(state);
     case 'USER_MESSAGE':
       return handleUserMessage(state, event.text);
+    case 'ASSISTANT_RESPONSE':
+      return handleAssistantResponse(state, event.text);
     case 'CHILD_RESPONSE':
       return handleChildResponse(state, event.text);
     case 'CHILD_FINISHED':

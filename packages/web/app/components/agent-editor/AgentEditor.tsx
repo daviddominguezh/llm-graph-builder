@@ -1,5 +1,6 @@
 'use client';
 
+import { GlassPanel } from '@/components/ui/glass-panel';
 import type { Operation } from '@daviddh/graph-types';
 import { useEffect, useState } from 'react';
 
@@ -79,10 +80,10 @@ export function AgentEditor({
           className="w-full h-full flex animate-in fade-in duration-300 gap-1 px-1"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex min-w-0 flex-1 shrink-0 flex-col p-4 bg-popover rounded-md mt-2 mb-0 border">
+          <GlassPanel className="flex min-w-0 flex-1 shrink-0 flex-col p-4 mt-2 mb-0 rounded-xl shadow-none">
             <SystemPromptField value={state.systemPrompt} onChange={actions.handleSystemPromptChange} />
-          </div>
-          <div className="flex min-w-0 flex-1 shrink-0 flex-col gap-6 overflow-y-auto bg-popover rounded-md p-4 pt-3.5 mt-2 pb-12 border">
+          </GlassPanel>
+          <GlassPanel className="flex min-w-0 flex-1 shrink-0 flex-col gap-6 overflow-y-auto p-4 pt-3.5 mt-2 pb-12 rounded-xl shadow-none">
             <SkillsList
               skills={state.skills}
               onAdd={skillActions.handleAddSkills}
@@ -99,7 +100,7 @@ export function AgentEditor({
             {agentId !== undefined && orgId !== undefined && (
               <VfsConfigSection agentId={agentId} orgId={orgId} />
             )}
-          </div>
+          </GlassPanel>
         </div>
       </div>
     </div>

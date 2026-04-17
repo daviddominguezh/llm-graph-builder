@@ -33,7 +33,7 @@ interface SkillsListProps {
 
 function EmptyState({ title, description }: { title: string; description: string }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-md border border-dashed border-ring/50 bg-input/20 py-6 text-center">
+    <div className="flex flex-col items-center gap-2 rounded-md border border-dashed border-ring/50 bg-background dark:bg-input/30 py-6 text-center">
       <Sparkles className="size-5 text-muted-foreground/50" />
       <p className="text-xs text-muted-foreground">{title}</p>
       <p className="max-w-xs text-[11px] text-muted-foreground/70">{description}</p>
@@ -196,7 +196,7 @@ export function SkillsList({ skills, onAdd, onDelete, onDeleteMany }: SkillsList
               {t('removeSelected', { count: String(selectedCount) })}
             </Button>
           )}
-          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setDialogOpen(true)}>
+          <Button variant="outline" size="sm" className="h-7 text-xs rounded-md" onClick={() => setDialogOpen(true)}>
             <Plus className="mr-1 size-3" />
             {t('addSkill')}
           </Button>

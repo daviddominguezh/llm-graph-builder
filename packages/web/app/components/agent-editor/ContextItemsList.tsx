@@ -24,7 +24,7 @@ interface ContextItemsListProps {
 
 function EmptyState({ title, description }: { title: string; description: string }) {
   return (
-    <div className="border border-ring/50 border-dashed rounded-md flex flex-col items-center gap-2 py-6 text-center bg-input/20">
+    <div className="border border-ring/50 border-dashed rounded-md flex flex-col items-center gap-2 py-6 text-center bg-background dark:bg-input/30">
       <MessageSquare className="size-5 text-muted-foreground/50" />
       <p className="text-xs text-muted-foreground">{title}</p>
       <p className="max-w-xs text-[11px] text-muted-foreground/70">{description}</p>
@@ -44,7 +44,7 @@ export function ContextItemsList({ items, onInsert, onUpdate, onDelete }: Contex
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <Label className="text-xs font-medium">{t('contextItems')}</Label>
-        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleAdd}>
+        <Button variant="outline" size="sm" className="h-7 text-xs rounded-md" onClick={handleAdd}>
           <Plus className="mr-1 size-3" />
           {t('addContextItem')}
         </Button>

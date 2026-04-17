@@ -29,7 +29,7 @@ const tabBase =
 function ViewTabs({ showRendered, onChange }: { showRendered: boolean; onChange: (rendered: boolean) => void }) {
   const t = useTranslations('agentEditor');
   return (
-    <div className="inline-flex gap-1 dark:gap-0.5 rounded-sm border bg-muted/50 p-0.5">
+    <div className="inline-flex gap-1 dark:gap-0.5 rounded-sm bg-input dark:bg-input/40 dark:bg-muted/50 p-0.5">
       <button type="button" onClick={() => onChange(false)} className={`${tabBase} ${showRendered ? inactiveTab : activeTab}`}>
         <Braces className="size-3" />
         {t('viewRaw')}
@@ -89,7 +89,7 @@ export function SystemPromptField({ value, onChange }: SystemPromptFieldProps) {
         <ViewTabs showRendered={showRendered} onChange={setShowRendered} />
       </div>
       {showRendered ? (
-        <div className="min-h-0 flex-1 overflow-y-auto rounded-md border bg-background">
+        <div className="min-h-0 flex-1 overflow-y-auto rounded-md border bg-background border border-[0.5px] border-input">
           <RenderedView text={liveText} />
         </div>
       ) : (
@@ -98,7 +98,7 @@ export function SystemPromptField({ value, onChange }: SystemPromptFieldProps) {
           defaultValue={value}
           onChange={handleChange}
           placeholder={t('systemPromptPlaceholder')}
-          className="min-h-0 flex-1 resize-none text-sm"
+          className="min-h-0 flex-1 resize-none text-sm bg-background border border-[0.5px] border-input"
         />
       )}
     </div>
