@@ -18,10 +18,10 @@ export function GlassPanel({ children, className, variant = 'background', style 
       : 'shadow-sm';
   return (
     <div
-      className={`relative glass-panel ${shadow} border border-[0.5px] overflow-hidden glass-panel--${variant} ${className ?? ''}`}
+      className={`relative glass-panel ${shadow} border border-[0.5px] glass-panel--${variant} ${className ?? ''}`}
       style={style}
     >
-      <div className="w-full h-full flex flex-col overflow-auto justify-center">{children}</div>
+      {children}
     </div>
   );
 }

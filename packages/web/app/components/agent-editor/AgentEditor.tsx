@@ -80,26 +80,28 @@ export function AgentEditor({
           className="w-full h-full flex animate-in fade-in duration-300 gap-2 px-1"
           onClick={(e) => e.stopPropagation()}
         >
-          <GlassPanel className="flex min-w-0 flex-1 shrink-0 flex-col p-4 mt-2 mb-0 rounded-xl shadow-none">
+          <GlassPanel className="flex min-w-0 flex-1 h-[calc(100%-var(--spacing)*2.5)] shrink-0 flex-col p-4 mt-2 mb-2.5 rounded-xl shadow-none">
             <SystemPromptField value={state.systemPrompt} onChange={actions.handleSystemPromptChange} />
           </GlassPanel>
-          <GlassPanel className="flex min-w-0 flex-1 h-full shrink-0 flex-col gap-6 p-4 pt-3.5 mt-2 pb-12 rounded-xl shadow-none">
-            <SkillsList
-              skills={state.skills}
-              onAdd={skillActions.handleAddSkills}
-              onDelete={skillActions.handleDeleteSkill}
-              onDeleteMany={skillActions.handleDeleteManySkills}
-            />
-            <ContextItemsList
-              items={state.contextItems}
-              onInsert={actions.handleInsertItem}
-              onUpdate={actions.handleUpdateItem}
-              onDelete={actions.handleDeleteItem}
-            />
-            <MaxStepsField value={state.maxSteps} onChange={actions.handleMaxStepsChange} />
-            {agentId !== undefined && orgId !== undefined && (
-              <VfsConfigSection agentId={agentId} orgId={orgId} />
-            )}
+          <GlassPanel className="flex min-w-0 flex-1 h-[calc(100%-var(--spacing)*2.5)] shrink-0 flex-col p-4 mt-2 mb-2.5 rounded-xl shadow-none gap-6 pt-3.5 overflow-hidden">
+            <div className="flex flex-col gap-6 h-full overflow-y-auto">
+              <SkillsList
+                skills={state.skills}
+                onAdd={skillActions.handleAddSkills}
+                onDelete={skillActions.handleDeleteSkill}
+                onDeleteMany={skillActions.handleDeleteManySkills}
+              />
+              <ContextItemsList
+                items={state.contextItems}
+                onInsert={actions.handleInsertItem}
+                onUpdate={actions.handleUpdateItem}
+                onDelete={actions.handleDeleteItem}
+              />
+              <MaxStepsField value={state.maxSteps} onChange={actions.handleMaxStepsChange} />
+              {agentId !== undefined && orgId !== undefined && (
+                <VfsConfigSection agentId={agentId} orgId={orgId} />
+              )}
+            </div>
           </GlassPanel>
         </div>
       </div>

@@ -48,7 +48,7 @@
 }
 
 :root {
-  --scrollbar-thumb: rgb(107 114 128 / 0.5);
+  --scrollbar-thumb: rgb(107 114 128 / 0.7);
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(0.967 0.001 286.375);
@@ -86,7 +86,7 @@
 }
 
 .dark {
-  --scrollbar-thumb: rgb(156 163 175 / 0.4);
+  --scrollbar-thumb: rgb(156 163 175 / 0.6);
   --background: lab(2.75381% 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.21 0.006 285.885);
@@ -133,12 +133,15 @@
 }
 
 /* Global scrollbars: thin thumb, no track, grows on hover. Always visible (not overlay). */
+/* Firefox: scrollbar-color themes the thumb. We intentionally avoid scrollbar-width
+   because its new Chrome implementation conflicts with ::-webkit-scrollbar styling
+   and re-introduces macOS overlay fade behavior. */
 * {
-  scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 ::-webkit-scrollbar {
+  -webkit-appearance: none;
   width: 12px;
   height: 12px;
 }
@@ -153,6 +156,7 @@
   background-clip: padding-box;
   border: 4.5px solid transparent;
   border-radius: 9999px;
+  min-height: 40px;
   transition: border-width 150ms ease;
 }
 

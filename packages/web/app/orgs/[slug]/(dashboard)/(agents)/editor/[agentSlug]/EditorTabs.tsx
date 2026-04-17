@@ -175,7 +175,7 @@ function EditorTabBar({
       variant="background"
       className="relative w-[calc(100%-(var(--spacing)*5))] rounded-full h-[41px] shrink-0 flex items-center px-2 mx-2.5 pointer-events-auto"
     >
-      <div className="flex flex-row  w-full">
+      <div className="flex flex-row w-full">
         <Button
           variant="ghost"
           size="lg"
