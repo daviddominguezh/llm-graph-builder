@@ -89,7 +89,7 @@ export function SystemPromptField({ value, onChange }: SystemPromptFieldProps) {
         <ViewTabs showRendered={showRendered} onChange={setShowRendered} />
       </div>
       {showRendered ? (
-        <div className="min-h-0 flex-1 overflow-y-auto rounded-md border bg-background border border-[0.5px] border-input">
+        <div className="min-h-0 flex-1 overflow-y-auto rounded-md border bg-background">
           <RenderedView text={liveText} />
         </div>
       ) : (
@@ -98,7 +98,7 @@ export function SystemPromptField({ value, onChange }: SystemPromptFieldProps) {
           defaultValue={value}
           onChange={handleChange}
           placeholder={t('systemPromptPlaceholder')}
-          className="min-h-0 flex-1 resize-none text-sm bg-background border border-[0.5px] border-input"
+          className="min-h-0 flex-1 resize-none text-sm bg-background"
         />
       )}
     </div>
