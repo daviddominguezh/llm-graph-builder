@@ -524,7 +524,5 @@ div.model-selector-trigger[data-slot="input-group"] {
   pointer-events: none;
   backdrop-filter: blur(16px);
   overflow: hidden;
-  box-shadow:
-    inset -1px 1px 0px -0.5px var(--ring),
-    inset 1px -1px 0px -0.5px var(--ring);
+  box-shadow: inset 3px -2px 0px -2px var(--border), -0.5px 1px 0px -0.5px var(--border), 1.5px -1.5px 0px -1px var(--border);
 }
