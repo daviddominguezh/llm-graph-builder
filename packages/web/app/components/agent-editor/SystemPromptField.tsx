@@ -84,7 +84,7 @@ export function SystemPromptField({ value, onChange }: SystemPromptFieldProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-1.5">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-[calc(var(--spacing)+1px)]">
         <Label htmlFor="system-prompt" className="text-xs font-medium">{t('systemPrompt')}</Label>
         <ViewTabs showRendered={showRendered} onChange={setShowRendered} />
       </div>
