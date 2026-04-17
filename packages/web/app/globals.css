@@ -49,8 +49,8 @@
 }
 
 :root {
-  --scrollbar-thumb: rgb(69 69 69);
-  --scrollbar-thumb-hover: rgb(69 69 69);
+  --scrollbar-thumb: rgb(202 202 202);
+  --scrollbar-thumb-hover: rgb(202 202 202);
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(0.967 0.001 286.375);
