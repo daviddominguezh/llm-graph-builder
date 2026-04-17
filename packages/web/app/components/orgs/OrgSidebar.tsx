@@ -65,7 +65,7 @@ function NavItem({
 }) {
   return (
     <div
-      className={`cursor-pointer group flex flex-col justify-center items-center p-0 w-full aspect-square rounded-[5px] ${active ? 'bg-primary/15 hover:bg-primary/15' : 'hover:bg-sidebar-accent'}`}
+      className={`cursor-pointer group flex flex-col justify-center items-center p-0 w-full aspect-square rounded-[5px] ${active ? 'bg-primary/8 hover:bg-primary/8' : 'hover:bg-sidebar-accent'}`}
     >
       <Button
         variant="ghost"
@@ -327,7 +327,7 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
 
   return (
     <aside
-      className={`shrink-0 flex flex-col gap-2 overflow-hidden p-2 pl-1.5 pr-0 pt-2.5 pb-2 transition-[width,background-color] duration-100 ${sidebar.collapsed ? 'w-[calc(45px-var(--spacing)*1.5)] bg-background' : 'w-58.5 bg-background'} ${sidebar.contentCollapsed ? 'border border-transparent' : 'shadow-lg border rounded-e-md z-12'}`}
+      className={`shrink-0 flex flex-col gap-2 overflow-hidden p-2 pl-1.5 pr-0 pt-3 pb-2 transition-[width,background-color] duration-100 ${sidebar.collapsed ? 'w-[calc(45px-var(--spacing)*1.5)] bg-background' : 'w-58.5 bg-background'} ${sidebar.contentCollapsed ? 'border border-transparent' : 'shadow-lg border rounded-e-md z-12'}`}
     >
       <OrgSwitcherPopover
         currentOrg={org}

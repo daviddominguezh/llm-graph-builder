@@ -281,7 +281,7 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
 
   return (
     <div
-      className={`relative flex flex-col h-full w-full overflow-y-scroll overflow-x-hidden ${activeChat && !isMobile ? 'flex' : activeChat ? 'hidden' : ''}`}
+      className={`relative flex flex-col h-full w-full ${activeChat && !isMobile ? 'flex' : activeChat ? 'hidden' : ''}`}
       style={{
         borderRight: 'none',
       }}
@@ -396,7 +396,7 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
         </Alert>
       ) : displayedChatsFiltered.length > 0 ? (
         // All chats
-        <div ref={chatListScrollRef} className="flex flex-col w-full h-fit pb-9 overflow-y-auto pt-2 gap-1" onScroll={handleScroll}>
+        <div ref={chatListScrollRef} className="flex flex-col w-full h-fit pb-9 overflow-y-auto pt-2.5 gap-1" onScroll={handleScroll}>
           {displayedChatsFiltered.map((chat) => (
             <MessagePreview
               key={chat.chatId}

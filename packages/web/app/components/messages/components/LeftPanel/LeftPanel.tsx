@@ -149,7 +149,7 @@ function NavItemRow({
 }) {
   return (
     <div
-      className={`cursor-pointer group flex flex-col justify-center py-1 rounded-[5px] ${active ? 'bg-primary/15' : 'hover:bg-input/30'}`}
+      className={`cursor-pointer group flex flex-col justify-center py-1 rounded-[5px] ${active ? 'bg-primary/8' : 'hover:bg-primary/8'}`}
     >
       <Button
         variant="ghost"
