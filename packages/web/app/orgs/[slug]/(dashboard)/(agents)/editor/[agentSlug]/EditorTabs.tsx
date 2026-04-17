@@ -50,7 +50,7 @@ interface TabButtonProps {
 }
 
 const TAB_BASE =
-  'cursor-pointer inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors border border-transparent';
+  'cursor-pointer inline-flex h-fit items-center gap-1.5 rounded px-2.5 py-0.5 text-xs font-medium transition-colors border border-transparent';
 const TAB_ACTIVE = 'bg-popover dark:bg-input text-foreground shadow-sm';
 const TAB_INACTIVE =
   'text-muted-foreground hover:text-foreground border-transparent hover:bg-input dark:hover:bg-card';
@@ -175,7 +175,7 @@ function EditorTabBar({
       variant="background"
       className="relative w-[calc(100%-(var(--spacing)*4))] rounded-full h-[41px] shrink-0 flex items-center px-2 mx-2 pointer-events-auto"
     >
-      <div className="flex flex-row w-full">
+      <div className="flex flex-row w-full items-center">
         <Button
           variant="ghost"
           size="lg"
@@ -186,7 +186,7 @@ function EditorTabBar({
           <SidebarIcon />
         </Button>
         <Separator orientation="vertical" className="my-2" />
-        <div className="inline-flex gap-1 dark:gap-0.5 rounded-sm border border-[0.5px] border-transparent bg-input dark:bg-input/40 dark:bg-muted/50 p-0.5 ml-4.5">
+        <div className="inline-flex gap-1 h-fit dark:gap-0.5 rounded-sm border border-[0.5px] border-transparent bg-input dark:bg-input/40 dark:bg-muted/50 p-0.5 ml-4.5">
           {TABS.map((tab) => (
             <TabButton key={tab} tab={tab} active={activeTab === tab} onClick={onTabChange} label={t(tab)} />
           ))}
