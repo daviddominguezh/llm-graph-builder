@@ -258,7 +258,9 @@
     "skillContent": "Skill content",
     "removeSelected": "Remove ({count})",
     "removeSelectedTitle": "Remove {count} skill(s)?",
-    "removeSelectedDescription": "The selected skills will be removed from the agent."
+    "removeSelectedDescription": "The selected skills will be removed from the agent.",
+    "promptTab": "Prompt",
+    "capabilitiesTab": "Capabilities"
   },
   "edgePanel": {
     "parameters": "Parameters:",
