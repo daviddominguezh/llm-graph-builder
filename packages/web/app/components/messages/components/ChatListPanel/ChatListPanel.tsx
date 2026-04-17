@@ -1,3 +1,4 @@
+import { getScrollViewport } from '@/app/components/GlobalScrollbarOverlay';
 import { getCurrentFirebaseUser } from '@/app/components/messages/services/firebase';
 import MessagePreview from '@/app/components/messages/shared/messagePreview';
 import { TEST_PHONE } from '@/app/constants/messages';
@@ -110,8 +111,9 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
       if (scrollValue > 0) {
         // Use requestAnimationFrame to ensure DOM is ready
         requestAnimationFrame(() => {
-          if (chatListScrollRef.current) {
-            chatListScrollRef.current.scrollTop = scrollValue;
+          const viewport = getScrollViewport(chatListScrollRef.current);
+          if (viewport) {
+            viewport.scrollTop = scrollValue;
             // Clear after restoring
             sessionStorage.removeItem(SCROLL_STORAGE_KEY);
           }
@@ -122,9 +124,9 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
 
   // Save scroll position before it potentially resets
   const handleChatSelect = (id: string | null, shouldMarkRead?: boolean) => {
-    if (chatListScrollRef.current) {
-      const currentScroll = chatListScrollRef.current.scrollTop;
-      sessionStorage.setItem(SCROLL_STORAGE_KEY, currentScroll.toString());
+    const viewport = getScrollViewport(chatListScrollRef.current);
+    if (viewport) {
+      sessionStorage.setItem(SCROLL_STORAGE_KEY, viewport.scrollTop.toString());
     }
     onChatSelect(id, shouldMarkRead);
   };
@@ -245,6 +247,8 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
     { value: 'all', label: t('All') },
   ];
 
+  console.log('here');
+
   // Filter search results to only show chats that are in displayedChats (left panel filter)
   const filteredChatsPhoneVisible = useMemo(() => {
     return filteredChatsPhone.filter((chat) => displayedChats.some((dc) => dc.chatId === chat.chatId));
@@ -311,7 +315,7 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
 
       {/* Search results */}
       {isSearchActive && hasSearchResults ? (
-        <div ref={chatListScrollRef} data-native-scroll className="w-full h-fit pb-9 overflow-y-auto pt-2">
+        <div ref={chatListScrollRef} className="w-full h-fit pb-9 overflow-y-auto pt-2">
           {/* Chats by phone */}
           {filteredChatsPhoneVisible.length > 0 && (
             <div>
@@ -381,7 +385,10 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
         </Alert>
       ) : displayedChatsFiltered.length > 0 ? (
         // All chats
-        <div ref={chatListScrollRef} className="flex flex-col w-full h-fit pb-9 overflow-y-auto pt-2.5 gap-1">
+        <div
+          ref={chatListScrollRef}
+          className="flex flex-col w-full h-fit pb-9 overflow-y-auto pt-2.5 gap-1"
+        >
           {displayedChatsFiltered.map((chat) => (
             <MessagePreview
               key={chat.chatId}

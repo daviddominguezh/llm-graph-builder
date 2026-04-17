@@ -168,6 +168,27 @@
   display: none;
 }
 
+/* Inside OverlayScrollbars viewports, suppress the native scrollbar entirely —
+   the library draws its own fake scrollbar as an overlay, and we don't want
+   the native one to reserve any gutter space inside the viewport. */
+[data-overlayscrollbars-viewport]::-webkit-scrollbar,
+[data-overlayscrollbars-viewport]::-webkit-scrollbar-thumb,
+[data-overlayscrollbars-viewport]::-webkit-scrollbar-track,
+[data-overlayscrollbars-viewport]::-webkit-scrollbar-corner {
+  width: 0;
+  height: 0;
+  background: transparent;
+  display: none;
+}
+
+/* When we hijack a Tailwind `.overflow-*` div, it becomes an OverlayScrollbars
+   host. The host must NOT scroll natively — scrolling belongs to the internal
+   viewport child. Override any overflow utility class on the host so the
+   host's own native scrollbar disappears. */
+[data-overlayscrollbars~="host"] {
+  overflow: hidden;
+}
+
 /* OverlayScrollbars custom theme: thin 3px thumb → 6px on hover, no track, rounded. */
 .os-theme-closer {
   --os-size: 12px;
