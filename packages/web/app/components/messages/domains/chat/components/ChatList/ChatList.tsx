@@ -1,8 +1,8 @@
 import { LAST_MESSAGES_SCROLL_THRESHOLD } from '@/app/constants/lastMessages';
 import { TEST_PHONE } from '@/app/constants/messages';
+import { useListVirtualizer } from '@/app/hooks/useListVirtualizer';
 import { AI_MESSAGE_ROLES, INTENT, LastMessage } from '@/app/types/chat';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ChatFilters } from '../../../../MessagesDashboard.types';
 import styles from './ChatList.module.css';
@@ -58,6 +58,10 @@ export const ChatList: React.FC<ChatListProps> = memo(
     const enableVirtualization = true;
     const itemHeight = 80; // Estimated height of each chat item
     const isLoadingMoreRef = useRef(false);
+    const [testChatTimestamp, setTestChatTimestamp] = useState<number>(0);
+    useEffect(() => {
+      setTestChatTimestamp(Date.now());
+    }, []);
 
     // Track loading state to prevent duplicate calls
     useEffect(() => {
@@ -118,7 +122,7 @@ export const ChatList: React.FC<ChatListProps> = memo(
           key: TEST_PHONE,
           originalId: '',
           name: 'Test Chat',
-          timestamp: Date.now(),
+          timestamp: testChatTimestamp,
           read: true,
           enabled: true,
           type: 'text',
@@ -192,7 +196,7 @@ export const ChatList: React.FC<ChatListProps> = memo(
     }, [groupedConversations]);
 
     // Virtualization setup
-    const virtualizer = useVirtualizer({
+    const virtualizer = useListVirtualizer({
       count: enableVirtualization ? flatItems.length : 0,
       getScrollElement: () => containerRef.current,
       estimateSize: useCallback(

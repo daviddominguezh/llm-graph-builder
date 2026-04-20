@@ -147,6 +147,16 @@ export function ChannelConnectionField({
   const first = connections[0];
   const defaultValue = first !== undefined ? first.id : '';
 
+  function label(conn: WhatsAppChannelConnection): string {
+    if (conn.phone_number !== null && conn.phone_number !== '') {
+      return conn.phone_number;
+    }
+    if (conn.waba_id !== null && conn.waba_id !== '') {
+      return t('connectionWabaFallback', { wabaId: conn.waba_id });
+    }
+    return t('connectionIdFallback', { id: conn.id.slice(0, 8) });
+  }
+
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor="channelConnectionId">{t('connectionLabel')}</Label>
@@ -157,12 +167,7 @@ export function ChannelConnectionField({
         <SelectContent>
           {connections.map((conn) => (
             <SelectItem key={conn.id} value={conn.id}>
-              <span className="font-mono">
-                {t('connectionOption', {
-                  id: `${conn.id.slice(0, 8)}…`,
-                  tenantId: conn.tenant_id.slice(0, 8),
-                })}
-              </span>
+              <span className="font-mono">{label(conn)}</span>
             </SelectItem>
           ))}
         </SelectContent>

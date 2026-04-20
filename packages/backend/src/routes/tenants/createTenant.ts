@@ -1,6 +1,7 @@
 import type { Request } from 'express';
 
-import { createTenant } from '../../db/queries/tenantQueries.js';
+import { generateSlug } from '../../db/queries/slugQueries.js';
+import { createTenant, findUniqueTenantSlug } from '../../db/queries/tenantQueries.js';
 import {
   type AuthenticatedLocals,
   type AuthenticatedResponse,
@@ -10,6 +11,14 @@ import {
   extractErrorMessage,
 } from '../routeHelpers.js';
 import { parseStringField } from './tenantHelpers.js';
+
+const SLUG_RADIX = 36;
+const SLUG_START = 2;
+const SLUG_END = 10;
+
+function fallbackSlug(): string {
+  return `tenant-${Math.random().toString(SLUG_RADIX).slice(SLUG_START, SLUG_END)}`;
+}
 
 export async function handleCreateTenant(req: Request, res: AuthenticatedResponse): Promise<void> {
   const { supabase }: AuthenticatedLocals = res.locals;
@@ -22,7 +31,11 @@ export async function handleCreateTenant(req: Request, res: AuthenticatedRespons
   }
 
   try {
-    const { result, error } = await createTenant(supabase, orgId, name);
+    const rawSlug = generateSlug(name);
+    const baseSlug = rawSlug === '' ? fallbackSlug() : rawSlug;
+    const slug = await findUniqueTenantSlug(supabase, orgId, baseSlug);
+
+    const { result, error } = await createTenant(supabase, orgId, name, slug);
 
     if (error !== null || result === null) {
       res.status(HTTP_INTERNAL_ERROR).json({ error: error ?? 'Failed to create tenant' });

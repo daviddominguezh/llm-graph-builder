@@ -107,7 +107,7 @@ export function createApp(): Express {
   app.use('/mcp-library', mcpLibraryRouter);
   app.use('/tenants', tenantRouter);
   app.use('/templates', templateRouter);
-  app.use('/orgs/:orgId/whatsapp-templates', whatsappTemplatesRouter);
+  app.use('/tenants/:tenantId/whatsapp-templates', whatsappTemplatesRouter);
   app.use('/github', buildGitHubRouter());
 
   // Messaging routes (auth middleware applied inside the router)

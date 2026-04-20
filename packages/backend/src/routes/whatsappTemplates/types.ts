@@ -11,7 +11,7 @@ export type WhatsAppTemplateStatus = 'approved' | 'pending' | 'rejected' | 'paus
 
 export interface WhatsAppTemplateRow {
   id: string;
-  org_id: string;
+  tenant_id: string;
   channel_connection_id: string;
   meta_template_id: string | null;
   name: string;

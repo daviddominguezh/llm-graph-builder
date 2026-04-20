@@ -12,12 +12,15 @@ import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import Link from 'next/link';
+
 import { CreateTenantDialog } from './CreateTenantDialog';
 import { DeleteTenantDialog } from './DeleteTenantDialog';
 import { EditTenantDialog } from './EditTenantDialog';
 
 interface TenantsSectionProps {
   orgId: string;
+  orgSlug: string;
   initialTenants: TenantRow[];
 }
 
@@ -180,11 +183,13 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 function TenantsTable({
   tenants,
   newIds,
+  orgSlug,
   onEdit,
   onDelete,
 }: {
   tenants: TenantRow[];
   newIds: ReadonlySet<string>;
+  orgSlug: string;
   onEdit: (row: TenantRow) => void;
   onDelete: (row: TenantRow) => void;
 }) {
@@ -203,12 +208,18 @@ function TenantsTable({
       </TableHeader>
       <TableBody>
         {tenants.map((tenant) => (
-          <TableRow key={tenant.id} className={`group/row hover:bg-transparent ${newIds.has(tenant.id) ? 'row-enter' : ''}`}>
+          <TableRow
+            key={tenant.id}
+            className={`group/row hover:bg-transparent ${newIds.has(tenant.id) ? 'row-enter' : ''}`}
+          >
             <TableCell>
-              <div className="flex items-center gap-2 max-w-[200px]">
+              <Link
+                href={`/orgs/${orgSlug}/${tenant.slug}`}
+                className="flex items-center gap-2 max-w-[200px] hover:text-foreground transition-colors"
+              >
                 <TenantAvatar name={tenant.name} avatarUrl={tenant.avatar_url} />
                 <span className="truncate font-medium">{tenant.name}</span>
-              </div>
+              </Link>
             </TableCell>
             <TableCell>
               <CopyableId id={tenant.id} />
@@ -244,7 +255,7 @@ function useTenantsWithNewTracking(initialTenants: TenantRow[]) {
   return { tenants, newIds, updateTenants };
 }
 
-export function TenantsSection({ orgId, initialTenants }: TenantsSectionProps) {
+export function TenantsSection({ orgId, orgSlug, initialTenants }: TenantsSectionProps) {
   const t = useTranslations('tenants');
   const { tenants, newIds, updateTenants } = useTenantsWithNewTracking(initialTenants);
   const [createOpen, setCreateOpen] = useState(false);
@@ -282,7 +293,13 @@ export function TenantsSection({ orgId, initialTenants }: TenantsSectionProps) {
         {count === 0 ? (
           <EmptyState onAdd={() => setCreateOpen(true)} />
         ) : (
-          <TenantsTable tenants={tenants} newIds={newIds} onEdit={setEditTarget} onDelete={setDeleteTarget} />
+          <TenantsTable
+            tenants={tenants}
+            newIds={newIds}
+            orgSlug={orgSlug}
+            onEdit={setEditTarget}
+            onDelete={setDeleteTarget}
+          />
         )}
       </CardContent>
       <CreateTenantDialog

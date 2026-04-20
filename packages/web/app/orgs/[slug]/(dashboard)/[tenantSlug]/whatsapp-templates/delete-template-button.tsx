@@ -22,15 +22,17 @@ import {
 import { deleteTemplateAction } from './actions';
 
 interface DeleteTemplateButtonProps {
-  orgId: string;
-  slug: string;
+  tenantId: string;
+  orgSlug: string;
+  tenantSlug: string;
   templateId: string;
   templateName: string;
 }
 
 export function DeleteTemplateButton({
-  orgId,
-  slug,
+  tenantId,
+  orgSlug,
+  tenantSlug,
   templateId,
   templateName,
 }: DeleteTemplateButtonProps) {
@@ -41,7 +43,7 @@ export function DeleteTemplateButton({
 
   function handleDelete() {
     startTransition(async () => {
-      const { error } = await deleteTemplateAction(orgId, slug, templateId);
+      const { error } = await deleteTemplateAction(tenantId, orgSlug, tenantSlug, templateId);
       if (error !== null) {
         toast.error(error);
         return;

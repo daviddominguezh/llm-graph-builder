@@ -8,19 +8,19 @@ import {
   extractErrorMessage,
 } from '../routeHelpers.js';
 
-function getOrgId(req: Request): string | undefined {
-  const orgIdParam: unknown = req.params.orgId;
-  return typeof orgIdParam === 'string' ? orgIdParam : undefined;
+function getTenantId(req: Request): string | undefined {
+  const tenantIdParam: unknown = req.params.tenantId;
+  return typeof tenantIdParam === 'string' ? tenantIdParam : undefined;
 }
 
 /**
- * GET /orgs/:orgId/whatsapp-templates
- * Lists templates scoped to the org. RLS ensures the user is an org member.
+ * GET /tenants/:tenantId/whatsapp-templates
+ * Lists templates scoped to the tenant. RLS enforces org membership.
  */
 export async function handleListTemplates(req: Request, res: AuthenticatedResponse): Promise<void> {
-  const orgId = getOrgId(req);
-  if (orgId === undefined) {
-    res.status(HTTP_INTERNAL_ERROR).json({ error: 'Missing orgId parameter' });
+  const tenantId = getTenantId(req);
+  if (tenantId === undefined) {
+    res.status(HTTP_INTERNAL_ERROR).json({ error: 'Missing tenantId parameter' });
     return;
   }
 
@@ -29,7 +29,7 @@ export async function handleListTemplates(req: Request, res: AuthenticatedRespon
   const result = await supabase
     .from('whatsapp_templates')
     .select('*')
-    .eq('org_id', orgId)
+    .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false });
 
   if (result.error !== null) {
@@ -43,21 +43,42 @@ export async function handleListTemplates(req: Request, res: AuthenticatedRespon
 interface ConnectionListRow {
   id: string;
   agent_id: string;
-  tenant_id: string;
   enabled: boolean;
+  phone_number: string | null;
+  waba_id: string | null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
+const FIRST_INDEX = 0;
+
+function extractCredentialFields(raw: unknown): { phone: string | null; waba: string | null } {
+  if (Array.isArray(raw)) {
+    const first: unknown = raw[FIRST_INDEX];
+    return extractCredentialFields(first);
+  }
+  if (!isRecord(raw)) return { phone: null, waba: null };
+  const { phone_number: phone, waba_id: waba } = raw;
+  return {
+    phone: typeof phone === 'string' ? phone : null,
+    waba: typeof waba === 'string' ? waba : null,
+  };
+}
+
 function toConnection(value: unknown): ConnectionListRow | null {
   if (!isRecord(value)) return null;
-  const { id, agent_id: agentId, tenant_id: tenantId, enabled } = value;
-  if (typeof id !== 'string' || typeof agentId !== 'string' || typeof tenantId !== 'string') {
-    return null;
-  }
-  return { id, agent_id: agentId, tenant_id: tenantId, enabled: enabled === true };
+  const { id, agent_id: agentId, enabled, whatsapp_credentials: creds } = value;
+  if (typeof id !== 'string' || typeof agentId !== 'string') return null;
+  const { phone, waba } = extractCredentialFields(creds);
+  return {
+    id,
+    agent_id: agentId,
+    enabled: enabled === true,
+    phone_number: phone,
+    waba_id: waba,
+  };
 }
 
 function extractConnections(data: unknown): ConnectionListRow[] {
@@ -71,14 +92,13 @@ function extractConnections(data: unknown): ConnectionListRow[] {
 }
 
 /**
- * GET /orgs/:orgId/whatsapp-templates/connections
- * Returns WhatsApp channel_connections available in the org so the
- * create-template UI can pick which WABA the template belongs to.
+ * GET /tenants/:tenantId/whatsapp-templates/connections
+ * Returns WhatsApp channel_connections for the tenant, enriched with phone_number.
  */
 export async function handleListConnections(req: Request, res: AuthenticatedResponse): Promise<void> {
-  const orgId = getOrgId(req);
-  if (orgId === undefined) {
-    res.status(HTTP_INTERNAL_ERROR).json({ error: 'Missing orgId parameter' });
+  const tenantId = getTenantId(req);
+  if (tenantId === undefined) {
+    res.status(HTTP_INTERNAL_ERROR).json({ error: 'Missing tenantId parameter' });
     return;
   }
 
@@ -87,8 +107,8 @@ export async function handleListConnections(req: Request, res: AuthenticatedResp
   try {
     const result = await supabase
       .from('channel_connections')
-      .select('id, agent_id, tenant_id, enabled')
-      .eq('org_id', orgId)
+      .select('id, agent_id, enabled, whatsapp_credentials(phone_number, waba_id)')
+      .eq('tenant_id', tenantId)
       .eq('channel_type', 'whatsapp');
 
     if (result.error !== null) {

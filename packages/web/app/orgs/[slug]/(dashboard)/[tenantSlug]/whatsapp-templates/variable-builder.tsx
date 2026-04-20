@@ -27,7 +27,7 @@ function updateVariableAtIndex(
 function ColumnHeaders() {
   const t = useTranslations('whatsappTemplates.variableBuilder');
   return (
-    <div className="flex items-center gap-2 px-0.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+    <div className="flex items-center gap-2 px-0.5 text-[11px] text-muted-foreground">
       <span className="w-16 shrink-0">{t('keyLabel')}</span>
       <span className="flex-1">{t('nameLabel')}</span>
       <span className="flex-1">{t('exampleLabel')}</span>

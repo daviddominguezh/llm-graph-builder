@@ -14,9 +14,9 @@ import { createMetaTemplate, mapMetaStatus } from './metaTemplateApi.js';
 import type { CreateTemplateRequestBody, WhatsAppTemplateCategory, WhatsAppTemplateStatus } from './types.js';
 import { validateBodyPlaceholders, validateCreateBody, validateVariableShape } from './validators.js';
 
-function getOrgId(req: Request): string | undefined {
-  const orgIdParam: unknown = req.params.orgId;
-  return typeof orgIdParam === 'string' ? orgIdParam : undefined;
+function getTenantId(req: Request): string | undefined {
+  const tenantIdParam: unknown = req.params.tenantId;
+  return typeof tenantIdParam === 'string' ? tenantIdParam : undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -64,7 +64,7 @@ function parseCreateBody(raw: unknown): CreateTemplateRequestBody | { error: str
 }
 
 interface InsertParams {
-  orgId: string;
+  tenantId: string;
   body: CreateTemplateRequestBody;
   metaId: string;
   initialStatus: WhatsAppTemplateStatus;
@@ -74,11 +74,11 @@ async function insertTemplateRow(
   supabase: SupabaseClient,
   params: InsertParams
 ): Promise<{ data: unknown; error: { message: string } | null }> {
-  const { orgId, body, metaId, initialStatus } = params;
+  const { tenantId, body, metaId, initialStatus } = params;
   const result = await supabase
     .from('whatsapp_templates')
     .insert({
-      org_id: orgId,
+      tenant_id: tenantId,
       channel_connection_id: body.channelConnectionId,
       meta_template_id: metaId,
       name: body.name,
@@ -96,10 +96,10 @@ async function insertTemplateRow(
 
 async function callMetaAndInsert(
   supabase: SupabaseClient,
-  orgId: string,
+  tenantId: string,
   body: CreateTemplateRequestBody
 ): Promise<{ status: number; body: unknown }> {
-  const credentials = await loadConnectionCredentials(supabase, body.channelConnectionId, orgId);
+  const credentials = await loadConnectionCredentials(supabase, body.channelConnectionId, tenantId);
 
   const metaResult = await createMetaTemplate({
     wabaId: credentials.wabaId,
@@ -113,7 +113,7 @@ async function callMetaAndInsert(
 
   const initialStatus = mapMetaStatus(metaResult.status) ?? 'pending';
   const insertResult = await insertTemplateRow(supabase, {
-    orgId,
+    tenantId,
     body,
     metaId: metaResult.id,
     initialStatus,
@@ -132,14 +132,14 @@ async function callMetaAndInsert(
 }
 
 /**
- * POST /orgs/:orgId/whatsapp-templates
+ * POST /tenants/:tenantId/whatsapp-templates
  * Creates a template on Meta's WABA and stores metadata locally.
  * RLS enforces that only org owners/admins can insert.
  */
 export async function handleCreateTemplate(req: Request, res: AuthenticatedResponse): Promise<void> {
-  const orgId = getOrgId(req);
-  if (orgId === undefined) {
-    res.status(HTTP_INTERNAL_ERROR).json({ error: 'Missing orgId parameter' });
+  const tenantId = getTenantId(req);
+  if (tenantId === undefined) {
+    res.status(HTTP_INTERNAL_ERROR).json({ error: 'Missing tenantId parameter' });
     return;
   }
 
@@ -152,7 +152,7 @@ export async function handleCreateTemplate(req: Request, res: AuthenticatedRespo
   const { supabase }: AuthenticatedLocals = res.locals;
 
   try {
-    const result = await callMetaAndInsert(supabase, orgId, parsed);
+    const result = await callMetaAndInsert(supabase, tenantId, parsed);
     res.status(result.status).json(result.body);
   } catch (err) {
     res.status(HTTP_BAD_REQUEST).json({ error: extractErrorMessage(err) });

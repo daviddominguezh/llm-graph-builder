@@ -946,28 +946,23 @@
   },
   "whatsappTemplates": {
     "title": "WhatsApp Templates",
-    "subtitle": "Manage message templates for the WhatsApp Business Cloud API",
-    "createButton": "Create Template",
-    "allTemplates": "All Templates",
-    "empty": "No WhatsApp templates found",
-    "emptyDescription": "Create your first template to get started",
-    "templateCount": "{count, plural, =0 {0 templates} =1 {1 template} other {# templates}}",
-    "countRegistered": "{count} registered",
-    "table": {
-      "name": "Name",
-      "body": "Body",
-      "category": "Category",
-      "status": "Status",
-      "variables": "Variables",
-      "metaId": "Meta ID",
-      "actions": "Actions"
-    },
+    "subtitle": "Messages that can be sent outside the 24-hour window once Meta approves them.",
+    "createButton": "Create template",
+    "empty": "No templates yet",
+    "emptyDescription": "Create your first template and submit it for Meta approval.",
+    "variableCount": "{count, plural, =0 {no variables} =1 {1 variable} other {# variables}}",
     "status": {
       "approved": "approved",
-      "pending": "pending",
+      "pending": "pending review",
       "rejected": "rejected",
       "paused": "paused",
       "deactivated": "deactivated"
+    },
+    "pendingTimeline": {
+      "justSubmitted": "just submitted · Meta review takes 4–24h",
+      "minutes": "submitted {count}m ago · Meta review takes 4–24h",
+      "hours": "submitted {count}h ago · Meta review takes 4–24h",
+      "days": "submitted {count}d ago"
     },
     "categories": {
       "utility": "Utility",
@@ -975,17 +970,18 @@
       "authentication": "Authentication"
     },
     "create": {
-      "pageTitle": "Create Template",
-      "pageSubtitle": "Register a new WhatsApp message template",
-      "cardTitle": "Template Details",
-      "cardSubtitle": "Configure the template body, variables, and category",
+      "pageTitle": "Create template",
+      "pageSubtitle": "Compose a message, then submit it to Meta for approval.",
       "back": "Back",
       "cancel": "Cancel",
       "submit": "Create Template",
       "submitting": "Creating...",
-      "approvalNote": "The template will be submitted to the Meta WhatsApp Cloud API for approval. Status will remain \"pending\" until Meta approves it.",
+      "submitForApproval": "Submit for approval",
+      "submittingApproval": "Submitting...",
+      "approvalNoteTitle": "Meta reviews every template.",
+      "approvalNoteBody": "Approval usually arrives within a few hours. Your template will show as \"pending review\" until Meta decides.",
       "noConnections": "No WhatsApp connections configured",
-      "noConnectionsDescription": "You need to connect a WhatsApp Business account before creating templates. Set one up from an agent's integrations panel."
+      "noConnectionsDescription": "You need to connect a WhatsApp Business account to this tenant before creating templates."
     },
     "fields": {
       "nameLabel": "Template Name *",
@@ -1002,10 +998,11 @@
       "descriptionLabel": "Description (optional)",
       "descriptionPlaceholder": "Brief description of this template...",
       "descriptionHint": "Internal notes about what this template is used for",
-      "connectionLabel": "WhatsApp Connection *",
-      "connectionPlaceholder": "Select a WhatsApp connection",
-      "connectionOption": "{id} (tenant {tenantId})",
-      "connectionHint": "The WhatsApp Business account this template will belong to",
+      "connectionLabel": "WhatsApp Number *",
+      "connectionPlaceholder": "Select a WhatsApp number",
+      "connectionWabaFallback": "WABA {wabaId}",
+      "connectionIdFallback": "Connection {id}",
+      "connectionHint": "The WhatsApp Business number this template will belong to",
       "variablesLabel": "Variables *",
       "variablesHint": "Each placeholder in the body must have a matching variable defined here"
     },
@@ -1039,8 +1036,8 @@
       "createSuccess": "Template created successfully"
     },
     "errors": {
-      "missingOrg": "Missing organization",
-      "connectionRequired": "WhatsApp channel connection is required",
+      "missingTenant": "Missing tenant",
+      "connectionRequired": "WhatsApp connection is required",
       "fieldsRequired": "Name, body, and category are required",
       "invalidCategory": "Invalid category",
       "invalidVariables": "Variables must be a JSON array",

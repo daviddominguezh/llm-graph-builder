@@ -1,13 +1,16 @@
 'use client';
 
-import { Loader2, MessageSquareDashed } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { Loader2, Send } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useActionState, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
-import type { WhatsAppChannelConnection, WhatsAppTemplateVariable } from '@/app/lib/whatsappTemplates';
+import type {
+  WhatsAppChannelConnection,
+  WhatsAppTemplateVariable,
+} from '@/app/lib/whatsappTemplates';
 import { Button } from '@/components/ui/button';
 
 import { createTemplateAction, type TemplateActionState } from '../actions';
@@ -23,8 +26,9 @@ import {
 } from './form-fields';
 
 interface CreateTemplateFormProps {
-  orgId: string;
-  slug: string;
+  tenantId: string;
+  orgSlug: string;
+  tenantSlug: string;
   connections: WhatsAppChannelConnection[];
 }
 
@@ -41,12 +45,8 @@ function SubmitButton({
 }) {
   return (
     <Button type="submit" size="sm" disabled={isPending || disabled} className="rounded-md gap-1.5">
-      {isPending ? (
-        <Loader2 className="size-3.5 animate-spin" />
-      ) : (
-        <MessageSquareDashed className="size-3.5" />
-      )}
-      {isPending ? t('create.submitting') : t('create.submit')}
+      {isPending ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
+      {isPending ? t('create.submittingApproval') : t('create.submitForApproval')}
     </Button>
   );
 }
@@ -112,7 +112,7 @@ function useTemplateFormState(t: FormTranslator) {
   };
 }
 
-function useToastRedirect(state: TemplateActionState, slug: string, t: FormTranslator) {
+function useToastRedirect(state: TemplateActionState, orgSlug: string, tenantSlug: string, t: FormTranslator) {
   const router = useRouter();
 
   useEffect(() => {
@@ -121,22 +121,40 @@ function useToastRedirect(state: TemplateActionState, slug: string, t: FormTrans
       toast.error(state.message);
     } else {
       toast.success(t('toasts.createSuccess'));
-      router.push(`/orgs/${slug}/whatsapp-templates`);
+      router.push(`/orgs/${orgSlug}/${tenantSlug}`);
     }
-  }, [state, router, slug, t]);
+  }, [state, router, orgSlug, tenantSlug, t]);
 }
 
-export function CreateTemplateForm({ orgId, slug, connections }: CreateTemplateFormProps) {
+function ApprovalNote({ t }: { t: FormTranslator }) {
+  return (
+    <div className="flex items-start gap-2 rounded-md border border-border/70 bg-muted/40 px-3 py-2 text-[11px] leading-relaxed">
+      <span aria-hidden="true" className="mt-0.5 inline-block size-1.5 shrink-0 rounded-full bg-amber-500" />
+      <p className="text-muted-foreground">
+        <span className="font-medium text-foreground">{t('create.approvalNoteTitle')}</span>{' '}
+        {t('create.approvalNoteBody')}
+      </p>
+    </div>
+  );
+}
+
+export function CreateTemplateForm({
+  tenantId,
+  orgSlug,
+  tenantSlug,
+  connections,
+}: CreateTemplateFormProps) {
   const t = useTranslations('whatsappTemplates');
   const form = useTemplateFormState(t);
-  useToastRedirect(form.state, slug, t);
+  useToastRedirect(form.state, orgSlug, tenantSlug, t);
 
   const hasValidationErrors = form.bodyError !== null || form.variableErrors.length > 0;
 
   return (
     <form action={form.formAction} className="flex flex-col gap-5">
-      <input type="hidden" name="orgId" value={orgId} />
-      <input type="hidden" name="slug" value={slug} />
+      <input type="hidden" name="tenantId" value={tenantId} />
+      <input type="hidden" name="orgSlug" value={orgSlug} />
+      <input type="hidden" name="tenantSlug" value={tenantSlug} />
       <input type="hidden" name="variables" value={JSON.stringify(form.variables)} />
 
       <ChannelConnectionField connections={connections} />
@@ -163,12 +181,10 @@ export function CreateTemplateForm({ orgId, slug, connections }: CreateTemplateF
         errors={form.variableErrors}
       />
 
-      <p className="rounded-md border border-border/70 bg-muted/40 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
-        {t('create.approvalNote')}
-      </p>
+      <ApprovalNote t={t} />
 
       <div className="flex items-center justify-end gap-2 border-t pt-4">
-        <Link href={`/orgs/${slug}/whatsapp-templates`}>
+        <Link href={`/orgs/${orgSlug}/${tenantSlug}`}>
           <Button type="button" variant="outline" size="sm" className="border-[0.5px] rounded-md">
             {t('create.cancel')}
           </Button>

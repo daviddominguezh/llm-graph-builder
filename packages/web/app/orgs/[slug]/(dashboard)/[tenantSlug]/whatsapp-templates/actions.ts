@@ -1,10 +1,9 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
-import { getTranslations } from 'next-intl/server';
-
 import type { WhatsAppTemplateVariable } from '@/app/lib/whatsappTemplates';
 import { createWhatsAppTemplate, deleteWhatsAppTemplate } from '@/app/lib/whatsappTemplates';
+import { getTranslations } from 'next-intl/server';
+import { revalidatePath } from 'next/cache';
 
 import { validateBodyPlaceholders } from './template-validators';
 
@@ -39,9 +38,7 @@ function collectVariables(parsed: unknown[]): WhatsAppTemplateVariable[] | { err
   return data;
 }
 
-type VariablesResult =
-  | { data: WhatsAppTemplateVariable[] }
-  | { error: 'shape' | 'notArray' | 'json' };
+type VariablesResult = { data: WhatsAppTemplateVariable[] } | { error: 'shape' | 'notArray' | 'json' };
 
 function parseVariablesJson(raw: string): VariablesResult {
   try {
@@ -56,8 +53,9 @@ function parseVariablesJson(raw: string): VariablesResult {
 }
 
 interface CreateFields {
-  orgId: string;
-  slug: string;
+  tenantId: string;
+  orgSlug: string;
+  tenantSlug: string;
   channelConnectionId: string;
   name: string;
   body: string;
@@ -74,8 +72,9 @@ function getField(formData: FormData, key: string): string {
 
 function extractCreateFields(formData: FormData): CreateFields {
   return {
-    orgId: getField(formData, 'orgId'),
-    slug: getField(formData, 'slug'),
+    tenantId: getField(formData, 'tenantId'),
+    orgSlug: getField(formData, 'orgSlug'),
+    tenantSlug: getField(formData, 'tenantSlug'),
     channelConnectionId: getField(formData, 'channelConnectionId'),
     name: getField(formData, 'name'),
     body: getField(formData, 'body'),
@@ -87,7 +86,7 @@ function extractCreateFields(formData: FormData): CreateFields {
 }
 
 function validateRequiredFields(fields: CreateFields, t: ActionTranslator): string | null {
-  if (fields.orgId === '') return t('errors.missingOrg');
+  if (fields.tenantId === '') return t('errors.missingTenant');
   if (fields.channelConnectionId === '') return t('errors.connectionRequired');
   if (fields.name === '' || fields.body === '' || fields.category === '') {
     return t('errors.fieldsRequired');
@@ -148,6 +147,10 @@ function validateAndBuild(fields: CreateFields, t: ActionTranslator): Validation
   };
 }
 
+function tenantPath(orgSlug: string, tenantSlug: string): string {
+  return `/orgs/${orgSlug}/${tenantSlug}`;
+}
+
 export async function createTemplateAction(
   _prevState: TemplateActionState,
   formData: FormData
@@ -158,7 +161,7 @@ export async function createTemplateAction(
   const validation = validateAndBuild(fields, t);
   if ('error' in validation) return validation.error;
 
-  const { error } = await createWhatsAppTemplate(fields.orgId, {
+  const { error } = await createWhatsAppTemplate(fields.tenantId, {
     channelConnectionId: fields.channelConnectionId,
     name: fields.name,
     body: fields.body,
@@ -170,16 +173,17 @@ export async function createTemplateAction(
 
   if (error !== null) return errorState(error);
 
-  revalidatePath(`/orgs/${fields.slug}/whatsapp-templates`);
+  revalidatePath(tenantPath(fields.orgSlug, fields.tenantSlug));
   return { message: t('toasts.createSuccess'), type: 'success' };
 }
 
 export async function deleteTemplateAction(
-  orgId: string,
-  slug: string,
+  tenantId: string,
+  orgSlug: string,
+  tenantSlug: string,
   templateId: string
 ): Promise<{ error: string | null }> {
-  const result = await deleteWhatsAppTemplate(orgId, templateId);
-  if (result.error === null) revalidatePath(`/orgs/${slug}/whatsapp-templates`);
+  const result = await deleteWhatsAppTemplate(tenantId, templateId);
+  if (result.error === null) revalidatePath(tenantPath(orgSlug, tenantSlug));
   return result;
 }

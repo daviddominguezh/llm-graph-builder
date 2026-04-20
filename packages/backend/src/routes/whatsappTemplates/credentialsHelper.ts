@@ -14,7 +14,7 @@ interface CredentialRow {
 
 interface ConnectionRow {
   id: string;
-  org_id: string;
+  tenant_id: string;
   channel_type: string;
 }
 
@@ -24,11 +24,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function toConnectionRow(value: unknown): ConnectionRow | null {
   if (!isRecord(value)) return null;
-  const { id, org_id: orgId, channel_type: channelType } = value;
-  if (typeof id !== 'string' || typeof orgId !== 'string' || typeof channelType !== 'string') {
+  const { id, tenant_id: tenantId, channel_type: channelType } = value;
+  if (typeof id !== 'string' || typeof tenantId !== 'string' || typeof channelType !== 'string') {
     return null;
   }
-  return { id, org_id: orgId, channel_type: channelType };
+  return { id, tenant_id: tenantId, channel_type: channelType };
 }
 
 function toCredentialRow(value: unknown): CredentialRow | null {
@@ -45,7 +45,7 @@ async function fetchConnection(
 ): Promise<ConnectionRow> {
   const result = await supabase
     .from('channel_connections')
-    .select('id, org_id, channel_type')
+    .select('id, tenant_id, channel_type')
     .eq('id', channelConnectionId)
     .single();
 
@@ -87,12 +87,12 @@ async function decryptToken(supabase: SupabaseClient, credentialId: string): Pro
 export async function loadConnectionCredentials(
   supabase: SupabaseClient,
   channelConnectionId: string,
-  expectedOrgId: string
+  expectedTenantId: string
 ): Promise<WhatsAppConnectionCredentials> {
   const connection = await fetchConnection(supabase, channelConnectionId);
 
-  if (connection.org_id !== expectedOrgId) {
-    throw new Error('Channel connection does not belong to this organization');
+  if (connection.tenant_id !== expectedTenantId) {
+    throw new Error('Channel connection does not belong to this tenant');
   }
 
   const credential = await fetchCredentialRow(supabase, channelConnectionId);

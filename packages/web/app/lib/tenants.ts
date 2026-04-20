@@ -7,6 +7,7 @@ import { fetchFromBackend } from './backendProxy';
 export interface TenantRow {
   id: string;
   org_id: string;
+  slug: string;
   name: string;
   avatar_url: string | null;
   created_at: string;
@@ -18,7 +19,8 @@ export interface TenantRow {
 /* ------------------------------------------------------------------ */
 
 export function isTenantRow(value: unknown): value is TenantRow {
-  return typeof value === 'object' && value !== null && 'id' in value && 'name' in value && 'org_id' in value;
+  if (typeof value !== 'object' || value === null) return false;
+  return 'id' in value && 'name' in value && 'org_id' in value && 'slug' in value;
 }
 
 function isTenantRowArray(val: unknown): val is TenantRow[] {
@@ -66,6 +68,22 @@ export async function updateTenant(
 ): Promise<{ result: TenantRow | null; error: string | null }> {
   try {
     const data = await fetchFromBackend('PATCH', `/tenants/${encodeURIComponent(tenantId)}`, { name });
+    if (!isTenantRow(data)) return { result: null, error: 'Invalid response' };
+    return { result: data, error: null };
+  } catch (err) {
+    return { result: null, error: extractError(err) };
+  }
+}
+
+export async function getTenantBySlug(
+  orgId: string,
+  slug: string
+): Promise<{ result: TenantRow | null; error: string | null }> {
+  try {
+    const data = await fetchFromBackend(
+      'GET',
+      `/tenants/by-slug/${encodeURIComponent(orgId)}/${encodeURIComponent(slug)}`
+    );
     if (!isTenantRow(data)) return { result: null, error: 'Invalid response' };
     return { result: data, error: null };
   } catch (err) {

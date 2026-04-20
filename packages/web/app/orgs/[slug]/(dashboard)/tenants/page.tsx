@@ -20,7 +20,7 @@ export default async function TenantsPage({ params }: TenantsPageProps): Promise
   return (
     <div className="h-[calc(100%-var(--spacing)*1.5)] overflow-y-auto p-6 border mr-1.5 rounded-xl">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-        <TenantsSection orgId={org.id} initialTenants={tenants} />
+        <TenantsSection orgId={org.id} orgSlug={slug} initialTenants={tenants} />
       </div>
     </div>
   );

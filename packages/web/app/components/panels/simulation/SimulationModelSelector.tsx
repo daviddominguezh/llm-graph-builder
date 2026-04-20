@@ -13,6 +13,7 @@ import {
   useComboboxAnchor,
 } from '@/components/ui/combobox';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import { useRef, useMemo } from 'react';
 
 import type { OpenRouterModel } from '../../../hooks/useOpenRouterModels';
@@ -63,7 +64,16 @@ function buildIconMap(models: OpenRouterModel[]): Map<string, ProviderIcon> {
 }
 
 function ProviderImg({ icon, size = 14 }: { icon: ProviderIcon; size?: number }) {
-  return <img src={icon.url} alt="" width={size} height={size} className={`shrink-0 rounded-sm ${icon.className ?? ''}`} />;
+  return (
+    <Image
+      src={icon.url}
+      alt=""
+      width={size}
+      height={size}
+      className={`shrink-0 rounded-sm ${icon.className ?? ''}`}
+      unoptimized
+    />
+  );
 }
 
 interface SimulationModelSelectorProps {
