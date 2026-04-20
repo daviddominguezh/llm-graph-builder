@@ -215,12 +215,10 @@ function TenantsTable({
             <TableCell>
               <Link
                 href={`/orgs/${orgSlug}/tenant/${tenant.slug}`}
-                className="group/tenant-name flex items-center gap-2 max-w-[200px] transition-colors"
+                className="tenant-row-link inline-flex items-center gap-2 max-w-[200px] transition-colors"
               >
                 <TenantAvatar name={tenant.name} avatarUrl={tenant.avatar_url} />
-                <span className="truncate font-medium underline-offset-4 decoration-foreground/40 group-hover/tenant-name:underline group-hover/tenant-name:text-foreground">
-                  {tenant.name}
-                </span>
+                <span className="tenant-row-name truncate font-medium">{tenant.name}</span>
               </Link>
             </TableCell>
             <TableCell>

@@ -181,6 +181,15 @@
   display: none;
 }
 
+/* Tenant list row: underline the tenant name on row hover as a clickable affordance. */
+tr:hover .tenant-row-name {
+  text-decoration-line: underline;
+  text-underline-offset: 4px;
+}
+.tenant-row-link:hover {
+  color: var(--foreground);
+}
+
 /* When we hijack a Tailwind `.overflow-*` div, it becomes an OverlayScrollbars
    host. The host must NOT scroll natively — scrolling belongs to the internal
    viewport child. Override any overflow utility class on the host so the
