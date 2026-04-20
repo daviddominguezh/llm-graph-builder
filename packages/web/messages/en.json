@@ -518,6 +518,10 @@
   "tenants": {
     "title": "Tenants",
     "description": "Create and manage tenant environments for your deployed agents.",
+    "generalSection": "General",
+    "generalDescription": "Basic information for this tenant.",
+    "nameRequired": "Tenant name is required.",
+    "uploadError": "Failed to update avatar.",
     "add": "Add tenant",
     "name": "Name",
     "id": "ID",
