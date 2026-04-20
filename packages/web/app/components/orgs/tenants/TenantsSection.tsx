@@ -218,7 +218,7 @@ function TenantsTable({
                 className="tenant-row-link inline-flex items-center gap-2 max-w-[200px] transition-colors"
               >
                 <TenantAvatar name={tenant.name} avatarUrl={tenant.avatar_url} />
-                <span className="tenant-row-name truncate font-medium">{tenant.name}</span>
+                <span className="tenant-row-name truncate font-medium leading-none">{tenant.name}</span>
               </Link>
             </TableCell>
             <TableCell>

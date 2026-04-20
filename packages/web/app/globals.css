@@ -181,10 +181,12 @@
   display: none;
 }
 
-/* Tenant list row: underline the tenant name on row hover as a clickable affordance. */
-tr:hover .tenant-row-name {
-  text-decoration-line: underline;
-  text-underline-offset: 4px;
+/* Tenant list row: underline the tenant name on link hover as a clickable affordance. */
+.tenant-row-link:hover .tenant-row-name {
+  text-decoration: underline;
+  text-decoration-color: var(--foreground);
+  text-underline-offset: 2px;
+  color: var(--foreground);
 }
 .tenant-row-link:hover {
   color: var(--foreground);
