@@ -1,19 +1,14 @@
 'use client';
 
+import type { WhatsAppChannelConnection, WhatsAppTemplateVariable } from '@/app/lib/whatsappTemplates';
+import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
 import { useActionState, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
-import type {
-  WhatsAppChannelConnection,
-  WhatsAppTemplateVariable,
-} from '@/app/lib/whatsappTemplates';
-import { Button } from '@/components/ui/button';
-
-import { createTemplateAction, type TemplateActionState } from './actions';
-import { validateBodyPlaceholders } from './template-validators';
+import { type TemplateActionState, createTemplateAction } from './actions';
 import {
   BodyField,
   CategoryField,
@@ -23,6 +18,7 @@ import {
   NameField,
   VariablesField,
 } from './form-fields';
+import { validateBodyPlaceholders } from './template-validators';
 
 interface CreateTemplateFormProps {
   tenantId: string;
@@ -125,8 +121,7 @@ function useTemplateFormState(initialConnectionId: string, t: FormTranslator) {
   });
 
   const variableErrors = useMemo(
-    () =>
-      state.bodyError !== null ? [] : validateVariablesMatch(state.body, state.variables, t),
+    () => (state.bodyError !== null ? [] : validateVariablesMatch(state.body, state.variables, t)),
     [state.body, state.variables, state.bodyError, t]
   );
 
@@ -202,7 +197,7 @@ export function CreateTemplateForm({
   const isSubmittable = computeSubmittable(form.state, form.variableErrors);
 
   return (
-    <form action={form.formAction} className="flex flex-col gap-4">
+    <form action={form.formAction} className="flex flex-col gap-6">
       <input type="hidden" name="tenantId" value={tenantId} />
       <input type="hidden" name="orgSlug" value={orgSlug} />
       <input type="hidden" name="tenantSlug" value={tenantSlug} />
@@ -214,29 +209,23 @@ export function CreateTemplateForm({
         onChange={(v) => form.update('connectionId', v)}
       />
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-6">
         <NameField value={form.state.name} onChange={(v) => form.update('name', v)} />
         <BodyField value={form.state.body} onChange={form.setBody} error={form.state.bodyError} />
 
+        <VariablesField
+          variables={form.state.variables}
+          onChange={(v) => form.update('variables', v)}
+          errors={form.variableErrors}
+        />
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <CategoryField
-            value={form.state.category}
-            onChange={(v) => form.update('category', v)}
-          />
-          <LanguageField
-            value={form.state.language}
-            onChange={(v) => form.update('language', v)}
-          />
+          <CategoryField value={form.state.category} onChange={(v) => form.update('category', v)} />
+          <LanguageField value={form.state.language} onChange={(v) => form.update('language', v)} />
         </div>
 
         <DescriptionField />
       </div>
-
-      <VariablesField
-        variables={form.state.variables}
-        onChange={(v) => form.update('variables', v)}
-        errors={form.variableErrors}
-      />
 
       <ApprovalNote t={t} />
 

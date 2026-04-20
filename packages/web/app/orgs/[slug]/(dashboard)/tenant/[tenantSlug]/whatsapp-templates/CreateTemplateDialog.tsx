@@ -1,13 +1,12 @@
 'use client';
 
+import type { WhatsAppChannelConnection } from '@/app/lib/whatsappTemplates';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import { X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-
-import type { WhatsAppChannelConnection } from '@/app/lib/whatsappTemplates';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 
 import { CreateTemplateForm } from './CreateTemplateForm';
 
@@ -58,7 +57,6 @@ function DialogBody({
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
           <h2 className="text-sm font-medium">{t('create.pageTitle')}</h2>
-          <p className="text-xs text-muted-foreground">{t('create.pageSubtitle')}</p>
         </div>
         <Button
           type="button"
@@ -70,7 +68,7 @@ function DialogBody({
           <X className="size-3.5" />
         </Button>
       </div>
-      <Separator className="my-3" />
+      <Separator className="mt-3 mb-6" />
       {/* TODO: re-enable the no-connections gate once WhatsApp onboarding UX is done.
           For now the form renders even with zero connections for design/testing. */}
       <CreateTemplateForm
