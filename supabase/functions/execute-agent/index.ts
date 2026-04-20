@@ -12,7 +12,13 @@ import type {
   Message,
   NodeProcessedEvent,
 } from '@daviddh/llm-graph-runner';
-import { VFSContext, executeAgentLoop, executeWithCallbacks, generateVFSTools, injectSystemTools } from '@daviddh/llm-graph-runner';
+import {
+  VFSContext,
+  executeAgentLoop,
+  executeWithCallbacks,
+  generateVFSTools,
+  injectSystemTools,
+} from '@daviddh/llm-graph-runner';
 import { GitHubSourceProvider } from '@daviddh/vfs-providers';
 import type { Tool } from 'ai';
 
@@ -173,7 +179,10 @@ async function setLeadScoreOnConversation(
       ? (existing.metadata as Record<string, unknown>)
       : {};
   const merged = { ...currentMetadata, lead_score: score };
-  const { error } = await supabase.from('conversations').update({ metadata: merged }).eq('id', conversationId);
+  const { error } = await supabase
+    .from('conversations')
+    .update({ metadata: merged })
+    .eq('id', conversationId);
   if (error !== null) {
     log.error(`set_lead_score failed: ${error.message}`);
   }
@@ -183,11 +192,7 @@ async function getLeadScoreFromConversation(
   supabase: Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>,
   conversationId: string
 ): Promise<number | null> {
-  const { data } = await supabase
-    .from('conversations')
-    .select('metadata')
-    .eq('id', conversationId)
-    .single();
+  const { data } = await supabase.from('conversations').select('metadata').eq('id', conversationId).single();
   if (data === null || data.metadata === null || typeof data.metadata !== 'object') {
     return null;
   }
@@ -369,7 +374,9 @@ async function runAgentExecution(
   write: WriteEvent,
   leadScoringServices?: LeadScoringServices
 ): Promise<void> {
-  log.info(`agent start model=${payload.modelId} msgs=${payload.messages.length} tools=${Object.keys(allTools).length} prompt=${(payload.systemPrompt ?? '').slice(0, 80)}`);
+  log.info(
+    `agent start model=${payload.modelId} msgs=${payload.messages.length} tools=${Object.keys(allTools).length} prompt=${(payload.systemPrompt ?? '').slice(0, 80)}`
+  );
 
   const result = await executeAgentLoop(
     {
@@ -393,7 +400,9 @@ async function runAgentExecution(
         write({ type: 'step_started', step });
       },
       onStepProcessed: (event: AgentStepEvent) => {
-        log.info(`step ${event.step} done text=${event.responseText.length}chars tools=${event.toolCalls.length} tokens=${JSON.stringify(event.tokens)} dur=${event.durationMs}ms`);
+        log.info(
+          `step ${event.step} done text=${event.responseText.length}chars tools=${event.toolCalls.length} tokens=${JSON.stringify(event.tokens)} dur=${event.durationMs}ms`
+        );
         write({
           type: 'step_processed',
           step: event.step,
@@ -410,7 +419,9 @@ async function runAgentExecution(
     runnerLogger
   );
 
-  log.info(`agent done text=${result.finalText.length}chars steps=${result.steps} tokens=${JSON.stringify(result.totalTokens)}`);
+  log.info(
+    `agent done text=${result.finalText.length}chars steps=${result.steps} tokens=${JSON.stringify(result.totalTokens)}`
+  );
 
   write({
     type: 'agent_response',
