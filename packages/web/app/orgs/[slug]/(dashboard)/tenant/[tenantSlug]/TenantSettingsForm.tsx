@@ -48,7 +48,7 @@ function useNameSubmit(tenant: TenantRow, orgSlug: string) {
     }
 
     if (result !== null && result.slug !== tenant.slug) {
-      router.replace(`/orgs/${orgSlug}/${result.slug}`);
+      router.replace(`/orgs/${orgSlug}/tenant/${result.slug}`);
       return;
     }
 

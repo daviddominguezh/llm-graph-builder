@@ -37,7 +37,7 @@ function EmptyConnections({
           {t('create.noConnectionsDescription')}
         </p>
       </div>
-      <Link href={`/orgs/${orgSlug}/${tenantSlug}`}>
+      <Link href={`/orgs/${orgSlug}/tenant/${tenantSlug}`}>
         <Button variant="outline" size="sm" className="border-[0.5px] rounded-md">
           {t('create.back')}
         </Button>
@@ -59,17 +59,17 @@ function Breadcrumb({
 }) {
   return (
     <p className="flex items-center gap-1 text-xs text-muted-foreground">
-      <Link href={`/orgs/${orgSlug}/${tenantSlug}`} className="hover:text-foreground transition-colors">
+      <Link href={`/orgs/${orgSlug}/tenant/${tenantSlug}`} className="hover:text-foreground transition-colors">
         {tenantName}
       </Link>
-      <span>/</span>
+      <span aria-hidden="true">/</span>
       <Link
-        href={`/orgs/${orgSlug}/${tenantSlug}`}
+        href={`/orgs/${orgSlug}/tenant/${tenantSlug}`}
         className="hover:text-foreground transition-colors"
       >
         {t('title')}
       </Link>
-      <span>/</span>
+      <span aria-hidden="true">/</span>
       <span className="text-foreground">{t('create.pageTitle')}</span>
     </p>
   );
@@ -85,7 +85,7 @@ export default async function CreateTemplatePage({ params }: PageProps): Promise
 
   const role = await getOrgRole(org.id);
   if (!canManage(role)) {
-    redirect(`/orgs/${slug}/${tenantSlug}`);
+    redirect(`/orgs/${slug}/tenant/${tenantSlug}`);
   }
 
   const [{ connections }, t] = await Promise.all([

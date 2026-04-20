@@ -121,7 +121,7 @@ function useToastRedirect(state: TemplateActionState, orgSlug: string, tenantSlu
       toast.error(state.message);
     } else {
       toast.success(t('toasts.createSuccess'));
-      router.push(`/orgs/${orgSlug}/${tenantSlug}`);
+      router.push(`/orgs/${orgSlug}/tenant/${tenantSlug}`);
     }
   }, [state, router, orgSlug, tenantSlug, t]);
 }
@@ -184,7 +184,7 @@ export function CreateTemplateForm({
       <ApprovalNote t={t} />
 
       <div className="flex items-center justify-end gap-2 border-t pt-4">
-        <Link href={`/orgs/${orgSlug}/${tenantSlug}`}>
+        <Link href={`/orgs/${orgSlug}/tenant/${tenantSlug}`}>
           <Button type="button" variant="outline" size="sm" className="border-[0.5px] rounded-md">
             {t('create.cancel')}
           </Button>

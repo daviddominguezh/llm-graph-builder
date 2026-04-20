@@ -148,7 +148,7 @@ function validateAndBuild(fields: CreateFields, t: ActionTranslator): Validation
 }
 
 function tenantPath(orgSlug: string, tenantSlug: string): string {
-  return `/orgs/${orgSlug}/${tenantSlug}`;
+  return `/orgs/${orgSlug}/tenant/${tenantSlug}`;
 }
 
 export async function createTemplateAction(

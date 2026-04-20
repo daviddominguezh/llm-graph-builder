@@ -46,13 +46,13 @@ function TemplateMeta({ template, t }: { template: WhatsAppTemplate; t: Translat
   return (
     <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
       <StatusDot status={template.status} />
-      <span className="text-muted-foreground/40">·</span>
+      <span aria-hidden="true" className="text-muted-foreground/40">·</span>
       <span>{t(`categories.${template.category}`)}</span>
-      <span className="text-muted-foreground/40">·</span>
+      <span aria-hidden="true" className="text-muted-foreground/40">·</span>
       <span>{t('variableCount', { count: template.variables.length })}</span>
       {template.status === 'pending' ? (
         <>
-          <span className="text-muted-foreground/40">·</span>
+          <span aria-hidden="true" className="text-muted-foreground/40">·</span>
           <span>{formatPendingHint(template.created_at, t)}</span>
         </>
       ) : null}
@@ -114,7 +114,7 @@ function EmptyState({
         <p className="max-w-xs text-xs text-muted-foreground">{t('emptyDescription')}</p>
       </div>
       {canManage ? (
-        <Link href={`/orgs/${orgSlug}/${tenantSlug}/whatsapp-templates/create`}>
+        <Link href={`/orgs/${orgSlug}/tenant/${tenantSlug}/whatsapp-templates/create`}>
           <Button size="sm" className="mt-1 rounded-full">
             <Plus className="size-3.5" />
             {t('createButton')}
@@ -177,7 +177,7 @@ export async function WhatsAppTemplatesSection({
         <CardDescription>{t('subtitle')}</CardDescription>
         {canManage && templates.length > 0 ? (
           <CardAction>
-            <Link href={`/orgs/${orgSlug}/${tenantSlug}/whatsapp-templates/create`}>
+            <Link href={`/orgs/${orgSlug}/tenant/${tenantSlug}/whatsapp-templates/create`}>
               <Button variant="outline" size="sm" className="border-[0.5px] rounded-md">
                 <Plus className="size-3.5" />
                 {t('createButton')}

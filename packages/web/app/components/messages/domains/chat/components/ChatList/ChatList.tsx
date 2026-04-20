@@ -2,7 +2,7 @@ import { LAST_MESSAGES_SCROLL_THRESHOLD } from '@/app/constants/lastMessages';
 import { TEST_PHONE } from '@/app/constants/messages';
 import { useListVirtualizer } from '@/app/hooks/useListVirtualizer';
 import { AI_MESSAGE_ROLES, INTENT, LastMessage } from '@/app/types/chat';
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { ChatFilters } from '../../../../MessagesDashboard.types';
 import styles from './ChatList.module.css';
@@ -11,6 +11,8 @@ import { ChatListHeader } from './ChatListHeader';
 import { ChatListItem } from './ChatListItem';
 import { ChatListItemSkeleton } from './ChatListItemSkeleton';
 import { ChatListSkeleton } from './ChatListSkeleton';
+
+const TEST_CHAT_TIMESTAMP = Date.now();
 
 /**
  * Chat list component with virtualization support
@@ -58,10 +60,6 @@ export const ChatList: React.FC<ChatListProps> = memo(
     const enableVirtualization = true;
     const itemHeight = 80; // Estimated height of each chat item
     const isLoadingMoreRef = useRef(false);
-    const [testChatTimestamp, setTestChatTimestamp] = useState<number>(0);
-    useEffect(() => {
-      setTestChatTimestamp(Date.now());
-    }, []);
 
     // Track loading state to prevent duplicate calls
     useEffect(() => {
@@ -122,7 +120,7 @@ export const ChatList: React.FC<ChatListProps> = memo(
           key: TEST_PHONE,
           originalId: '',
           name: 'Test Chat',
-          timestamp: testChatTimestamp,
+          timestamp: TEST_CHAT_TIMESTAMP,
           read: true,
           enabled: true,
           type: 'text',

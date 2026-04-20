@@ -974,8 +974,6 @@
       "pageSubtitle": "Compose a message, then submit it to Meta for approval.",
       "back": "Back",
       "cancel": "Cancel",
-      "submit": "Create Template",
-      "submitting": "Creating...",
       "submitForApproval": "Submit for approval",
       "submittingApproval": "Submitting...",
       "approvalNoteTitle": "Meta reviews every template.",
