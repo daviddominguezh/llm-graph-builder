@@ -93,10 +93,10 @@ function buildAgentExecuteParams(
   fetched: FetchedData,
   options: BuildCoreParamsOptions
 ): ExecuteAgentParams {
-  const agentParams = fetched.agentConfig !== null ? { ...base, ...fetched.agentConfig } : base;
-  if (options.overrideAgentConfig === undefined) return agentParams;
-  // Override with child agent config — skip empty modelId to preserve the resolved model
-  const { modelId, ...rest } = options.overrideAgentConfig;
+  const { overrideAgentConfig } = options;
+  const agentParams = fetched.agentConfig === null ? base : { ...base, ...fetched.agentConfig };
+  if (overrideAgentConfig === undefined) return agentParams;
+  const { modelId, ...rest } = overrideAgentConfig;
   const override = modelId !== undefined && modelId !== '' ? { ...rest, modelId } : rest;
   return { ...agentParams, ...override };
 }

@@ -1,7 +1,6 @@
 import type { RuntimeGraph } from '@daviddh/graph-types';
 import { RuntimeGraphSchema } from '@daviddh/graph-types';
 import type { Message } from '@daviddh/llm-graph-runner';
-import { MESSAGES_PROVIDER } from '@daviddh/llm-graph-runner';
 
 import {
   type DecryptedEnvVars,
@@ -9,16 +8,18 @@ import {
   getDecryptedEnvVariables,
   getPublishedGraphData,
 } from '../../db/queries/executionAuthQueries.js';
-import {
-  getChildExecutionMessages,
-  getExecutionMessages,
-  getOrCreateSession,
-  getSessionMessages,
-} from '../../db/queries/executionQueries.js';
+import { getOrCreateSession, getSessionMessages } from '../../db/queries/executionQueries.js';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { type StackEntry, getStackTop } from '../../db/queries/stackQueries.js';
 import type { AgentVfsSettings } from '../../db/queries/vfsConfigTypes.js';
+import { messageRowToMessage, resolveChannelProvider } from './executeMessageFetcher.js';
 import type { AgentExecutionInput } from './executeTypes.js';
+
+export {
+  fetchChildMessages,
+  fetchExecutionMessages,
+  fetchResumeMessages,
+} from './executeMessageFetcher.js';
 
 const EMPTY_LENGTH = 0;
 const HTTP_UNPROCESSABLE = 422;
@@ -188,43 +189,6 @@ export interface SessionFetchParams {
   model: string;
 }
 
-interface MessageRow {
-  id: string;
-  role: string;
-  content: Record<string, unknown>;
-  created_at: string;
-}
-
-const CHANNEL_PROVIDERS: Record<string, MESSAGES_PROVIDER> = {
-  whatsapp: MESSAGES_PROVIDER.WHATSAPP,
-  web: MESSAGES_PROVIDER.WEB,
-};
-
-function resolveChannelProvider(channel: string): MESSAGES_PROVIDER {
-  return CHANNEL_PROVIDERS[channel] ?? MESSAGES_PROVIDER.WEB;
-}
-
-function extractContentText(content: Record<string, unknown>): string {
-  const { text } = content as { text?: unknown };
-  return typeof text === 'string' ? text : JSON.stringify(content);
-}
-
-function buildModelMessage(role: string, content: string): Message['message'] {
-  if (role === 'assistant') return { role: 'assistant', content };
-  return { role: 'user', content };
-}
-
-export function messageRowToMessage(row: MessageRow, provider: MESSAGES_PROVIDER): Message {
-  return {
-    provider,
-    id: row.id,
-    timestamp: new Date(row.created_at).getTime(),
-    originalId: row.id,
-    type: 'text',
-    message: buildModelMessage(row.role, extractContentText(row.content)),
-  };
-}
-
 export async function fetchSessionData(params: SessionFetchParams): Promise<SessionData> {
   const sessionResult = await getOrCreateSession(params.supabase, {
     agentId: params.agentId,
@@ -255,59 +219,6 @@ export async function fetchSessionData(params: SessionFetchParams): Promise<Sess
     messageHistory: rows.map((row) => messageRowToMessage(row, channel)),
     stackTop,
   };
-}
-
-export async function fetchExecutionMessages(
-  supabase: SupabaseClient,
-  executionId: string,
-  channel: string
-): Promise<Message[]> {
-  const rows = await getExecutionMessages(supabase, executionId);
-  const provider = resolveChannelProvider(channel);
-  return rows.map((row) => messageRowToMessage(row, provider));
-}
-
-export async function fetchChildMessages(
-  supabase: SupabaseClient,
-  parentExecutionId: string,
-  channel: string,
-  excludeExecutionId?: string
-): Promise<Message[]> {
-  const rows = await getChildExecutionMessages(supabase, parentExecutionId, excludeExecutionId);
-  const provider = resolveChannelProvider(channel);
-  return rows.map((row) => messageRowToMessage(row, provider));
-}
-
-/* ─── Resume messages: execution-scoped with structured content pass-through ─── */
-
-function isStructuredModelMsg(
-  content: Record<string, unknown>
-): content is Record<string, unknown> & Message['message'] {
-  return (content.role === 'assistant' || content.role === 'tool') && Array.isArray(content.content);
-}
-
-function rowToStructuredMessage(row: MessageRow, provider: MESSAGES_PROVIDER): Message {
-  if (isStructuredModelMsg(row.content)) {
-    return {
-      provider,
-      id: row.id,
-      timestamp: new Date(row.created_at).getTime(),
-      originalId: row.id,
-      type: 'text',
-      message: row.content,
-    };
-  }
-  return messageRowToMessage(row, provider);
-}
-
-export async function fetchResumeMessages(
-  supabase: SupabaseClient,
-  executionId: string,
-  channel: string
-): Promise<Message[]> {
-  const rows = await getExecutionMessages(supabase, executionId);
-  const provider = resolveChannelProvider(channel);
-  return rows.map((row) => rowToStructuredMessage(row, provider));
 }
 
 /* ─── Agent config from published version snapshot ─── */

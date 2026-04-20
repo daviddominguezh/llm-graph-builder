@@ -1,9 +1,9 @@
 import type { RuntimeGraph } from '@daviddh/graph-types';
-import { isDispatchSentinel, isFinishSentinel } from '@daviddh/llm-graph-runner';
 import type { CallAgentOutput, Message, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
 
-import { buildAgentLoopResult, handleStepProcessed } from './edgeFunctionAgentEvents.js';
-import type { NodeProcessedData, ToolCallData, VfsEdgeFunctionPayload } from './executeSharedTypes.js';
+import { handleStepProcessed } from './edgeFunctionAgentEvents.js';
+import { buildResultFromResponse, mapRawToolCalls } from './edgeFunctionOutputParsers.js';
+import type { NodeProcessedData, VfsEdgeFunctionPayload } from './executeSharedTypes.js';
 import {
   type SseEvent,
   extractLineEvents,
@@ -13,7 +13,6 @@ import {
   toOptStr,
   toRecord,
   toStr,
-  toStringArray,
 } from './sseHelpers.js';
 
 export type { NodeProcessedData, VfsEdgeFunctionPayload } from './executeSharedTypes.js';
@@ -126,89 +125,6 @@ function processNodeProcessed(event: SseEvent, callbacks: ExecuteAgentCallbacks)
     durationMs: toNum(event.durationMs),
     structuredOutput: parseStructuredOutput(event.structuredOutput),
   });
-}
-
-/* ─── Agent output parsers ─── */
-
-function mapRawToolCalls(raw: unknown): ToolCallData[] {
-  if (!Array.isArray(raw)) return [];
-  return raw.map((item: unknown) => {
-    const rec = toRecord(item);
-    const toolName = toStr(rec.toolName);
-    return {
-      name: toolName === '' ? toStr(rec.name) : toolName,
-      args: rec.input ?? rec.args,
-      result: rec.output ?? rec.result,
-    };
-  });
-}
-
-function mapNodeTokensToTokensLogs(nodeTokens: unknown): CallAgentOutput['tokensLogs'] {
-  if (!Array.isArray(nodeTokens)) return [];
-  return nodeTokens.map((item: unknown) => {
-    const rec = toRecord(item);
-    const tokens = toRecord(rec.tokens);
-    return {
-      action: toStr(rec.node),
-      tokens: {
-        input: toNum(tokens.input),
-        output: toNum(tokens.output),
-        cached: toNum(tokens.cached),
-        costUSD: typeof tokens.costUSD === 'number' ? tokens.costUSD : undefined,
-      },
-    };
-  });
-}
-
-function isDebugMessages(value: unknown): value is CallAgentOutput['debugMessages'] {
-  return typeof value === 'object' && value !== null;
-}
-
-function isToolCallsArray(value: unknown): value is CallAgentOutput['toolCalls'] {
-  return Array.isArray(value);
-}
-
-function parseStructuredOutputs(value: unknown): Array<{ nodeId: string; data: unknown }> {
-  if (!Array.isArray(value)) return [];
-  return value.map((item: unknown) => {
-    const rec = toRecord(item);
-    return { nodeId: toStr(rec.nodeId), data: rec.data };
-  });
-}
-
-function buildParsedResults(
-  event: SseEvent,
-  nodeTexts: NodeProcessedData[]
-): CallAgentOutput['parsedResults'] {
-  if (Array.isArray(event.parsedResults)) {
-    return event.parsedResults.map((item: unknown) => {
-      const rec = toRecord(item);
-      return { nextNodeID: toStr(rec.nextNodeID), messageToUser: toOptStr(rec.messageToUser) };
-    });
-  }
-  return nodeTexts.map((nt) => ({
-    nextNodeID: '',
-    messageToUser: nt.text === '' ? undefined : nt.text,
-  }));
-}
-
-function buildResultFromResponse(event: SseEvent, nodeTexts: NodeProcessedData[]): CallAgentOutput {
-  // Agent loop response has 'steps' field; workflow response has 'visitedNodes'
-  if (event.steps !== undefined) {
-    return buildAgentLoopResult(event, nodeTexts);
-  }
-  return {
-    message: null,
-    text: toStr(event.text),
-    visitedNodes: toStringArray(event.visitedNodes),
-    toolCalls: isToolCallsArray(event.toolCalls) ? event.toolCalls : [],
-    tokensLogs: mapNodeTokensToTokensLogs(event.nodeTokens),
-    debugMessages: isDebugMessages(event.debugMessages) ? event.debugMessages : {},
-    structuredOutputs: parseStructuredOutputs(event.structuredOutputs),
-    parsedResults: buildParsedResults(event, nodeTexts),
-    dispatchResult: isDispatchSentinel(event.dispatchResult) ? event.dispatchResult : undefined,
-    finishResult: isFinishSentinel(event.finishResult) ? event.finishResult : undefined,
-  };
 }
 
 /* ─── SSE event handlers ─── */

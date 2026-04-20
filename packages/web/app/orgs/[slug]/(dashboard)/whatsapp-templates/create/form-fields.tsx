@@ -20,22 +20,17 @@ export const BODY_MAX_LENGTH = 1600;
 
 const BODY_PLACEHOLDER_TEMPLATE = 'e.g. Hi {{1}}, your report {{2}} is ready for review.';
 
+function FieldHint({ children }: { children: React.ReactNode }) {
+  return <p className="text-[11px] leading-snug text-muted-foreground">{children}</p>;
+}
+
 export function NameField() {
   const t = useTranslations('whatsappTemplates.fields');
   return (
-    <div className="space-y-2">
-      <Label htmlFor="name" className="text-foreground">
-        {t('nameLabel')}
-      </Label>
-      <Input
-        id="name"
-        name="name"
-        type="text"
-        placeholder={t('namePlaceholder')}
-        required
-        className="border-border focus:border-foreground"
-      />
-      <p className="text-xs text-muted-foreground">{t('nameHint')}</p>
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor="name">{t('nameLabel')}</Label>
+      <Input id="name" name="name" type="text" placeholder={t('namePlaceholder')} required />
+      <FieldHint>{t('nameHint')}</FieldHint>
     </div>
   );
 }
@@ -54,10 +49,8 @@ export function BodyField({
   const showError = error !== null || isOverLimit;
 
   return (
-    <div className="space-y-2">
-      <Label htmlFor="body" className="text-foreground">
-        {t('bodyLabel')}
-      </Label>
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor="body">{t('bodyLabel')}</Label>
       <Textarea
         id="body"
         name="body"
@@ -66,17 +59,19 @@ export function BodyField({
         maxLength={BODY_MAX_LENGTH}
         rows={4}
         onChange={(e) => onChange(e.target.value)}
-        className={`border-border focus:border-foreground resize-none font-mono text-sm ${showError ? 'border-destructive' : ''}`}
+        className={`font-mono ${showError ? 'border-destructive' : ''}`}
       />
-      <div className="flex justify-between">
-        <div>
-          {error !== null ? (
-            <p className="text-xs text-destructive">{error}</p>
-          ) : (
-            <p className="text-xs text-muted-foreground">{t('bodyHint')}</p>
-          )}
-        </div>
-        <p className={`text-xs ${isOverLimit ? 'text-destructive' : 'text-muted-foreground'}`}>
+      <div className="flex items-start justify-between gap-3">
+        {error !== null ? (
+          <p className="text-[11px] leading-snug text-destructive">{error}</p>
+        ) : (
+          <FieldHint>{t('bodyHint')}</FieldHint>
+        )}
+        <p
+          className={`shrink-0 text-[11px] tabular-nums ${
+            isOverLimit ? 'text-destructive' : 'text-muted-foreground'
+          }`}
+        >
           {t('bodyCharCount', { count: charCount, max: BODY_MAX_LENGTH })}
         </p>
       </div>
@@ -88,12 +83,10 @@ export function LanguageField() {
   const t = useTranslations('whatsappTemplates.fields');
   const tLang = useTranslations('whatsappTemplates.languages');
   return (
-    <div className="space-y-2">
-      <Label htmlFor="language" className="text-foreground">
-        {t('languageLabel')}
-      </Label>
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor="language">{t('languageLabel')}</Label>
       <Select name="language" defaultValue="en">
-        <SelectTrigger className="border-border focus:border-foreground">
+        <SelectTrigger>
           <SelectValue placeholder={t('languagePlaceholder')} />
         </SelectTrigger>
         <SelectContent>
@@ -112,12 +105,10 @@ export function CategoryField() {
   const t = useTranslations('whatsappTemplates.fields');
   const tCat = useTranslations('whatsappTemplates.categories');
   return (
-    <div className="space-y-2">
-      <Label htmlFor="category" className="text-foreground">
-        {t('categoryLabel')}
-      </Label>
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor="category">{t('categoryLabel')}</Label>
       <Select name="category" defaultValue="utility">
-        <SelectTrigger className="border-border focus:border-foreground">
+        <SelectTrigger>
           <SelectValue placeholder={t('categoryPlaceholder')} />
         </SelectTrigger>
         <SelectContent>
@@ -126,7 +117,7 @@ export function CategoryField() {
           <SelectItem value="authentication">{tCat('authentication')}</SelectItem>
         </SelectContent>
       </Select>
-      <p className="text-xs text-muted-foreground">{t('categoryHint')}</p>
+      <FieldHint>{t('categoryHint')}</FieldHint>
     </div>
   );
 }
@@ -134,18 +125,15 @@ export function CategoryField() {
 export function DescriptionField() {
   const t = useTranslations('whatsappTemplates.fields');
   return (
-    <div className="space-y-2">
-      <Label htmlFor="description" className="text-foreground">
-        {t('descriptionLabel')}
-      </Label>
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor="description">{t('descriptionLabel')}</Label>
       <Textarea
         id="description"
         name="description"
         placeholder={t('descriptionPlaceholder')}
-        rows={3}
-        className="border-border focus:border-foreground resize-none"
+        rows={2}
       />
-      <p className="text-xs text-muted-foreground">{t('descriptionHint')}</p>
+      <FieldHint>{t('descriptionHint')}</FieldHint>
     </div>
   );
 }
@@ -160,26 +148,26 @@ export function ChannelConnectionField({
   const defaultValue = first !== undefined ? first.id : '';
 
   return (
-    <div className="space-y-2">
-      <Label htmlFor="channelConnectionId" className="text-foreground">
-        {t('connectionLabel')}
-      </Label>
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor="channelConnectionId">{t('connectionLabel')}</Label>
       <Select name="channelConnectionId" defaultValue={defaultValue}>
-        <SelectTrigger className="border-border focus:border-foreground">
+        <SelectTrigger>
           <SelectValue placeholder={t('connectionPlaceholder')} />
         </SelectTrigger>
         <SelectContent>
           {connections.map((conn) => (
             <SelectItem key={conn.id} value={conn.id}>
-              {t('connectionOption', {
-                id: `${conn.id.slice(0, 8)}…`,
-                tenantId: conn.tenant_id.slice(0, 8),
-              })}
+              <span className="font-mono">
+                {t('connectionOption', {
+                  id: `${conn.id.slice(0, 8)}…`,
+                  tenantId: conn.tenant_id.slice(0, 8),
+                })}
+              </span>
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
-      <p className="text-xs text-muted-foreground">{t('connectionHint')}</p>
+      <FieldHint>{t('connectionHint')}</FieldHint>
     </div>
   );
 }
@@ -195,19 +183,19 @@ export function VariablesField({
 }) {
   const t = useTranslations('whatsappTemplates.fields');
   return (
-    <div className="space-y-2">
-      <Label className="text-foreground">{t('variablesLabel')}</Label>
+    <div className="flex flex-col gap-1.5">
+      <Label>{t('variablesLabel')}</Label>
       <VariableBuilder value={variables} onChange={onChange} />
       {errors.length > 0 ? (
-        <div className="space-y-1">
+        <div className="space-y-0.5">
           {errors.map((error) => (
-            <p key={error} className="text-xs text-destructive">
+            <p key={error} className="text-[11px] leading-snug text-destructive">
               {error}
             </p>
           ))}
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground">{t('variablesHint')}</p>
+        <FieldHint>{t('variablesHint')}</FieldHint>
       )}
     </div>
   );

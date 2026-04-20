@@ -6,7 +6,6 @@ import { useTranslations } from 'next-intl';
 import type { WhatsAppTemplateVariable } from '@/app/lib/whatsappTemplates';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 
 interface VariableBuilderProps {
   value: WhatsAppTemplateVariable[];
@@ -25,6 +24,18 @@ function updateVariableAtIndex(
   return variables.map((v, i) => (i === index ? { ...v, ...updates } : v));
 }
 
+function ColumnHeaders() {
+  const t = useTranslations('whatsappTemplates.variableBuilder');
+  return (
+    <div className="flex items-center gap-2 px-0.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+      <span className="w-16 shrink-0">{t('keyLabel')}</span>
+      <span className="flex-1">{t('nameLabel')}</span>
+      <span className="flex-1">{t('exampleLabel')}</span>
+      <span className="w-7 shrink-0" aria-hidden="true" />
+    </div>
+  );
+}
+
 function VariableRow({
   variable,
   index,
@@ -36,47 +47,36 @@ function VariableRow({
   onUpdate: (index: number, updates: Partial<WhatsAppTemplateVariable>) => void;
   onRemove: (index: number) => void;
 }) {
-  const t = useTranslations('whatsappTemplates.variableBuilder');
   return (
-    <div className="flex items-end gap-3">
-      <div className="w-20">
-        <Label htmlFor={`var-key-${String(index)}`}>{t('keyLabel')}</Label>
-        <Input
-          id={`var-key-${String(index)}`}
-          value={variable.key}
-          onChange={(e) => onUpdate(index, { key: e.target.value })}
-          placeholder={KEY_PLACEHOLDER}
-        />
-      </div>
-
-      <div className="flex-1">
-        <Label htmlFor={`var-name-${String(index)}`}>{t('nameLabel')}</Label>
-        <Input
-          id={`var-name-${String(index)}`}
-          value={variable.name}
-          onChange={(e) => onUpdate(index, { name: e.target.value })}
-          placeholder={NAME_PLACEHOLDER}
-        />
-      </div>
-
-      <div className="flex-1">
-        <Label htmlFor={`var-example-${String(index)}`}>{t('exampleLabel')}</Label>
-        <Input
-          id={`var-example-${String(index)}`}
-          value={variable.example}
-          onChange={(e) => onUpdate(index, { example: e.target.value })}
-          placeholder={EXAMPLE_PLACEHOLDER}
-        />
-      </div>
-
+    <div className="flex items-center gap-2">
+      <Input
+        aria-label={`key-${String(index)}`}
+        value={variable.key}
+        onChange={(e) => onUpdate(index, { key: e.target.value })}
+        placeholder={KEY_PLACEHOLDER}
+        className="w-16 shrink-0 font-mono"
+      />
+      <Input
+        aria-label={`name-${String(index)}`}
+        value={variable.name}
+        onChange={(e) => onUpdate(index, { name: e.target.value })}
+        placeholder={NAME_PLACEHOLDER}
+        className="flex-1 font-mono"
+      />
+      <Input
+        aria-label={`example-${String(index)}`}
+        value={variable.example}
+        onChange={(e) => onUpdate(index, { example: e.target.value })}
+        placeholder={EXAMPLE_PLACEHOLDER}
+        className="flex-1"
+      />
       <Button
         type="button"
         variant="ghost"
-        size="icon"
         onClick={() => onRemove(index)}
-        className="mb-0.5 text-destructive hover:text-destructive"
+        className="h-7 w-7 shrink-0 p-0 text-muted-foreground hover:text-destructive"
       >
-        <Trash2 className="h-4 w-4" />
+        <Trash2 className="size-3.5" />
       </Button>
     </div>
   );
@@ -99,7 +99,8 @@ export function VariableBuilder({ value, onChange }: VariableBuilderProps) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-1.5">
+      {value.length > 0 ? <ColumnHeaders /> : null}
       {value.map((variable, index) => (
         <VariableRow
           key={`${variable.key}-${String(index)}`}
@@ -110,8 +111,14 @@ export function VariableBuilder({ value, onChange }: VariableBuilderProps) {
         />
       ))}
 
-      <Button type="button" variant="outline" size="sm" onClick={handleAdd}>
-        <Plus className="mr-1 h-4 w-4" />
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={handleAdd}
+        className="self-start border-[0.5px] border-dashed rounded-md"
+      >
+        <Plus className="size-3.5" />
         {t('add')}
       </Button>
     </div>

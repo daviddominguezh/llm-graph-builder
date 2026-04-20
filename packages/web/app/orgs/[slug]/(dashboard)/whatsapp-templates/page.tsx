@@ -6,16 +6,15 @@ import { getTranslations } from 'next-intl/server';
 import { getOrgBySlug, getOrgRole } from '@/app/lib/orgs';
 import type { WhatsAppTemplate } from '@/app/lib/whatsappTemplates';
 import { listTemplatesByOrg } from '@/app/lib/whatsappTemplates';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 import { DeleteTemplateButton } from './delete-template-button';
 import { StatusBadge } from './status-badge';
@@ -34,10 +33,32 @@ type Translator = Awaited<ReturnType<typeof getTranslations<'whatsappTemplates'>
 
 function TemplatesEmptyState({ t }: { t: Translator }) {
   return (
-    <div className="text-center py-12 text-muted-foreground">
-      <MessageSquareDashed className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
-      <p>{t('empty')}</p>
-      <p className="text-sm mt-1">{t('emptyDescription')}</p>
+    <div className="flex flex-col items-center gap-1.5 rounded-md border border-dashed bg-background px-4 py-8 text-center">
+      <MessageSquareDashed className="size-5 text-muted-foreground/60" />
+      <p className="text-sm font-medium">{t('empty')}</p>
+      <p className="text-xs text-muted-foreground">{t('emptyDescription')}</p>
+    </div>
+  );
+}
+
+function TemplateMeta({ template, t }: { template: WhatsAppTemplate; t: Translator }) {
+  const parts = [
+    t(`categories.${template.category}`),
+    template.variables.length === 1
+      ? `1 ${t('table.variables').toLowerCase()}`
+      : `${String(template.variables.length)} ${t('table.variables').toLowerCase()}`,
+  ];
+  return (
+    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+      <span>{parts[0]}</span>
+      <span className="text-muted-foreground/40">·</span>
+      <span>{parts[1]}</span>
+      {template.meta_template_id !== null ? (
+        <>
+          <span className="text-muted-foreground/40">·</span>
+          <code className="font-mono truncate max-w-[180px]">{template.meta_template_id}</code>
+        </>
+      ) : null}
     </div>
   );
 }
@@ -55,45 +76,29 @@ function TemplateRow({
   canManage: boolean;
   t: Translator;
 }) {
-  const variableCount = template.variables.length;
-
   return (
-    <TableRow>
-      <TableCell className="font-medium">{template.name}</TableCell>
-      <TableCell>
-        <span className="text-xs text-muted-foreground whitespace-pre-line">{template.body}</span>
-      </TableCell>
-      <TableCell>
-        <Badge variant="outline">{t(`categories.${template.category}`)}</Badge>
-      </TableCell>
-      <TableCell>
-        <StatusBadge status={template.status} />
-      </TableCell>
-      <TableCell className="text-center">{variableCount}</TableCell>
-      <TableCell>
-        {template.meta_template_id !== null ? (
-          <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
-            {template.meta_template_id}
-          </code>
-        ) : (
-          <span className="text-xs text-muted-foreground">-</span>
-        )}
-      </TableCell>
-      <TableCell>
-        {canManage ? (
-          <DeleteTemplateButton
-            orgId={orgId}
-            slug={slug}
-            templateId={template.id}
-            templateName={template.name}
-          />
-        ) : null}
-      </TableCell>
-    </TableRow>
+    <div className="flex items-start justify-between gap-3 rounded-md border border-transparent bg-card px-3 py-2 dark:bg-input/30">
+      <div className="min-w-0 flex-1 space-y-1">
+        <div className="flex items-center gap-2">
+          <span className="truncate text-sm font-medium">{template.name}</span>
+          <StatusBadge status={template.status} />
+        </div>
+        <p className="truncate text-xs text-muted-foreground/80">{template.body}</p>
+        <TemplateMeta template={template} t={t} />
+      </div>
+      {canManage ? (
+        <DeleteTemplateButton
+          orgId={orgId}
+          slug={slug}
+          templateId={template.id}
+          templateName={template.name}
+        />
+      ) : null}
+    </div>
   );
 }
 
-function TemplatesTable({
+function TemplatesList({
   templates,
   orgId,
   slug,
@@ -109,50 +114,29 @@ function TemplatesTable({
   if (templates.length === 0) return <TemplatesEmptyState t={t} />;
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>{t('table.name')}</TableHead>
-          <TableHead>{t('table.body')}</TableHead>
-          <TableHead>{t('table.category')}</TableHead>
-          <TableHead>{t('table.status')}</TableHead>
-          <TableHead className="text-center">{t('table.variables')}</TableHead>
-          <TableHead>{t('table.metaId')}</TableHead>
-          <TableHead>{t('table.actions')}</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {templates.map((template) => (
-          <TemplateRow
-            key={template.id}
-            template={template}
-            orgId={orgId}
-            slug={slug}
-            canManage={canManage}
-            t={t}
-          />
-        ))}
-      </TableBody>
-    </Table>
+    <div className="flex flex-col gap-1.5">
+      {templates.map((template) => (
+        <TemplateRow
+          key={template.id}
+          template={template}
+          orgId={orgId}
+          slug={slug}
+          canManage={canManage}
+          t={t}
+        />
+      ))}
+    </div>
   );
 }
 
-function PageHeader({ slug, canManage, t }: { slug: string; canManage: boolean; t: Translator }) {
+function CreateTemplateAction({ slug, t }: { slug: string; t: Translator }) {
   return (
-    <div className="flex items-center justify-between">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
-        <p className="text-muted-foreground mt-1">{t('subtitle')}</p>
-      </div>
-      {canManage ? (
-        <Link href={`/orgs/${slug}/whatsapp-templates/create`}>
-          <Button className="gap-2">
-            <Plus className="w-4 h-4" />
-            {t('createButton')}
-          </Button>
-        </Link>
-      ) : null}
-    </div>
+    <Link href={`/orgs/${slug}/whatsapp-templates/create`}>
+      <Button variant="outline" size="sm" className="border-[0.5px] rounded-md">
+        <Plus className="size-3.5" />
+        {t('createButton')}
+      </Button>
+    </Link>
   );
 }
 
@@ -171,15 +155,19 @@ export default async function WhatsAppTemplatesPage({ params }: PageProps): Prom
 
   return (
     <div className="h-[calc(100%-var(--spacing)*1.5)] overflow-y-auto p-6 border mr-1.5 rounded-xl">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-        <PageHeader slug={slug} canManage={canManage} t={t} />
-        <Card className="border-border shadow-lg">
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+        <Card className="bg-transparent ring-0 border-transparent">
           <CardHeader>
-            <CardTitle className="text-foreground">{t('allTemplates')}</CardTitle>
-            <CardDescription>{t('countRegistered', { count: templates.length })}</CardDescription>
+            <CardTitle>{t('title')}</CardTitle>
+            <CardDescription>{t('subtitle')}</CardDescription>
+            {canManage ? (
+              <CardAction>
+                <CreateTemplateAction slug={slug} t={t} />
+              </CardAction>
+            ) : null}
           </CardHeader>
           <CardContent>
-            <TemplatesTable
+            <TemplatesList
               templates={templates}
               orgId={org.id}
               slug={slug}

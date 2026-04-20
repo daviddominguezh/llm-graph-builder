@@ -58,11 +58,14 @@ export function DeleteTemplateButton({
         render={
           <Button
             variant="ghost"
-            size="sm"
-            className="text-destructive hover:text-destructive"
+            className="h-7 w-7 shrink-0 p-0 text-muted-foreground hover:text-destructive"
             disabled={isPending}
           >
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            {isPending ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Trash2 className="size-3.5" />
+            )}
           </Button>
         }
       />

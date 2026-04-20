@@ -40,11 +40,11 @@ function SubmitButton({
   t: FormTranslator;
 }) {
   return (
-    <Button type="submit" disabled={isPending || disabled} className="gap-2">
+    <Button type="submit" size="sm" disabled={isPending || disabled} className="rounded-md gap-1.5">
       {isPending ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
+        <Loader2 className="size-3.5 animate-spin" />
       ) : (
-        <MessageSquareDashed className="w-4 h-4" />
+        <MessageSquareDashed className="size-3.5" />
       )}
       {isPending ? t('create.submitting') : t('create.submit')}
     </Button>
@@ -134,42 +134,46 @@ export function CreateTemplateForm({ orgId, slug, connections }: CreateTemplateF
   const hasValidationErrors = form.bodyError !== null || form.variableErrors.length > 0;
 
   return (
-    <form action={form.formAction} className="space-y-6">
+    <form action={form.formAction} className="flex flex-col gap-5">
       <input type="hidden" name="orgId" value={orgId} />
       <input type="hidden" name="slug" value={slug} />
       <input type="hidden" name="variables" value={JSON.stringify(form.variables)} />
 
       <ChannelConnectionField connections={connections} />
-      <NameField />
-      <BodyField
-        error={form.bodyError}
-        charCount={form.bodyText.length}
-        onChange={form.handleBodyChange}
-      />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <CategoryField />
-        <LanguageField />
+      <div className="flex flex-col gap-4">
+        <NameField />
+        <BodyField
+          error={form.bodyError}
+          charCount={form.bodyText.length}
+          onChange={form.handleBodyChange}
+        />
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <CategoryField />
+          <LanguageField />
+        </div>
+
+        <DescriptionField />
       </div>
 
-      <DescriptionField />
       <VariablesField
         variables={form.variables}
         onChange={form.setVariables}
         errors={form.variableErrors}
       />
 
-      <div className="rounded-md border border-border bg-muted/50 p-3 text-xs text-muted-foreground">
+      <p className="rounded-md border border-border/70 bg-muted/40 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
         {t('create.approvalNote')}
-      </div>
+      </p>
 
-      <div className="flex gap-3 pt-4">
-        <SubmitButton isPending={form.isPending} disabled={hasValidationErrors} t={t} />
+      <div className="flex items-center justify-end gap-2 border-t pt-4">
         <Link href={`/orgs/${slug}/whatsapp-templates`}>
-          <Button type="button" variant="outline" className="border-border">
+          <Button type="button" variant="outline" size="sm" className="border-[0.5px] rounded-md">
             {t('create.cancel')}
           </Button>
         </Link>
+        <SubmitButton isPending={form.isPending} disabled={hasValidationErrors} t={t} />
       </div>
     </form>
   );
