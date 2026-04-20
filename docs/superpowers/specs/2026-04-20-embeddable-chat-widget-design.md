@@ -187,18 +187,29 @@ export function isValidAgentSlug(s: string): boolean {
 
 The regexes are ASCII-only by construction (`[a-z0-9]`); IDN/Punycode cannot satisfy them.
 
-### Backend enforcement (Zod)
+### Tenant slug generation (new rule)
 
-- `packages/backend/src/routes/agents/createAgent.ts` — validate `slug` on create
-- Tenant creation handler (location to be confirmed during implementation) — validate slug +
-  reserved-list check
+Existing `generateSlug(name)` in `packages/backend/src/db/queries/slugQueries.ts` replaces
+non-alphanumeric characters with hyphens. For tenants this is now wrong — tenant slugs must not
+contain hyphens. Introduce `generateTenantSlug(name)` that **strips** non-alphanumeric instead
+of replacing them, enforces max length 40, lowercases, and returns the empty string if nothing
+is left (caller falls back to `tenant<8-hex>` as the existing `handleCreateTenant` already does).
 
-### Database enforcement (Postgres CHECK)
+Existing `generateSlug()` stays unchanged and continues to serve agents and organizations.
 
-New migration:
+### Refactor tenant slugs to globally unique
+
+Confirmed with user: no tenant rows exist in production today. The widget subdomain scheme
+requires globally unique tenant slugs; the existing `UNIQUE (org_id, slug)` is org-scoped and
+must go.
+
+Migration work (new migration, runs after `20260420100000_tenants_slug.sql`):
 
 ```sql
-ALTER TABLE tenants ADD CONSTRAINT tenants_slug_format
+ALTER TABLE public.tenants DROP CONSTRAINT tenants_org_slug_unique;
+ALTER TABLE public.tenants ADD  CONSTRAINT tenants_slug_unique UNIQUE (slug);
+
+ALTER TABLE public.tenants ADD  CONSTRAINT tenants_slug_format
   CHECK (
     slug ~ '^[a-z0-9]{1,40}$'
     AND slug NOT IN (
@@ -208,7 +219,46 @@ ALTER TABLE tenants ADD CONSTRAINT tenants_slug_format
     )
   );
 
-ALTER TABLE agents ADD CONSTRAINT agents_slug_format
+-- Replace org-scoped lookup with global
+DROP FUNCTION IF EXISTS public.tenant_id_by_slug(uuid, text);
+CREATE OR REPLACE FUNCTION public.tenant_id_by_slug(p_slug text)
+RETURNS uuid
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT id FROM public.tenants WHERE slug = p_slug;
+$$;
+
+-- No backfill needed: confirmed no rows exist.
+```
+
+Backend code refactor (same migration batch):
+
+- `packages/backend/src/db/queries/tenantQueries.ts` — change
+  `findUniqueTenantSlug(supabase, orgId, baseSlug)` to `findUniqueTenantSlug(supabase, baseSlug)`
+  (global `UNIQUE` lookup, no `org_id` filter).
+- `packages/backend/src/routes/tenants/createTenant.ts` — swap `generateSlug(name)` for
+  `generateTenantSlug(name)`; drop `orgId` argument from the `findUniqueTenantSlug` call; apply
+  `isValidTenantSlug` before insert; reject reserved slugs with 400.
+- Any caller of `tenant_id_by_slug(org_id, slug)` must drop the `org_id` argument. Grep during
+  implementation; the current RPC is used in RLS policies — they'll need a small update.
+
+### Backend enforcement (Zod)
+
+- `packages/backend/src/routes/agents/createAgent.ts` — validate `slug` on create with
+  `isValidAgentSlug`.
+- `packages/backend/src/routes/tenants/createTenant.ts` — validate `slug` on create with
+  `isValidTenantSlug`, reject reserved.
+
+### Database enforcement (Postgres CHECK)
+
+Tenants table: covered by the migration above (`tenants_slug_format` CHECK).
+
+Agents table: new migration:
+
+```sql
+ALTER TABLE public.agents ADD CONSTRAINT agents_slug_format
   CHECK (slug ~ '^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$');
 ```
 
