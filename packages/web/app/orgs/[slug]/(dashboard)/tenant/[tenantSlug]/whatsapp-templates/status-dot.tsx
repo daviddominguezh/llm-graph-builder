@@ -17,8 +17,11 @@ const DOT_CLASS: Record<WhatsAppTemplateStatus, string> = {
 export function StatusDot({ status }: StatusDotProps) {
   const t = useTranslations('whatsappTemplates.status');
   return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className={`inline-block size-1.5 shrink-0 rounded-full ${DOT_CLASS[status]}`} />
+    <span className="inline-flex items-center gap-1 rounded-full bg-background px-1.5 py-0.5 text-[10px] font-medium text-foreground">
+      <span
+        aria-hidden="true"
+        className={`inline-block size-1.5 shrink-0 rounded-full ${DOT_CLASS[status]}`}
+      />
       <span>{t(status)}</span>
     </span>
   );

@@ -1,4 +1,4 @@
-import { MessageSquareDashed } from 'lucide-react';
+import { Info, MessageSquareDashed } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 
 import type { WhatsAppChannelConnection, WhatsAppTemplate } from '@/app/lib/whatsappTemplates';
@@ -54,14 +54,22 @@ function TemplateMeta({ template, t }: { template: WhatsAppTemplate; t: Translat
         ·
       </span>
       <span>{t('variableCount', { count: template.variables.length })}</span>
-      {template.status === 'pending' ? (
-        <>
-          <span aria-hidden="true" className="text-muted-foreground/40">
-            ·
-          </span>
-          <span>{formatPendingHint(template.created_at, t)}</span>
-        </>
-      ) : null}
+    </div>
+  );
+}
+
+function PendingTimeline({
+  template,
+  t,
+}: {
+  template: WhatsAppTemplate;
+  t: Translator;
+}) {
+  if (template.status !== 'pending') return null;
+  return (
+    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+      <Info aria-hidden="true" className="size-3 shrink-0" />
+      <span>{formatPendingHint(template.created_at, t)}</span>
     </div>
   );
 }
@@ -84,9 +92,10 @@ function TemplateRowItem({
   return (
     <div className="flex items-start justify-between gap-3 rounded-md border border-transparent bg-card px-3 py-2 dark:bg-input/30">
       <div className="min-w-0 flex-1 space-y-1">
-        <p className="truncate text-sm font-medium">{template.name}</p>
+        <p className="truncate font-mono text-xs font-medium">{template.name}</p>
         <p className="truncate text-xs text-muted-foreground/80">{template.body}</p>
         <TemplateMeta template={template} t={t} />
+        <PendingTimeline template={template} t={t} />
       </div>
       {canManage ? (
         <DeleteTemplateButton

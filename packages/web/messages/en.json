@@ -956,17 +956,17 @@
     "emptyDescription": "Create your first template and submit it for Meta approval.",
     "variableCount": "{count, plural, =0 {no variables} =1 {1 variable} other {# variables}}",
     "status": {
-      "approved": "approved",
-      "pending": "pending review",
-      "rejected": "rejected",
-      "paused": "paused",
-      "deactivated": "deactivated"
+      "approved": "Approved",
+      "pending": "Pending review",
+      "rejected": "Rejected",
+      "paused": "Paused",
+      "deactivated": "Deactivated"
     },
     "pendingTimeline": {
-      "justSubmitted": "just submitted · Meta review takes 4–24h",
-      "minutes": "submitted {count}m ago · Meta review takes 4–24h",
-      "hours": "submitted {count}h ago · Meta review takes 4–24h",
-      "days": "submitted {count}d ago"
+      "justSubmitted": "Just submitted · Meta review takes 4–24h",
+      "minutes": "Submitted {count}m ago · Meta review takes 4–24h",
+      "hours": "Submitted {count}h ago · Meta review takes 4–24h",
+      "days": "Submitted {count}d ago"
     },
     "categories": {
       "utility": "Utility",
