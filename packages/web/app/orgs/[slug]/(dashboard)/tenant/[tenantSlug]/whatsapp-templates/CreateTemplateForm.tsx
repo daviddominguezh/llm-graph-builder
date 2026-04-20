@@ -1,7 +1,6 @@
 'use client';
 
 import { Loader2, Send } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useActionState, useEffect, useMemo, useState } from 'react';
@@ -13,8 +12,8 @@ import type {
 } from '@/app/lib/whatsappTemplates';
 import { Button } from '@/components/ui/button';
 
-import { createTemplateAction, type TemplateActionState } from '../actions';
-import { validateBodyPlaceholders } from '../template-validators';
+import { createTemplateAction, type TemplateActionState } from './actions';
+import { validateBodyPlaceholders } from './template-validators';
 import {
   BodyField,
   CategoryField,
@@ -30,6 +29,8 @@ interface CreateTemplateFormProps {
   orgSlug: string;
   tenantSlug: string;
   connections: WhatsAppChannelConnection[];
+  onSuccess: () => void;
+  onCancel: () => void;
 }
 
 type FormTranslator = ReturnType<typeof useTranslations<'whatsappTemplates'>>;
@@ -112,24 +113,32 @@ function useTemplateFormState(t: FormTranslator) {
   };
 }
 
-function useToastRedirect(state: TemplateActionState, orgSlug: string, tenantSlug: string, t: FormTranslator) {
+function useResultHandler(
+  state: TemplateActionState,
+  onSuccess: () => void,
+  t: FormTranslator
+) {
   const router = useRouter();
 
   useEffect(() => {
     if (state.message === '') return;
     if (state.type === 'error') {
       toast.error(state.message);
-    } else {
-      toast.success(t('toasts.createSuccess'));
-      router.push(`/orgs/${orgSlug}/tenant/${tenantSlug}`);
+      return;
     }
-  }, [state, router, orgSlug, tenantSlug, t]);
+    toast.success(t('toasts.createSuccess'));
+    router.refresh();
+    onSuccess();
+  }, [state, router, onSuccess, t]);
 }
 
 function ApprovalNote({ t }: { t: FormTranslator }) {
   return (
     <div className="flex items-start gap-2 rounded-md border border-border/70 bg-muted/40 px-3 py-2 text-[11px] leading-relaxed">
-      <span aria-hidden="true" className="mt-0.5 inline-block size-1.5 shrink-0 rounded-full bg-amber-500" />
+      <span
+        aria-hidden="true"
+        className="mt-0.5 inline-block size-1.5 shrink-0 rounded-full bg-amber-500"
+      />
       <p className="text-muted-foreground">
         <span className="font-medium text-foreground">{t('create.approvalNoteTitle')}</span>{' '}
         {t('create.approvalNoteBody')}
@@ -143,10 +152,12 @@ export function CreateTemplateForm({
   orgSlug,
   tenantSlug,
   connections,
+  onSuccess,
+  onCancel,
 }: CreateTemplateFormProps) {
   const t = useTranslations('whatsappTemplates');
   const form = useTemplateFormState(t);
-  useToastRedirect(form.state, orgSlug, tenantSlug, t);
+  useResultHandler(form.state, onSuccess, t);
 
   const hasValidationErrors = form.bodyError !== null || form.variableErrors.length > 0;
 
@@ -184,11 +195,15 @@ export function CreateTemplateForm({
       <ApprovalNote t={t} />
 
       <div className="flex items-center justify-end gap-2 border-t pt-4">
-        <Link href={`/orgs/${orgSlug}/tenant/${tenantSlug}`}>
-          <Button type="button" variant="outline" size="sm" className="border-[0.5px] rounded-md">
-            {t('create.cancel')}
-          </Button>
-        </Link>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="border-[0.5px] rounded-md"
+          onClick={onCancel}
+        >
+          {t('create.cancel')}
+        </Button>
         <SubmitButton isPending={form.isPending} disabled={hasValidationErrors} t={t} />
       </div>
     </form>

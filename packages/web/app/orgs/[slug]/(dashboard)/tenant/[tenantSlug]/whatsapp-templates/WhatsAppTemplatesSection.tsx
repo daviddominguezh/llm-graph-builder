@@ -1,9 +1,7 @@
-import { MessageSquareDashed, Plus } from 'lucide-react';
-import Link from 'next/link';
+import { MessageSquareDashed } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 
-import type { WhatsAppTemplate } from '@/app/lib/whatsappTemplates';
-import { Button } from '@/components/ui/button';
+import type { WhatsAppChannelConnection, WhatsAppTemplate } from '@/app/lib/whatsappTemplates';
 import {
   Card,
   CardAction,
@@ -13,6 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 
+import { CreateTemplateTrigger } from './CreateTemplateTrigger';
 import { DeleteTemplateButton } from './delete-template-button';
 import { StatusDot } from './status-dot';
 
@@ -23,6 +22,7 @@ interface WhatsAppTemplatesSectionProps {
   orgSlug: string;
   tenantSlug: string;
   templates: WhatsAppTemplate[];
+  connections: WhatsAppChannelConnection[];
   canManage: boolean;
 }
 
@@ -46,13 +46,19 @@ function TemplateMeta({ template, t }: { template: WhatsAppTemplate; t: Translat
   return (
     <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
       <StatusDot status={template.status} />
-      <span aria-hidden="true" className="text-muted-foreground/40">·</span>
+      <span aria-hidden="true" className="text-muted-foreground/40">
+        ·
+      </span>
       <span>{t(`categories.${template.category}`)}</span>
-      <span aria-hidden="true" className="text-muted-foreground/40">·</span>
+      <span aria-hidden="true" className="text-muted-foreground/40">
+        ·
+      </span>
       <span>{t('variableCount', { count: template.variables.length })}</span>
       {template.status === 'pending' ? (
         <>
-          <span aria-hidden="true" className="text-muted-foreground/40">·</span>
+          <span aria-hidden="true" className="text-muted-foreground/40">
+            ·
+          </span>
           <span>{formatPendingHint(template.created_at, t)}</span>
         </>
       ) : null}
@@ -96,13 +102,17 @@ function TemplateRowItem({
 }
 
 function EmptyState({
+  tenantId,
   orgSlug,
   tenantSlug,
+  connections,
   canManage,
   t,
 }: {
+  tenantId: string;
   orgSlug: string;
   tenantSlug: string;
+  connections: WhatsAppChannelConnection[];
   canManage: boolean;
   t: Translator;
 }) {
@@ -114,12 +124,13 @@ function EmptyState({
         <p className="max-w-xs text-xs text-muted-foreground">{t('emptyDescription')}</p>
       </div>
       {canManage ? (
-        <Link href={`/orgs/${orgSlug}/tenant/${tenantSlug}/whatsapp-templates/create`}>
-          <Button size="sm" className="mt-1 rounded-full">
-            <Plus className="size-3.5" />
-            {t('createButton')}
-          </Button>
-        </Link>
+        <CreateTemplateTrigger
+          tenantId={tenantId}
+          orgSlug={orgSlug}
+          tenantSlug={tenantSlug}
+          connections={connections}
+          variant="empty"
+        />
       ) : null}
     </div>
   );
@@ -130,6 +141,7 @@ function TemplatesList({
   tenantId,
   orgSlug,
   tenantSlug,
+  connections,
   canManage,
   t,
 }: {
@@ -137,11 +149,21 @@ function TemplatesList({
   tenantId: string;
   orgSlug: string;
   tenantSlug: string;
+  connections: WhatsAppChannelConnection[];
   canManage: boolean;
   t: Translator;
 }) {
   if (templates.length === 0) {
-    return <EmptyState orgSlug={orgSlug} tenantSlug={tenantSlug} canManage={canManage} t={t} />;
+    return (
+      <EmptyState
+        tenantId={tenantId}
+        orgSlug={orgSlug}
+        tenantSlug={tenantSlug}
+        connections={connections}
+        canManage={canManage}
+        t={t}
+      />
+    );
   }
 
   return (
@@ -166,6 +188,7 @@ export async function WhatsAppTemplatesSection({
   orgSlug,
   tenantSlug,
   templates,
+  connections,
   canManage,
 }: WhatsAppTemplatesSectionProps): Promise<React.JSX.Element> {
   const t = await getTranslations('whatsappTemplates');
@@ -177,12 +200,13 @@ export async function WhatsAppTemplatesSection({
         <CardDescription>{t('subtitle')}</CardDescription>
         {canManage && templates.length > 0 ? (
           <CardAction>
-            <Link href={`/orgs/${orgSlug}/tenant/${tenantSlug}/whatsapp-templates/create`}>
-              <Button variant="outline" size="sm" className="border-[0.5px] rounded-md">
-                <Plus className="size-3.5" />
-                {t('createButton')}
-              </Button>
-            </Link>
+            <CreateTemplateTrigger
+              tenantId={tenantId}
+              orgSlug={orgSlug}
+              tenantSlug={tenantSlug}
+              connections={connections}
+              variant="header"
+            />
           </CardAction>
         ) : null}
       </CardHeader>
@@ -192,6 +216,7 @@ export async function WhatsAppTemplatesSection({
           tenantId={tenantId}
           orgSlug={orgSlug}
           tenantSlug={tenantSlug}
+          connections={connections}
           canManage={canManage}
           t={t}
         />

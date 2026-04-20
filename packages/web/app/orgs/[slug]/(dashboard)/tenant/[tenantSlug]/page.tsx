@@ -2,7 +2,10 @@ import { redirect } from 'next/navigation';
 
 import { getOrgBySlug, getOrgRole } from '@/app/lib/orgs';
 import { getTenantBySlug } from '@/app/lib/tenants';
-import { listTemplatesByTenant } from '@/app/lib/whatsappTemplates';
+import {
+  listTemplatesByTenant,
+  listWhatsAppConnectionsByTenant,
+} from '@/app/lib/whatsappTemplates';
 import { Separator } from '@/components/ui/separator';
 
 import { TenantSettingsForm } from './TenantSettingsForm';
@@ -26,9 +29,10 @@ export default async function TenantPage({ params }: PageProps): Promise<React.J
   const { result: tenant } = await getTenantBySlug(org.id, tenantSlug);
   if (!tenant) redirect(`/orgs/${slug}/tenants`);
 
-  const [role, { templates }] = await Promise.all([
+  const [role, { templates }, { connections }] = await Promise.all([
     getOrgRole(org.id),
     listTemplatesByTenant(tenant.id),
+    listWhatsAppConnectionsByTenant(tenant.id),
   ]);
 
   const canManage = canManageTemplates(role);
@@ -43,6 +47,7 @@ export default async function TenantPage({ params }: PageProps): Promise<React.J
           orgSlug={slug}
           tenantSlug={tenantSlug}
           templates={templates}
+          connections={connections}
           canManage={canManage}
         />
       </div>

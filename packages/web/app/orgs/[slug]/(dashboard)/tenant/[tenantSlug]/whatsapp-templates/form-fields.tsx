@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
-import { VariableBuilder } from '../variable-builder';
+import { VariableBuilder } from './variable-builder';
 
 export const BODY_MAX_LENGTH = 1600;
 
