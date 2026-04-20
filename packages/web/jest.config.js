@@ -8,13 +8,14 @@ const config = {
     '^@/(.*)$': '<rootDir>/$1',
     '^@daviddh/llm-graph-runner$': '<rootDir>/../api/src/index.ts',
     '^@daviddh/graph-types$': '<rootDir>/../graph-types/src/index.ts',
+    '^@openflow/shared-validation$': '<rootDir>/../shared-validation/src/index.ts',
     '^@src/(.*)\\.js$': '<rootDir>/../api/src/$1',
     '^@src/(.*)$': '<rootDir>/../api/src/$1',
   },
   transform: {
     '^.+\\.tsx?$': ['ts-jest', { useESM: true, tsconfig: 'tsconfig.test.json' }],
   },
-  testMatch: ['**/__tests__/**/*.test.ts'],
+  testMatch: ['**/__tests__/**/*.test.ts', '**/app/api/**/_helpers/*.test.ts'],
   testPathIgnorePatterns: ['/node_modules/'],
 };
 
