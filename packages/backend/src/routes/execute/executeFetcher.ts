@@ -15,11 +15,7 @@ import type { AgentVfsSettings } from '../../db/queries/vfsConfigTypes.js';
 import { messageRowToMessage, resolveChannelProvider } from './executeMessageFetcher.js';
 import type { AgentExecutionInput } from './executeTypes.js';
 
-export {
-  fetchChildMessages,
-  fetchExecutionMessages,
-  fetchResumeMessages,
-} from './executeMessageFetcher.js';
+export { fetchChildMessages, fetchExecutionMessages, fetchResumeMessages } from './executeMessageFetcher.js';
 
 const EMPTY_LENGTH = 0;
 const HTTP_UNPROCESSABLE = 422;
