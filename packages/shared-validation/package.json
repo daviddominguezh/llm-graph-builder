@@ -14,6 +14,7 @@
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc -b --noEmit",
+    "check": "npm run typecheck",
     "test": "NODE_OPTIONS='--experimental-vm-modules' npx jest"
   },
   "devDependencies": {
