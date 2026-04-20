@@ -1,4 +1,7 @@
+import { ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
 
 import { getOrgBySlug, getOrgRole } from '@/app/lib/orgs';
 import { getTenantBySlug } from '@/app/lib/tenants';
@@ -29,27 +32,45 @@ export default async function TenantPage({ params }: PageProps): Promise<React.J
   const { result: tenant } = await getTenantBySlug(org.id, tenantSlug);
   if (!tenant) redirect(`/orgs/${slug}/tenants`);
 
-  const [role, { templates }, { connections }] = await Promise.all([
+  const [role, { templates }, { connections }, t] = await Promise.all([
     getOrgRole(org.id),
     listTemplatesByTenant(tenant.id),
     listWhatsAppConnectionsByTenant(tenant.id),
+    getTranslations('tenants'),
   ]);
 
   const canManage = canManageTemplates(role);
 
   return (
-    <div className="h-[calc(100%-var(--spacing)*1.5)] overflow-y-auto p-6 border rounded-xl mr-1.5 overflow-hidden">
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-        <TenantSettingsForm tenant={tenant} orgSlug={slug} />
-        <Separator />
-        <WhatsAppTemplatesSection
-          tenantId={tenant.id}
-          orgSlug={slug}
-          tenantSlug={tenantSlug}
-          templates={templates}
-          connections={connections}
-          canManage={canManage}
-        />
+    <div className="flex h-[calc(100%-var(--spacing)*1.5)] flex-col overflow-hidden border mr-1.5 rounded-xl bg-background">
+      <div className="px-4 py-3 shrink-0 bg-background">
+        <nav className="flex items-center gap-1 text-sm text-muted-foreground">
+          <Link
+            href={`/orgs/${slug}/tenants`}
+            className="hover:text-foreground text-xs font-medium"
+          >
+            {t('title')}
+          </Link>
+          <ChevronRight aria-hidden="true" className="size-3" />
+          <span className="text-foreground text-xs font-medium">{tenant.name}</span>
+        </nav>
+      </div>
+
+      <Separator />
+
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+          <TenantSettingsForm tenant={tenant} orgSlug={slug} />
+          <Separator />
+          <WhatsAppTemplatesSection
+            tenantId={tenant.id}
+            orgSlug={slug}
+            tenantSlug={tenantSlug}
+            templates={templates}
+            connections={connections}
+            canManage={canManage}
+          />
+        </div>
       </div>
     </div>
   );
