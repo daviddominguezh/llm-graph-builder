@@ -159,7 +159,7 @@ export function SystemPromptToolbar({ quill }: Props) {
   const t = useTranslations('agentEditor');
   const fmt = useActiveFormat(quill);
   return (
-    <div className="flex items-center gap-0.5 self-start rounded-md border bg-background px-1 py-0.5">
+    <div className="flex items-center gap-0.5 self-start rounded-md px-1 py-0.5">
       {ITEMS.map((item, i) => (
         <Fragment key={i}>
           <ToolbarIconButton
