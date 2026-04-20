@@ -22,6 +22,7 @@ auth — no widget code changes.
 - Real agent execution (swap mock URL → `/api/agents/:slug/:version`)
 - Rate limiting, abuse protection, Turnstile
 - File uploads, pre-chat form, proactive greeting, rich cards, custom themes
+- Consent UI / cookie banner integration (widget exposes `boot()`; integrators wire it)
 - Extracting `packages/chat-ui` as a shared package
 - Wildcard TLS / CDN provider decisions
 
@@ -30,38 +31,47 @@ auth — no widget code changes.
 ### System topology
 
 ```
-┌─────────────────────────────────────────┐
-│  Host site (any domain)                 │
-│  <script src="…/script.js">             │
-│  └─ injects <iframe src="…/v/5">        │
-│                                         │
-│  OR direct visit in browser tab:        │
-│  https://<tenant>-<agent>.live.openflow.build
-└──────────────────┬──────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│  Host site (any domain) — embedded                  │
+│  <script src=".../script.js" async></script>        │
+│  └─ injects <iframe src=".../v/5" sandbox=...>      │
+│                                                     │
+│  OR direct visit in browser tab:                    │
+│  https://<tenant>-<agent>.live.openflow.build       │
+└──────────────────┬──────────────────────────────────┘
                    │  static CDN (wildcard *.live.openflow.build)
                    ▼
-┌─────────────────────────────────────────┐
-│  packages/widget (static SPA, Vite)     │
-│  ├─ parses hostname → {tenant, agent}   │
-│  ├─ detects embedded vs standalone      │
-│  ├─ resolves version (latest or /v/N)   │
-│  └─ SSE → app.openflow.build/api/widget │
-└──────────────────┬──────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│  packages/widget (static SPA, Vite)                 │
+│  ├─ parses hostname → {tenant, agent}               │
+│  ├─ detects embedded vs standalone                  │
+│  ├─ resolves version (latest or /v/N)               │
+│  └─ SSE → app.openflow.build/api/chat               │
+└──────────────────┬──────────────────────────────────┘
                    │  fetch + CORS
                    ▼
-┌─────────────────────────────────────────┐
-│  packages/web  (Next.js server route)   │
-│  /api/widget/execute/[tenant]/[agent]/[version]
-│  └─ proxies SSE to Express              │
-└──────────────────┬──────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│  packages/web  (Next.js server route)               │
+│  /api/chat/execute/[tenant]/[agent]/[version]       │
+│  └─ proxies SSE to Express                          │
+└──────────────────┬──────────────────────────────────┘
                    │  server-to-server
                    ▼
-┌─────────────────────────────────────────┐
-│  packages/backend  (Express)            │
-│  /api/mock-execute/:slug/:version  (now)│
-│  /api/agents/:slug/:version        (next step — unchanged contract)
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│  packages/backend  (Express)                        │
+│  /api/mock-execute/:slug/:version       (this phase)│
+│  /api/agents/:slug/:version             (step 2)    │
+└─────────────────────────────────────────────────────┘
 ```
+
+The proxy path deliberately uses `/api/chat/` (not `/api/widget/`): the string "widget" is a
+common picklist term in EasyList and similar ad-block rules, which would silently break
+integrations on sites whose users run those filters.
+
+**Browser-never-talks-to-Express rule.** Reiterated for the widget context: all dynamic data from
+the widget flows through `app.openflow.build/api/chat/*`; the wildcard CDN only serves static
+assets. If future tenant-specific config needs to be fetched dynamically, it too goes through a
+Next.js route.
 
 ### URL scheme
 
@@ -77,50 +87,75 @@ And on the main Next.js app:
 
 | URL | Role |
 |---|---|
-| `GET  https://app.openflow.build/api/widget/latest-version/:t/:a` | Resolve latest version |
-| `POST https://app.openflow.build/api/widget/execute/:t/:a/:v` | SSE execution |
+| `GET  https://app.openflow.build/api/chat/latest-version/:t/:a` | Resolve latest version |
+| `POST https://app.openflow.build/api/chat/execute/:t/:a/:v` | SSE execution |
 
 ### Embedding
 
 ```html
 <!-- default: iframe pinned to resolved latest version -->
-<script src="https://acme-customer-care.live.openflow.build/script.js"></script>
+<script src="https://acme-customer-care.live.openflow.build/script.js" async></script>
 
 <!-- pinned: iframe at /v/3 -->
 <script src="https://acme-customer-care.live.openflow.build/script.js"
-        data-version="3"></script>
+        data-version="3" async></script>
 ```
+
+**`data-version` semantics.** The value pins the iframe path at *embed time* for the life of that
+page load. It does not re-pin on navigation. To re-pin, reload the page. The loader itself
+(`script.js`) is **intentionally unversioned** and must stay backward-compatible with all SPA
+versions (Intercom-style). We will never serve two loader shapes simultaneously. The literal value
+`data-version="latest"` is accepted and treated as the default (useful for integrators who want to
+be explicit).
 
 ## Hostname parsing and version resolution
 
 ### Rules
 
-- **Tenant slug** — `[a-z0-9]{1,40}`, no hyphens, not in reserved set
-- **Agent slug** — `[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?`, hyphens allowed, no leading/trailing/consecutive
+- **Tenant slug** — `[a-z0-9]{1,40}`, no hyphens, ASCII only, not in reserved set
+- **Agent slug** — `[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?`, hyphens allowed, no leading/trailing/
+  consecutive, ASCII only
 - Subdomain splits on the **first** hyphen
+
+### ADR — tenant slugs are permanently hyphen-free
+
+This is not a temporary restriction. The first-hyphen split rule depends on it, and changing the
+rule later would break every existing tenant URL. If we ever need tenant identifiers with
+hyphens, we introduce a different separator (double hyphen, or a dotted subdomain like
+`<agent>.<tenant>.live.openflow.build`) rather than expanding tenant slug syntax.
 
 ### Reserved tenant slugs
 
 ```
-app, api, www, live, admin, assets, cdn, docs, status
+app, api, www, live, admin, assets, cdn, docs, status, root, support, help, blog, mail, email,
+auth, oauth, static, public, internal, staging, preview, dev, localhost
 ```
 
-### Shared parser (referenced by widget, web, backend)
+(Intentionally broad — names any external service or internal tooling could plausibly claim.)
+
+### Shared parser
 
 ```ts
 // packages/widget/src/routing/parseHostname.ts
-export function parseAgentHost(host: string): { tenant: string; agentSlug: string } | null {
-  const m = host.match(
-    /^([a-z0-9]+)-([a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?)\.live\.openflow\.build$/
-  );
+const HOST_REGEX =
+  /^([a-z0-9]+)-([a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?)\.live\.openflow\.build$/;
+
+export function parseAgentHost(raw: string): { tenant: string; agentSlug: string } | null {
+  // Normalize: strip port, trailing dot, lowercase. Reject non-ASCII early.
+  const host = raw
+    .toLowerCase()
+    .replace(/:\d+$/, '')
+    .replace(/\.$/, '');
+  if (!/^[\x00-\x7f]+$/.test(host)) return null;
+  const m = host.match(HOST_REGEX);
   return m ? { tenant: m[1], agentSlug: m[2] } : null;
 }
 ```
 
 ### Version resolution
 
-- Path `/` → `"latest"`, resolved via `GET /api/widget/latest-version/:t/:a`
-- Path `/v/:n` (digits only) → pinned to `n`
+- Path `/` → `"latest"`, resolved via `GET /api/chat/latest-version/:t/:a`
+- Path `/v/:n` (digits only, 1–6 digits) → pinned to `n`
 - Anything else → 404 page inside the SPA
 
 The loader script either uses `data-version` directly or fetches `latest-version` before injecting
@@ -138,7 +173,9 @@ and backend all import from it.
 export const TENANT_SLUG_REGEX = /^[a-z0-9]{1,40}$/;
 export const AGENT_SLUG_REGEX  = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
 export const RESERVED_TENANT_SLUGS = new Set([
-  'app','api','www','live','admin','assets','cdn','docs','status'
+  'app','api','www','live','admin','assets','cdn','docs','status','root',
+  'support','help','blog','mail','email','auth','oauth','static','public',
+  'internal','staging','preview','dev','localhost'
 ]);
 export function isValidTenantSlug(s: string): boolean {
   return TENANT_SLUG_REGEX.test(s) && !RESERVED_TENANT_SLUGS.has(s);
@@ -147,6 +184,8 @@ export function isValidAgentSlug(s: string): boolean {
   return AGENT_SLUG_REGEX.test(s);
 }
 ```
+
+The regexes are ASCII-only by construction (`[a-z0-9]`); IDN/Punycode cannot satisfy them.
 
 ### Backend enforcement (Zod)
 
@@ -162,7 +201,11 @@ New migration:
 ALTER TABLE tenants ADD CONSTRAINT tenants_slug_format
   CHECK (
     slug ~ '^[a-z0-9]{1,40}$'
-    AND slug NOT IN ('app','api','www','live','admin','assets','cdn','docs','status')
+    AND slug NOT IN (
+      'app','api','www','live','admin','assets','cdn','docs','status','root',
+      'support','help','blog','mail','email','auth','oauth','static','public',
+      'internal','staging','preview','dev','localhost'
+    )
   );
 
 ALTER TABLE agents ADD CONSTRAINT agents_slug_format
@@ -178,18 +221,18 @@ migration re-runs.
 
 ```
 packages/widget/
-├── package.json                  # vite + react + idb
+├── package.json                  # vite + react + idb@8
 ├── vite.config.ts                # two builds: loader IIFE + SPA
 ├── index.html                    # SPA shell
 ├── src/
 │   ├── loader/
-│   │   └── script.ts             # → dist/script.js (IIFE, ~2 KB gz)
+│   │   └── script.ts             # → dist/script.js (IIFE, ~3 KB gz target)
 │   ├── app/
 │   │   ├── main.tsx              # SPA entry
 │   │   ├── ChatApp.tsx           # mode detection, routing, version resolution
 │   │   └── modes/
 │   │       ├── EmbeddedMode.tsx  # bubble ↔ panel (pixel-identical Copilot)
-│   │       └── StandaloneMode.tsx# fullscreen (max-w-3xl)
+│   │       └── StandaloneMode.tsx# fullscreen (max-w-3xl, history-aware)
 │   ├── ui/                       # copied from packages/web/app/components/copilot/
 │   │   ├── CopilotPanel.tsx
 │   │   ├── CopilotHeader.tsx
@@ -204,14 +247,22 @@ packages/widget/
 │   │   └── sseReader.ts          # ported from packages/web/app/lib/api.ts
 │   ├── types/publicEvents.ts     # mirror of PublicExecutionEvent
 │   ├── routing/parseHostname.ts
-│   ├── storage/indexeddb.ts      # idb wrapper
+│   ├── storage/
+│   │   ├── indexeddb.ts          # idb wrapper
+│   │   └── inMemory.ts           # first-class fallback (see IndexedDB section)
 │   ├── i18n/{en.json,es.json,index.ts}
+│   ├── a11y/                     # focus trap, live region, escape handler
+│   ├── debug/                    # window.OpenFlowWidget + ?openflow_debug=1
 │   ├── validation/slugs.ts       # re-exports @openflow/shared-validation
 │   └── styles/tailwind.css
 └── dist/                         # build output; upload to CDN
     ├── script.js
     ├── index.html
     └── assets/<name>-<hash>.{js,css}
+
+packages/shared-validation/       # new tiny workspace package
+├── package.json                  # @openflow/shared-validation
+└── src/index.ts
 ```
 
 ### Vite build — two entry points, one `dist/`
@@ -243,10 +294,10 @@ files ready for any CDN with wildcard-host support.
 
 | Source dependency | Widget replacement |
 |---|---|
-| `next-intl` `useTranslations('copilot')` | `useT()` reading from `src/i18n/<lang>.json` |
+| `next-intl` `useTranslations('copilot')` | `useT()` reading from `src/i18n/<lang>.json` (next-intl is Next.js-coupled) |
 | `@/components/ui/*` (shadcn) | Copies of `button`, `dropdown-menu`, `textarea` in `src/ui/primitives/` |
 | `lucide-react` | Unchanged (framework-agnostic) |
-| In-memory `useCopilotSessions` | `useSessions` backed by IndexedDB |
+| In-memory `useCopilotSessions` | `useSessions` with IndexedDB + in-memory fallback |
 | `copilotMocks.ts` client-side mock streamer | Removed — real SSE from the backend mock route |
 
 ### i18n
@@ -254,16 +305,26 @@ files ready for any CDN with wildcard-host support.
 - Bundle `en.json` and `es.json` (same keys Copilot uses: title, newChat, placeholder, send, stop,
   close, emptyState, selectChat).
 - Language precedence: `?lang=` query param → `navigator.language` prefix match → `en`.
-- Combined footprint ~1 KB — no runtime fetch.
+- Combined footprint ~1–2 KB — no runtime fetch. If we add >4 locales, switch to runtime fetch
+  with `<link rel="preload">` warming the default.
+
+### Dependencies (pinned)
+
+- `react@19`, `react-dom@19`
+- `idb@8` (API differs from v7; pin major)
+- `tailwindcss@4`
+- `lucide-react` (latest at spec time)
+- `vite@6`
 
 ### Output budget
 
 - `script.js` (loader): **≤ 3 KB gzipped** (no React; DOM + postMessage only)
 - SPA initial payload (`index.html` + first JS chunk + CSS): **target ≤ 80 KB gzipped**
 
-The OF-2 acceptance criteria lists ≤ 50 KB. React 19 + Copilot UI + idb + Tailwind realistically
-lands at 60–80 KB. Preact/compat as a later optimization if we need to hit 50 KB; not in this
-phase per YAGNI.
+**Scope note for OF-2.** The Linear ticket lists ≤ 50 KB. React 19 + Copilot UI + idb + Tailwind
+realistically lands at 60–80 KB. We are intentionally accepting ~80 KB in this phase and deferring
+Preact/compat until it's justified by a measured requirement. This is a scope delta from OF-2's
+acceptance criteria and needs sign-off on the ticket. Recorded here so it's not lost.
 
 ## Runtime modes
 
@@ -272,19 +333,34 @@ phase per YAGNI.
 ```ts
 // src/app/useEmbedded.ts
 export function useEmbedded(): boolean {
-  try { return window.self !== window.top; } catch { return true; }
+  try {
+    // Opaque-origin parent (most cross-origin iframes) throws on access.
+    return window.self !== window.top;
+  } catch {
+    return true;
+  }
 }
 ```
 
-### Embedded layout
+### Embedded layout — desktop
 
-- **Bubble (closed):** iframe is 56×56 at `bottom: 16px; right: 16px`. Inside: a single branded
-  chat-bubble button. Click → `postMessage({type:'openflow:resize', state:'panel'})`.
+- **Bubble (closed):** iframe is 56×56 at `bottom: 16px; right: 16px`. The iframe is
+  tight-fit to the bubble button (no padding, no transparent margins — iframes cannot forward
+  pointer events through transparent areas, so every pixel of the iframe must be the button).
 - **Panel (open):** iframe resized to `w-[400px]` with `top: 24px; bottom: 24px; right: 14px`
   (exact Copilot offsets copied from `CopilotPanel.tsx`). Inside: unmodified `<CopilotPanel>`.
 - Close button (`×` in the Copilot header) posts `{state:'bubble'}`; loader shrinks the iframe.
-- Transition polish comes from Tailwind `transition-all` on the inner panel; the iframe itself
-  just swaps dimensions.
+- `Escape` key inside the panel also posts `{state:'bubble'}`.
+
+### Embedded layout — mobile (host viewport < 480px)
+
+- **Bubble (closed):** unchanged (56×56 bottom-right).
+- **Panel (open):** iframe resized to `100vw × 100vh`, fixed at `top:0; left:0; right:0; bottom:0`.
+  Inside: the panel stretches to the iframe's new dimensions. This matches Intercom/Drift behavior.
+
+The loader reports `window.innerWidth` to the iframe in the `openflow:host` message and on every
+host-side `resize` event (debounced to 100ms). The iframe decides which layout to apply and posts
+back a `openflow:resize` with the target dimensions; the loader sets the iframe style accordingly.
 
 ### Standalone layout
 
@@ -303,52 +379,91 @@ Full viewport, no iframe coordination needed:
 Same header items are rendered; the `×` close button is hidden when `standalone === true` (it has
 nothing to collapse to).
 
-## Loader script — responsibilities and postMessage protocol
+**Back-button / history.** In standalone mode, selecting a session pushes
+`history.pushState({sessionId}, '', '?s=<sessionId>')`; the URL becomes shareable/deep-linkable
+within the same origin. `popstate` restores the session. Reload honors `?s=` if the session is in
+IndexedDB; otherwise starts a fresh session.
 
-### Responsibilities (all in `src/loader/script.ts`)
+## Loader script — responsibilities
 
-1. Read `document.currentScript.src`; extract host, subdomain, tenant, agent
-2. Read `data-version` attribute; if absent, fetch `/api/widget/latest-version/:t/:a`
-3. Create the iframe at `https://<host>/v/<version>`, initially sized 56×56 fixed bottom-right
-4. Listen for `postMessage` from the iframe and resize accordingly
-5. Tear down on `beforeunload`
+All in `src/loader/script.ts`.
 
-### postMessage protocol
+1. Resolve `document.currentScript` (when `null` — e.g., loader was dynamically injected — fall
+   back to `Array.from(document.getElementsByTagName('script')).pop()`, then match on host regex).
+2. From `script.src`, extract `{host, subdomain, tenant, agent}`.
+3. Read `data-version`; if absent or `"latest"`, fetch `/api/chat/latest-version/:t/:a`.
+4. Create the iframe at `https://<host>/v/<version>` with these attributes:
+   ```html
+   <iframe
+     src="..."
+     title="OpenFlow chat widget"
+     sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+     allow="clipboard-write"
+     loading="eager"
+     style="border:0; position:fixed; bottom:16px; right:16px; width:56px; height:56px;
+            z-index:2147483647; color-scheme:normal;">
+   </iframe>
+   ```
+   `allow-same-origin` is required for IndexedDB (opaque origins cannot access storage).
+5. Start an 8-second timer; if the iframe hasn't posted `openflow:ready` by then, log a structured
+   console warning including a link to the CSP docs (most common cause: `frame-src` or
+   `connect-src` missing).
+6. Establish the postMessage protocol (below).
+7. Listen for host `resize` events (debounced 100ms) and forward `window.innerWidth` to the iframe.
+8. On `beforeunload`, tear down listeners.
 
-Iframe → loader:
+## postMessage protocol and security
+
+### Messages
 
 ```ts
+// iframe → loader
 type WidgetMessage =
-  | { type: 'openflow:ready' }
-  | { type: 'openflow:resize'; state: 'bubble' | 'panel' }
-  | { type: 'openflow:telemetry'; event: string }; // future use
-```
+  | { type: 'openflow:ready'; nonce: string }
+  | { type: 'openflow:resize'; nonce: string; w: number | string; h: number | string;
+      pos: 'bubble' | 'panel' | 'fullscreen' }
+  | { type: 'openflow:telemetry'; nonce: string; event: string; data?: unknown };
 
-Loader → iframe (response to `ready`):
-
-```ts
+// loader → iframe
 type HostMessage =
-  | { type: 'openflow:host'; origin: string; path: string };
+  | { type: 'openflow:init';    nonce: string; hostOrigin: string; path: string; viewportW: number }
+  | { type: 'openflow:viewport'; nonce: string; viewportW: number };
 ```
 
-Security:
+### Handshake
 
-- Loader checks `event.origin` against the iframe's origin before acting on any message.
-- Loader includes a per-load nonce in `openflow:host`; the iframe echoes it on subsequent
-  messages; loader rejects mismatches.
+1. Loader generates a per-load nonce (`crypto.randomUUID()`) **before** the iframe is inserted.
+2. Loader sets up a `message` listener that rejects any event whose `origin` doesn't match the
+   iframe's origin *and* any message whose `nonce` doesn't match.
+3. Loader inserts the iframe.
+4. Loader **unsolicited** posts `openflow:init` to `iframe.contentWindow` with an explicit
+   `targetOrigin` equal to the iframe's origin (never `'*'`), retrying every 200ms until the
+   iframe posts its first `openflow:ready` (which must echo the nonce).
+5. Once the iframe responds, the loader stops retrying. All subsequent messages in either
+   direction must include the nonce and use explicit `targetOrigin`.
+
+This closes the bootstrap hole where a forged `openflow:ready` from any third-party frame could
+have elicited the nonce from the loader.
+
+### Rules (enforced on both sides)
+
+- `postMessage` is **never** called with `targetOrigin: '*'`.
+- Messages lacking the correct nonce or arriving from the wrong origin are dropped silently (do
+  not log; avoids amplifying probes).
+- Message schema is validated (shape + types); malformed messages are dropped.
 
 ## IndexedDB persistence
 
 ### Schema
 
-Stored in the iframe origin (`<tenant>-<agent>.live.openflow.build`), so per-agent isolation is
-automatic.
+Stored in the iframe origin (`<tenant>-<agent>.live.openflow.build`). For *same-site* hosts this
+gives automatic per-agent isolation.
 
 ```ts
 // DB: openflow-widget, version 1
 // Store: sessions  (keyPath: 'sessionId')
 interface StoredSession {
-  sessionId: string;           // uuid
+  sessionId: string;           // crypto.randomUUID() with Date.now()+Math.random() fallback
   tenant: string;
   agentSlug: string;
   title: string;               // derived from first user message
@@ -359,6 +474,22 @@ interface StoredSession {
 // Index: by updatedAt desc (for history dropdown ordering)
 ```
 
+### Storage partitioning — real-world reality
+
+Safari ITP, Firefox strict mode, and Brave partition storage for cross-site iframes *or* block it
+entirely. A non-trivial slice of real end-users will see IndexedDB writes fail. The design treats
+this as a first-class state, not an error path:
+
+- `useSessions` tries IndexedDB once on mount; on any failure (quota, blocked, not available,
+  partitioned such that reads return empty), it transparently switches to `src/storage/inMemory.ts`.
+- The History dropdown still functions — it shows only the current in-memory session, labeled
+  with a small "• session-only" subscript. Previous sessions don't appear (because they don't
+  persist). No user-visible error.
+- `openflow:telemetry` emits `storage_unavailable` for later observability.
+
+`requestStorageAccess()` is *not* called. For an ephemeral chat widget it would be invasive and
+offers marginal benefit over the in-memory fallback.
+
 ### Write timing
 
 | Event | Action |
@@ -368,11 +499,6 @@ interface StoredSession {
 | Mid-stream token events | Accumulate in memory only; no writes |
 | Tab dies mid-stream | Incomplete assistant turn is discarded; next load shows last `done` state |
 
-### Fallback
-
-If IndexedDB is unavailable (private mode, quota), `useSessions` degrades to in-memory storage.
-Emit `openflow:telemetry` event (stub for now) for observability.
-
 ## Data pipeline
 
 ### Request shape (widget → Next.js proxy)
@@ -381,13 +507,13 @@ Matches `AgentExecutionInputSchema` from `packages/backend/src/routes/execute/ex
 
 ```ts
 {
-  tenantId: string,          // resolved from subdomain
+  tenantId: string,          // resolved from subdomain; must match URL param
   userId: string,            // same as sessionId until auth lands
-  sessionId: string,         // uuid, stable per conversation
+  sessionId: string,         // stable per conversation
   message: { text: string }, // no media upload in this phase
   model: undefined,          // server default
-  context: { channel: 'web' },
-  channel: 'web',
+  context: undefined,        // omit; channel is a top-level field in the schema
+  channel: 'web',            // per AgentExecutionInputSchema default
   stream: true,              // widget always streams
 }
 ```
@@ -411,15 +537,16 @@ done              — { type, response: AgentExecutionResponse }
 
 | Event | Widget renders |
 |---|---|
-| `text` | Accumulates into a `{ type: 'text', content }` block per `nodeId`. Tokens append until the block flips to "final" on next non-text event or `done`. |
-| `toolCall` | Adds `{ type: 'action', icon: iconForTool(name), title: humanize(name), description: summarize(args, result) }` block. |
-| `tokenUsage`, `node_visited`, `structuredOutput`, `nodeError` | Ignored in UI (server-side observability concerns, not end-user). Logged for debug. |
-| `error` | Close stream, show inline banner in input area. |
+| `text` | Accumulates into a `{ type: 'text', content }` block. **Coalescing rule:** while consecutive `text` events share the same `nodeId`, append to the current open text block. A `text` event with a **different `nodeId`** finalizes the current text block and starts a new one. A non-`text` event also finalizes the current text block. |
+| `toolCall` | Adds `{ type: 'action', icon: iconForTool(name), title: humanize(name), description: summarize(args, result), variant: 'info' }` block. |
+| `nodeError` | Adds `{ type: 'action', icon: 'alert-triangle', title: 'Step failed', description: event.message, variant: 'warning' }` block (inline in message; does not terminate stream). |
+| `tokenUsage`, `node_visited`, `structuredOutput` | Not rendered. `node_visited` is still consumed by the mapper to track current node context for the coalescing rule. |
+| `error` | Stream terminates. Show inline "couldn't complete the reply" banner in the message list; input becomes active for retry. |
 | `done` | Finalize assistant message, persist to IndexedDB, close stream. |
 
 ### Next.js proxy
 
-New route: `packages/web/app/api/widget/execute/[tenant]/[agent]/[version]/route.ts`
+New route: `packages/web/app/api/chat/execute/[tenant]/[agent]/[version]/route.ts`
 
 - Validate `tenant` and `agent` params with `@openflow/shared-validation`
 - Parse request body with the same Zod schema as the real endpoint
@@ -427,10 +554,13 @@ New route: `packages/web/app/api/widget/execute/[tenant]/[agent]/[version]/route
   from executing requests against tenant B
 - Forward to `MOCK_EXECUTE_URL` (env-driven) — mock path today, real path later. The forwarded URL
   uses only `:agentSlug/:version` (tenant stays in the body; matches the real endpoint's shape)
-- Pipe the upstream SSE `ReadableStream` straight through the response
+- **Runtime:** explicitly use the Node runtime (`export const runtime = 'nodejs'`) to avoid the
+  Edge runtime's partial fetch-streaming quirks with long-lived SSE. Pipe the upstream
+  `ReadableStream` straight through the response.
+- Require HTTP/2 upstream — document in rollout
 - Add CORS headers (see below)
 
-Also new: `packages/web/app/api/widget/latest-version/[tenant]/[agent]/route.ts` — thin JSON proxy
+Also new: `packages/web/app/api/chat/latest-version/[tenant]/[agent]/route.ts` — thin JSON proxy
 to the backend's latest-version endpoint (mocked now).
 
 ### Express mock route
@@ -438,11 +568,16 @@ to the backend's latest-version endpoint (mocked now).
 New file: `packages/backend/src/routes/mockExecute/mockExecuteHandler.ts`, mounted at
 `POST /api/mock-execute/:agentSlug/:version`.
 
-- Gated by feature flag (e.g., `ENABLE_MOCK_EXECUTE=true`) so it never runs in production
+- Gated by feature flag (`ENABLE_MOCK_EXECUTE=true`) so it never runs in production
 - No auth
+- Returns `404` if the agent slug isn't `agent-example` (the single recognized mock slug) or if
+  the version path doesn't match the mocked latest — exercises the widget's "agent not found"
+  terminal state naturally.
 - Picks one of 4 mock responses (rotated by hash of `sessionId`, mirroring current Copilot rotation)
 - Converts each `copilotMocks.ts` entry into a sequence of `PublicExecutionEvent`s:
-  - `text` block → word-by-word `text` events at ~30ms intervals (matches current Copilot feel)
+  - `text` block → word-by-word `text` events at a conservative cadence (~40ms/word to keep long
+    responses snappy). Cadence should match or beat the current Copilot `setInterval(30ms)` feel;
+    confirm via side-by-side during QA.
   - `action` block → single `toolCall` event with synthetic `name`, `args`, `result`
 - Terminates with a `done` event carrying a valid `AgentAppResponse`
 
@@ -464,12 +599,178 @@ Next.js proxy adds headers:
 ```ts
 const ALLOWED = /^https:\/\/[a-z0-9]+-[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?\.live\.openflow\.build$/;
 if (origin && ALLOWED.test(origin)) {
-  return { 'Access-Control-Allow-Origin': origin, 'Vary': 'Origin' };
+  return {
+    'Access-Control-Allow-Origin':  origin,
+    'Vary':                         'Origin',
+    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',  // Authorization pre-whitelisted for step 2
+    'Access-Control-Max-Age':       '600',
+  };
 }
 ```
 
-`OPTIONS` preflight handler exports the same headers plus `Access-Control-Allow-Methods: POST,
-GET, OPTIONS` and `Access-Control-Allow-Headers: Content-Type`.
+`OPTIONS` preflight handler returns the same header set.
+
+### HTTP/2 requirement
+
+SSE over `fetch()` opens a long-lived connection. Browsers cap HTTP/1.1 to 6 concurrent per origin.
+Two tabs plus host traffic can starve the connection pool. The Next.js proxy host (`app.openflow.
+build`) and the CDN must serve over HTTP/2 or HTTP/3. Document in rollout as a verified
+prerequisite — neither provider default is HTTP/1.1-only, but confirm.
+
+## Accessibility
+
+WCAG 2.1 AA. Non-negotiable for enterprise sales.
+
+### Focus
+
+- Bubble button has `aria-label="Open chat"` (i18n key).
+- Opening the panel programmatically moves focus to the input (in embedded mode) or the
+  `[role="dialog"]` container with `tabindex="-1"` (accessible to screen readers).
+- `role="dialog"` + `aria-modal="true"` + `aria-labelledby="<panel-title-id>"` on the panel
+  container.
+- Focus trap implemented in `src/a11y/focusTrap.ts`: Tab cycles within the panel; Shift+Tab at
+  the first focusable wraps to the last; Escape closes the panel and restores focus to the bubble
+  button (embedded) or does nothing (standalone).
+- In standalone mode, the `role="dialog"` is replaced by `role="main"`.
+
+### Screen reader
+
+- ARIA live region `aria-live="polite"` on the messages container: newly appended text in a
+  streaming assistant message is announced; new messages are announced as `"<role> said: <first
+  sentence>"`. The live region is debounced to 400ms to avoid chatter during token-by-token
+  streaming.
+- History dropdown items have accessible names `"Session titled '<title>', last updated <time>"`.
+
+### Keyboard
+
+- Escape: close panel (embedded), or close history dropdown (both modes).
+- Enter in textarea: send.
+- Shift+Enter in textarea: newline.
+- Tab/Shift+Tab: cycle focusable elements.
+- No host-side global shortcut (respects integrator's keyboard bindings).
+
+### Color and motion
+
+- All text meets WCAG AA contrast (≥4.5:1 body, ≥3:1 UI text). Copilot is already compliant;
+  verify during the port.
+- Bubble button and input `:focus-visible` show a 2 px outline.
+- `@media (prefers-reduced-motion: reduce)` disables all Tailwind `transition-*` utilities on
+  widget elements via a Tailwind variant override in `styles/tailwind.css`.
+
+## Theming, motion, color scheme
+
+### Phase 1 behavior
+
+- **Light mode only.** Copilot uses CSS custom properties for theming; the widget inherits that
+  system but hardcodes `color-scheme: light` on the `<html>` element. Dark mode is deferred
+  because it introduces per-tenant theme-override complexity we don't need for a mock.
+- `prefers-reduced-motion: reduce` disables all transitions.
+- `prefers-color-scheme: dark` is explicitly ignored in phase 1. Site visitors who expect dark
+  mode see light mode. Deferring full theming is acceptable for the mock; revisit in step 2.
+
+### Iframe `color-scheme`
+
+Iframe style includes `color-scheme: normal` to prevent the host page's `color-scheme: dark`
+declaration from propagating into the iframe and messing up `<input>` default colors.
+
+## Privacy and consent
+
+- **No cookies** are set by the widget. Authentication state (step 2) will use Authorization
+  headers, not cookies.
+- **IndexedDB** stores conversation history as technical-necessity state. In most jurisdictions
+  this is exempt from prior consent, but integrators should disclose the widget in their privacy
+  policy. This is documented in the embed guide.
+- **`window.OpenFlowWidget.boot()`** is exposed for integrators that want to gate load behind a
+  consent banner: they include `<script>` with `data-autoload="false"`, and call `boot()` after
+  user consent. When `data-autoload` is unset or `"true"`, the loader boots on script load.
+- **No third-party analytics** ship in this phase. `openflow:telemetry` is a stub that
+  `console.debug`s in dev and no-ops in prod.
+- **Message content** is sent to `app.openflow.build`. Integrators should disclose this.
+
+## Integrator documentation
+
+### Canonical embed snippet
+
+```html
+<!-- Place in <head> or at the end of <body>. Always include `async`. -->
+<script src="https://<tenant>-<agent>.live.openflow.build/script.js" async></script>
+
+<!-- With version pin -->
+<script src="https://<tenant>-<agent>.live.openflow.build/script.js"
+        data-version="3" async></script>
+
+<!-- Defer boot until consent -->
+<script src="https://<tenant>-<agent>.live.openflow.build/script.js"
+        data-autoload="false" async></script>
+<script>
+  onConsentGranted(() => window.OpenFlowWidget.boot());
+</script>
+```
+
+The loader must tolerate being dynamically injected (no `document.currentScript`); see Loader
+section.
+
+### Content-Security-Policy requirements
+
+Integrators who set CSP must include:
+
+```
+script-src  https://<tenant>-<agent>.live.openflow.build;
+frame-src   https://<tenant>-<agent>.live.openflow.build;
+connect-src https://app.openflow.build;
+```
+
+(Or the appropriate wildcard forms like `*.live.openflow.build` if they prefer.) The loader
+detects a missing frame-src/connect-src by timing out on `openflow:ready` and logs a warning with
+this checklist.
+
+### Debug mode
+
+Query the site with `?openflow_debug=1` **or** call `window.OpenFlowWidget.debug()` in the host
+console to get:
+
+```
+OpenFlowWidget debug {
+  version: '1.0.0',
+  hostResolved: 'acme-customer-care',
+  tenant: 'acme',
+  agent: 'customer-care',
+  iframeVersion: 5,
+  iframeOrigin: 'https://acme-customer-care.live.openflow.build',
+  proxyOrigin: 'https://app.openflow.build',
+  ready: true,
+  lastSseEvent: { type: 'text', ... },
+  recentMessages: [...],  // last 10 postMessage events
+}
+```
+
+On load, the loader *always* logs one line to `console.info` with its version. Saves support time.
+
+## Local development
+
+Without wildcard DNS on a laptop, the canonical hostname pattern can't resolve. The widget
+supports a dev-mode override:
+
+- Vite SPA dev server runs at `http://localhost:5173`. Parse hostname falls through; an
+  override is read from:
+  1. Query params `?tenant=acme&agent=customer-care`
+  2. Env vars (only at build time): `OPENFLOW_DEV_TENANT`, `OPENFLOW_DEV_AGENT`.
+- Loader dev mode: a `?dev=1` flag on the script URL switches the iframe target from
+  `https://<host>/v/<v>` to `http://localhost:5173/?tenant=…&agent=…&v=<v>`.
+- Next.js proxy in dev accepts `Origin: http://localhost:5173` (dev-only CORS allowlist
+  extension, gated on `NODE_ENV !== 'production'`).
+
+### One-command dev
+
+`npm run dev` at the repo root uses `concurrently` to run:
+
+1. `npm run dev -w packages/backend` (Express, port 4000)
+2. `npm run dev -w packages/web` (Next.js, port 3101)
+3. `npm run dev -w packages/widget` (Vite, port 5173)
+
+Testing an embed: open `http://localhost:3101/widget-dev-host.html` — a minimal page in
+`packages/web/public/` that loads the loader with `?dev=1`.
 
 ## Error handling
 
@@ -479,46 +780,95 @@ GET, OPTIONS` and `Access-Control-Allow-Headers: Content-Type`.
 | Execute POST fails (network) | Keep user message; show inline "Couldn't reach the assistant, retry" row; no state loss |
 | SSE stream drops mid-message | Finalize whatever text accumulated; show banner; allow next turn |
 | `error` SSE event | Same as mid-stream drop |
-| IndexedDB unavailable | Fall back to in-memory `useSessions`; chat still works; history dropdown shows "Not available" |
-| Invalid subdomain (parse fails) | Standalone mode renders a branded "Agent not found" screen; embedded mode stays in bubble state and logs to console |
+| `nodeError` SSE event | Rendered inline as a warning action-block; stream continues |
+| Execute responds 404/410 | **Terminal** state: "This assistant is no longer available." Input is permanently disabled. Session is retained in IndexedDB but flagged `archived: true`. |
+| IndexedDB unavailable | Transparent in-memory fallback (see Storage Partitioning). Telemetry event emitted. |
+| Invalid subdomain (parse fails) | Standalone mode renders a branded "Agent not found" screen with OpenFlow branding (tenant info is unavailable when parse fails). Embedded mode stays in the bubble state with the bubble visually disabled; clicking shows a tooltip "Unavailable". |
+| iframe never posts `openflow:ready` within 8s | Loader logs CSP-checklist warning to console. Bubble button click still attempts to open — panel will fail visibly (most likely a CSP or ad-blocker issue, making this the clearest diagnostic for the integrator). |
+
+## Client-side misuse protection
+
+- Textarea Enter-spam while a stream is in flight: input is disabled during `isStreaming`;
+  Enter keypresses are no-ops. The current Copilot behavior is already this; preserve during port.
+- Maximum user message length capped at 4000 characters (soft limit with inline counter at 3500+).
+  Cheap guardrail; server will re-enforce in step 2.
 
 ## Testing
 
 ### Unit
 
 - `parseHostname` — happy paths (hyphenated agent), reserved tenant, malformed, leading/trailing
-  dashes, double dashes
+  dashes, double dashes, uppercase input, trailing dot, host with port, non-ASCII
 - Slug validators in `@openflow/shared-validation`
-- `eventToBlock` mapper — every `PublicExecutionEvent` variant
-- `useSessions` — write on user send, write on `done`, no writes mid-stream, fallback path
+- `eventToBlock` mapper — every `PublicExecutionEvent` variant, including:
+  - Consecutive `text` events same `nodeId` → single coalesced block
+  - `text` events with alternating `nodeId` → multiple blocks
+  - `node_visited` between `text` events → still coalesces if `nodeId` unchanged
+  - `nodeError` mid-stream → warning block added, stream continues
+- `useSessions` — write on user send, write on `done`, no writes mid-stream, IndexedDB→in-memory
+  fallback, quota-exceeded path
+- postMessage: loader rejects messages with wrong origin, wrong nonce, malformed shape
 
 ### Integration
 
 - Mock catalog → `PublicExecutionEvent` generator → SSE reader → final `CopilotMessage[]` matches
   fixture
-- Next.js proxy forwards SSE byte-for-byte and enforces CORS origin regex
+- Next.js proxy forwards SSE byte-for-byte, enforces CORS origin regex, returns 400 on tenant
+  mismatch, handles preflight
 - `POST /api/mock-execute/:slug/:version` produces a well-formed event stream ending in `done`
+- `POST` to mock with unknown slug → 404 → widget shows terminal "not available" state
+
+### Accessibility (automated)
+
+- `axe-core` run against embedded and standalone layouts, 0 violations.
+- Keyboard: open panel, Tab cycles, Escape closes, focus restores to trigger.
+- Screen reader smoke test: VoiceOver on macOS reads message arrivals via the live region.
 
 ### Manual
 
 - Embed the widget on a local test page, verify bubble ↔ panel resize
 - Direct visit renders fullscreen chat
 - Reload page, verify history dropdown lists prior sessions from IndexedDB
-- Mobile layout at 375px width (embedded bubble positions correctly; standalone chat is usable)
+- Mobile (host viewport < 480 px): embedded panel goes fullscreen; bubble position correct
+- `prefers-reduced-motion` enabled: no transitions
 - Chrome, Firefox, Safari, Edge — latest two versions each
+- Safari ITP / Firefox strict mode: in-memory fallback activates, chat still works, history
+  dropdown shows "session-only" label
+- CSP-enforced host page missing `frame-src`: 8s warning fires in console with checklist
+- Ad-blocker (uBlock Origin with EasyList + EasyPrivacy): widget still loads
 
 ## Rollout
 
-1. Merge widget + mock routes + validation + migration
-2. Deploy `packages/widget/dist/` to wildcard CDN (infra ticket separate)
-3. Verify internally on a test tenant-agent subdomain
-4. Hand off Linear OF-2 for review
-5. Next step (separate spec): auth, real LLM wiring, remove mock route
+1. Merge shared-validation package + slug migration + backend mock routes + Next.js proxy
+2. Merge `packages/widget` + build pipeline
+3. Verify HTTP/2 on `app.openflow.build` and the chosen CDN
+4. Deploy `packages/widget/dist/` to wildcard CDN (infra ticket separate)
+5. Verify internally on `agent-example.live.openflow.build` with both embed and direct-visit modes
+6. Full accessibility pass
+7. Hand off Linear OF-2 for review (note the ~80 KB scope delta on the ticket)
+8. Next step (separate spec): auth, real LLM wiring, remove mock route, dark mode and theming
 
-## Open questions (tracked for the plan phase, not blockers)
+## Decisions delegated to implementation plan
 
-- Exact location of the tenant-create handler in `packages/backend` (grep during implementation)
-- Whether the slug-validation migration should normalize existing rows or abort and hand off to
-  the team — default is abort-and-report
-- The specific CDN provider (Cloudflare Pages vs Vercel Edge vs S3 + CloudFront) — deployment
-  concern, not code
+These are acknowledged but detailed choices go in the plan, not here:
+
+- Exact location of the tenant-create handler in `packages/backend` (grep during implementation).
+- Whether the slug-validation migration should normalize existing rows or abort; default is
+  abort-and-report.
+- The specific CDN provider (Cloudflare Pages vs Vercel Edge vs S3 + CloudFront).
+- Whether iframe SPA chunks are preloaded when the bubble mounts (latency vs. bandwidth
+  trade-off); default is lazy (load on first bubble click) with `<link rel="prefetch">` hinting.
+- Exact tool-name → icon mapping for the `toolCall` → action block adapter; start with a small
+  whitelist and fall back to a generic "cog" icon.
+- Session ID generation fallback order when `crypto.randomUUID()` is unavailable (insecure
+  context): use `crypto.getRandomValues()` manual UUID composition.
+
+## Acknowledged best-practice patterns
+
+- **Loader versioning:** unversioned `script.js`, backward-compatible forever; SPA versioned
+  behind `data-version`. Matches Intercom/Drift.
+- **Iframe isolation over Shadow DOM:** chosen for full CSP/style isolation in exchange for
+  ~80ms of iframe bootup on first paint. A Shadow-DOM-bubble + iframe-panel hybrid (as Intercom
+  runs) is a future optimization, not this phase.
+- **Telemetry sink:** stub in phase 1, plan step 2 integration point at `openflow:telemetry`
+  receiver.
