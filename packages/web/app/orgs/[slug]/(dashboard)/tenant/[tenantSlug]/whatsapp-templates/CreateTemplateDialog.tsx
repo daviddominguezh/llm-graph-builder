@@ -1,6 +1,6 @@
 'use client';
 
-import { X } from 'lucide-react';
+import { Link2Off, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -38,25 +38,19 @@ function useBodyPortal(open: boolean): HTMLElement | null {
   return node;
 }
 
-function EmptyConnections({ onClose }: { onClose: () => void }) {
+function EmptyConnections() {
   const t = useTranslations('whatsappTemplates');
   return (
-    <div className="flex flex-col items-start gap-3 rounded-md border border-dashed bg-background px-4 py-6">
+    <div className="mt-3 flex flex-col items-center justify-center gap-3 rounded-md border border-dashed bg-background py-12 text-center">
+      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+        <Link2Off className="size-5 text-muted-foreground" />
+      </div>
       <div className="flex flex-col gap-1">
         <p className="text-sm font-medium">{t('create.noConnections')}</p>
-        <p className="max-w-sm text-xs text-muted-foreground">
+        <p className="max-w-xs text-xs text-muted-foreground">
           {t('create.noConnectionsDescription')}
         </p>
       </div>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="border-[0.5px] rounded-md"
-        onClick={onClose}
-      >
-        {t('create.back')}
-      </Button>
     </div>
   );
 }
@@ -93,7 +87,7 @@ function DialogBody({
         </Button>
       </div>
       {connections.length === 0 ? (
-        <EmptyConnections onClose={onClose} />
+        <EmptyConnections />
       ) : (
         <CreateTemplateForm
           tenantId={tenantId}
