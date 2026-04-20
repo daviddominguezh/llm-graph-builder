@@ -181,6 +181,31 @@
   display: none;
 }
 
+/* Preemptively hide native scrollbars on Tailwind `overflow-*` utilities so
+   there's no 12px gutter flicker during the initial paint (before the
+   client-side OverlayScrollbars hijack runs). These elements will get overlay
+   scrollbars drawn on top by the library. Elements that opt out with
+   `data-native-scroll` keep the styled native scrollbar. */
+.overflow-auto:not([data-native-scroll]),
+.overflow-y-auto:not([data-native-scroll]),
+.overflow-x-auto:not([data-native-scroll]),
+.overflow-scroll:not([data-native-scroll]),
+.overflow-y-scroll:not([data-native-scroll]),
+.overflow-x-scroll:not([data-native-scroll]) {
+  scrollbar-width: none;
+}
+
+.overflow-auto:not([data-native-scroll])::-webkit-scrollbar,
+.overflow-y-auto:not([data-native-scroll])::-webkit-scrollbar,
+.overflow-x-auto:not([data-native-scroll])::-webkit-scrollbar,
+.overflow-scroll:not([data-native-scroll])::-webkit-scrollbar,
+.overflow-y-scroll:not([data-native-scroll])::-webkit-scrollbar,
+.overflow-x-scroll:not([data-native-scroll])::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
 /* Tenant list row: underline the tenant name on link hover as a clickable affordance. */
 .tenant-row-link:hover .tenant-row-name {
   text-decoration: underline;
