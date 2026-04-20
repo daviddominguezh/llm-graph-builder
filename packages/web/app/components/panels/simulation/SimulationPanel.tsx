@@ -278,7 +278,7 @@ export function SimulationPanel(props: SimulationPanelProps) {
   }
 
   return createPortal(
-    <div className="fixed inset-y-0 top-[calc(41px+var(--spacing)*3)] bottom-[calc(var(--spacing)*7.5)] left-[calc(calc(240px+var(--spacing)*1)+44px)] z-200 flex w-[350px]">
+    <div className="fixed inset-y-0 top-[calc(41px+var(--spacing)*11)] bottom-[calc(var(--spacing)*2)] left-[calc(calc(240px+var(--spacing)*2)+44px)] z-200 flex w-[350px]">
       {body}
     </div>,
     document.body
