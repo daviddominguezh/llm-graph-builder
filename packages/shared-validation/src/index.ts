@@ -1,5 +1,6 @@
 export const TENANT_SLUG_REGEX = /^[a-z0-9]{1,40}$/;
-export const AGENT_SLUG_REGEX = /^[a-z0-9](?:[a-z0-9]|-(?=[a-z0-9])){0,38}[a-z0-9]$|^[a-z0-9]$/;
+export const AGENT_SLUG_REGEX = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+export const AGENT_SLUG_MAX_LENGTH = 40;
 
 export const RESERVED_TENANT_SLUGS = new Set<string>([
   'app',
@@ -35,7 +36,9 @@ export function isValidTenantSlug(s: string): boolean {
 }
 
 export function isValidAgentSlug(s: string): boolean {
-  return typeof s === 'string' && AGENT_SLUG_REGEX.test(s);
+  return typeof s === 'string'
+    && s.length <= AGENT_SLUG_MAX_LENGTH
+    && AGENT_SLUG_REGEX.test(s);
 }
 
 export function sortedReservedTenantSlugs(): string[] {
