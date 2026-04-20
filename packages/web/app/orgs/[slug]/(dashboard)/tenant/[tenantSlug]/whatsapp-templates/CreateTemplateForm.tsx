@@ -1,6 +1,6 @@
 'use client';
 
-import { Loader2, Send } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useActionState, useEffect, useMemo, useState } from 'react';
@@ -34,6 +34,8 @@ interface CreateTemplateFormProps {
 }
 
 type FormTranslator = ReturnType<typeof useTranslations<'whatsappTemplates'>>;
+type CategoryValue = 'utility' | 'marketing' | 'authentication';
+type LanguageCode = 'en' | 'en_US' | 'es' | 'es_MX' | 'pt_BR';
 
 function SubmitButton({
   isPending,
@@ -46,7 +48,7 @@ function SubmitButton({
 }) {
   return (
     <Button type="submit" size="sm" disabled={isPending || disabled} className="rounded-md gap-1.5">
-      {isPending ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
+      {isPending ? <Loader2 className="size-3.5 animate-spin" /> : null}
       {isPending ? t('create.submittingApproval') : t('create.submitForApproval')}
     </Button>
   );
@@ -83,41 +85,68 @@ function validateVariablesMatch(
   return errors;
 }
 
-function useTemplateFormState(t: FormTranslator) {
-  const initial: TemplateActionState = { message: '', type: 'success' };
-  const [state, formAction, isPending] = useActionState(createTemplateAction, initial);
-  const [variables, setVariables] = useState<WhatsAppTemplateVariable[]>([]);
-  const [bodyText, setBodyText] = useState('');
-  const [bodyError, setBodyError] = useState<string | null>(null);
-
-  const variableErrors = useMemo(
-    () => (bodyError !== null ? [] : validateVariablesMatch(bodyText, variables, t)),
-    [bodyText, variables, bodyError, t]
-  );
-
-  function handleBodyChange(value: string) {
-    setBodyText(value);
-    setBodyError(validateBodyPlaceholders(value));
+function syncVariablesWithBody(
+  prev: WhatsAppTemplateVariable[],
+  bodyText: string
+): WhatsAppTemplateVariable[] {
+  const bodyKeys = extractBodyPlaceholderKeys(bodyText);
+  const existingKeys = new Set(prev.map((v) => v.key));
+  const additions: WhatsAppTemplateVariable[] = [];
+  for (const key of bodyKeys) {
+    if (!existingKeys.has(key)) {
+      additions.push({ key, name: '', example: '', required: true });
+    }
   }
-
-  return {
-    state,
-    formAction,
-    isPending,
-    variables,
-    setVariables,
-    bodyText,
-    bodyError,
-    variableErrors,
-    handleBodyChange,
-  };
+  if (additions.length === 0) return prev;
+  return [...prev, ...additions].sort((a, b) => Number(a.key) - Number(b.key));
 }
 
-function useResultHandler(
-  state: TemplateActionState,
-  onSuccess: () => void,
-  t: FormTranslator
-) {
+interface FormState {
+  name: string;
+  body: string;
+  category: CategoryValue;
+  language: LanguageCode;
+  connectionId: string;
+  variables: WhatsAppTemplateVariable[];
+  bodyError: string | null;
+}
+
+function useTemplateFormState(initialConnectionId: string, t: FormTranslator) {
+  const initial: TemplateActionState = { message: '', type: 'success' };
+  const [actionState, formAction, isPending] = useActionState(createTemplateAction, initial);
+  const [state, setState] = useState<FormState>({
+    name: '',
+    body: '',
+    category: 'utility',
+    language: 'en',
+    connectionId: initialConnectionId,
+    variables: [],
+    bodyError: null,
+  });
+
+  const variableErrors = useMemo(
+    () =>
+      state.bodyError !== null ? [] : validateVariablesMatch(state.body, state.variables, t),
+    [state.body, state.variables, state.bodyError, t]
+  );
+
+  function update<K extends keyof FormState>(key: K, value: FormState[K]) {
+    setState((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function setBody(value: string) {
+    setState((prev) => ({
+      ...prev,
+      body: value,
+      bodyError: validateBodyPlaceholders(value),
+      variables: syncVariablesWithBody(prev.variables, value),
+    }));
+  }
+
+  return { state, actionState, formAction, isPending, variableErrors, update, setBody };
+}
+
+function useResultHandler(state: TemplateActionState, onSuccess: () => void, t: FormTranslator) {
   const router = useRouter();
 
   useEffect(() => {
@@ -134,10 +163,10 @@ function useResultHandler(
 
 function ApprovalNote({ t }: { t: FormTranslator }) {
   return (
-    <div className="flex items-start gap-2 rounded-md border border-border/70 bg-muted/40 px-3 py-2 text-[11px] leading-relaxed">
+    <div className="flex items-start gap-2.5 rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-[11px] leading-relaxed">
       <span
         aria-hidden="true"
-        className="mt-0.5 inline-block size-1.5 shrink-0 rounded-full bg-amber-500"
+        className="mt-[3px] inline-block size-1.5 shrink-0 rounded-full bg-amber-500"
       />
       <p className="text-muted-foreground">
         <span className="font-medium text-foreground">{t('create.approvalNoteTitle')}</span>{' '}
@@ -145,6 +174,15 @@ function ApprovalNote({ t }: { t: FormTranslator }) {
       </p>
     </div>
   );
+}
+
+function computeSubmittable(state: FormState, variableErrors: string[]): boolean {
+  if (state.name.trim() === '') return false;
+  if (state.body.trim() === '') return false;
+  if (state.connectionId === '') return false;
+  if (state.bodyError !== null) return false;
+  if (variableErrors.length > 0) return false;
+  return true;
 }
 
 export function CreateTemplateForm({
@@ -156,39 +194,47 @@ export function CreateTemplateForm({
   onCancel,
 }: CreateTemplateFormProps) {
   const t = useTranslations('whatsappTemplates');
-  const form = useTemplateFormState(t);
-  useResultHandler(form.state, onSuccess, t);
+  const first = connections[0];
+  const initialConnectionId = first !== undefined ? first.id : '';
+  const form = useTemplateFormState(initialConnectionId, t);
+  useResultHandler(form.actionState, onSuccess, t);
 
-  const hasValidationErrors = form.bodyError !== null || form.variableErrors.length > 0;
+  const isSubmittable = computeSubmittable(form.state, form.variableErrors);
 
   return (
-    <form action={form.formAction} className="flex flex-col gap-5">
+    <form action={form.formAction} className="flex flex-col gap-4">
       <input type="hidden" name="tenantId" value={tenantId} />
       <input type="hidden" name="orgSlug" value={orgSlug} />
       <input type="hidden" name="tenantSlug" value={tenantSlug} />
-      <input type="hidden" name="variables" value={JSON.stringify(form.variables)} />
+      <input type="hidden" name="variables" value={JSON.stringify(form.state.variables)} />
 
-      <ChannelConnectionField connections={connections} />
+      <ChannelConnectionField
+        connections={connections}
+        value={form.state.connectionId}
+        onChange={(v) => form.update('connectionId', v)}
+      />
 
       <div className="flex flex-col gap-4">
-        <NameField />
-        <BodyField
-          error={form.bodyError}
-          charCount={form.bodyText.length}
-          onChange={form.handleBodyChange}
-        />
+        <NameField value={form.state.name} onChange={(v) => form.update('name', v)} />
+        <BodyField value={form.state.body} onChange={form.setBody} error={form.state.bodyError} />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <CategoryField />
-          <LanguageField />
+          <CategoryField
+            value={form.state.category}
+            onChange={(v) => form.update('category', v)}
+          />
+          <LanguageField
+            value={form.state.language}
+            onChange={(v) => form.update('language', v)}
+          />
         </div>
 
         <DescriptionField />
       </div>
 
       <VariablesField
-        variables={form.variables}
-        onChange={form.setVariables}
+        variables={form.state.variables}
+        onChange={(v) => form.update('variables', v)}
         errors={form.variableErrors}
       />
 
@@ -204,7 +250,7 @@ export function CreateTemplateForm({
         >
           {t('create.cancel')}
         </Button>
-        <SubmitButton isPending={form.isPending} disabled={hasValidationErrors} t={t} />
+        <SubmitButton isPending={form.isPending} disabled={!isSubmittable} t={t} />
       </div>
     </form>
   );

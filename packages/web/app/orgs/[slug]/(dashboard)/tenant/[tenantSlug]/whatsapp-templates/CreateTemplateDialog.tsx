@@ -1,12 +1,13 @@
 'use client';
 
-import { Link2Off, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import type { WhatsAppChannelConnection } from '@/app/lib/whatsappTemplates';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 
 import { CreateTemplateForm } from './CreateTemplateForm';
 
@@ -36,23 +37,6 @@ function useBodyPortal(open: boolean): HTMLElement | null {
   }, [open]);
 
   return node;
-}
-
-function EmptyConnections() {
-  const t = useTranslations('whatsappTemplates');
-  return (
-    <div className="mt-3 flex flex-col items-center justify-center gap-3 rounded-md border border-dashed bg-background py-12 text-center">
-      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-        <Link2Off className="size-5 text-muted-foreground" />
-      </div>
-      <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium">{t('create.noConnections')}</p>
-        <p className="max-w-xs text-xs text-muted-foreground">
-          {t('create.noConnectionsDescription')}
-        </p>
-      </div>
-    </div>
-  );
 }
 
 function DialogBody({
@@ -86,18 +70,17 @@ function DialogBody({
           <X className="size-3.5" />
         </Button>
       </div>
-      {connections.length === 0 ? (
-        <EmptyConnections />
-      ) : (
-        <CreateTemplateForm
-          tenantId={tenantId}
-          orgSlug={orgSlug}
-          tenantSlug={tenantSlug}
-          connections={connections}
-          onSuccess={onClose}
-          onCancel={onClose}
-        />
-      )}
+      <Separator className="my-3" />
+      {/* TODO: re-enable the no-connections gate once WhatsApp onboarding UX is done.
+          For now the form renders even with zero connections for design/testing. */}
+      <CreateTemplateForm
+        tenantId={tenantId}
+        orgSlug={orgSlug}
+        tenantSlug={tenantSlug}
+        connections={connections}
+        onSuccess={onClose}
+        onCancel={onClose}
+      />
     </>
   );
 }
@@ -126,7 +109,7 @@ export function CreateTemplateDialog({
   return createPortal(
     <div
       role="presentation"
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onOpenChange(false);
       }}
@@ -135,7 +118,7 @@ export function CreateTemplateDialog({
       <div
         role="dialog"
         aria-modal="true"
-        className="relative z-[101] flex max-h-[85vh] w-full max-w-xl flex-col gap-4 overflow-y-auto rounded-md bg-popover p-4 text-xs/relaxed ring-1 ring-border shadow-lg"
+        className="relative flex max-h-[85vh] w-full max-w-xl flex-col gap-4 overflow-y-auto rounded-md bg-popover p-4 text-xs/relaxed ring-1 ring-border shadow-lg"
       >
         <DialogBody
           tenantId={tenantId}

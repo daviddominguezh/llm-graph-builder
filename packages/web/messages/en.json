@@ -986,26 +986,27 @@
       "noConnectionsDescription": "You need to connect a WhatsApp Business account to this tenant before creating templates."
     },
     "fields": {
-      "nameLabel": "Template Name *",
+      "nameLabel": "Template name",
       "namePlaceholder": "e.g. report_delivery",
       "nameHint": "A unique identifier for this template",
-      "bodyLabel": "Template Body *",
+      "bodyLabel": "Body",
       "bodyHint": "Use numeric placeholders like 1, 2, etc. for variables",
       "bodyCharCount": "{count}/{max}",
       "languageLabel": "Language",
       "languagePlaceholder": "Select language",
-      "categoryLabel": "Category *",
+      "categoryLabel": "Category",
       "categoryPlaceholder": "Select category",
       "categoryHint": "WhatsApp template category",
-      "descriptionLabel": "Description (optional)",
+      "descriptionLabel": "Description",
+      "descriptionOptional": "(optional)",
       "descriptionPlaceholder": "Brief description of this template...",
       "descriptionHint": "Internal notes about what this template is used for",
-      "connectionLabel": "WhatsApp Number *",
+      "connectionLabel": "WhatsApp number",
       "connectionPlaceholder": "Select a WhatsApp number",
       "connectionWabaFallback": "WABA {wabaId}",
       "connectionIdFallback": "Connection {id}",
       "connectionHint": "The WhatsApp Business number this template will belong to",
-      "variablesLabel": "Variables *",
+      "variablesLabel": "Variables",
       "variablesHint": "Each placeholder in the body must have a matching variable defined here"
     },
     "languages": {
@@ -1019,7 +1020,9 @@
       "keyLabel": "Key",
       "nameLabel": "Name",
       "exampleLabel": "Example",
-      "add": "Add Variable"
+      "add": "Add variable",
+      "remove": "Remove variable",
+      "empty": "No variables yet. Add one, or reference a numeric placeholder in the body."
     },
     "delete": {
       "confirmTitle": "Are you sure?",

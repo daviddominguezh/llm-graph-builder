@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import type { WhatsAppTemplateVariable } from '@/app/lib/whatsappTemplates';
@@ -15,6 +15,16 @@ interface VariableBuilderProps {
 const KEY_PLACEHOLDER = '1';
 const NAME_PLACEHOLDER = 'recipient_name';
 const EXAMPLE_PLACEHOLDER = 'John';
+
+export function makeAddHandler(
+  value: WhatsAppTemplateVariable[],
+  onChange: (variables: WhatsAppTemplateVariable[]) => void
+): () => void {
+  return () => {
+    const nextKey = String(value.length + 1);
+    onChange([...value, { key: nextKey, name: '', example: '', required: true }]);
+  };
+}
 
 function updateVariableAtIndex(
   variables: WhatsAppTemplateVariable[],
@@ -41,11 +51,13 @@ function VariableRow({
   index,
   onUpdate,
   onRemove,
+  removeLabel,
 }: {
   variable: WhatsAppTemplateVariable;
   index: number;
   onUpdate: (index: number, updates: Partial<WhatsAppTemplateVariable>) => void;
   onRemove: (index: number) => void;
+  removeLabel: string;
 }) {
   return (
     <div className="flex items-center gap-2">
@@ -72,9 +84,10 @@ function VariableRow({
       />
       <Button
         type="button"
-        variant="ghost"
+        variant="destructive"
+        aria-label={removeLabel}
         onClick={() => onRemove(index)}
-        className="h-7 w-7 shrink-0 p-0 text-muted-foreground hover:text-destructive"
+        className="h-7 w-7 shrink-0 p-0"
       >
         <Trash2 className="size-3.5" />
       </Button>
@@ -93,14 +106,11 @@ export function VariableBuilder({ value, onChange }: VariableBuilderProps) {
     onChange(value.filter((_, i) => i !== index));
   }
 
-  function handleAdd() {
-    const nextKey = String(value.length + 1);
-    onChange([...value, { key: nextKey, name: '', example: '', required: true }]);
-  }
+  if (value.length === 0) return null;
 
   return (
     <div className="flex flex-col gap-1.5">
-      {value.length > 0 ? <ColumnHeaders /> : null}
+      <ColumnHeaders />
       {value.map((variable, index) => (
         <VariableRow
           key={`${variable.key}-${String(index)}`}
@@ -108,19 +118,9 @@ export function VariableBuilder({ value, onChange }: VariableBuilderProps) {
           index={index}
           onUpdate={handleUpdate}
           onRemove={handleRemove}
+          removeLabel={t('remove')}
         />
       ))}
-
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={handleAdd}
-        className="self-start border-[0.5px] border-dashed rounded-md"
-      >
-        <Plus className="size-3.5" />
-        {t('add')}
-      </Button>
     </div>
   );
 }
