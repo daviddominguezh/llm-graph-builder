@@ -10,6 +10,7 @@ const DEBOUNCE_MS = 500;
 const FORMATS = ['bold', 'italic', 'strike', 'header', 'list', 'blockquote', 'code', 'code-block', 'link'];
 
 type BoolRef = { current: boolean };
+type StrRef = { current: string };
 type FnRef = { current: (v: string) => void };
 type TimerRef = { current: ReturnType<typeof setTimeout> | null };
 
@@ -20,16 +21,28 @@ interface Args {
 }
 
 function writeMdToQuill(quill: QuillType, md: string): void {
+  const active = document.activeElement;
+  const quillHadFocus = active !== null && quill.container.contains(active);
+  const toRestore = !quillHadFocus && active instanceof HTMLElement ? active : null;
+
   if (md === '') {
     quill.setText('');
-    return;
+  } else {
+    quill.clipboard.dangerouslyPasteHTML(mdToHtml(md));
   }
-  quill.clipboard.dangerouslyPasteHTML(mdToHtml(md));
+
+  if (toRestore !== null) setTimeout(() => toRestore.focus(), 0);
 }
 
-function useExternalToQuill(quill: QuillType | null, value: string, isSyncingRef: BoolRef): void {
+function useExternalToQuill(
+  quill: QuillType | null,
+  value: string,
+  isSyncingRef: BoolRef,
+  lastEmittedRef: StrRef
+): void {
   useEffect(() => {
     if (!quill) return;
+    if (value === lastEmittedRef.current) return;
     const currentMd = htmlToMd(quill.root.innerHTML);
     if (currentMd === value) return;
     isSyncingRef.current = true;
@@ -38,33 +51,41 @@ function useExternalToQuill(quill: QuillType | null, value: string, isSyncingRef
       isSyncingRef.current = false;
     }, 0);
     return () => clearTimeout(t);
-  }, [quill, value, isSyncingRef]);
+  }, [quill, value, isSyncingRef, lastEmittedRef]);
 }
 
 function handleTextChange(
   quill: QuillType,
   onChangeRef: FnRef,
   isSyncingRef: BoolRef,
+  lastEmittedRef: StrRef,
   timerRef: TimerRef
 ): void {
   if (isSyncingRef.current) return;
   if (timerRef.current !== null) clearTimeout(timerRef.current);
   timerRef.current = setTimeout(() => {
-    onChangeRef.current(htmlToMd(quill.root.innerHTML));
+    const md = htmlToMd(quill.root.innerHTML);
+    lastEmittedRef.current = md;
+    onChangeRef.current(md);
   }, DEBOUNCE_MS);
 }
 
-function useQuillToExternal(quill: QuillType | null, onChangeRef: FnRef, isSyncingRef: BoolRef): void {
+function useQuillToExternal(
+  quill: QuillType | null,
+  onChangeRef: FnRef,
+  isSyncingRef: BoolRef,
+  lastEmittedRef: StrRef
+): void {
   useEffect(() => {
     if (!quill) return;
     const timerRef: TimerRef = { current: null };
-    const handler = () => handleTextChange(quill, onChangeRef, isSyncingRef, timerRef);
+    const handler = () => handleTextChange(quill, onChangeRef, isSyncingRef, lastEmittedRef, timerRef);
     quill.on('text-change', handler);
     return () => {
       quill.off('text-change', handler);
       if (timerRef.current !== null) clearTimeout(timerRef.current);
     };
-  }, [quill, onChangeRef, isSyncingRef]);
+  }, [quill, onChangeRef, isSyncingRef, lastEmittedRef]);
 }
 
 export function useSystemPromptQuill({ value, onChange, placeholder }: Args) {
@@ -75,7 +96,8 @@ export function useSystemPromptQuill({ value, onChange, placeholder }: Args) {
     onChangeRef.current = onChange;
   }, [onChange]);
   const isSyncingRef = useRef(false);
-  useExternalToQuill(quill, value, isSyncingRef);
-  useQuillToExternal(quill, onChangeRef, isSyncingRef);
+  const lastEmittedRef = useRef<string>('');
+  useExternalToQuill(quill, value, isSyncingRef, lastEmittedRef);
+  useQuillToExternal(quill, onChangeRef, isSyncingRef, lastEmittedRef);
   return { quill, quillRef };
 }

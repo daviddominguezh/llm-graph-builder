@@ -96,16 +96,26 @@ function applyAction(quill: QuillType, action: Action): void {
   promptForLink(quill);
 }
 
+type QuillRange = { index: number; length: number } | null;
+
 function useActiveFormat(quill: QuillType | null): Record<string, unknown> {
   const [fmt, setFmt] = useState<Record<string, unknown>>({});
   useEffect(() => {
     if (!quill) return;
-    const update = () => setFmt(quill.getFormat() as Record<string, unknown>);
-    quill.on('selection-change', update);
-    quill.on('text-change', update);
+    const apply = (range: QuillRange) => {
+      if (range === null) {
+        setFmt({});
+        return;
+      }
+      setFmt(quill.getFormat(range) as Record<string, unknown>);
+    };
+    const onSelectionChange = (range: QuillRange) => apply(range);
+    const onTextChange = () => apply(quill.getSelection() as QuillRange);
+    quill.on('selection-change', onSelectionChange);
+    quill.on('text-change', onTextChange);
     return () => {
-      quill.off('selection-change', update);
-      quill.off('text-change', update);
+      quill.off('selection-change', onSelectionChange);
+      quill.off('text-change', onTextChange);
     };
   }, [quill]);
   return fmt;
