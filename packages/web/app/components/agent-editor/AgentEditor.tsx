@@ -95,7 +95,7 @@ function TabButton({ tab, active, onClick, label }: TabButtonProps) {
 function TabBar({ activeTab, onTabChange }: { activeTab: TabId; onTabChange: (tab: TabId) => void }) {
   const t = useTranslations('agentEditor');
   return (
-    <div className="inline-flex gap-1 h-fit dark:gap-0.5 rounded-sm border border-[0.5px] border-transparent bg-input dark:bg-input/40 dark:bg-muted/50 p-0.5 self-start mb-3">
+    <div className="inline-flex gap-1 h-fit w-fit dark:gap-0.5 rounded-sm border border-[0.5px] border-transparent bg-input dark:bg-input/40 dark:bg-muted/50 p-0.5 mb-3">
       <TabButton tab="prompt" active={activeTab === 'prompt'} onClick={onTabChange} label={t('promptTab')} />
       <TabButton
         tab="capabilities"
@@ -174,12 +174,12 @@ export function AgentEditor({
           className="w-full h-full flex animate-in fade-in duration-300 gap-2"
           onClick={(e) => e.stopPropagation()}
         >
-          <GlassPanel className="flex min-w-0 flex-1 h-[calc(100%-var(--spacing)*2.5)] shrink-0 flex-col p-4 mt-2 mb-2.5 rounded-xl">
+          <GlassPanel className="flex min-w-0 flex-1 h-[calc(100%-var(--spacing)*2.5)] shrink-0 flex-col p-4 mt-2 mb-2.5 rounded-xl items-center">
             <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
             <div className={activeTab === 'prompt' ? 'flex min-h-0 flex-1 flex-col' : 'hidden'}>
               <SystemPromptField value={state.systemPrompt} onChange={actions.handleSystemPromptChange} />
             </div>
-            <div className={activeTab === 'capabilities' ? 'flex min-h-0 flex-1 flex-col' : 'hidden'}>
+            <div className={activeTab === 'capabilities' ? 'flex min-h-0 flex-1 flex-col w-full' : 'hidden'}>
               <CapabilitiesTab
                 state={state}
                 actions={actions}

@@ -5,8 +5,6 @@ import { createContext, useCallback, useContext, useMemo, useRef, useState } fro
 import type { CopilotSession } from './copilotTypes';
 import { useCopilotSessions } from './useCopilotSessions';
 import { useCopilotStreaming } from './useCopilotStreaming';
-import { CopilotButton } from './CopilotButton';
-import { CopilotPanel } from './CopilotPanel';
 
 // ---------------------------------------------------------------------------
 // Context interface
@@ -49,15 +47,12 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
   const sessions = useCopilotSessions();
   const streaming = useCopilotStreaming(sessions.addMessage, sessions.updateLastMessage);
 
-  const setOpen = useCallback(
-    (open: boolean) => {
-      if (open) {
-        onOpenRef.current?.();
-      }
-      rawSetOpen(open);
-    },
-    []
-  );
+  const setOpen = useCallback((open: boolean) => {
+    if (open) {
+      onOpenRef.current?.();
+    }
+    rawSetOpen(open);
+  }, []);
 
   const sendMessage = useCallback(
     (text: string) => {
@@ -86,18 +81,4 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
   );
 
   return <CopilotContext.Provider value={value}>{children}</CopilotContext.Provider>;
-}
-
-// ---------------------------------------------------------------------------
-// Shell
-// ---------------------------------------------------------------------------
-
-export function CopilotShell({ children }: { children: React.ReactNode }) {
-  return (
-    <CopilotProvider>
-      {children}
-      <CopilotButton />
-      <CopilotPanel />
-    </CopilotProvider>
-  );
 }
