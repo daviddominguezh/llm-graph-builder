@@ -3,7 +3,7 @@
 import type { WhatsAppChannelConnection } from '@/app/lib/whatsappTemplates';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { X } from 'lucide-react';
+import { Link2Off, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -38,6 +38,23 @@ function useBodyPortal(open: boolean): HTMLElement | null {
   return node;
 }
 
+function EmptyConnections() {
+  const t = useTranslations('whatsappTemplates');
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 rounded-md border border-dashed bg-background py-12 text-center">
+      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+        <Link2Off className="size-5 text-muted-foreground" />
+      </div>
+      <div className="flex flex-col gap-1">
+        <p className="text-sm font-medium">{t('create.noConnections')}</p>
+        <p className="max-w-xs text-xs text-muted-foreground">
+          {t('create.noConnectionsDescription')}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function DialogBody({
   tenantId,
   orgSlug,
@@ -69,16 +86,18 @@ function DialogBody({
         </Button>
       </div>
       <Separator className="mt-3 mb-6" />
-      {/* TODO: re-enable the no-connections gate once WhatsApp onboarding UX is done.
-          For now the form renders even with zero connections for design/testing. */}
-      <CreateTemplateForm
-        tenantId={tenantId}
-        orgSlug={orgSlug}
-        tenantSlug={tenantSlug}
-        connections={connections}
-        onSuccess={onClose}
-        onCancel={onClose}
-      />
+      {connections.length === 0 ? (
+        <EmptyConnections />
+      ) : (
+        <CreateTemplateForm
+          tenantId={tenantId}
+          orgSlug={orgSlug}
+          tenantSlug={tenantSlug}
+          connections={connections}
+          onSuccess={onClose}
+          onCancel={onClose}
+        />
+      )}
     </>
   );
 }
