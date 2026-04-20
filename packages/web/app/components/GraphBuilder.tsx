@@ -448,14 +448,16 @@ function LoadedEditor(props: LoadedEditorProps) {
   const isReadOnly = props.readOnly === true;
   const isAgentMode = h.agentConfig !== undefined;
 
-  const { panelInsets, toolbarPortal } = useEditorCache();
+  const { panelInsets, toolbarPortal, activeEditorId } = useEditorCache();
   const insetStyle = panelInsets
     ? { top: panelInsets.top, left: panelInsets.left, right: panelInsets.right, bottom: panelInsets.bottom }
     : { top: 0, left: 0, right: 0, bottom: 0 };
 
   useAutoStartAgentSimulation(isAgentMode, h.simulation.active, h.simulation.start);
 
-  const showToolbar = !isReadOnly && toolbarPortal !== null && (isAgentMode || !h.simulation.active);
+  const isActiveEditor = props.agentId !== undefined && props.agentId === activeEditorId;
+  const showToolbar =
+    !isReadOnly && toolbarPortal !== null && isActiveEditor && (isAgentMode || !h.simulation.active);
 
   return (
     <HandleContext.Provider value={handleContextValue}>

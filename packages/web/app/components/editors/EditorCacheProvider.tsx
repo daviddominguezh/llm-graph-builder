@@ -24,6 +24,7 @@ interface EditorCacheContextType {
   setToolbarPortal: (el: HTMLElement | null) => void;
   toolbarPortal: HTMLElement | null;
   isEditorActive: boolean;
+  activeEditorId: string | null;
   panelInsets: PanelInsets | null;
 }
 
@@ -72,9 +73,10 @@ export function EditorCacheProvider({ children }: { children: React.ReactNode })
       setToolbarPortal,
       toolbarPortal,
       isEditorActive,
+      activeEditorId: activeId,
       panelInsets,
     }),
-    [register, isEditorActive, panelInsets, toolbarPortal]
+    [register, isEditorActive, activeId, panelInsets, toolbarPortal]
   );
 
   return (
