@@ -35,6 +35,7 @@ import { handleCheckAvailability } from './routes/slugs/checkAvailability.js';
 import { templateRouter } from './routes/templates/templateRouter.js';
 import { tenantRouter } from './routes/tenants/tenantRouter.js';
 import { handleToolCall } from './routes/toolCall.js';
+import { whatsappTemplatesRouter } from './routes/whatsappTemplates/whatsappTemplatesRouter.js';
 
 function requestLogger(req: Request, _res: Response, next: NextFunction): void {
   process.stdout.write(`[server] ${req.method} ${req.path}\n`);
@@ -106,6 +107,7 @@ export function createApp(): Express {
   app.use('/mcp-library', mcpLibraryRouter);
   app.use('/tenants', tenantRouter);
   app.use('/templates', templateRouter);
+  app.use('/orgs/:orgId/whatsapp-templates', whatsappTemplatesRouter);
   app.use('/github', buildGitHubRouter());
 
   // Messaging routes (auth middleware applied inside the router)

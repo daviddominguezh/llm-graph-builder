@@ -944,6 +944,110 @@
     "cancelInviteSuccess": "Invitation for {email} has been cancelled.",
     "cancelling": "Cancelling..."
   },
+  "whatsappTemplates": {
+    "title": "WhatsApp Templates",
+    "subtitle": "Manage message templates for the WhatsApp Business Cloud API",
+    "createButton": "Create Template",
+    "allTemplates": "All Templates",
+    "empty": "No WhatsApp templates found",
+    "emptyDescription": "Create your first template to get started",
+    "templateCount": "{count, plural, =0 {0 templates} =1 {1 template} other {# templates}}",
+    "countRegistered": "{count} registered",
+    "table": {
+      "name": "Name",
+      "body": "Body",
+      "category": "Category",
+      "status": "Status",
+      "variables": "Variables",
+      "metaId": "Meta ID",
+      "actions": "Actions"
+    },
+    "status": {
+      "approved": "approved",
+      "pending": "pending",
+      "rejected": "rejected",
+      "paused": "paused",
+      "deactivated": "deactivated"
+    },
+    "categories": {
+      "utility": "Utility",
+      "marketing": "Marketing",
+      "authentication": "Authentication"
+    },
+    "create": {
+      "pageTitle": "Create Template",
+      "pageSubtitle": "Register a new WhatsApp message template",
+      "cardTitle": "Template Details",
+      "cardSubtitle": "Configure the template body, variables, and category",
+      "back": "Back",
+      "cancel": "Cancel",
+      "submit": "Create Template",
+      "submitting": "Creating...",
+      "approvalNote": "The template will be submitted to the Meta WhatsApp Cloud API for approval. Status will remain \"pending\" until Meta approves it.",
+      "noConnections": "No WhatsApp connections configured",
+      "noConnectionsDescription": "You need to connect a WhatsApp Business account before creating templates. Set one up from an agent's integrations panel."
+    },
+    "fields": {
+      "nameLabel": "Template Name *",
+      "namePlaceholder": "e.g. report_delivery",
+      "nameHint": "A unique identifier for this template",
+      "bodyLabel": "Template Body *",
+      "bodyHint": "Use numeric placeholders like 1, 2, etc. for variables",
+      "bodyCharCount": "{count}/{max}",
+      "languageLabel": "Language",
+      "languagePlaceholder": "Select language",
+      "categoryLabel": "Category *",
+      "categoryPlaceholder": "Select category",
+      "categoryHint": "WhatsApp template category",
+      "descriptionLabel": "Description (optional)",
+      "descriptionPlaceholder": "Brief description of this template...",
+      "descriptionHint": "Internal notes about what this template is used for",
+      "connectionLabel": "WhatsApp Connection *",
+      "connectionPlaceholder": "Select a WhatsApp connection",
+      "connectionOption": "{id} (tenant {tenantId})",
+      "connectionHint": "The WhatsApp Business account this template will belong to",
+      "variablesLabel": "Variables *",
+      "variablesHint": "Each placeholder in the body must have a matching variable defined here"
+    },
+    "languages": {
+      "en": "English",
+      "en_US": "English (US)",
+      "es": "Spanish",
+      "es_MX": "Spanish (Mexico)",
+      "pt_BR": "Portuguese (Brazil)"
+    },
+    "variableBuilder": {
+      "keyLabel": "Key",
+      "nameLabel": "Name",
+      "exampleLabel": "Example",
+      "add": "Add Variable"
+    },
+    "delete": {
+      "confirmTitle": "Are you sure?",
+      "confirmDescription": "This will permanently delete the template \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete",
+      "success": "Template deleted",
+      "error": "Failed to delete template"
+    },
+    "validation": {
+      "placeholderNotUsed": "Placeholder {key} is used in the body but not defined in variables",
+      "variableUnused": "Variable \"{key}\" ({name}) is defined but not used in the body",
+      "unnamed": "unnamed"
+    },
+    "toasts": {
+      "createSuccess": "Template created successfully"
+    },
+    "errors": {
+      "missingOrg": "Missing organization",
+      "connectionRequired": "WhatsApp channel connection is required",
+      "fieldsRequired": "Name, body, and category are required",
+      "invalidCategory": "Invalid category",
+      "invalidVariables": "Variables must be a JSON array",
+      "invalidVariableShape": "Invalid variable shape",
+      "invalidJson": "Invalid JSON for variables"
+    }
+  },
   "messages": {
     "AI Response": "AI Response",
     "Active filters:": "Active filters:",
