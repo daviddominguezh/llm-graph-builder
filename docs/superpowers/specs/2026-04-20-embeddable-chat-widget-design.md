@@ -215,6 +215,13 @@ ALTER TABLE agents ADD CONSTRAINT agents_slug_format
 If existing rows violate, the migration aborts with a report. Data is fixed manually, then
 migration re-runs.
 
+**Drift risk.** The reserved list lives in both the TypeScript shared module and the Postgres
+CHECK literal. When we add a new reserved name (e.g., `billing`, `settings`), both places must
+move together. A follow-up cleanup (out of scope here) can replace the CHECK with a codegen
+step (generate the SQL from the TS source) or a reserved-words table. For now, the implementer
+adds a lint-time assertion that the two lists are equal — a unit test that reads the migration
+SQL and compares against `RESERVED_TENANT_SLUGS` is enough.
+
 ## `packages/widget`
 
 ### Directory layout
@@ -302,8 +309,9 @@ files ready for any CDN with wildcard-host support.
 
 ### i18n
 
-- Bundle `en.json` and `es.json` (same keys Copilot uses: title, newChat, placeholder, send, stop,
-  close, emptyState, selectChat).
+- Bundle `en.json` and `es.json` (keys: title, newChat, placeholder, send, stop, close,
+  emptyState, selectChat, sessionOnly ["• session-only"], unavailable ["Unavailable"], openChat
+  ["Open chat"], assistantUnavailable ["This assistant is no longer available."]).
 - Language precedence: `?lang=` query param → `navigator.language` prefix match → `en`.
 - Combined footprint ~1–2 KB — no runtime fetch. If we add >4 locales, switch to runtime fetch
   with `<link rel="preload">` warming the default.
@@ -318,7 +326,10 @@ files ready for any CDN with wildcard-host support.
 
 ### Output budget
 
-- `script.js` (loader): **≤ 3 KB gzipped** (no React; DOM + postMessage only)
+- `script.js` (loader): **target ≤ 4 KB gzipped** (hostname parse, version fetch, nonce
+  handshake with retry/timeout, viewport debounce, mobile negotiation, boot/debug/telemetry
+  stubs, CSP warning, dev-mode rewrite). 3 KB is aspirational once the code stabilizes; do not
+  cut documented features to hit it.
 - SPA initial payload (`index.html` + first JS chunk + CSS): **target ≤ 80 KB gzipped**
 
 **Scope note for OF-2.** The Linear ticket lists ≤ 50 KB. React 19 + Copilot UI + idb + Tailwind
@@ -390,14 +401,19 @@ All in `src/loader/script.ts`.
 
 1. Resolve `document.currentScript` (when `null` — e.g., loader was dynamically injected — fall
    back to `Array.from(document.getElementsByTagName('script')).pop()`, then match on host regex).
-2. From `script.src`, extract `{host, subdomain, tenant, agent}`.
-3. Read `data-version`; if absent or `"latest"`, fetch `/api/chat/latest-version/:t/:a`.
-4. Create the iframe at `https://<host>/v/<version>` with these attributes:
+2. From `script.src`, extract `{host, subdomain, tenant, agent}`. Expose `window.OpenFlowWidget`
+   (with `boot()` and `debug()` stubs) so integrators using `data-autoload="false"` can call
+   `boot()` later.
+3. **If `data-autoload="false"`, stop here** and wait for `window.OpenFlowWidget.boot()`. When
+   `boot()` is called (or immediately, when `data-autoload` is unset/`"true"`), continue with
+   steps 4–9.
+4. Read `data-version`; if absent or `"latest"`, fetch `/api/chat/latest-version/:t/:a`.
+5. Create the iframe at `https://<host>/v/<version>` with these attributes:
    ```html
    <iframe
      src="..."
      title="OpenFlow chat widget"
-     sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+     sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
      allow="clipboard-write"
      loading="eager"
      style="border:0; position:fixed; bottom:16px; right:16px; width:56px; height:56px;
@@ -405,12 +421,16 @@ All in `src/loader/script.ts`.
    </iframe>
    ```
    `allow-same-origin` is required for IndexedDB (opaque origins cannot access storage).
-5. Start an 8-second timer; if the iframe hasn't posted `openflow:ready` by then, log a structured
-   console warning including a link to the CSP docs (most common cause: `frame-src` or
-   `connect-src` missing).
+   `allow-popups-to-escape-sandbox` is **not** included: assistant replies in this phase are
+   plain text + action blocks — no user-controllable anchor tags render. If/when rich-content
+   links ship, revisit the sandbox policy and the link-sanitization policy together.
 6. Establish the postMessage protocol (below).
-7. Listen for host `resize` events (debounced 100ms) and forward `window.innerWidth` to the iframe.
-8. On `beforeunload`, tear down listeners.
+7. Start an 8-second timer; if the iframe hasn't posted `openflow:ready` by then, stop the
+   handshake retry loop (see §Handshake step 4) and log a structured console warning
+   including a link to the CSP docs (most common cause: `frame-src` or `connect-src` missing).
+8. Listen for host `resize` events (debounced 100ms) and forward `window.innerWidth` to the iframe.
+9. On `pagehide` (primary) and `beforeunload` (fallback), tear down listeners. `pagehide` is
+   the reliable signal on mobile Safari and when bfcache is involved.
 
 ## postMessage protocol and security
 
@@ -432,18 +452,25 @@ type HostMessage =
 
 ### Handshake
 
-1. Loader generates a per-load nonce (`crypto.randomUUID()`) **before** the iframe is inserted.
+1. Loader generates a per-load nonce (`randomUUID()` helper — see §UUID generation) **before**
+   the iframe is inserted.
 2. Loader sets up a `message` listener that rejects any event whose `origin` doesn't match the
    iframe's origin *and* any message whose `nonce` doesn't match.
 3. Loader inserts the iframe.
 4. Loader **unsolicited** posts `openflow:init` to `iframe.contentWindow` with an explicit
    `targetOrigin` equal to the iframe's origin (never `'*'`), retrying every 200ms until the
-   iframe posts its first `openflow:ready` (which must echo the nonce).
+   iframe posts its first `openflow:ready` (which must echo the nonce) **or** the 8-second
+   CSP-timeout fires (Loader step 7), whichever is first. On timeout the loader stops retrying,
+   emits the CSP console warning, and enters the "iframe-not-ready" state (bubble click shows
+   a tooltip linking to the CSP checklist).
 5. Once the iframe responds, the loader stops retrying. All subsequent messages in either
    direction must include the nonce and use explicit `targetOrigin`.
 
-This closes the bootstrap hole where a forged `openflow:ready` from any third-party frame could
-have elicited the nonce from the loader.
+**What this actually protects.** The bootstrap hole is closed by step 4's *unsolicited* post to
+the iframe's specific `targetOrigin` — only code running at that origin receives the init
+message. The nonce is defense-in-depth against residual edge cases (stale listeners, messages
+from unrelated frames); the `origin` check is the real gate. Framing matters because an
+implementer shouldn't infer that leaking the nonce is sufficient to break the protocol.
 
 ### Rules (enforced on both sides)
 
@@ -451,6 +478,36 @@ have elicited the nonce from the loader.
 - Messages lacking the correct nonce or arriving from the wrong origin are dropped silently (do
   not log; avoids amplifying probes).
 - Message schema is validated (shape + types); malformed messages are dropped.
+
+## UUID generation
+
+Used for nonces, `sessionId`, and any other random IDs the widget needs.
+
+```ts
+// packages/widget/src/lib/uuid.ts (loader and SPA both use this)
+export function randomUUID(): string {
+  const c = (globalThis as { crypto?: Crypto }).crypto;
+  if (c?.randomUUID) return c.randomUUID();
+  if (c?.getRandomValues) {
+    const b = new Uint8Array(16);
+    c.getRandomValues(b);
+    b[6] = (b[6] & 0x0f) | 0x40; // version 4
+    b[8] = (b[8] & 0x3f) | 0x80; // variant 10
+    const h = Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
+    return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;
+  }
+  // Last-resort fallback for non-secure contexts lacking getRandomValues
+  // (dev over plain HTTP, legacy intranets). Not cryptographically strong;
+  // acceptable because the only secret protected by it (the postMessage nonce)
+  // is defense-in-depth, not the primary origin gate.
+  return 'fallback-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+}
+```
+
+`crypto.randomUUID()` requires a secure context; plain-HTTP dev environments would otherwise
+crash the widget at session create. The `getRandomValues`-based path covers the overwhelming
+majority of legacy environments. The `Math.random` fallback exists solely so the widget boots on
+a laptop serving the test page over `http://localhost` without a secure context.
 
 ## IndexedDB persistence
 
@@ -463,7 +520,7 @@ gives automatic per-agent isolation.
 // DB: openflow-widget, version 1
 // Store: sessions  (keyPath: 'sessionId')
 interface StoredSession {
-  sessionId: string;           // crypto.randomUUID() with Date.now()+Math.random() fallback
+  sessionId: string;           // randomUUID() from §UUID generation
   tenant: string;
   agentSlug: string;
   title: string;               // derived from first user message
@@ -508,7 +565,7 @@ Matches `AgentExecutionInputSchema` from `packages/backend/src/routes/execute/ex
 ```ts
 {
   tenantId: string,          // resolved from subdomain; must match URL param
-  userId: string,            // same as sessionId until auth lands
+  userId: string,            // same as sessionId until auth lands (see phase-2 note below)
   sessionId: string,         // stable per conversation
   message: { text: string }, // no media upload in this phase
   model: undefined,          // server default
@@ -517,6 +574,12 @@ Matches `AgentExecutionInputSchema` from `packages/backend/src/routes/execute/ex
   stream: true,              // widget always streams
 }
 ```
+
+**Phase-2 note on `userId`.** In phase 1, `userId === sessionId` so every anonymous session
+looks like a one-off user. When auth lands in step 2, new sessions will carry the authenticated
+user's ID. IndexedDB sessions created during phase 1 will remain flagged anonymous forever — we
+won't attempt a retroactive user-link migration — so integrators and support should treat
+pre-auth history as per-browser rather than per-user.
 
 ### Response shape (server → widget)
 
@@ -559,6 +622,10 @@ New route: `packages/web/app/api/chat/execute/[tenant]/[agent]/[version]/route.t
   `ReadableStream` straight through the response.
 - Require HTTP/2 upstream — document in rollout
 - Add CORS headers (see below)
+- Set `Cache-Control: no-store` explicitly on both `execute` and `latest-version` routes. The
+  chat routes must never be cached by any intermediary: `execute` is a long-lived SSE stream,
+  and `latest-version` changes whenever a tenant publishes. `Vary: Origin` alone is not enough
+  to prevent a shared CDN tier from caching a version response across origins.
 
 Also new: `packages/web/app/api/chat/latest-version/[tenant]/[agent]/route.ts` — thin JSON proxy
 to the backend's latest-version endpoint (mocked now).
@@ -624,15 +691,19 @@ WCAG 2.1 AA. Non-negotiable for enterprise sales.
 
 ### Focus
 
-- Bubble button has `aria-label="Open chat"` (i18n key).
-- Opening the panel programmatically moves focus to the input (in embedded mode) or the
-  `[role="dialog"]` container with `tabindex="-1"` (accessible to screen readers).
-- `role="dialog"` + `aria-modal="true"` + `aria-labelledby="<panel-title-id>"` on the panel
-  container.
-- Focus trap implemented in `src/a11y/focusTrap.ts`: Tab cycles within the panel; Shift+Tab at
-  the first focusable wraps to the last; Escape closes the panel and restores focus to the bubble
-  button (embedded) or does nothing (standalone).
-- In standalone mode, the `role="dialog"` is replaced by `role="main"`.
+- Bubble button has `aria-label="Open chat"` (i18n key `openChat`).
+- **Embedded mode only.** The panel container is `role="dialog"` + `aria-modal="true"` +
+  `aria-labelledby="<panel-title-id>"`. When the bubble is clicked, focus moves to the message
+  input; when the panel closes (× button or Escape), focus restores to the bubble button.
+- **Standalone mode.** No dialog — the panel container is `role="main"` with
+  `aria-labelledby="<panel-title-id>"`. Initial focus on page load lands on the message input.
+  There is no open/close transition.
+- **Focus trap** (`src/a11y/focusTrap.ts`) applies in embedded mode when the panel is open: Tab
+  cycles within the panel, Shift+Tab at the first focusable wraps to the last, and Escape
+  closes. The trap is scoped to the iframe document — Tab cannot move focus *out* of the iframe
+  into the host page while the trap is active, but the iframe sandbox cannot control host-page
+  Tab behavior when focus is already outside; that's a browser-level constraint, not a bug.
+  Standalone mode has no trap (there's nothing to escape to).
 
 ### Screen reader
 
@@ -800,6 +871,10 @@ Testing an embed: open `http://localhost:3101/widget-dev-host.html` — a minima
 - `parseHostname` — happy paths (hyphenated agent), reserved tenant, malformed, leading/trailing
   dashes, double dashes, uppercase input, trailing dot, host with port, non-ASCII
 - Slug validators in `@openflow/shared-validation`
+- Reserved-slug parity: read the migration SQL file and assert the `NOT IN (...)` list equals
+  `RESERVED_TENANT_SLUGS` — fails CI if the two drift
+- `randomUUID()` helper: returns v4-shaped value when `crypto.randomUUID` absent; returns
+  shape-valid fallback when `getRandomValues` also absent
 - `eventToBlock` mapper — every `PublicExecutionEvent` variant, including:
   - Consecutive `text` events same `nodeId` → single coalesced block
   - `text` events with alternating `nodeId` → multiple blocks
@@ -860,8 +935,6 @@ These are acknowledged but detailed choices go in the plan, not here:
   trade-off); default is lazy (load on first bubble click) with `<link rel="prefetch">` hinting.
 - Exact tool-name → icon mapping for the `toolCall` → action block adapter; start with a small
   whitelist and fall back to a generic "cog" icon.
-- Session ID generation fallback order when `crypto.randomUUID()` is unavailable (insecure
-  context): use `crypto.getRandomValues()` manual UUID composition.
 
 ## Acknowledged best-practice patterns
 
