@@ -54,10 +54,12 @@ function RenderedView({ text }: { text: string }) {
   }
 
   return (
-    <div className="markdown-content overflow-y-auto p-3 text-xs leading-relaxed">
-      <MarkdownHooks remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeStarryNight]}>
-        {text}
-      </MarkdownHooks>
+    <div className="overflow-y-auto">
+      <div className="markdown-content p-3 text-xs leading-relaxed">
+        <MarkdownHooks remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeStarryNight]}>
+          {text}
+        </MarkdownHooks>
+      </div>
     </div>
   );
 }

@@ -53,10 +53,12 @@ function SkillPreviewDialog({
             <p className="text-xs text-muted-foreground bg-card border p-2 rounded-md">{skill.description}</p>
           )}
         </DialogHeader>
-        <div className="markdown-content flex-1 overflow-y-auto text-xs leading-relaxed">
-          <MarkdownHooks remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeStarryNight]}>
-            {body}
-          </MarkdownHooks>
+        <div className="flex-1 overflow-y-auto">
+          <div className="markdown-content text-xs leading-relaxed">
+            <MarkdownHooks remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeStarryNight]}>
+              {body}
+            </MarkdownHooks>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
