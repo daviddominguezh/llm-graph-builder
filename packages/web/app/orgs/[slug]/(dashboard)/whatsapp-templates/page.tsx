@@ -33,10 +33,10 @@ type Translator = Awaited<ReturnType<typeof getTranslations<'whatsappTemplates'>
 
 function TemplatesEmptyState({ t }: { t: Translator }) {
   return (
-    <div className="flex flex-col items-center gap-1.5 rounded-md border border-dashed bg-background px-4 py-8 text-center">
-      <MessageSquareDashed className="size-5 text-muted-foreground/60" />
+    <div className="flex flex-col items-center gap-2 rounded-md border border-dashed bg-background px-4 py-8 text-center">
+      <MessageSquareDashed className="size-6 text-muted-foreground/50" />
       <p className="text-sm font-medium">{t('empty')}</p>
-      <p className="text-xs text-muted-foreground">{t('emptyDescription')}</p>
+      <p className="max-w-xs text-xs text-muted-foreground">{t('emptyDescription')}</p>
     </div>
   );
 }

@@ -22,10 +22,12 @@ function canManage(role: string | null): boolean {
 
 function EmptyConnections({ slug, t }: { slug: string; t: Translator }) {
   return (
-    <div className="flex flex-col items-start gap-2 rounded-md border border-dashed bg-background px-4 py-6">
-      <div className="space-y-0.5">
-        <p className="text-sm font-medium text-foreground">{t('create.noConnections')}</p>
-        <p className="text-xs text-muted-foreground">{t('create.noConnectionsDescription')}</p>
+    <div className="flex flex-col items-start gap-3 rounded-md border border-dashed bg-background px-4 py-6">
+      <div className="flex flex-col gap-1">
+        <p className="text-sm font-medium">{t('create.noConnections')}</p>
+        <p className="max-w-sm text-xs text-muted-foreground">
+          {t('create.noConnectionsDescription')}
+        </p>
       </div>
       <Link href={`/orgs/${slug}/whatsapp-templates`}>
         <Button variant="outline" size="sm" className="border-[0.5px] rounded-md">
