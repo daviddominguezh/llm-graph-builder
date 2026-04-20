@@ -192,10 +192,20 @@ The regexes are ASCII-only by construction (`[a-z0-9]`); IDN/Punycode cannot sat
 Existing `generateSlug(name)` in `packages/backend/src/db/queries/slugQueries.ts` replaces
 non-alphanumeric characters with hyphens. For tenants this is now wrong — tenant slugs must not
 contain hyphens. Introduce `generateTenantSlug(name)` that **strips** non-alphanumeric instead
-of replacing them, enforces max length 40, lowercases, and returns the empty string if nothing
-is left (caller falls back to `tenant<8-hex>` as the existing `handleCreateTenant` already does).
+of replacing them, lowercases the result, and caps length at **37 characters** (reserving 3
+characters for a numeric collision suffix that the callsite appends; the hard maximum enforced
+by the regex remains 40). Returns the empty string if nothing ASCII-alphanumeric remains.
 
-Existing `generateSlug()` stays unchanged and continues to serve agents and organizations.
+**ASCII-only by design.** Non-ASCII input (`"東京支店"`, `"Café Olé"`) is stripped in full or in
+part, which may leave nothing usable. Callers must treat an empty return as "derive a random
+slug"; the current `fallbackSlug()` helper in `handleCreateTenant` already handles this. That
+helper currently emits `tenant-<hex>` (with a hyphen) — it must be updated to `tenant<hex>` to
+satisfy the hyphen-free rule; an implementer who reads only the spec could miss the change.
+
+Existing `generateSlug()` stays unchanged and continues to serve agents and organizations. The
+two generators are intentionally separate because they have different output alphabets; a
+follow-up (not in this phase) could factor out a shared `normalizeSlugInput()` helper to
+prevent Unicode-normalization drift between them.
 
 ### Refactor tenant slugs to globally unique
 
@@ -206,10 +216,28 @@ must go.
 Migration work (new migration, runs after `20260420100000_tenants_slug.sql`):
 
 ```sql
-ALTER TABLE public.tenants DROP CONSTRAINT tenants_org_slug_unique;
-ALTER TABLE public.tenants ADD  CONSTRAINT tenants_slug_unique UNIQUE (slug);
+-- Preflight: fail loudly, not with a bare check_violation, if staging
+-- has rows from the old slug generator (which inserts hyphens).
+DO $preflight$
+BEGIN
+  IF EXISTS (SELECT 1 FROM public.tenants WHERE slug !~ '^[a-z0-9]{1,40}$') THEN
+    RAISE EXCEPTION 'tenants.slug contains rows incompatible with the hyphen-free format. '
+      'Review and normalize before retrying this migration. '
+      'Example: SELECT id, slug FROM public.tenants WHERE slug !~ ''^[a-z0-9]{1,40}$'';';
+  END IF;
+END
+$preflight$;
 
-ALTER TABLE public.tenants ADD  CONSTRAINT tenants_slug_format
+-- Drop RPC first so dependency errors (if any RLS policy references the
+-- old signature) surface before schema changes, not after.
+DROP FUNCTION IF EXISTS public.tenant_id_by_slug(uuid, text);
+
+ALTER TABLE public.tenants DROP CONSTRAINT tenants_org_slug_unique;
+DROP INDEX IF EXISTS public.idx_tenants_org_slug;   -- unique constraint auto-created its own index; drop the manual one too
+
+ALTER TABLE public.tenants ADD CONSTRAINT tenants_slug_unique UNIQUE (slug);
+
+ALTER TABLE public.tenants ADD CONSTRAINT tenants_slug_format
   CHECK (
     slug ~ '^[a-z0-9]{1,40}$'
     AND slug NOT IN (
@@ -219,8 +247,6 @@ ALTER TABLE public.tenants ADD  CONSTRAINT tenants_slug_format
     )
   );
 
--- Replace org-scoped lookup with global
-DROP FUNCTION IF EXISTS public.tenant_id_by_slug(uuid, text);
 CREATE OR REPLACE FUNCTION public.tenant_id_by_slug(p_slug text)
 RETURNS uuid
 LANGUAGE sql
@@ -233,16 +259,38 @@ $$;
 -- No backfill needed: confirmed no rows exist.
 ```
 
+**Uniqueness and authorization are distinct.** Dropping `UNIQUE (org_id, slug)` removes an
+invariant at the *schema* level but does not relax the *authorization* surface. Row-level
+security on `tenants` continues to constrain cross-org reads via `is_org_member`. An implementer
+should not read the new global-unique constraint as "the check" — it's a routing invariant (one
+subdomain → one tenant). Authz still comes from RLS.
+
 Backend code refactor (same migration batch):
 
 - `packages/backend/src/db/queries/tenantQueries.ts` — change
-  `findUniqueTenantSlug(supabase, orgId, baseSlug)` to `findUniqueTenantSlug(supabase, baseSlug)`
-  (global `UNIQUE` lookup, no `org_id` filter).
+  `findUniqueTenantSlug(supabase, orgId, baseSlug)` to `findUniqueTenantSlug(supabase, baseSlug)`.
+  Use a bounded lookup pattern (`.or('slug.eq.<base>,slug.like.<base>[0-9]*')` or two queries)
+  rather than unbounded `<base>%` to avoid pulling unrelated rows. Append numeric suffix
+  *without* a separator (tenant slugs can't contain hyphens).
+- `packages/backend/src/db/queries/tenantQueries.ts` — `getTenantBySlug(supabase, orgId, slug)`
+  currently filters on both `org_id` and `slug`. With global uniqueness it can safely drop
+  `org_id`; keep it as-is for the existing dashboard route if we want to preserve the
+  `GET /tenants/by-slug/:orgId/:slug` path shape, but confirm both paths in the refactor — the
+  implementation plan enumerates them so they are not silently skipped.
+- `packages/backend/src/routes/tenants/getTenantBySlug.ts` — matching handler. Decide one of:
+  (a) drop the `:orgId` path param and make it a global lookup, or (b) keep the dashboard
+  contract as two-arg since it's already RLS-protected. This spec takes option (b) for minimal
+  dashboard churn; the plan explicitly pins this choice so a coding agent doesn't guess.
 - `packages/backend/src/routes/tenants/createTenant.ts` — swap `generateSlug(name)` for
-  `generateTenantSlug(name)`; drop `orgId` argument from the `findUniqueTenantSlug` call; apply
-  `isValidTenantSlug` before insert; reject reserved slugs with 400.
-- Any caller of `tenant_id_by_slug(org_id, slug)` must drop the `org_id` argument. Grep during
-  implementation; the current RPC is used in RLS policies — they'll need a small update.
+  `generateTenantSlug(name)`; fix `fallbackSlug()` to emit `tenant<hex>` (no hyphen); drop
+  `orgId` argument from the `findUniqueTenantSlug` call; apply `isValidTenantSlug` before
+  insert; reject reserved slugs with 400; **on explicit integrator-supplied slug collision,
+  return 409 `slug_taken`** (do not 500). Pre-check existence via `findUniqueTenantSlug` and
+  compare result to the provided slug; on mismatch, 409.
+- Any caller of `tenant_id_by_slug(org_id, slug)` must drop the `org_id` argument. Grep:
+  `grep -rn "tenant_id_by_slug" supabase/ packages/ --include="*.sql" --include="*.ts"`.
+  Current grep surfaces zero callers outside the defining migration, but the plan pins a test
+  assertion so this is not a soft assumption.
 
 ### Backend enforcement (Zod)
 
@@ -382,10 +430,12 @@ files ready for any CDN with wildcard-host support.
   cut documented features to hit it.
 - SPA initial payload (`index.html` + first JS chunk + CSS): **target ≤ 80 KB gzipped**
 
-**Scope note for OF-2.** The Linear ticket lists ≤ 50 KB. React 19 + Copilot UI + idb + Tailwind
-realistically lands at 60–80 KB. We are intentionally accepting ~80 KB in this phase and deferring
-Preact/compat until it's justified by a measured requirement. This is a scope delta from OF-2's
-acceptance criteria and needs sign-off on the ticket. Recorded here so it's not lost.
+**Scope decision for OF-2.** The Linear ticket lists ≤ 50 KB. React 19 + Copilot UI + idb +
+Tailwind realistically lands at 60–80 KB. **Decision: ship at ≤ 80 KB in this phase.** The OF-2
+ticket's 50 KB target is deferred to step 2 behind a measured requirement (conversion-rate
+impact, first-paint Core Web Vitals, or similar). Preact/compat is the likely tool if/when we
+need to hit 50 KB, but introducing it now is premature per YAGNI. A note is attached to OF-2
+with this decision so review doesn't block on it after the code lands.
 
 ## Runtime modes
 
@@ -711,11 +761,22 @@ Each entry becomes an async generator of `PublicExecutionEvent`s.
 
 ### CORS
 
-Next.js proxy adds headers:
+The Next.js proxy must build its origin allowlist **from the same `TENANT_SLUG_REGEX` and
+`AGENT_SLUG_REGEX` exported by `@openflow/shared-validation`**, not from a locally-written
+pattern. A stale inline regex was the pattern we shipped in an earlier draft; aligning the CORS
+gate with the slug validators prevents drift (e.g., reserved-tenant-words passing CORS while
+failing downstream parse).
 
 ```ts
-const ALLOWED = /^https:\/\/[a-z0-9]+-[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?\.live\.openflow\.build$/;
-if (origin && ALLOWED.test(origin)) {
+// packages/web/app/api/chat/_helpers/cors.ts (sketch)
+import { AGENT_SLUG_REGEX, TENANT_SLUG_REGEX } from '@openflow/shared-validation';
+
+const T = TENANT_SLUG_REGEX.source.replace(/^\^|\$$/g, '');
+const A = AGENT_SLUG_REGEX.source.replace(/^\^|\$$/g, '');
+const ALLOWED = new RegExp(`^https://(?:${T})-(?:${A})\\.live\\.openflow\\.build$`);
+
+function corsHeadersFor(origin: string | null): Record<string, string> {
+  if (origin === null || !ALLOWED.test(origin)) return {};
   return {
     'Access-Control-Allow-Origin':  origin,
     'Vary':                         'Origin',
@@ -725,6 +786,11 @@ if (origin && ALLOWED.test(origin)) {
   };
 }
 ```
+
+Reserved tenant slugs are not explicitly blocked at the CORS layer because no wildcard-DNS
+record could resolve them in the first place (`app.live.openflow.build`, etc. are handled by a
+different apex or 404 by the CDN). The slug-validator shape rejection is sufficient; the CORS
+gate doesn't need to duplicate reserved-list logic.
 
 `OPTIONS` preflight handler returns the same header set.
 

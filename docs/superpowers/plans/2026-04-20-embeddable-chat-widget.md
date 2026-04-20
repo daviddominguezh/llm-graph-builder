@@ -275,6 +275,24 @@ git commit -m "shared-validation: slug validators with reserved list"
 -- and repoint the tenant_id_by_slug RPC. No tenant rows exist yet
 -- (confirmed with product); backfill/normalization unnecessary.
 
+-- Preflight: fail loudly with a descriptive message if staging has rows
+-- from the old slug generator (which inserts hyphens). Without this, the
+-- CHECK constraint below would fail with a bare check_violation.
+DO $preflight$
+BEGIN
+  IF EXISTS (SELECT 1 FROM public.tenants WHERE slug !~ '^[a-z0-9]{1,40}$') THEN
+    RAISE EXCEPTION
+      'tenants.slug contains rows incompatible with the hyphen-free format. '
+      'Review and normalize before retrying. '
+      'Query: SELECT id, slug FROM public.tenants WHERE slug !~ ''^[a-z0-9]{1,40}$'';';
+  END IF;
+END
+$preflight$;
+
+-- Drop RPC first so dependency errors (if any RLS policy references the
+-- old signature) surface before schema changes, not after partial success.
+DROP FUNCTION IF EXISTS public.tenant_id_by_slug(uuid, text);
+
 ALTER TABLE public.tenants DROP CONSTRAINT IF EXISTS tenants_org_slug_unique;
 DROP INDEX IF EXISTS public.idx_tenants_org_slug;
 
@@ -290,10 +308,7 @@ ALTER TABLE public.tenants ADD CONSTRAINT tenants_slug_format
     )
   );
 
-CREATE INDEX IF NOT EXISTS idx_tenants_slug ON public.tenants(slug);
-
--- Repoint RPC from (org_id, slug) → (slug)
-DROP FUNCTION IF EXISTS public.tenant_id_by_slug(uuid, text);
+-- UNIQUE constraint above auto-creates a supporting index; no explicit CREATE INDEX needed.
 
 CREATE OR REPLACE FUNCTION public.tenant_id_by_slug(p_slug text)
 RETURNS uuid
@@ -352,15 +367,18 @@ describe('generateTenantSlug', () => {
     expect(generateTenantSlug('Acme Corp!')).toBe('acmecorp');
     expect(generateTenantSlug('Hello, World 2026')).toBe('helloworld2026');
   });
-  it('caps at 40 chars', () => {
-    expect(generateTenantSlug('a'.repeat(60))).toBe('a'.repeat(40));
+  it('caps at 37 chars to reserve headroom for numeric suffixes', () => {
+    // The DB CHECK allows up to 40; the generator stops at 37 so the
+    // findUniqueTenantSlug collision suffix (up to 3 digits) fits.
+    expect(generateTenantSlug('a'.repeat(60))).toBe('a'.repeat(37));
   });
   it('returns empty string when nothing valid remains', () => {
     expect(generateTenantSlug('!!!')).toBe('');
     expect(generateTenantSlug('')).toBe('');
   });
-  it('handles unicode by stripping', () => {
+  it('handles unicode by stripping non-ASCII', () => {
     expect(generateTenantSlug('Café Olé')).toBe('caf');
+    expect(generateTenantSlug('東京支店')).toBe(''); // fully non-ASCII → empty
   });
 });
 ```
@@ -377,14 +395,16 @@ Expected: fails because `generateTenantSlug` is not exported.
 
 Append:
 ```ts
-const TENANT_SLUG_MAX_LENGTH = 40;
+// The DB CHECK allows up to 40 characters; we stop at 37 so the suffix
+// logic in findUniqueTenantSlug (up to 3 numeric digits) always fits.
+const TENANT_SLUG_BASE_MAX_LENGTH = 37;
 
 export function generateTenantSlug(name: string): string {
   const lower = name.toLowerCase();
   let out = '';
   for (const char of lower) {
     if (isAlphanumeric(char)) out += char;
-    if (out.length >= TENANT_SLUG_MAX_LENGTH) break;
+    if (out.length >= TENANT_SLUG_BASE_MAX_LENGTH) break;
   }
   return out;
 }
@@ -422,7 +442,8 @@ Note the current signature and callers.
 
 - [ ] **Step 2: Change signature to drop `orgId`**
 
-Change the function to look up by `slug` only (no `org_id` filter):
+Change the function to look up by `slug` only (no `org_id` filter), using a bounded lookup
+pattern so `acme` doesn't pull unrelated rows like `acmebank`:
 
 ```ts
 export async function findUniqueTenantSlug(
@@ -430,18 +451,26 @@ export async function findUniqueTenantSlug(
   baseSlug: string
 ): Promise<string> {
   if (baseSlug === '') throw new Error('baseSlug cannot be empty');
-  const { data } = await supabase
+  // Bounded: exact match, OR slug.like "<base>0*..<base>9*". PostgREST treats
+  // `[0-9]` as literal characters inside `ilike`, so we issue two queries
+  // (exact + bounded prefix) rather than an unbounded `<base>%`.
+  const exactPromise = supabase.from('tenants').select('slug').eq('slug', baseSlug);
+  // Limit: up to 999 possible suffixes; if more exist we'll fail loudly below.
+  const suffixedPromise = supabase
     .from('tenants')
     .select('slug')
-    .or(`slug.eq.${baseSlug},slug.like.${baseSlug}%`);
+    .ilike('slug', `${baseSlug}[0-9]%`)
+    .limit(1024);
 
-  const rows = (data ?? []).filter((r): r is { slug: string } =>
-    typeof r === 'object' && r !== null && 'slug' in r
+  const [exact, suffixed] = await Promise.all([exactPromise, suffixedPromise]);
+  const rows = [...(exact.data ?? []), ...(suffixed.data ?? [])].filter(
+    (r): r is { slug: string } => typeof r === 'object' && r !== null && 'slug' in r
   );
   const taken = new Set(rows.map((r) => r.slug));
   if (!taken.has(baseSlug)) return baseSlug;
 
-  // Append numeric suffix with no separator (tenant slugs can't contain '-')
+  // Tenant slugs can't contain hyphens — append digits directly.
+  // Generator reserves 3 chars of headroom so suffixes 1..999 always fit.
   for (let i = 1; i < 1000; i++) {
     const candidate = `${baseSlug}${i}`;
     if (candidate.length > 40) throw new Error('baseSlug too long for suffix');
@@ -450,6 +479,11 @@ export async function findUniqueTenantSlug(
   throw new Error('Unable to find unique tenant slug');
 }
 ```
+
+If `ilike('slug', '<base>[0-9]%')` doesn't behave as expected with the installed Supabase JS
+client (PostgREST syntax for bracket classes in LIKE is server-specific), fall back to:
+`ilike('slug', '${baseSlug}_%')` **and** filter results client-side where the char after
+`baseSlug` is a digit. Document the choice in an inline comment.
 
 - [ ] **Step 3: Run typecheck — expect failures at callers**
 
@@ -476,9 +510,11 @@ git commit -m "backend: findUniqueTenantSlug becomes global"
 - [ ] **Step 1: Replace slug generation and validation**
 
 Replace the body of `handleCreateTenant` so it:
-1. Reads an optional `slug` field from the body (integrator-provided); if present, validates via `isValidTenantSlug`; rejects 400 on invalid.
-2. If not provided, derives with `generateTenantSlug(name)`; falls back to the existing `fallbackSlug()` when empty; then finds a globally unique suffix via the new `findUniqueTenantSlug(supabase, baseSlug)`.
+1. Reads an optional `slug` field from the body (integrator-provided); if present, validates via `isValidTenantSlug`; rejects 400 on invalid; **checks global availability via `findUniqueTenantSlug` — on collision (the returned slug differs from the requested one), rejects 409 `slug_taken`**.
+2. If not provided, derives with `generateTenantSlug(name)`; falls back to the new hyphen-free `fallbackSlug()` when empty; then finds a globally unique suffix via the new `findUniqueTenantSlug(supabase, baseSlug)`.
 3. Re-validates the final slug against `isValidTenantSlug` (covers the `tenant<hex>` fallback hitting a reserved word).
+
+Note: the existing `fallbackSlug()` in the current file emits `tenant-<hex>` with a hyphen. Must be changed to `tenant<hex>` (no hyphen) — the hyphen would fail the new CHECK constraint.
 
 Final file:
 
@@ -498,28 +534,41 @@ import {
 } from '../routeHelpers.js';
 import { parseStringField } from './tenantHelpers.js';
 
+const HTTP_CONFLICT = 409;
 const SLUG_RADIX = 36;
 const SLUG_START = 2;
 const SLUG_END = 10;
 
 function fallbackSlug(): string {
-  // No hyphens allowed in tenant slugs; use a bare alphanumeric id.
+  // No hyphens allowed in tenant slugs; emit a bare alphanumeric id.
   return `tenant${Math.random().toString(SLUG_RADIX).slice(SLUG_START, SLUG_END)}`;
 }
+
+type SlugOutcome =
+  | { ok: true; slug: string }
+  | { ok: false; status: number; error: string };
 
 async function resolveSlug(
   supabase: AuthenticatedLocals['supabase'],
   name: string,
   explicit: string | undefined
-): Promise<{ ok: true; slug: string } | { ok: false; error: string }> {
+): Promise<SlugOutcome> {
   if (explicit !== undefined) {
-    if (!isValidTenantSlug(explicit)) return { ok: false, error: 'Invalid slug' };
+    if (!isValidTenantSlug(explicit)) {
+      return { ok: false, status: HTTP_BAD_REQUEST, error: 'Invalid slug' };
+    }
+    const resolved = await findUniqueTenantSlug(supabase, explicit);
+    if (resolved !== explicit) {
+      return { ok: false, status: HTTP_CONFLICT, error: 'slug_taken' };
+    }
     return { ok: true, slug: explicit };
   }
   const generated = generateTenantSlug(name);
   const base = generated === '' ? fallbackSlug() : generated;
   const unique = await findUniqueTenantSlug(supabase, base);
-  if (!isValidTenantSlug(unique)) return { ok: false, error: 'Generated slug is invalid' };
+  if (!isValidTenantSlug(unique)) {
+    return { ok: false, status: HTTP_INTERNAL_ERROR, error: 'Generated slug is invalid' };
+  }
   return { ok: true, slug: unique };
 }
 
@@ -537,7 +586,7 @@ export async function handleCreateTenant(req: Request, res: AuthenticatedRespons
   try {
     const slugResult = await resolveSlug(supabase, name, explicitSlug);
     if (!slugResult.ok) {
-      res.status(HTTP_BAD_REQUEST).json({ error: slugResult.error });
+      res.status(slugResult.status).json({ error: slugResult.error });
       return;
     }
 
@@ -584,40 +633,66 @@ git commit -m "backend: tenant create uses global-unique + validated slug"
 
 ---
 
-### Task 7: Update any RPC/RLS callers of the old 2-arg `tenant_id_by_slug`
+### Task 7: Verify RPC and `getTenantBySlug` caller scope
 
 **Files:**
-- Grep: `supabase/migrations/*.sql` and `packages/backend/src/**` for `tenant_id_by_slug`
-- Create or modify: `supabase/migrations/20260420300100_fix_tenant_id_by_slug_callers.sql` (only if callers found)
-- Modify: any TS query files that call the RPC with 2 args
+- Grep-only verification (no new file expected unless callers surface)
+- Confirm: `packages/backend/src/db/queries/tenantQueries.ts` (`getTenantBySlug`) stays two-arg
+- Confirm: `packages/backend/src/routes/tenants/getTenantBySlug.ts` (`/tenants/by-slug/:orgId/:slug`) stays two-arg
+- Confirm: `packages/web/app/lib/tenants.ts` dashboard callers stay two-arg
+- Create (only if the grep surfaces callers): `supabase/migrations/20260420300100_fix_tenant_id_by_slug_callers.sql`
 
-- [ ] **Step 1: Find callers**
+- [ ] **Step 1: Find RPC callers**
 
 ```bash
 grep -rn "tenant_id_by_slug" supabase/ packages/ --include="*.sql" --include="*.ts"
 ```
 
-Expected output: zero or a small list.
+Expected: only the defining migration files. If any `.rpc('tenant_id_by_slug'...)` or SQL
+policy references it outside the migration, proceed to Step 2; otherwise jump to Step 3.
 
-- [ ] **Step 2: Address each caller**
+- [ ] **Step 2: Update callers**
 
-For each SQL caller (RLS policy or function), drop it and recreate with the single-arg call. For each TS caller, update the `.rpc('tenant_id_by_slug', { p_org_id, p_slug })` call to `.rpc('tenant_id_by_slug', { p_slug })`.
+For each SQL caller (RLS policy or function), drop it in a new migration and recreate with the
+single-arg call. For each TS caller, update the `.rpc('tenant_id_by_slug', { p_org_id, p_slug })`
+call to `.rpc('tenant_id_by_slug', { p_slug })`.
 
-If there are *no* callers, skip to Step 4.
+- [ ] **Step 3: Pin the dashboard `getTenantBySlug` contract**
 
-- [ ] **Step 3: Apply updated migration**
+Per spec decision (b): the dashboard's `getTenantBySlug(orgId, slug)` path remains two-arg to
+minimize dashboard churn. Confirm with a test that documents the decision:
+
+```ts
+// packages/backend/src/routes/tenants/getTenantBySlug.contract.test.ts
+import { describe, it, expect } from '@jest/globals';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+describe('getTenantBySlug route contract', () => {
+  it('stays two-arg (:orgId/:slug) for the dashboard', () => {
+    const router = readFileSync(
+      resolve(__dirname, '../../../src/routes/tenants/tenantRouter.ts'),
+      'utf8'
+    );
+    expect(router).toMatch(/by-slug\/:orgId\/:slug/);
+  });
+});
+```
+
+- [ ] **Step 4: Apply migrations and run tests**
 
 ```bash
 npx supabase db reset
+npm test -w packages/backend
 ```
 
-Expected: all migrations apply.
+Expected: all migrations apply; contract test passes.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add -- supabase/migrations/ packages/backend/src/
-git commit -m "backend: migrate callers to single-arg tenant_id_by_slug"
+git commit -m "backend: pin getTenantBySlug two-arg contract; confirm no RPC callers"
 ```
 
 ---
@@ -629,23 +704,37 @@ git commit -m "backend: migrate callers to single-arg tenant_id_by_slug"
 
 - [ ] **Step 1: Write failing test**
 
+The test scans **all** migration files for any `tenants_slug_format` CHECK literal rather than
+hardcoding today's filename — that way, when a future migration supersedes the current one, the
+parity assertion stays correct automatically.
+
 ```ts
 import { describe, it, expect } from '@jest/globals';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { RESERVED_TENANT_SLUGS, sortedReservedTenantSlugs } from './index.js';
 
+const MIGRATIONS_DIR = resolve(__dirname, '../../../supabase/migrations');
+
+function extractLatestReservedList(): string[] | null {
+  // Scan newest-first; the last migration that defines tenants_slug_format wins.
+  const files = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql')).sort().reverse();
+  for (const file of files) {
+    const sql = readFileSync(resolve(MIGRATIONS_DIR, file), 'utf8');
+    if (!sql.includes('tenants_slug_format')) continue;
+    const m = sql.match(/slug NOT IN \(\s*([\s\S]*?)\)/);
+    if (!m) continue;
+    return (m[1].match(/'([a-z0-9]+)'/g) ?? []).map((s) => s.slice(1, -1)).sort();
+  }
+  return null;
+}
+
 describe('reserved tenant slug parity', () => {
-  it('TS list matches the Postgres CHECK literal in the migration', () => {
-    const sql = readFileSync(
-      resolve(__dirname, '../../../supabase/migrations/20260420300000_tenants_global_slug.sql'),
-      'utf8'
-    );
-    const match = sql.match(/slug NOT IN \(\s*([\s\S]*?)\)/);
-    expect(match).not.toBeNull();
-    const values = (match![1].match(/'([a-z0-9]+)'/g) ?? []).map((s) => s.slice(1, -1));
-    expect(values.sort()).toEqual(sortedReservedTenantSlugs());
-    expect(values.length).toBe(RESERVED_TENANT_SLUGS.size);
+  it('TS list matches the Postgres CHECK literal in the latest tenants-slug migration', () => {
+    const found = extractLatestReservedList();
+    expect(found).not.toBeNull();
+    expect(found).toEqual(sortedReservedTenantSlugs());
+    expect(found!.length).toBe(RESERVED_TENANT_SLUGS.size);
   });
 });
 ```
@@ -1161,16 +1250,55 @@ git commit -m "backend: mount mock-execute router behind flag"
 
 # Group 5 — Next.js proxy routes
 
-### Task 16: CORS helper
+### Task 16: CORS helper derived from shared validators
 
 **Files:**
 - Create: `packages/web/app/api/chat/_helpers/cors.ts`
+- Create: `packages/web/app/api/chat/_helpers/cors.test.ts`
 
-- [ ] **Step 1: Create the helper**
+- [ ] **Step 1: Write failing test**
+
+The origin allowlist must be built from the same `TENANT_SLUG_REGEX` and `AGENT_SLUG_REGEX`
+exported by `@openflow/shared-validation` — not from a locally-inlined pattern — to prevent
+drift.
+
+```ts
+// packages/web/app/api/chat/_helpers/cors.test.ts
+import { describe, it, expect } from '@jest/globals';
+import { corsHeadersFor } from './cors.js';
+
+describe('corsHeadersFor', () => {
+  it('accepts valid tenant-agent origins', () => {
+    const h = corsHeadersFor('https://acme-customer-care.live.openflow.build');
+    expect(h['Access-Control-Allow-Origin']).toBe('https://acme-customer-care.live.openflow.build');
+    expect(h['Access-Control-Allow-Headers']).toContain('Authorization');
+    expect(h['Access-Control-Max-Age']).toBe('600');
+  });
+  it('rejects hyphen-having tenants', () => {
+    expect(corsHeadersFor('https://acme-corp-customer.live.openflow.build')).toEqual({});
+  });
+  it('rejects a tenant slug over 40 chars', () => {
+    const long = 'a'.repeat(41);
+    expect(corsHeadersFor(`https://${long}-x.live.openflow.build`)).toEqual({});
+  });
+  it('rejects unknown hosts', () => {
+    expect(corsHeadersFor('https://evil.example.com')).toEqual({});
+  });
+});
+```
+
+- [ ] **Step 2: Implement with derived regex**
 
 ```ts
 // packages/web/app/api/chat/_helpers/cors.ts
-const WIDGET_ORIGIN_REGEX = /^https:\/\/[a-z0-9]+-[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?\.live\.openflow\.build$/;
+import { AGENT_SLUG_REGEX, TENANT_SLUG_REGEX } from '@openflow/shared-validation';
+
+// Strip anchors from the shared sources so we can compose them into a URL-shape regex.
+const T_BODY = TENANT_SLUG_REGEX.source.replace(/^\^|\$$/g, '');
+const A_BODY = AGENT_SLUG_REGEX.source.replace(/^\^|\$$/g, '');
+const WIDGET_ORIGIN_REGEX = new RegExp(
+  `^https://(?:${T_BODY})-(?:${A_BODY})\\.live\\.openflow\\.build$`
+);
 const DEV_ORIGIN = 'http://localhost:5173';
 
 function isAllowed(origin: string): boolean {
@@ -1195,11 +1323,13 @@ export function preflightResponse(request: Request): Response {
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [ ] **Step 3: Run tests, typecheck, commit**
 
 ```bash
-git add -- packages/web/app/api/chat/_helpers/cors.ts
-git commit -m "web: widget CORS helper"
+npm test -w packages/web -- --testPathPattern=cors
+npm run typecheck -w packages/web
+git add -- packages/web/app/api/chat/_helpers/cors.ts packages/web/app/api/chat/_helpers/cors.test.ts
+git commit -m "web: widget CORS helper derived from shared slug regexes"
 ```
 
 ---
@@ -3649,6 +3779,10 @@ function startHandshake(iframe: HTMLIFrameElement): void {
   window.addEventListener('message', onMessage);
 
   function postInit(): void {
+    // contentWindow is null if the iframe was removed from the DOM between
+    // insertion and this tick; skip rather than throwing and keep the retry
+    // loop quiet until the CSP timeout decides to bail.
+    if (iframe.contentWindow === null) return;
     const msg = {
       type: 'openflow:init',
       nonce,
@@ -3656,11 +3790,12 @@ function startHandshake(iframe: HTMLIFrameElement): void {
       path: window.location.pathname,
       viewportW: window.innerWidth,
     };
-    iframe.contentWindow?.postMessage(msg, iframeOrigin);
+    iframe.contentWindow.postMessage(msg, iframeOrigin);
   }
 
   const retryTimer = setInterval(() => {
     if (readyReceived) { clearInterval(retryTimer); return; }
+    if (!iframe.isConnected) { clearInterval(retryTimer); return; }
     postInit();
   }, HANDSHAKE_INTERVAL_MS);
 
