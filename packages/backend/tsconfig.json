@@ -23,5 +23,8 @@
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"],
-  "references": [{ "path": "../graph-types" }]
+  "references": [
+    { "path": "../graph-types" },
+    { "path": "../shared-validation" }
+  ]
 }
