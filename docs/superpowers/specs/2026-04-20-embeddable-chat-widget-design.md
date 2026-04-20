@@ -113,8 +113,10 @@ be explicit).
 ### Rules
 
 - **Tenant slug** — `[a-z0-9]{1,40}`, no hyphens, ASCII only, not in reserved set
-- **Agent slug** — `[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?`, hyphens allowed, no leading/trailing/
-  consecutive, ASCII only
+- **Agent slug** — `[a-z0-9]+(-[a-z0-9]+)*`, 1–40 chars, hyphens allowed, no leading/trailing/
+  consecutive, ASCII only. Length is enforced by a separate `length(slug) <= 40` check (paired
+  with the regex) rather than baked into the pattern — simpler, readable, and works identically
+  in Postgres POSIX regex.
 - Subdomain splits on the **first** hyphen
 
 ### ADR — tenant slugs are permanently hyphen-free
@@ -138,7 +140,7 @@ auth, oauth, static, public, internal, staging, preview, dev, localhost
 ```ts
 // packages/widget/src/routing/parseHostname.ts
 const HOST_REGEX =
-  /^([a-z0-9]+)-([a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?)\.live\.openflow\.build$/;
+  /^([a-z0-9]{1,40})-([a-z0-9]+(?:-[a-z0-9]+)*)\.live\.openflow\.build$/;
 
 export function parseAgentHost(raw: string): { tenant: string; agentSlug: string } | null {
   // Normalize: strip port, trailing dot, lowercase. Reject non-ASCII early.
@@ -171,7 +173,8 @@ and backend all import from it.
 ```ts
 // packages/shared-validation/src/index.ts
 export const TENANT_SLUG_REGEX = /^[a-z0-9]{1,40}$/;
-export const AGENT_SLUG_REGEX  = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
+export const AGENT_SLUG_REGEX  = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+export const AGENT_SLUG_MAX_LENGTH = 40;
 export const RESERVED_TENANT_SLUGS = new Set([
   'app','api','www','live','admin','assets','cdn','docs','status','root',
   'support','help','blog','mail','email','auth','oauth','static','public',
@@ -307,7 +310,7 @@ Agents table: new migration:
 
 ```sql
 ALTER TABLE public.agents ADD CONSTRAINT agents_slug_format
-  CHECK (slug ~ '^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$');
+  CHECK (length(slug) <= 40 AND slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$');
 ```
 
 If existing rows violate, the migration aborts with a report. Data is fixed manually, then
