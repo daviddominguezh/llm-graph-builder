@@ -174,7 +174,7 @@ export function AgentEditor({
           className="w-full h-full flex animate-in fade-in duration-300 gap-2"
           onClick={(e) => e.stopPropagation()}
         >
-          <GlassPanel className="flex min-w-0 flex-1 h-[calc(100%-var(--spacing)*2.5)] shrink-0 flex-col p-4 mt-2 mb-2.5 rounded-xl shadow-none">
+          <GlassPanel className="flex min-w-0 flex-1 h-[calc(100%-var(--spacing)*2.5)] shrink-0 flex-col p-4 mt-2 mb-2.5 rounded-xl">
             <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
             <div className={activeTab === 'prompt' ? 'flex min-h-0 flex-1 flex-col' : 'hidden'}>
               <SystemPromptField value={state.systemPrompt} onChange={actions.handleSystemPromptChange} />
