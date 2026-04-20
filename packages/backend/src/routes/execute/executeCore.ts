@@ -1,7 +1,6 @@
 import type { CallAgentOutput, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
 
-import { saveExecutionMessageRaw } from '../../db/queries/executionQueries.js';
-import { getOrCreateSession } from '../../db/queries/executionQueries.js';
+import { saveExecutionMessageRaw , getOrCreateSession } from '../../db/queries/executionQueries.js';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { getStackTop } from '../../db/queries/stackQueries.js';
 import type { NodeProcessedData } from './edgeFunctionClient.js';
@@ -152,10 +151,10 @@ async function resolveConversationId(
 
 function extractChildConfig(config: Record<string, unknown>): OverrideAgentConfig {
   return {
-    systemPrompt: typeof config['systemPrompt'] === 'string' ? config['systemPrompt'] : '',
-    context: typeof config['context'] === 'string' ? config['context'] : '',
-    maxSteps: typeof config['maxSteps'] === 'number' ? config['maxSteps'] : null,
-    modelId: typeof config['modelId'] === 'string' ? config['modelId'] : undefined,
+    systemPrompt: typeof config.systemPrompt === 'string' ? config.systemPrompt : '',
+    context: typeof config.context === 'string' ? config.context : '',
+    maxSteps: typeof config.maxSteps === 'number' ? config.maxSteps : null,
+    modelId: typeof config.modelId === 'string' ? config.modelId : undefined,
     isChildAgent: true,
   };
 }
@@ -258,7 +257,7 @@ async function handleInlineDispatch(
   const { resolveChildConfig } = await import('../simulateChildResolver.js');
   const childConfig = await resolveChildConfig({
     supabase,
-    dispatchType: dispatch.type as 'invoke_agent' | 'invoke_workflow' | 'create_agent',
+    dispatchType: dispatch.type,
     params: dispatch.params,
     orgId: params.orgId,
   });
@@ -482,12 +481,12 @@ async function handleChildFinish(
 
   // Read pre-computed values from the stack's parentSessionState
   const state = stack.parent_session_state ?? {};
-  const toolCallId = typeof state['toolCallId'] === 'string' ? state['toolCallId'] : 'dispatch';
-  const toolName = typeof state['toolName'] === 'string' ? state['toolName'] : 'invoke_agent';
-  const nextNodeId = typeof state['nextNodeId'] === 'string' ? state['nextNodeId'] : '';
+  const toolCallId = typeof state.toolCallId === 'string' ? state.toolCallId : 'dispatch';
+  const toolName = typeof state.toolName === 'string' ? state.toolName : 'invoke_agent';
+  const nextNodeId = typeof state.nextNodeId === 'string' ? state.nextNodeId : '';
   const structuredOutputs =
-    typeof state['structuredOutputs'] === 'object' && state['structuredOutputs'] !== null
-      ? (state['structuredOutputs'] as Record<string, unknown[]>)
+    typeof state.structuredOutputs === 'object' && state.structuredOutputs !== null
+      ? (state.structuredOutputs as Record<string, unknown[]>)
       : {};
 
   // Use the PARENT's session (from the stack entry, not the child's fetched data)
