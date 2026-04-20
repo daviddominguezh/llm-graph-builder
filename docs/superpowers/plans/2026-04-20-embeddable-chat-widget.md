@@ -378,7 +378,8 @@ describe('generateTenantSlug', () => {
     expect(generateTenantSlug('')).toBe('');
   });
   it('handles unicode by stripping non-ASCII', () => {
-    expect(generateTenantSlug('Café Olé')).toBe('caf');
+    // 'Café Olé' → strip é, space → 'cafol' (all surviving ASCII alnum)
+    expect(generateTenantSlug('Café Olé')).toBe('cafol');
     expect(generateTenantSlug('東京支店')).toBe(''); // fully non-ASCII → empty
   });
 });
