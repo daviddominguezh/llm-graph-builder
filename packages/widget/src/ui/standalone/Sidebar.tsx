@@ -3,7 +3,7 @@ import { PanelLeft, Plus } from 'lucide-react';
 import { useT } from '../../app/i18nContext.js';
 import type { StoredSession } from '../../storage/indexeddb.js';
 import { Button } from '../primitives/button.js';
-import { SidebarRecents } from './SidebarRecents.js';
+import { SidebarSessionGroup } from './SidebarRecents.js';
 
 export interface SidebarProps {
   sessions: StoredSession[];
@@ -68,15 +68,26 @@ export function Sidebar({
       <div className="flex flex-col gap-0.5 pb-2">
         <SidebarNewChat onNewChat={onNewChat} label={t('newChat')} />
       </div>
-      <div className="text-xs text-muted-foreground px-3 py-2">{t('recents')}</div>
-      <SidebarRecents
-        sessions={sessions}
-        activeId={activeSessionId}
-        onSelect={onSelectSession}
-        onRename={onRenameSession}
-        onDelete={onDeleteSession}
-        onToggleStar={onToggleStarSession}
-      />
+      <div className="flex-1 overflow-y-auto px-2 pb-3 flex flex-col gap-2">
+        <SidebarSessionGroup
+          label={t('starredSection')}
+          sessions={sessions.filter((s) => s.starred === true)}
+          activeId={activeSessionId}
+          onSelect={onSelectSession}
+          onRename={onRenameSession}
+          onDelete={onDeleteSession}
+          onToggleStar={onToggleStarSession}
+        />
+        <SidebarSessionGroup
+          label={t('recents')}
+          sessions={sessions.filter((s) => s.starred !== true)}
+          activeId={activeSessionId}
+          onSelect={onSelectSession}
+          onRename={onRenameSession}
+          onDelete={onDeleteSession}
+          onToggleStar={onToggleStarSession}
+        />
+      </div>
     </aside>
   );
 }
