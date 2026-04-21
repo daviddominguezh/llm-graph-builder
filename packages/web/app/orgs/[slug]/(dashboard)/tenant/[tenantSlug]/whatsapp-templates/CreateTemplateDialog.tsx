@@ -20,11 +20,11 @@ interface CreateTemplateDialogProps {
 }
 
 function useBodyPortal(open: boolean): HTMLElement | null {
-  const [node, setNode] = useState<HTMLElement | null>(null);
-
-  useEffect(() => {
-    setNode(document.body);
-  }, []);
+  // Lazy initializer avoids the cascading render that an effect-based
+  // setState would trigger (react-hooks/set-state-in-effect).
+  const [node] = useState<HTMLElement | null>(() =>
+    typeof document === 'undefined' ? null : document.body
+  );
 
   useEffect(() => {
     if (!open) return undefined;

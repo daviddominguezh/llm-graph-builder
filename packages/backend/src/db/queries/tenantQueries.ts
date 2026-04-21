@@ -91,6 +91,16 @@ export async function getTenantBySlug(
   return { result: data, error: null };
 }
 
+// Upper bound on rows fetched per suffix query. Well beyond the MAX_SUFFIX range; a
+// single tenant name that has already generated >1000 numeric-suffixed variants would
+// hit `Unable to find unique tenant slug` anyway, so this cap is comfort margin only.
+const SUFFIX_QUERY_LIMIT = 1024;
+const MAX_SUFFIX = 1000;
+const MAX_SLUG_LENGTH = 40;
+const FIRST_SUFFIX = 1;
+const SUFFIX_STEP = 1;
+const DIGIT_REGEX = /\d/v;
+
 // Collects existing slugs that could collide with baseSlug or its numeric suffixes.
 // Uses exact match + a bounded suffix query filtered client-side to digit-only next chars.
 // The `ilike('slug', '${baseSlug}_%')` form (underscore = any single char) is used as the
@@ -102,32 +112,28 @@ async function collectTakenSlugs(supabase: SupabaseClient, baseSlug: string): Pr
     .from('tenants')
     .select('slug')
     .ilike('slug', `${baseSlug}_%`)
-    .limit(1024);
+    .limit(SUFFIX_QUERY_LIMIT);
 
   const [exact, suffixed] = await Promise.all([exactPromise, suffixedPromise]);
   const allRows = [...(exact.data ?? []), ...(suffixed.data ?? [])];
-  const validRows = allRows.filter(
-    (r): r is { slug: string } => typeof r === 'object' && r !== null && 'slug' in r
-  );
+  const validRows = allRows.filter((r): r is { slug: string } => typeof r === 'object' && 'slug' in r);
   // Keep only rows where the char right after baseSlug is a digit (rules out e.g. "acmebank").
+  const { length: baseLen } = baseSlug;
   const bounded = validRows.filter((r) => {
-    const next = r.slug[baseSlug.length];
-    return next === undefined || /\d/u.test(next);
+    const next: string | undefined = r.slug[baseLen];
+    return next === undefined || DIGIT_REGEX.test(next);
   });
   return new Set(bounded.map((r) => r.slug));
 }
 
-export async function findUniqueTenantSlug(
-  supabase: SupabaseClient,
-  baseSlug: string
-): Promise<string> {
+export async function findUniqueTenantSlug(supabase: SupabaseClient, baseSlug: string): Promise<string> {
   if (baseSlug === '') throw new Error('baseSlug cannot be empty');
   const taken = await collectTakenSlugs(supabase, baseSlug);
   if (!taken.has(baseSlug)) return baseSlug;
 
-  for (let i = 1; i < 1000; i++) {
+  for (let i = FIRST_SUFFIX; i < MAX_SUFFIX; i += SUFFIX_STEP) {
     const candidate = `${baseSlug}${i}`;
-    if (candidate.length > 40) throw new Error('baseSlug too long for suffix');
+    if (candidate.length > MAX_SLUG_LENGTH) throw new Error('baseSlug too long for suffix');
     if (!taken.has(candidate)) return candidate;
   }
   throw new Error('Unable to find unique tenant slug');

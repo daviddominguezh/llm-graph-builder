@@ -79,9 +79,18 @@ export const mockCatalog: MockEntry[] = [
   },
 ];
 
+// Classic 31-multiplier string hash (djb2-adjacent); the final `| 0` truncates to Int32.
+const HASH_PRIME = 31;
+const INT32_TRUNCATE = 0;
+const HASH_START = 0;
+const HASH_FIRST = 0;
+const HASH_STEP = 1;
+
 function hashToIndex(sessionId: string, mod: number): number {
-  let h = 0;
-  for (let i = 0; i < sessionId.length; i++) h = (h * 31 + sessionId.charCodeAt(i)) | 0;
+  let h = HASH_START;
+  for (let i = HASH_FIRST; i < sessionId.length; i += HASH_STEP) {
+    h = (h * HASH_PRIME + sessionId.charCodeAt(i)) | INT32_TRUNCATE;
+  }
   return ((h % mod) + mod) % mod;
 }
 

@@ -1,5 +1,5 @@
-import type { Request } from 'express';
 import { isValidTenantSlug } from '@openflow/shared-validation';
+import type { Request } from 'express';
 
 import { generateTenantSlug } from '../../db/queries/slugQueries.js';
 import { createTenant, findUniqueTenantSlug } from '../../db/queries/tenantQueries.js';
@@ -23,9 +23,7 @@ function fallbackSlug(): string {
   return `tenant${Math.random().toString(SLUG_RADIX).slice(SLUG_START, SLUG_END)}`;
 }
 
-type SlugOutcome =
-  | { ok: true; slug: string }
-  | { ok: false; status: number; error: string };
+type SlugOutcome = { ok: true; slug: string } | { ok: false; status: number; error: string };
 
 async function resolveSlug(
   supabase: AuthenticatedLocals['supabase'],

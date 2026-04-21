@@ -3,7 +3,7 @@
 import logo from '@/app/icon.png';
 import logoBlack from '@/app/openflowLogoBlack.png';
 import logoWhite from '@/app/openflowLogoWhite.png';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { CardDescription, CardTitle } from '@/components/ui/card';
 import { GlassPanel } from '@/components/ui/glass-panel';
 import Image from 'next/image';
 import type { ReactNode } from 'react';

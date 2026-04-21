@@ -3,9 +3,7 @@ import { AGENT_SLUG_REGEX, TENANT_SLUG_REGEX } from '@openflow/shared-validation
 // Strip anchors from shared sources to compose them into a URL-shape regex.
 const T_BODY = TENANT_SLUG_REGEX.source.replace(/^\^|\$$/g, '');
 const A_BODY = AGENT_SLUG_REGEX.source.replace(/^\^|\$$/g, '');
-const WIDGET_ORIGIN_REGEX = new RegExp(
-  `^https://(?:${T_BODY})-(?:${A_BODY})\\.live\\.openflow\\.build$`
-);
+const WIDGET_ORIGIN_REGEX = new RegExp(`^https://(?:${T_BODY})-(?:${A_BODY})\\.live\\.openflow\\.build$`);
 
 const DEV_ORIGIN = 'http://localhost:5173';
 

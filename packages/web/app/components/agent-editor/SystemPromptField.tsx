@@ -1,6 +1,5 @@
 'use client';
 
-import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useTranslations } from 'next-intl';
 import 'quill/dist/quill.snow.css';
