@@ -2,6 +2,8 @@ name: CI
 
 on:
   pull_request:
+  push:
+    branches: [main]
 
 jobs:
   check:
@@ -23,3 +25,153 @@ jobs:
         run: npm run check
       - name: Run tests
         run: npm test
+
+  # Wait for the Supabase integration's "Supabase Preview" check to succeed
+  # before trying to deploy functions to a preview branch — otherwise
+  # `supabase branches get` 404s because the branch isn't provisioned yet.
+  # Only relevant for PR events (main push goes straight to prod).
+  wait-for-supabase-preview:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.wait.outputs.conclusion }}
+    steps:
+      - uses: fountainhead/action-wait-for-check@v1.2.0
+        id: wait
+        with:
+          checkName: Supabase Preview
+          ref: ${{ github.event.pull_request.head.sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          timeoutSeconds: 900
+
+  deploy-functions:
+    # Only deploy on main push or when the Supabase preview branch is ready.
+    # The `check` gate ensures we never ship unbuilt/untested code.
+    needs: [check, wait-for-supabase-preview]
+    if: |
+      always() &&
+      needs.check.result == 'success' &&
+      (
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+        (github.event_name == 'pull_request' && needs.wait-for-supabase-preview.outputs.status == 'success')
+      )
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # need full history for per-PR base SHA diffs
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      # Build the TS packages that the Deno edge functions import via relative
+      # paths in their deno.json import_map. Without this, the bundler can't
+      # resolve ../../../packages/api/dist/index.js etc.
+      - name: Install dependencies
+        run: npm install
+      - name: Build graph-types
+        run: npm run build -w packages/graph-types
+      - name: Build api
+        run: npm run build:api
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Resolve target project ref
+        id: target
+        run: |
+          set -eu
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # Grab the preview branch's project_ref via the Supabase CLI.
+            # The branch was created by the Supabase GitHub integration.
+            supabase --experimental branches get "$GITHUB_HEAD_REF" -o env >> "$GITHUB_ENV"
+            # `SUPABASE_PROJECT_REF` is written by the `-o env` dump above.
+            echo "project_ref=$SUPABASE_PROJECT_REF" >> "$GITHUB_OUTPUT"
+          else
+            echo "project_ref=$SUPABASE_PROJECT_ID" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Compute base SHA for diff
+        id: diff
+        run: |
+          set -eu
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+            # First push to a branch produces a zero-SHA before; fall back to HEAD~1.
+            if [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+              BASE="$(git rev-parse HEAD~1 2>/dev/null || true)"
+            fi
+          fi
+          if [ -z "$BASE" ] || ! git cat-file -e "$BASE" 2>/dev/null; then
+            echo "No usable base SHA — will deploy all functions."
+            echo "base=" >> "$GITHUB_OUTPUT"
+          else
+            echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Supabase's own integration skips functions whose files didn't change.
+      # We replicate that by per-function-dir git diff, with one expansion:
+      # if any shared dep changed (packages/api/src, packages/graph-types/src,
+      # or their package.json), every function's bundle changes → deploy all.
+      - name: Determine which functions to deploy
+        id: which
+        run: |
+          set -eu
+          BASE="${{ steps.diff.outputs.base }}"
+          # All function dirs, discovered dynamically — no hardcoded names.
+          ALL=$(find supabase/functions -mindepth 1 -maxdepth 1 -type d -printf '%f\n')
+
+          if [ -z "$BASE" ]; then
+            echo "deploy=$(echo "$ALL" | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+            echo "reason=no-base-sha (deploy all)" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          SHARED_CHANGED=$(git diff --name-only "$BASE" HEAD -- \
+            packages/api/src/ \
+            packages/graph-types/src/ \
+            packages/api/package.json \
+            packages/graph-types/package.json \
+            | wc -l)
+          if [ "$SHARED_CHANGED" -gt 0 ]; then
+            echo "deploy=$(echo "$ALL" | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+            echo "reason=shared-deps-changed (deploy all)" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          CHANGED=""
+          for fn in $ALL; do
+            if [ -n "$(git diff --name-only "$BASE" HEAD -- "supabase/functions/$fn/")" ]; then
+              CHANGED="$CHANGED $fn"
+            fi
+          done
+          echo "deploy=${CHANGED# }" >> "$GITHUB_OUTPUT"
+          echo "reason=per-function-diff" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy edge functions
+        if: steps.which.outputs.deploy != ''
+        run: |
+          set -eu
+          echo "Deploying (${{ steps.which.outputs.reason }}): ${{ steps.which.outputs.deploy }}"
+          # All current functions authenticate with x-master-key, not Supabase JWT.
+          # If a future function requires JWT, split the deploy loop and drop
+          # --no-verify-jwt for that specific slug.
+          for fn in ${{ steps.which.outputs.deploy }}; do
+            supabase functions deploy "$fn" \
+              --project-ref "${{ steps.target.outputs.project_ref }}" \
+              --no-verify-jwt
+          done
+
+      - name: Nothing to deploy
+        if: steps.which.outputs.deploy == ''
+        run: echo "No function or shared-dep changes; skipping deploy."

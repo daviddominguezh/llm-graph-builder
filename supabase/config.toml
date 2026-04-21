@@ -361,15 +361,6 @@ deno_version = 2
 # Edge function secrets are loaded automatically from supabase/functions/.env
 # [edge_runtime.secrets]
 
-# Edge Functions — declared here to opt into automatic branch-preview
-# deploys. Both use custom master-key auth (not Supabase JWTs), so
-# verify_jwt is off.
-[functions.execute-agent]
-verify_jwt = false
-
-[functions.vfs-cleanup]
-verify_jwt = false
-
 
 [analytics]
 enabled = true
