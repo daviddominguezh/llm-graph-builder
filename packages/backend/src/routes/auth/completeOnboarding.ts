@@ -1,5 +1,3 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
-import express, { type Request, type Response } from 'express';
 import {
   BUILD_GOAL_OPTIONS,
   COMPANY_SIZE_OPTIONS,
@@ -7,6 +5,8 @@ import {
   REFERRAL_OPTIONS,
   ROLE_OPTIONS,
 } from '@openflow/shared-validation';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import express, { type Request, type Response } from 'express';
 import { z } from 'zod';
 
 import { auditLog } from '../../lib/auditLog.js';
@@ -54,7 +54,11 @@ function getUserId(res: Response): string {
   return v;
 }
 
-async function insertOnboarding(supabase: SupabaseClient, userId: string, body: OnboardingBody): Promise<InsertResult> {
+async function insertOnboarding(
+  supabase: SupabaseClient,
+  userId: string,
+  body: OnboardingBody
+): Promise<InsertResult> {
   return (await supabase.from('user_onboarding').insert({
     user_id: userId,
     industries: body.industries,

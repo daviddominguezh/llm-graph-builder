@@ -1,7 +1,7 @@
-import { createClient } from '@/app/lib/supabase/server';
 import { fetchFromBackend } from '@/app/lib/backendProxy';
-import { NextResponse } from 'next/server';
 import { AUTH_COOKIE_OPTIONS } from '@/app/lib/supabase/cookies';
+import { createClient } from '@/app/lib/supabase/server';
+import { NextResponse } from 'next/server';
 
 interface VerifyResult {
   access_token: string;

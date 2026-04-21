@@ -1,10 +1,10 @@
+import { type AuthFlags, fetchAuthStatus } from '@/app/lib/auth/fetchStatus';
+import { signStatusCookie, verifyStatusCookie } from '@/app/lib/auth/statusCookie';
+import { computeTokenBinding } from '@/app/lib/auth/tokenBinding';
 import { createServerClient } from '@supabase/ssr';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-import { fetchAuthStatus, type AuthFlags } from '@/app/lib/auth/fetchStatus';
-import { signStatusCookie, verifyStatusCookie } from '@/app/lib/auth/statusCookie';
-import { computeTokenBinding } from '@/app/lib/auth/tokenBinding';
 import { AUTH_COOKIE_OPTIONS } from './cookies';
 
 const PUBLIC_ROUTES = ['/auth/callback', '/reset-password', '/error', '/api/chat'];

@@ -101,20 +101,22 @@ function computeNewResends(row: OtpAttemptsRow | null): { resends: number; windo
 }
 
 async function upsertResendWindow(service: SupabaseClient, params: ResendWindowUpdate): Promise<void> {
-  await service
-    .from('otp_attempts')
-    .upsert(
-      {
-        user_id: params.userId,
-        phone: params.phone,
-        resends_24h: params.resends,
-        resends_window_start: params.windowStart,
-      },
-      { onConflict: 'user_id,phone' }
-    );
+  await service.from('otp_attempts').upsert(
+    {
+      user_id: params.userId,
+      phone: params.phone,
+      resends_24h: params.resends,
+      resends_window_start: params.windowStart,
+    },
+    { onConflict: 'user_id,phone' }
+  );
 }
 
-async function checkAndUpdateResends(service: SupabaseClient, userId: string, phone: string): Promise<boolean> {
+async function checkAndUpdateResends(
+  service: SupabaseClient,
+  userId: string,
+  phone: string
+): Promise<boolean> {
   const existing = await getResendWindow(service, userId, phone);
   const { resends, windowStart } = computeNewResends(existing);
   if (resends > MAX_RESENDS_24H) return false;

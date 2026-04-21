@@ -69,9 +69,7 @@ const mockGetUserById = jest
   .fn<() => Promise<GetUserResponse>>()
   .mockResolvedValue({ data: { user: makeUser([GOOGLE_IDENTITY, EMAIL_IDENTITY]) }, error: null });
 
-const mockDeleteEqFinal = jest
-  .fn<() => Promise<DeleteResult>>()
-  .mockResolvedValue({ error: null });
+const mockDeleteEqFinal = jest.fn<() => Promise<DeleteResult>>().mockResolvedValue({ error: null });
 
 const mockDeleteEqChain = jest.fn<() => { eq: typeof mockDeleteEqFinal }>().mockReturnValue({
   eq: mockDeleteEqFinal,

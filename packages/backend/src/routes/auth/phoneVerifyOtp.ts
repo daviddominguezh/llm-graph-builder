@@ -45,7 +45,10 @@ function getUserId(res: Response): string {
 
 async function recordFail(userId: string, phone: string): Promise<number> {
   const service: SupabaseClient = serviceSupabase();
-  const { data } = (await service.rpc('otp_record_fail', { p_user: userId, p_phone: phone })) as OtpRecordFailResult;
+  const { data } = (await service.rpc('otp_record_fail', {
+    p_user: userId,
+    p_phone: phone,
+  })) as OtpRecordFailResult;
   if (typeof data !== 'number') return ZERO_FAILS;
   return data;
 }

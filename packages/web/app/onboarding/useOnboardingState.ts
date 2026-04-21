@@ -2,13 +2,13 @@
 
 import {
   BUILD_GOAL_OPTIONS,
+  type BuildGoal,
   COMPANY_SIZE_OPTIONS,
+  type CompanySize,
   INDUSTRY_OPTIONS,
+  type Industry,
   REFERRAL_OPTIONS,
   ROLE_OPTIONS,
-  type BuildGoal,
-  type CompanySize,
-  type Industry,
   type Referral,
   type Role,
 } from '@openflow/shared-validation';
