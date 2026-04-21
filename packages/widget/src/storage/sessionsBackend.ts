@@ -1,6 +1,6 @@
+import { createInMemoryBackend } from './inMemory.js';
 import type { StoredSession } from './indexeddb.js';
 import { getSession, listSessions, openSessionsDB, putSession } from './indexeddb.js';
-import { createInMemoryBackend } from './inMemory.js';
 
 export type SessionsBackend = {
   kind: 'indexeddb' | 'memory';

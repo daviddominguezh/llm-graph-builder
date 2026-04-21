@@ -34,10 +34,7 @@ function isIncomingMsg(data: unknown): data is IncomingMsg {
 }
 
 function isResizeMsg(data: IncomingMsg): data is IncomingMsg & ResizeMsg {
-  return (
-    typeof data.pos === 'string' &&
-    (typeof data.w === 'number' || typeof data.w === 'string')
-  );
+  return typeof data.pos === 'string' && (typeof data.w === 'number' || typeof data.w === 'string');
 }
 
 function buildInitMsg(nonce: string): InitMsg {

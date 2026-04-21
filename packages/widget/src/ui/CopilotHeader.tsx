@@ -1,6 +1,7 @@
 import { History, Plus, X } from 'lucide-react';
 
 import { useT } from '../app/i18nContext.js';
+import type { CopilotSession } from './copilotTypes.js';
 import { Button } from './primitives/button.js';
 import {
   DropdownMenu,
@@ -8,7 +9,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './primitives/dropdown-menu.js';
-import type { CopilotSession } from './copilotTypes.js';
 
 const MIN_MESSAGES_FOR_NEW_CHAT = 1;
 
@@ -50,10 +50,7 @@ function SessionItem({
   onSwitch: (id: string) => void;
 }) {
   return (
-    <DropdownMenuItem
-      disabled={isCurrent}
-      onClick={isCurrent ? undefined : () => onSwitch(session.id)}
-    >
+    <DropdownMenuItem disabled={isCurrent} onClick={isCurrent ? undefined : () => onSwitch(session.id)}>
       <div className="flex w-full flex-col gap-0.5 overflow-hidden">
         <span className="truncate text-xs">{getSessionLabel(session)}</span>
         <span className="text-[10px] text-muted-foreground">{getLastMessageTime(session)}</span>
@@ -74,13 +71,14 @@ export function CopilotHeader({
   const sorted = [...sessions].sort((a, b) => b.createdAt - a.createdAt);
   const activeIsEmpty = activeSession === null || activeSession.messages.length === 0;
   const canShowHistory = sorted.length > 1 || (sorted.length >= 1 && activeIsEmpty);
-  const canCreateNew =
-    activeSession !== null && activeSession.messages.length >= MIN_MESSAGES_FOR_NEW_CHAT;
+  const canCreateNew = activeSession !== null && activeSession.messages.length >= MIN_MESSAGES_FOR_NEW_CHAT;
   const withMessages = sorted.filter((s) => s.messages.length > 0);
 
   return (
     <div className="flex items-center justify-between border-b px-3 py-2">
-      <span id="openflow-panel-title" className="text-xs font-semibold">{t('title')}</span>
+      <span id="openflow-panel-title" className="text-xs font-semibold">
+        {t('title')}
+      </span>
       <div className="flex items-center gap-0.5">
         <Button
           variant="ghost"
@@ -118,13 +116,7 @@ export function CopilotHeader({
           </DropdownMenuContent>
         </DropdownMenu>
         {!standalone && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8"
-            onClick={onClose}
-            aria-label={t('close')}
-          >
+          <Button variant="ghost" size="sm" className="h-8 w-8" onClick={onClose} aria-label={t('close')}>
             <X className="size-4" />
           </Button>
         )}

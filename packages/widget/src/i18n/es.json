@@ -10,5 +10,8 @@
   "sessionOnly": "• solo sesión",
   "unavailable": "No disponible",
   "openChat": "Abrir chat",
-  "assistantUnavailable": "Este asistente ya no está disponible."
+  "assistantUnavailable": "Este asistente ya no está disponible.",
+  "loading": "Cargando",
+  "agentNotFound": "Agente no encontrado",
+  "agentNotFoundHint": "Verifica la URL o pregunta a quien compartió este enlace."
 }

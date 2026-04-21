@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { openSessionsDB, putSession, listSessions, getSession } from './indexeddb.js';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+import { getSession, listSessions, openSessionsDB, putSession } from './indexeddb.js';
 
 describe('indexeddb', () => {
   beforeEach(async () => {

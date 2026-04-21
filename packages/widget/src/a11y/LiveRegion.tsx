@@ -18,5 +18,9 @@ export function LiveRegion({ text }: { text: string }) {
     };
   }, [text]);
 
-  return <div aria-live="polite" className="sr-only">{displayed}</div>;
+  return (
+    <div aria-live="polite" className="sr-only">
+      {displayed}
+    </div>
+  );
 }

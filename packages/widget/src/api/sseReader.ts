@@ -9,9 +9,7 @@ const NEXT_CHAR = 1;
 
 function isEvent(value: unknown): value is PublicExecutionEvent {
   return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof (value as { type?: unknown }).type === 'string'
+    typeof value === 'object' && value !== null && typeof (value as { type?: unknown }).type === 'string'
   );
 }
 
@@ -56,9 +54,7 @@ async function collectChunks(reader: ReadableStreamDefaultReader<Uint8Array>): P
   return [value, ...rest];
 }
 
-export async function* readSseStream(
-  body: ReadableStream<Uint8Array>
-): AsyncGenerator<PublicExecutionEvent> {
+export async function* readSseStream(body: ReadableStream<Uint8Array>): AsyncGenerator<PublicExecutionEvent> {
   const decoder = new TextDecoder();
   let buffer = '';
   const chunks = await collectChunks(body.getReader());

@@ -1,5 +1,5 @@
-import { readSseStream } from './sseReader.js';
 import type { PublicExecutionEvent } from '../types/publicEvents.js';
+import { readSseStream } from './sseReader.js';
 
 const APP_ORIGIN = import.meta.env.VITE_APP_ORIGIN ?? 'https://app.openflow.build';
 

@@ -1,7 +1,13 @@
 // packages/widget/src/app/postMessageClient.ts
 export type WidgetOutbound =
   | { type: 'openflow:ready'; nonce: string }
-  | { type: 'openflow:resize'; nonce: string; w: number | string; h: number | string; pos: 'bubble' | 'panel' | 'fullscreen' }
+  | {
+      type: 'openflow:resize';
+      nonce: string;
+      w: number | string;
+      h: number | string;
+      pos: 'bubble' | 'panel' | 'fullscreen';
+    }
   | { type: 'openflow:telemetry'; nonce: string; event: string; data?: unknown };
 
 export type HostInbound =
@@ -14,9 +20,12 @@ let viewportW: number | null = null;
 let readyCallbacks: Array<(v: { viewportW: number }) => void> = [];
 
 export function isHostMessage(data: unknown): data is HostInbound {
-  return typeof data === 'object' && data !== null
-    && typeof (data as Record<string, unknown>).type === 'string'
-    && typeof (data as Record<string, unknown>).nonce === 'string';
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    typeof (data as Record<string, unknown>).type === 'string' &&
+    typeof (data as Record<string, unknown>).nonce === 'string'
+  );
 }
 
 function onInit(e: MessageEvent, onViewportChange: (w: number) => void): void {
@@ -62,10 +71,7 @@ function postReady(): void {
 export function postResize(pos: 'bubble' | 'panel' | 'fullscreen'): void {
   if (nonce === null || hostOrigin === null) return;
   const dims = resizeDims(pos);
-  window.parent.postMessage(
-    { type: 'openflow:resize', nonce, pos, ...dims },
-    hostOrigin
-  );
+  window.parent.postMessage({ type: 'openflow:resize', nonce, pos, ...dims }, hostOrigin);
 }
 
 const BUBBLE_SIZE = 56;
