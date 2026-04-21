@@ -10,10 +10,32 @@ import { Separator } from '@/components/ui/separator';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { type FormEvent, useState } from 'react';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+interface ExistsResult {
+  exists: boolean;
+  providers: string[];
+}
+
+function isExistsResult(value: unknown): value is ExistsResult {
+  if (typeof value !== 'object' || value === null) return false;
+  const obj = value as Record<string, unknown>;
+  return typeof obj['exists'] === 'boolean' && Array.isArray(obj['providers']);
+}
+
+async function fetchEmailLookup(email: string): Promise<ExistsResult | null> {
+  const res = await fetch('/api/auth/public/lookup-email', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) return null;
+  const data: unknown = await res.json();
+  return isExistsResult(data) ? data : null;
+}
 
 interface LoginFieldsProps {
   email: string;
@@ -59,6 +81,24 @@ function LoginFields({ email, password, onEmailChange, onPasswordChange }: Login
   );
 }
 
+interface UseLoginSubmitOptions {
+  setError: (msg: string) => void;
+  setIsShaking: (v: boolean) => void;
+  setLoading: (v: boolean) => void;
+}
+
+async function checkEmailProvider(email: string, t: (key: string) => string, opts: UseLoginSubmitOptions): Promise<boolean> {
+  const lookup = await fetchEmailLookup(email);
+  if (lookup === null) return false;
+  if (lookup.exists && lookup.providers.length === 1 && lookup.providers[0] === 'google') {
+    opts.setError(t('login.errors.emailUsesGoogle'));
+    opts.setIsShaking(true);
+    opts.setLoading(false);
+    return true;
+  }
+  return false;
+}
+
 function useLoginSubmit(email: string, password: string) {
   const t = useTranslations('auth');
   const router = useRouter();
@@ -71,10 +111,14 @@ function useLoginSubmit(email: string, password: string) {
     setLoading(true);
     setError('');
 
+    const opts: UseLoginSubmitOptions = { setError, setIsShaking, setLoading };
+    const shouldAbort = await checkEmailProvider(email, t, opts);
+    if (shouldAbort) return;
+
     const supabase = createClient();
     const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (authError) {
+    if (authError !== null) {
       setError(t('errors.invalidCredentials'));
       setIsShaking(true);
       setLoading(false);
@@ -88,15 +132,33 @@ function useLoginSubmit(email: string, password: string) {
   return { error, loading, isShaking, setIsShaking, handleSubmit };
 }
 
+function OAuthDuplicateBanner({ email }: { email: string }) {
+  const t = useTranslations('auth');
+  const forgotHref = `/forgot-password?email=${encodeURIComponent(email)}`;
+
+  return (
+    <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-xs">
+      <p>{t('login.errors.oauthDuplicate', { email })}</p>
+      <Link href={forgotHref} className="text-primary underline">
+        {t('login.errors.oauthDuplicateForgotPassword')}
+      </Link>
+    </div>
+  );
+}
+
 function LoginForm() {
   const t = useTranslations('auth');
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { error, loading, isShaking, setIsShaking, handleSubmit } = useLoginSubmit(email, password);
   const isFormValid = EMAIL_REGEX.test(email) && password.length > 0;
 
+  const oauthErrorEmail = searchParams.get('error') === 'oauth_duplicate' ? searchParams.get('email') : null;
+
   return (
     <>
+      {oauthErrorEmail !== null && <OAuthDuplicateBanner email={oauthErrorEmail} />}
       <OAuthButtons />
       <div className="flex items-center gap-2">
         <Separator className="flex-1" />
@@ -109,7 +171,7 @@ function LoginForm() {
         onAnimationEnd={() => setIsShaking(false)}
       >
         <LoginFields email={email} password={password} onEmailChange={setEmail} onPasswordChange={setPassword} />
-        {error && <p className="text-destructive text-xs">{error}</p>}
+        {error.length > 0 && <p className="text-destructive text-xs">{error}</p>}
         <Button type="submit" size="lg" className="w-full" disabled={!isFormValid || loading}>
           {loading ? <Loader2 className="size-4 animate-spin" /> : t('login.submit')}
         </Button>
