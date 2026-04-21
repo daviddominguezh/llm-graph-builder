@@ -6,6 +6,7 @@
   "stop": "Stop",
   "close": "Close",
   "emptyState": "How can I help?",
+  "greeting": "Hello!",
   "selectChat": "Select a chat",
   "sessionOnly": "• session-only",
   "unavailable": "Unavailable",

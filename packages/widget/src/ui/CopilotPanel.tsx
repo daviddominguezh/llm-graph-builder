@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { BlockCoalescer } from '../api/eventToBlock.js';
 import { execute } from '../api/executeClient.js';
 import { useAgent } from '../app/agentContext.js';
+import { useT } from '../app/i18nContext.js';
 import type { StoredSession } from '../storage/indexeddb.js';
 import { CopilotHeader } from './CopilotHeader.js';
 import { CopilotInput } from './CopilotInput.js';
@@ -104,6 +105,7 @@ function useSendHandler(
 
 export function CopilotPanel({ standalone = false, onClose }: CopilotPanelProps = {}) {
   const agent = useAgent();
+  const t = useT();
   const sessions = useSessions({ tenant: agent.tenant, agentSlug: agent.agentSlug });
   const [stream, setStream] = useState<StreamingState>(INITIAL_STREAMING);
 
@@ -135,9 +137,7 @@ export function CopilotPanel({ standalone = false, onClose }: CopilotPanelProps 
       <CopilotMessages messages={visibleMessages} />
       {stream.error !== null && <div className="border-t px-4 py-2 text-xs text-red-500">{stream.error}</div>}
       {stream.terminal === 'unavailable' && (
-        <div className="border-t px-4 py-2 text-xs text-muted-foreground">
-          This assistant is no longer available.
-        </div>
+        <div className="border-t px-4 py-2 text-xs text-muted-foreground">{t('assistantUnavailable')}</div>
       )}
       {stream.terminal === null && (
         <CopilotInput
