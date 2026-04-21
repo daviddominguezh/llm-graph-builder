@@ -9,6 +9,7 @@ export interface TopBarProps {
   title?: string;
   sessionId?: string;
   starred?: boolean;
+  bordered?: boolean;
   onRename?: (id: string, newTitle: string) => void;
   onDelete?: (id: string) => void;
   onToggleStar?: (id: string) => void;
@@ -48,17 +49,20 @@ function HeaderSlot(props: HeaderSlotProps) {
 
 export function TopBar(props: TopBarProps) {
   const t = useT();
-  const { onOpenSidebar, ...rest } = props;
+  const { onOpenSidebar, bordered = false, ...rest } = props;
+  const borderClass = bordered ? 'border-b border-border' : '';
   return (
-    <div className="h-12 border-b border-border px-3 flex items-center justify-between shrink-0">
-      <div className="flex items-center gap-2 min-w-0">
-        {onOpenSidebar !== undefined && (
-          <ReopenSidebarButton onClick={onOpenSidebar} label={t('collapseSidebar')} />
-        )}
-        <HeaderSlot {...rest} />
-      </div>
-      <div className="flex items-center gap-1">
-        <ThemeToggle />
+    <div className={`h-12 shrink-0 ${borderClass}`}>
+      <div className="h-full max-w-3xl mx-auto w-full px-3 flex items-center justify-between">
+        <div className="flex items-center gap-2 min-w-0">
+          {onOpenSidebar !== undefined && (
+            <ReopenSidebarButton onClick={onOpenSidebar} label={t('collapseSidebar')} />
+          )}
+          <HeaderSlot {...rest} />
+        </div>
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+        </div>
       </div>
     </div>
   );

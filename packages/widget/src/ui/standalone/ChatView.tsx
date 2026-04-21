@@ -86,6 +86,7 @@ export function ChatView({
         title={title}
         sessionId={sessionId}
         starred={starred}
+        bordered={messages.length > 0}
         onRename={onRename}
         onDelete={onDelete}
         onToggleStar={onToggleStar}
