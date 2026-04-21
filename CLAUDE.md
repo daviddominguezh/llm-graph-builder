@@ -70,6 +70,19 @@ When adding a new storage bucket for file uploads:
 3. **Use the single-argument `is_org_member(org_id)`** in storage policies (not the two-argument version with explicit `auth.uid()`). The 1-arg version calls `auth.uid()` internally within its `SECURITY DEFINER` context.
 4. **Reference pattern**: see `org-avatars` bucket policies in `20260309400000_fix_storage_policies_and_publish.sql` and `tenant-avatars` in `20260331000000_tenants_table.sql`.
 
+### Scroll containers (GlobalScrollbarOverlay tripwire)
+
+`packages/web/app/components/GlobalScrollbarOverlay.tsx` attaches `OverlayScrollbars` (v2.x) to every element matching `.overflow-auto` / `.overflow-y-auto` / `.overflow-*scroll` via a document-wide `MutationObserver`. OS moves the target's children into its own internal viewport, so they are no longer DOM-level direct children of the element React rendered into.
+
+**The tripwire:** any direct child of such a host that React later adds, removes, or whose *element type* changes (e.g. a component returning `<div>` in one branch and `<Provider>` in another) will crash with `Runtime NotFoundError: Failed to execute 'removeChild' on 'Node'`. Stack trace shows `commitDeletionEffectsOnFiber` → `removeChild` and just `at div (<anonymous>:null:null)` with no owner stack — don't let the opaque trace mislead you; it's a host/viewport mismatch, not a React bug.
+
+**How to avoid it:**
+
+- If the container doesn't actually need to scroll (inner children handle their own overflow), use `overflow-hidden` instead of `overflow-y-auto`. This is how the `MessageView` skeleton → Virtuoso crash was fixed in `ChatViewPanel`'s `CardContent`.
+- If you need scroll *and* dynamic direct children (conditional `{x && <Y/>}`, a component whose root type varies by branch, list reorders/removals), opt out with `data-native-scroll` (native browser scrollbar, no overlay theme) or wrap the content in `OverlayScrollbarsComponent` from `overlayscrollbars-react` (already in `package.json`).
+
+**Reviewing new scroll containers:** scan their direct children. Stable DOM structure with only leaf mutations is fine. Root-type swaps, top-level conditionals that flip between `null` and rendered, and list re-renders where keys change are the danger.
+
 ## Code style and constraints
 
 ### ESLint (strict, do not disable)

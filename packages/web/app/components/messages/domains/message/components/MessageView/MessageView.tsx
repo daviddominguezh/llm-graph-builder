@@ -1187,7 +1187,7 @@ const MessageViewComponent: React.FC<MessageViewProps> = ({
   if (virtualizedItems.length === 0) {
     return (
       <div
-        className={`overflow-y-auto z-20 flex-1 flex flex-col items-center justify-center p-4 ${className}`}
+        className={`overflow-hidden z-20 flex-1 flex flex-col items-center justify-center p-4 ${className}`}
       >
         <MessageCircle className="text-muted-foreground mb-1" size={20} />
         <p className="text-muted-foreground text-xs">{t('No messages yet')}</p>

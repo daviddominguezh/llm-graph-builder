@@ -32,7 +32,7 @@ interface MessageViewSkeletonProps {
 
 export function MessageViewSkeleton({ className }: MessageViewSkeletonProps) {
   return (
-    <div className={`overflow-y-auto z-20 flex-1 flex flex-col justify-end p-4 gap-2 ${className}`}>
+    <div className={`overflow-hidden z-20 flex-1 flex flex-col justify-end p-4 gap-2 ${className}`}>
       {Array.from({ length: SKELETON_COUNT }, (_, i) => (
         <BubbleSkeleton key={i} index={i} />
       ))}
