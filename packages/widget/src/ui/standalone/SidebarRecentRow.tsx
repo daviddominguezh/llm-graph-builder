@@ -33,7 +33,7 @@ function useRowState(): RowState {
 
 function rowClasses(active: boolean): string {
   const base = 'group relative w-full px-3 py-1.5 text-sm rounded-md flex items-center gap-1.5 min-w-0';
-  return active ? `${base} bg-sidebar-accent` : `${base} hover:bg-sidebar-accent`;
+  return active ? `${base} bg-input` : `${base} hover:bg-input`;
 }
 
 interface RowTitleProps {

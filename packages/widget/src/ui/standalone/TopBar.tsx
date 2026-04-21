@@ -49,11 +49,11 @@ function HeaderSlot(props: HeaderSlotProps) {
 
 export function TopBar(props: TopBarProps) {
   const t = useT();
-  const { onOpenSidebar, bordered = false, ...rest } = props;
-  const borderClass = bordered ? 'border-b border-border' : '';
+  const { onOpenSidebar, ...rest } = props;
+
   return (
-    <div className={`h-12 shrink-0 ${borderClass}`}>
-      <div className="h-full max-w-2xl mx-auto w-full px-4 flex items-center justify-between">
+    <div className={`h-12 shrink-0 bg-sidebar`}>
+      <div className="h-full max-w-4xl mx-auto w-full px-0 flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
           {onOpenSidebar !== undefined && (
             <ReopenSidebarButton onClick={onOpenSidebar} label={t('collapseSidebar')} />

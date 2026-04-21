@@ -53,7 +53,7 @@ interface FooterProps {
 function ChatFooter({ isStreaming, streamError, terminalUnavailable, onSend }: FooterProps) {
   const t = useT();
   return (
-    <div className="shrink-0 border-t border-border">
+    <div className="shrink-0">
       <div className="max-w-2xl mx-auto w-full px-0 py-4">
         {streamError !== null && <div className="pb-2 text-xs text-red-500">{streamError}</div>}
         {terminalUnavailable ? (
@@ -81,7 +81,7 @@ export function ChatView({
   onToggleStar,
 }: ChatViewProps) {
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <div className="flex flex-col h-full min-h-0 bg-sidebar">
       <TopBar
         title={title}
         sessionId={sessionId}
