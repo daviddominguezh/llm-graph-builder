@@ -22,6 +22,11 @@ interface OtpAttemptRow {
   locked_until: string | null;
 }
 
+interface OtpRecordFailResult {
+  data: number | null;
+  error: { message: string } | null;
+}
+
 function isSupabaseClient(v: unknown): v is SupabaseClient {
   return v !== null && typeof v === 'object' && 'auth' in v;
 }
@@ -39,14 +44,14 @@ function getUserId(res: Response): string {
 }
 
 async function recordFail(userId: string, phone: string): Promise<number> {
-  const service = serviceSupabase();
-  const { data } = await service.rpc('otp_record_fail', { p_user: userId, p_phone: phone });
+  const service: SupabaseClient = serviceSupabase();
+  const { data } = (await service.rpc('otp_record_fail', { p_user: userId, p_phone: phone })) as OtpRecordFailResult;
   if (typeof data !== 'number') return ZERO_FAILS;
   return data;
 }
 
 async function recordSuccess(userId: string, phone: string): Promise<void> {
-  const service = serviceSupabase();
+  const service: SupabaseClient = serviceSupabase();
   await service
     .from('otp_attempts')
     .update({ fails: ZERO_FAILS, locked_until: null })

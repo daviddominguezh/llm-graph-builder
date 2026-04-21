@@ -36,18 +36,35 @@ interface VerifyOtpResult {
   error: { message: string } | null;
 }
 
-interface EqMaybySingle {
-  eq: (col: string, val: string) => EqMaybySingle;
+interface SelectTerminal {
   maybeSingle: () => Promise<MaybeSingleResult>;
 }
 
-interface EqUpdateChain {
-  eq: (col: string, val: string) => EqUpdateChain;
+interface SelectMid {
+  eq: (col: string, val: string) => SelectTerminal;
+  maybeSingle: () => Promise<MaybeSingleResult>;
+}
+
+interface SelectChain {
+  eq: (col: string, val: string) => SelectMid;
+  maybeSingle: () => Promise<MaybeSingleResult>;
+}
+
+interface UpdateTerminal {
+  placeholder?: never;
+}
+
+interface UpdateMid {
+  eq: (col: string, val: string) => UpdateTerminal;
+}
+
+interface UpdateChain {
+  eq: (col: string, val: string) => UpdateMid;
 }
 
 interface MockFromResult {
-  select: (cols: string) => EqMaybySingle;
-  update: (vals: Record<string, unknown>) => EqUpdateChain;
+  select: (cols: string) => SelectChain;
+  update: (vals: Record<string, unknown>) => UpdateChain;
 }
 
 interface MockService {
@@ -56,30 +73,34 @@ interface MockService {
 }
 
 const mockVerifyOtp = jest.fn<() => Promise<VerifyOtpResult>>();
-const mockRpc = jest.fn<() => Promise<RpcResult>>().mockResolvedValue({ data: EXPECTED_FAILS_ONE, error: null });
+const mockRpc = jest
+  .fn<() => Promise<RpcResult>>()
+  .mockResolvedValue({ data: EXPECTED_FAILS_ONE, error: null });
 const mockMaybySingle = jest
   .fn<() => Promise<MaybeSingleResult>>()
   .mockResolvedValue({ data: null, error: null });
 
+const selectTerminal: SelectTerminal = { maybeSingle: mockMaybySingle };
+
+const selectMid: SelectMid = {
+  eq: jest.fn<(col: string, val: string) => SelectTerminal>().mockReturnValue(selectTerminal),
+  maybeSingle: mockMaybySingle,
+};
+
+const updateTerminal: UpdateTerminal = {};
+
+const updateMid: UpdateMid = {
+  eq: jest.fn<(col: string, val: string) => UpdateTerminal>().mockReturnValue(updateTerminal),
+};
+
 const mockFrom = jest.fn<(table: string) => MockFromResult>().mockReturnValue({
-  select: jest
-    .fn<(cols: string) => EqMaybySingle>()
-    .mockReturnValue({
-      eq: jest.fn<(col: string, val: string) => EqMaybySingle>().mockReturnValue({
-        eq: jest.fn<(col: string, val: string) => EqMaybySingle>().mockReturnValue({
-          eq: jest.fn<(col: string, val: string) => EqMaybySingle>().mockReturnValue({
-            eq: jest.fn(),
-            maybeSingle: mockMaybySingle,
-          }),
-          maybeSingle: mockMaybySingle,
-        }),
-        maybeSingle: mockMaybySingle,
-      }),
-      maybeSingle: mockMaybySingle,
-    }),
-  update: jest
-    .fn<(vals: Record<string, unknown>) => EqUpdateChain>()
-    .mockReturnValue({ eq: jest.fn<(col: string, val: string) => EqUpdateChain>().mockReturnValue({ eq: jest.fn() }) }),
+  select: jest.fn<(cols: string) => SelectChain>().mockReturnValue({
+    eq: jest.fn<(col: string, val: string) => SelectMid>().mockReturnValue(selectMid),
+    maybeSingle: mockMaybySingle,
+  }),
+  update: jest.fn<(vals: Record<string, unknown>) => UpdateChain>().mockReturnValue({
+    eq: jest.fn<(col: string, val: string) => UpdateMid>().mockReturnValue(updateMid),
+  }),
 });
 
 jest.unstable_mockModule('../../db/client.js', () => ({
@@ -141,7 +162,9 @@ describe('POST /auth/phone/verify-otp — success', () => {
     mockNotLocked();
     mockVerifyOtp.mockResolvedValueOnce(goodSession(USER_ID));
 
-    const res = await request(makeApp()).post('/auth/phone/verify-otp').send({ phone: PHONE, token: GOOD_TOKEN });
+    const res = await request(makeApp())
+      .post('/auth/phone/verify-otp')
+      .send({ phone: PHONE, token: GOOD_TOKEN });
 
     expect(res.status).toBe(HTTP_OK);
     expect(res.body).toEqual({ access_token: ACCESS_TOKEN, refresh_token: REFRESH_TOKEN });
@@ -151,7 +174,9 @@ describe('POST /auth/phone/verify-otp — success', () => {
     mockNotLocked();
     mockVerifyOtp.mockResolvedValueOnce(goodSession('different-user-id'));
 
-    const res = await request(makeApp()).post('/auth/phone/verify-otp').send({ phone: PHONE, token: GOOD_TOKEN });
+    const res = await request(makeApp())
+      .post('/auth/phone/verify-otp')
+      .send({ phone: PHONE, token: GOOD_TOKEN });
 
     expect(res.status).toBe(HTTP_BAD_REQUEST);
     expect(res.body).toEqual({ error: 'sub_mismatch' });
@@ -164,7 +189,9 @@ describe('POST /auth/phone/verify-otp — failures', () => {
     mockVerifyOtp.mockResolvedValueOnce(badOtpResult);
     mockRpc.mockResolvedValueOnce({ data: EXPECTED_FAILS_ONE, error: null });
 
-    const res = await request(makeApp()).post('/auth/phone/verify-otp').send({ phone: PHONE, token: GOOD_TOKEN });
+    const res = await request(makeApp())
+      .post('/auth/phone/verify-otp')
+      .send({ phone: PHONE, token: GOOD_TOKEN });
 
     expect(res.status).toBe(HTTP_BAD_REQUEST);
     expect(res.body).toEqual({ error: 'invalid_otp' });
@@ -176,7 +203,9 @@ describe('POST /auth/phone/verify-otp — failures', () => {
     mockVerifyOtp.mockResolvedValueOnce(badOtpResult);
     mockRpc.mockResolvedValueOnce({ data: EXPECTED_FAILS_FIVE, error: null });
 
-    const res = await request(makeApp()).post('/auth/phone/verify-otp').send({ phone: PHONE, token: GOOD_TOKEN });
+    const res = await request(makeApp())
+      .post('/auth/phone/verify-otp')
+      .send({ phone: PHONE, token: GOOD_TOKEN });
 
     expect(res.status).toBe(HTTP_BAD_REQUEST);
     expect(auditLog).toHaveBeenCalledWith(expect.objectContaining({ event: 'otp_lockout' }));
@@ -187,7 +216,9 @@ describe('POST /auth/phone/verify-otp — failures', () => {
     mockVerifyOtp.mockResolvedValueOnce(badOtpResult);
     mockRpc.mockResolvedValueOnce({ data: EXPECTED_FAILS_ONE, error: null });
 
-    const res = await request(makeApp()).post('/auth/phone/verify-otp').send({ phone: PHONE, token: GOOD_TOKEN });
+    const res = await request(makeApp())
+      .post('/auth/phone/verify-otp')
+      .send({ phone: PHONE, token: GOOD_TOKEN });
 
     expect(res.status).toBe(HTTP_BAD_REQUEST);
     expect(auditLog).toHaveBeenCalledWith(
@@ -200,7 +231,9 @@ describe('POST /auth/phone/verify-otp — lockout', () => {
   it('locked state: returns 429 otp_locked', async () => {
     mockLocked();
 
-    const res = await request(makeApp()).post('/auth/phone/verify-otp').send({ phone: PHONE, token: GOOD_TOKEN });
+    const res = await request(makeApp())
+      .post('/auth/phone/verify-otp')
+      .send({ phone: PHONE, token: GOOD_TOKEN });
 
     expect(res.status).toBe(HTTP_RATE_LIMITED);
     expect(res.body).toEqual({ error: 'otp_locked' });
