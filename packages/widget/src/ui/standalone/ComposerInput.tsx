@@ -66,12 +66,15 @@ export function ComposerInput({ onSend, isStreaming = false, variant = 'chat' }:
   };
 
   const handleKeyDown = useSubmitOnEnter(isStreaming, submit);
+  const heightClass = variant === 'welcome' ? 'h-[122px]' : '';
 
   return (
-    <div className="rounded-2xl border border-border bg-muted/50 p-3 flex flex-col gap-2 transition-colors focus-within:border-ring/50 dark:focus-within:border-ring/40">
+    <div
+      className={`rounded-2xl border border-border bg-muted/50 p-3 flex flex-col gap-2 transition-colors focus-within:border-ring/50 dark:focus-within:border-ring/40 ${heightClass}`}
+    >
       <textarea
         rows={1}
-        className="bg-transparent resize-none outline-none text-sm leading-relaxed placeholder:text-muted-foreground w-full min-h-8 max-h-48 field-sizing-content"
+        className="bg-transparent resize-none outline-none text-sm leading-relaxed placeholder:text-muted-foreground w-full flex-1 min-h-0 max-h-48 field-sizing-content"
         placeholder={placeholder}
         value={text}
         onChange={(e) => setText(e.target.value)}
