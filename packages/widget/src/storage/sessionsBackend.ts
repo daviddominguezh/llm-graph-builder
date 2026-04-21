@@ -2,12 +2,12 @@ import { createInMemoryBackend } from './inMemory.js';
 import type { StoredSession } from './indexeddb.js';
 import { getSession, listSessions, openSessionsDB, putSession } from './indexeddb.js';
 
-export type SessionsBackend = {
+export interface SessionsBackend {
   kind: 'indexeddb' | 'memory';
   put: (s: StoredSession) => Promise<void>;
   get: (id: string) => Promise<StoredSession | undefined>;
   list: () => Promise<StoredSession[]>;
-};
+}
 
 export async function createSessionsBackend(): Promise<SessionsBackend> {
   try {

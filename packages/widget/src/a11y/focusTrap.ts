@@ -32,6 +32,6 @@ export function useFocusTrap(ref: RefObject<HTMLElement | null>, active: boolean
     if (!container) return undefined;
     const onKey = buildKeyHandler(container);
     document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    return () => { document.removeEventListener('keydown', onKey); };
   }, [ref, active]);
 }

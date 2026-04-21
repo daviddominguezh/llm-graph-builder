@@ -10,7 +10,7 @@ export function useSessionUrlSync(
       onPopState(state?.sessionId ?? null);
     }
     window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
+    return () => { window.removeEventListener('popstate', onPop); };
   }, [onPopState]);
 
   useEffect(() => {

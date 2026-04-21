@@ -58,9 +58,9 @@ export function initMessageBridge(onViewportChange: (w: number) => void): void {
   });
 }
 
-export function awaitInit(): Promise<{ viewportW: number }> {
-  if (nonce !== null && viewportW !== null) return Promise.resolve({ viewportW });
-  return new Promise((r) => readyCallbacks.push(r));
+export async function awaitInit(): Promise<{ viewportW: number }> {
+  if (nonce !== null && viewportW !== null) return await Promise.resolve({ viewportW });
+  return await new Promise((r) => readyCallbacks.push(r));
 }
 
 function postReady(): void {
