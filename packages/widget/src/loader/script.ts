@@ -6,9 +6,14 @@ interface GlobalAPI {
   version: string;
 }
 
+interface VersionResponse {
+  version: number;
+}
+
 declare global {
   interface Window {
     OpenFlowWidget?: GlobalAPI;
+    OPENFLOW_APP_ORIGIN?: string;
   }
 }
 
@@ -20,6 +25,15 @@ export const CSP_TIMEOUT_MS = 8000;
 export const HANDSHAKE_INTERVAL_MS = 200;
 export const VIEWPORT_DEBOUNCE_MS = 100;
 export const IFRAME_Z = 2147483647;
+
+// Iframe position constants (pixels)
+const BUBBLE_BOTTOM_PX = 16;
+const BUBBLE_RIGHT_PX = 16;
+const BUBBLE_SIZE_PX = 56;
+const PANEL_TOP_PX = 24;
+const PANEL_RIGHT_PX = 14;
+const PANEL_BOTTOM_PX = 24;
+const PANEL_WIDTH_PX = 400;
 
 const debugState: Record<string, unknown> = {
   version: LOADER_VERSION,
@@ -93,15 +107,109 @@ function init(): void {
   if (autoload) boot(scriptEl, url.host, sub, explicitVersion);
 }
 
-// Stubs to be filled in Tasks 45–48.
+function isVersionResponse(val: unknown): val is VersionResponse {
+  return (
+    typeof val === 'object' &&
+    val !== null &&
+    'version' in val &&
+    typeof (val as Record<string, unknown>).version === 'number'
+  );
+}
+
+async function fetchVersion(appOrigin: string, sub: { tenant: string; agentSlug: string }): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `${appOrigin}/api/chat/latest-version/${sub.tenant}/${sub.agentSlug}`,
+      { cache: 'no-store' }
+    );
+    const raw: unknown = await res.json();
+    if (!isVersionResponse(raw)) {
+      globalThis.console.warn('OpenFlowWidget: unexpected version response');
+      return null;
+    }
+    return String(raw.version);
+  } catch (e) {
+    globalThis.console.warn('OpenFlowWidget: failed to resolve latest version', e);
+    return null;
+  }
+}
+
+async function resolveVersion(
+  explicitVersion: string | undefined,
+  appOrigin: string,
+  sub: { tenant: string; agentSlug: string }
+): Promise<string | null> {
+  if (explicitVersion !== undefined && /^\d{1,6}$/v.test(explicitVersion)) {
+    return explicitVersion;
+  }
+  return await fetchVersion(appOrigin, sub);
+}
+
+function buildBubbleStyle(base: string): string {
+  return [
+    base,
+    `bottom:${String(BUBBLE_BOTTOM_PX)}px`,
+    `right:${String(BUBBLE_RIGHT_PX)}px`,
+    `width:${String(BUBBLE_SIZE_PX)}px`,
+    `height:${String(BUBBLE_SIZE_PX)}px`,
+  ].join(';');
+}
+
+function buildPanelStyle(base: string): string {
+  return [
+    base,
+    `top:${String(PANEL_TOP_PX)}px`,
+    `right:${String(PANEL_RIGHT_PX)}px`,
+    `bottom:${String(PANEL_BOTTOM_PX)}px`,
+    `width:${String(PANEL_WIDTH_PX)}px`,
+  ].join(';');
+}
+
+function buildIframeStyle(pos: 'bubble' | 'panel' | 'fullscreen'): string {
+  const base = `border:0;position:fixed;z-index:${String(IFRAME_Z)};color-scheme:normal`;
+  if (pos === 'bubble') return buildBubbleStyle(base);
+  if (pos === 'fullscreen') return `${base};top:0;left:0;right:0;bottom:0;width:100vw;height:100vh`;
+  return buildPanelStyle(base);
+}
+
+function createIframe(host: string, version: string): HTMLIFrameElement {
+  const iframe = document.createElement('iframe');
+  iframe.src = `https://${host}/v/${version}`;
+  iframe.title = 'OpenFlow chat widget';
+  iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups');
+  iframe.setAttribute('allow', 'clipboard-write');
+  iframe.loading = 'eager';
+  iframe.style.cssText = buildIframeStyle('bubble');
+  return iframe;
+}
+
+// To be implemented in Task 46.
+function startHandshake(_iframe: HTMLIFrameElement): void {
+  // noop for now — Task 46 adds the postMessage protocol + retry + 8s timeout
+}
+
 function boot(
   _el: HTMLScriptElement,
-  _host: string,
-  _sub: { tenant: string; agentSlug: string },
-  _v: string | undefined
+  host: string,
+  sub: { tenant: string; agentSlug: string },
+  explicitVersion: string | undefined
 ): void {
   debugState.bootCalled = true;
-  // implemented in Task 45+
+  const { OPENFLOW_APP_ORIGIN } = window;
+  const appOrigin = OPENFLOW_APP_ORIGIN ?? APP_ORIGIN_DEFAULT;
+
+  void (async () => {
+    const version = await resolveVersion(explicitVersion, appOrigin, sub);
+    if (version === null) return;
+
+    debugState.version = version;
+    const iframe = createIframe(host, version);
+    document.body.appendChild(iframe);
+    const { src } = iframe;
+    debugState.iframeUrl = src;
+
+    startHandshake(iframe);
+  })();
 }
 
 init();
