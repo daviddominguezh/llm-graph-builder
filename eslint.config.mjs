@@ -30,6 +30,7 @@ export default defineConfig([
     ignores: [
       'packages/backend/src/routes/auth/**',
       'packages/backend/src/middleware/**',
+      'packages/backend/src/lib/auditLog.ts',
     ],
     rules: {
       'no-restricted-imports': ['error', {
