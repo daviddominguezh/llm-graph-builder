@@ -8,6 +8,19 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    # Redis is needed by RedisCompletionNotifier's integration test suite
+    # (packages/backend/src/notifications/__tests__/redisCompletionNotifier.test.ts).
+    # Exposing 6379 on the host maps into the job; REDIS_URL below reaches it.
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
