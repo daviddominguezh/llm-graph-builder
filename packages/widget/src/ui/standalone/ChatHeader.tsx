@@ -24,12 +24,14 @@ export function ChatHeader({ title, starred, onRename, onDelete, onToggleStar }:
   return (
     <div className="flex items-center gap-1 min-w-0">
       <EditableTitle title={title} editing={editing} onCommit={onRename} onEditingChange={setEditing} />
-      <ChatTitleMenu
-        starred={starred}
-        onRename={() => setEditing(true)}
-        onToggleStar={onToggleStar}
-        onRequestDelete={() => setDeleteDialogOpen(true)}
-      />
+      {!editing && (
+        <ChatTitleMenu
+          starred={starred}
+          onRename={() => setEditing(true)}
+          onToggleStar={onToggleStar}
+          onRequestDelete={() => setDeleteDialogOpen(true)}
+        />
+      )}
       <DeleteChatDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
