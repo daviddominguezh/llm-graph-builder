@@ -26,7 +26,7 @@ export function WelcomeView({ onSend, isStreaming, onOpenSidebar }: WelcomeViewP
       <TopBar onOpenSidebar={onOpenSidebar} />
       <div className="flex-1 flex items-center justify-center px-4">
         <div className="relative w-full max-w-2xl">
-          <div className="absolute bottom-full left-0 right-0 mb-10 flex flex-col items-center gap-3">
+          <div className="absolute bottom-full left-0 right-0 mb-10 flex flex-col items-center gap-1">
             <WelcomeBrand />
             <h1 className="font-display text-4xl tracking-normal">{t('welcomeTitle')}</h1>
           </div>

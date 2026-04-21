@@ -53,7 +53,7 @@ export function TopBar(props: TopBarProps) {
   const borderClass = bordered ? 'border-b border-border' : '';
   return (
     <div className={`h-12 shrink-0 ${borderClass}`}>
-      <div className="h-full max-w-3xl mx-auto w-full px-4 flex items-center justify-between">
+      <div className="h-full max-w-2xl mx-auto w-full px-4 flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
           {onOpenSidebar !== undefined && (
             <ReopenSidebarButton onClick={onOpenSidebar} label={t('collapseSidebar')} />

@@ -18,8 +18,8 @@ export interface SidebarProps {
 
 function SidebarLogo() {
   return (
-    <div className="flex items-center gap-2">
-      <img src="/favicon.png" alt="" className="h-6 w-auto" />
+    <div className="flex items-center gap-2 ml-2">
+      <img src="/favicon.png" alt="" className="h-5 w-auto" />
       <img src="/logo-black.png" alt="OpenFlow" className="h-3.5 mt-0.5 w-auto dark:hidden" />
       <img src="/logo-white.png" alt="OpenFlow" className="h-3.5 mt-0.5 w-auto hidden dark:block" />
     </div>
@@ -28,7 +28,7 @@ function SidebarLogo() {
 
 function SidebarHeader({ onCollapse, collapseLabel }: { onCollapse?: () => void; collapseLabel: string }) {
   return (
-    <div className="h-12 px-3 flex items-center justify-between shrink-0">
+    <div className="h-12 pl-3 pr-3 flex items-center justify-between shrink-0">
       <SidebarLogo />
       <Button variant="ghost" size="icon" aria-label={collapseLabel} onClick={onCollapse}>
         <PanelLeft />

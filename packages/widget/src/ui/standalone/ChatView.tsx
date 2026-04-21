@@ -33,7 +33,7 @@ function MessagesArea({ messages }: { messages: CopilotMessage[] }) {
   const sentinel = useScrollToBottom(messages);
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="max-w-3xl mx-auto w-full px-4 py-6 flex flex-col gap-6">
+      <div className="max-w-2xl mx-auto w-full px-4 py-6 flex flex-col gap-6">
         {messages.map((m) => (
           <MessageRow key={m.id} message={m} />
         ))}
@@ -54,7 +54,7 @@ function ChatFooter({ isStreaming, streamError, terminalUnavailable, onSend }: F
   const t = useT();
   return (
     <div className="shrink-0 border-t border-border">
-      <div className="max-w-2xl mx-auto w-full px-4 py-4">
+      <div className="max-w-2xl mx-auto w-full px-0 py-4">
         {streamError !== null && <div className="pb-2 text-xs text-red-500">{streamError}</div>}
         {terminalUnavailable ? (
           <div className="text-xs text-muted-foreground">{t('assistantUnavailable')}</div>
