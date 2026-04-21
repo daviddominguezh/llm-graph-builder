@@ -80,7 +80,7 @@ export function CopilotHeader({
 
   return (
     <div className="flex items-center justify-between border-b px-3 py-2">
-      <span className="text-xs font-semibold">{t('title')}</span>
+      <span id="openflow-panel-title" className="text-xs font-semibold">{t('title')}</span>
       <div className="flex items-center gap-0.5">
         <Button
           variant="ghost"
