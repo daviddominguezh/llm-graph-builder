@@ -25,4 +25,21 @@ export default defineConfig([
       curly: ['error', 'multi-line'],
     },
   },
+  {
+    files: ['packages/backend/src/**/*.ts'],
+    ignores: [
+      'packages/backend/src/routes/auth/**',
+      'packages/backend/src/middleware/**',
+      'packages/backend/src/lib/auditLog.ts',
+    ],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [{
+          group: ['**/db/client.js', '**/db/client'],
+          importNames: ['serviceSupabase'],
+          message: 'serviceSupabase() is restricted to routes/auth/* and middleware/*',
+        }],
+      }],
+    },
+  },
 ]);

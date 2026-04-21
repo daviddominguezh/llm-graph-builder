@@ -272,7 +272,7 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
 
   return (
     <div
-      className={`relative flex flex-col h-full w-full ${activeChat && !isMobile ? 'flex' : activeChat ? 'hidden' : ''}`}
+      className={`relative flex flex-col h-full w-full bg-background ${activeChat && !isMobile ? 'flex' : activeChat ? 'hidden' : ''}`}
       style={{
         borderRight: 'none',
       }}

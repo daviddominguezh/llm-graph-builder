@@ -44,3 +44,5 @@ export function isValidAgentSlug(s: string): boolean {
 export function sortedReservedTenantSlugs(): string[] {
   return [...RESERVED_TENANT_SLUGS].sort();
 }
+
+export * from './onboarding.js';

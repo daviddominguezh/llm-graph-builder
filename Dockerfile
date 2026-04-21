@@ -25,6 +25,7 @@ COPY package.json ./
 
 # Copy workspace package.json files (needed for npm install to resolve workspaces)
 COPY packages/graph-types/package.json ./packages/graph-types/
+COPY packages/shared-validation/package.json ./packages/shared-validation/
 COPY packages/api/package.json ./packages/api/
 COPY packages/backend/package.json ./packages/backend/
 
@@ -33,11 +34,13 @@ RUN npm install --include=dev
 
 # Copy workspace source code (only the packages the backend needs)
 COPY packages/graph-types/ ./packages/graph-types/
+COPY packages/shared-validation/ ./packages/shared-validation/
 COPY packages/api/ ./packages/api/
 COPY packages/backend/ ./packages/backend/
 
 # Build the backend and its dependencies
 RUN npm run build -w @daviddh/graph-types && \
+    npm run build -w @openflow/shared-validation && \
     npm run build -w @daviddh/llm-graph-runner && \
     npm run build -w @daviddh/graph-runner-backend
 
