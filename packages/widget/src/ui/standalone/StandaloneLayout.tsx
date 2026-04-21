@@ -34,6 +34,11 @@ function useActiveTitle(sessions: ReturnType<typeof useSessions>, fallback: stri
   return active?.title ?? fallback;
 }
 
+function useActiveStarred(sessions: ReturnType<typeof useSessions>): boolean {
+  const active = sessions.sessions.find((s) => s.sessionId === sessions.currentSessionId);
+  return active?.starred === true;
+}
+
 function handleSend(chat: ReturnType<typeof useChatStream>, text: string): void {
   void chat.send(text);
 }
@@ -50,10 +55,11 @@ interface RightPaneProps {
   sessions: ReturnType<typeof useSessions>;
   chat: ReturnType<typeof useChatStream>;
   title: string;
+  starred: boolean;
   onOpenSidebar?: () => void;
 }
 
-function RightPane({ sessions, chat, title, onOpenSidebar }: RightPaneProps) {
+function RightPane({ sessions, chat, title, starred, onOpenSidebar }: RightPaneProps) {
   const hasActive = sessions.messages.length > 0 || chat.stream.blocks !== null;
   const visible = buildVisibleMessages({ messages: sessions.messages, streamingBlocks: chat.stream.blocks });
   if (!hasActive) {
@@ -68,12 +74,23 @@ function RightPane({ sessions, chat, title, onOpenSidebar }: RightPaneProps) {
   return (
     <ChatView
       title={title}
+      sessionId={sessions.currentSessionId ?? undefined}
+      starred={starred}
       messages={visible}
       onSend={(t) => handleSend(chat, t)}
       isStreaming={chat.stream.blocks !== null}
       streamError={chat.stream.error}
       terminalUnavailable={chat.stream.terminal === 'unavailable'}
       onOpenSidebar={onOpenSidebar}
+      onRename={(id, newTitle) => {
+        void sessions.renameSession(id, newTitle);
+      }}
+      onDelete={(id) => {
+        void sessions.deleteSession(id);
+      }}
+      onToggleStar={(id) => {
+        void sessions.toggleStarSession(id);
+      }}
     />
   );
 }
@@ -82,6 +99,7 @@ export function StandaloneLayout({ sessions, chat }: StandaloneLayoutProps) {
   const t = useT();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const title = useActiveTitle(sessions, t('newChat'));
+  const starred = useActiveStarred(sessions);
 
   const gridClasses = sidebarOpen
     ? 'grid grid-cols-[260px_1fr] h-dvh w-full'
@@ -102,6 +120,7 @@ export function StandaloneLayout({ sessions, chat }: StandaloneLayoutProps) {
         sessions={sessions}
         chat={chat}
         title={title}
+        starred={starred}
         onOpenSidebar={sidebarOpen ? undefined : () => setSidebarOpen(true)}
       />
     </div>

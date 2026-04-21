@@ -8,12 +8,17 @@ import { TopBar } from './TopBar.js';
 
 export interface ChatViewProps {
   title: string;
+  sessionId?: string;
+  starred?: boolean;
   messages: CopilotMessage[];
   onSend: (text: string) => void;
   isStreaming: boolean;
   streamError: string | null;
   terminalUnavailable: boolean;
   onOpenSidebar?: () => void;
+  onRename?: (id: string, newTitle: string) => void;
+  onDelete?: (id: string) => void;
+  onToggleStar?: (id: string) => void;
 }
 
 function useScrollToBottom(dep: unknown): React.RefObject<HTMLDivElement | null> {
@@ -63,16 +68,29 @@ function ChatFooter({ isStreaming, streamError, terminalUnavailable, onSend }: F
 
 export function ChatView({
   title,
+  sessionId,
+  starred,
   messages,
   onSend,
   isStreaming,
   streamError,
   terminalUnavailable,
   onOpenSidebar,
+  onRename,
+  onDelete,
+  onToggleStar,
 }: ChatViewProps) {
   return (
     <div className="flex flex-col h-full min-h-0">
-      <TopBar title={title} onOpenSidebar={onOpenSidebar} />
+      <TopBar
+        title={title}
+        sessionId={sessionId}
+        starred={starred}
+        onRename={onRename}
+        onDelete={onDelete}
+        onToggleStar={onToggleStar}
+        onOpenSidebar={onOpenSidebar}
+      />
       <MessagesArea messages={messages} />
       <ChatFooter
         isStreaming={isStreaming}
