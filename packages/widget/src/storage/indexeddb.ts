@@ -77,11 +77,7 @@ export async function listSessions(tenant: string, agentSlug: string): Promise<S
   return all.reverse();
 }
 
-export async function deleteSessionById(
-  tenant: string,
-  agentSlug: string,
-  id: string
-): Promise<void> {
+export async function deleteSessionById(tenant: string, agentSlug: string, id: string): Promise<void> {
   const db = await openSessionsDB();
   const session = await db.get('sessions', id);
   if (session === undefined) return;
