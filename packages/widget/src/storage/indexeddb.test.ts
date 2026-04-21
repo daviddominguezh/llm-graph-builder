@@ -1,5 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { openSessionsDB, putSession, listSessions, getSession } from './indexeddb.js';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+import { getSession, listSessions, openSessionsDB, putSession } from './indexeddb.js';
+
+const TIMESTAMP_FIRST = 100;
+const TIMESTAMP_SECOND = 200;
+const TIMESTAMP_UNIT = 1;
 
 describe('indexeddb', () => {
   beforeEach(async () => {
@@ -13,8 +18,8 @@ describe('indexeddb', () => {
       tenant: 'acme',
       agentSlug: 'x',
       title: 'First',
-      createdAt: 100,
-      updatedAt: 100,
+      createdAt: TIMESTAMP_FIRST,
+      updatedAt: TIMESTAMP_FIRST,
       messages: [],
     });
     await putSession({
@@ -22,8 +27,8 @@ describe('indexeddb', () => {
       tenant: 'acme',
       agentSlug: 'x',
       title: 'Second',
-      createdAt: 200,
-      updatedAt: 200,
+      createdAt: TIMESTAMP_SECOND,
+      updatedAt: TIMESTAMP_SECOND,
       messages: [],
     });
     const list = await listSessions();
@@ -36,8 +41,8 @@ describe('indexeddb', () => {
       tenant: 'acme',
       agentSlug: 'x',
       title: 'T',
-      createdAt: 1,
-      updatedAt: 1,
+      createdAt: TIMESTAMP_UNIT,
+      updatedAt: TIMESTAMP_UNIT,
       messages: [],
     });
     expect((await getSession('sx'))?.title).toBe('T');

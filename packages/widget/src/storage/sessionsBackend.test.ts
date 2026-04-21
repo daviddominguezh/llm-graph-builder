@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import { createSessionsBackend } from './sessionsBackend.js';
 
 describe('sessionsBackend', () => {
@@ -7,7 +8,7 @@ describe('sessionsBackend', () => {
     expect(b.kind).toBe('indexeddb');
   });
   it('returns in-memory backend when IndexedDB throws', async () => {
-    const origIndexedDB = globalThis.indexedDB;
+    const { indexedDB: origIndexedDB } = globalThis;
     Object.defineProperty(globalThis, 'indexedDB', {
       value: undefined,
       configurable: true,

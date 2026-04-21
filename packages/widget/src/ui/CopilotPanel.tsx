@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 
-import { execute } from '../api/executeClient.js';
 import { BlockCoalescer } from '../api/eventToBlock.js';
+import { execute } from '../api/executeClient.js';
 import { useAgent } from '../app/agentContext.js';
 import type { StoredSession } from '../storage/indexeddb.js';
 import { CopilotHeader } from './CopilotHeader.js';
@@ -112,12 +112,11 @@ export function CopilotPanel({ standalone = false, onClose }: CopilotPanelProps 
   const copilotSessions = sessions.sessions.map(toSession);
   const activeSession = copilotSessions.find((s) => s.id === sessions.currentSessionId) ?? null;
 
-  const streamingMsg = stream.blocks !== null
-    ? { id: 'streaming', role: 'assistant' as const, blocks: stream.blocks, timestamp: Date.now() }
-    : null;
-  const visibleMessages = streamingMsg !== null
-    ? [...sessions.messages, streamingMsg]
-    : sessions.messages;
+  const streamingMsg =
+    stream.blocks !== null
+      ? { id: 'streaming', role: 'assistant' as const, blocks: stream.blocks, timestamp: Date.now() }
+      : null;
+  const visibleMessages = streamingMsg !== null ? [...sessions.messages, streamingMsg] : sessions.messages;
 
   return (
     <div className={containerClasses(standalone)}>
@@ -126,20 +125,27 @@ export function CopilotPanel({ standalone = false, onClose }: CopilotPanelProps 
         onClose={onClose}
         sessions={copilotSessions}
         activeSession={activeSession}
-        onSwitchSession={(id: string) => { void sessions.switchSession(id); }}
-        onNewChat={() => { void sessions.createSession(); }}
+        onSwitchSession={(id: string) => {
+          void sessions.switchSession(id);
+        }}
+        onNewChat={() => {
+          void sessions.createSession();
+        }}
       />
       <CopilotMessages messages={visibleMessages} />
-      {stream.error !== null && (
-        <div className="border-t px-4 py-2 text-xs text-red-500">{stream.error}</div>
-      )}
+      {stream.error !== null && <div className="border-t px-4 py-2 text-xs text-red-500">{stream.error}</div>}
       {stream.terminal === 'unavailable' && (
         <div className="border-t px-4 py-2 text-xs text-muted-foreground">
           This assistant is no longer available.
         </div>
       )}
       {stream.terminal === null && (
-        <CopilotInput onSend={(text) => { void send(text); }} isStreaming={stream.blocks !== null} />
+        <CopilotInput
+          onSend={(text) => {
+            void send(text);
+          }}
+          isStreaming={stream.blocks !== null}
+        />
       )}
     </div>
   );

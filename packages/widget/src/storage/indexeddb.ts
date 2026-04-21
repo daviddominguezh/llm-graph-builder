@@ -1,4 +1,5 @@
-import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
+import { type DBSchema, type IDBPDatabase, openDB } from 'idb';
+
 import type { CopilotMessage } from '../ui/copilotTypes.js';
 
 export interface StoredSession {
@@ -23,7 +24,7 @@ const DB_NAME = 'openflow-widget';
 const DB_VERSION = 1;
 
 export async function openSessionsDB(): Promise<IDBPDatabase<WidgetDB>> {
-  return openDB<WidgetDB>(DB_NAME, DB_VERSION, {
+  return await openDB<WidgetDB>(DB_NAME, DB_VERSION, {
     upgrade(db) {
       const store = db.createObjectStore('sessions', { keyPath: 'sessionId' });
       store.createIndex('by-updatedAt', 'updatedAt');
@@ -38,7 +39,7 @@ export async function putSession(s: StoredSession): Promise<void> {
 
 export async function getSession(id: string): Promise<StoredSession | undefined> {
   const db = await openSessionsDB();
-  return db.get('sessions', id);
+  return await db.get('sessions', id);
 }
 
 export async function listSessions(): Promise<StoredSession[]> {

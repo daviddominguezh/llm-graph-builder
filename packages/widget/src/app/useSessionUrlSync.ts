@@ -1,16 +1,27 @@
 import { useEffect } from 'react';
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function extractSessionId(state: unknown): string | null {
+  if (!isRecord(state)) return null;
+  const { sessionId } = state;
+  return typeof sessionId === 'string' ? sessionId : null;
+}
+
 export function useSessionUrlSync(
   currentSessionId: string | null,
   onPopState: (sessionId: string | null) => void
 ): void {
   useEffect(() => {
     function onPop(e: PopStateEvent): void {
-      const state = e.state as { sessionId?: string } | null;
-      onPopState(state?.sessionId ?? null);
+      onPopState(extractSessionId(e.state));
     }
     window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+    };
   }, [onPopState]);
 
   useEffect(() => {

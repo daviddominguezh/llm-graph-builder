@@ -1,6 +1,6 @@
 // packages/widget/src/app/modes/EmbeddedMode.tsx
-import { useCallback, useEffect, useState } from 'react';
 import { MessageCircle } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { CopilotPanel } from '../../ui/CopilotPanel.js';
 import { useT } from '../i18nContext.js';
@@ -51,12 +51,7 @@ export function EmbeddedMode({ hostViewportW }: { hostViewportW: number | null }
   }
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="openflow-panel-title"
-      className="w-full h-full"
-    >
+    <div role="dialog" aria-modal="true" aria-labelledby="openflow-panel-title" className="w-full h-full">
       <CopilotPanel onClose={closePanel} />
     </div>
   );

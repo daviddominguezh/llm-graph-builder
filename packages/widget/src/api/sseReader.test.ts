@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { readSseStream } from './sseReader.js';
 import type { PublicExecutionEvent } from '../types/publicEvents.js';
+import { readSseStream } from './sseReader.js';
 
 function streamOf(chunks: string[]): ReadableStream<Uint8Array> {
   const enc = new TextEncoder();
@@ -29,11 +29,7 @@ describe('readSseStream', () => {
 
   it('ignores non-data lines', async () => {
     const events: PublicExecutionEvent[] = [];
-    const stream = streamOf([
-      ': comment\n',
-      'event: ping\n',
-      'data: {"type":"error","message":"x"}\n',
-    ]);
+    const stream = streamOf([': comment\n', 'event: ping\n', 'data: {"type":"error","message":"x"}\n']);
     for await (const ev of readSseStream(stream)) events.push(ev);
     expect(events).toHaveLength(ONE_EVENT);
   });

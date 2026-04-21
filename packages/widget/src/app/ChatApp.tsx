@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 
 import { fetchLatestVersion } from '../api/latestVersionClient.js';
-import { pickLocale, type Locale } from '../i18n/index.js';
+import { type Locale, pickLocale } from '../i18n/index.js';
 import { parseAgentHost } from '../routing/parseHostname.js';
+import { AgentNotFoundState, LoadingState } from './LoadingState.js';
 import { AgentProvider } from './agentContext.js';
 import { I18nProvider } from './i18nContext.js';
 import { EmbeddedMode } from './modes/EmbeddedMode.js';
@@ -43,9 +44,7 @@ async function resolveAgent(): Promise<Resolved> {
   if (host === null) throw new Error('not_found');
   const versionOrLatest = parseVersionPath();
   const version =
-    versionOrLatest === 'latest'
-      ? await fetchLatestVersion(host.tenant, host.agentSlug)
-      : versionOrLatest;
+    versionOrLatest === 'latest' ? await fetchLatestVersion(host.tenant, host.agentSlug) : versionOrLatest;
   return { ...host, version };
 }
 
@@ -72,6 +71,23 @@ function useAgentResolver(embedded: boolean): AgentResolverState {
   return { resolved, viewportW, error };
 }
 
+interface ChatAppBodyProps {
+  embedded: boolean;
+  resolved: Resolved | null;
+  viewportW: number | null;
+  error: string | null;
+}
+
+function ChatAppBody({ embedded, resolved, viewportW, error }: ChatAppBodyProps) {
+  if (error === 'not_found') return <AgentNotFoundState />;
+  if (resolved === null) return <LoadingState embedded={embedded} />;
+  return (
+    <AgentProvider value={resolved}>
+      {embedded ? <EmbeddedMode hostViewportW={viewportW} /> : <StandaloneMode />}
+    </AgentProvider>
+  );
+}
+
 export function ChatApp() {
   const embedded = isEmbedded();
   const { resolved, viewportW, error } = useAgentResolver(embedded);
@@ -79,18 +95,9 @@ export function ChatApp() {
   const queryLang = new URLSearchParams(window.location.search).get('lang');
   const locale: Locale = pickLocale(queryLang, navigator.language);
 
-  if (error === 'not_found') {
-    return <div className="p-8 text-center">Agent not found</div>;
-  }
-  if (resolved === null) {
-    return <div className="p-8 text-center">Initializing…</div>;
-  }
-
   return (
     <I18nProvider locale={locale}>
-      <AgentProvider value={resolved}>
-        {embedded ? <EmbeddedMode hostViewportW={viewportW} /> : <StandaloneMode />}
-      </AgentProvider>
+      <ChatAppBody embedded={embedded} resolved={resolved} viewportW={viewportW} error={error} />
     </I18nProvider>
   );
 }

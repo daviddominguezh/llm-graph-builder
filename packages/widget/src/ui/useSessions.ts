@@ -88,7 +88,13 @@ interface CreateSessionArgs {
   setCurrentSessionId: (id: string | null) => void;
 }
 
-function useCreateSession({ backendRef, tenant, agentSlug, reload, setCurrentSessionId }: CreateSessionArgs): () => Promise<void> {
+function useCreateSession({
+  backendRef,
+  tenant,
+  agentSlug,
+  reload,
+  setCurrentSessionId,
+}: CreateSessionArgs): () => Promise<void> {
   return useCallback(async () => {
     const b = await backendRef.current;
     const now = Date.now();
@@ -187,7 +193,8 @@ export function useSessions({ tenant, agentSlug }: Args): UseSessionsResult {
 
   const current = state.sessions.find((s) => s.sessionId === state.currentSessionId);
   const messages = current?.messages ?? [];
-  const backendKind: UseSessionsResult['backendKind'] = state.backend === null ? 'loading' : state.backend.kind;
+  const backendKind: UseSessionsResult['backendKind'] =
+    state.backend === null ? 'loading' : state.backend.kind;
 
   return {
     sessions: state.sessions,

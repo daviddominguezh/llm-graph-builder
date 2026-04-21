@@ -1,8 +1,8 @@
-import type { CopilotMessageBlock } from '../ui/copilotTypes.js';
 import type { PublicExecutionEvent } from '../types/publicEvents.js';
+import type { CopilotMessageBlock } from '../ui/copilotTypes.js';
 
 function humanize(name: string): string {
-  return name.replace(/_/gu, ' ').replace(/\b\w/gu, (c) => c.toUpperCase());
+  return name.replace(/_/gv, ' ').replace(/\b\w/gv, (c) => c.toUpperCase());
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -56,7 +56,12 @@ export class BlockCoalescer {
         break;
       case 'nodeError':
         this.flushText();
-        this.blocks.push({ type: 'action', icon: 'alert-triangle', title: 'Step failed', description: ev.message });
+        this.blocks.push({
+          type: 'action',
+          icon: 'alert-triangle',
+          title: 'Step failed',
+          description: ev.message,
+        });
         break;
       default:
         // node_visited, tokenUsage, structuredOutput, error, done — not represented as blocks

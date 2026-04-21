@@ -1,5 +1,5 @@
 import { parseAgentHost } from '../routing/parseHostname.js';
-import { startHandshake, type IframePos } from './handshake.js';
+import { type IframePos, startHandshake } from './handshake.js';
 
 export { CSP_TIMEOUT_MS, HANDSHAKE_INTERVAL_MS } from './handshake.js';
 
@@ -106,7 +106,7 @@ function init(): void {
   if (autoload) boot(scriptEl, url.host, sub, explicitVersion);
 
   if (new URLSearchParams(window.location.search).get('openflow_debug') === '1') {
-    globalThis.console.info('OpenFlowWidget debug', window.OpenFlowWidget?.debug());
+    globalThis.console.info('OpenFlowWidget debug', window.OpenFlowWidget.debug());
   }
 }
 
@@ -119,7 +119,10 @@ function isVersionResponse(val: unknown): val is VersionResponse {
   );
 }
 
-async function fetchVersion(appOrigin: string, sub: { tenant: string; agentSlug: string }): Promise<string | null> {
+async function fetchVersion(
+  appOrigin: string,
+  sub: { tenant: string; agentSlug: string }
+): Promise<string | null> {
   try {
     const res = await fetch(`${appOrigin}/api/chat/latest-version/${sub.tenant}/${sub.agentSlug}`, {
       cache: 'no-store',
@@ -185,11 +188,7 @@ function createIframe(host: string, version: string): HTMLIFrameElement {
   return iframe;
 }
 
-function wireViewportForwarding(
-  iframe: HTMLIFrameElement,
-  nonce: string,
-  iframeOrigin: string
-): void {
+function wireViewportForwarding(iframe: HTMLIFrameElement, nonce: string, iframeOrigin: string): void {
   let timer: ReturnType<typeof setTimeout> | null = null;
   function post(): void {
     iframe.contentWindow?.postMessage(
@@ -204,10 +203,7 @@ function wireViewportForwarding(
   window.addEventListener('resize', onResize);
 }
 
-function wireTeardown(
-  iframe: HTMLIFrameElement,
-  onMessage: (e: MessageEvent) => void
-): void {
+function wireTeardown(iframe: HTMLIFrameElement, onMessage: (e: MessageEvent) => void): void {
   function teardown(): void {
     window.removeEventListener('message', onMessage);
     if (iframe.parentNode !== null) iframe.parentNode.removeChild(iframe);

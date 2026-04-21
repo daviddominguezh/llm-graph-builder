@@ -8,7 +8,10 @@
     "build": "rm -rf dist && npm run build:loader && npm run build:app",
     "build:app": "vite build",
     "build:loader": "vite build --mode loader",
+    "format": "prettier --write \"**/*.{js,ts,tsx,json}\"",
+    "lint": "eslint",
     "typecheck": "tsc -b --noEmit",
+    "check": "npm run format && npm run lint && npm run typecheck",
     "test": "vitest run",
     "test:watch": "vitest"
   },
