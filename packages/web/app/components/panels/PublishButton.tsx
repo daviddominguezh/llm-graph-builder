@@ -153,10 +153,10 @@ function PopoverBody({ agentSlug, tenantSlug, version, publishing, onPublish }: 
       <PublishStatus version={version} />
       <Separator />
       {showCurl && (
-        <EmbedSnippetDisplay tenantSlug={tenantSlug} agentSlug={agentSlug} disabled={publishing} />
+        <DirectLinkDisplay tenantSlug={tenantSlug} agentSlug={agentSlug} disabled={publishing} />
       )}
       {showCurl && (
-        <DirectLinkDisplay tenantSlug={tenantSlug} agentSlug={agentSlug} disabled={publishing} />
+        <EmbedSnippetDisplay tenantSlug={tenantSlug} agentSlug={agentSlug} disabled={publishing} />
       )}
       {showCurl && <CurlDisplay agentSlug={agentSlug} version={curlVersion} publishing={publishing} />}
       <Button variant="default" size="sm" className="w-full" onClick={onPublish} disabled={publishing}>
