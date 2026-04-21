@@ -10,6 +10,7 @@ export interface StoredSession {
   createdAt: number;
   updatedAt: number;
   messages: CopilotMessage[];
+  starred?: boolean;
 }
 
 interface WidgetDB extends DBSchema {
@@ -74,4 +75,16 @@ export async function listSessions(tenant: string, agentSlug: string): Promise<S
   const range = IDBKeyRange.bound(lower, upper);
   const all = await db.getAllFromIndex('sessions', TENANT_AGENT_INDEX, range);
   return all.reverse();
+}
+
+export async function deleteSessionById(
+  tenant: string,
+  agentSlug: string,
+  id: string
+): Promise<void> {
+  const db = await openSessionsDB();
+  const session = await db.get('sessions', id);
+  if (session === undefined) return;
+  if (session.tenant !== tenant || session.agentSlug !== agentSlug) return;
+  await db.delete('sessions', id);
 }

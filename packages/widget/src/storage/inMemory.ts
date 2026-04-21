@@ -22,5 +22,12 @@ export function createInMemoryBackend(): SessionsBackend {
         .filter((s) => s.tenant === tenant && s.agentSlug === agentSlug)
         .sort((a, b) => b.updatedAt - a.updatedAt);
     },
+    delete: async (tenant, agentSlug, id) => {
+      await Promise.resolve();
+      const s = map.get(id);
+      if (s === undefined) return;
+      if (s.tenant !== tenant || s.agentSlug !== agentSlug) return;
+      map.delete(id);
+    },
   };
 }
