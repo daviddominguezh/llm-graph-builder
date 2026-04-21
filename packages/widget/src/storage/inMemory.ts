@@ -11,8 +11,9 @@ export function createInMemoryBackend(): {
     kind: 'memory',
     put: async (s) => {
       map.set(s.sessionId, s);
+      await Promise.resolve();
     },
-    get: async (id) => map.get(id),
-    list: async () => [...map.values()].sort((a, b) => b.updatedAt - a.updatedAt),
+    get: async (id) => await Promise.resolve(map.get(id)),
+    list: async () => await Promise.resolve([...map.values()].sort((a, b) => b.updatedAt - a.updatedAt)),
   };
 }
