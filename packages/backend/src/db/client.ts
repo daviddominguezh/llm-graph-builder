@@ -27,3 +27,11 @@ export function createSupabaseClient(jwt: string): ReturnType<typeof createClien
     },
   });
 }
+
+export function serviceSupabase(): ReturnType<typeof createClient> {
+  const url = getRequiredEnv('SUPABASE_URL');
+  const serviceKey = getRequiredEnv('SUPABASE_SERVICE_ROLE_KEY');
+  return createClient(url, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
