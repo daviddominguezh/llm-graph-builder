@@ -1,6 +1,18 @@
 import { MessageCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 import { useT } from './i18nContext.js';
+
+const LOADER_DELAY_MS = 1500;
+
+function useDelayedVisible(delayMs: number): boolean {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const id = window.setTimeout(() => setVisible(true), delayMs);
+    return () => window.clearTimeout(id);
+  }, [delayMs]);
+  return visible;
+}
 
 function EmbeddedLoader({ label }: { label: string }) {
   return (
@@ -41,6 +53,8 @@ function StandaloneLoader({ label }: { label: string }) {
 
 export function LoadingState({ embedded }: { embedded: boolean }) {
   const t = useT();
+  const visible = useDelayedVisible(LOADER_DELAY_MS);
+  if (!visible) return null;
   const label = t('loading');
   return embedded ? <EmbeddedLoader label={label} /> : <StandaloneLoader label={label} />;
 }
