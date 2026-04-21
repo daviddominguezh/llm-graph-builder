@@ -1,0 +1,14 @@
+{
+  "title": "Copilot",
+  "newChat": "New chat",
+  "placeholder": "Ask me anything...",
+  "send": "Send",
+  "stop": "Stop",
+  "close": "Close",
+  "emptyState": "How can I help?",
+  "selectChat": "Select a chat",
+  "sessionOnly": "• session-only",
+  "unavailable": "Unavailable",
+  "openChat": "Open chat",
+  "assistantUnavailable": "This assistant is no longer available."
+}
