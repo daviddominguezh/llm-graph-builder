@@ -109,6 +109,7 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
     loadMoreConversations,
     hasMoreConversations,
     isLoadingMoreConversations,
+    isLoadingConversations,
     loadOlderMessages,
     hasMoreOlderMessages,
     isLoadingMessages,
@@ -572,6 +573,7 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
             onLoadMore={loadMoreConversations}
             hasMore={hasMoreConversations}
             isLoadingMore={isLoadingMoreConversations}
+            isLoading={isLoadingConversations}
           />
 
           {activeChat && (currentChat || isTestChatActive) && (
@@ -703,6 +705,7 @@ export const MessagesDashboardLayout: React.FC<MessagesDashboardLayoutProps> = (
                     onLoadMore={loadMoreConversations}
                     hasMore={hasMoreConversations}
                     isLoadingMore={isLoadingMoreConversations}
+                    isLoading={isLoadingConversations}
                   />
                 </ResizablePanel>
 

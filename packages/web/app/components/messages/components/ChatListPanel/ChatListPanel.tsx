@@ -1,6 +1,7 @@
 import { getScrollViewport } from '@/app/components/GlobalScrollbarOverlay';
 import { getCurrentFirebaseUser } from '@/app/components/messages/services/firebase';
 import MessagePreview from '@/app/components/messages/shared/messagePreview';
+import { MessagePreviewSkeleton } from '@/app/components/messages/shared/messagePreview/MessagePreviewSkeleton';
 import { TEST_PHONE } from '@/app/constants/messages';
 import type { LastMessage, Message } from '@/app/types/chat';
 import { Collaborator } from '@/app/types/projectInnerSettings';
@@ -48,6 +49,8 @@ interface ChatListPanelProps {
   hasMore?: boolean;
   /** Whether currently loading more conversations */
   isLoadingMore?: boolean;
+  /** Whether the initial conversation list is still loading (first fetch) */
+  isLoading?: boolean;
 }
 
 /**
@@ -77,6 +80,7 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
   profilePictures,
   hideFilterDropdown = false,
   isLoadingMore = false,
+  isLoading = false,
 }) => {
   const t = useTranslations('messages');
   const isMobile = useIsMobile();
@@ -383,6 +387,15 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
             {t('No chats or messages match your search· Try a different search term·')}
           </AlertDescription>
         </Alert>
+      ) : isLoading && displayedChatsFiltered.length === 0 ? (
+        // Initial load: show placeholder rows instead of the empty state.
+        // Note: orderedChats always contains at least the synthesized test chat,
+        // which most filters hide, so we gate on the *visible* list being empty.
+        <div className="flex flex-col w-full pt-2.5 gap-1" aria-busy="true">
+          {Array.from({ length: 8 }, (_, i) => (
+            <MessagePreviewSkeleton key={i} index={i} />
+          ))}
+        </div>
       ) : displayedChatsFiltered.length > 0 ? (
         // All chats
         <div

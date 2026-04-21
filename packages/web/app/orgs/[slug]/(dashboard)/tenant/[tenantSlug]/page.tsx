@@ -42,7 +42,7 @@ export default async function TenantPage({ params }: PageProps): Promise<React.J
   const canManage = canManageTemplates(role);
 
   return (
-    <div className="flex h-[calc(100%-var(--spacing)*1.5)] flex-col overflow-hidden border mr-1.5 rounded-xl bg-background">
+    <div className="flex h-[calc(100%-var(--spacing)*2)] flex-col overflow-hidden border mr-2 rounded-xl bg-background">
       <div className="px-6 py-3 shrink-0 bg-background">
         <nav className="mx-auto flex w-full max-w-2xl items-center gap-1 pl-4 text-sm text-muted-foreground">
           <Link

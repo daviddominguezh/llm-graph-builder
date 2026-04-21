@@ -1,11 +1,9 @@
 'use client';
 
-import { useMemo } from 'react';
-
+import type { TenantSummaryRow, TimeSeriesPoint } from '@/app/lib/dashboard';
 import { Activity, CheckCircle, Cpu } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-
-import type { TenantSummaryRow, TimeSeriesPoint } from '@/app/lib/dashboard';
+import { useMemo } from 'react';
 
 import { MiniAreaChart } from './MiniAreaChart';
 import {
@@ -40,7 +38,9 @@ function Stat({ icon: Icon, label, value, format, index }: StatProps) {
         <Icon className="size-3.5 text-primary transition-transform duration-200 group-hover:scale-110" />
       </div>
       <div className="flex flex-col">
-        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{label}</span>
+        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          {label}
+        </span>
         <span className="text-sm font-semibold tabular-nums">{format(animated)}</span>
       </div>
     </div>
@@ -93,7 +93,12 @@ function ChartSkeleton({ index }: { index: number }) {
 
 /* ─── Stat cards row ─── */
 
-function StaticStat({ icon: Icon, label, value, index }: {
+function StaticStat({
+  icon: Icon,
+  label,
+  value,
+  index,
+}: {
   icon: typeof Activity;
   label: string;
   value: string;
@@ -109,7 +114,9 @@ function StaticStat({ icon: Icon, label, value, index }: {
         <Icon className="size-3.5 text-primary transition-transform duration-200 group-hover:scale-110" />
       </div>
       <div className="flex flex-col">
-        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{label}</span>
+        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          {label}
+        </span>
         <span className="text-sm font-semibold tabular-nums">{value}</span>
       </div>
     </div>
@@ -122,7 +129,13 @@ function StatCards({ rows }: { rows: TenantSummaryRow[] }) {
 
   return (
     <div className="grid grid-cols-3 gap-2">
-      <Stat icon={Activity} label={t('totalExecutions')} value={agg.executions} format={formatExecutionQuota} index={0} />
+      <Stat
+        icon={Activity}
+        label={t('totalExecutions')}
+        value={agg.executions}
+        format={formatExecutionQuota}
+        index={0}
+      />
       <Stat icon={Cpu} label={t('totalTokens')} value={agg.tokens} format={formatCompact} index={1} />
       <StaticStat
         icon={CheckCircle}
@@ -140,10 +153,14 @@ function LoadingSkeleton() {
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-3 gap-2">
-        {[0, 1, 2].map((i) => <StatSkeleton key={i} index={i} />)}
+        {[0, 1, 2].map((i) => (
+          <StatSkeleton key={i} index={i} />
+        ))}
       </div>
       <div className="flex flex-col gap-2">
-        {[0, 1, 2, 3].map((i) => <ChartSkeleton key={i} index={i} />)}
+        {[0, 1, 2, 3].map((i) => (
+          <ChartSkeleton key={i} index={i} />
+        ))}
       </div>
     </div>
   );
@@ -175,9 +192,11 @@ export function DashboardTimeSeries({ tenantRows, timeSeriesData, loading }: Das
   if (loading === true) return <LoadingSkeleton />;
 
   return (
-    <div className="flex flex-col gap-3 h-full overflow-y-auto">
-      <StatCards rows={tenantRows} />
-      <TimeSeriesCharts data={timeSeriesData} />
+    <div className="flex flex-col gap-3 h-full overflow-y-scroll">
+      <div className='flex flex-col gap-3'>
+        <StatCards rows={tenantRows} />
+        <TimeSeriesCharts data={timeSeriesData} />
+      </div>
     </div>
   );
 }
