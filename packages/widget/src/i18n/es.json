@@ -1,0 +1,14 @@
+{
+  "title": "Copiloto",
+  "newChat": "Nuevo chat",
+  "placeholder": "Pregúntame lo que sea...",
+  "send": "Enviar",
+  "stop": "Detener",
+  "close": "Cerrar",
+  "emptyState": "¿En qué puedo ayudarte?",
+  "selectChat": "Selecciona un chat",
+  "sessionOnly": "• solo sesión",
+  "unavailable": "No disponible",
+  "openChat": "Abrir chat",
+  "assistantUnavailable": "Este asistente ya no está disponible."
+}

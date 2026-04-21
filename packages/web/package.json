@@ -16,6 +16,7 @@
     "@base-ui/react": "^1.1.0",
     "@daviddh/graph-types": "*",
     "@daviddh/llm-graph-runner": "*",
+    "@openflow/shared-validation": "*",
     "@hookform/resolvers": "^5.2.2",
     "@microlink/react-json-view": "^1.31.11",
     "@reduxjs/toolkit": "^2.11.2",

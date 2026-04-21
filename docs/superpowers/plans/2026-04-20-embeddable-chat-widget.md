@@ -221,7 +221,8 @@ Expected: test file fails to import (members missing).
 
 ```ts
 export const TENANT_SLUG_REGEX = /^[a-z0-9]{1,40}$/;
-export const AGENT_SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
+export const AGENT_SLUG_REGEX = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+export const AGENT_SLUG_MAX_LENGTH = 40;
 
 export const RESERVED_TENANT_SLUGS = new Set<string>([
   'app', 'api', 'www', 'live', 'admin', 'assets', 'cdn', 'docs', 'status',
@@ -377,7 +378,8 @@ describe('generateTenantSlug', () => {
     expect(generateTenantSlug('')).toBe('');
   });
   it('handles unicode by stripping non-ASCII', () => {
-    expect(generateTenantSlug('Café Olé')).toBe('caf');
+    // 'Café Olé' → strip é, space → 'cafol' (all surviving ASCII alnum)
+    expect(generateTenantSlug('Café Olé')).toBe('cafol');
     expect(generateTenantSlug('東京支店')).toBe(''); // fully non-ASCII → empty
   });
 });
@@ -772,7 +774,7 @@ git commit -m "shared-validation: assert TS/SQL reserved-slug parity"
 ```sql
 ALTER TABLE public.agents
   ADD CONSTRAINT agents_slug_format
-  CHECK (slug ~ '^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$');
+  CHECK (length(slug) <= 40 AND slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$');
 ```
 
 - [ ] **Step 2: Apply and verify**
@@ -1851,7 +1853,7 @@ npm test -w packages/widget
 ```ts
 // packages/widget/src/routing/parseHostname.ts
 const HOST_REGEX =
-  /^([a-z0-9]+)-([a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?)\.live\.openflow\.build$/;
+  /^([a-z0-9]{1,40})-([a-z0-9]+(?:-[a-z0-9]+)*)\.live\.openflow\.build$/;
 
 export function parseAgentHost(raw: string): { tenant: string; agentSlug: string } | null {
   const host = raw.toLowerCase().replace(/:\d+$/, '').replace(/\.$/, '');

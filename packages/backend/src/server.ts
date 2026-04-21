@@ -8,6 +8,7 @@ import { agentRouter } from './routes/agents/agentRouter.js';
 import { dashboardRouter } from './routes/dashboard/dashboardRouter.js';
 import { handleDiscover } from './routes/discover.js';
 import { executeRouter } from './routes/execute/executeRoute.js';
+import { mockExecuteRouter } from './routes/mockExecute/mockExecuteRouter.js';
 import { buildGitHubRouter } from './routes/github/githubRouter.js';
 import { handleGitHubWebhook } from './routes/github/webhookRoute.js';
 import { internalRouter } from './routes/internal/internalRouter.js';
@@ -99,6 +100,9 @@ export function createApp(): Express {
   app.delete('/mcp', handleMcpRequest);
 
   app.use('/api/agents', executeRouter);
+  if (process.env.ENABLE_MOCK_EXECUTE === 'true') {
+    app.use('/api/mock-execute', mockExecuteRouter);
+  }
   app.use('/orgs', buildOrgRouter());
   app.use('/slugs', buildSlugRouter());
   app.use('/agents', agentRouter);

@@ -9,8 +9,9 @@ type Database = Record<string, never>;
 const GUEST_ONLY_ROUTES = ['/login', '/signup', '/forgot-password'];
 
 // Public: no auth checks at all (callback needs to run before session exists,
-// reset-password needs session access after recovery callback)
-const PUBLIC_ROUTES = ['/auth/callback', '/reset-password'];
+// reset-password needs session access after recovery callback,
+// /api/chat is the public widget API consumed by external embedders)
+const PUBLIC_ROUTES = ['/auth/callback', '/reset-password', '/api/chat'];
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';

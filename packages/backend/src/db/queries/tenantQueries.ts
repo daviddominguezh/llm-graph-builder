@@ -91,30 +91,46 @@ export async function getTenantBySlug(
   return { result: data, error: null };
 }
 
-export async function findUniqueTenantSlug(
-  supabase: SupabaseClient,
-  orgId: string,
-  baseSlug: string
-): Promise<string> {
-  const { data } = await supabase
+// Collects existing slugs that could collide with baseSlug or its numeric suffixes.
+// Uses exact match + a bounded suffix query filtered client-side to digit-only next chars.
+// The `ilike('slug', '${baseSlug}_%')` form (underscore = any single char) is used as the
+// suffix query because PostgREST treats `[0-9]` as literal characters, not a bracket class.
+// Client-side filter then narrows to rows where the char immediately after baseSlug is a digit.
+async function collectTakenSlugs(supabase: SupabaseClient, baseSlug: string): Promise<Set<string>> {
+  const exactPromise = supabase.from('tenants').select('slug').eq('slug', baseSlug);
+  const suffixedPromise = supabase
     .from('tenants')
     .select('slug')
-    .eq('org_id', orgId)
-    .or(`slug.eq.${baseSlug},slug.like.${baseSlug}-%`);
+    .ilike('slug', `${baseSlug}_%`)
+    .limit(1024);
 
-  const rows = (data ?? []) as Array<{ slug: string }>;
-  if (!rows.some((r) => r.slug === baseSlug)) return baseSlug;
+  const [exact, suffixed] = await Promise.all([exactPromise, suffixedPromise]);
+  const allRows = [...(exact.data ?? []), ...(suffixed.data ?? [])];
+  const validRows = allRows.filter(
+    (r): r is { slug: string } => typeof r === 'object' && r !== null && 'slug' in r
+  );
+  // Keep only rows where the char right after baseSlug is a digit (rules out e.g. "acmebank").
+  const bounded = validRows.filter((r) => {
+    const next = r.slug[baseSlug.length];
+    return next === undefined || /\d/u.test(next);
+  });
+  return new Set(bounded.map((r) => r.slug));
+}
 
-  const SEPARATOR_LENGTH = 1;
-  const NEXT_SUFFIX = 1;
-  let maxSuffix = 0;
-  for (const row of rows) {
-    if (row.slug === baseSlug) continue;
-    const tail = row.slug.slice(baseSlug.length + SEPARATOR_LENGTH);
-    const num = Number(tail);
-    if (Number.isFinite(num) && num > maxSuffix) maxSuffix = num;
+export async function findUniqueTenantSlug(
+  supabase: SupabaseClient,
+  baseSlug: string
+): Promise<string> {
+  if (baseSlug === '') throw new Error('baseSlug cannot be empty');
+  const taken = await collectTakenSlugs(supabase, baseSlug);
+  if (!taken.has(baseSlug)) return baseSlug;
+
+  for (let i = 1; i < 1000; i++) {
+    const candidate = `${baseSlug}${i}`;
+    if (candidate.length > 40) throw new Error('baseSlug too long for suffix');
+    if (!taken.has(candidate)) return candidate;
   }
-  return `${baseSlug}-${String(maxSuffix + NEXT_SUFFIX)}`;
+  throw new Error('Unable to find unique tenant slug');
 }
 
 export async function updateTenant(

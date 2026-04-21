@@ -1,7 +1,13 @@
 import { TemplateCategorySchema } from '@daviddh/graph-types';
+import { isValidAgentSlug } from '@openflow/shared-validation';
 import type { Request } from 'express';
 
-import { insertAgent, updateProductionKeyId, updateStagingKeyId } from '../../db/queries/agentQueries.js';
+import {
+  type AgentRow,
+  insertAgent,
+  updateProductionKeyId,
+  updateStagingKeyId,
+} from '../../db/queries/agentQueries.js';
 import { getApiKeysByOrg } from '../../db/queries/apiKeyQueries.js';
 import { assembleTemplateSafeGraph } from '../../db/queries/assembleTemplateSafeGraph.js';
 import { updateBloomFilter } from '../../db/queries/bloomFilterQueries.js';
@@ -151,6 +157,61 @@ async function assignDefaultApiKey(supabase: SupabaseClient, orgId: string, agen
 }
 
 /* ------------------------------------------------------------------ */
+/*  Post-create side effects                                           */
+/* ------------------------------------------------------------------ */
+
+interface PostCreateArgs {
+  supabase: SupabaseClient;
+  agentId: string;
+  orgId: string;
+  slug: string;
+  templateAgentId: string | undefined;
+  templateVersion: number | undefined;
+}
+
+async function runPostCreateSideEffects(args: PostCreateArgs): Promise<void> {
+  await updateBloomFilter(args.supabase, buildBitmask(args.slug), 'agents');
+  await assignDefaultApiKey(args.supabase, args.orgId, args.agentId);
+
+  if (args.templateAgentId !== undefined && args.templateVersion !== undefined) {
+    await cloneFromTemplate(args.supabase, args.agentId, args.templateAgentId, args.templateVersion);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Create and finalize agent                                          */
+/* ------------------------------------------------------------------ */
+
+type FinalizeResult = { agent: AgentRow; error: null } | { agent: null; error: string };
+
+async function finalizeAgent(
+  supabase: SupabaseClient,
+  input: CreateAgentInput,
+  slug: string
+): Promise<FinalizeResult> {
+  const { result, error } = await insertAgent(supabase, {
+    orgId: input.orgId,
+    name: input.name,
+    slug,
+    description: input.description,
+    category: input.category,
+    isPublic: input.isPublic,
+    appType: input.appType,
+    systemPrompt: input.systemPrompt,
+  });
+  if (error !== null || result === null) return { agent: null, error: error ?? 'Failed to create agent' };
+  await runPostCreateSideEffects({
+    supabase,
+    agentId: result.id,
+    orgId: input.orgId,
+    slug,
+    templateAgentId: input.templateAgentId,
+    templateVersion: input.templateVersion,
+  });
+  return { agent: result, error: null };
+}
+
+/* ------------------------------------------------------------------ */
 /*  Handler                                                            */
 /* ------------------------------------------------------------------ */
 
@@ -171,30 +232,19 @@ export async function handleCreateAgent(req: Request, res: AuthenticatedResponse
 
   try {
     const slug = await findUniqueSlug(supabase, baseSlug, 'agents');
-    const { result, error } = await insertAgent(supabase, {
-      orgId: input.orgId,
-      name: input.name,
-      slug,
-      description: input.description,
-      category: input.category,
-      isPublic: input.isPublic,
-      appType: input.appType,
-      systemPrompt: input.systemPrompt,
-    });
 
-    if (error !== null || result === null) {
-      res.status(HTTP_INTERNAL_ERROR).json({ error: error ?? 'Failed to create agent' });
+    if (!isValidAgentSlug(slug)) {
+      res.status(HTTP_BAD_REQUEST).json({ error: 'Invalid agent slug' });
       return;
     }
 
-    await updateBloomFilter(supabase, buildBitmask(slug), 'agents');
-    await assignDefaultApiKey(supabase, input.orgId, result.id);
-
-    if (input.templateAgentId !== undefined && input.templateVersion !== undefined) {
-      await cloneFromTemplate(supabase, result.id, input.templateAgentId, input.templateVersion);
+    const { agent, error: insertError } = await finalizeAgent(supabase, input, slug);
+    if (insertError !== null) {
+      res.status(HTTP_INTERNAL_ERROR).json({ error: insertError });
+      return;
     }
 
-    res.status(HTTP_OK).json(result);
+    res.status(HTTP_OK).json(agent);
   } catch (err) {
     res.status(HTTP_INTERNAL_ERROR).json({ error: extractErrorMessage(err) });
   }
