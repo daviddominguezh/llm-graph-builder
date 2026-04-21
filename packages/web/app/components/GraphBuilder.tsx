@@ -78,6 +78,7 @@ function buildLoadResultFromGraph(graph: Graph): GraphLoadResult {
 export interface GraphBuilderProps {
   agentId?: string;
   agentSlug?: string;
+  tenantSlug?: string;
   agentName?: string;
   orgSlug?: string;
   orgId?: string;
@@ -525,6 +526,7 @@ function LoadedEditor(props: LoadedEditorProps) {
                 <PublishButton
                   agentId={props.agentId}
                   agentSlug={props.agentSlug ?? ''}
+                  tenantSlug={props.tenantSlug ?? props.orgSlug ?? ''}
                   version={h.version}
                   canPublish={h.canPublish}
                   hasApiKey={h.apiKeys.productionKeyId !== null}

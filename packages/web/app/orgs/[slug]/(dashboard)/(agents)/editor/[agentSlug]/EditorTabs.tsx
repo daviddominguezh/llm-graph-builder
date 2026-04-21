@@ -19,6 +19,7 @@ type TabId = 'agent' | 'channels' | 'settings';
 
 interface EditorTabsProps {
   agentSlug: string;
+  tenantSlug: string;
   agentId: string;
   agentName: string;
   orgSlug: string;
@@ -74,6 +75,7 @@ function buildEditorElement(props: EditorTabsProps): React.ReactNode {
     <EditorClient
       agentId={props.agentId}
       agentSlug={props.agentSlug}
+      tenantSlug={props.tenantSlug}
       agentName={props.agentName}
       orgSlug={props.orgSlug}
       orgId={props.orgId}

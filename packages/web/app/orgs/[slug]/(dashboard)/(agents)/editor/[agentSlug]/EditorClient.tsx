@@ -9,6 +9,7 @@ import type { ApiKeyRow } from '@/app/lib/apiKeys';
 interface EditorClientProps {
   agentId: string;
   agentSlug: string;
+  tenantSlug: string;
   agentName: string;
   orgSlug: string;
   orgId: string;
