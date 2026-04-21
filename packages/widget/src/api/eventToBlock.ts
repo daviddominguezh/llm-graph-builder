@@ -2,7 +2,7 @@ import type { CopilotMessageBlock } from '../ui/copilotTypes.js';
 import type { PublicExecutionEvent } from '../types/publicEvents.js';
 
 function humanize(name: string): string {
-  return name.replace(/_/gv, ' ').replace(/\b\w/gv, (c) => c.toUpperCase());
+  return name.replace(/_/gu, ' ').replace(/\b\w/gu, (c) => c.toUpperCase());
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
