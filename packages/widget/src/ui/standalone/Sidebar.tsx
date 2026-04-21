@@ -17,8 +17,8 @@ function SidebarLogo() {
   return (
     <div className="flex items-center gap-2">
       <img src="/favicon.png" alt="" className="h-6 w-auto" />
-      <img src="/logo-black.png" alt="OpenFlow" className="h-[3.2px] w-auto dark:hidden" />
-      <img src="/logo-white.png" alt="OpenFlow" className="h-[3.2px] w-auto hidden dark:block" />
+      <img src="/logo-black.png" alt="OpenFlow" className="h-3.5 w-auto dark:hidden" />
+      <img src="/logo-white.png" alt="OpenFlow" className="h-3.5 w-auto hidden dark:block" />
     </div>
   );
 }
