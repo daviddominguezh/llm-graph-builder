@@ -45,6 +45,7 @@ function handleStreamError(e: unknown, setStream: SetStream): void {
 interface RunStreamArgs {
   agent: AgentRef;
   sessions: ReturnType<typeof useSessions>;
+  sessionId: string;
   text: string;
   setStream: SetStream;
 }
@@ -53,6 +54,7 @@ interface HandleEventArgs {
   ev: Awaited<ReturnType<typeof execute> extends AsyncGenerator<infer E> ? E : never>;
   coalescer: BlockCoalescer;
   sessions: ReturnType<typeof useSessions>;
+  sessionId: string;
   setStream: SetStream;
 }
 
@@ -60,6 +62,7 @@ async function handleStreamEvent({
   ev,
   coalescer,
   sessions,
+  sessionId,
   setStream,
 }: HandleEventArgs): Promise<'continue' | 'done'> {
   if (ev.type === 'error') {
@@ -67,7 +70,7 @@ async function handleStreamEvent({
     return 'done';
   }
   if (ev.type === 'done') {
-    await sessions.finalizeAssistantMessage(coalescer.finalize());
+    await sessions.finalizeAssistantMessage(coalescer.finalize(), sessionId);
     setStream(() => INITIAL_STREAMING);
     return 'done';
   }
@@ -80,20 +83,26 @@ interface ConsumeArgs {
   stream: ReturnType<typeof execute>;
   coalescer: BlockCoalescer;
   sessions: ReturnType<typeof useSessions>;
+  sessionId: string;
   setStream: SetStream;
 }
 
-async function consumeStream({ stream, coalescer, sessions, setStream }: ConsumeArgs): Promise<void> {
+async function consumeStream({
+  stream,
+  coalescer,
+  sessions,
+  sessionId,
+  setStream,
+}: ConsumeArgs): Promise<void> {
   for await (const ev of stream) {
-    const status = await handleStreamEvent({ ev, coalescer, sessions, setStream });
+    const status = await handleStreamEvent({ ev, coalescer, sessions, sessionId, setStream });
     if (status === 'done') return;
   }
 }
 
-async function runStream({ agent, sessions, text, setStream }: RunStreamArgs): Promise<void> {
+async function runStream({ agent, sessions, sessionId, text, setStream }: RunStreamArgs): Promise<void> {
   const coalescer = new BlockCoalescer();
   setStream(() => ({ blocks: [], error: null, terminal: null }));
-  const sessionId = sessions.currentSessionId ?? 'pending';
   const stream = execute({
     tenant: agent.tenant,
     agent: agent.agentSlug,
@@ -104,7 +113,7 @@ async function runStream({ agent, sessions, text, setStream }: RunStreamArgs): P
     text,
   });
   try {
-    await consumeStream({ stream, coalescer, sessions, setStream });
+    await consumeStream({ stream, coalescer, sessions, sessionId, setStream });
   } catch (e) {
     handleStreamError(e, setStream);
   }
@@ -115,9 +124,9 @@ export function useChatStream({ agent, sessions }: UseChatStreamArgs): UseChatSt
 
   const send = useCallback(
     async (text: string) => {
-      if (sessions.currentSessionId === null) await sessions.createSession();
-      await sessions.appendUserMessage(text);
-      await runStream({ agent, sessions, text, setStream });
+      const sessionId = sessions.currentSessionId ?? (await sessions.createSession());
+      await sessions.appendUserMessage(text, sessionId);
+      await runStream({ agent, sessions, sessionId, text, setStream });
     },
     [agent, sessions]
   );
