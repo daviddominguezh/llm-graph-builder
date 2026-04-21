@@ -1,4 +1,7 @@
 import { parseAgentHost } from '../routing/parseHostname.js';
+import { startHandshake, type IframePos } from './handshake.js';
+
+export { CSP_TIMEOUT_MS, HANDSHAKE_INTERVAL_MS } from './handshake.js';
 
 interface GlobalAPI {
   boot: () => void;
@@ -19,10 +22,7 @@ declare global {
 
 const LOADER_VERSION = '0.1.0';
 
-// These constants are used by the boot implementation filled in Tasks 45–48.
 export const APP_ORIGIN_DEFAULT = 'https://app.openflow.build';
-export const CSP_TIMEOUT_MS = 8000;
-export const HANDSHAKE_INTERVAL_MS = 200;
 export const VIEWPORT_DEBOUNCE_MS = 100;
 export const IFRAME_Z = 2147483647;
 
@@ -101,7 +101,6 @@ function init(): void {
 
   applyDebugState(url.host, sub, autoload, explicitVersion);
   window.OpenFlowWidget = buildGlobalAPI(scriptEl, url.host, sub, explicitVersion);
-
   globalThis.console.info(`OpenFlowWidget v${LOADER_VERSION} loaded for ${url.host}`);
 
   if (autoload) boot(scriptEl, url.host, sub, explicitVersion);
@@ -118,10 +117,9 @@ function isVersionResponse(val: unknown): val is VersionResponse {
 
 async function fetchVersion(appOrigin: string, sub: { tenant: string; agentSlug: string }): Promise<string | null> {
   try {
-    const res = await fetch(
-      `${appOrigin}/api/chat/latest-version/${sub.tenant}/${sub.agentSlug}`,
-      { cache: 'no-store' }
-    );
+    const res = await fetch(`${appOrigin}/api/chat/latest-version/${sub.tenant}/${sub.agentSlug}`, {
+      cache: 'no-store',
+    });
     const raw: unknown = await res.json();
     if (!isVersionResponse(raw)) {
       globalThis.console.warn('OpenFlowWidget: unexpected version response');
@@ -165,7 +163,7 @@ function buildPanelStyle(base: string): string {
   ].join(';');
 }
 
-function buildIframeStyle(pos: 'bubble' | 'panel' | 'fullscreen'): string {
+export function buildIframeStyle(pos: IframePos): string {
   const base = `border:0;position:fixed;z-index:${String(IFRAME_Z)};color-scheme:normal`;
   if (pos === 'bubble') return buildBubbleStyle(base);
   if (pos === 'fullscreen') return `${base};top:0;left:0;right:0;bottom:0;width:100vw;height:100vh`;
@@ -183,9 +181,26 @@ function createIframe(host: string, version: string): HTMLIFrameElement {
   return iframe;
 }
 
-// To be implemented in Task 46.
-function startHandshake(_iframe: HTMLIFrameElement): void {
-  // noop for now — Task 46 adds the postMessage protocol + retry + 8s timeout
+// Task 47 will fill these.
+function wireViewportForwarding(_iframe: HTMLIFrameElement, _nonce: string, _iframeOrigin: string): void {
+  // noop for now
+}
+function wireTeardown(_iframe: HTMLIFrameElement, _onMessage: (e: MessageEvent) => void): void {
+  // noop for now
+}
+
+function bootHandshake(iframe: HTMLIFrameElement): void {
+  startHandshake(iframe, {
+    buildIframeStyle,
+    onReady: () => {
+      debugState.ready = true;
+    },
+    onTelemetry: (data) => {
+      debugState.lastTelemetry = data;
+    },
+    wireViewportForwarding,
+    wireTeardown,
+  });
 }
 
 function boot(
@@ -208,7 +223,7 @@ function boot(
     const { src } = iframe;
     debugState.iframeUrl = src;
 
-    startHandshake(iframe);
+    bootHandshake(iframe);
   })();
 }
 
