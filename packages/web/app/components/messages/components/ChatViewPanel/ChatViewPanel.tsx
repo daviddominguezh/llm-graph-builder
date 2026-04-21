@@ -212,7 +212,7 @@ const ChatViewPanelComponent: React.FC<ChatViewPanelProps> = ({
       <div className="flex flex-1 overflow-hidden">
         {/* Left side: Chat messages and input */}
         <CardContent
-          className="overflow-y-auto p-0 bg-transparent flex-1"
+          className="overflow-hidden p-0 bg-transparent flex-1"
           style={{
             display: 'flex',
             flexDirection: 'column',
