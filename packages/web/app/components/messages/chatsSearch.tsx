@@ -152,13 +152,13 @@ export const ChatsSearch = ({
                     <Image
                       src={selectedTeammatePicture}
                       alt={selectedTeammate.name}
-                      width={15}
-                      height={15}
-                      className="rounded-full object-cover"
+                      width={20}
+                      height={20}
+                      className="rounded-full object-cover w-5 h-5 min-w-5"
                       unoptimized
                     />
                   ) : (
-                    <Avatar {...selectedTeammateAvatar} className="rounded-full " />
+                    <Avatar {...selectedTeammateAvatar} className="rounded-full w-5 h-5 min-w-5" />
                   )
                 ) : (
                   <Filter className="text-foreground" strokeWidth={2} />

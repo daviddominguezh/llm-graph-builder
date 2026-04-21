@@ -70,39 +70,57 @@ export async function getOrgMembers(
  * Do NOT call this from user-JWT contexts — it bypasses membership
  * verification. Use `getOrgMembers` from those paths.
  */
+enum RolePriority {
+  Owner = 0,
+  Admin = 1,
+  Developer = 2,
+  Agent = 3,
+  Unknown = 99,
+}
+
 const ROLE_PRIORITY: Record<string, number> = {
-  owner: 0,
-  admin: 1,
-  developer: 2,
-  agent: 3,
+  owner: RolePriority.Owner,
+  admin: RolePriority.Admin,
+  developer: RolePriority.Developer,
+  agent: RolePriority.Agent,
 };
 
+function hasRequiredMemberKeys(
+  row: object
+): row is Record<'user_id' | 'role' | 'created_at' | 'users', unknown> {
+  return 'user_id' in row && 'role' in row && 'created_at' in row && 'users' in row;
+}
+
+function hasRequiredUserKeys(user: object): user is Record<'email' | 'full_name', unknown> {
+  return 'email' in user && 'full_name' in user;
+}
+
+function parseUserFields(users: unknown): { email: string; fullName: string } | null {
+  if (typeof users !== 'object' || users === null || !hasRequiredUserKeys(users)) return null;
+  const { email, full_name: fullName } = users;
+  if (typeof email !== 'string' || typeof fullName !== 'string') return null;
+  return { email, fullName };
+}
+
 function parseServiceMemberRow(row: unknown): OrgMemberRow | null {
-  if (typeof row !== 'object' || row === null) return null;
-  const r = row as Record<string, unknown>;
-  const users = r.users;
-  if (typeof users !== 'object' || users === null) return null;
-  const u = users as Record<string, unknown>;
-  const valid =
-    typeof r.user_id === 'string' &&
-    typeof r.role === 'string' &&
-    typeof r.created_at === 'string' &&
-    typeof u.email === 'string' &&
-    typeof u.full_name === 'string';
-  if (!valid) return null;
+  if (typeof row !== 'object' || row === null || !hasRequiredMemberKeys(row)) return null;
+  const { user_id: userId, role, created_at: createdAt, users } = row;
+  if (typeof userId !== 'string' || typeof role !== 'string' || typeof createdAt !== 'string') return null;
+  const userFields = parseUserFields(users);
+  if (userFields === null) return null;
   return {
-    user_id: r.user_id as string,
-    role: r.role as string,
-    email: u.email as string,
-    full_name: u.full_name as string,
-    joined_at: r.created_at as string,
+    user_id: userId,
+    role,
+    email: userFields.email,
+    full_name: userFields.fullName,
+    joined_at: createdAt,
   };
 }
 
 function sortMembersByRole(rows: OrgMemberRow[]): OrgMemberRow[] {
   return rows.slice().sort((a, b) => {
-    const pa = ROLE_PRIORITY[a.role] ?? 99;
-    const pb = ROLE_PRIORITY[b.role] ?? 99;
+    const pa = ROLE_PRIORITY[a.role] ?? RolePriority.Unknown;
+    const pb = ROLE_PRIORITY[b.role] ?? RolePriority.Unknown;
     if (pa !== pb) return pa - pb;
     return a.joined_at.localeCompare(b.joined_at);
   });
