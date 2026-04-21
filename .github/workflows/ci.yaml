@@ -114,7 +114,14 @@ jobs:
       # reads whichever env got set here.
       - name: Dump preview branch env (pull_request only)
         if: github.event_name == 'pull_request'
-        run: supabase --experimental branches get "$GITHUB_HEAD_REF" -o env >> "$GITHUB_ENV"
+        # The CLI emits lines shaped like `NAME="VALUE"` (shell env-file syntax
+        # with literal quotes). `$GITHUB_ENV` treats those quotes as part of
+        # the value, which breaks downstream consumers. Strip surrounding
+        # double quotes per line before writing.
+        run: |
+          supabase --experimental branches get "$GITHUB_HEAD_REF" -o env \
+            | sed -E 's/^([A-Z_]+)="(.*)"$/\1=\2/' \
+            >> "$GITHUB_ENV"
 
       - name: Resolve target project ref
         id: target
