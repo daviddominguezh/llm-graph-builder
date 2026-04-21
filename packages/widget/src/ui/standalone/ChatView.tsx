@@ -54,7 +54,7 @@ function ChatFooter({ isStreaming, streamError, terminalUnavailable, onSend }: F
   const t = useT();
   return (
     <div className="shrink-0 border-t border-border">
-      <div className="max-w-3xl mx-auto w-full px-4 py-4">
+      <div className="max-w-2xl mx-auto w-full px-4 py-4">
         {streamError !== null && <div className="pb-2 text-xs text-red-500">{streamError}</div>}
         {terminalUnavailable ? (
           <div className="text-xs text-muted-foreground">{t('assistantUnavailable')}</div>
