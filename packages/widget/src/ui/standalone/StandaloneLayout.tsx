@@ -102,7 +102,7 @@ export function StandaloneLayout({ sessions, chat }: StandaloneLayoutProps) {
   const starred = useActiveStarred(sessions);
 
   const gridClasses = sidebarOpen
-    ? 'grid grid-cols-[260px_1fr] h-dvh w-full'
+    ? 'grid grid-cols-[288px_1fr] h-dvh w-full'
     : 'grid grid-cols-1 h-dvh w-full';
 
   return (
