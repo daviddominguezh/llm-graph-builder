@@ -86,36 +86,14 @@ interface SessionActions {
 }
 
 interface CreateSessionArgs {
-  backendRef: React.RefObject<Promise<SessionsBackend>>;
-  tenant: string;
-  agentSlug: string;
-  reload: (b: SessionsBackend) => Promise<void>;
   setCurrentSessionId: (id: string | null) => void;
 }
 
-function useCreateSession({
-  backendRef,
-  tenant,
-  agentSlug,
-  reload,
-  setCurrentSessionId,
-}: CreateSessionArgs): () => Promise<void> {
+function useCreateSession({ setCurrentSessionId }: CreateSessionArgs): () => Promise<void> {
   return useCallback(async () => {
-    const b = await backendRef.current;
-    const now = Date.now();
-    const session: StoredSession = {
-      sessionId: randomUUID(),
-      tenant,
-      agentSlug,
-      title: 'New chat',
-      createdAt: now,
-      updatedAt: now,
-      messages: [],
-    };
-    await b.put(session);
-    setCurrentSessionId(session.sessionId);
-    await reload(b);
-  }, [backendRef, tenant, agentSlug, reload, setCurrentSessionId]);
+    await Promise.resolve();
+    setCurrentSessionId(randomUUID());
+  }, [setCurrentSessionId]);
 }
 
 interface MutateArgs {
@@ -124,6 +102,28 @@ interface MutateArgs {
   tenant: string;
   agentSlug: string;
   reload: (b: SessionsBackend) => Promise<void>;
+}
+
+function buildNewSession(args: { id: string; tenant: string; agentSlug: string; text: string }): StoredSession {
+  const now = Date.now();
+  return {
+    sessionId: args.id,
+    tenant: args.tenant,
+    agentSlug: args.agentSlug,
+    title: buildTitle(args.text),
+    createdAt: now,
+    updatedAt: now,
+    messages: [buildUserMessage(args.text)],
+  };
+}
+
+function updateExistingSession(existing: StoredSession, text: string): StoredSession {
+  return {
+    ...existing,
+    title: existing.messages.length === EMPTY_LENGTH ? buildTitle(text) : existing.title,
+    messages: [...existing.messages, buildUserMessage(text)],
+    updatedAt: Date.now(),
+  };
 }
 
 function useAppendUserMessage({
@@ -138,13 +138,10 @@ function useAppendUserMessage({
       if (currentSessionId === null) return;
       const b = await backendRef.current;
       const existing = await b.get(tenant, agentSlug, currentSessionId);
-      if (existing === undefined) return;
-      const updated: StoredSession = {
-        ...existing,
-        title: existing.messages.length === EMPTY_LENGTH ? buildTitle(text) : existing.title,
-        messages: [...existing.messages, buildUserMessage(text)],
-        updatedAt: Date.now(),
-      };
+      const updated =
+        existing === undefined
+          ? buildNewSession({ id: currentSessionId, tenant, agentSlug, text })
+          : updateExistingSession(existing, text);
       await b.put(updated);
       await reload(b);
     },
@@ -187,7 +184,7 @@ function useSessionActions({ state, tenant, agentSlug }: ActionArgs): SessionAct
     [setSessions, tenant, agentSlug]
   );
 
-  const createSession = useCreateSession({ backendRef, tenant, agentSlug, reload, setCurrentSessionId });
+  const createSession = useCreateSession({ setCurrentSessionId });
 
   const switchSession = useCallback(
     async (id: string) => {
@@ -205,12 +202,16 @@ function useSessionActions({ state, tenant, agentSlug }: ActionArgs): SessionAct
   return { createSession, switchSession, appendUserMessage, finalizeAssistantMessage };
 }
 
+function deriveMessages(sessions: StoredSession[], currentSessionId: string | null): CopilotMessage[] {
+  const current = sessions.find((s) => s.sessionId === currentSessionId);
+  return current?.messages ?? [];
+}
+
 export function useSessions({ tenant, agentSlug }: Args): UseSessionsResult {
   const state = useSessionsState({ tenant, agentSlug });
   const actions = useSessionActions({ state, tenant, agentSlug });
 
-  const current = state.sessions.find((s) => s.sessionId === state.currentSessionId);
-  const messages = current?.messages ?? [];
+  const messages = deriveMessages(state.sessions, state.currentSessionId);
   const backendKind: UseSessionsResult['backendKind'] =
     state.backend === null ? 'loading' : state.backend.kind;
 
