@@ -73,6 +73,8 @@ function CurlHighlighter({ curl, publishing }: { curl: string; publishing: boole
           padding: '0.625rem',
           wordBreak: 'break-all',
           whiteSpace: 'pre-wrap',
+          maxHeight: '180px',
+          overflowY: 'auto',
           opacity: publishing ? 0.4 : 1,
           transition: 'opacity 150ms',
         }}

@@ -30,7 +30,7 @@ export function DirectLinkDisplay({ tenantSlug, agentSlug, disabled = false }: D
         href={url}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-xs text-primary underline underline-offset-2 hover:no-underline break-all"
+        className="text-xs text-blue-600 dark:text-blue-400 underline underline-offset-2 hover:no-underline break-all"
         style={{ opacity: disabled ? 0.4 : 1 }}
       >
         {url}
