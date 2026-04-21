@@ -13,14 +13,17 @@ function wrapFocus(e: KeyboardEvent, first: HTMLElement, last: HTMLElement): voi
   }
 }
 
+const EMPTY = 0;
+const LAST_INDEX_OFFSET = -1;
+
 function buildKeyHandler(container: HTMLElement) {
   return function onKey(e: KeyboardEvent): void {
     if (e.key !== 'Tab') return;
-    const focusables = container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
-    if (focusables.length === 0) return;
-    const first = focusables[0];
-    const last = focusables[focusables.length - 1];
-    if (!first || !last) return;
+    const focusables = Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+    if (focusables.length === EMPTY) return;
+    const [first] = focusables;
+    const last = focusables.at(LAST_INDEX_OFFSET);
+    if (first === undefined || last === undefined) return;
     wrapFocus(e, first, last);
   };
 }
@@ -28,10 +31,12 @@ function buildKeyHandler(container: HTMLElement) {
 export function useFocusTrap(ref: RefObject<HTMLElement | null>, active: boolean): void {
   useEffect(() => {
     if (!active) return undefined;
-    const container = ref.current;
-    if (!container) return undefined;
+    const { current: container } = ref;
+    if (container === null) return undefined;
     const onKey = buildKeyHandler(container);
     document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('keydown', onKey); };
+    return () => {
+      document.removeEventListener('keydown', onKey);
+    };
   }, [ref, active]);
 }
