@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run build:loader && npm run build:app",
+    "build": "rm -rf dist && npm run build:loader && npm run build:app",
     "build:app": "vite build",
     "build:loader": "vite build --mode loader",
     "typecheck": "tsc -b --noEmit",
