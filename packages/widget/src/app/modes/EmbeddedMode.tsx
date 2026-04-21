@@ -43,7 +43,7 @@ export function EmbeddedMode({ hostViewportW }: { hostViewportW: number | null }
         type="button"
         aria-label={t('openChat')}
         onClick={openPanel}
-        className="w-full h-full rounded-full bg-primary text-primary-foreground flex items-center justify-center p-3 shadow-lg"
+        className="cursor-pointer w-full h-full rounded-full bg-primary text-primary-foreground flex items-center justify-center p-3 shadow-lg"
       >
         <Sparkles className="size-4.5" />
       </button>

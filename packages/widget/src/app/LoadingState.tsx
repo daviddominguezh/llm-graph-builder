@@ -20,7 +20,7 @@ function EmbeddedLoader({ label }: { label: string }) {
       role="status"
       aria-busy="true"
       aria-label={label}
-      className="w-full h-full rounded-full bg-primary/70 text-primary-foreground flex items-center justify-center animate-pulse"
+      className="cursor-pointer w-full h-full rounded-full bg-primary/70 text-primary-foreground flex items-center justify-center animate-pulse"
     >
       <Sparkles className="size-6 opacity-80" />
     </div>
