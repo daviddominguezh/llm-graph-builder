@@ -106,7 +106,7 @@ export function SimulationModelSelector({ models, value, onValueChange, effort, 
       <div ref={anchorRef}>
         <ComboboxInput
           placeholder={t('selectModel')}
-          className="model-selector-trigger h-6 border-none bg-transparent! text-[11px] text-muted-foreground shadow-none transition-colors rounded-md hover:bg-card! focus-within:bg-card!"
+          className="model-selector-trigger h-6 border-none bg-transparent! text-[11px] text-muted-foreground shadow-none transition-colors rounded-md hover:bg-background! focus-within:bg-background!"
           style={{ width: 'auto', flex: '0 0 auto', cursor: 'default', fieldSizing: 'content', boxShadow: 'none', borderColor: 'transparent' } as React.CSSProperties}
         >
           {effort === 'high' && (

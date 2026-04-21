@@ -121,7 +121,7 @@ function ChatInput({
   const isEmpty = text.trim().length === 0;
 
   return (
-    <div className="mx-2 flex flex-col overflow-hidden rounded-lg border bg-muted/30 py-1 gap-1 my-2">
+    <div className="mx-2 flex flex-col overflow-hidden rounded-lg bg-input dark:bg-input/30 py-1 gap-1 my-2">
       <div
         data-native-scroll
         className="max-h-96 min-h-6 w-full overflow-y-auto break-words px-3 py-2 text-xs transition-opacity"
