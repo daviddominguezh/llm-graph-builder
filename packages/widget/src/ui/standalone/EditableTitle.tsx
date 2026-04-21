@@ -5,6 +5,7 @@ export interface EditableTitleProps {
   editing: boolean;
   onCommit: (newTitle: string) => void;
   onEditingChange: (v: boolean) => void;
+  maxWidth?: string;
 }
 
 function commitIfChanged(
@@ -52,7 +53,7 @@ function TitleInput({ title, onCommit, onEditingChange }: InputProps) {
   );
 }
 
-export function EditableTitle({ title, editing, onCommit, onEditingChange }: EditableTitleProps) {
+export function EditableTitle({ title, editing, onCommit, onEditingChange, maxWidth }: EditableTitleProps) {
   if (editing) {
     return <TitleInput title={title} onCommit={onCommit} onEditingChange={onEditingChange} />;
   }
@@ -60,7 +61,8 @@ export function EditableTitle({ title, editing, onCommit, onEditingChange }: Edi
     <button
       type="button"
       onClick={() => onEditingChange(true)}
-      className="text-sm font-medium truncate cursor-pointer hover:text-foreground text-foreground text-left px-2 py-0.5 rounded-md"
+      className="text-sm font-medium truncate cursor-pointer hover:text-foreground text-foreground text-left px-2 py-0.5 rounded-md block"
+      style={maxWidth === undefined ? undefined : { maxWidth }}
       title={title}
     >
       {title}
