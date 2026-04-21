@@ -14,5 +14,13 @@
   "assistantUnavailable": "This assistant is no longer available.",
   "loading": "Loading",
   "agentNotFound": "Agent not found",
-  "agentNotFoundHint": "Check the URL or ask the team that shared this link."
+  "agentNotFoundHint": "Check the URL or ask the team that shared this link.",
+  "search": "Search",
+  "recents": "Recents",
+  "welcomeTitle": "Hello",
+  "howCanIHelp": "How can I help today?",
+  "reply": "Reply...",
+  "toggleTheme": "Toggle theme",
+  "versionHistory": "Version history",
+  "collapseSidebar": "Collapse sidebar"
 }

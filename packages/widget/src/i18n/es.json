@@ -14,5 +14,13 @@
   "assistantUnavailable": "Este asistente ya no está disponible.",
   "loading": "Cargando",
   "agentNotFound": "Agente no encontrado",
-  "agentNotFoundHint": "Verifica la URL o pregunta a quien compartió este enlace."
+  "agentNotFoundHint": "Verifica la URL o pregunta a quien compartió este enlace.",
+  "search": "Buscar",
+  "recents": "Recientes",
+  "welcomeTitle": "Hola",
+  "howCanIHelp": "¿Cómo puedo ayudarte hoy?",
+  "reply": "Responder...",
+  "toggleTheme": "Cambiar tema",
+  "versionHistory": "Historial de versiones",
+  "collapseSidebar": "Contraer barra lateral"
 }
