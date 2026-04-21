@@ -555,8 +555,8 @@ div.model-selector-trigger[data-slot="input-group"] {
 
 .dark .glass-panel::before {
   box-shadow:
-    inset 2px 2px 0px -2px var(--border),
-    inset -2px -2px 0px -2px var(--border);
+    inset 2px 2px 0px -2px var(--input),
+    inset -2px -2px 0px -2px var(--input);
 }
 
 .glass-panel--background::before {
@@ -584,5 +584,5 @@ div.model-selector-trigger[data-slot="input-group"] {
   pointer-events: none;
   backdrop-filter: blur(16px);
   overflow: hidden;
-  box-shadow: inset 3px -1px 0px -2px var(--ring), -0.5px 1px 0px -0.5px var(--border), 1.5px -1.5px 0px -1px var(--border);
+  box-shadow: inset 3px -1px 0px -2px var(--border), -0.5px 1px 0px -0.5px var(--border), 1.5px -1.5px 0px -1px var(--border);
 }
