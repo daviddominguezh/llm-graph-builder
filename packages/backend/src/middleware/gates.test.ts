@@ -1,42 +1,29 @@
-import type { NextFunction, Request, Response } from 'express';
 import { describe, expect, it, jest } from '@jest/globals';
+import type { RequestHandler } from 'express';
+import express from 'express';
+import request from 'supertest';
 
 import { requireGateComplete, requireOnboardingIncomplete, requirePhoneUnverified } from './gates.js';
 
-type AuthGetUserResult = {
+const HTTP_OK = 200;
+const HTTP_FORBIDDEN = 403;
+
+interface AuthGetUserResult {
   data: { user: { phone_confirmed_at: string | null } | null };
   error: null;
-};
+}
 
-type DbQueryResult = {
+interface DbQueryResult {
   data: {
     onboarding_completed_at: string | null;
     grandfathered_at: string | null;
   } | null;
   error: null;
-};
+}
 
-type MockSupabase = {
+interface MockSupabase {
   from: jest.Mock;
   auth: { getUser: jest.Mock<() => Promise<AuthGetUserResult>> };
-};
-
-type MockResponse = {
-  locals: { supabase: MockSupabase; userId: string };
-  status: jest.Mock;
-  json: jest.Mock;
-};
-
-function buildReqRes(supabase: MockSupabase, userId = 'u1') {
-  const req = {} as unknown as Request;
-  const mockRes: MockResponse = {
-    locals: { supabase, userId },
-    status: jest.fn().mockReturnThis(),
-    json: jest.fn(),
-  };
-  const res = mockRes as unknown as Response;
-  const next = jest.fn() as unknown as NextFunction;
-  return { req, res, next, mockRes };
 }
 
 function mockSupabaseReturning(row: {
@@ -58,41 +45,28 @@ function mockSupabaseReturning(row: {
   };
 }
 
-describe('requireGateComplete', () => {
+function buildApp(middleware: RequestHandler, supabase: MockSupabase): express.Express {
+  const app = express();
+  app.use((_req, res, next) => {
+    Object.assign(res.locals, { supabase, userId: 'u1' });
+    next();
+  });
+  app.get('/test', middleware, (_req, res) => {
+    res.status(HTTP_OK).json({ ok: true });
+  });
+  return app;
+}
+
+describe('requireGateComplete — success cases', () => {
   it('calls next when both flags true', async () => {
     const supabase = mockSupabaseReturning({
       onboarding_completed_at: 'x',
       grandfathered_at: null,
       phone_confirmed_at: 'x',
     });
-    const { req, res, next, mockRes } = buildReqRes(supabase);
-    await requireGateComplete(req, res, next);
-    expect(next).toHaveBeenCalledWith();
-    expect(mockRes.status).not.toHaveBeenCalled();
-  });
-
-  it('403 when phone not verified', async () => {
-    const supabase = mockSupabaseReturning({
-      onboarding_completed_at: 'x',
-      grandfathered_at: null,
-      phone_confirmed_at: null,
-    });
-    const { req, res, next, mockRes } = buildReqRes(supabase);
-    await requireGateComplete(req, res, next);
-    expect(mockRes.status).toHaveBeenCalledWith(403);
-    expect(next).not.toHaveBeenCalled();
-  });
-
-  it('403 when onboarding_completed_at is null but phone is verified', async () => {
-    const supabase = mockSupabaseReturning({
-      onboarding_completed_at: null,
-      grandfathered_at: null,
-      phone_confirmed_at: 'x',
-    });
-    const { req, res, next, mockRes } = buildReqRes(supabase);
-    await requireGateComplete(req, res, next);
-    expect(mockRes.status).toHaveBeenCalledWith(403);
-    expect(next).not.toHaveBeenCalled();
+    const app = buildApp(requireGateComplete, supabase);
+    const res = await request(app).get('/test');
+    expect(res.status).toBe(HTTP_OK);
   });
 
   it('passes when grandfathered_at is set even if phone_confirmed_at is null', async () => {
@@ -101,10 +75,33 @@ describe('requireGateComplete', () => {
       grandfathered_at: 'x',
       phone_confirmed_at: null,
     });
-    const { req, res, next, mockRes } = buildReqRes(supabase);
-    await requireGateComplete(req, res, next);
-    expect(next).toHaveBeenCalledWith();
-    expect(mockRes.status).not.toHaveBeenCalled();
+    const app = buildApp(requireGateComplete, supabase);
+    const res = await request(app).get('/test');
+    expect(res.status).toBe(HTTP_OK);
+  });
+});
+
+describe('requireGateComplete — failure cases', () => {
+  it('403 when phone not verified', async () => {
+    const supabase = mockSupabaseReturning({
+      onboarding_completed_at: 'x',
+      grandfathered_at: null,
+      phone_confirmed_at: null,
+    });
+    const app = buildApp(requireGateComplete, supabase);
+    const res = await request(app).get('/test');
+    expect(res.status).toBe(HTTP_FORBIDDEN);
+  });
+
+  it('403 when onboarding_completed_at is null but phone is verified', async () => {
+    const supabase = mockSupabaseReturning({
+      onboarding_completed_at: null,
+      grandfathered_at: null,
+      phone_confirmed_at: 'x',
+    });
+    const app = buildApp(requireGateComplete, supabase);
+    const res = await request(app).get('/test');
+    expect(res.status).toBe(HTTP_FORBIDDEN);
   });
 });
 
@@ -115,10 +112,9 @@ describe('requirePhoneUnverified', () => {
       grandfathered_at: null,
       phone_confirmed_at: null,
     });
-    const { req, res, next, mockRes } = buildReqRes(supabase);
-    await requirePhoneUnverified(req, res, next);
-    expect(next).toHaveBeenCalledWith();
-    expect(mockRes.status).not.toHaveBeenCalled();
+    const app = buildApp(requirePhoneUnverified, supabase);
+    const res = await request(app).get('/test');
+    expect(res.status).toBe(HTTP_OK);
   });
 
   it('403 when phone_confirmed_at is set', async () => {
@@ -127,10 +123,9 @@ describe('requirePhoneUnverified', () => {
       grandfathered_at: null,
       phone_confirmed_at: 'x',
     });
-    const { req, res, next, mockRes } = buildReqRes(supabase);
-    await requirePhoneUnverified(req, res, next);
-    expect(mockRes.status).toHaveBeenCalledWith(403);
-    expect(next).not.toHaveBeenCalled();
+    const app = buildApp(requirePhoneUnverified, supabase);
+    const res = await request(app).get('/test');
+    expect(res.status).toBe(HTTP_FORBIDDEN);
   });
 });
 
@@ -141,10 +136,9 @@ describe('requireOnboardingIncomplete', () => {
       grandfathered_at: null,
       phone_confirmed_at: null,
     });
-    const { req, res, next, mockRes } = buildReqRes(supabase);
-    await requireOnboardingIncomplete(req, res, next);
-    expect(next).toHaveBeenCalledWith();
-    expect(mockRes.status).not.toHaveBeenCalled();
+    const app = buildApp(requireOnboardingIncomplete, supabase);
+    const res = await request(app).get('/test');
+    expect(res.status).toBe(HTTP_OK);
   });
 
   it('403 when onboarding_completed_at is set', async () => {
@@ -153,9 +147,8 @@ describe('requireOnboardingIncomplete', () => {
       grandfathered_at: null,
       phone_confirmed_at: null,
     });
-    const { req, res, next, mockRes } = buildReqRes(supabase);
-    await requireOnboardingIncomplete(req, res, next);
-    expect(mockRes.status).toHaveBeenCalledWith(403);
-    expect(next).not.toHaveBeenCalled();
+    const app = buildApp(requireOnboardingIncomplete, supabase);
+    const res = await request(app).get('/test');
+    expect(res.status).toBe(HTTP_FORBIDDEN);
   });
 });
