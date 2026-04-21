@@ -77,4 +77,74 @@ describe('useSessions', () => {
     });
     expect(result.current.messages.at(-1)?.role).toBe('assistant');
   });
+
+  it('renameSession updates the title of the active session', async () => {
+    const { result } = renderHook(() => useSessions({ tenant: 'acme', agentSlug: 'x' }));
+    await act(async () => {
+      await result.current.createSession();
+    });
+    await act(async () => {
+      await result.current.appendUserMessage('hello');
+    });
+    const id = result.current.currentSessionId!;
+    await act(async () => {
+      await result.current.renameSession(id, 'My renamed chat');
+    });
+    expect(result.current.sessions[0]!.title).toBe('My renamed chat');
+  });
+
+  it('renameSession is a no-op when the trimmed title equals the existing one', async () => {
+    const { result } = renderHook(() => useSessions({ tenant: 'acme', agentSlug: 'x' }));
+    await act(async () => {
+      await result.current.createSession();
+    });
+    await act(async () => {
+      await result.current.appendUserMessage('hello');
+    });
+    const id = result.current.currentSessionId!;
+    const originalUpdatedAt = result.current.sessions[0]!.updatedAt;
+    await new Promise((r) => setTimeout(r, 5));
+    await act(async () => {
+      await result.current.renameSession(id, '  hello  ');
+    });
+    expect(result.current.sessions[0]!.updatedAt).toBe(originalUpdatedAt);
+  });
+
+  it('deleteSession removes the session and clears currentSessionId when active', async () => {
+    const { result } = renderHook(() => useSessions({ tenant: 'acme', agentSlug: 'x' }));
+    await act(async () => {
+      await result.current.createSession();
+    });
+    await act(async () => {
+      await result.current.appendUserMessage('hello');
+    });
+    const id = result.current.currentSessionId!;
+    await act(async () => {
+      await result.current.deleteSession(id);
+    });
+    expect(result.current.sessions).toHaveLength(0);
+    expect(result.current.currentSessionId).toBeNull();
+  });
+
+  it('toggleStarSession flips the flag and preserves updatedAt', async () => {
+    const { result } = renderHook(() => useSessions({ tenant: 'acme', agentSlug: 'x' }));
+    await act(async () => {
+      await result.current.createSession();
+    });
+    await act(async () => {
+      await result.current.appendUserMessage('hello');
+    });
+    const id = result.current.currentSessionId!;
+    const originalUpdatedAt = result.current.sessions[0]!.updatedAt;
+    await new Promise((r) => setTimeout(r, 5));
+    await act(async () => {
+      await result.current.toggleStarSession(id);
+    });
+    expect(result.current.sessions[0]!.starred).toBe(true);
+    expect(result.current.sessions[0]!.updatedAt).toBe(originalUpdatedAt);
+    await act(async () => {
+      await result.current.toggleStarSession(id);
+    });
+    expect(result.current.sessions[0]!.starred).toBe(false);
+  });
 });
