@@ -16,10 +16,12 @@ jobs:
         with:
           node-version: 'lts/*'
       - name: Install dependencies
-        run: npm ci
+        run: npm install
       - name: Build graph-types
         run: npm run build -w packages/graph-types
-      - name: Build package
+      - name: Build shared-validation
+        run: npm run build -w packages/shared-validation
+      - name: Build api
         run: npm run build:api
       - name: Run format, lint, and typecheck
         run: npm run check
@@ -74,9 +76,11 @@ jobs:
       # paths in their deno.json import_map. Without this, the bundler can't
       # resolve ../../../packages/api/dist/index.js etc.
       - name: Install dependencies
-        run: npm ci
+        run: npm install
       - name: Build graph-types
         run: npm run build -w packages/graph-types
+      - name: Build shared-validation
+        run: npm run build -w packages/shared-validation
       - name: Build api
         run: npm run build:api
 
