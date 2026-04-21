@@ -5,7 +5,7 @@ import { corsHeadersFor, preflightResponse } from '../../../_helpers/cors.js';
 
 export const runtime = 'nodejs';
 
-const BACKEND_URL = process.env['BACKEND_URL'] ?? 'http://localhost:4000';
+const BACKEND_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4000';
 const MOCK_LATEST = process.env['MOCK_LATEST_PATH'] ?? '/api/mock-execute';
 
 export function OPTIONS(request: Request): Response {
