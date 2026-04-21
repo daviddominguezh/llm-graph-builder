@@ -1,3 +1,5 @@
+import { Star } from 'lucide-react';
+
 import type { StoredSession } from '../../storage/indexeddb.js';
 
 export interface SidebarRecentsProps {
@@ -7,7 +9,8 @@ export interface SidebarRecentsProps {
 }
 
 function rowClasses(active: boolean): string {
-  const base = 'w-full text-left px-3 py-1.5 text-sm truncate rounded-md cursor-pointer';
+  const base =
+    'w-full text-left px-3 py-1.5 text-sm rounded-md cursor-pointer flex items-center gap-1.5';
   return active ? `${base} bg-sidebar-accent` : `${base} hover:bg-sidebar-accent`;
 }
 
@@ -27,7 +30,10 @@ function RecentRow({
       className={rowClasses(active)}
       title={session.title}
     >
-      {session.title}
+      <span className="truncate flex-1 min-w-0">{session.title}</span>
+      {session.starred === true && (
+        <Star className="size-3 fill-current text-muted-foreground shrink-0" />
+      )}
     </button>
   );
 }
