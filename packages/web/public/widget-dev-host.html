@@ -3,17 +3,92 @@
   <head>
     <meta charset="UTF-8" />
     <title>OpenFlow widget dev host</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        min-height: 100vh;
+        padding: 40px;
+        font: 14px system-ui;
+        background: #fafafa;
+      }
+      #openflow-widget {
+        position: fixed;
+        border: 0;
+        z-index: 2147483647;
+        background: transparent;
+        transition:
+          width 0.15s ease,
+          height 0.15s ease,
+          top 0.15s ease,
+          bottom 0.15s ease,
+          right 0.15s ease;
+      }
+    </style>
   </head>
-  <body style="margin:0;padding:40px;font:14px system-ui">
+  <body>
     <h1>Widget dev host</h1>
-    <p>This page embeds the local widget via the loader script.</p>
+    <p>
+      Embeds the local widget (<code>http://localhost:5173</code>) in an iframe. Click the bubble to open the
+      panel. Edit <code>TENANT</code> / <code>AGENT</code> in the inline script to target a different agent.
+    </p>
+
+    <iframe id="openflow-widget"></iframe>
+
     <script>
-      // Point the loader (built for production subdomains) at the local Vite SPA.
-      window.OPENFLOW_APP_ORIGIN = 'http://localhost:3101';
+      const WIDGET_ORIGIN = 'http://localhost:5173';
+      const TENANT = 'openflow';
+      const AGENT = 'agent-example';
+
+      const POSITIONS = {
+        bubble: { width: 56, height: 56, top: 'auto', right: 16, bottom: 16 },
+        panel: { width: 400, height: 'calc(100vh - 48px)', top: 24, right: 14, bottom: 'auto' },
+        fullscreen: { width: '100vw', height: '100vh', top: 0, right: 0, bottom: 'auto' },
+      };
+
+      const nonce = Math.random().toString(36).slice(2);
+      const iframe = document.getElementById('openflow-widget');
+      function applyPos(pos) {
+        const p = POSITIONS[pos] ?? POSITIONS.bubble;
+        iframe.style.width = typeof p.width === 'number' ? `${p.width}px` : p.width;
+        iframe.style.height = typeof p.height === 'number' ? `${p.height}px` : p.height;
+        iframe.style.top = typeof p.top === 'number' ? `${p.top}px` : p.top;
+        iframe.style.right = typeof p.right === 'number' ? `${p.right}px` : p.right;
+        iframe.style.bottom = typeof p.bottom === 'number' ? `${p.bottom}px` : p.bottom;
+      }
+
+      applyPos('bubble');
+      iframe.src = `${WIDGET_ORIGIN}/?tenant=${TENANT}&agent=${AGENT}`;
+
+      iframe.addEventListener('load', () => {
+        iframe.contentWindow.postMessage(
+          {
+            type: 'openflow:init',
+            nonce,
+            hostOrigin: window.location.origin,
+            path: window.location.pathname,
+            viewportW: window.innerWidth,
+          },
+          WIDGET_ORIGIN
+        );
+      });
+
+      window.addEventListener('message', (e) => {
+        if (e.origin !== WIDGET_ORIGIN) return;
+        const d = e.data;
+        if (!d || d.nonce !== nonce) return;
+        if (d.type === 'openflow:resize') applyPos(d.pos);
+      });
+
+      window.addEventListener('resize', () => {
+        iframe.contentWindow?.postMessage(
+          { type: 'openflow:viewport', nonce, viewportW: window.innerWidth },
+          WIDGET_ORIGIN
+        );
+      });
     </script>
-    <script
-      src="http://localhost:5173/src/loader/script.ts"
-      data-dev="1"
-      async></script>
   </body>
 </html>
