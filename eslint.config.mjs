@@ -31,6 +31,7 @@ export default defineConfig([
       'packages/backend/src/routes/auth/**',
       'packages/backend/src/middleware/**',
       'packages/backend/src/lib/auditLog.ts',
+      'packages/backend/src/lib/startupChecks.ts',
     ],
     rules: {
       'no-restricted-imports': ['error', {

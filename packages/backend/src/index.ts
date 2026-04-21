@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { runStartupChecks } from './lib/startupChecks.js';
 import { initializeSocketIO } from './messaging/socket/index.js';
 import { loadCompletionConfig } from './notifications/completionNotifier.js';
 import { InProcessCompletionNotifier } from './notifications/inProcessCompletionNotifier.js';
@@ -22,6 +23,8 @@ const ZERO = 0;
 const envPort = Number(env.PORT);
 const port = Number.isNaN(envPort) || envPort === ZERO ? DEFAULT_PORT : envPort;
 const app = createApp();
+
+await runStartupChecks(app);
 
 const server = app.listen(port, () => {
   process.stdout.write(`Graph Runner Backend listening on port ${String(port)}\n`);
