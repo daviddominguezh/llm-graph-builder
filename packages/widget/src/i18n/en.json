@@ -16,9 +16,17 @@
   "agentNotFound": "Agent not found",
   "agentNotFoundHint": "Check the URL or ask the team that shared this link.",
   "recents": "Recents",
-  "welcomeTitle": "Hello",
+  "welcomeTitle": "Where should we start?",
   "howCanIHelp": "How can I help today?",
   "reply": "Reply...",
   "toggleTheme": "Toggle theme",
-  "collapseSidebar": "Collapse sidebar"
+  "collapseSidebar": "Collapse sidebar",
+  "markWithStar": "Mark with star",
+  "unmarkStar": "Unmark star",
+  "rename": "Rename",
+  "delete": "Delete",
+  "cancel": "Cancel",
+  "deleteChatConfirmTitle": "Delete chat?",
+  "deleteChatConfirmBody": "This action cannot be undone.",
+  "titleMenu": "Chat options"
 }

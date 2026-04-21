@@ -16,9 +16,17 @@
   "agentNotFound": "Agente no encontrado",
   "agentNotFoundHint": "Verifica la URL o pregunta a quien compartió este enlace.",
   "recents": "Recientes",
-  "welcomeTitle": "Hola",
+  "welcomeTitle": "¿Por dónde empezamos?",
   "howCanIHelp": "¿Cómo puedo ayudarte hoy?",
   "reply": "Responder...",
   "toggleTheme": "Cambiar tema",
-  "collapseSidebar": "Contraer barra lateral"
+  "collapseSidebar": "Contraer barra lateral",
+  "markWithStar": "Marcar con estrella",
+  "unmarkStar": "Quitar estrella",
+  "rename": "Renombrar",
+  "delete": "Eliminar",
+  "cancel": "Cancelar",
+  "deleteChatConfirmTitle": "¿Eliminar chat?",
+  "deleteChatConfirmBody": "Esta acción no se puede deshacer.",
+  "titleMenu": "Opciones del chat"
 }
