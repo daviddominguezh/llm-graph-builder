@@ -55,11 +55,22 @@ export async function POST(
     );
   }
 
-  const upstream = await fetch(`${BACKEND_URL}${MOCK_EXECUTE}/${agent}/${version}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: bodyText,
-  });
+  const upstreamUrl = `${BACKEND_URL}${MOCK_EXECUTE}/${agent}/${version}`;
+
+  let upstream: Response;
+  try {
+    upstream = await fetch(upstreamUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: bodyText,
+    });
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : String(e);
+    return NextResponse.json(
+      { error: 'upstream_unreachable', upstreamUrl, detail },
+      { status: HTTP_BAD_GATEWAY, headers: cors }
+    );
+  }
 
   if (upstream.body === null) {
     return new Response('upstream returned no body', { status: HTTP_BAD_GATEWAY, headers: cors });

@@ -17,21 +17,31 @@ export async function GET(
   context: { params: Promise<{ tenant: string; agent: string }> }
 ): Promise<Response> {
   const origin = request.headers.get('origin');
+  const cors = corsHeadersFor(origin);
   const { tenant, agent } = await context.params;
 
   if (!isValidTenantSlug(tenant) || !isValidAgentSlug(agent)) {
+    return NextResponse.json({ error: 'invalid_slug' }, { status: 400, headers: cors });
+  }
+
+  const upstreamUrl = `${BACKEND_URL}${MOCK_LATEST}/${agent}/latest`;
+
+  let upstream: Response;
+  try {
+    upstream = await fetch(upstreamUrl, { cache: 'no-store' });
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : String(e);
     return NextResponse.json(
-      { error: 'Invalid tenant or agent slug' },
-      { status: 400, headers: corsHeadersFor(origin) }
+      { error: 'upstream_unreachable', upstreamUrl, detail },
+      { status: 502, headers: cors }
     );
   }
 
-  const upstream = await fetch(`${BACKEND_URL}${MOCK_LATEST}/${agent}/latest`, { cache: 'no-store' });
   const body = await upstream.text();
   return new Response(body, {
     status: upstream.status,
     headers: {
-      ...corsHeadersFor(origin),
+      ...cors,
       'Content-Type': upstream.headers.get('content-type') ?? 'application/json',
       'Cache-Control': 'no-store',
     },
