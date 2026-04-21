@@ -28,5 +28,6 @@
   "cancel": "Cancel",
   "deleteChatConfirmTitle": "Delete chat?",
   "deleteChatConfirmBody": "This action cannot be undone.",
-  "titleMenu": "Chat options"
+  "titleMenu": "Chat options",
+  "aiDisclaimer": "OpenFlow is AI and can make mistakes. Please double-check the cited sources."
 }

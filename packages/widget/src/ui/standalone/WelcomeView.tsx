@@ -31,6 +31,7 @@ export function WelcomeView({ onSend, isStreaming, onOpenSidebar }: WelcomeViewP
             <h1 className="font-display text-4xl tracking-normal">{t('welcomeTitle')}</h1>
           </div>
           <ComposerInput variant="welcome" onSend={onSend} isStreaming={isStreaming} />
+          <p className="mt-3 text-[11px] text-muted-foreground text-center">{t('aiDisclaimer')}</p>
         </div>
       </div>
     </div>

@@ -59,7 +59,10 @@ function ChatFooter({ isStreaming, streamError, terminalUnavailable, onSend }: F
         {terminalUnavailable ? (
           <div className="text-xs text-muted-foreground">{t('assistantUnavailable')}</div>
         ) : (
-          <ComposerInput variant="chat" onSend={onSend} isStreaming={isStreaming} />
+          <>
+            <ComposerInput variant="chat" onSend={onSend} isStreaming={isStreaming} />
+            <p className="mt-2 text-[11px] text-muted-foreground text-center">{t('aiDisclaimer')}</p>
+          </>
         )}
       </div>
     </div>

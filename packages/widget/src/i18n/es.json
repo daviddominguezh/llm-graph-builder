@@ -28,5 +28,6 @@
   "cancel": "Cancelar",
   "deleteChatConfirmTitle": "¿Eliminar chat?",
   "deleteChatConfirmBody": "Esta acción no se puede deshacer.",
-  "titleMenu": "Opciones del chat"
+  "titleMenu": "Opciones del chat",
+  "aiDisclaimer": "OpenFlow es IA y puede cometer errores. Por favor, verifica nuevamente las fuentes citadas."
 }
