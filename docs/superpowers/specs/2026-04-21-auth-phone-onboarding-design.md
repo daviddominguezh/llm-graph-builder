@@ -1,8 +1,8 @@
 # Auth: Phone verification, onboarding, and account linking
 
 **Date:** 2026-04-21
-**Status:** Approved for implementation (revised post-security-review)
-**Scope:** Sign-in/sign-up flow changes, phone OTP verification, onboarding survey, gated navigation, explicit account-linking flow for OAuth/email duplicates.
+**Status:** Approved for implementation (revised after second security review)
+**Scope:** Sign-in/sign-up flow changes, phone OTP verification, onboarding survey, gated navigation, and explicit-opt-in account linking initiated from an authenticated settings page.
 
 ## Context
 
@@ -11,20 +11,19 @@ Supabase auth is already set up in `packages/web` (email/password + Google OAuth
 1. A post-signup **phone verification** step the user cannot bypass.
 2. A post-verify **onboarding survey** the user cannot bypass.
 3. Detection of pre-existing accounts by email on both signup and login paths, with friendly error messages.
-4. **Explicit account linking** — when a user signs in with Google using an email that already has an email/password account, they're routed to a link-confirmation screen where they prove ownership by entering their password, then Google is linked to their existing account.
-5. Strict, middleware-enforced gating — on both Next.js and backend tiers — so incognito sessions and direct API calls both re-encounter the gates until completed.
+4. **Explicit, authenticated linking** — users who want both Google and email/password must first sign in with their password, then connect Google from `/account`. OAuth against an email that already has an email/password account is a hard error; the orphan Google row is deleted server-side.
+5. Strict, defense-in-depth gating — Next.js middleware AND a default-deny backend middleware both enforce phone/onboarding completion.
 
 ## Architecture constraints (non-negotiable)
 
-- **No anon-readable Supabase access from the client or from Next.js server-side.** All sensitive reads/writes live in `packages/backend` (Express) and are exposed via HTTP endpoints. Next.js route handlers proxy to the backend using the existing `packages/web/app/lib/backendProxy.ts` pattern, forwarding the user's Supabase JWT as `Bearer`.
-- The only `supabase.auth.*` calls allowed on the browser remain the pure auth-session ones already in use (`signInWithPassword`, `signInWithOAuth`, `signUp`, `linkIdentity`, session cookie management). New auth operations (phone OTP send/verify, onboarding write, account linking cleanup, cross-user reads) go through the backend.
-- Backend creates a JWT-scoped Supabase client by default so RLS still enforces per-user access. A new `serviceSupabase()` helper is added for the narrow set of endpoints that need cross-user visibility (phone uniqueness, email provider lookup, duplicate-identity cleanup).
-- Strict failure mode: if the backend status endpoint fails, gated navigation is blocked (503 error page with a polling retry), never fails-open.
-- **Defense in depth:** middleware enforces gating on the web tier, AND a parallel `requireGateComplete` middleware on the backend rejects mutating requests when phone/onboarding are incomplete. Neither tier trusts the other.
+- **No anon-readable Supabase access from the client or from Next.js server-side.** All sensitive reads/writes live in `packages/backend` (Express) and are exposed via HTTP endpoints. Next.js route handlers proxy through `packages/web/app/lib/backendProxy.ts`, forwarding the user's Supabase JWT as Bearer.
+- The only `supabase.auth.*` calls allowed on the browser remain the pure auth-session ones already in use (`signInWithPassword`, `signInWithOAuth`, `signUp`, `linkIdentity`, `unlinkIdentity`, session cookie management).
+- Backend creates a JWT-scoped Supabase client by default so RLS enforces per-user access. A new `serviceSupabase()` helper uses `SUPABASE_SERVICE_ROLE_KEY` and is gated by an ESLint `no-restricted-imports` rule: only files under `packages/backend/src/routes/auth/` and `packages/backend/src/middleware/` may import it.
+- Strict failure mode: on backend status-endpoint failure, gated navigation is blocked (503 for HTML / 403 JSON for API), never fails-open.
 
 ## Data model
 
-Three migrations.
+Five migrations.
 
 ### `supabase/migrations/20260421000000_onboarding_completed.sql`
 
@@ -63,9 +62,6 @@ create policy "Users insert own onboarding"
 alter table public.users
   add column grandfathered_at timestamptz;
 
--- Backfill only rows that (a) predate this migration AND (b) have no onboarding
--- record. Belt-and-suspenders against any future code path that sets created_at
--- to a past value.
 update public.users u
   set grandfathered_at = now(),
       onboarding_completed_at = now()
@@ -73,172 +69,213 @@ update public.users u
     and not exists (select 1 from public.user_onboarding o where o.user_id = u.id);
 ```
 
-Grandfathered users bypass both gates. `/auth/status` computes:
+`/auth/status` computes:
 - `phone_verified = (auth.users.phone_confirmed_at is not null) OR (public.users.grandfathered_at is not null)`
 - `onboarding_completed = public.users.onboarding_completed_at is not null`
 
 ### `supabase/migrations/20260421000003_auth_helpers.sql`
 
-Two Postgres helpers plus explicit permission lockdown:
-
 ```sql
-create or replace function public.list_user_providers(p_email text)
+-- Provider lookup (used by public /auth/lookup-email via service role)
+create or replace function public.list_user_providers(p_email citext)
 returns text[]
 language plpgsql
 security definer set search_path = ''
 as $$
-  -- Returns the distinct set of identity providers attached to any auth.users
-  -- row with the given email. Returns empty array if no row matches.
+declare
+  v_providers text[];
+begin
+  select coalesce(array_agg(distinct i.provider), '{}')::text[]
+    into v_providers
+  from auth.users u
+  join auth.identities i on i.user_id = u.id
+  where lower(u.email) = lower(p_email);
+  return v_providers;
+end;
 $$;
 
-revoke execute on function public.list_user_providers(text) from public, anon, authenticated;
-grant  execute on function public.list_user_providers(text) to service_role;
+revoke execute on function public.list_user_providers(citext) from public, anon, authenticated;
+grant  execute on function public.list_user_providers(citext) to service_role;
 
-create or replace function public.reassign_google_identity(
-  from_user uuid,
-  to_user   uuid
-)
-returns void
-language plpgsql
-security definer set search_path = ''
-as $$
-  -- Guards:
-  --   * from_user != to_user
-  --   * both rows must currently exist in auth.users
-  --   * both rows must share a verified email
-  --   * from_user must have a Google identity and no other non-google identities
-  --   * from_user must have no public.* data (onboarding, phone_confirmed)
-  --   * from_user must be < 24h old
-  -- If all guards pass, transactionally:
-  --   1. update auth.identities set user_id = to_user where user_id = from_user and provider = 'google'
-  --   2. delete from auth.users where id = from_user (cascades public.users, user_onboarding)
-  -- Otherwise raise an exception. Caller is the /auth/link-identity endpoint.
-$$;
-
-revoke execute on function public.reassign_google_identity(uuid, uuid) from public, anon, authenticated;
-grant  execute on function public.reassign_google_identity(uuid, uuid) to service_role;
-
--- Phone uniqueness at the DB level, not just on verified phones, closes the
--- race between send-otp and verify-otp for unverified duplicates.
+-- Phone uniqueness index on ALL phone rows (not just confirmed) to close the
+-- send-otp / verify-otp race. Paired with an abandonment sweep (see send-otp
+-- endpoint) to prevent phone squatting.
 create unique index if not exists auth_users_phone_any_unique
   on auth.users (phone)
   where phone is not null;
+
+-- OTP attempt accounting (survives backend restart, works across instances)
+create table public.otp_attempts (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  phone text not null,
+  fails smallint not null default 0,
+  locked_until timestamptz,
+  resends_24h smallint not null default 0,
+  resends_window_start timestamptz,
+  primary key (user_id, phone)
+);
+
+alter table public.otp_attempts enable row level security;
+revoke all on public.otp_attempts from anon, authenticated;
+grant  select, insert, update, delete on public.otp_attempts to service_role;
+
+-- Send-otp cooldown (same rationale: persists across restart)
+create table public.otp_cooldowns (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  next_allowed_at timestamptz not null
+);
+
+alter table public.otp_cooldowns enable row level security;
+revoke all on public.otp_cooldowns from anon, authenticated;
+grant  select, insert, update, delete on public.otp_cooldowns to service_role;
 ```
 
-Phone is **not** mirrored to `public.users`. Source of truth stays `auth.users.phone` / `auth.users.phone_confirmed_at`.
-
-## Backend: `packages/backend/src/routes/auth/`
-
-New `authRouter` mounted at `app.use('/auth', authRouter)` in `server.ts`.
-
-A new helper `serviceSupabase()` lives in `packages/backend/src/db/client.ts` — reads `SUPABASE_SERVICE_ROLE_KEY` and returns a service-role client. Called only from the endpoints explicitly marked "service-role" below.
-
-A new backend middleware `requireGateComplete` is applied to **every mutating route in the existing server outside of `/auth/*`**. It reads `phone_verified` and `onboarding_completed` for the current JWT (same logic as `/auth/status`) and returns 403 when either is false. This is the second defense layer.
-
-### Endpoints
-
-| Endpoint | Auth | Client | Purpose |
-|---|---|---|---|
-| `POST /auth/lookup-email` | public, rate-limited per trusted IP (20/min) AND per email hash (5/hour) | service-role via `public.list_user_providers` | Returns `{ exists: boolean, providers: ('email' \| 'google')[] }`. Called by signup and login forms. **Known enumeration tradeoff:** the product requires revealing provider on signup ("account exists via social") — rate limits keep abuse slow; audit log samples all calls. |
-| `POST /auth/phone/check` | JWT + `requireGateIncomplete` (must be an un-verified user) | service-role | Returns `{ available: boolean }` for an E.164 phone. Rejects callers whose own phone is already verified (they have no legitimate reason to probe). Per-user rate limit: 5/min, 30/day. Audit-logged. |
-| `POST /auth/phone/send-otp` | JWT | JWT-scoped | Calls `supabase.auth.updateUser({ phone })`. Server-side token bucket: 1 request / 2min / user. Returns `{ ok: true, cooldownUntil: ISO string }`. Transactional with uniqueness: `BEGIN; lock auth.users phone index; re-check available; updateUser; COMMIT`. |
-| `POST /auth/phone/verify-otp` | JWT | JWT-scoped | Calls `verifyOtp({ phone, token, type: 'phone_change' })`. Returns `{ access_token, refresh_token }` on success. **Attempt-level rate limit:** per-(user, phone) counter; 5 consecutive failures → lock current OTP and require resend; 10 resends in 24h → 24h hard lockout with admin alert. Response binds returned token's `sub` claim to the caller's `auth.uid()` as a sanity check before returning. |
-| `POST /auth/complete-onboarding` | JWT | JWT-scoped | Zod-validates payload (enum whitelists + `min(1).max(20)` on arrays + max string length 64 on any text field). Inserts into `public.user_onboarding` and stamps `public.users.onboarding_completed_at`. Returns 409 if already completed. |
-| `GET /auth/status` | JWT | JWT-scoped | Returns `{ phone_verified, onboarding_completed }`. Consumed by middleware and gating layouts. |
-| `POST /auth/detect-link-needed` | JWT | service-role | Called at OAuth callback. Returns `{ needsLink: boolean, email?: string }`. Set when the current user is a freshly-created Google user AND another `auth.users` row exists with the same email AND that other row has an `email` identity AND the Google identity's `identity_data.email_verified === true`. If `email_verified` is false or the other row is also Google, returns `{ needsLink: false }`. |
-| `POST /auth/link-identity` | JWT | service-role | Called by `/link-account` after the user re-authenticates with their password. Requires: caller's current session is the **old** user (the email-identity one). Endpoint calls `public.reassign_google_identity(from_user = duplicate-google-row, to_user = auth.uid())` which moves the Google identity to the current user and deletes the duplicate row. Returns `{ linked: true }`. All guards are in the Postgres function; endpoint just passes IDs. |
-
-Rate-limiting uses an in-process `Map<key, {count, windowStart}>` for simplicity — acceptable for a single backend instance. If we horizontally scale, swap to Redis (the existing backend already depends on `@upstash/redis` and `ioredis`). The send-otp cooldown additionally writes to a Postgres table `public.otp_cooldowns (user_id pk, next_allowed_at)` so a backend restart doesn't reset cooldowns.
-
-### IP trust for rate limiting
-
-The Next.js proxy explicitly replaces `x-forwarded-for` with a single trusted IP value extracted from the platform header (`x-real-ip` / `x-vercel-forwarded-for` / equivalent). The backend runs with `app.set('trust proxy', 1)` and keys rate-limit buckets off `req.ip`. The backend never reads client-supplied `x-forwarded-for` directly.
-
-### Audit logging
-
-New table `public.auth_audit_log` (service-role writable, not readable by users):
+### `supabase/migrations/20260421000004_audit_log.sql`
 
 ```sql
 create table public.auth_audit_log (
   id bigserial primary key,
   user_id uuid references auth.users(id) on delete set null,
-  event text not null,    -- 'phone_verified' | 'identity_linked' | 'onboarding_completed' | 'phone_check' | 'lookup_email' | 'link_rejected'
-  metadata jsonb,          -- { ip, user_agent, phone_hash, email_hash, ... }
+  event text not null,
+    -- 'phone_verified' | 'phone_send_otp' | 'phone_check' | 'otp_verify_failed'
+    -- | 'otp_lockout' | 'onboarding_completed' | 'oauth_duplicate_rejected'
+    -- | 'google_linked' | 'google_unlinked' | 'lookup_email' | 'lookup_rate_limited'
+  email citext,          -- raw email (behind deny-all RLS), null when not applicable
+  phone text,            -- raw phone (behind deny-all RLS), null when not applicable
+  ip inet,
+  user_agent text,
+  metadata jsonb,
   created_at timestamptz not null default now()
 );
+
+alter table public.auth_audit_log enable row level security;
+revoke all on public.auth_audit_log from anon, authenticated;
+grant  select, insert on public.auth_audit_log to service_role;
+
+create index auth_audit_log_user_id_idx on public.auth_audit_log (user_id, created_at desc);
+create index auth_audit_log_event_idx   on public.auth_audit_log (event, created_at desc);
 ```
 
-All auth-state-mutating endpoints write an entry. PII is hashed (SHA-256 of phone/email) rather than stored raw.
+**PII note:** raw email/phone are stored behind deny-all RLS — service role only. Hashing was considered and rejected as security theater (10-digit phone numbers are trivially reversed).
+
+Phone itself is **not** mirrored to `public.users`. Source of truth stays `auth.users.phone` / `auth.users.phone_confirmed_at`.
+
+## Backend: `packages/backend/src/routes/auth/`
+
+New `authRouter` mounted at `app.use('/auth', authRouter)` in `server.ts`. A new helper `serviceSupabase()` lives in `packages/backend/src/db/client.ts`.
+
+### Gate middleware (default-deny)
+
+A new `requireGateComplete` middleware reads the caller's phone/onboarding status (same logic as `/auth/status`) and returns 403 when either is incomplete. **Applied globally via `app.use(requireAuth, requireGateComplete)` with an explicit allowlist.** Routes that should bypass the gate register under an allowlisted prefix:
+
+- `/auth/*` — all auth endpoints
+- `/webhooks/*` — inbound webhooks
+
+At server startup, a helper walks Express's router stack and **throws if any `POST/PATCH/PUT/DELETE` endpoint lacks `requireAuth + requireGateComplete`** unless it's under an allowlisted prefix. Test: `routes/auth/gateCoverage.test.ts` boots the app with a deliberately-misconfigured route and asserts startup throws.
+
+### Endpoints
+
+| Endpoint | Auth | Client | Purpose |
+|---|---|---|---|
+| `POST /auth/lookup-email` | public; rate-limited per trusted IP (20/min) AND per normalized email (5/hour, salted bucket key). Rate-limited calls return **429** with `{error: 'rate_limited'}` and an audit log entry. | service-role via `public.list_user_providers` | Returns `{ exists, providers: ('email'\|'google')[] }`. Called by signup/login forms. Accepted enumeration tradeoff per product. |
+| `POST /auth/handle-oauth-duplicate` | JWT (the just-created Google user) | service-role | Called at OAuth callback. Pulls current user's email from the JWT record (never from body). If another `auth.users` row exists with the same email AND has an `email` identity, **deletes the current (fresh Google) user via `auth.admin.deleteUser()`**, writes an `oauth_duplicate_rejected` audit entry, and returns `{ duplicate: true, email }`. Next.js uses that signal to sign out and redirect to `/login` with an error flag. No identity merging, no pending-link cookie, no reassign function. |
+| `POST /auth/phone/check` | JWT + `requireGateIncomplete` (caller's own `phone_verified` must be false) | service-role | Returns `{ available }` for an E.164 phone. Per-user rate limit: 5/min, 30/day. Per-IP secondary limit: 60/min. Audit-logged. |
+| `POST /auth/phone/send-otp` | JWT + `requireGateIncomplete` | JWT-scoped + service-role sweep | Sweep first: `update auth.users set phone = null where phone_confirmed_at is null and phone_change_sent_at < now() - interval '30 minutes'` (scoped to abandoned reservations). Then transactional: `select ... for update` on the uniqueness check, then `supabase.auth.updateUser({ phone })`. Server-side cooldown via `public.otp_cooldowns` (2min/user) + per-IP cap (3/hour). Returns `{ ok: true, cooldownUntil }`. Server-side E.164 validation via `libphonenumber`. |
+| `POST /auth/phone/verify-otp` | JWT + `requireGateIncomplete` | JWT-scoped | Consults `public.otp_attempts`. If `locked_until > now()`, returns 429 with `otp_locked`. Calls `verifyOtp({phone, token, type:'phone_change'})`. On success: verify returned token's `sub === auth.uid()` (reject+audit-log `otp_verify_failed` with metadata if not), set `public.otp_attempts.fails = 0`, return `{access_token, refresh_token}`. On failure: `fails += 1`; if `fails >= 5` set `locked_until = now() + 15min` and audit `otp_lockout`. |
+| `POST /auth/complete-onboarding` | JWT + `requireGateIncomplete` for onboarding only (phone can be verified) | JWT-scoped | Zod-validates payload using canonical enums + `min(1).max(20)` arrays + max string 64. Inserts into `public.user_onboarding` and stamps `public.users.onboarding_completed_at`. Returns 409 if already completed. |
+| `GET /auth/status` | JWT | JWT-scoped | Returns `{phone_verified, onboarding_completed}`. Also sets the `_auth_status` signed cookie (see web section). |
+| `GET /auth/identities` | JWT | service-role | Returns the caller's `auth.identities` rows (providers + email per identity). Used by `/account` to render the connection state. |
+| `POST /auth/unlink-google` | JWT | service-role | Guards: the caller must have `email` identity AND Google identity. Calls `auth.admin.updateUserById(..., { identities: [...] })` to remove the Google identity. Audit-logs `google_unlinked`. Refuses if Google is the *only* identity. |
+
+Rate limiters use an in-process `Map<key, {count, windowStart}>` for short-window limits; the OTP cooldown + attempt counters go through Postgres. A startup log warns if multiple backend instances are detected.
+
+### IP trust
+
+The Next.js proxy strips any client-supplied `x-forwarded-for` and sets a single trusted IP from the platform header (`x-real-ip` / `x-vercel-forwarded-for` / equivalent). Backend runs with `app.set('trust proxy', 1)` — **confirm the number matches the production deployment topology** (Vercel-behind-CDN may need a higher value).
 
 ### Options taxonomy (single source of truth)
 
-Shared between UI and backend validator. A new module `packages/shared-validation/src/onboarding.ts` exports:
+New module `packages/shared-validation/src/onboarding.ts` exports canonical enum constants used by both backend zod validator and the frontend pill UI. (Confirm the `@openflow/shared-validation` workspace exists; the backend already depends on it.)
 
 ```ts
-export const INDUSTRY_OPTIONS = ['it_software', 'legal', 'health', 'finance',
-  'education', 'ecommerce', 'media', 'manufacturing', 'real_estate', 'other'] as const;
-export const COMPANY_SIZE_OPTIONS = ['1', '2-10', '10-50', '50-100', '100-500',
-  '500-1000', '1000-5000', '5000+'] as const;
-export const ROLE_OPTIONS = ['developer', 'founder', 'c_level', 'product',
-  'marketing', 'sales', 'legal', 'operations', 'other'] as const;
-export const REFERRAL_OPTIONS = ['linkedin', 'youtube', 'friend_referral',
-  'reddit', 'discord', 'tldr', 'google_search', 'twitter_x', 'blog_post', 'other'] as const;
-export const BUILD_GOAL_OPTIONS = ['ai_agents', 'ai_agency', 'workflows',
-  'browser_automation', 'chatbot', 'not_sure'] as const;
+export const INDUSTRY_OPTIONS = ['it_software','legal','health','finance',
+  'education','ecommerce','media','manufacturing','real_estate','other'] as const;
+export const COMPANY_SIZE_OPTIONS = ['1','2-10','10-50','50-100','100-500',
+  '500-1000','1000-5000','5000+'] as const;
+export const ROLE_OPTIONS = ['developer','founder','c_level','product',
+  'marketing','sales','legal','operations','other'] as const;
+export const REFERRAL_OPTIONS = ['linkedin','youtube','friend_referral',
+  'reddit','discord','tldr','google_search','twitter_x','blog_post','other'] as const;
+export const BUILD_GOAL_OPTIONS = ['ai_agents','ai_agency','workflows',
+  'browser_automation','chatbot','not_sure'] as const;
 ```
-
-UI labels live in `messages/<locale>.json`, keyed by canonical values. (Confirm `@openflow/shared-validation` workspace already exists before adding; the spec treats it as existing, matching the backend's current dependency.)
 
 ## Next.js: `packages/web/app/api/auth/`
 
-Thin route handlers forwarding to the backend via `proxyToBackend` / `fetchFromBackend`. One route per backend endpoint. Public endpoints (`lookup-email`) use a session-less variant that still forwards the trusted client IP.
+Thin route handlers forwarding to backend via `proxyToBackend` / `fetchFromBackend`. One route per backend endpoint.
 
-Two route handlers are special:
-- `verify-otp`: on backend success, unpacks `{access_token, refresh_token}` and calls `supabase.auth.setSession(...)` server-side so the session cookie is rewritten. Verifies the returned `access_token`'s `sub` matches the pre-call `auth.uid()` before writing.
-- `link-identity` (at `/api/auth/link-identity`): called from the `/link-account` page after password re-auth; proxies to backend `POST /auth/link-identity`. The browser then calls `supabase.auth.linkIdentity({ provider: 'google' })` to attach the Google identity to the newly-combined user — this is the standard Supabase-browser-side auth-exception call.
+**Special cases:**
+- `verify-otp`: on backend success, unpacks `{access_token, refresh_token}` and calls `supabase.auth.setSession(...)` server-side to rewrite the session cookie. Verifies the new token's `sub === current auth.uid()` before writing (defense in depth).
+- `lookup-email`: session-less, forwards trusted IP.
 
-### Cookie scoping (explicit)
+### Cookie scoping
 
-`packages/web/app/lib/supabase/middleware.ts`, `server.ts`, and `client.ts` must set cookie options explicitly: `{ httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' }`. Added as a single `AUTH_COOKIE_OPTIONS` constant used from all three files. An integration check asserts the `Set-Cookie` header flags match on a response from `/api/auth/verify-otp`.
+All Supabase/auth cookies use a single `AUTH_COOKIE_OPTIONS` constant in `packages/web/app/lib/supabase/cookies.ts`:
 
-### Status caching
+```ts
+export const AUTH_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax' as const,
+  path: '/',
+};
+```
 
-Middleware hitting `GET /auth/status` on every request DoSes our own backend from any logged-in browser (every image, every prefetch). Mitigation: a short-lived signed cookie `_auth_status` (HMAC over `{user_id, phone_verified, onboarding_completed, exp}`, 30s TTL) set by the status endpoint response. Middleware reads the cookie first; on miss/expiry/bad-HMAC, fetches status fresh. Any mutating endpoint (`verify-otp`, `complete-onboarding`, `link-identity`) invalidates the cookie in its response.
+Imported by `middleware.ts`, `server.ts`, and `client.ts`. Integration test asserts `Set-Cookie` flags on `/api/auth/verify-otp` response.
+
+### `_auth_status` signed cookie
+
+Middleware reads this cookie first to avoid hitting `/auth/status` on every request. Payload: `{user_id, jti, phone_verified, onboarding_completed, exp}`, HMAC-SHA256 over a canonical JSON form. **Signed & verified by the backend only; Next.js treats it as opaque bytes.** 30-second TTL. The payload's `jti` is Supabase's session JWT `jti` — so when the user's session rotates or is revoked, stale `_auth_status` cookies no longer match and middleware refetches status. The backend sets this cookie via a `Set-Cookie` header on `/auth/status` responses; Next.js forwards that header to the browser untouched.
+
+Any mutation endpoint (`verify-otp`, `complete-onboarding`, `unlink-google`, `handle-oauth-duplicate`) sets an **expired** `_auth_status` cookie on its response to invalidate the cache, forcing the next request to refetch.
+
+### Secret management
+
+- `AUTH_COOKIE_SIGNING_SECRET` lives **only** in `packages/backend`.
+- `AUTH_COOKIE_SIGNING_SECRET_PREVIOUS` (optional, new) supports dual-secret rotation: backend signs with current, verifies with current-or-previous. Swap current → previous during rotation, then drop previous after a full session-TTL window.
 
 ## Middleware: `packages/web/app/lib/supabase/middleware.ts`
-
-Extend the existing `updateSession` function.
 
 ```
 Route categories:
 - PUBLIC_ROUTES:      /auth/callback, /reset-password, /error
 - GUEST_ONLY_ROUTES:  /login, /signup, /forgot-password
-- GATED_EXEMPT:       /verify-phone, /onboarding, /link-account, /api/auth/*, /logout
+- GATED_EXEMPT:       /verify-phone, /onboarding, /api/auth/*, /logout
 - everything else:    fully gated
 ```
 
 **Decision tree (authenticated only):**
 
 1. If path is `PUBLIC_ROUTE` → pass.
-2. Read `_auth_status` signed cookie. If valid, use its flags. Else fetch `GET {BACKEND}/auth/status` with the user's access token as Bearer, 3s timeout, set the signed cookie on the response.
+2. Read `_auth_status` cookie. Valid HMAC + unexpired + `jti` matches session's `jti` → use cached flags. Else fetch `GET {BACKEND}/auth/status` (3s timeout, `cache: 'no-store'`). Forward the `Set-Cookie` header from the response.
 3. On fetch error or non-2xx:
-   - If request accepts JSON (`accept: application/json`) or path starts with `/api/` → return **403 JSON** `{ error: 'auth_status_unavailable' }`.
-   - Else → return a 503 HTML response pointing at `/error` (no fall-through).
+   - Request accepts JSON (`accept: application/json`) or path starts with `/api/` → **403 JSON** `{error: 'auth_status_unavailable'}`.
+   - Else → 503 HTML redirect to `/error`.
 4. `phone_verified === false`:
-   - Path is `/verify-phone` or `/api/auth/phone/*` → pass.
-   - Else if JSON/API → **403 JSON** `{ error: 'phone_verification_required' }`.
+   - `/verify-phone` or `/api/auth/phone/*` → pass.
+   - JSON/API → **403** `{error: 'phone_verification_required'}`.
    - Else → redirect to `/verify-phone`.
 5. `onboarding_completed === false`:
-   - Path is `/onboarding` or `/api/auth/complete-onboarding` → pass.
-   - Else if JSON/API → **403 JSON** `{ error: 'onboarding_required' }`.
+   - `/onboarding` or `/api/auth/complete-onboarding` → pass.
+   - JSON/API → **403** `{error: 'onboarding_required'}`.
    - Else → redirect to `/onboarding`.
 6. Fully onboarded:
-   - Path is `/verify-phone`, `/onboarding`, `/link-account`, or a `GUEST_ONLY_ROUTE` → redirect to `/`.
+   - `/verify-phone`, `/onboarding`, or `GUEST_ONLY_ROUTE` → redirect to `/`.
    - Else → pass.
 
-Middleware pulls the access token from the SSR cookie (`supabase.auth.getSession()`) and forwards it. A helper `fetchAuthStatus(jwt)` wraps the call with a 3s timeout and uses `cache: 'no-store'`. The middleware also keeps a per-request memo so a single request does not fetch status twice.
+Per-request memo prevents fetching status twice.
 
-**Incognito edge (requirement 7):** signing in again on a different device yields a fresh session; middleware's next request evaluates the same flags and redirects back to the appropriate gate. No client-side work needed.
+**Incognito edge (requirement 7):** new sessions cold-fetch status and get redirected to the appropriate gate. No client-side work needed.
 
 ## Screens
 
@@ -248,51 +285,42 @@ Client component wrapped in `AuthCard`. Two internal states.
 
 **State 1 — enter phone**
 - `<PhoneInput>` from `components/ui/phone-input.tsx`, required, international format.
-- Continue button → `POST /api/auth/phone/check`. If `available === false`, inline error "This phone is already registered with another account." If available → `POST /api/auth/phone/send-otp` → advance to State 2.
+- Continue button → `POST /api/auth/phone/check`. If `available === false`, inline "This phone is already registered with another account." If available → `POST /api/auth/phone/send-otp` → State 2.
 
 **State 2 — enter OTP**
-- 6-digit boxed input via new shadcn `input-otp` component (install: `npx shadcn@latest add input-otp`).
-- Phone display with "Wrong number? [Edit]" link → back to State 1.
+- 6-digit boxed input via shadcn `input-otp` (install: `npx shadcn@latest add input-otp`).
+- Phone display with "Wrong number? [Edit]" → back to State 1.
 - Auto-submits on 6th digit → `POST /api/auth/phone/verify-otp`.
-- On success: Next.js route rewrote the session cookie; `router.refresh()` triggers middleware to redirect to `/onboarding`.
-- On failure: inline error "Invalid code, try again". Input cleared. Cooldown NOT reset. After 5 failures, UI shows "Too many attempts. Request a new code." and disables the input until resend.
-- Resend link: disabled until the 2-minute cooldown from `cooldownUntil` expires. Shows live countdown `Resend code (1:47)`. After cooldown, click → calls send-otp again.
-
-No skip, no back button to signup.
+- Success: session cookie rewritten; `router.refresh()` → middleware redirects to `/onboarding`.
+- Failure: "Invalid code, try again". Input cleared. After 5 failures, UI shows "Too many attempts. Request a new code." and disables input until resend.
+- Resend: disabled until 2-minute `cooldownUntil` expires. Live countdown `Resend code (1:47)`.
 
 ### `packages/web/app/onboarding/page.tsx`
 
-Client component in an `AuthCard`-shaped wider shell. Single scrolling form, 5 sections.
+Client component in a wider `AuthCard`-shaped shell. Single scrolling form, 5 sections (industry, company size, role, referral sources, build goals). Sticky submit button disabled until all sections valid. On submit → `POST /api/auth/complete-onboarding` → `router.refresh()` → middleware redirects to `/`.
 
-1. **Industry** — single-select pill group.
-2. **Company size** — single-select pill group.
-3. **Role** — single-select pill group.
-4. **How did you hear about us?** — multi-select, ≥1.
-5. **What are you trying to build?** — multi-select, ≥1.
+Pill component: new `components/ui/option-pill.tsx` (compact, h-8, rounded-md, with checked state).
 
-Sticky submit button, disabled until all sections valid. On submit → `POST /api/auth/complete-onboarding`. On success → `router.refresh()` → middleware redirects to `/`.
+### `packages/web/app/account/page.tsx` (new)
 
-Pill component: one new shared component `components/ui/option-pill.tsx` (compact, h-8, rounded-md, with checked state). Keeps the design-system look consistent.
+User-level account page, sits outside the org-scoped `/orgs/[slug]/*` tree. Route-guarded like any other authenticated page (middleware enforces phone/onboarding first).
 
-### `packages/web/app/link-account/page.tsx` (new)
+Sections:
+1. **Profile**: email (read-only), full name (editable via existing `public.users.full_name`).
+2. **Security**: phone number (from `auth.users.phone`, read-only), "Change password" link to existing flow.
+3. **Connected accounts**:
+   - Row for **Email/password** — always present for non-OAuth-only users. Shows email.
+   - Row for **Google** — if present in `GET /api/auth/identities`, shows the Google account email + "Disconnect" button (calls `POST /api/auth/unlink-google`; confirms with an `AlertDialog`; refuses if it would leave the account with no identity). If absent, shows "Connect Google" button → browser calls `supabase.auth.linkIdentity({ provider: 'google' })` (auth-flow exception), which triggers OAuth round-trip; on return, Supabase attaches the identity to the current session.
 
-Shown when OAuth callback detected a duplicate and the user needs to link Google to their pre-existing email/password account. URL carries `?email=<encoded>` so the UI can show the target account.
-
-Flow on the page:
-1. Copy: "An account already exists for `{email}`. Enter your password to connect Google to it."
-2. Email input (read-only, pre-filled, `disabled`) + password input + "Continue" button.
-3. On submit:
-   1. Call `supabase.auth.signInWithPassword({ email, password })` from the browser (auth exception). The browser's active session flips from the Google user to the email user.
-   2. On auth failure → inline "Invalid password" error; no further action.
-   3. On auth success → `POST /api/auth/link-identity` which proxies to backend; backend runs `public.reassign_google_identity(from = google_user_id_from_cookie_or_state, to = auth.uid())` which moves the Google identity to the email user and deletes the stray Google row.
-   4. On success → `supabase.auth.refreshSession()` so the client picks up the new `identities` list.
-   5. Redirect to `/` (middleware takes over).
-
-**How does the backend know which `from_user` to pass?** The `/auth/detect-link-needed` response (from the earlier OAuth callback step) stamps a short-lived signed cookie `_pending_link` containing `{ google_user_id, email, exp: now + 10min }`. The `link-identity` endpoint reads this cookie (via Next.js forwarding), verifies the HMAC, confirms the cookie's `email` matches the password-authenticated user's email, and passes `from_user = google_user_id`. Cookie is cleared on success or on any failure. All guards inside `reassign_google_identity` re-verify the claim on the DB side.
+Linking via `linkIdentity()` is safe because:
+- The user is already authenticated (JWT in cookie).
+- Supabase binds the new identity's `sub` to the current user row server-side.
+- If the Google email differs from the current user's email, Supabase still links (we don't enforce email match; the user chose to connect *this* Google account).
+- No service-role merge, no duplicate rows, no cookie-forwarded IDs.
 
 ### `packages/web/app/error/page.tsx`
 
-Minimal. Polls `/api/auth/status` every 5s with exponential backoff capped at 30s; on success → client-redirects to `/`. Copy: "Something's not right on our end. Retrying…" with a manual Retry button.
+Minimal. Polls `/api/auth/status` with exponential backoff (5s → 30s cap); on success, client-redirects to `/`. Copy: "Something's not right on our end. Retrying…" with a manual Retry button.
 
 ## Sign-in / sign-up / OAuth callback changes
 
@@ -303,89 +331,90 @@ Before `supabase.auth.signUp`:
 2. If `exists`:
    - providers includes `google` → "An account already exists with this email via Google. [Sign in with Google]." Block.
    - providers is `['email']` → "An account already exists with this email. [Sign in]." Block.
-3. Else → call `signUp` as today. On success → `router.push('/verify-phone')`.
+3. Else → `signUp`. On success → `router.push('/verify-phone')`.
 
-Remove the `data.session === null` "check your email" branch (dead code — email confirmations are off).
+Remove the `data.session === null` "check your email" branch.
 
 ### `app/login/page.tsx`
 
 Before `signInWithPassword`:
 1. `POST /api/auth/lookup-email`.
 2. If `exists` and providers is `['google']` → "This account uses Google. [Sign in with Google]." Block.
-3. Else → proceed with `signInWithPassword`.
+3. Else → `signInWithPassword`.
+
+Page also reads a `?error=oauth_duplicate&email=<e>` query param (set by the callback — see below) and renders an inline banner: "An account already exists for `<e>`. Sign in with your password, then connect Google from Account settings."
 
 ### `app/auth/callback/route.ts`
 
-After `exchangeCodeForSession` succeeds:
-1. `POST /auth/detect-link-needed` on the backend with the new access token.
-2. If `needsLink === true`:
-   - Set the short-lived signed `_pending_link` cookie described above.
-   - **Sign out the current session** (`supabase.auth.signOut()`) so the browser holds no active Google-user session during the password step.
-   - Redirect to `/link-account?email=<email>`.
-3. Else → Redirect to `next` (or `/`). Middleware takes over from there.
+After `exchangeCodeForSession` succeeds (new Google user signed in):
+1. `POST /auth/handle-oauth-duplicate` on the backend with the new access token.
+2. If `duplicate === true`:
+   - Backend has already deleted the fresh Google user via `admin.deleteUser()` and written the audit entry.
+   - Route handler calls `supabase.auth.signOut()` against the SSR client so the browser's session cookies are explicitly cleared on the response.
+   - Redirect to `/login?error=oauth_duplicate&email=<urlencoded>`.
+3. Else → redirect to `next` (or `/`). Middleware routes to `/verify-phone`/`/onboarding` as needed.
 
-**Identity ownership invariant:** the linking path requires proof of both identities:
-- Google is proven because the user just completed an OAuth round-trip AND `identity_data.email_verified === true` is checked before `needsLink` is set.
-- Email/password is proven by the password re-auth on `/link-account`.
-Only after both proofs is `reassign_google_identity` called.
+**Why this is safe:** no silent linking, no orphan rows persisting beyond the callback, no cookie-forwarded foreign user IDs. The only path to having both Google and email on one account is explicit, authenticated linking from `/account`. A Workspace admin creating `ceo@victimcorp.com` in Google and signing into our site gets their fresh row deleted; they never touch the victim's account.
 
 ## Internationalization
 
-New keys added to `packages/web/messages/en.json` (implementation scans `messages/` and syncs all locales present).
+New keys in `packages/web/messages/en.json` (sync across locales present in `messages/`):
 
-- `auth.signup.errors.emailExistsGoogle`
-- `auth.signup.errors.emailExists`
-- `auth.login.errors.emailUsesGoogle`
-- `auth.verifyPhone.title`, `.description`, `.phoneLabel`, `.continue`
-- `auth.verifyPhone.otpTitle`, `.otpDescription`, `.resend`, `.resendIn` (with `{time}`), `.editPhone`
-- `auth.verifyPhone.errors.invalidOtp`, `.errors.tooManyAttempts`, `.errors.phoneTaken`, `.errors.sendFailed`
-- `auth.linkAccount.title`, `.description` (with `{email}`), `.passwordLabel`, `.continue`, `.errors.invalidPassword`, `.errors.linkFailed`
+- `auth.signup.errors.emailExistsGoogle`, `.emailExists`
+- `auth.login.errors.emailUsesGoogle`, `.oauthDuplicate` (with `{email}`)
+- `auth.verifyPhone.title`, `.description`, `.phoneLabel`, `.continue`, `.otpTitle`, `.otpDescription`, `.resend`, `.resendIn` (`{time}`), `.editPhone`
+- `auth.verifyPhone.errors.invalidOtp`, `.errors.tooManyAttempts`, `.errors.phoneTaken`, `.errors.sendFailed`, `.errors.otpLocked`
 - `onboarding.title`, `.description`, `.submit`
 - `onboarding.sections.industry`, `.companySize`, `.role`, `.referral`, `.buildGoals`
-- `onboarding.options.industry.*`, `.companySize.*`, `.role.*`, `.referral.*`, `.buildGoals.*` (one key per canonical enum value)
+- `onboarding.options.industry.*`, `.companySize.*`, `.role.*`, `.referral.*`, `.buildGoals.*`
+- `account.title`, `.profile.title`, `.security.title`, `.security.phone`, `.security.changePassword`
+- `account.connections.title`, `.connections.email.label`, `.connections.google.label`
+- `account.connections.google.connect`, `.google.disconnect`, `.google.connected` (`{email}`)
+- `account.connections.google.confirmDisconnect.title`, `.body`, `.confirm`, `.cancel`
+- `account.connections.errors.cannotUnlinkOnlyIdentity`, `.linkFailed`, `.unlinkFailed`
 - `error.title`, `.description`, `.retrying`, `.retry`
 
 ## Environment variables
 
-**Backend (`packages/backend`):** 
-- `SUPABASE_SERVICE_ROLE_KEY` (required, new).
-- `AUTH_COOKIE_SIGNING_SECRET` (required, new — HMAC secret for `_auth_status` and `_pending_link` cookies).
+**Backend (`packages/backend`):**
+- `SUPABASE_SERVICE_ROLE_KEY` — required.
+- `AUTH_COOKIE_SIGNING_SECRET` — required.
+- `AUTH_COOKIE_SIGNING_SECRET_PREVIOUS` — optional, dual-secret rotation window.
 
-**Web (`packages/web`):** 
-- `AUTH_COOKIE_SIGNING_SECRET` (required, new — same secret used by Next.js middleware and route handlers to verify cookies).
+**Web (`packages/web`):** none new (cookie signing lives in backend only).
 
 **Supabase (local `supabase/config.toml`):** enable `[auth.sms]` provider for local parity with prod.
 
 ## Tests
 
-All tests live in `packages/backend`; `packages/web` has no existing test harness.
+All tests in `packages/backend`.
 
-- `routes/auth/lookupEmail.test.ts` — exists/false; providers for email-only, google-only, mixed; per-email rate limit kicks in after 5 calls; per-IP after 20.
-- `routes/auth/phoneCheck.test.ts` — available/unavailable; rejects callers whose own phone is already verified; per-user rate limits (5/min, 30/day).
-- `routes/auth/phoneSendOtp.test.ts` — cooldown enforced (second call within 2min → 429 with `cooldownUntil`); cooldown persists across backend restart; uniqueness re-check in same transaction.
-- `routes/auth/phoneVerifyOtp.test.ts` — success returns new tokens with matching `sub`; bad code returns 400; 5 wrong codes → lockout; 10 resends in 24h → 24h hard lockout.
-- `routes/auth/completeOnboarding.test.ts` — zod validation rejects empty arrays, arrays > 20, unknown enum values; idempotency returns 409; user B can't write for user A.
-- `routes/auth/status.test.ts` — returns both flags; missing `user_onboarding` row → `onboarding_completed = false`; grandfathered users → both flags true.
-- `routes/auth/detectLinkNeeded.test.ts` — returns `needsLink:true` only when the caller is a fresh Google user AND another row has an email identity AND Google's `email_verified` claim is true; returns `needsLink:false` on any other combination.
-- `routes/auth/linkIdentity.test.ts` — happy path: signed `_pending_link` cookie + password-auth'd caller → Google identity reassigned; rejects mismatched email; rejects expired cookie; rejects tampered HMAC; rejects when `from_user` has public data; rejects when `from_user` is >24h old.
-- `routes/auth/gateMiddleware.test.ts` — `requireGateComplete` on a mutating route rejects un-verified users with 403; passes verified+onboarded users.
-- `db/functions/reassign_google_identity.test.sql` (pgTAP or equivalent) — function guards each fire; REVOKE in place (anon/authenticated receive permission-denied).
-- `db/functions/list_user_providers.test.sql` — REVOKE in place.
+- `routes/auth/lookupEmail.test.ts` — exists/false; all three provider combos; 20/min per-IP limit; 5/hour per-email limit; 429 response; audit entry.
+- `routes/auth/phoneCheck.test.ts` — available/unavailable; rejects verified callers; 5/min, 30/day, 60/min per-IP.
+- `routes/auth/phoneSendOtp.test.ts` — cooldown enforced across restart (Postgres-backed); abandonment sweep clears stale reservations; uniqueness re-check in same transaction; E.164 validation; per-IP cap.
+- `routes/auth/phoneVerifyOtp.test.ts` — success returns matching-`sub` tokens; bad code increments `fails`; 5th failure locks for 15min; lockout returns 429; audit entry.
+- `routes/auth/completeOnboarding.test.ts` — zod rejects empty arrays, oversized arrays (>20), strings >64, unknown enums; idempotency 409; user B can't write for user A.
+- `routes/auth/status.test.ts` — flags; missing `user_onboarding` → false; grandfathered → both true; sets signed cookie with `jti` binding.
+- `routes/auth/handleOauthDuplicate.test.ts` — deletes fresh Google user when email matches an existing email-identity row; no-op when other row is also Google; no-op when no duplicate; audit entry on delete.
+- `routes/auth/identities.test.ts` — returns caller's identities.
+- `routes/auth/unlinkGoogle.test.ts` — happy path; refuses when Google is only identity; audit entry.
+- `routes/auth/gateCoverage.test.ts` — startup assertion throws if a mutating route lacks `requireGateComplete`.
+- `routes/auth/gateMiddleware.test.ts` — 403 on incomplete gate; passes when complete.
+- `lib/signedCookies.test.ts` — HMAC canonical form; dual-secret rotation; bad HMAC rejected; expired rejected; tampered field rejected; canonical serialization doesn't vary with key order.
+- `db/functions/list_user_providers.test.sql` (pgTAP or raw) — returns correct providers; REVOKE from anon/authenticated in place.
 
 ## Rollout
 
-1. Ship the four migrations.
-2. Ship backend with new endpoints, `SUPABASE_SERVICE_ROLE_KEY`, and `AUTH_COOKIE_SIGNING_SECRET`. Deploy `requireGateComplete` applied to all mutating routes *simultaneously* with the web tier that stamps status (to avoid existing users hitting 403 in the gap).
-3. Ship web with the new screens, middleware, route handlers, and `AUTH_COOKIE_SIGNING_SECRET`.
-4. Existing users are grandfathered by migration 3 — they never see the new gates.
-5. New users go through verify-phone → onboarding on first session.
-6. Post-deploy audit query: flag any row in `public.users` with `grandfathered_at is not null` created after deploy time (should be zero).
+1. Ship migrations 0–4.
+2. Deploy backend: new endpoints, `SUPABASE_SERVICE_ROLE_KEY`, `AUTH_COOKIE_SIGNING_SECRET`, `requireGateComplete` wired globally. Existing users are grandfathered — no immediate 403s.
+3. Deploy web: new screens, middleware updates, route handlers.
+4. New users go through verify-phone → onboarding on first session.
+5. Post-deploy audit query: flag rows with `grandfathered_at is not null` whose `created_at > deploy_time` (should be zero).
 
 ## Out of scope
 
-- Changing phone after verification (not requested).
-- Editing onboarding answers after completion (not requested).
-- Admin UI for viewing onboarding data / audit log (not requested).
+- Changing phone after verification (follow-up).
+- Editing onboarding answers after completion (follow-up).
+- Admin UI for audit log or onboarding data (follow-up).
 - Email confirmations — remains disabled per current config.
-- Horizontal scaling of in-memory rate limiters (single-instance in-memory + Postgres-backed cooldown for OTPs is fine for now; swap to Redis when we scale backend).
-- Undoing a bad link (no admin unlink UI). Linking is user-initiated and requires both proofs; rollback happens manually by an admin if ever needed.
+- Horizontal scaling of in-memory rate limiters (short-window limits; the load-bearing cooldowns/attempts are Postgres-backed). Swap to Redis when we scale backend beyond one instance.
