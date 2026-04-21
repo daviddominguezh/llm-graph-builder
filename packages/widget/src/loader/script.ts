@@ -181,12 +181,35 @@ function createIframe(host: string, version: string): HTMLIFrameElement {
   return iframe;
 }
 
-// Task 47 will fill these.
-function wireViewportForwarding(_iframe: HTMLIFrameElement, _nonce: string, _iframeOrigin: string): void {
-  // noop for now
+function wireViewportForwarding(
+  iframe: HTMLIFrameElement,
+  nonce: string,
+  iframeOrigin: string
+): void {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  function post(): void {
+    iframe.contentWindow?.postMessage(
+      { type: 'openflow:viewport', nonce, viewportW: window.innerWidth },
+      iframeOrigin
+    );
+  }
+  function onResize(): void {
+    if (timer !== null) clearTimeout(timer);
+    timer = setTimeout(post, VIEWPORT_DEBOUNCE_MS);
+  }
+  window.addEventListener('resize', onResize);
 }
-function wireTeardown(_iframe: HTMLIFrameElement, _onMessage: (e: MessageEvent) => void): void {
-  // noop for now
+
+function wireTeardown(
+  iframe: HTMLIFrameElement,
+  onMessage: (e: MessageEvent) => void
+): void {
+  function teardown(): void {
+    window.removeEventListener('message', onMessage);
+    if (iframe.parentNode !== null) iframe.parentNode.removeChild(iframe);
+  }
+  window.addEventListener('pagehide', teardown);
+  window.addEventListener('beforeunload', teardown);
 }
 
 function bootHandshake(iframe: HTMLIFrameElement): void {
