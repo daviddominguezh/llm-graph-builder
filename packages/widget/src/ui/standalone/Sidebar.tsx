@@ -10,6 +10,9 @@ export interface SidebarProps {
   activeSessionId: string | null;
   onNewChat: () => void;
   onSelectSession: (id: string) => void;
+  onRenameSession: (id: string, newTitle: string) => void;
+  onDeleteSession: (id: string) => void;
+  onToggleStarSession: (id: string) => void;
   onCollapse?: () => void;
 }
 
@@ -47,7 +50,16 @@ function SidebarNewChat({ onNewChat, label }: { onNewChat: () => void; label: st
   );
 }
 
-export function Sidebar({ sessions, activeSessionId, onNewChat, onSelectSession, onCollapse }: SidebarProps) {
+export function Sidebar({
+  sessions,
+  activeSessionId,
+  onNewChat,
+  onSelectSession,
+  onRenameSession,
+  onDeleteSession,
+  onToggleStarSession,
+  onCollapse,
+}: SidebarProps) {
   const t = useT();
 
   return (
@@ -57,7 +69,14 @@ export function Sidebar({ sessions, activeSessionId, onNewChat, onSelectSession,
         <SidebarNewChat onNewChat={onNewChat} label={t('newChat')} />
       </div>
       <div className="text-xs text-muted-foreground px-3 py-2">{t('recents')}</div>
-      <SidebarRecents sessions={sessions} activeId={activeSessionId} onSelect={onSelectSession} />
+      <SidebarRecents
+        sessions={sessions}
+        activeId={activeSessionId}
+        onSelect={onSelectSession}
+        onRename={onRenameSession}
+        onDelete={onDeleteSession}
+        onToggleStar={onToggleStarSession}
+      />
     </aside>
   );
 }

@@ -113,6 +113,15 @@ export function StandaloneLayout({ sessions, chat }: StandaloneLayoutProps) {
           activeSessionId={sessions.currentSessionId}
           onNewChat={() => handleNewChat(sessions)}
           onSelectSession={(id) => handleSelect(sessions, id)}
+          onRenameSession={(id, newTitle) => {
+            void sessions.renameSession(id, newTitle);
+          }}
+          onDeleteSession={(id) => {
+            void sessions.deleteSession(id);
+          }}
+          onToggleStarSession={(id) => {
+            void sessions.toggleStarSession(id);
+          }}
           onCollapse={() => setSidebarOpen(false)}
         />
       )}
