@@ -79,7 +79,7 @@ When adding a new storage bucket for file uploads:
 **How to avoid it:**
 
 - If the container doesn't actually need to scroll (inner children handle their own overflow), use `overflow-hidden` instead of `overflow-y-auto`. This is how the `MessageView` skeleton → Virtuoso crash was fixed in `ChatViewPanel`'s `CardContent`.
-- If you need scroll *and* dynamic direct children (conditional `{x && <Y/>}`, a component whose root type varies by branch, list reorders/removals), opt out with `data-native-scroll` (native browser scrollbar, no overlay theme) or wrap the content in `OverlayScrollbarsComponent` from `overlayscrollbars-react` (already in `package.json`).
+- If you need scroll *and* dynamic direct children (conditional `{x && <Y/>}`, a component whose root type varies by branch, list reorders/removals), use the `Scrollable` wrapper in `packages/web/app/components/Scrollable.tsx` — a thin wrapper around `OverlayScrollbarsComponent` with the `os-theme-closer` theme pre-wired. This is how the chat list in `ChatListPanel` was fixed (filter changes would remove `MessagePreview` buttons from a hijacked host and crash). Opt-out alternative: add `data-native-scroll` to the element (native browser scrollbar, no overlay theme).
 
 **Reviewing new scroll containers:** scan their direct children. Stable DOM structure with only leaf mutations is fine. Root-type swaps, top-level conditionals that flip between `null` and rendered, and list re-renders where keys change are the danger.
 

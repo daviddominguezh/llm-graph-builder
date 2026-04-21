@@ -1,4 +1,4 @@
-import { getScrollViewport } from '@/app/components/GlobalScrollbarOverlay';
+import { Scrollable, type ScrollableRef } from '@/app/components/Scrollable';
 import { getCurrentFirebaseUser } from '@/app/components/messages/services/firebase';
 import MessagePreview from '@/app/components/messages/shared/messagePreview';
 import { MessagePreviewSkeleton } from '@/app/components/messages/shared/messagePreview/MessagePreviewSkeleton';
@@ -84,7 +84,7 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
 }) => {
   const t = useTranslations('messages');
   const isMobile = useIsMobile();
-  const chatListScrollRef = useRef<HTMLDivElement>(null);
+  const chatListScrollRef = useRef<ScrollableRef>(null);
   const SCROLL_STORAGE_KEY = 'chatListScrollPosition';
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const { setStatusFilter, setAssigneeFilter, statusFilter, assigneeFilter } = useUI();
@@ -115,7 +115,7 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
       if (scrollValue > 0) {
         // Use requestAnimationFrame to ensure DOM is ready
         requestAnimationFrame(() => {
-          const viewport = getScrollViewport(chatListScrollRef.current);
+          const viewport = chatListScrollRef.current?.osInstance()?.elements().viewport;
           if (viewport) {
             viewport.scrollTop = scrollValue;
             // Clear after restoring
@@ -128,7 +128,7 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
 
   // Save scroll position before it potentially resets
   const handleChatSelect = (id: string | null, shouldMarkRead?: boolean) => {
-    const viewport = getScrollViewport(chatListScrollRef.current);
+    const viewport = chatListScrollRef.current?.osInstance()?.elements().viewport;
     if (viewport) {
       sessionStorage.setItem(SCROLL_STORAGE_KEY, viewport.scrollTop.toString());
     }
@@ -317,7 +317,7 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
 
       {/* Search results */}
       {isSearchActive && hasSearchResults ? (
-        <div ref={chatListScrollRef} className="w-full h-fit pb-9 overflow-y-auto pt-2">
+        <Scrollable ref={chatListScrollRef} className="w-full h-fit pb-9 pt-2">
           {/* Chats by phone */}
           {filteredChatsPhoneVisible.length > 0 && (
             <div>
@@ -375,7 +375,7 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
               ))}
             </div>
           )}
-        </div>
+        </Scrollable>
       ) : isSearchActive ? (
         // No search results
         <Alert className="m-4 w-[calc(100%-8*var(--spacing))]">
@@ -396,24 +396,26 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
         </div>
       ) : displayedChatsFiltered.length > 0 ? (
         // All chats
-        <div ref={chatListScrollRef} className="flex flex-col w-full h-fit pb-9 overflow-y-auto pt-2.5 gap-1">
-          {displayedChatsFiltered.map((chat) => (
-            <MessagePreview
-              key={chat.chatId}
-              onClickMsg={(id) => handleChatSelect(id, !chat.read)}
-              lastMessage={chat}
-              phone={chat.chatId}
-              selected={chat.chatId === activeChat}
-              collaborators={collaborators}
-              profilePictures={profilePictures}
-            />
-          ))}
-          {isLoadingMore && (
-            <div className="flex justify-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900" />
-            </div>
-          )}
-        </div>
+        <Scrollable ref={chatListScrollRef} className="w-full h-fit pb-9 pt-2.5">
+          <div className="flex flex-col gap-1">
+            {displayedChatsFiltered.map((chat) => (
+              <MessagePreview
+                key={chat.chatId}
+                onClickMsg={(id) => handleChatSelect(id, !chat.read)}
+                lastMessage={chat}
+                phone={chat.chatId}
+                selected={chat.chatId === activeChat}
+                collaborators={collaborators}
+                profilePictures={profilePictures}
+              />
+            ))}
+            {isLoadingMore && (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900" />
+              </div>
+            )}
+          </div>
+        </Scrollable>
       ) : (
         // Empty state
         <div className="w-full px-2 pt-2.5">
