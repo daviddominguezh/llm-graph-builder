@@ -104,7 +104,12 @@ interface MutateArgs {
   reload: (b: SessionsBackend) => Promise<void>;
 }
 
-function buildNewSession(args: { id: string; tenant: string; agentSlug: string; text: string }): StoredSession {
+function buildNewSession(args: {
+  id: string;
+  tenant: string;
+  agentSlug: string;
+  text: string;
+}): StoredSession {
   const now = Date.now();
   return {
     sessionId: args.id,
