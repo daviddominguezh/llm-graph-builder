@@ -26,6 +26,12 @@ jobs:
       - name: Run format, lint, and typecheck
         run: npm run check
       - name: Run tests
+        # Dummy REDIS_URL satisfies the top-level env check in
+        # packages/backend/src/notifications/redisCompletionNotifier.ts.
+        # The Redis client is mocked inside the test suite, so the
+        # value is never dialled — it only needs to be a non-empty string.
+        env:
+          REDIS_URL: redis://localhost:6379
         run: npm test
 
   # Wait for the Supabase integration's "Supabase Preview" check to succeed
