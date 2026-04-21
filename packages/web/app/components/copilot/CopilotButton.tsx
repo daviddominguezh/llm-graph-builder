@@ -25,12 +25,7 @@ export function CopilotButton() {
           <Button
             variant="default"
             size="xs"
-            className={`relative h-5 gap-1 px-3 text-[11px] rounded-md bg-secondary-foreground dark:bg-secondary-foreground hover:bg-secondary-foreground/90 dark:hover:bg-secondary-foreground/90
-            ${
-              isOpen
-                ? 'bg-accent text-accent-foreground hover:bg-accent/85 hover:text-accent-foreground '
-                : 'text-black'
-            }`}
+            className={`relative h-5 gap-1 px-3 text-[11px] rounded-md bg-secondary-foreground dark:bg-secondary-foreground hover:bg-secondary-foreground/90 dark:hover:bg-secondary-foreground/90 text-black`}
             onClick={() => setOpen(!isOpen)}
           >
             {isOpen ? (

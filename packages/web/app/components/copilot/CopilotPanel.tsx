@@ -113,7 +113,7 @@ export function CopilotPanel() {
   if (!ctx.isOpen) return null;
 
   return (
-    <div className="fixed bottom-[calc((var(--spacing)*6)_-_0px)] top-6 right-3.5 top-1.5 z-40 flex w-[400px] flex-col border bg-background rounded-md">
+    <div className="fixed bottom-[calc((var(--spacing)*2)_-_0px)] top-8 right-2 top-1.5 z-40 flex w-[400px] flex-col border bg-background rounded-xl">
       <CopilotHeader
         sessions={ctx.sessions}
         activeSession={ctx.activeSession}
