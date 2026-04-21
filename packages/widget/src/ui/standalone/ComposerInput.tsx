@@ -71,7 +71,7 @@ export function ComposerInput({ onSend, isStreaming = false, variant = 'chat' }:
 
   return (
     <div
-      className={`rounded-2xl border border-border bg-background p-4 flex flex-col gap-2 transition-colors focus-within:border-ring/50 dark:focus-within:border-ring/40 ${heightClass} ${shadowClass}`}
+      className={`rounded-2xl border border-border bg-background dark:bg-input/40 p-4 flex flex-col gap-2 transition-colors focus-within:border-ring/50 dark:focus-within:border-ring/40 ${heightClass} ${shadowClass}`}
     >
       <textarea
         rows={1}
