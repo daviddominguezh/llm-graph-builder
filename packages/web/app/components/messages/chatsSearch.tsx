@@ -166,7 +166,7 @@ export const ChatsSearch = ({
               </Button>
             }
           />
-          <SelectContent>
+          <SelectContent align="end" alignItemWithTrigger={false}>
             <SelectItem className="cursor-pointer" value="none">
               {t('No filter')}
             </SelectItem>

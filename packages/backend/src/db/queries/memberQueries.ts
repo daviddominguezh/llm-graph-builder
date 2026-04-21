@@ -61,6 +61,73 @@ export async function getOrgMembers(
   return { result: mapRows(rawData), error: null };
 }
 
+/**
+ * Service-role variant: lists members of an org without the `is_org_member`
+ * gate that the `get_org_members` RPC applies. Required for trusted paths
+ * that use a service-role Supabase client (e.g. the messaging backend),
+ * where `auth.uid()` is NULL and the RPC gate would silently return [].
+ *
+ * Do NOT call this from user-JWT contexts — it bypasses membership
+ * verification. Use `getOrgMembers` from those paths.
+ */
+const ROLE_PRIORITY: Record<string, number> = {
+  owner: 0,
+  admin: 1,
+  developer: 2,
+  agent: 3,
+};
+
+function parseServiceMemberRow(row: unknown): OrgMemberRow | null {
+  if (typeof row !== 'object' || row === null) return null;
+  const r = row as Record<string, unknown>;
+  const users = r.users;
+  if (typeof users !== 'object' || users === null) return null;
+  const u = users as Record<string, unknown>;
+  const valid =
+    typeof r.user_id === 'string' &&
+    typeof r.role === 'string' &&
+    typeof r.created_at === 'string' &&
+    typeof u.email === 'string' &&
+    typeof u.full_name === 'string';
+  if (!valid) return null;
+  return {
+    user_id: r.user_id as string,
+    role: r.role as string,
+    email: u.email as string,
+    full_name: u.full_name as string,
+    joined_at: r.created_at as string,
+  };
+}
+
+function sortMembersByRole(rows: OrgMemberRow[]): OrgMemberRow[] {
+  return rows.slice().sort((a, b) => {
+    const pa = ROLE_PRIORITY[a.role] ?? 99;
+    const pb = ROLE_PRIORITY[b.role] ?? 99;
+    if (pa !== pb) return pa - pb;
+    return a.joined_at.localeCompare(b.joined_at);
+  });
+}
+
+export async function getOrgMembersServiceRole(
+  supabase: SupabaseClient,
+  orgId: string
+): Promise<{ result: OrgMemberRow[]; error: string | null }> {
+  const result = await supabase
+    .from('org_members')
+    .select('user_id, role, created_at, users!inner(email, full_name)')
+    .eq('org_id', orgId);
+
+  if (result.error !== null) return { result: [], error: result.error.message };
+  const rawData: unknown = result.data;
+  if (!isUnknownArray(rawData)) return { result: [], error: 'Invalid members data' };
+  const rows = rawData.reduce<OrgMemberRow[]>((acc, row) => {
+    const parsed = parseServiceMemberRow(row);
+    if (parsed !== null) acc.push(parsed);
+    return acc;
+  }, []);
+  return { result: sortMembersByRole(rows), error: null };
+}
+
 export async function addOrgMemberByEmail(
   supabase: SupabaseClient,
   orgId: string,

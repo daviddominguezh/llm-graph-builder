@@ -1,7 +1,8 @@
 import express from 'express';
 import type { Request } from 'express';
 
-import { getOrgMembers } from '../../db/queries/memberQueries.js';
+import type { OrgMemberRow } from '../../db/queries/memberQueries.js';
+import { getOrgMembersServiceRole } from '../../db/queries/memberQueries.js';
 import type { MessagingResponse } from './routeHelpers.js';
 import {
   HTTP_BAD_REQUEST,
@@ -12,6 +13,29 @@ import {
   getRequiredParam,
   getSupabase,
 } from './routeHelpers.js';
+
+/**
+ * Shape returned to the web client. Matches the `Collaborator` type in
+ * packages/web/app/types/projectInnerSettings.ts so the dropdown filter in
+ * ChatsSearch (which drops rows whose `status` isn't 'active'/'pending') sees
+ * the row. Members of `org_members` are always active; pending invitations
+ * live in a separate table and are not returned by this endpoint.
+ */
+interface CollaboratorResponse {
+  name: string;
+  role: string;
+  email: string;
+  status: 'active';
+}
+
+function toCollaboratorResponse(row: OrgMemberRow): CollaboratorResponse {
+  return {
+    name: row.full_name,
+    role: row.role,
+    email: row.email,
+    status: 'active',
+  };
+}
 
 async function lookupOrgId(req: Request, res: MessagingResponse): Promise<string | null> {
   const supabase = getSupabase(res);
@@ -39,13 +63,16 @@ async function handleGetCollaborators(req: Request, res: MessagingResponse): Pro
       return;
     }
 
-    const { result, error } = await getOrgMembers(getSupabase(res), orgId);
+    // Messaging route uses a service-role Supabase client (see ensureMessagingAuth).
+    // `auth.uid()` is NULL there, so the RPC's `is_org_member(p_org_id)` gate would
+    // silently return []. Use the service-role variant which skips that gate.
+    const { result, error } = await getOrgMembersServiceRole(getSupabase(res), orgId);
     if (error !== null) {
       res.status(HTTP_BAD_REQUEST).json({ error });
       return;
     }
 
-    res.status(HTTP_OK).json({ collaborators: result });
+    res.status(HTTP_OK).json({ collaborators: result.map(toCollaboratorResponse) });
   } catch (err) {
     res.status(HTTP_INTERNAL).json({ error: extractErrorMessage(err) });
   }
