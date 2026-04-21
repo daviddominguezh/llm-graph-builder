@@ -121,8 +121,12 @@ jobs:
         run: |
           set -eu
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            # SUPABASE_PROJECT_REF came from the previous step's env dump.
-            echo "project_ref=$SUPABASE_PROJECT_REF" >> "$GITHUB_OUTPUT"
+            # Supabase CLI's `-o env` dump doesn't expose the project ref
+            # directly — it's embedded in SUPABASE_URL (https://<ref>.supabase.co).
+            # Extract the subdomain.
+            host="${SUPABASE_URL#https://}"
+            ref="${host%%.*}"
+            echo "project_ref=$ref" >> "$GITHUB_OUTPUT"
           else
             echo "project_ref=$SUPABASE_PROJECT_ID" >> "$GITHUB_OUTPUT"
           fi
