@@ -3,6 +3,8 @@ import { useCallback } from 'react';
 import type { StoredSession } from '../storage/indexeddb.js';
 import type { SessionsBackend } from '../storage/sessionsBackend.js';
 
+const EMPTY_LENGTH = 0;
+
 export interface MutationArgs {
   backendRef: React.RefObject<Promise<SessionsBackend>>;
   tenant: string;
@@ -16,7 +18,7 @@ export interface DeleteArgs extends MutationArgs {
 }
 
 function shouldSkipRename(existing: StoredSession, trimmed: string): boolean {
-  if (trimmed.length === 0) return true;
+  if (trimmed.length === EMPTY_LENGTH) return true;
   return existing.title === trimmed;
 }
 
