@@ -24,7 +24,8 @@ function useFilteredSessions(sessions: StoredSession[], query: string): StoredSe
 
 function SidebarHeader({ onCollapse, collapseLabel }: { onCollapse?: () => void; collapseLabel: string }) {
   return (
-    <div className="h-12 px-2 flex items-center justify-end shrink-0">
+    <div className="h-12 px-3 flex items-center justify-between shrink-0">
+      <img src="/favicon.png" alt="OpenFlow" className="size-6" />
       <Button variant="ghost" size="icon" aria-label={collapseLabel} onClick={onCollapse}>
         <PanelLeft />
       </Button>
@@ -37,7 +38,7 @@ function SidebarNewChat({ onNewChat, label }: { onNewChat: () => void; label: st
     <button
       type="button"
       onClick={onNewChat}
-      className="mx-2 px-3 py-1.5 flex items-center gap-2 text-sm rounded-md hover:bg-sidebar-accent cursor-pointer"
+      className="mx-2 px-3 py-1.5 flex items-center gap-2 text-sm rounded-md hover:bg-input cursor-pointer"
     >
       <Plus className="size-4" />
       <span>{label}</span>
@@ -57,7 +58,7 @@ function SidebarSearch({
   label: string;
 }) {
   return (
-    <div className="mx-2 px-3 py-1.5 flex items-center gap-2 text-sm rounded-md bg-input">
+    <div className="mx-2 px-3 py-1.5 flex items-center gap-2 text-sm rounded-md bg-input border border-transparent transition-colors focus-within:border-ring focus-within:ring-[2px] focus-within:ring-ring/30">
       <Search className="size-4 text-muted-foreground" />
       <input
         type="text"

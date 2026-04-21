@@ -3,7 +3,6 @@ import { ChevronDown, PanelLeft } from 'lucide-react';
 import { useT } from '../../app/i18nContext.js';
 import { Button } from '../primitives/button.js';
 import { ThemeToggle } from './ThemeToggle.js';
-import { VersionHistoryButton } from './VersionHistoryButton.js';
 
 export interface TopBarProps {
   title?: string;
@@ -38,7 +37,6 @@ export function TopBar({ title, onOpenSidebar }: TopBarProps) {
         {title !== undefined && <TitleLabel title={title} />}
       </div>
       <div className="flex items-center gap-1">
-        <VersionHistoryButton />
         <ThemeToggle />
       </div>
     </div>
