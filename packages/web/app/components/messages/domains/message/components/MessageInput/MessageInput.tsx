@@ -917,7 +917,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
           <div
             className={`ml-3 mr-2 text-xs font-medium px-2 py-1 rounded-t-md w-fit cursor-default ${
               disabledByAI
-                ? 'text-foreground bg-ring'
+                ? 'text-foreground bg-border'
                 : disabledBy24HourRule
                   ? 'text-white bg-orange-500'
                   : 'text-gray-700 bg-gray-300'
@@ -937,7 +937,7 @@ const MessageInputInner: React.FC<MessageInputProps> = ({
           className={`bg-background rounded-t-md border border-b-0 z-20 overflow-hidden bottom-0 flex flex-col ${
             disabled
               ? disabledByAI
-                ? 'm-0 mt-0 border-ring border-2 border-b-0'
+                ? 'm-0 mt-0 border-border border-2 border-b-0'
                 : disabledBy24HourRule
                   ? 'm-0 mt-0 border-orange-500 border-2 border-b-0'
                   : 'm-0 mt-0 border-muted-foreground border-2 border-b-0'
