@@ -1,4 +1,4 @@
-import { Sparkles } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { useT } from './i18nContext.js';
@@ -22,7 +22,7 @@ function EmbeddedLoader({ label }: { label: string }) {
       aria-label={label}
       className="w-full h-full rounded-full bg-primary/70 text-primary-foreground flex items-center justify-center animate-pulse"
     >
-      <Sparkles className="size-6 opacity-80" />
+      <MessageCircle className="size-6 opacity-80" />
     </div>
   );
 }

@@ -44,9 +44,9 @@
       const AGENT = 'agent-example';
 
       const POSITIONS = {
-        bubble: { width: 56, height: 56, top: 'auto', right: 16, bottom: 16, borderRadius: '50%' },
-        panel: { width: 400, height: 'calc(100vh - 48px)', top: 24, right: 14, bottom: 'auto', borderRadius: '12px' },
-        fullscreen: { width: '100vw', height: '100vh', top: 0, right: 0, bottom: 'auto', borderRadius: '0' },
+        bubble: { width: 56, height: 56, top: 'auto', right: 16, bottom: 16 },
+        panel: { width: 400, height: 'calc(100vh - 48px)', top: 24, right: 14, bottom: 'auto' },
+        fullscreen: { width: '100vw', height: '100vh', top: 0, right: 0, bottom: 'auto' },
       };
 
       const nonce = Math.random().toString(36).slice(2);
@@ -58,7 +58,6 @@
         iframe.style.top = typeof p.top === 'number' ? `${p.top}px` : p.top;
         iframe.style.right = typeof p.right === 'number' ? `${p.right}px` : p.right;
         iframe.style.bottom = typeof p.bottom === 'number' ? `${p.bottom}px` : p.bottom;
-        iframe.style.borderRadius = p.borderRadius;
       }
 
       applyPos('bubble');

@@ -1,5 +1,5 @@
 // packages/widget/src/app/modes/EmbeddedMode.tsx
-import { Sparkles } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { CopilotPanel } from '../../ui/CopilotPanel.js';
@@ -43,9 +43,9 @@ export function EmbeddedMode({ hostViewportW }: { hostViewportW: number | null }
         type="button"
         aria-label={t('openChat')}
         onClick={openPanel}
-        className="w-full h-full rounded-full bg-primary text-primary-foreground flex items-center justify-center p-3 shadow-lg"
+        className="w-full h-full rounded-full bg-primary text-primary-foreground flex items-center justify-center"
       >
-        <Sparkles className="size-4.5" />
+        <MessageCircle className="size-6" />
       </button>
     );
   }
