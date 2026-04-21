@@ -108,15 +108,20 @@ jobs:
         with:
           version: latest
 
+      # Two separate steps because `$GITHUB_ENV` writes only take effect on
+      # SUBSEQUENT steps — so we can't read SUPABASE_PROJECT_REF in the same
+      # step that dumps it. The next step ("Resolve target project ref")
+      # reads whichever env got set here.
+      - name: Dump preview branch env (pull_request only)
+        if: github.event_name == 'pull_request'
+        run: supabase --experimental branches get "$GITHUB_HEAD_REF" -o env >> "$GITHUB_ENV"
+
       - name: Resolve target project ref
         id: target
         run: |
           set -eu
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            # Grab the preview branch's project_ref via the Supabase CLI.
-            # The branch was created by the Supabase GitHub integration.
-            supabase --experimental branches get "$GITHUB_HEAD_REF" -o env >> "$GITHUB_ENV"
-            # `SUPABASE_PROJECT_REF` is written by the `-o env` dump above.
+            # SUPABASE_PROJECT_REF came from the previous step's env dump.
             echo "project_ref=$SUPABASE_PROJECT_REF" >> "$GITHUB_OUTPUT"
           else
             echo "project_ref=$SUPABASE_PROJECT_ID" >> "$GITHUB_OUTPUT"
