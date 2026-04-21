@@ -11,7 +11,7 @@ export interface WelcomeViewProps {
 function WelcomeBrand() {
   return (
     <div className="flex items-center gap-2 justify-center">
-      <img src="/favicon.png" alt="" className="h-8 w-auto" />
+      <img src="/favicon.png" alt="" className="h-7 w-auto" />
       <img src="/logo-black.png" alt="OpenFlow" className="h-5 mt-1 w-auto dark:hidden" />
       <img src="/logo-white.png" alt="OpenFlow" className="h-5 mt-1 w-auto hidden dark:block" />
     </div>
@@ -28,7 +28,7 @@ export function WelcomeView({ onSend, isStreaming, onOpenSidebar }: WelcomeViewP
         <div className="w-full max-w-2xl flex flex-col gap-8">
           <div className="flex flex-col items-center gap-3">
             <WelcomeBrand />
-            <h1 className="font-display text-4xl tracking-wide">{t('welcomeTitle')}</h1>
+            <h1 className="font-display text-4xl tracking-normal">{t('welcomeTitle')}</h1>
           </div>
           <ComposerInput variant="welcome" onSend={onSend} isStreaming={isStreaming} />
         </div>
