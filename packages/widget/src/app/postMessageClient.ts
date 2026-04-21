@@ -19,48 +19,58 @@ let hostOrigin: string | null = null;
 let viewportW: number | null = null;
 let readyCallbacks: Array<(v: { viewportW: number }) => void> = [];
 
-export function isHostMessage(data: unknown): data is HostInbound {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    typeof (data as Record<string, unknown>).type === 'string' &&
-    typeof (data as Record<string, unknown>).nonce === 'string'
-  );
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }
 
-function onInit(e: MessageEvent, onViewportChange: (w: number) => void): void {
-  if (e.data.type !== 'openflow:init') return;
+export function isHostMessage(data: unknown): data is HostInbound {
+  if (!isRecord(data)) return false;
+  return typeof data.type === 'string' && typeof data.nonce === 'string';
+}
+
+function onInit(
+  msg: Extract<HostInbound, { type: 'openflow:init' }>,
+  origin: string,
+  onViewportChange: (w: number) => void
+): void {
   if (nonce !== null) return;
-  nonce = e.data.nonce;
-  hostOrigin = e.origin;
-  viewportW = e.data.viewportW;
-  for (const cb of readyCallbacks) cb({ viewportW: e.data.viewportW });
+  const { nonce: msgNonce, viewportW: msgViewportW } = msg;
+  nonce = msgNonce;
+  hostOrigin = origin;
+  viewportW = msgViewportW;
+  for (const cb of readyCallbacks) cb({ viewportW: msgViewportW });
   readyCallbacks = [];
   postReady();
-  onViewportChange(e.data.viewportW);
+  onViewportChange(msgViewportW);
 }
 
-function onViewport(e: MessageEvent, onViewportChange: (w: number) => void): void {
-  if (e.data.type !== 'openflow:viewport') return;
-  viewportW = e.data.viewportW;
-  onViewportChange(e.data.viewportW);
+function onViewport(
+  msg: Extract<HostInbound, { type: 'openflow:viewport' }>,
+  onViewportChange: (w: number) => void
+): void {
+  const { viewportW: msgViewportW } = msg;
+  viewportW = msgViewportW;
+  onViewportChange(msgViewportW);
 }
 
 export function initMessageBridge(onViewportChange: (w: number) => void): void {
-  window.addEventListener('message', (e) => {
+  window.addEventListener('message', (e: MessageEvent<unknown>) => {
     if (!isHostMessage(e.data)) return;
-    if (e.data.type === 'openflow:init') {
-      onInit(e, onViewportChange);
+    const { data } = e;
+    if (data.type === 'openflow:init') {
+      onInit(data, e.origin, onViewportChange);
       return;
     }
-    if (e.origin !== hostOrigin || e.data.nonce !== nonce) return;
-    onViewport(e, onViewportChange);
+    if (e.origin !== hostOrigin || data.nonce !== nonce) return;
+    onViewport(data, onViewportChange);
   });
 }
 
-export function awaitInit(): Promise<{ viewportW: number }> {
-  if (nonce !== null && viewportW !== null) return Promise.resolve({ viewportW });
-  return new Promise((r) => readyCallbacks.push(r));
+export async function awaitInit(): Promise<{ viewportW: number }> {
+  if (nonce !== null && viewportW !== null) return await Promise.resolve({ viewportW });
+  const { promise, resolve } = Promise.withResolvers<{ viewportW: number }>();
+  readyCallbacks.push(resolve);
+  return await promise;
 }
 
 function postReady(): void {

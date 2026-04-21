@@ -8,7 +8,7 @@ describe('sessionsBackend', () => {
     expect(b.kind).toBe('indexeddb');
   });
   it('returns in-memory backend when IndexedDB throws', async () => {
-    const origIndexedDB = globalThis.indexedDB;
+    const { indexedDB: origIndexedDB } = globalThis;
     Object.defineProperty(globalThis, 'indexedDB', {
       value: undefined,
       configurable: true,

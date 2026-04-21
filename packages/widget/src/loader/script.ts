@@ -106,7 +106,7 @@ function init(): void {
   if (autoload) boot(scriptEl, url.host, sub, explicitVersion);
 
   if (new URLSearchParams(window.location.search).get('openflow_debug') === '1') {
-    globalThis.console.info('OpenFlowWidget debug', window.OpenFlowWidget?.debug());
+    globalThis.console.info('OpenFlowWidget debug', window.OpenFlowWidget.debug());
   }
 }
 
