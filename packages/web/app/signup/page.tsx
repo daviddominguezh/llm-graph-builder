@@ -67,6 +67,28 @@ function SignupFields({ name, email, password, onNameChange, onEmailChange, onPa
   );
 }
 
+interface ExistsResult {
+  exists: boolean;
+  providers: string[];
+}
+
+function isExistsResult(value: unknown): value is ExistsResult {
+  if (typeof value !== 'object' || value === null) return false;
+  const obj = value as Record<string, unknown>;
+  return typeof obj['exists'] === 'boolean' && Array.isArray(obj['providers']);
+}
+
+async function checkEmailExists(email: string): Promise<ExistsResult | null> {
+  const response = await fetch('/api/auth/public/lookup-email', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  if (!response.ok) return null;
+  const data: unknown = await response.json();
+  return isExistsResult(data) ? data : null;
+}
+
 function useSignupSubmit(name: string, email: string, password: string) {
   const t = useTranslations('auth');
   const router = useRouter();
@@ -79,27 +101,32 @@ function useSignupSubmit(name: string, email: string, password: string) {
     setLoading(true);
     setError('');
 
+    const lookup = await checkEmailExists(email);
+    if (lookup !== null && lookup.exists === true) {
+      const msg = lookup.providers.includes('google')
+        ? t('signup.errors.emailExistsGoogle')
+        : t('signup.errors.emailExists');
+      setError(msg);
+      setIsShaking(true);
+      setLoading(false);
+      return;
+    }
+
     const supabase = createClient();
-    const { data, error: authError } = await supabase.auth.signUp({
+    const { error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { full_name: name } },
     });
 
-    if (authError) {
+    if (authError !== null) {
       setError(t('errors.generic'));
       setIsShaking(true);
       setLoading(false);
       return;
     }
 
-    if (data.session === null) {
-      setError(t('signup.checkEmail'));
-      setLoading(false);
-      return;
-    }
-
-    router.push('/');
+    router.push('/verify-phone');
     router.refresh();
   }
 
@@ -135,7 +162,7 @@ function SignupForm() {
           onEmailChange={setEmail}
           onPasswordChange={setPassword}
         />
-        {error && <p className="text-destructive text-xs">{error}</p>}
+        {error !== '' && <p className="text-destructive text-xs">{error}</p>}
         <Button type="submit" size="lg" className="w-full" disabled={!isFormValid || loading}>
           {loading ? <Loader2 className="size-4 animate-spin" /> : t('signup.submit')}
         </Button>
