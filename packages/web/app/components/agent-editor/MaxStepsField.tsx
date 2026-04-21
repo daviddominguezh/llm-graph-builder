@@ -7,17 +7,18 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useRef } from 'react';
 
 const DEBOUNCE_MS = 500;
+const DEFAULT_MAX_STEPS = 20;
 
 interface MaxStepsFieldProps {
   value: number | null;
   onChange: (value: number | null) => void;
 }
 
-function parseMaxSteps(raw: string): number | null {
+function parseMaxSteps(raw: string): number {
   const trimmed = raw.trim();
-  if (trimmed === '') return null;
+  if (trimmed === '') return DEFAULT_MAX_STEPS;
   const parsed = Number(trimmed);
-  return Number.isFinite(parsed) ? parsed : null;
+  return Number.isFinite(parsed) ? parsed : DEFAULT_MAX_STEPS;
 }
 
 export function MaxStepsField({ value, onChange }: MaxStepsFieldProps) {
@@ -44,7 +45,7 @@ export function MaxStepsField({ value, onChange }: MaxStepsFieldProps) {
         <Input
           id="max-steps"
           type="number"
-          defaultValue={value ?? ''}
+          defaultValue={value ?? DEFAULT_MAX_STEPS}
           onChange={handleChange}
           placeholder={t('maxStepsPlaceholder')}
           className="w-32 shrink-0"
