@@ -1,4 +1,4 @@
-import { ArrowUp, Loader2, Plus } from 'lucide-react';
+import { ArrowUp, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { useT } from '../../app/i18nContext.js';
@@ -29,28 +29,16 @@ function useSubmitOnEnter(
   };
 }
 
-interface ComposerActionsProps {
-  onAdd?: () => void;
+interface SendButtonRowProps {
   onSend: () => void;
   sendDisabled: boolean;
   isStreaming: boolean;
   sendLabel: string;
-  addLabel: string;
 }
 
-function ComposerActions({
-  onAdd,
-  onSend,
-  sendDisabled,
-  isStreaming,
-  sendLabel,
-  addLabel,
-}: ComposerActionsProps) {
+function SendButtonRow({ onSend, sendDisabled, isStreaming, sendLabel }: SendButtonRowProps) {
   return (
-    <div className="flex items-center justify-between">
-      <Button variant="ghost" size="icon" aria-label={addLabel} onClick={onAdd}>
-        <Plus />
-      </Button>
+    <div className="flex items-center justify-end">
       <Button
         variant="default"
         size="icon"
@@ -80,7 +68,7 @@ export function ComposerInput({ onSend, isStreaming = false, variant = 'chat' }:
   const handleKeyDown = useSubmitOnEnter(isStreaming, submit);
 
   return (
-    <div className="rounded-2xl border border-border bg-muted/50 p-3 flex flex-col gap-2">
+    <div className="rounded-2xl border border-border bg-muted/50 p-3 flex flex-col gap-2 transition-colors focus-within:border-ring focus-within:ring-[2px] focus-within:ring-ring/30">
       <textarea
         rows={1}
         className="bg-transparent resize-none outline-none text-sm leading-relaxed placeholder:text-muted-foreground w-full min-h-8 max-h-48 field-sizing-content"
@@ -89,12 +77,11 @@ export function ComposerInput({ onSend, isStreaming = false, variant = 'chat' }:
         onChange={(e) => setText(e.target.value)}
         onKeyDown={handleKeyDown}
       />
-      <ComposerActions
+      <SendButtonRow
         onSend={submit}
         sendDisabled={!trimmed || isStreaming}
         isStreaming={isStreaming}
         sendLabel={t('send')}
-        addLabel={t('newChat')}
       />
     </div>
   );

@@ -57,7 +57,7 @@ function SidebarSearch({
   label: string;
 }) {
   return (
-    <div className="mx-2 px-3 py-1.5 flex items-center gap-2 text-sm rounded-md hover:bg-sidebar-accent">
+    <div className="mx-2 px-3 py-1.5 flex items-center gap-2 text-sm rounded-md bg-input">
       <Search className="size-4 text-muted-foreground" />
       <input
         type="text"

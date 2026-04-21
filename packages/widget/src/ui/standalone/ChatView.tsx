@@ -13,6 +13,7 @@ export interface ChatViewProps {
   isStreaming: boolean;
   streamError: string | null;
   terminalUnavailable: boolean;
+  onOpenSidebar?: () => void;
 }
 
 function useScrollToBottom(dep: unknown): React.RefObject<HTMLDivElement | null> {
@@ -67,10 +68,11 @@ export function ChatView({
   isStreaming,
   streamError,
   terminalUnavailable,
+  onOpenSidebar,
 }: ChatViewProps) {
   return (
-    <div className="flex flex-col h-dvh min-h-0">
-      <TopBar title={title} />
+    <div className="flex flex-col h-full min-h-0">
+      <TopBar title={title} onOpenSidebar={onOpenSidebar} />
       <MessagesArea messages={messages} />
       <ChatFooter
         isStreaming={isStreaming}

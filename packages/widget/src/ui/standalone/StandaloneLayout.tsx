@@ -50,13 +50,20 @@ interface RightPaneProps {
   sessions: ReturnType<typeof useSessions>;
   chat: ReturnType<typeof useChatStream>;
   title: string;
+  onOpenSidebar?: () => void;
 }
 
-function RightPane({ sessions, chat, title }: RightPaneProps) {
+function RightPane({ sessions, chat, title, onOpenSidebar }: RightPaneProps) {
   const hasActive = sessions.messages.length > 0 || chat.stream.blocks !== null;
   const visible = buildVisibleMessages({ messages: sessions.messages, streamingBlocks: chat.stream.blocks });
   if (!hasActive) {
-    return <WelcomeView onSend={(t) => handleSend(chat, t)} isStreaming={chat.stream.blocks !== null} />;
+    return (
+      <WelcomeView
+        onSend={(t) => handleSend(chat, t)}
+        isStreaming={chat.stream.blocks !== null}
+        onOpenSidebar={onOpenSidebar}
+      />
+    );
   }
   return (
     <ChatView
@@ -66,6 +73,7 @@ function RightPane({ sessions, chat, title }: RightPaneProps) {
       isStreaming={chat.stream.blocks !== null}
       streamError={chat.stream.error}
       terminalUnavailable={chat.stream.terminal === 'unavailable'}
+      onOpenSidebar={onOpenSidebar}
     />
   );
 }
@@ -75,12 +83,12 @@ export function StandaloneLayout({ sessions, chat }: StandaloneLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const title = useActiveTitle(sessions, t('newChat'));
 
+  const gridClasses = sidebarOpen
+    ? 'grid grid-cols-[260px_1fr] h-dvh w-full'
+    : 'grid grid-cols-1 h-dvh w-full';
+
   return (
-    <div
-      className={
-        sidebarOpen ? 'grid grid-cols-[260px_1fr] h-dvh w-full' : 'grid grid-cols-[0_1fr] h-dvh w-full'
-      }
-    >
+    <div className={gridClasses}>
       {sidebarOpen && (
         <Sidebar
           sessions={sessions.sessions}
@@ -90,7 +98,12 @@ export function StandaloneLayout({ sessions, chat }: StandaloneLayoutProps) {
           onCollapse={() => setSidebarOpen(false)}
         />
       )}
-      <RightPane sessions={sessions} chat={chat} title={title} />
+      <RightPane
+        sessions={sessions}
+        chat={chat}
+        title={title}
+        onOpenSidebar={sidebarOpen ? undefined : () => setSidebarOpen(true)}
+      />
     </div>
   );
 }
