@@ -28,7 +28,7 @@ export function WelcomeView({ onSend, isStreaming, onOpenSidebar }: WelcomeViewP
         <div className="w-full max-w-2xl flex flex-col gap-8">
           <div className="flex flex-col items-center gap-3">
             <WelcomeBrand />
-            <h1 className="font-display text-4xl tracking-tight">{t('welcomeTitle')}</h1>
+            <h1 className="font-display text-4xl tracking-wide">{t('welcomeTitle')}</h1>
           </div>
           <ComposerInput variant="welcome" onSend={onSend} isStreaming={isStreaming} />
         </div>
