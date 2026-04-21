@@ -16,10 +16,10 @@ interface UseSessionsResult {
   currentSessionId: string | null;
   messages: CopilotMessage[];
   backendKind: 'indexeddb' | 'memory' | 'loading';
-  createSession: () => Promise<void>;
+  createSession: () => Promise<string>;
   switchSession: (id: string) => Promise<void>;
-  appendUserMessage: (text: string) => Promise<void>;
-  finalizeAssistantMessage: (blocks: CopilotMessageBlock[]) => Promise<void>;
+  appendUserMessage: (text: string, sessionIdOverride?: string) => Promise<void>;
+  finalizeAssistantMessage: (blocks: CopilotMessageBlock[], sessionIdOverride?: string) => Promise<void>;
   renameSession: (id: string, newTitle: string) => Promise<void>;
   deleteSession: (id: string) => Promise<void>;
   toggleStarSession: (id: string) => Promise<void>;
@@ -83,10 +83,10 @@ interface ActionArgs {
 }
 
 interface SessionActions {
-  createSession: () => Promise<void>;
+  createSession: () => Promise<string>;
   switchSession: (id: string) => Promise<void>;
-  appendUserMessage: (text: string) => Promise<void>;
-  finalizeAssistantMessage: (blocks: CopilotMessageBlock[]) => Promise<void>;
+  appendUserMessage: (text: string, sessionIdOverride?: string) => Promise<void>;
+  finalizeAssistantMessage: (blocks: CopilotMessageBlock[], sessionIdOverride?: string) => Promise<void>;
   renameSession: (id: string, newTitle: string) => Promise<void>;
   deleteSession: (id: string) => Promise<void>;
   toggleStarSession: (id: string) => Promise<void>;
@@ -96,10 +96,12 @@ interface CreateSessionArgs {
   setCurrentSessionId: (id: string | null) => void;
 }
 
-function useCreateSession({ setCurrentSessionId }: CreateSessionArgs): () => Promise<void> {
+function useCreateSession({ setCurrentSessionId }: CreateSessionArgs): () => Promise<string> {
   return useCallback(async () => {
     await Promise.resolve();
-    setCurrentSessionId(randomUUID());
+    const id = randomUUID();
+    setCurrentSessionId(id);
+    return id;
   }, [setCurrentSessionId]);
 }
 
@@ -144,15 +146,16 @@ function useAppendUserMessage({
   tenant,
   agentSlug,
   reload,
-}: MutateArgs): (text: string) => Promise<void> {
+}: MutateArgs): (text: string, sessionIdOverride?: string) => Promise<void> {
   return useCallback(
-    async (text: string) => {
-      if (currentSessionId === null) return;
+    async (text: string, sessionIdOverride?: string) => {
+      const sid = sessionIdOverride ?? currentSessionId;
+      if (sid === null) return;
       const b = await backendRef.current;
-      const existing = await b.get(tenant, agentSlug, currentSessionId);
+      const existing = await b.get(tenant, agentSlug, sid);
       const updated =
         existing === undefined
-          ? buildNewSession({ id: currentSessionId, tenant, agentSlug, text })
+          ? buildNewSession({ id: sid, tenant, agentSlug, text })
           : updateExistingSession(existing, text);
       await b.put(updated);
       await reload(b);
@@ -167,12 +170,13 @@ function useFinalizeAssistantMessage({
   tenant,
   agentSlug,
   reload,
-}: MutateArgs): (blocks: CopilotMessageBlock[]) => Promise<void> {
+}: MutateArgs): (blocks: CopilotMessageBlock[], sessionIdOverride?: string) => Promise<void> {
   return useCallback(
-    async (blocks: CopilotMessageBlock[]) => {
-      if (currentSessionId === null) return;
+    async (blocks: CopilotMessageBlock[], sessionIdOverride?: string) => {
+      const sid = sessionIdOverride ?? currentSessionId;
+      if (sid === null) return;
       const b = await backendRef.current;
-      const existing = await b.get(tenant, agentSlug, currentSessionId);
+      const existing = await b.get(tenant, agentSlug, sid);
       if (existing === undefined) return;
       const updated: StoredSession = {
         ...existing,
