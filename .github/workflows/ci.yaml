@@ -5,6 +5,13 @@ on:
   push:
     branches: [main]
 
+# Opts every JavaScript action (actions/checkout, actions/setup-node,
+# supabase/setup-cli) into Node.js 24. Silences the "Node 20 actions are
+# deprecated" warning and preempts the forced upgrade on 2026-06-02.
+# Remove this once Node 24 is the default on the runner.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   check:
     runs-on: ubuntu-latest
