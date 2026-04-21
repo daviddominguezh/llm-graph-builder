@@ -1328,6 +1328,7 @@
     "title": "Tell us about you",
     "description": "This helps us tailor your experience.",
     "submit": "Continue",
+    "submitError": "Couldn't save. Please try again.",
     "sections": {
       "industry": "What's your industry?",
       "companySize": "How big is your company?",
@@ -1394,11 +1395,15 @@
   "account": {
     "title": "Account",
     "profile": {
-      "title": "Profile"
+      "title": "Profile",
+      "emailLabel": "Email",
+      "nameLabel": "Full name",
+      "nameEditingSoon": "editing coming soon"
     },
     "security": {
       "title": "Security",
       "phone": "Phone",
+      "noPhone": "Not set",
       "changePassword": "Change password"
     },
     "connections": {
