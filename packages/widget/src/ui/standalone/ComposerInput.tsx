@@ -67,10 +67,11 @@ export function ComposerInput({ onSend, isStreaming = false, variant = 'chat' }:
 
   const handleKeyDown = useSubmitOnEnter(isStreaming, submit);
   const heightClass = variant === 'welcome' ? 'h-[122px]' : '';
+  const shadowClass = variant === 'welcome' ? 'shadow-md dark:shadow-none' : '';
 
   return (
     <div
-      className={`rounded-2xl border border-border bg-muted/50 p-4 flex flex-col gap-2 transition-colors focus-within:border-ring/50 dark:focus-within:border-ring/40 ${heightClass}`}
+      className={`rounded-2xl border border-border bg-muted/50 p-4 flex flex-col gap-2 transition-colors focus-within:border-ring/50 dark:focus-within:border-ring/40 ${heightClass} ${shadowClass}`}
     >
       <textarea
         rows={1}
