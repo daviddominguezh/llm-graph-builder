@@ -30,6 +30,11 @@ interface SessionsState {
   setCurrentSessionId: (id: string | null) => void;
 }
 
+interface ScopeArgs {
+  tenant: string;
+  agentSlug: string;
+}
+
 const TITLE_MAX_LENGTH = 40;
 const TITLE_TRIM_LENGTH = 37;
 const EMPTY_LENGTH = 0;
@@ -46,7 +51,7 @@ function buildAssistantMessage(blocks: CopilotMessageBlock[]): CopilotMessage {
   return { id: randomUUID(), role: 'assistant', blocks, timestamp: Date.now() };
 }
 
-function useSessionsState(): SessionsState {
+function useSessionsState({ tenant, agentSlug }: ScopeArgs): SessionsState {
   const backendRef = useRef<Promise<SessionsBackend>>(createSessionsBackend());
   const [backend, setBackend] = useState<SessionsBackend | null>(null);
   const [sessions, setSessions] = useState<StoredSession[]>([]);
@@ -57,12 +62,12 @@ function useSessionsState(): SessionsState {
     void backendRef.current.then(async (b) => {
       if (cancelled) return;
       setBackend(b);
-      setSessions(await b.list());
+      setSessions(await b.list(tenant, agentSlug));
     });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [tenant, agentSlug]);
 
   return { backendRef, backend, sessions, currentSessionId, setSessions, setCurrentSessionId };
 }
@@ -113,16 +118,26 @@ function useCreateSession({
   }, [backendRef, tenant, agentSlug, reload, setCurrentSessionId]);
 }
 
-function useAppendUserMessage(
-  backendRef: React.RefObject<Promise<SessionsBackend>>,
-  currentSessionId: string | null,
-  reload: (b: SessionsBackend) => Promise<void>
-): (text: string) => Promise<void> {
+interface MutateArgs {
+  backendRef: React.RefObject<Promise<SessionsBackend>>;
+  currentSessionId: string | null;
+  tenant: string;
+  agentSlug: string;
+  reload: (b: SessionsBackend) => Promise<void>;
+}
+
+function useAppendUserMessage({
+  backendRef,
+  currentSessionId,
+  tenant,
+  agentSlug,
+  reload,
+}: MutateArgs): (text: string) => Promise<void> {
   return useCallback(
     async (text: string) => {
       if (currentSessionId === null) return;
       const b = await backendRef.current;
-      const existing = await b.get(currentSessionId);
+      const existing = await b.get(tenant, agentSlug, currentSessionId);
       if (existing === undefined) return;
       const updated: StoredSession = {
         ...existing,
@@ -133,20 +148,22 @@ function useAppendUserMessage(
       await b.put(updated);
       await reload(b);
     },
-    [backendRef, currentSessionId, reload]
+    [backendRef, currentSessionId, tenant, agentSlug, reload]
   );
 }
 
-function useFinalizeAssistantMessage(
-  backendRef: React.RefObject<Promise<SessionsBackend>>,
-  currentSessionId: string | null,
-  reload: (b: SessionsBackend) => Promise<void>
-): (blocks: CopilotMessageBlock[]) => Promise<void> {
+function useFinalizeAssistantMessage({
+  backendRef,
+  currentSessionId,
+  tenant,
+  agentSlug,
+  reload,
+}: MutateArgs): (blocks: CopilotMessageBlock[]) => Promise<void> {
   return useCallback(
     async (blocks: CopilotMessageBlock[]) => {
       if (currentSessionId === null) return;
       const b = await backendRef.current;
-      const existing = await b.get(currentSessionId);
+      const existing = await b.get(tenant, agentSlug, currentSessionId);
       if (existing === undefined) return;
       const updated: StoredSession = {
         ...existing,
@@ -156,7 +173,7 @@ function useFinalizeAssistantMessage(
       await b.put(updated);
       await reload(b);
     },
-    [backendRef, currentSessionId, reload]
+    [backendRef, currentSessionId, tenant, agentSlug, reload]
   );
 }
 
@@ -165,9 +182,9 @@ function useSessionActions({ state, tenant, agentSlug }: ActionArgs): SessionAct
 
   const reload = useCallback(
     async (b: SessionsBackend) => {
-      setSessions(await b.list());
+      setSessions(await b.list(tenant, agentSlug));
     },
-    [setSessions]
+    [setSessions, tenant, agentSlug]
   );
 
   const createSession = useCreateSession({ backendRef, tenant, agentSlug, reload, setCurrentSessionId });
@@ -175,20 +192,21 @@ function useSessionActions({ state, tenant, agentSlug }: ActionArgs): SessionAct
   const switchSession = useCallback(
     async (id: string) => {
       const b = await backendRef.current;
-      const s = await b.get(id);
+      const s = await b.get(tenant, agentSlug, id);
       if (s !== undefined) setCurrentSessionId(s.sessionId);
     },
-    [backendRef, setCurrentSessionId]
+    [backendRef, tenant, agentSlug, setCurrentSessionId]
   );
 
-  const appendUserMessage = useAppendUserMessage(backendRef, currentSessionId, reload);
-  const finalizeAssistantMessage = useFinalizeAssistantMessage(backendRef, currentSessionId, reload);
+  const mutateArgs = { backendRef, currentSessionId, tenant, agentSlug, reload };
+  const appendUserMessage = useAppendUserMessage(mutateArgs);
+  const finalizeAssistantMessage = useFinalizeAssistantMessage(mutateArgs);
 
   return { createSession, switchSession, appendUserMessage, finalizeAssistantMessage };
 }
 
 export function useSessions({ tenant, agentSlug }: Args): UseSessionsResult {
-  const state = useSessionsState();
+  const state = useSessionsState({ tenant, agentSlug });
   const actions = useSessionActions({ state, tenant, agentSlug });
 
   const current = state.sessions.find((s) => s.sessionId === state.currentSessionId);

@@ -5,14 +5,13 @@ import { getSession, listSessions, openSessionsDB, putSession } from './indexedd
 export interface SessionsBackend {
   kind: 'indexeddb' | 'memory';
   put: (s: StoredSession) => Promise<void>;
-  get: (id: string) => Promise<StoredSession | undefined>;
-  list: () => Promise<StoredSession[]>;
+  get: (tenant: string, agentSlug: string, id: string) => Promise<StoredSession | undefined>;
+  list: (tenant: string, agentSlug: string) => Promise<StoredSession[]>;
 }
 
 export async function createSessionsBackend(): Promise<SessionsBackend> {
   try {
     if (typeof globalThis.indexedDB === 'undefined') return createInMemoryBackend();
-    // Probe — opens the DB and immediately closes.
     const db = await openSessionsDB();
     db.close();
     return {
