@@ -104,6 +104,10 @@ function init(): void {
   globalThis.console.info(`OpenFlowWidget v${LOADER_VERSION} loaded for ${url.host}`);
 
   if (autoload) boot(scriptEl, url.host, sub, explicitVersion);
+
+  if (new URLSearchParams(window.location.search).get('openflow_debug') === '1') {
+    globalThis.console.info('OpenFlowWidget debug', window.OpenFlowWidget?.debug());
+  }
 }
 
 function isVersionResponse(val: unknown): val is VersionResponse {
