@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach } from '@jest/globals';
+import { beforeEach, describe, expect, it } from '@jest/globals';
+
 import { signStatusCookie, verifyStatusCookie } from './statusCookie.js';
 
 const SECRET = 'a'.repeat(32);

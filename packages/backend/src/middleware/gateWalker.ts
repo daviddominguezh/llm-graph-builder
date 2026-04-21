@@ -65,7 +65,9 @@ function isAppWithRouter(value: unknown): value is AppWithRouter {
   return hasRouterStack(value);
 }
 
-function isRouterHandle(handle: ExpressRouterHandle | RequestHandler | undefined): handle is ExpressRouterHandle {
+function isRouterHandle(
+  handle: ExpressRouterHandle | RequestHandler | undefined
+): handle is ExpressRouterHandle {
   return handle !== undefined && typeof handle === 'object' && 'stack' in handle;
 }
 
@@ -97,7 +99,7 @@ function collectRouterMiddleware(stack: ExpressLayer[]): RequestHandler[] {
 function walkRouterStack(
   stack: ExpressLayer[],
   basePath: string,
-  parentMiddleware: RequestHandler[],
+  parentMiddleware: RequestHandler[]
 ): RouteEntry[] {
   const out: RouteEntry[] = [];
   for (const layer of stack) {
@@ -113,7 +115,7 @@ function walkRouterStack(
 function processRouteLayer(
   route: RouteLayer,
   basePath: string,
-  parentMiddleware: RequestHandler[],
+  parentMiddleware: RequestHandler[]
 ): RouteEntry[] {
   const routePath = basePath + route.path;
   const leafChain = extractRouteChain(route.stack);
@@ -129,7 +131,7 @@ function processRouteLayer(
 function processSubRouter(
   layer: ExpressLayer,
   basePath: string,
-  parentMiddleware: RequestHandler[],
+  parentMiddleware: RequestHandler[]
 ): RouteEntry[] {
   const { handle } = layer;
   if (!isRouterHandle(handle)) return [];
@@ -158,7 +160,7 @@ function assertRouteValid(route: RouteEntry, opts: GateWalkerOptions, publicAuth
   if (publicAuthed.has(route.path)) return;
   if (!isGateAfterAuth(route.chain, authIdx, opts.gates)) {
     throw new Error(
-      `Route ${route.method.toUpperCase()} ${route.path} missing gate middleware (or wrong order)`,
+      `Route ${route.method.toUpperCase()} ${route.path} missing gate middleware (or wrong order)`
     );
   }
 }
