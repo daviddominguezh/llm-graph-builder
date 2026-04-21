@@ -15,7 +15,7 @@ const config = {
   transform: {
     '^.+\\.tsx?$': ['ts-jest', { useESM: true, tsconfig: 'tsconfig.test.json' }],
   },
-  testMatch: ['**/__tests__/**/*.test.ts', '**/app/api/**/_helpers/*.test.ts'],
+  testMatch: ['**/__tests__/**/*.test.ts', '**/app/api/**/_helpers/*.test.ts', '**/app/lib/**/*.test.ts'],
   testPathIgnorePatterns: ['/node_modules/'],
 };
 
