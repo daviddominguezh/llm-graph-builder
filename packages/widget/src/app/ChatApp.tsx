@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { fetchLatestVersion } from '../api/latestVersionClient.js';
 import { pickLocale, type Locale } from '../i18n/index.js';
 import { parseAgentHost } from '../routing/parseHostname.js';
+import { AgentProvider } from './agentContext.js';
 import { I18nProvider } from './i18nContext.js';
 import { EmbeddedMode } from './modes/EmbeddedMode.js';
 import { StandaloneMode } from './modes/StandaloneMode.js';
@@ -87,7 +88,9 @@ export function ChatApp() {
 
   return (
     <I18nProvider locale={locale}>
-      {embedded ? <EmbeddedMode hostViewportW={viewportW} /> : <StandaloneMode />}
+      <AgentProvider value={resolved}>
+        {embedded ? <EmbeddedMode hostViewportW={viewportW} /> : <StandaloneMode />}
+      </AgentProvider>
     </I18nProvider>
   );
 }
