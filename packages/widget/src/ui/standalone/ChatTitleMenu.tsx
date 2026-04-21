@@ -1,4 +1,5 @@
-import { ChevronDown, Pencil, Star, Trash2 } from 'lucide-react';
+import { ChevronDown, MoreHorizontal, Pencil, Star, Trash2 } from 'lucide-react';
+import type { MouseEvent, ReactNode } from 'react';
 
 import { useT } from '../../app/i18nContext.js';
 import { Button } from '../primitives/button.js';
@@ -9,11 +10,18 @@ import {
   DropdownMenuTrigger,
 } from '../primitives/dropdown-menu.js';
 
+export type ChatTitleMenuTriggerIcon = 'chevron' | 'dots';
+
 export interface ChatTitleMenuProps {
   starred: boolean;
   onRename: () => void;
   onToggleStar: () => void;
   onRequestDelete: () => void;
+  triggerIcon?: ChatTitleMenuTriggerIcon;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  triggerClassName?: string;
+  onTriggerClick?: (event: MouseEvent<HTMLButtonElement>) => void;
 }
 
 function StarItem({ starred, onToggleStar }: { starred: boolean; onToggleStar: () => void }) {
@@ -27,15 +35,47 @@ function StarItem({ starred, onToggleStar }: { starred: boolean; onToggleStar: (
   );
 }
 
-export function ChatTitleMenu({ starred, onRename, onToggleStar, onRequestDelete }: ChatTitleMenuProps) {
+function renderTriggerIcon(icon: ChatTitleMenuTriggerIcon): ReactNode {
+  return icon === 'dots' ? <MoreHorizontal /> : <ChevronDown />;
+}
+
+interface TriggerButtonProps {
+  icon: ChatTitleMenuTriggerIcon;
+  label: string;
+  className?: string;
+  onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
+}
+
+function TriggerButton({ icon, label, className, onClick }: TriggerButtonProps) {
+  return (
+    <Button variant="ghost" size="icon-sm" aria-label={label} className={className} onClick={onClick}>
+      {renderTriggerIcon(icon)}
+    </Button>
+  );
+}
+
+export function ChatTitleMenu({
+  starred,
+  onRename,
+  onToggleStar,
+  onRequestDelete,
+  triggerIcon = 'chevron',
+  open,
+  onOpenChange,
+  triggerClassName,
+  onTriggerClick,
+}: ChatTitleMenuProps) {
   const t = useT();
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={onOpenChange}>
       <DropdownMenuTrigger
         render={
-          <Button variant="ghost" size="icon-sm" aria-label={t('titleMenu')}>
-            <ChevronDown />
-          </Button>
+          <TriggerButton
+            icon={triggerIcon}
+            label={t('titleMenu')}
+            className={triggerClassName}
+            onClick={onTriggerClick}
+          />
         }
       />
       <DropdownMenuContent align="start" sideOffset={6}>
