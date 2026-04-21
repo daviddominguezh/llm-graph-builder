@@ -62,10 +62,14 @@ create policy "Users insert own onboarding"
 alter table public.users
   add column grandfathered_at timestamptz;
 
+-- Use now() at migration time rather than a hardcoded cutoff. Any user signed
+-- up BEFORE the migration statement runs is grandfathered; users signed up
+-- while or after the migration runs see the new gates. This avoids the
+-- "migration runs at 9am UTC but cutoff was 00:00 UTC" window.
 update public.users u
   set grandfathered_at = now(),
       onboarding_completed_at = now()
-  where u.created_at < '2026-04-21T00:00:00Z'
+  where u.created_at < now()
     and not exists (select 1 from public.user_onboarding o where o.user_id = u.id);
 ```
 
@@ -94,6 +98,68 @@ $$;
 
 revoke execute on function public.list_user_providers(text) from public, anon, authenticated;
 grant  execute on function public.list_user_providers(text) to service_role;
+
+-- OAuth duplicate rejector. Called at /auth/public/handle-oauth-duplicate.
+-- Atomically: locks the surviving email-identity row, verifies it's distinct,
+-- deletes the fresh Google user (p_uid) from auth.users (cascades public.users).
+create or replace function public.reject_oauth_duplicate(p_uid uuid)
+returns jsonb
+language plpgsql
+security definer set search_path = ''
+as $$
+declare
+  v_email text;
+  v_survivor_id uuid;
+begin
+  -- Load the caller's email. If their user doesn't exist, no-op.
+  select u.email into v_email from auth.users u where u.id = p_uid;
+  if v_email is null then
+    return jsonb_build_object('duplicate', false);
+  end if;
+
+  -- Lock the surviving email-identity row (if any) with same email.
+  select u.id into v_survivor_id
+  from auth.users u
+  where u.email = v_email
+    and u.id <> p_uid
+    and exists (
+      select 1 from auth.identities i
+      where i.user_id = u.id and i.provider = 'email'
+    )
+  limit 1
+  for update;
+
+  if v_survivor_id is null then
+    return jsonb_build_object('duplicate', false);
+  end if;
+
+  -- Delete the fresh Google user. FK cascades from public.* tables ensure
+  -- orphan cleanup; FK audit query in deploy checklist is the safeguard.
+  delete from auth.users where id = p_uid;
+
+  return jsonb_build_object('duplicate', true, 'email', v_email);
+end;
+$$;
+
+revoke execute on function public.reject_oauth_duplicate(uuid) from public, anon, authenticated;
+grant  execute on function public.reject_oauth_duplicate(uuid) to service_role;
+
+-- Safe identities projection for /auth/identities. Never exposes identity_data.
+create or replace function public.get_safe_identities(p_user_id uuid)
+returns table (provider text, email text, created_at timestamptz)
+language plpgsql
+security definer set search_path = ''
+as $$
+begin
+  return query
+    select i.provider, i.identity_data ->> 'email', i.created_at
+    from auth.identities i
+    where i.user_id = p_user_id;
+end;
+$$;
+
+revoke execute on function public.get_safe_identities(uuid) from public, anon, authenticated;
+grant  execute on function public.get_safe_identities(uuid) to service_role;
 
 -- Unique phone across confirmed + unconfirmed. Paired with pg_cron sweep
 -- (see migration 0004) to prevent indefinite squatting.
@@ -143,11 +209,11 @@ create table public.auth_audit_log (
     -- phone_verified | phone_send_otp | phone_check | otp_verify_failed | otp_lockout
     -- | onboarding_completed | oauth_duplicate_rejected | google_linked | google_unlinked
     -- | lookup_email | lookup_rate_limited
-  email text,            -- raw email, deny-all RLS
-  phone text,            -- raw phone, deny-all RLS
-  ip inet,
-  user_agent text,
-  metadata jsonb,
+  email text,            -- raw email, deny-all RLS; nulled on user delete
+  phone text,            -- raw phone, deny-all RLS; nulled on user delete
+  ip_truncated text,     -- /24 for IPv4, /48 for IPv6; not a re-identifier on its own
+  user_agent text,       -- nulled on user delete
+  metadata jsonb,        -- strict allowlist of keys; see writer helper; nulled on user delete
   created_at timestamptz not null default now()
 );
 
@@ -165,7 +231,10 @@ language plpgsql security definer set search_path = ''
 as $$
 begin
   update public.auth_audit_log
-     set email = null, phone = null
+     set email = null,
+         phone = null,
+         user_agent = null,
+         metadata = null
    where user_id = old.id;
   return old;
 end;
@@ -220,47 +289,59 @@ Three middlewares, spelled out explicitly:
 
 ### Default-deny startup walker
 
-At server startup, a helper walks the Express router tree recursively (including nested routers like `agentRouter`, `buildOrgRouter`, etc. mounted via `app.use(...)`). For every `POST/PATCH/PUT/DELETE` endpoint:
+At server startup, a helper walks the Express router tree recursively (including nested routers like `agentRouter`, `buildOrgRouter`, etc. mounted via `app.use(...)`). For every `POST/PATCH/PUT/DELETE` endpoint, it computes the ordered middleware chain (including router-level `router.use(...)` middleware merged with per-route middleware in the exact order Express would execute them):
 
-1. If the path is under `/auth/public/*` or `/webhooks/*` → OK (exempt).
-2. Else if the path is under `/auth/*` → must attach `requireAuth` AND at least one of `{requireGateComplete, requirePhoneUnverified, requireOnboardingIncomplete}` in its middleware chain. Otherwise **throw at startup**.
-3. Else (normal app routes) → must attach `requireAuth` AND `requireGateComplete`. Otherwise **throw at startup**.
+1. If the path is in `AUTH_PUBLIC_UNAUTHED` or under `/webhooks/*` → OK, no requirements.
+2. If the path is in `AUTH_PUBLIC_AUTHED` → must have `requireAuth` in the chain. Otherwise **throw**.
+3. Else if the path is under `/auth/*` → must have `requireAuth` followed by at least one of `{requireGateComplete, requirePhoneUnverified, requireOnboardingIncomplete}`. **Order matters: requireAuth must come strictly before the gate middleware** (otherwise the gate runs before `res.locals.userId` is populated and can silently pass). Otherwise **throw**.
+4. Else (normal app routes) → must have `requireAuth` strictly before `requireGateComplete`. Otherwise **throw**.
 
-The walker considers middleware applied at the router level (`router.use(...)`) as well as per-route (`router.post(path, mw, handler)`). Throws during `createApp()`, so a misconfigured route fails deploy in CI / container boot, not at first request.
+The walker throws during `createApp()`, so a misconfigured route fails deploy in CI / container boot, not at first request.
 
-Test: `routes/auth/gateCoverage.test.ts` boots the app with a deliberately-misconfigured route (e.g., a new `POST /test/widget` with no middleware) and asserts startup throws with a message identifying the path.
+Test: `routes/auth/gateCoverage.test.ts` covers all four rules — including a route with `[requireGateComplete, requireAuth]` (wrong order) which must throw, a route under `AUTH_PUBLIC_AUTHED` without `requireAuth` which must throw, and a route with `[requireAuth, someOther, requireGateComplete]` (valid but non-adjacent) which must pass.
 
 ### Endpoints
 
-**Public (no auth, no gate):**
+**Public router — split into two explicit allowlists:**
 
-| Endpoint | Purpose |
-|---|---|
-| `POST /auth/public/lookup-email` | Service-role → `public.list_user_providers`. Returns `{ exists, providers }`. Rate-limited per trusted IP (20/min) + per normalized email (5/hour, bucket key HMACed with per-deployment salt). On limit: **429** `{error:'rate_limited'}` + audit `lookup_rate_limited`. Accepted enumeration tradeoff per product. |
-| `POST /auth/public/handle-oauth-duplicate` | Called at OAuth callback with the fresh Google user's JWT as Bearer (the "public" classification is because it lives outside the normal gate walker; it still requires a valid JWT via `requireAuth` attached manually). Rate-limited per trusted IP (20/hour) + per target-email-HMAC (5/day). Logic: pull email from `auth.users.email` for `auth.uid()`, begin transaction with `select ... for update` on the surviving email-identity row, if duplicate exists call `auth.admin.deleteUser(auth.uid())`, commit, audit `oauth_duplicate_rejected`. Returns `{duplicate:true|false, email?}`. |
+- `AUTH_PUBLIC_UNAUTHED`: `['/auth/public/lookup-email']` — walker exempts from BOTH `requireAuth` and gate middleware.
+- `AUTH_PUBLIC_AUTHED`: `['/auth/public/handle-oauth-duplicate']` — walker exempts from gate middleware but **still requires `requireAuth`** to be attached. If a future refactor drops `requireAuth` from this route, the walker throws at startup.
+
+| Endpoint | Auth | Purpose |
+|---|---|---|
+| `POST /auth/public/lookup-email` | none | Service-role → `public.list_user_providers`. Returns `{ exists, providers }`. Rate-limited per trusted IP (20/min) + per normalized email (5/hour). Bucket keys HMACed with `RATE_LIMIT_BUCKET_SECRET` (env var; single per-deployment secret; separate from signing secrets; stored in backend env only; rotation invalidates existing in-flight limits but no security loss). On limit: **429** `{error:'rate_limited'}` + audit `lookup_rate_limited`. Accepted enumeration tradeoff per product. |
+| `POST /auth/public/handle-oauth-duplicate` | JWT (required) | Called at OAuth callback with the fresh Google user's JWT as Bearer. Rate-limited per trusted IP (20/hour) + per target-email-HMAC (5/day), same `RATE_LIMIT_BUCKET_SECRET`. Implementation: **calls `SECURITY DEFINER` Postgres function `public.reject_oauth_duplicate(p_uid uuid) returns jsonb`** that (a) `select ... for update` on the surviving email-identity row with same email, (b) if a duplicate exists, deletes `p_uid` from `auth.users` (cascades via existing FK audit), (c) returns `{duplicate, email}`. The `auth.admin.deleteUser(p_uid)` path is replaced by an in-SQL delete because `@supabase/supabase-js` doesn't expose `FOR UPDATE` semantics and we need the locked-select + delete to be one transaction. The backend calls this via RPC: `serviceSupabase().rpc('reject_oauth_duplicate', { p_uid: userId })`. Audit-logged on the delete branch. |
 
 **Authenticated (JWT required, per-route gate):**
 
 | Endpoint | Gate middleware | Purpose |
 |---|---|---|
-| `POST /auth/phone/check` | `requirePhoneUnverified` | Service-role → `{ available }` for E.164 phone. Per-user 5/min, 30/day. Per-user distinct-phones cap 3/day (via `otp_attempts.distinct_phones_today`). Per-IP secondary 60/min. Audit-logged. Server-side E.164 validation via `libphonenumber`; denylist NANP 900 / UK 09 premium ranges. |
+| `POST /auth/phone/check` | `requirePhoneUnverified` | Service-role → `{ available }` for E.164 phone. Per-user 5/min, 30/day. Per-user distinct-phones cap 3/day (via `otp_attempts.distinct_phones_today`). Per-IP secondary 60/min. Audit-logged. Server-side E.164 validation via `libphonenumber`. **Country allowlist for v1: US (+1), CA (+1), UK (+44).** Numbers from other countries return `{available: false, error: 'country_not_supported'}`; reduces premium-number / virtual-carrier risk to a known denylist for these three regions (NANP 900 range + UK 09 range). Broader country support tracked as follow-up. |
 | `POST /auth/phone/send-otp` | `requirePhoneUnverified` | Server-side E.164 validation + premium denylist. Transactional: `select for update` on uniqueness, then `supabase.auth.updateUser({phone})`. Cooldown via `public.otp_cooldowns` (2min/user), per-IP cap 3/hr, per-account distinct-phones cap 3/day. Returns `{ok:true, cooldownUntil}`. |
 | `POST /auth/phone/verify-otp` | `requirePhoneUnverified` | Consults `public.otp_attempts`. If `locked_until > now()` → 429 `otp_locked`. Calls `verifyOtp({phone, token, type:'phone_change'})`. On success: assert returned token's `sub === auth.uid()`, set `fails=0`, return `{access_token, refresh_token}`. On failure: `fails += 1`; if `fails >= 5` → `locked_until = now() + 15min`, audit `otp_lockout`. When `locked_until` first passes, a lazy read-repair sets `fails = 0` so the user isn't immediately re-locked by one wrong attempt after unlock. |
 | `POST /auth/complete-onboarding` | `requireOnboardingIncomplete` | Zod: enum whitelists + `min(1).max(20)` arrays + max string 64. Inserts `public.user_onboarding`, stamps `public.users.onboarding_completed_at`. 409 if already completed. |
 | `GET /auth/status` | none (available to any authenticated user, any gate state) | Returns `{phone_verified, onboarding_completed, jti}`. `jti` is copied from the caller's JWT — used by Next.js to bind the cached cookie. |
-| `GET /auth/identities` | `requireGateComplete` | Returns caller's identities filtered to `{provider, email, created_at}` ONLY. Never `identity_data` (contains Google refresh tokens). |
+| `GET /auth/identities` | `requireGateComplete` | Calls `SECURITY DEFINER` function `public.get_safe_identities(p_user_id uuid) returns setof (provider text, email text, created_at timestamptz)` which projects the safe fields at the SQL layer. The handler is a one-liner that calls `.rpc('get_safe_identities', { p_user_id: userId })` and returns the result — no JS-side projection, so a handler bug can't leak `identity_data`. |
 | `POST /auth/unlink-google` | `requireGateComplete` | Guards: caller must have BOTH email identity and Google identity. Calls `auth.admin.updateUserById(uid, {identities: [...]})` to remove the Google identity. Audit `google_unlinked`. Refuses if Google is only identity. |
 
 **OTP state machine (explicit):**
 - `resends_24h` increments on every send-otp success.
 - `resends_window_start` set to `now()` on first send in a window. If `now() - resends_window_start > 24h` when send-otp runs, reset both to a fresh window.
 - If `resends_24h > 10` → 429 `otp_rate_limited_24h`.
-- `fails` increments on each bad verify-otp. Set to 0 on successful verify AND via lazy read-repair when `locked_until` has passed.
+- **`fails` update is a single atomic statement** — collapses the read-repair with the increment:
+  ```sql
+  update public.otp_attempts
+     set fails = case when locked_until < now() then 1 else fails + 1 end,
+         locked_until = case when fails + 1 >= 5 and locked_until >= now() then now() + interval '15 minutes' else null end
+   where user_id = $1 and phone = $2
+  returning fails, locked_until;
+  ```
+  On successful verify the handler writes `fails = 0, locked_until = null` in the same transaction as the Supabase `verifyOtp` call's success branch.
 - `distinct_phones_today` / `distinct_phones_window_start` same rolling-24h pattern, incremented when the phone differs from the most-recent phone the user sent OTP to.
 
 ### IP trust
 
-Next.js proxy strips client-supplied `x-forwarded-for` and sets a single trusted IP from the platform header (`x-real-ip` / `x-vercel-forwarded-for`). Backend runs `app.set('trust proxy', N)` where `N` matches prod topology. **Startup assertion:** on boot, the backend constructs a synthetic `Request` with `x-forwarded-for: 1.2.3.4, 5.6.7.8` and confirms `req.ip` returns the expected value for the configured hop count; throws if wrong.
+Next.js proxy strips client-supplied `x-forwarded-for` and sets a single trusted IP from the platform header (`x-real-ip` / `x-vercel-forwarded-for`). Backend runs `app.set('trust proxy', N)` where `N` matches prod topology. **Startup assertion:** on boot, the backend uses `proxy-addr` (the same module Express uses internally) directly against a hand-forged request object and the configured trust-proxy value, verifying `proxy-addr(req, app.get('trust proxy fn'))` returns the expected IP for a canned `x-forwarded-for: 1.2.3.4, 5.6.7.8`. Throws if wrong. (Not `req.ip` — that requires a real pipelined request and isn't callable in isolation.)
 
 ### Options taxonomy
 
@@ -311,15 +392,21 @@ Next.js middleware mints and verifies this cookie using its own secret. Backend 
 
 **Env (`packages/web` only):** `AUTH_STATUS_COOKIE_SECRET` — ≥32 bytes, enforced at Next.js startup. Optional `AUTH_STATUS_COOKIE_SECRET_PREVIOUS` for dual-secret rotation.
 
-**Payload:** `{uid, jti, phone_verified, onboarding_completed}`. No `exp` — the cookie's lifetime is the Supabase session's lifetime, enforced by `jti` binding. `jti` is the access token's `jti` claim. When the access token refreshes, `jti` changes, cached cookie no longer matches, middleware refetches.
+**Payload:** `{uid, tokenBinding, phone_verified, onboarding_completed}`. No `exp` — the cookie's lifetime is bound to the access token it was minted against. When the access token refreshes (every ~1h by default), the binding changes, cached cookie no longer matches, middleware refetches.
 
-**Canonical form:** RFC 8785 JCS (deterministic JSON). Cookie value: `base64url(payload_bytes) + '.' + base64url(hmac_sha256(payload_bytes))`. Verification order: split on `.`, constant-time HMAC compare via `crypto.timingSafeEqual` (using current secret, then previous if configured), then parse JSON, then check `jti` matches session JWT.
+**`tokenBinding` definition (explicit, because Supabase access tokens DO NOT include a `jti` claim):**
+```ts
+tokenBinding = base64url(sha256(access_token).slice(0, 16))  // 128 bits, 22 chars
+```
+The full access token is SHA-256 hashed; the first 16 bytes become the binding. This genuinely rotates on every refresh (access token contents change), is constant-time verifiable, and doesn't leak the token itself. A helper `computeTokenBinding(accessToken: string): string` lives in `packages/web/app/lib/auth/tokenBinding.ts` and is the sole writer of this value.
+
+**Canonical form:** RFC 8785 JCS (deterministic JSON). Cookie value: `base64url(payload_bytes) + '.' + base64url(hmac_sha256(payload_bytes))`. Verification order: split on `.`, constant-time HMAC compare via `crypto.timingSafeEqual` (current secret, then previous if configured), then parse JSON, then check `tokenBinding === computeTokenBinding(currentAccessToken)` AND `uid === session.user.id`.
 
 **Invalidation:**
-- Session rotation: `jti` mismatch → refetch.
-- Mutation: any route handler that changes phone/onboarding state appends `Set-Cookie: _auth_status=; Max-Age=0; Path=/` to its response.
+- Access token refresh: `tokenBinding` mismatch → refetch.
+- Mutation: any route handler that changes phone/onboarding state appends `Set-Cookie: _auth_status=; Max-Age=0; Path=/` to its response. If that response is lost mid-flight the user may see a stale-cached state for up to one access-token TTL (~1h); in practice phone verification rotates the session (verify-otp response sets a new session), so `tokenBinding` changes and the stale cookie is invalidated on the next request.
 
-No time-based TTL. Cache is as fresh as the underlying session.
+No time-based TTL. Cache is as fresh as the underlying access token.
 
 ### Secret rotation
 
@@ -417,15 +504,15 @@ Before `signInWithPassword`:
 
 Page also reads `?error=oauth_duplicate&email=<e>` and renders a banner: "An account already exists for `<e>`. Sign in with your password, then connect Google from Account settings. [Forgot password?](/forgot-password?email=…)"
 
-**Users who signed up via an OAuth provider in the past but never set a password** can still recover via `/forgot-password`: Supabase's `resetPasswordForEmail` works regardless of password-hash presence — it emails a reset link that sets the password. Documented in the spec + tested.
+**Users who signed up via an OAuth provider in the past but never set a password** can still recover via `/forgot-password`: Supabase's `resetPasswordForEmail` works regardless of password-hash presence — it emails a reset link that sets the password. On completion, Supabase auto-adds `email` to the user's `app_metadata.providers`, so the user ends up with both Google AND email/password identities. The `/account` Connected accounts UI surfaces both clearly.
 
 ### `app/auth/callback/route.ts`
 
 After `exchangeCodeForSession` succeeds (browser now has Google user's session):
 1. `POST /auth/public/handle-oauth-duplicate` on backend with the new access token as Bearer.
 2. If `duplicate === true`:
-   - Backend has already deleted the fresh Google user (transaction with row lock) and written the audit entry.
-   - Try `supabase.auth.signOut()` against the SSR client. Regardless of outcome, build the redirect response with explicit `Set-Cookie: <each-supabase-cookie>=; Max-Age=0; Path=/` headers for all known Supabase cookie names (robust against `signOut()` failure).
+   - Backend has already deleted the fresh Google user (via `public.reject_oauth_duplicate` SECURITY DEFINER function — locked select + in-SQL delete in one transaction) and written the audit entry.
+   - Try `supabase.auth.signOut()` against the SSR client. Regardless of outcome, build the redirect response with explicit `Set-Cookie: <each-supabase-cookie>=; Max-Age=0; Path=/` headers for every Supabase cookie known for the configured project — the cookie names are `sb-<project-ref>-auth-token`, `sb-<project-ref>-auth-token.0`, `sb-<project-ref>-auth-token.1` (Supabase chunks large sessions). `<project-ref>` comes from parsing `NEXT_PUBLIC_SUPABASE_URL` at module load (the subdomain). Also clear `_auth_status`.
    - Redirect to `/login?error=oauth_duplicate&email=<urlencoded>`.
 3. Else → redirect to `next` (or `/`). Middleware routes to `/verify-phone` / `/onboarding` as needed.
 
@@ -448,6 +535,7 @@ New keys in `packages/web/messages/en.json` (sync across locales present in `mes
 
 **Backend (`packages/backend`):**
 - `SUPABASE_SERVICE_ROLE_KEY` — required.
+- `RATE_LIMIT_BUCKET_SECRET` — required, ≥32 bytes. Single per-deployment secret used to HMAC rate-limit bucket keys (email/phone hashes). Startup assertion on entropy. Rotation is harmless (invalidates existing in-flight counters; they re-accumulate within minutes).
 
 **Web (`packages/web`):**
 - `AUTH_STATUS_COOKIE_SECRET` — required, ≥32 bytes.
@@ -458,7 +546,9 @@ New keys in `packages/web/messages/en.json` (sync across locales present in `mes
 ## Tests
 
 - `routes/auth/public/lookupEmail.test.ts` — exists/false; all provider combos; 20/min IP + 5/hour email limits → 429; audit entries.
-- `routes/auth/public/handleOauthDuplicate.test.ts` — deletes fresh Google row when duplicate; no-op when other row is also Google; no-op when no duplicate; transaction holds row lock; per-IP 20/hour + per-email 5/day rate limits → 429; audit on delete.
+- `routes/auth/public/handleOauthDuplicate.test.ts` — deletes fresh Google row when duplicate (via `reject_oauth_duplicate` RPC); no-op when other row is also Google; no-op when no duplicate; confirms FOR UPDATE holds via concurrent-call test (two parallel calls serialize, only one deletes); per-IP 20/hour + per-email 5/day rate limits → 429; audit on delete.
+- `db/functions/reject_oauth_duplicate.test.sql` — locked select + delete; non-email duplicates don't trigger; missing caller no-ops; REVOKE in place.
+- `db/functions/get_safe_identities.test.sql` — returns provider/email/created_at only; `identity_data` fields never surface; REVOKE in place.
 - `routes/auth/phoneCheck.test.ts` — available/unavailable; rejects verified callers via middleware; 5/min, 30/day, 60/min/IP; premium numbers rejected.
 - `routes/auth/phoneSendOtp.test.ts` — cooldown persists across restart; uniqueness re-check in same transaction; per-IP 3/hr; distinct-phones-today cap 3/day; E.164 validation.
 - `routes/auth/phoneVerifyOtp.test.ts` — success returns matching-`sub` tokens; bad code increments `fails`; 5th failure locks 15min; lazy read-repair resets `fails` when `locked_until` passes; audit `otp_lockout`.
@@ -466,7 +556,7 @@ New keys in `packages/web/messages/en.json` (sync across locales present in `mes
 - `routes/auth/status.test.ts` — flags + `jti` returned; missing `user_onboarding` → false; grandfathered → both true.
 - `routes/auth/identities.test.ts` — returns only `{provider, email, created_at}`; no `identity_data` leakage.
 - `routes/auth/unlinkGoogle.test.ts` — happy path; refuses when only identity; audit entry.
-- `routes/auth/gateCoverage.test.ts` — walker throws startup on missing middleware (test both `/auth/*` without `requirePhoneUnverified`/`requireOnboardingIncomplete`/`requireGateComplete` AND app-level routes without `requireGateComplete`); recurses into nested routers; credits router-level middleware.
+- `routes/auth/gateCoverage.test.ts` — walker throws startup on: missing middleware under `/auth/*`; missing `requireGateComplete` on app-level mutating routes; `/auth/public/handle-oauth-duplicate` without `requireAuth`; `[requireGateComplete, requireAuth]` wrong-order chain; `[requirePhoneUnverified]` without `requireAuth`. Passes on: `[requireAuth, something, requireGateComplete]` (valid non-adjacent). Recurses into nested routers; credits router-level middleware.
 - `routes/auth/gateMiddlewares.test.ts` — each of the three middlewares rejects the expected states with 403.
 - `lib/signedCookies.test.ts` (packages/web) — JCS canonical form; HMAC-SHA256; base64url encoding; constant-time compare; bad HMAC rejected; tampered field rejected; `jti` mismatch rejected; dual-secret rotation; startup refuses <32-byte secret.
 - `routes/auth/trustProxy.test.ts` — synthetic `x-forwarded-for` yields correct `req.ip` for configured hop count.
@@ -490,5 +580,7 @@ New keys in `packages/web/messages/en.json` (sync across locales present in `mes
 - Admin UI for audit log / onboarding data.
 - Email confirmations.
 - VOIP / virtual number detection beyond premium denylist.
+- Phone support outside US/CA/UK for v1. Expanding the allowlist is a follow-up — requires extending the premium denylist per region and validating carrier metadata.
 - Horizontal scaling of in-memory rate limiters (short-window only; load-bearing cooldowns/attempts are Postgres-backed). Swap to Redis when scaling backend.
 - GDPR data export of audit log (internal security logs per Art. 30 legitimate interest; revisit if DPO requires).
+- Audit log row-count monitoring / alerting — the `pg_cron` retention job is the primary safeguard; operational monitoring is tracked separately.
