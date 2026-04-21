@@ -54,7 +54,7 @@
     "check": "npm run check -w packages/shared-validation && npm run check -w packages/landing && npm run check -w packages/graph-types && npm run check -w packages/api && npm run check -w packages/backend && npm run check -w packages/web",
     "build:api": "npm run build -w packages/api",
     "build:web": "npm run build -w packages/web",
-    "dev": "npm run dev -w @daviddh/graph-runner-backend & npm run dev -w web",
+    "dev": "concurrently -n backend,web,widget \"ENABLE_MOCK_EXECUTE=true npm run dev -w packages/backend\" \"npm run dev -w packages/web\" \"npm run dev -w packages/widget\"",
     "test": "npm run test --workspaces --if-present",
     "test:core": "npm run test -w @daviddh/llm-graph-builder/web"
   },
@@ -62,6 +62,7 @@
     "@eslint/js": "^9.28.0",
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "@types/jest": "^30.0.0",
+    "concurrently": "^9.2.1",
     "eslint": "^9.28.0",
     "eslint-config-love": "^144.0.0",
     "globals": "^16.2.0",
