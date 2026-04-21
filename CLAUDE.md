@@ -61,6 +61,28 @@ Graphs have **nodes** (kinds: `agent`, `agent_decision`, `tool`) and **edges** w
 - **Client components never talk to the database.** The data flow is: Client → Next.js backend (Server Components, Server Actions, Route Handlers) → dedicated backend. No direct Supabase calls from the browser.
 - Auth flows (login, signup, OAuth, password reset) are the only exception — these use the Supabase browser client for auth token management.
 
+### Supabase storage (image/file uploads)
+
+When adding a new storage bucket for file uploads:
+
+1. **Always create a SELECT policy** — even for public buckets. Supabase storage uses `INSERT ... RETURNING *` and upsert (`ON CONFLICT DO UPDATE ... RETURNING *`), which require SELECT permission on `storage.objects`. Without it, uploads fail with "new row violates row-level security policy".
+2. **Use `SECURITY DEFINER` helpers** for RLS policies that need to look up data from other RLS-protected tables. A storage policy subquery like `SELECT org_id FROM tenants WHERE ...` will fail because the subquery runs under the user's RLS context. Create a `SECURITY DEFINER` function to bypass this.
+3. **Use the single-argument `is_org_member(org_id)`** in storage policies (not the two-argument version with explicit `auth.uid()`). The 1-arg version calls `auth.uid()` internally within its `SECURITY DEFINER` context.
+4. **Reference pattern**: see `org-avatars` bucket policies in `20260309400000_fix_storage_policies_and_publish.sql` and `tenant-avatars` in `20260331000000_tenants_table.sql`.
+
+### Scroll containers (GlobalScrollbarOverlay tripwire)
+
+`packages/web/app/components/GlobalScrollbarOverlay.tsx` attaches `OverlayScrollbars` (v2.x) to every element matching `.overflow-auto` / `.overflow-y-auto` / `.overflow-*scroll` via a document-wide `MutationObserver`. OS moves the target's children into its own internal viewport, so they are no longer DOM-level direct children of the element React rendered into.
+
+**The tripwire:** any direct child of such a host that React later adds, removes, or whose *element type* changes (e.g. a component returning `<div>` in one branch and `<Provider>` in another) will crash with `Runtime NotFoundError: Failed to execute 'removeChild' on 'Node'`. Stack trace shows `commitDeletionEffectsOnFiber` → `removeChild` and just `at div (<anonymous>:null:null)` with no owner stack — don't let the opaque trace mislead you; it's a host/viewport mismatch, not a React bug.
+
+**How to avoid it:**
+
+- If the container doesn't actually need to scroll (inner children handle their own overflow), use `overflow-hidden` instead of `overflow-y-auto`. This is how the `MessageView` skeleton → Virtuoso crash was fixed in `ChatViewPanel`'s `CardContent`.
+- If you need scroll *and* dynamic direct children (conditional `{x && <Y/>}`, a component whose root type varies by branch, list reorders/removals), use the `Scrollable` wrapper in `packages/web/app/components/Scrollable.tsx` — a thin wrapper around `OverlayScrollbarsComponent` with the `os-theme-closer` theme pre-wired. This is how the chat list in `ChatListPanel` was fixed (filter changes would remove `MessagePreview` buttons from a hijacked host and crash). Opt-out alternative: add `data-native-scroll` to the element (native browser scrollbar, no overlay theme).
+
+**Reviewing new scroll containers:** scan their direct children. Stable DOM structure with only leaf mutations is fine. Root-type swaps, top-level conditionals that flip between `null` and rendered, and list re-renders where keys change are the danger.
+
 ## Code style and constraints
 
 ### ESLint (strict, do not disable)

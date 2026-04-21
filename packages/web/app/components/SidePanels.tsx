@@ -13,6 +13,7 @@ import type { UseGraphSelectionReturn } from '../hooks/useGraphSelection';
 import type { McpLibraryState } from '../hooks/useMcpLibrary';
 import type { ContextPreset } from '../types/preset';
 
+import { GlassPanel } from '@/components/ui/glass-panel';
 import { START_NODE_ID } from '../utils/graphInitializer';
 import { EdgePanel } from './panels/EdgePanel';
 import { GlobalNodesPanel } from './panels/GlobalNodesPanel';
@@ -49,6 +50,7 @@ interface PresetsHook {
 export { type CtxPreconditionsState };
 
 export interface SidePanelsProps {
+  readOnly?: boolean;
   selection: UseGraphSelectionReturn;
   simulation: { active: boolean };
   nodes: NodeArray;
@@ -91,7 +93,7 @@ function SelectionPanel(props: SelectionPanelProps) {
   const isStartNode = selection.selectedNodeId === START_NODE_ID;
 
   return (
-    <aside className="absolute right-0 top-0 bottom-0 z-10 w-80 border-border bg-background border-l rounded-s-md shadow-sm">
+    <GlassPanel className="absolute! h-[calc(100%-var(--spacing)*4)] right-2 top-2 bottom-2 z-10 w-80! rounded-md pointer-events-auto">
       {selection.selectedNodeId !== null && isStartNode && (
         <StartNodePanel
           nodeId={selection.selectedNodeId}
@@ -128,14 +130,11 @@ function SelectionPanel(props: SelectionPanelProps) {
           edgeId={selection.selectedEdgeId}
           onEdgeDeleted={() => selection.setSelectedEdgeId(null)}
           availableContextPreconditions={ctxPreconditions.allContextPreconditions}
-          availableMcpTools={props.mcpHook.allTools}
-          mcpServers={props.mcpHook.servers}
-          mcpDiscoveredTools={props.mcpHook.discoveredTools}
           onSelectNode={selection.navigateToNode}
           pushOperation={pushOperation}
         />
       )}
-    </aside>
+    </GlassPanel>
   );
 }
 
@@ -143,7 +142,7 @@ type GlobalPanelProps = Pick<SidePanelsProps, 'setNodes' | 'setEdges' | 'nodes' 
 
 function GlobalPanel({ setNodes, setEdges, nodes, pushOperation }: GlobalPanelProps) {
   return (
-    <aside className="absolute right-0 top-0 bottom-0 z-10 w-80 border-border bg-background border-l rounded-s-md">
+    <GlassPanel className="absolute right-1.5 top-1.5 bottom-0 z-10 w-80 rounded-md pointer-events-auto">
       <GlobalNodesPanel
         nodes={nodes}
         onAddNode={() => handleGlobalAddNode(setNodes, pushOperation)}
@@ -155,7 +154,7 @@ function GlobalPanel({ setNodes, setEdges, nodes, pushOperation }: GlobalPanelPr
           handleGlobalSetFallback(nodeId, nodes, setNodes, pushOperation);
         }}
       />
-    </aside>
+    </GlassPanel>
   );
 }
 
@@ -167,8 +166,6 @@ interface ToolsPanelSlotProps {
 function ToolsPanelSlot({ sidePanelProps: p, onPublishServer }: ToolsPanelSlotProps) {
   return (
     <ToolsPanel
-      servers={p.mcpHook.servers}
-      discoveredTools={p.mcpHook.discoveredTools}
       mcp={{
         servers: p.mcpHook.servers,
         discovering: p.mcpHook.discovering,
@@ -191,7 +188,8 @@ function ToolsPanelSlot({ sidePanelProps: p, onPublishServer }: ToolsPanelSlotPr
 
 export function SidePanels(props: SidePanelsProps) {
   const { selection, simulation, globalPanelOpen, presetsOpen, libraryOpen } = props;
-  const hasSelection = selection.selectedNodeId !== null || selection.selectedEdgeId !== null;
+  const isVirtualNode = selection.selectedNodeId !== null && selection.selectedNodeId.startsWith('step-');
+  const hasSelection = !isVirtualNode && (selection.selectedNodeId !== null || selection.selectedEdgeId !== null);
   const showSelectionPanel = !simulation.active && hasSelection;
 
   const schema = useSchemaDialogState({
@@ -203,8 +201,10 @@ export function SidePanels(props: SidePanelsProps) {
   const publish = usePublishState(props.mcpHook);
   const installedIds = getInstalledLibraryIds(props.mcpHook.servers);
 
+  const readOnlyClass = props.readOnly === true ? '[&_input]:pointer-events-none [&_textarea]:pointer-events-none [&_button]:pointer-events-none [&_[role=checkbox]]:pointer-events-none [&_select]:pointer-events-none [&_[role=combobox]]:pointer-events-none' : '';
+
   return (
-    <>
+    <div className={`pointer-events-auto ${readOnlyClass}`}>
       <OutputSchemaDialog
         schema={schema.editingSchema}
         onSave={props.outputSchemasHook.updateSchema}
@@ -259,6 +259,6 @@ export function SidePanels(props: SidePanelsProps) {
           orgSlug={props.orgSlug}
         />
       )}
-    </>
+    </div>
   );
 }

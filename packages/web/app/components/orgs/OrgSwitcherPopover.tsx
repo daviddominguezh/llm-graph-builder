@@ -36,7 +36,7 @@ function ListAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | nul
         alt={name}
         width={20}
         height={20}
-        className="h-5 w-5 shrink-0 rounded-full object-cover border"
+        className="h-5 w-5 shrink-0 rounded-full object-cover border border-input border-[1px]"
       />
     );
   }

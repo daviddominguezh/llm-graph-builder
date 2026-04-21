@@ -1,32 +1,38 @@
-import type { OutputSchemaEntity } from '@daviddh/graph-types';
-import { MESSAGES_PROVIDER, type Message } from '@daviddh/llm-graph-runner';
-import type { Edge as RFEdge, Node as RFNode } from '@xyflow/react';
-import { nanoid } from 'nanoid';
-import { useCallback, useRef, useState } from 'react';
+'use client';
 
-import { streamSimulation } from '../lib/api';
+import type { OutputSchemaEntity } from '@daviddh/graph-types';
+import type { Edge as RFEdge, Node as RFNode } from '@xyflow/react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+
 import type { Agent, McpServerConfig } from '../schemas/graph.schema';
 import type { ContextPreset } from '../types/preset';
-import type { NodeResult, SimulationTokens } from '../types/simulation';
+import type { ConversationEntry, NodeResult, SimulationTokens } from '../types/simulation';
 import { START_NODE_ID } from '../utils/graphContext';
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
+import type { CompositionPhase } from './compositionMachine';
+import { CompositionStore } from './compositionStore';
 import type {
+  AgentSimConfig,
   FullSetters,
   GraphSnapshot,
   SendMessageDeps,
-  SimulationSetters,
   SimulationStartDeps,
 } from './useSimulationHelpers';
-import { buildSimulateParams, buildStreamCallbacks } from './useSimulationHelpers';
+import { useAutoDispatchChild, useAutoResumeParent, useSimulationSend } from './useSimulationSend';
+import {
+  EMPTY_TOKENS,
+  type SimulationHookState,
+  useAbortRef,
+  useSimulationState,
+} from './useSimulationState';
 
-const INITIAL_TOKEN_COUNT = 0;
 const ZERO_EDGES = 0;
 
 function isNodeTerminal(edges: Array<RFEdge<RFEdgeData>>, nodeId: string): boolean {
   return nodeId !== START_NODE_ID && edges.filter((e) => e.source === nodeId).length === ZERO_EDGES;
 }
 
-interface UseSimulationParams {
+export interface UseSimulationParams {
   allNodes: Array<RFNode<RFNodeData>>;
   edges: Array<RFEdge<RFEdgeData>>;
   agents: Agent[];
@@ -37,6 +43,9 @@ interface UseSimulationParams {
   onZoomToNode: (nodeId: string) => void;
   onSelectNode: (nodeId: string) => void;
   onExitZoomView: () => void;
+  orgId?: string;
+  appType?: 'workflow' | 'agent';
+  agentConfig?: AgentSimConfig;
 }
 
 export interface SimulationState {
@@ -47,52 +56,60 @@ export interface SimulationState {
   visitedNodes: string[];
   lastUserText: string;
   nodeResults: NodeResult[];
+  conversationEntries: ConversationEntry[];
   totalTokens: SimulationTokens;
+  turnCount: number;
+  isAgent: boolean;
+  compositionPhase: CompositionPhase;
   modelId: string;
   setModelId: (id: string) => void;
   start: () => void;
   stop: () => void;
+  clear: () => void;
   sendMessage: (text: string) => void;
 }
 
-const EMPTY_TOKENS: SimulationTokens = {
-  input: INITIAL_TOKEN_COUNT,
-  output: INITIAL_TOKEN_COUNT,
-  cached: INITIAL_TOKEN_COUNT,
-};
-
-function createUserMessage(text: string): Message {
-  return {
-    id: nanoid(),
-    provider: MESSAGES_PROVIDER.WEB,
-    type: 'text',
-    timestamp: Date.now(),
-    originalId: nanoid(),
-    message: { role: 'user', content: [{ type: 'text', text }] },
-  };
-}
-
-function useSimulationStart(deps: SimulationStartDeps): () => void {
-  const { setters, allNodes, edges, onZoomToNode } = deps;
-
+function useSimulationStart(
+  deps: SimulationStartDeps & { appType?: string },
+  store: CompositionStore
+): () => void {
+  const { setters, allNodes, edges, onZoomToNode, appType } = deps;
   return useCallback(() => {
     setters.saveSnapshot({ nodes: [...allNodes], edges: [...edges] });
     setters.setActive(true);
-    setters.setCurrentNode(START_NODE_ID);
+    setters.setCurrentNode(appType === 'agent' ? 'agent' : START_NODE_ID);
     setters.setMessages([]);
     setters.setNodeResults([]);
     setters.setLastUserText('');
     setters.setVisitedNodes([]);
     setters.setTotalTokens(EMPTY_TOKENS);
     setters.setStructuredOutputs({});
-    onZoomToNode(START_NODE_ID);
-  }, [setters, allNodes, edges, onZoomToNode]);
+    store.dispatch({ type: 'RESET' });
+    if (appType !== 'agent') {
+      onZoomToNode(START_NODE_ID);
+    }
+  }, [setters, allNodes, edges, onZoomToNode, appType, store]);
 }
 
 function useSimulationStop(
   setters: FullSetters,
   abortSimulation: () => void,
-  onExitZoomView: () => void
+  onExitZoomView: () => void,
+  clearSelection: () => void
+): () => void {
+  return useCallback(() => {
+    abortSimulation();
+    setters.setActive(false);
+    clearSelection();
+    onExitZoomView();
+  }, [setters, abortSimulation, onExitZoomView, clearSelection]);
+}
+
+function useSimulationClear(
+  setters: FullSetters,
+  abortSimulation: () => void,
+  onExitZoomView: () => void,
+  store: CompositionStore
 ): () => void {
   return useCallback(() => {
     abortSimulation();
@@ -100,12 +117,16 @@ function useSimulationStop(
     setters.setActive(false);
     setters.setMessages([]);
     setters.setNodeResults([]);
+    setters.setConversationEntries([]);
+    setters.setTurnCount(0);
     setters.setLastUserText('');
     setters.setVisitedNodes([]);
     setters.setTotalTokens(EMPTY_TOKENS);
     setters.setStructuredOutputs({});
+    setters.setSimulationLeadScore?.(null);
+    store.dispatch({ type: 'RESET' });
     onExitZoomView();
-  }, [setters, abortSimulation, onExitZoomView]);
+  }, [setters, abortSimulation, onExitZoomView, store]);
 }
 
 function checkTerminated(
@@ -117,161 +138,7 @@ function checkTerminated(
   return active && !loading && snapshot !== null && isNodeTerminal(snapshot.edges, currentNode);
 }
 
-function resetBeforeSend(setters: SimulationSetters, text: string): void {
-  setters.setLoading(true);
-  setters.setNodeResults([]);
-  setters.setLastUserText(text);
-  setters.setVisitedNodes([]);
-}
-
-interface SendDepsWithAbort extends SendMessageDeps {
-  abortAndCreateSignal: () => AbortSignal;
-}
-
-function useSimulationSend(deps: SendDepsWithAbort): (text: string) => void {
-  const { preset, loading, messages, agents, apiKeyId, modelId, currentNode } = deps;
-  const { mcpServers, outputSchemas, structuredOutputs, setters, onZoomToNode, onSelectNode } = deps;
-  const { abortAndCreateSignal } = deps;
-
-  return useCallback(
-    (text: string) => {
-      const snapshot = setters.getSnapshot();
-      if (preset === undefined || loading || snapshot === null) return;
-      const signal = abortAndCreateSignal();
-      resetBeforeSend(setters, text);
-      const allMessages = [...messages, createUserMessage(text)];
-      const params = buildSimulateParams({
-        snapshot,
-        agents,
-        mcpServers,
-        outputSchemas,
-        allMessages,
-        currentNode,
-        preset,
-        apiKeyId,
-        modelId,
-        structuredOutputs,
-      });
-      const callbacks = buildStreamCallbacks({ setters, onZoomToNode, onSelectNode });
-      void streamSimulation(params, callbacks, signal).catch(() => {
-        setters.setLoading(false);
-      });
-    },
-    [
-      preset,
-      loading,
-      messages,
-      agents,
-      apiKeyId,
-      modelId,
-      currentNode,
-      mcpServers,
-      outputSchemas,
-      structuredOutputs,
-      setters,
-      onZoomToNode,
-      onSelectNode,
-      abortAndCreateSignal,
-    ]
-  );
-}
-
-interface SimulationHookState {
-  active: boolean;
-  loading: boolean;
-  currentNode: string;
-  messages: Message[];
-  lastUserText: string;
-  nodeResults: NodeResult[];
-  visitedNodes: string[];
-  totalTokens: SimulationTokens;
-  structuredOutputs: Record<string, unknown[]>;
-  modelId: string;
-  setModelId: React.Dispatch<React.SetStateAction<string>>;
-  snapshotRef: React.RefObject<GraphSnapshot | null>;
-  setters: FullSetters;
-}
-
-function useSnapshotRef(): {
-  snapshotRef: React.RefObject<GraphSnapshot | null>;
-  saveSnapshot: (s: GraphSnapshot | null) => void;
-  getSnapshot: () => GraphSnapshot | null;
-} {
-  const snapshotRef = useRef<GraphSnapshot | null>(null);
-  const saveSnapshot = useCallback((s: GraphSnapshot | null) => {
-    snapshotRef.current = s;
-  }, []);
-  const getSnapshot = useCallback((): GraphSnapshot | null => snapshotRef.current, []);
-  return { snapshotRef, saveSnapshot, getSnapshot };
-}
-
-function useAbortRef(): {
-  abortSimulation: () => void;
-  abortAndCreateSignal: () => AbortSignal;
-} {
-  const abortRef = useRef<AbortController | null>(null);
-  const abortSimulation = useCallback(() => {
-    abortRef.current?.abort();
-    abortRef.current = null;
-  }, []);
-  const abortAndCreateSignal = useCallback((): AbortSignal => {
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-    return controller.signal;
-  }, []);
-  return { abortSimulation, abortAndCreateSignal };
-}
-
-function useSimulationState(): SimulationHookState {
-  const [active, setActive] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [currentNode, setCurrentNode] = useState(START_NODE_ID);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [lastUserText, setLastUserText] = useState('');
-  const [nodeResults, setNodeResults] = useState<NodeResult[]>([]);
-  const [visitedNodes, setVisitedNodes] = useState<string[]>([]);
-  const [totalTokens, setTotalTokens] = useState<SimulationTokens>(EMPTY_TOKENS);
-  const [structuredOutputs, setStructuredOutputs] = useState<Record<string, unknown[]>>({});
-  const [modelId, setModelId] = useState('x-ai/grok-4.1-fast');
-  const { snapshotRef, saveSnapshot, getSnapshot } = useSnapshotRef();
-
-  const setters: FullSetters = {
-    setMessages,
-    setNodeResults,
-    setLastUserText,
-    setTotalTokens,
-    setCurrentNode,
-    setVisitedNodes,
-    setLoading,
-    setStructuredOutputs,
-    setActive,
-    saveSnapshot,
-    getSnapshot,
-  };
-
-  return {
-    active,
-    loading,
-    currentNode,
-    messages,
-    lastUserText,
-    nodeResults,
-    visitedNodes,
-    totalTokens,
-    structuredOutputs,
-    modelId,
-    setModelId,
-    snapshotRef,
-    setters,
-  };
-}
-
-function buildSendDeps(
-  params: UseSimulationParams,
-  s: SimulationHookState,
-  abortAndCreateSignal: () => AbortSignal
-): SendDepsWithAbort {
+function buildSendDeps(params: UseSimulationParams, s: SimulationHookState): SendMessageDeps {
   return {
     preset: params.preset,
     loading: s.loading,
@@ -286,7 +153,10 @@ function buildSendDeps(
     setters: s.setters,
     onZoomToNode: params.onZoomToNode,
     onSelectNode: params.onSelectNode,
-    abortAndCreateSignal,
+    orgId: params.orgId,
+    appType: params.appType,
+    agentConfig: params.agentConfig,
+    simulationLeadScore: s.simulationLeadScore,
   };
 }
 
@@ -295,10 +165,36 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
   const s = useSimulationState();
   const { abortSimulation, abortAndCreateSignal } = useAbortRef();
 
-  const start = useSimulationStart({ setters: s.setters, allNodes, edges, onZoomToNode });
-  const stop = useSimulationStop(s.setters, abortSimulation, onExitZoomView);
-  const sendMessage = useSimulationSend(buildSendDeps(params, s, abortAndCreateSignal));
-  const terminated = checkTerminated(s.active, s.loading, s.snapshotRef.current, s.currentNode);
+  // Composition store (stable reference, never recreated)
+  const [store] = useState(() => new CompositionStore());
+  const comp = useSyncExternalStore(store.subscribe, store.getSnapshot);
+
+  const start = useSimulationStart(
+    { setters: s.setters, allNodes, edges, onZoomToNode, appType: params.appType },
+    store
+  );
+  const clearSelection = useCallback(() => {
+    /* no-op, panels cleared by onPaneClick */
+  }, []);
+  const stop = useSimulationStop(s.setters, abortSimulation, onExitZoomView, clearSelection);
+  const clear = useSimulationClear(s.setters, abortSimulation, onExitZoomView, store);
+
+  const sendDeps = buildSendDeps(params, s);
+  const sendDepsRef = useRef(sendDeps);
+  useEffect(() => {
+    sendDepsRef.current = sendDeps;
+  });
+  const sendMessage = useSimulationSend(sendDepsRef, store, abortAndCreateSignal);
+
+  // Side effects: auto-dispatch child and auto-resume parent
+  useAutoDispatchChild(store, sendDepsRef, comp.phase, abortAndCreateSignal);
+  useAutoResumeParent(store, sendDepsRef, comp.phase, abortAndCreateSignal);
+
+  const isAgent = params.appType === 'agent';
+  const hasActiveChild = comp.stack.length > 0;
+  const snapshot = s.setters.getSnapshot();
+  const terminated =
+    isAgent || hasActiveChild ? false : checkTerminated(s.active, s.loading, snapshot, s.currentNode);
 
   return {
     active: s.active,
@@ -308,11 +204,16 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
     visitedNodes: s.visitedNodes,
     lastUserText: s.lastUserText,
     nodeResults: s.nodeResults,
+    conversationEntries: s.conversationEntries,
     totalTokens: s.totalTokens,
+    turnCount: s.turnCount,
+    isAgent: isAgent || hasActiveChild,
+    compositionPhase: comp.phase,
     modelId: s.modelId,
     setModelId: s.setModelId,
     start,
     stop,
+    clear,
     sendMessage,
   };
 }

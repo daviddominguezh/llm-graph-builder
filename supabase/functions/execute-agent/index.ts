@@ -3,11 +3,43 @@
 // No DB access, no secrets resolution — all provided in the payload.
 import { createMCPClient } from '@ai-sdk/mcp';
 import type { McpServerConfig, McpTransport, RuntimeGraph } from '@daviddh/graph-types';
-import type { CallAgentOutput, Context, Message, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
-import { executeWithCallbacks } from '@daviddh/llm-graph-runner';
+import type {
+  AgentLoopResult,
+  AgentStepEvent,
+  CallAgentOutput,
+  Context,
+  Logger,
+  Message,
+  NodeProcessedEvent,
+} from '@daviddh/llm-graph-runner';
+import {
+  VFSContext,
+  executeAgentLoop,
+  executeWithCallbacks,
+  generateVFSTools,
+  injectSystemTools,
+} from '@daviddh/llm-graph-runner';
+import { GitHubSourceProvider } from '@daviddh/vfs-providers';
 import type { Tool } from 'ai';
 
+interface VfsPayloadData {
+  token: string;
+  owner: string;
+  repo: string;
+  commitSha: string;
+  tenantSlug: string;
+  agentSlug: string;
+  userJwt: string;
+  settings: {
+    protectedPaths?: string[];
+    searchCandidateLimit?: number;
+    readLineCeiling?: number;
+    rateLimitThreshold?: number;
+  };
+}
+
 interface ExecutePayload {
+  appType?: 'workflow' | 'agent';
   graph: RuntimeGraph;
   apiKey: string;
   modelId: string;
@@ -20,6 +52,13 @@ interface ExecutePayload {
   tenantID: string;
   userID: string;
   isFirstMessage: boolean;
+  vfs?: VfsPayloadData;
+  // Agent-specific fields
+  systemPrompt?: string;
+  context?: string;
+  maxSteps?: number | null;
+  isChildAgent?: boolean;
+  conversationId?: string;
 }
 
 const SSE_HEADERS = {
@@ -111,6 +150,64 @@ async function closeMcpClients(clients: McpClient[]): Promise<void> {
   await Promise.all(clients.map((c) => c.close().catch(() => {})));
 }
 
+/* ─── Lead scoring services (production only) ─── */
+
+interface LeadScoringServices {
+  setLeadScore: (score: number) => Promise<void>;
+  getLeadScore: () => Promise<number | null>;
+}
+
+async function buildSupabaseForLeadScoring() {
+  const { createClient } = await import('@supabase/supabase-js');
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  return createClient(supabaseUrl, serviceKey);
+}
+
+async function setLeadScoreOnConversation(
+  supabase: Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>,
+  conversationId: string,
+  score: number
+): Promise<void> {
+  const { data: existing } = await supabase
+    .from('conversations')
+    .select('metadata')
+    .eq('id', conversationId)
+    .single();
+  const currentMetadata =
+    existing !== null && typeof existing.metadata === 'object' && existing.metadata !== null
+      ? (existing.metadata as Record<string, unknown>)
+      : {};
+  const merged = { ...currentMetadata, lead_score: score };
+  const { error } = await supabase
+    .from('conversations')
+    .update({ metadata: merged })
+    .eq('id', conversationId);
+  if (error !== null) {
+    log.error(`set_lead_score failed: ${error.message}`);
+  }
+}
+
+async function getLeadScoreFromConversation(
+  supabase: Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>,
+  conversationId: string
+): Promise<number | null> {
+  const { data } = await supabase.from('conversations').select('metadata').eq('id', conversationId).single();
+  if (data === null || data.metadata === null || typeof data.metadata !== 'object') {
+    return null;
+  }
+  const meta = data.metadata as Record<string, unknown>;
+  return typeof meta['lead_score'] === 'number' ? meta['lead_score'] : null;
+}
+
+async function buildLeadScoringServices(conversationId: string): Promise<LeadScoringServices> {
+  const supabase = await buildSupabaseForLeadScoring();
+  return {
+    setLeadScore: (score: number) => setLeadScoreOnConversation(supabase, conversationId, score),
+    getLeadScore: () => getLeadScoreFromConversation(supabase, conversationId),
+  };
+}
+
 /* ─── Context builder ─── */
 
 function buildContext(
@@ -127,6 +224,72 @@ function buildContext(
     quickReplies: payload.quickReplies,
     isFirstMessage: payload.isFirstMessage,
   };
+}
+
+/* ─── VFS bootstrap ─── */
+
+interface VfsBootstrapResult {
+  tools: Record<string, Tool>;
+}
+
+function buildSourceProvider(vfs: VfsPayloadData): InstanceType<typeof GitHubSourceProvider> {
+  return new GitHubSourceProvider({
+    token: vfs.token,
+    owner: vfs.owner,
+    repo: vfs.repo,
+    commitSha: vfs.commitSha,
+  });
+}
+
+function buildVfsContextConfig(
+  vfs: VfsPayloadData,
+  payload: ExecutePayload,
+  sourceProvider: InstanceType<typeof GitHubSourceProvider>,
+  supabaseClient: unknown,
+  redisClient: unknown
+) {
+  return {
+    tenantSlug: vfs.tenantSlug,
+    agentSlug: vfs.agentSlug,
+    userID: payload.userID,
+    sessionId: payload.sessionID,
+    commitSha: vfs.commitSha,
+    sourceProvider,
+    supabase: supabaseClient,
+    redis: redisClient,
+    protectedPaths: vfs.settings.protectedPaths,
+    searchCandidateLimit: vfs.settings.searchCandidateLimit,
+    readLineCeiling: vfs.settings.readLineCeiling,
+    rateLimitThreshold: vfs.settings.rateLimitThreshold,
+  };
+}
+
+async function bootstrapVfs(
+  payload: ExecutePayload,
+  context: Omit<Context, 'toolsOverride' | 'onNodeVisited' | 'onNodeProcessed'>
+): Promise<VfsBootstrapResult | null> {
+  if (payload.vfs === undefined) return null;
+
+  const { createClient } = await import('@supabase/supabase-js');
+  const { Redis } = await import('@upstash/redis');
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+  const redisUrl = Deno.env.get('UPSTASH_REDIS_REST_URL') ?? '';
+  const redisToken = Deno.env.get('UPSTASH_REDIS_REST_TOKEN') ?? '';
+
+  const supabaseForVfs = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: `Bearer ${payload.vfs.userJwt}` } },
+  });
+  const redis = new Redis({ url: redisUrl, token: redisToken });
+
+  const sourceProvider = buildSourceProvider(payload.vfs);
+  const config = buildVfsContextConfig(payload.vfs, payload, sourceProvider, supabaseForVfs, redis);
+  const vfsContext = new VFSContext(config);
+  await vfsContext.initialize();
+
+  const tools = generateVFSTools(context, vfsContext);
+  return { tools };
 }
 
 /* ─── Token summation ─── */
@@ -174,6 +337,172 @@ function authenticateRequest(req: Request): Response | null {
   return null;
 }
 
+/* ─── Logging ─── */
+
+const log = {
+  info: (msg: string) => console.info(`[edge] ${msg}`),
+  error: (msg: string) => console.error(`[edge] ${msg}`),
+  debug: (msg: string) => console.debug(`[edge] ${msg}`),
+  warn: (msg: string) => console.warn(`[edge] ${msg}`),
+};
+
+function prefixed(fn: (...args: unknown[]) => void): (...args: unknown[]) => void {
+  return (...args: unknown[]) => fn('[runner]', ...args);
+}
+
+const runnerLogger: Logger = {
+  error: prefixed(console.error),
+  warn: prefixed(console.warn),
+  help: prefixed(console.info),
+  data: prefixed(console.debug),
+  info: prefixed(console.info),
+  debug: prefixed(console.debug),
+  prompt: prefixed(console.debug),
+  http: prefixed(console.debug),
+  verbose: prefixed(console.debug),
+  input: prefixed(console.debug),
+  silly: prefixed(console.debug),
+};
+
+/* ─── Agent loop execution ─── */
+
+type WriteEvent = (event: Record<string, unknown>) => void;
+
+async function runAgentExecution(
+  payload: ExecutePayload,
+  allTools: Record<string, Tool>,
+  write: WriteEvent,
+  leadScoringServices?: LeadScoringServices
+): Promise<void> {
+  log.info(
+    `agent start model=${payload.modelId} msgs=${payload.messages.length} tools=${Object.keys(allTools).length} prompt=${(payload.systemPrompt ?? '').slice(0, 80)}`
+  );
+
+  const result = await executeAgentLoop(
+    {
+      systemPrompt: payload.systemPrompt ?? '',
+      context: payload.context ?? '',
+      messages: payload.messages,
+      apiKey: payload.apiKey,
+      modelId: payload.modelId,
+      maxSteps: payload.maxSteps ?? null,
+      tools: injectSystemTools({
+        existingTools: allTools,
+        isChildAgent: payload.isChildAgent ?? false,
+        leadScoringServices,
+        contextData: payload.data,
+      }),
+      isChildAgent: payload.isChildAgent ?? false,
+    },
+    {
+      onStepStarted: (step: number) => {
+        log.debug(`step ${step} started`);
+        write({ type: 'step_started', step });
+      },
+      onStepProcessed: (event: AgentStepEvent) => {
+        log.info(
+          `step ${event.step} done text=${event.responseText.length}chars tools=${event.toolCalls.length} tokens=${JSON.stringify(event.tokens)} dur=${event.durationMs}ms`
+        );
+        write({
+          type: 'step_processed',
+          step: event.step,
+          responseText: event.responseText,
+          responseMessages: event.responseMessages,
+          reasoning: event.reasoning,
+          toolCalls: event.toolCalls,
+          tokens: event.tokens,
+          durationMs: event.durationMs,
+          error: event.error,
+        });
+      },
+    },
+    runnerLogger
+  );
+
+  log.info(
+    `agent done text=${result.finalText.length}chars steps=${result.steps} tokens=${JSON.stringify(result.totalTokens)}`
+  );
+
+  write({
+    type: 'agent_response',
+    text: result.finalText,
+    steps: result.steps,
+    totalTokens: result.totalTokens,
+    toolCalls: result.toolCalls,
+    tokensLogs: result.tokensLogs,
+    finishResult: result.finishResult,
+    dispatchResult: result.dispatchResult,
+  });
+}
+
+/* ─── Workflow execution ─── */
+
+async function runWorkflowExecution(
+  payload: ExecutePayload,
+  allTools: Record<string, Tool>,
+  write: WriteEvent,
+  leadScoringServices?: LeadScoringServices
+): Promise<void> {
+  const context = buildContext(payload);
+
+  const result = await executeWithCallbacks({
+    context,
+    logger: runnerLogger,
+    messages: payload.messages,
+    currentNode: payload.currentNodeId,
+    toolsOverride: injectSystemTools({
+      existingTools: allTools,
+      isChildAgent: false,
+      leadScoringServices,
+      contextData: payload.data,
+    }),
+    structuredOutputs: payload.structuredOutputs,
+    onNodeVisited: (nodeId: string) => {
+      write({ type: 'node_visited', nodeId });
+    },
+    onNodeProcessed: (event: NodeProcessedEvent) => {
+      write({
+        type: 'node_processed',
+        nodeId: event.nodeId,
+        text: event.text ?? '',
+        output: event.output,
+        toolCalls: event.toolCalls.map((tc) => ({
+          toolName: tc.toolName,
+          input: tc.input,
+          output: tc.output,
+        })),
+        reasoning: event.reasoning,
+        error: event.error,
+        tokens: event.tokens,
+        durationMs: event.durationMs,
+        structuredOutput: event.structuredOutput,
+        responseMessages: event.responseMessages,
+      });
+    },
+  });
+
+  if (result !== null) {
+    const tokens = sumTokens(result);
+    write({
+      type: 'agent_response',
+      text: result.text ?? '',
+      visitedNodes: result.visitedNodes,
+      toolCalls: result.toolCalls.map((tc) => ({
+        toolName: tc.toolName,
+        input: tc.input,
+        output: undefined,
+      })),
+      nodeTokens: result.tokensLogs.map((l) => ({ node: l.action, tokens: l.tokens })),
+      tokenUsage: tokens,
+      debugMessages: result.debugMessages,
+      structuredOutputs: result.structuredOutputs,
+      parsedResults: result.parsedResults,
+      dispatchResult: result.dispatchResult,
+      finishResult: result.finishResult,
+    });
+  }
+}
+
 /* ─── Main handler ─── */
 
 Deno.serve(async (req: Request) => {
@@ -185,12 +514,14 @@ Deno.serve(async (req: Request) => {
   if (authError !== null) return authError;
 
   const payload: ExecutePayload = await req.json();
-  const mcpServers = payload.graph.mcpServers ?? [];
+  const isAgent = payload.appType === 'agent';
+  log.info(`request appType=${payload.appType ?? 'workflow'} model=${payload.modelId}`);
+  const mcpServers = isAgent ? [] : (payload.graph.mcpServers ?? []);
 
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder();
-      const write = (event: Record<string, unknown>): void => {
+      const write: WriteEvent = (event) => {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
       };
 
@@ -205,59 +536,31 @@ Deno.serve(async (req: Request) => {
         }
 
         clients = validation.success.clients;
+        const allTools: Record<string, Tool> = { ...validation.success.tools };
 
-        const context = buildContext(payload);
-        const result = await executeWithCallbacks({
-          context,
-          messages: payload.messages,
-          currentNode: payload.currentNodeId,
-          toolsOverride: validation.success.tools,
-          structuredOutputs: payload.structuredOutputs,
-          onNodeVisited: (nodeId: string) => {
-            write({ type: 'node_visited', nodeId });
-          },
-          onNodeProcessed: (event: NodeProcessedEvent) => {
-            write({
-              type: 'node_processed',
-              nodeId: event.nodeId,
-              text: event.text ?? '',
-              output: event.output,
-              toolCalls: event.toolCalls.map((tc) => ({
-                toolName: tc.toolName,
-                input: tc.input,
-                output: tc.output,
-              })),
-              reasoning: event.reasoning,
-              error: event.error,
-              tokens: event.tokens,
-              durationMs: event.durationMs,
-              structuredOutput: event.structuredOutput,
-            });
-          },
-        });
+        if (!isAgent) {
+          const vfsResult = await bootstrapVfs(payload, buildContext(payload));
+          if (vfsResult !== null) {
+            Object.assign(allTools, vfsResult.tools);
+          }
+        }
 
-        if (result !== null) {
-          const tokens = sumTokens(result);
-          write({
-            type: 'agent_response',
-            text: result.text ?? '',
-            visitedNodes: result.visitedNodes,
-            toolCalls: result.toolCalls.map((tc) => ({
-              toolName: tc.toolName,
-              input: tc.input,
-              output: undefined,
-            })),
-            nodeTokens: result.tokensLogs.map((l) => ({ node: l.action, tokens: l.tokens })),
-            tokenUsage: tokens,
-            debugMessages: result.debugMessages,
-            structuredOutputs: result.structuredOutputs,
-            parsedResults: result.parsedResults,
-          });
+        // Build lead scoring services when we have a real conversation
+        const leadScoringServices =
+          payload.conversationId !== undefined
+            ? await buildLeadScoringServices(payload.conversationId)
+            : undefined;
+
+        if (isAgent) {
+          await runAgentExecution(payload, allTools, write, leadScoringServices);
+        } else {
+          await runWorkflowExecution(payload, allTools, write, leadScoringServices);
         }
 
         write({ type: 'execution_complete' });
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Execution failed';
+        log.error(message);
         write({ type: 'error', message });
       } finally {
         await closeMcpClients(clients);

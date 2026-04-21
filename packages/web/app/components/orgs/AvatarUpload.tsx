@@ -4,9 +4,9 @@ import { toProxyImageSrc } from '@/app/lib/supabase/image';
 import { Button } from '@/components/ui/button';
 import { Camera } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { toast } from 'sonner';
 import Image from 'next/image';
 import { type ChangeEvent, useRef } from 'react';
+import { toast } from 'sonner';
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 const ACCEPTED_TYPES = '.png,.jpg,.jpeg,.webp';
@@ -36,12 +36,16 @@ function AvatarImage({ src, name }: { src: string; name: string }) {
       alt={name}
       width={48}
       height={48}
-      className="size-12 rounded-full object-cover border"
+      className="size-12 rounded-full object-cover border border-input border-[1px]"
     />
   );
 }
 
-function AvatarPreview({ currentUrl, previewUrl, name }: Pick<AvatarUploadProps, 'currentUrl' | 'previewUrl' | 'name'>) {
+function AvatarPreview({
+  currentUrl,
+  previewUrl,
+  name,
+}: Pick<AvatarUploadProps, 'currentUrl' | 'previewUrl' | 'name'>) {
   const displayUrl = previewUrl ?? currentUrl;
 
   if (displayUrl !== null) {
@@ -81,14 +85,24 @@ export function AvatarUpload({ currentUrl, previewUrl, name, onFileSelect, onRem
 
   return (
     <div className="flex shrink-0 flex-col items-center gap-0 h-fit">
-      <Button variant="ghost" type="button" onClick={openPicker} className="mt-1 group relative cursor-pointer rounded-full p-0 h-fit">
+      <Button
+        variant="ghost"
+        type="button"
+        onClick={openPicker}
+        className="mt-1 group relative cursor-pointer rounded-full p-0 h-fit"
+      >
         <AvatarPreview currentUrl={currentUrl} previewUrl={previewUrl} name={name} />
-        <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 transition-colors group-hover:bg-black/40">
+        <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 transition-colors group-hover:bg-black/40 border border-[1px] border-border">
           <Camera className="size-4 text-white opacity-0 transition-opacity group-hover:opacity-100" />
         </div>
       </Button>
       {hasImage && onRemove !== undefined && (
-        <Button variant="link" type="button" onClick={onRemove} className="h-auto p-0 pt-0 text-muted-foreground text-[11px]">
+        <Button
+          variant="link"
+          type="button"
+          onClick={onRemove}
+          className="h-auto p-0 pt-0 text-muted-foreground text-[11px]"
+        >
           {t('remove')}
         </Button>
       )}

@@ -71,3 +71,17 @@ function collapseDashes(input: string): string {
 export function generateSlug(name: string): string {
   return collapseDashes(slugifyChars(name.toLowerCase()));
 }
+
+// The DB CHECK allows up to 40 characters; we stop at 37 so the suffix
+// logic in findUniqueTenantSlug (up to 3 numeric digits) always fits.
+const TENANT_SLUG_BASE_MAX_LENGTH = 37;
+
+export function generateTenantSlug(name: string): string {
+  const lower = name.toLowerCase();
+  let out = '';
+  for (const char of lower) {
+    if (isAlphanumeric(char)) out += char;
+    if (out.length >= TENANT_SLUG_BASE_MAX_LENGTH) break;
+  }
+  return out;
+}

@@ -1,5 +1,7 @@
 'use client';
 
+import { useMemo } from 'react';
+
 import { TableBody, TableCell, TableRow } from '@/components/ui/table';
 
 import type { Column } from './sortableTableTypes';
@@ -12,10 +14,20 @@ interface SortableTableBodyProps<T extends Record<string, unknown>> {
   emptyMessage?: string;
 }
 
+function deduplicateRows<T extends Record<string, unknown>>(rows: T[], key: keyof T): T[] {
+  const seen = new Set<string>();
+  return rows.filter((row) => {
+    const k = String(row[key]);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
 function EmptyRow({ colSpan, message }: { colSpan: number; message: string }) {
   return (
     <TableRow>
-      <TableCell colSpan={colSpan} className="h-24 text-center text-muted-foreground rounded-b-md bg-card">
+      <TableCell colSpan={colSpan} className="h-24 px-5 text-center text-muted-foreground rounded-b-md bg-card">
         {message}
       </TableCell>
     </TableRow>
@@ -36,7 +48,9 @@ export function SortableTableBody<T extends Record<string, unknown>>({
   onRowClick,
   emptyMessage = 'No data',
 }: SortableTableBodyProps<T>) {
-  if (rows.length === 0) {
+  const uniqueRows = useMemo(() => deduplicateRows(rows, rowKey), [rows, rowKey]);
+
+  if (uniqueRows.length === 0) {
     return (
       <TableBody>
         <EmptyRow colSpan={columns.length} message={emptyMessage} />
@@ -46,14 +60,17 @@ export function SortableTableBody<T extends Record<string, unknown>>({
 
   return (
     <TableBody>
-      {rows.map((row) => (
+      {uniqueRows.map((row) => (
         <TableRow
           key={String(row[rowKey])}
-          className={onRowClick !== undefined ? 'cursor-pointer' : ''}
+          className={onRowClick !== undefined ? 'cursor-pointer transition-colors hover:bg-muted/50' : ''}
           onClick={onRowClick !== undefined ? () => onRowClick(row) : undefined}
         >
-          {columns.map((col) => (
-            <TableCell key={col.key} className={col.className}>
+          {columns.map((col, i) => (
+            <TableCell
+              key={col.key}
+              className={`px-4 ${i === 0 ? 'pl-5' : ''} ${i === columns.length - 1 ? 'pr-5' : ''} ${col.className ?? ''}`}
+            >
               {getCellValue(row, col)}
             </TableCell>
           ))}

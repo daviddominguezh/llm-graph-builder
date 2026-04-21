@@ -17,6 +17,12 @@ export interface AgentRow {
   updated_at: string;
   staging_api_key_id: string | null;
   production_api_key_id: string | null;
+  is_public: boolean;
+  category: string;
+  created_from_template_id: string | null;
+  app_type: string;
+  system_prompt: string | null;
+  max_steps: number | null;
 }
 
 export type AgentMetadata = Pick<
@@ -47,7 +53,7 @@ function isVersionRow(value: unknown): value is VersionRow {
 /*  Constants                                                          */
 /* ------------------------------------------------------------------ */
 
-const METADATA_COLUMNS = 'id, name, slug, description, version:current_version, updated_at';
+const METADATA_COLUMNS = 'id, name, slug, description, version:current_version, updated_at, app_type';
 const EMPTY_LENGTH = 0;
 
 /* ------------------------------------------------------------------ */
@@ -140,6 +146,10 @@ interface InsertAgentInput {
   name: string;
   slug: string;
   description: string;
+  category: string;
+  isPublic: boolean;
+  appType: string;
+  systemPrompt: string | null;
 }
 
 export async function insertAgent(
@@ -148,7 +158,16 @@ export async function insertAgent(
 ): Promise<{ result: AgentRow | null; error: string | null }> {
   const queryResult = await supabase
     .from('agents')
-    .insert({ org_id: input.orgId, name: input.name, slug: input.slug, description: input.description })
+    .insert({
+      org_id: input.orgId,
+      name: input.name,
+      slug: input.slug,
+      description: input.description,
+      category: input.category,
+      is_public: input.isPublic,
+      app_type: input.appType,
+      system_prompt: input.systemPrompt,
+    })
     .select()
     .single();
 
@@ -208,6 +227,39 @@ export async function deleteAgent(
   agentId: string
 ): Promise<{ error: string | null }> {
   const { error } = await supabase.from('agents').delete().eq('id', agentId);
+  if (error !== null) return { error: error.message };
+  return { error: null };
+}
+
+export async function updateAgentVisibility(
+  supabase: SupabaseClient,
+  agentId: string,
+  isPublic: boolean
+): Promise<{ error: string | null }> {
+  const payload: Record<string, unknown> = { is_public: isPublic };
+  const { error } = await supabase.from('agents').update(payload).eq('id', agentId);
+  if (error !== null) return { error: error.message };
+  return { error: null };
+}
+
+export async function updateAgentCategory(
+  supabase: SupabaseClient,
+  agentId: string,
+  category: string
+): Promise<{ error: string | null }> {
+  const payload: Record<string, unknown> = { category };
+  const { error } = await supabase.from('agents').update(payload).eq('id', agentId);
+  if (error !== null) return { error: error.message };
+  return { error: null };
+}
+
+export async function updateAgentMetadata(
+  supabase: SupabaseClient,
+  agentId: string,
+  fields: AgentUpdateFields
+): Promise<{ error: string | null }> {
+  const payload = buildAgentPayload(fields);
+  const { error } = await supabase.from('agents').update(payload).eq('id', agentId);
   if (error !== null) return { error: error.message };
   return { error: null };
 }

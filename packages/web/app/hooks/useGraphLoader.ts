@@ -1,6 +1,7 @@
 'use client';
 
-import { fetchGraph } from '@/app/lib/graphApi';
+import type { AgentConfigResponse } from '@/app/lib/graphApi';
+import { fetchGraphOrAgentConfig } from '@/app/lib/graphApi';
 import type { Agent, Graph, McpServerConfig, OutputSchemaEntity } from '@/app/schemas/graph.schema';
 import { buildInitialEdges, buildInitialNodes } from '@/app/utils/graphInitializer';
 import type { RFEdgeData, RFNodeData } from '@/app/utils/graphTransformers';
@@ -9,6 +10,21 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
+export interface SkillData {
+  name: string;
+  description: string;
+  content: string;
+  repoUrl: string;
+  sortOrder: number;
+}
+
+export interface AgentConfigData {
+  systemPrompt: string;
+  maxSteps: number | null;
+  contextItems: Array<{ sortOrder: number; content: string }>;
+  skills: SkillData[];
+}
+
 export interface GraphLoadResult {
   nodes: Array<Node<RFNodeData>>;
   edges: Array<Edge<RFEdgeData>>;
@@ -16,6 +32,7 @@ export interface GraphLoadResult {
   mcpServers: McpServerConfig[];
   outputSchemas: OutputSchemaEntity[];
   graphData: Graph | undefined;
+  agentConfig?: AgentConfigData;
 }
 
 export interface UseGraphLoaderReturn {
@@ -31,6 +48,7 @@ const NEW_AGENT_RESULT: GraphLoadResult = {
   mcpServers: [],
   outputSchemas: [],
   graphData: undefined,
+  agentConfig: undefined,
 };
 
 const LOADING_RESULT: GraphLoadResult = {
@@ -40,9 +58,10 @@ const LOADING_RESULT: GraphLoadResult = {
   mcpServers: [],
   outputSchemas: [],
   graphData: undefined,
+  agentConfig: undefined,
 };
 
-function buildLoadResult(graph: Graph): GraphLoadResult {
+function buildWorkflowLoadResult(graph: Graph): GraphLoadResult {
   return {
     nodes: buildInitialNodes(graph),
     edges: buildInitialEdges(graph),
@@ -50,7 +69,36 @@ function buildLoadResult(graph: Graph): GraphLoadResult {
     mcpServers: graph.mcpServers ?? [],
     outputSchemas: graph.outputSchemas ?? [],
     graphData: graph,
+    agentConfig: undefined,
   };
+}
+
+function buildAgentLoadResult(config: AgentConfigResponse): GraphLoadResult {
+  return {
+    nodes: [],
+    edges: [],
+    agents: [],
+    mcpServers: config.mcpServers,
+    outputSchemas: [],
+    graphData: undefined,
+    agentConfig: {
+      systemPrompt: config.systemPrompt,
+      maxSteps: config.maxSteps,
+      contextItems: config.contextItems,
+      skills: config.skills,
+    },
+  };
+}
+
+function isAgentConfig(response: Graph | AgentConfigResponse): response is AgentConfigResponse {
+  return 'appType' in response;
+}
+
+function buildLoadResult(response: Graph | AgentConfigResponse): GraphLoadResult {
+  if (isAgentConfig(response)) {
+    return buildAgentLoadResult(response);
+  }
+  return buildWorkflowLoadResult(response);
 }
 
 interface LoaderState {
@@ -68,9 +116,9 @@ function useLoadOnMount(
 
     let cancelled = false;
 
-    fetchGraph(agentId)
-      .then((graph) => {
-        if (!cancelled) onSuccess(buildLoadResult(graph));
+    fetchGraphOrAgentConfig(agentId)
+      .then((response) => {
+        if (!cancelled) onSuccess(buildLoadResult(response));
       })
       .catch(() => {
         if (!cancelled) onError();
@@ -107,10 +155,10 @@ export function useGraphLoader(agentId: string | undefined): UseGraphLoaderRetur
     const mySeq = ++reloadSeqRef.current;
     setState((prev) => ({ ...prev, loading: true }));
 
-    void fetchGraph(agentId)
-      .then((graph) => {
+    void fetchGraphOrAgentConfig(agentId)
+      .then((response) => {
         if (mySeq !== reloadSeqRef.current) return;
-        setState({ loading: false, result: buildLoadResult(graph) });
+        setState({ loading: false, result: buildLoadResult(response) });
       })
       .catch(() => {
         if (mySeq !== reloadSeqRef.current) return;

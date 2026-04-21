@@ -105,17 +105,41 @@ function replaceVarsInTransport(transport: McpTransport, vars: Record<string, st
   };
 }
 
-function resolveServerTransport(server: McpServerConfig, vars: Record<string, string>): McpServerConfig {
+interface EnvVarMaps {
+  byName: Record<string, string>;
+  byId: Record<string, string>;
+}
+
+function buildResolvedVars(server: McpServerConfig, env: EnvVarMaps): Record<string, string> {
+  const { variableValues } = server;
+  if (variableValues === undefined) return env.byName;
+  const resolved: Record<string, string> = {};
+  for (const [templateName, val] of Object.entries(variableValues)) {
+    if (val.type === 'direct') {
+      const { value } = val;
+      resolved[templateName] = value;
+    } else {
+      const { envVariableId } = val;
+      resolved[templateName] = env.byId[envVariableId] ?? '';
+    }
+  }
+  return resolved;
+}
+
+function resolveServerTransport(server: McpServerConfig, env: EnvVarMaps): McpServerConfig {
+  const vars = buildResolvedVars(server, env);
   return { ...server, transport: replaceVarsInTransport(server.transport, vars) };
 }
 
 export function resolveMcpTransportVariables(
   graph: RuntimeGraph,
-  envVars: Record<string, string>
+  envByName: Record<string, string>,
+  envById: Record<string, string>
 ): RuntimeGraph {
   const { mcpServers } = graph;
   if (mcpServers === undefined) return graph;
-  return { ...graph, mcpServers: mcpServers.map((s) => resolveServerTransport(s, envVars)) };
+  const env: EnvVarMaps = { byName: envByName, byId: envById };
+  return { ...graph, mcpServers: mcpServers.map((s) => resolveServerTransport(s, env)) };
 }
 
 /* ─── Token summation ─── */
@@ -255,4 +279,11 @@ export async function resolveOAuthForExecution(
     mcpServers.map(async (s) => await resolveOneOAuthServer(supabase, orgId, s))
   );
   return { ...graph, mcpServers: resolved };
+}
+
+/* ─── Execution logging ─── */
+
+export function logExec(label: string, data?: Record<string, unknown>): void {
+  const suffix = data === undefined ? '' : `: ${JSON.stringify(data)}`;
+  process.stdout.write(`[execute] ${label}${suffix}\n`);
 }

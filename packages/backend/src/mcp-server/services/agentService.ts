@@ -18,7 +18,12 @@ export async function listAgents(ctx: ServiceContext, search?: string): Promise<
   return result.filter((a) => a.name.toLowerCase().includes(lower) || a.slug.toLowerCase().includes(lower));
 }
 
-export async function createAgent(ctx: ServiceContext, name: string, description: string): Promise<AgentRow> {
+export async function createAgent(
+  ctx: ServiceContext,
+  name: string,
+  description: string,
+  category: string
+): Promise<AgentRow> {
   const base = generateSlug(name);
   const slug = await findUniqueSlug(ctx.supabase, base, 'agents');
   const { result, error } = await insertAgent(ctx.supabase, {
@@ -26,6 +31,10 @@ export async function createAgent(ctx: ServiceContext, name: string, description
     name,
     slug,
     description,
+    category,
+    isPublic: false,
+    appType: 'workflow',
+    systemPrompt: null,
   });
   if (error !== null || result === null) throw new Error(error ?? 'Failed to create agent');
   return result;

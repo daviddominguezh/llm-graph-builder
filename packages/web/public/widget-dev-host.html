@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>OpenFlow widget dev host</title>
+  </head>
+  <body style="margin:0;padding:40px;font:14px system-ui">
+    <h1>Widget dev host</h1>
+    <p>This page embeds the local widget via the loader script.</p>
+    <script>
+      // Point the loader (built for production subdomains) at the local Vite SPA.
+      window.OPENFLOW_APP_ORIGIN = 'http://localhost:3101';
+    </script>
+    <script
+      src="http://localhost:5173/src/loader/script.ts"
+      data-dev="1"
+      async></script>
+  </body>
+</html>

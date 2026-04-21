@@ -46,7 +46,13 @@ function CreateAgentForm({ orgId, orgSlug, onOpenChange }: CreateAgentFormProps)
     setLoading(true);
     setNameError('');
 
-    const { agent, error } = await createAgentAction(orgId, name, description);
+    const { agent, error } = await createAgentAction({
+      orgId,
+      name,
+      description,
+      category: 'customer-support',
+      isPublic: false,
+    });
 
     if (error !== null || agent === null) {
       setLoading(false);

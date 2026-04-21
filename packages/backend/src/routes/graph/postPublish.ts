@@ -1,6 +1,8 @@
 import type { Request } from 'express';
 
-import { publishVersion } from '../../db/queries/versionQueries.js';
+import { isAgentType } from '../../db/queries/agentConfigQueries.js';
+import { syncTemplateAfterPublish } from '../../db/queries/templateSync.js';
+import { publishAgentVersion, publishVersion } from '../../db/queries/versionQueries.js';
 import {
   type AuthenticatedLocals,
   type AuthenticatedResponse,
@@ -26,7 +28,12 @@ export async function handlePostPublish(req: Request, res: AuthenticatedResponse
   const { supabase }: AuthenticatedLocals = res.locals;
 
   try {
-    const version = await publishVersion(supabase, agentId);
+    const isAgent = await isAgentType(supabase, agentId);
+    const publishFn = isAgent ? publishAgentVersion : publishVersion;
+    const version = await publishFn(supabase, agentId);
+    await syncTemplateAfterPublish(supabase, agentId).catch((syncErr: unknown) => {
+      logError(agentId, `template sync failed: ${extractErrorMessage(syncErr)}`);
+    });
     res.status(HTTP_OK).json({ version });
   } catch (err) {
     const message = extractErrorMessage(err);

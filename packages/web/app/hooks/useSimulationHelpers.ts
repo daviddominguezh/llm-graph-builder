@@ -1,11 +1,14 @@
 import type { OutputSchemaEntity } from '@daviddh/graph-types';
-import type { Message } from '@daviddh/llm-graph-runner';
+import { MESSAGES_PROVIDER, type Message } from '@daviddh/llm-graph-runner';
 import type { Edge as RFEdge, Node as RFNode } from '@xyflow/react';
+import { nanoid } from 'nanoid';
+import { toast } from 'sonner';
 
+import type { AgentSimulateRequestBody } from '../lib/agentSimulationApi';
 import type { NodeProcessedEvent, SimulateRequestBody, StreamCallbacks } from '../lib/api';
 import type { Agent, McpServerConfig } from '../schemas/graph.schema';
 import type { ContextPreset } from '../types/preset';
-import type { NodeResult, SimulationTokens } from '../types/simulation';
+import type { ConversationEntry, NodeResult, SimulationTokens } from '../types/simulation';
 import { type GraphBuildInputs, buildContext, buildGraph } from '../utils/graphContext';
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
 import { stableJsonStringify } from '../utils/stableJsonHash';
@@ -24,8 +27,11 @@ export interface SimulationSetters {
   setVisitedNodes: React.Dispatch<React.SetStateAction<string[]>>;
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
   setStructuredOutputs: React.Dispatch<React.SetStateAction<Record<string, unknown[]>>>;
+  setConversationEntries: React.Dispatch<React.SetStateAction<ConversationEntry[]>>;
+  setTurnCount: React.Dispatch<React.SetStateAction<number>>;
   saveSnapshot: (s: GraphSnapshot | null) => void;
   getSnapshot: () => GraphSnapshot | null;
+  setSimulationLeadScore?: (score: number | null) => void;
 }
 
 export type FullSetters = SimulationSetters & { setActive: React.Dispatch<React.SetStateAction<boolean>> };
@@ -35,6 +41,13 @@ export interface SimulationStartDeps {
   allNodes: Array<RFNode<RFNodeData>>;
   edges: Array<RFEdge<RFEdgeData>>;
   onZoomToNode: (nodeId: string) => void;
+}
+
+export interface AgentSimConfig {
+  systemPrompt: string;
+  maxSteps: number | null;
+  contextItems: Array<{ sortOrder: number; content: string }>;
+  skills: Array<{ name: string; description: string; content: string }>;
 }
 
 export interface SendMessageDeps {
@@ -51,6 +64,10 @@ export interface SendMessageDeps {
   setters: SimulationSetters;
   onZoomToNode: (nodeId: string) => void;
   onSelectNode: (nodeId: string) => void;
+  orgId?: string;
+  appType?: 'workflow' | 'agent';
+  agentConfig?: AgentSimConfig;
+  simulationLeadScore?: number | null;
 }
 
 export interface BuildSimulateParamsOptions extends Pick<
@@ -64,6 +81,8 @@ export interface BuildSimulateParamsOptions extends Pick<
   apiKeyId: string;
   modelId: string;
   structuredOutputs?: Record<string, unknown[]>;
+  orgId?: string;
+  simulationLeadScore?: number | null;
 }
 
 function addCost(a: number | undefined, b: number | undefined): number | undefined {
@@ -92,6 +111,11 @@ function mergeStructuredOutput(
   return { ...prev, [nodeId]: [...existing, data] };
 }
 
+function isSetLeadScoreInput(input: unknown): input is { score: number } {
+  if (typeof input !== 'object' || input === null) return false;
+  return 'score' in input && typeof (input as Record<string, unknown>).score === 'number';
+}
+
 function handleNodeProcessedEvent(setters: SimulationSetters, event: NodeProcessedEvent): void {
   const result: NodeResult = {
     nodeId: event.nodeId,
@@ -104,10 +128,17 @@ function handleNodeProcessedEvent(setters: SimulationSetters, event: NodeProcess
     durationMs: event.durationMs,
   };
   setters.setNodeResults((prev) => [...prev, result]);
+  setters.setConversationEntries((prev) => [...prev, { type: 'result', result }]);
   setters.setTotalTokens((prev) => addTokens(prev, event.tokens));
   const { structuredOutput } = event;
   if (structuredOutput !== undefined) {
     setters.setStructuredOutputs((prev) => mergeStructuredOutput(prev, structuredOutput));
+  }
+  // Capture lead score from set_lead_score tool calls for simulation persistence
+  for (const tc of event.toolCalls) {
+    if (tc.toolName === 'set_lead_score' && isSetLeadScoreInput(tc.input)) {
+      setters.setSimulationLeadScore?.(tc.input.score);
+    }
   }
 }
 
@@ -117,26 +148,44 @@ export interface StreamCallbackDeps {
   onSelectNode: (nodeId: string) => void;
 }
 
+export function createAssistantMessage(text: string): Message {
+  return {
+    id: nanoid(),
+    provider: MESSAGES_PROVIDER.WEB,
+    type: 'text',
+    timestamp: Date.now(),
+    originalId: nanoid(),
+    message: { role: 'assistant', content: [{ type: 'text', text }] },
+  };
+}
+
 export function buildStreamCallbacks(deps: StreamCallbackDeps): StreamCallbacks {
   const { setters, onZoomToNode, onSelectNode } = deps;
+  let lastResponseText = '';
   return {
     onNodeVisited: (nodeId: string) => {
-      setters.setCurrentNode(nodeId);
+      const displayId = nodeId.startsWith('step-') ? `Step ${nodeId.slice('step-'.length)}` : nodeId;
+      setters.setCurrentNode(displayId);
       setters.setVisitedNodes((prev) => [...prev, nodeId]);
       onZoomToNode(nodeId);
       onSelectNode(nodeId);
     },
     onNodeProcessed: (event) => {
       handleNodeProcessedEvent(setters, event);
+      if (event.text !== '') lastResponseText = event.text;
     },
     onAgentResponse: () => {
       /* data already captured via onNodeProcessed */
     },
     onComplete: () => {
       setters.setLoading(false);
+      if (lastResponseText !== '') {
+        setters.setMessages((prev) => [...prev, createAssistantMessage(lastResponseText)]);
+      }
     },
-    onError: () => {
+    onError: (message: string) => {
       setters.setLoading(false);
+      toast.error(message);
     },
   };
 }
@@ -147,6 +196,10 @@ export function buildSimulateParams(opts: BuildSimulateParamsOptions): SimulateR
   };
   const fullContext = buildContext(opts.preset, '');
   const { sessionID, tenantID, userID, data, quickReplies } = fullContext;
+  const enrichedData =
+    opts.simulationLeadScore !== undefined && opts.simulationLeadScore !== null
+      ? { ...data, lead_score: opts.simulationLeadScore }
+      : data;
   return {
     graph,
     messages: opts.allMessages,
@@ -156,8 +209,37 @@ export function buildSimulateParams(opts: BuildSimulateParamsOptions): SimulateR
     sessionID,
     tenantID,
     userID,
-    data,
+    data: enrichedData,
     quickReplies,
     structuredOutputs: opts.structuredOutputs,
+    orgId: opts.orgId,
+  };
+}
+
+export interface BuildAgentSimulateParamsOptions {
+  agentConfig: AgentSimConfig;
+  mcpServers: McpServerConfig[];
+  allMessages: Message[];
+  apiKeyId: string;
+  modelId: string;
+}
+
+const EMPTY = 0;
+
+export function buildAgentSimulateParams(opts: BuildAgentSimulateParamsOptions): AgentSimulateRequestBody {
+  const { agentConfig, mcpServers, allMessages, apiKeyId, modelId } = opts;
+  const { skills } = agentConfig;
+  return {
+    appType: 'agent',
+    systemPrompt: agentConfig.systemPrompt,
+    maxSteps: agentConfig.maxSteps,
+    contextItems: agentConfig.contextItems,
+    mcpServers,
+    messages: allMessages,
+    apiKeyId,
+    modelId,
+    ...(skills.length > EMPTY
+      ? { skills: skills.map((s) => ({ name: s.name, description: s.description, content: s.content })) }
+      : {}),
   };
 }

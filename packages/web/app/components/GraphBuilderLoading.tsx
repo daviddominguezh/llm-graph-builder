@@ -4,6 +4,7 @@ import { CircleAlert, CircleCheck, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import type { ServerProgress } from '../hooks/useMcpDiscovery';
+import { useEditorCache } from './editors/EditorCacheProvider';
 
 function ServerStatusIcon({
   status,
@@ -40,11 +41,16 @@ interface GraphBuilderLoadingProps {
 }
 
 export function GraphBuilderLoading({ serverProgress }: GraphBuilderLoadingProps) {
+  const { panelInsets } = useEditorCache();
   const hasServers = serverProgress !== undefined && serverProgress.length > 0;
 
+  const paddingStyle = panelInsets
+    ? { paddingTop: panelInsets.top, paddingLeft: panelInsets.left, paddingRight: panelInsets.right, paddingBottom: panelInsets.bottom }
+    : undefined;
+
   return (
-    <div className="relative flex h-full w-full flex-col items-center justify-center">
-      <div className="absolute top-[50%] flex w-full flex-col items-center justify-center">
+    <div className="flex h-full w-full items-center justify-center" style={paddingStyle}>
+      <div className="flex flex-col items-center justify-center">
         <Loader2 className="size-5 animate-spin text-muted-foreground" />
         {hasServers && <McpServerList servers={serverProgress} />}
       </div>

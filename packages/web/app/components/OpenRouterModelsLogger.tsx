@@ -11,7 +11,6 @@ export function OpenRouterModelsLogger(): null {
   useEffect(() => {
     if (models.length > 0 && !logged.current) {
       logged.current = true;
-      console.log(`[OpenRouter] Returning ${String(models.length)} models from cache`);
     }
   }, [models]);
 

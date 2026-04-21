@@ -1,17 +1,10 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Copy } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Check, Copy } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 interface KeyRevealDialogProps {
@@ -20,18 +13,23 @@ interface KeyRevealDialogProps {
   fullKey: string;
 }
 
+const COPIED_RESET_MS = 2000;
+
 function useKeyCopy(fullKey: string) {
   const t = useTranslations('executionKeys');
+  const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
     await navigator.clipboard.writeText(fullKey);
     toast.success(t('keyCopied'));
+    setCopied(true);
+    setTimeout(() => setCopied(false), COPIED_RESET_MS);
   }, [fullKey, t]);
 
-  return handleCopy;
+  return { handleCopy, copied };
 }
 
-function KeyDisplay({ fullKey, onCopy }: { fullKey: string; onCopy: () => void }) {
+function KeyDisplay({ fullKey, onCopy, copied }: { fullKey: string; onCopy: () => void; copied: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const t = useTranslations('executionKeys');
 
@@ -48,13 +46,13 @@ function KeyDisplay({ fullKey, onCopy }: { fullKey: string; onCopy: () => void }
       <div
         ref={ref}
         onClick={handleClick}
-        className="bg-muted cursor-pointer select-all break-all rounded-md border p-3 font-mono text-xs"
+        className="bg-muted cursor-pointer select-all break-all rounded-md border-l-2 border-l-emerald-500 border p-3 font-mono text-xs"
       >
         {fullKey}
       </div>
-      <Button variant="outline" size="sm" onClick={onCopy} className="self-end">
-        <Copy className="size-4" />
-        {t('copyKey')}
+      <Button variant="outline" size="sm" onClick={onCopy} className="self-end transition-colors">
+        {copied ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5" />}
+        {copied ? t('keyCopied') : t('copyKey')}
       </Button>
     </div>
   );
@@ -62,7 +60,7 @@ function KeyDisplay({ fullKey, onCopy }: { fullKey: string; onCopy: () => void }
 
 export function KeyRevealDialog({ open, onOpenChange, fullKey }: KeyRevealDialogProps) {
   const t = useTranslations('executionKeys');
-  const handleCopy = useKeyCopy(fullKey);
+  const { handleCopy, copied } = useKeyCopy(fullKey);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -71,12 +69,7 @@ export function KeyRevealDialog({ open, onOpenChange, fullKey }: KeyRevealDialog
           <DialogTitle>{t('keyCreated')}</DialogTitle>
           <DialogDescription>{t('keyCreatedDescription')}</DialogDescription>
         </DialogHeader>
-        <KeyDisplay fullKey={fullKey} onCopy={handleCopy} />
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {t('deleteCancel')}
-          </Button>
-        </DialogFooter>
+        <KeyDisplay fullKey={fullKey} onCopy={handleCopy} copied={copied} />
       </DialogContent>
     </Dialog>
   );

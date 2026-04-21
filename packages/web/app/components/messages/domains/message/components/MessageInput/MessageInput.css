@@ -1,0 +1,68 @@
+/* Custom styles for textarea editor in chat interface */
+
+.message-textarea-wrapper {
+  position: relative;
+}
+
+/* Customize textarea */
+.message-textarea-wrapper textarea {
+  border: none;
+  outline: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 30px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 12px 16px;
+  width: 100%;
+  resize: none;
+  background: transparent;
+}
+
+/* Placeholder styling */
+.message-textarea-wrapper textarea::placeholder {
+  color: #9ca3af;
+  font-style: normal;
+}
+
+/* Emoji picker theme overrides — map to app design tokens */
+.EmojiPickerReact {
+  --epr-bg-color: var(--background);
+  --epr-text-color: var(--card-foreground);
+  --epr-category-label-bg-color: var(--background);
+  --epr-category-label-text-color: var(--card-foreground);
+  --epr-category-icon-active-color: var(--primary);
+  --epr-picker-border-color: var(--border);
+  --epr-search-input-bg-color: var(--input);
+  --epr-search-input-bg-color-active: var(--input);
+  --epr-search-border-color: var(--border);
+  --epr-search-border-color-active: var(--primary);
+  --epr-search-input-text-color: var(--card-foreground);
+  --epr-search-input-placeholder-color: var(--card-foreground);
+  --epr-hover-bg-color: var(--primary);
+  --epr-focus-bg-color: var(--primary);
+  --epr-highlight-color: var(--primary);
+  --epr-preview-border-color: var(--border);
+  --epr-preview-text-color: var(--card-foreground);
+}
+
+.dark .EmojiPickerReact {
+  --epr-dark-bg-color: var(--background);
+  --epr-dark-text-color: var(--card-foreground);
+  --epr-dark-category-label-bg-color: var(--background);
+  --epr-dark-category-icon-active-color: var(--primary);
+  --epr-dark-picker-border-color: var(--border);
+  --epr-dark-search-input-bg-color: var(--input);
+  --epr-dark-search-input-bg-color-active: var(--input);
+  --epr-dark-hover-bg-color: var(--primary);
+  --epr-dark-focus-bg-color: var(--primary);
+  --epr-dark-highlight-color: var(--primary);
+  --epr-dark-reactions-bg-color: var(--card);
+}
+
+/* Disable state */
+.message-textarea-wrapper textarea:disabled {
+  cursor: default;
+  opacity: 0.7;
+}

@@ -29,14 +29,11 @@ async function fetchStagingApiKey(ctx: ServiceContext, agentSlug: string): Promi
 /*  Prepare graph with resolved env variables                          */
 /* ------------------------------------------------------------------ */
 
-async function prepareGraph(
-  ctx: ServiceContext,
-  agentId: string
-): Promise<{ graph: Graph; envVars: Record<string, string> }> {
+async function prepareGraph(ctx: ServiceContext, agentId: string): Promise<Graph> {
   const raw = await assembleGraph(ctx.supabase, agentId);
   const graph = requireGraph(raw, agentId);
-  const envVars = await getDecryptedEnvVariables(ctx.supabase, ctx.orgId);
-  return { graph: resolveMcpEnvVars(graph, envVars), envVars };
+  const { byId } = await getDecryptedEnvVariables(ctx.supabase, ctx.orgId);
+  return resolveMcpEnvVars(graph, byId);
 }
 
 /* ------------------------------------------------------------------ */
@@ -65,12 +62,7 @@ export async function simulateAgent(
   runSimulation: RunSimulationFn
 ): Promise<SimulationResult> {
   const { ctx, agentId, agentSlug, input } = params;
-  const [apiKey, prepared] = await Promise.all([
-    fetchStagingApiKey(ctx, agentSlug),
-    prepareGraph(ctx, agentId),
-  ]);
-
-  const { graph } = prepared;
+  const [apiKey, graph] = await Promise.all([fetchStagingApiKey(ctx, agentSlug), prepareGraph(ctx, agentId)]);
   const mcpServers = graph.mcpServers ?? [];
   const session = await createMcpSession(mcpServers);
 

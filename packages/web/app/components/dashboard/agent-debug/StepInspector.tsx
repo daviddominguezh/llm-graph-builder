@@ -1,0 +1,65 @@
+'use client';
+
+import { TokenDisplay } from '@/app/components/panels/simulation/TokenDisplay';
+import { MessageCards } from '@/app/components/dashboard/node-inspector/MessageCards';
+import { ResponseSection } from '@/app/components/dashboard/node-inspector/ResponseSection';
+import { Brain, MousePointerClick } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+
+import type { AgentStep } from './agentDebugTypes';
+
+interface StepInspectorProps {
+  step: AgentStep | null;
+}
+
+function InspectorEmptyState({ message }: { message: string }) {
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-2 py-12">
+      <MousePointerClick className="size-5 text-muted-foreground/40" />
+      <p className="text-xs text-muted-foreground">{message}</p>
+    </div>
+  );
+}
+
+function stepToTokens(step: AgentStep) {
+  return {
+    input: step.visit.input_tokens,
+    output: step.visit.output_tokens,
+    cached: step.visit.cached_tokens,
+    costUSD: step.visit.cost,
+  };
+}
+
+function StepHeader({ step }: { step: AgentStep }) {
+  const t = useTranslations('dashboard.agentDebug');
+
+  return (
+    <div>
+      <span className="text-sm font-semibold font-mono">{t('stepN', { n: step.stepOrder })}</span>
+      <div className="mt-1 flex items-center gap-2">
+        <TokenDisplay tokens={stepToTokens(step)} durationMs={step.visit.duration_ms} />
+        <span className="text-[10px] text-muted-foreground/40">|</span>
+        <span className="inline-flex items-center font-mono text-[10px] text-muted-foreground">
+          <Brain className="mr-0.5 size-2.5" />
+          {step.visit.model}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export function StepInspector({ step }: StepInspectorProps) {
+  const t = useTranslations('dashboard.agentDebug');
+
+  if (step === null) {
+    return <InspectorEmptyState message={t('selectStep')} />;
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <StepHeader step={step} />
+      <MessageCards data={step.visit.messages_sent} />
+      <ResponseSection visit={step.visit} />
+    </div>
+  );
+}

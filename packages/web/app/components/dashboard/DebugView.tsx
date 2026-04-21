@@ -3,29 +3,30 @@
 import { fetchNodeVisitsForExecution } from '@/app/actions/dashboard';
 import type { ExecutionSummaryRow, NodeVisitRow, SessionRow } from '@/app/lib/dashboard';
 import type { Graph } from '@/app/schemas/graph.schema';
-import { buildDebugGraph } from '@/app/utils/debugGraphBuilder';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { type BuildDebugGraphOptions, buildDebugGraph } from '@/app/utils/debugGraphBuilder';
 import { Separator } from '@/components/ui/separator';
-import { AlertCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState, useTransition } from 'react';
 
 import { DebugCanvas } from './DebugCanvas';
 import { NodeInspector } from './NodeInspector';
 import { DebugBreadcrumb } from './debug-view/DebugBreadcrumb';
+import { ExecutionErrorBanner } from './debug-view/ExecutionErrorBanner';
+import { ExecutionSidebar } from './debug-view/ExecutionSidebar';
 import { SessionMetadataBar } from './debug-view/SessionMetadataBar';
 
 interface DebugViewProps {
   session: SessionRow;
   executions: ExecutionSummaryRow[];
   initialNodeVisits: NodeVisitRow[];
+  initialExecutionId?: string;
   graph: Graph;
   orgSlug: string;
   agentName: string;
-  agentSlug: string;
+  breadcrumbLabel: string;
+  breadcrumbSlug: string;
 }
 
-const FIRST_INDEX = 0;
 
 function deriveVisitedNodeIds(visits: NodeVisitRow[]): string[] {
   return visits.map((v) => v.node_id);
@@ -54,29 +55,9 @@ function findExecution(
   return executions.find((e) => e.id === selectedId);
 }
 
-function ExecutionErrorBanner({
-  execution,
-  label,
-}: {
-  execution: ExecutionSummaryRow;
-  label: string;
-}) {
-  if (execution.status !== 'failed' || execution.error === null || execution.error === '') {
-    return null;
-  }
-
-  return (
-    <Alert variant="destructive">
-      <AlertCircle />
-      <AlertTitle>{label}</AlertTitle>
-      <AlertDescription>{execution.error}</AlertDescription>
-    </Alert>
-  );
-}
-
-function useExecutionState(executions: ExecutionSummaryRow[], initialVisits: NodeVisitRow[]) {
-  const firstExecution = executions[FIRST_INDEX];
-  const [selectedExecutionId, setSelectedExecutionId] = useState(firstExecution?.id ?? '');
+function useExecutionState(executions: ExecutionSummaryRow[], initialVisits: NodeVisitRow[], initialId?: string) {
+  const lastExecution = executions[executions.length - 1];
+  const [selectedExecutionId, setSelectedExecutionId] = useState(initialId ?? lastExecution?.id ?? '');
   const [nodeVisits, setNodeVisits] = useState<NodeVisitRow[]>(initialVisits);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
@@ -119,7 +100,7 @@ interface DebugHeaderProps {
 function DebugHeader({ orgSlug, agentName, agentSlug, sessionId, dashboardLabel }: DebugHeaderProps) {
   return (
     <>
-      <div className="px-6 py-4 shrink-0 bg-background">
+      <div className="px-4 py-3 shrink-0 bg-background">
         <DebugBreadcrumb
           slug={orgSlug}
           agentName={agentName}
@@ -142,6 +123,9 @@ interface DebugCanvasAreaProps {
   nodeVisits: NodeVisitRow[];
   onNodeClick: (id: string) => void;
   onDeselectNode: () => void;
+  prevExecLabel?: string;
+  onGoToPrevExec?: () => void;
+  debugGraphOptions?: BuildDebugGraphOptions;
 }
 
 function DebugCanvasArea({
@@ -153,9 +137,12 @@ function DebugCanvasArea({
   nodeVisits,
   onNodeClick,
   onDeselectNode,
+  prevExecLabel,
+  onGoToPrevExec,
+  debugGraphOptions,
 }: DebugCanvasAreaProps) {
   return (
-    <div className="flex flex-1 gap-4 min-h-0">
+    <div className="px-4 pt-4 flex flex-1 gap-4 min-h-0">
       <div className="w-2/3">
         <DebugCanvas
           graph={graph}
@@ -164,14 +151,17 @@ function DebugCanvasArea({
           selectedNodeId={selectedNodeId}
           onNodeClick={onNodeClick}
           onDeselectNode={onDeselectNode}
+          debugGraphOptions={debugGraphOptions}
         />
       </div>
-      <div className="w-1/3 overflow-y-auto rounded-md border p-4 bg-card">
+      <div className="w-1/3 overflow-y-auto">
         <NodeInspector
           nodeId={selectedNodeId}
           nodeVisits={nodeVisits}
           mutedNodeIds={mutedNodeIds}
           graphNodes={graph.nodes}
+          prevExecLabel={prevExecLabel}
+          onGoToPrevExec={onGoToPrevExec}
         />
       </div>
     </div>
@@ -181,45 +171,73 @@ function DebugCanvasArea({
 interface DebugBodyProps {
   session: SessionRow;
   agentName: string;
+  tenantName: string;
   selectedExecution: ExecutionSummaryRow | undefined;
   errorBannerLabel: string;
   canvasAreaProps: DebugCanvasAreaProps;
 }
 
-function DebugBody({ session, agentName, selectedExecution, errorBannerLabel, canvasAreaProps }: DebugBodyProps) {
+function DebugBody({
+  session,
+  agentName,
+  tenantName,
+  selectedExecution,
+  errorBannerLabel,
+  canvasAreaProps,
+}: DebugBodyProps) {
   return (
-    <div className="px-6 py-4 flex flex-col gap-4 flex-1 min-h-[0px]">
-      <SessionMetadataBar session={session} agentName={agentName} />
+    <div className="px-0 pb-3 flex flex-col gap-0 flex-1 min-h-[0px]">
+      <SessionMetadataBar session={session} agentName={agentName} tenantName={tenantName} />
+      <Separator />
       {selectedExecution !== undefined && (
-        <ExecutionErrorBanner execution={selectedExecution} label={errorBannerLabel} />
+        <div className="px-4">
+          <ExecutionErrorBanner execution={selectedExecution} label={errorBannerLabel} />
+        </div>
       )}
       <DebugCanvasArea {...canvasAreaProps} />
     </div>
   );
 }
 
+function derivePrevExecOptions(executions: ExecutionSummaryRow[], selectedId: string): BuildDebugGraphOptions {
+  const idx = executions.findIndex((e) => e.id === selectedId);
+  if (idx <= 0) return {};
+  const prev = executions[idx - 1];
+  if (prev === undefined) return {};
+  return { prevExec: { label: `Execution ${String(idx)}`, executionId: prev.id } };
+}
+
 function useDebugViewState(props: DebugViewProps) {
   const { executions, initialNodeVisits, graph } = props;
-  const state = useExecutionState(executions, initialNodeVisits);
+  const state = useExecutionState(executions, initialNodeVisits, props.initialExecutionId);
   const visitedNodeIds = useMemo(() => deriveVisitedNodeIds(state.nodeVisits), [state.nodeVisits]);
   const errorNodeIds = useMemo(() => deriveErrorNodeIds(state.nodeVisits), [state.nodeVisits]);
-  const mutedNodeIds = useMemo(
-    () => buildDebugGraph(graph.nodes, graph.edges, visitedNodeIds, errorNodeIds).mutedNodeIds,
-    [graph, visitedNodeIds, errorNodeIds]
+
+  const prevExecOptions = useMemo(
+    () => derivePrevExecOptions(executions, state.selectedExecutionId),
+    [executions, state.selectedExecutionId]
   );
+
+  const debugGraph = useMemo(
+    () => buildDebugGraph(graph.nodes, graph.edges, visitedNodeIds, errorNodeIds, prevExecOptions),
+    [graph, visitedNodeIds, errorNodeIds, prevExecOptions]
+  );
+
   const selectedExecution = useMemo(
     () => findExecution(executions, state.selectedExecutionId),
     [executions, state.selectedExecutionId]
   );
 
-  return { state, visitedNodeIds, errorNodeIds, mutedNodeIds, selectedExecution };
+  return { state, visitedNodeIds, errorNodeIds, mutedNodeIds: debugGraph.mutedNodeIds, selectedExecution, prevExecOptions };
 }
 
 export function DebugView(props: DebugViewProps) {
-  const { session, graph, orgSlug, agentName, agentSlug } = props;
+  const { session, graph, orgSlug, agentName, breadcrumbLabel, breadcrumbSlug } = props;
   const t = useTranslations('dashboard');
-  const { state, visitedNodeIds, errorNodeIds, mutedNodeIds, selectedExecution } =
+  const { state, visitedNodeIds, errorNodeIds, mutedNodeIds, selectedExecution, prevExecOptions } =
     useDebugViewState(props);
+
+  const prevExec = prevExecOptions.prevExec;
 
   const canvasAreaProps: DebugCanvasAreaProps = {
     graph,
@@ -230,24 +248,37 @@ export function DebugView(props: DebugViewProps) {
     nodeVisits: state.nodeVisits,
     onNodeClick: state.setSelectedNodeId,
     onDeselectNode: state.handleDeselectNode,
+    prevExecLabel: prevExec?.label,
+    onGoToPrevExec: prevExec !== undefined ? () => state.handleSelectExecution(prevExec.executionId) : undefined,
+    debugGraphOptions: prevExecOptions,
   };
 
   return (
-    <div className="flex h-full flex-col bg-background">
+    <div className="flex h-[calc(100%-var(--spacing)*2)] flex-col bg-background overflow-hidden border border mr-2 rounded-xl">
       <DebugHeader
         orgSlug={orgSlug}
-        agentName={agentName}
-        agentSlug={agentSlug}
+        agentName={breadcrumbLabel}
+        agentSlug={breadcrumbSlug}
         sessionId={session.session_id}
         dashboardLabel={t('title')}
       />
-      <DebugBody
-        session={session}
-        agentName={agentName}
-        selectedExecution={selectedExecution}
-        errorBannerLabel={t('debug.executionError')}
-        canvasAreaProps={canvasAreaProps}
-      />
+      <div className="flex flex-1 min-h-0">
+        <ExecutionSidebar
+          executions={props.executions}
+          selectedId={state.selectedExecutionId}
+          onSelect={state.handleSelectExecution}
+        />
+        <div className="flex-1 min-w-0 flex flex-col">
+          <DebugBody
+            session={session}
+            agentName={agentName}
+            tenantName={breadcrumbLabel}
+            selectedExecution={selectedExecution}
+            errorBannerLabel={t('debug.executionError')}
+            canvasAreaProps={canvasAreaProps}
+          />
+        </div>
+      </div>
     </div>
   );
 }

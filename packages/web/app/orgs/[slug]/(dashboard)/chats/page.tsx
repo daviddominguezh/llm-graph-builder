@@ -1,13 +1,23 @@
-import { useTranslations } from 'next-intl';
+import { getOrgBySlug } from '@/app/lib/orgs';
+import { getTenantsByOrg } from '@/app/lib/tenants';
+import { redirect } from 'next/navigation';
 
-export default function ChatsPage(): React.JSX.Element {
-  const t = useTranslations('orgs');
+import { ChatsClient } from './ChatsClient';
 
-  return (
-    <div className="h-full overflow-y-auto p-6">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-        <h1 className="text-2xl font-bold">{t('chats')}</h1>
-      </div>
-    </div>
-  );
+interface ChatsPageProps {
+  params: Promise<{ slug: string }>;
+}
+
+export default async function ChatsPage({ params }: ChatsPageProps): Promise<React.JSX.Element> {
+  const { slug } = await params;
+  const { result: org } = await getOrgBySlug(slug);
+
+  if (!org) {
+    redirect('/');
+  }
+
+  const { result: tenants } = await getTenantsByOrg(org.id);
+  const defaultTenantId = tenants[0]?.id ?? '';
+
+  return <ChatsClient tenants={tenants} defaultTenantId={defaultTenantId} />;
 }

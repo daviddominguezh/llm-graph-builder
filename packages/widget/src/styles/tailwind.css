@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+/*
+ * Reduced-motion override: uses !important to guarantee these declarations beat
+ * Tailwind's generated utility classes (e.g. transition-*, animate-*) regardless
+ * of selector specificity. This is the sole intentional use of !important in this
+ * codebase — it is justified here because (a) it is scoped to an accessibility
+ * media query that only fires when the user opts in, and (b) no specificity trick
+ * can reliably override arbitrary Tailwind utilities without it.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,18 +1,20 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { GlassPanel } from '@/components/ui/glass-panel';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Play, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { McpServerStatus } from '../../hooks/useMcpServers';
-import type { DiscoveredTool, ToolCallOptions } from '../../lib/api';
+import type { ToolCallOptions } from '../../lib/api';
 import type { McpLibraryRow } from '../../lib/mcpLibraryTypes';
 import type { OrgEnvVariableRow } from '../../lib/orgEnvVariables';
+import type { RegistryTool, ToolGroup } from '../../lib/toolRegistry';
 import type { McpServerConfig } from '../../schemas/graph.schema';
+import { useToolRegistry } from '../ToolRegistryProvider';
 import { McpServersSection } from './McpServersSection';
 import { FloatingSchema, type ToolSchema } from './ToolSchemaPopover';
 import { ToolTestModal } from './ToolTestModal';
@@ -33,46 +35,9 @@ interface McpProps {
 }
 
 interface ToolsPanelProps {
-  servers: McpServerConfig[];
-  discoveredTools: Record<string, DiscoveredTool[]>;
   mcp: McpProps;
   open: boolean;
   onClose: () => void;
-}
-
-interface FlatTool {
-  serverId: string;
-  serverName: string;
-  name: string;
-  description: string | undefined;
-  inputSchema: Record<string, unknown> | undefined;
-}
-
-interface ToolGroup {
-  serverName: string;
-  tools: FlatTool[];
-}
-
-function buildToolGroups(
-  servers: McpServerConfig[],
-  discovered: Record<string, DiscoveredTool[]>
-): ToolGroup[] {
-  const groups: ToolGroup[] = [];
-  for (const server of servers) {
-    const serverTools = (discovered[server.id] ?? []).map((tool) => ({
-      serverId: server.id,
-      serverName: server.name,
-      name: tool.name,
-      description: tool.description,
-      inputSchema: tool.inputSchema,
-    }));
-    if (serverTools.length > 0) {
-      serverTools.sort((a, b) => a.name.localeCompare(b.name));
-      groups.push({ serverName: server.name, tools: serverTools });
-    }
-  }
-  groups.sort((a, b) => a.serverName.localeCompare(b.serverName));
-  return groups;
 }
 
 function filterGroups(groups: ToolGroup[], query: string): ToolGroup[] {
@@ -94,7 +59,7 @@ function countTools(groups: ToolGroup[]): number {
   return count;
 }
 
-function PlayButton({ tool, onTest }: { tool: FlatTool; onTest: (tool: FlatTool) => void }) {
+function PlayButton({ tool, onTest }: { tool: RegistryTool; onTest: (tool: RegistryTool) => void }) {
   const t = useTranslations('toolTest');
   return (
     <Tooltip>
@@ -125,15 +90,15 @@ function ToolRow({
   onCollapse,
   onTest,
 }: {
-  tool: FlatTool;
+  tool: RegistryTool;
   expanded: boolean;
   onClick: () => void;
   onCollapse: () => void;
-  onTest: (tool: FlatTool) => void;
+  onTest: (tool: RegistryTool) => void;
 }) {
   const rowRef = useRef<HTMLDivElement>(null);
   return (
-    <li className="flex flex-col w-[calc(50%_-_(var(--spacing)*2))] shrink-0 bg-muted rounded-sm py-1.5">
+    <li className="flex flex-col w-[calc(50%_-_(var(--spacing)*2))] shrink-0 bg-card rounded-sm py-1.5">
       <div
         ref={rowRef}
         className="group/tool flex w-full items-start gap-1 px-1 py-0 text-left text-xs cursor-pointer border-l-2 border-ring hover:border-accent"
@@ -142,7 +107,7 @@ function ToolRow({
         <div className="flex min-w-0 flex-1 flex-col">
           <span className="font-medium">{tool.name}</span>
           <span className="truncate text-[10px] text-muted-foreground">
-            {tool.description ?? tool.serverName}
+            {tool.description ?? tool.group}
           </span>
         </div>
         <PlayButton tool={tool} onTest={onTest} />
@@ -172,7 +137,7 @@ function ToolsList({
   expandedTool: string | null;
   onToggleTool: (key: string) => void;
   onCollapseTool: () => void;
-  onTestTool: (tool: FlatTool) => void;
+  onTestTool: (tool: RegistryTool) => void;
 }) {
   return (
     <div className="flex-1 overflow-y-auto p-1 pt-0">
@@ -182,13 +147,13 @@ function ToolsList({
         </p>
       ) : (
         groups.map((group) => (
-          <div key={group.serverName}>
-            <div className="sticky top-0 z-10 bg-popover px-2 pt-0 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-              <div className="pt-2">{group.serverName}</div>
+          <div key={group.groupName}>
+            <div className="sticky top-0 z-10 bg-background px-2 pt-0 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+              <div className="pt-2">{group.groupName}</div>
             </div>
             <ul className="flex flex-row gap-2 gap-y-3 flex-wrap pl-1">
               {group.tools.map((tool) => {
-                const key = `${tool.serverName}-${tool.name}`;
+                const key = `${tool.group}-${tool.name}`;
                 return (
                   <ToolRow
                     key={key}
@@ -229,6 +194,38 @@ function McpTab({ mcp }: { mcp: McpProps }) {
   );
 }
 
+const PANEL_TABS = ['tools', 'mcp'] as const;
+const activeTabCls = 'bg-background dark:bg-input text-foreground shadow-sm';
+const inactiveTabCls = 'text-muted-foreground hover:text-foreground border-transparent hover:bg-input dark:hover:bg-card';
+const tabBaseCls =
+  'cursor-pointer inline-flex flex-1 items-center justify-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors border border-transparent';
+
+function PanelTabs({
+  value,
+  onChange,
+  t,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  t: (key: string) => string;
+}) {
+  const labels: Record<string, string> = { tools: t('toolsTab'), mcp: t('mcpServersTab') };
+  return (
+    <div className="flex w-full gap-0.5 bg-card dark:bg-background p-0.5">
+      {PANEL_TABS.map((tab) => (
+        <button
+          key={tab}
+          type="button"
+          onClick={() => onChange(tab)}
+          className={`${tabBaseCls} ${tab === value ? activeTabCls : inactiveTabCls}`}
+        >
+          {labels[tab]}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function buildCallOptions(server: McpServerConfig | undefined, orgId: string): ToolCallOptions | undefined {
   if (server === undefined) return undefined;
   return {
@@ -239,34 +236,34 @@ function buildCallOptions(server: McpServerConfig | undefined, orgId: string): T
 }
 
 function useToolTest(servers: McpServerConfig[], orgId: string) {
-  const [testingTool, setTestingTool] = useState<FlatTool | null>(null);
-  const server = testingTool !== null ? servers.find((s) => s.id === testingTool.serverId) : undefined;
+  const [testingTool, setTestingTool] = useState<RegistryTool | null>(null);
+  const server = testingTool !== null ? servers.find((s) => s.id === testingTool.sourceId) : undefined;
   const transport = server?.transport ?? null;
   const callOptions = buildCallOptions(server, orgId);
-  const openTest = useCallback((tool: FlatTool) => setTestingTool(tool), []);
+  const openTest = useCallback((tool: RegistryTool) => setTestingTool(tool), []);
   const closeTest = useCallback(() => setTestingTool(null), []);
   return { testingTool, transport, callOptions, openTest, closeTest };
 }
 
-export function ToolsPanel({ servers, discoveredTools, mcp, open, onClose }: ToolsPanelProps) {
+export function ToolsPanel({ mcp, open, onClose }: ToolsPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const t = useTranslations('toolbar');
   const [query, setQuery] = useState('');
   const [prevOpen, setPrevOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('mcp');
+  const [activeTab, setActiveTab] = useState('tools');
   const [expandedTool, setExpandedTool] = useState<string | null>(null);
-  const tt = useToolTest(servers, mcp.orgId);
+  const tt = useToolTest(mcp.servers, mcp.orgId);
 
   if (open && !prevOpen) {
     setPrevOpen(true);
     setQuery('');
-    setActiveTab('mcp');
+    setActiveTab('tools');
     setExpandedTool(null);
   }
   if (!open && prevOpen) setPrevOpen(false);
 
-  const allGroups = useMemo(() => buildToolGroups(servers, discoveredTools), [servers, discoveredTools]);
+  const { groups: allGroups } = useToolRegistry();
   const filteredGroups = filterGroups(allGroups, query);
   const totalCount = countTools(filteredGroups);
 
@@ -289,31 +286,26 @@ export function ToolsPanel({ servers, discoveredTools, mcp, open, onClose }: Too
 
   return (
     <>
-      <div
-        ref={containerRef}
-        className="absolute top-14.5 left-1/2 z-20 -translate-x-1/2 w-[28rem] h-96 flex flex-col rounded-lg border bg-popover shadow-lg"
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') onClose();
-        }}
-      >
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full gap-0">
-          <div className="flex items-center gap-0 p-1 border-b">
-            <TabsList className="w-full">
-              <TabsTrigger value="mcp">{t('mcpServersTab')}</TabsTrigger>
-              <TabsTrigger value="tools">{t('toolsTab')}</TabsTrigger>
-            </TabsList>
-          </div>
-          <TabsContent value="mcp" className="flex-1 overflow-y-auto mt-0 pt-0 px-1">
-            <McpTab mcp={mcp} />
-          </TabsContent>
-          <TabsContent value="tools" className="flex-1 overflow-y-auto flex flex-col mt-0 pt-0">
+      <GlassPanel className="absolute top-12.5 left-1/2 z-20 -translate-x-1/2 w-[28rem] h-96 rounded-md shadow-lg overflow-hidden pointer-events-auto">
+        <div
+          ref={containerRef}
+          className="flex h-full flex-col"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') onClose();
+          }}
+        >
+        <div className="flex items-center border-y-0 border-x-0 border-b p-0 overflow-hidden">
+          <PanelTabs value={activeTab} onChange={setActiveTab} t={t} />
+        </div>
+        {activeTab === 'tools' && (
+          <div className="flex-1 overflow-y-auto flex flex-col">
             <div className="flex items-center gap-2 px-3 py-2 border-b">
               <Search className="size-3.5 text-muted-foreground shrink-0" />
               <Input
                 ref={inputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search tools..."
+                placeholder={t('searchTools')}
                 className="h-7 border-0 bg-transparent! p-0 text-xs shadow-none focus-visible:ring-0"
               />
             </div>
@@ -325,9 +317,15 @@ export function ToolsPanel({ servers, discoveredTools, mcp, open, onClose }: Too
               onCollapseTool={() => setExpandedTool(null)}
               onTestTool={tt.openTest}
             />
-          </TabsContent>
-        </Tabs>
-      </div>
+          </div>
+        )}
+        {activeTab === 'mcp' && (
+          <div className="flex-1 overflow-y-auto px-1">
+            <McpTab mcp={mcp} />
+          </div>
+        )}
+        </div>
+      </GlassPanel>
       <ToolTestModal
         tool={tt.testingTool}
         transport={tt.transport}

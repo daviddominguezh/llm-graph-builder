@@ -1,5 +1,5 @@
 -- =============================================================================
--- Seed: "Closer" org with david@usecloser.ai + 32 published MCP servers
+-- Seed: "OpenFlow" org with david@usecloser.ai + 30 published MCP servers
 -- Runs automatically on `supabase db reset`
 -- =============================================================================
 
@@ -53,12 +53,12 @@ INSERT INTO auth.identities (
 
 -- 3. Create public user
 INSERT INTO public.users (id, email, full_name) VALUES
-  (v_user_id, 'david@usecloser.ai', 'David')
+  (v_user_id, 'david@usecloser.ai', 'David Domínguez')
 ON CONFLICT (id) DO NOTHING;
 
 -- 4. Create "Closer" organization (avatar served from Next.js public/)
 INSERT INTO public.organizations (id, name, slug, avatar_url) VALUES
-  (v_org_id, 'Closer', 'closer', '/logoCloser.png')
+  (v_org_id, 'OpenFlow', 'openflow', '/logoOpenflow.png')
 ON CONFLICT (id) DO NOTHING;
 
 -- 5. Add user as org owner
@@ -162,20 +162,20 @@ INSERT INTO public.mcp_library (
  'http', '{"url":"https://mcp.firecrawl.dev/v2/mcp","headers":{"Authorization":"Bearer {{FIRECRAWL_API_KEY}}"}}'::jsonb,
  '[{"name":"FIRECRAWL_API_KEY"}]'::jsonb, v_user_id, 0);
 
--- 7. Create "test-recipe" agent
+-- 7. Create "recipe-example" agent
 INSERT INTO public.agents (
   id, name, slug, description, version, current_version, org_id, start_node,
   created_at, updated_at
 ) VALUES (
   v_recipe_agent_id,
-  'test-recipe',
-  'test-recipe',
+  'recipe-example',
+  'recipe-example',
   'A test agent that creates recipes or suggests meal ideas based on user intent.',
   1, 0, v_org_id, 'INITIAL_STEP',
   now(), now()
 ) ON CONFLICT (id) DO NOTHING;
 
--- 8. Create graph nodes for test-recipe agent
+-- 8. Create graph nodes for recipe-example agent
 INSERT INTO public.graph_nodes (
   id, agent_id, node_id, text, kind, description,
   next_node_is_user, global, position_x, position_y,

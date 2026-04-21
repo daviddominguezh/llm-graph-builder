@@ -24,6 +24,8 @@ interface PreExecutionParams {
   userId: string;
   userMessageContent: string;
   currentNodeId: string;
+  executionId?: string;
+  parentExecutionId?: string;
 }
 
 interface PreExecutionResult {
@@ -43,6 +45,8 @@ export async function persistPreExecution(
     channel: params.channel,
     tenantId: params.tenantId,
     userId: params.userId,
+    executionId: params.executionId,
+    parentExecutionId: params.parentExecutionId,
   });
 
   await saveExecutionMessage(supabase, {
@@ -143,7 +147,10 @@ function processedFields(processed: NodeProcessedData | undefined): Record<strin
   return fields;
 }
 
-function buildNodeResponse(ctx: NodeResponseContext): Record<string, unknown> {
+function buildNodeResponse(ctx: NodeResponseContext): unknown {
+  if (ctx.processed?.responseMessages !== undefined) {
+    return ctx.processed.responseMessages;
+  }
   const { parsedResult, structuredOutput, processed } = ctx;
   return {
     ...parsedResultFields(parsedResult),

@@ -112,18 +112,16 @@ function EmptyVersionsTrigger() {
   const t = useTranslations('editor');
 
   return (
-    <div className="flex h-10 items-center gap-1.5 rounded-md border bg-background px-3 text-xs text-foreground">
+    <div className="flex items-center gap-1.5 rounded-full px-3 text-xs text-foreground">
       <History className="size-4" />
-      <span className="font-bold">{t('versionDraft')}</span>
+      <span className="font-bold cursor-default">{t('versionDraft')}</span>
     </div>
   );
 }
 
 export function VersionSelector(props: VersionSelectorProps) {
   const { versions, currentVersion, loading, hasPendingOps, onSwitchVersion } = props;
-  const t = useTranslations('editor');
   const [pendingVersion, setPendingVersion] = useState<number | null>(null);
-  const triggerLabel = currentVersion === 0 ? t('versionDraft') : `v${currentVersion}`;
 
   const handleValueChange = useCallback(
     (raw: string | null) => {
@@ -159,28 +157,19 @@ export function VersionSelector(props: VersionSelectorProps) {
       <Select value={String(currentVersion)} onValueChange={handleValueChange} disabled={loading}>
         <SelectTrigger
           size="sm"
-          className="h-10 data-[size=sm]:h-10 bg-background px-3 text-xs font-bold [&>svg:last-child]:hidden bg-background! hover:bg-card!"
+          className="cursor-pointer data-[size=sm]:h-auto border-0 bg-transparent dark:bg-transparent px-2 text-xs font-bold [&>svg:last-child]:hidden hover:bg-input dark:hover:bg-input rounded-full relative aspect-square h-8"
         >
           <History className="size-4" />
-          <span>{triggerLabel}</span>
         </SelectTrigger>
         <SelectContent side="bottom" align="end" alignItemWithTrigger={false} className="w-auto min-w-56">
           {versions.map((v) => (
-            <SelectItem
-              key={v.version}
-              value={String(v.version)}
-              
-            >
+            <SelectItem key={v.version} value={String(v.version)} className="cursor-pointer">
               <VersionItemLabel version={v.version} publishedAt={v.publishedAt} />
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
-      <SwitchConfirmDialog
-        open={pendingVersion !== null}
-        onConfirm={handleConfirm}
-        onCancel={handleCancel}
-      />
+      <SwitchConfirmDialog open={pendingVersion !== null} onConfirm={handleConfirm} onCancel={handleCancel} />
     </>
   );
 }

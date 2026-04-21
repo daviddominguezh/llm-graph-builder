@@ -1,6 +1,7 @@
 import type {
   AgentSummaryRow,
   DashboardParams,
+  ExecutionMessageRow,
   ExecutionSummaryRow,
   NodeVisitRow,
   PaginatedResult,
@@ -12,11 +13,17 @@ import type { SupabaseClient } from './operationHelpers.js';
 export type {
   AgentSummaryRow,
   DashboardParams,
+  ExecutionMessageRow,
   ExecutionSummaryRow,
   NodeVisitRow,
   PaginatedResult,
   SessionRow,
+  TenantExecutionRow,
+  TenantSummaryRow,
+  TimeSeriesPoint,
 } from './dashboardTypes.js';
+
+export { getDashboardTimeSeries, getExecutionsByTenant, getTenantSummary } from './tenantDashboardQueries.js';
 
 const EMPTY_LENGTH = 0;
 const DEFAULT_NUMERIC = 0;
@@ -143,6 +150,10 @@ function isExecutionArray(val: unknown): val is ExecutionSummaryRow[] {
 }
 
 function isNodeVisitArray(val: unknown): val is NodeVisitRow[] {
+  return Array.isArray(val);
+}
+
+function isMessageArray(val: unknown): val is ExecutionMessageRow[] {
   return Array.isArray(val);
 }
 
@@ -277,6 +288,24 @@ export async function getNodeVisitsForExecution(
 
   if (error !== null) return { rows: [], error: error.message };
   return { rows: isNodeVisitArray(data) ? data : [], error: null };
+}
+
+/* ------------------------------------------------------------------ */
+/*  6b. Messages for Execution                                         */
+/* ------------------------------------------------------------------ */
+
+export async function getMessagesForExecution(
+  supabase: SupabaseClient,
+  executionId: string
+): Promise<{ rows: ExecutionMessageRow[]; error: string | null }> {
+  const { data, error } = await supabase
+    .from('agent_execution_messages')
+    .select('id, execution_id, node_id, role, content, tool_calls, tool_call_id, created_at')
+    .eq('execution_id', executionId)
+    .order('created_at', { ascending: true });
+
+  if (error !== null) return { rows: [], error: error.message };
+  return { rows: isMessageArray(data) ? data : [], error: null };
 }
 
 /* ------------------------------------------------------------------ */

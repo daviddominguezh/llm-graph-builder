@@ -30,6 +30,18 @@ export async function publishVersion(supabase: SupabaseClient, agentId: string):
   return Number(result.data);
 }
 
+export async function publishAgentVersion(supabase: SupabaseClient, agentId: string): Promise<number> {
+  const result = await supabase.rpc('publish_agent_version_tx', {
+    p_agent_id: agentId,
+  });
+
+  if (result.error !== null) {
+    throw new Error(`publishAgentVersion: ${result.error.message}`);
+  }
+
+  return Number(result.data);
+}
+
 export async function listVersions(supabase: SupabaseClient, agentId: string): Promise<VersionSummary[]> {
   const result = await supabase
     .from('agent_versions')

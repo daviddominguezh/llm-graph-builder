@@ -36,6 +36,15 @@ export {
 } from './mcp-library.schema.js';
 export { OutputSchemaEntitySchema } from './output-schema-entity.schema.js';
 export {
+  TEMPLATE_CATEGORIES,
+  TemplateCategorySchema,
+  LibraryMcpRefSchema,
+  CustomMcpSkeletonSchema,
+  TemplateMcpServerSchema,
+  TemplateGraphDataSchema,
+} from './template.schema.js';
+export type { TemplateCategory, TemplateGraphData, TemplateMcpServer } from './template.schema.js';
+export {
   OperationSchema,
   OperationsBatchSchema,
   InsertNodeOperationSchema,
@@ -57,4 +66,12 @@ export {
   UpdateContextPresetOperationSchema,
   DeleteContextPresetOperationSchema,
   UpdateStartNodeOperationSchema,
+  UpdateAgentConfigOperationSchema,
+  InsertContextItemOperationSchema,
+  UpdateContextItemOperationSchema,
+  DeleteContextItemOperationSchema,
+  ReorderContextItemsOperationSchema,
+  InsertSkillOperationSchema,
+  DeleteSkillOperationSchema,
+  DeleteManySkillsOperationSchema,
 } from './operation.schema.js';

@@ -2,7 +2,15 @@ import type { Graph, Operation } from '@daviddh/graph-types';
 
 import { assembleGraph } from './graphQueries.js';
 import { executeSingleOperation } from './operationDispatch.js';
-import type { SupabaseClient } from './operationHelpers.js';
+import { type SupabaseClient, throwOnMutationError } from './operationHelpers.js';
+
+async function touchAgentUpdatedAt(supabase: SupabaseClient, agentId: string): Promise<void> {
+  const result = await supabase
+    .from('agents')
+    .update({ updated_at: new Date().toISOString() })
+    .eq('id', agentId);
+  throwOnMutationError(result, 'touchAgentUpdatedAt');
+}
 
 async function runSequentially(
   supabase: SupabaseClient,
@@ -49,4 +57,8 @@ export async function executeOperationsBatch(
     }
     throw err;
   }
+
+  await touchAgentUpdatedAt(supabase, agentId).catch(() => {
+    /* best-effort — graph ops already succeeded */
+  });
 }

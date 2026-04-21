@@ -15,8 +15,14 @@ import { handleCreateAgent } from './createAgent.js';
 import { handleDeleteAgent } from './deleteAgentHandler.js';
 import { handleGetAgentBySlug } from './getAgentBySlug.js';
 import { handleGetAgentsByOrg } from './getAgentsByOrg.js';
+import { handleGetVfsSettings } from './getVfsSettings.js';
 import { handleSaveProductionKey } from './saveProductionKey.js';
 import { handleSaveStagingKey } from './saveStagingKey.js';
+import { handleUpdateCategory } from './updateCategory.js';
+import { handleUpdateMetadata } from './updateMetadata.js';
+import { handleUpdateVfsSettings } from './updateVfsSettings.js';
+import { handleUpdateVisibility } from './updateVisibility.js';
+import { vfsConfigRouter } from './vfsConfigRouter.js';
 
 export const agentRouter = express.Router();
 agentRouter.use(requireAuth);
@@ -27,6 +33,9 @@ agentRouter.post('/', handleCreateAgent);
 agentRouter.delete('/:agentId', handleDeleteAgent);
 agentRouter.patch('/:agentId/staging-key', handleSaveStagingKey);
 agentRouter.patch('/:agentId/production-key', handleSaveProductionKey);
+agentRouter.patch('/:agentId/visibility', handleUpdateVisibility);
+agentRouter.patch('/:agentId/category', handleUpdateCategory);
+agentRouter.patch('/:agentId/metadata', handleUpdateMetadata);
 
 agentRouter.get('/:agentId/graph', handleGetGraph);
 agentRouter.post('/:agentId/graph/operations', handlePostOperations);
@@ -39,3 +48,7 @@ agentRouter.post('/mcp-oauth/initiate', handleInitiate);
 agentRouter.get('/mcp-oauth/status', handleStatus);
 agentRouter.post('/mcp-oauth/resolve-token', handleResolveToken);
 agentRouter.delete('/mcp-oauth/connections', handleDisconnect);
+
+agentRouter.use('/:agentId/vfs-configs', vfsConfigRouter);
+agentRouter.get('/:agentId/vfs-settings', handleGetVfsSettings);
+agentRouter.patch('/:agentId/vfs-settings', handleUpdateVfsSettings);

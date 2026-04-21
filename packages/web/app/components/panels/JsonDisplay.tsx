@@ -1,9 +1,8 @@
 'use client';
 
-import { useCallback } from 'react';
-
-import dynamic from 'next/dynamic';
 import { useTheme } from 'next-themes';
+import dynamic from 'next/dynamic';
+import { useCallback } from 'react';
 
 import { CopyJsonButton } from './CopyJsonButton';
 
@@ -65,12 +64,18 @@ export function JsonBlock({ value }: { value: Record<string, unknown> | unknown[
   );
 }
 
-export function SmallJsonBlock({ value }: { value: Record<string, unknown> | unknown[] }) {
+export function SmallJsonBlock({
+  value,
+  className = '',
+}: {
+  value: Record<string, unknown> | unknown[];
+  className?: string;
+}) {
   const { resolvedTheme } = useTheme();
   const jsonTheme = resolvedTheme === 'dark' ? 'monokai' : 'rjv-default';
   const getJson = useCallback(() => JSON.stringify(value, null, 2), [value]);
   return (
-    <div className="relative rounded bg-muted/50 p-1.5 text-[10px]">
+    <div className={`relative rounded bg-muted/50 p-1.5 text-[10px] ${className}`}>
       <CopyJsonButton getValue={getJson} />
       <ReactJson
         src={value}

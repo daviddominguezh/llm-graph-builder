@@ -16,6 +16,7 @@
   },
   "references": [
     { "path": "./packages/graph-types" },
+    { "path": "./packages/shared-validation" },
     { "path": "./packages/web" },
     { "path": "./packages/api" },
     { "path": "./packages/backend" }

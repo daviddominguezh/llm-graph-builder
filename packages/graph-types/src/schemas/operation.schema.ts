@@ -1,6 +1,16 @@
 import { z } from 'zod';
 
 import {
+  DeleteContextItemOperationSchema,
+  DeleteManySkillsOperationSchema,
+  DeleteSkillOperationSchema,
+  InsertContextItemOperationSchema,
+  InsertSkillOperationSchema,
+  ReorderContextItemsOperationSchema,
+  UpdateAgentConfigOperationSchema,
+  UpdateContextItemOperationSchema,
+} from './operation-agent-config.schema.js';
+import {
   DeleteAgentOperationSchema,
   InsertAgentOperationSchema,
   UpdateAgentOperationSchema,
@@ -52,6 +62,14 @@ export const OperationSchema = z.discriminatedUnion('type', [
   UpdateContextPresetOperationSchema,
   DeleteContextPresetOperationSchema,
   UpdateStartNodeOperationSchema,
+  UpdateAgentConfigOperationSchema,
+  InsertContextItemOperationSchema,
+  UpdateContextItemOperationSchema,
+  DeleteContextItemOperationSchema,
+  ReorderContextItemsOperationSchema,
+  InsertSkillOperationSchema,
+  DeleteSkillOperationSchema,
+  DeleteManySkillsOperationSchema,
 ]);
 
 export const OperationsBatchSchema = z.object({
@@ -89,3 +107,13 @@ export {
   DeleteOutputSchemaOperationSchema,
 } from './operation-output-schema.schema.js';
 export { UpdateStartNodeOperationSchema } from './operation-start-node.schema.js';
+export {
+  UpdateAgentConfigOperationSchema,
+  InsertContextItemOperationSchema,
+  UpdateContextItemOperationSchema,
+  DeleteContextItemOperationSchema,
+  ReorderContextItemsOperationSchema,
+  InsertSkillOperationSchema,
+  DeleteSkillOperationSchema,
+  DeleteManySkillsOperationSchema,
+} from './operation-agent-config.schema.js';

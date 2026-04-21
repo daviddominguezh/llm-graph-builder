@@ -1,6 +1,9 @@
 import type { McpTransport } from '@/app/schemas/graph.schema';
 import { z } from 'zod';
 
+import type { SimCompositionCallbacks } from './sseSimComposition';
+import { SimCompositionSchemaFields, dispatchSimCompositionEvent } from './sseSimComposition';
+
 const SSE_DATA_PREFIX = 'data: ';
 const EMPTY_LENGTH = 0;
 
@@ -130,6 +133,7 @@ export interface SimulateRequestBody {
   data: Record<string, unknown>;
   quickReplies: Record<string, string>;
   structuredOutputs?: Record<string, unknown[]>;
+  orgId?: string;
 }
 
 interface SseToolCall {
@@ -164,10 +168,12 @@ export interface NodeProcessedEvent {
   structuredOutput?: { nodeId: string; data: unknown };
 }
 
-export interface StreamCallbacks {
+export interface StreamCallbacks extends SimCompositionCallbacks {
   onNodeVisited?: (nodeId: string) => void;
   onNodeProcessed?: (event: NodeProcessedEvent) => void;
   onAgentResponse?: (event: AgentResponseEvent) => void;
+  onChildDispatched?: (event: { childExecutionId: string; childAppType: string }) => void;
+  onChildCompleted?: (event: { parentExecutionId: string; output: string; status: string }) => void;
   onError?: (message: string) => void;
   onComplete?: () => void;
 }
@@ -210,6 +216,28 @@ const SseEventSchema = z.object({
   structuredOutput: StructuredOutputSchema.optional(),
   reasoning: z.string().optional(),
   error: z.string().optional(),
+  // Agent-specific fields
+  step: z.number().optional(),
+  responseText: z.string().optional(),
+  totalSteps: z.number().optional(),
+  // Child workflow fields
+  childExecutionId: z.string().optional(),
+  childAppType: z.string().optional(),
+  parentExecutionId: z.string().optional(),
+  status: z.string().optional(),
+  // Simulation composition fields
+  ...SimCompositionSchemaFields,
+  // Child config (resolved by backend for workflow dispatch)
+  childConfig: z
+    .object({
+      systemPrompt: z.string(),
+      context: z.string(),
+      modelId: z.string(),
+      maxSteps: z.number().nullable(),
+    })
+    .optional(),
+  // Dispatch params passthrough
+  params: z.record(z.string(), z.unknown()).optional(),
 });
 
 type SseEvent = z.infer<typeof SseEventSchema>;
@@ -249,13 +277,60 @@ function handleAgentResponse(event: SseEvent, callbacks: StreamCallbacks): void 
   }
 }
 
+function handleStepStarted(event: SseEvent, callbacks: StreamCallbacks): void {
+  if (event.step !== undefined) {
+    callbacks.onNodeVisited?.(`step-${String(event.step)}`);
+  }
+}
+
+function handleStepProcessed(event: SseEvent, callbacks: StreamCallbacks): void {
+  if (event.step !== undefined) {
+    callbacks.onNodeProcessed?.({
+      nodeId: `step-${String(event.step)}`,
+      text: event.responseText ?? '',
+      output: undefined,
+      toolCalls: event.toolCalls ?? [],
+      tokens: event.tokens ?? { input: 0, output: 0, cached: 0 },
+      durationMs: event.durationMs,
+    });
+  }
+}
+
+function handleChildDispatched(event: SseEvent, callbacks: StreamCallbacks): void {
+  if (event.childExecutionId !== undefined && event.childAppType !== undefined) {
+    callbacks.onChildDispatched?.({
+      childExecutionId: event.childExecutionId,
+      childAppType: event.childAppType,
+    });
+  }
+}
+
+function handleChildCompleted(event: SseEvent, callbacks: StreamCallbacks): void {
+  if (event.parentExecutionId !== undefined && event.text !== undefined && event.status !== undefined) {
+    callbacks.onChildCompleted?.({
+      parentExecutionId: event.parentExecutionId,
+      output: event.text,
+      status: event.status,
+    });
+  }
+}
+
 function dispatchSseEvent(event: SseEvent, callbacks: StreamCallbacks): void {
+  if (dispatchSimCompositionEvent(event, callbacks)) return;
   if (event.type === 'node_visited') {
     handleNodeVisited(event, callbacks);
   } else if (event.type === 'node_processed') {
     handleNodeProcessed(event, callbacks);
+  } else if (event.type === 'step_started') {
+    handleStepStarted(event, callbacks);
+  } else if (event.type === 'step_processed') {
+    handleStepProcessed(event, callbacks);
   } else if (event.type === 'agent_response') {
     handleAgentResponse(event, callbacks);
+  } else if (event.type === 'child_dispatched') {
+    handleChildDispatched(event, callbacks);
+  } else if (event.type === 'child_completed') {
+    handleChildCompleted(event, callbacks);
   } else if (event.type === 'error' && event.message !== undefined) {
     callbacks.onError?.(event.message);
   } else if (event.type === 'simulation_complete') {
@@ -269,6 +344,13 @@ function parseSseLine(line: string, callbacks: StreamCallbacks): void {
   const result = SseEventSchema.safeParse(raw);
   if (result.success) {
     dispatchSseEvent(result.data, callbacks);
+  } else {
+    console.warn(
+      '[sse:parse] failed to parse event:',
+      result.error.message,
+      'raw:',
+      JSON.stringify(raw).slice(0, 200)
+    );
   }
 }
 
@@ -308,7 +390,7 @@ async function readNextChunk(state: StreamReaderState): Promise<void> {
   await readNextChunk({ ...state, buffer: remaining });
 }
 
-async function readSseStream(
+export async function readSseStream(
   reader: ReadableStreamDefaultReader<Uint8Array>,
   callbacks: StreamCallbacks
 ): Promise<void> {

@@ -1,59 +1,46 @@
 'use client';
 
+import { useTemplatesPrefetch } from '@/app/hooks/useTemplatesPrefetch';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Bot, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-import { CreateAgentDialog } from './CreateAgentDialog';
+import { CreateAgentWizard } from './CreateAgentWizard';
 
 interface AgentEmptyStateProps {
   orgId: string;
   orgSlug: string;
 }
 
-function NodeIllustration() {
-  return (
-    <svg
-      width="80"
-      height="80"
-      viewBox="0 0 80 80"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="text-muted-foreground/40"
-    >
-      <rect
-        x="12"
-        y="12"
-        width="56"
-        height="56"
-        rx="12"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeDasharray="6 4"
-      />
-      <line x1="40" y1="30" x2="40" y2="50" stroke="currentColor" strokeWidth="1.5" className="text-primary" />
-      <line x1="30" y1="40" x2="50" y2="40" stroke="currentColor" strokeWidth="1.5" className="text-primary" />
-    </svg>
-  );
-}
-
 export function AgentEmptyState({ orgId, orgSlug }: AgentEmptyStateProps) {
   const t = useTranslations('agents');
   const [createOpen, setCreateOpen] = useState(false);
 
+  useEffect(() => {
+    const id = setTimeout(() => setCreateOpen(true), 300);
+    return () => clearTimeout(id);
+  }, []);
+  const prefetchedTemplates = useTemplatesPrefetch();
+
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-4">
-      <NodeIllustration />
-      <div className="flex flex-col items-center gap-1">
-        <h2 className="text-lg font-medium text-foreground">{t('createFirst')}</h2>
-        <p className="max-w-xs text-center text-sm text-muted-foreground">{t('createFirstDescription')}</p>
+    <div className="flex w-full h-full items-center justify-center bg-background">
+      <div className="flex w-full max-w-3xl flex-col items-center gap-2 rounded-md border border-dashed bg-background px-4 py-8 text-center">
+        <Bot className="size-6 text-muted-foreground/50" />
+        <p className="text-sm font-medium">{t('createFirst')}</p>
+        <p className="text-xs text-muted-foreground max-w-xs">{t('createFirstDescription')}</p>
+        <Button variant="outline" size="sm" className="mt-2" onClick={() => setCreateOpen(true)}>
+          <Plus className="size-3.5" />
+          {t('create')}
+        </Button>
       </div>
-      <Button onClick={() => setCreateOpen(true)}>
-        <Plus data-icon="inline-start" />
-        {t('create')}
-      </Button>
-      <CreateAgentDialog open={createOpen} onOpenChange={setCreateOpen} orgId={orgId} orgSlug={orgSlug} />
+      <CreateAgentWizard
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        orgId={orgId}
+        orgSlug={orgSlug}
+        prefetchedTemplates={prefetchedTemplates}
+      />
     </div>
   );
 }

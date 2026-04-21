@@ -5,20 +5,24 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Check, Copy, Loader2 } from 'lucide-react';
+import { ChevronDown, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { toast } from 'sonner';
 
-const FEEDBACK_DURATION = 1500;
+import { DirectLinkDisplay } from './DirectLinkDisplay';
+import { EmbedSnippetDisplay } from './EmbedSnippetDisplay';
+import { CopyButton } from './PublishButtonShared';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 interface PublishButtonProps {
   agentId: string;
   agentSlug: string;
+  tenantSlug: string;
   version: number;
   canPublish: boolean;
   hasApiKey: boolean;
@@ -39,33 +43,6 @@ function buildCurlCommand(agentSlug: string, version: number): string {
         "text": "Hello"
     }
 }'`;
-}
-
-function CopyButton({ text, disabled }: { text: string; disabled?: boolean }) {
-  const t = useTranslations('common');
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = useCallback(async () => {
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), FEEDBACK_DURATION);
-  }, [text]);
-
-  const Icon = copied ? Check : Copy;
-  const label = copied ? t('copied') : t('copyCurl');
-
-  return (
-    <Button
-      variant="ghost"
-      size="icon-sm"
-      onClick={handleCopy}
-      disabled={disabled}
-      aria-label={label}
-      title={label}
-    >
-      <Icon className="size-3.5" />
-    </Button>
-  );
 }
 
 interface CurlDisplayProps {
@@ -96,6 +73,8 @@ function CurlHighlighter({ curl, publishing }: { curl: string; publishing: boole
           padding: '0.625rem',
           wordBreak: 'break-all',
           whiteSpace: 'pre-wrap',
+          maxHeight: '145px',
+          overflowY: 'auto',
           opacity: publishing ? 0.4 : 1,
           transition: 'opacity 150ms',
         }}
@@ -136,7 +115,7 @@ function PublishStatus({ version }: { version: number }) {
       >
         {isPublished ? (
           <>
-            <span className="text-[10px] text-muted-foreground rounded-full border px-1.5 font-mono mr-1.5 bg-background">
+            <span className="text-[10px] text-muted-foreground rounded-full px-1.5 font-mono mr-1.5 bg-input dark:bg-input/70">
               v{version}
             </span>
             <Separator orientation="vertical" />
@@ -160,12 +139,13 @@ function PublishStatus({ version }: { version: number }) {
 
 interface PopoverBodyProps {
   agentSlug: string;
+  tenantSlug: string;
   version: number;
   publishing: boolean;
   onPublish: () => void;
 }
 
-function PopoverBody({ agentSlug, version, publishing, onPublish }: PopoverBodyProps) {
+function PopoverBody({ agentSlug, tenantSlug, version, publishing, onPublish }: PopoverBodyProps) {
   const t = useTranslations('editor');
   const showCurl = version > 0 || publishing;
   const curlVersion = version > 0 ? version : version + 1;
@@ -174,6 +154,12 @@ function PopoverBody({ agentSlug, version, publishing, onPublish }: PopoverBodyP
     <div className="flex flex-col gap-3 p-0.5">
       <PublishStatus version={version} />
       <Separator />
+      {showCurl && (
+        <DirectLinkDisplay tenantSlug={tenantSlug} agentSlug={agentSlug} disabled={publishing} />
+      )}
+      {showCurl && (
+        <EmbedSnippetDisplay tenantSlug={tenantSlug} agentSlug={agentSlug} disabled={publishing} />
+      )}
       {showCurl && <CurlDisplay agentSlug={agentSlug} version={curlVersion} publishing={publishing} />}
       <Button variant="default" size="sm" className="w-full" onClick={onPublish} disabled={publishing}>
         {t('publish')} v{version + 1}
@@ -187,7 +173,7 @@ function DisabledPublishButton() {
   const tKeys = useTranslations('apiKeys');
 
   const button = (
-    <Button variant="default" size="sm" disabled className="h-10 gap-1.5 px-3 rounded-md">
+    <Button variant="default" size="lg" disabled className="gap-1.5 px-3 rounded-full">
       {t('publish')}
     </Button>
   );
@@ -201,7 +187,7 @@ function DisabledPublishButton() {
 }
 
 export function PublishButton(props: PublishButtonProps) {
-  const { agentId, agentSlug, version, canPublish, hasApiKey, flush, onPublished } = props;
+  const { agentId, agentSlug, tenantSlug, version, canPublish, hasApiKey, flush, onPublished } = props;
   const t = useTranslations('editor');
   const [publishing, setPublishing] = useState(false);
   const [open, setOpen] = useState(false);
@@ -228,13 +214,15 @@ export function PublishButton(props: PublishButtonProps) {
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger
-        render={<Button variant="default" size="sm" className="h-10 gap-1.5 px-3 rounded-md" />}
+        render={<Button variant="default" size="lg" className="gap-1.5 px-3 rounded-full pr-2" />}
       >
         {t('publish')}
+        <ChevronDown className='size-4' />
       </PopoverTrigger>
       <PopoverContent side="bottom" align="end" sideOffset={8} className="w-96">
         <PopoverBody
           agentSlug={agentSlug}
+          tenantSlug={tenantSlug}
           version={version}
           publishing={publishing}
           onPublish={handlePublish}

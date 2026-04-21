@@ -3,17 +3,25 @@
 import type {
   AgentSummaryRow,
   DashboardParams,
+  ExecutionMessageRow,
   ExecutionSummaryRow,
   NodeVisitRow,
   SessionRow,
+  TenantExecutionRow,
+  TenantSummaryRow,
+  TimeSeriesPoint,
 } from '@/app/lib/dashboard';
 import {
   deleteSession as deleteSessionLib,
   getAgentSummary as getAgentSummaryLib,
+  getDashboardTimeSeries as getDashboardTimeSeriesLib,
+  getExecutionsByTenant as getExecutionsByTenantLib,
   getExecutionsForSession as getExecutionsForSessionLib,
+  getMessagesForExecution as getMessagesForExecutionLib,
   getNodeVisitsForExecution as getNodeVisitsForExecutionLib,
   getSessionDetail as getSessionDetailLib,
   getSessionsByAgent as getSessionsByAgentLib,
+  getTenantSummary as getTenantSummaryLib,
 } from '@/app/lib/dashboard';
 import { serverError, serverLog } from '@/app/lib/serverLogger';
 
@@ -75,5 +83,44 @@ export async function fetchNodeVisitsForExecution(
   serverLog('[fetchNodeVisitsForExecution] executionId:', executionId);
   const res = await getNodeVisitsForExecutionLib(executionId);
   if (res.error !== null) serverError('[fetchNodeVisitsForExecution] error:', res.error);
+  return res;
+}
+
+export async function fetchMessagesForExecution(
+  executionId: string
+): Promise<{ rows: ExecutionMessageRow[]; error: string | null }> {
+  serverLog('[fetchMessagesForExecution] executionId:', executionId);
+  const res = await getMessagesForExecutionLib(executionId);
+  if (res.error !== null) serverError('[fetchMessagesForExecution] error:', res.error);
+  return res;
+}
+
+export async function fetchTenantSummary(
+  orgId: string,
+  params: DashboardParams
+): Promise<PaginatedResult<TenantSummaryRow>> {
+  serverLog('[fetchTenantSummary] orgId:', orgId);
+  const res = await getTenantSummaryLib(orgId, params);
+  if (res.error !== null) serverError('[fetchTenantSummary] error:', res.error);
+  return res;
+}
+
+export async function fetchExecutionsByTenant(
+  orgId: string,
+  tenantId: string,
+  params: DashboardParams
+): Promise<PaginatedResult<TenantExecutionRow>> {
+  serverLog('[fetchExecutionsByTenant] orgId:', orgId, 'tenantId:', tenantId);
+  const res = await getExecutionsByTenantLib(orgId, tenantId, params);
+  if (res.error !== null) serverError('[fetchExecutionsByTenant] error:', res.error);
+  return res;
+}
+
+export async function fetchDashboardTimeSeries(
+  orgId: string
+): Promise<{ rows: TimeSeriesPoint[]; error: string | null }> {
+  serverLog('[fetchDashboardTimeSeries] orgId:', orgId);
+  const res = await getDashboardTimeSeriesLib(orgId);
+  if (res.error !== null) serverError('[fetchDashboardTimeSeries] error:', res.error);
   return res;
 }

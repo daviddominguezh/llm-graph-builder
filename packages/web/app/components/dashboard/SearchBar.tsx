@@ -21,6 +21,12 @@ export function SearchBar({ value, onChange }: SearchBarProps) {
     setLocalValue(value);
   }, [value]);
 
+  useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
+    };
+  }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const next = e.target.value;
     setLocalValue(next);
@@ -29,7 +35,7 @@ export function SearchBar({ value, onChange }: SearchBarProps) {
   };
 
   return (
-    <InputGroup className="w-64">
+    <InputGroup className="w-64 border-transparent bg-card">
       <InputGroupAddon>
         <Search className="size-3.5 text-muted-foreground" />
       </InputGroupAddon>

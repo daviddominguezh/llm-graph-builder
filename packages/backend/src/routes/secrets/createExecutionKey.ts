@@ -9,27 +9,48 @@ import {
   HTTP_OK,
   extractErrorMessage,
 } from '../routeHelpers.js';
-import { parseNullableStringField, parseStringArrayField, parseStringField } from './secretsHelpers.js';
+import {
+  parseBooleanField,
+  parseNullableStringField,
+  parseStringArrayField,
+  parseStringField,
+} from './secretsHelpers.js';
+
+const EMPTY_LENGTH = 0;
+
+interface ParsedInput {
+  orgId: string;
+  name: string;
+  allAgents: boolean;
+  agentIds: string[];
+  expiresAt: string | null;
+}
+
+function parseCreateInput(body: unknown): ParsedInput | null {
+  const orgId = parseStringField(body, 'orgId');
+  const name = parseStringField(body, 'name');
+  if (orgId === undefined || name === undefined) return null;
+
+  const allAgents = parseBooleanField(body, 'allAgents') ?? false;
+  const agentIds = parseStringArrayField(body, 'agentIds') ?? [];
+  const expiresAt = parseNullableStringField(body, 'expiresAt') ?? null;
+
+  if (!allAgents && agentIds.length === EMPTY_LENGTH) return null;
+
+  return { orgId, name, allAgents, agentIds, expiresAt };
+}
 
 export async function handleCreateExecutionKey(req: Request, res: AuthenticatedResponse): Promise<void> {
   const { supabase }: AuthenticatedLocals = res.locals;
-  const orgId = parseStringField(req.body, 'orgId');
-  const name = parseStringField(req.body, 'name');
-  const agentIds = parseStringArrayField(req.body, 'agentIds');
-  const expiresAt = parseNullableStringField(req.body, 'expiresAt');
+  const input = parseCreateInput(req.body);
 
-  if (orgId === undefined || name === undefined || agentIds === undefined) {
-    res.status(HTTP_BAD_REQUEST).json({ error: 'orgId, name, and agentIds are required' });
+  if (input === null) {
+    res.status(HTTP_BAD_REQUEST).json({ error: 'orgId, name, and agentIds (or allAgents) are required' });
     return;
   }
 
   try {
-    const { result, error } = await createExecutionKey(supabase, {
-      orgId,
-      name,
-      agentIds,
-      expiresAt: expiresAt ?? null,
-    });
+    const { result, error } = await createExecutionKey(supabase, input);
 
     if (error !== null || result === null) {
       res.status(HTTP_INTERNAL_ERROR).json({ error: error ?? 'Failed to create execution key' });

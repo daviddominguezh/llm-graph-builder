@@ -1,0 +1,1 @@
+export { MessageRepository } from './MessageRepository';

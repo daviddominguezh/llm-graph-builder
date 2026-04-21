@@ -4,6 +4,7 @@ import { createExecutionKeyAction } from '@/app/actions/executionKeys';
 import type { AgentMetadata } from '@/app/lib/agents';
 import type { ExecutionKeyRow } from '@/app/lib/executionKeys';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Combobox,
   ComboboxChip,
@@ -18,8 +19,9 @@ import {
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { LoaderCircle, TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type FormEvent, useMemo, useState } from 'react';
+import { type FormEvent, useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 interface AgentOption {
@@ -44,9 +46,14 @@ function buildAgentOptions(agents: AgentMetadata[]): AgentOption[] {
   return agents.map((a) => ({ value: a.id, label: a.name }));
 }
 
-function validateForm(name: string, selectedIds: string[], t: (key: string) => string): FormErrors | null {
+function validateForm(
+  name: string,
+  allAgents: boolean,
+  selectedIds: string[],
+  t: (key: string) => string
+): FormErrors | null {
   const nameError = name === '' ? t('nameRequired') : '';
-  const agentsError = selectedIds.length === 0 ? t('agentsRequired') : '';
+  const agentsError = !allAgents && selectedIds.length === 0 ? t('agentsRequired') : '';
 
   if (nameError !== '' || agentsError !== '') {
     return { nameError, agentsError };
@@ -81,7 +88,7 @@ function AgentMultiSelect({
 
   return (
     <div className="flex flex-col gap-1">
-      <Label>{t('agents')}</Label>
+      <Label htmlFor="exec-key-agents">{t('agents')}</Label>
       <p className="text-muted-foreground text-xs">{t('agentsDescription')}</p>
       <Combobox
         multiple
@@ -93,7 +100,7 @@ function AgentMultiSelect({
       >
         <ComboboxChips ref={anchor}>
           <AgentChipsList selected={selected} />
-          <ComboboxChipsInput placeholder={t('agentsPlaceholder')} />
+          <ComboboxChipsInput id="exec-key-agents" placeholder={t('agentsPlaceholder')} />
         </ComboboxChips>
         <ComboboxContent anchor={anchor}>
           <ComboboxEmpty>{t('agentsPlaceholder')}</ComboboxEmpty>
@@ -117,7 +124,7 @@ function NameField({ error }: { error: string }) {
   return (
     <div className="flex flex-col gap-1">
       <Label htmlFor="exec-key-name">{t('name')}</Label>
-      <Input id="exec-key-name" name="name" placeholder={t('namePlaceholder')} required />
+      <Input id="exec-key-name" name="name" placeholder={t('namePlaceholder')} required autoFocus />
       {error !== '' && <p className="text-destructive text-xs">{error}</p>}
     </div>
   );
@@ -137,6 +144,7 @@ function ExpirationField() {
 
 function useCreateKeyForm(
   orgId: string,
+  allAgents: boolean,
   selectedAgents: AgentOption[],
   onCreated: CreateExecutionKeyDialogProps['onCreated']
 ) {
@@ -151,7 +159,7 @@ function useCreateKeyForm(
     const expiresAt = (formData.get('expiresAt') as string) || null;
     const selectedIds = selectedAgents.map((a) => a.value);
 
-    const validationErrors = validateForm(name, selectedIds, t);
+    const validationErrors = validateForm(name, allAgents, selectedIds, t);
     if (validationErrors !== null) {
       setErrors(validationErrors);
       return;
@@ -160,7 +168,7 @@ function useCreateKeyForm(
     setLoading(true);
     setErrors({ nameError: '', agentsError: '' });
 
-    const { result, error } = await createExecutionKeyAction(orgId, name, selectedIds, expiresAt);
+    const { result, error } = await createExecutionKeyAction(orgId, name, allAgents, selectedIds, expiresAt);
     setLoading(false);
 
     if (error !== null || result === null) {
@@ -171,7 +179,47 @@ function useCreateKeyForm(
     onCreated(result);
   }
 
-  return { loading, errors, handleSubmit };
+  function resetErrors() {
+    setErrors({ nameError: '', agentsError: '' });
+  }
+
+  return { loading, errors, handleSubmit, resetErrors };
+}
+
+function AllAgentsWarning() {
+  const t = useTranslations('executionKeys');
+
+  return (
+    <div className="flex items-start gap-2 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+      <TriangleAlert className="size-3.5 shrink-0 mt-0.5" />
+      <p>{t('allAgentsWarning')}</p>
+    </div>
+  );
+}
+
+function AllAgentsToggle({
+  checked,
+  onCheckedChange,
+}: {
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}) {
+  const t = useTranslations('executionKeys');
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center gap-2">
+        <Checkbox
+          id="exec-key-all-agents"
+          checked={checked}
+          onCheckedChange={(val) => onCheckedChange(val === true)}
+        />
+        <Label htmlFor="exec-key-all-agents">{t('allAgents')}</Label>
+      </div>
+      <p className="text-muted-foreground text-xs">{t('allAgentsDescription')}</p>
+      {checked && <AllAgentsWarning />}
+    </div>
+  );
 }
 
 export function CreateExecutionKeyDialog({
@@ -183,27 +231,44 @@ export function CreateExecutionKeyDialog({
 }: CreateExecutionKeyDialogProps) {
   const t = useTranslations('executionKeys');
   const options = useMemo(() => buildAgentOptions(agents), [agents]);
+  const [allAgents, setAllAgents] = useState(true);
   const [selectedAgents, setSelectedAgents] = useState<AgentOption[]>([]);
-  const { loading, errors, handleSubmit } = useCreateKeyForm(orgId, selectedAgents, onCreated);
+  const { loading, errors, handleSubmit, resetErrors } = useCreateKeyForm(orgId, allAgents, selectedAgents, onCreated);
+
+  const handleOpenChange = useCallback(
+    (next: boolean) => {
+      if (next) {
+        setAllAgents(true);
+        setSelectedAgents([]);
+        resetErrors();
+      }
+      onOpenChange(next);
+    },
+    [onOpenChange, resetErrors]
+  );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('add')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <NameField error={errors.nameError} />
-          <AgentMultiSelect
-            options={options}
-            selected={selectedAgents}
-            onSelectedChange={setSelectedAgents}
-            error={errors.agentsError}
-          />
+          <AllAgentsToggle checked={allAgents} onCheckedChange={setAllAgents} />
+          {!allAgents && (
+            <AgentMultiSelect
+              options={options}
+              selected={selectedAgents}
+              onSelectedChange={setSelectedAgents}
+              error={errors.agentsError}
+            />
+          )}
           <ExpirationField />
           <DialogFooter>
             <Button type="submit" disabled={loading}>
-              {t('add')}
+              {loading && <LoaderCircle className="size-4 animate-spin" />}
+              {loading ? t('creating') : t('add')}
             </Button>
           </DialogFooter>
         </form>

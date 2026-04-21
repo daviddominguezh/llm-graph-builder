@@ -76,7 +76,7 @@ function PromptContent({ state }: { state: PromptState }) {
         <TabsTrigger value="plain">Plain text</TabsTrigger>
       </TabsList>
       <TabsContent value="markdown" className="min-h-0 overflow-y-auto rounded-md border p-3 text-xs">
-        <div className="markdown-content whitespace-break-spaces">
+        <div className="markdown-content">
           <MarkdownHooks remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeStarryNight]}>
             {state.text}
           </MarkdownHooks>

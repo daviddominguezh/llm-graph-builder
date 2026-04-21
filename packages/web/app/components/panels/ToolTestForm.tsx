@@ -20,6 +20,7 @@ interface SchemaProperty {
   type?: string;
   description?: string;
   enum?: string[];
+  items?: { type?: string };
 }
 
 interface ToolSchema {
@@ -60,6 +61,10 @@ function canRun(schema: ToolSchema | undefined, values: FieldValues, jsonErrors:
   return true;
 }
 
+function isStringArray(prop: SchemaProperty): boolean {
+  return prop.type === 'array' && prop.items?.type === 'string';
+}
+
 function buildArgs(schema: ToolSchema | undefined, values: FieldValues): Record<string, unknown> {
   if (schema?.properties === undefined) return {};
   const args: Record<string, unknown> = {};
@@ -70,6 +75,8 @@ function buildArgs(schema: ToolSchema | undefined, values: FieldValues): Record<
       args[name] = val;
     } else if (prop.type === 'number' || prop.type === 'integer') {
       args[name] = Number(val);
+    } else if (isStringArray(prop)) {
+      args[name] = (val as string).split('\n').filter((line) => line.trim() !== '');
     } else if (prop.type === 'array' || prop.type === 'object') {
       args[name] = JSON.parse(val as string) as unknown;
     } else {
@@ -138,6 +145,17 @@ function BooleanField({ name, value, onChange }: FieldInputProps) {
   );
 }
 
+function StringArrayField({ name, prop, value, onChange }: FieldInputProps) {
+  return (
+    <Textarea
+      value={(value as string) ?? ''}
+      onChange={(e) => onChange(name, e.target.value)}
+      placeholder={prop.description ?? 'One item per line'}
+      className="min-h-16 text-xs"
+    />
+  );
+}
+
 function JsonField({ name, value, onChange, jsonError, onJsonBlur }: FieldInputProps) {
   const t = useTranslations('toolTest');
   return (
@@ -161,6 +179,7 @@ function FieldWidget(props: FieldInputProps) {
   if (prop.enum !== undefined && prop.enum.length > 0) return <EnumField {...props} />;
   if (prop.type === 'number' || prop.type === 'integer') return <NumberField {...props} />;
   if (prop.type === 'boolean') return <BooleanField {...props} />;
+  if (isStringArray(prop)) return <StringArrayField {...props} />;
   if (prop.type === 'array' || prop.type === 'object') return <JsonField {...props} />;
   return <StringField {...props} />;
 }
@@ -212,13 +231,13 @@ function OptionalSection({ children }: { children: React.ReactNode }) {
       <Button
         variant="ghost"
         type="button"
-        className="h-auto justify-start gap-1 p-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+        className="h-auto justify-start gap-1 px-0 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground rounded-sm px-0 hover:bg-transparent dark:hover:bg-transparent"
         onClick={() => setOpen((prev) => !prev)}
       >
         {open ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
         {t('optional')}
       </Button>
-      {open && <div className="flex flex-col gap-4 animate-in fade-in-0 slide-in-from-top-1 duration-200">{children}</div>}
+      {open && <div className="flex flex-col gap-4 animate-in fade-in-0 slide-in-from-top-1 duration-200 pl-3 border-l-2 border-input ml-1">{children}</div>}
     </div>
   );
 }

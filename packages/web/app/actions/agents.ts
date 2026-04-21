@@ -1,6 +1,6 @@
 'use server';
 
-import type { AgentRow } from '@/app/lib/agents';
+import type { AgentRow, CreateAgentParams } from '@/app/lib/agents';
 import {
   createAgent as createAgentLib,
   deleteAgent as deleteAgentLib,
@@ -11,12 +11,10 @@ import { serverError, serverLog } from '@/app/lib/serverLogger';
 import { revalidatePath } from 'next/cache';
 
 export async function createAgentAction(
-  orgId: string,
-  name: string,
-  description: string
+  params: CreateAgentParams
 ): Promise<{ agent: AgentRow | null; error: string | null }> {
-  serverLog('[createAgentAction] orgId:', orgId, 'name:', name);
-  const res = await createAgentLib(orgId, name, description);
+  serverLog('[createAgentAction] orgId:', params.orgId, 'name:', params.name);
+  const res = await createAgentLib(params);
   if (res.error === null) {
     serverLog('[createAgentAction] created agent:', res.agent?.slug);
     revalidatePath('/orgs/[slug]', 'layout');

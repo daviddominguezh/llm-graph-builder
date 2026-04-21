@@ -1,13 +1,63 @@
 import type { CallAgentOutput, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
-import { executeWithCallbacks } from '@daviddh/llm-graph-runner';
+import { executeWithCallbacks, injectSystemTools } from '@daviddh/llm-graph-runner';
 import type { Request, Response } from 'express';
+import { randomUUID } from 'node:crypto';
 
+import { createServiceClient } from '../db/queries/executionAuthQueries.js';
 import { consoleLogger } from '../logger.js';
 import { type McpSession, closeMcpSession, createMcpSession } from '../mcp/lifecycle.js';
 import type { SimulateRequest } from '../types.js';
 import { buildContext, setSseHeaders, sumTokens, writeSSE } from './simulate.js';
+import { resolveChildConfig } from './simulateChildResolver.js';
 
 const EMPTY_SESSION: McpSession = { clients: [], tools: {} };
+const CHILD_DEPTH = 1;
+const ROOT_DEPTH = 0;
+
+function extractTaskFromParams(params: Record<string, unknown>): string {
+  const raw = params.task ?? params.user_said ?? '';
+  return typeof raw === 'string' ? raw : JSON.stringify(raw);
+}
+
+function findDispatchToolCallId(result: CallAgentOutput, dispatchType: string): string {
+  const match = result.toolCalls.find((tc) => tc.toolName === dispatchType);
+  return match?.toolCallId ?? randomUUID();
+}
+
+async function emitChildDispatched(res: Response, result: CallAgentOutput, orgId: string): Promise<void> {
+  const { dispatchResult: dispatch } = result;
+  if (dispatch === undefined) return;
+  const task = extractTaskFromParams(dispatch.params);
+  const parentToolCallId = findDispatchToolCallId(result, dispatch.type);
+  const supabase = createServiceClient();
+  try {
+    const childConfig = await resolveChildConfig({
+      supabase,
+      dispatchType: dispatch.type,
+      params: dispatch.params,
+      orgId,
+    });
+    writeSSE(res, {
+      type: 'child_dispatched',
+      depth: CHILD_DEPTH,
+      parentDepth: ROOT_DEPTH,
+      dispatchType: dispatch.type,
+      task,
+      parentToolCallId,
+      toolName: dispatch.type,
+      params: dispatch.params,
+      childConfig: {
+        systemPrompt: childConfig.systemPrompt,
+        context: childConfig.context,
+        modelId: childConfig.modelId,
+        maxSteps: childConfig.maxSteps,
+      },
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Failed to resolve child config';
+    writeSSE(res, { type: 'error', message: msg });
+  }
+}
 
 function sendNodeVisited(res: Response, nodeId: string): void {
   writeSSE(res, { type: 'node_visited', nodeId });
@@ -70,11 +120,12 @@ function sendError(res: Response, err: unknown): void {
 
 async function runSimulation(body: SimulateRequest, session: McpSession, res: Response): Promise<void> {
   const context = buildContext(body);
+  const tools = injectSystemTools({ existingTools: session.tools, isChildAgent: false });
   const result = await executeWithCallbacks({
     context,
     messages: body.messages,
     currentNode: body.currentNode,
-    toolsOverride: session.tools,
+    toolsOverride: tools,
     logger: consoleLogger,
     structuredOutputs: body.structuredOutputs,
     onNodeVisited: (nodeId: string) => {
@@ -85,6 +136,9 @@ async function runSimulation(body: SimulateRequest, session: McpSession, res: Re
     },
   });
   if (result !== null) {
+    if (result.dispatchResult !== undefined) {
+      await emitChildDispatched(res, result, body.orgId ?? '');
+    }
     sendAgentResponse(res, result);
   }
 }
@@ -93,6 +147,7 @@ export async function handleSimulate(
   req: Request<Record<string, string>, unknown, SimulateRequest>,
   res: Response
 ): Promise<void> {
+  process.stdout.write(`[simulate] workflow request received, currentNode=${req.body.currentNode}\n`);
   const { body } = req;
   const mcpServers = body.graph.mcpServers ?? [];
   setSseHeaders(res);
@@ -101,7 +156,10 @@ export async function handleSimulate(
     session = await createMcpSession(mcpServers);
     await runSimulation(body, session, res);
     writeSSE(res, { type: 'simulation_complete' });
+    process.stdout.write('[simulate] workflow completed\n');
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    process.stdout.write(`[simulate] workflow error: ${msg}\n`);
     sendError(res, err);
   } finally {
     await closeMcpSession(session);

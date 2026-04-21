@@ -19,19 +19,28 @@ import {
 import { buildResolvedFieldsPrompt } from './referenceResolver.js';
 import { buildStructuredOutputOptions, hasOutputSchema } from './structuredOutputOptions.js';
 
+const buildTerminalBasePrompt = (description: string): string => {
+  const base = 'This is a terminal node. You must generate a final message to the user.';
+  if (description.trim() === '') return base;
+  return `${base}\n\n## Node description\n\n${description}`;
+};
+
 const createTerminalNodeOptions = (
   node: ReturnType<typeof getNode>,
   nodes: Record<string, string>
-): SMNextOptions => ({
-  node,
-  edges: [],
-  prompt: 'This is a terminal node. You must generate a final message to the user.',
-  promptWithoutToolPreconditions: 'This is a terminal node. You must generate a final message to the user.',
-  toolsByEdge: {},
-  kind: 'user_reply' as const,
-  nodes,
-  isTerminal: true,
-});
+): SMNextOptions => {
+  const prompt = buildTerminalBasePrompt(node.description);
+  return {
+    node,
+    edges: [],
+    prompt,
+    promptWithoutToolPreconditions: prompt,
+    toolsByEdge: {},
+    kind: 'user_reply' as const,
+    nodes,
+    isTerminal: true,
+  };
+};
 
 interface BuildToolCallOptionsParams {
   node: ReturnType<typeof getNode>;

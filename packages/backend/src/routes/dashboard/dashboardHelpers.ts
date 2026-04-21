@@ -28,6 +28,10 @@ interface SessionIdParams {
   sessionId?: string;
 }
 
+interface TenantIdParams {
+  tenantId?: string;
+}
+
 interface ExecutionIdParams {
   executionId?: string;
 }
@@ -47,6 +51,12 @@ export function getAgentIdParam(req: Request): string | undefined {
 export function getSessionIdParam(req: Request): string | undefined {
   const { sessionId }: SessionIdParams = req.params;
   if (typeof sessionId === 'string' && sessionId !== '') return sessionId;
+  return undefined;
+}
+
+export function getTenantIdParam(req: Request): string | undefined {
+  const { tenantId }: TenantIdParams = req.params;
+  if (typeof tenantId === 'string' && tenantId !== '') return tenantId;
   return undefined;
 }
 
@@ -77,7 +87,16 @@ function parseSortDirection(val: unknown): 'asc' | 'desc' {
 
 function parseFilters(req: Request): Record<string, string> | undefined {
   const filters: Record<string, string> = {};
-  const filterKeys = ['tenant_id', 'user_id', 'channel', 'model'];
+  const filterKeys = [
+    'tenant_id',
+    'tenant_name',
+    'user_id',
+    'channel',
+    'model',
+    'status',
+    'session_id',
+    'version',
+  ];
   let hasFilters = false;
 
   for (const key of filterKeys) {

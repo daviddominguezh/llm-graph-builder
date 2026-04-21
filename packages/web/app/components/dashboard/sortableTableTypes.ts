@@ -16,6 +16,8 @@ export interface SortableTableProps<T extends Record<string, unknown>> {
   sortDirection: 'asc' | 'desc';
   onSort: (key: string) => void;
   page: number;
+  pageSize: number;
+  totalCount: number;
   totalPages: number;
   onPageChange: (page: number) => void;
   onRowClick?: (row: T) => void;

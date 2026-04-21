@@ -1,6 +1,9 @@
 import type { RuntimeGraph } from '@daviddh/graph-types';
 import type { CallAgentOutput, Message, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
 
+import { handleStepProcessed } from './edgeFunctionAgentEvents.js';
+import { buildResultFromResponse, mapRawToolCalls } from './edgeFunctionOutputParsers.js';
+import type { NodeProcessedData, VfsEdgeFunctionPayload } from './executeSharedTypes.js';
 import {
   type SseEvent,
   extractLineEvents,
@@ -10,10 +13,12 @@ import {
   toOptStr,
   toRecord,
   toStr,
-  toStringArray,
 } from './sseHelpers.js';
 
+export type { NodeProcessedData, VfsEdgeFunctionPayload } from './executeSharedTypes.js';
+
 export interface ExecuteAgentParams {
+  appType?: 'workflow' | 'agent';
   graph: RuntimeGraph;
   apiKey: string;
   modelId: string;
@@ -26,6 +31,13 @@ export interface ExecuteAgentParams {
   tenantID: string;
   userID: string;
   isFirstMessage: boolean;
+  vfs?: VfsEdgeFunctionPayload;
+  // Agent-specific fields (used when appType === 'agent')
+  systemPrompt?: string;
+  context?: string;
+  maxSteps?: number | null;
+  isChildAgent?: boolean;
+  conversationId?: string;
 }
 
 export interface ExecuteAgentCallbacks {
@@ -115,97 +127,6 @@ function processNodeProcessed(event: SseEvent, callbacks: ExecuteAgentCallbacks)
   });
 }
 
-/* ─── Agent output parsers ─── */
-
-interface ToolCallData {
-  name: string;
-  args: unknown;
-  result: unknown;
-}
-
-export interface NodeProcessedData {
-  nodeId: string;
-  text: string;
-  toolCalls: ToolCallData[];
-  durationMs: number;
-  error?: string;
-}
-
-function mapRawToolCalls(raw: unknown): ToolCallData[] {
-  if (!Array.isArray(raw)) return [];
-  return raw.map((item: unknown) => {
-    const rec = toRecord(item);
-    const toolName = toStr(rec.toolName);
-    return {
-      name: toolName === '' ? toStr(rec.name) : toolName,
-      args: rec.input ?? rec.args,
-      result: rec.output ?? rec.result,
-    };
-  });
-}
-
-function mapNodeTokensToTokensLogs(nodeTokens: unknown): CallAgentOutput['tokensLogs'] {
-  if (!Array.isArray(nodeTokens)) return [];
-  return nodeTokens.map((item: unknown) => {
-    const rec = toRecord(item);
-    const tokens = toRecord(rec.tokens);
-    return {
-      action: toStr(rec.node),
-      tokens: {
-        input: toNum(tokens.input),
-        output: toNum(tokens.output),
-        cached: toNum(tokens.cached),
-        costUSD: typeof tokens.costUSD === 'number' ? tokens.costUSD : undefined,
-      },
-    };
-  });
-}
-
-function isDebugMessages(value: unknown): value is CallAgentOutput['debugMessages'] {
-  return typeof value === 'object' && value !== null;
-}
-
-function isToolCallsArray(value: unknown): value is CallAgentOutput['toolCalls'] {
-  return Array.isArray(value);
-}
-
-function parseStructuredOutputs(value: unknown): Array<{ nodeId: string; data: unknown }> {
-  if (!Array.isArray(value)) return [];
-  return value.map((item: unknown) => {
-    const rec = toRecord(item);
-    return { nodeId: toStr(rec.nodeId), data: rec.data };
-  });
-}
-
-function buildParsedResults(
-  event: SseEvent,
-  nodeTexts: NodeProcessedData[]
-): CallAgentOutput['parsedResults'] {
-  if (Array.isArray(event.parsedResults)) {
-    return event.parsedResults.map((item: unknown) => {
-      const rec = toRecord(item);
-      return { nextNodeID: toStr(rec.nextNodeID), messageToUser: toOptStr(rec.messageToUser) };
-    });
-  }
-  return nodeTexts.map((nt) => ({
-    nextNodeID: '',
-    messageToUser: nt.text === '' ? undefined : nt.text,
-  }));
-}
-
-function buildResultFromResponse(event: SseEvent, nodeTexts: NodeProcessedData[]): CallAgentOutput {
-  return {
-    message: null,
-    text: toStr(event.text),
-    visitedNodes: toStringArray(event.visitedNodes),
-    toolCalls: isToolCallsArray(event.toolCalls) ? event.toolCalls : [],
-    tokensLogs: mapNodeTokensToTokensLogs(event.nodeTokens),
-    debugMessages: isDebugMessages(event.debugMessages) ? event.debugMessages : {},
-    structuredOutputs: parseStructuredOutputs(event.structuredOutputs),
-    parsedResults: buildParsedResults(event, nodeTexts),
-  };
-}
-
 /* ─── SSE event handlers ─── */
 
 function handleNodeProcessed(
@@ -219,6 +140,9 @@ function handleNodeProcessed(
     toolCalls: mapRawToolCalls(event.toolCalls),
     durationMs: toNum(event.durationMs),
     error: toOptStr(event.error),
+    responseMessages: Array.isArray(event.responseMessages)
+      ? (event.responseMessages as unknown[])
+      : undefined,
   });
   processNodeProcessed(event, callbacks);
 }
@@ -234,8 +158,12 @@ function handleSseEvent(
 ): SseEventResult {
   if (event.type === 'node_visited') {
     callbacks.onNodeVisited(toStr(event.nodeId));
+  } else if (event.type === 'step_started') {
+    callbacks.onNodeVisited(`step-${String(toNum(event.step))}`);
   } else if (event.type === 'node_processed') {
     handleNodeProcessed(event, nodeTexts, callbacks);
+  } else if (event.type === 'step_processed') {
+    handleStepProcessed(event, nodeTexts, callbacks);
   } else if (event.type === 'agent_response') {
     return { agentOutput: buildResultFromResponse(event, nodeTexts) };
   } else if (event.type === 'error') {

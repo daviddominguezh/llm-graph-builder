@@ -27,6 +27,7 @@ export interface SimulateRequest {
   data: Record<string, unknown>;
   quickReplies: Record<string, string>;
   structuredOutputs?: Record<string, unknown[]>;
+  orgId?: string;
 }
 
 export interface ToolCallRequest {
@@ -74,4 +75,20 @@ export type SimulationEvent =
       tokenUsage: { input: number; output: number; cached: number };
     }
   | { type: 'error'; message: string }
-  | { type: 'simulation_complete' };
+  | { type: 'simulation_complete' }
+  | {
+      type: 'child_dispatched';
+      depth: number;
+      parentDepth: number;
+      dispatchType: string;
+      task: string;
+      parentToolCallId: string;
+      toolName: string;
+      params: Record<string, unknown>;
+      childConfig?: {
+        systemPrompt: string;
+        context: string;
+        modelId: string;
+        maxSteps: number | null;
+      };
+    };

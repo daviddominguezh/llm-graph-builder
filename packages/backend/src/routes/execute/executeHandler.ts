@@ -1,251 +1,139 @@
-import type { CallAgentOutput, Message } from '@daviddh/llm-graph-runner';
 import type { Request, Response } from 'express';
+import { randomUUID } from 'node:crypto';
 
 import { failExecution } from '../../db/queries/executionQueries.js';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
-import type { ExecuteAgentParams, NodeProcessedData } from './edgeFunctionClient.js';
-import { executeAgent } from './edgeFunctionClient.js';
+import type { ExecutionResult } from '../../notifications/completionNotifier.js';
+import { getCompletionConfig, getNotifier } from '../../notifications/notifierSingleton.js';
 import type { ExecutionAuthLocals, ExecutionAuthResponse } from './executeAuth.js';
+import type { ExecuteCoreCallbacks, ExecuteCoreOutput } from './executeCore.js';
+import { executeAgentCore } from './executeCore.js';
+import { HttpError } from './executeFetcher.js';
 import {
-  type FetchedData,
-  HttpError,
-  fetchGraphAndKeys,
-  fetchSessionData,
-  getProductionKeyId,
-} from './executeFetcher.js';
-import {
-  buildUserMessage,
-  extractTextFromInput,
-  resolveMcpTransportVariables,
-  resolveOAuthForExecution,
+  logExec,
   sendNodeProcessedEvent,
   sendNodeVisitedEvent,
   setSseHeaders,
-  sumTokens,
-  sumTotalCost,
   writePublicSSE,
 } from './executeHelpers.js';
-import { persistPostExecution, persistPreExecution } from './executePersistence.js';
+import { buildEmptyResponse, buildResponseByType } from './executeResponseBuilders.js';
 import type { AgentExecutionInput, AgentExecutionResponse } from './executeTypes.js';
 import { AgentExecutionInputSchema } from './executeTypes.js';
 
-const DEFAULT_MODEL = 'x-ai/grok-4.1-fast';
 const HTTP_BAD_REQUEST = 400;
 const HTTP_INTERNAL = 500;
-const LAST_INDEX_OFFSET = 1;
-const ZERO = 0;
 
-/* ─── Execution context ─── */
+/* ─── Input parsing ─── */
 
-interface ExecutionContext {
-  supabase: SupabaseClient;
+interface ParsedInput {
   input: AgentExecutionInput;
-  agentId: string;
   orgId: string;
+  agentId: string;
   version: number;
-  model: string;
-  fetched: FetchedData;
-  userMessage: Message;
-  executionId: string;
-}
-
-/* ─── Response builders ─── */
-
-function getLastVisitedNode(result: CallAgentOutput, fallback: string): string {
-  const { visitedNodes } = result;
-  return visitedNodes[visitedNodes.length - LAST_INDEX_OFFSET] ?? fallback;
-}
-
-function buildToolCalls(result: CallAgentOutput): AgentExecutionResponse['toolCalls'] {
-  return result.toolCalls.map((tc) => ({
-    name: tc.toolName,
-    args: tc.input as unknown,
-    result: undefined,
-  }));
-}
-
-function buildAgentResponse(result: CallAgentOutput, durationMs: number): AgentExecutionResponse {
-  const tokens = sumTokens(result);
-  return {
-    text: result.text ?? '',
-    currentNodeId: getLastVisitedNode(result, ''),
-    visitedNodes: result.visitedNodes,
-    toolCalls: buildToolCalls(result),
-    structuredOutputs: {},
-    tokenUsage: {
-      inputTokens: tokens.input,
-      outputTokens: tokens.output,
-      cachedTokens: tokens.cached,
-      totalCost: sumTotalCost(result),
-    },
-    durationMs,
-  };
-}
-
-function buildEmptyResponse(): AgentExecutionResponse {
-  return {
-    text: '',
-    currentNodeId: '',
-    visitedNodes: [],
-    toolCalls: [],
-    structuredOutputs: {},
-    tokenUsage: { inputTokens: ZERO, outputTokens: ZERO, cachedTokens: ZERO, totalCost: ZERO },
-    durationMs: ZERO,
-  };
-}
-
-function mergeStructuredOutputs(
-  existing: Record<string, unknown[]>,
-  result: CallAgentOutput
-): Record<string, unknown[]> {
-  const merged = { ...existing };
-  for (const so of result.structuredOutputs ?? []) {
-    const current = merged[so.nodeId] ?? [];
-    merged[so.nodeId] = [...current, so.data];
-  }
-  return merged;
-}
-
-/* ─── Params builder ─── */
-
-function buildExecuteParams(ctx: ExecutionContext): ExecuteAgentParams {
-  return {
-    graph: ctx.fetched.graph,
-    apiKey: ctx.fetched.apiKey,
-    modelId: ctx.model,
-    currentNodeId: ctx.fetched.currentNodeId,
-    messages: ctx.fetched.messageHistory,
-    structuredOutputs: ctx.fetched.structuredOutputs,
-    data: ctx.input.context ?? {},
-    quickReplies: {},
-    sessionID: ctx.input.sessionId,
-    tenantID: ctx.input.tenantId,
-    userID: ctx.input.userId,
-    isFirstMessage: ctx.fetched.isNew,
-  };
-}
-
-/* ─── Data fetching ─── */
-
-interface FetchAllParams {
   supabase: SupabaseClient;
-  agentId: string;
-  orgId: string;
-  version: number;
-  input: AgentExecutionInput;
-  model: string;
 }
 
-async function fetchAllData(params: FetchAllParams): Promise<FetchedData> {
-  const { supabase, agentId, orgId, version, input, model } = params;
-  const productionKeyId = await getProductionKeyId(supabase, agentId);
-  const [graphAndKeys, sessionData] = await Promise.all([
-    fetchGraphAndKeys({ supabase, agentId, version, orgId, productionApiKeyId: productionKeyId }),
-    fetchSessionData({ supabase, agentId, orgId, version, input, model }),
-  ]);
-  const envResolvedGraph = resolveMcpTransportVariables(graphAndKeys.graph, graphAndKeys.envVars);
-  const resolvedGraph = await resolveOAuthForExecution(supabase, envResolvedGraph, orgId);
-  return { ...graphAndKeys, ...sessionData, graph: resolvedGraph };
-}
-
-/* ─── Preparation ─── */
-
-async function prepareExecution(
+function parseRequest(
   req: Request<{ agentSlug: string; version: string }>,
   res: ExecutionAuthResponse
-): Promise<ExecutionContext> {
+): ParsedInput {
   const parsed = AgentExecutionInputSchema.safeParse(req.body);
   if (!parsed.success) throw new HttpError(HTTP_BAD_REQUEST, parsed.error.message);
 
-  const { data: input } = parsed;
   const { orgId, agentId, version, supabase }: ExecutionAuthLocals = res.locals;
-  const model = input.model ?? DEFAULT_MODEL;
-
-  const fetched = await fetchAllData({ supabase, agentId, orgId, version, input, model });
-  const userMessage = buildUserMessage(input);
-  fetched.messageHistory = [...fetched.messageHistory, userMessage];
-
-  const { executionId } = await persistPreExecution(supabase, {
-    sessionDbId: fetched.sessionDbId,
-    agentId,
-    orgId,
-    version,
-    model,
-    channel: input.channel,
-    tenantId: input.tenantId,
-    userId: input.userId,
-    userMessageContent: extractTextFromInput(input),
-    currentNodeId: fetched.currentNodeId,
-  });
-
-  return { supabase, input, agentId, orgId, version, model, fetched, userMessage, executionId };
-}
-
-/* ─── Post-execution persistence ─── */
-
-async function persistResult(
-  ctx: ExecutionContext,
-  result: CallAgentOutput,
-  startTime: number,
-  nodeData: NodeProcessedData[]
-): Promise<void> {
-  const durationMs = Date.now() - startTime;
-  const newNodeId = getLastVisitedNode(result, ctx.fetched.currentNodeId);
-  const newOutputs = mergeStructuredOutputs(ctx.fetched.structuredOutputs, result);
-
-  await persistPostExecution(ctx.supabase, {
-    executionId: ctx.executionId,
-    sessionDbId: ctx.fetched.sessionDbId,
-    result,
-    currentNodeId: newNodeId,
-    structuredOutputs: newOutputs,
-    durationMs,
-    model: ctx.model,
-    nodeData,
-  });
+  return { input: parsed.data, orgId, agentId, version, supabase };
 }
 
 /* ─── Streaming handler ─── */
 
-function noop(): void {
-  // intentionally empty — used as no-op callback
-}
-
-async function handleStreaming(ctx: ExecutionContext, res: Response): Promise<void> {
+async function handleStreaming(parsed: ParsedInput, res: Response): Promise<void> {
   setSseHeaders(res);
-  const startTime = Date.now();
-  const { output, nodeData } = await executeAgent(buildExecuteParams(ctx), {
+
+  const callbacks: ExecuteCoreCallbacks = {
     onNodeVisited: (nodeId) => {
       sendNodeVisitedEvent(res, nodeId);
     },
     onNodeProcessed: (event) => {
       sendNodeProcessedEvent(res, event);
     },
-  });
+  };
 
-  if (output !== null) {
-    const response = buildAgentResponse(output, Date.now() - startTime);
+  const result = await executeAgentCore(
+    {
+      supabase: parsed.supabase,
+      orgId: parsed.orgId,
+      agentId: parsed.agentId,
+      version: parsed.version,
+      input: parsed.input,
+    },
+    callbacks
+  );
+
+  if (result.output !== null) {
+    const response = buildResponseByType(result.appType, result.output, result.durationMs);
     writePublicSSE(res, { type: 'done', response });
-    await persistResult(ctx, output, startTime, nodeData);
+  }
+}
+
+/* ─── Non-streaming handler helpers ─── */
+
+function respondNormally(result: ExecuteCoreOutput, res: Response): void {
+  if (result.output === null) {
+    res.json(buildEmptyResponse(result.appType));
+  } else {
+    res.json(buildResponseByType(result.appType, result.output, result.durationMs));
+  }
+}
+
+function buildBaseResponse(result: ExecuteCoreOutput): AgentExecutionResponse {
+  if (result.output === null) {
+    return buildEmptyResponse(result.appType);
+  }
+  return buildResponseByType(result.appType, result.output, result.durationMs);
+}
+
+function respondWithCompletion(
+  result: ExecuteCoreOutput,
+  completionResult: ExecutionResult | null,
+  executionId: string,
+  res: Response
+): void {
+  const response = buildBaseResponse(result);
+
+  if (completionResult === null) {
+    res.json({ ...response, executionId });
+  } else {
+    res.json({ ...response, text: completionResult.text, executionId });
   }
 }
 
 /* ─── Non-streaming handler ─── */
 
-async function handleNonStreaming(ctx: ExecutionContext, res: Response): Promise<void> {
-  const startTime = Date.now();
-  const { output, nodeData } = await executeAgent(buildExecuteParams(ctx), {
-    onNodeVisited: noop,
-    onNodeProcessed: noop,
+async function handleNonStreaming(parsed: ParsedInput, res: Response): Promise<void> {
+  const notifier = getNotifier();
+  const config = getCompletionConfig();
+  const executionId = randomUUID();
+
+  const waitPromise = notifier.waitForCompletion(executionId, config.timeoutMs);
+
+  const result = await executeAgentCore({
+    supabase: parsed.supabase,
+    orgId: parsed.orgId,
+    agentId: parsed.agentId,
+    version: parsed.version,
+    input: parsed.input,
+    executionId,
+    rootExecutionId: executionId,
   });
 
-  if (output !== null) {
-    res.json(buildAgentResponse(output, Date.now() - startTime));
-    await persistResult(ctx, output, startTime, nodeData);
+  if (result.output?.dispatchResult === undefined) {
+    respondNormally(result, res);
     return;
   }
 
-  res.json(buildEmptyResponse());
+  logExec('waiting for composition', { executionId });
+  const completionResult = await waitPromise;
+  respondWithCompletion(result, completionResult, executionId, res);
 }
 
 /* ─── Error handler ─── */
@@ -280,21 +168,25 @@ export async function handleExecute(
   req: Request<{ agentSlug: string; version: string }>,
   res: ExecutionAuthResponse
 ): Promise<void> {
-  let executionId: string | undefined = undefined;
   let supabase: SupabaseClient | undefined = undefined;
 
   try {
-    const ctx = await prepareExecution(req, res);
-    ({ executionId } = ctx);
-    ({ supabase } = ctx);
+    const parsed = parseRequest(req, res);
+    ({ supabase } = parsed);
 
-    if (ctx.input.stream) {
-      await handleStreaming(ctx, res);
+    logExec('routing execution', { stream: parsed.input.stream });
+
+    if (parsed.input.stream) {
+      await handleStreaming(parsed, res);
     } else {
-      await handleNonStreaming(ctx, res);
+      await handleNonStreaming(parsed, res);
     }
+
+    logExec('execution completed');
   } catch (err) {
-    await handleExecutionError(err, executionId, supabase, res);
+    const errMsg = err instanceof Error ? err.message : String(err);
+    logExec('execution error', { error: errMsg });
+    await handleExecutionError(err, undefined, supabase, res);
   } finally {
     if (res.headersSent && !res.writableEnded) {
       res.end();

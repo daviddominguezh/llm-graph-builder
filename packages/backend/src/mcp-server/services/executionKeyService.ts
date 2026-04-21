@@ -42,17 +42,23 @@ export async function listExecutionKeys(ctx: ServiceContext): Promise<ExecutionK
   return await Promise.all(result.map(async (key) => await attachAgents(ctx.supabase, key)));
 }
 
+interface CreateExecutionKeyInput {
+  name: string;
+  agentIds: string[];
+  expiresAt?: string | null;
+  allAgents?: boolean;
+}
+
 export async function createExecutionKey(
   ctx: ServiceContext,
-  name: string,
-  agentIds: string[],
-  expiresAt?: string | null
+  input: CreateExecutionKeyInput
 ): Promise<CreateExecutionKeyResult> {
   const { result, error } = await createExecutionKeyQuery(ctx.supabase, {
     orgId: ctx.orgId,
-    name,
-    agentIds,
-    expiresAt: expiresAt ?? null,
+    name: input.name,
+    allAgents: input.allAgents ?? false,
+    agentIds: input.agentIds,
+    expiresAt: input.expiresAt ?? null,
   });
   if (error !== null || result === null) throw new Error(error ?? 'Failed to create execution key');
   return result;
@@ -61,14 +67,19 @@ export async function createExecutionKey(
 export async function updateExecutionKey(
   ctx: ServiceContext,
   keyId: string,
-  fields: { name?: string; agentIds?: string[] }
+  fields: { name?: string; allAgents?: boolean; agentIds?: string[] }
 ): Promise<void> {
   if (fields.name !== undefined) {
     const { error } = await updateExecutionKeyName(ctx.supabase, keyId, fields.name);
     if (error !== null) throw new Error(error);
   }
-  if (fields.agentIds !== undefined) {
-    const { error } = await updateExecutionKeyAgents(ctx.supabase, keyId, fields.agentIds);
+  if (fields.allAgents !== undefined || fields.agentIds !== undefined) {
+    const { error } = await updateExecutionKeyAgents(
+      ctx.supabase,
+      keyId,
+      fields.allAgents ?? false,
+      fields.agentIds ?? []
+    );
     if (error !== null) throw new Error(error);
   }
 }

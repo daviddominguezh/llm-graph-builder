@@ -13,10 +13,16 @@ import {
   useComboboxAnchor,
 } from '@/components/ui/combobox';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import { useRef, useMemo } from 'react';
 
 import type { OpenRouterModel } from '../../../hooks/useOpenRouterModels';
 import { SimulationThinkingEffort, type ThinkingEffort } from './SimulationThinkingEffort';
+
+interface ProviderIcon {
+  url: string;
+  className?: string;
+}
 
 interface ModelGroup {
   value: string;
@@ -46,6 +52,30 @@ function buildGroups(models: OpenRouterModel[]): ModelGroup[] {
     .sort((a, b) => a.value.localeCompare(b.value));
 }
 
+function buildIconMap(models: OpenRouterModel[]): Map<string, ProviderIcon> {
+  const map = new Map<string, ProviderIcon>();
+  for (const m of models) {
+    if (m.providerIcon === undefined) continue;
+    const provider = extractProvider(m.id);
+    if (map.has(provider)) continue;
+    map.set(provider, m.providerIcon);
+  }
+  return map;
+}
+
+function ProviderImg({ icon, size = 14 }: { icon: ProviderIcon; size?: number }) {
+  return (
+    <Image
+      src={icon.url}
+      alt=""
+      width={size}
+      height={size}
+      className={`shrink-0 rounded-sm ${icon.className ?? ''}`}
+      unoptimized
+    />
+  );
+}
+
 interface SimulationModelSelectorProps {
   models: OpenRouterModel[];
   value: string;
@@ -57,6 +87,7 @@ interface SimulationModelSelectorProps {
 export function SimulationModelSelector({ models, value, onValueChange, effort, onEffortChange }: SimulationModelSelectorProps) {
   const t = useTranslations('simulation');
   const groups = useMemo(() => buildGroups(models), [models]);
+  const iconMap = useMemo(() => buildIconMap(models), [models]);
   const nameMap = useMemo(
     () => new Map(models.map((m) => [m.id, m.name.replace(/^[^:]+:\s*/, '')])),
     [models]
@@ -75,7 +106,7 @@ export function SimulationModelSelector({ models, value, onValueChange, effort, 
       <div ref={anchorRef}>
         <ComboboxInput
           placeholder={t('selectModel')}
-          className="model-selector-trigger h-6 border-none bg-transparent! text-[11px] text-muted-foreground shadow-none transition-colors rounded-md hover:bg-card! focus-within:bg-card!"
+          className="model-selector-trigger h-6 border-none bg-transparent! text-[11px] text-muted-foreground shadow-none transition-colors rounded-md hover:bg-background! focus-within:bg-background!"
           style={{ width: 'auto', flex: '0 0 auto', cursor: 'default', fieldSizing: 'content', boxShadow: 'none', borderColor: 'transparent' } as React.CSSProperties}
         >
           {effort === 'high' && (
@@ -96,18 +127,24 @@ export function SimulationModelSelector({ models, value, onValueChange, effort, 
       <ComboboxContent className="flex w-[280px] flex-col" align="end" anchor={anchorRef}>
         <ComboboxEmpty>{t('noModelsFound')}</ComboboxEmpty>
         <ComboboxList className="flex-1">
-          {(group) => (
-            <ComboboxGroup key={group.value} items={group.items}>
-              <ComboboxLabel className="sticky -top-1 z-10 bg-popover font-semibold uppercase text-muted-foreground/60">{group.value}</ComboboxLabel>
-              <ComboboxCollection>
-                {(modelId) => (
-                  <ComboboxItem key={modelId} value={modelId}>
-                    {nameMap.get(modelId) ?? modelId}
-                  </ComboboxItem>
-                )}
-              </ComboboxCollection>
-            </ComboboxGroup>
-          )}
+          {(group) => {
+            const icon = iconMap.get(group.value);
+            return (
+              <ComboboxGroup key={group.value} items={group.items}>
+                <ComboboxLabel className="sticky -top-1 z-10 flex items-center gap-1.5 bg-popover font-semibold uppercase text-muted-foreground/60">
+                  {icon !== undefined && <ProviderImg icon={icon} size={12} />}
+                  {group.value}
+                </ComboboxLabel>
+                <ComboboxCollection>
+                  {(modelId) => (
+                    <ComboboxItem key={modelId} value={modelId}>
+                      {nameMap.get(modelId) ?? modelId}
+                    </ComboboxItem>
+                  )}
+                </ComboboxCollection>
+              </ComboboxGroup>
+            );
+          }}
         </ComboboxList>
         <div className="shrink-0 border-t px-2 py-1.5">
           <SimulationThinkingEffort value={effort} onValueChange={onEffortChange} />

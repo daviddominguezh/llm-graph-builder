@@ -23,7 +23,7 @@ function TerminatedBanner({ label, description }: { label: string; description: 
   return (
     <div className="flex w-full flex-col">
       <div className="h-[1px] w-full bg-border mt-1" />
-      <div className="m-2 flex gap-2 rounded-md bg-muted p-2 text-xs">
+      <div className="m-2 flex gap-2 rounded-md bg-card p-2 text-xs">
         <OctagonX className="mt-0.5 size-3.5" />
         <div className="flex flex-col">
           <span>{label}</span>
@@ -121,8 +121,11 @@ function ChatInput({
   const isEmpty = text.trim().length === 0;
 
   return (
-    <div className="mx-2 flex flex-col overflow-hidden rounded-lg border bg-muted/30 py-1 gap-1 my-2">
-      <div className="max-h-96 min-h-6 w-full overflow-y-auto break-words px-3 py-2 text-xs transition-opacity">
+    <div className="mx-2 flex flex-col overflow-hidden rounded-lg bg-input dark:bg-input/30 py-1 gap-1 my-2">
+      <div
+        data-native-scroll
+        className="max-h-96 min-h-6 w-full overflow-y-auto break-words px-3 py-2 text-xs transition-opacity"
+      >
         <div
           ref={editorRef}
           contentEditable={!loading}

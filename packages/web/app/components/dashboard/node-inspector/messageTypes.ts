@@ -14,14 +14,16 @@ interface ToolCallPart {
   type: 'tool-call';
   toolCallId?: string;
   toolName: string;
-  args: unknown;
+  args?: unknown;
+  input?: unknown;
 }
 
 interface ToolResultPart {
   type: 'tool-result';
   toolCallId?: string;
   toolName: string;
-  result: unknown;
+  result?: unknown;
+  output?: unknown;
 }
 
 export type ContentPart = TextPart | ReasoningPart | ToolCallPart | ToolResultPart;
@@ -65,10 +67,18 @@ export interface ToolResultCard {
   result: unknown;
 }
 
+export interface ToolCallGroupCard {
+  kind: 'tool-group';
+  toolName: string;
+  args: unknown;
+  result: unknown;
+}
+
 export type MessageCard =
   | UserCard
   | SystemCard
   | AssistantTextCard
   | ReasoningCard
   | ToolCallCard
-  | ToolResultCard;
+  | ToolResultCard
+  | ToolCallGroupCard;

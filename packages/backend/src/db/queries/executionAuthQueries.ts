@@ -30,12 +30,14 @@ export function createServiceClient(): ServiceClient {
 interface ExecutionKeyRow {
   id: string;
   org_id: string;
+  all_agents: boolean;
   expires_at: string | null;
 }
 
 interface ValidatedKey {
   id: string;
   orgId: string;
+  allAgents: boolean;
 }
 
 function isExpired(expiresAt: string | null): boolean {
@@ -49,13 +51,13 @@ export async function validateExecutionKey(
 ): Promise<ValidatedKey | null> {
   const result: QueryResult<ExecutionKeyRow> = await supabase
     .from('agent_execution_keys')
-    .select('id, org_id, expires_at')
+    .select('id, org_id, all_agents, expires_at')
     .eq('key_hash', keyHash)
     .single();
   if (result.error !== null || result.data === null) return null;
   if (isExpired(result.data.expires_at)) return null;
 
-  return { id: result.data.id, orgId: result.data.org_id };
+  return { id: result.data.id, orgId: result.data.org_id, allAgents: result.data.all_agents };
 }
 
 export async function validateKeyAgentAccess(
@@ -159,27 +161,37 @@ async function decryptEnvVariable(supabase: SupabaseClient, variableId: string):
   return typeof result.data === 'string' ? result.data : null;
 }
 
+export interface DecryptedEnvVars {
+  byName: Record<string, string>;
+  byId: Record<string, string>;
+}
+
 export async function getDecryptedEnvVariables(
   supabase: SupabaseClient,
   orgId: string
-): Promise<Record<string, string>> {
+): Promise<DecryptedEnvVars> {
   const rows = await fetchEnvVariableNames(supabase, orgId);
-  const entries: Array<[string, string]> = [];
+  const nameEntries: Array<[string, string]> = [];
+  const idEntries: Array<[string, string]> = [];
 
   const decrypted = await Promise.all(
     rows.map(async (row) => {
       const value = await decryptEnvVariable(supabase, row.id);
-      return { name: row.name, value };
+      return { id: row.id, name: row.name, value };
     })
   );
 
   for (const item of decrypted) {
     if (item.value !== null) {
-      entries.push([item.name, item.value]);
+      nameEntries.push([item.name, item.value]);
+      idEntries.push([item.id, item.value]);
     }
   }
 
-  return Object.fromEntries(entries);
+  return {
+    byName: Object.fromEntries(nameEntries),
+    byId: Object.fromEntries(idEntries),
+  };
 }
 
 export async function updateKeyLastUsed(supabase: SupabaseClient, keyId: string): Promise<void> {

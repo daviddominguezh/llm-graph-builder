@@ -1,27 +1,42 @@
-import cors from 'cors';
 import express, { type Express, type NextFunction, type Request, type Response } from 'express';
 import multer from 'multer';
 
 import { handleMcpRequest } from './mcp-server/server.js';
+import { messagingRouter } from './messaging/routes/index.js';
 import { requireAuth } from './middleware/auth.js';
 import { agentRouter } from './routes/agents/agentRouter.js';
 import { dashboardRouter } from './routes/dashboard/dashboardRouter.js';
 import { handleDiscover } from './routes/discover.js';
 import { executeRouter } from './routes/execute/executeRoute.js';
+import { buildGitHubRouter } from './routes/github/githubRouter.js';
+import { handleGitHubWebhook } from './routes/github/webhookRoute.js';
+import { internalRouter } from './routes/internal/internalRouter.js';
 import { mcpLibraryRouter } from './routes/mcp-library/mcpLibraryRouter.js';
+import { mockExecuteRouter } from './routes/mockExecute/mockExecuteRouter.js';
 import { handleCallback } from './routes/oauth/oauthCallback.js';
 import { handleGetOpenRouterModels } from './routes/openrouterModels.js';
+import { handleAddMember } from './routes/orgs/addMember.js';
+import { handleCancelInvitation } from './routes/orgs/cancelInvitation.js';
 import { handleCreateOrg } from './routes/orgs/createOrg.js';
 import { handleDeleteOrg } from './routes/orgs/deleteOrg.js';
+import { handleGetInvitations } from './routes/orgs/getInvitations.js';
+import { handleGetMembers } from './routes/orgs/getMembers.js';
 import { handleGetOrgBySlug } from './routes/orgs/getOrgBySlug.js';
 import { handleGetOrgRole } from './routes/orgs/getOrgRole.js';
 import { handleGetOrgs } from './routes/orgs/getOrgs.js';
 import { handleRemoveAvatar, handleUploadAvatar } from './routes/orgs/orgAvatar.js';
+import { handleRemoveMember } from './routes/orgs/removeMember.js';
 import { handleUniqueSlug } from './routes/orgs/uniqueSlug.js';
+import { handleUpdateMemberRole } from './routes/orgs/updateMemberRole.js';
 import { handleUpdateOrg } from './routes/orgs/updateOrg.js';
 import { secretsRouter } from './routes/secrets/secretsRouter.js';
+import { handleSimulateAgent } from './routes/simulateAgentHandler.js';
 import { handleSimulate } from './routes/simulateHandler.js';
+import { handleCheckAvailability } from './routes/slugs/checkAvailability.js';
+import { templateRouter } from './routes/templates/templateRouter.js';
+import { tenantRouter } from './routes/tenants/tenantRouter.js';
 import { handleToolCall } from './routes/toolCall.js';
+import { whatsappTemplatesRouter } from './routes/whatsappTemplates/whatsappTemplatesRouter.js';
 
 function requestLogger(req: Request, _res: Response, next: NextFunction): void {
   process.stdout.write(`[server] ${req.method} ${req.path}\n`);
@@ -41,15 +56,35 @@ function buildOrgRouter(): express.Router {
   router.patch('/:orgId', handleUpdateOrg);
   router.delete('/:orgId', handleDeleteOrg);
   router.get('/:orgId/role', handleGetOrgRole);
+  router.get('/:orgId/members', handleGetMembers);
+  router.post('/:orgId/members', handleAddMember);
+  router.patch('/:orgId/members/:userId', handleUpdateMemberRole);
+  router.delete('/:orgId/members/:userId', handleRemoveMember);
+  router.get('/:orgId/invitations', handleGetInvitations);
+  router.delete('/:orgId/invitations/:invitationId', handleCancelInvitation);
   router.post('/:orgId/avatar', upload.single('file'), handleUploadAvatar);
   router.delete('/:orgId/avatar', handleRemoveAvatar);
+  return router;
+}
+
+function buildSlugRouter(): express.Router {
+  const router = express.Router();
+  router.use(requireAuth);
+  router.post('/check-availability', handleCheckAvailability);
   return router;
 }
 
 export function createApp(): Express {
   const app = express();
 
-  app.use(cors());
+  // CORS disabled — the backend must NEVER be called directly from browsers.
+  // All frontend requests go through Next.js server-side (API routes / Server Actions).
+  // Any CORS error in the browser means a route is violating this rule.
+
+  // Webhook route must be registered BEFORE express.json() so the body
+  // arrives as a raw string for HMAC-SHA256 signature verification.
+  app.post('/webhooks/github', express.text({ type: 'application/json' }), handleGitHubWebhook);
+
   app.use(express.json({ limit: '10mb' }));
   app.use(requestLogger);
 
@@ -57,6 +92,7 @@ export function createApp(): Express {
   app.post('/mcp/discover', handleDiscover);
   app.post('/mcp/tools/call', handleToolCall);
   app.post('/simulate', handleSimulate);
+  app.post('/simulate-agent', handleSimulateAgent);
   app.get('/mcp/oauth/callback', handleCallback);
 
   app.post('/mcp', handleMcpRequest);
@@ -64,11 +100,24 @@ export function createApp(): Express {
   app.delete('/mcp', handleMcpRequest);
 
   app.use('/api/agents', executeRouter);
+  if (process.env.ENABLE_MOCK_EXECUTE === 'true') {
+    app.use('/api/mock-execute', mockExecuteRouter);
+  }
   app.use('/orgs', buildOrgRouter());
+  app.use('/slugs', buildSlugRouter());
   app.use('/agents', agentRouter);
   app.use('/secrets', secretsRouter);
   app.use('/dashboard', dashboardRouter);
   app.use('/mcp-library', mcpLibraryRouter);
+  app.use('/tenants', tenantRouter);
+  app.use('/templates', templateRouter);
+  app.use('/tenants/:tenantId/whatsapp-templates', whatsappTemplatesRouter);
+  app.use('/github', buildGitHubRouter());
+
+  // Messaging routes (auth middleware applied inside the router)
+  app.use(messagingRouter);
+
+  app.use('/internal', internalRouter);
 
   return app;
 }

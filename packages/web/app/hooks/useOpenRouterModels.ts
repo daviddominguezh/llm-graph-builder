@@ -8,12 +8,18 @@ const PricingSchema = z.object({
   request: z.string().optional(),
 });
 
+const ProviderIconSchema = z.object({
+  url: z.string(),
+  className: z.string().optional(),
+});
+
 const ModelSchema = z.object({
   id: z.string(),
   name: z.string(),
   pricing: PricingSchema,
   contextLength: z.number(),
   maxCompletionTokens: z.number().nullable(),
+  providerIcon: ProviderIconSchema.optional(),
 });
 
 const ResponseSchema = z.object({ models: z.array(ModelSchema) });

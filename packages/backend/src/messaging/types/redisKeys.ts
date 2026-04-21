@@ -1,0 +1,23 @@
+export enum REDIS_KEYS {
+  REPLY_LOCK = 'REPLY_LOCK',
+  CREDENTIAL_CACHE_WA = 'CREDENTIAL_CACHE_WA',
+  CREDENTIAL_CACHE_IG = 'CREDENTIAL_CACHE_IG',
+  MEDIA_UPLOAD_CACHE = 'MEDIA_UPLOAD_CACHE',
+  RATE_LIMIT = 'RATE_LIMIT',
+  TENANT_CHANNEL = 'TENANT_CHANNEL',
+  PENDING_DEBOUNCE = 'PENDING_DEBOUNCE',
+}
+
+export const REDIS_KEY_PREFIXES: Record<REDIS_KEYS, string> = {
+  [REDIS_KEYS.REPLY_LOCK]: 'reply-lock:',
+  [REDIS_KEYS.CREDENTIAL_CACHE_WA]: 'wa-cred:',
+  [REDIS_KEYS.CREDENTIAL_CACHE_IG]: 'ig-cred:',
+  [REDIS_KEYS.MEDIA_UPLOAD_CACHE]: 'media:',
+  [REDIS_KEYS.RATE_LIMIT]: 'ratelimit:',
+  [REDIS_KEYS.TENANT_CHANNEL]: 'tenant:',
+  [REDIS_KEYS.PENDING_DEBOUNCE]: 'pending:',
+};
+
+export function buildRedisKey(keyType: REDIS_KEYS, identifier: string): string {
+  return `${REDIS_KEY_PREFIXES[keyType]}${identifier}`;
+}

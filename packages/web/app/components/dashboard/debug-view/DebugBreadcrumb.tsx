@@ -21,15 +21,15 @@ export function DebugBreadcrumb({
 
   return (
     <nav className="flex items-center gap-1 text-sm text-muted-foreground">
-      <Link href={`/orgs/${slug}/dashboard`} className="hover:text-foreground">
+      <Link href={`/orgs/${slug}/dashboard`} className="hover:text-foreground text-xs font-medium">
         {dashboardLabel}
       </Link>
       <ChevronRight className="size-3" />
-      <Link href={`/orgs/${slug}/dashboard/${agentSlug}`} className="hover:text-foreground">
+      <Link href={`/orgs/${slug}/dashboard/${agentSlug}`} className="hover:text-foreground text-xs font-medium">
         {agentName}
       </Link>
       <ChevronRight className="size-3" />
-      <span className="text-foreground font-medium">
+      <span className="text-foreground text-xs font-medium cursor-default">
         {t('sessionDebug')} ({sessionId})
       </span>
     </nav>

@@ -1,5 +1,15 @@
 import type { Operation } from '@daviddh/graph-types';
 
+import {
+  deleteContextItem,
+  deleteManySkills,
+  deleteSkill,
+  insertContextItem,
+  insertSkill,
+  reorderContextItems,
+  updateAgentConfig,
+  updateContextItem,
+} from './agentConfigOperations.js';
 import { deleteAgent, insertAgent, updateAgent } from './agentOperations.js';
 import { deleteContextPreset, insertContextPreset, updateContextPreset } from './contextPresetOperations.js';
 import { deleteEdge, insertEdge, updateEdge } from './edgeOperations.js';
@@ -111,6 +121,50 @@ async function dispatchPresetOps(supabase: SupabaseClient, agentId: string, op: 
     return;
   }
 
+  await dispatchAgentConfigOps(supabase, agentId, op);
+}
+
+async function dispatchAgentConfigOps(
+  supabase: SupabaseClient,
+  agentId: string,
+  op: Operation
+): Promise<void> {
+  if (op.type === 'updateAgentConfig') {
+    await updateAgentConfig(supabase, agentId, op.data);
+    return;
+  }
+  if (op.type === 'insertContextItem') {
+    await insertContextItem(supabase, agentId, op.data);
+    return;
+  }
+  if (op.type === 'updateContextItem') {
+    await updateContextItem(supabase, agentId, op.data);
+    return;
+  }
+  if (op.type === 'deleteContextItem') {
+    await deleteContextItem(supabase, agentId, op.data);
+    return;
+  }
+  if (op.type === 'reorderContextItems') {
+    await reorderContextItems(supabase, agentId, op.data);
+    return;
+  }
+  await dispatchSkillOps(supabase, agentId, op);
+}
+
+async function dispatchSkillOps(supabase: SupabaseClient, agentId: string, op: Operation): Promise<void> {
+  if (op.type === 'insertSkill') {
+    await insertSkill(supabase, agentId, op.data);
+    return;
+  }
+  if (op.type === 'deleteSkill') {
+    await deleteSkill(supabase, agentId, op.data);
+    return;
+  }
+  if (op.type === 'deleteManySkills') {
+    await deleteManySkills(supabase, agentId, op.data);
+    return;
+  }
   throw new Error(`Unhandled operation type: ${op.type}`);
 }
 

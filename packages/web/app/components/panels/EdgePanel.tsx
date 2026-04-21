@@ -36,12 +36,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Card } from "@/components/ui/card";
 import type {
-  McpServerConfig,
   Precondition,
   PreconditionType,
   ToolFieldValue,
 } from "../../schemas/graph.schema";
-import type { DiscoveredTool } from "../../lib/api";
 import type { PushOperation } from "../../utils/operationBuilders";
 import type { RFEdgeData, RFNodeData } from "../../utils/graphTransformers";
 import type { Edge } from "@xyflow/react";
@@ -67,9 +65,6 @@ interface EdgePanelProps {
   onEdgeDeleted?: () => void;
   onSelectNode?: (nodeId: string) => void;
   availableContextPreconditions?: string[];
-  availableMcpTools?: DiscoveredTool[];
-  mcpServers?: McpServerConfig[];
-  mcpDiscoveredTools?: Record<string, DiscoveredTool[]>;
   pushOperation: PushOperation;
 }
 
@@ -83,9 +78,6 @@ export function EdgePanel({
   onEdgeDeleted,
   onSelectNode,
   availableContextPreconditions = [],
-  availableMcpTools = [],
-  mcpServers = [],
-  mcpDiscoveredTools = {},
   pushOperation,
 }: EdgePanelProps) {
   const edges = useEdges<Edge<RFEdgeData>>();
@@ -573,10 +565,9 @@ export function EdgePanel({
                         </div>
                       )}
 
-                      {p.type === "tool_call" && availableMcpTools.length > 0 && (
+                      {p.type === "tool_call" && (
                         <ToolParamsCard
                           toolName={p.value}
-                          tools={availableMcpTools}
                           toolFields={p.toolFields}
                           onToolFieldsChange={(tf) => handleToolFieldsChange(index, tf)}
                         />
@@ -629,8 +620,7 @@ export function EdgePanel({
                         <ToolCombobox
                           value={newPreconditionValue}
                           onValueChange={setNewPreconditionValue}
-                          servers={mcpServers}
-                          discoveredTools={mcpDiscoveredTools}
+
                           placeholder="Select tool..."
                         />
                       ) : (
@@ -646,11 +636,9 @@ export function EdgePanel({
                         />
                       )}
                       {newPreconditionType === "tool_call" &&
-                        newPreconditionValue &&
-                        availableMcpTools.length > 0 && (
+                        newPreconditionValue && (
                           <ToolParamsCard
                             toolName={newPreconditionValue}
-                            tools={availableMcpTools}
                             toolFields={newPreconditionToolFields}
                             onToolFieldsChange={setNewPreconditionToolFields}
                           />
@@ -795,8 +783,6 @@ export function EdgePanel({
                         onValueChange={(v) =>
                           updateMultiEdgeInput(e.id, "value", v)
                         }
-                        servers={mcpServers}
-                        discoveredTools={mcpDiscoveredTools}
                         placeholder="Select tool..."
                       />
                     ) : (
@@ -887,8 +873,7 @@ export function EdgePanel({
                 <ToolCombobox
                   value={editingPreconditionValue}
                   onValueChange={setEditingPreconditionValue}
-                  servers={mcpServers}
-                  discoveredTools={mcpDiscoveredTools}
+
                   placeholder="Select tool..."
                 />
               ) : (

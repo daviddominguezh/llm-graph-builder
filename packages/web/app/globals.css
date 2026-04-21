@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "overlayscrollbars/overlayscrollbars.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -48,23 +49,25 @@
 }
 
 :root {
+  --scrollbar-thumb: rgb(202 202 202);
+  --scrollbar-thumb-hover: rgb(202 202 202);
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(0.967 0.001 286.375);
   --card-foreground: oklch(0.141 0.005 285.823);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.51 0.23 277);
+  --primary: black;
   --primary-foreground: oklch(0.96 0.02 272);
-  --secondary: oklch(0.55 0 0);
-  --secondary-foreground: oklch(0.98 0 0);
+  --secondary: rgb(0, 136, 255);
+  --secondary-foreground: oklch(1 0 0);
   --muted: oklch(0.967 0.001 286.375);
   --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.51 0.23 277);
+  --accent: black;
   --accent-foreground: oklch(0.96 0.02 272);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
+  --input: rgb(236, 236, 236);
   --ring: oklch(0.705 0.015 286.067);
   --chart-1: oklch(0.79 0.10 275);
   --chart-2: oklch(0.68 0.16 277);
@@ -74,30 +77,32 @@
   --radius: 0.625rem;
   --sidebar: lab(98.26% 0 0);
   --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.51 0.23 277);
+  --sidebar-primary: black;
   --sidebar-primary-foreground: oklch(0.96 0.02 272);
   --sidebar-accent: lab(96.52% -.0000298023 .0000119209);
   --sidebar-accent-foreground: oklch(0.96 0.02 272);
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.705 0.015 286.067);
-  --canvas: #f5f5f5;
+  --canvas: #fff;
   --canvas-dots: lab(50% 0 0);
 }
 
 .dark {
+  --scrollbar-thumb: rgb(69 69 69);
+  --scrollbar-thumb-hover: rgb(69 69 69);
   --background: lab(2.75381% 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.21 0.006 285.885);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.21 0.006 285.885);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.59 0.20 277);
-  --primary-foreground: oklch(0.96 0.02 272);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
+  --primary: white;
+  --primary-foreground: black;
+  --secondary: rgb(0, 120, 210);
+  --secondary-foreground: oklch(1 0 0);
   --muted: oklch(0% 0 0);
   --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.59 0.20 277);
+  --accent: white;
   --accent-foreground: oklch(0.96 0.02 272);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(25.197% 0.00003 271.152);
@@ -110,13 +115,13 @@
   --chart-5: oklch(0.46 0.21 277);
   --sidebar: lab(7.78201% -.0000149012 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.68 0.16 277);
+  --sidebar-primary: white;
   --sidebar-primary-foreground: oklch(0.96 0.02 272);
   --sidebar-accent: lab(15.204% 0 -.00000596046);
   --sidebar-accent-foreground: oklch(0.96 0.02 272);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.552 0.016 285.938);
-  --canvas: #0F0F0F;
+  --canvas: #000;
   --canvas-dots: lab(100% 0 0/.2);
 }
 
@@ -124,9 +129,125 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Native scrollbar fallback for elements not wrapped in <ScrollArea>. We intentionally
+   do NOT set the standard scrollbar-color / scrollbar-width properties: Chrome 121+
+   treats them as the primary scrollbar implementation and stops applying
+   ::-webkit-scrollbar rules when they are set. Firefox gets default native scrollbars. */
+::-webkit-scrollbar {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  background-clip: padding-box;
+  border: 4.5px solid transparent;
+  border-radius: 9999px;
+  min-height: 40px;
+  transition: border-width 150ms ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  border-width: 3px;
+  cursor: pointer;
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+/* Inside OverlayScrollbars viewports, suppress the native scrollbar entirely —
+   the library draws its own fake scrollbar as an overlay, and we don't want
+   the native one to reserve any gutter space inside the viewport. */
+[data-overlayscrollbars-viewport]::-webkit-scrollbar,
+[data-overlayscrollbars-viewport]::-webkit-scrollbar-thumb,
+[data-overlayscrollbars-viewport]::-webkit-scrollbar-track,
+[data-overlayscrollbars-viewport]::-webkit-scrollbar-corner {
+  width: 0;
+  height: 0;
+  background: transparent;
+  display: none;
+}
+
+/* Preemptively hide native scrollbars on Tailwind `overflow-*` utilities so
+   there's no 12px gutter flicker during the initial paint (before the
+   client-side OverlayScrollbars hijack runs). These elements will get overlay
+   scrollbars drawn on top by the library. Elements that opt out with
+   `data-native-scroll` keep the styled native scrollbar. */
+.overflow-auto:not([data-native-scroll]),
+.overflow-y-auto:not([data-native-scroll]),
+.overflow-x-auto:not([data-native-scroll]),
+.overflow-scroll:not([data-native-scroll]),
+.overflow-y-scroll:not([data-native-scroll]),
+.overflow-x-scroll:not([data-native-scroll]) {
+  scrollbar-width: none;
+}
+
+.overflow-auto:not([data-native-scroll])::-webkit-scrollbar,
+.overflow-y-auto:not([data-native-scroll])::-webkit-scrollbar,
+.overflow-x-auto:not([data-native-scroll])::-webkit-scrollbar,
+.overflow-scroll:not([data-native-scroll])::-webkit-scrollbar,
+.overflow-y-scroll:not([data-native-scroll])::-webkit-scrollbar,
+.overflow-x-scroll:not([data-native-scroll])::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+/* Tenant list row: underline the tenant name on link hover as a clickable affordance. */
+.tenant-row-link:hover .tenant-row-name {
+  text-decoration: underline;
+  text-decoration-color: var(--foreground);
+  text-underline-offset: 2px;
+  color: var(--foreground);
+}
+.tenant-row-link:hover {
+  color: var(--foreground);
+}
+
+/* When we hijack a Tailwind `.overflow-*` div, it becomes an OverlayScrollbars
+   host. The host must NOT scroll natively — scrolling belongs to the internal
+   viewport child. Override any overflow utility class on the host so the
+   host's own native scrollbar disappears. */
+[data-overlayscrollbars~="host"] {
+  overflow: hidden;
+}
+
+/* OverlayScrollbars custom theme: thin 3px thumb → 6px on hover, no track, rounded. */
+.os-theme-closer {
+  --os-size: 12px;
+  --os-padding-perpendicular: 0;
+  --os-padding-axis: 2px;
+  --os-track-border-radius: 0;
+  --os-handle-interactive-area-offset: 0;
+  --os-handle-border-radius: 9999px;
+  --os-handle-bg: var(--scrollbar-thumb);
+  --os-handle-bg-hover: var(--scrollbar-thumb-hover);
+  --os-handle-bg-active: var(--scrollbar-thumb-hover);
+  --os-handle-perpendicular-size: 25%;
+  --os-handle-perpendicular-size-hover: 50%;
+  --os-handle-perpendicular-size-active: 50%;
+  --os-handle-min-size: 40px;
+}
+
+.os-theme-closer .os-scrollbar-handle {
+  transition: width 150ms ease, height 150ms ease, background-color 150ms ease;
+}
+
+.os-theme-closer .os-scrollbar-handle:hover {
+  cursor: pointer;
 }
 
 /* Model selector trigger: suppress focus ring/border when dropdown is open */
@@ -143,12 +264,21 @@ div.model-selector-trigger[data-slot="input-group"] {
   margin-bottom: 0px;
 }
 
-.markdown-content > :is(h1, h2, h3, h4, h5, h6) {
+.markdown-content> :is(h1, h2, h3, h4, h5, h6) {
   border-bottom: 1px solid #DDD !important;
   padding-bottom: 4px !important;
   margin-bottom: 8px !important;
   margin-top: 8px !important;
 }
+
+.markdown-content>p:not(:has(+ ul)):not(:has(+ ol)) {
+  margin-bottom: 8px;
+}
+
+.markdown-content> :is(ul, ol) {
+  margin-bottom: 8px !important;
+}
+
 
 .markdown-content pre {
   background-color: var(--muted);
@@ -286,6 +416,7 @@ div.model-selector-trigger[data-slot="input-group"] {
     opacity: 0;
     transform: translateY(12px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -297,15 +428,18 @@ div.model-selector-trigger[data-slot="input-group"] {
 }
 
 @keyframes auth-shake {
+
   0%,
   100% {
     transform: translateX(0);
   }
+
   15%,
   45%,
   75% {
     transform: translateX(-3px);
   }
+
   30%,
   60%,
   90% {
@@ -317,10 +451,138 @@ div.model-selector-trigger[data-slot="input-group"] {
   animation: auth-shake 0.4s ease-in-out;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .auth-card-enter,
-  .auth-shake {
-    animation: none;
+/* Tenant table row entrance */
+@keyframes row-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
+.row-enter {
+  animation: row-enter 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Copy confirmation scale-in */
+@keyframes check-pop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+
+  60% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.check-pop {
+  animation: check-pop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Welcome page staggered entrance */
+@keyframes welcome-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.welcome-stagger-1 {
+  animation: welcome-enter 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.welcome-stagger-2 {
+  animation: welcome-enter 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+}
+
+.welcome-stagger-3 {
+  animation: welcome-enter 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .auth-card-enter,
+  .auth-shake,
+  .row-enter,
+  .check-pop,
+  .welcome-stagger-1,
+  .welcome-stagger-2,
+  .welcome-stagger-3 {
+    animation: none;
+  }
+
+  .animate-in {
+    --tw-enter-opacity: 1;
+    --tw-enter-translate-y: 0;
+    --tw-enter-translate-x: 0;
+    animation-duration: 0.01ms;
+  }
+}
+
+/* Glass panel effect */
+.glass-panel {
+  isolation: isolate;
+}
+
+.glass-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset 2px 2px 0px -2px rgba(251, 251, 251, 1),
+    inset -2px -2px 0px -2px rgba(251, 251, 251, 1);
+}
+
+.dark .glass-panel::before {
+  box-shadow:
+    inset 2px 2px 0px -2px var(--input),
+    inset -2px -2px 0px -2px var(--input);
+}
+
+.glass-panel--background::before {
+  background-color: rgb(255 255 255 / 85%);
+}
+
+.glass-panel--foreground::before {
+  background-color: rgb(245 245 245 / 20%);
+}
+
+.dark .glass-panel--background::before {
+  background-color: rgb(20 20 20 / 85%);
+}
+
+.dark .glass-panel--foreground::before {
+  background-color: rgb(30 30 30 / 40%);
+}
+
+.glass-panel::after {
+  content: '';
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  backdrop-filter: blur(16px);
+  overflow: hidden;
+  box-shadow: inset 3px -1px 0px -2px var(--border), -0.5px 1px 0px -0.5px var(--border), 1.5px -1.5px 0px -1px var(--border);
+}

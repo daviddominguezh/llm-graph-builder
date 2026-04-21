@@ -1,0 +1,216 @@
+'use client';
+
+import type { Message } from '@daviddh/llm-graph-runner';
+import { useCallback, useRef, useState } from 'react';
+
+import type { ConversationEntry, NodeResult, SimulationTokens } from '../types/simulation';
+import { START_NODE_ID } from '../utils/graphContext';
+import type { FullSetters, GraphSnapshot } from './useSimulationHelpers';
+
+const DEFAULT_MODEL_ID = 'x-ai/grok-4.1-fast';
+const INITIAL_TOKEN_COUNT = 0;
+
+const EMPTY_TOKENS: SimulationTokens = {
+  input: INITIAL_TOKEN_COUNT,
+  output: INITIAL_TOKEN_COUNT,
+  cached: INITIAL_TOKEN_COUNT,
+};
+
+export { EMPTY_TOKENS };
+
+export interface SimulationHookState {
+  active: boolean;
+  loading: boolean;
+  currentNode: string;
+  messages: Message[];
+  lastUserText: string;
+  nodeResults: NodeResult[];
+  visitedNodes: string[];
+  totalTokens: SimulationTokens;
+  structuredOutputs: Record<string, unknown[]>;
+  conversationEntries: ConversationEntry[];
+  turnCount: number;
+  simulationLeadScore: number | null;
+  modelId: string;
+  setModelId: React.Dispatch<React.SetStateAction<string>>;
+  snapshotRef: React.RefObject<GraphSnapshot | null>;
+  setters: FullSetters;
+}
+
+interface SnapshotRefReturn {
+  snapshotRef: React.RefObject<GraphSnapshot | null>;
+  saveSnapshot: (s: GraphSnapshot | null) => void;
+  getSnapshot: () => GraphSnapshot | null;
+}
+
+function useSnapshotRef(): SnapshotRefReturn {
+  const snapshotRef = useRef<GraphSnapshot | null>(null);
+  const saveSnapshot = useCallback((s: GraphSnapshot | null) => {
+    snapshotRef.current = s;
+  }, []);
+  const getSnapshot = useCallback((): GraphSnapshot | null => snapshotRef.current, []);
+  return { snapshotRef, saveSnapshot, getSnapshot };
+}
+
+interface AbortRefReturn {
+  abortSimulation: () => void;
+  abortAndCreateSignal: () => AbortSignal;
+}
+
+export function useAbortRef(): AbortRefReturn {
+  const abortRef = useRef<AbortController | null>(null);
+  const abortSimulation = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+  }, []);
+  const abortAndCreateSignal = useCallback((): AbortSignal => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    return controller.signal;
+  }, []);
+  return { abortSimulation, abortAndCreateSignal };
+}
+
+interface CoreStateValues {
+  active: boolean;
+  loading: boolean;
+  currentNode: string;
+  messages: Message[];
+  lastUserText: string;
+  nodeResults: NodeResult[];
+  visitedNodes: string[];
+  totalTokens: SimulationTokens;
+  structuredOutputs: Record<string, unknown[]>;
+  conversationEntries: ConversationEntry[];
+  turnCount: number;
+  simulationLeadScore: number | null;
+}
+
+interface CoreDispatchers {
+  setActive: React.Dispatch<React.SetStateAction<boolean>>;
+  setLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  setCurrentNode: React.Dispatch<React.SetStateAction<string>>;
+  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+  setLastUserText: React.Dispatch<React.SetStateAction<string>>;
+  setNodeResults: React.Dispatch<React.SetStateAction<NodeResult[]>>;
+  setVisitedNodes: React.Dispatch<React.SetStateAction<string[]>>;
+  setTotalTokens: React.Dispatch<React.SetStateAction<SimulationTokens>>;
+  setStructuredOutputs: React.Dispatch<React.SetStateAction<Record<string, unknown[]>>>;
+  setConversationEntries: React.Dispatch<React.SetStateAction<ConversationEntry[]>>;
+  setTurnCount: React.Dispatch<React.SetStateAction<number>>;
+  setSimulationLeadScore: React.Dispatch<React.SetStateAction<number | null>>;
+}
+
+interface CoreStateResult {
+  values: CoreStateValues;
+  dispatchers: CoreDispatchers;
+}
+
+interface SessionState {
+  active: boolean;
+  loading: boolean;
+  currentNode: string;
+  messages: Message[];
+  lastUserText: string;
+  visitedNodes: string[];
+  turnCount: number;
+  simulationLeadScore: number | null;
+}
+
+interface SessionDispatchers {
+  setActive: React.Dispatch<React.SetStateAction<boolean>>;
+  setLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  setCurrentNode: React.Dispatch<React.SetStateAction<string>>;
+  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+  setLastUserText: React.Dispatch<React.SetStateAction<string>>;
+  setVisitedNodes: React.Dispatch<React.SetStateAction<string[]>>;
+  setTurnCount: React.Dispatch<React.SetStateAction<number>>;
+  setSimulationLeadScore: React.Dispatch<React.SetStateAction<number | null>>;
+}
+
+function useSessionState(): { values: SessionState; dispatchers: SessionDispatchers } {
+  const [active, setActive] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [currentNode, setCurrentNode] = useState(START_NODE_ID);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [lastUserText, setLastUserText] = useState('');
+  const [visitedNodes, setVisitedNodes] = useState<string[]>([]);
+  const [turnCount, setTurnCount] = useState(INITIAL_TOKEN_COUNT);
+  const [simulationLeadScore, setSimulationLeadScore] = useState<number | null>(null);
+  return {
+    values: {
+      active,
+      loading,
+      currentNode,
+      messages,
+      lastUserText,
+      visitedNodes,
+      turnCount,
+      simulationLeadScore,
+    },
+    dispatchers: {
+      setActive,
+      setLoading,
+      setCurrentNode,
+      setMessages,
+      setLastUserText,
+      setVisitedNodes,
+      setTurnCount,
+      setSimulationLeadScore,
+    },
+  };
+}
+
+interface ResultsState {
+  nodeResults: NodeResult[];
+  totalTokens: SimulationTokens;
+  structuredOutputs: Record<string, unknown[]>;
+  conversationEntries: ConversationEntry[];
+}
+
+interface ResultsDispatchers {
+  setNodeResults: React.Dispatch<React.SetStateAction<NodeResult[]>>;
+  setTotalTokens: React.Dispatch<React.SetStateAction<SimulationTokens>>;
+  setStructuredOutputs: React.Dispatch<React.SetStateAction<Record<string, unknown[]>>>;
+  setConversationEntries: React.Dispatch<React.SetStateAction<ConversationEntry[]>>;
+}
+
+function useResultsState(): { values: ResultsState; dispatchers: ResultsDispatchers } {
+  const [nodeResults, setNodeResults] = useState<NodeResult[]>([]);
+  const [totalTokens, setTotalTokens] = useState<SimulationTokens>(EMPTY_TOKENS);
+  const [structuredOutputs, setStructuredOutputs] = useState<Record<string, unknown[]>>({});
+  const [conversationEntries, setConversationEntries] = useState<ConversationEntry[]>([]);
+  return {
+    values: { nodeResults, totalTokens, structuredOutputs, conversationEntries },
+    dispatchers: { setNodeResults, setTotalTokens, setStructuredOutputs, setConversationEntries },
+  };
+}
+
+function useSimCoreState(): CoreStateResult {
+  const session = useSessionState();
+  const results = useResultsState();
+  return {
+    values: { ...session.values, ...results.values },
+    dispatchers: { ...session.dispatchers, ...results.dispatchers },
+  };
+}
+
+function buildSetters(d: CoreDispatchers, snap: SnapshotRefReturn): FullSetters {
+  return {
+    ...d,
+    saveSnapshot: snap.saveSnapshot,
+    getSnapshot: snap.getSnapshot,
+    setSimulationLeadScore: (score: number | null) => {
+      d.setSimulationLeadScore(score);
+    },
+  };
+}
+
+export function useSimulationState(): SimulationHookState {
+  const { values, dispatchers } = useSimCoreState();
+  const [modelId, setModelId] = useState(DEFAULT_MODEL_ID);
+  const snap = useSnapshotRef();
+  const setters = buildSetters(dispatchers, snap);
+  return { ...values, modelId, setModelId, snapshotRef: snap.snapshotRef, setters };
+}

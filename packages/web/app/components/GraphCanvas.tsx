@@ -23,6 +23,7 @@ import { nodeTypes } from './nodes';
 import { SimulationPanel } from './panels/simulation';
 
 interface GraphCanvasProps {
+  agentId: string;
   reactFlowWrapper: React.RefObject<HTMLDivElement | null>;
   displayNodes: Array<Node<RFNodeData>>;
   edges: Array<Edge<RFEdgeData>>;
@@ -35,6 +36,7 @@ interface GraphCanvasProps {
   zoomViewNodeId: string | null;
   simulation: SimulationState;
   onExitZoomView: () => void;
+  readOnly?: boolean;
 }
 
 function ZoomViewOverlay({
@@ -53,6 +55,7 @@ function ZoomViewOverlay({
 }
 
 export function GraphCanvas({
+  agentId,
   reactFlowWrapper,
   displayNodes,
   edges,
@@ -65,6 +68,7 @@ export function GraphCanvas({
   zoomViewNodeId,
   simulation,
   onExitZoomView,
+  readOnly,
 }: GraphCanvasProps) {
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -76,8 +80,9 @@ export function GraphCanvas({
 
   return (
     <div className="relative h-full w-full flex-1 overflow-hidden">
-      <main ref={reactFlowWrapper} className="absolute inset-0">
+      <div ref={reactFlowWrapper} className="absolute inset-0">
         <ReactFlow
+          id={`flow-${agentId}`}
           nodes={displayNodes}
           edges={edges}
           onNodesChange={onNodesChange}
@@ -88,12 +93,14 @@ export function GraphCanvas({
           onPaneClick={onPaneClick}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
+          nodesDraggable={readOnly !== true}
+          nodesConnectable={readOnly !== true}
           deleteKeyCode={null}
           defaultViewport={{ x: 0, y: 0, zoom: 1 }}
           colorMode={colorMode}
         >
           <Background color="var(--canvas-dots)" />
-          <Controls className='ml-1! mb-1! shadow-xs!' />
+          <Controls className='ml-62! mb-2! shadow-xs!' />
         </ReactFlow>
 
         {zoomViewNodeId !== null && (
@@ -104,18 +111,22 @@ export function GraphCanvas({
           <SimulationPanel
             lastUserText={simulation.lastUserText}
             nodeResults={simulation.nodeResults}
+            conversationEntries={simulation.conversationEntries}
             visitedNodes={simulation.visitedNodes}
             terminated={simulation.terminated}
             loading={simulation.loading}
             currentNode={simulation.currentNode}
             totalTokens={simulation.totalTokens}
+            turnCount={simulation.turnCount}
+            isAgent={simulation.isAgent}
             modelId={simulation.modelId}
             onModelIdChange={simulation.setModelId}
             onSendMessage={simulation.sendMessage}
             onStop={simulation.stop}
+            onClear={simulation.clear}
           />
         )}
-      </main>
+      </div>
     </div>
   );
 }

@@ -78,6 +78,12 @@ const AGENT_ROW: AgentRow = {
   updated_at: '2024-01-01',
   staging_api_key_id: null,
   production_api_key_id: 'key-prod',
+  is_public: false,
+  category: 'engineering',
+  created_from_template_id: null,
+  app_type: 'workflow',
+  system_prompt: null,
+  max_steps: null,
 };
 
 const CLEAN_GRAPH: Graph = {

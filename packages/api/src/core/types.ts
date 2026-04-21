@@ -18,6 +18,7 @@ import type {
   TokenLog,
   ToolModelConfig,
 } from '@src/types/ai/index.js';
+import type { DispatchSentinel, FinishSentinel } from '@src/types/sentinels.js';
 import type { Context } from '@src/types/tools.js';
 
 /**
@@ -43,6 +44,8 @@ export interface CallAgentOutput {
   text?: string;
   debugMessages: Record<string, ModelMessage[][]>;
   structuredOutputs?: Array<{ nodeId: string; data: unknown }>;
+  dispatchResult?: DispatchSentinel;
+  finishResult?: FinishSentinel;
 }
 
 /**
@@ -80,6 +83,7 @@ export interface ReplyGenerationResult {
   lastMessage: AssistantModelMessage;
   copyMsgs: ModelMessage[][];
   reasoning?: string;
+  responseMessages: Array<AssistantModelMessage | ToolModelMessage>;
 }
 
 /**

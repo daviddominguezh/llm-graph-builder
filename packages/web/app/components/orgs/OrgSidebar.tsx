@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import type { LucideIcon } from 'lucide-react';
 import {
+  Building2,
   ChevronsUpDown,
   KeyRound,
   LayoutDashboard,
@@ -39,7 +40,7 @@ function OrgAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null
         alt={name}
         width={20}
         height={20}
-        className="h-5 w-5 shrink-0 rounded-full object-cover border"
+        className="h-5 w-5 shrink-0 rounded-full object-cover border border-input border-[1px]"
       />
     );
   }
@@ -63,16 +64,23 @@ function NavItem({
   onClick?: (e: React.MouseEvent) => void;
 }) {
   return (
-    <div className={`group flex flex-col justify-center py-1 ${active ? 'bg-primary/15 rounded-[5px]' : ''}`}>
+    <div
+      className={`cursor-pointer group flex flex-col justify-center items-center p-0 w-full aspect-square rounded-[5px] ${active ? 'bg-primary/8 hover:bg-primary/8' : 'hover:bg-sidebar-accent'}`}
+    >
       <Button
         variant="ghost"
-        size="sm"
-        className={`h-6 w-full justify-start px-2 border-x-0 border-y-0 rounded-none ${
+        className={`h-5 aspect-square w-full justify-start p-0! border-x-0 border-y-0 rounded-none group-hover:bg-transparent! ${
           active
-            ? 'border-l border-l-2 border-primary bg-transparent text-primary hover:text-primary'
-            : 'border-l border-l-2 group-hover:border-foreground text-muted-foreground hover:text-foreground/70 hover:bg-sidebar-accent'
+            ? 'border-l border-l-2 border-transparent bg-transparent text-primary hover:text-primary'
+            : 'border-l border-l-2 group-hover:border-transparent text-muted-foreground group-hover:text-foreground!'
         }`}
-        render={<Link href={href} onClick={onClick} />}
+        render={
+          <Link
+            className="border-none w-full h-full p-0 m-0 flex! items-center! justify-center!"
+            href={href}
+            onClick={onClick}
+          />
+        }
       >
         {icon}
       </Button>
@@ -95,7 +103,7 @@ function NavItemExpanded({
 }) {
   return (
     <div
-      className={`group flex flex-col justify-center py-1 rounded-[5px] ${active ? 'bg-primary/15' : 'hover:bg-sidebar-accent'}`}
+      className={`cursor-pointer group flex flex-col justify-center py-1 rounded-[5px] ${active ? 'bg-primary/15' : 'hover:bg-sidebar-accent'}`}
     >
       <Button
         variant="ghost"
@@ -145,6 +153,7 @@ const TOP_NAV_ITEMS: NavItemDef[] = [
   { segment: '', path: '', Icon: Zap, labelKey: 'agents' },
   { segment: 'dashboard', path: '/dashboard', Icon: LayoutDashboard, labelKey: 'dashboard' },
   { segment: 'chats', path: '/chats', Icon: MessageSquare, labelKey: 'chats' },
+  { segment: 'tenants', path: '/tenants', Icon: Building2, labelKey: 'tenants' },
 ];
 
 const BOTTOM_NAV_ITEMS: NavItemDef[] = [
@@ -177,7 +186,7 @@ function NavList({
         <NavItem
           key={item.labelKey}
           href={`${basePath}${item.path}`}
-          icon={<item.Icon className="size-4" />}
+          icon={<item.Icon />}
           active={segment === item.segment}
           onClick={onItemClick ? (e) => onItemClick(item, e) : undefined}
         />
@@ -226,20 +235,19 @@ function useLogout() {
   };
 }
 
-function LogoutButton({ collapsed }: { collapsed: boolean }) {
-  const t = useTranslations('common');
+function LogoutButton() {
   const handleLogout = useLogout();
 
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="h-8 w-full justify-start gap-2 px-2 text-muted-foreground hover:text-destructive hover:bg-sidebar-accent!"
-      onClick={handleLogout}
-    >
-      <LogOut className="size-4 shrink-0" />
-      {!collapsed && <span className="whitespace-nowrap text-sm font-normal">{t('logout')}</span>}
-    </Button>
+    <div className="flex flex-col justify-center items-center p-0 w-full aspect-square rounded-[5px] hover:bg-sidebar-accent">
+      <Button
+        variant="ghost"
+        className="w-full h-full p-0! border-0 rounded-none hover:bg-transparent! text-muted-foreground hover:text-destructive"
+        onClick={handleLogout}
+      >
+        <LogOut />
+      </Button>
+    </div>
   );
 }
 
@@ -285,7 +293,14 @@ function useSidebarState() {
     if (!switcherOpen) collapse();
   };
 
-  return { collapsed, contentCollapsed, switcherOpen, handleSwitcherChange, handleMouseEnter, handleMouseLeave };
+  return {
+    collapsed,
+    contentCollapsed,
+    switcherOpen,
+    handleSwitcherChange,
+    handleMouseEnter,
+    handleMouseLeave,
+  };
 }
 
 function useAgentsNavClick(activeSegment: string) {
@@ -312,9 +327,7 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
 
   return (
     <aside
-      className={`absolute left-0 top-0 bottom-0 z-11 flex flex-col gap-2 overflow-hidden p-2 pl-1.5 transition-[width,background-color] duration-100 ${sidebar.collapsed ? 'w-[52px] bg-sidebar' : 'w-50 bg-background'} ${sidebar.contentCollapsed ? 'border border-transparent' : 'shadow-lg border rounded-e-md z-12'}`}
-      onMouseEnter={sidebar.handleMouseEnter}
-      onMouseLeave={sidebar.handleMouseLeave}
+      className={`shrink-0 flex flex-col gap-2 overflow-hidden p-2 pl-1.5 pr-0 pt-3 pb-2 transition-[width,background-color] duration-100 ${sidebar.collapsed ? 'w-[calc(45px-var(--spacing)*1.5)] bg-background' : 'w-58.5 bg-background'} ${sidebar.contentCollapsed ? 'border border-transparent' : 'shadow-lg border rounded-e-md z-12'}`}
     >
       <OrgSwitcherPopover
         currentOrg={org}
@@ -323,7 +336,6 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
       >
         {sidebar.contentCollapsed ? <CollapsedTrigger org={org} /> : <ExpandedTrigger org={org} />}
       </OrgSwitcherPopover>
-      <Separator />
       {sidebar.contentCollapsed ? (
         <NavList items={TOP_NAV_ITEMS} basePath={basePath} segment={segment} onItemClick={handleNavClick} />
       ) : (
@@ -341,7 +353,7 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
           <NavListExpanded items={BOTTOM_NAV_ITEMS} basePath={basePath} segment={segment} />
         )}
         <Separator />
-        <LogoutButton collapsed={sidebar.contentCollapsed} />
+        <LogoutButton />
       </div>
     </aside>
   );

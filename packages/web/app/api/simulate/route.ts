@@ -10,7 +10,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const HTTP_BAD_REQUEST = 400;
 const HTTP_UNAUTHORIZED = 401;
 const HTTP_GATEWAY_TIMEOUT = 504;
-const UPSTREAM_TIMEOUT_MS = 30_000;
+const UPSTREAM_TIMEOUT_MS = 300_000;
 
 interface SimulateBody {
   apiKeyId?: string;
@@ -73,6 +73,28 @@ function buildSseStreamResponse(upstream: Response): Response {
   });
 }
 
+function resolveUpstreamUrl(body: Record<string, unknown>): string {
+  if (body.appType === 'agent') {
+    return `${API_URL}/simulate-agent`;
+  }
+  return `${API_URL}/simulate`;
+}
+
+function extractContent(item: unknown): string {
+  if (typeof item === 'object' && item !== null && 'content' in item) {
+    const record = item as Record<string, unknown>;
+    return typeof record.content === 'string' ? record.content : '';
+  }
+  return typeof item === 'string' ? item : '';
+}
+
+function flattenContextItems(body: Record<string, unknown>): Record<string, unknown> {
+  if (body.appType !== 'agent') return body;
+  const { contextItems, ...rest } = body;
+  const items = Array.isArray(contextItems) ? contextItems.map(extractContent).join('\n\n') : '';
+  return { ...rest, context: items };
+}
+
 async function fetchUpstream(body: Record<string, unknown>): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => {
@@ -80,7 +102,8 @@ async function fetchUpstream(body: Record<string, unknown>): Promise<Response> {
   }, UPSTREAM_TIMEOUT_MS);
 
   try {
-    const upstream = await fetch(`${API_URL}/simulate`, {
+    const url = resolveUpstreamUrl(body);
+    const upstream = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -121,8 +144,10 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ error }, { status: HTTP_BAD_REQUEST });
   }
 
-  const rest = Object.fromEntries(Object.entries(raw).filter(([k]) => k !== 'apiKeyId'));
+  const stripped = Object.fromEntries(Object.entries(raw).filter(([k]) => k !== 'apiKeyId'));
+  const rest = flattenContextItems(stripped);
   await resolveMcpServersInGraph(rest.graph);
+  await resolveMcpServersInGraph(rest);
 
   const {
     data: { session },

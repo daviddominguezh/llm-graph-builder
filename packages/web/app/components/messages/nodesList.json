@@ -1,0 +1,50 @@
+[
+  {
+    "nodeId": "GreetingAskName",
+    "description": "Estado: esperando a que el usuario diga su nombre, y registrarlo"
+  },
+  {
+    "nodeId": "RegisterUserName",
+    "description": "Estado: esperando a que el usuario diga con qué necesita ayuda, y brindársela"
+  },
+  {
+    "nodeId": "AskGenderAsSearchCriteria",
+    "description": "Estado: esperando a que el usuario especifique si busca productos para hombre o mujer, y continuar con la búsqueda"
+  },
+  {
+    "nodeId": "AskTheReferenceImage",
+    "description": "Estado: esperando a que el usuario envíe la imagen de referencia para buscar el producto en el cátalogo"
+  },
+  {
+    "nodeId": "NotInterestedInSeeingAnyMore",
+    "description": "Estado: esperando a que el usuario indique si necesita ayuda con alguna otra cosa"
+  },
+  {
+    "nodeId": "CartOptions",
+    "description": "Estado: esperando a que el usuario indique si quiere continuar con el pedido actual, buscar más opciones, o eliminar algún producto del carrito"
+  },
+  {
+    "nodeId": "CustomLink",
+    "description": "Estado: esperando a que el usuario confirme si llenó el formulario de personalización"
+  },
+  {
+    "nodeId": "AskCity",
+    "description": "Estado: esperando a que el usuario especifique la ciudad para calcular el precio del envío y la cobertura"
+  },
+  {
+    "nodeId": "AskPayment",
+    "description": "Estado: esperando a que el usuario especifique su método de pago preferido y continuar"
+  },
+  {
+    "nodeId": "AskDataOnline",
+    "description": "Estado: esperando a que el usuario suministre los datos requeridos para el pago en línea"
+  },
+  {
+    "nodeId": "ShowOrderSummary",
+    "description": "Estado: esperando a que el usuario confirme si quiere finalizar la orden actual después de ver el monto total a pagar"
+  },
+  {
+    "nodeId": "AskDataCOD",
+    "description": "Estado: esperando a que el usuario suministre los datos requeridos para pago contra entrega"
+  }
+]

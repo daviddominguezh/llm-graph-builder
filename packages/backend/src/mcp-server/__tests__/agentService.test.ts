@@ -20,7 +20,16 @@ type GetAgentBySlugFn = (
 
 type InsertAgentFn = (
   supabase: SupabaseClient,
-  input: { orgId: string; name: string; slug: string; description: string }
+  input: {
+    orgId: string;
+    name: string;
+    slug: string;
+    description: string;
+    category: string;
+    isPublic: boolean;
+    appType: string;
+    systemPrompt: string | null;
+  }
 ) => Promise<{ result: AgentRow | null; error: string | null }>;
 
 type UpdateAgentFn = (
@@ -97,6 +106,12 @@ const agentRow: AgentRow = {
   updated_at: '2024-01-01T00:00:00Z',
   staging_api_key_id: null,
   production_api_key_id: null,
+  is_public: false,
+  category: 'engineering',
+  created_from_template_id: null,
+  app_type: 'workflow',
+  system_prompt: null,
+  max_steps: null,
 };
 
 beforeEach(() => {
@@ -153,7 +168,7 @@ describe('createAgent', () => {
     mockFindUniqueSlug.mockResolvedValue('my-agent');
     mockInsertAgent.mockResolvedValue({ result: agentRow, error: null });
 
-    const result = await createAgent(ctx, 'My Agent', 'A test agent');
+    const result = await createAgent(ctx, 'My Agent', 'A test agent', 'engineering');
 
     expect(mockGenerateSlug).toHaveBeenCalledWith('My Agent');
     expect(mockFindUniqueSlug).toHaveBeenCalledWith(ctx.supabase, 'my-agent', 'agents');
@@ -162,6 +177,10 @@ describe('createAgent', () => {
       name: 'My Agent',
       slug: 'my-agent',
       description: 'A test agent',
+      category: 'engineering',
+      isPublic: false,
+      appType: 'workflow',
+      systemPrompt: null,
     });
     expect(result).toEqual(agentRow);
   });
@@ -171,7 +190,9 @@ describe('createAgent', () => {
     mockFindUniqueSlug.mockResolvedValue('my-agent');
     mockInsertAgent.mockResolvedValue({ result: null, error: 'Insert failed' });
 
-    await expect(createAgent(buildCtx(), 'My Agent', 'A test agent')).rejects.toThrow('Insert failed');
+    await expect(createAgent(buildCtx(), 'My Agent', 'A test agent', 'sales')).rejects.toThrow(
+      'Insert failed'
+    );
   });
 });
 

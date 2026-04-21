@@ -19,6 +19,12 @@ export interface AgentRow {
   updated_at: string;
   staging_api_key_id: string | null;
   production_api_key_id: string | null;
+  is_public: boolean;
+  category: string;
+  created_from_template_id: string | null;
+  app_type: string;
+  system_prompt: string | null;
+  max_steps: number | null;
 }
 
 export type AgentMetadata = Pick<
@@ -26,6 +32,7 @@ export type AgentMetadata = Pick<
   'id' | 'name' | 'slug' | 'description' | 'version' | 'updated_at'
 > & {
   published_at: string | null;
+  app_type?: string;
 };
 
 /* ------------------------------------------------------------------ */
@@ -78,13 +85,22 @@ export async function getAgentBySlug(
   }
 }
 
+export interface CreateAgentParams {
+  orgId: string;
+  name: string;
+  description: string;
+  category: string;
+  isPublic: boolean;
+  templateAgentId?: string;
+  templateVersion?: number;
+  appType?: string;
+}
+
 export async function createAgent(
-  orgId: string,
-  name: string,
-  description: string
+  params: CreateAgentParams
 ): Promise<{ agent: AgentRow | null; error: string | null }> {
   try {
-    const data = await fetchFromBackend('POST', '/agents', { orgId, name, description });
+    const data = await fetchFromBackend('POST', '/agents', params);
     if (!isAgentRow(data)) return { agent: null, error: 'Invalid response' };
     return { agent: data, error: null };
   } catch (err) {

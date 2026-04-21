@@ -1,0 +1,300 @@
+'use client';
+
+import { getTenantsByOrgAction } from '@/app/actions/tenants';
+import { fetchInstallationRepos, getGitHubConnectUrl } from '@/app/actions/vfsConfig';
+import type { RepoOption } from '@/app/actions/vfsConfig';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
+import { ChevronRight, GitBranch, Plus } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useCallback, useEffect, useState } from 'react';
+
+import { CreateTenantDialog } from '../orgs/tenants/CreateTenantDialog';
+import type { OrgInfo } from './VfsConfigTable';
+import { VfsConfigTable } from './VfsConfigTable';
+import { VfsSettingsPanel } from './VfsSettingsPanel';
+import { useVfsConfigState } from './useVfsConfigState';
+
+/* ------------------------------------------------------------------ */
+/*  Types                                                              */
+/* ------------------------------------------------------------------ */
+
+interface VfsConfigSectionProps {
+  agentId: string;
+  orgId: string;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Tenant loading hook                                                */
+/* ------------------------------------------------------------------ */
+
+function mapTenants(result: Array<{ id: string; name: string }>): OrgInfo[] {
+  return result.map((t) => ({ id: t.id, name: t.name, installationId: null }));
+}
+
+function fetchAndSetTenants(
+  orgId: string,
+  setData: (val: { organizations: OrgInfo[]; loading: boolean }) => void
+): void {
+  void getTenantsByOrgAction(orgId).then(({ result }) => {
+    setData({ organizations: mapTenants(result), loading: false });
+  });
+}
+
+function useTenants(orgId: string) {
+  const [data, setData] = useState<{ organizations: OrgInfo[]; loading: boolean }>({
+    organizations: [],
+    loading: true,
+  });
+
+  useEffect(() => {
+    fetchAndSetTenants(orgId, setData);
+  }, [orgId]);
+
+  const refresh = useCallback(async () => {
+    const { result } = await getTenantsByOrgAction(orgId);
+    setData({ organizations: mapTenants(result), loading: false });
+  }, [orgId]);
+
+  return { ...data, refresh };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Repo loading hook                                                  */
+/* ------------------------------------------------------------------ */
+
+function useRepoMap(organizations: OrgInfo[]) {
+  const [repos, setRepos] = useState<Map<number, RepoOption[]>>(new Map());
+
+  useEffect(() => {
+    void loadRepos(organizations, setRepos);
+  }, [organizations]);
+
+  return repos;
+}
+
+async function loadRepos(
+  organizations: OrgInfo[],
+  setRepos: (val: Map<number, RepoOption[]>) => void
+): Promise<void> {
+  const withInstall = organizations.filter((org) => org.installationId !== null);
+  const entries = await Promise.all(withInstall.map(loadRepoEntry));
+
+  const map = new Map<number, RepoOption[]>();
+  for (const entry of entries) {
+    if (entry !== null) map.set(entry[0], entry[1]);
+  }
+  setRepos(map);
+}
+
+async function loadRepoEntry(org: OrgInfo): Promise<readonly [number, RepoOption[]] | null> {
+  const installId = org.installationId;
+  if (installId === null) return null;
+  try {
+    const repoList = await fetchInstallationRepos(installId);
+    return [installId, repoList] as const;
+  } catch {
+    return null;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Connect handler                                                    */
+/* ------------------------------------------------------------------ */
+
+function useConnectHandler() {
+  return useCallback(async (orgId: string) => {
+    const url = await getGitHubConnectUrl(orgId);
+    if (url !== null) window.location.href = url;
+  }, []);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Main component                                                     */
+/* ------------------------------------------------------------------ */
+
+export function VfsConfigSection({ agentId, orgId }: VfsConfigSectionProps) {
+  const t = useTranslations('vfsConfig');
+  const tenants = useTenants(orgId);
+  const state = useVfsConfigState(agentId);
+  const repos = useRepoMap(tenants.organizations);
+  const handleConnect = useConnectHandler();
+
+  const isEnabled = state.settings !== null;
+
+  if (state.loading || tenants.loading) {
+    return <LoadingState t={t} />;
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <Label htmlFor="vfs-enabled" className="text-xs font-medium cursor-pointer">
+        {t('enableVfs')}
+      </Label>
+      <div className="flex flex-col gap-2 border-l-2 border-accent/20 pl-4 py-2">
+        <div className="flex items-center gap-2">
+          <Checkbox
+            className="cursor-pointer"
+            id="vfs-enabled"
+            checked={isEnabled}
+            onCheckedChange={(checked) => state.handleToggleEnabled(checked === true)}
+          />
+          <span className="text-[11px] text-muted-foreground">{t('enableVfsDescription')}</span>
+        </div>
+
+        {isEnabled && (
+          <div className="animate-in fade-in slide-in-from-top-1 duration-200 mt-4">
+            <EnabledContent
+              state={state}
+              orgId={orgId}
+              organizations={tenants.organizations}
+              repos={repos}
+              handleConnect={handleConnect}
+              onTenantCreated={tenants.refresh}
+              t={t}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Empty state                                                        */
+/* ------------------------------------------------------------------ */
+
+function NoTenantsState({
+  orgId,
+  onCreated,
+  t,
+}: {
+  orgId: string;
+  onCreated: () => void;
+  t: (key: string) => string;
+}) {
+  const tTenants = useTranslations('tenants');
+  const [showCreate, setShowCreate] = useState(false);
+
+  return (
+    <>
+      <div className="border border-ring/50 border-dashed rounded-md flex flex-col items-center gap-2 py-6 text-center bg-input/20">
+        <GitBranch className="size-5 text-muted-foreground/50" />
+        <p className="text-xs text-muted-foreground">{t('noTenantsTitle')}</p>
+        <p className="max-w-xs text-[11px] text-muted-foreground/70">{t('noTenantsDescription')}</p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs gap-1.5 mt-1"
+          onClick={() => setShowCreate(true)}
+        >
+          <Plus className="size-3" />
+          {tTenants('add')}
+        </Button>
+      </div>
+      <CreateTenantDialog
+        orgId={orgId}
+        open={showCreate}
+        onOpenChange={setShowCreate}
+        onCreated={onCreated}
+      />
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Advanced settings toggle                                           */
+/* ------------------------------------------------------------------ */
+
+function AdvancedSettingsToggle({
+  open,
+  onToggle,
+  t,
+}: {
+  open: boolean;
+  onToggle: () => void;
+  t: (key: string) => string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors w-fit"
+    >
+      <ChevronRight className={cn('size-3 transition-transform duration-150', open && 'rotate-90')} />
+      {t('advancedSettings')}
+    </button>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Enabled content                                                    */
+/* ------------------------------------------------------------------ */
+
+function EnabledContent({
+  state,
+  orgId,
+  organizations,
+  repos,
+  handleConnect,
+  onTenantCreated,
+  t,
+}: {
+  state: ReturnType<typeof useVfsConfigState>;
+  orgId: string;
+  organizations: OrgInfo[];
+  repos: Map<number, RepoOption[]>;
+  handleConnect: (orgId: string) => void;
+  onTenantCreated: () => Promise<void>;
+  t: (key: string) => string;
+}) {
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  if (organizations.length === 0) {
+    return <NoTenantsState orgId={orgId} onCreated={onTenantCreated} t={t} />;
+  }
+
+  return (
+    <>
+      <Label className="text-xs font-medium">{t('sectionTitle')}</Label>
+      <div>
+        <VfsConfigTable
+          configs={state.configs}
+          organizations={organizations}
+          repos={repos}
+          onSelectRepo={state.handleUpsertConfig}
+          onRemove={state.handleDeleteConfig}
+          onConnect={handleConnect}
+        />
+      </div>
+      {state.settings !== null && (
+        <>
+          <AdvancedSettingsToggle
+            open={showAdvanced}
+            onToggle={() => setShowAdvanced((prev) => !prev)}
+            t={t}
+          />
+          {showAdvanced && (
+            <div className="animate-in fade-in slide-in-from-top-1 duration-150">
+              <VfsSettingsPanel settings={state.settings} onUpdate={state.handleUpdateSettings} />
+            </div>
+          )}
+        </>
+      )}
+    </>
+  );
+}
+
+function LoadingState({ t }: { t: (key: string) => string }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <Label className="text-xs font-medium">{t('sectionTitle')}</Label>
+      <div className="rounded-md border p-3 space-y-2">
+        <div className="h-3 w-32 animate-pulse rounded bg-muted" />
+        <div className="h-3 w-48 animate-pulse rounded bg-muted" />
+      </div>
+    </div>
+  );
+}

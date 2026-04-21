@@ -1,7 +1,23 @@
+import { TemplateCategorySchema } from '@daviddh/graph-types';
+import { isValidAgentSlug } from '@openflow/shared-validation';
 import type { Request } from 'express';
 
-import { insertAgent } from '../../db/queries/agentQueries.js';
+import {
+  type AgentRow,
+  insertAgent,
+  updateProductionKeyId,
+  updateStagingKeyId,
+} from '../../db/queries/agentQueries.js';
+import { getApiKeysByOrg } from '../../db/queries/apiKeyQueries.js';
+import { assembleTemplateSafeGraph } from '../../db/queries/assembleTemplateSafeGraph.js';
+import { updateBloomFilter } from '../../db/queries/bloomFilterQueries.js';
+import { cloneAgentConfig } from '../../db/queries/cloneAgentConfig.js';
+import { cloneTemplateGraph } from '../../db/queries/cloneTemplateGraph.js';
+import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { findUniqueSlug, generateSlug } from '../../db/queries/slugQueries.js';
+import { getTemplateForClone, incrementDownloads } from '../../db/queries/templateQueries.js';
+import { OPENFLOW_KEY_NAME } from '../../openrouter/managementKeys.js';
+import { buildBitmask } from '../../utils/bloomFilter.js';
 import {
   type AuthenticatedLocals,
   type AuthenticatedResponse,
@@ -12,18 +28,203 @@ import {
 } from '../routeHelpers.js';
 import { parseStringField } from './agentCrudHelpers.js';
 
+/* ------------------------------------------------------------------ */
+/*  Parsing helpers                                                    */
+/* ------------------------------------------------------------------ */
+
+function parseCategory(body: unknown): string | undefined {
+  const raw = parseStringField(body, 'category');
+  if (raw === undefined) return undefined;
+  const parsed = TemplateCategorySchema.safeParse(raw);
+  return parsed.success ? parsed.data : undefined;
+}
+
+function parseIsPublic(body: unknown): boolean {
+  return typeof body === 'object' && body !== null && 'isPublic' in body && body.isPublic === true;
+}
+
+function parseAppType(body: unknown): 'workflow' | 'agent' {
+  if (typeof body === 'object' && body !== null && 'appType' in body && body.appType === 'agent') {
+    return 'agent';
+  }
+  return 'workflow';
+}
+
+function parseTemplateVersion(body: unknown): number | undefined {
+  if (typeof body !== 'object' || body === null) return undefined;
+  if (!('templateVersion' in body)) return undefined;
+  const { templateVersion: raw } = body;
+  if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+  return undefined;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Template cloning (fire-and-forget safe)                            */
+/* ------------------------------------------------------------------ */
+
+async function linkCreatedFromTemplate(
+  supabase: SupabaseClient,
+  agentId: string,
+  templateId: string
+): Promise<void> {
+  await supabase.from('agents').update({ created_from_template_id: templateId }).eq('id', agentId);
+}
+
+async function cloneWorkflowTemplate(
+  supabase: SupabaseClient,
+  agentId: string,
+  templateAgentId: string,
+  templateVersion: number
+): Promise<void> {
+  const graph = await assembleTemplateSafeGraph(supabase, templateAgentId, templateVersion);
+  if (graph === null) return;
+  await cloneTemplateGraph(supabase, agentId, graph);
+}
+
+async function cloneFromTemplate(
+  supabase: SupabaseClient,
+  agentId: string,
+  templateAgentId: string,
+  templateVersion: number
+): Promise<void> {
+  const { result: template } = await getTemplateForClone(supabase, templateAgentId);
+  if (template === null) return;
+
+  if (template.app_type === 'agent') {
+    await cloneAgentConfig(supabase, agentId, template.template_agent_config);
+  } else {
+    await cloneWorkflowTemplate(supabase, agentId, templateAgentId, templateVersion);
+  }
+
+  await linkCreatedFromTemplate(supabase, agentId, template.id);
+  await incrementDownloads(supabase, template.id);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Request parsing                                                    */
+/* ------------------------------------------------------------------ */
+
+interface CreateAgentInput {
+  orgId: string;
+  name: string;
+  description: string;
+  category: string;
+  isPublic: boolean;
+  appType: 'workflow' | 'agent';
+  systemPrompt: string | null;
+  templateAgentId: string | undefined;
+  templateVersion: number | undefined;
+}
+
+function parseCreateAgentBody(body: unknown): CreateAgentInput | null {
+  const orgId = parseStringField(body, 'orgId');
+  const name = parseStringField(body, 'name');
+  const category = parseCategory(body);
+  if (orgId === undefined || name === undefined || category === undefined) return null;
+
+  const appType = parseAppType(body);
+  return {
+    orgId,
+    name,
+    description: parseStringField(body, 'description') ?? '',
+    category,
+    isPublic: parseIsPublic(body),
+    appType,
+    systemPrompt: appType === 'agent' ? '' : null,
+    templateAgentId: parseStringField(body, 'templateAgentId'),
+    templateVersion: parseTemplateVersion(body),
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Default API key assignment                                         */
+/* ------------------------------------------------------------------ */
+
+async function assignDefaultApiKey(supabase: SupabaseClient, orgId: string, agentId: string): Promise<void> {
+  try {
+    const { result: keys } = await getApiKeysByOrg(supabase, orgId);
+    const openflowKey = keys.find((k) => k.name === OPENFLOW_KEY_NAME);
+    if (openflowKey === undefined) return;
+
+    await Promise.all([
+      updateStagingKeyId(supabase, agentId, openflowKey.id),
+      updateProductionKeyId(supabase, agentId, openflowKey.id),
+    ]);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    process.stderr.write(`[agents] Failed to assign default API key for agent ${agentId}: ${msg}\n`);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Post-create side effects                                           */
+/* ------------------------------------------------------------------ */
+
+interface PostCreateArgs {
+  supabase: SupabaseClient;
+  agentId: string;
+  orgId: string;
+  slug: string;
+  templateAgentId: string | undefined;
+  templateVersion: number | undefined;
+}
+
+async function runPostCreateSideEffects(args: PostCreateArgs): Promise<void> {
+  await updateBloomFilter(args.supabase, buildBitmask(args.slug), 'agents');
+  await assignDefaultApiKey(args.supabase, args.orgId, args.agentId);
+
+  if (args.templateAgentId !== undefined && args.templateVersion !== undefined) {
+    await cloneFromTemplate(args.supabase, args.agentId, args.templateAgentId, args.templateVersion);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Create and finalize agent                                          */
+/* ------------------------------------------------------------------ */
+
+type FinalizeResult = { agent: AgentRow; error: null } | { agent: null; error: string };
+
+async function finalizeAgent(
+  supabase: SupabaseClient,
+  input: CreateAgentInput,
+  slug: string
+): Promise<FinalizeResult> {
+  const { result, error } = await insertAgent(supabase, {
+    orgId: input.orgId,
+    name: input.name,
+    slug,
+    description: input.description,
+    category: input.category,
+    isPublic: input.isPublic,
+    appType: input.appType,
+    systemPrompt: input.systemPrompt,
+  });
+  if (error !== null || result === null) return { agent: null, error: error ?? 'Failed to create agent' };
+  await runPostCreateSideEffects({
+    supabase,
+    agentId: result.id,
+    orgId: input.orgId,
+    slug,
+    templateAgentId: input.templateAgentId,
+    templateVersion: input.templateVersion,
+  });
+  return { agent: result, error: null };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Handler                                                            */
+/* ------------------------------------------------------------------ */
+
 export async function handleCreateAgent(req: Request, res: AuthenticatedResponse): Promise<void> {
   const { supabase }: AuthenticatedLocals = res.locals;
-  const orgId = parseStringField(req.body, 'orgId');
-  const name = parseStringField(req.body, 'name');
-  const description = parseStringField(req.body, 'description');
+  const input = parseCreateAgentBody(req.body);
 
-  if (orgId === undefined || name === undefined) {
+  if (input === null) {
     res.status(HTTP_BAD_REQUEST).json({ error: 'orgId and name are required' });
     return;
   }
 
-  const baseSlug = generateSlug(name);
+  const baseSlug = generateSlug(input.name);
   if (baseSlug === '') {
     res.status(HTTP_BAD_REQUEST).json({ error: 'Invalid agent name' });
     return;
@@ -31,19 +232,19 @@ export async function handleCreateAgent(req: Request, res: AuthenticatedResponse
 
   try {
     const slug = await findUniqueSlug(supabase, baseSlug, 'agents');
-    const { result, error } = await insertAgent(supabase, {
-      orgId,
-      name,
-      slug,
-      description: description ?? '',
-    });
 
-    if (error !== null || result === null) {
-      res.status(HTTP_INTERNAL_ERROR).json({ error: error ?? 'Failed to create agent' });
+    if (!isValidAgentSlug(slug)) {
+      res.status(HTTP_BAD_REQUEST).json({ error: 'Invalid agent slug' });
       return;
     }
 
-    res.status(HTTP_OK).json(result);
+    const { agent, error: insertError } = await finalizeAgent(supabase, input, slug);
+    if (insertError !== null) {
+      res.status(HTTP_INTERNAL_ERROR).json({ error: insertError });
+      return;
+    }
+
+    res.status(HTTP_OK).json(agent);
   } catch (err) {
     res.status(HTTP_INTERNAL_ERROR).json({ error: extractErrorMessage(err) });
   }

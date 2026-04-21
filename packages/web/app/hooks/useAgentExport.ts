@@ -1,0 +1,68 @@
+'use client';
+
+import { useCallback } from 'react';
+
+import type { McpServerConfig } from '../schemas/graph.schema';
+import type { AgentConfigData } from './useGraphLoader';
+
+const JSON_INDENT = 2;
+
+interface UseAgentExportParams {
+  agentConfig: AgentConfigData | undefined;
+  mcpServers: McpServerConfig[];
+}
+
+interface SkillExport {
+  name: string;
+  description: string;
+  content: string;
+  repoUrl: string;
+}
+
+interface AgentExportData {
+  appType: 'agent';
+  systemPrompt: string;
+  maxSteps: number | null;
+  contextItems: string[];
+  skills: SkillExport[];
+  mcpServers: McpServerConfig[];
+}
+
+function mapSkillsForExport(agentConfig: AgentConfigData): SkillExport[] {
+  return agentConfig.skills.map((s) => ({
+    name: s.name,
+    description: s.description,
+    content: s.content,
+    repoUrl: s.repoUrl,
+  }));
+}
+
+function buildExportData(agentConfig: AgentConfigData, mcpServers: McpServerConfig[]): AgentExportData {
+  return {
+    appType: 'agent' as const,
+    systemPrompt: agentConfig.systemPrompt,
+    maxSteps: agentConfig.maxSteps,
+    contextItems: agentConfig.contextItems.map((item) => item.content),
+    skills: mapSkillsForExport(agentConfig),
+    mcpServers,
+  };
+}
+
+function downloadJson(data: unknown, filename: string): void {
+  const json = JSON.stringify(data, null, JSON_INDENT);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export function useAgentExport({ agentConfig, mcpServers }: UseAgentExportParams): () => void {
+  return useCallback(() => {
+    if (agentConfig === undefined) return;
+    const exportData = buildExportData(agentConfig, mcpServers);
+    downloadJson(exportData, 'agent-config.json');
+  }, [agentConfig, mcpServers]);
+}

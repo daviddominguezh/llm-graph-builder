@@ -34,11 +34,12 @@ export async function getAgentsForKeyAction(
 export async function createExecutionKeyAction(
   orgId: string,
   name: string,
+  allAgents: boolean,
   agentIds: string[],
   expiresAt: string | null
 ): Promise<{ result: CreateExecutionKeyResult | null; error: string | null }> {
-  serverLog('[createExecutionKeyAction] orgId:', orgId, 'name:', name);
-  const res = await createExecutionKeyLib(orgId, name, agentIds, expiresAt);
+  serverLog('[createExecutionKeyAction] orgId:', orgId, 'name:', name, 'allAgents:', allAgents);
+  const res = await createExecutionKeyLib(orgId, name, allAgents, agentIds, expiresAt);
   if (res.error === null) serverLog('[createExecutionKeyAction] created key:', res.result?.key.id);
   else serverError('[createExecutionKeyAction] error:', res.error);
   return res;

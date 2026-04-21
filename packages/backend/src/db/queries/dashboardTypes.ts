@@ -62,6 +62,61 @@ export interface NodeVisitRow {
   model: string;
 }
 
+export interface ExecutionMessageRow {
+  id: string;
+  execution_id: string;
+  node_id: string;
+  role: string;
+  content: unknown;
+  tool_calls: unknown;
+  tool_call_id: string | null;
+  created_at: string;
+}
+
+export interface TenantSummaryRow {
+  [key: string]: unknown;
+  tenant_id: string;
+  tenant_name: string;
+  total_executions: number;
+  failed_executions: number;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_cost: number;
+  unique_agents: number;
+  unique_users: number;
+  unique_sessions: number;
+  last_execution_at: string | null;
+}
+
+export interface TenantExecutionRow {
+  [key: string]: unknown;
+  id: string;
+  agent_id: string;
+  agent_name: string;
+  session_db_id: string;
+  session_id: string;
+  user_id: string;
+  channel: string;
+  version: number;
+  model: string;
+  status: string;
+  error: string | null;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_cost: number;
+  total_duration_ms: number;
+  started_at: string;
+  completed_at: string | null;
+}
+
+export interface TimeSeriesPoint {
+  date: string;
+  executions: number;
+  cost: number;
+  users: number;
+  tenants: number;
+}
+
 export interface DashboardParams {
   page: number;
   pageSize: number;

@@ -54,6 +54,7 @@ interface ToolbarProps {
   orgName?: string;
   orgAvatarUrl?: string | null;
   agentName?: string;
+  hideWorkflowActions?: boolean;
 }
 
 function ToolbarTooltip({ label, children }: { label: string; children: ReactNode }) {
@@ -77,7 +78,7 @@ function OrgAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null
         alt={name}
         width={20}
         height={20}
-        className="h-5 w-5 rounded-full object-cover border"
+        className="h-5 w-5 rounded-full object-cover border border-input border-[1px]"
       />
     );
   }
@@ -105,7 +106,7 @@ function OrgSection({ orgName, orgAvatarUrl, orgSlug, agentName }: OrgSectionPro
           {orgName}
         </Link>
         <span className="text-xs text-muted-foreground cursor-default">/</span>
-        <span className="text-xs text-foreground cursor-default">{agentName}</span>
+        <span className="text-xs text-foreground cursor-default truncate">{agentName}</span>
       </DropdownMenuLabel>
     </DropdownMenuGroup>
   );
@@ -115,9 +116,10 @@ interface FileMenuItemsProps {
   onImport: () => void;
   onExport: () => void;
   onFormat: () => void;
+  hideWorkflowActions?: boolean;
 }
 
-function FileMenuItems({ onImport, onExport, onFormat }: FileMenuItemsProps) {
+function FileMenuItems({ onImport, onExport, onFormat, hideWorkflowActions }: FileMenuItemsProps) {
   const t = useTranslations('common');
   const tToolbar = useTranslations('toolbar');
   const tTheme = useTranslations('theme');
@@ -141,10 +143,12 @@ function FileMenuItems({ onImport, onExport, onFormat }: FileMenuItemsProps) {
           <Download className="size-4" />
           {t('export')}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onFormat}>
-          <AlignHorizontalSpaceAround className="size-4" />
-          {tToolbar('autoLayout')}
-        </DropdownMenuItem>
+        {!hideWorkflowActions && (
+          <DropdownMenuItem onClick={onFormat}>
+            <AlignHorizontalSpaceAround className="size-4" />
+            {tToolbar('autoLayout')}
+          </DropdownMenuItem>
+        )}
       </div>
     </>
   );
@@ -158,9 +162,10 @@ interface FileMenuProps {
   orgName?: string;
   orgAvatarUrl?: string | null;
   agentName?: string;
+  hideWorkflowActions?: boolean;
 }
 
-function FileMenu({
+export function FileMenu({
   onImport,
   onExport,
   onFormat,
@@ -168,17 +173,18 @@ function FileMenu({
   orgName,
   orgAvatarUrl,
   agentName,
+  hideWorkflowActions,
 }: FileMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button className="h-9 w-9 bg-background! hover:bg-card!" variant="outline" size="sm">
-            <Menu className="size-4" />
+          <Button className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0" variant="ghost" size="lg">
+            <Menu />
           </Button>
         }
       />
-      <DropdownMenuContent side="bottom" align="start" className="w-52">
+      <DropdownMenuContent side="bottom" align="start" className="w-58">
         {orgName !== undefined && orgSlug !== undefined && agentName !== undefined && (
           <OrgSection
             orgName={orgName}
@@ -188,7 +194,12 @@ function FileMenu({
           />
         )}
         <Separator />
-        <FileMenuItems onImport={onImport} onExport={onExport} onFormat={onFormat} />
+        <FileMenuItems
+          onImport={onImport}
+          onExport={onExport}
+          onFormat={onFormat}
+          hideWorkflowActions={hideWorkflowActions}
+        />
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -199,13 +210,13 @@ function PlayButton({ simulationActive, onPlay, disabled, label }: PlayButtonPro
 
   const button = (
     <Button
-      className="h-10 w-10 hover:bg-card!"
+      className="hover:bg-input! dark:hover:bg-input aspect-square! px-0"
       variant={simulationActive ? 'default' : 'ghost'}
-      size="sm"
+      size="lg"
       onClick={disabled ? undefined : onPlay}
       disabled={disabled}
     >
-      <Play className="size-4" />
+      <Play />
     </Button>
   );
 
@@ -229,38 +240,52 @@ function ToolbarButtons(props: ToolbarProps) {
 
   return (
     <>
-      {onToggleGlobalPanel && (
+      {!props.hideWorkflowActions && onToggleGlobalPanel && (
         <ToolbarTooltip label={t('globalNodes')}>
           <Button
-            className="h-10 w-10 hover:bg-card!"
+            className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
             variant="ghost"
-            size="sm"
+            size="lg"
             onClick={onToggleGlobalPanel}
           >
-            <Waypoints className="size-4" />
+            <Waypoints />
           </Button>
         </ToolbarTooltip>
       )}
       {onToggleTools && (
         <ToolbarTooltip label={t('tools')}>
-          <Button className="h-10 w-10 hover:bg-card!" variant="ghost" size="sm" onClick={onToggleTools}>
-            <SquareFunction className="size-4" />
+          <Button
+            className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
+            variant="ghost"
+            size="lg"
+            onClick={onToggleTools}
+          >
+            <SquareFunction />
           </Button>
         </ToolbarTooltip>
       )}
       {onToggleLibrary && (
         <ToolbarTooltip label={t('mcpLibrary')}>
-          <Button className="h-10 w-10 hover:bg-card!" variant="ghost" size="sm" onClick={onToggleLibrary}>
-            <Blocks className="size-4" />
+          <Button
+            className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
+            variant="ghost"
+            size="lg"
+            onClick={onToggleLibrary}
+          >
+            <Blocks />
           </Button>
         </ToolbarTooltip>
       )}
       {onTogglePresets && (
         <>
-          <Separator orientation="vertical" />
           <ToolbarTooltip label={t('settings')}>
-            <Button className="h-10 w-10 hover:bg-card!" variant="ghost" size="sm" onClick={onTogglePresets}>
-              <Settings className="size-4" />
+            <Button
+              className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
+              variant="ghost"
+              size="lg"
+              onClick={onTogglePresets}
+            >
+              <Settings />
             </Button>
           </ToolbarTooltip>
         </>
@@ -283,35 +308,30 @@ export function Toolbar(props: ToolbarProps) {
   } = props;
   const t = useTranslations('toolbar');
   return (
-    <>
-      <div className="absolute top-1 left-1 z-1">
-        <FileMenu
-          onImport={onImport}
-          onExport={onExport}
-          onFormat={props.onFormat}
-          orgSlug={orgSlug}
-          orgName={orgName}
-          orgAvatarUrl={orgAvatarUrl}
-          agentName={agentName}
-        />
-      </div>
-      <header className="absolute z-1 flex items-stretch justify-center gap-1 rounded-lg border bg-background p-1 top-1 shadow-lg">
+    <div className="flex items-center gap-1.5">
+      {props.hideWorkflowActions !== true && (
         <PlayButton
           simulationActive={simulationActive ?? false}
           onPlay={onPlay}
           disabled={stagingKeyId === null || stagingKeyId === undefined}
           label={t('simulate')}
         />
-        <Separator orientation="vertical" />
-        <ToolbarButtons {...props} />
-      </header>
-      {(props.statusSlot ?? props.publishSlot ?? props.versionSlot) && (
-        <div className="absolute top-1 right-1 z-1 flex items-center gap-1">
-          {props.statusSlot}
-          {props.versionSlot}
-          {props.publishSlot}
-        </div>
       )}
-    </>
+      <ToolbarButtons {...props} />
+      <FileMenu
+        onImport={onImport}
+        onExport={onExport}
+        onFormat={props.onFormat}
+        orgSlug={orgSlug}
+        orgName={orgName}
+        orgAvatarUrl={orgAvatarUrl}
+        agentName={agentName}
+        hideWorkflowActions={props.hideWorkflowActions}
+      />
+      <Separator orientation="vertical" className="my-2 mx-2" />
+      {props.statusSlot}
+      {props.versionSlot}
+      {props.publishSlot}
+    </div>
   );
 }

@@ -71,7 +71,7 @@ export function AddFilterButton({ definitions, activeKeys, onAdd }: AddFilterBut
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
-      <PopoverTrigger render={<Button variant="outline" size="sm" />}>
+      <PopoverTrigger render={<Button variant="outline" size="sm" className="border-[0.5px] rounded-md" />}>
         <Plus className="size-3" />
         {t('addFilter')}
       </PopoverTrigger>

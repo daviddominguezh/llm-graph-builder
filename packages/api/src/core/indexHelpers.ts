@@ -4,11 +4,13 @@ import { INITIAL_STEP_NODE } from '@src/constants/index.js';
 import { getNode } from '@src/stateMachine/graph/index.js';
 import type { ParsedResult } from '@src/types/ai/index.js';
 import type { Graph } from '@src/types/graph.js';
+import type { DispatchSentinel } from '@src/types/sentinels.js';
 import type { Context } from '@src/types/tools.js';
 
 import { type TimedResult, applySuccessResult, emitResultForNode } from './flowEmitter.js';
 import type { ProcessNodeParams, ToolCallsArray } from './nodeHelpers.js';
 import { processNode } from './nodeHelpers.js';
+import { injectStructuredOutputMessages } from './structuredOutputInjector.js';
 import type { CallAgentInput } from './types.js';
 
 export type { ToolCallsArray } from './nodeHelpers.js';
@@ -25,6 +27,7 @@ interface FlowState {
   allToolCalls: ToolCallsArray;
   structuredOutputs: Record<string, unknown[]>;
   newStructuredOutputs: Array<{ nodeId: string; data: unknown }>;
+  dispatchResult?: DispatchSentinel;
 }
 
 export interface FlowResult {
@@ -34,6 +37,7 @@ export interface FlowResult {
   error: boolean;
   toolCalls: ToolCallsArray;
   newStructuredOutputs: Array<{ nodeId: string; data: unknown }>;
+  dispatchResult?: DispatchSentinel;
 }
 
 function isTerminalNode(context: Context, nodeID: string): boolean {
@@ -100,6 +104,10 @@ function handleNodeSuccess(params: NodeHandlerParams, state: FlowState): void {
   const { context, input, nodeId, result } = params;
   emitResultForNode({ context, input, nodeId, result });
   applySuccessResult(state.allToolCalls, result, state.structuredOutputs, state.newStructuredOutputs);
+
+  if (result.structuredOutput !== undefined) {
+    injectStructuredOutputMessages(input.messages, nodeId, result.structuredOutput.data);
+  }
 }
 
 function handleNodeError(params: NodeHandlerParams): void {
@@ -176,6 +184,15 @@ async function processFlowStep(
   }
 
   handleNodeSuccess({ context, input, nodeId: currentNodeID, result }, state);
+
+  if (result.dispatchResult !== undefined) {
+    return {
+      state: { ...state, dispatchResult: result.dispatchResult },
+      error: false,
+      shouldContinue: false,
+    };
+  }
+
   const { parsedResult, nextNodeID } = result;
   parsedResult.nextNodeID = nextNodeID;
   parsedResults.push(parsedResult);
@@ -197,7 +214,15 @@ function buildFlowResult(
 ): FlowResult {
   const { parsedResults, visitedNodes, allToolCalls, newStructuredOutputs } = state;
   if (isTerminal !== true && !error) appendLastVisitedNode(parsedResults, visitedNodes);
-  return { parsedResults, visitedNodes, debugMessages, error, toolCalls: allToolCalls, newStructuredOutputs };
+  return {
+    parsedResults,
+    visitedNodes,
+    debugMessages,
+    error,
+    toolCalls: allToolCalls,
+    newStructuredOutputs,
+    dispatchResult: state.dispatchResult,
+  };
 }
 
 /**

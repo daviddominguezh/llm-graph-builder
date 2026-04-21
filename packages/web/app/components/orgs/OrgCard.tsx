@@ -13,7 +13,15 @@ function OrgAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null
   const initial = name.trim().charAt(0).toUpperCase() || '?';
 
   if (avatarUrl !== null) {
-    return <Image src={toProxyImageSrc(avatarUrl)} alt={name} width={48} height={48} className="h-12 w-12 rounded-full object-cover border" />;
+    return (
+      <Image
+        src={toProxyImageSrc(avatarUrl)}
+        alt={name}
+        width={48}
+        height={48}
+        className="h-12 w-12 rounded-full object-cover border border-input border-[1px]"
+      />
+    );
   }
 
   return (
