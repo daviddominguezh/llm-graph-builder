@@ -8,9 +8,12 @@
       body {
         margin: 0;
         padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        box-sizing: border-box;
       }
       body {
-        min-height: 100vh;
         padding: 40px;
         font: 14px system-ui;
         background: #fafafa;
@@ -45,7 +48,7 @@
 
       const POSITIONS = {
         bubble: { width: 42, height: 42, top: 'auto', right: 16, bottom: 16 },
-        panel: { width: 400, height: 'calc(100vh - 48px)', top: 24, right: 14, bottom: 'auto' },
+        panel: { width: 400, height: 'calc(100vh - 32px)', top: 16, right: 16, bottom: 'auto' },
         fullscreen: { width: '100vw', height: '100vh', top: 0, right: 0, bottom: 'auto' },
       };
 

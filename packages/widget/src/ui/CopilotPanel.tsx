@@ -19,7 +19,7 @@ function toSession(s: StoredSession): CopilotSession {
 
 function containerClasses(standalone: boolean): string {
   if (standalone) return 'flex flex-col w-full h-full';
-  return 'flex flex-col w-full h-full bg-background';
+  return 'flex flex-col w-[calc(100%-var(--spacing)*3)] h-[calc(100%-var(--spacing)*3)] m-1.5 bg-background rounded-xl shadow-sm dark:shadow-none';
 }
 
 export function CopilotPanel({ standalone = false, onClose }: CopilotPanelProps = {}) {

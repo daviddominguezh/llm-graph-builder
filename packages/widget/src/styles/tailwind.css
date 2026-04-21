@@ -48,8 +48,18 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
-body, html {
+body,
+html {
   overflow: hidden;
+  width: 100%;
+  height: 100%;
+  background-color: transparent;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  background-color: transparent;
 }
 
 :root {
@@ -140,6 +150,7 @@ body, html {
  * can reliably override arbitrary Tailwind utilities without it.
  */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
