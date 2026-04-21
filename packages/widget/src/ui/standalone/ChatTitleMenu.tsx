@@ -78,7 +78,7 @@ export function ChatTitleMenu({
           />
         }
       />
-      <DropdownMenuContent align="start" sideOffset={6} className="min-w-56">
+      <DropdownMenuContent align="start" sideOffset={6} className="min-w-45">
         <StarItem starred={starred} onToggleStar={onToggleStar} />
         <DropdownMenuItem onClick={onRename}>
           <Pencil />
