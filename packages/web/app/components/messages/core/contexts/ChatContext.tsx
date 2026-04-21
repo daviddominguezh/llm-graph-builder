@@ -84,7 +84,6 @@ const ChatContext = createContext<ChatContextValue>({} as ChatContextValue);
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const projectName = useTenantId();
-  console.log('[ChatContext] tenantId/projectName:', projectName);
   const repository = useMessageRepository();
   const dispatch = useDispatch();
   const lastMessages = useSelector(getLastMessagesFromStore);
@@ -125,9 +124,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // The hook manages message state now, so this is a no-op for external callers
     // Direct state manipulation should use addMessage/addMessages/updateMessage instead
     void updater; // Parameter required for type compatibility but intentionally unused
-    console.warn(
-      '[ChatContext] setMessages is deprecated. Use addMessage/addMessages/updateMessage instead.'
-    );
   }, []);
 
   const [notes, setNotes] = useState<Record<string, Note>>({});

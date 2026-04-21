@@ -168,7 +168,6 @@ export function sendAgentSim(
   const allMessages = getActiveMessages(snap.stack, snap.rootMessages);
   const params = buildAgentParams(deps, store, allMessages);
   if (params === undefined) return;
-  console.log('[sendAgentSim] messages:', JSON.stringify(params.messages, null, 2));
   const callbacks = buildMergedCallbacks(deps, store);
   void streamAgentSimulation(params, callbacks, signal).catch((err: unknown) => {
     setters.setLoading(false);
@@ -204,7 +203,6 @@ export function sendWorkflowSim(
     orgId: deps.orgId,
     simulationLeadScore: deps.simulationLeadScore,
   });
-  console.log('[sendWorkflowSim] messages:', JSON.stringify(params.messages, null, 2));
   const callbacks = buildMergedCallbacks(deps, store);
   void streamSimulation(params, callbacks, signal).catch((err: unknown) => {
     setters.setLoading(false);

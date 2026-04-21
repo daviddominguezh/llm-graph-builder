@@ -251,8 +251,6 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
     { value: 'all', label: t('All') },
   ];
 
-  console.log('here');
-
   // Filter search results to only show chats that are in displayedChats (left panel filter)
   const filteredChatsPhoneVisible = useMemo(() => {
     return filteredChatsPhone.filter((chat) => displayedChats.some((dc) => dc.chatId === chat.chatId));
@@ -398,10 +396,7 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
         </div>
       ) : displayedChatsFiltered.length > 0 ? (
         // All chats
-        <div
-          ref={chatListScrollRef}
-          className="flex flex-col w-full h-fit pb-9 overflow-y-auto pt-2.5 gap-1"
-        >
+        <div ref={chatListScrollRef} className="flex flex-col w-full h-fit pb-9 overflow-y-auto pt-2.5 gap-1">
           {displayedChatsFiltered.map((chat) => (
             <MessagePreview
               key={chat.chatId}

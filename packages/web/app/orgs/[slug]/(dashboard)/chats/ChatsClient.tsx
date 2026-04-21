@@ -11,11 +11,6 @@ interface ChatsClientProps {
 
 export function ChatsClient({ tenants, defaultTenantId }: ChatsClientProps): React.JSX.Element {
   const [tenantId, setTenantId] = useState(defaultTenantId);
-  console.log('[DEBUG ChatsClient]', {
-    defaultTenantId,
-    currentTenantId: tenantId,
-    tenants: tenants.map((t) => ({ id: t.id, name: t.name })),
-  });
 
   const handleSidebarChange = useCallback(() => {
     /* sidebar managed by OrgSidebar */

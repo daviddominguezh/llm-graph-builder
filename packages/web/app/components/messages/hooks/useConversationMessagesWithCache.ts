@@ -234,7 +234,6 @@ export const useConversationMessagesWithCache = (
 
         // If no new messages returned, stop pagination to prevent infinite loop
         if (newMessagesCount === 0) {
-          console.log('[useConversationMessagesWithCache] No new messages returned, stopping pagination');
           setCacheData((prev) => (prev ? { ...prev, hasMoreOlder: false } : prev));
           setCacheState({ status: 'ready' });
           loadingRef.current = false;

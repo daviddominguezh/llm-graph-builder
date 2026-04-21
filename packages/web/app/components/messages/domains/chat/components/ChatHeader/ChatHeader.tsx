@@ -209,8 +209,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     return trimmed.substring(0, 1).toUpperCase() + trimmed.substring(1);
   };
 
-  console.log(firstLetterUppercase('luisa'));
-
   const getAssignedToDisplay = () => {
     if (!assignedTo || assignedTo === 'unassigned') {
       return <CircleUserRound className="text-foreground" />;
