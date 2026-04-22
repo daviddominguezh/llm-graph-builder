@@ -582,7 +582,20 @@
     "justNow": "just now",
     "minutesAgo": "{count}m ago",
     "hoursAgo": "{count}h ago",
-    "daysAgo": "{count}d ago"
+    "daysAgo": "{count}d ago",
+    "webChannel": {
+      "title": "Web channel",
+      "subtitle": "Control where the OpenFlow chat widget can be embedded for this tenant.",
+      "toggleLabel": "Enable web channel",
+      "toggleHint": "Turn off to block all web widget requests for this tenant.",
+      "originsLabel": "Allowed origins",
+      "empty": "No origins allowed yet. The widget will be blocked everywhere.",
+      "add": "Add",
+      "remove": "Remove",
+      "inputPlaceholder": "https://*.example.com",
+      "invalidEntry": "Invalid origin. Use {protocol}://{hostname}[:port] (optional leading wildcard).",
+      "duplicateEntry": "This origin is already in the list."
+    }
   },
   "toolTest": {
     "emptyState": "Run a tool to see the result here.",

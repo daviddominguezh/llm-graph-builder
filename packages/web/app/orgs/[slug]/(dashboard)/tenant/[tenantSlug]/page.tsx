@@ -12,6 +12,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 
 import { TenantSettingsForm } from './TenantSettingsForm';
+import { WebChannelSection } from './WebChannelSection';
 import { WhatsAppTemplatesSection } from './whatsapp-templates/WhatsAppTemplatesSection';
 
 interface PageProps {
@@ -70,6 +71,8 @@ export default async function TenantPage({ params }: PageProps): Promise<React.J
             connections={connections}
             canManage={canManage}
           />
+          <Separator />
+          <WebChannelSection tenant={tenant} />
         </div>
       </div>
     </div>

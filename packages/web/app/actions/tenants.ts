@@ -2,12 +2,13 @@
 
 import { fetchFromBackend, uploadToBackend } from '@/app/lib/backendProxy';
 import { serverError, serverLog } from '@/app/lib/serverLogger';
-import type { TenantRow } from '@/app/lib/tenants';
+import type { TenantRow, WebChannelUpdate } from '@/app/lib/tenants';
 import {
   createTenant as createTenantLib,
   deleteTenant as deleteTenantLib,
   getTenantsByOrg as getTenantsByOrgLib,
   updateTenant as updateTenantLib,
+  updateTenantWebChannel as updateTenantWebChannelLib,
 } from '@/app/lib/tenants';
 
 export async function getTenantsByOrgAction(
@@ -39,6 +40,17 @@ export async function updateTenantAction(
   const res = await updateTenantLib(tenantId, name);
   if (res.error === null) serverLog('[updateTenantAction] updated tenant:', res.result?.id);
   else serverError('[updateTenantAction] error:', res.error);
+  return res;
+}
+
+export async function updateTenantWebChannelAction(
+  tenantId: string,
+  fields: WebChannelUpdate
+): Promise<{ result: TenantRow | null; error: string | null }> {
+  serverLog('[updateTenantWebChannelAction] tenantId:', tenantId, 'fields:', fields);
+  const res = await updateTenantWebChannelLib(tenantId, fields);
+  if (res.error === null) serverLog('[updateTenantWebChannelAction] updated tenant:', res.result?.id);
+  else serverError('[updateTenantWebChannelAction] error:', res.error);
   return res;
 }
 
