@@ -243,6 +243,11 @@ max_frequency = "5s"
 # Use pre-defined map of phone number to OTP for testing.
 [auth.sms.test_otp]
 573000000000 = "123456"
+573000000001 = "123456"
+573000000002 = "123456"
+573000000003 = "123456"
+573000000004 = "123456"
+573000000005 = "123456"
 
 # Configure logged in session timeouts.
 # [auth.sessions]

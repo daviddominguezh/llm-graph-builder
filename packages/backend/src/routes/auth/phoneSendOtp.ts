@@ -168,19 +168,51 @@ async function runPreChecks(req: Request, res: Response): Promise<PreChecks | nu
   return { userId, jwt, service, e164: v.e164, resendNext };
 }
 
-async function handleSendOtp(req: Request, res: Response): Promise<void> {
-  const pre = await runPreChecks(req, res);
-  if (pre === null) return;
-  const result = await goTrueUpdateUserPhone(pre.jwt, pre.e164);
-  if (!result.ok) {
-    process.stderr.write(`[phoneSendOtp] updateUser failed: ${result.error}\n`);
-    if (isPhoneTakenError(result.error)) {
-      res.status(HTTP_CONFLICT).json({ error: 'phone_taken' });
-      return;
-    }
-    res.status(HTTP_INTERNAL).json({ error: 'send_failed', detail: result.error });
-    return;
+interface RpcBoolResult {
+  data: boolean | null;
+}
+
+async function reclaimStalePhone(service: SupabaseClient, phone: string, userId: string): Promise<boolean> {
+  const { data } = (await service.rpc('reclaim_stale_phone', {
+    p_phone: phone,
+    p_user_id: userId,
+  })) as RpcBoolResult;
+  return data === true;
+}
+
+interface AttemptSuccess {
+  ok: true;
+}
+interface AttemptFailure {
+  ok: false;
+  status: number;
+  error: string;
+  detail?: string;
+}
+type AttemptResult = AttemptSuccess | AttemptFailure;
+
+async function attemptSetPhone(pre: PreChecks): Promise<AttemptResult> {
+  const first = await goTrueUpdateUserPhone(pre.jwt, pre.e164);
+  if (first.ok) return { ok: true };
+  if (!isPhoneTakenError(first.error)) {
+    process.stderr.write(`[phoneSendOtp] updateUser failed: ${first.error}\n`);
+    return { ok: false, status: HTTP_INTERNAL, error: 'send_failed', detail: first.error };
   }
+  const reclaimed = await reclaimStalePhone(pre.service, pre.e164, pre.userId);
+  if (!reclaimed) return { ok: false, status: HTTP_CONFLICT, error: 'phone_taken' };
+  const retry = await goTrueUpdateUserPhone(pre.jwt, pre.e164);
+  if (retry.ok) return { ok: true };
+  return { ok: false, status: HTTP_CONFLICT, error: 'phone_taken' };
+}
+
+function sendAttemptFailure(res: Response, failure: AttemptFailure): void {
+  const { detail, error, status } = failure;
+  const body: Record<string, string> = { error };
+  if (detail !== undefined) body.detail = detail;
+  res.status(status).json(body);
+}
+
+async function recordSuccess(pre: PreChecks, ip: string | undefined): Promise<string> {
   const cooldownUntil = await upsertCooldown(pre.service, pre.userId);
   await upsertResendWindow(pre.service, {
     userId: pre.userId,
@@ -188,7 +220,19 @@ async function handleSendOtp(req: Request, res: Response): Promise<void> {
     resends: pre.resendNext.resends,
     windowStart: pre.resendNext.windowStart,
   });
-  await auditLog({ event: 'phone_send_otp', userId: pre.userId, phone: pre.e164, ip: req.ip });
+  await auditLog({ event: 'phone_send_otp', userId: pre.userId, phone: pre.e164, ip });
+  return cooldownUntil;
+}
+
+async function handleSendOtp(req: Request, res: Response): Promise<void> {
+  const pre = await runPreChecks(req, res);
+  if (pre === null) return;
+  const attempt = await attemptSetPhone(pre);
+  if (!attempt.ok) {
+    sendAttemptFailure(res, attempt);
+    return;
+  }
+  const cooldownUntil = await recordSuccess(pre, req.ip);
   res.json({ ok: true, cooldownUntil });
 }
 

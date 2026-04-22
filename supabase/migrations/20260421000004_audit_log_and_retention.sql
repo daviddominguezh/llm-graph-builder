@@ -39,14 +39,8 @@ create trigger scrub_audit_log_after_user_delete
   after delete on auth.users
   for each row execute function public.scrub_audit_log_on_user_delete();
 
-select cron.schedule(
-  'sweep_abandoned_phones',
-  '* * * * *',
-  $$update auth.users set phone = null
-    where phone is not null
-      and phone_confirmed_at is null
-      and phone_change_sent_at < now() - interval '30 minutes'$$
-);
+-- sweep_abandoned_phones cron removed — see 20260422000000_lazy_phone_reclaim.sql
+-- (replaced with just-in-time reclaim from phoneSendOtp).
 
 select cron.schedule(
   'retain_auth_audit_log',
