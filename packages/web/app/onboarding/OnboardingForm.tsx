@@ -35,7 +35,7 @@ function GroupHeading({ index, title }: { index: string; title: string }) {
     <div className="flex items-center gap-2">
       <span className="font-mono text-[10px] tracking-[0.2em] text-muted-foreground/60">{index}</span>
       <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">{title}</span>
-      <span className="ml-1 h-px flex-1 bg-border/60" aria-hidden />
+      <span className="h-px flex-1 bg-border/60" aria-hidden />
     </div>
   );
 }

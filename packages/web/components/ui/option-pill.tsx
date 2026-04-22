@@ -16,13 +16,13 @@ export function OptionPill({ label, checked, onToggle, variant = 'single' }: Opt
       type="button"
       role={variant === 'single' ? 'radio' : 'checkbox'}
       aria-checked={checked}
-      aria-pressed={checked}
       onClick={onToggle}
       className={cn(
-        'cursor-pointer inline-flex h-6 items-center rounded-sm px-1.5 text-xs transition-colors',
+        'inline-flex h-6 cursor-pointer items-center rounded-sm px-1.5 text-xs transition-colors duration-150 outline-none',
+        'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card',
         checked
-          ? 'bg-foreground text-background'
-          : 'bg-background text-muted-foreground hover:text-foreground/80'
+          ? 'bg-foreground text-background hover:bg-foreground/90'
+          : 'bg-background text-muted-foreground hover:text-foreground'
       )}
     >
       {label}
