@@ -35,6 +35,12 @@ function getUserId(res: Response): string {
   return v;
 }
 
+function getJwt(res: Response): string {
+  const v: unknown = res.locals.jwt;
+  if (typeof v !== 'string') throw new Error('jwt missing');
+  return v;
+}
+
 async function fetchUserRow(supabase: SupabaseClient, userId: string): Promise<UserRowResult> {
   return (await supabase
     .from('users')
@@ -53,10 +59,11 @@ function computeFlags(row: UserRow, phoneConfirmedAt: string | null): StatusFlag
 async function handleGetStatus(req: Request, res: Response): Promise<void> {
   const userId = getUserId(res);
   const supabase = getSupabase(res);
+  const jwt = getJwt(res);
 
   const [rowResult, authResult] = await Promise.all([
     fetchUserRow(supabase, userId),
-    supabase.auth.getUser(),
+    supabase.auth.getUser(jwt),
   ]);
 
   if (rowResult.error !== null || rowResult.data === null) {

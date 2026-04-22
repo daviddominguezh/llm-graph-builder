@@ -54,6 +54,7 @@ const USER_ID = 'user-abc';
 function buildLocals(userId: string): Record<string, unknown> {
   return {
     userId,
+    jwt: 'test-jwt',
     supabase: {
       from: mockFrom,
       auth: { getUser: mockGetUser },
