@@ -137,7 +137,7 @@ export function OnboardingForm() {
           ) : (
             <>
               {t('submit')}
-              <kbd className="ml-1 rounded bg-background/15 px-1 font-mono text-[10px] opacity-70">↵</kbd>
+              <kbd className="ml-1 inline-flex size-4 items-center justify-center rounded bg-background/15 font-mono text-[10px] opacity-70">↵</kbd>
             </>
           )}
         </Button>
