@@ -68,16 +68,12 @@ async function loadFlags(accessToken: string, uid: string, res: NextResponse): P
   return flags;
 }
 
-function handlePhoneGate(req: NextRequest, res: NextResponse, pathname: string): NextResponse | null {
-  if (pathname === '/verify-phone' || pathname.startsWith('/api/auth/phone')) return null;
-  if (wantsJson(req)) return jsonError(HTTP_FORBIDDEN, 'phone_verification_required');
-  return redirectTo(req, '/verify-phone', res);
+function phoneGateAllows(pathname: string): boolean {
+  return pathname === '/verify-phone' || pathname.startsWith('/api/auth/phone');
 }
 
-function handleOnboardingGate(req: NextRequest, res: NextResponse, pathname: string): NextResponse | null {
-  if (pathname === '/onboarding' || pathname === '/api/auth/complete-onboarding') return null;
-  if (wantsJson(req)) return jsonError(HTTP_FORBIDDEN, 'onboarding_required');
-  return redirectTo(req, '/onboarding', res);
+function onboardingGateAllows(pathname: string): boolean {
+  return pathname === '/onboarding' || pathname === '/api/auth/complete-onboarding';
 }
 
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
@@ -109,12 +105,14 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   }
 
   if (!flags.phone_verified) {
-    const gated = handlePhoneGate(request, response, pathname);
-    if (gated !== null) return gated;
+    if (phoneGateAllows(pathname)) return response;
+    if (wantsJson(request)) return jsonError(HTTP_FORBIDDEN, 'phone_verification_required');
+    return redirectTo(request, '/verify-phone', response);
   }
   if (!flags.onboarding_completed) {
-    const gated = handleOnboardingGate(request, response, pathname);
-    if (gated !== null) return gated;
+    if (onboardingGateAllows(pathname)) return response;
+    if (wantsJson(request)) return jsonError(HTTP_FORBIDDEN, 'onboarding_required');
+    return redirectTo(request, '/onboarding', response);
   }
   if (startsWithAny(pathname, ['/verify-phone', '/onboarding'])) {
     return redirectTo(request, '/', response);
