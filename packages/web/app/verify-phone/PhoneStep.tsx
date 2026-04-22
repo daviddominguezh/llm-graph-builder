@@ -152,20 +152,15 @@ export function PhoneStep({ phone, onPhoneChange, onAdvance }: PhoneStepProps) {
             <div
               className="w-20 animate-pulse rounded-s-lg"
               style={{
-                background:
-                  'linear-gradient(to bottom, color-mix(in oklab, var(--chart-1) 30%, transparent) 0%, color-mix(in oklab, var(--chart-1) 2%, transparent) 100%)',
-                border: '1.5px solid var(--chart-1)',
-                borderRight: 'none',
-                boxShadow: '0 0 18px color-mix(in oklab, var(--chart-1) 30%, transparent)',
+                background: 'color-mix(in oklab, var(--muted-foreground) 28%, transparent)',
+                boxShadow: '0 0 8px color-mix(in oklab, oklch(0.7 0.22 30) 55%, transparent), 0 0 20px color-mix(in oklab, oklch(0.7 0.22 30) 35%, transparent)',
               }}
             />
             <div
               className="flex-1 animate-pulse rounded-e-lg"
               style={{
-                background:
-                  'linear-gradient(to bottom, color-mix(in oklab, var(--chart-1) 30%, transparent) 0%, color-mix(in oklab, var(--chart-1) 2%, transparent) 100%)',
-                border: '1.5px solid var(--chart-1)',
-                boxShadow: '0 0 18px color-mix(in oklab, var(--chart-1) 30%, transparent)',
+                background: 'color-mix(in oklab, var(--muted-foreground) 28%, transparent)',
+                boxShadow: '0 0 8px color-mix(in oklab, oklch(0.7 0.22 30) 55%, transparent), 0 0 20px color-mix(in oklab, oklch(0.7 0.22 30) 35%, transparent)',
               }}
             />
           </div>
