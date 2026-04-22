@@ -58,7 +58,7 @@ function FormSections({
     <div className="flex flex-col gap-8">
       <section className="flex flex-col gap-4">
         <GroupHeading index="01" title={groups('aboutYou')} />
-        <div className="grid gap-x-8 gap-y-5 md:grid-cols-[1.4fr_1fr_1fr]">
+        <div className="grid gap-x-8 gap-y-5 md:grid-cols-[1.3fr_1.1fr_1fr]">
           <SingleSelectSection
             label={t('industry')}
             options={industryOptions}

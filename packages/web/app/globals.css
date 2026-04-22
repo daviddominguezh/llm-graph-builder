@@ -135,6 +135,13 @@
   }
 }
 
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  transition: background-color 5000s ease-in-out 0s !important;
+}
+
 /* Native scrollbar fallback for elements not wrapped in <ScrollArea>. We intentionally
    do NOT set the standard scrollbar-color / scrollbar-width properties: Chrome 121+
    treats them as the primary scrollbar implementation and stops applying
@@ -213,6 +220,7 @@
   text-underline-offset: 2px;
   color: var(--foreground);
 }
+
 .tenant-row-link:hover {
   color: var(--foreground);
 }
