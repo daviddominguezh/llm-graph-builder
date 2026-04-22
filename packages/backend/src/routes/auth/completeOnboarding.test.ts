@@ -45,9 +45,9 @@ const { auditLog } = await import('../../lib/auditLog.js');
 const USER_ID = 'user-xyz';
 
 const VALID_BODY = {
-  industries: ['it_software'],
+  industry: 'it_software',
   company_size: '2-10',
-  roles: ['developer'],
+  role: 'developer',
   referral_sources: ['linkedin'],
   build_goals: ['ai_agents'],
 };
@@ -100,7 +100,7 @@ describe('POST /auth/complete-onboarding — validation errors', () => {
   it('unknown enum value returns 400 invalid_body', async () => {
     const res = await request(makeApp())
       .post('/auth/complete-onboarding')
-      .send({ ...VALID_BODY, industries: ['not_a_real_industry'] });
+      .send({ ...VALID_BODY, industry: 'not_a_real_industry' });
 
     expect(res.status).toBe(HTTP_BAD_REQUEST);
     expect(res.body).toMatchObject({ error: 'invalid_body' });

@@ -20,9 +20,9 @@ const ARRAY_MAX = 20;
 const PG_UNIQUE_VIOLATION = '23505';
 
 const BodySchema = z.object({
-  industries: z.array(z.enum(INDUSTRY_OPTIONS)).min(ARRAY_MIN).max(ARRAY_MAX),
+  industry: z.enum(INDUSTRY_OPTIONS),
   company_size: z.enum(COMPANY_SIZE_OPTIONS),
-  roles: z.array(z.enum(ROLE_OPTIONS)).min(ARRAY_MIN).max(ARRAY_MAX),
+  role: z.enum(ROLE_OPTIONS),
   referral_sources: z.array(z.enum(REFERRAL_OPTIONS)).min(ARRAY_MIN).max(ARRAY_MAX),
   build_goals: z.array(z.enum(BUILD_GOAL_OPTIONS)).min(ARRAY_MIN).max(ARRAY_MAX),
 });
@@ -61,9 +61,9 @@ async function insertOnboarding(
 ): Promise<InsertResult> {
   return (await supabase.from('user_onboarding').insert({
     user_id: userId,
-    industries: body.industries,
+    industry: body.industry,
     company_size: body.company_size,
-    roles: body.roles,
+    role: body.role,
     referral_sources: body.referral_sources,
     build_goals: body.build_goals,
   })) as InsertResult;
