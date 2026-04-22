@@ -52,7 +52,10 @@
       "submit": "Update password",
       "success": "Password updated successfully.",
       "mismatch": "Passwords do not match.",
-      "goToDashboard": "Continue to dashboard"
+      "goToDashboard": "Continue to dashboard",
+      "verifying": "Verifying reset link…",
+      "invalidLink": "This reset link is invalid or has expired. Request a new one.",
+      "requestNew": "Request a new link"
     },
     "oauth": {
       "google": "Continue with Google"
@@ -599,8 +602,11 @@
       "empty": "No origins allowed yet. The widget will be blocked everywhere.",
       "add": "Add",
       "remove": "Remove",
+      "cancel": "Cancel",
+      "removeConfirmTitle": "Remove allowed origin?",
+      "removeConfirmDescription": "The widget will no longer load on {origin}. You can re-add it later.",
       "inputPlaceholder": "https://*.example.com",
-      "invalidEntry": "Invalid origin. Use {protocol}://{hostname}[:port] (optional leading wildcard).",
+      "invalidEntry": "Invalid origin. Use '{protocol}'://'{hostname}'[:port] (optional leading wildcard).",
       "duplicateEntry": "This origin is already in the list."
     }
   },

@@ -102,7 +102,7 @@ interface ChatAppBodyProps {
 function ChatAppBody({ embedded, resolved, viewportW, error }: ChatAppBodyProps) {
   if (error === 'not_found') return <AgentNotFoundState />;
   if (resolved === null) return <LoadingState embedded={embedded} />;
-  if (!isAllowedToRender(embedded, resolved)) return <BlockedState />;
+  if (!isAllowedToRender(embedded, resolved)) return <BlockedState embedded={embedded} />;
   const ctx = { tenant: resolved.tenant, agentSlug: resolved.agentSlug, version: resolved.version };
   return (
     <AgentProvider value={ctx}>

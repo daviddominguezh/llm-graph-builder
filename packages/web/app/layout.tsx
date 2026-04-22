@@ -1,4 +1,3 @@
-import { Analytics } from '@vercel/analytics/next';
 import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
@@ -9,6 +8,7 @@ import { Toaster } from '@/components/ui/sonner';
 
 import './globals.css';
 
+import { AnalyticsClient } from './components/AnalyticsClient';
 import { GlobalScrollbarOverlay } from './components/GlobalScrollbarOverlay';
 import { OpenRouterModelsLogger } from './components/OpenRouterModelsLogger';
 import { ThemeProvider } from './components/ThemeProvider';
@@ -50,7 +50,7 @@ export default async function RootLayout({
             <Toaster />
           </ThemeProvider>
         </NextIntlClientProvider>
-        <Analytics />
+        <AnalyticsClient />
       </body>
     </html>
   );

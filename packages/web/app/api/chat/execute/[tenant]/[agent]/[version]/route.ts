@@ -13,6 +13,7 @@ const VERSION_REGEX = /^\d{1,6}$/v;
 const HTTP_BAD_REQUEST = 400;
 const HTTP_NOT_FOUND = 404;
 const HTTP_BAD_GATEWAY = 502;
+const HTTP_INTERNAL_ERROR = 500;
 
 export function OPTIONS(request: Request): Response {
   return preflightResponse(request);
@@ -100,12 +101,12 @@ async function resolveAndForward(args: HandlePostArgs): Promise<Response> {
   }
 }
 
-export async function POST(
+async function handlePost(
   request: Request,
-  context: { params: Promise<{ tenant: string; agent: string; version: string }> }
+  context: { params: Promise<{ tenant: string; agent: string; version: string }> },
+  cors: Record<string, string>
 ): Promise<Response> {
   const origin = request.headers.get('origin');
-  const cors = corsHeadersFor(origin);
   const params = await context.params;
 
   if (!validateParams(params)) {
@@ -119,4 +120,21 @@ export async function POST(
   }
 
   return await resolveAndForward({ params, origin, cors, rawBody: parsed.value });
+}
+
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ tenant: string; agent: string; version: string }> }
+): Promise<Response> {
+  const cors = corsHeadersFor(request.headers.get('origin'));
+  try {
+    return await handlePost(request, context, cors);
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : String(e);
+    console.error('[execute route] unhandled error:', detail);
+    return NextResponse.json(
+      { error: 'internal_error', detail },
+      { status: HTTP_INTERNAL_ERROR, headers: cors }
+    );
+  }
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { parseAllowedOriginEntry } from '@openflow/shared-validation';
-import { Plus, Trash2 } from 'lucide-react';
+import { Check, Loader2, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useCallback, useState } from 'react';
@@ -15,6 +15,34 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 
+import { RemoveOriginButton } from './RemoveOriginButton';
+
+const RECENT_ADDED_FADE_MS = 2000;
+
+type OriginStatus = 'idle' | 'pending' | 'added';
+
+function addToSet<T>(value: T): (prev: Set<T>) => Set<T> {
+  return (prev) => {
+    const next = new Set(prev);
+    next.add(value);
+    return next;
+  };
+}
+
+function removeFromSet<T>(value: T): (prev: Set<T>) => Set<T> {
+  return (prev) => {
+    const next = new Set(prev);
+    next.delete(value);
+    return next;
+  };
+}
+
+function resolveStatus(origin: string, pending: Set<string>, recent: Set<string>): OriginStatus {
+  if (pending.has(origin)) return 'pending';
+  if (recent.has(origin)) return 'added';
+  return 'idle';
+}
+
 interface WebChannelSectionProps {
   tenant: TenantRow;
 }
@@ -25,6 +53,8 @@ function useWebChannelState(tenant: TenantRow) {
   const [draft, setDraft] = useState('');
   const [draftError, setDraftError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [pending, setPending] = useState<Set<string>>(() => new Set());
+  const [recentAdded, setRecentAdded] = useState<Set<string>>(() => new Set());
   return {
     enabled,
     setEnabled,
@@ -36,6 +66,10 @@ function useWebChannelState(tenant: TenantRow) {
     setDraftError,
     saving,
     setSaving,
+    pending,
+    setPending,
+    recentAdded,
+    setRecentAdded,
   };
 }
 
@@ -64,38 +98,55 @@ function useSave(tenant: TenantRow, onSaved: () => void) {
   );
 }
 
+interface OriginRowProps {
+  origin: string;
+  status: OriginStatus;
+  onRemove: () => void;
+}
+
+function OriginStatusIcon({ status }: { status: OriginStatus }) {
+  if (status === 'pending') {
+    return <Loader2 className="size-3.5 animate-spin text-muted-foreground" aria-hidden />;
+  }
+  if (status === 'added') {
+    return <Check className="size-3.5 text-primary" aria-hidden />;
+  }
+  return null;
+}
+
+function OriginRow({ origin, status, onRemove }: OriginRowProps) {
+  return (
+    <li className="flex items-center justify-between gap-2 rounded-md border bg-card px-3 py-1.5 font-mono text-xs dark:bg-input/30">
+      <span className="min-w-0 truncate">{origin}</span>
+      <div className="flex items-center gap-2">
+        <OriginStatusIcon status={status} />
+        <RemoveOriginButton origin={origin} onConfirm={onRemove} disabled={status === 'pending'} />
+      </div>
+    </li>
+  );
+}
+
 interface OriginListProps {
   origins: string[];
+  pending: Set<string>;
+  recentAdded: Set<string>;
   onRemove: (idx: number) => void;
-  removeLabel: string;
   emptyLabel: string;
 }
 
-function OriginList({ origins, onRemove, removeLabel, emptyLabel }: OriginListProps) {
+function OriginList({ origins, pending, recentAdded, onRemove, emptyLabel }: OriginListProps) {
   if (origins.length === 0) {
-    return (
-      <p className="text-xs text-muted-foreground px-1 py-2">{emptyLabel}</p>
-    );
+    return <p className="text-xs text-muted-foreground px-1 py-2">{emptyLabel}</p>;
   }
   return (
     <ul className="flex flex-col gap-1.5">
       {origins.map((origin, idx) => (
-        <li
+        <OriginRow
           key={`${origin}-${String(idx)}`}
-          className="flex items-center justify-between gap-2 rounded-md border bg-card px-3 py-1.5 font-mono text-xs dark:bg-input/30"
-        >
-          <span className="min-w-0 truncate">{origin}</span>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            aria-label={removeLabel}
-            onClick={() => onRemove(idx)}
-            className="h-7 w-7 p-0"
-          >
-            <Trash2 className="size-3.5" />
-          </Button>
-        </li>
+          origin={origin}
+          status={resolveStatus(origin, pending, recentAdded)}
+          onRemove={() => onRemove(idx)}
+        />
       ))}
     </ul>
   );
@@ -128,19 +179,19 @@ function AddOriginInput({
 }: AddOriginInputProps) {
   function commit(e: FormEvent<HTMLFormElement>): void {
     e.preventDefault();
-    const trimmed = draft.trim();
-    if (trimmed === '') return;
-    if (parseAllowedOriginEntry(trimmed) === null) {
+    const normalized = draft.trim().replace(/\/+$/u, '');
+    if (normalized === '') return;
+    if (parseAllowedOriginEntry(normalized) === null) {
       setDraftError(invalidLabel);
       return;
     }
-    if (origins.includes(trimmed)) {
+    if (origins.includes(normalized)) {
       setDraftError(duplicateLabel);
       return;
     }
     setDraftError(null);
     setDraft('');
-    onAdd(trimmed);
+    onAdd(normalized);
   }
   return (
     <form onSubmit={commit} className="flex flex-col gap-1.5">
@@ -177,7 +228,12 @@ export function WebChannelSection({ tenant }: WebChannelSectionProps): React.JSX
   async function handleAdd(entry: string): Promise<void> {
     const next = [...state.origins, entry];
     state.setOrigins(next);
-    await save(state.enabled, next, state.setSaving);
+    state.setPending(addToSet(entry));
+    const ok = await save(state.enabled, next, state.setSaving);
+    state.setPending(removeFromSet(entry));
+    if (!ok) return;
+    state.setRecentAdded(addToSet(entry));
+    setTimeout(() => state.setRecentAdded(removeFromSet(entry)), RECENT_ADDED_FADE_MS);
   }
   async function handleRemove(idx: number): Promise<void> {
     const next = state.origins.filter((_, i) => i !== idx);
@@ -208,8 +264,9 @@ export function WebChannelSection({ tenant }: WebChannelSectionProps): React.JSX
           <Label className="text-sm">{t('originsLabel')}</Label>
           <OriginList
             origins={state.origins}
+            pending={state.pending}
+            recentAdded={state.recentAdded}
             onRemove={(idx) => void handleRemove(idx)}
-            removeLabel={t('remove')}
             emptyLabel={t('empty')}
           />
           <AddOriginInput
