@@ -223,6 +223,6 @@ describe('POST /auth/phone/send-otp — updateUser error', () => {
       .send({ phone: PHONE });
 
     expect(res.status).toBe(HTTP_INTERNAL);
-    expect(res.body).toEqual({ error: 'send_failed' });
+    expect(res.body).toEqual({ error: 'send_failed', detail: 'SMS failed' });
   });
 });

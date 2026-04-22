@@ -112,33 +112,40 @@ async function upsertResendWindow(service: SupabaseClient, params: ResendWindowU
   );
 }
 
-async function checkAndUpdateResends(
+async function computeResendsNextOrReject(
   service: SupabaseClient,
   userId: string,
   phone: string
-): Promise<boolean> {
+): Promise<{ resends: number; windowStart: string } | null> {
   const existing = await getResendWindow(service, userId, phone);
-  const { resends, windowStart } = computeNewResends(existing);
-  if (resends > MAX_RESENDS_24H) return false;
-  await upsertResendWindow(service, { userId, phone, resends, windowStart });
-  return true;
+  const next = computeNewResends(existing);
+  if (next.resends > MAX_RESENDS_24H) return null;
+  return next;
 }
 
-async function handleSendOtp(req: Request, res: Response): Promise<void> {
+interface PreChecks {
+  userId: string;
+  supabase: SupabaseClient;
+  service: SupabaseClient;
+  e164: string;
+  resendNext: { resends: number; windowStart: string };
+}
+
+async function runPreChecks(req: Request, res: Response): Promise<PreChecks | null> {
   const ip = req.ip ?? 'unknown';
   if (!ipLimiter.consume(ip)) {
     res.status(HTTP_RATE_LIMITED).json({ error: 'rate_limited' });
-    return;
+    return null;
   }
   const parsed = BodySchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(HTTP_BAD_REQUEST).json({ error: 'invalid_body' });
-    return;
+    return null;
   }
   const v = validatePhone(parsed.data.phone);
   if (!v.ok) {
     res.status(HTTP_BAD_REQUEST).json({ error: v.error });
-    return;
+    return null;
   }
   const userId = getUserId(res);
   const supabase = getSupabase(res);
@@ -146,20 +153,33 @@ async function handleSendOtp(req: Request, res: Response): Promise<void> {
   const cooldown = await checkCooldown(service, userId);
   if (cooldown.blocked) {
     res.status(HTTP_RATE_LIMITED).json({ error: 'cooldown', cooldownUntil: cooldown.until });
-    return;
+    return null;
   }
-  const resendAllowed = await checkAndUpdateResends(service, userId, v.e164);
-  if (!resendAllowed) {
+  const resendNext = await computeResendsNextOrReject(service, userId, v.e164);
+  if (resendNext === null) {
     res.status(HTTP_RATE_LIMITED).json({ error: 'otp_rate_limited_24h' });
-    return;
+    return null;
   }
-  const cooldownUntil = await upsertCooldown(service, userId);
-  const { error } = await supabase.auth.updateUser({ phone: v.e164 });
+  return { userId, supabase, service, e164: v.e164, resendNext };
+}
+
+async function handleSendOtp(req: Request, res: Response): Promise<void> {
+  const pre = await runPreChecks(req, res);
+  if (pre === null) return;
+  const { error } = await pre.supabase.auth.updateUser({ phone: pre.e164 });
   if (error !== null) {
-    res.status(HTTP_INTERNAL).json({ error: 'send_failed' });
+    process.stderr.write(`[phoneSendOtp] updateUser failed: ${error.message}\n`);
+    res.status(HTTP_INTERNAL).json({ error: 'send_failed', detail: error.message });
     return;
   }
-  await auditLog({ event: 'phone_send_otp', userId, phone: v.e164, ip });
+  const cooldownUntil = await upsertCooldown(pre.service, pre.userId);
+  await upsertResendWindow(pre.service, {
+    userId: pre.userId,
+    phone: pre.e164,
+    resends: pre.resendNext.resends,
+    windowStart: pre.resendNext.windowStart,
+  });
+  await auditLog({ event: 'phone_send_otp', userId: pre.userId, phone: pre.e164, ip: req.ip });
   res.json({ ok: true, cooldownUntil });
 }
 

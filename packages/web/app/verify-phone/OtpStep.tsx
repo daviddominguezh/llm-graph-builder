@@ -1,49 +1,18 @@
 'use client';
 
+import { formatCountdown, useCountdown } from '@/app/lib/auth/useCountdown';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 const OTP_LENGTH = 6;
-const MS_PER_SEC = 1000;
-const SECS_PER_MIN = 60;
 
 export interface OtpStepProps {
   phone: string;
   cooldownUntil: string | null;
   onEdit: () => void;
   onNewCooldown: (cooldownUntil: string | null) => void;
-}
-
-function formatCountdown(secondsLeft: number): string {
-  const mins = Math.floor(secondsLeft / SECS_PER_MIN);
-  const secs = secondsLeft % SECS_PER_MIN;
-  const paddedSecs = String(secs).padStart(2, '0');
-  return `${String(mins)}:${paddedSecs}`;
-}
-
-function computeSecondsLeft(cooldownUntil: string | null): number {
-  if (cooldownUntil === null) {
-    return 0;
-  }
-  return Math.max(0, Math.ceil((new Date(cooldownUntil).getTime() - Date.now()) / MS_PER_SEC));
-}
-
-function useCountdown(cooldownUntil: string | null): number {
-  const [, setTick] = useState(0);
-
-  useEffect(() => {
-    if (cooldownUntil === null) {
-      return;
-    }
-    const id = setInterval(() => {
-      setTick((t) => t + 1);
-    }, MS_PER_SEC);
-    return () => clearInterval(id);
-  }, [cooldownUntil]);
-
-  return computeSecondsLeft(cooldownUntil);
 }
 
 interface VerifyOtpResponse {

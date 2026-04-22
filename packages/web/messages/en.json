@@ -73,12 +73,14 @@
       "resend": "Resend code",
       "resendIn": "Resend code ({time})",
       "editPhone": "Wrong number?",
+      "cooldown": "Please wait {time} before requesting another code.",
       "errors": {
         "invalidOtp": "Invalid code, try again.",
         "tooManyAttempts": "Too many attempts. Request a new code.",
         "phoneTaken": "This phone is already registered with another account.",
         "sendFailed": "Couldn't send the code. Try again.",
-        "otpLocked": "Too many attempts. Request a new code."
+        "otpLocked": "Too many attempts. Request a new code.",
+        "rateLimited24h": "You've requested too many codes today. Try again in 24 hours."
       }
     }
   },
