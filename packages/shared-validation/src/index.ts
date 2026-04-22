@@ -46,3 +46,4 @@ export function sortedReservedTenantSlugs(): string[] {
 }
 
 export * from './onboarding.js';
+export * from './origins.js';
