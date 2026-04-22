@@ -46,6 +46,7 @@ type SendOtpResult =
   | { kind: 'ok'; cooldownUntil: string | null }
   | { kind: 'cooldown'; cooldownUntil: string }
   | { kind: 'rate_limited_24h' }
+  | { kind: 'ip_rate_limited' }
   | { kind: 'error'; code: string };
 
 async function checkPhone(phone: string): Promise<CheckResponse> {
@@ -69,6 +70,7 @@ async function sendOtp(phone: string): Promise<SendOtpResult> {
     return { kind: 'cooldown', cooldownUntil: body.cooldownUntil };
   }
   if (body.error === 'otp_rate_limited_24h') return { kind: 'rate_limited_24h' };
+  if (body.error === 'rate_limited') return { kind: 'ip_rate_limited' };
   return { kind: 'error', code: body.error ?? 'send_failed' };
 }
 
@@ -94,6 +96,10 @@ function handleSendResult(
   }
   if (result.kind === 'rate_limited_24h') {
     setState({ error: t('errors.rateLimited24h'), loading: false });
+    return;
+  }
+  if (result.kind === 'ip_rate_limited') {
+    setState({ error: t('errors.ipRateLimited'), loading: false });
     return;
   }
   setState({ error: t('errors.sendFailed'), loading: false });
