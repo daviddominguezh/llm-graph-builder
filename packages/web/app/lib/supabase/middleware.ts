@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server';
 
 import { AUTH_COOKIE_OPTIONS } from './cookies';
 
-const PUBLIC_ROUTES = ['/auth/callback', '/reset-password', '/error', '/api/chat'];
+const PUBLIC_ROUTES = ['/auth/callback', '/reset-password', '/error', '/api/chat', '/api/auth/public'];
 const GUEST_ONLY_ROUTES = ['/login', '/signup', '/forgot-password'];
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
