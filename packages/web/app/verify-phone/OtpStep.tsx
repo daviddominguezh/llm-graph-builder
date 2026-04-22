@@ -1,6 +1,7 @@
 'use client';
 
 import { formatCountdown, useCountdown } from '@/app/lib/auth/useCountdown';
+import { Button } from '@/components/ui/button';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
@@ -103,14 +104,16 @@ function OtpResend({
 
   return (
     <div className="flex flex-col gap-1">
-      <button
+      <Button
         type="button"
-        className="text-primary text-xs underline disabled:cursor-not-allowed disabled:opacity-50"
+        variant="link"
+        size="sm"
+        className="h-auto self-start p-0 text-xs"
         disabled={!canResend}
         onClick={onResend}
       >
         {secondsLeft > 0 ? t('resendIn', { time: formatCountdown(secondsLeft) }) : t('resend')}
-      </button>
+      </Button>
       {resendError.length > 0 && <p className="text-destructive text-xs">{resendError}</p>}
     </div>
   );
@@ -150,9 +153,9 @@ export function OtpStep({ phone, cooldownUntil, onEdit, onNewCooldown }: OtpStep
       <OtpResend secondsLeft={secondsLeft} resending={resending} resendError={resendError} onResend={handleResend} />
       <p className="text-muted-foreground text-xs">
         {t('editPhone')}{' '}
-        <button type="button" className="text-primary underline" onClick={onEdit}>
+        <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" onClick={onEdit}>
           Edit
-        </button>
+        </Button>
       </p>
     </div>
   );
