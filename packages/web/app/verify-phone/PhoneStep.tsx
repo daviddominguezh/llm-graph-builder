@@ -148,9 +148,8 @@ export function PhoneStep({ phone, onPhoneChange, onAdvance }: PhoneStepProps) {
       <div className="flex flex-col gap-1">
         <Label>{t('phoneLabel')}</Label>
         {defaultCountry === null ? (
-          <div className="flex h-7" aria-hidden>
-            <div className="w-20 animate-pulse rounded-s-lg bg-gray-700 shadow-[0_0_16px_var(--color-gray-400)]" />
-            <div className="ml-px flex-1 animate-pulse rounded-e-lg bg-gray-700 shadow-[0_0_16px_var(--color-gray-400)]" />
+          <div className="flex h-7 overflow-hidden rounded-full" aria-hidden>
+            <div className="w-full animate-pulse rounded-s-lg bg-input" />
           </div>
         ) : (
           <PhoneInput
