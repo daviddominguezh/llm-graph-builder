@@ -16,13 +16,15 @@ import { toast } from 'sonner';
 import { DirectLinkDisplay } from './DirectLinkDisplay';
 import { EmbedSnippetDisplay } from './EmbedSnippetDisplay';
 import { CopyButton } from './PublishButtonShared';
+import { EmptyTenantsState, type PublishTenant, TenantPicker } from './PublishButtonTenantPicker';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 interface PublishButtonProps {
   agentId: string;
   agentSlug: string;
-  tenantSlug: string;
+  orgSlug: string;
+  tenants: PublishTenant[];
   version: number;
   canPublish: boolean;
   hasApiKey: boolean;
@@ -139,31 +141,74 @@ function PublishStatus({ version }: { version: number }) {
 
 interface PopoverBodyProps {
   agentSlug: string;
-  tenantSlug: string;
+  orgSlug: string;
+  tenants: PublishTenant[];
+  selectedTenantId: string;
+  onTenantChange: (tenantId: string) => void;
   version: number;
   publishing: boolean;
   onPublish: () => void;
 }
 
-function PopoverBody({ agentSlug, tenantSlug, version, publishing, onPublish }: PopoverBodyProps) {
-  const t = useTranslations('editor');
-  const showCurl = version > 0 || publishing;
+interface PublishedDetailsProps {
+  agentSlug: string;
+  tenants: PublishTenant[];
+  selectedTenantId: string;
+  onTenantChange: (tenantId: string) => void;
+  version: number;
+  publishing: boolean;
+}
+
+function PublishedDetails(props: PublishedDetailsProps) {
+  const { agentSlug, tenants, selectedTenantId, onTenantChange, version, publishing } = props;
+  const showDetails = version > 0 || publishing;
   const curlVersion = version > 0 ? version : version + 1;
+  const selectedSlug = (tenants.find((tenant) => tenant.id === selectedTenantId) ?? tenants[0])?.slug ?? '';
+
+  if (!showDetails) return null;
+
+  return (
+    <>
+      <TenantPicker
+        tenants={tenants}
+        selectedTenantId={selectedTenantId}
+        onChange={onTenantChange}
+        disabled={publishing}
+      />
+      <DirectLinkDisplay tenantSlug={selectedSlug} agentSlug={agentSlug} disabled={publishing} />
+      <EmbedSnippetDisplay tenantSlug={selectedSlug} agentSlug={agentSlug} disabled={publishing} />
+      <CurlDisplay agentSlug={agentSlug} version={curlVersion} publishing={publishing} />
+    </>
+  );
+}
+
+function PopoverBody(props: PopoverBodyProps) {
+  const { agentSlug, orgSlug, tenants, selectedTenantId, onTenantChange, version, publishing, onPublish } =
+    props;
+  const t = useTranslations('editor');
+  const hasTenants = tenants.length > 0;
 
   return (
     <div className="flex flex-col gap-3 p-0.5">
       <PublishStatus version={version} />
       <Separator />
-      {showCurl && (
-        <DirectLinkDisplay tenantSlug={tenantSlug} agentSlug={agentSlug} disabled={publishing} />
+      {hasTenants ? (
+        <>
+          <PublishedDetails
+            agentSlug={agentSlug}
+            tenants={tenants}
+            selectedTenantId={selectedTenantId}
+            onTenantChange={onTenantChange}
+            version={version}
+            publishing={publishing}
+          />
+          <Button variant="default" size="sm" className="w-full" onClick={onPublish} disabled={publishing}>
+            {t('publish')} v{version + 1}
+          </Button>
+        </>
+      ) : (
+        <EmptyTenantsState orgSlug={orgSlug} />
       )}
-      {showCurl && (
-        <EmbedSnippetDisplay tenantSlug={tenantSlug} agentSlug={agentSlug} disabled={publishing} />
-      )}
-      {showCurl && <CurlDisplay agentSlug={agentSlug} version={curlVersion} publishing={publishing} />}
-      <Button variant="default" size="sm" className="w-full" onClick={onPublish} disabled={publishing}>
-        {t('publish')} v{version + 1}
-      </Button>
     </div>
   );
 }
@@ -187,10 +232,11 @@ function DisabledPublishButton() {
 }
 
 export function PublishButton(props: PublishButtonProps) {
-  const { agentId, agentSlug, tenantSlug, version, canPublish, hasApiKey, flush, onPublished } = props;
+  const { agentId, agentSlug, orgSlug, tenants, version, canPublish, hasApiKey, flush, onPublished } = props;
   const t = useTranslations('editor');
   const [publishing, setPublishing] = useState(false);
   const [open, setOpen] = useState(false);
+  const [selectedTenantId, setSelectedTenantId] = useState<string>('');
 
   async function handlePublish() {
     setPublishing(true);
@@ -206,7 +252,9 @@ export function PublishButton(props: PublishButtonProps) {
   }
 
   function handleOpenChange(next: boolean) {
-    if (!publishing) setOpen(next);
+    if (publishing) return;
+    if (next) setSelectedTenantId(tenants[0]?.id ?? '');
+    setOpen(next);
   }
 
   if (!canPublish || !hasApiKey) return <DisabledPublishButton />;
@@ -222,7 +270,10 @@ export function PublishButton(props: PublishButtonProps) {
       <PopoverContent side="bottom" align="end" sideOffset={8} className="w-96">
         <PopoverBody
           agentSlug={agentSlug}
-          tenantSlug={tenantSlug}
+          orgSlug={orgSlug}
+          tenants={tenants}
+          selectedTenantId={selectedTenantId}
+          onTenantChange={setSelectedTenantId}
           version={version}
           publishing={publishing}
           onPublish={handlePublish}
