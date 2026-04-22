@@ -30,6 +30,16 @@ function useOptionLabel() {
   };
 }
 
+function GroupHeading({ index, title }: { index: string; title: string }) {
+  return (
+    <div className="flex items-baseline gap-2">
+      <span className="font-mono text-[10px] tracking-[0.2em] text-muted-foreground/60">{index}</span>
+      <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">{title}</span>
+      <span className="ml-1 h-px flex-1 bg-border/60" aria-hidden />
+    </div>
+  );
+}
+
 function FormSections({
   state,
   handlers,
@@ -40,51 +50,61 @@ function FormSections({
   buildGoalOptions,
 }: SectionsProps) {
   const t = useTranslations('onboarding.sections');
+  const groups = useTranslations('onboarding.groups');
+  const hints = useTranslations('onboarding.hints');
   const label = useOptionLabel();
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="grid gap-x-8 gap-y-5 md:grid-cols-[1.4fr_1fr_1fr]">
-        <SingleSelectSection
-          label={t('industry')}
-          options={industryOptions}
-          selected={state.industry}
-          getLabel={label.industry}
-          onSelect={handlers.setIndustry}
-        />
-        <div className="tabular-nums">
+      <section className="flex flex-col gap-4">
+        <GroupHeading index="01" title={groups('aboutYou')} />
+        <div className="grid gap-x-8 gap-y-5 md:grid-cols-[1.4fr_1fr_1fr]">
           <SingleSelectSection
-            label={t('companySize')}
-            options={companySizeOptions}
-            selected={state.companySize}
-            getLabel={label.companySize}
-            onSelect={handlers.setCompanySize}
+            label={t('industry')}
+            options={industryOptions}
+            selected={state.industry}
+            getLabel={label.industry}
+            onSelect={handlers.setIndustry}
+          />
+          <div className="tabular-nums">
+            <SingleSelectSection
+              label={t('companySize')}
+              options={companySizeOptions}
+              selected={state.companySize}
+              getLabel={label.companySize}
+              onSelect={handlers.setCompanySize}
+            />
+          </div>
+          <SingleSelectSection
+            label={t('role')}
+            options={roleOptions}
+            selected={state.role}
+            getLabel={label.role}
+            onSelect={handlers.setRole}
           />
         </div>
-        <SingleSelectSection
-          label={t('role')}
-          options={roleOptions}
-          selected={state.role}
-          getLabel={label.role}
-          onSelect={handlers.setRole}
-        />
-      </div>
-      <div className="flex flex-col gap-5">
-        <MultiSelectSection
-          label={t('referral')}
-          options={referralOptions}
-          selected={state.referralSources}
-          getLabel={label.referral}
-          onToggle={handlers.toggleReferral}
-        />
-        <MultiSelectSection
-          label={t('buildGoals')}
-          options={buildGoalOptions}
-          selected={state.buildGoals}
-          getLabel={label.buildGoal}
-          onToggle={handlers.toggleBuildGoal}
-        />
-      </div>
+      </section>
+      <section className="flex flex-col gap-4">
+        <GroupHeading index="02" title={groups('context')} />
+        <div className="flex flex-col gap-5">
+          <MultiSelectSection
+            label={t('referral')}
+            options={referralOptions}
+            selected={state.referralSources}
+            getLabel={label.referral}
+            onToggle={handlers.toggleReferral}
+            hint={hints('pickAny')}
+          />
+          <MultiSelectSection
+            label={t('buildGoals')}
+            options={buildGoalOptions}
+            selected={state.buildGoals}
+            getLabel={label.buildGoal}
+            onToggle={handlers.toggleBuildGoal}
+            hint={hints('pickAny')}
+          />
+        </div>
+      </section>
     </div>
   );
 }

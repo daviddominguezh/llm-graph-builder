@@ -1345,6 +1345,13 @@
     "description": "This helps us tailor your experience.",
     "submit": "Continue",
     "submitError": "Couldn't save. Please try again.",
+    "groups": {
+      "aboutYou": "About you",
+      "context": "Why OpenFlow"
+    },
+    "hints": {
+      "pickAny": "Select all that apply"
+    },
     "sections": {
       "industry": "What's your industry?",
       "companySize": "How big is your company?",

@@ -18,7 +18,7 @@ export function SingleSelectSection<T extends string>({
   onSelect,
 }: SingleSelectSectionProps<T>) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2" role="radiogroup" aria-label={label}>
       <p className="text-sm font-medium text-foreground/80">{label}</p>
       <div className="flex flex-wrap gap-1">
         {options.map((opt) => (
@@ -27,6 +27,7 @@ export function SingleSelectSection<T extends string>({
             label={getLabel(opt)}
             checked={selected === opt}
             onToggle={() => onSelect(opt)}
+            variant="single"
           />
         ))}
       </div>
@@ -48,10 +49,14 @@ export function MultiSelectSection<T extends string>({
   selected,
   getLabel,
   onToggle,
-}: MultiSelectSectionProps<T>) {
+  hint,
+}: MultiSelectSectionProps<T> & { hint?: string }) {
   return (
-    <div className="flex flex-col gap-2">
-      <p className="text-sm font-medium text-foreground/80">{label}</p>
+    <div className="flex flex-col gap-2" role="group" aria-label={label}>
+      <p className="text-sm font-medium text-foreground/80">
+        {label}
+        {hint !== undefined && <span className="ml-2 text-xs font-normal text-muted-foreground">{hint}</span>}
+      </p>
       <div className="flex flex-wrap gap-1">
         {options.map((opt) => (
           <OptionPill
@@ -59,6 +64,7 @@ export function MultiSelectSection<T extends string>({
             label={getLabel(opt)}
             checked={selected.includes(opt)}
             onToggle={() => onToggle(opt)}
+            variant="multi"
           />
         ))}
       </div>
