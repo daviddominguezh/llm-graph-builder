@@ -175,7 +175,7 @@ export function PhoneStep({ phone, onPhoneChange, onAdvance }: PhoneStepProps) {
           {t('cooldown', { time: formatCountdown(secondsLeft) })}
         </p>
       )}
-      <Button type="button" size="lg" className="w-full mt-0" disabled={isDisabled} onClick={handleSubmit}>
+      <Button type="button" size="lg" className="w-full" disabled={isDisabled} onClick={handleSubmit}>
         {loading ? <Loader2 className="size-4 animate-spin" /> : t('continue')}
       </Button>
     </div>

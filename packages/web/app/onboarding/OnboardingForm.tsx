@@ -107,7 +107,7 @@ export function OnboardingForm() {
         referralOptions={result.referralOptions}
         buildGoalOptions={result.buildGoalOptions}
       />
-      {result.error !== null && <p className="text-destructive text-xs">{t('submitError')}</p>}
+      {result.hasError && <p className="text-destructive text-xs">{t('submitError')}</p>}
       <div className="flex justify-end">
         <Button type="submit" size="lg" disabled={!result.isValid || result.loading}>
           {result.loading ? <Loader2 className="size-4 animate-spin" /> : t('submit')}

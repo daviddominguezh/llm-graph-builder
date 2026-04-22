@@ -91,37 +91,32 @@ function useResend(phone: string, onNewCooldown: OtpStepProps['onNewCooldown']) 
 function OtpResend({
   secondsLeft,
   resending,
-  resendError,
   onResend,
 }: {
   secondsLeft: number;
   resending: boolean;
-  resendError: string;
   onResend: () => void;
 }) {
   const t = useTranslations('auth.verifyPhone');
-  const isCountingDown = secondsLeft > 0;
 
+  if (secondsLeft > 0) {
+    return (
+      <span className="text-muted-foreground text-xs">
+        {t('resendIn', { time: formatCountdown(secondsLeft) })}
+      </span>
+    );
+  }
   return (
-    <div className="flex flex-col gap-1">
-      {isCountingDown ? (
-        <p className="text-muted-foreground text-xs">
-          {t('resendIn', { time: formatCountdown(secondsLeft) })}
-        </p>
-      ) : (
-        <Button
-          type="button"
-          variant="link"
-          size="sm"
-          className="h-auto self-start p-0 text-xs"
-          disabled={resending}
-          onClick={onResend}
-        >
-          {t('resend')}
-        </Button>
-      )}
-      {resendError.length > 0 && <p className="text-destructive text-xs">{resendError}</p>}
-    </div>
+    <Button
+      type="button"
+      variant="link"
+      size="sm"
+      className="h-auto p-0 text-xs"
+      disabled={resending}
+      onClick={onResend}
+    >
+      {t('resend')}
+    </Button>
   );
 }
 
@@ -144,7 +139,8 @@ export function OtpStep({ phone, cooldownUntil, onEdit, onNewCooldown }: OtpStep
   return (
     <div className="flex flex-col gap-4">
       <p className="text-muted-foreground text-sm">
-        {t('otpDescription')} <span className="font-medium text-foreground">{phone}</span>
+        {t('otpDescription')}{' '}
+        <span className="font-mono tabular-nums tracking-tight text-foreground">{phone}</span>
       </p>
       <div className="flex justify-center">
         <InputOTP maxLength={OTP_LENGTH} value={otp} onChange={handleChange} disabled={loading}>
@@ -156,10 +152,13 @@ export function OtpStep({ phone, cooldownUntil, onEdit, onNewCooldown }: OtpStep
         </InputOTP>
       </div>
       {error.length > 0 && <p className="text-destructive text-center text-xs">{error}</p>}
-      <OtpResend secondsLeft={secondsLeft} resending={resending} resendError={resendError} onResend={handleResend} />
-      <Button type="button" variant="link" size="sm" className="h-auto self-start p-0 text-xs" onClick={onEdit}>
-        {t('editPhone')}
-      </Button>
+      <div className="flex items-center justify-between gap-3">
+        <OtpResend secondsLeft={secondsLeft} resending={resending} onResend={handleResend} />
+        <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" onClick={onEdit}>
+          {t('editPhone')}
+        </Button>
+      </div>
+      {resendError.length > 0 && <p className="text-destructive text-xs">{resendError}</p>}
     </div>
   );
 }

@@ -1,11 +1,7 @@
 'use client';
 
-import logo from '@/app/assets/brand-icon.png';
-import logoBlack from '@/app/openflowLogoBlack.png';
-import logoWhite from '@/app/openflowLogoWhite.png';
 import { CardDescription, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import Image from 'next/image';
 import type { ReactNode } from 'react';
 
 import { ShaderBackground } from './ShaderBackground';
@@ -24,18 +20,15 @@ export function AuthCard({ title, description, children, className = '' }: AuthC
         <ShaderBackground />
       </div>
 
-      <div className="relative flex flex-1 flex-col items-center justify-center gap-6 p-4 z-3">
-        <div className="flex gap-2 items-center">
-          <Image className="mb-1" src={logo} alt="OpenFlow" height={60} priority />
-        </div>
+      <div className="relative flex flex-1 flex-col items-center justify-center gap-4 p-4 z-3">
         <div
           className={cn(
-            'auth-card-enter relative w-full max-w-sm rounded-xl border bg-card text-card-foreground shadow-sm',
+            'auth-card-enter relative w-full max-w-sm rounded-xl bg-card text-card-foreground shadow-sm',
             className
           )}
         >
-          <div className="flex flex-col gap-5 px-5 py-5 h-full">
-            <div className="shrink-0">
+          <div className="flex flex-col gap-5 p-5">
+            <div>
               <CardTitle className="text-xl font-bold">{title}</CardTitle>
               <CardDescription>{description}</CardDescription>
             </div>

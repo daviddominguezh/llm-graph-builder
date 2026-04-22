@@ -38,7 +38,7 @@ export interface UseOnboardingStateResult {
   handlers: OnboardingHandlers;
   isValid: boolean;
   loading: boolean;
-  error: string | null;
+  hasError: boolean;
   submit: () => Promise<void>;
   industryOptions: readonly Industry[];
   companySizeOptions: readonly CompanySize[];
@@ -73,7 +73,7 @@ export function useOnboardingState(): UseOnboardingStateResult {
   });
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [hasError, setHasError] = useState(false);
 
   const handlers: OnboardingHandlers = {
     setIndustry: (v) => setState((s) => ({ ...s, industry: v })),
@@ -85,7 +85,7 @@ export function useOnboardingState(): UseOnboardingStateResult {
 
   async function submit(): Promise<void> {
     setLoading(true);
-    setError(null);
+    setHasError(false);
 
     const body = {
       industry: state.industry,
@@ -102,7 +102,7 @@ export function useOnboardingState(): UseOnboardingStateResult {
     });
 
     if (!res.ok) {
-      setError('onboarding.submitError');
+      setHasError(true);
       setLoading(false);
       return;
     }
@@ -115,7 +115,7 @@ export function useOnboardingState(): UseOnboardingStateResult {
     handlers,
     isValid: isFormValid(state),
     loading,
-    error,
+    hasError,
     submit,
     industryOptions: INDUSTRY_OPTIONS,
     companySizeOptions: COMPANY_SIZE_OPTIONS,
