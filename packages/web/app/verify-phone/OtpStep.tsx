@@ -16,7 +16,7 @@ export interface OtpStepProps {
 }
 
 interface VerifyOtpResponse {
-  success: boolean;
+  ok?: boolean;
 }
 
 async function verifyOtp(phone: string, token: string): Promise<{ ok: boolean; tooMany: boolean }> {
@@ -26,7 +26,7 @@ async function verifyOtp(phone: string, token: string): Promise<{ ok: boolean; t
     body: JSON.stringify({ phone, token }),
   });
   const body = (await res.json()) as VerifyOtpResponse;
-  return { ok: res.ok && body.success === true, tooMany: res.status === 429 };
+  return { ok: res.ok && body.ok === true, tooMany: res.status === 429 };
 }
 
 interface SendOtpResponse {
