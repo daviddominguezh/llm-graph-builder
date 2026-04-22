@@ -1,6 +1,6 @@
 'use client';
 
-import { ALLOWED_COUNTRIES, DEFAULT_COUNTRY, detectCountry } from '@/app/lib/auth/detectCountry';
+import { ALLOWED_COUNTRIES, detectCountry } from '@/app/lib/auth/detectCountry';
 import { formatCountdown, useCountdown } from '@/app/lib/auth/useCountdown';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -24,11 +24,11 @@ function subscribeToNothing(): () => void {
   return noopUnsubscribe;
 }
 
-function getServerCountry(): Country {
-  return DEFAULT_COUNTRY;
+function getServerCountry(): Country | null {
+  return null;
 }
 
-function useDetectedCountry(): Country {
+function useDetectedCountry(): Country | null {
   return useSyncExternalStore(subscribeToNothing, detectCountry, getServerCountry);
 }
 
@@ -147,15 +147,19 @@ export function PhoneStep({ phone, onPhoneChange, onAdvance }: PhoneStepProps) {
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
         <Label>{t('phoneLabel')}</Label>
-        <PhoneInput
-          key={defaultCountry}
-          value={phone as PhoneValue}
-          onChange={handleChange}
-          disabled={loading || isCoolingDown}
-          defaultCountry={defaultCountry}
-          countries={[...ALLOWED_COUNTRIES]}
-          addInternationalOption={false}
-        />
+        {defaultCountry === null ? (
+          <div className="border-input h-10 animate-pulse rounded-md border bg-muted/40" aria-hidden />
+        ) : (
+          <PhoneInput
+            key={defaultCountry}
+            value={phone as PhoneValue}
+            onChange={handleChange}
+            disabled={loading || isCoolingDown}
+            defaultCountry={defaultCountry}
+            countries={[...ALLOWED_COUNTRIES]}
+            addInternationalOption={false}
+          />
+        )}
       </div>
       {error.length > 0 && <p className="text-destructive text-xs">{error}</p>}
       {isCoolingDown && (
