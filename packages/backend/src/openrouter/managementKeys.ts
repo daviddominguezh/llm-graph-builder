@@ -19,6 +19,13 @@ export interface OpenRouterKeyResult {
 }
 
 export async function createOpenRouterKey(orgName: string): Promise<OpenRouterKeyResult | null> {
+  if (process.env.NODE_ENV !== 'production') {
+    process.stdout.write(
+      `[openrouter] Skipping key creation for "${orgName}" in non-production environment (NODE_ENV=${process.env.NODE_ENV ?? 'undefined'})\n`
+    );
+    return null;
+  }
+
   const managementKey = process.env.OPENROUTER_MANAGEMENT_KEY ?? '';
   if (managementKey === '') {
     process.stderr.write('[openrouter] OPENROUTER_MANAGEMENT_KEY not set, skipping key creation\n');
