@@ -186,7 +186,7 @@ export function PhoneStep({ phone, onPhoneChange, onAdvance }: PhoneStepProps) {
         ) : (
           <>
             <span>{t('continue')}</span>
-            <kbd className="ml-auto inline-flex size-4 items-center justify-center rounded bg-background/15 font-mono text-[10px] opacity-70">↵</kbd>
+            <kbd className="ml-auto inline-flex size-4 items-center justify-center rounded font-mono text-[10px] opacity-70">↵</kbd>
           </>
         )}
       </Button>
