@@ -1,5 +1,6 @@
 'use client';
 
+import { ALLOWED_COUNTRIES, DEFAULT_COUNTRY, detectCountry } from '@/app/lib/auth/detectCountry';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { PhoneInput } from '@/components/ui/phone-input';
@@ -12,25 +13,6 @@ export interface PhoneStepProps {
   phone: string;
   onPhoneChange: (value: string) => void;
   onAdvance: (cooldownUntil: string | null) => void;
-}
-
-const ALLOWED_COUNTRIES: readonly Country[] = ['US', 'CA', 'GB', 'CO', 'AR', 'CL', 'MX', 'BR'];
-const DEFAULT_COUNTRY: Country = 'US';
-
-function detectCountry(): Country {
-  if (typeof navigator === 'undefined') return DEFAULT_COUNTRY;
-  const locales = [navigator.language, ...(navigator.languages ?? [])];
-  for (const loc of locales) {
-    try {
-      const region = new Intl.Locale(loc).region;
-      if (region !== undefined && (ALLOWED_COUNTRIES as readonly string[]).includes(region)) {
-        return region as Country;
-      }
-    } catch {
-      // malformed locale string — skip
-    }
-  }
-  return DEFAULT_COUNTRY;
 }
 
 function noopUnsubscribe(): void {
