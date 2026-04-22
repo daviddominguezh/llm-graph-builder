@@ -1,6 +1,5 @@
 'use client';
 import { cn } from '@/lib/utils';
-import { Check } from 'lucide-react';
 
 type PillVariant = 'single' | 'multi';
 
@@ -12,7 +11,6 @@ interface OptionPillProps {
 }
 
 export function OptionPill({ label, checked, onToggle, variant = 'single' }: OptionPillProps) {
-  const showCheck = checked && variant === 'multi';
   return (
     <button
       type="button"
@@ -21,13 +19,12 @@ export function OptionPill({ label, checked, onToggle, variant = 'single' }: Opt
       aria-pressed={checked}
       onClick={onToggle}
       className={cn(
-        'cursor-pointer inline-flex h-6 items-center gap-1 rounded-sm px-1.5 text-xs transition-colors',
-        !checked && 'bg-background text-muted-foreground hover:text-foreground/80',
-        checked && variant === 'single' && 'bg-foreground text-background',
-        checked && variant === 'multi' && 'bg-input text-foreground'
+        'cursor-pointer inline-flex h-6 items-center rounded-sm px-1.5 text-xs transition-colors',
+        checked
+          ? 'bg-foreground text-background'
+          : 'bg-background text-muted-foreground hover:text-foreground/80'
       )}
     >
-      {showCheck && <Check className="-ml-0.5 size-3" aria-hidden />}
       {label}
     </button>
   );
