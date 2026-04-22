@@ -73,6 +73,10 @@ export async function awaitInit(): Promise<{ viewportW: number }> {
   return await promise;
 }
 
+export function getHostOrigin(): string | null {
+  return hostOrigin;
+}
+
 function postReady(): void {
   if (nonce === null || hostOrigin === null) return;
   window.parent.postMessage({ type: 'openflow:ready', nonce }, hostOrigin);
