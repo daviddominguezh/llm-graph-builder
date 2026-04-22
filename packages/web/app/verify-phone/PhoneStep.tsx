@@ -150,8 +150,12 @@ export function PhoneStep({ phone, onPhoneChange, onAdvance }: PhoneStepProps) {
         <Label>{t('phoneLabel')}</Label>
         {defaultCountry === null ? (
           <div className="flex h-10" aria-hidden>
-            <Skeleton className="w-20 rounded-e-none rounded-s-lg border border-r-0 border-input" />
-            <Skeleton className="flex-1 rounded-e-lg rounded-s-none border border-input" />
+            <Skeleton
+              className="w-20 rounded-e-none rounded-s-lg border border-r-0 bg-[color-mix(in_oklab,var(--chart-1)_30%,transparent)] shadow-[0_0_12px_color-mix(in_oklab,var(--chart-1)_35%,transparent)]"
+            />
+            <Skeleton
+              className="flex-1 rounded-e-lg rounded-s-none border bg-[color-mix(in_oklab,var(--chart-1)_22%,transparent)] shadow-[0_0_14px_color-mix(in_oklab,var(--chart-1)_28%,transparent)]"
+            />
           </div>
         ) : (
           <PhoneInput
