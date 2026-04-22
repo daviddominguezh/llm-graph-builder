@@ -72,7 +72,7 @@ const { REDIS_URL } = env;
 const describeOrSkip = REDIS_URL !== undefined && REDIS_URL !== '' ? describe : describe.skip;
 
 describeOrSkip('RedisCompletionNotifier (integration)', () => {
-  let notifier: RedisCompletionNotifier = new RedisCompletionNotifier();
+  let notifier: RedisCompletionNotifier;
 
   beforeEach(() => {
     notifier = new RedisCompletionNotifier();
