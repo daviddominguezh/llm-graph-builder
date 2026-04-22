@@ -11,7 +11,7 @@ import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, Suspense, useState } from 'react';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -191,7 +191,9 @@ export default function LoginPage() {
 
   return (
     <AuthCard title={t('login.title')} description={t('login.description')}>
-      <LoginForm />
+      <Suspense fallback={null}>
+        <LoginForm />
+      </Suspense>
     </AuthCard>
   );
 }
