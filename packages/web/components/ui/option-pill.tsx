@@ -18,7 +18,8 @@ export function OptionPill({ label, checked, onToggle, variant = 'single' }: Opt
       aria-checked={checked}
       onClick={onToggle}
       className={cn(
-        'inline-flex h-6 cursor-pointer items-center rounded-sm px-1.5 text-xs transition-colors duration-150 outline-none',
+        'inline-flex h-6 cursor-pointer items-center rounded-sm px-1.5 text-xs outline-none',
+        'transition-[background-color,color,transform] duration-150 active:scale-[0.96]',
         'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card',
         checked
           ? 'bg-primary dark:bg-foreground text-background hover:bg-foreground/90'

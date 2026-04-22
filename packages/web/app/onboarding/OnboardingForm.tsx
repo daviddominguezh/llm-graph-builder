@@ -132,7 +132,14 @@ export function OnboardingForm() {
       {result.hasError && <p className="text-destructive text-xs">{t('submitError')}</p>}
       <div className="flex justify-end">
         <Button type="submit" size="lg" disabled={!result.isValid || result.loading}>
-          {result.loading ? <Loader2 className="size-4 animate-spin" /> : t('submit')}
+          {result.loading ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <>
+              {t('submit')}
+              <kbd className="ml-1 rounded bg-background/15 px-1 font-mono text-[10px] opacity-70">↵</kbd>
+            </>
+          )}
         </Button>
       </div>
     </form>

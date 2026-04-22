@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState, useSyncExternalStore } from 'react';
+import { type FormEvent, useState, useSyncExternalStore } from 'react';
 import type { Country, Value as PhoneValue } from 'react-phone-number-input';
 
 export interface PhoneStepProps {
@@ -149,8 +149,13 @@ export function PhoneStep({ phone, onPhoneChange, onAdvance }: PhoneStepProps) {
     onPhoneChange(value ?? '');
   }
 
+  function onFormSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!isDisabled) void handleSubmit();
+  }
+
   return (
-    <div className="flex flex-col gap-3">
+    <form onSubmit={onFormSubmit} className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
         <Label>{t('phoneLabel')}</Label>
         {defaultCountry === null ? (
@@ -175,9 +180,16 @@ export function PhoneStep({ phone, onPhoneChange, onAdvance }: PhoneStepProps) {
           {t('cooldown', { time: formatCountdown(secondsLeft) })}
         </p>
       )}
-      <Button type="button" size="lg" className="w-full" disabled={isDisabled} onClick={handleSubmit}>
-        {loading ? <Loader2 className="size-4 animate-spin" /> : t('continue')}
+      <Button type="submit" size="lg" className="w-full" disabled={isDisabled}>
+        {loading ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : (
+          <>
+            <span>{t('continue')}</span>
+            <kbd className="ml-auto rounded bg-background/15 px-1 font-mono text-[10px] opacity-70">↵</kbd>
+          </>
+        )}
       </Button>
-    </div>
+    </form>
   );
 }
