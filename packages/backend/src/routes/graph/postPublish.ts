@@ -1,6 +1,7 @@
 import type { Request } from 'express';
 
 import { isAgentType } from '../../db/queries/agentConfigQueries.js';
+import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { syncTemplateAfterPublish } from '../../db/queries/templateSync.js';
 import { publishAgentVersion, publishVersion } from '../../db/queries/versionQueries.js';
 import {
@@ -12,9 +13,20 @@ import {
   extractErrorMessage,
   getAgentId,
 } from '../routeHelpers.js';
+import { ensureWidgetKey } from './mintWidgetKey.js';
 
 function logError(agentId: string, message: string): void {
   process.stderr.write(`[postPublish] ERROR agent=${agentId}: ${message}\n`);
+}
+
+async function runSideEffects(supabase: SupabaseClient, agentId: string): Promise<void> {
+  await syncTemplateAfterPublish(supabase, agentId).catch((syncErr: unknown) => {
+    logError(agentId, `template sync failed: ${extractErrorMessage(syncErr)}`);
+  });
+  const widget = await ensureWidgetKey(supabase, agentId);
+  if (widget.error !== null) {
+    logError(agentId, `widget key mint failed: ${widget.error}`);
+  }
 }
 
 export async function handlePostPublish(req: Request, res: AuthenticatedResponse): Promise<void> {
@@ -31,9 +43,7 @@ export async function handlePostPublish(req: Request, res: AuthenticatedResponse
     const isAgent = await isAgentType(supabase, agentId);
     const publishFn = isAgent ? publishAgentVersion : publishVersion;
     const version = await publishFn(supabase, agentId);
-    await syncTemplateAfterPublish(supabase, agentId).catch((syncErr: unknown) => {
-      logError(agentId, `template sync failed: ${extractErrorMessage(syncErr)}`);
-    });
+    await runSideEffects(supabase, agentId);
     res.status(HTTP_OK).json({ version });
   } catch (err) {
     const message = extractErrorMessage(err);
