@@ -21,8 +21,8 @@ export function OptionPill({ label, checked, onToggle, variant = 'single' }: Opt
         'inline-flex h-6 cursor-pointer items-center rounded-sm px-1.5 text-xs transition-colors duration-150 outline-none',
         'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card',
         checked
-          ? 'bg-foreground text-background hover:bg-foreground/90'
-          : 'bg-background text-muted-foreground hover:text-foreground'
+          ? 'bg-primary dark:bg-foreground text-background hover:bg-foreground/90'
+          : 'bg-muted text-muted-foreground hover:text-foreground'
       )}
     >
       {label}

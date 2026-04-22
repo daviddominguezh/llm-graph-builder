@@ -23,7 +23,7 @@ export function AuthCard({ title, description, children, className = '' }: AuthC
       <div className="relative flex flex-1 flex-col items-center justify-center gap-4 p-4 z-3">
         <div
           className={cn(
-            'auth-card-enter relative w-full max-w-sm rounded-xl bg-card text-card-foreground shadow-sm',
+            'auth-card-enter relative w-full max-w-sm rounded-xl bg-popover text-card-foreground shadow-sm',
             className
           )}
         >
