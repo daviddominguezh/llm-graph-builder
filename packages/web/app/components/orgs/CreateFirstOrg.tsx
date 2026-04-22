@@ -1,6 +1,6 @@
 'use client';
 
-import logo from '@/app/icon.png';
+import logo from '@/app/assets/brand-icon.png';
 import logoBlack from '@/app/openflowLogoBlack.png';
 import logoWhite from '@/app/openflowLogoWhite.png';
 import { useSlugAvailability } from '@/app/hooks/useSlugAvailability';
