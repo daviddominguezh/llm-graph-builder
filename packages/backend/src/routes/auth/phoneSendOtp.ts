@@ -22,7 +22,18 @@ const RESEND_INCREMENT = 1;
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_RATE_LIMITED = 429;
+const HTTP_CONFLICT = 409;
 const HTTP_INTERNAL = 500;
+
+const PHONE_TAKEN_PATTERNS = [
+  /already been registered/iv,
+  /phone.*already/iv,
+  /duplicate.*phone/iv,
+];
+
+function isPhoneTakenError(message: string): boolean {
+  return PHONE_TAKEN_PATTERNS.some((re) => re.test(message));
+}
 
 const ipLimiter = createRateLimiter({ max: IP_LIMIT_MAX, windowMs: MS_PER_HOUR });
 
@@ -166,6 +177,10 @@ async function handleSendOtp(req: Request, res: Response): Promise<void> {
   const result = await goTrueUpdateUserPhone(pre.jwt, pre.e164);
   if (!result.ok) {
     process.stderr.write(`[phoneSendOtp] updateUser failed: ${result.error}\n`);
+    if (isPhoneTakenError(result.error)) {
+      res.status(HTTP_CONFLICT).json({ error: 'phone_taken' });
+      return;
+    }
     res.status(HTTP_INTERNAL).json({ error: 'send_failed', detail: result.error });
     return;
   }

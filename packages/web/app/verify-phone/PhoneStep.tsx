@@ -47,6 +47,7 @@ type SendOtpResult =
   | { kind: 'cooldown'; cooldownUntil: string }
   | { kind: 'rate_limited_24h' }
   | { kind: 'ip_rate_limited' }
+  | { kind: 'phone_taken' }
   | { kind: 'error'; code: string };
 
 async function checkPhone(phone: string): Promise<CheckResponse> {
@@ -71,6 +72,7 @@ async function sendOtp(phone: string): Promise<SendOtpResult> {
   }
   if (body.error === 'otp_rate_limited_24h') return { kind: 'rate_limited_24h' };
   if (body.error === 'rate_limited') return { kind: 'ip_rate_limited' };
+  if (body.error === 'phone_taken') return { kind: 'phone_taken' };
   return { kind: 'error', code: body.error ?? 'send_failed' };
 }
 
@@ -100,6 +102,10 @@ function handleSendResult(
   }
   if (result.kind === 'ip_rate_limited') {
     setState({ error: t('errors.ipRateLimited'), loading: false });
+    return;
+  }
+  if (result.kind === 'phone_taken') {
+    setState({ error: t('errors.phoneTaken'), loading: false });
     return;
   }
   setState({ error: t('errors.sendFailed'), loading: false });
@@ -169,7 +175,7 @@ export function PhoneStep({ phone, onPhoneChange, onAdvance }: PhoneStepProps) {
           {t('cooldown', { time: formatCountdown(secondsLeft) })}
         </p>
       )}
-      <Button type="button" size="lg" className="w-full" disabled={isDisabled} onClick={handleSubmit}>
+      <Button type="button" size="lg" className="w-full mt-0" disabled={isDisabled} onClick={handleSubmit}>
         {loading ? <Loader2 className="size-4 animate-spin" /> : t('continue')}
       </Button>
     </div>
