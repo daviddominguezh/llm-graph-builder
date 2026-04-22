@@ -4,6 +4,7 @@ import { randomUUID } from '../lib/uuid.js';
 import type { StoredSession } from '../storage/indexeddb.js';
 import { type SessionsBackend, createSessionsBackend } from '../storage/sessionsBackend.js';
 import type { CopilotMessage, CopilotMessageBlock } from './copilotTypes.js';
+import { useDeleteSession, useRenameSession, useToggleStarSession } from './useSessionMutations.js';
 
 interface Args {
   tenant: string;
@@ -15,10 +16,13 @@ interface UseSessionsResult {
   currentSessionId: string | null;
   messages: CopilotMessage[];
   backendKind: 'indexeddb' | 'memory' | 'loading';
-  createSession: () => Promise<void>;
+  createSession: () => Promise<string>;
   switchSession: (id: string) => Promise<void>;
-  appendUserMessage: (text: string) => Promise<void>;
-  finalizeAssistantMessage: (blocks: CopilotMessageBlock[]) => Promise<void>;
+  appendUserMessage: (text: string, sessionIdOverride?: string) => Promise<void>;
+  finalizeAssistantMessage: (blocks: CopilotMessageBlock[], sessionIdOverride?: string) => Promise<void>;
+  renameSession: (id: string, newTitle: string) => Promise<void>;
+  deleteSession: (id: string) => Promise<void>;
+  toggleStarSession: (id: string) => Promise<void>;
 }
 
 interface SessionsState {
@@ -28,6 +32,11 @@ interface SessionsState {
   currentSessionId: string | null;
   setSessions: (s: StoredSession[]) => void;
   setCurrentSessionId: (id: string | null) => void;
+}
+
+interface ScopeArgs {
+  tenant: string;
+  agentSlug: string;
 }
 
 const TITLE_MAX_LENGTH = 40;
@@ -46,7 +55,7 @@ function buildAssistantMessage(blocks: CopilotMessageBlock[]): CopilotMessage {
   return { id: randomUUID(), role: 'assistant', blocks, timestamp: Date.now() };
 }
 
-function useSessionsState(): SessionsState {
+function useSessionsState({ tenant, agentSlug }: ScopeArgs): SessionsState {
   const backendRef = useRef<Promise<SessionsBackend>>(createSessionsBackend());
   const [backend, setBackend] = useState<SessionsBackend | null>(null);
   const [sessions, setSessions] = useState<StoredSession[]>([]);
@@ -57,12 +66,12 @@ function useSessionsState(): SessionsState {
     void backendRef.current.then(async (b) => {
       if (cancelled) return;
       setBackend(b);
-      setSessions(await b.list());
+      setSessions(await b.list(tenant, agentSlug));
     });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [tenant, agentSlug]);
 
   return { backendRef, backend, sessions, currentSessionId, setSessions, setCurrentSessionId };
 }
@@ -74,79 +83,100 @@ interface ActionArgs {
 }
 
 interface SessionActions {
-  createSession: () => Promise<void>;
+  createSession: () => Promise<string>;
   switchSession: (id: string) => Promise<void>;
-  appendUserMessage: (text: string) => Promise<void>;
-  finalizeAssistantMessage: (blocks: CopilotMessageBlock[]) => Promise<void>;
+  appendUserMessage: (text: string, sessionIdOverride?: string) => Promise<void>;
+  finalizeAssistantMessage: (blocks: CopilotMessageBlock[], sessionIdOverride?: string) => Promise<void>;
+  renameSession: (id: string, newTitle: string) => Promise<void>;
+  deleteSession: (id: string) => Promise<void>;
+  toggleStarSession: (id: string) => Promise<void>;
 }
 
 interface CreateSessionArgs {
-  backendRef: React.RefObject<Promise<SessionsBackend>>;
-  tenant: string;
-  agentSlug: string;
-  reload: (b: SessionsBackend) => Promise<void>;
   setCurrentSessionId: (id: string | null) => void;
 }
 
-function useCreateSession({
+function useCreateSession({ setCurrentSessionId }: CreateSessionArgs): () => Promise<string> {
+  return useCallback(async () => {
+    await Promise.resolve();
+    const id = randomUUID();
+    setCurrentSessionId(id);
+    return id;
+  }, [setCurrentSessionId]);
+}
+
+interface MutateArgs {
+  backendRef: React.RefObject<Promise<SessionsBackend>>;
+  currentSessionId: string | null;
+  tenant: string;
+  agentSlug: string;
+  reload: (b: SessionsBackend) => Promise<void>;
+}
+
+function buildNewSession(args: {
+  id: string;
+  tenant: string;
+  agentSlug: string;
+  text: string;
+}): StoredSession {
+  const now = Date.now();
+  return {
+    sessionId: args.id,
+    tenant: args.tenant,
+    agentSlug: args.agentSlug,
+    title: buildTitle(args.text),
+    createdAt: now,
+    updatedAt: now,
+    messages: [buildUserMessage(args.text)],
+  };
+}
+
+function updateExistingSession(existing: StoredSession, text: string): StoredSession {
+  return {
+    ...existing,
+    title: existing.messages.length === EMPTY_LENGTH ? buildTitle(text) : existing.title,
+    messages: [...existing.messages, buildUserMessage(text)],
+    updatedAt: Date.now(),
+  };
+}
+
+function useAppendUserMessage({
   backendRef,
+  currentSessionId,
   tenant,
   agentSlug,
   reload,
-  setCurrentSessionId,
-}: CreateSessionArgs): () => Promise<void> {
-  return useCallback(async () => {
-    const b = await backendRef.current;
-    const now = Date.now();
-    const session: StoredSession = {
-      sessionId: randomUUID(),
-      tenant,
-      agentSlug,
-      title: 'New chat',
-      createdAt: now,
-      updatedAt: now,
-      messages: [],
-    };
-    await b.put(session);
-    setCurrentSessionId(session.sessionId);
-    await reload(b);
-  }, [backendRef, tenant, agentSlug, reload, setCurrentSessionId]);
-}
-
-function useAppendUserMessage(
-  backendRef: React.RefObject<Promise<SessionsBackend>>,
-  currentSessionId: string | null,
-  reload: (b: SessionsBackend) => Promise<void>
-): (text: string) => Promise<void> {
+}: MutateArgs): (text: string, sessionIdOverride?: string) => Promise<void> {
   return useCallback(
-    async (text: string) => {
-      if (currentSessionId === null) return;
+    async (text: string, sessionIdOverride?: string) => {
+      const sid = sessionIdOverride ?? currentSessionId;
+      if (sid === null) return;
       const b = await backendRef.current;
-      const existing = await b.get(currentSessionId);
-      if (existing === undefined) return;
-      const updated: StoredSession = {
-        ...existing,
-        title: existing.messages.length === EMPTY_LENGTH ? buildTitle(text) : existing.title,
-        messages: [...existing.messages, buildUserMessage(text)],
-        updatedAt: Date.now(),
-      };
+      const existing = await b.get(tenant, agentSlug, sid);
+      const updated =
+        existing === undefined
+          ? buildNewSession({ id: sid, tenant, agentSlug, text })
+          : updateExistingSession(existing, text);
       await b.put(updated);
       await reload(b);
     },
-    [backendRef, currentSessionId, reload]
+    [backendRef, currentSessionId, tenant, agentSlug, reload]
   );
 }
 
-function useFinalizeAssistantMessage(
-  backendRef: React.RefObject<Promise<SessionsBackend>>,
-  currentSessionId: string | null,
-  reload: (b: SessionsBackend) => Promise<void>
-): (blocks: CopilotMessageBlock[]) => Promise<void> {
+function useFinalizeAssistantMessage({
+  backendRef,
+  currentSessionId,
+  tenant,
+  agentSlug,
+  reload,
+}: MutateArgs): (blocks: CopilotMessageBlock[], sessionIdOverride?: string) => Promise<void> {
   return useCallback(
-    async (blocks: CopilotMessageBlock[]) => {
-      if (currentSessionId === null) return;
+    async (blocks: CopilotMessageBlock[], sessionIdOverride?: string) => {
+      const sid = sessionIdOverride ?? currentSessionId;
+      if (sid === null) return;
       const b = await backendRef.current;
-      const existing = await b.get(currentSessionId);
+      const existing = await b.get(tenant, agentSlug, sid);
       if (existing === undefined) return;
       const updated: StoredSession = {
         ...existing,
@@ -156,43 +186,79 @@ function useFinalizeAssistantMessage(
       await b.put(updated);
       await reload(b);
     },
-    [backendRef, currentSessionId, reload]
+    [backendRef, currentSessionId, tenant, agentSlug, reload]
+  );
+}
+
+function useReload(
+  setSessions: (s: StoredSession[]) => void,
+  tenant: string,
+  agentSlug: string
+): (b: SessionsBackend) => Promise<void> {
+  return useCallback(
+    async (b: SessionsBackend) => {
+      setSessions(await b.list(tenant, agentSlug));
+    },
+    [setSessions, tenant, agentSlug]
+  );
+}
+
+function useSwitchSession(args: {
+  backendRef: React.RefObject<Promise<SessionsBackend>>;
+  tenant: string;
+  agentSlug: string;
+  setCurrentSessionId: (id: string | null) => void;
+}): (id: string) => Promise<void> {
+  const { backendRef, tenant, agentSlug, setCurrentSessionId } = args;
+  return useCallback(
+    async (id: string) => {
+      const b = await backendRef.current;
+      const s = await b.get(tenant, agentSlug, id);
+      if (s !== undefined) setCurrentSessionId(s.sessionId);
+    },
+    [backendRef, tenant, agentSlug, setCurrentSessionId]
   );
 }
 
 function useSessionActions({ state, tenant, agentSlug }: ActionArgs): SessionActions {
   const { backendRef, currentSessionId, setSessions, setCurrentSessionId } = state;
+  const reload = useReload(setSessions, tenant, agentSlug);
+  const createSession = useCreateSession({ setCurrentSessionId });
+  const switchSession = useSwitchSession({ backendRef, tenant, agentSlug, setCurrentSessionId });
+  const mutateArgs = { backendRef, currentSessionId, tenant, agentSlug, reload };
+  const appendUserMessage = useAppendUserMessage(mutateArgs);
+  const finalizeAssistantMessage = useFinalizeAssistantMessage(mutateArgs);
+  const renameSession = useRenameSession({ backendRef, tenant, agentSlug, reload });
+  const deleteSession = useDeleteSession({
+    backendRef,
+    tenant,
+    agentSlug,
+    reload,
+    currentSessionId,
+    setCurrentSessionId,
+  });
+  const toggleStarSession = useToggleStarSession({ backendRef, tenant, agentSlug, reload });
+  return {
+    createSession,
+    switchSession,
+    appendUserMessage,
+    finalizeAssistantMessage,
+    renameSession,
+    deleteSession,
+    toggleStarSession,
+  };
+}
 
-  const reload = useCallback(
-    async (b: SessionsBackend) => {
-      setSessions(await b.list());
-    },
-    [setSessions]
-  );
-
-  const createSession = useCreateSession({ backendRef, tenant, agentSlug, reload, setCurrentSessionId });
-
-  const switchSession = useCallback(
-    async (id: string) => {
-      const b = await backendRef.current;
-      const s = await b.get(id);
-      if (s !== undefined) setCurrentSessionId(s.sessionId);
-    },
-    [backendRef, setCurrentSessionId]
-  );
-
-  const appendUserMessage = useAppendUserMessage(backendRef, currentSessionId, reload);
-  const finalizeAssistantMessage = useFinalizeAssistantMessage(backendRef, currentSessionId, reload);
-
-  return { createSession, switchSession, appendUserMessage, finalizeAssistantMessage };
+function deriveMessages(sessions: StoredSession[], currentSessionId: string | null): CopilotMessage[] {
+  const current = sessions.find((s) => s.sessionId === currentSessionId);
+  return current?.messages ?? [];
 }
 
 export function useSessions({ tenant, agentSlug }: Args): UseSessionsResult {
-  const state = useSessionsState();
+  const state = useSessionsState({ tenant, agentSlug });
   const actions = useSessionActions({ state, tenant, agentSlug });
 
-  const current = state.sessions.find((s) => s.sessionId === state.currentSessionId);
-  const messages = current?.messages ?? [];
+  const messages = deriveMessages(state.sessions, state.currentSessionId);
   const backendKind: UseSessionsResult['backendKind'] =
     state.backend === null ? 'loading' : state.backend.kind;
 

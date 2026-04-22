@@ -1,5 +1,5 @@
 // packages/widget/src/app/modes/EmbeddedMode.tsx
-import { MessageCircle } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { CopilotPanel } from '../../ui/CopilotPanel.js';
@@ -8,6 +8,20 @@ import { postResize } from '../postMessageClient.js';
 
 const MOBILE_BREAKPOINT = 480;
 const DESKTOP_VIEWPORT_DEFAULT = 1024;
+const CLOSE_ANIMATION_MS = 180;
+
+function useBubbleVisibleAfterClose(open: boolean): boolean {
+  const [visible, setVisible] = useState(!open);
+  useEffect(() => {
+    if (open) {
+      setVisible(false);
+      return undefined;
+    }
+    const id = window.setTimeout(() => setVisible(true), CLOSE_ANIMATION_MS);
+    return () => window.clearTimeout(id);
+  }, [open]);
+  return visible;
+}
 
 function useEscapeKey(open: boolean, closePanel: () => void): void {
   useEffect(() => {
@@ -24,6 +38,7 @@ export function EmbeddedMode({ hostViewportW }: { hostViewportW: number | null }
   const [open, setOpen] = useState(false);
   const t = useT();
   const isMobile = (hostViewportW ?? DESKTOP_VIEWPORT_DEFAULT) < MOBILE_BREAKPOINT;
+  const bubbleVisible = useBubbleVisibleAfterClose(open);
 
   const openPanel = useCallback(() => {
     setOpen(true);
@@ -38,14 +53,15 @@ export function EmbeddedMode({ hostViewportW }: { hostViewportW: number | null }
   useEscapeKey(open, closePanel);
 
   if (!open) {
+    if (!bubbleVisible) return null;
     return (
       <button
         type="button"
         aria-label={t('openChat')}
         onClick={openPanel}
-        className="w-full h-full rounded-full bg-primary text-primary-foreground flex items-center justify-center"
+        className="cursor-pointer w-full h-full rounded-full bg-primary text-primary-foreground flex items-center justify-center p-3 shadow-lg"
       >
-        <MessageCircle className="size-6" />
+        <Sparkles className="size-4.5" />
       </button>
     );
   }
