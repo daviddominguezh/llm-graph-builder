@@ -7,6 +7,7 @@ import { auditLog } from '../../lib/auditLog.js';
 import { goTrueUpdateUserPhone } from '../../lib/gotrue.js';
 import { validatePhone } from '../../lib/phoneValidation.js';
 import { createRateLimiter } from '../../lib/rateLimiter.js';
+import { requirePhoneUnverified } from '../../middleware/gates.js';
 
 const BodySchema = z.object({ phone: z.string() });
 
@@ -25,11 +26,7 @@ const HTTP_RATE_LIMITED = 429;
 const HTTP_CONFLICT = 409;
 const HTTP_INTERNAL = 500;
 
-const PHONE_TAKEN_PATTERNS = [
-  /already been registered/iv,
-  /phone.*already/iv,
-  /duplicate.*phone/iv,
-];
+const PHONE_TAKEN_PATTERNS = [/already been registered/iv, /phone.*already/iv, /duplicate.*phone/iv];
 
 function isPhoneTakenError(message: string): boolean {
   return PHONE_TAKEN_PATTERNS.some((re) => re.test(message));
@@ -197,6 +194,6 @@ async function handleSendOtp(req: Request, res: Response): Promise<void> {
 
 export function phoneSendOtpRouter(): express.Router {
   const router = express.Router();
-  router.post('/send-otp', handleSendOtp);
+  router.post('/send-otp', requirePhoneUnverified, handleSendOtp);
   return router;
 }

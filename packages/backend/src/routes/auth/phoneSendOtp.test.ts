@@ -99,6 +99,14 @@ jest.unstable_mockModule('../../lib/phoneValidation.js', () => ({
 jest.unstable_mockModule('../../lib/gotrue.js', () => ({
   goTrueUpdateUserPhone: mockGoTrueUpdate,
 }));
+function passGate(_req: unknown, _res: unknown, next: () => void): void {
+  next();
+}
+jest.unstable_mockModule('../../middleware/gates.js', () => ({
+  requireOnboardingIncomplete: passGate,
+  requireGateComplete: passGate,
+  requirePhoneUnverified: passGate,
+}));
 
 const { phoneSendOtpRouter } = await import('./phoneSendOtp.js');
 const { auditLog } = await import('../../lib/auditLog.js');

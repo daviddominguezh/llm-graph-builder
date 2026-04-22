@@ -38,6 +38,14 @@ const mockFrom = jest.fn<(table: string) => FromResult>().mockImplementation((ta
 });
 
 jest.unstable_mockModule('../../lib/auditLog.js', () => ({ auditLog: jest.fn() }));
+function passGate(_req: unknown, _res: unknown, next: () => void): void {
+  next();
+}
+jest.unstable_mockModule('../../middleware/gates.js', () => ({
+  requireOnboardingIncomplete: passGate,
+  requireGateComplete: passGate,
+  requirePhoneUnverified: passGate,
+}));
 
 const { completeOnboardingRouter } = await import('./completeOnboarding.js');
 const { auditLog } = await import('../../lib/auditLog.js');

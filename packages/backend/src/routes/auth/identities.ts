@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import express, { type Request, type Response } from 'express';
 
 import { serviceSupabase } from '../../db/client.js';
+import { requireGateComplete } from '../../middleware/gates.js';
 
 const HTTP_OK = 200;
 const HTTP_INTERNAL = 500;
@@ -38,6 +39,6 @@ async function handleGetIdentities(req: Request, res: Response): Promise<void> {
 
 export function identitiesRouter(): express.Router {
   const router = express.Router();
-  router.get('/identities', handleGetIdentities);
+  router.get('/identities', requireGateComplete, handleGetIdentities);
   return router;
 }

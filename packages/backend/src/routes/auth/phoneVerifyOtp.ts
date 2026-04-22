@@ -6,6 +6,7 @@ import { serviceSupabase } from '../../db/client.js';
 import { auditLog } from '../../lib/auditLog.js';
 import { goTrueVerifyPhoneChangeOtp } from '../../lib/gotrue.js';
 import { validatePhone } from '../../lib/phoneValidation.js';
+import { requirePhoneUnverified } from '../../middleware/gates.js';
 
 const OTP_LENGTH = 6;
 const MAX_FAILS_BEFORE_LOCK = 5;
@@ -118,6 +119,6 @@ async function handleVerifyOtp(req: Request, res: Response): Promise<void> {
 
 export function phoneVerifyOtpRouter(): express.Router {
   const router = express.Router();
-  router.post('/verify-otp', handleVerifyOtp);
+  router.post('/verify-otp', requirePhoneUnverified, handleVerifyOtp);
   return router;
 }

@@ -1,11 +1,6 @@
 import express from 'express';
 
 import { requireAuth } from '../../middleware/auth.js';
-import {
-  requireGateComplete,
-  requireOnboardingIncomplete,
-  requirePhoneUnverified,
-} from '../../middleware/gates.js';
 import { completeOnboardingRouter } from './completeOnboarding.js';
 import { identitiesRouter } from './identities.js';
 import { phoneCheckRouter } from './phoneCheck.js';
@@ -18,29 +13,14 @@ export function buildAuthRouter(): express.Router {
   const router = express.Router();
   router.use(requireAuth);
 
-  // Phone endpoints: require phone NOT yet verified
-  const phoneGate = express.Router();
-  phoneGate.use(requirePhoneUnverified);
-  phoneGate.use('/', phoneCheckRouter());
-  phoneGate.use('/', phoneSendOtpRouter());
-  phoneGate.use('/', phoneVerifyOtpRouter());
-  router.use('/phone', phoneGate);
+  router.use('/phone', phoneCheckRouter());
+  router.use('/phone', phoneSendOtpRouter());
+  router.use('/phone', phoneVerifyOtpRouter());
 
-  // Complete-onboarding: require onboarding incomplete
-  const onboardingGate = express.Router();
-  onboardingGate.use(requireOnboardingIncomplete);
-  onboardingGate.use('/', completeOnboardingRouter());
-  router.use('/', onboardingGate);
-
-  // Status: allowed in any state (no extra gate)
+  router.use('/', completeOnboardingRouter());
   router.use('/', statusRouter());
-
-  // Identities + unlink-google: require fully onboarded
-  const postGate = express.Router();
-  postGate.use(requireGateComplete);
-  postGate.use('/', identitiesRouter());
-  postGate.use('/', unlinkGoogleRouter());
-  router.use('/', postGate);
+  router.use('/', identitiesRouter());
+  router.use('/', unlinkGoogleRouter());
 
   return router;
 }

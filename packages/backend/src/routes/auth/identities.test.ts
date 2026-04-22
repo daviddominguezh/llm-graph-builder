@@ -24,6 +24,14 @@ const mockRpc = jest.fn<() => Promise<RpcResult>>().mockResolvedValue({
 jest.unstable_mockModule('../../db/client.js', () => ({
   serviceSupabase: jest.fn(() => ({ rpc: mockRpc })),
 }));
+function passGate(_req: unknown, _res: unknown, next: () => void): void {
+  next();
+}
+jest.unstable_mockModule('../../middleware/gates.js', () => ({
+  requireOnboardingIncomplete: passGate,
+  requireGateComplete: passGate,
+  requirePhoneUnverified: passGate,
+}));
 
 const { identitiesRouter } = await import('./identities.js');
 

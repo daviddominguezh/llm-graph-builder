@@ -5,6 +5,7 @@ import { serviceSupabase } from '../../db/client.js';
 import { auditLog } from '../../lib/auditLog.js';
 import { validatePhone } from '../../lib/phoneValidation.js';
 import { createRateLimiter } from '../../lib/rateLimiter.js';
+import { requirePhoneUnverified } from '../../middleware/gates.js';
 
 const BodySchema = z.object({ phone: z.string() });
 
@@ -114,6 +115,6 @@ async function handlePhoneCheck(req: Request, res: Response): Promise<void> {
 
 export function phoneCheckRouter(): express.Router {
   const router = express.Router();
-  router.post('/check', handlePhoneCheck);
+  router.post('/check', requirePhoneUnverified, handlePhoneCheck);
   return router;
 }

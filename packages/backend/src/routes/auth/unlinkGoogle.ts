@@ -3,6 +3,7 @@ import express, { type Request, type Response } from 'express';
 
 import { serviceSupabase } from '../../db/client.js';
 import { auditLog } from '../../lib/auditLog.js';
+import { requireGateComplete } from '../../middleware/gates.js';
 
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
@@ -115,6 +116,6 @@ async function unlinkGoogle(req: Request, res: Response): Promise<void> {
 
 export function unlinkGoogleRouter(): express.Router {
   const router = express.Router();
-  router.post('/unlink-google', unlinkGoogle);
+  router.post('/unlink-google', requireGateComplete, unlinkGoogle);
   return router;
 }

@@ -10,6 +10,7 @@ import express, { type Request, type Response } from 'express';
 import { z } from 'zod';
 
 import { auditLog } from '../../lib/auditLog.js';
+import { requireOnboardingIncomplete } from '../../middleware/gates.js';
 
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
@@ -108,6 +109,6 @@ async function handleCompleteOnboarding(req: Request, res: Response): Promise<vo
 
 export function completeOnboardingRouter(): express.Router {
   const router = express.Router();
-  router.post('/complete-onboarding', handleCompleteOnboarding);
+  router.post('/complete-onboarding', requireOnboardingIncomplete, handleCompleteOnboarding);
   return router;
 }
