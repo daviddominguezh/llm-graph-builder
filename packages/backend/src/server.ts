@@ -41,6 +41,7 @@ import { handleRemoveMember } from './routes/orgs/removeMember.js';
 import { handleUniqueSlug } from './routes/orgs/uniqueSlug.js';
 import { handleUpdateMemberRole } from './routes/orgs/updateMemberRole.js';
 import { handleUpdateOrg } from './routes/orgs/updateOrg.js';
+import { publicChatRouter } from './routes/publicChat/publicChatRouter.js';
 import { secretsRouter } from './routes/secrets/secretsRouter.js';
 import { handleSimulateAgent } from './routes/simulateAgentHandler.js';
 import { handleSimulate } from './routes/simulateHandler.js';
@@ -107,6 +108,7 @@ const SYSTEM_PUBLIC_UNAUTHED = [
   '/mcp',
   '/api/agents/:agentSlug/:version',
   '/api/mock-execute/:agentSlug/:version',
+  '/api/chat/latest-version/:tenantSlug/:agentSlug',
   '/internal/resume-parent',
   // Messaging webhook routes (signature-verified, not JWT)
   '/whatsapp/webhook',
@@ -151,6 +153,7 @@ function mountSystemRoutes(app: Express): void {
 
 function mountApiRoutes(app: Express): void {
   app.use('/api/agents', executeRouter);
+  app.use('/api/chat', publicChatRouter);
   if (process.env.ENABLE_MOCK_EXECUTE === 'true') {
     app.use('/api/mock-execute', mockExecuteRouter);
   }
