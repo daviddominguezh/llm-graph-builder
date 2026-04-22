@@ -4,7 +4,6 @@ import logo from '@/app/assets/brand-icon.png';
 import logoBlack from '@/app/openflowLogoBlack.png';
 import logoWhite from '@/app/openflowLogoWhite.png';
 import { CardDescription, CardTitle } from '@/components/ui/card';
-import { GlassPanel } from '@/components/ui/glass-panel';
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 
@@ -30,18 +29,17 @@ export function AuthCard({ title, description, children, className = '' }: AuthC
           <Image className="dark:hidden" src={logoBlack} alt="OpenFlow" height={24} priority />
           <Image className="hidden dark:block" src={logoWhite} alt="OpenFlow" height={24} priority />
         </div>
-        <GlassPanel
-          variant="foreground"
-          className={`rounded-xl w-full max-w-sm auth-card-enter px-2 ${className}`}
+        <div
+          className={`auth-card-enter relative w-full max-w-sm rounded-xl border bg-card text-card-foreground shadow-sm ${className}`}
         >
-          <div className="flex flex-col px-3 py-5 text-foreground/80 bg-transparent gap-5 h-full">
+          <div className="flex flex-col gap-5 px-5 py-5 h-full">
             <div className="shrink-0">
               <CardTitle className="text-xl font-bold">{title}</CardTitle>
               <CardDescription>{description}</CardDescription>
             </div>
             <div className="flex flex-col gap-4 overflow-hidden">{children}</div>
           </div>
-        </GlassPanel>
+        </div>
       </div>
     </div>
   );
