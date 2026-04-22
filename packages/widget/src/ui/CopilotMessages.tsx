@@ -32,7 +32,7 @@ function UserMessage({ message }: { message: CopilotMessage }) {
   const textBlock = message.blocks.find((b): b is CopilotTextBlock => b.type === 'text');
 
   return (
-    <div className="ml-auto border-r-2 border-primary py-0 pr-2">
+    <div className="ml-auto border-r-2 border-primary py-0 pr-2 max-w-[90%]">
       <p className="text-right text-xs leading-relaxed">{textBlock?.content ?? ''}</p>
     </div>
   );
@@ -40,7 +40,7 @@ function UserMessage({ message }: { message: CopilotMessage }) {
 
 function AssistantMessage({ message }: { message: CopilotMessage }) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 max-w-[90%]">
       {message.blocks.map((block, i) => {
         if (block.type === 'action') return <ActionBlock key={i} block={block} />;
         return <TextBlock key={i} block={block} />;
@@ -49,11 +49,11 @@ function AssistantMessage({ message }: { message: CopilotMessage }) {
   );
 }
 
-function EmptyState({ label }: { label: string }) {
+function EmptyState({ greeting, label }: { greeting: string; label: string }) {
   return (
     <div className="flex flex-1 items-center justify-center">
       <div className="flex flex-col items-center justify-center p-3">
-        <p className="font-semibold font-mono">Hello!</p>
+        <p className="font-semibold font-mono">{greeting}</p>
         <p className="text-xs text-muted-foreground">{label}</p>
       </div>
     </div>
@@ -73,7 +73,7 @@ export function CopilotMessages({ messages }: CopilotMessagesProps) {
   }, [messages]);
 
   if (messages.length === 0) {
-    return <EmptyState label={t('emptyState')} />;
+    return <EmptyState greeting={t('greeting')} label={t('emptyState')} />;
   }
 
   return (

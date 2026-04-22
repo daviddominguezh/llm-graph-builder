@@ -29,7 +29,7 @@ export const IFRAME_Z = 2147483647;
 // Iframe position constants (pixels)
 const BUBBLE_BOTTOM_PX = 16;
 const BUBBLE_RIGHT_PX = 16;
-const BUBBLE_SIZE_PX = 56;
+const BUBBLE_SIZE_PX = 42;
 const PANEL_TOP_PX = 24;
 const PANEL_RIGHT_PX = 14;
 const PANEL_BOTTOM_PX = 24;
