@@ -14,6 +14,7 @@ import {
   getAgentId,
 } from '../routeHelpers.js';
 import { ensureWidgetKey } from './mintWidgetKey.js';
+import { seedWidgetOriginsForAgent } from './seedWidgetOrigins.js';
 
 function logError(agentId: string, message: string): void {
   process.stderr.write(`[postPublish] ERROR agent=${agentId}: ${message}\n`);
@@ -27,6 +28,9 @@ async function runSideEffects(supabase: SupabaseClient, agentId: string): Promis
   if (widget.error !== null) {
     logError(agentId, `widget key mint failed: ${widget.error}`);
   }
+  await seedWidgetOriginsForAgent(supabase, agentId).catch((seedErr: unknown) => {
+    logError(agentId, `seed widget origins failed: ${extractErrorMessage(seedErr)}`);
+  });
 }
 
 export async function handlePostPublish(req: Request, res: AuthenticatedResponse): Promise<void> {

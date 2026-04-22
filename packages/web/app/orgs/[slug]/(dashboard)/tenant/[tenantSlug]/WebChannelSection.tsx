@@ -128,19 +128,19 @@ function AddOriginInput({
 }: AddOriginInputProps) {
   function commit(e: FormEvent<HTMLFormElement>): void {
     e.preventDefault();
-    const trimmed = draft.trim();
-    if (trimmed === '') return;
-    if (parseAllowedOriginEntry(trimmed) === null) {
+    const normalized = draft.trim().replace(/\/+$/u, '');
+    if (normalized === '') return;
+    if (parseAllowedOriginEntry(normalized) === null) {
       setDraftError(invalidLabel);
       return;
     }
-    if (origins.includes(trimmed)) {
+    if (origins.includes(normalized)) {
       setDraftError(duplicateLabel);
       return;
     }
     setDraftError(null);
     setDraft('');
-    onAdd(trimmed);
+    onAdd(normalized);
   }
   return (
     <form onSubmit={commit} className="flex flex-col gap-1.5">
