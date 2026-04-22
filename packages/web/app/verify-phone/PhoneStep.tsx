@@ -5,6 +5,7 @@ import { formatCountdown, useCountdown } from '@/app/lib/auth/useCountdown';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { PhoneInput } from '@/components/ui/phone-input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState, useSyncExternalStore } from 'react';
@@ -148,7 +149,10 @@ export function PhoneStep({ phone, onPhoneChange, onAdvance }: PhoneStepProps) {
       <div className="flex flex-col gap-1">
         <Label>{t('phoneLabel')}</Label>
         {defaultCountry === null ? (
-          <div className="border-input h-10 animate-pulse rounded-md border bg-muted/40" aria-hidden />
+          <div className="flex h-10" aria-hidden>
+            <Skeleton className="w-20 rounded-e-none rounded-s-lg border border-r-0 border-input" />
+            <Skeleton className="flex-1 rounded-e-lg rounded-s-none border border-input" />
+          </div>
         ) : (
           <PhoneInput
             key={defaultCountry}
