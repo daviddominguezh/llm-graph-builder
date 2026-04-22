@@ -72,33 +72,39 @@ const { REDIS_URL } = env;
 const describeOrSkip = REDIS_URL !== undefined && REDIS_URL !== '' ? describe : describe.skip;
 
 describeOrSkip('RedisCompletionNotifier (integration)', () => {
-  let notifier: RedisCompletionNotifier = new RedisCompletionNotifier();
+  let notifier: RedisCompletionNotifier | null = null;
 
   beforeEach(() => {
     notifier = new RedisCompletionNotifier();
   });
 
   afterEach(() => {
-    notifier.shutdown();
+    notifier?.shutdown();
+    notifier = null;
   });
 
+  function mustNotifier(): RedisCompletionNotifier {
+    if (notifier === null) throw new Error('notifier not initialized');
+    return notifier;
+  }
+
   it('resolves waitForCompletion when notifyCompletion is called', async () => {
-    await testPubSubResolution(notifier);
+    await testPubSubResolution(mustNotifier());
   });
 
   it('falls back to durable key when Pub/Sub misses', async () => {
-    await testDurableFallback(notifier);
+    await testDurableFallback(mustNotifier());
   });
 
   it(
     'returns null on full timeout',
     async () => {
-      await testNullOnTimeout(notifier);
+      await testNullOnTimeout(mustNotifier());
     },
     TIMEOUT_NULL_TEST_MS
   );
 
   it('first notification wins (NX)', async () => {
-    await testFirstNotificationWins(notifier);
+    await testFirstNotificationWins(mustNotifier());
   });
 });

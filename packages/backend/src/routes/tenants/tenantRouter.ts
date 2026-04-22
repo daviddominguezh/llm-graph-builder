@@ -8,6 +8,7 @@ import { handleGetTenantBySlug } from './getTenantBySlug.js';
 import { handleGetTenants } from './getTenants.js';
 import { handleRemoveTenantAvatar, handleUploadTenantAvatar } from './tenantAvatar.js';
 import { handleUpdateTenant } from './updateTenant.js';
+import { handleUpdateTenantWebChannel } from './updateTenantWebChannel.js';
 
 const MAX_AVATAR_BYTES = 2_097_152;
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_AVATAR_BYTES } });
@@ -19,6 +20,7 @@ tenantRouter.get('/by-slug/:orgId/:slug', handleGetTenantBySlug);
 tenantRouter.get('/:orgId', handleGetTenants);
 tenantRouter.post('/', handleCreateTenant);
 tenantRouter.patch('/:tenantId', handleUpdateTenant);
+tenantRouter.patch('/:tenantId/web-channel', handleUpdateTenantWebChannel);
 tenantRouter.delete('/:tenantId', handleDeleteTenant);
 tenantRouter.post('/:tenantId/avatar', upload.single('file'), handleUploadTenantAvatar);
 tenantRouter.delete('/:tenantId/avatar', handleRemoveTenantAvatar);

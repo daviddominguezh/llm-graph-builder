@@ -4,7 +4,19 @@ import multer from 'multer';
 import { handleMcpRequest } from './mcp-server/server.js';
 import { messagingRouter } from './messaging/routes/index.js';
 import { requireAuth } from './middleware/auth.js';
+import { assertGateCoverage } from './middleware/gateWalker.js';
+import {
+  requireGateComplete,
+  requireOnboardingIncomplete,
+  requirePhoneUnverified,
+} from './middleware/gates.js';
 import { agentRouter } from './routes/agents/agentRouter.js';
+import {
+  AUTH_PUBLIC_AUTHED,
+  AUTH_PUBLIC_UNAUTHED,
+  buildAuthPublicRouter,
+} from './routes/auth/authPublicRouter.js';
+import { buildAuthRouter } from './routes/auth/authRouter.js';
 import { dashboardRouter } from './routes/dashboard/dashboardRouter.js';
 import { handleDiscover } from './routes/discover.js';
 import { executeRouter } from './routes/execute/executeRoute.js';
@@ -29,6 +41,7 @@ import { handleRemoveMember } from './routes/orgs/removeMember.js';
 import { handleUniqueSlug } from './routes/orgs/uniqueSlug.js';
 import { handleUpdateMemberRole } from './routes/orgs/updateMemberRole.js';
 import { handleUpdateOrg } from './routes/orgs/updateOrg.js';
+import { publicChatRouter } from './routes/publicChat/publicChatRouter.js';
 import { secretsRouter } from './routes/secrets/secretsRouter.js';
 import { handleSimulateAgent } from './routes/simulateAgentHandler.js';
 import { handleSimulate } from './routes/simulateHandler.js';
@@ -44,6 +57,17 @@ function requestLogger(req: Request, _res: Response, next: NextFunction): void {
 }
 
 const MAX_AVATAR_BYTES = 2_097_152;
+
+// Wraps a router so the walker sees requireAuth + requireGateComplete in the chain.
+// Used for routers that already have requireAuth internally — this creates a parent
+// router whose middleware is collected by the gate walker before descending into the child.
+function withGate(router: express.Router): express.Router {
+  const wrapper = express.Router();
+  wrapper.use(requireAuth);
+  wrapper.use(requireGateComplete);
+  wrapper.use(router);
+  return wrapper;
+}
 
 function buildOrgRouter(): express.Router {
   const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_AVATAR_BYTES } });
@@ -74,15 +98,42 @@ function buildSlugRouter(): express.Router {
   return router;
 }
 
-export function createApp(): Express {
-  const app = express();
+// Paths using non-standard auth (executeAuth, ensureMessagingAuth, requireInternalAuth)
+// or intentionally unauthenticated system/dev routes.
+const SYSTEM_PUBLIC_UNAUTHED = [
+  '/mcp/discover',
+  '/mcp/tools/call',
+  '/simulate',
+  '/simulate-agent',
+  '/mcp',
+  '/api/agents/:agentSlug/:version',
+  '/api/mock-execute/:agentSlug/:version',
+  '/api/chat/latest-version/:tenantSlug/:agentSlug',
+  '/internal/resume-parent',
+  // Messaging webhook routes (signature-verified, not JWT)
+  '/whatsapp/webhook',
+  '/instagram/webhook',
+  // Messaging authenticated routes (use ensureMessagingAuth API key, not requireAuth)
+  '/projects/:tenantId/conversations/:conversationId/read',
+  '/projects/:tenantId/conversations/:conversationId/chatbot',
+  '/projects/:tenantId/conversations/:conversationId/assignee',
+  '/projects/:tenantId/conversations/:conversationId/status',
+  '/projects/:tenantId/conversations/:conversationId',
+  '/projects/:tenantId/conversations/:conversationId/notes',
+  '/projects/:tenantId/conversations/:conversationId/notes/:noteId',
+  '/projects/:tenantId/media/',
+  '/projects/:tenantId/ai/make-friendly',
+  '/projects/:tenantId/ai/make-formal',
+  '/projects/:tenantId/ai/fix-grammar',
+  '/projects/:tenantId/ai/answer-question',
+  '/projects/:tenantId/integrations/whatsapp',
+  '/projects/:tenantId/integrations/whatsapp/:connectionId',
+  '/messages/messages/message',
+  '/messages/messages/:tenantId/:conversationId',
+];
 
-  // CORS disabled — the backend must NEVER be called directly from browsers.
-  // All frontend requests go through Next.js server-side (API routes / Server Actions).
-  // Any CORS error in the browser means a route is violating this rule.
-
-  // Webhook route must be registered BEFORE express.json() so the body
-  // arrives as a raw string for HMAC-SHA256 signature verification.
+function mountSystemRoutes(app: Express): void {
+  // Webhook must be before express.json() for raw body HMAC verification
   app.post('/webhooks/github', express.text({ type: 'application/json' }), handleGitHubWebhook);
 
   app.use(express.json({ limit: '10mb' }));
@@ -98,26 +149,56 @@ export function createApp(): Express {
   app.post('/mcp', handleMcpRequest);
   app.get('/mcp', handleMcpRequest);
   app.delete('/mcp', handleMcpRequest);
+}
 
+function mountApiRoutes(app: Express): void {
   app.use('/api/agents', executeRouter);
+  app.use('/api/chat', publicChatRouter);
   if (process.env.ENABLE_MOCK_EXECUTE === 'true') {
     app.use('/api/mock-execute', mockExecuteRouter);
   }
-  app.use('/orgs', buildOrgRouter());
-  app.use('/slugs', buildSlugRouter());
-  app.use('/agents', agentRouter);
-  app.use('/secrets', secretsRouter);
-  app.use('/dashboard', dashboardRouter);
-  app.use('/mcp-library', mcpLibraryRouter);
-  app.use('/tenants', tenantRouter);
-  app.use('/templates', templateRouter);
-  app.use('/tenants/:tenantId/whatsapp-templates', whatsappTemplatesRouter);
-  app.use('/github', buildGitHubRouter());
+}
 
-  // Messaging routes (auth middleware applied inside the router)
+function mountGatedRoutes(app: Express): void {
+  app.use('/orgs', withGate(buildOrgRouter()));
+  app.use('/slugs', withGate(buildSlugRouter()));
+  app.use('/agents', withGate(agentRouter));
+  app.use('/secrets', withGate(secretsRouter));
+  app.use('/dashboard', withGate(dashboardRouter));
+  app.use('/mcp-library', withGate(mcpLibraryRouter));
+  app.use('/tenants', withGate(tenantRouter));
+  app.use('/templates', withGate(templateRouter));
+  app.use('/tenants/:tenantId/whatsapp-templates', withGate(whatsappTemplatesRouter));
+  app.use('/github', withGate(buildGitHubRouter()));
+}
+
+function mountAuthAndMessagingRoutes(app: Express): void {
+  app.use('/auth/public', buildAuthPublicRouter());
+  app.use('/auth', buildAuthRouter());
   app.use(messagingRouter);
-
   app.use('/internal', internalRouter);
+}
+
+function runGateCoverage(app: Express): void {
+  const publicUnauthed = [...AUTH_PUBLIC_UNAUTHED, ...SYSTEM_PUBLIC_UNAUTHED];
+  assertGateCoverage(app, {
+    requireAuth,
+    gates: [requireGateComplete, requirePhoneUnverified, requireOnboardingIncomplete],
+    publicUnauthed,
+    publicAuthed: AUTH_PUBLIC_AUTHED,
+    webhookPrefix: '/webhooks',
+  });
+}
+
+export function createApp(): Express {
+  const app = express();
+  app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS ?? '1'));
+
+  mountSystemRoutes(app);
+  mountApiRoutes(app);
+  mountGatedRoutes(app);
+  mountAuthAndMessagingRoutes(app);
+  runGateCoverage(app);
 
   return app;
 }

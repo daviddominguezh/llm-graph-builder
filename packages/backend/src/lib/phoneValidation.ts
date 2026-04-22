@@ -1,6 +1,6 @@
 import { parsePhoneNumberFromString } from 'libphonenumber-js';
 
-const ALLOWED_COUNTRIES = new Set(['US', 'CA', 'GB']);
+const ALLOWED_COUNTRIES = new Set(['US', 'CA', 'GB', 'CO', 'AR', 'CL', 'MX', 'BR']);
 
 const PREMIUM_PATTERNS: RegExp[] = [/^\+1900\d{7}$/v, /^\+1976\d{7}$/v, /^\+44(?:9|87|871|872|873|90)\d+$/v];
 

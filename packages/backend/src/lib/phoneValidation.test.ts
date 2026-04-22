@@ -9,6 +9,21 @@ describe('validatePhone', () => {
   it('accepts a valid UK mobile', () => {
     expect(validatePhone('+447911000001')).toEqual({ ok: true, e164: '+447911000001' });
   });
+  it('accepts a valid Colombia mobile', () => {
+    expect(validatePhone('+573001234567')).toEqual({ ok: true, e164: '+573001234567' });
+  });
+  it('accepts a valid Argentina mobile', () => {
+    expect(validatePhone('+5491123456789')).toEqual({ ok: true, e164: '+5491123456789' });
+  });
+  it('accepts a valid Chile mobile', () => {
+    expect(validatePhone('+56912345678')).toEqual({ ok: true, e164: '+56912345678' });
+  });
+  it('accepts a valid Mexico mobile', () => {
+    expect(validatePhone('+525512345678')).toEqual({ ok: true, e164: '+525512345678' });
+  });
+  it('accepts a valid Brazil mobile', () => {
+    expect(validatePhone('+5511912345678')).toEqual({ ok: true, e164: '+5511912345678' });
+  });
   it('rejects unsupported country', () => {
     expect(validatePhone('+33123456789')).toEqual({ ok: false, error: 'country_not_supported' });
   });

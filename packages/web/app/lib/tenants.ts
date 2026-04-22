@@ -12,6 +12,13 @@ export interface TenantRow {
   avatar_url: string | null;
   created_at: string;
   updated_at: string;
+  web_channel_enabled: boolean;
+  web_channel_allowed_origins: string[];
+}
+
+export interface WebChannelUpdate {
+  enabled: boolean;
+  allowedOrigins: string[];
 }
 
 /* ------------------------------------------------------------------ */
@@ -20,7 +27,14 @@ export interface TenantRow {
 
 export function isTenantRow(value: unknown): value is TenantRow {
   if (typeof value !== 'object' || value === null) return false;
-  return 'id' in value && 'name' in value && 'org_id' in value && 'slug' in value;
+  return (
+    'id' in value &&
+    'name' in value &&
+    'org_id' in value &&
+    'slug' in value &&
+    'web_channel_enabled' in value &&
+    'web_channel_allowed_origins' in value
+  );
 }
 
 function isTenantRowArray(val: unknown): val is TenantRow[] {
@@ -83,6 +97,23 @@ export async function getTenantBySlug(
     const data = await fetchFromBackend(
       'GET',
       `/tenants/by-slug/${encodeURIComponent(orgId)}/${encodeURIComponent(slug)}`
+    );
+    if (!isTenantRow(data)) return { result: null, error: 'Invalid response' };
+    return { result: data, error: null };
+  } catch (err) {
+    return { result: null, error: extractError(err) };
+  }
+}
+
+export async function updateTenantWebChannel(
+  tenantId: string,
+  fields: WebChannelUpdate
+): Promise<{ result: TenantRow | null; error: string | null }> {
+  try {
+    const data = await fetchFromBackend(
+      'PATCH',
+      `/tenants/${encodeURIComponent(tenantId)}/web-channel`,
+      fields
     );
     if (!isTenantRow(data)) return { result: null, error: 'Invalid response' };
     return { result: data, error: null };

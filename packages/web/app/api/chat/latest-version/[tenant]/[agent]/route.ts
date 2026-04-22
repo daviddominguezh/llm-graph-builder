@@ -6,7 +6,9 @@ import { corsHeadersFor, preflightResponse } from '../../../_helpers/cors.js';
 export const runtime = 'nodejs';
 
 const BACKEND_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4000';
-const MOCK_LATEST = process.env['MOCK_LATEST_PATH'] ?? '/api/mock-execute';
+
+const HTTP_BAD_REQUEST = 400;
+const HTTP_BAD_GATEWAY = 502;
 
 export function OPTIONS(request: Request): Response {
   return preflightResponse(request);
@@ -21,10 +23,10 @@ export async function GET(
   const { tenant, agent } = await context.params;
 
   if (!isValidTenantSlug(tenant) || !isValidAgentSlug(agent)) {
-    return NextResponse.json({ error: 'invalid_slug' }, { status: 400, headers: cors });
+    return NextResponse.json({ error: 'invalid_slug' }, { status: HTTP_BAD_REQUEST, headers: cors });
   }
 
-  const upstreamUrl = `${BACKEND_URL}${MOCK_LATEST}/${agent}/latest`;
+  const upstreamUrl = `${BACKEND_URL}/api/chat/latest-version/${tenant}/${agent}`;
 
   let upstream: Response;
   try {
@@ -33,7 +35,7 @@ export async function GET(
     const detail = e instanceof Error ? e.message : String(e);
     return NextResponse.json(
       { error: 'upstream_unreachable', upstreamUrl, detail },
-      { status: 502, headers: cors }
+      { status: HTTP_BAD_GATEWAY, headers: cors }
     );
   }
 

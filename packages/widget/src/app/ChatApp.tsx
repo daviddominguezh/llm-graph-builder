@@ -1,20 +1,24 @@
+import { matchOrigin } from '@openflow/shared-validation';
 import { useEffect, useState } from 'react';
 
 import { fetchLatestVersion } from '../api/latestVersionClient.js';
 import { type Locale, pickLocale } from '../i18n/index.js';
 import { parseAgentHost } from '../routing/parseHostname.js';
+import { BlockedState } from './BlockedState.js';
 import { AgentNotFoundState, LoadingState } from './LoadingState.js';
 import { AgentProvider } from './agentContext.js';
 import { I18nProvider } from './i18nContext.js';
 import { EmbeddedMode } from './modes/EmbeddedMode.js';
 import { StandaloneMode } from './modes/StandaloneMode.js';
-import { awaitInit, initMessageBridge } from './postMessageClient.js';
+import { awaitInit, getHostOrigin, initMessageBridge } from './postMessageClient.js';
 import { isEmbedded } from './useEmbedded.js';
 
 interface Resolved {
   tenant: string;
   agentSlug: string;
   version: number;
+  allowedOrigins: string[];
+  webChannelEnabled: boolean;
 }
 
 interface AgentResolverState {
@@ -42,10 +46,15 @@ function parseVersionPath(): number | 'latest' {
 async function resolveAgent(): Promise<Resolved> {
   const host = parseDevOverride() ?? parseAgentHost(window.location.hostname);
   if (host === null) throw new Error('not_found');
+  const versionInfo = await fetchLatestVersion(host.tenant, host.agentSlug);
   const versionOrLatest = parseVersionPath();
-  const version =
-    versionOrLatest === 'latest' ? await fetchLatestVersion(host.tenant, host.agentSlug) : versionOrLatest;
-  return { ...host, version };
+  const version = versionOrLatest === 'latest' ? versionInfo.version : versionOrLatest;
+  return {
+    ...host,
+    version,
+    allowedOrigins: versionInfo.allowedOrigins,
+    webChannelEnabled: versionInfo.webChannelEnabled,
+  };
 }
 
 function useAgentResolver(embedded: boolean): AgentResolverState {
@@ -71,6 +80,18 @@ function useAgentResolver(embedded: boolean): AgentResolverState {
   return { resolved, viewportW, error };
 }
 
+function effectiveHostOrigin(embedded: boolean): string | null {
+  if (embedded) return getHostOrigin();
+  return window.location.origin;
+}
+
+function isAllowedToRender(embedded: boolean, resolved: Resolved): boolean {
+  if (!resolved.webChannelEnabled) return false;
+  const origin = effectiveHostOrigin(embedded);
+  if (origin === null) return false;
+  return matchOrigin(origin, resolved.allowedOrigins);
+}
+
 interface ChatAppBodyProps {
   embedded: boolean;
   resolved: Resolved | null;
@@ -81,8 +102,10 @@ interface ChatAppBodyProps {
 function ChatAppBody({ embedded, resolved, viewportW, error }: ChatAppBodyProps) {
   if (error === 'not_found') return <AgentNotFoundState />;
   if (resolved === null) return <LoadingState embedded={embedded} />;
+  if (!isAllowedToRender(embedded, resolved)) return <BlockedState />;
+  const ctx = { tenant: resolved.tenant, agentSlug: resolved.agentSlug, version: resolved.version };
   return (
-    <AgentProvider value={resolved}>
+    <AgentProvider value={ctx}>
       {embedded ? <EmbeddedMode hostViewportW={viewportW} /> : <StandaloneMode />}
     </AgentProvider>
   );

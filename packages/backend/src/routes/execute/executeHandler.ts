@@ -19,6 +19,7 @@ import {
 import { buildEmptyResponse, buildResponseByType } from './executeResponseBuilders.js';
 import type { AgentExecutionInput, AgentExecutionResponse } from './executeTypes.js';
 import { AgentExecutionInputSchema } from './executeTypes.js';
+import { createSupabaseTenantLookup, enforceWebChannelOrigin } from './originGuard.js';
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_INTERNAL = 500;
@@ -42,6 +43,20 @@ function parseRequest(
 
   const { orgId, agentId, version, supabase }: ExecutionAuthLocals = res.locals;
   return { input: parsed.data, orgId, agentId, version, supabase };
+}
+
+async function enforceOriginIfWebChannel(
+  req: Request<{ agentSlug: string; version: string }>,
+  parsed: ParsedInput
+): Promise<void> {
+  if (parsed.input.channel !== 'web') return;
+  const outcome = await enforceWebChannelOrigin({
+    req,
+    lookupTenant: createSupabaseTenantLookup(parsed.supabase),
+    tenantId: parsed.input.tenantId,
+    keyOrgId: parsed.orgId,
+  });
+  if (!outcome.ok) throw new HttpError(outcome.status, outcome.error);
 }
 
 /* ─── Streaming handler ─── */
@@ -173,6 +188,7 @@ export async function handleExecute(
   try {
     const parsed = parseRequest(req, res);
     ({ supabase } = parsed);
+    await enforceOriginIfWebChannel(req, parsed);
 
     logExec('routing execution', { stream: parsed.input.stream });
 

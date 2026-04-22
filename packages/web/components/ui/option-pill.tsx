@@ -1,23 +1,40 @@
 'use client';
 import { cn } from '@/lib/utils';
+import type { KeyboardEvent } from 'react';
+
+type PillVariant = 'single' | 'multi';
 
 interface OptionPillProps {
   label: string;
   checked: boolean;
   onToggle: () => void;
+  variant?: PillVariant;
 }
 
-export function OptionPill({ label, checked, onToggle }: OptionPillProps) {
+function handlePillKeyDown(e: KeyboardEvent<HTMLButtonElement>): void {
+  if (e.key !== 'Enter') return;
+  // Default button behavior fires click() on Enter, which toggles the pill.
+  // For ARIA radio/checkbox semantics, Space handles toggle; Enter should
+  // submit the enclosing form instead.
+  e.preventDefault();
+  e.currentTarget.form?.requestSubmit();
+}
+
+export function OptionPill({ label, checked, onToggle, variant = 'single' }: OptionPillProps) {
   return (
     <button
       type="button"
-      aria-pressed={checked}
+      role={variant === 'single' ? 'radio' : 'checkbox'}
+      aria-checked={checked}
       onClick={onToggle}
+      onKeyDown={handlePillKeyDown}
       className={cn(
-        'inline-flex h-8 items-center rounded-md border px-3 text-xs transition-colors',
+        'inline-flex h-6 cursor-pointer items-center rounded-sm px-1.5 text-xs outline-none',
+        'transition-[background-color,color,transform] duration-150 active:scale-[0.96]',
+        'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card',
         checked
-          ? 'border-primary bg-primary/10 text-primary-foreground'
-          : 'border-border bg-background text-muted-foreground hover:border-foreground/30'
+          ? 'bg-primary dark:bg-foreground text-background hover:bg-foreground/90'
+          : 'bg-muted text-muted-foreground hover:text-foreground'
       )}
     >
       {label}

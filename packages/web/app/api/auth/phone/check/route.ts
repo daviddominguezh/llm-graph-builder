@@ -1,0 +1,6 @@
+import { proxyToBackend } from '@/app/lib/backendProxy';
+
+export async function POST(req: Request): Promise<Response> {
+  const body: unknown = await req.json();
+  return proxyToBackend('POST', '/auth/phone/check', body);
+}

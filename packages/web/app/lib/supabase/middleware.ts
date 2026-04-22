@@ -1,81 +1,125 @@
+import { type AuthFlags, fetchAuthStatus } from '@/app/lib/auth/fetchStatus';
+import { signStatusCookie, verifyStatusCookie } from '@/app/lib/auth/statusCookie';
+import { computeTokenBinding } from '@/app/lib/auth/tokenBinding';
 import { createServerClient } from '@supabase/ssr';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-type Database = Record<string, never>;
+import { AUTH_COOKIE_OPTIONS } from './cookies';
 
-// Guest-only: redirect to / if authenticated
+const PUBLIC_ROUTES = ['/auth/callback', '/reset-password', '/error', '/api/chat', '/api/auth/public'];
 const GUEST_ONLY_ROUTES = ['/login', '/signup', '/forgot-password'];
-
-// Public: no auth checks at all (callback needs to run before session exists,
-// reset-password needs session access after recovery callback,
-// /api/chat is the public widget API consumed by external embedders)
-const PUBLIC_ROUTES = ['/auth/callback', '/reset-password', '/api/chat'];
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
-function isGuestOnlyRoute(pathname: string): boolean {
-  return GUEST_ONLY_ROUTES.some((route) => pathname.startsWith(route));
+const HTTP_FORBIDDEN = 403;
+
+function startsWithAny(path: string, routes: string[]): boolean {
+  return routes.some((r) => path === r || path.startsWith(r + '/'));
 }
 
-function isPublicRoute(pathname: string): boolean {
-  return PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
+function wantsJson(req: NextRequest): boolean {
+  const accept = req.headers.get('accept');
+  if (accept !== null && accept.includes('application/json')) return true;
+  return req.nextUrl.pathname.startsWith('/api/');
 }
 
-function createSupabaseMiddlewareClient(
-  request: NextRequest,
-  response: NextResponse
-): SupabaseClient<Database> {
-  return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
+function jsonError(status: number, error: string): NextResponse {
+  return NextResponse.json({ error }, { status });
+}
+
+function redirectTo(req: NextRequest, path: string, carry: NextResponse): NextResponse {
+  const url = req.nextUrl.clone();
+  url.pathname = path;
+  const next = NextResponse.redirect(url);
+  carry.cookies.getAll().forEach((c) => next.cookies.set(c.name, c.value));
+  return next;
+}
+
+function buildSupabaseClient(request: NextRequest, response: NextResponse) {
+  return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet) {
-        for (const { name, value } of cookiesToSet) {
-          request.cookies.set(name, value);
-        }
-        for (const { name, value, options } of cookiesToSet) {
-          response.cookies.set(name, value, options);
-        }
+        for (const { name, value } of cookiesToSet) request.cookies.set(name, value);
+        for (const { name, value, options } of cookiesToSet) response.cookies.set(name, value, options);
       },
     },
   });
 }
 
-function redirectWithCookies(url: URL, sourceResponse: NextResponse): NextResponse {
-  const response = NextResponse.redirect(url);
-  sourceResponse.cookies.getAll().forEach((cookie) => {
-    response.cookies.set(cookie.name, cookie.value);
-  });
-  return response;
+async function loadFlags(accessToken: string, uid: string, res: NextResponse): Promise<AuthFlags | null> {
+  const binding = computeTokenBinding(accessToken);
+  const cached = res.cookies.get('_auth_status')?.value;
+  if (cached !== undefined) {
+    const parsed = verifyStatusCookie(cached);
+    if (parsed !== null && parsed.uid === uid && parsed.tokenBinding === binding) {
+      return { phone_verified: parsed.phone_verified, onboarding_completed: parsed.onboarding_completed };
+    }
+  }
+  const flags = await fetchAuthStatus(accessToken);
+  if (flags !== null) {
+    const cookie = signStatusCookie({ uid, tokenBinding: binding, ...flags });
+    res.cookies.set('_auth_status', cookie, AUTH_COOKIE_OPTIONS);
+  }
+  return flags;
+}
+
+// All /api/auth/* endpoints have their own backend gate middlewares
+// (requirePhoneUnverified, requireOnboardingIncomplete, requireGateComplete).
+// Let the backend decide so callers get precise errors instead of the
+// generic redirect/403 from this middleware.
+function phoneGateAllows(pathname: string): boolean {
+  return pathname === '/verify-phone' || pathname.startsWith('/api/auth/');
+}
+
+function onboardingGateAllows(pathname: string): boolean {
+  return pathname === '/onboarding' || pathname.startsWith('/api/auth/');
 }
 
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
-  const supabaseResponse = NextResponse.next({ request });
-  const supabase = createSupabaseMiddlewareClient(request, supabaseResponse);
+  const response = NextResponse.next({ request });
+  const supabase = buildSupabaseClient(request, response);
+  const { pathname } = request.nextUrl;
+
+  if (startsWithAny(pathname, PUBLIC_ROUTES)) return response;
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (isPublicRoute(request.nextUrl.pathname)) {
-    return supabaseResponse;
+  if (user === null) {
+    if (startsWithAny(pathname, GUEST_ONLY_ROUTES)) return response;
+    return redirectTo(request, '/login', response);
+  }
+  if (startsWithAny(pathname, GUEST_ONLY_ROUTES)) return redirectTo(request, '/', response);
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (session === null) return redirectTo(request, '/login', response);
+
+  const flags = await loadFlags(session.access_token, user.id, response);
+  if (flags === null) {
+    if (wantsJson(request)) return jsonError(HTTP_FORBIDDEN, 'auth_status_unavailable');
+    return redirectTo(request, '/error', response);
   }
 
-  if (user === null && !isGuestOnlyRoute(request.nextUrl.pathname)) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/login';
-    return redirectWithCookies(url, supabaseResponse);
+  if (!flags.phone_verified) {
+    if (phoneGateAllows(pathname)) return response;
+    if (wantsJson(request)) return jsonError(HTTP_FORBIDDEN, 'phone_verification_required');
+    return redirectTo(request, '/verify-phone', response);
   }
-
-  if (user !== null && isGuestOnlyRoute(request.nextUrl.pathname)) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/';
-    return redirectWithCookies(url, supabaseResponse);
+  if (!flags.onboarding_completed) {
+    if (onboardingGateAllows(pathname)) return response;
+    if (wantsJson(request)) return jsonError(HTTP_FORBIDDEN, 'onboarding_required');
+    return redirectTo(request, '/onboarding', response);
   }
-
-  return supabaseResponse;
+  if (startsWithAny(pathname, ['/verify-phone', '/onboarding'])) {
+    return redirectTo(request, '/', response);
+  }
+  return response;
 }

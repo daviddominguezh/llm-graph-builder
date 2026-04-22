@@ -12,6 +12,8 @@ export interface TenantRow {
   avatar_url: string | null;
   created_at: string;
   updated_at: string;
+  web_channel_enabled: boolean;
+  web_channel_allowed_origins: string[];
 }
 
 /* ------------------------------------------------------------------ */
@@ -34,7 +36,8 @@ function mapRows(data: unknown[]): TenantRow[] {
   }, []);
 }
 
-const LIST_COLUMNS = 'id, org_id, slug, name, avatar_url, created_at, updated_at';
+const LIST_COLUMNS =
+  'id, org_id, slug, name, avatar_url, created_at, updated_at, web_channel_enabled, web_channel_allowed_origins';
 
 /* ------------------------------------------------------------------ */
 /*  Queries                                                            */
@@ -165,6 +168,32 @@ export async function updateTenantFields(
   const { error } = await supabase.from('tenants').update(payload).eq('id', tenantId);
   if (error !== null) return { error: error.message };
   return { error: null };
+}
+
+export interface WebChannelUpdate {
+  enabled: boolean;
+  allowedOrigins: string[];
+}
+
+export async function updateTenantWebChannel(
+  supabase: SupabaseClient,
+  tenantId: string,
+  fields: WebChannelUpdate
+): Promise<{ result: TenantRow | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from('tenants')
+    .update({
+      web_channel_enabled: fields.enabled,
+      web_channel_allowed_origins: fields.allowedOrigins,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', tenantId)
+    .select(LIST_COLUMNS)
+    .single();
+  if (error !== null) return { result: null, error: error.message };
+  const row: unknown = data;
+  if (!isTenantRow(row)) return { result: null, error: 'Invalid tenant data' };
+  return { result: row, error: null };
 }
 
 export async function deleteTenant(

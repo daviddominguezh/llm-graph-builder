@@ -10,7 +10,12 @@
       "noAccount": "Don't have an account?",
       "signUpLink": "Sign up",
       "forgotPassword": "Forgot password?",
-      "or": "or"
+      "or": "or",
+      "errors": {
+        "emailUsesGoogle": "This account uses Google. Sign in with Google instead.",
+        "oauthDuplicate": "An account already exists for {email}. Sign in with your password, then connect Google from Account settings.",
+        "oauthDuplicateForgotPassword": "Forgot your password?"
+      }
     },
     "signup": {
       "title": "Create account",
@@ -24,7 +29,11 @@
       "hasAccount": "Already have an account?",
       "signInLink": "Sign in",
       "or": "or",
-      "checkEmail": "Check your email for a confirmation link."
+      "checkEmail": "Check your email for a confirmation link.",
+      "errors": {
+        "emailExistsGoogle": "An account already exists with this email via Google. Sign in with Google instead.",
+        "emailExists": "An account already exists with this email. Sign in instead."
+      }
     },
     "forgotPassword": {
       "title": "Reset password",
@@ -53,6 +62,27 @@
       "emailTaken": "An account with this email already exists.",
       "generic": "Something went wrong. Please try again.",
       "oauthFailed": "OAuth sign-in failed. Please try again."
+    },
+    "verifyPhone": {
+      "title": "Verify your phone",
+      "description": "We'll send you a one-time code by SMS.",
+      "phoneLabel": "Phone number",
+      "continue": "Continue",
+      "otpTitle": "Enter the code",
+      "otpDescription": "We sent a 6-digit code to",
+      "resend": "Resend code",
+      "resendIn": "Resend code ({time})",
+      "editPhone": "Use a different number",
+      "cooldown": "Please wait {time} before requesting another code.",
+      "errors": {
+        "invalidOtp": "Invalid code, try again.",
+        "tooManyAttempts": "Too many attempts. Request a new code.",
+        "phoneTaken": "This phone is already registered with another account.",
+        "sendFailed": "Couldn't send the code. Try again.",
+        "otpLocked": "Too many attempts. Request a new code.",
+        "rateLimited24h": "You've requested too many codes today. Try again in 24 hours.",
+        "ipRateLimited": "Too many requests from your network. Try again in about an hour."
+      }
     }
   },
   "common": {
@@ -555,7 +585,20 @@
     "justNow": "just now",
     "minutesAgo": "{count}m ago",
     "hoursAgo": "{count}h ago",
-    "daysAgo": "{count}d ago"
+    "daysAgo": "{count}d ago",
+    "webChannel": {
+      "title": "Web channel",
+      "subtitle": "Control where the OpenFlow chat widget can be embedded for this tenant.",
+      "toggleLabel": "Enable web channel",
+      "toggleHint": "Turn off to block all web widget requests for this tenant.",
+      "originsLabel": "Allowed origins",
+      "empty": "No origins allowed yet. The widget will be blocked everywhere.",
+      "add": "Add",
+      "remove": "Remove",
+      "inputPlaceholder": "https://*.example.com",
+      "invalidEntry": "Invalid origin. Use {protocol}://{hostname}[:port] (optional leading wildcard).",
+      "duplicateEntry": "This origin is already in the list."
+    }
   },
   "toolTest": {
     "emptyState": "Run a tool to see the result here.",
@@ -1296,5 +1339,125 @@
     "male": "Male",
     "female": "Female",
     "other": "Other"
+  },
+  "onboarding": {
+    "title": "Tell us about you",
+    "description": "This helps us tailor your experience.",
+    "submit": "Continue",
+    "submitError": "Couldn't save. Please try again.",
+    "groups": {
+      "aboutYou": "About you",
+      "context": "Why OpenFlow"
+    },
+    "hints": {
+      "pickAny": "Select all that apply"
+    },
+    "sections": {
+      "industry": "What's your industry?",
+      "companySize": "How big is your company?",
+      "role": "What's your role?",
+      "referral": "How did you hear about us?",
+      "buildGoals": "What are you trying to build?"
+    },
+    "options": {
+      "industry": {
+        "it_software": "IT / Software",
+        "legal": "Legal",
+        "health": "Health",
+        "finance": "Finance",
+        "education": "Education",
+        "ecommerce": "E-commerce",
+        "media": "Media",
+        "manufacturing": "Manufacturing",
+        "real_estate": "Real estate",
+        "other": "Other"
+      },
+      "companySize": {
+        "1": "Just me",
+        "2-10": "2–10",
+        "10-50": "10–50",
+        "50-100": "50–100",
+        "100-500": "100–500",
+        "500-1000": "500–1000",
+        "1000-5000": "1000–5000",
+        "5000+": "5000+"
+      },
+      "role": {
+        "developer": "Developer",
+        "founder": "Founder",
+        "c_level": "C-level",
+        "product": "Product",
+        "marketing": "Marketing",
+        "sales": "Sales",
+        "legal": "Legal",
+        "operations": "Operations",
+        "other": "Other"
+      },
+      "referral": {
+        "linkedin": "LinkedIn",
+        "youtube": "YouTube",
+        "friend_referral": "Friend / referral",
+        "reddit": "Reddit",
+        "discord": "Discord",
+        "tldr": "TLDR",
+        "google_search": "Google search",
+        "twitter_x": "Twitter / X",
+        "blog_post": "Blog post",
+        "other": "Other"
+      },
+      "buildGoals": {
+        "ai_agents": "AI Agents",
+        "ai_agency": "AI Agency",
+        "workflows": "Workflows",
+        "browser_automation": "Browser automation",
+        "chatbot": "Chatbot",
+        "not_sure": "I'm not sure"
+      }
+    }
+  },
+  "account": {
+    "title": "Account",
+    "profile": {
+      "title": "Profile",
+      "emailLabel": "Email",
+      "nameLabel": "Full name",
+      "nameEditingSoon": "editing coming soon"
+    },
+    "security": {
+      "title": "Security",
+      "phone": "Phone",
+      "noPhone": "Not set",
+      "changePassword": "Change password"
+    },
+    "connections": {
+      "title": "Connected accounts",
+      "email": {
+        "label": "Email and password"
+      },
+      "google": {
+        "label": "Google",
+        "connect": "Connect Google",
+        "disconnect": "Disconnect",
+        "connected": "Connected as {email}",
+        "confirmDisconnect": {
+          "title": "Disconnect Google?",
+          "body": "You'll no longer be able to sign in with Google.",
+          "confirm": "Disconnect",
+          "cancel": "Cancel"
+        }
+      },
+      "errors": {
+        "cannotUnlinkOnlyIdentity": "You can't disconnect your only sign-in method.",
+        "linkFailed": "Couldn't connect Google. Try again.",
+        "unlinkFailed": "Couldn't disconnect Google. Try again.",
+        "googleAlreadyLinked": "That Google account is already connected to a different account here."
+      }
+    }
+  },
+  "error": {
+    "title": "Something's not right",
+    "description": "We're having trouble loading this page.",
+    "retrying": "Retrying…",
+    "retry": "Retry"
   }
 }
