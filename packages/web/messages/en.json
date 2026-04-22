@@ -599,8 +599,11 @@
       "empty": "No origins allowed yet. The widget will be blocked everywhere.",
       "add": "Add",
       "remove": "Remove",
+      "cancel": "Cancel",
+      "removeConfirmTitle": "Remove allowed origin?",
+      "removeConfirmDescription": "The widget will no longer load on {origin}. You can re-add it later.",
       "inputPlaceholder": "https://*.example.com",
-      "invalidEntry": "Invalid origin. Use {protocol}://{hostname}[:port] (optional leading wildcard).",
+      "invalidEntry": "Invalid origin. Use '{protocol}'://'{hostname}'[:port] (optional leading wildcard).",
       "duplicateEntry": "This origin is already in the list."
     }
   },

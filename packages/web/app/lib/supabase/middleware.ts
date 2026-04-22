@@ -51,9 +51,14 @@ function buildSupabaseClient(request: NextRequest, response: NextResponse) {
   });
 }
 
-async function loadFlags(accessToken: string, uid: string, res: NextResponse): Promise<AuthFlags | null> {
+async function loadFlags(
+  accessToken: string,
+  uid: string,
+  request: NextRequest,
+  res: NextResponse
+): Promise<AuthFlags | null> {
   const binding = computeTokenBinding(accessToken);
-  const cached = res.cookies.get('_auth_status')?.value;
+  const cached = request.cookies.get('_auth_status')?.value;
   if (cached !== undefined) {
     const parsed = verifyStatusCookie(cached);
     if (parsed !== null && parsed.uid === uid && parsed.tokenBinding === binding) {
@@ -102,7 +107,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   } = await supabase.auth.getSession();
   if (session === null) return redirectTo(request, '/login', response);
 
-  const flags = await loadFlags(session.access_token, user.id, response);
+  const flags = await loadFlags(session.access_token, user.id, request, response);
   if (flags === null) {
     if (wantsJson(request)) return jsonError(HTTP_FORBIDDEN, 'auth_status_unavailable');
     return redirectTo(request, '/error', response);

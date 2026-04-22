@@ -1,3 +1,5 @@
+import { cache } from 'react';
+
 import { fetchFromBackend } from './backendProxy';
 
 /* ------------------------------------------------------------------ */
@@ -60,15 +62,17 @@ export async function getOrgsByUser(): Promise<{ result: OrgWithAgentCount[]; er
   }
 }
 
-export async function getOrgBySlug(slug: string): Promise<{ result: OrgRow | null; error: string | null }> {
-  try {
-    const data = await fetchFromBackend('GET', `/orgs/by-slug/${encodeURIComponent(slug)}`);
-    if (!isOrgRow(data)) return { result: null, error: 'Invalid response' };
-    return { result: data, error: null };
-  } catch (err) {
-    return { result: null, error: extractError(err) };
+export const getOrgBySlug = cache(
+  async (slug: string): Promise<{ result: OrgRow | null; error: string | null }> => {
+    try {
+      const data = await fetchFromBackend('GET', `/orgs/by-slug/${encodeURIComponent(slug)}`);
+      if (!isOrgRow(data)) return { result: null, error: 'Invalid response' };
+      return { result: data, error: null };
+    } catch (err) {
+      return { result: null, error: extractError(err) };
+    }
   }
-}
+);
 
 export async function createOrg(name: string): Promise<{ result: OrgRow | null; error: string | null }> {
   try {

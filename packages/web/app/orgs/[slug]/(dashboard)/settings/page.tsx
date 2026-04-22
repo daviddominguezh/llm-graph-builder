@@ -21,14 +21,17 @@ export default async function OrgSettingsPage({ params }: OrgSettingsPageProps):
     redirect('/');
   }
 
-  const role = await getOrgRole(org.id);
+  const [role, apiKeysResult, envVarsResult] = await Promise.all([
+    getOrgRole(org.id),
+    getApiKeysByOrg(org.id),
+    getEnvVariablesByOrg(org.id),
+  ]);
 
   if (role !== 'owner') {
     redirect(`/orgs/${slug}`);
   }
 
-  const { result: apiKeys } = await getApiKeysByOrg(org.id);
-  const envVarsResult = await getEnvVariablesByOrg(org.id);
+  const apiKeys = apiKeysResult.result;
   const envVariables = envVarsResult.error === null ? envVarsResult.result : [];
 
   return (
