@@ -68,12 +68,16 @@ async function loadFlags(accessToken: string, uid: string, res: NextResponse): P
   return flags;
 }
 
+// All /api/auth/* endpoints have their own backend gate middlewares
+// (requirePhoneUnverified, requireOnboardingIncomplete, requireGateComplete).
+// Let the backend decide so callers get precise errors instead of the
+// generic redirect/403 from this middleware.
 function phoneGateAllows(pathname: string): boolean {
-  return pathname === '/verify-phone' || pathname.startsWith('/api/auth/phone');
+  return pathname === '/verify-phone' || pathname.startsWith('/api/auth/');
 }
 
 function onboardingGateAllows(pathname: string): boolean {
-  return pathname === '/onboarding' || pathname === '/api/auth/complete-onboarding';
+  return pathname === '/onboarding' || pathname.startsWith('/api/auth/');
 }
 
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
