@@ -149,20 +149,8 @@ export function PhoneStep({ phone, onPhoneChange, onAdvance }: PhoneStepProps) {
         <Label>{t('phoneLabel')}</Label>
         {defaultCountry === null ? (
           <div className="flex h-7" aria-hidden>
-            <div
-              className="w-20 animate-pulse rounded-s-lg"
-              style={{
-                background: 'color-mix(in oklab, var(--muted-foreground) 20%, transparent)',
-                boxShadow: '0 0 16px color-mix(in oklab, var(--primary) 18%, transparent)',
-              }}
-            />
-            <div
-              className="ml-px flex-1 animate-pulse rounded-e-lg"
-              style={{
-                background: 'color-mix(in oklab, var(--muted-foreground) 20%, transparent)',
-                boxShadow: '0 0 16px color-mix(in oklab, var(--primary) 18%, transparent)',
-              }}
-            />
+            <div className="w-20 animate-pulse rounded-s-lg bg-gray-700 shadow-[0_0_16px_var(--color-gray-400)]" />
+            <div className="ml-px flex-1 animate-pulse rounded-e-lg bg-gray-700 shadow-[0_0_16px_var(--color-gray-400)]" />
           </div>
         ) : (
           <PhoneInput
