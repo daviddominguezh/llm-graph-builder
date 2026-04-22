@@ -40,9 +40,16 @@ export async function proxyToBackend(method: string, backendPath: string, body?:
   const init = buildFetchInit(method, sessionData.access_token, body);
   const upstream = await fetch(`${API_URL}${backendPath}`, init);
 
+  const headers = new Headers(upstream.headers);
+  // fetch() already decoded the body; strip encoding/length so the browser
+  // doesn't try to gunzip plain bytes (ERR_CONTENT_DECODING_FAILED).
+  headers.delete('content-encoding');
+  headers.delete('content-length');
+  headers.delete('transfer-encoding');
+
   return new Response(upstream.body, {
     status: upstream.status,
-    headers: upstream.headers,
+    headers,
   });
 }
 
