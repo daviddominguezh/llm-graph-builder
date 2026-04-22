@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { serviceSupabase } from '../../db/client.js';
 import { auditLog } from '../../lib/auditLog.js';
+import { goTrueUpdateUserPhone } from '../../lib/gotrue.js';
 import { validatePhone } from '../../lib/phoneValidation.js';
 import { createRateLimiter } from '../../lib/rateLimiter.js';
 
@@ -41,19 +42,15 @@ interface ResendWindowUpdate {
   windowStart: string;
 }
 
-function isSupabaseClient(v: unknown): v is SupabaseClient {
-  return v !== null && typeof v === 'object' && 'auth' in v;
-}
-
-function getSupabase(res: Response): SupabaseClient {
-  const v: unknown = res.locals.supabase;
-  if (!isSupabaseClient(v)) throw new Error('supabase missing');
-  return v;
-}
-
 function getUserId(res: Response): string {
   const v: unknown = res.locals.userId;
   if (typeof v !== 'string') throw new Error('userId missing');
+  return v;
+}
+
+function getJwt(res: Response): string {
+  const v: unknown = res.locals.jwt;
+  if (typeof v !== 'string') throw new Error('jwt missing');
   return v;
 }
 
@@ -125,7 +122,7 @@ async function computeResendsNextOrReject(
 
 interface PreChecks {
   userId: string;
-  supabase: SupabaseClient;
+  jwt: string;
   service: SupabaseClient;
   e164: string;
   resendNext: { resends: number; windowStart: string };
@@ -148,7 +145,7 @@ async function runPreChecks(req: Request, res: Response): Promise<PreChecks | nu
     return null;
   }
   const userId = getUserId(res);
-  const supabase = getSupabase(res);
+  const jwt = getJwt(res);
   const service: SupabaseClient = serviceSupabase();
   const cooldown = await checkCooldown(service, userId);
   if (cooldown.blocked) {
@@ -160,16 +157,16 @@ async function runPreChecks(req: Request, res: Response): Promise<PreChecks | nu
     res.status(HTTP_RATE_LIMITED).json({ error: 'otp_rate_limited_24h' });
     return null;
   }
-  return { userId, supabase, service, e164: v.e164, resendNext };
+  return { userId, jwt, service, e164: v.e164, resendNext };
 }
 
 async function handleSendOtp(req: Request, res: Response): Promise<void> {
   const pre = await runPreChecks(req, res);
   if (pre === null) return;
-  const { error } = await pre.supabase.auth.updateUser({ phone: pre.e164 });
-  if (error !== null) {
-    process.stderr.write(`[phoneSendOtp] updateUser failed: ${error.message}\n`);
-    res.status(HTTP_INTERNAL).json({ error: 'send_failed', detail: error.message });
+  const result = await goTrueUpdateUserPhone(pre.jwt, pre.e164);
+  if (!result.ok) {
+    process.stderr.write(`[phoneSendOtp] updateUser failed: ${result.error}\n`);
+    res.status(HTTP_INTERNAL).json({ error: 'send_failed', detail: result.error });
     return;
   }
   const cooldownUntil = await upsertCooldown(pre.service, pre.userId);

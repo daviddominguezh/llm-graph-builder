@@ -39,10 +39,7 @@ interface MaybySingleAttemptsResult {
   error: null;
 }
 
-interface UpdateUserResult {
-  data: Record<string, unknown>;
-  error: { message: string } | null;
-}
+type GoTrueUpdateResult = { ok: true } | { ok: false; error: string };
 
 interface EqChain {
   eq: (col: string, val: string) => EqChain;
@@ -65,7 +62,7 @@ const mockValidatePhone = jest
   .fn<(raw: string) => PhoneValidationResult>()
   .mockReturnValue({ ok: true, e164: '+12025550100' });
 
-const mockUpdateUser = jest.fn<() => Promise<UpdateUserResult>>();
+const mockGoTrueUpdate = jest.fn<() => Promise<GoTrueUpdateResult>>();
 
 const mockMaybySingle = jest
   .fn<() => Promise<MaybeSingleCooldownResult | MaybySingleAttemptsResult>>()
@@ -99,6 +96,9 @@ jest.unstable_mockModule('../../lib/auditLog.js', () => ({ auditLog: jest.fn() }
 jest.unstable_mockModule('../../lib/phoneValidation.js', () => ({
   validatePhone: mockValidatePhone,
 }));
+jest.unstable_mockModule('../../lib/gotrue.js', () => ({
+  goTrueUpdateUserPhone: mockGoTrueUpdate,
+}));
 
 const { phoneSendOtpRouter } = await import('./phoneSendOtp.js');
 const { auditLog } = await import('../../lib/auditLog.js');
@@ -107,7 +107,7 @@ const PHONE = '+12025550100';
 const USER_ID = 'user-abc';
 
 function buildLocals(userId: string): Record<string, unknown> {
-  return { userId, supabase: { auth: { updateUser: mockUpdateUser } } };
+  return { userId, jwt: 'test-jwt' };
 }
 
 function makeApp(userId = USER_ID, fakeIp?: string): express.Express {
@@ -155,7 +155,7 @@ describe('POST /auth/phone/send-otp — cooldown', () => {
   it('expired cooldown proceeds and returns 200 with new cooldownUntil', async () => {
     mockNoCooldown();
     mockResendWindow(RESEND_COUNT_ONE);
-    mockUpdateUser.mockResolvedValueOnce({ data: {}, error: null });
+    mockGoTrueUpdate.mockResolvedValueOnce({ ok: true });
 
     const res = await request(makeApp(USER_ID, IP_COOLDOWN_EXPIRED))
       .post('/auth/phone/send-otp')
@@ -200,7 +200,7 @@ describe('POST /auth/phone/send-otp — rate limit', () => {
     const sendRequests = Array.from({ length: IP_LIMIT_MAX }, async () => {
       mockNoCooldown();
       mockResendWindow(RESEND_COUNT_ONE);
-      mockUpdateUser.mockResolvedValueOnce({ data: {}, error: null });
+      mockGoTrueUpdate.mockResolvedValueOnce({ ok: true });
       return await request(app).post('/auth/phone/send-otp').send({ phone: PHONE });
     });
     await Promise.all(sendRequests);
@@ -216,7 +216,7 @@ describe('POST /auth/phone/send-otp — updateUser error', () => {
   it('updateUser error returns 500', async () => {
     mockNoCooldown();
     mockResendWindow(RESEND_COUNT_ONE);
-    mockUpdateUser.mockResolvedValueOnce({ data: {}, error: { message: 'SMS failed' } });
+    mockGoTrueUpdate.mockResolvedValueOnce({ ok: false, error: 'SMS failed' });
 
     const res = await request(makeApp(USER_ID, IP_UPDATE_USER_ERROR))
       .post('/auth/phone/send-otp')

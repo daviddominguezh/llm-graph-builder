@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { serviceSupabase } from '../../db/client.js';
 import { auditLog } from '../../lib/auditLog.js';
+import { goTrueVerifyPhoneChangeOtp } from '../../lib/gotrue.js';
 import { validatePhone } from '../../lib/phoneValidation.js';
 
 const OTP_LENGTH = 6;
@@ -27,19 +28,15 @@ interface OtpRecordFailResult {
   error: { message: string } | null;
 }
 
-function isSupabaseClient(v: unknown): v is SupabaseClient {
-  return v !== null && typeof v === 'object' && 'auth' in v;
-}
-
-function getSupabase(res: Response): SupabaseClient {
-  const v: unknown = res.locals.supabase;
-  if (!isSupabaseClient(v)) throw new Error('supabase missing');
-  return v;
-}
-
 function getUserId(res: Response): string {
   const v: unknown = res.locals.userId;
   if (typeof v !== 'string') throw new Error('userId missing');
+  return v;
+}
+
+function getJwt(res: Response): string {
+  const v: unknown = res.locals.jwt;
+  if (typeof v !== 'string') throw new Error('jwt missing');
   return v;
 }
 
@@ -85,7 +82,7 @@ async function handleFailedOtp(userId: string, phone: string, ip: string): Promi
 
 async function handleVerifyOtp(req: Request, res: Response): Promise<void> {
   const userId = getUserId(res);
-  const supabase = getSupabase(res);
+  const jwt = getJwt(res);
   const parsed = BodySchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(HTTP_BAD_REQUEST).json({ error: 'invalid_body' });
@@ -100,26 +97,22 @@ async function handleVerifyOtp(req: Request, res: Response): Promise<void> {
     res.status(HTTP_RATE_LIMITED).json({ error: 'otp_locked' });
     return;
   }
-  const { data, error } = await supabase.auth.verifyOtp({
-    phone: v.e164,
-    token: parsed.data.token,
-    type: 'phone_change',
-  });
-  if (error !== null || data.session === null) {
+  const result = await goTrueVerifyPhoneChangeOtp(jwt, v.e164, parsed.data.token);
+  if (!result.ok) {
     const ip = req.ip ?? 'unknown';
     await handleFailedOtp(userId, v.e164, ip);
     res.status(HTTP_BAD_REQUEST).json({ error: 'invalid_otp' });
     return;
   }
-  if (data.session.user.id !== userId) {
+  if (result.session.user_id !== userId) {
     res.status(HTTP_BAD_REQUEST).json({ error: 'sub_mismatch' });
     return;
   }
   await recordSuccess(userId, v.e164);
   await auditLog({ event: 'phone_verified', userId, phone: v.e164, ip: req.ip });
   res.json({
-    access_token: data.session.access_token,
-    refresh_token: data.session.refresh_token,
+    access_token: result.session.access_token,
+    refresh_token: result.session.refresh_token,
   });
 }
 

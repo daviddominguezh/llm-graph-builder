@@ -25,16 +25,15 @@ interface RpcResult {
   error: null;
 }
 
-interface SessionData {
+interface VerifyOtpSession {
   access_token: string;
   refresh_token: string;
-  user: { id: string };
+  user_id: string;
 }
 
-interface VerifyOtpResult {
-  data: { session: SessionData | null };
-  error: { message: string } | null;
-}
+type GoTrueVerifyResult =
+  | { ok: true; session: VerifyOtpSession }
+  | { ok: false; status: number; error: string };
 
 interface SelectTerminal {
   maybeSingle: () => Promise<MaybeSingleResult>;
@@ -72,7 +71,7 @@ interface MockService {
   from: (table: string) => MockFromResult;
 }
 
-const mockVerifyOtp = jest.fn<() => Promise<VerifyOtpResult>>();
+const mockGoTrueVerify = jest.fn<() => Promise<GoTrueVerifyResult>>();
 const mockRpc = jest
   .fn<() => Promise<RpcResult>>()
   .mockResolvedValue({ data: EXPECTED_FAILS_ONE, error: null });
@@ -115,6 +114,9 @@ jest.unstable_mockModule('../../lib/phoneValidation.js', () => ({
     .fn<(raw: string) => { ok: false; error: string } | { ok: true; e164: string }>()
     .mockReturnValue({ ok: true, e164: '+12025550100' }),
 }));
+jest.unstable_mockModule('../../lib/gotrue.js', () => ({
+  goTrueVerifyPhoneChangeOtp: mockGoTrueVerify,
+}));
 
 const { phoneVerifyOtpRouter } = await import('./phoneVerifyOtp.js');
 const { auditLog } = await import('../../lib/auditLog.js');
@@ -126,7 +128,7 @@ const ACCESS_TOKEN = 'access-tok';
 const REFRESH_TOKEN = 'refresh-tok';
 
 function buildUserLocals(userId: string): Record<string, unknown> {
-  return { userId, supabase: { auth: { verifyOtp: mockVerifyOtp } } };
+  return { userId, jwt: 'test-jwt' };
 }
 
 function makeApp(userId = USER_ID): express.Express {
@@ -148,19 +150,19 @@ function mockLocked(): void {
   mockMaybySingle.mockResolvedValueOnce({ data: { locked_until: future }, error: null });
 }
 
-function goodSession(userId: string): VerifyOtpResult {
+function goodSession(userId: string): GoTrueVerifyResult {
   return {
-    data: { session: { access_token: ACCESS_TOKEN, refresh_token: REFRESH_TOKEN, user: { id: userId } } },
-    error: null,
+    ok: true,
+    session: { access_token: ACCESS_TOKEN, refresh_token: REFRESH_TOKEN, user_id: userId },
   };
 }
 
-const badOtpResult: VerifyOtpResult = { data: { session: null }, error: { message: 'Token has expired' } };
+const badOtpResult: GoTrueVerifyResult = { ok: false, status: HTTP_BAD_REQUEST, error: 'Token has expired' };
 
 describe('POST /auth/phone/verify-otp — success', () => {
   it('happy path: good code returns tokens', async () => {
     mockNotLocked();
-    mockVerifyOtp.mockResolvedValueOnce(goodSession(USER_ID));
+    mockGoTrueVerify.mockResolvedValueOnce(goodSession(USER_ID));
 
     const res = await request(makeApp())
       .post('/auth/phone/verify-otp')
@@ -172,7 +174,7 @@ describe('POST /auth/phone/verify-otp — success', () => {
 
   it('sub mismatch: returns 400 sub_mismatch', async () => {
     mockNotLocked();
-    mockVerifyOtp.mockResolvedValueOnce(goodSession('different-user-id'));
+    mockGoTrueVerify.mockResolvedValueOnce(goodSession('different-user-id'));
 
     const res = await request(makeApp())
       .post('/auth/phone/verify-otp')
@@ -186,7 +188,7 @@ describe('POST /auth/phone/verify-otp — success', () => {
 describe('POST /auth/phone/verify-otp — failures', () => {
   it('bad code: returns 400 invalid_otp and increments fails', async () => {
     mockNotLocked();
-    mockVerifyOtp.mockResolvedValueOnce(badOtpResult);
+    mockGoTrueVerify.mockResolvedValueOnce(badOtpResult);
     mockRpc.mockResolvedValueOnce({ data: EXPECTED_FAILS_ONE, error: null });
 
     const res = await request(makeApp())
@@ -200,7 +202,7 @@ describe('POST /auth/phone/verify-otp — failures', () => {
 
   it('5th bad code: audits otp_lockout', async () => {
     mockNotLocked();
-    mockVerifyOtp.mockResolvedValueOnce(badOtpResult);
+    mockGoTrueVerify.mockResolvedValueOnce(badOtpResult);
     mockRpc.mockResolvedValueOnce({ data: EXPECTED_FAILS_FIVE, error: null });
 
     const res = await request(makeApp())
@@ -213,7 +215,7 @@ describe('POST /auth/phone/verify-otp — failures', () => {
 
   it('after lockout expires + one bad code: fails drops to 1', async () => {
     mockNotLocked();
-    mockVerifyOtp.mockResolvedValueOnce(badOtpResult);
+    mockGoTrueVerify.mockResolvedValueOnce(badOtpResult);
     mockRpc.mockResolvedValueOnce({ data: EXPECTED_FAILS_ONE, error: null });
 
     const res = await request(makeApp())

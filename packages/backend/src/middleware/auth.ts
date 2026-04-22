@@ -44,6 +44,6 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     return;
   }
 
-  setLocals(res.locals, { supabase, userId: result.data.user.id });
+  setLocals(res.locals, { supabase, userId: result.data.user.id, jwt });
   next();
 }
