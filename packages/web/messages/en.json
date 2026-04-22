@@ -72,7 +72,7 @@
       "otpDescription": "We sent a 6-digit code to",
       "resend": "Resend code",
       "resendIn": "Resend code ({time})",
-      "editPhone": "Wrong number?",
+      "editPhone": "Use a different number",
       "cooldown": "Please wait {time} before requesting another code.",
       "errors": {
         "invalidOtp": "Invalid code, try again.",

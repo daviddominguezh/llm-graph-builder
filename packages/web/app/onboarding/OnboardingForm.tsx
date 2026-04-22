@@ -43,42 +43,46 @@ function FormSections({
   const label = useOptionLabel();
 
   return (
-    <div className="flex flex-col gap-6 flex-1 min-h-0 overflow-auto">
-      <SingleSelectSection
-        label={t('industry')}
-        options={industryOptions}
-        selected={state.industry}
-        getLabel={label.industry}
-        onSelect={handlers.setIndustry}
-      />
-      <SingleSelectSection
-        label={t('companySize')}
-        options={companySizeOptions}
-        selected={state.companySize}
-        getLabel={label.companySize}
-        onSelect={handlers.setCompanySize}
-      />
-      <SingleSelectSection
-        label={t('role')}
-        options={roleOptions}
-        selected={state.role}
-        getLabel={label.role}
-        onSelect={handlers.setRole}
-      />
-      <MultiSelectSection
-        label={t('referral')}
-        options={referralOptions}
-        selected={state.referralSources}
-        getLabel={label.referral}
-        onToggle={handlers.toggleReferral}
-      />
-      <MultiSelectSection
-        label={t('buildGoals')}
-        options={buildGoalOptions}
-        selected={state.buildGoals}
-        getLabel={label.buildGoal}
-        onToggle={handlers.toggleBuildGoal}
-      />
+    <div className="flex flex-col gap-8">
+      <div className="grid gap-x-8 gap-y-5 md:grid-cols-3">
+        <SingleSelectSection
+          label={t('industry')}
+          options={industryOptions}
+          selected={state.industry}
+          getLabel={label.industry}
+          onSelect={handlers.setIndustry}
+        />
+        <SingleSelectSection
+          label={t('companySize')}
+          options={companySizeOptions}
+          selected={state.companySize}
+          getLabel={label.companySize}
+          onSelect={handlers.setCompanySize}
+        />
+        <SingleSelectSection
+          label={t('role')}
+          options={roleOptions}
+          selected={state.role}
+          getLabel={label.role}
+          onSelect={handlers.setRole}
+        />
+      </div>
+      <div className="flex flex-col gap-5">
+        <MultiSelectSection
+          label={t('referral')}
+          options={referralOptions}
+          selected={state.referralSources}
+          getLabel={label.referral}
+          onToggle={handlers.toggleReferral}
+        />
+        <MultiSelectSection
+          label={t('buildGoals')}
+          options={buildGoalOptions}
+          selected={state.buildGoals}
+          getLabel={label.buildGoal}
+          onToggle={handlers.toggleBuildGoal}
+        />
+      </div>
     </div>
   );
 }
@@ -93,7 +97,7 @@ export function OnboardingForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6 h-full">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       <FormSections
         state={result.state}
         handlers={result.handlers}
@@ -104,8 +108,8 @@ export function OnboardingForm() {
         buildGoalOptions={result.buildGoalOptions}
       />
       {result.error !== null && <p className="text-destructive text-xs">{t('submitError')}</p>}
-      <div className="pb-1 pt-2 shrink-0 w-full flex justify-end">
-        <Button type="submit" size="lg" className="w-fit" disabled={!result.isValid || result.loading}>
+      <div className="flex justify-end">
+        <Button type="submit" size="lg" disabled={!result.isValid || result.loading}>
           {result.loading ? <Loader2 className="size-4 animate-spin" /> : t('submit')}
         </Button>
       </div>

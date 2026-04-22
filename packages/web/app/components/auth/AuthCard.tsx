@@ -4,6 +4,7 @@ import logo from '@/app/assets/brand-icon.png';
 import logoBlack from '@/app/openflowLogoBlack.png';
 import logoWhite from '@/app/openflowLogoWhite.png';
 import { CardDescription, CardTitle } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 
@@ -25,19 +26,20 @@ export function AuthCard({ title, description, children, className = '' }: AuthC
 
       <div className="relative flex flex-1 flex-col items-center justify-center gap-6 p-4 z-3">
         <div className="flex gap-2 items-center">
-          <Image className="mb-1" src={logo} alt="OpenFlow" height={30} priority />
-          <Image className="dark:hidden" src={logoBlack} alt="OpenFlow" height={24} priority />
-          <Image className="hidden dark:block" src={logoWhite} alt="OpenFlow" height={24} priority />
+          <Image className="mb-1" src={logo} alt="OpenFlow" height={60} priority />
         </div>
         <div
-          className={`auth-card-enter relative w-full max-w-sm rounded-xl border bg-card text-card-foreground shadow-sm ${className}`}
+          className={cn(
+            'auth-card-enter relative w-full max-w-sm rounded-xl border bg-card text-card-foreground shadow-sm',
+            className
+          )}
         >
           <div className="flex flex-col gap-5 px-5 py-5 h-full">
             <div className="shrink-0">
               <CardTitle className="text-xl font-bold">{title}</CardTitle>
               <CardDescription>{description}</CardDescription>
             </div>
-            <div className="flex flex-col gap-4 overflow-hidden">{children}</div>
+            <div className="flex flex-col gap-4">{children}</div>
           </div>
         </div>
       </div>
