@@ -44,7 +44,7 @@ function FormSections({
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="grid gap-x-8 gap-y-5 md:grid-cols-3">
+      <div className="grid gap-x-8 gap-y-5 md:grid-cols-[1.4fr_1fr_1fr]">
         <SingleSelectSection
           label={t('industry')}
           options={industryOptions}
@@ -52,13 +52,15 @@ function FormSections({
           getLabel={label.industry}
           onSelect={handlers.setIndustry}
         />
-        <SingleSelectSection
-          label={t('companySize')}
-          options={companySizeOptions}
-          selected={state.companySize}
-          getLabel={label.companySize}
-          onSelect={handlers.setCompanySize}
-        />
+        <div className="tabular-nums">
+          <SingleSelectSection
+            label={t('companySize')}
+            options={companySizeOptions}
+            selected={state.companySize}
+            getLabel={label.companySize}
+            onSelect={handlers.setCompanySize}
+          />
+        </div>
         <SingleSelectSection
           label={t('role')}
           options={roleOptions}
