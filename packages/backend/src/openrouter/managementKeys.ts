@@ -8,9 +8,9 @@ const OPENFLOW_KEY_BUDGET_RESET = 'monthly';
 
 const CreateKeyResponseSchema = z.object({
   data: z.object({
-    key: z.string(),
     hash: z.string(),
   }),
+  key: z.string(),
 });
 
 export interface OpenRouterKeyResult {
@@ -53,5 +53,5 @@ export async function createOpenRouterKey(orgName: string): Promise<OpenRouterKe
   const json: unknown = await res.json();
   const parsed = CreateKeyResponseSchema.parse(json);
   process.stdout.write(`[openrouter] Created key for org "${orgName}" (hash: ${parsed.data.hash})\n`);
-  return parsed.data;
+  return { key: parsed.key, hash: parsed.data.hash };
 }

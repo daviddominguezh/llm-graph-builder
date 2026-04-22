@@ -12,6 +12,7 @@ import { GraphBuilderLoading } from './GraphBuilderLoading';
 import { HandleContext } from './nodes/HandleContext';
 import { DeleteConfirmDialog } from './panels/DeleteConfirmDialog';
 import { PublishButton } from './panels/PublishButton';
+import type { PublishTenant } from './panels/PublishButtonTenantPicker';
 import { Toolbar } from './panels/Toolbar';
 import { StatusButton, hasMcpErrors } from './panels/StatusButton';
 import { ConnectionMenu } from './panels/ConnectionMenu';
@@ -78,7 +79,7 @@ function buildLoadResultFromGraph(graph: Graph): GraphLoadResult {
 export interface GraphBuilderProps {
   agentId?: string;
   agentSlug?: string;
-  tenantSlug?: string;
+  tenants?: PublishTenant[];
   agentName?: string;
   orgSlug?: string;
   orgId?: string;
@@ -526,7 +527,8 @@ function LoadedEditor(props: LoadedEditorProps) {
                 <PublishButton
                   agentId={props.agentId}
                   agentSlug={props.agentSlug ?? ''}
-                  tenantSlug={props.tenantSlug ?? props.orgSlug ?? ''}
+                  orgSlug={props.orgSlug ?? ''}
+                  tenants={props.tenants ?? []}
                   version={h.version}
                   canPublish={h.canPublish}
                   hasApiKey={h.apiKeys.productionKeyId !== null}

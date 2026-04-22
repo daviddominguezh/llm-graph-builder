@@ -4,12 +4,13 @@ import type { ComponentType } from 'react';
 
 import dynamic from 'next/dynamic';
 
+import type { PublishTenant } from '@/app/components/panels/PublishButtonTenantPicker';
 import type { ApiKeyRow } from '@/app/lib/apiKeys';
 
 interface EditorClientProps {
   agentId: string;
   agentSlug: string;
-  tenantSlug: string;
+  tenants: PublishTenant[];
   agentName: string;
   orgSlug: string;
   orgId: string;

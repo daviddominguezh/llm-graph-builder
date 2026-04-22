@@ -4,6 +4,7 @@ import { useAgentsSidebar } from '@/app/components/agents/AgentsSidebarContext';
 import { SettingsPanel } from '@/app/components/agents/SettingsPanel';
 import { ChannelsPanel } from '@/app/components/agents/channels/ChannelsPanel';
 import { useEditorCache } from '@/app/components/editors/EditorCacheProvider';
+import type { PublishTenant } from '@/app/components/panels/PublishButtonTenantPicker';
 import type { ApiKeyRow } from '@/app/lib/apiKeys';
 import { Button } from '@/components/ui/button';
 import { GlassPanel } from '@/components/ui/glass-panel';
@@ -19,7 +20,7 @@ type TabId = 'agent' | 'channels' | 'settings';
 
 interface EditorTabsProps {
   agentSlug: string;
-  tenantSlug: string;
+  tenants: PublishTenant[];
   agentId: string;
   agentName: string;
   orgSlug: string;
@@ -75,7 +76,7 @@ function buildEditorElement(props: EditorTabsProps): React.ReactNode {
     <EditorClient
       agentId={props.agentId}
       agentSlug={props.agentSlug}
-      tenantSlug={props.tenantSlug}
+      tenants={props.tenants}
       agentName={props.agentName}
       orgSlug={props.orgSlug}
       orgId={props.orgId}

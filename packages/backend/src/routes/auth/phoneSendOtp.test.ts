@@ -51,8 +51,13 @@ interface MockFromResult {
   upsert: (vals: Record<string, unknown>, opts?: Record<string, unknown>) => Promise<{ error: null }>;
 }
 
+interface MockRpcResult {
+  data: boolean | null;
+}
+
 interface MockService {
   from: jest.MockedFunction<(table: string) => MockFromResult>;
+  rpc: jest.MockedFunction<(fn: string, args: Record<string, unknown>) => Promise<MockRpcResult>>;
   auth?: never;
 }
 
@@ -63,6 +68,10 @@ const mockValidatePhone = jest
   .mockReturnValue({ ok: true, e164: '+12025550100' });
 
 const mockGoTrueUpdate = jest.fn<() => Promise<GoTrueUpdateResult>>();
+
+const mockRpc = jest
+  .fn<(fn: string, args: Record<string, unknown>) => Promise<MockRpcResult>>()
+  .mockResolvedValue({ data: false });
 
 const mockMaybySingle = jest
   .fn<() => Promise<MaybeSingleCooldownResult | MaybySingleAttemptsResult>>()
@@ -90,7 +99,7 @@ const mockFrom = jest.fn<(table: string) => MockFromResult>().mockReturnValue({
 });
 
 jest.unstable_mockModule('../../db/client.js', () => ({
-  serviceSupabase: jest.fn<() => MockService>(() => ({ from: mockFrom })),
+  serviceSupabase: jest.fn<() => MockService>(() => ({ from: mockFrom, rpc: mockRpc })),
 }));
 jest.unstable_mockModule('../../lib/auditLog.js', () => ({ auditLog: jest.fn() }));
 jest.unstable_mockModule('../../lib/phoneValidation.js', () => ({

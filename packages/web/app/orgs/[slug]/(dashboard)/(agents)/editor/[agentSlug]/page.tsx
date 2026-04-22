@@ -1,6 +1,7 @@
 import { getAgentBySlug } from '@/app/lib/agents';
 import { getApiKeysByOrg } from '@/app/lib/apiKeys';
 import { getOrgBySlug } from '@/app/lib/orgs';
+import { getTenantsByOrg } from '@/app/lib/tenants';
 import { redirect } from 'next/navigation';
 
 import { EditorTabs } from './EditorTabs';
@@ -23,10 +24,18 @@ export default async function EditorPage({ params }: EditorPageProps): Promise<R
     console.error('[EditorPage] failed to load API keys:', apiKeyError);
   }
 
+  const { result: tenantRows, error: tenantsError } = await getTenantsByOrg(org.id);
+  if (tenantsError !== null) {
+    console.error('[EditorPage] failed to load tenants:', tenantsError);
+  }
+  const tenants = [...tenantRows]
+    .sort((a, b) => a.created_at.localeCompare(b.created_at))
+    .map(({ id, slug: tenantSlug, name }) => ({ id, slug: tenantSlug, name }));
+
   return (
     <EditorTabs
       agentSlug={agent.slug}
-      tenantSlug={org.slug}
+      tenants={tenants}
       agentId={agent.id}
       agentName={agent.name}
       orgSlug={org.slug}
