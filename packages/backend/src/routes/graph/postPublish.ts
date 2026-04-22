@@ -16,11 +16,13 @@ import {
 import { ensureWidgetKey } from './mintWidgetKey.js';
 import { seedWidgetOriginsForAgent } from './seedWidgetOrigins.js';
 
+const FIRST_PUBLISH_VERSION = 1;
+
 function logError(agentId: string, message: string): void {
   process.stderr.write(`[postPublish] ERROR agent=${agentId}: ${message}\n`);
 }
 
-async function runSideEffects(supabase: SupabaseClient, agentId: string): Promise<void> {
+async function runSideEffects(supabase: SupabaseClient, agentId: string, version: number): Promise<void> {
   await syncTemplateAfterPublish(supabase, agentId).catch((syncErr: unknown) => {
     logError(agentId, `template sync failed: ${extractErrorMessage(syncErr)}`);
   });
@@ -28,9 +30,11 @@ async function runSideEffects(supabase: SupabaseClient, agentId: string): Promis
   if (widget.error !== null) {
     logError(agentId, `widget key mint failed: ${widget.error}`);
   }
-  await seedWidgetOriginsForAgent(supabase, agentId).catch((seedErr: unknown) => {
-    logError(agentId, `seed widget origins failed: ${extractErrorMessage(seedErr)}`);
-  });
+  if (version <= FIRST_PUBLISH_VERSION) {
+    await seedWidgetOriginsForAgent(supabase, agentId).catch((seedErr: unknown) => {
+      logError(agentId, `seed widget origins failed: ${extractErrorMessage(seedErr)}`);
+    });
+  }
 }
 
 export async function handlePostPublish(req: Request, res: AuthenticatedResponse): Promise<void> {
@@ -47,7 +51,7 @@ export async function handlePostPublish(req: Request, res: AuthenticatedResponse
     const isAgent = await isAgentType(supabase, agentId);
     const publishFn = isAgent ? publishAgentVersion : publishVersion;
     const version = await publishFn(supabase, agentId);
-    await runSideEffects(supabase, agentId);
+    await runSideEffects(supabase, agentId, version);
     res.status(HTTP_OK).json({ version });
   } catch (err) {
     const message = extractErrorMessage(err);

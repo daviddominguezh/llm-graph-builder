@@ -49,28 +49,40 @@ async function fetchTenants(supabase: SupabaseClient, orgId: string): Promise<Te
   return rows.filter(isTenantOriginsRow);
 }
 
-const EMPTY_ALLOWLIST_LENGTH = 0;
-
-async function seedTenantIfEmpty(
+async function appendOrigin(
   supabase: SupabaseClient,
   tenant: TenantOriginsRow,
   origin: string
-): Promise<void> {
-  if (tenant.web_channel_allowed_origins.length > EMPTY_ALLOWLIST_LENGTH) return;
-  await supabase
+): Promise<boolean> {
+  if (tenant.web_channel_allowed_origins.includes(origin)) return false;
+  const next = [...tenant.web_channel_allowed_origins, origin];
+  const { error } = await supabase
     .from('tenants')
-    .update({ web_channel_allowed_origins: [origin], updated_at: new Date().toISOString() })
+    .update({ web_channel_allowed_origins: next, updated_at: new Date().toISOString() })
     .eq('id', tenant.id);
+  if (error !== null) {
+    throw new Error(`tenant ${tenant.id}: ${error.message}`);
+  }
+  return true;
+}
+
+function logSeedResult(agentId: string, updated: number, skipped: number): void {
+  process.stderr.write(
+    `[seedWidgetOrigins] agent=${agentId} updated=${String(updated)} skipped=${String(skipped)}\n`
+  );
 }
 
 export async function seedWidgetOriginsForAgent(supabase: SupabaseClient, agentId: string): Promise<void> {
   const agent = await fetchAgentOrg(supabase, agentId);
   if (agent === null) return;
   const tenants = await fetchTenants(supabase, agent.org_id);
-  await Promise.all(
+  const results = await Promise.all(
     tenants.map(async (tenant) => {
       const origin = buildWidgetOrigin(tenant.slug, agent.slug);
-      await seedTenantIfEmpty(supabase, tenant, origin);
+      return await appendOrigin(supabase, tenant, origin);
     })
   );
+  const { length: totalCount } = results;
+  const { length: updated } = results.filter(Boolean);
+  logSeedResult(agentId, updated, totalCount - updated);
 }
