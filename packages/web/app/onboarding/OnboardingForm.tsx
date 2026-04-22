@@ -43,7 +43,7 @@ function FormSections({
   const label = useOptionLabel();
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 flex-1 min-h-0 overflow-auto">
       <SingleSelectSection
         label={t('industry')}
         options={industryOptions}
@@ -93,7 +93,7 @@ export function OnboardingForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6 h-full">
       <FormSections
         state={result.state}
         handlers={result.handlers}
@@ -104,8 +104,8 @@ export function OnboardingForm() {
         buildGoalOptions={result.buildGoalOptions}
       />
       {result.error !== null && <p className="text-destructive text-xs">{t('submitError')}</p>}
-      <div className="sticky bottom-0 pb-1 pt-2">
-        <Button type="submit" size="lg" className="w-full" disabled={!result.isValid || result.loading}>
+      <div className="pb-1 pt-2 shrink-0 w-full flex justify-end">
+        <Button type="submit" size="lg" className="w-fit" disabled={!result.isValid || result.loading}>
           {result.loading ? <Loader2 className="size-4 animate-spin" /> : t('submit')}
         </Button>
       </div>

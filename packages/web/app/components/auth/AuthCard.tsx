@@ -14,9 +14,10 @@ interface AuthCardProps {
   title: string;
   description: string;
   children: ReactNode;
+  className?: string;
 }
 
-export function AuthCard({ title, description, children }: AuthCardProps) {
+export function AuthCard({ title, description, children, className = '' }: AuthCardProps) {
   return (
     <div className="flex min-h-screen min-w-screen justify-center items-center">
       <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 1 }}>
@@ -29,13 +30,16 @@ export function AuthCard({ title, description, children }: AuthCardProps) {
           <Image className="dark:hidden" src={logoBlack} alt="OpenFlow" height={24} priority />
           <Image className="hidden dark:block" src={logoWhite} alt="OpenFlow" height={24} priority />
         </div>
-        <GlassPanel variant='foreground' className='rounded-xl w-full max-w-sm auth-card-enter px-2'>
-          <div className="flex flex-col px-3 py-5 text-foreground/80 bg-transparent gap-5">
-            <div>
+        <GlassPanel
+          variant="foreground"
+          className={`rounded-xl w-full max-w-sm auth-card-enter px-2 ${className}`}
+        >
+          <div className="flex flex-col px-3 py-5 text-foreground/80 bg-transparent gap-5 h-full">
+            <div className="shrink-0">
               <CardTitle className="text-xl font-bold">{title}</CardTitle>
               <CardDescription>{description}</CardDescription>
             </div>
-            <div className="flex flex-col gap-4">{children}</div>
+            <div className="flex flex-col gap-4 overflow-hidden">{children}</div>
           </div>
         </GlassPanel>
       </div>

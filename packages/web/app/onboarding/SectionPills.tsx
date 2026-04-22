@@ -20,7 +20,7 @@ export function SingleSelectSection<T extends string>({
   return (
     <div className="flex flex-col gap-2">
       <p className="text-sm font-medium text-foreground/80">{label}</p>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1">
         {options.map((opt) => (
           <OptionPill
             key={opt}
@@ -52,7 +52,7 @@ export function MultiSelectSection<T extends string>({
   return (
     <div className="flex flex-col gap-2">
       <p className="text-sm font-medium text-foreground/80">{label}</p>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1">
         {options.map((opt) => (
           <OptionPill
             key={opt}

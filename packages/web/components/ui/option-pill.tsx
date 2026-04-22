@@ -14,10 +14,10 @@ export function OptionPill({ label, checked, onToggle }: OptionPillProps) {
       aria-pressed={checked}
       onClick={onToggle}
       className={cn(
-        'inline-flex h-8 items-center rounded-md border px-3 text-xs transition-colors',
+        'cursor-pointer inline-flex h-6 items-center rounded-sm px-1.5 text-xs transition-colors',
         checked
-          ? 'border-primary bg-primary/10 text-primary-foreground'
-          : 'border-border bg-background text-muted-foreground hover:border-foreground/30'
+          ? 'bg-input text-foreground'
+          : 'border-border bg-background text-muted-foreground'
       )}
     >
       {label}
