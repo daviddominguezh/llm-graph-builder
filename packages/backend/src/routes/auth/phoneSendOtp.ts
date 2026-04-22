@@ -10,7 +10,7 @@ import { createRateLimiter } from '../../lib/rateLimiter.js';
 
 const BodySchema = z.object({ phone: z.string() });
 
-const IP_LIMIT_MAX = 3;
+const IP_LIMIT_MAX = 30;
 const MS_PER_HOUR = 3_600_000;
 const COOLDOWN_MINUTES = 2;
 const MS_PER_MINUTE = 60_000;

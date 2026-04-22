@@ -10,7 +10,7 @@ const COOLDOWN_FUTURE_MS = 120_000;
 const RESEND_LIMIT_EXCEEDED = 11;
 const WINDOW_RECENT_MS = 1_000;
 const RESEND_COUNT_ONE = 1;
-const IP_LIMIT_MAX = 3;
+const IP_LIMIT_MAX = 30;
 
 // Unique test IPs — each test gets a fresh bucket in the per-IP rate limiter
 const IP_COOLDOWN_ACTIVE = '1.1.1.1';
