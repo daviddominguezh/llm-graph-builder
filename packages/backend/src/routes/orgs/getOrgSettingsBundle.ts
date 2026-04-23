@@ -38,10 +38,7 @@ async function loadBundle(
   };
 }
 
-export async function handleGetOrgSettingsBundle(
-  req: Request,
-  res: AuthenticatedResponse
-): Promise<void> {
+export async function handleGetOrgSettingsBundle(req: Request, res: AuthenticatedResponse): Promise<void> {
   const { supabase, userId }: AuthenticatedLocals = res.locals;
   const slug = getSlugParam(req);
   if (slug === undefined) {

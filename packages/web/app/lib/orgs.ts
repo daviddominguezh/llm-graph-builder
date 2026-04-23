@@ -130,8 +130,8 @@ export interface OrgSettingsBundle {
 
 function isOrgSettingsBundle(value: unknown): value is OrgSettingsBundle {
   if (typeof value !== 'object' || value === null) return false;
-  const v = value as Record<string, unknown>;
-  return isOrgRow(v['org']) && Array.isArray(v['apiKeys']) && Array.isArray(v['envVariables']);
+  if (!('org' in value) || !('apiKeys' in value) || !('envVariables' in value)) return false;
+  return isOrgRow(value.org) && Array.isArray(value.apiKeys) && Array.isArray(value.envVariables);
 }
 
 export async function getOrgSettingsBundle(
