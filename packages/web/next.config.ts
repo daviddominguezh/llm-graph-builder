@@ -41,7 +41,6 @@ const nextConfig: NextConfig = {
   transpilePackages: ['@daviddh/graph-types', '@daviddh/llm-graph-runner'],
   images: { localPatterns: [{ pathname: '/supabase-storage/**' }, { pathname: '/logo*' }] },
   devIndicators: false,
-  experimental: { ppr: 'incremental' },
   webpack: configureWebpack,
   rewrites() {
     return [

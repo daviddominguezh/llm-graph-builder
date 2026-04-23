@@ -53,6 +53,8 @@
     "format": "prettier --write \"**/*.{js,ts,json}\"",
     "check": "npm run check -w packages/shared-validation && npm run check -w packages/landing && npm run check -w packages/graph-types && npm run check -w packages/api && npm run check -w packages/backend && npm run check -w packages/web && npm run check -w packages/widget",
     "build:api": "npm run build -w packages/api",
+    "build:types": "npm run build -w packages/graph-types",
+    "build:shared": "npm run build -w packages/shared-validation",
     "build:web": "npm run build -w packages/web",
     "dev": "concurrently -n backend,web,widget \"ENABLE_MOCK_EXECUTE=true npm run dev -w packages/backend\" \"npm run dev -w packages/web\" \"npm run dev -w packages/widget\"",
     "test": "npm run test --workspaces --if-present",
