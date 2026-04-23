@@ -1,5 +1,6 @@
 'use client';
 
+import { Scrollable } from '@/app/components/Scrollable';
 import { useTemplatesPrefetch } from '@/app/hooks/useTemplatesPrefetch';
 import type { AgentMetadata } from '@/app/lib/agents';
 import { formatRelativeTime } from '@/app/utils/formatRelativeTime';
@@ -162,9 +163,9 @@ export function AgentsSidebar({ agents: serverAgents, orgId, orgSlug }: AgentsSi
     <GlassPanel variant="background" className="relative flex h-[calc(100%-var(--spacing)*2-1px)] w-[240px] shrink-0 flex-col pointer-events-auto rounded-xl mt-[1px]">
       <SidebarHeader onCreateClick={() => setCreateOpen(true)} />
       <SearchInput value={search} onChange={setSearch} />
-      <div className="flex-1 overflow-y-auto">
+      <Scrollable className="flex-1">
         <AgentList agents={agents} orgSlug={orgSlug} pathname={pathname} search={search} />
-      </div>
+      </Scrollable>
       <CreateAgentWizard
         open={createOpen}
         onOpenChange={setCreateOpen}

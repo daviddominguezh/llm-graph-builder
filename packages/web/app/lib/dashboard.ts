@@ -22,3 +22,6 @@ export {
   getSessionsByAgent,
   getTenantSummary,
 } from './dashboardQueries';
+
+export { getTenantExecutionsBundle } from './dashboardBundles';
+export type { TenantExecutionsBundle } from './dashboardBundles';

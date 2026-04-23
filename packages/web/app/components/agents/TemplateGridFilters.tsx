@@ -5,6 +5,7 @@ import { TEMPLATE_CATEGORIES } from '@daviddh/graph-types';
 import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+import { Scrollable } from '@/app/components/Scrollable';
 import { Input } from '@/components/ui/input';
 
 /* ------------------------------------------------------------------ */
@@ -38,19 +39,20 @@ export function CategoryPills({ value, onChange }: CategoryPillsProps) {
   const tc = useTranslations('categories');
 
   return (
-    <div
-      className="flex min-w-0 gap-1 overflow-x-auto shrink-0"
+    <Scrollable
+      className="min-w-0 shrink-0 pb-2 pr-4"
       style={{
         maskImage: 'linear-gradient(to right, black 0, black calc(100% - 24px), transparent 100%)',
         WebkitMaskImage: 'linear-gradient(to right, black 0, black calc(100% - 24px), transparent 100%)',
-        scrollbarWidth: 'none',
       }}
     >
-      <PillButton active={value === ''} onClick={() => onChange('')} label={t('allCategories')} />
-      {TEMPLATE_CATEGORIES.map((cat) => (
-        <PillButton key={cat} active={value === cat} onClick={() => onChange(cat)} label={tc(cat)} />
-      ))}
-    </div>
+      <div className="flex gap-1 w-max">
+        <PillButton active={value === ''} onClick={() => onChange('')} label={t('allCategories')} />
+        {TEMPLATE_CATEGORIES.map((cat) => (
+          <PillButton key={cat} active={value === cat} onClick={() => onChange(cat)} label={tc(cat)} />
+        ))}
+      </div>
+    </Scrollable>
   );
 }
 

@@ -109,7 +109,12 @@ function OriginStatusIcon({ status }: { status: OriginStatus }) {
     return <Loader2 className="size-3.5 animate-spin text-muted-foreground" aria-hidden />;
   }
   if (status === 'added') {
-    return <Check className="size-3.5 text-primary" aria-hidden />;
+    return (
+      <Check
+        className="size-3.5 text-primary motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-50 motion-safe:duration-200"
+        aria-hidden
+      />
+    );
   }
   return null;
 }

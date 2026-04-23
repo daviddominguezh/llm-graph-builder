@@ -1,10 +1,11 @@
-import { ArrowUpRight } from 'lucide-react';
-import { useEffect, useMemo } from 'react';
+import { ArrowUpRight, Check, Copy } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { Button } from '../ui/primitives/button.js';
 import { useT } from './i18nContext.js';
 
 const APP_ORIGIN = import.meta.env.VITE_APP_ORIGIN ?? 'https://app.openflow.build';
+const COPIED_FEEDBACK_MS = 1500;
 
 /* ------------------------------------------------------------------ */
 /*  Rendered when the widget's effective host origin is not in the    */
@@ -32,6 +33,39 @@ export function BlockedState({ embedded }: { embedded: boolean }) {
   return <BlockedStandalone />;
 }
 
+function CopyOriginPill({ origin }: { origin: string }) {
+  const t = useT();
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy(): Promise<void> {
+    await navigator.clipboard.writeText(origin);
+    setCopied(true);
+    setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => void handleCopy()}
+      aria-label={copied ? t('originCopied') : t('copyOrigin')}
+      className="group inline-flex max-w-md items-center gap-2 rounded bg-muted px-2 py-1 font-mono text-[11px] text-foreground break-all transition-colors hover:bg-muted/70"
+    >
+      <span className="text-left">{origin}</span>
+      {copied ? (
+        <Check
+          className="size-3 shrink-0 text-primary motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-50 motion-safe:duration-150"
+          aria-hidden
+        />
+      ) : (
+        <Copy
+          className="size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+          aria-hidden
+        />
+      )}
+    </button>
+  );
+}
+
 function BlockedStandalone() {
   const t = useT();
   const origin = useMemo(() => window.location.origin, []);
@@ -45,9 +79,7 @@ function BlockedStandalone() {
         <p className="text-sm font-semibold">{t('blockedTitle')}</p>
         <p className="text-xs text-muted-foreground">{t('blockedHint')}</p>
       </div>
-      <code className="max-w-md rounded bg-muted px-2 py-1 font-mono text-[11px] text-foreground break-all">
-        {origin}
-      </code>
+      <CopyOriginPill origin={origin} />
       <Button render={<a href={APP_ORIGIN} target="_blank" rel="noopener noreferrer" />}>
         {t('blockedCta')}
         <ArrowUpRight className="size-3.5" />

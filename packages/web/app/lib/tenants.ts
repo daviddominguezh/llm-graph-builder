@@ -1,4 +1,5 @@
 import { fetchFromBackend } from './backendProxy';
+import type { WhatsAppChannelConnection, WhatsAppTemplate } from './whatsappTemplates';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -99,6 +100,35 @@ export async function getTenantBySlug(
       `/tenants/by-slug/${encodeURIComponent(orgId)}/${encodeURIComponent(slug)}`
     );
     if (!isTenantRow(data)) return { result: null, error: 'Invalid response' };
+    return { result: data, error: null };
+  } catch (err) {
+    return { result: null, error: extractError(err) };
+  }
+}
+
+export interface TenantPageBundle {
+  tenant: TenantRow;
+  role: string | null;
+  templates: WhatsAppTemplate[];
+  connections: WhatsAppChannelConnection[];
+}
+
+function isTenantPageBundle(value: unknown): value is TenantPageBundle {
+  if (typeof value !== 'object' || value === null) return false;
+  if (!('tenant' in value) || !('templates' in value) || !('connections' in value)) return false;
+  return isTenantRow(value.tenant) && Array.isArray(value.templates) && Array.isArray(value.connections);
+}
+
+export async function getTenantPageBundle(
+  orgId: string,
+  slug: string
+): Promise<{ result: TenantPageBundle | null; error: string | null }> {
+  try {
+    const data = await fetchFromBackend(
+      'GET',
+      `/tenants/by-slug/${encodeURIComponent(orgId)}/${encodeURIComponent(slug)}/page-bundle`
+    );
+    if (!isTenantPageBundle(data)) return { result: null, error: 'Invalid response' };
     return { result: data, error: null };
   } catch (err) {
     return { result: null, error: extractError(err) };

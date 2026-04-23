@@ -1,25 +1,11 @@
 import { ExecutionKeysSection } from '@/app/components/orgs/execution-keys/ExecutionKeysSection';
 import { getAgentsByOrg } from '@/app/lib/agents';
-import type { ExecutionKeyWithAgents } from '@/app/lib/executionKeys';
-import { getAgentsForKey, getExecutionKeysByOrg } from '@/app/lib/executionKeysQueries';
+import { getExecutionKeysWithAgentsByOrg } from '@/app/lib/executionKeysQueries';
 import { getOrgBySlug } from '@/app/lib/orgs';
 import { redirect } from 'next/navigation';
 
 interface ApiKeysPageProps {
   params: Promise<{ slug: string }>;
-}
-
-async function fetchKeysWithAgents(orgId: string): Promise<ExecutionKeyWithAgents[]> {
-  const { result: keys } = await getExecutionKeysByOrg(orgId);
-
-  const results = await Promise.all(
-    keys.map(async (key) => {
-      const { result: agents } = await getAgentsForKey(key.id);
-      return { ...key, agents };
-    })
-  );
-
-  return results;
 }
 
 export default async function ApiKeysPage({ params }: ApiKeysPageProps): Promise<React.JSX.Element> {
@@ -30,8 +16,8 @@ export default async function ApiKeysPage({ params }: ApiKeysPageProps): Promise
     redirect('/');
   }
 
-  const [keysWithAgents, { agents: allAgents }] = await Promise.all([
-    fetchKeysWithAgents(org.id),
+  const [{ result: keysWithAgents }, { agents: allAgents }] = await Promise.all([
+    getExecutionKeysWithAgentsByOrg(org.id),
     getAgentsByOrg(org.id),
   ]);
 

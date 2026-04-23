@@ -19,6 +19,8 @@
   "blockedTitle": "Este chat aún no está disponible",
   "blockedHint": "Si eres el propietario del agente, agrega la URL de abajo a los orígenes permitidos del tenant.",
   "blockedCta": "Abrir OpenFlow",
+  "copyOrigin": "Copiar URL",
+  "originCopied": "Copiado",
   "recents": "Recientes",
   "starredSection": "Destacados",
   "welcomeTitle": "¿Por dónde empezamos?",

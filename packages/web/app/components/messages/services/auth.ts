@@ -19,11 +19,15 @@ export const initializeToken = async (): Promise<void> => {
 };
 
 /**
- * Retrieve the current auth token.
- * Returns null — authentication is handled via api_key header instead.
+ * Retrieve the current auth token (Supabase access token from the browser session).
  */
 export const getAuthToken = async (): Promise<string | null> => {
-  return null;
+  const { createClient } = await import('@/app/lib/supabase/client');
+  const supabase = createClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  return session?.access_token ?? null;
 };
 
 // ---------------------------------------------------------------------------
