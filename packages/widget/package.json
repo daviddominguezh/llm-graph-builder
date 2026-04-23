@@ -19,12 +19,16 @@
     "@base-ui/react": "^1.1.0",
     "@openflow/shared-validation": "*",
     "@vercel/analytics": "^2.0.1",
+    "@wooorm/starry-night": "^3.9.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "idb": "^8.0.0",
     "lucide-react": "^0.563.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
+    "rehype-starry-night": "^2.2.0",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {

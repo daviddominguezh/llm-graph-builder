@@ -2,7 +2,11 @@ import { GitBranch, PlusCircle } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 import type { CopilotActionBlock, CopilotMessage, CopilotTextBlock } from '../copilotTypes.js';
+import { MarkdownText } from '../MarkdownText.js';
+import { MessageActions } from '../MessageActions.js';
 import { ThinkingBlock } from '../ThinkingBlock.js';
+
+const STREAMING_ID = 'streaming';
 
 const ACTION_ICONS: Record<string, LucideIcon> = {
   'plus-circle': PlusCircle,
@@ -24,7 +28,14 @@ function ActionBlock({ block }: { block: CopilotActionBlock }) {
 }
 
 function TextBlock({ block }: { block: CopilotTextBlock }) {
-  return <p className="text-sm leading-relaxed whitespace-pre-wrap">{block.content}</p>;
+  return <MarkdownText text={block.content} />;
+}
+
+function collectAssistantText(message: CopilotMessage): string {
+  return message.blocks
+    .filter((b): b is CopilotTextBlock => b.type === 'text')
+    .map((b) => b.content)
+    .join('\n\n');
 }
 
 function UserMessage({ message }: { message: CopilotMessage }) {
@@ -40,6 +51,8 @@ function UserMessage({ message }: { message: CopilotMessage }) {
 }
 
 function AssistantMessage({ message }: { message: CopilotMessage }) {
+  const showActions = message.id !== STREAMING_ID && message.blocks.some((b) => b.type === 'text');
+  const actionText = showActions ? collectAssistantText(message) : '';
   return (
     <div className="flex flex-col gap-1 text-foreground max-w-[90%]">
       {message.blocks.map((block, i) => {
@@ -47,6 +60,7 @@ function AssistantMessage({ message }: { message: CopilotMessage }) {
         if (block.type === 'thinking') return <ThinkingBlock key={i} />;
         return <TextBlock key={i} block={block} />;
       })}
+      {showActions && <MessageActions text={actionText} />}
     </div>
   );
 }

@@ -47,22 +47,30 @@ function flushLines(buffer: string): { events: PublicExecutionEvent[]; rest: str
   return { events, rest };
 }
 
-async function collectChunks(reader: ReadableStreamDefaultReader<Uint8Array>): Promise<Uint8Array[]> {
+function* drainBuffer(buffer: string): Generator<PublicExecutionEvent> {
+  if (buffer.length === EMPTY_LEN) return;
+  // Events without a trailing newline are still valid when the stream ends —
+  // append one so flushLines parses the tail line.
+  const { events } = flushLines(`${buffer}${NEWLINE}`);
+  for (const event of events) yield event;
+}
+
+async function* readStream(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  decoder: TextDecoder,
+  buffer: string
+): AsyncGenerator<PublicExecutionEvent> {
   const { done, value } = await reader.read();
-  if (done) return [];
-  const rest = await collectChunks(reader);
-  return [value, ...rest];
+  if (done) {
+    yield* drainBuffer(buffer);
+    return;
+  }
+  const next = buffer + decoder.decode(value, { stream: true });
+  const { events, rest } = flushLines(next);
+  for (const event of events) yield event;
+  yield* readStream(reader, decoder, rest);
 }
 
 export async function* readSseStream(body: ReadableStream<Uint8Array>): AsyncGenerator<PublicExecutionEvent> {
-  const decoder = new TextDecoder();
-  let buffer = '';
-  const chunks = await collectChunks(body.getReader());
-
-  for (const value of chunks) {
-    buffer += decoder.decode(value, { stream: true });
-    const { events, rest } = flushLines(buffer);
-    buffer = rest;
-    for (const event of events) yield event;
-  }
+  yield* readStream(body.getReader(), new TextDecoder(), '');
 }
