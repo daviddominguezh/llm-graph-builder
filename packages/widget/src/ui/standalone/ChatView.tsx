@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 
 import { useT } from '../../app/i18nContext.js';
 import type { CopilotMessage } from '../copilotTypes.js';
+import { useAutoScroll } from '../useAutoScroll.js';
 import { ComposerInput } from './ComposerInput.js';
 import { MessageRow } from './MessageRow.js';
 import { TopBar } from './TopBar.js';
@@ -21,18 +22,11 @@ export interface ChatViewProps {
   onToggleStar?: (id: string) => void;
 }
 
-function useScrollToBottom(dep: unknown): React.RefObject<HTMLDivElement | null> {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    ref.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [dep]);
-  return ref;
-}
-
 function MessagesArea({ messages }: { messages: CopilotMessage[] }) {
-  const sentinel = useScrollToBottom(messages);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const sentinel = useAutoScroll(messages, containerRef);
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div ref={containerRef} className="flex-1 overflow-y-auto">
       <div className="max-w-2xl mx-auto w-full px-4 py-6 flex flex-col gap-6">
         {messages.map((m) => (
           <MessageRow key={m.id} message={m} />

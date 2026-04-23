@@ -1,5 +1,6 @@
 import { createClient } from '@/app/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { cache } from 'react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const HTTP_UNAUTHORIZED = 401;
@@ -8,7 +9,7 @@ interface SessionData {
   access_token: string;
 }
 
-async function getAccessToken(): Promise<SessionData | null> {
+const getAccessToken = cache(async (): Promise<SessionData | null> => {
   const supabase = await createClient();
   const {
     data: { session },
@@ -16,7 +17,7 @@ async function getAccessToken(): Promise<SessionData | null> {
 
   if (session === null) return null;
   return { access_token: session.access_token };
-}
+});
 
 function buildFetchInit(method: string, token: string, body?: unknown): RequestInit {
   const headers: Record<string, string> = {

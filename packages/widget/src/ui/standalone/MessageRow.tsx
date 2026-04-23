@@ -2,6 +2,7 @@ import { GitBranch, PlusCircle } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 import type { CopilotActionBlock, CopilotMessage, CopilotTextBlock } from '../copilotTypes.js';
+import { ThinkingBlock } from '../ThinkingBlock.js';
 
 const ACTION_ICONS: Record<string, LucideIcon> = {
   'plus-circle': PlusCircle,
@@ -31,7 +32,7 @@ function UserMessage({ message }: { message: CopilotMessage }) {
 
   return (
     <div className="flex justify-end">
-      <div className="max-w-[90%] bg-input/70 text-foreground rounded-2xl px-4 py-2 max-w-[70%] text-sm leading-relaxed whitespace-pre-wrap">
+      <div className="max-w-[70%] bg-input/70 text-foreground rounded-2xl px-4 py-2 text-sm leading-relaxed whitespace-pre-wrap">
         {textBlock?.content ?? ''}
       </div>
     </div>
@@ -43,6 +44,7 @@ function AssistantMessage({ message }: { message: CopilotMessage }) {
     <div className="flex flex-col gap-1 text-foreground max-w-[90%]">
       {message.blocks.map((block, i) => {
         if (block.type === 'action') return <ActionBlock key={i} block={block} />;
+        if (block.type === 'thinking') return <ThinkingBlock key={i} />;
         return <TextBlock key={i} block={block} />;
       })}
     </div>

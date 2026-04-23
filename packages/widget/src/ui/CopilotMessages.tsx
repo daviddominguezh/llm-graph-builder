@@ -1,9 +1,11 @@
 import { GitBranch, PlusCircle } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 
 import { useT } from '../app/i18nContext.js';
 import type { CopilotActionBlock, CopilotMessage, CopilotTextBlock } from './copilotTypes.js';
+import { ThinkingBlock } from './ThinkingBlock.js';
+import { useAutoScroll } from './useAutoScroll.js';
 
 const ACTION_ICONS: Record<string, LucideIcon> = {
   'plus-circle': PlusCircle,
@@ -43,6 +45,7 @@ function AssistantMessage({ message }: { message: CopilotMessage }) {
     <div className="flex flex-col gap-2 max-w-[90%]">
       {message.blocks.map((block, i) => {
         if (block.type === 'action') return <ActionBlock key={i} block={block} />;
+        if (block.type === 'thinking') return <ThinkingBlock key={i} />;
         return <TextBlock key={i} block={block} />;
       })}
     </div>
@@ -66,18 +69,15 @@ export interface CopilotMessagesProps {
 
 export function CopilotMessages({ messages }: CopilotMessagesProps) {
   const t = useT();
-  const sentinelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    sentinelRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useAutoScroll(messages, containerRef);
 
   if (messages.length === 0) {
     return <EmptyState greeting={t('greeting')} label={t('emptyState')} />;
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-3 py-2">
+    <div ref={containerRef} className="flex-1 overflow-y-auto px-3 py-2">
       <div className="flex flex-col gap-4">
         {messages.map((message) =>
           message.role === 'user' ? (

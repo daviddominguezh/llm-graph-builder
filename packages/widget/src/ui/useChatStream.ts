@@ -5,6 +5,12 @@ import { execute } from '../api/executeClient.js';
 import type { CopilotMessageBlock } from './copilotTypes.js';
 import type { useSessions } from './useSessions.js';
 
+const THINKING_BLOCK: CopilotMessageBlock = { type: 'thinking' };
+
+function withThinking(blocks: CopilotMessageBlock[], idle: boolean): CopilotMessageBlock[] {
+  return idle ? [...blocks, THINKING_BLOCK] : blocks;
+}
+
 export interface AgentRef {
   tenant: string;
   agentSlug: string;
@@ -75,7 +81,11 @@ async function handleStreamEvent({
     return 'done';
   }
   coalescer.push(ev);
-  setStream(() => ({ blocks: coalescer.snapshot(), error: null, terminal: null }));
+  setStream(() => ({
+    blocks: withThinking(coalescer.snapshot(), coalescer.isIdle()),
+    error: null,
+    terminal: null,
+  }));
   return 'continue';
 }
 
@@ -102,7 +112,7 @@ async function consumeStream({
 
 async function runStream({ agent, sessions, sessionId, text, setStream }: RunStreamArgs): Promise<void> {
   const coalescer = new BlockCoalescer();
-  setStream(() => ({ blocks: [], error: null, terminal: null }));
+  setStream(() => ({ blocks: [THINKING_BLOCK], error: null, terminal: null }));
   const stream = execute({
     tenant: agent.tenant,
     agent: agent.agentSlug,

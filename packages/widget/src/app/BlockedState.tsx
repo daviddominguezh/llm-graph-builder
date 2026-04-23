@@ -1,6 +1,10 @@
-import { useEffect } from 'react';
+import { ArrowUpRight } from 'lucide-react';
+import { useEffect, useMemo } from 'react';
 
+import { Button } from '../ui/primitives/button.js';
 import { useT } from './i18nContext.js';
+
+const APP_ORIGIN = import.meta.env.VITE_APP_ORIGIN ?? 'https://app.openflow.build';
 
 /* ------------------------------------------------------------------ */
 /*  Rendered when the widget's effective host origin is not in the    */
@@ -30,28 +34,24 @@ export function BlockedState({ embedded }: { embedded: boolean }) {
 
 function BlockedStandalone() {
   const t = useT();
-  const origin = window.location.origin;
+  const origin = useMemo(() => window.location.origin, []);
   return (
     <div
       role="alert"
-      className="w-full h-dvh flex flex-col items-center justify-center bg-background gap-3 px-6 text-center"
+      className="w-full h-dvh flex flex-col items-center justify-center bg-background gap-4 px-6 text-center"
     >
       <img src="/favicon.png" alt="" width={32} height={32} className="size-8 opacity-60" />
       <div className="flex flex-col gap-1.5 max-w-md">
         <p className="text-sm font-semibold">{t('blockedTitle')}</p>
         <p className="text-xs text-muted-foreground">{t('blockedHint')}</p>
       </div>
-      <ol className="flex flex-col gap-1 text-left text-xs text-muted-foreground max-w-md">
-        <li>1. {t('blockedStep1')}</li>
-        <li>2. {t('blockedStep2')}</li>
-        <li>
-          3. {t('blockedStep3')}
-          <code className="ml-1 rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-foreground break-all">
-            {origin}
-          </code>
-        </li>
-        <li>4. {t('blockedStep4')}</li>
-      </ol>
+      <code className="max-w-md rounded bg-muted px-2 py-1 font-mono text-[11px] text-foreground break-all">
+        {origin}
+      </code>
+      <Button render={<a href={APP_ORIGIN} target="_blank" rel="noopener noreferrer" />}>
+        {t('blockedCta')}
+        <ArrowUpRight className="size-3.5" />
+      </Button>
     </div>
   );
 }

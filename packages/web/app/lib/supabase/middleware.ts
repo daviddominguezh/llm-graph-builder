@@ -1,7 +1,9 @@
 import { type AuthFlags, fetchAuthStatus } from '@/app/lib/auth/fetchStatus';
 import { signStatusCookie, verifyStatusCookie } from '@/app/lib/auth/statusCookie';
 import { computeTokenBinding } from '@/app/lib/auth/tokenBinding';
+import { verifyAccessToken } from '@/app/lib/auth/verifyJwt';
 import { createServerClient } from '@supabase/ssr';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -85,6 +87,29 @@ function onboardingGateAllows(pathname: string): boolean {
   return pathname === '/onboarding' || pathname.startsWith('/api/auth/');
 }
 
+interface AuthResolution {
+  accessToken: string;
+  userId: string;
+}
+
+async function resolveAuth(supabase: SupabaseClient): Promise<AuthResolution | null> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (session === null) return null;
+
+  const claims = await verifyAccessToken(session.access_token);
+  if (claims !== null) {
+    return { accessToken: session.access_token, userId: claims.sub };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user === null) return null;
+  return { accessToken: session.access_token, userId: user.id };
+}
+
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
   const response = NextResponse.next({ request });
   const supabase = buildSupabaseClient(request, response);
@@ -92,22 +117,14 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
 
   if (startsWithAny(pathname, PUBLIC_ROUTES)) return response;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (user === null) {
+  const auth = await resolveAuth(supabase);
+  if (auth === null) {
     if (startsWithAny(pathname, GUEST_ONLY_ROUTES)) return response;
     return redirectTo(request, '/login', response);
   }
   if (startsWithAny(pathname, GUEST_ONLY_ROUTES)) return redirectTo(request, '/', response);
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (session === null) return redirectTo(request, '/login', response);
-
-  const flags = await loadFlags(session.access_token, user.id, request, response);
+  const flags = await loadFlags(auth.accessToken, auth.userId, request, response);
   if (flags === null) {
     if (wantsJson(request)) return jsonError(HTTP_FORBIDDEN, 'auth_status_unavailable');
     return redirectTo(request, '/error', response);
