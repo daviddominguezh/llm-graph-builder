@@ -65,7 +65,7 @@ export function Sidebar({
   const recents = sessions.filter((s) => s.starred !== true);
 
   return (
-    <aside className="bg-background dark:bg-sidebar text-sidebar-foreground flex flex-col h-dvh min-h-0">
+    <aside className="bg-background dark:bg-sidebar text-sidebar-foreground flex flex-col w-full h-dvh min-h-0">
       <SidebarHeader
         onNewChat={onNewChat}
         newChatLabel={t('newChat')}

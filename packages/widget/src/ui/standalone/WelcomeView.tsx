@@ -35,7 +35,7 @@ export function WelcomeView({ onSend, isStreaming, onOpenSidebar }: WelcomeViewP
   const agent = useAgent();
 
   return (
-    <div className="flex flex-col h-full min-h-0 bg-card dark:bg-background">
+    <div className="flex flex-col flex-1 min-w-0 h-full min-h-0 bg-card dark:bg-background">
       <TopBar onOpenSidebar={onOpenSidebar} />
       <div className="flex-1 flex items-center justify-center px-4">
         <div className="relative w-full max-w-2xl">

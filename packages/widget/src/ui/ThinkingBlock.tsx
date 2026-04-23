@@ -8,7 +8,7 @@ export function ThinkingBlock() {
     <div
       role="status"
       aria-live="polite"
-      className="flex items-center gap-2 py-1 text-xs text-muted-foreground"
+      className="flex items-center gap-2 py-1 text-xs text-muted-foreground ml-3"
     >
       <span className="inline-flex gap-1" aria-hidden="true">
         <Dot delay="0ms" />

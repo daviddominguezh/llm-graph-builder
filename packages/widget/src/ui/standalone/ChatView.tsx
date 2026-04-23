@@ -75,7 +75,7 @@ export function ChatView({
   onToggleStar,
 }: ChatViewProps) {
   return (
-    <div className="flex flex-col h-full min-h-0 bg-card dark:bg-background">
+    <div className="flex flex-col flex-1 min-w-0 h-full min-h-0 bg-card dark:bg-background">
       <TopBar
         title={title}
         sessionId={sessionId}
