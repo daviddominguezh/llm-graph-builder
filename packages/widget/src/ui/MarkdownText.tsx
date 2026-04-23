@@ -1,5 +1,6 @@
 import { MarkdownHooks } from 'react-markdown';
 import rehypeStarryNight from 'rehype-starry-night';
+import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 
 // Mirrors packages/web/.../MessageView/MessageContent.tsx for the non-whatsapp
@@ -11,7 +12,7 @@ export function MarkdownText({ text }: { text: string }) {
   return (
     <div className="px-3 py-1.5 break-words text-sm leading-[1.55] text-foreground">
       <div className="markdown-content">
-        <MarkdownHooks remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeStarryNight]}>
+        <MarkdownHooks remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeStarryNight]}>
           {text}
         </MarkdownHooks>
       </div>
