@@ -24,7 +24,13 @@ export function MessageActions({ text }: { text: string }) {
 
   return (
     <div className="flex items-center gap-0.5 mt-0.5 mb-2 ml-1.5">
-      <Button variant="ghost" size="icon" onClick={handleCopy} className="text-muted-foreground" title={t('copy')}>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={handleCopy}
+        className="text-muted-foreground"
+        title={t('copy')}
+      >
         {copied ? (
           <Check
             size={12}

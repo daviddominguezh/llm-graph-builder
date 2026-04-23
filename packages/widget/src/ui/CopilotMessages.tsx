@@ -3,10 +3,10 @@ import type { LucideIcon } from 'lucide-react';
 import { useRef } from 'react';
 
 import { useT } from '../app/i18nContext.js';
-import type { CopilotActionBlock, CopilotMessage, CopilotTextBlock } from './copilotTypes.js';
 import { MarkdownText } from './MarkdownText.js';
 import { MessageActions } from './MessageActions.js';
 import { ThinkingBlock } from './ThinkingBlock.js';
+import type { CopilotActionBlock, CopilotMessage, CopilotTextBlock } from './copilotTypes.js';
 import { useAutoScroll } from './useAutoScroll.js';
 
 const STREAMING_ID = 'streaming';

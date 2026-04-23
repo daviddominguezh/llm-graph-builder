@@ -139,10 +139,7 @@ export function StandaloneLayout({ sessions, chat }: StandaloneLayoutProps) {
       {sidebarOpen ? (
         fullSidebar
       ) : (
-        <SidebarRail
-          onExpand={() => setSidebarOpen(true)}
-          onNewChat={() => handleNewChat(sessions)}
-        />
+        <SidebarRail onExpand={() => setSidebarOpen(true)} onNewChat={() => handleNewChat(sessions)} />
       )}
     </div>
   );

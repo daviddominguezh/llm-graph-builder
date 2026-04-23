@@ -1,10 +1,10 @@
 import { GitBranch, PlusCircle } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
-import type { CopilotActionBlock, CopilotMessage, CopilotTextBlock } from '../copilotTypes.js';
 import { MarkdownText } from '../MarkdownText.js';
 import { MessageActions } from '../MessageActions.js';
 import { ThinkingBlock } from '../ThinkingBlock.js';
+import type { CopilotActionBlock, CopilotMessage, CopilotTextBlock } from '../copilotTypes.js';
 
 const STREAMING_ID = 'streaming';
 

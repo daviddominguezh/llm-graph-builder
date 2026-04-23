@@ -1,5 +1,6 @@
 import { MarkdownHooks } from 'react-markdown';
 import rehypeStarryNight from 'rehype-starry-night';
+import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 
 import '@/app/styles/starry-night.css';
@@ -37,7 +38,7 @@ export function MessageContent({ message, channel, isNote }: MessageContentProps
   return (
     <div className={`px-3 py-1.5 break-words text-xs leading-[1.5] ${baseClass}`}>
       <div className="markdown-content">
-        <MarkdownHooks remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeStarryNight]}>
+        <MarkdownHooks remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeStarryNight]}>
           {text}
         </MarkdownHooks>
       </div>

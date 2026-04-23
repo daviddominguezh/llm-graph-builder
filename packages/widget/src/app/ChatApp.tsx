@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { fetchLatestVersion } from '../api/latestVersionClient.js';
 import { type Locale, pickLocale } from '../i18n/index.js';
 import { parseAgentHost } from '../routing/parseHostname.js';
+import { NamePrompt } from '../ui/standalone/NamePrompt.js';
 import { BlockedState } from './BlockedState.js';
 import { AgentNotFoundState, LoadingState } from './LoadingState.js';
 import { AgentProvider } from './agentContext.js';
@@ -12,6 +13,8 @@ import { EmbeddedMode } from './modes/EmbeddedMode.js';
 import { StandaloneMode } from './modes/StandaloneMode.js';
 import { awaitInit, getHostOrigin, initMessageBridge } from './postMessageClient.js';
 import { isEmbedded } from './useEmbedded.js';
+import { UserProvider } from './userContext.js';
+import { type StoredUser, createAndStoreUser, loadStoredUser } from './userStorage.js';
 
 interface Resolved {
   tenant: string;
@@ -116,6 +119,18 @@ interface ChatAppBodyProps {
   error: string | null;
 }
 
+function StandaloneGate() {
+  const [user, setUser] = useState<StoredUser | null>(() => loadStoredUser());
+  if (user === null) {
+    return <NamePrompt onSubmit={(name) => setUser(createAndStoreUser(name))} />;
+  }
+  return (
+    <UserProvider value={user}>
+      <StandaloneMode />
+    </UserProvider>
+  );
+}
+
 function ChatAppBody({ embedded, resolved, viewportW, error }: ChatAppBodyProps) {
   if (error === 'not_found') return <AgentNotFoundState />;
   if (resolved === null) return <LoadingState embedded={embedded} />;
@@ -130,7 +145,7 @@ function ChatAppBody({ embedded, resolved, viewportW, error }: ChatAppBodyProps)
   };
   return (
     <AgentProvider value={ctx}>
-      {embedded ? <EmbeddedMode hostViewportW={viewportW} /> : <StandaloneMode />}
+      {embedded ? <EmbeddedMode hostViewportW={viewportW} /> : <StandaloneGate />}
     </AgentProvider>
   );
 }

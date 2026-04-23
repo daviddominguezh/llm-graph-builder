@@ -6,6 +6,7 @@ import { Bot, Brackets, Brain, Cog, Lock, User, Wrench } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { MarkdownHooks } from 'react-markdown';
 import rehypeStarryNight from 'rehype-starry-night';
+import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 
 import { parseMessages } from './messageParser';
@@ -52,7 +53,7 @@ function TextContent({ text }: { text: string }) {
 function MarkdownContent({ text }: { text: string }) {
   return (
     <div className="markdown-content text-xs leading-relaxed">
-      <MarkdownHooks remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeStarryNight]}>
+      <MarkdownHooks remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeStarryNight]}>
         {text}
       </MarkdownHooks>
     </div>

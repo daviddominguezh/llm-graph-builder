@@ -196,7 +196,7 @@ const ChatViewPanelComponent: React.FC<ChatViewPanelProps> = ({
     isAIEnabled || (currentAssignee !== null && !isAssignedToCurrentUser) || isDisabledBy24HourRule;
   return (
     <Card
-      className="h-full flex flex-col bg-transparent border border-b-0 border-r-0 pb-0"
+      className="h-full flex flex-col bg-background border border-b-0 border-r-0 pb-0"
       style={{
         boxShadow: 'none',
         borderRadius: '0px',

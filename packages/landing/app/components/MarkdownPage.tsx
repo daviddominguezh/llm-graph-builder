@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Markdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 
 interface MarkdownPageProps {
@@ -26,7 +27,7 @@ export function MarkdownPage({ content }: MarkdownPageProps) {
       <div className="mx-auto max-w-3xl">
         <BackLink />
         <article className="prose mt-8">
-          <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
+          <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{content}</Markdown>
         </article>
       </div>
     </div>

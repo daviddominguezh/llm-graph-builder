@@ -60,6 +60,7 @@
     "react-virtuoso": "^4.18.3",
     "recharts": "^3.8.0",
     "rehype-starry-night": "^2.2.0",
+    "remark-breaks": "^4.0.0",
     "remark-gfm": "^4.0.1",
     "shadcn": "^3.7.0",
     "socket.io-client": "^4.8.3",

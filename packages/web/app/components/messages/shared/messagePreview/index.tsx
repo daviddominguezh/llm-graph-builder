@@ -185,7 +185,7 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flex: '1 1 0', minWidth: 0 }}>
               {name ? (
                 <>
-                  <span className={`text-xs text-foreground font-semibold text-start whitespace-nowrap`}>
+                  <span className={`text-xs text-foreground font-semibold text-start whitespace-nowrap truncate`}>
                     {toFirstUppercase(name)}
                   </span>
                   {!isTest && parsedChat.source !== 'instagram' && (
@@ -198,7 +198,7 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
                   )}
                 </>
               ) : (
-                <span className={`text-xs text-foreground font-semibold text-start whitespace-nowrap`}>
+                <span className={`text-xs text-foreground font-semibold text-start whitespace-nowrap truncate`}>
                   {toFirstUppercase(formattedPhone)}
                 </span>
               )}

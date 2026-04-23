@@ -11,13 +11,7 @@ export interface WelcomeViewProps {
 
 function TenantAvatar({ avatarUrl, name }: { avatarUrl: string | null; name: string }) {
   if (avatarUrl !== null && avatarUrl !== '') {
-    return (
-      <img
-        src={avatarUrl}
-        alt=""
-        className="size-10 rounded-full object-cover ring-1 ring-border"
-      />
-    );
+    return <img src={avatarUrl} alt="" className="size-10 rounded-full object-cover ring-1 ring-border" />;
   }
   const initial = name.trim().charAt(0).toUpperCase() || '•';
   return (

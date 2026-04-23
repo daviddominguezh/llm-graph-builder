@@ -21,10 +21,7 @@ export function pickLocale(queryParam: string | null, navigatorLang: string | un
 }
 
 function interpolate(template: string, params: Record<string, string>): string {
-  return Object.entries(params).reduce(
-    (acc, [name, value]) => acc.replaceAll(`{${name}}`, value),
-    template
-  );
+  return Object.entries(params).reduce((acc, [name, value]) => acc.replaceAll(`{${name}}`, value), template);
 }
 
 export type TFn = (key: TKey, params?: Record<string, string>) => string;
