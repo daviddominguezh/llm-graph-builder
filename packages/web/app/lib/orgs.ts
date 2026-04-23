@@ -1,6 +1,8 @@
 import { cache } from 'react';
 
+import type { ApiKeyRow } from './apiKeys';
 import { fetchFromBackend } from './backendProxy';
+import type { OrgEnvVariableRow } from './orgEnvVariables';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -116,5 +118,30 @@ export async function getOrgRole(orgId: string): Promise<string | null> {
     return null;
   } catch {
     return null;
+  }
+}
+
+export interface OrgSettingsBundle {
+  org: OrgRow;
+  role: string | null;
+  apiKeys: ApiKeyRow[];
+  envVariables: OrgEnvVariableRow[];
+}
+
+function isOrgSettingsBundle(value: unknown): value is OrgSettingsBundle {
+  if (typeof value !== 'object' || value === null) return false;
+  if (!('org' in value) || !('apiKeys' in value) || !('envVariables' in value)) return false;
+  return isOrgRow(value.org) && Array.isArray(value.apiKeys) && Array.isArray(value.envVariables);
+}
+
+export async function getOrgSettingsBundle(
+  slug: string
+): Promise<{ result: OrgSettingsBundle | null; error: string | null }> {
+  try {
+    const data = await fetchFromBackend('GET', `/orgs/by-slug/${encodeURIComponent(slug)}/settings-bundle`);
+    if (!isOrgSettingsBundle(data)) return { result: null, error: 'Invalid response' };
+    return { result: data, error: null };
+  } catch (err) {
+    return { result: null, error: extractError(err) };
   }
 }

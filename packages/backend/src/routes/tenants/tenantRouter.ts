@@ -5,6 +5,7 @@ import { requireAuth } from '../../middleware/auth.js';
 import { handleCreateTenant } from './createTenant.js';
 import { handleDeleteTenant } from './deleteTenant.js';
 import { handleGetTenantBySlug } from './getTenantBySlug.js';
+import { handleGetTenantPageBundle } from './getTenantPageBundle.js';
 import { handleGetTenants } from './getTenants.js';
 import { handleRemoveTenantAvatar, handleUploadTenantAvatar } from './tenantAvatar.js';
 import { handleUpdateTenant } from './updateTenant.js';
@@ -17,6 +18,7 @@ export const tenantRouter = express.Router();
 tenantRouter.use(requireAuth);
 
 tenantRouter.get('/by-slug/:orgId/:slug', handleGetTenantBySlug);
+tenantRouter.get('/by-slug/:orgId/:slug/page-bundle', handleGetTenantPageBundle);
 tenantRouter.get('/:orgId', handleGetTenants);
 tenantRouter.post('/', handleCreateTenant);
 tenantRouter.patch('/:tenantId', handleUpdateTenant);

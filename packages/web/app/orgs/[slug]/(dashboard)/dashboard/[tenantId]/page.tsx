@@ -1,12 +1,11 @@
+import { ExecutionsView } from '@/app/components/dashboard/ExecutionsView';
+import { getTenantExecutionsBundle } from '@/app/lib/dashboard';
+import { getOrgBySlug } from '@/app/lib/orgs';
+import { Separator } from '@/components/ui/separator';
 import { ChevronRight } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { getTranslations } from 'next-intl/server';
-
-import { ExecutionsView } from '@/app/components/dashboard/ExecutionsView';
-import { Separator } from '@/components/ui/separator';
-import { getExecutionsByTenant, getTenantSummary } from '@/app/lib/dashboard';
-import { getOrgBySlug } from '@/app/lib/orgs';
 
 interface TenantExecutionsPageProps {
   params: Promise<{ slug: string; tenantId: string }>;
@@ -14,34 +13,28 @@ interface TenantExecutionsPageProps {
 
 const DEFAULT_PAGE_SIZE = 50;
 
-async function resolveTenant(orgId: string, tenantSlug: string) {
-  const { rows } = await getTenantSummary(orgId, {
-    page: 0,
-    pageSize: 1,
-    filters: { tenant_name: tenantSlug },
-  });
-  return rows[0] ?? null;
-}
-
-export default async function TenantExecutionsPage({ params }: TenantExecutionsPageProps): Promise<React.JSX.Element> {
+export default async function TenantExecutionsPage({
+  params,
+}: TenantExecutionsPageProps): Promise<React.JSX.Element> {
   const { slug, tenantId: rawTenantSlug } = await params;
   const tenantSlug = decodeURIComponent(rawTenantSlug);
-  const { result: org } = await getOrgBySlug(slug);
 
+  const { result: org } = await getOrgBySlug(slug);
   if (!org) redirect('/');
 
-  const tenant = await resolveTenant(org.id, tenantSlug);
-  if (!tenant) redirect(`/orgs/${slug}/dashboard`);
+  const [{ result: bundle }, t] = await Promise.all([
+    getTenantExecutionsBundle(org.id, tenantSlug, {
+      page: 0,
+      pageSize: DEFAULT_PAGE_SIZE,
+      sortKey: 'started_at',
+      sortDirection: 'desc',
+    }),
+    getTranslations('dashboard'),
+  ]);
+  if (!bundle) redirect(`/orgs/${slug}/dashboard`);
 
-  const t = await getTranslations('dashboard');
+  const { tenant, executions } = bundle;
   const tenantId = tenant.tenant_id;
-
-  const { rows, totalCount } = await getExecutionsByTenant(org.id, tenantId, {
-    page: 0,
-    pageSize: DEFAULT_PAGE_SIZE,
-    sortKey: 'started_at',
-    sortDirection: 'desc',
-  });
 
   return (
     <div className="flex h-[calc(100%-var(--spacing)*2)] flex-col bg-background overflow-hidden border border mr-2 rounded-xl">
@@ -63,8 +56,8 @@ export default async function TenantExecutionsPage({ params }: TenantExecutionsP
           tenantId={tenantId}
           tenantSlug={tenantSlug}
           slug={slug}
-          initialRows={rows}
-          initialTotal={totalCount}
+          initialRows={executions.rows}
+          initialTotal={executions.totalCount}
         />
       </div>
     </div>

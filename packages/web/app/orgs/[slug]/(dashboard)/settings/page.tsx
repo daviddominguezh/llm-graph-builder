@@ -3,9 +3,7 @@ import { AppearanceSection } from '@/app/components/orgs/AppearanceSection';
 import { DangerZone } from '@/app/components/orgs/DangerZone';
 import { EnvVariablesSection } from '@/app/components/orgs/EnvVariablesSection';
 import { OrgSettingsForm } from '@/app/components/orgs/OrgSettingsForm';
-import { getApiKeysByOrg } from '@/app/lib/apiKeys';
-import { getEnvVariablesByOrg } from '@/app/lib/orgEnvVariables';
-import { getOrgBySlug, getOrgRole } from '@/app/lib/orgs';
+import { getOrgSettingsBundle } from '@/app/lib/orgs';
 import { Separator } from '@/components/ui/separator';
 import { redirect } from 'next/navigation';
 
@@ -15,24 +13,16 @@ interface OrgSettingsPageProps {
 
 export default async function OrgSettingsPage({ params }: OrgSettingsPageProps): Promise<React.JSX.Element> {
   const { slug } = await params;
-  const { result: org } = await getOrgBySlug(slug);
+  const { result: bundle } = await getOrgSettingsBundle(slug);
 
-  if (!org) {
+  if (bundle === null) {
     redirect('/');
   }
-
-  const [role, apiKeysResult, envVarsResult] = await Promise.all([
-    getOrgRole(org.id),
-    getApiKeysByOrg(org.id),
-    getEnvVariablesByOrg(org.id),
-  ]);
-
-  if (role !== 'owner') {
+  if (bundle.role !== 'owner') {
     redirect(`/orgs/${slug}`);
   }
 
-  const apiKeys = apiKeysResult.result;
-  const envVariables = envVarsResult.error === null ? envVarsResult.result : [];
+  const { org, apiKeys, envVariables } = bundle;
 
   return (
     <div className="h-[calc(100%-var(--spacing)*2)] overflow-y-auto p-6 border rounded-xl mr-2 overflow-hidden bg-background">

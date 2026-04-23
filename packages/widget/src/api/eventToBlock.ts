@@ -40,6 +40,13 @@ export class BlockCoalescer {
       : [...this.blocks, { type: 'text', content: this.openText.content }];
   }
 
+  // True when no text is currently streaming — i.e. the agent is between
+  // a node_visited and the next text/toolCall event. Used to render the
+  // "Thinking…" indicator.
+  isIdle(): boolean {
+    return this.openText === null;
+  }
+
   finalize(): CopilotMessageBlock[] {
     this.flushText();
     return [...this.blocks];

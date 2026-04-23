@@ -4,7 +4,7 @@ import {
   OverlayScrollbarsComponent,
   type OverlayScrollbarsComponentRef,
 } from 'overlayscrollbars-react';
-import type { ReactNode, Ref } from 'react';
+import type { CSSProperties, ReactNode, Ref } from 'react';
 
 export type ScrollableRef = OverlayScrollbarsComponentRef;
 
@@ -12,6 +12,7 @@ interface ScrollableProps {
   ref?: Ref<ScrollableRef>;
   children?: ReactNode;
   className?: string;
+  style?: CSSProperties;
 }
 
 /**
@@ -23,11 +24,12 @@ interface ScrollableProps {
  * hosts (see root CLAUDE.md → "Scroll containers"). This component integrates
  * OverlayScrollbars the React-safe way.
  */
-export function Scrollable({ ref, children, className }: ScrollableProps) {
+export function Scrollable({ ref, children, className, style }: ScrollableProps) {
   return (
     <OverlayScrollbarsComponent
       ref={ref}
       className={className}
+      style={style}
       options={{ scrollbars: { theme: 'os-theme-closer', autoHide: 'never' } }}
       defer
     >

@@ -13,21 +13,18 @@ interface EditorPageProps {
 export default async function EditorPage({ params }: EditorPageProps): Promise<React.JSX.Element> {
   const { slug, agentSlug } = await params;
 
-  const { result: org } = await getOrgBySlug(slug);
+  const [{ result: org }, { agent }] = await Promise.all([getOrgBySlug(slug), getAgentBySlug(agentSlug)]);
   if (!org) redirect('/');
-
-  const { agent } = await getAgentBySlug(agentSlug);
   if (!agent || agent.org_id !== org.id) redirect(`/orgs/${slug}`);
 
-  const { result: orgApiKeys, error: apiKeyError } = await getApiKeysByOrg(org.id);
-  if (apiKeyError !== null) {
-    console.error('[EditorPage] failed to load API keys:', apiKeyError);
-  }
-
-  const { result: tenantRows, error: tenantsError } = await getTenantsByOrg(org.id);
-  if (tenantsError !== null) {
-    console.error('[EditorPage] failed to load tenants:', tenantsError);
-  }
+  const [apiKeysResult, tenantsResult] = await Promise.all([
+    getApiKeysByOrg(org.id),
+    getTenantsByOrg(org.id),
+  ]);
+  const { result: orgApiKeys, error: apiKeyError } = apiKeysResult;
+  const { result: tenantRows, error: tenantsError } = tenantsResult;
+  if (apiKeyError !== null) console.error('[EditorPage] failed to load API keys:', apiKeyError);
+  if (tenantsError !== null) console.error('[EditorPage] failed to load tenants:', tenantsError);
   const tenants = [...tenantRows]
     .sort((a, b) => a.created_at.localeCompare(b.created_at))
     .map(({ id, slug: tenantSlug, name }) => ({ id, slug: tenantSlug, name }));

@@ -33,7 +33,9 @@ function useRowState(): RowState {
 
 function rowClasses(active: boolean): string {
   const base = 'group relative w-full px-3 py-1.5 text-sm rounded-md flex items-center gap-1.5 min-w-0';
-  return active ? `${base} bg-input` : `${base} hover:bg-input`;
+  const activeBg = 'bg-input';
+  const hoverBg = 'hover:bg-card dark:hover:bg-input';
+  return active ? `${base} ${activeBg}` : `${base} ${hoverBg}`;
 }
 
 interface RowTitleProps {
@@ -81,8 +83,7 @@ interface RowEndSlotProps {
 
 function dotsButtonClasses(active: boolean, menuOpen: boolean): string {
   const base = 'transition-opacity';
-  const visible = active || menuOpen;
-  if (visible) return `${base} opacity-100`;
+  if (active || menuOpen) return `${base} opacity-100`;
   return `${base} opacity-0 group-hover:opacity-100 focus-visible:opacity-100`;
 }
 

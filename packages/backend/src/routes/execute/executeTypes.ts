@@ -18,6 +18,7 @@ export const AgentExecutionInputSchema = z.object({
   context: z.record(z.string(), z.unknown()).optional(),
   channel: z.enum(['whatsapp', 'web', 'instagram', 'api']).optional().default('web'),
   stream: z.boolean().optional().default(false),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type AgentExecutionInput = z.infer<typeof AgentExecutionInputSchema>;

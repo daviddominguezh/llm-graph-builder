@@ -10,7 +10,13 @@ export interface CopilotActionBlock {
   description: string;
 }
 
-export type CopilotMessageBlock = CopilotTextBlock | CopilotActionBlock;
+// UI-only: never persisted or produced by BlockCoalescer.
+// Injected at render time to signal "agent is working".
+export interface CopilotThinkingBlock {
+  type: 'thinking';
+}
+
+export type CopilotMessageBlock = CopilotTextBlock | CopilotActionBlock | CopilotThinkingBlock;
 
 export interface CopilotMessage {
   id: string;

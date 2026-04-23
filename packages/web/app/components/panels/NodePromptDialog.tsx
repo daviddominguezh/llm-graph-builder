@@ -5,6 +5,7 @@ import { Loader2, SquareTerminal } from "lucide-react";
 import { useEdges } from "@xyflow/react";
 import { MarkdownHooks } from "react-markdown";
 import rehypeStarryNight from "rehype-starry-night";
+import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 import "@/app/styles/starry-night.css";
 import { Button } from "@/components/ui/button";
@@ -77,7 +78,7 @@ function PromptContent({ state }: { state: PromptState }) {
       </TabsList>
       <TabsContent value="markdown" className="min-h-0 overflow-y-auto rounded-md border p-3 text-xs">
         <div className="markdown-content">
-          <MarkdownHooks remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeStarryNight]}>
+          <MarkdownHooks remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeStarryNight]}>
             {state.text}
           </MarkdownHooks>
         </div>

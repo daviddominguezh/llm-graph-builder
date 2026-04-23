@@ -4,6 +4,7 @@ import { useT } from '../../app/i18nContext.js';
 import type { StoredSession } from '../../storage/indexeddb.js';
 import { Button } from '../primitives/button.js';
 import { SidebarSessionGroup } from './SidebarRecents.js';
+import { ThemeToggle } from './ThemeToggle.js';
 
 export interface SidebarProps {
   sessions: StoredSession[];
@@ -16,20 +17,24 @@ export interface SidebarProps {
   onCollapse?: () => void;
 }
 
-function SidebarLogo() {
-  return (
-    <div className="flex items-center gap-2 ml-2">
-      <img src="/favicon.png" alt="" className="h-5 w-auto" />
-      <img src="/logo-black.png" alt="OpenFlow" className="h-3.5 mt-0.5 w-auto dark:hidden" />
-      <img src="/logo-white.png" alt="OpenFlow" className="h-3.5 mt-0.5 w-auto hidden dark:block" />
-    </div>
-  );
+interface HeaderProps {
+  onNewChat: () => void;
+  newChatLabel: string;
+  onCollapse?: () => void;
+  collapseLabel: string;
 }
 
-function SidebarHeader({ onCollapse, collapseLabel }: { onCollapse?: () => void; collapseLabel: string }) {
+function SidebarHeader({ onNewChat, newChatLabel, onCollapse, collapseLabel }: HeaderProps) {
   return (
-    <div className="h-12 pl-3 pr-3 flex items-center justify-between shrink-0">
-      <SidebarLogo />
+    <div className="h-12 px-2 flex items-center gap-1 shrink-0">
+      <button
+        type="button"
+        onClick={onNewChat}
+        className="flex-1 h-8 px-3 flex items-center gap-2 text-sm rounded-md hover:bg-card dark:hover:bg-input cursor-pointer transition-colors"
+      >
+        <Plus className="size-4" />
+        <span>{newChatLabel}</span>
+      </button>
       <Button variant="ghost" size="icon" aria-label={collapseLabel} onClick={onCollapse}>
         <PanelLeft />
       </Button>
@@ -37,16 +42,11 @@ function SidebarHeader({ onCollapse, collapseLabel }: { onCollapse?: () => void;
   );
 }
 
-function SidebarNewChat({ onNewChat, label }: { onNewChat: () => void; label: string }) {
+function SidebarFooter() {
   return (
-    <button
-      type="button"
-      onClick={onNewChat}
-      className="mx-2 px-3 py-1.5 flex items-center gap-2 text-sm rounded-md hover:bg-input dark:hover:bg-input/40 cursor-pointer"
-    >
-      <Plus className="size-4" />
-      <span>{label}</span>
-    </button>
+    <div className="shrink-0 p-2 flex items-center justify-end">
+      <ThemeToggle />
+    </div>
   );
 }
 
@@ -61,17 +61,21 @@ export function Sidebar({
   onCollapse,
 }: SidebarProps) {
   const t = useT();
+  const starred = sessions.filter((s) => s.starred === true);
+  const recents = sessions.filter((s) => s.starred !== true);
 
   return (
-    <aside className="bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border h-dvh min-h-0">
-      <SidebarHeader onCollapse={onCollapse} collapseLabel={t('collapseSidebar')} />
-      <div className="flex flex-col gap-0.5 pb-2">
-        <SidebarNewChat onNewChat={onNewChat} label={t('newChat')} />
-      </div>
+    <aside className="bg-background dark:bg-sidebar text-sidebar-foreground flex flex-col w-full h-dvh min-h-0">
+      <SidebarHeader
+        onNewChat={onNewChat}
+        newChatLabel={t('newChat')}
+        onCollapse={onCollapse}
+        collapseLabel={t('collapseSidebar')}
+      />
       <div className="flex-1 overflow-y-auto px-2 pb-3 flex flex-col gap-2">
         <SidebarSessionGroup
           label={t('starredSection')}
-          sessions={sessions.filter((s) => s.starred === true)}
+          sessions={starred}
           activeId={activeSessionId}
           onSelect={onSelectSession}
           onRename={onRenameSession}
@@ -80,7 +84,7 @@ export function Sidebar({
         />
         <SidebarSessionGroup
           label={t('recents')}
-          sessions={sessions.filter((s) => s.starred !== true)}
+          sessions={recents}
           activeId={activeSessionId}
           onSelect={onSelectSession}
           onRename={onRenameSession}
@@ -88,6 +92,7 @@ export function Sidebar({
           onToggleStar={onToggleStarSession}
         />
       </div>
+      <SidebarFooter />
     </aside>
   );
 }

@@ -13,6 +13,7 @@ import { handleGetEnvVarValue } from './getEnvVarValue.js';
 import { handleGetEnvVars } from './getEnvVars.js';
 import { handleGetExecutionKeyAgents } from './getExecutionKeyAgents.js';
 import { handleGetExecutionKeys } from './getExecutionKeys.js';
+import { handleGetExecutionKeysWithAgents } from './getExecutionKeysWithAgents.js';
 import { handleUpdateEnvVar } from './updateEnvVar.js';
 import { handleUpdateExecutionKey } from './updateExecutionKey.js';
 
@@ -31,6 +32,7 @@ secretsRouter.patch('/env-vars/:varId', handleUpdateEnvVar);
 secretsRouter.delete('/env-vars/:varId', handleDeleteEnvVar);
 
 secretsRouter.get('/execution-keys/:orgId', handleGetExecutionKeys);
+secretsRouter.get('/execution-keys/:orgId/with-agents', handleGetExecutionKeysWithAgents);
 secretsRouter.get('/execution-keys/:keyId/agents', handleGetExecutionKeyAgents);
 secretsRouter.post('/execution-keys', handleCreateExecutionKey);
 secretsRouter.patch('/execution-keys/:keyId', handleUpdateExecutionKey);

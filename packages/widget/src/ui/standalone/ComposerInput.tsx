@@ -67,7 +67,10 @@ export function ComposerInput({ onSend, isStreaming = false, variant = 'chat' }:
 
   const handleKeyDown = useSubmitOnEnter(isStreaming, submit);
   const heightClass = variant === 'welcome' ? 'h-[122px]' : '';
-  const shadowClass = variant === 'welcome' ? 'shadow-xl dark:shadow-none' : '';
+  const shadowClass =
+    variant === 'welcome'
+      ? 'shadow-[0_24px_60px_-20px_rgba(0,0,0,0.12),_0_8px_24px_-8px_rgba(0,0,0,0.06)] dark:shadow-none'
+      : '';
 
   return (
     <div

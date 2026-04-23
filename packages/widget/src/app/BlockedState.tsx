@@ -1,6 +1,11 @@
-import { useEffect } from 'react';
+import { ArrowUpRight, Check, Copy } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 
+import { Button } from '../ui/primitives/button.js';
 import { useT } from './i18nContext.js';
+
+const APP_ORIGIN = import.meta.env.VITE_APP_ORIGIN ?? 'https://app.openflow.build';
+const COPIED_FEEDBACK_MS = 1500;
 
 /* ------------------------------------------------------------------ */
 /*  Rendered when the widget's effective host origin is not in the    */
@@ -28,30 +33,57 @@ export function BlockedState({ embedded }: { embedded: boolean }) {
   return <BlockedStandalone />;
 }
 
+function CopyOriginPill({ origin }: { origin: string }) {
+  const t = useT();
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy(): Promise<void> {
+    await navigator.clipboard.writeText(origin);
+    setCopied(true);
+    setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => void handleCopy()}
+      aria-label={copied ? t('originCopied') : t('copyOrigin')}
+      className="group inline-flex max-w-md items-center gap-2 rounded bg-muted px-2 py-1 font-mono text-[11px] text-foreground break-all transition-colors hover:bg-muted/70"
+    >
+      <span className="text-left">{origin}</span>
+      {copied ? (
+        <Check
+          className="size-3 shrink-0 text-primary motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-50 motion-safe:duration-150"
+          aria-hidden
+        />
+      ) : (
+        <Copy
+          className="size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+          aria-hidden
+        />
+      )}
+    </button>
+  );
+}
+
 function BlockedStandalone() {
   const t = useT();
-  const origin = window.location.origin;
+  const origin = useMemo(() => window.location.origin, []);
   return (
     <div
       role="alert"
-      className="w-full h-dvh flex flex-col items-center justify-center bg-background gap-3 px-6 text-center"
+      className="w-full h-dvh flex flex-col items-center justify-center bg-background gap-4 px-6 text-center"
     >
       <img src="/favicon.png" alt="" width={32} height={32} className="size-8 opacity-60" />
       <div className="flex flex-col gap-1.5 max-w-md">
         <p className="text-sm font-semibold">{t('blockedTitle')}</p>
         <p className="text-xs text-muted-foreground">{t('blockedHint')}</p>
       </div>
-      <ol className="flex flex-col gap-1 text-left text-xs text-muted-foreground max-w-md">
-        <li>1. {t('blockedStep1')}</li>
-        <li>2. {t('blockedStep2')}</li>
-        <li>
-          3. {t('blockedStep3')}
-          <code className="ml-1 rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-foreground break-all">
-            {origin}
-          </code>
-        </li>
-        <li>4. {t('blockedStep4')}</li>
-      </ol>
+      <CopyOriginPill origin={origin} />
+      <Button render={<a href={APP_ORIGIN} target="_blank" rel="noopener noreferrer" />}>
+        {t('blockedCta')}
+        <ArrowUpRight className="size-3.5" />
+      </Button>
     </div>
   );
 }

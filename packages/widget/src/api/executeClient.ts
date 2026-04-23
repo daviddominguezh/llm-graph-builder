@@ -11,6 +11,7 @@ export interface ExecuteRequest {
   userId: string;
   sessionId: string;
   text: string;
+  metadata?: Record<string, unknown>;
 }
 
 function buildUrl(req: ExecuteRequest): string {
@@ -19,15 +20,17 @@ function buildUrl(req: ExecuteRequest): string {
 }
 
 function buildBody(req: ExecuteRequest): string {
-  const { tenantId, userId, sessionId, text } = req;
-  return JSON.stringify({
+  const { tenantId, userId, sessionId, text, metadata } = req;
+  const payload: Record<string, unknown> = {
     tenantId,
     userId,
     sessionId,
     message: { text },
     channel: 'web',
     stream: true,
-  });
+  };
+  if (metadata !== undefined) payload.metadata = metadata;
+  return JSON.stringify(payload);
 }
 
 export async function* execute(req: ExecuteRequest): AsyncGenerator<PublicExecutionEvent> {

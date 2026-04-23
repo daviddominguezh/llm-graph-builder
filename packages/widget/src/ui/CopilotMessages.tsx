@@ -1,9 +1,15 @@
 import { GitBranch, PlusCircle } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 
 import { useT } from '../app/i18nContext.js';
+import { MarkdownText } from './MarkdownText.js';
+import { MessageActions } from './MessageActions.js';
+import { ThinkingBlock } from './ThinkingBlock.js';
 import type { CopilotActionBlock, CopilotMessage, CopilotTextBlock } from './copilotTypes.js';
+import { useAutoScroll } from './useAutoScroll.js';
+
+const STREAMING_ID = 'streaming';
 
 const ACTION_ICONS: Record<string, LucideIcon> = {
   'plus-circle': PlusCircle,
@@ -14,10 +20,10 @@ function ActionBlock({ block }: { block: CopilotActionBlock }) {
   const Icon = ACTION_ICONS[block.icon] ?? PlusCircle;
 
   return (
-    <div className="rounded-lg border p-3">
+    <div className="rounded-lg bg-input dark:bg-background p-3 text-muted-foreground">
       <div className="flex items-center gap-2">
-        <Icon className="size-4 text-primary" />
-        <span className="text-xs font-bold">{block.title}</span>
+        <Icon className="size-4" />
+        <span className="text-xs font-medium">{block.title}</span>
       </div>
       <p className="mt-1 text-xs text-muted-foreground">{block.description}</p>
     </div>
@@ -25,7 +31,14 @@ function ActionBlock({ block }: { block: CopilotActionBlock }) {
 }
 
 function TextBlock({ block }: { block: CopilotTextBlock }) {
-  return <p className="text-xs leading-relaxed">{block.content}</p>;
+  return <MarkdownText text={block.content} />;
+}
+
+function collectAssistantText(message: CopilotMessage): string {
+  return message.blocks
+    .filter((b): b is CopilotTextBlock => b.type === 'text')
+    .map((b) => b.content)
+    .join('\n\n');
 }
 
 function UserMessage({ message }: { message: CopilotMessage }) {
@@ -39,12 +52,16 @@ function UserMessage({ message }: { message: CopilotMessage }) {
 }
 
 function AssistantMessage({ message }: { message: CopilotMessage }) {
+  const showActions = message.id !== STREAMING_ID && message.blocks.some((b) => b.type === 'text');
+  const actionText = showActions ? collectAssistantText(message) : '';
   return (
     <div className="flex flex-col gap-2 max-w-[90%]">
       {message.blocks.map((block, i) => {
         if (block.type === 'action') return <ActionBlock key={i} block={block} />;
+        if (block.type === 'thinking') return <ThinkingBlock key={i} />;
         return <TextBlock key={i} block={block} />;
       })}
+      {showActions && <MessageActions text={actionText} />}
     </div>
   );
 }
@@ -66,18 +83,15 @@ export interface CopilotMessagesProps {
 
 export function CopilotMessages({ messages }: CopilotMessagesProps) {
   const t = useT();
-  const sentinelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    sentinelRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useAutoScroll(messages, containerRef);
 
   if (messages.length === 0) {
     return <EmptyState greeting={t('greeting')} label={t('emptyState')} />;
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-3 py-2">
+    <div ref={containerRef} className="flex-1 overflow-y-auto px-3 py-2">
       <div className="flex flex-col gap-4">
         {messages.map((message) =>
           message.role === 'user' ? (

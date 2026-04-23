@@ -3,7 +3,6 @@ import { PanelLeft } from 'lucide-react';
 import { useT } from '../../app/i18nContext.js';
 import { Button } from '../primitives/button.js';
 import { ChatHeader } from './ChatHeader.js';
-import { ThemeToggle } from './ThemeToggle.js';
 
 export interface TopBarProps {
   title?: string;
@@ -18,7 +17,7 @@ export interface TopBarProps {
 
 function ReopenSidebarButton({ onClick, label }: { onClick: () => void; label: string }) {
   return (
-    <Button variant="ghost" size="icon" aria-label={label} onClick={onClick}>
+    <Button variant="ghost" size="icon" aria-label={label} onClick={onClick} className="md:hidden">
       <PanelLeft />
     </Button>
   );
@@ -52,17 +51,12 @@ export function TopBar(props: TopBarProps) {
   const { onOpenSidebar, ...rest } = props;
 
   return (
-    <div className={`h-12 shrink-0 bg-sidebar`}>
-      <div className="h-full max-w-4xl mx-auto w-full px-0 flex items-center justify-between">
-        <div className="flex items-center gap-2 min-w-0">
-          {onOpenSidebar !== undefined && (
-            <ReopenSidebarButton onClick={onOpenSidebar} label={t('collapseSidebar')} />
-          )}
-          <HeaderSlot {...rest} />
-        </div>
-        <div className="flex items-center gap-1">
-          <ThemeToggle />
-        </div>
+    <div className="h-12 shrink-0 bg-card dark:bg-background">
+      <div className="h-full max-w-2xl px-4 mx-auto w-full flex items-center gap-2">
+        {onOpenSidebar !== undefined && (
+          <ReopenSidebarButton onClick={onOpenSidebar} label={t('collapseSidebar')} />
+        )}
+        <HeaderSlot {...rest} />
       </div>
     </div>
   );

@@ -40,7 +40,7 @@ export async function handleListTemplates(req: Request, res: AuthenticatedRespon
   res.status(HTTP_OK).json({ templates: result.data });
 }
 
-interface ConnectionListRow {
+export interface ConnectionListRow {
   id: string;
   agent_id: string;
   enabled: boolean;
@@ -81,7 +81,7 @@ function toConnection(value: unknown): ConnectionListRow | null {
   };
 }
 
-function extractConnections(data: unknown): ConnectionListRow[] {
+export function extractConnections(data: unknown): ConnectionListRow[] {
   if (!Array.isArray(data)) return [];
   const connections: ConnectionListRow[] = [];
   for (const raw of data) {

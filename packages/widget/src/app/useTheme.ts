@@ -28,10 +28,14 @@ function initialTheme(): Theme {
   return readStored() ?? readSystem();
 }
 
-function applyTheme(theme: Theme): void {
+export function applyTheme(theme: Theme): void {
   const { documentElement } = document;
   if (theme === 'dark') documentElement.classList.add('dark');
   else documentElement.classList.remove('dark');
+}
+
+export function resolveInitialTheme(): Theme {
+  return initialTheme();
 }
 
 function persist(theme: Theme): void {

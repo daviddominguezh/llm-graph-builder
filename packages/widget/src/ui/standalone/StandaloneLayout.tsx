@@ -6,6 +6,7 @@ import type { useChatStream } from '../useChatStream.js';
 import type { useSessions } from '../useSessions.js';
 import { ChatView } from './ChatView.js';
 import { Sidebar } from './Sidebar.js';
+import { SidebarRail } from './SidebarRail.js';
 import { WelcomeView } from './WelcomeView.js';
 
 export interface StandaloneLayoutProps {
@@ -97,34 +98,69 @@ function RightPane({ sessions, chat, title, starred, onOpenSidebar }: RightPaneP
 
 export function StandaloneLayout({ sessions, chat }: StandaloneLayoutProps) {
   const t = useT();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Open by default on desktop (>= md); closed on mobile so the chat is visible first.
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return window.matchMedia('(min-width: 768px)').matches;
+  });
   const title = useActiveTitle(sessions, t('newChat'));
   const starred = useActiveStarred(sessions);
 
-  const gridClasses = sidebarOpen
-    ? 'grid grid-cols-[288px_1fr] h-dvh w-full'
-    : 'grid grid-cols-1 h-dvh w-full';
+  function handleSelectAndClose(id: string): void {
+    handleSelect(sessions, id);
+    if (window.matchMedia('(max-width: 767px)').matches) setSidebarOpen(false);
+  }
+
+  const fullSidebar = (
+    <Sidebar
+      sessions={sessions.sessions}
+      activeSessionId={sessions.currentSessionId}
+      onNewChat={() => handleNewChat(sessions)}
+      onSelectSession={handleSelectAndClose}
+      onRenameSession={(id, newTitle) => {
+        void sessions.renameSession(id, newTitle);
+      }}
+      onDeleteSession={(id) => {
+        void sessions.deleteSession(id);
+      }}
+      onToggleStarSession={(id) => {
+        void sessions.toggleStarSession(id);
+      }}
+      onCollapse={() => setSidebarOpen(false)}
+    />
+  );
+
+  // Desktop: always visible. Width animates between expanded (288px) and
+  // collapsed rail (48px). Content swaps based on state.
+  const desktopSidebar = (
+    <div
+      className={`hidden md:flex shrink-0 h-full overflow-hidden transition-[width] duration-200 ease-out ${sidebarOpen ? 'w-72' : 'w-12'}`}
+    >
+      {sidebarOpen ? (
+        fullSidebar
+      ) : (
+        <SidebarRail onExpand={() => setSidebarOpen(true)} onNewChat={() => handleNewChat(sessions)} />
+      )}
+    </div>
+  );
+
+  // Mobile: overlay when open, hidden otherwise.
+  const mobileSidebar = sidebarOpen ? (
+    <div className="fixed inset-0 z-40 md:hidden flex">
+      <div className="w-72 shrink-0">{fullSidebar}</div>
+      <button
+        type="button"
+        aria-label={t('collapseSidebar')}
+        onClick={() => setSidebarOpen(false)}
+        className="flex-1 bg-black/30 backdrop-blur-sm cursor-default"
+      />
+    </div>
+  ) : null;
 
   return (
-    <div className={gridClasses}>
-      {sidebarOpen && (
-        <Sidebar
-          sessions={sessions.sessions}
-          activeSessionId={sessions.currentSessionId}
-          onNewChat={() => handleNewChat(sessions)}
-          onSelectSession={(id) => handleSelect(sessions, id)}
-          onRenameSession={(id, newTitle) => {
-            void sessions.renameSession(id, newTitle);
-          }}
-          onDeleteSession={(id) => {
-            void sessions.deleteSession(id);
-          }}
-          onToggleStarSession={(id) => {
-            void sessions.toggleStarSession(id);
-          }}
-          onCollapse={() => setSidebarOpen(false)}
-        />
-      )}
+    <div className="flex h-dvh w-full">
+      {desktopSidebar}
+      {mobileSidebar}
       <RightPane
         sessions={sessions}
         chat={chat}

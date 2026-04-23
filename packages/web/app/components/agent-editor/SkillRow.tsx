@@ -19,6 +19,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 import { MarkdownHooks } from 'react-markdown';
 import rehypeStarryNight from 'rehype-starry-night';
+import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 
 import type { SkillEntry } from './AddSkillDialog';
@@ -55,7 +56,7 @@ function SkillPreviewDialog({
         </DialogHeader>
         <div className="flex-1 overflow-y-auto">
           <div className="markdown-content text-xs leading-relaxed">
-            <MarkdownHooks remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeStarryNight]}>
+            <MarkdownHooks remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeStarryNight]}>
               {body}
             </MarkdownHooks>
           </div>

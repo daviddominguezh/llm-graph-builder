@@ -1,8 +1,3 @@
-import { redirect } from 'next/navigation';
-
-import type { Graph } from '@daviddh/graph-types';
-import { GraphSchema } from '@daviddh/graph-types';
-
 import { AgentDebugView } from '@/app/components/dashboard/AgentDebugView';
 import { DebugView } from '@/app/components/dashboard/DebugView';
 import type { AgentMetadata } from '@/app/lib/agents';
@@ -16,14 +11,16 @@ import {
   getSessionDetail,
 } from '@/app/lib/dashboard';
 import { getOrgBySlug } from '@/app/lib/orgs';
+import type { Graph } from '@daviddh/graph-types';
+import { GraphSchema } from '@daviddh/graph-types';
+import { redirect } from 'next/navigation';
 
 interface SessionDebugPageProps {
   params: Promise<{ slug: string; tenantId: string; sessionId: string }>;
   searchParams: Promise<{ execution?: string }>;
 }
 
-async function resolveAgentById(orgId: string, agentId: string) {
-  const { agents } = await getAgentsByOrg(orgId);
+function findAgent(agents: AgentMetadata[], agentId: string): AgentMetadata | null {
   return agents.find((a) => a.id === agentId) ?? null;
 }
 
@@ -44,7 +41,10 @@ function resolveAppType(agent: AgentMetadata): string {
   return typeof rec['app_type'] === 'string' ? (rec['app_type'] as string) : 'workflow';
 }
 
-function pickExecution(executions: ExecutionSummaryRow[], targetId: string | undefined): ExecutionSummaryRow | undefined {
+function pickExecution(
+  executions: ExecutionSummaryRow[],
+  targetId: string | undefined
+): ExecutionSummaryRow | undefined {
   if (targetId !== undefined) {
     const match = executions.find((e) => e.id === targetId);
     if (match !== undefined) return match;
@@ -69,22 +69,27 @@ async function loadSessionData(
 ): Promise<SessionData | null> {
   const tenantSlug = decodeURIComponent(rawTenantSlug);
   const { result: org } = await getOrgBySlug(slug);
-
   if (!org) return null;
 
-  const [sessionResult, executionsResult] = await Promise.all([
+  const [sessionResult, executionsResult, agentsResult] = await Promise.all([
     getSessionDetail(sessionId),
     getExecutionsForSession(sessionId),
+    getAgentsByOrg(org.id),
   ]);
 
   if (!sessionResult.session) return null;
-
-  const agent = await resolveAgentById(org.id, sessionResult.session.agent_id);
+  const agent = findAgent(agentsResult.agents, sessionResult.session.agent_id);
   if (!agent) return null;
 
   const selectedExecution = pickExecution(executionsResult.rows, executionId);
-
-  return { slug, tenantSlug, session: sessionResult.session, agent, executions: executionsResult.rows, selectedExecution };
+  return {
+    slug,
+    tenantSlug,
+    session: sessionResult.session,
+    agent,
+    executions: executionsResult.rows,
+    selectedExecution,
+  };
 }
 
 async function renderAgentDebug(data: SessionData) {
@@ -130,7 +135,10 @@ async function renderWorkflowDebug(data: SessionData) {
   );
 }
 
-export default async function SessionDebugPage({ params, searchParams }: SessionDebugPageProps): Promise<React.JSX.Element> {
+export default async function SessionDebugPage({
+  params,
+  searchParams,
+}: SessionDebugPageProps): Promise<React.JSX.Element> {
   const { slug, tenantId: rawTenantSlug, sessionId } = await params;
   const { execution: executionId } = await searchParams;
   const tenantSlug = decodeURIComponent(rawTenantSlug);

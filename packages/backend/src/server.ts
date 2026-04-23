@@ -35,6 +35,7 @@ import { handleGetInvitations } from './routes/orgs/getInvitations.js';
 import { handleGetMembers } from './routes/orgs/getMembers.js';
 import { handleGetOrgBySlug } from './routes/orgs/getOrgBySlug.js';
 import { handleGetOrgRole } from './routes/orgs/getOrgRole.js';
+import { handleGetOrgSettingsBundle } from './routes/orgs/getOrgSettingsBundle.js';
 import { handleGetOrgs } from './routes/orgs/getOrgs.js';
 import { handleRemoveAvatar, handleUploadAvatar } from './routes/orgs/orgAvatar.js';
 import { handleRemoveMember } from './routes/orgs/removeMember.js';
@@ -77,6 +78,7 @@ function buildOrgRouter(): express.Router {
   router.post('/', handleCreateOrg);
   router.post('/unique-slug', handleUniqueSlug);
   router.get('/by-slug/:slug', handleGetOrgBySlug);
+  router.get('/by-slug/:slug/settings-bundle', handleGetOrgSettingsBundle);
   router.patch('/:orgId', handleUpdateOrg);
   router.delete('/:orgId', handleDeleteOrg);
   router.get('/:orgId/role', handleGetOrgRole);

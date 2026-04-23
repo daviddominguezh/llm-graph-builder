@@ -5,6 +5,12 @@ import { execute } from '../api/executeClient.js';
 import type { CopilotMessageBlock } from './copilotTypes.js';
 import type { useSessions } from './useSessions.js';
 
+const THINKING_BLOCK: CopilotMessageBlock = { type: 'thinking' };
+
+function withThinking(blocks: CopilotMessageBlock[], idle: boolean): CopilotMessageBlock[] {
+  return idle ? [...blocks, THINKING_BLOCK] : blocks;
+}
+
 export interface AgentRef {
   tenant: string;
   agentSlug: string;
@@ -20,6 +26,8 @@ export interface StreamingState {
 export interface UseChatStreamArgs {
   agent: AgentRef;
   sessions: ReturnType<typeof useSessions>;
+  userId?: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface UseChatStreamResult {
@@ -48,6 +56,8 @@ interface RunStreamArgs {
   sessionId: string;
   text: string;
   setStream: SetStream;
+  userId?: string;
+  metadata?: Record<string, unknown>;
 }
 
 interface HandleEventArgs {
@@ -75,7 +85,11 @@ async function handleStreamEvent({
     return 'done';
   }
   coalescer.push(ev);
-  setStream(() => ({ blocks: coalescer.snapshot(), error: null, terminal: null }));
+  setStream(() => ({
+    blocks: withThinking(coalescer.snapshot(), coalescer.isIdle()),
+    error: null,
+    terminal: null,
+  }));
   return 'continue';
 }
 
@@ -100,17 +114,19 @@ async function consumeStream({
   }
 }
 
-async function runStream({ agent, sessions, sessionId, text, setStream }: RunStreamArgs): Promise<void> {
+async function runStream(args: RunStreamArgs): Promise<void> {
+  const { agent, sessions, sessionId, text, setStream, userId, metadata } = args;
   const coalescer = new BlockCoalescer();
-  setStream(() => ({ blocks: [], error: null, terminal: null }));
+  setStream(() => ({ blocks: [THINKING_BLOCK], error: null, terminal: null }));
   const stream = execute({
     tenant: agent.tenant,
     agent: agent.agentSlug,
     version: agent.version,
     tenantId: agent.tenant,
-    userId: sessionId,
+    userId: userId ?? sessionId,
     sessionId,
     text,
+    metadata,
   });
   try {
     await consumeStream({ stream, coalescer, sessions, sessionId, setStream });
@@ -119,16 +135,16 @@ async function runStream({ agent, sessions, sessionId, text, setStream }: RunStr
   }
 }
 
-export function useChatStream({ agent, sessions }: UseChatStreamArgs): UseChatStreamResult {
+export function useChatStream({ agent, sessions, userId, metadata }: UseChatStreamArgs): UseChatStreamResult {
   const [stream, setStream] = useState<StreamingState>(INITIAL_STREAMING);
 
   const send = useCallback(
     async (text: string) => {
       const sessionId = sessions.currentSessionId ?? (await sessions.createSession());
       await sessions.appendUserMessage(text, sessionId);
-      await runStream({ agent, sessions, sessionId, text, setStream });
+      await runStream({ agent, sessions, sessionId, text, setStream, userId, metadata });
     },
-    [agent, sessions]
+    [agent, sessions, userId, metadata]
   );
 
   return { stream, send };

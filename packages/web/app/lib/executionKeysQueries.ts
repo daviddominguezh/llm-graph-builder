@@ -1,6 +1,6 @@
 import { fetchFromBackend } from './backendProxy';
-import type { ExecutionKeyAgent, ExecutionKeyRow } from './executionKeys';
-import { mapExecutionKeyAgents, mapExecutionKeyRows } from './executionKeys';
+import type { ExecutionKeyAgent, ExecutionKeyRow, ExecutionKeyWithAgents } from './executionKeys';
+import { isExecutionKeyRow, mapExecutionKeyAgents, mapExecutionKeyRows } from './executionKeys';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -50,6 +50,37 @@ export async function getAgentsForKey(
     const data = await fetchFromBackend('GET', `/secrets/execution-keys/${encodeURIComponent(keyId)}/agents`);
     if (!Array.isArray(data)) return { result: [], error: 'Invalid response' };
     return { result: mapExecutionKeyAgents(data), error: null };
+  } catch (err) {
+    return { result: [], error: extractError(err) };
+  }
+}
+
+function extractAgents(row: object): ExecutionKeyAgent[] {
+  if (!('agents' in row)) return [];
+  const { agents } = row;
+  return Array.isArray(agents) ? mapExecutionKeyAgents(agents) : [];
+}
+
+function toKeyWithAgents(row: unknown): ExecutionKeyWithAgents | null {
+  if (!isExecutionKeyRow(row)) return null;
+  return { ...row, agents: extractAgents(row) };
+}
+
+export async function getExecutionKeysWithAgentsByOrg(
+  orgId: string
+): Promise<{ result: ExecutionKeyWithAgents[]; error: string | null }> {
+  try {
+    const data = await fetchFromBackend(
+      'GET',
+      `/secrets/execution-keys/${encodeURIComponent(orgId)}/with-agents`
+    );
+    if (!Array.isArray(data)) return { result: [], error: 'Invalid response' };
+    const mapped: ExecutionKeyWithAgents[] = [];
+    for (const row of data) {
+      const key = toKeyWithAgents(row);
+      if (key !== null) mapped.push(key);
+    }
+    return { result: mapped, error: null };
   } catch (err) {
     return { result: [], error: extractError(err) };
   }
