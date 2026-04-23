@@ -15,7 +15,7 @@ export interface SidebarRailProps {
 export function SidebarRail({ onExpand, onNewChat }: SidebarRailProps) {
   const t = useT();
   return (
-    <div className="bg-background dark:bg-sidebar flex flex-col h-full py-2 items-center gap-1 bg-red-100 w-full">
+    <div className="bg-background dark:bg-sidebar flex flex-col h-full py-2 items-center gap-1 w-full">
       <Button variant="ghost" size="icon" aria-label={t('expandSidebar')} onClick={onExpand}>
         <PanelLeft />
       </Button>

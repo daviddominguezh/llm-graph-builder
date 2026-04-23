@@ -17,7 +17,7 @@ function ActionBlock({ block }: { block: CopilotActionBlock }) {
   const Icon = ACTION_ICONS[block.icon] ?? PlusCircle;
 
   return (
-    <div className="rounded-lg bg-input dark:bg-background p-3 my-1.5 mx-2 text-muted-foreground">
+    <div className="rounded-lg bg-input dark:bg-input/15 p-3 my-1.5 mx-2 text-muted-foreground">
       <div className="flex items-center gap-2">
         <Icon className="size-4" />
         <span className="text-xs font-medium">{block.title}</span>
