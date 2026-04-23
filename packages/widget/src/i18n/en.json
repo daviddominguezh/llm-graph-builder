@@ -32,7 +32,7 @@
   "starredSection": "Starred",
   "welcomeTitle": "Where should we start?",
   "welcomeGreeting": "Hi, I'm {tenant}'s AI",
-  "welcomeSubtitle": "Ask me anything",
+  "welcomeSubtitle": "Ask me anything, {name}.",
   "howCanIHelp": "How can I help today?",
   "reply": "Reply...",
   "toggleTheme": "Toggle theme",

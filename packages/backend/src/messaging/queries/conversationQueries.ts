@@ -24,6 +24,7 @@ interface FindOrCreateParams {
   threadId: string;
   channel: string;
   name?: string;
+  metadata?: Record<string, unknown>;
 }
 
 export async function findOrCreateConversation(
@@ -40,20 +41,21 @@ async function upsertConversation(
   supabase: SupabaseClient,
   params: FindOrCreateParams
 ): Promise<ConversationRow | null> {
+  const row: Record<string, unknown> = {
+    org_id: params.orgId,
+    agent_id: params.agentId,
+    tenant_id: params.tenantId,
+    user_channel_id: params.userChannelId,
+    thread_id: params.threadId,
+    channel: params.channel,
+    name: params.name ?? null,
+  };
+  const { metadata } = params;
+  if (metadata !== undefined) row.metadata = metadata;
+
   const result: QueryResult<ConversationRow> = await supabase
     .from('conversations')
-    .upsert(
-      {
-        org_id: params.orgId,
-        agent_id: params.agentId,
-        tenant_id: params.tenantId,
-        user_channel_id: params.userChannelId,
-        thread_id: params.threadId,
-        channel: params.channel,
-        name: params.name ?? null,
-      },
-      { onConflict: 'agent_id,tenant_id,user_channel_id,thread_id', ignoreDuplicates: true }
-    )
+    .upsert(row, { onConflict: 'agent_id,tenant_id,user_channel_id,thread_id', ignoreDuplicates: true })
     .select('*')
     .single();
 

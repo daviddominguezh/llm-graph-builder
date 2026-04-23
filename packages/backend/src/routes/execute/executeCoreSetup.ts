@@ -38,6 +38,7 @@ async function resolveConversationId(
     sessionId: params.input.sessionId,
     channel: params.input.channel,
     messageContent: extractTextFromInput(params.input),
+    metadata: params.input.metadata,
   });
 }
 

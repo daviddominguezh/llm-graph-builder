@@ -20,12 +20,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+
+/*
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+ */
+
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import {
   ChevronLeft,
@@ -33,8 +37,8 @@ import {
   CircleEllipsis,
   CircleUserRound,
   Construction,
-  EllipsisVertical,
-  Trash2,
+  // EllipsisVertical,
+  // Trash2,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
@@ -135,9 +139,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     }
   }, [chat?.statuses]);
 
+  /*
   const handleDeleteClick = () => {
     setIsDeleteModalOpen(true);
   };
+  */
 
   const handleConfirmDelete = () => {
     setIsDeleteModalOpen(false);
@@ -374,7 +380,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       </div>
 
       {/* Actions menu */}
-      <DropdownMenu>
+      {/*
+            <DropdownMenu>
         <DropdownMenuTrigger
           render={
             <Button variant="ghost" className="shrink-0 p-0 h-7 aspect-square">
@@ -391,6 +398,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+      */}
+
 
       {/* Delete confirmation modal */}
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>

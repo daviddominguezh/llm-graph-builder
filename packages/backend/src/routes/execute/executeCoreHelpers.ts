@@ -184,6 +184,7 @@ export interface MessagingPreParams {
   sessionId: string;
   channel: string;
   messageContent: string;
+  metadata?: Record<string, unknown>;
 }
 
 async function doMessagingPreExecution(
@@ -197,6 +198,7 @@ async function doMessagingPreExecution(
     userChannelId: params.userChannelId,
     threadId: params.sessionId,
     channel: params.channel,
+    metadata: params.metadata,
   });
 
   const now = Date.now();

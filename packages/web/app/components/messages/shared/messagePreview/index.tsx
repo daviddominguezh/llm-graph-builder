@@ -55,11 +55,21 @@ const MessagePreview: React.FC<MessagePreviewProps> = ({
 
   const formattedPhone = parsedChat.displayName;
 
+  // Prefer the user-provided name carried on the conversation's metadata
+  // (captured by the web widget on first visit) when no explicit `name` has
+  // been set by an operator. Falls back to the parsed phone otherwise.
+  const metadataUserName = (() => {
+    const raw = lastMessage?.metadata?.['userName'];
+    return typeof raw === 'string' && raw.trim() !== '' ? raw.trim() : null;
+  })();
+
   // Get name if available, otherwise null (phone number will be shown instead)
   const name = (() => {
     if (isTest) return 'Closer';
-    if (!lastMessage?.name) return null; // No name, will show phone number only
-    const baseName = lastMessage.name
+    const explicit = lastMessage?.name;
+    if (!explicit && metadataUserName === null) return null;
+    const source = explicit !== undefined && explicit !== '' ? explicit : (metadataUserName ?? '');
+    const baseName = source
       .split(' ')
       .map((partName) => partName.substring(0, 1).toLocaleUpperCase() + partName.substring(1))
       .join(' ');

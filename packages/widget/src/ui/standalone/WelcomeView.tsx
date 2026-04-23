@@ -1,5 +1,6 @@
 import { useAgent } from '../../app/agentContext.js';
 import { useT } from '../../app/i18nContext.js';
+import { useUser } from '../../app/userContext.js';
 import { ComposerInput } from './ComposerInput.js';
 import { TopBar } from './TopBar.js';
 
@@ -27,6 +28,8 @@ function TenantAvatar({ avatarUrl, name }: { avatarUrl: string | null; name: str
 export function WelcomeView({ onSend, isStreaming, onOpenSidebar }: WelcomeViewProps) {
   const t = useT();
   const agent = useAgent();
+  const user = useUser();
+  const firstName = user?.displayName.trim().split(/\s+/u)[0] ?? '';
 
   return (
     <div className="flex flex-col flex-1 min-w-0 h-full min-h-0 bg-card dark:bg-background">
@@ -39,7 +42,9 @@ export function WelcomeView({ onSend, isStreaming, onOpenSidebar }: WelcomeViewP
               <h1 className="text-2xl font-semibold tracking-tight">
                 {t('welcomeGreeting', { tenant: agent.tenantName })}
               </h1>
-              <p className="text-sm text-muted-foreground">{t('welcomeSubtitle')}</p>
+              <p className="text-sm text-muted-foreground">
+                {t('welcomeSubtitle', { name: firstName })}
+              </p>
             </div>
           </div>
           <ComposerInput variant="welcome" onSend={onSend} isStreaming={isStreaming} />

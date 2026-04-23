@@ -32,7 +32,7 @@
   "starredSection": "Destacados",
   "welcomeTitle": "¿Por dónde empezamos?",
   "welcomeGreeting": "Hola, soy la IA de {tenant}",
-  "welcomeSubtitle": "Pregúntame lo que quieras",
+  "welcomeSubtitle": "Pregúntame lo que quieras, {name}.",
   "howCanIHelp": "¿Cómo puedo ayudarte hoy?",
   "reply": "Responder...",
   "toggleTheme": "Cambiar tema",
