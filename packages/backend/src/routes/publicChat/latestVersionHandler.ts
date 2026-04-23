@@ -26,12 +26,15 @@ interface LatestVersionParams {
 interface TenantRow {
   id: string;
   org_id: string;
+  name: string;
+  avatar_url: string | null;
   web_channel_enabled: boolean;
   web_channel_allowed_origins: string[];
 }
 
 interface AgentVersionRow {
   id: string;
+  name: string;
   current_version: number;
 }
 
@@ -40,6 +43,8 @@ function isTenantRow(value: unknown): value is TenantRow {
   return (
     'id' in value &&
     'org_id' in value &&
+    'name' in value &&
+    'avatar_url' in value &&
     'web_channel_enabled' in value &&
     'web_channel_allowed_origins' in value
   );
@@ -47,13 +52,13 @@ function isTenantRow(value: unknown): value is TenantRow {
 
 function isAgentVersionRow(value: unknown): value is AgentVersionRow {
   if (typeof value !== 'object' || value === null) return false;
-  return 'id' in value && 'current_version' in value;
+  return 'id' in value && 'name' in value && 'current_version' in value;
 }
 
 async function fetchTenant(supabase: SupabaseClient, slug: string): Promise<TenantRow | null> {
   const { data, error } = await supabase
     .from('tenants')
-    .select('id, org_id, web_channel_enabled, web_channel_allowed_origins')
+    .select('id, org_id, name, avatar_url, web_channel_enabled, web_channel_allowed_origins')
     .eq('slug', slug)
     .maybeSingle();
   if (error !== null || data === null) return null;
@@ -67,7 +72,7 @@ async function fetchAgent(
 ): Promise<AgentVersionRow | null> {
   const { data, error } = await supabase
     .from('agents')
-    .select('id, current_version')
+    .select('id, name, current_version')
     .eq('org_id', orgId)
     .eq('slug', slug)
     .maybeSingle();
@@ -105,6 +110,8 @@ export async function handleLatestVersion(req: Request, res: Response): Promise<
       version: agent.current_version,
       allowedOrigins: tenant.web_channel_allowed_origins,
       webChannelEnabled: tenant.web_channel_enabled,
+      tenant: { name: tenant.name, avatarUrl: tenant.avatar_url },
+      agent: { name: agent.name },
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal error';

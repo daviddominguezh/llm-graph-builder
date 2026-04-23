@@ -20,6 +20,22 @@ export function pickLocale(queryParam: string | null, navigatorLang: string | un
   return 'en';
 }
 
-export function createT(locale: Locale): (key: TKey) => string {
-  return (key: TKey): string => BUNDLES[locale][key];
+function interpolate(template: string, params: Record<string, string>): string {
+  return Object.entries(params).reduce(
+    (acc, [name, value]) => acc.replaceAll(`{${name}}`, value),
+    template
+  );
+}
+
+export type TFn = (key: TKey, params?: Record<string, string>) => string;
+
+function lookup(locale: Locale, key: TKey): string {
+  return BUNDLES[locale][key];
+}
+
+export function createT(locale: Locale): TFn {
+  return (key, params) => {
+    const template = lookup(locale, key);
+    return params === undefined ? template : interpolate(template, params);
+  };
 }

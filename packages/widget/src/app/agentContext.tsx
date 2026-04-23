@@ -4,6 +4,9 @@ export interface AgentCtx {
   tenant: string;
   agentSlug: string;
   version: number;
+  tenantName: string;
+  tenantAvatarUrl: string | null;
+  agentName: string;
 }
 
 const AgentContext = createContext<AgentCtx | null>(null);

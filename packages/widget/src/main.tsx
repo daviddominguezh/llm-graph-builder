@@ -3,7 +3,12 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { ChatApp } from './app/ChatApp.js';
+import { applyTheme, resolveInitialTheme } from './app/useTheme.js';
 import './styles/tailwind.css';
+
+// Resolve + apply theme synchronously before React paints so users who
+// prefer dark (or have a stored preference) don't see a light flash first.
+applyTheme(resolveInitialTheme());
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0']);
 

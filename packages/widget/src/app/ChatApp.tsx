@@ -19,6 +19,9 @@ interface Resolved {
   version: number;
   allowedOrigins: string[];
   webChannelEnabled: boolean;
+  tenantName: string;
+  tenantAvatarUrl: string | null;
+  agentName: string;
 }
 
 interface AgentResolverState {
@@ -54,6 +57,9 @@ async function resolveAgent(): Promise<Resolved> {
     version,
     allowedOrigins: versionInfo.allowedOrigins,
     webChannelEnabled: versionInfo.webChannelEnabled,
+    tenantName: versionInfo.tenant.name,
+    tenantAvatarUrl: versionInfo.tenant.avatarUrl,
+    agentName: versionInfo.agent.name,
   };
 }
 
@@ -80,6 +86,17 @@ function useAgentResolver(embedded: boolean): AgentResolverState {
   return { resolved, viewportW, error };
 }
 
+function useDocumentIdentity(resolved: Resolved | null): void {
+  useEffect(() => {
+    if (resolved === null) return;
+    document.title = resolved.tenantName;
+    const { tenantAvatarUrl } = resolved;
+    if (tenantAvatarUrl === null || tenantAvatarUrl === '') return;
+    const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (link !== null) link.href = tenantAvatarUrl;
+  }, [resolved]);
+}
+
 function effectiveHostOrigin(embedded: boolean): string | null {
   if (embedded) return getHostOrigin();
   return window.location.origin;
@@ -103,7 +120,14 @@ function ChatAppBody({ embedded, resolved, viewportW, error }: ChatAppBodyProps)
   if (error === 'not_found') return <AgentNotFoundState />;
   if (resolved === null) return <LoadingState embedded={embedded} />;
   if (!isAllowedToRender(embedded, resolved)) return <BlockedState embedded={embedded} />;
-  const ctx = { tenant: resolved.tenant, agentSlug: resolved.agentSlug, version: resolved.version };
+  const ctx = {
+    tenant: resolved.tenant,
+    agentSlug: resolved.agentSlug,
+    version: resolved.version,
+    tenantName: resolved.tenantName,
+    tenantAvatarUrl: resolved.tenantAvatarUrl,
+    agentName: resolved.agentName,
+  };
   return (
     <AgentProvider value={ctx}>
       {embedded ? <EmbeddedMode hostViewportW={viewportW} /> : <StandaloneMode />}
@@ -114,6 +138,7 @@ function ChatAppBody({ embedded, resolved, viewportW, error }: ChatAppBodyProps)
 export function ChatApp() {
   const embedded = isEmbedded();
   const { resolved, viewportW, error } = useAgentResolver(embedded);
+  useDocumentIdentity(resolved);
 
   const queryLang = new URLSearchParams(window.location.search).get('lang');
   const locale: Locale = pickLocale(queryLang, navigator.language);

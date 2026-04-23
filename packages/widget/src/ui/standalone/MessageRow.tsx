@@ -17,12 +17,12 @@ function ActionBlock({ block }: { block: CopilotActionBlock }) {
   const Icon = ACTION_ICONS[block.icon] ?? PlusCircle;
 
   return (
-    <div className="rounded-lg border border-border p-3 my-1.5">
+    <div className="rounded-lg bg-input dark:bg-background p-3 my-1.5 mx-2 text-muted-foreground">
       <div className="flex items-center gap-2">
-        <Icon className="size-4 text-primary" />
+        <Icon className="size-4" />
         <span className="text-xs font-medium">{block.title}</span>
       </div>
-      {block.description !== '' && <p className="mt-1 text-xs text-muted-foreground">{block.description}</p>}
+      {block.description !== '' && <p className="mt-1 text-xs">{block.description}</p>}
     </div>
   );
 }
@@ -43,7 +43,7 @@ function UserMessage({ message }: { message: CopilotMessage }) {
 
   return (
     <div className="flex justify-end">
-      <div className="max-w-[70%] bg-input/70 text-foreground rounded-2xl px-4 py-2 text-sm leading-relaxed whitespace-pre-wrap">
+      <div className="max-w-[70%] bg-background dark:bg-input/40 text-foreground rounded-lg px-4 py-2 text-sm leading-relaxed whitespace-pre-wrap">
         {textBlock?.content ?? ''}
       </div>
     </div>

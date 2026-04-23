@@ -1,4 +1,4 @@
-import { Copy, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { Check, Copy, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { useState } from 'react';
 
 import { useT } from '../app/i18nContext.js';
@@ -23,9 +23,16 @@ export function MessageActions({ text }: { text: string }) {
   }
 
   return (
-    <div className="flex items-center gap-0.5 mt-0.5 mb-2">
+    <div className="flex items-center gap-0.5 mt-0.5 mb-2 ml-1.5">
       <Button variant="ghost" size="icon" onClick={handleCopy} className="text-muted-foreground" title={t('copy')}>
-        <Copy size={12} className={copied ? 'text-primary' : ''} />
+        {copied ? (
+          <Check
+            size={12}
+            className="text-primary motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-50 motion-safe:duration-150"
+          />
+        ) : (
+          <Copy size={12} />
+        )}
       </Button>
       <Button
         variant="ghost"

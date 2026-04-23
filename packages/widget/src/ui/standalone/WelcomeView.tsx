@@ -1,3 +1,4 @@
+import { useAgent } from '../../app/agentContext.js';
 import { useT } from '../../app/i18nContext.js';
 import { ComposerInput } from './ComposerInput.js';
 import { TopBar } from './TopBar.js';
@@ -8,30 +9,46 @@ export interface WelcomeViewProps {
   onOpenSidebar?: () => void;
 }
 
-function WelcomeBrand() {
+function TenantAvatar({ avatarUrl, name }: { avatarUrl: string | null; name: string }) {
+  if (avatarUrl !== null && avatarUrl !== '') {
+    return (
+      <img
+        src={avatarUrl}
+        alt=""
+        className="size-10 rounded-full object-cover ring-1 ring-border"
+      />
+    );
+  }
+  const initial = name.trim().charAt(0).toUpperCase() || '•';
   return (
-    <div className="flex items-center gap-2 justify-center">
-      <img src="/favicon.png" alt="" className="h-7 w-auto" />
-      <img src="/logo-black.png" alt="OpenFlow" className="h-5 mt-1 w-auto dark:hidden" />
-      <img src="/logo-white.png" alt="OpenFlow" className="h-5 mt-1 w-auto hidden dark:block" />
+    <div
+      className="size-10 rounded-full bg-muted text-foreground text-sm font-semibold flex items-center justify-center ring-1 ring-border"
+      aria-hidden
+    >
+      {initial}
     </div>
   );
 }
 
 export function WelcomeView({ onSend, isStreaming, onOpenSidebar }: WelcomeViewProps) {
   const t = useT();
+  const agent = useAgent();
 
   return (
-    <div className="flex flex-col h-full min-h-0 bg-sidebar">
+    <div className="flex flex-col h-full min-h-0 bg-card dark:bg-background">
       <TopBar onOpenSidebar={onOpenSidebar} />
       <div className="flex-1 flex items-center justify-center px-4">
         <div className="relative w-full max-w-2xl">
-          <div className="absolute bottom-full left-0 right-0 mb-10 flex flex-col items-center gap-1">
-            <WelcomeBrand />
-            <h1 className="font-display text-4xl tracking-normal">{t('welcomeTitle')}</h1>
+          <div className="absolute bottom-full left-0 right-0 mb-10 flex flex-col items-center gap-3">
+            <TenantAvatar avatarUrl={agent.tenantAvatarUrl} name={agent.tenantName} />
+            <div className="flex flex-col items-center gap-1 text-center">
+              <h1 className="text-2xl font-semibold tracking-tight">
+                {t('welcomeGreeting', { tenant: agent.tenantName })}
+              </h1>
+              <p className="text-sm text-muted-foreground">{t('welcomeSubtitle')}</p>
+            </div>
           </div>
           <ComposerInput variant="welcome" onSend={onSend} isStreaming={isStreaming} />
-          <p className="mt-3 text-[11px] text-muted-foreground text-center">{t('aiDisclaimer')}</p>
         </div>
       </div>
     </div>

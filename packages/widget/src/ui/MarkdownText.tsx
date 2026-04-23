@@ -9,7 +9,7 @@ import remarkGfm from 'remark-gfm';
 export function MarkdownText({ text }: { text: string }) {
   if (!text) return null;
   return (
-    <div className="px-3 py-1.5 break-words text-xs leading-[1.5] text-foreground">
+    <div className="px-3 py-1.5 break-words text-sm leading-[1.55] text-foreground">
       <div className="markdown-content">
         <MarkdownHooks remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeStarryNight]}>
           {text}

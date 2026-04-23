@@ -22,14 +22,8 @@ export function ChatHeader({ title, starred, onRename, onDelete, onToggleStar }:
   }
 
   return (
-    <div className="flex items-center gap-1 min-w-0">
-      <EditableTitle
-        title={title}
-        editing={editing}
-        onCommit={onRename}
-        onEditingChange={setEditing}
-        maxWidth="170px"
-      />
+    <div className="flex items-center gap-1 min-w-0 flex-1">
+      <EditableTitle title={title} editing={editing} onCommit={onRename} onEditingChange={setEditing} />
       {!editing && (
         <ChatTitleMenu
           starred={starred}
