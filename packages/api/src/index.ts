@@ -68,6 +68,15 @@ export { formatCsvRow } from './lib/forms/formatCsvRow.js';
 export { formatRelativeTime } from './lib/forms/relativeTime.js';
 export type { RelativeTime } from './lib/forms/relativeTime.js';
 
+export type { FormsService } from './services/formsService.js';
+export {
+  createFormsTools,
+  buildFormsToolDescription,
+  SET_FORM_FIELDS_TOOL_NAME,
+  GET_FORM_FIELD_TOOL_NAME,
+} from './tools/formsTools.js';
+export type { CreateFormsToolsParams } from './tools/formsTools.js';
+
 export const execute = async (
   context: Context,
   messages: Message[],
