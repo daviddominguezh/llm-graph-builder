@@ -137,7 +137,7 @@ function TabContent({ activeTab, props }: { activeTab: TabId; props: EditorTabsP
   );
 
   return (
-    <div className={`flex flex-col bg-background ${activeTab === 'agent' ? 'hidden' : 'flex-1'}`}>
+    <div className={`flex flex-col bg-background overflow-hidden ${activeTab === 'agent' ? 'hidden' : 'flex-1'}`}>
       {activeTab === 'channels' && <ChannelsPanel orgId={props.orgId} agentId={props.agentId} />}
       {activeTab === 'data' && (
         <div className="mx-auto w-full max-w-lg flex flex-col gap-6 p-6">

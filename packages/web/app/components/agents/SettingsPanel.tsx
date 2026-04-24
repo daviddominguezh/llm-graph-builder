@@ -24,7 +24,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
   const t = useTranslations('settings');
 
   return (
-    <div className="mx-auto max-w-lg flex flex-col gap-6 p-6">
+    <div className="mx-auto max-w-lg flex flex-col gap-6 p-6 h-full overflow-y-scroll py-12">
       <h2 className="text-sm font-semibold">{t('title')}</h2>
       <DescriptionSection agentId={props.agentId} initialDescription={props.initialDescription} />
       <Separator />
@@ -40,6 +40,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
       </div>
       <Separator />
       {props.extraContent}
+      <Separator />
       <DangerZone agentId={props.agentId} agentName={props.agentName} agentSlug={props.agentSlug} />
     </div>
   );
