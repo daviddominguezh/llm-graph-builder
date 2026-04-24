@@ -808,6 +808,8 @@
       "user": "User",
       "session": "Session",
       "channel": "Channel",
+      "copy": "Copy",
+      "copied": "Copied!",
       "createdAt": "Created at",
       "totalCost": "Total Cost",
       "totalTokens": "Total Tokens",
