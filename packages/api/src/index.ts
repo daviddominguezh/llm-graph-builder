@@ -54,6 +54,20 @@ export type {
   FailedAttempt,
 } from './types/forms.js';
 
+export { slugNormalize } from './lib/forms/slugNormalize.js';
+export { parsePath } from './lib/forms/parsePath.js';
+export { normalizePath } from './lib/forms/normalizePath.js';
+export { collectFieldPaths, collectSimpleLeafPaths } from './lib/forms/collectFieldPaths.js';
+export type { SimpleLeafType, SimpleLeaf } from './lib/forms/collectFieldPaths.js';
+export { zodForFieldPath } from './lib/forms/zodForFieldPath.js';
+export { runValidation } from './lib/forms/runValidation.js';
+export { readFormField } from './lib/forms/readFormField.js';
+export { applyFormFields } from './lib/forms/applyFormFields.js';
+export { expandArrayColumns, ARRAY_EXPANSION_CAP } from './lib/forms/expandArrayColumns.js';
+export { formatCsvRow } from './lib/forms/formatCsvRow.js';
+export { formatRelativeTime } from './lib/forms/relativeTime.js';
+export type { RelativeTime } from './lib/forms/relativeTime.js';
+
 export const execute = async (
   context: Context,
   messages: Message[],
