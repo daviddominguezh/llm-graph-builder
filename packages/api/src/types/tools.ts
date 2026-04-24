@@ -1,6 +1,7 @@
 import type { Tool } from 'ai';
 
 import type { TokenLog } from './ai/logs.js';
+import type { FormDefinition } from './forms.js';
 import type { Graph } from './graph.js';
 
 export interface SimToolCall {
@@ -30,6 +31,7 @@ export interface Context {
   tenantID: string;
   userID: string;
   data: Record<string, unknown>;
+  forms?: FormDefinition[];
   quickReplies: Record<string, string>;
   isFirstMessage?: boolean;
   currentTime?: string;
