@@ -41,6 +41,19 @@ export type { VFSContextConfig } from './vfs/index.js';
 // GitHubSourceProvider is NOT exported here — it uses Node/Deno APIs incompatible with browser bundles.
 // The Edge Function imports it via the @daviddh/vfs-providers alias in its deno.json.
 
+export type {
+  ValidationKind,
+  LengthPayload,
+  ValidationRule,
+  ValidationsMap,
+  FormDefinition,
+  FormData,
+  PathSegment,
+  FieldApplyResult,
+  ApplyResult,
+  FailedAttempt,
+} from './types/forms.js';
+
 export const execute = async (
   context: Context,
   messages: Message[],
