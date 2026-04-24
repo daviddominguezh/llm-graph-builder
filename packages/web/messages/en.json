@@ -425,7 +425,11 @@
     "warnings": {
       "usedByForms": "This schema is used by {count} form(s): {forms}. Renaming a field here keeps existing data under the old name — older conversations will show the old name in exports.",
       "fieldUsed": "Used by form {form}. Renaming leaves old data under the old name.",
-      "deleteBlocked": { "title": "Can't delete schema", "body": "This schema is used by {count} form(s). Remove these forms first:", "close": "Close" }
+      "deleteBlocked": {
+        "title": "Can't delete schema",
+        "body": "This schema is used by {count} form(s). Remove these forms first:",
+        "close": "Close"
+      }
     },
     "newSchema": "New schema...",
     "deleteTitle": "Delete schema?",
@@ -438,23 +442,49 @@
     "editSchema": "Edit schema"
   },
   "forms": {
-    "section": { "title": "Forms", "description": "Structured data your agent collects during conversations, exportable as CSV." },
+    "section": {
+      "title": "Forms",
+      "description": "Structured data your agent collects during conversations, exportable as CSV."
+    },
     "empty": {
-      "noSchemas": { "title": "No forms yet", "description": "Forms are built from output schemas. Create a schema to get started.", "cta": "Create output schema" },
-      "noForms": { "title": "No forms yet", "description": "Forms let your agent collect structured data during conversations and export it as CSV.", "cta": "Create form" }
+      "noSchemas": {
+        "title": "No forms yet",
+        "description": "Forms are built from output schemas. Create a schema to get started.",
+        "cta": "Create output schema"
+      },
+      "noForms": {
+        "title": "No forms yet",
+        "description": "Forms let your agent collect structured data during conversations and export it as CSV.",
+        "cta": "Create form"
+      }
     },
     "dialog": {
       "create": { "step1": { "title": "Name your form" }, "step2": { "title": "Validations" } },
       "edit": { "step1": { "title": "Form details" }, "step2": { "title": "Validations" } },
       "stepsCount": "Step {step} of {total}",
-      "next": "Next", "back": "Back", "cancel": "Cancel", "create": "Create form", "save": "Save",
+      "next": "Next",
+      "back": "Back",
+      "cancel": "Cancel",
+      "create": "Create form",
+      "save": "Save",
       "immutableHelp": "To change the name or schema, delete this form and create a new one.",
       "unsavedConfirm": "Discard unsaved validation changes?"
     },
     "field": {
       "name": { "label": "Name", "placeholder": "e.g. Customer Lead Form", "required": "Name is required" },
-      "identifier": { "label": "Identifier", "edit": "Edit", "invalidFormat": "Only lowercase letters, numbers, and hyphens", "taken": "Already in use", "checking": "Checking…", "available": "Available" },
-      "schema": { "label": "Schema", "placeholder": "Select a schema", "immutableHelp": "To use a different schema, delete this form and create a new one." }
+      "identifier": {
+        "label": "Identifier",
+        "edit": "Edit",
+        "invalidFormat": "Only lowercase letters, numbers, and hyphens",
+        "taken": "Already in use",
+        "checking": "Checking…",
+        "available": "Available"
+      },
+      "schema": {
+        "label": "Schema",
+        "placeholder": "Select a schema",
+        "immutableHelp": "To use a different schema, delete this form and create a new one."
+      }
     },
     "validations": {
       "title": "Validations",
@@ -462,15 +492,37 @@
       "parentCount": "{configured}/{total}",
       "search": { "placeholder": "Search fields…" },
       "filter": { "all": "All", "configured": "Configured", "unconfigured": "Unconfigured" },
-      "stale": { "banner": "{count} validation rule(s) no longer match the current schema.", "remove": "Remove stale rules", "keep": "Keep for now" },
-      "kind": {
-        "none": "None", "email": "Valid email", "twoWordName": "Two-word name (≥2 words, each ≥2 chars)",
-        "pastDate": "Past date", "futureDate": "Future date", "pastHour": "Past hour", "futureHour": "Future hour",
-        "length": "Length", "range": "Range", "unavailable": "—"
+      "stale": {
+        "banner": "{count} validation rule(s) no longer match the current schema.",
+        "remove": "Remove stale rules",
+        "keep": "Keep for now"
       },
-      "length": { "mode": { "range": "Range", "exact": "Exact" }, "min": "Min", "max": "Max", "exact": "Exact" }
+      "kind": {
+        "none": "None",
+        "email": "Valid email",
+        "twoWordName": "Two-word name (≥2 words, each ≥2 chars)",
+        "pastDate": "Past date",
+        "futureDate": "Future date",
+        "pastHour": "Past hour",
+        "futureHour": "Future hour",
+        "length": "Length",
+        "range": "Range",
+        "unavailable": "—"
+      },
+      "length": {
+        "mode": { "range": "Range", "exact": "Exact" },
+        "min": "Min",
+        "max": "Max",
+        "exact": "Exact"
+      }
     },
-    "delete": { "title": "Delete form {slug}?", "body": "Past conversations keep their data.", "slugReuseWarning": "A future form with the same name will NOT inherit this old data (data is keyed by a stable identifier, not the name).", "cancel": "Cancel", "confirm": "Delete" },
+    "delete": {
+      "title": "Delete form {slug}?",
+      "body": "Past conversations keep their data.",
+      "slugReuseWarning": "A future form with the same name will NOT inherit this old data (data is keyed by a stable identifier, not the name).",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
     "rightPanel": {
       "title": "Form data",
       "rollupBadge": "{filled}/{total}",
@@ -481,20 +533,39 @@
       "emptyArray": "—",
       "failedAttempts": { "title": "Last failed attempt(s)", "item": "{fieldPath} {reason} ({when})" }
     },
-    "chatList": { "agentFilter": { "placeholder": "All agents", "search": { "placeholder": "Search agents…" } } },
+    "chatList": {
+      "agentFilter": { "placeholder": "All agents", "search": { "placeholder": "Search agents…" } }
+    },
     "export": {
       "button": "Export as CSV",
       "dialog": { "title": "Export form data" },
-      "dateRange": { "label": "Date range", "max15Days": "Max range is 15 days.", "tooltip": "Longer ranges require scheduled exports (coming soon)." },
+      "dateRange": {
+        "label": "Date range",
+        "max15Days": "Max range is 15 days.",
+        "tooltip": "Longer ranges require scheduled exports (coming soon)."
+      },
       "agent": { "label": "Agent" },
       "form": { "label": "Form" },
       "matchCount": "{inRange} conversations match · {withData} with form data",
-      "matchCountNoData": { "tooltip": "No data to export for the selected range", "suggestion": "Try expanding the range or picking a different form.", "viewInChatList": "View in chat list" },
-      "cancel": "Cancel", "export": "Export", "generating": "Generating…", "abort": "Abort",
+      "matchCountNoData": {
+        "tooltip": "No data to export for the selected range",
+        "suggestion": "Try expanding the range or picking a different form.",
+        "viewInChatList": "View in chat list"
+      },
+      "cancel": "Cancel",
+      "export": "Export",
+      "generating": "Generating…",
+      "abort": "Abort",
       "success": "Exported {count} conversations",
       "successTruncated": "Exported {count} conversations (some fields truncated — too many array items)",
       "errorRaceEmpty": "All matching conversations were deleted during export. Refresh and try again.",
-      "relativeTime": { "justNow": "just now", "secondsAgo": "{n}s ago", "minutesAgo": "{n} min ago", "hoursAgo": "{n}h ago", "daysAgo": "{n}d ago" }
+      "relativeTime": {
+        "justNow": "just now",
+        "secondsAgo": "{n}s ago",
+        "minutesAgo": "{n} min ago",
+        "hoursAgo": "{n}h ago",
+        "daysAgo": "{n}d ago"
+      }
     }
   },
   "orgs": {

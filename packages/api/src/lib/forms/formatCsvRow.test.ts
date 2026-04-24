@@ -1,4 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
+
 import { formatCsvRow } from './formatCsvRow.js';
 
 describe('formatCsvRow', () => {

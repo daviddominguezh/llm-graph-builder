@@ -23,14 +23,14 @@ describe('formatRelativeTime', () => {
     ).toBe('just-now');
   });
   it('seconds', () => {
-    expect(
-      formatRelativeTime(new Date(), new Date(Date.now() - SECONDS_DELAY * MS_PER_SECOND))
-    ).toBe(`seconds:${SECONDS_DELAY}`);
+    expect(formatRelativeTime(new Date(), new Date(Date.now() - SECONDS_DELAY * MS_PER_SECOND))).toBe(
+      `seconds:${SECONDS_DELAY}`
+    );
   });
   it('minutes', () => {
-    expect(
-      formatRelativeTime(new Date(), new Date(Date.now() - MINUTES_DELAY * MS_PER_MINUTE))
-    ).toBe(`minutes:${MINUTES_DELAY}`);
+    expect(formatRelativeTime(new Date(), new Date(Date.now() - MINUTES_DELAY * MS_PER_MINUTE))).toBe(
+      `minutes:${MINUTES_DELAY}`
+    );
   });
   it('hours', () => {
     expect(formatRelativeTime(new Date(), new Date(Date.now() - HOURS_DELAY * MS_PER_HOUR))).toBe(

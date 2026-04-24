@@ -30,11 +30,15 @@ export function collectSimpleLeafPaths(fields: OutputSchemaField[]): SimpleLeaf[
 type LeafCb = (path: string) => void;
 type TypedLeafCb = ((path: string, type: SimpleLeafType) => void) | null;
 
-function isObjectWithProperties(field: OutputSchemaField): field is OutputSchemaField & { properties: OutputSchemaField[] } {
+function isObjectWithProperties(
+  field: OutputSchemaField
+): field is OutputSchemaField & { properties: OutputSchemaField[] } {
   return field.type === 'object' && field.properties !== undefined;
 }
 
-function isArrayWithItems(field: OutputSchemaField): field is OutputSchemaField & { items: OutputSchemaField } {
+function isArrayWithItems(
+  field: OutputSchemaField
+): field is OutputSchemaField & { items: OutputSchemaField } {
   return field.type === 'array' && field.items !== undefined;
 }
 

@@ -2,10 +2,19 @@
 import type { OutputSchemaField } from '@daviddh/graph-types';
 
 export type ValidationKind =
-  | 'email' | 'twoWordName' | 'pastDate' | 'futureDate'
-  | 'pastHour' | 'futureHour' | 'length';
+  | 'email'
+  | 'twoWordName'
+  | 'pastDate'
+  | 'futureDate'
+  | 'pastHour'
+  | 'futureHour'
+  | 'length';
 
-export interface LengthPayload { min?: number; max?: number; exact?: number }
+export interface LengthPayload {
+  min?: number;
+  max?: number;
+  exact?: number;
+}
 
 export type ValidationRule =
   | { kind: Exclude<ValidationKind, 'length'> }
