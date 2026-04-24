@@ -3,6 +3,6 @@ export function formatCsvRow(cells: string[]): string {
 }
 
 function escapeCell(cell: string): string {
-  if (/[",\n\r]/.test(cell)) return `"${cell.replace(/"/g, '""')}"`;
+  if (/[",\n\r]/v.test(cell)) return `"${cell.replace(/"/gv, '""')}"`;
   return cell;
 }

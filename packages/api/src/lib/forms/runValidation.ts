@@ -77,6 +77,7 @@ function parseHourTime(s: string): { hour: number; minute: number } | null {
     return null;
   }
   const [hour, minute] = parts;
+  if (hour === undefined || minute === undefined) return null;
   if (hour < HOUR_MIN || hour >= HOUR_MAX || minute < HOUR_MIN || minute >= MINUTE_MAX) {
     return null;
   }

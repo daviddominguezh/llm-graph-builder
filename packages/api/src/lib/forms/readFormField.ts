@@ -4,20 +4,20 @@ import { parsePath } from './parsePath.js';
 export type ReadResult = { ok: true; value: unknown } | { ok: false; reason: string };
 
 export function readFormField(data: FormData | undefined, path: string): ReadResult {
-  const { ok, error, segments } = parsePath(path);
-  if (!ok) return { ok: false, reason: `Invalid path: ${error.reason}` };
+  const parsed = parsePath(path);
+  if (!parsed.ok) return { ok: false, reason: `Invalid path: ${parsed.error.reason}` };
   if (data === undefined) {
     return { ok: false, reason: 'Field has not been set yet' };
   }
 
   let cursor: unknown = data;
-  for (const seg of segments) {
-    const { ok: fieldOk, value: fieldValue } = getFieldFromRecord(cursor, seg.fieldName);
-    if (!fieldOk) return { ok: false, reason: 'Field has not been set yet' };
-    cursor = fieldValue;
-    const { ok: arrayOk, value: arrayValue } = traverseIndices(cursor, seg.indices);
-    if (!arrayOk) return { ok: false, reason: 'Field has not been set yet' };
-    cursor = arrayValue;
+  for (const seg of parsed.segments) {
+    const fieldRead = getFieldFromRecord(cursor, seg.fieldName);
+    if (!fieldRead.ok) return fieldRead;
+    ({ value: cursor } = fieldRead);
+    const indexRead = traverseIndices(cursor, seg.indices);
+    if (!indexRead.ok) return indexRead;
+    ({ value: cursor } = indexRead);
   }
   if (cursor === undefined) return { ok: false, reason: 'Field has not been set yet' };
   return { ok: true, value: cursor };

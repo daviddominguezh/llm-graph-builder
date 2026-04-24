@@ -1,27 +1,38 @@
 const MAX_LEN = 64;
+const SLICE_START = 0;
+const NEXT_OFFSET = 1;
 
 export function slugNormalize(input: string): string {
   const lower = input.toLowerCase();
-  const hyphenated = lower.replace(/[\s_]+/g, '-');
-  const stripped = hyphenated.replace(/[^a-z0-9-]/g, '');
-  const collapsed = stripped.replace(/-+/g, '-');
-  const trimmed = collapsed.replace(/^-+|-+$/g, '');
+  const hyphenated = lower.replace(/[\s_]+/gv, '-');
+  const stripped = hyphenated.replace(/[^a-z0-9\-]/gv, '');
+  const collapsed = stripped.replace(/-+/gv, '-');
+  const trimmed = collapsed.replace(/^-+|-+$/gv, '');
 
   // Truncate to max length, accounting for trailing hyphens
-  let result = trimmed.slice(0, MAX_LEN);
+  const truncated = trimmed.slice(SLICE_START, MAX_LEN);
 
-  // If we end with hyphen(s), remove them and try to fill back to MAX_LEN with following non-hyphen chars
-  if (result.endsWith('-')) {
-    result = result.replace(/-+$/, '');
-    let pos = result.length;
-    while (result.length < MAX_LEN && pos < trimmed.length) {
-      const char = trimmed[pos];
-      if (char !== '-') {
-        result += char;
-      }
-      pos += 1;
-    }
+  if (!truncated.endsWith('-')) {
+    return truncated;
   }
 
+  return refillTrailingHyphens(truncated, trimmed);
+}
+
+function refillTrailingHyphens(truncated: string, source: string): string {
+  let result = truncated.replace(/-+$/gv, '');
+  let { length: pos } = result;
+  while (result.length < MAX_LEN && pos < source.length) {
+    result = appendIfNotHyphen(result, source, pos);
+    pos += NEXT_OFFSET;
+  }
   return result;
+}
+
+function appendIfNotHyphen(result: string, source: string, pos: number): string {
+  const { [pos]: char } = source;
+  if (char === undefined || char === '-') {
+    return result;
+  }
+  return result + char;
 }

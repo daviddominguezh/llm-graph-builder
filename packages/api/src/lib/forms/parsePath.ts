@@ -4,10 +4,8 @@ export type ParseResult =
   | { ok: true; segments: PathSegment[] }
   | { ok: false; error: { reason: string; at: number } };
 
-// eslint-disable-next-line require-unicode-regexp -- No unicode needed for ASCII field names
-const FIELD_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
-// eslint-disable-next-line require-unicode-regexp -- No unicode needed for digit validation
-const INDEX_RE = /^[0-9]+$/;
+const FIELD_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/v;
+const INDEX_RE = /^[0-9]+$/v;
 const DOT = '.';
 const BRACKET_OPEN = '[';
 const BRACKET_CLOSE = ']';
@@ -43,8 +41,7 @@ type SegmentResult = { ok: true; segment: PathSegment } | Extract<ParseResult, {
 function parseSegment(raw: string, base: number): SegmentResult {
   const bracketIndex = raw.indexOf(BRACKET_OPEN);
   const hasBracket = bracketIndex !== INDEX_NOT_FOUND;
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers -- String slice from start
-  const name = hasBracket ? raw.slice(0, bracketIndex) : raw;
+  const name = hasBracket ? raw.slice(START_POSITION, bracketIndex) : raw;
   if (!FIELD_RE.test(name)) {
     return fail(`Invalid field name "${name}"`, base);
   }

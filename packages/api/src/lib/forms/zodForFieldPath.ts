@@ -69,8 +69,7 @@ function walkArrayIndices(
 }
 
 function toZod(field: OutputSchemaField): ZodType {
-  const { type } = field;
-  switch (type) {
+  switch (field.type) {
     case 'string':
       return z.string();
     case 'number':
@@ -78,7 +77,7 @@ function toZod(field: OutputSchemaField): ZodType {
     case 'boolean':
       return z.boolean();
     case 'enum':
-      return buildEnumZod(field);
+      return buildEnumZod(field.enumValues);
     case 'array': {
       const itemSchema = field.items === undefined ? z.unknown() : toZod(field.items);
       return z.array(itemSchema);
@@ -88,19 +87,18 @@ function toZod(field: OutputSchemaField): ZodType {
   }
 }
 
-function buildEnumZod(field: OutputSchemaField & { type: 'enum' }): ZodType {
-  const { enumValues } = field;
+function buildEnumZod(enumValues: string[] | undefined): ZodType {
   const enumVals = enumValues ?? [];
   if (enumVals.length < MIN_ENUM_LENGTH) {
     return z.string();
   }
-  const first = enumVals[FIRST_INDEX];
+  const [first, ...remainingVals] = enumVals;
   if (first === undefined) {
     return z.string();
   }
-  const remainingVals = enumVals.slice(MIN_ENUM_LENGTH);
   if (remainingVals.length > FIRST_INDEX) {
-    return z.enum([first, ...remainingVals] as [string, ...string[]]);
+    const tuple: [string, ...string[]] = [first, ...remainingVals];
+    return z.enum(tuple);
   }
   return z.literal(first);
 }
