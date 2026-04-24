@@ -199,12 +199,12 @@ function EditorTabBar({
   return (
     <GlassPanel
       variant="background"
-      className="relative w-[calc(100%-(var(--spacing)*4))] rounded-full h-fit shrink-0 flex items-center px-1 mx-2 pointer-events-auto py-1"
+      className="relative w-[calc(100%-(var(--spacing)*4))] rounded-full h-fit shrink-0 flex items-center px-0.5 mx-2 pointer-events-auto py-0.5"
     >
       <div className="flex flex-row w-full items-center">
         <Button
           variant="ghost"
-          size="lg"
+          size="default"
           className="mr-2 hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
           onClick={() => setCollapsed(!collapsed)}
           title={sidebarLabel}

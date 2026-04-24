@@ -177,7 +177,11 @@ export function FileMenu({
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0" variant="ghost" size="lg">
+          <Button
+            className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
+            variant="ghost"
+            size="default"
+          >
             <Menu />
           </Button>
         }
@@ -210,7 +214,7 @@ function PlayButton({ simulationActive, onPlay, disabled, label }: PlayButtonPro
     <Button
       className="hover:bg-input! dark:hover:bg-input aspect-square! px-0"
       variant={simulationActive ? 'default' : 'ghost'}
-      size="lg"
+      size="default"
       onClick={disabled ? undefined : onPlay}
       disabled={disabled}
     >
@@ -243,7 +247,7 @@ function ToolbarButtons(props: ToolbarProps) {
           <Button
             className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
             variant="ghost"
-            size="lg"
+            size="default"
             onClick={onToggleGlobalPanel}
           >
             <Waypoints />
@@ -255,7 +259,7 @@ function ToolbarButtons(props: ToolbarProps) {
           <Button
             className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
             variant="ghost"
-            size="lg"
+            size="default"
             onClick={onToggleTools}
           >
             <SquareFunction />
@@ -267,7 +271,7 @@ function ToolbarButtons(props: ToolbarProps) {
           <Button
             className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
             variant="ghost"
-            size="lg"
+            size="default"
             onClick={onToggleLibrary}
           >
             <Blocks />

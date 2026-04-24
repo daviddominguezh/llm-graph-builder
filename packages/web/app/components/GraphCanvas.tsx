@@ -1,7 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-
 import { Button } from '@/components/ui/button';
 import {
   Background,
@@ -13,8 +11,9 @@ import {
   type OnNodesChange,
   ReactFlow,
 } from '@xyflow/react';
-import { useTheme } from 'next-themes';
 import { X } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { useEffect, useState } from 'react';
 
 import type { SimulationState } from '../hooks/useSimulation';
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
@@ -73,8 +72,12 @@ export function GraphCanvas({
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
-    const id = requestAnimationFrame(() => { setMounted(true); });
-    return () => { cancelAnimationFrame(id); };
+    const id = requestAnimationFrame(() => {
+      setMounted(true);
+    });
+    return () => {
+      cancelAnimationFrame(id);
+    };
   }, []);
   const colorMode = mounted && resolvedTheme === 'dark' ? 'dark' : 'light';
 
@@ -100,7 +103,7 @@ export function GraphCanvas({
           colorMode={colorMode}
         >
           <Background color="var(--canvas-dots)" />
-          <Controls className='ml-62! mb-2! shadow-xs!' />
+          <Controls position="bottom-right" className="mb-2! shadow-xs! rounded-lg" />
         </ReactFlow>
 
         {zoomViewNodeId !== null && (
