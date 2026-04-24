@@ -20,7 +20,6 @@ import {
   Menu,
   Palette,
   Play,
-  Settings,
   SquareFunction,
   Upload,
   Waypoints,
@@ -44,7 +43,6 @@ interface ToolbarProps {
   statusSlot?: ReactNode;
   globalPanelOpen?: boolean;
   onToggleGlobalPanel?: () => void;
-  onTogglePresets?: () => void;
   onToggleTools?: () => void;
   onToggleLibrary?: () => void;
   publishSlot?: ReactNode;
@@ -235,7 +233,7 @@ interface PlayButtonProps {
 }
 
 function ToolbarButtons(props: ToolbarProps) {
-  const { onToggleGlobalPanel, onToggleTools, onToggleLibrary, onTogglePresets } = props;
+  const { onToggleGlobalPanel, onToggleTools, onToggleLibrary } = props;
   const t = useTranslations('toolbar');
 
   return (
@@ -275,20 +273,6 @@ function ToolbarButtons(props: ToolbarProps) {
             <Blocks />
           </Button>
         </ToolbarTooltip>
-      )}
-      {onTogglePresets && (
-        <>
-          <ToolbarTooltip label={t('settings')}>
-            <Button
-              className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
-              variant="ghost"
-              size="lg"
-              onClick={onTogglePresets}
-            >
-              <Settings />
-            </Button>
-          </ToolbarTooltip>
-        </>
       )}
     </>
   );

@@ -17,6 +17,7 @@ interface SettingsPanelProps {
   initialCategory: string;
   initialIsPublic: boolean;
   currentVersion: number;
+  extraContent?: React.ReactNode;
 }
 
 export function SettingsPanel(props: SettingsPanelProps) {
@@ -38,6 +39,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
         />
       </div>
       <Separator />
+      {props.extraContent}
       <DangerZone agentId={props.agentId} agentName={props.agentName} agentSlug={props.agentSlug} />
     </div>
   );

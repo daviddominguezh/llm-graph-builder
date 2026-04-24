@@ -136,7 +136,7 @@ function InviteForm({ orgId, existingEmails, onOpenChange, onInvited }: InviteMe
             onRemove={removeRow}
           />
         ))}
-        <Button variant="ghost" size="sm" className="self-start shrink-0 text-muted-foreground" onClick={addRow}>
+        <Button variant="ghost" size="sm" className="self-start shrink-0 text-muted-foreground rounded-md" onClick={addRow}>
           <Plus className="size-3.5" />
           {t('addAnother')}
         </Button>

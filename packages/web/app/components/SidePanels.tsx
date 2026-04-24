@@ -21,7 +21,7 @@ import { NodePanel } from './panels/NodePanel';
 import { OutputSchemaDialog } from './panels/OutputSchemaDialog';
 import { StartNodePanel } from './panels/StartNodePanel';
 import { ToolsPanel } from './panels/ToolsPanel';
-import { McpDialogs, PresetsAside } from './SidePanelAsides';
+import { McpDialogs } from './SidePanelAsides';
 import type { CtxPreconditionsState, EdgeSetter, NodeArray, NodeSetter } from './sidePanelHelpers';
 import {
   handleGlobalAddNode,
@@ -30,7 +30,8 @@ import {
   handleGlobalUpdateNode,
 } from './sidePanelHelpers';
 import { getInstalledLibraryIds } from './sidePanelMcpHelpers';
-import { usePublishState, useSchemaDialogState } from './useSidePanelState';
+import type { SchemaDialogState } from './useSidePanelState';
+import { usePublishState } from './useSidePanelState';
 
 type EdgeArray = Array<Edge<RFEdgeData>>;
 
@@ -59,8 +60,8 @@ export interface SidePanelsProps {
   presetsHook: PresetsHook;
   mcpHook: McpServersState;
   outputSchemasHook: OutputSchemasState;
+  schemaDialog: SchemaDialogState;
   globalPanelOpen: boolean;
-  presetsOpen: boolean;
   toolsOpen: boolean;
   libraryOpen: boolean;
   mcpLibrary: McpLibraryState;
@@ -187,16 +188,10 @@ function ToolsPanelSlot({ sidePanelProps: p, onPublishServer }: ToolsPanelSlotPr
 }
 
 export function SidePanels(props: SidePanelsProps) {
-  const { selection, simulation, globalPanelOpen, presetsOpen, libraryOpen } = props;
+  const { selection, simulation, globalPanelOpen, libraryOpen, schemaDialog } = props;
   const isVirtualNode = selection.selectedNodeId !== null && selection.selectedNodeId.startsWith('step-');
   const hasSelection = !isVirtualNode && (selection.selectedNodeId !== null || selection.selectedEdgeId !== null);
   const showSelectionPanel = !simulation.active && hasSelection;
-
-  const schema = useSchemaDialogState({
-    outputSchemasHook: props.outputSchemasHook,
-    selection: props.selection,
-    setNodes: props.setNodes,
-  });
 
   const publish = usePublishState(props.mcpHook);
   const installedIds = getInstalledLibraryIds(props.mcpHook.servers);
@@ -206,12 +201,12 @@ export function SidePanels(props: SidePanelsProps) {
   return (
     <div className={`pointer-events-auto ${readOnlyClass}`}>
       <OutputSchemaDialog
-        schema={schema.editingSchema}
+        schema={schemaDialog.editingSchema}
         onSave={props.outputSchemasHook.updateSchema}
-        onSaved={schema.handleSchemaSaved}
-        open={schema.editingSchemaId !== null}
+        onSaved={schemaDialog.handleSchemaSaved}
+        open={schemaDialog.editingSchemaId !== null}
         onOpenChange={(open) => {
-          if (!open) schema.handleSchemaDialogClose();
+          if (!open) schemaDialog.handleSchemaDialogClose();
         }}
       />
       <McpDialogs
@@ -227,8 +222,8 @@ export function SidePanels(props: SidePanelsProps) {
       {showSelectionPanel && (
         <SelectionPanel
           {...props}
-          onEditSchema={schema.handleEditSchema}
-          onEditNewSchema={schema.handleEditNewSchema}
+          onEditSchema={schemaDialog.handleEditSchema}
+          onEditNewSchema={schemaDialog.handleEditNewSchema}
         />
       )}
       {globalPanelOpen && (
@@ -240,25 +235,6 @@ export function SidePanels(props: SidePanelsProps) {
         />
       )}
       <ToolsPanelSlot sidePanelProps={props} onPublishServer={publish.setPublishServer} />
-      {presetsOpen && !libraryOpen && (
-        <PresetsAside
-          presetsHook={props.presetsHook}
-          ctxPreconditions={props.ctxPreconditions}
-          setEdges={props.setEdges}
-          orgApiKeys={props.orgApiKeys}
-          stagingKeyId={props.stagingKeyId}
-          productionKeyId={props.productionKeyId}
-          onStagingKeyChange={props.onStagingKeyChange}
-          onProductionKeyChange={props.onProductionKeyChange}
-          outputSchemasHook={props.outputSchemasHook}
-          onEditSchema={schema.handleEditSchema}
-          onEditNewSchema={schema.handleEditNewSchema}
-          onRemoveSchema={schema.handleRemoveSchema}
-          agentId={props.agentId}
-          agentName={props.agentName}
-          orgSlug={props.orgSlug}
-        />
-      )}
     </div>
   );
 }

@@ -113,14 +113,14 @@ function SchemaEditor({
           variant="outline"
           size="sm"
           onClick={() => handleFieldsChange([...draft.fields, createEmptyField()])}
-          className="w-fit self-end"
+          className="w-fit self-end rounded-md"
         >
           <Plus className="mr-1 h-3.5 w-3.5" />
           {t('addField')}
         </Button>
       </div>
       <DialogFooter>
-        <DialogClose render={<Button variant="outline" onClick={onCancel} />}>
+        <DialogClose render={<Button variant="outline" className="rounded-md" onClick={onCancel} />}>
           {tSchemas('cancel')}
         </DialogClose>
         <Button onClick={handleSave} disabled={!isSchemaComplete(draft.name, draft.fields)}>

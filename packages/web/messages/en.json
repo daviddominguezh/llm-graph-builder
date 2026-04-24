@@ -194,6 +194,7 @@
     "deleteCancel": "Cancel",
     "tabs": {
       "agent": "Agent",
+      "data": "Data",
       "channels": "Channels",
       "settings": "Settings",
       "channelsPlaceholder": "Channels coming soon",
@@ -401,6 +402,21 @@
     "optionalFieldInfo": "This field is optional. The value may be null at runtime.",
     "requiredFallback": "A fallback is required because the source field is optional and the target is required.",
     "apply": "Apply",
+    "cancel": "Cancel"
+  },
+  "contextKeys": {
+    "sectionTitle": "Context"
+  },
+  "testingPresets": {
+    "sectionTitle": "Testing Presets",
+    "name": "Name",
+    "sessionId": "Session ID",
+    "tenantId": "Tenant ID",
+    "userId": "User ID",
+    "deletePreset": "Delete preset",
+    "deleteTitle": "Delete preset?",
+    "deleteDescription": "This will permanently delete the preset \"{name}\".",
+    "delete": "Delete",
     "cancel": "Cancel"
   },
   "outputSchemas": {

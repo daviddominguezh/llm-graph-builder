@@ -210,7 +210,7 @@ function PublishDialogBody({ server, orgId, onOpenChange, onPublished }: Publish
       />
       <VariablePreview variables={variables} />
       <DialogFooter>
-        <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <Button variant="outline" className="rounded-md" onClick={() => onOpenChange(false)}>
           {t('publishCancel')}
         </Button>
         <Button onClick={handlePublish} disabled={loading}>

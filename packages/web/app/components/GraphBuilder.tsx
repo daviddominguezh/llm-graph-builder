@@ -16,12 +16,20 @@ import type { PublishTenant } from './panels/PublishButtonTenantPicker';
 import { Toolbar } from './panels/Toolbar';
 import { StatusButton, hasMcpErrors } from './panels/StatusButton';
 import { ConnectionMenu } from './panels/ConnectionMenu';
+import { DataTabContent } from './panels/DataTabContent';
 import { SearchDialog } from './panels/SearchDialog';
+import { SettingsTabContent } from './panels/SettingsTabContent';
 import { VersionSwitcherSlot } from './panels/VersionSwitcherSlot';
 import { GraphCanvas } from './GraphCanvas';
 import { SimulationPanel } from './panels/simulation';
 import { SidePanels } from './SidePanels';
+import {
+  createPrecondition,
+  handlePreconditionRemove,
+  handlePreconditionUpdate,
+} from './sidePanelHelpers';
 import { ToolRegistryProvider } from './ToolRegistryProvider';
+import { useSchemaDialogState } from './useSidePanelState';
 import type { DiscoveredTool } from '../lib/api';
 import type { ApiKeyRow } from '../lib/apiKeys';
 import type { Agent, Graph } from '../schemas/graph.schema';
@@ -136,7 +144,6 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
   });
 
   const [globalPanelOpen, setGlobalPanelOpen] = useState(false);
-  const [presetsOpen, setPresetsOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
@@ -155,7 +162,6 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
   const panels = useMemo(
     () => ({
       setGlobalPanelOpen,
-      setPresetsOpen,
       setToolsOpen,
       setSearchOpen,
       setLibraryOpen,
@@ -183,7 +189,6 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     selection.setSelectedNodeId(null);
     selection.setSelectedEdgeId(null);
     setGlobalPanelOpen(false);
-    setPresetsOpen(false);
     setToolsOpen(false);
   }, [selection]);
 
@@ -352,6 +357,12 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
 
   const ctxPreconditions = useContextPreconditions(edges);
 
+  const schemaDialog = useSchemaDialogState({
+    outputSchemasHook,
+    selection,
+    setNodes,
+  });
+
   const displayNodes = nodes.filter((n) => (n.data as RFNodeData).global !== true);
 
   return {
@@ -379,11 +390,10 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     presetsHook,
     mcpHook,
     outputSchemasHook,
+    schemaDialog,
     ctxPreconditions,
     globalPanelOpen,
     setGlobalPanelOpen,
-    presetsOpen,
-    setPresetsOpen,
     toolsOpen,
     setToolsOpen,
     searchOpen,
@@ -412,6 +422,58 @@ function useAutoStartAgentSimulation(isAgent: boolean, active: boolean, start: (
   useEffect(() => {
     if (isAgent && !active) start();
   }, [isAgent, active, start]);
+}
+
+type GraphBuilderHooksResult = ReturnType<typeof useGraphBuilderHooks>;
+
+function buildSettingsTabContent(
+  h: GraphBuilderHooksResult,
+  orgApiKeys: ApiKeyRow[],
+  isAgentMode: boolean
+) {
+  return (
+    <SettingsTabContent
+      orgApiKeys={orgApiKeys}
+      stagingKeyId={h.apiKeys.stagingKeyId}
+      productionKeyId={h.apiKeys.productionKeyId}
+      onStagingKeyChange={h.apiKeys.handleStagingKeyChange}
+      onProductionKeyChange={h.apiKeys.handleProductionKeyChange}
+      showWorkflowSections={!isAgentMode}
+      contextKeys={h.presetsHook.contextKeys}
+      context={{
+        keys: h.presetsHook.contextKeys,
+        onAdd: h.presetsHook.addContextKey,
+        onRemove: h.presetsHook.removeContextKey,
+        onRename: h.presetsHook.renameContextKey,
+      }}
+      contextPreconditions={{
+        preconditions: h.ctxPreconditions.customContextPreconditions,
+        onAdd: () => createPrecondition(h.ctxPreconditions),
+        onRemove: (id) => handlePreconditionRemove(id, h.ctxPreconditions, h.setEdges),
+        onUpdate: (id, updates) => handlePreconditionUpdate(id, updates, h.ctxPreconditions, h.setEdges),
+      }}
+      testingPresets={{
+        presets: h.presetsHook.presets,
+        onAdd: h.presetsHook.addPreset,
+        onDelete: h.presetsHook.deletePreset,
+        onUpdate: h.presetsHook.updatePreset,
+      }}
+    />
+  );
+}
+
+function buildDataTabContent(h: GraphBuilderHooksResult) {
+  return (
+    <DataTabContent
+      schemas={h.outputSchemasHook.schemas}
+      onAdd={() => {
+        const id = h.outputSchemasHook.addSchema();
+        h.schemaDialog.handleEditNewSchema(id);
+      }}
+      onRemove={h.schemaDialog.handleRemoveSchema}
+      onEdit={h.schemaDialog.handleEditSchema}
+    />
+  );
 }
 
 function buildEmbeddedSimulationPanel(simulation: ReturnType<typeof useGraphBuilderHooks>['simulation']) {
@@ -450,7 +512,7 @@ function LoadedEditor(props: LoadedEditorProps) {
   const isReadOnly = props.readOnly === true;
   const isAgentMode = h.agentConfig !== undefined;
 
-  const { panelInsets, toolbarPortal, activeEditorId } = useEditorCache();
+  const { panelInsets, toolbarPortal, settingsPortal, dataPortal, activeEditorId } = useEditorCache();
   const insetStyle = panelInsets
     ? { top: panelInsets.top, left: panelInsets.left, right: panelInsets.right, bottom: panelInsets.bottom }
     : { top: 0, left: 0, right: 0, bottom: 0 };
@@ -514,7 +576,6 @@ function LoadedEditor(props: LoadedEditorProps) {
             statusSlot={<StatusButton nodes={h.nodes} edges={h.edges} pendingSave={h.pendingSave} mcpHealth={h.mcpHealthInput} skipGraphValidation={h.agentConfig !== undefined} />}
             globalPanelOpen={h.globalPanelOpen}
             onToggleGlobalPanel={() => h.setGlobalPanelOpen((prev) => !prev)}
-            onTogglePresets={() => h.setPresetsOpen((prev) => !prev)}
             onToggleTools={() => h.setToolsOpen((prev) => !prev)}
             onToggleLibrary={() => h.setLibraryOpen((prev) => !prev)}
             stagingKeyId={h.apiKeys.stagingKeyId}
@@ -558,6 +619,16 @@ function LoadedEditor(props: LoadedEditorProps) {
           toolbarPortal
         )}
 
+        {/* Settings / Data tab portals — rendered into EditorTabs tab content */}
+        {!isReadOnly && isActiveEditor && settingsPortal !== null && createPortal(
+          buildSettingsTabContent(h, props.orgApiKeys ?? [], isAgentMode),
+          settingsPortal
+        )}
+        {!isReadOnly && isActiveEditor && dataPortal !== null && createPortal(
+          buildDataTabContent(h),
+          dataPortal
+        )}
+
         {/* Panels layer — positioned within the slot area */}
         <div className="absolute z-10 pointer-events-none" style={insetStyle}>
           <div className="relative flex h-full w-full flex-col items-center">
@@ -581,8 +652,8 @@ function LoadedEditor(props: LoadedEditorProps) {
               presetsHook={h.presetsHook}
               mcpHook={h.mcpHook}
               outputSchemasHook={h.outputSchemasHook}
+              schemaDialog={h.schemaDialog}
               globalPanelOpen={h.globalPanelOpen}
-              presetsOpen={h.presetsOpen}
               toolsOpen={h.toolsOpen}
               libraryOpen={h.libraryOpen}
               mcpLibrary={h.mcpLibrary}
@@ -602,7 +673,6 @@ function LoadedEditor(props: LoadedEditorProps) {
               onPublishMcpServer={() => {}}
               onOpenMcpLibrary={() => {
                 h.setLibraryOpen(true);
-                h.setPresetsOpen(false);
               }}
               onCloseLibrary={() => h.setLibraryOpen(false)}
               pushOperation={h.pushOperation}

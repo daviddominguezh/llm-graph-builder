@@ -9,14 +9,14 @@ import type { ApiKeyRow } from '@/app/lib/apiKeys';
 import { Button } from '@/components/ui/button';
 import { GlassPanel } from '@/components/ui/glass-panel';
 import { Separator } from '@/components/ui/separator';
-import { Brain, PanelLeftClose, PanelLeftOpen, Radio, Settings } from 'lucide-react';
+import { Brain, Database, PanelLeftClose, PanelLeftOpen, Radio, Settings } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { EditorClient } from './EditorClient';
 
-type TabId = 'agent' | 'channels' | 'settings';
+type TabId = 'agent' | 'data' | 'channels' | 'settings';
 
 interface EditorTabsProps {
   agentSlug: string;
@@ -38,11 +38,12 @@ interface EditorTabsProps {
 
 const TAB_ICONS: Record<TabId, LucideIcon> = {
   agent: Brain,
+  data: Database,
   channels: Radio,
   settings: Settings,
 };
 
-const TABS: TabId[] = ['agent', 'channels', 'settings'];
+const TABS: TabId[] = ['agent', 'data', 'channels', 'settings'];
 
 interface TabButtonProps {
   tab: TabId;
@@ -124,6 +125,41 @@ function useSlotSync(slotRef: React.RefObject<HTMLDivElement | null>, activeTab:
   }, [activeTab, setSlotRect, slotRef]);
 }
 
+function TabContent({ activeTab, props }: { activeTab: TabId; props: EditorTabsProps }) {
+  const { setSettingsPortal, setDataPortal } = useEditorCache();
+  const settingsPortalRef = useCallback(
+    (el: HTMLDivElement | null) => setSettingsPortal(el),
+    [setSettingsPortal]
+  );
+  const dataPortalRef = useCallback(
+    (el: HTMLDivElement | null) => setDataPortal(el),
+    [setDataPortal]
+  );
+
+  return (
+    <div className={`flex flex-col bg-background ${activeTab === 'agent' ? 'hidden' : 'flex-1'}`}>
+      {activeTab === 'channels' && <ChannelsPanel orgId={props.orgId} agentId={props.agentId} />}
+      {activeTab === 'data' && (
+        <div className="mx-auto w-full max-w-lg flex flex-col gap-6 p-6">
+          <div ref={dataPortalRef} className="flex flex-col gap-6" />
+        </div>
+      )}
+      {activeTab === 'settings' && (
+        <SettingsPanel
+          agentId={props.agentId}
+          agentName={props.agentName}
+          agentSlug={props.agentSlug}
+          initialDescription={props.agentDescription}
+          initialCategory={props.agentCategory}
+          initialIsPublic={props.agentIsPublic}
+          currentVersion={props.initialVersion}
+          extraContent={<div ref={settingsPortalRef} className="flex flex-col gap-6" />}
+        />
+      )}
+    </div>
+  );
+}
+
 export function EditorTabs(props: EditorTabsProps) {
   const [activeTab, setActiveTab] = useState<TabId>('agent');
   const t = useTranslations('editor.tabs');
@@ -137,20 +173,7 @@ export function EditorTabs(props: EditorTabsProps) {
     <div className="w-full h-full flex flex-col pt-[1px]">
       <EditorTabBar activeTab={activeTab} onTabChange={setActiveTab} t={t} tAgents={tAgents} />
       <div ref={slotRef} className={activeTab === 'agent' ? 'flex-1' : 'hidden'} />
-      <div className={`flex flex-col bg-background ${activeTab === 'agent' ? 'hidden' : 'flex-1'}`}>
-        {activeTab === 'channels' && <ChannelsPanel orgId={props.orgId} agentId={props.agentId} />}
-        {activeTab === 'settings' && (
-          <SettingsPanel
-            agentId={props.agentId}
-            agentName={props.agentName}
-            agentSlug={props.agentSlug}
-            initialDescription={props.agentDescription}
-            initialCategory={props.agentCategory}
-            initialIsPublic={props.agentIsPublic}
-            currentVersion={props.initialVersion}
-          />
-        )}
-      </div>
+      <TabContent activeTab={activeTab} props={props} />
     </div>
   );
 }
