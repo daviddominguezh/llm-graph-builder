@@ -203,7 +203,7 @@ function PopoverBody(props: PopoverBodyProps) {
             publishing={publishing}
           />
           <Button variant="default" size="sm" className="w-full" onClick={onPublish} disabled={publishing}>
-            {t('publish')} v{version + 1}
+            {publishing ? <Loader2 className="size-4 animate-spin" /> : `${t('publish')} v${version + 1}`}
           </Button>
         </>
       ) : (

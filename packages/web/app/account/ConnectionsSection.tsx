@@ -97,7 +97,7 @@ function DisconnectDialog({ open, onOpenChange, onConfirm, confirming }: Disconn
         <AlertDialogFooter>
           <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
           <AlertDialogAction onClick={onConfirm} disabled={confirming}>
-            {t('confirm')}
+            {confirming ? <Loader2 className="size-4 animate-spin" /> : t('confirm')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

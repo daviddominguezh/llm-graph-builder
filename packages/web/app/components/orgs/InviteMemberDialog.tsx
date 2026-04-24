@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
@@ -143,7 +143,11 @@ function InviteForm({ orgId, existingEmails, onOpenChange, onInvited }: InviteMe
       </div>
       <DialogFooter className="shrink-0">
         <Button onClick={handleSubmit} disabled={!canSubmit}>
-          {loading ? t('inviting') : t('inviteCount', { count: validated.filter((e) => e.email.trim() !== '').length })}
+          {loading ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            t('inviteCount', { count: validated.filter((e) => e.email.trim() !== '').length })
+          )}
         </Button>
       </DialogFooter>
     </div>

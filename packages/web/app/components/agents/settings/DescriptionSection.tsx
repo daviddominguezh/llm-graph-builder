@@ -4,6 +4,7 @@ import { updateDescriptionAction } from '@/app/actions/agentSettings';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -42,7 +43,7 @@ export function DescriptionSection({ agentId, initialDescription }: DescriptionS
         rows={3}
       />
       <Button size="sm" onClick={handleSave} disabled={unchanged || saving} className="mt-1 self-end">
-        {saving ? t('saving') : t('save')}
+        {saving ? <Loader2 className="size-4 animate-spin" /> : t('save')}
       </Button>
     </div>
   );

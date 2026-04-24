@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -62,7 +63,7 @@ export function AgentDangerZone({ agentId, agentName, orgSlug }: AgentDangerZone
           <AlertDialogFooter>
             <AlertDialogCancel>{ta('deleteCancel')}</AlertDialogCancel>
             <AlertDialogAction variant="destructive" onClick={handleDelete} disabled={loading}>
-              {ta('deleteConfirm')}
+              {loading ? <Loader2 className="size-4 animate-spin" /> : ta('deleteConfirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -102,7 +102,7 @@ function WelcomeForm() {
         onRemove={handleRemove}
       />
       <Button type="submit" disabled={disabled} className="w-full">
-        {checking ? <Loader2 className="size-4 animate-spin" /> : tWelcome('cta')}
+        {loading || checking ? <Loader2 className="size-4 animate-spin" /> : tWelcome('cta')}
       </Button>
     </form>
   );
