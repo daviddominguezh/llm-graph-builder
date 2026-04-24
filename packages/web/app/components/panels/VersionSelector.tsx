@@ -157,7 +157,7 @@ export function VersionSelector(props: VersionSelectorProps) {
       <Select value={String(currentVersion)} onValueChange={handleValueChange} disabled={loading}>
         <SelectTrigger
           size="sm"
-          className="cursor-pointer data-[size=sm]:h-auto border-0 bg-transparent dark:bg-transparent px-2 text-xs font-bold [&>svg:last-child]:hidden hover:bg-input dark:hover:bg-input rounded-full relative aspect-square h-8"
+          className="cursor-pointer data-[size=sm]:h-auto border-0 bg-transparent dark:bg-transparent px-2 text-xs font-bold [&>svg:last-child]:hidden hover:bg-input dark:hover:bg-input rounded-full relative aspect-square h-7"
         >
           <History className="size-4" />
         </SelectTrigger>

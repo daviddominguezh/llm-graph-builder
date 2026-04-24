@@ -218,7 +218,7 @@ function DisabledPublishButton() {
   const tKeys = useTranslations('apiKeys');
 
   const button = (
-    <Button variant="default" size="lg" disabled className="gap-1.5 px-3 rounded-full">
+    <Button variant="default" size="default" disabled className="gap-1.5 px-3 rounded-full">
       {t('publish')}
     </Button>
   );
@@ -262,7 +262,7 @@ export function PublishButton(props: PublishButtonProps) {
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger
-        render={<Button variant="default" size="lg" className="gap-1.5 px-3 rounded-full pr-2" />}
+        render={<Button variant="default" size="default" className="gap-1.5 px-3 rounded-full pr-2" />}
       >
         {t('publish')}
         <ChevronDown className='size-4' />

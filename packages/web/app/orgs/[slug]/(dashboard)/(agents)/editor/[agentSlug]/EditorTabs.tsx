@@ -199,7 +199,7 @@ function EditorTabBar({
   return (
     <GlassPanel
       variant="background"
-      className="relative w-[calc(100%-(var(--spacing)*4))] rounded-full h-[41px] shrink-0 flex items-center px-2 mx-2 pointer-events-auto"
+      className="relative w-[calc(100%-(var(--spacing)*4))] rounded-full h-fit shrink-0 flex items-center px-1 mx-2 pointer-events-auto py-1"
     >
       <div className="flex flex-row w-full items-center">
         <Button
