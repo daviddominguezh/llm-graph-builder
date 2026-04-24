@@ -15,6 +15,13 @@ import {
   SET_LEAD_SCORE_TOOL_NAME,
   createLeadScoringTools,
 } from './leadScoringTools.js';
+import {
+  GET_FORM_FIELD_TOOL_NAME,
+  SET_FORM_FIELDS_TOOL_NAME,
+  createFormsTools,
+} from './formsTools.js';
+import type { FormsService } from '../services/formsService.js';
+import type { FormDefinition } from '../types/forms.js';
 
 const RESERVED_TOOL_NAMES = new Set([
   CREATE_AGENT_TOOL_NAME,
@@ -23,6 +30,8 @@ const RESERVED_TOOL_NAMES = new Set([
   FINISH_TOOL_NAME,
   SET_LEAD_SCORE_TOOL_NAME,
   GET_LEAD_SCORE_TOOL_NAME,
+  SET_FORM_FIELDS_TOOL_NAME,
+  GET_FORM_FIELD_TOOL_NAME,
 ]);
 
 /**
@@ -37,6 +46,9 @@ interface InjectSystemToolsParams {
   existingTools: Record<string, Tool>;
   isChildAgent: boolean;
   leadScoringServices?: LeadScoringServices;
+  formsServices?: FormsService;
+  forms?: FormDefinition[];
+  conversationId?: string;
   contextData?: Record<string, unknown>;
 }
 
@@ -78,6 +90,20 @@ export function injectSystemTools(params: InjectSystemToolsParams): Record<strin
     contextData: params.contextData,
   });
   Object.assign(systemTools, leadScoringTools);
+
+  // Add forms tools (when services + forms + conversationId all provided)
+  if (
+    params.formsServices !== undefined &&
+    params.forms !== undefined &&
+    params.conversationId !== undefined
+  ) {
+    const formsTools = createFormsTools({
+      forms: params.forms,
+      services: params.formsServices,
+      conversationId: params.conversationId,
+    });
+    Object.assign(systemTools, formsTools);
+  }
 
   return systemTools;
 }
