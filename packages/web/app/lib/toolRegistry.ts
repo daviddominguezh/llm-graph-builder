@@ -20,6 +20,9 @@ const SYSTEM_SERVER_NAME = 'OpenFlow/Composition';
 const LEAD_SCORING_SERVER_ID = '__lead_scoring__';
 const LEAD_SCORING_SERVER_NAME = 'OpenFlow/LeadScoring';
 
+const FORMS_SERVER_ID = '__forms__';
+const FORMS_SERVER_NAME = 'OpenFlow/Forms';
+
 const SYSTEM_TOOLS: RegistryTool[] = [
   {
     sourceId: SYSTEM_SERVER_ID,
@@ -108,6 +111,45 @@ const LEAD_SCORING_TOOLS: RegistryTool[] = [
   },
 ];
 
+const FORMS_TOOLS: RegistryTool[] = [
+  {
+    sourceId: FORMS_SERVER_ID,
+    group: FORMS_SERVER_NAME,
+    name: 'set_form_fields',
+    description: 'Persist one or more field values into a form. All fields validate atomically.',
+    inputSchema: {
+      type: 'object',
+      required: ['formSlug', 'fields'],
+      properties: {
+        formSlug: { type: 'string' },
+        fields: {
+          type: 'array',
+          minItems: 1,
+          items: {
+            type: 'object',
+            required: ['fieldPath', 'fieldValue'],
+            properties: {
+              fieldPath: { type: 'string' },
+              fieldValue: { type: ['string', 'number', 'boolean', 'object', 'array', 'null'] },
+            },
+          },
+        },
+      },
+    },
+  },
+  {
+    sourceId: FORMS_SERVER_ID,
+    group: FORMS_SERVER_NAME,
+    name: 'get_form_field',
+    description: 'Read a single field value from a form by dotted path.',
+    inputSchema: {
+      type: 'object',
+      required: ['formSlug', 'fieldPath'],
+      properties: { formSlug: { type: 'string' }, fieldPath: { type: 'string' } },
+    },
+  },
+];
+
 function buildMcpTools(
   servers: McpServerConfig[],
   discovered: Record<string, DiscoveredTool[]>
@@ -139,7 +181,7 @@ function buildGroups(tools: RegistryTool[]): ToolGroup[] {
     groupTools.sort((a, b) => a.name.localeCompare(b.name));
     groups.push({ groupName, tools: groupTools });
   }
-  const systemGroupNames = new Set([SYSTEM_SERVER_NAME, LEAD_SCORING_SERVER_NAME]);
+  const systemGroupNames = new Set([SYSTEM_SERVER_NAME, LEAD_SCORING_SERVER_NAME, FORMS_SERVER_NAME]);
   const system = groups.filter((g) => systemGroupNames.has(g.groupName));
   const rest = groups.filter((g) => !systemGroupNames.has(g.groupName));
   rest.sort((a, b) => a.groupName.localeCompare(b.groupName));
@@ -151,6 +193,6 @@ export function buildToolRegistry(
   discovered: Record<string, DiscoveredTool[]>
 ): { tools: RegistryTool[]; groups: ToolGroup[] } {
   const mcpTools = buildMcpTools(servers, discovered);
-  const allTools = [...mcpTools, ...LEAD_SCORING_TOOLS, ...SYSTEM_TOOLS];
+  const allTools = [...mcpTools, ...FORMS_TOOLS, ...LEAD_SCORING_TOOLS, ...SYSTEM_TOOLS];
   return { tools: allTools, groups: buildGroups(allTools) };
 }
