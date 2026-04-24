@@ -16,7 +16,7 @@ function PillButton({ active, onClick, label }: { active: boolean; onClick: () =
   const base = 'shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium cursor-pointer transition-colors';
   const variant = active
     ? 'bg-primary text-primary-foreground'
-    : 'dark:bg-sidebar-accent dark:hover:bg-input bg-card hover:bg-input text-muted-foreground';
+    : 'dark:bg-input/40 dark:hover:bg-input bg-input hover:bg-input text-muted-foreground';
 
   return (
     <button type="button" aria-pressed={active} onClick={onClick} className={`${base} ${variant}`}>
@@ -40,7 +40,7 @@ export function CategoryPills({ value, onChange }: CategoryPillsProps) {
 
   return (
     <Scrollable
-      className="min-w-0 shrink-0 pb-2 pr-4"
+      className="min-w-0 shrink-0 pb-3 pr-4"
       style={{
         maskImage: 'linear-gradient(to right, black 0, black calc(100% - 24px), transparent 100%)',
         WebkitMaskImage: 'linear-gradient(to right, black 0, black calc(100% - 24px), transparent 100%)',

@@ -31,7 +31,7 @@ function AppTypeCard({
   label: string;
   description: string;
 }) {
-  const active = selected ? 'bg-background hover:bg-background! dark:hover:bg-input/30 dark:bg-input/30! ring-1 ring-primary border-solid' : 'bg-card dark:bg-transparent border-border';
+  const active = selected ? 'bg-background hover:bg-background! dark:hover:bg-input/30 dark:bg-input/30! border-primary' : 'bg-transparent dark:bg-transparent border-border';
 
   return (
     <button
