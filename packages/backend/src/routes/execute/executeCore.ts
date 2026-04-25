@@ -7,6 +7,7 @@ import { handleChildFinish, persistCoreResult } from './executeCoreChildFinish.j
 import {
   type BuildCoreParamsOptions,
   buildCoreExecuteParams,
+  resolveGoogleCalendarPayload,
   resolveVfsCorePayload,
 } from './executeCoreHelpers.js';
 import { handleInlineDispatch } from './executeCoreInlineDispatch.js';
@@ -98,16 +99,15 @@ interface RunAgentResult {
 }
 
 async function runAgent(params: RunAgentParams): Promise<RunAgentResult> {
-  const vfsPayload = await resolveVfsCorePayload(
-    params.supabase,
-    params.fetched,
-    params.input.agentId,
-    params.input.orgId
-  );
+  const [vfsPayload, googleCalendar] = await Promise.all([
+    resolveVfsCorePayload(params.supabase, params.fetched, params.input.agentId, params.input.orgId),
+    resolveGoogleCalendarPayload(params.supabase, params.input.orgId),
+  ]);
   const buildOptions: BuildCoreParamsOptions = {
     vfsPayload,
     overrideAgentConfig: params.override ?? params.input.overrideAgentConfig,
     conversationId: params.conversationId ?? undefined,
+    googleCalendar,
   };
   const edgeParams = buildCoreExecuteParams(params.fetched, params.input.input, params.model, buildOptions);
   const startTime = Date.now();

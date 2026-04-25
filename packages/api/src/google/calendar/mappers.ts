@@ -1,11 +1,11 @@
+import type { z } from 'zod';
+
 import type {
   BookAppointmentInput,
   CalendarAttendee,
   CalendarEvent,
   UpdateEventInput,
-} from '@daviddh/llm-graph-runner';
-import type { z } from 'zod';
-
+} from '../../types/calendar.js';
 import type { GoogleEventSchema } from './responseSchemas.js';
 
 export type GoogleEvent = z.infer<typeof GoogleEventSchema>;

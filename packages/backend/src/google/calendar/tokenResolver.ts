@@ -52,3 +52,19 @@ export async function resolveGoogleAccessToken(supabase: SupabaseClient, orgId: 
   if (isTokenFresh(connection)) return connection.accessToken;
   return await refreshAndStore(supabase, connection);
 }
+
+/**
+ * Like resolveGoogleAccessToken, but returns null when the org has no
+ * Google Calendar connection (instead of throwing). Use when preparing
+ * the edge function payload — we want to skip calendar tools silently
+ * for orgs that haven't connected a Google account.
+ */
+export async function resolveGoogleAccessTokenOptional(
+  supabase: SupabaseClient,
+  orgId: string
+): Promise<string | null> {
+  const connection = await getGoogleConnection(supabase, orgId);
+  if (connection === null) return null;
+  if (isTokenFresh(connection)) return connection.accessToken;
+  return await refreshAndStore(supabase, connection);
+}

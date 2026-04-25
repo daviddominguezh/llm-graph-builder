@@ -1,4 +1,4 @@
-import type { AvailableSlot } from '@daviddh/llm-graph-runner';
+import type { AvailableSlot } from '../../types/calendar.js';
 
 const MAX_SLOTS = 3;
 const MS_PER_MINUTE = 60_000;

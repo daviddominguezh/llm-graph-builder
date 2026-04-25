@@ -1,12 +1,13 @@
 import type { z } from 'zod';
 
-import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
-import { resolveGoogleAccessToken } from './tokenResolver.js';
-
 export const GOOGLE_CALENDAR_BASE = 'https://www.googleapis.com/calendar/v3';
 
+const HTTP_NO_CONTENT = 204;
+
+export type AccessTokenProvider = (orgId: string) => Promise<string>;
+
 export interface CallCalendarArgs {
-  supabase: SupabaseClient;
+  getAccessToken: AccessTokenProvider;
   orgId: string;
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   path: string;
@@ -20,8 +21,6 @@ function buildUrl(path: string, query: Record<string, string> | undefined): stri
   const params = new URLSearchParams(query);
   return `${url}?${params.toString()}`;
 }
-
-const HTTP_NO_CONTENT = 204;
 
 async function parseErrorResponse(res: Response): Promise<string> {
   try {
@@ -46,7 +45,7 @@ function buildInit(args: CallCalendarArgs, token: string): { init: RequestInit }
 }
 
 async function performRequest(args: CallCalendarArgs): Promise<Response> {
-  const token = await resolveGoogleAccessToken(args.supabase, args.orgId);
+  const token = await args.getAccessToken(args.orgId);
   const { init } = buildInit(args, token);
   const res = await fetch(buildUrl(args.path, args.query), init);
   if (!res.ok) {

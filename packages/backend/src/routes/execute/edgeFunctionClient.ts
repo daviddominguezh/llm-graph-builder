@@ -17,6 +17,11 @@ import {
 
 export type { NodeProcessedData, VfsEdgeFunctionPayload } from './executeSharedTypes.js';
 
+export interface GoogleCalendarEdgePayload {
+  accessToken: string;
+  orgId: string;
+}
+
 export interface ExecuteAgentParams {
   appType?: 'workflow' | 'agent';
   graph: RuntimeGraph;
@@ -38,6 +43,8 @@ export interface ExecuteAgentParams {
   maxSteps?: number | null;
   isChildAgent?: boolean;
   conversationId?: string;
+  // Pre-resolved OAuth bundles for stateless edge function execution
+  googleCalendar?: GoogleCalendarEdgePayload;
 }
 
 export interface ExecuteAgentCallbacks {

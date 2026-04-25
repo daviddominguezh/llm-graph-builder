@@ -1,16 +1,12 @@
 import type {
-  AvailableSlot,
   BookAppointmentArgs,
-  CalendarEvent,
-  CalendarSummary,
   CheckAvailabilityArgs,
   EventRefArgs,
   ListEventsArgs,
   UpdateEventArgs,
-} from '@daviddh/llm-graph-runner';
-
-import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
-import { callCalendarJson, callCalendarVoid } from './apiClient.js';
+} from '../../services/calendarService.js';
+import type { AvailableSlot, CalendarEvent, CalendarSummary } from '../../types/calendar.js';
+import { type AccessTokenProvider, callCalendarJson, callCalendarVoid } from './apiClient.js';
 import { buildCreateEventBody, buildUpdateEventBody, mapGoogleEvent } from './mappers.js';
 import {
   CalendarListResponseSchema,
@@ -22,14 +18,12 @@ import { computeAvailableSlots } from './slotSelection.js';
 
 const EMPTY_LENGTH = 0;
 
-export async function listCalendarsOp(supabase: SupabaseClient, orgId: string): Promise<CalendarSummary[]> {
+export async function listCalendarsOp(
+  getAccessToken: AccessTokenProvider,
+  orgId: string
+): Promise<CalendarSummary[]> {
   const data = await callCalendarJson(
-    {
-      supabase,
-      orgId,
-      method: 'GET',
-      path: '/users/me/calendarList',
-    },
+    { getAccessToken, orgId, method: 'GET', path: '/users/me/calendarList' },
     CalendarListResponseSchema
   );
   const items = data.items ?? [];
@@ -44,12 +38,12 @@ export async function listCalendarsOp(supabase: SupabaseClient, orgId: string): 
 }
 
 export async function checkAvailabilityOp(
-  supabase: SupabaseClient,
+  getAccessToken: AccessTokenProvider,
   args: CheckAvailabilityArgs
 ): Promise<AvailableSlot[]> {
   const data = await callCalendarJson(
     {
-      supabase,
+      getAccessToken,
       orgId: args.orgId,
       method: 'POST',
       path: '/freeBusy',
@@ -70,10 +64,13 @@ export async function checkAvailabilityOp(
   });
 }
 
-export async function listEventsOp(supabase: SupabaseClient, args: ListEventsArgs): Promise<CalendarEvent[]> {
+export async function listEventsOp(
+  getAccessToken: AccessTokenProvider,
+  args: ListEventsArgs
+): Promise<CalendarEvent[]> {
   const data = await callCalendarJson(
     {
-      supabase,
+      getAccessToken,
       orgId: args.orgId,
       method: 'GET',
       path: `/calendars/${encodeURIComponent(args.calendarId)}/events`,
@@ -90,13 +87,13 @@ export async function listEventsOp(supabase: SupabaseClient, args: ListEventsArg
 }
 
 export async function getEventOp(
-  supabase: SupabaseClient,
+  getAccessToken: AccessTokenProvider,
   args: EventRefArgs
 ): Promise<CalendarEvent | null> {
   try {
     const event = await callCalendarJson(
       {
-        supabase,
+        getAccessToken,
         orgId: args.orgId,
         method: 'GET',
         path: `/calendars/${encodeURIComponent(args.calendarId)}/events/${encodeURIComponent(args.eventId)}`,
@@ -119,12 +116,12 @@ function buildBookAppointmentQuery(args: BookAppointmentArgs): Record<string, st
 }
 
 export async function bookAppointmentOp(
-  supabase: SupabaseClient,
+  getAccessToken: AccessTokenProvider,
   args: BookAppointmentArgs
 ): Promise<CalendarEvent> {
   const event = await callCalendarJson(
     {
-      supabase,
+      getAccessToken,
       orgId: args.orgId,
       method: 'POST',
       path: `/calendars/${encodeURIComponent(args.calendarId)}/events`,
@@ -141,10 +138,13 @@ function buildUpdateEventQuery(args: UpdateEventArgs): Record<string, string> | 
   return { sendUpdates: 'all' };
 }
 
-export async function updateEventOp(supabase: SupabaseClient, args: UpdateEventArgs): Promise<CalendarEvent> {
+export async function updateEventOp(
+  getAccessToken: AccessTokenProvider,
+  args: UpdateEventArgs
+): Promise<CalendarEvent> {
   const event = await callCalendarJson(
     {
-      supabase,
+      getAccessToken,
       orgId: args.orgId,
       method: 'PATCH',
       path: `/calendars/${encodeURIComponent(args.calendarId)}/events/${encodeURIComponent(args.eventId)}`,
@@ -156,9 +156,12 @@ export async function updateEventOp(supabase: SupabaseClient, args: UpdateEventA
   return mapGoogleEvent(event);
 }
 
-export async function cancelAppointmentOp(supabase: SupabaseClient, args: EventRefArgs): Promise<void> {
+export async function cancelAppointmentOp(
+  getAccessToken: AccessTokenProvider,
+  args: EventRefArgs
+): Promise<void> {
   await callCalendarVoid({
-    supabase,
+    getAccessToken,
     orgId: args.orgId,
     method: 'DELETE',
     path: `/calendars/${encodeURIComponent(args.calendarId)}/events/${encodeURIComponent(args.eventId)}`,

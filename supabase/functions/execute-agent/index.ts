@@ -7,6 +7,7 @@ import type {
   AgentLoopResult,
   AgentStepEvent,
   ApplyResult,
+  CalendarService,
   CallAgentOutput,
   Context,
   FailedAttempt,
@@ -20,6 +21,7 @@ import type {
 import {
   VFSContext,
   applyFormFields,
+  createGoogleCalendarService,
   executeAgentLoop,
   executeWithCallbacks,
   generateVFSTools,
@@ -44,6 +46,16 @@ interface VfsPayloadData {
   };
 }
 
+interface GoogleCalendarPayload {
+  accessToken: string;
+  orgId: string;
+}
+
+interface CalendarBundle {
+  services: CalendarService;
+  orgId: string;
+}
+
 interface ExecutePayload {
   appType?: 'workflow' | 'agent';
   graph: RuntimeGraph;
@@ -65,6 +77,19 @@ interface ExecutePayload {
   maxSteps?: number | null;
   isChildAgent?: boolean;
   conversationId?: string;
+  // Pre-resolved OAuth bundles (backend resolves; edge function is stateless)
+  googleCalendar?: GoogleCalendarPayload;
+}
+
+function buildCalendarBundle(payload: ExecutePayload): CalendarBundle | undefined {
+  const { googleCalendar } = payload;
+  if (googleCalendar === undefined) return undefined;
+  return {
+    services: createGoogleCalendarService({
+      getAccessToken: async () => googleCalendar.accessToken,
+    }),
+    orgId: googleCalendar.orgId,
+  };
 }
 
 const SSE_HEADERS = {
@@ -534,7 +559,8 @@ async function runAgentExecution(
   write: WriteEvent,
   leadScoringServices?: LeadScoringServices,
   formsBundle?: FormsBundle,
-  conversationId?: string
+  conversationId?: string,
+  calendarBundle?: CalendarBundle
 ): Promise<void> {
   log.info(
     `agent start model=${payload.modelId} msgs=${payload.messages.length} tools=${Object.keys(allTools).length} prompt=${(payload.systemPrompt ?? '').slice(0, 80)}`
@@ -556,6 +582,8 @@ async function runAgentExecution(
         forms: formsBundle?.forms,
         conversationId,
         contextData: payload.data,
+        calendarServices: calendarBundle?.services,
+        orgId: calendarBundle?.orgId,
       }),
       isChildAgent: payload.isChildAgent ?? false,
     },
@@ -608,7 +636,8 @@ async function runWorkflowExecution(
   write: WriteEvent,
   leadScoringServices?: LeadScoringServices,
   formsBundle?: FormsBundle,
-  conversationId?: string
+  conversationId?: string,
+  calendarBundle?: CalendarBundle
 ): Promise<void> {
   const context = buildContext(payload);
 
@@ -625,6 +654,8 @@ async function runWorkflowExecution(
       forms: formsBundle?.forms,
       conversationId,
       contextData: payload.data,
+      calendarServices: calendarBundle?.services,
+      orgId: calendarBundle?.orgId,
     }),
     structuredOutputs: payload.structuredOutputs,
     onNodeVisited: (nodeId: string) => {
@@ -724,6 +755,8 @@ Deno.serve(async (req: Request) => {
         const formsBundle =
           payload.conversationId !== undefined ? await buildFormsBundle(payload.conversationId) : undefined;
 
+        const calendarBundle = buildCalendarBundle(payload);
+
         if (isAgent) {
           await runAgentExecution(
             payload,
@@ -731,7 +764,8 @@ Deno.serve(async (req: Request) => {
             write,
             leadScoringServices,
             formsBundle,
-            payload.conversationId
+            payload.conversationId,
+            calendarBundle
           );
         } else {
           await runWorkflowExecution(
@@ -740,7 +774,8 @@ Deno.serve(async (req: Request) => {
             write,
             leadScoringServices,
             formsBundle,
-            payload.conversationId
+            payload.conversationId,
+            calendarBundle
           );
         }
 

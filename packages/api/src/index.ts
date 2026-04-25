@@ -106,6 +106,9 @@ export {
 } from './tools/calendarTools.js';
 export type { CreateCalendarToolsParams } from './tools/calendarTools.js';
 
+export { createGoogleCalendarService } from './google/calendar/service.js';
+export type { AccessTokenProvider, CreateGoogleCalendarServiceOptions } from './google/calendar/service.js';
+
 export const execute = async (
   context: Context,
   messages: Message[],
