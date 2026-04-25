@@ -2,6 +2,7 @@ import type { OutputSchemaField } from '@daviddh/graph-types';
 import {
   applyFormFields,
   type ApplyResult,
+  type FailedAttempt,
   type FormData,
   type FormDefinition,
   type ValidationsMap,
@@ -107,6 +108,20 @@ export async function applyFormFieldsAtomicQuery(args: ApplyArgs): Promise<Apply
   });
   if (error) throw new Error(error.message);
   return result;
+}
+
+export async function recordFailedAttemptQuery(
+  conversationId: string,
+  formId: string,
+  attempt: FailedAttempt
+): Promise<void> {
+  const db = await createClient();
+  const result = await callRpc(db, 'append_form_failure', {
+    p_conversation_id: conversationId,
+    p_form_id: formId,
+    p_entry: attempt as unknown as Json,
+  });
+  if (result.error) throw new Error(result.error.message);
 }
 
 async function callRpc(
