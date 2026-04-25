@@ -27,7 +27,7 @@ export function useCsvExport(): UseCsvExportResult {
     try {
       await runExportRequest({ url, filename, controller, t });
     } catch (err) {
-      handleError(err, t);
+      handleError(err);
     } finally {
       setState('idle');
       controllerRef.current = null;
@@ -76,7 +76,7 @@ function showSuccessToast(rows: number, truncated: boolean, t: ReturnType<typeof
   toast.success(truncated ? t('successTruncated', { count: rows }) : t('success', { count: rows }));
 }
 
-function handleError(err: unknown, _t: ReturnType<typeof useTranslations>): void {
+function handleError(err: unknown): void {
   if (err instanceof Error && err.name === 'AbortError') return;
   toast.error(String(err));
 }
