@@ -202,6 +202,7 @@ export function SidePanels(props: SidePanelsProps) {
     <div className={`pointer-events-auto ${readOnlyClass}`}>
       <OutputSchemaDialog
         schema={schemaDialog.editingSchema}
+        agentId={props.agentId}
         onSave={props.outputSchemasHook.updateSchema}
         onSaved={schemaDialog.handleSchemaSaved}
         open={schemaDialog.editingSchemaId !== null}
