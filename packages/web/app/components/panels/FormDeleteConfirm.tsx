@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import type { ReactElement } from 'react';
 
 import {
   AlertDialog,
@@ -20,7 +21,7 @@ interface Props {
   slug: string;
 }
 
-export function FormDeleteConfirm({ open, onClose, onConfirm, slug }: Props): JSX.Element {
+export function FormDeleteConfirm({ open, onClose, onConfirm, slug }: Props): ReactElement {
   const t = useTranslations('forms.delete');
   return (
     <AlertDialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>

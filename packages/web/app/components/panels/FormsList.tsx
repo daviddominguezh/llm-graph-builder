@@ -1,6 +1,7 @@
 'use client';
 
 import { Pencil, Trash2 } from 'lucide-react';
+import type { ReactElement } from 'react';
 
 import { Button } from '@/components/ui/button';
 
@@ -17,7 +18,7 @@ interface Props {
   onDelete: (id: string) => void;
 }
 
-export function FormsList({ forms, onEdit, onDelete }: Props): JSX.Element {
+export function FormsList({ forms, onEdit, onDelete }: Props): ReactElement {
   return (
     <ul className="flex flex-col divide-y divide-border rounded-md border">
       {forms.map((f) => (
@@ -38,7 +39,7 @@ interface RowProps {
   onDelete: () => void;
 }
 
-function FormsListRow({ form, onEdit, onDelete }: RowProps): JSX.Element {
+function FormsListRow({ form, onEdit, onDelete }: RowProps): ReactElement {
   return (
     <li className="flex items-center justify-between px-3 py-2">
       <div className="flex items-center gap-2 min-w-0">

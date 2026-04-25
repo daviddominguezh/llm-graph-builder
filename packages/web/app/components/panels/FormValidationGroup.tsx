@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useState, type ReactElement, type ReactNode } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -22,7 +22,7 @@ export function FormValidationGroup({
   configuredCount,
   totalCount,
   indent = 0,
-}: Props): JSX.Element {
+}: Props): ReactElement {
   const t = useTranslations('forms.validations');
   const [open, setOpen] = useState(true);
   const arraySuffix = kind === 'array' ? '[]' : '';

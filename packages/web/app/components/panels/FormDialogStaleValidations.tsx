@@ -2,7 +2,7 @@
 
 import { AlertTriangle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import React from 'react';
+import type { ReactElement } from 'react';
 
 import type { ValidationsMap } from '@daviddh/llm-graph-runner';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ export function FormDialogStaleValidations({
   onChange,
   onKeep,
   kept,
-}: Props): JSX.Element | null {
+}: Props): ReactElement | null {
   const t = useTranslations('forms.validations.stale');
   if (stalePaths.length === 0 || kept) return null;
 
