@@ -6,14 +6,20 @@ import type { McpServerConfig, McpTransport, RuntimeGraph } from '@daviddh/graph
 import type {
   AgentLoopResult,
   AgentStepEvent,
+  ApplyResult,
   CallAgentOutput,
   Context,
+  FailedAttempt,
+  FormData,
+  FormDefinition,
+  FormsService,
   Logger,
   Message,
   NodeProcessedEvent,
 } from '@daviddh/llm-graph-runner';
 import {
   VFSContext,
+  applyFormFields,
   executeAgentLoop,
   executeWithCallbacks,
   generateVFSTools,
@@ -208,6 +214,160 @@ async function buildLeadScoringServices(conversationId: string): Promise<LeadSco
   };
 }
 
+/* ─── Forms services ─── */
+
+interface SchemaRow {
+  agent_id: string;
+  schema_id: string;
+  fields: unknown;
+}
+
+interface FormRow {
+  id: string;
+  agent_id: string;
+  display_name: string;
+  form_slug: string;
+  schema_id: string;
+  validations: Record<string, unknown>;
+}
+
+async function loadAgentIdForConversation(
+  supabase: Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>,
+  conversationId: string
+): Promise<string | null> {
+  const { data } = await supabase.from('conversations').select('agent_id').eq('id', conversationId).single();
+  if (data === null) return null;
+  return typeof data.agent_id === 'string' ? data.agent_id : null;
+}
+
+async function loadFormsForAgent(
+  supabase: Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>,
+  agentId: string
+): Promise<FormDefinition[]> {
+  const [forms, schemas] = await Promise.all([
+    supabase
+      .from('graph_forms')
+      .select('id, agent_id, display_name, form_slug, schema_id, validations')
+      .eq('agent_id', agentId),
+    supabase.from('graph_output_schemas').select('agent_id, schema_id, fields').eq('agent_id', agentId),
+  ]);
+  if (forms.error !== null || schemas.error !== null) return [];
+  return mapFormRows(
+    (forms.data ?? []) as unknown as FormRow[],
+    (schemas.data ?? []) as unknown as SchemaRow[]
+  );
+}
+
+function mapFormRows(formRows: FormRow[], schemaRows: SchemaRow[]): FormDefinition[] {
+  const schemaMap = new Map<string, unknown>();
+  for (const s of schemaRows) schemaMap.set(s.schema_id, s.fields);
+  return formRows.map((f) => ({
+    id: f.id,
+    agentId: f.agent_id,
+    displayName: f.display_name,
+    formSlug: f.form_slug,
+    schemaId: f.schema_id,
+    schemaFields: (schemaMap.get(f.schema_id) ?? []) as FormDefinition['schemaFields'],
+    validations: f.validations as FormDefinition['validations'],
+  }));
+}
+
+async function readFormDataFromMetadata(
+  supabase: Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>,
+  conversationId: string,
+  formId: string
+): Promise<FormData | undefined> {
+  const { data } = await supabase.from('conversations').select('metadata').eq('id', conversationId).single();
+  if (data === null || data.metadata === null || typeof data.metadata !== 'object') return undefined;
+  const meta = data.metadata as { forms?: Record<string, FormData> };
+  return meta.forms?.[formId];
+}
+
+function computeFormPatch(current: FormData | undefined, newData: FormData): Record<string, unknown> {
+  const patch: Record<string, unknown> = {};
+  for (const k of Object.keys(newData)) {
+    if (JSON.stringify(current?.[k]) !== JSON.stringify(newData[k])) {
+      patch[k] = newData[k];
+    }
+  }
+  return patch;
+}
+
+async function applyAtomicViaRpc(
+  supabase: Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>,
+  conversationId: string,
+  form: FormDefinition,
+  fields: Array<{ fieldPath: string; fieldValue: unknown }>
+): Promise<ApplyResult> {
+  const current = await readFormDataFromMetadata(supabase, conversationId, form.id);
+  const result = applyFormFields({ form, currentData: current, fields });
+  if (!result.ok) return result;
+  const patch = computeFormPatch(current, result.newData);
+  const { error } = await supabase.rpc('write_form_data', {
+    p_conversation_id: conversationId,
+    p_form_id: form.id,
+    p_new_fields: patch,
+  });
+  if (error !== null) log.error(`write_form_data failed: ${error.message}`);
+  return result;
+}
+
+async function recordFailureViaRpc(
+  supabase: Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>,
+  conversationId: string,
+  formId: string,
+  attempt: FailedAttempt
+): Promise<void> {
+  const { error } = await supabase.rpc('append_form_failure', {
+    p_conversation_id: conversationId,
+    p_form_id: formId,
+    p_entry: attempt,
+  });
+  if (error !== null) log.error(`append_form_failure failed: ${error.message}`);
+}
+
+interface FormsBundle {
+  services: FormsService;
+  forms: FormDefinition[];
+}
+
+function buildPopulatedFormsService(
+  supabase: Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>,
+  forms: FormDefinition[]
+): FormsService {
+  return {
+    getFormDefinitions: () => Promise.resolve(forms),
+    getFormData: (convId, formId) => readFormDataFromMetadata(supabase, convId, formId),
+    applyFormFieldsAtomic: (args) => applyAtomicViaRpc(supabase, args.conversationId, args.form, args.fields),
+    recordFailedAttempt: (convId, formId, attempt) => recordFailureViaRpc(supabase, convId, formId, attempt),
+  };
+}
+
+function buildEmptyFormsService(
+  supabase: Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>
+): FormsService {
+  return {
+    getFormDefinitions: () => Promise.resolve([]),
+    getFormData: (convId, formId) => readFormDataFromMetadata(supabase, convId, formId),
+    applyFormFieldsAtomic: () =>
+      Promise.resolve({
+        ok: false,
+        newData: {},
+        results: [{ fieldPath: '', status: 'pathError' as const, reason: 'No forms configured' }],
+      }),
+    recordFailedAttempt: (convId, formId, attempt) => recordFailureViaRpc(supabase, convId, formId, attempt),
+  };
+}
+
+async function buildFormsBundle(conversationId: string): Promise<FormsBundle | undefined> {
+  const supabase = await buildSupabaseForLeadScoring();
+  const agentId = await loadAgentIdForConversation(supabase, conversationId);
+  if (agentId === null) return undefined;
+  const forms = await loadFormsForAgent(supabase, agentId);
+  if (forms.length === 0) return { services: buildEmptyFormsService(supabase), forms: [] };
+  return { services: buildPopulatedFormsService(supabase, forms), forms };
+}
+
 /* ─── Context builder ─── */
 
 function buildContext(
@@ -372,7 +532,9 @@ async function runAgentExecution(
   payload: ExecutePayload,
   allTools: Record<string, Tool>,
   write: WriteEvent,
-  leadScoringServices?: LeadScoringServices
+  leadScoringServices?: LeadScoringServices,
+  formsBundle?: FormsBundle,
+  conversationId?: string
 ): Promise<void> {
   log.info(
     `agent start model=${payload.modelId} msgs=${payload.messages.length} tools=${Object.keys(allTools).length} prompt=${(payload.systemPrompt ?? '').slice(0, 80)}`
@@ -390,6 +552,9 @@ async function runAgentExecution(
         existingTools: allTools,
         isChildAgent: payload.isChildAgent ?? false,
         leadScoringServices,
+        formsServices: formsBundle?.services,
+        forms: formsBundle?.forms,
+        conversationId,
         contextData: payload.data,
       }),
       isChildAgent: payload.isChildAgent ?? false,
@@ -441,7 +606,9 @@ async function runWorkflowExecution(
   payload: ExecutePayload,
   allTools: Record<string, Tool>,
   write: WriteEvent,
-  leadScoringServices?: LeadScoringServices
+  leadScoringServices?: LeadScoringServices,
+  formsBundle?: FormsBundle,
+  conversationId?: string
 ): Promise<void> {
   const context = buildContext(payload);
 
@@ -454,6 +621,9 @@ async function runWorkflowExecution(
       existingTools: allTools,
       isChildAgent: false,
       leadScoringServices,
+      formsServices: formsBundle?.services,
+      forms: formsBundle?.forms,
+      conversationId,
       contextData: payload.data,
     }),
     structuredOutputs: payload.structuredOutputs,
@@ -551,10 +721,27 @@ Deno.serve(async (req: Request) => {
             ? await buildLeadScoringServices(payload.conversationId)
             : undefined;
 
+        const formsBundle =
+          payload.conversationId !== undefined ? await buildFormsBundle(payload.conversationId) : undefined;
+
         if (isAgent) {
-          await runAgentExecution(payload, allTools, write, leadScoringServices);
+          await runAgentExecution(
+            payload,
+            allTools,
+            write,
+            leadScoringServices,
+            formsBundle,
+            payload.conversationId
+          );
         } else {
-          await runWorkflowExecution(payload, allTools, write, leadScoringServices);
+          await runWorkflowExecution(
+            payload,
+            allTools,
+            write,
+            leadScoringServices,
+            formsBundle,
+            payload.conversationId
+          );
         }
 
         write({ type: 'execution_complete' });
