@@ -34,9 +34,13 @@ interface OutputSchemaDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-function UsedByFormsBanner({ agentId, schemaId }: { agentId: string; schemaId: string }) {
+interface FormRef {
+  id: string;
+  slug: string;
+}
+
+function UsedByFormsBanner({ formsUsing }: { formsUsing: FormRef[] }) {
   const tWarn = useTranslations('outputSchemas.warnings');
-  const formsUsing = useSchemaUsageBySchemaId(agentId, schemaId);
   if (formsUsing.length === 0) return null;
   return (
     <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
@@ -59,9 +63,11 @@ function EmptyState() {
 
 function FieldList({
   fields,
+  fieldUsageSlugs,
   onChange,
 }: {
   fields: OutputSchemaField[];
+  fieldUsageSlugs: string[];
   onChange: (fields: OutputSchemaField[]) => void;
 }) {
   return (
@@ -73,6 +79,7 @@ function FieldList({
             key={index}
             field={field}
             depth={1}
+            usedByFormSlugs={fieldUsageSlugs.length > 0 ? fieldUsageSlugs : undefined}
             onChange={(updated) => onChange(updateFieldInList(fields, index, updated))}
             onRemove={() => onChange(removeFieldFromList(fields, index))}
           />
@@ -96,6 +103,8 @@ function SchemaEditor({
   const t = useTranslations('nodePanel');
   const tSchemas = useTranslations('outputSchemas');
   const [draft, setDraft] = useState<OutputSchemaEntity>(initial);
+  const formsUsing = useSchemaUsageBySchemaId(agentId, initial.id);
+  const fieldUsageSlugs = formsUsing.map((f) => f.slug);
 
   const handleFieldsChange = (fields: OutputSchemaField[]) => {
     setDraft((prev) => ({ ...prev, fields }));
@@ -111,7 +120,7 @@ function SchemaEditor({
         <DialogHeader className="border-b pb-3 sticky top-0 bg-background! z-50">
           <DialogTitle>{'Structured Output Schema'}</DialogTitle>
         </DialogHeader>
-        <UsedByFormsBanner agentId={agentId} schemaId={initial.id} />
+        <UsedByFormsBanner formsUsing={formsUsing} />
         <div className="space-y-1 px-1 pt-3 pb-3">
           <Label className="text-xs">{tSchemas('schemaName')}</Label>
           <Input
@@ -125,7 +134,11 @@ function SchemaEditor({
           {draft.fields.length === 0 ? (
             <EmptyState />
           ) : (
-            <FieldList fields={draft.fields} onChange={handleFieldsChange} />
+            <FieldList
+              fields={draft.fields}
+              fieldUsageSlugs={fieldUsageSlugs}
+              onChange={handleFieldsChange}
+            />
           )}
         </div>
         <Button

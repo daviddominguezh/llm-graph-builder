@@ -462,9 +462,21 @@ function buildSettingsTabContent(
   );
 }
 
-function buildDataTabContent(h: GraphBuilderHooksResult) {
+function buildDataTabContent(
+  h: GraphBuilderHooksResult,
+  agentId: string,
+  orgSlug: string | undefined,
+  agentSlug: string | undefined
+) {
+  const editFormHref =
+    orgSlug !== undefined && agentSlug !== undefined
+      ? (formId: string): string =>
+          `/orgs/${orgSlug}/editor/${agentSlug}?dataTab=forms&form=${formId}`
+      : undefined;
+
   return (
     <DataTabContent
+      agentId={agentId}
       schemas={h.outputSchemasHook.schemas}
       onAdd={() => {
         const id = h.outputSchemasHook.addSchema();
@@ -472,6 +484,7 @@ function buildDataTabContent(h: GraphBuilderHooksResult) {
       }}
       onRemove={h.schemaDialog.handleRemoveSchema}
       onEdit={h.schemaDialog.handleEditSchema}
+      editFormHref={editFormHref}
     />
   );
 }
@@ -625,7 +638,7 @@ function LoadedEditor(props: LoadedEditorProps) {
           settingsPortal
         )}
         {!isReadOnly && isActiveEditor && dataPortal !== null && createPortal(
-          buildDataTabContent(h),
+          buildDataTabContent(h, props.agentId ?? '', props.orgSlug, props.agentSlug),
           dataPortal
         )}
 
