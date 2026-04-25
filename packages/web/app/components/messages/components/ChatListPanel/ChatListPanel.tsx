@@ -16,6 +16,7 @@ import { ChatsSearch } from '../../chatsSearch';
 import { useUI } from '../../core/contexts';
 import { Slot } from '../../core/slots';
 import { MessageSearchResult } from '../../messageSearchResult';
+import { AgentFilterCombobox, type AgentOption } from './AgentFilterCombobox';
 
 export interface ChatWithId extends LastMessage {
   chatId: string;
@@ -43,6 +44,9 @@ interface ChatListPanelProps {
   collaborators?: Collaborator[];
   profilePictures?: Map<string, string>;
   hideFilterDropdown?: boolean;
+  /** Agents available for the agent filter combobox. */
+  // TODO: source agents list from parent (MessagesDashboardLayout)
+  agents?: AgentOption[];
   /** Callback to load more conversations (pagination) */
   onLoadMore?: () => void;
   /** Whether there are more conversations to load */
@@ -79,6 +83,7 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
   collaborators,
   profilePictures,
   hideFilterDropdown = false,
+  agents = [],
   isLoadingMore = false,
   isLoading = false,
 }) => {
@@ -87,7 +92,14 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
   const chatListScrollRef = useRef<ScrollableRef>(null);
   const SCROLL_STORAGE_KEY = 'chatListScrollPosition';
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
-  const { setStatusFilter, setAssigneeFilter, statusFilter, assigneeFilter } = useUI();
+  const {
+    setStatusFilter,
+    setAssigneeFilter,
+    statusFilter,
+    assigneeFilter,
+    agentFilter,
+    setAgentFilter,
+  } = useUI();
   const isLoadingMoreRef = useRef(false);
 
   // Update ref when prop changes
@@ -236,9 +248,14 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
         if (chatAssignee !== assigneeFilter) return false;
       }
 
+      // Apply agent filter
+      if (agentFilter !== null) {
+        if (chat.agentId !== agentFilter) return false;
+      }
+
       return true;
     });
-  }, [displayedChats, statusFilter, assigneeFilter]);
+  }, [displayedChats, statusFilter, assigneeFilter, agentFilter]);
 
   // Filter options for mobile dropdown
   const filterOptions = [
@@ -311,6 +328,18 @@ const ChatListPanelComponent: React.FC<ChatListPanelProps> = ({
           profilePictures={profilePictures}
         />
       </div>
+
+      {/* Agent filter combobox */}
+      {agents.length > 0 && (
+        <div className="px-4 pb-2 pt-1">
+          <AgentFilterCombobox
+            agents={agents}
+            value={agentFilter}
+            onChange={setAgentFilter}
+            className="w-full h-7 text-xs"
+          />
+        </div>
+      )}
 
       {/* Slot: After search - for filters, tabs, action buttons, etc. */}
       <Slot name="chat-list-toolbar" />
