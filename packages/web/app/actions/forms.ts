@@ -1,7 +1,14 @@
 'use server';
 
+import { queryFormsForAgent } from '@/app/lib/forms/formsQueries';
 import { createClient } from '@/app/lib/supabase/server';
-import { type ValidationsMap, slugNormalize } from '@daviddh/llm-graph-runner';
+import {
+  type FailedAttempt,
+  type FormData,
+  type FormDefinition,
+  type ValidationsMap,
+  slugNormalize,
+} from '@daviddh/llm-graph-runner';
 import { revalidatePath } from 'next/cache';
 
 export interface CreateFormInput {
@@ -106,10 +113,7 @@ interface GraphFormsTable {
   insert: (values: InsertGraphFormPayload) => InsertBuilder;
   update: (values: { validations: ValidationsMap }) => FilterTerminator;
   delete: () => FilterTerminator;
-  select(cols: string, opts: { count: 'exact'; head: true }): CountBuilder;
-  select(cols: 'id, form_slug, display_name, schema_id'): SelectBuilder<FormListRow>;
-  select(cols: 'display_name, form_slug, schema_id, validations'): SelectBuilder<FormDetailRow>;
-  select(cols: 'id, schema_id, form_slug'): SelectBuilder<SchemaUsageRow>;
+  select: ((cols: string, opts: { count: 'exact'; head: true }) => CountBuilder) & ((cols: 'id, form_slug, display_name, schema_id') => SelectBuilder<FormListRow>) & ((cols: 'display_name, form_slug, schema_id, validations') => SelectBuilder<FormDetailRow>) & ((cols: 'id, schema_id, form_slug') => SelectBuilder<SchemaUsageRow>);
 }
 
 type DbClient = Awaited<ReturnType<typeof createClient>>;
@@ -215,4 +219,40 @@ export async function listSchemasUsingFormsAction(
     map[r.schema_id]?.push({ id: r.id, slug: r.form_slug });
   }
   return map;
+}
+
+interface MetadataShape {
+  forms?: Record<string, FormData>;
+  forms_diagnostics?: Record<string, { lastFailures: FailedAttempt[] }>;
+}
+
+interface ConversationFormDataResult {
+  formData: Record<string, FormData>;
+  diagnostics: Record<string, { lastFailures: FailedAttempt[] }>;
+}
+
+interface ConversationMetadataRow {
+  metadata: MetadataShape | null;
+}
+
+export async function getFormDefinitionsAction(agentId: string): Promise<FormDefinition[]> {
+  return await queryFormsForAgent(agentId);
+}
+
+export async function getConversationFormDataAction(
+  conversationId: string
+): Promise<ConversationFormDataResult> {
+  const db = await createClient();
+  const { data, error } = await db
+    .from('conversations')
+    .select('metadata')
+    .eq('id', conversationId)
+    .single();
+  if (error !== null || data === null) return { formData: {}, diagnostics: {} };
+  const row = data as unknown as ConversationMetadataRow;
+  const meta = row.metadata ?? {};
+  return {
+    formData: meta.forms ?? {},
+    diagnostics: meta.forms_diagnostics ?? {},
+  };
 }
