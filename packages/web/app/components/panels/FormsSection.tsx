@@ -35,17 +35,23 @@ export function FormsSection({ agentId, schemas, onOpenSchemaDialog }: Props): R
   const [forms, setForms] = useState<FormRow[] | null>(null);
   const [dialog, setDialog] = useState<DialogState>({ kind: 'closed' });
 
-  const refresh = useCallback(async () => {
-    setForms(await listFormsAction(agentId));
+  const refresh = useCallback(() => {
+    let cancelled = false;
+    listFormsAction(agentId)
+      .then((rows) => {
+        if (!cancelled) setForms(rows);
+      })
+      .catch(() => undefined);
+    return (): void => {
+      cancelled = true;
+    };
   }, [agentId]);
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  useEffect(() => refresh(), [refresh]);
 
   const closeDialogAndRefresh = (): void => {
     setDialog({ kind: 'closed' });
-    void refresh();
+    refresh();
   };
 
   const onDeleteRequest = (id: string): void => {

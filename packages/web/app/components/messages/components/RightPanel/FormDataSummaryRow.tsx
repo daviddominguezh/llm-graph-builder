@@ -10,7 +10,7 @@ import {
 import { ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { type ReactElement, useEffect, useState } from 'react';
+import { type ReactElement, useState } from 'react';
 
 import { FormDataExpandedView } from './FormDataExpandedView';
 import { FormDataFailedAttempts } from './FormDataFailedAttempts';
@@ -27,6 +27,11 @@ interface Props {
 
 const STORAGE_PREFIX = 'forms.rightPanel.expanded.';
 
+function readInitialExpanded(formId: string): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.localStorage.getItem(`${STORAGE_PREFIX}${formId}`) === '1';
+}
+
 export function FormDataSummaryRow({
   formId,
   slug,
@@ -37,12 +42,7 @@ export function FormDataSummaryRow({
   editFormHref,
 }: Props): ReactElement {
   const t = useTranslations('forms.rightPanel');
-  const [expanded, setExpanded] = useState(false);
-
-  useEffect(() => {
-    const stored = window.localStorage.getItem(`${STORAGE_PREFIX}${formId}`);
-    if (stored === '1') setExpanded(true);
-  }, [formId]);
+  const [expanded, setExpanded] = useState<boolean>(() => readInitialExpanded(formId));
 
   const toggle = (): void => {
     const next = !expanded;
