@@ -37,7 +37,7 @@ async function fetchIntegrations(tenantId: string): Promise<IntegrationsResponse
   const url = `${API_BASE_URL}/projects/${tenantId}/integrations`;
   const res = await fetch(url, { method: 'GET', headers });
   if (!res.ok) return null;
-  return res.json() as Promise<IntegrationsResponse>;
+  return await (res.json() as Promise<IntegrationsResponse>);
 }
 
 function parseWhatsAppStatus(data: IntegrationsResponse | null): ChannelStatus {

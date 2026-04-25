@@ -1,4 +1,4 @@
-import { Conversation, LastMessage, Message } from '@/app/types/chat';
+import type { Conversation, LastMessage, Message } from '@/app/types/chat';
 
 import type { MessageRepository } from '../repositories/MessageRepository';
 
@@ -211,7 +211,6 @@ export class MessageQueueService {
       // Remove optimistic messages
       if (result.messagesToRemove) {
         for (const msgId of result.messagesToRemove) {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { [msgId]: _, ...rest } = updatedMessages;
           updatedMessages = rest;
         }

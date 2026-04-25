@@ -68,7 +68,7 @@ describe('Active Level and Routing', () => {
 
     expect(result.rootMessages).toHaveLength(1);
 
-    const childAfter = getActiveMessages(result.stack.slice(0, 1) as CompositionLevel[], result.rootMessages);
+    const childAfter = getActiveMessages(result.stack.slice(0, 1), result.rootMessages);
     expect(childAfter).toHaveLength(1);
 
     const grandchildMsgs = getActiveMessages(result.stack, result.rootMessages);
@@ -96,9 +96,9 @@ describe('Request Payload', () => {
     expect(payload).toBeDefined();
     expect(payload!.depth).toBe(1);
     expect(payload!.stack).toHaveLength(1);
-    expect(payload!.stack[0]!.parentToolCallId).toBe('tc-1');
-    expect(payload!.stack[0]!.appType).toBe('agent');
-    expect(payload!.stack[0]!.parentMessages).toEqual(rootMessages);
+    expect(payload!.stack[0].parentToolCallId).toBe('tc-1');
+    expect(payload!.stack[0].appType).toBe('agent');
+    expect(payload!.stack[0].parentMessages).toEqual(rootMessages);
   });
 
   it('4c: depth-2 payload', () => {
@@ -133,11 +133,11 @@ describe('Request Payload', () => {
     expect(payload!.depth).toBe(2);
     expect(payload!.stack).toHaveLength(2);
 
-    expect(payload!.stack[0]!.parentToolCallId).toBe('tc-1');
-    expect(payload!.stack[0]!.parentMessages).toEqual(rootMessages);
+    expect(payload!.stack[0].parentToolCallId).toBe('tc-1');
+    expect(payload!.stack[0].parentMessages).toEqual(rootMessages);
 
-    expect(payload!.stack[1]!.parentToolCallId).toBe('tc-2');
-    expect(payload!.stack[1]!.parentMessages).toEqual(childWithTc);
+    expect(payload!.stack[1].parentToolCallId).toBe('tc-2');
+    expect(payload!.stack[1].parentMessages).toEqual(childWithTc);
   });
 });
 

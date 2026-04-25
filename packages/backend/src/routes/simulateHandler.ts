@@ -1,9 +1,10 @@
-import type { CallAgentOutput, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
+import type { CalendarService, CallAgentOutput, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
 import { executeWithCallbacks, injectSystemTools } from '@daviddh/llm-graph-runner';
 import type { Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
 
 import { createServiceClient } from '../db/queries/executionAuthQueries.js';
+import { createGoogleCalendarService } from '../google/calendar/service.js';
 import { consoleLogger } from '../logger.js';
 import { type McpSession, closeMcpSession, createMcpSession } from '../mcp/lifecycle.js';
 import type { SimulateRequest } from '../types.js';
@@ -118,9 +119,24 @@ function sendError(res: Response, err: unknown): void {
   writeSSE(res, { type: 'error', message });
 }
 
+function resolveCalendarServices(orgId: string | undefined): {
+  calendarServices?: CalendarService;
+  orgId?: string;
+} {
+  if (orgId === undefined || orgId === '') return {};
+  return {
+    calendarServices: createGoogleCalendarService(createServiceClient()),
+    orgId,
+  };
+}
+
 async function runSimulation(body: SimulateRequest, session: McpSession, res: Response): Promise<void> {
   const context = buildContext(body);
-  const tools = injectSystemTools({ existingTools: session.tools, isChildAgent: false });
+  const tools = injectSystemTools({
+    existingTools: session.tools,
+    isChildAgent: false,
+    ...resolveCalendarServices(body.orgId),
+  });
   const result = await executeWithCallbacks({
     context,
     messages: body.messages,

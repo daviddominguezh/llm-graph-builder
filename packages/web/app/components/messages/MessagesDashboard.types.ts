@@ -1,5 +1,5 @@
-import { ChatSearchResults, Conversation, LastMessage, Message } from '@/app/types/chat';
-import { MediaFileDetailList } from '@/app/types/media';
+import type { ChatSearchResults, Conversation, LastMessage, Message } from '@/app/types/chat';
+import type { MediaFileDetailList } from '@/app/types/media';
 
 // Core domain types
 export interface MessagesDashboardState {
@@ -12,27 +12,27 @@ export interface MessagesDashboardState {
 
 // Service interfaces
 export interface CacheServiceInterface {
-  get<T>(key: string, namespace: string): Promise<CachedData<T> | null>;
-  set<T>(key: string, namespace: string, data: T, ttl?: number): Promise<void>;
-  update<T>(key: string, namespace: string, data: Partial<T>): Promise<void>;
-  invalidate(key: string, namespace: string): Promise<void>;
-  clear(namespace?: string): Promise<void>;
+  get: <T>(key: string, namespace: string) => Promise<CachedData<T> | null>;
+  set: <T>(key: string, namespace: string, data: T, ttl?: number) => Promise<void>;
+  update: <T>(key: string, namespace: string, data: Partial<T>) => Promise<void>;
+  invalidate: (key: string, namespace: string) => Promise<void>;
+  clear: (namespace?: string) => Promise<void>;
 }
 
 export interface SyncServiceInterface {
-  initialize(projectName: string): void;
-  destroy(): void;
-  on(event: string, handler: (data: unknown) => void): () => void;
-  emit(event: string, data: unknown): void;
-  onNewMessage(handler: (message: Message) => void): () => void;
-  onMessageRead(handler: (chatId: string) => void): () => void;
-  onConversationUpdated(handler: (conversation: LastMessage) => void): () => void;
+  initialize: (projectName: string) => void;
+  destroy: () => void;
+  on: (event: string, handler: (data: unknown) => void) => () => void;
+  emit: (event: string, data: unknown) => void;
+  onNewMessage: (handler: (message: Message) => void) => () => void;
+  onMessageRead: (handler: (chatId: string) => void) => () => void;
+  onConversationUpdated: (handler: (conversation: LastMessage) => void) => () => void;
 }
 
 export interface SearchServiceInterface {
-  search(query: string, projectName: string): Promise<ChatSearchResults>;
-  indexConversation(conversation: Conversation): Promise<void>;
-  clearIndex(): Promise<void>;
+  search: (query: string, projectName: string) => Promise<ChatSearchResults>;
+  indexConversation: (conversation: Conversation) => Promise<void>;
+  clearIndex: () => Promise<void>;
 }
 
 // Cache data structure

@@ -113,7 +113,7 @@ export function useCreateUserNode(params: StructuredCreationParams): (userSaidVa
       );
       params.pushOperation(buildInsertNodeOp(newNode));
       params.pushOperation(
-        buildInsertEdgeOp(params.menu!.sourceNodeId, id, { preconditions: [precondition] })
+        buildInsertEdgeOp(params.menu.sourceNodeId, id, { preconditions: [precondition] })
       );
       updateNextNodeIsUser(params, sourceNode);
       params.setSelectedNodeId(id);
@@ -151,7 +151,7 @@ export function useCreateToolNode(params: StructuredCreationParams): (toolName: 
       );
       params.pushOperation(buildInsertNodeOp(newNode));
       params.pushOperation(
-        buildInsertEdgeOp(params.menu!.sourceNodeId, id, { preconditions: [precondition] })
+        buildInsertEdgeOp(params.menu.sourceNodeId, id, { preconditions: [precondition] })
       );
       params.setSelectedNodeId(id);
       params.closeMenu();
@@ -209,10 +209,10 @@ export function useCreateIfElse(
       params.pushOperation(buildInsertNodeOp(nodeA));
       params.pushOperation(buildInsertNodeOp(nodeB));
       params.pushOperation(
-        buildInsertEdgeOp(params.menu!.sourceNodeId, idA, { preconditions: [preconditionA] })
+        buildInsertEdgeOp(params.menu.sourceNodeId, idA, { preconditions: [preconditionA] })
       );
       params.pushOperation(
-        buildInsertEdgeOp(params.menu!.sourceNodeId, idB, { preconditions: [preconditionB] })
+        buildInsertEdgeOp(params.menu.sourceNodeId, idB, { preconditions: [preconditionB] })
       );
       params.setSelectedNodeId(idA);
       params.closeMenu();
@@ -287,9 +287,9 @@ export function useCreateLoop(
 
       params.pushOperation(buildInsertNodeOp(loopNode));
       params.pushOperation(buildInsertNodeOp(exitNode));
-      params.pushOperation(buildInsertEdgeOp(params.menu!.sourceNodeId, loopId, connEdgeData));
+      params.pushOperation(buildInsertEdgeOp(params.menu.sourceNodeId, loopId, connEdgeData));
       params.pushOperation(
-        buildInsertEdgeOp(loopId, params.menu!.sourceNodeId, { preconditions: [continuePrecondition] })
+        buildInsertEdgeOp(loopId, params.menu.sourceNodeId, { preconditions: [continuePrecondition] })
       );
       params.pushOperation(buildInsertEdgeOp(loopId, exitId, { preconditions: [exitPrecondition] }));
 

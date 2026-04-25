@@ -7,7 +7,7 @@ import { resolveWidgetTarget } from './widgetKey.js';
 
 export const runtime = 'nodejs';
 
-const BACKEND_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const VERSION_REGEX = /^\d{1,6}$/v;
 
 const HTTP_BAD_REQUEST = 400;
@@ -30,8 +30,8 @@ function parseJsonBody(bodyText: string): { ok: true; value: unknown } | { ok: f
 function buildExecuteBody(raw: unknown, resolvedTenantId: string): Record<string, unknown> {
   const base: Record<string, unknown> =
     typeof raw === 'object' && raw !== null ? { ...(raw as Record<string, unknown>) } : {};
-  base['tenantId'] = resolvedTenantId;
-  base['channel'] = 'web';
+  base.tenantId = resolvedTenantId;
+  base.channel = 'web';
   return base;
 }
 
@@ -57,7 +57,7 @@ async function forwardExecute(
     'Content-Type': 'application/json',
     Authorization: `Bearer ${token}`,
   };
-  if (origin !== null) headers['Origin'] = origin;
+  if (origin !== null) headers.Origin = origin;
   return await fetch(upstreamUrl, { method: 'POST', headers, body: JSON.stringify(body) });
 }
 

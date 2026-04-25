@@ -196,9 +196,46 @@
       "agent": "Agent",
       "data": "Data",
       "channels": "Channels",
+      "triggers": "Triggers",
       "settings": "Settings",
       "channelsPlaceholder": "Channels coming soon",
       "settingsPlaceholder": "Settings coming soon"
+    },
+    "triggers": {
+      "title": "Triggers",
+      "description": "Run this agent on a schedule.",
+      "soon": "Soon",
+      "mode": {
+        "recurring": "Recurring",
+        "once": "Specific date",
+        "after-event": "After event"
+      },
+      "runEvery": "Run every",
+      "runOn": "Run once on",
+      "on": "on",
+      "onDay": "on day",
+      "at": "at",
+      "pickDateTime": "Pick a date and time",
+      "afterEventComingSoon": "After-event triggers are coming soon — they'll fire once another agent or workflow event completes.",
+      "previewLabel": "Next run",
+      "previewNone": "Not scheduled",
+      "previewAfterEvent": "Triggered by an event",
+      "units": {
+        "minutes": { "singular": "minute", "plural": "minutes" },
+        "hours": { "singular": "hour", "plural": "hours" },
+        "days": { "singular": "day", "plural": "days" },
+        "weeks": { "singular": "week", "plural": "weeks" },
+        "months": { "singular": "month", "plural": "months" }
+      },
+      "weekdays": {
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat",
+        "sun": "Sun"
+      }
     },
     "channels": {
       "tenant": "Tenant",
@@ -583,6 +620,7 @@
     "team": "Team",
     "chats": "Chats",
     "tenants": "Tenants",
+    "knowledgeBase": "Knowledge base",
     "settings": "Settings",
     "settingsTitle": "Organization Settings",
     "generalSection": "General",
@@ -612,6 +650,17 @@
   },
   "chats": {
     "tenant": "Tenant"
+  },
+  "googleCalendar": {
+    "title": "Google Calendar",
+    "description": "Connect a Google account so agents can read availability and book, reschedule, or cancel events.",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "connected": "Connected",
+    "notConnected": "Required for agents that use calendar tools.",
+    "connectError": "Couldn't start Google sign-in. Please try again.",
+    "disconnectError": "Couldn't disconnect. Please try again.",
+    "disconnectSuccess": "Google Calendar disconnected."
   },
   "apiKeys": {
     "title": "OpenRouter API Keys",
@@ -715,6 +764,16 @@
     "clickToCopy": "Click to copy",
     "copied": "Copied!",
     "copyError": "Failed to copy value."
+  },
+  "knowledgeBase": {
+    "addFiles": "Add files",
+    "extensions": "pdf · docx · xlsx · ppt · pptx · txt · md · csv",
+    "dropAnywhereHint": "Drag files anywhere to add",
+    "dropToAdd": "Release to add",
+    "totalSize": "{count, plural, =1 {# file · {size}} other {# files · {size}}}",
+    "clearAll": "Clear",
+    "filesSkipped": "{count, plural, =1 {1 file skipped (unsupported type)} other {# files skipped (unsupported types)}}",
+    "remove": "Remove"
   },
   "tenants": {
     "title": "Tenants",

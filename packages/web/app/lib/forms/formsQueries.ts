@@ -1,18 +1,20 @@
+import { createClient } from '@/app/lib/supabase/server';
 import type { OutputSchemaField } from '@daviddh/graph-types';
 import {
-  applyFormFields,
   type ApplyResult,
   type FailedAttempt,
   type FormData,
   type FormDefinition,
   type ValidationsMap,
+  applyFormFields,
 } from '@daviddh/llm-graph-runner';
-
-import { createClient } from '@/app/lib/supabase/server';
 
 type Json = Record<string, unknown> | unknown[] | string | number | boolean | null;
 
-type RpcResult = { data: unknown; error: { message: string } | null };
+interface RpcResult {
+  data: unknown;
+  error: { message: string } | null;
+}
 
 interface ApplyArgs {
   conversationId: string;
@@ -74,16 +76,9 @@ function toFormDefinition(f: FormRow, schemaMap: Map<string, OutputSchemaField[]
   };
 }
 
-export async function queryFormData(
-  conversationId: string,
-  formId: string
-): Promise<FormData | undefined> {
+export async function queryFormData(conversationId: string, formId: string): Promise<FormData | undefined> {
   const db = await createClient();
-  const { data, error } = await db
-    .from('conversations')
-    .select('metadata')
-    .eq('id', conversationId)
-    .single();
+  const { data, error } = await db.from('conversations').select('metadata').eq('id', conversationId).single();
   if (error) throw error;
   const row = data as unknown as ConversationMetadataRow | null;
   return row?.metadata?.forms?.[formId];
@@ -129,13 +124,10 @@ async function callRpc(
   name: string,
   args: object
 ): Promise<RpcResult> {
-  return (db.rpc as unknown as (n: string, a: object) => Promise<RpcResult>)(name, args);
+  return await (db.rpc as unknown as (n: string, a: object) => Promise<RpcResult>)(name, args);
 }
 
-function topLevelDiff(
-  prev: Record<string, unknown>,
-  next: Record<string, unknown>
-): Record<string, unknown> {
+function topLevelDiff(prev: Record<string, unknown>, next: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const k of Object.keys(next)) {
     if (!isEqualJson(prev[k], next[k])) out[k] = next[k];

@@ -4,7 +4,7 @@ import type { AddFromLibraryConfig, McpServersState } from '../hooks/useMcpServe
 import type { McpServerConfig } from '../schemas/graph.schema';
 
 function parseHeaders(config: Record<string, unknown>): Record<string, string> | undefined {
-  const raw = config['headers'];
+  const raw = config.headers;
   if (typeof raw !== 'object' || raw === null) return undefined;
   const headers: Record<string, string> = {};
   for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
@@ -20,22 +20,22 @@ export function buildTransportFromLibrary(item: McpLibraryRow): McpServerConfig[
   if (type === 'stdio') {
     return {
       type: 'stdio',
-      command: typeof config['command'] === 'string' ? config['command'] : '',
-      args: Array.isArray(config['args']) ? (config['args'] as string[]) : undefined,
+      command: typeof config.command === 'string' ? config.command : '',
+      args: Array.isArray(config.args) ? (config.args as string[]) : undefined,
     };
   }
 
   if (type === 'sse') {
     return {
       type: 'sse',
-      url: typeof config['url'] === 'string' ? config['url'] : '',
+      url: typeof config.url === 'string' ? config.url : '',
       headers: parseHeaders(config),
     };
   }
 
   return {
     type: 'http',
-    url: typeof config['url'] === 'string' ? config['url'] : '',
+    url: typeof config.url === 'string' ? config.url : '',
     headers: parseHeaders(config),
   };
 }

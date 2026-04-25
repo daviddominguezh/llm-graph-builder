@@ -1,6 +1,7 @@
 import type { AgentLoopCallbacks, AgentLoopConfig, AgentLoopResult } from '@daviddh/llm-graph-runner';
 import { executeAgentLoop, injectSystemTools } from '@daviddh/llm-graph-runner';
 
+import { createGoogleCalendarService } from '../google/calendar/service.js';
 import { consoleLogger } from '../logger.js';
 import { closeMcpSession, createMcpSession } from '../mcp/lifecycle.js';
 import { resolveChildConfig } from './simulateChildResolver.js';
@@ -27,7 +28,12 @@ const ZERO_TOKENS = { input: ZERO, output: ZERO, cached: ZERO };
 
 function buildLoopConfig(config: OrchestratorConfig): AgentLoopConfig {
   const isChild = config.depth > ZERO;
-  const tools = injectSystemTools({ existingTools: config.session.tools, isChildAgent: isChild });
+  const tools = injectSystemTools({
+    existingTools: config.session.tools,
+    isChildAgent: isChild,
+    calendarServices: createGoogleCalendarService(config.supabase),
+    orgId: config.orgId,
+  });
 
   return {
     systemPrompt: config.body.systemPrompt,

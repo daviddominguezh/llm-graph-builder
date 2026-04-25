@@ -3,20 +3,21 @@
 import { useAgentsSidebar } from '@/app/components/agents/AgentsSidebarContext';
 import { SettingsPanel } from '@/app/components/agents/SettingsPanel';
 import { ChannelsPanel } from '@/app/components/agents/channels/ChannelsPanel';
+import { TriggersPanel } from '@/app/components/agents/triggers/TriggersPanel';
 import { useEditorCache } from '@/app/components/editors/EditorCacheProvider';
 import type { PublishTenant } from '@/app/components/panels/PublishButtonTenantPicker';
 import type { ApiKeyRow } from '@/app/lib/apiKeys';
 import { Button } from '@/components/ui/button';
 import { GlassPanel } from '@/components/ui/glass-panel';
 import { Separator } from '@/components/ui/separator';
-import { Brain, Database, PanelLeftClose, PanelLeftOpen, Radio, Settings } from 'lucide-react';
+import { Brain, Database, PanelLeftClose, PanelLeftOpen, Radio, Settings, Zap } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { EditorClient } from './EditorClient';
 
-type TabId = 'agent' | 'data' | 'channels' | 'settings';
+type TabId = 'agent' | 'data' | 'channels' | 'triggers' | 'settings';
 
 interface EditorTabsProps {
   agentSlug: string;
@@ -40,10 +41,11 @@ const TAB_ICONS: Record<TabId, LucideIcon> = {
   agent: Brain,
   data: Database,
   channels: Radio,
+  triggers: Zap,
   settings: Settings,
 };
 
-const TABS: TabId[] = ['agent', 'data', 'channels', 'settings'];
+const TABS: TabId[] = ['agent', 'data', 'channels', 'triggers', 'settings'];
 
 interface TabButtonProps {
   tab: TabId;
@@ -131,14 +133,14 @@ function TabContent({ activeTab, props }: { activeTab: TabId; props: EditorTabsP
     (el: HTMLDivElement | null) => setSettingsPortal(el),
     [setSettingsPortal]
   );
-  const dataPortalRef = useCallback(
-    (el: HTMLDivElement | null) => setDataPortal(el),
-    [setDataPortal]
-  );
+  const dataPortalRef = useCallback((el: HTMLDivElement | null) => setDataPortal(el), [setDataPortal]);
 
   return (
-    <div className={`flex flex-col bg-background overflow-hidden ${activeTab === 'agent' ? 'hidden' : 'flex-1'}`}>
+    <div
+      className={`flex flex-col bg-background overflow-hidden ${activeTab === 'agent' ? 'hidden' : 'flex-1'}`}
+    >
       {activeTab === 'channels' && <ChannelsPanel orgId={props.orgId} agentId={props.agentId} />}
+      {activeTab === 'triggers' && <TriggersPanel />}
       {activeTab === 'data' && (
         <div className="mx-auto w-full max-w-lg flex flex-col gap-6 p-6">
           <div ref={dataPortalRef} className="flex flex-col gap-6" />

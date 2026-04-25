@@ -26,7 +26,9 @@ export function useCountUp(target: number): number {
       if (frame >= TOTAL_FRAMES) clearInterval(id);
     }, FRAME_INTERVAL);
 
-    return () => clearInterval(id);
+    return () => {
+      clearInterval(id);
+    };
   }, [target]);
 
   return value;

@@ -118,7 +118,7 @@ function handleUserMessage(state: CompositionState, text: string): CompositionSt
 
 function appendAssistantToStack(stack: CompositionLevel[], text: string): CompositionLevel[] {
   if (stack.length === 0) return stack;
-  const last = stack[stack.length - 1]!;
+  const last = stack[stack.length - 1];
   const msg = createAssistantMessage(text);
   const updated: CompositionLevel = { ...last, messages: [...last.messages, msg] };
   return [...stack.slice(0, -1), updated];

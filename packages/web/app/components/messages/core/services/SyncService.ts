@@ -1,8 +1,7 @@
-import { Message } from '@/app/types/chat';
-import { LastMessage } from '@/app/types/chat';
-import { Socket, io } from 'socket.io-client';
+import type { LastMessage, Message } from '@/app/types/chat';
+import { type Socket, io } from 'socket.io-client';
 
-import { SyncServiceInterface } from '../../MessagesDashboard.types';
+import type { SyncServiceInterface } from '../../MessagesDashboard.types';
 
 /**
  * Service for handling real-time synchronization and WebSocket connections
@@ -10,10 +9,10 @@ import { SyncServiceInterface } from '../../MessagesDashboard.types';
  */
 export class SyncService implements SyncServiceInterface {
   private socket: Socket | null = null;
-  private eventHandlers = new Map<string, Set<(data: unknown) => void>>();
+  private readonly eventHandlers = new Map<string, Set<(data: unknown) => void>>();
   private projectName: string | null = null;
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
+  private readonly maxReconnectAttempts = 5;
   private reconnectDelay = 1000; // Start with 1 second
   private isInitialized = false;
 
@@ -209,7 +208,7 @@ export class SyncService implements SyncServiceInterface {
    * Send an event to the server
    */
   sendToServer(event: string, data: unknown): void {
-    if (!this.socket || !this.socket.connected) {
+    if (!this.socket?.connected) {
       console.warn(`Cannot send event ${event}: socket not connected`);
       // Queue the event for later sending when reconnected
       this.queueEvent(event, data);
@@ -222,7 +221,7 @@ export class SyncService implements SyncServiceInterface {
   /**
    * Queue events for sending when reconnected
    */
-  private eventQueue: Array<{ event: string; data: unknown }> = [];
+  private readonly eventQueue: Array<{ event: string; data: unknown }> = [];
 
   private queueEvent(event: string, data: unknown): void {
     this.eventQueue.push({ event, data });
@@ -324,9 +323,7 @@ let syncServiceInstance: SyncService | null = null;
  * Get or create sync service instance
  */
 export function getSyncService(): SyncService {
-  if (!syncServiceInstance) {
-    syncServiceInstance = new SyncService();
-  }
+  syncServiceInstance ||= new SyncService();
   return syncServiceInstance;
 }
 

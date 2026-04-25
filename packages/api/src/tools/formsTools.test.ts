@@ -2,7 +2,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 
 import type { FormsService } from '../services/formsService.js';
 import type { ApplyResult, FormData, FormDefinition } from '../types/forms.js';
-import { buildFormsToolDescription, createFormsTools, SET_FORM_FIELDS_TOOL_NAME } from './formsTools.js';
+import { SET_FORM_FIELDS_TOOL_NAME, buildFormsToolDescription, createFormsTools } from './formsTools.js';
 import { executeSet } from './formsToolsExecute.js';
 
 const form: FormDefinition = {

@@ -77,6 +77,35 @@ export {
 } from './tools/formsTools.js';
 export type { CreateFormsToolsParams } from './tools/formsTools.js';
 
+export type {
+  CalendarService,
+  CheckAvailabilityArgs,
+  ListEventsArgs,
+  EventRefArgs,
+  BookAppointmentArgs,
+  UpdateEventArgs,
+} from './services/calendarService.js';
+export type {
+  CalendarSummary,
+  CalendarEvent,
+  CalendarAttendee,
+  AvailableSlot,
+  BookAppointmentInput,
+  UpdateEventInput,
+} from './types/calendar.js';
+export {
+  createCalendarTools,
+  DEFAULT_CALENDAR_ID,
+  LIST_CALENDARS_TOOL_NAME,
+  CHECK_AVAILABILITY_TOOL_NAME,
+  LIST_EVENTS_TOOL_NAME,
+  GET_EVENT_TOOL_NAME,
+  BOOK_APPOINTMENT_TOOL_NAME,
+  UPDATE_EVENT_TOOL_NAME,
+  CANCEL_APPOINTMENT_TOOL_NAME,
+} from './tools/calendarTools.js';
+export type { CreateCalendarToolsParams } from './tools/calendarTools.js';
+
 export const execute = async (
   context: Context,
   messages: Message[],

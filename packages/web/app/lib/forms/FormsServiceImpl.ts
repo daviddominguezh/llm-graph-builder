@@ -9,10 +9,11 @@ import {
 
 export function createFormsService(): FormsService {
   return {
-    getFormDefinitions: (agentId) => queryFormsForAgent(agentId),
-    getFormData: (conversationId, formId) => queryFormData(conversationId, formId),
-    applyFormFieldsAtomic: (args) => applyFormFieldsAtomicQuery(args),
-    recordFailedAttempt: (conversationId, formId, attempt) =>
-      recordFailedAttemptQuery(conversationId, formId, attempt),
+    getFormDefinitions: async (agentId) => await queryFormsForAgent(agentId),
+    getFormData: async (conversationId, formId) => await queryFormData(conversationId, formId),
+    applyFormFieldsAtomic: async (args) => await applyFormFieldsAtomicQuery(args),
+    recordFailedAttempt: async (conversationId, formId, attempt) => {
+      await recordFailedAttemptQuery(conversationId, formId, attempt);
+    },
   };
 }

@@ -5,8 +5,8 @@ import { signStatusCookie, verifyStatusCookie } from './statusCookie.js';
 const SECRET = 'a'.repeat(32);
 
 beforeEach(() => {
-  process.env['AUTH_STATUS_COOKIE_SECRET'] = SECRET;
-  delete process.env['AUTH_STATUS_COOKIE_SECRET_PREVIOUS'];
+  process.env.AUTH_STATUS_COOKIE_SECRET = SECRET;
+  delete process.env.AUTH_STATUS_COOKIE_SECRET_PREVIOUS;
 });
 
 describe('statusCookie', () => {
@@ -27,7 +27,7 @@ describe('statusCookie', () => {
     const dot = cookie.indexOf('.');
     const body = cookie.slice(0, dot);
     const mac = cookie.slice(dot + 1);
-    const lastChar = mac.slice(-1) === 'A' ? 'B' : 'A';
+    const lastChar = mac.endsWith('A') ? 'B' : 'A';
     const bad = `${body}.${mac.slice(0, -1)}${lastChar}`;
     expect(verifyStatusCookie(bad)).toBeNull();
   });
@@ -38,8 +38,8 @@ describe('statusCookie', () => {
 
   it('accepts previous secret during rotation', () => {
     const cookie = signStatusCookie(payload);
-    process.env['AUTH_STATUS_COOKIE_SECRET_PREVIOUS'] = SECRET;
-    process.env['AUTH_STATUS_COOKIE_SECRET'] = 'b'.repeat(32);
+    process.env.AUTH_STATUS_COOKIE_SECRET_PREVIOUS = SECRET;
+    process.env.AUTH_STATUS_COOKIE_SECRET = 'b'.repeat(32);
     expect(verifyStatusCookie(cookie)).toEqual(payload);
   });
 });

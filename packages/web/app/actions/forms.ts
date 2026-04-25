@@ -113,7 +113,10 @@ interface GraphFormsTable {
   insert: (values: InsertGraphFormPayload) => InsertBuilder;
   update: (values: { validations: ValidationsMap }) => FilterTerminator;
   delete: () => FilterTerminator;
-  select: ((cols: string, opts: { count: 'exact'; head: true }) => CountBuilder) & ((cols: 'id, form_slug, display_name, schema_id') => SelectBuilder<FormListRow>) & ((cols: 'display_name, form_slug, schema_id, validations') => SelectBuilder<FormDetailRow>) & ((cols: 'id, schema_id, form_slug') => SelectBuilder<SchemaUsageRow>);
+  select: ((cols: string, opts: { count: 'exact'; head: true }) => CountBuilder) &
+    ((cols: 'id, form_slug, display_name, schema_id') => SelectBuilder<FormListRow>) &
+    ((cols: 'display_name, form_slug, schema_id, validations') => SelectBuilder<FormDetailRow>) &
+    ((cols: 'id, schema_id, form_slug') => SelectBuilder<SchemaUsageRow>);
 }
 
 type DbClient = Awaited<ReturnType<typeof createClient>>;
@@ -243,11 +246,7 @@ export async function getConversationFormDataAction(
   conversationId: string
 ): Promise<ConversationFormDataResult> {
   const db = await createClient();
-  const { data, error } = await db
-    .from('conversations')
-    .select('metadata')
-    .eq('id', conversationId)
-    .single();
+  const { data, error } = await db.from('conversations').select('metadata').eq('id', conversationId).single();
   if (error !== null || data === null) return { formData: {}, diagnostics: {} };
   const row = data as unknown as ConversationMetadataRow;
   const meta = row.metadata ?? {};

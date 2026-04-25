@@ -1,18 +1,9 @@
 import type { McpServerConfig } from '../schemas/graph.schema';
 import type { DiscoveredTool } from './api';
+import { CALENDAR_SERVER_NAME, CALENDAR_TOOLS } from './calendarRegistryTools';
+import type { RegistryTool, ToolGroup } from './toolRegistryTypes';
 
-export interface RegistryTool {
-  name: string;
-  description: string | undefined;
-  inputSchema: Record<string, unknown> | undefined;
-  group: string;
-  sourceId: string;
-}
-
-export interface ToolGroup {
-  groupName: string;
-  tools: RegistryTool[];
-}
+export type { RegistryTool, ToolGroup } from './toolRegistryTypes';
 
 const SYSTEM_SERVER_ID = '__system__';
 const SYSTEM_SERVER_NAME = 'OpenFlow/Composition';
@@ -181,7 +172,12 @@ function buildGroups(tools: RegistryTool[]): ToolGroup[] {
     groupTools.sort((a, b) => a.name.localeCompare(b.name));
     groups.push({ groupName, tools: groupTools });
   }
-  const systemGroupNames = new Set([SYSTEM_SERVER_NAME, LEAD_SCORING_SERVER_NAME, FORMS_SERVER_NAME]);
+  const systemGroupNames = new Set([
+    SYSTEM_SERVER_NAME,
+    LEAD_SCORING_SERVER_NAME,
+    FORMS_SERVER_NAME,
+    CALENDAR_SERVER_NAME,
+  ]);
   const system = groups.filter((g) => systemGroupNames.has(g.groupName));
   const rest = groups.filter((g) => !systemGroupNames.has(g.groupName));
   rest.sort((a, b) => a.groupName.localeCompare(b.groupName));
@@ -193,6 +189,6 @@ export function buildToolRegistry(
   discovered: Record<string, DiscoveredTool[]>
 ): { tools: RegistryTool[]; groups: ToolGroup[] } {
   const mcpTools = buildMcpTools(servers, discovered);
-  const allTools = [...mcpTools, ...FORMS_TOOLS, ...LEAD_SCORING_TOOLS, ...SYSTEM_TOOLS];
+  const allTools = [...mcpTools, ...CALENDAR_TOOLS, ...FORMS_TOOLS, ...LEAD_SCORING_TOOLS, ...SYSTEM_TOOLS];
   return { tools: allTools, groups: buildGroups(allTools) };
 }

@@ -1,7 +1,6 @@
-import { NextResponse, type NextRequest } from 'next/server';
-
 import { authorizeFormAccess } from '@/app/lib/forms/authorizeFormAccess';
 import { createClient } from '@/app/lib/supabase/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 interface RouteParams {
   params: Promise<{ agentId: string; formSlug: string }>;

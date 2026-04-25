@@ -7,4 +7,12 @@ export enum CloserTool {
   // Forms
   setFormFields = 'set_form_fields',
   getFormField = 'get_form_field',
+  // Calendar
+  listCalendars = 'list_calendars',
+  checkAvailability = 'check_availability',
+  listEvents = 'list_events',
+  getEvent = 'get_event',
+  bookAppointment = 'book_appointment',
+  updateEvent = 'update_event',
+  cancelAppointment = 'cancel_appointment',
 }

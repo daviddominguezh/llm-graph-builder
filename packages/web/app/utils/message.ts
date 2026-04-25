@@ -1,4 +1,4 @@
-import { ModelMessage } from 'ai';
+import type { ModelMessage } from 'ai';
 
 const isValidJson = (input: string): boolean => {
   if (typeof input !== 'string') return false;

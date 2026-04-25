@@ -21,7 +21,7 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 export function parseResponse(response: unknown): ParsedResponse {
   const rec = asRecord(response);
   const rawToolCalls =
-    rec !== null && Array.isArray(rec['tool_calls']) ? (rec['tool_calls'] as ToolCallEntry[]) : [];
+    rec !== null && Array.isArray(rec.tool_calls) ? (rec.tool_calls as ToolCallEntry[]) : [];
   const hasToolCalls = rawToolCalls.length > 0;
 
   const toolCallArgs = rawToolCalls.map((tc) => ({
@@ -35,8 +35,8 @@ export function parseResponse(response: unknown): ParsedResponse {
     result: tc.result,
   }));
 
-  const structuredOutput = rec !== null && 'structured_output' in rec ? rec['structured_output'] : null;
-  const error = rec !== null && typeof rec['error'] === 'string' ? rec['error'] : null;
+  const structuredOutput = rec !== null && 'structured_output' in rec ? rec.structured_output : null;
+  const error = rec !== null && typeof rec.error === 'string' ? rec.error : null;
 
   return { hasToolCalls, toolCalls: rawToolCalls, toolCallArgs, toolCallOutputs, structuredOutput, error };
 }

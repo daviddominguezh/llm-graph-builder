@@ -30,7 +30,7 @@ type DbClient = Awaited<ReturnType<typeof createClient>>;
 export async function authorizeFormAccess(args: AuthArgs): Promise<AuthOutcome> {
   const db = await createClient();
   const session = await db.auth.getUser();
-  const user = session.data.user;
+  const { user } = session.data;
   if (!user) return fail(401, 'unauthenticated');
 
   const agentCheck = await checkAgentOwnership(db, args.agentId, user.id);

@@ -4,7 +4,7 @@
  */
 import type { StateType } from '@/app/components/messages/store/mainStore';
 import type { BusinessSetupSchemaAPIType } from '@/app/types/business';
-import { COLLABORATOR_ROLE } from '@/app/types/projectInnerSettings';
+import type { COLLABORATOR_ROLE } from '@/app/types/projectInnerSettings';
 import { createSlice } from '@reduxjs/toolkit';
 
 // ---------------------------------------------------------------------------
@@ -66,13 +66,11 @@ export const UserReducer = userSlice.reducer;
 // Selectors
 // ---------------------------------------------------------------------------
 
-export const getBusinessSetup = (state: StateType): BusinessSetupSchemaAPIType | null => {
-  return (state[BusinessPath] as BusinessState | undefined)?.setup ?? null;
-};
+export const getBusinessSetup = (state: StateType): BusinessSetupSchemaAPIType | null =>
+  (state[BusinessPath] as BusinessState | undefined)?.setup ?? null;
 
-export const selectCurrentProjectName = (state: StateType): string => {
-  return (state[UserPath] as UserState | undefined)?.projectName ?? '';
-};
+export const selectCurrentProjectName = (state: StateType): string =>
+  (state[UserPath] as UserState | undefined)?.projectName ?? '';
 
 export const selectCurrentProjectRole = (state: StateType): COLLABORATOR_ROLE | null => {
   const role = (state[UserPath] as UserState | undefined)?.projectRole;
