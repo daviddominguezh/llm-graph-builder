@@ -33,7 +33,11 @@ export function FormDialogSchemaPicker({ schemas, value, onChange, disabled }: P
       <Label>{t('label')}</Label>
       <Select value={value ?? ''} onValueChange={handleValueChange} disabled={disabled}>
         <SelectTrigger className="w-full">
-          <SelectValue placeholder={t('placeholder')} />
+          <SelectValue>
+            {value !== null && value !== ''
+              ? (schemas.find((s) => s.id === value)?.name ?? t('placeholder'))
+              : t('placeholder')}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent align="start" alignItemWithTrigger={false}>
           {schemas.map((s) => (

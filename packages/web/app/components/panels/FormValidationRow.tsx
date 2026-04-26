@@ -44,9 +44,9 @@ export function FormValidationRow({ path, type, rule, onChange, indent = 0 }: Pr
           }}
         >
           <SelectTrigger className="h-7 w-[200px]">
-            <SelectValue />
+            <SelectValue>{t(labelKey(selected))}</SelectValue>
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent align="start" alignItemWithTrigger={false}>
             <SelectItem value="none">{t('kind.none')}</SelectItem>
             {kinds.map((k) => (
               <SelectItem key={k} value={k}>

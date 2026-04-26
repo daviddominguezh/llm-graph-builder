@@ -58,11 +58,21 @@ export function ExportCsvFormSelect({
   return (
     <div className="flex flex-col gap-1">
       <Label>{t('label')}</Label>
-      <Select disabled={agentId === null} value={value ?? undefined} onValueChange={(v) => v && onChange(v)}>
-        <SelectTrigger>
-          <SelectValue placeholder="—" />
+      <Select
+        disabled={agentId === null}
+        value={value ?? ''}
+        onValueChange={(v: string | null): void => {
+          if (v !== null && v !== '') onChange(v);
+        }}
+      >
+        <SelectTrigger className="w-full">
+          <SelectValue>
+            {value !== null && value !== ''
+              ? (forms.find((f) => f.slug === value)?.displayName ?? value)
+              : '—'}
+          </SelectValue>
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent align="start" alignItemWithTrigger={false}>
           {forms.map((f) => (
             <SelectItem key={f.id} value={f.slug}>
               {f.displayName}
