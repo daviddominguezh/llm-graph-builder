@@ -92,15 +92,45 @@ function groupByEdgeId<T extends { edge_id: string }>(rows: T[]): Map<string, T[
   return map;
 }
 
-function buildPreconditions(rows: EdgePreconditionRow[] | undefined): Precondition[] | undefined {
-  if (rows === undefined || rows.length === EMPTY_LENGTH) return undefined;
+const TOOL_REF_SCHEMA = z.object({
+  providerType: z.enum(['builtin', 'mcp']),
+  providerId: z.string(),
+  toolName: z.string(),
+});
 
-  return rows.map((r) => ({
+const DEFAULT_BUILTIN_PROVIDER_ID = 'calendar';
+
+function decodeToolRef(value: string): z.infer<typeof TOOL_REF_SCHEMA> {
+  try {
+    const parsed: unknown = JSON.parse(value);
+    const result = TOOL_REF_SCHEMA.safeParse(parsed);
+    if (result.success) return result.data;
+  } catch {
+    // Fallthrough to default when value is not valid JSON.
+  }
+  return { providerType: 'builtin', providerId: DEFAULT_BUILTIN_PROVIDER_ID, toolName: value };
+}
+
+function buildPreconditionFromRow(r: EdgePreconditionRow): Precondition {
+  if (r.type === 'tool_call') {
+    return {
+      type: 'tool_call',
+      tool: decodeToolRef(r.value),
+      description: r.description ?? undefined,
+      toolFields: parseToolFields(r.tool_fields),
+    };
+  }
+  return {
     type: r.type,
     value: r.value,
     description: r.description ?? undefined,
-    toolFields: parseToolFields(r.tool_fields),
-  }));
+  };
+}
+
+function buildPreconditions(rows: EdgePreconditionRow[] | undefined): Precondition[] | undefined {
+  if (rows === undefined || rows.length === EMPTY_LENGTH) return undefined;
+
+  return rows.map(buildPreconditionFromRow);
 }
 
 function buildContextPreconditions(

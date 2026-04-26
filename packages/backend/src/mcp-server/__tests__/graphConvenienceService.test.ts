@@ -68,7 +68,16 @@ const BASE_GRAPH: Graph = {
       preconditions: [{ type: 'user_said', value: 'hello' }],
       contextPreconditions: { preconditions: ['premium_user'], jumpTo: 'C' },
     },
-    { from: 'A', to: 'C', preconditions: [{ type: 'tool_call', value: 'search_tool' }] },
+    {
+      from: 'A',
+      to: 'C',
+      preconditions: [
+        {
+          type: 'tool_call',
+          tool: { providerType: 'builtin', providerId: 'calendar', toolName: 'search_tool' },
+        },
+      ],
+    },
   ],
 };
 

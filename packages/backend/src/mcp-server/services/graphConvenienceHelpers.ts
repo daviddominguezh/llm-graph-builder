@@ -136,20 +136,18 @@ export function extractFlagUsages(graph: Graph): ContextFlagUsage[] {
 /*  getMcpToolUsage helpers                                             */
 /* ------------------------------------------------------------------ */
 
-function extractToolName(value: string): string {
-  return value;
-}
-
 export function extractMcpToolUsages(graph: Graph): McpToolUsage[] {
   const toolMap = new Map<string, Array<{ from: string; to: string }>>();
 
   for (const edge of graph.edges) {
     const toolPreconditions = (edge.preconditions ?? []).filter((p) => p.type === 'tool_call');
     for (const p of toolPreconditions) {
-      const tool = extractToolName(p.value);
-      const existing = toolMap.get(tool) ?? [];
+      const {
+        tool: { toolName },
+      } = p;
+      const existing = toolMap.get(toolName) ?? [];
       existing.push({ from: edge.from, to: edge.to });
-      toolMap.set(tool, existing);
+      toolMap.set(toolName, existing);
     }
   }
 
@@ -222,6 +220,33 @@ function buildDecisionTreeOps(domainKey: string): Operation[] {
   ];
 }
 
+function buildToolLoopEdgeOps(domainKey: string, ids: { entryId: string; toolId: string; processId: string }): Operation[] {
+  const { entryId, toolId, processId } = ids;
+  return [
+    {
+      type: 'insertEdge',
+      data: { from: entryId, to: toolId, preconditions: [{ type: 'user_said', value: 'start' }] },
+    },
+    {
+      type: 'insertEdge',
+      data: {
+        from: toolId,
+        to: processId,
+        preconditions: [
+          {
+            type: 'tool_call',
+            tool: { providerType: 'mcp', providerId: domainKey, toolName: `${domainKey}_tool` },
+          },
+        ],
+      },
+    },
+    {
+      type: 'insertEdge',
+      data: { from: processId, to: toolId, preconditions: [{ type: 'user_said', value: 'retry' }] },
+    },
+  ];
+}
+
 function buildToolLoopOps(domainKey: string): Operation[] {
   const entryId = `${domainKey}_Entry`;
   const toolId = `${domainKey}_Tool`;
@@ -241,22 +266,7 @@ function buildToolLoopOps(domainKey: string): Operation[] {
       type: 'insertNode',
       data: { nodeId: processId, text: `${domainKey} process`, kind: 'agent', agent: domainKey },
     },
-    {
-      type: 'insertEdge',
-      data: { from: entryId, to: toolId, preconditions: [{ type: 'user_said', value: 'start' }] },
-    },
-    {
-      type: 'insertEdge',
-      data: {
-        from: toolId,
-        to: processId,
-        preconditions: [{ type: 'tool_call', value: `${domainKey}_tool` }],
-      },
-    },
-    {
-      type: 'insertEdge',
-      data: { from: processId, to: toolId, preconditions: [{ type: 'user_said', value: 'retry' }] },
-    },
+    ...buildToolLoopEdgeOps(domainKey, { entryId, toolId, processId }),
   ];
 }
 

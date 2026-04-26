@@ -10,11 +10,29 @@ import type { ServiceContext } from '../types.js';
 /*  Operation schema (discriminated union matching Operation type)     */
 /* ------------------------------------------------------------------ */
 
-const preconditionSchema = z.object({
-  type: z.enum(['user_said', 'agent_decision', 'tool_call']),
-  value: z.string(),
-  description: z.string().optional(),
+const selectedToolRefSchema = z.object({
+  providerType: z.enum(['builtin', 'mcp']),
+  providerId: z.string(),
+  toolName: z.string(),
 });
+
+const preconditionSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('user_said'),
+    value: z.string(),
+    description: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('agent_decision'),
+    value: z.string(),
+    description: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('tool_call'),
+    tool: selectedToolRefSchema,
+    description: z.string().optional(),
+  }),
+]);
 
 const contextPreconditionsSchema = z.object({
   preconditions: z.array(z.string()),
