@@ -33,7 +33,8 @@ function formatCount(args: {
 
 export function ProviderHeader(props: ProviderHeaderProps): React.JSX.Element {
   const t = useTranslations('agentTools');
-  const checkedValue = props.state === 'checked' ? true : props.state === 'indeterminate' ? 'indeterminate' : false;
+  const isChecked = props.state === 'checked';
+  const isIndeterminate = props.state === 'indeterminate';
   const count = formatCount({
     state: props.state,
     selected: props.selectedInGroup,
@@ -44,7 +45,12 @@ export function ProviderHeader(props: ProviderHeaderProps): React.JSX.Element {
   });
   return (
     <div className="sticky top-0 z-10 bg-background flex items-center gap-2 px-2 pt-2 pb-1.5">
-      <Checkbox checked={checkedValue} onCheckedChange={props.onToggle} aria-label={t('selectAll')} />
+      <Checkbox
+        checked={isChecked}
+        indeterminate={isIndeterminate}
+        onCheckedChange={props.onToggle}
+        aria-label={t('selectAll')}
+      />
       <div className="flex flex-col flex-1 min-w-0">
         <div className="flex items-center gap-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
           <span>{props.groupName}</span>
