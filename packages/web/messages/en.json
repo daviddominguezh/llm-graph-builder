@@ -670,6 +670,27 @@
     "disconnectError": "Couldn't disconnect. Please try again.",
     "disconnectSuccess": "Google Calendar disconnected."
   },
+  "agentTools": {
+    "selectAll": "Select all",
+    "clear": "Clear",
+    "removeAllStale": "Remove all",
+    "countOfTotal": "{n} of {total}",
+    "countOfTotalVisible": "{n} of {visible} visible · {total} total",
+    "allSelected": "all",
+    "noToolsHint": "No tools enabled. This agent can only converse.",
+    "staleHeader": "Stale entries (provider removed)",
+    "removeStale": "Remove",
+    "runInProgressNote": "Changes apply to the next run.",
+    "saveStates": {
+      "saving": "Saving…",
+      "saved": "Saved",
+      "error": "Couldn't save — retry",
+      "conflict": "Conflict — refreshing",
+      "disabledByFailure": "Save paused — tool catalog couldn't load"
+    },
+    "saveError": "Couldn't save tool selection. Please try again.",
+    "limitExceeded": "You can select at most 100 tools. Remove some before saving."
+  },
   "apiKeys": {
     "title": "OpenRouter API Keys",
     "add": "Add",
