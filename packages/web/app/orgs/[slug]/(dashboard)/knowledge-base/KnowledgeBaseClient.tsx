@@ -5,6 +5,7 @@ import type { TenantRow } from '@/app/lib/tenants';
 import { useRef, useState } from 'react';
 
 import { KnowledgeBaseUploader } from './KnowledgeBaseUploader';
+import { NoTenantsState } from './NoTenantsState';
 import { TenantList } from './TenantList';
 import { useFileQueue } from './useFileQueue';
 import { useNativeDropArea } from './useNativeDropArea';
@@ -31,22 +32,26 @@ export function KnowledgeBaseClient({
   const queue = useFileQueue();
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useNativeDropArea(containerRef, queue.add);
+  const hasTenants = tenants.length > 0;
 
   return (
-    <div ref={containerRef} className={panelClassName(isDragging)}>
-      <TenantList
-        tenants={tenants}
-        currentTenantId={tenantId}
-        onSelect={setTenantId}
-        orgSlug={orgSlug}
-      />
-      <Scrollable className="min-h-0 flex-1">
-        <div className="p-6">
-          <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-            <KnowledgeBaseUploader queue={queue} isDragging={isDragging} />
-          </div>
+    <div ref={containerRef} className={panelClassName(isDragging && hasTenants)}>
+      {hasTenants ? (
+        <>
+          <TenantList tenants={tenants} currentTenantId={tenantId} onSelect={setTenantId} />
+          <Scrollable className="min-h-0 flex-1">
+            <div className="p-6">
+              <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+                <KnowledgeBaseUploader queue={queue} isDragging={isDragging} />
+              </div>
+            </div>
+          </Scrollable>
+        </>
+      ) : (
+        <div className="flex flex-1 justify-center p-6">
+          <NoTenantsState orgSlug={orgSlug} />
         </div>
-      </Scrollable>
+      )}
     </div>
   );
 }

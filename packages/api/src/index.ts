@@ -112,6 +112,13 @@ export type { AccessTokenProvider, CreateGoogleCalendarServiceOptions } from './
 export type { SelectedTool, ProviderType, BuiltinProviderId } from './types/selectedTool.js';
 export { BUILTIN_PROVIDER_IDS, equalsSelectedTool } from './types/selectedTool.js';
 
+export {
+  MAX_SELECTED_TOOLS,
+  PatchSelectedToolsBodySchema,
+  SelectedToolSchema,
+} from './types/selectedToolSchema.js';
+export type { PatchSelectedToolsBody } from './types/selectedToolSchema.js';
+
 export const execute = async (
   context: Context,
   messages: Message[],

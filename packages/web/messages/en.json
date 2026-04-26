@@ -807,10 +807,11 @@
     "filesSkipped": "{count, plural, =1 {1 file skipped (unsupported type)} other {# files skipped (unsupported types)}}",
     "remove": "Remove",
     "tenantList": {
-      "label": "Tenants",
-      "empty": "No tenants yet",
-      "emptyCta": "Create one"
-    }
+      "label": "Tenants"
+    },
+    "noTenantsTitle": "No tenants yet",
+    "noTenantsDescription": "Create a tenant to start adding documents.",
+    "goToTenants": "Go to tenants"
   },
   "tenants": {
     "title": "Tenants",
