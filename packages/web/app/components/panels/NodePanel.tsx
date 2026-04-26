@@ -32,6 +32,7 @@ import { NodePanelOutputSchema } from './NodePanelOutputSchema';
 import { NodePromptDialog } from './NodePromptDialog';
 import { pushDeleteNode, pushRenameNode, pushUpdateNode } from './nodePanelOps';
 import { hasToolCallEdge } from './toolCallGuard';
+import { getPreconditionDisplayValue } from '../../utils/preconditionHelpers';
 
 interface NodePanelProps {
   nodeId: string;
@@ -260,7 +261,8 @@ export function NodePanel({
               </div>
               <div className="flex flex-col ml-2 gap-1">
                 {incomingEdges.map((edge) => {
-                  const value = edge.data?.preconditions?.[0]?.value;
+                  const firstPrecondition = edge.data?.preconditions?.[0];
+                  const value = firstPrecondition ? getPreconditionDisplayValue(firstPrecondition) : undefined;
                   const contextPreconditions = edge.data?.contextPreconditions;
                   const hasContext = contextPreconditions && contextPreconditions.preconditions.length > 0;
                   return (
@@ -339,7 +341,8 @@ export function NodePanel({
               </div>
               <div className="flex flex-col ml-2 gap-1">
                 {outgoingEdges.map((edge) => {
-                  const value = edge.data?.preconditions?.[0]?.value;
+                  const firstPrecondition = edge.data?.preconditions?.[0];
+                  const value = firstPrecondition ? getPreconditionDisplayValue(firstPrecondition) : undefined;
                   const contextPreconditions = edge.data?.contextPreconditions;
                   const hasContext = contextPreconditions && contextPreconditions.preconditions.length > 0;
                   return (

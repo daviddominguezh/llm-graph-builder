@@ -7,6 +7,7 @@ import { DEFAULT_NODE_HEIGHT, DEFAULT_NODE_WIDTH, NODE_GAP } from '../utils/grap
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
 import { buildInsertEdgeOp, buildInsertNodeOp, buildUpdateNodeOp } from '../utils/operationBuilders';
 import type { PushOperation } from '../utils/operationBuilders';
+import { makePrecondition } from '../utils/preconditionHelpers';
 
 const NANOID_LENGTH = 8;
 const HALF = 2;
@@ -133,7 +134,7 @@ export function useCreateToolNode(params: StructuredCreationParams): (toolName: 
       const id = makeNodeId();
       const position = getBasePosition(sourceNode);
       const targetHandle = resolveTargetHandle(params.menu.sourceHandleId);
-      const precondition: Precondition = { type: 'tool_call', value: toolName };
+      const precondition: Precondition = makePrecondition({ type: 'tool_call', value: toolName });
       const newNode = makeNode(id, position, '');
 
       params.setNodes((nds) => [...nds, newNode]);
@@ -246,7 +247,9 @@ export function useCreateLoop(
 
       // Edge: source -> loop body
       const connPrecondition: Precondition | undefined =
-        connection.type === 'none' ? undefined : { type: connection.type, value: connection.value };
+        connection.type === 'none'
+          ? undefined
+          : makePrecondition({ type: connection.type, value: connection.value });
       const connEdgeData: RFEdgeData | undefined = connPrecondition
         ? { preconditions: [connPrecondition] }
         : undefined;

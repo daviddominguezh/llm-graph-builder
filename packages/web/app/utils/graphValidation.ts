@@ -2,6 +2,7 @@ import type { Edge as RFFlowEdge, Node as RFFlowNode } from '@xyflow/react';
 
 import type { RFEdgeData, RFNodeData } from './graphTransformers';
 import { validateOutputSchemaNodes, validateReferences } from './graphValidationOutputSchemas';
+import { getPreconditionDisplayValue } from './preconditionHelpers';
 
 const START_NODE_ID = 'INITIAL_STEP';
 const EMPTY = 0;
@@ -47,7 +48,8 @@ function validateStartOutgoing(outgoing: FlowEdge[], errors: ValidationError[]):
       });
       return;
     }
-    const value = edge.data?.preconditions?.[EMPTY]?.value ?? '';
+    const firstPrecondition = edge.data?.preconditions?.[EMPTY];
+    const value = firstPrecondition ? getPreconditionDisplayValue(firstPrecondition) : '';
     if (value.trim() === '') {
       errors.push({
         message: `Initial step: edge to "${edge.target}" must have a non-empty user_said value`,

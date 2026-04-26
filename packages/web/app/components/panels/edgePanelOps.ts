@@ -4,6 +4,7 @@ import type { Precondition, PreconditionType } from '../../schemas/graph.schema'
 import type { RFEdgeData } from '../../utils/graphTransformers';
 import { buildDeleteEdgeOp, buildUpdateEdgeOp } from '../../utils/operationBuilders';
 import type { PushOperation } from '../../utils/operationBuilders';
+import { makePrecondition } from '../../utils/preconditionHelpers';
 
 export function pushUpdateEdge(
   from: string,
@@ -38,11 +39,11 @@ export function pushTypeChangeOps(
     const { [e.id]: input } = multiEdgeInputs;
     if (input.value.trim() === '') continue;
 
-    const newPrecondition: Precondition = {
+    const newPrecondition: Precondition = makePrecondition({
       type: preconditionType,
       value: input.value.trim(),
       description: input.description.trim(),
-    };
+    });
     const merged = buildMergedEdge(e, newPrecondition);
     pushOp(buildUpdateEdgeOp(e.source, e.target, merged));
   }
