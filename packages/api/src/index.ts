@@ -124,6 +124,8 @@ export {
   composeRegistry,
   toAiSdkTool,
   toAiSdkToolDict,
+  MockMcpConnector,
+  testConnectorConformance,
 } from './providers/index.js';
 export type {
   Provider,
@@ -137,6 +139,9 @@ export type {
   DescribeAllItem,
   OpenFlowTool,
   OAuthTokenBundle,
+  McpClient,
+  McpConnector,
+  ConformanceFixtures,
 } from './providers/index.js';
 
 export const execute = async (

@@ -23,3 +23,7 @@ export {
   type FailureReason,
   type DescribeAllItem,
 } from './registry.js';
+export type { McpClient, McpConnector } from './mcp/types.js';
+export { MockMcpConnector } from './mcp/MockMcpConnector.js';
+export type { ConformanceFixtures } from './mcp/conformance.js';
+export { testConnectorConformance } from './mcp/conformance.js';
