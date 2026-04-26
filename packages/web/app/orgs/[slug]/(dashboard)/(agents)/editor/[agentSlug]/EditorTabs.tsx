@@ -7,8 +7,9 @@ import { TriggersPanel } from '@/app/components/agents/triggers/TriggersPanel';
 import { useEditorCache } from '@/app/components/editors/EditorCacheProvider';
 import type { PublishTenant } from '@/app/components/panels/PublishButtonTenantPicker';
 import type { ApiKeyRow } from '@/app/lib/apiKeys';
+import type { SelectedTool } from '@daviddh/llm-graph-runner';
 import { Button } from '@/components/ui/button';
-import { GlassPanel } from '@/components/ui/glass-panel';
+import { GlassPanelV2 } from '@/components/ui/glass-panel-v2';
 import { Separator } from '@/components/ui/separator';
 import { Brain, Database, PanelLeftClose, PanelLeftOpen, Radio, Settings, Zap } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -35,6 +36,9 @@ interface EditorTabsProps {
   agentDescription: string;
   agentCategory: string;
   agentIsPublic: boolean;
+  agentAppType: string;
+  agentSelectedTools: SelectedTool[];
+  agentUpdatedAt: string;
 }
 
 const TAB_ICONS: Record<TabId, LucideIcon> = {
@@ -89,6 +93,9 @@ function buildEditorElement(props: EditorTabsProps): React.ReactNode {
       orgApiKeys={props.orgApiKeys}
       stagingApiKeyId={props.stagingApiKeyId}
       productionApiKeyId={props.productionApiKeyId}
+      agentAppType={props.agentAppType}
+      agentSelectedTools={props.agentSelectedTools}
+      agentUpdatedAt={props.agentUpdatedAt}
     />
   );
 }
@@ -199,8 +206,8 @@ function EditorTabBar({
   const toolbarRef = useCallback((el: HTMLDivElement | null) => setToolbarPortal(el), [setToolbarPortal]);
 
   return (
-    <GlassPanel
-      variant="background"
+    <GlassPanelV2
+      radius={9999}
       className="relative w-[calc(100%-(var(--spacing)*4))] rounded-full h-fit shrink-0 flex items-center px-0.5 mx-2 pointer-events-auto py-0.5"
     >
       <div className="flex flex-row w-full items-center">
@@ -225,6 +232,6 @@ function EditorTabBar({
           className={`flex items-center gap-1.5 ${activeTab !== 'agent' ? 'hidden' : ''}`}
         />
       </div>
-    </GlassPanel>
+    </GlassPanelV2>
   );
 }

@@ -46,6 +46,9 @@ export default async function EditorPage({ params }: EditorPageProps): Promise<R
       agentDescription={agent.description}
       agentCategory={agent.category}
       agentIsPublic={agent.is_public}
+      agentAppType={agent.app_type}
+      agentSelectedTools={agent.selected_tools}
+      agentUpdatedAt={agent.updated_at}
     />
   );
 }

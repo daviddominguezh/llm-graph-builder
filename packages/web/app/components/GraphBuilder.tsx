@@ -30,6 +30,7 @@ import {
 } from './sidePanelHelpers';
 import { ToolRegistryProvider } from './ToolRegistryProvider';
 import { useSchemaDialogState } from './useSidePanelState';
+import type { SelectedTool } from '@daviddh/llm-graph-runner';
 import type { DiscoveredTool } from '../lib/api';
 import type { ApiKeyRow } from '../lib/apiKeys';
 import type { Agent, Graph } from '../schemas/graph.schema';
@@ -99,6 +100,9 @@ export interface GraphBuilderProps {
   productionApiKeyId?: string | null;
   readOnly?: boolean;
   graphOverride?: Graph;
+  agentAppType?: string;
+  agentSelectedTools?: SelectedTool[];
+  agentUpdatedAt?: string;
 }
 
 interface LoadedEditorProps extends GraphBuilderProps {
@@ -689,6 +693,18 @@ function LoadedEditor(props: LoadedEditorProps) {
               }}
               onCloseLibrary={() => h.setLibraryOpen(false)}
               pushOperation={h.pushOperation}
+              agentToolsConfig={
+                props.agentId !== undefined &&
+                props.agentSelectedTools !== undefined &&
+                props.agentUpdatedAt !== undefined
+                  ? {
+                      agentId: props.agentId,
+                      appType: props.agentAppType ?? '',
+                      initialSelectedTools: props.agentSelectedTools,
+                      initialUpdatedAt: props.agentUpdatedAt,
+                    }
+                  : undefined
+              }
             />
 
             {!isReadOnly && h.agentConfig === undefined && (

@@ -1,5 +1,6 @@
 'use client';
 
+import type { SelectedTool } from '@daviddh/llm-graph-runner';
 import type { Edge } from '@xyflow/react';
 
 import type { ApiKeyRow } from '../lib/apiKeys';
@@ -12,6 +13,10 @@ import type { RFEdgeData } from '../utils/graphTransformers';
 import type { UseGraphSelectionReturn } from '../hooks/useGraphSelection';
 import type { McpLibraryState } from '../hooks/useMcpLibrary';
 import type { ContextPreset } from '../types/preset';
+import { findStaleSelections } from '../lib/agentTools';
+import { useAgentToolsState } from '../hooks/useAgentToolsState';
+import { useToolRegistry } from './ToolRegistryProvider';
+import { registryToolToSelectedTool } from './panels/ToolsPanelAgentMode';
 
 import { GlassPanel } from '@/components/ui/glass-panel';
 import { START_NODE_ID } from '../utils/graphInitializer';
@@ -82,6 +87,14 @@ export interface SidePanelsProps {
   onOpenMcpLibrary: () => void;
   onCloseLibrary: () => void;
   pushOperation: PushOperation;
+  agentToolsConfig?: AgentToolsConfig;
+}
+
+export interface AgentToolsConfig {
+  agentId: string;
+  appType: string;
+  initialSelectedTools: SelectedTool[];
+  initialUpdatedAt: string;
 }
 
 interface SelectionPanelProps extends SidePanelsProps {
@@ -164,26 +177,68 @@ interface ToolsPanelSlotProps {
   onPublishServer: (server: McpServerConfig) => void;
 }
 
-function ToolsPanelSlot({ sidePanelProps: p, onPublishServer }: ToolsPanelSlotProps) {
+function buildMcpProps(p: SidePanelsProps, onPublishServer: (server: McpServerConfig) => void) {
+  return {
+    servers: p.mcpHook.servers,
+    discovering: p.mcpHook.discovering,
+    serverStatus: p.mcpHook.serverStatus,
+    orgId: p.orgId,
+    envVariables: p.envVariables,
+    libraryItems: p.mcpLibrary.items,
+    onAddServer: p.mcpHook.addServer,
+    onRemoveServer: p.mcpHook.removeServer,
+    onUpdateServer: p.mcpHook.updateServer,
+    onDiscoverTools: p.mcpHook.discoverTools,
+    onPublishServer,
+    onOpenLibrary: p.onOpenMcpLibrary,
+  };
+}
+
+interface AgentToolsSlotProps {
+  config: AgentToolsConfig;
+  sidePanelProps: SidePanelsProps;
+  onPublishServer: (server: McpServerConfig) => void;
+}
+
+function AgentToolsSlot({ config, sidePanelProps: p, onPublishServer }: AgentToolsSlotProps) {
+  const { groups } = useToolRegistry();
+  const toolsState = useAgentToolsState({
+    agentId: config.agentId,
+    initialSelectedTools: config.initialSelectedTools,
+    initialUpdatedAt: config.initialUpdatedAt,
+  });
+  const registry = groups.flatMap((g) => g.tools.map(registryToolToSelectedTool));
+  const staleEntries = findStaleSelections({
+    selections: toolsState.selectedTools,
+    registry,
+    failedProviders: [],
+  });
+  const agentProp = {
+    agentId: config.agentId,
+    selectedTools: toolsState.selectedTools,
+    staleEntries,
+    saveState: toolsState.saveState,
+    onChange: toolsState.handleToolsChange,
+    onRemoveStale: toolsState.handleRemoveStale,
+    onRetrySave: toolsState.handleRetrySave,
+  };
   return (
-    <ToolsPanel
-      mcp={{
-        servers: p.mcpHook.servers,
-        discovering: p.mcpHook.discovering,
-        serverStatus: p.mcpHook.serverStatus,
-        orgId: p.orgId,
-        envVariables: p.envVariables,
-        libraryItems: p.mcpLibrary.items,
-        onAddServer: p.mcpHook.addServer,
-        onRemoveServer: p.mcpHook.removeServer,
-        onUpdateServer: p.mcpHook.updateServer,
-        onDiscoverTools: p.mcpHook.discoverTools,
-        onPublishServer,
-        onOpenLibrary: p.onOpenMcpLibrary,
-      }}
-      open={p.toolsOpen}
-      onClose={() => {}}
-    />
+    <ToolsPanel mcp={buildMcpProps(p, onPublishServer)} open={p.toolsOpen} onClose={() => {}} agent={agentProp} />
+  );
+}
+
+function ToolsPanelSlot({ sidePanelProps: p, onPublishServer }: ToolsPanelSlotProps) {
+  if (p.agentToolsConfig !== undefined && p.agentToolsConfig.appType === 'agent') {
+    return (
+      <AgentToolsSlot
+        config={p.agentToolsConfig}
+        sidePanelProps={p}
+        onPublishServer={onPublishServer}
+      />
+    );
+  }
+  return (
+    <ToolsPanel mcp={buildMcpProps(p, onPublishServer)} open={p.toolsOpen} onClose={() => {}} />
   );
 }
 
