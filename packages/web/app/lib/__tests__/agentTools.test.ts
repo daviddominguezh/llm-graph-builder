@@ -9,7 +9,11 @@ import {
   toggleTool,
 } from '../agentTools';
 
-const calA: SelectedTool = { providerType: 'builtin', providerId: 'calendar', toolName: 'check_availability' };
+const calA: SelectedTool = {
+  providerType: 'builtin',
+  providerId: 'calendar',
+  toolName: 'check_availability',
+};
 const calB: SelectedTool = { providerType: 'builtin', providerId: 'calendar', toolName: 'list_calendars' };
 
 describe('agentTools', () => {

@@ -1,13 +1,12 @@
 'use client';
 
-import type { SelectedTool } from '@daviddh/llm-graph-runner';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useDebouncedCallback } from 'use-debounce';
-import { toast } from 'sonner';
-import { useTranslations } from 'next-intl';
-
 import { updateAgentSelectedToolsAction } from '@/app/actions/agentSelectedTools';
 import type { SaveState } from '@/app/components/panels/SaveStateIndicator';
+import type { SelectedTool } from '@daviddh/llm-graph-runner';
+import { useTranslations } from 'next-intl';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
+import { useDebouncedCallback } from 'use-debounce';
 
 export interface AgentToolsStateConfig {
   agentId: string;
@@ -56,11 +55,7 @@ function applySuccess(ctx: SaveContext, tools: SelectedTool[], updatedAt: string
   scheduleIdleTransition(ctx.idleTimeoutRef, ctx.setSaveState, IDLE_HIDE_MS_SAVED);
 }
 
-function applyConflict(
-  ctx: SaveContext,
-  currentTools: SelectedTool[],
-  currentUpdatedAt: string
-): void {
+function applyConflict(ctx: SaveContext, currentTools: SelectedTool[], currentUpdatedAt: string): void {
   ctx.lastSavedRef.current = { tools: currentTools, updatedAt: currentUpdatedAt };
   ctx.setSelectedTools(currentTools);
   ctx.setSaveState('conflict');
@@ -164,9 +159,12 @@ export function useAgentToolsState({
     setSaveState,
   }).current;
 
-  const executeSave = useCallback((tools: SelectedTool[]) => {
-    void performSave(stableCtx, tools);
-  }, [stableCtx]);
+  const executeSave = useCallback(
+    (tools: SelectedTool[]) => {
+      void performSave(stableCtx, tools);
+    },
+    [stableCtx]
+  );
 
   const debouncedSave = useDebouncedCallback(executeSave, DEBOUNCE_MS);
 

@@ -1,10 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import {
-  BUILTIN_PROVIDER_IDS,
-  type SelectedTool,
-  equalsSelectedTool,
-} from '../selectedTool.js';
+import { BUILTIN_PROVIDER_IDS, type SelectedTool, equalsSelectedTool } from '../selectedTool.js';
 
 describe('SelectedTool helpers', () => {
   const a: SelectedTool = { providerType: 'builtin', providerId: 'calendar', toolName: 'check_availability' };

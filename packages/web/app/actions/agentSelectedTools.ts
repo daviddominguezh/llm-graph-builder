@@ -1,8 +1,7 @@
 'use server';
 
-import type { SelectedTool } from '@daviddh/llm-graph-runner';
-
 import { fetchFromBackend } from '@/app/lib/backendProxy';
+import type { SelectedTool } from '@daviddh/llm-graph-runner';
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_FORBIDDEN = 403;
@@ -101,11 +100,10 @@ export async function updateAgentSelectedToolsAction(
   expectedUpdatedAt: string
 ): Promise<UpdateSelectedToolsResult> {
   try {
-    const data = await fetchFromBackend(
-      'PATCH',
-      `/agents/${encodeURIComponent(agentId)}/selected-tools`,
-      { tools, expectedUpdatedAt }
-    );
+    const data = await fetchFromBackend('PATCH', `/agents/${encodeURIComponent(agentId)}/selected-tools`, {
+      tools,
+      expectedUpdatedAt,
+    });
     const success = parseSuccess(data);
     if (success === null) {
       return { ok: false, kind: 'transient', message: 'Malformed response' };
