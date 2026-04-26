@@ -18,7 +18,7 @@ interface KnowledgeBaseClientProps {
 
 function panelClassName(isDragging: boolean): string {
   const base =
-    'relative flex h-[calc(100%-var(--spacing)*2)] overflow-hidden border mr-2 rounded-xl bg-background transition duration-150';
+    'relative flex h-[calc(100%-var(--spacing)*2.5)] overflow-hidden border mr-2.5 rounded-xl bg-background transition duration-150';
   const drag = isDragging ? 'ring-2 ring-inset ring-primary/60' : '';
   return `${base} ${drag}`.trim();
 }

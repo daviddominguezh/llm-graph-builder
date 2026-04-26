@@ -28,7 +28,7 @@ export default async function OrgSettingsPage({ params }: OrgSettingsPageProps):
   const googleCalendarStatus = await getGoogleCalendarConnectionStatus(org.id);
 
   return (
-    <Scrollable className="h-[calc(100%-var(--spacing)*2)] p-6 border rounded-xl mr-2 bg-background">
+    <Scrollable className="h-[calc(100%-var(--spacing)*2.5)] p-6 border rounded-xl mr-2.5 bg-background">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
         <OrgSettingsForm org={org} />
         <Separator />

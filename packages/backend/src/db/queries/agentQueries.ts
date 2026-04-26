@@ -1,3 +1,4 @@
+import type { SelectedTool } from '@daviddh/llm-graph-runner';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 /* ------------------------------------------------------------------ */
@@ -21,6 +22,7 @@ export interface AgentRow {
   category: string;
   created_from_template_id: string | null;
   app_type: string;
+  selected_tools: SelectedTool[];
   system_prompt: string | null;
   max_steps: number | null;
 }
@@ -42,7 +44,13 @@ interface VersionRow {
 /* ------------------------------------------------------------------ */
 
 function isAgentRow(value: unknown): value is AgentRow {
-  return typeof value === 'object' && value !== null && 'id' in value && 'slug' in value;
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'id' in value &&
+    'slug' in value &&
+    'selected_tools' in value
+  );
 }
 
 function isVersionRow(value: unknown): value is VersionRow {
