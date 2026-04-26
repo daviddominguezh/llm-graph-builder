@@ -502,7 +502,7 @@
       "next": "Next",
       "back": "Back",
       "cancel": "Cancel",
-      "create": "Create form",
+      "createButton": "Create form",
       "save": "Save",
       "immutableHelp": "To change the name or schema, delete this form and create a new one.",
       "unsavedConfirm": "Discard unsaved validation changes?"

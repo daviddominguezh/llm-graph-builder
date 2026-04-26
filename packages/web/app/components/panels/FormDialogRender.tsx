@@ -58,7 +58,7 @@ export function renderFormDialogFooter(a: FooterArgs): ReactElement {
         {a.t('back')}
       </Button>
       <Button disabled={!a.canSubmit || a.submitting} onClick={a.submit}>
-        {a.mode.mode === 'create' ? a.t('create') : a.t('save')}
+        {a.mode.mode === 'create' ? a.t('createButton') : a.t('save')}
       </Button>
     </DialogFooter>
   );
