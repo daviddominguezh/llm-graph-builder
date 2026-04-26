@@ -1,10 +1,8 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { GlassPanel } from '@/components/ui/glass-panel';
 import { Input } from '@/components/ui/input';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Play, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -16,8 +14,10 @@ import type { RegistryTool, ToolGroup } from '../../lib/toolRegistry';
 import type { McpServerConfig } from '../../schemas/graph.schema';
 import { useToolRegistry } from '../ToolRegistryProvider';
 import { McpServersSection } from './McpServersSection';
-import { FloatingSchema, type ToolSchema } from './ToolSchemaPopover';
+import { SaveStateIndicator } from './SaveStateIndicator';
 import { ToolTestModal } from './ToolTestModal';
+import { type AgentModeProps, AgentModeBody } from './ToolsPanelAgentMode';
+import { ToolsList } from './ToolsPanelViewMode';
 
 interface McpProps {
   servers: McpServerConfig[];
@@ -38,6 +38,7 @@ interface ToolsPanelProps {
   mcp: McpProps;
   open: boolean;
   onClose: () => void;
+  agent?: AgentModeProps;
 }
 
 function filterGroups(groups: ToolGroup[], query: string): ToolGroup[] {
@@ -57,120 +58,6 @@ function countTools(groups: ToolGroup[]): number {
   let count = 0;
   for (const g of groups) count += g.tools.length;
   return count;
-}
-
-function PlayButton({ tool, onTest }: { tool: RegistryTool; onTest: (tool: RegistryTool) => void }) {
-  const t = useTranslations('toolTest');
-  return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            className="shrink-0 opacity-0 transition-opacity group-hover/tool:opacity-100 hover:bg-[#4fc661] dark:hover:bg-[#4fc661] hover:text-background dark:hover:text-foreground"
-            onClick={(e) => {
-              e.stopPropagation();
-              onTest(tool);
-            }}
-          />
-        }
-      >
-        <Play className="size-3" />
-      </TooltipTrigger>
-      <TooltipContent side="top">{t('testTool')}</TooltipContent>
-    </Tooltip>
-  );
-}
-
-function ToolRow({
-  tool,
-  expanded,
-  onClick,
-  onCollapse,
-  onTest,
-}: {
-  tool: RegistryTool;
-  expanded: boolean;
-  onClick: () => void;
-  onCollapse: () => void;
-  onTest: (tool: RegistryTool) => void;
-}) {
-  const rowRef = useRef<HTMLDivElement>(null);
-  return (
-    <li className="flex flex-col w-[calc(50%_-_(var(--spacing)*2))] shrink-0 bg-card rounded-sm py-1.5">
-      <div
-        ref={rowRef}
-        className="group/tool flex w-full items-start gap-1 px-1 py-0 text-left text-xs cursor-pointer border-l-2 border-ring hover:border-accent"
-        onClick={onClick}
-      >
-        <div className="flex min-w-0 flex-1 flex-col">
-          <span className="font-medium">{tool.name}</span>
-          <span className="truncate text-[10px] text-muted-foreground">
-            {tool.description ?? tool.group}
-          </span>
-        </div>
-        <PlayButton tool={tool} onTest={onTest} />
-      </div>
-      {expanded && tool.inputSchema && (
-        <FloatingSchema
-          description={tool.description}
-          anchorRef={rowRef}
-          schema={tool.inputSchema as ToolSchema}
-          onClose={onCollapse}
-        />
-      )}
-    </li>
-  );
-}
-
-function ToolsList({
-  groups,
-  totalCount,
-  expandedTool,
-  onToggleTool,
-  onCollapseTool,
-  onTestTool,
-}: {
-  groups: ToolGroup[];
-  totalCount: number;
-  expandedTool: string | null;
-  onToggleTool: (key: string) => void;
-  onCollapseTool: () => void;
-  onTestTool: (tool: RegistryTool) => void;
-}) {
-  return (
-    <div className="flex-1 overflow-y-auto p-1 pt-0">
-      {totalCount === 0 ? (
-        <p className="p-3 text-xs text-muted-foreground bg-muted rounded-md mt-2 mx-1">
-          {groups.length === 0 ? 'No tools discovered yet' : 'No results'}
-        </p>
-      ) : (
-        groups.map((group) => (
-          <div key={group.groupName}>
-            <div className="sticky top-0 z-10 bg-background px-2 pt-0 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-              <div className="pt-2">{group.groupName}</div>
-            </div>
-            <ul className="flex flex-row gap-2 gap-y-3 flex-wrap pl-1">
-              {group.tools.map((tool) => {
-                const key = `${tool.group}-${tool.name}`;
-                return (
-                  <ToolRow
-                    key={key}
-                    tool={tool}
-                    expanded={expandedTool === key}
-                    onClick={() => onToggleTool(key)}
-                    onCollapse={onCollapseTool}
-                    onTest={onTestTool}
-                  />
-                );
-              })}
-            </ul>
-          </div>
-        ))
-      )}
-    </div>
-  );
 }
 
 function McpTab({ mcp }: { mcp: McpProps }) {
@@ -245,7 +132,7 @@ function useToolTest(servers: McpServerConfig[], orgId: string) {
   return { testingTool, transport, callOptions, openTest, closeTest };
 }
 
-export function ToolsPanel({ mcp, open, onClose }: ToolsPanelProps) {
+export function ToolsPanel({ mcp, open, onClose, agent }: ToolsPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const t = useTranslations('toolbar');
@@ -308,15 +195,29 @@ export function ToolsPanel({ mcp, open, onClose }: ToolsPanelProps) {
                 placeholder={t('searchTools')}
                 className="h-7 border-0 bg-transparent! p-0 text-xs shadow-none focus-visible:ring-0"
               />
+              {agent !== undefined && (
+                <SaveStateIndicator state={agent.saveState} onRetry={agent.onRetrySave} />
+              )}
             </div>
-            <ToolsList
-              groups={filteredGroups}
-              totalCount={totalCount}
-              expandedTool={expandedTool}
-              onToggleTool={(key) => setExpandedTool((prev) => (prev === key ? null : key))}
-              onCollapseTool={() => setExpandedTool(null)}
-              onTestTool={tt.openTest}
-            />
+            {agent !== undefined ? (
+              <AgentModeBody
+                agent={agent}
+                groups={filteredGroups}
+                searchActive={query !== ''}
+                expandedTool={expandedTool}
+                onToggleTool={(key) => setExpandedTool((prev) => (prev === key ? null : key))}
+                onCollapseTool={() => setExpandedTool(null)}
+              />
+            ) : (
+              <ToolsList
+                groups={filteredGroups}
+                totalCount={totalCount}
+                expandedTool={expandedTool}
+                onToggleTool={(key) => setExpandedTool((prev) => (prev === key ? null : key))}
+                onCollapseTool={() => setExpandedTool(null)}
+                onTestTool={tt.openTest}
+              />
+            )}
           </div>
         )}
         {activeTab === 'mcp' && (
