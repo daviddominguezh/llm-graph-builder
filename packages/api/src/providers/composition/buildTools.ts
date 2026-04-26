@@ -13,14 +13,15 @@ import type { OpenFlowTool } from '../types.js';
 const FINISH_TOOL_NAME = 'finish';
 
 function adaptTool(name: string, tool: Tool): OpenFlowTool {
-  const { description = '', execute } = tool;
-  if (execute === undefined) {
+  const { description = '', execute: toolExecute } = tool;
+  if (toolExecute === undefined) {
     throw new Error(`Tool ${name} has no execute function`);
   }
+  const executeFunc = toolExecute as (input: unknown) => Promise<unknown>;
   return {
     description,
     inputSchema: z.record(z.string(), z.unknown()),
-    execute: async (input: z.infer<z.ZodType>): Promise<unknown> => await execute(input),
+    execute: async (input: z.infer<z.ZodType>): Promise<unknown> => await executeFunc(input),
   };
 }
 

@@ -119,6 +119,26 @@ export {
 } from './types/selectedToolSchema.js';
 export type { PatchSelectedToolsBody } from './types/selectedToolSchema.js';
 
+export {
+  builtInProviders,
+  composeRegistry,
+  toAiSdkTool,
+  toAiSdkToolDict,
+} from './providers/index.js';
+export type {
+  Provider,
+  ProviderCtx,
+  ToolDescriptor,
+  Registry,
+  RegistryBuildResult,
+  ComposeRegistryArgs,
+  ProviderFailure,
+  FailureReason,
+  DescribeAllItem,
+  OpenFlowTool,
+  OAuthTokenBundle,
+} from './providers/index.js';
+
 export const execute = async (
   context: Context,
   messages: Message[],
