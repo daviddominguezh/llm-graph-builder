@@ -3,11 +3,16 @@ import type { SelectedTool } from '@daviddh/llm-graph-runner';
 
 import { updateSelectedToolsWithPrecondition } from '../selectedToolsOperations.js';
 
+type FakeResult = {
+  data: { selected_tools: SelectedTool[]; updated_at: string } | null;
+  error: { code: string } | null;
+};
+
 interface FakeBuilder {
   update: jest.Mock;
   eq: jest.Mock;
   select: jest.Mock;
-  single: jest.Mock;
+  single: jest.Mock<() => Promise<FakeResult>>;
 }
 
 function makeSupabase(
@@ -18,7 +23,7 @@ function makeSupabase(
   builder.update = jest.fn().mockReturnValue(builder);
   builder.eq = jest.fn().mockReturnValue(builder);
   builder.select = jest.fn().mockReturnValue(builder);
-  builder.single = jest.fn().mockResolvedValue({ data: returnedRow, error });
+  builder.single = jest.fn<() => Promise<FakeResult>>().mockResolvedValue({ data: returnedRow, error });
   return { from: jest.fn().mockReturnValue(builder), _builder: builder };
 }
 

@@ -35,3 +35,19 @@ export async function updateSelectedToolsWithPrecondition(
   }
   return { kind: 'ok', row: result.data as UpdateSelectedToolsRow };
 }
+
+export async function fetchAgentSelectedTools(
+  supabase: SupabaseClient,
+  agentId: string
+): Promise<{ selected_tools: SelectedTool[]; updated_at: string } | null> {
+  const result = await supabase
+    .from('agents')
+    .select('selected_tools, updated_at')
+    .eq('id', agentId)
+    .single();
+  if (result.error !== null) {
+    if (result.error.code === 'PGRST116') return null;
+    throw new Error(`fetchAgentSelectedTools: ${result.error.message}`);
+  }
+  return result.data as { selected_tools: SelectedTool[]; updated_at: string };
+}
