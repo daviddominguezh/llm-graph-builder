@@ -784,7 +784,12 @@
     "totalSize": "{count, plural, =1 {# file · {size}} other {# files · {size}}}",
     "clearAll": "Clear",
     "filesSkipped": "{count, plural, =1 {1 file skipped (unsupported type)} other {# files skipped (unsupported types)}}",
-    "remove": "Remove"
+    "remove": "Remove",
+    "tenantList": {
+      "label": "Tenants",
+      "empty": "No tenants yet",
+      "emptyCta": "Create one"
+    }
   },
   "tenants": {
     "title": "Tenants",
