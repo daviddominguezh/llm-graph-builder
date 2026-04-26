@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status:** v2 — staff-engineer + UX dual review of plan applied. See "Revisions" log at bottom.
+
 **Goal:** Add per-agent tool selection (checkbox UI + jsonb storage) to autonomous agents in OpenFlow so users can declare which tools their agent can call at runtime. Default: zero tools selected.
 
 **Architecture:** New `agents.selected_tools` jsonb column stores `{ providerType, providerId, toolName }[]`. Backend exposes a PATCH route with `expectedUpdatedAt` precondition (409 on conflict). Frontend agent editor owns state with a 1.5 s debounced auto-save + saved-state indicator. ToolsPanel renders checkboxes only when editing an autonomous agent (`appType === 'agent'`); workflows use the existing read-only variant. Stale entries (selections referencing tools no longer in the registry) display with a Remove button.
@@ -314,14 +316,33 @@ Run: `grep -n 'interface AgentRow\|type AgentRow\|AgentConfig' packages/backend/
 
 - [ ] **Step 3: Add `selected_tools` and `updated_at` to the SELECT and the row type**
 
-In the file, locate the `.from('agents').select(...)` call and add the two columns. Add to the row type:
+In the file, locate the `.from('agents').select(...)` call and add the two columns. Add to the row type — **use camelCase at the application boundary; supabase returns snake_case but adapt at this layer**:
 
 ```ts
-selected_tools: SelectedTool[];
-updated_at: string;
+import type { SelectedTool } from '@daviddh/llm-graph-runner';
+
+interface AgentRowDb {
+  // ... existing snake_case columns
+  selected_tools: SelectedTool[];
+  updated_at: string;
+}
+
+interface AgentRow {
+  // ... existing camelCase fields
+  selectedTools: SelectedTool[];
+  updatedAt: string;
+}
+
+function fromDb(row: AgentRowDb): AgentRow {
+  return {
+    // ... existing field mappings
+    selectedTools: row.selected_tools,
+    updatedAt: row.updated_at,
+  };
+}
 ```
 
-Import `SelectedTool` from `@daviddh/llm-graph-runner` at the top of the file.
+**Why this matters:** B+C+D and downstream consumers (executor, simulation paths) expect camelCase `agentRecord.selectedTools`. The DB returns snake_case. Doing the rename here at the data-access boundary means no consumer sees `selected_tools` as a property name. *Amended after engineer review (X4): without this normalization, B+C+D's consumers reach for `agentRecord.selected_tools` and fail.*
 
 - [ ] **Step 4: Verify typecheck passes**
 
@@ -487,8 +508,15 @@ function sendBadRequest(res: AuthenticatedResponse, message: string): void {
   res.status(HTTP_BAD_REQUEST).json({ error: message });
 }
 
-function sendConflict(res: AuthenticatedResponse): void {
-  res.status(HTTP_CONFLICT).json({ error: 'conflict' });
+function sendConflict(res: AuthenticatedResponse, current: { selected_tools: SelectedTool[]; updated_at: string }): void {
+  // Conflict response MUST include the current row so the client can reconcile.
+  // *Amended after review (#2)*: previously returned only { error }, but the server-action
+  // parser and the editor's performSave both read current_tools / current_updated_at.
+  res.status(HTTP_CONFLICT).json({
+    error: 'conflict',
+    current_tools: current.selected_tools,
+    current_updated_at: current.updated_at,
+  });
 }
 
 function sendOk(res: AuthenticatedResponse, result: Extract<UpdateSelectedToolsResult, { kind: 'ok' }>): void {
@@ -519,7 +547,15 @@ export async function handleUpdateSelectedTools(
       expectedUpdatedAt: parse.data.expectedUpdatedAt,
     });
     if (result.kind === 'conflict') {
-      sendConflict(res);
+      // Fetch the current row to include in the conflict response.
+      // *Amended after review (#2)*: client needs current_tools + current_updated_at to reconcile.
+      const current = await fetchAgentSelectedTools(supabase, agentId);
+      if (current === null) {
+        // Agent doesn't exist (or user lacks org membership via RLS).
+        res.status(HTTP_NOT_FOUND).json({ error: 'agent not found' });
+        return;
+      }
+      sendConflict(res, current);
       return;
     }
     sendOk(res, result);
@@ -527,9 +563,27 @@ export async function handleUpdateSelectedTools(
     const message = err instanceof Error ? err.message : 'unknown';
     res.status(HTTP_INTERNAL).json({ error: message });
   }
-  // Note: 404 handled implicitly — if the agent doesn't exist or user lacks org membership,
-  //       Supabase RLS will produce 0 rows and the precondition check returns 'conflict'.
-  void HTTP_NOT_FOUND;
+}
+```
+
+The handler imports a small helper from Task 5's query module:
+
+```ts
+// Add to packages/backend/src/db/queries/selectedToolsOperations.ts (Task 5):
+export async function fetchAgentSelectedTools(
+  supabase: SupabaseClient,
+  agentId: string
+): Promise<{ selected_tools: SelectedTool[]; updated_at: string } | null> {
+  const result = await supabase
+    .from('agents')
+    .select('selected_tools, updated_at')
+    .eq('id', agentId)
+    .single();
+  if (result.error !== null) {
+    if (result.error.code === 'PGRST116') return null;
+    throw new Error(`fetchAgentSelectedTools: ${result.error.message}`);
+  }
+  return result.data as { selected_tools: SelectedTool[]; updated_at: string };
 }
 ```
 
@@ -672,18 +726,29 @@ interface Bucket {
   windowStartedAt: number;
 }
 
-function readOrgId(req: Request): string {
-  const header = req.headers['x-org-id'];
-  if (typeof header === 'string' && header.length > 0) return header;
-  // Fall back to body.orgId for routes that include it
-  const body = req.body as { orgId?: string } | undefined;
-  return body?.orgId ?? 'anonymous';
+// *Amended after review (#6)*: previous implementation read req.headers['x-org-id'] but
+// nothing in the codebase sets that header. orgId for the selected-tools route must be
+// looked up via the agent record (which has an org_id column, RLS-gated).
+//
+// This middleware variant takes a `getOrgId` callback so each route can supply its own
+// extraction strategy. For the selected-tools route, we look up the agent from req.params.agentId.
+type OrgIdResolver = (req: Request) => Promise<string | null>;
+
+export interface PerOrgRateLimitOptions {
+  limit: number;
+  windowMs: number;
+  resolveOrgId: OrgIdResolver;
 }
 
 export function createPerOrgRateLimiter(opts: PerOrgRateLimitOptions) {
   const buckets = new Map<string, Bucket>();
   return async function rateLimitMiddleware(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const orgId = readOrgId(req);
+    const orgId = await opts.resolveOrgId(req);
+    if (orgId === null) {
+      // Couldn't resolve org — let the route handler 404 for consistency.
+      next();
+      return;
+    }
     const now = Date.now();
     const existing = buckets.get(orgId);
     if (existing === undefined || now - existing.windowStartedAt > opts.windowMs) {
@@ -701,6 +766,8 @@ export function createPerOrgRateLimiter(opts: PerOrgRateLimitOptions) {
 }
 ```
 
+> **Note on production durability (engineer review Worth-Reconsidering):** this in-memory `Map` doesn't survive process restarts and doesn't coordinate across replicas. Once sub-project E lands (Redis layer), upgrade to a Redis-backed limiter. Until then: per-process limit; cluster fan-out is roughly limit × replica_count. Acceptable for the current single-process backend.
+
 - [ ] **Step 4: Run test, confirm it passes**
 
 Run: `npm run test -w @daviddh/graph-runner-backend -- --testPathPattern=rateLimitPerOrg`
@@ -712,13 +779,34 @@ In `packages/backend/src/routes/agents/agentRouter.ts`, add the import:
 
 ```ts
 import { createPerOrgRateLimiter } from '../../middleware/rateLimitPerOrg.js';
+import { getAgentOrgId } from '../../db/queries/agentQueries.js';
 ```
 
 Then update the route mount line to:
 
 ```ts
-const selectedToolsLimiter = createPerOrgRateLimiter({ limit: 30, windowMs: 60_000 });
+const selectedToolsLimiter = createPerOrgRateLimiter({
+  limit: 30,
+  windowMs: 60_000,
+  resolveOrgId: async (req) => {
+    const agentId = (req.params as { agentId?: string }).agentId;
+    if (agentId === undefined) return null;
+    const supabase = (req.res?.locals as { supabase?: SupabaseClient } | undefined)?.supabase;
+    if (supabase === undefined) return null;
+    return await getAgentOrgId(supabase, agentId);
+  },
+});
 agentRouter.patch('/:agentId/selected-tools', selectedToolsLimiter, handleUpdateSelectedTools);
+```
+
+If `getAgentOrgId` doesn't already exist in `agentQueries.ts`, add it:
+
+```ts
+export async function getAgentOrgId(supabase: SupabaseClient, agentId: string): Promise<string | null> {
+  const result = await supabase.from('agents').select('org_id').eq('id', agentId).single();
+  if (result.error !== null) return null;
+  return (result.data as { org_id: string }).org_id;
+}
 ```
 
 - [ ] **Step 6: Verify check**
@@ -805,6 +893,12 @@ function parseConflict(data: unknown): ConflictBody | null {
   return { current_updated_at: rec.current_updated_at, current_tools: rec.current_tools as SelectedTool[] };
 }
 
+// *Amended after review (#2)*: fetchFromBackend may throw a status-prefixed Error or may
+// return non-2xx as a structured response — depending on the implementation in this codebase.
+// Inspect packages/web/app/lib/backendProxy.ts to confirm. If it returns the body alongside
+// the status, the parser below should be updated to read both. The mapToFailure heuristic
+// (status prefix on Error message) is a transitional fix; verify against actual behavior.
+
 export async function updateAgentSelectedToolsAction(
   agentId: string,
   tools: SelectedTool[],
@@ -820,7 +914,28 @@ export async function updateAgentSelectedToolsAction(
     if (success === null) return { ok: false, kind: 'transient', message: 'Malformed response' };
     return { ok: true, updatedAt: success.updated_at, tools: success.selected_tools };
   } catch (err) {
-    return mapToFailure(err);
+    const failure = mapToFailure(err);
+    // *Amended after review (#2)*: extract conflict body from the error if available.
+    // fetchFromBackend should attach the response body to the thrown error. If it doesn't,
+    // patch backendProxy to do so before relying on this.
+    if (failure.kind === 'conflict' && err instanceof Error) {
+      const conflict = extractConflictFromError(err);
+      if (conflict !== null) failure.conflict = conflict;
+    }
+    return failure;
+  }
+}
+
+function extractConflictFromError(err: Error): ConflictBody | null {
+  // fetchFromBackend convention: error message format is "<status>: <body-as-json-string>"
+  // or the body is attached as err.cause / err.response. Adapt to whichever the codebase uses.
+  const match = err.message.match(/^409:\s*(.+)$/);
+  if (match === null || match[1] === undefined) return null;
+  try {
+    const body = JSON.parse(match[1]) as unknown;
+    return parseConflict(body);
+  } catch {
+    return null;
   }
 }
 
@@ -869,6 +984,7 @@ In `packages/web/messages/en.json`, add the following block (placement: alphabet
 "agentTools": {
   "selectAll": "Select all",
   "clear": "Clear",
+  "removeAllStale": "Remove all",
   "countOfTotal": "{n} of {total}",
   "countOfTotalVisible": "{n} of {visible} visible · {total} total",
   "allSelected": "all",
@@ -879,12 +995,16 @@ In `packages/web/messages/en.json`, add the following block (placement: alphabet
   "saveStates": {
     "saving": "Saving…",
     "saved": "Saved",
-    "error": "Failed — retry",
-    "conflict": "Conflict — refreshing"
+    "error": "Couldn't save — retry",
+    "conflict": "Conflict — refreshing",
+    "disabledByFailure": "Save paused — tool catalog couldn't load"
   },
-  "saveError": "Couldn't save tool selection. Please try again."
+  "saveError": "Couldn't save tool selection. Please try again.",
+  "limitExceeded": "You can select at most 100 tools. Remove some before saving."
 },
 ```
+
+> **Tone consistency** *(amended after UX review #21)*: every user-facing error string uses the "Couldn't <verb>" pattern (`saveError`, `error`, etc.) rather than mixing "Couldn't save" / "Failed" / "Refresh failed". Plans B+C+D and E inherit this convention. Translation keys added in later plans must follow it.
 
 - [ ] **Step 2: Verify the file is valid JSON**
 
@@ -899,6 +1019,8 @@ git commit -m "feat(web): add agentTools translations"
 ```
 
 ---
+
+> **Note on `findStaleSelections` signature** *(amended after UX review #18)*: Task 12's signature is updated to accept an optional `failedProviders: string[]` so this guard works. See Task 12 below.
 
 ### Task 12: Frontend `agentTools` utility lib (tri-state, equality, registry helpers)
 
@@ -949,7 +1071,14 @@ describe('agentTools', () => {
   it('findStaleSelections returns refs absent from registry', () => {
     const registry: SelectedTool[] = [calA];
     const sel: SelectedTool[] = [calA, calB];
-    expect(findStaleSelections({ selections: sel, registry })).toEqual([calB]);
+    expect(findStaleSelections({ selections: sel, registry, failedProviders: [] })).toEqual([calB]);
+  });
+
+  it('findStaleSelections excludes refs from failed providers', () => {
+    // calA's provider has failed transiently — don't promote to stale.
+    const registry: SelectedTool[] = [];
+    const sel: SelectedTool[] = [calA];
+    expect(findStaleSelections({ selections: sel, registry, failedProviders: ['calendar'] })).toEqual([]);
   });
 });
 ```
@@ -995,10 +1124,17 @@ export function computeHeaderState(args: ComputeHeaderArgs): GroupHeaderState {
 export interface FindStaleArgs {
   selections: SelectedTool[];
   registry: SelectedTool[];
+  /** Provider IDs whose tools shouldn't be marked stale even if absent from registry —
+   *  they're temporarily unreachable, not gone. *Added after UX review (#18)*. */
+  failedProviders: string[];
 }
 
 export function findStaleSelections(args: FindStaleArgs): SelectedTool[] {
-  return args.selections.filter((s) => !args.registry.some((r) => equalsSelectedTool(r, s)));
+  const failed = new Set(args.failedProviders);
+  return args.selections.filter((s) => {
+    if (failed.has(s.providerId)) return false;
+    return !args.registry.some((r) => equalsSelectedTool(r, s));
+  });
 }
 ```
 
@@ -1397,17 +1533,22 @@ interface ToolsPanelProps {
 Inside `ToolsPanel.tsx`, near the top (above the components):
 
 ```ts
+import { BUILTIN_PROVIDER_IDS } from '@daviddh/llm-graph-runner';
+
 function registryToolToSelectedTool(t: RegistryTool): SelectedTool {
   const isBuiltin = t.sourceId.startsWith('__');
   return {
     providerType: isBuiltin ? 'builtin' : 'mcp',
-    providerId: isBuiltin ? t.sourceId.replaceAll('_', '') : t.sourceId,
+    // Strip the __sentinel__ wrapping ONLY at the boundary — single regex so
+    // 'lead_scoring' (which contains an underscore) is preserved intact.
+    // *Amended after review (#1)*: previous `replaceAll('_', '')` produced 'leadscoring'.
+    providerId: isBuiltin ? t.sourceId.replace(/^__|__$/g, '') : t.sourceId,
     toolName: t.name,
   };
 }
 ```
 
-> Note: The current registry uses `__system__` / `__forms__` / etc. sentinels. This helper translates to the new `{providerType, providerId, toolName}` shape. Once B+C+D lands (which renames sentinels to clean slugs), this helper simplifies. For sub-project A, this adapter is correct.
+> **Note on coordination with B+C+D** *(amended after review #X2)*: B+C+D's catalog endpoint (Task 22 of that plan) returns canonical `{providerType, providerId}` pairs directly — no `__sentinel__` strings. Once B+C+D lands, this helper becomes unneeded; the catalog response is consumed verbatim. Until then this adapter is the *only* sentinel ↔ canonical translation point in the codebase. Don't add a second.
 
 - [ ] **Step 3: Render the agent-mode variant**
 
@@ -1602,6 +1743,22 @@ const lastSavedRef = useRef<{ tools: SelectedTool[]; updatedAt: string }>({
   updatedAt: agent.updatedAt,
 });
 
+// Track the last-scheduled idle transition so a new save cancels the old one cleanly.
+// *Amended after review (#friction-2a)*: previously raw `setTimeout` without cleanup
+// would race when toggles happened within the 2 s window.
+const idleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+const scheduleIdle = useCallback((delayMs: number) => {
+  if (idleTimeoutRef.current !== null) clearTimeout(idleTimeoutRef.current);
+  idleTimeoutRef.current = setTimeout(() => {
+    idleTimeoutRef.current = null;
+    setSaveState('idle');
+  }, delayMs);
+}, []);
+
+useEffect(() => () => {
+  if (idleTimeoutRef.current !== null) clearTimeout(idleTimeoutRef.current);
+}, []);
+
 const performSave = useCallback(async (next: SelectedTool[]) => {
   setSaveState('saving');
   const result = await updateAgentSelectedToolsAction(agent.id, next, lastSavedRef.current.updatedAt);
@@ -1609,7 +1766,7 @@ const performSave = useCallback(async (next: SelectedTool[]) => {
     lastSavedRef.current = { tools: result.tools, updatedAt: result.updatedAt };
     setUpdatedAt(result.updatedAt);
     setSaveState('saved');
-    setTimeout(() => setSaveState('idle'), 2000);
+    scheduleIdle(2000);
     return;
   }
   if (result.kind === 'conflict' && result.conflict !== undefined) {
@@ -1620,7 +1777,15 @@ const performSave = useCallback(async (next: SelectedTool[]) => {
     setSelectedTools(result.conflict.currentTools);
     setUpdatedAt(result.conflict.currentUpdatedAt);
     setSaveState('conflict');
-    setTimeout(() => setSaveState('idle'), 1000);
+    scheduleIdle(1000);
+    return;
+  }
+  if (result.kind === 'validation') {
+    // *Amended after UX review #25*: the 100-tool cap surfaces here as kind: 'validation'.
+    // Show a clear message instead of generic saveError.
+    toast.error(next.length > 100 ? tAgentTools('limitExceeded') : tAgentTools('saveError'));
+    setSelectedTools(lastSavedRef.current.tools);
+    setSaveState('error');
     return;
   }
   if (result.kind === 'transient' || result.kind === 'rate_limited') {
@@ -1631,14 +1796,14 @@ const performSave = useCallback(async (next: SelectedTool[]) => {
       lastSavedRef.current = { tools: retry.tools, updatedAt: retry.updatedAt };
       setUpdatedAt(retry.updatedAt);
       setSaveState('saved');
-      setTimeout(() => setSaveState('idle'), 2000);
+      scheduleIdle(2000);
       return;
     }
   }
   toast.error(tAgentTools('saveError'));
   setSelectedTools(lastSavedRef.current.tools);
   setSaveState('error');
-}, [agent.id, tAgentTools]);
+}, [agent.id, scheduleIdle, tAgentTools]);
 
 const debouncedSave = useDebouncedCallback(performSave, 1500);
 
@@ -1676,26 +1841,61 @@ Find the `<ToolsPanel mcp={...} open={...} onClose={...} />` render site and upd
   agent={agent.appType === 'agent' ? {
     agentId: agent.id,
     selectedTools,
-    staleEntries: findStaleSelections({ selections: selectedTools, registry: registryFlatten(allGroups) }),
+    // *Amended after UX review (#18)*: exclude failed-provider entries from stale diff.
+    // Without this guard, a transient outage marks tools as stale → user clicks Remove
+    // → selection destroyed. Plan A pre-B+C+D has no `failedProviders`, so the guard
+    // degrades to the unfiltered diff during the A-only window.
+    staleEntries: findStaleSelections({
+      selections: selectedTools,
+      registry: registryFlatten(allGroups),
+      // After B+C+D: pass `failedProviders` from useAgentRegistry so we don't promote
+      // temporarily-unavailable tools to stale.
+      failedProviders: typeof failedProviders === 'undefined' ? [] : failedProviders,
+    }),
     saveState,
     onChange: handleToolsChange,
     onRemoveStale: handleRemoveStale,
+    onRemoveAllStale: handleRemoveAllStale,
     onRetrySave: handleRetrySave,
   } : undefined}
 />
 ```
+
+Add the `handleRemoveAllStale` handler (UX review #26):
+
+```ts
+const handleRemoveAllStale = useCallback(() => {
+  const staleEntries = findStaleSelections({
+    selections: selectedTools,
+    registry: registryFlatten(allGroups),
+    failedProviders: [],
+  });
+  const next = selectedTools.filter(
+    (s) => !staleEntries.some(
+      (e) => e.providerType === s.providerType && e.providerId === s.providerId && e.toolName === s.toolName
+    )
+  );
+  handleToolsChange(next);
+}, [selectedTools, allGroups, handleToolsChange]);
+```
+
+> **`failedProviders` plumbing**: this prop comes from `useAgentRegistry()` once B+C+D lands (Plan B+C+D Task 22). Until then, the value is undefined — the guard becomes the empty array (no-op). Plan A is forward-compatible: when B+C+D ships, the failed-provider exclusion automatically activates.
 
 Add helper imports/utilities:
 
 ```ts
 import { findStaleSelections } from '@/app/lib/agentTools';
 
+// Reuse the same boundary helper as ToolsPanel — *amended after review (#1)*: same regex,
+// don't duplicate the underscore-strip logic. Single source of truth.
 function registryFlatten(groups: ToolGroup[]): SelectedTool[] {
-  return groups.flatMap((g) => g.tools.map((t) => ({
-    providerType: t.sourceId.startsWith('__') ? 'builtin' as const : 'mcp' as const,
-    providerId: t.sourceId.startsWith('__') ? t.sourceId.replaceAll('_', '') : t.sourceId,
-    toolName: t.name,
-  })));
+  return groups.flatMap((g) =>
+    g.tools.map((t) => ({
+      providerType: t.sourceId.startsWith('__') ? ('builtin' as const) : ('mcp' as const),
+      providerId: t.sourceId.startsWith('__') ? t.sourceId.replace(/^__|__$/g, '') : t.sourceId,
+      toolName: t.name,
+    }))
+  );
 }
 ```
 
@@ -1873,3 +2073,23 @@ Expected: 22 commits roughly matching the task order, ready for review or PR.
 ---
 
 **Plan complete and saved to `docs/superpowers/plans/2026-04-26-agent-tool-selection.md`.**
+
+---
+
+## Revisions
+
+### v2 — 2026-04-26 (post-dual-review of plans)
+
+Bugs and gaps fixed in this pass:
+
+- **`replaceAll('_', '')` bug** (Tasks 18, 19): `lead_scoring` → `leadscoring`, breaking every selection round-trip. Fixed to `replace(/^__|__$/g, '')`. Single source of truth — the same boundary helper used in both ToolsPanel and AgentEditor.
+- **PATCH conflict response body** (Task 6): now includes `current_tools` + `current_updated_at`, matching what the server-action parser and editor's conflict-resolution path expect. `fetchAgentSelectedTools` helper added to query module.
+- **PATCH 404 path** (Task 6): no longer conflated with 409. When the agent doesn't exist (RLS or deletion), 404 is returned with a clear error.
+- **Rate limiter `orgId` source** (Task 8): no longer reads non-existent `x-org-id` header. Takes a `resolveOrgId` callback that looks up via the agent record.
+- **DB ↔ application boundary normalization** (Task 4): explicit snake_case `selected_tools` → camelCase `selectedTools` mapping at `executeFetcher`. Downstream consumers (B+C+D's executor) expect camelCase; the mapping happens once.
+- **`setTimeout` race in saved-state indicator** (Task 19): `useRef` + `clearTimeout` cleanup; flickers eliminated.
+- **100-tool-limit error** (Task 19, en.json): explicit `limitExceeded` translation instead of generic `saveError`.
+- **Bulk "Remove all stale entries"** (Task 19): `handleRemoveAllStale` + translation key.
+- **Failed-provider exclusion from stale diff** (Tasks 12, 19): `findStaleSelections` accepts `failedProviders[]` so transient outages don't trigger stale removal. Forward-compat with B+C+D's `useAgentRegistry`.
+- **Translation tone consistency**: every error string uses "Couldn't <verb>" pattern. Plans B+C+D and E inherit.
+- **Server-action conflict body extraction**: `extractConflictFromError` parses the conflict body from the thrown error message. `backendProxy.ts` may need to be updated to attach the response body to the thrown error (verify during implementation).

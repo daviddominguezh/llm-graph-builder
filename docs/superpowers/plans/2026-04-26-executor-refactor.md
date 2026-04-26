@@ -2,6 +2,10 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status:** v2 — staff-engineer + UX dual review of plan applied. See "Revisions" log at bottom.
+
+**Realistic scope:** ~3–4 weeks of full-time staff-engineer work. Earlier estimates implied ~25 task-days; that was understated. Tasks 6–10 (one provider each) and Task 12 (MCP transport relocation) are the longest. Task 12 is itself a multi-day subproject — see the expanded breakdown there.
+
 **Goal:** Replace the param-soup `injectSystemTools` pattern with a per-execution plugin registry. Workflows resolve tools lazily per `tool_call` node; autonomous agents resolve their full `selected_tools` set eagerly at execution start. The frontend tool catalog moves to a server endpoint backed by the same registry.
 
 **Architecture:** A `Provider` interface owns its own auth/connection/tool-build logic. `composeRegistry` is a per-execution pure function that composes built-ins (static module exports) with per-org MCP providers. Workflows call `findToolByName` against `precondition.tool` (qualified ref); agents call `buildSelected` against `selected_tools`. A new `OpenFlowTool` adapter type insulates providers from AI SDK churn. Edge function payload is generalized (`oauth.byProvider`, `schemaVersion: 2`).
@@ -297,6 +301,39 @@ Run: `grep -rn "type: 'tool_call'" packages/ --include='*.ts' --include='*.tsx' 
 
 For each match, convert from `value: 'check_availability'` to `tool: { providerType: 'builtin', providerId: 'calendar', toolName: 'check_availability' }`. Built-in providerIds: `calendar`, `forms`, `lead_scoring`, `composition`. Otherwise, MCP — pass the MCP server's UUID.
 
+- [ ] **Step 4a: Enumerate and update `precondition.value` consumers** *(added after engineer review #B3)*
+
+The schema change above breaks any code that reads `precondition.value` for `tool_call` preconditions. Existing consumers identified:
+
+```bash
+grep -rn "precondition.value\|preconditions\[0\].value" packages/api/src --include='*.ts' | grep -v node_modules
+```
+
+Known sites that must be updated:
+
+1. **`packages/api/src/tools/dummyTools.ts`** — currently does `toolNames.add(precondition.value)` for tool_call preconditions. Update to:
+
+   ```ts
+   if (precondition.type === 'tool_call') {
+     toolNames.add(precondition.tool.toolName);
+   }
+   ```
+
+2. **`packages/api/src/stateMachine/format/index.ts`** — formats `precondition.value` for prompt construction. Update to:
+
+   ```ts
+   const displayValue = precondition.type === 'tool_call' ? precondition.tool.toolName : precondition.value;
+   ```
+
+   (This preserves the prompt-format behaviour: the LLM sees the tool name, not the qualified ref.)
+
+3. Any other location surfaced by the grep above. **Do not skip this step** — the discriminated-union schema change makes these compile errors, but only after typecheck. If a runtime path executes pre-typecheck, it silently produces `undefined`.
+
+- [ ] **Step 4b: Run typecheck to surface remaining call sites**
+
+Run: `npm run typecheck -ws`
+Expected: any unfixed `precondition.value` access on `tool_call` preconditions surfaces as a TypeScript error. Address each.
+
 - [ ] **Step 5: Run all tests**
 
 Run: `npm run test -ws`
@@ -462,12 +499,30 @@ const logger = { warn: () => undefined } as never;
 describe('composeRegistry', () => {
   it('performs no I/O at compose time', () => {
     const builtin = fakeProvider('builtin', 'calendar');
-    const mcp = fakeProvider('mcp', 'mcp-1');
     composeRegistry({ builtIns: new Map([['calendar', builtin]]), orgMcpServers: [], logger });
     expect(builtin.describeTools).not.toHaveBeenCalled();
     expect(builtin.buildTools).not.toHaveBeenCalled();
-    expect(mcp.describeTools).not.toHaveBeenCalled();
-    expect(mcp.buildTools).not.toHaveBeenCalled();
+  });
+
+  it('does not eagerly call buildMcpProvider closures (no I/O on compose)', () => {
+    // *Amended after engineer review (test-coverage-gap-1)*: explicitly verify that the
+    // mcpProviders.map(buildMcpProvider) step at compose time does no network/DB activity.
+    // Spy on a fake transport and assert zero calls.
+    const spyTransport = { initialize: jest.fn(), toolsList: jest.fn(), toolsCall: jest.fn() };
+    const fakeMcpServer = {
+      id: 'mcp-1',
+      name: 'fake-mcp',
+      url: 'https://fake.example/mcp',
+      transport: spyTransport,
+    };
+    composeRegistry({
+      builtIns: new Map(),
+      orgMcpServers: [fakeMcpServer as never],
+      logger,
+    });
+    expect(spyTransport.initialize).not.toHaveBeenCalled();
+    expect(spyTransport.toolsList).not.toHaveBeenCalled();
+    expect(spyTransport.toolsCall).not.toHaveBeenCalled();
   });
 
   it('returns an immutable provider list', () => {
@@ -562,10 +617,13 @@ export function composeRegistry(args: ComposeRegistryArgs): Registry {
 
   return Object.freeze<Registry>({
     providers: allProviders,
-    findToolByName(toolName: string): IndexEntry | null {
-      // Synchronous lookup against the built index. Caller must have triggered ensureIndex first
-      // via describeAll or an earlier findToolByName-via-async-helper. For tests, accept null.
-      return toolIndex?.get(toolName) ?? null;
+    // *Amended after engineer review (#B4)*: findToolByName is now async. The previous
+    // sync version would silently return null when called before describeAll had warmed
+    // the index — and the only consumer (resolveToolsForCurrentNode) bypassed it anyway.
+    // Async eliminates the foot-gun.
+    async findToolByName(toolName: string, ctx: ProviderCtx): Promise<IndexEntry | null> {
+      const index = await ensureIndex(ctx);
+      return index.get(toolName) ?? null;
     },
     async describeAll(ctx) {
       const items: Array<{ provider: Provider; tools: ToolDescriptor[]; error?: { reason: string; detail: string } }> = [];
@@ -1181,7 +1239,7 @@ async function buildMcpTools(args: {
 }
 ```
 
-> Note: this task implements the Provider *shape*. The body of `describeMcpTools` and `buildMcpTools` reuses the existing MCP transport (`createMcpSession`, etc.). The full implementation is straightforward but spans this and Task 12. For Task 11 we get the public surface compiling and tested; Task 12 fills in the bodies.
+> Note: this task implements the Provider *shape*. The body of `describeMcpTools` and `buildMcpTools` reuses the existing MCP transport (`createMcpSession`, etc.). The full implementation is straightforward but spans this and Task 12 (which is now broken into 12a–12e). For Task 11 we get the public surface compiling and tested; Task 12 fills in the bodies *and* moves the transport.
 
 - [ ] **Step 4: Run test, confirm it passes**
 
@@ -1199,17 +1257,189 @@ git commit -m "feat(api): add buildMcpProvider scaffold"
 
 ### Task 12: Implement MCP `describeTools` and `buildTools` bodies
 
-**Files:**
-- Modify: `packages/api/src/providers/mcp/buildMcpProvider.ts`
-- Create: `packages/api/src/providers/mcp/mcpTransport.ts` (lifts shared MCP HTTP/SSE logic if needed)
+> **Scope warning** *(amended after engineer review)*: this is a multi-day relocation, not a single task. The existing MCP transport in `packages/backend/src/mcp/` is consumed by other backend code (simulation, `/mcp/discover`, `/mcp/tools/call`) and has its own auth, retry, and error semantics. Lifting it cleanly is a 3–5 day subproject. Treat this as Phase 4a–4d below.
 
-- [ ] **Step 1: Identify the existing MCP transport entry points**
+**Files (across sub-tasks):**
+- Create: `packages/api/src/providers/mcp/mcpTransport.ts` (the lifted transport core)
+- Modify: `packages/api/src/providers/mcp/buildMcpProvider.ts` (consumes the lifted transport)
+- Modify: `packages/backend/src/mcp/lifecycle.ts`, `packages/backend/src/mcp/discover.ts`, `packages/backend/src/routes/toolCall.ts` — switch to importing from the api-package transport
+- Delete: legacy code paths in `packages/backend/src/mcp/` once all callers use the new location
 
-Run: `grep -rn "tools/list\|tools/call\|initialize" packages/backend/src/mcp/ --include='*.ts' | head -10`
+#### Task 12a: Inventory existing MCP transport callers
 
-- [ ] **Step 2: Lift the transport into the api package (it must be reachable from the edge function)**
+- [ ] **Step 1: Map all MCP transport call sites in `packages/backend`**
 
-If the existing transport lives in `packages/backend/src/mcp/`, **move** it (or the parts the edge function needs) to `packages/api/src/providers/mcp/mcpTransport.ts`. The edge function imports from `@daviddh/llm-graph-runner` and cannot reach into `packages/backend`.
+Run: `grep -rn "tools/list\|tools/call\|initialize\|McpClient\|createMcpSession" packages/backend/src/ --include='*.ts' | grep -v node_modules`
+
+- [ ] **Step 2: Document the transport's public surface**
+
+For each call site found, record:
+- What does it pass in (auth, transport config)?
+- What does it return?
+- What error semantics does the caller expect (throw vs result type)?
+
+Capture as a markdown comment block at the top of the new `mcpTransport.ts` file.
+
+- [ ] **Step 3: Commit the inventory**
+
+```bash
+git add packages/api/src/providers/mcp/mcpTransport.ts   # the comment-block scaffold
+git commit -m "docs(api): inventory existing MCP transport surface"
+```
+
+#### Task 12b: Lift transport core into api package
+
+- [ ] **Step 1: Copy (don't move yet) the MCP transport functions**
+
+Copy `createMcpSession`, the `tools/list` and `tools/call` HTTP/SSE wrappers, and any auth helpers from `packages/backend/src/mcp/lifecycle.ts` into `packages/api/src/providers/mcp/mcpTransport.ts`. **Don't delete the originals yet** — backend callers still need them.
+
+- [ ] **Step 2: Update imports in the new file**
+
+The lifted transport may use Node-specific APIs (`createMcpSession` likely uses `@ai-sdk/mcp` which works in Deno via npm specifier; verify). Replace any `node:`-only imports with cross-runtime equivalents.
+
+- [ ] **Step 3: Add unit tests for the lifted transport**
+
+Use a fake fetch to drive the HTTP path. Cover: successful initialize, successful `tools/list`, successful `tools/call`, 401 retry semantics, session-expired re-init.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add packages/api/src/providers/mcp/mcpTransport.ts packages/api/src/providers/mcp/__tests__/mcpTransport.test.ts
+git commit -m "feat(api): lift MCP transport core into api package (parallel path)"
+```
+
+#### Task 12c: Switch backend callers to api-package transport
+
+- [ ] **Step 1: For each backend caller identified in Task 12a, update imports**
+
+Replace `from '../../mcp/lifecycle.js'` (or similar) with `from '@daviddh/llm-graph-runner'` (the api package's exported transport). Run typecheck after each file's update.
+
+- [ ] **Step 2: Run all backend tests**
+
+Run: `npm run test -w @daviddh/graph-runner-backend`
+Expected: pass.
+
+- [ ] **Step 3: Commit per file or in one batch**
+
+```bash
+git add packages/backend/src/mcp/discover.ts packages/backend/src/routes/toolCall.ts # etc.
+git commit -m "refactor(backend): consume MCP transport from api package"
+```
+
+#### Task 12d: Implement `describeMcpTools` and `buildMcpTools` against the lifted transport
+
+- [ ] **Step 1: Wire `describeMcpTools`**
+
+In `buildMcpProvider.ts`:
+
+```ts
+import { initMcpSession, mcpToolsList } from './mcpTransport.js';
+
+async function describeMcpTools(server: McpServerConfig, ctx: ProviderCtx): Promise<ToolDescriptor[]> {
+  const transport = ctx.mcpTransports.get(server.id);
+  if (transport === undefined) throw new Error(`MCP transport for ${server.id} missing in ctx`);
+  const oauth = ctx.oauthTokens.get(server.id);
+  const client = await initMcpSession(transport, oauth);
+  const list = await client.toolsList();
+  return list.tools.map((t) => ({
+    toolName: t.name,
+    description: t.description ?? '',
+    inputSchema: t.inputSchema as Record<string, unknown>,
+  }));
+}
+```
+
+- [ ] **Step 2: Wire `buildMcpTools`**
+
+```ts
+import { mcpToolsCall } from './mcpTransport.js';
+
+async function buildMcpTools(args: { server: McpServerConfig; toolNames: string[]; ctx: ProviderCtx }): Promise<Record<string, OpenFlowTool>> {
+  const transport = args.ctx.mcpTransports.get(args.server.id);
+  if (transport === undefined) throw new Error(`MCP transport for ${args.server.id} missing in ctx`);
+  const oauth = args.ctx.oauthTokens.get(args.server.id);
+  const client = await initMcpSession(transport, oauth);
+  const list = await client.toolsList();
+  const wanted = new Set(args.toolNames);
+  const out: Record<string, OpenFlowTool> = {};
+  for (const t of list.tools) {
+    if (!wanted.has(t.name)) continue;
+    out[t.name] = {
+      description: t.description ?? '',
+      inputSchema: t.inputSchema as never,
+      execute: async (input: unknown) => await client.toolsCall(t.name, input),
+    };
+  }
+  return out;
+}
+```
+
+- [ ] **Step 3: Integration test against fake transport**
+
+`packages/api/src/providers/mcp/__tests__/buildMcpProvider.integration.test.ts`:
+
+```ts
+import { describe, expect, it, jest } from '@jest/globals';
+
+import { buildMcpProvider } from '../buildMcpProvider.js';
+
+describe('mcp provider end-to-end (fake transport)', () => {
+  it('describeTools maps tools/list output', async () => {
+    const fakeClient = {
+      toolsList: jest.fn().mockResolvedValue({
+        tools: [
+          { name: 'create_deal', description: 'create a deal', inputSchema: { type: 'object' } },
+        ],
+      }),
+      toolsCall: jest.fn(),
+    };
+    // Inject the fake via a transport mock — see Task 12b's mcpTransport.ts surface.
+    // Specifically: ctx.mcpTransports must produce a transport that initMcpSession can consume.
+    // Use a TestTransport class exported from mcpTransport.ts for this purpose.
+    const ctx = {
+      orgId: 'o', agentId: 'a', isChildAgent: false, logger: console as never,
+      conversationId: undefined, contextData: undefined,
+      oauthTokens: new Map(), mcpTransports: new Map([['mcp-1', { _testFake: fakeClient } as never]]),
+      services: () => undefined,
+    } as never;
+    const provider = buildMcpProvider({ id: 'mcp-1', name: 'fake', url: 'https://fake.example/mcp', transport: {} } as never);
+    const descriptors = await provider.describeTools(ctx);
+    expect(descriptors).toEqual([
+      { toolName: 'create_deal', description: 'create a deal', inputSchema: { type: 'object' } },
+    ]);
+  });
+});
+```
+
+> The `_testFake` escape hatch is a transport-level test helper. Define it explicitly in `mcpTransport.ts` so production code paths can ignore it. Avoids needing real HTTP fakes.
+
+- [ ] **Step 4: Run all tests**
+
+Run: `npm run test -ws`
+Expected: pass.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add packages/api/src/providers/mcp/buildMcpProvider.ts packages/api/src/providers/mcp/__tests__/buildMcpProvider.integration.test.ts
+git commit -m "feat(api): MCP provider describeTools + buildTools against lifted transport"
+```
+
+#### Task 12e: Delete legacy MCP code in packages/backend
+
+- [ ] **Step 1: Verify no remaining backend imports**
+
+Run: `grep -rn "from.*backend/src/mcp/" packages/ --include='*.ts' | grep -v node_modules`
+Expected: empty result.
+
+- [ ] **Step 2: Delete the original transport files**
+
+```bash
+git rm packages/backend/src/mcp/lifecycle.ts # etc., per the inventory in 12a
+git commit -m "refactor(backend): remove legacy MCP transport (consumed by api package)"
+```
+
+> If the inventory in 12a surfaced unexpected callers (e.g. tests, docs, scripts outside the obvious `mcp/` directory), this delete will fail. Resolve and re-run.
 
 - [ ] **Step 3: Implement `describeMcpTools`**
 
@@ -1296,15 +1526,14 @@ git commit -m "feat(api): implement MCP provider describeTools + buildTools"
 
 Run: `grep -n 'ExecuteAgentParams\|googleCalendar' packages/backend/src/routes/execute/edgeFunctionClient.ts`
 
-- [ ] **Step 2: Replace `googleCalendar?: ...` with the generalized shape**
+- [ ] **Step 2: Re-export `OAuthTokenBundle` from the api package; do NOT redefine**
+
+*Amended after engineer review (#X1, #17)*: the previous plan defined `OAuthTokenBundle` in three places (provider.ts, edgeFunctionClient.ts, edge function index.ts). They will drift on the next field add. Single source of truth: the api package.
+
+In `packages/backend/src/routes/execute/edgeFunctionClient.ts`:
 
 ```ts
-export interface OAuthTokenBundle {
-  accessToken: string;
-  expiresAt: number;
-  scopes?: string[];
-  tokenIssuedAt: number;
-}
+import type { OAuthTokenBundle, SelectedTool } from '@daviddh/llm-graph-runner';
 
 export interface ExecuteAgentParams {
   // existing fields...
@@ -1314,6 +1543,8 @@ export interface ExecuteAgentParams {
   // googleCalendar?: removed — calendar's token now lives at oauth.byProvider['calendar'].
 }
 ```
+
+The api-package `OAuthTokenBundle` (from Task 2) is the authoritative shape. Edge function (Task 15) also imports from `@daviddh/llm-graph-runner` via npm specifier — same source.
 
 - [ ] **Step 3: Verify no remaining references to `googleCalendar`**
 
@@ -1461,32 +1692,39 @@ git commit -m "refactor(backend): resolveOAuthBundle for all selected providers"
 **Files:**
 - Modify: `supabase/functions/execute-agent/index.ts`
 
-- [ ] **Step 1: Update `ExecutePayload` to mirror `ExecuteAgentParams`**
+- [ ] **Step 1: Import `OAuthTokenBundle` from the api package (don't redefine)**
 
 ```ts
-interface OAuthTokenBundle {
-  accessToken: string;
-  expiresAt: number;
-  scopes?: string[];
-  tokenIssuedAt: number;
-}
+// edge function — packages can be imported via npm specifier
+import type { OAuthTokenBundle, SelectedTool } from 'npm:@daviddh/llm-graph-runner';
 
 interface ExecutePayload {
-  schemaVersion: 2;
+  schemaVersion: 1 | 2;   // *Amended after engineer review (#X6, #14)*: accept both during deploy transition
   // ... existing fields
   selectedTools?: SelectedTool[];
   oauth?: { byProvider: Record<string, OAuthTokenBundle> };
-  // googleCalendar removed
+  // googleCalendar still accepted when schemaVersion === 1 (deprecated; remove after backend deploy)
 }
 ```
 
-Reject payloads with `schemaVersion !== 2`:
+Accept both schema versions during the deploy transition:
 
 ```ts
-if (payload.schemaVersion !== 2) {
+// *Amended after engineer review (#X6)*: previously rejected schemaVersion !== 2 outright.
+// That breaks the deploy window when backend deploys ahead of edge function (or vice versa).
+// Accept both during transition; deprecate v1 in a follow-up edge-function deploy after
+// backend has fully rolled out v2.
+if (payload.schemaVersion !== 1 && payload.schemaVersion !== 2) {
   return new Response(JSON.stringify({ error: `unsupported schemaVersion: ${payload.schemaVersion}` }), { status: 400 });
 }
+
+// When schemaVersion === 1: legacy behavior, ignores selectedTools + oauth.byProvider,
+// uses googleCalendar field instead. Document this clearly so the rollout owner knows
+// when to delete the v1 branch.
+const isLegacyPayload = payload.schemaVersion === 1;
 ```
+
+The follow-up edge-function deploy (after backend v2 is fully rolled out) drops the `=== 1` branch. Track as a release-notes item; do not let it linger.
 
 - [ ] **Step 2: Build `ProviderCtx` from the payload**
 
@@ -1536,11 +1774,20 @@ const registry = composeRegistry({
 
 - [ ] **Step 4: Replace the existing `injectSystemTools(...)` calls with registry-driven resolution**
 
+```ts
+// *Amended after engineer review (#B5, #10)*: include toAiSdkToolDict + composeRegistry
+// + builtInProviders in the imports.
+import {
+  buildAgentToolsAtStart,
+  builtInProviders,
+  composeRegistry,
+  toAiSdkToolDict,
+} from 'npm:@daviddh/llm-graph-runner';
+```
+
 For agent mode (`runAgentExecution`):
 
 ```ts
-import { buildAgentToolsAtStart } from '@daviddh/llm-graph-runner';
-
 const ctx = buildProviderCtx(payload);
 const built = await buildAgentToolsAtStart(registry, ctx, payload.selectedTools ?? []);
 const tools = toAiSdkToolDict(built.tools);
@@ -1727,9 +1974,57 @@ if (context.registry !== undefined) {
 // pass toolsForLLM to the LLM call
 ```
 
-- [ ] **Step 4: Add a `providerCtxFromContext` adapter**
+- [ ] **Step 4: Implement the `providerCtxFromContext` adapter**
 
-The existing `Context` carries org/agent/conversation IDs and other fields. Build a small adapter to produce a `ProviderCtx` from it. If `Context` doesn't already carry oauth tokens / mcp transports, plumb them through (callers will populate from the edge function payload or backend pre-resolution).
+*Amended after engineer review (#B2)*: previously deferred with "implement same as ...". Concrete body:
+
+In `packages/api/src/core/providerCtxFromContext.ts` (new file):
+
+```ts
+import type { Context } from '../types/tools.js';
+import type { ProviderCtx, OAuthTokenBundle } from '../providers/provider.js';
+import type { McpTransportConfig } from '@daviddh/graph-types';
+
+import { consoleLogger } from '../utils/logger.js';
+
+export function providerCtxFromContext(context: Context): ProviderCtx {
+  // Context carries org/agent IDs and per-execution data. The registry-bound fields
+  // (oauthTokens, mcpTransports, services) are populated by the executor entry point
+  // before passing Context downstream. If they're missing, fall back to empty Maps —
+  // the registry is allowed to fail gracefully on missing transport.
+  return {
+    orgId: context.orgId ?? '',
+    agentId: context.agentId ?? '',
+    isChildAgent: context.isChildAgent ?? false,
+    logger: context.logger ?? consoleLogger,
+    conversationId: context.conversationId,
+    contextData: context.contextData,
+    oauthTokens: (context.oauthTokens ?? Object.freeze(new Map<string, OAuthTokenBundle>())) as ReadonlyMap<string, OAuthTokenBundle>,
+    mcpTransports: (context.mcpTransports ?? Object.freeze(new Map<string, McpTransportConfig>())) as ReadonlyMap<string, McpTransportConfig>,
+    services: context.services ?? (() => undefined),
+  };
+}
+```
+
+Update `Context` type (`packages/api/src/types/tools.ts`) to declare the new fields:
+
+```ts
+export interface Context {
+  // existing fields...
+  orgId?: string;
+  agentId?: string;
+  isChildAgent?: boolean;
+  conversationId?: string;
+  contextData?: Readonly<Record<string, unknown>>;
+  oauthTokens?: ReadonlyMap<string, OAuthTokenBundle>;
+  mcpTransports?: ReadonlyMap<string, McpTransportConfig>;
+  services?: <T>(providerId: string) => T | undefined;
+  registry?: Registry;
+  logger?: Logger;
+}
+```
+
+Callers that build a Context (simulation entry, edge function entry) populate these fields from the request payload.
 
 - [ ] **Step 5: Test + lint**
 
@@ -1839,6 +2134,14 @@ git commit -m "feat(api): add buildAgentToolsAtStart helper"
 - [ ] **Step 1: Replace `runAgentExecution` body**
 
 ```ts
+// *Amended after engineer review (#B5)*: include all required imports.
+import {
+  buildAgentToolsAtStart,
+  builtInProviders,
+  composeRegistry,
+  toAiSdkToolDict,
+} from 'npm:@daviddh/llm-graph-runner';
+
 async function runAgentExecution(payload: ExecutePayload, write: WriteEvent): Promise<void> {
   const ctx = buildProviderCtx(payload);
   const registry = composeRegistry({
@@ -1962,7 +2265,7 @@ git commit -m "refactor(backend): simulation paths use composeRegistry"
 import type { Request } from 'express';
 import { builtInProviders, composeRegistry } from '@daviddh/llm-graph-runner';
 
-import { fetchAgentBySlug } from '../../db/queries/agentQueries.js';
+import { getAgentBySlug } from '../../db/queries/agentQueries.js';   // *Amended after review (#5)*: function is named getAgentBySlug, not fetchAgentBySlug
 import type { AuthenticatedLocals, AuthenticatedResponse } from '../routeHelpers.js';
 import { HTTP_OK, getAgentId } from '../routeHelpers.js';
 import { consoleLogger } from '../../logger.js';
@@ -1976,7 +2279,7 @@ export async function handleGetAgentRegistry(req: Request, res: AuthenticatedRes
     return;
   }
   const { supabase }: AuthenticatedLocals = res.locals;
-  const agent = await fetchAgentBySlug(supabase, agentId);   // by-id, gated by RLS
+  const agent = await getAgentBySlug(supabase, agentId);   // by-id, gated by RLS
   if (agent === null) {
     res.status(HTTP_NOT_FOUND).json({ error: 'agent not found' });
     return;
@@ -2085,10 +2388,19 @@ export function useAgentRegistry(agentId: string): RegistryState {
   if (error !== undefined || data === undefined) {
     return { kind: 'total-failure', reason: error instanceof Error ? error.message : 'unknown' };
   }
+  // *Amended after engineer + UX review (#X2)*: map server response directly. ToolGroup
+  // gains optional providerType/providerId fields; the legacy `sourceId` is kept for
+  // backwards-compat with Plan A's pre-B+C+D ToolsPanel render path, but the canonical
+  // pair is the source of truth. The `__sentinel__` wrapping survives only as a
+  // deprecated alias and goes away once Plan A's transitional adapter is removed.
   const groups: ToolGroup[] = data.providers.map((p) => ({
     groupName: p.displayName,
+    providerType: p.type,
+    providerId: p.id,
     tools: p.tools.map((t) => ({
-      sourceId: p.type === 'builtin' ? `__${p.id}__` : p.id,
+      sourceId: p.type === 'builtin' ? `__${p.id}__` : p.id,   // legacy alias
+      providerType: p.type,
+      providerId: p.id,
       group: p.displayName,
       name: t.toolName,
       description: t.description,
@@ -2191,26 +2503,58 @@ In workflow mode, render the inverse:
 
 - [ ] **Step 4: When in partial-failure, suspend save and stale-diff against failed providers' previously-selected tools**
 
-In the AgentEditor's debounced save path (Task 19 of plan A), if `saveState === 'disabled-by-failure'`, no-op. Add a guard:
+*Amended after UX review (#19)*: extend Plan A's `SaveState` union to include `'disabled-by-failure'` and clarify the precedence between save-state and registry-state.
 
 ```ts
-const saveDisabled = registryState.kind === 'total-failure';
+// In packages/web/app/components/panels/SaveStateIndicator.tsx (Plan A Task 13):
+export type SaveState = 'idle' | 'saving' | 'saved' | 'error' | 'conflict' | 'disabled-by-failure';
 ```
 
-For the stale-entries diff in agent mode, exclude tools whose providerId is in `failedProviders` (don't promote temporarily-unavailable to stale).
+In the AgentEditor's debounced save path (Plan A Task 19), guard the save call:
+
+```ts
+// *Amended after UX review (#19)*: precedence rule — when registry catalog is in
+// total-failure, save is paused. The indicator displays 'disabledByFailure' translation.
+const saveDisabled = registryState.kind === 'total-failure';
+
+const handleToolsChange = useCallback((next: SelectedTool[]) => {
+  setSelectedTools(next);
+  if (saveDisabled) {
+    setSaveState('disabled-by-failure');
+    return;   // don't fire the debounced save
+  }
+  debouncedSave(next);
+}, [debouncedSave, saveDisabled]);
+```
+
+For the stale-entries diff in agent mode, exclude tools whose providerId is in `failedProviders` (don't promote temporarily-unavailable to stale). Plan A's `findStaleSelections` already accepts `failedProviders` (per Plan A v2 amendment).
+
+The `SaveStateIndicator` placement during `total-failure`: the panel body is replaced with `<PanelTotalFailureState />`, but the indicator continues to render in the panel header (the search-row block, where it lives in Plan A Task 18). Since the search input is also disabled during total-failure, the indicator and the disabled input together communicate the state without requiring extra UI.
 
 - [ ] **Step 5: Add new translations**
 
-In `packages/web/messages/en.json`'s `agentTools` namespace:
+In `packages/web/messages/en.json`'s `agentTools` namespace. *Amended after UX review (#20, #21)* for tone consistency and clearer asymmetric notes:
 
 ```json
 "providerError": "Couldn't load tools — retry",
 "retry": "retry",
-"providerErrorAgentNote": "Workflows using this provider will fail at runtime.",
-"providerErrorWorkflowNote": "Agents using this provider will degrade silently.",
+"providerErrorAgentNote": "Workflows that call this tool will fail at runtime — fix the provider first.",
+"providerErrorWorkflowNote": "Agents will run without these tools and may improvise.",
 "registryTotalFailure": "Couldn't load tool catalog. Refresh to retry.",
 "lastRefreshedAt": "Updated {when}"
 ```
+
+The notes are reworded to:
+- Be plain about the consequence (workflow fails / agent improvises) — "degrade silently" was vague.
+- Use the same "Couldn't <verb>" pattern as Plan A's translations.
+
+In Plan A's `agentTools.saveStates`:
+
+```json
+"disabledByFailure": "Save paused — tool catalog couldn't load"
+```
+
+(already added in Plan A v2 amendment).
 
 - [ ] **Step 6: Run check + commit**
 
@@ -2345,3 +2689,26 @@ These are intentionally out of scope; cross-referenced in the spec's "Required f
 ---
 
 **Plan complete and saved to `docs/superpowers/plans/2026-04-26-executor-refactor.md`.**
+
+---
+
+## Revisions
+
+### v2 — 2026-04-26 (post-dual-review of plans)
+
+Bugs and gaps fixed in this pass:
+
+- **`fetchAgentBySlug` → `getAgentBySlug`** (Task 21): the actual function name. Same fix applied to E Task 13 in that plan.
+- **`precondition.value` consumers enumerated and updated** (Task 3): `dummyTools.ts:12` and `stateMachine/format/index.ts:16-17` were the silent failure points. Step 4a + Step 4b now make this explicit.
+- **`findToolByName` is async** (Task 5): previously a sync method that returned null until `describeAll` was called first — a foot-gun the only consumer bypassed. Async eliminates the latent bug.
+- **`composeRegistry` no-I/O test** (Task 5): verifies `buildMcpProvider` itself does no eager I/O via a fake transport spy.
+- **Task 12 (MCP transport relocation) broken into Tasks 12a–12e**: this is a multi-day subproject (inventory existing callers → lift transport → switch backend imports → wire describe/build → delete legacy). Was previously a single hand-wave task.
+- **`OAuthTokenBundle` defined once in api package** (Tasks 13, 15): edge function and backend both `import type` from `@daviddh/llm-graph-runner`. No drift across three definitions.
+- **Edge function accepts both `schemaVersion: 1` and `2` during deploy transition** (Task 15): rejecting v1 outright would break any deploy where the edge function lands ahead of the backend (or vice versa). v1 branch is deprecated and removed in a follow-up edge-function deploy.
+- **`toAiSdkToolDict` imported at all consumer sites** (Tasks 15, 19, 20): previously missing from the edge function's import block.
+- **`providerCtxFromContext` body provided** (Task 17): central integration point of the workflow path; previously deferred. Concrete adapter + `Context` type extension added.
+- **Catalog endpoint returns canonical provider IDs directly** (Task 22): no `__sentinel__` wrapping in the response. Plan A's transitional boundary helper becomes obsolete once B+C+D ships. Added `providerType`/`providerId` to `ToolGroup` and `RegistryTool`; `sourceId` retained as legacy alias.
+- **Asymmetric error notes reworded** (Task 23): "degrade silently" was vague; replaced with "agent will improvise" / "workflow will fail at runtime — fix the provider first." Same "Couldn't <verb>" tone as Plan A.
+- **`SaveState` extended with `'disabled-by-failure'`** (Task 23): documents precedence between save-state and registry-state when catalog endpoint is in total-failure. Plan A's `SaveStateIndicator` already includes the new variant.
+
+**Realistic scope updated**: ~3–4 weeks of staff-engineer work. Originally 25 task-days; that was understated. Task 12 alone is now correctly scoped as 5 sub-tasks worth ~3–5 days.
