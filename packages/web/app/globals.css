@@ -611,17 +611,28 @@ div.model-selector-trigger[data-slot='input-group'] {
     1.5px -1.5px 0px -1px var(--border);
 }
 
-/* Liquid Glass V2 — SVG displacement-map refraction (Chrome only for backdrop-filter) */
+/* Liquid Glass V2 — SVG displacement-map refraction (Chrome only for backdrop-filter).
+   The glass chrome is drawn via ::before so we don't insert an extra DOM child between
+   the panel and its consumer's flex/grid children. */
 .glass-panel-v2 {
+  position: relative;
   isolation: isolate;
-  contain: layout paint;
 }
 
-.glass-panel-v2 > [aria-hidden='true'] {
-  /* Provided by inline style; this hook lets consumers theme the chrome */
-  border: 1px solid rgba(255, 255, 255, 0.12);
+.glass-panel-v2::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  backdrop-filter: var(--glass-v2-filter, none);
+  -webkit-backdrop-filter: var(--glass-v2-filter, none);
+  background-color: var(--glass-v2-bg, rgba(255, 255, 255, 0.6));
+  box-shadow: var(--glass-v2-shadow, 0 4px 16px rgba(0, 0, 0, 0.16));
+  transform: translateZ(0);
 }
 
-.dark .glass-panel-v2 > [aria-hidden='true'] {
-  border-color: rgba(255, 255, 255, 0.06);
+.dark .glass-panel-v2::before {
+  background-color: var(--glass-v2-bg, rgba(34, 34, 34, 0.6));
 }

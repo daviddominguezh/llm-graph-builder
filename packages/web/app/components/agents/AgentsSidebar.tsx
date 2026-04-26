@@ -67,9 +67,20 @@ function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: 
   const status = getAgentStatus(agent);
   const colorClass = STATUS_COLORS[status];
 
+  console.log('[AgentCard] render', { slug: agent.slug, href, active });
+
   return (
     <Link
       href={href}
+      onClick={(e) => {
+        console.log('[AgentCard] click', {
+          slug: agent.slug,
+          href,
+          defaultPrevented: e.defaultPrevented,
+          target: (e.target as HTMLElement).tagName,
+          currentTarget: e.currentTarget.tagName,
+        });
+      }}
       className={`group flex gap-2 rounded-md pr-2 py-0 ${
         active ? 'bg-input dark:bg-input/70 text-foreground' : 'hover:bg-input dark:hover:bg-input/70 text-foreground'
       }`}
@@ -144,6 +155,24 @@ export function AgentsSidebar({ agents: serverAgents, orgId, orgSlug }: AgentsSi
   const { collapsed, agents: contextAgents, syncAgents } = useAgentsSidebar();
   const prefetchedTemplates = useTemplatesPrefetch();
   const agents = contextAgents.length > 0 ? contextAgents : serverAgents;
+
+  console.log('[AgentsSidebar] render', {
+    pathname,
+    orgSlug,
+    agentCount: agents.length,
+    contextAgentCount: contextAgents.length,
+    serverAgentCount: serverAgents.length,
+    collapsed,
+  });
+
+  useEffect(() => {
+    console.log('[AgentsSidebar] mount');
+    return () => console.log('[AgentsSidebar] unmount');
+  }, []);
+
+  useEffect(() => {
+    console.log('[AgentsSidebar] pathname change', pathname);
+  }, [pathname]);
 
   useEffect(() => syncAgents(serverAgents), [serverAgents, syncAgents]);
 

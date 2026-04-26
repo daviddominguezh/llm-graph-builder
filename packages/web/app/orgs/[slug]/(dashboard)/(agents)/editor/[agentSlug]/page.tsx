@@ -12,10 +12,37 @@ interface EditorPageProps {
 
 export default async function EditorPage({ params }: EditorPageProps): Promise<React.JSX.Element> {
   const { slug, agentSlug } = await params;
+  console.log('[EditorPage] start', { slug, agentSlug });
 
-  const [{ result: org }, { agent }] = await Promise.all([getOrgBySlug(slug), getAgentBySlug(agentSlug)]);
-  if (!org) redirect('/');
-  if (!agent || agent.org_id !== org.id) redirect(`/orgs/${slug}`);
+  const [{ result: org }, agentResult] = await Promise.all([getOrgBySlug(slug), getAgentBySlug(agentSlug)]);
+  const { agent } = agentResult;
+  console.log(
+    '[EditorPage] fetched',
+    JSON.stringify(
+      {
+        slug,
+        agentSlug,
+        orgId: org?.id ?? null,
+        agentExists: agent !== null,
+        agentOrgId: agent?.org_id ?? null,
+        agentResultError: agentResult.error,
+      },
+      null,
+      2
+    )
+  );
+  if (!org) {
+    console.log('[EditorPage] redirect → / (no org)');
+    redirect('/');
+  }
+  if (!agent || agent.org_id !== org.id) {
+    console.log('[EditorPage] redirect → /orgs/' + slug, {
+      reason: !agent ? 'agent is null' : 'org mismatch',
+      agentOrgId: agent?.org_id ?? null,
+      orgId: org.id,
+    });
+    redirect(`/orgs/${slug}`);
+  }
 
   const [apiKeysResult, tenantsResult] = await Promise.all([
     getApiKeysByOrg(org.id),

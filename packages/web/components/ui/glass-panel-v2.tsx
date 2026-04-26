@@ -32,11 +32,17 @@ interface GlassPanelV2Props {
   specularOpacity?: number;
   specularSaturation?: number;
   surface?: GlassPanelV2Surface;
+  /** When omitted, the panel uses a theme-aware tint (white/0.6 light, #222222/0.6 dark) */
   background?: string;
   shadow?: string;
 }
 
-type Size = { width: number; height: number };
+interface Size {
+  width: number;
+  height: number;
+}
+
+type StyleWithVars = CSSProperties & { [key: `--${string}`]: string | number };
 
 function useElementSize(ref: React.RefObject<HTMLDivElement | null>): Size {
   const [size, setSize] = useState<Size>({ width: 0, height: 0 });
@@ -65,13 +71,13 @@ export function GlassPanelV2({
   style,
   radius = 24,
   blur = 1,
-  glassThickness = 50,
-  bezelWidth = 24,
+  glassThickness = 70,
+  bezelWidth = 27,
   refractiveIndex = 1.5,
-  specularOpacity = 0.3,
+  specularOpacity = 0.2,
   specularSaturation = 4,
   surface = 'convex',
-  background = 'rgba(255, 255, 255, 0.12)',
+  background,
   shadow = '0 4px 16px rgba(0, 0, 0, 0.16)',
 }: GlassPanelV2Props) {
   const reactId = useId();
@@ -80,34 +86,27 @@ export function GlassPanelV2({
   const { width, height } = useElementSize(containerRef);
   const ready = width > 0 && height > 0;
 
-  const containerStyle: CSSProperties = {
-    position: 'relative',
+  console.log('[GlassPanelV2] render', { filterId, width, height, ready });
+
+  useEffect(() => {
+    console.log('[GlassPanelV2] mount', filterId);
+    return () => console.log('[GlassPanelV2] unmount', filterId);
+  }, [filterId]);
+
+  const containerStyle: StyleWithVars = {
     borderRadius: radius,
-    isolation: 'isolate',
+    '--glass-v2-shadow': shadow,
+    '--glass-v2-filter': ready ? `url(#${filterId})` : 'none',
+    ...(background !== undefined ? { '--glass-v2-bg': background } : {}),
     ...style,
   };
 
-  const glassStyle: CSSProperties = {
-    position: 'absolute',
-    inset: 0,
-    borderRadius: 'inherit',
-    backdropFilter: ready ? `url(#${filterId})` : undefined,
-    WebkitBackdropFilter: ready ? `url(#${filterId})` : undefined,
-    backgroundColor: background,
-    boxShadow: shadow,
-    pointerEvents: 'none',
-    transform: 'translateZ(0)',
-    zIndex: 0,
-  };
-
-  const contentStyle: CSSProperties = {
-    position: 'relative',
-    borderRadius: 'inherit',
-    zIndex: 1,
-  };
-
   return (
-    <div ref={containerRef} className={`glass-panel-v2 ${className ?? ''}`.trim()} style={containerStyle}>
+    <div
+      ref={containerRef}
+      className={`glass-panel-v2 ${className ?? ''}`.trim()}
+      style={containerStyle}
+    >
       {ready ? (
         <Filter
           id={filterId}
@@ -123,8 +122,7 @@ export function GlassPanelV2({
           bezelHeightFn={SURFACES[surface].fn}
         />
       ) : null}
-      <div style={glassStyle} aria-hidden="true" />
-      <div style={contentStyle}>{children}</div>
+      {children}
     </div>
   );
 }
