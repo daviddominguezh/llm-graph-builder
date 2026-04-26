@@ -46,7 +46,7 @@ export function FormDialog({ open, onClose, agentId, schemas, mode }: Props): Re
 
   const derived = deriveFormDialog(state, schemas, mode);
   const submit = useCreateSubmit({ state, mode, agentId, onClose, canSubmit: derived.canSubmit });
-  const handleOpenChange = useHandleOpenChange({ dirty: state.dirty, t, onClose });
+  const handleOpenChange = useHandleOpenChange({ onClose });
 
   const onKey = (e: KeyboardEvent<HTMLDivElement>): void => {
     handleKey(e, {
@@ -119,19 +119,16 @@ function useCreateSubmit({ state, mode, agentId, onClose, canSubmit }: SubmitArg
 }
 
 interface OpenChangeArgs {
-  dirty: boolean;
-  t: ReturnType<typeof useTranslations>;
   onClose: () => void;
 }
 
-function useHandleOpenChange({ dirty, t, onClose }: OpenChangeArgs): (next: boolean) => void {
+function useHandleOpenChange({ onClose }: OpenChangeArgs): (next: boolean) => void {
   return useCallback(
     (next: boolean): void => {
       if (next) return;
-      if (dirty && !window.confirm(t('unsavedConfirm'))) return;
       onClose();
     },
-    [dirty, t, onClose]
+    [onClose]
   );
 }
 

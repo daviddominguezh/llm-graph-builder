@@ -31,7 +31,7 @@ export function FormDialogSchemaPicker({ schemas, value, onChange, disabled }: P
   return (
     <div className="flex flex-col gap-1">
       <Label>{t('label')}</Label>
-      <Select value={value ?? undefined} onValueChange={handleValueChange} disabled={disabled}>
+      <Select value={value ?? ''} onValueChange={handleValueChange} disabled={disabled}>
         <SelectTrigger className="w-full">
           <SelectValue placeholder={t('placeholder')} />
         </SelectTrigger>
