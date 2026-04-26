@@ -9,7 +9,11 @@ import {
 describe('SelectedToolSchema', () => {
   it('accepts a valid SelectedTool', () => {
     expect(() =>
-      SelectedToolSchema.parse({ providerType: 'builtin', providerId: 'calendar', toolName: 'check_availability' })
+      SelectedToolSchema.parse({
+        providerType: 'builtin',
+        providerId: 'calendar',
+        toolName: 'check_availability',
+      })
     ).not.toThrow();
   });
 
@@ -20,7 +24,9 @@ describe('SelectedToolSchema', () => {
   });
 
   it('rejects unknown providerType', () => {
-    expect(() => SelectedToolSchema.parse({ providerType: 'plugin', providerId: 'x', toolName: 'y' })).toThrow();
+    expect(() =>
+      SelectedToolSchema.parse({ providerType: 'plugin', providerId: 'x', toolName: 'y' })
+    ).toThrow();
   });
 });
 
@@ -33,12 +39,16 @@ describe('PatchSelectedToolsBodySchema', () => {
     expect(() => PatchSelectedToolsBodySchema.parse(body)).not.toThrow();
   });
 
+  const EXPECTED_CAP = 100;
+  const ONE = 1;
+  const OVER_CAP = MAX_SELECTED_TOOLS + ONE;
+
   it('exposes the cap as 100', () => {
-    expect(MAX_SELECTED_TOOLS).toBe(100);
+    expect(MAX_SELECTED_TOOLS).toBe(EXPECTED_CAP);
   });
 
   it('rejects more than MAX_SELECTED_TOOLS entries', () => {
-    const tools = Array.from({ length: 101 }, (_, i) => ({
+    const tools = Array.from({ length: OVER_CAP }, (_, i) => ({
       providerType: 'builtin' as const,
       providerId: 'calendar',
       toolName: `tool_${String(i)}`,
