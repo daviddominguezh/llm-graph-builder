@@ -1,6 +1,7 @@
 import type { McpServerConfig } from '@daviddh/graph-types';
 
 import type { Logger } from '../utils/logger.js';
+import type { McpConnector } from './mcp/types.js';
 import type { OpenFlowTool } from './types.js';
 
 export type ProviderType = 'builtin' | 'mcp';
@@ -29,6 +30,13 @@ export interface ProviderCtx {
 
   readonly oauthTokens: ReadonlyMap<string, OAuthTokenBundle>;
   readonly mcpServers: ReadonlyMap<string, McpServerConfig>;
+
+  /**
+   * Per-runtime MCP connector. Provided by backend or edge function as
+   * appropriate. Optional because tests/simulation paths may not have MCP
+   * available. See packages/api/src/providers/mcp/README.md for the contract.
+   */
+  readonly mcpConnector?: McpConnector;
 
   readonly services: (providerId: string) => unknown;
 }
