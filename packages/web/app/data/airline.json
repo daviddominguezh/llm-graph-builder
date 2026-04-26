@@ -1,5 +1,6 @@
 {
   "startNode": "INITIAL_STEP",
+  "selectedTools": [],
   "agents": [
     {
       "id": "routing",

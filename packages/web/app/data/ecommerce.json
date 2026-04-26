@@ -1,5 +1,6 @@
 {
   "startNode": "INITIAL_STEP",
+  "selectedTools": [],
   "agents": [{ "id": "greeting" }, { "id": "browse" }, { "id": "checkout" }, { "id": "tracking" }],
   "nodes": [
     { "id": "INITIAL_STEP", "text": "START", "kind": "agent" },
