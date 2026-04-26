@@ -11,7 +11,7 @@ interface KnowledgeBaseEmptyStateProps {
 
 function containerClassName(isDragging: boolean): string {
   const base =
-    'flex w-full flex-col items-center justify-center gap-3 rounded-md border border-dashed bg-background px-4 py-8 text-center transition-colors duration-150';
+    'flex w-full flex-1 flex-col items-center justify-center gap-3 rounded-md border border-dashed bg-background px-4 py-8 text-center transition-colors duration-150';
   const drag = isDragging ? 'border-primary/60 bg-primary/[0.02]' : '';
   return `${base} ${drag}`.trim();
 }

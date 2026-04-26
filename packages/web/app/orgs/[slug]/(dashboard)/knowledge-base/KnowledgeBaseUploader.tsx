@@ -91,10 +91,12 @@ export function KnowledgeBaseUploader({
   }
 
   const isEmpty = queue.files.length === 0;
+  const cardClass = isEmpty ? 'bg-background ring-0 flex flex-1 flex-col' : 'bg-background ring-0';
+  const contentClass = isEmpty ? 'flex flex-1 flex-col gap-4' : 'flex flex-col gap-4';
   return (
-    <Card className="bg-background ring-0">
+    <Card className={cardClass}>
       <UploaderCardHeader count={queue.files.length} onAdd={open} kbdPressed={kbdPressed} />
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className={contentClass}>
         {isEmpty ? (
           <KnowledgeBaseEmptyState isDragging={isDragging} onAdd={open} />
         ) : (

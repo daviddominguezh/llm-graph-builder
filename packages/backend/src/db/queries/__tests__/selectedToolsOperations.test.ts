@@ -1,38 +1,44 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import type { SelectedTool } from '@daviddh/llm-graph-runner';
 
-import { updateSelectedToolsWithPrecondition } from '../selectedToolsOperations.js';
+import type { SupabaseClient } from '../operationHelpers.js';
 
-type FakeResult = {
+type QueryResult = {
   data: { selected_tools: SelectedTool[]; updated_at: string } | null;
-  error: { code: string } | null;
+  error: { code: string; message: string } | null;
 };
 
-interface FakeBuilder {
-  update: jest.Mock;
-  eq: jest.Mock;
-  select: jest.Mock;
-  single: jest.Mock<() => Promise<FakeResult>>;
+type SingleFn = jest.MockedFunction<() => Promise<QueryResult>>;
+
+interface FakeChain {
+  update: jest.MockedFunction<(vals: object) => FakeChain>;
+  eq: jest.MockedFunction<(col: string, val: string) => FakeChain>;
+  select: jest.MockedFunction<(cols: string) => FakeChain>;
+  single: SingleFn;
 }
 
-function makeSupabase(
-  returnedRow: { selected_tools: SelectedTool[]; updated_at: string } | null,
-  error: { code: string } | null = null
-) {
-  const builder = {} as FakeBuilder;
-  builder.update = jest.fn().mockReturnValue(builder);
-  builder.eq = jest.fn().mockReturnValue(builder);
-  builder.select = jest.fn().mockReturnValue(builder);
-  builder.single = jest.fn<() => Promise<FakeResult>>().mockResolvedValue({ data: returnedRow, error });
-  return { from: jest.fn().mockReturnValue(builder), _builder: builder };
+function makeChain(result: QueryResult): FakeChain {
+  const chain = {} as FakeChain;
+  chain.update = jest.fn<(vals: object) => FakeChain>().mockReturnValue(chain);
+  chain.eq = jest.fn<(col: string, val: string) => FakeChain>().mockReturnValue(chain);
+  chain.select = jest.fn<(cols: string) => FakeChain>().mockReturnValue(chain);
+  chain.single = jest.fn<() => Promise<QueryResult>>().mockResolvedValue(result);
+  return chain;
 }
+
+function makeClient(result: QueryResult): SupabaseClient {
+  const chain = makeChain(result);
+  return { from: jest.fn().mockReturnValue(chain) } as unknown as SupabaseClient;
+}
+
+const { updateSelectedToolsWithPrecondition } = await import('../selectedToolsOperations.js');
 
 describe('updateSelectedToolsWithPrecondition', () => {
   it('returns updated row on success', async () => {
     const row = { selected_tools: [], updated_at: '2026-04-26T10:00:00.000Z' };
-    const sb = makeSupabase(row);
+    const sb = makeClient({ data: row, error: null });
     const tools: SelectedTool[] = [];
-    const result = await updateSelectedToolsWithPrecondition(sb as never, {
+    const result = await updateSelectedToolsWithPrecondition(sb, {
       agentId: 'a1',
       tools,
       expectedUpdatedAt: '2026-04-26T09:00:00.000Z',
@@ -41,8 +47,8 @@ describe('updateSelectedToolsWithPrecondition', () => {
   });
 
   it('returns conflict when no row matches the precondition', async () => {
-    const sb = makeSupabase(null, { code: 'PGRST116' });
-    const result = await updateSelectedToolsWithPrecondition(sb as never, {
+    const sb = makeClient({ data: null, error: { code: 'PGRST116', message: 'no rows' } });
+    const result = await updateSelectedToolsWithPrecondition(sb, {
       agentId: 'a1',
       tools: [],
       expectedUpdatedAt: '2026-04-26T09:00:00.000Z',

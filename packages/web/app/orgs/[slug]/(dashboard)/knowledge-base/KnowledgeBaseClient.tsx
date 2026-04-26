@@ -40,8 +40,12 @@ export function KnowledgeBaseClient({
         <>
           <TenantList tenants={tenants} currentTenantId={tenantId} onSelect={setTenantId} />
           <Scrollable className="min-h-0 flex-1">
-            <div className="p-6">
-              <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+            <div className={queue.files.length === 0 ? 'p-6 h-full' : 'p-6'}>
+              <div
+                className={`mx-auto flex w-full max-w-4xl flex-col gap-6 ${
+                  queue.files.length === 0 ? 'h-full' : ''
+                }`}
+              >
                 <KnowledgeBaseUploader queue={queue} isDragging={isDragging} />
               </div>
             </div>
