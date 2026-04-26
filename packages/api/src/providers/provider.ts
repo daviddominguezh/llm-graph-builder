@@ -30,7 +30,7 @@ export interface ProviderCtx {
   readonly oauthTokens: ReadonlyMap<string, OAuthTokenBundle>;
   readonly mcpServers: ReadonlyMap<string, McpServerConfig>;
 
-  readonly services: <T>(providerId: string) => T | undefined;
+  readonly services: (providerId: string) => unknown;
 }
 
 export interface ToolDescriptor {
@@ -45,6 +45,6 @@ export interface Provider {
   displayName: string;
   description?: string;
 
-  describeTools(ctx: ProviderCtx): Promise<ToolDescriptor[]>;
-  buildTools(args: { toolNames: string[]; ctx: ProviderCtx }): Promise<Record<string, OpenFlowTool>>;
+  describeTools: (ctx: ProviderCtx) => Promise<ToolDescriptor[]>;
+  buildTools: (args: { toolNames: string[]; ctx: ProviderCtx }) => Promise<Record<string, OpenFlowTool>>;
 }
