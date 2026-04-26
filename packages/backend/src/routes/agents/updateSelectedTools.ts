@@ -1,5 +1,5 @@
+import { PatchSelectedToolsBodySchema, type SelectedTool } from '@daviddh/llm-graph-runner';
 import type { Request } from 'express';
-import { type SelectedTool, PatchSelectedToolsBodySchema } from '@daviddh/llm-graph-runner';
 
 import {
   type UpdateSelectedToolsResult,
@@ -57,10 +57,7 @@ async function handleConflict(
   sendConflict(res, current);
 }
 
-export async function handleUpdateSelectedTools(
-  req: Request,
-  res: AuthenticatedResponse
-): Promise<void> {
+export async function handleUpdateSelectedTools(req: Request, res: AuthenticatedResponse): Promise<void> {
   const agentId = getAgentId(req);
   if (agentId === undefined) {
     sendBadRequest(res, 'agentId required');

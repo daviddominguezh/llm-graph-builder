@@ -5,7 +5,7 @@ import { useTemplatesPrefetch } from '@/app/hooks/useTemplatesPrefetch';
 import type { AgentMetadata } from '@/app/lib/agents';
 import { formatRelativeTime } from '@/app/utils/formatRelativeTime';
 import { Button } from '@/components/ui/button';
-import { GlassPanel } from '@/components/ui/glass-panel';
+import { GlassPanelV2 } from '@/components/ui/glass-panel-v2';
 import { Input } from '@/components/ui/input';
 import { Plus, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -160,7 +160,7 @@ export function AgentsSidebar({ agents: serverAgents, orgId, orgSlug }: AgentsSi
   }
 
   return (
-    <GlassPanel variant="background" className="relative flex h-[calc(100%-var(--spacing)*2-1px)] w-[240px] shrink-0 flex-col pointer-events-auto rounded-xl mt-[1px]">
+    <GlassPanelV2 radius={12} className="relative flex h-[calc(100%-var(--spacing)*2-1px)] w-[240px] shrink-0 flex-col pointer-events-auto rounded-xl mt-[1px]">
       <SidebarHeader onCreateClick={() => setCreateOpen(true)} />
       <SearchInput value={search} onChange={setSearch} />
       <Scrollable className="flex-1">
@@ -173,6 +173,6 @@ export function AgentsSidebar({ agents: serverAgents, orgId, orgSlug }: AgentsSi
         orgSlug={orgSlug}
         prefetchedTemplates={prefetchedTemplates}
       />
-    </GlassPanel>
+    </GlassPanelV2>
   );
 }

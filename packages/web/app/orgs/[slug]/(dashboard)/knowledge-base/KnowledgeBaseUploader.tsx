@@ -8,12 +8,14 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTranslations } from 'next-intl';
 import { type ChangeEvent, type RefObject, useEffect, useRef, useState } from 'react';
 
 import { AddFilesButton } from './AddFilesButton';
 import { FileList } from './FileList';
 import { KnowledgeBaseEmptyState } from './KnowledgeBaseEmptyState';
+import { KvStorePlaceholder } from './KvStorePlaceholder';
 import { UploaderFooter } from './UploaderFooter';
 import { ACCEPT_ATTR } from './uploaderHelpers';
 import type { FileQueue } from './useFileQueue';
@@ -90,19 +92,18 @@ export function KnowledgeBaseUploader({
     }
   }
 
-  const isEmpty = queue.files.length === 0;
-  const cardClass = isEmpty ? 'bg-background ring-0 flex flex-1 flex-col' : 'bg-background ring-0';
-  const contentClass = isEmpty ? 'flex flex-1 flex-col gap-4' : 'flex flex-col gap-4';
   return (
-    <Card className={cardClass}>
+    <Card className="bg-background ring-0 flex flex-1 flex-col">
       <UploaderCardHeader count={queue.files.length} onAdd={open} kbdPressed={kbdPressed} />
-      <CardContent className={contentClass}>
-        {isEmpty ? (
-          <KnowledgeBaseEmptyState isDragging={isDragging} onAdd={open} />
-        ) : (
-          <FileList files={queue.files} onRemove={queue.remove} />
-        )}
-        {!isEmpty && <UploaderFooter files={queue.files} onClear={queue.clear} />}
+      <CardContent className="flex flex-1 flex-col">
+        <UploaderTabs
+          isEmpty={queue.files.length === 0}
+          isDragging={isDragging}
+          onAdd={open}
+          files={queue.files}
+          onRemove={queue.remove}
+          onClear={queue.clear}
+        />
       </CardContent>
       <input
         ref={inputRef}
@@ -113,5 +114,44 @@ export function KnowledgeBaseUploader({
         className="hidden"
       />
     </Card>
+  );
+}
+
+interface UploaderTabsProps {
+  isEmpty: boolean;
+  isDragging: boolean;
+  onAdd: () => void;
+  files: FileQueue['files'];
+  onRemove: (id: string) => void;
+  onClear: () => void;
+}
+
+function UploaderTabs({
+  isEmpty,
+  isDragging,
+  onAdd,
+  files,
+  onRemove,
+  onClear,
+}: UploaderTabsProps): React.JSX.Element {
+  const t = useTranslations('knowledgeBase');
+  return (
+    <Tabs defaultValue="rag" className="flex flex-1 flex-col">
+      <TabsList variant="line">
+        <TabsTrigger value="rag">{t('tabRag')}</TabsTrigger>
+        <TabsTrigger value="kv">{t('tabKv')}</TabsTrigger>
+      </TabsList>
+      <TabsContent value="rag" className="flex flex-col gap-4">
+        {isEmpty ? (
+          <KnowledgeBaseEmptyState isDragging={isDragging} onAdd={onAdd} />
+        ) : (
+          <FileList files={files} onRemove={onRemove} />
+        )}
+        {!isEmpty && <UploaderFooter files={files} onClear={onClear} />}
+      </TabsContent>
+      <TabsContent value="kv" className="flex flex-col">
+        <KvStorePlaceholder />
+      </TabsContent>
+    </Tabs>
   );
 }

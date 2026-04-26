@@ -12,14 +12,8 @@ interface GlassPanelProps {
 }
 
 export function GlassPanel({ children, className, variant = 'background', style }: GlassPanelProps) {
-  const shadow =
-    variant === 'background' ? 'shadow-[3px_2px_10px_rgba(149,157,165,0.2)] dark:shadow-none' : 'shadow-sm';
-
   return (
-    <div
-      className={`relative glass-panel ${shadow} glass-panel--${variant} ${className ?? ''}`}
-      style={style}
-    >
+    <div className={`relative glass-panel glass-panel--${variant} ${className ?? ''}`} style={style}>
       {children}
     </div>
   );

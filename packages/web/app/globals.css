@@ -1,7 +1,7 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-@import "overlayscrollbars/overlayscrollbars.css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import 'overlayscrollbars/overlayscrollbars.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -69,9 +69,9 @@
   --border: oklch(0.92 0.004 286.32);
   --input: rgb(236, 236, 236);
   --ring: oklch(0.705 0.015 286.067);
-  --chart-1: oklch(0.79 0.10 275);
+  --chart-1: oklch(0.79 0.1 275);
   --chart-2: oklch(0.68 0.16 277);
-  --chart-3: oklch(0.59 0.20 277);
+  --chart-3: oklch(0.59 0.2 277);
   --chart-4: oklch(0.51 0.23 277);
   --chart-5: oklch(0.46 0.21 277);
   --radius: 0.625rem;
@@ -79,7 +79,7 @@
   --sidebar-foreground: oklch(0.141 0.005 285.823);
   --sidebar-primary: black;
   --sidebar-primary-foreground: oklch(0.96 0.02 272);
-  --sidebar-accent: lab(96.52% -.0000298023 .0000119209);
+  --sidebar-accent: lab(96.52% -0.0000298023 0.0000119209);
   --sidebar-accent-foreground: oklch(0.96 0.02 272);
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.705 0.015 286.067);
@@ -106,23 +106,23 @@
   --accent-foreground: oklch(0.96 0.02 272);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(25.197% 0.00003 271.152);
-  --input: lab(100% 0 0/.15);
+  --input: lab(100% 0 0/0.15);
   --ring: oklch(0.552 0.016 285.938);
-  --chart-1: oklch(0.79 0.10 275);
+  --chart-1: oklch(0.79 0.1 275);
   --chart-2: oklch(0.68 0.16 277);
-  --chart-3: oklch(0.59 0.20 277);
+  --chart-3: oklch(0.59 0.2 277);
   --chart-4: oklch(0.51 0.23 277);
   --chart-5: oklch(0.46 0.21 277);
-  --sidebar: lab(7.78201% -.0000149012 0);
+  --sidebar: lab(7.78201% -0.0000149012 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: white;
   --sidebar-primary-foreground: oklch(0.96 0.02 272);
-  --sidebar-accent: lab(15.204% 0 -.00000596046);
+  --sidebar-accent: lab(15.204% 0 -0.00000596046);
   --sidebar-accent-foreground: oklch(0.96 0.02 272);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.552 0.016 285.938);
   --canvas: #000;
-  --canvas-dots: lab(100% 0 0/.2);
+  --canvas-dots: lab(100% 0 0/0.2);
 }
 
 @layer base {
@@ -229,7 +229,7 @@ input:-webkit-autofill:active {
    host. The host must NOT scroll natively — scrolling belongs to the internal
    viewport child. Override any overflow utility class on the host so the
    host's own native scrollbar disappears. */
-[data-overlayscrollbars~="host"] {
+[data-overlayscrollbars~='host'] {
   overflow: hidden;
 }
 
@@ -251,7 +251,10 @@ input:-webkit-autofill:active {
 }
 
 .os-theme-closer .os-scrollbar-handle {
-  transition: width 150ms ease, height 150ms ease, background-color 150ms ease;
+  transition:
+    width 150ms ease,
+    height 150ms ease,
+    background-color 150ms ease;
 }
 
 .os-theme-closer .os-scrollbar-handle:hover {
@@ -259,7 +262,7 @@ input:-webkit-autofill:active {
 }
 
 /* Model selector trigger: suppress focus ring/border when dropdown is open */
-div.model-selector-trigger[data-slot="input-group"] {
+div.model-selector-trigger[data-slot='input-group'] {
   box-shadow: none;
   border-color: transparent;
   outline: none;
@@ -272,21 +275,20 @@ div.model-selector-trigger[data-slot="input-group"] {
   margin-bottom: 0px;
 }
 
-.markdown-content> :is(h1, h2, h3, h4, h5, h6) {
-  border-bottom: 1px solid #DDD !important;
+.markdown-content > :is(h1, h2, h3, h4, h5, h6) {
+  border-bottom: 1px solid #ddd !important;
   padding-bottom: 4px !important;
   margin-bottom: 8px !important;
   margin-top: 8px !important;
 }
 
-.markdown-content>p:not(:has(+ ul)):not(:has(+ ol)) {
+.markdown-content > p:not(:has(+ ul)):not(:has(+ ol)) {
   margin-bottom: 8px;
 }
 
-.markdown-content> :is(ul, ol) {
+.markdown-content > :is(ul, ol) {
   margin-bottom: 8px !important;
 }
-
 
 .markdown-content pre {
   background-color: var(--muted);
@@ -306,8 +308,7 @@ div.model-selector-trigger[data-slot="input-group"] {
   --xy-node-border-default: 1px solid var(--secondary);
   --xy-node-border-selected: 1px solid var(--secondary);
   --xy-node-boxshadow-default:
-    0px 3.54px 4.55px 0px #00000005, 0px 3.54px 4.55px 0px #0000000d,
-    0px 0.51px 1.01px 0px #0000001a;
+    0px 3.54px 4.55px 0px #00000005, 0px 3.54px 4.55px 0px #0000000d, 0px 0.51px 1.01px 0px #0000001a;
   --xy-node-border-radius-default: 8px;
 
   --xy-handle-background-color-default: #ffffff;
@@ -322,8 +323,7 @@ div.model-selector-trigger[data-slot="input-group"] {
   --xy-handle-background-color-default: var(--background);
   --xy-edge-label-color-default: var(--muted-foreground);
   --xy-node-boxshadow-default:
-    0px 3.54px 4.55px 0px rgba(255, 255, 255, 0.05),
-    0px 3.54px 4.55px 0px rgba(255, 255, 255, 0.13),
+    0px 3.54px 4.55px 0px rgba(255, 255, 255, 0.05), 0px 3.54px 4.55px 0px rgba(255, 255, 255, 0.13),
     0px 0.51px 1.01px 0px rgba(255, 255, 255, 0.2);
   --xy-theme-color-focus: #535353;
 }
@@ -436,7 +436,6 @@ div.model-selector-trigger[data-slot="input-group"] {
 }
 
 @keyframes auth-shake {
-
   0%,
   100% {
     transform: translateX(0);
@@ -524,7 +523,6 @@ div.model-selector-trigger[data-slot="input-group"] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-
   .auth-card-enter,
   .auth-shake,
   .row-enter,
@@ -592,7 +590,10 @@ div.model-selector-trigger[data-slot="input-group"] {
   pointer-events: none;
   backdrop-filter: blur(16px);
   overflow: hidden;
-  box-shadow: inset 3px -1px 0px -2px var(--ring), -0.5px 1px 0px -0.5px var(--border), 1.5px -1.5px 0px -1px var(--border);
+  box-shadow:
+    inset 3px -1px 0px -2px var(--ring),
+    -0.5px 1px 0px -0.5px var(--border),
+    1.5px -1.5px 0px -1px var(--border);
 }
 
 .dark .glass-panel::after {
@@ -604,5 +605,23 @@ div.model-selector-trigger[data-slot="input-group"] {
   pointer-events: none;
   backdrop-filter: blur(16px);
   overflow: hidden;
-  box-shadow: inset 3px -1px 0px -2px var(--border), -0.5px 1px 0px -0.5px var(--border), 1.5px -1.5px 0px -1px var(--border);
+  box-shadow:
+    inset 3px -1px 0px -2px var(--border),
+    -0.5px 1px 0px -0.5px var(--border),
+    1.5px -1.5px 0px -1px var(--border);
+}
+
+/* Liquid Glass V2 — SVG displacement-map refraction (Chrome only for backdrop-filter) */
+.glass-panel-v2 {
+  isolation: isolate;
+  contain: layout paint;
+}
+
+.glass-panel-v2 > [aria-hidden='true'] {
+  /* Provided by inline style; this hook lets consumers theme the chrome */
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.dark .glass-panel-v2 > [aria-hidden='true'] {
+  border-color: rgba(255, 255, 255, 0.06);
 }

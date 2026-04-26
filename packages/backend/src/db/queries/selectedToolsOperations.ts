@@ -13,9 +13,7 @@ export interface UpdateSelectedToolsRow {
   updated_at: string;
 }
 
-export type UpdateSelectedToolsResult =
-  | { kind: 'ok'; row: UpdateSelectedToolsRow }
-  | { kind: 'conflict' };
+export type UpdateSelectedToolsResult = { kind: 'ok'; row: UpdateSelectedToolsRow } | { kind: 'conflict' };
 
 export async function updateSelectedToolsWithPrecondition(
   supabase: SupabaseClient,

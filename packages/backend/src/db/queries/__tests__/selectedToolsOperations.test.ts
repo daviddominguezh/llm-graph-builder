@@ -1,5 +1,5 @@
-import { describe, expect, it, jest } from '@jest/globals';
 import type { SelectedTool } from '@daviddh/llm-graph-runner';
+import { describe, expect, it, jest } from '@jest/globals';
 
 interface QueryResult {
   data: { selected_tools: SelectedTool[]; updated_at: string } | null;
