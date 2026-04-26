@@ -42,17 +42,6 @@ function TenantAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | n
   );
 }
 
-function SingleTenantLabel({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
-  return (
-    <div className="flex h-8 rounded-md items-center overflow-hidden px-2">
-      <div className="flex min-w-0 items-center gap-2">
-        <TenantAvatar name={name} avatarUrl={avatarUrl} />
-        <span className="truncate text-xs font-semibold">{name}</span>
-      </div>
-    </div>
-  );
-}
-
 function MultiTenantTriggerContent({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
   return (
     <div className="flex h-8 rounded-md items-center overflow-hidden px-2 hover:bg-input/30 w-full">
@@ -72,10 +61,6 @@ export function TenantSwitcher({ tenants, currentTenantId, onTenantChange }: Ten
   const currentTenant = tenants.find((tenant) => tenant.id === currentTenantId);
   const currentName = currentTenant?.name ?? t('Unknown');
   const currentAvatar = currentTenant?.avatar_url ?? null;
-
-  if (tenants.length <= 1) {
-    return <SingleTenantLabel name={currentName} avatarUrl={currentAvatar} />;
-  }
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>

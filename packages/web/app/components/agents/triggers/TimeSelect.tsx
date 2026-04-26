@@ -41,7 +41,7 @@ function PartSelect({
       >
         <SelectValue>{value}</SelectValue>
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent alignItemWithTrigger={false}>
         {options.map((opt) => (
           <SelectItem key={opt} value={opt} className="text-sm tabular-nums">
             {opt}

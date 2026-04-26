@@ -1,6 +1,5 @@
 import { getGoogleCalendarConnectionStatus } from '@/app/actions/googleOauth';
 import { ApiKeysSection } from '@/app/components/orgs/ApiKeysSection';
-import { AppearanceSection } from '@/app/components/orgs/AppearanceSection';
 import { DangerZone } from '@/app/components/orgs/DangerZone';
 import { EnvVariablesSection } from '@/app/components/orgs/EnvVariablesSection';
 import { GoogleCalendarSection } from '@/app/components/orgs/GoogleCalendarSection';
@@ -32,8 +31,6 @@ export default async function OrgSettingsPage({ params }: OrgSettingsPageProps):
     <Scrollable className="h-[calc(100%-var(--spacing)*2)] p-6 border rounded-xl mr-2 bg-background">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
         <OrgSettingsForm org={org} />
-        <Separator />
-        <AppearanceSection />
         <Separator />
         <ApiKeysSection orgId={org.id} initialKeys={apiKeys} />
         <Separator />

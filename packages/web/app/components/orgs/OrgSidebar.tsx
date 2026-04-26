@@ -26,6 +26,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 
 import { OrgSwitcherPopover } from './OrgSwitcherPopover';
+import { SidebarThemeToggle } from './SidebarThemeToggle';
 
 interface OrgSidebarProps {
   org: OrgRow;
@@ -176,11 +177,13 @@ function NavList({
   basePath,
   segment,
   onItemClick,
+  trailing,
 }: {
   items: NavItemDef[];
   basePath: string;
   segment: string;
   onItemClick?: (item: NavItemDef, e: React.MouseEvent) => void;
+  trailing?: React.ReactNode;
 }) {
   return (
     <nav className="flex flex-col gap-0.5">
@@ -193,6 +196,7 @@ function NavList({
           onClick={onItemClick ? (e) => onItemClick(item, e) : undefined}
         />
       ))}
+      {trailing}
     </nav>
   );
 }
@@ -202,11 +206,13 @@ function NavListExpanded({
   basePath,
   segment,
   onItemClick,
+  trailing,
 }: {
   items: NavItemDef[];
   basePath: string;
   segment: string;
   onItemClick?: (item: NavItemDef, e: React.MouseEvent) => void;
+  trailing?: React.ReactNode;
 }) {
   const t = useTranslations('orgs');
 
@@ -222,6 +228,7 @@ function NavListExpanded({
           onClick={onItemClick ? (e) => onItemClick(item, e) : undefined}
         />
       ))}
+      {trailing}
     </nav>
   );
 }
@@ -350,9 +357,19 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
       )}
       <div className="mt-auto flex flex-col gap-2">
         {sidebar.contentCollapsed ? (
-          <NavList items={BOTTOM_NAV_ITEMS} basePath={basePath} segment={segment} />
+          <NavList
+            items={BOTTOM_NAV_ITEMS}
+            basePath={basePath}
+            segment={segment}
+            trailing={<SidebarThemeToggle collapsed />}
+          />
         ) : (
-          <NavListExpanded items={BOTTOM_NAV_ITEMS} basePath={basePath} segment={segment} />
+          <NavListExpanded
+            items={BOTTOM_NAV_ITEMS}
+            basePath={basePath}
+            segment={segment}
+            trailing={<SidebarThemeToggle collapsed={false} />}
+          />
         )}
         <Separator />
         <LogoutButton />

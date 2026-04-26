@@ -18,7 +18,6 @@ import {
   Blocks,
   Download,
   Menu,
-  Palette,
   Play,
   SquareFunction,
   Upload,
@@ -28,8 +27,6 @@ import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-
-import { ThemeSwitcher } from '../ThemeSwitcher';
 
 const TOOLTIP_DELAY = 1000;
 
@@ -120,34 +117,23 @@ interface FileMenuItemsProps {
 function FileMenuItems({ onImport, onExport, onFormat, hideWorkflowActions }: FileMenuItemsProps) {
   const t = useTranslations('common');
   const tToolbar = useTranslations('toolbar');
-  const tTheme = useTranslations('theme');
 
   return (
     <>
-      <div className="flex items-center justify-between pl-2 pr-1 py-1.5">
-        <span className="text-xs/relaxed flex gap-2 items-center cursor-default">
-          <Palette className="size-4" />
-          {tTheme('label')}
-        </span>
-        <ThemeSwitcher />
-      </div>
-      <Separator />
-      <div className="pt-1">
-        <DropdownMenuItem onClick={onImport}>
-          <Upload className="size-4" />
-          {t('import')}
+      <DropdownMenuItem onClick={onImport}>
+        <Upload className="size-4" />
+        {t('import')}
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={onExport}>
+        <Download className="size-4" />
+        {t('export')}
+      </DropdownMenuItem>
+      {!hideWorkflowActions && (
+        <DropdownMenuItem onClick={onFormat}>
+          <AlignHorizontalSpaceAround className="size-4" />
+          {tToolbar('autoLayout')}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onExport}>
-          <Download className="size-4" />
-          {t('export')}
-        </DropdownMenuItem>
-        {!hideWorkflowActions && (
-          <DropdownMenuItem onClick={onFormat}>
-            <AlignHorizontalSpaceAround className="size-4" />
-            {tToolbar('autoLayout')}
-          </DropdownMenuItem>
-        )}
-      </div>
+      )}
     </>
   );
 }

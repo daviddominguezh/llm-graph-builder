@@ -45,7 +45,7 @@ const TAB_ICONS: Record<TabId, LucideIcon> = {
   settings: Settings,
 };
 
-const TABS: TabId[] = ['agent', 'data', 'channels', 'triggers', 'settings'];
+const TABS: TabId[] = ['agent', 'data', 'triggers', 'channels', 'settings'];
 
 interface TabButtonProps {
   tab: TabId;
@@ -140,7 +140,7 @@ function TabContent({ activeTab, props }: { activeTab: TabId; props: EditorTabsP
       className={`flex flex-col bg-background overflow-hidden ${activeTab === 'agent' ? 'hidden' : 'flex-1'}`}
     >
       {activeTab === 'channels' && <ChannelsPanel orgId={props.orgId} agentId={props.agentId} />}
-      {activeTab === 'triggers' && <TriggersPanel />}
+      {activeTab === 'triggers' && <TriggersPanel orgId={props.orgId} orgSlug={props.orgSlug} />}
       {activeTab === 'data' && (
         <div className="mx-auto w-full max-w-lg flex flex-col gap-6 p-6">
           <div ref={dataPortalRef} className="flex flex-col gap-6" />

@@ -26,7 +26,7 @@ export function UnitSelect({ value, onChange, interval }: UnitSelectProps) {
       <SelectTrigger className="h-7 text-sm font-medium [&_span]:text-sm">
         <SelectValue>{unitLabel(t, value, isPlural)}</SelectValue>
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent alignItemWithTrigger={false}>
         {RECURRING_UNITS.map((u) => (
           <SelectItem key={u} value={u} className="text-sm">
             {unitLabel(t, u, isPlural)}

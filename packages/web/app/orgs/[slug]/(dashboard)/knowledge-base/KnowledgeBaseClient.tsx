@@ -13,6 +13,33 @@ interface KnowledgeBaseClientProps {
   defaultTenantId: string;
 }
 
+interface TenantContextRowProps {
+  tenants: TenantRow[];
+  currentTenantId: string;
+  onChange: (id: string) => void;
+}
+
+function TenantContextRow({
+  tenants,
+  currentTenantId,
+  onChange,
+}: TenantContextRowProps): React.JSX.Element {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60 shrink-0">
+        tenant
+      </span>
+      <div className="w-56 max-w-full">
+        <TenantSwitcher
+          tenants={tenants}
+          currentTenantId={currentTenantId}
+          onTenantChange={onChange}
+        />
+      </div>
+    </div>
+  );
+}
+
 function panelClassName(isDragging: boolean): string {
   const base =
     'relative flex h-[calc(100%-var(--spacing)*2)] flex-col overflow-hidden border mr-2 rounded-xl bg-background transition duration-150';
@@ -31,11 +58,9 @@ export function KnowledgeBaseClient({
 
   return (
     <div ref={containerRef} className={panelClassName(isDragging)}>
-      <div className="h-[41px] flex w-full items-center py-1.5 pl-1 pr-1 border-b">
-        <TenantSwitcher tenants={tenants} currentTenantId={tenantId} onTenantChange={setTenantId} />
-      </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-6">
         <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+          <TenantContextRow tenants={tenants} currentTenantId={tenantId} onChange={setTenantId} />
           <KnowledgeBaseUploader queue={queue} isDragging={isDragging} />
         </div>
       </div>

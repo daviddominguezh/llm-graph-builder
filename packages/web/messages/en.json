@@ -220,6 +220,14 @@
       "previewLabel": "Next run",
       "previewNone": "Not scheduled",
       "previewAfterEvent": "Triggered by an event",
+      "picker": {
+        "label": "Tenant",
+        "loading": "Loading tenants…",
+        "error": "Couldn't load tenants",
+        "placeholder": "Select a tenant",
+        "emptyLabel": "No tenants yet.",
+        "emptyCta": "Create one"
+      },
       "units": {
         "minutes": { "singular": "minute", "plural": "minutes" },
         "hours": { "singular": "hour", "plural": "hours" },

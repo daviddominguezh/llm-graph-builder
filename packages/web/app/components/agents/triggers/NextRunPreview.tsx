@@ -39,7 +39,7 @@ function PreviewLine({
   muted?: boolean;
 }) {
   return (
-    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
       <span className="inline-flex items-center gap-1.5 text-muted-foreground">
         <Clock className="size-3.5" />
         {label}
