@@ -35,7 +35,7 @@ export function FormDialogSchemaPicker({ schemas, value, onChange, disabled }: P
         <SelectTrigger className="w-full">
           <SelectValue placeholder={t('placeholder')} />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent align="start" alignItemWithTrigger={false}>
           {schemas.map((s) => (
             <SelectItem key={s.id} value={s.id}>
               {s.name}
