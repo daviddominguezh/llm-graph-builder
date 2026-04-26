@@ -1,6 +1,7 @@
 'use client';
 
-import { TenantSwitcher } from '@/app/components/messages/components/TenantSwitcher';
+import { TenantPicker } from '@/app/components/agents/triggers/TenantPicker';
+import { Scrollable } from '@/app/components/Scrollable';
 import type { TenantRow } from '@/app/lib/tenants';
 import { useRef, useState } from 'react';
 
@@ -11,33 +12,7 @@ import { useNativeDropArea } from './useNativeDropArea';
 interface KnowledgeBaseClientProps {
   tenants: TenantRow[];
   defaultTenantId: string;
-}
-
-interface TenantContextRowProps {
-  tenants: TenantRow[];
-  currentTenantId: string;
-  onChange: (id: string) => void;
-}
-
-function TenantContextRow({
-  tenants,
-  currentTenantId,
-  onChange,
-}: TenantContextRowProps): React.JSX.Element {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60 shrink-0">
-        tenant
-      </span>
-      <div className="w-56 max-w-full">
-        <TenantSwitcher
-          tenants={tenants}
-          currentTenantId={currentTenantId}
-          onTenantChange={onChange}
-        />
-      </div>
-    </div>
-  );
+  orgSlug: string;
 }
 
 function panelClassName(isDragging: boolean): string {
@@ -50,6 +25,7 @@ function panelClassName(isDragging: boolean): string {
 export function KnowledgeBaseClient({
   tenants,
   defaultTenantId,
+  orgSlug,
 }: KnowledgeBaseClientProps): React.JSX.Element {
   const [tenantId, setTenantId] = useState(defaultTenantId);
   const queue = useFileQueue();
@@ -58,12 +34,21 @@ export function KnowledgeBaseClient({
 
   return (
     <div ref={containerRef} className={panelClassName(isDragging)}>
-      <div className="min-h-0 flex-1 overflow-y-auto p-6">
-        <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-          <TenantContextRow tenants={tenants} currentTenantId={tenantId} onChange={setTenantId} />
-          <KnowledgeBaseUploader queue={queue} isDragging={isDragging} />
+      <Scrollable className="min-h-0 flex-1">
+        <div className="p-6">
+          <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+            <TenantPicker
+              tenants={tenants}
+              value={tenantId}
+              onChange={setTenantId}
+              loading={false}
+              error={null}
+              orgSlug={orgSlug}
+            />
+            <KnowledgeBaseUploader queue={queue} isDragging={isDragging} />
+          </div>
         </div>
-      </div>
+      </Scrollable>
     </div>
   );
 }

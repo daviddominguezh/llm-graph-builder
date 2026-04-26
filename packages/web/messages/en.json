@@ -101,7 +101,7 @@
     "optional": "optional"
   },
   "copilot": {
-    "title": "Copilot",
+    "title": "Ask OpenFlow",
     "newChat": "New chat",
     "placeholder": "Ask about your agents...",
     "send": "Send",
@@ -774,9 +774,12 @@
     "copyError": "Failed to copy value."
   },
   "knowledgeBase": {
+    "title": "Documents",
+    "description": "Files your agents can search and reference.",
     "addFiles": "Add files",
-    "extensions": "pdf · docx · xlsx · ppt · pptx · txt · md · csv",
-    "dropAnywhereHint": "Drag files anywhere to add",
+    "extensions": "pdf · docx · pptx · xlsx · html · jpg · png · gif · tiff · bmp · webp",
+    "emptyTitle": "No files yet",
+    "emptyDescription": "Drag files anywhere or click Add files.",
     "dropToAdd": "Release to add",
     "totalSize": "{count, plural, =1 {# file · {size}} other {# files · {size}}}",
     "clearAll": "Clear",

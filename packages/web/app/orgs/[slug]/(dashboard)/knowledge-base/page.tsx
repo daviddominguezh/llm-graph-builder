@@ -21,5 +21,11 @@ export default async function KnowledgeBasePage({
   const { result: tenants } = await getTenantsByOrg(org.id);
   const defaultTenantId = tenants[0]?.id ?? '';
 
-  return <KnowledgeBaseClient tenants={tenants} defaultTenantId={defaultTenantId} />;
+  return (
+    <KnowledgeBaseClient
+      tenants={tenants}
+      defaultTenantId={defaultTenantId}
+      orgSlug={slug}
+    />
+  );
 }

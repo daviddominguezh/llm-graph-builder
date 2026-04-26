@@ -58,21 +58,3 @@ export function FileList({ files, onRemove }: FileListProps): React.JSX.Element 
   );
 }
 
-interface EmptyHintProps {
-  isDragging: boolean;
-}
-
-export function EmptyHint({ isDragging }: EmptyHintProps): React.JSX.Element {
-  const t = useTranslations('knowledgeBase');
-  return (
-    <div className="flex items-center justify-center py-12">
-      <span
-        className={`text-xs transition-colors duration-150 ${
-          isDragging ? 'text-primary font-medium' : 'text-muted-foreground/70'
-        }`}
-      >
-        {isDragging ? t('dropToAdd') : t('dropAnywhereHint')}
-      </span>
-    </div>
-  );
-}

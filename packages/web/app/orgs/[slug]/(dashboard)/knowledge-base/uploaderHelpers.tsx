@@ -1,12 +1,15 @@
 export const ACCEPTED_EXTENSIONS = [
   '.pdf',
+  '.gif',
+  '.tiff',
+  '.jpg',
+  '.png',
+  '.bmp',
+  '.webp',
+  '.html',
   '.docx',
-  '.xlsx',
-  '.ppt',
   '.pptx',
-  '.txt',
-  '.md',
-  '.csv',
+  '.xlsx',
 ];
 export const ACCEPT_ATTR = ACCEPTED_EXTENSIONS.join(',');
 
