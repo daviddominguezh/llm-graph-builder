@@ -125,7 +125,6 @@ export {
   toAiSdkTool,
   toAiSdkToolDict,
   MockMcpConnector,
-  testConnectorConformance,
 } from './providers/index.js';
 export type {
   Provider,
@@ -141,7 +140,6 @@ export type {
   OAuthTokenBundle,
   McpClient,
   McpConnector,
-  ConformanceFixtures,
 } from './providers/index.js';
 
 export const execute = async (

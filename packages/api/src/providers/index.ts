@@ -25,5 +25,7 @@ export {
 } from './registry.js';
 export type { McpClient, McpConnector } from './mcp/types.js';
 export { MockMcpConnector } from './mcp/MockMcpConnector.js';
-export type { ConformanceFixtures } from './mcp/conformance.js';
-export { testConnectorConformance } from './mcp/conformance.js';
+// NOTE: testConnectorConformance is intentionally NOT re-exported here.
+// It imports `@jest/globals` at the top, which would pull jest into the
+// production runtime. Test files import it directly via the deep path
+// `@daviddh/llm-graph-runner/dist/providers/mcp/conformance.js`.
