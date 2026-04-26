@@ -56,7 +56,9 @@ export const getToolsFromEdge = (allTools: Record<string, Tool>, edge: Edge): Ed
     return edgeTools;
   }
 
-  const { value: toolName } = toolCall;
+  const {
+    tool: { toolName },
+  } = toolCall;
   const { [toolName]: closerMatchingTool } = allTools;
 
   if (closerMatchingTool === undefined) {
