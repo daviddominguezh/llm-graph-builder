@@ -271,3 +271,9 @@ export async function updateAgentMetadata(
   if (error !== null) return { error: error.message };
   return { error: null };
 }
+
+export async function getAgentOrgId(supabase: SupabaseClient, agentId: string): Promise<string | null> {
+  const result = await supabase.from('agents').select('org_id').eq('id', agentId).single();
+  if (result.error !== null) return null;
+  return (result.data as { org_id: string }).org_id;
+}
