@@ -23,6 +23,7 @@ import { handleSaveProductionKey } from './saveProductionKey.js';
 import { handleSaveStagingKey } from './saveStagingKey.js';
 import { handleUpdateCategory } from './updateCategory.js';
 import { handleUpdateMetadata } from './updateMetadata.js';
+import { handleUpdateSelectedTools } from './updateSelectedTools.js';
 import { handleUpdateVfsSettings } from './updateVfsSettings.js';
 import { handleUpdateVisibility } from './updateVisibility.js';
 import { vfsConfigRouter } from './vfsConfigRouter.js';
@@ -39,6 +40,7 @@ agentRouter.patch('/:agentId/production-key', handleSaveProductionKey);
 agentRouter.patch('/:agentId/visibility', handleUpdateVisibility);
 agentRouter.patch('/:agentId/category', handleUpdateCategory);
 agentRouter.patch('/:agentId/metadata', handleUpdateMetadata);
+agentRouter.patch('/:agentId/selected-tools', handleUpdateSelectedTools);
 
 agentRouter.get('/:agentId/graph', handleGetGraph);
 agentRouter.post('/:agentId/graph/operations', handlePostOperations);
