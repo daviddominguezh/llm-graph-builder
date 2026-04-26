@@ -1,12 +1,11 @@
 'use client';
 
-import { Check, Loader2, Pencil } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 
 import { slugNormalize } from '@daviddh/llm-graph-runner';
 import { checkSlugUniqueAction } from '@/app/actions/forms';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -54,15 +53,18 @@ function useReportValidity(
   phase: SlugPhase,
   onChange: Props['onChange']
 ): void {
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
   useEffect(() => {
     const isValid = value.name.trim() !== '' && phase === 'unique';
-    onChange({ name: value.name, slug: value.slug, isValid });
-  }, [value.name, value.slug, phase, onChange]);
+    onChangeRef.current({ name: value.name, slug: value.slug, isValid });
+  }, [value.name, value.slug, phase]);
 }
 
 export function FormDialogNameSlug({ agentId, value, onChange, disabled }: Props) {
   const t = useTranslations('forms.field');
-  const [editingSlug, setEditingSlug] = useState(false);
   const [state, dispatch] = useReducer(slugUxReducer, undefined, initialSlugUx);
   const lastKeyRef = useRef<number>(0);
 
@@ -81,16 +83,7 @@ export function FormDialogNameSlug({ agentId, value, onChange, disabled }: Props
   return (
     <div className="flex flex-col gap-3">
       <NameField value={value} onChange={onChange} t={t} disabled={disabled} />
-      <SlugField
-        value={value}
-        onChange={onChange}
-        editingSlug={editingSlug}
-        setEditingSlug={setEditingSlug}
-        phase={state.phase}
-        onBlur={handleBlur}
-        disabled={disabled}
-        t={t}
-      />
+      <SlugField value={value} phase={state.phase} onBlur={handleBlur} t={t} />
     </div>
   );
 }
@@ -121,28 +114,18 @@ function NameField({ value, onChange, t, disabled }: NameFieldProps) {
 
 interface SlugFieldProps {
   value: Value;
-  onChange: Props['onChange'];
-  editingSlug: boolean;
-  setEditingSlug: (next: boolean) => void;
   phase: SlugPhase;
   onBlur: () => void;
-  disabled?: boolean;
   t: ReturnType<typeof useTranslations>;
 }
 
-function SlugField(props: SlugFieldProps) {
-  const { value, onChange, editingSlug, setEditingSlug, phase, onBlur, disabled, t } = props;
+function SlugField({ value, phase, onBlur, t }: SlugFieldProps) {
+  const display = value.slug === '' ? '—' : value.slug;
   return (
     <div className="flex flex-col gap-1">
       <Label>{t('identifier.label')}</Label>
       <div className="flex items-center gap-2" onBlur={onBlur}>
-        <SlugDisplay value={value} onChange={onChange} editing={editingSlug} disabled={disabled} />
-        {disabled !== true && (
-          <Button variant="ghost" size="sm" onClick={(): void => setEditingSlug(!editingSlug)}>
-            <Pencil className="size-3.5" />
-            {t('identifier.edit')}
-          </Button>
-        )}
+        <code className="rounded-md bg-muted px-2 py-1 text-xs">{display}</code>
         <SlugStatusIcon phase={phase} />
       </div>
       <SlugErrorMessage phase={phase} t={t} />
@@ -163,29 +146,6 @@ function SlugErrorMessage({ phase, t }: SlugErrorMessageProps) {
     return <p className="text-xs text-destructive">{t('identifier.taken')}</p>;
   }
   return null;
-}
-
-interface SlugDisplayProps {
-  value: Value;
-  onChange: Props['onChange'];
-  editing: boolean;
-  disabled?: boolean;
-}
-
-function SlugDisplay({ value, onChange, editing, disabled }: SlugDisplayProps) {
-  if (editing && disabled !== true) {
-    return (
-      <Input
-        value={value.slug}
-        className="h-8"
-        onChange={(e): void => {
-          onChange({ name: value.name, slug: slugNormalize(e.target.value), isValid: false });
-        }}
-      />
-    );
-  }
-  const display = value.slug === '' ? '—' : value.slug;
-  return <code className="rounded-md bg-muted px-2 py-1 text-xs">{display}</code>;
 }
 
 function SlugStatusIcon({ phase }: { phase: SlugPhase }) {
