@@ -28,8 +28,15 @@ function SidebarHeader({ onCreateClick }: { onCreateClick: () => void }) {
 
   return (
     <div className="flex items-center justify-between pl-3 pr-1 py-1.5 pb-[calc(1px+var(--spacing)*1.5)] border-b border-b-[0.5px] mb-2.5">
-      <h2 className="mt-[1px] font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60">{t('title').toUpperCase()}</h2>
-      <Button variant="ghost" size="xs" className="aspect-square p-0! h-5 rounded-full" onClick={onCreateClick}>
+      <h2 className="mt-[1px] font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60">
+        {t('title').toUpperCase()}
+      </h2>
+      <Button
+        variant="ghost"
+        size="xs"
+        className="aspect-square p-0! h-5 rounded-full"
+        onClick={onCreateClick}
+      >
         <Plus />
       </Button>
     </div>
@@ -67,20 +74,9 @@ function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: 
   const status = getAgentStatus(agent);
   const colorClass = STATUS_COLORS[status];
 
-  console.log('[AgentCard] render', { slug: agent.slug, href, active });
-
   return (
     <Link
       href={href}
-      onClick={(e) => {
-        console.log('[AgentCard] click', {
-          slug: agent.slug,
-          href,
-          defaultPrevented: e.defaultPrevented,
-          target: (e.target as HTMLElement).tagName,
-          currentTarget: e.currentTarget.tagName,
-        });
-      }}
       className={`group flex gap-2 rounded-md pr-2 py-0 ${
         active
           ? 'bg-input dark:bg-input/70 text-foreground'
