@@ -7,6 +7,7 @@ import { computeHeaderState, isToolSelected, toggleTool } from '@/app/lib/agentT
 import type { RegistryTool, ToolGroup } from '@/app/lib/toolRegistryTypes';
 
 import { EmptyToolsHint } from './EmptyToolsHint';
+import { ProviderErrorRow, groupProviderId } from './ProviderErrorRow';
 import { ProviderHeader } from './ProviderHeader';
 import type { SaveState } from './SaveStateIndicator';
 import { StaleEntriesGroup } from './StaleEntriesGroup';
@@ -36,12 +37,14 @@ interface AgentModeBodyProps {
   groups: ToolGroup[];
   searchActive: boolean;
   expandedTool: string | null;
+  failedProviders: string[];
   onToggleTool: (key: string) => void;
   onCollapseTool: () => void;
 }
 
 export function AgentModeBody(props: AgentModeBodyProps): React.JSX.Element {
-  const { agent, groups, searchActive, expandedTool, onToggleTool, onCollapseTool } = props;
+  const { agent, groups, searchActive, expandedTool, failedProviders, onToggleTool, onCollapseTool } =
+    props;
   const showEmpty = agent.selectedTools.length === 0 && agent.staleEntries.length === 0;
   return (
     <div className="flex-1 overflow-y-auto p-1 pt-0">
@@ -54,6 +57,7 @@ export function AgentModeBody(props: AgentModeBodyProps): React.JSX.Element {
           agent={agent}
           searchActive={searchActive}
           expandedTool={expandedTool}
+          failedProviders={failedProviders}
           onToggleTool={onToggleTool}
           onCollapseTool={onCollapseTool}
         />
@@ -67,6 +71,7 @@ interface AgentModeGroupProps {
   agent: AgentModeProps;
   searchActive: boolean;
   expandedTool: string | null;
+  failedProviders: string[];
   onToggleTool: (key: string) => void;
   onCollapseTool: () => void;
 }
@@ -87,10 +92,13 @@ function applyHeaderToggle(
 }
 
 function AgentModeGroup(props: AgentModeGroupProps): React.JSX.Element {
-  const { group, agent, searchActive, expandedTool, onToggleTool, onCollapseTool } = props;
+  const { group, agent, searchActive, expandedTool, failedProviders, onToggleTool, onCollapseTool } =
+    props;
   const groupTools = group.tools.map(registryToolToSelectedTool);
   const headerState = computeHeaderState({ groupTools, selected: agent.selectedTools });
   const selectedInGroup = groupTools.filter((t) => isToolSelected(agent.selectedTools, t)).length;
+  const providerId = groupProviderId(group);
+  const hasError = providerId !== null && failedProviders.includes(providerId);
   return (
     <div>
       <ProviderHeader
@@ -102,6 +110,7 @@ function AgentModeGroup(props: AgentModeGroupProps): React.JSX.Element {
         searchActive={searchActive}
         onToggle={() => agent.onChange(applyHeaderToggle(agent.selectedTools, groupTools, headerState))}
       />
+      {hasError && <ProviderErrorRow agentId={agent.agentId} mode="agent" />}
       <ul className="flex flex-row gap-2 gap-y-3 flex-wrap pl-1">
         {group.tools.map((tool) => {
           const ref = registryToolToSelectedTool(tool);

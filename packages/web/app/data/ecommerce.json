@@ -1088,9 +1088,7 @@
         }
       ],
       "contextPreconditions": {
-        "preconditions": [
-          "NO_USER_HAS_NAME"
-        ]
+        "preconditions": ["NO_USER_HAS_NAME"]
       }
     },
     {
@@ -1103,9 +1101,7 @@
         }
       ],
       "contextPreconditions": {
-        "preconditions": [
-          "USER_HAS_NAME"
-        ],
+        "preconditions": ["USER_HAS_NAME"],
         "jumpTo": "RegisterUserName"
       }
     },
@@ -1129,9 +1125,7 @@
         }
       ],
       "contextPreconditions": {
-        "preconditions": [
-          "USER_HAS_NAME"
-        ]
+        "preconditions": ["USER_HAS_NAME"]
       }
     },
     {
@@ -1144,9 +1138,7 @@
         }
       ],
       "contextPreconditions": {
-        "preconditions": [
-          "NO_USER_HAS_NAME"
-        ]
+        "preconditions": ["NO_USER_HAS_NAME"]
       }
     },
     {
@@ -1241,9 +1233,7 @@
         }
       ],
       "contextPreconditions": {
-        "preconditions": [
-          "NO_ASK_GENDER"
-        ]
+        "preconditions": ["NO_ASK_GENDER"]
       }
     },
     {
@@ -1260,18 +1250,14 @@
         }
       ],
       "contextPreconditions": {
-        "preconditions": [
-          "NEVER_ASK_GENDER"
-        ]
+        "preconditions": ["NEVER_ASK_GENDER"]
       }
     },
     {
       "from": "SearchIntent",
       "to": "AskGenderAsSearchCriteria",
       "contextPreconditions": {
-        "preconditions": [
-          "ASK_GENDER"
-        ]
+        "preconditions": ["ASK_GENDER"]
       }
     },
     {
@@ -1396,9 +1382,7 @@
         }
       ],
       "contextPreconditions": {
-        "preconditions": [
-          "USER_HAS_NONEMPTY_CART"
-        ],
+        "preconditions": ["USER_HAS_NONEMPTY_CART"],
         "jumpTo": "ContinueWithOrder"
       }
     },
@@ -1485,9 +1469,7 @@
       "from": "AnswerProductPersonalizationsSP",
       "to": "DoAnswerProductPersonalizationSP",
       "contextPreconditions": {
-        "preconditions": [
-          "ALWAYS_TRUE"
-        ],
+        "preconditions": ["ALWAYS_TRUE"],
         "jumpTo": "SingleProduct"
       }
     },
@@ -1564,9 +1546,7 @@
       "from": "AnswerProductPersonalizationsMP",
       "to": "DoAnswerProductPersonalizationMP",
       "contextPreconditions": {
-        "preconditions": [
-          "ALWAYS_TRUE"
-        ],
+        "preconditions": ["ALWAYS_TRUE"],
         "jumpTo": "MultipleProducts"
       }
     },
@@ -1704,9 +1684,7 @@
         }
       ],
       "contextPreconditions": {
-        "preconditions": [
-          "USER_HAS_NONEMPTY_CART"
-        ],
+        "preconditions": ["USER_HAS_NONEMPTY_CART"],
         "jumpTo": "ContinueWithOrder"
       }
     },
@@ -2402,9 +2380,7 @@
         }
       ],
       "contextPreconditions": {
-        "preconditions": [
-          "USER_HAS_EMPTY_CART"
-        ]
+        "preconditions": ["USER_HAS_EMPTY_CART"]
       }
     },
     {
@@ -2417,9 +2393,7 @@
         }
       ],
       "contextPreconditions": {
-        "preconditions": [
-          "USER_HAS_NONEMPTY_CART"
-        ],
+        "preconditions": ["USER_HAS_NONEMPTY_CART"],
         "jumpTo": "ContinueWithOrder"
       }
     },

@@ -13,9 +13,7 @@ export function getPreconditionDisplayValue(p: Precondition): string {
  * Returns the toolFields for a precondition if it is a `tool_call`,
  * otherwise undefined.
  */
-export function getPreconditionToolFields(
-  p: Precondition
-): Record<string, ToolFieldValue> | undefined {
+export function getPreconditionToolFields(p: Precondition): Record<string, ToolFieldValue> | undefined {
   return p.type === 'tool_call' ? p.toolFields : undefined;
 }
 

@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { useRef } from 'react';
 
 import type { RegistryTool, ToolGroup } from '../../lib/toolRegistry';
+import { ProviderErrorRow, groupProviderId } from './ProviderErrorRow';
 import { FloatingSchema, type ToolSchema } from './ToolSchemaPopover';
 
 interface PlayButtonProps {
@@ -79,15 +80,61 @@ interface ToolsListProps {
   groups: ToolGroup[];
   totalCount: number;
   expandedTool: string | null;
+  failedProviders: string[];
   onToggleTool: (key: string) => void;
   onCollapseTool: () => void;
   onTestTool: (tool: RegistryTool) => void;
+}
+
+interface ToolsListGroupProps {
+  group: ToolGroup;
+  expandedTool: string | null;
+  failedProviders: string[];
+  onToggleTool: (key: string) => void;
+  onCollapseTool: () => void;
+  onTestTool: (tool: RegistryTool) => void;
+}
+
+function ToolsListGroup({
+  group,
+  expandedTool,
+  failedProviders,
+  onToggleTool,
+  onCollapseTool,
+  onTestTool,
+}: ToolsListGroupProps): React.JSX.Element {
+  const providerId = groupProviderId(group);
+  const hasError = providerId !== null && failedProviders.includes(providerId);
+  return (
+    <div>
+      <div className="sticky top-0 z-10 bg-background px-2 pt-0 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+        <div className="pt-2">{group.groupName}</div>
+      </div>
+      {hasError && <ProviderErrorRow mode="workflow" />}
+      <ul className="flex flex-row gap-2 gap-y-3 flex-wrap pl-1">
+        {group.tools.map((tool) => {
+          const key = `${tool.group}-${tool.name}`;
+          return (
+            <ViewToolRow
+              key={key}
+              tool={tool}
+              expanded={expandedTool === key}
+              onClick={() => onToggleTool(key)}
+              onCollapse={onCollapseTool}
+              onTest={onTestTool}
+            />
+          );
+        })}
+      </ul>
+    </div>
+  );
 }
 
 export function ToolsList({
   groups,
   totalCount,
   expandedTool,
+  failedProviders,
   onToggleTool,
   onCollapseTool,
   onTestTool,
@@ -100,26 +147,15 @@ export function ToolsList({
         </p>
       ) : (
         groups.map((group) => (
-          <div key={group.groupName}>
-            <div className="sticky top-0 z-10 bg-background px-2 pt-0 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-              <div className="pt-2">{group.groupName}</div>
-            </div>
-            <ul className="flex flex-row gap-2 gap-y-3 flex-wrap pl-1">
-              {group.tools.map((tool) => {
-                const key = `${tool.group}-${tool.name}`;
-                return (
-                  <ViewToolRow
-                    key={key}
-                    tool={tool}
-                    expanded={expandedTool === key}
-                    onClick={() => onToggleTool(key)}
-                    onCollapse={onCollapseTool}
-                    onTest={onTestTool}
-                  />
-                );
-              })}
-            </ul>
-          </div>
+          <ToolsListGroup
+            key={group.groupName}
+            group={group}
+            expandedTool={expandedTool}
+            failedProviders={failedProviders}
+            onToggleTool={onToggleTool}
+            onCollapseTool={onCollapseTool}
+            onTestTool={onTestTool}
+          />
         ))
       )}
     </div>

@@ -2382,9 +2382,7 @@
       "from": "COMP_DelayedToModify",
       "to": "M_SelectModType",
       "contextPreconditions": {
-        "preconditions": [
-          "COMPENSATION_DELAY_FLOW"
-        ],
+        "preconditions": ["COMPENSATION_DELAY_FLOW"],
         "jumpTo": "COMP_ReturnAfterAction"
       }
     },
@@ -2392,9 +2390,7 @@
       "from": "COMP_DelayedToCancel",
       "to": "C_AskReason",
       "contextPreconditions": {
-        "preconditions": [
-          "COMPENSATION_DELAY_FLOW"
-        ],
+        "preconditions": ["COMPENSATION_DELAY_FLOW"],
         "jumpTo": "COMP_ReturnAfterAction"
       }
     },

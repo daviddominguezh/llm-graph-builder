@@ -681,6 +681,12 @@
     "staleHeader": "Stale entries (provider removed)",
     "removeStale": "Remove",
     "runInProgressNote": "Changes apply to the next run.",
+    "providerError": "Couldn't load tools — retry",
+    "providerErrorAgentNote": "Workflows that call this tool will fail at runtime — fix the provider first.",
+    "providerErrorWorkflowNote": "Agents will run without these tools and may improvise.",
+    "refreshToolsButton": "Refresh tools",
+    "registryTotalFailure": "Couldn't load tool catalog. Refresh to retry.",
+    "retry": "retry",
     "saveStates": {
       "saving": "Saving…",
       "saved": "Saved",

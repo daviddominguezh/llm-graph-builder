@@ -12,6 +12,7 @@ export interface AgentToolsStateConfig {
   agentId: string;
   initialSelectedTools: SelectedTool[];
   initialUpdatedAt: string;
+  registryFailed?: boolean;
 }
 
 export interface AgentToolsStateResult {
@@ -119,10 +120,18 @@ export function useAgentToolsState({
   agentId,
   initialSelectedTools,
   initialUpdatedAt,
+  registryFailed,
 }: AgentToolsStateConfig): AgentToolsStateResult {
   const tAgentTools = useTranslations('agentTools');
   const [selectedTools, setSelectedTools] = useState<SelectedTool[]>(initialSelectedTools);
   const [saveState, setSaveState] = useState<SaveState>('idle');
+  const registryFailedRef = useRef<boolean>(registryFailed === true);
+  useEffect(() => {
+    registryFailedRef.current = registryFailed === true;
+  }, [registryFailed]);
+  useEffect(() => {
+    if (registryFailed === true) setSaveState('disabled-by-failure');
+  }, [registryFailed]);
 
   const lastSavedRef = useRef<{ tools: SelectedTool[]; updatedAt: string }>({
     tools: initialSelectedTools,
@@ -171,6 +180,10 @@ export function useAgentToolsState({
   const handleToolsChange = useCallback(
     (next: SelectedTool[]) => {
       setSelectedTools(next);
+      if (registryFailedRef.current) {
+        setSaveState('disabled-by-failure');
+        return;
+      }
       debouncedSave(next);
     },
     [debouncedSave]
@@ -182,6 +195,10 @@ export function useAgentToolsState({
         const next = prev.filter(
           (t) => !(t.providerId === entry.providerId && t.toolName === entry.toolName)
         );
+        if (registryFailedRef.current) {
+          setSaveState('disabled-by-failure');
+          return next;
+        }
         debouncedSave(next);
         return next;
       });
@@ -190,6 +207,7 @@ export function useAgentToolsState({
   );
 
   const handleRetrySave = useCallback(() => {
+    if (registryFailedRef.current) return;
     executeSave(selectedTools);
   }, [executeSave, selectedTools]);
 

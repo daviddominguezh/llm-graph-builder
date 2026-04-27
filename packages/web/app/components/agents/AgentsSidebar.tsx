@@ -5,7 +5,7 @@ import { useTemplatesPrefetch } from '@/app/hooks/useTemplatesPrefetch';
 import type { AgentMetadata } from '@/app/lib/agents';
 import { formatRelativeTime } from '@/app/utils/formatRelativeTime';
 import { Button } from '@/components/ui/button';
-import { GlassPanelV2 } from '@/components/ui/glass-panel-v2';
+import { GlassPanel } from '@/components/ui/glass-panel';
 import { Input } from '@/components/ui/input';
 import { Plus, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -82,14 +82,18 @@ function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: 
         });
       }}
       className={`group flex gap-2 rounded-md pr-2 py-0 ${
-        active ? 'bg-input dark:bg-input/70 text-foreground' : 'hover:bg-input dark:hover:bg-input/70 text-foreground'
+        active
+          ? 'bg-input dark:bg-input/70 text-foreground'
+          : 'hover:bg-input dark:hover:bg-input/70 text-foreground'
       }`}
     >
       <StatusBar active={active} />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-1">
         <span className="flex items-center gap-1">
           <span className={`shrink-0 size-[7px] ml-[2px] shrink-0 rounded-full ${colorClass}`} />
-          <span className="shrink-0 flex-1 min-w-[0px] truncate text-[10px] font-medium font-mono">{agent.name}</span>
+          <span className="shrink-0 flex-1 min-w-[0px] truncate text-[10px] font-medium font-mono">
+            {agent.name}
+          </span>
           <div className="w-[40px] shrink-0 flex items-center ml-[2px] gap-1 text-[9px] text-muted-foreground">
             <span>v{agent.version}</span>
             <span>·</span>
@@ -189,7 +193,7 @@ export function AgentsSidebar({ agents: serverAgents, orgId, orgSlug }: AgentsSi
   }
 
   return (
-    <GlassPanelV2 radius={12} className="relative flex h-[calc(100%-var(--spacing)*2-1px)] w-[240px] shrink-0 flex-col pointer-events-auto rounded-xl mt-[1px]">
+    <GlassPanel className="relative flex h-[calc(100%-var(--spacing)*2-1px)] w-[240px] shrink-0 flex-col pointer-events-auto rounded-xl mt-[1px]">
       <SidebarHeader onCreateClick={() => setCreateOpen(true)} />
       <SearchInput value={search} onChange={setSearch} />
       <Scrollable className="flex-1">
@@ -202,6 +206,6 @@ export function AgentsSidebar({ agents: serverAgents, orgId, orgSlug }: AgentsSi
         orgSlug={orgSlug}
         prefetchedTemplates={prefetchedTemplates}
       />
-    </GlassPanelV2>
+    </GlassPanel>
   );
 }

@@ -2,7 +2,13 @@
 
 import { useTranslations } from 'next-intl';
 
-export type SaveState = 'idle' | 'saving' | 'saved' | 'error' | 'conflict';
+export type SaveState =
+  | 'idle'
+  | 'saving'
+  | 'saved'
+  | 'error'
+  | 'conflict'
+  | 'disabled-by-failure';
 
 interface SaveStateIndicatorProps {
   state: SaveState;
@@ -22,6 +28,9 @@ export function SaveStateIndicator({ state, onRetry }: SaveStateIndicatorProps):
         {t('error')}
       </button>
     );
+  }
+  if (state === 'disabled-by-failure') {
+    return <span className="text-[11px] text-destructive">{t('disabledByFailure')}</span>;
   }
   return (
     <span className="text-[11px] text-muted-foreground">

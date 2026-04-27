@@ -201,11 +201,13 @@ interface AgentToolsSlotProps {
 }
 
 function AgentToolsSlot({ config, sidePanelProps: p, onPublishServer }: AgentToolsSlotProps) {
-  const { groups } = useToolRegistry();
+  const { groups, state: registryState } = useToolRegistry();
+  const registryFailed = registryState.kind === 'total-failure';
   const toolsState = useAgentToolsState({
     agentId: config.agentId,
     initialSelectedTools: config.initialSelectedTools,
     initialUpdatedAt: config.initialUpdatedAt,
+    registryFailed,
   });
   const registry = groups.flatMap((g) => g.tools.map(registryToolToSelectedTool));
   const staleEntries = findStaleSelections({

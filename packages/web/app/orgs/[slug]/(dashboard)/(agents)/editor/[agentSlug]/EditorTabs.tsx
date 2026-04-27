@@ -7,10 +7,10 @@ import { TriggersPanel } from '@/app/components/agents/triggers/TriggersPanel';
 import { useEditorCache } from '@/app/components/editors/EditorCacheProvider';
 import type { PublishTenant } from '@/app/components/panels/PublishButtonTenantPicker';
 import type { ApiKeyRow } from '@/app/lib/apiKeys';
-import type { SelectedTool } from '@daviddh/llm-graph-runner';
 import { Button } from '@/components/ui/button';
-import { GlassPanelV2 } from '@/components/ui/glass-panel-v2';
+import { GlassPanel } from '@/components/ui/glass-panel';
 import { Separator } from '@/components/ui/separator';
+import type { SelectedTool } from '@daviddh/llm-graph-runner';
 import { Brain, Database, PanelLeftClose, PanelLeftOpen, Radio, Settings, Zap } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -206,10 +206,7 @@ function EditorTabBar({
   const toolbarRef = useCallback((el: HTMLDivElement | null) => setToolbarPortal(el), [setToolbarPortal]);
 
   return (
-    <GlassPanelV2
-      radius={9999}
-      className="relative w-[calc(100%-(var(--spacing)*4))] rounded-full h-fit shrink-0 flex items-center px-0.5 mx-2 pointer-events-auto py-0.5"
-    >
+    <GlassPanel className="relative w-[calc(100%-(var(--spacing)*4))] rounded-full h-fit shrink-0 flex items-center px-0.5 mx-2 pointer-events-auto py-0.5">
       <div className="flex flex-row w-full items-center">
         <Button
           variant="ghost"
@@ -232,6 +229,6 @@ function EditorTabBar({
           className={`flex items-center gap-1.5 ${activeTab !== 'agent' ? 'hidden' : ''}`}
         />
       </div>
-    </GlassPanelV2>
+    </GlassPanel>
   );
 }
