@@ -205,7 +205,7 @@ function EditorTabBar({
   const toolbarRef = useCallback((el: HTMLDivElement | null) => setToolbarPortal(el), [setToolbarPortal]);
 
   return (
-    <div className="bg-[rgb(245_245_245/20%)] dark:bg-[rgb(20_20_20/85%)]! backdrop-blur-lg border-b-[0.5px]! relative w-100% rounded-none h-fit shrink-0 flex items-center px-0.5 pointer-events-auto py-0.5">
+    <div className="bg-[rgb(245_245_245/20%)]! dark:bg-[rgb(20_20_20/85%)]! backdrop-blur-lg! border-b-[0.5px]! relative w-100% rounded-none h-fit shrink-0 flex items-center px-0.5 pointer-events-auto py-0.5">
       <div className="flex flex-row w-full items-center pl-1.5 pr-2.5">
         <Button
           variant="ghost"
