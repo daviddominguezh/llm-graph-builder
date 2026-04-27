@@ -9,10 +9,6 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
-    },
-    "./dist/providers/mcp/conformance.js": {
-      "import": "./dist/providers/mcp/conformance.js",
-      "types": "./dist/providers/mcp/conformance.d.ts"
     }
   },
   "scripts": {

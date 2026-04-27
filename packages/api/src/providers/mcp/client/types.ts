@@ -3,6 +3,7 @@
  * spec we actually consume today (initialize, tools/list, tools/call). The
  * server may surface additional capabilities — we only model what we use.
  */
+import type { RawJsonSchema } from '../../types.js';
 
 /** MCP protocol version we negotiate. Bump when MCP releases a breaking version. */
 export const MCP_PROTOCOL_VERSION = '2024-11-05';
@@ -35,11 +36,13 @@ export interface ClientCapabilities {
 /**
  * The shape of a single tool entry in MCP's tools/list response.
  * The server returns raw JSON Schema for inputSchema (object with type/properties/required).
+ * Typed as `RawJsonSchema` (JSONSchema7) so it flows directly into `OpenFlowTool.inputSchema`
+ * without conversion; the server is trusted to send schema-shaped objects per the MCP spec.
  */
 export interface RawMcpTool {
   name: string;
   description?: string;
-  inputSchema: Record<string, unknown>;
+  inputSchema: RawJsonSchema;
 }
 
 export interface InitializeResult {

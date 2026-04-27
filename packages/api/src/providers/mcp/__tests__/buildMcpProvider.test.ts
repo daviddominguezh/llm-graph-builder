@@ -1,14 +1,42 @@
 import type { McpServerConfig } from '@daviddh/graph-types';
 import { describe, expect, it, jest } from '@jest/globals';
-import type { Tool as AiSdkTool } from 'ai';
-import { z } from 'zod';
 
 import type { Logger } from '../../../utils/logger.js';
 import type { ProviderCtx } from '../../provider.js';
-import { MockMcpConnector } from '../MockMcpConnector.js';
 import { buildMcpProvider } from '../buildMcpProvider.js';
+import { type MockTransport, createMockTransport } from '../client/__tests__/mockTransport.js';
+import { MCP_PROTOCOL_VERSION } from '../client/types.js';
 
 const ONE = 1;
+const TWO = 2;
+const FIRST_INDEX = 0;
+const SECOND_INDEX = 1;
+const TOOL_NAME = 'create_deal';
+
+const VALID_INIT_RESPONSE = {
+  protocolVersion: MCP_PROTOCOL_VERSION,
+  serverInfo: { name: 'srv', version: '1.0.0' },
+  capabilities: { tools: { listChanged: false } },
+};
+
+const SAMPLE_TOOL = {
+  name: 'create_deal',
+  description: 'Create a deal',
+  inputSchema: { type: 'object', properties: { name: { type: 'string' } } },
+};
+
+const ANOTHER_TOOL = {
+  name: 'list_deals',
+  description: 'List deals',
+  inputSchema: { type: 'object', properties: {} },
+};
+
+const STDIO_SERVER: McpServerConfig = {
+  id: 'mcp-1',
+  name: 'fake',
+  transport: { type: 'stdio', command: 'echo' },
+  enabled: true,
+};
 
 function makeLogger(): Logger {
   return {
@@ -26,20 +54,7 @@ function makeLogger(): Logger {
   };
 }
 
-const HUBSPOT_TOOL: AiSdkTool = {
-  description: 'Create a deal',
-  inputSchema: z.object({ name: z.string() }),
-  execute: async () => await Promise.resolve({ ok: true }),
-};
-
-const SERVER: McpServerConfig = {
-  id: 'mcp-1',
-  name: 'hubspot',
-  transport: { type: 'http', url: 'https://x' },
-  enabled: true,
-};
-
-function ctxWith(connector: MockMcpConnector): ProviderCtx {
+function makeCtx(): ProviderCtx {
   return {
     orgId: 'o',
     agentId: 'a',
@@ -47,67 +62,89 @@ function ctxWith(connector: MockMcpConnector): ProviderCtx {
     logger: makeLogger(),
     oauthTokens: new Map(),
     mcpServers: new Map(),
-    mcpConnector: connector,
     services: () => undefined,
   };
 }
 
-function makeOneToolConnector(): MockMcpConnector {
-  return new MockMcpConnector({
-    toolsByServer: new Map([['mcp-1', { hubspot_create_deal: HUBSPOT_TOOL }]]),
-  });
+interface TransportFactoryRecorder {
+  factory: (server: McpServerConfig) => Promise<MockTransport>;
+  transports: MockTransport[];
+}
+
+function makeTransportFactory(setup: (t: MockTransport) => void): TransportFactoryRecorder {
+  const transports: MockTransport[] = [];
+  const factory = async (_server: McpServerConfig): Promise<MockTransport> => {
+    const t = createMockTransport();
+    t.responses.set('initialize', VALID_INIT_RESPONSE);
+    setup(t);
+    transports.push(t);
+    return await Promise.resolve(t);
+  };
+  return { factory, transports };
 }
 
 describe('buildMcpProvider — describeTools', () => {
-  it('returns descriptors from connected client', async () => {
-    const connector = makeOneToolConnector();
-    const provider = buildMcpProvider(SERVER);
-    const descs = await provider.describeTools(ctxWith(connector));
+  it('returns descriptors with raw JSON Schema unchanged', async () => {
+    const { factory, transports } = makeTransportFactory((t) => {
+      t.responses.set('tools/list', { tools: [SAMPLE_TOOL] });
+    });
+    const provider = buildMcpProvider(STDIO_SERVER, { createTransport: factory });
+    const descs = await provider.describeTools(makeCtx());
     expect(descs).toHaveLength(ONE);
     const [first] = descs;
-    expect(first?.toolName).toBe('hubspot_create_deal');
-    expect(connector.closedClients).toHaveLength(ONE);
+    expect(first?.toolName).toBe(TOOL_NAME);
+    expect(first?.description).toBe('Create a deal');
+    expect(first?.inputSchema).toEqual(SAMPLE_TOOL.inputSchema);
+    expect(transports[FIRST_INDEX]?.closed).toBe(true);
   });
 
-  it('returns empty when ctx.mcpConnector is missing', async () => {
-    const ctx: ProviderCtx = {
-      ...ctxWith(makeOneToolConnector()),
-      mcpConnector: undefined,
-    };
-    const provider = buildMcpProvider(SERVER);
-    expect(await provider.describeTools(ctx)).toEqual([]);
-  });
-
-  it('closes the client even when tools() fails', async () => {
-    const connector = new MockMcpConnector({
-      toolsByServer: new Map([['mcp-1', {}]]),
-      failTools: true,
+  it('closes the transport even when listTools fails', async () => {
+    const { factory, transports } = makeTransportFactory((t) => {
+      t.responses.set('tools/list', { wrong: 'shape' });
     });
-    const provider = buildMcpProvider(SERVER);
-    await expect(provider.describeTools(ctxWith(connector))).rejects.toThrow();
-    expect(connector.closedClients).toHaveLength(ONE);
+    const provider = buildMcpProvider(STDIO_SERVER, { createTransport: factory });
+    await expect(provider.describeTools(makeCtx())).rejects.toThrow();
+    expect(transports[FIRST_INDEX]?.closed).toBe(true);
   });
 });
 
 describe('buildMcpProvider — buildTools', () => {
-  it('filters to requested names', async () => {
-    const connector = new MockMcpConnector({
-      toolsByServer: new Map([['mcp-1', { hubspot_create_deal: HUBSPOT_TOOL, hubspot_other: HUBSPOT_TOOL }]]),
+  it('filters to requested names and produces working execute closures', async () => {
+    const { factory, transports } = makeTransportFactory((t) => {
+      t.responses.set('tools/list', { tools: [SAMPLE_TOOL, ANOTHER_TOOL] });
+      t.responses.set('tools/call', { content: [{ type: 'text', text: 'ok' }] });
     });
-    const provider = buildMcpProvider(SERVER);
+    const provider = buildMcpProvider(STDIO_SERVER, { createTransport: factory });
     const out = await provider.buildTools({
-      toolNames: ['hubspot_create_deal'],
-      ctx: ctxWith(connector),
+      toolNames: [TOOL_NAME],
+      ctx: makeCtx(),
     });
-    expect(Object.keys(out)).toEqual(['hubspot_create_deal']);
+    const { [TOOL_NAME]: tool } = out;
+    expect(Object.keys(out)).toEqual([TOOL_NAME]);
+    expect(tool?.inputSchema).toEqual(SAMPLE_TOOL.inputSchema);
+    // First transport closes after listTools.
+    expect(transports[FIRST_INDEX]?.closed).toBe(true);
+
+    // Calling execute opens a fresh transport, runs tools/call, then closes.
+    const result = await tool?.execute({ name: 'acme' });
+    expect(transports).toHaveLength(TWO);
+    expect(transports[SECOND_INDEX]?.closed).toBe(true);
+    expect(transports[SECOND_INDEX]?.requests.find((r) => r.method === 'tools/call')?.params).toEqual({
+      name: TOOL_NAME,
+      arguments: { name: 'acme' },
+    });
+    expect(result).toEqual({ content: [{ type: 'text', text: 'ok' }] });
   });
 
-  it('returns empty when ctx.mcpConnector is missing', async () => {
-    const ctx: ProviderCtx = {
-      ...ctxWith(makeOneToolConnector()),
-      mcpConnector: undefined,
-    };
-    const provider = buildMcpProvider(SERVER);
-    expect(await provider.buildTools({ toolNames: ['x'], ctx })).toEqual({});
+  it('returns empty when no requested name matches', async () => {
+    const { factory } = makeTransportFactory((t) => {
+      t.responses.set('tools/list', { tools: [SAMPLE_TOOL] });
+    });
+    const provider = buildMcpProvider(STDIO_SERVER, { createTransport: factory });
+    const out = await provider.buildTools({
+      toolNames: ['nonexistent'],
+      ctx: makeCtx(),
+    });
+    expect(out).toEqual({});
   });
 });

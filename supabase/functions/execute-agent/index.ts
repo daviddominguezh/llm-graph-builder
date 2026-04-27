@@ -15,8 +15,6 @@ import type {
   FormDefinition,
   FormsService,
   Logger,
-  McpClient as RegistryMcpClient,
-  McpConnector,
   Message,
   NodeProcessedEvent,
   OAuthTokenBundle,
@@ -443,33 +441,6 @@ function buildContext(
 
 /* ─── v2 Provider registry + ctx (Plan B+C+D Tasks 15+19) ─── */
 
-/**
- * Edge-runtime adapter satisfying the McpConnector contract. Wraps the
- * existing `connectMcpServer(transport)`, which only supports http + sse
- * (Deno cannot do stdio). Errors propagate as-is to match the backend
- * connector's behavior. See packages/api/src/providers/mcp/README.md.
- */
-function createEdgeMcpConnector(): McpConnector {
-  return {
-    connect: async (server: McpServerConfig): Promise<RegistryMcpClient> => {
-      const aiSdkClient = await connectMcpServer(server.transport);
-      let closed = false;
-      return {
-        tools: async () => await aiSdkClient.tools(),
-        close: async () => {
-          if (closed) return;
-          closed = true;
-          try {
-            await aiSdkClient.close();
-          } catch {
-            // Idempotent: ignore double-close errors
-          }
-        },
-      };
-    },
-  };
-}
-
 interface BuildProviderCtxArgs {
   payload: ExecutePayload;
   conversationId?: string;
@@ -496,12 +467,11 @@ function buildServicesResolver(args: BuildProviderCtxArgs): (providerId: string)
 
 function buildProviderCtx(args: BuildProviderCtxArgs): ProviderCtx {
   const { payload, conversationId } = args;
-  const oauthEntries: Array<[string, OAuthTokenBundle]> = Object.entries(
-    payload.oauth?.byProvider ?? {}
-  );
-  const mcpServerEntries: Array<[string, McpServerConfig]> = (payload.graph.mcpServers ?? []).map(
-    (s) => [s.id, s]
-  );
+  const oauthEntries: Array<[string, OAuthTokenBundle]> = Object.entries(payload.oauth?.byProvider ?? {});
+  const mcpServerEntries: Array<[string, McpServerConfig]> = (payload.graph.mcpServers ?? []).map((s) => [
+    s.id,
+    s,
+  ]);
   return {
     orgId: payload.tenantID,
     agentId: payload.sessionID,
@@ -511,7 +481,6 @@ function buildProviderCtx(args: BuildProviderCtxArgs): ProviderCtx {
     contextData: payload.data,
     oauthTokens: new Map<string, OAuthTokenBundle>(oauthEntries),
     mcpServers: new Map<string, McpServerConfig>(mcpServerEntries),
-    mcpConnector: createEdgeMcpConnector(),
     services: buildServicesResolver(args),
   };
 }
@@ -643,16 +612,13 @@ const SUPPORTED_SCHEMA_VERSIONS: ReadonlyArray<1 | 2> = [1, 2];
 
 function validateSchemaVersion(schemaVersion: unknown): Response | null {
   if (schemaVersion === undefined) return null;
-  if (
-    typeof schemaVersion === 'number' &&
-    SUPPORTED_SCHEMA_VERSIONS.includes(schemaVersion as 1 | 2)
-  ) {
+  if (typeof schemaVersion === 'number' && SUPPORTED_SCHEMA_VERSIONS.includes(schemaVersion as 1 | 2)) {
     return null;
   }
-  return new Response(
-    JSON.stringify({ error: `unsupported schemaVersion: ${String(schemaVersion)}` }),
-    { status: 400, headers: { 'Content-Type': 'application/json' } }
-  );
+  return new Response(JSON.stringify({ error: `unsupported schemaVersion: ${String(schemaVersion)}` }), {
+    status: 400,
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
 
 function authenticateRequest(req: Request): Response | null {
@@ -848,9 +814,7 @@ async function runWorkflowExecution(
   const baseContext = buildContext(payload);
   const bundle: WorkflowToolsBundle = { leadScoringServices, formsBundle, conversationId, calendarBundle };
   const isV2 = payload.schemaVersion === 2;
-  const context: Context = isV2
-    ? buildV2WorkflowContext(payload, baseContext, bundle)
-    : baseContext;
+  const context: Context = isV2 ? buildV2WorkflowContext(payload, baseContext, bundle) : baseContext;
   const toolsOverride = isV2 ? undefined : buildV1WorkflowToolsOverride(payload, allTools, bundle);
 
   const result = await executeWithCallbacks({

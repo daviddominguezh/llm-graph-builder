@@ -8,7 +8,6 @@ import {
 } from '@daviddh/llm-graph-runner';
 
 import { consoleLogger } from '../logger.js';
-import { createBackendMcpConnector } from '../mcp/connector.js';
 
 /**
  * Resolves a provider-id to its runtime services bundle for simulation.
@@ -41,7 +40,6 @@ export function buildSimulationProviderCtx(args: SimulationCtxArgs): ProviderCtx
     contextData: args.contextData,
     oauthTokens: args.oauthTokens ?? new Map<string, OAuthTokenBundle>(),
     mcpServers: new Map<string, McpServerConfig>(mcpServerEntries),
-    mcpConnector: createBackendMcpConnector(),
     services: args.services,
   };
 }

@@ -1,48 +1,31 @@
 # MCP Provider
 
 This module exposes MCP servers as Providers in the OpenFlow tool registry.
-The abstraction is **runtime-agnostic**; connection mechanics are **per-runtime**.
+The api package owns the MCP client end-to-end: transport layer (HTTP/SSE/stdio),
+JSON-RPC protocol, initialize handshake, tools/list, tools/call.
 
 ## Architecture
 
-### Shared (this package — `packages/api/src/providers/mcp/`)
+- `transport/` — Per-protocol transports (HTTP, SSE, stdio) implementing the
+  shared `McpTransport` interface. `createTransport(server)` dispatches on
+  `server.transport.type`.
+- `client/` — High-level client. `connectMcp({ transport })` runs the initialize
+  handshake and returns an `McpClientHandle` exposing `listTools()`, `callTool()`,
+  `close()`, plus `initialized.serverInfo` and `sessionId` for caching.
+- `buildMcpProvider.ts` — Provider factory. Uses `createTransport` + `connectMcp`
+  to describe and execute tools. Raw JSON Schema from MCP servers flows directly
+  into `OpenFlowTool.inputSchema` without conversion.
+- `index.ts` — Public surface for consumers.
 
-- `types.ts` — `McpClient` and `McpConnector` interfaces.
-- `buildMcpProvider.ts` — Provider factory. Calls `ctx.mcpConnector.connect(server)`,
-  then adapts AI-SDK Tools to OpenFlowTools.
-- `adapters.ts` — `aiSdkToolToOpenFlowTool`, `filterToolsByNames`,
-  `describeAllAiSdkTools`. Used by both runtimes.
-- `MockMcpConnector.ts` — Test fixture. Used by api tests AND by
-  backend/edge tests when stubbing MCP.
-- `conformance.ts` — `testConnectorConformance(name, factory, fixtures)`.
-  Runs the full McpConnector contract test suite against any implementation.
-  Not auto-discovered by jest (intentional file name).
+## Caching
 
-### Per-runtime
+`buildMcpProvider.describeTools` caches the tools/list result in Redis for 5
+minutes (keyed by orgId + SHA-256 of server URL). Stdio transports skip the
+cache because they have no URL. Version-keyed caching (using
+`initialized.serverInfo.version`) is a follow-up.
 
-- **Backend (Node/Express)** — `packages/backend/src/mcp/connector.ts`
-  exports `createBackendMcpConnector()`. Uses `connectMcpClient` from
-  `client.ts` (existing). Supports stdio + sse + http.
-- **Edge function (Deno)** — `supabase/functions/execute-agent/index.ts`
-  has its own inline `McpConnector` adapter. Supports sse + http only
-  (Deno can't spawn stdio processes).
+## Per-call execute
 
-Both implementations MUST pass `testConnectorConformance` in their own
-test file. Drift is caught by CI.
-
-## Why split this way?
-
-We considered relocating ALL MCP code into `packages/api` so a single
-implementation served both runtimes. The cost was several days of
-risky work moving production code, plus a Deno compatibility audit.
-The benefit was a single source of truth for the connect logic — but
-the runtimes are genuinely different (Deno can't do stdio; OAuth flow
-helpers use Node APIs), so 100% sharing was never possible anyway.
-
-The B+ approach moves ~110 lines of shared abstraction into api, leaves
-~35 lines of connect logic in each runtime, and uses a typed contract
-+ conformance suite to prevent drift. ~1.5 days of work vs ~5 days
-for full relocation.
-
-See `docs/superpowers/specs/2026-04-26-executor-refactor-design.md` for
-the full design rationale.
+The `execute` closure on each built tool currently opens a fresh transport per
+invocation. The next iteration will reuse a cached MCP session via
+`transport.setSessionId(id)` to eliminate the per-call init overhead.

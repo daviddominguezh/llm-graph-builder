@@ -10,7 +10,6 @@ import type { Request } from 'express';
 import { getAgentById } from '../../db/queries/agentQueries.js';
 import { getPublishedGraphData } from '../../db/queries/executionAuthQueries.js';
 import { consoleLogger } from '../../logger.js';
-import { createBackendMcpConnector } from '../../mcp/connector.js';
 import {
   type AuthenticatedLocals,
   type AuthenticatedResponse,
@@ -39,7 +38,6 @@ function buildCatalogProviderCtx(orgId: string, agentId: string): ProviderCtx {
     logger: consoleLogger,
     oauthTokens: new Map<string, never>(),
     mcpServers: new Map<string, McpServerConfig>(),
-    mcpConnector: createBackendMcpConnector(),
     services: () => undefined,
   };
 }

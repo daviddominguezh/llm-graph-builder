@@ -127,13 +127,7 @@ export {
 } from './types/selectedToolSchema.js';
 export type { PatchSelectedToolsBody } from './types/selectedToolSchema.js';
 
-export {
-  builtInProviders,
-  composeRegistry,
-  toAiSdkTool,
-  toAiSdkToolDict,
-  MockMcpConnector,
-} from './providers/index.js';
+export { builtInProviders, composeRegistry, toAiSdkTool, toAiSdkToolDict } from './providers/index.js';
 export type {
   Provider,
   ProviderCtx,
@@ -146,8 +140,6 @@ export type {
   DescribeAllItem,
   OpenFlowTool,
   OAuthTokenBundle,
-  McpClient,
-  McpConnector,
 } from './providers/index.js';
 
 export const execute = async (

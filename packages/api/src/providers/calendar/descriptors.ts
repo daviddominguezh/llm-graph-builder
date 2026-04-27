@@ -17,13 +17,17 @@ import {
   UPDATE_EVENT_DESCRIPTION,
 } from '../../tools/calendarToolsDescription.js';
 import type { ToolDescriptor } from '../provider.js';
+import type { RawJsonSchema } from '../types.js';
 
 const MIN_LENGTH = 1;
 const MIN_DURATION_MINUTES = 1;
 
-const isoDateTimeSchema = { type: 'string', format: 'date-time' };
-const minLengthString = { type: 'string', minLength: MIN_LENGTH };
-const emailArraySchema = { type: 'array', items: { type: 'string', format: 'email' } };
+const isoDateTimeSchema: RawJsonSchema = { type: 'string', format: 'date-time' };
+const minLengthString: RawJsonSchema = { type: 'string', minLength: MIN_LENGTH };
+const emailArraySchema: RawJsonSchema = {
+  type: 'array',
+  items: { type: 'string', format: 'email' },
+};
 
 const listCalendarsDescriptor: ToolDescriptor = {
   toolName: LIST_CALENDARS_TOOL_NAME,

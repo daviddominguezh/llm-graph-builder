@@ -152,7 +152,7 @@ function freezeProviders(
   builtIns: ReadonlyMap<string, Provider>,
   mcpServers: McpServerConfig[]
 ): readonly Provider[] {
-  const mcpProviders = mcpServers.map(buildMcpProvider);
+  const mcpProviders = mcpServers.map((s) => buildMcpProvider(s));
   return Object.freeze([...builtIns.values(), ...mcpProviders]);
 }
 
