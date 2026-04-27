@@ -1,5 +1,9 @@
+import type { McpServerConfig } from '@daviddh/graph-types';
 import type { Tool } from 'ai';
 
+import type { OAuthTokenBundle } from '../providers/provider.js';
+import type { Registry } from '../providers/registry.js';
+import type { Logger } from '../utils/logger.js';
 import type { TokenLog } from './ai/logs.js';
 import type { FormDefinition } from './forms.js';
 import type { Graph } from './graph.js';
@@ -39,6 +43,18 @@ export interface Context {
   toolsOverride?: Record<string, Tool>;
   onNodeVisited?: (nodeId: string) => void;
   onNodeProcessed?: (event: NodeProcessedEvent) => void;
+
+  // Registry-backed execution (all optional — existing callers unaffected):
+  registry?: Registry;
+  orgId?: string;
+  agentId?: string;
+  isChildAgent?: boolean;
+  conversationId?: string;
+  contextData?: Readonly<Record<string, unknown>>;
+  oauthTokens?: ReadonlyMap<string, OAuthTokenBundle>;
+  mcpServers?: ReadonlyMap<string, McpServerConfig>;
+  services?: (providerId: string) => unknown;
+  logger?: Logger;
 }
 
 export interface ToolResponsePrompt {

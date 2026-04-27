@@ -55,6 +55,24 @@ const CALENDAR_REF: SelectedTool = {
 
 const EMPTY_BUILD_RESULT: RegistryBuildResult = { tools: {}, staleRefs: [], failedProviders: [] };
 
+const STUB_TOOL = {
+  description: '',
+  inputSchema: z.object({}),
+  execute: async (): Promise<null> => await Promise.resolve(null),
+};
+
+const CALENDAR_BUILD_RESULT: RegistryBuildResult = {
+  tools: { list_calendars: STUB_TOOL },
+  staleRefs: [],
+  failedProviders: [],
+};
+
+const WARNING_BUILD_RESULT: RegistryBuildResult = {
+  tools: {},
+  staleRefs: [{ providerType: 'builtin', providerId: 'forms', toolName: 'gone' }],
+  failedProviders: [{ providerType: 'mcp', providerId: 'mcp-x', reason: 'auth_failed', detail: 'expired' }],
+};
+
 describe('buildAgentToolsAtStart', () => {
   it('returns empty result for empty selected_tools without invoking registry', async () => {
     const buildSelected: Registry['buildSelected'] = jest.fn(
@@ -69,22 +87,16 @@ describe('buildAgentToolsAtStart', () => {
   });
 
   it('passes refs through to registry.buildSelected', async () => {
-    const refs: SelectedTool[] = [CALENDAR_REF];
-    const stubTool = { description: '', inputSchema: z.object({}), execute: async () => await Promise.resolve(null) };
-    const buildResult: RegistryBuildResult = { tools: { list_calendars: stubTool }, staleRefs: [], failedProviders: [] };
-    const result = await buildAgentToolsAtStart(makeRegistry(buildResult), makeCtx(), refs);
+    const result = await buildAgentToolsAtStart(makeRegistry(CALENDAR_BUILD_RESULT), makeCtx(), [
+      CALENDAR_REF,
+    ]);
     expect(result.tools.list_calendars).toBeDefined();
   });
 
   it('logs stale refs and failed providers via ctx.logger.warn', async () => {
     const warn = jest.fn();
     const ctx = makeCtx({ logger: makeLogger({ warn }) });
-    const buildResult: RegistryBuildResult = {
-      tools: {},
-      staleRefs: [{ providerType: 'builtin', providerId: 'forms', toolName: 'gone' }],
-      failedProviders: [{ providerType: 'mcp', providerId: 'mcp-x', reason: 'auth_failed', detail: 'expired' }],
-    };
-    await buildAgentToolsAtStart(makeRegistry(buildResult), ctx, [CALENDAR_REF]);
+    await buildAgentToolsAtStart(makeRegistry(WARNING_BUILD_RESULT), ctx, [CALENDAR_REF]);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('stale'));
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('build_tools.failure'));
   });
