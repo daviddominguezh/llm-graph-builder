@@ -5,14 +5,20 @@ import { isCacheableSize, mcpToolsListKey } from '../../cache/mcpToolsListCache.
 import { hashServerUrl, serverUrlSideTableKey } from '../../cache/serverHash.js';
 import type { Provider, ProviderCtx, ToolDescriptor } from '../provider.js';
 import type { OpenFlowTool } from '../types.js';
-import { type McpClientHandle, connectMcp } from './client/mcpClient.js';
+import type { McpClientHandle } from './client/mcpClient.js';
 import type { RawMcpTool } from './client/types.js';
-import { createTransport as defaultCreateTransport } from './transport/createTransport.js';
-import type { McpTransport } from './transport/transport.js';
+import {
+  type CreateTransportFn,
+  type EnsureSessionDeps,
+  type EnsureSessionResult,
+  type SessionCacheIo,
+  buildDefaultDeps,
+  ensureSession,
+  extractServerUrl,
+} from './ensureSession.js';
 
 const TOOLS_LIST_TTL_SECONDS = 300;
 const SIDE_TABLE_TTL_SECONDS = 86_400;
-const VERSION_UNKNOWN = '';
 const EMPTY_TOOLS_LENGTH = 0;
 
 let cachedRedis: Redis | null = null;
@@ -34,21 +40,19 @@ interface CachedToolsList {
 
 function isCachedToolsList(value: unknown): value is CachedToolsList {
   if (typeof value !== 'object' || value === null) return false;
-  return (
-    'serverHash' in value &&
-    typeof (value as { serverHash: unknown }).serverHash === 'string' &&
-    'tools' in value &&
-    Array.isArray((value as { tools: unknown }).tools) &&
-    'cachedAt' in value &&
-    typeof (value as { cachedAt: unknown }).cachedAt === 'number'
-  );
+  const v = value as { serverHash?: unknown; tools?: unknown; cachedAt?: unknown };
+  return typeof v.serverHash === 'string' && Array.isArray(v.tools) && typeof v.cachedAt === 'number';
 }
 
-async function tryReadCachedTools(orgId: string, serverHash: string): Promise<ToolDescriptor[] | null> {
+async function tryReadCachedTools(
+  orgId: string,
+  serverHash: string,
+  version: string
+): Promise<ToolDescriptor[] | null> {
   const redis = getRedis();
   if (redis === null) return null;
   try {
-    const key = mcpToolsListKey(orgId, serverHash, VERSION_UNKNOWN);
+    const key = mcpToolsListKey(orgId, serverHash, version);
     const raw = await redis.get<string>(key);
     if (raw === null) return null;
     const parsed: unknown = typeof raw === 'string' ? JSON.parse(raw) : raw;
@@ -59,39 +63,36 @@ async function tryReadCachedTools(orgId: string, serverHash: string): Promise<To
   }
 }
 
-async function tryWriteCachedTools(
-  orgId: string,
-  serverHash: string,
-  serverUrl: string,
-  tools: ToolDescriptor[]
-): Promise<void> {
-  if (tools.length === EMPTY_TOOLS_LENGTH) return;
+interface ToolsCacheWriteArgs {
+  orgId: string;
+  serverHash: string;
+  serverUrl: string;
+  tools: ToolDescriptor[];
+  version: string;
+}
+
+async function tryWriteCachedTools(args: ToolsCacheWriteArgs): Promise<void> {
+  if (args.tools.length === EMPTY_TOOLS_LENGTH) return;
   const redis = getRedis();
   if (redis === null) return;
-  const value: CachedToolsList = { serverHash, tools, cachedAt: Date.now() };
+  const value: CachedToolsList = { serverHash: args.serverHash, tools: args.tools, cachedAt: Date.now() };
   const serialized = JSON.stringify(value);
   if (!isCacheableSize(serialized)) return;
   try {
-    const key = mcpToolsListKey(orgId, serverHash, VERSION_UNKNOWN);
+    const key = mcpToolsListKey(args.orgId, args.serverHash, args.version);
     await redis.setex(key, TOOLS_LIST_TTL_SECONDS, serialized);
-    const sideEntry = JSON.stringify({ serverUrl, firstSeenAt: Date.now() });
-    await redis.setex(serverUrlSideTableKey(serverHash), SIDE_TABLE_TTL_SECONDS, sideEntry);
+    const sideEntry = JSON.stringify({ serverUrl: args.serverUrl, firstSeenAt: Date.now() });
+    await redis.setex(serverUrlSideTableKey(args.serverHash), SIDE_TABLE_TTL_SECONDS, sideEntry);
   } catch {
     // swallow — cache is best-effort
   }
 }
 
-function extractServerUrl(server: McpServerConfig): string {
-  const { transport } = server;
-  if (transport.type === 'http' || transport.type === 'sse') return transport.url;
-  return '';
-}
-
-export type CreateTransportFn = (server: McpServerConfig) => Promise<McpTransport>;
-
 export interface BuildMcpProviderOptions {
   /** Test seam — override the transport factory. Production uses the real createTransport. */
   createTransport?: CreateTransportFn;
+  /** Test seam — override session cache I/O. */
+  sessionCache?: SessionCacheIo;
 }
 
 function rawToolToDescriptor(rt: RawMcpTool): ToolDescriptor {
@@ -102,81 +103,109 @@ function rawToolToDescriptor(rt: RawMcpTool): ToolDescriptor {
   };
 }
 
-async function withConnectedClient<T>(
-  factory: CreateTransportFn,
+async function withSession<T>(
+  deps: EnsureSessionDeps,
   server: McpServerConfig,
-  body: (handle: McpClientHandle) => Promise<T>
+  ctx: ProviderCtx,
+  body: (session: EnsureSessionResult) => Promise<T>
 ): Promise<T> {
-  const transport = await factory(server);
-  let handle: McpClientHandle | null = null;
+  const session = await ensureSession(deps, server, ctx);
   try {
-    handle = await connectMcp({ transport });
-    return await body(handle);
+    return await body(session);
   } finally {
-    if (handle === null) await transport.close();
-    else await handle.close();
+    await session.handle.close();
   }
 }
 
-async function describeUncached(
-  factory: CreateTransportFn,
-  server: McpServerConfig,
-  _ctx: ProviderCtx
+async function listAndCacheTools(
+  handle: McpClientHandle,
+  ctx: ProviderCtx,
+  serverUrl: string
 ): Promise<ToolDescriptor[]> {
-  return await withConnectedClient(factory, server, async (handle) => {
-    const rawTools = await handle.listTools();
-    return rawTools.map(rawToolToDescriptor);
+  const rawTools = await handle.listTools();
+  const descriptors = rawTools.map(rawToolToDescriptor);
+  if (serverUrl === '') return descriptors;
+  const serverHash = await hashServerUrl(serverUrl);
+  const {
+    initialized: {
+      serverInfo: { version },
+    },
+  } = handle;
+  await tryWriteCachedTools({
+    orgId: ctx.orgId,
+    serverHash,
+    serverUrl,
+    tools: descriptors,
+    version,
   });
+  return descriptors;
+}
+
+async function readCachedToolsForCachedSession(
+  deps: EnsureSessionDeps,
+  serverUrl: string,
+  ctx: ProviderCtx
+): Promise<ToolDescriptor[] | null> {
+  const cachedSession = await deps.cache.read(ctx.orgId, serverUrl);
+  if (cachedSession === null) return null;
+  const serverHash = await hashServerUrl(serverUrl);
+  return await tryReadCachedTools(ctx.orgId, serverHash, cachedSession.serverInfo.version);
 }
 
 async function describe(
-  factory: CreateTransportFn,
+  deps: EnsureSessionDeps,
   server: McpServerConfig,
   ctx: ProviderCtx
 ): Promise<ToolDescriptor[]> {
   const serverUrl = extractServerUrl(server);
-  if (serverUrl === '') return await describeUncached(factory, server, ctx);
-  const serverHash = await hashServerUrl(serverUrl);
-  const cached = await tryReadCachedTools(ctx.orgId, serverHash);
-  if (cached !== null) return cached;
-  const tools = await describeUncached(factory, server, ctx);
-  await tryWriteCachedTools(ctx.orgId, serverHash, serverUrl, tools);
-  return tools;
+  if (serverUrl !== '') {
+    const cachedTools = await readCachedToolsForCachedSession(deps, serverUrl, ctx);
+    if (cachedTools !== null) return cachedTools;
+  }
+  return await withSession(
+    deps,
+    server,
+    ctx,
+    async (session) => await listAndCacheTools(session.handle, ctx, session.serverUrl)
+  );
 }
 
 function buildExecuteFn(
-  factory: CreateTransportFn,
+  deps: EnsureSessionDeps,
   server: McpServerConfig,
+  ctx: ProviderCtx,
   toolName: string
 ): OpenFlowTool['execute'] {
   return async (args: unknown): Promise<unknown> =>
-    await withConnectedClient(factory, server, async (handle) => await handle.callTool(toolName, args));
+    await withSession(deps, server, ctx, async (session) => await session.handle.callTool(toolName, args));
 }
 
 function rawToolToOpenFlowTool(
-  factory: CreateTransportFn,
+  deps: EnsureSessionDeps,
   server: McpServerConfig,
+  ctx: ProviderCtx,
   rt: RawMcpTool
 ): OpenFlowTool {
   return {
     description: rt.description ?? '',
     inputSchema: rt.inputSchema,
-    execute: buildExecuteFn(factory, server, rt.name),
+    execute: buildExecuteFn(deps, server, ctx, rt.name),
   };
 }
 
 async function build(
-  factory: CreateTransportFn,
+  deps: EnsureSessionDeps,
   server: McpServerConfig,
+  ctx: ProviderCtx,
   toolNames: string[]
 ): Promise<Record<string, OpenFlowTool>> {
-  return await withConnectedClient(factory, server, async (handle) => {
-    const rawTools = await handle.listTools();
+  return await withSession(deps, server, ctx, async (session) => {
+    const rawTools = await session.handle.listTools();
     const out: Record<string, OpenFlowTool> = {};
     for (const name of toolNames) {
       const rt = rawTools.find((x) => x.name === name);
       if (rt === undefined) continue;
-      out[name] = rawToolToOpenFlowTool(factory, server, rt);
+      out[name] = rawToolToOpenFlowTool(deps, server, ctx, rt);
     }
     return out;
   });
@@ -187,22 +216,25 @@ async function build(
  * are owned by the api package via the hand-rolled `createTransport` + `connectMcp`
  * client (see packages/api/src/providers/mcp/{client,transport}/).
  *
- * `describeTools` caches the tools/list result in Redis (5-minute TTL) keyed by
- * orgId + serverHash (SHA-256 prefix of URL). Uses the v0 sentinel version since
- * version-keyed caching is a follow-up. Cache is skipped for stdio transports
- * (no URL) and when Redis env vars are absent.
+ * `describeTools` caches the tools/list result in Redis under a key that
+ * includes the server's reported version (from `initialize.serverInfo.version`).
+ * When the cached session is hit (no network), the cached version becomes the
+ * cache key — so a "double hit" returns tools without any network round-trip.
  *
- * `buildTools` opens a fresh transport per `execute` call; Plan E session-cache
- * reactivation (next task) will reuse a cached session via `transport.setSessionId`,
- * eliminating the per-call init overhead.
+ * `buildTools` reuses the cached `Mcp-Session-Id` per call via
+ * `transport.setSessionId`, so the server skips a fresh state setup on each
+ * tool invocation. On `SessionExpiredError`, the cached session is deleted
+ * and the next call falls back to a fresh initialize.
  */
 export function buildMcpProvider(server: McpServerConfig, options: BuildMcpProviderOptions = {}): Provider {
-  const factory = options.createTransport ?? defaultCreateTransport;
+  const baseDeps = buildDefaultDeps(options.createTransport);
+  const deps: EnsureSessionDeps =
+    options.sessionCache === undefined ? baseDeps : { ...baseDeps, cache: options.sessionCache };
   return {
     type: 'mcp',
     id: server.id,
     displayName: server.name,
-    describeTools: async (ctx) => await describe(factory, server, ctx),
-    buildTools: async ({ toolNames }) => await build(factory, server, toolNames),
+    describeTools: async (ctx) => await describe(deps, server, ctx),
+    buildTools: async ({ toolNames, ctx }) => await build(deps, server, ctx, toolNames),
   };
 }
