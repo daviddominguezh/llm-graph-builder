@@ -178,7 +178,7 @@ export function EditorTabs(props: EditorTabsProps) {
   useSlotSync(slotRef, activeTab);
 
   return (
-    <div className="w-full h-full flex flex-col pt-[1px] border-t border-b border-r rounded-e-xl border-[0.5px]! overflow-hidden">
+    <div className="w-full h-full flex flex-col pt-[0px] border-t border-b border-r rounded-e-xl border-[0.5px]! overflow-hidden">
       <EditorTabBar activeTab={activeTab} onTabChange={setActiveTab} t={t} tAgents={tAgents} />
       <div ref={slotRef} className={activeTab === 'agent' ? 'flex-1' : 'hidden'} />
       <TabContent activeTab={activeTab} props={props} />
@@ -205,7 +205,7 @@ function EditorTabBar({
   const toolbarRef = useCallback((el: HTMLDivElement | null) => setToolbarPortal(el), [setToolbarPortal]);
 
   return (
-    <div className="bg-[rgb(245_245_245/20%)]! dark:bg-[rgb(20_20_20/85%)]! backdrop-blur-lg! border-b-[0.5px]! relative w-100% rounded-none h-fit shrink-0 flex items-center px-0.5 pointer-events-auto py-0.5">
+    <div className="bg-[rgb(245_245_245/20%)]! dark:bg-[rgb(20_20_20/85%)]! backdrop-blur-lg! relative w-100% h-fit shrink-0 flex items-center px-0.5 pointer-events-auto py-0.5 border-b-[0.5px]! rounded-se-xl!">
       <div className="flex flex-row w-full items-center pl-1.5 pr-2.5">
         <Button
           variant="ghost"

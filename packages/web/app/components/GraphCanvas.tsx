@@ -83,7 +83,7 @@ export function GraphCanvas({
 
   return (
     <div className="relative h-full w-full flex-1 overflow-hidden rounded-xl">
-      <div ref={reactFlowWrapper} className="absolute inset-0 rounded-xl">
+      <div ref={reactFlowWrapper} className="absolute inset-0 rounded-xl overflow-hidden">
         <ReactFlow
           id={`flow-${agentId}`}
           nodes={displayNodes}
@@ -102,7 +102,7 @@ export function GraphCanvas({
           defaultViewport={{ x: 0, y: 0, zoom: 1 }}
           colorMode={colorMode}
         >
-          <Background color="var(--canvas-dots)" />
+          <Background color="var(--canvas-dots)" className='rounded-xl' />
           <Controls position="bottom-right" className="mb-3.5! shadow-xs! rounded-lg" />
         </ReactFlow>
 

@@ -573,7 +573,7 @@ function LoadedEditor(props: LoadedEditorProps) {
               />
             </div>
           ) : (
-            <div className="absolute top-1 bottom-2.5 right-3.5 -left-0.5 rounded-xl">
+            <div className="absolute top-[0px] bottom-2.5 right-3.5 -left-0.5 rounded-xl overflow-hidden">
               <GraphCanvas
                 agentId={props.agentId ?? ''}
                 reactFlowWrapper={h.reactFlowWrapper}
