@@ -1,6 +1,5 @@
-import { describe, expect, it, jest } from '@jest/globals';
-
 import type { OAuthTokenBundle } from '@daviddh/llm-graph-runner';
+import { describe, expect, it, jest } from '@jest/globals';
 
 import { refreshWithSingleFlight } from '../refreshSingleFlight.js';
 
@@ -40,7 +39,11 @@ function makeRedis(setReturn: unknown): FakeRedis {
 
 describe('refreshWithSingleFlight — lock acquired', () => {
   it('runs refresh inside the lock when SETNX succeeds', async () => {
-    const fresh: OAuthTokenBundle = { accessToken: 'new', expiresAt: NOW_PLUS_10S, tokenIssuedAt: Date.now() };
+    const fresh: OAuthTokenBundle = {
+      accessToken: 'new',
+      expiresAt: NOW_PLUS_10S,
+      tokenIssuedAt: Date.now(),
+    };
     const refresh: jest.Mock<() => Promise<OAuthTokenBundle>> = jest.fn();
     const reread: jest.Mock<() => Promise<OAuthTokenBundle | null>> = jest.fn();
     refresh.mockResolvedValue(fresh);
@@ -58,11 +61,15 @@ describe('refreshWithSingleFlight — lock acquired', () => {
   });
 });
 
-/* ─── lock contended ─── */
+/* ─── lock contended — happy path ─── */
 
-describe('refreshWithSingleFlight — lock contended', () => {
+describe('refreshWithSingleFlight — lock contended (happy)', () => {
   it('waits + re-reads when SETNX returns null', async () => {
-    const fresh: OAuthTokenBundle = { accessToken: 'fresh', expiresAt: NOW_PLUS_10S, tokenIssuedAt: Date.now() };
+    const fresh: OAuthTokenBundle = {
+      accessToken: 'fresh',
+      expiresAt: NOW_PLUS_10S,
+      tokenIssuedAt: Date.now(),
+    };
     let calls = 0;
     const reread: jest.Mock<() => Promise<OAuthTokenBundle | null>> = jest.fn();
     reread.mockImplementation(async () => {
@@ -82,7 +89,11 @@ describe('refreshWithSingleFlight — lock contended', () => {
     });
     expect(result.accessToken).toBe('fresh');
   });
+});
 
+/* ─── lock contended — exhausted ─── */
+
+describe('refreshWithSingleFlight — lock contended (exhausted)', () => {
   it('throws after retryLimit exhausted', async () => {
     const reread: jest.Mock<() => Promise<OAuthTokenBundle | null>> = jest.fn();
     const doRefresh: jest.Mock<() => Promise<OAuthTokenBundle>> = jest.fn();

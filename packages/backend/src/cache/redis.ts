@@ -88,11 +88,33 @@ export function createCache(client: RedisLikeClient, opts: CacheWrapperOptions =
   };
 }
 
-export function buildUpstashClient(): Redis {
+export function buildUpstashClient(): RedisLikeClient {
   const url: string | undefined = process.env.UPSTASH_REDIS_REST_URL;
   const token: string | undefined = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (url === undefined || token === undefined) {
     throw new Error('UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN must be set');
   }
-  return new Redis({ url, token });
+  // Upstash's Redis class has the same method shape as RedisLikeClient (get, setex,
+  // set, del). The structural typing should align — but if TS is strict about the
+  // narrower return types of the library's signatures, we wrap in a thin adapter.
+  const redis = new Redis({ url, token });
+  return adaptRedisClient(redis);
+}
+
+function adaptRedisClient(redis: Redis): RedisLikeClient {
+  return {
+    get: async (key) => await redis.get(key),
+    setex: async (key, ttl, value) => await redis.setex(key, ttl, value),
+    set: async (key, value, opts) => {
+      if (opts === undefined) return await redis.set(key, value);
+      // Upstash SETNX is expressed via { nx: true } + { ex: <seconds> }
+      if (opts.nx === true && opts.ex !== undefined) {
+        return await redis.set(key, value, { nx: true, ex: opts.ex });
+      }
+      if (opts.nx === true) return await redis.set(key, value, { nx: true });
+      if (opts.ex !== undefined) return await redis.set(key, value, { ex: opts.ex });
+      return await redis.set(key, value);
+    },
+    del: async (...keys) => await redis.del(...keys),
+  };
 }

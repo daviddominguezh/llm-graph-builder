@@ -3,9 +3,15 @@ import { describe, expect, it } from '@jest/globals';
 import { computeTtlSeconds, isFresh, oauthTokenKey } from '../oauthTokenCache.js';
 
 const NOW = 1_000_000;
-const FIVE_MIN_MS = 5 * 60 * 1000;
-const FOUR_MIN_S = 4 * 60;
-const THIRTY_S_MS = 30 * 1000;
+const SECONDS_PER_MIN = 60;
+const MS_PER_SECOND = 1000;
+const FIVE_MINUTES = 5;
+const FOUR_MINUTES = 4;
+const THIRTY_SECONDS = 30;
+const FIVE_MIN_MS = FIVE_MINUTES * SECONDS_PER_MIN * MS_PER_SECOND;
+const FOUR_MIN_S = FOUR_MINUTES * SECONDS_PER_MIN;
+const THIRTY_S_MS = THIRTY_SECONDS * MS_PER_SECOND;
+const ZERO = 0;
 
 describe('oauthTokenCache helpers', () => {
   it('builds the canonical key', () => {
@@ -17,7 +23,7 @@ describe('oauthTokenCache helpers', () => {
   });
 
   it('computeTtlSeconds returns 0 when within safety margin', () => {
-    expect(computeTtlSeconds(NOW + THIRTY_S_MS, NOW)).toBe(0);
+    expect(computeTtlSeconds(NOW + THIRTY_S_MS, NOW)).toBe(ZERO);
   });
 
   it('isFresh rejects token past expiresAt - safety margin', () => {
