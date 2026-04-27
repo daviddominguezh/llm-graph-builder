@@ -542,7 +542,7 @@ function LoadedEditor(props: LoadedEditorProps) {
 
   return (
     <HandleContext.Provider value={handleContextValue}>
-      <ToolRegistryProvider servers={h.mcpHook.servers} discoveredTools={h.mcpHook.discoveredTools}>
+      <ToolRegistryProvider agentId={props.agentId ?? ''}>
       <div className="relative h-full w-full">
         {/* Canvas layer — fills entire main area */}
         {h.agentConfig !== undefined ? (
