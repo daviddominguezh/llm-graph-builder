@@ -191,7 +191,7 @@ export class IndexedDBCache extends CacheService {
   }
 
   private async initDatabase(): Promise<void> {
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const request = indexedDB.open(this.dbName, this.dbVersion);
 
       request.onerror = () => {
@@ -229,7 +229,7 @@ export class IndexedDBCache extends CacheService {
 
     const { db } = this;
 
-    return await new Promise((resolve, reject) => {
+    return await new Promise<CachedData<T> | null>((resolve, reject) => {
       const transaction = db.transaction([this.storeName], 'readonly');
       const store = transaction.objectStore(this.storeName);
       const request = store.get(this.getCacheKey(key, namespace));
@@ -270,7 +270,7 @@ export class IndexedDBCache extends CacheService {
 
     const { db } = this;
 
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const transaction = db.transaction([this.storeName], 'readwrite');
       const store = transaction.objectStore(this.storeName);
 
@@ -316,7 +316,7 @@ export class IndexedDBCache extends CacheService {
 
     const { db } = this;
 
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const transaction = db.transaction([this.storeName], 'readwrite');
       const store = transaction.objectStore(this.storeName);
       const request = store.delete(this.getCacheKey(key, namespace));
@@ -339,7 +339,7 @@ export class IndexedDBCache extends CacheService {
 
     const { db } = this;
 
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const transaction = db.transaction([this.storeName], 'readwrite');
       const store = transaction.objectStore(this.storeName);
 
