@@ -211,7 +211,8 @@ export class MessageQueueService {
       // Remove optimistic messages
       if (result.messagesToRemove) {
         for (const msgId of result.messagesToRemove) {
-          const { [msgId]: _, ...rest } = updatedMessages;
+          const { [msgId]: removed, ...rest } = updatedMessages;
+          void removed;
           updatedMessages = rest;
         }
       }

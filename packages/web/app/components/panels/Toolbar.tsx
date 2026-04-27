@@ -303,9 +303,9 @@ export function Toolbar(props: ToolbarProps) {
         hideWorkflowActions={props.hideWorkflowActions}
       />
       <Separator orientation="vertical" className="my-2 mx-2" />
-      {props.statusSlot}
-      {props.versionSlot}
       {props.publishSlot}
+      {props.versionSlot}
+      {props.statusSlot}
     </div>
   );
 }

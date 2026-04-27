@@ -1,7 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
 import {
-  type CompositionLevel,
   accumulateDepthTokens,
   appendUserMessage,
   buildCompositionPayload,

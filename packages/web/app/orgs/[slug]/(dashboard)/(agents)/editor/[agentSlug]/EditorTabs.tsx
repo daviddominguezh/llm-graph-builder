@@ -206,7 +206,7 @@ function EditorTabBar({
 
   return (
     <div className="bg-background border-b-[0.5px]! relative w-100% rounded-none h-fit shrink-0 flex items-center px-0.5 pointer-events-auto py-0.5">
-      <div className="flex flex-row w-full items-center pl-1.5">
+      <div className="flex flex-row w-full items-center px-1.5">
         <Button
           variant="ghost"
           size="default"

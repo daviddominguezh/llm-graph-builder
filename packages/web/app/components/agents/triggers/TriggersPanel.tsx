@@ -34,20 +34,26 @@ const INITIAL_TENANTS: TenantsData = { tenants: [], loading: true, error: null }
 const EMPTY_LIST = 0;
 const FIRST_INDEX = 0;
 
+interface TenantsState {
+  forOrgId: string;
+  data: TenantsData;
+}
+
 function useTenants(orgId: string): TenantsData {
-  const [data, setData] = useState<TenantsData>(INITIAL_TENANTS);
+  const [state, setState] = useState<TenantsState>({ forOrgId: orgId, data: INITIAL_TENANTS });
   useEffect(() => {
     let cancelled = false;
-    setData(INITIAL_TENANTS);
     void getTenantsByOrgAction(orgId).then(({ result, error }) => {
       if (cancelled) return;
-      setData({ tenants: result, loading: false, error });
+      setState({ forOrgId: orgId, data: { tenants: result, loading: false, error } });
     });
     return () => {
       cancelled = true;
     };
   }, [orgId]);
-  return data;
+  // If orgId changed since the last successful load, the state is stale — return INITIAL_TENANTS
+  // (loading state) instead. This avoids a synchronous setState in the effect body.
+  return state.forOrgId === orgId ? state.data : INITIAL_TENANTS;
 }
 
 function useDefaultTenant(tenants: TenantRow[], selected: string, setSelected: (id: string) => void): void {

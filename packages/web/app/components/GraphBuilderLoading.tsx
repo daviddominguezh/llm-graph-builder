@@ -49,7 +49,7 @@ export function GraphBuilderLoading({ serverProgress }: GraphBuilderLoadingProps
     : undefined;
 
   return (
-    <div className="flex h-full w-full items-center justify-center" style={paddingStyle}>
+    <div className="flex h-full w-full items-center justify-center bg-background" style={paddingStyle}>
       <div className="flex flex-col items-center justify-center">
         <Loader2 className="size-5 animate-spin text-muted-foreground" />
         {hasServers && <McpServerList servers={serverProgress} />}

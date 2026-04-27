@@ -61,7 +61,7 @@ export class MessageRepository {
       // Calculate unanswered counts for chats with AI disabled
       // Use only cached data - NO fetching
 
-      const chatsNeedingCount = Object.entries(initialData).filter(([_, chat]) => !chat.enabled);
+      const chatsNeedingCount = Object.entries(initialData).filter(([, chat]) => !chat.enabled);
 
       // Create a map of unanswered counts
       const unansweredCounts: Record<string, number> = {};
