@@ -47,6 +47,21 @@ function indexDescriptors(
   }
 }
 
+async function describeOneSafely(
+  provider: Provider,
+  ctx: ProviderCtx,
+  logger: Logger
+): Promise<{ provider: Provider; descriptors: ToolDescriptor[] }> {
+  try {
+    const descriptors = await provider.describeTools(ctx);
+    return { provider, descriptors };
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    logger.warn(`tool index: skipping ${provider.type}:${provider.id} — describeTools failed: ${detail}`);
+    return { provider, descriptors: [] };
+  }
+}
+
 export async function buildToolIndex(
   providers: readonly Provider[],
   ctx: ProviderCtx,
@@ -54,7 +69,7 @@ export async function buildToolIndex(
   reportConflict: ConflictReporter = (): void => undefined
 ): Promise<ReadonlyMap<string, IndexEntry>> {
   const allDescriptors = await Promise.all(
-    providers.map(async (p) => ({ provider: p, descriptors: await p.describeTools(ctx) }))
+    providers.map(async (p) => await describeOneSafely(p, ctx, logger))
   );
   const index = new Map<string, IndexEntry>();
   const conflict: ConflictCtx = { logger, reportConflict };

@@ -171,7 +171,14 @@ async function describeAllImpl(
   ctx: ProviderCtx
 ): Promise<DescribeAllItem[]> {
   const items = await Promise.all(providers.map(async (p) => await describeOne(p, ctx)));
-  void ensureIndex(ctx);
+  // Background-warm the index for subsequent findToolByName calls. Best-effort —
+  // if a provider fails (e.g., MCP 401), buildToolIndex now skips it, but we still
+  // catch any residual rejection here to prevent unhandled promise rejections from
+  // crashing the host process.
+  ensureIndex(ctx).catch((err: unknown) => {
+    const detail = err instanceof Error ? err.message : String(err);
+    ctx.logger.warn(`tool index warm failed: ${detail}`);
+  });
   return items;
 }
 
