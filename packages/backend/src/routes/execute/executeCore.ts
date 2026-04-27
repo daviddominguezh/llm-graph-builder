@@ -1,4 +1,4 @@
-import type { CallAgentOutput } from '@daviddh/llm-graph-runner';
+import type { CallAgentOutput, SelectedTool } from '@daviddh/llm-graph-runner';
 
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import type { NodeProcessedData } from './edgeFunctionClient.js';
@@ -7,7 +7,7 @@ import { handleChildFinish, persistCoreResult } from './executeCoreChildFinish.j
 import {
   type BuildCoreParamsOptions,
   buildCoreExecuteParams,
-  resolveGoogleCalendarPayload,
+  resolveOAuthBundle,
   resolveVfsCorePayload,
 } from './executeCoreHelpers.js';
 import { handleInlineDispatch } from './executeCoreInlineDispatch.js';
@@ -99,15 +99,20 @@ interface RunAgentResult {
 }
 
 async function runAgent(params: RunAgentParams): Promise<RunAgentResult> {
-  const [vfsPayload, googleCalendar] = await Promise.all([
+  // agentRecord.selected_tools is not yet in FetchedData (lands in Tasks 18-19).
+  // selectedTools defaults to [] so resolveOAuthBundle resolves nothing for built-ins until plumbed.
+  const selectedTools: SelectedTool[] = [];
+  const mcpServers = params.fetched.graph.mcpServers ?? [];
+  const [vfsPayload, oauthByProvider] = await Promise.all([
     resolveVfsCorePayload(params.supabase, params.fetched, params.input.agentId, params.input.orgId),
-    resolveGoogleCalendarPayload(params.supabase, params.input.orgId),
+    resolveOAuthBundle({ supabase: params.supabase, orgId: params.input.orgId, selectedTools, mcpServers }),
   ]);
   const buildOptions: BuildCoreParamsOptions = {
     vfsPayload,
     overrideAgentConfig: params.override ?? params.input.overrideAgentConfig,
     conversationId: params.conversationId ?? undefined,
-    googleCalendar,
+    oauthByProvider,
+    selectedTools,
   };
   const edgeParams = buildCoreExecuteParams(params.fetched, params.input.input, params.model, buildOptions);
   const startTime = Date.now();

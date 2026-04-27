@@ -1,3 +1,5 @@
+import type { OAuthTokenBundle } from '@daviddh/llm-graph-runner';
+
 import {
   type DecryptedGoogleConnection,
   getGoogleConnection,
@@ -11,6 +13,7 @@ const EXPIRY_BUFFER_MINUTES = 5;
 const SECONDS_PER_MINUTE = 60;
 const MS_PER_SECOND = 1_000;
 const EXPIRY_BUFFER_MS = EXPIRY_BUFFER_MINUTES * SECONDS_PER_MINUTE * MS_PER_SECOND;
+const FALLBACK_EXPIRY_OFFSET_MS = 3_600_000; // 1 hour fallback when expiresAt is unknown
 
 function isTokenFresh(connection: DecryptedGoogleConnection): boolean {
   if (connection.expiresAt === null) return true;
@@ -22,7 +25,10 @@ function computeExpiresAt(expiresIn: number | undefined): Date | null {
   return new Date(Date.now() + expiresIn * MS_PER_SECOND);
 }
 
-async function refreshAndStore(supabase: SupabaseClient, conn: DecryptedGoogleConnection): Promise<string> {
+async function refreshAndStore(
+  supabase: SupabaseClient,
+  conn: DecryptedGoogleConnection
+): Promise<DecryptedGoogleConnection> {
   if (conn.refreshToken === null) {
     throw new Error('Google Calendar connection expired and no refresh token — reconnect needed');
   }
@@ -33,24 +39,56 @@ async function refreshAndStore(supabase: SupabaseClient, conn: DecryptedGoogleCo
     clientId: cfg.clientId,
     clientSecret: cfg.clientSecret,
   });
+  const expiresAt = computeExpiresAt(tokens.expires_in);
   await upsertGoogleConnection(supabase, {
     orgId: conn.orgId,
     clientId: conn.clientId,
     accessToken: tokens.access_token,
     refreshToken: tokens.refresh_token ?? conn.refreshToken,
-    expiresAt: computeExpiresAt(tokens.expires_in),
+    expiresAt,
     tokenEndpoint: conn.tokenEndpoint,
     scopes: tokens.scope ?? conn.scopes,
     connectedBy: conn.connectedBy,
   });
-  return tokens.access_token;
+  return { ...conn, accessToken: tokens.access_token, expiresAt, scopes: tokens.scope ?? conn.scopes };
+}
+
+async function resolveConnection(
+  supabase: SupabaseClient,
+  orgId: string
+): Promise<DecryptedGoogleConnection | null> {
+  const connection = await getGoogleConnection(supabase, orgId);
+  if (connection === null) return null;
+  if (isTokenFresh(connection)) return connection;
+  return await refreshAndStore(supabase, connection);
+}
+
+function computeBundleExpiresAt(conn: DecryptedGoogleConnection, now: number): number {
+  if (conn.expiresAt === null) return now + FALLBACK_EXPIRY_OFFSET_MS;
+  return conn.expiresAt.getTime();
+}
+
+function computeBundleScopes(conn: DecryptedGoogleConnection): string[] | undefined {
+  if (conn.scopes === null) return undefined;
+  return conn.scopes.split(' ');
+}
+
+function buildBundle(conn: DecryptedGoogleConnection): OAuthTokenBundle {
+  const now = Date.now();
+  return {
+    accessToken: conn.accessToken,
+    expiresAt: computeBundleExpiresAt(conn, now),
+    scopes: computeBundleScopes(conn),
+    tokenIssuedAt: now,
+  };
 }
 
 export async function resolveGoogleAccessToken(supabase: SupabaseClient, orgId: string): Promise<string> {
   const connection = await getGoogleConnection(supabase, orgId);
   if (connection === null) throw new Error('Google Calendar not connected for this organization');
   if (isTokenFresh(connection)) return connection.accessToken;
-  return await refreshAndStore(supabase, connection);
+  const refreshed = await refreshAndStore(supabase, connection);
+  return refreshed.accessToken;
 }
 
 /**
@@ -63,8 +101,22 @@ export async function resolveGoogleAccessTokenOptional(
   supabase: SupabaseClient,
   orgId: string
 ): Promise<string | null> {
-  const connection = await getGoogleConnection(supabase, orgId);
-  if (connection === null) return null;
-  if (isTokenFresh(connection)) return connection.accessToken;
-  return await refreshAndStore(supabase, connection);
+  const conn = await resolveConnection(supabase, orgId);
+  if (conn === null) return null;
+  return conn.accessToken;
+}
+
+/**
+ * Like resolveGoogleAccessTokenOptional, but returns the full OAuthTokenBundle
+ * (accessToken + expiresAt + scopes + tokenIssuedAt) instead of just the access
+ * token string. Used by the OAuth payload resolver to ship to the stateless edge
+ * function.
+ */
+export async function resolveGoogleTokenBundle(
+  supabase: SupabaseClient,
+  orgId: string
+): Promise<OAuthTokenBundle | null> {
+  const conn = await resolveConnection(supabase, orgId);
+  if (conn === null) return null;
+  return buildBundle(conn);
 }

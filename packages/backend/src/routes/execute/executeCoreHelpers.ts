@@ -1,15 +1,13 @@
+import type { OAuthTokenBundle, SelectedTool } from '@daviddh/llm-graph-runner';
+
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { getAgentVfsSettings } from '../../db/queries/vfsConfigQueries.js';
-import { resolveGoogleAccessTokenOptional } from '../../google/calendar/tokenResolver.js';
 import { updateConversationLastMessage } from '../../messaging/queries/conversationMutations.js';
 import { findOrCreateConversation } from '../../messaging/queries/conversationQueries.js';
 import { insertMessage, insertMessageAi } from '../../messaging/queries/messageQueries.js';
 import { publishToTenant } from '../../messaging/services/redis.js';
-import type {
-  ExecuteAgentParams,
-  GoogleCalendarEdgePayload,
-  VfsEdgeFunctionPayload,
-} from './edgeFunctionClient.js';
+import { EdgePayloadSchemaVersion } from './edgeFunctionClient.js';
+import type { ExecuteAgentParams, VfsEdgeFunctionPayload } from './edgeFunctionClient.js';
 import type { AgentConfig, FetchedData, OverrideAgentConfig } from './executeFetcher.js';
 import {
   fetchAgentConfig,
@@ -20,6 +18,9 @@ import {
 import { logExec, resolveMcpTransportVariables, resolveOAuthForExecution } from './executeHelpers.js';
 import type { AgentExecutionInput } from './executeTypes.js';
 import { buildVfsPayload } from './vfsDispatch.js';
+
+export type { ResolveOAuthBundleArgs } from './executeOAuthResolver.js';
+export { resolveOAuthBundle } from './executeOAuthResolver.js';
 
 const ZERO_UNANSWERED = 0;
 const INCREMENT = 1;
@@ -66,23 +67,6 @@ export async function fetchAllCoreData(params: FetchAllParams): Promise<FetchedD
   return { ...graphAndKeys, ...sessionData, graph: resolvedGraph, agentConfig, vfsSettings };
 }
 
-/* ─── Google Calendar payload resolution ─── */
-
-export async function resolveGoogleCalendarPayload(
-  supabase: SupabaseClient,
-  orgId: string
-): Promise<GoogleCalendarEdgePayload | undefined> {
-  try {
-    const accessToken = await resolveGoogleAccessTokenOptional(supabase, orgId);
-    if (accessToken === null) return undefined;
-    return { accessToken, orgId };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'unknown';
-    logExec('google calendar token resolution failed (non-fatal)', { error: msg });
-    return undefined;
-  }
-}
-
 /* ─── VFS payload resolution ─── */
 
 export async function resolveVfsCorePayload(
@@ -108,7 +92,8 @@ export interface BuildCoreParamsOptions {
   vfsPayload: VfsEdgeFunctionPayload | undefined;
   overrideAgentConfig?: OverrideAgentConfig;
   conversationId?: string;
-  googleCalendar?: GoogleCalendarEdgePayload;
+  oauthByProvider?: Record<string, OAuthTokenBundle>;
+  selectedTools?: SelectedTool[];
 }
 
 function buildAgentExecuteParams(
@@ -124,12 +109,21 @@ function buildAgentExecuteParams(
   return { ...agentParams, ...override };
 }
 
+function buildOauthField(
+  oauthByProvider: Record<string, OAuthTokenBundle> | undefined
+): ExecuteAgentParams['oauth'] {
+  if (oauthByProvider === undefined) return undefined;
+  if (Object.keys(oauthByProvider).length === ZERO_UNANSWERED) return undefined;
+  return { byProvider: oauthByProvider };
+}
+
 export function buildCoreExecuteParams(
   fetched: FetchedData,
   input: AgentExecutionInput,
   model: string,
   options: BuildCoreParamsOptions
 ): ExecuteAgentParams {
+  const { oauthByProvider } = options;
   const base: ExecuteAgentParams = {
     appType: fetched.appType === 'agent' ? 'agent' : 'workflow',
     graph: fetched.graph,
@@ -146,7 +140,9 @@ export function buildCoreExecuteParams(
     isFirstMessage: fetched.isNew,
     vfs: options.vfsPayload,
     conversationId: options.conversationId,
-    googleCalendar: options.googleCalendar,
+    schemaVersion: EdgePayloadSchemaVersion.Current,
+    selectedTools: options.selectedTools,
+    oauth: buildOauthField(oauthByProvider),
   };
 
   if (fetched.appType === 'agent') {
