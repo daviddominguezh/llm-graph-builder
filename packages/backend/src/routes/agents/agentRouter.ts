@@ -20,6 +20,7 @@ import { handleGetAgentBySlug } from './getAgentBySlug.js';
 import { handleGetAgentsByOrg } from './getAgentsByOrg.js';
 import { handleGetAgentRegistry } from './getRegistry.js';
 import { handleGetVfsSettings } from './getVfsSettings.js';
+import { handleInvalidateMcpCache } from './invalidateMcpCache.js';
 import { handleSaveProductionKey } from './saveProductionKey.js';
 import { handleSaveStagingKey } from './saveStagingKey.js';
 import { selectedToolsLimiter } from './selectedToolsRateLimiter.js';
@@ -45,6 +46,7 @@ agentRouter.patch('/:agentId/metadata', handleUpdateMetadata);
 agentRouter.patch('/:agentId/selected-tools', selectedToolsLimiter, handleUpdateSelectedTools);
 
 agentRouter.get('/:agentId/registry', handleGetAgentRegistry);
+agentRouter.delete('/:agentId/mcp-cache/:mcpServerId', handleInvalidateMcpCache);
 agentRouter.get('/:agentId/graph', handleGetGraph);
 agentRouter.post('/:agentId/graph/operations', handlePostOperations);
 agentRouter.post('/:agentId/publish', handlePostPublish);
