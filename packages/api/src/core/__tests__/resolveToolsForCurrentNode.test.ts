@@ -35,8 +35,7 @@ function makeRegistry(providers: readonly Provider[]): Registry {
   return {
     providers,
     findToolByName: async () => await Promise.resolve(null),
-    buildSelected: async () =>
-      await Promise.resolve({ tools: {}, staleRefs: [], failedProviders: [] }),
+    buildSelected: async () => await Promise.resolve({ tools: {}, staleRefs: [], failedProviders: [] }),
     describeAll: async () => await Promise.resolve([]),
   };
 }
@@ -66,9 +65,7 @@ function makeToolCallEdge(providerId: string, toolName: string): Edge {
   return {
     from: 'a',
     to: 'b',
-    preconditions: [
-      { type: 'tool_call', tool: { providerType: 'builtin', providerId, toolName } },
-    ],
+    preconditions: [{ type: 'tool_call', tool: { providerType: 'builtin', providerId, toolName } }],
   };
 }
 

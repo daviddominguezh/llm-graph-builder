@@ -57,7 +57,8 @@ function makeCheckAvailability(ctx: CalendarCtx): OpenFlowTool<typeof checkAvail
   return {
     description: 'Find available time slots within a date range.',
     inputSchema: checkAvailabilityInput,
-    execute: async (args: z.infer<typeof checkAvailabilityInput>) => await executeCheckAvailability(args, ctx),
+    execute: async (args: z.infer<typeof checkAvailabilityInput>) =>
+      await executeCheckAvailability(args, ctx),
   };
 }
 

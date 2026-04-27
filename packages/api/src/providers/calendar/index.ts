@@ -1,5 +1,4 @@
 import type { Provider, ProviderCtx, ToolDescriptor } from '../provider.js';
-
 import { buildCalendarTools } from './buildTools.js';
 import { CALENDAR_DESCRIPTORS } from './descriptors.js';
 

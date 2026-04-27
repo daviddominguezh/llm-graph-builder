@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
 import {
+  GET_LEAD_SCORE_TOOL_NAME,
   type LeadScoringServices,
   SET_LEAD_SCORE_TOOL_NAME,
-  GET_LEAD_SCORE_TOOL_NAME,
 } from '../../tools/leadScoringTools.js';
 import type { ProviderCtx } from '../provider.js';
 import type { OpenFlowTool } from '../types.js';
@@ -22,12 +22,7 @@ const setLeadScoreSchema = z
 const getLeadScoreSchema = z.object({});
 
 function isLeadScoringServiceShape(value: unknown): value is LeadScoringServices {
-  return (
-    value !== null &&
-    typeof value === 'object' &&
-    'setLeadScore' in value &&
-    'getLeadScore' in value
-  );
+  return value !== null && typeof value === 'object' && 'setLeadScore' in value && 'getLeadScore' in value;
 }
 
 function resolveService(ctx: ProviderCtx): LeadScoringServices | undefined {

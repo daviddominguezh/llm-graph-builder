@@ -26,9 +26,8 @@ jest.unstable_mockModule('../client.js', () => ({
 const { createBackendMcpConnector } = await import('../connector.js');
 // Deep import: testConnectorConformance pulls in @jest/globals, so it must NOT be
 // re-exported from the main api index (would crash production runtime).
-const { testConnectorConformance } = await import(
-  '@daviddh/llm-graph-runner/dist/providers/mcp/conformance.js'
-);
+const { testConnectorConformance } =
+  await import('@daviddh/llm-graph-runner/dist/providers/mcp/conformance.js');
 
 const validServer: McpServerConfig = {
   id: 'mcp-1',

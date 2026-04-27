@@ -1,5 +1,4 @@
 import type { Provider, ToolDescriptor } from '../provider.js';
-
 import { buildLeadScoringTools } from './buildTools.js';
 import { LEAD_SCORING_DESCRIPTORS } from './descriptors.js';
 

@@ -1,5 +1,4 @@
 import type { Provider } from '../provider.js';
-
 import { buildCompositionTools } from './buildTools.js';
 import { COMPOSITION_DESCRIPTORS } from './descriptors.js';
 

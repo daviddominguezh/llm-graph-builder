@@ -814,7 +814,26 @@
     "goToTenants": "Go to tenants",
     "tabRag": "RAG DB",
     "tabKv": "KV Store",
-    "kvComingSoon": "Coming soon"
+    "kv": {
+      "search": "Search keys and values…",
+      "headerKey": "Key",
+      "headerValue": "Value",
+      "remove": "Remove",
+      "keyPlaceholder": "key",
+      "valuePlaceholder": "value",
+      "addKeyPlaceholder": "Add a key…",
+      "addValuePlaceholder": "value",
+      "noResults": "No matches for “{query}”",
+      "entries": "{count, plural, =1 {1 entry} other {# entries}}",
+      "pageOf": "{page} / {total}",
+      "prevPage": "Previous page",
+      "nextPage": "Next page",
+      "duplicateKey": "Duplicate key",
+      "deleteTitle": "Delete entry?",
+      "deleteDescription": "This action cannot be undone.",
+      "deleteConfirm": "Delete",
+      "deleteCancel": "Cancel"
+    }
   },
   "tenants": {
     "title": "Tenants",

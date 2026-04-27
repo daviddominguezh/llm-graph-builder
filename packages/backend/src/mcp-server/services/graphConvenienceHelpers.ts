@@ -220,7 +220,10 @@ function buildDecisionTreeOps(domainKey: string): Operation[] {
   ];
 }
 
-function buildToolLoopEdgeOps(domainKey: string, ids: { entryId: string; toolId: string; processId: string }): Operation[] {
+function buildToolLoopEdgeOps(
+  domainKey: string,
+  ids: { entryId: string; toolId: string; processId: string }
+): Operation[] {
   const { entryId, toolId, processId } = ids;
   return [
     {

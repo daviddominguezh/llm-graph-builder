@@ -1,5 +1,4 @@
 import type { Provider, ProviderCtx, ToolDescriptor } from '../provider.js';
-
 import { buildFormsTools } from './buildTools.js';
 import { FORMS_DESCRIPTORS } from './descriptors.js';
 
