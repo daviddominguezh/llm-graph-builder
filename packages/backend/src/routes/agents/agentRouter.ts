@@ -18,6 +18,7 @@ import { handleCreateAgent } from './createAgent.js';
 import { handleDeleteAgent } from './deleteAgentHandler.js';
 import { handleGetAgentBySlug } from './getAgentBySlug.js';
 import { handleGetAgentsByOrg } from './getAgentsByOrg.js';
+import { handleGetAgentRegistry } from './getRegistry.js';
 import { handleGetVfsSettings } from './getVfsSettings.js';
 import { handleSaveProductionKey } from './saveProductionKey.js';
 import { handleSaveStagingKey } from './saveStagingKey.js';
@@ -43,6 +44,7 @@ agentRouter.patch('/:agentId/category', handleUpdateCategory);
 agentRouter.patch('/:agentId/metadata', handleUpdateMetadata);
 agentRouter.patch('/:agentId/selected-tools', selectedToolsLimiter, handleUpdateSelectedTools);
 
+agentRouter.get('/:agentId/registry', handleGetAgentRegistry);
 agentRouter.get('/:agentId/graph', handleGetGraph);
 agentRouter.post('/:agentId/graph/operations', handlePostOperations);
 agentRouter.post('/:agentId/publish', handlePostPublish);

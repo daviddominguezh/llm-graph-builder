@@ -149,6 +149,17 @@ export async function getAgentBySlug(
   return { result: queryResult.data, error: null };
 }
 
+export async function getAgentById(
+  supabase: SupabaseClient,
+  agentId: string
+): Promise<{ result: AgentRow | null; error: string | null }> {
+  const queryResult = await supabase.from('agents').select('*').eq('id', agentId).single();
+
+  if (queryResult.error !== null) return { result: null, error: queryResult.error.message };
+  if (!isAgentRow(queryResult.data)) return { result: null, error: 'Invalid agent data' };
+  return { result: queryResult.data, error: null };
+}
+
 interface InsertAgentInput {
   orgId: string;
   name: string;
