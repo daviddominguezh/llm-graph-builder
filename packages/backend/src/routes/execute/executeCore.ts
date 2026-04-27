@@ -1,4 +1,4 @@
-import type { CallAgentOutput, SelectedTool } from '@daviddh/llm-graph-runner';
+import type { CallAgentOutput } from '@daviddh/llm-graph-runner';
 
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import type { NodeProcessedData } from './edgeFunctionClient.js';
@@ -99,26 +99,30 @@ interface RunAgentResult {
 }
 
 async function runAgent(params: RunAgentParams): Promise<RunAgentResult> {
-  // agentRecord.selected_tools is not yet in FetchedData (lands in Tasks 18-19).
-  // selectedTools defaults to [] so resolveOAuthBundle resolves nothing for built-ins until plumbed.
-  const selectedTools: SelectedTool[] = [];
-  const mcpServers = params.fetched.graph.mcpServers ?? [];
+  const { fetched, supabase, input, model, callbacks, override, conversationId } = params;
+  const { agentRecord } = fetched;
+  const mcpServers = fetched.graph.mcpServers ?? [];
   const [vfsPayload, oauthByProvider] = await Promise.all([
-    resolveVfsCorePayload(params.supabase, params.fetched, params.input.agentId, params.input.orgId),
-    resolveOAuthBundle({ supabase: params.supabase, orgId: params.input.orgId, selectedTools, mcpServers }),
+    resolveVfsCorePayload(supabase, fetched, input.agentId, input.orgId),
+    resolveOAuthBundle({
+      supabase,
+      orgId: agentRecord.org_id,
+      selectedTools: agentRecord.selected_tools,
+      mcpServers,
+    }),
   ]);
   const buildOptions: BuildCoreParamsOptions = {
     vfsPayload,
-    overrideAgentConfig: params.override ?? params.input.overrideAgentConfig,
-    conversationId: params.conversationId ?? undefined,
+    overrideAgentConfig: override ?? input.overrideAgentConfig,
+    conversationId: conversationId ?? undefined,
     oauthByProvider,
-    selectedTools,
+    selectedTools: agentRecord.selected_tools,
   };
-  const edgeParams = buildCoreExecuteParams(params.fetched, params.input.input, params.model, buildOptions);
+  const edgeParams = buildCoreExecuteParams(fetched, input.input, model, buildOptions);
   const startTime = Date.now();
   const { output, nodeData } = await executeAgent(edgeParams, {
-    onNodeVisited: params.callbacks?.onNodeVisited ?? noop,
-    onNodeProcessed: params.callbacks?.onNodeProcessed ?? noop,
+    onNodeVisited: callbacks?.onNodeVisited ?? noop,
+    onNodeProcessed: callbacks?.onNodeProcessed ?? noop,
   });
   return { output, nodeData, durationMs: Date.now() - startTime };
 }

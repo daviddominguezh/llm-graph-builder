@@ -11,6 +11,7 @@ import type { ExecuteAgentParams, VfsEdgeFunctionPayload } from './edgeFunctionC
 import type { AgentConfig, FetchedData, OverrideAgentConfig } from './executeFetcher.js';
 import {
   fetchAgentConfig,
+  fetchAgentRecord,
   fetchGraphAndKeys,
   fetchSessionData,
   getProductionKeyId,
@@ -52,10 +53,11 @@ function resolveAgentConfig(params: FetchAllParams, appType: string): Promise<Ag
 export async function fetchAllCoreData(params: FetchAllParams): Promise<FetchedData> {
   const { supabase, agentId, orgId, version, input, model } = params;
   const productionKeyId = await getProductionKeyId(supabase, agentId);
-  const [graphAndKeys, sessionData, vfsSettings] = await Promise.all([
+  const [graphAndKeys, sessionData, vfsSettings, agentRecord] = await Promise.all([
     fetchGraphAndKeys({ supabase, agentId, version, orgId, productionApiKeyId: productionKeyId }),
     fetchSessionData({ supabase, agentId, orgId, version, input, model }),
     getAgentVfsSettings(supabase, agentId),
+    fetchAgentRecord(supabase, agentId),
   ]);
   const envResolvedGraph = resolveMcpTransportVariables(
     graphAndKeys.graph,
@@ -64,7 +66,7 @@ export async function fetchAllCoreData(params: FetchAllParams): Promise<FetchedD
   );
   const resolvedGraph = await resolveOAuthForExecution(supabase, envResolvedGraph, orgId);
   const agentConfig = await resolveAgentConfig(params, graphAndKeys.appType);
-  return { ...graphAndKeys, ...sessionData, graph: resolvedGraph, agentConfig, vfsSettings };
+  return { ...graphAndKeys, ...sessionData, graph: resolvedGraph, agentConfig, agentRecord, vfsSettings };
 }
 
 /* ─── VFS payload resolution ─── */
