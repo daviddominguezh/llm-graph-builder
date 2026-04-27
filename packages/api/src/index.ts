@@ -112,6 +112,9 @@ export type { CreateCalendarToolsParams } from './tools/calendarTools.js';
 export { createGoogleCalendarService } from './google/calendar/service.js';
 export type { AccessTokenProvider, CreateGoogleCalendarServiceOptions } from './google/calendar/service.js';
 
+export { hashServerUrl, serverUrlSideTableKey } from './cache/serverHash.js';
+export type { ServerUrlSideTableEntry } from './cache/serverHash.js';
+
 export type { SelectedTool, ProviderType, BuiltinProviderId } from './types/selectedTool.js';
 export { BUILTIN_PROVIDER_IDS, equalsSelectedTool } from './types/selectedTool.js';
 
