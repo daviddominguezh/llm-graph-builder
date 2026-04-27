@@ -8,7 +8,6 @@ import { useEditorCache } from '@/app/components/editors/EditorCacheProvider';
 import type { PublishTenant } from '@/app/components/panels/PublishButtonTenantPicker';
 import type { ApiKeyRow } from '@/app/lib/apiKeys';
 import { Button } from '@/components/ui/button';
-import { GlassPanel } from '@/components/ui/glass-panel';
 import { Separator } from '@/components/ui/separator';
 import type { SelectedTool } from '@daviddh/llm-graph-runner';
 import { Brain, Database, PanelLeftClose, PanelLeftOpen, Radio, Settings, Zap } from 'lucide-react';
@@ -179,7 +178,7 @@ export function EditorTabs(props: EditorTabsProps) {
   useSlotSync(slotRef, activeTab);
 
   return (
-    <div className="w-full h-full flex flex-col pt-[1px]">
+    <div className="w-full h-full flex flex-col pt-[1px] border-t border-b border-r rounded-e-xl border-[0.5px]! overflow-hidden">
       <EditorTabBar activeTab={activeTab} onTabChange={setActiveTab} t={t} tAgents={tAgents} />
       <div ref={slotRef} className={activeTab === 'agent' ? 'flex-1' : 'hidden'} />
       <TabContent activeTab={activeTab} props={props} />
@@ -206,7 +205,7 @@ function EditorTabBar({
   const toolbarRef = useCallback((el: HTMLDivElement | null) => setToolbarPortal(el), [setToolbarPortal]);
 
   return (
-    <GlassPanel className="relative w-[calc(100%-(var(--spacing)*4))] rounded-full h-fit shrink-0 flex items-center px-0.5 mx-2 pointer-events-auto py-0.5">
+    <div className="bg-background border-b-[0.5px]! relative w-100% rounded-none h-fit shrink-0 flex items-center px-0.5 pointer-events-auto py-0.5">
       <div className="flex flex-row w-full items-center">
         <Button
           variant="ghost"
@@ -229,6 +228,6 @@ function EditorTabBar({
           className={`flex items-center gap-1.5 ${activeTab !== 'agent' ? 'hidden' : ''}`}
         />
       </div>
-    </GlassPanel>
+    </div>
   );
 }

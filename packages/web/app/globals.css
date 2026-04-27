@@ -275,18 +275,18 @@ div.model-selector-trigger[data-slot='input-group'] {
   margin-bottom: 0px;
 }
 
-.markdown-content > :is(h1, h2, h3, h4, h5, h6) {
+.markdown-content> :is(h1, h2, h3, h4, h5, h6) {
   border-bottom: 1px solid #ddd !important;
   padding-bottom: 4px !important;
   margin-bottom: 8px !important;
   margin-top: 8px !important;
 }
 
-.markdown-content > p:not(:has(+ ul)):not(:has(+ ol)) {
+.markdown-content>p:not(:has(+ ul)):not(:has(+ ol)) {
   margin-bottom: 8px;
 }
 
-.markdown-content > :is(ul, ol) {
+.markdown-content> :is(ul, ol) {
   margin-bottom: 8px !important;
 }
 
@@ -436,6 +436,7 @@ div.model-selector-trigger[data-slot='input-group'] {
 }
 
 @keyframes auth-shake {
+
   0%,
   100% {
     transform: translateX(0);
@@ -523,6 +524,7 @@ div.model-selector-trigger[data-slot='input-group'] {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .auth-card-enter,
   .auth-shake,
   .row-enter,
@@ -592,8 +594,8 @@ div.model-selector-trigger[data-slot='input-group'] {
   overflow: hidden;
   box-shadow:
     inset 3px -1px 0px -2px var(--ring),
-    -0.5px 1px 0px -0.5px var(--border),
-    1.5px -1.5px 0px -1px var(--border);
+    1.5px -1.5px 0px -1px var(--border),
+    1px 1px 0px -0.5px var(--border);
 }
 
 .dark .glass-panel::after {
@@ -607,8 +609,8 @@ div.model-selector-trigger[data-slot='input-group'] {
   overflow: hidden;
   box-shadow:
     inset 3px -1px 0px -2px var(--border),
-    -0.5px 1px 0px -0.5px var(--border),
-    1.5px -1.5px 0px -1px var(--border);
+    1.5px -1.5px 0px -1px var(--border),
+    1px 1px 0px -0.5px var(--border);
 }
 
 /* Liquid Glass V2 — SVG displacement-map refraction (Chrome only for backdrop-filter).
