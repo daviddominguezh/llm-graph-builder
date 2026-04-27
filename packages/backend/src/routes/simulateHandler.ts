@@ -1,4 +1,10 @@
-import type { CalendarService, CallAgentOutput, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
+import type {
+  CalendarService,
+  CallAgentOutput,
+  Context,
+  NodeProcessedEvent,
+  OAuthTokenBundle,
+} from '@daviddh/llm-graph-runner';
 import { executeWithCallbacks, injectSystemTools } from '@daviddh/llm-graph-runner';
 import type { Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
@@ -10,6 +16,7 @@ import { type McpSession, closeMcpSession, createMcpSession } from '../mcp/lifec
 import type { SimulateRequest } from '../types.js';
 import { buildContext, setSseHeaders, sumTokens, writeSSE } from './simulate.js';
 import { resolveChildConfig } from './simulateChildResolver.js';
+import { buildSimulationProviderCtx, buildSimulationRegistry } from './simulationProviderCtx.js';
 
 const EMPTY_SESSION: McpSession = { clients: [], tools: {} };
 const CHILD_DEPTH = 1;
@@ -130,12 +137,53 @@ function resolveCalendarServices(orgId: string | undefined): {
   };
 }
 
+function buildSimulationServicesResolver(
+  calendarServices: CalendarService | undefined
+): (providerId: string) => unknown {
+  return (providerId: string): unknown => {
+    if (providerId === 'calendar') return calendarServices;
+    return undefined;
+  };
+}
+
+function buildContextWithRegistry(
+  body: SimulateRequest,
+  calendarServices: CalendarService | undefined
+): Omit<Context, 'toolsOverride' | 'onNodeVisited'> {
+  const baseContext = buildContext(body);
+  const mcpServers = body.graph.mcpServers ?? [];
+  const services = buildSimulationServicesResolver(calendarServices);
+  const oauthTokens = new Map<string, OAuthTokenBundle>();
+  const providerCtx = buildSimulationProviderCtx({
+    orgId: body.orgId ?? '',
+    agentId: body.sessionID,
+    isChildAgent: false,
+    oauthTokens,
+    mcpServers,
+    services,
+  });
+  return {
+    ...baseContext,
+    registry: buildSimulationRegistry({ mcpServers }),
+    orgId: providerCtx.orgId,
+    agentId: providerCtx.agentId,
+    isChildAgent: providerCtx.isChildAgent,
+    conversationId: providerCtx.conversationId,
+    contextData: providerCtx.contextData,
+    oauthTokens: providerCtx.oauthTokens,
+    mcpServers: providerCtx.mcpServers,
+    services: providerCtx.services,
+    logger: consoleLogger,
+  };
+}
+
 async function runSimulation(body: SimulateRequest, session: McpSession, res: Response): Promise<void> {
-  const context = buildContext(body);
+  const calendar = resolveCalendarServices(body.orgId);
+  const context = buildContextWithRegistry(body, calendar.calendarServices);
   const tools = injectSystemTools({
     existingTools: session.tools,
     isChildAgent: false,
-    ...resolveCalendarServices(body.orgId),
+    ...calendar,
   });
   const result = await executeWithCallbacks({
     context,

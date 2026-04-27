@@ -12,6 +12,7 @@ import {
   extractDispatchType,
   extractTask,
   findDispatchToolCall,
+  prepareSimulationProviders,
 } from './simulationOrchestratorHelpers.js';
 import type {
   DispatchType,
@@ -28,10 +29,12 @@ const ZERO_TOKENS = { input: ZERO, output: ZERO, cached: ZERO };
 
 function buildLoopConfig(config: OrchestratorConfig): AgentLoopConfig {
   const isChild = config.depth > ZERO;
+  const calendarServices = createGoogleCalendarService(config.supabase);
+  prepareSimulationProviders(config, calendarServices);
   const tools = injectSystemTools({
     existingTools: config.session.tools,
     isChildAgent: isChild,
-    calendarServices: createGoogleCalendarService(config.supabase),
+    calendarServices,
     orgId: config.orgId,
   });
 
