@@ -26,12 +26,27 @@ export async function getGoogleCalendarConnectionStatus(
   }
 }
 
-export async function disconnectGoogleCalendar(orgId: string): Promise<boolean> {
+export interface DisconnectGoogleCalendarResult {
+  ok: boolean;
+  warning?: string;
+}
+
+interface DisconnectResponseBody {
+  warning?: { message?: string };
+}
+
+function extractWarning(data: unknown): string | undefined {
+  if (typeof data !== 'object' || data === null) return undefined;
+  const body = data as DisconnectResponseBody;
+  return body.warning?.message;
+}
+
+export async function disconnectGoogleCalendar(orgId: string): Promise<DisconnectGoogleCalendarResult> {
   try {
     const params = new URLSearchParams({ orgId });
-    await fetchFromBackend('DELETE', `/agents/google-oauth/connections?${params.toString()}`);
-    return true;
+    const data = await fetchFromBackend('DELETE', `/agents/google-oauth/connections?${params.toString()}`);
+    return { ok: true, warning: extractWarning(data) };
   } catch {
-    return false;
+    return { ok: false };
   }
 }
