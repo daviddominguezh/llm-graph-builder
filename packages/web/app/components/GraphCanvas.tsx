@@ -103,7 +103,7 @@ export function GraphCanvas({
           colorMode={colorMode}
         >
           <Background color="var(--canvas-dots)" />
-          <Controls position="bottom-right" className="mb-2! shadow-xs! rounded-lg" />
+          <Controls position="bottom-right" className="mb-3.5! shadow-xs! rounded-lg" />
         </ReactFlow>
 
         {zoomViewNodeId !== null && (
