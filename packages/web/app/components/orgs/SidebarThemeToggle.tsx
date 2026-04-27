@@ -33,13 +33,13 @@ function CollapsedToggle({ isLight, onToggle, ariaLabel }: Omit<ToggleVariantPro
   const Icon = isLight ? Moon : Sun;
 
   return (
-    <div className="cursor-pointer group flex flex-col justify-center items-center p-0 w-full aspect-square rounded-[5px] hover:bg-sidebar-accent">
+    <div className="cursor-pointer group flex flex-col justify-center items-center p-0 w-full aspect-square rounded-[5px] hover:bg-primary/8">
       <Button
         variant="ghost"
         type="button"
         onClick={onToggle}
         aria-label={ariaLabel}
-        className="h-5 aspect-square w-full p-0! border-x-0 border-y-0 rounded-none group-hover:bg-transparent! border-l border-l-2 group-hover:border-transparent text-muted-foreground group-hover:text-foreground!"
+        className="h-5 aspect-square w-full p-0! border-x-0 border-y-0 rounded-none group-hover:bg-transparent! group-hover:border-transparent text-muted-foreground group-hover:text-foreground!"
       >
         <Icon />
       </Button>

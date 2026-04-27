@@ -67,7 +67,7 @@ function NavItem({
 }) {
   return (
     <div
-      className={`cursor-pointer group flex flex-col justify-center items-center p-0 w-full aspect-square rounded-[5px] ${active ? 'bg-primary/8 hover:bg-primary/8' : 'hover:bg-sidebar-accent'}`}
+      className={`cursor-pointer group flex flex-col justify-center items-center p-0 w-full aspect-square rounded-[5px] ${active ? 'bg-primary/8 hover:bg-primary/8' : 'hover:bg-primary/8'}`}
     >
       <Button
         variant="ghost"

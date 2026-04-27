@@ -82,8 +82,8 @@ export function GraphCanvas({
   const colorMode = mounted && resolvedTheme === 'dark' ? 'dark' : 'light';
 
   return (
-    <div className="relative h-full w-full flex-1 overflow-hidden">
-      <div ref={reactFlowWrapper} className="absolute inset-0">
+    <div className="relative h-full w-full flex-1 overflow-hidden rounded-xl">
+      <div ref={reactFlowWrapper} className="absolute inset-0 rounded-xl">
         <ReactFlow
           id={`flow-${agentId}`}
           nodes={displayNodes}
