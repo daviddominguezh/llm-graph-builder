@@ -1,6 +1,5 @@
-import { setTimeout as sleepMs } from 'node:timers/promises';
-
 import type { OAuthTokenBundle } from '@daviddh/llm-graph-runner';
+import { setTimeout as sleepMs } from 'node:timers/promises';
 
 import type { RedisLikeClient } from './redis.js';
 

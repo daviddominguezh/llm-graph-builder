@@ -540,14 +540,12 @@ function LoadedEditor(props: LoadedEditorProps) {
 
   const insetStyle = panelInsets
     ? {
-        top: panelInsets.top + 100,
+        top: panelInsets.top,
         left: panelInsets.left,
         right: panelInsets.right,
-        bottom: panelInsets.bottom + 100,
+        bottom: panelInsets.bottom,
       }
     : { top: 0, left: 0, right: 0, bottom: 0 };
-
-  console.log(insetStyle);
 
   useAutoStartAgentSimulation(isAgentMode, h.simulation.active, h.simulation.start);
 
@@ -575,7 +573,7 @@ function LoadedEditor(props: LoadedEditorProps) {
               />
             </div>
           ) : (
-            <div className="absolute top-0.5 bottom-2.5 right-3.5 -left-0.5 rounded-xl">
+            <div className="absolute top-1 bottom-2.5 right-3.5 -left-0.5 rounded-xl">
               <GraphCanvas
                 agentId={props.agentId ?? ''}
                 reactFlowWrapper={h.reactFlowWrapper}
