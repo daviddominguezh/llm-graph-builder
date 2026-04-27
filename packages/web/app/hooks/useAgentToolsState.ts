@@ -125,13 +125,15 @@ export function useAgentToolsState({
   const tAgentTools = useTranslations('agentTools');
   const [selectedTools, setSelectedTools] = useState<SelectedTool[]>(initialSelectedTools);
   const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [prevRegistryFailed, setPrevRegistryFailed] = useState<boolean>(registryFailed === true);
   const registryFailedRef = useRef<boolean>(registryFailed === true);
   useEffect(() => {
     registryFailedRef.current = registryFailed === true;
   }, [registryFailed]);
-  useEffect(() => {
+  if ((registryFailed === true) !== prevRegistryFailed) {
+    setPrevRegistryFailed(registryFailed === true);
     if (registryFailed === true) setSaveState('disabled-by-failure');
-  }, [registryFailed]);
+  }
 
   const lastSavedRef = useRef<{ tools: SelectedTool[]; updatedAt: string }>({
     tools: initialSelectedTools,

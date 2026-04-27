@@ -160,24 +160,6 @@ export function AgentsSidebar({ agents: serverAgents, orgId, orgSlug }: AgentsSi
   const prefetchedTemplates = useTemplatesPrefetch();
   const agents = contextAgents.length > 0 ? contextAgents : serverAgents;
 
-  console.log('[AgentsSidebar] render', {
-    pathname,
-    orgSlug,
-    agentCount: agents.length,
-    contextAgentCount: contextAgents.length,
-    serverAgentCount: serverAgents.length,
-    collapsed,
-  });
-
-  useEffect(() => {
-    console.log('[AgentsSidebar] mount');
-    return () => console.log('[AgentsSidebar] unmount');
-  }, []);
-
-  useEffect(() => {
-    console.log('[AgentsSidebar] pathname change', pathname);
-  }, [pathname]);
-
   useEffect(() => syncAgents(serverAgents), [serverAgents, syncAgents]);
 
   if (collapsed) {
