@@ -175,7 +175,7 @@ export function AgentsSidebar({ agents: serverAgents, orgId, orgSlug }: AgentsSi
   }
 
   return (
-    <GlassPanel className="relative flex h-[calc(100%-var(--spacing)*2-1px)] w-[240px] shrink-0 flex-col pointer-events-auto rounded-xl mt-[1px]">
+    <GlassPanel className="relative flex h-[calc(100%-1px)] w-[240px] shrink-0 flex-col pointer-events-auto rounded-s-xl mt-[0.5px] mb-[0.5px]">
       <SidebarHeader onCreateClick={() => setCreateOpen(true)} />
       <SearchInput value={search} onChange={setSearch} />
       <Scrollable className="flex-1">

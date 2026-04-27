@@ -336,7 +336,7 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
 
   return (
     <aside
-      className={`shrink-0 flex flex-col gap-2 overflow-hidden p-2 pl-1.5 pr-0 pt-3 pb-2 transition-[width,background-color] duration-100 ${sidebar.collapsed ? 'w-[calc(45px-var(--spacing)*1.5)] bg-background' : 'w-58.5 bg-background'} ${sidebar.contentCollapsed ? 'border border-transparent' : 'shadow-lg border rounded-e-md z-12'}`}
+      className={`shrink-0 flex flex-col gap-2 overflow-hidden p-2 pl-1.5 pr-0 pt-3 pb-2 transition-[width,background-color] duration-100 ${sidebar.collapsed ? 'w-[calc(45px-var(--spacing)*1.5)] bg-transparent' : 'w-58.5 bg-background'} ${sidebar.contentCollapsed ? 'border border-transparent' : 'shadow-lg border rounded-e-md z-12'}`}
     >
       <OrgSwitcherPopover
         currentOrg={org}

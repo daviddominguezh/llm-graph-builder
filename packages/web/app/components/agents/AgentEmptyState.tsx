@@ -24,7 +24,7 @@ export function AgentEmptyState({ orgId, orgSlug }: AgentEmptyStateProps) {
   const prefetchedTemplates = useTemplatesPrefetch();
 
   return (
-    <div className="flex w-full h-full items-center justify-center bg-background">
+    <div className="flex w-full h-full items-center justify-center bg-background border-[0.5px] border-t border-b border-r rounded-e-xl">
       <div className="flex w-full max-w-3xl flex-col items-center gap-2 rounded-md border border-dashed bg-background px-4 py-8 text-center">
         <Bot className="size-6 text-muted-foreground/50" />
         <p className="text-sm font-medium">{t('createFirst')}</p>
