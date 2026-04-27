@@ -9,6 +9,9 @@ import { setLogger } from './utils/logger.js';
 import { Pipeline } from './utils/pipeline.js';
 
 export { buildNextAgentConfig } from './stateMachine/index.js';
+export { buildAgentToolsAtStart } from './core/buildAgentToolsAtStart.js';
+export { resolveToolsForCurrentNode } from './core/resolveToolsForCurrentNode.js';
+export type { ResolveToolsArgs, ResolveToolsResult } from './core/resolveToolsForCurrentNode.js';
 export { createDummyToolsForGraph } from './tools/dummyTools.js';
 export { injectSystemTools } from './tools/systemToolInjector.js';
 export type { LeadScoringServices } from './tools/leadScoringTools.js';
