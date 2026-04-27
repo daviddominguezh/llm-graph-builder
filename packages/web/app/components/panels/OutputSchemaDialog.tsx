@@ -23,13 +23,33 @@ import {
   removeFieldFromList,
   updateFieldInList,
 } from './outputSchemaTypes';
+import { useSchemaUsageBySchemaId } from './useSchemaUsage';
 
 interface OutputSchemaDialogProps {
   schema: OutputSchemaEntity | undefined;
+  agentId: string;
   onSave: (id: string, updates: Partial<OutputSchemaEntity>) => void;
   onSaved?: (id: string) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+interface FormRef {
+  id: string;
+  slug: string;
+}
+
+function UsedByFormsBanner({ formsUsing }: { formsUsing: FormRef[] }) {
+  const tWarn = useTranslations('outputSchemas.warnings');
+  if (formsUsing.length === 0) return null;
+  return (
+    <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+      {tWarn('usedByForms', {
+        count: formsUsing.length,
+        forms: formsUsing.map((f) => f.slug).join(', '),
+      })}
+    </div>
+  );
 }
 
 function EmptyState() {
@@ -43,9 +63,11 @@ function EmptyState() {
 
 function FieldList({
   fields,
+  fieldUsageSlugs,
   onChange,
 }: {
   fields: OutputSchemaField[];
+  fieldUsageSlugs: string[];
   onChange: (fields: OutputSchemaField[]) => void;
 }) {
   return (
@@ -57,6 +79,7 @@ function FieldList({
             key={index}
             field={field}
             depth={1}
+            usedByFormSlugs={fieldUsageSlugs.length > 0 ? fieldUsageSlugs : undefined}
             onChange={(updated) => onChange(updateFieldInList(fields, index, updated))}
             onRemove={() => onChange(removeFieldFromList(fields, index))}
           />
@@ -68,16 +91,20 @@ function FieldList({
 
 function SchemaEditor({
   initial,
+  agentId,
   onSave,
   onCancel,
 }: {
   initial: OutputSchemaEntity;
+  agentId: string;
   onSave: (id: string, updates: Partial<OutputSchemaEntity>) => void;
   onCancel: () => void;
 }) {
   const t = useTranslations('nodePanel');
   const tSchemas = useTranslations('outputSchemas');
   const [draft, setDraft] = useState<OutputSchemaEntity>(initial);
+  const formsUsing = useSchemaUsageBySchemaId(agentId, initial.id);
+  const fieldUsageSlugs = formsUsing.map((f) => f.slug);
 
   const handleFieldsChange = (fields: OutputSchemaField[]) => {
     setDraft((prev) => ({ ...prev, fields }));
@@ -93,6 +120,7 @@ function SchemaEditor({
         <DialogHeader className="border-b pb-3 sticky top-0 bg-background! z-50">
           <DialogTitle>{'Structured Output Schema'}</DialogTitle>
         </DialogHeader>
+        <UsedByFormsBanner formsUsing={formsUsing} />
         <div className="space-y-1 px-1 pt-3 pb-3">
           <Label className="text-xs">{tSchemas('schemaName')}</Label>
           <Input
@@ -106,21 +134,25 @@ function SchemaEditor({
           {draft.fields.length === 0 ? (
             <EmptyState />
           ) : (
-            <FieldList fields={draft.fields} onChange={handleFieldsChange} />
+            <FieldList
+              fields={draft.fields}
+              fieldUsageSlugs={fieldUsageSlugs}
+              onChange={handleFieldsChange}
+            />
           )}
         </div>
         <Button
           variant="outline"
           size="sm"
           onClick={() => handleFieldsChange([...draft.fields, createEmptyField()])}
-          className="w-fit self-end"
+          className="w-fit self-end rounded-md"
         >
           <Plus className="mr-1 h-3.5 w-3.5" />
           {t('addField')}
         </Button>
       </div>
       <DialogFooter>
-        <DialogClose render={<Button variant="outline" onClick={onCancel} />}>
+        <DialogClose render={<Button variant="outline" className="rounded-md" onClick={onCancel} />}>
           {tSchemas('cancel')}
         </DialogClose>
         <Button onClick={handleSave} disabled={!isSchemaComplete(draft.name, draft.fields)}>
@@ -131,7 +163,14 @@ function SchemaEditor({
   );
 }
 
-export function OutputSchemaDialog({ schema, onSave, onSaved, open, onOpenChange }: OutputSchemaDialogProps) {
+export function OutputSchemaDialog({
+  schema,
+  agentId,
+  onSave,
+  onSaved,
+  open,
+  onOpenChange,
+}: OutputSchemaDialogProps) {
   const handleSave = (id: string, updates: Partial<OutputSchemaEntity>) => {
     onSave(id, updates);
     onSaved?.(id);
@@ -145,6 +184,7 @@ export function OutputSchemaDialog({ schema, onSave, onSaved, open, onOpenChange
           <SchemaEditor
             key={schema.id}
             initial={schema}
+            agentId={agentId}
             onSave={handleSave}
             onCancel={() => onOpenChange(false)}
           />

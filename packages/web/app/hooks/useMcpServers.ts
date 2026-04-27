@@ -242,7 +242,9 @@ function useToolDiscovery(ctx: DiscoveryContext): (id: string) => void {
   const { servers, libraryItems, orgId, setters } = ctx;
 
   return useCallback(
-    (id: string) => discoverForServer({ servers, libraryItems, orgId, setters }, id),
+    (id: string) => {
+      discoverForServer({ servers, libraryItems, orgId, setters }, id);
+    },
     [servers, libraryItems, orgId, setters]
   );
 }

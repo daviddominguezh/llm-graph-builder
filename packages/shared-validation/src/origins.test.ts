@@ -1,8 +1,4 @@
-import {
-  matchOrigin,
-  parseAllowedOriginEntry,
-  parseOrigin,
-} from './origins.js';
+import { matchOrigin, parseAllowedOriginEntry, parseOrigin } from './origins.js';
 
 describe('parseOrigin', () => {
   it('parses https origin', () => {
@@ -58,24 +54,16 @@ describe('matchOrigin', () => {
     expect(matchOrigin('https://example.com', ['https://example.com'])).toBe(true);
   });
   it('wildcard leading label match', () => {
-    expect(
-      matchOrigin('https://acme-bot.live.openflow.build', [
-        'https://acme-*.live.openflow.build',
-      ])
-    ).toBe(false);
-    expect(
-      matchOrigin('https://foo.live.openflow.build', [
-        'https://*.live.openflow.build',
-      ])
-    ).toBe(true);
+    expect(matchOrigin('https://acme-bot.live.openflow.build', ['https://acme-*.live.openflow.build'])).toBe(
+      false
+    );
+    expect(matchOrigin('https://foo.live.openflow.build', ['https://*.live.openflow.build'])).toBe(true);
   });
   it('wildcard does not match bare parent', () => {
     expect(matchOrigin('https://foo.com', ['https://*.foo.com'])).toBe(false);
   });
   it('wildcard only spans a single label', () => {
-    expect(
-      matchOrigin('https://a.b.foo.com', ['https://*.foo.com'])
-    ).toBe(false);
+    expect(matchOrigin('https://a.b.foo.com', ['https://*.foo.com'])).toBe(false);
   });
   it('protocol mismatch fails', () => {
     expect(matchOrigin('http://example.com', ['https://example.com'])).toBe(false);

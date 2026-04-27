@@ -38,8 +38,12 @@ export interface EdgeExplanation {
 /*  Edge explanation helpers                                            */
 /* ------------------------------------------------------------------ */
 
+function preconditionDisplayValue(p: Precondition): string {
+  return p.type === 'tool_call' ? p.tool.toolName : p.value;
+}
+
 function formatPrecondition(p: Precondition): string {
-  const base = `${p.type}: "${p.value}"`;
+  const base = `${p.type}: "${preconditionDisplayValue(p)}"`;
   if (p.description === undefined) return base;
   return `${base} (${p.description})`;
 }
@@ -47,7 +51,7 @@ function formatPrecondition(p: Precondition): string {
 function buildPreconditionExplanations(preconditions: Precondition[]): PreconditionExplanation[] {
   return preconditions.map((p) => ({
     type: p.type,
-    value: p.value,
+    value: preconditionDisplayValue(p),
     description: p.description,
   }));
 }

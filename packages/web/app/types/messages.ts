@@ -1,4 +1,4 @@
-import { LastMessage } from './chat';
+import type { LastMessage } from './chat';
 
 export interface MessageFetchingStatus {
   requestId: string;

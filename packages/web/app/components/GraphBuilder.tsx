@@ -1,66 +1,75 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { useReactFlow, ReactFlowProvider, useNodesState, useEdgesState } from '@xyflow/react';
+import type { SelectedTool } from '@daviddh/llm-graph-runner';
+import { ReactFlowProvider, useEdgesState, useNodesState, useReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
-import { AgentEditorWrapper } from './AgentEditorWrapper';
-import { useCopilotContext } from './copilot/CopilotProvider';
-import { GraphBuilderLoading } from './GraphBuilderLoading';
-import { HandleContext } from './nodes/HandleContext';
-import { DeleteConfirmDialog } from './panels/DeleteConfirmDialog';
-import { PublishButton } from './panels/PublishButton';
-import type { PublishTenant } from './panels/PublishButtonTenantPicker';
-import { Toolbar } from './panels/Toolbar';
-import { StatusButton, hasMcpErrors } from './panels/StatusButton';
-import { ConnectionMenu } from './panels/ConnectionMenu';
-import { SearchDialog } from './panels/SearchDialog';
-import { VersionSwitcherSlot } from './panels/VersionSwitcherSlot';
-import { GraphCanvas } from './GraphCanvas';
-import { SimulationPanel } from './panels/simulation';
-import { SidePanels } from './SidePanels';
-import { ToolRegistryProvider } from './ToolRegistryProvider';
-import type { DiscoveredTool } from '../lib/api';
-import type { ApiKeyRow } from '../lib/apiKeys';
-import type { Agent, Graph } from '../schemas/graph.schema';
-import { useApiKeySelection } from '../hooks/useApiKeySelection';
 import { useAgentEditorHooks } from '../hooks/useAgentEditorHooks';
 import { useAgentExport } from '../hooks/useAgentExport';
 import { useAgentImport } from '../hooks/useAgentImport';
+import { useApiKeySelection } from '../hooks/useApiKeySelection';
 import { useAutoSave } from '../hooks/useAutoSave';
+import { useDeleteConfirmation } from '../hooks/useDeleteConfirmation';
 import { useEnvVariables } from '../hooks/useEnvVariables';
-import { useMcpLibrary } from '../hooks/useMcpLibrary';
+import { useExportGraph } from '../hooks/useExportGraph';
+import { useFormatGraph } from '../hooks/useFormatGraph';
 import { useGraphActions } from '../hooks/useGraphActions';
+import {
+  useContextPreconditions,
+  useInitialViewport,
+  useSearchKeyboard,
+} from '../hooks/useGraphBuilderHelpers';
 import type { GraphLoadResult } from '../hooks/useGraphLoader';
 import { useGraphLoader } from '../hooks/useGraphLoader';
+import { useGraphSelection } from '../hooks/useGraphSelection';
 import { useImportGraph } from '../hooks/useImportGraph';
 import { useMcpDiscovery } from '../hooks/useMcpDiscovery';
-import { useExportGraph } from '../hooks/useExportGraph';
-import { useGraphSelection } from '../hooks/useGraphSelection';
+import { useMcpLibrary } from '../hooks/useMcpLibrary';
 import { useMcpServers } from '../hooks/useMcpServers';
 import { useOperationQueue } from '../hooks/useOperationQueue';
 import { useOutputSchemas } from '../hooks/useOutputSchemas';
 import { usePresets } from '../hooks/usePresets';
-import { useDeleteConfirmation } from '../hooks/useDeleteConfirmation';
 import { useSeedInitialGraph } from '../hooks/useSeedInitialGraph';
 import { useSimulation } from '../hooks/useSimulation';
+import {
+  useCreateIfElse,
+  useCreateLoop,
+  useCreateToolNode,
+  useCreateUserNode,
+} from '../hooks/useStructuredNodeCreation';
 import { useVersions } from '../hooks/useVersions';
 import { useZoomView } from '../hooks/useZoomView';
-import { useEditorCache } from './editors/EditorCacheProvider';
-import { useInitialViewport, useSearchKeyboard, useContextPreconditions } from '../hooks/useGraphBuilderHelpers';
+import type { DiscoveredTool } from '../lib/api';
+import type { ApiKeyRow } from '../lib/apiKeys';
+import type { Agent, Graph } from '../schemas/graph.schema';
+import { getSourceEdgeType } from '../utils/edgeTypeUtils';
 import { buildInitialEdges, buildInitialNodes } from '../utils/graphInitializer';
 import { serializeGraphData } from '../utils/graphSerializer';
 import type { RFNodeData } from '../utils/graphTransformers';
-import { useFormatGraph } from '../hooks/useFormatGraph';
-import { getSourceEdgeType } from '../utils/edgeTypeUtils';
-import {
-  useCreateUserNode,
-  useCreateToolNode,
-  useCreateIfElse,
-  useCreateLoop,
-} from '../hooks/useStructuredNodeCreation';
+import { AgentEditorWrapper } from './AgentEditorWrapper';
+import { GraphBuilderLoading } from './GraphBuilderLoading';
+import { GraphCanvas } from './GraphCanvas';
+import { SidePanels } from './SidePanels';
+import { ToolRegistryProvider } from './ToolRegistryProvider';
+import { useCopilotContext } from './copilot/CopilotProvider';
+import { useEditorCache } from './editors/EditorCacheProvider';
+import { HandleContext } from './nodes/HandleContext';
+import { ConnectionMenu } from './panels/ConnectionMenu';
+import { DataTabContent } from './panels/DataTabContent';
+import { DeleteConfirmDialog } from './panels/DeleteConfirmDialog';
+import { PublishButton } from './panels/PublishButton';
+import type { PublishTenant } from './panels/PublishButtonTenantPicker';
+import { SearchDialog } from './panels/SearchDialog';
+import { SettingsTabContent } from './panels/SettingsTabContent';
+import { StatusButton, hasMcpErrors } from './panels/StatusButton';
+import { Toolbar } from './panels/Toolbar';
+import { VersionSwitcherSlot } from './panels/VersionSwitcherSlot';
+import { SimulationPanel } from './panels/simulation';
+import { createPrecondition, handlePreconditionRemove, handlePreconditionUpdate } from './sidePanelHelpers';
+import { useSchemaDialogState } from './useSidePanelState';
 
 const DEFAULT_VERSION = 0;
 
@@ -91,6 +100,9 @@ export interface GraphBuilderProps {
   productionApiKeyId?: string | null;
   readOnly?: boolean;
   graphOverride?: Graph;
+  agentAppType?: string;
+  agentSelectedTools?: SelectedTool[];
+  agentUpdatedAt?: string;
 }
 
 interface LoadedEditorProps extends GraphBuilderProps {
@@ -136,7 +148,6 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
   });
 
   const [globalPanelOpen, setGlobalPanelOpen] = useState(false);
-  const [presetsOpen, setPresetsOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
@@ -155,7 +166,6 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
   const panels = useMemo(
     () => ({
       setGlobalPanelOpen,
-      setPresetsOpen,
       setToolsOpen,
       setSearchOpen,
       setLibraryOpen,
@@ -164,10 +174,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     [setCopilotOpen]
   );
 
-  const selection = useGraphSelection(
-    { nodes, setNodes, setEdges, reactFlow: rf, reactFlowWrapper },
-    panels
-  );
+  const selection = useGraphSelection({ nodes, setNodes, setEdges, reactFlow: rf, reactFlowWrapper }, panels);
 
   const deleteConfirmation = useDeleteConfirmation({
     nodes,
@@ -183,7 +190,6 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     selection.setSelectedNodeId(null);
     selection.setSelectedEdgeId(null);
     setGlobalPanelOpen(false);
-    setPresetsOpen(false);
     setToolsOpen(false);
   }, [selection]);
 
@@ -222,7 +228,15 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
       menu: graphActions.connectionMenu,
       closeMenu: graphActions.handleConnectionMenuClose,
     }),
-    [nodes, setNodes, setEdges, selection.setSelectedNodeId, opQueue.pushOperation, graphActions.connectionMenu, graphActions.handleConnectionMenuClose]
+    [
+      nodes,
+      setNodes,
+      setEdges,
+      selection.setSelectedNodeId,
+      opQueue.pushOperation,
+      graphActions.connectionMenu,
+      graphActions.handleConnectionMenuClose,
+    ]
   );
 
   const createUserNode = useCreateUserNode(structuredCreationParams);
@@ -264,7 +278,14 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
   });
 
   const serializedGraph = useMemo(
-    () => serializeGraphData({ nodes, edges, agents, mcpServers: mcpHook.servers, outputSchemas: outputSchemasHook.schemas }),
+    () =>
+      serializeGraphData({
+        nodes,
+        edges,
+        agents,
+        mcpServers: mcpHook.servers,
+        outputSchemas: outputSchemasHook.schemas,
+      }),
     [nodes, edges, agents, mcpHook.servers, outputSchemasHook.schemas]
   );
 
@@ -352,6 +373,12 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
 
   const ctxPreconditions = useContextPreconditions(edges);
 
+  const schemaDialog = useSchemaDialogState({
+    outputSchemasHook,
+    selection,
+    setNodes,
+  });
+
   const displayNodes = nodes.filter((n) => (n.data as RFNodeData).global !== true);
 
   return {
@@ -379,11 +406,10 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     presetsHook,
     mcpHook,
     outputSchemasHook,
+    schemaDialog,
     ctxPreconditions,
     globalPanelOpen,
     setGlobalPanelOpen,
-    presetsOpen,
-    setPresetsOpen,
     toolsOpen,
     setToolsOpen,
     searchOpen,
@@ -412,6 +438,66 @@ function useAutoStartAgentSimulation(isAgent: boolean, active: boolean, start: (
   useEffect(() => {
     if (isAgent && !active) start();
   }, [isAgent, active, start]);
+}
+
+type GraphBuilderHooksResult = ReturnType<typeof useGraphBuilderHooks>;
+
+function buildSettingsTabContent(h: GraphBuilderHooksResult, orgApiKeys: ApiKeyRow[], isAgentMode: boolean) {
+  return (
+    <SettingsTabContent
+      orgApiKeys={orgApiKeys}
+      stagingKeyId={h.apiKeys.stagingKeyId}
+      productionKeyId={h.apiKeys.productionKeyId}
+      onStagingKeyChange={h.apiKeys.handleStagingKeyChange}
+      onProductionKeyChange={h.apiKeys.handleProductionKeyChange}
+      showWorkflowSections={!isAgentMode}
+      contextKeys={h.presetsHook.contextKeys}
+      context={{
+        keys: h.presetsHook.contextKeys,
+        onAdd: h.presetsHook.addContextKey,
+        onRemove: h.presetsHook.removeContextKey,
+        onRename: h.presetsHook.renameContextKey,
+      }}
+      contextPreconditions={{
+        preconditions: h.ctxPreconditions.customContextPreconditions,
+        onAdd: () => createPrecondition(h.ctxPreconditions),
+        onRemove: (id) => handlePreconditionRemove(id, h.ctxPreconditions, h.setEdges),
+        onUpdate: (id, updates) => handlePreconditionUpdate(id, updates, h.ctxPreconditions, h.setEdges),
+      }}
+      testingPresets={{
+        presets: h.presetsHook.presets,
+        onAdd: h.presetsHook.addPreset,
+        onDelete: h.presetsHook.deletePreset,
+        onUpdate: h.presetsHook.updatePreset,
+      }}
+    />
+  );
+}
+
+function buildDataTabContent(
+  h: GraphBuilderHooksResult,
+  agentId: string,
+  orgSlug: string | undefined,
+  agentSlug: string | undefined
+) {
+  const editFormHref =
+    orgSlug !== undefined && agentSlug !== undefined
+      ? (formId: string): string => `/orgs/${orgSlug}/editor/${agentSlug}?dataTab=forms&form=${formId}`
+      : undefined;
+
+  return (
+    <DataTabContent
+      agentId={agentId}
+      schemas={h.outputSchemasHook.schemas}
+      onAdd={() => {
+        const id = h.outputSchemasHook.addSchema();
+        h.schemaDialog.handleEditNewSchema(id);
+      }}
+      onRemove={h.schemaDialog.handleRemoveSchema}
+      onEdit={h.schemaDialog.handleEditSchema}
+      editFormHref={editFormHref}
+    />
+  );
 }
 
 function buildEmbeddedSimulationPanel(simulation: ReturnType<typeof useGraphBuilderHooks>['simulation']) {
@@ -450,9 +536,15 @@ function LoadedEditor(props: LoadedEditorProps) {
   const isReadOnly = props.readOnly === true;
   const isAgentMode = h.agentConfig !== undefined;
 
-  const { panelInsets, toolbarPortal, activeEditorId } = useEditorCache();
+  const { panelInsets, toolbarPortal, settingsPortal, dataPortal, activeEditorId } = useEditorCache();
+
   const insetStyle = panelInsets
-    ? { top: panelInsets.top, left: panelInsets.left, right: panelInsets.right, bottom: panelInsets.bottom }
+    ? {
+        top: panelInsets.top,
+        left: panelInsets.left,
+        right: panelInsets.right,
+        bottom: panelInsets.bottom,
+      }
     : { top: 0, left: 0, right: 0, bottom: 0 };
 
   useAutoStartAgentSimulation(isAgentMode, h.simulation.active, h.simulation.start);
@@ -463,178 +555,210 @@ function LoadedEditor(props: LoadedEditorProps) {
 
   return (
     <HandleContext.Provider value={handleContextValue}>
-      <ToolRegistryProvider servers={h.mcpHook.servers} discoveredTools={h.mcpHook.discoveredTools}>
-      <div className="relative h-full w-full">
-        {/* Canvas layer — fills entire main area */}
-        {h.agentConfig !== undefined ? (
-          <div className="absolute inset-0 overflow-hidden">
-            <AgentEditorWrapper
-              agentConfig={h.agentConfig}
-              pushOperation={h.pushOperation}
-              importCounter={h.agentHooks.importCounter}
-              onBackgroundClick={h.selection.onPaneClick}
-              onConfigChange={h.agentHooks.setAgentConfigSilent}
-              agentId={props.agentId}
-              orgId={props.orgId}
-              insets={insetStyle}
-              rightSlot={buildEmbeddedSimulationPanel(h.simulation)}
-            />
-          </div>
-        ) : (
-          <div className="absolute inset-0">
-            <GraphCanvas
-              agentId={props.agentId ?? ''}
-              reactFlowWrapper={h.reactFlowWrapper}
-              displayNodes={h.displayNodes}
-              edges={h.edges}
-              onNodesChange={isReadOnly ? () => {} : h.onNodesChange}
-              onEdgesChange={isReadOnly ? () => {} : h.onEdgesChange}
-              onConnect={isReadOnly ? () => {} : h.graphActions.onConnect}
-              onNodeClick={h.selection.onNodeClick}
-              onEdgeClick={h.selection.onEdgeClick}
-              onPaneClick={h.selection.onPaneClick}
-              zoomViewNodeId={h.zoomView.zoomViewNodeId}
-              simulation={h.simulation}
-              onExitZoomView={h.zoomView.handleExitZoomView}
-              readOnly={isReadOnly}
-            />
-          </div>
-        )}
+      <ToolRegistryProvider agentId={props.agentId ?? ''}>
+        <div className="relative h-full w-full">
+          {/* Canvas layer — fills entire main area */}
+          {h.agentConfig !== undefined ? (
+            <div className="absolute inset-0 overflow-hidden">
+              <AgentEditorWrapper
+                agentConfig={h.agentConfig}
+                pushOperation={h.pushOperation}
+                importCounter={h.agentHooks.importCounter}
+                onBackgroundClick={h.selection.onPaneClick}
+                onConfigChange={h.agentHooks.setAgentConfigSilent}
+                agentId={props.agentId}
+                orgId={props.orgId}
+                insets={insetStyle}
+                rightSlot={buildEmbeddedSimulationPanel(h.simulation)}
+              />
+            </div>
+          ) : (
+            <div className="absolute top-[0px] bottom-2.5 right-3.5 -left-0.5 rounded-xl overflow-hidden">
+              <GraphCanvas
+                agentId={props.agentId ?? ''}
+                reactFlowWrapper={h.reactFlowWrapper}
+                displayNodes={h.displayNodes}
+                edges={h.edges}
+                onNodesChange={isReadOnly ? () => {} : h.onNodesChange}
+                onEdgesChange={isReadOnly ? () => {} : h.onEdgesChange}
+                onConnect={isReadOnly ? () => {} : h.graphActions.onConnect}
+                onNodeClick={h.selection.onNodeClick}
+                onEdgeClick={h.selection.onEdgeClick}
+                onPaneClick={h.selection.onPaneClick}
+                zoomViewNodeId={h.zoomView.zoomViewNodeId}
+                simulation={h.simulation}
+                onExitZoomView={h.zoomView.handleExitZoomView}
+                readOnly={isReadOnly}
+              />
+            </div>
+          )}
 
-        {/* Toolbar — portaled into the main header */}
-        {showToolbar && toolbarPortal && createPortal(
-          <Toolbar
-            onAddNode={h.graphActions.handleAddNode}
-            onImport={h.handleImport}
-            onExport={h.handleExport}
-            onFormat={h.handleFormat}
-            hideWorkflowActions={h.agentConfig !== undefined}
-            onPlay={h.simulation.start}
-            simulationActive={h.simulation.active}
-            statusSlot={<StatusButton nodes={h.nodes} edges={h.edges} pendingSave={h.pendingSave} mcpHealth={h.mcpHealthInput} skipGraphValidation={h.agentConfig !== undefined} />}
-            globalPanelOpen={h.globalPanelOpen}
-            onToggleGlobalPanel={() => h.setGlobalPanelOpen((prev) => !prev)}
-            onTogglePresets={() => h.setPresetsOpen((prev) => !prev)}
-            onToggleTools={() => h.setToolsOpen((prev) => !prev)}
-            onToggleLibrary={() => h.setLibraryOpen((prev) => !prev)}
-            stagingKeyId={h.apiKeys.stagingKeyId}
-            orgSlug={props.orgSlug}
-            orgName={props.orgName}
-            orgAvatarUrl={props.orgAvatarUrl}
-            agentName={props.agentName}
-            publishSlot={
-              props.agentId !== undefined ? (
-                <PublishButton
-                  agentId={props.agentId}
-                  agentSlug={props.agentSlug ?? ''}
-                  orgSlug={props.orgSlug ?? ''}
-                  tenants={props.tenants ?? []}
-                  version={h.version}
-                  canPublish={h.canPublish}
-                  hasApiKey={h.apiKeys.productionKeyId !== null}
-                  flush={h.flush}
-                  onPublished={(newVersion) => {
-                    h.setVersion(newVersion);
-                    versionsHook.setCurrentVersion(newVersion);
-                    h.apiKeys.setProductionKeyId(h.apiKeys.stagingKeyId);
-                    void versionsHook.refresh();
-                    router.refresh();
-                  }}
+          {/* Toolbar — portaled into the main header */}
+          {showToolbar &&
+            toolbarPortal &&
+            createPortal(
+              <Toolbar
+                onAddNode={h.graphActions.handleAddNode}
+                onImport={h.handleImport}
+                onExport={h.handleExport}
+                onFormat={h.handleFormat}
+                hideWorkflowActions={h.agentConfig !== undefined}
+                onPlay={h.simulation.start}
+                simulationActive={h.simulation.active}
+                statusSlot={
+                  <StatusButton
+                    nodes={h.nodes}
+                    edges={h.edges}
+                    pendingSave={h.pendingSave}
+                    mcpHealth={h.mcpHealthInput}
+                    skipGraphValidation={h.agentConfig !== undefined}
+                  />
+                }
+                globalPanelOpen={h.globalPanelOpen}
+                onToggleGlobalPanel={() => h.setGlobalPanelOpen((prev) => !prev)}
+                onToggleTools={() => h.setToolsOpen((prev) => !prev)}
+                onToggleLibrary={() => h.setLibraryOpen((prev) => !prev)}
+                stagingKeyId={h.apiKeys.stagingKeyId}
+                orgSlug={props.orgSlug}
+                orgName={props.orgName}
+                orgAvatarUrl={props.orgAvatarUrl}
+                agentName={props.agentName}
+                publishSlot={
+                  props.agentId !== undefined ? (
+                    <PublishButton
+                      agentId={props.agentId}
+                      agentSlug={props.agentSlug ?? ''}
+                      orgSlug={props.orgSlug ?? ''}
+                      tenants={props.tenants ?? []}
+                      version={h.version}
+                      canPublish={h.canPublish}
+                      hasApiKey={h.apiKeys.productionKeyId !== null}
+                      flush={h.flush}
+                      onPublished={(newVersion) => {
+                        h.setVersion(newVersion);
+                        versionsHook.setCurrentVersion(newVersion);
+                        h.apiKeys.setProductionKeyId(h.apiKeys.stagingKeyId);
+                        void versionsHook.refresh();
+                        router.refresh();
+                      }}
+                    />
+                  ) : undefined
+                }
+                versionSlot={
+                  props.agentId !== undefined ? (
+                    <VersionSwitcherSlot
+                      agentId={props.agentId}
+                      versionsHook={versionsHook}
+                      hasPendingOps={h.hasPendingOps}
+                      clearQueue={h.clearQueue}
+                      reload={props.reload}
+                    />
+                  ) : undefined
+                }
+              />,
+              toolbarPortal
+            )}
+
+          {/* Settings / Data tab portals — rendered into EditorTabs tab content */}
+          {!isReadOnly &&
+            isActiveEditor &&
+            settingsPortal !== null &&
+            createPortal(buildSettingsTabContent(h, props.orgApiKeys ?? [], isAgentMode), settingsPortal)}
+          {!isReadOnly &&
+            isActiveEditor &&
+            dataPortal !== null &&
+            createPortal(
+              buildDataTabContent(h, props.agentId ?? '', props.orgSlug, props.agentSlug),
+              dataPortal
+            )}
+
+          {/* Panels layer — positioned within the slot area */}
+          <div className="absolute z-10 pointer-events-none" style={insetStyle}>
+            <div className="relative flex h-full w-full flex-col items-center">
+              {h.agentConfig === undefined && (
+                <SearchDialog
+                  nodes={h.nodes.map((n) => ({ id: n.id, text: (n.data as RFNodeData).text }))}
+                  open={h.searchOpen}
+                  onClose={() => h.setSearchOpen(false)}
+                  onSelectNode={h.selection.handleSearchSelectNode}
                 />
-              ) : undefined
-            }
-            versionSlot={
-              props.agentId !== undefined ? (
-                <VersionSwitcherSlot
-                  agentId={props.agentId}
-                  versionsHook={versionsHook}
-                  hasPendingOps={h.hasPendingOps}
-                  clearQueue={h.clearQueue}
-                  reload={props.reload}
+              )}
+
+              <SidePanels
+                readOnly={isReadOnly}
+                selection={h.selection}
+                simulation={h.simulation}
+                nodes={h.nodes}
+                edges={h.edges}
+                agents={h.agents}
+                presetsHook={h.presetsHook}
+                mcpHook={h.mcpHook}
+                outputSchemasHook={h.outputSchemasHook}
+                schemaDialog={h.schemaDialog}
+                globalPanelOpen={h.globalPanelOpen}
+                toolsOpen={h.toolsOpen}
+                libraryOpen={h.libraryOpen}
+                mcpLibrary={h.mcpLibrary}
+                setNodes={h.setNodes}
+                setEdges={h.setEdges}
+                ctxPreconditions={h.ctxPreconditions}
+                orgApiKeys={props.orgApiKeys ?? []}
+                orgId={props.orgId ?? ''}
+                agentId={props.agentId ?? ''}
+                agentName={props.agentName ?? ''}
+                orgSlug={props.orgSlug ?? ''}
+                envVariables={h.envVariables}
+                stagingKeyId={h.apiKeys.stagingKeyId}
+                productionKeyId={h.apiKeys.productionKeyId}
+                onStagingKeyChange={h.apiKeys.handleStagingKeyChange}
+                onProductionKeyChange={h.apiKeys.handleProductionKeyChange}
+                onPublishMcpServer={() => {}}
+                onOpenMcpLibrary={() => {
+                  h.setLibraryOpen(true);
+                }}
+                onCloseLibrary={() => h.setLibraryOpen(false)}
+                pushOperation={h.pushOperation}
+                agentToolsConfig={
+                  props.agentId !== undefined &&
+                  props.agentSelectedTools !== undefined &&
+                  props.agentUpdatedAt !== undefined
+                    ? {
+                        agentId: props.agentId,
+                        appType: props.agentAppType ?? '',
+                        initialSelectedTools: props.agentSelectedTools,
+                        initialUpdatedAt: props.agentUpdatedAt,
+                      }
+                    : undefined
+                }
+              />
+
+              {!isReadOnly && h.agentConfig === undefined && (
+                <DeleteConfirmDialog
+                  pendingDelete={h.deleteConfirmation.pendingDelete}
+                  onConfirm={h.deleteConfirmation.confirmDelete}
+                  onCancel={h.deleteConfirmation.cancelDelete}
                 />
-              ) : undefined
-            }
-          />,
-          toolbarPortal
-        )}
+              )}
 
-        {/* Panels layer — positioned within the slot area */}
-        <div className="absolute z-10 pointer-events-none" style={insetStyle}>
-          <div className="relative flex h-full w-full flex-col items-center">
-
-            {h.agentConfig === undefined && (
-              <SearchDialog
-                nodes={h.nodes.map((n) => ({ id: n.id, text: (n.data as RFNodeData).text }))}
-                open={h.searchOpen}
-                onClose={() => h.setSearchOpen(false)}
-                onSelectNode={h.selection.handleSearchSelectNode}
-              />
-            )}
-
-            <SidePanels
-              readOnly={isReadOnly}
-              selection={h.selection}
-              simulation={h.simulation}
-              nodes={h.nodes}
-              edges={h.edges}
-              agents={h.agents}
-              presetsHook={h.presetsHook}
-              mcpHook={h.mcpHook}
-              outputSchemasHook={h.outputSchemasHook}
-              globalPanelOpen={h.globalPanelOpen}
-              presetsOpen={h.presetsOpen}
-              toolsOpen={h.toolsOpen}
-              libraryOpen={h.libraryOpen}
-              mcpLibrary={h.mcpLibrary}
-              setNodes={h.setNodes}
-              setEdges={h.setEdges}
-              ctxPreconditions={h.ctxPreconditions}
-              orgApiKeys={props.orgApiKeys ?? []}
-              orgId={props.orgId ?? ''}
-              agentId={props.agentId ?? ''}
-              agentName={props.agentName ?? ''}
-              orgSlug={props.orgSlug ?? ''}
-              envVariables={h.envVariables}
-              stagingKeyId={h.apiKeys.stagingKeyId}
-              productionKeyId={h.apiKeys.productionKeyId}
-              onStagingKeyChange={h.apiKeys.handleStagingKeyChange}
-              onProductionKeyChange={h.apiKeys.handleProductionKeyChange}
-              onPublishMcpServer={() => {}}
-              onOpenMcpLibrary={() => {
-                h.setLibraryOpen(true);
-                h.setPresetsOpen(false);
-              }}
-              onCloseLibrary={() => h.setLibraryOpen(false)}
-              pushOperation={h.pushOperation}
-            />
-
-            {!isReadOnly && h.agentConfig === undefined && (
-              <DeleteConfirmDialog
-                pendingDelete={h.deleteConfirmation.pendingDelete}
-                onConfirm={h.deleteConfirmation.confirmDelete}
-                onCancel={h.deleteConfirmation.cancelDelete}
-              />
-            )}
-
-            {!isReadOnly && h.agentConfig === undefined && h.graphActions.connectionMenu !== null && (
-              <ConnectionMenu
-                position={h.graphActions.connectionMenu.position}
-                sourceNodeId={h.graphActions.connectionMenu.sourceNodeId}
-                sourceHandleId={h.graphActions.connectionMenu.sourceHandleId}
-                sourceEdgeType={getSourceEdgeType(h.graphActions.connectionMenu.sourceNodeId, h.edges)}
-                nodes={h.nodes.map((n) => ({ id: n.id, text: (n.data as RFNodeData).text }))}
-                onSelectNode={h.graphActions.handleConnectionMenuSelectNode}
-                onCreateNode={h.graphActions.handleConnectionMenuCreateNode}
-                onCreateUserNode={h.createUserNode}
-                onCreateToolNode={h.createToolNode}
-                onCreateIfElse={h.createIfElse}
-                onCreateLoop={h.createLoop}
-                onClose={h.graphActions.handleConnectionMenuClose}
-              />
-            )}
+              {!isReadOnly && h.agentConfig === undefined && h.graphActions.connectionMenu !== null && (
+                <ConnectionMenu
+                  position={h.graphActions.connectionMenu.position}
+                  sourceNodeId={h.graphActions.connectionMenu.sourceNodeId}
+                  sourceHandleId={h.graphActions.connectionMenu.sourceHandleId}
+                  sourceEdgeType={getSourceEdgeType(h.graphActions.connectionMenu.sourceNodeId, h.edges)}
+                  nodes={h.nodes.map((n) => ({ id: n.id, text: (n.data as RFNodeData).text }))}
+                  onSelectNode={h.graphActions.handleConnectionMenuSelectNode}
+                  onCreateNode={h.graphActions.handleConnectionMenuCreateNode}
+                  onCreateUserNode={h.createUserNode}
+                  onCreateToolNode={h.createToolNode}
+                  onCreateIfElse={h.createIfElse}
+                  onCreateLoop={h.createLoop}
+                  onClose={h.graphActions.handleConnectionMenuClose}
+                />
+              )}
+            </div>
           </div>
         </div>
-      </div>
       </ToolRegistryProvider>
     </HandleContext.Provider>
   );
@@ -642,29 +766,17 @@ function LoadedEditor(props: LoadedEditorProps) {
 
 function GraphBuilderInner(props: GraphBuilderProps) {
   if (props.graphOverride !== undefined) {
-    return (
-      <GraphBuilderWithOverride {...props} graph={props.graphOverride} />
-    );
+    return <GraphBuilderWithOverride {...props} graph={props.graphOverride} />;
   }
 
   return <GraphBuilderWithLoader {...props} />;
 }
 
 function GraphBuilderWithOverride(props: GraphBuilderProps & { graph: Graph }) {
-  const loadResult: GraphLoadResult = useMemo(
-    () => buildLoadResultFromGraph(props.graph),
-    [props.graph]
-  );
+  const loadResult: GraphLoadResult = useMemo(() => buildLoadResultFromGraph(props.graph), [props.graph]);
   const noop = useCallback(() => {}, []);
 
-  return (
-    <LoadedEditor
-      {...props}
-      loadResult={loadResult}
-      reload={noop}
-      initialDiscoveredTools={{}}
-    />
-  );
+  return <LoadedEditor {...props} loadResult={loadResult} reload={noop} initialDiscoveredTools={{}} />;
 }
 
 function GraphBuilderWithLoader(props: GraphBuilderProps) {

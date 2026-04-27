@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState, useTransition } from 'react';
 
+import { Scrollable } from '../Scrollable';
 import { DebugCanvas } from './DebugCanvas';
 import { NodeInspector } from './NodeInspector';
 import { DebugBreadcrumb } from './debug-view/DebugBreadcrumb';
@@ -154,7 +155,7 @@ function DebugCanvasArea({
           debugGraphOptions={debugGraphOptions}
         />
       </div>
-      <div className="w-1/3 overflow-y-auto">
+      <Scrollable className="w-1/3">
         <NodeInspector
           nodeId={selectedNodeId}
           nodeVisits={nodeVisits}
@@ -163,7 +164,7 @@ function DebugCanvasArea({
           prevExecLabel={prevExecLabel}
           onGoToPrevExec={onGoToPrevExec}
         />
-      </div>
+      </Scrollable>
     </div>
   );
 }
@@ -254,7 +255,7 @@ export function DebugView(props: DebugViewProps) {
   };
 
   return (
-    <div className="flex h-[calc(100%-var(--spacing)*2)] flex-col bg-background overflow-hidden border border mr-2 rounded-xl">
+    <div className="flex h-[calc(100%-var(--spacing)*2.5)] flex-col bg-background overflow-hidden border border mr-2.5 rounded-xl">
       <DebugHeader
         orgSlug={orgSlug}
         agentName={breadcrumbLabel}

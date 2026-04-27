@@ -27,6 +27,17 @@ interface FieldCardProps {
   onChange: (updated: OutputSchemaField) => void;
   onRemove: () => void;
   isArrayItem?: boolean;
+  usedByFormSlugs?: string[];
+}
+
+function FieldUsageWarning({ slugs }: { slugs: string[] }) {
+  const tWarn = useTranslations('outputSchemas.warnings');
+  if (slugs.length === 0) return null;
+  return (
+    <p className="mt-1 text-xs text-muted-foreground">
+      {tWarn('fieldUsed', { form: slugs.join(', ') })}
+    </p>
+  );
 }
 
 interface EnumValuesEditorProps {
@@ -260,8 +271,95 @@ function ArrayItemCard({
   );
 }
 
-export function OutputSchemaFieldCard({ field, depth, onChange, onRemove, isArrayItem }: FieldCardProps) {
+function FieldDescriptionRow({
+  description,
+  onChange,
+}: {
+  description: string | undefined;
+  onChange: (value: string | undefined) => void;
+}) {
   const t = useTranslations('nodePanel');
+  return (
+    <div className="mt-1 flex items-center gap-1">
+      <Label className="shrink-0 w-[75px]">{'Description:'}</Label>
+      <Input
+        value={description ?? ''}
+        onChange={(e) => onChange(e.target.value || undefined)}
+        placeholder={t('fieldDescriptionPlaceholder')}
+        className="h-7 text-xs"
+      />
+    </div>
+  );
+}
+
+function FieldRequiredRow({
+  required,
+  onChange,
+}: {
+  required: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <div className="mt-1 flex h-7 items-center gap-1">
+      <Label className="shrink-0 w-[75px]">{'Required:'}</Label>
+      <Checkbox checked={required} onCheckedChange={(checked) => onChange(checked === true)} />
+      <span className="ml-0.5 text-muted-foreground">
+        {'(specifies if this field is optional or always required)'}
+      </span>
+    </div>
+  );
+}
+
+function StandardFieldCardBody({
+  field,
+  depth,
+  availableTypes,
+  borderColor,
+  bgColor,
+  onChange,
+  onRemove,
+  usedByFormSlugs,
+}: {
+  field: OutputSchemaField;
+  depth: number;
+  availableTypes: OutputSchemaFieldType[];
+  borderColor: string;
+  bgColor: string;
+  onChange: (updates: Partial<OutputSchemaField>) => void;
+  onRemove: () => void;
+  usedByFormSlugs: string[] | undefined;
+}) {
+  return (
+    <div className={`group flex flex-col border-l-3 ${borderColor} ${bgColor} rounded-r py-0.5 pl-3`}>
+      <FieldHeader field={field} availableTypes={availableTypes} onChange={onChange} onRemove={onRemove} />
+      {usedByFormSlugs !== undefined && <FieldUsageWarning slugs={usedByFormSlugs} />}
+      {field.type === 'enum' && (
+        <div className="flex items-center gap-1 min-h-7 pt-1">
+          <Label className="shrink-0 w-[75px]">{'Values:'}</Label>
+          <EnumValuesEditor
+            values={field.enumValues ?? ['']}
+            onChange={(v) => onChange({ enumValues: v })}
+          />
+        </div>
+      )}
+      <FieldDescriptionRow
+        description={field.description}
+        onChange={(description) => onChange({ description })}
+      />
+      <FieldRequiredRow required={field.required} onChange={(required) => onChange({ required })} />
+      <FieldChildren field={field} depth={depth} onChange={onChange} />
+    </div>
+  );
+}
+
+export function OutputSchemaFieldCard({
+  field,
+  depth,
+  onChange,
+  onRemove,
+  isArrayItem,
+  usedByFormSlugs,
+}: FieldCardProps) {
   const availableTypes = getAvailableTypes(depth);
   const borderColor = TYPE_BORDER_COLORS[field.type];
   const bgColor = TYPE_BG_COLORS[field.type];
@@ -284,43 +382,15 @@ export function OutputSchemaFieldCard({ field, depth, onChange, onRemove, isArra
   }
 
   return (
-    <div className={`group flex flex-col border-l-3 ${borderColor} ${bgColor} rounded-r py-0.5 pl-3`}>
-      <FieldHeader
-        field={field}
-        availableTypes={availableTypes}
-        onChange={handleChange}
-        onRemove={onRemove}
-      />
-      {field.type === 'enum' && (
-        <div className="flex items-center gap-1 min-h-7 pt-1">
-          <Label className="shrink-0 w-[75px]">{'Values:'}</Label>
-          <EnumValuesEditor
-            values={field.enumValues ?? ['']}
-            onChange={(v) => handleChange({ enumValues: v })}
-          />
-        </div>
-      )}
-      <div className="mt-1 flex items-center gap-1">
-        <Label className="shrink-0 w-[75px]">{'Description:'}</Label>
-        <Input
-          value={field.description ?? ''}
-          onChange={(e) => handleChange({ description: e.target.value || undefined })}
-          placeholder={t('fieldDescriptionPlaceholder')}
-          className="h-7 text-xs"
-        />
-      </div>
-      <div className="mt-1 flex h-7 items-center gap-1">
-        <Label className="shrink-0 w-[75px]">{'Required:'}</Label>
-        <Checkbox
-          checked={field.required}
-          onCheckedChange={(checked) => handleChange({ required: checked === true })}
-        />
-        <span className="ml-0.5 text-muted-foreground">
-          {'(specifies if this field is optional or always required)'}
-        </span>
-      </div>
-
-      <FieldChildren field={field} depth={depth} onChange={handleChange} />
-    </div>
+    <StandardFieldCardBody
+      field={field}
+      depth={depth}
+      availableTypes={availableTypes}
+      borderColor={borderColor}
+      bgColor={bgColor}
+      onChange={handleChange}
+      onRemove={onRemove}
+      usedByFormSlugs={usedByFormSlugs}
+    />
   );
 }

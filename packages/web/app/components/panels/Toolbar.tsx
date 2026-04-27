@@ -18,9 +18,7 @@ import {
   Blocks,
   Download,
   Menu,
-  Palette,
   Play,
-  Settings,
   SquareFunction,
   Upload,
   Waypoints,
@@ -29,8 +27,6 @@ import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-
-import { ThemeSwitcher } from '../ThemeSwitcher';
 
 const TOOLTIP_DELAY = 1000;
 
@@ -44,7 +40,6 @@ interface ToolbarProps {
   statusSlot?: ReactNode;
   globalPanelOpen?: boolean;
   onToggleGlobalPanel?: () => void;
-  onTogglePresets?: () => void;
   onToggleTools?: () => void;
   onToggleLibrary?: () => void;
   publishSlot?: ReactNode;
@@ -122,34 +117,23 @@ interface FileMenuItemsProps {
 function FileMenuItems({ onImport, onExport, onFormat, hideWorkflowActions }: FileMenuItemsProps) {
   const t = useTranslations('common');
   const tToolbar = useTranslations('toolbar');
-  const tTheme = useTranslations('theme');
 
   return (
     <>
-      <div className="flex items-center justify-between pl-2 pr-1 py-1.5">
-        <span className="text-xs/relaxed flex gap-2 items-center cursor-default">
-          <Palette className="size-4" />
-          {tTheme('label')}
-        </span>
-        <ThemeSwitcher />
-      </div>
-      <Separator />
-      <div className="pt-1">
-        <DropdownMenuItem onClick={onImport}>
-          <Upload className="size-4" />
-          {t('import')}
+      <DropdownMenuItem onClick={onImport}>
+        <Upload className="size-4" />
+        {t('import')}
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={onExport}>
+        <Download className="size-4" />
+        {t('export')}
+      </DropdownMenuItem>
+      {!hideWorkflowActions && (
+        <DropdownMenuItem onClick={onFormat}>
+          <AlignHorizontalSpaceAround className="size-4" />
+          {tToolbar('autoLayout')}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onExport}>
-          <Download className="size-4" />
-          {t('export')}
-        </DropdownMenuItem>
-        {!hideWorkflowActions && (
-          <DropdownMenuItem onClick={onFormat}>
-            <AlignHorizontalSpaceAround className="size-4" />
-            {tToolbar('autoLayout')}
-          </DropdownMenuItem>
-        )}
-      </div>
+      )}
     </>
   );
 }
@@ -179,7 +163,11 @@ export function FileMenu({
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0" variant="ghost" size="lg">
+          <Button
+            className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
+            variant="ghost"
+            size="default"
+          >
             <Menu />
           </Button>
         }
@@ -212,7 +200,7 @@ function PlayButton({ simulationActive, onPlay, disabled, label }: PlayButtonPro
     <Button
       className="hover:bg-input! dark:hover:bg-input aspect-square! px-0"
       variant={simulationActive ? 'default' : 'ghost'}
-      size="lg"
+      size="default"
       onClick={disabled ? undefined : onPlay}
       disabled={disabled}
     >
@@ -235,7 +223,7 @@ interface PlayButtonProps {
 }
 
 function ToolbarButtons(props: ToolbarProps) {
-  const { onToggleGlobalPanel, onToggleTools, onToggleLibrary, onTogglePresets } = props;
+  const { onToggleGlobalPanel, onToggleTools, onToggleLibrary } = props;
   const t = useTranslations('toolbar');
 
   return (
@@ -245,7 +233,7 @@ function ToolbarButtons(props: ToolbarProps) {
           <Button
             className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
             variant="ghost"
-            size="lg"
+            size="default"
             onClick={onToggleGlobalPanel}
           >
             <Waypoints />
@@ -257,7 +245,7 @@ function ToolbarButtons(props: ToolbarProps) {
           <Button
             className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
             variant="ghost"
-            size="lg"
+            size="default"
             onClick={onToggleTools}
           >
             <SquareFunction />
@@ -269,26 +257,12 @@ function ToolbarButtons(props: ToolbarProps) {
           <Button
             className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
             variant="ghost"
-            size="lg"
+            size="default"
             onClick={onToggleLibrary}
           >
             <Blocks />
           </Button>
         </ToolbarTooltip>
-      )}
-      {onTogglePresets && (
-        <>
-          <ToolbarTooltip label={t('settings')}>
-            <Button
-              className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
-              variant="ghost"
-              size="lg"
-              onClick={onTogglePresets}
-            >
-              <Settings />
-            </Button>
-          </ToolbarTooltip>
-        </>
       )}
     </>
   );
@@ -329,9 +303,9 @@ export function Toolbar(props: ToolbarProps) {
         hideWorkflowActions={props.hideWorkflowActions}
       />
       <Separator orientation="vertical" className="my-2 mx-2" />
-      {props.statusSlot}
-      {props.versionSlot}
       {props.publishSlot}
+      {props.versionSlot}
+      {props.statusSlot}
     </div>
   );
 }

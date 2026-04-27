@@ -1,3 +1,4 @@
+import type { SelectedTool } from '@daviddh/llm-graph-runner';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 /* ------------------------------------------------------------------ */
@@ -21,6 +22,7 @@ export interface AgentRow {
   category: string;
   created_from_template_id: string | null;
   app_type: string;
+  selected_tools: SelectedTool[];
   system_prompt: string | null;
   max_steps: number | null;
 }
@@ -42,7 +44,13 @@ interface VersionRow {
 /* ------------------------------------------------------------------ */
 
 function isAgentRow(value: unknown): value is AgentRow {
-  return typeof value === 'object' && value !== null && 'id' in value && 'slug' in value;
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'id' in value &&
+    'slug' in value &&
+    'selected_tools' in value
+  );
 }
 
 function isVersionRow(value: unknown): value is VersionRow {
@@ -135,6 +143,17 @@ export async function getAgentBySlug(
   slug: string
 ): Promise<{ result: AgentRow | null; error: string | null }> {
   const queryResult = await supabase.from('agents').select('*').eq('slug', slug).single();
+
+  if (queryResult.error !== null) return { result: null, error: queryResult.error.message };
+  if (!isAgentRow(queryResult.data)) return { result: null, error: 'Invalid agent data' };
+  return { result: queryResult.data, error: null };
+}
+
+export async function getAgentById(
+  supabase: SupabaseClient,
+  agentId: string
+): Promise<{ result: AgentRow | null; error: string | null }> {
+  const queryResult = await supabase.from('agents').select('*').eq('id', agentId).single();
 
   if (queryResult.error !== null) return { result: null, error: queryResult.error.message };
   if (!isAgentRow(queryResult.data)) return { result: null, error: 'Invalid agent data' };
@@ -262,4 +281,10 @@ export async function updateAgentMetadata(
   const { error } = await supabase.from('agents').update(payload).eq('id', agentId);
   if (error !== null) return { error: error.message };
   return { error: null };
+}
+
+export async function getAgentOrgId(supabase: SupabaseClient, agentId: string): Promise<string | null> {
+  const result = await supabase.from('agents').select('org_id').eq('id', agentId).single();
+  if (result.error !== null) return null;
+  return (result.data as { org_id: string }).org_id;
 }

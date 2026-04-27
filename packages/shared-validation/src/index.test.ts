@@ -1,9 +1,9 @@
 import {
-  isValidTenantSlug,
-  isValidAgentSlug,
-  TENANT_SLUG_REGEX,
   AGENT_SLUG_REGEX,
   RESERVED_TENANT_SLUGS,
+  TENANT_SLUG_REGEX,
+  isValidAgentSlug,
+  isValidTenantSlug,
 } from './index.js';
 
 describe('tenant slug', () => {

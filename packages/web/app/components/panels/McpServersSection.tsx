@@ -20,6 +20,7 @@ interface McpServersSectionProps {
   discovering: Record<string, boolean>;
   serverStatus: Record<string, McpServerStatus>;
   orgId: string;
+  agentId?: string;
   envVariables: OrgEnvVariableRow[];
   libraryItems?: McpLibraryRow[];
   onAdd: () => void;
@@ -36,11 +37,32 @@ interface ServerItemProps {
   isDiscovering: boolean;
   envVariables: OrgEnvVariableRow[];
   orgId: string;
+  agentId?: string;
   authType?: McpAuthType;
   onRemove: () => void;
   onUpdate: (updates: Partial<McpServerConfig>) => void;
   onDiscover: () => void;
   onPublish: () => void;
+}
+
+async function invalidateMcpCacheRequest(agentId: string, mcpServerId: string): Promise<void> {
+  await fetch(
+    `/api/agents/${encodeURIComponent(agentId)}/mcp-cache/${encodeURIComponent(mcpServerId)}`,
+    { method: 'DELETE' }
+  );
+}
+
+function buildDiscoverHandler(agentId: string | undefined, serverId: string, onDiscover: () => void) {
+  return async () => {
+    if (agentId !== undefined) {
+      try {
+        await invalidateMcpCacheRequest(agentId, serverId);
+      } catch {
+        // Cache bust failed — proceed with discovery anyway
+      }
+    }
+    onDiscover();
+  };
 }
 
 function DiscoverButton({
@@ -202,6 +224,7 @@ function ServerItem({
   isDiscovering,
   envVariables,
   orgId,
+  agentId,
   authType,
   onRemove,
   onUpdate,
@@ -209,6 +232,7 @@ function ServerItem({
   onPublish,
 }: ServerItemProps) {
   const [expanded, setExpanded] = useState(false);
+  const handleDiscover = buildDiscoverHandler(agentId, server.id, onDiscover);
 
   return (
     <li className="rounded-md border px-3 py-2 bg-background">
@@ -242,7 +266,7 @@ function ServerItem({
           orgId={orgId}
           authType={authType}
           onUpdate={onUpdate}
-          onDiscover={onDiscover}
+          onDiscover={handleDiscover}
           onPublish={onPublish}
         />
       )}
@@ -261,6 +285,7 @@ export function McpServersSection({
   serverStatus,
   envVariables,
   orgId,
+  agentId,
   libraryItems,
   onAdd,
   onRemove,
@@ -295,6 +320,7 @@ export function McpServersSection({
               isDiscovering={discovering[server.id] ?? false}
               envVariables={envVariables}
               orgId={orgId}
+              agentId={agentId}
               authType={getAuthType(server, items)}
               onRemove={() => onRemove(server.id)}
               onUpdate={(updates) => onUpdate(server.id, updates)}

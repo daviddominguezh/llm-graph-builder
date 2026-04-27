@@ -1,5 +1,11 @@
 import type { RuntimeGraph } from '@daviddh/graph-types';
-import type { CallAgentOutput, Message, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
+import type {
+  CallAgentOutput,
+  Message,
+  NodeProcessedEvent,
+  OAuthTokenBundle,
+  SelectedTool,
+} from '@daviddh/llm-graph-runner';
 
 import { handleStepProcessed } from './edgeFunctionAgentEvents.js';
 import { buildResultFromResponse, mapRawToolCalls } from './edgeFunctionOutputParsers.js';
@@ -16,6 +22,14 @@ import {
 } from './sseHelpers.js';
 
 export type { NodeProcessedData, VfsEdgeFunctionPayload } from './executeSharedTypes.js';
+
+/** Payload schema version sent to the edge function. */
+export enum EdgePayloadSchemaVersion {
+  /** Legacy: googleCalendar flat field */
+  Legacy = 1,
+  /** Current: oauth.byProvider map */
+  Current = 2,
+}
 
 export interface ExecuteAgentParams {
   appType?: 'workflow' | 'agent';
@@ -38,6 +52,12 @@ export interface ExecuteAgentParams {
   maxSteps?: number | null;
   isChildAgent?: boolean;
   conversationId?: string;
+  // Schema version for transition window (1 = legacy, 2 = oauth.byProvider)
+  schemaVersion: EdgePayloadSchemaVersion;
+  // Pre-selected tools for agent mode
+  selectedTools?: SelectedTool[];
+  // Pre-resolved OAuth token bundles, keyed by providerId
+  oauth?: { byProvider: Record<string, OAuthTokenBundle> };
 }
 
 export interface ExecuteAgentCallbacks {

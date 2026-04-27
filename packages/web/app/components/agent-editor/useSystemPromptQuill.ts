@@ -9,10 +9,18 @@ import { htmlToMd, mdToHtml } from './mdHtml';
 const DEBOUNCE_MS = 500;
 const FORMATS = ['bold', 'italic', 'strike', 'header', 'list', 'blockquote', 'code', 'code-block', 'link'];
 
-type BoolRef = { current: boolean };
-type StrRef = { current: string };
-type FnRef = { current: (v: string) => void };
-type TimerRef = { current: ReturnType<typeof setTimeout> | null };
+interface BoolRef {
+  current: boolean;
+}
+interface StrRef {
+  current: string;
+}
+interface FnRef {
+  current: (v: string) => void;
+}
+interface TimerRef {
+  current: ReturnType<typeof setTimeout> | null;
+}
 
 interface Args {
   value: string;
@@ -31,7 +39,10 @@ function writeMdToQuill(quill: QuillType, md: string): void {
     quill.clipboard.dangerouslyPasteHTML(mdToHtml(md));
   }
 
-  if (toRestore !== null) setTimeout(() => toRestore.focus(), 0);
+  if (toRestore !== null)
+    setTimeout(() => {
+      toRestore.focus();
+    }, 0);
 }
 
 function useExternalToQuill(
@@ -50,7 +61,9 @@ function useExternalToQuill(
     const t = setTimeout(() => {
       isSyncingRef.current = false;
     }, 0);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(t);
+    };
   }, [quill, value, isSyncingRef, lastEmittedRef]);
 }
 
@@ -79,7 +92,9 @@ function useQuillToExternal(
   useEffect(() => {
     if (!quill) return;
     const timerRef: TimerRef = { current: null };
-    const handler = () => handleTextChange(quill, onChangeRef, isSyncingRef, lastEmittedRef, timerRef);
+    const handler = () => {
+      handleTextChange(quill, onChangeRef, isSyncingRef, lastEmittedRef, timerRef);
+    };
     quill.on('text-change', handler);
     return () => {
       quill.off('text-change', handler);

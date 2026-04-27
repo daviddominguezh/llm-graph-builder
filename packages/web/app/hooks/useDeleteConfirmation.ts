@@ -78,7 +78,9 @@ export function useDeleteConfirmation(params: UseDeleteConfirmationParams): UseD
     }
 
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, [nodes, edges]);
 
   const confirmDelete = useCallback(() => {

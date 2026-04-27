@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useState } from 'react';
 import { toast } from 'sonner';
@@ -110,7 +111,7 @@ function CreateApiKeyForm({ orgId, onOpenChange, onCreated }: CreateApiKeyDialog
       <CreateApiKeyFields nameError={nameError} keyError={keyError} onNameChange={handleNameChange} />
       <DialogFooter>
         <Button type="submit" disabled={loading}>
-          {t('add')}
+          {loading ? <Loader2 className="size-4 animate-spin" /> : t('add')}
         </Button>
       </DialogFooter>
     </form>

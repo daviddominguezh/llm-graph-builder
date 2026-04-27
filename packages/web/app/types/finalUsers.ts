@@ -1,4 +1,4 @@
-import { AddressSchemaType } from './orders';
+import type { AddressSchemaType } from './orders';
 
 export interface FinalUserInfoAPI {
   name?: string;

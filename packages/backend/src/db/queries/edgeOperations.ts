@@ -1,4 +1,4 @@
-import type { Operation } from '@daviddh/graph-types';
+import type { Operation, Precondition } from '@daviddh/graph-types';
 
 import type { SupabaseClient } from './operationHelpers.js';
 import { throwOnMutationError } from './operationHelpers.js';
@@ -19,14 +19,23 @@ interface RpcContextPreconditions {
   jumpTo: string | undefined;
 }
 
+function encodePreconditionValue(p: Precondition): string {
+  if (p.type === 'tool_call') return JSON.stringify(p.tool);
+  return p.value;
+}
+
+function getToolFields(p: Precondition): Record<string, unknown> | undefined {
+  return p.type === 'tool_call' ? p.toolFields : undefined;
+}
+
 function buildRpcPreconditions(data: EdgeData): RpcPrecondition[] {
   if (data.preconditions === undefined) return [];
 
   return data.preconditions.map((p) => ({
     type: p.type,
-    value: p.value,
+    value: encodePreconditionValue(p),
     description: p.description ?? '',
-    toolFields: p.toolFields,
+    toolFields: getToolFields(p),
   }));
 }
 

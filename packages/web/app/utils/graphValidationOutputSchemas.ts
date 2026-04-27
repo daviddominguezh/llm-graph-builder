@@ -137,7 +137,7 @@ function validateEdgeReferences(edge: FlowEdge, nodes: FlowNode[]): ValidationEr
   const preconditions = edge.data?.preconditions ?? [];
 
   for (const p of preconditions) {
-    if (p.toolFields === undefined) continue;
+    if (p.type !== 'tool_call' || p.toolFields === undefined) continue;
     for (const [fieldName, field] of Object.entries(p.toolFields)) {
       errors.push(...validateSingleReference(nodes, edge.source, fieldName, field));
     }

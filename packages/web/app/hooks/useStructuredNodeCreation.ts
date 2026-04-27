@@ -7,6 +7,7 @@ import { DEFAULT_NODE_HEIGHT, DEFAULT_NODE_WIDTH, NODE_GAP } from '../utils/grap
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
 import { buildInsertEdgeOp, buildInsertNodeOp, buildUpdateNodeOp } from '../utils/operationBuilders';
 import type { PushOperation } from '../utils/operationBuilders';
+import { makePrecondition } from '../utils/preconditionHelpers';
 
 const NANOID_LENGTH = 8;
 const HALF = 2;
@@ -113,7 +114,7 @@ export function useCreateUserNode(params: StructuredCreationParams): (userSaidVa
       );
       params.pushOperation(buildInsertNodeOp(newNode));
       params.pushOperation(
-        buildInsertEdgeOp(params.menu!.sourceNodeId, id, { preconditions: [precondition] })
+        buildInsertEdgeOp(params.menu.sourceNodeId, id, { preconditions: [precondition] })
       );
       updateNextNodeIsUser(params, sourceNode);
       params.setSelectedNodeId(id);
@@ -133,7 +134,7 @@ export function useCreateToolNode(params: StructuredCreationParams): (toolName: 
       const id = makeNodeId();
       const position = getBasePosition(sourceNode);
       const targetHandle = resolveTargetHandle(params.menu.sourceHandleId);
-      const precondition: Precondition = { type: 'tool_call', value: toolName };
+      const precondition: Precondition = makePrecondition({ type: 'tool_call', value: toolName });
       const newNode = makeNode(id, position, '');
 
       params.setNodes((nds) => [...nds, newNode]);
@@ -151,7 +152,7 @@ export function useCreateToolNode(params: StructuredCreationParams): (toolName: 
       );
       params.pushOperation(buildInsertNodeOp(newNode));
       params.pushOperation(
-        buildInsertEdgeOp(params.menu!.sourceNodeId, id, { preconditions: [precondition] })
+        buildInsertEdgeOp(params.menu.sourceNodeId, id, { preconditions: [precondition] })
       );
       params.setSelectedNodeId(id);
       params.closeMenu();
@@ -209,10 +210,10 @@ export function useCreateIfElse(
       params.pushOperation(buildInsertNodeOp(nodeA));
       params.pushOperation(buildInsertNodeOp(nodeB));
       params.pushOperation(
-        buildInsertEdgeOp(params.menu!.sourceNodeId, idA, { preconditions: [preconditionA] })
+        buildInsertEdgeOp(params.menu.sourceNodeId, idA, { preconditions: [preconditionA] })
       );
       params.pushOperation(
-        buildInsertEdgeOp(params.menu!.sourceNodeId, idB, { preconditions: [preconditionB] })
+        buildInsertEdgeOp(params.menu.sourceNodeId, idB, { preconditions: [preconditionB] })
       );
       params.setSelectedNodeId(idA);
       params.closeMenu();
@@ -246,7 +247,9 @@ export function useCreateLoop(
 
       // Edge: source -> loop body
       const connPrecondition: Precondition | undefined =
-        connection.type === 'none' ? undefined : { type: connection.type, value: connection.value };
+        connection.type === 'none'
+          ? undefined
+          : makePrecondition({ type: connection.type, value: connection.value });
       const connEdgeData: RFEdgeData | undefined = connPrecondition
         ? { preconditions: [connPrecondition] }
         : undefined;
@@ -287,9 +290,9 @@ export function useCreateLoop(
 
       params.pushOperation(buildInsertNodeOp(loopNode));
       params.pushOperation(buildInsertNodeOp(exitNode));
-      params.pushOperation(buildInsertEdgeOp(params.menu!.sourceNodeId, loopId, connEdgeData));
+      params.pushOperation(buildInsertEdgeOp(params.menu.sourceNodeId, loopId, connEdgeData));
       params.pushOperation(
-        buildInsertEdgeOp(loopId, params.menu!.sourceNodeId, { preconditions: [continuePrecondition] })
+        buildInsertEdgeOp(loopId, params.menu.sourceNodeId, { preconditions: [continuePrecondition] })
       );
       params.pushOperation(buildInsertEdgeOp(loopId, exitId, { preconditions: [exitPrecondition] }));
 

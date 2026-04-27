@@ -59,7 +59,7 @@ function VisibilityOption({
   description: string;
 }) {
   const border = selected ? 'border-primary ring-1 ring-primary' : 'border-transparent';
-  const background = selected ? 'bg-input/20' : 'bg-input/20';
+  const background = selected ? 'bg-input/30' : 'bg-input/30';
 
   return (
     <button

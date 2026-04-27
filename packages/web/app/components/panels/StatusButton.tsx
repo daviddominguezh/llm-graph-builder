@@ -118,7 +118,7 @@ export function StatusButton({ nodes, edges, pendingSave, mcpHealth, skipGraphVa
     <AlertDialog>
       <AlertDialogTrigger
         render={
-          <Button variant="ghost" size="lg" className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0">
+          <Button variant="ghost" size="default" className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0">
             <StatusIcon hasErrors={hasErrors} hasWarnings={hasWarnings} saving={saving} />
           </Button>
         }

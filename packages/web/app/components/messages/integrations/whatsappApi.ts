@@ -50,5 +50,5 @@ export async function connectWhatsAppIntegration(
     throw new Error(errorData.error ?? 'Failed to connect WhatsApp');
   }
 
-  return response.json() as Promise<WhatsAppConnectResponse>;
+  return await (response.json() as Promise<WhatsAppConnectResponse>);
 }

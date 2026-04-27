@@ -57,6 +57,10 @@ import { pushUpdateNode } from "./nodePanelOps";
 import { nodeHasContent } from "./toolCallGuard";
 import { ToolCombobox } from "./ToolCombobox";
 import { ToolParamsCard } from "./ToolParamsCard";
+import {
+  getPreconditionDisplayValue,
+  makePrecondition,
+} from "../../utils/preconditionHelpers";
 
 const START_NODE_ID = "INITIAL_STEP";
 
@@ -187,12 +191,12 @@ export function EdgePanel({
 
   const doAddPrecondition = () => {
     if (newPreconditionValue.trim()) {
-      const newPrecondition: Precondition = {
+      const newPrecondition: Precondition = makePrecondition({
         type: existingType ?? newPreconditionType,
         value: newPreconditionValue.trim(),
         description: newPreconditionDescription.trim() || undefined,
         toolFields: newPreconditionToolFields,
-      };
+      });
       const newPreconditions = [...preconditions, newPrecondition];
       setPreconditions(newPreconditions);
       updateEdgeData({ preconditions: newPreconditions });
@@ -209,16 +213,19 @@ export function EdgePanel({
   };
 
   const handleToolFieldsChange = (index: number, toolFields: Record<string, ToolFieldValue> | undefined) => {
-    const updated = preconditions.map((p, i) => (i === index ? { ...p, toolFields } : p));
+    const updated = preconditions.map((p, i) =>
+      i === index && p.type === "tool_call" ? { ...p, toolFields } : p,
+    );
     setPreconditions(updated);
     updateEdgeData({ preconditions: updated });
   };
 
   const handleEditPrecondition = (index: number) => {
+    const target = preconditions[index];
     setEditingPreconditionIndex(index);
-    setEditingPreconditionValue(preconditions[index].value);
-    setEditingPreconditionDescription(preconditions[index].description ?? "");
-    setEditingPreconditionType(preconditions[index].type);
+    setEditingPreconditionValue(getPreconditionDisplayValue(target));
+    setEditingPreconditionDescription(target.description ?? "");
+    setEditingPreconditionType(target.type);
     setShowEditModal(true);
   };
 
@@ -228,16 +235,17 @@ export function EdgePanel({
 
     const canChangeType = siblingEdges.length === 0;
 
-    const updatedPreconditions = preconditions.map((p, i) =>
-      i === editingPreconditionIndex
-        ? {
-            ...p,
-            type: canChangeType ? editingPreconditionType : p.type,
-            value: editingPreconditionValue.trim(),
-            description: editingPreconditionDescription.trim() || undefined,
-          }
-        : p,
-    );
+    const updatedPreconditions = preconditions.map((p, i) => {
+      if (i !== editingPreconditionIndex) return p;
+      const nextType = canChangeType ? editingPreconditionType : p.type;
+      const nextToolFields = p.type === "tool_call" ? p.toolFields : undefined;
+      return makePrecondition({
+        type: nextType,
+        value: editingPreconditionValue.trim(),
+        description: editingPreconditionDescription.trim() || undefined,
+        toolFields: nextToolFields,
+      });
+    });
     setPreconditions(updatedPreconditions);
     updateEdgeData({ preconditions: updatedPreconditions });
     handleCancelEdit();
@@ -275,11 +283,11 @@ export function EdgePanel({
       eds.map((e) => {
         const input = multiEdgeInputs[e.id];
         if (input && input.value.trim()) {
-          const newPrecondition: Precondition = {
+          const newPrecondition: Precondition = makePrecondition({
             type: newPreconditionType,
             value: input.value.trim(),
             description: input.description.trim(),
-          };
+          });
           const existingPreconditions =
             (e.data?.preconditions as Precondition[] | undefined) ?? [];
           return {
@@ -298,11 +306,11 @@ export function EdgePanel({
 
     const currentInput = multiEdgeInputs[edge.id];
     if (currentInput && currentInput.value.trim()) {
-      const newPrecondition: Precondition = {
+      const newPrecondition: Precondition = makePrecondition({
         type: newPreconditionType,
         value: currentInput.value.trim(),
         description: currentInput.description.trim(),
-      };
+      });
       setPreconditions([...preconditions, newPrecondition]);
     }
 
@@ -545,7 +553,7 @@ export function EdgePanel({
                       <div className="flex text-sm items-start gap-1 bg-card rounded-md p-2">
                         {p.type === "user_said" && "\u201C"}
                         <div className="text-muted-foreground text-[13px]">
-                          {p.value}
+                          {getPreconditionDisplayValue(p)}
                         </div>
                         {p.type === "user_said" && "\u201D"}
                       </div>
@@ -567,7 +575,7 @@ export function EdgePanel({
 
                       {p.type === "tool_call" && (
                         <ToolParamsCard
-                          toolName={p.value}
+                          toolName={p.tool.toolName}
                           toolFields={p.toolFields}
                           onToolFieldsChange={(tf) => handleToolFieldsChange(index, tf)}
                         />

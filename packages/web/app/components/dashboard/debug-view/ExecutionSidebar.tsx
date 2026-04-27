@@ -1,5 +1,6 @@
 'use client';
 
+import { Scrollable } from '@/app/components/Scrollable';
 import type { ExecutionSummaryRow } from '@/app/lib/dashboard';
 import { CircleAlert, CircleCheck, Clock } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -69,16 +70,18 @@ interface ExecutionSidebarProps {
 
 export function ExecutionSidebar({ executions, selectedId, onSelect }: ExecutionSidebarProps) {
   return (
-    <div className="flex flex-col border-r bg-background shrink-0 w-56 overflow-y-auto p-1.5 gap-0.5">
-      {[...executions].reverse().map((exec, i) => (
-        <ExecutionItem
-          key={exec.id}
-          execution={exec}
-          index={executions.length - 1 - i}
-          selected={exec.id === selectedId}
-          onSelect={onSelect}
-        />
-      ))}
-    </div>
+    <Scrollable className="border-r bg-background shrink-0 w-56 p-1.5">
+      <div className="flex flex-col gap-0.5">
+        {[...executions].reverse().map((exec, i) => (
+          <ExecutionItem
+            key={exec.id}
+            execution={exec}
+            index={executions.length - 1 - i}
+            selected={exec.id === selectedId}
+            onSelect={onSelect}
+          />
+        ))}
+      </div>
+    </Scrollable>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { MCP_LIBRARY_CATEGORIES } from '@daviddh/graph-types';
-import { AlertTriangle, Camera, Server } from 'lucide-react';
+import { AlertTriangle, Camera, Loader2, Server } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { type ChangeEvent, useRef, useState } from 'react';
@@ -210,11 +210,11 @@ function PublishDialogBody({ server, orgId, onOpenChange, onPublished }: Publish
       />
       <VariablePreview variables={variables} />
       <DialogFooter>
-        <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <Button variant="outline" className="rounded-md" onClick={() => onOpenChange(false)}>
           {t('publishCancel')}
         </Button>
         <Button onClick={handlePublish} disabled={loading}>
-          {t('publishConfirm')}
+          {loading ? <Loader2 className="size-4 animate-spin" /> : t('publishConfirm')}
         </Button>
       </DialogFooter>
     </div>

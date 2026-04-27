@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useState } from 'react';
@@ -74,7 +75,7 @@ function NameField({ tenant, orgSlug }: TenantSettingsFormProps) {
           className="border-[0.5px] rounded-md"
           disabled={loading}
         >
-          {t('save')}
+          {loading ? <Loader2 className="size-4 animate-spin" /> : t('save')}
         </Button>
       </div>
       {nameError !== '' && <p className="text-destructive text-xs">{nameError}</p>}

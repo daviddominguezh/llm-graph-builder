@@ -76,11 +76,21 @@ export function useOnboardingState(): UseOnboardingStateResult {
   const [hasError, setHasError] = useState(false);
 
   const handlers: OnboardingHandlers = {
-    setIndustry: (v) => setState((s) => ({ ...s, industry: v })),
-    setCompanySize: (v) => setState((s) => ({ ...s, companySize: v })),
-    setRole: (v) => setState((s) => ({ ...s, role: v })),
-    toggleReferral: (v) => setState((s) => ({ ...s, referralSources: toggleItem(s.referralSources, v) })),
-    toggleBuildGoal: (v) => setState((s) => ({ ...s, buildGoals: toggleItem(s.buildGoals, v) })),
+    setIndustry: (v) => {
+      setState((s) => ({ ...s, industry: v }));
+    },
+    setCompanySize: (v) => {
+      setState((s) => ({ ...s, companySize: v }));
+    },
+    setRole: (v) => {
+      setState((s) => ({ ...s, role: v }));
+    },
+    toggleReferral: (v) => {
+      setState((s) => ({ ...s, referralSources: toggleItem(s.referralSources, v) }));
+    },
+    toggleBuildGoal: (v) => {
+      setState((s) => ({ ...s, buildGoals: toggleItem(s.buildGoals, v) }));
+    },
   };
 
   async function submit(): Promise<void> {

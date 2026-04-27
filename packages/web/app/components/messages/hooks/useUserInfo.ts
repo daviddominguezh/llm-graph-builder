@@ -3,9 +3,7 @@ import { getFinalUserInfo } from '@/app/components/messages/services/api';
 import type { FinalUserInfoAPI } from '@/app/types/finalUsers';
 import { useEffect, useRef, useState } from 'react';
 
-interface UserInfoCache {
-  [chatId: string]: FinalUserInfoAPI;
-}
+type UserInfoCache = Record<string, FinalUserInfoAPI>;
 
 // Shared cache across all hook instances
 const userInfoCache: UserInfoCache = {};
@@ -16,7 +14,7 @@ const userInfoCache: UserInfoCache = {};
  * @param isActive - Whether this chat is currently active (forces fresh fetch)
  * @returns User information including userGender, or null if not available
  */
-export const useUserInfo = (chatId: string | null, isActive: boolean = false): FinalUserInfoAPI | null => {
+export const useUserInfo = (chatId: string | null, isActive = false): FinalUserInfoAPI | null => {
   const projectName = useTenantId();
   const [userInfo, setUserInfo] = useState<FinalUserInfoAPI | null>(null);
   const activeChatRef = useRef<string | null>(chatId);

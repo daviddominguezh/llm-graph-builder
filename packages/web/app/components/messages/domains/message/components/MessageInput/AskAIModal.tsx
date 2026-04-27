@@ -167,7 +167,7 @@ export const AskAIModal: React.FC<AskAIModalProps> = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium">{t('AI Response')}</label>
-                <Button onClick={handleSend} size="sm" variant="outline" className="gap-2">
+                <Button onClick={handleSend} size="sm" variant="outline" className="gap-2 rounded-md">
                   <Send className="h-4 w-4" />
                   {t('Send to Input')}
                 </Button>
