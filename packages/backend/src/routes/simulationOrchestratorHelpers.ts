@@ -1,55 +1,14 @@
-import type {
-  AgentToolCallRecord,
-  CalendarService,
-  DispatchSentinel,
-  Message,
-  OAuthTokenBundle,
-} from '@daviddh/llm-graph-runner';
+import type { AgentToolCallRecord, DispatchSentinel, Message } from '@daviddh/llm-graph-runner';
 import { MESSAGES_PROVIDER, isDispatchSentinel, unwrapToolOutput } from '@daviddh/llm-graph-runner';
 import { randomUUID } from 'node:crypto';
 
-import type { McpSession } from '../mcp/lifecycle.js';
 import type { ResolvedChildConfig } from './simulateChildResolver.js';
 import type { OrchestratorConfig } from './simulationOrchestratorTypes.js';
-import { buildSimulationProviderCtx, buildSimulationRegistry } from './simulationProviderCtx.js';
 
 const INCREMENT = 1;
-const ZERO = 0;
 const WORKFLOW_TYPE = 'invoke_workflow';
 const WORKFLOW_PARAM_KEY = 'user_said';
 const EMPTY_MODEL_ID = '';
-
-/**
- * Builds the Provider registry + ProviderCtx for the agent simulation path
- * alongside the legacy injectSystemTools-driven tool dict. Currently the
- * AgentLoop API still consumes a static `tools` record, so the registry
- * is constructed for parity with the workflow path but not yet wired into
- * the loop. Task 24 will collapse the legacy path once the agent loop
- * accepts a registry directly.
- */
-function makeSimulationServices(calendar: CalendarService): (providerId: string) => unknown {
-  return (providerId: string): unknown => {
-    if (providerId === 'calendar') return calendar;
-    return undefined;
-  };
-}
-
-export function prepareSimulationProviders(config: OrchestratorConfig, calendar: CalendarService): void {
-  const { depth, orgId, body } = config;
-  const isChild = depth > ZERO;
-  const { mcpServers } = body;
-  // Simulation has no concrete agentId; an empty string is fine because the
-  // registry is built for wiring parity only and not yet consumed by the loop.
-  buildSimulationProviderCtx({
-    orgId,
-    agentId: '',
-    isChildAgent: isChild,
-    oauthTokens: new Map<string, OAuthTokenBundle>(),
-    mcpServers,
-    services: makeSimulationServices(calendar),
-  });
-  buildSimulationRegistry({ mcpServers });
-}
 
 /**
  * Builds an AI SDK format tool-result Message to inject the child's output
@@ -150,7 +109,6 @@ export function buildUserMessage(task: string): Message {
 interface BuildChildParams {
   parentConfig: OrchestratorConfig;
   childConfig: ResolvedChildConfig;
-  childSession: McpSession;
 }
 
 function resolveChildModelId(childModelId: string, parentModelId: string): string {
@@ -159,7 +117,7 @@ function resolveChildModelId(childModelId: string, parentModelId: string): strin
 }
 
 export function buildChildOrchestratorConfig(params: BuildChildParams): OrchestratorConfig {
-  const { parentConfig, childConfig, childSession } = params;
+  const { parentConfig, childConfig } = params;
   const modelId = resolveChildModelId(childConfig.modelId, parentConfig.body.modelId);
 
   return {
@@ -173,7 +131,6 @@ export function buildChildOrchestratorConfig(params: BuildChildParams): Orchestr
       mcpServers: childConfig.mcpServers,
       skills: undefined,
     },
-    session: childSession,
     depth: parentConfig.depth + INCREMENT,
     maxNestingDepth: parentConfig.maxNestingDepth,
     orgId: parentConfig.orgId,

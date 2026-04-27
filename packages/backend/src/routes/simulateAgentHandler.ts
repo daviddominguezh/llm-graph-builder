@@ -1,7 +1,6 @@
 import type { Request, Response } from 'express';
 
 import { createServiceClient } from '../db/queries/executionAuthQueries.js';
-import { type McpSession, closeMcpSession, createMcpSession } from '../mcp/lifecycle.js';
 import { setSseHeaders } from './simulate.js';
 import {
   sendAgentError,
@@ -23,7 +22,6 @@ import type {
   OrchestratorResult,
 } from './simulationOrchestratorTypes.js';
 
-const EMPTY_SESSION: McpSession = { clients: [], tools: {} };
 const HTTP_BAD_REQUEST = 400;
 const JSON_NO_INDENT = 0;
 const PREVIEW_LENGTH = 80;
@@ -72,12 +70,11 @@ function buildCallbacks(res: Response): OrchestratorCallbacks {
   };
 }
 
-function buildOrchestratorConfig(body: SimulateAgentRequest, session: McpSession): OrchestratorConfig {
+function buildOrchestratorConfig(body: SimulateAgentRequest): OrchestratorConfig {
   const depth = body.composition?.depth ?? ZERO;
   const supabase = createServiceClient();
   return {
     body,
-    session,
     depth,
     maxNestingDepth: DEFAULT_MAX_NESTING_DEPTH,
     orgId: body.orgId ?? '',
@@ -124,15 +121,8 @@ export async function handleSimulateAgent(
   const { body } = req;
   log('validated', buildLogPayload(body));
   setSseHeaders(res);
-  let session: McpSession = EMPTY_SESSION;
   try {
-    log('creating MCP session', { serverCount: body.mcpServers.length });
-    session = await createMcpSession(body.mcpServers);
-    log('MCP session created', {
-      toolCount: Object.keys(session.tools).length,
-      toolNames: Object.keys(session.tools),
-    });
-    const config = buildOrchestratorConfig(body, session);
+    const config = buildOrchestratorConfig(body);
     const callbacks = buildCallbacks(res);
     const result = await runSimulationOrchestration(config, callbacks);
     handleOrchestratorResult(res, result, config.depth);
@@ -142,7 +132,6 @@ export async function handleSimulateAgent(
     log('simulation FAILED', { error: err instanceof Error ? err.message : String(err) });
     sendAgentError(res, err);
   } finally {
-    await closeMcpSession(session);
     res.end();
   }
 }
