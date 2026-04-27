@@ -45,12 +45,17 @@ export function GraphBuilderLoading({ serverProgress }: GraphBuilderLoadingProps
   const hasServers = serverProgress !== undefined && serverProgress.length > 0;
 
   const paddingStyle = panelInsets
-    ? { paddingTop: panelInsets.top, paddingLeft: panelInsets.left, paddingRight: panelInsets.right, paddingBottom: panelInsets.bottom }
+    ? {
+        paddingTop: panelInsets.top,
+        paddingLeft: panelInsets.left,
+        paddingRight: panelInsets.right,
+        paddingBottom: panelInsets.bottom,
+      }
     : undefined;
 
   return (
-    <div className="flex h-full w-full items-center justify-center bg-background" style={paddingStyle}>
-      <div className="flex flex-col items-center justify-center">
+    <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-e-xl" style={paddingStyle}>
+      <div className="w-full h-full flex flex-col items-center justify-center bg-background rounded-ee-xl">
         <Loader2 className="size-5 animate-spin text-muted-foreground" />
         {hasServers && <McpServerList servers={serverProgress} />}
       </div>

@@ -24,7 +24,7 @@ describe('cache wrapper', () => {
     client.get.mockRejectedValue(new Error('connection refused'));
     const counter = jest.fn();
     const cache = createCache(client, { onUnavailable: counter });
-    const result = await cache.tryGet<{ a: number }>('k');
+    const result = await cache.tryGet('k');
     expect(result).toBeNull();
     expect(counter).toHaveBeenCalled();
   });
@@ -33,7 +33,7 @@ describe('cache wrapper', () => {
     const client = makeFakeClient();
     client.get.mockResolvedValue('{"a":1}');
     const cache = createCache(client);
-    expect(await cache.tryGet<{ a: number }>('k')).toEqual({ a: 1 });
+    expect(await cache.tryGet('k')).toEqual({ a: 1 });
   });
 
   it('trySetex skips when ttlSeconds <= 0', async () => {
