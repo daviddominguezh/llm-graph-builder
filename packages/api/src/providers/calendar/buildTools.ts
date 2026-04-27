@@ -30,6 +30,10 @@ import {
 import type { ProviderCtx } from '../provider.js';
 import type { OpenFlowTool } from '../types.js';
 
+function parseArgs<S extends z.ZodType>(schema: S, args: unknown): z.infer<S> {
+  return schema.parse(args);
+}
+
 export interface CalendarServices {
   service: CalendarService;
   calendarId: string;
@@ -45,60 +49,61 @@ function makeCtx(orgId: string, s: CalendarServices): CalendarCtx {
   return { services: s.service, orgId, calendarId: s.calendarId };
 }
 
-function makeListCalendars(ctx: CalendarCtx): OpenFlowTool<typeof listCalendarsInput> {
+function makeListCalendars(ctx: CalendarCtx): OpenFlowTool {
   return {
     description: 'List all calendars accessible by the connected Google account.',
     inputSchema: listCalendarsInput,
-    execute: async (_args: z.infer<typeof listCalendarsInput>) => await executeListCalendars(ctx),
+    execute: async (_args: unknown) => await executeListCalendars(ctx),
   };
 }
 
-function makeCheckAvailability(ctx: CalendarCtx): OpenFlowTool<typeof checkAvailabilityInput> {
+function makeCheckAvailability(ctx: CalendarCtx): OpenFlowTool {
   return {
     description: 'Find available time slots within a date range.',
     inputSchema: checkAvailabilityInput,
-    execute: async (args: z.infer<typeof checkAvailabilityInput>) =>
-      await executeCheckAvailability(args, ctx),
+    execute: async (args: unknown) =>
+      await executeCheckAvailability(parseArgs(checkAvailabilityInput, args), ctx),
   };
 }
 
-function makeListEvents(ctx: CalendarCtx): OpenFlowTool<typeof listEventsInput> {
+function makeListEvents(ctx: CalendarCtx): OpenFlowTool {
   return {
     description: 'List events on the calendar within a date range.',
     inputSchema: listEventsInput,
-    execute: async (args: z.infer<typeof listEventsInput>) => await executeListEvents(args, ctx),
+    execute: async (args: unknown) => await executeListEvents(parseArgs(listEventsInput, args), ctx),
   };
 }
 
-function makeGetEvent(ctx: CalendarCtx): OpenFlowTool<typeof eventRefInput> {
+function makeGetEvent(ctx: CalendarCtx): OpenFlowTool {
   return {
     description: 'Read full details for a single event by id.',
     inputSchema: eventRefInput,
-    execute: async (args: z.infer<typeof eventRefInput>) => await executeGetEvent(args, ctx),
+    execute: async (args: unknown) => await executeGetEvent(parseArgs(eventRefInput, args), ctx),
   };
 }
 
-function makeBookAppointment(ctx: CalendarCtx): OpenFlowTool<typeof bookAppointmentInput> {
+function makeBookAppointment(ctx: CalendarCtx): OpenFlowTool {
   return {
     description: 'Create a new event on the configured calendar.',
     inputSchema: bookAppointmentInput,
-    execute: async (args: z.infer<typeof bookAppointmentInput>) => await executeBookAppointment(args, ctx),
+    execute: async (args: unknown) =>
+      await executeBookAppointment(parseArgs(bookAppointmentInput, args), ctx),
   };
 }
 
-function makeUpdateEvent(ctx: CalendarCtx): OpenFlowTool<typeof updateEventInput> {
+function makeUpdateEvent(ctx: CalendarCtx): OpenFlowTool {
   return {
     description: 'Modify an existing event by id.',
     inputSchema: updateEventInput,
-    execute: async (args: z.infer<typeof updateEventInput>) => await executeUpdateEvent(args, ctx),
+    execute: async (args: unknown) => await executeUpdateEvent(parseArgs(updateEventInput, args), ctx),
   };
 }
 
-function makeCancelAppointment(ctx: CalendarCtx): OpenFlowTool<typeof eventRefInput> {
+function makeCancelAppointment(ctx: CalendarCtx): OpenFlowTool {
   return {
     description: 'Cancel (delete) an event by id.',
     inputSchema: eventRefInput,
-    execute: async (args: z.infer<typeof eventRefInput>) => await executeCancelAppointment(args, ctx),
+    execute: async (args: unknown) => await executeCancelAppointment(parseArgs(eventRefInput, args), ctx),
   };
 }
 

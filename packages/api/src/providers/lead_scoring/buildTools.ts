@@ -8,6 +8,10 @@ import {
 import type { ProviderCtx } from '../provider.js';
 import type { OpenFlowTool } from '../types.js';
 
+function parseArgs<S extends z.ZodType>(schema: S, args: unknown): z.infer<S> {
+  return schema.parse(args);
+}
+
 export interface LeadScoringProviderServices {
   service: LeadScoringServices;
 }
@@ -32,26 +36,27 @@ function resolveService(ctx: ProviderCtx): LeadScoringServices | undefined {
   return isLeadScoringServiceShape(service) ? service : undefined;
 }
 
-function buildSetTool(service: LeadScoringServices): OpenFlowTool<typeof setLeadScoreSchema> {
+function buildSetTool(service: LeadScoringServices): OpenFlowTool {
   return {
     description:
       'Set the lead score for the current conversation. ' +
       'Score must be 0-100. The conversation is identified automatically.',
     inputSchema: setLeadScoreSchema,
-    execute: async ({ score }: z.infer<typeof setLeadScoreSchema>) => {
+    execute: async (args: unknown) => {
+      const { score } = parseArgs(setLeadScoreSchema, args);
       await service.setLeadScore(score);
       return { result: `Lead score set to ${String(score)}` };
     },
   };
 }
 
-function buildGetTool(service: LeadScoringServices): OpenFlowTool<typeof getLeadScoreSchema> {
+function buildGetTool(service: LeadScoringServices): OpenFlowTool {
   return {
     description:
       'Get the current lead score for this conversation. ' +
       'Returns the score (0-100) or null if not yet scored.',
     inputSchema: getLeadScoreSchema,
-    execute: async () => {
+    execute: async (_args: unknown) => {
       const score = await service.getLeadScore();
       if (score === null) return { result: { lead_score: null } };
       return { result: { lead_score: score } };

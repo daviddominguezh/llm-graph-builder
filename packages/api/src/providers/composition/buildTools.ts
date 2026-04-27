@@ -18,7 +18,7 @@ function adaptTool(name: string, tool: Tool): OpenFlowTool {
   return {
     description,
     inputSchema: z.record(z.string(), z.unknown()),
-    execute: async (input: z.infer<z.ZodType>): Promise<unknown> => await toolExecute(input, STUB_OPTIONS),
+    execute: async (input: unknown): Promise<unknown> => await toolExecute(input, STUB_OPTIONS),
   };
 }
 

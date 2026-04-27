@@ -8,6 +8,10 @@ import type { FormDefinition } from '../../types/forms.js';
 import type { ProviderCtx } from '../provider.js';
 import type { OpenFlowTool } from '../types.js';
 
+function parseArgs<S extends z.ZodType>(schema: S, args: unknown): z.infer<S> {
+  return schema.parse(args);
+}
+
 export interface FormsServices {
   service: FormsService;
   forms: FormDefinition[];
@@ -27,7 +31,6 @@ const getInput = z.object({
   fieldPath: z.string().min(MIN_LENGTH),
 });
 
-type SetInput = z.infer<typeof setInput>;
 type GetInput = z.infer<typeof getInput>;
 
 function isFormsServices(value: unknown): value is FormsServices {
@@ -35,12 +38,12 @@ function isFormsServices(value: unknown): value is FormsServices {
   return 'service' in value && 'forms' in value;
 }
 
-function buildSetTool(svc: FormsServices, conversationId: string): OpenFlowTool<typeof setInput> {
+function buildSetTool(svc: FormsServices, conversationId: string): OpenFlowTool {
   const params = { forms: svc.forms, services: svc.service, conversationId };
   return {
     description: buildFormsToolDescription(svc.forms),
     inputSchema: setInput,
-    execute: async (args: SetInput) => await executeSet(args, params),
+    execute: async (args: unknown) => await executeSet(parseArgs(setInput, args), params),
   };
 }
 
@@ -55,11 +58,11 @@ async function executeGet(
   return { result: readFormField(data, args.fieldPath) };
 }
 
-function buildGetTool(svc: FormsServices, conversationId: string): OpenFlowTool<typeof getInput> {
+function buildGetTool(svc: FormsServices, conversationId: string): OpenFlowTool {
   return {
     description: buildFormsToolDescription(svc.forms),
     inputSchema: getInput,
-    execute: async (args: GetInput) => await executeGet(args, svc, conversationId),
+    execute: async (args: unknown) => await executeGet(parseArgs(getInput, args), svc, conversationId),
   };
 }
 
