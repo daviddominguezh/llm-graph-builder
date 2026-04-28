@@ -23,15 +23,15 @@ const SSE_SERVER: McpServerConfig = {
 const ECHO = constantFetch(makeJsonResponse({}));
 
 describe('createTransport — variant dispatch', () => {
-  it('dispatches http transport for type=http', async () => {
-    const t = await createTransport(HTTP_SERVER, { fetch: ECHO.fn });
+  it('dispatches http transport for type=http', () => {
+    const t = createTransport(HTTP_SERVER, { fetch: ECHO.fn });
     expect(typeof t.request).toBe('function');
     expect(typeof t.notify).toBe('function');
     expect(t.sessionId).toBeNull();
   });
 
-  it('dispatches sse transport for type=sse', async () => {
-    const t = await createTransport(SSE_SERVER, { fetch: ECHO.fn });
+  it('dispatches sse transport for type=sse', () => {
+    const t = createTransport(SSE_SERVER, { fetch: ECHO.fn });
     expect(typeof t.request).toBe('function');
     expect(typeof t.notify).toBe('function');
     expect(t.sessionId).toBeNull();
@@ -40,7 +40,7 @@ describe('createTransport — variant dispatch', () => {
 
 describe('createTransport — common surface', () => {
   it('exposes setSessionId and close on every variant', async () => {
-    const t = await createTransport(HTTP_SERVER, { fetch: ECHO.fn });
+    const t = createTransport(HTTP_SERVER, { fetch: ECHO.fn });
     t.setSessionId('preset');
     expect(t.sessionId).toBe('preset');
     await expect(t.close()).resolves.toBeUndefined();
