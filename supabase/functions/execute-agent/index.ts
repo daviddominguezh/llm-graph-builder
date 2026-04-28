@@ -1,10 +1,8 @@
 // Supabase Edge Function — Stateless Agent Executor
 // Receives complete payload, executes agent via @daviddh/llm-graph-runner, streams SSE events back.
 // No DB access, no secrets resolution — all provided in the payload.
-import { createMCPClient } from '@ai-sdk/mcp';
-import type { McpServerConfig, McpTransport, RuntimeGraph } from '@daviddh/graph-types';
+import type { McpServerConfig, RuntimeGraph } from '@daviddh/graph-types';
 import type {
-  AgentLoopResult,
   AgentStepEvent,
   ApplyResult,
   CalendarService,
@@ -32,7 +30,6 @@ import {
   executeAgentLoop,
   executeWithCallbacks,
   generateVFSTools,
-  injectSystemTools,
   toAiSdkToolDict,
 } from '@daviddh/llm-graph-runner';
 import { GitHubSourceProvider } from '@daviddh/vfs-providers';
@@ -52,11 +49,6 @@ interface VfsPayloadData {
     readLineCeiling?: number;
     rateLimitThreshold?: number;
   };
-}
-
-interface GoogleCalendarPayload {
-  accessToken: string;
-  orgId: string;
 }
 
 interface CalendarBundle {
@@ -85,31 +77,17 @@ interface ExecutePayload {
   maxSteps?: number | null;
   isChildAgent?: boolean;
   conversationId?: string;
-  // Pre-resolved OAuth bundles (backend resolves; edge function is stateless)
-  googleCalendar?: GoogleCalendarPayload;
-  // v2 schema fields (Plan B+C+D Tasks 15+19). Optional during transition;
-  // when `schemaVersion === 2`, tools come from the Provider registry.
-  schemaVersion?: 1 | 2;
+  // Schema version: backend always sends 2. Older versions are rejected by validateSchemaVersion.
+  schemaVersion?: 2;
   selectedTools?: SelectedTool[];
   oauth?: { byProvider: Record<string, OAuthTokenBundle> };
 }
 
-function buildCalendarBundle(payload: ExecutePayload): CalendarBundle | undefined {
-  const { googleCalendar } = payload;
-  if (googleCalendar === undefined) return undefined;
-  return {
-    services: createGoogleCalendarService({
-      getAccessToken: async () => googleCalendar.accessToken,
-    }),
-    orgId: googleCalendar.orgId,
-  };
-}
-
 /**
- * v2 calendar bundle: reads the calendar OAuth token from `payload.oauth.byProvider.calendar`
- * (resolved by the backend). v1 path still uses `buildCalendarBundle` above.
+ * Reads the calendar OAuth token from `payload.oauth.byProvider.calendar`
+ * (resolved by the backend) and builds the calendar service bundle.
  */
-function buildCalendarBundleV2(payload: ExecutePayload): CalendarBundle | undefined {
+function buildCalendarBundle(payload: ExecutePayload): CalendarBundle | undefined {
   const calendarToken = payload.oauth?.byProvider?.['calendar'];
   if (calendarToken === undefined) return undefined;
   return {
@@ -127,87 +105,6 @@ const SSE_HEADERS = {
   'Cache-Control': 'no-cache',
   Connection: 'keep-alive',
 };
-
-/* ─── MCP session management ─── */
-
-type McpClient = Awaited<ReturnType<typeof createMCPClient>>;
-
-async function connectMcpServer(transport: McpTransport): Promise<McpClient> {
-  if (transport.type === 'http') {
-    return await createMCPClient({
-      transport: { type: 'http', url: transport.url, headers: transport.headers },
-    });
-  }
-  if (transport.type === 'sse') {
-    return await createMCPClient({
-      transport: { type: 'sse', url: transport.url, headers: transport.headers },
-    });
-  }
-  throw new Error(`Unsupported transport type in edge function: ${transport.type}`);
-}
-
-interface McpConnectionResult {
-  tools: Record<string, Tool>;
-  clients: McpClient[];
-}
-
-interface McpConnectionFailure {
-  server: string;
-  error: string;
-}
-
-interface McpValidationResult {
-  success: McpConnectionResult | null;
-  failures: McpConnectionFailure[];
-}
-
-async function attemptMcpConnection(
-  server: McpServerConfig
-): Promise<{ client: McpClient; tools: Record<string, Tool> }> {
-  const client = await connectMcpServer(server.transport);
-  await client.listTools();
-  const tools = await client.tools();
-  return { client, tools };
-}
-
-function buildMcpErrorMessage(failures: McpConnectionFailure[]): string {
-  const details = failures.map((f) => `${f.server} (${f.error})`).join(', ');
-  return `Failed to connect to MCP servers: ${details}`;
-}
-
-async function validateAndConnectMcpServers(servers: McpServerConfig[]): Promise<McpValidationResult> {
-  const enabled = servers.filter((s) => s.enabled);
-  if (enabled.length === 0) return { success: { tools: {}, clients: [] }, failures: [] };
-
-  const results = await Promise.allSettled(enabled.map((server) => attemptMcpConnection(server)));
-
-  const clients: McpClient[] = [];
-  const allTools: Record<string, Tool> = {};
-  const failures: McpConnectionFailure[] = [];
-
-  for (let i = 0; i < results.length; i++) {
-    const result = results[i]!;
-    const server = enabled[i]!;
-    if (result.status === 'fulfilled') {
-      clients.push(result.value.client);
-      Object.assign(allTools, result.value.tools);
-    } else {
-      const errMsg = result.reason instanceof Error ? result.reason.message : 'Unknown error';
-      failures.push({ server: server.name, error: errMsg });
-    }
-  }
-
-  if (failures.length > 0) {
-    await closeMcpClients(clients);
-    return { success: null, failures };
-  }
-
-  return { success: { tools: allTools, clients }, failures: [] };
-}
-
-async function closeMcpClients(clients: McpClient[]): Promise<void> {
-  await Promise.all(clients.map((c) => c.close().catch(() => {})));
-}
 
 /* ─── Lead scoring services (production only) ─── */
 
@@ -608,13 +505,11 @@ function timingSafeEqual(a: string, b: string): boolean {
   return mismatch === 0;
 }
 
-const SUPPORTED_SCHEMA_VERSIONS: ReadonlyArray<1 | 2> = [1, 2];
+const CURRENT_SCHEMA_VERSION = 2;
 
 function validateSchemaVersion(schemaVersion: unknown): Response | null {
   if (schemaVersion === undefined) return null;
-  if (typeof schemaVersion === 'number' && SUPPORTED_SCHEMA_VERSIONS.includes(schemaVersion as 1 | 2)) {
-    return null;
-  }
+  if (schemaVersion === CURRENT_SCHEMA_VERSION) return null;
   return new Response(JSON.stringify({ error: `unsupported schemaVersion: ${String(schemaVersion)}` }), {
     status: 400,
     headers: { 'Content-Type': 'application/json' },
@@ -669,7 +564,6 @@ type WriteEvent = (event: Record<string, unknown>) => void;
 
 async function runAgentExecution(
   payload: ExecutePayload,
-  allTools: Record<string, Tool>,
   write: WriteEvent,
   leadScoringServices?: LeadScoringServices,
   formsBundle?: FormsBundle,
@@ -677,23 +571,16 @@ async function runAgentExecution(
   calendarBundle?: CalendarBundle
 ): Promise<void> {
   log.info(
-    `agent start model=${payload.modelId} msgs=${payload.messages.length} tools=${Object.keys(allTools).length} prompt=${(payload.systemPrompt ?? '').slice(0, 80)}`
+    `agent start model=${payload.modelId} msgs=${payload.messages.length} prompt=${(payload.systemPrompt ?? '').slice(0, 80)}`
   );
 
-  const isV2 = payload.schemaVersion === 2;
-  const tools = isV2
-    ? await buildToolsForAgentV2(payload, conversationId, formsBundle, leadScoringServices, calendarBundle)
-    : injectSystemTools({
-        existingTools: allTools,
-        isChildAgent: payload.isChildAgent ?? false,
-        leadScoringServices,
-        formsServices: formsBundle?.services,
-        forms: formsBundle?.forms,
-        conversationId,
-        contextData: payload.data,
-        calendarServices: calendarBundle?.services,
-        orgId: calendarBundle?.orgId,
-      });
+  const tools = await buildToolsForAgentV2(
+    payload,
+    conversationId,
+    formsBundle,
+    leadScoringServices,
+    calendarBundle
+  );
 
   const result = await executeAgentLoop(
     {
@@ -756,25 +643,7 @@ interface WorkflowToolsBundle {
   calendarBundle?: CalendarBundle;
 }
 
-function buildV1WorkflowToolsOverride(
-  payload: ExecutePayload,
-  allTools: Record<string, Tool>,
-  bundle: WorkflowToolsBundle
-): Record<string, Tool> {
-  return injectSystemTools({
-    existingTools: allTools,
-    isChildAgent: false,
-    leadScoringServices: bundle.leadScoringServices,
-    formsServices: bundle.formsBundle?.services,
-    forms: bundle.formsBundle?.forms,
-    conversationId: bundle.conversationId,
-    contextData: payload.data,
-    calendarServices: bundle.calendarBundle?.services,
-    orgId: bundle.calendarBundle?.orgId,
-  });
-}
-
-function buildV2WorkflowContext(
+function buildWorkflowContext(
   payload: ExecutePayload,
   baseContext: Omit<Context, 'toolsOverride' | 'onNodeVisited' | 'onNodeProcessed'>,
   bundle: WorkflowToolsBundle
@@ -804,7 +673,6 @@ function buildV2WorkflowContext(
 
 async function runWorkflowExecution(
   payload: ExecutePayload,
-  allTools: Record<string, Tool>,
   write: WriteEvent,
   leadScoringServices?: LeadScoringServices,
   formsBundle?: FormsBundle,
@@ -813,16 +681,13 @@ async function runWorkflowExecution(
 ): Promise<void> {
   const baseContext = buildContext(payload);
   const bundle: WorkflowToolsBundle = { leadScoringServices, formsBundle, conversationId, calendarBundle };
-  const isV2 = payload.schemaVersion === 2;
-  const context: Context = isV2 ? buildV2WorkflowContext(payload, baseContext, bundle) : baseContext;
-  const toolsOverride = isV2 ? undefined : buildV1WorkflowToolsOverride(payload, allTools, bundle);
+  const context: Context = buildWorkflowContext(payload, baseContext, bundle);
 
   const result = await executeWithCallbacks({
     context,
     logger: runnerLogger,
     messages: payload.messages,
     currentNode: payload.currentNodeId,
-    toolsOverride,
     structuredOutputs: payload.structuredOutputs,
     onNodeVisited: (nodeId: string) => {
       write({ type: 'node_visited', nodeId });
@@ -885,9 +750,8 @@ Deno.serve(async (req: Request) => {
   if (schemaVersionError !== null) return schemaVersionError;
   const isAgent = payload.appType === 'agent';
   log.info(
-    `request appType=${payload.appType ?? 'workflow'} model=${payload.modelId} schemaVersion=${payload.schemaVersion ?? 1}`
+    `request appType=${payload.appType ?? 'workflow'} model=${payload.modelId} schemaVersion=${payload.schemaVersion ?? CURRENT_SCHEMA_VERSION}`
   );
-  const mcpServers = isAgent ? [] : (payload.graph.mcpServers ?? []);
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -896,24 +760,11 @@ Deno.serve(async (req: Request) => {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
       };
 
-      let clients: McpClient[] = [];
-
       try {
-        const validation = await validateAndConnectMcpServers(mcpServers);
-
-        if (validation.success === null) {
-          write({ type: 'error', message: buildMcpErrorMessage(validation.failures) });
-          return;
-        }
-
-        clients = validation.success.clients;
-        const allTools: Record<string, Tool> = { ...validation.success.tools };
-
         if (!isAgent) {
-          const vfsResult = await bootstrapVfs(payload, buildContext(payload));
-          if (vfsResult !== null) {
-            Object.assign(allTools, vfsResult.tools);
-          }
+          // VFS tools are wired into the runner's Context; the workflow path uses them via
+          // the registry. Bootstrap is currently still a side-effect (initialising VFSContext).
+          await bootstrapVfs(payload, buildContext(payload));
         }
 
         // Build lead scoring services when we have a real conversation
@@ -925,13 +776,11 @@ Deno.serve(async (req: Request) => {
         const formsBundle =
           payload.conversationId !== undefined ? await buildFormsBundle(payload.conversationId) : undefined;
 
-        const calendarBundle =
-          payload.schemaVersion === 2 ? buildCalendarBundleV2(payload) : buildCalendarBundle(payload);
+        const calendarBundle = buildCalendarBundle(payload);
 
         if (isAgent) {
           await runAgentExecution(
             payload,
-            allTools,
             write,
             leadScoringServices,
             formsBundle,
@@ -941,7 +790,6 @@ Deno.serve(async (req: Request) => {
         } else {
           await runWorkflowExecution(
             payload,
-            allTools,
             write,
             leadScoringServices,
             formsBundle,
@@ -956,7 +804,6 @@ Deno.serve(async (req: Request) => {
         log.error(message);
         write({ type: 'error', message });
       } finally {
-        await closeMcpClients(clients);
         controller.close();
       }
     },

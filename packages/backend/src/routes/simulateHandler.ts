@@ -5,7 +5,7 @@ import type {
   NodeProcessedEvent,
   OAuthTokenBundle,
 } from '@daviddh/llm-graph-runner';
-import { executeWithCallbacks, injectSystemTools } from '@daviddh/llm-graph-runner';
+import { executeWithCallbacks } from '@daviddh/llm-graph-runner';
 import type { Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
 
@@ -177,19 +177,13 @@ function buildContextWithRegistry(
   };
 }
 
-async function runSimulation(body: SimulateRequest, session: McpSession, res: Response): Promise<void> {
+async function runSimulation(body: SimulateRequest, res: Response): Promise<void> {
   const calendar = resolveCalendarServices(body.orgId);
   const context = buildContextWithRegistry(body, calendar.calendarServices);
-  const tools = injectSystemTools({
-    existingTools: session.tools,
-    isChildAgent: false,
-    ...calendar,
-  });
   const result = await executeWithCallbacks({
     context,
     messages: body.messages,
     currentNode: body.currentNode,
-    toolsOverride: tools,
     logger: consoleLogger,
     structuredOutputs: body.structuredOutputs,
     onNodeVisited: (nodeId: string) => {
@@ -218,7 +212,7 @@ export async function handleSimulate(
   let session: McpSession = EMPTY_SESSION;
   try {
     session = await createMcpSession(mcpServers);
-    await runSimulation(body, session, res);
+    await runSimulation(body, res);
     writeSSE(res, { type: 'simulation_complete' });
     process.stdout.write('[simulate] workflow completed\n');
   } catch (err) {
