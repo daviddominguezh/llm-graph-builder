@@ -2,7 +2,6 @@ import type { AddressSchemaType, PaymentItem } from '@/app/types/orders';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import calendar from 'dayjs/plugin/calendar';
-import crypto from 'node:crypto';
 
 dayjs.extend(calendar);
 dayjs.locale('es');
@@ -12,12 +11,6 @@ dayjs.locale('es');
  * In the original app this came from i18next; here we default to 'es'.
  */
 const i18n: { language: string } = { language: 'es' };
-
-export const getHash = (obj: object) => {
-  const jsonString = JSON.stringify(obj);
-  const hash = crypto.createHash('sha256').update(jsonString).digest('hex');
-  return hash;
-};
 
 /**
  * Country-specific phone number formatting for Latin American countries
