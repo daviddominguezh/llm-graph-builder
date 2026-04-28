@@ -27,6 +27,17 @@
       "description": "Handles escalation to human agents"
     }
   ],
+  "mcpServers": [
+    {
+      "id": "airline",
+      "name": "Airline MCP (configure URL)",
+      "transport": {
+        "type": "http",
+        "url": "https://example.com/airline-mcp"
+      },
+      "enabled": false
+    }
+  ],
   "nodes": [
     {
       "id": "INITIAL_STEP",
@@ -876,7 +887,7 @@
       "id": "COMP_CancelledCertificate",
       "text": "As compensation for the cancelled flight, we can offer you a travel certificate worth $100 per passenger affected (${TOTAL} total). Do you accept?",
       "kind": "agent",
-      "description": "Offer $100 × number of passengers as travel certificate for cancelled flight",
+      "description": "Offer $100 \u00d7 number of passengers as travel certificate for cancelled flight",
       "agent": "compensation",
       "nextNodeIsUser": true
     },
@@ -920,7 +931,7 @@
       "id": "COMP_DelayedCertificate",
       "text": "As compensation for the flight delay, we can offer you a travel certificate worth $50 per passenger affected (${TOTAL} total). Do you accept?",
       "kind": "agent",
-      "description": "Offer $50 × number of passengers as travel certificate for delayed flight",
+      "description": "Offer $50 \u00d7 number of passengers as travel certificate for delayed flight",
       "agent": "compensation",
       "nextNodeIsUser": true
     },
