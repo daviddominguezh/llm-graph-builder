@@ -3,7 +3,7 @@
 import { getTemplateSnapshotAction } from '@/app/actions/templates';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { Graph, Precondition } from '@/app/schemas/graph.schema';
-import { makePrecondition } from '@/app/utils/preconditionHelpers';
+import { makePrecondition, makeToolCallPrecondition } from '@/app/utils/preconditionHelpers';
 import type { TemplateGraphData } from '@daviddh/graph-types';
 import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
@@ -55,14 +55,23 @@ function templateToGraph(data: TemplateGraphData): Graph {
     edges: data.edges.map((e) => ({
       from: e.from,
       to: e.to,
-      preconditions: e.preconditions?.map(
-        (p): Precondition =>
-          makePrecondition({
-            type: p.type as 'user_said' | 'agent_decision' | 'tool_call',
-            value: p.value,
+      preconditions: e.preconditions?.map((p): Precondition => {
+        if (p.type === 'tool_call') {
+          // TODO(Task 115): Template schema enrichment — templates don't carry
+          // full SelectedTool refs yet (only a value string). Until that is fixed,
+          // we default to builtin/calendar. This will be corrected when templates
+          // store providerType/providerId alongside toolName.
+          return makeToolCallPrecondition({
+            tool: { providerType: 'builtin', providerId: 'calendar', toolName: p.value },
             description: p.description,
-          })
-      ),
+          });
+        }
+        return makePrecondition({
+          type: p.type as 'user_said' | 'agent_decision',
+          value: p.value,
+          description: p.description,
+        });
+      }),
       contextPreconditions: e.contextPreconditions,
     })),
     agents: data.agents,

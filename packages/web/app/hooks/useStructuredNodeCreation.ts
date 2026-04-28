@@ -1,3 +1,4 @@
+import type { SelectedTool } from '@daviddh/llm-graph-runner';
 import { type Edge, type Node, addEdge } from '@xyflow/react';
 import { nanoid } from 'nanoid';
 import { useCallback } from 'react';
@@ -7,7 +8,7 @@ import { DEFAULT_NODE_HEIGHT, DEFAULT_NODE_WIDTH, NODE_GAP } from '../utils/grap
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
 import { buildInsertEdgeOp, buildInsertNodeOp, buildUpdateNodeOp } from '../utils/operationBuilders';
 import type { PushOperation } from '../utils/operationBuilders';
-import { makePrecondition } from '../utils/preconditionHelpers';
+import { makePrecondition, makeToolCallPrecondition } from '../utils/preconditionHelpers';
 
 const NANOID_LENGTH = 8;
 const HALF = 2;
@@ -124,9 +125,9 @@ export function useCreateUserNode(params: StructuredCreationParams): (userSaidVa
   );
 }
 
-export function useCreateToolNode(params: StructuredCreationParams): (toolName: string) => void {
+export function useCreateToolNode(params: StructuredCreationParams): (tool: SelectedTool) => void {
   return useCallback(
-    (toolName: string) => {
+    (tool: SelectedTool) => {
       if (params.menu === null) return;
       const sourceNode = params.nodes.find((n) => n.id === params.menu!.sourceNodeId);
       if (sourceNode === undefined) return;
@@ -134,7 +135,7 @@ export function useCreateToolNode(params: StructuredCreationParams): (toolName: 
       const id = makeNodeId();
       const position = getBasePosition(sourceNode);
       const targetHandle = resolveTargetHandle(params.menu.sourceHandleId);
-      const precondition: Precondition = makePrecondition({ type: 'tool_call', value: toolName });
+      const precondition: Precondition = makeToolCallPrecondition({ tool });
       const newNode = makeNode(id, position, '');
 
       params.setNodes((nds) => [...nds, newNode]);
@@ -225,6 +226,16 @@ export function useCreateIfElse(
 interface LoopConnection {
   type: 'none' | 'user_said' | 'tool_call';
   value: string;
+  tool: SelectedTool | null;
+}
+
+function buildConnPrecondition(connection: LoopConnection): Precondition | undefined {
+  if (connection.type === 'none') return undefined;
+  if (connection.type === 'tool_call') {
+    if (!connection.tool) return undefined;
+    return makeToolCallPrecondition({ tool: connection.tool });
+  }
+  return makePrecondition({ type: connection.type, value: connection.value });
 }
 
 export function useCreateLoop(
@@ -246,10 +257,7 @@ export function useCreateLoop(
       const exitNode = makeNode(exitId, exitPos, 'Exit');
 
       // Edge: source -> loop body
-      const connPrecondition: Precondition | undefined =
-        connection.type === 'none'
-          ? undefined
-          : makePrecondition({ type: connection.type, value: connection.value });
+      const connPrecondition = buildConnPrecondition(connection);
       const connEdgeData: RFEdgeData | undefined = connPrecondition
         ? { preconditions: [connPrecondition] }
         : undefined;

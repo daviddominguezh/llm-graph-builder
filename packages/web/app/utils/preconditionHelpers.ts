@@ -1,4 +1,6 @@
-import type { Precondition, PreconditionType, ToolFieldValue } from '../schemas/graph.schema';
+import type { SelectedTool } from '@daviddh/llm-graph-runner';
+
+import type { Precondition, ToolFieldValue } from '../schemas/graph.schema';
 
 /**
  * Returns the human-readable display value of a precondition. For
@@ -18,37 +20,40 @@ export function getPreconditionToolFields(p: Precondition): Record<string, ToolF
 }
 
 interface MakePreconditionInput {
-  type: PreconditionType;
+  // tool_call goes through makeToolCallPrecondition — not allowed here
+  type: 'user_said' | 'agent_decision';
   value: string;
   description?: string;
-  toolFields?: Record<string, ToolFieldValue>;
 }
 
-const DEFAULT_BUILTIN_PROVIDER_ID = 'calendar';
-
 /**
- * Constructs a Precondition from a flat `{ type, value, description }` shape
- * (the form used by panel UIs). For `tool_call`, the `value` is interpreted
- * as a tool name and wrapped into a `SelectedTool` ref defaulting to the
- * built-in `calendar` provider. Callers that know the correct provider should
- * construct the precondition directly.
+ * Constructs a non-tool_call Precondition from a flat input shape.
+ * For tool_call preconditions use makeToolCallPrecondition instead.
  */
 export function makePrecondition(input: MakePreconditionInput): Precondition {
-  if (input.type === 'tool_call') {
-    return {
-      type: 'tool_call',
-      tool: {
-        providerType: 'builtin',
-        providerId: DEFAULT_BUILTIN_PROVIDER_ID,
-        toolName: input.value,
-      },
-      description: input.description,
-      toolFields: input.toolFields,
-    };
-  }
   return {
     type: input.type,
     value: input.value,
     description: input.description,
+  };
+}
+
+export interface MakeToolCallInput {
+  tool: SelectedTool;
+  description?: string;
+  toolFields?: Record<string, ToolFieldValue>;
+}
+
+/**
+ * Constructs a tool_call Precondition from a SelectedTool ref.
+ * Use this instead of makePrecondition for tool_call preconditions so that
+ * the correct providerType/providerId are preserved.
+ */
+export function makeToolCallPrecondition(input: MakeToolCallInput): Precondition {
+  return {
+    type: 'tool_call',
+    tool: input.tool,
+    description: input.description,
+    toolFields: input.toolFields,
   };
 }
