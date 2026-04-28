@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 
 import type { RegistryState } from '../../hooks/useAgentRegistry';
 import type { RegistryTool, ToolGroup } from '../../lib/toolRegistry';
+import { CatalogFreshnessIndicator } from './CatalogFreshnessIndicator';
 import { PanelLoadingState } from './PanelLoadingState';
 import { PanelTotalFailureState } from './PanelTotalFailureState';
 import { SaveStateIndicator } from './SaveStateIndicator';
@@ -18,6 +19,7 @@ interface SearchRowProps {
   onQueryChange: (q: string) => void;
   placeholder: string;
   agent?: AgentModeProps;
+  fetchedAt?: number;
 }
 
 export function SearchRow({
@@ -26,6 +28,7 @@ export function SearchRow({
   onQueryChange,
   placeholder,
   agent,
+  fetchedAt,
 }: SearchRowProps): React.JSX.Element {
   return (
     <div className="flex items-center gap-2 px-3 py-2 border-b">
@@ -37,6 +40,7 @@ export function SearchRow({
         placeholder={placeholder}
         className="h-7 border-0 bg-transparent! p-0 text-xs shadow-none focus-visible:ring-0"
       />
+      {fetchedAt !== undefined && <CatalogFreshnessIndicator fetchedAt={fetchedAt} />}
       {agent !== undefined && (
         <SaveStateIndicator state={agent.saveState} onRetry={agent.onRetrySave} />
       )}

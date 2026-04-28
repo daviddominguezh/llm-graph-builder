@@ -695,7 +695,10 @@
       "disabledByFailure": "Save paused — tool catalog couldn't load"
     },
     "saveError": "Couldn't save tool selection. Please try again.",
-    "limitExceeded": "You can select at most 100 tools. Remove some before saving."
+    "limitExceeded": "You can select at most 100 tools. Remove some before saving.",
+    "updatedJustNow": "Updated just now",
+    "updatedMinutesAgo": "Updated {minutes}m ago",
+    "updatedHoursAgo": "Updated {hours}h ago"
   },
   "apiKeys": {
     "title": "OpenRouter API Keys",
