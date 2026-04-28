@@ -12,7 +12,7 @@ import { createTransport as defaultCreateTransport } from './transport/createTra
 import { SessionExpiredError } from './transport/errors.js';
 import type { McpTransport } from './transport/transport.js';
 
-export type CreateTransportFn = (server: McpServerConfig) => Promise<McpTransport>;
+export type CreateTransportFn = (server: McpServerConfig) => Promise<McpTransport> | McpTransport;
 
 export interface SessionCacheIo {
   read: (orgId: string, serverUrl: string) => Promise<CachedMcpSession | null>;
