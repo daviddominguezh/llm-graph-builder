@@ -125,7 +125,11 @@ jobs:
         # with literal quotes). `$GITHUB_ENV` treats those quotes as part of
         # the value, which breaks downstream consumers. Strip surrounding
         # double quotes per line before writing.
+        # `set -eo pipefail` makes the step fail loudly if the supabase CLI
+        # exits non-zero — otherwise sed silently produces empty output and
+        # SUPABASE_URL is missing for the next step.
         run: |
+          set -eo pipefail
           supabase --experimental branches get "$GITHUB_HEAD_REF" -o env \
             | sed -E 's/^([A-Z_]+)="(.*)"$/\1=\2/' \
             >> "$GITHUB_ENV"
@@ -138,6 +142,10 @@ jobs:
             # Supabase CLI's `-o env` dump doesn't expose the project ref
             # directly — it's embedded in SUPABASE_URL (https://<ref>.supabase.co).
             # Extract the subdomain.
+            if [ -z "${SUPABASE_URL:-}" ]; then
+              echo "::error::SUPABASE_URL is not set. The 'Dump preview branch env' step likely failed — check supabase CLI output above. The Supabase Preview integration may not have provisioned the branch in time, or the branch name '$GITHUB_HEAD_REF' wasn't found." >&2
+              exit 1
+            fi
             host="${SUPABASE_URL#https://}"
             ref="${host%%.*}"
             echo "project_ref=$ref" >> "$GITHUB_OUTPUT"
