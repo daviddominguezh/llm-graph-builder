@@ -6,12 +6,13 @@ import type { RegistryTool, ToolGroup } from '../lib/toolRegistryTypes';
 
 export type RegistryState =
   | { kind: 'loading' }
-  | { kind: 'loaded'; groups: ToolGroup[]; tools: RegistryTool[] }
+  | { kind: 'loaded'; groups: ToolGroup[]; tools: RegistryTool[]; fetchedAt: number }
   | {
       kind: 'partial-failure';
       groups: ToolGroup[];
       tools: RegistryTool[];
       failedProviders: string[];
+      fetchedAt: number;
     }
   | { kind: 'total-failure'; reason: string };
 
@@ -39,6 +40,7 @@ interface RegistryProviderResponse {
 
 interface RegistryResponse {
   providers: RegistryProviderResponse[];
+  fetchedAt?: number;
 }
 
 async function fetcher(url: string): Promise<RegistryResponse> {
@@ -82,10 +84,11 @@ function buildState(data: RegistryResponse): RegistryState {
     tools.push(...shaped.tools);
     if (provider.error !== undefined) failed.push(provider.id);
   }
+  const fetchedAt = data.fetchedAt ?? Date.now();
   if (failed.length > 0) {
-    return { kind: 'partial-failure', groups, tools, failedProviders: failed };
+    return { kind: 'partial-failure', groups, tools, failedProviders: failed, fetchedAt };
   }
-  return { kind: 'loaded', groups, tools };
+  return { kind: 'loaded', groups, tools, fetchedAt };
 }
 
 function buildErrorState(error: unknown): RegistryState {

@@ -77,7 +77,7 @@ async function respondWithRegistry(
   const registry = composeRegistry({ builtIns: builtInProviders, orgMcpServers, logger: consoleLogger });
   const ctx = buildCatalogProviderCtx(agent.org_id, agentId);
   const items = await registry.describeAll(ctx);
-  res.status(HTTP_OK).json({ providers: shapeProviders(items) });
+  res.status(HTTP_OK).json({ providers: shapeProviders(items), fetchedAt: Date.now() });
 }
 
 export async function handleGetAgentRegistry(req: Request, res: AuthenticatedResponse): Promise<void> {
