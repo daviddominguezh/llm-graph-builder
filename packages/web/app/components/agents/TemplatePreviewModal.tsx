@@ -57,18 +57,25 @@ function templateToGraph(data: TemplateGraphData): Graph {
       to: e.to,
       preconditions: e.preconditions?.map((p): Precondition => {
         if (p.type === 'tool_call') {
-          // TODO(Task 115): Template schema enrichment — templates don't carry
-          // full SelectedTool refs yet (only a value string). Until that is fixed,
-          // we default to builtin/calendar. This will be corrected when templates
-          // store providerType/providerId alongside toolName.
+          if (p.tool !== undefined) {
+            return makeToolCallPrecondition({
+              tool: p.tool,
+              description: p.description,
+            });
+          }
+          // Legacy template (pre-Task 115): fall back to builtin/calendar with the
+          // value string as toolName. Re-export the template to refresh.
+          console.warn(
+            `[template] tool_call precondition missing 'tool' ref — falling back to builtin/calendar/${p.value ?? ''}`
+          );
           return makeToolCallPrecondition({
-            tool: { providerType: 'builtin', providerId: 'calendar', toolName: p.value },
+            tool: { providerType: 'builtin', providerId: 'calendar', toolName: p.value ?? '' },
             description: p.description,
           });
         }
         return makePrecondition({
           type: p.type as 'user_said' | 'agent_decision',
-          value: p.value,
+          value: p.value ?? '',
           description: p.description,
         });
       }),
