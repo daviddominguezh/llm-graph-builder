@@ -33,6 +33,10 @@ export interface EdgePreconditionRow {
   value: string;
   description: string | null;
   tool_fields: Record<string, unknown> | null;
+  /** Structured tool ref (NULL for non-tool_call rows or pre-migration rows). */
+  provider_type: 'builtin' | 'mcp' | null;
+  provider_id: string | null;
+  tool_name: string | null;
 }
 
 /** Row shape returned by `graph_edge_context_preconditions` table. */

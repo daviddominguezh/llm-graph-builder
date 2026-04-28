@@ -7,11 +7,19 @@ type InsertEdgeOp = Extract<Operation, { type: 'insertEdge' }>;
 type UpdateEdgeOp = Extract<Operation, { type: 'updateEdge' }>;
 type EdgeData = InsertEdgeOp['data'];
 
+interface RpcToolRef {
+  providerType: 'builtin' | 'mcp';
+  providerId: string;
+  toolName: string;
+}
+
 interface RpcPrecondition {
   type: string;
   value: string;
   description: string;
   toolFields?: Record<string, unknown>;
+  /** Structured tool ref for tool_call preconditions; absent on user_said / agent_decision. */
+  tool?: RpcToolRef;
 }
 
 interface RpcContextPreconditions {
@@ -20,12 +28,20 @@ interface RpcContextPreconditions {
 }
 
 function encodePreconditionValue(p: Precondition): string {
+  // For tool_call, also JSON-encode into value as a transitional bridge — the
+  // upsert RPC reads structured fields from `tool` (preferred) but legacy
+  // restore/rollback flows still read `value`. Once those are migrated, this
+  // can return `''` for tool_call.
   if (p.type === 'tool_call') return JSON.stringify(p.tool);
   return p.value;
 }
 
 function getToolFields(p: Precondition): Record<string, unknown> | undefined {
   return p.type === 'tool_call' ? p.toolFields : undefined;
+}
+
+function getToolRef(p: Precondition): RpcToolRef | undefined {
+  return p.type === 'tool_call' ? p.tool : undefined;
 }
 
 function buildRpcPreconditions(data: EdgeData): RpcPrecondition[] {
@@ -36,6 +52,7 @@ function buildRpcPreconditions(data: EdgeData): RpcPrecondition[] {
     value: encodePreconditionValue(p),
     description: p.description ?? '',
     toolFields: getToolFields(p),
+    tool: getToolRef(p),
   }));
 }
 
