@@ -57,10 +57,12 @@ export async function handleResolveToken(req: Request, res: AuthenticatedRespons
     if (authType !== 'oauth') {
       // Library item doesn't use OAuth (e.g. bearer-key MCP). The frontend's
       // discover/tool-call proxies fire resolve-token unconditionally whenever
-      // a libraryItemId is present; return null so they fall through to the
-      // graph's own transport headers (e.g. an env-var-injected Authorization
-      // header) instead of erroring.
-      res.status(HTTP_OK).json({ accessToken: null });
+      // a libraryItemId is present. Return an empty body so their
+      // `data.accessToken === undefined` guard short-circuits and they fall
+      // through to the graph's own transport headers (e.g. an env-var-injected
+      // Authorization header). Returning `{ accessToken: null }` would slip
+      // past that guard and produce `Bearer null` on the wire.
+      res.status(HTTP_OK).json({});
       return;
     }
     const mcpServerUrl = await lookupMcpServerUrl(supabase, libraryItemId);
