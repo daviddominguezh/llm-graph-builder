@@ -217,7 +217,7 @@ function EditorTabBar({
           <SidebarIcon />
         </Button>
         <Separator orientation="vertical" className="my-2" />
-        <div className="inline-flex gap-1 h-fit dark:gap-0.5 rounded-sm border border-[0.5px] border-transparent bg-transparent p-0.5 ml-4.5">
+        <div className="inline-flex gap-1 h-fit dark:gap-0.5 rounded-sm border border-[0.5px] border-transparent bg-transparent p-0.5 ml-4">
           {TABS.map((tab) => (
             <TabButton key={tab} tab={tab} active={activeTab === tab} onClick={onTabChange} label={t(tab)} />
           ))}

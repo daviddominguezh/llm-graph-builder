@@ -49,8 +49,7 @@ async function fetcher(url: string): Promise<RegistryResponse> {
     const text = await res.text().catch(() => 'Unknown error');
     throw new Error(`Registry request failed (${String(res.status)}): ${text}`);
   }
-  const data = (await res.json()) as RegistryResponse;
-  return data;
+  return (await res.json()) as RegistryResponse;
 }
 
 function builtinSourceId(provider: RegistryProviderResponse): string {

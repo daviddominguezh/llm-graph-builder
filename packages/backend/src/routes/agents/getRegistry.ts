@@ -8,8 +8,9 @@ import {
 import type { Request } from 'express';
 
 import { getAgentById } from '../../db/queries/agentQueries.js';
-import { getPublishedGraphData } from '../../db/queries/executionAuthQueries.js';
+import { getDecryptedEnvVariables, getPublishedGraphData } from '../../db/queries/executionAuthQueries.js';
 import { consoleLogger } from '../../logger.js';
+import { resolveServerTransport } from '../execute/executeHelpers.js';
 import {
   type AuthenticatedLocals,
   type AuthenticatedResponse,
@@ -73,7 +74,9 @@ async function respondWithRegistry(
     return;
   }
   const graphData = await getPublishedGraphData(supabase, agentId, agent.current_version);
-  const orgMcpServers = extractMcpServers(graphData);
+  const rawMcpServers = extractMcpServers(graphData);
+  const env = await getDecryptedEnvVariables(supabase, agent.org_id);
+  const orgMcpServers = rawMcpServers.map((s) => resolveServerTransport(s, env.byName, env.byId));
   const registry = composeRegistry({ builtIns: builtInProviders, orgMcpServers, logger: consoleLogger });
   const ctx = buildCatalogProviderCtx(agent.org_id, agentId);
   const items = await registry.describeAll(ctx);

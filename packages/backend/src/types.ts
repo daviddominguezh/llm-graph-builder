@@ -8,7 +8,7 @@ export interface DiscoverRequest {
 export interface DiscoveredTool {
   name: string;
   description: string | undefined;
-  inputSchema: Record<string, unknown> | undefined;
+  inputSchema: unknown;
 }
 
 export interface DiscoverResponse {

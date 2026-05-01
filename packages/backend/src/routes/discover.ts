@@ -1,8 +1,8 @@
-import { type McpTransport, McpTransportSchema } from '@daviddh/graph-types';
+import { type McpServerConfig, type McpTransport, McpTransportSchema } from '@daviddh/graph-types';
+import { connectMcp, createTransport } from '@daviddh/llm-graph-runner';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 
-import { connectMcpClient } from '../mcp/client.js';
 import type { DiscoverResponse, DiscoveredTool } from '../types.js';
 
 const HTTP_BAD_REQUEST = 400;
@@ -19,18 +19,28 @@ function parseTransport(body: unknown): McpTransport {
   return result.data.transport;
 }
 
+function transportToServerConfig(transport: McpTransport): McpServerConfig {
+  return {
+    id: 'discover',
+    name: 'discover',
+    transport,
+    enabled: true,
+  };
+}
+
 async function discoverFromTransport(transport: McpTransport): Promise<DiscoverResponse> {
-  const client = await connectMcpClient(transport);
+  const wireTransport = createTransport(transportToServerConfig(transport));
+  const handle = await connectMcp({ transport: wireTransport });
   try {
-    const result = await client.listTools();
-    const tools: DiscoveredTool[] = result.tools.map((tool) => ({
+    const rawTools = await handle.listTools();
+    const tools: DiscoveredTool[] = rawTools.map((tool) => ({
       name: tool.name,
       description: tool.description,
       inputSchema: tool.inputSchema,
     }));
     return { tools };
   } finally {
-    await client.close();
+    await handle.close();
   }
 }
 

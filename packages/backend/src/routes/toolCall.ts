@@ -1,8 +1,8 @@
-import { McpTransportSchema } from '@daviddh/graph-types';
+import { type McpServerConfig, type McpTransport, McpTransportSchema } from '@daviddh/graph-types';
+import { connectMcp, createTransport } from '@daviddh/llm-graph-runner';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 
-import { connectMcpClient } from '../mcp/client.js';
 import type { ToolCallResponse } from '../types.js';
 
 const HTTP_BAD_REQUEST = 400;
@@ -44,20 +44,27 @@ function extractErrorCode(err: unknown): string | undefined {
   return undefined;
 }
 
+function transportToServerConfig(transport: McpTransport): McpServerConfig {
+  return {
+    id: 'tool-call',
+    name: 'tool-call',
+    transport,
+    enabled: true,
+  };
+}
+
 async function executeToolCall(
-  transport: z.infer<typeof McpTransportSchema>,
+  transport: McpTransport,
   toolName: string,
   args: Record<string, unknown>
 ): Promise<ToolCallResponse> {
-  const client = await connectMcpClient(transport);
+  const wireTransport = createTransport(transportToServerConfig(transport));
+  const handle = await connectMcp({ transport: wireTransport });
   try {
-    const toolSet = await client.tools();
-    const { [toolName]: tool } = toolSet;
-    if (tool === undefined) throw new Error(`Tool not found: ${toolName}`);
-    const result: unknown = await tool.execute(args, { toolCallId: toolName, messages: [] });
+    const result = await handle.callTool(toolName, args);
     return { success: true, result };
   } finally {
-    await client.close();
+    await handle.close();
   }
 }
 

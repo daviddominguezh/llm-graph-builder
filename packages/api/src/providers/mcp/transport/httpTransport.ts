@@ -33,20 +33,52 @@ interface SendResult {
 function buildHeaders(config: HttpTransportConfig, sessionId: string | null): Record<string, string> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    Accept: 'application/json',
+    Accept: 'application/json, text/event-stream',
     ...config.headers,
   };
   if (sessionId !== null) headers['Mcp-Session-Id'] = sessionId;
   return headers;
 }
 
-function parseBody(text: string): unknown {
+function parseJsonBody(text: string): unknown {
   if (text.length === EMPTY_BODY_LENGTH) return null;
   try {
     return JSON.parse(text);
   } catch (err) {
     throw new TransportError('Invalid JSON in MCP HTTP response', err);
   }
+}
+
+const SSE_DATA_PREFIX = 'data:';
+const LAST_INDEX_OFFSET = 1;
+
+/**
+ * MCP servers may respond to a POST with `Content-Type: text/event-stream`,
+ * even for a single request/response cycle (Streamable HTTP transport spec).
+ * In that case the body is one or more SSE events; the JSON-RPC message we
+ * care about lives in the `data:` line of the last event.
+ */
+function parseSseBody(text: string): unknown {
+  const dataLines = text
+    .split('\n')
+    .filter((line) => line.startsWith(SSE_DATA_PREFIX))
+    .map((line) => line.slice(SSE_DATA_PREFIX.length).trim());
+  const { [dataLines.length - LAST_INDEX_OFFSET]: last } = dataLines;
+  if (last === undefined || last.length === EMPTY_BODY_LENGTH) {
+    throw new TransportError('SSE response had no data line');
+  }
+  try {
+    return JSON.parse(last);
+  } catch (err) {
+    throw new TransportError('Invalid JSON in MCP SSE data line', err);
+  }
+}
+
+function parseBody(text: string, contentType: string | null): unknown {
+  if (contentType?.includes('text/event-stream') === true) {
+    return parseSseBody(text);
+  }
+  return parseJsonBody(text);
 }
 
 interface FetchArgs {
@@ -124,7 +156,7 @@ function createHandle(deps: HandleDeps): HttpHandle {
       });
       const text = await res.text();
       return {
-        parsed: parseBody(text),
+        parsed: parseBody(text, res.headers.get('Content-Type')),
         sessionIdFromResponse: res.headers.get('Mcp-Session-Id'),
         status: res.status,
       };
