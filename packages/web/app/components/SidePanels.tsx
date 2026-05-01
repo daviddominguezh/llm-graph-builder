@@ -107,7 +107,7 @@ function SelectionPanel(props: SelectionPanelProps) {
   const isStartNode = selection.selectedNodeId === START_NODE_ID;
 
   return (
-    <GlassPanel className="absolute! h-full right-0 top-0 bottom-0 z-10 w-80! rounded-s-xl pointer-events-auto">
+    <GlassPanel className="absolute! h-full right-0 top-0 bottom-0 z-10 w-80! rounded-s-xl rounded-ee-xl pointer-events-auto">
       {selection.selectedNodeId !== null && isStartNode && (
         <StartNodePanel
           nodeId={selection.selectedNodeId}
