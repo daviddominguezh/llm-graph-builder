@@ -338,15 +338,18 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
 
   const prevNodeCount = useRef(nodes.length);
   const prevEdgeCount = useRef(edges.length);
+  const prevZoomNodeId = useRef(zoomView.zoomViewNodeId);
   useEffect(() => {
     const nodesChanged = nodes.length !== prevNodeCount.current;
     const edgesChanged = edges.length !== prevEdgeCount.current;
+    const zoomChanged = zoomView.zoomViewNodeId !== prevZoomNodeId.current;
+    prevZoomNodeId.current = zoomView.zoomViewNodeId;
     if (nodesChanged || edgesChanged) {
       prevNodeCount.current = nodes.length;
       prevEdgeCount.current = edges.length;
-      handleFormat();
+      if (!zoomChanged) handleFormat();
     }
-  }, [nodes.length, edges.length, handleFormat]);
+  }, [nodes.length, edges.length, zoomView.zoomViewNodeId, handleFormat]);
 
   const handleSimSelectNode = useCallback(
     (nodeId: string) => {
