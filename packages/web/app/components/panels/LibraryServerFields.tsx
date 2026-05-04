@@ -1,8 +1,8 @@
 'use client';
 
+import type { McpAuthType } from '@/app/lib/mcpLibraryTypes';
 import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
 import { extractVariableNames } from '@/app/lib/resolveVariables';
-import type { McpAuthType } from '@/app/lib/mcpLibraryTypes';
 import type { McpServerConfig } from '@/app/schemas/graph.schema';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -95,16 +95,19 @@ export function LibraryServerFields({
   const isOAuth = authType === 'oauth';
 
   return (
-    <div className="space-y-2 mt-2">
-      <p className="text-xs text-muted-foreground">{t('readOnlyConfig')}</p>
-      <div className="space-y-1">
-        <Label>Name</Label>
-        <Input value={server.name} disabled />
+    <div className="mt-2 flex flex-col gap-2">
+      <p className="text-xs font-semibold">{t('readOnlyConfig')}</p>
+      <div className='pl-3 border-l-2 flex flex-col gap-2 mb-1.5'>
+        <div className="space-y-1">
+          <Label>Name</Label>
+          <Input value={server.name} disabled />
+        </div>
+        <div className="space-y-1">
+          <Label>{getEndpointLabel(server.transport)}</Label>
+          <Input value={getTransportEndpoint(server.transport)} disabled />
+        </div>
       </div>
-      <div className="space-y-1">
-        <Label>{getEndpointLabel(server.transport)}</Label>
-        <Input value={getTransportEndpoint(server.transport)} disabled />
-      </div>
+
       {isOAuth ? (
         <OAuthStatus connected={oauthConnected ?? false} />
       ) : (

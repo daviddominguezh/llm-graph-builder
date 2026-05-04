@@ -8,8 +8,8 @@ import { useState } from 'react';
 
 import type { McpServerStatus } from '../../hooks/useMcpServers';
 import { useOAuthStatus } from '../../hooks/useOAuthStatus';
-import type { OrgEnvVariableRow } from '../../lib/orgEnvVariables';
 import type { McpAuthType, McpLibraryRow } from '../../lib/mcpLibraryTypes';
+import type { OrgEnvVariableRow } from '../../lib/orgEnvVariables';
 import type { McpServerConfig } from '../../schemas/graph.schema';
 import { LibraryServerFields, areVariablesComplete } from './LibraryServerFields';
 import type { VariableValueShape } from './LibraryServerFields';
@@ -46,10 +46,9 @@ interface ServerItemProps {
 }
 
 async function invalidateMcpCacheRequest(agentId: string, mcpServerId: string): Promise<void> {
-  await fetch(
-    `/api/agents/${encodeURIComponent(agentId)}/mcp-cache/${encodeURIComponent(mcpServerId)}`,
-    { method: 'DELETE' }
-  );
+  await fetch(`/api/agents/${encodeURIComponent(agentId)}/mcp-cache/${encodeURIComponent(mcpServerId)}`, {
+    method: 'DELETE',
+  });
 }
 
 function buildDiscoverHandler(agentId: string | undefined, serverId: string, onDiscover: () => void) {
@@ -70,7 +69,6 @@ function DiscoverButton({
   isDiscovering,
   onDiscover,
   disabled,
-  className,
 }: {
   status: McpServerStatus;
   isDiscovering: boolean;
@@ -85,7 +83,7 @@ function DiscoverButton({
     <Button
       variant="default"
       size="sm"
-      className={className}
+      className="w-fit"
       onClick={onDiscover}
       disabled={isDiscovering || (disabled ?? false)}
     >
@@ -115,12 +113,7 @@ function EditableServerFields({
         <Button variant="outline" size="sm" className="flex-1" onClick={onPublish}>
           Publish
         </Button>
-        <DiscoverButton
-          status={status}
-          isDiscovering={isDiscovering}
-          onDiscover={onDiscover}
-          className="flex-1"
-        />
+        <DiscoverButton status={status} isDiscovering={isDiscovering} onDiscover={onDiscover} />
       </div>
     </>
   );
@@ -160,13 +153,14 @@ function LibraryExpandedFields({
         oauthConnected={oauthStatus.connected}
         onUpdate={onUpdate}
       />
-      <DiscoverButton
-        status={status}
-        isDiscovering={isDiscovering}
-        onDiscover={onDiscover}
-        disabled={authType !== 'oauth' && !varsComplete}
-        className="w-full"
-      />
+      <div className="w-full flex justify-end my-1.5 mt-3.5">
+        <DiscoverButton
+          status={status}
+          isDiscovering={isDiscovering}
+          onDiscover={onDiscover}
+          disabled={authType !== 'oauth' && !varsComplete}
+        />
+      </div>
     </>
   );
 }
@@ -235,7 +229,7 @@ function ServerItem({
   const handleDiscover = buildDiscoverHandler(agentId, server.id, onDiscover);
 
   return (
-    <li className="rounded-md border px-3 py-2 bg-background">
+    <li className="rounded-md px-3 py-2 bg-background">
       <div
         className="flex items-center justify-between cursor-pointer"
         onClick={() => setExpanded(!expanded)}
@@ -247,8 +241,9 @@ function ServerItem({
         </span>
         <Button
           variant="destructive"
-          size="icon-xs"
+          size="icon-sm"
           title="Remove server"
+          className="rounded-full"
           onClick={(e) => {
             e.stopPropagation();
             onRemove();

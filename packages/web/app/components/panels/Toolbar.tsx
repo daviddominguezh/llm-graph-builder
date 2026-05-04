@@ -181,7 +181,7 @@ export function FileMenu({
             agentName={agentName}
           />
         )}
-        <Separator />
+        <Separator className="my-1" />
         <FileMenuItems
           onImport={onImport}
           onExport={onExport}

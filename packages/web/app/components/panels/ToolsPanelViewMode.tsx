@@ -50,13 +50,13 @@ interface ViewToolRowProps {
 export function ViewToolRow({ tool, expanded, onClick, onCollapse, onTest }: ViewToolRowProps): React.JSX.Element {
   const rowRef = useRef<HTMLDivElement>(null);
   return (
-    <li className="flex flex-col w-[calc(50%_-_(var(--spacing)*2))] shrink-0 bg-card rounded-sm py-1.5">
+    <li className="flex flex-col w-[calc(33.3%_-_(var(--spacing)*2))] shrink-0 bg-input/70 rounded-sm py-0">
       <div
         ref={rowRef}
-        className="group/tool flex w-full items-start gap-1 px-1 py-0 text-left text-xs cursor-pointer border-l-2 border-ring hover:border-accent"
+        className="py-0.5 group/tool flex w-full items-start gap-1 pl-2 pr-0.5 text-left text-xs cursor-default"
         onClick={onClick}
       >
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="py-0.5 flex min-w-0 flex-1 flex-col">
           <span className="font-medium">{tool.name}</span>
           <span className="truncate text-[10px] text-muted-foreground">
             {tool.description ?? tool.group}
@@ -107,7 +107,7 @@ function ToolsListGroup({
   const hasError = providerId !== null && failedProviders.includes(providerId);
   return (
     <div>
-      <div className="sticky top-0 z-10 bg-background px-2 pt-0 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+      <div className="sticky top-0 z-10 px-2 pt-0 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
         <div className="pt-2">{group.groupName}</div>
       </div>
       {hasError && <ProviderErrorRow mode="workflow" />}

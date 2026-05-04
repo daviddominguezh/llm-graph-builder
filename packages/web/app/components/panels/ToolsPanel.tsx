@@ -86,9 +86,10 @@ function McpTab({ mcp }: { mcp: McpProps }) {
 }
 
 const PANEL_TABS = ['tools', 'mcp'] as const;
+
 const activeTabCls = 'bg-background dark:bg-input text-foreground shadow-sm';
 const inactiveTabCls =
-  'text-muted-foreground hover:text-foreground border-transparent hover:bg-input dark:hover:bg-card';
+  'text-muted-foreground hover:text-foreground border-transparent hover:bg-input dark:hover:bg-input/30';
 const tabBaseCls =
   'cursor-pointer inline-flex flex-1 items-center justify-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors border border-transparent';
 
@@ -103,7 +104,7 @@ function PanelTabs({
 }) {
   const labels: Record<string, string> = { tools: t('toolsTab'), mcp: t('mcpServersTab') };
   return (
-    <div className="flex w-full gap-0.5 bg-card dark:bg-background p-0.5">
+    <div className="flex w-full gap-0.5 p-0.5">
       {PANEL_TABS.map((tab) => (
         <button
           key={tab}
@@ -161,7 +162,7 @@ function ToolsTabPanel(props: ToolsTabPanelProps): React.JSX.Element {
   const onCollapseTool = (): void => panelState.setExpandedTool(null);
   const fetchedAt = getFetchedAt(registryState);
   return (
-    <div className="flex-1 overflow-y-auto flex flex-col">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <SearchRow
         inputRef={inputRef}
         query={panelState.query}
@@ -207,7 +208,7 @@ export function ToolsPanel({ mcp, open, onClose, agent }: ToolsPanelProps) {
 
   return (
     <>
-      <GlassPanel className="absolute top-12.5 left-1/2 z-20 -translate-x-1/2 w-[28rem] h-96 rounded-md shadow-lg overflow-hidden pointer-events-auto">
+      <GlassPanel className="absolute top-[15%] left-1/2 z-20 -translate-x-1/2 w-[42rem] h-116 rounded-md shadow-lg overflow-hidden pointer-events-auto">
         <div
           ref={containerRef}
           className="flex h-full flex-col"
