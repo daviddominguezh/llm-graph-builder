@@ -150,7 +150,8 @@ export function VersionSelector(props: VersionSelectorProps) {
     setPendingVersion(null);
   }, []);
 
-  if (versions.length === 0) return <EmptyVersionsTrigger />;
+  const hasAnyVersion = versions.length > 0 || (loading && currentVersion > 0);
+  if (!hasAnyVersion) return <EmptyVersionsTrigger />;
 
   return (
     <>
