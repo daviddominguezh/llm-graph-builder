@@ -139,6 +139,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     pushOperation: opQueue.pushOperation,
     libraryItems: mcpLibrary.items,
     orgId: props.orgId,
+    agentId,
   });
 
   const apiKeys = useApiKeySelection({

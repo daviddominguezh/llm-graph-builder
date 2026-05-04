@@ -183,7 +183,6 @@ function buildMcpProps(p: SidePanelsProps, onPublishServer: (server: McpServerCo
     discovering: p.mcpHook.discovering,
     serverStatus: p.mcpHook.serverStatus,
     orgId: p.orgId,
-    agentId: p.agentId,
     envVariables: p.envVariables,
     libraryItems: p.mcpLibrary.items,
     onAddServer: p.mcpHook.addServer,

@@ -26,7 +26,6 @@ interface McpProps {
   discovering: Record<string, boolean>;
   serverStatus: Record<string, McpServerStatus>;
   orgId: string;
-  agentId?: string;
   envVariables: OrgEnvVariableRow[];
   libraryItems?: McpLibraryRow[];
   onAddServer: () => void;
@@ -71,7 +70,6 @@ function McpTab({ mcp }: { mcp: McpProps }) {
         discovering={mcp.discovering}
         serverStatus={mcp.serverStatus}
         orgId={mcp.orgId}
-        agentId={mcp.agentId}
         envVariables={mcp.envVariables}
         libraryItems={mcp.libraryItems}
         onAdd={mcp.onAddServer}
