@@ -27,9 +27,16 @@ function SidebarHeader({ onCreateClick }: { onCreateClick: () => void }) {
   const t = useTranslations('agents');
 
   return (
-    <div className="flex items-center justify-between pl-3 pr-1 py-1.5 border-b mb-2.5">
-      <h2 className="text-sm font-semibold">{t('title')}</h2>
-      <Button variant="ghost" size="icon" onClick={onCreateClick}>
+    <div className="flex items-center justify-between pl-3 pr-1 py-1.5 pb-[calc(0px+var(--spacing)*1.5)] border-b border-b-[0.5px] mb-2.5">
+      <h2 className="mt-[1px] font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60">
+        {t('title').toUpperCase()}
+      </h2>
+      <Button
+        variant="ghost"
+        size="xs"
+        className="aspect-square p-0! h-5 rounded-full"
+        onClick={onCreateClick}
+      >
         <Plus />
       </Button>
     </div>
@@ -71,14 +78,18 @@ function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: 
     <Link
       href={href}
       className={`group flex gap-2 rounded-md pr-2 py-0 ${
-        active ? 'bg-input dark:bg-input/70 text-foreground' : 'hover:bg-input dark:hover:bg-input/70 text-foreground'
+        active
+          ? 'bg-input dark:bg-input/70 text-foreground'
+          : 'hover:bg-input dark:hover:bg-input/70 text-foreground'
       }`}
     >
       <StatusBar active={active} />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-1">
         <span className="flex items-center gap-1">
           <span className={`shrink-0 size-[7px] ml-[2px] shrink-0 rounded-full ${colorClass}`} />
-          <span className="shrink-0 flex-1 min-w-[0px] truncate text-[10px] font-medium font-mono">{agent.name}</span>
+          <span className="shrink-0 flex-1 min-w-[0px] truncate text-[10px] font-medium font-mono">
+            {agent.name}
+          </span>
           <div className="w-[40px] shrink-0 flex items-center ml-[2px] gap-1 text-[9px] text-muted-foreground">
             <span>v{agent.version}</span>
             <span>·</span>
@@ -160,7 +171,7 @@ export function AgentsSidebar({ agents: serverAgents, orgId, orgSlug }: AgentsSi
   }
 
   return (
-    <GlassPanel variant="background" className="relative flex h-[calc(100%-var(--spacing)*2-1px)] w-[240px] shrink-0 flex-col pointer-events-auto rounded-xl mt-[1px]">
+    <GlassPanel className="relative flex h-[calc(100%-1px)] w-[240px] shrink-0 flex-col pointer-events-auto rounded-s-xl mt-[0.5px] mb-[0.5px]">
       <SidebarHeader onCreateClick={() => setCreateOpen(true)} />
       <SearchInput value={search} onChange={setSearch} />
       <Scrollable className="flex-1">

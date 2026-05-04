@@ -113,11 +113,12 @@ export function useCopilotStreaming(
     currentBlocks: [],
   });
 
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       if (intervalRef.current !== null) clearInterval(intervalRef.current);
-    };
-  }, []);
+    },
+    []
+  );
 
   const stopStreaming = useCallback(() => {
     if (intervalRef.current !== null) {

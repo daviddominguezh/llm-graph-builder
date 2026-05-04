@@ -1,5 +1,5 @@
-import { type StateType } from '@/app/components/messages/store/mainStore';
-import { ProductBusinessSetupSchemaAPIType } from '@/app/types/business';
+import type { StateType } from '@/app/components/messages/store/mainStore';
+import type { ProductBusinessSetupSchemaAPIType } from '@/app/types/business';
 import { type PayloadAction, createSlice } from '@reduxjs/toolkit';
 
 export const StorePath = 'store';
@@ -15,12 +15,11 @@ export interface StoreProduct {
   selectedPersonalizations: CartPersonalization[];
 }
 
-const getPersonalizationsKey = (personalizations: CartPersonalization[]): string => {
-  return [...personalizations]
+const getPersonalizationsKey = (personalizations: CartPersonalization[]): string =>
+  [...personalizations]
     .sort((a, b) => a.type.localeCompare(b.type))
     .map((p) => `${p.type}:${p.value}`)
     .join('|');
-};
 
 const findCartItem = (
   cart: StoreProduct[],

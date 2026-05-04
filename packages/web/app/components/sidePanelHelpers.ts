@@ -98,7 +98,7 @@ export function handlePreconditionRemove(id: string, ctx: CtxPreconditionsState,
   if (target === undefined) return;
   setEdges((eds) =>
     eds.map((e) => {
-      const cp = (e.data as RFEdgeData | undefined)?.contextPreconditions;
+      const cp = e.data?.contextPreconditions;
       if (cp === undefined) return e;
       const filtered = cp.preconditions.filter((p: string) => p !== target.name);
       return {
@@ -123,7 +123,7 @@ export function handlePreconditionUpdate(
   if (updates.name !== undefined && old !== undefined && updates.name !== old.name) {
     setEdges((eds) =>
       eds.map((e) => {
-        const cp = (e.data as RFEdgeData | undefined)?.contextPreconditions;
+        const cp = e.data?.contextPreconditions;
         if (cp === undefined) return e;
         const renamed = cp.preconditions.map((p: string) => (p === old.name ? updates.name! : p));
         return { ...e, data: { ...e.data, contextPreconditions: { ...cp, preconditions: renamed } } };

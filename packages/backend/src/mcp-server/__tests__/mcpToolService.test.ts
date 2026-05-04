@@ -10,39 +10,36 @@ import type { ServiceContext } from '../types.js';
 
 type AssembleGraphFn = (supabase: SupabaseClient, agentId: string) => Promise<Graph | null>;
 
-interface MockTool {
-  execute: (args: Record<string, unknown>, ctx: { toolCallId: string; messages: [] }) => Promise<unknown>;
-}
-
-interface MockClient {
-  tools: () => Promise<Record<string, MockTool>>;
-  listTools: () => Promise<{
-    tools: Array<{ name: string; description?: string; inputSchema: Record<string, unknown> }>;
-  }>;
+interface MockHandle {
+  listTools: () => Promise<Array<{ name: string; description?: string; inputSchema: unknown }>>;
+  callTool: (name: string, args: unknown) => Promise<unknown>;
   close: () => Promise<void>;
 }
 
-type ConnectMcpClientFn = (transport: McpTransport) => Promise<MockClient>;
+type ConnectMcpFn = (args: { transport: unknown }) => Promise<MockHandle>;
+type CreateTransportFn = (server: McpServerConfig) => unknown;
 
 type GetDecryptedEnvVariablesFn = (
   supabase: SupabaseClient,
   orgId: string
-) => Promise<Record<string, string>>;
+) => Promise<{ byName: Record<string, string>; byId: Record<string, string> }>;
 
 /* ------------------------------------------------------------------ */
 /*  Mock registrations                                                 */
 /* ------------------------------------------------------------------ */
 
 const mockAssembleGraph = jest.fn<AssembleGraphFn>();
-const mockConnectMcpClient = jest.fn<ConnectMcpClientFn>();
+const mockConnectMcp = jest.fn<ConnectMcpFn>();
+const mockCreateTransport = jest.fn<CreateTransportFn>();
 const mockGetDecryptedEnvVariables = jest.fn<GetDecryptedEnvVariablesFn>();
 
 jest.unstable_mockModule('../../db/queries/graphQueries.js', () => ({
   assembleGraph: mockAssembleGraph,
 }));
 
-jest.unstable_mockModule('../../mcp/client.js', () => ({
-  connectMcpClient: mockConnectMcpClient,
+jest.unstable_mockModule('@daviddh/llm-graph-runner', () => ({
+  connectMcp: mockConnectMcp,
+  createTransport: mockCreateTransport,
 }));
 
 jest.unstable_mockModule('../../db/queries/executionAuthQueries.js', () => ({
@@ -94,21 +91,18 @@ const toolList = [
 const TOOL_COUNT = 2;
 const FIRST = 0;
 
-function buildMockClient(): MockClient {
+function buildMockHandle(): MockHandle {
   return {
-    listTools: jest.fn<MockClient['listTools']>().mockResolvedValue({ tools: toolList }),
-    tools: jest.fn<MockClient['tools']>().mockResolvedValue({
-      search: {
-        execute: jest.fn<MockTool['execute']>().mockResolvedValue({ results: ['result1'] }),
-      },
-    }),
-    close: jest.fn<MockClient['close']>().mockResolvedValue(undefined),
+    listTools: jest.fn<MockHandle['listTools']>().mockResolvedValue(toolList),
+    callTool: jest.fn<MockHandle['callTool']>().mockResolvedValue({ results: ['result1'] }),
+    close: jest.fn<MockHandle['close']>().mockResolvedValue(undefined),
   };
 }
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockGetDecryptedEnvVariables.mockResolvedValue({});
+  mockGetDecryptedEnvVariables.mockResolvedValue({ byName: {}, byId: {} });
+  mockCreateTransport.mockReturnValue({ wire: 'transport' });
 });
 
 /* ------------------------------------------------------------------ */
@@ -118,9 +112,9 @@ beforeEach(() => {
 describe('discoverTools', () => {
   it('returns tool list with name/description/inputSchema', async () => {
     const ctx = buildCtx();
-    const mockClient = buildMockClient();
+    const handle = buildMockHandle();
     mockAssembleGraph.mockResolvedValue(testGraph);
-    mockConnectMcpClient.mockResolvedValue(mockClient);
+    mockConnectMcp.mockResolvedValue(handle);
 
     const result = await discoverTools(ctx, 'agent-1', 'server-1');
 
@@ -130,18 +124,18 @@ describe('discoverTools', () => {
       description: 'Search for results',
       inputSchema: { type: 'object', properties: { q: { type: 'string' } } },
     });
-    expect(mockClient.close).toHaveBeenCalled();
+    expect(handle.close).toHaveBeenCalled();
   });
 
   it('closes client even after error in listTools', async () => {
     const ctx = buildCtx();
-    const mockClient = buildMockClient();
-    mockClient.listTools = jest.fn<MockClient['listTools']>().mockRejectedValue(new Error('list failed'));
+    const handle = buildMockHandle();
+    handle.listTools = jest.fn<MockHandle['listTools']>().mockRejectedValue(new Error('list failed'));
     mockAssembleGraph.mockResolvedValue(testGraph);
-    mockConnectMcpClient.mockResolvedValue(mockClient);
+    mockConnectMcp.mockResolvedValue(handle);
 
     await expect(discoverTools(ctx, 'agent-1', 'server-1')).rejects.toThrow('list failed');
-    expect(mockClient.close).toHaveBeenCalled();
+    expect(handle.close).toHaveBeenCalled();
   });
 
   it('throws when graph not found', async () => {
@@ -166,12 +160,12 @@ describe('discoverTools', () => {
 const EMPTY_ARGS: Record<string, unknown> = {};
 const SEARCH_INPUT = { agentId: 'agent-1', serverId: 'server-1', toolName: 'search', args: EMPTY_ARGS };
 
-function setupCallToolClient(): { ctx: ServiceContext; mockClient: MockClient } {
+function setupCallToolHandle(): { ctx: ServiceContext; handle: MockHandle } {
   const ctx = buildCtx();
-  const mockClient = buildMockClient();
+  const handle = buildMockHandle();
   mockAssembleGraph.mockResolvedValue(testGraph);
-  mockConnectMcpClient.mockResolvedValue(mockClient);
-  return { ctx, mockClient };
+  mockConnectMcp.mockResolvedValue(handle);
+  return { ctx, handle };
 }
 
 /* ------------------------------------------------------------------ */
@@ -180,7 +174,7 @@ function setupCallToolClient(): { ctx: ServiceContext; mockClient: MockClient } 
 
 describe('callTool', () => {
   it('calls the tool with args and returns result', async () => {
-    const { ctx, mockClient } = setupCallToolClient();
+    const { ctx, handle } = setupCallToolHandle();
 
     const result = await callTool(ctx, {
       agentId: 'agent-1',
@@ -189,26 +183,17 @@ describe('callTool', () => {
       args: { q: 'test' },
     });
 
+    expect(handle.callTool).toHaveBeenCalledWith('search', { q: 'test' });
     expect(result).toEqual({ results: ['result1'] });
-    expect(mockClient.close).toHaveBeenCalled();
-  });
-
-  it('throws when tool not found in toolset', async () => {
-    const { ctx, mockClient } = setupCallToolClient();
-
-    await expect(
-      callTool(ctx, { agentId: 'agent-1', serverId: 'server-1', toolName: 'missing-tool', args: EMPTY_ARGS })
-    ).rejects.toThrow('Tool not found: missing-tool');
-    expect(mockClient.close).toHaveBeenCalled();
+    expect(handle.close).toHaveBeenCalled();
   });
 
   it('closes client after tool execution error', async () => {
-    const { ctx, mockClient } = setupCallToolClient();
-    const failingTool = { execute: jest.fn<MockTool['execute']>().mockRejectedValue(new Error('exec fail')) };
-    mockClient.tools = jest.fn<MockClient['tools']>().mockResolvedValue({ search: failingTool });
+    const { ctx, handle } = setupCallToolHandle();
+    handle.callTool = jest.fn<MockHandle['callTool']>().mockRejectedValue(new Error('exec fail'));
 
     await expect(callTool(ctx, SEARCH_INPUT)).rejects.toThrow('exec fail');
-    expect(mockClient.close).toHaveBeenCalled();
+    expect(handle.close).toHaveBeenCalled();
   });
 
   it('throws when graph not found', async () => {

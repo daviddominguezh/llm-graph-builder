@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import type { SelectedTool } from '@daviddh/llm-graph-runner';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -13,16 +14,18 @@ import { LoopPreview } from './MiniGraphPreview';
 
 type LoopConnectionType = 'none' | 'user_said' | 'tool_call';
 
+export interface LoopConnection {
+  type: LoopConnectionType;
+  value: string;
+  tool: SelectedTool | null;
+}
+
 interface LoopDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sourceNodeLabel: string;
   sourceEdgeType: ExistingEdgeType;
-  onCreate: (
-    connection: { type: LoopConnectionType; value: string },
-    continueValue: string,
-    exitValue: string
-  ) => void;
+  onCreate: (connection: LoopConnection, continueValue: string, exitValue: string) => void;
 }
 
 const CONNECTION_COLOR_MAP = {
@@ -77,12 +80,17 @@ export function LoopDialog({
   const defaultConnection = resolveDefaultConnection(sourceEdgeType);
   const [connectionType, setConnectionType] = useState<LoopConnectionType>(defaultConnection);
   const [connectionValue, setConnectionValue] = useState('');
+  const [connectionTool, setConnectionTool] = useState<SelectedTool | null>(null);
   const [continueValue, setContinueValue] = useState('');
   const [exitValue, setExitValue] = useState('');
 
   const handleCreate = () => {
-    const connValue = connectionType === 'none' ? '' : connectionValue;
-    onCreate({ type: connectionType, value: connValue.trim() }, continueValue.trim(), exitValue.trim());
+    const connection: LoopConnection = {
+      type: connectionType,
+      value: connectionType === 'none' ? '' : connectionValue.trim(),
+      tool: connectionType === 'tool_call' ? connectionTool : null,
+    };
+    onCreate(connection, continueValue.trim(), exitValue.trim());
     resetForm();
     onOpenChange(false);
   };
@@ -95,11 +103,12 @@ export function LoopDialog({
   const resetForm = () => {
     setConnectionType(defaultConnection);
     setConnectionValue('');
+    setConnectionTool(null);
     setContinueValue('');
     setExitValue('');
   };
 
-  const canCreate = isLoopFormValid(connectionType, connectionValue, continueValue, exitValue);
+  const canCreate = isLoopFormValid(connectionType, connectionValue, connectionTool, continueValue, exitValue);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -119,6 +128,7 @@ export function LoopDialog({
                 onClick={() => {
                   setConnectionType('none');
                   setConnectionValue('');
+                  setConnectionTool(null);
                 }}
               />
               <ConnectionTypeButton
@@ -128,6 +138,7 @@ export function LoopDialog({
                 onClick={() => {
                   setConnectionType('user_said');
                   setConnectionValue('');
+                  setConnectionTool(null);
                 }}
               />
               <ConnectionTypeButton
@@ -137,6 +148,7 @@ export function LoopDialog({
                 onClick={() => {
                   setConnectionType('tool_call');
                   setConnectionValue('');
+                  setConnectionTool(null);
                 }}
               />
             </div>
@@ -144,7 +156,9 @@ export function LoopDialog({
           <ConnectionValueField
             connectionType={connectionType}
             value={connectionValue}
-            onChange={setConnectionValue}
+            tool={connectionTool}
+            onChangeValue={setConnectionValue}
+            onChangeTool={setConnectionTool}
           />
           <div className="space-y-2">
             <Label className="text-xs">{t('continueLoop')}</Label>
@@ -184,11 +198,15 @@ export function LoopDialog({
 function ConnectionValueField({
   connectionType,
   value,
-  onChange,
+  tool,
+  onChangeValue,
+  onChangeTool,
 }: {
   connectionType: LoopConnectionType;
   value: string;
-  onChange: (v: string) => void;
+  tool: SelectedTool | null;
+  onChangeValue: (v: string) => void;
+  onChangeTool: (t: SelectedTool | null) => void;
 }) {
   const t = useTranslations('connectionMenu');
   if (connectionType === 'none') return null;
@@ -197,8 +215,8 @@ function ConnectionValueField({
       <div className="space-y-2">
         <Label className="text-xs">{t('toolToCall')}</Label>
         <ToolCombobox
-          value={value}
-          onValueChange={onChange}
+          value={tool}
+          onValueChange={onChangeTool}
           placeholder={t('selectTool')}
         />
       </div>
@@ -209,7 +227,7 @@ function ConnectionValueField({
       <Label className="text-xs">{t('whenUserSays')}</Label>
       <Input
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChangeValue(e.target.value)}
         placeholder={t('userSaysPlaceholder')}
         className="h-8 text-xs"
       />
@@ -226,10 +244,12 @@ function resolveDefaultConnection(sourceEdgeType: ExistingEdgeType): LoopConnect
 function isLoopFormValid(
   connectionType: LoopConnectionType,
   connectionValue: string,
+  connectionTool: SelectedTool | null,
   continueValue: string,
   exitValue: string
 ): boolean {
   if (continueValue.trim() === '' || exitValue.trim() === '') return false;
   if (connectionType === 'none') return true;
+  if (connectionType === 'tool_call') return connectionTool !== null;
   return connectionValue.trim() !== '';
 }

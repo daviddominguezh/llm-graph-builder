@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 
 import type { PublishTenant } from '@/app/components/panels/PublishButtonTenantPicker';
 import type { ApiKeyRow } from '@/app/lib/apiKeys';
+import type { SelectedTool } from '@daviddh/llm-graph-runner';
 
 interface EditorClientProps {
   agentId: string;
@@ -20,6 +21,9 @@ interface EditorClientProps {
   orgApiKeys: ApiKeyRow[];
   stagingApiKeyId: string | null;
   productionApiKeyId: string | null;
+  agentAppType: string;
+  agentSelectedTools: SelectedTool[];
+  agentUpdatedAt: string;
 }
 
 const GraphBuilder = dynamic<EditorClientProps>(

@@ -1,6 +1,7 @@
 'use client';
 
 import { browseTemplatesAction, getTemplateVersionsAction } from '@/app/actions/templates';
+import { Scrollable } from '@/app/components/Scrollable';
 import { useDebouncedValue } from '@/app/hooks/useDebouncedValue';
 import type { TemplatesPrefetchState } from '@/app/hooks/useTemplatesPrefetch';
 import type { TemplateListItem } from '@/app/lib/templates';
@@ -159,33 +160,35 @@ function GridContent(props: GridContentProps) {
   const showNoResults = !hasTemplates && loaded && hasActiveFilter;
 
   return (
-    <div className="grid grid-cols-1 gap-3 overflow-y-auto p-1 sm:grid-cols-2 lg:grid-cols-3">
-      {showBlank && <BlankCanvasCard selected={selection?.type === 'blank'} onSelect={props.onSelectBlank} />}
-      {hasTemplates
-        ? templates.map((tpl) => (
-            <TemplateCard
-              key={tpl.agent_id}
-              template={tpl}
-              selected={selection?.type === 'template' && selection.agentId === tpl.agent_id}
-              onSelect={() => props.onSelectTemplate(tpl.agent_id)}
-              onPreview={() =>
-                props.onPreview(tpl.agent_id, selectedVersions[tpl.agent_id] ?? tpl.latest_version)
-              }
-              versions={versionsMap[tpl.agent_id] ?? [tpl.latest_version]}
-              selectedVersion={selectedVersions[tpl.agent_id] ?? tpl.latest_version}
-              onVersionChange={(v) => props.onVersionChange(tpl.agent_id, v)}
-            />
-          ))
-        : null}
-      {showNoResults && (
-        <div className="col-span-full row-span-full flex flex-col items-center justify-center">
-          <div className="w-fit h-fit px-12 py-6 rounded-xl bg-card rounded-md flex flex-col justify-center items-center gap-2">
-            <Search className="size-5 text-muted-foreground/90" />
-            <p className="text-xs text-muted-foreground">{props.noResultsLabel}</p>
+    <Scrollable className="min-h-0 flex-1">
+      <div className="grid grid-cols-1 gap-3 p-1 sm:grid-cols-2 lg:grid-cols-3">
+        {showBlank && <BlankCanvasCard selected={selection?.type === 'blank'} onSelect={props.onSelectBlank} />}
+        {hasTemplates
+          ? templates.map((tpl) => (
+              <TemplateCard
+                key={tpl.agent_id}
+                template={tpl}
+                selected={selection?.type === 'template' && selection.agentId === tpl.agent_id}
+                onSelect={() => props.onSelectTemplate(tpl.agent_id)}
+                onPreview={() =>
+                  props.onPreview(tpl.agent_id, selectedVersions[tpl.agent_id] ?? tpl.latest_version)
+                }
+                versions={versionsMap[tpl.agent_id] ?? [tpl.latest_version]}
+                selectedVersion={selectedVersions[tpl.agent_id] ?? tpl.latest_version}
+                onVersionChange={(v) => props.onVersionChange(tpl.agent_id, v)}
+              />
+            ))
+          : null}
+        {showNoResults && (
+          <div className="col-span-full row-span-full flex flex-col items-center justify-center">
+            <div className="w-fit h-fit px-12 py-6 rounded-xl bg-card rounded-md flex flex-col justify-center items-center gap-2">
+              <Search className="size-5 text-muted-foreground/90" />
+              <p className="text-xs text-muted-foreground">{props.noResultsLabel}</p>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </Scrollable>
   );
 }
 

@@ -1,7 +1,8 @@
 import type { RuntimeGraph } from '@daviddh/graph-types';
 import { RuntimeGraphSchema } from '@daviddh/graph-types';
-import type { Message } from '@daviddh/llm-graph-runner';
+import type { Message, SelectedTool } from '@daviddh/llm-graph-runner';
 
+import { getAgentById } from '../../db/queries/agentQueries.js';
 import {
   type DecryptedEnvVars,
   getDecryptedApiKeyValue,
@@ -18,6 +19,7 @@ import type { AgentExecutionInput } from './executeTypes.js';
 export { fetchChildMessages, fetchExecutionMessages, fetchResumeMessages } from './executeMessageFetcher.js';
 
 const EMPTY_LENGTH = 0;
+const HTTP_NOT_FOUND = 404;
 const HTTP_UNPROCESSABLE = 422;
 const HTTP_TOO_MANY = 429;
 const HTTP_INTERNAL = 500;
@@ -43,6 +45,13 @@ export interface AgentConfig {
 
 export type { OverrideAgentConfig } from './executeOverrideTypes.js';
 
+/* ─── Agent execution record — lean subset of AgentRow needed at runtime ─── */
+
+export interface AgentExecutionRecord {
+  org_id: string;
+  selected_tools: SelectedTool[];
+}
+
 /* ─── Fetched data shape ─── */
 
 export interface FetchedData {
@@ -56,6 +65,7 @@ export interface FetchedData {
   messageHistory: Message[];
   appType: string;
   agentConfig: AgentConfig | null;
+  agentRecord: AgentExecutionRecord;
   vfsSettings: AgentVfsSettings | null;
   stackTop: StackEntry | null;
 }
@@ -258,4 +268,15 @@ export async function fetchAgentConfig(
     context: flattenContextItems(graphData.contextItems),
     maxSteps: graphData.maxSteps ?? null,
   };
+}
+
+/* ─── Agent execution record ─── */
+
+export async function fetchAgentRecord(
+  supabase: SupabaseClient,
+  agentId: string
+): Promise<AgentExecutionRecord> {
+  const { result } = await getAgentById(supabase, agentId);
+  if (result === null) throw new HttpError(HTTP_NOT_FOUND, `Agent not found: ${agentId}`);
+  return { org_id: result.org_id, selected_tools: result.selected_tools };
 }

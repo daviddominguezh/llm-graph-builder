@@ -2,7 +2,6 @@ import type { AgentToolCallRecord, DispatchSentinel, Message } from '@daviddh/ll
 import { MESSAGES_PROVIDER, isDispatchSentinel, unwrapToolOutput } from '@daviddh/llm-graph-runner';
 import { randomUUID } from 'node:crypto';
 
-import type { McpSession } from '../mcp/lifecycle.js';
 import type { ResolvedChildConfig } from './simulateChildResolver.js';
 import type { OrchestratorConfig } from './simulationOrchestratorTypes.js';
 
@@ -110,7 +109,6 @@ export function buildUserMessage(task: string): Message {
 interface BuildChildParams {
   parentConfig: OrchestratorConfig;
   childConfig: ResolvedChildConfig;
-  childSession: McpSession;
 }
 
 function resolveChildModelId(childModelId: string, parentModelId: string): string {
@@ -119,7 +117,7 @@ function resolveChildModelId(childModelId: string, parentModelId: string): strin
 }
 
 export function buildChildOrchestratorConfig(params: BuildChildParams): OrchestratorConfig {
-  const { parentConfig, childConfig, childSession } = params;
+  const { parentConfig, childConfig } = params;
   const modelId = resolveChildModelId(childConfig.modelId, parentConfig.body.modelId);
 
   return {
@@ -133,7 +131,6 @@ export function buildChildOrchestratorConfig(params: BuildChildParams): Orchestr
       mcpServers: childConfig.mcpServers,
       skills: undefined,
     },
-    session: childSession,
     depth: parentConfig.depth + INCREMENT,
     maxNestingDepth: parentConfig.maxNestingDepth,
     orgId: parentConfig.orgId,

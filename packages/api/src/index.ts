@@ -9,8 +9,10 @@ import { setLogger } from './utils/logger.js';
 import { Pipeline } from './utils/pipeline.js';
 
 export { buildNextAgentConfig } from './stateMachine/index.js';
+export { buildAgentToolsAtStart } from './core/buildAgentToolsAtStart.js';
+export { resolveToolsForCurrentNode } from './core/resolveToolsForCurrentNode.js';
+export type { ResolveToolsArgs, ResolveToolsResult } from './core/resolveToolsForCurrentNode.js';
 export { createDummyToolsForGraph } from './tools/dummyTools.js';
-export { injectSystemTools } from './tools/systemToolInjector.js';
 export type { LeadScoringServices } from './tools/leadScoringTools.js';
 export { SET_LEAD_SCORE_TOOL_NAME, GET_LEAD_SCORE_TOOL_NAME } from './tools/leadScoringTools.js';
 export type { DispatchSentinel, FinishSentinel } from './types/sentinels.js';
@@ -40,6 +42,105 @@ export { generateVFSTools } from './vfs/index.js';
 export type { VFSContextConfig } from './vfs/index.js';
 // GitHubSourceProvider is NOT exported here — it uses Node/Deno APIs incompatible with browser bundles.
 // The Edge Function imports it via the @daviddh/vfs-providers alias in its deno.json.
+
+export type {
+  ValidationKind,
+  LengthPayload,
+  ValidationRule,
+  ValidationsMap,
+  FormDefinition,
+  FormData,
+  PathSegment,
+  FieldApplyResult,
+  ApplyResult,
+  FailedAttempt,
+} from './types/forms.js';
+
+export { slugNormalize } from './lib/forms/slugNormalize.js';
+export { parsePath } from './lib/forms/parsePath.js';
+export { normalizePath } from './lib/forms/normalizePath.js';
+export { collectFieldPaths, collectSimpleLeafPaths } from './lib/forms/collectFieldPaths.js';
+export type { SimpleLeafType, SimpleLeaf } from './lib/forms/collectFieldPaths.js';
+export { zodForFieldPath } from './lib/forms/zodForFieldPath.js';
+export { runValidation } from './lib/forms/runValidation.js';
+export { readFormField } from './lib/forms/readFormField.js';
+export { applyFormFields } from './lib/forms/applyFormFields.js';
+export { expandArrayColumns, ARRAY_EXPANSION_CAP } from './lib/forms/expandArrayColumns.js';
+export { formatCsvRow } from './lib/forms/formatCsvRow.js';
+export { formatRelativeTime } from './lib/forms/relativeTime.js';
+export type { RelativeTime } from './lib/forms/relativeTime.js';
+
+export type { FormsService } from './services/formsService.js';
+export {
+  createFormsTools,
+  buildFormsToolDescription,
+  SET_FORM_FIELDS_TOOL_NAME,
+  GET_FORM_FIELD_TOOL_NAME,
+} from './tools/formsTools.js';
+export type { CreateFormsToolsParams } from './tools/formsTools.js';
+
+export type {
+  CalendarService,
+  CheckAvailabilityArgs,
+  ListEventsArgs,
+  EventRefArgs,
+  BookAppointmentArgs,
+  UpdateEventArgs,
+} from './services/calendarService.js';
+export type {
+  CalendarSummary,
+  CalendarEvent,
+  CalendarAttendee,
+  AvailableSlot,
+  BookAppointmentInput,
+  UpdateEventInput,
+} from './types/calendar.js';
+export {
+  createCalendarTools,
+  DEFAULT_CALENDAR_ID,
+  LIST_CALENDARS_TOOL_NAME,
+  CHECK_AVAILABILITY_TOOL_NAME,
+  LIST_EVENTS_TOOL_NAME,
+  GET_EVENT_TOOL_NAME,
+  BOOK_APPOINTMENT_TOOL_NAME,
+  UPDATE_EVENT_TOOL_NAME,
+  CANCEL_APPOINTMENT_TOOL_NAME,
+} from './tools/calendarTools.js';
+export type { CreateCalendarToolsParams } from './tools/calendarTools.js';
+
+export { createGoogleCalendarService } from './google/calendar/service.js';
+export type { AccessTokenProvider, CreateGoogleCalendarServiceOptions } from './google/calendar/service.js';
+
+export { hashServerUrl, serverUrlSideTableKey } from './cache/serverHash.js';
+export type { ServerUrlSideTableEntry } from './cache/serverHash.js';
+
+export { MAX_CACHE_VALUE_BYTES, isCacheableSize, mcpToolsListKey } from './cache/mcpToolsListCache.js';
+
+export type { SelectedTool, ProviderType, BuiltinProviderId } from './types/selectedTool.js';
+export { BUILTIN_PROVIDER_IDS, equalsSelectedTool } from './types/selectedTool.js';
+
+export {
+  MAX_SELECTED_TOOLS,
+  PatchSelectedToolsBodySchema,
+  SelectedToolSchema,
+} from './types/selectedToolSchema.js';
+export type { PatchSelectedToolsBody } from './types/selectedToolSchema.js';
+
+export { builtInProviders, composeRegistry, toAiSdkTool, toAiSdkToolDict } from './providers/index.js';
+export { connectMcp, createTransport, type McpClientHandle, type RawMcpTool } from './providers/mcp/index.js';
+export type {
+  Provider,
+  ProviderCtx,
+  ToolDescriptor,
+  Registry,
+  RegistryBuildResult,
+  ComposeRegistryArgs,
+  ProviderFailure,
+  FailureReason,
+  DescribeAllItem,
+  OpenFlowTool,
+  OAuthTokenBundle,
+} from './providers/index.js';
 
 export const execute = async (
   context: Context,

@@ -1,13 +1,11 @@
-import { describe, it, expect } from '@jest/globals';
-import { readdirSync, readFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { describe, expect, it } from '@jest/globals';
+import { readFileSync, readdirSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { RESERVED_TENANT_SLUGS, sortedReservedTenantSlugs } from './index.js';
 
-const MIGRATIONS_DIR = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  '../../../supabase/migrations',
-);
+const MIGRATIONS_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../../../supabase/migrations');
 
 function extractLatestReservedList(): string[] | null {
   // Scan newest-first; the last migration that defines tenants_slug_format wins.
@@ -18,7 +16,7 @@ function extractLatestReservedList(): string[] | null {
   for (const file of files) {
     const sql = readFileSync(resolve(MIGRATIONS_DIR, file), 'utf8');
     if (!sql.includes('tenants_slug_format')) continue;
-    const m = sql.match(/slug NOT IN \(\s*([\s\S]*?)\)/);
+    const m = /slug NOT IN \(\s*([\s\S]*?)\)/.exec(sql);
     const inner = m?.[1];
     if (!inner) continue;
     return (inner.match(/'([a-z0-9]+)'/g) ?? []).map((s) => s.slice(1, -1)).sort();

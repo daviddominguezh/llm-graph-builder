@@ -41,9 +41,11 @@
   "dependencies": {
     "@daviddh/graph-types": "*",
     "@openrouter/ai-sdk-provider": "^2.2.5",
+    "@upstash/redis": "^1.37.0",
     "ai": "^6.0.116",
     "picomatch": "^2.3.1",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/picomatch": "^4.0.2"

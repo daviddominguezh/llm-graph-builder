@@ -1,4 +1,4 @@
-import { Collaborator } from '@/app/types/projectInnerSettings';
+import type { Collaborator } from '@/app/types/projectInnerSettings';
 
 /**
  * Represents a mention in the message text

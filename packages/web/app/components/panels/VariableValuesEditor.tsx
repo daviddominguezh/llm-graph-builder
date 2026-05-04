@@ -126,6 +126,7 @@ export function VariableValuesEditor({ variables, values, envVariables, onChange
   return (
     <div className="flex flex-col gap-3">
       <Label className="text-xs font-semibold">{t('variables')}</Label>
+      <div className='flex flex-col border-l-2 pl-3 gap-2'>
       {variables.map((variable) => (
         <VariableRow
           key={variable.name}
@@ -136,6 +137,7 @@ export function VariableValuesEditor({ variables, values, envVariables, onChange
           onChange={(newValue) => onChange({ ...values, [variable.name]: newValue })}
         />
       ))}
+      </div>
     </div>
   );
 }

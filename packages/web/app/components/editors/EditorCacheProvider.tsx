@@ -23,6 +23,10 @@ interface EditorCacheContextType {
   setMainRect: (rect: ElementRect | null) => void;
   setToolbarPortal: (el: HTMLElement | null) => void;
   toolbarPortal: HTMLElement | null;
+  setSettingsPortal: (el: HTMLElement | null) => void;
+  settingsPortal: HTMLElement | null;
+  setDataPortal: (el: HTMLElement | null) => void;
+  dataPortal: HTMLElement | null;
   isEditorActive: boolean;
   activeEditorId: string | null;
   panelInsets: PanelInsets | null;
@@ -42,6 +46,8 @@ export function EditorCacheProvider({ children }: { children: React.ReactNode })
   const [slotRect, setSlotRect] = useState<ElementRect | null>(null);
   const [mainRect, setMainRect] = useState<ElementRect | null>(null);
   const [toolbarPortal, setToolbarPortal] = useState<HTMLElement | null>(null);
+  const [settingsPortal, setSettingsPortal] = useState<HTMLElement | null>(null);
+  const [dataPortal, setDataPortal] = useState<HTMLElement | null>(null);
 
   const register = useCallback((agentId: string, content: React.ReactNode) => {
     setEntries((prev) => {
@@ -72,11 +78,15 @@ export function EditorCacheProvider({ children }: { children: React.ReactNode })
       setMainRect,
       setToolbarPortal,
       toolbarPortal,
+      setSettingsPortal,
+      settingsPortal,
+      setDataPortal,
+      dataPortal,
       isEditorActive,
       activeEditorId: activeId,
       panelInsets,
     }),
-    [register, isEditorActive, activeId, panelInsets, toolbarPortal]
+    [register, isEditorActive, activeId, panelInsets, toolbarPortal, settingsPortal, dataPortal]
   );
 
   return (

@@ -8,8 +8,8 @@ import { useState } from 'react';
 
 import type { McpServerStatus } from '../../hooks/useMcpServers';
 import { useOAuthStatus } from '../../hooks/useOAuthStatus';
-import type { OrgEnvVariableRow } from '../../lib/orgEnvVariables';
 import type { McpAuthType, McpLibraryRow } from '../../lib/mcpLibraryTypes';
+import type { OrgEnvVariableRow } from '../../lib/orgEnvVariables';
 import type { McpServerConfig } from '../../schemas/graph.schema';
 import { LibraryServerFields, areVariablesComplete } from './LibraryServerFields';
 import type { VariableValueShape } from './LibraryServerFields';
@@ -48,7 +48,6 @@ function DiscoverButton({
   isDiscovering,
   onDiscover,
   disabled,
-  className,
 }: {
   status: McpServerStatus;
   isDiscovering: boolean;
@@ -63,11 +62,12 @@ function DiscoverButton({
     <Button
       variant="default"
       size="sm"
-      className={className}
+      className="relative w-fit"
       onClick={onDiscover}
       disabled={isDiscovering || (disabled ?? false)}
     >
-      {isDiscovering ? <Loader2 className="size-3 animate-spin text-white" /> : label}
+      <span className={isDiscovering ? 'invisible' : undefined}>{label}</span>
+      {isDiscovering && <Loader2 className="absolute inset-0 m-auto size-3 animate-spin" />}
     </Button>
   );
 }
@@ -93,12 +93,7 @@ function EditableServerFields({
         <Button variant="outline" size="sm" className="flex-1" onClick={onPublish}>
           Publish
         </Button>
-        <DiscoverButton
-          status={status}
-          isDiscovering={isDiscovering}
-          onDiscover={onDiscover}
-          className="flex-1"
-        />
+        <DiscoverButton status={status} isDiscovering={isDiscovering} onDiscover={onDiscover} />
       </div>
     </>
   );
@@ -138,13 +133,14 @@ function LibraryExpandedFields({
         oauthConnected={oauthStatus.connected}
         onUpdate={onUpdate}
       />
-      <DiscoverButton
-        status={status}
-        isDiscovering={isDiscovering}
-        onDiscover={onDiscover}
-        disabled={authType !== 'oauth' && !varsComplete}
-        className="w-full"
-      />
+      <div className="w-full flex justify-end my-1.5 mt-3.5">
+        <DiscoverButton
+          status={status}
+          isDiscovering={isDiscovering}
+          onDiscover={onDiscover}
+          disabled={authType !== 'oauth' && !varsComplete}
+        />
+      </div>
     </>
   );
 }
@@ -211,7 +207,7 @@ function ServerItem({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <li className="rounded-md border px-3 py-2 bg-background">
+    <li className="rounded-md px-3 py-2 bg-background">
       <div
         className="flex items-center justify-between cursor-pointer"
         onClick={() => setExpanded(!expanded)}
@@ -223,8 +219,9 @@ function ServerItem({
         </span>
         <Button
           variant="destructive"
-          size="icon-xs"
+          size="icon-sm"
           title="Remove server"
+          className="rounded-full"
           onClick={(e) => {
             e.stopPropagation();
             onRemove();

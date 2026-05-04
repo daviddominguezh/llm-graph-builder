@@ -2,7 +2,8 @@
 
 import { getTemplateSnapshotAction } from '@/app/actions/templates';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import type { Graph } from '@/app/schemas/graph.schema';
+import type { Graph, Precondition } from '@/app/schemas/graph.schema';
+import { makePrecondition, makeToolCallPrecondition } from '@/app/utils/preconditionHelpers';
 import type { TemplateGraphData } from '@daviddh/graph-types';
 import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
@@ -54,11 +55,30 @@ function templateToGraph(data: TemplateGraphData): Graph {
     edges: data.edges.map((e) => ({
       from: e.from,
       to: e.to,
-      preconditions: e.preconditions?.map((p) => ({
-        type: p.type as 'user_said' | 'agent_decision' | 'tool_call',
-        value: p.value,
-        description: p.description,
-      })),
+      preconditions: e.preconditions?.map((p): Precondition => {
+        if (p.type === 'tool_call') {
+          if (p.tool !== undefined) {
+            return makeToolCallPrecondition({
+              tool: p.tool,
+              description: p.description,
+            });
+          }
+          // Legacy template (pre-Task 115): fall back to builtin/calendar with the
+          // value string as toolName. Re-export the template to refresh.
+          console.warn(
+            `[template] tool_call precondition missing 'tool' ref — falling back to builtin/calendar/${p.value ?? ''}`
+          );
+          return makeToolCallPrecondition({
+            tool: { providerType: 'builtin', providerId: 'calendar', toolName: p.value ?? '' },
+            description: p.description,
+          });
+        }
+        return makePrecondition({
+          type: p.type as 'user_said' | 'agent_decision',
+          value: p.value ?? '',
+          description: p.description,
+        });
+      }),
       contextPreconditions: e.contextPreconditions,
     })),
     agents: data.agents,

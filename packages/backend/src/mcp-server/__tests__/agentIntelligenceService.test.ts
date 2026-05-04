@@ -82,6 +82,7 @@ const AGENT_ROW: AgentRow = {
   category: 'engineering',
   created_from_template_id: null,
   app_type: 'workflow',
+  selected_tools: [],
   system_prompt: null,
   max_steps: null,
 };

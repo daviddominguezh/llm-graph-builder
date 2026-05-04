@@ -25,6 +25,7 @@ import { handleGitHubWebhook } from './routes/github/webhookRoute.js';
 import { internalRouter } from './routes/internal/internalRouter.js';
 import { mcpLibraryRouter } from './routes/mcp-library/mcpLibraryRouter.js';
 import { mockExecuteRouter } from './routes/mockExecute/mockExecuteRouter.js';
+import { handleGoogleCallback } from './routes/oauth/googleOauthCallback.js';
 import { handleCallback } from './routes/oauth/oauthCallback.js';
 import { handleGetOpenRouterModels } from './routes/openrouterModels.js';
 import { handleAddMember } from './routes/orgs/addMember.js';
@@ -147,6 +148,7 @@ function mountSystemRoutes(app: Express): void {
   app.post('/simulate', handleSimulate);
   app.post('/simulate-agent', handleSimulateAgent);
   app.get('/mcp/oauth/callback', handleCallback);
+  app.get('/google-oauth/callback', handleGoogleCallback);
 
   app.post('/mcp', handleMcpRequest);
   app.get('/mcp', handleMcpRequest);

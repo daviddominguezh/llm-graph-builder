@@ -115,7 +115,7 @@ describe('compositionMachine – transition', () => {
     expect(childMsgs).toHaveLength(2);
     const lastMsg = childMsgs?.[childMsgs.length - 1];
     expect(lastMsg).toBeDefined();
-    expect(getTextFromMessage(lastMsg!)).toBe('hello child');
+    expect(getTextFromMessage(lastMsg)).toBe('hello child');
   });
 
   it('USER_MESSAGE when no child appends to root', () => {
@@ -128,7 +128,7 @@ describe('compositionMachine – transition', () => {
     expect(next.stack).toHaveLength(0);
     const lastRoot = next.rootMessages[next.rootMessages.length - 1];
     expect(lastRoot).toBeDefined();
-    expect(getTextFromMessage(lastRoot!)).toBe('follow up');
+    expect(getTextFromMessage(lastRoot)).toBe('follow up');
   });
 
   it('CHILD_RESPONSE appends assistant message to active child stack', () => {
@@ -178,7 +178,7 @@ describe('compositionMachine – transition', () => {
     expect(next.rootMessages).toHaveLength(4);
     const lastRoot = next.rootMessages[next.rootMessages.length - 1];
     expect(lastRoot).toBeDefined();
-    const toolResult = getToolResultFromMessage(lastRoot!);
+    const toolResult = getToolResultFromMessage(lastRoot);
     expect(toolResult).not.toBeNull();
     expect(toolResult?.toolCallId).toBe('tc-1');
     expect(toolResult?.value).toBe('child result');

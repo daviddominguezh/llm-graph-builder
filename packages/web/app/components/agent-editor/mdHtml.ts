@@ -15,7 +15,7 @@ turndown.addRule('strikethrough', {
 
 export function mdToHtml(md: string): string {
   if (md === '') return '';
-  return marked.parse(md, { async: false, gfm: true, breaks: false }) as string;
+  return marked.parse(md, { async: false, gfm: true, breaks: false });
 }
 
 export function htmlToMd(html: string): string {

@@ -1,6 +1,7 @@
 'use client';
 
 import type { McpLibraryRow } from '@/app/lib/mcpLibraryTypes';
+import { GlassPanel } from '@/components/ui/glass-panel';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@base-ui/react';
 import { Search } from 'lucide-react';
@@ -63,9 +64,7 @@ function LibraryItemsList({ items, loading, installedLibraryIds, onInstall }: Li
 
   if (loading) {
     return (
-      <p className="px-4 py-3 text-xs text-muted-foreground bg-muted rounded-md mx-3 mt-1">
-        {t('loading')}
-      </p>
+      <p className="px-4 py-3 text-xs text-muted-foreground bg-muted rounded-md mx-3 mt-1">{t('loading')}</p>
     );
   }
 
@@ -108,15 +107,17 @@ export function McpLibraryPanel({ library, installedLibraryIds, onInstall }: Mcp
   const filtered = useMemo(() => filterItems(library.items, debouncedQuery), [library.items, debouncedQuery]);
 
   return (
-    <div className="w-[240px] absolute bottom-0 left-0 top-0 z-10 flex w-80 flex-col bg-background border-r rounded-e-md">
-      <LibraryPanelHeader />
-      <LibrarySearchBar value={query} onChange={handleQueryChange} />
-      <LibraryItemsList
-        items={filtered}
-        loading={library.loading}
-        installedLibraryIds={installedLibraryIds}
-        onInstall={onInstall}
-      />
-    </div>
+    <GlassPanel className="absolute! w-[240px] bottom-0 left-0 top-0 z-10 flex w-80 flex-col rounded-e-md">
+      <div className="flex flex-col w-full h-full">
+        <LibraryPanelHeader />
+        <LibrarySearchBar value={query} onChange={handleQueryChange} />
+        <LibraryItemsList
+          items={filtered}
+          loading={library.loading}
+          installedLibraryIds={installedLibraryIds}
+          onInstall={onInstall}
+        />
+      </div>
+    </GlassPanel>
   );
 }

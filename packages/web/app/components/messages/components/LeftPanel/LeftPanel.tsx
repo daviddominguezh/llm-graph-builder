@@ -3,12 +3,16 @@ import { Collaborator } from '@/app/types/projectInnerSettings';
 import { useIsMobile } from '@/app/utils/device';
 import { Button } from '@/components/ui/button';
 import { CircleAlert, CircleCheck, Inbox, Loader, MessagesSquare, UserRoundX, Zap } from 'lucide-react';
+import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { memo, useMemo } from 'react';
 
 import { ChatWithId } from '../../core/contexts/ChatContext';
+import { useUI } from '../../core/contexts/UIContext';
 import { Slot } from '../../core/slots';
+import type { AgentOption } from '../ChatListPanel/AgentFilterCombobox';
 import { TenantSwitcher } from '../TenantSwitcher';
+import { ExportCsvButton } from './ExportCsvButton';
 
 interface SectionItem {
   id: string;
@@ -29,6 +33,8 @@ interface LeftPanelProps {
   tenants: TenantRow[];
   currentTenantId: string;
   onTenantChange: (tenantId: string) => void;
+  // TODO: source agents list from parent (MessagesDashboardLayout)
+  agents?: AgentOption[];
 }
 
 /**
@@ -43,9 +49,14 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
   tenants,
   currentTenantId,
   onTenantChange,
+  agents = [],
 }) => {
   const t = useTranslations('messages');
   const isMobile = useIsMobile();
+  const params = useParams<{ slug?: string }>();
+  const orgSlug = params?.slug ?? '';
+  const { agentFilter } = useUI();
+  const tenantSlug = tenants.find((tn) => tn.id === currentTenantId)?.slug ?? '';
 
   const badges = useMemo(() => {
     const getLatestAssignee = (chat: ChatWithId): string | null => {
@@ -128,6 +139,17 @@ const LeftPanelComponent: React.FC<LeftPanelProps> = ({
       </div>
 
       <div className="flex-grow" />
+      {currentTenantId !== '' && (
+        <div className="px-2 pb-2">
+          <ExportCsvButton
+            tenantId={currentTenantId}
+            tenantSlug={tenantSlug}
+            orgSlug={orgSlug}
+            agents={agents}
+            defaultAgentId={agentFilter}
+          />
+        </div>
+      )}
       <Slot name="left-panel-bottom" />
     </div>
   );

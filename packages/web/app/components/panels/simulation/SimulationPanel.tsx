@@ -214,7 +214,7 @@ function SimulationBody({ props, bottomRef }: SimulationBodyProps) {
   const { visitedNodes, terminated, loading, currentNode, totalTokens } = props;
   const { modelId, onModelIdChange, onSendMessage, onStop } = props;
   return (
-    <GlassPanel variant="background" className="w-full h-full rounded-xl">
+    <GlassPanel variant="background" className="w-full h-full rounded-e-xl border-l border-l-[0.5px]">
       <div className="relative flex h-full w-full flex-col">
         <SimulationHeader
           visitedNodes={visitedNodes}
@@ -278,7 +278,10 @@ export function SimulationPanel(props: SimulationPanelProps) {
   }
 
   return createPortal(
-    <div className="fixed inset-y-0 top-[calc(41px+var(--spacing)*11)] bottom-[calc(var(--spacing)*2)] left-[calc(calc(240px+var(--spacing)*2)+44px)] z-200 flex w-[350px]">
+    <div
+      data-simulation-panel=""
+      className="fixed inset-y-0 top-[calc(33px+var(--spacing)*5)] bottom-[calc(var(--spacing)*2.5)] left-[calc(calc(240px+var(--spacing)*0)+45px)] z-200 flex w-[350px]"
+    >
       {body}
     </div>,
     document.body

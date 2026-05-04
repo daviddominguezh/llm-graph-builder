@@ -176,7 +176,7 @@ export function AgentEditor({
         >
           <GlassPanel className="flex min-w-0 flex-1 h-[calc(100%-var(--spacing)*2.5)] shrink-0 flex-col p-4 mt-2 mb-2.5 rounded-xl items-center">
             <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
-            <div className={activeTab === 'prompt' ? 'flex min-h-0 flex-1 flex-col' : 'hidden'}>
+            <div className={activeTab === 'prompt' ? 'flex min-h-0 flex-1 flex-col w-full' : 'hidden'}>
               <SystemPromptField value={state.systemPrompt} onChange={actions.handleSystemPromptChange} />
             </div>
             <div className={activeTab === 'capabilities' ? 'flex min-h-0 flex-1 flex-col w-full' : 'hidden'}>

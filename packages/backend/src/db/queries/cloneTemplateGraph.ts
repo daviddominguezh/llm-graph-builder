@@ -47,10 +47,17 @@ function buildNodeRow(agentId: string, node: TemplateGraphData['nodes'][number])
 /*  Edge helpers                                                       */
 /* ------------------------------------------------------------------ */
 
+interface RpcToolRef {
+  providerType: 'builtin' | 'mcp';
+  providerId: string;
+  toolName: string;
+}
+
 interface RpcPrecondition {
   type: string;
   value: string;
   description: string;
+  tool?: RpcToolRef;
 }
 
 interface RpcContextPreconditions {
@@ -62,8 +69,9 @@ function buildEdgePreconditions(edge: TemplateGraphData['edges'][number]): RpcPr
   if (edge.preconditions === undefined) return [];
   return edge.preconditions.map((p) => ({
     type: p.type,
-    value: p.value,
+    value: p.value ?? '',
     description: p.description ?? '',
+    tool: p.tool,
   }));
 }
 

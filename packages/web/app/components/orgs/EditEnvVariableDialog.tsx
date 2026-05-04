@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useState } from 'react';
 import { toast } from 'sonner';
@@ -79,7 +80,7 @@ function EditForm({ variable, onOpenChange, onSaved }: Omit<EditEnvVariableDialo
       <EditFormFields defaultName={variable.name} isSecret={isSecret} onIsSecretChange={setIsSecret} />
       <DialogFooter>
         <Button type="submit" disabled={loading}>
-          {t('save')}
+          {loading ? <Loader2 className="size-4 animate-spin" /> : t('save')}
         </Button>
       </DialogFooter>
     </form>

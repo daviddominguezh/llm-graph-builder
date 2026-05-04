@@ -24,7 +24,7 @@ describe('State Preservation', () => {
     const childMessages = getActiveMessages(stack, rootMessages);
 
     expect(childMessages).toHaveLength(1);
-    expect(getTextFromMessage(childMessages[0]!)).toContain('child task');
+    expect(getTextFromMessage(childMessages[0])).toContain('child task');
     expect(childMessages).not.toBe(rootMessages);
   });
 
@@ -43,7 +43,7 @@ describe('State Preservation', () => {
     expect(rootMsgs).toHaveLength(1);
     expect(childMsgs).not.toBe(grandchildMsgs);
     expect(grandchildMsgs).not.toBe(rootMsgs);
-    expect(getTextFromMessage(grandchildMsgs[0]!)).toContain('grandchild task');
+    expect(getTextFromMessage(grandchildMsgs[0])).toContain('grandchild task');
   });
 
   it('1c: parent messages preserved after child finishes', () => {
@@ -70,7 +70,7 @@ describe('State Preservation', () => {
     expect(updatedRoot[2]).toBe(user2);
     expect(updatedRoot[3]).toBe(tc1);
 
-    const toolResult = getToolResultFromMessage(updatedRoot[4]!);
+    const toolResult = getToolResultFromMessage(updatedRoot[4]);
     expect(toolResult).not.toBeNull();
     expect(toolResult!.toolCallId).toBe('tc-1');
     expect(toolResult!.toolName).toBe('invoke_agent');
@@ -118,7 +118,7 @@ describe('State Preservation', () => {
     expect(getActiveDepth(parsed.stack)).toBe(2);
 
     const active = getActiveMessages(parsed.stack, parsed.rootMsgs);
-    expect(getTextFromMessage(active[0]!)).toContain('grandchild');
+    expect(getTextFromMessage(active[0])).toContain('grandchild');
   });
 });
 
@@ -140,7 +140,7 @@ describe('Pop and Inject', () => {
     expect(poppedStack).toHaveLength(0);
     expect(updatedRoot).toHaveLength(3);
 
-    const toolResult = getToolResultFromMessage(updatedRoot[2]!);
+    const toolResult = getToolResultFromMessage(updatedRoot[2]);
     expect(toolResult).not.toBeNull();
     expect(toolResult!.toolCallId).toBe('tc-1');
     expect(toolResult!.toolName).toBe('invoke_agent');
@@ -176,7 +176,7 @@ describe('Pop and Inject', () => {
     const childAfterPop = getActiveMessages(afterPop, afterRoot);
     expect(childAfterPop.length).toBeGreaterThan(childWithTc.length);
 
-    const lastChildMsg = childAfterPop[childAfterPop.length - 1]!;
+    const lastChildMsg = childAfterPop[childAfterPop.length - 1];
     const toolResult = getToolResultFromMessage(lastChildMsg);
     expect(toolResult).not.toBeNull();
     expect(toolResult!.value).toBe('gc-result');
@@ -193,7 +193,7 @@ describe('Pop and Inject', () => {
 
     expect(updatedRoot).toHaveLength(2);
 
-    const toolResult = getToolResultFromMessage(updatedRoot[1]!);
+    const toolResult = getToolResultFromMessage(updatedRoot[1]);
     expect(toolResult).not.toBeNull();
     expect(toolResult!.value).toBe('something went wrong');
   });
@@ -222,7 +222,7 @@ describe('Pop and Inject', () => {
     expect(pop2.stack).toHaveLength(0);
     expect(pop2.rootMessages).toHaveLength(3);
 
-    const toolResult = getToolResultFromMessage(pop2.rootMessages[2]!);
+    const toolResult = getToolResultFromMessage(pop2.rootMessages[2]);
     expect(toolResult).not.toBeNull();
     expect(toolResult!.value).toBe('child-out');
   });

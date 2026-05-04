@@ -39,10 +39,10 @@ export interface MediaFolder {
   mediaCount: number;
 }
 
-export type GroupedMediaFiles = {
+export interface GroupedMediaFiles {
   ungrouped: MediaFileDetailList;
   folders: Record<string, MediaFileDetailList>;
-};
+}
 
 export type MediaFileList = Record<string, MediaFile>;
 export type MediaFileDetailList = Record<string, MediaFileDetail>;
