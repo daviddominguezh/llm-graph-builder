@@ -206,6 +206,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     setSelectedNodeId: selection.setSelectedNodeId,
     setSelectedEdgeId: selection.setSelectedEdgeId,
     reactFlow: rf,
+    wrapperRef: reactFlowWrapper,
   });
 
   const graphActions = useGraphActions({
