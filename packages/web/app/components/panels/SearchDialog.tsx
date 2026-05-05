@@ -29,6 +29,7 @@ export function SearchDialog({ nodes, open, onClose, onSelectNode }: SearchDialo
   const t = useTranslations('connectionMenu');
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
+  const [keyboardMode, setKeyboardMode] = useState(false);
   const [prevOpen, setPrevOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -38,6 +39,7 @@ export function SearchDialog({ nodes, open, onClose, onSelectNode }: SearchDialo
     setPrevOpen(true);
     setQuery('');
     setActiveIndex(0);
+    setKeyboardMode(false);
   }
   if (!open && prevOpen) {
     setPrevOpen(false);
@@ -81,11 +83,13 @@ export function SearchDialog({ nodes, open, onClose, onSelectNode }: SearchDialo
     }
     if (e.key === 'ArrowDown') {
       e.preventDefault();
+      setKeyboardMode(true);
       setActiveIndex((prev) => Math.min(prev + 1, results.length - 1));
       return;
     }
     if (e.key === 'ArrowUp') {
       e.preventDefault();
+      setKeyboardMode(true);
       setActiveIndex((prev) => Math.max(prev - 1, 0));
       return;
     }
@@ -127,8 +131,11 @@ export function SearchDialog({ nodes, open, onClose, onSelectNode }: SearchDialo
             results.map((node, i) => (
               <li
                 key={node.id}
-                className={`cursor-pointer group bg-transparent py-1.5 rounded-sm ${i === activeIndex ? 'bg-input/70!' : 'hover:bg-input/70'}`}
-                onMouseEnter={() => setActiveIndex(i)}
+                className={`cursor-pointer group bg-transparent py-1.5 rounded-sm ${i === activeIndex ? 'bg-input/70!' : keyboardMode ? '' : 'hover:bg-input/70'}`}
+                onMouseMove={() => {
+                  setKeyboardMode(false);
+                  setActiveIndex(i);
+                }}
                 onClick={() => handleSelect(node.id)}
               >
                 <Button
