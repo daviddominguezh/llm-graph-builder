@@ -104,13 +104,13 @@ export function GlobalNodesPanel({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2 border-b px-4 py-3">
+      <div className="flex items-center gap-2 border-b px-3 py-3">
         <Waypoints className="size-4" />
-        <h2 className="text-sm font-semibold">Global Nodes</h2>
+        <h2 className="text-xs font-semibold">Global Nodes</h2>
         <Button
           variant="ghost"
           size="icon-xs"
-          className="ml-auto"
+          className="ml-auto rounded-full"
           onClick={onAddNode}
         >
           <Plus className="size-3" />
@@ -118,9 +118,9 @@ export function GlobalNodesPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="p-4">
+        <div className="py-4 px-3">
           {globalNodes.length === 0 ? (
-            <p className="text-xs text-muted-foreground bg-muted rounded-md p-3">
+            <p className="text-xs text-muted-foreground bg-input/70 rounded-md p-3">
               No global nodes yet.
             </p>
           ) : (

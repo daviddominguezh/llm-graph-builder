@@ -156,7 +156,7 @@ type GlobalPanelProps = Pick<SidePanelsProps, 'setNodes' | 'setEdges' | 'nodes' 
 
 function GlobalPanel({ setNodes, setEdges, nodes, pushOperation }: GlobalPanelProps) {
   return (
-    <GlassPanel className="absolute right-1.5 top-1.5 bottom-0 z-10 w-80 rounded-md pointer-events-auto">
+    <GlassPanel className="absolute! right-0 top-0 bottom-0 z-10 w-80 rounded-md pointer-events-auto">
       <GlobalNodesPanel
         nodes={nodes}
         onAddNode={() => handleGlobalAddNode(setNodes, pushOperation)}
@@ -256,7 +256,7 @@ export function SidePanels(props: SidePanelsProps) {
   const readOnlyClass = props.readOnly === true ? '[&_input]:pointer-events-none [&_textarea]:pointer-events-none [&_button]:pointer-events-none [&_[role=checkbox]]:pointer-events-none [&_select]:pointer-events-none [&_[role=combobox]]:pointer-events-none' : '';
 
   return (
-    <div className={`pointer-events-auto ${readOnlyClass}`}>
+    <div className={`pointer-events-auto h-full w-full ${readOnlyClass}`}>
       <OutputSchemaDialog
         schema={schemaDialog.editingSchema}
         agentId={props.agentId}
