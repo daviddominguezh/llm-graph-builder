@@ -66,7 +66,7 @@ function InstallButton({ isInstalled, onInstall }: { isInstalled: boolean; onIns
 
 export function McpLibraryCard({ item, isInstalled, onInstall }: McpLibraryCardProps) {
   return (
-    <div className="flex flex-col gap-1 border-b mx-2 mt-2 pb-2 px-2 first:mt-0.5">
+    <div className="flex flex-col gap-1 border-b mx-2 mt-2 pb-2 px-1 first:mt-0.5">
       <div className="flex items-start gap-2">
         <CardImage imageUrl={item.image_url} name={item.name} />
         <CardInfo item={item} />
