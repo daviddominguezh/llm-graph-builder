@@ -267,7 +267,7 @@ export function PublishButton(props: PublishButtonProps) {
         {t('publish')}
         <ChevronDown className='size-4' />
       </PopoverTrigger>
-      <PopoverContent side="bottom" align="end" sideOffset={8} className="w-96">
+      <PopoverContent side="bottom" align="center" sideOffset={8} className="w-96 mr-1.5 -mt-1">
         <PopoverBody
           agentSlug={agentSlug}
           orgSlug={orgSlug}
