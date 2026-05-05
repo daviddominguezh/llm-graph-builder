@@ -367,7 +367,10 @@
     "toolCallWarningTitle": "Switch to tool call?",
     "toolCallWarningDescription": "The source node \"{nodeId}\" has text and/or description content that will be cleared. Tool call nodes do not use these fields.",
     "toolCallWarningConfirm": "Clear & continue",
-    "toolCallWarningCancel": "Cancel"
+    "toolCallWarningCancel": "Cancel",
+    "preconditionType_user_said": "User Said",
+    "preconditionType_agent_decision": "Agent Decision",
+    "preconditionType_tool_call": "Tool Call"
   },
   "connectionMenu": {
     "connectToExisting": "Connect to existing node:",

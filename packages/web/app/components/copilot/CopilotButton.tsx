@@ -23,7 +23,7 @@ export function CopilotButton() {
         </div>
         <div className="relative rounded-full mr-6 flex items-center pt-[0px]">
           <Button
-            variant="default"
+            variant="ghost"
             size="xs"
             className={`relative h-5 gap-1 px-3 text-[11px] rounded-md bg-transparent dark:bg-transparent hover:bg-transparent dark:hover:bg-transparent text-foreground`}
             onClick={() => setOpen(!isOpen)}

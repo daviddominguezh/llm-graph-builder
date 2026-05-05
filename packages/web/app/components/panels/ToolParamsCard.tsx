@@ -226,15 +226,15 @@ export function ToolParamsCard({
   };
 
   return (
-    <div className="mt-2 rounded border bg-muted/30 p-2 text-xs">
+    <div className="rounded bg-background p-0 text-xs">
       {tool.description && (
-        <p className="mb-1.5 text-[10px] leading-tight text-muted-foreground italic">{tool.description}</p>
+        <p className="mb-1.5 text-xs leading-tight text-muted-foreground italic">{tool.description}</p>
       )}
-      <div className="mb-1 text-[10px] font-medium text-muted-foreground">{t('parameters')}</div>
-      <div className="flex flex-col">
+      <div className="mb-1 text-xs font-semibold mt-2">{t('parameters')}</div>
+      <div className="flex flex-col border-l-2 pl-2">
         {sorted.map((entry, index) => (
           <div key={entry.name}>
-            {index > 0 && <Separator className="my-2" />}
+            {index > 0 && <Separator className="my-3.5" />}
             <PropertyRow
               entry={entry}
               fieldValue={toolFields?.[entry.name]}

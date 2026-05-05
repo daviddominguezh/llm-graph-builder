@@ -153,7 +153,7 @@ export function NodePanel({
     <div className="flex h-full flex-col">
       <div className="border-b p-2 px-4">
         <div className="flex items-center justify-between">
-          <h4 className="text-sm font-semibold">Node Properties</h4>
+          <h4 className="text-xs font-semibold">Node Properties</h4>
           <div className="flex items-center">
             <NodePromptDialog
               nodeId={nodeId}
