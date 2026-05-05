@@ -206,7 +206,7 @@ export function ToolsPanel({ mcp, open, onClose, agent }: ToolsPanelProps) {
 
   return (
     <>
-      <GlassPanel className="absolute top-[15%] left-1/2 z-20 -translate-x-1/2 w-[42rem] h-116 rounded-md shadow-lg overflow-hidden pointer-events-auto">
+      <GlassPanel className="pointer-events-auto absolute top-[15%] left-1/2 z-20 -translate-x-1/2 w-[42rem] h-116 rounded-md shadow-lg overflow-hidden pointer-events-auto">
         <div
           ref={containerRef}
           className="flex h-full flex-col"

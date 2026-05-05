@@ -179,7 +179,7 @@ export function OutputSchemaDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[80vh] flex-col sm:max-w-2xl" showCloseButton={false}>
+      <DialogContent className="pointer-events-auto flex h-[80vh] flex-col sm:max-w-2xl" showCloseButton={false}>
         {schema && (
           <SchemaEditor
             key={schema.id}
