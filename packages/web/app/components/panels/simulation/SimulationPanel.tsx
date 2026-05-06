@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { GlassPanel } from '@/components/ui/glass-panel';
-import { Loader2, Trash2, X } from 'lucide-react';
+import { Loader2, RotateCcw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -86,18 +86,13 @@ function SimulationHeader({
   return (
     <div className="flex flex-col gap-1 border-b px-3 py-2">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold">{t('title')}</span>
+        <span className="text-xs font-semibold">{t('title')}</span>
         <div className="flex items-center gap-0.5">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={() => setConfirmOpen(true)}
-          >
-            <Trash2 className="size-3" />
+          <Button variant="destructive" size="icon-sm" onClick={() => setConfirmOpen(true)}>
+            <RotateCcw className="size-3" />
           </Button>
           {embedded !== true && (
-            <Button variant="ghost" size="icon" className="size-7" onClick={onStop}>
+            <Button variant="ghost" size="icon-sm" className="size-7" onClick={onStop}>
               <X className="size-3" />
             </Button>
           )}
@@ -244,10 +239,7 @@ function SimulationBody({ props, bottomRef }: SimulationBodyProps) {
   );
 }
 
-function useAutoScrollToEnd(
-  bottomRef: React.RefObject<HTMLDivElement | null>,
-  length: number
-) {
+function useAutoScrollToEnd(bottomRef: React.RefObject<HTMLDivElement | null>, length: number) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [length, bottomRef]);
