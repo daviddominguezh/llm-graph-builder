@@ -272,6 +272,22 @@ function ComboboxChipsInput({
   )
 }
 
+function ComboboxPopupInput({
+  className,
+  ...props
+}: ComboboxPrimitive.Input.Props) {
+  return (
+    <ComboboxPrimitive.Input
+      data-slot="combobox-popup-input"
+      className={cn(
+        "h-7 w-full bg-transparent text-xs outline-none placeholder:text-muted-foreground/70",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
 function useComboboxAnchor() {
   return React.useRef<HTMLDivElement | null>(null)
 }
@@ -279,6 +295,7 @@ function useComboboxAnchor() {
 export {
   Combobox,
   ComboboxInput,
+  ComboboxPopupInput,
   ComboboxContent,
   ComboboxList,
   ComboboxItem,
