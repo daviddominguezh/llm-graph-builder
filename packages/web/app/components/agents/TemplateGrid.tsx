@@ -161,7 +161,7 @@ function GridContent(props: GridContentProps) {
 
   return (
     <Scrollable className="min-h-0 flex-1">
-      <div className="grid grid-cols-1 gap-3 p-1 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="h-full grid grid-cols-1 gap-3 p-1 sm:grid-cols-2 lg:grid-cols-3">
         {showBlank && <BlankCanvasCard selected={selection?.type === 'blank'} onSelect={props.onSelectBlank} />}
         {hasTemplates
           ? templates.map((tpl) => (
@@ -181,7 +181,7 @@ function GridContent(props: GridContentProps) {
           : null}
         {showNoResults && (
           <div className="col-span-full row-span-full flex flex-col items-center justify-center">
-            <div className="w-fit h-fit px-12 py-6 rounded-xl bg-card rounded-md flex flex-col justify-center items-center gap-2">
+            <div className="w-fit h-fit px-12 py-6 rounded-xl rounded-md flex flex-col justify-center items-center gap-2">
               <Search className="size-5 text-muted-foreground/90" />
               <p className="text-xs text-muted-foreground">{props.noResultsLabel}</p>
             </div>

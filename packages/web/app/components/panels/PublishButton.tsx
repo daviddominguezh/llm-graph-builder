@@ -117,7 +117,7 @@ function PublishStatus({ version }: { version: number }) {
       >
         {isPublished ? (
           <>
-            <span className="text-[10px] text-muted-foreground rounded-full px-1.5 font-mono mr-1.5 bg-input dark:bg-input/70">
+            <span className="text-[10px] text-muted-foreground rounded-full px-1.5 font-mono mr-1.5 bg-input/70">
               v{version}
             </span>
             <Separator orientation="vertical" />
@@ -262,7 +262,7 @@ export function PublishButton(props: PublishButtonProps) {
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger
-        render={<Button variant="default" size="default" className="gap-1.5 px-3 rounded-full pr-2 ml-2 mr-1.5" />}
+        render={<Button variant="default" size="sm" className="gap-1.5 px-3 rounded-full pr-2 ml-2 mr-1.5" />}
       >
         {t('publish')}
         <ChevronDown className='size-4' />

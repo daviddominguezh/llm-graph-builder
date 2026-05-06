@@ -79,8 +79,8 @@ function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: 
       href={href}
       className={`group flex gap-2 rounded-md pr-2 py-0 ${
         active
-          ? 'bg-input dark:bg-input/70 text-foreground'
-          : 'hover:bg-input dark:hover:bg-input/70 text-foreground'
+          ? 'bg-input/70 text-foreground'
+          : 'hover:bg-input/70 text-foreground'
       }`}
     >
       <StatusBar active={active} />

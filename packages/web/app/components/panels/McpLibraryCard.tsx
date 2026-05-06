@@ -54,12 +54,12 @@ function InstallButton({ isInstalled, onInstall }: { isInstalled: boolean; onIns
   return (
     <Button
       size="icon-xs"
-      variant={isInstalled ? 'outline' : 'default'}
+      variant={isInstalled ? 'ghost' : 'default'}
       disabled={isInstalled}
       onClick={onInstall}
-      className="shrink-0"
+      className={`shrink-0 ${isInstalled ? 'border-green-600 dark:border-green-600 shadow-none rounded-full  disabled:opacity-100' : ''}`}
     >
-      {isInstalled ? <Check className="size-2.5" /> : <Download className="size-2.5" />}
+      {isInstalled ? <Check strokeWidth={isInstalled ? 4 : 2} className="size-2.5 text-green-600 dark:text-green-600" /> : <Download className="size-2.5" />}
     </Button>
   );
 }
