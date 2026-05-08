@@ -48,7 +48,7 @@ export function FallbackNodeSelect({ nodeId, edges, globalNodeIds, value, onChan
         <SelectTrigger className="w-full">
           <SelectValue />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent side="bottom">
           {targetIds.map((id) => (
             <SelectItem key={id} value={id}>
               {id}

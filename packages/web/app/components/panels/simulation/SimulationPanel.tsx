@@ -59,7 +59,7 @@ function Breadcrumbs({ nodes }: { nodes: string[] }) {
   const lastIndex = nodes.length - 1;
   return (
     <div ref={scrollRef} className="overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-      <p className="whitespace-nowrap font-mono text-[10px] text-muted-foreground">
+      <p className="whitespace-nowrap font-mono text-[10px] text-muted-foreground pb-1.5">
         {nodes.map((node, i) => (
           <span key={i}>
             {i > 0 && ' \u2192 '}
@@ -92,7 +92,7 @@ function SimulationHeader({
             <RotateCcw className="size-3" />
           </Button>
           {embedded !== true && (
-            <Button variant="ghost" size="icon-sm" className="size-7" onClick={onStop}>
+            <Button variant="ghost" size="icon-sm" onClick={onStop}>
               <X className="size-3" />
             </Button>
           )}
@@ -118,8 +118,8 @@ function SimulationHeader({
 function UserMessage({ text }: { text: string }) {
   if (text === '') return null;
   return (
-    <div className="max-w-[80%] ml-auto bg-accent/10 rounded-md p-2 pr-0">
-      <p className="text-xs leading-relaxed border-r-3 border-primary pr-2">{text}</p>
+    <div className="max-w-[80%] ml-auto bg-input/70 rounded-md p-2">
+      <p className="text-xs leading-relaxed">{text}</p>
     </div>
   );
 }
@@ -165,7 +165,7 @@ function ExecutingIndicator({ currentNode }: { currentNode: string }) {
   return (
     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
       <Loader2 className="size-3 animate-spin" />
-      <span className="truncate text-[10px]">{t('executingNode', { node: currentNode })}</span>
+      <span className="truncate text-[10px] mt-[2px]">{t('executingNode', { node: currentNode })}</span>
     </div>
   );
 }

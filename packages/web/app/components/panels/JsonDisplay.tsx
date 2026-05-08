@@ -75,7 +75,7 @@ export function SmallJsonBlock({
   const jsonTheme = resolvedTheme === 'dark' ? 'monokai' : 'rjv-default';
   const getJson = useCallback(() => JSON.stringify(value, null, 2), [value]);
   return (
-    <div className={`relative rounded bg-muted/50 p-1.5 text-[10px] ${className}`}>
+    <div className={`relative rounded bg-input/70 p-1.5 text-[10px] ${className}`}>
       <CopyJsonButton getValue={getJson} />
       <ReactJson
         src={value}
