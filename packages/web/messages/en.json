@@ -96,6 +96,7 @@
     "backToAgents": "Back to apps",
     "copyJson": "Copy JSON",
     "copyCurl": "Copy cURL",
+    "copyPrompt": "Copy prompt",
     "copied": "Copied",
     "optional": "optional"
   },
