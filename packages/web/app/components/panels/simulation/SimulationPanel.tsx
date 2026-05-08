@@ -163,7 +163,7 @@ function ContentArea({ conversationEntries, bottomRef }: ContentAreaProps) {
 function ExecutingIndicator({ currentNode }: { currentNode: string }) {
   const t = useTranslations('simulation');
   return (
-    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+    <div className="cursor-default flex items-center gap-1.5 text-xs text-muted-foreground">
       <Loader2 className="size-3 animate-spin" />
       <span className="truncate text-[10px] mt-[2px]">{t('executingNode', { node: currentNode })}</span>
     </div>
