@@ -2,14 +2,14 @@
 
 import '@/app/styles/starry-night.css';
 import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -175,20 +175,23 @@ export function NodePromptDialog({
   }, [open, nodeId, activePreset, agents, allNodes, edges, outputSchemas, startTransition]);
 
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger
         render={
           <Button className="text-muted-foreground" variant="ghost" size="icon" title="View prompt">
             <SquareTerminal />
           </Button>
         }
       />
-      <AlertDialogContent size="lg" className="h-[85vh] flex flex-col">
-        <AlertDialogHeader>
-          <AlertDialogTitle>
+      <DialogContent
+        showCloseButton={false}
+        className="h-[85vh] sm:max-w-4xl flex flex-col"
+      >
+        <DialogHeader>
+          <DialogTitle>
             Prompt: <span className="font-mono font-normal">{nodeId}</span>
-          </AlertDialogTitle>
-        </AlertDialogHeader>
+          </DialogTitle>
+        </DialogHeader>
         <div className="flex flex-col gap-3 flex-1 min-h-0">
           <PresetSelector
             presets={presets}
@@ -197,10 +200,10 @@ export function NodePromptDialog({
           />
           <PromptContent state={prompt} />
         </div>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Close</AlertDialogCancel>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" className="rounded-md" />}>Close</DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
