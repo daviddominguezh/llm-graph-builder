@@ -95,7 +95,7 @@ function PromptContent({ state }: { state: PromptState }) {
     <div className="relative flex flex-1 min-h-0">
       <CopyPromptButton text={state.text} />
       <div className="w-full overflow-y-auto min-h-0 flex-1">
-        <div className="w-full markdown-content h-full rounded-md p-3 text-xs bg-background">
+        <div className="w-full markdown-content h-full rounded-md p-3 text-xs bg-input/70">
           <MarkdownHooks remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeStarryNight]}>
             {state.text}
           </MarkdownHooks>
@@ -123,7 +123,7 @@ function PresetSelector({
         <SelectTrigger className="w-full">
           <SelectValue />
         </SelectTrigger>
-        <SelectContent side="bottom">
+        <SelectContent side="bottom" align="end" alignItemWithTrigger={false} className="w-auto min-w-(--anchor-width)">
           {presets.map((p) => (
             <SelectItem key={p.id} value={p.id}>
               {p.name}

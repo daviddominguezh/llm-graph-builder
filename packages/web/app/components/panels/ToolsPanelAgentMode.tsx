@@ -99,6 +99,7 @@ function AgentModeGroup(props: AgentModeGroupProps): React.JSX.Element {
   const selectedInGroup = groupTools.filter((t) => isToolSelected(agent.selectedTools, t)).length;
   const providerId = groupProviderId(group);
   const hasError = providerId !== null && failedProviders.includes(providerId);
+  const mcpFetchedAt = group.kind === 'mcp' ? group.fetchedAt : undefined;
   return (
     <div>
       <ProviderHeader
@@ -108,6 +109,7 @@ function AgentModeGroup(props: AgentModeGroupProps): React.JSX.Element {
         totalInGroup={groupTools.length}
         visibleInGroup={group.tools.length}
         searchActive={searchActive}
+        fetchedAt={mcpFetchedAt}
         onToggle={() => agent.onChange(applyHeaderToggle(agent.selectedTools, groupTools, headerState))}
       />
       {hasError && <ProviderErrorRow agentId={agent.agentId} mode="agent" />}

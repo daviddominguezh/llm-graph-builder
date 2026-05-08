@@ -284,10 +284,16 @@ input:-webkit-autofill:active {
 }
 
 .markdown-content pre {
-  background-color: var(--muted);
+  background-color: color-mix(in oklab, var(--background) 50%, transparent);
   padding: 1rem;
   border-radius: 0.375rem;
   overflow-x: auto;
+  border: 0.5px solid var(--border);
+}
+
+.dark .markdown-content pre {
+  background-color: color-mix(in oklab, var(--input) 30%, transparent);
+  border: 0.5px solid var(--input);
 }
 
 /* React Flow Theme */

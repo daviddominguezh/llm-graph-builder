@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { useRef } from 'react';
 
 import type { RegistryTool, ToolGroup } from '../../lib/toolRegistry';
+import { CatalogFreshnessIndicator } from './CatalogFreshnessIndicator';
 import { ProviderErrorRow, groupProviderId } from './ProviderErrorRow';
 import { FloatingSchema, type ToolSchema } from './ToolSchemaPopover';
 
@@ -105,10 +106,14 @@ function ToolsListGroup({
 }: ToolsListGroupProps): React.JSX.Element {
   const providerId = groupProviderId(group);
   const hasError = providerId !== null && failedProviders.includes(providerId);
+  const mcpFetchedAt = group.kind === 'mcp' ? group.fetchedAt : undefined;
   return (
     <div>
       <div className="sticky top-0 z-10 px-2 pt-0 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-        <div className="pt-2">{group.groupName}</div>
+        <div className="pt-2 flex items-center gap-2">
+          <span>{group.groupName}</span>
+          {mcpFetchedAt !== undefined && <CatalogFreshnessIndicator fetchedAt={mcpFetchedAt} />}
+        </div>
       </div>
       {hasError && <ProviderErrorRow mode="workflow" />}
       <ul className="flex flex-row gap-2 gap-y-3 flex-wrap pl-1">

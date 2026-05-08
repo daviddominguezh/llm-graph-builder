@@ -136,11 +136,6 @@ function useToolTest(servers: McpServerConfig[], orgId: string) {
   return { testingTool, transport, callOptions, openTest, closeTest };
 }
 
-function getFetchedAt(state: ReturnType<typeof useToolRegistry>['state']): number | undefined {
-  if (state.kind === 'loaded' || state.kind === 'partial-failure') return state.fetchedAt;
-  return undefined;
-}
-
 interface ToolsTabPanelProps {
   inputRef: React.RefObject<HTMLInputElement | null>;
   panelState: ReturnType<typeof useToolsPanelState>;
@@ -158,7 +153,6 @@ function ToolsTabPanel(props: ToolsTabPanelProps): React.JSX.Element {
   const onToggleTool = (key: string): void =>
     panelState.setExpandedTool((prev) => (prev === key ? null : key));
   const onCollapseTool = (): void => panelState.setExpandedTool(null);
-  const fetchedAt = getFetchedAt(registryState);
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <SearchRow
@@ -167,7 +161,6 @@ function ToolsTabPanel(props: ToolsTabPanelProps): React.JSX.Element {
         onQueryChange={panelState.setQuery}
         placeholder={searchPlaceholder}
         agent={agent}
-        fetchedAt={fetchedAt}
       />
       <ToolsTabBody
         registryState={registryState}

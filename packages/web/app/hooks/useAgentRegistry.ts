@@ -61,7 +61,7 @@ interface ShapedProvider {
   tools: RegistryTool[];
 }
 
-function shapeProvider(provider: RegistryProviderResponse): ShapedProvider {
+function shapeProvider(provider: RegistryProviderResponse, fetchedAt: number): ShapedProvider {
   const sourceId = builtinSourceId(provider);
   const tools: RegistryTool[] = provider.tools.map((tool) => ({
     sourceId,
@@ -70,20 +70,26 @@ function shapeProvider(provider: RegistryProviderResponse): ShapedProvider {
     description: tool.description,
     inputSchema: tool.inputSchema,
   }));
-  return { group: { groupName: provider.displayName, tools }, tools };
+  const group: ToolGroup = {
+    kind: provider.type,
+    groupName: provider.displayName,
+    tools,
+    fetchedAt: provider.type === 'mcp' ? fetchedAt : undefined,
+  };
+  return { group, tools };
 }
 
 function buildState(data: RegistryResponse): RegistryState {
   const groups: ToolGroup[] = [];
   const tools: RegistryTool[] = [];
   const failed: string[] = [];
+  const fetchedAt = data.fetchedAt ?? Date.now();
   for (const provider of data.providers) {
-    const shaped = shapeProvider(provider);
+    const shaped = shapeProvider(provider, fetchedAt);
     groups.push(shaped.group);
     tools.push(...shaped.tools);
     if (provider.error !== undefined) failed.push(provider.id);
   }
-  const fetchedAt = data.fetchedAt ?? Date.now();
   if (failed.length > 0) {
     return { kind: 'partial-failure', groups, tools, failedProviders: failed, fetchedAt };
   }

@@ -7,6 +7,8 @@ export interface RegistryTool {
 }
 
 export interface ToolGroup {
+  kind: 'builtin' | 'mcp';
   groupName: string;
   tools: RegistryTool[];
+  fetchedAt?: number;
 }

@@ -4,6 +4,8 @@ import type { GroupHeaderState } from '@/app/lib/agentTools';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useTranslations } from 'next-intl';
 
+import { CatalogFreshnessIndicator } from './CatalogFreshnessIndicator';
+
 interface ProviderHeaderProps {
   groupName: string;
   description?: string;
@@ -12,6 +14,7 @@ interface ProviderHeaderProps {
   totalInGroup: number;
   visibleInGroup: number;
   searchActive: boolean;
+  fetchedAt?: number;
   onToggle: () => void;
 }
 
@@ -55,6 +58,7 @@ export function ProviderHeader(props: ProviderHeaderProps): React.JSX.Element {
         <div className="flex items-center gap-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
           <span>{props.groupName}</span>
           {count !== '' && <span className="lowercase">{count}</span>}
+          {props.fetchedAt !== undefined && <CatalogFreshnessIndicator fetchedAt={props.fetchedAt} />}
         </div>
         {props.description !== undefined && (
           <span className="text-[10px] text-muted-foreground truncate" title={props.description}>
