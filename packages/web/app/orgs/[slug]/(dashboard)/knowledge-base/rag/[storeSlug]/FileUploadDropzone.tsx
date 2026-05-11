@@ -53,7 +53,7 @@ export function FileUploadDropzone({
       }`}
     >
       <Upload className="size-5 text-muted-foreground" />
-      <span className="text-muted-foreground">{dragging ? t('drop') : t('idle')}</span>
+      <span className="text-sm font-medium">{dragging ? t('drop') : t('idle')}</span>
       <span className="text-[10px] font-mono text-muted-foreground/70">{t('extensions')}</span>
       <Button
         size="sm"
