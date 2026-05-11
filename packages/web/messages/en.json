@@ -838,7 +838,6 @@
     "title": "Documents",
     "description": "Files your agents can search and reference.",
     "addFiles": "Add files",
-    "extensions": "pdf · docx · pptx · xlsx · html · jpg · png · gif · tiff · bmp · webp",
     "emptyTitle": "No files yet",
     "emptyDescription": "Drag files anywhere or click Add files.",
     "dropToAdd": "Release to add",
@@ -907,6 +906,13 @@
       "deleteDescription": "This action cannot be undone.",
       "deleteConfirm": "Delete",
       "deleteCancel": "Cancel"
+    },
+    "ragUpload": {
+      "idle": "Drag files here or click to upload",
+      "drop": "Release to upload",
+      "uploading": "Uploading…",
+      "addFiles": "Choose files",
+      "extensions": "pdf · docx · pptx · xlsx · html · jpg · jpeg · png"
     },
     "ragStatus": {
       "pending": "Pending",
