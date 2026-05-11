@@ -138,19 +138,11 @@ function FileRowHeader({
   const t = useTranslations('knowledgeBase.ragFiles');
   return (
     <div className="flex items-center gap-3 px-3 py-2">
-      <FileTypeIcon mimeType={file.mime_type} filename={file.filename} />
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="truncate text-xs font-mono font-medium">{file.filename}</span>
-        <span className="font-mono text-[10px] text-muted-foreground">
-          {formatBytes(file.size_bytes)}
-          {file.page_count !== null && <> · {t('pageCount', { count: file.page_count })}</>}
-        </span>
-      </div>
-      <StatusPill status={status} error={error} />
-      {status === 'done' && (
+      {status === 'done' ? (
         <Button
           variant="ghost"
           size="icon"
+          className="size-5 shrink-0"
           aria-label={t('openChunks')}
           aria-expanded={expanded}
           onClick={onToggle}
@@ -159,7 +151,18 @@ function FileRowHeader({
             className={`size-4 transition-transform duration-150 ${expanded ? 'rotate-90' : ''}`}
           />
         </Button>
+      ) : (
+        <span className="size-5 shrink-0" aria-hidden="true" />
       )}
+      <FileTypeIcon mimeType={file.mime_type} filename={file.filename} />
+      <div className="flex min-w-0 flex-1 items-baseline gap-2">
+        <span className="min-w-0 truncate text-xs font-mono font-medium">{file.filename}</span>
+        <span className="shrink-0 whitespace-nowrap font-mono text-[10px] text-muted-foreground">
+          {formatBytes(file.size_bytes)}
+          {file.page_count !== null && <> · {t('pageCount', { count: file.page_count })}</>}
+        </span>
+      </div>
+      <StatusPill status={status} error={error} />
       <Button variant="destructive" size="icon" aria-label={t('remove')} onClick={onRequestDelete}>
         <Trash2 className="size-4" />
       </Button>
