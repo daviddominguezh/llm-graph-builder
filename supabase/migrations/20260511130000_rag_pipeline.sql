@@ -100,3 +100,43 @@ SELECT org_id,
        coalesce(sum(size_bytes), 0)::bigint                              AS bytes_total
 FROM public.rag_files
 GROUP BY org_id;
+
+-- Semantic search RPC: scopes by (store, tenant), orders by cosine distance.
+CREATE OR REPLACE FUNCTION public.rag_semantic_search(
+  p_rag_store_id uuid,
+  p_tenant_id    uuid,
+  p_query_vector vector(768),
+  p_k            integer
+)
+RETURNS TABLE (
+  id            uuid,
+  rag_file_id   uuid,
+  rag_store_id  uuid,
+  tenant_id     uuid,
+  org_id        uuid,
+  page_number   integer,
+  paragraph_idx integer,
+  char_start    integer,
+  char_end      integer,
+  content       text,
+  content_hash  text,
+  token_count   integer,
+  created_at    timestamptz,
+  distance      double precision
+)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT id, rag_file_id, rag_store_id, tenant_id, org_id, page_number, paragraph_idx,
+         char_start, char_end, content, content_hash, token_count, created_at,
+         (embedding <=> p_query_vector)::double precision AS distance
+  FROM public.rag_chunks
+  WHERE rag_store_id = p_rag_store_id
+    AND tenant_id    = p_tenant_id
+    AND embedding IS NOT NULL
+  ORDER BY embedding <=> p_query_vector
+  LIMIT p_k;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.rag_semantic_search(uuid, uuid, vector(768), integer) TO authenticated;
