@@ -136,7 +136,7 @@ function StoreList({ items, pathname, search }: StoreListProps): React.JSX.Eleme
   }
 
   return (
-    <nav className="flex flex-col gap-1.5 px-2 mt-1">
+    <nav className="flex flex-col gap-0.5 px-2 mt-1">
       {filtered.map((item) => (
         <StoreCard key={item.id} item={item} active={pathname === item.href} />
       ))}
