@@ -7,6 +7,14 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+:root {
+  --twcal-accent: rgb(0, 136, 255);
+}
+
+.dark {
+  --twcal-accent: rgb(0, 145, 255);
+}
+
 @theme {
   --font-size-xxs: 0.625rem;
   --line-height-xxs: 1rem;
@@ -40,8 +48,8 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--twcal-accent);
+  --color-accent-foreground: var(--color-white);
   --color-destructive: var(--destructive);
   --color-border: var(--border);
   --color-input: var(--input);

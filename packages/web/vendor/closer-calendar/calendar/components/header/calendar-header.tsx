@@ -34,7 +34,7 @@ export function CalendarHeader({
 }: IProps) {
   const { t } = useTranslation();
   return (
-    <div className="twcal:flex twcal:flex-col twcal:gap-4 twcal:border-b twcal:p-4 twcal:lg:flex-row twcal:lg:items-center twcal:lg:justify-between">
+    <div className="twcal:flex twcal:flex-col twcal:gap-4 twcal:border-b twcal:p-0 twcal:pb-4 twcal:lg:flex-row twcal:lg:items-center twcal:lg:justify-between">
       <div className="twcal:flex twcal:items-center twcal:gap-3">
         <TodayButton />
         <DateNavigator view={view} events={events} />

@@ -107,11 +107,11 @@ export function CalendarWeekView({
                     key={index}
                     className={cn(
                       "twcal:py-2 twcal:text-center twcal:text-xs twcal:font-medium twcal:text-muted-foreground",
-                      isDayToday && "twcal:bg-accent"
+                      isDayToday && "twcal:bg-accent twcal:text-accent-foreground"
                     )}
                   >
                     {formatDate(day, "EE", true)}{" "}
-                    <span className="twcal:ml-1 twcal:font-semibold twcal:text-foreground">
+                    <span className={`twcal:ml-1 twcal:font-semibold  ${isDayToday ? 'twcal:text-accent-foreground': 'twcal:text-foreground'}`}>
                       {formatDate(day, "d")}
                     </span>
                   </span>
