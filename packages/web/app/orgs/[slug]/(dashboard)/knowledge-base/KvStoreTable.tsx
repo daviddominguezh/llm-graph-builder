@@ -351,14 +351,46 @@ function useKvDerived(entries: KvEntry[], query: string, page: number): KvDerive
   return { trailingEmpty, filtered, pageEntries, totalPages, clampedPage, isLastPage: clampedPage === totalPages };
 }
 
+export interface KvStoreTableProps {
+  entries: { key: string; value: string }[];
+  onEntriesChange: (entries: { key: string; value: string }[]) => void;
+}
+
 interface KvEntriesApi {
   entries: KvEntry[];
   update: (id: string, field: 'key' | 'value', value: string) => void;
   remove: (id: string) => void;
 }
 
-function useKvEntries(onAddedRow: (newRealCount: number) => void): KvEntriesApi {
-  const [entries, setEntries] = useState<KvEntry[]>(() => ensureTrailingEmpty([]));
+function entriesWithIds(rows: { key: string; value: string }[]): KvEntry[] {
+  return rows.map((r) => ({ id: makeId(), key: r.key, value: r.value }));
+}
+
+function stripIds(rows: KvEntry[]): { key: string; value: string }[] {
+  return rows
+    .filter((r) => !(r.key === '' && r.value === ''))
+    .map((r) => ({ key: r.key, value: r.value }));
+}
+
+function useControlledKvEntries(
+  external: { key: string; value: string }[],
+  onChange: (rows: { key: string; value: string }[]) => void,
+  onAddedRow: (newRealCount: number) => void
+): KvEntriesApi {
+  const externalKey = JSON.stringify(external);
+  const [entries, setEntries] = useState<KvEntry[]>(() =>
+    ensureTrailingEmpty(entriesWithIds(external))
+  );
+  const [lastSyncedKey, setLastSyncedKey] = useState<string>(externalKey);
+  if (lastSyncedKey !== externalKey) {
+    setLastSyncedKey(externalKey);
+    setEntries(ensureTrailingEmpty(entriesWithIds(external)));
+  }
+
+  function commit(next: KvEntry[]) {
+    setEntries(next);
+    onChange(stripIds(next));
+  }
 
   function update(id: string, field: 'key' | 'value', value: string) {
     const idx = entries.findIndex((e) => e.id === id);
@@ -366,18 +398,19 @@ function useKvEntries(onAddedRow: (newRealCount: number) => void): KvEntriesApi 
     const wasTrailing = idx === entries.length - 1 && last !== undefined && isEmptyEntry(last);
     const next = entries.map((e) => (e.id === id ? { ...e, [field]: value } : e));
     const final = ensureTrailingEmpty(next);
-    setEntries(final);
+    commit(final);
     if (wasTrailing) onAddedRow(final.length - 1);
   }
 
   function remove(id: string) {
-    setEntries(ensureTrailingEmpty(entries.filter((e) => e.id !== id)));
+    const next = ensureTrailingEmpty(entries.filter((e) => e.id !== id));
+    commit(next);
   }
 
   return { entries, update, remove };
 }
 
-export function KvStoreTable(): React.JSX.Element {
+export function KvStoreTable({ entries: external, onEntriesChange }: KvStoreTableProps): React.JSX.Element {
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
@@ -386,7 +419,7 @@ export function KvStoreTable(): React.JSX.Element {
     setPage(Math.max(1, Math.ceil(realCount / PAGE_SIZE)));
   }
 
-  const { entries, update, remove } = useKvEntries(navigateAfterAdd);
+  const { entries, update, remove } = useControlledKvEntries(external, onEntriesChange, navigateAfterAdd);
   const d = useKvDerived(entries, query, page);
   const duplicateKeys = useMemo(() => computeDuplicateKeys(entries), [entries]);
   const showNoResults = query.trim() !== '' && d.filtered.length === 0;
