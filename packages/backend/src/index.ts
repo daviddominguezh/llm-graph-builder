@@ -8,6 +8,7 @@ import { RedisCompletionNotifier } from './notifications/redisCompletionNotifier
 import { fetchAndCacheModels } from './openrouter/modelCache.js';
 import { createApp } from './server.js';
 import { startChildExecutionWorker } from './workers/childExecutionWorker.js';
+import { startRagWorker } from './workers/ragWorker.js';
 import { startResumeWorker } from './workers/resumeWorker.js';
 
 const DEFAULT_PORT = 4000;
@@ -34,6 +35,7 @@ const server = app.listen(port, () => {
 initializeSocketIO(server);
 startResumeWorker();
 startChildExecutionWorker();
+startRagWorker();
 
 function handleShutdown(): void {
   process.stdout.write('[server] shutting down...\n');
