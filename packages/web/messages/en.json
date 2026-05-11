@@ -830,11 +830,12 @@
     "tabRag": "RAG DB",
     "tabKv": "KV Store",
     "storesSidebar": {
-      "ragHeader": "RAG Stores",
-      "kvHeader": "KV Stores",
+      "title": "Knowledge bases",
       "newRag": "New RAG store",
       "newKv": "New KV store",
-      "empty": "No stores yet"
+      "search": "Search...",
+      "empty": "No stores yet. Create your first one.",
+      "noResults": "No matching stores"
     },
     "create": {
       "titleRag": "Create RAG store",
