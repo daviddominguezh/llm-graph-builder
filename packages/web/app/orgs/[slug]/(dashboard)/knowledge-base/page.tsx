@@ -1,31 +1,11 @@
-import { getOrgBySlug } from '@/app/lib/orgs';
-import { getTenantsByOrg } from '@/app/lib/tenants';
-import { redirect } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
 
-import { KnowledgeBaseClient } from './KnowledgeBaseClient';
-
-interface KnowledgeBasePageProps {
-  params: Promise<{ slug: string }>;
-}
-
-export default async function KnowledgeBasePage({
-  params,
-}: KnowledgeBasePageProps): Promise<React.JSX.Element> {
-  const { slug } = await params;
-  const { result: org } = await getOrgBySlug(slug);
-
-  if (!org) {
-    redirect('/');
-  }
-
-  const { result: tenants } = await getTenantsByOrg(org.id);
-  const defaultTenantId = tenants[0]?.id ?? '';
-
+export default async function KnowledgeBaseEmptyPage(): Promise<React.JSX.Element> {
+  const t = await getTranslations('knowledgeBase.emptyPage');
   return (
-    <KnowledgeBaseClient
-      tenants={tenants}
-      defaultTenantId={defaultTenantId}
-      orgSlug={slug}
-    />
+    <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
+      <h2 className="text-sm font-semibold">{t('title')}</h2>
+      <p className="text-xs text-muted-foreground">{t('description')}</p>
+    </div>
   );
 }
