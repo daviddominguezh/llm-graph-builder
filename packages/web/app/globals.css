@@ -1,3 +1,4 @@
+@import 'closer-calendar/dist/closer-calendar.css' layer(closer-calendar);
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';

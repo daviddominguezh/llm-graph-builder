@@ -2,8 +2,6 @@
 
 import { CalendarMain, type TVisibleHours, type TWorkingHours } from 'closer-calendar';
 
-import 'closer-calendar/dist/closer-calendar.css';
-
 const DEFAULT_WORKING_HOURS: TWorkingHours = {
   0: { from: 0, to: 0 },
   1: { from: 9, to: 17 },
