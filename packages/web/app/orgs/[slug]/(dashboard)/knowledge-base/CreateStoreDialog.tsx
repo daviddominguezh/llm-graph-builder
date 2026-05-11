@@ -31,7 +31,7 @@ export function CreateStoreDialog({
   onCreate,
 }: CreateStoreDialogProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.create');
-  const [type, setType] = useState<StoreType | null>(null);
+  const [type, setType] = useState<StoreType | null>('rag');
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const previewedSlug = previewStoreSlug(name);
@@ -40,7 +40,7 @@ export function CreateStoreDialog({
   function handleOpenChange(next: boolean) {
     if (!next) {
       setName('');
-      setType(null);
+      setType('rag');
     }
     onOpenChange(next);
   }
