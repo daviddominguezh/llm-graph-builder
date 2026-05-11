@@ -853,7 +853,19 @@
       "newKv": "New KV store",
       "search": "Search...",
       "empty": "No stores yet. Create your first one.",
-      "noResults": "No matching stores"
+      "noResults": "No matching stores",
+      "actions": "Actions",
+      "rename": "Rename",
+      "delete": "Delete"
+    },
+    "rename": {
+      "title": "Rename knowledge base",
+      "description": "Update the display name. The slug stays the same.",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Product FAQ",
+      "slugUnchanged": "Slug stays as: {slug}",
+      "submit": "Save",
+      "cancel": "Cancel"
     },
     "create": {
       "title": "New knowledge base",

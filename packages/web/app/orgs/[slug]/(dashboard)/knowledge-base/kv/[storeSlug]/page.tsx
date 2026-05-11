@@ -10,8 +10,8 @@ interface KvStorePageProps {
 }
 
 export default async function KvStorePage({ params }: KvStorePageProps): Promise<React.JSX.Element> {
-  const { slug, storeSlug } = await params;
-  const { result: org } = await getOrgBySlug(slug);
+  const { slug: orgSlug, storeSlug } = await params;
+  const { result: org } = await getOrgBySlug(orgSlug);
   if (!org) redirect('/');
 
   const [{ result: stores }, { result: tenants }] = await Promise.all([
@@ -21,5 +21,5 @@ export default async function KvStorePage({ params }: KvStorePageProps): Promise
   const store = stores.find((s) => s.slug === storeSlug);
   if (store === undefined) notFound();
 
-  return <KvStorePageClient orgSlug={slug} store={store} tenants={tenants} />;
+  return <KvStorePageClient store={store} tenants={tenants} />;
 }

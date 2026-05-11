@@ -21,5 +21,5 @@ export default async function RagStorePage({ params }: RagStorePageProps): Promi
   const store = stores.find((s) => s.slug === storeSlug);
   if (store === undefined) notFound();
 
-  return <RagStorePageClient orgSlug={slug} store={store} tenants={tenants} />;
+  return <RagStorePageClient store={store} tenants={tenants} />;
 }

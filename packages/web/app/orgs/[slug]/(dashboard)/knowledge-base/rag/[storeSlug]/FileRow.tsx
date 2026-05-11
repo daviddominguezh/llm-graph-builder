@@ -80,6 +80,19 @@ function formatBytes(n: number): string {
   return `${mb.toFixed(ONE_DECIMAL)} MB`;
 }
 
+function formatUploadedAt(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+
 interface DeleteDialogProps {
   open: boolean;
   deleting: boolean;
@@ -151,6 +164,8 @@ function FileRowHeader({
           <span className="shrink-0 whitespace-nowrap font-mono text-[10px] text-muted-foreground">
             {formatBytes(file.size_bytes)}
             {file.page_count !== null && <> · {t('pageCount', { count: file.page_count })}</>}
+            {' · '}
+            {formatUploadedAt(file.created_at)}
           </span>
         </div>
         <StatusPill status={status} error={error} />

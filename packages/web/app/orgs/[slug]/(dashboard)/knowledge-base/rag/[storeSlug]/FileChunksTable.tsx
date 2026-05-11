@@ -118,12 +118,6 @@ function ChunkTableRow({ c }: { c: RagChunkRow }): React.JSX.Element {
   return (
     <TableRow className="hover:bg-transparent">
       <TableCell className={META_CELL_CLASS}>{t('page', { page: c.page_number ?? ZERO })}</TableCell>
-      <TableCell className={META_CELL_CLASS}>
-        {t('paragraph', { idx: c.paragraph_idx ?? ZERO })}
-      </TableCell>
-      <TableCell className={META_CELL_CLASS}>
-        {c.token_count !== null ? t('tokens', { count: c.token_count }) : '—'}
-      </TableCell>
       <TableCell className="align-top py-2">
         <ChunkContent content={c.content} />
       </TableCell>
@@ -151,8 +145,6 @@ function ChunksTable({ stage, rows }: ChunksTableProps): React.JSX.Element | nul
       <TableHeader className="sticky top-0 z-10 bg-background">
         <TableRow className="hover:bg-transparent">
           <TableHead className={HEADER_CELL_CLASS}>{t('colPage')}</TableHead>
-          <TableHead className={HEADER_CELL_CLASS}>{t('colParagraph')}</TableHead>
-          <TableHead className={HEADER_CELL_CLASS}>{t('colTokens')}</TableHead>
           <TableHead className={HEADER_CELL_CLASS}>{t('colContent')}</TableHead>
         </TableRow>
       </TableHeader>
