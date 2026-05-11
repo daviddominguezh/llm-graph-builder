@@ -35,7 +35,6 @@ export function CreateStoreDialog({
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const previewedSlug = previewStoreSlug(name);
-  const slugHint = previewedSlug === '' ? t('slugFallback') : t('slugPreview', { slug: previewedSlug });
   const canSubmit = type !== null && name.trim() !== '' && !submitting;
 
   function handleOpenChange(next: boolean) {
@@ -75,7 +74,9 @@ export function CreateStoreDialog({
               onChange={(e) => setName(e.target.value)}
               autoFocus
             />
-            <span className="font-mono text-[11px] text-muted-foreground">{slugHint}</span>
+            {previewedSlug !== '' && (
+              <span className="font-mono text-[11px] text-muted-foreground">{previewedSlug}</span>
+            )}
           </div>
         </div>
         <DialogFooter>
