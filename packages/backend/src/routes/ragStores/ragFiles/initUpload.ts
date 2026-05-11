@@ -65,7 +65,7 @@ async function lookupStore(supabase: SupabaseClient, storeId: string): Promise<S
 }
 
 function buildGcsObject(orgId: string, input: UploadInput, fileId: string): string {
-  const safeName = input.filename.replace(/[^A-Za-z0-9._-]/gv, '_');
+  const safeName = input.filename.replace(/[^A-Za-z0-9._\-]/gv, '_');
   return `uploads/${orgId}/${input.tenantId}/${input.storeId}/${fileId}/${safeName}`;
 }
 
