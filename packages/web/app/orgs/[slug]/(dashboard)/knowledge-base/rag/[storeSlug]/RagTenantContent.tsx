@@ -1,6 +1,7 @@
 'use client';
 
-import { listFilesAction, searchAction } from '@/app/actions/ragFiles';
+import { checkFilesAction, listFilesAction, searchAction } from '@/app/actions/ragFiles';
+import { getCachedFiles, setCachedFiles } from '@/app/lib/ragCache';
 import type { RagFileRow, SearchMode, SearchResponse, TenantUsage } from '@/app/lib/ragFiles';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
@@ -54,21 +55,32 @@ function useTenantFiles(storeId: string, tenantId: string): UseTenantFilesReturn
   const key = tenantKey(storeId, tenantId);
 
   const refresh = useCallback(async (): Promise<void> => {
-    const { result } = await listFilesAction(storeId, tenantId);
+    const { result, error } = await listFilesAction(storeId, tenantId);
+    if (error !== null) return;
     setState({ key: tenantKey(storeId, tenantId), files: result.files, usage: result.usage });
+    await setCachedFiles(storeId, tenantId, result.files, result.usage, result.digest ?? '');
   }, [storeId, tenantId]);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const { result } = await listFilesAction(storeId, tenantId);
+      const cached = await getCachedFiles(storeId, tenantId);
       if (cancelled) return;
-      setState({ key: tenantKey(storeId, tenantId), files: result.files, usage: result.usage });
+      if (cached !== null) {
+        setState({ key, files: cached.files, usage: cached.usage });
+        const check = await checkFilesAction(storeId, tenantId, cached.digest);
+        if (cancelled) return;
+        if (check.result !== null && !check.result.changed) return;
+      }
+      const { result, error } = await listFilesAction(storeId, tenantId);
+      if (cancelled || error !== null) return;
+      setState({ key, files: result.files, usage: result.usage });
+      await setCachedFiles(storeId, tenantId, result.files, result.usage, result.digest ?? '');
     })();
     return () => {
       cancelled = true;
     };
-  }, [storeId, tenantId]);
+  }, [storeId, tenantId, key]);
 
   const ready = state !== null && state.key === key;
   return {

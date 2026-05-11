@@ -33,6 +33,37 @@ const LIST_COLUMNS =
 const CLAIM_BATCH_SIZE = 5;
 const ACTIVE_STATUSES: RagFileStatus[] = ['parsing', 'chunking', 'embedding'];
 
+interface DigestRow {
+  id: string;
+  updated_at: string;
+}
+
+function isDigestRow(value: unknown): value is DigestRow {
+  if (typeof value !== 'object' || value === null) return false;
+  const row = value as { id?: unknown; updated_at?: unknown };
+  return typeof row.id === 'string' && typeof row.updated_at === 'string';
+}
+
+export async function getFilesDigestRows(
+  supabase: SupabaseClient,
+  storeId: string,
+  tenantId: string
+): Promise<{ result: DigestRow[]; error: string | null }> {
+  const { data, error } = await supabase
+    .from('rag_files')
+    .select('id, updated_at')
+    .eq('rag_store_id', storeId)
+    .eq('tenant_id', tenantId)
+    .order('id', { ascending: true });
+  if (error !== null) return { result: [], error: error.message };
+  const rows: unknown[] = Array.isArray(data) ? data : [];
+  const filtered: DigestRow[] = rows.reduce<DigestRow[]>((acc, row) => {
+    if (isDigestRow(row)) acc.push(row);
+    return acc;
+  }, []);
+  return { result: filtered, error: null };
+}
+
 function isRagFileRow(value: unknown): value is RagFileRow {
   if (typeof value !== 'object' || value === null) return false;
   return (

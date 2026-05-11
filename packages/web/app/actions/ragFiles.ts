@@ -1,12 +1,14 @@
 'use server';
 
 import {
+  type CheckFilesResponse,
   type InitUploadInput,
   type InitUploadResponse,
   type ListFilesResponse,
   type RagChunkRow,
   type SearchMode,
   type SearchResponse,
+  checkFiles as checkFilesLib,
   confirmUpload as confirmUploadLib,
   deleteFile as deleteFileLib,
   getChunks as getChunksLib,
@@ -38,6 +40,14 @@ export async function listFilesAction(
   tenantId: string
 ): Promise<{ result: ListFilesResponse; error: string | null }> {
   return listFilesLib(storeId, tenantId);
+}
+
+export async function checkFilesAction(
+  storeId: string,
+  tenantId: string,
+  digest: string
+): Promise<{ result: CheckFilesResponse | null; error: string | null }> {
+  return checkFilesLib(storeId, tenantId, digest);
 }
 
 export async function deleteFileAction(storeId: string, fileId: string): Promise<{ error: string | null }> {

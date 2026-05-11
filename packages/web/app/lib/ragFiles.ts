@@ -106,7 +106,13 @@ export async function confirmUpload(storeId: string, fileId: string): Promise<{ 
   }
 }
 
+export interface CheckFilesResponse {
+  changed: boolean;
+  digest: string;
+}
+
 export interface ListFilesResponse {
+  digest?: string;
   files: RagFileRow[];
   usage: TenantUsage;
 }
@@ -132,6 +138,30 @@ export async function listFiles(
     return { result: data, error: null };
   } catch (err) {
     return { result: empty, error: extractError(err) };
+  }
+}
+
+function isCheckFilesResponse(v: unknown): v is CheckFilesResponse {
+  if (typeof v !== 'object' || v === null) return false;
+  const r = v as { changed?: unknown; digest?: unknown };
+  return typeof r.changed === 'boolean' && typeof r.digest === 'string';
+}
+
+export async function checkFiles(
+  storeId: string,
+  tenantId: string,
+  digest: string
+): Promise<{ result: CheckFilesResponse | null; error: string | null }> {
+  try {
+    const data = await fetchFromBackend(
+      'POST',
+      `/rag-stores/${encodeURIComponent(storeId)}/files/check`,
+      { tenantId, digest }
+    );
+    if (!isCheckFilesResponse(data)) return { result: null, error: 'invalid response' };
+    return { result: data, error: null };
+  } catch (err) {
+    return { result: null, error: extractError(err) };
   }
 }
 

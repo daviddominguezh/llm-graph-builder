@@ -944,6 +944,8 @@
       "colParagraph": "Paragraph",
       "colTokens": "Tokens",
       "colContent": "Content",
+      "viewAll": "View all",
+      "viewLess": "View less",
       "drawerSubtitle": "{count, plural, =1 {1 chunk on this page} other {# chunks on this page}}"
     },
     "ragSearch": {

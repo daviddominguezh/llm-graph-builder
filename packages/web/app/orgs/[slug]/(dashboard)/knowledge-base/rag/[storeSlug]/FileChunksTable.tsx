@@ -1,6 +1,7 @@
 'use client';
 
 import { getChunksAction } from '@/app/actions/ragFiles';
+import { getCachedChunks, setCachedChunks } from '@/app/lib/ragCache';
 import type { RagChunkRow } from '@/app/lib/ragFiles';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,8 +12,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface FileChunksTableProps {
   storeId: string;
@@ -22,68 +24,127 @@ interface FileChunksTableProps {
 const PAGE_SIZE = 25;
 const FIRST_PAGE = 1;
 const ZERO = 0;
+const OVERFLOW_TOLERANCE_PX = 1;
 const HEADER_CELL_CLASS =
-  'h-7 text-[10px] uppercase tracking-wider font-medium text-muted-foreground/70 whitespace-nowrap';
+  'h-7 text-[10px] uppercase tracking-wider font-medium text-muted-foreground/70 whitespace-nowrap border-r last:border-r-0';
+const META_CELL_CLASS =
+  'align-top font-mono text-[10px] text-muted-foreground py-2 whitespace-nowrap border-r';
 
-interface LoadedChunks {
+type LoadStage = 'pending' | 'fetching' | 'ready';
+
+interface ChunksState {
   key: string;
+  phase: 'fetching' | 'ready';
   rows: RagChunkRow[];
+}
+
+interface UseChunksReturn {
+  rows: RagChunkRow[];
+  stage: LoadStage;
 }
 
 function loadKeyFor(fileId: string, page: number): string {
   return `${fileId}::${String(page)}`;
 }
 
-function useChunks(
-  storeId: string,
-  fileId: string,
-  page: number
-): { rows: RagChunkRow[]; loading: boolean } {
-  const [state, setState] = useState<LoadedChunks | null>(null);
+function useChunks(storeId: string, fileId: string, page: number): UseChunksReturn {
+  const [state, setState] = useState<ChunksState | null>(null);
   const key = loadKeyFor(fileId, page);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
+      const cached = await getCachedChunks(fileId, page);
+      if (cancelled) return;
+      if (cached !== null) {
+        setState({ key, phase: 'ready', rows: cached });
+        return;
+      }
+      setState({ key, phase: 'fetching', rows: [] });
       const { result } = await getChunksAction(storeId, fileId, page, PAGE_SIZE);
-      if (!cancelled) setState({ key, rows: result });
+      if (cancelled) return;
+      setState({ key, phase: 'ready', rows: result });
+      await setCachedChunks(fileId, page, result);
     })();
     return () => {
       cancelled = true;
     };
   }, [fileId, page, storeId, key]);
 
-  const ready = state !== null && state.key === key;
-  return { rows: ready ? state.rows : [], loading: !ready };
+  const matches = state !== null && state.key === key;
+  let stage: LoadStage = 'pending';
+  if (matches && state.phase === 'fetching') stage = 'fetching';
+  else if (matches && state.phase === 'ready') stage = 'ready';
+  const rows = stage === 'ready' && matches ? state.rows : [];
+  return { rows, stage };
+}
+
+function ChunkContent({ content }: { content: string }): React.JSX.Element {
+  const t = useTranslations('knowledgeBase.ragChunks');
+  const [expanded, setExpanded] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+  const ref = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (el === null) return;
+    setOverflows(el.scrollHeight > el.clientHeight + OVERFLOW_TOLERANCE_PX);
+  }, [content]);
+
+  return (
+    <div className="flex flex-col gap-1">
+      <p
+        ref={ref}
+        className={`whitespace-pre-wrap text-[10px] leading-relaxed ${expanded ? '' : 'line-clamp-2'}`}
+      >
+        {content}
+      </p>
+      {overflows && (
+        <Button
+          type="button"
+          variant="link"
+          className="h-auto self-start p-0 text-[10px]"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? t('viewLess') : t('viewAll')}
+        </Button>
+      )}
+    </div>
+  );
 }
 
 function ChunkTableRow({ c }: { c: RagChunkRow }): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragChunks');
   return (
-    <TableRow className="hover:bg-transparent align-top">
-      <TableCell className="font-mono text-[10px] text-muted-foreground py-2 whitespace-nowrap">
-        {t('page', { page: c.page_number ?? ZERO })}
-      </TableCell>
-      <TableCell className="font-mono text-[10px] text-muted-foreground py-2 whitespace-nowrap">
+    <TableRow className="hover:bg-transparent">
+      <TableCell className={META_CELL_CLASS}>{t('page', { page: c.page_number ?? ZERO })}</TableCell>
+      <TableCell className={META_CELL_CLASS}>
         {t('paragraph', { idx: c.paragraph_idx ?? ZERO })}
       </TableCell>
-      <TableCell className="font-mono text-[10px] text-muted-foreground py-2 whitespace-nowrap">
+      <TableCell className={META_CELL_CLASS}>
         {c.token_count !== null ? t('tokens', { count: c.token_count }) : '—'}
       </TableCell>
-      <TableCell className="text-xs py-2 whitespace-pre-wrap leading-relaxed">{c.content}</TableCell>
+      <TableCell className="align-top py-2">
+        <ChunkContent content={c.content} />
+      </TableCell>
     </TableRow>
   );
 }
 
 interface ChunksTableProps {
-  loading: boolean;
+  stage: LoadStage;
   rows: RagChunkRow[];
 }
 
-function ChunksTable({ loading, rows }: ChunksTableProps): React.JSX.Element {
+function ChunksTable({ stage, rows }: ChunksTableProps): React.JSX.Element | null {
   const t = useTranslations('knowledgeBase.ragChunks');
-  if (loading) {
-    return <div className="px-4 py-4 text-xs text-muted-foreground">{t('loading')}</div>;
+  if (stage === 'pending') return null;
+  if (stage === 'fetching') {
+    return (
+      <div className="flex items-center justify-center px-4 py-8">
+        <Loader2 className="size-4 animate-spin text-blue-500" />
+      </div>
+    );
   }
   return (
     <Table>
@@ -111,15 +172,15 @@ interface PagerProps {
   onNext: () => void;
 }
 
-function Pager({ page, count, onPrev, onNext }: PagerProps): React.JSX.Element {
+function Pager({ page, count, onPrev, onNext }: PagerProps): React.JSX.Element | null {
   const t = useTranslations('knowledgeBase.ragChunks');
-  if (page === FIRST_PAGE && count < PAGE_SIZE) return <></>;
+  if (page === FIRST_PAGE && count < PAGE_SIZE) return null;
   return (
-    <div className="flex items-center justify-between px-3 py-2 border-t">
+    <div className="flex items-center justify-between border-t px-3 py-2">
       <Button size="sm" variant="outline" disabled={page <= FIRST_PAGE} onClick={onPrev}>
         {t('prev')}
       </Button>
-      <span className="text-[11px] font-mono text-muted-foreground">{t('page', { page })}</span>
+      <span className="font-mono text-[11px] text-muted-foreground">{t('page', { page })}</span>
       <Button size="sm" variant="outline" disabled={count < PAGE_SIZE} onClick={onNext}>
         {t('next')}
       </Button>
@@ -129,10 +190,10 @@ function Pager({ page, count, onPrev, onNext }: PagerProps): React.JSX.Element {
 
 export function FileChunksTable({ storeId, fileId }: FileChunksTableProps): React.JSX.Element {
   const [page, setPage] = useState(FIRST_PAGE);
-  const { rows, loading } = useChunks(storeId, fileId, page);
+  const { rows, stage } = useChunks(storeId, fileId, page);
   return (
     <>
-      <ChunksTable loading={loading} rows={rows} />
+      <ChunksTable stage={stage} rows={rows} />
       <Pager
         page={page}
         count={rows.length}

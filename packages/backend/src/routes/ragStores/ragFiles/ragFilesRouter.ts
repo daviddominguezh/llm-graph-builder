@@ -1,6 +1,7 @@
 import express from 'express';
 
 import { requireAuth } from '../../../middleware/auth.js';
+import { handleCheckFiles } from './checkFiles.js';
 import { handleConfirmUpload } from './confirmUpload.js';
 import { handleDeleteFile } from './deleteFile.js';
 import { handleGetChunks } from './getChunks.js';
@@ -13,6 +14,7 @@ export const ragFilesRouter = express.Router({ mergeParams: true });
 ragFilesRouter.use(requireAuth);
 
 ragFilesRouter.post('/init', handleInitUpload);
+ragFilesRouter.post('/check', handleCheckFiles);
 ragFilesRouter.get('/', handleListFiles);
 ragFilesRouter.get('/:id', handleGetFile);
 ragFilesRouter.get('/:id/chunks', handleGetChunks);
