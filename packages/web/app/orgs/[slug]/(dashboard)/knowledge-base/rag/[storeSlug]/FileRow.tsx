@@ -146,7 +146,7 @@ function FileRowContent({
     <div className="flex items-center gap-3 rounded-md border px-3 py-2">
       <FileTypeIcon mimeType={file.mime_type} filename={file.filename} />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="truncate text-xs font-medium">{file.filename}</span>
+        <span className="truncate text-xs font-mono font-medium">{file.filename}</span>
         <span className="font-mono text-[10px] text-muted-foreground">
           {formatBytes(file.size_bytes)}
           {file.page_count !== null && <> · {t('pageCount', { count: file.page_count })}</>}
