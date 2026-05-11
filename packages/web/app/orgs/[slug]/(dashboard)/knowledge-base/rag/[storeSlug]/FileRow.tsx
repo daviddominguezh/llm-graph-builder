@@ -13,17 +13,17 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Check, ChevronRight, Loader2, Trash2 } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, Loader2, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import { FileChunksTable } from './FileChunksTable';
 import { FileStatusStream } from './FileStatusStream';
 import { FileTypeIcon } from './FileTypeIcon';
 
 interface FileRowProps {
   storeId: string;
   file: RagFileRow;
-  onOpenChunks: (file: RagFileRow) => void;
   onDeleted: (fileId: string) => void;
   onStatusReachedDone: (fileId: string) => void;
 }
@@ -118,32 +118,27 @@ function DeleteConfirmDialog({
   );
 }
 
-interface FileRowContentProps {
+interface FileRowHeaderProps {
   file: RagFileRow;
   status: RagFileStatus;
   error: string | null;
-  confirmOpen: boolean;
-  deleting: boolean;
-  onOpenChunks: (file: RagFileRow) => void;
+  expanded: boolean;
+  onToggle: () => void;
   onRequestDelete: () => void;
-  onCancelDelete: (open: boolean) => void;
-  onConfirmDelete: () => void;
 }
 
-function FileRowContent({
+function FileRowHeader({
   file,
   status,
   error,
-  confirmOpen,
-  deleting,
-  onOpenChunks,
+  expanded,
+  onToggle,
   onRequestDelete,
-  onCancelDelete,
-  onConfirmDelete,
-}: FileRowContentProps): React.JSX.Element {
+}: FileRowHeaderProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragFiles');
+  const Chevron = expanded ? ChevronDown : ChevronRight;
   return (
-    <div className="flex items-center gap-3 rounded-md border px-3 py-2">
+    <div className="flex items-center gap-3 px-3 py-2">
       <FileTypeIcon mimeType={file.mime_type} filename={file.filename} />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="truncate text-xs font-mono font-medium">{file.filename}</span>
@@ -154,19 +149,19 @@ function FileRowContent({
       </div>
       <StatusPill status={status} error={error} />
       {status === 'done' && (
-        <Button variant="ghost" size="icon" aria-label={t('openChunks')} onClick={() => onOpenChunks(file)}>
-          <ChevronRight className="size-4" />
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={t('openChunks')}
+          aria-expanded={expanded}
+          onClick={onToggle}
+        >
+          <Chevron className="size-4" />
         </Button>
       )}
       <Button variant="destructive" size="icon" aria-label={t('remove')} onClick={onRequestDelete}>
         <Trash2 className="size-4" />
       </Button>
-      <DeleteConfirmDialog
-        open={confirmOpen}
-        deleting={deleting}
-        onOpenChange={onCancelDelete}
-        onConfirm={onConfirmDelete}
-      />
     </div>
   );
 }
@@ -174,12 +169,12 @@ function FileRowContent({
 export function FileRow({
   storeId,
   file,
-  onOpenChunks,
   onDeleted,
   onStatusReachedDone,
 }: FileRowProps): React.JSX.Element {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   async function handleDelete(): Promise<void> {
     setDeleting(true);
@@ -198,17 +193,27 @@ export function FileRow({
       onTerminal={() => onStatusReachedDone(file.id)}
     >
       {({ status, error }) => (
-        <FileRowContent
-          file={file}
-          status={status}
-          error={error}
-          confirmOpen={confirmOpen}
-          deleting={deleting}
-          onOpenChunks={onOpenChunks}
-          onRequestDelete={() => setConfirmOpen(true)}
-          onCancelDelete={setConfirmOpen}
-          onConfirmDelete={() => void handleDelete()}
-        />
+        <div className="rounded-md border">
+          <FileRowHeader
+            file={file}
+            status={status}
+            error={error}
+            expanded={expanded && status === 'done'}
+            onToggle={() => setExpanded((v) => !v)}
+            onRequestDelete={() => setConfirmOpen(true)}
+          />
+          {expanded && status === 'done' && (
+            <div className="border-t">
+              <FileChunksTable storeId={storeId} fileId={file.id} />
+            </div>
+          )}
+          <DeleteConfirmDialog
+            open={confirmOpen}
+            deleting={deleting}
+            onOpenChange={setConfirmOpen}
+            onConfirm={() => void handleDelete()}
+          />
+        </div>
       )}
     </FileStatusStream>
   );

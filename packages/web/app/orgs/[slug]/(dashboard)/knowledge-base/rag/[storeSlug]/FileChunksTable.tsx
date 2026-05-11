@@ -1,10 +1,8 @@
 'use client';
 
 import { getChunksAction } from '@/app/actions/ragFiles';
-import { Scrollable } from '@/app/components/Scrollable';
-import type { RagChunkRow, RagFileRow } from '@/app/lib/ragFiles';
+import type { RagChunkRow } from '@/app/lib/ragFiles';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {
   Table,
   TableBody,
@@ -16,10 +14,9 @@ import {
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
-interface FileChunksDrawerProps {
+interface FileChunksTableProps {
   storeId: string;
-  file: RagFileRow | null;
-  onOpenChange: (open: boolean) => void;
+  fileId: string;
 }
 
 const PAGE_SIZE = 25;
@@ -33,54 +30,31 @@ interface LoadedChunks {
   rows: RagChunkRow[];
 }
 
-function loadKeyFor(file: RagFileRow | null, page: number): string {
-  return file === null ? '' : `${file.id}::${String(page)}`;
+function loadKeyFor(fileId: string, page: number): string {
+  return `${fileId}::${String(page)}`;
 }
 
 function useChunks(
   storeId: string,
-  file: RagFileRow | null,
+  fileId: string,
   page: number
 ): { rows: RagChunkRow[]; loading: boolean } {
   const [state, setState] = useState<LoadedChunks | null>(null);
-  const key = loadKeyFor(file, page);
+  const key = loadKeyFor(fileId, page);
 
   useEffect(() => {
-    if (file === null) return;
     let cancelled = false;
     void (async () => {
-      const { result } = await getChunksAction(storeId, file.id, page, PAGE_SIZE);
+      const { result } = await getChunksAction(storeId, fileId, page, PAGE_SIZE);
       if (!cancelled) setState({ key, rows: result });
     })();
     return () => {
       cancelled = true;
     };
-  }, [file, page, storeId, key]);
+  }, [fileId, page, storeId, key]);
 
   const ready = state !== null && state.key === key;
   return { rows: ready ? state.rows : [], loading: !ready };
-}
-
-interface ChunksPagerProps {
-  page: number;
-  count: number;
-  onPrev: () => void;
-  onNext: () => void;
-}
-
-function ChunksPager({ page, count, onPrev, onNext }: ChunksPagerProps): React.JSX.Element {
-  const t = useTranslations('knowledgeBase.ragChunks');
-  return (
-    <div className="flex justify-between items-center px-4 py-3 border-t">
-      <Button size="sm" variant="outline" disabled={page <= FIRST_PAGE} onClick={onPrev}>
-        {t('prev')}
-      </Button>
-      <span className="text-[11px] font-mono text-muted-foreground">{t('page', { page })}</span>
-      <Button size="sm" variant="outline" disabled={count < PAGE_SIZE} onClick={onNext}>
-        {t('next')}
-      </Button>
-    </div>
-  );
 }
 
 function ChunkTableRow({ c }: { c: RagChunkRow }): React.JSX.Element {
@@ -109,9 +83,7 @@ interface ChunksTableProps {
 function ChunksTable({ loading, rows }: ChunksTableProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragChunks');
   if (loading) {
-    return (
-      <div className="px-4 py-6 text-xs text-muted-foreground">{t('loading')}</div>
-    );
+    return <div className="px-4 py-4 text-xs text-muted-foreground">{t('loading')}</div>;
   }
   return (
     <Table>
@@ -132,36 +104,41 @@ function ChunksTable({ loading, rows }: ChunksTableProps): React.JSX.Element {
   );
 }
 
-export function FileChunksDrawer({
-  storeId,
-  file,
-  onOpenChange,
-}: FileChunksDrawerProps): React.JSX.Element | null {
-  const [page, setPage] = useState(FIRST_PAGE);
-  const { rows, loading } = useChunks(storeId, file, page);
+interface PagerProps {
+  page: number;
+  count: number;
+  onPrev: () => void;
+  onNext: () => void;
+}
+
+function Pager({ page, count, onPrev, onNext }: PagerProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragChunks');
-
-  if (file === null) return null;
-
+  if (page === FIRST_PAGE && count < PAGE_SIZE) return <></>;
   return (
-    <Sheet open onOpenChange={onOpenChange}>
-      <SheetContent className="!w-[min(960px,90vw)] !max-w-none flex flex-col p-0">
-        <SheetHeader className="px-4 py-3 border-b">
-          <SheetTitle className="font-mono text-sm">{file.filename}</SheetTitle>
-          <SheetDescription className="text-[11px] text-muted-foreground">
-            {t('drawerSubtitle', { count: rows.length })}
-          </SheetDescription>
-        </SheetHeader>
-        <Scrollable className="flex-1 min-h-0">
-          <ChunksTable loading={loading} rows={rows} />
-        </Scrollable>
-        <ChunksPager
-          page={page}
-          count={rows.length}
-          onPrev={() => setPage(page - 1)}
-          onNext={() => setPage(page + 1)}
-        />
-      </SheetContent>
-    </Sheet>
+    <div className="flex items-center justify-between px-3 py-2 border-t">
+      <Button size="sm" variant="outline" disabled={page <= FIRST_PAGE} onClick={onPrev}>
+        {t('prev')}
+      </Button>
+      <span className="text-[11px] font-mono text-muted-foreground">{t('page', { page })}</span>
+      <Button size="sm" variant="outline" disabled={count < PAGE_SIZE} onClick={onNext}>
+        {t('next')}
+      </Button>
+    </div>
+  );
+}
+
+export function FileChunksTable({ storeId, fileId }: FileChunksTableProps): React.JSX.Element {
+  const [page, setPage] = useState(FIRST_PAGE);
+  const { rows, loading } = useChunks(storeId, fileId, page);
+  return (
+    <>
+      <ChunksTable loading={loading} rows={rows} />
+      <Pager
+        page={page}
+        count={rows.length}
+        onPrev={() => setPage(page - 1)}
+        onNext={() => setPage(page + 1)}
+      />
+    </>
   );
 }

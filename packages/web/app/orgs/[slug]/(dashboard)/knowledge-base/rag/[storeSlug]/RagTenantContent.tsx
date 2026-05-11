@@ -8,7 +8,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { Scrollable } from '@/app/components/Scrollable';
 import { Loader2 } from 'lucide-react';
 
-import { FileChunksDrawer } from './FileChunksDrawer';
 import { FileRow } from './FileRow';
 import { FileUploadDropzone } from './FileUploadDropzone';
 import { RagSearchBar } from './RagSearchBar';
@@ -106,11 +105,10 @@ function useTenantSearch(storeId: string, tenantId: string): UseTenantSearchRetu
 interface FileListProps {
   storeId: string;
   files: RagFileRow[];
-  onOpenChunks: (file: RagFileRow) => void;
   onRefresh: () => void;
 }
 
-function FileList({ storeId, files, onOpenChunks, onRefresh }: FileListProps): React.JSX.Element {
+function FileList({ storeId, files, onRefresh }: FileListProps): React.JSX.Element {
   return (
     <div className="flex flex-col gap-1.5">
       {files.map((f) => (
@@ -118,7 +116,6 @@ function FileList({ storeId, files, onOpenChunks, onRefresh }: FileListProps): R
           key={f.id}
           storeId={storeId}
           file={f}
-          onOpenChunks={onOpenChunks}
           onDeleted={onRefresh}
           onStatusReachedDone={onRefresh}
         />
@@ -220,7 +217,6 @@ function buildMockFiles(storeId: string, tenantId: string): RagFileRow[] {
 export function RagTenantContent({ storeId, tenantId }: RagTenantContentProps): React.JSX.Element {
   const { files, usage, loaded, refresh } = useTenantFiles(storeId, tenantId);
   const search = useTenantSearch(storeId, tenantId);
-  const [openChunksFor, setOpenChunksFor] = useState<RagFileRow | null>(null);
 
   const { uploading, uploadFiles } = useRagUpload({
     storeId,
@@ -256,19 +252,11 @@ export function RagTenantContent({ storeId, tenantId }: RagTenantContentProps): 
             <FileList
               storeId={storeId}
               files={displayFiles}
-              onOpenChunks={setOpenChunksFor}
               onRefresh={() => void refresh()}
             />
           </div>
         </Scrollable>
       )}
-      <FileChunksDrawer
-        storeId={storeId}
-        file={openChunksFor}
-        onOpenChange={(o) => {
-          if (!o) setOpenChunksFor(null);
-        }}
-      />
     </div>
   );
 }
