@@ -100,7 +100,7 @@ interface KvRowProps {
 function KvRow({ entry, isTrailingEmpty, isDuplicate, onUpdate, onRequestRemove }: KvRowProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.kv');
   return (
-    <TableRow className="hover:bg-muted/30 animate-in fade-in slide-in-from-top-1 duration-200">
+    <TableRow className="hover:bg-transparent animate-in fade-in slide-in-from-top-1 duration-200">
       <KvKeyCell
         entry={entry}
         isTrailingEmpty={isTrailingEmpty}
