@@ -149,71 +149,6 @@ function LoadingSpinner(): React.JSX.Element {
   );
 }
 
-// TODO: remove — temporary mock files to preview FileTypeIcon variants and scrolling.
-interface MockTemplate {
-  filename: string;
-  mime_type: string;
-}
-
-const MOCK_TEMPLATES: MockTemplate[] = [
-  { filename: 'q3-report.pdf',                 mime_type: 'application/pdf' },
-  { filename: 'meeting-notes.docx',            mime_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
-  { filename: 'budget-2026.xlsx',              mime_type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
-  { filename: 'kickoff-slides.pptx',           mime_type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' },
-  { filename: 'changelog.html',                mime_type: 'text/html' },
-  { filename: 'whiteboard.jpg',                mime_type: 'image/jpeg' },
-  { filename: 'logo.png',                      mime_type: 'image/png' },
-  { filename: 'mystery-blob',                  mime_type: 'application/octet-stream' },
-  { filename: 'roadmap-2026.pdf',              mime_type: 'application/pdf' },
-  { filename: 'employee-handbook.pdf',         mime_type: 'application/pdf' },
-  { filename: 'product-specs.docx',            mime_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
-  { filename: 'expenses-q1.xlsx',              mime_type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
-  { filename: 'sales-pipeline.xlsx',           mime_type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
-  { filename: 'all-hands.pptx',                mime_type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' },
-  { filename: 'investor-deck.pptx',            mime_type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' },
-  { filename: 'docs-index.html',               mime_type: 'text/html' },
-  { filename: 'release-notes.html',            mime_type: 'text/html' },
-  { filename: 'team-photo.jpeg',               mime_type: 'image/jpeg' },
-  { filename: 'architecture-diagram.png',      mime_type: 'image/png' },
-  { filename: 'banner.png',                    mime_type: 'image/png' },
-  { filename: 'compliance-checklist.pdf',      mime_type: 'application/pdf' },
-  { filename: 'security-audit.pdf',            mime_type: 'application/pdf' },
-  { filename: 'onboarding.docx',               mime_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
-  { filename: 'design-tokens.docx',            mime_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
-  { filename: 'forecast.xlsx',                 mime_type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
-  { filename: 'qbr-q4.pptx',                   mime_type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' },
-  { filename: 'snapshot-2026-05.jpg',          mime_type: 'image/jpeg' },
-  { filename: 'wireframe.png',                 mime_type: 'image/png' },
-  { filename: 'archived-readme.html',          mime_type: 'text/html' },
-  { filename: 'random-data',                   mime_type: 'application/octet-stream' },
-];
-
-const MOCK_BYTE_BASE = 50_000;
-const MOCK_PAGE_BASE = 3;
-
-function buildMockFiles(storeId: string, tenantId: string): RagFileRow[] {
-  const baseCommon = {
-    rag_store_id: storeId,
-    tenant_id: tenantId,
-    org_id: 'mock-org',
-    status: 'done' as const,
-    status_error: null,
-    gcs_object: '',
-    da_operation: null,
-    parsed_uri: null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-  return MOCK_TEMPLATES.map((tpl, idx) => ({
-    ...baseCommon,
-    id: `mock-${String(idx)}`,
-    filename: tpl.filename,
-    mime_type: tpl.mime_type,
-    size_bytes: MOCK_BYTE_BASE * (idx + 1),
-    page_count: MOCK_PAGE_BASE + (idx % 10),
-  }));
-}
-
 export function RagTenantContent({ storeId, tenantId }: RagTenantContentProps): React.JSX.Element {
   const { files, usage, loaded, refresh } = useTenantFiles(storeId, tenantId);
   const search = useTenantSearch(storeId, tenantId);
@@ -226,9 +161,7 @@ export function RagTenantContent({ storeId, tenantId }: RagTenantContentProps): 
     },
   });
 
-  // TODO: remove — merging mock files in for icon preview.
-  const displayFiles = loaded ? [...buildMockFiles(storeId, tenantId), ...files] : files;
-  const hasFiles = displayFiles.length > 0;
+  const hasFiles = files.length > 0;
   const showEmptyState = loaded && !hasFiles;
   const showSearchBar = loaded && hasFiles;
 
@@ -251,7 +184,7 @@ export function RagTenantContent({ storeId, tenantId }: RagTenantContentProps): 
             {search.response !== null && <SearchResults response={search.response} />}
             <FileList
               storeId={storeId}
-              files={displayFiles}
+              files={files}
               onRefresh={() => void refresh()}
             />
           </div>
