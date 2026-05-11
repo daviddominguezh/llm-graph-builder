@@ -5,6 +5,7 @@ import {
   createRagStore as createRagStoreLib,
   deleteRagStore as deleteRagStoreLib,
   getRagStoresByOrg as getRagStoresByOrgLib,
+  updateRagStore as updateRagStoreLib,
 } from '@/app/lib/ragStores';
 import { serverError, serverLog } from '@/app/lib/serverLogger';
 
@@ -26,6 +27,16 @@ export async function createRagStoreAction(
   const res = await createRagStoreLib(orgId, name);
   if (res.error === null) serverLog('[createRagStoreAction] created store:', res.result?.id);
   else serverError('[createRagStoreAction] error:', res.error);
+  return res;
+}
+
+export async function updateRagStoreAction(
+  storeId: string,
+  name: string
+): Promise<{ result: RagStoreRow | null; error: string | null }> {
+  serverLog('[updateRagStoreAction] storeId:', storeId, 'name:', name);
+  const res = await updateRagStoreLib(storeId, name);
+  if (res.error !== null) serverError('[updateRagStoreAction] error:', res.error);
   return res;
 }
 

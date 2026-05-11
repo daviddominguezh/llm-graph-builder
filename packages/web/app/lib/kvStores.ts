@@ -62,6 +62,23 @@ export async function createKvStore(
   }
 }
 
+export async function updateKvStore(
+  storeId: string,
+  name: string
+): Promise<{ result: KvStoreRow | null; error: string | null }> {
+  try {
+    const data = await fetchFromBackend(
+      'PATCH',
+      `/kv-stores/${encodeURIComponent(storeId)}`,
+      { name }
+    );
+    if (!isKvStoreRow(data)) return { result: null, error: 'Invalid response' };
+    return { result: data, error: null };
+  } catch (err) {
+    return { result: null, error: extractError(err) };
+  }
+}
+
 export async function deleteKvStore(storeId: string): Promise<{ error: string | null }> {
   try {
     await fetchFromBackend('DELETE', `/kv-stores/${encodeURIComponent(storeId)}`);

@@ -26,7 +26,7 @@ const FIRST_PAGE = 1;
 const ZERO = 0;
 const OVERFLOW_TOLERANCE_PX = 1;
 const HEADER_CELL_CLASS =
-  'h-7 text-[10px] uppercase tracking-wider font-medium text-muted-foreground/70 whitespace-nowrap border-r last:border-r-0';
+  'h-7 text-[10px] uppercase tracking-wider font-semibold text-foreground whitespace-nowrap border-r last:border-r-0';
 const META_CELL_CLASS =
   'align-top font-mono text-[10px] text-muted-foreground py-2 whitespace-nowrap border-r';
 
@@ -95,7 +95,7 @@ function ChunkContent({ content }: { content: string }): React.JSX.Element {
     <div className="flex flex-col gap-1">
       <p
         ref={ref}
-        className={`whitespace-pre-wrap text-[10px] leading-relaxed ${expanded ? '' : 'line-clamp-2'}`}
+        className={`whitespace-pre-wrap text-[10px] leading-relaxed ${expanded ? '' : 'line-clamp-3'}`}
       >
         {content}
       </p>
@@ -103,7 +103,7 @@ function ChunkContent({ content }: { content: string }): React.JSX.Element {
         <Button
           type="button"
           variant="link"
-          className="h-auto self-start p-0 text-[10px]"
+          className="h-auto self-end p-0 text-xs text-blue-500"
           onClick={() => setExpanded((v) => !v)}
         >
           {expanded ? t('viewLess') : t('viewAll')}
@@ -148,7 +148,7 @@ function ChunksTable({ stage, rows }: ChunksTableProps): React.JSX.Element | nul
   }
   return (
     <Table>
-      <TableHeader>
+      <TableHeader className="sticky top-0 z-10 bg-background">
         <TableRow className="hover:bg-transparent">
           <TableHead className={HEADER_CELL_CLASS}>{t('colPage')}</TableHead>
           <TableHead className={HEADER_CELL_CLASS}>{t('colParagraph')}</TableHead>

@@ -47,6 +47,23 @@ export async function createRagStore(
   }
 }
 
+export async function updateRagStore(
+  storeId: string,
+  name: string
+): Promise<{ result: RagStoreRow | null; error: string | null }> {
+  try {
+    const data = await fetchFromBackend(
+      'PATCH',
+      `/rag-stores/${encodeURIComponent(storeId)}`,
+      { name }
+    );
+    if (!isRagStoreRow(data)) return { result: null, error: 'Invalid response' };
+    return { result: data, error: null };
+  } catch (err) {
+    return { result: null, error: extractError(err) };
+  }
+}
+
 export async function deleteRagStore(storeId: string): Promise<{ error: string | null }> {
   try {
     await fetchFromBackend('DELETE', `/rag-stores/${encodeURIComponent(storeId)}`);
