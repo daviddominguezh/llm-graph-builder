@@ -939,7 +939,12 @@
       "paragraph": "¶ {idx}",
       "tokens": "{count} tok",
       "prev": "Previous",
-      "next": "Next"
+      "next": "Next",
+      "colPage": "Page",
+      "colParagraph": "Paragraph",
+      "colTokens": "Tokens",
+      "colContent": "Content",
+      "drawerSubtitle": "{count, plural, =1 {1 chunk on this page} other {# chunks on this page}}"
     },
     "ragSearch": {
       "placeholder": "Search files and chunks…",

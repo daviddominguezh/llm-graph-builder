@@ -4,7 +4,15 @@ import { getChunksAction } from '@/app/actions/ragFiles';
 import { Scrollable } from '@/app/components/Scrollable';
 import type { RagChunkRow, RagFileRow } from '@/app/lib/ragFiles';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
@@ -17,26 +25,8 @@ interface FileChunksDrawerProps {
 const PAGE_SIZE = 25;
 const FIRST_PAGE = 1;
 const ZERO = 0;
-
-function ChunkCard({ c }: { c: RagChunkRow }): React.JSX.Element {
-  const t = useTranslations('knowledgeBase.ragChunks');
-  return (
-    <div className="rounded-md border p-3 flex flex-col gap-1">
-      <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground">
-        <span>{t('page', { page: c.page_number ?? ZERO })}</span>
-        <span>·</span>
-        <span>{t('paragraph', { idx: c.paragraph_idx ?? ZERO })}</span>
-        {c.token_count !== null && (
-          <>
-            <span>·</span>
-            <span>{t('tokens', { count: c.token_count })}</span>
-          </>
-        )}
-      </div>
-      <p className="text-xs whitespace-pre-wrap">{c.content}</p>
-    </div>
-  );
-}
+const HEADER_CELL_CLASS =
+  'h-7 text-[10px] uppercase tracking-wider font-medium text-muted-foreground/70 whitespace-nowrap';
 
 interface LoadedChunks {
   key: string;
@@ -81,7 +71,7 @@ interface ChunksPagerProps {
 function ChunksPager({ page, count, onPrev, onNext }: ChunksPagerProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragChunks');
   return (
-    <div className="flex justify-between items-center pt-2">
+    <div className="flex justify-between items-center px-4 py-3 border-t">
       <Button size="sm" variant="outline" disabled={page <= FIRST_PAGE} onClick={onPrev}>
         {t('prev')}
       </Button>
@@ -93,22 +83,52 @@ function ChunksPager({ page, count, onPrev, onNext }: ChunksPagerProps): React.J
   );
 }
 
-interface ChunksListProps {
+function ChunkTableRow({ c }: { c: RagChunkRow }): React.JSX.Element {
+  const t = useTranslations('knowledgeBase.ragChunks');
+  return (
+    <TableRow className="hover:bg-transparent align-top">
+      <TableCell className="font-mono text-[10px] text-muted-foreground py-2 whitespace-nowrap">
+        {t('page', { page: c.page_number ?? ZERO })}
+      </TableCell>
+      <TableCell className="font-mono text-[10px] text-muted-foreground py-2 whitespace-nowrap">
+        {t('paragraph', { idx: c.paragraph_idx ?? ZERO })}
+      </TableCell>
+      <TableCell className="font-mono text-[10px] text-muted-foreground py-2 whitespace-nowrap">
+        {c.token_count !== null ? t('tokens', { count: c.token_count }) : '—'}
+      </TableCell>
+      <TableCell className="text-xs py-2 whitespace-pre-wrap leading-relaxed">{c.content}</TableCell>
+    </TableRow>
+  );
+}
+
+interface ChunksTableProps {
   loading: boolean;
   rows: RagChunkRow[];
 }
 
-function ChunksList({ loading, rows }: ChunksListProps): React.JSX.Element {
+function ChunksTable({ loading, rows }: ChunksTableProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragChunks');
   if (loading) {
-    return <span className="text-xs text-muted-foreground">{t('loading')}</span>;
+    return (
+      <div className="px-4 py-6 text-xs text-muted-foreground">{t('loading')}</div>
+    );
   }
   return (
-    <>
-      {rows.map((c) => (
-        <ChunkCard key={c.id} c={c} />
-      ))}
-    </>
+    <Table>
+      <TableHeader>
+        <TableRow className="hover:bg-transparent">
+          <TableHead className={HEADER_CELL_CLASS}>{t('colPage')}</TableHead>
+          <TableHead className={HEADER_CELL_CLASS}>{t('colParagraph')}</TableHead>
+          <TableHead className={HEADER_CELL_CLASS}>{t('colTokens')}</TableHead>
+          <TableHead className={HEADER_CELL_CLASS}>{t('colContent')}</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((c) => (
+          <ChunkTableRow key={c.id} c={c} />
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 
@@ -119,19 +139,21 @@ export function FileChunksDrawer({
 }: FileChunksDrawerProps): React.JSX.Element | null {
   const [page, setPage] = useState(FIRST_PAGE);
   const { rows, loading } = useChunks(storeId, file, page);
+  const t = useTranslations('knowledgeBase.ragChunks');
 
   if (file === null) return null;
 
   return (
-    <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle>{file.filename}</DialogTitle>
-        </DialogHeader>
+    <Sheet open onOpenChange={onOpenChange}>
+      <SheetContent className="!w-[min(960px,90vw)] !max-w-none flex flex-col p-0">
+        <SheetHeader className="px-4 py-3 border-b">
+          <SheetTitle className="font-mono text-sm">{file.filename}</SheetTitle>
+          <SheetDescription className="text-[11px] text-muted-foreground">
+            {t('drawerSubtitle', { count: rows.length })}
+          </SheetDescription>
+        </SheetHeader>
         <Scrollable className="flex-1 min-h-0">
-          <div className="flex flex-col gap-2">
-            <ChunksList loading={loading} rows={rows} />
-          </div>
+          <ChunksTable loading={loading} rows={rows} />
         </Scrollable>
         <ChunksPager
           page={page}
@@ -139,7 +161,7 @@ export function FileChunksDrawer({
           onPrev={() => setPage(page - 1)}
           onNext={() => setPage(page + 1)}
         />
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
