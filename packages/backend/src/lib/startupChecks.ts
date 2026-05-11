@@ -2,6 +2,7 @@ import type { Express } from 'express';
 
 import { serviceSupabase } from '../db/client.js';
 import { readRagConfig } from '../rag/config.js';
+import { initRagCredentials } from '../rag/credentials.js';
 import { assertTrustProxy } from './trustProxyAssertion.js';
 
 const REQUIRED_SECRETS = ['SUPABASE_SERVICE_ROLE_KEY', 'RATE_LIMIT_BUCKET_SECRET'];
@@ -54,5 +55,6 @@ export async function runStartupChecks(app: Express): Promise<void> {
   // trust proxy = 1: XFF '1.2.3.4, 5.6.7.8' resolves to '5.6.7.8' (first untrusted hop)
   assertTrustProxy(app, { xff: '1.2.3.4, 5.6.7.8', expectedIp: '5.6.7.8' });
   await checkTables();
+  initRagCredentials();
   checkRagConfig();
 }
