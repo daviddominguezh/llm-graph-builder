@@ -66,12 +66,34 @@ function nextMonths(cfg: RecurringConfig, now: Dayjs): Dayjs {
   return target;
 }
 
-function nextRecurring(cfg: RecurringConfig, now: Dayjs): Dayjs | null {
-  if (cfg.unit === 'minutes') return now.add(cfg.interval, 'minute');
-  if (cfg.unit === 'hours') return now.add(cfg.interval, 'hour');
+function parseStartAt(value: string): Dayjs | null {
+  if (value === '') return null;
+  const d = dayjs(value);
+  return d.isValid() ? d : null;
+}
+
+function alignedNext(startAt: Dayjs, interval: number, unit: 'minute' | 'hour', now: Dayjs): Dayjs {
+  const elapsed = now.diff(startAt, unit);
+  const slotsElapsed = Math.floor(elapsed / interval) + 1;
+  return startAt.add(slotsElapsed * interval, unit);
+}
+
+function nextFromAnchor(cfg: RecurringConfig, startAt: Dayjs | null, now: Dayjs): Dayjs | null {
+  if (cfg.unit === 'minutes') {
+    return startAt ? alignedNext(startAt, cfg.interval, 'minute', now) : now.add(cfg.interval, 'minute');
+  }
+  if (cfg.unit === 'hours') {
+    return startAt ? alignedNext(startAt, cfg.interval, 'hour', now) : now.add(cfg.interval, 'hour');
+  }
   if (cfg.unit === 'days') return nextDays(cfg, now);
   if (cfg.unit === 'weeks') return nextWeeks(cfg, now);
   return nextMonths(cfg, now);
+}
+
+function nextRecurring(cfg: RecurringConfig, now: Dayjs): Dayjs | null {
+  const startAt = parseStartAt(cfg.startAt);
+  if (startAt && startAt.isAfter(now)) return startAt;
+  return nextFromAnchor(cfg, startAt, now);
 }
 
 function nextOnce(value: string, now: Dayjs): Dayjs | null {

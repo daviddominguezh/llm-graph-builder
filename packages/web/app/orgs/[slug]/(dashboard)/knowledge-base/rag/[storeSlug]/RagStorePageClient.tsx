@@ -89,7 +89,7 @@ export function RagStorePageClient({
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-6 min-h-0">
+    <div className="flex flex-1 flex-col gap-4 p-6 pt-2 pb-4 min-h-0">
       <StoreHeader name={store.name} slug={store.slug} onDelete={handleDelete} />
       <TenantTabs
         tenants={tenants}

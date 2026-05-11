@@ -35,11 +35,9 @@ export function StoreHeader({ name, slug, onDelete }: StoreHeaderProps): React.J
 
   return (
     <div className="flex items-center justify-between border-b pb-3">
-      <div className="flex flex-col gap-1">
+      <div className="flex gap-1 items-center">
         <h1 className="text-base font-semibold">{name}</h1>
-        <span className="font-mono text-[11px] text-muted-foreground">
-          {t('storeHeader.slugLabel')}: {slug}
-        </span>
+        <span className="font-mono text-[11px] text-muted-foreground">{slug}</span>
       </div>
       <Button
         variant="destructive"

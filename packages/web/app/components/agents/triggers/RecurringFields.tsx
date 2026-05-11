@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 
 import { IntervalInput } from './IntervalInput';
+import { StartAtField } from './StartAtField';
 import { TimeSelect } from './TimeSelect';
 import { UnitSelect } from './UnitSelect';
 import { WeekdayPicker } from './WeekdayPicker';
@@ -87,6 +88,7 @@ export function RecurringFields({ value, onChange }: RecurringFieldsProps) {
     <div className="flex flex-col gap-2.5">
       <MainSentence value={value} onChange={onChange} />
       {value.unit === 'weeks' && <WeekdayRow value={value} onChange={onChange} />}
+      <StartAtField value={value.startAt} onChange={(startAt) => onChange({ ...value, startAt })} />
     </div>
   );
 }

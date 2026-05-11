@@ -12,6 +12,7 @@ export interface RecurringConfig {
   weekdays: Weekday[];
   dayOfMonth: number;
   time: string;
+  startAt: string;
 }
 
 export interface TriggerFormState {
@@ -31,6 +32,7 @@ export const DEFAULT_TRIGGER_STATE: TriggerFormState = {
     weekdays: ['mon'],
     dayOfMonth: FIRST_DAY_OF_MONTH,
     time: '09:00',
+    startAt: '',
   },
   onceDateTime: '',
 };

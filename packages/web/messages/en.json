@@ -215,6 +215,11 @@
       "on": "on",
       "onDay": "on day",
       "at": "at",
+      "startingAt": "Starting at:",
+      "startMode": {
+        "now": "Now",
+        "specific": "Specific date"
+      },
       "pickDateTime": "Pick a date and time",
       "afterEventComingSoon": "After-event triggers are coming soon — they'll fire once another agent or workflow event completes.",
       "previewLabel": "Next run",
