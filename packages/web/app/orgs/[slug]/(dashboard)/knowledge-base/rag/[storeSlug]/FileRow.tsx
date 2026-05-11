@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Check, ChevronRight, Loader2, Trash2 } from 'lucide-react';
+import { ChevronRight, Loader2, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -50,21 +50,15 @@ function StatusPill({
 }: {
   status: RagFileStatus;
   error: string | null;
-}): React.JSX.Element {
+}): React.JSX.Element | null {
   const t = useTranslations('knowledgeBase.ragStatus');
   const title = status === 'failed' && error !== null ? error : undefined;
+  if (status === 'done') return null;
   if (IN_PROGRESS.has(status)) {
     return (
       <span className="flex items-center gap-1.5 text-[10px] font-mono text-blue-500">
         <Loader2 className="size-3 animate-spin" />
         {t(status)}
-      </span>
-    );
-  }
-  if (status === 'done') {
-    return (
-      <span className="flex items-center text-emerald-600" aria-label={t('done')} title={t('done')}>
-        <Check className="size-4" />
       </span>
     );
   }
@@ -136,34 +130,38 @@ function FileRowHeader({
   onRequestDelete,
 }: FileRowHeaderProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragFiles');
+  const canToggle = status === 'done';
   return (
     <div className="flex items-center gap-3 px-3 py-2">
-      {status === 'done' ? (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-5 shrink-0"
-          aria-label={t('openChunks')}
-          aria-expanded={expanded}
-          onClick={onToggle}
-        >
-          <ChevronRight
-            className={`size-4 transition-transform duration-150 ${expanded ? 'rotate-90' : ''}`}
-          />
-        </Button>
-      ) : (
-        <span className="size-5 shrink-0" aria-hidden="true" />
-      )}
-      <FileTypeIcon mimeType={file.mime_type} filename={file.filename} />
-      <div className="flex min-w-0 flex-1 items-baseline gap-2">
-        <span className="min-w-0 truncate text-xs font-mono font-medium">{file.filename}</span>
-        <span className="shrink-0 whitespace-nowrap font-mono text-[10px] text-muted-foreground">
-          {formatBytes(file.size_bytes)}
-          {file.page_count !== null && <> · {t('pageCount', { count: file.page_count })}</>}
-        </span>
-      </div>
-      <StatusPill status={status} error={error} />
-      <Button variant="destructive" size="icon" aria-label={t('remove')} onClick={onRequestDelete}>
+      <button
+        type="button"
+        onClick={canToggle ? onToggle : undefined}
+        aria-expanded={canToggle ? expanded : undefined}
+        aria-label={canToggle ? t('openChunks') : undefined}
+        className={`flex min-w-0 flex-1 items-center gap-3 text-left ${canToggle ? 'cursor-pointer' : 'cursor-default'}`}
+      >
+        <ChevronRight
+          className={`size-4 shrink-0 transition-transform duration-150 ${
+            canToggle ? 'text-muted-foreground' : 'invisible'
+          } ${expanded && canToggle ? 'rotate-90' : ''}`}
+        />
+        <FileTypeIcon mimeType={file.mime_type} filename={file.filename} />
+        <div className="flex min-w-0 flex-1 items-baseline gap-2">
+          <span className="min-w-0 truncate text-xs font-mono font-medium">{file.filename}</span>
+          <span className="shrink-0 whitespace-nowrap font-mono text-[10px] text-muted-foreground">
+            {formatBytes(file.size_bytes)}
+            {file.page_count !== null && <> · {t('pageCount', { count: file.page_count })}</>}
+          </span>
+        </div>
+        <StatusPill status={status} error={error} />
+      </button>
+      <Button
+        variant="destructive"
+        size="icon"
+        aria-label={t('remove')}
+        onClick={onRequestDelete}
+        className="opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100"
+      >
         <Trash2 className="size-4" />
       </Button>
     </div>
@@ -197,7 +195,7 @@ export function FileRow({
       onTerminal={() => onStatusReachedDone(file.id)}
     >
       {({ status, error }) => (
-        <div className="rounded-md border">
+        <div className="group rounded-md border">
           <FileRowHeader
             file={file}
             status={status}
