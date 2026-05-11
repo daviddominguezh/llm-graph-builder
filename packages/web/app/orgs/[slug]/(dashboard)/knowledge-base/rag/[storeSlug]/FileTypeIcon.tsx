@@ -10,19 +10,17 @@ type FileKind = 'pdf' | 'doc' | 'sheet' | 'slide' | 'html' | 'image' | 'unknown'
 
 interface KindStyle {
   label: string;
-  fill: string;
-  paper: string;
-  fold: string;
+  bg: string;
 }
 
 const STYLES: Record<FileKind, KindStyle> = {
-  pdf:     { label: 'PDF',  fill: '#dc2626', paper: '#fef2f2', fold: '#fca5a5' },
-  doc:     { label: 'DOC',  fill: '#2563eb', paper: '#eff6ff', fold: '#93c5fd' },
-  sheet:   { label: 'XLS',  fill: '#16a34a', paper: '#f0fdf4', fold: '#86efac' },
-  slide:   { label: 'PPT',  fill: '#ea580c', paper: '#fff7ed', fold: '#fdba74' },
-  html:    { label: 'HTML', fill: '#7c3aed', paper: '#f5f3ff', fold: '#c4b5fd' },
-  image:   { label: 'IMG',  fill: '#db2777', paper: '#fdf2f8', fold: '#f9a8d4' },
-  unknown: { label: 'FILE', fill: '#64748b', paper: '#f8fafc', fold: '#cbd5e1' },
+  pdf: { label: 'PDF', bg: 'bg-red-600' },
+  doc: { label: 'DOC', bg: 'bg-blue-600' },
+  sheet: { label: 'XLS', bg: 'bg-emerald-600' },
+  slide: { label: 'PPT', bg: 'bg-orange-600' },
+  html: { label: 'HTML', bg: 'bg-violet-600' },
+  image: { label: 'IMG', bg: 'bg-pink-500' },
+  unknown: { label: 'FILE', bg: 'bg-slate-500' },
 };
 
 const EXTENSION_KINDS: Record<string, FileKind> = {
@@ -70,35 +68,13 @@ function resolveKind(mimeType: string, filename: string): FileKind {
 }
 
 export function FileTypeIcon({ mimeType, filename, className }: FileTypeIconProps): React.JSX.Element {
-  const kind = resolveKind(mimeType, filename);
-  const style = STYLES[kind];
+  const { label, bg } = STYLES[resolveKind(mimeType, filename)];
   return (
-    <svg
-      viewBox="0 0 24 32"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={`shrink-0 ${className ?? ''}`.trim()}
+    <span
       aria-hidden="true"
+      className={`inline-flex shrink-0 items-center justify-center rounded-sm px-1.5 py-0.5 font-mono text-[9px] font-bold text-white ${bg} ${className ?? ''}`.trim()}
     >
-      <path
-        d="M2 2.5A2.5 2.5 0 0 1 4.5 0H16l6 6v23.5A2.5 2.5 0 0 1 19.5 32h-15A2.5 2.5 0 0 1 2 29.5V2.5Z"
-        fill={style.paper}
-        stroke={style.fold}
-        strokeWidth="1"
-      />
-      <path d="M16 0v4a2 2 0 0 0 2 2h4l-6-6Z" fill={style.fold} />
-      <rect x="2" y="18" width="20" height="8" rx="1.5" fill={style.fill} />
-      <text
-        x="12"
-        y="24"
-        textAnchor="middle"
-        fontFamily="ui-sans-serif, system-ui, sans-serif"
-        fontWeight="700"
-        fontSize="5.5"
-        fill="#ffffff"
-      >
-        {style.label}
-      </text>
-    </svg>
+      {label}
+    </span>
   );
 }

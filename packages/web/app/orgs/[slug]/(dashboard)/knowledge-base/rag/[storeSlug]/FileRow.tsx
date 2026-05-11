@@ -144,7 +144,7 @@ function FileRowContent({
   const t = useTranslations('knowledgeBase.ragFiles');
   return (
     <div className="flex items-center gap-3 rounded-md border px-3 py-2">
-      <FileTypeIcon mimeType={file.mime_type} filename={file.filename} className="size-5" />
+      <FileTypeIcon mimeType={file.mime_type} filename={file.filename} />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="truncate text-xs font-medium">{file.filename}</span>
         <span className="font-mono text-[10px] text-muted-foreground">
