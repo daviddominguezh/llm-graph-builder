@@ -5,7 +5,6 @@ export interface RagConfig {
   location: string;
   processorId: string;
   bucket: string;
-  credentialsPath: string | undefined;
   embeddingsRpm: number;
 }
 
@@ -26,7 +25,6 @@ export function readRagConfig(): OptionalRagConfig {
   const location = pickEnv('GCP_LOCATION') ?? 'us';
   const processorId = pickEnv('DOCUMENTAI_PROCESSOR_ID');
   const bucket = pickEnv('GCS_BUCKET');
-  const credentialsPath = pickEnv('GOOGLE_APPLICATION_CREDENTIALS');
   const rpm = Number(pickEnv('EMBEDDINGS_RPM') ?? String(DEFAULT_EMBEDDINGS_RPM));
 
   const missing: string[] = [];
@@ -38,7 +36,7 @@ export function readRagConfig(): OptionalRagConfig {
     return { config: null, missing };
   }
   return {
-    config: { projectId, location, processorId, bucket, credentialsPath, embeddingsRpm: rpm },
+    config: { projectId, location, processorId, bucket, embeddingsRpm: rpm },
     missing,
   };
 }
