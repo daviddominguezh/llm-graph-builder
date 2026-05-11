@@ -6,7 +6,7 @@ import type { TenantRow } from '@/app/lib/tenants';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 
-interface TenantListProps {
+interface TenantSidebarProps {
   tenants: TenantRow[];
   currentTenantId: string;
   onSelect: (id: string) => void;
@@ -56,12 +56,12 @@ function Item({ tenant, selected, onClick }: ItemProps): React.JSX.Element {
   );
 }
 
-export function TenantList({
+export function TenantSidebar({
   tenants,
   currentTenantId,
   onSelect,
-}: TenantListProps): React.JSX.Element {
-  const t = useTranslations('knowledgeBase.tenantList');
+}: TenantSidebarProps): React.JSX.Element {
+  const t = useTranslations('tenantSidebar');
   return (
     <aside className="w-56 shrink-0 border-r flex flex-col">
       <div className="px-3 pt-2">

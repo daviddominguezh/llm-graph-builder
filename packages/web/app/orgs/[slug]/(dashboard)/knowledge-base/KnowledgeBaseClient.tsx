@@ -1,12 +1,12 @@
 'use client';
 
 import { Scrollable } from '@/app/components/Scrollable';
+import { TenantSidebar } from '@/app/components/orgs/tenants/TenantSidebar';
 import type { TenantRow } from '@/app/lib/tenants';
 import { useRef, useState } from 'react';
 
 import { KnowledgeBaseUploader } from './KnowledgeBaseUploader';
 import { NoTenantsState } from './NoTenantsState';
-import { TenantList } from './TenantList';
 import { useFileQueue } from './useFileQueue';
 import { useNativeDropArea } from './useNativeDropArea';
 
@@ -38,7 +38,7 @@ export function KnowledgeBaseClient({
     <div ref={containerRef} className={panelClassName(isDragging && hasTenants)}>
       {hasTenants ? (
         <>
-          <TenantList tenants={tenants} currentTenantId={tenantId} onSelect={setTenantId} />
+          <TenantSidebar tenants={tenants} currentTenantId={tenantId} onSelect={setTenantId} />
           <Scrollable className="min-h-0 flex-1">
             <div className="p-6 h-full">
               <div className="mx-auto flex h-full w-full max-w-4xl flex-col gap-6">

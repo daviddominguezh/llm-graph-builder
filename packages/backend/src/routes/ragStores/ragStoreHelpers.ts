@@ -1,7 +1,11 @@
 import type { Request } from 'express';
 
-interface OrgIdParams { orgId?: string }
-interface StoreIdParams { storeId?: string }
+interface OrgIdParams {
+  orgId?: string;
+}
+interface StoreIdParams {
+  storeId?: string;
+}
 
 export function getOrgIdParam(req: Request): string | undefined {
   const { orgId }: OrgIdParams = req.params;

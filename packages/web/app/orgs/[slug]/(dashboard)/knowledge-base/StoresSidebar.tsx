@@ -1,8 +1,10 @@
 'use client';
 
+import { createKvStoreAction } from '@/app/actions/kvStores';
+import { createRagStoreAction } from '@/app/actions/ragStores';
 import { Scrollable } from '@/app/components/Scrollable';
-import { createKvStore, type KvStoreRow } from '@/app/lib/kvStores';
-import { createRagStore, type RagStoreRow } from '@/app/lib/ragStores';
+import type { KvStoreRow } from '@/app/lib/kvStores';
+import type { RagStoreRow } from '@/app/lib/ragStores';
 import { useTranslations } from 'next-intl';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -37,14 +39,14 @@ export function StoresSidebar({
 
   async function handleCreate(name: string): Promise<{ ok: boolean; slug?: string; requestedSlug?: string }> {
     if (openType === 'rag') {
-      const { result } = await createRagStore(orgId, name);
+      const { result } = await createRagStoreAction(orgId, name);
       if (result === null) return { ok: false };
       setRagStores([result, ...ragStores]);
       router.push(`${ragPrefix}${result.slug}`);
       return { ok: true, slug: result.slug };
     }
     if (openType === 'kv') {
-      const { result } = await createKvStore(orgId, name);
+      const { result } = await createKvStoreAction(orgId, name);
       if (result === null) return { ok: false };
       setKvStores([result, ...kvStores]);
       router.push(`${kvPrefix}${result.slug}`);

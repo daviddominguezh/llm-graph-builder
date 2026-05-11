@@ -4,7 +4,7 @@ import { isCacheableSize, mcpCurrentVersionKey, mcpToolsListKey } from '../../ca
 import { serverUrlSideTableKey } from '../../cache/serverHash.js';
 import type { ProviderCtx, ToolDescriptor } from '../provider.js';
 
-const TOOLS_LIST_TTL_SECONDS = 300;
+const TOOLS_LIST_TTL_SECONDS = 86_400;
 const SIDE_TABLE_TTL_SECONDS = 86_400;
 const EMPTY_TOOLS_LENGTH = 0;
 

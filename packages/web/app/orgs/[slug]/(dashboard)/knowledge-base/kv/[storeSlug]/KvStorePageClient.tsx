@@ -1,7 +1,7 @@
 'use client';
 
+import { deleteKvStoreAction } from '@/app/actions/kvStores';
 import type { KvStoreRow } from '@/app/lib/kvStores';
-import { deleteKvStore } from '@/app/lib/kvStores';
 import type { TenantRow } from '@/app/lib/tenants';
 import { useRouter } from 'next/navigation';
 
@@ -23,7 +23,7 @@ export function KvStorePageClient({
   const router = useRouter();
 
   async function handleDelete() {
-    await deleteKvStore(store.id);
+    await deleteKvStoreAction(store.id);
     router.push(`/orgs/${orgSlug}/knowledge-base`);
     router.refresh();
   }

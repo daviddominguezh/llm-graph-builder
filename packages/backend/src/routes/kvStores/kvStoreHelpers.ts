@@ -1,8 +1,14 @@
 import type { Request } from 'express';
 
-interface OrgIdParams { orgId?: string }
-interface StoreIdParams { storeId?: string }
-interface TenantIdParams { tenantId?: string }
+interface OrgIdParams {
+  orgId?: string;
+}
+interface StoreIdParams {
+  storeId?: string;
+}
+interface TenantIdParams {
+  tenantId?: string;
+}
 
 export function getOrgIdParam(req: Request): string | undefined {
   const { orgId }: OrgIdParams = req.params;
@@ -33,7 +39,10 @@ export function parseStringField(body: unknown, key: string): string | undefined
   return undefined;
 }
 
-export interface KvEntryInput { key: string; value: string }
+export interface KvEntryInput {
+  key: string;
+  value: string;
+}
 
 export function parseEntriesBody(body: unknown): KvEntryInput[] | null {
   if (!Array.isArray(body)) return null;

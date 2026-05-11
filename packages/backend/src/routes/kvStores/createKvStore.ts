@@ -1,7 +1,7 @@
 import type { Request } from 'express';
 
-import { generateTenantSlug } from '../../db/queries/slugQueries.js';
 import { createKvStore, findUniqueKvStoreSlug } from '../../db/queries/kvStoresQueries.js';
+import { generateTenantSlug } from '../../db/queries/slugQueries.js';
 import {
   type AuthenticatedLocals,
   type AuthenticatedResponse,

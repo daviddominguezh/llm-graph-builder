@@ -1,16 +1,19 @@
 'use client';
 
 import { getTenantsByOrgAction } from '@/app/actions/tenants';
+import { TenantSidebar } from '@/app/components/orgs/tenants/TenantSidebar';
+import { Scrollable } from '@/app/components/Scrollable';
 import type { TenantRow } from '@/app/lib/tenants';
 import { Separator } from '@/components/ui/separator';
+import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { ModeSelector } from './ModeSelector';
 import { NextRunPreview } from './NextRunPreview';
 import { OnceField } from './OnceField';
 import { RecurringFields } from './RecurringFields';
-import { TenantPicker } from './TenantPicker';
 import type { TriggerFormState } from './types';
 import { DEFAULT_TRIGGER_STATE } from './types';
 
@@ -51,8 +54,6 @@ function useTenants(orgId: string): TenantsData {
       cancelled = true;
     };
   }, [orgId]);
-  // If orgId changed since the last successful load, the state is stale — return INITIAL_TENANTS
-  // (loading state) instead. This avoids a synchronous setState in the effect body.
   return state.forOrgId === orgId ? state.data : INITIAL_TENANTS;
 }
 
@@ -122,22 +123,42 @@ function ActiveModePanel({ state, setState }: SectionProps) {
   );
 }
 
-export function TriggersPanel({ orgId, orgSlug }: TriggersPanelProps) {
-  const [state, setState] = useState<TriggerFormState>(DEFAULT_TRIGGER_STATE);
-  const [tenantId, setTenantId] = useState<string>('');
-  const { tenants, loading, error } = useTenants(orgId);
-  useDefaultTenant(tenants, tenantId, setTenantId);
+function LoadingState() {
+  const t = useTranslations('editor.triggers.picker');
   return (
-    <div className="flex-1 overflow-auto">
+    <div className="flex flex-1 items-center justify-center gap-1.5 text-xs text-muted-foreground">
+      <Loader2 className="size-3.5 animate-spin" />
+      <span>{t('loading')}</span>
+    </div>
+  );
+}
+
+function ErrorState() {
+  const t = useTranslations('editor.triggers.picker');
+  return (
+    <div className="flex flex-1 items-center justify-center text-xs text-destructive">{t('error')}</div>
+  );
+}
+
+function EmptyState({ orgSlug }: { orgSlug: string }) {
+  const t = useTranslations('editor.triggers.picker');
+  return (
+    <div className="flex flex-1 items-center justify-center gap-1.5 text-xs text-muted-foreground">
+      <span>{t('emptyLabel')}</span>
+      <Link
+        href={`/orgs/${orgSlug}/tenants`}
+        className="font-medium text-foreground underline-offset-2 hover:underline"
+      >
+        {t('emptyCta')}
+      </Link>
+    </div>
+  );
+}
+
+function TriggersContent({ state, setState }: SectionProps) {
+  return (
+    <Scrollable className="min-h-0 flex-1">
       <div className="mx-auto flex w-full max-w-lg flex-col gap-6 p-6">
-        <TenantPicker
-          tenants={tenants}
-          value={tenantId}
-          onChange={setTenantId}
-          loading={loading}
-          error={error}
-          orgSlug={orgSlug}
-        />
         <div className="flex flex-col gap-3">
           <TriggersHeader />
           <ModeSelector value={state.mode} onChange={(mode) => setState({ ...state, mode })} />
@@ -145,6 +166,24 @@ export function TriggersPanel({ orgId, orgSlug }: TriggersPanelProps) {
         <ActiveModePanel state={state} setState={setState} />
         <PreviewSection state={state} />
       </div>
+    </Scrollable>
+  );
+}
+
+export function TriggersPanel({ orgId, orgSlug }: TriggersPanelProps) {
+  const [state, setState] = useState<TriggerFormState>(DEFAULT_TRIGGER_STATE);
+  const [tenantId, setTenantId] = useState<string>('');
+  const { tenants, loading, error } = useTenants(orgId);
+  useDefaultTenant(tenants, tenantId, setTenantId);
+
+  if (loading) return <LoadingState />;
+  if (error !== null) return <ErrorState />;
+  if (tenants.length === EMPTY_LIST) return <EmptyState orgSlug={orgSlug} />;
+
+  return (
+    <div className="flex flex-1 overflow-hidden">
+      <TenantSidebar tenants={tenants} currentTenantId={tenantId} onSelect={setTenantId} />
+      <TriggersContent state={state} setState={setState} />
     </div>
   );
 }

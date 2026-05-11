@@ -4,8 +4,9 @@ import { hashServerUrl } from '../../cache/serverHash.js';
 
 const SESSION_KEY_PREFIX = 'mcp_session:v1:';
 const SECONDS_PER_MINUTE = 60;
-const SESSION_TTL_MINUTES = 30;
-const SESSION_TTL_SECONDS = SESSION_TTL_MINUTES * SECONDS_PER_MINUTE;
+const MINUTES_PER_HOUR = 60;
+const SESSION_TTL_HOURS = 24;
+const SESSION_TTL_SECONDS = SESSION_TTL_HOURS * MINUTES_PER_HOUR * SECONDS_PER_MINUTE;
 
 export interface CachedMcpSession {
   sessionId: string;

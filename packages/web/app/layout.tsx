@@ -9,6 +9,7 @@ import { Toaster } from '@/components/ui/sonner';
 import './globals.css';
 
 import { AnalyticsClient } from './components/AnalyticsClient';
+import { CssVarsLogger } from './components/CssVarsLogger';
 import { GlobalScrollbarOverlay } from './components/GlobalScrollbarOverlay';
 import { OpenRouterModelsLogger } from './components/OpenRouterModelsLogger';
 import { ThemeProvider } from './components/ThemeProvider';
@@ -45,6 +46,7 @@ export default async function RootLayout({
           <ThemeProvider>
             <GlobalScrollbarOverlay />
             <OpenRouterModelsLogger />
+            <CssVarsLogger />
             {children}
             <GlassFilters />
             <Toaster />

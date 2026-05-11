@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import type { LucideIcon } from 'lucide-react';
 import {
   Building2,
+  Calendar,
   ChevronsUpDown,
   Database,
   KeyRound,
@@ -156,6 +157,7 @@ const TOP_NAV_ITEMS: NavItemDef[] = [
   { segment: 'knowledge-base', path: '/knowledge-base', Icon: Database, labelKey: 'knowledgeBase' },
   { segment: 'dashboard', path: '/dashboard', Icon: LayoutDashboard, labelKey: 'dashboard' },
   { segment: 'chats', path: '/chats', Icon: MessageSquare, labelKey: 'chats' },
+  { segment: 'calendar', path: '/calendar', Icon: Calendar, labelKey: 'calendar' },
   { segment: 'tenants', path: '/tenants', Icon: Building2, labelKey: 'tenants' },
 ];
 

@@ -1,6 +1,7 @@
 'use client';
 
-import { getKvEntries, type KvEntry, saveKvEntries } from '@/app/lib/kvStores';
+import { getKvEntriesAction, saveKvEntriesAction } from '@/app/actions/kvStores';
+import type { KvEntry } from '@/app/lib/kvStores';
 import { useEffect, useRef, useState } from 'react';
 
 import { KvStoreTable } from './KvStoreTable';
@@ -28,7 +29,7 @@ export function KvStoreTableConnected({
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const { result } = await getKvEntries(storeId, tenantId);
+      const { result } = await getKvEntriesAction(storeId, tenantId);
       if (!cancelled) setState({ key: loadKey, entries: result });
     })();
     return () => {
@@ -39,7 +40,7 @@ export function KvStoreTableConnected({
   function scheduleSave(next: KvEntry[]) {
     if (timerRef.current !== null) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
-      void saveKvEntries(storeId, tenantId, next);
+      void saveKvEntriesAction(storeId, tenantId, next);
     }, SAVE_DEBOUNCE_MS);
   }
 

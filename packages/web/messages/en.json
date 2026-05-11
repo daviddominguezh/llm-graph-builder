@@ -631,6 +631,7 @@
     "logs": "Logs",
     "team": "Team",
     "chats": "Chats",
+    "calendar": "Calendar",
     "tenants": "Tenants",
     "knowledgeBase": "Knowledge base",
     "settings": "Settings",
@@ -662,6 +663,9 @@
   },
   "chats": {
     "tenant": "Tenant"
+  },
+  "calendar": {
+    "title": "Calendar"
   },
   "googleCalendar": {
     "title": "Google Calendar",
@@ -881,6 +885,9 @@
       "deleteConfirm": "Delete",
       "deleteCancel": "Cancel"
     }
+  },
+  "tenantSidebar": {
+    "label": "Tenant"
   },
   "tenants": {
     "title": "Tenants",

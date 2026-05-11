@@ -1,7 +1,7 @@
 'use client';
 
+import { deleteRagStoreAction } from '@/app/actions/ragStores';
 import type { RagStoreRow } from '@/app/lib/ragStores';
-import { deleteRagStore } from '@/app/lib/ragStores';
 import type { TenantRow } from '@/app/lib/tenants';
 import {
   Card,
@@ -83,7 +83,7 @@ export function RagStorePageClient({
   const router = useRouter();
 
   async function handleDelete() {
-    await deleteRagStore(store.id);
+    await deleteRagStoreAction(store.id);
     router.push(`/orgs/${orgSlug}/knowledge-base`);
     router.refresh();
   }

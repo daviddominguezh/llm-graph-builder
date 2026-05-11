@@ -1,7 +1,7 @@
 import type { Request } from 'express';
 
-import { generateTenantSlug } from '../../db/queries/slugQueries.js';
 import { createRagStore, findUniqueRagStoreSlug } from '../../db/queries/ragStoresQueries.js';
+import { generateTenantSlug } from '../../db/queries/slugQueries.js';
 import {
   type AuthenticatedLocals,
   type AuthenticatedResponse,
