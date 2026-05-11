@@ -126,7 +126,10 @@ RETURNS TABLE (
 )
 LANGUAGE sql
 SECURITY DEFINER
-SET search_path = ''
+-- pgvector ships its operators (<=>) in whichever schema the extension was
+-- installed in. The default is public locally and extensions on Supabase Cloud.
+-- Include both so the body can resolve <=> regardless of where vector lives.
+SET search_path = pg_catalog, public, extensions
 AS $$
   SELECT id, rag_file_id, rag_store_id, tenant_id, org_id, page_number, paragraph_idx,
          char_start, char_end, content, content_hash, token_count, created_at,
