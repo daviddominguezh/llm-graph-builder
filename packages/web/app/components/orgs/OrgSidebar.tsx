@@ -13,8 +13,8 @@ import {
   ChevronsUpDown,
   Database,
   KeyRound,
-  LayoutDashboard,
   LogOut,
+  Logs,
   MessageSquare,
   Settings,
   Users,
@@ -155,10 +155,10 @@ interface NavItemDef {
 const TOP_NAV_ITEMS: NavItemDef[] = [
   { segment: '', path: '', Icon: Zap, labelKey: 'agents' },
   { segment: 'knowledge-base', path: '/knowledge-base', Icon: Database, labelKey: 'knowledgeBase' },
-  { segment: 'dashboard', path: '/dashboard', Icon: LayoutDashboard, labelKey: 'dashboard' },
+  { segment: 'tenants', path: '/tenants', Icon: Building2, labelKey: 'tenants' },
   { segment: 'chats', path: '/chats', Icon: MessageSquare, labelKey: 'chats' },
   { segment: 'calendar', path: '/calendar', Icon: Calendar, labelKey: 'calendar' },
-  { segment: 'tenants', path: '/tenants', Icon: Building2, labelKey: 'tenants' },
+  { segment: 'dashboard', path: '/dashboard', Icon: Logs, labelKey: 'dashboard' },
 ];
 
 const BOTTOM_NAV_ITEMS: NavItemDef[] = [

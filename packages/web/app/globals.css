@@ -127,7 +127,7 @@
 }
 
 @layer base {
-  * {
+  *:where(:not(.closer-calendar-host, .closer-calendar-host *)) {
     @apply border-border outline-ring/50;
   }
 
