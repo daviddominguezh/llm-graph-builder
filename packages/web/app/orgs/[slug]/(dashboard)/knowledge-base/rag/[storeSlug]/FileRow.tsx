@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, FileText, Trash2 } from 'lucide-react';
+import { Check, ChevronRight, FileText, Loader2, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -30,7 +30,14 @@ interface FileRowProps {
 const BYTES_KB = 1024;
 const ONE_DECIMAL = 1;
 
-function statusColor(status: RagFileStatus): string {
+const IN_PROGRESS: ReadonlySet<RagFileStatus> = new Set([
+  'uploading',
+  'parsing',
+  'chunking',
+  'embedding',
+]);
+
+function statusPillColor(status: RagFileStatus): string {
   if (status === 'done') return 'bg-emerald-500/15 text-emerald-600';
   if (status === 'failed') return 'bg-destructive/15 text-destructive';
   return 'bg-input/60 text-muted-foreground';
@@ -44,10 +51,27 @@ function StatusPill({
   error: string | null;
 }): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragStatus');
-  const color = statusColor(status);
   const title = status === 'failed' && error !== null ? error : undefined;
+  if (IN_PROGRESS.has(status)) {
+    return (
+      <span className="flex items-center gap-1.5 text-[10px] font-mono text-blue-500">
+        <Loader2 className="size-3 animate-spin" />
+        {t(status)}
+      </span>
+    );
+  }
+  if (status === 'done') {
+    return (
+      <span className="flex items-center text-emerald-600" aria-label={t('done')} title={t('done')}>
+        <Check className="size-4" />
+      </span>
+    );
+  }
   return (
-    <span className={`rounded-full px-2 py-0.5 text-[10px] font-mono ${color}`} title={title}>
+    <span
+      className={`rounded-full px-2 py-0.5 text-[10px] font-mono ${statusPillColor(status)}`}
+      title={title}
+    >
       {t(status)}
     </span>
   );

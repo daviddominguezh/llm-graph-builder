@@ -1,6 +1,7 @@
 'use client';
 
 import { getChunksAction } from '@/app/actions/ragFiles';
+import { Scrollable } from '@/app/components/Scrollable';
 import type { RagChunkRow, RagFileRow } from '@/app/lib/ragFiles';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -127,9 +128,11 @@ export function FileChunksDrawer({
         <DialogHeader>
           <DialogTitle>{file.filename}</DialogTitle>
         </DialogHeader>
-        <div className="flex-1 overflow-y-auto flex flex-col gap-2">
-          <ChunksList loading={loading} rows={rows} />
-        </div>
+        <Scrollable className="flex-1 min-h-0">
+          <div className="flex flex-col gap-2">
+            <ChunksList loading={loading} rows={rows} />
+          </div>
+        </Scrollable>
         <ChunksPager
           page={page}
           count={rows.length}

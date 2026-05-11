@@ -33,17 +33,27 @@ function formatBytes(n: number): string {
 interface UseTenantFilesReturn {
   files: RagFileRow[];
   usage: TenantUsage;
+  loaded: boolean;
   refresh: () => Promise<void>;
 }
 
+interface LoadedFiles {
+  key: string;
+  files: RagFileRow[];
+  usage: TenantUsage;
+}
+
+function tenantKey(storeId: string, tenantId: string): string {
+  return `${storeId}::${tenantId}`;
+}
+
 function useTenantFiles(storeId: string, tenantId: string): UseTenantFilesReturn {
-  const [files, setFiles] = useState<RagFileRow[]>([]);
-  const [usage, setUsage] = useState<TenantUsage>(ZERO_USAGE);
+  const [state, setState] = useState<LoadedFiles | null>(null);
+  const key = tenantKey(storeId, tenantId);
 
   const refresh = useCallback(async (): Promise<void> => {
     const { result } = await listFilesAction(storeId, tenantId);
-    setFiles(result.files);
-    setUsage(result.usage);
+    setState({ key: tenantKey(storeId, tenantId), files: result.files, usage: result.usage });
   }, [storeId, tenantId]);
 
   useEffect(() => {
@@ -51,15 +61,20 @@ function useTenantFiles(storeId: string, tenantId: string): UseTenantFilesReturn
     void (async () => {
       const { result } = await listFilesAction(storeId, tenantId);
       if (cancelled) return;
-      setFiles(result.files);
-      setUsage(result.usage);
+      setState({ key: tenantKey(storeId, tenantId), files: result.files, usage: result.usage });
     })();
     return () => {
       cancelled = true;
     };
   }, [storeId, tenantId]);
 
-  return { files, usage, refresh };
+  const ready = state !== null && state.key === key;
+  return {
+    files: ready ? state.files : [],
+    usage: ready ? state.usage : ZERO_USAGE,
+    loaded: ready,
+    refresh,
+  };
 }
 
 interface UseTenantSearchReturn {
@@ -127,7 +142,7 @@ function UsageSummary({ usage }: UsageSummaryProps): React.JSX.Element {
 }
 
 export function RagTenantContent({ storeId, tenantId }: RagTenantContentProps): React.JSX.Element {
-  const { files, usage, refresh } = useTenantFiles(storeId, tenantId);
+  const { files, usage, loaded, refresh } = useTenantFiles(storeId, tenantId);
   const search = useTenantSearch(storeId, tenantId);
   const [openChunksFor, setOpenChunksFor] = useState<RagFileRow | null>(null);
 
@@ -140,6 +155,8 @@ export function RagTenantContent({ storeId, tenantId }: RagTenantContentProps): 
   });
 
   const hasFiles = files.length > 0;
+  const showEmptyState = loaded && !hasFiles;
+  const showSearchBar = loaded && hasFiles;
 
   return (
     <div className="flex flex-1 min-h-0 flex-col gap-4 p-4">
@@ -147,10 +164,10 @@ export function RagTenantContent({ storeId, tenantId }: RagTenantContentProps): 
         <UsageSummary usage={usage} />
         <UploadFilesButton uploading={uploading} onFiles={(fs) => void uploadFiles(fs)} />
       </div>
-      {!hasFiles && (
+      {showEmptyState && (
         <FileUploadDropzone uploading={uploading} onFiles={(fs) => void uploadFiles(fs)} />
       )}
-      {hasFiles && <RagSearchBar busy={search.busy} onSearch={(m, q) => void search.run(m, q)} />}
+      {showSearchBar && <RagSearchBar busy={search.busy} onSearch={(m, q) => void search.run(m, q)} />}
       {search.response !== null && <SearchResults response={search.response} />}
       <FileList
         storeId={storeId}
