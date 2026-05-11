@@ -39,8 +39,8 @@ export function parseEntriesBody(body: unknown): KvEntryInput[] | null {
   if (!Array.isArray(body)) return null;
   const out: KvEntryInput[] = [];
   for (const item of body) {
-    if (typeof item !== 'object' || item === null) return null;
-    const { key, value } = item as Record<string, unknown>;
+    if (!isRecord(item)) return null;
+    const { key, value } = item;
     if (typeof key !== 'string' || typeof value !== 'string') return null;
     out.push({ key, value });
   }

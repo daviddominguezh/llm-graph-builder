@@ -67,6 +67,7 @@ const SUFFIX_QUERY_LIMIT = 1024;
 const MAX_SUFFIX = 1000;
 const MAX_SLUG_LENGTH = 40;
 const FIRST_SUFFIX = 1;
+const SUFFIX_STEP = 1;
 const DIGIT_REGEX = /\d/v;
 
 async function collectTakenStoreSlugs(
@@ -101,7 +102,7 @@ export async function findUniqueRagStoreSlug(
   if (baseSlug === '') throw new Error('baseSlug cannot be empty');
   const taken = await collectTakenStoreSlugs(supabase, 'rag_stores', orgId, baseSlug);
   if (!taken.has(baseSlug)) return baseSlug;
-  for (let i = FIRST_SUFFIX; i < MAX_SUFFIX; i += 1) {
+  for (let i = FIRST_SUFFIX; i < MAX_SUFFIX; i += SUFFIX_STEP) {
     const candidate = `${baseSlug}${String(i)}`;
     if (candidate.length > MAX_SLUG_LENGTH) throw new Error('baseSlug too long for suffix');
     if (!taken.has(candidate)) return candidate;

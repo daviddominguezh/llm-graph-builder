@@ -1,5 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+const EMPTY_LENGTH = 0;
+
 export interface KvEntryRow {
   key: string;
   value: string;
@@ -63,7 +65,7 @@ export async function replaceKvEntries(
     .eq('kv_store_id', kvStoreId)
     .eq('tenant_id', tenantId);
   if (deleteError !== null) return { error: deleteError.message };
-  if (cleaned.length === 0) return { error: null };
+  if (cleaned.length === EMPTY_LENGTH) return { error: null };
   const rows = cleaned.map((item) => ({
     kv_store_id: kvStoreId,
     tenant_id: tenantId,
