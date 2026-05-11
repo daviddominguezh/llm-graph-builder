@@ -179,7 +179,7 @@ export async function getChunks(
   }
 }
 
-export type SearchMode = 'name' | 'content' | 'semantic';
+export type SearchMode = 'simple' | 'semantic';
 
 export interface SearchResponse {
   mode: SearchMode;

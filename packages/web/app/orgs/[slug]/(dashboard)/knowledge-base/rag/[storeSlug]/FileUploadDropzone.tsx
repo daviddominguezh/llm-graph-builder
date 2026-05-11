@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { Kbd, KbdGroup } from '@/components/ui/kbd';
 import { Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ChangeEvent, type DragEvent, useRef, useState } from 'react';
@@ -38,7 +39,7 @@ export function FileUploadDropzone({
       e.target.value = '';
     }
   }
-  function onPickClick(): void {
+  function openPicker(): void {
     inputRef.current?.click();
   }
 
@@ -47,15 +48,24 @@ export function FileUploadDropzone({
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
-      className={`flex flex-col items-center justify-center gap-2 rounded-md border border-dashed py-8 text-xs transition-colors ${
+      className={`flex flex-1 min-h-0 flex-col items-center justify-center gap-3 rounded-md border border-dashed py-12 text-xs transition-colors ${
         dragging ? 'bg-input/40 border-primary' : 'border-border'
       }`}
     >
       <Upload className="size-5 text-muted-foreground" />
       <span className="text-muted-foreground">{dragging ? t('drop') : t('idle')}</span>
       <span className="text-[10px] font-mono text-muted-foreground/70">{t('extensions')}</span>
-      <Button size="sm" variant="outline" disabled={uploading} onClick={onPickClick}>
-        {uploading ? t('uploading') : t('addFiles')}
+      <Button
+        size="sm"
+        type="button"
+        disabled={uploading}
+        onClick={openPicker}
+        className="cursor-pointer gap-2"
+      >
+        {uploading ? t('uploading') : t('upload')}
+        <KbdGroup>
+          <Kbd className="bg-transparent text-primary-foreground">⌘ + O</Kbd>
+        </KbdGroup>
       </Button>
       <input
         ref={inputRef}

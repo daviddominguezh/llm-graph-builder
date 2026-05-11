@@ -12,7 +12,7 @@ interface RagSearchBarProps {
   busy: boolean;
 }
 
-const MODES: SearchMode[] = ['name', 'content', 'semantic'];
+const MODES: SearchMode[] = ['simple', 'semantic'];
 
 interface ModeTabsProps {
   mode: SearchMode;
@@ -28,7 +28,7 @@ function ModeTabs({ mode, onChange }: ModeTabsProps): React.JSX.Element {
           key={m}
           type="button"
           onClick={() => onChange(m)}
-          className={`px-2 py-1 text-[10px] font-mono rounded ${
+          className={`cursor-pointer px-2 py-1 text-[10px] font-mono rounded ${
             mode === m ? 'bg-primary/10 text-primary' : 'text-muted-foreground'
           }`}
         >
@@ -41,7 +41,7 @@ function ModeTabs({ mode, onChange }: ModeTabsProps): React.JSX.Element {
 
 export function RagSearchBar({ onSearch, busy }: RagSearchBarProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragSearch');
-  const [mode, setMode] = useState<SearchMode>('semantic');
+  const [mode, setMode] = useState<SearchMode>('simple');
   const [query, setQuery] = useState('');
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {

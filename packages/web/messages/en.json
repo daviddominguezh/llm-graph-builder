@@ -911,7 +911,7 @@
       "idle": "Drag files here or click to upload",
       "drop": "Release to upload",
       "uploading": "Uploading…",
-      "addFiles": "Choose files",
+      "upload": "Upload",
       "extensions": "pdf · docx · pptx · xlsx · html · jpg · jpeg · png"
     },
     "ragStatus": {
@@ -949,8 +949,7 @@
       "paragraph": "¶ {idx}",
       "distance": "d={d}",
       "mode": {
-        "name": "Name",
-        "content": "Content",
+        "simple": "Simple",
         "semantic": "Semantic"
       }
     }

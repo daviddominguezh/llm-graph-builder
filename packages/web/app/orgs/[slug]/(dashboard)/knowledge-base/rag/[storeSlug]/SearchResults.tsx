@@ -62,10 +62,29 @@ function ChunkResults({ chunks }: { chunks: SemanticChunk[] }): React.JSX.Elemen
   );
 }
 
+function SimpleResults({
+  files,
+  chunks,
+}: {
+  files: RagFileRow[];
+  chunks: SemanticChunk[];
+}): React.JSX.Element {
+  const t = useTranslations('knowledgeBase.ragSearch');
+  if (files.length === ZERO && chunks.length === ZERO) {
+    return <span className="text-xs text-muted-foreground">{t('empty')}</span>;
+  }
+  return (
+    <div className="flex flex-col gap-3">
+      {files.length > ZERO && <FileResults files={files} />}
+      {chunks.length > ZERO && <ChunkResults chunks={chunks} />}
+    </div>
+  );
+}
+
 export function SearchResults({ response }: SearchResultsProps): React.JSX.Element | null {
   if (response === null) return null;
-  if (response.mode === 'name') {
-    return <FileResults files={response.files ?? []} />;
+  if (response.mode === 'simple') {
+    return <SimpleResults files={response.files ?? []} chunks={response.chunks ?? []} />;
   }
   return <ChunkResults chunks={response.chunks ?? []} />;
 }

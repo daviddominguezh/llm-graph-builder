@@ -10,6 +10,7 @@ import { FileRow } from './FileRow';
 import { FileUploadDropzone } from './FileUploadDropzone';
 import { RagSearchBar } from './RagSearchBar';
 import { SearchResults } from './SearchResults';
+import { UploadFilesButton } from './UploadFilesButton';
 import { useRagUpload } from './useRagUpload';
 
 interface RagTenantContentProps {
@@ -115,15 +116,13 @@ interface UsageSummaryProps {
 function UsageSummary({ usage }: UsageSummaryProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragFiles');
   return (
-    <div className="flex items-center justify-between">
-      <span className="text-[11px] font-mono text-muted-foreground">
-        {t('summary', {
-          files: usage.files_count,
-          pages: usage.pages_count,
-          bytes: formatBytes(usage.bytes_total),
-        })}
-      </span>
-    </div>
+    <span className="text-[11px] font-mono text-muted-foreground">
+      {t('summary', {
+        files: usage.files_count,
+        pages: usage.pages_count,
+        bytes: formatBytes(usage.bytes_total),
+      })}
+    </span>
   );
 }
 
@@ -140,11 +139,18 @@ export function RagTenantContent({ storeId, tenantId }: RagTenantContentProps): 
     },
   });
 
+  const hasFiles = files.length > 0;
+
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <UsageSummary usage={usage} />
-      <FileUploadDropzone uploading={uploading} onFiles={(fs) => void uploadFiles(fs)} />
-      <RagSearchBar busy={search.busy} onSearch={(m, q) => void search.run(m, q)} />
+    <div className="flex flex-1 min-h-0 flex-col gap-4 p-4">
+      <div className="flex items-center justify-between gap-2">
+        <UsageSummary usage={usage} />
+        <UploadFilesButton uploading={uploading} onFiles={(fs) => void uploadFiles(fs)} />
+      </div>
+      {!hasFiles && (
+        <FileUploadDropzone uploading={uploading} onFiles={(fs) => void uploadFiles(fs)} />
+      )}
+      {hasFiles && <RagSearchBar busy={search.busy} onSearch={(m, q) => void search.run(m, q)} />}
       {search.response !== null && <SearchResults response={search.response} />}
       <FileList
         storeId={storeId}

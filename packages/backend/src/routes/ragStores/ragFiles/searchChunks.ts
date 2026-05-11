@@ -40,33 +40,31 @@ function parseParams(req: Request): SearchParams | null {
   return { storeId, tenantId, mode, query, k };
 }
 
-async function runNameSearch(supabase: Supabase, p: SearchParams, res: AuthenticatedResponse): Promise<void> {
-  const { result, error } = await listFilesByStoreTenant(supabase, p.storeId, p.tenantId);
-  if (error !== null) {
-    res.status(HTTP_INTERNAL_ERROR).json({ error });
-    return;
-  }
-  const needle = p.query.toLowerCase();
-  const matches = result.filter((f) => f.filename.toLowerCase().includes(needle));
-  res.status(HTTP_OK).json({ mode: 'name', files: matches });
-}
-
-async function runContentSearch(
+async function runSimpleSearch(
   supabase: Supabase,
   p: SearchParams,
   res: AuthenticatedResponse
 ): Promise<void> {
-  const { result, error } = await searchByContent(supabase, {
-    ragStoreId: p.storeId,
-    tenantId: p.tenantId,
-    query: p.query,
-    k: p.k,
-  });
-  if (error !== null) {
-    res.status(HTTP_INTERNAL_ERROR).json({ error });
+  const needle = p.query.toLowerCase();
+  const [filesRes, chunksRes] = await Promise.all([
+    listFilesByStoreTenant(supabase, p.storeId, p.tenantId),
+    searchByContent(supabase, {
+      ragStoreId: p.storeId,
+      tenantId: p.tenantId,
+      query: p.query,
+      k: p.k,
+    }),
+  ]);
+  if (filesRes.error !== null) {
+    res.status(HTTP_INTERNAL_ERROR).json({ error: filesRes.error });
     return;
   }
-  res.status(HTTP_OK).json({ mode: 'content', chunks: result });
+  if (chunksRes.error !== null) {
+    res.status(HTTP_INTERNAL_ERROR).json({ error: chunksRes.error });
+    return;
+  }
+  const files = filesRes.result.filter((f) => f.filename.toLowerCase().includes(needle));
+  res.status(HTTP_OK).json({ mode: 'simple', files, chunks: chunksRes.result });
 }
 
 async function runSemanticSearch(
@@ -89,12 +87,8 @@ async function runSemanticSearch(
 }
 
 async function dispatch(supabase: Supabase, params: SearchParams, res: AuthenticatedResponse): Promise<void> {
-  if (params.mode === 'name') {
-    await runNameSearch(supabase, params, res);
-    return;
-  }
-  if (params.mode === 'content') {
-    await runContentSearch(supabase, params, res);
+  if (params.mode === 'simple') {
+    await runSimpleSearch(supabase, params, res);
     return;
   }
   if (params.mode === 'semantic') {
