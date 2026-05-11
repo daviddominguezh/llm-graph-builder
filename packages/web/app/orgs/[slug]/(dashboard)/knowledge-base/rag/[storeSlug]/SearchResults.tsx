@@ -1,6 +1,6 @@
 'use client';
 
-import type { RagFileRow, SearchResponse, SemanticChunk } from '@/app/lib/ragFiles';
+import type { SearchResponse, SemanticChunk } from '@/app/lib/ragFiles';
 import { useTranslations } from 'next-intl';
 
 interface SearchResultsProps {
@@ -9,10 +9,6 @@ interface SearchResultsProps {
 
 const ZERO = 0;
 const DISTANCE_PRECISION = 3;
-
-function FileResult({ f }: { f: RagFileRow }): React.JSX.Element {
-  return <div className="rounded-md border px-3 py-2 text-xs">{f.filename}</div>;
-}
 
 function ChunkResult({ c }: { c: SemanticChunk }): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragSearch');
@@ -34,20 +30,6 @@ function ChunkResult({ c }: { c: SemanticChunk }): React.JSX.Element {
   );
 }
 
-function FileResults({ files }: { files: RagFileRow[] }): React.JSX.Element {
-  const t = useTranslations('knowledgeBase.ragSearch');
-  if (files.length === ZERO) {
-    return <span className="text-xs text-muted-foreground">{t('empty')}</span>;
-  }
-  return (
-    <div className="flex flex-col gap-1">
-      {files.map((f) => (
-        <FileResult key={f.id} f={f} />
-      ))}
-    </div>
-  );
-}
-
 function ChunkResults({ chunks }: { chunks: SemanticChunk[] }): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragSearch');
   if (chunks.length === ZERO) {
@@ -62,29 +44,7 @@ function ChunkResults({ chunks }: { chunks: SemanticChunk[] }): React.JSX.Elemen
   );
 }
 
-function SimpleResults({
-  files,
-  chunks,
-}: {
-  files: RagFileRow[];
-  chunks: SemanticChunk[];
-}): React.JSX.Element {
-  const t = useTranslations('knowledgeBase.ragSearch');
-  if (files.length === ZERO && chunks.length === ZERO) {
-    return <span className="text-xs text-muted-foreground">{t('empty')}</span>;
-  }
-  return (
-    <div className="flex flex-col gap-3">
-      {files.length > ZERO && <FileResults files={files} />}
-      {chunks.length > ZERO && <ChunkResults chunks={chunks} />}
-    </div>
-  );
-}
-
 export function SearchResults({ response }: SearchResultsProps): React.JSX.Element | null {
   if (response === null) return null;
-  if (response.mode === 'simple') {
-    return <SimpleResults files={response.files ?? []} chunks={response.chunks ?? []} />;
-  }
   return <ChunkResults chunks={response.chunks ?? []} />;
 }
