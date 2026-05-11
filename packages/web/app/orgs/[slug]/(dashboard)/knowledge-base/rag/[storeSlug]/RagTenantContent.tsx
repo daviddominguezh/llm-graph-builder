@@ -5,6 +5,7 @@ import type { RagFileRow, SearchMode, SearchResponse, TenantUsage } from '@/app/
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 
+import { Scrollable } from '@/app/components/Scrollable';
 import { Loader2 } from 'lucide-react';
 
 import { FileChunksDrawer } from './FileChunksDrawer';
@@ -151,6 +152,34 @@ function LoadingSpinner(): React.JSX.Element {
   );
 }
 
+// TODO: remove — temporary mock files to preview FileTypeIcon variants.
+function buildMockFiles(storeId: string, tenantId: string): RagFileRow[] {
+  const base = {
+    rag_store_id: storeId,
+    tenant_id: tenantId,
+    org_id: 'mock-org',
+    size_bytes: 123456,
+    page_count: 4,
+    status: 'done' as const,
+    status_error: null,
+    gcs_object: '',
+    da_operation: null,
+    parsed_uri: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  return [
+    { ...base, id: 'mock-pdf',  filename: 'q3-report.pdf',         mime_type: 'application/pdf' },
+    { ...base, id: 'mock-docx', filename: 'meeting-notes.docx',    mime_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
+    { ...base, id: 'mock-xlsx', filename: 'budget.xlsx',           mime_type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+    { ...base, id: 'mock-pptx', filename: 'kickoff-slides.pptx',   mime_type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' },
+    { ...base, id: 'mock-html', filename: 'archive.html',          mime_type: 'text/html' },
+    { ...base, id: 'mock-jpg',  filename: 'whiteboard.jpg',        mime_type: 'image/jpeg' },
+    { ...base, id: 'mock-png',  filename: 'logo.png',              mime_type: 'image/png' },
+    { ...base, id: 'mock-unk',  filename: 'mystery-blob',          mime_type: 'application/octet-stream' },
+  ];
+}
+
 export function RagTenantContent({ storeId, tenantId }: RagTenantContentProps): React.JSX.Element {
   const { files, usage, loaded, refresh } = useTenantFiles(storeId, tenantId);
   const search = useTenantSearch(storeId, tenantId);
@@ -164,7 +193,9 @@ export function RagTenantContent({ storeId, tenantId }: RagTenantContentProps): 
     },
   });
 
-  const hasFiles = files.length > 0;
+  // TODO: remove — merging mock files in for icon preview.
+  const displayFiles = loaded ? [...buildMockFiles(storeId, tenantId), ...files] : files;
+  const hasFiles = displayFiles.length > 0;
   const showEmptyState = loaded && !hasFiles;
   const showSearchBar = loaded && hasFiles;
 
@@ -181,14 +212,18 @@ export function RagTenantContent({ storeId, tenantId }: RagTenantContentProps): 
         <FileUploadDropzone uploading={uploading} onFiles={(fs) => void uploadFiles(fs)} />
       )}
       {showSearchBar && <RagSearchBar busy={search.busy} onSearch={(m, q) => void search.run(m, q)} />}
-      {search.response !== null && <SearchResults response={search.response} />}
       {loaded && hasFiles && (
-        <FileList
-          storeId={storeId}
-          files={files}
-          onOpenChunks={setOpenChunksFor}
-          onRefresh={() => void refresh()}
-        />
+        <Scrollable className="flex-1 min-h-0">
+          <div className="flex flex-col gap-4 pr-1">
+            {search.response !== null && <SearchResults response={search.response} />}
+            <FileList
+              storeId={storeId}
+              files={displayFiles}
+              onOpenChunks={setOpenChunksFor}
+              onRefresh={() => void refresh()}
+            />
+          </div>
+        </Scrollable>
       )}
       <FileChunksDrawer
         storeId={storeId}
