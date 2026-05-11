@@ -1,5 +1,6 @@
 'use client';
 
+import { TenantAvatar } from '@/app/components/agents/channels/TenantAvatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { TenantRow } from '@/app/lib/tenants';
 import { useTranslations } from 'next-intl';
@@ -28,7 +29,10 @@ export function TenantTabs({ tenants, renderTab }: TenantTabsProps): React.JSX.E
       <TabsList variant="line">
         {tenants.map((tenant) => (
           <TabsTrigger key={tenant.id} value={tenant.id} className="cursor-pointer">
-            {tenant.name}
+            <span className="flex items-center gap-2">
+              <TenantAvatar name={tenant.name} avatarUrl={tenant.avatar_url} />
+              {tenant.name}
+            </span>
           </TabsTrigger>
         ))}
       </TabsList>

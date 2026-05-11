@@ -42,7 +42,7 @@ export function StoreHeader({ name, slug, onDelete }: StoreHeaderProps): React.J
         </span>
       </div>
       <Button
-        variant="ghost"
+        variant="destructive"
         size="icon"
         aria-label={t('storeHeader.delete')}
         onClick={() => setConfirmOpen(true)}
