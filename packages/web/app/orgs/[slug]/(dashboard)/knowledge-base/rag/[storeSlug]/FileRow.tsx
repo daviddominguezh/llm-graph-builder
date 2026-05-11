@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Check, ChevronDown, ChevronRight, Loader2, Trash2 } from 'lucide-react';
+import { Check, ChevronRight, Loader2, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -136,7 +136,6 @@ function FileRowHeader({
   onRequestDelete,
 }: FileRowHeaderProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragFiles');
-  const Chevron = expanded ? ChevronDown : ChevronRight;
   return (
     <div className="flex items-center gap-3 px-3 py-2">
       <FileTypeIcon mimeType={file.mime_type} filename={file.filename} />
@@ -156,7 +155,9 @@ function FileRowHeader({
           aria-expanded={expanded}
           onClick={onToggle}
         >
-          <Chevron className="size-4" />
+          <ChevronRight
+            className={`size-4 transition-transform duration-150 ${expanded ? 'rotate-90' : ''}`}
+          />
         </Button>
       )}
       <Button variant="destructive" size="icon" aria-label={t('remove')} onClick={onRequestDelete}>
