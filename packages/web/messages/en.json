@@ -907,6 +907,45 @@
       "deleteDescription": "This action cannot be undone.",
       "deleteConfirm": "Delete",
       "deleteCancel": "Cancel"
+    },
+    "ragStatus": {
+      "pending": "Pending",
+      "uploading": "Uploading",
+      "parsing": "Parsing",
+      "chunking": "Chunking",
+      "embedding": "Embedding",
+      "done": "Done",
+      "failed": "Failed"
+    },
+    "ragFiles": {
+      "remove": "Remove",
+      "openChunks": "Open chunks",
+      "pageCount": "{count, plural, =1 {1 page} other {# pages}}",
+      "deleteTitle": "Delete file?",
+      "deleteDescription": "This will permanently delete the file and all its chunks. This cannot be undone.",
+      "deleteConfirm": "Delete",
+      "deleteCancel": "Cancel"
+    },
+    "ragChunks": {
+      "loading": "Loading chunks…",
+      "page": "p. {page}",
+      "paragraph": "¶ {idx}",
+      "tokens": "{count} tok",
+      "prev": "Previous",
+      "next": "Next"
+    },
+    "ragSearch": {
+      "placeholder": "Search files and chunks…",
+      "submit": "Search",
+      "empty": "No results",
+      "page": "p. {page}",
+      "paragraph": "¶ {idx}",
+      "distance": "d={d}",
+      "mode": {
+        "name": "Name",
+        "content": "Content",
+        "semantic": "Semantic"
+      }
     }
   },
   "tenantSidebar": {
