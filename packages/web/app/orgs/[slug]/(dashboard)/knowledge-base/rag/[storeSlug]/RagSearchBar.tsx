@@ -14,6 +14,12 @@ interface RagSearchBarProps {
 
 const MODES: SearchMode[] = ['simple', 'semantic'];
 
+const TAB_BASE =
+  'cursor-pointer inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-medium transition-colors border border-transparent';
+const TAB_ACTIVE = 'bg-popover dark:bg-input text-foreground shadow-sm';
+const TAB_INACTIVE =
+  'text-muted-foreground hover:text-foreground border-transparent hover:bg-input dark:hover:bg-card';
+
 interface ModeTabsProps {
   mode: SearchMode;
   onChange: (mode: SearchMode) => void;
@@ -22,15 +28,13 @@ interface ModeTabsProps {
 function ModeTabs({ mode, onChange }: ModeTabsProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragSearch');
   return (
-    <div className="flex gap-1 rounded-md border p-0.5">
+    <div className="inline-flex gap-1 dark:gap-0.5 rounded-sm border bg-muted/50 p-0.5">
       {MODES.map((m) => (
         <button
           key={m}
           type="button"
           onClick={() => onChange(m)}
-          className={`cursor-pointer px-2 py-1 text-[10px] font-mono rounded ${
-            mode === m ? 'bg-primary/10 text-primary' : 'text-muted-foreground'
-          }`}
+          className={`${TAB_BASE} ${m === mode ? TAB_ACTIVE : TAB_INACTIVE}`}
         >
           {t(`mode.${m}`)}
         </button>
