@@ -5,6 +5,8 @@ import type { RagFileRow, SearchMode, SearchResponse, TenantUsage } from '@/app/
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 
+import { Skeleton } from '@/components/ui/skeleton';
+
 import { FileChunksDrawer } from './FileChunksDrawer';
 import { FileRow } from './FileRow';
 import { FileUploadDropzone } from './FileUploadDropzone';
@@ -141,6 +143,26 @@ function UsageSummary({ usage }: UsageSummaryProps): React.JSX.Element {
   );
 }
 
+const SKELETON_ROW_KEYS = ['s1', 's2', 's3'];
+
+function FileListSkeleton(): React.JSX.Element {
+  return (
+    <div className="flex flex-col gap-1.5">
+      {SKELETON_ROW_KEYS.map((key) => (
+        <div key={key} className="flex items-center gap-3 rounded-md border px-3 py-2">
+          <Skeleton className="size-4 shrink-0" />
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <Skeleton className="h-3 w-40" />
+            <Skeleton className="h-2.5 w-24" />
+          </div>
+          <Skeleton className="size-4" />
+          <Skeleton className="size-8 rounded-md" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function RagTenantContent({ storeId, tenantId }: RagTenantContentProps): React.JSX.Element {
   const { files, usage, loaded, refresh } = useTenantFiles(storeId, tenantId);
   const search = useTenantSearch(storeId, tenantId);
@@ -161,20 +183,23 @@ export function RagTenantContent({ storeId, tenantId }: RagTenantContentProps): 
   return (
     <div className="flex flex-1 min-h-0 flex-col gap-4 p-4">
       <div className="flex items-center justify-between gap-2">
-        <UsageSummary usage={usage} />
+        {loaded ? <UsageSummary usage={usage} /> : <div />}
         <UploadFilesButton uploading={uploading} onFiles={(fs) => void uploadFiles(fs)} />
       </div>
+      {!loaded && <FileListSkeleton />}
       {showEmptyState && (
         <FileUploadDropzone uploading={uploading} onFiles={(fs) => void uploadFiles(fs)} />
       )}
       {showSearchBar && <RagSearchBar busy={search.busy} onSearch={(m, q) => void search.run(m, q)} />}
       {search.response !== null && <SearchResults response={search.response} />}
-      <FileList
-        storeId={storeId}
-        files={files}
-        onOpenChunks={setOpenChunksFor}
-        onRefresh={() => void refresh()}
-      />
+      {loaded && hasFiles && (
+        <FileList
+          storeId={storeId}
+          files={files}
+          onOpenChunks={setOpenChunksFor}
+          onRefresh={() => void refresh()}
+        />
+      )}
       <FileChunksDrawer
         storeId={storeId}
         file={openChunksFor}
