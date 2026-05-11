@@ -54,6 +54,23 @@ export async function createRagStore(
   return { result: row, error: null };
 }
 
+export async function updateRagStoreName(
+  supabase: SupabaseClient,
+  storeId: string,
+  name: string
+): Promise<{ result: RagStoreRow | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from('rag_stores')
+    .update({ name, updated_at: new Date().toISOString() })
+    .eq('id', storeId)
+    .select(LIST_COLUMNS)
+    .single();
+  if (error !== null) return { result: null, error: error.message };
+  const row: unknown = data;
+  if (!isRagStoreRow(row)) return { result: null, error: 'Invalid rag_store data' };
+  return { result: row, error: null };
+}
+
 export async function deleteRagStore(
   supabase: SupabaseClient,
   storeId: string

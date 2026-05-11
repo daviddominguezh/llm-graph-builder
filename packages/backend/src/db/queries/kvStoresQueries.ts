@@ -73,6 +73,23 @@ export async function createKvStore(
   return { result: row, error: null };
 }
 
+export async function updateKvStoreName(
+  supabase: SupabaseClient,
+  storeId: string,
+  name: string
+): Promise<{ result: KvStoreRow | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from('kv_stores')
+    .update({ name, updated_at: new Date().toISOString() })
+    .eq('id', storeId)
+    .select(LIST_COLUMNS)
+    .single();
+  if (error !== null) return { result: null, error: error.message };
+  const row: unknown = data;
+  if (!isKvStoreRow(row)) return { result: null, error: 'Invalid kv_store data' };
+  return { result: row, error: null };
+}
+
 export async function deleteKvStore(
   supabase: SupabaseClient,
   storeId: string

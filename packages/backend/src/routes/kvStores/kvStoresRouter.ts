@@ -6,12 +6,14 @@ import { handleDeleteKvStore } from './deleteKvStore.js';
 import { handleGetKvEntries } from './getKvEntries.js';
 import { handleGetKvStores } from './getKvStores.js';
 import { handleSaveKvEntries } from './saveKvEntries.js';
+import { handleUpdateKvStore } from './updateKvStore.js';
 
 export const kvStoresRouter = express.Router();
 kvStoresRouter.use(requireAuth);
 
 kvStoresRouter.get('/:orgId', handleGetKvStores);
 kvStoresRouter.post('/', handleCreateKvStore);
+kvStoresRouter.patch('/:storeId', handleUpdateKvStore);
 kvStoresRouter.delete('/:storeId', handleDeleteKvStore);
 kvStoresRouter.get('/:storeId/entries/:tenantId', handleGetKvEntries);
 kvStoresRouter.put('/:storeId/entries/:tenantId', handleSaveKvEntries);
