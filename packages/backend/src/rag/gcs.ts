@@ -22,10 +22,7 @@ export function gcsUriFor(objectPath: string): string {
   return `gs://${bucketName()}/${objectPath}`;
 }
 
-export async function createUploadSignedUrl(
-  objectPath: string,
-  contentType: string
-): Promise<string> {
+export async function createUploadSignedUrl(objectPath: string, contentType: string): Promise<string> {
   const file = getStorage().bucket(bucketName()).file(objectPath);
   const [url] = await file.getSignedUrl({
     version: 'v4',

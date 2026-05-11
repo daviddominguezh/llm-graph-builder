@@ -34,22 +34,13 @@ function parseParams(req: Request): SearchParams | null {
   const query = parseString(req.body, 'query');
   const kRaw = parseNumber(req.body, 'k') ?? DEFAULT_K;
   const k = Math.min(Math.max(MIN_K, Math.floor(kRaw)), MAX_K);
-  if (
-    storeId === undefined ||
-    tenantId === undefined ||
-    query === undefined ||
-    mode === undefined
-  ) {
+  if (storeId === undefined || tenantId === undefined || query === undefined || mode === undefined) {
     return null;
   }
   return { storeId, tenantId, mode, query, k };
 }
 
-async function runNameSearch(
-  supabase: Supabase,
-  p: SearchParams,
-  res: AuthenticatedResponse
-): Promise<void> {
+async function runNameSearch(supabase: Supabase, p: SearchParams, res: AuthenticatedResponse): Promise<void> {
   const { result, error } = await listFilesByStoreTenant(supabase, p.storeId, p.tenantId);
   if (error !== null) {
     res.status(HTTP_INTERNAL_ERROR).json({ error });
@@ -97,11 +88,7 @@ async function runSemanticSearch(
   res.status(HTTP_OK).json({ mode: 'semantic', chunks: result });
 }
 
-async function dispatch(
-  supabase: Supabase,
-  params: SearchParams,
-  res: AuthenticatedResponse
-): Promise<void> {
+async function dispatch(supabase: Supabase, params: SearchParams, res: AuthenticatedResponse): Promise<void> {
   if (params.mode === 'name') {
     await runNameSearch(supabase, params, res);
     return;

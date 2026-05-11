@@ -68,14 +68,11 @@ export function useRagUpload({ storeId, tenantId, onFileQueued }: UseRagUploadIn
     async (files: FileList): Promise<UploadResult[]> => {
       setUploading(true);
       const list = Array.from(files);
-      const final = await list.reduce<Promise<UploadResult[]>>(
-        async (accP, file) => {
-          const acc = await accP;
-          const r = await uploadOne(file);
-          return [...acc, r];
-        },
-        Promise.resolve([])
-      );
+      const final = await list.reduce<Promise<UploadResult[]>>(async (accP, file) => {
+        const acc = await accP;
+        const r = await uploadOne(file);
+        return [...acc, r];
+      }, Promise.resolve([]));
       setUploading(false);
       return final;
     },

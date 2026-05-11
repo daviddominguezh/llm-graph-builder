@@ -94,10 +94,7 @@ export async function initUpload(
   }
 }
 
-export async function confirmUpload(
-  storeId: string,
-  fileId: string
-): Promise<{ error: string | null }> {
+export async function confirmUpload(storeId: string, fileId: string): Promise<{ error: string | null }> {
   try {
     await fetchFromBackend(
       'POST',
@@ -138,10 +135,7 @@ export async function listFiles(
   }
 }
 
-export async function deleteFile(
-  storeId: string,
-  fileId: string
-): Promise<{ error: string | null }> {
+export async function deleteFile(storeId: string, fileId: string): Promise<{ error: string | null }> {
   try {
     await fetchFromBackend(
       'DELETE',
@@ -204,11 +198,11 @@ export async function search(
   query: string
 ): Promise<{ result: SearchResponse; error: string | null }> {
   try {
-    const data = await fetchFromBackend(
-      'POST',
-      `/rag-stores/${encodeURIComponent(storeId)}/search`,
-      { tenantId, mode, query }
-    );
+    const data = await fetchFromBackend('POST', `/rag-stores/${encodeURIComponent(storeId)}/search`, {
+      tenantId,
+      mode,
+      query,
+    });
     if (!isSearchResponse(data)) return { result: { mode }, error: 'invalid response' };
     return { result: data, error: null };
   } catch (err) {

@@ -1,6 +1,6 @@
-import { randomUUID } from 'node:crypto';
-import type { Request } from 'express';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Request } from 'express';
+import { randomUUID } from 'node:crypto';
 
 import { createPendingFile } from '../../../db/queries/ragFilesQueries.js';
 import { createUploadSignedUrl } from '../../../rag/gcs.js';
@@ -54,10 +54,7 @@ function parseUploadInput(req: Request): UploadInput | undefined {
   return { storeId, tenantId, filename, mimeType, sizeBytes };
 }
 
-async function lookupStore(
-  supabase: SupabaseClient,
-  storeId: string
-): Promise<StoreLookup | undefined> {
+async function lookupStore(supabase: SupabaseClient, storeId: string): Promise<StoreLookup | undefined> {
   const { data, error } = await supabase
     .from('rag_stores')
     .select('id, org_id')

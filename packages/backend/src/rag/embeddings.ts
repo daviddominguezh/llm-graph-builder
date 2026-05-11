@@ -1,7 +1,6 @@
-import { setTimeout as sleepMs } from 'node:timers/promises';
-
 import { google } from '@ai-sdk/google';
 import { embedMany } from 'ai';
+import { setTimeout as sleepMs } from 'node:timers/promises';
 
 import { requireRagConfig } from './config.js';
 

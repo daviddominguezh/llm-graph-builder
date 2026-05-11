@@ -90,11 +90,7 @@ export async function getRagFileById(
   supabase: SupabaseClient,
   id: string
 ): Promise<{ result: RagFileRow | null; error: string | null }> {
-  const { data, error } = await supabase
-    .from('rag_files')
-    .select(LIST_COLUMNS)
-    .eq('id', id)
-    .maybeSingle();
+  const { data, error } = await supabase.from('rag_files').select(LIST_COLUMNS).eq('id', id).maybeSingle();
   if (error !== null) return { result: null, error: error.message };
   if (data === null) return { result: null, error: null };
   if (!isRagFileRow(data)) return { result: null, error: 'Invalid rag_file data' };
@@ -150,10 +146,7 @@ export async function claimActiveFiles(
   return { result: mapRows(rows), error: null };
 }
 
-export async function deleteFile(
-  supabase: SupabaseClient,
-  id: string
-): Promise<{ error: string | null }> {
+export async function deleteFile(supabase: SupabaseClient, id: string): Promise<{ error: string | null }> {
   const { error } = await supabase.from('rag_files').delete().eq('id', id);
   if (error !== null) return { error: error.message };
   return { error: null };

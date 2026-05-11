@@ -1,10 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import {
-  insertChunks,
-  listChunkIdsWithoutEmbedding,
-  setEmbedding,
-} from '../db/queries/ragChunksQueries.js';
+import { insertChunks, listChunkIdsWithoutEmbedding, setEmbedding } from '../db/queries/ragChunksQueries.js';
 import {
   type RagFileRow,
   claimActiveFiles,
@@ -62,13 +58,10 @@ async function readAllParsedChunks(prefix: string): Promise<DocumentAiPayload> {
   const objects = await listObjectsUnder(prefix);
   const merged: DocumentAiPayload = { chunkedDocument: { chunks: [] } };
   const jsonObjects = objects.filter((obj) => obj.endsWith(JSON_EXT));
-  await jsonObjects.reduce<Promise<void>>(
-    async (prev, obj) => {
-      await prev;
-      await appendPayloadChunks(merged, obj);
-    },
-    Promise.resolve()
-  );
+  await jsonObjects.reduce<Promise<void>>(async (prev, obj) => {
+    await prev;
+    await appendPayloadChunks(merged, obj);
+  }, Promise.resolve());
   return merged;
 }
 
@@ -130,15 +123,12 @@ async function writeEmbeddingsForIds(
   vectors: number[][]
 ): Promise<boolean> {
   const pairs = zipIdsAndVectors(ids, vectors);
-  const finalError = await pairs.reduce<Promise<string | null>>(
-    async (prev, pair) => {
-      const existing = await prev;
-      if (existing !== null) return existing;
-      const { error: setErr } = await setEmbedding(supabase, pair.id, pair.vector);
-      return setErr;
-    },
-    Promise.resolve(null)
-  );
+  const finalError = await pairs.reduce<Promise<string | null>>(async (prev, pair) => {
+    const existing = await prev;
+    if (existing !== null) return existing;
+    const { error: setErr } = await setEmbedding(supabase, pair.id, pair.vector);
+    return setErr;
+  }, Promise.resolve(null));
   if (finalError !== null) {
     await fail(supabase, file, `setEmbedding: ${finalError}`);
     return false;
@@ -147,11 +137,7 @@ async function writeEmbeddingsForIds(
 }
 
 async function handleEmbedding(supabase: SupabaseClient, file: RagFileRow): Promise<void> {
-  const { ids, texts, error } = await listChunkIdsWithoutEmbedding(
-    supabase,
-    file.id,
-    EMBED_CHUNK_PAGE_SIZE
-  );
+  const { ids, texts, error } = await listChunkIdsWithoutEmbedding(supabase, file.id, EMBED_CHUNK_PAGE_SIZE);
   if (error !== null) {
     await fail(supabase, file, `listChunks: ${error}`);
     return;
@@ -193,13 +179,10 @@ export async function tickOnce(supabase: SupabaseClient): Promise<void> {
     log(`claim error: ${error}`);
     return;
   }
-  await result.reduce<Promise<void>>(
-    async (prev, file) => {
-      await prev;
-      await safeDispatch(supabase, file);
-    },
-    Promise.resolve()
-  );
+  await result.reduce<Promise<void>>(async (prev, file) => {
+    await prev;
+    await safeDispatch(supabase, file);
+  }, Promise.resolve());
 }
 
 async function prepareDocumentAiInput(

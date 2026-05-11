@@ -40,10 +40,7 @@ export async function listFilesAction(
   return listFilesLib(storeId, tenantId);
 }
 
-export async function deleteFileAction(
-  storeId: string,
-  fileId: string
-): Promise<{ error: string | null }> {
+export async function deleteFileAction(storeId: string, fileId: string): Promise<{ error: string | null }> {
   const res = await deleteFileLib(storeId, fileId);
   if (res.error !== null) serverError('[deleteFileAction]', res.error);
   return res;
