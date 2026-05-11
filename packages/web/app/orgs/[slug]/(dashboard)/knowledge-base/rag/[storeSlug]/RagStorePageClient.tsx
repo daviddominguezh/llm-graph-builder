@@ -30,7 +30,7 @@ interface RagStorePageClientProps {
   tenants: TenantRow[];
 }
 
-function RagTenantContent({ tenantId: _tenantId }: { tenantId: string }): React.JSX.Element {
+function RagTenantContent(): React.JSX.Element {
   const t = useTranslations('knowledgeBase');
   const queue = useFileQueue();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -93,7 +93,7 @@ export function RagStorePageClient({
       <StoreHeader name={store.name} slug={store.slug} onDelete={handleDelete} />
       <TenantTabs
         tenants={tenants}
-        renderTab={(tenantId) => <RagTenantContent tenantId={tenantId} />}
+        renderTab={() => <RagTenantContent />}
       />
     </div>
   );

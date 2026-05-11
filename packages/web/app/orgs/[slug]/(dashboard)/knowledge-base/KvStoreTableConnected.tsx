@@ -10,25 +10,26 @@ interface KvStoreTableConnectedProps {
   tenantId: string;
 }
 
+interface LoadedState {
+  key: string;
+  entries: KvEntry[];
+}
+
 const SAVE_DEBOUNCE_MS = 600;
 
 export function KvStoreTableConnected({
   storeId,
   tenantId,
 }: KvStoreTableConnectedProps): React.JSX.Element | null {
-  const [entries, setEntries] = useState<KvEntry[] | null>(null);
+  const [state, setState] = useState<LoadedState | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadKey = `${storeId}::${tenantId}`;
-  const lastLoadedRef = useRef<string>('');
 
   useEffect(() => {
-    if (lastLoadedRef.current === loadKey) return;
-    lastLoadedRef.current = loadKey;
-    setEntries(null);
     let cancelled = false;
     void (async () => {
       const { result } = await getKvEntries(storeId, tenantId);
-      if (!cancelled) setEntries(result);
+      if (!cancelled) setState({ key: loadKey, entries: result });
     })();
     return () => {
       cancelled = true;
@@ -43,10 +44,10 @@ export function KvStoreTableConnected({
   }
 
   function handleChange(next: KvEntry[]) {
-    setEntries(next);
+    setState({ key: loadKey, entries: next });
     scheduleSave(next);
   }
 
-  if (entries === null) return null;
-  return <KvStoreTable entries={entries} onEntriesChange={handleChange} />;
+  if (state === null || state.key !== loadKey) return null;
+  return <KvStoreTable entries={state.entries} onEntriesChange={handleChange} />;
 }
