@@ -847,6 +847,7 @@
       "typeKvDescription": "A table of key/value pairs each tenant edits directly.",
       "nameLabel": "Name",
       "namePlaceholder": "e.g. Product FAQ",
+      "idPreview": "Your id will be: <mono>{slug}</mono>",
       "submit": "Create",
       "cancel": "Cancel"
     },
