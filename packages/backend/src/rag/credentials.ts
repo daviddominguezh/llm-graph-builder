@@ -2,7 +2,7 @@ import { writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const CREDENTIALS_FILENAME = 'openflow-gcp-credentials.json';
+const CREDENTIALS_FILENAME = 'gcp-credentials.json';
 const FILE_MODE_OWNER_RW = 0o600;
 const BASE64_UTF8 = 'utf8';
 
