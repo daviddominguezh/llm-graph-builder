@@ -138,7 +138,7 @@ function StoreList({ items, pathname, search }: StoreListProps): React.JSX.Eleme
 
   if (items.length === 0) {
     return (
-      <p className="px-3 py-4 text-center text-xs text-muted-foreground bg-input/20 dark:bg-input/30 mt-1 mx-3 rounded-md">
+      <p className="px-3 py-4 text-center text-xs text-muted-foreground bg-input/70 mt-1 mx-3 rounded-md">
         {t('empty')}
       </p>
     );

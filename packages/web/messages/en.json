@@ -863,8 +863,8 @@
       "noTenants": "No tenants yet. Create a tenant before adding content."
     },
     "emptyPage": {
-      "title": "Pick a store",
-      "description": "Select a RAG or KV store from the sidebar, or create a new one."
+      "title": "No store selected",
+      "description": "Choose a RAG or KV store from the sidebar, or create a new one."
     },
     "kv": {
       "search": "Search keys and values…",
