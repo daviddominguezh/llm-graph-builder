@@ -1,4 +1,4 @@
-import { google } from '@ai-sdk/google';
+import { vertex } from '@ai-sdk/google-vertex';
 import { embedMany } from 'ai';
 import { setTimeout as sleepMs } from 'node:timers/promises';
 
@@ -38,8 +38,8 @@ export interface EmbedResult {
   vectors: number[][];
 }
 
-function modelRef(): ReturnType<typeof google.textEmbeddingModel> {
-  return google.textEmbeddingModel(EMBEDDING_MODEL_ID);
+function modelRef(): ReturnType<typeof vertex.embeddingModel> {
+  return vertex.embeddingModel(EMBEDDING_MODEL_ID);
 }
 
 function makeBatches(texts: string[]): string[][] {
