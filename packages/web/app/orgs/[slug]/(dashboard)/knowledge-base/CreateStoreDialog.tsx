@@ -15,61 +15,74 @@ import { previewStoreSlug } from '@/app/lib/slugPreview';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import { StoreTypeCards } from './StoreTypeCards';
+
 export type StoreType = 'rag' | 'kv';
 
 interface CreateStoreDialogProps {
-  type: StoreType;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreate: (name: string) => Promise<{ ok: boolean; slug?: string; requestedSlug?: string }>;
+  onCreate: (type: StoreType, name: string) => Promise<{ ok: boolean; slug?: string }>;
 }
 
 export function CreateStoreDialog({
-  type,
   open,
   onOpenChange,
   onCreate,
 }: CreateStoreDialogProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.create');
+  const [type, setType] = useState<StoreType | null>(null);
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const previewedSlug = previewStoreSlug(name);
-  const title = type === 'rag' ? t('titleRag') : t('titleKv');
-  const slugLine = previewedSlug === '' ? t('slugFallback') : t('slugPreview', { slug: previewedSlug });
+  const slugHint = previewedSlug === '' ? t('slugFallback') : t('slugPreview', { slug: previewedSlug });
+  const canSubmit = type !== null && name.trim() !== '' && !submitting;
+
+  function handleOpenChange(next: boolean) {
+    if (!next) {
+      setName('');
+      setType(null);
+    }
+    onOpenChange(next);
+  }
 
   async function handleSubmit() {
-    if (name.trim() === '' || submitting) return;
+    if (!canSubmit || type === null) return;
     setSubmitting(true);
-    const res = await onCreate(name.trim());
+    const res = await onCreate(type, name.trim());
     setSubmitting(false);
-    if (res.ok) {
-      setName('');
-      onOpenChange(false);
-    }
+    if (res.ok) handleOpenChange(false);
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{slugLine}</DialogDescription>
+          <DialogTitle>{t('title')}</DialogTitle>
+          <DialogDescription>{t('description')}</DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="store-name">{t('nameLabel')}</Label>
-          <Input
-            id="store-name"
-            placeholder={t('namePlaceholder')}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            autoFocus
-          />
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <Label>{t('typeLabel')}</Label>
+            <StoreTypeCards value={type} onChange={setType} />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="store-name">{t('nameLabel')}</Label>
+            <Input
+              id="store-name"
+              placeholder={t('namePlaceholder')}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoFocus
+            />
+            <span className="font-mono text-[11px] text-muted-foreground">{slugHint}</span>
+          </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={submitting}>
+          <Button variant="ghost" onClick={() => handleOpenChange(false)} disabled={submitting}>
             {t('cancel')}
           </Button>
-          <Button onClick={handleSubmit} disabled={name.trim() === '' || submitting}>
+          <Button onClick={handleSubmit} disabled={!canSubmit}>
             {t('submit')}
           </Button>
         </DialogFooter>

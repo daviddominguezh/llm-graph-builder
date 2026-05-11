@@ -6,14 +6,8 @@ import { Scrollable } from '@/app/components/Scrollable';
 import type { KvStoreRow } from '@/app/lib/kvStores';
 import type { RagStoreRow } from '@/app/lib/ragStores';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { Database, KeyRound, Plus, Search } from 'lucide-react';
+import { Database, Plus, Search, Table } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -60,32 +54,21 @@ function buildItems(
   return [...rag, ...kv].sort((a, b) => a.name.localeCompare(b.name));
 }
 
-function SidebarHeader({ onCreateClick }: { onCreateClick: (type: StoreType) => void }): React.JSX.Element {
+function SidebarHeader({ onCreateClick }: { onCreateClick: () => void }): React.JSX.Element {
   const t = useTranslations('knowledgeBase.storesSidebar');
   return (
     <div className="flex items-center justify-between pl-3 pr-1 py-1.5 pb-[calc(0px+var(--spacing)*1.5)] border-b border-b-[0.5px] mb-2.5">
       <h2 className="mt-[1px] font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60">
         {t('title').toUpperCase()}
       </h2>
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={
-            <Button variant="ghost" size="xs" className="aspect-square p-0! h-5 rounded-full">
-              <Plus />
-            </Button>
-          }
-        />
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => onCreateClick('rag')} className="cursor-pointer">
-            <Database className="size-3.5" />
-            {t('newRag')}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onCreateClick('kv')} className="cursor-pointer">
-            <KeyRound className="size-3.5" />
-            {t('newKv')}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <Button
+        variant="ghost"
+        size="xs"
+        className="aspect-square p-0! h-5 rounded-full"
+        onClick={onCreateClick}
+      >
+        <Plus />
+      </Button>
     </div>
   );
 }
@@ -109,7 +92,7 @@ function SearchInput({ value, onChange }: { value: string; onChange: (v: string)
 
 function StoreIcon({ type }: { type: StoreType }): React.JSX.Element {
   if (type === 'rag') return <Database className="shrink-0 size-3 text-muted-foreground" />;
-  return <KeyRound className="shrink-0 size-3 text-muted-foreground" />;
+  return <Table className="shrink-0 size-3 text-muted-foreground" />;
 }
 
 function StoreCard({ item, active }: { item: SidebarItem; active: boolean }): React.JSX.Element {
@@ -169,46 +152,36 @@ export function StoresSidebar({
 }: StoresSidebarProps): React.JSX.Element {
   const router = useRouter();
   const pathname = usePathname();
-  const [openType, setOpenType] = useState<StoreType | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [ragStores, setRagStores] = useState(initialRagStores);
   const [kvStores, setKvStores] = useState(initialKvStores);
 
-  async function handleCreate(name: string): Promise<{ ok: boolean; slug?: string }> {
-    if (openType === 'rag') {
+  async function handleCreate(type: StoreType, name: string): Promise<{ ok: boolean; slug?: string }> {
+    if (type === 'rag') {
       const { result } = await createRagStoreAction(orgId, name);
       if (result === null) return { ok: false };
       setRagStores([result, ...ragStores]);
       router.push(`/orgs/${orgSlug}/knowledge-base/rag/${result.slug}`);
       return { ok: true, slug: result.slug };
     }
-    if (openType === 'kv') {
-      const { result } = await createKvStoreAction(orgId, name);
-      if (result === null) return { ok: false };
-      setKvStores([result, ...kvStores]);
-      router.push(`/orgs/${orgSlug}/knowledge-base/kv/${result.slug}`);
-      return { ok: true, slug: result.slug };
-    }
-    return { ok: false };
+    const { result } = await createKvStoreAction(orgId, name);
+    if (result === null) return { ok: false };
+    setKvStores([result, ...kvStores]);
+    router.push(`/orgs/${orgSlug}/knowledge-base/kv/${result.slug}`);
+    return { ok: true, slug: result.slug };
   }
 
   const items = buildItems(ragStores, kvStores, orgSlug);
 
   return (
     <aside className="w-[240px] shrink-0 border-r flex flex-col">
-      <SidebarHeader onCreateClick={setOpenType} />
+      <SidebarHeader onCreateClick={() => setCreateOpen(true)} />
       <SearchInput value={search} onChange={setSearch} />
       <Scrollable className="min-h-0 flex-1">
         <StoreList items={items} pathname={pathname} search={search} />
       </Scrollable>
-      <CreateStoreDialog
-        type={openType ?? 'rag'}
-        open={openType !== null}
-        onOpenChange={(o) => {
-          if (!o) setOpenType(null);
-        }}
-        onCreate={handleCreate}
-      />
+      <CreateStoreDialog open={createOpen} onOpenChange={setCreateOpen} onCreate={handleCreate} />
     </aside>
   );
 }

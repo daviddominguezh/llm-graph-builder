@@ -838,12 +838,17 @@
       "noResults": "No matching stores"
     },
     "create": {
-      "titleRag": "Create RAG store",
-      "titleKv": "Create KV store",
+      "title": "New knowledge base",
+      "description": "Define a shared knowledge base for your org. Each tenant fills it in with their own content.",
+      "typeLabel": "Type",
+      "typeRag": "RAG Store",
+      "typeRagDescription": "Tenants upload documents. Agents retrieve relevant chunks at query time.",
+      "typeKv": "KV Store",
+      "typeKvDescription": "A table of key/value pairs each tenant edits directly.",
       "nameLabel": "Name",
       "namePlaceholder": "e.g. Product FAQ",
-      "slugPreview": "URL slug: {slug}",
-      "slugFallback": "Type a name to see the slug",
+      "slugPreview": "Slug: {slug}",
+      "slugFallback": "Pick a name — we'll generate a URL slug from it.",
       "submit": "Create",
       "cancel": "Cancel",
       "slugChangedNotice": "Saved as \"{final}\" — \"{requested}\" was already taken."
