@@ -1,8 +1,6 @@
 'use client';
 
-import { CalendarMain, type TVisibleHours, type TWorkingHours } from 'closer-calendar';
-
-import 'closer-calendar/dist/closer-calendar.css';
+import CalendarMain, { type TVisibleHours, type TWorkingHours } from '@cc/index';
 
 const DEFAULT_WORKING_HOURS: TWorkingHours = {
   0: { from: 0, to: 0 },

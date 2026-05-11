@@ -1,0 +1,94 @@
+/* Theme + utilities only — preflight is intentionally NOT imported because the host
+   app already provides a Tailwind preflight; bringing in a second one (or its global
+   `*` rules) leaks into the rest of the platform. */
+@import 'tailwindcss/theme.css' prefix(twcal);
+@import 'tailwindcss/utilities.css' prefix(twcal);
+@import 'tw-animate-css';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-size-xxs: 0.625rem;
+  --line-height-xxs: 1rem;
+  --max-width-8xl: 90rem;
+  --breakpoint-xs: 460px;
+  --breakpoint-sm: 576px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1440px;
+  --spacing-18: 4.5rem;
+  --spacing-4_5: 1.125rem;
+  --spacing-5_5: 1.375rem;
+  --spacing-6_5: 1.625rem;
+  --spacing-8_5: 2.125rem;
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+  /* Map calendar theme tokens directly to host CSS variables (already oklch).
+     The original library wrapped these in `hsl(...)` because it assumed the host
+     used HSL triplets — that produced invalid `hsl(oklch(...))` values here. */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+}
+
+.twcal-theme {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.fullgrowHeight {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.bg-calendar-disabled-hour {
+  background-image: repeating-linear-gradient(-60deg, var(--border) 0 0.5px, transparent 0.5px 8px);
+}
+
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
+.animate-accordion-down {
+  animation: accordion-down 0.2s ease-out;
+}
+
+.animate-accordion-up {
+  animation: accordion-up 0.2s ease-out;
+}
