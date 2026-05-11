@@ -15,6 +15,7 @@ A `rag_stores` entity already exists per the multi-store design. Today it's an e
 - **GCP infra:** User provisions. Spec includes a checklist of what to create + env vars. No `gcloud` commands run by Claude.
 - **Rollout:** All-in-one branch covering the whole pipeline.
 - **Chunking:** Use Document AI Layout Parser's chunk-shaped output directly. Drop micro-chunks below a min-char threshold. Only split a chunk further if it exceeds the embedding model's token limit (rare).
+- **Supported file types:** `pdf`, `docx`, `pptx`, `xlsx`, `html`, `jpg`, `jpeg`, `png`. Document AI Layout Parser handles the first five natively. For images (`jpg`/`jpeg`/`png`), the worker wraps each upload in a 1-page PDF via [`pdf-lib`](https://pdf-lib.js.org/) and submits the derived PDF to Document AI — single code path, same audit metadata (image becomes page 1 with OCR'd paragraphs).
 
 ## Goals
 
@@ -155,7 +156,8 @@ pending → uploading → parsing → chunking → embedding → done
   "@google-cloud/documentai": "^9.0.0",
   "@google-cloud/storage":    "^7.0.0",
   "@ai-sdk/google":           "^1.0.0",   // already exists? confirm
-  "ai":                       "^4.0.0"    // for embedMany; confirm version
+  "ai":                       "^4.0.0",   // for embedMany; confirm version
+  "pdf-lib":                  "^1.17.0"   // wrap images into single-page PDFs
 }
 ```
 
@@ -171,6 +173,7 @@ packages/backend/src/
 │   │                              GOOGLE_APPLICATION_CREDENTIALS path)
 │   ├── gcs.ts                     signed-URL minting, GCS read/write, delete
 │   ├── documentAi.ts              submit batch job, fetch operation, list output blobs
+│   ├── imagePdf.ts                wraps jpg/jpeg/png into a 1-page PDF via pdf-lib
 │   ├── chunker.ts                 parse Document AI JSON → SourcedChunk[]
 │   │                              (preserves page/paragraph/char offsets)
 │   ├── embeddings.ts              Gemini embedMany wrapper, batch + rate limit
@@ -338,8 +341,9 @@ Default `k = 20`.
 `DELETE /rag-files/:id`:
 1. Verify caller has access to the org.
 2. Delete the GCS object (best-effort; log on failure).
-3. Delete the Document AI output prefix (best-effort).
-4. `DELETE FROM rag_files WHERE id=$1` — cascades to `rag_chunks`.
+3. If `mime_type` starts with `image/`, also delete the derived `<gcs_object>.pdf` Document AI input (best-effort).
+4. Delete the Document AI output prefix (best-effort).
+5. `DELETE FROM rag_files WHERE id=$1` — cascades to `rag_chunks`.
 
 If a delete arrives while parsing/embedding is in flight, the worker's next iteration sees a missing row and aborts gracefully.
 

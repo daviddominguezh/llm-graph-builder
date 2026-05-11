@@ -19,6 +19,7 @@
 - `packages/backend/src/rag/config.ts`
 - `packages/backend/src/rag/gcs.ts`
 - `packages/backend/src/rag/documentAi.ts`
+- `packages/backend/src/rag/imagePdf.ts`
 - `packages/backend/src/rag/chunker.ts`
 - `packages/backend/src/rag/chunker.test.ts`
 - `packages/backend/src/rag/embeddings.ts`
@@ -56,8 +57,18 @@
 - `packages/backend/src/server.ts` (mount sub-router; start worker)
 - `packages/backend/src/lib/startupChecks.ts` (validate RAG env vars)
 - `packages/web/app/orgs/[slug]/(dashboard)/knowledge-base/rag/[storeSlug]/RagStorePageClient.tsx` (use the new `RagTenantContent`)
-- `packages/web/messages/en.json` (new i18n keys)
+- `packages/web/app/orgs/[slug]/(dashboard)/knowledge-base/TenantTabs.tsx` (pass `tenantId` through `renderTab` if not already)
+- `packages/web/messages/en.json` (new i18n keys; drop unsupported extensions string)
 - `packages/web/components/ui/` — none expected; reuse existing `Dialog`, `Button`, `Input`, `Table`, `AlertDialog`
+
+**Deleted (Task 31 Step 3):**
+- `packages/web/app/orgs/[slug]/(dashboard)/knowledge-base/AddFilesButton.tsx`
+- `packages/web/app/orgs/[slug]/(dashboard)/knowledge-base/FileList.tsx`
+- `packages/web/app/orgs/[slug]/(dashboard)/knowledge-base/KnowledgeBaseEmptyState.tsx`
+- `packages/web/app/orgs/[slug]/(dashboard)/knowledge-base/UploaderFooter.tsx`
+- `packages/web/app/orgs/[slug]/(dashboard)/knowledge-base/uploaderHelpers.tsx`
+- `packages/web/app/orgs/[slug]/(dashboard)/knowledge-base/useFileQueue.ts`
+- `packages/web/app/orgs/[slug]/(dashboard)/knowledge-base/useNativeDropArea.ts`
 
 ---
 
@@ -192,20 +203,22 @@ git commit -m "feat(db): rag_files, rag_chunks, pgvector + views + RLS"
 **Files:**
 - Modify: `packages/backend/package.json`
 
-- [ ] **Step 1:** Add four runtime dependencies (Node ESM; pinned majors). Use:
+- [ ] **Step 1:** Add five runtime dependencies (Node ESM; pinned majors). Use:
 
 ```bash
-npm install -w packages/backend @google-cloud/storage@^7.0.0 @google-cloud/documentai@^9.0.0 ai@^6.0.116 @ai-sdk/google@^2.0.0
+npm install -w packages/backend @google-cloud/storage@^7.0.0 @google-cloud/documentai@^9.0.0 ai@^6.0.116 @ai-sdk/google@^2.0.0 pdf-lib@^1.17.0
 ```
+
+`pdf-lib` is used to wrap uploaded images (jpg/jpeg/png) into 1-page PDFs before Document AI parsing.
 
 If the npm command fails to resolve `@ai-sdk/google@^2.0.0`, fall back to the latest 1.x with `@ai-sdk/google@^1.0.0` — both expose `google.textEmbeddingModel(name)`.
 
 - [ ] **Step 2:** Verify imports resolve:
 
 ```bash
-node -e "import('@google-cloud/storage').then(()=>console.log('storage ok')); import('@google-cloud/documentai').then(()=>console.log('documentai ok')); import('ai').then(()=>console.log('ai ok')); import('@ai-sdk/google').then(()=>console.log('google ok'));"
+node -e "import('@google-cloud/storage').then(()=>console.log('storage ok')); import('@google-cloud/documentai').then(()=>console.log('documentai ok')); import('ai').then(()=>console.log('ai ok')); import('@ai-sdk/google').then(()=>console.log('google ok')); import('pdf-lib').then(()=>console.log('pdf-lib ok'));"
 ```
-Expected: four `ok` lines.
+Expected: five `ok` lines.
 
 - [ ] **Step 3:** Commit:
 
@@ -498,6 +511,71 @@ Expected: pass.
 ```bash
 git add packages/backend/src/rag/documentAi.ts
 git commit -m "feat(backend): Document AI batch wrapper"
+```
+
+---
+
+## Task 5b: Image → PDF helper
+
+**Files:**
+- Create: `packages/backend/src/rag/imagePdf.ts`
+
+- [ ] **Step 1:** Create:
+
+```ts
+import { PDFDocument } from 'pdf-lib';
+
+const IMAGE_MIME_PREFIX = 'image/';
+const PNG_MIME = 'image/png';
+
+export function isImageMime(mimeType: string): boolean {
+  return mimeType.startsWith(IMAGE_MIME_PREFIX);
+}
+
+export function derivePdfObjectPath(gcsObject: string): string {
+  return `${gcsObject}.pdf`;
+}
+
+export async function imageBytesToPdfBytes(
+  imageBytes: Uint8Array,
+  mimeType: string
+): Promise<Uint8Array> {
+  const pdf = await PDFDocument.create();
+  const embedded = mimeType === PNG_MIME
+    ? await pdf.embedPng(imageBytes)
+    : await pdf.embedJpg(imageBytes);
+  const page = pdf.addPage([embedded.width, embedded.height]);
+  page.drawImage(embedded, { x: 0, y: 0, width: embedded.width, height: embedded.height });
+  return await pdf.save();
+}
+```
+
+- [ ] **Step 2:** Add a write helper to `packages/backend/src/rag/gcs.ts`. Open the file and append:
+
+```ts
+export async function writeBytesObject(
+  objectPath: string,
+  bytes: Uint8Array,
+  contentType: string
+): Promise<void> {
+  await getStorage().bucket(bucketName()).file(objectPath).save(Buffer.from(bytes), {
+    contentType,
+    resumable: false,
+  });
+}
+
+export async function readBytesObject(objectPath: string): Promise<Uint8Array> {
+  const [buffer] = await getStorage().bucket(bucketName()).file(objectPath).download();
+  return new Uint8Array(buffer);
+}
+```
+
+- [ ] **Step 3:** Typecheck + commit:
+
+```bash
+npm run typecheck -w packages/backend
+git add packages/backend/src/rag/imagePdf.ts packages/backend/src/rag/gcs.ts
+git commit -m "feat(backend): image → PDF helper for Document AI"
 ```
 
 ---
@@ -1362,6 +1440,22 @@ export async function tickOnce(supabase: SupabaseClient): Promise<void> {
   }
 }
 
+const PDF_MIME = 'application/pdf';
+
+async function prepareDocumentAiInput(
+  gcsObject: string,
+  mimeType: string
+): Promise<{ inputObjectPath: string; mimeType: string }> {
+  if (!isImageMime(mimeType)) {
+    return { inputObjectPath: gcsObject, mimeType };
+  }
+  const imageBytes = await readBytesObject(gcsObject);
+  const pdfBytes = await imageBytesToPdfBytes(imageBytes, mimeType);
+  const pdfPath = derivePdfObjectPath(gcsObject);
+  await writeBytesObject(pdfPath, pdfBytes, PDF_MIME);
+  return { inputObjectPath: pdfPath, mimeType: PDF_MIME };
+}
+
 // Called by routes when a fresh file is confirmed: submits Document AI batch + flips status.
 export async function startParsing(supabase: SupabaseClient, fileId: string): Promise<void> {
   const { result, error } = await getRagFileById(supabase, fileId);
@@ -1371,10 +1465,14 @@ export async function startParsing(supabase: SupabaseClient, fileId: string): Pr
   }
   const outputPrefix = `parsed/${result.id}/`;
   try {
+    const { inputObjectPath, mimeType } = await prepareDocumentAiInput(
+      result.gcs_object,
+      result.mime_type
+    );
     const { operationName, outputGcsUri } = await submitBatch({
-      inputObjectPath: result.gcs_object,
+      inputObjectPath,
       outputPrefix,
-      mimeType: result.mime_type,
+      mimeType,
     });
     await updateStatus(supabase, fileId, {
       status: 'parsing',
@@ -1386,6 +1484,13 @@ export async function startParsing(supabase: SupabaseClient, fileId: string): Pr
     await updateStatus(supabase, fileId, { status: 'failed', status_error: msg });
   }
 }
+```
+
+Add imports at the top of `workerLoop.ts` for `isImageMime`, `derivePdfObjectPath`, `imageBytesToPdfBytes`, `readBytesObject`, `writeBytesObject`:
+
+```ts
+import { derivePdfObjectPath, imageBytesToPdfBytes, isImageMime } from './imagePdf.js';
+import { listObjectsUnder, readBytesObject, readJsonObject, writeBytesObject } from './gcs.js';
 ```
 
 - [ ] **Step 2:** Typecheck:
@@ -1829,6 +1934,7 @@ import type { Request } from 'express';
 
 import { deleteFile, getRagFileById } from '../../../db/queries/ragFilesQueries.js';
 import { deleteObject, deletePrefix } from '../../../rag/gcs.js';
+import { derivePdfObjectPath, isImageMime } from '../../../rag/imagePdf.js';
 import {
   type AuthenticatedLocals,
   type AuthenticatedResponse,
@@ -1850,6 +1956,9 @@ export async function handleDeleteFile(req: Request, res: AuthenticatedResponse)
     const { result } = await getRagFileById(supabase, fileId);
     if (result !== null) {
       await deleteObject(result.gcs_object);
+      if (isImageMime(result.mime_type)) {
+        await deleteObject(derivePdfObjectPath(result.gcs_object));
+      }
       if (result.parsed_uri !== null && result.parsed_uri !== '') {
         await deletePrefix(result.parsed_uri);
       }
@@ -2537,6 +2646,8 @@ interface FileUploadDropzoneProps {
   onFiles: (files: FileList) => void;
 }
 
+const ACCEPTED_EXTENSIONS = '.pdf,.docx,.pptx,.xlsx,.html,.jpg,.jpeg,.png';
+
 export function FileUploadDropzone({ uploading, onFiles }: FileUploadDropzoneProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragUpload');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -2572,6 +2683,7 @@ export function FileUploadDropzone({ uploading, onFiles }: FileUploadDropzonePro
     >
       <Upload className="size-5 text-muted-foreground" />
       <span className="text-muted-foreground">{dragging ? t('drop') : t('idle')}</span>
+      <span className="text-[10px] font-mono text-muted-foreground/70">{t('extensions')}</span>
       <Button size="sm" variant="outline" disabled={uploading} onClick={() => inputRef.current?.click()}>
         {uploading ? t('uploading') : t('addFiles')}
       </Button>
@@ -2579,6 +2691,7 @@ export function FileUploadDropzone({ uploading, onFiles }: FileUploadDropzonePro
         ref={inputRef}
         type="file"
         multiple
+        accept={ACCEPTED_EXTENSIONS}
         className="hidden"
         onChange={onPick}
       />
@@ -3165,19 +3278,39 @@ Update the prop type too:
 renderTab: (tenantId: string) => React.ReactNode;
 ```
 
-- [ ] **Step 3:** Typecheck:
+- [ ] **Step 3:** Delete the now-orphan client-side file-queue components. These were used by the original inline `RagTenantContent` and are no longer referenced after Step 2:
+
+```bash
+grep -rln "AddFilesButton\|useFileQueue\|useNativeDropArea\|KnowledgeBaseEmptyState\|FileList\|UploaderFooter\|uploaderHelpers" packages/web --include="*.tsx" --include="*.ts" | grep -v "/orgs/\[slug\]/(dashboard)/knowledge-base/"
+```
+
+If the above grep returns no results outside the knowledge-base folder, run:
+
+```bash
+git rm packages/web/app/orgs/\[slug\]/\(dashboard\)/knowledge-base/AddFilesButton.tsx \
+       packages/web/app/orgs/\[slug\]/\(dashboard\)/knowledge-base/FileList.tsx \
+       packages/web/app/orgs/\[slug\]/\(dashboard\)/knowledge-base/KnowledgeBaseEmptyState.tsx \
+       packages/web/app/orgs/\[slug\]/\(dashboard\)/knowledge-base/UploaderFooter.tsx \
+       packages/web/app/orgs/\[slug\]/\(dashboard\)/knowledge-base/uploaderHelpers.tsx \
+       packages/web/app/orgs/\[slug\]/\(dashboard\)/knowledge-base/useFileQueue.ts \
+       packages/web/app/orgs/\[slug\]/\(dashboard\)/knowledge-base/useNativeDropArea.ts
+```
+
+If any external import is found, STOP and report — do not delete.
+
+- [ ] **Step 4:** Typecheck:
 
 ```bash
 npm run typecheck -w packages/web
 ```
 
-- [ ] **Step 4:** Commit:
+- [ ] **Step 5:** Commit:
 
 ```bash
 git add packages/web/app/orgs/\[slug\]/\(dashboard\)/knowledge-base/rag/\[storeSlug\]/RagTenantContent.tsx \
         packages/web/app/orgs/\[slug\]/\(dashboard\)/knowledge-base/rag/\[storeSlug\]/RagStorePageClient.tsx \
         packages/web/app/orgs/\[slug\]/\(dashboard\)/knowledge-base/TenantTabs.tsx
-git commit -m "feat(web): wire new RagTenantContent into RAG store detail page"
+git commit -m "feat(web): wire new RagTenantContent + drop obsolete file-queue UI"
 ```
 
 ---
@@ -3196,7 +3329,8 @@ git commit -m "feat(web): wire new RagTenantContent into RAG store detail page"
   "idle": "Drag files here or click to upload",
   "drop": "Release to upload",
   "uploading": "Uploading…",
-  "addFiles": "Choose files"
+  "addFiles": "Choose files",
+  "extensions": "pdf · docx · pptx · xlsx · html · jpg · jpeg · png"
 },
 "ragStatus": {
   "pending": "queued",
@@ -3240,17 +3374,19 @@ git commit -m "feat(web): wire new RagTenantContent into RAG store detail page"
 }
 ```
 
-- [ ] **Step 2:** Validate:
+- [ ] **Step 2:** Remove the obsolete top-level `knowledgeBase.extensions` key (it referenced gif/tiff/bmp/webp which are no longer supported). The new value lives at `knowledgeBase.ragUpload.extensions` (added in Step 1). Open `packages/web/messages/en.json`, locate the `"extensions": "pdf · docx · pptx · xlsx · html · jpg · png · gif · tiff · bmp · webp"` line directly under `knowledgeBase`, and delete that line (be careful with the trailing comma on the line above).
+
+- [ ] **Step 3:** Validate:
 
 ```bash
 node -e "JSON.parse(require('fs').readFileSync('packages/web/messages/en.json','utf8')); console.log('ok')"
 ```
 
-- [ ] **Step 3:** Commit:
+- [ ] **Step 4:** Commit:
 
 ```bash
 git add packages/web/messages/en.json
-git commit -m "i18n(web): rag pipeline translations"
+git commit -m "i18n(web): rag pipeline translations + drop unsupported extensions"
 ```
 
 ---
@@ -3291,6 +3427,7 @@ Both must pass.
 | GCP config + startup validation | 3 |
 | GCS wrapper | 4 |
 | Document AI batch wrapper | 5 |
+| Image → PDF helper (jpg/jpeg/png support) | 5b, 11 |
 | Chunker (audit metadata) | 6 |
 | Gemini embeddings (batched + RPM) | 7 |
 | ragFiles / ragChunks queries | 8, 9 |
