@@ -80,7 +80,8 @@ describe('compositionProvider — tool selection', () => {
   });
 
   it('returns three descriptors for user selection', async () => {
-    const descriptors = await compositionProvider.describeTools(makeCtx());
+    const result = await compositionProvider.describeTools(makeCtx());
+    const descriptors = Array.isArray(result) ? result : result.tools;
     expect(descriptors).toHaveLength(EXPECTED_DESCRIPTOR_COUNT);
     const names = descriptors.map((d) => d.toolName);
     expect(names).toContain('create_agent');

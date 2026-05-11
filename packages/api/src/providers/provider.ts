@@ -39,12 +39,20 @@ export interface ToolDescriptor {
   inputSchema: RawJsonSchema;
 }
 
+export interface DescribeToolsWithMeta {
+  tools: ToolDescriptor[];
+  cachedAt?: number;
+  serverVersion?: string;
+}
+
+export type DescribeToolsResult = ToolDescriptor[] | DescribeToolsWithMeta;
+
 export interface Provider {
   type: ProviderType;
   id: string;
   displayName: string;
   description?: string;
 
-  describeTools: (ctx: ProviderCtx) => Promise<ToolDescriptor[]>;
+  describeTools: (ctx: ProviderCtx) => Promise<DescribeToolsResult>;
   buildTools: (args: { toolNames: string[]; ctx: ProviderCtx }) => Promise<Record<string, OpenFlowTool>>;
 }

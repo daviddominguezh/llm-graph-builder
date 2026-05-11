@@ -42,12 +42,14 @@ describe('calendarProvider', () => {
   });
 
   it('describes 7 tools', async () => {
-    const tools = await calendarProvider.describeTools(makeCtx());
+    const result = await calendarProvider.describeTools(makeCtx());
+    const tools = Array.isArray(result) ? result : result.tools;
     expect(tools.length).toBeGreaterThanOrEqual(EXPECTED_TOOL_COUNT);
   });
 
   it('includes expected tool names', async () => {
-    const tools = await calendarProvider.describeTools(makeCtx());
+    const result = await calendarProvider.describeTools(makeCtx());
+    const tools = Array.isArray(result) ? result : result.tools;
     const names = tools.map((t) => t.toolName);
     expect(names).toContain('list_calendars');
     expect(names).toContain('check_availability');

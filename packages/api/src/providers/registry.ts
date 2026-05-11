@@ -25,6 +25,8 @@ export interface RegistryBuildResult {
 export interface DescribeAllItem {
   provider: Provider;
   tools: ToolDescriptor[];
+  cachedAt?: number;
+  serverVersion?: string;
   error?: { reason: FailureReason; detail: string };
 }
 
@@ -98,8 +100,14 @@ async function buildOneGroup(group: ProviderGroup, ctx: ProviderCtx): Promise<Gr
 
 async function describeOne(provider: Provider, ctx: ProviderCtx): Promise<DescribeAllItem> {
   try {
-    const tools = await provider.describeTools(ctx);
-    return { provider, tools };
+    const result = await provider.describeTools(ctx);
+    if (Array.isArray(result)) return { provider, tools: result };
+    return {
+      provider,
+      tools: result.tools,
+      cachedAt: result.cachedAt,
+      serverVersion: result.serverVersion,
+    };
   } catch (err) {
     return {
       provider,

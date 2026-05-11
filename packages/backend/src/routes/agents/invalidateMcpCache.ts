@@ -1,8 +1,13 @@
 import type { McpServerConfig } from '@daviddh/graph-types';
-import { hashServerUrl, mcpToolsListKey, serverUrlSideTableKey } from '@daviddh/llm-graph-runner';
+import {
+  hashServerUrl,
+  mcpCurrentVersionKey,
+  mcpSessionKey,
+  serverUrlSideTableKey,
+} from '@daviddh/llm-graph-runner';
+import { Redis } from '@upstash/redis';
 import type { Request } from 'express';
 
-import { buildUpstashClient } from '../../cache/redis.js';
 import { getAgentById } from '../../db/queries/agentQueries.js';
 import { getPublishedGraphData } from '../../db/queries/executionAuthQueries.js';
 import {
@@ -15,8 +20,10 @@ import {
   getAgentId,
 } from '../routeHelpers.js';
 
-const VERSION_UNKNOWN = '';
 const DELETED_STDIO = 0;
+const SCAN_COUNT = 100;
+const ZERO_CURSOR = '0';
+const NO_KEYS = 0;
 
 interface GraphDataLike {
   mcpServers?: McpServerConfig[];
@@ -38,12 +45,35 @@ function getServerUrl(server: McpServerConfig): string | null {
   return null;
 }
 
+function getRedis(): Redis | null {
+  const url: string | undefined = process.env.UPSTASH_REDIS_REST_URL;
+  const token: string | undefined = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (url === undefined || token === undefined) return null;
+  return new Redis({ url, token });
+}
+
+async function scanStep(redis: Redis, pattern: string, cursor: string, acc: string[]): Promise<string[]> {
+  const [nextCursor, batch] = await redis.scan(cursor, { match: pattern, count: SCAN_COUNT });
+  const merged = [...acc, ...batch];
+  if (nextCursor === ZERO_CURSOR) return merged;
+  return await scanStep(redis, pattern, nextCursor, merged);
+}
+
+async function scanAllVersionedToolsKeys(redis: Redis, orgId: string, serverHash: string): Promise<string[]> {
+  const pattern = `mcp_tools:v1:${orgId}:${serverHash}:*`;
+  return await scanStep(redis, pattern, ZERO_CURSOR, []);
+}
+
 async function invalidateCacheKeys(orgId: string, serverHash: string): Promise<number> {
-  const redis = buildUpstashClient();
-  const toolsKey = mcpToolsListKey(orgId, serverHash, VERSION_UNKNOWN);
+  const redis = getRedis();
+  if (redis === null) return NO_KEYS;
+  const toolsKeys = await scanAllVersionedToolsKeys(redis, orgId, serverHash);
+  const sessionKey = mcpSessionKey(orgId, serverHash);
   const sideKey = serverUrlSideTableKey(serverHash);
-  const deleted = await redis.del(toolsKey, sideKey);
-  return deleted;
+  const versionKey = mcpCurrentVersionKey(orgId, serverHash);
+  const allKeys = [...toolsKeys, sessionKey, sideKey, versionKey];
+  if (allKeys.length === NO_KEYS) return NO_KEYS;
+  return await redis.del(...allKeys);
 }
 
 async function runInvalidation(

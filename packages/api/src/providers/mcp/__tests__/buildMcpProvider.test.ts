@@ -145,7 +145,8 @@ describe('buildMcpProvider — describeTools', () => {
       t.responses.set('tools/list', { tools: [SAMPLE_TOOL] });
     });
     const provider = buildMcpProvider(STDIO_SERVER, { createTransport: factory });
-    const descs = await provider.describeTools(makeCtx());
+    const result = await provider.describeTools(makeCtx());
+    const descs = Array.isArray(result) ? result : result.tools;
     expect(descs).toHaveLength(ONE);
     const [first] = descs;
     expect(first?.toolName).toBe(TOOL_NAME);
@@ -272,7 +273,8 @@ describe('buildMcpProvider — session cache reattach', () => {
     const cache = createFakeSessionCache();
     cache.store.set(httpServerCacheKey(), buildCachedSession());
     const provider = buildMcpProvider(HTTP_SERVER, { createTransport: factory, sessionCache: cache });
-    const descs = await provider.describeTools(makeCtx());
+    const result = await provider.describeTools(makeCtx());
+    const descs = Array.isArray(result) ? result : result.tools;
     expect(descs).toHaveLength(ONE);
     expect(cache.deleteCalls).toHaveLength(ONE);
     expect(transports).toHaveLength(TWO);

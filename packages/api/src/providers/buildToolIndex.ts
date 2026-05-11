@@ -53,7 +53,8 @@ async function describeOneSafely(
   logger: Logger
 ): Promise<{ provider: Provider; descriptors: ToolDescriptor[] }> {
   try {
-    const descriptors = await provider.describeTools(ctx);
+    const result = await provider.describeTools(ctx);
+    const descriptors = Array.isArray(result) ? result : result.tools;
     return { provider, descriptors };
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);

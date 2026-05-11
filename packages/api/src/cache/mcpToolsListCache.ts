@@ -10,6 +10,10 @@ export function mcpToolsListKey(orgId: string, serverHash: string, serverVersion
   return `mcp_tools:v1:${orgId}:${serverHash}:${version}`;
 }
 
+export function mcpCurrentVersionKey(orgId: string, serverHash: string): string {
+  return `mcp_current_version:v1:${orgId}:${serverHash}`;
+}
+
 export function isCacheableSize(serializedValue: string): boolean {
   return new TextEncoder().encode(serializedValue).byteLength <= MAX_CACHE_VALUE_BYTES;
 }

@@ -85,7 +85,7 @@ function McpTab({ mcp }: { mcp: McpProps }) {
 
 const PANEL_TABS = ['tools', 'mcp'] as const;
 
-const activeTabCls = 'bg-background dark:bg-input text-foreground shadow-sm';
+const activeTabCls = 'bg-input text-foreground shadow-none';
 const inactiveTabCls =
   'text-muted-foreground hover:text-foreground border-transparent hover:bg-input dark:hover:bg-input/30';
 const tabBaseCls =

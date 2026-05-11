@@ -34,7 +34,8 @@ function makeCtx(): ProviderCtx {
 
 describe('leadScoringProvider', () => {
   it('describes set_lead_score and get_lead_score', async () => {
-    const tools = await leadScoringProvider.describeTools(makeCtx());
+    const result = await leadScoringProvider.describeTools(makeCtx());
+    const tools = Array.isArray(result) ? result : result.tools;
     const names = tools.map((t) => t.toolName);
     expect(names).toContain('set_lead_score');
     expect(names).toContain('get_lead_score');

@@ -46,7 +46,8 @@ function makeCtxWithSvcButNoConv(): ProviderCtx {
 
 describe('formsProvider', () => {
   it('describes set_form_fields and get_form_field', async () => {
-    const tools = await formsProvider.describeTools(makeBaseCtx());
+    const result = await formsProvider.describeTools(makeBaseCtx());
+    const tools = Array.isArray(result) ? result : result.tools;
     const names = tools.map((t) => t.toolName);
     expect(names).toContain('set_form_fields');
     expect(names).toContain('get_form_field');

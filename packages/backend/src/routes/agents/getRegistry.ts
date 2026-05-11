@@ -49,6 +49,8 @@ interface ProviderResponseShape {
   displayName: string;
   description?: string;
   tools: DescribeAllItem['tools'];
+  cachedAt?: number;
+  serverVersion?: string;
   error?: DescribeAllItem['error'];
 }
 
@@ -59,6 +61,8 @@ function shapeProviders(items: DescribeAllItem[]): ProviderResponseShape[] {
     displayName: item.provider.displayName,
     description: item.provider.description,
     tools: item.tools,
+    cachedAt: item.cachedAt,
+    serverVersion: item.serverVersion,
     error: item.error,
   }));
 }

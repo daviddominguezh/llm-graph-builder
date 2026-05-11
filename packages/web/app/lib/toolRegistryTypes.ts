@@ -9,6 +9,8 @@ export interface RegistryTool {
 export interface ToolGroup {
   kind: 'builtin' | 'mcp';
   groupName: string;
+  providerId: string;
   tools: RegistryTool[];
   fetchedAt?: number;
+  serverVersion?: string;
 }

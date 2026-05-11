@@ -11,8 +11,10 @@ import { useOAuthStatus } from '../../hooks/useOAuthStatus';
 import type { McpAuthType, McpLibraryRow } from '../../lib/mcpLibraryTypes';
 import type { OrgEnvVariableRow } from '../../lib/orgEnvVariables';
 import type { McpServerConfig } from '../../schemas/graph.schema';
+import { useToolRegistry } from '../ToolRegistryProvider';
 import { LibraryServerFields, areVariablesComplete } from './LibraryServerFields';
 import type { VariableValueShape } from './LibraryServerFields';
+import { NoServerVersionBadge } from './NoServerVersionBadge';
 import { StdioTransportFields, TransportTypeSelector, UrlTransportFields } from './TransportFields';
 
 interface McpServersSectionProps {
@@ -199,11 +201,12 @@ function ServerItem({
   envVariables,
   orgId,
   authType,
+  noVersion,
   onRemove,
   onUpdate,
   onDiscover,
   onPublish,
-}: ServerItemProps) {
+}: ServerItemProps & { noVersion: boolean }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -216,6 +219,7 @@ function ServerItem({
           <ChevronDown className={`size-3 transition-transform ${expanded ? '' : '-rotate-90'}`} />
           <StatusIcon status={status} />
           {server.name}
+          {noVersion && <NoServerVersionBadge />}
         </span>
         <Button
           variant="destructive"
@@ -252,6 +256,15 @@ function getAuthType(server: McpServerConfig, libraryItems: McpLibraryRow[]): Mc
   return libraryItems.find((i) => i.id === server.libraryItemId)?.auth_type;
 }
 
+function buildNoVersionMap(groups: ReturnType<typeof useToolRegistry>['groups']): Record<string, boolean> {
+  const out: Record<string, boolean> = {};
+  for (const g of groups) {
+    if (g.kind !== 'mcp') continue;
+    out[g.providerId] = g.serverVersion === '';
+  }
+  return out;
+}
+
 export function McpServersSection({
   servers,
   discovering,
@@ -267,6 +280,8 @@ export function McpServersSection({
   onOpenLibrary,
 }: McpServersSectionProps) {
   const items = libraryItems ?? [];
+  const { groups } = useToolRegistry();
+  const noVersionMap = buildNoVersionMap(groups);
 
   return (
     <div className="mt-2">
@@ -293,6 +308,7 @@ export function McpServersSection({
               envVariables={envVariables}
               orgId={orgId}
               authType={getAuthType(server, items)}
+              noVersion={noVersionMap[server.id] ?? false}
               onRemove={() => onRemove(server.id)}
               onUpdate={(updates) => onUpdate(server.id, updates)}
               onDiscover={() => onDiscover(server.id)}

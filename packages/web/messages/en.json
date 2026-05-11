@@ -674,6 +674,10 @@
     "disconnectError": "Couldn't disconnect. Please try again.",
     "disconnectSuccess": "Google Calendar disconnected."
   },
+  "mcpServers": {
+    "noVersionBadge": "No version",
+    "noVersionTooltip": "This MCP server doesn't report a version. Caching may serve stale tools until you refresh manually."
+  },
   "agentTools": {
     "selectAll": "Select all",
     "clear": "Clear",

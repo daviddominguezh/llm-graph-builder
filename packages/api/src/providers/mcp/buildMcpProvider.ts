@@ -1,9 +1,7 @@
 import type { McpServerConfig } from '@daviddh/graph-types';
-import { Redis } from '@upstash/redis';
 
-import { isCacheableSize, mcpToolsListKey } from '../../cache/mcpToolsListCache.js';
-import { hashServerUrl, serverUrlSideTableKey } from '../../cache/serverHash.js';
-import type { Provider, ProviderCtx, ToolDescriptor } from '../provider.js';
+import { hashServerUrl } from '../../cache/serverHash.js';
+import type { DescribeToolsWithMeta, Provider, ProviderCtx, ToolDescriptor } from '../provider.js';
 import type { OpenFlowTool } from '../types.js';
 import type { McpClientHandle } from './client/mcpClient.js';
 import type { RawMcpTool } from './client/types.js';
@@ -16,77 +14,12 @@ import {
   ensureSession,
   extractServerUrl,
 } from './ensureSession.js';
-
-const TOOLS_LIST_TTL_SECONDS = 300;
-const SIDE_TABLE_TTL_SECONDS = 86_400;
-const EMPTY_TOOLS_LENGTH = 0;
-
-let cachedRedis: Redis | null = null;
-
-function getRedis(): Redis | null {
-  if (cachedRedis !== null) return cachedRedis;
-  const url: string | undefined = process.env.UPSTASH_REDIS_REST_URL;
-  const token: string | undefined = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (url === undefined || token === undefined) return null;
-  cachedRedis = new Redis({ url, token });
-  return cachedRedis;
-}
-
-interface CachedToolsList {
-  serverHash: string;
-  tools: ToolDescriptor[];
-  cachedAt: number;
-}
-
-function isCachedToolsList(value: unknown): value is CachedToolsList {
-  if (typeof value !== 'object' || value === null) return false;
-  const v = value as { serverHash?: unknown; tools?: unknown; cachedAt?: unknown };
-  return typeof v.serverHash === 'string' && Array.isArray(v.tools) && typeof v.cachedAt === 'number';
-}
-
-async function tryReadCachedTools(
-  orgId: string,
-  serverHash: string,
-  version: string
-): Promise<ToolDescriptor[] | null> {
-  const redis = getRedis();
-  if (redis === null) return null;
-  try {
-    const key = mcpToolsListKey(orgId, serverHash, version);
-    const raw = await redis.get<string>(key);
-    if (raw === null) return null;
-    const parsed: unknown = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    if (!isCachedToolsList(parsed)) return null;
-    return parsed.tools;
-  } catch {
-    return null;
-  }
-}
-
-interface ToolsCacheWriteArgs {
-  orgId: string;
-  serverHash: string;
-  serverUrl: string;
-  tools: ToolDescriptor[];
-  version: string;
-}
-
-async function tryWriteCachedTools(args: ToolsCacheWriteArgs): Promise<void> {
-  if (args.tools.length === EMPTY_TOOLS_LENGTH) return;
-  const redis = getRedis();
-  if (redis === null) return;
-  const value: CachedToolsList = { serverHash: args.serverHash, tools: args.tools, cachedAt: Date.now() };
-  const serialized = JSON.stringify(value);
-  if (!isCacheableSize(serialized)) return;
-  try {
-    const key = mcpToolsListKey(args.orgId, args.serverHash, args.version);
-    await redis.setex(key, TOOLS_LIST_TTL_SECONDS, serialized);
-    const sideEntry = JSON.stringify({ serverUrl: args.serverUrl, firstSeenAt: Date.now() });
-    await redis.setex(serverUrlSideTableKey(args.serverHash), SIDE_TABLE_TTL_SECONDS, sideEntry);
-  } catch {
-    // swallow — cache is best-effort
-  }
-}
+import {
+  tryReadCachedTools,
+  tryReadCurrentVersion,
+  tryWriteCachedTools,
+  tryWriteCurrentVersion,
+} from './mcpCacheHelpers.js';
 
 export interface BuildMcpProviderOptions {
   /** Test seam — override the transport factory. Production uses the real createTransport. */
@@ -121,46 +54,92 @@ async function listAndCacheTools(
   handle: McpClientHandle,
   ctx: ProviderCtx,
   serverUrl: string
-): Promise<ToolDescriptor[]> {
+): Promise<DescribeToolsWithMeta> {
   const rawTools = await handle.listTools();
   const descriptors = rawTools.map(rawToolToDescriptor);
-  if (serverUrl === '') return descriptors;
-  const serverHash = await hashServerUrl(serverUrl);
+  const cachedAt = Date.now();
   const {
     initialized: {
       serverInfo: { version },
     },
   } = handle;
-  await tryWriteCachedTools({
-    orgId: ctx.orgId,
-    serverHash,
-    serverUrl,
-    tools: descriptors,
-    version,
-  });
-  return descriptors;
+  if (version === '') ctx.logger.warn('metric:mcp.no_version_field');
+  if (serverUrl === '') return { tools: descriptors, cachedAt, serverVersion: version };
+  const serverHash = await hashServerUrl(serverUrl);
+  await tryWriteCachedTools(
+    { orgId: ctx.orgId, serverHash, serverUrl, tools: descriptors, version, cachedAt },
+    ctx.logger
+  );
+  await tryWriteCurrentVersion(ctx.orgId, serverHash, version, ctx.logger);
+  return { tools: descriptors, cachedAt, serverVersion: version };
+}
+
+interface CachedToolsHit {
+  tools: ToolDescriptor[];
+  cachedAt: number;
+  serverVersion: string;
 }
 
 async function readCachedToolsForCachedSession(
   deps: EnsureSessionDeps,
   serverUrl: string,
   ctx: ProviderCtx
-): Promise<ToolDescriptor[] | null> {
+): Promise<CachedToolsHit | null> {
   const cachedSession = await deps.cache.read(ctx.orgId, serverUrl);
   if (cachedSession === null) return null;
   const serverHash = await hashServerUrl(serverUrl);
-  return await tryReadCachedTools(ctx.orgId, serverHash, cachedSession.serverInfo.version);
+  const cached = await tryReadCachedTools(
+    ctx.orgId,
+    serverHash,
+    cachedSession.serverInfo.version,
+    ctx.logger
+  );
+  if (cached === null) return null;
+  return {
+    tools: cached.tools,
+    cachedAt: cached.cachedAt,
+    serverVersion: cachedSession.serverInfo.version,
+  };
+}
+
+async function readCachedToolsByPointer(serverUrl: string, ctx: ProviderCtx): Promise<CachedToolsHit | null> {
+  const serverHash = await hashServerUrl(serverUrl);
+  const version = await tryReadCurrentVersion(ctx.orgId, serverHash, ctx.logger);
+  if (version === null) return null;
+  const cached = await tryReadCachedTools(ctx.orgId, serverHash, version, ctx.logger);
+  if (cached === null) return null;
+  return { tools: cached.tools, cachedAt: cached.cachedAt, serverVersion: version };
+}
+
+const MS_PER_SECOND = 1_000;
+const MIN_AGE_SECONDS = 0;
+
+function ageSeconds(cachedAt: number): number {
+  return Math.max(MIN_AGE_SECONDS, Math.floor((Date.now() - cachedAt) / MS_PER_SECOND));
 }
 
 async function describe(
   deps: EnsureSessionDeps,
   server: McpServerConfig,
   ctx: ProviderCtx
-): Promise<ToolDescriptor[]> {
+): Promise<DescribeToolsWithMeta> {
   const serverUrl = extractServerUrl(server);
   if (serverUrl !== '') {
-    const cachedTools = await readCachedToolsForCachedSession(deps, serverUrl, ctx);
-    if (cachedTools !== null) return cachedTools;
+    const viaSession = await readCachedToolsForCachedSession(deps, serverUrl, ctx);
+    if (viaSession !== null) {
+      ctx.logger.info(
+        `metric:cache_hit cache=mcp_tools_list server=${server.name} via=session age=${String(ageSeconds(viaSession.cachedAt))}s`
+      );
+      return viaSession;
+    }
+    const viaPointer = await readCachedToolsByPointer(serverUrl, ctx);
+    if (viaPointer !== null) {
+      ctx.logger.info(
+        `metric:cache_hit cache=mcp_tools_list server=${server.name} via=pointer age=${String(ageSeconds(viaPointer.cachedAt))}s`
+      );
+      return viaPointer;
+    }
+    ctx.logger.info(`metric:cache_miss cache=mcp_tools_list server=${server.name}`);
   }
   return await withSession(
     deps,

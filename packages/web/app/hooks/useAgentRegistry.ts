@@ -35,6 +35,8 @@ interface RegistryProviderResponse {
   displayName: string;
   description?: string;
   tools: RegistryToolResponse[];
+  cachedAt?: number;
+  serverVersion?: string;
   error?: RegistryProviderError;
 }
 
@@ -61,7 +63,7 @@ interface ShapedProvider {
   tools: RegistryTool[];
 }
 
-function shapeProvider(provider: RegistryProviderResponse, fetchedAt: number): ShapedProvider {
+function shapeProvider(provider: RegistryProviderResponse, fallbackFetchedAt: number): ShapedProvider {
   const sourceId = builtinSourceId(provider);
   const tools: RegistryTool[] = provider.tools.map((tool) => ({
     sourceId,
@@ -73,8 +75,10 @@ function shapeProvider(provider: RegistryProviderResponse, fetchedAt: number): S
   const group: ToolGroup = {
     kind: provider.type,
     groupName: provider.displayName,
+    providerId: provider.id,
     tools,
-    fetchedAt: provider.type === 'mcp' ? fetchedAt : undefined,
+    fetchedAt: provider.type === 'mcp' ? (provider.cachedAt ?? fallbackFetchedAt) : undefined,
+    serverVersion: provider.type === 'mcp' ? provider.serverVersion : undefined,
   };
   return { group, tools };
 }

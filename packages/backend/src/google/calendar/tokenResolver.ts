@@ -9,6 +9,7 @@ import {
   upsertGoogleConnection,
 } from '../../db/queries/googleOauthConnectionOperations.js';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
+import { recordMetric } from '../../observability/metrics.js';
 import { loadGoogleOAuthConfig } from './oauthConfig.js';
 import { refreshGoogleAccessToken } from './tokenExchange.js';
 
@@ -24,17 +25,21 @@ const CALENDAR_PROVIDER_ID = 'calendar';
 let cachedCache: CacheWrapper | null = null;
 let cachedRedisClient: ReturnType<typeof buildUpstashClient> | null = null;
 
+function onCalendarCacheUnavailable(): void {
+  recordMetric('cache_unavailable', { cache: 'oauth_token', provider: 'calendar' });
+}
+
 function getCache(): CacheWrapper {
   if (cachedCache !== null) return cachedCache;
   cachedRedisClient = buildUpstashClient();
-  cachedCache = createCache(cachedRedisClient);
+  cachedCache = createCache(cachedRedisClient, { onUnavailable: onCalendarCacheUnavailable });
   return cachedCache;
 }
 
 function getRedisClient(): ReturnType<typeof buildUpstashClient> {
   if (cachedRedisClient !== null) return cachedRedisClient;
   cachedRedisClient = buildUpstashClient();
-  cachedCache = createCache(cachedRedisClient);
+  cachedCache = createCache(cachedRedisClient, { onUnavailable: onCalendarCacheUnavailable });
   return cachedRedisClient;
 }
 
@@ -186,8 +191,10 @@ export async function resolveGoogleTokenBundle(
 
   const cached = await cache.tryGet(key);
   if (isOAuthTokenBundle(cached) && isFresh(cached, Date.now())) {
+    recordMetric('cache_hit', { cache: 'oauth_token', provider: 'calendar' });
     return cached;
   }
 
+  recordMetric('cache_miss', { cache: 'oauth_token', provider: 'calendar' });
   return await resolveBundleFromDb(supabase, orgId, cache, key);
 }

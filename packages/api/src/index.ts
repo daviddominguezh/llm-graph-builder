@@ -114,7 +114,14 @@ export type { AccessTokenProvider, CreateGoogleCalendarServiceOptions } from './
 export { hashServerUrl, serverUrlSideTableKey } from './cache/serverHash.js';
 export type { ServerUrlSideTableEntry } from './cache/serverHash.js';
 
-export { MAX_CACHE_VALUE_BYTES, isCacheableSize, mcpToolsListKey } from './cache/mcpToolsListCache.js';
+export {
+  MAX_CACHE_VALUE_BYTES,
+  isCacheableSize,
+  mcpCurrentVersionKey,
+  mcpToolsListKey,
+} from './cache/mcpToolsListCache.js';
+
+export { mcpSessionKey } from './providers/mcp/sessionCache.js';
 
 export type { SelectedTool, ProviderType, BuiltinProviderId } from './types/selectedTool.js';
 export { BUILTIN_PROVIDER_IDS, equalsSelectedTool } from './types/selectedTool.js';
