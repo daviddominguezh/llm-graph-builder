@@ -67,11 +67,7 @@ export async function updateKvStore(
   name: string
 ): Promise<{ result: KvStoreRow | null; error: string | null }> {
   try {
-    const data = await fetchFromBackend(
-      'PATCH',
-      `/kv-stores/${encodeURIComponent(storeId)}`,
-      { name }
-    );
+    const data = await fetchFromBackend('PATCH', `/kv-stores/${encodeURIComponent(storeId)}`, { name });
     if (!isKvStoreRow(data)) return { result: null, error: 'Invalid response' };
     return { result: data, error: null };
   } catch (err) {

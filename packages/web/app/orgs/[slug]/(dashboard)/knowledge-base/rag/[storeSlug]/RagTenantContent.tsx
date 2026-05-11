@@ -2,7 +2,13 @@
 
 import { checkFilesAction, listFilesAction, searchAction } from '@/app/actions/ragFiles';
 import { getCachedFiles, setCachedFiles } from '@/app/lib/ragCache';
-import type { RagFileRow, SearchMode, SearchResponse, TenantUsage } from '@/app/lib/ragFiles';
+import type {
+  RagChunkRow,
+  RagFileRow,
+  SearchMode,
+  SearchResponse,
+  TenantUsage,
+} from '@/app/lib/ragFiles';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -12,7 +18,6 @@ import { Loader2 } from 'lucide-react';
 import { FileRow } from './FileRow';
 import { FileUploadDropzone } from './FileUploadDropzone';
 import { RagSearchBar } from './RagSearchBar';
-import { SearchResults } from './SearchResults';
 import { UploadFilesButton } from './UploadFilesButton';
 import { useRagUpload } from './useRagUpload';
 
@@ -23,6 +28,7 @@ interface RagTenantContentProps {
 
 const BYTES_KB = 1024;
 const ONE_DECIMAL = 1;
+const SEARCH_DEBOUNCE_MS = 2000;
 const ZERO_USAGE: TenantUsage = { files_count: 0, pages_count: 0, bytes_total: 0 };
 
 function formatBytes(n: number): string {
@@ -93,34 +99,111 @@ function useTenantFiles(storeId: string, tenantId: string): UseTenantFilesReturn
 
 interface UseTenantSearchReturn {
   response: SearchResponse | null;
-  busy: boolean;
-  run: (mode: SearchMode, query: string) => Promise<void>;
+  query: string;
+  mode: SearchMode;
+  setQuery: (q: string) => void;
+  setMode: (m: SearchMode) => void;
+}
+
+interface SettledSearch {
+  query: string;
+  mode: SearchMode;
+  response: SearchResponse;
 }
 
 function useTenantSearch(storeId: string, tenantId: string): UseTenantSearchReturn {
-  const [response, setResponse] = useState<SearchResponse | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState('');
+  const [mode, setMode] = useState<SearchMode>('simple');
+  const [settled, setSettled] = useState<SettledSearch | null>(null);
 
-  const run = useCallback(
-    async (mode: SearchMode, query: string): Promise<void> => {
-      setBusy(true);
-      const { result } = await searchAction(storeId, tenantId, mode, query);
-      setResponse(result);
-      setBusy(false);
-    },
-    [storeId, tenantId]
-  );
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (trimmed === '') return;
+    let cancelled = false;
+    const id = setTimeout(() => {
+      void (async () => {
+        const { result } = await searchAction(storeId, tenantId, mode, trimmed);
+        if (cancelled) return;
+        setSettled({ query: trimmed, mode, response: result });
+      })();
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      cancelled = true;
+      clearTimeout(id);
+    };
+  }, [storeId, tenantId, query, mode]);
 
-  return { response, busy, run };
+  const matchesCurrent = settled !== null && settled.query === query.trim() && settled.mode === mode;
+  const response = matchesCurrent && settled !== null ? settled.response : null;
+  return { response, query, mode, setQuery, setMode };
+}
+
+interface SearchState {
+  visibleFiles: RagFileRow[];
+  chunksByFile: Map<string, RagChunkRow[]>;
+  isSearchActive: boolean;
+  isSearchPending: boolean;
+  showNoMatches: boolean;
+}
+
+const EMPTY_CHUNKS_MAP: Map<string, RagChunkRow[]> = new Map();
+
+function groupChunksByFile(response: SearchResponse): Map<string, RagChunkRow[]> {
+  const map = new Map<string, RagChunkRow[]>();
+  for (const c of response.chunks ?? []) {
+    const arr = map.get(c.rag_file_id) ?? [];
+    arr.push(c);
+    map.set(c.rag_file_id, arr);
+  }
+  return map;
+}
+
+function deriveSearchState(files: RagFileRow[], search: UseTenantSearchReturn): SearchState {
+  const isSearching = search.query.trim() !== '';
+  if (!isSearching)
+    return {
+      visibleFiles: files,
+      chunksByFile: EMPTY_CHUNKS_MAP,
+      isSearchActive: false,
+      isSearchPending: false,
+      showNoMatches: false,
+    };
+  if (search.response === null)
+    return {
+      visibleFiles: [],
+      chunksByFile: EMPTY_CHUNKS_MAP,
+      isSearchActive: true,
+      isSearchPending: true,
+      showNoMatches: false,
+    };
+  const chunksByFile = groupChunksByFile(search.response);
+  const ids = new Set<string>(chunksByFile.keys());
+  for (const f of search.response.files ?? []) ids.add(f.id);
+  const visibleFiles = files.filter((f) => ids.has(f.id));
+  return {
+    visibleFiles,
+    chunksByFile,
+    isSearchActive: true,
+    isSearchPending: false,
+    showNoMatches: visibleFiles.length === 0,
+  };
 }
 
 interface FileListProps {
   storeId: string;
   files: RagFileRow[];
   onRefresh: () => void;
+  isSearchActive: boolean;
+  chunksByFile: Map<string, RagChunkRow[]>;
 }
 
-function FileList({ storeId, files, onRefresh }: FileListProps): React.JSX.Element {
+function FileList({
+  storeId,
+  files,
+  onRefresh,
+  isSearchActive,
+  chunksByFile,
+}: FileListProps): React.JSX.Element {
   return (
     <div className="flex flex-col gap-1.5">
       {files.map((f) => (
@@ -130,17 +213,15 @@ function FileList({ storeId, files, onRefresh }: FileListProps): React.JSX.Eleme
           file={f}
           onDeleted={onRefresh}
           onStatusReachedDone={onRefresh}
+          forceExpanded={isSearchActive}
+          overrideChunks={isSearchActive ? (chunksByFile.get(f.id) ?? []) : undefined}
         />
       ))}
     </div>
   );
 }
 
-interface UsageSummaryProps {
-  usage: TenantUsage;
-}
-
-function UsageSummary({ usage }: UsageSummaryProps): React.JSX.Element {
+function UsageSummary({ usage }: { usage: TenantUsage }): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragFiles');
   return (
     <span className="text-[11px] font-mono text-muted-foreground">
@@ -161,10 +242,68 @@ function LoadingSpinner(): React.JSX.Element {
   );
 }
 
+function NoMatchesMessage(): React.JSX.Element {
+  const t = useTranslations('knowledgeBase.ragFiles');
+  return (
+    <div className="flex flex-1 items-center justify-center">
+      <span className="text-xs text-muted-foreground">{t('noMatches')}</span>
+    </div>
+  );
+}
+
+interface FileListSectionProps {
+  storeId: string;
+  files: RagFileRow[];
+  onRefresh: () => void;
+  isSearchActive: boolean;
+  isSearchPending: boolean;
+  showNoMatches: boolean;
+  chunksByFile: Map<string, RagChunkRow[]>;
+}
+
+function FileListSection({
+  storeId,
+  files,
+  onRefresh,
+  isSearchActive,
+  isSearchPending,
+  showNoMatches,
+  chunksByFile,
+}: FileListSectionProps): React.JSX.Element {
+  if (isSearchPending) return <LoadingSpinner />;
+  if (showNoMatches) return <NoMatchesMessage />;
+  return (
+    <Scrollable className="flex-1 min-h-0">
+      <FileList
+        storeId={storeId}
+        files={files}
+        onRefresh={onRefresh}
+        isSearchActive={isSearchActive}
+        chunksByFile={chunksByFile}
+      />
+    </Scrollable>
+  );
+}
+
+interface HeaderRowProps {
+  loaded: boolean;
+  usage: TenantUsage;
+  uploading: boolean;
+  onFiles: (files: FileList) => void;
+}
+
+function HeaderRow({ loaded, usage, uploading, onFiles }: HeaderRowProps): React.JSX.Element {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      {loaded ? <UsageSummary usage={usage} /> : <div />}
+      {loaded && <UploadFilesButton uploading={uploading} onFiles={onFiles} />}
+    </div>
+  );
+}
+
 export function RagTenantContent({ storeId, tenantId }: RagTenantContentProps): React.JSX.Element {
   const { files, usage, loaded, refresh } = useTenantFiles(storeId, tenantId);
   const search = useTenantSearch(storeId, tenantId);
-
   const { uploading, uploadFiles } = useRagUpload({
     storeId,
     tenantId,
@@ -173,34 +312,35 @@ export function RagTenantContent({ storeId, tenantId }: RagTenantContentProps): 
     },
   });
 
+  const { visibleFiles, chunksByFile, isSearchActive, isSearchPending, showNoMatches } =
+    deriveSearchState(files, search);
   const hasFiles = files.length > 0;
-  const showEmptyState = loaded && !hasFiles;
-  const showSearchBar = loaded && hasFiles;
 
   return (
     <div className="flex flex-1 min-h-0 flex-col gap-4 p-4">
-      <div className="flex items-center justify-between gap-2">
-        {loaded ? <UsageSummary usage={usage} /> : <div />}
-        {loaded && (
-          <UploadFilesButton uploading={uploading} onFiles={(fs) => void uploadFiles(fs)} />
-        )}
-      </div>
+      <HeaderRow loaded={loaded} usage={usage} uploading={uploading} onFiles={(fs) => void uploadFiles(fs)} />
       {!loaded && <LoadingSpinner />}
-      {showEmptyState && (
+      {loaded && !hasFiles && (
         <FileUploadDropzone uploading={uploading} onFiles={(fs) => void uploadFiles(fs)} />
       )}
-      {showSearchBar && <RagSearchBar busy={search.busy} onSearch={(m, q) => void search.run(m, q)} />}
       {loaded && hasFiles && (
-        <Scrollable className="flex-1 min-h-0">
-          <div className="flex flex-col gap-4 pr-1">
-            {search.response !== null && <SearchResults response={search.response} />}
-            <FileList
-              storeId={storeId}
-              files={files}
-              onRefresh={() => void refresh()}
-            />
-          </div>
-        </Scrollable>
+        <>
+          <RagSearchBar
+            query={search.query}
+            mode={search.mode}
+            onQueryChange={search.setQuery}
+            onModeChange={search.setMode}
+          />
+          <FileListSection
+            storeId={storeId}
+            files={visibleFiles}
+            onRefresh={() => void refresh()}
+            isSearchActive={isSearchActive}
+            isSearchPending={isSearchPending}
+            showNoMatches={showNoMatches}
+            chunksByFile={chunksByFile}
+          />
+        </>
       )}
     </div>
   );

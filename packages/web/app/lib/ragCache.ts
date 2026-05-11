@@ -50,16 +50,11 @@ function chunksKey(fileId: string, page: number): string {
   return `${fileId}::${String(page)}`;
 }
 
-export async function getCachedFiles(
-  storeId: string,
-  tenantId: string
-): Promise<FilesEntry | null> {
+export async function getCachedFiles(storeId: string, tenantId: string): Promise<FilesEntry | null> {
   if (!ensureBrowser()) return null;
   try {
     const db = await getDb();
-    const value = (await db.get(FILES_STORE, filesKey(storeId, tenantId))) as
-      | FilesEntry
-      | undefined;
+    const value = (await db.get(FILES_STORE, filesKey(storeId, tenantId))) as FilesEntry | undefined;
     return value ?? null;
   } catch {
     return null;
@@ -97,20 +92,14 @@ export async function getCachedChunks(fileId: string, page: number): Promise<Rag
   if (!ensureBrowser()) return null;
   try {
     const db = await getDb();
-    const value = (await db.get(CHUNKS_STORE, chunksKey(fileId, page))) as
-      | ChunksEntry
-      | undefined;
+    const value = (await db.get(CHUNKS_STORE, chunksKey(fileId, page))) as ChunksEntry | undefined;
     return value === undefined ? null : value.rows;
   } catch {
     return null;
   }
 }
 
-export async function setCachedChunks(
-  fileId: string,
-  page: number,
-  rows: RagChunkRow[]
-): Promise<void> {
+export async function setCachedChunks(fileId: string, page: number, rows: RagChunkRow[]): Promise<void> {
   if (!ensureBrowser()) return;
   try {
     const db = await getDb();

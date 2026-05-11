@@ -1,7 +1,7 @@
 'use client';
 
 import { deleteFileAction } from '@/app/actions/ragFiles';
-import type { RagFileRow, RagFileStatus } from '@/app/lib/ragFiles';
+import type { RagChunkRow, RagFileRow, RagFileStatus } from '@/app/lib/ragFiles';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +26,8 @@ interface FileRowProps {
   file: RagFileRow;
   onDeleted: (fileId: string) => void;
   onStatusReachedDone: (fileId: string) => void;
+  forceExpanded?: boolean;
+  overrideChunks?: RagChunkRow[];
 }
 
 const BYTES_KB = 1024;
@@ -145,13 +147,13 @@ function FileRowHeader({
   const t = useTranslations('knowledgeBase.ragFiles');
   const canToggle = status === 'done';
   return (
-    <div className="relative">
+    <div className="sticky top-0 z-20 rounded-t-md bg-background">
       <button
         type="button"
         onClick={canToggle ? onToggle : undefined}
         aria-expanded={canToggle ? expanded : undefined}
         aria-label={canToggle ? t('openChunks') : undefined}
-        className={`flex w-full items-center gap-3 px-3 py-2 text-left ${canToggle ? 'cursor-pointer' : 'cursor-default'}`}
+        className={`flex h-9 w-full items-center gap-3 px-3 text-left ${canToggle ? 'cursor-pointer' : 'cursor-default'}`}
       >
         <ChevronRight
           className={`size-4 shrink-0 transition-transform duration-150 ${
@@ -184,15 +186,30 @@ function FileRowHeader({
   );
 }
 
+function useSyncedExpansion(forceExpanded: boolean): {
+  expanded: boolean;
+  toggle: () => void;
+} {
+  const [expanded, setExpanded] = useState(forceExpanded);
+  const [prevForce, setPrevForce] = useState(forceExpanded);
+  if (forceExpanded !== prevForce) {
+    setPrevForce(forceExpanded);
+    setExpanded(forceExpanded);
+  }
+  return { expanded, toggle: () => setExpanded((v) => !v) };
+}
+
 export function FileRow({
   storeId,
   file,
   onDeleted,
   onStatusReachedDone,
+  forceExpanded = false,
+  overrideChunks,
 }: FileRowProps): React.JSX.Element {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const { expanded, toggle } = useSyncedExpansion(forceExpanded);
 
   async function handleDelete(): Promise<void> {
     setDeleting(true);
@@ -217,12 +234,16 @@ export function FileRow({
             status={status}
             error={error}
             expanded={expanded && status === 'done'}
-            onToggle={() => setExpanded((v) => !v)}
+            onToggle={toggle}
             onRequestDelete={() => setConfirmOpen(true)}
           />
           {expanded && status === 'done' && (
             <div className="border-t">
-              <FileChunksTable storeId={storeId} fileId={file.id} />
+              <FileChunksTable
+                storeId={storeId}
+                fileId={file.id}
+                overrideChunks={overrideChunks}
+              />
             </div>
           )}
           <DeleteConfirmDialog

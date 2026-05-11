@@ -153,11 +153,10 @@ export async function checkFiles(
   digest: string
 ): Promise<{ result: CheckFilesResponse | null; error: string | null }> {
   try {
-    const data = await fetchFromBackend(
-      'POST',
-      `/rag-stores/${encodeURIComponent(storeId)}/files/check`,
-      { tenantId, digest }
-    );
+    const data = await fetchFromBackend('POST', `/rag-stores/${encodeURIComponent(storeId)}/files/check`, {
+      tenantId,
+      digest,
+    });
     if (!isCheckFilesResponse(data)) return { result: null, error: 'invalid response' };
     return { result: data, error: null };
   } catch (err) {

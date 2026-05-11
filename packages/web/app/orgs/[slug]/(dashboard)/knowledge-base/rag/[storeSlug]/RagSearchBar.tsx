@@ -1,15 +1,15 @@
 'use client';
 
 import type { SearchMode } from '@/app/lib/ragFiles';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type FormEvent, useState } from 'react';
 
 interface RagSearchBarProps {
-  onSearch: (mode: SearchMode, query: string) => void;
-  busy: boolean;
+  query: string;
+  mode: SearchMode;
+  onQueryChange: (query: string) => void;
+  onModeChange: (mode: SearchMode) => void;
 }
 
 const MODES: SearchMode[] = ['simple', 'semantic'];
@@ -43,32 +43,25 @@ function ModeTabs({ mode, onChange }: ModeTabsProps): React.JSX.Element {
   );
 }
 
-export function RagSearchBar({ onSearch, busy }: RagSearchBarProps): React.JSX.Element {
+export function RagSearchBar({
+  query,
+  mode,
+  onQueryChange,
+  onModeChange,
+}: RagSearchBarProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragSearch');
-  const [mode, setMode] = useState<SearchMode>('simple');
-  const [query, setQuery] = useState('');
-
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (query.trim() === '') return;
-    onSearch(mode, query.trim());
-  }
-
   return (
-    <form onSubmit={handleSubmit} className="flex items-center gap-2">
-      <ModeTabs mode={mode} onChange={setMode} />
+    <div className="flex items-center gap-2">
+      <ModeTabs mode={mode} onChange={onModeChange} />
       <div className="relative flex-1">
         <Search className="absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
         <Input
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => onQueryChange(e.target.value)}
           placeholder={t('placeholder')}
           className="pl-7"
         />
       </div>
-      <Button type="submit" size="sm" disabled={busy || query.trim() === ''}>
-        {t('submit')}
-      </Button>
-    </form>
+    </div>
   );
 }

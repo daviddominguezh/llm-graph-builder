@@ -4,14 +4,6 @@ import { getChunksAction } from '@/app/actions/ragFiles';
 import { getCachedChunks, setCachedChunks } from '@/app/lib/ragCache';
 import type { RagChunkRow } from '@/app/lib/ragFiles';
 import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
@@ -19,6 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 interface FileChunksTableProps {
   storeId: string;
   fileId: string;
+  overrideChunks?: RagChunkRow[];
 }
 
 const PAGE_SIZE = 25;
@@ -26,9 +19,9 @@ const FIRST_PAGE = 1;
 const ZERO = 0;
 const OVERFLOW_TOLERANCE_PX = 1;
 const HEADER_CELL_CLASS =
-  'h-7 text-[10px] uppercase tracking-wider font-semibold text-foreground whitespace-nowrap border-r last:border-r-0';
+  'h-7 px-3 text-left text-[10px] uppercase tracking-wider font-semibold text-foreground whitespace-nowrap border-r last:border-r-0';
 const META_CELL_CLASS =
-  'align-top font-mono text-[10px] text-muted-foreground py-2 whitespace-nowrap border-r';
+  'align-top px-3 py-2 font-mono text-[10px] text-muted-foreground whitespace-nowrap border-r';
 
 type LoadStage = 'pending' | 'fetching' | 'ready';
 
@@ -116,12 +109,12 @@ function ChunkContent({ content }: { content: string }): React.JSX.Element {
 function ChunkTableRow({ c }: { c: RagChunkRow }): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragChunks');
   return (
-    <TableRow className="hover:bg-transparent">
-      <TableCell className={META_CELL_CLASS}>{t('page', { page: c.page_number ?? ZERO })}</TableCell>
-      <TableCell className="align-top py-2">
+    <tr className="border-b last:border-b-0">
+      <td className={META_CELL_CLASS}>{t('page', { page: c.page_number ?? ZERO })}</td>
+      <td className="align-top py-2 px-3">
         <ChunkContent content={c.content} />
-      </TableCell>
-    </TableRow>
+      </td>
+    </tr>
   );
 }
 
@@ -140,20 +133,24 @@ function ChunksTable({ stage, rows }: ChunksTableProps): React.JSX.Element | nul
       </div>
     );
   }
+  // Plain <table> — shadcn's Table wraps in `overflow-x-auto`, which creates
+  // its own scroll container and breaks sticky <thead> relative to the outer
+  // Scrollable. Render the table directly so sticky positions against the
+  // page-level scroller.
   return (
-    <Table>
-      <TableHeader className="sticky top-0 z-10 bg-background">
-        <TableRow className="hover:bg-transparent">
-          <TableHead className={HEADER_CELL_CLASS}>{t('colPage')}</TableHead>
-          <TableHead className={HEADER_CELL_CLASS}>{t('colContent')}</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
+    <table className="w-full caption-bottom text-sm">
+      <thead className="sticky top-9 z-10 bg-background">
+        <tr className="border-b">
+          <th className={HEADER_CELL_CLASS}>{t('colPage')}</th>
+          <th className={HEADER_CELL_CLASS}>{t('colContent')}</th>
+        </tr>
+      </thead>
+      <tbody>
         {rows.map((c) => (
           <ChunkTableRow key={c.id} c={c} />
         ))}
-      </TableBody>
-    </Table>
+      </tbody>
+    </table>
   );
 }
 
@@ -180,7 +177,19 @@ function Pager({ page, count, onPrev, onNext }: PagerProps): React.JSX.Element |
   );
 }
 
-export function FileChunksTable({ storeId, fileId }: FileChunksTableProps): React.JSX.Element {
+function NoMatchingChunks(): React.JSX.Element {
+  const t = useTranslations('knowledgeBase.ragChunks');
+  return (
+    <div className="px-3 py-3 text-[10px] font-mono text-muted-foreground">{t('noMatchInFile')}</div>
+  );
+}
+
+function StaticChunks({ chunks }: { chunks: RagChunkRow[] }): React.JSX.Element {
+  if (chunks.length === 0) return <NoMatchingChunks />;
+  return <ChunksTable stage="ready" rows={chunks} />;
+}
+
+function FetchedChunks({ storeId, fileId }: { storeId: string; fileId: string }): React.JSX.Element {
   const [page, setPage] = useState(FIRST_PAGE);
   const { rows, stage } = useChunks(storeId, fileId, page);
   return (
@@ -194,4 +203,13 @@ export function FileChunksTable({ storeId, fileId }: FileChunksTableProps): Reac
       />
     </>
   );
+}
+
+export function FileChunksTable({
+  storeId,
+  fileId,
+  overrideChunks,
+}: FileChunksTableProps): React.JSX.Element {
+  if (overrideChunks !== undefined) return <StaticChunks chunks={overrideChunks} />;
+  return <FetchedChunks storeId={storeId} fileId={fileId} />;
 }

@@ -943,7 +943,8 @@
       "deleteDescription": "This will permanently delete the file and all its chunks. This cannot be undone.",
       "deleteConfirm": "Delete",
       "deleteCancel": "Cancel",
-      "summary": "{files, plural, =1 {# file} other {# files}} · {pages, plural, =1 {# page} other {# pages}} · {bytes}"
+      "summary": "{files, plural, =1 {# file} other {# files}} · {pages, plural, =1 {# page} other {# pages}} · {bytes}",
+      "noMatches": "No files match your search"
     },
     "ragChunks": {
       "loading": "Loading chunks…",
@@ -958,7 +959,8 @@
       "colContent": "Content",
       "viewAll": "View all",
       "viewLess": "View less",
-      "drawerSubtitle": "{count, plural, =1 {1 chunk on this page} other {# chunks on this page}}"
+      "drawerSubtitle": "{count, plural, =1 {1 chunk on this page} other {# chunks on this page}}",
+      "noMatchInFile": "No matching chunks in this file"
     },
     "ragSearch": {
       "placeholder": "Search files and chunks…",

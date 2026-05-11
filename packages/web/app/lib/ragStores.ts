@@ -52,11 +52,7 @@ export async function updateRagStore(
   name: string
 ): Promise<{ result: RagStoreRow | null; error: string | null }> {
   try {
-    const data = await fetchFromBackend(
-      'PATCH',
-      `/rag-stores/${encodeURIComponent(storeId)}`,
-      { name }
-    );
+    const data = await fetchFromBackend('PATCH', `/rag-stores/${encodeURIComponent(storeId)}`, { name });
     if (!isRagStoreRow(data)) return { result: null, error: 'Invalid response' };
     return { result: data, error: null };
   } catch (err) {
