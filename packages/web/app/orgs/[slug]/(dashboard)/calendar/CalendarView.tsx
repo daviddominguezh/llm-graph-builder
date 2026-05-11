@@ -2,6 +2,8 @@
 
 import { CalendarMain, type TVisibleHours, type TWorkingHours } from 'closer-calendar';
 
+import 'closer-calendar/dist/closer-calendar.css';
+
 const DEFAULT_WORKING_HOURS: TWorkingHours = {
   0: { from: 0, to: 0 },
   1: { from: 9, to: 17 },
@@ -16,7 +18,7 @@ const DEFAULT_VISIBLE_HOURS: TVisibleHours = { from: 0, to: 24 };
 
 export function CalendarView(): React.JSX.Element {
   return (
-    <div className="closer-calendar-host h-full w-full">
+    <div className="h-full w-full">
       <CalendarMain
         workingHours={DEFAULT_WORKING_HOURS}
         visibleHours={DEFAULT_VISIBLE_HOURS}
