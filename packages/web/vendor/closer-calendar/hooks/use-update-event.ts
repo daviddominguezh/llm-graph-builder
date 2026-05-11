@@ -1,6 +1,5 @@
-import { useCalendar } from "@cc/calendar/contexts/calendar-context";
-
-import type { IEvent } from "@cc/calendar/interfaces";
+import { useCalendar } from '@cc/calendar/contexts/calendar-context';
+import type { IEvent } from '@cc/calendar/interfaces';
 
 export function useUpdateEvent() {
   const { setLocalEvents } = useCalendar();
@@ -13,8 +12,8 @@ export function useUpdateEvent() {
     newEvent.startDate = new Date(event.startDate).toISOString();
     newEvent.endDate = new Date(event.endDate).toISOString();
 
-    setLocalEvents(prev => {
-      const index = prev.findIndex(e => e.id === event.id);
+    setLocalEvents((prev) => {
+      const index = prev.findIndex((e) => e.id === event.id);
       if (index === -1) return prev;
       return [...prev.slice(0, index), newEvent, ...prev.slice(index + 1)];
     });

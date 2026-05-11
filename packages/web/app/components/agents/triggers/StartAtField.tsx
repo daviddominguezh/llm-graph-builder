@@ -41,7 +41,7 @@ export function StartAtField({ value, onChange }: StartAtFieldProps) {
     onChange(next === 'now' ? '' : value || defaultSpecificValue());
   };
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm leading-relaxed">
+    <div className="flex min-h-7 flex-wrap items-center gap-x-3 gap-y-2 text-sm leading-relaxed">
       <span className="text-muted-foreground">{t('startingAt')}</span>
       <RadioGroup
         value={mode}

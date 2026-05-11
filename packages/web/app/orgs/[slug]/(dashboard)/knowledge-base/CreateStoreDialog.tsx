@@ -66,17 +66,18 @@ export function CreateStoreDialog({
             <StoreTypeCards value={type} onChange={setType} />
           </div>
           <div className="flex flex-col gap-0.5">
-            <Label htmlFor="store-name">{t('nameLabel')}</Label>
+            <Label htmlFor="store-name mb-4">{t('nameLabel')}</Label>
             <Input
               id="store-name"
+              className='mt-1'
               placeholder={t('namePlaceholder')}
               value={name}
               onChange={(e) => setName(e.target.value)}
               autoFocus
             />
-            <span className="text-[11px] text-muted-foreground ml-[calc(0px+var(--spacing)*2)]">
+            <span className={`text-[11px] text-muted-foreground ml-[calc(0px+var(--spacing)*2)] ${previewedSlug === '' ? 'invisible' : ''}`}>
               {previewedSlug === ''
-                ? ' '
+                ? '.'
                 : t.rich('idPreview', {
                     slug: previewedSlug,
                     mono: (chunks) => <span className="font-mono">{chunks}</span>,

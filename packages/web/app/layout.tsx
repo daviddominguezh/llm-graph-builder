@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Geist_Mono } from 'next/font/google';
 
 import { GlassFilters } from '@/components/ui/glass-panel';
 import { Toaster } from '@/components/ui/sonner';
@@ -13,11 +13,7 @@ import { CssVarsLogger } from './components/CssVarsLogger';
 import { GlobalScrollbarOverlay } from './components/GlobalScrollbarOverlay';
 import { OpenRouterModelsLogger } from './components/OpenRouterModelsLogger';
 import { ThemeProvider } from './components/ThemeProvider';
-
-const geistSans = Geist({
-  variable: '--font-sans',
-  subsets: ['latin'],
-});
+import { generalSans } from './fonts/general-sans';
 
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
@@ -40,7 +36,7 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={`${geistSans.variable} ${geistMono.variable}`}
+      className={`${generalSans.variable} ${geistMono.variable}`}
       suppressHydrationWarning
     >
       <body className="antialiased overflow-hidden">

@@ -1,7 +1,10 @@
-import { useState, useEffect } from 'react';
 import { TCalendarView } from '@cc/calendar/types';
+import { useEffect, useState } from 'react';
 
-export const useResponsiveView = (defaultDesktopView: TCalendarView = 'week', defaultMobileView: TCalendarView = 'day') => {
+export const useResponsiveView = (
+  defaultDesktopView: TCalendarView = 'week',
+  defaultMobileView: TCalendarView = 'day'
+) => {
   const [view, setView] = useState<TCalendarView>(() => {
     if (typeof window !== 'undefined') {
       return window.innerWidth < 768 ? defaultMobileView : defaultDesktopView;
@@ -12,7 +15,7 @@ export const useResponsiveView = (defaultDesktopView: TCalendarView = 'week', de
   useEffect(() => {
     const handleResize = () => {
       const isMobile = window.innerWidth < 768;
-      setView(current => {
+      setView((current) => {
         // Only change view if it's still the default for the current screen size
         if (isMobile && current === defaultDesktopView) {
           return defaultMobileView;
