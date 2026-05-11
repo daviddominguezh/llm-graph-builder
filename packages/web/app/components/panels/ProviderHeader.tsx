@@ -47,7 +47,7 @@ export function ProviderHeader(props: ProviderHeaderProps): React.JSX.Element {
     t,
   });
   return (
-    <div className="sticky top-0 z-10 bg-background flex items-center gap-2 px-2 pt-2 pb-1.5">
+    <div className="sticky top-0 z-10 flex items-center gap-2 px-2 pt-2 pb-1.5 bg-[rgb(255_255_255)] dark:bg-[rgb(20_20_20)]">
       <Checkbox
         checked={isChecked}
         indeterminate={isIndeterminate}

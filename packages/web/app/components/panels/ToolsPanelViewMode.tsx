@@ -109,7 +109,7 @@ function ToolsListGroup({
   const mcpFetchedAt = group.kind === 'mcp' ? group.fetchedAt : undefined;
   return (
     <div>
-      <div className="sticky top-0 z-10 px-2 pt-0 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+      <div className="sticky top-0 z-10 px-2 pt-0 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide bg-[rgb(255_255_255)] dark:bg-[rgb(20_20_20)]">
         <div className="pt-2 flex items-center gap-2">
           <span>{group.groupName}</span>
           {mcpFetchedAt !== undefined && <CatalogFreshnessIndicator fetchedAt={mcpFetchedAt} />}

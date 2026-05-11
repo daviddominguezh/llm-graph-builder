@@ -34,6 +34,10 @@ export function CatalogFreshnessIndicator({ fetchedAt }: CatalogFreshnessIndicat
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
+    console.log('[CatalogFreshnessIndicator] last refreshed:', new Date(fetchedAt).toISOString(), fetchedAt);
+  }, [fetchedAt]);
+
+  useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), TICK_INTERVAL_MS);
     return () => clearInterval(timer);
   }, []);
