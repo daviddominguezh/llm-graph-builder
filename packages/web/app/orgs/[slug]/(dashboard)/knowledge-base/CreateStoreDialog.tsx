@@ -74,9 +74,9 @@ export function CreateStoreDialog({
               onChange={(e) => setName(e.target.value)}
               autoFocus
             />
-            {previewedSlug !== '' && (
-              <span className="font-mono text-[11px] text-muted-foreground">{previewedSlug}</span>
-            )}
+            <span className="font-mono text-[11px] text-muted-foreground">
+              {previewedSlug === '' ? ' ' : previewedSlug}
+            </span>
           </div>
         </div>
         <DialogFooter>
