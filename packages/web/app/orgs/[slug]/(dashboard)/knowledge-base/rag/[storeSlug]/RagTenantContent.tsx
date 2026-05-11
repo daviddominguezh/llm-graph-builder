@@ -146,7 +146,7 @@ function UsageSummary({ usage }: UsageSummaryProps): React.JSX.Element {
 function LoadingSpinner(): React.JSX.Element {
   return (
     <div className="flex flex-1 items-center justify-center">
-      <Loader2 className="size-5 animate-spin text-muted-foreground" />
+      <Loader2 className="size-5 animate-spin text-blue-500" />
     </div>
   );
 }
