@@ -205,6 +205,19 @@
       "title": "Triggers",
       "description": "Run this agent on a schedule.",
       "soon": "Soon",
+      "add": "Add",
+      "empty": "No triggers yet",
+      "emptyDescription": "Triggers run this agent automatically on a recurring schedule or at a specific date and time.",
+      "modalAdd": "Add trigger",
+      "modalEdit": "Edit trigger",
+      "cancel": "Cancel",
+      "save": "Save",
+      "delete": "Delete trigger",
+      "summaryMode": {
+        "recurring": "Recurring",
+        "once": "Specific date",
+        "after-event": "After event"
+      },
       "mode": {
         "recurring": "Recurring",
         "once": "Specific date",
@@ -223,6 +236,7 @@
       "pickDateTime": "Pick a date and time",
       "afterEventComingSoon": "After-event triggers are coming soon — they'll fire once another agent or workflow event completes.",
       "previewLabel": "Next run",
+      "previewLabelMany": "Next runs",
       "previewNone": "Not scheduled",
       "previewAfterEvent": "Triggered by an event",
       "picker": {

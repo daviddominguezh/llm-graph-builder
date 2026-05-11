@@ -2,29 +2,21 @@
 
 import { getTenantsByOrgAction } from '@/app/actions/tenants';
 import { TenantSidebar } from '@/app/components/orgs/tenants/TenantSidebar';
-import { Scrollable } from '@/app/components/Scrollable';
 import type { TenantRow } from '@/app/lib/tenants';
-import { Separator } from '@/components/ui/separator';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-import { ModeSelector } from './ModeSelector';
-import { NextRunPreview } from './NextRunPreview';
-import { OnceField } from './OnceField';
-import { RecurringFields } from './RecurringFields';
-import type { TriggerFormState } from './types';
+import { TriggerFormDialog } from './TriggerFormDialog';
+import { TriggersListView } from './TriggersListView';
+import type { Trigger, TriggerFormState } from './types';
 import { DEFAULT_TRIGGER_STATE } from './types';
+import { useTriggers } from './useTriggers';
 
 interface TriggersPanelProps {
   orgId: string;
   orgSlug: string;
-}
-
-interface SectionProps {
-  state: TriggerFormState;
-  setState: (next: TriggerFormState) => void;
 }
 
 interface TenantsData {
@@ -36,6 +28,8 @@ interface TenantsData {
 const INITIAL_TENANTS: TenantsData = { tenants: [], loading: true, error: null };
 const EMPTY_LIST = 0;
 const FIRST_INDEX = 0;
+
+type EditingState = { mode: 'add' } | { mode: 'edit'; id: string };
 
 interface TenantsState {
   forOrgId: string;
@@ -66,63 +60,6 @@ function useDefaultTenant(tenants: TenantRow[], selected: string, setSelected: (
   }, [tenants, selected, setSelected]);
 }
 
-function TriggersHeader() {
-  const t = useTranslations('editor.triggers');
-  return (
-    <header className="flex flex-col gap-1">
-      <h2 className="text-sm font-semibold tracking-tight">{t('title')}</h2>
-      <p className="text-xs text-muted-foreground">{t('description')}</p>
-    </header>
-  );
-}
-
-function AfterEventNote() {
-  const t = useTranslations('editor.triggers');
-  return (
-    <div className="rounded-md bg-muted/60 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
-      {t('afterEventComingSoon')}
-    </div>
-  );
-}
-
-function PreviewSection({ state }: { state: TriggerFormState }) {
-  if (state.mode === 'after-event') return null;
-  return (
-    <div className="flex flex-col gap-3">
-      <Separator />
-      <NextRunPreview state={state} />
-    </div>
-  );
-}
-
-function ActiveModeContent({ state, setState }: SectionProps) {
-  if (state.mode === 'recurring') {
-    return (
-      <RecurringFields value={state.recurring} onChange={(recurring) => setState({ ...state, recurring })} />
-    );
-  }
-  if (state.mode === 'once') {
-    return (
-      <OnceField
-        value={state.onceDateTime}
-        onChange={(onceDateTime) => setState({ ...state, onceDateTime })}
-      />
-    );
-  }
-  return <AfterEventNote />;
-}
-
-function ActiveModePanel({ state, setState }: SectionProps) {
-  return (
-    <div
-      key={state.mode}
-      className="animate-in fade-in slide-in-from-top-1 duration-200 ease-out motion-reduce:animate-none"
-    >
-      <ActiveModeContent state={state} setState={setState} />
-    </div>
-  );
-}
-
 function LoadingState() {
   const t = useTranslations('editor.triggers.picker');
   return (
@@ -140,7 +77,7 @@ function ErrorState() {
   );
 }
 
-function EmptyState({ orgSlug }: { orgSlug: string }) {
+function EmptyTenantsState({ orgSlug }: { orgSlug: string }) {
   const t = useTranslations('editor.triggers.picker');
   return (
     <div className="flex flex-1 items-center justify-center gap-1.5 text-xs text-muted-foreground">
@@ -155,35 +92,64 @@ function EmptyState({ orgSlug }: { orgSlug: string }) {
   );
 }
 
-function TriggersContent({ state, setState }: SectionProps) {
+function stripId(trigger: Trigger): TriggerFormState {
+  return {
+    mode: trigger.mode,
+    recurring: trigger.recurring,
+    onceDateTime: trigger.onceDateTime,
+  };
+}
+
+function getInitialForm(editing: EditingState, triggers: Trigger[]): TriggerFormState {
+  if (editing.mode === 'add') return DEFAULT_TRIGGER_STATE;
+  const target = triggers.find((t) => t.id === editing.id);
+  return target ? stripId(target) : DEFAULT_TRIGGER_STATE;
+}
+
+interface BodyProps {
+  tenants: TenantRow[];
+  tenantId: string;
+  setTenantId: (id: string) => void;
+}
+
+function PanelBody({ tenants, tenantId, setTenantId }: BodyProps) {
+  const { triggers, addTrigger, updateTrigger, deleteTrigger } = useTriggers(tenantId);
+  const [editing, setEditing] = useState<EditingState | null>(null);
+
+  const handleSave = (form: TriggerFormState) => {
+    if (editing?.mode === 'add') addTrigger(form);
+    else if (editing?.mode === 'edit') updateTrigger(editing.id, form);
+    setEditing(null);
+  };
+
   return (
-    <Scrollable className="min-h-0 flex-1">
-      <div className="mx-auto flex w-full max-w-lg flex-col gap-6 p-6">
-        <div className="flex flex-col gap-3">
-          <TriggersHeader />
-          <ModeSelector value={state.mode} onChange={(mode) => setState({ ...state, mode })} />
-        </div>
-        <ActiveModePanel state={state} setState={setState} />
-        <PreviewSection state={state} />
-      </div>
-    </Scrollable>
+    <div className="flex flex-1 overflow-hidden">
+      <TenantSidebar tenants={tenants} currentTenantId={tenantId} onSelect={setTenantId} />
+      <TriggersListView
+        triggers={triggers}
+        onAdd={() => setEditing({ mode: 'add' })}
+        onEdit={(id) => setEditing({ mode: 'edit', id })}
+        onDelete={deleteTrigger}
+      />
+      <TriggerFormDialog
+        open={editing !== null}
+        isEdit={editing?.mode === 'edit'}
+        initial={editing ? getInitialForm(editing, triggers) : DEFAULT_TRIGGER_STATE}
+        onOpenChange={(open) => !open && setEditing(null)}
+        onSave={handleSave}
+      />
+    </div>
   );
 }
 
 export function TriggersPanel({ orgId, orgSlug }: TriggersPanelProps) {
-  const [state, setState] = useState<TriggerFormState>(DEFAULT_TRIGGER_STATE);
   const [tenantId, setTenantId] = useState<string>('');
   const { tenants, loading, error } = useTenants(orgId);
   useDefaultTenant(tenants, tenantId, setTenantId);
 
   if (loading) return <LoadingState />;
   if (error !== null) return <ErrorState />;
-  if (tenants.length === EMPTY_LIST) return <EmptyState orgSlug={orgSlug} />;
+  if (tenants.length === EMPTY_LIST) return <EmptyTenantsState orgSlug={orgSlug} />;
 
-  return (
-    <div className="flex flex-1 overflow-hidden">
-      <TenantSidebar tenants={tenants} currentTenantId={tenantId} onSelect={setTenantId} />
-      <TriggersContent state={state} setState={setState} />
-    </div>
-  );
+  return <PanelBody tenants={tenants} tenantId={tenantId} setTenantId={setTenantId} />;
 }

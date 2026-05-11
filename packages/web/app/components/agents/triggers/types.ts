@@ -21,6 +21,10 @@ export interface TriggerFormState {
   onceDateTime: string;
 }
 
+export interface Trigger extends TriggerFormState {
+  id: string;
+}
+
 const DEFAULT_INTERVAL = 5;
 const FIRST_DAY_OF_MONTH = 1;
 

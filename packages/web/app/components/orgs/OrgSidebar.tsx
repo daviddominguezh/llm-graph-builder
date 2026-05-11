@@ -158,10 +158,10 @@ const TOP_NAV_ITEMS: NavItemDef[] = [
   { segment: 'tenants', path: '/tenants', Icon: Building2, labelKey: 'tenants' },
   { segment: 'chats', path: '/chats', Icon: MessageSquare, labelKey: 'chats' },
   { segment: 'calendar', path: '/calendar', Icon: Calendar, labelKey: 'calendar' },
-  { segment: 'dashboard', path: '/dashboard', Icon: Logs, labelKey: 'dashboard' },
 ];
 
 const BOTTOM_NAV_ITEMS: NavItemDef[] = [
+  { segment: 'dashboard', path: '/dashboard', Icon: Logs, labelKey: 'dashboard' },
   { segment: 'api-keys', path: '/api-keys', Icon: KeyRound, labelKey: 'apiKeys' },
   { segment: 'team', path: '/team', Icon: Users, labelKey: 'team' },
   { segment: 'settings', path: '/settings', Icon: Settings, labelKey: 'settings' },

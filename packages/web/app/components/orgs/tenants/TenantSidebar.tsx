@@ -3,6 +3,7 @@
 import { Scrollable } from '@/app/components/Scrollable';
 import { toProxyImageSrc } from '@/app/lib/supabase/image';
 import type { TenantRow } from '@/app/lib/tenants';
+import { GlassPanel } from '@/components/ui/glass-panel';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 
@@ -63,7 +64,7 @@ export function TenantSidebar({
 }: TenantSidebarProps): React.JSX.Element {
   const t = useTranslations('tenantSidebar');
   return (
-    <aside className="w-56 shrink-0 border-r flex flex-col">
+    <GlassPanel variant="background" className="w-56 shrink-0 flex flex-col">
       <div className="px-3 pt-2">
         <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60">
           {t('label')}
@@ -81,6 +82,6 @@ export function TenantSidebar({
           ))}
         </div>
       </Scrollable>
-    </aside>
+    </GlassPanel>
   );
 }

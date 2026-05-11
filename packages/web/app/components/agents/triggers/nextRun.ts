@@ -107,3 +107,16 @@ export function computeNextRun(state: TriggerFormState, now: Dayjs = dayjs()): D
   if (state.mode === 'once') return nextOnce(state.onceDateTime, now);
   return null;
 }
+
+export function computeNextRuns(state: TriggerFormState, count: number, now: Dayjs = dayjs()): Dayjs[] {
+  const runs: Dayjs[] = [];
+  let cursor = now;
+  for (let i = 0; i < count; i += 1) {
+    const next = computeNextRun(state, cursor);
+    if (!next) break;
+    runs.push(next);
+    if (state.mode !== 'recurring') break;
+    cursor = next;
+  }
+  return runs;
+}

@@ -6,13 +6,14 @@ import { Clock } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
-import { computeNextRun } from './nextRun';
+import { computeNextRuns } from './nextRun';
 import type { TriggerFormState } from './types';
 
 dayjs.extend(relativeTime);
 
 const TICK_MS = 30000;
 const NEXT_FORMAT = 'ddd, MMM D [·] h:mm A';
+const RUN_COUNT = 3;
 
 interface NextRunPreviewProps {
   state: TriggerFormState;
@@ -27,27 +28,33 @@ function useNow(): number {
   return now;
 }
 
-function PreviewLine({
-  label,
-  value,
-  hint,
-  muted,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  muted?: boolean;
-}) {
+function HeaderLabel({ count }: { count: number }) {
+  const t = useTranslations('editor.triggers');
+  return (
+    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+      <Clock className="size-3.5" />
+      {count > 1 ? t('previewLabelMany') : t('previewLabel')}
+    </span>
+  );
+}
+
+function RunRow({ value, hint }: { value: string; hint: string }) {
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-2 text-xs">
+      <span className="font-medium text-foreground tabular-nums">{value}</span>
+      <span className="text-muted-foreground/80">({hint})</span>
+    </div>
+  );
+}
+
+function MutedLine({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
       <span className="inline-flex items-center gap-1.5 text-muted-foreground">
         <Clock className="size-3.5" />
         {label}
       </span>
-      <span className={muted ? 'italic text-muted-foreground' : 'font-medium text-foreground tabular-nums'}>
-        {value}
-      </span>
-      {hint && <span className="text-muted-foreground/80">({hint})</span>}
+      <span className="italic text-muted-foreground">{value}</span>
     </div>
   );
 }
@@ -56,16 +63,23 @@ export function NextRunPreview({ state }: NextRunPreviewProps) {
   const t = useTranslations('editor.triggers');
   const now = useNow();
   const nowDay = dayjs(now);
-  const next = computeNextRun(state, nowDay);
+  const runs = computeNextRuns(state, RUN_COUNT, nowDay);
 
-  if (!next) {
-    return <PreviewLine label={t('previewLabel')} value={t('previewNone')} muted />;
+  if (runs.length === 0) {
+    return <MutedLine label={t('previewLabel')} value={t('previewNone')} />;
   }
   return (
-    <PreviewLine
-      label={t('previewLabel')}
-      value={next.locale('en').format(NEXT_FORMAT)}
-      hint={next.locale('en').from(nowDay)}
-    />
+    <div className="flex flex-col gap-1.5 text-xs">
+      <HeaderLabel count={runs.length} />
+      <div className="ml-[1.375rem] flex flex-col gap-1">
+        {runs.map((run) => (
+          <RunRow
+            key={run.toISOString()}
+            value={run.locale('en').format(NEXT_FORMAT)}
+            hint={run.locale('en').from(nowDay)}
+          />
+        ))}
+      </div>
+    </div>
   );
 }

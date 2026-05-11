@@ -26,12 +26,12 @@ export function TenantTabs({ tenants, renderTab }: TenantTabsProps): React.JSX.E
 
   return (
     <Tabs value={active} onValueChange={setActive} className="flex flex-1 flex-col">
-      <TabsList variant="line">
+      <TabsList variant="line" className="outline-b">
         {tenants.map((tenant) => (
           <TabsTrigger
             key={tenant.id}
             value={tenant.id}
-            className="cursor-pointer [&]:after:-bottom-2"
+            className="cursor-pointer [&]:after:-bottom-2 px-2 pr-4"
           >
             <span className="flex items-center gap-2">
               <TenantAvatar name={tenant.name} avatarUrl={tenant.avatar_url} />

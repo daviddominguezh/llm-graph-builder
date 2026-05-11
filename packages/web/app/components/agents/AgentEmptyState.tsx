@@ -2,7 +2,7 @@
 
 import { useTemplatesPrefetch } from '@/app/hooks/useTemplatesPrefetch';
 import { Button } from '@/components/ui/button';
-import { Bot, Plus } from 'lucide-react';
+import { Plus, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
@@ -25,11 +25,11 @@ export function AgentEmptyState({ orgId, orgSlug }: AgentEmptyStateProps) {
 
   return (
     <div className="flex w-full h-full items-center justify-center bg-background border-[0.5px] border-t border-b border-r rounded-e-xl">
-      <div className="flex w-full max-w-3xl flex-col items-center gap-2 rounded-md border border-dashed bg-background px-4 py-8 text-center">
-        <Bot className="size-6 text-muted-foreground/50" />
+      <div className="flex w-full max-w-3xl flex-col items-center gap-2 rounded-md bg-background px-4 py-8 text-center">
+        <Zap className="size-6 text-muted-foreground/50" />
         <p className="text-sm font-medium">{t('createFirst')}</p>
         <p className="text-xs text-muted-foreground max-w-xs">{t('createFirstDescription')}</p>
-        <Button variant="outline" size="sm" className="mt-2" onClick={() => setCreateOpen(true)}>
+        <Button size="sm" className="mt-2 rounded-full" onClick={() => setCreateOpen(true)}>
           <Plus className="size-3.5" />
           {t('create')}
         </Button>

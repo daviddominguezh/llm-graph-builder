@@ -92,12 +92,24 @@ export function EditorCacheProvider({ children }: { children: React.ReactNode })
   return (
     <EditorCacheContext.Provider value={value}>
       {children}
+      <EditorBaseLayer mainRect={mainRect} />
       {Array.from(entries.entries()).map(([agentId, content]) => (
         <CachedEditor key={agentId} isVisible={agentId === activeId && slotRect !== null} mainRect={mainRect}>
           {content}
         </CachedEditor>
       ))}
     </EditorCacheContext.Provider>
+  );
+}
+
+function EditorBaseLayer({ mainRect }: { mainRect: ElementRect | null }) {
+  if (!mainRect) return null;
+  return (
+    <div
+      className="fixed z-0 bg-background rounded-xl pointer-events-none"
+      style={mainRect}
+      aria-hidden
+    />
   );
 }
 
