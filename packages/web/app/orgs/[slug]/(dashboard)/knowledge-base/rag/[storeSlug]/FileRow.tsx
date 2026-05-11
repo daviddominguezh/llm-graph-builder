@@ -132,13 +132,13 @@ function FileRowHeader({
   const t = useTranslations('knowledgeBase.ragFiles');
   const canToggle = status === 'done';
   return (
-    <div className="flex items-center gap-3 px-3 py-2">
+    <div className="relative">
       <button
         type="button"
         onClick={canToggle ? onToggle : undefined}
         aria-expanded={canToggle ? expanded : undefined}
         aria-label={canToggle ? t('openChunks') : undefined}
-        className={`flex min-w-0 flex-1 items-center gap-3 text-left ${canToggle ? 'cursor-pointer' : 'cursor-default'}`}
+        className={`flex w-full items-center gap-3 px-3 py-2 text-left ${canToggle ? 'cursor-pointer' : 'cursor-default'}`}
       >
         <ChevronRight
           className={`size-4 shrink-0 transition-transform duration-150 ${
@@ -154,13 +154,14 @@ function FileRowHeader({
           </span>
         </div>
         <StatusPill status={status} error={error} />
+        <span className="size-8 shrink-0" aria-hidden="true" />
       </button>
       <Button
         variant="destructive"
         size="icon"
         aria-label={t('remove')}
         onClick={onRequestDelete}
-        className="opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100"
+        className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100"
       >
         <Trash2 className="size-4" />
       </Button>
