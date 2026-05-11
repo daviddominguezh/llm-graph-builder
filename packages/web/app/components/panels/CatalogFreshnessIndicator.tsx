@@ -42,5 +42,9 @@ export function CatalogFreshnessIndicator({ fetchedAt }: CatalogFreshnessIndicat
   const rel = relativeKey(ageMs);
   const label = freshnessLabel(t, rel);
 
-  return <span className="text-[10px] text-muted-foreground shrink-0">{label}</span>;
+  return (
+    <span className="shrink-0 text-[10px] font-normal normal-case tracking-normal text-muted-foreground/70">
+      {label}
+    </span>
+  );
 }
