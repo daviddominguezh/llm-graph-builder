@@ -924,7 +924,8 @@
       "deleteTitle": "Delete file?",
       "deleteDescription": "This will permanently delete the file and all its chunks. This cannot be undone.",
       "deleteConfirm": "Delete",
-      "deleteCancel": "Cancel"
+      "deleteCancel": "Cancel",
+      "summary": "{files, plural, =1 {# file} other {# files}} · {pages, plural, =1 {# page} other {# pages}} · {bytes}"
     },
     "ragChunks": {
       "loading": "Loading chunks…",

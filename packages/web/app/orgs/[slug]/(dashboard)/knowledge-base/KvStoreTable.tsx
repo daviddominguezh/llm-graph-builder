@@ -24,7 +24,13 @@ import { ChevronLeft, ChevronRight, Search, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type KeyboardEvent, useMemo, useState } from 'react';
 
-import { makeId } from './uploaderHelpers';
+const ID_RADIX = 36;
+const ID_SLICE_START = 2;
+const ID_SLICE_END = 9;
+
+function makeId(): string {
+  return `${String(Date.now())}-${Math.random().toString(ID_RADIX).slice(ID_SLICE_START, ID_SLICE_END)}`;
+}
 
 interface KvEntry {
   id: string;
