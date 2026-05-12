@@ -1,7 +1,7 @@
 'use client';
 
 import type { RagFileStatus } from '@/app/lib/ragFiles';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface FileStatusSubscriberProps {
   storeId: string;
@@ -34,6 +34,15 @@ export function FileStatusSubscriber({
   fileId,
   onUpdate,
 }: FileStatusSubscriberProps): null {
+  // Hold the latest onUpdate in a ref so the SSE effect doesn't restart on
+  // every parent render. Without this, each status event would trigger a
+  // parent re-render → new inline callback ref → effect cleanup → new
+  // EventSource → reconnect storm.
+  const onUpdateRef = useRef(onUpdate);
+  useEffect(() => {
+    onUpdateRef.current = onUpdate;
+  }, [onUpdate]);
+
   useEffect(() => {
     const url = `/api/rag-files/${encodeURIComponent(fileId)}/stream?storeId=${encodeURIComponent(storeId)}`;
     const es = new EventSource(url);
@@ -42,15 +51,21 @@ export function FileStatusSubscriber({
       if (data === null) return;
       const status = data.status;
       const error = data.statusError ?? null;
-      if (status !== undefined) onUpdate(status, error);
+      if (status !== undefined) {
+        console.log(
+          `[ragStatus] fileId=${fileId} status=${status}${error !== null ? ` error=${error}` : ''}`
+        );
+        onUpdateRef.current(status, error);
+      }
       if (status !== undefined && TERMINAL.has(status)) es.close();
     };
-    es.onerror = () => {
+    es.onerror = (e) => {
+      console.error(`[ragStatus] SSE error fileId=${fileId}`, e);
       es.close();
     };
     return () => {
       es.close();
     };
-  }, [fileId, storeId, onUpdate]);
+  }, [fileId, storeId]);
   return null;
 }

@@ -8,12 +8,19 @@ import {
   updateStatus,
 } from '../db/queries/ragFilesQueries.js';
 import { type SourcedChunk, maxPage } from './chunker.js';
-import { checkOperation, submitBatch } from './documentAi.js';
+import { type OcrMode, checkOperation, submitBatch } from './documentAi.js';
 import { embedTexts } from './embeddings.js';
 import { readBytesObject, writeBytesObject } from './gcs.js';
 import { derivePdfObjectPath, imageBytesToPdfBytes, isImageMime } from './imagePdf.js';
-import { splitMarkdownChunks } from './markdownSplitter.js';
-import { fetchAllShards, mergePayloads, safeDumpFinalChunks, safeDumpShardsToDisk } from './parsedOutput.js';
+import { splitLayoutChunks } from './layoutSplitter.js';
+import { splitOcrChunks } from './markdownSplitter.js';
+import {
+  fetchAllShards,
+  mergeLayoutPayload,
+  mergeOcrPayload,
+  safeDumpFinalChunks,
+  safeDumpShardsToDisk,
+} from './parsedOutput.js';
 
 const EMBED_CHUNK_PAGE_SIZE = 100;
 const PDF_MIME = 'application/pdf';
@@ -41,6 +48,7 @@ async function handleParsing(supabase: SupabaseClient, file: RagFileRow): Promis
     await fail(supabase, file, `document ai: ${state.error ?? 'unknown'}`);
     return;
   }
+  log(`handleParsing: file=${file.id} done`);
   await updateStatus(supabase, file.id, { status: 'chunking' });
 }
 
@@ -63,16 +71,35 @@ async function persistChunks(
   return true;
 }
 
+function resolveOcrMode(value: string | null): OcrMode {
+  return value === 'advanced' ? 'advanced' : 'standard';
+}
+
+async function chunksFromShards(
+  mode: OcrMode,
+  shards: ReturnType<typeof fetchAllShards> extends Promise<infer T> ? T : never
+): Promise<SourcedChunk[]> {
+  if (mode === 'standard') {
+    const payload = mergeOcrPayload(shards);
+    return await splitOcrChunks(payload);
+  }
+  const payload = mergeLayoutPayload(shards);
+  return await splitLayoutChunks(payload);
+}
+
 async function handleChunking(supabase: SupabaseClient, file: RagFileRow): Promise<void> {
   const prefix = file.parsed_uri ?? '';
   if (prefix === '') {
     await fail(supabase, file, 'chunking without parsed_uri');
     return;
   }
+  const mode = resolveOcrMode(file.ocr_mode);
   const shards = await fetchAllShards(prefix);
   await safeDumpShardsToDisk(file.id, shards, log);
-  const payload = mergePayloads(shards);
-  const chunks = await splitMarkdownChunks(payload);
+  const chunks = await chunksFromShards(mode, shards);
+  log(
+    `handleChunking: file=${file.id} mode=${mode} shards=${String(shards.length)} chunks=${String(chunks.length)}`
+  );
   await safeDumpFinalChunks(file.id, chunks, log);
   if (chunks.length === EMPTY_LENGTH) {
     await fail(supabase, file, 'no chunks produced by Document AI');
@@ -125,11 +152,18 @@ async function handleEmbedding(supabase: SupabaseClient, file: RagFileRow): Prom
     return;
   }
   if (ids.length === EMPTY_LENGTH) {
+    log(`handleEmbedding: file=${file.id} all done`);
     await updateStatus(supabase, file.id, { status: 'done' });
     return;
   }
-  const { vectors } = await embedTexts({ texts });
-  await writeEmbeddingsForIds(supabase, file, ids, vectors);
+  try {
+    const { vectors } = await embedTexts({ texts });
+    log(`handleEmbedding: file=${file.id} batch=${String(vectors.length)}`);
+    await writeEmbeddingsForIds(supabase, file, ids, vectors);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    await fail(supabase, file, `embedTexts: ${msg}`);
+  }
 }
 
 async function dispatch(supabase: SupabaseClient, file: RagFileRow): Promise<void> {
@@ -183,13 +217,20 @@ async function prepareDocumentAiInput(
 
 async function submitAndRecord(supabase: SupabaseClient, file: RagFileRow): Promise<void> {
   const outputPrefix = `parsed/${file.id}/`;
+  const mode = resolveOcrMode(file.ocr_mode);
+  const languageHints = mode === 'standard' ? file.language_hints : null;
+  log(
+    `submitAndRecord: file=${file.id} mode=${mode} mime=${file.mime_type} hints=${JSON.stringify(languageHints ?? [])}`
+  );
   const prepared = await prepareDocumentAiInput(file.gcs_object, file.mime_type);
   const { operationName, outputGcsUri } = await submitBatch({
     inputObjectPath: prepared.inputObjectPath,
     outputPrefix,
     mimeType: prepared.mimeType,
-    languageHints: file.language_hints,
+    mode,
+    languageHints,
   });
+  log(`submitAndRecord: file=${file.id} op=${operationName} output=${outputGcsUri}`);
   await updateStatus(supabase, file.id, {
     status: 'parsing',
     da_operation: operationName,

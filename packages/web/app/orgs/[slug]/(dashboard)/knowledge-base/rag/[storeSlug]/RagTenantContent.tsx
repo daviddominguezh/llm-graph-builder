@@ -407,6 +407,7 @@ function useUploadDialog({
       onAdd={stagedState.add}
       onRemove={stagedState.remove}
       onOcrChange={stagedState.setOcr}
+      onOcrModeChange={stagedState.setOcrMode}
       onLanguagesChange={stagedState.setLanguages}
       onUpdate={stagedState.update}
       onStartUpload={start}

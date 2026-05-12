@@ -60,6 +60,7 @@ export interface InitUploadInput {
   mimeType: string;
   sizeBytes: number;
   languageHints: string[];
+  ocrMode: 'standard' | 'advanced' | null;
 }
 
 export interface InitUploadResponse {
@@ -90,6 +91,7 @@ export async function initUpload(
         mimeType: input.mimeType,
         sizeBytes: input.sizeBytes,
         languageHints: input.languageHints,
+        ocrMode: input.ocrMode,
       }
     );
     if (!isInitUploadResponse(data)) return { result: null, error: 'invalid response' };

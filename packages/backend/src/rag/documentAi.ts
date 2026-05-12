@@ -6,20 +6,24 @@ import { gcsUriFor } from './gcs.js';
 const CHUNK_SIZE_DEFAULT = 300;
 const NO_HINTS = 0;
 
+export type OcrMode = 'standard' | 'advanced';
+
 let cachedClient: DocumentProcessorServiceClient | null = null;
 function getClient(): DocumentProcessorServiceClient {
   cachedClient ??= new DocumentProcessorServiceClient();
   return cachedClient;
 }
 
-function processorName(cfg: RagConfig): string {
-  return `projects/${cfg.projectId}/locations/${cfg.location}/processors/${cfg.processorId}`;
+function processorName(cfg: RagConfig, mode: OcrMode): string {
+  const id = mode === 'standard' ? cfg.ocrProcessorId : cfg.layoutProcessorId;
+  return `projects/${cfg.projectId}/locations/${cfg.location}/processors/${id}`;
 }
 
 export interface BatchSubmitInput {
   inputObjectPath: string;
   outputPrefix: string;
   mimeType: string;
+  mode: OcrMode;
   languageHints: string[] | null;
 }
 
@@ -28,22 +32,38 @@ export interface BatchSubmitResult {
   outputGcsUri: string;
 }
 
-function buildOcrConfig(languageHints: string[] | null): {
-  enableNativePdfParsing: boolean;
-  hints?: { languageHints: string[] };
-} {
-  const base = { enableNativePdfParsing: true };
+interface ProcessOptionsBody {
+  ocrConfig?: { enableNativePdfParsing: boolean; hints?: { languageHints: string[] } };
+  layoutConfig?: { chunkingConfig: { chunkSize: number }; enableImageAnnotation: boolean };
+}
+
+function buildOcrOptions(languageHints: string[] | null): ProcessOptionsBody {
+  const ocrConfig: ProcessOptionsBody['ocrConfig'] = { enableNativePdfParsing: true };
   if (languageHints !== null && languageHints.length > NO_HINTS) {
-    return { ...base, hints: { languageHints } };
+    ocrConfig.hints = { languageHints };
   }
-  return base;
+  return { ocrConfig };
+}
+
+function buildLayoutOptions(): ProcessOptionsBody {
+  return {
+    layoutConfig: {
+      chunkingConfig: { chunkSize: CHUNK_SIZE_DEFAULT },
+      enableImageAnnotation: true,
+    },
+  };
+}
+
+function buildProcessOptions(mode: OcrMode, languageHints: string[] | null): ProcessOptionsBody {
+  if (mode === 'standard') return buildOcrOptions(languageHints);
+  return buildLayoutOptions();
 }
 
 export async function submitBatch(input: BatchSubmitInput): Promise<BatchSubmitResult> {
   const cfg = requireRagConfig();
   const outputGcsUri = gcsUriFor(input.outputPrefix);
   const [operation] = await getClient().batchProcessDocuments({
-    name: processorName(cfg),
+    name: processorName(cfg, input.mode),
     inputDocuments: {
       gcsDocuments: {
         documents: [{ gcsUri: gcsUriFor(input.inputObjectPath), mimeType: input.mimeType }],
@@ -52,15 +72,7 @@ export async function submitBatch(input: BatchSubmitInput): Promise<BatchSubmitR
     documentOutputConfig: {
       gcsOutputConfig: { gcsUri: outputGcsUri },
     },
-    processOptions: {
-      ocrConfig: buildOcrConfig(input.languageHints),
-      layoutConfig: {
-        chunkingConfig: {
-          chunkSize: CHUNK_SIZE_DEFAULT,
-        },
-        enableImageAnnotation: true,
-      },
-    },
+    processOptions: buildProcessOptions(input.mode, input.languageHints),
   });
   const operationName = operation.name ?? '';
   if (operationName === '') {

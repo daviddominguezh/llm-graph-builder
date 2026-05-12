@@ -36,6 +36,13 @@ interface UploadInput {
   mimeType: string;
   sizeBytes: number;
   languageHints: string[] | null;
+  ocrMode: string | null;
+}
+
+function parseOcrMode(body: unknown): string | null {
+  const raw = parseString(body, 'ocrMode');
+  if (raw === 'standard' || raw === 'advanced') return raw;
+  return null;
 }
 
 function parseUploadInput(req: Request): UploadInput | undefined {
@@ -55,7 +62,8 @@ function parseUploadInput(req: Request): UploadInput | undefined {
   }
   const hints = parseStringArray(req.body, 'languageHints');
   const languageHints = hints !== undefined && hints.length > NO_HINTS ? hints : null;
-  return { storeId, tenantId, filename, mimeType, sizeBytes, languageHints };
+  const ocrMode = parseOcrMode(req.body);
+  return { storeId, tenantId, filename, mimeType, sizeBytes, languageHints, ocrMode };
 }
 
 async function lookupStore(supabase: SupabaseClient, storeId: string): Promise<StoreLookup | undefined> {
@@ -91,6 +99,7 @@ async function createUpload(
     sizeBytes: input.sizeBytes,
     gcsObject,
     languageHints: input.languageHints,
+    ocrMode: input.ocrMode,
   });
   if (error !== null || result === null) {
     res.status(HTTP_INTERNAL_ERROR).json({ error: error ?? 'create failed' });

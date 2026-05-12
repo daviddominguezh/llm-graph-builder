@@ -2,15 +2,18 @@
 
 import { useCallback, useState } from 'react';
 
-import { isImageFile } from './ragUploadConstants';
+import { isImageFile, isStandardOcrCompatible } from './ragUploadConstants';
 
 export type StagedStatus = 'idle' | 'uploading' | 'parsing' | 'chunking' | 'embedding' | 'done' | 'failed';
+export type OcrMode = 'standard' | 'advanced';
 
 export interface StagedFile {
   key: string;
   file: File;
   ocrEnabled: boolean;
   ocrLocked: boolean;
+  ocrMode: OcrMode;
+  ocrModeLocked: boolean;
   languages: string[];
   status: StagedStatus;
   fileId: string | null;
@@ -22,6 +25,7 @@ interface UseStagedFilesReturn {
   add: (files: File[]) => void;
   remove: (key: string) => void;
   setOcr: (key: string, enabled: boolean) => void;
+  setOcrMode: (key: string, mode: OcrMode) => void;
   setLanguages: (key: string, languages: string[]) => void;
   update: (key: string, patch: Partial<StagedFile>) => void;
   clear: () => void;
@@ -35,11 +39,15 @@ function nextKey(): string {
 
 function stagedFromFile(file: File): StagedFile {
   const ocrLocked = isImageFile(file);
+  const standardCompatible = isStandardOcrCompatible(file);
   return {
     key: nextKey(),
     file,
+    // OCR off by default. Images force it on (ocrLocked).
     ocrEnabled: ocrLocked,
     ocrLocked,
+    ocrMode: standardCompatible ? 'standard' : 'advanced',
+    ocrModeLocked: !standardCompatible,
     languages: [],
     status: 'idle',
     fileId: null,
@@ -63,6 +71,10 @@ export function useStagedFiles(): UseStagedFilesReturn {
     setStaged((prev) => prev.map((s) => (s.key === key && !s.ocrLocked ? { ...s, ocrEnabled: enabled } : s)));
   }, []);
 
+  const setOcrMode = useCallback((key: string, mode: OcrMode): void => {
+    setStaged((prev) => prev.map((s) => (s.key === key && !s.ocrModeLocked ? { ...s, ocrMode: mode } : s)));
+  }, []);
+
   const setLanguages = useCallback((key: string, languages: string[]): void => {
     setStaged((prev) => prev.map((s) => (s.key === key ? { ...s, languages } : s)));
   }, []);
@@ -75,5 +87,5 @@ export function useStagedFiles(): UseStagedFilesReturn {
     setStaged([]);
   }, []);
 
-  return { staged, add, remove, setOcr, setLanguages, update, clear };
+  return { staged, add, remove, setOcr, setOcrMode, setLanguages, update, clear };
 }

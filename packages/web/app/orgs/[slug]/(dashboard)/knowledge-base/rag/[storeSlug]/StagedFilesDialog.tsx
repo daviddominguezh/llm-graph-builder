@@ -20,7 +20,7 @@ import { FileStatusSubscriber } from './FileStatusSubscriber';
 import { StagedFileRow } from './StagedFileRow';
 import { ACCEPTED_EXTENSIONS } from './ragUploadConstants';
 import { type UploadFileInput, useRagUpload } from './useRagUpload';
-import type { StagedFile, StagedStatus } from './useStagedFiles';
+import type { OcrMode, StagedFile, StagedStatus } from './useStagedFiles';
 
 interface StagedFilesDialogProps {
   storeId: string;
@@ -31,6 +31,7 @@ interface StagedFilesDialogProps {
   onAdd: (files: File[]) => void;
   onRemove: (key: string) => void;
   onOcrChange: (key: string, enabled: boolean) => void;
+  onOcrModeChange: (key: string, mode: OcrMode) => void;
   onLanguagesChange: (key: string, next: string[]) => void;
   onUpdate: (key: string, patch: Partial<StagedFile>) => void;
   onStartUpload: () => Promise<void>;
@@ -124,6 +125,7 @@ interface StagedListProps {
   locked: boolean;
   onRemove: (key: string) => void;
   onOcrChange: (key: string, enabled: boolean) => void;
+  onOcrModeChange: (key: string, mode: OcrMode) => void;
   onLanguagesChange: (key: string, next: string[]) => void;
   onUpdate: (key: string, patch: Partial<StagedFile>) => void;
 }
@@ -134,12 +136,13 @@ function StagedList({
   locked,
   onRemove,
   onOcrChange,
+  onOcrModeChange,
   onLanguagesChange,
   onUpdate,
 }: StagedListProps): React.JSX.Element {
   return (
     <Scrollable className="flex-1 min-h-0">
-      <div className="flex flex-col gap-2 pr-1">
+      <div className="flex flex-col divide-y divide-border pr-1">
         {staged.map((s) => (
           <div key={s.key}>
             <StagedFileRow
@@ -147,6 +150,7 @@ function StagedList({
               locked={locked}
               onRemove={() => onRemove(s.key)}
               onOcrChange={(v) => onOcrChange(s.key, v)}
+              onOcrModeChange={(mode) => onOcrModeChange(s.key, mode)}
               onLanguagesChange={(next) => onLanguagesChange(s.key, next)}
             />
             {s.fileId !== null && s.status !== 'done' && s.status !== 'failed' && (
@@ -264,6 +268,7 @@ export function StagedFilesDialog({
   onAdd,
   onRemove,
   onOcrChange,
+  onOcrModeChange,
   onLanguagesChange,
   onUpdate,
   onStartUpload,
@@ -301,6 +306,7 @@ export function StagedFilesDialog({
               locked={locked}
               onRemove={onRemove}
               onOcrChange={onOcrChange}
+              onOcrModeChange={onOcrModeChange}
               onLanguagesChange={onLanguagesChange}
               onUpdate={onUpdate}
             />
@@ -346,7 +352,12 @@ export function useStagedUpload({
   const runOne = useCallback(
     async (s: StagedFile): Promise<void> => {
       update(s.key, { status: 'uploading' });
-      const input: UploadFileInput = { file: s.file, languages: s.languages };
+      const input: UploadFileInput = {
+        file: s.file,
+        languages: s.languages,
+        ocrEnabled: s.ocrEnabled,
+        ocrMode: s.ocrMode,
+      };
       const result = await uploadOne(input, {
         onConfirmed: (fileId) => {
           update(s.key, { fileId, status: 'parsing' });

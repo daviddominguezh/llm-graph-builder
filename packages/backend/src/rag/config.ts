@@ -3,7 +3,8 @@ const DEFAULT_EMBEDDINGS_RPM = 60;
 export interface RagConfig {
   projectId: string;
   location: string;
-  processorId: string;
+  ocrProcessorId: string;
+  layoutProcessorId: string;
   bucket: string;
   embeddingsRpm: number;
 }
@@ -20,23 +21,55 @@ function pickEnv(name: string): string | undefined {
   return value;
 }
 
-export function readRagConfig(): OptionalRagConfig {
-  const projectId = pickEnv('GCP_PROJECT_ID');
-  const location = pickEnv('GCP_LOCATION') ?? 'us';
-  const processorId = pickEnv('DOCUMENTAI_PROCESSOR_ID');
-  const bucket = pickEnv('GCS_BUCKET');
-  const rpm = Number(pickEnv('EMBEDDINGS_RPM') ?? String(DEFAULT_EMBEDDINGS_RPM));
+interface RawEnv {
+  projectId: string | undefined;
+  location: string;
+  ocrProcessorId: string | undefined;
+  layoutProcessorId: string | undefined;
+  bucket: string | undefined;
+  embeddingsRpm: number;
+}
 
+function readEnv(): RawEnv {
+  return {
+    projectId: pickEnv('GCP_PROJECT_ID'),
+    location: pickEnv('GCP_LOCATION') ?? 'us',
+    ocrProcessorId: pickEnv('DOCUMENTAI_OCR_PROCESSOR_ID'),
+    layoutProcessorId: pickEnv('DOCUMENTAI_LAYOUT_PROCESSOR_ID'),
+    bucket: pickEnv('GCS_BUCKET'),
+    embeddingsRpm: Number(pickEnv('EMBEDDINGS_RPM') ?? String(DEFAULT_EMBEDDINGS_RPM)),
+  };
+}
+
+function collectMissing(env: RawEnv): string[] {
   const missing: string[] = [];
-  if (projectId === undefined) missing.push('GCP_PROJECT_ID');
-  if (processorId === undefined) missing.push('DOCUMENTAI_PROCESSOR_ID');
-  if (bucket === undefined) missing.push('GCS_BUCKET');
+  if (env.projectId === undefined) missing.push('GCP_PROJECT_ID');
+  if (env.ocrProcessorId === undefined) missing.push('DOCUMENTAI_OCR_PROCESSOR_ID');
+  if (env.layoutProcessorId === undefined) missing.push('DOCUMENTAI_LAYOUT_PROCESSOR_ID');
+  if (env.bucket === undefined) missing.push('GCS_BUCKET');
+  return missing;
+}
 
-  if (projectId === undefined || processorId === undefined || bucket === undefined) {
+export function readRagConfig(): OptionalRagConfig {
+  const env = readEnv();
+  const missing = collectMissing(env);
+  if (
+    env.projectId === undefined ||
+    env.ocrProcessorId === undefined ||
+    env.layoutProcessorId === undefined ||
+    env.bucket === undefined
+  ) {
     return { config: null, missing };
   }
   return {
-    config: { projectId, location, processorId, bucket, embeddingsRpm: rpm },
+    config: {
+      projectId: env.projectId,
+      location: env.location,
+      ocrProcessorId: env.ocrProcessorId,
+      layoutProcessorId: env.layoutProcessorId,
+      bucket: env.bucket,
+      embeddingsRpm: env.embeddingsRpm,
+    },
     missing,
   };
 }

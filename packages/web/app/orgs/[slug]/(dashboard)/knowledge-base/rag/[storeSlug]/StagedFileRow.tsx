@@ -8,13 +8,14 @@ import { useTranslations } from 'next-intl';
 
 import { FileTypeIcon } from './FileTypeIcon';
 import { LanguageMultiSelect } from './LanguageMultiSelect';
-import type { StagedFile, StagedStatus } from './useStagedFiles';
+import type { OcrMode, StagedFile, StagedStatus } from './useStagedFiles';
 
 interface StagedFileRowProps {
   staged: StagedFile;
   locked: boolean;
   onRemove: () => void;
   onOcrChange: (enabled: boolean) => void;
+  onOcrModeChange: (mode: OcrMode) => void;
   onLanguagesChange: (next: string[]) => void;
 }
 
@@ -58,8 +59,8 @@ function StatusPill({
   }
   return (
     <span className="flex items-center gap-1.5 text-xs text-blue-500">
-      <Loader2 className="size-3 animate-spin" />
       {t(status)}
+      <Loader2 className="size-3 animate-spin" />
     </span>
   );
 }
@@ -95,6 +96,66 @@ function OcrToggle({ enabled, disabled, onChange }: OcrToggleProps): React.JSX.E
   );
 }
 
+interface OcrModeRadiosProps {
+  groupName: string;
+  mode: OcrMode;
+  modeLocked: boolean;
+  disabled: boolean;
+  onChange: (mode: OcrMode) => void;
+}
+
+interface OcrModeOption {
+  value: OcrMode;
+  labelKey: 'ocrModeStandard' | 'ocrModeAdvanced';
+}
+
+const OCR_MODE_OPTIONS: readonly OcrModeOption[] = [
+  { value: 'standard', labelKey: 'ocrModeStandard' },
+  { value: 'advanced', labelKey: 'ocrModeAdvanced' },
+];
+
+function isOptionDisabled(option: OcrModeOption, disabled: boolean, modeLocked: boolean): boolean {
+  if (disabled) return true;
+  return option.value === 'standard' && modeLocked;
+}
+
+function OcrModeRadios({
+  groupName,
+  mode,
+  modeLocked,
+  disabled,
+  onChange,
+}: OcrModeRadiosProps): React.JSX.Element {
+  const t = useTranslations('knowledgeBase.ragUpload');
+  return (
+    <div
+      className="inline-flex items-center gap-3 text-xs"
+      title={modeLocked ? t('ocrModeAdvancedForced') : undefined}
+    >
+      {OCR_MODE_OPTIONS.map((opt) => {
+        const isDisabled = isOptionDisabled(opt, disabled, modeLocked);
+        return (
+          <label
+            key={opt.value}
+            className={`flex items-center gap-1.5 ${isDisabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'}`}
+          >
+            <input
+              type="radio"
+              name={groupName}
+              value={opt.value}
+              checked={mode === opt.value}
+              disabled={isDisabled}
+              onChange={() => onChange(opt.value)}
+              className="size-3.5 accent-primary cursor-[inherit]"
+            />
+            <span>{t(opt.labelKey)}</span>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
 interface FilenameBlockProps {
   filename: string;
   size: number;
@@ -113,32 +174,68 @@ function FilenameBlock({ filename, size }: FilenameBlockProps): React.JSX.Elemen
   );
 }
 
+interface OcrControlsRowProps {
+  staged: StagedFile;
+  rowLocked: boolean;
+  onOcrChange: (enabled: boolean) => void;
+  onOcrModeChange: (mode: OcrMode) => void;
+  onLanguagesChange: (next: string[]) => void;
+}
+
+function OcrControlsRow({
+  staged,
+  rowLocked,
+  onOcrChange,
+  onOcrModeChange,
+  onLanguagesChange,
+}: OcrControlsRowProps): React.JSX.Element {
+  const showModeTabs = staged.ocrEnabled;
+  const showLanguages = staged.ocrEnabled && staged.ocrMode === 'standard';
+  return (
+    <div className={`flex min-h-[28px] items-center gap-3 ${rowLocked ? 'invisible' : ''}`}>
+      {!staged.ocrLocked && (
+        <OcrToggle enabled={staged.ocrEnabled} disabled={rowLocked} onChange={onOcrChange} />
+      )}
+      {showModeTabs && (
+        <OcrModeRadios
+          groupName={`ocr-mode-${staged.key}`}
+          mode={staged.ocrMode}
+          modeLocked={staged.ocrModeLocked}
+          disabled={rowLocked}
+          onChange={onOcrModeChange}
+        />
+      )}
+      {showLanguages && (
+        <div className="w-[255px] shrink-0">
+          <LanguageMultiSelect
+            selected={staged.languages}
+            disabled={rowLocked}
+            onChange={onLanguagesChange}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function StagedFileRow({
   staged,
   locked,
   onRemove,
   onOcrChange,
+  onOcrModeChange,
   onLanguagesChange,
 }: StagedFileRowProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragUpload');
   const inProgress = IN_PROGRESS.has(staged.status);
+  const rowLocked = locked || staged.status !== 'idle';
   return (
-    <div className="flex items-center gap-3 border-b last:border-b-0 px-2 py-3">
-      <FileTypeIcon mimeType={staged.file.type} filename={staged.file.name} />
-      <FilenameBlock filename={staged.file.name} size={staged.file.size} />
-      <div className="flex-1" />
-      {!staged.ocrLocked && (
-        <OcrToggle enabled={staged.ocrEnabled} disabled={locked} onChange={onOcrChange} />
-      )}
-      <div className="w-[255px] shrink-0">
-        <LanguageMultiSelect
-          selected={staged.languages}
-          disabled={locked}
-          onChange={onLanguagesChange}
-        />
-      </div>
-      <StatusPill status={staged.status} error={staged.error} />
-      {!inProgress && (
+    <div className="flex flex-col gap-2 px-2 py-3">
+      <div className="flex items-center gap-3">
+        <FileTypeIcon mimeType={staged.file.type} filename={staged.file.name} />
+        <FilenameBlock filename={staged.file.name} size={staged.file.size} />
+        <div className="flex-1" />
+        <StatusPill status={staged.status} error={staged.error} />
         <Button
           variant="destructive"
           size="icon-sm"
@@ -146,10 +243,18 @@ export function StagedFileRow({
           aria-label={t('remove')}
           onClick={onRemove}
           disabled={locked}
+          className={inProgress ? 'invisible' : ''}
         >
           <Trash2 className="size-3.5" />
         </Button>
-      )}
+      </div>
+      <OcrControlsRow
+        staged={staged}
+        rowLocked={rowLocked}
+        onOcrChange={onOcrChange}
+        onOcrModeChange={onOcrModeChange}
+        onLanguagesChange={onLanguagesChange}
+      />
     </div>
   );
 }

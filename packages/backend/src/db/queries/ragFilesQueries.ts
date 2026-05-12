@@ -24,12 +24,13 @@ export interface RagFileRow {
   da_operation: string | null;
   parsed_uri: string | null;
   language_hints: string[] | null;
+  ocr_mode: string | null;
   created_at: string;
   updated_at: string;
 }
 
 const LIST_COLUMNS =
-  'id, rag_store_id, tenant_id, org_id, filename, mime_type, size_bytes, page_count, status, status_error, gcs_object, da_operation, parsed_uri, language_hints, created_at, updated_at';
+  'id, rag_store_id, tenant_id, org_id, filename, mime_type, size_bytes, page_count, status, status_error, gcs_object, da_operation, parsed_uri, language_hints, ocr_mode, created_at, updated_at';
 
 const CLAIM_BATCH_SIZE = 5;
 const ACTIVE_STATUSES: RagFileStatus[] = ['parsing', 'chunking', 'embedding'];
@@ -94,6 +95,7 @@ export interface CreatePendingInput {
   sizeBytes: number;
   gcsObject: string;
   languageHints: string[] | null;
+  ocrMode: string | null;
 }
 
 export async function createPendingFile(
@@ -111,6 +113,7 @@ export async function createPendingFile(
       size_bytes: input.sizeBytes,
       gcs_object: input.gcsObject,
       language_hints: input.languageHints,
+      ocr_mode: input.ocrMode,
       status: 'pending',
     })
     .select(LIST_COLUMNS)
