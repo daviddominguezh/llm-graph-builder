@@ -19,8 +19,40 @@ const MIN_K = 1;
 const MIN_SIMILARITY = 0;
 const MAX_SIMILARITY = 1;
 const DEFAULT_MIN_SIMILARITY = 0;
+const QUERY_LOG_MAX_CHARS = 80;
+const VECTOR_PREVIEW_DIMS = 4;
+const FRACTION_DIGITS = 4;
+const ZERO = 0;
+const LAST_OFFSET = 1;
 
 type Supabase = AuthenticatedLocals['supabase'];
+
+function log(msg: string): void {
+  process.stdout.write(`[ragSearch] ${msg}\n`);
+}
+
+function truncate(s: string, max: number): string {
+  return s.length <= max ? s : `${s.slice(ZERO, max)}…`;
+}
+
+function vectorNorm(v: readonly number[]): number {
+  let sum = ZERO;
+  for (const n of v) sum += n * n;
+  return Math.sqrt(sum);
+}
+
+function bodyKeys(body: unknown): string[] {
+  if (typeof body !== 'object' || body === null) return [];
+  return Object.keys(body);
+}
+
+function fmt(n: number | undefined): string {
+  return n === undefined ? 'n/a' : n.toFixed(FRACTION_DIGITS);
+}
+
+function fmtMaxDistance(n: number | null): string {
+  return n === null ? 'none' : n.toFixed(FRACTION_DIGITS);
+}
 
 interface SearchParams {
   storeId: string;
@@ -88,7 +120,21 @@ async function runSemanticSearch(
   p: SearchParams,
   res: AuthenticatedResponse
 ): Promise<void> {
+  const embedStart = Date.now();
   const queryVector = await embedQuery(p.query);
+  const embedMs = Date.now() - embedStart;
+  log(
+    `semantic embed: dims=${String(queryVector.length)} norm=${vectorNorm(queryVector).toFixed(FRACTION_DIGITS)} preview=[${queryVector
+      .slice(ZERO, VECTOR_PREVIEW_DIMS)
+      .map((n) => n.toFixed(FRACTION_DIGITS))
+      .join(', ')}] took=${String(embedMs)}ms`
+  );
+  if (queryVector.length === ZERO) {
+    log('semantic embed: vector empty, aborting');
+    res.status(HTTP_INTERNAL_ERROR).json({ error: 'embedding returned empty vector' });
+    return;
+  }
+  const rpcStart = Date.now();
   const { result, error } = await searchBySemantic(supabase, {
     ragStoreId: p.storeId,
     tenantId: p.tenantId,
@@ -96,10 +142,17 @@ async function runSemanticSearch(
     k: p.k,
     maxDistance: p.maxDistance,
   });
+  const rpcMs = Date.now() - rpcStart;
   if (error !== null) {
+    log(`semantic rpc error after ${String(rpcMs)}ms: ${error}`);
     res.status(HTTP_INTERNAL_ERROR).json({ error });
     return;
   }
+  const first = result[ZERO]?.distance;
+  const last = result[result.length - LAST_OFFSET]?.distance;
+  log(
+    `semantic rpc ok: rows=${String(result.length)} took=${String(rpcMs)}ms firstDist=${fmt(first)} lastDist=${fmt(last)} maxDistanceFilter=${fmtMaxDistance(p.maxDistance)}`
+  );
   res.status(HTTP_OK).json({ mode: 'semantic', chunks: result });
 }
 
@@ -119,12 +172,20 @@ export async function handleSearchChunks(req: Request, res: AuthenticatedRespons
   const { supabase }: AuthenticatedLocals = res.locals;
   const params = parseParams(req);
   if (params === null) {
+    log(`bad request body keys=${JSON.stringify(bodyKeys(req.body))}`);
     res.status(HTTP_BAD_REQUEST).json({ error: 'storeId, tenantId, mode, query required' });
     return;
   }
+  log(
+    `incoming mode=${params.mode} k=${String(params.k)} maxDistance=${fmtMaxDistance(params.maxDistance)} storeId=${params.storeId} tenantId=${params.tenantId} query="${truncate(params.query, QUERY_LOG_MAX_CHARS)}"`
+  );
+  const startedAt = Date.now();
   try {
     await dispatch(supabase, params, res);
+    log(`done mode=${params.mode} totalMs=${String(Date.now() - startedAt)}`);
   } catch (err) {
-    res.status(HTTP_INTERNAL_ERROR).json({ error: extractErrorMessage(err) });
+    const msg = extractErrorMessage(err);
+    log(`throw mode=${params.mode} totalMs=${String(Date.now() - startedAt)} error=${msg}`);
+    res.status(HTTP_INTERNAL_ERROR).json({ error: msg });
   }
 }

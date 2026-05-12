@@ -1,7 +1,7 @@
 'use client';
 
 import { deleteFileAction } from '@/app/actions/ragFiles';
-import type { RagChunkRow, RagFileRow, RagFileStatus } from '@/app/lib/ragFiles';
+import type { RagFileRow, RagFileStatus, SemanticChunk } from '@/app/lib/ragFiles';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,7 +27,7 @@ interface FileRowProps {
   onDeleted: (fileId: string) => void;
   onStatusReachedDone: (fileId: string) => void;
   forceExpanded?: boolean;
-  overrideChunks?: RagChunkRow[];
+  overrideChunks?: SemanticChunk[];
 }
 
 const BYTES_KB = 1024;
@@ -146,6 +146,7 @@ function FileRowHeader({
 }: FileRowHeaderProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragFiles');
   const canToggle = status === 'done';
+  const canDelete = !IN_PROGRESS.has(status);
   return (
     <div className="sticky top-0 z-20 rounded-t-md bg-background">
       <button
@@ -171,17 +172,19 @@ function FileRowHeader({
           </span>
         </div>
         <StatusPill status={status} error={error} />
-        <span className="size-8 shrink-0" aria-hidden="true" />
+        {canDelete && <span className="size-8 shrink-0" aria-hidden="true" />}
       </button>
-      <Button
-        variant="destructive"
-        size="icon"
-        aria-label={t('remove')}
-        onClick={onRequestDelete}
-        className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100"
-      >
-        <Trash2 className="size-4" />
-      </Button>
+      {canDelete && (
+        <Button
+          variant="destructive"
+          size="icon"
+          aria-label={t('remove')}
+          onClick={onRequestDelete}
+          className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100"
+        >
+          <Trash2 className="size-4" />
+        </Button>
+      )}
     </div>
   );
 }
@@ -228,7 +231,7 @@ export function FileRow({
       onTerminal={() => onStatusReachedDone(file.id)}
     >
       {({ status, error }) => (
-        <div className="group rounded-md border">
+        <div className="group rounded-md border overflow-hidden">
           <FileRowHeader
             file={file}
             status={status}

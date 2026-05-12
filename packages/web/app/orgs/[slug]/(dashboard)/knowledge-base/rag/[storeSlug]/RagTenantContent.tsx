@@ -3,10 +3,10 @@
 import { checkFilesAction, listFilesAction, searchAction } from '@/app/actions/ragFiles';
 import { getCachedFiles, setCachedFiles } from '@/app/lib/ragCache';
 import type {
-  RagChunkRow,
   RagFileRow,
   SearchMode,
   SearchResponse,
+  SemanticChunk,
   TenantUsage,
 } from '@/app/lib/ragFiles';
 import { useTranslations } from 'next-intl';
@@ -133,11 +133,26 @@ function useTenantSearch(storeId: string, tenantId: string): UseTenantSearchRetu
     let cancelled = false;
     const id = setTimeout(() => {
       void (async () => {
-        const { result } = await searchAction(storeId, tenantId, mode, trimmed, {
+        const startedAt = Date.now();
+        console.log(
+          `[ragSearch] fire mode=${mode} topK=${String(topK)} minSimilarity=${String(minSimilarity)} query=${JSON.stringify(trimmed)}`
+        );
+        const { result, error } = await searchAction(storeId, tenantId, mode, trimmed, {
           topK,
           minSimilarity,
         });
-        if (cancelled) return;
+        if (cancelled) {
+          console.log(`[ragSearch] cancelled mode=${mode} query=${JSON.stringify(trimmed)}`);
+          return;
+        }
+        const ms = Date.now() - startedAt;
+        if (error !== null) {
+          console.error(`[ragSearch] error mode=${mode} ms=${String(ms)} error=${error}`);
+        } else {
+          console.log(
+            `[ragSearch] ok mode=${result.mode} ms=${String(ms)} chunks=${String(result.chunks?.length ?? 0)} files=${String(result.files?.length ?? 0)}`
+          );
+        }
         setSettled({ query: trimmed, mode, topK, minSimilarity, response: result });
       })();
     }, SEARCH_DEBOUNCE_MS);
@@ -169,16 +184,16 @@ function useTenantSearch(storeId: string, tenantId: string): UseTenantSearchRetu
 
 interface SearchState {
   visibleFiles: RagFileRow[];
-  chunksByFile: Map<string, RagChunkRow[]>;
+  chunksByFile: Map<string, SemanticChunk[]>;
   isSearchActive: boolean;
   isSearchPending: boolean;
   showNoMatches: boolean;
 }
 
-const EMPTY_CHUNKS_MAP: Map<string, RagChunkRow[]> = new Map();
+const EMPTY_CHUNKS_MAP: Map<string, SemanticChunk[]> = new Map();
 
-function groupChunksByFile(response: SearchResponse): Map<string, RagChunkRow[]> {
-  const map = new Map<string, RagChunkRow[]>();
+function groupChunksByFile(response: SearchResponse): Map<string, SemanticChunk[]> {
+  const map = new Map<string, SemanticChunk[]>();
   for (const c of response.chunks ?? []) {
     const arr = map.get(c.rag_file_id) ?? [];
     arr.push(c);
@@ -223,7 +238,7 @@ interface FileListProps {
   files: RagFileRow[];
   onRefresh: () => void;
   isSearchActive: boolean;
-  chunksByFile: Map<string, RagChunkRow[]>;
+  chunksByFile: Map<string, SemanticChunk[]>;
 }
 
 function FileList({
@@ -287,7 +302,7 @@ interface FileListSectionProps {
   isSearchActive: boolean;
   isSearchPending: boolean;
   showNoMatches: boolean;
-  chunksByFile: Map<string, RagChunkRow[]>;
+  chunksByFile: Map<string, SemanticChunk[]>;
 }
 
 function FileListSection({

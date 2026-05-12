@@ -85,6 +85,20 @@ export async function embedTexts({ texts, onBatchDone }: EmbedOptions): Promise<
 
 export async function embedQuery(text: string): Promise<number[]> {
   await rateLimit();
-  const { embeddings } = await embedMany({ model: modelRef(), values: [text] });
-  return asNumberArray(embeddings[ZERO]);
+  process.stdout.write(
+    `[ragEmbed] embedQuery start chars=${String(text.length)} model=${EMBEDDING_MODEL_ID}\n`
+  );
+  const start = Date.now();
+  try {
+    const { embeddings } = await embedMany({ model: modelRef(), values: [text] });
+    const vec = asNumberArray(embeddings[ZERO]);
+    process.stdout.write(
+      `[ragEmbed] embedQuery ok dims=${String(vec.length)} took=${String(Date.now() - start)}ms\n`
+    );
+    return vec;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    process.stdout.write(`[ragEmbed] embedQuery fail took=${String(Date.now() - start)}ms error=${msg}\n`);
+    throw err;
+  }
 }

@@ -2,21 +2,25 @@
 
 import { getChunksAction } from '@/app/actions/ragFiles';
 import { getCachedChunks, setCachedChunks } from '@/app/lib/ragCache';
-import type { RagChunkRow } from '@/app/lib/ragFiles';
+import type { RagChunkRow, SemanticChunk } from '@/app/lib/ragFiles';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
+export type DisplayChunk = RagChunkRow & { distance?: number };
+
 interface FileChunksTableProps {
   storeId: string;
   fileId: string;
-  overrideChunks?: RagChunkRow[];
+  overrideChunks?: SemanticChunk[];
 }
 
 const PAGE_SIZE = 25;
 const FIRST_PAGE = 1;
 const ZERO = 0;
+const ONE = 1;
+const SIMILARITY_DIGITS = 3;
 const OVERFLOW_TOLERANCE_PX = 1;
 const HEADER_CELL_CLASS =
   'h-7 px-3 text-left text-[10px] uppercase tracking-wider font-semibold text-foreground whitespace-nowrap border-r last:border-r-0';
@@ -106,11 +110,28 @@ function ChunkContent({ content }: { content: string }): React.JSX.Element {
   );
 }
 
-function ChunkTableRow({ c }: { c: RagChunkRow }): React.JSX.Element {
+function formatSimilarity(distance: number): string {
+  return (ONE - distance).toFixed(SIMILARITY_DIGITS);
+}
+
+function hasDistance(c: DisplayChunk): c is DisplayChunk & { distance: number } {
+  return typeof c.distance === 'number';
+}
+
+function ChunkTableRow({
+  c,
+  showSimilarity,
+}: {
+  c: DisplayChunk;
+  showSimilarity: boolean;
+}): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragChunks');
   return (
     <tr className="border-b last:border-b-0">
       <td className={META_CELL_CLASS}>{t('page', { page: c.page_number ?? ZERO })}</td>
+      {showSimilarity && (
+        <td className={META_CELL_CLASS}>{hasDistance(c) ? formatSimilarity(c.distance) : '—'}</td>
+      )}
       <td className="align-top py-2 px-3">
         <ChunkContent content={c.content} />
       </td>
@@ -120,7 +141,7 @@ function ChunkTableRow({ c }: { c: RagChunkRow }): React.JSX.Element {
 
 interface ChunksTableProps {
   stage: LoadStage;
-  rows: RagChunkRow[];
+  rows: DisplayChunk[];
 }
 
 function ChunksTable({ stage, rows }: ChunksTableProps): React.JSX.Element | null {
@@ -133,6 +154,7 @@ function ChunksTable({ stage, rows }: ChunksTableProps): React.JSX.Element | nul
       </div>
     );
   }
+  const showSimilarity = rows.some(hasDistance);
   // Plain <table> — shadcn's Table wraps in `overflow-x-auto`, which creates
   // its own scroll container and breaks sticky <thead> relative to the outer
   // Scrollable. Render the table directly so sticky positions against the
@@ -142,12 +164,13 @@ function ChunksTable({ stage, rows }: ChunksTableProps): React.JSX.Element | nul
       <thead className="sticky top-9 z-10 bg-background">
         <tr className="border-b">
           <th className={HEADER_CELL_CLASS}>{t('colPage')}</th>
+          {showSimilarity && <th className={HEADER_CELL_CLASS}>{t('colSimilarity')}</th>}
           <th className={HEADER_CELL_CLASS}>{t('colContent')}</th>
         </tr>
       </thead>
       <tbody>
         {rows.map((c) => (
-          <ChunkTableRow key={c.id} c={c} />
+          <ChunkTableRow key={c.id} c={c} showSimilarity={showSimilarity} />
         ))}
       </tbody>
     </table>
@@ -184,8 +207,8 @@ function NoMatchingChunks(): React.JSX.Element {
   );
 }
 
-function StaticChunks({ chunks }: { chunks: RagChunkRow[] }): React.JSX.Element {
-  if (chunks.length === 0) return <NoMatchingChunks />;
+function StaticChunks({ chunks }: { chunks: SemanticChunk[] }): React.JSX.Element {
+  if (chunks.length === ZERO) return <NoMatchingChunks />;
   return <ChunksTable stage="ready" rows={chunks} />;
 }
 

@@ -38,11 +38,6 @@ export async function listObjectsUnder(prefix: string): Promise<string[]> {
   return files.map((f) => f.name);
 }
 
-export async function readJsonObject(objectPath: string): Promise<unknown> {
-  const [buffer] = await getStorage().bucket(bucketName()).file(objectPath).download();
-  return JSON.parse(buffer.toString('utf8')) as unknown;
-}
-
 export async function deleteObject(objectPath: string): Promise<void> {
   try {
     await getStorage().bucket(bucketName()).file(objectPath).delete();

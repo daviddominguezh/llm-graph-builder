@@ -7,24 +7,20 @@ import {
   getRagFileById,
   updateStatus,
 } from '../db/queries/ragFilesQueries.js';
-import { type DocumentAiPayload, maxPage, normalizeChunks } from './chunker.js';
+import { maxPage, normalizeChunks } from './chunker.js';
 import { checkOperation, submitBatch } from './documentAi.js';
 import { embedTexts } from './embeddings.js';
-import { listObjectsUnder, readBytesObject, readJsonObject, writeBytesObject } from './gcs.js';
+import { readBytesObject, writeBytesObject } from './gcs.js';
 import { derivePdfObjectPath, imageBytesToPdfBytes, isImageMime } from './imagePdf.js';
+import { fetchAllShards, mergePayloads, safeDumpShardsToDisk } from './parsedOutput.js';
 
 const EMBED_CHUNK_PAGE_SIZE = 100;
 const PDF_MIME = 'application/pdf';
-const JSON_EXT = '.json';
 const GS_BUCKET_PREFIX_REGEX = /^gs:\/\/[^\/]+\//v;
 const EMPTY_LENGTH = 0;
 
 function log(msg: string): void {
   process.stdout.write(`[ragWorker] ${msg}\n`);
-}
-
-function isDocumentAiPayload(v: unknown): v is DocumentAiPayload {
-  return typeof v === 'object' && v !== null;
 }
 
 async function fail(supabase: SupabaseClient, file: RagFileRow, error: string): Promise<void> {
@@ -45,24 +41,6 @@ async function handleParsing(supabase: SupabaseClient, file: RagFileRow): Promis
     return;
   }
   await updateStatus(supabase, file.id, { status: 'chunking' });
-}
-
-async function appendPayloadChunks(merged: DocumentAiPayload, objectPath: string): Promise<void> {
-  const payload = await readJsonObject(objectPath);
-  if (!isDocumentAiPayload(payload)) return;
-  const chunks = payload.chunkedDocument?.chunks ?? [];
-  merged.chunkedDocument?.chunks?.push(...chunks);
-}
-
-async function readAllParsedChunks(prefix: string): Promise<DocumentAiPayload> {
-  const objects = await listObjectsUnder(prefix);
-  const merged: DocumentAiPayload = { chunkedDocument: { chunks: [] } };
-  const jsonObjects = objects.filter((obj) => obj.endsWith(JSON_EXT));
-  await jsonObjects.reduce<Promise<void>>(async (prev, obj) => {
-    await prev;
-    await appendPayloadChunks(merged, obj);
-  }, Promise.resolve());
-  return merged;
 }
 
 async function persistChunks(
@@ -90,7 +68,9 @@ async function handleChunking(supabase: SupabaseClient, file: RagFileRow): Promi
     await fail(supabase, file, 'chunking without parsed_uri');
     return;
   }
-  const payload = await readAllParsedChunks(prefix);
+  const shards = await fetchAllShards(prefix);
+  await safeDumpShardsToDisk(file.id, shards, log);
+  const payload = mergePayloads(shards);
   const chunks = normalizeChunks(payload);
   if (chunks.length === EMPTY_LENGTH) {
     await fail(supabase, file, 'no chunks produced by Document AI');
