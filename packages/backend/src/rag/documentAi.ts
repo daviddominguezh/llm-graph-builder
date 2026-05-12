@@ -4,6 +4,7 @@ import { type RagConfig, requireRagConfig } from './config.js';
 import { gcsUriFor } from './gcs.js';
 
 const CHUNK_SIZE_DEFAULT = 300;
+const NO_HINTS = 0;
 
 let cachedClient: DocumentProcessorServiceClient | null = null;
 function getClient(): DocumentProcessorServiceClient {
@@ -19,11 +20,23 @@ export interface BatchSubmitInput {
   inputObjectPath: string;
   outputPrefix: string;
   mimeType: string;
+  languageHints: string[] | null;
 }
 
 export interface BatchSubmitResult {
   operationName: string;
   outputGcsUri: string;
+}
+
+function buildOcrConfig(languageHints: string[] | null): {
+  enableNativePdfParsing: boolean;
+  hints?: { languageHints: string[] };
+} {
+  const base = { enableNativePdfParsing: true };
+  if (languageHints !== null && languageHints.length > NO_HINTS) {
+    return { ...base, hints: { languageHints } };
+  }
+  return base;
 }
 
 export async function submitBatch(input: BatchSubmitInput): Promise<BatchSubmitResult> {
@@ -40,9 +53,7 @@ export async function submitBatch(input: BatchSubmitInput): Promise<BatchSubmitR
       gcsOutputConfig: { gcsUri: outputGcsUri },
     },
     processOptions: {
-      ocrConfig: {
-        enableNativePdfParsing: true,
-      },
+      ocrConfig: buildOcrConfig(input.languageHints),
       layoutConfig: {
         chunkingConfig: {
           chunkSize: CHUNK_SIZE_DEFAULT,

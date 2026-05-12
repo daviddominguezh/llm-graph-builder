@@ -6,17 +6,13 @@ import { Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ChangeEvent, type DragEvent, useRef, useState } from 'react';
 
+import { ACCEPTED_EXTENSIONS } from './ragUploadConstants';
+
 interface FileUploadDropzoneProps {
-  uploading: boolean;
-  onFiles: (files: FileList) => void;
+  onFiles: (files: File[]) => void;
 }
 
-const ACCEPTED_EXTENSIONS = '.pdf,.docx,.pptx,.xlsx,.html,.jpg,.jpeg,.png';
-
-export function FileUploadDropzone({
-  uploading,
-  onFiles,
-}: FileUploadDropzoneProps): React.JSX.Element {
+export function FileUploadDropzone({ onFiles }: FileUploadDropzoneProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragUpload');
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -31,11 +27,11 @@ export function FileUploadDropzone({
   function onDrop(e: DragEvent<HTMLDivElement>): void {
     e.preventDefault();
     setDragging(false);
-    if (e.dataTransfer.files.length > 0) onFiles(e.dataTransfer.files);
+    if (e.dataTransfer.files.length > 0) onFiles(Array.from(e.dataTransfer.files));
   }
   function onPick(e: ChangeEvent<HTMLInputElement>): void {
     if (e.target.files !== null && e.target.files.length > 0) {
-      onFiles(e.target.files);
+      onFiles(Array.from(e.target.files));
       e.target.value = '';
     }
   }
@@ -55,14 +51,8 @@ export function FileUploadDropzone({
       <Upload className="size-5 text-muted-foreground" />
       <span className="text-sm font-medium">{dragging ? t('drop') : t('idle')}</span>
       <span className="text-[10px] font-mono text-muted-foreground/70">{t('extensions')}</span>
-      <Button
-        size="sm"
-        type="button"
-        disabled={uploading}
-        onClick={openPicker}
-        className="cursor-pointer gap-2"
-      >
-        {uploading ? t('uploading') : t('upload')}
+      <Button size="sm" type="button" onClick={openPicker} className="cursor-pointer gap-2">
+        {t('upload')}
         <KbdGroup>
           <Kbd className="bg-transparent text-primary-foreground">⌘ + O</Kbd>
         </KbdGroup>

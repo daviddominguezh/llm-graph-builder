@@ -23,6 +23,7 @@ export interface RagFileRow {
   gcs_object: string;
   da_operation: string | null;
   parsed_uri: string | null;
+  language_hints: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -57,6 +58,7 @@ export interface InitUploadInput {
   filename: string;
   mimeType: string;
   sizeBytes: number;
+  languageHints: string[];
 }
 
 export interface InitUploadResponse {
@@ -86,6 +88,7 @@ export async function initUpload(
         filename: input.filename,
         mimeType: input.mimeType,
         sizeBytes: input.sizeBytes,
+        languageHints: input.languageHints,
       }
     );
     if (!isInitUploadResponse(data)) return { result: null, error: 'invalid response' };

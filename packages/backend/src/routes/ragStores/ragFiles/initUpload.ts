@@ -12,9 +12,10 @@ import {
   HTTP_OK,
   extractErrorMessage,
 } from '../../routeHelpers.js';
-import { getStoreIdParam, parseNumber, parseString } from './ragFileHelpers.js';
+import { getStoreIdParam, parseNumber, parseString, parseStringArray } from './ragFileHelpers.js';
 
 const MAX_FILE_BYTES = 209_715_200;
+const NO_HINTS = 0;
 
 interface StoreLookup {
   id: string;
@@ -34,6 +35,7 @@ interface UploadInput {
   filename: string;
   mimeType: string;
   sizeBytes: number;
+  languageHints: string[] | null;
 }
 
 function parseUploadInput(req: Request): UploadInput | undefined {
@@ -51,7 +53,9 @@ function parseUploadInput(req: Request): UploadInput | undefined {
   ) {
     return undefined;
   }
-  return { storeId, tenantId, filename, mimeType, sizeBytes };
+  const hints = parseStringArray(req.body, 'languageHints');
+  const languageHints = hints !== undefined && hints.length > NO_HINTS ? hints : null;
+  return { storeId, tenantId, filename, mimeType, sizeBytes, languageHints };
 }
 
 async function lookupStore(supabase: SupabaseClient, storeId: string): Promise<StoreLookup | undefined> {
@@ -86,6 +90,7 @@ async function createUpload(
     mimeType: input.mimeType,
     sizeBytes: input.sizeBytes,
     gcsObject,
+    languageHints: input.languageHints,
   });
   if (error !== null || result === null) {
     res.status(HTTP_INTERNAL_ERROR).json({ error: error ?? 'create failed' });

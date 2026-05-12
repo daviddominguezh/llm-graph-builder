@@ -36,3 +36,14 @@ export function parseNumber(body: unknown, key: string): number | undefined {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   return undefined;
 }
+
+export function parseStringArray(body: unknown, key: string): string[] | undefined {
+  if (!isRecord(body)) return undefined;
+  const { [key]: value } = body;
+  if (!Array.isArray(value)) return undefined;
+  const out: string[] = [];
+  for (const v of value) {
+    if (typeof v === 'string' && v !== '') out.push(v);
+  }
+  return out;
+}

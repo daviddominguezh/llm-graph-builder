@@ -924,7 +924,22 @@
       "drop": "Release to upload",
       "uploading": "Uploading…",
       "upload": "Upload",
-      "extensions": "pdf · docx · pptx · xlsx · html · jpg · jpeg · png"
+      "extensions": "pdf · docx · pptx · xlsx · html · jpg · jpeg · png",
+      "dialogTitle": "Upload files",
+      "dialogDescription": "Configure OCR and language hints, then start the upload.",
+      "addMore": "Add more",
+      "remove": "Remove",
+      "ocrLabel": "OCR",
+      "ocrEnabled": "OCR on",
+      "ocrDisabled": "OCR off",
+      "languagesLabel": "Languages",
+      "languagesPlaceholder": "Add language hint…",
+      "uploadCta": "Upload {count, plural, =1 {1 file} other {# files}}",
+      "uploadInProgress": "Uploading…",
+      "close": "Close",
+      "done": "All files processed",
+      "errorPrefix": "Failed",
+      "imageOcrForced": "OCR required for images"
     },
     "ragStatus": {
       "pending": "Pending",

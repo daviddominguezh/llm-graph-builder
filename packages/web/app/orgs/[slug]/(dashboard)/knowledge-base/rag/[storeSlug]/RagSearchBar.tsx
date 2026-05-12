@@ -19,7 +19,7 @@ interface RagSearchBarProps {
 const MODES: SearchMode[] = ['simple', 'semantic'];
 
 const TOP_K_MIN = 1;
-const TOP_K_MAX = 50;
+const TOP_K_MAX = 10;
 const SIM_MIN = 0;
 const SIM_MAX = 1;
 const SIM_STEP = 0.05;
@@ -86,34 +86,34 @@ function SemanticControls({
 }: SemanticControlsProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragSearch');
   return (
-    <div className="flex items-center gap-4 pl-2 text-[10px] font-mono text-muted-foreground">
+    <div className="flex items-center gap-9 pl-21 text-[10px] font-mono text-muted-foreground">
       <CornerDownRight className="size-3 shrink-0" aria-hidden="true" />
-      <label className="flex items-center gap-1.5">
-        <span>{t('topKLabel')}</span>
-        <Input
-          type="number"
-          min={TOP_K_MIN}
-          max={TOP_K_MAX}
-          step={1}
-          value={topK}
-          onChange={(e) => handleNumber(e.target.value, TOP_K_MIN, TOP_K_MAX, onTopKChange, true)}
-          className={`${NUMBER_INPUT_CLASS} w-14`}
-        />
-      </label>
-      <label className="flex items-center gap-1.5">
-        <span>{t('minSimilarityLabel')}</span>
-        <Input
-          type="number"
-          min={SIM_MIN}
-          max={SIM_MAX}
-          step={SIM_STEP}
-          value={minSimilarity}
-          onChange={(e) =>
-            handleNumber(e.target.value, SIM_MIN, SIM_MAX, onMinSimilarityChange, false)
-          }
-          className={`${NUMBER_INPUT_CLASS} w-16`}
-        />
-      </label>
+      <div className="flex items-center gap-4">
+        <label className="flex items-center gap-1.5">
+          <span>{t('topKLabel')}</span>
+          <Input
+            type="number"
+            min={TOP_K_MIN}
+            max={TOP_K_MAX}
+            step={1}
+            value={topK}
+            onChange={(e) => handleNumber(e.target.value, TOP_K_MIN, TOP_K_MAX, onTopKChange, true)}
+            className={`${NUMBER_INPUT_CLASS} w-14`}
+          />
+        </label>
+        <label className="flex items-center gap-1.5">
+          <span>{t('minSimilarityLabel')}</span>
+          <Input
+            type="number"
+            min={SIM_MIN}
+            max={SIM_MAX}
+            step={SIM_STEP}
+            value={minSimilarity}
+            onChange={(e) => handleNumber(e.target.value, SIM_MIN, SIM_MAX, onMinSimilarityChange, false)}
+            className={`${NUMBER_INPUT_CLASS} w-16`}
+          />
+        </label>
+      </div>
     </div>
   );
 }

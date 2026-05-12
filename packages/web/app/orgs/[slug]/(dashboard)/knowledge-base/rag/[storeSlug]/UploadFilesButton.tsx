@@ -5,12 +5,12 @@ import { Kbd, KbdGroup } from '@/components/ui/kbd';
 import { useTranslations } from 'next-intl';
 import { type ChangeEvent, useEffect, useRef, useState } from 'react';
 
+import { ACCEPTED_EXTENSIONS } from './ragUploadConstants';
+
 interface UploadFilesButtonProps {
-  uploading: boolean;
-  onFiles: (files: FileList) => void;
+  onFiles: (files: File[]) => void;
 }
 
-const ACCEPTED_EXTENSIONS = '.pdf,.docx,.pptx,.xlsx,.html,.jpg,.jpeg,.png';
 const KBD_FLASH_MS = 200;
 const SHORTCUT_KEY = 'o';
 
@@ -36,7 +36,7 @@ function kbdItemClass(pressed: boolean): string {
   return pressed ? `${base} text-primary bg-primary/15` : base;
 }
 
-export function UploadFilesButton({ uploading, onFiles }: UploadFilesButtonProps): React.JSX.Element {
+export function UploadFilesButton({ onFiles }: UploadFilesButtonProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragUpload');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -49,7 +49,7 @@ export function UploadFilesButton({ uploading, onFiles }: UploadFilesButtonProps
 
   function onPick(e: ChangeEvent<HTMLInputElement>): void {
     if (e.target.files !== null && e.target.files.length > 0) {
-      onFiles(e.target.files);
+      onFiles(Array.from(e.target.files));
       e.target.value = '';
     }
   }
@@ -61,10 +61,9 @@ export function UploadFilesButton({ uploading, onFiles }: UploadFilesButtonProps
         size="sm"
         type="button"
         className="border-[0.5px] rounded-md gap-2 cursor-pointer"
-        disabled={uploading}
         onClick={openPicker}
       >
-        {uploading ? t('uploading') : t('upload')}
+        {t('upload')}
         <KbdGroup>
           <Kbd className={kbdClass}>⌘ + O</Kbd>
         </KbdGroup>

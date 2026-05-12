@@ -10,7 +10,7 @@ import type {
   TenantUsage,
 } from '@/app/lib/ragFiles';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useState } from 'react';
+import { type DragEvent, useCallback, useEffect, useState } from 'react';
 
 import { Scrollable } from '@/app/components/Scrollable';
 import { Loader2 } from 'lucide-react';
@@ -18,8 +18,9 @@ import { Loader2 } from 'lucide-react';
 import { FileRow } from './FileRow';
 import { FileUploadDropzone } from './FileUploadDropzone';
 import { RagSearchBar } from './RagSearchBar';
+import { StagedFilesDialog, useStagedUpload } from './StagedFilesDialog';
 import { UploadFilesButton } from './UploadFilesButton';
-import { useRagUpload } from './useRagUpload';
+import { useStagedFiles } from './useStagedFiles';
 
 interface RagTenantContentProps {
   storeId: string;
@@ -30,6 +31,7 @@ const BYTES_KB = 1024;
 const ONE_DECIMAL = 1;
 const SEARCH_DEBOUNCE_MS = 2000;
 const ZERO_USAGE: TenantUsage = { files_count: 0, pages_count: 0, bytes_total: 0 };
+const NO_FILES = 0;
 
 function formatBytes(n: number): string {
   if (n < BYTES_KB) return `${String(n)} B`;
@@ -117,8 +119,8 @@ interface SettledSearch {
   response: SearchResponse;
 }
 
-const DEFAULT_TOP_K = 20;
-const DEFAULT_MIN_SIMILARITY = 0;
+const DEFAULT_TOP_K = 5;
+const DEFAULT_MIN_SIMILARITY = 0.5;
 
 function useTenantSearch(storeId: string, tenantId: string): UseTenantSearchReturn {
   const [query, setQuery] = useState('');
@@ -214,7 +216,7 @@ function deriveSearchState(files: RagFileRow[], search: UseTenantSearchReturn): 
     chunksByFile,
     isSearchActive: true,
     isSearchPending: false,
-    showNoMatches: visibleFiles.length === 0,
+    showNoMatches: visibleFiles.length === NO_FILES,
   };
 }
 
@@ -317,41 +319,123 @@ function FileListSection({
 interface HeaderRowProps {
   loaded: boolean;
   usage: TenantUsage;
-  uploading: boolean;
-  onFiles: (files: FileList) => void;
+  onFiles: (files: File[]) => void;
 }
 
-function HeaderRow({ loaded, usage, uploading, onFiles }: HeaderRowProps): React.JSX.Element {
+function HeaderRow({ loaded, usage, onFiles }: HeaderRowProps): React.JSX.Element {
   return (
     <div className="flex items-center justify-between gap-2">
       {loaded ? <UsageSummary usage={usage} /> : <div />}
-      {loaded && <UploadFilesButton uploading={uploading} onFiles={onFiles} />}
+      {loaded && <UploadFilesButton onFiles={onFiles} />}
     </div>
   );
+}
+
+interface UseUploadDialogInput {
+  storeId: string;
+  tenantId: string;
+  onAllDone: () => void;
+}
+
+interface UseUploadDialogReturn {
+  dialog: React.JSX.Element;
+  open: (files: File[]) => void;
+  handlePageDrop: (e: DragEvent<HTMLDivElement>) => void;
+}
+
+function useUploadDialog({
+  storeId,
+  tenantId,
+  onAllDone,
+}: UseUploadDialogInput): UseUploadDialogReturn {
+  const [isOpen, setIsOpen] = useState(false);
+  const stagedState = useStagedFiles();
+  const { isUploading, start } = useStagedUpload({
+    storeId,
+    tenantId,
+    staged: stagedState.staged,
+    update: stagedState.update,
+    onFileConfirmed: onAllDone,
+  });
+
+  const allDone =
+    isOpen &&
+    !isUploading &&
+    stagedState.staged.length > NO_FILES &&
+    stagedState.staged.every((s) => s.status === 'done' || s.status === 'failed');
+
+  const open = useCallback(
+    (files: File[]): void => {
+      if (files.length === 0) return;
+      stagedState.add(files);
+      setIsOpen(true);
+    },
+    [stagedState]
+  );
+
+  const close = useCallback((): void => {
+    setIsOpen(false);
+    stagedState.clear();
+    onAllDone();
+  }, [onAllDone, stagedState]);
+
+  const handlePageDrop = useCallback(
+    (e: DragEvent<HTMLDivElement>): void => {
+      if (e.dataTransfer.files.length === 0) return;
+      e.preventDefault();
+      open(Array.from(e.dataTransfer.files));
+    },
+    [open]
+  );
+
+  const dialog = (
+    <StagedFilesDialog
+      storeId={storeId}
+      open={isOpen}
+      staged={stagedState.staged}
+      isUploading={isUploading}
+      isAllDone={allDone}
+      onAdd={stagedState.add}
+      onRemove={stagedState.remove}
+      onOcrChange={stagedState.setOcr}
+      onLanguagesChange={stagedState.setLanguages}
+      onUpdate={stagedState.update}
+      onStartUpload={start}
+      onClose={close}
+    />
+  );
+
+  return { dialog, open, handlePageDrop };
 }
 
 export function RagTenantContent({ storeId, tenantId }: RagTenantContentProps): React.JSX.Element {
   const { files, usage, loaded, refresh } = useTenantFiles(storeId, tenantId);
   const search = useTenantSearch(storeId, tenantId);
-  const { uploading, uploadFiles } = useRagUpload({
+  const { dialog, open: openUploadDialog, handlePageDrop } = useUploadDialog({
     storeId,
     tenantId,
-    onFileQueued: () => {
+    onAllDone: () => {
       void refresh();
     },
   });
 
   const { visibleFiles, chunksByFile, isSearchActive, isSearchPending, showNoMatches } =
     deriveSearchState(files, search);
-  const hasFiles = files.length > 0;
+  const hasFiles = files.length > NO_FILES;
+
+  function preventDefault(e: DragEvent<HTMLDivElement>): void {
+    e.preventDefault();
+  }
 
   return (
-    <div className="flex flex-1 min-h-0 flex-col gap-4 p-4">
-      <HeaderRow loaded={loaded} usage={usage} uploading={uploading} onFiles={(fs) => void uploadFiles(fs)} />
+    <div
+      className="flex flex-1 min-h-0 flex-col gap-4 p-4"
+      onDragOver={preventDefault}
+      onDrop={handlePageDrop}
+    >
+      <HeaderRow loaded={loaded} usage={usage} onFiles={openUploadDialog} />
       {!loaded && <LoadingSpinner />}
-      {loaded && !hasFiles && (
-        <FileUploadDropzone uploading={uploading} onFiles={(fs) => void uploadFiles(fs)} />
-      )}
+      {loaded && !hasFiles && <FileUploadDropzone onFiles={openUploadDialog} />}
       {loaded && hasFiles && (
         <>
           <RagSearchBar
@@ -375,6 +459,7 @@ export function RagTenantContent({ storeId, tenantId }: RagTenantContentProps): 
           />
         </>
       )}
+      {dialog}
     </div>
   );
 }

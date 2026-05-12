@@ -14,7 +14,7 @@ import {
 import { getStoreIdParam, parseNumber, parseString } from './ragFileHelpers.js';
 
 const DEFAULT_K = 20;
-const MAX_K = 50;
+const MAX_K = 10;
 const MIN_K = 1;
 const MIN_SIMILARITY = 0;
 const MAX_SIMILARITY = 1;

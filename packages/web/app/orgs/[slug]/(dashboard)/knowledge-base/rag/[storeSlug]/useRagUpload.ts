@@ -1,12 +1,16 @@
 'use client';
 
 import { confirmUploadAction, initUploadAction } from '@/app/actions/ragFiles';
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 
 interface UseRagUploadInput {
   storeId: string;
   tenantId: string;
-  onFileQueued: (fileId: string) => void;
+}
+
+export interface UploadFileInput {
+  file: File;
+  languages: string[];
 }
 
 export interface UploadResult {
@@ -15,9 +19,13 @@ export interface UploadResult {
   error?: string;
 }
 
+interface UploadOneOptions {
+  onUploading?: (fileId: string) => void;
+  onConfirmed?: (fileId: string) => void;
+}
+
 interface UseRagUploadReturn {
-  uploading: boolean;
-  uploadFiles: (files: FileList) => Promise<UploadResult[]>;
+  uploadOne: (input: UploadFileInput, options?: UploadOneOptions) => Promise<UploadResult>;
 }
 
 const DEFAULT_MIME = 'application/octet-stream';
@@ -26,11 +34,10 @@ function resolveMime(file: File): string {
   return file.type === '' ? DEFAULT_MIME : file.type;
 }
 
-export function useRagUpload({ storeId, tenantId, onFileQueued }: UseRagUploadInput): UseRagUploadReturn {
-  const [uploading, setUploading] = useState(false);
-
+export function useRagUpload({ storeId, tenantId }: UseRagUploadInput): UseRagUploadReturn {
   const uploadOne = useCallback(
-    async (file: File): Promise<UploadResult> => {
+    async (input: UploadFileInput, options: UploadOneOptions = {}): Promise<UploadResult> => {
+      const { file, languages } = input;
       const mime = resolveMime(file);
       const { result, error } = await initUploadAction({
         storeId,
@@ -38,10 +45,12 @@ export function useRagUpload({ storeId, tenantId, onFileQueued }: UseRagUploadIn
         filename: file.name,
         mimeType: mime,
         sizeBytes: file.size,
+        languageHints: languages,
       });
       if (result === null || error !== null) {
         return { fileId: '', filename: file.name, error: error ?? 'init failed' };
       }
+      options.onUploading?.(result.fileId);
       const putRes = await fetch(result.uploadUrl, {
         method: 'PUT',
         headers: { 'Content-Type': mime },
@@ -58,26 +67,11 @@ export function useRagUpload({ storeId, tenantId, onFileQueued }: UseRagUploadIn
       if (confirmErr !== null) {
         return { fileId: result.fileId, filename: file.name, error: confirmErr };
       }
-      onFileQueued(result.fileId);
+      options.onConfirmed?.(result.fileId);
       return { fileId: result.fileId, filename: file.name };
     },
-    [onFileQueued, storeId, tenantId]
+    [storeId, tenantId]
   );
 
-  const uploadFiles = useCallback(
-    async (files: FileList): Promise<UploadResult[]> => {
-      setUploading(true);
-      const list = Array.from(files);
-      const final = await list.reduce<Promise<UploadResult[]>>(async (accP, file) => {
-        const acc = await accP;
-        const r = await uploadOne(file);
-        return [...acc, r];
-      }, Promise.resolve([]));
-      setUploading(false);
-      return final;
-    },
-    [uploadOne]
-  );
-
-  return { uploading, uploadFiles };
+  return { uploadOne };
 }

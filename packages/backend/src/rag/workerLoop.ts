@@ -186,6 +186,7 @@ async function submitAndRecord(supabase: SupabaseClient, file: RagFileRow): Prom
     inputObjectPath: prepared.inputObjectPath,
     outputPrefix,
     mimeType: prepared.mimeType,
+    languageHints: file.language_hints,
   });
   await updateStatus(supabase, file.id, {
     status: 'parsing',

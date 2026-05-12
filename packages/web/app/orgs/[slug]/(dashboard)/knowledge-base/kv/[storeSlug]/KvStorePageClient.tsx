@@ -16,7 +16,7 @@ export function KvStorePageClient({
   tenants,
 }: KvStorePageClientProps): React.JSX.Element {
   return (
-    <div className="flex flex-1 flex-col gap-4 p-6 pt-2 pb-4 min-h-0">
+    <div className="flex flex-1 flex-col gap-4 px-3 pt-2 pb-4 min-h-0">
       <TenantTabs
         tenants={tenants}
         renderTab={(tenantId) => <KvStoreTableConnected storeId={store.id} tenantId={tenantId} />}
