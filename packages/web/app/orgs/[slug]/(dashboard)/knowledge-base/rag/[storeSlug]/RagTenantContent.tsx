@@ -10,7 +10,7 @@ import type {
   TenantUsage,
 } from '@/app/lib/ragFiles';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Scrollable } from '@/app/components/Scrollable';
 import { Loader2 } from 'lucide-react';
@@ -30,7 +30,6 @@ interface RagTenantContentProps {
 
 const BYTES_KB = 1024;
 const ONE_DECIMAL = 1;
-const SEARCH_DEBOUNCE_MS = 2000;
 const ZERO_USAGE: TenantUsage = { files_count: 0, pages_count: 0, bytes_total: 0 };
 const NO_FILES = 0;
 
@@ -107,25 +106,55 @@ interface UseTenantSearchReturn {
   topK: number;
   minSimilarity: number;
   rerank: boolean;
+  submittedQuery: string;
+  isPending: boolean;
   setQuery: (q: string) => void;
   setMode: (m: SearchMode) => void;
   setTopK: (k: number) => void;
   setMinSimilarity: (s: number) => void;
   setRerank: (enabled: boolean) => void;
-}
-
-interface SettledSearch {
-  query: string;
-  mode: SearchMode;
-  topK: number;
-  minSimilarity: number;
-  rerank: boolean;
-  response: SearchResponse;
+  submit: () => void;
+  clear: () => void;
 }
 
 const DEFAULT_TOP_K = 5;
 const DEFAULT_MIN_SIMILARITY = 0.5;
 const RERANK_MIN_K = 5;
+
+interface SearchParamsState {
+  storeId: string;
+  tenantId: string;
+  query: string;
+  mode: SearchMode;
+  topK: number;
+  minSimilarity: number;
+  rerank: boolean;
+}
+
+interface SearchRunHandlers {
+  setResponse: (r: SearchResponse | null) => void;
+  setSubmittedQuery: (q: string) => void;
+  setPending: (p: boolean) => void;
+  requestIdRef: React.RefObject<number>;
+}
+
+async function executeSearch(
+  params: SearchParamsState,
+  handlers: SearchRunHandlers
+): Promise<void> {
+  const myId = handlers.requestIdRef.current + 1;
+  handlers.requestIdRef.current = myId;
+  handlers.setSubmittedQuery(params.query);
+  handlers.setPending(true);
+  const { result } = await searchAction(params.storeId, params.tenantId, params.mode, params.query, {
+    topK: params.topK,
+    minSimilarity: params.minSimilarity,
+    rerank: params.rerank,
+  });
+  if (myId !== handlers.requestIdRef.current) return;
+  handlers.setResponse(result);
+  handlers.setPending(false);
+}
 
 function useTenantSearch(storeId: string, tenantId: string): UseTenantSearchReturn {
   const [query, setQuery] = useState('');
@@ -133,45 +162,29 @@ function useTenantSearch(storeId: string, tenantId: string): UseTenantSearchRetu
   const [topK, setTopK] = useState(DEFAULT_TOP_K);
   const [minSimilarity, setMinSimilarity] = useState(DEFAULT_MIN_SIMILARITY);
   const [rerank, setRerank] = useState(false);
-  const [settled, setSettled] = useState<SettledSearch | null>(null);
-  const effectiveRerank = rerank && topK >= RERANK_MIN_K;
+  const [response, setResponse] = useState<SearchResponse | null>(null);
+  const [submittedQuery, setSubmittedQuery] = useState('');
+  const [isPending, setPending] = useState(false);
+  const requestIdRef = useRef(0);
+  const effectiveRerank = mode === 'hybrid' || (rerank && topK >= RERANK_MIN_K);
 
-  useEffect(() => {
+  const submit = useCallback((): void => {
     const trimmed = query.trim();
     if (trimmed === '') return;
-    let cancelled = false;
-    const id = setTimeout(() => {
-      void (async () => {
-        const { result } = await searchAction(storeId, tenantId, mode, trimmed, {
-          topK,
-          minSimilarity,
-          rerank: effectiveRerank,
-        });
-        if (cancelled) return;
-        setSettled({
-          query: trimmed,
-          mode,
-          topK,
-          minSimilarity,
-          rerank: effectiveRerank,
-          response: result,
-        });
-      })();
-    }, SEARCH_DEBOUNCE_MS);
-    return () => {
-      cancelled = true;
-      clearTimeout(id);
-    };
+    void executeSearch(
+      { storeId, tenantId, query: trimmed, mode, topK, minSimilarity, rerank: effectiveRerank },
+      { setResponse, setSubmittedQuery, setPending, requestIdRef }
+    );
   }, [storeId, tenantId, query, mode, topK, minSimilarity, effectiveRerank]);
 
-  const matchesCurrent =
-    settled !== null &&
-    settled.query === query.trim() &&
-    settled.mode === mode &&
-    settled.topK === topK &&
-    settled.minSimilarity === minSimilarity &&
-    settled.rerank === effectiveRerank;
-  const response = matchesCurrent && settled !== null ? settled.response : null;
+  const clear = useCallback((): void => {
+    requestIdRef.current += 1;
+    setQuery('');
+    setSubmittedQuery('');
+    setResponse(null);
+    setPending(false);
+  }, []);
+
   return {
     response,
     query,
@@ -179,11 +192,15 @@ function useTenantSearch(storeId: string, tenantId: string): UseTenantSearchRetu
     topK,
     minSimilarity,
     rerank,
+    submittedQuery,
+    isPending,
     setQuery,
     setMode,
     setTopK,
     setMinSimilarity,
     setRerank,
+    submit,
+    clear,
   };
 }
 
@@ -208,7 +225,7 @@ function groupChunksByFile(response: SearchResponse): Map<string, SemanticChunk[
 }
 
 function deriveSearchState(files: RagFileRow[], search: UseTenantSearchReturn): SearchState {
-  const isSearching = search.query.trim() !== '';
+  const isSearching = search.submittedQuery !== '';
   if (!isSearching)
     return {
       visibleFiles: files,
@@ -217,7 +234,7 @@ function deriveSearchState(files: RagFileRow[], search: UseTenantSearchReturn): 
       isSearchPending: false,
       showNoMatches: false,
     };
-  if (search.response === null)
+  if (search.isPending || search.response === null)
     return {
       visibleFiles: [],
       chunksByFile: EMPTY_CHUNKS_MAP,
@@ -455,11 +472,15 @@ function PageBody({
         topK={search.topK}
         minSimilarity={search.minSimilarity}
         rerank={search.rerank}
+        isSearching={search.isPending}
+        canClear={search.submittedQuery !== ''}
         onQueryChange={search.setQuery}
         onModeChange={search.setMode}
         onTopKChange={search.setTopK}
         onMinSimilarityChange={search.setMinSimilarity}
         onRerankChange={search.setRerank}
+        onSubmit={search.submit}
+        onClear={search.clear}
       />
       <FileListSection
         storeId={storeId}

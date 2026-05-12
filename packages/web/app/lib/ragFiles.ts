@@ -40,6 +40,7 @@ export interface RagChunkRow {
   content_hash: string;
   token_count: number | null;
   created_at: string;
+  rank?: number;
 }
 
 export interface SemanticChunk extends RagChunkRow {
@@ -215,7 +216,7 @@ export async function getChunks(
   }
 }
 
-export type SearchMode = 'simple' | 'semantic';
+export type SearchMode = 'simple' | 'semantic' | 'hybrid';
 
 export interface SearchResponse {
   mode: SearchMode;

@@ -22,6 +22,7 @@ export interface RagChunkRow {
   content_hash: string;
   token_count: number | null;
   created_at: string;
+  rank?: number;
 }
 
 const LIST_COLUMNS =
@@ -160,16 +161,28 @@ export async function searchByContent(
   supabase: SupabaseClient,
   input: ContentSearchInput
 ): Promise<{ result: RagChunkRow[]; error: string | null }> {
-  const { data, error } = await supabase
-    .from('rag_chunks')
-    .select(LIST_COLUMNS)
-    .eq('rag_store_id', input.ragStoreId)
-    .eq('tenant_id', input.tenantId)
-    .textSearch('content', input.query, { config: 'simple', type: 'plain' })
-    .limit(input.k);
-  if (error !== null) return { result: [], error: error.message };
+  process.stdout.write(
+    `[ragText] rpc rag_text_search store=${input.ragStoreId} tenant=${input.tenantId} k=${String(input.k)} query="${input.query}"\n`
+  );
+  const { data, error } = (await supabase.rpc('rag_text_search', {
+    p_rag_store_id: input.ragStoreId,
+    p_tenant_id: input.tenantId,
+    p_query: input.query,
+    p_k: input.k,
+  })) as { data: unknown; error: { message: string } | null };
+  if (error !== null) {
+    process.stdout.write(`[ragText] rpc error: ${error.message}\n`);
+    return { result: [], error: error.message };
+  }
   const rows: unknown[] = Array.isArray(data) ? data : [];
-  return { result: mapRows(rows), error: null };
+  const mapped = mapRows(rows);
+  const [first] = rows;
+  const firstKeys =
+    first !== undefined && typeof first === 'object' && first !== null ? Object.keys(first) : [];
+  process.stdout.write(
+    `[ragText] rpc ok raw=${String(rows.length)} mapped=${String(mapped.length)} firstKeys=${JSON.stringify(firstKeys)}\n`
+  );
+  return { result: mapped, error: null };
 }
 
 export interface SemanticSearchInput {
@@ -181,7 +194,7 @@ export interface SemanticSearchInput {
 }
 
 export interface SemanticChunk extends RagChunkRow {
-  distance: number;
+  distance?: number;
   rerank_score?: number;
 }
 

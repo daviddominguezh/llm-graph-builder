@@ -147,7 +147,7 @@ function StoreCard({ item, active, onRename, onDelete }: StoreCardProps): React.
         <div className="flex min-w-0 flex-1 flex-col">
           <span className="truncate font-mono text-[10px] font-medium leading-tight">{item.name}</span>
           <span className="truncate font-mono text-[9px] text-muted-foreground/70 leading-tight">
-            {item.slug}
+            {t('idLabel')} {item.slug}
           </span>
         </div>
       </Link>

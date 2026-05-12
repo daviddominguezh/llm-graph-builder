@@ -856,7 +856,8 @@
       "noResults": "No matching stores",
       "actions": "Actions",
       "rename": "Rename",
-      "delete": "Delete"
+      "delete": "Delete",
+      "idLabel": "ID:"
     },
     "rename": {
       "title": "Rename knowledge base",
@@ -984,16 +985,24 @@
     "ragSearch": {
       "placeholder": "Search files and chunks…",
       "submit": "Search",
+      "clear": "Clear",
       "empty": "No results",
       "page": "p. {page}",
       "paragraph": "¶ {idx}",
       "distance": "d={d}",
-      "topKLabel": "k",
+      "topKLabel": "Top",
       "minSimilarityLabel": "min similarity",
       "rerankLabel": "Rerank",
+      "rerankTooltip": "Reorders the top candidates with a cross-encoder model that scores each chunk against your query. Improves relevance for ambiguous or natural-language queries at the cost of an extra API call.",
       "mode": {
         "simple": "Simple",
-        "semantic": "Semantic"
+        "semantic": "Semantic",
+        "hybrid": "Hybrid"
+      },
+      "description": {
+        "simple": "Lexical keyword match scored by term frequency across stored chunks.",
+        "semantic": "Vector similarity over embedded chunks, ideal for natural-language queries.",
+        "hybrid": "Mixes lexical and semantic candidates and reranks them with a cross-encoder."
       }
     }
   },

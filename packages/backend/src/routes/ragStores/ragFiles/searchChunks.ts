@@ -16,6 +16,7 @@ import {
   HTTP_OK,
   extractErrorMessage,
 } from '../../routeHelpers.js';
+import { runHybridSearch } from './hybridSearch.js';
 import { getStoreIdParam, parseBoolean, parseNumber, parseString } from './ragFileHelpers.js';
 
 const DEFAULT_K = 5;
@@ -28,7 +29,7 @@ const RERANK_CANDIDATE_POOL = 50;
 
 type Supabase = AuthenticatedLocals['supabase'];
 
-interface SearchParams {
+export interface SearchParams {
   storeId: string;
   tenantId: string;
   mode: string;
@@ -96,14 +97,14 @@ async function runSimpleSearch(
   res.status(HTTP_OK).json({ mode: 'simple', files, chunks: chunksRes.result });
 }
 
-interface RerankInputParams {
+export interface RerankInputParams {
   query: string;
   candidates: SemanticChunk[];
   topK: number;
   minScore: number;
 }
 
-async function applyRerank(params: RerankInputParams): Promise<SemanticChunk[]> {
+export async function applyRerank(params: RerankInputParams): Promise<SemanticChunk[]> {
   const ranked = await rerankRecords({
     query: params.query,
     topN: params.topK,
@@ -120,12 +121,13 @@ async function applyRerank(params: RerankInputParams): Promise<SemanticChunk[]> 
   return out;
 }
 
-async function runSemanticSearch(
-  supabase: Supabase,
-  p: SearchParams,
-  res: AuthenticatedResponse
-): Promise<void> {
+function log(msg: string): void {
+  process.stdout.write(`[ragSem] ${msg}\n`);
+}
+
+async function runSemanticPipeline(supabase: Supabase, p: SearchParams): Promise<SemanticChunk[]> {
   const queryVector = await embedQuery(p.query);
+  log(`embed ok dims=${String(queryVector.length)}`);
   const poolSize = p.rerank ? RERANK_CANDIDATE_POOL : p.k;
   const { result, error } = await searchBySemantic(supabase, {
     ragStoreId: p.storeId,
@@ -134,14 +136,33 @@ async function runSemanticSearch(
     k: poolSize,
     maxDistance: p.maxDistance,
   });
-  if (error !== null) {
-    res.status(HTTP_INTERNAL_ERROR).json({ error });
-    return;
+  if (error !== null) throw new Error(error);
+  log(`rpc ok pool=${String(result.length)}`);
+  if (!p.rerank) return result;
+  const chunks = await applyRerank({
+    query: p.query,
+    candidates: result,
+    topK: p.k,
+    minScore: p.minSimilarity,
+  });
+  log(`rerank kept=${String(chunks.length)}`);
+  return chunks;
+}
+
+async function runSemanticSearch(
+  supabase: Supabase,
+  p: SearchParams,
+  res: AuthenticatedResponse
+): Promise<void> {
+  log(`entry k=${String(p.k)} rerank=${String(p.rerank)} query="${p.query}"`);
+  try {
+    const chunks = await runSemanticPipeline(supabase, p);
+    res.status(HTTP_OK).json({ mode: 'semantic', chunks });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    log(`error: ${msg}`);
+    res.status(HTTP_INTERNAL_ERROR).json({ error: msg });
   }
-  const chunks = p.rerank
-    ? await applyRerank({ query: p.query, candidates: result, topK: p.k, minScore: p.minSimilarity })
-    : result;
-  res.status(HTTP_OK).json({ mode: 'semantic', chunks });
 }
 
 async function dispatch(supabase: Supabase, params: SearchParams, res: AuthenticatedResponse): Promise<void> {
@@ -151,6 +172,10 @@ async function dispatch(supabase: Supabase, params: SearchParams, res: Authentic
   }
   if (params.mode === 'semantic') {
     await runSemanticSearch(supabase, params, res);
+    return;
+  }
+  if (params.mode === 'hybrid') {
+    await runHybridSearch(supabase, params, res);
     return;
   }
   res.status(HTTP_BAD_REQUEST).json({ error: `unknown mode: ${params.mode}` });

@@ -8,7 +8,7 @@ import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
-export type DisplayChunk = RagChunkRow & { distance?: number; rerank_score?: number };
+export type DisplayChunk = RagChunkRow & { distance?: number; rerank_score?: number; rank?: number };
 
 interface FileChunksTableProps {
   storeId: string;
@@ -76,6 +76,12 @@ function useChunks(storeId: string, fileId: string, page: number): UseChunksRetu
   return { rows, stage };
 }
 
+const NEWLINE_GLYPH = ' ↵ ';
+
+function collapseNewlines(text: string): string {
+  return text.replace(/\n+/g, NEWLINE_GLYPH);
+}
+
 function ChunkContent({ content }: { content: string }): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragChunks');
   const [expanded, setExpanded] = useState(false);
@@ -86,21 +92,23 @@ function ChunkContent({ content }: { content: string }): React.JSX.Element {
     const el = ref.current;
     if (el === null) return;
     setOverflows(el.scrollHeight > el.clientHeight + OVERFLOW_TOLERANCE_PX);
-  }, [content]);
+  }, [content, expanded]);
 
+  const showToggle = overflows || expanded;
   return (
-    <div className="flex flex-col gap-1">
+    <div className="relative">
       <p
         ref={ref}
-        className={`whitespace-pre-wrap text-[10px] leading-relaxed ${expanded ? '' : 'line-clamp-3'}`}
+        className={`whitespace-pre-wrap text-[10px] leading-relaxed ${expanded ? '' : 'line-clamp-1'}`}
       >
-        {content}
+        {expanded ? content : collapseNewlines(content)}
       </p>
-      {overflows && (
+      {showToggle && (
         <Button
           type="button"
+          size="xs"
           variant="link"
-          className="h-auto self-end p-0 text-xs text-blue-500"
+          className="bg-background text-blue-600! dark:text-blue-400! absolute z-9999 right-0 top-1/2 -translate-y-1/2 rounded-md opacity-0 transition-opacity group-hover/chunk:opacity-100"
           onClick={() => setExpanded((v) => !v)}
         >
           {expanded ? t('viewLess') : t('viewAll')}
@@ -126,9 +134,14 @@ function hasScore(c: DisplayChunk): c is DisplayChunk & { rerank_score: number }
   return typeof c.rerank_score === 'number';
 }
 
+function hasRank(c: DisplayChunk): c is DisplayChunk & { rank: number } {
+  return typeof c.rank === 'number';
+}
+
 function similarityCell(c: DisplayChunk): string {
   if (hasScore(c)) return formatScore(c.rerank_score);
   if (hasDistance(c)) return formatSimilarity(c.distance);
+  if (hasRank(c)) return formatScore(c.rank);
   return '—';
 }
 
@@ -156,7 +169,7 @@ function ChunkTableRow({
     <tr className="border-b last:border-b-0">
       <td className={META_CELL_CLASS}>{pageLabel(c, t)}</td>
       {showSimilarity && <td className={META_CELL_CLASS}>{similarityCell(c)}</td>}
-      <td className="align-top py-2 px-3">
+      <td className="group/chunk align-top py-2 px-3">
         <ChunkContent content={c.content} />
       </td>
     </tr>
@@ -178,7 +191,7 @@ function ChunksTable({ stage, rows }: ChunksTableProps): React.JSX.Element | nul
       </div>
     );
   }
-  const showSimilarity = rows.some((r) => hasDistance(r) || hasScore(r));
+  const showSimilarity = rows.some((r) => hasDistance(r) || hasScore(r) || hasRank(r));
   // Plain <table> — shadcn's Table wraps in `overflow-x-auto`, which creates
   // its own scroll container and breaks sticky <thead> relative to the outer
   // Scrollable. Render the table directly so sticky positions against the
@@ -187,8 +200,10 @@ function ChunksTable({ stage, rows }: ChunksTableProps): React.JSX.Element | nul
     <table className="w-full caption-bottom text-sm">
       <thead className="sticky top-9 z-10 bg-background">
         <tr className="border-b">
-          <th className={HEADER_CELL_CLASS}>{t('colPage')}</th>
-          {showSimilarity && <th className={HEADER_CELL_CLASS}>{t('colSimilarity')}</th>}
+          <th className={`${HEADER_CELL_CLASS} w-px`}>{t('colPage')}</th>
+          {showSimilarity && (
+            <th className={`${HEADER_CELL_CLASS} w-px`}>{t('colSimilarity')}</th>
+          )}
           <th className={HEADER_CELL_CLASS}>{t('colContent')}</th>
         </tr>
       </thead>
