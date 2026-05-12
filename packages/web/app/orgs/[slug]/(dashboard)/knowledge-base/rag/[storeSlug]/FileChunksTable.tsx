@@ -108,7 +108,9 @@ function ChunkContent({ content }: { content: string }): React.JSX.Element {
           type="button"
           size="xs"
           variant="link"
-          className="bg-background text-blue-600! dark:text-blue-400! absolute z-9999 right-0 top-1/2 -translate-y-1/2 rounded-md opacity-0 transition-opacity group-hover/chunk:opacity-100"
+          className={`bg-background text-blue-600! dark:text-blue-400! absolute z-9999 right-0 rounded-md opacity-0 transition-opacity group-hover/chunk:opacity-100 ${
+            expanded ? 'bottom-0' : 'top-1/2 -translate-y-1/2'
+          }`}
           onClick={() => setExpanded((v) => !v)}
         >
           {expanded ? t('viewLess') : t('viewAll')}

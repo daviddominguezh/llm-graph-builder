@@ -292,7 +292,7 @@ function SearchControls(props: SearchControlsProps): React.JSX.Element {
 function ModeExplanation({ mode }: { mode: SearchMode }): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragSearch');
   return (
-    <div className="top-[100%] mt-1.5 absolute w-full text-[10px] leading-tight text-muted-foreground px-1.5">
+    <div className="top-[100%] mt-1.5 border-l-2 ml-[1px] absolute w-full text-[10px] leading-tight text-muted-foreground px-1.5">
       {t(`description.${mode}`)}
     </div>
   );
