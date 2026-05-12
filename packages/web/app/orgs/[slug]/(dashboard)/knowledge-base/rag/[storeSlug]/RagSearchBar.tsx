@@ -1,6 +1,7 @@
 'use client';
 
 import type { SearchMode } from '@/app/lib/ragFiles';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { CornerDownRight, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -11,11 +12,15 @@ interface RagSearchBarProps {
   mode: SearchMode;
   topK: number;
   minSimilarity: number;
+  rerank: boolean;
   onQueryChange: (query: string) => void;
   onModeChange: (mode: SearchMode) => void;
   onTopKChange: (k: number) => void;
   onMinSimilarityChange: (s: number) => void;
+  onRerankChange: (enabled: boolean) => void;
 }
+
+const RERANK_MIN_K = 5;
 
 const MODES: SearchMode[] = ['simple', 'semantic'];
 
@@ -61,8 +66,10 @@ function ModeTabs({ mode, onChange }: ModeTabsProps): React.JSX.Element {
 interface SemanticControlsProps {
   topK: number;
   minSimilarity: number;
+  rerank: boolean;
   onTopKChange: (k: number) => void;
   onMinSimilarityChange: (s: number) => void;
+  onRerankChange: (enabled: boolean) => void;
 }
 
 interface NumberFieldProps {
@@ -127,10 +134,13 @@ function NumberField({
 function SemanticControls({
   topK,
   minSimilarity,
+  rerank,
   onTopKChange,
   onMinSimilarityChange,
+  onRerankChange,
 }: SemanticControlsProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragSearch');
+  const rerankAvailable = topK >= RERANK_MIN_K;
   return (
     <div className="flex items-center gap-9 pl-21 text-[10px] font-mono text-muted-foreground">
       <CornerDownRight className="size-3 shrink-0" aria-hidden="true" />
@@ -157,6 +167,16 @@ function SemanticControls({
             className={`${NUMBER_INPUT_CLASS} w-16`}
           />
         </label>
+        <label
+          className={`flex items-center gap-1.5 ${rerankAvailable ? '' : 'opacity-50 cursor-not-allowed'}`}
+        >
+          <Checkbox
+            checked={rerank && rerankAvailable}
+            disabled={!rerankAvailable}
+            onCheckedChange={(v) => onRerankChange(v === true)}
+          />
+          <span>{t('rerankLabel')}</span>
+        </label>
       </div>
     </div>
   );
@@ -167,10 +187,12 @@ export function RagSearchBar({
   mode,
   topK,
   minSimilarity,
+  rerank,
   onQueryChange,
   onModeChange,
   onTopKChange,
   onMinSimilarityChange,
+  onRerankChange,
 }: RagSearchBarProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragSearch');
   return (
@@ -191,8 +213,10 @@ export function RagSearchBar({
         <SemanticControls
           topK={topK}
           minSimilarity={minSimilarity}
+          rerank={rerank}
           onTopKChange={onTopKChange}
           onMinSimilarityChange={onMinSimilarityChange}
+          onRerankChange={onRerankChange}
         />
       )}
     </div>

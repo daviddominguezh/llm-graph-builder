@@ -37,6 +37,13 @@ export function parseNumber(body: unknown, key: string): number | undefined {
   return undefined;
 }
 
+export function parseBoolean(body: unknown, key: string): boolean | undefined {
+  if (!isRecord(body)) return undefined;
+  const { [key]: value } = body;
+  if (typeof value === 'boolean') return value;
+  return undefined;
+}
+
 export function parseStringArray(body: unknown, key: string): string[] | undefined {
   if (!isRecord(body)) return undefined;
   const { [key]: value } = body;

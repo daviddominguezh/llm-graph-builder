@@ -987,6 +987,7 @@
       "distance": "d={d}",
       "topKLabel": "k",
       "minSimilarityLabel": "min similarity",
+      "rerankLabel": "Rerank",
       "mode": {
         "simple": "Simple",
         "semantic": "Semantic"

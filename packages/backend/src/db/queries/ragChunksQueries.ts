@@ -182,6 +182,7 @@ export interface SemanticSearchInput {
 
 export interface SemanticChunk extends RagChunkRow {
   distance: number;
+  rerank_score?: number;
 }
 
 function isSemanticRow(value: unknown): value is RagChunkRow & { distance: unknown } {

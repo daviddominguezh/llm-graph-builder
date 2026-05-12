@@ -8,7 +8,7 @@ import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
-export type DisplayChunk = RagChunkRow & { distance?: number };
+export type DisplayChunk = RagChunkRow & { distance?: number; rerank_score?: number };
 
 interface FileChunksTableProps {
   storeId: string;
@@ -114,8 +114,22 @@ function formatSimilarity(distance: number): string {
   return (ONE - distance).toFixed(SIMILARITY_DIGITS);
 }
 
+function formatScore(score: number): string {
+  return score.toFixed(SIMILARITY_DIGITS);
+}
+
 function hasDistance(c: DisplayChunk): c is DisplayChunk & { distance: number } {
   return typeof c.distance === 'number';
+}
+
+function hasScore(c: DisplayChunk): c is DisplayChunk & { rerank_score: number } {
+  return typeof c.rerank_score === 'number';
+}
+
+function similarityCell(c: DisplayChunk): string {
+  if (hasScore(c)) return formatScore(c.rerank_score);
+  if (hasDistance(c)) return formatSimilarity(c.distance);
+  return '—';
 }
 
 function pageLabel(
@@ -141,9 +155,7 @@ function ChunkTableRow({
   return (
     <tr className="border-b last:border-b-0">
       <td className={META_CELL_CLASS}>{pageLabel(c, t)}</td>
-      {showSimilarity && (
-        <td className={META_CELL_CLASS}>{hasDistance(c) ? formatSimilarity(c.distance) : '—'}</td>
-      )}
+      {showSimilarity && <td className={META_CELL_CLASS}>{similarityCell(c)}</td>}
       <td className="align-top py-2 px-3">
         <ChunkContent content={c.content} />
       </td>
@@ -166,7 +178,7 @@ function ChunksTable({ stage, rows }: ChunksTableProps): React.JSX.Element | nul
       </div>
     );
   }
-  const showSimilarity = rows.some(hasDistance);
+  const showSimilarity = rows.some((r) => hasDistance(r) || hasScore(r));
   // Plain <table> — shadcn's Table wraps in `overflow-x-auto`, which creates
   // its own scroll container and breaks sticky <thead> relative to the outer
   // Scrollable. Render the table directly so sticky positions against the

@@ -106,10 +106,12 @@ interface UseTenantSearchReturn {
   mode: SearchMode;
   topK: number;
   minSimilarity: number;
+  rerank: boolean;
   setQuery: (q: string) => void;
   setMode: (m: SearchMode) => void;
   setTopK: (k: number) => void;
   setMinSimilarity: (s: number) => void;
+  setRerank: (enabled: boolean) => void;
 }
 
 interface SettledSearch {
@@ -117,18 +119,22 @@ interface SettledSearch {
   mode: SearchMode;
   topK: number;
   minSimilarity: number;
+  rerank: boolean;
   response: SearchResponse;
 }
 
 const DEFAULT_TOP_K = 5;
 const DEFAULT_MIN_SIMILARITY = 0.5;
+const RERANK_MIN_K = 5;
 
 function useTenantSearch(storeId: string, tenantId: string): UseTenantSearchReturn {
   const [query, setQuery] = useState('');
   const [mode, setMode] = useState<SearchMode>('simple');
   const [topK, setTopK] = useState(DEFAULT_TOP_K);
   const [minSimilarity, setMinSimilarity] = useState(DEFAULT_MIN_SIMILARITY);
+  const [rerank, setRerank] = useState(false);
   const [settled, setSettled] = useState<SettledSearch | null>(null);
+  const effectiveRerank = rerank && topK >= RERANK_MIN_K;
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -139,23 +145,32 @@ function useTenantSearch(storeId: string, tenantId: string): UseTenantSearchRetu
         const { result } = await searchAction(storeId, tenantId, mode, trimmed, {
           topK,
           minSimilarity,
+          rerank: effectiveRerank,
         });
         if (cancelled) return;
-        setSettled({ query: trimmed, mode, topK, minSimilarity, response: result });
+        setSettled({
+          query: trimmed,
+          mode,
+          topK,
+          minSimilarity,
+          rerank: effectiveRerank,
+          response: result,
+        });
       })();
     }, SEARCH_DEBOUNCE_MS);
     return () => {
       cancelled = true;
       clearTimeout(id);
     };
-  }, [storeId, tenantId, query, mode, topK, minSimilarity]);
+  }, [storeId, tenantId, query, mode, topK, minSimilarity, effectiveRerank]);
 
   const matchesCurrent =
     settled !== null &&
     settled.query === query.trim() &&
     settled.mode === mode &&
     settled.topK === topK &&
-    settled.minSimilarity === minSimilarity;
+    settled.minSimilarity === minSimilarity &&
+    settled.rerank === effectiveRerank;
   const response = matchesCurrent && settled !== null ? settled.response : null;
   return {
     response,
@@ -163,10 +178,12 @@ function useTenantSearch(storeId: string, tenantId: string): UseTenantSearchRetu
     mode,
     topK,
     minSimilarity,
+    rerank,
     setQuery,
     setMode,
     setTopK,
     setMinSimilarity,
+    setRerank,
   };
 }
 
@@ -436,10 +453,12 @@ function PageBody({
         mode={search.mode}
         topK={search.topK}
         minSimilarity={search.minSimilarity}
+        rerank={search.rerank}
         onQueryChange={search.setQuery}
         onModeChange={search.setMode}
         onTopKChange={search.setTopK}
         onMinSimilarityChange={search.setMinSimilarity}
+        onRerankChange={search.setRerank}
       />
       <FileListSection
         storeId={storeId}

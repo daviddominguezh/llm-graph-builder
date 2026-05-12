@@ -44,6 +44,7 @@ export interface RagChunkRow {
 
 export interface SemanticChunk extends RagChunkRow {
   distance: number;
+  rerank_score?: number;
 }
 
 export interface TenantUsage {
@@ -227,6 +228,7 @@ function isSearchResponse(v: unknown): v is SearchResponse {
 export interface SearchOptions {
   topK?: number;
   minSimilarity?: number;
+  rerank?: boolean;
 }
 
 export async function search(
@@ -243,6 +245,7 @@ export async function search(
       query,
       k: options.topK,
       minSimilarity: options.minSimilarity,
+      rerank: options.rerank,
     });
     if (!isSearchResponse(data)) return { result: { mode }, error: 'invalid response' };
     return { result: data, error: null };

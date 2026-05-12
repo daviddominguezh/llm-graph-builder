@@ -1,8 +1,13 @@
 import type { Request } from 'express';
 
-import { searchByContent, searchBySemantic } from '../../../db/queries/ragChunksQueries.js';
+import {
+  type SemanticChunk,
+  searchByContent,
+  searchBySemantic,
+} from '../../../db/queries/ragChunksQueries.js';
 import { listFilesByStoreTenant } from '../../../db/queries/ragFilesQueries.js';
 import { embedQuery } from '../../../rag/embeddings.js';
+import { rerankRecords } from '../../../rag/rerank.js';
 import {
   type AuthenticatedLocals,
   type AuthenticatedResponse,
@@ -11,14 +16,15 @@ import {
   HTTP_OK,
   extractErrorMessage,
 } from '../../routeHelpers.js';
-import { getStoreIdParam, parseNumber, parseString } from './ragFileHelpers.js';
+import { getStoreIdParam, parseBoolean, parseNumber, parseString } from './ragFileHelpers.js';
 
-const DEFAULT_K = 20;
+const DEFAULT_K = 5;
 const MAX_K = 10;
 const MIN_K = 1;
 const MIN_SIMILARITY = 0;
 const MAX_SIMILARITY = 1;
 const DEFAULT_MIN_SIMILARITY = 0;
+const RERANK_CANDIDATE_POOL = 50;
 
 type Supabase = AuthenticatedLocals['supabase'];
 
@@ -29,6 +35,7 @@ interface SearchParams {
   query: string;
   k: number;
   maxDistance: number | null;
+  rerank: boolean;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -50,10 +57,11 @@ function parseParams(req: Request): SearchParams | null {
   const kRaw = parseNumber(req.body, 'k') ?? DEFAULT_K;
   const k = clamp(Math.floor(kRaw), MIN_K, MAX_K);
   const maxDistance = parseMaxDistance(req.body);
+  const rerank = parseBoolean(req.body, 'rerank') ?? false;
   if (storeId === undefined || tenantId === undefined || query === undefined || mode === undefined) {
     return null;
   }
-  return { storeId, tenantId, mode, query, k, maxDistance };
+  return { storeId, tenantId, mode, query, k, maxDistance, rerank };
 }
 
 async function runSimpleSearch(
@@ -83,24 +91,46 @@ async function runSimpleSearch(
   res.status(HTTP_OK).json({ mode: 'simple', files, chunks: chunksRes.result });
 }
 
+async function applyRerank(
+  query: string,
+  candidates: SemanticChunk[],
+  topK: number
+): Promise<SemanticChunk[]> {
+  const ranked = await rerankRecords({
+    query,
+    topN: topK,
+    records: candidates.map((c) => ({ id: c.id, content: c.content })),
+  });
+  const byId = new Map(candidates.map((c) => [c.id, c]));
+  const out: SemanticChunk[] = [];
+  for (const r of ranked) {
+    const chunk = byId.get(r.id);
+    if (chunk === undefined) continue;
+    out.push({ ...chunk, rerank_score: r.score });
+  }
+  return out;
+}
+
 async function runSemanticSearch(
   supabase: Supabase,
   p: SearchParams,
   res: AuthenticatedResponse
 ): Promise<void> {
   const queryVector = await embedQuery(p.query);
+  const poolSize = p.rerank ? RERANK_CANDIDATE_POOL : p.k;
   const { result, error } = await searchBySemantic(supabase, {
     ragStoreId: p.storeId,
     tenantId: p.tenantId,
     queryVector,
-    k: p.k,
+    k: poolSize,
     maxDistance: p.maxDistance,
   });
   if (error !== null) {
     res.status(HTTP_INTERNAL_ERROR).json({ error });
     return;
   }
-  res.status(HTTP_OK).json({ mode: 'semantic', chunks: result });
+  const chunks = p.rerank ? await applyRerank(p.query, result, p.k) : result;
+  res.status(HTTP_OK).json({ mode: 'semantic', chunks });
 }
 
 async function dispatch(supabase: Supabase, params: SearchParams, res: AuthenticatedResponse): Promise<void> {
