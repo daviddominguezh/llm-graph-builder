@@ -34,6 +34,7 @@ interface SearchParams {
   mode: string;
   query: string;
   k: number;
+  minSimilarity: number;
   maxDistance: number | null;
   rerank: boolean;
 }
@@ -42,11 +43,14 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(min, value), max);
 }
 
-function parseMaxDistance(body: unknown): number | null {
+function parseMinSimilarity(body: unknown): number {
   const raw = parseNumber(body, 'minSimilarity') ?? DEFAULT_MIN_SIMILARITY;
-  const sim = clamp(raw, MIN_SIMILARITY, MAX_SIMILARITY);
-  if (sim <= MIN_SIMILARITY) return null;
-  return MAX_SIMILARITY - sim;
+  return clamp(raw, MIN_SIMILARITY, MAX_SIMILARITY);
+}
+
+function toMaxDistance(minSimilarity: number): number | null {
+  if (minSimilarity <= MIN_SIMILARITY) return null;
+  return MAX_SIMILARITY - minSimilarity;
 }
 
 function parseParams(req: Request): SearchParams | null {
@@ -56,12 +60,13 @@ function parseParams(req: Request): SearchParams | null {
   const query = parseString(req.body, 'query');
   const kRaw = parseNumber(req.body, 'k') ?? DEFAULT_K;
   const k = clamp(Math.floor(kRaw), MIN_K, MAX_K);
-  const maxDistance = parseMaxDistance(req.body);
+  const minSimilarity = parseMinSimilarity(req.body);
+  const maxDistance = toMaxDistance(minSimilarity);
   const rerank = parseBoolean(req.body, 'rerank') ?? false;
   if (storeId === undefined || tenantId === undefined || query === undefined || mode === undefined) {
     return null;
   }
-  return { storeId, tenantId, mode, query, k, maxDistance, rerank };
+  return { storeId, tenantId, mode, query, k, minSimilarity, maxDistance, rerank };
 }
 
 async function runSimpleSearch(
@@ -91,19 +96,23 @@ async function runSimpleSearch(
   res.status(HTTP_OK).json({ mode: 'simple', files, chunks: chunksRes.result });
 }
 
-async function applyRerank(
-  query: string,
-  candidates: SemanticChunk[],
-  topK: number
-): Promise<SemanticChunk[]> {
+interface RerankInputParams {
+  query: string;
+  candidates: SemanticChunk[];
+  topK: number;
+  minScore: number;
+}
+
+async function applyRerank(params: RerankInputParams): Promise<SemanticChunk[]> {
   const ranked = await rerankRecords({
-    query,
-    topN: topK,
-    records: candidates.map((c) => ({ id: c.id, content: c.content })),
+    query: params.query,
+    topN: params.topK,
+    records: params.candidates.map((c) => ({ id: c.id, content: c.content })),
   });
-  const byId = new Map(candidates.map((c) => [c.id, c]));
+  const byId = new Map(params.candidates.map((c) => [c.id, c]));
   const out: SemanticChunk[] = [];
   for (const r of ranked) {
+    if (r.score < params.minScore) continue;
     const chunk = byId.get(r.id);
     if (chunk === undefined) continue;
     out.push({ ...chunk, rerank_score: r.score });
@@ -129,7 +138,9 @@ async function runSemanticSearch(
     res.status(HTTP_INTERNAL_ERROR).json({ error });
     return;
   }
-  const chunks = p.rerank ? await applyRerank(p.query, result, p.k) : result;
+  const chunks = p.rerank
+    ? await applyRerank({ query: p.query, candidates: result, topK: p.k, minScore: p.minSimilarity })
+    : result;
   res.status(HTTP_OK).json({ mode: 'semantic', chunks });
 }
 

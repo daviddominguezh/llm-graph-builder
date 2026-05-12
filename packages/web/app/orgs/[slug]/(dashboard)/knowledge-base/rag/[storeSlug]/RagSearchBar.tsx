@@ -97,8 +97,9 @@ function NumberField({
   }
 
   function commit(): void {
-    const n = Number(text);
-    if (text.trim() === '' || !Number.isFinite(n)) {
+    const normalized = text.trim().replace(',', '.');
+    const n = Number(normalized);
+    if (normalized === '' || !Number.isFinite(n)) {
       setText(String(value));
       return;
     }
@@ -142,7 +143,7 @@ function SemanticControls({
   const t = useTranslations('knowledgeBase.ragSearch');
   const rerankAvailable = topK >= RERANK_MIN_K;
   return (
-    <div className="flex items-center gap-9 pl-21 text-[10px] font-mono text-muted-foreground">
+    <div className="flex items-center gap-9 pl-21.5 text-[10px] font-mono text-muted-foreground">
       <CornerDownRight className="size-3 shrink-0" aria-hidden="true" />
       <div className="flex items-center gap-4">
         <label className="flex items-center gap-1.5">

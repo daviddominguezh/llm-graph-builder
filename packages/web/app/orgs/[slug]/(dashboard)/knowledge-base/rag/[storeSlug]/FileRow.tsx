@@ -118,8 +118,16 @@ function DeleteConfirmDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={deleting}>{t('deleteCancel')}</AlertDialogCancel>
-          <AlertDialogAction variant="destructive" disabled={deleting} onClick={onConfirm}>
-            {t('deleteConfirm')}
+          <AlertDialogAction
+            variant="destructive"
+            disabled={deleting}
+            onClick={onConfirm}
+            className="relative"
+          >
+            <span className={deleting ? 'invisible' : ''}>{t('deleteConfirm')}</span>
+            {deleting && (
+              <Loader2 className="absolute inset-0 m-auto size-3.5 animate-spin" />
+            )}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
