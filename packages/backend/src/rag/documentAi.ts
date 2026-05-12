@@ -3,7 +3,7 @@ import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
 import { type RagConfig, requireRagConfig } from './config.js';
 import { gcsUriFor } from './gcs.js';
 
-const CHUNK_SIZE_DEFAULT = 500;
+const CHUNK_SIZE_DEFAULT = 300;
 
 let cachedClient: DocumentProcessorServiceClient | null = null;
 function getClient(): DocumentProcessorServiceClient {
@@ -40,11 +40,14 @@ export async function submitBatch(input: BatchSubmitInput): Promise<BatchSubmitR
       gcsOutputConfig: { gcsUri: outputGcsUri },
     },
     processOptions: {
+      ocrConfig: {
+        enableNativePdfParsing: true,
+      },
       layoutConfig: {
         chunkingConfig: {
           chunkSize: CHUNK_SIZE_DEFAULT,
-          includeAncestorHeadings: true,
         },
+        enableImageAnnotation: true,
       },
     },
   });

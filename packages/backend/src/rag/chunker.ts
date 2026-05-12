@@ -27,6 +27,7 @@ export interface SourcedChunk {
   content_hash: string;
   token_count: number;
   page_number: number;
+  page_end: number;
   paragraph_idx: number;
   char_start: number;
   char_end: number;
@@ -48,20 +49,24 @@ interface PageState {
   paragraph: number;
 }
 
-function buildSourcedChunk(
-  content: string,
-  page: number,
-  paragraph: number,
-  runningOffset: number
-): SourcedChunk {
+interface BuildInput {
+  content: string;
+  pageStart: number;
+  pageEnd: number;
+  paragraph: number;
+  runningOffset: number;
+}
+
+function buildSourcedChunk(b: BuildInput): SourcedChunk {
   return {
-    content,
-    content_hash: hashContent(content),
-    token_count: tokenEstimate(content),
-    page_number: page,
-    paragraph_idx: paragraph,
-    char_start: runningOffset,
-    char_end: runningOffset + content.length,
+    content: b.content,
+    content_hash: hashContent(b.content),
+    token_count: tokenEstimate(b.content),
+    page_number: b.pageStart,
+    page_end: b.pageEnd,
+    paragraph_idx: b.paragraph,
+    char_start: b.runningOffset,
+    char_end: b.runningOffset + b.content.length,
   };
 }
 
@@ -80,8 +85,18 @@ function buildOrSkip(raw: DocumentAiChunk, minChars: number, offset: number, par
   if (trimmed.length < minChars) {
     return { chunk: null, consumed: (raw.content ?? '').length };
   }
-  const page = raw.pageSpan?.pageStart ?? FIRST_PAGE;
-  return { chunk: buildSourcedChunk(trimmed, page, paragraph, offset), consumed: trimmed.length };
+  const pageStart = raw.pageSpan?.pageStart ?? FIRST_PAGE;
+  const pageEnd = raw.pageSpan?.pageEnd ?? pageStart;
+  return {
+    chunk: buildSourcedChunk({
+      content: trimmed,
+      pageStart,
+      pageEnd,
+      paragraph,
+      runningOffset: offset,
+    }),
+    consumed: trimmed.length,
+  };
 }
 
 export function normalizeChunks(

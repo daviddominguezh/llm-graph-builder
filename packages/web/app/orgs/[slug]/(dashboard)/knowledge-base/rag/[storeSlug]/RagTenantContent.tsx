@@ -133,26 +133,11 @@ function useTenantSearch(storeId: string, tenantId: string): UseTenantSearchRetu
     let cancelled = false;
     const id = setTimeout(() => {
       void (async () => {
-        const startedAt = Date.now();
-        console.log(
-          `[ragSearch] fire mode=${mode} topK=${String(topK)} minSimilarity=${String(minSimilarity)} query=${JSON.stringify(trimmed)}`
-        );
-        const { result, error } = await searchAction(storeId, tenantId, mode, trimmed, {
+        const { result } = await searchAction(storeId, tenantId, mode, trimmed, {
           topK,
           minSimilarity,
         });
-        if (cancelled) {
-          console.log(`[ragSearch] cancelled mode=${mode} query=${JSON.stringify(trimmed)}`);
-          return;
-        }
-        const ms = Date.now() - startedAt;
-        if (error !== null) {
-          console.error(`[ragSearch] error mode=${mode} ms=${String(ms)} error=${error}`);
-        } else {
-          console.log(
-            `[ragSearch] ok mode=${result.mode} ms=${String(ms)} chunks=${String(result.chunks?.length ?? 0)} files=${String(result.files?.length ?? 0)}`
-          );
-        }
+        if (cancelled) return;
         setSettled({ query: trimmed, mode, topK, minSimilarity, response: result });
       })();
     }, SEARCH_DEBOUNCE_MS);

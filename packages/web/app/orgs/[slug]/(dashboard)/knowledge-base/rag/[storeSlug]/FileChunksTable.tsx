@@ -118,6 +118,18 @@ function hasDistance(c: DisplayChunk): c is DisplayChunk & { distance: number } 
   return typeof c.distance === 'number';
 }
 
+function pageLabel(
+  c: DisplayChunk,
+  t: ReturnType<typeof useTranslations>
+): string {
+  const start = c.page_number ?? ZERO;
+  const end = c.page_end;
+  if (end !== null && end !== undefined && end !== start) {
+    return t('pageRange', { start, end });
+  }
+  return t('page', { page: start });
+}
+
 function ChunkTableRow({
   c,
   showSimilarity,
@@ -128,7 +140,7 @@ function ChunkTableRow({
   const t = useTranslations('knowledgeBase.ragChunks');
   return (
     <tr className="border-b last:border-b-0">
-      <td className={META_CELL_CLASS}>{t('page', { page: c.page_number ?? ZERO })}</td>
+      <td className={META_CELL_CLASS}>{pageLabel(c, t)}</td>
       {showSimilarity && (
         <td className={META_CELL_CLASS}>{hasDistance(c) ? formatSimilarity(c.distance) : '—'}</td>
       )}

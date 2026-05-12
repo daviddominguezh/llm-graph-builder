@@ -31,6 +31,7 @@ export interface RagChunkRow {
   id: string;
   rag_file_id: string;
   page_number: number | null;
+  page_end: number | null;
   paragraph_idx: number | null;
   char_start: number | null;
   char_end: number | null;

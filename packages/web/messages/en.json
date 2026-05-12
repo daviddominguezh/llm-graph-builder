@@ -949,6 +949,7 @@
     "ragChunks": {
       "loading": "Loading chunks…",
       "page": "p. {page}",
+      "pageRange": "p. {start}–{end}",
       "paragraph": "¶ {idx}",
       "tokens": "{count} tok",
       "prev": "Previous",

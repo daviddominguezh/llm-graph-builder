@@ -14,6 +14,7 @@ export interface RagChunkRow {
   tenant_id: string;
   org_id: string;
   page_number: number | null;
+  page_end: number | null;
   paragraph_idx: number | null;
   char_start: number | null;
   char_end: number | null;
@@ -24,7 +25,7 @@ export interface RagChunkRow {
 }
 
 const LIST_COLUMNS =
-  'id, rag_file_id, rag_store_id, tenant_id, org_id, page_number, paragraph_idx, char_start, char_end, content, content_hash, token_count, created_at';
+  'id, rag_file_id, rag_store_id, tenant_id, org_id, page_number, page_end, paragraph_idx, char_start, char_end, content, content_hash, token_count, created_at';
 
 function isRagChunkRow(value: unknown): value is RagChunkRow {
   if (typeof value !== 'object' || value === null) return false;
@@ -53,6 +54,7 @@ function chunkToRow(input: InsertChunksInput, c: SourcedChunk): Record<string, u
     tenant_id: input.tenantId,
     org_id: input.orgId,
     page_number: c.page_number,
+    page_end: c.page_end,
     paragraph_idx: c.paragraph_idx,
     char_start: c.char_start,
     char_end: c.char_end,
