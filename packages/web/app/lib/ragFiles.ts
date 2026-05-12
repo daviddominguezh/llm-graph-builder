@@ -220,17 +220,25 @@ function isSearchResponse(v: unknown): v is SearchResponse {
   return typeof v === 'object' && v !== null && 'mode' in v;
 }
 
+export interface SearchOptions {
+  topK?: number;
+  minSimilarity?: number;
+}
+
 export async function search(
   storeId: string,
   tenantId: string,
   mode: SearchMode,
-  query: string
+  query: string,
+  options: SearchOptions = {}
 ): Promise<{ result: SearchResponse; error: string | null }> {
   try {
     const data = await fetchFromBackend('POST', `/rag-stores/${encodeURIComponent(storeId)}/search`, {
       tenantId,
       mode,
       query,
+      k: options.topK,
+      minSimilarity: options.minSimilarity,
     });
     if (!isSearchResponse(data)) return { result: { mode }, error: 'invalid response' };
     return { result: data, error: null };

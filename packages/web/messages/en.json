@@ -969,6 +969,8 @@
       "page": "p. {page}",
       "paragraph": "¶ {idx}",
       "distance": "d={d}",
+      "topKLabel": "k",
+      "minSimilarityLabel": "min similarity",
       "mode": {
         "simple": "Simple",
         "semantic": "Semantic"

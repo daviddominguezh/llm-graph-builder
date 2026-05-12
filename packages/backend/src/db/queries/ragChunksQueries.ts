@@ -175,6 +175,7 @@ export interface SemanticSearchInput {
   tenantId: string;
   queryVector: number[];
   k: number;
+  maxDistance: number | null;
 }
 
 export interface SemanticChunk extends RagChunkRow {
@@ -205,6 +206,7 @@ export async function searchBySemantic(
     p_tenant_id: input.tenantId,
     p_query_vector: literal,
     p_k: input.k,
+    p_max_distance: input.maxDistance,
   })) as { data: unknown; error: { message: string } | null };
   if (error !== null) return { result: [], error: error.message };
   const rows: unknown[] = Array.isArray(data) ? data : [];

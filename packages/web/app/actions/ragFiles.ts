@@ -7,6 +7,7 @@ import {
   type ListFilesResponse,
   type RagChunkRow,
   type SearchMode,
+  type SearchOptions,
   type SearchResponse,
   checkFiles as checkFilesLib,
   confirmUpload as confirmUploadLib,
@@ -69,7 +70,8 @@ export async function searchAction(
   storeId: string,
   tenantId: string,
   mode: SearchMode,
-  query: string
+  query: string,
+  options: SearchOptions = {}
 ): Promise<{ result: SearchResponse; error: string | null }> {
-  return searchLib(storeId, tenantId, mode, query);
+  return searchLib(storeId, tenantId, mode, query, options);
 }

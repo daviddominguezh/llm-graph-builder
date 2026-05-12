@@ -16,6 +16,9 @@ import { getStoreIdParam, parseNumber, parseString } from './ragFileHelpers.js';
 const DEFAULT_K = 20;
 const MAX_K = 50;
 const MIN_K = 1;
+const MIN_SIMILARITY = 0;
+const MAX_SIMILARITY = 1;
+const DEFAULT_MIN_SIMILARITY = 0;
 
 type Supabase = AuthenticatedLocals['supabase'];
 
@@ -25,6 +28,18 @@ interface SearchParams {
   mode: string;
   query: string;
   k: number;
+  maxDistance: number | null;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(min, value), max);
+}
+
+function parseMaxDistance(body: unknown): number | null {
+  const raw = parseNumber(body, 'minSimilarity') ?? DEFAULT_MIN_SIMILARITY;
+  const sim = clamp(raw, MIN_SIMILARITY, MAX_SIMILARITY);
+  if (sim <= MIN_SIMILARITY) return null;
+  return MAX_SIMILARITY - sim;
 }
 
 function parseParams(req: Request): SearchParams | null {
@@ -33,11 +48,12 @@ function parseParams(req: Request): SearchParams | null {
   const mode = parseString(req.body, 'mode');
   const query = parseString(req.body, 'query');
   const kRaw = parseNumber(req.body, 'k') ?? DEFAULT_K;
-  const k = Math.min(Math.max(MIN_K, Math.floor(kRaw)), MAX_K);
+  const k = clamp(Math.floor(kRaw), MIN_K, MAX_K);
+  const maxDistance = parseMaxDistance(req.body);
   if (storeId === undefined || tenantId === undefined || query === undefined || mode === undefined) {
     return null;
   }
-  return { storeId, tenantId, mode, query, k };
+  return { storeId, tenantId, mode, query, k, maxDistance };
 }
 
 async function runSimpleSearch(
@@ -78,6 +94,7 @@ async function runSemanticSearch(
     tenantId: p.tenantId,
     queryVector,
     k: p.k,
+    maxDistance: p.maxDistance,
   });
   if (error !== null) {
     res.status(HTTP_INTERNAL_ERROR).json({ error });

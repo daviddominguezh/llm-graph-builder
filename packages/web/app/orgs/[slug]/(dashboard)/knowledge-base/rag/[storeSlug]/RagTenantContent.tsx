@@ -101,19 +101,30 @@ interface UseTenantSearchReturn {
   response: SearchResponse | null;
   query: string;
   mode: SearchMode;
+  topK: number;
+  minSimilarity: number;
   setQuery: (q: string) => void;
   setMode: (m: SearchMode) => void;
+  setTopK: (k: number) => void;
+  setMinSimilarity: (s: number) => void;
 }
 
 interface SettledSearch {
   query: string;
   mode: SearchMode;
+  topK: number;
+  minSimilarity: number;
   response: SearchResponse;
 }
+
+const DEFAULT_TOP_K = 20;
+const DEFAULT_MIN_SIMILARITY = 0;
 
 function useTenantSearch(storeId: string, tenantId: string): UseTenantSearchReturn {
   const [query, setQuery] = useState('');
   const [mode, setMode] = useState<SearchMode>('simple');
+  const [topK, setTopK] = useState(DEFAULT_TOP_K);
+  const [minSimilarity, setMinSimilarity] = useState(DEFAULT_MIN_SIMILARITY);
   const [settled, setSettled] = useState<SettledSearch | null>(null);
 
   useEffect(() => {
@@ -122,20 +133,38 @@ function useTenantSearch(storeId: string, tenantId: string): UseTenantSearchRetu
     let cancelled = false;
     const id = setTimeout(() => {
       void (async () => {
-        const { result } = await searchAction(storeId, tenantId, mode, trimmed);
+        const { result } = await searchAction(storeId, tenantId, mode, trimmed, {
+          topK,
+          minSimilarity,
+        });
         if (cancelled) return;
-        setSettled({ query: trimmed, mode, response: result });
+        setSettled({ query: trimmed, mode, topK, minSimilarity, response: result });
       })();
     }, SEARCH_DEBOUNCE_MS);
     return () => {
       cancelled = true;
       clearTimeout(id);
     };
-  }, [storeId, tenantId, query, mode]);
+  }, [storeId, tenantId, query, mode, topK, minSimilarity]);
 
-  const matchesCurrent = settled !== null && settled.query === query.trim() && settled.mode === mode;
+  const matchesCurrent =
+    settled !== null &&
+    settled.query === query.trim() &&
+    settled.mode === mode &&
+    settled.topK === topK &&
+    settled.minSimilarity === minSimilarity;
   const response = matchesCurrent && settled !== null ? settled.response : null;
-  return { response, query, mode, setQuery, setMode };
+  return {
+    response,
+    query,
+    mode,
+    topK,
+    minSimilarity,
+    setQuery,
+    setMode,
+    setTopK,
+    setMinSimilarity,
+  };
 }
 
 interface SearchState {
@@ -328,8 +357,12 @@ export function RagTenantContent({ storeId, tenantId }: RagTenantContentProps): 
           <RagSearchBar
             query={search.query}
             mode={search.mode}
+            topK={search.topK}
+            minSimilarity={search.minSimilarity}
             onQueryChange={search.setQuery}
             onModeChange={search.setMode}
+            onTopKChange={search.setTopK}
+            onMinSimilarityChange={search.setMinSimilarity}
           />
           <FileListSection
             storeId={storeId}
