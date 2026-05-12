@@ -90,7 +90,7 @@ function StagedControls({
           disabled={staged.ocrLocked || locked}
           onCheckedChange={(v) => onOcrChange(v)}
         />
-        <span>{staged.ocrEnabled ? t('ocrEnabled') : t('ocrDisabled')}</span>
+        <span>{t('ocrLabel')}</span>
       </label>
       <div className="w-[255px] shrink-0">
         <LanguageMultiSelect

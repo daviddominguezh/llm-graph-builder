@@ -931,8 +931,6 @@
       "addFiles": "Add files",
       "remove": "Remove",
       "ocrLabel": "OCR",
-      "ocrEnabled": "OCR on",
-      "ocrDisabled": "OCR off",
       "languagesLabel": "Languages",
       "languagesPlaceholder": "Select language",
       "uploadCta": "Upload {count, plural, =1 {1 file} other {# files}}",

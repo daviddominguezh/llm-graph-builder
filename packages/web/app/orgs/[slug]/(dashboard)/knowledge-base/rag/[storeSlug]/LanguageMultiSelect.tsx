@@ -75,9 +75,9 @@ export function LanguageMultiSelect({
         <ChipsList items={value} />
         <ComboboxChipsInput placeholder={value.length === 0 ? t('languagesPlaceholder') : ''} />
       </ComboboxChips>
-      <ComboboxContent anchor={anchor} className="max-h-[200px]">
+      <ComboboxContent anchor={anchor}>
         <ComboboxEmpty>{t('languagesPlaceholder')}</ComboboxEmpty>
-        <ComboboxList>
+        <ComboboxList className="max-h-[200px]">
           {(item: LanguageOption) => (
             <ComboboxItem key={item.code} value={item} className="cursor-pointer">
               <span className="flex items-center flex-1 gap-2">
