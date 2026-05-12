@@ -4,6 +4,7 @@ import type { SearchMode } from '@/app/lib/ragFiles';
 import { Input } from '@/components/ui/input';
 import { CornerDownRight, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { type KeyboardEvent, useState } from 'react';
 
 interface RagSearchBarProps {
   query: string;
@@ -22,7 +23,6 @@ const TOP_K_MIN = 1;
 const TOP_K_MAX = 10;
 const SIM_MIN = 0;
 const SIM_MAX = 1;
-const SIM_STEP = 0.05;
 
 const TAB_BASE =
   'cursor-pointer inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-medium transition-colors border border-transparent';
@@ -65,17 +65,63 @@ interface SemanticControlsProps {
   onMinSimilarityChange: (s: number) => void;
 }
 
-function handleNumber(
-  raw: string,
-  min: number,
-  max: number,
-  apply: (n: number) => void,
-  round: boolean
-): void {
-  if (raw === '') return;
-  const n = Number(raw);
-  if (!Number.isFinite(n)) return;
-  apply(clamp(round ? Math.round(n) : n, min, max));
+interface NumberFieldProps {
+  value: number;
+  min: number;
+  max: number;
+  round: boolean;
+  onCommit: (next: number) => void;
+  className?: string;
+}
+
+function NumberField({
+  value,
+  min,
+  max,
+  round,
+  onCommit,
+  className,
+}: NumberFieldProps): React.JSX.Element {
+  const [text, setText] = useState(String(value));
+  const [prevValue, setPrevValue] = useState(value);
+  if (value !== prevValue) {
+    setPrevValue(value);
+    setText(String(value));
+  }
+
+  function commit(): void {
+    const n = Number(text);
+    if (text.trim() === '' || !Number.isFinite(n)) {
+      setText(String(value));
+      return;
+    }
+    const clamped = clamp(round ? Math.round(n) : n, min, max);
+    setText(String(clamped));
+    if (clamped !== value) onCommit(clamped);
+  }
+
+  function onKeyDown(e: KeyboardEvent<HTMLInputElement>): void {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.currentTarget.blur();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setText(String(value));
+      e.currentTarget.blur();
+    }
+  }
+
+  return (
+    <Input
+      type="text"
+      inputMode="decimal"
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={commit}
+      onKeyDown={onKeyDown}
+      className={className}
+    />
+  );
 }
 
 function SemanticControls({
@@ -91,25 +137,23 @@ function SemanticControls({
       <div className="flex items-center gap-4">
         <label className="flex items-center gap-1.5">
           <span>{t('topKLabel')}</span>
-          <Input
-            type="number"
+          <NumberField
+            value={topK}
             min={TOP_K_MIN}
             max={TOP_K_MAX}
-            step={1}
-            value={topK}
-            onChange={(e) => handleNumber(e.target.value, TOP_K_MIN, TOP_K_MAX, onTopKChange, true)}
+            round
+            onCommit={onTopKChange}
             className={`${NUMBER_INPUT_CLASS} w-14`}
           />
         </label>
         <label className="flex items-center gap-1.5">
           <span>{t('minSimilarityLabel')}</span>
-          <Input
-            type="number"
+          <NumberField
+            value={minSimilarity}
             min={SIM_MIN}
             max={SIM_MAX}
-            step={SIM_STEP}
-            value={minSimilarity}
-            onChange={(e) => handleNumber(e.target.value, SIM_MIN, SIM_MAX, onMinSimilarityChange, false)}
+            round={false}
+            onCommit={onMinSimilarityChange}
             className={`${NUMBER_INPUT_CLASS} w-16`}
           />
         </label>

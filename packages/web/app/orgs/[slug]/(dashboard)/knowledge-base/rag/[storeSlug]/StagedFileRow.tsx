@@ -81,7 +81,7 @@ function StagedControls({
   return (
     <div className="flex flex-wrap items-center gap-3 pl-9">
       <label
-        className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground"
+        className="flex items-center gap-1.5 font-mono text-[10px] text-foreground"
         title={ocrTitle}
       >
         <Switch
@@ -92,7 +92,7 @@ function StagedControls({
         />
         <span>{staged.ocrEnabled ? t('ocrEnabled') : t('ocrDisabled')}</span>
       </label>
-      <div className="min-w-0 flex-1">
+      <div className="w-[255px] shrink-0">
         <LanguageMultiSelect
           selected={staged.languages}
           disabled={locked}
@@ -116,22 +116,21 @@ export function StagedFileRow({
     <div className="flex flex-col gap-2 rounded-md border p-3">
       <div className="flex items-center gap-3">
         <FileTypeIcon mimeType={staged.file.type} filename={staged.file.name} />
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-xs font-mono font-medium">{staged.file.name}</div>
-          <div className="font-mono text-[10px] text-muted-foreground">
+        <div className="flex min-w-0 flex-1 items-baseline gap-2">
+          <span className="min-w-0 truncate text-xs font-mono font-medium">{staged.file.name}</span>
+          <span className="shrink-0 whitespace-nowrap font-mono text-[10px] text-muted-foreground">
             {formatBytes(staged.file.size)}
-          </div>
+          </span>
         </div>
         <StatusPill status={staged.status} error={staged.error} />
         {!inProgress && (
           <Button
-            variant="ghost"
+            variant="destructive"
             size="icon-sm"
             type="button"
             aria-label={t('remove')}
             onClick={onRemove}
             disabled={locked}
-            className="text-muted-foreground hover:text-destructive"
           >
             <Trash2 className="size-3.5" />
           </Button>

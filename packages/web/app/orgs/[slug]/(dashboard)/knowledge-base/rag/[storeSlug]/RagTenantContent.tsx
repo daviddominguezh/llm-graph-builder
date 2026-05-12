@@ -10,13 +10,14 @@ import type {
   TenantUsage,
 } from '@/app/lib/ragFiles';
 import { useTranslations } from 'next-intl';
-import { type DragEvent, useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { Scrollable } from '@/app/components/Scrollable';
 import { Loader2 } from 'lucide-react';
 
 import { FileRow } from './FileRow';
 import { FileUploadDropzone } from './FileUploadDropzone';
+import { PageDragOverlay, usePageDrag } from './PageDragOverlay';
 import { RagSearchBar } from './RagSearchBar';
 import { StagedFilesDialog, useStagedUpload } from './StagedFilesDialog';
 import { UploadFilesButton } from './UploadFilesButton';
@@ -340,7 +341,7 @@ interface UseUploadDialogInput {
 interface UseUploadDialogReturn {
   dialog: React.JSX.Element;
   open: (files: File[]) => void;
-  handlePageDrop: (e: DragEvent<HTMLDivElement>) => void;
+  isOpen: boolean;
 }
 
 function useUploadDialog({
@@ -379,15 +380,6 @@ function useUploadDialog({
     onAllDone();
   }, [onAllDone, stagedState]);
 
-  const handlePageDrop = useCallback(
-    (e: DragEvent<HTMLDivElement>): void => {
-      if (e.dataTransfer.files.length === 0) return;
-      e.preventDefault();
-      open(Array.from(e.dataTransfer.files));
-    },
-    [open]
-  );
-
   const dialog = (
     <StagedFilesDialog
       storeId={storeId}
@@ -405,13 +397,67 @@ function useUploadDialog({
     />
   );
 
-  return { dialog, open, handlePageDrop };
+  return { dialog, open, isOpen };
+}
+
+interface PageBodyProps {
+  loaded: boolean;
+  hasFiles: boolean;
+  storeId: string;
+  visibleFiles: RagFileRow[];
+  refresh: () => void;
+  search: UseTenantSearchReturn;
+  isSearchActive: boolean;
+  isSearchPending: boolean;
+  showNoMatches: boolean;
+  chunksByFile: Map<string, SemanticChunk[]>;
+  openUploadDialog: (files: File[]) => void;
+}
+
+function PageBody({
+  loaded,
+  hasFiles,
+  storeId,
+  visibleFiles,
+  refresh,
+  search,
+  isSearchActive,
+  isSearchPending,
+  showNoMatches,
+  chunksByFile,
+  openUploadDialog,
+}: PageBodyProps): React.JSX.Element {
+  if (!loaded) return <LoadingSpinner />;
+  if (!hasFiles) return <FileUploadDropzone onFiles={openUploadDialog} />;
+  return (
+    <>
+      <RagSearchBar
+        query={search.query}
+        mode={search.mode}
+        topK={search.topK}
+        minSimilarity={search.minSimilarity}
+        onQueryChange={search.setQuery}
+        onModeChange={search.setMode}
+        onTopKChange={search.setTopK}
+        onMinSimilarityChange={search.setMinSimilarity}
+      />
+      <FileListSection
+        storeId={storeId}
+        files={visibleFiles}
+        onRefresh={refresh}
+        isSearchActive={isSearchActive}
+        isSearchPending={isSearchPending}
+        showNoMatches={showNoMatches}
+        chunksByFile={chunksByFile}
+      />
+    </>
+  );
 }
 
 export function RagTenantContent({ storeId, tenantId }: RagTenantContentProps): React.JSX.Element {
   const { files, usage, loaded, refresh } = useTenantFiles(storeId, tenantId);
   const search = useTenantSearch(storeId, tenantId);
-  const { dialog, open: openUploadDialog, handlePageDrop } = useUploadDialog({
+  const { dialog, open: openUploadDialog, isOpen } = useUploadDialog({
     storeId,
     tenantId,
     onAllDone: () => {
@@ -423,42 +469,28 @@ export function RagTenantContent({ storeId, tenantId }: RagTenantContentProps): 
     deriveSearchState(files, search);
   const hasFiles = files.length > NO_FILES;
 
-  function preventDefault(e: DragEvent<HTMLDivElement>): void {
-    e.preventDefault();
-  }
+  const { isDragging, handlers } = usePageDrag({
+    skip: isOpen || !hasFiles,
+    onFiles: openUploadDialog,
+  });
 
   return (
-    <div
-      className="flex flex-1 min-h-0 flex-col gap-4 p-4"
-      onDragOver={preventDefault}
-      onDrop={handlePageDrop}
-    >
+    <div className="relative flex flex-1 min-h-0 flex-col gap-4 p-4" {...handlers}>
       <HeaderRow loaded={loaded} usage={usage} onFiles={openUploadDialog} />
-      {!loaded && <LoadingSpinner />}
-      {loaded && !hasFiles && <FileUploadDropzone onFiles={openUploadDialog} />}
-      {loaded && hasFiles && (
-        <>
-          <RagSearchBar
-            query={search.query}
-            mode={search.mode}
-            topK={search.topK}
-            minSimilarity={search.minSimilarity}
-            onQueryChange={search.setQuery}
-            onModeChange={search.setMode}
-            onTopKChange={search.setTopK}
-            onMinSimilarityChange={search.setMinSimilarity}
-          />
-          <FileListSection
-            storeId={storeId}
-            files={visibleFiles}
-            onRefresh={() => void refresh()}
-            isSearchActive={isSearchActive}
-            isSearchPending={isSearchPending}
-            showNoMatches={showNoMatches}
-            chunksByFile={chunksByFile}
-          />
-        </>
-      )}
+      <PageBody
+        loaded={loaded}
+        hasFiles={hasFiles}
+        storeId={storeId}
+        visibleFiles={visibleFiles}
+        refresh={() => void refresh()}
+        search={search}
+        isSearchActive={isSearchActive}
+        isSearchPending={isSearchPending}
+        showNoMatches={showNoMatches}
+        chunksByFile={chunksByFile}
+        openUploadDialog={openUploadDialog}
+      />
+      {isDragging && <PageDragOverlay />}
       {dialog}
     </div>
   );

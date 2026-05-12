@@ -19,13 +19,16 @@ export function FileUploadDropzone({ onFiles }: FileUploadDropzoneProps): React.
 
   function onDragOver(e: DragEvent<HTMLDivElement>): void {
     e.preventDefault();
+    e.stopPropagation();
     setDragging(true);
   }
-  function onDragLeave(): void {
+  function onDragLeave(e: DragEvent<HTMLDivElement>): void {
+    e.stopPropagation();
     setDragging(false);
   }
   function onDrop(e: DragEvent<HTMLDivElement>): void {
     e.preventDefault();
+    e.stopPropagation();
     setDragging(false);
     if (e.dataTransfer.files.length > 0) onFiles(Array.from(e.dataTransfer.files));
   }

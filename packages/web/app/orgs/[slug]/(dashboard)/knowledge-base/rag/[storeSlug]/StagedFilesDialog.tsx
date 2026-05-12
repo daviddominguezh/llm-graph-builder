@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Kbd, KbdGroup } from '@/components/ui/kbd';
 import { Loader2, Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ChangeEvent, type DragEvent, useCallback, useRef, useState } from 'react';
@@ -51,14 +52,17 @@ function DropArea({ onFiles, disabled, children }: DropAreaProps): React.JSX.Ele
   function onDragOver(e: DragEvent<HTMLDivElement>): void {
     if (disabled) return;
     e.preventDefault();
+    e.stopPropagation();
     setDragging(true);
   }
-  function onDragLeave(): void {
+  function onDragLeave(e: DragEvent<HTMLDivElement>): void {
+    e.stopPropagation();
     setDragging(false);
   }
   function onDrop(e: DragEvent<HTMLDivElement>): void {
-    if (disabled) return;
     e.preventDefault();
+    e.stopPropagation();
+    if (disabled) return;
     setDragging(false);
     if (e.dataTransfer.files.length > 0) onFiles(fileListToArray(e.dataTransfer.files));
   }
@@ -161,12 +165,15 @@ function StagedList({
   );
 }
 
-interface FooterAddButtonProps {
+interface HeaderAddFilesButtonProps {
   onFiles: (files: File[]) => void;
   disabled: boolean;
 }
 
-function FooterAddButton({ onFiles, disabled }: FooterAddButtonProps): React.JSX.Element {
+function HeaderAddFilesButton({
+  onFiles,
+  disabled,
+}: HeaderAddFilesButtonProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragUpload');
   const inputRef = useRef<HTMLInputElement>(null);
   function open(): void {
@@ -180,8 +187,18 @@ function FooterAddButton({ onFiles, disabled }: FooterAddButtonProps): React.JSX
   }
   return (
     <>
-      <Button variant="outline" size="sm" type="button" onClick={open} disabled={disabled}>
-        {t('addMore')}
+      <Button
+        variant="outline"
+        size="sm"
+        type="button"
+        onClick={open}
+        disabled={disabled}
+        className="border-[0.5px] rounded-md gap-2 cursor-pointer"
+      >
+        {t('addFiles')}
+        <KbdGroup>
+          <Kbd className="bg-transparent">⌘ + O</Kbd>
+        </KbdGroup>
       </Button>
       <input
         ref={inputRef}
@@ -264,12 +281,15 @@ export function StagedFilesDialog({
       }}
     >
       <DialogContent
-        className="flex max-h-[80vh] w-full max-w-2xl flex-col gap-3 sm:max-w-2xl"
+        className="flex h-[80vh] w-full max-w-5xl flex-col gap-3 sm:max-w-5xl"
         showCloseButton={!locked}
       >
-        <DialogHeader>
-          <DialogTitle>{t('dialogTitle')}</DialogTitle>
-          <DialogDescription>{t('dialogDescription')}</DialogDescription>
+        <DialogHeader className="flex flex-row items-start justify-between gap-3 pr-8">
+          <div className="flex min-w-0 flex-col gap-1">
+            <DialogTitle>{t('dialogTitle')}</DialogTitle>
+            <DialogDescription>{t('dialogDescription')}</DialogDescription>
+          </div>
+          <HeaderAddFilesButton onFiles={onAdd} disabled={locked} />
         </DialogHeader>
         <DropArea onFiles={onAdd} disabled={locked}>
           {empty ? (
@@ -286,8 +306,7 @@ export function StagedFilesDialog({
             />
           )}
         </DropArea>
-        <DialogFooter className="sm:justify-between">
-          {!empty && !isAllDone && <FooterAddButton onFiles={onAdd} disabled={locked} />}
+        <DialogFooter className="border-t pt-3 sm:justify-end">
           <CtaButton
             staged={staged}
             isUploading={isUploading}
