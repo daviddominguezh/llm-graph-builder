@@ -7,11 +7,12 @@ import {
   getRagFileById,
   updateStatus,
 } from '../db/queries/ragFilesQueries.js';
-import { maxPage, normalizeChunks } from './chunker.js';
+import { type SourcedChunk, maxPage } from './chunker.js';
 import { checkOperation, submitBatch } from './documentAi.js';
 import { embedTexts } from './embeddings.js';
 import { readBytesObject, writeBytesObject } from './gcs.js';
 import { derivePdfObjectPath, imageBytesToPdfBytes, isImageMime } from './imagePdf.js';
+import { splitMarkdownChunks } from './markdownSplitter.js';
 import { fetchAllShards, mergePayloads, safeDumpShardsToDisk } from './parsedOutput.js';
 
 const EMBED_CHUNK_PAGE_SIZE = 100;
@@ -46,7 +47,7 @@ async function handleParsing(supabase: SupabaseClient, file: RagFileRow): Promis
 async function persistChunks(
   supabase: SupabaseClient,
   file: RagFileRow,
-  chunks: ReturnType<typeof normalizeChunks>
+  chunks: SourcedChunk[]
 ): Promise<boolean> {
   const { error } = await insertChunks(supabase, {
     ragFileId: file.id,
@@ -71,7 +72,7 @@ async function handleChunking(supabase: SupabaseClient, file: RagFileRow): Promi
   const shards = await fetchAllShards(prefix);
   await safeDumpShardsToDisk(file.id, shards, log);
   const payload = mergePayloads(shards);
-  const chunks = normalizeChunks(payload);
+  const chunks = await splitMarkdownChunks(payload);
   if (chunks.length === EMPTY_LENGTH) {
     await fail(supabase, file, 'no chunks produced by Document AI');
     return;

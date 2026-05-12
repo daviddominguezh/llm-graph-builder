@@ -2,7 +2,8 @@
 
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Info, Loader2, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { FileTypeIcon } from './FileTypeIcon';
@@ -63,42 +64,49 @@ function StatusPill({
   );
 }
 
-interface ControlsProps {
-  staged: StagedFile;
-  locked: boolean;
-  onOcrChange: (enabled: boolean) => void;
-  onLanguagesChange: (next: string[]) => void;
+interface OcrToggleProps {
+  enabled: boolean;
+  disabled: boolean;
+  onChange: (enabled: boolean) => void;
 }
 
-function StagedControls({
-  staged,
-  locked,
-  onOcrChange,
-  onLanguagesChange,
-}: ControlsProps): React.JSX.Element {
+function OcrToggle({ enabled, disabled, onChange }: OcrToggleProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragUpload');
-  const ocrTitle = staged.ocrLocked ? t('imageOcrForced') : undefined;
   return (
-    <div className="flex flex-wrap items-center gap-3 pl-9">
-      <label
-        className="flex items-center gap-1.5 font-mono text-[10px] text-foreground"
-        title={ocrTitle}
-      >
-        <Switch
-          size="sm"
-          checked={staged.ocrEnabled}
-          disabled={staged.ocrLocked || locked}
-          onCheckedChange={(v) => onOcrChange(v)}
-        />
-        <span>{t('ocrLabel')}</span>
-      </label>
-      <div className="w-[255px] shrink-0">
-        <LanguageMultiSelect
-          selected={staged.languages}
-          disabled={locked}
-          onChange={onLanguagesChange}
-        />
-      </div>
+    <label className="flex shrink-0 items-center gap-1.5 text-xs text-foreground">
+      <Switch
+        size="sm"
+        checked={enabled}
+        disabled={disabled}
+        onCheckedChange={(v) => onChange(v)}
+      />
+      <span>{t('ocrLabel')}</span>
+      <Tooltip>
+        <TooltipTrigger
+          type="button"
+          aria-label={t('ocrTooltip')}
+          className="cursor-help text-muted-foreground hover:text-foreground"
+        >
+          <Info className="size-3.5" />
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs text-xs">{t('ocrTooltip')}</TooltipContent>
+      </Tooltip>
+    </label>
+  );
+}
+
+interface FilenameBlockProps {
+  filename: string;
+  size: number;
+}
+
+function FilenameBlock({ filename, size }: FilenameBlockProps): React.JSX.Element {
+  return (
+    <div className="flex min-w-0 max-w-[350px] items-baseline gap-2">
+      <span className="min-w-0 truncate text-xs font-mono font-medium">{filename}</span>
+      <span className="shrink-0 whitespace-nowrap font-mono text-[10px] text-muted-foreground">
+        {formatBytes(size)}
+      </span>
     </div>
   );
 }
@@ -113,35 +121,33 @@ export function StagedFileRow({
   const t = useTranslations('knowledgeBase.ragUpload');
   const inProgress = IN_PROGRESS.has(staged.status);
   return (
-    <div className="flex flex-col gap-2 rounded-md border p-3">
-      <div className="flex items-center gap-3">
-        <FileTypeIcon mimeType={staged.file.type} filename={staged.file.name} />
-        <div className="flex min-w-0 flex-1 items-baseline gap-2">
-          <span className="min-w-0 truncate text-xs font-mono font-medium">{staged.file.name}</span>
-          <span className="shrink-0 whitespace-nowrap font-mono text-[10px] text-muted-foreground">
-            {formatBytes(staged.file.size)}
-          </span>
-        </div>
-        <StatusPill status={staged.status} error={staged.error} />
-        {!inProgress && (
-          <Button
-            variant="destructive"
-            size="icon-sm"
-            type="button"
-            aria-label={t('remove')}
-            onClick={onRemove}
-            disabled={locked}
-          >
-            <Trash2 className="size-3.5" />
-          </Button>
-        )}
+    <div className="flex items-center gap-3 rounded-md border p-3">
+      <FileTypeIcon mimeType={staged.file.type} filename={staged.file.name} />
+      <FilenameBlock filename={staged.file.name} size={staged.file.size} />
+      <div className="flex-1" />
+      {!staged.ocrLocked && (
+        <OcrToggle enabled={staged.ocrEnabled} disabled={locked} onChange={onOcrChange} />
+      )}
+      <div className="w-[255px] shrink-0">
+        <LanguageMultiSelect
+          selected={staged.languages}
+          disabled={locked}
+          onChange={onLanguagesChange}
+        />
       </div>
-      <StagedControls
-        staged={staged}
-        locked={locked}
-        onOcrChange={onOcrChange}
-        onLanguagesChange={onLanguagesChange}
-      />
+      <StatusPill status={staged.status} error={staged.error} />
+      {!inProgress && (
+        <Button
+          variant="destructive"
+          size="icon-sm"
+          type="button"
+          aria-label={t('remove')}
+          onClick={onRemove}
+          disabled={locked}
+        >
+          <Trash2 className="size-3.5" />
+        </Button>
+      )}
     </div>
   );
 }

@@ -73,7 +73,7 @@ export function LanguageMultiSelect({
     >
       <ComboboxChips ref={anchor}>
         <ChipsList items={value} />
-        <ComboboxChipsInput placeholder={value.length === 0 ? t('languagesPlaceholder') : ''} />
+        <ComboboxChipsInput className="placeholder-foreground!" placeholder={value.length === 0 ? t('languagesPlaceholder') : ''} />
       </ComboboxChips>
       <ComboboxContent anchor={anchor}>
         <ComboboxEmpty>{t('languagesPlaceholder')}</ComboboxEmpty>

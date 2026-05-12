@@ -282,9 +282,9 @@ export function StagedFilesDialog({
     >
       <DialogContent
         className="flex h-[80vh] w-full max-w-5xl flex-col gap-3 sm:max-w-5xl"
-        showCloseButton={!locked}
+        showCloseButton={false}
       >
-        <DialogHeader className="flex flex-row items-start justify-between gap-3 pr-8">
+        <DialogHeader className="flex flex-row items-start justify-between gap-3">
           <div className="flex min-w-0 flex-col gap-1">
             <DialogTitle>{t('dialogTitle')}</DialogTitle>
             <DialogDescription>{t('dialogDescription')}</DialogDescription>
@@ -307,6 +307,11 @@ export function StagedFilesDialog({
           )}
         </DropArea>
         <DialogFooter className="border-t pt-3 sm:justify-end">
+          {!isUploading && !isAllDone && (
+            <Button type="button" size="sm" variant="destructive" className="rounded-md" onClick={onClose}>
+              {t('cancel')}
+            </Button>
+          )}
           <CtaButton
             staged={staged}
             isUploading={isUploading}

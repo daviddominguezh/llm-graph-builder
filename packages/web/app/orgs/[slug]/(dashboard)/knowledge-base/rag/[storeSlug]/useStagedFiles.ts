@@ -4,14 +4,7 @@ import { useCallback, useState } from 'react';
 
 import { isImageFile } from './ragUploadConstants';
 
-export type StagedStatus =
-  | 'idle'
-  | 'uploading'
-  | 'parsing'
-  | 'chunking'
-  | 'embedding'
-  | 'done'
-  | 'failed';
+export type StagedStatus = 'idle' | 'uploading' | 'parsing' | 'chunking' | 'embedding' | 'done' | 'failed';
 
 export interface StagedFile {
   key: string;
@@ -67,9 +60,7 @@ export function useStagedFiles(): UseStagedFilesReturn {
   }, []);
 
   const setOcr = useCallback((key: string, enabled: boolean): void => {
-    setStaged((prev) =>
-      prev.map((s) => (s.key === key && !s.ocrLocked ? { ...s, ocrEnabled: enabled } : s))
-    );
+    setStaged((prev) => prev.map((s) => (s.key === key && !s.ocrLocked ? { ...s, ocrEnabled: enabled } : s)));
   }, []);
 
   const setLanguages = useCallback((key: string, languages: string[]): void => {
