@@ -38,12 +38,12 @@ export async function handleGetChunks(req: Request, res: AuthenticatedResponse):
   const page = parsePage(req.query.page);
   const pageSize = parsePageSize(req.query.pageSize);
   try {
-    const { result, error } = await listChunksForFile(supabase, fileId, page, pageSize);
+    const { result, totalCount, error } = await listChunksForFile(supabase, fileId, page, pageSize);
     if (error !== null) {
       res.status(HTTP_INTERNAL_ERROR).json({ error });
       return;
     }
-    res.status(HTTP_OK).json({ chunks: result, page, pageSize });
+    res.status(HTTP_OK).json({ chunks: result, totalCount, page, pageSize });
   } catch (err) {
     res.status(HTTP_INTERNAL_ERROR).json({ error: extractErrorMessage(err) });
   }

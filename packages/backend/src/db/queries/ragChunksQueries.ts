@@ -81,19 +81,19 @@ export async function listChunksForFile(
   fileId: string,
   page: number,
   pageSize: number
-): Promise<{ result: RagChunkRow[]; error: string | null }> {
+): Promise<{ result: RagChunkRow[]; totalCount: number; error: string | null }> {
   const from = (page - PAGE_OFFSET) * pageSize;
   const to = from + pageSize - PAGE_OFFSET;
-  const { data, error } = await supabase
+  const { data, count, error } = await supabase
     .from('rag_chunks')
-    .select(LIST_COLUMNS)
+    .select(LIST_COLUMNS, { count: 'exact' })
     .eq('rag_file_id', fileId)
     .order('page_number', { ascending: true })
     .order('paragraph_idx', { ascending: true })
     .range(from, to);
-  if (error !== null) return { result: [], error: error.message };
+  if (error !== null) return { result: [], totalCount: NO_CHUNKS, error: error.message };
   const rows: unknown[] = Array.isArray(data) ? data : [];
-  return { result: mapRows(rows), error: null };
+  return { result: mapRows(rows), totalCount: count ?? NO_CHUNKS, error: null };
 }
 
 interface IdContentRow {

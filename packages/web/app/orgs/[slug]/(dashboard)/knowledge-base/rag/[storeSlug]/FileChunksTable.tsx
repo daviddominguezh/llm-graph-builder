@@ -1,6 +1,7 @@
 'use client';
 
 import { getChunksAction } from '@/app/actions/ragFiles';
+import { TablePagination } from '@/app/components/dashboard/TablePagination';
 import { getCachedChunks, setCachedChunks } from '@/app/lib/ragCache';
 import type { RagChunkRow, SemanticChunk } from '@/app/lib/ragFiles';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,9 @@ interface FileChunksTableProps {
 }
 
 const PAGE_SIZE = 25;
-const FIRST_PAGE = 1;
+const FIRST_PAGE = 0;
+const BACKEND_PAGE_OFFSET = 1;
+const MIN_TOTAL_PAGES = 1;
 const ZERO = 0;
 const ONE = 1;
 const SIMILARITY_DIGITS = 3;
@@ -33,10 +36,12 @@ interface ChunksState {
   key: string;
   phase: 'fetching' | 'ready';
   rows: RagChunkRow[];
+  totalCount: number;
 }
 
 interface UseChunksReturn {
   rows: RagChunkRow[];
+  totalCount: number;
   stage: LoadStage;
 }
 
@@ -54,13 +59,13 @@ function useChunks(storeId: string, fileId: string, page: number): UseChunksRetu
       const cached = await getCachedChunks(fileId, page);
       if (cancelled) return;
       if (cached !== null) {
-        setState({ key, phase: 'ready', rows: cached });
+        setState({ key, phase: 'ready', rows: cached.rows, totalCount: cached.totalCount });
         return;
       }
-      setState({ key, phase: 'fetching', rows: [] });
-      const { result } = await getChunksAction(storeId, fileId, page, PAGE_SIZE);
+      setState({ key, phase: 'fetching', rows: [], totalCount: ZERO });
+      const { result } = await getChunksAction(storeId, fileId, page + BACKEND_PAGE_OFFSET, PAGE_SIZE);
       if (cancelled) return;
-      setState({ key, phase: 'ready', rows: result });
+      setState({ key, phase: 'ready', rows: result.rows, totalCount: result.totalCount });
       await setCachedChunks(fileId, page, result);
     })();
     return () => {
@@ -73,7 +78,8 @@ function useChunks(storeId: string, fileId: string, page: number): UseChunksRetu
   if (matches && state.phase === 'fetching') stage = 'fetching';
   else if (matches && state.phase === 'ready') stage = 'ready';
   const rows = stage === 'ready' && matches ? state.rows : [];
-  return { rows, stage };
+  const totalCount = stage === 'ready' && matches ? state.totalCount : ZERO;
+  return { rows, totalCount, stage };
 }
 
 const NEWLINE_GLYPH = ' ↵ ';
@@ -218,29 +224,6 @@ function ChunksTable({ stage, rows }: ChunksTableProps): React.JSX.Element | nul
   );
 }
 
-interface PagerProps {
-  page: number;
-  count: number;
-  onPrev: () => void;
-  onNext: () => void;
-}
-
-function Pager({ page, count, onPrev, onNext }: PagerProps): React.JSX.Element | null {
-  const t = useTranslations('knowledgeBase.ragChunks');
-  if (page === FIRST_PAGE && count < PAGE_SIZE) return null;
-  return (
-    <div className="flex items-center justify-between border-t px-3 py-2">
-      <Button size="sm" variant="outline" disabled={page <= FIRST_PAGE} onClick={onPrev}>
-        {t('prev')}
-      </Button>
-      <span className="font-mono text-[11px] text-muted-foreground">{t('page', { page })}</span>
-      <Button size="sm" variant="outline" disabled={count < PAGE_SIZE} onClick={onNext}>
-        {t('next')}
-      </Button>
-    </div>
-  );
-}
-
 function NoMatchingChunks(): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragChunks');
   return (
@@ -255,15 +238,17 @@ function StaticChunks({ chunks }: { chunks: SemanticChunk[] }): React.JSX.Elemen
 
 function FetchedChunks({ storeId, fileId }: { storeId: string; fileId: string }): React.JSX.Element {
   const [page, setPage] = useState(FIRST_PAGE);
-  const { rows, stage } = useChunks(storeId, fileId, page);
+  const { rows, totalCount, stage } = useChunks(storeId, fileId, page);
+  const totalPages = Math.max(MIN_TOTAL_PAGES, Math.ceil(totalCount / PAGE_SIZE));
   return (
     <>
       <ChunksTable stage={stage} rows={rows} />
-      <Pager
+      <TablePagination
         page={page}
-        count={rows.length}
-        onPrev={() => setPage(page - 1)}
-        onNext={() => setPage(page + 1)}
+        pageSize={PAGE_SIZE}
+        totalCount={totalCount}
+        totalPages={totalPages}
+        onPageChange={setPage}
       />
     </>
   );

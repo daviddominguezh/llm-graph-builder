@@ -186,6 +186,7 @@ export async function deleteFile(storeId: string, fileId: string): Promise<{ err
 
 interface ChunksResponse {
   chunks?: unknown;
+  totalCount?: unknown;
 }
 
 function isChunksResponse(v: unknown): v is ChunksResponse {
@@ -196,23 +197,32 @@ function isChunkArray(v: unknown): v is RagChunkRow[] {
   return Array.isArray(v);
 }
 
+const ZERO_COUNT = 0;
+
+export interface ChunksPage {
+  rows: RagChunkRow[];
+  totalCount: number;
+}
+
 export async function getChunks(
   storeId: string,
   fileId: string,
   page: number,
   pageSize: number
-): Promise<{ result: RagChunkRow[]; error: string | null }> {
+): Promise<{ result: ChunksPage; error: string | null }> {
+  const empty: ChunksPage = { rows: [], totalCount: ZERO_COUNT };
   try {
     const data = await fetchFromBackend(
       'GET',
       `/rag-stores/${encodeURIComponent(storeId)}/files/${encodeURIComponent(fileId)}/chunks?page=${String(page)}&pageSize=${String(pageSize)}`
     );
-    if (!isChunksResponse(data)) return { result: [], error: 'invalid response' };
+    if (!isChunksResponse(data)) return { result: empty, error: 'invalid response' };
     const chunks = data.chunks;
-    if (!isChunkArray(chunks)) return { result: [], error: 'invalid response' };
-    return { result: chunks, error: null };
+    if (!isChunkArray(chunks)) return { result: empty, error: 'invalid response' };
+    const totalCount = typeof data.totalCount === 'number' ? data.totalCount : chunks.length;
+    return { result: { rows: chunks, totalCount }, error: null };
   } catch (err) {
-    return { result: [], error: extractError(err) };
+    return { result: empty, error: extractError(err) };
   }
 }
 

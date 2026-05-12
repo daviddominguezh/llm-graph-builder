@@ -1,6 +1,6 @@
 import { type IDBPDatabase, openDB } from 'idb';
 
-import type { RagChunkRow, RagFileRow, TenantUsage } from './ragFiles';
+import type { ChunksPage, RagFileRow, TenantUsage } from './ragFiles';
 
 const DB_NAME = 'openflow-rag-cache';
 const DB_VERSION = 1;
@@ -16,7 +16,8 @@ interface FilesEntry {
 }
 
 interface ChunksEntry {
-  rows: RagChunkRow[];
+  rows: ChunksPage['rows'];
+  totalCount: number;
   fileId: string;
   cachedAt: number;
 }
@@ -88,22 +89,28 @@ export async function invalidateFiles(storeId: string, tenantId: string): Promis
   }
 }
 
-export async function getCachedChunks(fileId: string, page: number): Promise<RagChunkRow[] | null> {
+export async function getCachedChunks(fileId: string, page: number): Promise<ChunksPage | null> {
   if (!ensureBrowser()) return null;
   try {
     const db = await getDb();
     const value = (await db.get(CHUNKS_STORE, chunksKey(fileId, page))) as ChunksEntry | undefined;
-    return value === undefined ? null : value.rows;
+    if (value === undefined || typeof value.totalCount !== 'number') return null;
+    return { rows: value.rows, totalCount: value.totalCount };
   } catch {
     return null;
   }
 }
 
-export async function setCachedChunks(fileId: string, page: number, rows: RagChunkRow[]): Promise<void> {
+export async function setCachedChunks(fileId: string, page: number, payload: ChunksPage): Promise<void> {
   if (!ensureBrowser()) return;
   try {
     const db = await getDb();
-    const entry: ChunksEntry = { rows, fileId, cachedAt: Date.now() };
+    const entry: ChunksEntry = {
+      rows: payload.rows,
+      totalCount: payload.totalCount,
+      fileId,
+      cachedAt: Date.now(),
+    };
     await db.put(CHUNKS_STORE, entry, chunksKey(fileId, page));
   } catch {
     // best-effort

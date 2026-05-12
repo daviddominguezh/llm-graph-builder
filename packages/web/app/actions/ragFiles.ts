@@ -2,10 +2,10 @@
 
 import {
   type CheckFilesResponse,
+  type ChunksPage,
   type InitUploadInput,
   type InitUploadResponse,
   type ListFilesResponse,
-  type RagChunkRow,
   type SearchMode,
   type SearchOptions,
   type SearchResponse,
@@ -62,7 +62,7 @@ export async function getChunksAction(
   fileId: string,
   page: number,
   pageSize: number
-): Promise<{ result: RagChunkRow[]; error: string | null }> {
+): Promise<{ result: ChunksPage; error: string | null }> {
   return getChunksLib(storeId, fileId, page, pageSize);
 }
 
