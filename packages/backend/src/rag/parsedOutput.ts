@@ -1,11 +1,13 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 
-import type { DocumentAiPayload } from './chunker.js';
+import type { DocumentAiPayload, SourcedChunk } from './chunker.js';
 import { listObjectsUnder, readBytesObject } from './gcs.js';
 
 const JSON_EXT = '.json';
 const DUMP_ROOT_SEGMENTS = ['tmp', 'document-ai-raw'];
+const FINAL_CHUNKS_FILENAME = 'final-chunks.json';
+const JSON_INDENT = 2;
 const EMPTY = 0;
 
 export interface ShardData {
@@ -73,5 +75,26 @@ export async function safeDumpShardsToDisk(
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     log(`raw dump failed for ${fileId}: ${msg}`);
+  }
+}
+
+async function dumpFinalChunksToDisk(fileId: string, chunks: SourcedChunk[]): Promise<void> {
+  if (chunks.length === EMPTY) return;
+  const destDir = dumpDir(fileId);
+  await mkdir(destDir, { recursive: true });
+  const payload = JSON.stringify(chunks, null, JSON_INDENT);
+  await writeFile(join(destDir, FINAL_CHUNKS_FILENAME), payload);
+}
+
+export async function safeDumpFinalChunks(
+  fileId: string,
+  chunks: SourcedChunk[],
+  log: (msg: string) => void
+): Promise<void> {
+  try {
+    await dumpFinalChunksToDisk(fileId, chunks);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    log(`final-chunks dump failed for ${fileId}: ${msg}`);
   }
 }

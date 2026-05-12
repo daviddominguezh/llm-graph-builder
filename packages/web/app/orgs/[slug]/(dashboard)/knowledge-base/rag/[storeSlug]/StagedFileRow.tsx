@@ -46,18 +46,18 @@ function StatusPill({
   const tu = useTranslations('knowledgeBase.ragUpload');
   if (status === 'idle') return null;
   if (status === 'done') {
-    return <span className="text-[10px] font-mono text-emerald-600">{t('done')}</span>;
+    return <span className="text-[10px] text-emerald-600">{t('done')}</span>;
   }
   if (status === 'failed') {
     const title = error ?? t('failed');
     return (
-      <span className="text-[10px] font-mono text-destructive" title={title}>
+      <span className="text-[10px] text-destructive" title={title}>
         {tu('errorPrefix')}
       </span>
     );
   }
   return (
-    <span className="flex items-center gap-1.5 text-[10px] font-mono text-blue-500">
+    <span className="flex items-center gap-1.5 text-xs text-blue-500">
       <Loader2 className="size-3 animate-spin" />
       {t(status)}
     </span>
@@ -103,8 +103,10 @@ interface FilenameBlockProps {
 function FilenameBlock({ filename, size }: FilenameBlockProps): React.JSX.Element {
   return (
     <div className="flex min-w-0 max-w-[350px] items-baseline gap-2">
-      <span className="min-w-0 truncate text-xs font-mono font-medium">{filename}</span>
-      <span className="shrink-0 whitespace-nowrap font-mono text-[10px] text-muted-foreground">
+      <span className="min-w-0 truncate text-xs font-medium" title={filename}>
+        {filename}
+      </span>
+      <span className="shrink-0 whitespace-nowrap text-[10px] text-muted-foreground">
         {formatBytes(size)}
       </span>
     </div>
@@ -121,7 +123,7 @@ export function StagedFileRow({
   const t = useTranslations('knowledgeBase.ragUpload');
   const inProgress = IN_PROGRESS.has(staged.status);
   return (
-    <div className="flex items-center gap-3 rounded-md border p-3">
+    <div className="flex items-center gap-3 border-b last:border-b-0 px-2 py-3">
       <FileTypeIcon mimeType={staged.file.type} filename={staged.file.name} />
       <FilenameBlock filename={staged.file.name} size={staged.file.size} />
       <div className="flex-1" />

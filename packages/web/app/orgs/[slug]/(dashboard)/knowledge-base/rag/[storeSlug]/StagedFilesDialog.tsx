@@ -308,8 +308,8 @@ export function StagedFilesDialog({
         </DropArea>
         <DialogFooter className="border-t pt-3 sm:justify-end">
           {!isUploading && !isAllDone && (
-            <Button type="button" size="sm" variant="destructive" className="rounded-md" onClick={onClose}>
-              {t('cancel')}
+            <Button type="button" size="sm" variant="ghost" className="rounded-md" onClick={onClose}>
+              {t('close')}
             </Button>
           )}
           <CtaButton

@@ -13,7 +13,7 @@ import { embedTexts } from './embeddings.js';
 import { readBytesObject, writeBytesObject } from './gcs.js';
 import { derivePdfObjectPath, imageBytesToPdfBytes, isImageMime } from './imagePdf.js';
 import { splitMarkdownChunks } from './markdownSplitter.js';
-import { fetchAllShards, mergePayloads, safeDumpShardsToDisk } from './parsedOutput.js';
+import { fetchAllShards, mergePayloads, safeDumpFinalChunks, safeDumpShardsToDisk } from './parsedOutput.js';
 
 const EMBED_CHUNK_PAGE_SIZE = 100;
 const PDF_MIME = 'application/pdf';
@@ -73,6 +73,7 @@ async function handleChunking(supabase: SupabaseClient, file: RagFileRow): Promi
   await safeDumpShardsToDisk(file.id, shards, log);
   const payload = mergePayloads(shards);
   const chunks = await splitMarkdownChunks(payload);
+  await safeDumpFinalChunks(file.id, chunks, log);
   if (chunks.length === EMPTY_LENGTH) {
     await fail(supabase, file, 'no chunks produced by Document AI');
     return;
