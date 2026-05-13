@@ -263,6 +263,8 @@ interface FileListProps {
   chunksByFile: Map<string, SemanticChunk[]>;
 }
 
+const MOCK_DUPLICATES = [0, 1, 2];
+
 function FileList({
   storeId,
   files,
@@ -272,17 +274,19 @@ function FileList({
 }: FileListProps): React.JSX.Element {
   return (
     <div className="flex flex-col gap-1.5">
-      {files.map((f) => (
-        <FileRow
-          key={f.id}
-          storeId={storeId}
-          file={f}
-          onDeleted={onRefresh}
-          onStatusReachedDone={onRefresh}
-          forceExpanded={isSearchActive}
-          overrideChunks={isSearchActive ? (chunksByFile.get(f.id) ?? []) : undefined}
-        />
-      ))}
+      {files.flatMap((f) =>
+        MOCK_DUPLICATES.map((i) => (
+          <FileRow
+            key={`${f.id}::mock-${String(i)}`}
+            storeId={storeId}
+            file={f}
+            onDeleted={onRefresh}
+            onStatusReachedDone={onRefresh}
+            forceExpanded={isSearchActive}
+            overrideChunks={isSearchActive ? (chunksByFile.get(f.id) ?? []) : undefined}
+          />
+        ))
+      )}
     </div>
   );
 }

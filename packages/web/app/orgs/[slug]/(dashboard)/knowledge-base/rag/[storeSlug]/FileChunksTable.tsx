@@ -291,13 +291,15 @@ function FetchedChunks({ storeId, fileId }: { storeId: string; fileId: string })
   return (
     <>
       <ChunksTable stage={stage} rows={rows} />
-      <TablePagination
-        page={page}
-        pageSize={PAGE_SIZE}
-        totalCount={totalCount}
-        totalPages={totalPages}
-        onPageChange={setPage}
-      />
+      <div className="rounded-b-md border-t bg-background">
+        <TablePagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          totalCount={totalCount}
+          totalPages={totalPages}
+          onPageChange={setPage}
+        />
+      </div>
     </>
   );
 }

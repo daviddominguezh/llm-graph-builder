@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
+import { headers } from 'next/headers';
 import { Geist_Mono } from 'next/font/google';
 
 import { GlassFilters } from '@/components/ui/glass-panel';
@@ -20,6 +21,11 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
+const APPLE_SYSTEM_FONT_STACK =
+  '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", system-ui, sans-serif';
+
+const APPLE_UA_PATTERN = /Macintosh|Mac OS X|iPhone|iPad|iPod/;
+
 export const metadata: Metadata = {
   title: "OpenFlow",
   description: "LLM State machine builder",
@@ -32,11 +38,19 @@ export default async function RootLayout({
 }>) {
   const locale = await getLocale();
   const messages = await getMessages();
+  const headersList = await headers();
+  const userAgent = headersList.get('user-agent') ?? '';
+  const isAppleDevice = APPLE_UA_PATTERN.test(userAgent);
+
+  const htmlStyle = isAppleDevice
+    ? ({ '--font-sans': APPLE_SYSTEM_FONT_STACK } as React.CSSProperties)
+    : undefined;
 
   return (
     <html
       lang={locale}
       className={`${generalSans.variable} ${geistMono.variable}`}
+      style={htmlStyle}
       suppressHydrationWarning
     >
       <body className="antialiased overflow-hidden">
