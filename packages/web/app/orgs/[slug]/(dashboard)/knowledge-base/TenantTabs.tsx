@@ -25,13 +25,13 @@ export function TenantTabs({ tenants, renderTab }: TenantTabsProps): React.JSX.E
   }
 
   return (
-    <Tabs value={active} onValueChange={setActive} className="flex flex-1 min-h-0 flex-col">
-      <TabsList variant="line" className="w-full justify-start border-b">
+    <Tabs value={active} onValueChange={setActive} className="flex flex-1 min-h-0 flex-col gap-0">
+      <TabsList variant="line" className="w-full justify-start border-b-[0.5px] p-0">
         {tenants.map((tenant) => (
           <TabsTrigger
             key={tenant.id}
             value={tenant.id}
-            className="flex-none cursor-pointer [&]:after:-bottom-2 px-2 pr-4"
+            className="flex-none cursor-pointer [&]:after:-bottom-[2.5px] [&]:after:-left-[1px] px-2 pr-4"
           >
             <span className="flex items-center gap-2">
               <TenantAvatar name={tenant.name} avatarUrl={tenant.avatar_url} />
@@ -44,7 +44,7 @@ export function TenantTabs({ tenants, renderTab }: TenantTabsProps): React.JSX.E
         <TabsContent
           key={tenant.id}
           value={tenant.id}
-          className="flex flex-1 min-h-0 flex-col"
+          className="flex flex-1 min-h-0 flex-col px-3"
         >
           {tenant.id === active ? renderTab(tenant.id) : null}
         </TabsContent>

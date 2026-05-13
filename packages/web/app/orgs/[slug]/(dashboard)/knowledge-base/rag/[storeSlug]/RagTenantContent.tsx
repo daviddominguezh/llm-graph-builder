@@ -516,7 +516,7 @@ export function RagTenantContent({ storeId, tenantId }: RagTenantContentProps): 
   });
 
   return (
-    <div className="relative flex flex-1 min-h-0 flex-col gap-2 p-4" {...handlers}>
+    <div className="relative flex flex-1 min-h-0 flex-col gap-2 p-3 py-2" {...handlers}>
       <HeaderRow loaded={loaded} usage={usage} onFiles={openUploadDialog} />
       <PageBody
         loaded={loaded}
