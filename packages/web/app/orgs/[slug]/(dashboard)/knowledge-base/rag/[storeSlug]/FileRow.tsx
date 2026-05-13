@@ -33,12 +33,7 @@ interface FileRowProps {
 const BYTES_KB = 1024;
 const ONE_DECIMAL = 1;
 
-const IN_PROGRESS: ReadonlySet<RagFileStatus> = new Set([
-  'uploading',
-  'parsing',
-  'chunking',
-  'embedding',
-]);
+const IN_PROGRESS: ReadonlySet<RagFileStatus> = new Set(['uploading', 'parsing', 'chunking', 'embedding']);
 
 function statusPillColor(status: RagFileStatus): string {
   if (status === 'done') return 'bg-emerald-500/15 text-emerald-600';
@@ -125,9 +120,7 @@ function DeleteConfirmDialog({
             className="relative"
           >
             <span className={deleting ? 'invisible' : ''}>{t('deleteConfirm')}</span>
-            {deleting && (
-              <Loader2 className="absolute inset-0 m-auto size-3.5 animate-spin" />
-            )}
+            {deleting && <Loader2 className="absolute inset-0 m-auto size-3.5 animate-spin" />}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -156,13 +149,13 @@ function FileRowHeader({
   const canToggle = status === 'done';
   const canDelete = !IN_PROGRESS.has(status);
   return (
-    <div className="sticky top-0 z-20 rounded-t-md bg-background">
+    <div className="sticky top-0 z-20 bg-background">
       <button
         type="button"
         onClick={canToggle ? onToggle : undefined}
         aria-expanded={canToggle ? expanded : undefined}
         aria-label={canToggle ? t('openChunks') : undefined}
-        className={`flex h-9 w-full items-center gap-3 px-3 text-left ${canToggle ? 'cursor-pointer' : 'cursor-default'}`}
+        className={`shadow-[inset_0_1px_0px_0px_var(--border),inset_0_-1px_0px_0px_var(--border)] flex h-9 w-full items-center gap-3 px-3 text-left ${canToggle ? 'cursor-pointer' : 'cursor-default'}`}
       >
         <ChevronRight
           className={`size-4 shrink-0 transition-transform duration-150 ${
@@ -239,7 +232,7 @@ export function FileRow({
       onTerminal={() => onStatusReachedDone(file.id)}
     >
       {({ status, error }) => (
-        <div className="group rounded-sm border ">
+        <div className="group border-l border-r">
           <FileRowHeader
             file={file}
             status={status}
@@ -249,13 +242,7 @@ export function FileRow({
             onRequestDelete={() => setConfirmOpen(true)}
           />
           {expanded && status === 'done' && (
-            <div className="border-t">
-              <FileChunksTable
-                storeId={storeId}
-                fileId={file.id}
-                overrideChunks={overrideChunks}
-              />
-            </div>
+            <FileChunksTable storeId={storeId} fileId={file.id} overrideChunks={overrideChunks} />
           )}
           <DeleteConfirmDialog
             open={confirmOpen}

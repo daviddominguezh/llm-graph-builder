@@ -261,7 +261,7 @@ function ChunksTable({ stage, rows }: ChunksTableProps): React.JSX.Element | nul
   return (
     <table className="w-full caption-bottom text-sm">
       <thead className="sticky top-9 z-10 bg-background">
-        <tr className="border-b">
+        <tr className="shadow-[inset_0px_-1px_0px_0px_var(--border)]">
           <th className={`${HEADER_CELL_CLASS} w-px`}>{t('colPage')}</th>
           {showSimilarity && <th className={`${HEADER_CELL_CLASS} w-px`}>{t('colSimilarity')}</th>}
           <th className={HEADER_CELL_CLASS}>{t('colContent')}</th>
@@ -294,16 +294,14 @@ function FetchedChunks({ storeId, fileId }: { storeId: string; fileId: string })
     <>
       <ChunksTable stage={stage} rows={rows} />
 
-      <div className="sticky -bottom-[3px] z-10 rounded-b-lg bg-background">
-        <div className="border-t border-b rounded-b-xs">
-          <TablePagination
-            page={page}
-            pageSize={PAGE_SIZE}
-            totalCount={totalCount}
-            totalPages={totalPages}
-            onPageChange={setPage}
-          />
-        </div>
+      <div className="sticky -bottom-[0px] z-10 bg-background border-t border-b">
+        <TablePagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          totalCount={totalCount}
+          totalPages={totalPages}
+          onPageChange={setPage}
+        />
       </div>
     </>
   );
