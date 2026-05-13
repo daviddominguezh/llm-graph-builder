@@ -36,7 +36,7 @@ const SIM_MIN = 0;
 const SIM_MAX = 1;
 
 const TAB_BASE =
-  'cursor-pointer inline-flex min-w-[65px] items-center justify-center gap-1 rounded px-2 py-0.5 text-[10px] font-medium transition-colors border border-transparent';
+  'cursor-pointer inline-flex min-w-[72px] items-center justify-center gap-1 rounded px-2 py-0.5 text-[10px] font-medium transition-colors border border-transparent';
 const TAB_ACTIVE = 'bg-popover dark:bg-input text-foreground shadow-sm';
 const TAB_INACTIVE =
   'text-muted-foreground hover:text-foreground border-transparent hover:bg-input dark:hover:bg-card';

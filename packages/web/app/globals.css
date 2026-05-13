@@ -135,6 +135,22 @@
   }
 }
 
+/* Apple devices: swap the global sans stack to Apple's system font, and apply
+   SF Compact Rounded to small text (<= 10px) for better legibility at tiny sizes.
+   Monospaced spans (.font-mono — file extensions, codes, ids) keep their mono face. */
+html[data-platform='apple'] {
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Helvetica Neue', system-ui,
+    sans-serif;
+  --font-geist-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Monaco, Consolas, monospace;
+}
+
+html[data-platform='apple'] :is(.text-\[10px\], .text-\[9px\]):not(.font-mono) {
+  font-family:
+    'SF Compact Rounded', 'SF Pro Rounded', ui-rounded, -apple-system, BlinkMacSystemFont, system-ui,
+    sans-serif;
+}
+
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,

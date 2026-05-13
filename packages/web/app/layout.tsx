@@ -21,9 +21,6 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
-const APPLE_SYSTEM_FONT_STACK =
-  '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", system-ui, sans-serif';
-
 const APPLE_UA_PATTERN = /Macintosh|Mac OS X|iPhone|iPad|iPod/;
 
 export const metadata: Metadata = {
@@ -42,15 +39,11 @@ export default async function RootLayout({
   const userAgent = headersList.get('user-agent') ?? '';
   const isAppleDevice = APPLE_UA_PATTERN.test(userAgent);
 
-  const htmlStyle = isAppleDevice
-    ? ({ '--font-sans': APPLE_SYSTEM_FONT_STACK } as React.CSSProperties)
-    : undefined;
-
   return (
     <html
       lang={locale}
       className={`${generalSans.variable} ${geistMono.variable}`}
-      style={htmlStyle}
+      data-platform={isAppleDevice ? 'apple' : undefined}
       suppressHydrationWarning
     >
       <body className="antialiased overflow-hidden">

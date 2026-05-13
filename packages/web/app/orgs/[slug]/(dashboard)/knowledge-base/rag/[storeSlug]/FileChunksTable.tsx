@@ -29,6 +29,8 @@ const HEADER_CELL_CLASS =
   'h-7 px-3 text-left text-[10px] uppercase tracking-wider font-semibold text-foreground whitespace-nowrap border-r last:border-r-0';
 const META_CELL_CLASS =
   'align-top px-3 py-2 font-mono text-[10px] text-muted-foreground whitespace-nowrap border-r';
+const PAGE_CELL_CLASS =
+  'align-top px-3 py-2 font-mono text-[10px] text-foreground whitespace-nowrap border-r';
 
 type LoadStage = 'pending' | 'fetching' | 'ready';
 
@@ -227,7 +229,7 @@ function ChunkTableRow({
   const t = useTranslations('knowledgeBase.ragChunks');
   return (
     <tr className="border-b last:border-b-0">
-      <td className={META_CELL_CLASS}>{pageLabel(c, t)}</td>
+      <td className={PAGE_CELL_CLASS}>{pageLabel(c, t)}</td>
       {showSimilarity && <td className={META_CELL_CLASS}>{similarityCell(c)}</td>}
       <td className="group/chunk align-top py-2 px-3">
         <ChunkContent content={c.content} />
@@ -291,14 +293,17 @@ function FetchedChunks({ storeId, fileId }: { storeId: string; fileId: string })
   return (
     <>
       <ChunksTable stage={stage} rows={rows} />
-      <div className="rounded-b-md border-t bg-background">
-        <TablePagination
-          page={page}
-          pageSize={PAGE_SIZE}
-          totalCount={totalCount}
-          totalPages={totalPages}
-          onPageChange={setPage}
-        />
+
+      <div className="sticky -bottom-[3px] z-10 rounded-b-lg bg-background">
+        <div className="border-t border-b rounded-b-xs">
+          <TablePagination
+            page={page}
+            pageSize={PAGE_SIZE}
+            totalCount={totalCount}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
+        </div>
       </div>
     </>
   );

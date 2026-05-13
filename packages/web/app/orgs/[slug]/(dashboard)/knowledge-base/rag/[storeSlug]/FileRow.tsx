@@ -239,7 +239,7 @@ export function FileRow({
       onTerminal={() => onStatusReachedDone(file.id)}
     >
       {({ status, error }) => (
-        <div className="group rounded-md border">
+        <div className="group rounded-sm border ">
           <FileRowHeader
             file={file}
             status={status}
