@@ -171,8 +171,8 @@ function FileRowHeader({
         />
         <FileTypeIcon mimeType={file.mime_type} filename={file.filename} />
         <div className="flex min-w-0 flex-1 items-baseline gap-2">
-          <span className="min-w-0 truncate text-xs font-mono font-medium">{file.filename}</span>
-          <span className="shrink-0 whitespace-nowrap font-mono text-[10px] text-muted-foreground">
+          <span className="min-w-0 truncate text-xs font-medium">{file.filename}</span>
+          <span className="ml-2 shrink-0 whitespace-nowrap font-mono text-[10px] text-muted-foreground">
             {formatBytes(file.size_bytes)}
             {file.page_count !== null && <> · {t('pageCount', { count: file.page_count })}</>}
             {' · '}

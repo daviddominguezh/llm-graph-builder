@@ -34,7 +34,7 @@ export function TenantTabs({ tenants, renderTab }: TenantTabsProps): React.JSX.E
             className="flex-none cursor-pointer [&]:after:-bottom-[2.5px] [&]:after:-left-[1px] px-2 pr-4"
           >
             <span className="flex items-center gap-2">
-              <TenantAvatar name={tenant.name} avatarUrl={tenant.avatar_url} />
+              <TenantAvatar small name={tenant.name} avatarUrl={tenant.avatar_url} />
               {tenant.name}
             </span>
           </TabsTrigger>
