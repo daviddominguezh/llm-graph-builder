@@ -41,6 +41,7 @@
     "@openflow/shared-validation": "*",
     "@supabase/supabase-js": "^2.99.0",
     "@types/multer": "^2.1.0",
+    "@types/turndown": "^5.0.6",
     "@upstash/redis": "^1.37.0",
     "ai": "^6.0.177",
     "cors": "^2.8.5",
@@ -53,9 +54,12 @@
     "js-tiktoken": "^1.0.10",
     "libphonenumber-js": "^1.12.41",
     "multer": "^2.1.1",
+    "officeparser": "^6.1.1",
     "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^5.7.284",
     "proxy-addr": "^2.0.7",
     "socket.io": "^4.8.3",
+    "turndown": "^7.2.4",
     "zod": "^4.3.6"
   },
   "devDependencies": {

@@ -8,12 +8,14 @@ import {
   updateStatus,
 } from '../db/queries/ragFilesQueries.js';
 import { type SourcedChunk, maxPage } from './chunker.js';
-import { type OcrMode, checkOperation, submitBatch } from './documentAi.js';
+import { submitDocAiAndRecord } from './docAiSubmit.js';
+import { type OcrMode, checkOperation } from './documentAi.js';
 import { embedTexts } from './embeddings.js';
-import { readBytesObject, writeBytesObject } from './gcs.js';
+import { readBytesObject } from './gcs.js';
 import { handleImage } from './imageHandler.js';
-import { derivePdfObjectPath, imageBytesToPdfBytes, isImageMime } from './imagePdf.js';
+import { isImageMime } from './imagePdf.js';
 import { splitLayoutChunks } from './layoutSplitter.js';
+import { extractLocalDocChunks } from './localDocExtraction.js';
 import { extractLocalChunks } from './localExtraction.js';
 import { splitOcrChunks } from './markdownSplitter.js';
 import {
@@ -25,8 +27,6 @@ import {
 } from './parsedOutput.js';
 
 const EMBED_CHUNK_PAGE_SIZE = 100;
-const PDF_MIME = 'application/pdf';
-const GS_BUCKET_PREFIX_REGEX = /^gs:\/\/[^\/]+\//v;
 const EMPTY_LENGTH = 0;
 
 function log(msg: string): void {
@@ -73,11 +73,14 @@ async function persistChunks(
   return true;
 }
 
-type Pipeline = 'docai' | 'plain' | 'image';
+type Pipeline = 'docai' | 'plain' | 'image' | 'local-doc';
 
 function resolvePipeline(file: RagFileRow): Pipeline {
   if (isImageMime(file.mime_type)) return 'image';
-  return file.ocr_mode === 'plain' ? 'plain' : 'docai';
+  if (file.ocr_mode === 'plain') return 'plain';
+  // OCR explicitly off (null) → parse the document locally (pdfjs / officeparser / turndown).
+  if (file.ocr_mode === null) return 'local-doc';
+  return 'docai';
 }
 
 function resolveOcrMode(value: string | null): OcrMode {
@@ -121,6 +124,24 @@ async function chunkViaPlain(file: RagFileRow): Promise<SourcedChunk[]> {
   return chunks;
 }
 
+async function chunkViaLocalDoc(file: RagFileRow): Promise<SourcedChunk[]> {
+  const bytes = await readBytesObject(file.gcs_object);
+  const chunks = await extractLocalDocChunks(Buffer.from(bytes), file.filename, file.mime_type);
+  log(`handleChunking: file=${file.id} pipeline=local-doc chunks=${String(chunks.length)}`);
+  await safeDumpFinalChunks(file.id, chunks, log);
+  return chunks;
+}
+
+async function dispatchChunking(
+  supabase: SupabaseClient,
+  file: RagFileRow,
+  pipeline: Pipeline
+): Promise<SourcedChunk[] | null> {
+  if (pipeline === 'plain') return await chunkViaPlain(file);
+  if (pipeline === 'local-doc') return await chunkViaLocalDoc(file);
+  return await chunkViaDocAi(supabase, file);
+}
+
 async function handleChunking(supabase: SupabaseClient, file: RagFileRow): Promise<void> {
   const pipeline = resolvePipeline(file);
   if (pipeline === 'image') {
@@ -133,7 +154,7 @@ async function handleChunking(supabase: SupabaseClient, file: RagFileRow): Promi
     });
     return;
   }
-  const chunks = pipeline === 'plain' ? await chunkViaPlain(file) : await chunkViaDocAi(supabase, file);
+  const chunks = await dispatchChunking(supabase, file, pipeline);
   if (chunks === null) return;
   if (chunks.length === EMPTY_LENGTH) {
     await fail(supabase, file, 'no chunks produced');
@@ -235,43 +256,6 @@ export async function tickOnce(supabase: SupabaseClient): Promise<void> {
   }, Promise.resolve());
 }
 
-async function prepareDocumentAiInput(
-  gcsObject: string,
-  mimeType: string
-): Promise<{ inputObjectPath: string; mimeType: string }> {
-  if (!isImageMime(mimeType)) {
-    return { inputObjectPath: gcsObject, mimeType };
-  }
-  const imageBytes = await readBytesObject(gcsObject);
-  const pdfBytes = await imageBytesToPdfBytes(imageBytes, mimeType);
-  const pdfPath = derivePdfObjectPath(gcsObject);
-  await writeBytesObject(pdfPath, pdfBytes, PDF_MIME);
-  return { inputObjectPath: pdfPath, mimeType: PDF_MIME };
-}
-
-async function submitAndRecord(supabase: SupabaseClient, file: RagFileRow): Promise<void> {
-  const outputPrefix = `parsed/${file.id}/`;
-  const mode = resolveOcrMode(file.ocr_mode);
-  const languageHints = mode === 'standard' ? file.language_hints : null;
-  log(
-    `submitAndRecord: file=${file.id} mode=${mode} mime=${file.mime_type} hints=${JSON.stringify(languageHints ?? [])}`
-  );
-  const prepared = await prepareDocumentAiInput(file.gcs_object, file.mime_type);
-  const { operationName, outputGcsUri } = await submitBatch({
-    inputObjectPath: prepared.inputObjectPath,
-    outputPrefix,
-    mimeType: prepared.mimeType,
-    mode,
-    languageHints,
-  });
-  log(`submitAndRecord: file=${file.id} op=${operationName} output=${outputGcsUri}`);
-  await updateStatus(supabase, file.id, {
-    status: 'parsing',
-    da_operation: operationName,
-    parsed_uri: outputGcsUri.replace(GS_BUCKET_PREFIX_REGEX, ''),
-  });
-}
-
 export async function startParsing(supabase: SupabaseClient, fileId: string): Promise<void> {
   const { result, error } = await getRagFileById(supabase, fileId);
   if (error !== null || result === null) {
@@ -285,7 +269,7 @@ export async function startParsing(supabase: SupabaseClient, fileId: string): Pr
       await updateStatus(supabase, fileId, { status: 'chunking' });
       return;
     }
-    await submitAndRecord(supabase, result);
+    await submitDocAiAndRecord(supabase, result, log);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     await updateStatus(supabase, fileId, { status: 'failed', status_error: msg });

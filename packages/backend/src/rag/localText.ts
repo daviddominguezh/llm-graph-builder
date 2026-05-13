@@ -44,11 +44,14 @@ function locateSlices(text: string, pieces: readonly string[]): SliceLoc[] {
   return out;
 }
 
-export async function extractTextChunks(buffer: Buffer, markdown: boolean): Promise<SourcedChunk[]> {
-  const text = buffer.toString('utf-8');
+export async function chunkTextWithSplitter(text: string, markdown: boolean): Promise<SourcedChunk[]> {
   if (text.trim().length < LOCAL_MIN_CHARS) return [];
   const splitter = makeSplitter({ markdown });
   const pieces = await splitter.splitText(text);
   const slices = locateSlices(text, pieces);
   return slices.map((s, idx) => buildLocalChunk({ content: s.content, paragraph: idx, offset: s.offset }));
+}
+
+export async function extractTextChunks(buffer: Buffer, markdown: boolean): Promise<SourcedChunk[]> {
+  return await chunkTextWithSplitter(buffer.toString('utf-8'), markdown);
 }
