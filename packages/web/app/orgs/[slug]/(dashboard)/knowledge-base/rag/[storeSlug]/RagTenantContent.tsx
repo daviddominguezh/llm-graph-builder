@@ -290,7 +290,7 @@ function FileList({
 function UsageSummary({ usage }: { usage: TenantUsage }): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragFiles');
   return (
-    <span className="text-[11px] font-mono text-muted-foreground">
+    <span className="text-[11px] font-mono text-muted-foreground mt-[2px]">
       {t('summary', {
         files: usage.files_count,
         pages: usage.pages_count,
@@ -516,7 +516,7 @@ export function RagTenantContent({ storeId, tenantId }: RagTenantContentProps): 
   });
 
   return (
-    <div className="relative flex flex-1 min-h-0 flex-col gap-2 p-3 py-2" {...handlers}>
+    <div className="relative flex flex-1 min-h-0 flex-col gap-2.5 px-0 py-2.5" {...handlers}>
       <HeaderRow loaded={loaded} usage={usage} onFiles={openUploadDialog} />
       <PageBody
         loaded={loaded}

@@ -44,7 +44,7 @@ export function TenantTabs({ tenants, renderTab }: TenantTabsProps): React.JSX.E
         <TabsContent
           key={tenant.id}
           value={tenant.id}
-          className="flex flex-1 min-h-0 flex-col px-3"
+          className="flex flex-1 min-h-0 flex-col px-2.5"
         >
           {tenant.id === active ? renderTab(tenant.id) : null}
         </TabsContent>

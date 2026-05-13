@@ -262,7 +262,7 @@ function SearchControls(props: SearchControlsProps): React.JSX.Element {
   const showRerankToggle = props.mode === 'semantic' || props.mode === 'hybrid';
   const rerankForced = props.mode === 'hybrid';
   return (
-    <div className="flex flex-1 items-center gap-4 text-[10px] font-mono text-muted-foreground pl-1">
+    <div className="flex flex-1 items-center gap-4 text-[10px] font-mono text-muted-foreground pl-1 mt-[2px]">
       <TopKField topK={props.topK} onTopKChange={props.onTopKChange} />
       {showMinSim && (
         <MinSimField
@@ -292,7 +292,7 @@ function SearchControls(props: SearchControlsProps): React.JSX.Element {
 function ModeExplanation({ mode }: { mode: SearchMode }): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragSearch');
   return (
-    <div className="top-[100%] mt-1.5 border-l-2 ml-[1px] absolute w-full text-[10px] leading-tight text-muted-foreground px-1.5">
+    <div className="top-[100%] mt-2 border-l-2 ml-[1px] absolute w-full text-[10px] leading-tight text-muted-foreground px-1.5">
       {t(`description.${mode}`)}
     </div>
   );
@@ -328,7 +328,7 @@ function QueryInput({ query, onQueryChange, onSubmit }: QueryInputProps): React.
 
 export function RagSearchBar(props: RagSearchBarProps): React.JSX.Element {
   return (
-    <div className="flex items-start gap-3">
+    <div className="flex items-start gap-2.5">
       <div className="relative flex shrink-0 flex-col gap-2">
         <ModeTabs mode={props.mode} onChange={props.onModeChange} />
         <ModeExplanation mode={props.mode} />

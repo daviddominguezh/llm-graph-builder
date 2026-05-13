@@ -16,7 +16,7 @@ export function RagStorePageClient({
   tenants,
 }: RagStorePageClientProps): React.JSX.Element {
   return (
-    <div className="flex flex-1 flex-col gap-4 px-0 pt-0 pb-1 min-h-0">
+    <div className="flex flex-1 flex-col gap-4 px-0 pt-0 pb-0 min-h-0">
       <TenantTabs
         tenants={tenants}
         renderTab={(tenantId) => <RagTenantContent storeId={store.id} tenantId={tenantId} />}
