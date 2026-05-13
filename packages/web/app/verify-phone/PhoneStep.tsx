@@ -1,6 +1,7 @@
 'use client';
 
 import { ALLOWED_COUNTRIES, detectCountry } from '@/app/lib/auth/detectCountry';
+import { enterToSubmit } from '@/app/lib/auth/enterToSubmit';
 import { formatCountdown, useCountdown } from '@/app/lib/auth/useCountdown';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -155,7 +156,7 @@ export function PhoneStep({ phone, onPhoneChange, onAdvance }: PhoneStepProps) {
   }
 
   return (
-    <form onSubmit={onFormSubmit} className="flex flex-col gap-3">
+    <form onSubmit={onFormSubmit} onKeyDown={enterToSubmit} className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
         <Label>{t('phoneLabel')}</Label>
         {defaultCountry === null ? (

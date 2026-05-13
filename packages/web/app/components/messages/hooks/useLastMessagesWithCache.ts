@@ -116,8 +116,8 @@ export const useLastMessagesWithCache = (projectName: string): UseLastMessagesWi
    * Create an empty test chat entry for UI display
    * Used when test chat doesn't exist in cached/fetched data
    */
-  const createEmptyTestChat = useCallback((): LastMessage => {
-    return {
+  const createEmptyTestChat = useCallback(
+    (): LastMessage => ({
       id: `test-${Date.now()}`,
       timestamp: Date.now(),
       key: TEST_PHONE,
@@ -129,8 +129,9 @@ export const useLastMessagesWithCache = (projectName: string): UseLastMessagesWi
       enabled: true,
       name: 'Test Chat',
       isTestChat: true,
-    };
-  }, []);
+    }),
+    []
+  );
 
   /**
    * Initial load: Read from IndexedDB then sync with server
@@ -183,9 +184,9 @@ export const useLastMessagesWithCache = (projectName: string): UseLastMessagesWi
 
             // Clear IndexedDB cache for conversation messages of deleted chats
             for (const chatId of deletedResponse.deletedChats) {
-              ConversationMessagesCacheService.clearConversationCache(projectName, chatId).catch((err) =>
-                console.error('[useLastMessagesWithCache] Failed to clear conversation cache:', chatId, err)
-              );
+              ConversationMessagesCacheService.clearConversationCache(projectName, chatId).catch((err) => {
+                console.error('[useLastMessagesWithCache] Failed to clear conversation cache:', chatId, err);
+              });
             }
 
             // Update sync timestamp to current time
@@ -346,7 +347,7 @@ export const useLastMessagesWithCache = (projectName: string): UseLastMessagesWi
         if (existing && lastMessage.timestamp < existing.timestamp) {
           return prev; // Don't update if existing is strictly newer
         }
-        if (existing && lastMessage.timestamp === existing.timestamp && lastMessage.id === existing.id) {
+        if (lastMessage.timestamp === existing?.timestamp && lastMessage.id === existing.id) {
           return prev; // Same message, no update needed
         }
 
@@ -422,8 +423,7 @@ export const useLastMessagesWithCache = (projectName: string): UseLastMessagesWi
       const isNewerTimestamp = cachedMsg && reduxMsg.timestamp > cachedMsg.timestamp;
 
       const isSameTimestampNewMessage =
-        cachedMsg &&
-        reduxMsg.timestamp === cachedMsg.timestamp &&
+        reduxMsg.timestamp === cachedMsg?.timestamp &&
         reduxMsg.id !== cachedMsg.id &&
         !syncedMessageIdsRef.current.has(reduxMsg.id);
 

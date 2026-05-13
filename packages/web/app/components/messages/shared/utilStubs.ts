@@ -7,7 +7,7 @@ import type {
   ProductBusinessSetupSchemaAPIType,
   ProductStockType,
 } from '@/app/types/business';
-import { MediaFileKind } from '@/app/types/media';
+import type { MediaFileKind } from '@/app/types/media';
 
 // ---------------------------------------------------------------------------
 // Currency formatting
@@ -25,9 +25,7 @@ export const formatCurrency = (value: string, currency?: string): string => {
 // ---------------------------------------------------------------------------
 // Quill lazy-loader stub
 // ---------------------------------------------------------------------------
-export const loadQuill = async (): Promise<unknown> => {
-  return Promise.resolve(null);
-};
+export const loadQuill = async (): Promise<unknown> => await Promise.resolve(null);
 
 // ---------------------------------------------------------------------------
 // Sound stub
@@ -49,9 +47,7 @@ export const getMediaKind = (filename: string): MediaFileKind => {
 // ---------------------------------------------------------------------------
 export const getApiURL = (): string => process.env.NEXT_PUBLIC_API_URL || '';
 
-export const isLocalDevelopment = (): boolean => {
-  return process.env.NODE_ENV === 'development';
-};
+export const isLocalDevelopment = (): boolean => process.env.NODE_ENV === 'development';
 
 // ---------------------------------------------------------------------------
 // Business info cache stubs

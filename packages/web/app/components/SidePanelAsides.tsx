@@ -4,81 +4,8 @@ import type { McpLibraryState } from '../hooks/useMcpLibrary';
 import type { McpLibraryRow } from '../lib/mcpLibraryTypes';
 import type { McpServerConfig } from '../schemas/graph.schema';
 
-import { GlassPanel } from '@/components/ui/glass-panel';
 import { McpLibraryPanel } from './panels/McpLibraryPanel';
-import { PresetsPanel } from './panels/PresetsPanel';
 import { PublishMcpDialog } from './panels/PublishMcpDialog';
-import {
-  createPrecondition,
-  handlePreconditionRemove,
-  handlePreconditionUpdate,
-} from './sidePanelHelpers';
-import type { SidePanelsProps } from './SidePanels';
-
-type PresetsAsideProps = Pick<
-  SidePanelsProps,
-  | 'presetsHook'
-  | 'ctxPreconditions'
-  | 'setEdges'
-  | 'orgApiKeys'
-  | 'stagingKeyId'
-  | 'productionKeyId'
-  | 'onStagingKeyChange'
-  | 'onProductionKeyChange'
-  | 'outputSchemasHook'
-  | 'agentId'
-  | 'agentName'
-  | 'orgSlug'
-> & {
-  onEditSchema: (id: string) => void;
-  onEditNewSchema: (id: string) => void;
-  onRemoveSchema: (id: string) => void;
-};
-
-export function PresetsAside(props: PresetsAsideProps) {
-  const { presetsHook, ctxPreconditions, setEdges } = props;
-
-  return (
-    <GlassPanel className="w-[240px] absolute left-1.5 top-1.5 bottom-0 w-80 rounded-md z-10 pointer-events-auto">
-      <PresetsPanel
-        presets={presetsHook.presets}
-        contextKeys={presetsHook.contextKeys}
-        orgApiKeys={props.orgApiKeys}
-        stagingKeyId={props.stagingKeyId}
-        productionKeyId={props.productionKeyId}
-        onStagingKeyChange={props.onStagingKeyChange}
-        onProductionKeyChange={props.onProductionKeyChange}
-        agentId={props.agentId}
-        agentName={props.agentName}
-        orgSlug={props.orgSlug}
-        onAdd={presetsHook.addPreset}
-        onDelete={presetsHook.deletePreset}
-        onUpdate={presetsHook.updatePreset}
-        context={{
-          keys: presetsHook.contextKeys,
-          onAdd: presetsHook.addContextKey,
-          onRemove: presetsHook.removeContextKey,
-          onRename: presetsHook.renameContextKey,
-        }}
-        contextPreconditions={{
-          preconditions: ctxPreconditions.customContextPreconditions,
-          onAdd: () => createPrecondition(ctxPreconditions),
-          onRemove: (id) => handlePreconditionRemove(id, ctxPreconditions, setEdges),
-          onUpdate: (id, updates) => handlePreconditionUpdate(id, updates, ctxPreconditions, setEdges),
-        }}
-        outputSchemas={{
-          schemas: props.outputSchemasHook.schemas,
-          onAdd: () => {
-            const id = props.outputSchemasHook.addSchema();
-            props.onEditNewSchema(id);
-          },
-          onRemove: props.onRemoveSchema,
-          onEdit: props.onEditSchema,
-        }}
-      />
-    </GlassPanel>
-  );
-}
 
 export interface McpDialogsProps {
   publishServer: McpServerConfig | null;

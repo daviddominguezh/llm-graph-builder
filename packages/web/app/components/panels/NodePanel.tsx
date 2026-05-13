@@ -32,6 +32,7 @@ import { NodePanelOutputSchema } from './NodePanelOutputSchema';
 import { NodePromptDialog } from './NodePromptDialog';
 import { pushDeleteNode, pushRenameNode, pushUpdateNode } from './nodePanelOps';
 import { hasToolCallEdge } from './toolCallGuard';
+import { getPreconditionDisplayValue } from '../../utils/preconditionHelpers';
 
 interface NodePanelProps {
   nodeId: string;
@@ -150,9 +151,9 @@ export function NodePanel({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b p-2 px-4">
+      <div className="border-b p-2 px-3">
         <div className="flex items-center justify-between">
-          <h4 className="text-sm font-semibold">Node Properties</h4>
+          <h4 className="text-xs font-semibold">Node Properties</h4>
           <div className="flex items-center">
             <NodePromptDialog
               nodeId={nodeId}
@@ -193,7 +194,7 @@ export function NodePanel({
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="flex flex-col gap-4 p-4">
+        <div className="flex flex-col gap-4 py-4 px-3">
           <div className="space-y-2">
             <Label htmlFor="id">ID</Label>
             <Input
@@ -245,8 +246,8 @@ export function NodePanel({
 
         <Separator />
 
-        <div className="p-4">
-          <Label className="text-sm font-semibold">Connections</Label>
+        <div className="py-4 px-3">
+          <Label className="text-xs font-semibold">Connections</Label>
 
           {incomingEdges.length === 0 && outgoingEdges.length === 0 && (
             <p className="text-xs text-muted-foreground mt-2">No connections</p>
@@ -258,23 +259,23 @@ export function NodePanel({
                 Incoming
                 <ArrowLeft className="h-3 w-3 mr-1" />
               </div>
-              <div className="flex flex-col ml-2 gap-1">
+              <div className="flex flex-col gap-1 border-l-2 pl-2 border-input">
                 {incomingEdges.map((edge) => {
-                  const value = edge.data?.preconditions?.[0]?.value;
+                  const firstPrecondition = edge.data?.preconditions?.[0];
+                  const value = firstPrecondition ? getPreconditionDisplayValue(firstPrecondition) : undefined;
                   const contextPreconditions = edge.data?.contextPreconditions;
                   const hasContext = contextPreconditions && contextPreconditions.preconditions.length > 0;
                   return (
                     <div key={edge.id}>
-                      <div className="w-full flex justify-between items-start text-xs gap-1 py-1">
-                        <div className="flex flex-1 min-w-[0px] flex-col">
-                          <div className="flex items-center">
+                      <div className="w-full flex justify-between items-start text-xs gap-1 py-1 cursor-default">
+                        <div className="mt-[1px] flex flex-1 min-w-[0px] flex-col">
+                          <div className="flex items-center bg-input/70 py-1 px-1 rounded-sm">
                             {getEdgeTypeIcon(edge)}
-                            <span className="ml-0.5 text-[11px]">{edge.source}</span>
+                            <span className="ml-0.5 text-[11px] font-mono">{edge.source}</span>
                           </div>
                           {(value || hasContext) && (
-                            <div className="flex w-full gap-3 mt-1 bg-input dark:bg-input/30 rounded-e-sm py-0">
-                              <div className="shrink-0 w-[2px] bg-ring self-stretch"></div>
-                              <div className="w-full text-[10px] text-muted-foreground py-1">
+                            <div className="flex w-full gap-3 mt-1 rounded-e-sm py-0">
+                              <div className="w-full text-[10px] text-muted-foreground py-0 px-1.5">
                                 {value && <div className="w-full">{value}</div>}
                                 {hasContext && (
                                   <div className={value ? 'mt-1' : ''}>
@@ -337,23 +338,23 @@ export function NodePanel({
                 Outgoing
                 <ArrowRight className="h-3 w-3 mr-1" />
               </div>
-              <div className="flex flex-col ml-2 gap-1">
+              <div className="flex flex-col gap-1 pl-2 border-l-2 border-input">
                 {outgoingEdges.map((edge) => {
-                  const value = edge.data?.preconditions?.[0]?.value;
+                  const firstPrecondition = edge.data?.preconditions?.[0];
+                  const value = firstPrecondition ? getPreconditionDisplayValue(firstPrecondition) : undefined;
                   const contextPreconditions = edge.data?.contextPreconditions;
                   const hasContext = contextPreconditions && contextPreconditions.preconditions.length > 0;
                   return (
                     <div key={edge.id}>
                       <div className="w-full flex justify-between items-start text-xs gap-1 py-1">
-                        <div className="flex flex-1 flex-col min-w-[0px]">
-                          <div className="flex items-center">
+                        <div className="mt-[1px] flex flex-1 flex-col min-w-[0px]">
+                          <div className="flex items-center p-1 bg-input/70 rounded-sm">
                             {getEdgeTypeIcon(edge)}
-                            <span className="ml-0.5 text-[11px]">{edge.target}</span>
+                            <span className="ml-0.5 text-[11px] font-mono">{edge.target}</span>
                           </div>
                           {(value || hasContext) && (
-                            <div className="flex w-full gap-3 mt-1 bg-input dark:bg-input/30 rounded-e-sm py-0">
-                              <div className="shrink-0 ml-0 w-[2px] bg-ring self-stretch"></div>
-                              <div className="w-full text-[10px] text-muted-foreground py-1">
+                            <div className="flex w-full gap-3 mt-1 rounded-e-sm py-0 ml-1.5">
+                              <div className="w-full text-[10px] text-muted-foreground">
                                 {value && <div className="w-full">{value}</div>}
                                 {hasContext && (
                                   <div className={value ? 'mt-1' : ''}>

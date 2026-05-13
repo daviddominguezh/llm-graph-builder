@@ -92,7 +92,13 @@ describe('extractTemplateVariables', () => {
 describe('getNodePrompt routing kinds', () => {
   it('returns tool_call kind with correct options', async () => {
     const edge = buildEdge({
-      preconditions: [{ type: 'tool_call', value: 'search_orders', description: 'Search orders' }],
+      preconditions: [
+        {
+          type: 'tool_call',
+          tool: { providerType: 'builtin', providerId: 'calendar', toolName: 'search_orders' },
+          description: 'Search orders',
+        },
+      ],
     });
     mockAssembleGraph.mockResolvedValue(buildGraph([buildNode()], [edge]));
 

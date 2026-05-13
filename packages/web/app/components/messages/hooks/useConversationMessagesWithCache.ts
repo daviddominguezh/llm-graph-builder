@@ -311,8 +311,8 @@ export const useConversationMessagesWithCache = (
         };
 
         // Recalculate newest
-        let newestTimestamp = prev.newestTimestamp;
-        let newestMessageId = prev.newestMessageId;
+        let { newestTimestamp } = prev;
+        let { newestMessageId } = prev;
 
         for (const [id, msg] of Object.entries(messages)) {
           if (msg.timestamp > newestTimestamp) {
@@ -345,7 +345,7 @@ export const useConversationMessagesWithCache = (
   const updateMessage = useCallback(
     (messageId: string, update: Partial<Message>) => {
       setCacheData((prev) => {
-        if (!prev || !prev.messages[messageId]) return prev;
+        if (!prev?.messages[messageId]) return prev;
 
         return {
           ...prev,
@@ -519,9 +519,7 @@ export const useConversationMessagesWithCache = (
   /**
    * Messages as record (for compatibility)
    */
-  const messagesRecord = useMemo(() => {
-    return cacheData?.messages || {};
-  }, [cacheData?.messages]);
+  const messagesRecord = useMemo(() => cacheData?.messages || {}, [cacheData?.messages]);
 
   /**
    * Derive loading states from cache state

@@ -70,7 +70,9 @@ export function useEmbeddedSignup(): EmbeddedSignupState & { reset: () => void }
     };
 
     window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
+    return () => {
+      window.removeEventListener('message', handler);
+    };
   }, []);
 
   return { ...state, reset };

@@ -1,0 +1,115 @@
+{
+  "translation": {
+    "dialogs": {
+      "addEvent": {
+        "title": "Agregar Nuevo Evento",
+        "description": "Este es solo un ejemplo de cómo usar el formulario. En una aplicación real, llamarías a la API para crear el evento",
+        "createButton": "Crear Evento"
+      },
+      "editEvent": {
+        "title": "Editar Evento",
+        "description": "Este es solo un ejemplo de cómo usar el formulario. En una aplicación real, llamarías a la API para actualizar el evento",
+        "saveButton": "Guardar cambios"
+      },
+      "eventDetails": {
+        "editButton": "Editar"
+      },
+      "common": {
+        "cancel": "Cancelar",
+        "responsible": "Responsable",
+        "title": "Título",
+        "startDate": "Fecha de Inicio",
+        "startTime": "Hora de Inicio",
+        "endDate": "Fecha de Fin",
+        "endTime": "Hora de Fin",
+        "color": "Color",
+        "description": "Descripción"
+      }
+    },
+    "placeholders": {
+      "selectOption": "Selecciona una opción",
+      "enterTitle": "Ingresa un título",
+      "selectDate": "Selecciona una fecha"
+    },
+    "colors": {
+      "blue": "Azul",
+      "green": "Verde",
+      "red": "Rojo",
+      "yellow": "Amarillo",
+      "purple": "Morado",
+      "orange": "Naranja",
+      "gray": "Gris"
+    },
+    "navigation": {
+      "viewDay": "Vista por día",
+      "viewWeek": "Vista por semana",
+      "viewMonth": "Vista por mes",
+      "viewYear": "Vista por año",
+      "viewAgenda": "Vista de agenda",
+      "addEvent": "Agregar Evento",
+      "events": "eventos",
+      "allUsers": "Todos"
+    },
+    "days": {
+      "short": {
+        "sun": "Dom",
+        "mon": "Lun",
+        "tue": "Mar",
+        "wed": "Mié",
+        "thu": "Jue",
+        "fri": "Vie",
+        "sat": "Sáb"
+      },
+      "long": {
+        "sunday": "Domingo",
+        "monday": "Lunes",
+        "tuesday": "Martes",
+        "wednesday": "Miércoles",
+        "thursday": "Jueves",
+        "friday": "Viernes",
+        "saturday": "Sábado"
+      }
+    },
+    "settings": {
+      "badgeVariant": {
+        "title": "Cambiar variante de insignia",
+        "dot": "Punto",
+        "colored": "Coloreado",
+        "mixed": "Mixto"
+      },
+      "visibleHours": {
+        "title": "Cambiar horas visibles",
+        "from": "Desde",
+        "to": "Hasta",
+        "apply": "Aplicar",
+        "tooltip": "Si un evento cae fuera de las horas visibles especificadas, las horas visibles se ajustarán automáticamente para incluir ese evento."
+      },
+      "workingHours": {
+        "title": "Cambiar horas laborales",
+        "from": "Desde",
+        "to": "Hasta",
+        "apply": "Aplicar",
+        "closed": "Cerrado",
+        "tooltip": "Esto aplicará un fondo punteado a las celdas de hora que caen fuera del horario laboral — solo para las vistas de semana y día."
+      }
+    },
+    "validation": {
+      "titleRequired": "El título es requerido",
+      "descriptionRequired": "La descripción es requerida",
+      "startDateRequired": "La fecha de inicio es requerida",
+      "startTimeRequired": "La hora de inicio es requerida",
+      "endDateRequired": "La fecha de fin es requerida",
+      "endTimeRequired": "La hora de fin es requerida",
+      "colorRequired": "El color es requerido"
+    },
+    "messages": {
+      "noEvents": "No hay eventos programados para el mes seleccionado",
+      "multiDayEvent": "Día {{currentDay}} de {{totalDays}} •",
+      "formatError": "Error al formatear ",
+      "happeningNow": "Ocurriendo ahora",
+      "noAppointments": "No hay citas o consultas en este momento",
+      "weeklyViewNotAvailable": "La vista semanal no está disponible en dispositivos más pequeños.",
+      "switchToOtherView": "Por favor cambie a la vista diaria o mensual."
+    }
+  }
+}

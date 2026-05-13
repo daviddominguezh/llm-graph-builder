@@ -91,7 +91,7 @@ export function popChild(
   if (stack.length === 0) {
     return { stack: [], rootMessages };
   }
-  const popped = stack[stack.length - 1]!;
+  const popped = stack[stack.length - 1];
   const newStack = stack.slice(0, -1);
   const toolResultMsg = createToolResultMessage(popped.parentToolCallId, popped.toolName, childOutput);
 
@@ -102,7 +102,7 @@ export function popChild(
 }
 
 function appendToLastLevel(stack: CompositionLevel[], msg: Message): CompositionLevel[] {
-  const last = stack[stack.length - 1]!;
+  const last = stack[stack.length - 1];
   const updated: CompositionLevel = { ...last, messages: [...last.messages, msg] };
   return [...stack.slice(0, -1), updated];
 }
@@ -113,7 +113,7 @@ export function getActiveDepth(stack: CompositionLevel[]): number {
 
 export function getActiveMessages(stack: CompositionLevel[], rootMessages: Message[]): Message[] {
   if (stack.length === 0) return rootMessages;
-  return stack[stack.length - 1]!.messages;
+  return stack[stack.length - 1].messages;
 }
 
 export function appendUserMessage(

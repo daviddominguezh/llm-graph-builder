@@ -1,5 +1,6 @@
 import type { Request } from 'express';
 
+import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { resolveAccessToken } from '../../mcp/oauth/tokenRefresh.js';
 import type { AuthenticatedLocals, AuthenticatedResponse } from '../routeHelpers.js';
 import { HTTP_OK } from '../routeHelpers.js';
@@ -11,6 +12,16 @@ import {
   sendBadRequest,
   sendInternalError,
 } from './oauthHelpers.js';
+
+async function getLibraryItemAuthType(
+  supabase: SupabaseClient,
+  libraryItemId: string
+): Promise<string | null> {
+  const result = await supabase.from('mcp_library').select('auth_type').eq('id', libraryItemId).maybeSingle();
+  if (result.error !== null || result.data === null) return null;
+  const { auth_type: authType } = result.data as { auth_type: string | null };
+  return authType;
+}
 
 interface ResolveTokenBody {
   orgId?: string;
@@ -42,6 +53,18 @@ export async function handleResolveToken(req: Request, res: AuthenticatedRespons
   try {
     logOAuthInfo('resolve-token', `orgId=${orgId} libraryItemId=${libraryItemId}`);
     const { supabase }: AuthenticatedLocals = res.locals;
+    const authType = await getLibraryItemAuthType(supabase, libraryItemId);
+    if (authType !== 'oauth') {
+      // Library item doesn't use OAuth (e.g. bearer-key MCP). The frontend's
+      // discover/tool-call proxies fire resolve-token unconditionally whenever
+      // a libraryItemId is present. Return an empty body so their
+      // `data.accessToken === undefined` guard short-circuits and they fall
+      // through to the graph's own transport headers (e.g. an env-var-injected
+      // Authorization header). Returning `{ accessToken: null }` would slip
+      // past that guard and produce `Bearer null` on the wire.
+      res.status(HTTP_OK).json({});
+      return;
+    }
     const mcpServerUrl = await lookupMcpServerUrl(supabase, libraryItemId);
     const accessToken = await resolveAccessToken(supabase, orgId, libraryItemId, mcpServerUrl);
     res.status(HTTP_OK).json({ accessToken });

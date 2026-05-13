@@ -24,9 +24,15 @@ export function useOAuthStatus(orgId: string, libraryItemId: string | undefined)
     if (libraryItemId === undefined) return;
 
     void getOAuthConnectionStatus(orgId, libraryItemId)
-      .then((result) => setConnected(result.connected))
-      .catch(() => setConnected(false))
-      .finally(() => setLoading(false));
+      .then((result) => {
+        setConnected(result.connected);
+      })
+      .catch(() => {
+        setConnected(false);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, [orgId, libraryItemId]);
 
   return { connected, loading };

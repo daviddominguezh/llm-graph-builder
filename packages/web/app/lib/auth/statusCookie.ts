@@ -52,10 +52,10 @@ function parsePayload(payloadBytes: Buffer): StatusPayload | null {
     if (typeof parsed !== 'object' || parsed === null) return null;
     const p = parsed as Record<string, unknown>;
     const valid =
-      typeof p['uid'] === 'string' &&
-      typeof p['tokenBinding'] === 'string' &&
-      typeof p['phone_verified'] === 'boolean' &&
-      typeof p['onboarding_completed'] === 'boolean';
+      typeof p.uid === 'string' &&
+      typeof p.tokenBinding === 'string' &&
+      typeof p.phone_verified === 'boolean' &&
+      typeof p.onboarding_completed === 'boolean';
     if (!valid) return null;
     return p as unknown as StatusPayload;
   } catch {
@@ -64,7 +64,7 @@ function parsePayload(payloadBytes: Buffer): StatusPayload | null {
 }
 
 function checkPreviousSecret(payloadBytes: Buffer, macGiven: Buffer): boolean {
-  const prev = process.env['AUTH_STATUS_COOKIE_SECRET_PREVIOUS'];
+  const prev = process.env.AUTH_STATUS_COOKIE_SECRET_PREVIOUS;
   if (prev === undefined) return false;
   const prevBuf = Buffer.from(prev);
   if (prevBuf.length < MIN_SECRET_BYTES) return false;

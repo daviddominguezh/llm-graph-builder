@@ -36,9 +36,7 @@ export function isValidTenantSlug(s: string): boolean {
 }
 
 export function isValidAgentSlug(s: string): boolean {
-  return typeof s === 'string'
-    && s.length <= AGENT_SLUG_MAX_LENGTH
-    && AGENT_SLUG_REGEX.test(s);
+  return typeof s === 'string' && s.length <= AGENT_SLUG_MAX_LENGTH && AGENT_SLUG_REGEX.test(s);
 }
 
 export function sortedReservedTenantSlugs(): string[] {

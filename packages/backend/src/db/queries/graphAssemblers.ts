@@ -92,15 +92,55 @@ function groupByEdgeId<T extends { edge_id: string }>(rows: T[]): Map<string, T[
   return map;
 }
 
-function buildPreconditions(rows: EdgePreconditionRow[] | undefined): Precondition[] | undefined {
-  if (rows === undefined || rows.length === EMPTY_LENGTH) return undefined;
+const TOOL_REF_SCHEMA = z.object({
+  providerType: z.enum(['builtin', 'mcp']),
+  providerId: z.string(),
+  toolName: z.string(),
+});
 
-  return rows.map((r) => ({
+const DEFAULT_BUILTIN_PROVIDER_ID = 'calendar';
+
+function decodeToolRefFromValue(value: string): z.infer<typeof TOOL_REF_SCHEMA> {
+  // Legacy path: rows written before the structured columns landed have the
+  // SelectedTool ref JSON-encoded into `value`. Parse it; fall back to the
+  // historical builtin/calendar default if even that fails.
+  try {
+    const parsed: unknown = JSON.parse(value);
+    const result = TOOL_REF_SCHEMA.safeParse(parsed);
+    if (result.success) return result.data;
+  } catch {
+    // Fallthrough to default when value is not valid JSON.
+  }
+  return { providerType: 'builtin', providerId: DEFAULT_BUILTIN_PROVIDER_ID, toolName: value };
+}
+
+function decodeToolRef(r: EdgePreconditionRow): z.infer<typeof TOOL_REF_SCHEMA> {
+  if (r.provider_type !== null && r.provider_id !== null && r.tool_name !== null) {
+    return { providerType: r.provider_type, providerId: r.provider_id, toolName: r.tool_name };
+  }
+  return decodeToolRefFromValue(r.value);
+}
+
+function buildPreconditionFromRow(r: EdgePreconditionRow): Precondition {
+  if (r.type === 'tool_call') {
+    return {
+      type: 'tool_call',
+      tool: decodeToolRef(r),
+      description: r.description ?? undefined,
+      toolFields: parseToolFields(r.tool_fields),
+    };
+  }
+  return {
     type: r.type,
     value: r.value,
     description: r.description ?? undefined,
-    toolFields: parseToolFields(r.tool_fields),
-  }));
+  };
+}
+
+function buildPreconditions(rows: EdgePreconditionRow[] | undefined): Precondition[] | undefined {
+  if (rows === undefined || rows.length === EMPTY_LENGTH) return undefined;
+
+  return rows.map(buildPreconditionFromRow);
 }
 
 function buildContextPreconditions(

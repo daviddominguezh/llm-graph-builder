@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { type FormEvent, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
+import { ShaderBackground } from '../auth/ShaderBackground';
 import { CreateOrgFields, submitOrg } from './CreateOrgDialog';
 
 function WelcomeLogo() {
@@ -102,7 +103,7 @@ function WelcomeForm() {
         onRemove={handleRemove}
       />
       <Button type="submit" disabled={disabled} className="w-full">
-        {checking ? <Loader2 className="size-4 animate-spin" /> : tWelcome('cta')}
+        {loading || checking ? <Loader2 className="size-4 animate-spin" /> : tWelcome('cta')}
       </Button>
     </form>
   );
@@ -110,11 +111,14 @@ function WelcomeForm() {
 
 export function CreateFirstOrg() {
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="flex flex-col items-center gap-3 mb-14">
+    <div className="flex min-h-screen min-w-screen items-center justify-center p-4">
+      <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 1 }}>
+        <ShaderBackground />
+      </div>
+      <div className="relative z-3 flex flex-col items-center gap-3 mb-14">
         <WelcomeLogo />
         <WelcomeHeading />
-        <Card className="mt-3 welcome-stagger-3 w-full max-w-sm shadow-xl w-[400px] bg-background border-[0.5px]! ring-0 outline-none">
+        <Card className="mt-3 welcome-stagger-3 w-full max-w-sm shadow-xl w-[400px] bg-popover border-[0.5px]! ring-0 outline-none">
           <CardContent>
             <WelcomeForm />
           </CardContent>

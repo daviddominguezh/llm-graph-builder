@@ -5,6 +5,7 @@ import { getNode, getToolsFromEdges } from '@src/stateMachine/graph/index.js';
 import { generateToolReplyPrompt } from '@src/stateMachine/prompts/index.js';
 import type { ParsedResult } from '@src/types/ai/ai.js';
 import type { Graph, ToolFieldValue } from '@src/types/graph.js';
+import type { SelectedTool } from '@src/types/selectedTool.js';
 import type { DispatchSentinel } from '@src/types/sentinels.js';
 import { isDispatchSentinel } from '@src/types/sentinels.js';
 import type { Context } from '@src/types/tools.js';
@@ -43,7 +44,7 @@ interface GenerateToolReplyParams {
 }
 
 interface GlobalNodeToolInfo {
-  name: string;
+  tool: SelectedTool;
   toolFields: Record<string, ToolFieldValue> | undefined;
 }
 
@@ -53,7 +54,7 @@ function getGlobalNodeToolInfo(graph: Graph, globalNodeID: string): GlobalNodeTo
   for (const edge of edges) {
     const toolPrecondition = (edge.preconditions ?? []).find((p) => p.type === 'tool_call');
     if (toolPrecondition !== undefined) {
-      return { name: toolPrecondition.value, toolFields: toolPrecondition.toolFields };
+      return { tool: toolPrecondition.tool, toolFields: toolPrecondition.toolFields };
     }
   }
 
@@ -69,15 +70,12 @@ export function buildGlobalNodeConfig(
   const targetNode = nodeBeforeGlobal === INITIAL_STEP ? INITIAL_STEP : nodeBeforeGlobal;
   const toolInfo = getGlobalNodeToolInfo(context.graph, globalNodeID);
 
+  const { tool, toolFields } = toolInfo;
   return {
     kind: 'tool_call' as const,
-    promptWithoutToolPreconditions: PROMPTS.GLOBAL_NODE_MUST_CALL_TOOL(toolInfo.name, toolInfo.toolFields),
+    promptWithoutToolPreconditions: PROMPTS.GLOBAL_NODE_MUST_CALL_TOOL(tool.toolName, toolFields),
     toolsByEdge: getToolsFromEdges(context, [
-      {
-        from: globalNodeID,
-        to: targetNode,
-        preconditions: [{ type: 'tool_call', value: toolInfo.name, toolFields: toolInfo.toolFields }],
-      },
+      { from: globalNodeID, to: targetNode, preconditions: [{ type: 'tool_call', tool, toolFields }] },
     ]),
     nodes: { [DEFAULT_OUTPUT_NODE]: nodeBeforeGlobal },
   };

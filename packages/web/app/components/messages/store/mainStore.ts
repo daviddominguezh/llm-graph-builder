@@ -1,8 +1,13 @@
 import { MessagesPath, MessagesReducer } from '@/app/components/messages/store';
 import { StorePath, StoreReducer } from '@/app/components/messages/store/storeIndex';
-import { BookingsPath, BookingsReducer } from '@/app/components/messages/store/stubs';
-import { BusinessPath, BusinessReducer } from '@/app/components/messages/store/stubs';
-import { UserPath, UserReducer } from '@/app/components/messages/store/stubs';
+import {
+  BookingsPath,
+  BookingsReducer,
+  BusinessPath,
+  BusinessReducer,
+  UserPath,
+  UserReducer,
+} from '@/app/components/messages/store/stubs';
 import { configureStore } from '@reduxjs/toolkit';
 import { type TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
 

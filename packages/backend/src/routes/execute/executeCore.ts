@@ -7,6 +7,7 @@ import { handleChildFinish, persistCoreResult } from './executeCoreChildFinish.j
 import {
   type BuildCoreParamsOptions,
   buildCoreExecuteParams,
+  resolveOAuthBundle,
   resolveVfsCorePayload,
 } from './executeCoreHelpers.js';
 import { handleInlineDispatch } from './executeCoreInlineDispatch.js';
@@ -98,22 +99,30 @@ interface RunAgentResult {
 }
 
 async function runAgent(params: RunAgentParams): Promise<RunAgentResult> {
-  const vfsPayload = await resolveVfsCorePayload(
-    params.supabase,
-    params.fetched,
-    params.input.agentId,
-    params.input.orgId
-  );
+  const { fetched, supabase, input, model, callbacks, override, conversationId } = params;
+  const { agentRecord } = fetched;
+  const mcpServers = fetched.graph.mcpServers ?? [];
+  const [vfsPayload, oauthByProvider] = await Promise.all([
+    resolveVfsCorePayload(supabase, fetched, input.agentId, input.orgId),
+    resolveOAuthBundle({
+      supabase,
+      orgId: agentRecord.org_id,
+      selectedTools: agentRecord.selected_tools,
+      mcpServers,
+    }),
+  ]);
   const buildOptions: BuildCoreParamsOptions = {
     vfsPayload,
-    overrideAgentConfig: params.override ?? params.input.overrideAgentConfig,
-    conversationId: params.conversationId ?? undefined,
+    overrideAgentConfig: override ?? input.overrideAgentConfig,
+    conversationId: conversationId ?? undefined,
+    oauthByProvider,
+    selectedTools: agentRecord.selected_tools,
   };
-  const edgeParams = buildCoreExecuteParams(params.fetched, params.input.input, params.model, buildOptions);
+  const edgeParams = buildCoreExecuteParams(fetched, input.input, model, buildOptions);
   const startTime = Date.now();
   const { output, nodeData } = await executeAgent(edgeParams, {
-    onNodeVisited: params.callbacks?.onNodeVisited ?? noop,
-    onNodeProcessed: params.callbacks?.onNodeProcessed ?? noop,
+    onNodeVisited: callbacks?.onNodeVisited ?? noop,
+    onNodeProcessed: callbacks?.onNodeProcessed ?? noop,
   });
   return { output, nodeData, durationMs: Date.now() - startTime };
 }

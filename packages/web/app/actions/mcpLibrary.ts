@@ -18,8 +18,9 @@ async function handleImageUpload(
   const file = imageFormData.get('image');
   if (!(file instanceof File)) return { image_url: null, error: 'No image file provided' };
   const uploadRes = await uploadMcpImage(libraryItemId, file);
-  if (uploadRes.error !== null || uploadRes.result === null)
+  if (uploadRes.error !== null || uploadRes.result === null) {
     return { image_url: null, error: uploadRes.error };
+  }
   return { image_url: uploadRes.result, error: null };
 }
 

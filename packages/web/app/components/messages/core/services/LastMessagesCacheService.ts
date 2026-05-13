@@ -23,7 +23,8 @@ class LastMessagesCacheServiceImpl {
     if (this.db) return;
 
     if (this.initPromise) {
-      return this.initPromise;
+      await this.initPromise;
+      return;
     }
 
     this.initPromise = new Promise((resolve, reject) => {
@@ -52,7 +53,7 @@ class LastMessagesCacheServiceImpl {
       };
     });
 
-    return this.initPromise;
+    await this.initPromise;
   }
 
   /**
@@ -78,9 +79,11 @@ class LastMessagesCacheServiceImpl {
         const store = transaction.objectStore(LAST_MESSAGES_CACHE_STORE_NAME);
         const request = store.get(projectName);
 
-        request.onerror = () => reject(request.error);
+        request.onerror = () => {
+          reject(request.error);
+        };
         request.onsuccess = () => {
-          const result = request.result;
+          const { result } = request;
           if (!result) {
             resolve(null);
             return;
@@ -112,8 +115,12 @@ class LastMessagesCacheServiceImpl {
         };
 
         const request = store.put(record);
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => resolve();
+        request.onerror = () => {
+          reject(request.error);
+        };
+        request.onsuccess = () => {
+          resolve();
+        };
       });
     } catch (error) {
       console.error('[LastMessagesCacheService] setCache error:', error);
@@ -251,8 +258,12 @@ class LastMessagesCacheServiceImpl {
         const store = transaction.objectStore(LAST_MESSAGES_CACHE_STORE_NAME);
         const request = store.delete(projectName);
 
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => resolve();
+        request.onerror = () => {
+          reject(request.error);
+        };
+        request.onsuccess = () => {
+          resolve();
+        };
       });
     } catch (error) {
       console.error('[LastMessagesCacheService] clearCache error:', error);

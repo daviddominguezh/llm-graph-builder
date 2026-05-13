@@ -1,8 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
-type RouteParams = { params: Promise<{ path: string[] }> };
+interface RouteParams {
+  params: Promise<{ path: string[] }>;
+}
 
 function forwardHeaders(request: NextRequest): Record<string, string> {
   const headers: Record<string, string> = {
@@ -46,17 +48,17 @@ async function proxyRequest(request: NextRequest, { path }: { path: string[] }):
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams): Promise<NextResponse> {
-  return proxyRequest(request, await params);
+  return await proxyRequest(request, await params);
 }
 
 export async function POST(request: NextRequest, { params }: RouteParams): Promise<NextResponse> {
-  return proxyRequest(request, await params);
+  return await proxyRequest(request, await params);
 }
 
 export async function PUT(request: NextRequest, { params }: RouteParams): Promise<NextResponse> {
-  return proxyRequest(request, await params);
+  return await proxyRequest(request, await params);
 }
 
 export async function DELETE(request: NextRequest, { params }: RouteParams): Promise<NextResponse> {
-  return proxyRequest(request, await params);
+  return await proxyRequest(request, await params);
 }

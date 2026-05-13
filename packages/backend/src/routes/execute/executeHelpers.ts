@@ -126,7 +126,12 @@ function buildResolvedVars(server: McpServerConfig, env: EnvVarMaps): Record<str
   return resolved;
 }
 
-function resolveServerTransport(server: McpServerConfig, env: EnvVarMaps): McpServerConfig {
+export function resolveServerTransport(
+  server: McpServerConfig,
+  envByName: Record<string, string>,
+  envById: Record<string, string>
+): McpServerConfig {
+  const env: EnvVarMaps = { byName: envByName, byId: envById };
   const vars = buildResolvedVars(server, env);
   return { ...server, transport: replaceVarsInTransport(server.transport, vars) };
 }
@@ -138,8 +143,7 @@ export function resolveMcpTransportVariables(
 ): RuntimeGraph {
   const { mcpServers } = graph;
   if (mcpServers === undefined) return graph;
-  const env: EnvVarMaps = { byName: envByName, byId: envById };
-  return { ...graph, mcpServers: mcpServers.map((s) => resolveServerTransport(s, env)) };
+  return { ...graph, mcpServers: mcpServers.map((s) => resolveServerTransport(s, envByName, envById)) };
 }
 
 /* ─── Token summation ─── */

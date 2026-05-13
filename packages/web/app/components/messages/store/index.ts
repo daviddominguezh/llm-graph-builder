@@ -1,5 +1,5 @@
-import { type StateType } from '@/app/components/messages/store/mainStore';
-import { LastMessage, LastMessages } from '@/app/types/chat';
+import type { StateType } from '@/app/components/messages/store/mainStore';
+import type { LastMessage, LastMessages } from '@/app/types/chat';
 import { type PayloadAction, createSlice } from '@reduxjs/toolkit';
 
 export const MessagesPath = 'messages';
@@ -55,7 +55,7 @@ export const MessagesSlice = createSlice({
     setLastMessage: (state, action: PayloadAction<SetLastMessagePayload>) => {
       const { id, lastMessage, preventFetch } = action.payload;
       let msgs: LastMessages = {};
-      if (!state.lastMessages) state.lastMessages = {};
+      state.lastMessages ||= {};
       msgs = state.lastMessages as LastMessages;
 
       // Handle unansweredCount based on message role and AI state
@@ -110,7 +110,7 @@ export const MessagesSlice = createSlice({
       delete messages[id];
     },
     setAllLastMessages: (state, action: PayloadAction<LastMessages | null>) => {
-      (state.lastMessages as LastMessages) = action.payload as LastMessages;
+      (state.lastMessages as LastMessages) = action.payload!;
     },
     cleanFetchQueue: (state) => {
       state.fetchQueue = {};
@@ -120,15 +120,13 @@ export const MessagesSlice = createSlice({
     },
     updateAssigneeOptimistic: (state, action: PayloadAction<UpdateAssigneePayload>) => {
       const { chatId, assignee } = action.payload;
-      if (!state.lastMessages || !state.lastMessages[chatId]) return;
+      if (!state.lastMessages?.[chatId]) return;
 
       const lastMessage = state.lastMessages[chatId];
       const timestamp = Date.now();
 
       // Initialize assignees if it doesn't exist
-      if (!lastMessage.assignees) {
-        lastMessage.assignees = {};
-      }
+      lastMessage.assignees ||= {};
 
       // Add new assignee entry with current timestamp
       const assigneeId = `assignee-${timestamp}`;
@@ -140,9 +138,7 @@ export const MessagesSlice = createSlice({
       // Update realtimeMessages as well
       if (state.realtimeMessages[chatId]) {
         const rtMessage = state.realtimeMessages[chatId];
-        if (!rtMessage.assignees) {
-          rtMessage.assignees = {};
-        }
+        rtMessage.assignees ||= {};
         rtMessage.assignees[assigneeId] = {
           assignee,
           timestamp,
@@ -151,15 +147,13 @@ export const MessagesSlice = createSlice({
     },
     updateStatusOptimistic: (state, action: PayloadAction<UpdateStatusPayload>) => {
       const { chatId, status } = action.payload;
-      if (!state.lastMessages || !state.lastMessages[chatId]) return;
+      if (!state.lastMessages?.[chatId]) return;
 
       const lastMessage = state.lastMessages[chatId];
       const timestamp = Date.now();
 
       // Initialize statuses if it doesn't exist
-      if (!lastMessage.statuses) {
-        lastMessage.statuses = {};
-      }
+      lastMessage.statuses ||= {};
 
       // Add new status entry with current timestamp
       const statusId = `status-${timestamp}`;
@@ -171,9 +165,7 @@ export const MessagesSlice = createSlice({
       // Update realtimeMessages as well
       if (state.realtimeMessages[chatId]) {
         const rtMessage = state.realtimeMessages[chatId];
-        if (!rtMessage.statuses) {
-          rtMessage.statuses = {};
-        }
+        rtMessage.statuses ||= {};
         rtMessage.statuses[statusId] = {
           status,
           timestamp,
@@ -186,9 +178,7 @@ export const MessagesSlice = createSlice({
      */
     mergeLastMessages: (state, action: PayloadAction<MergeLastMessagesPayload>) => {
       const { conversations } = action.payload;
-      if (!state.lastMessages) {
-        state.lastMessages = {};
-      }
+      state.lastMessages ||= {};
 
       for (const [id, newMsg] of Object.entries(conversations)) {
         const existing = state.lastMessages[id];

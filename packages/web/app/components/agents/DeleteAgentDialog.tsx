@@ -12,6 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -57,7 +58,7 @@ export function DeleteAgentDialog({ agent, onOpenChange }: DeleteAgentDialogProp
         <AlertDialogFooter>
           <AlertDialogCancel onClick={onOpenChange}>{t('deleteCancel')}</AlertDialogCancel>
           <AlertDialogAction variant="destructive" onClick={handleDelete} disabled={loading}>
-            {t('deleteConfirm')}
+            {loading ? <Loader2 className="size-4 animate-spin" /> : t('deleteConfirm')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

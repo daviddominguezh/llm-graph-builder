@@ -2,6 +2,7 @@
 
 import { AuthCard } from '@/app/components/auth/AuthCard';
 import { OAuthButtons } from '@/app/components/auth/OAuthButtons';
+import { enterToSubmit } from '@/app/lib/auth/enterToSubmit';
 import { createClient } from '@/app/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -167,6 +168,7 @@ function LoginForm() {
       </div>
       <form
         onSubmit={handleSubmit}
+        onKeyDown={enterToSubmit}
         className={`flex flex-col gap-3 ${isShaking ? 'auth-shake' : ''}`}
         onAnimationEnd={() => setIsShaking(false)}
       >

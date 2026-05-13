@@ -1,14 +1,15 @@
-import type { createMCPClient } from '@ai-sdk/mcp';
 import type { McpServerConfig } from '@daviddh/graph-types';
-import type { Tool } from 'ai';
-
-import { connectMcpClient } from './client.js';
-
-type McpClient = Awaited<ReturnType<typeof createMCPClient>>;
+import {
+  type McpClientHandle,
+  type RawMcpTool,
+  connectMcp,
+  createTransport,
+} from '@daviddh/llm-graph-runner';
+import { type Tool, jsonSchema } from 'ai';
 
 interface McpClientEntry {
   serverId: string;
-  client: McpClient;
+  handle: McpClientHandle;
 }
 
 export interface McpSession {
@@ -19,13 +20,31 @@ export interface McpSession {
 const EMPTY_LENGTH = 0;
 
 async function connectServer(server: McpServerConfig): Promise<McpClientEntry> {
-  const client = await connectMcpClient(server.transport);
-  return { serverId: server.id, client };
+  const transport = createTransport(server);
+  const handle = await connectMcp({ transport });
+  return { serverId: server.id, handle };
+}
+
+function rawToolToAiSdkTool(handle: McpClientHandle, raw: RawMcpTool): Tool {
+  return {
+    description: raw.description ?? '',
+    inputSchema: jsonSchema(raw.inputSchema),
+    execute: async (args: unknown) => await handle.callTool(raw.name, args),
+  };
+}
+
+async function listToolsFor(entry: McpClientEntry): Promise<Record<string, Tool>> {
+  const raws = await entry.handle.listTools();
+  const out: Record<string, Tool> = {};
+  for (const raw of raws) {
+    out[raw.name] = rawToolToAiSdkTool(entry.handle, raw);
+  }
+  return out;
 }
 
 async function collectTools(clients: McpClientEntry[]): Promise<Record<string, Tool>> {
   const allTools: Record<string, Tool> = {};
-  const toolSets = await Promise.all(clients.map(async (entry) => await entry.client.tools()));
+  const toolSets = await Promise.all(clients.map(listToolsFor));
   for (const tools of toolSets) {
     Object.assign(allTools, tools);
   }
@@ -45,7 +64,7 @@ export async function createMcpSession(servers: McpServerConfig[]): Promise<McpS
 
 async function closeClient(entry: McpClientEntry): Promise<void> {
   try {
-    await entry.client.close();
+    await entry.handle.close();
   } catch {
     // Ignore close errors — server may have already disconnected
   }

@@ -61,15 +61,18 @@ export function useAutoSave({
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [retrySeq, setRetrySeq] = useState(0);
 
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       if (retryTimerRef.current !== null) clearTimeout(retryTimerRef.current);
-    };
-  }, []);
+    },
+    []
+  );
 
   const scheduleRetry = useCallback(() => {
     if (retryTimerRef.current !== null) clearTimeout(retryTimerRef.current);
-    retryTimerRef.current = setTimeout(() => setRetrySeq((s) => s + 1), AUTO_SAVE_DELAY_MS);
+    retryTimerRef.current = setTimeout(() => {
+      setRetrySeq((s) => s + 1);
+    }, AUTO_SAVE_DELAY_MS);
   }, []);
 
   const doFlush = useCallback(() => {

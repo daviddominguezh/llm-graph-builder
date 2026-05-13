@@ -1,8 +1,8 @@
 import type { AgentLoopCallbacks, AgentLoopConfig, AgentLoopResult } from '@daviddh/llm-graph-runner';
-import { executeAgentLoop, injectSystemTools } from '@daviddh/llm-graph-runner';
+import { buildAgentToolsAtStart, executeAgentLoop, toAiSdkToolDict } from '@daviddh/llm-graph-runner';
 
+import { createGoogleCalendarService } from '../google/calendar/service.js';
 import { consoleLogger } from '../logger.js';
-import { closeMcpSession, createMcpSession } from '../mcp/lifecycle.js';
 import { resolveChildConfig } from './simulateChildResolver.js';
 import {
   buildChildOrchestratorConfig,
@@ -18,26 +18,53 @@ import type {
   OrchestratorConfig,
   OrchestratorResult,
 } from './simulationOrchestratorTypes.js';
+import { buildSimulationProviderCtx, buildSimulationRegistry } from './simulationProviderCtx.js';
 
 const INCREMENT = 1;
 const ZERO = 0;
 const ZERO_TOKENS = { input: ZERO, output: ZERO, cached: ZERO };
 
+/* ─── Services resolver for simulation ─── */
+
+function buildSimulationServices(config: OrchestratorConfig): (providerId: string) => unknown {
+  const calendarServices = createGoogleCalendarService(config.supabase);
+  return (providerId: string): unknown => {
+    if (providerId === 'calendar') {
+      return { service: calendarServices, calendarId: 'primary' };
+    }
+    return undefined;
+  };
+}
+
 /* ─── AgentLoop config/callback builders ─── */
 
-function buildLoopConfig(config: OrchestratorConfig): AgentLoopConfig {
+async function buildLoopConfig(config: OrchestratorConfig): Promise<AgentLoopConfig> {
   const isChild = config.depth > ZERO;
-  const tools = injectSystemTools({ existingTools: config.session.tools, isChildAgent: isChild });
+  const { body, orgId } = config;
+  const { mcpServers } = body;
+  const selectedTools = body.selectedTools ?? [];
+
+  const registry = buildSimulationRegistry({ mcpServers });
+  const providerCtx = buildSimulationProviderCtx({
+    orgId,
+    agentId: '',
+    isChildAgent: isChild,
+    mcpServers,
+    services: buildSimulationServices(config),
+  });
+
+  const built = await buildAgentToolsAtStart(registry, providerCtx, selectedTools);
+  const tools = toAiSdkToolDict(built.tools);
 
   return {
-    systemPrompt: config.body.systemPrompt,
-    context: config.body.context,
-    messages: config.body.messages,
-    apiKey: config.body.apiKey,
-    modelId: config.body.modelId,
-    maxSteps: config.body.maxSteps,
+    systemPrompt: body.systemPrompt,
+    context: body.context,
+    messages: body.messages,
+    apiKey: body.apiKey,
+    modelId: body.modelId,
+    maxSteps: body.maxSteps,
     tools,
-    skills: config.body.skills,
+    skills: body.skills,
     isChildAgent: isChild,
   };
 }
@@ -80,7 +107,7 @@ interface ContinueParentParams {
 
 async function rerunParentWithToolResult(params: ContinueParentParams): Promise<OrchestratorResult> {
   const { config, callbacks } = params;
-  const loopConfig = buildLoopConfig(config);
+  const loopConfig = await buildLoopConfig(config);
   const loopCallbacks = buildLoopCallbacks(config, callbacks);
   const parentResult = await executeAgentLoop(loopConfig, loopCallbacks, consoleLogger);
 
@@ -191,24 +218,18 @@ async function runChild(ctx: DispatchContext): Promise<OrchestratorResult> {
     orgId: ctx.config.orgId,
   });
 
-  const childSession = await createMcpSession(childConfig.mcpServers);
-  try {
-    const childOrcConfig = buildChildOrchestratorConfig({
-      parentConfig: ctx.config,
-      childConfig,
-      childSession,
-    });
-    const childOutcome = await runSimulationOrchestration(childOrcConfig, ctx.callbacks);
-    const continueParams: ContinueParentParams = {
-      config: ctx.config,
-      callbacks: ctx.callbacks,
-      parentToolCallId: ctx.parentToolCallId,
-      toolName: ctx.toolName,
-    };
-    return await processChildOutcome(continueParams, childOutcome);
-  } finally {
-    await closeMcpSession(childSession);
-  }
+  const childOrcConfig = buildChildOrchestratorConfig({
+    parentConfig: ctx.config,
+    childConfig,
+  });
+  const childOutcome = await runSimulationOrchestration(childOrcConfig, ctx.callbacks);
+  const continueParams: ContinueParentParams = {
+    config: ctx.config,
+    callbacks: ctx.callbacks,
+    parentToolCallId: ctx.parentToolCallId,
+    toolName: ctx.toolName,
+  };
+  return await processChildOutcome(continueParams, childOutcome);
 }
 
 /* ─── Handle dispatch sentinel ─── */
@@ -263,7 +284,7 @@ export async function runSimulationOrchestration(
   config: OrchestratorConfig,
   callbacks: OrchestratorCallbacks
 ): Promise<OrchestratorResult> {
-  const loopConfig = buildLoopConfig(config);
+  const loopConfig = await buildLoopConfig(config);
   const loopCallbacks = buildLoopCallbacks(config, callbacks);
   const result = await executeAgentLoop(loopConfig, loopCallbacks, consoleLogger);
 

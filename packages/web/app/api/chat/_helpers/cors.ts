@@ -9,7 +9,7 @@ const DEV_ORIGIN = 'http://localhost:5173';
 
 function isAllowed(origin: string): boolean {
   if (WIDGET_ORIGIN_REGEX.test(origin)) return true;
-  return process.env['NODE_ENV'] !== 'production' && origin === DEV_ORIGIN;
+  return process.env.NODE_ENV !== 'production' && origin === DEV_ORIGIN;
 }
 
 export function corsHeadersFor(origin: string | null): Record<string, string> {

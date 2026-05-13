@@ -18,6 +18,11 @@ function makeNode(id: string, overrides: Partial<Node> = {}): Node {
 
 const ONE_VIOLATION = 1;
 
+const GLOBAL_TOOL_CALL_PRECONDITION = {
+  type: 'tool_call',
+  tool: { providerType: 'builtin', providerId: 'calendar', toolName: 'myTool' },
+} as const;
+
 /* ------------------------------------------------------------------ */
 /*  checkBrokenJumps                                                   */
 /* ------------------------------------------------------------------ */
@@ -167,7 +172,7 @@ describe('checkGlobalNodeTools', () => {
       nodes: [makeNode('A'), makeNode('Global', { global: true })],
       edges: [
         { from: 'A', to: 'Global' },
-        { from: 'Global', to: 'A', preconditions: [{ type: 'tool_call', value: 'myTool' }] },
+        { from: 'Global', to: 'A', preconditions: [GLOBAL_TOOL_CALL_PRECONDITION] },
       ],
     };
 

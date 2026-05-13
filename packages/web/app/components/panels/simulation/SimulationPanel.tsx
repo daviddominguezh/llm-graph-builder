@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { GlassPanel } from '@/components/ui/glass-panel';
-import { Loader2, Trash2, X } from 'lucide-react';
+import { Loader2, RotateCcw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -59,7 +59,7 @@ function Breadcrumbs({ nodes }: { nodes: string[] }) {
   const lastIndex = nodes.length - 1;
   return (
     <div ref={scrollRef} className="overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-      <p className="whitespace-nowrap font-mono text-[10px] text-muted-foreground">
+      <p className="whitespace-nowrap font-mono text-[10px] text-muted-foreground pb-1.5">
         {nodes.map((node, i) => (
           <span key={i}>
             {i > 0 && ' \u2192 '}
@@ -86,18 +86,13 @@ function SimulationHeader({
   return (
     <div className="flex flex-col gap-1 border-b px-3 py-2">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold">{t('title')}</span>
+        <span className="text-xs font-semibold">{t('title')}</span>
         <div className="flex items-center gap-0.5">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={() => setConfirmOpen(true)}
-          >
-            <Trash2 className="size-3" />
+          <Button variant="destructive" size="icon-sm" onClick={() => setConfirmOpen(true)}>
+            <RotateCcw className="size-3" />
           </Button>
           {embedded !== true && (
-            <Button variant="ghost" size="icon" className="size-7" onClick={onStop}>
+            <Button variant="ghost" size="icon-sm" onClick={onStop}>
               <X className="size-3" />
             </Button>
           )}
@@ -123,8 +118,8 @@ function SimulationHeader({
 function UserMessage({ text }: { text: string }) {
   if (text === '') return null;
   return (
-    <div className="max-w-[80%] ml-auto bg-accent/10 rounded-md p-2 pr-0">
-      <p className="text-xs leading-relaxed border-r-3 border-primary pr-2">{text}</p>
+    <div className="max-w-[80%] ml-auto bg-input/70 rounded-md p-2">
+      <p className="text-xs leading-relaxed">{text}</p>
     </div>
   );
 }
@@ -168,9 +163,9 @@ function ContentArea({ conversationEntries, bottomRef }: ContentAreaProps) {
 function ExecutingIndicator({ currentNode }: { currentNode: string }) {
   const t = useTranslations('simulation');
   return (
-    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+    <div className="cursor-default flex items-center gap-1.5 text-xs text-muted-foreground">
       <Loader2 className="size-3 animate-spin" />
-      <span className="truncate text-[10px]">{t('executingNode', { node: currentNode })}</span>
+      <span className="truncate text-[10px] mt-[2px]">{t('executingNode', { node: currentNode })}</span>
     </div>
   );
 }
@@ -214,7 +209,7 @@ function SimulationBody({ props, bottomRef }: SimulationBodyProps) {
   const { visitedNodes, terminated, loading, currentNode, totalTokens } = props;
   const { modelId, onModelIdChange, onSendMessage, onStop } = props;
   return (
-    <GlassPanel variant="background" className="w-full h-full rounded-xl">
+    <GlassPanel variant="background" className="w-full h-full rounded-e-xl border-l border-l-[0.5px]">
       <div className="relative flex h-full w-full flex-col">
         <SimulationHeader
           visitedNodes={visitedNodes}
@@ -244,10 +239,7 @@ function SimulationBody({ props, bottomRef }: SimulationBodyProps) {
   );
 }
 
-function useAutoScrollToEnd(
-  bottomRef: React.RefObject<HTMLDivElement | null>,
-  length: number
-) {
+function useAutoScrollToEnd(bottomRef: React.RefObject<HTMLDivElement | null>, length: number) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [length, bottomRef]);
@@ -278,7 +270,10 @@ export function SimulationPanel(props: SimulationPanelProps) {
   }
 
   return createPortal(
-    <div className="fixed inset-y-0 top-[calc(41px+var(--spacing)*11)] bottom-[calc(var(--spacing)*2)] left-[calc(calc(240px+var(--spacing)*2)+44px)] z-200 flex w-[350px]">
+    <div
+      data-simulation-panel=""
+      className="fixed inset-y-0 top-[calc(33px+var(--spacing)*5)] bottom-[calc(var(--spacing)*2.5)] left-[calc(calc(240px+var(--spacing)*0)+45px)] z-200 flex w-[350px]"
+    >
       {body}
     </div>,
     document.body

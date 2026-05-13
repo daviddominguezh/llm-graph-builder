@@ -5,7 +5,7 @@ import { corsHeadersFor, preflightResponse } from '../../../_helpers/cors.js';
 
 export const runtime = 'nodejs';
 
-const BACKEND_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_BAD_GATEWAY = 502;

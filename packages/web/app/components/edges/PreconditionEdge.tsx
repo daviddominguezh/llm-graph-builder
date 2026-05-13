@@ -14,6 +14,7 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip";
 import type { RFEdgeData } from "../../utils/graphTransformers";
+import { getPreconditionDisplayValue } from "../../utils/preconditionHelpers";
 
 function PreconditionEdgeComponent({
   id,
@@ -120,7 +121,7 @@ function PreconditionEdgeComponent({
                   {preconditions.map((p, i) => (
                     <div key={i} className="text-xs">
                       <span className="font-medium capitalize">{p.type.replace("_", " ")}:</span>{" "}
-                      {p.value}
+                      {getPreconditionDisplayValue(p)}
                     </div>
                   ))}
                 </div>

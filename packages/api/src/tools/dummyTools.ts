@@ -9,7 +9,7 @@ const collectToolNames = (graph: Graph): Set<string> => {
   const preconditions = graph.edges.flatMap((edge) => edge.preconditions ?? []);
   for (const precondition of preconditions) {
     if (precondition.type === 'tool_call') {
-      toolNames.add(precondition.value);
+      toolNames.add(precondition.tool.toolName);
     }
   }
   return toolNames;

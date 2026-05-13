@@ -115,38 +115,61 @@ jobs:
         with:
           version: latest
 
-      # Two separate steps because `$GITHUB_ENV` writes only take effect on
-      # SUBSEQUENT steps — so we can't read SUPABASE_PROJECT_REF in the same
-      # step that dumps it. The next step ("Resolve target project ref")
-      # reads whichever env got set here.
-      - name: Dump preview branch env (pull_request only)
+      # The Supabase Preview GitHub check links to the preview branch's own
+      # project dashboard (each branch is a full Postgres project with its own
+      # ref). That makes the check the authoritative source of the branch
+      # project ref — `supabase --experimental branches get <name>` is
+      # unreliable here because the branch name in Supabase doesn't always
+      # match `$GITHUB_HEAD_REF` (e.g. slashes get rewritten).
+      #
+      # Pull the project ref out of the check's `details_url`, which looks
+      # like `https://supabase.com/dashboard/project/<branch-project-ref>`.
+      - name: Resolve preview branch project ref (pull_request only)
+        id: dump
         if: github.event_name == 'pull_request'
-        # The CLI emits lines shaped like `NAME="VALUE"` (shell env-file syntax
-        # with literal quotes). `$GITHUB_ENV` treats those quotes as part of
-        # the value, which breaks downstream consumers. Strip surrounding
-        # double quotes per line before writing.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          supabase --experimental branches get "$GITHUB_HEAD_REF" -o env \
-            | sed -E 's/^([A-Z_]+)="(.*)"$/\1=\2/' \
-            >> "$GITHUB_ENV"
+          set -eo pipefail
+          MAX_ATTEMPTS=18
+          SLEEP_SECONDS=20
+          attempt=1
+          while [ $attempt -le $MAX_ATTEMPTS ]; do
+            echo "Attempt $attempt/$MAX_ATTEMPTS: looking up Supabase Preview check for $HEAD_SHA..."
+            details_url=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}/check-runs?per_page=100" \
+              --jq '.check_runs[] | select(.name=="Supabase Preview" and .conclusion=="success") | .details_url' \
+              | head -n1 || true)
+            if [ -n "$details_url" ]; then
+              ref=$(echo "$details_url" | sed -E 's|.*/project/([^/?#]+).*|\1|')
+              if [ -n "$ref" ] && [ "$ref" != "$details_url" ]; then
+                echo "Found preview branch project ref: $ref"
+                echo "project_ref=$ref" >> "$GITHUB_OUTPUT"
+                echo "available=true" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+            fi
+            echo "Supabase Preview check not yet successful or details_url missing. Sleeping ${SLEEP_SECONDS}s..."
+            sleep $SLEEP_SECONDS
+            attempt=$((attempt + 1))
+          done
+          echo "::warning::Supabase Preview check did not yield a branch project ref after $((MAX_ATTEMPTS * SLEEP_SECONDS))s; skipping PR deploy. Functions will deploy on push-to-main." >&2
+          echo "available=false" >> "$GITHUB_OUTPUT"
 
       - name: Resolve target project ref
         id: target
+        if: github.event_name != 'pull_request' || steps.dump.outputs.available == 'true'
         run: |
           set -eu
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            # Supabase CLI's `-o env` dump doesn't expose the project ref
-            # directly — it's embedded in SUPABASE_URL (https://<ref>.supabase.co).
-            # Extract the subdomain.
-            host="${SUPABASE_URL#https://}"
-            ref="${host%%.*}"
-            echo "project_ref=$ref" >> "$GITHUB_OUTPUT"
+            echo "project_ref=${{ steps.dump.outputs.project_ref }}" >> "$GITHUB_OUTPUT"
           else
             echo "project_ref=$SUPABASE_PROJECT_ID" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Compute base SHA for diff
         id: diff
+        if: github.event_name != 'pull_request' || steps.dump.outputs.available == 'true'
         run: |
           set -eu
           if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -171,6 +194,7 @@ jobs:
       # or their package.json), every function's bundle changes → deploy all.
       - name: Determine which functions to deploy
         id: which
+        if: github.event_name != 'pull_request' || steps.dump.outputs.available == 'true'
         run: |
           set -eu
           BASE="${{ steps.diff.outputs.base }}"
@@ -205,7 +229,7 @@ jobs:
           echo "reason=per-function-diff" >> "$GITHUB_OUTPUT"
 
       - name: Deploy edge functions
-        if: steps.which.outputs.deploy != ''
+        if: steps.which.outcome == 'success' && steps.which.outputs.deploy != ''
         run: |
           set -eu
           echo "Deploying (${{ steps.which.outputs.reason }}): ${{ steps.which.outputs.deploy }}"
@@ -219,5 +243,9 @@ jobs:
           done
 
       - name: Nothing to deploy
-        if: steps.which.outputs.deploy == ''
+        if: steps.which.outcome == 'success' && steps.which.outputs.deploy == ''
         run: echo "No function or shared-dep changes; skipping deploy."
+
+      - name: PR preview branch unavailable; skipping deploy
+        if: github.event_name == 'pull_request' && steps.dump.outputs.available != 'true'
+        run: echo "Supabase preview branch was not provisioned for this PR; functions will deploy on push-to-main."

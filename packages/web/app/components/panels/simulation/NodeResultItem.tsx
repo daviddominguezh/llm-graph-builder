@@ -40,7 +40,7 @@ function ToolCallDetails({ call }: { call: SimulationToolCall }) {
   const hasOutput = extracted !== undefined && extracted !== null;
 
   return (
-    <div className="ml-[30px] mt-1 flex flex-col gap-1">
+    <div className="ml-5 mt-1 flex flex-col gap-1">
       {hasInput && <JsonOrText value={call.input} label={t('toolInput')} />}
       {hasOutput && <JsonOrText value={extracted} label={t('toolOutput')} />}
     </div>
@@ -57,7 +57,7 @@ function ToolCallRow({ call }: { call: SimulationToolCall }) {
         variant="ghost"
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="h-auto justify-start gap-1.5 p-0 text-left"
+        className="h-auto justify-start gap-1.5 p-0 px-1 rounded-sm text-left"
         disabled={!hasContent}
       >
         <ChevronRight
@@ -81,7 +81,7 @@ function ReasoningRow({ reasoning }: { reasoning: string }) {
         variant="ghost"
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="h-auto justify-start gap-1.5 p-0 text-left"
+        className="h-auto justify-start gap-1.5 p-0 px-1 rounded-sm text-left"
       >
         <ChevronRight
           className={`size-3 text-muted-foreground transition-transform ${open ? 'rotate-90' : ''}`}
@@ -90,7 +90,7 @@ function ReasoningRow({ reasoning }: { reasoning: string }) {
         <span className="font-mono text-[11px]">{t('reasoning')}</span>
       </Button>
       {open && (
-        <pre className="ml-[30px] mt-1 overflow-auto whitespace-pre-wrap rounded bg-muted p-1.5 font-mono text-[10px]">
+        <pre className="cursor-default ml-5 mt-1 overflow-auto whitespace-pre-wrap rounded bg-input/70 p-1.5 font-sans text-[10px]">
           {reasoning}
         </pre>
       )}
@@ -113,7 +113,7 @@ function OutputRow({ data }: { data: unknown }) {
 
   return (
     <div className="flex flex-col">
-      <Button variant="ghost" type="button" onClick={() => setOpen((prev) => !prev)} className="h-auto justify-start gap-1.5 p-0 text-left">
+      <Button variant="ghost" type="button" onClick={() => setOpen((prev) => !prev)} className="h-auto justify-start gap-1.5 p-0 px-1 rounded-sm text-left">
         <ChevronRight
           className={`size-3 text-muted-foreground transition-transform ${open ? 'rotate-90' : ''}`}
         />
@@ -121,11 +121,11 @@ function OutputRow({ data }: { data: unknown }) {
         <span className="font-mono text-[11px]">Output</span>
       </Button>
       {open && (
-        <div className="ml-[30px] mt-1">
+        <div className="ml-5 mt-1">
           {isJsonObject(extracted) ? (
             <SmallJsonBlock value={extracted} />
           ) : (
-            <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded bg-muted p-1.5 font-mono text-[10px]">
+            <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded bg-input/70 p-1.5 font-mono text-[10px]">
               {String(extracted ?? '')}
             </pre>
           )}
@@ -138,7 +138,7 @@ function OutputRow({ data }: { data: unknown }) {
 function AgentText({ text }: { text: string }) {
   if (text === '') return null;
   return (
-    <div className="markdown-content pl-[18px] text-xs leading-relaxed bg-muted/70 rounded-md py-3 pr-3 mt-1 border border-border">
+    <div className="markdown-content text-xs leading-relaxed bg-input/70 rounded-md p-2 px-3 pb-1 mt-1">
       <MarkdownHooks remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeStarryNight]}>{text}</MarkdownHooks>
     </div>
   );
@@ -147,10 +147,10 @@ function AgentText({ text }: { text: string }) {
 export function NodeResultItem({ result }: { result: NodeResult }) {
   const borderClass = result.error !== undefined
     ? 'border-destructive/50'
-    : 'border-muted-foreground/30';
+    : 'border-border';
 
   return (
-    <div className={`max-w-[100%] flex flex-col gap-0.5 border-l-3 ${borderClass} py-0 pl-2`}>
+    <div className={`max-w-[100%] flex flex-col gap-0.5 border-l-2 ${borderClass} py-0 pl-2`}>
       <span className="font-mono text-[11px] font-medium">{result.nodeId}</span>
       {result.error !== undefined && <ErrorRow message={result.error} />}
       {hasReasoning(result.reasoning) && <ReasoningRow reasoning={result.reasoning} />}

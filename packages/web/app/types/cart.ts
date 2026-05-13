@@ -5,9 +5,7 @@ export interface CartItem {
 }
 
 // Cart is now a dictionary/object with itemId as keys
-export interface Cart {
-  [itemId: string]: CartItem;
-}
+export type Cart = Record<string, CartItem>;
 
 export interface CachedShoppingCart {
   data: Cart;

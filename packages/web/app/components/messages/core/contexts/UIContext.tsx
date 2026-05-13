@@ -56,8 +56,10 @@ interface UIContextValue {
   // ChatsSearch Filters
   statusFilter: string;
   assigneeFilter: string;
+  agentFilter: string | null;
   setStatusFilter: (status: string) => void;
   setAssigneeFilter: (assignee: string) => void;
+  setAgentFilter: (agentId: string | null) => void;
 }
 
 const UIContext = createContext<UIContextValue>({} as UIContextValue);
@@ -80,6 +82,7 @@ export const UIProvider: React.FC<UIProviderProps> = ({ children }) => {
   // ChatsSearch filter state
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [assigneeFilter, setAssigneeFilter] = useState<string>('none');
+  const [agentFilter, setAgentFilter] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
 
@@ -214,10 +217,15 @@ export const UIProvider: React.FC<UIProviderProps> = ({ children }) => {
           if (chatAssignee !== assigneeFilter) return false;
         }
 
+        // Apply agent filter
+        if (agentFilter !== null) {
+          if (chat.agentId !== agentFilter) return false;
+        }
+
         return true;
       });
     },
-    [statusFilter, assigneeFilter, getLatestAssignee, getLatestStatus]
+    [statusFilter, assigneeFilter, agentFilter, getLatestAssignee, getLatestStatus]
   );
 
   // Filtered chats by phone
@@ -327,6 +335,11 @@ export const UIProvider: React.FC<UIProviderProps> = ({ children }) => {
         if (chatAssignee !== assigneeFilter) return false;
       }
 
+      // Apply agent filter
+      if (agentFilter !== null) {
+        if (chat.agentId !== agentFilter) return false;
+      }
+
       return true;
     });
   }, [
@@ -339,6 +352,7 @@ export const UIProvider: React.FC<UIProviderProps> = ({ children }) => {
     orderedChats,
     statusFilter,
     assigneeFilter,
+    agentFilter,
     getLatestStatus,
     getLatestAssignee,
   ]);
@@ -363,8 +377,10 @@ export const UIProvider: React.FC<UIProviderProps> = ({ children }) => {
       clearSearch,
       statusFilter,
       assigneeFilter,
+      agentFilter,
       setStatusFilter,
       setAssigneeFilter,
+      setAgentFilter,
     }),
     [
       modals,
@@ -385,8 +401,10 @@ export const UIProvider: React.FC<UIProviderProps> = ({ children }) => {
       clearSearch,
       statusFilter,
       assigneeFilter,
+      agentFilter,
       setStatusFilter,
       setAssigneeFilter,
+      setAgentFilter,
     ]
   );
 

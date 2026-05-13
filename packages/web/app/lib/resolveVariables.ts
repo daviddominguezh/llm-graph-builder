@@ -1,7 +1,13 @@
 import type { McpTransport } from '@/app/schemas/graph.schema';
 
-export type DirectValue = { type: 'direct'; value: string };
-export type EnvRefValue = { type: 'env_ref'; envVariableId: string };
+export interface DirectValue {
+  type: 'direct';
+  value: string;
+}
+export interface EnvRefValue {
+  type: 'env_ref';
+  envVariableId: string;
+}
 export type VariableValue = DirectValue | EnvRefValue;
 
 const VARIABLE_PATTERN = /\{\{(\w+)\}\}/g;

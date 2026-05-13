@@ -148,9 +148,9 @@ function TemplateCardStats({ template, versions, selectedVersion, onVersionChang
 
 function cardStateClass(selected: boolean): string {
   if (selected) {
-    return 'bg-background hover:bg-background! dark:hover:bg-input/30 dark:bg-input/30! ring-1 ring-primary border-solid';
+    return 'bg-background hover:bg-background! dark:hover:bg-input/30 dark:bg-input/30! border-primary! border-solid';
   }
-  return 'bg-card dark:bg-transparent border-border';
+  return 'bg-transparent dark:bg-transparent border-border border-solid';
 }
 
 export function TemplateCard({

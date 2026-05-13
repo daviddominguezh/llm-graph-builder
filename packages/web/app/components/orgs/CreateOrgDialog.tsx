@@ -147,7 +147,7 @@ function CreateOrgForm({ onOpenChange }: CreateOrgDialogProps) {
       />
       <DialogFooter>
         <Button type="submit" disabled={disabled}>
-          {checking ? <Loader2 className="size-4 animate-spin" /> : t('create')}
+          {loading || checking ? <Loader2 className="size-4 animate-spin" /> : t('create')}
         </Button>
       </DialogFooter>
     </form>

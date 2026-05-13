@@ -27,7 +27,7 @@ export function StartNodePanel(props: StartNodePanelProps) {
     <div className="flex h-full flex-col">
       <div className="border-b p-2 px-4">
         <div className="flex items-center justify-between">
-          <h4 className="text-sm font-semibold">{t('title')}</h4>
+          <h4 className="text-xs font-semibold cursor-default">{t('title')}</h4>
           <NodePromptDialog
             nodeId={props.nodeId}
             allNodes={props.allNodes}
@@ -40,11 +40,11 @@ export function StartNodePanel(props: StartNodePanelProps) {
         </div>
       </div>
 
-      <div className="flex gap-3 p-3 bg-card m-3 items-center rounded-md border">
-        <div className="flex p-1.5 aspect-1/1 w-fit h-fit shrink-0 items-center justify-center rounded-full bg-green-100 border border-green-600">
-          <Play className="h-3.5 w-3.5 text-green-600" />
+      <div className="flex gap-3 p-3 bg-input/70 m-3 items-center rounded-md">
+        <div className="flex p-1.5 aspect-1/1 w-fit h-fit shrink-0 items-center justify-center rounded-full border border-[calc(var(--spacing)*0.4)] border-green-400 dark:border-green-600">
+          <Play strokeWidth={2.5} className="h-3.5 w-3.5 text-green-500 dark:text-green-600" />
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground cursor-default">
           {t('description')}
         </p>
       </div>

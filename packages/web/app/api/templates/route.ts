@@ -21,5 +21,5 @@ export async function GET(request: Request): Promise<Response> {
 
   const qs = params.toString();
   const path = qs === '' ? '/templates' : `/templates?${qs}`;
-  return proxyToBackend('GET', path);
+  return await proxyToBackend('GET', path);
 }

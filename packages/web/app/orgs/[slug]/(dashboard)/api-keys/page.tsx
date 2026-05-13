@@ -24,7 +24,7 @@ export default async function ApiKeysPage({ params }: ApiKeysPageProps): Promise
   const publishedAgents = allAgents.filter((a) => a.published_at !== null);
 
   return (
-    <div className="h-[calc(100%-var(--spacing)*2)] overflow-y-auto p-6 border mr-2 rounded-xl bg-background">
+    <div className="h-[calc(100%-var(--spacing)*2.5)] overflow-y-auto p-6 border mr-2.5 rounded-xl bg-background">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
         <ExecutionKeysSection orgId={org.id} initialKeys={keysWithAgents} agents={publishedAgents} />
       </div>

@@ -29,7 +29,7 @@ interface DuplicateResult {
 function isDuplicateResult(value: unknown): value is DuplicateResult {
   if (value === null || typeof value !== 'object') return false;
   const v = value as Record<string, unknown>;
-  return typeof v['duplicate'] === 'boolean';
+  return typeof v.duplicate === 'boolean';
 }
 
 function clearSessionCookies(res: NextResponse): void {

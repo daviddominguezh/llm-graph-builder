@@ -94,14 +94,14 @@
     "logout": "Sign out",
     "loading": "Loading...",
     "backToAgents": "Back to apps",
-    "formatGraph": "Auto-layout",
     "copyJson": "Copy JSON",
     "copyCurl": "Copy cURL",
+    "copyPrompt": "Copy prompt",
     "copied": "Copied",
     "optional": "optional"
   },
   "copilot": {
-    "title": "Copilot",
+    "title": "Ask OpenFlow",
     "newChat": "New chat",
     "placeholder": "Ask about your agents...",
     "send": "Send",
@@ -194,10 +194,75 @@
     "deleteCancel": "Cancel",
     "tabs": {
       "agent": "Agent",
+      "data": "Data",
       "channels": "Channels",
+      "triggers": "Triggers",
       "settings": "Settings",
       "channelsPlaceholder": "Channels coming soon",
       "settingsPlaceholder": "Settings coming soon"
+    },
+    "triggers": {
+      "title": "Triggers",
+      "description": "Run this agent on a schedule.",
+      "soon": "Soon",
+      "add": "Add",
+      "empty": "No triggers yet",
+      "emptyDescription": "Triggers run this agent automatically on a recurring schedule or at a specific date and time.",
+      "modalAdd": "Add trigger",
+      "modalEdit": "Edit trigger",
+      "cancel": "Cancel",
+      "save": "Save",
+      "delete": "Delete trigger",
+      "summaryMode": {
+        "recurring": "Recurring",
+        "once": "Specific date",
+        "after-event": "After event"
+      },
+      "mode": {
+        "recurring": "Recurring",
+        "once": "Specific date",
+        "after-event": "After event"
+      },
+      "runEvery": "Run every",
+      "runOn": "Run once on",
+      "on": "on",
+      "onDay": "on day",
+      "at": "at",
+      "startingAt": "Starting at:",
+      "startMode": {
+        "now": "Now",
+        "specific": "Specific date"
+      },
+      "pickDateTime": "Pick a date and time",
+      "afterEventComingSoon": "After-event triggers are coming soon — they'll fire once another agent or workflow event completes.",
+      "previewLabel": "Next run",
+      "previewLabelMany": "Next runs",
+      "previewNone": "Not scheduled",
+      "previewAfterEvent": "Triggered by an event",
+      "picker": {
+        "label": "Tenant",
+        "loading": "Loading tenants…",
+        "error": "Couldn't load tenants",
+        "placeholder": "Select a tenant",
+        "emptyLabel": "No tenants yet.",
+        "emptyCta": "Create one"
+      },
+      "units": {
+        "minutes": { "singular": "minute", "plural": "minutes" },
+        "hours": { "singular": "hour", "plural": "hours" },
+        "days": { "singular": "day", "plural": "days" },
+        "weeks": { "singular": "week", "plural": "weeks" },
+        "months": { "singular": "month", "plural": "months" }
+      },
+      "weekdays": {
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat",
+        "sun": "Sun"
+      }
     },
     "channels": {
       "tenant": "Tenant",
@@ -244,6 +309,7 @@
     "terminatedDescription": "Simulation complete",
     "placeholder": "Type a message...",
     "selectModel": "Select model...",
+    "searchModels": "Search models...",
     "noModelsFound": "No models found",
     "effortLow": "Low",
     "effortMedium": "Medium",
@@ -322,7 +388,10 @@
     "toolCallWarningTitle": "Switch to tool call?",
     "toolCallWarningDescription": "The source node \"{nodeId}\" has text and/or description content that will be cleared. Tool call nodes do not use these fields.",
     "toolCallWarningConfirm": "Clear & continue",
-    "toolCallWarningCancel": "Cancel"
+    "toolCallWarningCancel": "Cancel",
+    "preconditionType_user_said": "User Said",
+    "preconditionType_agent_decision": "Agent Decision",
+    "preconditionType_tool_call": "Tool Call"
   },
   "connectionMenu": {
     "connectToExisting": "Connect to existing node:",
@@ -403,8 +472,33 @@
     "apply": "Apply",
     "cancel": "Cancel"
   },
+  "contextKeys": {
+    "sectionTitle": "Context"
+  },
+  "testingPresets": {
+    "sectionTitle": "Testing Presets",
+    "name": "Name",
+    "sessionId": "Session ID",
+    "tenantId": "Tenant ID",
+    "userId": "User ID",
+    "deletePreset": "Delete preset",
+    "deleteTitle": "Delete preset?",
+    "deleteDescription": "This will permanently delete the preset \"{name}\".",
+    "delete": "Delete",
+    "cancel": "Cancel"
+  },
   "outputSchemas": {
     "sectionTitle": "Output Schemas",
+    "section": { "description": "Reusable data shapes. Forms use schemas to decide what to collect." },
+    "warnings": {
+      "usedByForms": "This schema is used by {count} form(s): {forms}. Renaming a field here keeps existing data under the old name — older conversations will show the old name in exports.",
+      "fieldUsed": "Used by form {form}. Renaming leaves old data under the old name.",
+      "deleteBlocked": {
+        "title": "Can't delete schema",
+        "body": "This schema is used by {count} form(s). Remove these forms first:",
+        "close": "Close"
+      }
+    },
     "newSchema": "New schema...",
     "deleteTitle": "Delete schema?",
     "deleteDescription": "This will remove the schema \"{name}\" and unassign it from any nodes using it.",
@@ -414,6 +508,133 @@
     "save": "Save",
     "cancel": "Cancel",
     "editSchema": "Edit schema"
+  },
+  "forms": {
+    "section": {
+      "title": "Forms",
+      "description": "Structured data your agent collects during conversations, exportable as CSV."
+    },
+    "empty": {
+      "noSchemas": {
+        "title": "No forms yet",
+        "description": "Forms are built from output schemas. Create a schema to get started.",
+        "cta": "Create output schema"
+      },
+      "noForms": {
+        "title": "No forms yet",
+        "description": "Forms let your agent collect structured data during conversations and export it as CSV.",
+        "cta": "Create form"
+      }
+    },
+    "dialog": {
+      "create": { "step1": { "title": "Name your form" }, "step2": { "title": "Validations" } },
+      "edit": { "step1": { "title": "Form details" }, "step2": { "title": "Validations" } },
+      "stepsCount": "Step {step} of {total}",
+      "next": "Next",
+      "back": "Back",
+      "cancel": "Cancel",
+      "createButton": "Create form",
+      "save": "Save",
+      "immutableHelp": "To change the name or schema, delete this form and create a new one.",
+      "unsavedConfirm": "Discard unsaved validation changes?"
+    },
+    "field": {
+      "name": { "label": "Name", "placeholder": "e.g. Customer Lead Form", "required": "Name is required" },
+      "identifier": {
+        "label": "Identifier",
+        "edit": "Edit",
+        "invalidFormat": "Only lowercase letters, numbers, and hyphens",
+        "taken": "Already in use",
+        "checking": "Checking…",
+        "available": "Available"
+      },
+      "schema": {
+        "label": "Schema",
+        "placeholder": "Select a schema",
+        "immutableHelp": "To use a different schema, delete this form and create a new one."
+      }
+    },
+    "validations": {
+      "title": "Validations",
+      "countProgress": "{configured} of {total} configured",
+      "parentCount": "{configured}/{total}",
+      "search": { "placeholder": "Search fields…" },
+      "filter": { "all": "All", "configured": "Configured", "unconfigured": "Unconfigured" },
+      "stale": {
+        "banner": "{count} validation rule(s) no longer match the current schema.",
+        "remove": "Remove stale rules",
+        "keep": "Keep for now"
+      },
+      "kind": {
+        "none": "None",
+        "email": "Valid email",
+        "twoWordName": "Two-word name (≥2 words, each ≥2 chars)",
+        "pastDate": "Past date",
+        "futureDate": "Future date",
+        "pastHour": "Past hour",
+        "futureHour": "Future hour",
+        "length": "Length",
+        "range": "Range",
+        "unavailable": "—"
+      },
+      "length": {
+        "mode": { "range": "Range", "exact": "Exact" },
+        "min": "Min",
+        "max": "Max",
+        "exact": "Exact"
+      }
+    },
+    "delete": {
+      "title": "Delete form {slug}?",
+      "body": "Past conversations keep their data.",
+      "slugReuseWarning": "A future form with the same name will NOT inherit this old data (data is keyed by a stable identifier, not the name).",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "rightPanel": {
+      "title": "Form data",
+      "rollupBadge": "{filled}/{total}",
+      "summary": { "progress": "{filled}/{total} fields collected" },
+      "editForm": "Edit form",
+      "emptyFieldsCount": "{count} empty fields",
+      "notSet": "—",
+      "emptyArray": "—",
+      "failedAttempts": { "title": "Last failed attempt(s)", "item": "{fieldPath} {reason} ({when})" }
+    },
+    "chatList": {
+      "agentFilter": { "placeholder": "All agents", "search": { "placeholder": "Search agents…" } }
+    },
+    "export": {
+      "button": "Export as CSV",
+      "dialog": { "title": "Export form data" },
+      "dateRange": {
+        "label": "Date range",
+        "max15Days": "Max range is 15 days.",
+        "tooltip": "Longer ranges require scheduled exports (coming soon)."
+      },
+      "agent": { "label": "Agent" },
+      "form": { "label": "Form" },
+      "matchCount": "{inRange} conversations match · {withData} with form data",
+      "matchCountNoData": {
+        "tooltip": "No data to export for the selected range",
+        "suggestion": "Try expanding the range or picking a different form.",
+        "viewInChatList": "View in chat list"
+      },
+      "cancel": "Cancel",
+      "export": "Export",
+      "generating": "Generating…",
+      "abort": "Abort",
+      "success": "Exported {count} conversations",
+      "successTruncated": "Exported {count} conversations (some fields truncated — too many array items)",
+      "errorRaceEmpty": "All matching conversations were deleted during export. Refresh and try again.",
+      "relativeTime": {
+        "justNow": "just now",
+        "secondsAgo": "{n}s ago",
+        "minutesAgo": "{n} min ago",
+        "hoursAgo": "{n}h ago",
+        "daysAgo": "{n}d ago"
+      }
+    }
   },
   "orgs": {
     "title": "My Organizations",
@@ -429,7 +650,9 @@
     "logs": "Logs",
     "team": "Team",
     "chats": "Chats",
+    "calendar": "Calendar",
     "tenants": "Tenants",
+    "knowledgeBase": "Knowledge base",
     "settings": "Settings",
     "settingsTitle": "Organization Settings",
     "generalSection": "General",
@@ -459,6 +682,54 @@
   },
   "chats": {
     "tenant": "Tenant"
+  },
+  "calendar": {
+    "title": "Calendar"
+  },
+  "googleCalendar": {
+    "title": "Google Calendar",
+    "description": "Connect a Google account so agents can read availability and book, reschedule, or cancel events.",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "connected": "Connected",
+    "notConnected": "Required for agents that use calendar tools.",
+    "connectError": "Couldn't start Google sign-in. Please try again.",
+    "disconnectError": "Couldn't disconnect. Please try again.",
+    "disconnectSuccess": "Google Calendar disconnected."
+  },
+  "mcpServers": {
+    "noVersionBadge": "No version",
+    "noVersionTooltip": "This MCP server doesn't report a version. Caching may serve stale tools until you refresh manually."
+  },
+  "agentTools": {
+    "selectAll": "Select all",
+    "clear": "Clear",
+    "removeAllStale": "Remove all",
+    "countOfTotal": "{n} of {total}",
+    "countOfTotalVisible": "{n} of {visible} visible · {total} total",
+    "allSelected": "all",
+    "noToolsHint": "No tools enabled. This agent can only converse.",
+    "staleHeader": "Stale entries (provider removed)",
+    "removeStale": "Remove",
+    "runInProgressNote": "Changes apply to the next run.",
+    "providerError": "Couldn't load tools — retry",
+    "providerErrorAgentNote": "Workflows that call this tool will fail at runtime — fix the provider first.",
+    "providerErrorWorkflowNote": "Agents will run without these tools and may improvise.",
+    "refreshToolsButton": "Refresh tools",
+    "registryTotalFailure": "Couldn't load tool catalog. Refresh to retry.",
+    "retry": "retry",
+    "saveStates": {
+      "saving": "Saving…",
+      "saved": "Saved",
+      "error": "Couldn't save — retry",
+      "conflict": "Conflict — refreshing",
+      "disabledByFailure": "Save paused — tool catalog couldn't load"
+    },
+    "saveError": "Couldn't save tool selection. Please try again.",
+    "limitExceeded": "You can select at most 100 tools. Remove some before saving.",
+    "updatedJustNow": "Updated just now",
+    "updatedMinutesAgo": "Updated {minutes}m ago",
+    "updatedHoursAgo": "Updated {hours}h ago"
   },
   "apiKeys": {
     "title": "OpenRouter API Keys",
@@ -562,6 +833,183 @@
     "clickToCopy": "Click to copy",
     "copied": "Copied!",
     "copyError": "Failed to copy value."
+  },
+  "knowledgeBase": {
+    "title": "Documents",
+    "description": "Files your agents can search and reference.",
+    "addFiles": "Add files",
+    "emptyTitle": "No files yet",
+    "emptyDescription": "Drag files anywhere or click Add files.",
+    "dropToAdd": "Release to add",
+    "totalSize": "{count, plural, =1 {# file · {size}} other {# files · {size}}}",
+    "clearAll": "Clear",
+    "filesSkipped": "{count, plural, =1 {1 file skipped (unsupported type)} other {# files skipped (unsupported types)}}",
+    "remove": "Remove",
+    "tabRag": "RAG DB",
+    "tabKv": "KV Store",
+    "storesSidebar": {
+      "title": "Knowledge bases",
+      "newRag": "New RAG store",
+      "newKv": "New KV store",
+      "search": "Search...",
+      "empty": "No stores yet. Create your first one.",
+      "noResults": "No matching stores",
+      "actions": "Actions",
+      "rename": "Rename",
+      "delete": "Delete",
+      "idLabel": "ID:"
+    },
+    "rename": {
+      "title": "Rename knowledge base",
+      "description": "Update the display name. The slug stays the same.",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Product FAQ",
+      "slugUnchanged": "Slug stays as: {slug}",
+      "submit": "Save",
+      "cancel": "Cancel"
+    },
+    "create": {
+      "title": "New knowledge base",
+      "description": "Define a shared knowledge base for your org. Each tenant fills it in with their own content.",
+      "typeLabel": "Type",
+      "typeRag": "RAG Store",
+      "typeRagDescription": "Tenants upload documents. Agents retrieve relevant chunks at query time.",
+      "typeKv": "KV Store",
+      "typeKvDescription": "A table of key/value pairs each tenant edits directly.",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Product FAQ",
+      "idPreview": "Your DB identifier will be: <mono>{slug}</mono>",
+      "submit": "Create",
+      "cancel": "Cancel"
+    },
+    "delete": {
+      "title": "Delete store?",
+      "description": "This action cannot be undone. All per-tenant data inside this store will be deleted.",
+      "confirm": "Delete",
+      "cancel": "Cancel"
+    },
+    "storeHeader": {
+      "slugLabel": "Slug",
+      "delete": "Delete store"
+    },
+    "tenantTabs": {
+      "label": "Tenant",
+      "noTenants": "No tenants yet. Create a tenant before adding content."
+    },
+    "emptyPage": {
+      "title": "No store selected",
+      "description": "Choose a RAG or KV store from the sidebar, or create a new one."
+    },
+    "kv": {
+      "search": "Search keys and values…",
+      "headerKey": "Key",
+      "headerValue": "Value",
+      "remove": "Remove",
+      "keyPlaceholder": "key",
+      "valuePlaceholder": "value",
+      "addKeyPlaceholder": "Add a key…",
+      "addValuePlaceholder": "value",
+      "noResults": "No matches for \"{query}\"",
+      "entries": "{count, plural, =1 {1 entry} other {# entries}}",
+      "pageOf": "{page} / {total}",
+      "prevPage": "Previous page",
+      "nextPage": "Next page",
+      "duplicateKey": "Duplicate key",
+      "deleteTitle": "Delete entry?",
+      "deleteDescription": "This action cannot be undone.",
+      "deleteConfirm": "Delete",
+      "deleteCancel": "Cancel"
+    },
+    "ragUpload": {
+      "idle": "Drag files here or click to upload",
+      "drop": "Release to upload",
+      "pageDropOverlay": "Drop files to upload",
+      "uploading": "Uploading…",
+      "upload": "Upload",
+      "extensions": "pdf · docx · pptx · xlsx · html · jpg · jpeg · png · txt · md · csv · json",
+      "dialogTitle": "Upload files",
+      "dialogDescription": "Configure OCR and language hints, then start the upload.",
+      "addFiles": "Add files",
+      "remove": "Remove",
+      "ocrLabel": "OCR",
+      "ocrModeStandard": "Standard",
+      "ocrModeAdvanced": "Advanced",
+      "ocrModeAdvancedForced": "This file type only supports Advanced mode",
+      "languagesLabel": "Languages",
+      "languagesPlaceholder": "Select a language (optional)",
+      "uploadCta": "Upload {count, plural, =1 {1 file} other {# files}}",
+      "uploadInProgress": "Uploading…",
+      "close": "Close",
+      "done": "All files processed",
+      "errorPrefix": "Failed",
+      "ocrTooltip": "Enable OCR for scanned files, tables, spreadsheets, or documents with diagrams, charts, or embedded images. Leave it off for plain text documents."
+    },
+    "ragStatus": {
+      "pending": "Pending",
+      "uploading": "Uploading",
+      "parsing": "Parsing",
+      "chunking": "Chunking",
+      "embedding": "Embedding",
+      "done": "Done",
+      "failed": "Failed"
+    },
+    "ragFiles": {
+      "remove": "Remove",
+      "openChunks": "Open chunks",
+      "pageCount": "{count, plural, =1 {1 page} other {# pages}}",
+      "deleteTitle": "Delete file?",
+      "deleteDescription": "This will permanently delete the file and all its chunks. This cannot be undone.",
+      "deleteConfirm": "Delete",
+      "deleteCancel": "Cancel",
+      "summary": "{files, plural, =1 {# file} other {# files}} · {pages, plural, =1 {# page} other {# pages}} · {bytes}",
+      "noMatches": "No files match your search"
+    },
+    "ragChunks": {
+      "loading": "Loading chunks…",
+      "page": "p. {page}",
+      "pageRange": "p. {start}–{end}",
+      "paragraph": "¶ {idx}",
+      "tokens": "{count} tok",
+      "prev": "Previous",
+      "next": "Next",
+      "colPage": "Page",
+      "colParagraph": "Paragraph",
+      "colTokens": "Tokens",
+      "colContent": "Content",
+      "colSimilarity": "Similarity",
+      "viewAll": "View all",
+      "viewLess": "View less",
+      "copy": "Copy",
+      "copied": "Copied",
+      "drawerSubtitle": "{count, plural, =1 {1 chunk on this page} other {# chunks on this page}}",
+      "noMatchInFile": "No matching chunks in this file"
+    },
+    "ragSearch": {
+      "placeholder": "Search files and chunks…",
+      "submit": "Search",
+      "clear": "Clear",
+      "empty": "No results",
+      "page": "p. {page}",
+      "paragraph": "¶ {idx}",
+      "distance": "d={d}",
+      "topKLabel": "Top",
+      "minSimilarityLabel": "min similarity",
+      "rerankLabel": "Rerank",
+      "rerankTooltip": "Reorders the top candidates with a cross-encoder model that scores each chunk against your query. Improves relevance for ambiguous or natural-language queries at the cost of an extra API call.",
+      "mode": {
+        "simple": "Simple",
+        "semantic": "Semantic",
+        "hybrid": "Hybrid"
+      },
+      "description": {
+        "simple": "Lexical keyword match scored by term frequency across stored chunks.",
+        "semantic": "Vector similarity over embedded chunks, ideal for natural-language queries.",
+        "hybrid": "Mixes lexical and semantic candidates and reranks them with a cross-encoder."
+      }
+    }
+  },
+  "tenantSidebar": {
+    "label": "Tenant"
   },
   "tenants": {
     "title": "Tenants",
@@ -792,6 +1240,8 @@
       "user": "User",
       "session": "Session",
       "channel": "Channel",
+      "copy": "Copy",
+      "copied": "Copied!",
       "createdAt": "Created at",
       "totalCost": "Total Cost",
       "totalTokens": "Total Tokens",

@@ -18,7 +18,7 @@ interface JsDelivrPackage {
 }
 
 function parseGitHubUrl(url: string): { owner: string; repo: string } | null {
-  const match = url.match(/github\.com\/([^/]+)\/([^/]+)/);
+  const match = /github\.com\/([^/]+)\/([^/]+)/.exec(url);
   if (!match) return null;
   const owner = match[1];
   const repoRaw = match[2];
@@ -27,12 +27,12 @@ function parseGitHubUrl(url: string): { owner: string; repo: string } | null {
 }
 
 function parseFrontmatter(content: string): Record<string, string> {
-  const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  if (!fmMatch || fmMatch[1] === undefined) return {};
+  const fmMatch = /^---\r?\n([\s\S]*?)\r?\n---/.exec(content);
+  if (fmMatch?.[1] === undefined) return {};
   const result: Record<string, string> = {};
   for (const line of fmMatch[1].split('\n')) {
-    const kv = line.match(/^(\w+)\s*:\s*(.+)$/);
-    if (kv && kv[1] !== undefined && kv[2] !== undefined) {
+    const kv = /^(\w+)\s*:\s*(.+)$/.exec(line);
+    if (kv?.[1] !== undefined && kv[2] !== undefined) {
       result[kv[1]] = kv[2].replace(/^['"]|['"]$/g, '');
     }
   }
@@ -46,7 +46,7 @@ function findSkillPaths(entries: JsDelivrEntry[], prefix = ''): string[] {
     if (entry.type === 'file' && entry.name === 'SKILL.md') {
       paths.push(fullPath);
     } else if (entry.type === 'directory') {
-      paths.push(...findSkillPaths((entry as JsDelivrDirectory).files, fullPath));
+      paths.push(...findSkillPaths(entry.files, fullPath));
     }
   }
   return paths;

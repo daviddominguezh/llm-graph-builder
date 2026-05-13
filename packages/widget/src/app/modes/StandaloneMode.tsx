@@ -10,10 +10,7 @@ export function StandaloneMode() {
   const agent = useAgent();
   const user = useUser();
   const sessions = useSessions({ tenant: agent.tenant, agentSlug: agent.agentSlug });
-  const metadata = useMemo(
-    () => (user === null ? undefined : { userName: user.displayName }),
-    [user]
-  );
+  const metadata = useMemo(() => (user === null ? undefined : { userName: user.displayName }), [user]);
   const chat = useChatStream({
     agent,
     sessions,

@@ -412,9 +412,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           </DialogHeader>
           <DialogFooter>
             <DialogClose>
-              <Button variant="outline">{t('Cancel')}</Button>
+              <Button variant="outline" className="rounded-md">{t('Cancel')}</Button>
             </DialogClose>
-            <Button variant="destructive" onClick={handleConfirmDelete}>
+            <Button variant="destructive" className="rounded-md" onClick={handleConfirmDelete}>
               {t('Delete')}
             </Button>
           </DialogFooter>
@@ -430,7 +430,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           </DialogHeader>
           <DialogFooter>
             <DialogClose>
-              <Button variant="outline">{t('Cancel')}</Button>
+              <Button variant="outline" className="rounded-md">{t('Cancel')}</Button>
             </DialogClose>
             <Button onClick={handleConfirmStatusChange}>{t('Confirm')}</Button>
           </DialogFooter>
@@ -446,7 +446,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           </DialogHeader>
           <DialogFooter>
             <DialogClose>
-              <Button variant="outline">{t('Cancel')}</Button>
+              <Button variant="outline" className="rounded-md">{t('Cancel')}</Button>
             </DialogClose>
             <Button onClick={handleConfirmAssignedChange}>{t('Confirm')}</Button>
           </DialogFooter>

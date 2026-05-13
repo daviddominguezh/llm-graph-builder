@@ -9,7 +9,7 @@ export interface Column<T> {
 }
 
 export interface SortableTableProps<T extends Record<string, unknown>> {
-  columns: Column<T>[];
+  columns: Array<Column<T>>;
   rows: T[];
   rowKey: keyof T;
   sortKey: string | null;

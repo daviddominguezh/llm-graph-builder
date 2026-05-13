@@ -1,0 +1,99 @@
+'use client';
+
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { previewStoreSlug } from '@/app/lib/slugPreview';
+import { useTranslations } from 'next-intl';
+import { useState } from 'react';
+
+import { StoreTypeCards } from './StoreTypeCards';
+
+export type StoreType = 'rag' | 'kv';
+
+interface CreateStoreDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreate: (type: StoreType, name: string) => Promise<{ ok: boolean; slug?: string }>;
+}
+
+export function CreateStoreDialog({
+  open,
+  onOpenChange,
+  onCreate,
+}: CreateStoreDialogProps): React.JSX.Element {
+  const t = useTranslations('knowledgeBase.create');
+  const [type, setType] = useState<StoreType | null>('rag');
+  const [name, setName] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const previewedSlug = previewStoreSlug(name);
+  const canSubmit = type !== null && name.trim() !== '' && !submitting;
+
+  function handleOpenChange(next: boolean) {
+    if (!next) {
+      setName('');
+      setType('rag');
+    }
+    onOpenChange(next);
+  }
+
+  async function handleSubmit() {
+    if (!canSubmit || type === null) return;
+    setSubmitting(true);
+    const res = await onCreate(type, name.trim());
+    setSubmitting(false);
+    if (res.ok) handleOpenChange(false);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{t('title')}</DialogTitle>
+          <DialogDescription>{t('description')}</DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <Label>{t('typeLabel')}</Label>
+            <StoreTypeCards value={type} onChange={setType} />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <Label htmlFor="store-name mb-4">{t('nameLabel')}</Label>
+            <Input
+              id="store-name"
+              className='mt-1'
+              placeholder={t('namePlaceholder')}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoFocus
+            />
+            <span className={`text-[11px] text-muted-foreground ml-[calc(0px+var(--spacing)*2)] ${previewedSlug === '' ? 'invisible' : ''}`}>
+              {previewedSlug === ''
+                ? '.'
+                : t.rich('idPreview', {
+                    slug: previewedSlug,
+                    mono: (chunks) => <span className="font-mono">{chunks}</span>,
+                  })}
+            </span>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => handleOpenChange(false)} disabled={submitting}>
+            {t('cancel')}
+          </Button>
+          <Button onClick={handleSubmit} disabled={!canSubmit}>
+            {t('submit')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

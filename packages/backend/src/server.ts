@@ -23,8 +23,10 @@ import { executeRouter } from './routes/execute/executeRoute.js';
 import { buildGitHubRouter } from './routes/github/githubRouter.js';
 import { handleGitHubWebhook } from './routes/github/webhookRoute.js';
 import { internalRouter } from './routes/internal/internalRouter.js';
+import { kvStoresRouter } from './routes/kvStores/kvStoresRouter.js';
 import { mcpLibraryRouter } from './routes/mcp-library/mcpLibraryRouter.js';
 import { mockExecuteRouter } from './routes/mockExecute/mockExecuteRouter.js';
+import { handleGoogleCallback } from './routes/oauth/googleOauthCallback.js';
 import { handleCallback } from './routes/oauth/oauthCallback.js';
 import { handleGetOpenRouterModels } from './routes/openrouterModels.js';
 import { handleAddMember } from './routes/orgs/addMember.js';
@@ -43,6 +45,7 @@ import { handleUniqueSlug } from './routes/orgs/uniqueSlug.js';
 import { handleUpdateMemberRole } from './routes/orgs/updateMemberRole.js';
 import { handleUpdateOrg } from './routes/orgs/updateOrg.js';
 import { publicChatRouter } from './routes/publicChat/publicChatRouter.js';
+import { ragStoresRouter } from './routes/ragStores/ragStoresRouter.js';
 import { secretsRouter } from './routes/secrets/secretsRouter.js';
 import { handleSimulateAgent } from './routes/simulateAgentHandler.js';
 import { handleSimulate } from './routes/simulateHandler.js';
@@ -147,6 +150,7 @@ function mountSystemRoutes(app: Express): void {
   app.post('/simulate', handleSimulate);
   app.post('/simulate-agent', handleSimulateAgent);
   app.get('/mcp/oauth/callback', handleCallback);
+  app.get('/google-oauth/callback', handleGoogleCallback);
 
   app.post('/mcp', handleMcpRequest);
   app.get('/mcp', handleMcpRequest);
@@ -169,6 +173,8 @@ function mountGatedRoutes(app: Express): void {
   app.use('/dashboard', withGate(dashboardRouter));
   app.use('/mcp-library', withGate(mcpLibraryRouter));
   app.use('/tenants', withGate(tenantRouter));
+  app.use('/rag-stores', withGate(ragStoresRouter));
+  app.use('/kv-stores', withGate(kvStoresRouter));
   app.use('/templates', withGate(templateRouter));
   app.use('/tenants/:tenantId/whatsapp-templates', withGate(whatsappTemplatesRouter));
   app.use('/github', withGate(buildGitHubRouter()));

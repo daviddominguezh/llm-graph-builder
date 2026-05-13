@@ -1,3 +1,4 @@
+import { Scrollable } from '@/app/components/Scrollable';
 import { TeamSection } from '@/app/components/orgs/TeamSection';
 import { getOrgInvitations, getOrgMembers } from '@/app/lib/orgMembers';
 import { getOrgBySlug, getOrgRole } from '@/app/lib/orgs';
@@ -34,7 +35,7 @@ export default async function TeamPage({ params }: TeamPageProps): Promise<React
   }
 
   return (
-    <div className="h-[calc(100%-var(--spacing)*2)] overflow-y-auto p-6 border mr-2 rounded-xl bg-background">
+    <Scrollable className="h-[calc(100%-var(--spacing)*2.5)] p-6 border rounded-xl mr-2.5 bg-background">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
         <TeamSection
           orgId={org.id}
@@ -44,6 +45,6 @@ export default async function TeamPage({ params }: TeamPageProps): Promise<React
           currentUserId={userId}
         />
       </div>
-    </div>
+    </Scrollable>
   );
 }

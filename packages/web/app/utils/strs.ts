@@ -1,5 +1,4 @@
-import { AddressSchemaType, PaymentItem } from '@/app/types/orders';
-import crypto from 'crypto';
+import type { AddressSchemaType, PaymentItem } from '@/app/types/orders';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import calendar from 'dayjs/plugin/calendar';
@@ -12,12 +11,6 @@ dayjs.locale('es');
  * In the original app this came from i18next; here we default to 'es'.
  */
 const i18n: { language: string } = { language: 'es' };
-
-export const getHash = (obj: object) => {
-  const jsonString = JSON.stringify(obj);
-  const hash = crypto.createHash('sha256').update(jsonString).digest('hex');
-  return hash;
-};
 
 /**
  * Country-specific phone number formatting for Latin American countries
@@ -330,15 +323,10 @@ export const getNameInitials = (name: string) => {
   return initials.length <= 2 ? initials : initials.substring(0, 2);
 };
 
-export const getNameFromLastMessage = (name: string | null | undefined, phone: string) => {
-  return name && name.length > 1 ? name : phone;
-};
+export const getNameFromLastMessage = (name: string | null | undefined, phone: string) =>
+  name && name.length > 1 ? name : phone;
 
-export const formatTimestamp = (
-  timestamp: number,
-  alwaysShowTime: boolean = false,
-  alwaysUseRelativeDate: boolean = false
-) => {
+export const formatTimestamp = (timestamp: number, alwaysShowTime = false, alwaysUseRelativeDate = false) => {
   const date = new Date(timestamp);
   const current = new Date();
 
@@ -442,7 +430,7 @@ export const htmlToWhatsappFormat = (html: string): string => {
         return `${counter++}. ${cleaned}\n`;
       }
     );
-    return items + '\n';
+    return `${items}\n`;
   });
 
   // Handle bullet lists
@@ -456,21 +444,20 @@ export const htmlToWhatsappFormat = (html: string): string => {
   result = result.replace(/<\/?li[^>]*>/g, '');
 
   // Handle blockquotes
-  result = result.replace(/<blockquote>([\s\S]*?)<\/blockquote>/g, (_match, content) => {
-    return `> ${content.trim()}\n`;
-  });
+  result = result.replace(
+    /<blockquote>([\s\S]*?)<\/blockquote>/g,
+    (_match, content) => `> ${content.trim()}\n`
+  );
 
   // Handle code blocks (tt or code tags)
   result = result.replace(/<tt>([\s\S]*?)<\/tt>/g, (_match, content) => {
     // If content has newlines, use triple backticks
     if (content.includes('\n')) {
-      return '```' + content + '```';
+      return `\`\`\`${content}\`\`\``;
     }
-    return '`' + content + '`';
+    return `\`${content}\``;
   });
-  result = result.replace(/<code>([\s\S]*?)<\/code>/g, (_match, content) => {
-    return '`' + content + '`';
-  });
+  result = result.replace(/<code>([\s\S]*?)<\/code>/g, (_match, content) => `\`${content}\``);
 
   // Handle bold (strong or b tags)
   result = result.replace(/<strong>([\s\S]*?)<\/strong>/g, (_match, content) => {
@@ -514,7 +501,7 @@ export const htmlToWhatsappFormat = (html: string): string => {
   // Handle paragraphs - add double newline after each
   result = result.replace(/<p>([\s\S]*?)<\/p>/g, (_match, content) => {
     const cleaned = content.trim();
-    return cleaned ? cleaned + '\n' : '\n';
+    return cleaned ? `${cleaned}\n` : '\n';
   });
 
   // Handle line breaks
@@ -546,7 +533,7 @@ export const toFirstLetterUppercase = (str?: string | null) => {
   if (!str) return '';
   const parts = str.split(' ');
   let result = '';
-  parts.forEach((part) => (result += part.substring(0, 1).toUpperCase() + part.substring(1) + ' '));
+  parts.forEach((part) => (result += `${part.substring(0, 1).toUpperCase() + part.substring(1)} `));
   return result.trim();
 };
 
@@ -560,18 +547,17 @@ export const formatAddress = (mAddress: AddressSchemaType) => {
     ? ['Bogotá D.C.', 'Bogotá D.C.']
     : cityDisplay.split(',');
 
-  return `${address}${detail.length > 0 ? ', ' + detail : ''},\n${neighbor}\n${mCity ? mCity.trim() : ''}\n${mState ? mState.trim() : ''}`;
+  return `${address}${detail.length > 0 ? `, ${detail}` : ''},\n${neighbor}\n${mCity ? mCity.trim() : ''}\n${mState ? mState.trim() : ''}`;
 };
 
-export const formatItems = (items: PaymentItem[]): string[] => {
-  return items.map((item) => {
+export const formatItems = (items: PaymentItem[]): string[] =>
+  items.map((item) => {
     const name = item.productName;
     const personalizationsText = item.personalizations
       ? ` (${item.personalizations.map((p) => `${p.type}: ${p.value}`).join(', ')})`
       : '';
     return `${item.quantity}x ${name}${personalizationsText}`;
   });
-};
 
 /**
  * Formats items with structured data for better rendering
@@ -583,10 +569,9 @@ export interface FormattedItemData {
   personalizations: Array<{ type: string; value: string }>;
 }
 
-export const formatItemsStructured = (items: PaymentItem[]): FormattedItemData[] => {
-  return items.map((item) => ({
+export const formatItemsStructured = (items: PaymentItem[]): FormattedItemData[] =>
+  items.map((item) => ({
     productName: item.productName,
     quantity: item.quantity,
     personalizations: item.personalizations || [],
   }));
-};

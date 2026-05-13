@@ -17,8 +17,10 @@ import { ChevronDown, Info, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import type { SelectedTool } from '@daviddh/llm-graph-runner';
 import type { ExistingEdgeType } from '../../utils/edgeTypeUtils';
 import { IfElseDialog, LoopDialog, ToolNodeDialog, UserNodeDialog } from './nodeCreationDialogs';
+import type { LoopConnection } from './nodeCreationDialogs/LoopDialog';
 import { NodeTypeDropdown, type NodeCreationType } from './NodeTypeDropdown';
 
 const START_NODE_ID = 'INITIAL_STEP';
@@ -34,13 +36,9 @@ interface ConnectionMenuProps {
   onSelectNode: (targetNodeId: string) => void;
   onCreateNode: () => void;
   onCreateUserNode: (value: string) => void;
-  onCreateToolNode: (toolName: string) => void;
+  onCreateToolNode: (tool: SelectedTool) => void;
   onCreateIfElse: (branchA: string, branchB: string) => void;
-  onCreateLoop: (
-    connection: { type: 'none' | 'user_said' | 'tool_call'; value: string },
-    continueValue: string,
-    exitValue: string,
-  ) => void;
+  onCreateLoop: (connection: LoopConnection, continueValue: string, exitValue: string) => void;
   onClose: () => void;
 }
 
@@ -50,13 +48,9 @@ interface DialogsProps {
   sourceEdgeType: ExistingEdgeType;
   onClose: () => void;
   onCreateUserNode: (value: string) => void;
-  onCreateToolNode: (toolName: string) => void;
+  onCreateToolNode: (tool: SelectedTool) => void;
   onCreateIfElse: (branchA: string, branchB: string) => void;
-  onCreateLoop: (
-    connection: { type: 'none' | 'user_said' | 'tool_call'; value: string },
-    continueValue: string,
-    exitValue: string,
-  ) => void;
+  onCreateLoop: (connection: LoopConnection, continueValue: string, exitValue: string) => void;
 }
 
 function ConnectionDialogs({

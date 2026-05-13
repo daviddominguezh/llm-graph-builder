@@ -1,0 +1,115 @@
+{
+  "translation": {
+    "dialogs": {
+      "addEvent": {
+        "title": "Add New Event",
+        "description": "This is just and example of how to use the form. In a real application, you would call the API to create the event",
+        "createButton": "Create Event"
+      },
+      "editEvent": {
+        "title": "Edit Event",
+        "description": "This is just and example of how to use the form. In a real application, you would call the API to update the event",
+        "saveButton": "Save changes"
+      },
+      "eventDetails": {
+        "editButton": "Edit"
+      },
+      "common": {
+        "cancel": "Cancel",
+        "responsible": "Responsible",
+        "title": "Title",
+        "startDate": "Start Date",
+        "startTime": "Start Time",
+        "endDate": "End Date",
+        "endTime": "End Time",
+        "color": "Color",
+        "description": "Description"
+      }
+    },
+    "placeholders": {
+      "selectOption": "Select an option",
+      "enterTitle": "Enter a title",
+      "selectDate": "Select a date"
+    },
+    "colors": {
+      "blue": "Blue",
+      "green": "Green",
+      "red": "Red",
+      "yellow": "Yellow",
+      "purple": "Purple",
+      "orange": "Orange",
+      "gray": "Gray"
+    },
+    "navigation": {
+      "viewDay": "View by day",
+      "viewWeek": "View by week",
+      "viewMonth": "View by month",
+      "viewYear": "View by year",
+      "viewAgenda": "View by agenda",
+      "addEvent": "Add Event",
+      "events": "events",
+      "allUsers": "All"
+    },
+    "days": {
+      "short": {
+        "sun": "Sun",
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat"
+      },
+      "long": {
+        "sunday": "Sunday",
+        "monday": "Monday",
+        "tuesday": "Tuesday",
+        "wednesday": "Wednesday",
+        "thursday": "Thursday",
+        "friday": "Friday",
+        "saturday": "Saturday"
+      }
+    },
+    "settings": {
+      "badgeVariant": {
+        "title": "Change badge variant",
+        "dot": "Dot",
+        "colored": "Colored",
+        "mixed": "Mixed"
+      },
+      "visibleHours": {
+        "title": "Change visible hours",
+        "from": "From",
+        "to": "To",
+        "apply": "Apply",
+        "tooltip": "If an event falls outside the specified visible hours, the visible hours will automatically adjust to include that event."
+      },
+      "workingHours": {
+        "title": "Change working hours",
+        "from": "From",
+        "to": "To",
+        "apply": "Apply",
+        "closed": "Closed",
+        "tooltip": "This will apply a dashed background to the hour cells that fall outside the working hours — only for week and day views."
+      }
+    },
+    "validation": {
+      "titleRequired": "Title is required",
+      "descriptionRequired": "Description is required",
+      "startDateRequired": "Start date is required",
+      "startTimeRequired": "Start time is required",
+      "endDateRequired": "End date is required",
+      "endTimeRequired": "End time is required",
+      "colorRequired": "Color is required"
+    },
+    "messages": {
+      "noEvents": "No events scheduled for the selected month",
+      "multiDayEvent": "Day {{currentDay}} of {{totalDays}} •",
+      "formatError": "Error while formatting ",
+      "happeningNow": "Happening now",
+      "noAppointments": "No appointments or consultations at the moment",
+      "weeklyViewNotAvailable": "Weekly view is not available on smaller devices.",
+      "switchToOtherView": "Please switch to daily or monthly view."
+    }
+  }
+}

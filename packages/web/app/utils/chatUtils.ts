@@ -1,4 +1,4 @@
-import { AI_MESSAGE_ROLES, Conversation } from '@/app/types/chat';
+import { AI_MESSAGE_ROLES, type Conversation } from '@/app/types/chat';
 
 /**
  * Calculate the number of consecutive user messages at the end of a conversation

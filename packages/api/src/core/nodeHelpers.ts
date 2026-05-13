@@ -1,4 +1,4 @@
-import type { ModelMessage, ToolChoice, ToolSet } from 'ai';
+import type { ModelMessage, Tool, ToolChoice, ToolSet } from 'ai';
 
 import { getEdgesFromNode, getNode } from '@src/stateMachine/graph/index.js';
 import { buildNextAgentConfig } from '@src/stateMachine/index.js';
@@ -7,13 +7,18 @@ import type { DispatchSentinel } from '@src/types/sentinels.js';
 import type { Context } from '@src/types/tools.js';
 import { logger } from '@src/utils/logger.js';
 
+import { toAiSdkToolDict } from '../providers/types.js';
 import { buildGlobalNodeConfig, processReplyNode, processToolNode } from './nodeProcessor.js';
 import type { ToolCallsArray } from './nodeProcessorHelpers.js';
+import { providerCtxFromContext } from './providerCtxFromContext.js';
+import { resolveToolsForCurrentNode } from './resolveToolsForCurrentNode.js';
 import { processStructuredOutputNode } from './structuredOutputProcessor.js';
 import { createEmptyTokenLog } from './tokenTracker.js';
 import type { CallAgentInput, NodeProcessingConfig } from './types.js';
 
 export type { ToolCallsArray } from './nodeProcessorHelpers.js';
+
+const EMPTY_LENGTH = 0;
 
 export interface ProcessNodeResult {
   parsedResult: ParsedResult;
@@ -50,6 +55,17 @@ function isGlobalNode(context: Context, nodeID: string): boolean {
   return node.global;
 }
 
+async function resolveRegistryTools(context: Context, currentNodeID: string): Promise<Record<string, Tool>> {
+  if (context.registry === undefined || context.toolsOverride !== undefined) return {};
+  const edges = await getEdgesFromNode(context.graph, context, currentNodeID);
+  const resolved = await resolveToolsForCurrentNode({
+    registry: context.registry,
+    ctx: providerCtxFromContext(context),
+    currentNodeOutgoingEdges: edges,
+  });
+  return toAiSdkToolDict(resolved.tools);
+}
+
 async function getNodeConfig(
   context: Context,
   currentNodeID: string,
@@ -58,8 +74,11 @@ async function getNodeConfig(
 ): Promise<NodeProcessingConfig> {
   const isGlobal = isGlobalNode(context, currentNodeID);
   if (isGlobal) return buildGlobalNodeConfig(context, nodeBeforeGlobal, currentNodeID);
+  const registryTools = await resolveRegistryTools(context, currentNodeID);
+  const mergedOverride = { ...registryTools, ...context.toolsOverride };
+  const toolsOverride = Object.keys(mergedOverride).length > EMPTY_LENGTH ? mergedOverride : undefined;
   return await buildNextAgentConfig(context.graph, context, currentNodeID, {
-    toolsOverride: context.toolsOverride,
+    toolsOverride,
     structuredOutputs,
   });
 }

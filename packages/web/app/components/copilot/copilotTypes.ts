@@ -1,14 +1,14 @@
-export type CopilotTextBlock = {
+export interface CopilotTextBlock {
   type: 'text';
   content: string;
-};
+}
 
-export type CopilotActionBlock = {
+export interface CopilotActionBlock {
   type: 'action';
   icon: string;
   title: string;
   description: string;
-};
+}
 
 export type CopilotMessageBlock = CopilotTextBlock | CopilotActionBlock;
 

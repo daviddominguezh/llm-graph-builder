@@ -1,12 +1,10 @@
 import type { AgentLoopResult, AgentStepEvent, AgentToolEvent } from '@daviddh/llm-graph-runner';
 
 import type { SupabaseClient } from '../db/queries/operationHelpers.js';
-import type { McpSession } from '../mcp/lifecycle.js';
 import type { SimulateAgentRequest } from './simulateAgentTypes.js';
 
 export interface OrchestratorConfig {
   body: SimulateAgentRequest;
-  session: McpSession;
   depth: number;
   maxNestingDepth: number;
   orgId: string;

@@ -34,7 +34,7 @@ function trimOldestIfNeeded(sessions: CopilotSession[]): CopilotSession[] {
 function deriveTitle(message: CopilotMessage, session: CopilotSession): string {
   if (session.messages.length !== 0 || message.role !== 'user') return session.title;
   const firstBlock = message.blocks[0];
-  if (!firstBlock || firstBlock.type !== 'text') return session.title;
+  if (firstBlock?.type !== 'text') return session.title;
   return firstBlock.content.slice(0, TITLE_MAX_LENGTH);
 }
 

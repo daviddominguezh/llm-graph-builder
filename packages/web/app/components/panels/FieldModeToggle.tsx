@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useTranslations } from 'next-intl';
 
 export type FieldMode = 'inferred' | 'fixed' | 'reference';
@@ -29,18 +29,17 @@ export function FieldModeToggle({ mode, onModeChange, readOnly }: FieldModeToggl
   if (readOnly) return null;
 
   return (
-    <div className="flex gap-1">
+    <RadioGroup
+      value={mode}
+      onValueChange={(v) => onModeChange(v as FieldMode)}
+      className="flex w-auto flex-row flex-wrap items-center gap-x-3 gap-y-1"
+    >
       {MODES.map((m) => (
-        <Button
-          key={m}
-          variant={mode === m ? 'default' : 'ghost'}
-          size="sm"
-          onClick={() => onModeChange(m)}
-          className="h-5 px-1.5 text-[9px] font-medium"
-        >
-          {getModeLabel(m, t)}
-        </Button>
+        <label key={m} className="flex cursor-pointer items-center gap-1.5">
+          <RadioGroupItem value={m} className="size-3" />
+          <span className="text-[10px] font-medium leading-none">{getModeLabel(m, t)}</span>
+        </label>
       ))}
-    </div>
+    </RadioGroup>
   );
 }

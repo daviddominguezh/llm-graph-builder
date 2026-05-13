@@ -1,4 +1,5 @@
 import type { Edge, Node, ReactFlowInstance } from '@xyflow/react';
+import type { RefObject } from 'react';
 import { useCallback, useState } from 'react';
 
 import {
@@ -16,6 +17,11 @@ const FIT_PADDING = 0.3;
 const FIT_DURATION = 300;
 const FIT_DELAY = 50;
 const EXIT_DURATION = 300;
+const SIM_PANEL_SELECTOR = '[data-simulation-panel]';
+const ONE = 1;
+const HALF = 2;
+const NO_OCCLUSION = 0;
+const PAD_FACTOR = ONE / (ONE + FIT_PADDING);
 
 type NodeArray = Array<Node<RFNodeData>>;
 type EdgeArray = Array<Edge<RFEdgeData>>;
@@ -34,6 +40,85 @@ interface UseZoomViewParams {
   setSelectedNodeId: (id: string | null) => void;
   setSelectedEdgeId: (id: string | null) => void;
   reactFlow: Pick<ReactFlowInstance, 'getViewport' | 'setViewport' | 'fitView'>;
+  wrapperRef: RefObject<HTMLDivElement | null>;
+}
+
+interface BoundsRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+function getLeftPanelOcclusion(wrapper: HTMLElement): number {
+  const panel = document.querySelector(SIM_PANEL_SELECTOR);
+  if (panel === null) return NO_OCCLUSION;
+  const c = wrapper.getBoundingClientRect();
+  const p = panel.getBoundingClientRect();
+  if (p.right <= c.left || p.left >= c.right) return NO_OCCLUSION;
+  return Math.max(NO_OCCLUSION, Math.min(c.width, p.right - c.left));
+}
+
+function computeBoundsFromNodes(
+  nodes: NodeArray,
+  dims: Record<string, { width: number; height: number }>
+): BoundsRect {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const n of nodes) {
+    const { [n.id]: dim } = dims;
+    minX = Math.min(minX, n.position.x);
+    minY = Math.min(minY, n.position.y);
+    maxX = Math.max(maxX, n.position.x + dim.width);
+    maxY = Math.max(maxY, n.position.y + dim.height);
+  }
+  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+}
+
+interface FitInput {
+  bounds: BoundsRect;
+  canvasWidth: number;
+  canvasHeight: number;
+  leftMargin: number;
+  currentZoom: number;
+}
+
+function computeViewportForBounds(input: FitInput): { x: number; y: number; zoom: number } {
+  const { bounds, canvasWidth, canvasHeight, leftMargin, currentZoom } = input;
+  const availWidth = Math.max(ONE, canvasWidth - leftMargin);
+  const xZoom = (availWidth * PAD_FACTOR) / Math.max(ONE, bounds.width);
+  const yZoom = (canvasHeight * PAD_FACTOR) / Math.max(ONE, bounds.height);
+  const zoom = Math.min(xZoom, yZoom, currentZoom);
+  const targetCenterX = leftMargin + availWidth / HALF;
+  const targetCenterY = canvasHeight / HALF;
+  const x = targetCenterX - (bounds.x + bounds.width / HALF) * zoom;
+  const y = targetCenterY - (bounds.y + bounds.height / HALF) * zoom;
+  return { x, y, zoom };
+}
+
+function fitToZoomView(
+  nodes: NodeArray,
+  dims: Record<string, { width: number; height: number }>,
+  params: UseZoomViewParams,
+  currentZoom: number
+): void {
+  const {
+    wrapperRef: { current: wrapper },
+  } = params;
+  if (wrapper === null) {
+    void params.reactFlow.fitView({ padding: FIT_PADDING, duration: FIT_DURATION, maxZoom: currentZoom });
+    return;
+  }
+  const viewport = computeViewportForBounds({
+    bounds: computeBoundsFromNodes(nodes, dims),
+    canvasWidth: wrapper.clientWidth,
+    canvasHeight: wrapper.clientHeight,
+    leftMargin: getLeftPanelOcclusion(wrapper),
+    currentZoom,
+  });
+  void params.reactFlow.setViewport(viewport, { duration: FIT_DURATION });
 }
 
 interface UseZoomViewReturn {
@@ -143,7 +228,7 @@ function applyZoomView(nodeId: string, params: UseZoomViewParams, state: ZoomVie
 
   const { zoom: currentZoom } = params.reactFlow.getViewport();
   setTimeout(() => {
-    void params.reactFlow.fitView({ padding: FIT_PADDING, duration: FIT_DURATION, maxZoom: currentZoom });
+    fitToZoomView(repositioned, nodeDimensions, params, currentZoom);
   }, FIT_DELAY);
 }
 

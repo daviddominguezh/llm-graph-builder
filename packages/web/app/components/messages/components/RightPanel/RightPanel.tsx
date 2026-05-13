@@ -18,12 +18,15 @@ import { cn } from '@/lib/utils';
 import { ChevronDown, ChevronRight, Image as ImageIcon, NotepadText, X, Zap } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import NextImage from 'next/image';
+import { useParams } from 'next/navigation';
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import Avatar from 'react-nice-avatar';
 
 import { useChat, useTenantId } from '../../core/contexts';
 import { ChannelBadge } from '../../shared/icons';
 import { Slot } from '../../core/slots';
+import { FormDataSection } from './FormDataSection';
+import { useConversationForms } from './useConversationForms';
 
 interface RightPanelProps {
   activeChat: string | null;
@@ -73,6 +76,8 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
   const projectName = useTenantId();
   const isMobile = useIsMobile();
   const { notes, setNotes, notesRefreshTrigger, triggerNotesRefresh } = useChat();
+  const params = useParams<{ slug?: string }>();
+  const orgSlug = params?.slug ?? '';
 
   // Ref to track the current active chat (to prevent race conditions)
   const activeChatRef = useRef<string | null>(activeChat);
@@ -360,6 +365,14 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
         </div>
       </div>
 
+      {/* Forms data summary for the active conversation */}
+      <ConversationFormsBlock
+        agentId={chat?.agentId ?? null}
+        conversationId={activeChat}
+        agentSlug={chat?.agentSlug ?? ''}
+        orgSlug={orgSlug}
+      />
+
       {/* Separator between identity block and content sections */}
       {visibleSections.length > 0 && <div className="border-t border-border mx-3 mt-2" />}
 
@@ -428,6 +441,32 @@ const RightPanelComponent: React.FC<RightPanelProps> = ({
     </div>
   );
 };
+
+interface ConversationFormsBlockProps {
+  agentId: string | null;
+  conversationId: string | null;
+  agentSlug: string;
+  orgSlug: string;
+}
+
+function ConversationFormsBlock({
+  agentId,
+  conversationId,
+  agentSlug,
+  orgSlug,
+}: ConversationFormsBlockProps): React.ReactElement | null {
+  const { forms, formData, diagnostics } = useConversationForms(agentId, conversationId);
+  if (agentId === null || conversationId === null || forms.length === 0) return null;
+  return (
+    <FormDataSection
+      agentSlug={agentSlug}
+      orgSlug={orgSlug}
+      forms={forms}
+      formData={formData}
+      diagnostics={diagnostics}
+    />
+  );
+}
 
 // Memoize to prevent unnecessary re-renders
 export const RightPanel = memo(RightPanelComponent);

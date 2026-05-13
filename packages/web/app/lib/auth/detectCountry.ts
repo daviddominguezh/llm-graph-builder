@@ -84,7 +84,7 @@ function fromLocales(): Country | null {
   const locales = [navigator.language, ...(navigator.languages ?? [])];
   for (const loc of locales) {
     try {
-      const region = new Intl.Locale(loc).region;
+      const { region } = new Intl.Locale(loc);
       if (region !== undefined && ALLOWED_SET.has(region)) return region as Country;
     } catch {
       // malformed locale tag — skip

@@ -11,6 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -62,7 +63,7 @@ export function CancelInvitationDialog(props: CancelInvitationDialogProps) {
         <AlertDialogFooter>
           <AlertDialogCancel>{t('cancelInviteCancel')}</AlertDialogCancel>
           <AlertDialogAction variant="destructive" onClick={handleCancel} disabled={loading}>
-            {loading ? t('cancelling') : t('cancelInviteConfirm')}
+            {loading ? <Loader2 className="size-4 animate-spin" /> : t('cancelInviteConfirm')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

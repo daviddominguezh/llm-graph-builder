@@ -1,12 +1,5 @@
 'use client';
 
-import { MCP_LIBRARY_CATEGORIES } from '@daviddh/graph-types';
-import { AlertTriangle, Camera, Server } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import Image from 'next/image';
-import { type ChangeEvent, useRef, useState } from 'react';
-import { toast } from 'sonner';
-
 import { publishMcpAction } from '@/app/actions/mcpLibrary';
 import { extractVariableNames } from '@/app/lib/resolveVariables';
 import type { McpServerConfig } from '@/app/schemas/graph.schema';
@@ -16,6 +9,12 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { MCP_LIBRARY_CATEGORIES } from '@daviddh/graph-types';
+import { AlertTriangle, Camera, Loader2, Server } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import Image from 'next/image';
+import { type ChangeEvent, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 interface PublishMcpDialogProps {
   server: McpServerConfig;
@@ -55,7 +54,13 @@ interface PublishFormFieldsProps {
   onImageChange: (f: File | null) => void;
 }
 
-function ImagePicker({ imageFile, onImageChange }: { imageFile: File | null; onImageChange: (f: File | null) => void }) {
+function ImagePicker({
+  imageFile,
+  onImageChange,
+}: {
+  imageFile: File | null;
+  onImageChange: (f: File | null) => void;
+}) {
   const t = useTranslations('mcpLibrary');
   const fileRef = useRef<HTMLInputElement>(null);
   const previewUrl = imageFile !== null ? URL.createObjectURL(imageFile) : null;
@@ -67,9 +72,21 @@ function ImagePicker({ imageFile, onImageChange }: { imageFile: File | null; onI
   return (
     <div className="flex flex-col gap-1">
       <Label>{t('image')}</Label>
-      <Button variant="ghost" type="button" onClick={() => fileRef.current?.click()} className="group relative size-16 cursor-pointer rounded-md p-0">
+      <Button
+        variant="ghost"
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        className="group relative size-16 cursor-pointer rounded-md p-0"
+      >
         {previewUrl !== null ? (
-          <Image src={previewUrl} alt="MCP" width={64} height={64} className="size-16 rounded-md object-cover border" unoptimized />
+          <Image
+            src={previewUrl}
+            alt="MCP"
+            width={64}
+            height={64}
+            className="size-16 rounded-md object-cover border"
+            unoptimized
+          />
         ) : (
           <div className="flex size-16 items-center justify-center rounded-md bg-muted">
             <Server className="size-6 text-muted-foreground" />
@@ -79,12 +96,23 @@ function ImagePicker({ imageFile, onImageChange }: { imageFile: File | null; onI
           <Camera className="size-4 text-white opacity-0 transition-opacity group-hover:opacity-100" />
         </div>
       </Button>
-      <input ref={fileRef} type="file" accept=".png,.jpg,.jpeg,.webp" className="hidden" onChange={handleChange} />
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".png,.jpg,.jpeg,.webp"
+        className="hidden"
+        onChange={handleChange}
+      />
     </div>
   );
 }
 
-function PublishFormFields({ state, onDescriptionChange, onCategoryChange, onImageChange }: PublishFormFieldsProps) {
+function PublishFormFields({
+  state,
+  onDescriptionChange,
+  onCategoryChange,
+  onImageChange,
+}: PublishFormFieldsProps) {
   const t = useTranslations('mcpLibrary');
 
   return (
@@ -210,11 +238,11 @@ function PublishDialogBody({ server, orgId, onOpenChange, onPublished }: Publish
       />
       <VariablePreview variables={variables} />
       <DialogFooter>
-        <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <Button variant="outline" className="rounded-md" onClick={() => onOpenChange(false)}>
           {t('publishCancel')}
         </Button>
         <Button onClick={handlePublish} disabled={loading}>
-          {t('publishConfirm')}
+          {loading ? <Loader2 className="size-4 animate-spin" /> : t('publishConfirm')}
         </Button>
       </DialogFooter>
     </div>
@@ -226,11 +254,16 @@ export function PublishMcpDialog({ server, orgId, open, onOpenChange, onPublishe
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="pointer-events-auto">
         <DialogHeader>
           <DialogTitle>{t('publishTitle')}</DialogTitle>
         </DialogHeader>
-        <PublishDialogBody server={server} orgId={orgId} onOpenChange={onOpenChange} onPublished={onPublished} />
+        <PublishDialogBody
+          server={server}
+          orgId={orgId}
+          onOpenChange={onOpenChange}
+          onPublished={onPublished}
+        />
       </DialogContent>
     </Dialog>
   );

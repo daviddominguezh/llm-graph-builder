@@ -11,6 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -69,7 +70,7 @@ export function DeleteExecutionKeyDialog({
         <AlertDialogFooter>
           <AlertDialogCancel>{t('deleteCancel')}</AlertDialogCancel>
           <AlertDialogAction variant="destructive" onClick={handleDelete} disabled={loading}>
-            {t('deleteConfirm')}
+            {loading ? <Loader2 className="size-4 animate-spin" /> : t('deleteConfirm')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

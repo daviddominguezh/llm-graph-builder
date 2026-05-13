@@ -1,5 +1,5 @@
 import {
-  APP_SECTION,
+  type APP_SECTION,
   canAccessSection,
   getDefaultRouteForRole,
   getDefaultSettingsRouteForRole,
@@ -7,7 +7,7 @@ import {
 } from '@/app/components/messages/shared/utilStubs';
 import { useAppSelector } from '@/app/components/messages/store/mainStore';
 import { selectCurrentProjectName, selectCurrentProjectRole } from '@/app/components/messages/store/stubs';
-import { COLLABORATOR_ROLE } from '@/app/types/projectInnerSettings';
+import type { COLLABORATOR_ROLE } from '@/app/types/projectInnerSettings';
 import { useMemo } from 'react';
 
 interface UseRBACReturn {
@@ -40,18 +40,15 @@ export const useRBAC = (): UseRBACReturn => {
   const currentProjectName = useAppSelector(selectCurrentProjectName);
 
   // Get all permissions for the current role
-  const permissions = useMemo(() => {
-    return getRolePermissions(currentRole);
-  }, [currentRole]);
+  const permissions = useMemo(() => getRolePermissions(currentRole), [currentRole]);
 
   /**
    * Check if the current user can access a section
    */
   const canAccess = useMemo(
     () =>
-      (section: APP_SECTION): boolean => {
-        return canAccessSection(currentRole, section);
-      },
+      (section: APP_SECTION): boolean =>
+        canAccessSection(currentRole, section),
     [currentRole]
   );
 
@@ -64,9 +61,7 @@ export const useRBAC = (): UseRBACReturn => {
    * Get the default redirect route for the current role
    */
   const getRedirectRoute = useMemo(
-    () => (): string => {
-      return getDefaultRouteForRole(currentRole, currentProjectName || '');
-    },
+    () => (): string => getDefaultRouteForRole(currentRole, currentProjectName || ''),
     [currentRole, currentProjectName]
   );
 
@@ -74,9 +69,7 @@ export const useRBAC = (): UseRBACReturn => {
    * Get the default settings redirect route for the current role
    */
   const getSettingsRedirectRoute = useMemo(
-    () => (): string => {
-      return getDefaultSettingsRouteForRole(currentRole, currentProjectName || '');
-    },
+    () => (): string => getDefaultSettingsRouteForRole(currentRole, currentProjectName || ''),
     [currentRole, currentProjectName]
   );
 

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 
+import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
@@ -53,7 +54,7 @@ export function DeleteSessionDialog({ open, onOpenChange, sessionId, onDeleted }
         <AlertDialogFooter>
           <AlertDialogCancel>{t('deleteSessionCancel')}</AlertDialogCancel>
           <AlertDialogAction variant="destructive" onClick={handleDelete} disabled={loading}>
-            {t('deleteSessionConfirm')}
+            {loading ? <Loader2 className="size-4 animate-spin" /> : t('deleteSessionConfirm')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

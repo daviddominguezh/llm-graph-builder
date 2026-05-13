@@ -20,6 +20,7 @@
     ],
     "paths": {
       "@/*": ["./*"],
+      "@cc/*": ["./vendor/closer-calendar/*"],
       "@daviddh/graph-types": ["../graph-types/src/index.ts"],
       "@daviddh/llm-graph-runner": ["../api/src/index.ts"],
       "@openflow/shared-validation": ["../shared-validation/src/index.ts"],

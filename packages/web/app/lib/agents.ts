@@ -1,3 +1,4 @@
+import type { SelectedTool } from '@daviddh/llm-graph-runner';
 import { cache } from 'react';
 
 import { fetchFromBackend } from './backendProxy';
@@ -25,6 +26,7 @@ export interface AgentRow {
   app_type: string;
   system_prompt: string | null;
   max_steps: number | null;
+  selected_tools: SelectedTool[];
 }
 
 export type AgentMetadata = Pick<
@@ -40,7 +42,13 @@ export type AgentMetadata = Pick<
 /* ------------------------------------------------------------------ */
 
 export function isAgentRow(value: unknown): value is AgentRow {
-  return typeof value === 'object' && value !== null && 'id' in value && 'slug' in value;
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'id' in value &&
+    'slug' in value &&
+    'selected_tools' in value
+  );
 }
 
 function isAgentMetadataArray(value: unknown): value is AgentMetadata[] {

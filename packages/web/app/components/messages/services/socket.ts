@@ -6,11 +6,11 @@ import {
   SOCKET_RECONNECT_WAIT_TIEMOUT_MS,
   SOCKET_TIMEOUT_MS,
 } from '@/app/constants/socket';
-import { LastMessage } from '@/app/types/chat';
-import { FetchFilesOptions, FileFetchingData, FileFetchingStatus } from '@/app/types/drive';
-import { MessageFetchingStatus } from '@/app/types/messages';
-import { SocketCallback } from '@/app/types/socket';
-import { Socket, io } from 'socket.io-client';
+import type { LastMessage } from '@/app/types/chat';
+import type { FetchFilesOptions, FileFetchingData, FileFetchingStatus } from '@/app/types/drive';
+import type { MessageFetchingStatus } from '@/app/types/messages';
+import type { SocketCallback } from '@/app/types/socket';
+import { type Socket, io } from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
 
 let socket: Socket;
@@ -274,7 +274,7 @@ export const fetchFilesViaSocket = async (
   // Generate a new request ID
   const requestId = `file-request-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
-  return new Promise<FileFetchingData | null>((resolve, reject) => {
+  return await new Promise<FileFetchingData | null>((resolve, reject) => {
     try {
       // Register the callback for status updates
       requestCallbacks.set(requestId, (req) => {

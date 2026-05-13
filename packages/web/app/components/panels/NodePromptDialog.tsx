@@ -1,39 +1,33 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useTransition } from "react";
-import { Loader2, SquareTerminal } from "lucide-react";
-import { useEdges } from "@xyflow/react";
-import { MarkdownHooks } from "react-markdown";
-import rehypeStarryNight from "rehype-starry-night";
-import remarkBreaks from "remark-breaks";
-import remarkGfm from "remark-gfm";
-import "@/app/styles/starry-night.css";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import '@/app/styles/starry-night.css';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { OutputSchemaEntity } from '@daviddh/graph-types';
+import { useEdges } from '@xyflow/react';
+import type { Edge, Node } from '@xyflow/react';
+import { Check, Copy, Loader2, SquareTerminal } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useCallback, useEffect, useState, useTransition } from 'react';
+import { MarkdownHooks } from 'react-markdown';
+import rehypeStarryNight from 'rehype-starry-night';
+import remarkBreaks from 'remark-breaks';
+import remarkGfm from 'remark-gfm';
 
-import type { RFNodeData, RFEdgeData } from "../../utils/graphTransformers";
-import type { Node, Edge } from "@xyflow/react";
-import type { Agent } from "../../schemas/graph.schema";
-import type { ContextPreset } from "../../types/preset";
-import { buildPromptForNode } from "../../utils/buildPromptForNode";
+import type { Agent } from '../../schemas/graph.schema';
+import type { ContextPreset } from '../../types/preset';
+import { buildPromptForNode } from '../../utils/buildPromptForNode';
+import type { RFEdgeData, RFNodeData } from '../../utils/graphTransformers';
 
 interface NodePromptDialogProps {
   nodeId: string;
@@ -51,6 +45,8 @@ interface PromptState {
   error: string | null;
 }
 
+const COPY_FEEDBACK_DURATION = 1500;
+
 function PromptLoading() {
   return (
     <div className="flex items-center justify-center py-8">
@@ -59,34 +55,53 @@ function PromptLoading() {
   );
 }
 
+function CopyPromptButton({ text }: { text: string }) {
+  const t = useTranslations('common');
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => {
+      setCopied(false);
+    }, COPY_FEEDBACK_DURATION);
+  }, [text]);
+
+  const Icon = copied ? Check : Copy;
+  const label = copied ? t('copied') : t('copyPrompt');
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      className="absolute right-1 top-1 z-10 text-muted-foreground hover:text-foreground rounded-full"
+      onClick={handleCopy}
+      aria-label={label}
+      title={label}
+    >
+      <Icon />
+    </Button>
+  );
+}
+
 function PromptContent({ state }: { state: PromptState }) {
   if (state.loading) return <PromptLoading />;
 
   if (state.error) {
-    return (
-      <div className="rounded-md bg-destructive/10 p-3 text-xs text-destructive">
-        {state.error}
-      </div>
-    );
+    return <div className="rounded-md bg-destructive/10 p-3 text-xs text-destructive">{state.error}</div>;
   }
 
   return (
-    <Tabs defaultValue="markdown" className="flex flex-1 flex-col min-h-0">
-      <TabsList className="w-fit">
-        <TabsTrigger value="markdown">Markdown</TabsTrigger>
-        <TabsTrigger value="plain">Plain text</TabsTrigger>
-      </TabsList>
-      <TabsContent value="markdown" className="min-h-0 overflow-y-auto rounded-md border p-3 text-xs">
-        <div className="markdown-content">
+    <div className="relative flex flex-1 min-h-0">
+      <CopyPromptButton text={state.text} />
+      <div className="w-full overflow-y-auto min-h-0 flex-1">
+        <div className="w-full markdown-content h-full rounded-md p-3 text-xs bg-input/70">
           <MarkdownHooks remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeStarryNight]}>
             {state.text}
           </MarkdownHooks>
         </div>
-      </TabsContent>
-      <TabsContent value="plain" className="min-h-0 overflow-y-auto rounded-md border p-3 text-xs font-mono whitespace-pre-wrap">
-        {state.text}
-      </TabsContent>
-    </Tabs>
+      </div>
+    </div>
   );
 }
 
@@ -94,19 +109,21 @@ function PresetSelector({
   presets,
   activePresetId,
   onSetActivePreset,
-}: Pick<NodePromptDialogProps, "presets" | "activePresetId" | "onSetActivePreset">) {
+}: Pick<NodePromptDialogProps, 'presets' | 'activePresetId' | 'onSetActivePreset'>) {
   return (
     <div className="flex items-center gap-2">
       <Label className="text-xs shrink-0">Preset</Label>
       <Select
         value={activePresetId}
-        onValueChange={(v) => { if (v) onSetActivePreset(v); }}
+        onValueChange={(v) => {
+          if (v) onSetActivePreset(v);
+        }}
         items={presets.map((p) => ({ value: p.id, label: p.name }))}
       >
         <SelectTrigger className="w-full">
           <SelectValue />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent side="bottom" align="end" alignItemWithTrigger={false} className="w-auto min-w-(--anchor-width)">
           {presets.map((p) => (
             <SelectItem key={p.id} value={p.id}>
               {p.name}
@@ -129,7 +146,7 @@ export function NodePromptDialog({
 }: NodePromptDialogProps) {
   const edges = useEdges<Edge<RFEdgeData>>();
   const [open, setOpen] = useState(false);
-  const [prompt, setPrompt] = useState<PromptState>({ text: "", loading: false, error: null });
+  const [prompt, setPrompt] = useState<PromptState>({ text: '', loading: false, error: null });
   const [, startTransition] = useTransition();
 
   const activePreset = presets.find((p) => p.id === activePresetId);
@@ -139,7 +156,7 @@ export function NodePromptDialog({
 
     let cancelled = false;
     startTransition(() => {
-      setPrompt({ text: "", loading: true, error: null });
+      setPrompt({ text: '', loading: true, error: null });
     });
 
     buildPromptForNode({ nodes: allNodes, edges, nodeId, preset: activePreset, agents, outputSchemas })
@@ -148,8 +165,8 @@ export function NodePromptDialog({
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        const message = err instanceof Error ? err.message : "Failed to generate prompt";
-        setPrompt({ text: "", loading: false, error: message });
+        const message = err instanceof Error ? err.message : 'Failed to generate prompt';
+        setPrompt({ text: '', loading: false, error: message });
       });
 
     return () => {
@@ -158,18 +175,23 @@ export function NodePromptDialog({
   }, [open, nodeId, activePreset, agents, allNodes, edges, outputSchemas, startTransition]);
 
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger
         render={
           <Button className="text-muted-foreground" variant="ghost" size="icon" title="View prompt">
             <SquareTerminal />
           </Button>
         }
       />
-      <AlertDialogContent size="lg" className="h-[85vh] flex flex-col">
-        <AlertDialogHeader>
-          <AlertDialogTitle>Prompt: {nodeId}</AlertDialogTitle>
-        </AlertDialogHeader>
+      <DialogContent
+        showCloseButton={false}
+        className="h-[85vh] sm:max-w-4xl flex flex-col"
+      >
+        <DialogHeader>
+          <DialogTitle>
+            Prompt: <span className="font-mono font-normal">{nodeId}</span>
+          </DialogTitle>
+        </DialogHeader>
         <div className="flex flex-col gap-3 flex-1 min-h-0">
           <PresetSelector
             presets={presets}
@@ -178,10 +200,10 @@ export function NodePromptDialog({
           />
           <PromptContent state={prompt} />
         </div>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Close</AlertDialogCancel>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" className="rounded-md" />}>Close</DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

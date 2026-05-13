@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { GlassPanel } from '@/components/ui/glass-panel';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -28,6 +29,7 @@ export function SearchDialog({ nodes, open, onClose, onSelectNode }: SearchDialo
   const t = useTranslations('connectionMenu');
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
+  const [keyboardMode, setKeyboardMode] = useState(false);
   const [prevOpen, setPrevOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -37,6 +39,7 @@ export function SearchDialog({ nodes, open, onClose, onSelectNode }: SearchDialo
     setPrevOpen(true);
     setQuery('');
     setActiveIndex(0);
+    setKeyboardMode(false);
   }
   if (!open && prevOpen) {
     setPrevOpen(false);
@@ -80,11 +83,13 @@ export function SearchDialog({ nodes, open, onClose, onSelectNode }: SearchDialo
     }
     if (e.key === 'ArrowDown') {
       e.preventDefault();
+      setKeyboardMode(true);
       setActiveIndex((prev) => Math.min(prev + 1, results.length - 1));
       return;
     }
     if (e.key === 'ArrowUp') {
       e.preventDefault();
+      setKeyboardMode(true);
       setActiveIndex((prev) => Math.max(prev - 1, 0));
       return;
     }
@@ -100,46 +105,53 @@ export function SearchDialog({ nodes, open, onClose, onSelectNode }: SearchDialo
   return (
     <div
       ref={containerRef}
-      className="absolute top-12.5 left-1/2 z-20 -translate-x-1/2 w-[28rem] h-80 flex flex-col rounded-lg border bg-background shadow-lg pointer-events-auto"
+      className="absolute top-[20%] left-1/2 z-20 -translate-x-1/2 w-[28rem] h-80 flex flex-col pointer-events-auto"
     >
-      <div className="flex items-center gap-2 px-3 py-2 border-b">
-        <Search className="size-3.5 text-muted-foreground shrink-0" />
-        <Input
-          ref={inputRef}
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setActiveIndex(0);
-          }}
-          onKeyDown={handleKeyDown}
-          placeholder={t('searchNodes')}
-          className="h-7 border-0 bg-transparent! p-0 text-xs shadow-none focus-visible:ring-0"
-        />
-      </div>
-      <ul className="flex-1 overflow-y-auto p-1 gap-1 flex flex-col px-2 pt-2.5">
-        {results.length === 0 ? (
-          <li className="px-3 py-2 text-xs text-muted-foreground bg-card rounded-md">{t('noNodesFound')}</li>
-        ) : (
-          results.map((node, i) => (
-            <li
-              key={node.id}
-              className={`cursor-pointer group bg-card py-1.5 rounded-sm ${i === activeIndex ? 'bg-accent/10!' : 'hover:bg-input'}`}
-              onMouseEnter={() => setActiveIndex(i)}
-              onClick={() => handleSelect(node.id)}
-            >
-              <Button
-                variant="ghost"
-                className={`flex h-auto w-full flex-col bg-transparent items-start justify-center rounded-md px-3 py-1.5 text-left text-xs border-l-2 border-transparent rounded-none group-hover:bg-transparent! border-0 border-l-2 border-ring py-0 ${i === activeIndex ? 'border-accent' : ''}`}
-              >
-                <span className="font-medium">{node.id}</span>
-                {node.text && node.text.length > 0 && (
-                  <span className="text-[10px] text-muted-foreground truncate">{node.text}</span>
-                )}
-              </Button>
+      <GlassPanel className="w-full h-full rounded-xl">
+        <div className="flex items-center gap-2 px-3 py-2 border-b">
+          <Search className="size-3.5 text-muted-foreground shrink-0" />
+          <Input
+            ref={inputRef}
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setActiveIndex(0);
+            }}
+            onKeyDown={handleKeyDown}
+            placeholder={t('searchNodes')}
+            className="h-7 border-0 bg-transparent! p-0 text-xs shadow-none focus-visible:ring-0"
+          />
+        </div>
+        <ul className="flex-1 overflow-y-auto p-1 gap-1 flex flex-col px-2 pt-2.5">
+          {results.length === 0 ? (
+            <li className="px-3 py-2 text-xs text-muted-foreground bg-input/70 rounded-md">
+              {t('noNodesFound')}
             </li>
-          ))
-        )}
-      </ul>
+          ) : (
+            results.map((node, i) => (
+              <li
+                key={node.id}
+                className={`cursor-pointer group bg-transparent py-1.5 rounded-sm ${i === activeIndex ? 'bg-input/70!' : keyboardMode ? '' : 'hover:bg-input/70'}`}
+                onMouseMove={() => {
+                  setKeyboardMode(false);
+                  setActiveIndex(i);
+                }}
+                onClick={() => handleSelect(node.id)}
+              >
+                <Button
+                  variant="ghost"
+                  className={`flex h-auto w-full flex-col bg-transparent items-start justify-center rounded-md px-3 py-1.5 text-left text-xs border-transparent rounded-none group-hover:bg-transparent! border-0 border-ring py-0 ${i === activeIndex ? 'border-accent' : ''}`}
+                >
+                  <span className="font-medium font-mono">{node.id.toLocaleLowerCase()}</span>
+                  {node.text && node.text.length > 0 && (
+                    <span className="text-[10px] text-muted-foreground truncate">{node.text}</span>
+                  )}
+                </Button>
+              </li>
+            ))
+          )}
+        </ul>
+      </GlassPanel>
     </div>
   );
 }

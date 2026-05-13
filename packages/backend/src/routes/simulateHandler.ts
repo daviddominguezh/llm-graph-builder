@@ -1,14 +1,22 @@
-import type { CallAgentOutput, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
-import { executeWithCallbacks, injectSystemTools } from '@daviddh/llm-graph-runner';
+import type {
+  CalendarService,
+  CallAgentOutput,
+  Context,
+  NodeProcessedEvent,
+  OAuthTokenBundle,
+} from '@daviddh/llm-graph-runner';
+import { executeWithCallbacks } from '@daviddh/llm-graph-runner';
 import type { Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
 
 import { createServiceClient } from '../db/queries/executionAuthQueries.js';
+import { createGoogleCalendarService } from '../google/calendar/service.js';
 import { consoleLogger } from '../logger.js';
 import { type McpSession, closeMcpSession, createMcpSession } from '../mcp/lifecycle.js';
 import type { SimulateRequest } from '../types.js';
 import { buildContext, setSseHeaders, sumTokens, writeSSE } from './simulate.js';
 import { resolveChildConfig } from './simulateChildResolver.js';
+import { buildSimulationProviderCtx, buildSimulationRegistry } from './simulationProviderCtx.js';
 
 const EMPTY_SESSION: McpSession = { clients: [], tools: {} };
 const CHILD_DEPTH = 1;
@@ -118,14 +126,64 @@ function sendError(res: Response, err: unknown): void {
   writeSSE(res, { type: 'error', message });
 }
 
-async function runSimulation(body: SimulateRequest, session: McpSession, res: Response): Promise<void> {
-  const context = buildContext(body);
-  const tools = injectSystemTools({ existingTools: session.tools, isChildAgent: false });
+function resolveCalendarServices(orgId: string | undefined): {
+  calendarServices?: CalendarService;
+  orgId?: string;
+} {
+  if (orgId === undefined || orgId === '') return {};
+  return {
+    calendarServices: createGoogleCalendarService(createServiceClient()),
+    orgId,
+  };
+}
+
+function buildSimulationServicesResolver(
+  calendarServices: CalendarService | undefined
+): (providerId: string) => unknown {
+  return (providerId: string): unknown => {
+    if (providerId === 'calendar') return calendarServices;
+    return undefined;
+  };
+}
+
+function buildContextWithRegistry(
+  body: SimulateRequest,
+  calendarServices: CalendarService | undefined
+): Omit<Context, 'toolsOverride' | 'onNodeVisited'> {
+  const baseContext = buildContext(body);
+  const mcpServers = body.graph.mcpServers ?? [];
+  const services = buildSimulationServicesResolver(calendarServices);
+  const oauthTokens = new Map<string, OAuthTokenBundle>();
+  const providerCtx = buildSimulationProviderCtx({
+    orgId: body.orgId ?? '',
+    agentId: body.sessionID,
+    isChildAgent: false,
+    oauthTokens,
+    mcpServers,
+    services,
+  });
+  return {
+    ...baseContext,
+    registry: buildSimulationRegistry({ mcpServers }),
+    orgId: providerCtx.orgId,
+    agentId: providerCtx.agentId,
+    isChildAgent: providerCtx.isChildAgent,
+    conversationId: providerCtx.conversationId,
+    contextData: providerCtx.contextData,
+    oauthTokens: providerCtx.oauthTokens,
+    mcpServers: providerCtx.mcpServers,
+    services: providerCtx.services,
+    logger: consoleLogger,
+  };
+}
+
+async function runSimulation(body: SimulateRequest, res: Response): Promise<void> {
+  const calendar = resolveCalendarServices(body.orgId);
+  const context = buildContextWithRegistry(body, calendar.calendarServices);
   const result = await executeWithCallbacks({
     context,
     messages: body.messages,
     currentNode: body.currentNode,
-    toolsOverride: tools,
     logger: consoleLogger,
     structuredOutputs: body.structuredOutputs,
     onNodeVisited: (nodeId: string) => {
@@ -154,7 +212,7 @@ export async function handleSimulate(
   let session: McpSession = EMPTY_SESSION;
   try {
     session = await createMcpSession(mcpServers);
-    await runSimulation(body, session, res);
+    await runSimulation(body, res);
     writeSSE(res, { type: 'simulation_complete' });
     process.stdout.write('[simulate] workflow completed\n');
   } catch (err) {

@@ -117,7 +117,7 @@ function PublishStatus({ version }: { version: number }) {
       >
         {isPublished ? (
           <>
-            <span className="text-[10px] text-muted-foreground rounded-full px-1.5 font-mono mr-1.5 bg-input dark:bg-input/70">
+            <span className="text-[10px] text-muted-foreground rounded-full px-1.5 font-mono mr-1.5 bg-input/70">
               v{version}
             </span>
             <Separator orientation="vertical" />
@@ -203,7 +203,7 @@ function PopoverBody(props: PopoverBodyProps) {
             publishing={publishing}
           />
           <Button variant="default" size="sm" className="w-full" onClick={onPublish} disabled={publishing}>
-            {t('publish')} v{version + 1}
+            {publishing ? <Loader2 className="size-4 animate-spin" /> : `${t('publish')} v${version + 1}`}
           </Button>
         </>
       ) : (
@@ -218,7 +218,7 @@ function DisabledPublishButton() {
   const tKeys = useTranslations('apiKeys');
 
   const button = (
-    <Button variant="default" size="lg" disabled className="gap-1.5 px-3 rounded-full">
+    <Button variant="default" size="default" disabled className="gap-1.5 px-3 rounded-full ml-2 mr-1.5">
       {t('publish')}
     </Button>
   );
@@ -262,12 +262,12 @@ export function PublishButton(props: PublishButtonProps) {
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger
-        render={<Button variant="default" size="lg" className="gap-1.5 px-3 rounded-full pr-2" />}
+        render={<Button variant="default" size="sm" className="gap-1.5 px-3 rounded-full pr-2 ml-2 mr-1.5" />}
       >
         {t('publish')}
         <ChevronDown className='size-4' />
       </PopoverTrigger>
-      <PopoverContent side="bottom" align="end" sideOffset={8} className="w-96">
+      <PopoverContent side="bottom" align="center" sideOffset={8} className="w-96 mr-1.5 -mt-1">
         <PopoverBody
           agentSlug={agentSlug}
           orgSlug={orgSlug}

@@ -1,5 +1,6 @@
 import type { McpServerConfig } from '@daviddh/graph-types';
-import type { AgentToolCallRecord, Message, SkillDefinition } from '@daviddh/llm-graph-runner';
+import type { AgentToolCallRecord, Message, SelectedTool, SkillDefinition } from '@daviddh/llm-graph-runner';
+import { SelectedToolSchema } from '@daviddh/llm-graph-runner';
 import { z } from 'zod';
 
 /* --- Request schema --- */
@@ -72,6 +73,7 @@ export const SimulateAgentRequestSchema = z.object({
   skills: z.array(SkillSchema).optional(),
   composition: SimulationCompositionSchema.optional(),
   orgId: z.string().optional(),
+  selectedTools: z.array(SelectedToolSchema).optional(),
 });
 
 export interface SimulateAgentRequest {
@@ -85,6 +87,7 @@ export interface SimulateAgentRequest {
   mcpServers: McpServerConfig[];
   skills?: SkillDefinition[];
   orgId?: string;
+  selectedTools?: SelectedTool[];
   composition?: {
     depth: number;
     stack: Array<{
