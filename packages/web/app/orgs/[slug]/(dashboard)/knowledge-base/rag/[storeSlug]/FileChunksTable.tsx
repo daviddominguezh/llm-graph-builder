@@ -219,6 +219,19 @@ function pageLabel(c: DisplayChunk, t: ReturnType<typeof useTranslations>): stri
   return t('page', { page: start });
 }
 
+function ImageChunkPreview({ url }: { url: string }): React.JSX.Element {
+  return (
+    <div className="flex justify-start py-1">
+      <img
+        src={url}
+        alt=""
+        loading="lazy"
+        className="max-h-48 max-w-full rounded-md border object-contain"
+      />
+    </div>
+  );
+}
+
 function ChunkTableRow({
   c,
   showSimilarity,
@@ -227,12 +240,13 @@ function ChunkTableRow({
   showSimilarity: boolean;
 }): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragChunks');
+  const isImage = c.is_image === true;
   return (
     <tr className="border-b last:border-b-0">
-      <td className={PAGE_CELL_CLASS}>{pageLabel(c, t)}</td>
+      <td className={PAGE_CELL_CLASS}>{isImage ? '—' : pageLabel(c, t)}</td>
       {showSimilarity && <td className={META_CELL_CLASS}>{similarityCell(c)}</td>}
       <td className="group/chunk align-top py-2 px-3">
-        <ChunkContent content={c.content} />
+        {isImage ? <ImageChunkPreview url={c.content} /> : <ChunkContent content={c.content} />}
       </td>
     </tr>
   );

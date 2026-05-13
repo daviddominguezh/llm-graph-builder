@@ -15,6 +15,7 @@ export interface StagedFile {
   ocrMode: OcrMode;
   ocrModeLocked: boolean;
   plainExtraction: boolean;
+  imageEmbedding: boolean;
   languages: string[];
   status: StagedStatus;
   fileId: string | null;
@@ -40,19 +41,20 @@ function nextKey(): string {
 
 function stagedFromFile(file: File): StagedFile {
   const plainExtraction = isPlainExtractionFile(file);
-  const imageLocked = isImageFile(file);
-  // Plain-extraction files: OCR forced off, controls hidden.
-  // Images: OCR forced on, controls hidden.
-  const ocrLocked = plainExtraction || imageLocked;
+  const imageEmbedding = isImageFile(file);
+  // Plain extraction (txt/md/csv/json): OCR off, controls hidden.
+  // Image embedding (jpg/png/etc.): multimodal embedding, OCR controls hidden.
+  const ocrLocked = plainExtraction || imageEmbedding;
   const standardCompatible = isStandardOcrCompatible(file);
   return {
     key: nextKey(),
     file,
-    ocrEnabled: imageLocked,
+    ocrEnabled: false,
     ocrLocked,
     ocrMode: standardCompatible ? 'standard' : 'advanced',
     ocrModeLocked: !standardCompatible,
     plainExtraction,
+    imageEmbedding,
     languages: [],
     status: 'idle',
     fileId: null,

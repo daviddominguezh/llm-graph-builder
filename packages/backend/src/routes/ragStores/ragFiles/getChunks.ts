@@ -1,6 +1,7 @@
 import type { Request } from 'express';
 
 import { listChunksForFile } from '../../../db/queries/ragChunksQueries.js';
+import { resolveImageChunksContent } from '../../../rag/imageChunkResolver.js';
 import {
   type AuthenticatedLocals,
   type AuthenticatedResponse,
@@ -43,7 +44,8 @@ export async function handleGetChunks(req: Request, res: AuthenticatedResponse):
       res.status(HTTP_INTERNAL_ERROR).json({ error });
       return;
     }
-    res.status(HTTP_OK).json({ chunks: result, totalCount, page, pageSize });
+    const resolved = await resolveImageChunksContent(result);
+    res.status(HTTP_OK).json({ chunks: resolved, totalCount, page, pageSize });
   } catch (err) {
     res.status(HTTP_INTERNAL_ERROR).json({ error: extractErrorMessage(err) });
   }

@@ -248,7 +248,7 @@ export function StagedFileRow({
           <Trash2 className="size-3.5" />
         </Button>
       </div>
-      {!staged.plainExtraction && (
+      {!staged.plainExtraction && !staged.imageEmbedding && (
         <OcrControlsRow
           staged={staged}
           rowLocked={rowLocked}

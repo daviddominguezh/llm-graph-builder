@@ -41,6 +41,7 @@ export interface RagChunkRow {
   token_count: number | null;
   created_at: string;
   rank?: number;
+  is_image?: boolean;
 }
 
 export interface SemanticChunk extends RagChunkRow {

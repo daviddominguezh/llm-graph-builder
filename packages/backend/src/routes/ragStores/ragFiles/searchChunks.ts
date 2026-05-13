@@ -7,6 +7,7 @@ import {
 } from '../../../db/queries/ragChunksQueries.js';
 import { listFilesByStoreTenant } from '../../../db/queries/ragFilesQueries.js';
 import { embedQuery } from '../../../rag/embeddings.js';
+import { resolveImageChunksContent } from '../../../rag/imageChunkResolver.js';
 import { rerankRecords } from '../../../rag/rerank.js';
 import {
   type AuthenticatedLocals,
@@ -17,6 +18,7 @@ import {
   extractErrorMessage,
 } from '../../routeHelpers.js';
 import { runHybridSearch } from './hybridSearch.js';
+import { fetchImagePoolIfAny, mergePoolsByScore } from './imageSearchPool.js';
 import { getStoreIdParam, parseBoolean, parseNumber, parseString } from './ragFileHelpers.js';
 
 const DEFAULT_K = 5;
@@ -26,6 +28,7 @@ const MIN_SIMILARITY = 0;
 const MAX_SIMILARITY = 1;
 const DEFAULT_MIN_SIMILARITY = 0;
 const RERANK_CANDIDATE_POOL = 50;
+const EMPTY_POOL = 0;
 
 type Supabase = AuthenticatedLocals['supabase'];
 
@@ -94,7 +97,8 @@ async function runSimpleSearch(
     return;
   }
   const files = filesRes.result.filter((f) => f.filename.toLowerCase().includes(needle));
-  res.status(HTTP_OK).json({ mode: 'simple', files, chunks: chunksRes.result });
+  const chunks = await resolveImageChunksContent(chunksRes.result);
+  res.status(HTTP_OK).json({ mode: 'simple', files, chunks });
 }
 
 export interface RerankInputParams {
@@ -125,7 +129,7 @@ function log(msg: string): void {
   process.stdout.write(`[ragSem] ${msg}\n`);
 }
 
-async function runSemanticPipeline(supabase: Supabase, p: SearchParams): Promise<SemanticChunk[]> {
+async function fetchTextPool(supabase: Supabase, p: SearchParams): Promise<SemanticChunk[]> {
   const queryVector = await embedQuery(p.query);
   log(`embed ok dims=${String(queryVector.length)}`);
   const poolSize = p.rerank ? RERANK_CANDIDATE_POOL : p.k;
@@ -138,15 +142,30 @@ async function runSemanticPipeline(supabase: Supabase, p: SearchParams): Promise
   });
   if (error !== null) throw new Error(error);
   log(`rpc ok pool=${String(result.length)}`);
-  if (!p.rerank) return result;
+  return result;
+}
+
+async function maybeRerankTextPool(p: SearchParams, pool: SemanticChunk[]): Promise<SemanticChunk[]> {
+  if (!p.rerank) return pool;
   const chunks = await applyRerank({
     query: p.query,
-    candidates: result,
+    candidates: pool,
     topK: p.k,
     minScore: p.minSimilarity,
   });
   log(`rerank kept=${String(chunks.length)}`);
   return chunks;
+}
+
+async function runSemanticPipeline(supabase: Supabase, p: SearchParams): Promise<SemanticChunk[]> {
+  const textPool = await fetchTextPool(supabase, p);
+  const [textRanked, imagePool] = await Promise.all([
+    maybeRerankTextPool(p, textPool),
+    fetchImagePoolIfAny(supabase, { storeId: p.storeId, tenantId: p.tenantId, query: p.query, k: p.k }),
+  ]);
+  log(`image pool=${String(imagePool.length)}`);
+  if (imagePool.length === EMPTY_POOL) return textRanked;
+  return mergePoolsByScore(textRanked, imagePool, p.k);
 }
 
 async function runSemanticSearch(
@@ -156,7 +175,7 @@ async function runSemanticSearch(
 ): Promise<void> {
   log(`entry k=${String(p.k)} rerank=${String(p.rerank)} query="${p.query}"`);
   try {
-    const chunks = await runSemanticPipeline(supabase, p);
+    const chunks = await resolveImageChunksContent(await runSemanticPipeline(supabase, p));
     res.status(HTTP_OK).json({ mode: 'semantic', chunks });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

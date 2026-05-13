@@ -358,6 +358,7 @@ export function useStagedUpload({
         ocrEnabled: s.ocrEnabled,
         ocrMode: s.ocrMode,
         plainExtraction: s.plainExtraction,
+        imageEmbedding: s.imageEmbedding,
       };
       const result = await uploadOne(input, {
         onConfirmed: (fileId) => {

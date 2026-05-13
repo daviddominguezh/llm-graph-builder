@@ -6,6 +6,9 @@ const SIGNED_URL_TTL_MINUTES = 15;
 const SECONDS_PER_MINUTE = 60;
 const MS_PER_SECOND = 1000;
 const SIGNED_URL_EXPIRES_MS = SIGNED_URL_TTL_MINUTES * SECONDS_PER_MINUTE * MS_PER_SECOND;
+const READ_URL_TTL_HOURS = 24;
+const MINUTES_PER_HOUR = 60;
+const READ_URL_EXPIRES_MS = READ_URL_TTL_HOURS * MINUTES_PER_HOUR * SECONDS_PER_MINUTE * MS_PER_SECOND;
 
 let cachedStorage: Storage | null = null;
 function getStorage(): Storage {
@@ -20,6 +23,16 @@ function bucketName(): string {
 
 export function gcsUriFor(objectPath: string): string {
   return `gs://${bucketName()}/${objectPath}`;
+}
+
+export async function createReadSignedUrl(objectPath: string): Promise<string> {
+  const file = getStorage().bucket(bucketName()).file(objectPath);
+  const [url] = await file.getSignedUrl({
+    version: 'v4',
+    action: 'read',
+    expires: Date.now() + READ_URL_EXPIRES_MS,
+  });
+  return url;
 }
 
 export async function createUploadSignedUrl(objectPath: string, contentType: string): Promise<string> {

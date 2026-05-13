@@ -11,6 +11,7 @@ import { type SourcedChunk, maxPage } from './chunker.js';
 import { type OcrMode, checkOperation, submitBatch } from './documentAi.js';
 import { embedTexts } from './embeddings.js';
 import { readBytesObject, writeBytesObject } from './gcs.js';
+import { handleImage } from './imageHandler.js';
 import { derivePdfObjectPath, imageBytesToPdfBytes, isImageMime } from './imagePdf.js';
 import { splitLayoutChunks } from './layoutSplitter.js';
 import { extractLocalChunks } from './localExtraction.js';
@@ -72,10 +73,11 @@ async function persistChunks(
   return true;
 }
 
-type Pipeline = 'docai' | 'plain';
+type Pipeline = 'docai' | 'plain' | 'image';
 
-function resolvePipeline(value: string | null): Pipeline {
-  return value === 'plain' ? 'plain' : 'docai';
+function resolvePipeline(file: RagFileRow): Pipeline {
+  if (isImageMime(file.mime_type)) return 'image';
+  return file.ocr_mode === 'plain' ? 'plain' : 'docai';
 }
 
 function resolveOcrMode(value: string | null): OcrMode {
@@ -120,7 +122,17 @@ async function chunkViaPlain(file: RagFileRow): Promise<SourcedChunk[]> {
 }
 
 async function handleChunking(supabase: SupabaseClient, file: RagFileRow): Promise<void> {
-  const pipeline = resolvePipeline(file.ocr_mode);
+  const pipeline = resolvePipeline(file);
+  if (pipeline === 'image') {
+    await handleImage(supabase, file, {
+      fail: async (f, err) => {
+        await fail(supabase, f, err);
+      },
+      persistChunks: async (f, chunks) => await persistChunks(supabase, f, chunks),
+      log,
+    });
+    return;
+  }
   const chunks = pipeline === 'plain' ? await chunkViaPlain(file) : await chunkViaDocAi(supabase, file);
   if (chunks === null) return;
   if (chunks.length === EMPTY_LENGTH) {
@@ -267,8 +279,9 @@ export async function startParsing(supabase: SupabaseClient, fileId: string): Pr
     return;
   }
   try {
-    if (resolvePipeline(result.ocr_mode) === 'plain') {
-      log(`startParsing: file=${fileId} pipeline=plain (skip DocumentAI)`);
+    const pipeline = resolvePipeline(result);
+    if (pipeline !== 'docai') {
+      log(`startParsing: file=${fileId} pipeline=${pipeline} (skip DocumentAI)`);
       await updateStatus(supabase, fileId, { status: 'chunking' });
       return;
     }

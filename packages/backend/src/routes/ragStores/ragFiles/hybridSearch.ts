@@ -5,12 +5,14 @@ import {
   searchBySemantic,
 } from '../../../db/queries/ragChunksQueries.js';
 import { embedQuery } from '../../../rag/embeddings.js';
+import { resolveImageChunksContent } from '../../../rag/imageChunkResolver.js';
 import {
   type AuthenticatedLocals,
   type AuthenticatedResponse,
   HTTP_INTERNAL_ERROR,
   HTTP_OK,
 } from '../../routeHelpers.js';
+import { fetchImagePoolIfAny, mergePoolsByScore } from './imageSearchPool.js';
 import { type SearchParams, applyRerank } from './searchChunks.js';
 
 const HYBRID_POOL_PER_MODE = 50;
@@ -77,12 +79,7 @@ async function fetchHybridSources(
   return { semantic: semRes.result, simple: simRes.result };
 }
 
-async function runHybridPipeline(supabase: Supabase, p: SearchParams): Promise<SemanticChunk[]> {
-  const queryVector = await embedQuery(p.query);
-  log(`embed ok dims=${String(queryVector.length)}`);
-  const { semantic, simple } = await fetchHybridSources(supabase, p, queryVector);
-  const pool = buildHybridPool(semantic, simple);
-  log(`pool size=${String(pool.length)}`);
+async function rerankedTextHybrid(p: SearchParams, pool: PoolChunk[]): Promise<SemanticChunk[]> {
   const chunks = await applyRerank({
     query: p.query,
     candidates: pool,
@@ -93,6 +90,21 @@ async function runHybridPipeline(supabase: Supabase, p: SearchParams): Promise<S
   return chunks;
 }
 
+async function runHybridPipeline(supabase: Supabase, p: SearchParams): Promise<SemanticChunk[]> {
+  const queryVector = await embedQuery(p.query);
+  log(`embed ok dims=${String(queryVector.length)}`);
+  const { semantic, simple } = await fetchHybridSources(supabase, p, queryVector);
+  const pool = buildHybridPool(semantic, simple);
+  log(`pool size=${String(pool.length)}`);
+  const [reranked, imagePool] = await Promise.all([
+    rerankedTextHybrid(p, pool),
+    fetchImagePoolIfAny(supabase, { storeId: p.storeId, tenantId: p.tenantId, query: p.query, k: p.k }),
+  ]);
+  log(`image pool=${String(imagePool.length)}`);
+  if (imagePool.length === ZERO) return reranked;
+  return mergePoolsByScore(reranked, imagePool, p.k);
+}
+
 export async function runHybridSearch(
   supabase: Supabase,
   p: SearchParams,
@@ -100,7 +112,7 @@ export async function runHybridSearch(
 ): Promise<void> {
   log(`entry k=${String(p.k)} minSim=${String(p.minSimilarity)} query="${p.query}"`);
   try {
-    const chunks = await runHybridPipeline(supabase, p);
+    const chunks = await resolveImageChunksContent(await runHybridPipeline(supabase, p));
     res.status(HTTP_OK).json({ mode: 'hybrid', chunks });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

@@ -123,16 +123,29 @@ export async function listChunkIdsWithoutEmbedding(
   fileId: string,
   limit: number
 ): Promise<{ ids: string[]; texts: string[]; error: string | null }> {
+  // Only text chunks (image chunks live in image_embedding and skip this path).
   const { data, error } = await supabase
     .from('rag_chunks')
     .select('id, content')
     .eq('rag_file_id', fileId)
     .is('embedding', null)
+    .is('image_embedding', null)
     .limit(limit);
   if (error !== null) return { ids: [], texts: [], error: error.message };
   const rows: unknown[] = Array.isArray(data) ? data : [];
   const { ids, texts } = splitIdsAndTexts(rows);
   return { ids, texts, error: null };
+}
+
+export async function setImageEmbedding(
+  supabase: SupabaseClient,
+  id: string,
+  vector: number[]
+): Promise<{ error: string | null }> {
+  const literal = vectorLiteral(vector);
+  const { error } = await supabase.from('rag_chunks').update({ image_embedding: literal }).eq('id', id);
+  if (error !== null) return { error: error.message };
+  return { error: null };
 }
 
 function vectorLiteral(vector: number[]): string {
@@ -227,4 +240,34 @@ export async function searchBySemantic(
   if (error !== null) return { result: [], error: error.message };
   const rows: unknown[] = Array.isArray(data) ? data : [];
   return { result: mapSemanticRows(rows), error: null };
+}
+
+export async function searchByImageSemantic(
+  supabase: SupabaseClient,
+  input: SemanticSearchInput
+): Promise<{ result: SemanticChunk[]; error: string | null }> {
+  const literal = vectorLiteral(input.queryVector);
+  const { data, error } = (await supabase.rpc('rag_image_semantic_search', {
+    p_rag_store_id: input.ragStoreId,
+    p_tenant_id: input.tenantId,
+    p_query_vector: literal,
+    p_k: input.k,
+    p_max_distance: input.maxDistance,
+  })) as { data: unknown; error: { message: string } | null };
+  if (error !== null) return { result: [], error: error.message };
+  const rows: unknown[] = Array.isArray(data) ? data : [];
+  return { result: mapSemanticRows(rows), error: null };
+}
+
+export async function hasImageChunks(
+  supabase: SupabaseClient,
+  ragStoreId: string,
+  tenantId: string
+): Promise<{ result: boolean; error: string | null }> {
+  const { data, error } = (await supabase.rpc('rag_has_image_chunks', {
+    p_rag_store_id: ragStoreId,
+    p_tenant_id: tenantId,
+  })) as { data: unknown; error: { message: string } | null };
+  if (error !== null) return { result: false, error: error.message };
+  return { result: data === true, error: null };
 }
