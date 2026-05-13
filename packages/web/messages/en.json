@@ -926,7 +926,7 @@
       "pageDropOverlay": "Drop files to upload",
       "uploading": "Uploading…",
       "upload": "Upload",
-      "extensions": "pdf · docx · pptx · xlsx · html · jpg · jpeg · png",
+      "extensions": "pdf · docx · pptx · xlsx · html · jpg · jpeg · png · txt · md · csv · json",
       "dialogTitle": "Upload files",
       "dialogDescription": "Configure OCR and language hints, then start the upload.",
       "addFiles": "Add files",

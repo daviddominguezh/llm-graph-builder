@@ -61,7 +61,7 @@ export interface InitUploadInput {
   mimeType: string;
   sizeBytes: number;
   languageHints: string[];
-  ocrMode: 'standard' | 'advanced' | null;
+  ocrMode: 'standard' | 'advanced' | 'plain' | null;
 }
 
 export interface InitUploadResponse {

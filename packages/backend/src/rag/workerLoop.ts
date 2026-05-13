@@ -13,6 +13,7 @@ import { embedTexts } from './embeddings.js';
 import { readBytesObject, writeBytesObject } from './gcs.js';
 import { derivePdfObjectPath, imageBytesToPdfBytes, isImageMime } from './imagePdf.js';
 import { splitLayoutChunks } from './layoutSplitter.js';
+import { extractLocalChunks } from './localExtraction.js';
 import { splitOcrChunks } from './markdownSplitter.js';
 import {
   fetchAllShards,
@@ -71,6 +72,12 @@ async function persistChunks(
   return true;
 }
 
+type Pipeline = 'docai' | 'plain';
+
+function resolvePipeline(value: string | null): Pipeline {
+  return value === 'plain' ? 'plain' : 'docai';
+}
+
 function resolveOcrMode(value: string | null): OcrMode {
   return value === 'advanced' ? 'advanced' : 'standard';
 }
@@ -87,22 +94,37 @@ async function chunksFromShards(
   return await splitLayoutChunks(payload);
 }
 
-async function handleChunking(supabase: SupabaseClient, file: RagFileRow): Promise<void> {
+async function chunkViaDocAi(supabase: SupabaseClient, file: RagFileRow): Promise<SourcedChunk[] | null> {
   const prefix = file.parsed_uri ?? '';
   if (prefix === '') {
     await fail(supabase, file, 'chunking without parsed_uri');
-    return;
+    return null;
   }
   const mode = resolveOcrMode(file.ocr_mode);
   const shards = await fetchAllShards(prefix);
   await safeDumpShardsToDisk(file.id, shards, log);
   const chunks = await chunksFromShards(mode, shards);
   log(
-    `handleChunking: file=${file.id} mode=${mode} shards=${String(shards.length)} chunks=${String(chunks.length)}`
+    `handleChunking: file=${file.id} pipeline=docai mode=${mode} shards=${String(shards.length)} chunks=${String(chunks.length)}`
   );
   await safeDumpFinalChunks(file.id, chunks, log);
+  return chunks;
+}
+
+async function chunkViaPlain(file: RagFileRow): Promise<SourcedChunk[]> {
+  const bytes = await readBytesObject(file.gcs_object);
+  const chunks = await extractLocalChunks(Buffer.from(bytes), file.filename);
+  log(`handleChunking: file=${file.id} pipeline=plain chunks=${String(chunks.length)}`);
+  await safeDumpFinalChunks(file.id, chunks, log);
+  return chunks;
+}
+
+async function handleChunking(supabase: SupabaseClient, file: RagFileRow): Promise<void> {
+  const pipeline = resolvePipeline(file.ocr_mode);
+  const chunks = pipeline === 'plain' ? await chunkViaPlain(file) : await chunkViaDocAi(supabase, file);
+  if (chunks === null) return;
   if (chunks.length === EMPTY_LENGTH) {
-    await fail(supabase, file, 'no chunks produced by Document AI');
+    await fail(supabase, file, 'no chunks produced');
     return;
   }
   const ok = await persistChunks(supabase, file, chunks);
@@ -245,6 +267,11 @@ export async function startParsing(supabase: SupabaseClient, fileId: string): Pr
     return;
   }
   try {
+    if (resolvePipeline(result.ocr_mode) === 'plain') {
+      log(`startParsing: file=${fileId} pipeline=plain (skip DocumentAI)`);
+      await updateStatus(supabase, fileId, { status: 'chunking' });
+      return;
+    }
     await submitAndRecord(supabase, result);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

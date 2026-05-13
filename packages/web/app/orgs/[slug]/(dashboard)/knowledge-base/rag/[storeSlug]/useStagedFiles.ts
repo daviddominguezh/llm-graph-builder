@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 
-import { isImageFile, isStandardOcrCompatible } from './ragUploadConstants';
+import { isImageFile, isPlainExtractionFile, isStandardOcrCompatible } from './ragUploadConstants';
 
 export type StagedStatus = 'idle' | 'uploading' | 'parsing' | 'chunking' | 'embedding' | 'done' | 'failed';
 export type OcrMode = 'standard' | 'advanced';
@@ -14,6 +14,7 @@ export interface StagedFile {
   ocrLocked: boolean;
   ocrMode: OcrMode;
   ocrModeLocked: boolean;
+  plainExtraction: boolean;
   languages: string[];
   status: StagedStatus;
   fileId: string | null;
@@ -38,16 +39,20 @@ function nextKey(): string {
 }
 
 function stagedFromFile(file: File): StagedFile {
-  const ocrLocked = isImageFile(file);
+  const plainExtraction = isPlainExtractionFile(file);
+  const imageLocked = isImageFile(file);
+  // Plain-extraction files: OCR forced off, controls hidden.
+  // Images: OCR forced on, controls hidden.
+  const ocrLocked = plainExtraction || imageLocked;
   const standardCompatible = isStandardOcrCompatible(file);
   return {
     key: nextKey(),
     file,
-    // OCR off by default. Images force it on (ocrLocked).
-    ocrEnabled: ocrLocked,
+    ocrEnabled: imageLocked,
     ocrLocked,
     ocrMode: standardCompatible ? 'standard' : 'advanced',
     ocrModeLocked: !standardCompatible,
+    plainExtraction,
     languages: [],
     status: 'idle',
     fileId: null,

@@ -248,13 +248,15 @@ export function StagedFileRow({
           <Trash2 className="size-3.5" />
         </Button>
       </div>
-      <OcrControlsRow
-        staged={staged}
-        rowLocked={rowLocked}
-        onOcrChange={onOcrChange}
-        onOcrModeChange={onOcrModeChange}
-        onLanguagesChange={onLanguagesChange}
-      />
+      {!staged.plainExtraction && (
+        <OcrControlsRow
+          staged={staged}
+          rowLocked={rowLocked}
+          onOcrChange={onOcrChange}
+          onOcrModeChange={onOcrModeChange}
+          onLanguagesChange={onLanguagesChange}
+        />
+      )}
     </div>
   );
 }

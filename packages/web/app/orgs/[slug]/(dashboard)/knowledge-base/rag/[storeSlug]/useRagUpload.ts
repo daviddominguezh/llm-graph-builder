@@ -13,6 +13,7 @@ export interface UploadFileInput {
   languages: string[];
   ocrEnabled: boolean;
   ocrMode: 'standard' | 'advanced';
+  plainExtraction: boolean;
 }
 
 export interface UploadResult {
@@ -39,10 +40,13 @@ function resolveMime(file: File): string {
 export function useRagUpload({ storeId, tenantId }: UseRagUploadInput): UseRagUploadReturn {
   const uploadOne = useCallback(
     async (input: UploadFileInput, options: UploadOneOptions = {}): Promise<UploadResult> => {
-      const { file, languages, ocrEnabled, ocrMode } = input;
+      const { file, languages, ocrEnabled, ocrMode, plainExtraction } = input;
       const mime = resolveMime(file);
-      const sentMode = ocrEnabled ? ocrMode : null;
-      const sentHints = ocrEnabled && ocrMode === 'standard' ? languages : [];
+      let sentMode: 'standard' | 'advanced' | 'plain' | null = null;
+      if (plainExtraction) sentMode = 'plain';
+      else if (ocrEnabled) sentMode = ocrMode;
+      const sentHints =
+        !plainExtraction && ocrEnabled && ocrMode === 'standard' ? languages : [];
       console.log(
         `[ragUpload] init filename=${file.name} mime=${mime} mode=${sentMode ?? 'off'} languages=${JSON.stringify(sentHints)}`
       );

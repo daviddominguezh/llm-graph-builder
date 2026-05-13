@@ -357,6 +357,7 @@ export function useStagedUpload({
         languages: s.languages,
         ocrEnabled: s.ocrEnabled,
         ocrMode: s.ocrMode,
+        plainExtraction: s.plainExtraction,
       };
       const result = await uploadOne(input, {
         onConfirmed: (fileId) => {

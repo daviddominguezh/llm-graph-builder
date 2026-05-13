@@ -1,10 +1,14 @@
-export const ACCEPTED_EXTENSIONS = '.pdf,.docx,.pptx,.xlsx,.html,.jpg,.jpeg,.png';
+export const ACCEPTED_EXTENSIONS =
+  '.pdf,.docx,.pptx,.xlsx,.html,.jpg,.jpeg,.png,.txt,.md,.csv,.json';
 
 const IMAGE_EXTENSIONS: ReadonlySet<string> = new Set(['jpg', 'jpeg', 'png']);
 
 // Extensions supported by Enterprise Document OCR ("standard" mode).
 // Office formats + HTML can only be processed by Layout Parser ("advanced").
 const STANDARD_OCR_EXTENSIONS: ReadonlySet<string> = new Set(['pdf', 'jpg', 'jpeg', 'png']);
+
+// Extensions extracted locally without Document AI (plain text + structured).
+const PLAIN_EXTRACTION_EXTENSIONS: ReadonlySet<string> = new Set(['txt', 'md', 'csv', 'json']);
 
 function extensionOf(name: string): string {
   const dot = name.lastIndexOf('.');
@@ -21,6 +25,10 @@ export function isStandardOcrCompatible(file: { name: string; type: string }): b
   if (file.type === 'application/pdf') return true;
   if (file.type.startsWith('image/')) return true;
   return STANDARD_OCR_EXTENSIONS.has(extensionOf(file.name));
+}
+
+export function isPlainExtractionFile(file: { name: string; type: string }): boolean {
+  return PLAIN_EXTRACTION_EXTENSIONS.has(extensionOf(file.name));
 }
 
 export interface LanguageOption {

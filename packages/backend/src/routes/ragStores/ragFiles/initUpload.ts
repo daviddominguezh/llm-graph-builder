@@ -41,7 +41,7 @@ interface UploadInput {
 
 function parseOcrMode(body: unknown): string | null {
   const raw = parseString(body, 'ocrMode');
-  if (raw === 'standard' || raw === 'advanced') return raw;
+  if (raw === 'standard' || raw === 'advanced' || raw === 'plain') return raw;
   return null;
 }
 
