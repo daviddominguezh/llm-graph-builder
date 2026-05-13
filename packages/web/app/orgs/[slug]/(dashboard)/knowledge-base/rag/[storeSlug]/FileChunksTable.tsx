@@ -294,7 +294,7 @@ function FetchedChunks({ storeId, fileId }: { storeId: string; fileId: string })
     <>
       <ChunksTable stage={stage} rows={rows} />
 
-      <div className="sticky -bottom-[0px] z-10 bg-background border-t border-b">
+      <div className="sticky -bottom-[0px] z-10 bg-background border-t border-b overflow-hidden rounded-es-md rounded-ee-md">
         <TablePagination
           page={page}
           pageSize={PAGE_SIZE}

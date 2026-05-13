@@ -149,13 +149,13 @@ function FileRowHeader({
   const canToggle = status === 'done';
   const canDelete = !IN_PROGRESS.has(status);
   return (
-    <div className="sticky top-0 z-20 bg-background">
+    <div className="sticky top-0 z-20 bg-background rounded-md">
       <button
         type="button"
         onClick={canToggle ? onToggle : undefined}
         aria-expanded={canToggle ? expanded : undefined}
         aria-label={canToggle ? t('openChunks') : undefined}
-        className={`shadow-[inset_0_1px_0px_0px_var(--border),inset_0_-1px_0px_0px_var(--border)] flex h-9 w-full items-center gap-3 px-3 text-left ${canToggle ? 'cursor-pointer' : 'cursor-default'}`}
+        className={`overflow-hidden rounded-ss-md rounded-se-md shadow-[inset_0_1px_0px_0px_var(--border),inset_0_-1px_0px_0px_var(--border)] flex h-9 w-full items-center gap-3 px-3 text-left ${canToggle ? 'cursor-pointer' : 'cursor-default'}`}
       >
         <ChevronRight
           className={`size-4 shrink-0 transition-transform duration-150 ${
@@ -232,7 +232,7 @@ export function FileRow({
       onTerminal={() => onStatusReachedDone(file.id)}
     >
       {({ status, error }) => (
-        <div className="group border-l border-r">
+        <div className="group border-l border-r rounded-md">
           <FileRowHeader
             file={file}
             status={status}
