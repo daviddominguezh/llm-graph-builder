@@ -979,6 +979,8 @@
       "colSimilarity": "Similarity",
       "viewAll": "View all",
       "viewLess": "View less",
+      "copy": "Copy",
+      "copied": "Copied",
       "drawerSubtitle": "{count, plural, =1 {1 chunk on this page} other {# chunks on this page}}",
       "noMatchInFile": "No matching chunks in this file"
     },

@@ -5,7 +5,7 @@ import { TablePagination } from '@/app/components/dashboard/TablePagination';
 import { getCachedChunks, setCachedChunks } from '@/app/lib/ragCache';
 import type { RagChunkRow, SemanticChunk } from '@/app/lib/ragFiles';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Check, Copy, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
@@ -83,13 +83,75 @@ function useChunks(storeId: string, fileId: string, page: number): UseChunksRetu
 }
 
 const NEWLINE_GLYPH = ' ↵ ';
+const COPIED_TIMEOUT_MS = 1500;
 
 function collapseNewlines(text: string): string {
   return text.replace(/\n+/g, NEWLINE_GLYPH);
 }
 
-function ChunkContent({ content }: { content: string }): React.JSX.Element {
+interface CopyButtonProps {
+  content: string;
+}
+
+function CopyButton({ content }: CopyButtonProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragChunks');
+  const [copied, setCopied] = useState(false);
+  async function onCopy(): Promise<void> {
+    await navigator.clipboard.writeText(content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), COPIED_TIMEOUT_MS);
+  }
+  return (
+    <Button
+      type="button"
+      size="xs"
+      variant="ghost"
+      className="bg-background rounded-md hover:bg-input! dark:hover:bg-input!"
+      onClick={() => void onCopy()}
+    >
+      {copied ? <Check /> : <Copy />}
+      <span>{copied ? t('copied') : t('copy')}</span>
+    </Button>
+  );
+}
+
+interface ChunkActionsProps {
+  content: string;
+  expanded: boolean;
+  showViewToggle: boolean;
+  onToggleExpand: () => void;
+}
+
+function ChunkActions({
+  content,
+  expanded,
+  showViewToggle,
+  onToggleExpand,
+}: ChunkActionsProps): React.JSX.Element {
+  const t = useTranslations('knowledgeBase.ragChunks');
+  return (
+    <div
+      className={`bg-background absolute z-9999 right-0 flex items-center gap-1 opacity-0 transition-opacity group-hover/chunk:opacity-100 pl-2 ${
+        expanded ? 'bottom-0' : 'top-1/2 -translate-y-1/2'
+      }`}
+    >
+      {showViewToggle && (
+        <Button
+          type="button"
+          size="xs"
+          variant="link"
+          className="bg-background text-blue-600! dark:text-blue-400! rounded-md"
+          onClick={onToggleExpand}
+        >
+          {expanded ? t('viewLess') : t('viewAll')}
+        </Button>
+      )}
+      <CopyButton content={content} />
+    </div>
+  );
+}
+
+function ChunkContent({ content }: { content: string }): React.JSX.Element {
   const [expanded, setExpanded] = useState(false);
   const [overflows, setOverflows] = useState(false);
   const ref = useRef<HTMLParagraphElement>(null);
@@ -100,7 +162,7 @@ function ChunkContent({ content }: { content: string }): React.JSX.Element {
     setOverflows(el.scrollHeight > el.clientHeight + OVERFLOW_TOLERANCE_PX);
   }, [content, expanded]);
 
-  const showToggle = overflows || expanded;
+  const showViewToggle = overflows || expanded;
   return (
     <div className="relative">
       <p
@@ -109,19 +171,12 @@ function ChunkContent({ content }: { content: string }): React.JSX.Element {
       >
         {expanded ? content : collapseNewlines(content)}
       </p>
-      {showToggle && (
-        <Button
-          type="button"
-          size="xs"
-          variant="link"
-          className={`bg-background text-blue-600! dark:text-blue-400! absolute z-9999 right-0 rounded-md opacity-0 transition-opacity group-hover/chunk:opacity-100 ${
-            expanded ? 'bottom-0' : 'top-1/2 -translate-y-1/2'
-          }`}
-          onClick={() => setExpanded((v) => !v)}
-        >
-          {expanded ? t('viewLess') : t('viewAll')}
-        </Button>
-      )}
+      <ChunkActions
+        content={content}
+        expanded={expanded}
+        showViewToggle={showViewToggle}
+        onToggleExpand={() => setExpanded((v) => !v)}
+      />
     </div>
   );
 }
@@ -153,10 +208,7 @@ function similarityCell(c: DisplayChunk): string {
   return '—';
 }
 
-function pageLabel(
-  c: DisplayChunk,
-  t: ReturnType<typeof useTranslations>
-): string {
+function pageLabel(c: DisplayChunk, t: ReturnType<typeof useTranslations>): string {
   const start = c.page_number ?? ZERO;
   const end = c.page_end;
   if (end !== null && end !== undefined && end !== start) {
@@ -209,9 +261,7 @@ function ChunksTable({ stage, rows }: ChunksTableProps): React.JSX.Element | nul
       <thead className="sticky top-9 z-10 bg-background">
         <tr className="border-b">
           <th className={`${HEADER_CELL_CLASS} w-px`}>{t('colPage')}</th>
-          {showSimilarity && (
-            <th className={`${HEADER_CELL_CLASS} w-px`}>{t('colSimilarity')}</th>
-          )}
+          {showSimilarity && <th className={`${HEADER_CELL_CLASS} w-px`}>{t('colSimilarity')}</th>}
           <th className={HEADER_CELL_CLASS}>{t('colContent')}</th>
         </tr>
       </thead>
@@ -226,9 +276,7 @@ function ChunksTable({ stage, rows }: ChunksTableProps): React.JSX.Element | nul
 
 function NoMatchingChunks(): React.JSX.Element {
   const t = useTranslations('knowledgeBase.ragChunks');
-  return (
-    <div className="px-3 py-3 text-[10px] font-mono text-muted-foreground">{t('noMatchInFile')}</div>
-  );
+  return <div className="px-3 py-3 text-[10px] font-mono text-muted-foreground">{t('noMatchInFile')}</div>;
 }
 
 function StaticChunks({ chunks }: { chunks: SemanticChunk[] }): React.JSX.Element {
