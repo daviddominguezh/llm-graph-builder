@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Code navigation (Serena MCP)
+
+If the Serena MCP server is available, prefer its semantic tools over plain `Read`/`Grep` for navigating and editing this TypeScript codebase. Bootstrap each session by calling `mcp__serena__activate_project` with the repo path, then `mcp__serena__read_memory` for the `core` memory (the project map / entry point, which links to `tech_stack`, `suggested_commands`, `conventions`, `task_completion`, and `web/core`). Use `find_symbol`, `get_symbols_overview`, `find_referencing_symbols`, and `replace_symbol_body` for symbol-level work. (A `SessionStart` hook in `.claude/settings.local.json` injects this reminder automatically.)
+
 ## Commands
 
 ```bash

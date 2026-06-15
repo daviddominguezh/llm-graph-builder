@@ -219,7 +219,7 @@ function WizardBody({
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{title}</DialogTitle>
+        <DialogTitle className="cursor-default">{title}</DialogTitle>
       </DialogHeader>
       <div
         key={state.step}

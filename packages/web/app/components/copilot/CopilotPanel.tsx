@@ -10,9 +10,9 @@ import {
 import { History, Plus, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { useCopilotContext } from './CopilotProvider';
 import { CopilotInput } from './CopilotInput';
 import { CopilotMessages } from './CopilotMessages';
+import { useCopilotContext } from './CopilotProvider';
 import type { CopilotSession } from './copilotTypes';
 
 const MIN_MESSAGES_FOR_NEW_CHAT = 1;
@@ -52,8 +52,8 @@ function CopilotHeader({ sessions, activeSession, onNewChat, onSwitchSession, on
   const canCreateNew = activeSession !== null && activeSession.messages.length >= MIN_MESSAGES_FOR_NEW_CHAT;
 
   return (
-    <div className="flex items-center justify-between border-b px-3 py-2">
-      <span className="text-xs font-semibold">{t('title')}</span>
+    <div className="shrink-0 flex items-center justify-between px-3 py-2 bg-background border-b">
+      <span className="text-xs font-semibold cursor-default">{t('title')}</span>
       <div className="flex items-center gap-0.5">
         <Button
           variant="ghost"
@@ -113,7 +113,7 @@ export function CopilotPanel() {
   if (!ctx.isOpen) return null;
 
   return (
-    <div className="fixed bottom-[calc((var(--spacing)*2.5)_-_0px)] top-[calc((var(--spacing)*5.5)-2px)] right-2.5 top-1.5 z-40 flex w-[400px] flex-col border bg-background rounded-xl">
+    <div className="fixed bottom-[calc((var(--spacing)*2.5)_-_0px)] top-[calc((var(--spacing)*5.5)-2px)] right-2.5 top-1.5 z-40 flex w-[400px] flex-col border bg-background rounded-xl  overflow-hidden">
       <CopilotHeader
         sessions={ctx.sessions}
         activeSession={ctx.activeSession}
@@ -121,8 +121,10 @@ export function CopilotPanel() {
         onSwitchSession={ctx.switchSession}
         onClose={() => ctx.setOpen(false)}
       />
-      <CopilotMessages messages={ctx.activeSession?.messages ?? []} />
-      <CopilotInput onSend={ctx.sendMessage} onStop={ctx.stopStreaming} isStreaming={ctx.isStreaming} />
+      <div className='flex flex-col flex-1 bg-input/70 w-full rounded-lg'>
+        <CopilotMessages messages={ctx.activeSession?.messages ?? []} />
+        <CopilotInput onSend={ctx.sendMessage} onStop={ctx.stopStreaming} isStreaming={ctx.isStreaming} />
+      </div>
     </div>
   );
 }

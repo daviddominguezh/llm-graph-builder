@@ -15,7 +15,7 @@ export function CopilotButton() {
   return (
     <div className="relative flex w-full shrink-0 h-5">
       <div className="flex w-full justify-between items-center">
-        <div className="text-[11px] font-semibold text-foreground flex gap-1 items-center ml-17">
+        <div className="text-[11px] font-semibold text-foreground flex gap-1 items-center ml-17 cursor-default">
           <div>OpenFlow</div>
           <div className="text-[10px] font-normal mt-[1px] text-muted-foreground">
             {'('}v0.1.0{')'}

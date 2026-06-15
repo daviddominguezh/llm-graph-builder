@@ -40,7 +40,7 @@ export function CopilotInput({ onSend, onStop, isStreaming }: CopilotInputProps)
   }
 
   return (
-    <div className="flex items-end gap-1 border-t p-2">
+    <div className="flex items-end gap-2 p-2 bg-background">
       <Textarea
         rows={1}
         className="max-h-[6rem] min-h-0 overflow-y-auto"
@@ -57,7 +57,7 @@ export function CopilotInput({ onSend, onStop, isStreaming }: CopilotInputProps)
         onClick={handleButtonClick}
         aria-label={isStreaming ? t('stop') : t('send')}
       >
-        {isStreaming ? <Loader2 className="size-3 animate-spin" /> : <ArrowUp className="size-3" />}
+        {isStreaming ? <Loader2 className="size-3 animate-spin" /> : <ArrowUp className="size-3.5" />}
       </Button>
     </div>
   );
