@@ -1,0 +1,95 @@
+import type { CountryCode } from 'libphonenumber-js';
+
+// Phone-auth (SMS OTP) country allowlist.
+//
+// Coverage: all of Europe + all of the Americas (North, Central, South, Caribbean),
+// EXCLUDING countries commonly blocked from SMS OTP for sanctions / SMS-pumping fraud:
+// Russia (RU), Belarus (BY), Cuba (CU), Venezuela (VE), Nicaragua (NI).
+//
+// Keep in sync with packages/web/app/lib/auth/allowedCountries.ts.
+
+// European sovereign states (minus RU, BY).
+const EUROPE: readonly CountryCode[] = [
+  'AD',
+  'AL',
+  'AT',
+  'BA',
+  'BE',
+  'BG',
+  'CH',
+  'CY',
+  'CZ',
+  'DE',
+  'DK',
+  'EE',
+  'ES',
+  'FI',
+  'FR',
+  'GB',
+  'GR',
+  'HR',
+  'HU',
+  'IE',
+  'IS',
+  'IT',
+  'LI',
+  'LT',
+  'LU',
+  'LV',
+  'MC',
+  'MD',
+  'ME',
+  'MK',
+  'MT',
+  'NL',
+  'NO',
+  'PL',
+  'PT',
+  'RO',
+  'RS',
+  'SE',
+  'SI',
+  'SK',
+  'SM',
+  'TR',
+  'UA',
+  'VA',
+];
+
+// Americas — North, Central, South America + Caribbean sovereign states (minus CU, VE, NI).
+const AMERICAS: readonly CountryCode[] = [
+  'AG',
+  'AR',
+  'BB',
+  'BO',
+  'BR',
+  'BS',
+  'BZ',
+  'CA',
+  'CL',
+  'CO',
+  'CR',
+  'DM',
+  'DO',
+  'EC',
+  'GD',
+  'GT',
+  'GY',
+  'HN',
+  'HT',
+  'JM',
+  'KN',
+  'LC',
+  'MX',
+  'PA',
+  'PE',
+  'PY',
+  'SR',
+  'SV',
+  'TT',
+  'US',
+  'UY',
+  'VC',
+];
+
+export const ALLOWED_COUNTRIES: ReadonlySet<CountryCode> = new Set<CountryCode>([...EUROPE, ...AMERICAS]);

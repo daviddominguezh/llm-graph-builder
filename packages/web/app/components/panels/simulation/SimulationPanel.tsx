@@ -86,7 +86,7 @@ function SimulationHeader({
   return (
     <div className="flex flex-col gap-1 border-b px-3 py-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold">{t('title')}</span>
+        <span className="text-xs font-semibold cursor-default">{t('title')}</span>
         <div className="flex items-center gap-0.5">
           <Button variant="destructive" size="icon-sm" onClick={() => setConfirmOpen(true)}>
             <RotateCcw className="size-3" />

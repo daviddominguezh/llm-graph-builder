@@ -106,7 +106,7 @@ export function GlobalNodesPanel({
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-2 border-b px-3 py-3">
         <Waypoints className="size-4" />
-        <h2 className="text-xs font-semibold">Global Nodes</h2>
+        <h4 className="text-xs font-semibold cursor-default">Global Nodes</h4>
         <Button
           variant="ghost"
           size="icon-xs"
