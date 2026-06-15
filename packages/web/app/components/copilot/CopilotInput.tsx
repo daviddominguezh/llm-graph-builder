@@ -105,7 +105,7 @@ export function CopilotInput({ onSend, onStop, isStreaming }: CopilotInputProps)
   };
 
   return (
-    <div className="mx-2 my-2 flex flex-col gap-1 overflow-hidden rounded-lg border border-transparent bg-background py-1 transition-colors focus-within:border-ring focus-within:ring-ring/30 focus-within:ring-[2px]">
+    <div className="mx-2 my-2 flex flex-col gap-1 overflow-hidden rounded-lg border border-transparent bg-input/70 py-1 transition-colors focus-within:border-ring focus-within:ring-ring/30 focus-within:ring-[2px] dark:bg-input/30">
       <EditorArea
         editorRef={editorRef}
         placeholder={t('placeholder')}

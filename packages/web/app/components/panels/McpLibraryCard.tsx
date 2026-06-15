@@ -36,9 +36,9 @@ function CardInfo({ item }: { item: McpLibraryRow }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
       <div className="flex items-center gap-1">
-        <p className="truncate text-xs font-medium">{item.name}</p>
+        <p className="truncate text-xs font-medium cursor-default">{item.name}</p>
       </div>
-      <div className="flex items-center gap-1.5 text-[10px]">
+      <div className="flex items-center gap-1.5 text-[10px] cursor-default">
         {item.org_name !== undefined && <span className="truncate">{item.org_name}</span>}
         {item.org_name !== undefined && <span>·</span>}
         <span className="flex items-center gap-0.5">
@@ -57,9 +57,9 @@ function InstallButton({ isInstalled, onInstall }: { isInstalled: boolean; onIns
       variant={isInstalled ? 'ghost' : 'default'}
       disabled={isInstalled}
       onClick={onInstall}
-      className={`shrink-0 ${isInstalled ? 'border-green-600 dark:border-green-600 shadow-none rounded-full  disabled:opacity-100' : ''}`}
+      className={`shrink-0 ${isInstalled ? 'bg-green-600 shadow-none rounded-full disabled:opacity-100' : ''}`}
     >
-      {isInstalled ? <Check strokeWidth={isInstalled ? 4 : 2} className="size-2.5 text-green-600 dark:text-green-600" /> : <Download className="size-2.5" />}
+      {isInstalled ? <Check strokeWidth={isInstalled ? 4 : 2} className="size-2.5 text-white" /> : <Download className="size-2.5" />}
     </Button>
   );
 }
@@ -72,7 +72,7 @@ export function McpLibraryCard({ item, isInstalled, onInstall }: McpLibraryCardP
         <CardInfo item={item} />
         <InstallButton isInstalled={isInstalled} onInstall={() => onInstall(item)} />
       </div>
-      <p className="line-clamp-2 text-[10px] text-muted-foreground">{item.description}</p>
+      <p className="line-clamp-2 text-[10px] text-muted-foreground cursor-default">{item.description}</p>
     </div>
   );
 }

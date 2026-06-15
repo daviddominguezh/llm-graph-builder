@@ -23,7 +23,7 @@ function LibraryPanelHeader() {
 
   return (
     <div className="border-b px-4 py-3">
-      <h2 className="text-xs font-semibold">{t('libraryTitle')}</h2>
+      <h2 className="text-xs font-semibold cursor-default">{t('libraryTitle')}</h2>
     </div>
   );
 }
@@ -32,7 +32,7 @@ function LibrarySearchBar({ value, onChange }: { value: string; onChange: (value
   const t = useTranslations('mcpLibrary');
 
   return (
-    <div className="relative px-2.5 py-2">
+    <div className="relative px-2.5 py-2.5">
       <Search className="absolute left-5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
       <Input
         value={value}
