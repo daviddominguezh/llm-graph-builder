@@ -202,7 +202,7 @@ function FieldEntry({
   onJsonBlur: (name: string, value: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className={`flex flex-col gap-1 ${prop.type === 'boolean' ? 'flex-row flex-row-reverse justify-end' : ''}`}>
       <Label className="flex items-center gap-1">
         <code className="font-mono text-[11px]">{name}</code>
         {isRequired && <span className="text-destructive">*</span>}
@@ -251,7 +251,7 @@ function RunButton({ enabled, running, onRun }: { enabled: boolean; running: boo
         {running ? t('running') : t('run')}
       </Button>
       {!enabled && !running && (
-        <p className="mt-1.5 text-center text-[10px] text-muted-foreground">{t('requiredFields')}</p>
+        <p className="mt-1.5 text-center text-[10px] text-muted-foreground cursor-default">{t('requiredFields')}</p>
       )}
     </div>
   );

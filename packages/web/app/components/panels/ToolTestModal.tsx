@@ -100,7 +100,7 @@ export function ToolTestModal({ tool, transport, callOptions, onClose }: ToolTes
           <>
             <DialogHeader className="border-b pl-5 py-3 pr-7">
               <Tooltip>
-                <TooltipTrigger render={<DialogTitle className="max-w-[70%] truncate font-mono text-sm font-semibold tracking-tight" />}>
+                <TooltipTrigger render={<DialogTitle className="cursor-default max-w-[70%] truncate font-mono text-sm font-semibold tracking-tight" />}>
                   {tool.name}
                 </TooltipTrigger>
                 <TooltipContent>{tool.name}</TooltipContent>
@@ -108,7 +108,7 @@ export function ToolTestModal({ tool, transport, callOptions, onClose }: ToolTes
               {tool.description !== undefined && (
                 <Tooltip>
                   <TooltipTrigger
-                    render={<DialogDescription className="w-fit line-clamp-1" />}
+                    render={<DialogDescription className="cursor-default w-fit line-clamp-1" />}
                   >
                     {tool.description}
                   </TooltipTrigger>
