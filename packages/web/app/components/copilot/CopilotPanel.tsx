@@ -52,30 +52,30 @@ function CopilotHeader({ sessions, activeSession, onNewChat, onSwitchSession, on
   const canCreateNew = activeSession !== null && activeSession.messages.length >= MIN_MESSAGES_FOR_NEW_CHAT;
 
   return (
-    <div className="sticky top-0 z-10 shrink-0 flex items-center justify-between px-3 py-2 bg-background border-b">
+    <div className="sticky top-0 z-10 shrink-0 flex items-center justify-between pl-2 pr-0.5 py-0.5 bg-background ">
       <span className="text-xs font-semibold cursor-default">{t('title')}</span>
       <div className="flex items-center gap-0.5">
         <Button
           variant="ghost"
-          size="sm"
-          className="h-8 w-8"
+          size="default"
+          className="aspect-square! px-0"
           onClick={onNewChat}
           disabled={!canCreateNew}
           aria-label={t('newChat')}
         >
-          <Plus className="size-4" />
+          <Plus />
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
               <Button
                 variant="ghost"
-                size="sm"
-                className="h-8 w-8"
+                size="default"
+                className="aspect-square! px-0"
                 disabled={!canShowHistory}
                 aria-label={t('selectChat')}
               >
-                <History className="size-4" />
+                <History />
               </Button>
             }
           />
@@ -99,8 +99,14 @@ function CopilotHeader({ sessions, activeSession, onNewChat, onSwitchSession, on
               })}
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button variant="ghost" size="sm" className="h-8 w-8" onClick={onClose} aria-label={t('close')}>
-          <X className="size-4" />
+        <Button
+          variant="ghost"
+          size="default"
+          className="aspect-square! px-0"
+          onClick={onClose}
+          aria-label={t('close')}
+        >
+          <X />
         </Button>
       </div>
     </div>
@@ -121,7 +127,7 @@ export function CopilotPanel() {
         onSwitchSession={ctx.switchSession}
         onClose={() => ctx.setOpen(false)}
       />
-      <div className='flex flex-col flex-1 min-h-0 bg-input/70 w-full rounded-lg'>
+      <div className="flex flex-col flex-1 min-h-0 w-full rounded-lg bg-input/70">
         <CopilotMessages messages={ctx.activeSession?.messages ?? []} />
         <CopilotInput onSend={ctx.sendMessage} onStop={ctx.stopStreaming} isStreaming={ctx.isStreaming} />
       </div>
