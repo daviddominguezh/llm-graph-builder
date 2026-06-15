@@ -92,7 +92,7 @@ function CurlDisplay({ agentSlug, version, publishing = false }: CurlDisplayProp
   const curl = buildCurlCommand(agentSlug, version);
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1">
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium">
           {t('curlExample')}
@@ -117,14 +117,15 @@ function PublishStatus({ version }: { version: number }) {
       >
         {isPublished ? (
           <>
-            <span className="text-[10px] text-muted-foreground rounded-full px-1.5 font-mono mr-1.5 bg-input/70">
-              v{version}
-            </span>
-            <Separator orientation="vertical" />
             <span
-              className={`mx-1.5 inline-block size-2.5 rounded-full ${isPublished ? 'bg-green-500' : 'bg-muted-foreground'}`}
+              className={`mr-1.5 inline-block size-2.5 rounded-full ${isPublished ? 'bg-green-500' : 'bg-muted-foreground'}`}
             />
             {t('publishedVersion')}
+            
+            <span className="ml-1.5 text-muted-foreground font-medium text-xs">
+              {'('}v{version}
+              {')'}
+            </span>
           </>
         ) : (
           <>
@@ -265,9 +266,9 @@ export function PublishButton(props: PublishButtonProps) {
         render={<Button variant="default" size="sm" className="gap-1.5 px-3 rounded-full pr-2 ml-2 mr-1.5" />}
       >
         {t('publish')}
-        <ChevronDown className='size-4' />
+        <ChevronDown className="size-4" />
       </PopoverTrigger>
-      <PopoverContent side="bottom" align="center" sideOffset={8} className="w-96 mr-1.5 -mt-1">
+      <PopoverContent side="bottom" align="center" sideOffset={8} className="w-96 mr-1.5 -mt-1 ring-[0.5px]">
         <PopoverBody
           agentSlug={agentSlug}
           orgSlug={orgSlug}

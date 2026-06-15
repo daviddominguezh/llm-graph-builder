@@ -49,7 +49,7 @@ export function EmbedSnippetDisplay({ tenantSlug, agentSlug, disabled = false }:
   const snippet = buildEmbedScript(tenantSlug, agentSlug);
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1">
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium">{t('embedScript')}</span>
         <CopyButton text={snippet} disabled={disabled} />

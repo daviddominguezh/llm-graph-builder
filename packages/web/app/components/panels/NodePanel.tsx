@@ -153,7 +153,7 @@ export function NodePanel({
     <div className="flex h-full flex-col">
       <div className="border-b p-2 px-3">
         <div className="flex items-center justify-between">
-          <h4 className="text-xs font-semibold">Node Properties</h4>
+          <h4 className="text-xs font-semibold cursor-default">Node Properties</h4>
           <div className="flex items-center">
             <NodePromptDialog
               nodeId={nodeId}
@@ -255,7 +255,7 @@ export function NodePanel({
 
           {incomingEdges.length > 0 && (
             <div className="mt-3">
-              <div className="flex gap-1 items-center text-xs mb-1 font-medium">
+              <div className="flex gap-1 items-center text-xs mb-1 font-medium cursor-default">
                 Incoming
                 <ArrowLeft className="h-3 w-3 mr-1" />
               </div>
@@ -334,7 +334,7 @@ export function NodePanel({
 
           {outgoingEdges.length > 0 && (
             <div className="mt-3">
-              <div className="flex gap-1 items-center text-xs mb-1 font-medium">
+              <div className="flex gap-1 items-center text-xs mb-1 font-medium cursor-default">
                 Outgoing
                 <ArrowRight className="h-3 w-3 mr-1" />
               </div>

@@ -24,7 +24,7 @@ export function TenantPicker({ tenants, selectedTenantId, onChange, disabled = f
   const selected = tenants.find((tenant) => tenant.id === selectedTenantId) ?? tenants[0];
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1">
       <span className="text-xs font-medium">{t('tenant')}</span>
       <Select
         value={selected?.id ?? ''}
@@ -36,7 +36,7 @@ export function TenantPicker({ tenants, selectedTenantId, onChange, disabled = f
         <SelectTrigger className="w-full">
           <SelectValue>{selected?.name ?? ''}</SelectValue>
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent alignItemWithTrigger={false} align="end">
           {tenants.map((tenant) => (
             <SelectItem key={tenant.id} value={tenant.id}>
               {tenant.name}
@@ -62,7 +62,12 @@ export function EmptyTenantsState({ orgSlug }: EmptyTenantsStateProps) {
         <span className="text-sm font-medium">{t('noTenantsTitle')}</span>
         <span className="text-xs text-muted-foreground">{t('noTenantsDescription')}</span>
       </div>
-      <Button variant="default" size="sm" className="gap-1.5" render={<Link href={`/orgs/${orgSlug}/tenants`} />}>
+      <Button
+        variant="default"
+        size="sm"
+        className="gap-1.5"
+        render={<Link href={`/orgs/${orgSlug}/tenants`} />}
+      >
         {t('goToTenants')}
         <ArrowRight className="size-3.5" />
       </Button>

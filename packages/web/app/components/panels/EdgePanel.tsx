@@ -380,7 +380,7 @@ export function EdgePanel({
     <div className="flex h-full flex-col">
       <div className="border-b p-2 px-3">
         <div className="flex items-center justify-between">
-          <h4 className="text-xs font-semibold">Edge Properties</h4>
+          <h4 className="text-xs font-semibold cursor-default">Edge Properties</h4>
           <AlertDialog>
             <AlertDialogTrigger
               className={!isFromStartNode ? 'visible' : 'invisible'}
