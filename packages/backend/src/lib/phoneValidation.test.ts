@@ -2,7 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 
 import { validatePhone } from './phoneValidation.js';
 
-describe('validatePhone', () => {
+describe('validatePhone — accepts supported mobiles', () => {
   it('accepts a valid US mobile', () => {
     expect(validatePhone('+14155550199')).toEqual({ ok: true, e164: '+14155550199' });
   });
@@ -30,6 +30,9 @@ describe('validatePhone', () => {
   it('accepts a valid Spain mobile', () => {
     expect(validatePhone('+34612345678')).toEqual({ ok: true, e164: '+34612345678' });
   });
+});
+
+describe('validatePhone — rejects disallowed numbers', () => {
   it('rejects out-of-region country (India)', () => {
     expect(validatePhone('+919812345678')).toEqual({ ok: false, error: 'country_not_supported' });
   });
