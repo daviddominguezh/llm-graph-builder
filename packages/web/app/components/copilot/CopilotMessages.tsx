@@ -5,6 +5,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
 
+import { Scrollable } from '../Scrollable';
 import type { CopilotActionBlock, CopilotMessage, CopilotTextBlock } from './copilotTypes';
 
 const ACTION_ICONS: Record<string, LucideIcon> = {
@@ -57,6 +58,17 @@ export interface CopilotMessagesProps {
   messages: CopilotMessage[];
 }
 
+function EmptyState({ label }: { label: string }) {
+  return (
+    <div className="flex flex-1 items-center justify-center">
+      <div className="flex flex-col items-center justify-center p-3 cursor-default">
+        <p className="font-semibold font-mono">Hello!</p>
+        <p className="text-xs text-muted-foreground">{label}</p>
+      </div>
+    </div>
+  );
+}
+
 export function CopilotMessages({ messages }: CopilotMessagesProps) {
   const t = useTranslations('copilot');
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -66,19 +78,12 @@ export function CopilotMessages({ messages }: CopilotMessagesProps) {
   }, [messages]);
 
   if (messages.length === 0) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <div className="flex flex-col items-center justify-center p-3 cursor-default">
-          <p className="font-semibold font-mono">Hello!</p>
-          <p className="text-xs text-muted-foreground">{t('emptyState')}</p>
-        </div>
-      </div>
-    );
+    return <EmptyState label={t('emptyState')} />;
   }
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto px-2 py-2">
-      <div className="flex flex-col gap-4">
+    <Scrollable className="flex-1 min-h-0">
+      <div className="flex flex-col gap-4 px-2 py-2">
         {messages.map((message) =>
           message.role === 'user' ? (
             <UserMessage key={message.id} message={message} />
@@ -88,6 +93,6 @@ export function CopilotMessages({ messages }: CopilotMessagesProps) {
         )}
         <div ref={sentinelRef} />
       </div>
-    </div>
+    </Scrollable>
   );
 }

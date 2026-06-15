@@ -1,5 +1,4 @@
-export const ACCEPTED_EXTENSIONS =
-  '.pdf,.docx,.pptx,.xlsx,.html,.jpg,.jpeg,.png,.txt,.md,.csv,.json';
+export const ACCEPTED_EXTENSIONS = '.pdf,.docx,.pptx,.xlsx,.html,.jpg,.jpeg,.png,.txt,.md,.csv,.json';
 
 const IMAGE_EXTENSIONS: ReadonlySet<string> = new Set(['jpg', 'jpeg', 'png']);
 

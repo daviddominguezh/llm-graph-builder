@@ -210,7 +210,7 @@ function ServerItem({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <li className="rounded-md px-3 py-2 bg-background">
+    <li className="rounded-md px-3 py-2 bg-background border-[0.5px] dark:border-0">
       <div
         className="flex items-center justify-between cursor-pointer"
         onClick={() => setExpanded(!expanded)}
@@ -288,10 +288,10 @@ export function McpServersSection({
       <div className="flex items-center justify-between mb-2">
         <Label>MCP Servers</Label>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon-xs" onClick={onOpenLibrary}>
+          <Button variant="ghost" size="icon-xs" className="rounded-full" onClick={onOpenLibrary}>
             <BookOpen className="size-3" />
           </Button>
-          <Button variant="ghost" size="icon-xs" onClick={onAdd}>
+          <Button variant="ghost" size="icon-xs" className="rounded-full" onClick={onAdd}>
             <Plus className="size-3" />
           </Button>
         </div>

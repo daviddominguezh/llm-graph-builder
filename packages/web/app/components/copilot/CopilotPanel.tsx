@@ -52,7 +52,7 @@ function CopilotHeader({ sessions, activeSession, onNewChat, onSwitchSession, on
   const canCreateNew = activeSession !== null && activeSession.messages.length >= MIN_MESSAGES_FOR_NEW_CHAT;
 
   return (
-    <div className="sticky top-0 z-10 shrink-0 flex items-center justify-between pl-2 pr-0.5 py-0.5 bg-background ">
+    <div className="sticky top-0 z-10 shrink-0 flex items-center justify-between pl-2 pr-0.5 py-0.5 bg-input/70">
       <span className="text-xs font-semibold cursor-default">{t('title')}</span>
       <div className="flex items-center gap-0.5">
         <Button
@@ -127,7 +127,7 @@ export function CopilotPanel() {
         onSwitchSession={ctx.switchSession}
         onClose={() => ctx.setOpen(false)}
       />
-      <div className="flex flex-col flex-1 min-h-0 w-full rounded-lg bg-input/70">
+      <div className="flex flex-col flex-1 min-h-0 w-full bg-input/70">
         <CopilotMessages messages={ctx.activeSession?.messages ?? []} />
         <CopilotInput onSend={ctx.sendMessage} onStop={ctx.stopStreaming} isStreaming={ctx.isStreaming} />
       </div>

@@ -58,7 +58,7 @@ function EnvRefSelector({ envVariableId, envVariables, t, onChange }: EnvRefSele
       <SelectTrigger className="w-full text-xs">
         <span className="flex flex-1 text-left">{selectedName ?? t('selectEnvVar')}</span>
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent alignItemWithTrigger={false} align="end">
         {envVariables.map((ev) => (
           <SelectItem key={ev.id} value={ev.id}>
             {ev.name}
@@ -95,7 +95,7 @@ function VariableRow({ variable, variableValue, envVariables, t, onChange }: Var
             {variableValue.type === 'env_ref' ? t('envVariable') : t('directValue')}
           </span>
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent alignItemWithTrigger={false} align="end">
           <SelectItem value="direct">{t('directValue')}</SelectItem>
           <SelectItem value="env_ref">{t('envVariable')}</SelectItem>
         </SelectContent>
