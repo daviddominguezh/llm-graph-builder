@@ -215,14 +215,14 @@
       "delete": "Delete trigger",
       "summaryMode": {
         "recurring": "Recurring",
-        "once": "Specific date",
-        "after-event": "After event"
+        "once": "One-time",
+        "after-event": "On event"
       },
       "modeLabel": "Type:",
       "mode": {
         "recurring": "Recurring",
-        "once": "Specific date",
-        "after-event": "After event"
+        "once": "One-time",
+        "after-event": "On event"
       },
       "runEvery": "Run every:",
       "runOn": "Run at:",

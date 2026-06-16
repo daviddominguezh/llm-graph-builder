@@ -161,7 +161,7 @@ function TabContent({ activeTab, props }: { activeTab: TabId; props: EditorTabsP
           initialCategory={props.agentCategory}
           initialIsPublic={props.agentIsPublic}
           currentVersion={props.initialVersion}
-          extraContent={<div ref={settingsPortalRef} className="flex flex-col gap-6" />}
+          extraContent={<div ref={settingsPortalRef} className="flex flex-col gap-6 mt-1" />}
         />
       )}
     </div>
