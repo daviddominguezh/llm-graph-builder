@@ -22,9 +22,10 @@ interface ModeRadioProps {
   option: ModeOption;
   label: string;
   soonLabel: string;
+  selected: boolean;
 }
 
-function ModeRadio({ option, label, soonLabel }: ModeRadioProps) {
+function ModeRadio({ option, label, soonLabel, selected }: ModeRadioProps) {
   const disabled = Boolean(option.disabled);
   return (
     <label
@@ -34,7 +35,14 @@ function ModeRadio({ option, label, soonLabel }: ModeRadioProps) {
       )}
     >
       <RadioGroupItem value={option.id} className="size-3" disabled={disabled} />
-      <span className="text-xs font-medium leading-none">{label}</span>
+      <span
+        className={cn(
+          'text-xs font-medium leading-none',
+          !disabled && !selected && 'text-muted-foreground'
+        )}
+      >
+        {label}
+      </span>
       {disabled && (
         <span className="rounded-sm bg-foreground/10 px-1 py-px text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           {soonLabel}
@@ -49,14 +57,20 @@ export function ModeSelector({ value, onChange }: ModeSelectorProps) {
   const tCommon = useTranslations('editor.triggers');
   return (
     <div className="flex min-h-7 flex-wrap items-center gap-x-3 gap-y-2 text-sm leading-relaxed">
-      <span className="text-xs font-medium text-foreground">{tCommon('modeLabel')}</span>
+      <span className="text-xs font-medium leading-tight text-muted-foreground">{tCommon('modeLabel')}</span>
       <RadioGroup
         value={value}
         onValueChange={(v) => onChange(v as ScheduleMode)}
         className="flex w-auto flex-row flex-wrap items-center gap-x-3 gap-y-1"
       >
         {MODES.map((option) => (
-          <ModeRadio key={option.id} option={option} label={t(option.id)} soonLabel={tCommon('soon')} />
+          <ModeRadio
+            key={option.id}
+            option={option}
+            label={t(option.id)}
+            soonLabel={tCommon('soon')}
+            selected={value === option.id}
+          />
         ))}
       </RadioGroup>
     </div>

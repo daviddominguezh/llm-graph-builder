@@ -16,7 +16,7 @@ export function OnceField({ value, onChange }: OnceFieldProps) {
   const t = useTranslations('editor.triggers');
   return (
     <div className={SENTENCE_BASE}>
-      <span className="text-xs font-medium text-foreground">{t('runOn')}</span>
+      <span className="text-xs font-medium leading-tight text-muted-foreground">{t('runOn')}</span>
       <DateTimePicker value={value} onChange={onChange} />
     </div>
   );

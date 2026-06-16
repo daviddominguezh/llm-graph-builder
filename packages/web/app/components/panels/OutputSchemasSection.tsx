@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import type { OutputSchemaEntity } from '@daviddh/graph-types';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -75,9 +74,7 @@ function SchemaRowActions({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('deleteTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('deleteDescription', { name: schema.name })}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{t('deleteDescription', { name: schema.name })}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -129,8 +126,8 @@ function SectionHeader({ onAdd }: { onAdd: () => void }) {
   const t = useTranslations('outputSchemas');
   return (
     <div className="flex items-start justify-between mb-1">
-      <div className="flex flex-col">
-        <Label>{t('sectionTitle')}</Label>
+      <div className="flex flex-col gap-1">
+        <Label className="text-sm font-medium">{t('sectionTitle')}</Label>
         <p className="text-xs text-muted-foreground">{t('section.description')}</p>
       </div>
       <Button variant="ghost" size="icon-xs" onClick={onAdd}>
@@ -181,11 +178,10 @@ export function OutputSchemasSection({
   const [blockedForms, setBlockedForms] = useState<FormRef[] | null>(null);
 
   // TODO: when editFormHref is not provided, fall back to '#' until orgSlug/agentSlug are plumbed.
-  const resolveHref = (formId: string): string =>
-    editFormHref !== undefined ? editFormHref(formId) : '#';
+  const resolveHref = (formId: string): string => (editFormHref !== undefined ? editFormHref(formId) : '#');
 
   return (
-    <div className="mb-3">
+    <div className="">
       <SectionHeader onAdd={onAdd} />
       {schemas.length > 0 && (
         <SchemaList
@@ -196,7 +192,6 @@ export function OutputSchemasSection({
           onBlockedDelete={setBlockedForms}
         />
       )}
-      <Separator className="mt-3" />
       <OutputSchemaDeleteBlockedDialog
         open={blockedForms !== null}
         onClose={() => setBlockedForms(null)}

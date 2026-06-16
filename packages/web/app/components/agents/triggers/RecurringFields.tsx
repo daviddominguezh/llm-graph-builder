@@ -17,7 +17,7 @@ interface RecurringFieldsProps {
 
 const ROW_CONTENT =
   'col-span-2 flex min-h-7 max-h-7 flex-wrap items-center gap-x-1.5 gap-y-2 text-sm leading-relaxed';
-const ROW_LABEL = 'self-center text-xs font-medium text-foreground';
+const ROW_LABEL = 'self-center text-xs font-medium leading-tight text-muted-foreground';
 const MAX_DAY_OF_MONTH = 31;
 const INLINE_TIMED_UNITS: RecurringUnit[] = ['days', 'months'];
 
@@ -29,7 +29,7 @@ function MonthDayFragment({ value, onChange }: RecurringFieldsProps) {
   const t = useTranslations('editor.triggers');
   return (
     <>
-      <span className="text-xs font-medium text-foreground">{t('onDay')}</span>
+      <span className="text-xs font-medium text-muted-foreground">{t('onDay')}</span>
       <IntervalInput
         value={value.dayOfMonth}
         max={MAX_DAY_OF_MONTH}
@@ -44,7 +44,7 @@ function TimeFragment({ value, onChange }: RecurringFieldsProps) {
   const t = useTranslations('editor.triggers');
   return (
     <>
-      <span className="text-xs font-medium text-foreground">{t('at')}</span>
+      <span className="text-xs font-medium text-muted-foreground">{t('at')}</span>
       <TimeSelect value={value.time} onChange={(time) => onChange({ ...value, time })} />
     </>
   );

@@ -1,6 +1,7 @@
 'use client';
 
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { cn } from '@/lib/utils';
 import dayjs from 'dayjs';
 import { useTranslations } from 'next-intl';
 
@@ -24,11 +25,15 @@ function defaultSpecificValue(): string {
   return dayjs().add(DEFAULT_FUTURE_OFFSET_DAYS, 'day').format(ISO_NO_SECONDS);
 }
 
-function EndModeRadio({ mode, label }: { mode: EndMode; label: string }) {
+function EndModeRadio({ mode, label, selected }: { mode: EndMode; label: string; selected: boolean }) {
   return (
     <label className="flex cursor-pointer items-center gap-1.5">
       <RadioGroupItem value={mode} className="size-3" />
-      <span className="text-xs font-medium leading-none">{label}</span>
+      <span
+        className={cn('text-xs font-medium leading-none', !selected && 'text-muted-foreground')}
+      >
+        {label}
+      </span>
     </label>
   );
 }
@@ -41,15 +46,19 @@ export function EndAtField({ value, onChange }: EndAtFieldProps) {
   };
   return (
     <>
-      <span className="self-center text-xs font-medium text-foreground">{t('endsAt')}</span>
+      <span className="self-center text-xs font-medium leading-tight text-muted-foreground">{t('endsAt')}</span>
       <RadioGroup
         value={mode}
         onValueChange={handleModeChange}
         className="col-span-2 grid min-h-7 max-h-7 grid-cols-subgrid items-center gap-x-3"
       >
-        <EndModeRadio mode="never" label={t('endMode.never')} />
+        <EndModeRadio mode="never" label={t('endMode.never')} selected={mode === 'never'} />
         <div className="flex items-center gap-x-3">
-          <EndModeRadio mode="specific" label={t('endMode.specific')} />
+          <EndModeRadio
+            mode="specific"
+            label={t('endMode.specific')}
+            selected={mode === 'specific'}
+          />
           {mode === 'specific' && <DateTimePicker value={value} onChange={onChange} />}
         </div>
       </RadioGroup>

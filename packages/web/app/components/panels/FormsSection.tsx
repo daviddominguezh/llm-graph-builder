@@ -64,7 +64,7 @@ export function FormsSection({ agentId, schemas, onOpenSchemaDialog }: Props): R
   const confirmDelete = async (): Promise<void> => {
     if (dialog.kind !== 'delete') return;
     await deleteFormAction(dialog.formId);
-    await refresh();
+    refresh();
   };
 
   return (

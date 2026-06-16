@@ -242,7 +242,7 @@
       "pickDateTime": "Pick a date and time",
       "afterEventComingSoon": "After-event triggers are coming soon — they'll fire once another agent or workflow event completes.",
       "previewLabel": "Next run:",
-      "previewLabelMany": "Next runs:",
+      "previewLabelMany": "Next runs",
       "previewNone": "Not scheduled",
       "previewAfterEvent": "Triggered by an event",
       "picker": {

@@ -16,6 +16,7 @@ import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import { Scrollable } from '../Scrollable';
 import { OutputSchemaFieldCard } from './OutputSchemaFieldCard';
 import {
   createEmptyField,
@@ -55,7 +56,7 @@ function UsedByFormsBanner({ formsUsing }: { formsUsing: FormRef[] }) {
 function EmptyState() {
   const t = useTranslations('nodePanel');
   return (
-    <p className="p-4 rounded-md text-center text-xs text-muted-foreground bg-muted -mt-2 mx-1">
+    <p className="p-4 rounded-md text-center text-xs text-muted-foreground bg-muted mt-1 mx-1">
       {t('outputSchemaEmpty')}
     </p>
   );
@@ -114,9 +115,23 @@ function SchemaEditor({
     onSave(initial.id, { name: draft.name, fields: draft.fields });
   };
 
+  const addButton = (
+    <div className="w-full flex justify-end">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => handleFieldsChange([...draft.fields, createEmptyField()])}
+        className="w-fit self-end rounded-md"
+      >
+        <Plus className="mr-1 h-3.5 w-3.5" />
+        {t('addField')}
+      </Button>
+    </div>
+  );
+
   return (
     <>
-      <div className="flex flex-col flex-1 overflow-y-auto">
+      <Scrollable className="flex flex-col flex-1 min-h-0 pr-2">
         <DialogHeader className="border-b pb-3 sticky top-0 bg-background! z-50">
           <DialogTitle>{'Structured Output Schema'}</DialogTitle>
         </DialogHeader>
@@ -130,6 +145,7 @@ function SchemaEditor({
             className="h-7 font-mono text-xs"
           />
         </div>
+        {draft.fields.length === 0 && addButton}
         <div className="py-2">
           {draft.fields.length === 0 ? (
             <EmptyState />
@@ -141,16 +157,8 @@ function SchemaEditor({
             />
           )}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handleFieldsChange([...draft.fields, createEmptyField()])}
-          className="w-fit self-end rounded-md"
-        >
-          <Plus className="mr-1 h-3.5 w-3.5" />
-          {t('addField')}
-        </Button>
-      </div>
+        {draft.fields.length > 0 && addButton}
+      </Scrollable>
       <DialogFooter>
         <DialogClose render={<Button variant="outline" className="rounded-md" onClick={onCancel} />}>
           {tSchemas('cancel')}
@@ -179,7 +187,10 @@ export function OutputSchemaDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="pointer-events-auto flex h-[80vh] flex-col sm:max-w-2xl" showCloseButton={false}>
+      <DialogContent
+        className="pointer-events-auto flex h-[80vh] flex-col sm:max-w-2xl"
+        showCloseButton={false}
+      >
         {schema && (
           <SchemaEditor
             key={schema.id}

@@ -33,7 +33,7 @@ function useNow(): number {
 function HeaderLabel({ count }: { count: number }) {
   const t = useTranslations('editor.triggers');
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground">
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium leading-tight text-foreground">
       <Clock className="size-3.5" />
       {count > 1 ? t('previewLabelMany') : t('previewLabel')}
     </span>
@@ -53,11 +53,11 @@ function RunRowCells({
 }) {
   return (
     <>
-      <span className="text-right text-muted-foreground/80">{index}.</span>
+      <span className="text-right">{index}.</span>
       <span>{date}</span>
       <span>·</span>
       <span>{time}</span>
-      <span className="ml-1 text-muted-foreground/80">({hint})</span>
+      <span className="ml-1 italic">({hint})</span>
     </>
   );
 }

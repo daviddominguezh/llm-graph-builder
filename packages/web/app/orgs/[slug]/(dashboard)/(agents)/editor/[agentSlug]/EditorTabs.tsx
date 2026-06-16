@@ -149,7 +149,7 @@ function TabContent({ activeTab, props }: { activeTab: TabId; props: EditorTabsP
       {activeTab === 'triggers' && <TriggersPanel orgId={props.orgId} orgSlug={props.orgSlug} />}
       {activeTab === 'data' && (
         <div className="mx-auto w-full max-w-lg flex flex-col gap-6 p-6">
-          <div ref={dataPortalRef} className="flex flex-col gap-6" />
+          <div ref={dataPortalRef} className="flex flex-col gap-4" />
         </div>
       )}
       {activeTab === 'settings' && (

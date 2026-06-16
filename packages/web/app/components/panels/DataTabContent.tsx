@@ -1,5 +1,6 @@
 'use client';
 
+import { Separator } from '@/components/ui/separator';
 import type { OutputSchemaEntity } from '@daviddh/graph-types';
 
 import { FormsSection } from './FormsSection';
@@ -25,11 +26,8 @@ export function DataTabContent(props: DataTabContentProps) {
         onEdit={props.onEdit}
         editFormHref={props.editFormHref}
       />
-      <FormsSection
-        agentId={props.agentId}
-        schemas={props.schemas}
-        onOpenSchemaDialog={props.onAdd}
-      />
+      <Separator className="mt-1" />
+      <FormsSection agentId={props.agentId} schemas={props.schemas} onOpenSchemaDialog={props.onAdd} />
     </>
   );
 }
