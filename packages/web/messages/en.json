@@ -218,13 +218,14 @@
         "once": "Specific date",
         "after-event": "After event"
       },
+      "modeLabel": "Type:",
       "mode": {
         "recurring": "Recurring",
         "once": "Specific date",
         "after-event": "After event"
       },
-      "runEvery": "Run every",
-      "runOn": "Run once on",
+      "runEvery": "Run every:",
+      "runOn": "Run at:",
       "on": "on",
       "onDay": "on day",
       "at": "at",
@@ -233,10 +234,15 @@
         "now": "Now",
         "specific": "Specific date"
       },
+      "endsAt": "Ends at:",
+      "endMode": {
+        "never": "Never",
+        "specific": "Specific date"
+      },
       "pickDateTime": "Pick a date and time",
       "afterEventComingSoon": "After-event triggers are coming soon — they'll fire once another agent or workflow event completes.",
-      "previewLabel": "Next run",
-      "previewLabelMany": "Next runs",
+      "previewLabel": "Next run:",
+      "previewLabelMany": "Next runs:",
       "previewNone": "Not scheduled",
       "previewAfterEvent": "Triggered by an event",
       "picker": {

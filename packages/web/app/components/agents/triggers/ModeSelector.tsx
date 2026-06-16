@@ -48,14 +48,17 @@ export function ModeSelector({ value, onChange }: ModeSelectorProps) {
   const t = useTranslations('editor.triggers.mode');
   const tCommon = useTranslations('editor.triggers');
   return (
-    <RadioGroup
-      value={value}
-      onValueChange={(v) => onChange(v as ScheduleMode)}
-      className="flex w-auto flex-row flex-wrap items-center gap-x-3 gap-y-1"
-    >
-      {MODES.map((option) => (
-        <ModeRadio key={option.id} option={option} label={t(option.id)} soonLabel={tCommon('soon')} />
-      ))}
-    </RadioGroup>
+    <div className="flex min-h-7 flex-wrap items-center gap-x-3 gap-y-2 text-sm leading-relaxed">
+      <span className="text-xs font-medium text-foreground">{tCommon('modeLabel')}</span>
+      <RadioGroup
+        value={value}
+        onValueChange={(v) => onChange(v as ScheduleMode)}
+        className="flex w-auto flex-row flex-wrap items-center gap-x-3 gap-y-1"
+      >
+        {MODES.map((option) => (
+          <ModeRadio key={option.id} option={option} label={t(option.id)} soonLabel={tCommon('soon')} />
+        ))}
+      </RadioGroup>
+    </div>
   );
 }

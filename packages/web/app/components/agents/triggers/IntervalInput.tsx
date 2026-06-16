@@ -32,7 +32,7 @@ export function IntervalInput({ value, onChange, min = DEFAULT_MIN, max, ariaLab
       aria-label={ariaLabel}
       value={value}
       onChange={(e) => onChange(clamp(parseInt(e.target.value, RADIX), min, max))}
-      className={`h-7 w-14 px-2 text-center text-sm font-medium tabular-nums ${NO_SPINNERS}`}
+      className={`h-7 w-14 px-2 text-center text-sm md:text-sm font-medium tabular-nums ${NO_SPINNERS}`}
     />
   );
 }

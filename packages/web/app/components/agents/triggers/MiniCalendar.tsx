@@ -14,6 +14,7 @@ const WEEK_START_MONDAY = 1;
 interface MiniCalendarProps {
   value: Dayjs | null;
   onChange: (next: Dayjs) => void;
+  minDate?: Dayjs;
 }
 
 function buildMonthCells(viewMonth: Dayjs, weekStart: number): Dayjs[] {
@@ -33,7 +34,15 @@ function weekdayLabels(weekStart: number): string[] {
   );
 }
 
-function CalendarHeader({ viewMonth, setViewMonth }: { viewMonth: Dayjs; setViewMonth: (d: Dayjs) => void }) {
+function CalendarHeader({
+  viewMonth,
+  setViewMonth,
+  canGoPrev,
+}: {
+  viewMonth: Dayjs;
+  setViewMonth: (d: Dayjs) => void;
+  canGoPrev: boolean;
+}) {
   return (
     <div className="flex items-center justify-between px-1">
       <Button
@@ -43,6 +52,7 @@ function CalendarHeader({ viewMonth, setViewMonth }: { viewMonth: Dayjs; setView
         className="size-7"
         onClick={() => setViewMonth(viewMonth.subtract(1, 'month'))}
         aria-label="Previous month"
+        disabled={!canGoPrev}
       >
         <ChevronLeft className="size-3.5" />
       </Button>
@@ -68,12 +78,14 @@ function DayCell({
   viewMonth,
   today,
   selected,
+  disabled,
   onSelect,
 }: {
   day: Dayjs;
   viewMonth: Dayjs;
   today: Dayjs;
   selected: Dayjs | null;
+  disabled: boolean;
   onSelect: (d: Dayjs) => void;
 }) {
   const isOtherMonth = day.month() !== viewMonth.month();
@@ -83,6 +95,7 @@ function DayCell({
     <button
       type="button"
       onClick={() => onSelect(day)}
+      disabled={disabled}
       aria-label={day.locale('en').format('dddd, MMMM D, YYYY')}
       aria-pressed={isSelected}
       className={cn(
@@ -91,8 +104,9 @@ function DayCell({
         'motion-reduce:transform-none motion-reduce:transition-none',
         isOtherMonth && 'text-muted-foreground/40',
         !isOtherMonth && !isSelected && 'text-foreground hover:bg-input',
-        isToday && !isSelected && 'font-semibold text-primary',
-        isSelected && 'bg-primary text-primary-foreground font-semibold'
+        isToday && !isSelected && !disabled && 'font-semibold text-primary',
+        isSelected && 'bg-primary text-primary-foreground font-semibold',
+        disabled && 'cursor-not-allowed opacity-30 hover:bg-transparent'
       )}
     >
       {day.date()}
@@ -100,14 +114,16 @@ function DayCell({
   );
 }
 
-export function MiniCalendar({ value, onChange }: MiniCalendarProps) {
-  const [viewMonth, setViewMonth] = useState<Dayjs>(value ?? dayjs());
+export function MiniCalendar({ value, onChange, minDate }: MiniCalendarProps) {
+  const [viewMonth, setViewMonth] = useState<Dayjs>(value ?? minDate ?? dayjs());
   const cells = buildMonthCells(viewMonth, WEEK_START_MONDAY);
   const labels = weekdayLabels(WEEK_START_MONDAY);
   const today = dayjs();
+  const canGoPrev = !minDate || viewMonth.startOf('month').isAfter(minDate.startOf('month'));
+  const isDisabled = (d: Dayjs): boolean => Boolean(minDate && d.isBefore(minDate, 'day'));
   return (
     <div className="flex w-60 flex-col gap-2">
-      <CalendarHeader viewMonth={viewMonth} setViewMonth={setViewMonth} />
+      <CalendarHeader viewMonth={viewMonth} setViewMonth={setViewMonth} canGoPrev={canGoPrev} />
       <div className="grid grid-cols-7 gap-y-0.5">
         {labels.map((l, i) => (
           <div
@@ -124,6 +140,7 @@ export function MiniCalendar({ value, onChange }: MiniCalendarProps) {
             viewMonth={viewMonth}
             today={today}
             selected={value}
+            disabled={isDisabled(d)}
             onSelect={onChange}
           />
         ))}

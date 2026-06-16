@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 
+import { EndAtField } from './EndAtField';
 import { IntervalInput } from './IntervalInput';
 import { StartAtField } from './StartAtField';
 import { TimeSelect } from './TimeSelect';
@@ -14,7 +15,9 @@ interface RecurringFieldsProps {
   onChange: (next: RecurringConfig) => void;
 }
 
-const SENTENCE_BASE = 'flex flex-wrap items-center gap-x-1.5 gap-y-2 text-sm leading-relaxed';
+const ROW_CONTENT =
+  'col-span-2 flex min-h-7 max-h-7 flex-wrap items-center gap-x-1.5 gap-y-2 text-sm leading-relaxed';
+const ROW_LABEL = 'self-center text-xs font-medium text-foreground';
 const MAX_DAY_OF_MONTH = 31;
 const INLINE_TIMED_UNITS: RecurringUnit[] = ['days', 'months'];
 
@@ -26,7 +29,7 @@ function MonthDayFragment({ value, onChange }: RecurringFieldsProps) {
   const t = useTranslations('editor.triggers');
   return (
     <>
-      <span className="text-muted-foreground">{t('onDay')}</span>
+      <span className="text-xs font-medium text-foreground">{t('onDay')}</span>
       <IntervalInput
         value={value.dayOfMonth}
         max={MAX_DAY_OF_MONTH}
@@ -41,30 +44,32 @@ function TimeFragment({ value, onChange }: RecurringFieldsProps) {
   const t = useTranslations('editor.triggers');
   return (
     <>
-      <span className="text-muted-foreground">{t('at')}</span>
+      <span className="text-xs font-medium text-foreground">{t('at')}</span>
       <TimeSelect value={value.time} onChange={(time) => onChange({ ...value, time })} />
     </>
   );
 }
 
-function MainSentence({ value, onChange }: RecurringFieldsProps) {
+function MainSentenceRow({ value, onChange }: RecurringFieldsProps) {
   const t = useTranslations('editor.triggers');
   return (
-    <div className={SENTENCE_BASE}>
-      <span className="text-muted-foreground">{t('runEvery')}</span>
-      <IntervalInput
-        value={value.interval}
-        ariaLabel={t('runEvery')}
-        onChange={(interval) => onChange({ ...value, interval })}
-      />
-      <UnitSelect
-        value={value.unit}
-        interval={value.interval}
-        onChange={(unit) => onChange({ ...value, unit })}
-      />
-      {value.unit === 'months' && <MonthDayFragment value={value} onChange={onChange} />}
-      {showsInlineTime(value.unit) && <TimeFragment value={value} onChange={onChange} />}
-    </div>
+    <>
+      <span className={ROW_LABEL}>{t('runEvery')}</span>
+      <div className={ROW_CONTENT}>
+        <IntervalInput
+          value={value.interval}
+          ariaLabel={t('runEvery')}
+          onChange={(interval) => onChange({ ...value, interval })}
+        />
+        <UnitSelect
+          value={value.unit}
+          interval={value.interval}
+          onChange={(unit) => onChange({ ...value, unit })}
+        />
+        {value.unit === 'months' && <MonthDayFragment value={value} onChange={onChange} />}
+        {showsInlineTime(value.unit) && <TimeFragment value={value} onChange={onChange} />}
+      </div>
+    </>
   );
 }
 
@@ -75,20 +80,23 @@ function WeekdayRow({ value, onChange }: RecurringFieldsProps) {
     onChange({ ...value, weekdays: next });
   };
   return (
-    <div className={SENTENCE_BASE}>
-      <span className="text-muted-foreground">{t('on')}</span>
-      <WeekdayPicker selected={value.weekdays} onToggle={toggle} />
-      <TimeFragment value={value} onChange={onChange} />
-    </div>
+    <>
+      <span className={ROW_LABEL}>{t('on')}</span>
+      <div className={ROW_CONTENT}>
+        <WeekdayPicker selected={value.weekdays} onToggle={toggle} />
+        <TimeFragment value={value} onChange={onChange} />
+      </div>
+    </>
   );
 }
 
 export function RecurringFields({ value, onChange }: RecurringFieldsProps) {
   return (
-    <div className="flex flex-col gap-2.5">
-      <MainSentence value={value} onChange={onChange} />
+    <div className="grid grid-cols-[auto_auto_1fr] items-center gap-x-3 gap-y-2.5">
+      <MainSentenceRow value={value} onChange={onChange} />
       {value.unit === 'weeks' && <WeekdayRow value={value} onChange={onChange} />}
       <StartAtField value={value.startAt} onChange={(startAt) => onChange({ ...value, startAt })} />
+      <EndAtField value={value.endAt} onChange={(endAt) => onChange({ ...value, endAt })} />
     </div>
   );
 }

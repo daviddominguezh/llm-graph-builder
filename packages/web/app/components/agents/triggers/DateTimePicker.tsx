@@ -16,6 +16,9 @@ interface DateTimePickerProps {
 }
 
 const RADIX = 10;
+const PAD = 2;
+const MINUTE_STEP = 5;
+const MINUTES_PER_HOUR = 60;
 const DEFAULT_TIME = '09:00';
 const TRIGGER_DATE_FORMAT = 'MMM D, YYYY';
 const ISO_NO_SECONDS = 'YYYY-MM-DDTHH:mm';
@@ -25,6 +28,32 @@ function parseValue(value: string): { date: Dayjs | null; time: string } {
   const d = dayjs(value);
   if (!d.isValid()) return { date: null, time: DEFAULT_TIME };
   return { date: d, time: d.format('HH:mm') };
+}
+
+function pad(n: number): string {
+  return String(n).padStart(PAD, '0');
+}
+
+function ceilToMinuteStep(now: Dayjs): Dayjs {
+  const ceiledMinute = Math.ceil(now.minute() / MINUTE_STEP) * MINUTE_STEP;
+  if (ceiledMinute >= MINUTES_PER_HOUR) {
+    return now.add(1, 'hour').minute(0).second(0).millisecond(0);
+  }
+  return now.minute(ceiledMinute).second(0).millisecond(0);
+}
+
+function computeFutureBounds(now: Dayjs): { minDate: Dayjs; minTimeToday: string } {
+  const earliest = ceilToMinuteStep(now);
+  return { minDate: earliest.startOf('day'), minTimeToday: `${pad(earliest.hour())}:${pad(earliest.minute())}` };
+}
+
+function timeIsAfterOrEqual(time: string, minTime: string): boolean {
+  return time >= minTime;
+}
+
+function clampTimeForDate(date: Dayjs, time: string, minDate: Dayjs, minTimeToday: string): string {
+  if (!date.isSame(minDate, 'day')) return time;
+  return timeIsAfterOrEqual(time, minTimeToday) ? time : minTimeToday;
 }
 
 function combine(date: Dayjs | null, time: string): string {
@@ -39,23 +68,30 @@ function combine(date: Dayjs | null, time: string): string {
     .format(ISO_NO_SECONDS);
 }
 
-function PickerBody({
-  date,
-  time,
-  onChange,
-}: {
+interface PickerBodyProps {
   date: Dayjs | null;
   time: string;
+  minDate: Dayjs;
+  minTimeToday: string;
   onChange: (next: string) => void;
-}) {
+}
+
+function PickerBody({ date, time, minDate, minTimeToday, onChange }: PickerBodyProps) {
   const t = useTranslations('editor.triggers');
+  const minTimeForDate = date && date.isSame(minDate, 'day') ? minTimeToday : undefined;
+  const handleDate = (next: Dayjs) => {
+    onChange(combine(next, clampTimeForDate(next, time, minDate, minTimeToday)));
+  };
+  const handleTime = (next: string) => {
+    onChange(combine(date ?? minDate, next));
+  };
   return (
     <div className="flex flex-col gap-2">
-      <MiniCalendar value={date} onChange={(next) => onChange(combine(next, time))} />
+      <MiniCalendar value={date} minDate={minDate} onChange={handleDate} />
       <Separator />
       <div className="flex items-center justify-between gap-2 px-1">
         <span className="text-xs text-muted-foreground">{t('at')}</span>
-        <TimeSelect value={time} onChange={(next) => onChange(combine(date ?? dayjs(), next))} />
+        <TimeSelect value={time} onChange={handleTime} minTime={minTimeForDate} />
       </div>
     </div>
   );
@@ -64,6 +100,7 @@ function PickerBody({
 export function DateTimePicker({ value, onChange }: DateTimePickerProps) {
   const t = useTranslations('editor.triggers');
   const { date, time } = parseValue(value);
+  const { minDate, minTimeToday } = computeFutureBounds(dayjs());
   const label = date ? `${date.locale('en').format(TRIGGER_DATE_FORMAT)} · ${time}` : t('pickDateTime');
   return (
     <Popover>
@@ -76,7 +113,13 @@ export function DateTimePicker({ value, onChange }: DateTimePickerProps) {
         }
       />
       <PopoverContent align="start" className="w-fit p-3">
-        <PickerBody date={date} time={time} onChange={onChange} />
+        <PickerBody
+          date={date}
+          time={time}
+          minDate={minDate}
+          minTimeToday={minTimeToday}
+          onChange={onChange}
+        />
       </PopoverContent>
     </Popover>
   );

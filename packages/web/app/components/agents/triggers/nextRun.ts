@@ -90,9 +90,14 @@ function nextFromAnchor(cfg: RecurringConfig, startAt: Dayjs | null, now: Dayjs)
   return nextMonths(cfg, now);
 }
 
+function hasTickAnchor(unit: RecurringConfig['unit']): boolean {
+  return unit === 'minutes' || unit === 'hours';
+}
+
 function nextRecurring(cfg: RecurringConfig, now: Dayjs): Dayjs | null {
   const startAt = parseStartAt(cfg.startAt);
-  if (startAt && startAt.isAfter(now)) return startAt;
+  if (!startAt) return nextFromAnchor(cfg, null, now);
+  if (startAt.isAfter(now) && hasTickAnchor(cfg.unit)) return startAt;
   return nextFromAnchor(cfg, startAt, now);
 }
 
@@ -108,15 +113,76 @@ export function computeNextRun(state: TriggerFormState, now: Dayjs = dayjs()): D
   return null;
 }
 
-export function computeNextRuns(state: TriggerFormState, count: number, now: Dayjs = dayjs()): Dayjs[] {
-  const runs: Dayjs[] = [];
-  let cursor = now;
-  for (let i = 0; i < count; i += 1) {
+function previewCursor(state: TriggerFormState, now: Dayjs): Dayjs {
+  if (state.mode !== 'recurring') return now;
+  const startAt = parseStartAt(state.recurring.startAt);
+  if (!startAt) return now;
+  return startAt.subtract(1, 'millisecond');
+}
+
+function recurringEndAt(state: TriggerFormState): Dayjs | null {
+  if (state.mode !== 'recurring') return null;
+  return parseStartAt(state.recurring.endAt);
+}
+
+const MAX_PREVIEW_ITERATIONS = 2000;
+
+export interface PreviewRunItem {
+  date: Dayjs;
+  index: number;
+}
+
+export interface PreviewRuns {
+  first: PreviewRunItem[];
+  last: PreviewRunItem[];
+  hasGap: boolean;
+}
+
+interface PreviewSpec {
+  firstCount: number;
+  lastCount: number;
+  now: Dayjs;
+}
+
+function pushSliding(buf: PreviewRunItem[], next: PreviewRunItem, max: number): void {
+  buf.push(next);
+  if (buf.length > max) buf.shift();
+}
+
+function collectRuns(
+  state: TriggerFormState,
+  spec: PreviewSpec
+): { first: PreviewRunItem[]; last: PreviewRunItem[]; total: number } {
+  const endAt = recurringEndAt(state);
+  const wantsLast = state.mode === 'recurring' && endAt !== null && spec.lastCount > 0;
+  const first: PreviewRunItem[] = [];
+  const last: PreviewRunItem[] = [];
+  let cursor = previewCursor(state, spec.now);
+  let total = 0;
+  for (let i = 0; i < MAX_PREVIEW_ITERATIONS; i += 1) {
     const next = computeNextRun(state, cursor);
     if (!next) break;
-    runs.push(next);
+    if (endAt && next.isAfter(endAt)) break;
+    total += 1;
+    const item: PreviewRunItem = { date: next, index: total };
+    if (first.length < spec.firstCount) first.push(item);
+    else if (wantsLast) pushSliding(last, item, spec.lastCount);
+    else break;
     if (state.mode !== 'recurring') break;
     cursor = next;
   }
-  return runs;
+  return { first, last, total };
+}
+
+export function computePreviewRuns(
+  state: TriggerFormState,
+  firstCount: number,
+  lastCount: number,
+  now: Dayjs = dayjs()
+): PreviewRuns {
+  const endAt = recurringEndAt(state);
+  const { first, last, total } = collectRuns(state, { firstCount, lastCount, now });
+  const hasUnbounded = state.mode === 'recurring' && endAt === null && first.length === firstCount;
+  const hasGap = hasUnbounded || total > first.length + last.length;
+  return { first, last, hasGap };
 }

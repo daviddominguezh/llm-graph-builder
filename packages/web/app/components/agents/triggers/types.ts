@@ -13,6 +13,7 @@ export interface RecurringConfig {
   dayOfMonth: number;
   time: string;
   startAt: string;
+  endAt: string;
 }
 
 export interface TriggerFormState {
@@ -37,6 +38,7 @@ export const DEFAULT_TRIGGER_STATE: TriggerFormState = {
     dayOfMonth: FIRST_DAY_OF_MONTH,
     time: '09:00',
     startAt: '',
+    endAt: '',
   },
   onceDateTime: '',
 };

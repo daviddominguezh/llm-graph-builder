@@ -1,13 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -58,7 +52,7 @@ function ActiveContent({ state, setState }: FormProps) {
 }
 
 function PreviewSection({ state }: { state: TriggerFormState }) {
-  if (state.mode === 'after-event') return null;
+  if (state.mode !== 'recurring') return null;
   return (
     <>
       <Separator />
@@ -76,16 +70,25 @@ interface FormBodyProps {
 
 function FormBody({ initial, isEdit, onSave, onCancel }: FormBodyProps) {
   const t = useTranslations('editor.triggers');
+
   const [state, setState] = useState<TriggerFormState>(initial);
   return (
     <>
       <DialogHeader>
         <DialogTitle>{isEdit ? t('modalEdit') : t('modalAdd')}</DialogTitle>
       </DialogHeader>
-      <div className="flex flex-col gap-4">
-        <ModeSelector value={state.mode} onChange={(mode) => setState({ ...state, mode })} />
-        <ActiveContent state={state} setState={setState} />
-        <PreviewSection state={state} />
+      <div className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1" data-native-scroll>
+        <div className="flex flex-col gap-2.5">
+          <ModeSelector value={state.mode} onChange={(mode) => setState({ ...state, mode })} />
+          <Separator />
+          <div className="flex gap-x-3">
+            <span className="shrink-0 text-xs font-medium text-foreground invisible">{t('modeLabel')}</span>
+            <div className={`flex-1 flex flex-col gap-2.5 `}>
+              <ActiveContent state={state} setState={setState} />
+              <PreviewSection state={state} />
+            </div>
+          </div>
+        </div>
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={onCancel} className="rounded-md">
@@ -102,7 +105,7 @@ function FormBody({ initial, isEdit, onSave, onCancel }: FormBodyProps) {
 export function TriggerFormDialog(props: TriggerFormDialogProps) {
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg h-[450px] flex flex-col">
         {props.open && (
           <FormBody
             initial={props.initial}

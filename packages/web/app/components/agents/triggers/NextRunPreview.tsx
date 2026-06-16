@@ -1,19 +1,21 @@
 'use client';
 
-import dayjs from 'dayjs';
+import dayjs, { type Dayjs } from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { Clock } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 
-import { computeNextRuns } from './nextRun';
+import { computePreviewRuns, type PreviewRunItem } from './nextRun';
 import type { TriggerFormState } from './types';
 
 dayjs.extend(relativeTime);
 
 const TICK_MS = 30000;
-const NEXT_FORMAT = 'ddd, MMM D [·] h:mm A';
-const RUN_COUNT = 3;
+const DATE_FORMAT = 'ddd, MMM D';
+const TIME_FORMAT = 'h:mm A';
+const FIRST_RUN_COUNT = 3;
+const LAST_RUN_COUNT = 2;
 
 interface NextRunPreviewProps {
   state: TriggerFormState;
@@ -31,19 +33,32 @@ function useNow(): number {
 function HeaderLabel({ count }: { count: number }) {
   const t = useTranslations('editor.triggers');
   return (
-    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground">
       <Clock className="size-3.5" />
       {count > 1 ? t('previewLabelMany') : t('previewLabel')}
     </span>
   );
 }
 
-function RunRow({ value, hint }: { value: string; hint: string }) {
+function RunRowCells({
+  index,
+  date,
+  time,
+  hint,
+}: {
+  index: number;
+  date: string;
+  time: string;
+  hint: string;
+}) {
   return (
-    <div className="flex flex-wrap items-baseline gap-x-2 text-xs">
-      <span className="font-medium text-foreground tabular-nums">{value}</span>
-      <span className="text-muted-foreground/80">({hint})</span>
-    </div>
+    <>
+      <span className="text-right text-muted-foreground/80">{index}.</span>
+      <span>{date}</span>
+      <span>·</span>
+      <span>{time}</span>
+      <span className="ml-1 text-muted-foreground/80">({hint})</span>
+    </>
   );
 }
 
@@ -59,25 +74,41 @@ function MutedLine({ label, value }: { label: string; value: string }) {
   );
 }
 
+function RunFragment({ item, now }: { item: PreviewRunItem; now: Dayjs }) {
+  return (
+    <RunRowCells
+      index={item.index}
+      date={item.date.locale('en').format(DATE_FORMAT)}
+      time={item.date.locale('en').format(TIME_FORMAT)}
+      hint={item.date.locale('en').from(now)}
+    />
+  );
+}
+
 export function NextRunPreview({ state }: NextRunPreviewProps) {
   const t = useTranslations('editor.triggers');
   const now = useNow();
   const nowDay = dayjs(now);
-  const runs = computeNextRuns(state, RUN_COUNT, nowDay);
+  const { first, last, hasGap } = computePreviewRuns(state, FIRST_RUN_COUNT, LAST_RUN_COUNT, nowDay);
+  const total = first.length + last.length;
 
-  if (runs.length === 0) {
+  if (total === 0) {
     return <MutedLine label={t('previewLabel')} value={t('previewNone')} />;
   }
   return (
-    <div className="flex flex-col gap-1.5 text-xs">
-      <HeaderLabel count={runs.length} />
-      <div className="ml-[1.375rem] flex flex-col gap-1">
-        {runs.map((run) => (
-          <RunRow
-            key={run.toISOString()}
-            value={run.locale('en').format(NEXT_FORMAT)}
-            hint={run.locale('en').from(nowDay)}
-          />
+    <div className="flex flex-col gap-1.5 text-xs mt-2">
+      <HeaderLabel count={total} />
+      <div className="ml-[1.375rem] grid w-fit grid-cols-[auto_auto_auto_auto_auto] items-baseline gap-x-1.5 gap-y-1 text-muted-foreground tabular-nums">
+        {first.map((item) => (
+          <Fragment key={item.date.toISOString()}>
+            <RunFragment item={item} now={nowDay} />
+          </Fragment>
+        ))}
+        {hasGap && <span className="col-span-full font-bold">…</span>}
+        {last.map((item) => (
+          <Fragment key={item.date.toISOString()}>
+            <RunFragment item={item} now={nowDay} />
+          </Fragment>
         ))}
       </div>
     </div>

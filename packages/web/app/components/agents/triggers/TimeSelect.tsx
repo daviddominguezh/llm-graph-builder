@@ -6,6 +6,7 @@ const HOURS_PER_DAY = 24;
 const MINUTES_PER_HOUR = 60;
 const MINUTE_STEP = 5;
 const PAD = 2;
+const RADIX = 10;
 
 const HOURS = Array.from({ length: HOURS_PER_DAY }, (_, i) => String(i).padStart(PAD, '0'));
 const MINUTES = Array.from({ length: MINUTES_PER_HOUR / MINUTE_STEP }, (_, i) =>
@@ -15,6 +16,7 @@ const MINUTES = Array.from({ length: MINUTES_PER_HOUR / MINUTE_STEP }, (_, i) =>
 interface TimeSelectProps {
   value: string;
   onChange: (next: string) => void;
+  minTime?: string;
 }
 
 function splitTime(value: string): { h: string; m: string } {
@@ -52,13 +54,40 @@ function PartSelect({
   );
 }
 
-export function TimeSelect({ value, onChange }: TimeSelectProps) {
+function filterHours(minTime: string | undefined): string[] {
+  if (!minTime) return HOURS;
+  const { h } = splitTime(minTime);
+  const minHour = parseInt(h, RADIX);
+  return HOURS.filter((hh) => parseInt(hh, RADIX) >= minHour);
+}
+
+function filterMinutes(currentHour: string, minTime: string | undefined): string[] {
+  if (!minTime) return MINUTES;
+  const { h, m } = splitTime(minTime);
+  if (currentHour !== h) return MINUTES;
+  const minMinute = parseInt(m, RADIX);
+  return MINUTES.filter((mm) => parseInt(mm, RADIX) >= minMinute);
+}
+
+export function TimeSelect({ value, onChange, minTime }: TimeSelectProps) {
   const { h, m } = splitTime(value);
+  const hourOptions = filterHours(minTime);
+  const minuteOptions = filterMinutes(h, minTime);
   return (
     <span className="inline-flex items-center">
-      <PartSelect value={h} options={HOURS} onChange={(nh) => onChange(`${nh}:${m}`)} ariaLabel="Hour" />
+      <PartSelect
+        value={h}
+        options={hourOptions}
+        onChange={(nh) => onChange(`${nh}:${m}`)}
+        ariaLabel="Hour"
+      />
       <span className="px-1 text-muted-foreground">:</span>
-      <PartSelect value={m} options={MINUTES} onChange={(nm) => onChange(`${h}:${nm}`)} ariaLabel="Minute" />
+      <PartSelect
+        value={m}
+        options={minuteOptions}
+        onChange={(nm) => onChange(`${h}:${nm}`)}
+        ariaLabel="Minute"
+      />
     </span>
   );
 }

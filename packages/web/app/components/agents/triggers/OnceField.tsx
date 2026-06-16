@@ -9,13 +9,14 @@ interface OnceFieldProps {
   onChange: (value: string) => void;
 }
 
-const SENTENCE_BASE = 'flex flex-wrap items-center gap-x-1.5 gap-y-2 text-sm leading-relaxed';
+const SENTENCE_BASE =
+  'flex min-h-7 max-h-7 flex-wrap items-center gap-x-1.5 gap-y-2 text-sm leading-relaxed';
 
 export function OnceField({ value, onChange }: OnceFieldProps) {
   const t = useTranslations('editor.triggers');
   return (
     <div className={SENTENCE_BASE}>
-      <span className="text-muted-foreground">{t('runOn')}</span>
+      <span className="text-xs font-medium text-foreground">{t('runOn')}</span>
       <DateTimePicker value={value} onChange={onChange} />
     </div>
   );

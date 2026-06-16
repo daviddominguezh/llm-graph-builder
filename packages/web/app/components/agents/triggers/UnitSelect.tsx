@@ -23,7 +23,7 @@ export function UnitSelect({ value, onChange, interval }: UnitSelectProps) {
   const isPlural = interval !== SINGULAR_INTERVAL;
   return (
     <Select value={value} onValueChange={(v) => v && onChange(v as RecurringUnit)}>
-      <SelectTrigger className="h-7 text-sm font-medium [&_span]:text-sm">
+      <SelectTrigger className="h-7 w-[100px] text-sm font-medium [&_span]:text-sm">
         <SelectValue>{unitLabel(t, value, isPlural)}</SelectValue>
       </SelectTrigger>
       <SelectContent alignItemWithTrigger={false}>
