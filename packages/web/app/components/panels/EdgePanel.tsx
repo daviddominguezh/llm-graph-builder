@@ -411,7 +411,7 @@ export function EdgePanel({
       <div className="p-3">
         <div className="flex flex-col text-xs leading-none font-medium">
           <span className="flex gap-1 text-xs text-muted-foreground">
-            <span className="w-[50px]">From:</span>
+            <span className="cursor-default w-[50px]">From:</span>
             <Button
               variant="link"
               size="sm"
@@ -423,7 +423,7 @@ export function EdgePanel({
           </span>
 
           <span className="flex gap-1  text-xs text-muted-foreground">
-            <span className="w-[50px]">To:</span>
+            <span className="cursor-default w-[50px]">To:</span>
             <Button
               variant="link"
               size="sm"
@@ -447,7 +447,7 @@ export function EdgePanel({
               </Tooltip>
 
               <AlertDescription>
-                <div className="text-xs text-muted-foreground mt-[1px]">
+                <div className="cursor-default text-xs text-muted-foreground mt-[1px]">
                   Edges are locked to:{' '}
                   <span className={`rounded px-[0px] py-0.5 font-semibold ${getTypeColor(existingType)}`}>
                     {existingType}
@@ -488,7 +488,7 @@ export function EdgePanel({
 
             <div className="flex flex-col gap-2 mt-2">
               {preconditions.map((p, index) => (
-                <Card key={index} className="p-2 bg-background border-none ring-0">
+                <Card key={index} className="border-0 ring-0 p-2 border-[0.5px] dark:border-0 bg-background">
                   <div className="flex items-start justify-between">
                     <div className="min-w-0 flex-1 flex flex-col gap-2">
                       <div className="flex items-center justify-between">
@@ -496,7 +496,7 @@ export function EdgePanel({
                           className={`flex items-center gap-1 leading-none rounded text-[11px] font-semibold ${getTypeColor(p.type)}`}
                         >
                           {getTypeIcon(p.type)}
-                          <div className="mt-[1px]">{getTypeLabel(p.type)}</div>
+                          <div className="cursor-default mt-[1px]">{getTypeLabel(p.type)}</div>
                         </div>
                         <Button
                           variant="ghost"
