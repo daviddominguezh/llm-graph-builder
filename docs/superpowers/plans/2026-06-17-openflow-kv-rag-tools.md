@@ -344,9 +344,11 @@ git commit -m "feat(shared-validation): add filterByMatcher with on= and regex m
 
 ---
 
-## Phase 0c — Extract RAG search cores from route handlers
+## Phase 0c — Add RAG search cores for the agent tool
 
-Goal: split `searchChunks.ts` and `hybridSearch.ts` so the pipeline pieces are pure functions returning paginated results, with the existing route handlers becoming thin wrappers. **No behavior change for the FE route.**
+Goal: add net-new pure search cores at `packages/backend/src/rag/search/{simple,semantic,hybrid}.ts` that return paginated results (`PaginatedSearchResult` from `types.ts`). **The existing FE route is left untouched.** The cores reuse the same underlying `ragChunksQueries` functions that the FE route calls (`searchByContent`, `searchBySemantic`, etc.) — reuse happens at the query layer, not at the handler layer.
+
+**Why not thin-wrap the FE handler?** The FE returns rich `SemanticChunk[]` + a separate `files` list with rerank/distance metadata. The agent tool needs only `string[]` of chunk content with offset/limit pagination. The rerank pipeline uses a fixed candidate pool of 50 that doesn't compose with offset pagination. Forcing the FE to consume the agent shape would silently drop user-controlled rerank. So: the FE handler stays as-is; the agent cores are independent entry points that call the same SQL queries with different post-processing (no rerank, paginated). This satisfies the no-duplication rule (same query layer, different orchestration) without changing FE behavior.
 
 ### Task 0c.1: Map the existing handlers
 
@@ -437,8 +439,9 @@ export async function runSimpleSearch(
 ```
 
 - [ ] **Step 2:** Same for `runSemanticSearch` in `semantic.ts` (takes `SemanticSearchParams`).
-- [ ] **Step 3:** Rewrite `searchChunks.ts` as a thin wrapper: parse req, dispatch to `runSimpleSearch` or `runSemanticSearch` by mode (the FE mode string remains `'simple'`), write the response. No regex mode here.
-- [ ] **Step 4: Manual verify.** Run `npm run dev -w packages/backend` (or whatever starts the API server) and exercise the FE RAG search box for both simple and semantic; results identical.
+- [ ] **Step 3:** Do NOT modify `searchChunks.ts`. The FE route is left untouched. The new cores share the underlying `ragChunksQueries` calls with the existing handler; that's the reuse seam.
+- [ ] **Step 3b:** Add a `countMatchingChunks(supabase, storeId, tenantId, query)` (and `countSemanticMatching` if needed) helper to `ragChunksQueries.ts` so the cores can populate `total`. Mirror the existing query shape; do not duplicate filter logic. If the existing handler reaches its top-k without ever computing a total (likely true), this companion query is net-new but reuses the same WHERE-clause shape.
+- [ ] **Step 4: Manual verify.** Not applicable — FE route untouched. Trust `npm run check`.
 - [ ] **Step 5: Run check.** `npm run check`. Expect clean.
 - [ ] **Step 6: Commit.**
 
@@ -447,20 +450,19 @@ git add packages/backend/src/rag/search/simple.ts packages/backend/src/rag/searc
 git commit -m "refactor(backend): extract simple + semantic search cores from route handler"
 ```
 
-### Task 0c.4: Extract `runHybridSearch`
+### Task 0c.4: Add `runHybridSearch` for the agent tool
 
 **Files:**
 - Create: `packages/backend/src/rag/search/hybrid.ts`
-- Modify: `packages/backend/src/routes/ragStores/ragFiles/hybridSearch.ts`
 
-- [ ] **Step 1:** Move the hybrid pipeline body (currently `runHybridSearch` writing to `res`) into `hybrid.ts` as a pure function returning `PaginatedSearchResult`. Existing helpers (`runHybridPipeline`, `applyRerank`, `mergePoolsByScore`, etc.) move with it.
-- [ ] **Step 2:** Rewrite `hybridSearch.ts` route handler as a thin wrapper.
-- [ ] **Step 3:** Manual verify FE hybrid search.
+- [ ] **Step 1:** Implement `runHybridSearch(supabase, params): Promise<PaginatedSearchResult>` that composes the same two underlying queries (`searchByContent` for the BM25/lexical pool, `searchBySemantic` for the vector pool), merges by score, and returns `PaginatedSearchResult` (`items: string[]`). **Skip rerank** — rerank uses a fixed candidate pool of 50 that doesn't compose with offset pagination, and the agent's pagination is more useful than a one-shot rerank for tool-loop semantics.
+- [ ] **Step 2:** Reuse the existing pool-merge helper from the FE route's hybrid pipeline if it's already pure-ish (e.g. `mergePoolsByScore`); export it from a shared location if needed. If extracting requires changes to the FE route, leave the FE route alone — copy the helper to the agent cores' module instead. Reuse can be done in a follow-up cleanup phase if needed.
+- [ ] **Step 3:** Do NOT modify `hybridSearch.ts` (FE route untouched).
 - [ ] **Step 4:** `npm run check`. Commit.
 
 ```bash
-git add packages/backend/src/rag/search/hybrid.ts packages/backend/src/routes/ragStores/ragFiles/hybridSearch.ts
-git commit -m "refactor(backend): extract hybrid search core from route handler"
+git add packages/backend/src/rag/search/hybrid.ts
+git commit -m "feat(backend): add runHybridSearch core for agent tool (paginated, no rerank)"
 ```
 
 ---
