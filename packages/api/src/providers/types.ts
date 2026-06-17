@@ -53,18 +53,36 @@ function isZodSchema(value: ToolInputSchema): value is z.ZodType {
   return '_def' in value;
 }
 
-export function toAiSdkTool<O>(t: OpenFlowTool<O>): Tool {
+function instrumentedExecute<O>(
+  t: OpenFlowTool<O>,
+  toolName: string
+): (args: unknown) => Promise<O> {
+  return async (args: unknown): Promise<O> => {
+    const start = Date.now();
+    try {
+      const result = await t.execute(args);
+      process.stdout.write(`[tool] ${toolName} ok ms=${Date.now() - start}\n`);
+      return result;
+    } catch (err) {
+      const code = err instanceof ToolError ? err.code : 'unknown';
+      process.stdout.write(`[tool] ${toolName} fail ms=${Date.now() - start} code=${code}\n`);
+      throw err;
+    }
+  };
+}
+
+export function toAiSdkTool<O>(t: OpenFlowTool<O>, toolName: string = 'unknown'): Tool {
   const wrapped = isZodSchema(t.inputSchema) ? zodSchema(t.inputSchema) : jsonSchema(t.inputSchema);
   return {
     description: t.description,
     inputSchema: wrapped,
-    execute: async (args: unknown) => await t.execute(args),
+    execute: instrumentedExecute(t, toolName),
   };
 }
 
 export function toAiSdkToolDict(tools: Record<string, OpenFlowTool>): Record<string, Tool> {
   const out: Record<string, Tool> = {};
-  for (const [name, tool] of Object.entries(tools)) out[name] = toAiSdkTool(tool);
+  for (const [name, tool] of Object.entries(tools)) out[name] = toAiSdkTool(tool, name);
   return out;
 }
 
