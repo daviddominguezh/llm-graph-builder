@@ -1,6 +1,8 @@
-# OPENFLOW/KV_STORE and OPENFLOW/RAG Implementation Plan
+# OPENFLOW/KV_STORE and OPENFLOW/RAG Implementation Plan (rev 2)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+> **Rev 2 changes** (from initial draft): fixed `statement_timeout` units, restricted regex/text-search RPCs to `service_role`, backfill only `current_version`, kept FE-facing `simple` naming intact, added pre-validation + size caps on regex inputs, moved tenant-scope check to a channel-agnostic guard, switched KV substring search to SQL+pg_trgm (kept regex in-memory with row cap), added `FOR SHARE` on agent row during publish, added Jest coverage for the version sourcing change, split provider tool executors for `max-lines-per-function: 40` compliance, added dedicated rate limiter for store-bindings, and made `_sys.` matching case-insensitive at the service layer.
 
 **Goal:** Add two builtin OpenFlow tool groups (`OPENFLOW/KV_STORE` and `OPENFLOW/RAG`) that let agents read/search/write KV stores and read/search RAG stores, gated per-agent via a single bound store id per group; snapshot bindings + `selected_tools` into `agent_versions` to fix tool versioning; scope execution keys to tenants.
 
@@ -22,7 +24,7 @@ packages/shared-validation/src/kv/
   filter.test.ts               — Jest tests
 
 packages/backend/src/rag/search/
-  bm25.ts                      — extracted from searchChunks.ts; pure runBm25Search()
+  simple.ts                    — extracted from searchChunks.ts; pure runSimpleSearch() (FE 'simple' mode)
   semantic.ts                  — extracted from searchChunks.ts; pure runSemanticSearch()
   hybrid.ts                    — extracted from hybridSearch.ts; pure runHybridSearch()
   regex.ts                     — new; runRegexSearch() via rag_regex_search RPC
@@ -51,6 +53,9 @@ packages/api/src/providers/rag/
 packages/backend/src/routes/agents/
   updateStoreBindings.ts       — PATCH /agents/:agentId/store-bindings handler
 
+packages/backend/src/routes/execute/
+  enforceTenantScope.ts        — channel-agnostic tenant scope + ownership guard
+
 packages/web/app/actions/
   agentToolStoreBindings.ts    — server action wrapping PATCH /agents/:id/store-bindings
 
@@ -64,6 +69,7 @@ packages/web/app/components/panels/
 supabase/migrations/
   20260617000000_agent_store_bindings_and_snapshots.sql
   20260617100000_rag_regex_search.sql
+  20260617150000_kv_entries_trigram_indexes.sql
   20260617200000_execution_key_tenant_scoping.sql
 
 docs/superpowers/specs/
@@ -79,7 +85,7 @@ packages/api/src/providers/provider.ts       — no shape change; document servi
 packages/api/src/core/providerCtxFromContext.ts — forward tenantId
 packages/api/src/types/tools.ts              — (no change; Context.tenantID already exists)
 
-packages/backend/src/routes/ragStores/ragFiles/searchChunks.ts  — thin wrapper around runBm25Search / runSemanticSearch
+packages/backend/src/routes/ragStores/ragFiles/searchChunks.ts  — thin wrapper around runSimpleSearch / runSemanticSearch
 packages/backend/src/routes/ragStores/ragFiles/hybridSearch.ts  — thin wrapper around runHybridSearch
 packages/backend/src/db/queries/kvEntriesQueries.ts             — add listKeys / getByKeys / updateValue
 packages/backend/src/db/queries/ragChunksQueries.ts             — add searchByRegex (calls rag_regex_search)
@@ -403,22 +409,24 @@ git add packages/backend/src/rag/search/types.ts
 git commit -m "feat(backend): add paginated RAG search result type + MAX_OFFSET clamp"
 ```
 
-### Task 0c.3: Extract `runBm25Search` and `runSemanticSearch`
+### Task 0c.3: Extract `runSimpleSearch` and `runSemanticSearch`
 
 **Files:**
-- Create: `packages/backend/src/rag/search/bm25.ts`
+- Create: `packages/backend/src/rag/search/simple.ts`
 - Create: `packages/backend/src/rag/search/semantic.ts`
 - Modify: `packages/backend/src/routes/ragStores/ragFiles/searchChunks.ts`
 
-- [ ] **Step 1:** Move the BM25 (a.k.a. "simple" / lexical) pipeline body from `searchChunks.ts` into `bm25.ts` as `runBm25Search(supabase, params: SearchParams): Promise<PaginatedSearchResult>`. Apply `clampOffset` before the DB call. Compute `total` via the existing count path or a parallel `count` query — match what the existing handler did, do not invent new behavior.
+> **Important naming note.** The existing FE-facing route uses `mode: 'simple'`. Keep that contract intact. Core function is `runSimpleSearch`; the new RAG agent tool's enum value `'bm25'` is a more descriptive label for the LLM but maps to the same internal function (`bm25 → runSimpleSearch`). Do NOT rename the FE-facing string.
+
+- [ ] **Step 1:** Move the existing "simple" / BM25 pipeline body from `searchChunks.ts` into `simple.ts` as `runSimpleSearch(supabase, params: SearchParams): Promise<PaginatedSearchResult>`. Apply `clampOffset` before the DB call. Compute `total` via the existing count path or a parallel `count` query — match what the existing handler did, do not invent new behavior.
 
 ```ts
-// packages/backend/src/rag/search/bm25.ts (skeleton — fill in by moving existing logic)
+// packages/backend/src/rag/search/simple.ts (skeleton — fill in by moving existing logic)
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { searchByContent /* etc */ } from '../../db/queries/ragChunksQueries.js';
 import { clampOffset, type PaginatedSearchResult, type SearchParams } from './types.js';
 
-export async function runBm25Search(
+export async function runSimpleSearch(
   supabase: SupabaseClient,
   params: SearchParams
 ): Promise<PaginatedSearchResult> {
@@ -429,14 +437,14 @@ export async function runBm25Search(
 ```
 
 - [ ] **Step 2:** Same for `runSemanticSearch` in `semantic.ts` (takes `SemanticSearchParams`).
-- [ ] **Step 3:** Rewrite `searchChunks.ts` as a thin wrapper: parse req, dispatch to `runBm25Search` or `runSemanticSearch` by mode, write the response. No regex mode here.
+- [ ] **Step 3:** Rewrite `searchChunks.ts` as a thin wrapper: parse req, dispatch to `runSimpleSearch` or `runSemanticSearch` by mode (the FE mode string remains `'simple'`), write the response. No regex mode here.
 - [ ] **Step 4: Manual verify.** Run `npm run dev -w packages/backend` (or whatever starts the API server) and exercise the FE RAG search box for both simple and semantic; results identical.
 - [ ] **Step 5: Run check.** `npm run check`. Expect clean.
 - [ ] **Step 6: Commit.**
 
 ```bash
-git add packages/backend/src/rag/search/bm25.ts packages/backend/src/rag/search/semantic.ts packages/backend/src/routes/ragStores/ragFiles/searchChunks.ts
-git commit -m "refactor(backend): extract bm25 + semantic search cores from route handler"
+git add packages/backend/src/rag/search/simple.ts packages/backend/src/rag/search/semantic.ts packages/backend/src/routes/ragStores/ragFiles/searchChunks.ts
+git commit -m "refactor(backend): extract simple + semantic search cores from route handler"
 ```
 
 ### Task 0c.4: Extract `runHybridSearch`
@@ -458,6 +466,14 @@ git commit -m "refactor(backend): extract hybrid search core from route handler"
 ---
 
 ## Phase 1 — Migrations (write only; user applies)
+
+### Task 1.0: Verify `agents.current_version` column exists
+
+**Files:**
+- Read: the migration that created the `agent_versions` versioning columns; the `agentQueries.ts` row type.
+
+- [ ] **Step 1:** Run `grep -rn "current_version" packages/backend/src/db/` and `grep -rn "current_version" supabase/migrations/`. Confirm the column exists on `agents` with the type/semantics this plan assumes ("the version number of the latest published `agent_versions` row, or NULL if never published"). If the column has a different name (e.g. `published_version`, `latest_version`), update every later task's SQL to use the actual name. Stop and flag if the concept doesn't exist at all.
+- [ ] **Step 2:** Note the resolved column name as a comment in your terminal scratchpad; it gets used in Migration 1.1's backfill, Task 2.5's reverse-lookup query, Migration 1.2 is unaffected, and Phase 6's snapshot read.
 
 ### Task 1.1: Write `20260617000000_agent_store_bindings_and_snapshots.sql`
 
@@ -485,12 +501,14 @@ CREATE INDEX idx_agents_selected_rag_store_id ON agents (selected_rag_store_id) 
 CREATE INDEX idx_agent_versions_selected_kv_store_id  ON agent_versions (selected_kv_store_id) WHERE selected_kv_store_id IS NOT NULL;
 CREATE INDEX idx_agent_versions_selected_rag_store_id ON agent_versions (selected_rag_store_id) WHERE selected_rag_store_id IS NOT NULL;
 
--- Backfill: copy current agents.selected_tools into every agent_versions row
--- so existing latest-published-version reads continue to return what was published.
+-- Backfill: copy current agents.selected_tools into the LATEST published version row only.
+-- Older historical versions keep the default '[]'::jsonb so a replay fails closed
+-- rather than silently inheriting a different tool set than was live at publish time.
 UPDATE agent_versions av
 SET selected_tools = a.selected_tools
 FROM agents a
-WHERE av.agent_id = a.id;
+WHERE av.agent_id = a.id
+  AND av.version = a.current_version;
 ```
 
 - [ ] **Step 2: Commit (do not apply).**
@@ -505,13 +523,15 @@ git commit -m "feat(db): migration for agent store bindings + selected_tools sna
 **Files:**
 - Create: `supabase/migrations/20260617100000_rag_regex_search.sql`
 
-- [ ] **Step 1:** Look at the existing `20260512500000_rag_text_search_or_query.sql` to mirror its return-type shape and security-definer pattern.
-- [ ] **Step 2: Write the migration.** Match `rag_text_search`'s return columns (chunk content + any rank/score it returns) so callers downstream don't need to special-case the regex path.
+- [ ] **Step 1:** Look at the existing `20260512500000_rag_text_search_or_query.sql` to mirror its return-type shape and security-definer pattern. Note its `GRANT EXECUTE` line — this migration also rewrites that grant to lock it to `service_role` only.
+- [ ] **Step 2: Write the migration.** Match `rag_text_search`'s return columns so callers downstream don't need to special-case the regex path. **Critical: `'500ms'` (not `'500'` — `set_config` interprets bare integers as seconds).**
 
 ```sql
 -- 20260617100000_rag_regex_search.sql
 -- POSIX regex search over rag_chunks with a 500ms statement timeout enforced inside
 -- the SECURITY DEFINER function so concurrent malicious patterns can't exhaust the pool.
+-- Locked to service_role only — the architecture rule says clients never touch the DB,
+-- so authenticated/anon JWTs have no legitimate need to invoke this directly.
 
 CREATE OR REPLACE FUNCTION rag_regex_search(
   p_store_id  UUID,
@@ -530,7 +550,7 @@ SECURITY DEFINER
 SET search_path = pg_catalog, public
 AS $$
 BEGIN
-  PERFORM set_config('statement_timeout', '500', true);
+  PERFORM set_config('statement_timeout', '500ms', true);
   RETURN QUERY
     SELECT c.id, c.content, c.page_number, c.rag_file_id
     FROM rag_chunks c
@@ -543,14 +563,50 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION rag_regex_search(UUID, UUID, TEXT, INT, INT) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION rag_regex_search(UUID, UUID, TEXT, INT, INT) FROM PUBLIC, authenticated, anon;
+GRANT EXECUTE ON FUNCTION rag_regex_search(UUID, UUID, TEXT, INT, INT) TO service_role;
+
+-- Also harden the existing rag_text_search: same architecture rule applies and it currently
+-- accepts any authenticated caller, which is broader than necessary.
+REVOKE ALL ON FUNCTION rag_text_search(UUID, UUID, TEXT, INT, INT) FROM PUBLIC, authenticated, anon;
+GRANT EXECUTE ON FUNCTION rag_text_search(UUID, UUID, TEXT, INT, INT) TO service_role;
 ```
+
+(Verify the `rag_text_search` argument signature in the existing migration before pasting the `REVOKE`/`GRANT` — adjust the type list to match exactly.)
 
 - [ ] **Step 3: Commit.**
 
 ```bash
 git add supabase/migrations/20260617100000_rag_regex_search.sql
 git commit -m "feat(db): migration for rag_regex_search RPC with 500ms timeout"
+```
+
+### Task 1.2b: Write `20260617150000_kv_entries_trigram_indexes.sql`
+
+**Files:**
+- Create: `supabase/migrations/20260617150000_kv_entries_trigram_indexes.sql`
+
+- [ ] **Step 1: Write the migration.** Substring search on `kv_entries.key` and `kv_entries.value` is now SQL-side via `ILIKE` (see Task 4.3a). Without these indexes a substring search scans the whole table per tenant — a tight agent loop becomes a tenant-level latency hit. Trigram GIN indexes accelerate `ILIKE '%q%'` patterns dramatically.
+
+```sql
+-- 20260617150000_kv_entries_trigram_indexes.sql
+-- Trigram GIN indexes on kv_entries (key, value) to accelerate agent-tool substring search
+-- via ILIKE. Skip equivalent index on rag_chunks.content — RAG substring is BM25/regex, not ILIKE.
+
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+CREATE INDEX IF NOT EXISTS idx_kv_entries_key_trgm
+  ON kv_entries USING GIN (key gin_trgm_ops);
+
+CREATE INDEX IF NOT EXISTS idx_kv_entries_value_trgm
+  ON kv_entries USING GIN (value gin_trgm_ops);
+```
+
+- [ ] **Step 2: Commit.**
+
+```bash
+git add supabase/migrations/20260617150000_kv_entries_trigram_indexes.sql
+git commit -m "feat(db): pg_trgm GIN indexes on kv_entries.key/value for substring search"
 ```
 
 ### Task 1.3: Write `20260617200000_execution_key_tenant_scoping.sql`
@@ -669,6 +725,21 @@ export class ToolError extends Error {
 ```bash
 git add packages/api/src/providers/types.ts packages/api/src/providers/provider.ts packages/api/src/core/providerCtxFromContext.ts
 git commit -m "feat(api): add ToolError with enum codes; forward tenantId onto ProviderCtx"
+```
+
+### Task 2.2b: Update `ProviderCtx` test fixtures
+
+**Files:**
+- Modify: every test that constructs a fake `ProviderCtx` (grep below)
+
+- [ ] **Step 1:** Run `grep -rn "ProviderCtx\b" packages/api/src/` and `grep -rn ": ProviderCtx\|as ProviderCtx" packages/`. Every test that builds a fixture object literal or asserts `as ProviderCtx` needs to add `tenantId: 'test-tenant-id'` (or similar literal). The new field is required, but `as ProviderCtx` casts silently bypass the typecheck — manual sweep is required.
+- [ ] **Step 2: Add the field everywhere.** Choose a stable literal like `'00000000-0000-0000-0000-000000000000'` for the test value.
+- [ ] **Step 3: Typecheck + tests.** `npm run check`. Expect clean.
+- [ ] **Step 4: Commit.**
+
+```bash
+git add packages/api/src/providers/__tests__/ packages/backend/src/...
+git commit -m "chore(tests): add tenantId to ProviderCtx fixtures"
 ```
 
 ### Task 2.3: Define `KvStoreServices` and `RagStoreServices` interfaces
@@ -840,11 +911,16 @@ export async function updateAgentStoreBindingsWithPrecondition(
   expectedUpdatedAt: string,
   patch: { selectedKvStoreId: string | null; selectedRagStoreId: string | null }
 ): Promise<{ result: AgentStoreBindings | null; error: string | null; conflict: boolean }> {
+  // updated_at MUST be set explicitly. Without it, downstream save flows reading
+  // updated_at as the optimistic-concurrency token see a stale value and can
+  // mask lost writes. Mirrors selectedToolsOperations.ts.
+  const nowIso = new Date().toISOString();
   const { data, error } = await supabase
     .from('agents')
     .update({
       selected_kv_store_id: patch.selectedKvStoreId,
       selected_rag_store_id: patch.selectedRagStoreId,
+      updated_at: nowIso,
     })
     .eq('id', agentId)
     .eq('updated_at', expectedUpdatedAt)
@@ -869,32 +945,74 @@ export interface AgentRef {
   name: string;
 }
 
+async function findDraftAgentsByColumn(
+  supabase: SupabaseClient,
+  orgId: string,
+  storeId: string,
+  column: 'selected_kv_store_id' | 'selected_rag_store_id'
+): Promise<{ rows: AgentRef[]; error: string | null }> {
+  const { data, error } = await supabase
+    .from('agents')
+    .select('id, slug, name')
+    .eq('org_id', orgId)
+    .eq(column, storeId);
+  if (error !== null) return { rows: [], error: error.message };
+  return { rows: (data ?? []) as AgentRef[], error: null };
+}
+
+async function findPublishedAgentsByColumn(
+  supabase: SupabaseClient,
+  orgId: string,
+  storeId: string,
+  column: 'selected_kv_store_id' | 'selected_rag_store_id'
+): Promise<{ rows: AgentRef[]; error: string | null }> {
+  // Latest-published only: join agent_versions on a.current_version. Org-scoped on both sides.
+  // (If Task 1.0 surfaced a different column name than `current_version`, substitute here.)
+  const { data, error } = await supabase.rpc('find_agents_by_published_store', {
+    p_org_id: orgId,
+    p_store_id: storeId,
+    p_column:  column,
+  });
+  // RPC option: write a small SQL function (define in a new migration if you prefer).
+  // Inline option: two-step — fetch agents in org with current_version set, then fetch
+  // agent_versions rows matching the column, join in JS. Inline is simpler and avoids a
+  // new migration. Pick the inline option:
+  if (error !== null) return { rows: [], error: error.message };
+  return { rows: (data ?? []) as AgentRef[], error: null };
+}
+
 export async function findAgentsByKvStore(
   supabase: SupabaseClient,
   orgId: string,
   storeId: string
 ): Promise<{ draft: AgentRef[]; published: AgentRef[]; error: string | null }> {
-  // Org-scoped — never trust the storeId alone.
-  const [draftRes, publishedRes] = await Promise.all([
-    supabase
-      .from('agents')
-      .select('id, slug, name')
-      .eq('org_id', orgId)
-      .eq('selected_kv_store_id', storeId),
-    supabase.rpc('find_agents_by_kv_store_published', { p_org_id: orgId, p_store_id: storeId }),
-    // OR inline the SQL: `SELECT a.id, a.slug, a.name FROM agents a JOIN agent_versions av ON av.agent_id = a.id AND av.version = a.current_version WHERE a.org_id = $1 AND av.selected_kv_store_id = $2`
-    // Both options work — choose the RPC for performance or inline for simplicity.
+  const [draft, published] = await Promise.all([
+    findDraftAgentsByColumn(supabase, orgId, storeId, 'selected_kv_store_id'),
+    findPublishedAgentsByColumn(supabase, orgId, storeId, 'selected_kv_store_id'),
   ]);
-  // Map and return.
-  // ...
+  const err = draft.error ?? published.error;
+  if (err !== null) return { draft: [], published: [], error: err };
+  return { draft: draft.rows, published: published.rows, error: null };
 }
 
-export async function findAgentsByRagStore(/* same shape */): Promise<...> { /* ... */ }
+export async function findAgentsByRagStore(
+  supabase: SupabaseClient,
+  orgId: string,
+  storeId: string
+): Promise<{ draft: AgentRef[]; published: AgentRef[]; error: string | null }> {
+  const [draft, published] = await Promise.all([
+    findDraftAgentsByColumn(supabase, orgId, storeId, 'selected_rag_store_id'),
+    findPublishedAgentsByColumn(supabase, orgId, storeId, 'selected_rag_store_id'),
+  ]);
+  const err = draft.error ?? published.error;
+  if (err !== null) return { draft: [], published: [], error: err };
+  return { draft: draft.rows, published: published.rows, error: null };
+}
 ```
 
-(Choose: write an SQL RPC for the latest-published-version join, or do it client-side via two queries. Either is acceptable; document which you chose in the commit message.)
+**On the RPC vs inline-JOIN choice for `findPublishedAgentsByColumn`:** the inline JS approach avoids a new SQL function. The sketch above shows an RPC call; if you go inline, fetch `agents` filtered by `org_id` + `current_version IS NOT NULL`, then `agent_versions` filtered by the column, and join in JS. Whichever you pick, the query MUST enforce `agents.org_id = orgId` and the `agent_versions` row must belong to that agent — never trust the `storeId` alone.
 
-- [ ] **Step 2: Add Jest tests.** Mirror the pattern in `ragStoresQueries.test.ts`. Cover: draft-only match, published-only match, both, neither, cross-org request returns empty arrays.
+- [ ] **Step 2: Add Jest tests.** Mirror the pattern in `ragStoresQueries.test.ts`. Cover: draft-only match, published-only match, both, neither, cross-org request returns empty arrays, updated_at is bumped on every successful binding write.
 - [ ] **Step 3: Run tests + typecheck.**
 - [ ] **Step 4: Commit.**
 
@@ -972,7 +1090,7 @@ export async function handleUpdateStoreBindings(req: Request, res: Response): Pr
 }
 ```
 
-- [ ] **Step 3: Wire in `agentRouter.ts`.** Add `router.patch('/:agentId/store-bindings', selectedToolsLimiter, handleUpdateStoreBindings)` (reuse the existing limiter — recon flagged it).
+- [ ] **Step 3: Wire in `agentRouter.ts`.** Add `router.patch('/:agentId/store-bindings', storeBindingsLimiter, handleUpdateStoreBindings)`. Do NOT share `selectedToolsLimiter` — a noisy FE writing both endpoints would deplete the shared bucket and lock teammates out of tool toggles. Create `storeBindingsLimiter` in the same file as `selectedToolsLimiter` (mirror its construction: same window, same per-org keying, dedicated instance).
 - [ ] **Step 4: Typecheck + lint.**
 - [ ] **Step 5: Commit.**
 
@@ -1037,30 +1155,60 @@ git add packages/backend/src/db/queries/executionKeyMutations.ts packages/backen
 git commit -m "feat(backend): write all_tenants + scoped tenants on execution key create/update"
 ```
 
-### Task 3.4: Tenant check in `originGuard.ts`
+### Task 3.4: Channel-agnostic tenant-scope guard
+
+> **Important.** The existing `originGuard.ts` only runs when `channel === 'web'`. Putting the tenant-scope check there means `api`, `widget`, and `edge` channels bypass it entirely — the inverse of what we want. This task hoists the tenant lookup AND the new tenant-scope check into a channel-agnostic guard that runs for every channel.
 
 **Files:**
-- Modify: `packages/backend/src/routes/execute/originGuard.ts`
+- Create: `packages/backend/src/routes/execute/enforceTenantScope.ts`
+- Modify: `packages/backend/src/routes/execute/executeHandler.ts` (and any other channel handlers — check `parseRequest` and any per-channel branching)
+- Modify: `packages/backend/src/routes/execute/originGuard.ts` (now just origin check, no tenant lookup)
 
-- [ ] **Step 1: Add the check after the existing org check.**
+- [ ] **Step 1: Read the call sites.** `grep -rn "enforceOriginIfWebChannel\|originGuard" packages/backend/src/routes/execute/`. Identify where each channel's request handling looks up the tenant today (likely inside `originGuard` for web; potentially nowhere for the other channels). Note the auth principal type for each channel (execution key, JWT, etc.) so the new guard can read it uniformly.
+- [ ] **Step 2: Create `enforceTenantScope.ts`.** Channel-agnostic. Inputs: supabase client, execution key row, body tenant id. Returns `{ ok: true; tenant: Tenant } | { ok: false; status: number; error: string }`.
 
 ```ts
-// Existing: tenant.org_id === key.org_id check stays.
-if (!key.all_tenants) {
-  const allowed = await getExecutionKeyTenants(supabase, key.id);
-  if (!allowed.includes(args.tenantId)) {
-    return { ok: false, status: 403, error: 'tenant_not_allowed' };
+// packages/backend/src/routes/execute/enforceTenantScope.ts
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { getExecutionKeyTenants } from '../../db/queries/executionKeyTenantsQueries.js';
+
+export interface TenantScopeArgs {
+  supabase: SupabaseClient;
+  executionKey: { id: string; org_id: string; all_tenants: boolean };
+  bodyTenantId: string;
+  lookupTenant: (id: string) => Promise<{ org_id: string } | null>;
+}
+
+export interface TenantScopeOk { ok: true; tenant: { id: string; org_id: string }; }
+export interface TenantScopeFail { ok: false; status: number; error: string; }
+
+export async function enforceTenantScope(args: TenantScopeArgs): Promise<TenantScopeOk | TenantScopeFail> {
+  if (args.bodyTenantId === '') return { ok: false, status: 400, error: 'tenantId is required' };
+  const tenant = await args.lookupTenant(args.bodyTenantId);
+  if (tenant === null) return { ok: false, status: 404, error: 'tenant not found' };
+  if (tenant.org_id !== args.executionKey.org_id) {
+    return { ok: false, status: 403, error: 'tenant_org_mismatch' };
   }
+  if (!args.executionKey.all_tenants) {
+    const allowed = await getExecutionKeyTenants(args.supabase, args.executionKey.id);
+    if (!allowed.includes(args.bodyTenantId)) {
+      return { ok: false, status: 403, error: 'tenant_not_allowed' };
+    }
+  }
+  return { ok: true, tenant: { id: args.bodyTenantId, org_id: tenant.org_id } };
 }
 ```
 
-- [ ] **Step 2: Write a Jest test.** Mock `getExecutionKeyTenants`. Cases: `all_tenants=true` passes; `all_tenants=false` + tenant in allowlist passes; `all_tenants=false` + tenant not in allowlist returns 403.
-- [ ] **Step 3: Run test + typecheck.**
-- [ ] **Step 4: Commit.**
+- [ ] **Step 3: Invoke `enforceTenantScope` from every channel handler.** Wire it into `executeHandler.ts` right after authentication / execution-key load resolves, BEFORE channel-specific branching. Confirm the call site for every channel by reading `parseRequest` and channel handlers.
+- [ ] **Step 4: Trim `originGuard.ts`** so it only handles the web-specific `Origin` / `Referer` check. The tenant lookup currently in `originGuard` moves to the new guard.
+- [ ] **Step 5: Write a Jest test for `enforceTenantScope`.** Cases: `all_tenants=true` passes; tenant org mismatch returns 403; `all_tenants=false` + tenant in allowlist passes; `all_tenants=false` + tenant not in allowlist returns 403 `tenant_not_allowed`; tenant not found returns 404.
+- [ ] **Step 6: Run tests + typecheck.**
+- [ ] **Step 7: Manual verify per channel.** Issue a tenant-scoped key; hit each channel (web, api, widget, edge) with an allowed tenant (200) and a disallowed tenant (403).
+- [ ] **Step 8: Commit.**
 
 ```bash
-git add packages/backend/src/routes/execute/originGuard.ts packages/backend/src/routes/execute/originGuard.test.ts
-git commit -m "feat(backend): originGuard rejects when tenant not in execution key allowlist"
+git add packages/backend/src/routes/execute/enforceTenantScope.ts packages/backend/src/routes/execute/originGuard.ts packages/backend/src/routes/execute/executeHandler.ts packages/backend/src/routes/execute/enforceTenantScope.test.ts
+git commit -m "feat(backend): channel-agnostic tenant-scope guard for execution keys"
 ```
 
 ### Task 3.5: FE execution-key dialog — tenant scope UI
@@ -1093,6 +1241,9 @@ git commit -m "feat(web): tenant scoping UI in execution key dialog"
 - [ ] **Step 1: Add the wrapper around the new RPC.**
 
 ```ts
+// Postgres SQLSTATE for query_canceled (statement_timeout fires this).
+const PG_STATEMENT_TIMEOUT = '57014';
+
 export async function searchByRegex(
   supabase: SupabaseClient,
   storeId: string,
@@ -1100,7 +1251,7 @@ export async function searchByRegex(
   pattern: string,
   offset: number,
   limit: number
-): Promise<{ result: RagChunkRow[]; total: number; error: string | null }> {
+): Promise<{ result: RagChunkRow[]; total: number; error: string | null; timedOut: boolean }> {
   const { data, error } = await supabase.rpc('rag_regex_search', {
     p_store_id: storeId,
     p_tenant_id: tenantId,
@@ -1109,14 +1260,14 @@ export async function searchByRegex(
     p_limit: limit,
   });
   if (error !== null) {
-    if (error.message.includes('statement timeout')) {
-      throw new Error('pattern_timeout');
+    // Supabase exposes Postgres error code on the error object as .code.
+    if (error.code === PG_STATEMENT_TIMEOUT) {
+      return { result: [], total: 0, error: null, timedOut: true };
     }
-    return { result: [], total: 0, error: error.message };
+    return { result: [], total: 0, error: error.message, timedOut: false };
   }
-  // Total is unknown without a count query; do a parallel COUNT or accept that regex doesn't
-  // report total (return items.length as total when count is unavailable).
-  return { result: data ?? [], total: data?.length ?? 0, error: null };
+  // Total is not returned by the RPC; without a COUNT it equals the page size returned.
+  return { result: data ?? [], total: data?.length ?? 0, error: null, timedOut: false };
 }
 ```
 
@@ -1132,35 +1283,48 @@ git commit -m "feat(backend): add searchByRegex query wrapping rag_regex_search 
 **Files:**
 - Create: `packages/backend/src/rag/search/regex.ts`
 
-- [ ] **Step 1: Implement.**
+- [ ] **Step 1: Implement.** Pre-validate the pattern via RE2 in Node before the RPC; RE2 rejects most catastrophic patterns instantly, so the Postgres timeout only catches patterns that pass RE2's compile but still blow up under POSIX semantics.
 
 ```ts
 import type { SupabaseClient } from '@supabase/supabase-js';
+import RE2 from 're2';
 import { searchByRegex } from '../../db/queries/ragChunksQueries.js';
-import { ToolError } from '@daviddh/llm-graph-runner'; // or the api package import path
+import { ToolError } from '@daviddh/llm-graph-runner';
 import { clampOffset, type PaginatedSearchResult, type RegexSearchParams } from './types.js';
+
+const MAX_PATTERN_LENGTH = 1024;
+
+function preValidatePattern(pattern: string): void {
+  if (pattern.length > MAX_PATTERN_LENGTH) {
+    throw new ToolError('invalid_pattern', `Pattern exceeds ${MAX_PATTERN_LENGTH} chars`);
+  }
+  try {
+    // Compile-only check. RE2 is linear-time; if it rejects, the pattern is malformed
+    // or uses backtracking-only constructs that POSIX would also struggle with.
+    new RE2(pattern);
+  } catch (err) {
+    throw new ToolError('invalid_pattern', err instanceof Error ? err.message : 'invalid regex');
+  }
+}
 
 export async function runRegexSearch(
   supabase: SupabaseClient,
   params: RegexSearchParams
 ): Promise<PaginatedSearchResult> {
+  preValidatePattern(params.pattern);
   const { offset, truncated } = clampOffset(params.offset, params.limit);
-  try {
-    const res = await searchByRegex(supabase, params.storeId, params.tenantId, params.pattern, offset, params.limit);
-    if (res.error !== null) throw new ToolError('invalid_pattern', res.error);
-    return {
-      items: res.result.map((r) => r.content),
-      total: res.total,
-      offset,
-      limit: params.limit,
-      ...(truncated ? { truncated: true as const } : {}),
-    };
-  } catch (err) {
-    if (err instanceof Error && err.message === 'pattern_timeout') {
-      throw new ToolError('pattern_timeout', 'Regex pattern timed out (500ms)');
-    }
-    throw err;
-  }
+  const res = await searchByRegex(
+    supabase, params.storeId, params.tenantId, params.pattern, offset, params.limit
+  );
+  if (res.timedOut) throw new ToolError('pattern_timeout', 'Regex pattern timed out (500ms)');
+  if (res.error !== null) throw new ToolError('invalid_pattern', res.error);
+  return {
+    items: res.result.map((r) => r.content),
+    total: res.total,
+    offset,
+    limit: params.limit,
+    ...(truncated ? { truncated: true as const } : {}),
+  };
 }
 ```
 
@@ -1177,11 +1341,31 @@ git commit -m "feat(backend): add runRegexSearch core with ToolError mapping"
 **Files:**
 - Create: `packages/backend/src/services/kvStoreService.ts`
 
-- [ ] **Step 1: Add the missing KV queries** in `packages/backend/src/db/queries/kvEntriesQueries.ts`: `listKeys(storeId, tenantId, offset, limit)` → `{ keys, total }`, `getByKeys(storeId, tenantId, keys)` → `Record<string, string | null>`, `updateValue(storeId, tenantId, key, value)` → `{ error }`.
+- [ ] **Step 1a: Add the missing KV queries** in `packages/backend/src/db/queries/kvEntriesQueries.ts`:
+  - `listKeys(storeId, tenantId, offset, limit) → { keys: string[]; total: number }`
+  - `getByKeys(storeId, tenantId, keys) → Record<string, string | null>`
+  - `searchEntriesIlike(storeId, tenantId, on, query, offset, limit) → { entries: { key, value }[]; total: number }` — **SQL-side** substring via `ILIKE '%q%'` (the pg_trgm index from Migration 1.2b makes this fast). Always paginates at the DB.
+  - `getEntriesForRegex(storeId, tenantId, maxRows) → { entries; truncated: boolean }` — bounded read for in-memory regex; if total exceeds `maxRows`, returns first `maxRows` + `truncated: true`.
+  - `updateValueQuery(storeId, tenantId, key, value) → { error }` — explicit upsert.
 
-The `updateValue` query MUST use explicit upsert with `onConflict: 'kv_store_id,tenant_id,key'`:
+Reference shapes (sketch — adapt to existing query style in the file):
 
 ```ts
+// searchEntriesIlike — substring search at the DB
+const escaped = query.replace(/[\\%_]/g, (m) => '\\' + m);
+const pattern = `%${escaped}%`;
+let q = supabase
+  .from('kv_entries')
+  .select('key, value', { count: 'exact' })
+  .eq('kv_store_id', storeId)
+  .eq('tenant_id', tenantId)
+  .range(offset, offset + limit - 1)
+  .order('key');
+if (on === 'keys') q = q.ilike('key', pattern);
+else if (on === 'values') q = q.ilike('value', pattern);
+else q = q.or(`key.ilike.${pattern},value.ilike.${pattern}`); // 'both'
+
+// updateValueQuery — explicit upsert
 const { error } = await supabase
   .from('kv_entries')
   .upsert(
@@ -1190,59 +1374,124 @@ const { error } = await supabase
   );
 ```
 
-- [ ] **Step 2: Implement `makeKvStoreService(supabase, storeId): KvStoreServices`.**
+- [ ] **Step 1b: Commit the queries.**
+
+```bash
+git add packages/backend/src/db/queries/kvEntriesQueries.ts
+git commit -m "feat(backend): KV queries — listKeys, getByKeys, searchEntriesIlike (pg_trgm), updateValueQuery"
+```
+
+- [ ] **Step 2a: Implement helper functions and constants.** Each tool method gets a top-level helper to stay under `max-lines-per-function: 40`.
 
 ```ts
+// packages/backend/src/services/kvStoreService.ts
 import { filterByMatcher } from '@openflow/shared-validation';
-import { ToolError } from '@daviddh/llm-graph-runner';
-import { getKvEntries, updateValue as updateValueQuery, listKeys, getByKeys } from '../db/queries/kvEntriesQueries.js';
+import { ToolError, type KvStoreServices } from '@daviddh/llm-graph-runner';
+import {
+  getEntriesForRegex,
+  getByKeys,
+  listKeys as listKeysQuery,
+  searchEntriesIlike,
+  updateValueQuery,
+} from '../db/queries/kvEntriesQueries.js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 const PROTECTED_PREFIX = '_sys.';
 const KEY_MAX_BYTES = 256;
 const VALUE_MAX_BYTES = 256 * 1024;
+const KV_REGEX_MAX_ROWS = 10_000;
+const KV_REGEX_MAX_PATTERN_LENGTH = 1024;
 
 function byteLen(s: string): number { return Buffer.byteLength(s, 'utf8'); }
 
+// Case-insensitive check so `_SYS.foo` / `_Sys.bar` can't bypass the protected namespace.
+function isProtectedKey(key: string): boolean {
+  return key.toLowerCase().startsWith(PROTECTED_PREFIX);
+}
+
+function assertWriteable(key: string, value: string): void {
+  if (isProtectedKey(key)) {
+    throw new ToolError('protected_key', `keys starting with "${PROTECTED_PREFIX}" are read-only to agents`);
+  }
+  if (byteLen(key) > KEY_MAX_BYTES) {
+    throw new ToolError('key_too_long', `key exceeds ${KEY_MAX_BYTES} bytes`);
+  }
+  if (byteLen(value) > VALUE_MAX_BYTES) {
+    throw new ToolError('value_too_large', `value exceeds ${VALUE_MAX_BYTES} bytes`);
+  }
+}
+```
+
+- [ ] **Step 2b: Implement each tool method as a top-level helper.**
+
+```ts
+async function listKeysImpl(supabase: SupabaseClient, storeId: string, tenantId: string, offset: number, limit: number) {
+  const res = await listKeysQuery(supabase, storeId, tenantId, offset, limit);
+  return { items: res.keys, total: res.total, offset, limit };
+}
+
+async function getValuesImpl(supabase: SupabaseClient, storeId: string, tenantId: string, keys: string[]) {
+  return getByKeys(supabase, storeId, tenantId, keys);
+}
+
+async function searchSubstringImpl(
+  supabase: SupabaseClient, storeId: string, tenantId: string,
+  on: 'keys' | 'values' | 'both', query: string, offset: number, limit: number
+) {
+  const res = await searchEntriesIlike(supabase, storeId, tenantId, on, query, offset, limit);
+  return { items: res.entries, total: res.total, offset, limit };
+}
+
+async function searchRegexImpl(
+  supabase: SupabaseClient, storeId: string, tenantId: string,
+  on: 'keys' | 'values' | 'both', pattern: string, offset: number, limit: number
+) {
+  if (pattern.length > KV_REGEX_MAX_PATTERN_LENGTH) {
+    throw new ToolError('invalid_pattern', `pattern exceeds ${KV_REGEX_MAX_PATTERN_LENGTH} chars`);
+  }
+  const fetched = await getEntriesForRegex(supabase, storeId, tenantId, KV_REGEX_MAX_ROWS);
+  let filtered: { key: string; value: string }[];
+  try {
+    filtered = filterByMatcher(fetched.entries, on, { kind: 'regex', pattern, flags: '' });
+  } catch (err) {
+    throw new ToolError('invalid_pattern', err instanceof Error ? err.message : 'invalid regex');
+  }
+  const slice = filtered.slice(offset, offset + limit);
+  return {
+    items: slice,
+    total: filtered.length,
+    offset,
+    limit,
+    ...(fetched.truncated ? { truncated: true as const } : {}),
+  };
+}
+
+async function updateValueImpl(supabase: SupabaseClient, storeId: string, tenantId: string, key: string, value: string) {
+  assertWriteable(key, value);
+  const { error } = await updateValueQuery(supabase, storeId, tenantId, key, value);
+  if (error !== null) throw new Error(error);
+  return { success: true as const };
+}
+```
+
+- [ ] **Step 2c: The factory is a thin bind.**
+
+```ts
 export function makeKvStoreService(supabase: SupabaseClient, storeId: string): KvStoreServices {
   return {
     storeId,
-    async listKeys(tenantId, offset, limit) {
-      const res = await listKeys(supabase, storeId, tenantId, offset, limit);
-      return { items: res.keys, total: res.total, offset, limit };
-    },
-    async getValues(tenantId, keys) {
-      return getByKeys(supabase, storeId, tenantId, keys);
-    },
-    async searchSubstring(tenantId, on, query, offset, limit) {
-      const all = await getKvEntries(supabase, storeId, tenantId);
-      const filtered = filterByMatcher(all, on, { kind: 'substring', query, caseInsensitive: true });
-      const slice = filtered.slice(offset, offset + limit);
-      return { items: slice, total: filtered.length, offset, limit };
-    },
-    async searchRegex(tenantId, on, pattern, offset, limit) {
-      const all = await getKvEntries(supabase, storeId, tenantId);
-      let filtered: typeof all;
-      try {
-        filtered = filterByMatcher(all, on, { kind: 'regex', pattern, flags: '' });
-      } catch (err) {
-        throw new ToolError('invalid_pattern', err instanceof Error ? err.message : 'invalid regex');
-      }
-      const slice = filtered.slice(offset, offset + limit);
-      return { items: slice, total: filtered.length, offset, limit };
-    },
-    async updateValue(tenantId, key, value) {
-      if (key.startsWith(PROTECTED_PREFIX)) throw new ToolError('protected_key', `keys starting with ${PROTECTED_PREFIX} are read-only`);
-      if (byteLen(key) > KEY_MAX_BYTES) throw new ToolError('key_too_long', `key exceeds ${KEY_MAX_BYTES} bytes`);
-      if (byteLen(value) > VALUE_MAX_BYTES) throw new ToolError('value_too_large', `value exceeds ${VALUE_MAX_BYTES} bytes`);
-      const { error } = await updateValueQuery(supabase, storeId, tenantId, key, value);
-      if (error !== null) throw new Error(error);
-      return { success: true };
-    },
+    listKeys: (tenantId, offset, limit) => listKeysImpl(supabase, storeId, tenantId, offset, limit),
+    getValues: (tenantId, keys) => getValuesImpl(supabase, storeId, tenantId, keys),
+    searchSubstring: (tenantId, on, query, offset, limit) =>
+      searchSubstringImpl(supabase, storeId, tenantId, on, query, offset, limit),
+    searchRegex: (tenantId, on, pattern, offset, limit) =>
+      searchRegexImpl(supabase, storeId, tenantId, on, pattern, offset, limit),
+    updateValue: (tenantId, key, value) => updateValueImpl(supabase, storeId, tenantId, key, value),
   };
 }
 ```
 
-- [ ] **Step 3: Jest test.** Mock supabase. Cover: `_sys.` rejection, size caps, happy path through each method.
+- [ ] **Step 3: Jest test.** Mock supabase. Cover: `_sys.` rejection (lowercase AND uppercase variants), size caps (key + value), substring goes through `searchEntriesIlike` (no in-memory fetch), regex above row cap returns `truncated: true`, regex pattern length cap, happy path through each method.
 - [ ] **Step 4: Commit.**
 
 ```bash
@@ -1258,7 +1507,7 @@ git commit -m "feat(backend): KvStoreService with _sys. protection + size caps"
 - [ ] **Step 1: Implement.**
 
 ```ts
-import { runBm25Search } from '../rag/search/bm25.js';
+import { runSimpleSearch } from '../rag/search/simple.js';
 import { runSemanticSearch } from '../rag/search/semantic.js';
 import { runHybridSearch } from '../rag/search/hybrid.js';
 import { runRegexSearch } from '../rag/search/regex.js';
@@ -1266,8 +1515,9 @@ import { runRegexSearch } from '../rag/search/regex.js';
 export function makeRagStoreService(supabase: SupabaseClient, storeId: string): RagStoreServices {
   return {
     storeId,
+    // The 'bm25' agent-tool mode maps to the existing 'simple' FE mode and runSimpleSearch.
     searchBm25: (tenantId, query, offset, limit) =>
-      runBm25Search(supabase, { storeId, tenantId, query, offset, limit }).then(toApiShape),
+      runSimpleSearch(supabase, { storeId, tenantId, query, offset, limit }).then(toApiShape),
     searchSemantic: (tenantId, query, minSimilarity, offset, limit) =>
       runSemanticSearch(supabase, { storeId, tenantId, query, minSimilarity, offset, limit }).then(toApiShape),
     searchHybrid: (tenantId, query, minSimilarity, offset, limit) =>
@@ -1332,10 +1582,14 @@ git commit -m "feat(backend): no_store_bound sentinel services that throw on eve
 - Create: `packages/api/src/providers/kv_store/descriptors.ts`
 
 - [ ] **Step 1: Read the calendar provider** (`packages/api/src/providers/calendar/`) end-to-end. Mirror its structure exactly.
-- [ ] **Step 2: Write `descriptors.ts`** — Zod schemas for each tool input + a description string for the LLM.
+- [ ] **Step 2: Write `descriptors.ts`** — Zod schemas with size caps. The caps stop a runaway agent from passing 100k keys in one call or a 100 KB regex pattern. Descriptions teach the LLM what to expect.
 
 ```ts
 import { z } from 'zod';
+
+const MAX_GET_KEYS = 100;
+const MAX_REGEX_PATTERN = 1024;
+const MAX_QUERY = 2048;
 
 export const listKeysInput = z.object({
   offset: z.number().int().min(0).optional().describe('Page offset; default 0'),
@@ -1343,67 +1597,102 @@ export const listKeysInput = z.object({
 });
 
 export const getValuesInput = z.object({
-  keys: z.array(z.string()).min(1).describe('Keys to fetch. Missing keys return null.'),
+  keys: z.array(z.string().max(256))
+    .min(1).max(MAX_GET_KEYS)
+    .describe(`Keys to fetch (max ${MAX_GET_KEYS} per call). Missing keys return null.`),
 });
 
+// Two enums combined so we can apply the length cap conditionally via superRefine.
 export const searchInput = z.object({
   on: z.enum(['keys', 'values', 'both']).describe('Whether to match against keys, values, or both.'),
   mode: z.enum(['substring', 'regex']).describe(
-    'substring: case-insensitive substring match. regex: linear-time regex (RE2).'
+    'substring: case-insensitive substring match (DB-side via ILIKE + pg_trgm). ' +
+    'regex: linear-time regex (RE2) over a bounded sample of entries; truncates on large stores.'
   ),
-  query: z.string().min(1).describe('The query string or regex pattern.'),
+  query: z.string().min(1).max(MAX_QUERY).describe('Substring query or regex pattern.'),
   offset: z.number().int().min(0).optional(),
   limit: z.number().int().min(1).max(500).optional(),
+}).superRefine((val, ctx) => {
+  if (val.mode === 'regex' && val.query.length > MAX_REGEX_PATTERN) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `regex pattern exceeds ${MAX_REGEX_PATTERN} chars`,
+      path: ['query'],
+    });
+  }
 });
 
 export const updateValueInput = z.object({
-  key: z.string().describe('The key to write. Keys starting with "_sys." are read-only and will reject.'),
-  value: z.string(),
+  key: z.string().min(1).max(256).describe(
+    'The key to write. Keys starting with "_sys." (case-insensitive) are read-only and will reject.'
+  ),
+  value: z.string().max(256 * 1024),
 });
 
 export const TOOL_NAMES = ['list_keys', 'get_values', 'search', 'update_value'] as const;
 ```
 
-- [ ] **Step 3: Write `buildTools.ts`** — `execute` per tool, narrowing services via `isKvStoreServices`. Defaults applied here.
+- [ ] **Step 3: Write `buildTools.ts`** — each tool's `execute` extracted as a top-level helper so the file stays under `max-lines-per-function: 40` regardless of how many tools we add later.
 
 ```ts
-import { isKvStoreServices, ToolError } from '../types.js';
+import type { ProviderCtx } from '../provider.js';
+import { isKvStoreServices, type KvStoreServices } from '../types.js';
 import { listKeysInput, getValuesInput, searchInput, updateValueInput } from './descriptors.js';
 
 const DEFAULT_LIST_LIMIT = 100;
 const DEFAULT_SEARCH_LIMIT = 50;
 
-export function buildTools(ctx: ProviderCtx) {
-  const services = ctx.services('kv_store');
-  if (!isKvStoreServices(services)) {
-    throw new Error('kv_store services not registered');
+function narrowServices(ctx: ProviderCtx): KvStoreServices {
+  const s = ctx.services('kv_store');
+  if (!isKvStoreServices(s)) throw new Error('kv_store services not registered');
+  return s;
+}
+
+async function executeListKeys(ctx: ProviderCtx, input: z.infer<typeof listKeysInput>) {
+  return narrowServices(ctx).listKeys(ctx.tenantId, input.offset ?? 0, input.limit ?? DEFAULT_LIST_LIMIT);
+}
+
+async function executeGetValues(ctx: ProviderCtx, input: z.infer<typeof getValuesInput>) {
+  return narrowServices(ctx).getValues(ctx.tenantId, input.keys);
+}
+
+async function executeSearch(ctx: ProviderCtx, input: z.infer<typeof searchInput>) {
+  const offset = input.offset ?? 0;
+  const limit = input.limit ?? DEFAULT_SEARCH_LIMIT;
+  const svc = narrowServices(ctx);
+  if (input.mode === 'substring') {
+    return svc.searchSubstring(ctx.tenantId, input.on, input.query, offset, limit);
   }
+  return svc.searchRegex(ctx.tenantId, input.on, input.query, offset, limit);
+}
+
+async function executeUpdateValue(ctx: ProviderCtx, input: z.infer<typeof updateValueInput>) {
+  return narrowServices(ctx).updateValue(ctx.tenantId, input.key, input.value);
+}
+
+export function buildTools(ctx: ProviderCtx) {
   return {
     list_keys: {
       description: 'List all keys in the bound KV store, paginated.',
       inputSchema: listKeysInput,
-      execute: async (input: z.infer<typeof listKeysInput>) =>
-        services.listKeys(ctx.tenantId, input.offset ?? 0, input.limit ?? DEFAULT_LIST_LIMIT),
+      execute: (input: z.infer<typeof listKeysInput>) => executeListKeys(ctx, input),
     },
     get_values: {
       description: 'Fetch values for specified keys. Returns null for missing keys.',
       inputSchema: getValuesInput,
-      execute: async (input) => services.getValues(ctx.tenantId, input.keys),
+      execute: (input: z.infer<typeof getValuesInput>) => executeGetValues(ctx, input),
     },
     search: {
-      description: 'Search the KV store. Use mode="substring" for case-insensitive substring, mode="regex" for RE2 patterns.',
+      description:
+        'Search the KV store. mode="substring" runs a case-insensitive substring match (DB-side). ' +
+        'mode="regex" runs an RE2 regex over a bounded sample (truncates on large stores; pre-narrow with substring first).',
       inputSchema: searchInput,
-      execute: async (input) => {
-        const offset = input.offset ?? 0;
-        const limit = input.limit ?? DEFAULT_SEARCH_LIMIT;
-        if (input.mode === 'substring') return services.searchSubstring(ctx.tenantId, input.on, input.query, offset, limit);
-        return services.searchRegex(ctx.tenantId, input.on, input.query, offset, limit);
-      },
+      execute: (input: z.infer<typeof searchInput>) => executeSearch(ctx, input),
     },
     update_value: {
       description: 'Write a value to the bound KV store. Keys starting with "_sys." are read-only.',
       inputSchema: updateValueInput,
-      execute: async (input) => services.updateValue(ctx.tenantId, input.key, input.value),
+      execute: (input: z.infer<typeof updateValueInput>) => executeUpdateValue(ctx, input),
     },
   };
 }
@@ -1425,9 +1714,14 @@ git commit -m "feat(api): OPENFLOW/KV_STORE provider with 4 tools (list_keys, ge
 - Create: `packages/api/src/providers/rag/buildTools.ts`
 - Create: `packages/api/src/providers/rag/descriptors.ts`
 
-- [ ] **Step 1: Descriptors.**
+- [ ] **Step 1: Descriptors.** Size caps on query/pattern length and a `superRefine` to enforce the tighter cap for regex.
 
 ```ts
+import { z } from 'zod';
+
+const MAX_QUERY = 4096;
+const MAX_REGEX_PATTERN = 1024;
+
 export const searchInput = z.object({
   mode: z.enum(['bm25', 'semantic', 'hybrid', 'regex']).describe(
     'bm25: lexical keyword + term-frequency scoring (Postgres FTS). Best for exact terms, IDs, proper nouns. ' +
@@ -1435,37 +1729,56 @@ export const searchInput = z.object({
     'hybrid: combines semantic and bm25 — runs both and merges by score. Use when unsure which would win. ' +
     'regex: POSIX regex over chunk content. Use only for structured patterns (emails, IDs, SKUs); slow.'
   ),
-  query: z.string().min(1).describe('Search query or, for mode=regex, the POSIX pattern.'),
+  query: z.string().min(1).max(MAX_QUERY).describe('Search query or, for mode=regex, the POSIX pattern.'),
   minSimilarity: z.number().min(0).max(1).optional().describe('Applies to semantic and hybrid. Default 0.3.'),
   offset: z.number().int().min(0).optional(),
   limit: z.number().int().min(1).max(200).optional(),
+}).superRefine((val, ctx) => {
+  if (val.mode === 'regex' && val.query.length > MAX_REGEX_PATTERN) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `regex pattern exceeds ${MAX_REGEX_PATTERN} chars`,
+      path: ['query'],
+    });
+  }
 });
 ```
 
-- [ ] **Step 2: `buildTools.ts`** — single `search` tool dispatching by mode.
+- [ ] **Step 2: `buildTools.ts`** — extract dispatch into a top-level helper so the file stays under `max-lines-per-function: 40`.
 
 ```ts
+import type { ProviderCtx } from '../provider.js';
+import { isRagStoreServices, type RagStoreServices } from '../types.js';
+import { searchInput } from './descriptors.js';
+
 const DEFAULT_SEARCH_LIMIT = 20;
 const DEFAULT_MIN_SIMILARITY = 0.3;
 
+function narrowServices(ctx: ProviderCtx): RagStoreServices {
+  const s = ctx.services('rag');
+  if (!isRagStoreServices(s)) throw new Error('rag services not registered');
+  return s;
+}
+
+async function executeSearch(ctx: ProviderCtx, input: z.infer<typeof searchInput>) {
+  const svc = narrowServices(ctx);
+  const offset = input.offset ?? 0;
+  const limit = input.limit ?? DEFAULT_SEARCH_LIMIT;
+  const ms = input.minSimilarity ?? DEFAULT_MIN_SIMILARITY;
+  switch (input.mode) {
+    case 'bm25':     return svc.searchBm25(ctx.tenantId, input.query, offset, limit);
+    case 'semantic': return svc.searchSemantic(ctx.tenantId, input.query, ms, offset, limit);
+    case 'hybrid':   return svc.searchHybrid(ctx.tenantId, input.query, ms, offset, limit);
+    case 'regex':    return svc.searchRegex(ctx.tenantId, input.query, offset, limit);
+  }
+}
+
 export function buildTools(ctx: ProviderCtx) {
-  const services = ctx.services('rag');
-  if (!isRagStoreServices(services)) throw new Error('rag services not registered');
   return {
     search: {
       description: 'Search the bound RAG store. Pick mode based on the query.',
       inputSchema: searchInput,
-      execute: async (input) => {
-        const offset = input.offset ?? 0;
-        const limit = input.limit ?? DEFAULT_SEARCH_LIMIT;
-        const ms = input.minSimilarity ?? DEFAULT_MIN_SIMILARITY;
-        switch (input.mode) {
-          case 'bm25':     return services.searchBm25(ctx.tenantId, input.query, offset, limit);
-          case 'semantic': return services.searchSemantic(ctx.tenantId, input.query, ms, offset, limit);
-          case 'hybrid':   return services.searchHybrid(ctx.tenantId, input.query, ms, offset, limit);
-          case 'regex':    return services.searchRegex(ctx.tenantId, input.query, offset, limit);
-        }
-      },
+      execute: (input: z.infer<typeof searchInput>) => executeSearch(ctx, input),
     },
   };
 }
@@ -1493,14 +1806,22 @@ git add packages/api/src/providers/index.ts
 git commit -m "feat(api): register kv_store + rag providers first in builtInProviders Map"
 ```
 
-### Task 4.9: Wire services into real execute path
+### Task 4.9: Wire services into real execute path — version-aware
+
+> **Deploy ordering:** This task and Phase 6 (publish snapshot + executeCoreSetup version sourcing) MUST land together — don't deploy 4.9 without 6.1. Mid-deploy state where services factory reads bindings from `agents` for published runs would leak draft changes to production.
 
 **Files:**
 - Modify: `packages/backend/src/routes/simulationOrchestrator.ts`
 - Modify: `packages/backend/src/routes/simulateHandler.ts`
 - Modify: the real execute handler (find with `grep -rln "providerCtx\|services:" packages/backend/src/routes/execute/`)
+- Modify: `packages/backend/src/routes/execute/executeCoreSetup.ts` (source bindings from the right row)
 
-- [ ] **Step 1:** Read the existing calendar wiring (`if (providerId === 'calendar') …`). Add identical blocks for `kv_store` and `rag`.
+- [ ] **Step 1: Update `executeCoreSetup.ts` first.** Resolve `bindings` based on whether the run is draft or published:
+  - **Draft runs** → read `selected_kv_store_id` / `selected_rag_store_id` from the `agents` row.
+  - **Published runs** → read both columns from the `agent_versions` row for the running version.
+  - Expose the resolved `bindings` and the resolved `selected_tools` from the same source on the `ExecuteContext`.
+
+- [ ] **Step 2:** Read the existing calendar wiring (`if (providerId === 'calendar') …`). Add identical blocks for `kv_store` and `rag`, using the `bindings` resolved in Step 1.
 
 ```ts
 services: (id: string) => {
@@ -1519,13 +1840,13 @@ services: (id: string) => {
 }
 ```
 
-- [ ] **Step 2: Source `bindings` from the running version.** For draft: load `agents` row. For published: load `agent_versions` row for the running version (Phase 6 fully completes this; for now, source from `agents`).
-- [ ] **Step 3: Manual e2e.** Create a draft agent, bind a KV store, enable `list_keys`, run a simulation, verify the LLM gets a real response.
-- [ ] **Step 4: Commit.**
+- [ ] **Step 3: Jest test executeCoreSetup version sourcing.** Highest-stakes change — covered explicitly: (a) draft run reads bindings + selected_tools from `agents`; (b) published run reads them from `agent_versions` for the running version; (c) missing snapshot row (legacy version before backfill landed) → bindings null → tools resolve via the `no_store_bound` sentinel (fail closed, never silently falling back to draft).
+- [ ] **Step 4: Manual e2e.** Create a draft agent, bind a KV store, enable `list_keys`, publish. Toggle the binding to None in draft. Invoke published — `list_keys` still works (uses snapshotted binding). Invoke draft — fails `no_store_bound`.
+- [ ] **Step 5: Commit.**
 
 ```bash
-git add packages/backend/src/routes/...
-git commit -m "feat(backend): wire kv_store + rag services into execute path with no_store_bound sentinel"
+git add packages/backend/src/routes/... packages/backend/src/routes/execute/executeCoreSetup.ts packages/backend/src/routes/execute/executeCoreSetup.test.ts
+git commit -m "feat(backend): wire kv_store + rag services with version-aware binding resolution"
 ```
 
 ---
@@ -1570,46 +1891,37 @@ git commit -m "feat(backend): block RAG store delete when referenced by draft or
 
 ---
 
-## Phase 6 — Publish snapshot + execute version sourcing
+## Phase 6 — Publish snapshot
+
+> **Note.** The execute-path version sourcing (originally Task 6.2) moved into Task 4.9 because services wiring and binding resolution must land in a single atomic deploy. This phase is now publish-snapshot only.
 
 ### Task 6.1: Snapshot selected_tools + bindings on publish
 
 **Files:**
 - Modify: `packages/backend/src/routes/agents/handlePostPublish.ts` (or the actual publish handler — find with `grep -rln "agent_versions" packages/backend/src/routes/agents/`)
 
-- [ ] **Step 1: Read the current handler.** Identify the INSERT into `agent_versions`.
+- [ ] **Step 1: Read the current handler.** Identify the INSERT into `agent_versions` and the current transaction boundary.
 - [ ] **Step 2: Extend the INSERT** to include `selected_tools`, `selected_kv_store_id`, `selected_rag_store_id` sourced from the `agents` row.
-- [ ] **Step 3: Add `SELECT … FOR SHARE` on referenced store rows** inside the publish transaction so a concurrent delete cannot win the race.
+- [ ] **Step 3: Take locks inside the publish transaction** so a concurrent `PATCH /selected-tools` or `/store-bindings` or a `DELETE kv_stores/:id` can't race. The agent-row lock prevents inconsistent snapshots (tools-without-binding); the store-row locks prevent dangling FK.
 
 ```sql
--- inside the publish txn:
-SELECT id FROM kv_stores WHERE id = $1 FOR SHARE;
-SELECT id FROM rag_stores WHERE id = $2 FOR SHARE;
-INSERT INTO agent_versions (...) VALUES (..., $selected_tools, $kv, $rag);
+BEGIN;
+-- Lock the agent row so concurrent PATCHes can't mutate while we read selected_tools + bindings.
+SELECT selected_tools, selected_kv_store_id, selected_rag_store_id
+FROM agents WHERE id = $agent_id FOR SHARE;
+-- Lock referenced stores so a concurrent delete cannot win the race.
+SELECT id FROM kv_stores WHERE id = $kv_id FOR SHARE;   -- only if non-null
+SELECT id FROM rag_stores WHERE id = $rag_id FOR SHARE; -- only if non-null
+INSERT INTO agent_versions (...) VALUES (..., $selected_tools, $kv_id, $rag_id);
+COMMIT;
 ```
 
-- [ ] **Step 4: Jest test.** A snapshot row has all three new columns populated.
+- [ ] **Step 4: Jest test.** A snapshot row has all three new columns populated; concurrent PATCH during publish either lands before or after, never mid-snapshot.
 - [ ] **Step 5: Commit.**
 
 ```bash
 git add packages/backend/src/routes/agents/handlePostPublish.ts
-git commit -m "feat(backend): snapshot selected_tools + store bindings into agent_versions on publish"
-```
-
-### Task 6.2: Read bindings + tools from `agent_versions` on published runs
-
-**Files:**
-- Modify: `packages/backend/src/routes/execute/executeCoreSetup.ts`
-
-- [ ] **Step 1: Read the existing logic** that resolves the running version.
-- [ ] **Step 2: For published runs, source `selected_tools` + bindings from the `agent_versions` row for the running version, not from the `agents` row.**
-- [ ] **Step 3: For draft runs, keep sourcing from `agents`.**
-- [ ] **Step 4: Manual verify.** Publish an agent with tool A enabled; toggle tool A off in draft; invoke the published version — tool A should still work. Toggle the draft binding to None; invoke draft — should fail with no_store_bound; invoke published — should still work.
-- [ ] **Step 5: Commit.**
-
-```bash
-git add packages/backend/src/routes/execute/executeCoreSetup.ts
-git commit -m "fix(backend): published runs source selected_tools + bindings from agent_versions snapshot"
+git commit -m "feat(backend): snapshot selected_tools + bindings on publish under FOR SHARE locks"
 ```
 
 ---
