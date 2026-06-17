@@ -23,6 +23,8 @@ interface ParsedInput {
   name: string;
   allAgents: boolean;
   agentIds: string[];
+  allTenants: boolean;
+  tenantIds: string[];
   expiresAt: string | null;
 }
 
@@ -33,11 +35,14 @@ function parseCreateInput(body: unknown): ParsedInput | null {
 
   const allAgents = parseBooleanField(body, 'allAgents') ?? false;
   const agentIds = parseStringArrayField(body, 'agentIds') ?? [];
+  const allTenants = parseBooleanField(body, 'allTenants') ?? true;
+  const tenantIds = parseStringArrayField(body, 'tenantIds') ?? [];
   const expiresAt = parseNullableStringField(body, 'expiresAt') ?? null;
 
   if (!allAgents && agentIds.length === EMPTY_LENGTH) return null;
+  if (!allTenants && tenantIds.length === EMPTY_LENGTH) return null;
 
-  return { orgId, name, allAgents, agentIds, expiresAt };
+  return { orgId, name, allAgents, agentIds, allTenants, tenantIds, expiresAt };
 }
 
 export async function handleCreateExecutionKey(req: Request, res: AuthenticatedResponse): Promise<void> {
