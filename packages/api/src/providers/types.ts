@@ -67,3 +67,84 @@ export function toAiSdkToolDict(tools: Record<string, OpenFlowTool>): Record<str
   for (const [name, tool] of Object.entries(tools)) out[name] = toAiSdkTool(tool);
   return out;
 }
+
+export interface KvPagedResult<T> {
+  items: T[];
+  total: number;
+  offset: number;
+  limit: number;
+  truncated?: true;
+}
+
+export interface KvStoreServices {
+  storeId: string;
+  listKeys(tenantId: string, offset: number, limit: number): Promise<KvPagedResult<string>>;
+  getValues(tenantId: string, keys: string[]): Promise<Record<string, string | null>>;
+  searchSubstring(
+    tenantId: string,
+    on: 'keys' | 'values' | 'both',
+    query: string,
+    offset: number,
+    limit: number
+  ): Promise<KvPagedResult<{ key: string; value: string }>>;
+  searchRegex(
+    tenantId: string,
+    on: 'keys' | 'values' | 'both',
+    pattern: string,
+    offset: number,
+    limit: number
+  ): Promise<KvPagedResult<{ key: string; value: string }>>;
+  updateValue(tenantId: string, key: string, value: string): Promise<{ success: true }>;
+}
+
+export interface RagStoreServices {
+  storeId: string;
+  searchBm25(
+    tenantId: string,
+    query: string,
+    offset: number,
+    limit: number
+  ): Promise<KvPagedResult<string>>;
+  searchSemantic(
+    tenantId: string,
+    query: string,
+    minSimilarity: number,
+    offset: number,
+    limit: number
+  ): Promise<KvPagedResult<string>>;
+  searchHybrid(
+    tenantId: string,
+    query: string,
+    minSimilarity: number,
+    offset: number,
+    limit: number
+  ): Promise<KvPagedResult<string>>;
+  searchRegex(
+    tenantId: string,
+    pattern: string,
+    offset: number,
+    limit: number
+  ): Promise<KvPagedResult<string>>;
+}
+
+export function isKvStoreServices(v: unknown): v is KvStoreServices {
+  return (
+    typeof v === 'object' &&
+    v !== null &&
+    'storeId' in v &&
+    typeof (v as { storeId: unknown }).storeId === 'string' &&
+    'listKeys' in v &&
+    typeof (v as { listKeys: unknown }).listKeys === 'function'
+  );
+}
+
+export function isRagStoreServices(v: unknown): v is RagStoreServices {
+  return (
+    typeof v === 'object' &&
+    v !== null &&
+    'storeId' in v &&
+    typeof (v as { storeId: unknown }).storeId === 'string' &&
+    'searchBm25' in v &&
+    typeof (v as { searchBm25: unknown }).searchBm25 === 'function'
+  );
+}
