@@ -14,6 +14,7 @@ import { hashToken } from '../../utils/hashToken.js';
 export interface ExecutionAuthLocals extends Record<string, unknown> {
   orgId: string;
   keyId: string;
+  allTenants: boolean;
   agentId: string;
   version: number;
   supabase: SupabaseClient;
@@ -56,11 +57,16 @@ function parseRouteParams(req: Request): { slug: string; version: number } | nul
 async function validateToken(
   supabase: SupabaseClient,
   token: string
-): Promise<{ keyId: string; orgId: string; allAgents: boolean } | null> {
+): Promise<{ keyId: string; orgId: string; allAgents: boolean; allTenants: boolean } | null> {
   const keyHash = hashToken(token);
   const result = await validateExecutionKey(supabase, keyHash);
   if (result === null) return null;
-  return { keyId: result.id, orgId: result.orgId, allAgents: result.allAgents };
+  return {
+    keyId: result.id,
+    orgId: result.orgId,
+    allAgents: result.allAgents,
+    allTenants: result.allTenants,
+  };
 }
 
 async function validateAgentAccess(
@@ -95,7 +101,7 @@ async function authenticateKey(
   req: Request,
   res: Response,
   supabase: SupabaseClient
-): Promise<{ keyId: string; orgId: string; allAgents: boolean } | null> {
+): Promise<{ keyId: string; orgId: string; allAgents: boolean; allTenants: boolean } | null> {
   const token = extractBearerToken(req.headers.authorization);
   if (token === null) {
     sendError(res, HTTP_UNAUTHORIZED, 'Missing or malformed Authorization header');
@@ -177,6 +183,7 @@ export async function requireExecutionAuth(req: Request, res: Response, next: Ne
   setExecutionLocals(res, {
     orgId: keyResult.orgId,
     keyId: keyResult.keyId,
+    allTenants: keyResult.allTenants,
     agentId: agentResult.agentId,
     version: agentResult.version,
     supabase,
