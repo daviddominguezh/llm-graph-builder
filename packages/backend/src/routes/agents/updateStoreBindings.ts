@@ -65,9 +65,19 @@ async function validateStoreOrg(
 }
 
 async function validateStoresMatchOrg(args: OrgGuardArgs): Promise<ValidationResult> {
-  const kv = await validateStoreOrg(args.supabase, args.body.selectedKvStoreId, args.agentOrgId, getKvStoreById);
+  const kv = await validateStoreOrg(
+    args.supabase,
+    args.body.selectedKvStoreId,
+    args.agentOrgId,
+    getKvStoreById
+  );
   if (kv.kind !== 'ok') return kv;
-  return await validateStoreOrg(args.supabase, args.body.selectedRagStoreId, args.agentOrgId, getRagStoreById);
+  return await validateStoreOrg(
+    args.supabase,
+    args.body.selectedRagStoreId,
+    args.agentOrgId,
+    getRagStoreById
+  );
 }
 
 interface UpdateContext {
