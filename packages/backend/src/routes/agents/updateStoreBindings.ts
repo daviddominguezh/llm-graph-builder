@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { getAgentById } from '../../db/queries/agentQueries.js';
 import {
   type AgentStoreBindings,
+  getAgentStoreBindings,
   updateAgentStoreBindingsWithPrecondition,
 } from '../../db/queries/agentStoreBindingsQueries.js';
 import { getKvStoreById } from '../../db/queries/kvStoresQueries.js';
@@ -87,6 +88,22 @@ interface UpdateContext {
   res: AuthenticatedResponse;
 }
 
+async function handleConflict(ctx: UpdateContext): Promise<void> {
+  const current = await getAgentStoreBindings(ctx.supabase, ctx.agentId);
+  if (current.error !== null) {
+    ctx.res.status(HTTP_INTERNAL_ERROR).json({ error: current.error });
+    return;
+  }
+  if (current.result === null) {
+    ctx.res.status(HTTP_NOT_FOUND).json({ error: 'agent not found' });
+    return;
+  }
+  ctx.res.status(HTTP_CONFLICT).json({
+    error: 'conflict',
+    current: current.result,
+  });
+}
+
 async function performUpdate(ctx: UpdateContext): Promise<void> {
   const updated = await updateAgentStoreBindingsWithPrecondition(
     ctx.supabase,
@@ -98,7 +115,7 @@ async function performUpdate(ctx: UpdateContext): Promise<void> {
     }
   );
   if (updated.conflict) {
-    ctx.res.status(HTTP_CONFLICT).json({ error: 'conflict' });
+    await handleConflict(ctx);
     return;
   }
   if (updated.error !== null) {

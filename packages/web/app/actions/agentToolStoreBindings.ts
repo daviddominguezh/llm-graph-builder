@@ -12,11 +12,22 @@ export interface AgentToolStoreBindings {
   selectedRagStoreId: string | null;
 }
 
+export interface ConflictCurrent {
+  bindings: AgentToolStoreBindings;
+  updatedAt: string;
+}
+
 export type UpdateAgentToolStoreBindingsResult =
   | { ok: true; updatedAt: string; bindings: AgentToolStoreBindings }
   | {
       ok: false;
-      reason: 'conflict' | 'org_mismatch' | 'transient' | 'invalid';
+      reason: 'conflict';
+      message?: string;
+      current?: ConflictCurrent;
+    }
+  | {
+      ok: false;
+      reason: 'org_mismatch' | 'transient' | 'invalid';
       message?: string;
     };
 
@@ -81,6 +92,22 @@ function extractErrorMessage(body: unknown, fallback: string): string {
   return fallback;
 }
 
+function parseConflictCurrent(body: unknown): ConflictCurrent | undefined {
+  if (typeof body !== 'object' || body === null) return undefined;
+  const rec = body as Record<string, unknown>;
+  const current = rec.current;
+  if (typeof current !== 'object' || current === null) return undefined;
+  const currentRec = current as Record<string, unknown>;
+  if (typeof currentRec.updatedAt !== 'string') return undefined;
+  const kv = parseNullableString(currentRec.selectedKvStoreId);
+  const rag = parseNullableString(currentRec.selectedRagStoreId);
+  if (!kv.ok || !rag.ok) return undefined;
+  return {
+    bindings: { selectedKvStoreId: kv.value, selectedRagStoreId: rag.value },
+    updatedAt: currentRec.updatedAt,
+  };
+}
+
 function buildFailure(err: unknown): UpdateAgentToolStoreBindingsResult {
   const parsed = parseBackendError(err);
   const fallback = err instanceof Error ? err.message : 'unknown';
@@ -89,6 +116,10 @@ function buildFailure(err: unknown): UpdateAgentToolStoreBindingsResult {
   }
   const reason = reasonForStatus(parsed.status);
   const message = extractErrorMessage(parsed.body, fallback);
+  if (reason === 'conflict') {
+    const current = parseConflictCurrent(parsed.body);
+    return { ok: false, reason, message, current };
+  }
   return { ok: false, reason, message };
 }
 

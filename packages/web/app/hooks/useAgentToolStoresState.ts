@@ -2,6 +2,7 @@
 
 import {
   type AgentToolStoreBindings,
+  type ConflictCurrent,
   updateAgentToolStoreBindingsAction,
 } from '@/app/actions/agentToolStoreBindings';
 import type { SaveState } from '@/app/components/panels/SaveStateIndicator';
@@ -55,9 +56,13 @@ function applySuccess(ctx: SaveContext, bindings: AgentToolStoreBindings, update
   scheduleIdleTransition(ctx.idleTimeoutRef, ctx.setSaveState, IDLE_HIDE_MS_SAVED);
 }
 
-function applyConflict(ctx: SaveContext): void {
-  // Backend does not return current bindings on conflict; revert to last saved
-  // and surface the conflict so the consumer can re-fetch from the server.
+function applyConflict(ctx: SaveContext, current: ConflictCurrent | undefined): void {
+  // When the backend includes the current bindings, reseat lastSavedRef so the
+  // next edit fires with a fresh expectedUpdatedAt; otherwise fall back to the
+  // previously saved snapshot (next edit will conflict again until refreshed).
+  if (current !== undefined) {
+    ctx.lastSavedRef.current = { bindings: current.bindings, updatedAt: current.updatedAt };
+  }
   ctx.setBindings(ctx.lastSavedRef.current.bindings);
   ctx.setSaveState('conflict');
   scheduleIdleTransition(ctx.idleTimeoutRef, ctx.setSaveState, IDLE_HIDE_MS_CONFLICT);
@@ -110,7 +115,7 @@ async function performSave(ctx: SaveContext, bindings: AgentToolStoreBindings): 
     return;
   }
   if (result.reason === 'conflict') {
-    applyConflict(ctx);
+    applyConflict(ctx, result.current);
     return;
   }
   if (result.reason === 'org_mismatch') {
