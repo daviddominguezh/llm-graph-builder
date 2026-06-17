@@ -3,6 +3,7 @@
 import { getAgentsForKeyAction, getExecutionKeysByOrgAction } from '@/app/actions/executionKeys';
 import type { AgentMetadata } from '@/app/lib/agents';
 import type { ExecutionKeyRow as ExecutionKeyRowType, ExecutionKeyWithAgents } from '@/app/lib/executionKeys';
+import type { TenantRow } from '@/app/lib/tenants';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Braces, Plus } from 'lucide-react';
@@ -18,6 +19,7 @@ interface ExecutionKeysSectionProps {
   orgId: string;
   initialKeys: ExecutionKeyWithAgents[];
   agents: AgentMetadata[];
+  tenants: TenantRow[];
 }
 
 interface DeleteTarget {
@@ -112,7 +114,7 @@ function SectionHeader({ onCreateClick }: { onCreateClick: () => void }) {
   );
 }
 
-export function ExecutionKeysSection({ orgId, initialKeys, agents }: ExecutionKeysSectionProps) {
+export function ExecutionKeysSection({ orgId, initialKeys, agents, tenants }: ExecutionKeysSectionProps) {
   const state = useExecutionKeysState(orgId, initialKeys);
 
   function handleCreated(result: { key: ExecutionKeyRowType; fullKey: string }) {
@@ -145,6 +147,7 @@ export function ExecutionKeysSection({ orgId, initialKeys, agents }: ExecutionKe
         onOpenChange={state.setCreateOpen}
         orgId={orgId}
         agents={agents}
+        tenants={tenants}
         onCreated={handleCreated}
       />
       {state.revealKey !== null && (

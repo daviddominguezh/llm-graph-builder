@@ -680,7 +680,18 @@
     "otherAgents": "+{count} others",
     "editAgents": "Edit agents",
     "editName": "Edit name",
-    "updateError": "Failed to update key. Please try again."
+    "updateError": "Failed to update key. Please try again.",
+    "allTenants": "All tenants",
+    "allTenantsDescription": "Access all tenants, including future ones.",
+    "allTenantsWarning": "Anyone with this key can act on behalf of any tenant in your organization. Use scoped keys for third-party or per-tenant integrations.",
+    "allTenantsBadge": "All tenants",
+    "tenants": "Tenants",
+    "tenantsDescription": "Select which tenants this key can act on behalf of.",
+    "tenantsRequired": "Select at least one tenant.",
+    "tenantsPlaceholder": "Search tenants...",
+    "tenantsBadge": "tenants: {count}",
+    "tenantsScopedBadge": "Scoped tenants",
+    "selectTenants": "Select tenants"
   },
   "dashboard": {
     "title": "Dashboard",
