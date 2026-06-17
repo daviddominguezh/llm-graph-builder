@@ -147,7 +147,17 @@ export type {
   DescribeAllItem,
   OpenFlowTool,
   OAuthTokenBundle,
+  ToolErrorCode,
+  KvStoreServices,
+  RagStoreServices,
+  KvSearchArgs,
+  KvRegexArgs,
+  KvSearchTarget,
+  RagSearchArgs,
+  RagRegexArgs,
+  KvPagedResult,
 } from './providers/index.js';
+export { ToolError, isKvStoreServices, isRagStoreServices } from './providers/index.js';
 
 export const execute = async (
   context: Context,

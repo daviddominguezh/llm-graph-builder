@@ -12,8 +12,25 @@ export const builtInProviders: ReadonlyMap<string, Provider> = new Map([
 ]);
 
 export type { Provider, ProviderCtx, ToolDescriptor, OAuthTokenBundle } from './provider.js';
-export type { OpenFlowTool } from './types.js';
-export { toAiSdkTool, toAiSdkToolDict } from './types.js';
+export type {
+  OpenFlowTool,
+  ToolErrorCode,
+  KvStoreServices,
+  RagStoreServices,
+  KvSearchArgs,
+  KvRegexArgs,
+  KvSearchTarget,
+  RagSearchArgs,
+  RagRegexArgs,
+  KvPagedResult,
+} from './types.js';
+export {
+  toAiSdkTool,
+  toAiSdkToolDict,
+  ToolError,
+  isKvStoreServices,
+  isRagStoreServices,
+} from './types.js';
 export {
   composeRegistry,
   type Registry,
