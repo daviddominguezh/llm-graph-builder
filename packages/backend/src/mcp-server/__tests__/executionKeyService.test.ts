@@ -24,7 +24,15 @@ type GetAgentsForKeyFn = (
 
 type CreateExecutionKeyQueryFn = (
   supabase: SupabaseClient,
-  input: { orgId: string; name: string; allAgents: boolean; agentIds: string[]; expiresAt: string | null }
+  input: {
+    orgId: string;
+    name: string;
+    allAgents: boolean;
+    agentIds: string[];
+    allTenants: boolean;
+    tenantIds: string[];
+    expiresAt: string | null;
+  }
 ) => Promise<{ result: CreateExecutionKeyResult | null; error: string | null }>;
 
 type UpdateExecutionKeyAgentsFn = (
