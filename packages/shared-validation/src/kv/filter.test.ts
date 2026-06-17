@@ -46,15 +46,38 @@ describe('filterByMatcher', () => {
     ).toEqual([entries[0]]);
   });
 
+  it('substring caseInsensitive=false is case-sensitive', () => {
+    expect(
+      filterByMatcher(entries, 'values', {
+        kind: 'substring',
+        query: 'ALICE',
+        caseInsensitive: false,
+      })
+    ).toEqual([]);
+    expect(
+      filterByMatcher(entries, 'values', {
+        kind: 'substring',
+        query: 'Alice',
+        caseInsensitive: false,
+      })
+    ).toEqual([entries[0]]);
+  });
+
+  it('substring with empty query returns all entries', () => {
+    expect(
+      filterByMatcher(entries, 'both', { kind: 'substring', query: '', caseInsensitive: true })
+    ).toEqual(entries);
+  });
+
   it('regex on=keys with RE2', () => {
     expect(
       filterByMatcher(entries, 'keys', { kind: 'regex', pattern: '^flags\\..*', flags: '' })
     ).toEqual([entries[1]]);
   });
 
-  it('throws on invalid pattern', () => {
+  it('throws SyntaxError on invalid pattern', () => {
     expect(() =>
       filterByMatcher(entries, 'keys', { kind: 'regex', pattern: '[unterminated', flags: '' })
-    ).toThrow();
+    ).toThrow(/missing \]/);
   });
 });

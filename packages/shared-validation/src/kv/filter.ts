@@ -25,11 +25,7 @@ function matchSubstring(s: string, query: string, ci: boolean): boolean {
   return s.includes(query);
 }
 
-function matchRegex(s: string, re: RE2): boolean {
-  return re.test(s);
-}
-
-function applyMatch<T extends KvEntry>(entry: T, on: FilterOn, fn: (s: string) => boolean): boolean {
+function applyMatch(entry: KvEntry, on: FilterOn, fn: (s: string) => boolean): boolean {
   if (on === 'keys') return fn(entry.key);
   if (on === 'values') return fn(entry.value);
   return fn(entry.key) || fn(entry.value);
@@ -46,5 +42,5 @@ export function filterByMatcher<T extends KvEntry>(
     );
   }
   const re = new RE2(matcher.pattern, matcher.flags);
-  return entries.filter((e) => applyMatch(e, on, (s) => matchRegex(s, re)));
+  return entries.filter((e) => applyMatch(e, on, (s) => re.test(s)));
 }
