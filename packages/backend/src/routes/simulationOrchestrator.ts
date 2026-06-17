@@ -1,7 +1,6 @@
 import type { AgentLoopCallbacks, AgentLoopConfig, AgentLoopResult } from '@daviddh/llm-graph-runner';
 import { buildAgentToolsAtStart, executeAgentLoop, toAiSdkToolDict } from '@daviddh/llm-graph-runner';
 
-import { createGoogleCalendarService } from '../google/calendar/service.js';
 import { consoleLogger } from '../logger.js';
 import { resolveChildConfig } from './simulateChildResolver.js';
 import {
@@ -19,22 +18,11 @@ import type {
   OrchestratorResult,
 } from './simulationOrchestratorTypes.js';
 import { buildSimulationProviderCtx, buildSimulationRegistry } from './simulationProviderCtx.js';
+import { buildSimulationServices } from './simulationServicesResolver.js';
 
 const INCREMENT = 1;
 const ZERO = 0;
 const ZERO_TOKENS = { input: ZERO, output: ZERO, cached: ZERO };
-
-/* ─── Services resolver for simulation ─── */
-
-function buildSimulationServices(config: OrchestratorConfig): (providerId: string) => unknown {
-  const calendarServices = createGoogleCalendarService(config.supabase);
-  return (providerId: string): unknown => {
-    if (providerId === 'calendar') {
-      return { service: calendarServices, calendarId: 'primary' };
-    }
-    return undefined;
-  };
-}
 
 /* ─── AgentLoop config/callback builders ─── */
 
@@ -47,7 +35,7 @@ async function buildLoopConfig(config: OrchestratorConfig): Promise<AgentLoopCon
   const registry = buildSimulationRegistry({ mcpServers });
   const providerCtx = buildSimulationProviderCtx({
     orgId,
-    tenantId: '',
+    tenantId: body.tenantId ?? '',
     agentId: '',
     isChildAgent: isChild,
     mcpServers,

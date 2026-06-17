@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import type { PaginatedSearchResult, SearchParams, SemanticSearchParams, RegexSearchParams } from '../rag/search/types.js';
+import type {
+  PaginatedSearchResult,
+  RegexSearchParams,
+  SearchParams,
+  SemanticSearchParams,
+} from '../rag/search/types.js';
 
 const STORE_ID = 'rag-1';
 const TENANT_ID = 't1';

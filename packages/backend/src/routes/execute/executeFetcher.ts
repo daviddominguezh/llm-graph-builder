@@ -2,7 +2,6 @@ import type { RuntimeGraph } from '@daviddh/graph-types';
 import { RuntimeGraphSchema } from '@daviddh/graph-types';
 import type { Message, SelectedTool } from '@daviddh/llm-graph-runner';
 
-import { getAgentById } from '../../db/queries/agentQueries.js';
 import {
   type DecryptedEnvVars,
   getDecryptedApiKeyValue,
@@ -13,6 +12,7 @@ import { getOrCreateSession, getSessionMessages } from '../../db/queries/executi
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { type StackEntry, getStackTop } from '../../db/queries/stackQueries.js';
 import type { AgentVfsSettings } from '../../db/queries/vfsConfigTypes.js';
+import { HttpNotFoundError, fetchAgentRecordVersionAware } from './executeAgentRecord.js';
 import { messageRowToMessage, resolveChannelProvider } from './executeMessageFetcher.js';
 import type { AgentExecutionInput } from './executeTypes.js';
 
@@ -50,6 +50,8 @@ export type { OverrideAgentConfig } from './executeOverrideTypes.js';
 export interface AgentExecutionRecord {
   org_id: string;
   selected_tools: SelectedTool[];
+  selected_kv_store_id: string | null;
+  selected_rag_store_id: string | null;
 }
 
 /* ─── Fetched data shape ─── */
@@ -270,13 +272,17 @@ export async function fetchAgentConfig(
   };
 }
 
-/* ─── Agent execution record ─── */
+/* ─── Agent execution record (version-aware) ─── */
 
 export async function fetchAgentRecord(
   supabase: SupabaseClient,
-  agentId: string
+  agentId: string,
+  version: number
 ): Promise<AgentExecutionRecord> {
-  const { result } = await getAgentById(supabase, agentId);
-  if (result === null) throw new HttpError(HTTP_NOT_FOUND, `Agent not found: ${agentId}`);
-  return { org_id: result.org_id, selected_tools: result.selected_tools };
+  try {
+    return await fetchAgentRecordVersionAware(supabase, agentId, version);
+  } catch (err) {
+    if (err instanceof HttpNotFoundError) throw new HttpError(HTTP_NOT_FOUND, err.message);
+    throw err;
+  }
 }

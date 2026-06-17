@@ -88,6 +88,14 @@ export interface SimulateAgentRequest {
   skills?: SkillDefinition[];
   orgId?: string;
   selectedTools?: SelectedTool[];
+  /**
+   * Per-agent KV/RAG store bindings forwarded by the simulator. When set, the
+   * orchestrator builds real `KvStoreService` / `RagStoreService` instances; when
+   * absent, the no_store_bound sentinel is used so tools throw on invocation.
+   */
+  selectedKvStoreId?: string | null;
+  selectedRagStoreId?: string | null;
+  tenantId?: string;
   composition?: {
     depth: number;
     stack: Array<{

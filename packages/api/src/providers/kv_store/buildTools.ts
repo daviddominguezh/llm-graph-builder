@@ -75,10 +75,7 @@ async function executeGetValues(ctx: KvToolCtx, args: unknown): Promise<unknown>
   return await ctx.services.getValues(ctx.tenantId, input.keys);
 }
 
-async function executeSearchSubstring(
-  ctx: KvToolCtx,
-  input: z.infer<typeof searchInput>
-): Promise<unknown> {
+async function executeSearchSubstring(ctx: KvToolCtx, input: z.infer<typeof searchInput>): Promise<unknown> {
   return await ctx.services.searchSubstring({
     tenantId: ctx.tenantId,
     on: input.on,
@@ -88,10 +85,7 @@ async function executeSearchSubstring(
   });
 }
 
-async function executeSearchRegex(
-  ctx: KvToolCtx,
-  input: z.infer<typeof searchInput>
-): Promise<unknown> {
+async function executeSearchRegex(ctx: KvToolCtx, input: z.infer<typeof searchInput>): Promise<unknown> {
   return await ctx.services.searchRegex({
     tenantId: ctx.tenantId,
     on: input.on,

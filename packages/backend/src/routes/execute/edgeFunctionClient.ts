@@ -58,6 +58,9 @@ export interface ExecuteAgentParams {
   selectedTools?: SelectedTool[];
   // Pre-resolved OAuth token bundles, keyed by providerId
   oauth?: { byProvider: Record<string, OAuthTokenBundle> };
+  // Per-agent KV / RAG store bindings, version-aware (null when no store is bound)
+  selectedKvStoreId?: string | null;
+  selectedRagStoreId?: string | null;
 }
 
 export interface ExecuteAgentCallbacks {

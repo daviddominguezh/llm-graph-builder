@@ -117,6 +117,8 @@ async function runAgent(params: RunAgentParams): Promise<RunAgentResult> {
     conversationId: conversationId ?? undefined,
     oauthByProvider,
     selectedTools: agentRecord.selected_tools,
+    selectedKvStoreId: agentRecord.selected_kv_store_id,
+    selectedRagStoreId: agentRecord.selected_rag_store_id,
   };
   const edgeParams = buildCoreExecuteParams(fetched, input.input, model, buildOptions);
   const startTime = Date.now();

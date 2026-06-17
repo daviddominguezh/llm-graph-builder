@@ -13,6 +13,7 @@ import { createServiceClient } from '../db/queries/executionAuthQueries.js';
 import { createGoogleCalendarService } from '../google/calendar/service.js';
 import { consoleLogger } from '../logger.js';
 import { type McpSession, closeMcpSession, createMcpSession } from '../mcp/lifecycle.js';
+import { makeNoStoreBoundKvServices, makeNoStoreBoundRagServices } from '../services/noStoreBoundServices.js';
 import type { SimulateRequest } from '../types.js';
 import { buildContext, setSseHeaders, sumTokens, writeSSE } from './simulate.js';
 import { resolveChildConfig } from './simulateChildResolver.js';
@@ -142,6 +143,11 @@ function buildSimulationServicesResolver(
 ): (providerId: string) => unknown {
   return (providerId: string): unknown => {
     if (providerId === 'calendar') return calendarServices;
+    // simulate has no per-agent store bindings — surface the sentinel services
+    // so the LLM still sees the tools and gets a `no_store_bound` ToolError if
+    // it tries to call one.
+    if (providerId === 'kv_store') return makeNoStoreBoundKvServices();
+    if (providerId === 'rag') return makeNoStoreBoundRagServices();
     return undefined;
   };
 }

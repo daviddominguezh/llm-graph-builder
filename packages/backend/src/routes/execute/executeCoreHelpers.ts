@@ -57,7 +57,7 @@ export async function fetchAllCoreData(params: FetchAllParams): Promise<FetchedD
     fetchGraphAndKeys({ supabase, agentId, version, orgId, productionApiKeyId: productionKeyId }),
     fetchSessionData({ supabase, agentId, orgId, version, input, model }),
     getAgentVfsSettings(supabase, agentId),
-    fetchAgentRecord(supabase, agentId),
+    fetchAgentRecord(supabase, agentId, version),
   ]);
   const envResolvedGraph = resolveMcpTransportVariables(
     graphAndKeys.graph,
@@ -96,6 +96,8 @@ export interface BuildCoreParamsOptions {
   conversationId?: string;
   oauthByProvider?: Record<string, OAuthTokenBundle>;
   selectedTools?: SelectedTool[];
+  selectedKvStoreId?: string | null;
+  selectedRagStoreId?: string | null;
 }
 
 function buildAgentExecuteParams(
@@ -145,6 +147,8 @@ export function buildCoreExecuteParams(
     schemaVersion: EdgePayloadSchemaVersion.Current,
     selectedTools: options.selectedTools,
     oauth: buildOauthField(oauthByProvider),
+    selectedKvStoreId: options.selectedKvStoreId,
+    selectedRagStoreId: options.selectedRagStoreId,
   };
 
   if (fetched.appType === 'agent') {

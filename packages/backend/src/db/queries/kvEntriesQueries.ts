@@ -127,10 +127,7 @@ export async function getByKeys(
 }
 
 function escapeLikePattern(input: string): string {
-  return input
-    .replace(/\\/gv, '\\\\')
-    .replace(/%/gv, '\\%')
-    .replace(/_/gv, '\\_');
+  return input.replace(/\\/gv, '\\\\').replace(/%/gv, '\\%').replace(/_/gv, '\\_');
 }
 
 function buildIlikePattern(query: string): string {
@@ -172,10 +169,7 @@ interface IlikeSearchArgs {
   limit: number;
 }
 
-async function runIlikeSearch(
-  supabase: SupabaseClient,
-  args: IlikeSearchArgs
-): Promise<RangeResult> {
+async function runIlikeSearch(supabase: SupabaseClient, args: IlikeSearchArgs): Promise<RangeResult> {
   const { kvStoreId, tenantId, on, pattern, offset, limit } = args;
   const base = supabase
     .from('kv_entries')

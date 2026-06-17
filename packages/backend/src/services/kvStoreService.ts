@@ -6,7 +6,7 @@ import type {
   KvStoreServices,
 } from '@daviddh/llm-graph-runner';
 import { ToolError } from '@daviddh/llm-graph-runner';
-import { filterByMatcher, type FilterMatcher, type FilterOn } from '@openflow/shared-validation';
+import { type FilterMatcher, type FilterOn, filterByMatcher } from '@openflow/shared-validation';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import {
@@ -47,10 +47,7 @@ function assertValueSize(value: string): void {
 
 function assertRegexPatternLength(pattern: string): void {
   if (pattern.length > KV_REGEX_MAX_PATTERN_LENGTH) {
-    throw new ToolError(
-      'invalid_pattern',
-      `Pattern exceeds ${String(KV_REGEX_MAX_PATTERN_LENGTH)} chars`
-    );
+    throw new ToolError('invalid_pattern', `Pattern exceeds ${String(KV_REGEX_MAX_PATTERN_LENGTH)} chars`);
   }
 }
 

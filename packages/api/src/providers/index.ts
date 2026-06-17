@@ -28,13 +28,7 @@ export type {
   RagRegexArgs,
   KvPagedResult,
 } from './types.js';
-export {
-  toAiSdkTool,
-  toAiSdkToolDict,
-  ToolError,
-  isKvStoreServices,
-  isRagStoreServices,
-} from './types.js';
+export { toAiSdkTool, toAiSdkToolDict, ToolError, isKvStoreServices, isRagStoreServices } from './types.js';
 export {
   composeRegistry,
   type Registry,

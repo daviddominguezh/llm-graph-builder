@@ -2,7 +2,13 @@ import { describe, expect, it, jest } from '@jest/globals';
 
 import type { Logger } from '../../../utils/logger.js';
 import type { ProviderCtx } from '../../provider.js';
-import type { KvPagedResult, OpenFlowTool, RagRegexArgs, RagSearchArgs, RagStoreServices } from '../../types.js';
+import type {
+  KvPagedResult,
+  OpenFlowTool,
+  RagRegexArgs,
+  RagSearchArgs,
+  RagStoreServices,
+} from '../../types.js';
 import { ragProvider } from '../index.js';
 
 const TENANT_ID = 'test-tenant-id';
@@ -36,12 +42,8 @@ function makeServices(): RagStoreServices {
     searchSemantic: jest
       .fn<(args: RagSearchArgs) => Promise<KvPagedResult<string>>>()
       .mockResolvedValue(empty),
-    searchHybrid: jest
-      .fn<(args: RagSearchArgs) => Promise<KvPagedResult<string>>>()
-      .mockResolvedValue(empty),
-    searchRegex: jest
-      .fn<(args: RagRegexArgs) => Promise<KvPagedResult<string>>>()
-      .mockResolvedValue(empty),
+    searchHybrid: jest.fn<(args: RagSearchArgs) => Promise<KvPagedResult<string>>>().mockResolvedValue(empty),
+    searchRegex: jest.fn<(args: RagRegexArgs) => Promise<KvPagedResult<string>>>().mockResolvedValue(empty),
   };
 }
 
