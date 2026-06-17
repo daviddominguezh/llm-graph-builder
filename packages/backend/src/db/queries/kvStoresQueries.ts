@@ -39,6 +39,21 @@ export async function getKvStoresByOrg(
   return { result: mapRows(rows), error: null };
 }
 
+export async function getKvStoreById(
+  supabase: SupabaseClient,
+  storeId: string
+): Promise<{ result: KvStoreRow | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from('kv_stores')
+    .select(LIST_COLUMNS)
+    .eq('id', storeId)
+    .maybeSingle();
+  if (error !== null) return { result: null, error: error.message };
+  if (data === null) return { result: null, error: null };
+  if (!isKvStoreRow(data)) return { result: null, error: 'Invalid kv_store data' };
+  return { result: data, error: null };
+}
+
 export async function getKvStoreBySlug(
   supabase: SupabaseClient,
   orgId: string,

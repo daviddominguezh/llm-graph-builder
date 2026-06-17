@@ -127,6 +127,21 @@ export async function findUniqueRagStoreSlug(
   throw new Error('Unable to find unique rag_store slug');
 }
 
+export async function getRagStoreById(
+  supabase: SupabaseClient,
+  storeId: string
+): Promise<{ result: RagStoreRow | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from('rag_stores')
+    .select(LIST_COLUMNS)
+    .eq('id', storeId)
+    .maybeSingle();
+  if (error !== null) return { result: null, error: error.message };
+  if (data === null) return { result: null, error: null };
+  if (!isRagStoreRow(data)) return { result: null, error: 'Invalid rag_store data' };
+  return { result: data, error: null };
+}
+
 export async function getRagStoreBySlug(
   supabase: SupabaseClient,
   orgId: string,
