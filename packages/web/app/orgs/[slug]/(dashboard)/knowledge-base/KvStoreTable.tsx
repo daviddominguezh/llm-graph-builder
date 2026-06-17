@@ -20,6 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { filterDefault } from '@openflow/shared-validation';
 import { ChevronLeft, ChevronRight, Search, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type KeyboardEvent, useMemo, useState } from 'react';
@@ -316,14 +317,6 @@ function ensureTrailingEmpty(entries: KvEntry[]): KvEntry[] {
   return [...entries, { id: makeId(), key: '', value: '' }];
 }
 
-function filterEntries(entries: KvEntry[], query: string): KvEntry[] {
-  if (query.trim() === '') return entries;
-  const lower = query.toLowerCase();
-  return entries.filter(
-    (e) => e.key.toLowerCase().includes(lower) || e.value.toLowerCase().includes(lower),
-  );
-}
-
 function computeDuplicateKeys(entries: KvEntry[]): Set<string> {
   const counts = new Map<string, number>();
   for (const entry of entries) {
@@ -349,7 +342,7 @@ interface KvDerived {
 function useKvDerived(entries: KvEntry[], query: string, page: number): KvDerived {
   const realEntries = useMemo(() => entries.slice(0, -1), [entries]);
   const trailingEmpty = entries[entries.length - 1] ?? null;
-  const filtered = useMemo(() => filterEntries(realEntries, query), [realEntries, query]);
+  const filtered = useMemo(() => filterDefault(realEntries, query.trim()), [realEntries, query]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const clampedPage = Math.min(Math.max(page, 1), totalPages);
   const start = (clampedPage - 1) * PAGE_SIZE;

@@ -3,7 +3,7 @@ export interface KvEntry {
   value: string;
 }
 
-export function filterDefault(entries: KvEntry[], query: string): KvEntry[] {
+export function filterDefault<T extends KvEntry>(entries: T[], query: string): T[] {
   if (query === '') return entries;
   const needle = query.toLowerCase();
   return entries.filter(
