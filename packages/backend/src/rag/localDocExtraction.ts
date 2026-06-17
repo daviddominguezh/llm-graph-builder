@@ -6,6 +6,10 @@ import { extractPdfChunks } from './localDocPdf.js';
 
 const OFFICE_EXTS: ReadonlySet<string> = new Set(['docx', 'pptx', 'xlsx']);
 
+function log(msg: string): void {
+  process.stdout.write(`[ragLocal] ${msg}\n`);
+}
+
 function isPdf(ext: string, mimeType: string): boolean {
   return ext === 'pdf' || mimeType === 'application/pdf';
 }
@@ -25,8 +29,17 @@ export async function extractLocalDocChunks(
   mimeType: string
 ): Promise<SourcedChunk[]> {
   const ext = extensionOf(filename);
-  if (isPdf(ext, mimeType)) return await extractPdfChunks(new Uint8Array(bytes));
-  if (isHtml(ext, mimeType)) return await extractHtmlChunks(bytes);
-  if (OFFICE_EXTS.has(ext)) return await extractOfficeChunks(bytes);
+  if (isPdf(ext, mimeType)) {
+    log(`extractor=pdfjs filename=${filename} ext=${ext} bytes=${String(bytes.byteLength)}`);
+    return await extractPdfChunks(new Uint8Array(bytes));
+  }
+  if (isHtml(ext, mimeType)) {
+    log(`extractor=turndown filename=${filename} ext=${ext} bytes=${String(bytes.byteLength)}`);
+    return await extractHtmlChunks(bytes);
+  }
+  if (OFFICE_EXTS.has(ext)) {
+    log(`extractor=officeparser filename=${filename} ext=${ext} bytes=${String(bytes.byteLength)}`);
+    return await extractOfficeChunks(bytes);
+  }
   throw new Error(`unsupported local doc extension: ${ext} (mime: ${mimeType})`);
 }

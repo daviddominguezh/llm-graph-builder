@@ -9,6 +9,10 @@ const DEFAULT_LOCATION = 'us-central1';
 const DIMENSION = 1408;
 const FIRST_PREDICTION = 0;
 
+function log(msg: string): void {
+  process.stdout.write(`[ragMm] ${msg}\n`);
+}
+
 let cachedAuth: GoogleAuth | null = null;
 function getAuth(): GoogleAuth {
   cachedAuth ??= new GoogleAuth({ scopes: [SCOPE] });
@@ -53,6 +57,7 @@ async function callPredict(body: PredictRequest): Promise<PredictionShape | null
     data: body,
   });
   if (res.status !== HTTP_OK) {
+    log(`predict HTTP ${String(res.status)} model=${MODEL_ID}`);
     throw new Error(`multimodal embedding failed: HTTP ${String(res.status)}`);
   }
   if (!isResponseShape(res.data)) return null;
@@ -60,26 +65,35 @@ async function callPredict(body: PredictRequest): Promise<PredictionShape | null
 }
 
 export async function embedImageBytes(bytes: Uint8Array): Promise<number[]> {
+  log(`embedImageBytes: model=${MODEL_ID} dim=${String(DIMENSION)} bytes=${String(bytes.byteLength)}`);
   const base64 = Buffer.from(bytes).toString('base64');
   const prediction = await callPredict({
     instances: [{ image: { bytesBase64Encoded: base64 } }],
     parameters: { dimension: DIMENSION },
   });
-  return toVector(prediction?.imageEmbedding);
+  const vector = toVector(prediction?.imageEmbedding);
+  log(`embedImageBytes: done dim=${String(vector.length)}`);
+  return vector;
 }
 
 export async function embedImageFromGcs(gcsUri: string): Promise<number[]> {
+  log(`embedImageFromGcs: model=${MODEL_ID} dim=${String(DIMENSION)} gcs=${gcsUri}`);
   const prediction = await callPredict({
     instances: [{ image: { gcsUri } }],
     parameters: { dimension: DIMENSION },
   });
-  return toVector(prediction?.imageEmbedding);
+  const vector = toVector(prediction?.imageEmbedding);
+  log(`embedImageFromGcs: done dim=${String(vector.length)}`);
+  return vector;
 }
 
 export async function embedQueryMultimodal(text: string): Promise<number[]> {
+  log(`embedQueryMultimodal: model=${MODEL_ID} dim=${String(DIMENSION)} chars=${String(text.length)}`);
   const prediction = await callPredict({
     instances: [{ text }],
     parameters: { dimension: DIMENSION },
   });
-  return toVector(prediction?.textEmbedding);
+  const vector = toVector(prediction?.textEmbedding);
+  log(`embedQueryMultimodal: done dim=${String(vector.length)}`);
+  return vector;
 }

@@ -47,12 +47,12 @@ function StatusPill({
   const tu = useTranslations('knowledgeBase.ragUpload');
   if (status === 'idle') return null;
   if (status === 'done') {
-    return <span className="text-[10px] text-emerald-600">{t('done')}</span>;
+    return <span className="text-xs text-emerald-600">{t('done')}</span>;
   }
   if (status === 'failed') {
     const title = error ?? t('failed');
     return (
-      <span className="text-[10px] text-destructive" title={title}>
+      <span className="text-xs text-destructive" title={title}>
         {tu('errorPrefix')}
       </span>
     );

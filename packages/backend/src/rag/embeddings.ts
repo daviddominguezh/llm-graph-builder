@@ -9,6 +9,11 @@ const MS_PER_MINUTE = 60_000;
 const MIN_INTERVAL_MS_FLOOR = 200;
 const EMBEDDING_MODEL_ID = 'text-embedding-004';
 const ZERO = 0;
+const FIRST = 0;
+
+function log(msg: string): void {
+  process.stdout.write(`[ragEmb] ${msg}\n`);
+}
 
 let rateLimitChain: Promise<void> = Promise.resolve();
 let nextAllowedAt = ZERO;
@@ -57,8 +62,11 @@ function asNumberArray(v: readonly unknown[] | undefined): number[] {
 
 async function embedBatch(batch: string[]): Promise<number[][]> {
   await rateLimit();
+  log(`embedBatch: provider=vertex model=${EMBEDDING_MODEL_ID} size=${String(batch.length)}`);
   const { embeddings } = await embedMany({ model: modelRef(), values: batch });
-  return embeddings.map((e) => asNumberArray(e));
+  const vectors = embeddings.map((e) => asNumberArray(e));
+  log(`embedBatch: done count=${String(vectors.length)} dim=${String(vectors[FIRST]?.length ?? ZERO)}`);
+  return vectors;
 }
 
 async function appendBatch(
@@ -85,6 +93,9 @@ export async function embedTexts({ texts, onBatchDone }: EmbedOptions): Promise<
 
 export async function embedQuery(text: string): Promise<number[]> {
   await rateLimit();
+  log(`embedQuery: provider=vertex model=${EMBEDDING_MODEL_ID} chars=${String(text.length)}`);
   const { embeddings } = await embedMany({ model: modelRef(), values: [text] });
-  return asNumberArray(embeddings[ZERO]);
+  const vector = asNumberArray(embeddings[ZERO]);
+  log(`embedQuery: done dim=${String(vector.length)}`);
+  return vector;
 }

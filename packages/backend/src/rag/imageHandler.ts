@@ -54,8 +54,9 @@ export async function handleImage(
   file: RagFileRow,
   helpers: ImagePipelineHelpers
 ): Promise<void> {
-  helpers.log(`handleImage: file=${file.id} mime=${file.mime_type}`);
+  helpers.log(`handleImage: file=${file.id} mime=${file.mime_type} gcs=${file.gcs_object}`);
   const vector = await embedImageFromGcs(gcsUriFor(file.gcs_object));
+  helpers.log(`handleImage: file=${file.id} embed dim=${String(vector.length)}`);
   if (vector.length === EMPTY) {
     await helpers.fail(file, 'multimodal embed returned no vector');
     return;
@@ -73,5 +74,6 @@ export async function handleImage(
     return;
   }
   await setImagePresenceTrue(file.rag_store_id, file.tenant_id);
+  helpers.log(`handleImage: file=${file.id} done chunkId=${chunkId}`);
   await updateStatus(supabase, file.id, { status: 'done', page_count: FIRST_PAGE });
 }

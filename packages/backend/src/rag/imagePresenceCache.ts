@@ -7,6 +7,10 @@ const SECONDS_PER_MINUTE = 60;
 const MINUTES_PER_HOUR = 60;
 const TTL_SECONDS = SECONDS_PER_MINUTE * MINUTES_PER_HOUR;
 
+function log(msg: string): void {
+  process.stdout.write(`[ragCache] ${msg}\n`);
+}
+
 let cachedCache: CacheWrapper | null = null;
 let cacheInitFailed = false;
 
@@ -31,26 +35,39 @@ export async function cachedHasImageChunks(
   storeId: string,
   tenantId: string
 ): Promise<boolean> {
+  const key = cacheKey(storeId, tenantId);
   const cache = tryGetCache();
   if (cache !== null) {
-    const cached = await cache.tryGet(cacheKey(storeId, tenantId));
-    if (cached === true || cached === false) return cached;
+    const cached = await cache.tryGet(key);
+    if (cached === true || cached === false) {
+      log(`hit key=${key} value=${String(cached)}`);
+      return cached;
+    }
+    log(`miss key=${key}`);
   }
   const { result } = await hasImageChunks(supabase, storeId, tenantId);
   if (cache !== null) {
-    await cache.trySetex(cacheKey(storeId, tenantId), TTL_SECONDS, result);
+    await cache.trySetex(key, TTL_SECONDS, result);
+    log(`set key=${key} value=${String(result)} ttl=${String(TTL_SECONDS)}s`);
   }
   return result;
 }
 
 export async function setImagePresenceTrue(storeId: string, tenantId: string): Promise<void> {
+  const key = cacheKey(storeId, tenantId);
   const cache = tryGetCache();
-  if (cache === null) return;
-  await cache.trySetex(cacheKey(storeId, tenantId), TTL_SECONDS, true);
+  if (cache === null) {
+    log(`set key=${key} skipped (no cache)`);
+    return;
+  }
+  await cache.trySetex(key, TTL_SECONDS, true);
+  log(`set key=${key} value=true ttl=${String(TTL_SECONDS)}s`);
 }
 
 export async function invalidateImagePresence(storeId: string, tenantId: string): Promise<void> {
+  const key = cacheKey(storeId, tenantId);
   const cache = tryGetCache();
   if (cache === null) return;
-  await cache.tryDel(cacheKey(storeId, tenantId));
+  await cache.tryDel(key);
+  log(`del key=${key}`);
 }
