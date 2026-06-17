@@ -3,6 +3,8 @@ import type { Tool } from 'ai';
 import { jsonSchema, zodSchema } from 'ai';
 import type { z } from 'zod';
 
+import { logger } from '../utils/logger.js';
+
 export type ToolErrorCode =
   | 'no_store_bound'
   | 'protected_key'
@@ -58,11 +60,11 @@ function instrumentedExecute<O>(t: OpenFlowTool<O>, toolName: string): (args: un
     const start = Date.now();
     try {
       const result = await t.execute(args);
-      process.stdout.write(`[tool] ${toolName} ok ms=${Date.now() - start}\n`);
+      logger.info(`[tool] ${toolName} ok ms=${Date.now() - start}`);
       return result;
     } catch (err) {
       const code = err instanceof ToolError ? err.code : 'unknown';
-      process.stdout.write(`[tool] ${toolName} fail ms=${Date.now() - start} code=${code}\n`);
+      logger.warn(`[tool] ${toolName} fail ms=${Date.now() - start} code=${code}`);
       throw err;
     }
   };
