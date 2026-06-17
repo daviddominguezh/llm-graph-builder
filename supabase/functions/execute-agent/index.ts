@@ -35,6 +35,13 @@ import {
 import { GitHubSourceProvider } from '@daviddh/vfs-providers';
 import type { Tool } from 'ai';
 
+import {
+  makeKvStoreService,
+  makeNoStoreBoundKvServices,
+  makeNoStoreBoundRagServices,
+  makeRagStoreService,
+} from './storeServices.ts';
+
 interface VfsPayloadData {
   token: string;
   owner: string;
@@ -81,6 +88,9 @@ interface ExecutePayload {
   schemaVersion?: 2;
   selectedTools?: SelectedTool[];
   oauth?: { byProvider: Record<string, OAuthTokenBundle> };
+  // Per-agent KV / RAG store bindings, version-aware (null when no store is bound)
+  selectedKvStoreId?: string | null;
+  selectedRagStoreId?: string | null;
 }
 
 /**
@@ -340,10 +350,35 @@ function buildContext(
 
 interface BuildProviderCtxArgs {
   payload: ExecutePayload;
+  supabase: Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>;
   conversationId?: string;
   formsBundle?: FormsBundle;
   leadScoringServices?: LeadScoringServices;
   calendarBundle?: CalendarBundle;
+}
+
+interface BuiltInProviderKv {
+  storeServices: ReturnType<typeof makeKvStoreService> | ReturnType<typeof makeNoStoreBoundKvServices>;
+}
+
+interface BuiltInProviderRag {
+  storeServices: ReturnType<typeof makeRagStoreService> | ReturnType<typeof makeNoStoreBoundRagServices>;
+}
+
+function resolveKvServices(args: BuildProviderCtxArgs): BuiltInProviderKv['storeServices'] {
+  const storeId = args.payload.selectedKvStoreId;
+  if (storeId === undefined || storeId === null || storeId === '') {
+    return makeNoStoreBoundKvServices();
+  }
+  return makeKvStoreService(args.supabase, storeId);
+}
+
+function resolveRagServices(args: BuildProviderCtxArgs): BuiltInProviderRag['storeServices'] {
+  const storeId = args.payload.selectedRagStoreId;
+  if (storeId === undefined || storeId === null || storeId === '') {
+    return makeNoStoreBoundRagServices();
+  }
+  return makeRagStoreService(args.supabase, storeId);
 }
 
 function buildServicesResolver(args: BuildProviderCtxArgs): (providerId: string) => unknown {
@@ -358,6 +393,8 @@ function buildServicesResolver(args: BuildProviderCtxArgs): (providerId: string)
     if (providerId === 'calendar' && calendarBundle !== undefined) {
       return { service: calendarBundle.services, calendarId: 'primary' };
     }
+    if (providerId === 'kv_store') return resolveKvServices(args);
+    if (providerId === 'rag') return resolveRagServices(args);
     return undefined;
   };
 }
@@ -371,6 +408,7 @@ function buildProviderCtx(args: BuildProviderCtxArgs): ProviderCtx {
   ]);
   return {
     orgId: payload.tenantID,
+    tenantId: payload.tenantID,
     agentId: payload.sessionID,
     isChildAgent: payload.isChildAgent ?? false,
     logger: runnerLogger,
@@ -390,22 +428,26 @@ function buildRegistry(payload: ExecutePayload): Registry {
   });
 }
 
-async function buildToolsForAgentV2(
-  payload: ExecutePayload,
-  conversationId: string | undefined,
-  formsBundle: FormsBundle | undefined,
-  leadScoringServices: LeadScoringServices | undefined,
-  calendarBundle: CalendarBundle | undefined
-): Promise<Record<string, Tool>> {
-  const registry = buildRegistry(payload);
+interface BuildToolsV2Args {
+  payload: ExecutePayload;
+  supabase: Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>;
+  conversationId: string | undefined;
+  formsBundle: FormsBundle | undefined;
+  leadScoringServices: LeadScoringServices | undefined;
+  calendarBundle: CalendarBundle | undefined;
+}
+
+async function buildToolsForAgentV2(input: BuildToolsV2Args): Promise<Record<string, Tool>> {
+  const registry = buildRegistry(input.payload);
   const ctx = buildProviderCtx({
-    payload,
-    conversationId,
-    formsBundle,
-    leadScoringServices,
-    calendarBundle,
+    payload: input.payload,
+    supabase: input.supabase,
+    conversationId: input.conversationId,
+    formsBundle: input.formsBundle,
+    leadScoringServices: input.leadScoringServices,
+    calendarBundle: input.calendarBundle,
   });
-  const built = await buildAgentToolsAtStart(registry, ctx, payload.selectedTools ?? []);
+  const built = await buildAgentToolsAtStart(registry, ctx, input.payload.selectedTools ?? []);
   return toAiSdkToolDict(built.tools);
 }
 
@@ -562,25 +604,30 @@ const runnerLogger: Logger = {
 
 type WriteEvent = (event: Record<string, unknown>) => void;
 
-async function runAgentExecution(
-  payload: ExecutePayload,
-  write: WriteEvent,
-  leadScoringServices?: LeadScoringServices,
-  formsBundle?: FormsBundle,
-  conversationId?: string,
-  calendarBundle?: CalendarBundle
-): Promise<void> {
+interface RunAgentArgs {
+  payload: ExecutePayload;
+  supabase: Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>;
+  write: WriteEvent;
+  leadScoringServices?: LeadScoringServices;
+  formsBundle?: FormsBundle;
+  conversationId?: string;
+  calendarBundle?: CalendarBundle;
+}
+
+async function runAgentExecution(args: RunAgentArgs): Promise<void> {
+  const { payload, supabase, write, leadScoringServices, formsBundle, conversationId, calendarBundle } = args;
   log.info(
     `agent start model=${payload.modelId} msgs=${payload.messages.length} prompt=${(payload.systemPrompt ?? '').slice(0, 80)}`
   );
 
-  const tools = await buildToolsForAgentV2(
+  const tools = await buildToolsForAgentV2({
     payload,
+    supabase,
     conversationId,
     formsBundle,
     leadScoringServices,
-    calendarBundle
-  );
+    calendarBundle,
+  });
 
   const result = await executeAgentLoop(
     {
@@ -637,6 +684,7 @@ async function runAgentExecution(
 /* ─── Workflow execution ─── */
 
 interface WorkflowToolsBundle {
+  supabase: Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>;
   leadScoringServices?: LeadScoringServices;
   formsBundle?: FormsBundle;
   conversationId?: string;
@@ -651,6 +699,7 @@ function buildWorkflowContext(
   const registry = buildRegistry(payload);
   const ctx = buildProviderCtx({
     payload,
+    supabase: bundle.supabase,
     conversationId: bundle.conversationId,
     formsBundle: bundle.formsBundle,
     leadScoringServices: bundle.leadScoringServices,
@@ -671,16 +720,26 @@ function buildWorkflowContext(
   };
 }
 
-async function runWorkflowExecution(
-  payload: ExecutePayload,
-  write: WriteEvent,
-  leadScoringServices?: LeadScoringServices,
-  formsBundle?: FormsBundle,
-  conversationId?: string,
-  calendarBundle?: CalendarBundle
-): Promise<void> {
+interface RunWorkflowArgs {
+  payload: ExecutePayload;
+  supabase: Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>;
+  write: WriteEvent;
+  leadScoringServices?: LeadScoringServices;
+  formsBundle?: FormsBundle;
+  conversationId?: string;
+  calendarBundle?: CalendarBundle;
+}
+
+async function runWorkflowExecution(args: RunWorkflowArgs): Promise<void> {
+  const { payload, supabase, write, leadScoringServices, formsBundle, conversationId, calendarBundle } = args;
   const baseContext = buildContext(payload);
-  const bundle: WorkflowToolsBundle = { leadScoringServices, formsBundle, conversationId, calendarBundle };
+  const bundle: WorkflowToolsBundle = {
+    supabase,
+    leadScoringServices,
+    formsBundle,
+    conversationId,
+    calendarBundle,
+  };
   const context: Context = buildWorkflowContext(payload, baseContext, bundle);
 
   const result = await executeWithCallbacks({
@@ -767,6 +826,8 @@ Deno.serve(async (req: Request) => {
           await bootstrapVfs(payload, buildContext(payload));
         }
 
+        const supabase = await buildSupabaseForLeadScoring();
+
         // Build lead scoring services when we have a real conversation
         const leadScoringServices =
           payload.conversationId !== undefined
@@ -779,23 +840,25 @@ Deno.serve(async (req: Request) => {
         const calendarBundle = buildCalendarBundle(payload);
 
         if (isAgent) {
-          await runAgentExecution(
+          await runAgentExecution({
             payload,
+            supabase,
             write,
             leadScoringServices,
             formsBundle,
-            payload.conversationId,
-            calendarBundle
-          );
+            conversationId: payload.conversationId,
+            calendarBundle,
+          });
         } else {
-          await runWorkflowExecution(
+          await runWorkflowExecution({
             payload,
+            supabase,
             write,
             leadScoringServices,
             formsBundle,
-            payload.conversationId,
-            calendarBundle
-          );
+            conversationId: payload.conversationId,
+            calendarBundle,
+          });
         }
 
         write({ type: 'execution_complete' });
