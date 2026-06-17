@@ -87,6 +87,7 @@ const execKeyRow: ExecutionKeyRow = {
   name: 'Test Exec Key',
   key_prefix: 'clr_abc123...',
   all_agents: false,
+  all_tenants: true,
   expires_at: null,
   created_at: '2024-01-01T00:00:00Z',
   last_used_at: null,

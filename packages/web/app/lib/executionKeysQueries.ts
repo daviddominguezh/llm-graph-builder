@@ -86,21 +86,21 @@ export async function getExecutionKeysWithAgentsByOrg(
   }
 }
 
+export interface CreateExecutionKeyParams {
+  orgId: string;
+  name: string;
+  allAgents: boolean;
+  agentIds: string[];
+  allTenants: boolean;
+  tenantIds: string[];
+  expiresAt: string | null;
+}
+
 export async function createExecutionKey(
-  orgId: string,
-  name: string,
-  allAgents: boolean,
-  agentIds: string[],
-  expiresAt: string | null
+  params: CreateExecutionKeyParams
 ): Promise<{ result: CreateExecutionKeyResult | null; error: string | null }> {
   try {
-    const data = await fetchFromBackend('POST', '/secrets/execution-keys', {
-      orgId,
-      name,
-      allAgents,
-      agentIds,
-      expiresAt,
-    });
+    const data = await fetchFromBackend('POST', '/secrets/execution-keys', params);
     if (!isCreateKeyResult(data)) return { result: null, error: 'Invalid response' };
     return { result: data, error: null };
   } catch (err) {
@@ -110,11 +110,29 @@ export async function createExecutionKey(
 
 export async function updateExecutionKeyAgents(
   keyId: string,
+  allAgents: boolean,
   agentIds: string[]
 ): Promise<{ error: string | null }> {
   try {
     await fetchFromBackend('PATCH', `/secrets/execution-keys/${encodeURIComponent(keyId)}`, {
+      allAgents,
       agentIds,
+    });
+    return { error: null };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
+}
+
+export async function updateExecutionKeyTenants(
+  keyId: string,
+  allTenants: boolean,
+  tenantIds: string[]
+): Promise<{ error: string | null }> {
+  try {
+    await fetchFromBackend('PATCH', `/secrets/execution-keys/${encodeURIComponent(keyId)}`, {
+      allTenants,
+      tenantIds,
     });
     return { error: null };
   } catch (err) {

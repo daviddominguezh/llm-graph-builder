@@ -6,16 +6,17 @@ import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 /*  Origin guard for web-channel execute requests                       */
 /*                                                                      */
 /*  Applies only when body.channel === 'web'. Verifies:                 */
-/*    1. tenantId belongs to the same org as the execution key          */
-/*    2. tenant.web_channel_enabled                                     */
-/*    3. request Origin matches tenant.web_channel_allowed_origins      */
+/*    1. tenant.web_channel_enabled                                     */
+/*    2. request Origin matches tenant.web_channel_allowed_origins      */
 /*       (shared matchOrigin semantics: exact or leading-label          */
 /*       wildcard; case-insensitive hostname; protocol+port must match)*/
+/*                                                                      */
+/*  Tenant-to-org binding + execution-key tenant allowlist are now     */
+/*  enforced by the channel-agnostic enforceTenantScope guard, which   */
+/*  runs BEFORE this one.                                              */
 /* ------------------------------------------------------------------ */
 
-export interface OriginGuardTenant {
-  id: string;
-  org_id: string;
+export interface OriginGuardTenantWebConfig {
   web_channel_enabled: boolean;
   web_channel_allowed_origins: string[];
 }
@@ -25,32 +26,27 @@ export interface OriginGuardRequest {
   header: (name: string) => string | undefined;
 }
 
-export type TenantLookup = (tenantId: string) => Promise<OriginGuardTenant | null>;
+export type WebConfigLookup = (tenantId: string) => Promise<OriginGuardTenantWebConfig | null>;
 
 export type OriginGuardOutcome = { ok: true } | { ok: false; status: number; error: string };
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_FORBIDDEN = 403;
 
-function isTenantRow(value: unknown): value is OriginGuardTenant {
+function isWebConfigRow(value: unknown): value is OriginGuardTenantWebConfig {
   if (typeof value !== 'object' || value === null) return false;
-  return (
-    'id' in value &&
-    'org_id' in value &&
-    'web_channel_enabled' in value &&
-    'web_channel_allowed_origins' in value
-  );
+  return 'web_channel_enabled' in value && 'web_channel_allowed_origins' in value;
 }
 
-export function createSupabaseTenantLookup(supabase: SupabaseClient): TenantLookup {
+export function createSupabaseWebConfigLookup(supabase: SupabaseClient): WebConfigLookup {
   return async (tenantId: string) => {
     const { data, error } = await supabase
       .from('tenants')
-      .select('id, org_id, web_channel_enabled, web_channel_allowed_origins')
+      .select('web_channel_enabled, web_channel_allowed_origins')
       .eq('id', tenantId)
       .maybeSingle();
     if (error !== null) return null;
-    return isTenantRow(data) ? data : null;
+    return isWebConfigRow(data) ? data : null;
   };
 }
 
@@ -72,19 +68,15 @@ export { matchOrigin };
 
 export interface OriginGuardArgs {
   req: OriginGuardRequest;
-  lookupTenant: TenantLookup;
+  lookupWebConfig: WebConfigLookup;
   tenantId: string;
-  keyOrgId: string;
 }
 
-function checkTenantAccess(tenant: OriginGuardTenant | null, keyOrgId: string): OriginGuardOutcome | null {
-  if (tenant === null) {
+function checkWebConfig(config: OriginGuardTenantWebConfig | null): OriginGuardOutcome | null {
+  if (config === null) {
     return { ok: false, status: HTTP_FORBIDDEN, error: 'tenant_not_found' };
   }
-  if (tenant.org_id !== keyOrgId) {
-    return { ok: false, status: HTTP_FORBIDDEN, error: 'tenant_org_mismatch' };
-  }
-  if (!tenant.web_channel_enabled) {
+  if (!config.web_channel_enabled) {
     return { ok: false, status: HTTP_FORBIDDEN, error: 'web_channel_disabled' };
   }
   return null;
@@ -102,10 +94,10 @@ export async function enforceWebChannelOrigin(args: OriginGuardArgs): Promise<Or
   if (args.tenantId === '') {
     return { ok: false, status: HTTP_BAD_REQUEST, error: 'tenantId is required' };
   }
-  const tenant = await args.lookupTenant(args.tenantId);
-  const access = checkTenantAccess(tenant, args.keyOrgId);
+  const config = await args.lookupWebConfig(args.tenantId);
+  const access = checkWebConfig(config);
   if (access !== null) return access;
-  const originCheck = checkOriginMatch(args.req, tenant?.web_channel_allowed_origins ?? []);
+  const originCheck = checkOriginMatch(args.req, config?.web_channel_allowed_origins ?? []);
   if (originCheck !== null) return originCheck;
   return { ok: true };
 }

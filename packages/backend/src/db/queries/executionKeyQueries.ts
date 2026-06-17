@@ -11,6 +11,7 @@ export interface ExecutionKeyRow {
   name: string;
   key_prefix: string;
   all_agents: boolean;
+  all_tenants: boolean;
   expires_at: string | null;
   created_at: string;
   last_used_at: string | null;
@@ -53,7 +54,7 @@ function isAgentJoinRow(value: unknown): value is AgentJoinRow {
 /* ------------------------------------------------------------------ */
 
 const EXECUTION_KEY_COLUMNS =
-  'id, org_id, name, key_prefix, all_agents, expires_at, created_at, last_used_at';
+  'id, org_id, name, key_prefix, all_agents, all_tenants, expires_at, created_at, last_used_at';
 const KEY_PREFIX = 'clr_';
 const KEY_BYTES = 48;
 const DISPLAY_PREFIX_LENGTH = 12;

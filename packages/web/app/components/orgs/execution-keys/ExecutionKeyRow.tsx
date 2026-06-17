@@ -75,6 +75,16 @@ function AgentBadges({ keyData }: { keyData: ExecutionKeyWithAgents }) {
   return <SpecificAgentBadges keyData={keyData} />;
 }
 
+function TenantsBadge({ keyData }: { keyData: ExecutionKeyWithAgents }) {
+  const t = useTranslations('executionKeys');
+  const label = keyData.all_tenants ? t('allTenantsBadge') : t('tenantsScopedBadge');
+  return (
+    <span className="rounded-full border border-transparent bg-background px-1.5 font-mono text-[10px]">
+      {label}
+    </span>
+  );
+}
+
 function MaskedKeyPrefix({ prefix }: { prefix: string }) {
   const visible = prefix.slice(0, 7);
 
@@ -106,9 +116,10 @@ export function ExecutionKeyRow({ keyData, onDelete }: ExecutionKeyRowProps) {
   const locale = useLocale();
 
   return (
-    <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-3 rounded-md border border-transparent px-3 py-2 bg-card dark:bg-input/70 transition-colors">
+    <div className="grid grid-cols-[1fr_auto_auto_auto_auto_auto] items-center gap-3 rounded-md border border-transparent px-3 py-2 bg-card dark:bg-input/70 transition-colors">
       <KeyIdentity keyData={keyData} />
       <AgentBadges keyData={keyData} />
+      <TenantsBadge keyData={keyData} />
       <span className="text-muted-foreground text-[11px] whitespace-nowrap ml-2">
         {t('created')} {formatRelativeTime(keyData.created_at, locale)}
       </span>
