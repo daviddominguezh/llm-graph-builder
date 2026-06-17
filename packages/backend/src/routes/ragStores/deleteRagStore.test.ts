@@ -22,9 +22,20 @@ const SAMPLE_STORE: RagStoreRow = {
   updated_at: '2026-01-01T00:00:00Z',
 };
 
-const mockGetRagStoreById = jest.fn<() => Promise<{ result: RagStoreRow | null; error: string | null }>>();
-const mockDeleteRagStore = jest.fn<() => Promise<{ error: string | null }>>();
-const mockFindAgentsByRagStore = jest.fn<() => Promise<AgentsByStoreResult>>();
+type GetRagStoreByIdFn = (
+  supabase: unknown,
+  storeId: string
+) => Promise<{ result: RagStoreRow | null; error: string | null }>;
+type DeleteRagStoreFn = (supabase: unknown, storeId: string) => Promise<{ error: string | null }>;
+type FindAgentsByRagStoreFn = (
+  supabase: unknown,
+  orgId: string,
+  storeId: string
+) => Promise<AgentsByStoreResult>;
+
+const mockGetRagStoreById = jest.fn<GetRagStoreByIdFn>();
+const mockDeleteRagStore = jest.fn<DeleteRagStoreFn>();
+const mockFindAgentsByRagStore = jest.fn<FindAgentsByRagStoreFn>();
 
 jest.unstable_mockModule('../../db/queries/ragStoresQueries.js', () => ({
   getRagStoreById: mockGetRagStoreById,

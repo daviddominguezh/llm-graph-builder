@@ -22,9 +22,20 @@ const SAMPLE_STORE: KvStoreRow = {
   updated_at: '2026-01-01T00:00:00Z',
 };
 
-const mockGetKvStoreById = jest.fn<() => Promise<{ result: KvStoreRow | null; error: string | null }>>();
-const mockDeleteKvStore = jest.fn<() => Promise<{ error: string | null }>>();
-const mockFindAgentsByKvStore = jest.fn<() => Promise<AgentsByStoreResult>>();
+type GetKvStoreByIdFn = (
+  supabase: unknown,
+  storeId: string
+) => Promise<{ result: KvStoreRow | null; error: string | null }>;
+type DeleteKvStoreFn = (supabase: unknown, storeId: string) => Promise<{ error: string | null }>;
+type FindAgentsByKvStoreFn = (
+  supabase: unknown,
+  orgId: string,
+  storeId: string
+) => Promise<AgentsByStoreResult>;
+
+const mockGetKvStoreById = jest.fn<GetKvStoreByIdFn>();
+const mockDeleteKvStore = jest.fn<DeleteKvStoreFn>();
+const mockFindAgentsByKvStore = jest.fn<FindAgentsByKvStoreFn>();
 
 jest.unstable_mockModule('../../db/queries/kvStoresQueries.js', () => ({
   getKvStoreById: mockGetKvStoreById,
