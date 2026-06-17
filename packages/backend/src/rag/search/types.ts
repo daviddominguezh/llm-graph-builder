@@ -39,10 +39,7 @@ export const MAX_OFFSET = 1000;
 
 const MIN_OFFSET = 0;
 
-export function clampOffset(
-  offset: number,
-  limit: number
-): { offset: number; truncated: boolean } {
+export function clampOffset(offset: number, limit: number): { offset: number; truncated: boolean } {
   if (offset + limit > MAX_OFFSET) {
     return { offset: Math.max(MIN_OFFSET, MAX_OFFSET - limit), truncated: true };
   }
