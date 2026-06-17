@@ -370,7 +370,7 @@ function resolveKvServices(args: BuildProviderCtxArgs): BuiltInProviderKv['store
   if (storeId === undefined || storeId === null || storeId === '') {
     return makeNoStoreBoundKvServices();
   }
-  return makeKvStoreService(args.supabase, storeId);
+  return makeKvStoreService(storeId);
 }
 
 function resolveRagServices(args: BuildProviderCtxArgs): BuiltInProviderRag['storeServices'] {
@@ -378,7 +378,7 @@ function resolveRagServices(args: BuildProviderCtxArgs): BuiltInProviderRag['sto
   if (storeId === undefined || storeId === null || storeId === '') {
     return makeNoStoreBoundRagServices();
   }
-  return makeRagStoreService(args.supabase, storeId);
+  return makeRagStoreService(storeId);
 }
 
 function buildServicesResolver(args: BuildProviderCtxArgs): (providerId: string) => unknown {
