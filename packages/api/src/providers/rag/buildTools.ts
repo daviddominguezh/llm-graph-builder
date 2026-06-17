@@ -6,9 +6,10 @@ import { isRagStoreServices } from '../types.js';
 import { RAG_SEARCH_TOOL_NAME } from './descriptors.js';
 
 const ONE_KILOBYTE = 1024;
+const QUERY_MAX = 4096;
 const OFFSET_MIN = 0;
 const LIMIT_MIN = 1;
-const LIMIT_MAX = 50;
+const LIMIT_MAX = 200;
 const DEFAULT_LIMIT = 10;
 const MIN_SIMILARITY_FLOOR = 0;
 const MIN_SIMILARITY_CEIL = 1;
@@ -17,7 +18,7 @@ const DEFAULT_MIN_SIMILARITY = 0;
 const searchInput = z
   .object({
     mode: z.enum(['bm25', 'semantic', 'hybrid', 'regex']),
-    query: z.string().optional(),
+    query: z.string().min(LIMIT_MIN).max(QUERY_MAX).optional(),
     pattern: z.string().max(ONE_KILOBYTE).optional(),
     minSimilarity: z
       .number()

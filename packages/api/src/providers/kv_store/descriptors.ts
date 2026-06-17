@@ -5,10 +5,11 @@ const ONE_KILOBYTE = 1024;
 const KEY_MAX_BYTES = 256;
 const VALUE_MAX_BYTES = KEY_MAX_BYTES * ONE_KILOBYTE;
 const KEY_PATTERN_MAX = ONE_KILOBYTE;
+const QUERY_MAX = 2048;
 const KEYS_MAX_ITEMS = 100;
 const OFFSET_MIN = 0;
 const LIMIT_MIN = 1;
-const LIMIT_MAX = 100;
+const LIMIT_MAX = 500;
 
 export const KV_LIST_KEYS_TOOL_NAME = 'list_keys';
 export const KV_GET_VALUES_TOOL_NAME = 'get_values';
@@ -54,7 +55,7 @@ const searchDescriptor: ToolDescriptor = {
     properties: {
       mode: { type: 'string', enum: ['substring', 'regex'] },
       on: { type: 'string', enum: ['keys', 'values', 'both'] },
-      query: { type: 'string' },
+      query: { type: 'string', minLength: LIMIT_MIN, maxLength: QUERY_MAX },
       pattern: { type: 'string', maxLength: KEY_PATTERN_MAX },
       offset: offsetSchema,
       limit: limitSchema,

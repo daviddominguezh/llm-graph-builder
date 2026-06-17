@@ -2,9 +2,10 @@ import type { ToolDescriptor } from '../provider.js';
 import type { RawJsonSchema } from '../types.js';
 
 const ONE_KILOBYTE = 1024;
+const QUERY_MAX = 4096;
 const OFFSET_MIN = 0;
 const LIMIT_MIN = 1;
-const LIMIT_MAX = 50;
+const LIMIT_MAX = 200;
 const MIN_SIMILARITY_FLOOR = 0;
 const MIN_SIMILARITY_CEIL = 1;
 
@@ -26,7 +27,7 @@ const searchDescriptor: ToolDescriptor = {
     required: ['mode', 'offset', 'limit'],
     properties: {
       mode: { type: 'string', enum: ['bm25', 'semantic', 'hybrid', 'regex'] },
-      query: { type: 'string' },
+      query: { type: 'string', minLength: LIMIT_MIN, maxLength: QUERY_MAX },
       pattern: { type: 'string', maxLength: ONE_KILOBYTE },
       minSimilarity: {
         type: 'number',

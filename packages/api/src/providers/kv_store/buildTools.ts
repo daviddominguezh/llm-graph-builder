@@ -14,10 +14,11 @@ const ONE_KILOBYTE = 1024;
 const KEY_MAX_BYTES = 256;
 const VALUE_MAX_BYTES = KEY_MAX_BYTES * ONE_KILOBYTE;
 const KEY_PATTERN_MAX = ONE_KILOBYTE;
+const QUERY_MAX = 2048;
 const KEYS_MAX_ITEMS = 100;
 const OFFSET_MIN = 0;
 const LIMIT_MIN = 1;
-const LIMIT_MAX = 100;
+const LIMIT_MAX = 500;
 const DEFAULT_LIMIT = 20;
 
 /* ─── Zod input schemas ─── */
@@ -35,7 +36,7 @@ const searchInput = z
   .object({
     mode: z.enum(['substring', 'regex']),
     on: z.enum(['keys', 'values', 'both']).default('both'),
-    query: z.string().optional(),
+    query: z.string().min(LIMIT_MIN).max(QUERY_MAX).optional(),
     pattern: z.string().max(KEY_PATTERN_MAX).optional(),
     offset: z.number().int().min(OFFSET_MIN).default(OFFSET_MIN),
     limit: z.number().int().min(LIMIT_MIN).max(LIMIT_MAX).default(DEFAULT_LIMIT),
