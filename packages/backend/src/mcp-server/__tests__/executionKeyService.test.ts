@@ -157,6 +157,8 @@ describe('createExecutionKey', () => {
       name: 'Test Key',
       allAgents: false,
       agentIds: ['agent-1'],
+      allTenants: true,
+      tenantIds: [],
       expiresAt: '2025-01-01T00:00:00Z',
     });
     expect(result).toEqual(createKeyResult);
@@ -173,6 +175,8 @@ describe('createExecutionKey', () => {
       name: 'Test Key',
       allAgents: false,
       agentIds: [],
+      allTenants: true,
+      tenantIds: [],
       expiresAt: null,
     });
   });
