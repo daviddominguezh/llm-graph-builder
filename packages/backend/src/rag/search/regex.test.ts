@@ -2,10 +2,17 @@ import { ToolError } from '@daviddh/llm-graph-runner';
 import { describe, expect, it, jest } from '@jest/globals';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import type { RegexSearchResult } from '../../db/queries/ragChunksQueries.js';
+import type { RegexSearchResult } from '../../db/queries/ragRegexQueries.js';
 import { runRegexSearch } from './regex.js';
 
-const fakeSupabase = {} as unknown as SupabaseClient;
+const ZERO = 0;
+const TWO = 2;
+const TEN = 10;
+const PATTERN_OVER_LIMIT = 2000;
+
+// The supabase client is never actually called — the search function is stubbed.
+const mockCreateSupabase = jest.fn<() => SupabaseClient>();
+const fakeSupabase = mockCreateSupabase();
 
 interface Hit {
   id: string;
@@ -22,8 +29,8 @@ const baseParams = {
   storeId: 's1',
   tenantId: 't1',
   pattern: 'foo.*bar',
-  offset: 0,
-  limit: 10,
+  offset: ZERO,
+  limit: TEN,
 };
 
 type SearchFn = (
@@ -35,23 +42,25 @@ function withResult(result: RegexSearchResult): SearchFn {
   return jest.fn<SearchFn>().mockResolvedValue(result);
 }
 
-describe('runRegexSearch', () => {
+describe('runRegexSearch — success', () => {
   it('returns paginated result on success', async () => {
     const fn = withResult({
       result: [hit('1', 'foo and bar'), hit('2', 'foo bar')],
-      total: 2,
+      total: TWO,
       error: null,
       timedOut: false,
     });
     const res = await runRegexSearch(fakeSupabase, baseParams, fn);
     expect(res.items).toEqual(['foo and bar', 'foo bar']);
-    expect(res.total).toBe(2);
-    expect(res.offset).toBe(0);
-    expect(res.limit).toBe(10);
+    expect(res.total).toBe(TWO);
+    expect(res.offset).toBe(ZERO);
+    expect(res.limit).toBe(TEN);
   });
+});
 
+describe('runRegexSearch — error mapping', () => {
   it('throws pattern_timeout on timedOut response', async () => {
-    const fn = withResult({ result: [], total: 0, error: null, timedOut: true });
+    const fn = withResult({ result: [], total: ZERO, error: null, timedOut: true });
     await expect(runRegexSearch(fakeSupabase, baseParams, fn)).rejects.toMatchObject({
       name: 'ToolError',
       code: 'pattern_timeout',
@@ -59,22 +68,22 @@ describe('runRegexSearch', () => {
   });
 
   it('throws invalid_pattern when pattern exceeds length cap', async () => {
-    const longPattern = 'a'.repeat(2000);
-    const fn = withResult({ result: [], total: 0, error: null, timedOut: false });
+    const longPattern = 'a'.repeat(PATTERN_OVER_LIMIT);
+    const fn = withResult({ result: [], total: ZERO, error: null, timedOut: false });
     await expect(
       runRegexSearch(fakeSupabase, { ...baseParams, pattern: longPattern }, fn)
     ).rejects.toMatchObject({ name: 'ToolError', code: 'invalid_pattern' });
   });
 
   it('throws invalid_pattern when RE2 cannot compile the pattern', async () => {
-    const fn = withResult({ result: [], total: 0, error: null, timedOut: false });
+    const fn = withResult({ result: [], total: ZERO, error: null, timedOut: false });
     await expect(
       runRegexSearch(fakeSupabase, { ...baseParams, pattern: '(unbalanced' }, fn)
     ).rejects.toBeInstanceOf(ToolError);
   });
 
   it('throws invalid_pattern when RPC returns a SQL error', async () => {
-    const fn = withResult({ result: [], total: 0, error: 'invalid pattern from DB', timedOut: false });
+    const fn = withResult({ result: [], total: ZERO, error: 'invalid pattern from DB', timedOut: false });
     await expect(runRegexSearch(fakeSupabase, baseParams, fn)).rejects.toMatchObject({
       name: 'ToolError',
       code: 'invalid_pattern',

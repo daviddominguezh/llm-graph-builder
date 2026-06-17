@@ -2,7 +2,7 @@ import { ToolError } from '@daviddh/llm-graph-runner';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import RE2 from 're2';
 
-import { type RegexSearchResult, searchByRegex } from '../../db/queries/ragChunksQueries.js';
+import { type RegexSearchResult, searchByRegex } from '../../db/queries/ragRegexQueries.js';
 import { type PaginatedSearchResult, type RegexSearchParams, clampOffset } from './types.js';
 
 type RegexSearchFn = (
@@ -17,7 +17,9 @@ function preValidatePattern(pattern: string): void {
     throw new ToolError('invalid_pattern', `Pattern exceeds ${String(MAX_PATTERN_LENGTH)} chars`);
   }
   try {
-    new RE2(pattern);
+    const compiled = new RE2(pattern);
+    // Reference compiled to avoid `no-new` while still exercising the compiler.
+    void compiled.source;
   } catch (err) {
     throw new ToolError('invalid_pattern', err instanceof Error ? err.message : 'invalid regex');
   }
