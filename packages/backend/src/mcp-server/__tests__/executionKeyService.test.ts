@@ -152,6 +152,26 @@ describe('listExecutionKeys', () => {
 /*  createExecutionKey                                                 */
 /* ------------------------------------------------------------------ */
 
+const expectedCreateWithExpiry = {
+  orgId: 'org-1',
+  name: 'Test Key',
+  allAgents: false,
+  agentIds: ['agent-1'],
+  allTenants: true,
+  tenantIds: [],
+  expiresAt: '2025-01-01T00:00:00Z',
+};
+
+const expectedCreateNullExpiry = {
+  orgId: 'org-1',
+  name: 'Test Key',
+  allAgents: false,
+  agentIds: [],
+  allTenants: true,
+  tenantIds: [],
+  expiresAt: null,
+};
+
 describe('createExecutionKey', () => {
   it('creates execution key with agents and expiry', async () => {
     const ctx = buildCtx();
@@ -160,15 +180,7 @@ describe('createExecutionKey', () => {
     const input = { name: 'Test Key', agentIds: ['agent-1'], expiresAt: '2025-01-01T00:00:00Z' };
     const result = await createExecutionKey(ctx, input);
 
-    expect(mockCreateExecutionKeyQuery).toHaveBeenCalledWith(ctx.supabase, {
-      orgId: 'org-1',
-      name: 'Test Key',
-      allAgents: false,
-      agentIds: ['agent-1'],
-      allTenants: true,
-      tenantIds: [],
-      expiresAt: '2025-01-01T00:00:00Z',
-    });
+    expect(mockCreateExecutionKeyQuery).toHaveBeenCalledWith(ctx.supabase, expectedCreateWithExpiry);
     expect(result).toEqual(createKeyResult);
   });
 
@@ -178,15 +190,7 @@ describe('createExecutionKey', () => {
 
     await createExecutionKey(ctx, { name: 'Test Key', agentIds: [] });
 
-    expect(mockCreateExecutionKeyQuery).toHaveBeenCalledWith(ctx.supabase, {
-      orgId: 'org-1',
-      name: 'Test Key',
-      allAgents: false,
-      agentIds: [],
-      allTenants: true,
-      tenantIds: [],
-      expiresAt: null,
-    });
+    expect(mockCreateExecutionKeyQuery).toHaveBeenCalledWith(ctx.supabase, expectedCreateNullExpiry);
   });
 
   it('throws when creation fails', async () => {
