@@ -19,7 +19,8 @@ import {
 import { buildEmptyResponse, buildResponseByType } from './executeResponseBuilders.js';
 import type { AgentExecutionInput, AgentExecutionResponse } from './executeTypes.js';
 import { AgentExecutionInputSchema } from './executeTypes.js';
-import { createSupabaseTenantLookup, enforceWebChannelOrigin } from './originGuard.js';
+import { createSupabaseTenantOrgLookup, enforceTenantScope } from './enforceTenantScope.js';
+import { createSupabaseWebConfigLookup, enforceWebChannelOrigin } from './originGuard.js';
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_INTERNAL = 500;
@@ -29,6 +30,8 @@ const HTTP_INTERNAL = 500;
 interface ParsedInput {
   input: AgentExecutionInput;
   orgId: string;
+  keyId: string;
+  allTenants: boolean;
   agentId: string;
   version: number;
   supabase: SupabaseClient;
@@ -41,8 +44,18 @@ function parseRequest(
   const parsed = AgentExecutionInputSchema.safeParse(req.body);
   if (!parsed.success) throw new HttpError(HTTP_BAD_REQUEST, parsed.error.message);
 
-  const { orgId, agentId, version, supabase }: ExecutionAuthLocals = res.locals;
-  return { input: parsed.data, orgId, agentId, version, supabase };
+  const { orgId, keyId, allTenants, agentId, version, supabase }: ExecutionAuthLocals = res.locals;
+  return { input: parsed.data, orgId, keyId, allTenants, agentId, version, supabase };
+}
+
+async function enforceTenantAccess(parsed: ParsedInput): Promise<void> {
+  const outcome = await enforceTenantScope({
+    supabase: parsed.supabase,
+    executionKey: { id: parsed.keyId, org_id: parsed.orgId, all_tenants: parsed.allTenants },
+    bodyTenantId: parsed.input.tenantId,
+    lookupTenant: createSupabaseTenantOrgLookup(parsed.supabase),
+  });
+  if (!outcome.ok) throw new HttpError(outcome.status, outcome.error);
 }
 
 async function enforceOriginIfWebChannel(
@@ -52,9 +65,8 @@ async function enforceOriginIfWebChannel(
   if (parsed.input.channel !== 'web') return;
   const outcome = await enforceWebChannelOrigin({
     req,
-    lookupTenant: createSupabaseTenantLookup(parsed.supabase),
+    lookupWebConfig: createSupabaseWebConfigLookup(parsed.supabase),
     tenantId: parsed.input.tenantId,
-    keyOrgId: parsed.orgId,
   });
   if (!outcome.ok) throw new HttpError(outcome.status, outcome.error);
 }
@@ -188,6 +200,7 @@ export async function handleExecute(
   try {
     const parsed = parseRequest(req, res);
     ({ supabase } = parsed);
+    await enforceTenantAccess(parsed);
     await enforceOriginIfWebChannel(req, parsed);
 
     logExec('routing execution', { stream: parsed.input.stream });
