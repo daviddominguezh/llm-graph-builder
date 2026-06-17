@@ -22,8 +22,7 @@ const SAMPLE_STORE: RagStoreRow = {
   updated_at: '2026-01-01T00:00:00Z',
 };
 
-const mockGetRagStoreById =
-  jest.fn<() => Promise<{ result: RagStoreRow | null; error: string | null }>>();
+const mockGetRagStoreById = jest.fn<() => Promise<{ result: RagStoreRow | null; error: string | null }>>();
 const mockDeleteRagStore = jest.fn<() => Promise<{ error: string | null }>>();
 const mockFindAgentsByRagStore = jest.fn<() => Promise<AgentsByStoreResult>>();
 
@@ -58,7 +57,7 @@ function resetMocks(): void {
 const DRAFT_REF: AgentRef = { id: 'a1', slug: 'agent-1', name: 'Agent 1' };
 const PUBLISHED_REF: AgentRef = { id: 'a2', slug: 'agent-2', name: 'Agent 2' };
 
-describe('DELETE /rag-stores/:storeId — in-use guard', () => {
+describe('DELETE /rag-stores/:storeId — draft-only conflict', () => {
   it('returns 409 in_use when only draft agents reference the store', async () => {
     resetMocks();
     mockFindAgentsByRagStore.mockResolvedValueOnce({
@@ -71,7 +70,9 @@ describe('DELETE /rag-stores/:storeId — in-use guard', () => {
     expect(res.body).toEqual({ error: 'in_use', draft: [DRAFT_REF], published: [] });
     expect(mockDeleteRagStore).not.toHaveBeenCalled();
   });
+});
 
+describe('DELETE /rag-stores/:storeId — published-only conflict', () => {
   it('returns 409 in_use when only published agents reference the store', async () => {
     resetMocks();
     mockFindAgentsByRagStore.mockResolvedValueOnce({
@@ -84,7 +85,9 @@ describe('DELETE /rag-stores/:storeId — in-use guard', () => {
     expect(res.body).toEqual({ error: 'in_use', draft: [], published: [PUBLISHED_REF] });
     expect(mockDeleteRagStore).not.toHaveBeenCalled();
   });
+});
 
+describe('DELETE /rag-stores/:storeId — both arrays populated', () => {
   it('returns 409 in_use with both arrays populated', async () => {
     resetMocks();
     mockFindAgentsByRagStore.mockResolvedValueOnce({
@@ -97,7 +100,9 @@ describe('DELETE /rag-stores/:storeId — in-use guard', () => {
     expect(res.body).toEqual({ error: 'in_use', draft: [DRAFT_REF], published: [PUBLISHED_REF] });
     expect(mockDeleteRagStore).not.toHaveBeenCalled();
   });
+});
 
+describe('DELETE /rag-stores/:storeId — no references', () => {
   it('proceeds to delete and returns 200 when no agents reference the store', async () => {
     resetMocks();
     mockFindAgentsByRagStore.mockResolvedValueOnce({ draft: [], published: [], error: null });

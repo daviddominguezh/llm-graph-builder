@@ -14,6 +14,7 @@ import {
 import { getStoreIdParam } from './ragStoreHelpers.js';
 
 const HTTP_CONFLICT = 409;
+const EMPTY_LENGTH = 0;
 
 async function runDelete(
   supabase: AuthenticatedLocals['supabase'],
@@ -47,10 +48,8 @@ async function processDelete(
     res.status(HTTP_INTERNAL_ERROR).json({ error: blocking.error });
     return;
   }
-  if (blocking.draft.length > 0 || blocking.published.length > 0) {
-    res
-      .status(HTTP_CONFLICT)
-      .json({ error: 'in_use', draft: blocking.draft, published: blocking.published });
+  if (blocking.draft.length > EMPTY_LENGTH || blocking.published.length > EMPTY_LENGTH) {
+    res.status(HTTP_CONFLICT).json({ error: 'in_use', draft: blocking.draft, published: blocking.published });
     return;
   }
   await runDelete(supabase, storeId, res);

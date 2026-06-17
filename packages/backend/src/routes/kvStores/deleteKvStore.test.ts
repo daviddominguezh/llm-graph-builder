@@ -22,8 +22,7 @@ const SAMPLE_STORE: KvStoreRow = {
   updated_at: '2026-01-01T00:00:00Z',
 };
 
-const mockGetKvStoreById =
-  jest.fn<() => Promise<{ result: KvStoreRow | null; error: string | null }>>();
+const mockGetKvStoreById = jest.fn<() => Promise<{ result: KvStoreRow | null; error: string | null }>>();
 const mockDeleteKvStore = jest.fn<() => Promise<{ error: string | null }>>();
 const mockFindAgentsByKvStore = jest.fn<() => Promise<AgentsByStoreResult>>();
 
@@ -58,7 +57,7 @@ function resetMocks(): void {
 const DRAFT_REF: AgentRef = { id: 'a1', slug: 'agent-1', name: 'Agent 1' };
 const PUBLISHED_REF: AgentRef = { id: 'a2', slug: 'agent-2', name: 'Agent 2' };
 
-describe('DELETE /kv-stores/:storeId — in-use guard', () => {
+describe('DELETE /kv-stores/:storeId — draft-only conflict', () => {
   it('returns 409 in_use when only draft agents reference the store', async () => {
     resetMocks();
     mockFindAgentsByKvStore.mockResolvedValueOnce({
@@ -71,7 +70,9 @@ describe('DELETE /kv-stores/:storeId — in-use guard', () => {
     expect(res.body).toEqual({ error: 'in_use', draft: [DRAFT_REF], published: [] });
     expect(mockDeleteKvStore).not.toHaveBeenCalled();
   });
+});
 
+describe('DELETE /kv-stores/:storeId — published-only conflict', () => {
   it('returns 409 in_use when only published agents reference the store', async () => {
     resetMocks();
     mockFindAgentsByKvStore.mockResolvedValueOnce({
@@ -84,7 +85,9 @@ describe('DELETE /kv-stores/:storeId — in-use guard', () => {
     expect(res.body).toEqual({ error: 'in_use', draft: [], published: [PUBLISHED_REF] });
     expect(mockDeleteKvStore).not.toHaveBeenCalled();
   });
+});
 
+describe('DELETE /kv-stores/:storeId — both arrays populated', () => {
   it('returns 409 in_use with both arrays populated', async () => {
     resetMocks();
     mockFindAgentsByKvStore.mockResolvedValueOnce({
@@ -97,7 +100,9 @@ describe('DELETE /kv-stores/:storeId — in-use guard', () => {
     expect(res.body).toEqual({ error: 'in_use', draft: [DRAFT_REF], published: [PUBLISHED_REF] });
     expect(mockDeleteKvStore).not.toHaveBeenCalled();
   });
+});
 
+describe('DELETE /kv-stores/:storeId — no references', () => {
   it('proceeds to delete and returns 200 when no agents reference the store', async () => {
     resetMocks();
     mockFindAgentsByKvStore.mockResolvedValueOnce({ draft: [], published: [], error: null });
