@@ -1,10 +1,14 @@
 import { calendarProvider } from './calendar/index.js';
 import { compositionProvider } from './composition/index.js';
 import { formsProvider } from './forms/index.js';
+import { kvStoreProvider } from './kv_store/index.js';
 import { leadScoringProvider } from './lead_scoring/index.js';
 import type { Provider } from './provider.js';
+import { ragProvider } from './rag/index.js';
 
 export const builtInProviders: ReadonlyMap<string, Provider> = new Map([
+  ['kv_store', kvStoreProvider],
+  ['rag', ragProvider],
   ['calendar', calendarProvider],
   ['forms', formsProvider],
   ['lead_scoring', leadScoringProvider],
