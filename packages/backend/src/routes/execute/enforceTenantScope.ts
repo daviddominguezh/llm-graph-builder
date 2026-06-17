@@ -61,11 +61,7 @@ export function createSupabaseTenantOrgLookup(
   supabase: SupabaseClient
 ): (id: string) => Promise<TenantScopeLookupResult | null> {
   return async (tenantId: string) => {
-    const { data, error } = await supabase
-      .from('tenants')
-      .select('org_id')
-      .eq('id', tenantId)
-      .maybeSingle();
+    const { data, error } = await supabase.from('tenants').select('org_id').eq('id', tenantId).maybeSingle();
     if (error !== null) return null;
     return isTenantOrgRow(data) ? { org_id: data.org_id } : null;
   };

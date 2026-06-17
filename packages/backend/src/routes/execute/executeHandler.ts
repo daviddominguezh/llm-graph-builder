@@ -5,6 +5,7 @@ import { failExecution } from '../../db/queries/executionQueries.js';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import type { ExecutionResult } from '../../notifications/completionNotifier.js';
 import { getCompletionConfig, getNotifier } from '../../notifications/notifierSingleton.js';
+import { createSupabaseTenantOrgLookup, enforceTenantScope } from './enforceTenantScope.js';
 import type { ExecutionAuthLocals, ExecutionAuthResponse } from './executeAuth.js';
 import type { ExecuteCoreCallbacks, ExecuteCoreOutput } from './executeCore.js';
 import { executeAgentCore } from './executeCore.js';
@@ -19,7 +20,6 @@ import {
 import { buildEmptyResponse, buildResponseByType } from './executeResponseBuilders.js';
 import type { AgentExecutionInput, AgentExecutionResponse } from './executeTypes.js';
 import { AgentExecutionInputSchema } from './executeTypes.js';
-import { createSupabaseTenantOrgLookup, enforceTenantScope } from './enforceTenantScope.js';
 import { createSupabaseWebConfigLookup, enforceWebChannelOrigin } from './originGuard.js';
 
 const HTTP_BAD_REQUEST = 400;

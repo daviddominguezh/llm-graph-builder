@@ -28,21 +28,38 @@ interface ParsedInput {
   expiresAt: string | null;
 }
 
+interface ScopeFields {
+  allAgents: boolean;
+  agentIds: string[];
+  allTenants: boolean;
+  tenantIds: string[];
+}
+
+function parseScopeFields(body: unknown): ScopeFields {
+  return {
+    allAgents: parseBooleanField(body, 'allAgents') ?? false,
+    agentIds: parseStringArrayField(body, 'agentIds') ?? [],
+    allTenants: parseBooleanField(body, 'allTenants') ?? true,
+    tenantIds: parseStringArrayField(body, 'tenantIds') ?? [],
+  };
+}
+
+function isScopeValid(scope: ScopeFields): boolean {
+  if (!scope.allAgents && scope.agentIds.length === EMPTY_LENGTH) return false;
+  if (!scope.allTenants && scope.tenantIds.length === EMPTY_LENGTH) return false;
+  return true;
+}
+
 function parseCreateInput(body: unknown): ParsedInput | null {
   const orgId = parseStringField(body, 'orgId');
   const name = parseStringField(body, 'name');
   if (orgId === undefined || name === undefined) return null;
 
-  const allAgents = parseBooleanField(body, 'allAgents') ?? false;
-  const agentIds = parseStringArrayField(body, 'agentIds') ?? [];
-  const allTenants = parseBooleanField(body, 'allTenants') ?? true;
-  const tenantIds = parseStringArrayField(body, 'tenantIds') ?? [];
+  const scope = parseScopeFields(body);
+  if (!isScopeValid(scope)) return null;
+
   const expiresAt = parseNullableStringField(body, 'expiresAt') ?? null;
-
-  if (!allAgents && agentIds.length === EMPTY_LENGTH) return null;
-  if (!allTenants && tenantIds.length === EMPTY_LENGTH) return null;
-
-  return { orgId, name, allAgents, agentIds, allTenants, tenantIds, expiresAt };
+  return { orgId, name, ...scope, expiresAt };
 }
 
 export async function handleCreateExecutionKey(req: Request, res: AuthenticatedResponse): Promise<void> {
