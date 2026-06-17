@@ -53,10 +53,7 @@ function isZodSchema(value: ToolInputSchema): value is z.ZodType {
   return '_def' in value;
 }
 
-function instrumentedExecute<O>(
-  t: OpenFlowTool<O>,
-  toolName: string
-): (args: unknown) => Promise<O> {
+function instrumentedExecute<O>(t: OpenFlowTool<O>, toolName: string): (args: unknown) => Promise<O> {
   return async (args: unknown): Promise<O> => {
     const start = Date.now();
     try {
@@ -71,7 +68,7 @@ function instrumentedExecute<O>(
   };
 }
 
-export function toAiSdkTool<O>(t: OpenFlowTool<O>, toolName: string = 'unknown'): Tool {
+export function toAiSdkTool<O>(t: OpenFlowTool<O>, toolName = 'unknown'): Tool {
   const wrapped = isZodSchema(t.inputSchema) ? zodSchema(t.inputSchema) : jsonSchema(t.inputSchema);
   return {
     description: t.description,
@@ -94,55 +91,59 @@ export interface KvPagedResult<T> {
   truncated?: true;
 }
 
+export type KvSearchTarget = 'keys' | 'values' | 'both';
+
+export interface KvSearchArgs {
+  tenantId: string;
+  on: KvSearchTarget;
+  query: string;
+  offset: number;
+  limit: number;
+}
+
+export interface KvRegexArgs {
+  tenantId: string;
+  on: KvSearchTarget;
+  pattern: string;
+  offset: number;
+  limit: number;
+}
+
 export interface KvStoreServices {
   storeId: string;
-  listKeys(tenantId: string, offset: number, limit: number): Promise<KvPagedResult<string>>;
-  getValues(tenantId: string, keys: string[]): Promise<Record<string, string | null>>;
-  searchSubstring(
-    tenantId: string,
-    on: 'keys' | 'values' | 'both',
-    query: string,
-    offset: number,
-    limit: number
-  ): Promise<KvPagedResult<{ key: string; value: string }>>;
-  searchRegex(
-    tenantId: string,
-    on: 'keys' | 'values' | 'both',
-    pattern: string,
-    offset: number,
-    limit: number
-  ): Promise<KvPagedResult<{ key: string; value: string }>>;
-  updateValue(tenantId: string, key: string, value: string): Promise<{ success: true }>;
+  listKeys: (tenantId: string, offset: number, limit: number) => Promise<KvPagedResult<string>>;
+  getValues: (tenantId: string, keys: string[]) => Promise<Record<string, string | null>>;
+  searchSubstring: (args: KvSearchArgs) => Promise<KvPagedResult<{ key: string; value: string }>>;
+  searchRegex: (args: KvRegexArgs) => Promise<KvPagedResult<{ key: string; value: string }>>;
+  updateValue: (tenantId: string, key: string, value: string) => Promise<{ success: true }>;
+}
+
+export interface RagSearchArgs {
+  tenantId: string;
+  query: string;
+  minSimilarity: number;
+  offset: number;
+  limit: number;
+}
+
+export interface RagRegexArgs {
+  tenantId: string;
+  pattern: string;
+  offset: number;
+  limit: number;
 }
 
 export interface RagStoreServices {
   storeId: string;
-  searchBm25(
+  searchBm25: (
     tenantId: string,
     query: string,
     offset: number,
     limit: number
-  ): Promise<KvPagedResult<string>>;
-  searchSemantic(
-    tenantId: string,
-    query: string,
-    minSimilarity: number,
-    offset: number,
-    limit: number
-  ): Promise<KvPagedResult<string>>;
-  searchHybrid(
-    tenantId: string,
-    query: string,
-    minSimilarity: number,
-    offset: number,
-    limit: number
-  ): Promise<KvPagedResult<string>>;
-  searchRegex(
-    tenantId: string,
-    pattern: string,
-    offset: number,
-    limit: number
-  ): Promise<KvPagedResult<string>>;
+  ) => Promise<KvPagedResult<string>>;
+  searchSemantic: (args: RagSearchArgs) => Promise<KvPagedResult<string>>;
+  searchHybrid: (args: RagSearchArgs) => Promise<KvPagedResult<string>>;
+  searchRegex: (args: RagRegexArgs) => Promise<KvPagedResult<string>>;
 }
 
 export function isKvStoreServices(v: unknown): v is KvStoreServices {
