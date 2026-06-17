@@ -44,24 +44,30 @@ interface OrgGuardArgs {
   body: Body;
 }
 
-async function validateKvStoreOrg(args: OrgGuardArgs): Promise<string | null> {
-  if (args.body.selectedKvStoreId === null) return null;
-  const kv = await getKvStoreById(args.supabase, args.body.selectedKvStoreId);
-  if (kv.result?.org_id !== args.agentOrgId) return 'store_org_mismatch';
-  return null;
+type StoreFetcher = (
+  supabase: AuthenticatedLocals['supabase'],
+  storeId: string
+) => Promise<{ result: { org_id: string } | null; error: string | null }>;
+
+type ValidationResult = { kind: 'ok' } | { kind: 'org_mismatch' } | { kind: 'db_error'; message: string };
+
+async function validateStoreOrg(
+  supabase: AuthenticatedLocals['supabase'],
+  storeId: string | null,
+  agentOrgId: string,
+  fetcher: StoreFetcher
+): Promise<ValidationResult> {
+  if (storeId === null) return { kind: 'ok' };
+  const fetched = await fetcher(supabase, storeId);
+  if (fetched.error !== null) return { kind: 'db_error', message: fetched.error };
+  if (fetched.result?.org_id !== agentOrgId) return { kind: 'org_mismatch' };
+  return { kind: 'ok' };
 }
 
-async function validateRagStoreOrg(args: OrgGuardArgs): Promise<string | null> {
-  if (args.body.selectedRagStoreId === null) return null;
-  const rag = await getRagStoreById(args.supabase, args.body.selectedRagStoreId);
-  if (rag.result?.org_id !== args.agentOrgId) return 'store_org_mismatch';
-  return null;
-}
-
-async function validateStoresMatchOrg(args: OrgGuardArgs): Promise<string | null> {
-  const kvErr = await validateKvStoreOrg(args);
-  if (kvErr !== null) return kvErr;
-  return await validateRagStoreOrg(args);
+async function validateStoresMatchOrg(args: OrgGuardArgs): Promise<ValidationResult> {
+  const kv = await validateStoreOrg(args.supabase, args.body.selectedKvStoreId, args.agentOrgId, getKvStoreById);
+  if (kv.kind !== 'ok') return kv;
+  return await validateStoreOrg(args.supabase, args.body.selectedRagStoreId, args.agentOrgId, getRagStoreById);
 }
 
 interface UpdateContext {
@@ -103,13 +109,17 @@ async function processRequest(agentId: string, body: Body, res: AuthenticatedRes
     res.status(HTTP_NOT_FOUND).json({ error: 'agent not found' });
     return;
   }
-  const orgErr = await validateStoresMatchOrg({
+  const validation = await validateStoresMatchOrg({
     supabase,
     agentOrgId: agentRes.result.org_id,
     body,
   });
-  if (orgErr !== null) {
-    res.status(HTTP_FORBIDDEN).json({ error: orgErr });
+  if (validation.kind === 'db_error') {
+    res.status(HTTP_INTERNAL_ERROR).json({ error: validation.message });
+    return;
+  }
+  if (validation.kind === 'org_mismatch') {
+    res.status(HTTP_FORBIDDEN).json({ error: 'store_org_mismatch' });
     return;
   }
   await performUpdate({ supabase, agentId, body, res });
