@@ -8,6 +8,7 @@ import type {
 import { ToolError } from '@daviddh/llm-graph-runner';
 import { type FilterMatcher, type FilterOn, filterByMatcher } from '@openflow/shared-validation';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import RE2 from 're2';
 
 import {
   getByKeys,
@@ -48,6 +49,19 @@ function assertValueSize(value: string): void {
 function assertRegexPatternLength(pattern: string): void {
   if (pattern.length > KV_REGEX_MAX_PATTERN_LENGTH) {
     throw new ToolError('invalid_pattern', `Pattern exceeds ${String(KV_REGEX_MAX_PATTERN_LENGTH)} chars`);
+  }
+}
+
+// Pre-compile with RE2 to reject malformed / catastrophic patterns BEFORE the
+// 10k-row bounded fetch. Mirrors `runRegexSearch.preValidatePattern` for RAG.
+function preValidateRegex(pattern: string): void {
+  assertRegexPatternLength(pattern);
+  try {
+    const compiled = new RE2(pattern);
+    // Reference compiled to avoid `no-new` while still exercising the compiler.
+    void compiled.source;
+  } catch (err) {
+    throw new ToolError('invalid_pattern', err instanceof Error ? err.message : 'invalid regex');
   }
 }
 
@@ -125,7 +139,7 @@ async function doSearchRegex(
   ctx: ServiceContext,
   args: KvRegexArgs
 ): Promise<KvPagedResult<{ key: string; value: string }>> {
-  assertRegexPatternLength(args.pattern);
+  preValidateRegex(args.pattern);
   const fetched = await getEntriesForRegex(ctx.supabase, ctx.storeId, args.tenantId, KV_REGEX_MAX_ROWS);
   if (fetched.error !== null) throw new Error(fetched.error);
   const sliced = applyRegexAndSlice(fetched.entries, args, fetched.truncated);
