@@ -733,6 +733,7 @@
     },
     "saveError": "Couldn't save tool selection. Please try again.",
     "limitExceeded": "You can select at most 100 tools. Remove some before saving.",
+    "storeOrgMismatch": "Selected store belongs to a different organization.",
     "updatedJustNow": "Updated just now",
     "updatedMinutesAgo": "Updated {minutes}m ago",
     "updatedHoursAgo": "Updated {hours}h ago"
