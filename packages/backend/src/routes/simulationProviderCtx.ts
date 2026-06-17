@@ -20,6 +20,7 @@ export type SimulationServicesResolver = (providerId: string) => unknown;
 
 export interface SimulationCtxArgs {
   orgId: string;
+  tenantId: string;
   agentId: string;
   isChildAgent?: boolean;
   conversationId?: string;
@@ -33,6 +34,7 @@ export function buildSimulationProviderCtx(args: SimulationCtxArgs): ProviderCtx
   const mcpServerEntries: Array<[string, McpServerConfig]> = (args.mcpServers ?? []).map((s) => [s.id, s]);
   return {
     orgId: args.orgId,
+    tenantId: args.tenantId,
     agentId: args.agentId,
     isChildAgent: args.isChildAgent ?? false,
     logger: consoleLogger,

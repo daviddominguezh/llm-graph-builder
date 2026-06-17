@@ -23,6 +23,7 @@ function makeLogger(): Logger {
 function makeBaseCtx(): ProviderCtx {
   return {
     orgId: 'o',
+    tenantId: 'test-tenant-id',
     agentId: 'a',
     isChildAgent: false,
     logger: makeLogger(),
@@ -35,6 +36,7 @@ function makeBaseCtx(): ProviderCtx {
 function makeCtxWithSvcButNoConv(): ProviderCtx {
   return {
     orgId: 'o',
+    tenantId: 'test-tenant-id',
     agentId: 'a',
     isChildAgent: false,
     logger: makeLogger(),

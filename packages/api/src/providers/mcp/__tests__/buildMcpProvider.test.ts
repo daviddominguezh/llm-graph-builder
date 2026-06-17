@@ -113,6 +113,7 @@ function makeLogger(): Logger {
 function makeCtx(): ProviderCtx {
   return {
     orgId: 'o',
+    tenantId: 'test-tenant-id',
     agentId: 'a',
     isChildAgent: false,
     logger: makeLogger(),

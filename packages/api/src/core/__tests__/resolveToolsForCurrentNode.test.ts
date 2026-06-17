@@ -10,6 +10,7 @@ import { resolveToolsForCurrentNode } from '../resolveToolsForCurrentNode.js';
 function makeCtx(): ProviderCtx {
   return {
     orgId: 'org-1',
+    tenantId: 'test-tenant-id',
     agentId: 'agent-1',
     isChildAgent: false,
     logger: {

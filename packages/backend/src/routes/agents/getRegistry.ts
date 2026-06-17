@@ -34,6 +34,7 @@ function extractMcpServers(graphData: Record<string, unknown> | null): McpServer
 function buildCatalogProviderCtx(orgId: string, agentId: string): ProviderCtx {
   return {
     orgId,
+    tenantId: '',
     agentId,
     isChildAgent: false,
     logger: consoleLogger,

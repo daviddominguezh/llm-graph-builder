@@ -156,6 +156,7 @@ function buildContextWithRegistry(
   const oauthTokens = new Map<string, OAuthTokenBundle>();
   const providerCtx = buildSimulationProviderCtx({
     orgId: body.orgId ?? '',
+    tenantId: body.tenantID,
     agentId: body.sessionID,
     isChildAgent: false,
     oauthTokens,

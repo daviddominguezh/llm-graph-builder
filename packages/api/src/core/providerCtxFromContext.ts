@@ -23,6 +23,7 @@ function resolveServices(context: Context): (providerId: string) => unknown {
 export function providerCtxFromContext(context: Context): ProviderCtx {
   return {
     orgId: context.orgId ?? '',
+    tenantId: context.tenantID,
     agentId: context.agentId ?? '',
     isChildAgent: context.isChildAgent ?? false,
     logger: resolveLogger(context),

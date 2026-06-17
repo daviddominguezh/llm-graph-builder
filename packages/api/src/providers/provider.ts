@@ -20,6 +20,7 @@ export interface OAuthTokenBundle {
  */
 export interface ProviderCtx {
   readonly orgId: string;
+  readonly tenantId: string;
   readonly agentId: string;
   readonly isChildAgent: boolean;
   readonly logger: Logger;

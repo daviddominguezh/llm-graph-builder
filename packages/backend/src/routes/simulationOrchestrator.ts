@@ -47,6 +47,7 @@ async function buildLoopConfig(config: OrchestratorConfig): Promise<AgentLoopCon
   const registry = buildSimulationRegistry({ mcpServers });
   const providerCtx = buildSimulationProviderCtx({
     orgId,
+    tenantId: '',
     agentId: '',
     isChildAgent: isChild,
     mcpServers,

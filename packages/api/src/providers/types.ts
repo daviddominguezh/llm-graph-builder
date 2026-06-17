@@ -3,6 +3,24 @@ import type { Tool } from 'ai';
 import { jsonSchema, zodSchema } from 'ai';
 import type { z } from 'zod';
 
+export type ToolErrorCode =
+  | 'no_store_bound'
+  | 'protected_key'
+  | 'key_too_long'
+  | 'value_too_large'
+  | 'invalid_pattern'
+  | 'pattern_timeout'
+  | 'tenant_not_allowed';
+
+export class ToolError extends Error {
+  public readonly code: ToolErrorCode;
+  constructor(code: ToolErrorCode, message: string) {
+    super(message);
+    this.code = code;
+    this.name = 'ToolError';
+  }
+}
+
 /**
  * Raw JSON Schema shape that MCP servers send (Draft-07 subset).
  * Aliased to JSONSchema7 from @ai-sdk/provider so it is directly compatible
