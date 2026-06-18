@@ -42,7 +42,7 @@ const searchDescriptor: ToolDescriptor = {
   inputSchema: {
     type: 'object',
     description: RAG_SEARCH_TOOL_DESC,
-    required: ['mode', 'offset', 'limit'],
+    required: ['mode'],
     properties: {
       mode: { type: 'string', enum: ['bm25', 'semantic', 'hybrid', 'regex'], description: RAG_MODE_DESC },
       query: { type: 'string', minLength: LIMIT_MIN, maxLength: QUERY_MAX, description: RAG_QUERY_DESC },

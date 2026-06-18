@@ -61,7 +61,7 @@ const listKeysDescriptor: ToolDescriptor = {
   inputSchema: {
     type: 'object',
     description: LIST_KEYS_TOOL_DESC,
-    required: ['offset', 'limit'],
+    required: [],
     properties: { offset: offsetSchema, limit: listKeysLimitSchema },
   },
 };
@@ -90,7 +90,7 @@ const searchDescriptor: ToolDescriptor = {
   inputSchema: {
     type: 'object',
     description: SEARCH_TOOL_DESC,
-    required: ['mode', 'on', 'offset', 'limit'],
+    required: ['mode'],
     properties: {
       mode: { type: 'string', enum: ['substring', 'regex'], description: SEARCH_MODE_DESC },
       on: { type: 'string', enum: ['keys', 'values', 'both'], default: 'both', description: SEARCH_ON_DESC },
