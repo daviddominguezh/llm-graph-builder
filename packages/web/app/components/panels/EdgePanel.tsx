@@ -583,6 +583,7 @@ export function EdgePanel({
                     <div className="space-y-1">
                       <Label className="text-xs">Value</Label>
                       {(existingType ?? newPreconditionType) === 'tool_call' ? (
+                        // TODO: pass bindings + stores from useAgentToolStoresState
                         <ToolCombobox
                           value={newPreconditionTool}
                           onValueChange={setNewPreconditionTool}
@@ -727,6 +728,7 @@ export function EdgePanel({
                   <div className="space-y-1">
                     <Label className="text-xs">Value</Label>
                     {newPreconditionType === 'tool_call' ? (
+                      // TODO: pass bindings + stores from useAgentToolStoresState
                       <ToolCombobox
                         value={multiEdgeInputs[e.id]?.tool ?? null}
                         onValueChange={(tool) => updateMultiEdgeTool(e.id, tool)}
@@ -806,6 +808,7 @@ export function EdgePanel({
             <div className="space-y-2">
               <Label htmlFor="edit-value">Value</Label>
               {editingPreconditionType === 'tool_call' ? (
+                // TODO: pass bindings + stores from useAgentToolStoresState
                 <ToolCombobox
                   value={editingPreconditionTool}
                   onValueChange={setEditingPreconditionTool}

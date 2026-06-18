@@ -53,6 +53,7 @@ export function ToolNodeDialog({
         <SingleEdgePreview sourceLabel={sourceNodeLabel} color="orange" />
         <div className="space-y-2 px-1">
           <Label className="text-xs">{t('toolToCall')}</Label>
+          {/* TODO: pass bindings + stores from useAgentToolStoresState */}
           <ToolCombobox
             value={tool}
             onValueChange={setTool}

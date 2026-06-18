@@ -214,6 +214,7 @@ function ConnectionValueField({
     return (
       <div className="space-y-2">
         <Label className="text-xs">{t('toolToCall')}</Label>
+        {/* TODO: pass bindings + stores from useAgentToolStoresState */}
         <ToolCombobox
           value={tool}
           onValueChange={onChangeTool}
