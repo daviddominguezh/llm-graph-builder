@@ -171,7 +171,7 @@ function GroupHeader({
   rightSlot,
 }: GroupHeaderProps): React.JSX.Element {
   return (
-    <div className="sticky top-0 z-10 px-2 pt-0 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide bg-[rgb(255_255_255)] dark:bg-[rgb(18_18_18)]">
+    <div className="sticky top-0 z-10 px-2 pt-0 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
       <div className="pt-2 flex items-center gap-1.5">
         {leadingIndicator}
         <span>{displayGroupName}</span>
