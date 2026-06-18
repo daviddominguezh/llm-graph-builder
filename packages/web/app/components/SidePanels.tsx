@@ -228,6 +228,7 @@ function AgentToolsSlot({ config, sidePanelProps: p, onPublishServer }: AgentToo
       onClose={() => {}}
       agent={agentProp}
       stores={buildStoresConfig(p.toolStores)}
+      agentId={config.agentId}
     />
   );
 }
@@ -275,6 +276,7 @@ function ToolsPanelSlot({ sidePanelProps: p, onPublishServer }: ToolsPanelSlotPr
       open={p.toolsOpen}
       onClose={() => {}}
       stores={buildStoresConfig(p.toolStores)}
+      agentId={p.agentId}
     />
   );
 }

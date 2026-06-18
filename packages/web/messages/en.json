@@ -1107,7 +1107,10 @@
     "collapse": "Collapse",
     "copied": "Copied",
     "status": "Status",
-    "duration": "Duration"
+    "duration": "Duration",
+    "noStoreBoundError": "Bind a store for this provider first.",
+    "unsupportedProviderError": "Testing this provider isn't supported yet.",
+    "transientError": "Couldn't run the tool — try again."
   },
   "theme": {
     "appearance": "Appearance",

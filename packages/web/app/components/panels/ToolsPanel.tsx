@@ -2,17 +2,18 @@
 
 import { GlassPanel } from '@/components/ui/glass-panel';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { McpServerStatus } from '../../hooks/useMcpServers';
 import type { ToolCallOptions } from '../../lib/api';
+import { callBuiltinTool, callMcpTool } from '../../lib/api';
 import type { McpLibraryRow } from '../../lib/mcpLibraryTypes';
 import type { OrgEnvVariableRow } from '../../lib/orgEnvVariables';
 import type { RegistryTool, ToolGroup } from '../../lib/toolRegistry';
-import type { McpServerConfig } from '../../schemas/graph.schema';
+import type { McpServerConfig, McpTransport } from '../../schemas/graph.schema';
 import { useToolRegistry } from '../ToolRegistryProvider';
 import { McpServersSection } from './McpServersSection';
-import { ToolTestModal } from './ToolTestModal';
+import { ToolTestModal, type RunTool } from './ToolTestModal';
 import { type AgentModeProps } from './ToolsPanelAgentMode';
 import {
   SearchRow,
@@ -43,6 +44,7 @@ interface ToolsPanelProps {
   onClose: () => void;
   agent?: AgentModeProps;
   stores?: AgentToolStoresPanelConfig;
+  agentId: string;
 }
 
 function filterGroups(groups: ToolGroup[], query: string): ToolGroup[] {
@@ -128,14 +130,59 @@ function buildCallOptions(server: McpServerConfig | undefined, orgId: string): T
   };
 }
 
-function useToolTest(servers: McpServerConfig[], orgId: string) {
+interface BuiltinToolMatch {
+  providerId: 'kv_store' | 'rag';
+}
+
+function findBuiltinProvider(tool: RegistryTool, groups: ToolGroup[]): BuiltinToolMatch | null {
+  for (const group of groups) {
+    const containsTool = group.tools.some((t) => t.name === tool.name && t.sourceId === tool.sourceId);
+    if (!containsTool) continue;
+    if (group.kind !== 'builtin') return null;
+    if (group.providerId === 'kv_store' || group.providerId === 'rag') {
+      return { providerId: group.providerId };
+    }
+    return null;
+  }
+  return null;
+}
+
+function buildMcpRunner(transport: McpTransport | null, options: ToolCallOptions | undefined): RunTool | null {
+  if (transport === null) return null;
+  return async (toolName, args, signal) => await callMcpTool(transport, toolName, args, options, signal);
+}
+
+function buildBuiltinRunner(providerId: 'kv_store' | 'rag', agentId: string): RunTool {
+  return async (toolName, args, signal) =>
+    await callBuiltinTool({ providerId, toolName, agentId, args }, signal);
+}
+
+interface UseToolTestArgs {
+  servers: McpServerConfig[];
+  orgId: string;
+  groups: ToolGroup[];
+  agentId: string;
+}
+
+function useToolTest(args: UseToolTestArgs) {
+  const { servers, orgId, groups, agentId } = args;
   const [testingTool, setTestingTool] = useState<RegistryTool | null>(null);
-  const server = testingTool !== null ? servers.find((s) => s.id === testingTool.sourceId) : undefined;
-  const transport = server?.transport ?? null;
-  const callOptions = buildCallOptions(server, orgId);
+  const runTool = useMemo<RunTool | null>(
+    () => buildRunner(testingTool, { servers, orgId, groups, agentId }),
+    [testingTool, servers, orgId, groups, agentId]
+  );
   const openTest = useCallback((tool: RegistryTool) => setTestingTool(tool), []);
   const closeTest = useCallback(() => setTestingTool(null), []);
-  return { testingTool, transport, callOptions, openTest, closeTest };
+  return { testingTool, runTool, openTest, closeTest };
+}
+
+function buildRunner(tool: RegistryTool | null, args: UseToolTestArgs): RunTool | null {
+  if (tool === null) return null;
+  const builtin = findBuiltinProvider(tool, args.groups);
+  if (builtin !== null) return buildBuiltinRunner(builtin.providerId, args.agentId);
+  const server = args.servers.find((s) => s.id === tool.sourceId);
+  const callOptions = buildCallOptions(server, args.orgId);
+  return buildMcpRunner(server?.transport ?? null, callOptions);
 }
 
 interface ToolsTabPanelProps {
@@ -189,13 +236,13 @@ function ToolsTabPanel(props: ToolsTabPanelProps): React.JSX.Element {
   );
 }
 
-export function ToolsPanel({ mcp, open, onClose, agent, stores }: ToolsPanelProps) {
+export function ToolsPanel({ mcp, open, onClose, agent, stores, agentId }: ToolsPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const t = useTranslations('toolbar');
   const panelState = useToolsPanelState(open);
-  const tt = useToolTest(mcp.servers, mcp.orgId);
   const { groups: allGroups, state: registryState } = useToolRegistry();
+  const tt = useToolTest({ servers: mcp.servers, orgId: mcp.orgId, groups: allGroups, agentId });
   const filteredGroups = filterGroups(allGroups, panelState.query);
   const totalCount = countTools(filteredGroups);
 
@@ -244,8 +291,7 @@ export function ToolsPanel({ mcp, open, onClose, agent, stores }: ToolsPanelProp
       </GlassPanel>
       <ToolTestModal
         tool={tt.testingTool}
-        transport={tt.transport}
-        callOptions={tt.callOptions}
+        runTool={tt.runTool}
         onClose={tt.closeTest}
       />
     </>

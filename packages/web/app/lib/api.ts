@@ -121,6 +121,47 @@ export async function callMcpTool(
   return ToolCallResponseSchema.parse(raw) as ToolCallResponse;
 }
 
+const BuiltinResponseSchema = z.union([
+  z.object({ ok: z.literal(true), result: z.unknown() }),
+  z.object({
+    ok: z.literal(false),
+    error: z.object({ code: z.string(), message: z.string() }),
+  }),
+]);
+
+export interface BuiltinToolCallParams {
+  providerId: string;
+  toolName: string;
+  agentId: string;
+  args: Record<string, unknown>;
+  tenantId?: string;
+}
+
+function mapBuiltinResponse(raw: unknown): ToolCallResponse {
+  const parsed = BuiltinResponseSchema.parse(raw);
+  if (parsed.ok) return { success: true, result: parsed.result };
+  return { success: false, error: { message: parsed.error.message, code: parsed.error.code } };
+}
+
+export async function callBuiltinTool(
+  params: BuiltinToolCallParams,
+  signal?: AbortSignal
+): Promise<ToolCallResponse> {
+  const url = `/api/tools/test/${encodeURIComponent(params.providerId)}/${encodeURIComponent(params.toolName)}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      agentId: params.agentId,
+      tenantId: params.tenantId,
+      args: params.args,
+    }),
+    signal,
+  });
+  const raw = await fetchJsonUnknown(res);
+  return mapBuiltinResponse(raw);
+}
+
 export interface SimulateRequestBody {
   graph: Record<string, unknown>;
   messages: unknown[];
