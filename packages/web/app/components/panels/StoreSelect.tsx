@@ -29,6 +29,19 @@ function statusClass(saveState: StoreSelectSaveState): string {
   return '';
 }
 
+function resolveLabel(
+  value: string,
+  stores: StoreSelectStore[],
+  placeholder: string,
+  noneLabel: string
+): string {
+  if (value === NONE_VALUE) return placeholder;
+  const match = stores.find((s) => s.id === value);
+  if (match !== undefined) return match.name;
+  // Bound id no longer in the list (e.g. store deleted) — show None rather than the raw id.
+  return noneLabel;
+}
+
 export function StoreSelect(props: StoreSelectProps): React.JSX.Element {
   const t = useTranslations('agentTools');
   const value = props.selectedId ?? NONE_VALUE;
@@ -38,10 +51,11 @@ export function StoreSelect(props: StoreSelectProps): React.JSX.Element {
   };
   const placeholder = props.placeholder ?? t('selectStore');
   const noneLabel = t('noneOption');
+  const label = resolveLabel(value, props.stores, placeholder, noneLabel);
   return (
     <Select value={value} onValueChange={handleChange} disabled={props.disabled}>
       <SelectTrigger size="sm" className={`min-w-[10rem] ${statusClass(props.saveState)}`}>
-        <SelectValue placeholder={placeholder} />
+        <SelectValue>{label}</SelectValue>
       </SelectTrigger>
       <SelectContent alignItemWithTrigger={false} side="bottom">
         <SelectItem value={NONE_VALUE}>{noneLabel}</SelectItem>
