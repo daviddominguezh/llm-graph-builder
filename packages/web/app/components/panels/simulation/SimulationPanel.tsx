@@ -209,7 +209,7 @@ function SimulationBody({ props, bottomRef }: SimulationBodyProps) {
   const { visitedNodes, terminated, loading, currentNode, totalTokens } = props;
   const { modelId, onModelIdChange, onSendMessage, onStop } = props;
   return (
-    <GlassPanel variant="background" className="w-full h-full rounded-e-xl border-l border-l-[0.5px]">
+    <GlassPanel variant="background" className={`w-full h-full ${props.embedded ? 'rounded-xl' : 'rounded-e-xl border-l-[0.5px]'}`}>
       <div className="relative flex h-full w-full flex-col">
         <SimulationHeader
           visitedNodes={visitedNodes}
