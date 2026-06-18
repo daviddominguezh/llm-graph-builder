@@ -16,7 +16,8 @@ import {
   type AgentToolStoresPanelConfig,
   buildDisabledTooltip,
   computeDisabledReason,
-  renderGroupRightSlot,
+  renderGroupLeadingIndicator,
+  renderStoreSelect,
   storeKindForGroup,
 } from './toolStoreHelpers';
 
@@ -159,13 +160,20 @@ interface ToolsListGroupProps {
 interface GroupHeaderProps {
   displayGroupName: string;
   mcpFetchedAt: number | undefined;
+  leadingIndicator: React.ReactNode | undefined;
   rightSlot: React.ReactNode | undefined;
 }
 
-function GroupHeader({ displayGroupName, mcpFetchedAt, rightSlot }: GroupHeaderProps): React.JSX.Element {
+function GroupHeader({
+  displayGroupName,
+  mcpFetchedAt,
+  leadingIndicator,
+  rightSlot,
+}: GroupHeaderProps): React.JSX.Element {
   return (
     <div className="sticky top-0 z-10 px-2 pt-0 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide bg-[rgb(255_255_255)] dark:bg-[rgb(18_18_18)]">
-      <div className="pt-2 flex items-center gap-2">
+      <div className="pt-2 flex items-center gap-1.5">
+        {leadingIndicator}
         <span>{displayGroupName}</span>
         {mcpFetchedAt !== undefined && <CatalogFreshnessIndicator fetchedAt={mcpFetchedAt} />}
         {rightSlot !== undefined && <div className="ml-auto flex items-center shrink-0">{rightSlot}</div>}
@@ -174,10 +182,13 @@ function GroupHeader({ displayGroupName, mcpFetchedAt, rightSlot }: GroupHeaderP
   );
 }
 
-function useGroupStoreState(
-  group: ToolGroup,
-  stores: AgentToolStoresPanelConfig | undefined
-): { rightSlot: React.ReactNode | undefined; disabledReason: ToolRowDisabledReason } {
+interface GroupStoreState {
+  rightSlot: React.ReactNode | undefined;
+  leadingIndicator: React.ReactNode | undefined;
+  disabledReason: ToolRowDisabledReason;
+}
+
+function useGroupStoreState(group: ToolGroup, stores: AgentToolStoresPanelConfig | undefined): GroupStoreState {
   const tr = useTranslations('agentTools');
   const storeKind = storeKindForGroup(group);
   const storePlaceholder =
@@ -186,9 +197,10 @@ function useGroupStoreState(
   const disabledTooltip = buildDisabledTooltip(disabledReason, tr);
   const rightSlot =
     storeKind !== null && stores !== undefined
-      ? renderGroupRightSlot(storeKind, stores, storePlaceholder, disabledTooltip)
+      ? renderStoreSelect(storeKind, stores, storePlaceholder)
       : undefined;
-  return { rightSlot, disabledReason };
+  const leadingIndicator = renderGroupLeadingIndicator(disabledTooltip);
+  return { rightSlot, leadingIndicator, disabledReason };
 }
 
 function ToolsListGroup({
@@ -205,12 +217,13 @@ function ToolsListGroup({
   const hasError = providerId !== null && failedProviders.includes(providerId);
   const mcpFetchedAt = group.kind === 'mcp' ? group.fetchedAt : undefined;
   const displayGroupName = catalog.groupName(group.providerId, group.groupName, group.kind);
-  const { rightSlot, disabledReason } = useGroupStoreState(group, stores);
+  const { rightSlot, leadingIndicator, disabledReason } = useGroupStoreState(group, stores);
   return (
     <div>
       <GroupHeader
         displayGroupName={displayGroupName}
         mcpFetchedAt={mcpFetchedAt}
+        leadingIndicator={leadingIndicator}
         rightSlot={rightSlot}
       />
       {hasError && <ProviderErrorRow mode="workflow" />}

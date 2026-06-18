@@ -16,7 +16,8 @@ import {
   type AgentToolStoresPanelConfig,
   buildDisabledTooltip,
   computeDisabledReason,
-  renderGroupRightSlot,
+  renderGroupLeadingIndicator,
+  renderStoreSelect,
   storeKindForGroup,
 } from './toolStoreHelpers';
 
@@ -174,8 +175,9 @@ function AgentModeGroup(props: AgentModeGroupProps): React.JSX.Element {
   const disabledTooltip = buildDisabledTooltip(disabledReason, tr);
   const rightSlot =
     storeKind !== null && agent.stores !== undefined
-      ? renderGroupRightSlot(storeKind, agent.stores, storePlaceholder, disabledTooltip)
+      ? renderStoreSelect(storeKind, agent.stores, storePlaceholder)
       : undefined;
+  const leadingIndicator = renderGroupLeadingIndicator(disabledTooltip);
   return (
     <div>
       <ProviderHeader
@@ -189,6 +191,7 @@ function AgentModeGroup(props: AgentModeGroupProps): React.JSX.Element {
         searchActive={searchActive}
         fetchedAt={mcpFetchedAt}
         onToggle={() => agent.onChange(applyHeaderToggle(agent.selectedTools, groupTools, headerState))}
+        leadingIndicator={leadingIndicator}
         rightSlot={rightSlot}
       />
       {hasError && <ProviderErrorRow agentId={agent.agentId} mode="agent" />}

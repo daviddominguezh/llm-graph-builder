@@ -1,6 +1,7 @@
 'use client';
 
 import type { ToolGroup } from '@/app/lib/toolRegistryTypes';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Info } from 'lucide-react';
 import React from 'react';
 
@@ -57,22 +58,16 @@ export function renderStoreSelect(
 }
 
 /**
- * Renders the kv/rag group header's right slot. When the store is unbound, the
- * orange info icon + tooltip sit beside the dropdown so the "why are these
- * tools disabled?" affordance lives at the group level (not on each tool row).
+ * Renders the orange "select a store first" indicator when the kv/rag binding
+ * is empty. Sits in the group header's leadingIndicator slot — one per group,
+ * not one per tool — so the "why are these tools disabled?" affordance lives
+ * where the user has to act.
  */
-export function renderGroupRightSlot(
-  storeKind: StoreKind,
-  stores: AgentToolStoresPanelConfig,
-  placeholder: string,
+export function renderGroupLeadingIndicator(
   disabledTooltip: string | undefined
 ): React.ReactNode {
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      {disabledTooltip !== undefined && <DisabledIndicator tooltip={disabledTooltip} />}
-      {renderStoreSelect(storeKind, stores, placeholder)}
-    </span>
-  );
+  if (disabledTooltip === undefined) return undefined;
+  return <DisabledIndicator tooltip={disabledTooltip} />;
 }
 
 export function computeDisabledReason(
@@ -92,9 +87,16 @@ interface DisabledIndicatorProps {
 
 export function DisabledIndicator({ tooltip }: DisabledIndicatorProps): React.JSX.Element {
   return (
-    <span title={tooltip} aria-label={tooltip} className="inline-flex items-center">
-      <Info className="size-3.5 text-orange-500 shrink-0" aria-hidden="true" />
-    </span>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <span aria-label={tooltip} className="inline-flex items-center">
+            <Info className="size-3.5 text-orange-500 shrink-0" aria-hidden="true" />
+          </span>
+        }
+      />
+      <TooltipContent side="top">{tooltip}</TooltipContent>
+    </Tooltip>
   );
 }
 
