@@ -11,21 +11,15 @@ import { ProviderErrorRow, groupProviderId } from './ProviderErrorRow';
 import { ProviderHeader } from './ProviderHeader';
 import type { SaveState } from './SaveStateIndicator';
 import { StaleEntriesGroup } from './StaleEntriesGroup';
-import { StoreSelect, type StoreSelectStore } from './StoreSelect';
 import { ToolRow as SelectableToolRow, type ToolRowDisabledReason } from './ToolRow';
+import {
+  type AgentToolStoresPanelConfig,
+  computeDisabledReason,
+  renderStoreSelect,
+  storeKindForGroup,
+} from './toolStoreHelpers';
 
-export interface AgentToolStoreBindingsView {
-  selectedKvStoreId: string | null;
-  selectedRagStoreId: string | null;
-}
-
-export interface AgentToolStoresPanelConfig {
-  kvStores: StoreSelectStore[];
-  ragStores: StoreSelectStore[];
-  bindings: AgentToolStoreBindingsView;
-  saveState: SaveState;
-  onChangeBindings: (next: AgentToolStoreBindingsView) => void;
-}
+export type { AgentToolStoreBindingsView, AgentToolStoresPanelConfig } from './toolStoreHelpers';
 
 export interface AgentModeProps {
   agentId: string;
@@ -115,51 +109,6 @@ function applyHeaderToggle(
     else if (!allChecked && !present) next = toggleTool(next, t);
   }
   return next;
-}
-
-type StoreKind = 'kv' | 'rag';
-
-function storeKindForGroup(group: ToolGroup): StoreKind | null {
-  if (group.kind !== 'builtin') return null;
-  if (group.providerId === 'kv_store') return 'kv';
-  if (group.providerId === 'rag') return 'rag';
-  return null;
-}
-
-function renderStoreSelect(
-  storeKind: StoreKind,
-  stores: AgentToolStoresPanelConfig,
-  placeholder: string
-): React.ReactNode {
-  const list = storeKind === 'kv' ? stores.kvStores : stores.ragStores;
-  const selectedId =
-    storeKind === 'kv' ? stores.bindings.selectedKvStoreId : stores.bindings.selectedRagStoreId;
-  const handleChange = (next: string | null): void => {
-    if (storeKind === 'kv') {
-      stores.onChangeBindings({ ...stores.bindings, selectedKvStoreId: next });
-    } else {
-      stores.onChangeBindings({ ...stores.bindings, selectedRagStoreId: next });
-    }
-  };
-  return (
-    <StoreSelect
-      stores={list}
-      selectedId={selectedId}
-      saveState={stores.saveState}
-      onChange={handleChange}
-      placeholder={placeholder}
-    />
-  );
-}
-
-function computeDisabledReason(
-  storeKind: StoreKind | null,
-  stores: AgentToolStoresPanelConfig | undefined
-): ToolRowDisabledReason {
-  if (storeKind === null || stores === undefined) return null;
-  const id = storeKind === 'kv' ? stores.bindings.selectedKvStoreId : stores.bindings.selectedRagStoreId;
-  if (id !== null) return null;
-  return { kind: 'no_store_bound', storeKind };
 }
 
 interface GroupToolListProps {

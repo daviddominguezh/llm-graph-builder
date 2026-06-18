@@ -3,12 +3,12 @@
 import { type ProviderKind, useToolCatalog } from '@/app/lib/toolCatalog';
 import type { RegistryTool } from '@/app/lib/toolRegistryTypes';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Info } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRef } from 'react';
 
 import { FloatingSchema, type ToolSchema } from './ToolSchemaPopover';
 import { PlayButton } from './ToolsPanelViewMode';
+import { DisabledIndicator, buildDisabledTooltip } from './toolStoreHelpers';
 
 export type ToolRowDisabledReason = { kind: 'no_store_bound'; storeKind: 'kv' | 'rag' } | null;
 
@@ -23,17 +23,6 @@ interface ToolRowProps {
   onCollapse: () => void;
   onTest?: (tool: RegistryTool) => void;
   disabledReason?: ToolRowDisabledReason;
-}
-
-type TooltipTranslator = (key: 'storeRequiredTooltip', values: { kind: string }) => string;
-
-function buildDisabledTooltip(
-  reason: ToolRowDisabledReason,
-  t: TooltipTranslator
-): string | undefined {
-  if (reason === null || reason === undefined) return undefined;
-  const label = reason.storeKind === 'kv' ? 'KV' : 'RAG';
-  return t('storeRequiredTooltip', { kind: label });
 }
 
 interface ToolRowHeaderProps {
@@ -75,15 +64,7 @@ function ToolRowHeader(props: ToolRowHeaderProps): React.JSX.Element {
       >
         <span className="font-medium flex items-center gap-1">
           {tool.name}
-          {disabledTooltip !== undefined && (
-            <span
-              title={disabledTooltip}
-              aria-label={disabledTooltip}
-              className="inline-flex items-center"
-            >
-              <Info className="size-3.5 text-orange-500 shrink-0" aria-hidden="true" />
-            </span>
-          )}
+          {disabledTooltip !== undefined && <DisabledIndicator tooltip={disabledTooltip} />}
         </span>
         <span className="truncate text-[10px] text-muted-foreground">
           {displayDescription ?? tool.group}
