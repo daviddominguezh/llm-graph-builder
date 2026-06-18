@@ -29,6 +29,7 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useRef } from 'react';
 
+import type { ToolStoresState } from '../../hooks/useToolStoresState';
 import type { Precondition, PreconditionType, ToolFieldValue } from '../../schemas/graph.schema';
 import type { RFEdgeData, RFNodeData } from '../../utils/graphTransformers';
 import type { PushOperation } from '../../utils/operationBuilders';
@@ -56,6 +57,7 @@ interface EdgePanelProps {
   onSelectNode?: (nodeId: string) => void;
   availableContextPreconditions?: string[];
   pushOperation: PushOperation;
+  toolStores: ToolStoresState;
 }
 
 export function EdgePanel({
@@ -64,6 +66,7 @@ export function EdgePanel({
   onSelectNode,
   availableContextPreconditions = [],
   pushOperation,
+  toolStores,
 }: EdgePanelProps) {
   const edges = useEdges<Edge<RFEdgeData>>();
   const nodes = useNodes<Node<RFNodeData>>();
@@ -583,11 +586,14 @@ export function EdgePanel({
                     <div className="space-y-1">
                       <Label className="text-xs">Value</Label>
                       {(existingType ?? newPreconditionType) === 'tool_call' ? (
-                        // TODO: pass bindings + stores from useAgentToolStoresState
                         <ToolCombobox
                           value={newPreconditionTool}
                           onValueChange={setNewPreconditionTool}
                           placeholder="Select tool..."
+                          bindings={toolStores.bindings}
+                          kvStores={toolStores.kvStores}
+                          ragStores={toolStores.ragStores}
+                          onChangeBindings={toolStores.onChangeBindings}
                         />
                       ) : (
                         <Textarea
@@ -728,11 +734,14 @@ export function EdgePanel({
                   <div className="space-y-1">
                     <Label className="text-xs">Value</Label>
                     {newPreconditionType === 'tool_call' ? (
-                      // TODO: pass bindings + stores from useAgentToolStoresState
                       <ToolCombobox
                         value={multiEdgeInputs[e.id]?.tool ?? null}
                         onValueChange={(tool) => updateMultiEdgeTool(e.id, tool)}
                         placeholder="Select tool..."
+                        bindings={toolStores.bindings}
+                        kvStores={toolStores.kvStores}
+                        ragStores={toolStores.ragStores}
+                        onChangeBindings={toolStores.onChangeBindings}
                       />
                     ) : (
                       <Input
@@ -808,11 +817,14 @@ export function EdgePanel({
             <div className="space-y-2">
               <Label htmlFor="edit-value">Value</Label>
               {editingPreconditionType === 'tool_call' ? (
-                // TODO: pass bindings + stores from useAgentToolStoresState
                 <ToolCombobox
                   value={editingPreconditionTool}
                   onValueChange={setEditingPreconditionTool}
                   placeholder="Select tool..."
+                  bindings={toolStores.bindings}
+                  kvStores={toolStores.kvStores}
+                  ragStores={toolStores.ragStores}
+                  onChangeBindings={toolStores.onChangeBindings}
                 />
               ) : (
                 <Textarea

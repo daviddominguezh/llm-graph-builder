@@ -40,6 +40,7 @@ import {
   useCreateToolNode,
   useCreateUserNode,
 } from '../hooks/useStructuredNodeCreation';
+import { useToolStoresState, type ToolStoresState } from '../hooks/useToolStoresState';
 import { useVersions } from '../hooks/useVersions';
 import { useZoomView } from '../hooks/useZoomView';
 import type { DiscoveredTool } from '../lib/api';
@@ -530,9 +531,22 @@ function buildEmbeddedSimulationPanel(simulation: ReturnType<typeof useGraphBuil
   );
 }
 
+function useLoadedEditorToolStores(props: LoadedEditorProps): ToolStoresState {
+  return useToolStoresState({
+    agentId: props.agentId ?? '',
+    orgId: props.orgId ?? '',
+    initialBindings: {
+      selectedKvStoreId: props.agentSelectedKvStoreId ?? null,
+      selectedRagStoreId: props.agentSelectedRagStoreId ?? null,
+    },
+    initialBindingsUpdatedAt: props.agentUpdatedAt ?? '',
+  });
+}
+
 function LoadedEditor(props: LoadedEditorProps) {
   const h = useGraphBuilderHooks(props);
   const versionsHook = useVersions(props.agentId, props.initialVersion ?? DEFAULT_VERSION);
+  const toolStores = useLoadedEditorToolStores(props);
   const router = useRouter();
 
   const handleContextValue = {
@@ -725,6 +739,7 @@ function LoadedEditor(props: LoadedEditorProps) {
                 }}
                 onCloseLibrary={() => h.setLibraryOpen(false)}
                 pushOperation={h.pushOperation}
+                toolStores={toolStores}
                 agentToolsConfig={
                   props.agentId !== undefined &&
                   props.agentSelectedTools !== undefined &&
@@ -766,6 +781,7 @@ function LoadedEditor(props: LoadedEditorProps) {
                   onCreateIfElse={h.createIfElse}
                   onCreateLoop={h.createLoop}
                   onClose={h.graphActions.handleConnectionMenuClose}
+                  toolStores={toolStores}
                 />
               )}
             </div>

@@ -8,6 +8,7 @@ import type { SelectedTool } from '@daviddh/llm-graph-runner';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import type { ToolStoresState } from '../../../hooks/useToolStoresState';
 import type { ExistingEdgeType } from '../../../utils/edgeTypeUtils';
 import { ToolCombobox } from '../ToolCombobox';
 import { LoopPreview } from './MiniGraphPreview';
@@ -26,6 +27,7 @@ interface LoopDialogProps {
   sourceNodeLabel: string;
   sourceEdgeType: ExistingEdgeType;
   onCreate: (connection: LoopConnection, continueValue: string, exitValue: string) => void;
+  toolStores: ToolStoresState;
 }
 
 const CONNECTION_COLOR_MAP = {
@@ -74,6 +76,7 @@ export function LoopDialog({
   sourceNodeLabel,
   sourceEdgeType,
   onCreate,
+  toolStores,
 }: LoopDialogProps) {
   const t = useTranslations('connectionMenu');
 
@@ -159,6 +162,7 @@ export function LoopDialog({
             tool={connectionTool}
             onChangeValue={setConnectionValue}
             onChangeTool={setConnectionTool}
+            toolStores={toolStores}
           />
           <div className="space-y-2">
             <Label className="text-xs">{t('continueLoop')}</Label>
@@ -201,12 +205,14 @@ function ConnectionValueField({
   tool,
   onChangeValue,
   onChangeTool,
+  toolStores,
 }: {
   connectionType: LoopConnectionType;
   value: string;
   tool: SelectedTool | null;
   onChangeValue: (v: string) => void;
   onChangeTool: (t: SelectedTool | null) => void;
+  toolStores: ToolStoresState;
 }) {
   const t = useTranslations('connectionMenu');
   if (connectionType === 'none') return null;
@@ -214,11 +220,14 @@ function ConnectionValueField({
     return (
       <div className="space-y-2">
         <Label className="text-xs">{t('toolToCall')}</Label>
-        {/* TODO: pass bindings + stores from useAgentToolStoresState */}
         <ToolCombobox
           value={tool}
           onValueChange={onChangeTool}
           placeholder={t('selectTool')}
+          bindings={toolStores.bindings}
+          kvStores={toolStores.kvStores}
+          ragStores={toolStores.ragStores}
+          onChangeBindings={toolStores.onChangeBindings}
         />
       </div>
     );

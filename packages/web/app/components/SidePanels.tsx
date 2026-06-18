@@ -3,12 +3,9 @@
 import { GlassPanel } from '@/components/ui/glass-panel';
 import type { SelectedTool } from '@daviddh/llm-graph-runner';
 import type { Edge } from '@xyflow/react';
-import { useEffect, useState } from 'react';
 
-import { getKvStoresByOrgAction } from '../actions/kvStores';
-import { getRagStoresByOrgAction } from '../actions/ragStores';
-import { useAgentToolStoresState } from '../hooks/useAgentToolStoresState';
 import { useAgentToolsState } from '../hooks/useAgentToolsState';
+import type { ToolStoresState } from '../hooks/useToolStoresState';
 import type { UseGraphSelectionReturn } from '../hooks/useGraphSelection';
 import type { McpLibraryState } from '../hooks/useMcpLibrary';
 import type { McpServersState } from '../hooks/useMcpServers';
@@ -91,6 +88,7 @@ export interface SidePanelsProps {
   onCloseLibrary: () => void;
   pushOperation: PushOperation;
   agentToolsConfig?: AgentToolsConfig;
+  toolStores: ToolStoresState;
 }
 
 export interface AgentToolsConfig {
@@ -108,7 +106,7 @@ interface SelectionPanelProps extends SidePanelsProps {
 }
 
 function SelectionPanel(props: SelectionPanelProps) {
-  const { selection, nodes, agents, presetsHook, ctxPreconditions, pushOperation } = props;
+  const { selection, nodes, agents, presetsHook, ctxPreconditions, pushOperation, toolStores } = props;
   const isStartNode = selection.selectedNodeId === START_NODE_ID;
 
   return (
@@ -151,6 +149,7 @@ function SelectionPanel(props: SelectionPanelProps) {
           availableContextPreconditions={ctxPreconditions.allContextPreconditions}
           onSelectNode={selection.navigateToNode}
           pushOperation={pushOperation}
+          toolStores={toolStores}
         />
       )}
     </GlassPanel>
@@ -205,41 +204,6 @@ interface AgentToolsSlotProps {
   onPublishServer: (server: McpServerConfig) => void;
 }
 
-interface StoreOption {
-  id: string;
-  name: string;
-}
-
-function useStoreOptions(orgId: string): { kvStores: StoreOption[]; ragStores: StoreOption[] } {
-  const [kvStores, setKvStores] = useState<StoreOption[]>([]);
-  const [ragStores, setRagStores] = useState<StoreOption[]>([]);
-  useEffect(() => {
-    if (orgId === '') return;
-    let cancelled = false;
-    void (async () => {
-      const [kv, rag] = await Promise.all([
-        getKvStoresByOrgAction(orgId),
-        getRagStoresByOrgAction(orgId),
-      ]);
-      if (cancelled) return;
-      setKvStores(kv.result.map((s) => ({ id: s.id, name: s.name })));
-      setRagStores(rag.result.map((s) => ({ id: s.id, name: s.name })));
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [orgId]);
-  return { kvStores, ragStores };
-}
-
-function useAgentToolsStoreBindings(config: AgentToolsConfig) {
-  return useAgentToolStoresState({
-    agentId: config.agentId,
-    initialBindings: config.initialBindings ?? { selectedKvStoreId: null, selectedRagStoreId: null },
-    initialUpdatedAt: config.initialBindingsUpdatedAt ?? config.initialUpdatedAt,
-  });
-}
-
 function AgentToolsSlot({ config, sidePanelProps: p, onPublishServer }: AgentToolsSlotProps) {
   const { groups, state: registryState } = useToolRegistry();
   const registryFailed = registryState.kind === 'total-failure';
@@ -249,15 +213,13 @@ function AgentToolsSlot({ config, sidePanelProps: p, onPublishServer }: AgentToo
     initialUpdatedAt: config.initialUpdatedAt,
     registryFailed,
   });
-  const storesState = useAgentToolsStoreBindings(config);
-  const storeOptions = useStoreOptions(p.orgId);
   const registry = groups.flatMap((g) => g.tools.map(registryToolToSelectedTool));
   const staleEntries = findStaleSelections({
     selections: toolsState.selectedTools,
     registry,
     failedProviders: [],
   });
-  const agentProp = buildAgentProp({ config, toolsState, storesState, storeOptions, staleEntries });
+  const agentProp = buildAgentProp({ config, toolsState, toolStores: p.toolStores, staleEntries });
   return (
     <ToolsPanel
       mcp={buildMcpProps(p, onPublishServer)}
@@ -271,13 +233,12 @@ function AgentToolsSlot({ config, sidePanelProps: p, onPublishServer }: AgentToo
 interface BuildAgentPropArgs {
   config: AgentToolsConfig;
   toolsState: ReturnType<typeof useAgentToolsState>;
-  storesState: ReturnType<typeof useAgentToolStoresState>;
-  storeOptions: { kvStores: StoreOption[]; ragStores: StoreOption[] };
+  toolStores: ToolStoresState;
   staleEntries: SelectedTool[];
 }
 
 function buildAgentProp(args: BuildAgentPropArgs) {
-  const { config, toolsState, storesState, storeOptions, staleEntries } = args;
+  const { config, toolsState, toolStores, staleEntries } = args;
   return {
     agentId: config.agentId,
     selectedTools: toolsState.selectedTools,
@@ -287,11 +248,11 @@ function buildAgentProp(args: BuildAgentPropArgs) {
     onRemoveStale: toolsState.handleRemoveStale,
     onRetrySave: toolsState.handleRetrySave,
     stores: {
-      kvStores: storeOptions.kvStores,
-      ragStores: storeOptions.ragStores,
-      bindings: storesState.bindings,
-      saveState: storesState.saveState,
-      onChangeBindings: storesState.setBindings,
+      kvStores: toolStores.kvStores,
+      ragStores: toolStores.ragStores,
+      bindings: toolStores.bindings,
+      saveState: toolStores.saveState,
+      onChangeBindings: toolStores.onChangeBindings,
     },
   };
 }

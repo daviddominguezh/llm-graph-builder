@@ -13,6 +13,7 @@ import type { SelectedTool } from '@daviddh/llm-graph-runner';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import type { ToolStoresState } from '../../../hooks/useToolStoresState';
 import { ToolCombobox } from '../ToolCombobox';
 import { SingleEdgePreview } from './MiniGraphPreview';
 
@@ -21,6 +22,7 @@ interface ToolNodeDialogProps {
   onOpenChange: (open: boolean) => void;
   sourceNodeLabel: string;
   onCreate: (tool: SelectedTool) => void;
+  toolStores: ToolStoresState;
 }
 
 export function ToolNodeDialog({
@@ -28,6 +30,7 @@ export function ToolNodeDialog({
   onOpenChange,
   sourceNodeLabel,
   onCreate,
+  toolStores,
 }: ToolNodeDialogProps) {
   const t = useTranslations('connectionMenu');
   const [tool, setTool] = useState<SelectedTool | null>(null);
@@ -53,11 +56,14 @@ export function ToolNodeDialog({
         <SingleEdgePreview sourceLabel={sourceNodeLabel} color="orange" />
         <div className="space-y-2 px-1">
           <Label className="text-xs">{t('toolToCall')}</Label>
-          {/* TODO: pass bindings + stores from useAgentToolStoresState */}
           <ToolCombobox
             value={tool}
             onValueChange={setTool}
             placeholder={t('selectTool')}
+            bindings={toolStores.bindings}
+            kvStores={toolStores.kvStores}
+            ragStores={toolStores.ragStores}
+            onChangeBindings={toolStores.onChangeBindings}
           />
         </div>
         <DialogFooter>
