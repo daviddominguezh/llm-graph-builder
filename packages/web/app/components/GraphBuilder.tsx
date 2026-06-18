@@ -103,6 +103,8 @@ export interface GraphBuilderProps {
   agentAppType?: string;
   agentSelectedTools?: SelectedTool[];
   agentUpdatedAt?: string;
+  agentSelectedKvStoreId?: string | null;
+  agentSelectedRagStoreId?: string | null;
 }
 
 interface LoadedEditorProps extends GraphBuilderProps {
@@ -732,6 +734,11 @@ function LoadedEditor(props: LoadedEditorProps) {
                         appType: props.agentAppType ?? '',
                         initialSelectedTools: props.agentSelectedTools,
                         initialUpdatedAt: props.agentUpdatedAt,
+                        initialBindings: {
+                          selectedKvStoreId: props.agentSelectedKvStoreId ?? null,
+                          selectedRagStoreId: props.agentSelectedRagStoreId ?? null,
+                        },
+                        initialBindingsUpdatedAt: props.agentUpdatedAt,
                       }
                     : undefined
                 }

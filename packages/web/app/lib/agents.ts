@@ -27,6 +27,8 @@ export interface AgentRow {
   system_prompt: string | null;
   max_steps: number | null;
   selected_tools: SelectedTool[];
+  selected_kv_store_id: string | null;
+  selected_rag_store_id: string | null;
 }
 
 export type AgentMetadata = Pick<

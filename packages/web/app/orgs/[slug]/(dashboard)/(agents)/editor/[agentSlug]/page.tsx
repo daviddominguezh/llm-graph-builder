@@ -58,6 +58,8 @@ export default async function EditorPage({ params }: EditorPageProps): Promise<R
       agentAppType={agent.app_type}
       agentSelectedTools={agent.selected_tools}
       agentUpdatedAt={agent.updated_at}
+      agentSelectedKvStoreId={agent.selected_kv_store_id}
+      agentSelectedRagStoreId={agent.selected_rag_store_id}
     />
   );
 }

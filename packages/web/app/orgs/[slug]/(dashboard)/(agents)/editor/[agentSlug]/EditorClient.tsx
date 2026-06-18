@@ -24,6 +24,8 @@ interface EditorClientProps {
   agentAppType: string;
   agentSelectedTools: SelectedTool[];
   agentUpdatedAt: string;
+  agentSelectedKvStoreId: string | null;
+  agentSelectedRagStoreId: string | null;
 }
 
 const GraphBuilder = dynamic<EditorClientProps>(

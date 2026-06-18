@@ -38,6 +38,8 @@ interface EditorTabsProps {
   agentAppType: string;
   agentSelectedTools: SelectedTool[];
   agentUpdatedAt: string;
+  agentSelectedKvStoreId: string | null;
+  agentSelectedRagStoreId: string | null;
 }
 
 const TAB_ICONS: Record<TabId, LucideIcon> = {
@@ -95,6 +97,8 @@ function buildEditorElement(props: EditorTabsProps): React.ReactNode {
       agentAppType={props.agentAppType}
       agentSelectedTools={props.agentSelectedTools}
       agentUpdatedAt={props.agentUpdatedAt}
+      agentSelectedKvStoreId={props.agentSelectedKvStoreId}
+      agentSelectedRagStoreId={props.agentSelectedRagStoreId}
     />
   );
 }
