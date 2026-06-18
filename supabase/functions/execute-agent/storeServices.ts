@@ -7,8 +7,8 @@
 // the production logic in two places.
 //
 // Required env vars:
-//   INTERNAL_TOOLS_BACKEND_URL — base URL of the backend (e.g. https://api.example.com)
-//   EDGE_FUNCTION_MASTER_KEY   — shared secret matching the backend's EDGE_FUNCTION_MASTER_KEY
+//   BACKEND_URL              — base URL of the backend (e.g. https://api.example.com)
+//   EDGE_FUNCTION_MASTER_KEY — shared secret matching the backend's EDGE_FUNCTION_MASTER_KEY
 //
 // On success the backend returns `{ ok: true, result }`; on a ToolError it
 // returns `{ ok: false, error: { code, message } }` with HTTP 200 so the same
@@ -43,7 +43,7 @@ const NO_STORE_SENTINEL_ID = '__no_store__';
 const NO_STORE_MESSAGE = 'No store is bound to this agent.';
 
 function backendUrl(): string {
-  return Deno.env.get('INTERNAL_TOOLS_BACKEND_URL') ?? '';
+  return Deno.env.get('BACKEND_URL') ?? '';
 }
 
 function sharedKey(): string {
