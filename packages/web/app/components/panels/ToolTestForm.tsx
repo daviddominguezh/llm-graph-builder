@@ -4,13 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -86,12 +80,11 @@ function buildArgs(schema: ToolSchema | undefined, values: FieldValues): Record<
   return args;
 }
 
-function StringField({ name, prop, value, onChange }: FieldInputProps) {
+function StringField({ name, value, onChange }: FieldInputProps) {
   return (
     <Input
       value={(value as string) ?? ''}
       onChange={(e) => onChange(name, e.target.value)}
-      placeholder={prop.description ?? ''}
       className="h-7 text-xs"
     />
   );
@@ -110,15 +103,19 @@ function EnumField({ name, prop, value, onChange }: FieldInputProps) {
   return (
     <Select
       value={(value as string) ?? ''}
-      onValueChange={(v) => { if (v !== null) onChange(name, v); }}
+      onValueChange={(v) => {
+        if (v !== null) onChange(name, v);
+      }}
       items={(prop.enum ?? []).map((e) => ({ value: e, label: e }))}
     >
-      <SelectTrigger className="h-7 text-xs">
+      <SelectTrigger className="h-7 text-xs w-full">
         <SelectValue />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent alignItemWithTrigger={false} side="bottom">
         {(prop.enum ?? []).map((e) => (
-          <SelectItem key={e} value={e}>{e}</SelectItem>
+          <SelectItem key={e} value={e}>
+            {e}
+          </SelectItem>
         ))}
       </SelectContent>
     </Select>
@@ -138,10 +135,7 @@ function NumberField({ name, value, onChange }: FieldInputProps) {
 
 function BooleanField({ name, value, onChange }: FieldInputProps) {
   return (
-    <Checkbox
-      checked={value === true}
-      onCheckedChange={(checked) => onChange(name, checked === true)}
-    />
+    <Checkbox checked={value === true} onCheckedChange={(checked) => onChange(name, checked === true)} />
   );
 }
 
@@ -167,9 +161,7 @@ function JsonField({ name, value, onChange, jsonError, onJsonBlur }: FieldInputP
         placeholder={t('jsonPlaceholder')}
         className="min-h-24 bg-muted/30 font-mono text-[11px]"
       />
-      {jsonError !== undefined && (
-        <span className="text-[10px] text-destructive">{jsonError}</span>
-      )}
+      {jsonError !== undefined && <span className="text-[10px] text-destructive">{jsonError}</span>}
     </div>
   );
 }
@@ -202,7 +194,9 @@ function FieldEntry({
   onJsonBlur: (name: string, value: string) => void;
 }) {
   return (
-    <div className={`flex flex-col gap-1 ${prop.type === 'boolean' ? 'flex-row flex-row-reverse justify-end' : ''}`}>
+    <div
+      className={`flex flex-col gap-1 ${prop.type === 'boolean' ? 'flex-row flex-row-reverse justify-end' : ''}`}
+    >
       <Label className="flex items-center gap-1">
         <code className="font-mono text-[11px]">{name}</code>
         {isRequired && <span className="text-destructive">*</span>}
@@ -237,7 +231,11 @@ function OptionalSection({ children }: { children: React.ReactNode }) {
         {open ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
         {t('optional')}
       </Button>
-      {open && <div className="flex flex-col gap-4 animate-in fade-in-0 slide-in-from-top-1 duration-200 pl-3 border-l-2 border-input ml-1">{children}</div>}
+      {open && (
+        <div className="flex flex-col gap-4 animate-in fade-in-0 slide-in-from-top-1 duration-200 pl-3 border-l-2 border-input ml-1">
+          {children}
+        </div>
+      )}
     </div>
   );
 }
@@ -246,13 +244,15 @@ function RunButton({ enabled, running, onRun }: { enabled: boolean; running: boo
   const t = useTranslations('toolTest');
   return (
     <div className="shrink-0 border-t bg-popover p-2">
+      {!enabled && !running && (
+        <p className="mb-2 text-center text-[10px] text-muted-foreground cursor-default">
+          {t('requiredFields')}
+        </p>
+      )}
       <Button className="w-full" disabled={!enabled || running} onClick={onRun}>
         {running && <Loader2 className="size-3 animate-spin" />}
         {running ? t('running') : t('run')}
       </Button>
-      {!enabled && !running && (
-        <p className="mt-1.5 text-center text-[10px] text-muted-foreground cursor-default">{t('requiredFields')}</p>
-      )}
     </div>
   );
 }
@@ -279,19 +279,22 @@ export function ToolTestForm({ schema, running, onRun }: ToolTestFormProps) {
     });
   }, []);
 
-  const handleJsonBlur = useCallback((name: string, value: string) => {
-    if (value === '') return;
-    try {
-      JSON.parse(value);
-      setJsonErrors((prev) => {
-        const next = { ...prev };
-        delete next[name];
-        return next;
-      });
-    } catch {
-      setJsonErrors((prev) => ({ ...prev, [name]: t('invalidJson') }));
-    }
-  }, [t]);
+  const handleJsonBlur = useCallback(
+    (name: string, value: string) => {
+      if (value === '') return;
+      try {
+        JSON.parse(value);
+        setJsonErrors((prev) => {
+          const next = { ...prev };
+          delete next[name];
+          return next;
+        });
+      } catch {
+        setJsonErrors((prev) => ({ ...prev, [name]: t('invalidJson') }));
+      }
+    },
+    [t]
+  );
 
   const handleRun = useCallback(() => {
     onRun(buildArgs(schema, values));
@@ -328,14 +331,10 @@ export function ToolTestForm({ schema, running, onRun }: ToolTestFormProps) {
           <div className="flex flex-col gap-4">
             {required.map((name) => renderField(name, true))}
             {optional.length > 0 && startExpanded && (
-              <div className="flex flex-col gap-4">
-                {optional.map((name) => renderField(name, false))}
-              </div>
+              <div className="flex flex-col gap-4">{optional.map((name) => renderField(name, false))}</div>
             )}
             {optional.length > 0 && !startExpanded && (
-              <OptionalSection>
-                {optional.map((name) => renderField(name, false))}
-              </OptionalSection>
+              <OptionalSection>{optional.map((name) => renderField(name, false))}</OptionalSection>
             )}
           </div>
         )}
