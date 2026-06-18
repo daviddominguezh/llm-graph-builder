@@ -77,6 +77,7 @@ export function ToolsTabBody(props: ToolsTabBodyProps): React.JSX.Element {
         failedProviders={failedProviders}
         onToggleTool={props.onToggleTool}
         onCollapseTool={props.onCollapseTool}
+        onTestTool={props.onTestTool}
       />
     );
   }

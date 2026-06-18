@@ -55,11 +55,21 @@ interface AgentModeBodyProps {
   failedProviders: string[];
   onToggleTool: (key: string) => void;
   onCollapseTool: () => void;
+  onTestTool: (tool: RegistryTool) => void;
 }
 
 export function AgentModeBody(props: AgentModeBodyProps): React.JSX.Element {
-  const { agent, groups, searchActive, expandedTool, failedProviders, onToggleTool, onCollapseTool } = props;
-  
+  const {
+    agent,
+    groups,
+    searchActive,
+    expandedTool,
+    failedProviders,
+    onToggleTool,
+    onCollapseTool,
+    onTestTool,
+  } = props;
+
   return (
     <Scrollable className="flex-1 p-1 pt-0">
       <StaleEntriesGroup staleEntries={agent.staleEntries} onRemove={agent.onRemoveStale} />
@@ -74,6 +84,7 @@ export function AgentModeBody(props: AgentModeBodyProps): React.JSX.Element {
           failedProviders={failedProviders}
           onToggleTool={onToggleTool}
           onCollapseTool={onCollapseTool}
+          onTestTool={onTestTool}
         />
       ))}
     </Scrollable>
@@ -88,6 +99,7 @@ interface AgentModeGroupProps {
   failedProviders: string[];
   onToggleTool: (key: string) => void;
   onCollapseTool: () => void;
+  onTestTool: (tool: RegistryTool) => void;
 }
 
 function applyHeaderToggle(
@@ -157,10 +169,11 @@ interface GroupToolListProps {
   disabledReason: ToolRowDisabledReason;
   onToggleTool: (key: string) => void;
   onCollapseTool: () => void;
+  onTestTool: (tool: RegistryTool) => void;
 }
 
 function GroupToolList(props: GroupToolListProps): React.JSX.Element {
-  const { group, agent, expandedTool, disabledReason, onToggleTool, onCollapseTool } = props;
+  const { group, agent, expandedTool, disabledReason, onToggleTool, onCollapseTool, onTestTool } = props;
   return (
     <ul className="flex flex-row gap-2 gap-y-3 flex-wrap pl-1">
       {group.tools.map((tool) => {
@@ -177,6 +190,7 @@ function GroupToolList(props: GroupToolListProps): React.JSX.Element {
             onToggleSelected={() => agent.onChange(toggleTool(agent.selectedTools, ref))}
             onToggleExpanded={() => onToggleTool(key)}
             onCollapse={onCollapseTool}
+            onTest={onTestTool}
             disabledReason={disabledReason}
           />
         );
@@ -186,7 +200,16 @@ function GroupToolList(props: GroupToolListProps): React.JSX.Element {
 }
 
 function AgentModeGroup(props: AgentModeGroupProps): React.JSX.Element {
-  const { group, agent, searchActive, expandedTool, failedProviders, onToggleTool, onCollapseTool } = props;
+  const {
+    group,
+    agent,
+    searchActive,
+    expandedTool,
+    failedProviders,
+    onToggleTool,
+    onCollapseTool,
+    onTestTool,
+  } = props;
   const tr = useTranslations('agentTools');
   const groupTools = group.tools.map(registryToolToSelectedTool);
   const headerState = computeHeaderState({ groupTools, selected: agent.selectedTools });
@@ -225,6 +248,7 @@ function AgentModeGroup(props: AgentModeGroupProps): React.JSX.Element {
         disabledReason={disabledReason}
         onToggleTool={onToggleTool}
         onCollapseTool={onCollapseTool}
+        onTestTool={onTestTool}
       />
     </div>
   );

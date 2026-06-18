@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl';
 import { useRef } from 'react';
 
 import { FloatingSchema, type ToolSchema } from './ToolSchemaPopover';
+import { PlayButton } from './ToolsPanelViewMode';
 
 export type ToolRowDisabledReason = { kind: 'no_store_bound'; storeKind: 'kv' | 'rag' } | null;
 
@@ -20,6 +21,7 @@ interface ToolRowProps {
   onToggleSelected: () => void;
   onToggleExpanded: () => void;
   onCollapse: () => void;
+  onTest?: (tool: RegistryTool) => void;
   disabledReason?: ToolRowDisabledReason;
 }
 
@@ -42,10 +44,20 @@ interface ToolRowHeaderProps {
   disabledTooltip: string | undefined;
   onToggleSelected: () => void;
   onToggleExpanded: () => void;
+  onTest?: (tool: RegistryTool) => void;
 }
 
 function ToolRowHeader(props: ToolRowHeaderProps): React.JSX.Element {
-  const { tool, displayDescription, selected, disabled, disabledTooltip, onToggleSelected, onToggleExpanded } = props;
+  const {
+    tool,
+    displayDescription,
+    selected,
+    disabled,
+    disabledTooltip,
+    onToggleSelected,
+    onToggleExpanded,
+    onTest,
+  } = props;
   return (
     <>
       <Checkbox
@@ -77,6 +89,14 @@ function ToolRowHeader(props: ToolRowHeaderProps): React.JSX.Element {
           {displayDescription ?? tool.group}
         </span>
       </button>
+      {onTest !== undefined && (
+        <PlayButton
+          tool={tool}
+          onTest={onTest}
+          disabled={disabled}
+          disabledTooltip={disabledTooltip}
+        />
+      )}
     </>
   );
 }
@@ -90,6 +110,7 @@ export function ToolRow({
   onToggleSelected,
   onToggleExpanded,
   onCollapse,
+  onTest,
   disabledReason,
 }: ToolRowProps): React.JSX.Element {
   const rowRef = useRef<HTMLDivElement>(null);
@@ -113,6 +134,7 @@ export function ToolRow({
           disabledTooltip={disabledTooltip}
           onToggleSelected={onToggleSelected}
           onToggleExpanded={onToggleExpanded}
+          onTest={onTest}
         />
       </div>
       {expanded && tool.inputSchema !== undefined && (
