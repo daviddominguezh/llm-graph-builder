@@ -1,21 +1,9 @@
 'use client';
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTranslations } from 'next-intl';
 
-export type StoreSelectSaveState =
-  | 'idle'
-  | 'saving'
-  | 'saved'
-  | 'conflict'
-  | 'error'
-  | 'disabled-by-failure';
+export type StoreSelectSaveState = 'idle' | 'saving' | 'saved' | 'conflict' | 'error' | 'disabled-by-failure';
 
 export interface StoreSelectStore {
   id: string;
@@ -55,7 +43,7 @@ export function StoreSelect(props: StoreSelectProps): React.JSX.Element {
       <SelectTrigger size="sm" className={`min-w-[10rem] ${statusClass(props.saveState)}`}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent alignItemWithTrigger={false} side="bottom">
         <SelectItem value={NONE_VALUE}>{noneLabel}</SelectItem>
         {props.stores.map((store) => (
           <SelectItem key={store.id} value={store.id}>
