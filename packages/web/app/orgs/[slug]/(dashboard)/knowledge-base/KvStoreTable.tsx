@@ -61,6 +61,7 @@ function isSysKey(key: string): boolean {
 
 function KvKeyCell({ entry, isTrailingEmpty, isDuplicate, onUpdate }: KvKeyCellProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.kv');
+  const tKvStore = useTranslations('knowledgeBase.kvStore');
   const ph = isTrailingEmpty ? t('addKeyPlaceholder') : t('keyPlaceholder');
   const phItalic = isTrailingEmpty ? 'placeholder:italic' : '';
   const dupCls = isDuplicate ? 'ring-1 ring-destructive' : '';
@@ -75,9 +76,8 @@ function KvKeyCell({ entry, isTrailingEmpty, isDuplicate, onUpdate }: KvKeyCellP
           onChange={(e) => onUpdate(entry.id, 'key', e.target.value)}
         />
         {showSysBadge && (
-          /* i18n: knowledgeBase.kvStore.sysBadge */
           <Badge variant="secondary" className="shrink-0">
-            read-only
+            {tKvStore('sysBadge')}
           </Badge>
         )}
       </div>
@@ -426,6 +426,7 @@ function useControlledKvEntries(
 }
 
 export function KvStoreTable({ entries: external, onEntriesChange }: KvStoreTableProps): React.JSX.Element {
+  const tKvStore = useTranslations('knowledgeBase.kvStore');
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
@@ -451,10 +452,7 @@ export function KvStoreTable({ entries: external, onEntriesChange }: KvStoreTabl
       <div className="flex flex-1 flex-col px-4">
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between gap-2">
-            {/* i18n: knowledgeBase.kvStore.sysHelperText */}
-            <span className="text-[11px] text-muted-foreground">
-              Keys prefixed with &quot;_sys.&quot; are read-only to agents.
-            </span>
+            <span className="text-[11px] text-muted-foreground">{tKvStore('sysHelperText')}</span>
             <SearchInput query={query} onChange={setQuery} />
           </div>
           <KvTableView

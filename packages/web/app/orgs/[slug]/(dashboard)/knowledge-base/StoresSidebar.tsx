@@ -277,17 +277,12 @@ interface BlockedBodyProps {
 }
 
 function BlockedBody({ blocked, orgSlug }: BlockedBodyProps): React.JSX.Element {
-  /* i18n: knowledgeBase.deleteBlocked.title */
-  const title = 'This store is in use';
-  /* i18n: knowledgeBase.deleteBlocked.draftSectionTitle */
-  const draftTitle = 'Used in draft';
-  /* i18n: knowledgeBase.deleteBlocked.draftSectionBody */
-  const draftBody = 'Change the store to None (or another) in these draft agents. No publish required.';
-  /* i18n: knowledgeBase.deleteBlocked.publishedSectionTitle */
-  const publishedTitle = 'Used in latest published version';
-  /* i18n: knowledgeBase.deleteBlocked.publishedSectionBody */
-  const publishedBody =
-    'These agents reference this store in their latest published version. Change the binding in their draft and publish a new version before this store can be deleted.';
+  const t = useTranslations('knowledgeBase.deleteBlocked');
+  const title = t('title');
+  const draftTitle = t('draftSectionTitle');
+  const draftBody = t('draftSectionBody');
+  const publishedTitle = t('publishedSectionTitle');
+  const publishedBody = t('publishedSectionBody');
   return (
     <div className="flex flex-col gap-4">
       <AlertDialogTitle>{title}</AlertDialogTitle>
@@ -324,8 +319,8 @@ function DeleteStoreDialog({
   onConfirm,
 }: DeleteDialogProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.delete');
-  /* i18n: knowledgeBase.deleteBlocked.closeButton */
-  const closeLabel = 'Close';
+  const tBlocked = useTranslations('knowledgeBase.deleteBlocked');
+  const closeLabel = tBlocked('closeButton');
   return (
     <AlertDialog open={target !== null} onOpenChange={(o) => !o && onCancel()}>
       <AlertDialogContent>
@@ -362,6 +357,7 @@ export function StoresSidebar({
   initialRagStores,
   initialKvStores,
 }: StoresSidebarProps): React.JSX.Element {
+  const tDelete = useTranslations('knowledgeBase.delete');
   const router = useRouter();
   const pathname = usePathname();
   const [createOpen, setCreateOpen] = useState(false);
@@ -419,8 +415,7 @@ export function StoresSidebar({
       setBlocked({ draft: result.draft, published: result.published });
       return;
     }
-    /* i18n: knowledgeBase.delete.errorToast */
-    const message = result.reason === 'transient' ? result.message : 'Could not delete store.';
+    const message = result.reason === 'transient' ? result.message : tDelete('errorToast');
     toast.error(message);
   }
 

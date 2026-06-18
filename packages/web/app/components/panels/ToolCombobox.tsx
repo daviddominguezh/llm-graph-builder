@@ -13,6 +13,7 @@ import {
   ComboboxList,
 } from '@/components/ui/combobox';
 import type { SelectedTool } from '@daviddh/llm-graph-runner';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
 import type { RegistryTool } from '../../lib/toolRegistryTypes';
@@ -127,12 +128,12 @@ function buildFixConfirm(
 }
 
 function FixLinkButton({ binding }: { binding: ItemBindingProps }) {
+  const t = useTranslations('agentTools');
   const { storeKind, bindings, kvStores, ragStores, onChangeBindings } = binding;
   const stores = storeKind === 'kv' ? kvStores : ragStores;
   const currentSelectedId =
     storeKind === 'kv' ? bindings.selectedKvStoreId : bindings.selectedRagStoreId;
-  /* i18n: agentTools.fix */
-  const fixLabel = 'Fix';
+  const fixLabel = t('fix');
   const stopPropagation = (e: React.MouseEvent): void => {
     e.stopPropagation();
   };

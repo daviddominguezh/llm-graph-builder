@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useTranslations } from 'next-intl';
 
 export type StoreSelectSaveState =
   | 'idle'
@@ -41,15 +42,14 @@ function statusClass(saveState: StoreSelectSaveState): string {
 }
 
 export function StoreSelect(props: StoreSelectProps): React.JSX.Element {
+  const t = useTranslations('agentTools');
   const value = props.selectedId ?? NONE_VALUE;
   const handleChange = (next: unknown): void => {
     if (typeof next !== 'string') return;
     props.onChange(next === NONE_VALUE ? null : next);
   };
-  /* i18n: storeSelectPlaceholder */
-  const placeholder = props.placeholder ?? 'Select store';
-  /* i18n: storeSelectNoneLabel */
-  const noneLabel = '— None —';
+  const placeholder = props.placeholder ?? t('selectStore');
+  const noneLabel = t('noneOption');
   return (
     <Select value={value} onValueChange={handleChange} disabled={props.disabled}>
       <SelectTrigger size="sm" className={`min-w-[10rem] ${statusClass(props.saveState)}`}>

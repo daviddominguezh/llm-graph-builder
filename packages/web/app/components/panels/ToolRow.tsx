@@ -3,6 +3,7 @@
 import type { RegistryTool } from '@/app/lib/toolRegistryTypes';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Info } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useRef } from 'react';
 
 import { FloatingSchema, type ToolSchema } from './ToolSchemaPopover';
@@ -19,11 +20,15 @@ interface ToolRowProps {
   disabledReason?: ToolRowDisabledReason;
 }
 
-function buildDisabledTooltip(reason: ToolRowDisabledReason): string | undefined {
+type TooltipTranslator = (key: 'storeRequiredTooltip', values: { kind: string }) => string;
+
+function buildDisabledTooltip(
+  reason: ToolRowDisabledReason,
+  t: TooltipTranslator
+): string | undefined {
   if (reason === null || reason === undefined) return undefined;
-  /* i18n: toolRowNoStoreBoundTooltip */
   const label = reason.storeKind === 'kv' ? 'KV' : 'RAG';
-  return `Select a ${label} store at the top of this group to enable this tool.`;
+  return t('storeRequiredTooltip', { kind: label });
 }
 
 interface ToolRowHeaderProps {
@@ -82,7 +87,8 @@ export function ToolRow({
   disabledReason,
 }: ToolRowProps): React.JSX.Element {
   const rowRef = useRef<HTMLDivElement>(null);
-  const disabledTooltip = buildDisabledTooltip(disabledReason ?? null);
+  const t = useTranslations('agentTools');
+  const disabledTooltip = buildDisabledTooltip(disabledReason ?? null, t);
   const isDisabled = disabledTooltip !== undefined;
   const disabledCls = isDisabled ? 'opacity-60' : '';
   return (

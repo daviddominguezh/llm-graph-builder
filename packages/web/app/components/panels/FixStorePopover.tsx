@@ -9,6 +9,7 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { useTranslations } from 'next-intl';
 import type React from 'react';
 import { useState } from 'react';
 
@@ -23,20 +24,14 @@ export interface FixStorePopoverProps {
   onCancel?: () => void;
 }
 
-function getCopy(storeKind: 'kv' | 'rag'): { title: string; placeholder: string } {
-  if (storeKind === 'kv') {
-    /* i18n: agentTools.fixPopoverTitle */
-    return { title: 'Select a KV store', placeholder: 'Select KV store' };
-  }
-  /* i18n: agentTools.fixPopoverTitle */
-  return { title: 'Select a RAG store', placeholder: 'Select RAG store' };
-}
-
 export function FixStorePopover(props: FixStorePopoverProps): React.JSX.Element {
   const { trigger, storeKind, stores, currentSelectedId, onConfirm, onCancel } = props;
+  const t = useTranslations('agentTools');
   const [open, setOpen] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(currentSelectedId);
-  const copy = getCopy(storeKind);
+  const kindLabel = storeKind === 'kv' ? 'KV' : 'RAG';
+  const title = t('fixPopoverTitle', { kind: kindLabel });
+  const placeholder = t('selectStoreKind', { kind: kindLabel });
 
   const handleOpenChange = (next: boolean): void => {
     setOpen(next);
@@ -58,27 +53,22 @@ export function FixStorePopover(props: FixStorePopoverProps): React.JSX.Element 
       <PopoverTrigger render={trigger as React.ReactElement} />
       <PopoverContent className="w-72" align="end">
         <PopoverHeader>
-          <PopoverTitle>{copy.title}</PopoverTitle>
-          <PopoverDescription>
-            {/* i18n: agentTools.fixPopoverDescription */}
-            Tools in this group need a store to operate on. You can change this later in the tools panel.
-          </PopoverDescription>
+          <PopoverTitle>{title}</PopoverTitle>
+          <PopoverDescription>{t('fixPopoverDescription')}</PopoverDescription>
         </PopoverHeader>
         <StoreSelect
           stores={stores}
           selectedId={pendingId}
           saveState="idle"
           onChange={setPendingId}
-          placeholder={copy.placeholder}
+          placeholder={placeholder}
         />
         <div className="flex items-center justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={handleCancel}>
-            {/* i18n: agentTools.fixPopoverCancel */}
-            Cancel
+            {t('fixPopoverCancel')}
           </Button>
           <Button variant="default" size="sm" onClick={handleConfirm}>
-            {/* i18n: agentTools.fixPopoverConfirm */}
-            Confirm
+            {t('fixPopoverConfirm')}
           </Button>
         </div>
       </PopoverContent>

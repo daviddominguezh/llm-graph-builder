@@ -734,6 +734,16 @@
     "saveError": "Couldn't save tool selection. Please try again.",
     "limitExceeded": "You can select at most 100 tools. Remove some before saving.",
     "storeOrgMismatch": "Selected store belongs to a different organization.",
+    "storeRequired": "Store required",
+    "storeRequiredTooltip": "Select a {kind} store at the top of this group to enable this tool.",
+    "selectStore": "Select store",
+    "selectStoreKind": "Select {kind} store",
+    "noneOption": "— None —",
+    "fix": "Fix",
+    "fixPopoverTitle": "Select a {kind} store",
+    "fixPopoverDescription": "Tools in this group need a store to operate on. You can change this later in the tools panel.",
+    "fixPopoverCancel": "Cancel",
+    "fixPopoverConfirm": "Confirm",
     "updatedJustNow": "Updated just now",
     "updatedMinutesAgo": "Updated {minutes}m ago",
     "updatedHoursAgo": "Updated {hours}h ago"
@@ -893,7 +903,20 @@
       "title": "Delete store?",
       "description": "This action cannot be undone. All per-tenant data inside this store will be deleted.",
       "confirm": "Delete",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "errorToast": "Could not delete store."
+    },
+    "deleteBlocked": {
+      "title": "This store is in use",
+      "draftSectionTitle": "Used in draft",
+      "draftSectionBody": "Change the store to None (or another) in these draft agents. No publish required.",
+      "publishedSectionTitle": "Used in latest published version",
+      "publishedSectionBody": "These agents reference this store in their latest published version. Change the binding in their draft and publish a new version before this store can be deleted.",
+      "closeButton": "Close"
+    },
+    "kvStore": {
+      "sysHelperText": "Keys prefixed with \"_sys.\" are read-only to agents.",
+      "sysBadge": "read-only"
     },
     "storeHeader": {
       "slugLabel": "Slug",
