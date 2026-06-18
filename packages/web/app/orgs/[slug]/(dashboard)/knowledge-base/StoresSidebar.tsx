@@ -5,6 +5,7 @@ import { createRagStoreAction, deleteRagStoreAction, updateRagStoreAction } from
 import { Scrollable } from '@/app/components/Scrollable';
 import type { KvStoreRow } from '@/app/lib/kvStores';
 import type { RagStoreRow } from '@/app/lib/ragStores';
+import type { AgentRef, DeleteStoreResult } from '@/app/lib/storeDeleteResult';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,14 +24,20 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { Database, MoreHorizontal, Plus, Search, Table } from 'lucide-react';
+import { Database, ExternalLink, MoreHorizontal, Plus, Search, Table } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { type MouseEvent, useState } from 'react';
+import { toast } from 'sonner';
 
 import { CreateStoreDialog, type StoreType } from './CreateStoreDialog';
 import { RenameStoreDialog } from './RenameStoreDialog';
+
+interface BlockedState {
+  draft: AgentRef[];
+  published: AgentRef[];
+}
 
 interface StoresSidebarProps {
   orgId: string;
@@ -224,27 +231,125 @@ function StoreList({ items, pathname, search, onRename, onDelete }: StoreListPro
   );
 }
 
+interface BlockedAgentLinkProps {
+  agent: AgentRef;
+  orgSlug: string;
+}
+
+function BlockedAgentLink({ agent, orgSlug }: BlockedAgentLinkProps): React.JSX.Element {
+  return (
+    <Link
+      href={`/orgs/${orgSlug}/agents/${agent.slug}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-input/70"
+    >
+      <span className="truncate">{agent.name}</span>
+      <ExternalLink className="shrink-0 size-3 text-muted-foreground" />
+    </Link>
+  );
+}
+
+interface BlockedSectionProps {
+  title: string;
+  body: string;
+  agents: AgentRef[];
+  orgSlug: string;
+}
+
+function BlockedSection({ title, body, agents, orgSlug }: BlockedSectionProps): React.JSX.Element {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <h3 className="text-xs font-medium">{title}</h3>
+      <p className="text-xs text-muted-foreground">{body}</p>
+      <div className="flex flex-col gap-0.5 mt-1">
+        {agents.map((agent) => (
+          <BlockedAgentLink key={agent.id} agent={agent} orgSlug={orgSlug} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+interface BlockedBodyProps {
+  blocked: BlockedState;
+  orgSlug: string;
+}
+
+function BlockedBody({ blocked, orgSlug }: BlockedBodyProps): React.JSX.Element {
+  /* i18n: knowledgeBase.deleteBlocked.title */
+  const title = 'This store is in use';
+  /* i18n: knowledgeBase.deleteBlocked.draftSectionTitle */
+  const draftTitle = 'Used in draft';
+  /* i18n: knowledgeBase.deleteBlocked.draftSectionBody */
+  const draftBody = 'Change the store to None (or another) in these draft agents. No publish required.';
+  /* i18n: knowledgeBase.deleteBlocked.publishedSectionTitle */
+  const publishedTitle = 'Used in latest published version';
+  /* i18n: knowledgeBase.deleteBlocked.publishedSectionBody */
+  const publishedBody =
+    'These agents reference this store in their latest published version. Change the binding in their draft and publish a new version before this store can be deleted.';
+  return (
+    <div className="flex flex-col gap-4">
+      <AlertDialogTitle>{title}</AlertDialogTitle>
+      {blocked.draft.length > 0 && (
+        <BlockedSection title={draftTitle} body={draftBody} agents={blocked.draft} orgSlug={orgSlug} />
+      )}
+      {blocked.published.length > 0 && (
+        <BlockedSection
+          title={publishedTitle}
+          body={publishedBody}
+          agents={blocked.published}
+          orgSlug={orgSlug}
+        />
+      )}
+    </div>
+  );
+}
+
 interface DeleteDialogProps {
   target: SidebarItem | null;
   busy: boolean;
+  blocked: BlockedState | null;
+  orgSlug: string;
   onCancel: () => void;
   onConfirm: () => void;
 }
 
-function DeleteStoreDialog({ target, busy, onCancel, onConfirm }: DeleteDialogProps): React.JSX.Element {
+function DeleteStoreDialog({
+  target,
+  busy,
+  blocked,
+  orgSlug,
+  onCancel,
+  onConfirm,
+}: DeleteDialogProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.delete');
+  /* i18n: knowledgeBase.deleteBlocked.closeButton */
+  const closeLabel = 'Close';
   return (
     <AlertDialog open={target !== null} onOpenChange={(o) => !o && onCancel()}>
       <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{t('title')}</AlertDialogTitle>
-          <AlertDialogDescription>{t('description')}</AlertDialogDescription>
-        </AlertDialogHeader>
+        {blocked === null ? (
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('title')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('description')}</AlertDialogDescription>
+          </AlertDialogHeader>
+        ) : (
+          <BlockedBody blocked={blocked} orgSlug={orgSlug} />
+        )}
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={busy}>{t('cancel')}</AlertDialogCancel>
-          <AlertDialogAction variant="destructive" disabled={busy} onClick={onConfirm}>
-            {t('confirm')}
-          </AlertDialogAction>
+          {blocked === null ? (
+            <>
+              <AlertDialogCancel disabled={busy}>{t('cancel')}</AlertDialogCancel>
+              <AlertDialogAction variant="destructive" disabled={busy} onClick={onConfirm}>
+                {t('confirm')}
+              </AlertDialogAction>
+            </>
+          ) : (
+            <AlertDialogAction variant="secondary" onClick={onCancel}>
+              {closeLabel}
+            </AlertDialogAction>
+          )}
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -266,6 +371,7 @@ export function StoresSidebar({
   const [renameTarget, setRenameTarget] = useState<SidebarItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SidebarItem | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [blocked, setBlocked] = useState<BlockedState | null>(null);
 
   async function handleCreate(type: StoreType, name: string): Promise<{ ok: boolean; slug?: string }> {
     if (type === 'rag') {
@@ -297,21 +403,46 @@ export function StoresSidebar({
     return { ok: true };
   }
 
+  function applyDeleteSuccess(target: SidebarItem, rawId: string): void {
+    if (target.type === 'rag') {
+      setRagStores(ragStores.filter((s) => s.id !== rawId));
+    } else {
+      setKvStores(kvStores.filter((s) => s.id !== rawId));
+    }
+    const wasViewing = pathname === target.href;
+    setDeleteTarget(null);
+    if (wasViewing) router.push(`/orgs/${orgSlug}/knowledge-base`);
+  }
+
+  function handleDeleteFailure(result: Exclude<DeleteStoreResult, { ok: true }>): void {
+    if (result.reason === 'in_use') {
+      setBlocked({ draft: result.draft, published: result.published });
+      return;
+    }
+    /* i18n: knowledgeBase.delete.errorToast */
+    const message = result.reason === 'transient' ? result.message : 'Could not delete store.';
+    toast.error(message);
+  }
+
   async function handleConfirmDelete(): Promise<void> {
     if (deleteTarget === null) return;
     setDeleting(true);
     const rawId = rawIdOf(deleteTarget);
-    if (deleteTarget.type === 'rag') {
-      await deleteRagStoreAction(rawId);
-      setRagStores(ragStores.filter((s) => s.id !== rawId));
-    } else {
-      await deleteKvStoreAction(rawId);
-      setKvStores(kvStores.filter((s) => s.id !== rawId));
-    }
+    const result =
+      deleteTarget.type === 'rag'
+        ? await deleteRagStoreAction(rawId)
+        : await deleteKvStoreAction(rawId);
     setDeleting(false);
-    const wasViewing = pathname === deleteTarget.href;
+    if (result.ok) {
+      applyDeleteSuccess(deleteTarget, rawId);
+      return;
+    }
+    handleDeleteFailure(result);
+  }
+
+  function handleDeleteCancel(): void {
     setDeleteTarget(null);
-    if (wasViewing) router.push(`/orgs/${orgSlug}/knowledge-base`);
+    setBlocked(null);
   }
 
   const items = buildItems(ragStores, kvStores, orgSlug);
@@ -340,7 +471,9 @@ export function StoresSidebar({
       <DeleteStoreDialog
         target={deleteTarget}
         busy={deleting}
-        onCancel={() => setDeleteTarget(null)}
+        blocked={blocked}
+        orgSlug={orgSlug}
+        onCancel={handleDeleteCancel}
         onConfirm={() => void handleConfirmDelete()}
       />
     </aside>
