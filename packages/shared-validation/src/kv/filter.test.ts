@@ -1,4 +1,5 @@
-import { filterByMatcher, filterDefault } from './filter.js';
+import { filterDefault } from './filter.js';
+import { filterByMatcher } from './matcher.js';
 
 describe('filterDefault', () => {
   const entries = [

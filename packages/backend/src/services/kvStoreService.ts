@@ -6,7 +6,8 @@ import type {
   KvStoreServices,
 } from '@daviddh/llm-graph-runner';
 import { ToolError } from '@daviddh/llm-graph-runner';
-import { type FilterMatcher, type FilterOn, filterByMatcher } from '@openflow/shared-validation';
+import type { FilterMatcher, FilterOn } from '@openflow/shared-validation';
+import { filterByMatcher } from '@openflow/shared-validation/kv/matcher';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import RE2 from 're2';
 

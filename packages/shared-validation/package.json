@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./kv/matcher": {
+      "types": "./dist/kv/matcher.d.ts",
+      "import": "./dist/kv/matcher.js"
     }
   },
   "scripts": {
