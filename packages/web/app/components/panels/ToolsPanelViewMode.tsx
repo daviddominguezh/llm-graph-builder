@@ -15,10 +15,14 @@ import { FloatingSchema, type ToolSchema } from './ToolSchemaPopover';
 interface PlayButtonProps {
   tool: RegistryTool;
   onTest: (tool: RegistryTool) => void;
+  disabled?: boolean;
+  disabledTooltip?: string;
 }
 
-export function PlayButton({ tool, onTest }: PlayButtonProps): React.JSX.Element {
+export function PlayButton({ tool, onTest, disabled, disabledTooltip }: PlayButtonProps): React.JSX.Element {
   const t = useTranslations('toolTest');
+  const isDisabled = disabled === true;
+  const tooltipLabel = isDisabled && disabledTooltip !== undefined ? disabledTooltip : t('testTool');
   return (
     <Tooltip>
       <TooltipTrigger
@@ -26,9 +30,11 @@ export function PlayButton({ tool, onTest }: PlayButtonProps): React.JSX.Element
           <Button
             variant="ghost"
             size="icon-xs"
+            disabled={isDisabled}
             className="shrink-0 opacity-0 transition-opacity group-hover/tool:opacity-100 hover:bg-[#4fc661] dark:hover:bg-[#4fc661] hover:text-background dark:hover:text-foreground"
             onClick={(e) => {
               e.stopPropagation();
+              if (isDisabled) return;
               onTest(tool);
             }}
           />
@@ -36,7 +42,7 @@ export function PlayButton({ tool, onTest }: PlayButtonProps): React.JSX.Element
       >
         <Play className="size-3" />
       </TooltipTrigger>
-      <TooltipContent side="top">{t('testTool')}</TooltipContent>
+      <TooltipContent side="top">{tooltipLabel}</TooltipContent>
     </Tooltip>
   );
 }
