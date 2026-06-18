@@ -16,6 +16,7 @@ interface ProviderHeaderProps {
   searchActive: boolean;
   fetchedAt?: number;
   onToggle: () => void;
+  rightSlot?: React.ReactNode;
 }
 
 function formatCount(args: {
@@ -66,6 +67,7 @@ export function ProviderHeader(props: ProviderHeaderProps): React.JSX.Element {
           </span>
         )}
       </div>
+      {props.rightSlot !== undefined && <div className="flex items-center shrink-0">{props.rightSlot}</div>}
     </div>
   );
 }
