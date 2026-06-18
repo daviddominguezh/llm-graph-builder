@@ -1,15 +1,12 @@
 'use client';
 
+import { computeHeaderState, isToolSelected, toggleTool } from '@/app/lib/agentTools';
+import type { RegistryTool, ToolGroup } from '@/app/lib/toolRegistryTypes';
 import { type SelectedTool } from '@daviddh/llm-graph-runner';
 import { useTranslations } from 'next-intl';
 import React from 'react';
 
-import { computeHeaderState, isToolSelected, toggleTool } from '@/app/lib/agentTools';
-import type { RegistryTool, ToolGroup } from '@/app/lib/toolRegistryTypes';
-
 import { Scrollable } from '../Scrollable';
-
-import { EmptyToolsHint } from './EmptyToolsHint';
 import { ProviderErrorRow, groupProviderId } from './ProviderErrorRow';
 import { ProviderHeader } from './ProviderHeader';
 import type { SaveState } from './SaveStateIndicator';
@@ -61,13 +58,12 @@ interface AgentModeBodyProps {
 }
 
 export function AgentModeBody(props: AgentModeBodyProps): React.JSX.Element {
-  const { agent, groups, searchActive, expandedTool, failedProviders, onToggleTool, onCollapseTool } =
-    props;
-  const showEmpty = agent.selectedTools.length === 0 && agent.staleEntries.length === 0;
+  const { agent, groups, searchActive, expandedTool, failedProviders, onToggleTool, onCollapseTool } = props;
+  
   return (
     <Scrollable className="flex-1 p-1 pt-0">
       <StaleEntriesGroup staleEntries={agent.staleEntries} onRemove={agent.onRemoveStale} />
-      {showEmpty && <EmptyToolsHint />}
+
       {groups.map((group) => (
         <AgentModeGroup
           key={group.groupName}
@@ -149,8 +145,7 @@ function computeDisabledReason(
   stores: AgentToolStoresPanelConfig | undefined
 ): ToolRowDisabledReason {
   if (storeKind === null || stores === undefined) return null;
-  const id =
-    storeKind === 'kv' ? stores.bindings.selectedKvStoreId : stores.bindings.selectedRagStoreId;
+  const id = storeKind === 'kv' ? stores.bindings.selectedKvStoreId : stores.bindings.selectedRagStoreId;
   if (id !== null) return null;
   return { kind: 'no_store_bound', storeKind };
 }
@@ -189,8 +184,7 @@ function GroupToolList(props: GroupToolListProps): React.JSX.Element {
 }
 
 function AgentModeGroup(props: AgentModeGroupProps): React.JSX.Element {
-  const { group, agent, searchActive, expandedTool, failedProviders, onToggleTool, onCollapseTool } =
-    props;
+  const { group, agent, searchActive, expandedTool, failedProviders, onToggleTool, onCollapseTool } = props;
   const tr = useTranslations('agentTools');
   const groupTools = group.tools.map(registryToolToSelectedTool);
   const headerState = computeHeaderState({ groupTools, selected: agent.selectedTools });
@@ -200,9 +194,7 @@ function AgentModeGroup(props: AgentModeGroupProps): React.JSX.Element {
   const mcpFetchedAt = group.kind === 'mcp' ? group.fetchedAt : undefined;
   const storeKind = storeKindForGroup(group);
   const storePlaceholder =
-    storeKind !== null
-      ? tr('selectStoreKind', { kind: storeKind === 'kv' ? 'KV' : 'RAG' })
-      : '';
+    storeKind !== null ? tr('selectStoreKind', { kind: storeKind === 'kv' ? 'KV' : 'RAG' }) : '';
   const rightSlot =
     storeKind !== null && agent.stores !== undefined
       ? renderStoreSelect(storeKind, agent.stores, storePlaceholder)
