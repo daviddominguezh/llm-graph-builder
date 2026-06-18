@@ -6,6 +6,9 @@
  * (`buildTools.ts`) and the JSON Schema mirror (`descriptors.ts`) MUST use the
  * exact same wording so that whichever surface the LLM sees, it receives
  * identical information.
+ *
+ * Style: describe behavior + capabilities + constraints. Skip implementation
+ * details (engine names, internal timeouts, SQL operator names, etc.).
  */
 
 /* ─── Tool-level description ─── */
@@ -13,15 +16,14 @@
 export const RAG_SEARCH_TOOL_DESC =
   'Search the bound RAG (knowledge-base) store for chunks relevant to a query. ' +
   'Choose `mode` based on the kind of query:\n' +
-  '  • `bm25`     — lexical keyword + frequency scoring (Postgres FTS). Best for exact terms, IDs, ' +
-  'proper nouns, and codes where the wording is known.\n' +
-  '  • `semantic` — vector similarity over text embeddings. Best for natural-language meaning when the ' +
-  'exact wording is likely to differ.\n' +
-  '  • `hybrid`   — combines `semantic` + `bm25` (runs both and merges by score). Use when unsure which ' +
-  'would win — usually the safest default for general questions.\n' +
-  '  • `regex`    — POSIX regex via Postgres (500ms server-side timeout). Use ONLY for structured ' +
-  'patterns (emails, IDs, SKUs, error codes). Slower than the others; prefer `bm25` unless you truly ' +
-  'need a pattern.\n' +
+  '  • `bm25`     — keyword + frequency scoring. Best for exact terms, IDs, proper nouns, and codes ' +
+  'where the wording is known.\n' +
+  '  • `semantic` — meaning-based vector match. Best for natural-language meaning when the exact ' +
+  'wording is likely to differ.\n' +
+  '  • `hybrid`   — combines `semantic` + `bm25` and merges by score. Use when unsure which would ' +
+  'win — usually the safest default for general questions.\n' +
+  '  • `regex`    — regex pattern. Use ONLY for structured patterns (emails, IDs, SKUs, error codes). ' +
+  'Slower than the others; prefer `bm25` unless you truly need a pattern.\n' +
   'Returns paginated `{ items: string[], total, offset, limit, truncated? }` where `items` are the top ' +
   'matching chunk texts.';
 
@@ -29,21 +31,18 @@ export const RAG_SEARCH_TOOL_DESC =
 
 export const RAG_MODE_DESC =
   'Which search strategy to use. ' +
-  '"bm25" = lexical keyword/frequency (Postgres FTS), best for exact terms and known wording. ' +
-  '"semantic" = vector similarity over embeddings, best for meaning when wording differs. ' +
+  '"bm25" = keyword/frequency match, best for exact terms and known wording. ' +
+  '"semantic" = meaning-based vector match, best when the wording is likely to differ. ' +
   '"hybrid" = blends semantic + bm25, safest default when unsure. ' +
-  '"regex" = POSIX regex (500ms timeout), only for structured patterns like emails or SKUs.';
+  '"regex" = regex pattern, only for structured patterns like emails or SKUs.';
 
 export const RAG_QUERY_DESC =
-  'The search input. REQUIRED for modes "bm25", "semantic", and "hybrid". Ignored for mode "regex". ' +
-  'Max 4096 characters. For "bm25" pass keyword(s); for "semantic"/"hybrid" pass a natural-language phrase.';
-
-export const RAG_PATTERN_DESC =
-  'The POSIX regex pattern to match against chunk content. REQUIRED when mode="regex". ' +
-  'Ignored for other modes. Max 1024 characters. Server-side statement timeout: 500ms.';
+  'What to search for. For mode="bm25": one or more keywords (max 4096 chars). ' +
+  'For mode="semantic" / "hybrid": a natural-language phrase (max 4096 chars). ' +
+  'For mode="regex": a regex pattern (max 1024 chars; no lookaround or backreferences).';
 
 export const RAG_MIN_SIMILARITY_DESC =
-  'Minimum cosine-similarity floor for embedding matches. Range 0.0–1.0; defaults to 0.5. ' +
+  'Minimum similarity floor for matches. Range 0.0–1.0; defaults to 0.5. ' +
   'ONLY applies to mode="semantic" and mode="hybrid" — ignored for "bm25" and "regex". ' +
   'Higher values (e.g. 0.7) return fewer, more precise matches; lower values (e.g. 0.3) return more ' +
   'permissive matches. Set to 0 to disable the floor entirely.';
@@ -64,4 +63,4 @@ export const RAG_RESPONSE_OFFSET_DESC =
 export const RAG_RESPONSE_LIMIT_DESC =
   'The `limit` actually used (echoed back; defaulted when omitted in input).';
 export const RAG_RESPONSE_TRUNCATED_DESC =
-  'Present and `true` only when (offset + limit) was clamped to MAX_OFFSET. Signals you should narrow the query.';
+  'Present and `true` only when (offset + limit) was clamped. Signals you should narrow the query.';

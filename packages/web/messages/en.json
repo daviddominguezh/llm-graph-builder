@@ -1980,12 +1980,11 @@
           }
         },
         "search": {
-          "description": "Find entries by substring or POSIX regex. Substring is case-insensitive; regex uses RE2 (safe, linear-time).",
+          "description": "Find entries by substring or regex. Substring is case-insensitive; regex is bounded to a sample for safety.",
           "params": {
-            "mode": "How to match: substring (case-insensitive ILIKE) or regex (RE2-compatible POSIX).",
+            "mode": "How to match: substring (case-insensitive) or regex.",
             "on": "Which field(s) to match: keys, values, or both. Defaults to both.",
-            "query": "Substring to search for. Required when mode is substring.",
-            "pattern": "Regex pattern to scan for. Required when mode is regex.",
+            "query": "What to search for. For substring mode: a case-insensitive substring (max 2048 chars). For regex mode: a regex pattern (max 1024 chars; no lookaround or backreferences).",
             "offset": "Zero-based page offset. Defaults to 0.",
             "limit": "Maximum matches per page (1–500). Defaults to 50."
           }
@@ -2005,9 +2004,8 @@
         "search": {
           "description": "Search the bound knowledge base for relevant chunks. Choose BM25 for keywords, semantic for meaning, hybrid for both, or regex for structured patterns.",
           "params": {
-            "mode": "Search strategy: bm25 (keyword), semantic (meaning), hybrid (both), or regex (POSIX pattern).",
-            "query": "Search input. Required for bm25, semantic, and hybrid modes.",
-            "pattern": "Regex pattern to match. Required when mode is regex.",
+            "mode": "Search strategy: bm25 (keyword), semantic (meaning), hybrid (both), or regex (pattern).",
+            "query": "What to search for. For bm25: keyword(s). For semantic/hybrid: a natural-language phrase. For regex: a regex pattern (max 1024 chars; no lookaround or backreferences).",
             "minSimilarity": "Minimum cosine similarity (0.0–1.0). Only applies to semantic and hybrid. Defaults to 0.5.",
             "offset": "Zero-based page offset. Defaults to 0.",
             "limit": "Maximum chunks per page (1–200). Defaults to 20."

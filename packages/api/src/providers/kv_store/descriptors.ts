@@ -9,7 +9,6 @@ import {
   SEARCH_LIMIT_DESC,
   SEARCH_MODE_DESC,
   SEARCH_ON_DESC,
-  SEARCH_PATTERN_DESC,
   SEARCH_QUERY_DESC,
   SEARCH_TOOL_DESC,
   UPDATE_KEY_DESC,
@@ -20,7 +19,6 @@ import {
 const ONE_KILOBYTE = 1024;
 const KEY_MAX_BYTES = 256;
 const VALUE_MAX_BYTES = KEY_MAX_BYTES * ONE_KILOBYTE;
-const KEY_PATTERN_MAX = ONE_KILOBYTE;
 const QUERY_MAX = 2048;
 const KEYS_MAX_ITEMS = 100;
 const OFFSET_MIN = 0;
@@ -90,7 +88,7 @@ const searchDescriptor: ToolDescriptor = {
   inputSchema: {
     type: 'object',
     description: SEARCH_TOOL_DESC,
-    required: ['mode'],
+    required: ['mode', 'query'],
     properties: {
       mode: { type: 'string', enum: ['substring', 'regex'], description: SEARCH_MODE_DESC },
       on: { type: 'string', enum: ['keys', 'values', 'both'], default: 'both', description: SEARCH_ON_DESC },
@@ -100,7 +98,6 @@ const searchDescriptor: ToolDescriptor = {
         maxLength: QUERY_MAX,
         description: SEARCH_QUERY_DESC,
       },
-      pattern: { type: 'string', maxLength: KEY_PATTERN_MAX, description: SEARCH_PATTERN_DESC },
       offset: offsetSchema,
       limit: searchLimitSchema,
     },

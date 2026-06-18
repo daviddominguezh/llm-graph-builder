@@ -133,7 +133,7 @@ describe('ragProvider — regex', () => {
   it('routes regex to searchRegex', async () => {
     const services = makeServices();
     const tool = await buildSearchTool(services);
-    await tool.execute({ mode: 'regex', pattern: 'foo', limit: FIVE });
+    await tool.execute({ mode: 'regex', query: 'foo', limit: FIVE });
     expect(services.searchRegex).toHaveBeenCalledWith({
       tenantId: TENANT_ID,
       pattern: 'foo',

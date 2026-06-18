@@ -8,7 +8,6 @@ import {
   RAG_MIN_SIMILARITY_DESC,
   RAG_MODE_DESC,
   RAG_OFFSET_DESC,
-  RAG_PATTERN_DESC,
   RAG_QUERY_DESC,
   RAG_SEARCH_TOOL_DESC,
 } from './descriptions.js';
@@ -27,8 +26,7 @@ const DEFAULT_MIN_SIMILARITY = 0.5;
 const searchInput = z
   .object({
     mode: z.enum(['bm25', 'semantic', 'hybrid', 'regex']).describe(RAG_MODE_DESC),
-    query: z.string().min(LIMIT_MIN).max(QUERY_MAX).optional().describe(RAG_QUERY_DESC),
-    pattern: z.string().max(ONE_KILOBYTE).optional().describe(RAG_PATTERN_DESC),
+    query: z.string().min(LIMIT_MIN).max(QUERY_MAX).describe(RAG_QUERY_DESC),
     minSimilarity: z
       .number()
       .min(MIN_SIMILARITY_FLOOR)
@@ -38,13 +36,14 @@ const searchInput = z
     offset: z.number().int().min(OFFSET_MIN).default(OFFSET_MIN).describe(RAG_OFFSET_DESC),
     limit: z.number().int().min(LIMIT_MIN).max(LIMIT_MAX).default(DEFAULT_LIMIT).describe(RAG_LIMIT_DESC),
   })
+  // mode='regex' tightens the cap to bound ReDoS exposure on the POSIX path.
   .superRefine((val, ctx) => {
-    const textModes = ['bm25', 'semantic', 'hybrid'];
-    if (textModes.includes(val.mode) && (val.query === undefined || val.query === '')) {
-      ctx.addIssue({ code: 'custom', message: `query is required when mode="${val.mode}"` });
-    }
-    if (val.mode === 'regex' && (val.pattern === undefined || val.pattern === '')) {
-      ctx.addIssue({ code: 'custom', message: 'pattern is required when mode="regex"' });
+    if (val.mode === 'regex' && val.query.length > ONE_KILOBYTE) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['query'],
+        message: `regex query exceeds ${ONE_KILOBYTE} chars`,
+      });
     }
   })
   .describe(RAG_SEARCH_TOOL_DESC);
@@ -61,13 +60,13 @@ function parseArgs<S extends z.ZodType>(schema: S, args: unknown): z.infer<S> {
 type SearchInput = z.infer<typeof searchInput>;
 
 async function executeBm25(ctx: RagToolCtx, input: SearchInput): Promise<unknown> {
-  return await ctx.services.searchBm25(ctx.tenantId, input.query ?? '', input.offset, input.limit);
+  return await ctx.services.searchBm25(ctx.tenantId, input.query, input.offset, input.limit);
 }
 
 async function executeSemantic(ctx: RagToolCtx, input: SearchInput): Promise<unknown> {
   return await ctx.services.searchSemantic({
     tenantId: ctx.tenantId,
-    query: input.query ?? '',
+    query: input.query,
     minSimilarity: input.minSimilarity,
     offset: input.offset,
     limit: input.limit,
@@ -77,7 +76,7 @@ async function executeSemantic(ctx: RagToolCtx, input: SearchInput): Promise<unk
 async function executeHybrid(ctx: RagToolCtx, input: SearchInput): Promise<unknown> {
   return await ctx.services.searchHybrid({
     tenantId: ctx.tenantId,
-    query: input.query ?? '',
+    query: input.query,
     minSimilarity: input.minSimilarity,
     offset: input.offset,
     limit: input.limit,
@@ -87,7 +86,7 @@ async function executeHybrid(ctx: RagToolCtx, input: SearchInput): Promise<unkno
 async function executeRegex(ctx: RagToolCtx, input: SearchInput): Promise<unknown> {
   return await ctx.services.searchRegex({
     tenantId: ctx.tenantId,
-    pattern: input.pattern ?? '',
+    pattern: input.query,
     offset: input.offset,
     limit: input.limit,
   });

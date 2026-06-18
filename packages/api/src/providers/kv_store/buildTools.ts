@@ -12,7 +12,6 @@ import {
   SEARCH_LIMIT_DESC,
   SEARCH_MODE_DESC,
   SEARCH_ON_DESC,
-  SEARCH_PATTERN_DESC,
   SEARCH_QUERY_DESC,
   SEARCH_TOOL_DESC,
   UPDATE_KEY_DESC,
@@ -63,8 +62,7 @@ const searchInput = z
   .object({
     mode: z.enum(['substring', 'regex']).describe(SEARCH_MODE_DESC),
     on: z.enum(['keys', 'values', 'both']).default('both').describe(SEARCH_ON_DESC),
-    query: z.string().min(LIMIT_MIN).max(QUERY_MAX).optional().describe(SEARCH_QUERY_DESC),
-    pattern: z.string().max(KEY_PATTERN_MAX).optional().describe(SEARCH_PATTERN_DESC),
+    query: z.string().min(LIMIT_MIN).max(QUERY_MAX).describe(SEARCH_QUERY_DESC),
     offset: z.number().int().min(OFFSET_MIN).default(OFFSET_MIN).describe(OFFSET_DESC),
     limit: z
       .number()
@@ -74,12 +72,14 @@ const searchInput = z
       .default(SEARCH_DEFAULT_LIMIT)
       .describe(SEARCH_LIMIT_DESC),
   })
+  // mode='regex' tightens the cap to bound ReDoS exposure on the RE2 path.
   .superRefine((val, ctx) => {
-    if (val.mode === 'substring' && (val.query === undefined || val.query === '')) {
-      ctx.addIssue({ code: 'custom', message: 'query is required when mode="substring"' });
-    }
-    if (val.mode === 'regex' && (val.pattern === undefined || val.pattern === '')) {
-      ctx.addIssue({ code: 'custom', message: 'pattern is required when mode="regex"' });
+    if (val.mode === 'regex' && val.query.length > KEY_PATTERN_MAX) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['query'],
+        message: `regex query exceeds ${KEY_PATTERN_MAX} chars`,
+      });
     }
   })
   .describe(SEARCH_TOOL_DESC);
@@ -116,7 +116,7 @@ async function executeSearchSubstring(ctx: KvToolCtx, input: z.infer<typeof sear
   return await ctx.services.searchSubstring({
     tenantId: ctx.tenantId,
     on: input.on,
-    query: input.query ?? '',
+    query: input.query,
     offset: input.offset,
     limit: input.limit,
   });
@@ -126,7 +126,7 @@ async function executeSearchRegex(ctx: KvToolCtx, input: z.infer<typeof searchIn
   return await ctx.services.searchRegex({
     tenantId: ctx.tenantId,
     on: input.on,
-    pattern: input.pattern ?? '',
+    pattern: input.query,
     offset: input.offset,
     limit: input.limit,
   });

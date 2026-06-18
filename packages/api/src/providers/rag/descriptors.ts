@@ -5,12 +5,10 @@ import {
   RAG_MIN_SIMILARITY_DESC,
   RAG_MODE_DESC,
   RAG_OFFSET_DESC,
-  RAG_PATTERN_DESC,
   RAG_QUERY_DESC,
   RAG_SEARCH_TOOL_DESC,
 } from './descriptions.js';
 
-const ONE_KILOBYTE = 1024;
 const QUERY_MAX = 4096;
 const OFFSET_MIN = 0;
 const LIMIT_MIN = 1;
@@ -42,11 +40,10 @@ const searchDescriptor: ToolDescriptor = {
   inputSchema: {
     type: 'object',
     description: RAG_SEARCH_TOOL_DESC,
-    required: ['mode'],
+    required: ['mode', 'query'],
     properties: {
       mode: { type: 'string', enum: ['bm25', 'semantic', 'hybrid', 'regex'], description: RAG_MODE_DESC },
       query: { type: 'string', minLength: LIMIT_MIN, maxLength: QUERY_MAX, description: RAG_QUERY_DESC },
-      pattern: { type: 'string', maxLength: ONE_KILOBYTE, description: RAG_PATTERN_DESC },
       minSimilarity: {
         type: 'number',
         minimum: MIN_SIMILARITY_FLOOR,

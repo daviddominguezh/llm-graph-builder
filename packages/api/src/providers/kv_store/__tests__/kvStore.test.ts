@@ -123,7 +123,7 @@ describe('kvStoreProvider — search', () => {
     const built = await kvStoreProvider.buildTools({ toolNames: ['search'], ctx: makeCtx(services) });
     const { search: tool } = built;
     if (tool === undefined) throw new Error('expected search tool');
-    await tool.execute({ mode: 'regex', pattern: 'foo', limit: FIVE });
+    await tool.execute({ mode: 'regex', query: 'foo', limit: FIVE });
     expect(services.searchRegex).toHaveBeenCalledWith({
       tenantId: TENANT_ID,
       on: 'both',
@@ -133,7 +133,7 @@ describe('kvStoreProvider — search', () => {
     });
   });
 
-  it('rejects mode="substring" without a query', async () => {
+  it('rejects search without a query', async () => {
     const services = makeServices();
     const built = await kvStoreProvider.buildTools({ toolNames: ['search'], ctx: makeCtx(services) });
     const { search: tool } = built;

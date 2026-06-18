@@ -5,6 +5,10 @@
  * to the LLM. Both the Zod schemas (`buildTools.ts`) and the JSON Schema
  * mirrors (`descriptors.ts`) MUST use the exact same wording so that whichever
  * surface the LLM sees, it receives identical information.
+ *
+ * Style: describe behavior + capabilities + constraints. Skip implementation
+ * details (engine names, internal timeouts, SQL operator names, etc.) — they
+ * add tokens without helping the agent make decisions.
  */
 
 /* ─── Tool-level descriptions ─── */
@@ -22,10 +26,9 @@ export const GET_VALUES_TOOL_DESC =
   'Use this when you already know the keys you need; otherwise use `list_keys` or `search` first.';
 
 export const SEARCH_TOOL_DESC =
-  'Search KV entries by substring (case-insensitive ILIKE) or POSIX regex (RE2 engine, linear-time, ' +
-  'safe from catastrophic backtracking). Use mode="substring" for simple keyword lookups; use mode="regex" ' +
-  'only when you need a structured pattern. Regex scans are bounded to a 10,000-row sample for safety — ' +
-  'narrow with a more specific pattern if your data exceeds that. Returns matching `{ key, value }` pairs.';
+  'Search KV entries by substring or regex. Use mode="substring" for simple keyword lookups; use ' +
+  'mode="regex" only when you need a structured pattern. Regex scans are bounded to a sample for safety — ' +
+  'narrow with a more specific pattern if your data exceeds it. Returns matching `{ key, value }` pairs.';
 
 export const UPDATE_VALUE_TOOL_DESC =
   'Insert or update a value for a key (upsert). ' +
@@ -51,22 +54,18 @@ export const GET_VALUES_KEYS_DESC =
   'Missing keys are returned as `null` in the response map.';
 
 export const SEARCH_MODE_DESC =
-  'How to match entries against the input: ' +
-  '"substring" performs a case-insensitive substring (ILIKE) match using `query`; ' +
-  '"regex" compiles `pattern` as an RE2-compatible POSIX regex and scans up to 10,000 rows.';
+  'How to match entries against `query`: ' +
+  '"substring" performs a case-insensitive substring match; ' +
+  '"regex" interprets `query` as a regex pattern.';
 
 export const SEARCH_ON_DESC =
   'Which field(s) of each entry to match against: ' +
   '"keys" matches only the key text, "values" matches only the value text, ' +
-  '"both" matches if either matches (case-insensitive for substring mode). Defaults to "both".';
+  '"both" matches if either matches. Defaults to "both".';
 
 export const SEARCH_QUERY_DESC =
-  'The substring to search for (case-insensitive). REQUIRED when mode="substring" — ignored when mode="regex". ' +
-  'Max 2048 characters.';
-
-export const SEARCH_PATTERN_DESC =
-  'The RE2-compatible POSIX regex pattern to scan for. REQUIRED when mode="regex" — ignored when ' +
-  'mode="substring". Max 1024 characters. Linear-time engine — no lookaround or backreferences.';
+  'What to search for. When mode="substring": a case-insensitive substring (max 2048 chars). ' +
+  'When mode="regex": a regex pattern (max 1024 chars; no lookaround or backreferences).';
 
 export const UPDATE_KEY_DESC =
   'The key to write. 1–256 bytes. Keys with the `_sys.` prefix (case-insensitive) are reserved for the ' +
@@ -83,4 +82,4 @@ export const RESPONSE_OFFSET_DESC =
 export const RESPONSE_LIMIT_DESC =
   'The `limit` actually used (echoed back; defaulted when omitted in input).';
 export const RESPONSE_TRUNCATED_DESC =
-  'Present and `true` only when (offset + limit) was clamped to MAX_OFFSET. Signals you should narrow the query.';
+  'Present and `true` only when (offset + limit) was clamped. Signals you should narrow the query.';
