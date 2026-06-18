@@ -10,6 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -52,19 +53,34 @@ interface KvKeyCellProps {
   onUpdate: (id: string, field: 'key' | 'value', value: string) => void;
 }
 
+const SYS_PREFIX = '_sys.';
+
+function isSysKey(key: string): boolean {
+  return key.toLowerCase().startsWith(SYS_PREFIX);
+}
+
 function KvKeyCell({ entry, isTrailingEmpty, isDuplicate, onUpdate }: KvKeyCellProps): React.JSX.Element {
   const t = useTranslations('knowledgeBase.kv');
   const ph = isTrailingEmpty ? t('addKeyPlaceholder') : t('keyPlaceholder');
   const phItalic = isTrailingEmpty ? 'placeholder:italic' : '';
   const dupCls = isDuplicate ? 'ring-1 ring-destructive' : '';
+  const showSysBadge = !isTrailingEmpty && isSysKey(entry.key);
   return (
     <TableCell className="p-1 align-top">
-      <input
-        className={`${CELL_INPUT_BASE} font-mono ${phItalic} ${dupCls}`}
-        value={entry.key}
-        placeholder={ph}
-        onChange={(e) => onUpdate(entry.id, 'key', e.target.value)}
-      />
+      <div className="flex items-center gap-1.5">
+        <input
+          className={`${CELL_INPUT_BASE} font-mono ${phItalic} ${dupCls}`}
+          value={entry.key}
+          placeholder={ph}
+          onChange={(e) => onUpdate(entry.id, 'key', e.target.value)}
+        />
+        {showSysBadge && (
+          /* i18n: knowledgeBase.kvStore.sysBadge */
+          <Badge variant="secondary" className="shrink-0">
+            read-only
+          </Badge>
+        )}
+      </div>
       {isDuplicate && (
         <span className="block px-2 pt-0.5 text-[11px] text-destructive animate-in fade-in duration-150">
           {t('duplicateKey')}
@@ -434,7 +450,11 @@ export function KvStoreTable({ entries: external, onEntriesChange }: KvStoreTabl
     <>
       <div className="flex flex-1 flex-col px-4">
         <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-end">
+          <div className="flex items-center justify-between gap-2">
+            {/* i18n: knowledgeBase.kvStore.sysHelperText */}
+            <span className="text-[11px] text-muted-foreground">
+              Keys prefixed with &quot;_sys.&quot; are read-only to agents.
+            </span>
             <SearchInput query={query} onChange={setQuery} />
           </div>
           <KvTableView
