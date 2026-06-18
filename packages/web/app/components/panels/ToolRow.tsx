@@ -8,7 +8,7 @@ import { useRef } from 'react';
 
 import { FloatingSchema, type ToolSchema } from './ToolSchemaPopover';
 import { PlayButton } from './ToolsPanelViewMode';
-import { DisabledIndicator, buildDisabledTooltip } from './toolStoreHelpers';
+import { buildDisabledTooltip } from './toolStoreHelpers';
 
 export type ToolRowDisabledReason = { kind: 'no_store_bound'; storeKind: 'kv' | 'rag' } | null;
 
@@ -62,10 +62,7 @@ function ToolRowHeader(props: ToolRowHeaderProps): React.JSX.Element {
         onClick={onToggleExpanded}
         className="flex min-w-0 flex-1 flex-col text-left cursor-pointer"
       >
-        <span className="font-medium flex items-center gap-1">
-          {tool.name}
-          {disabledTooltip !== undefined && <DisabledIndicator tooltip={disabledTooltip} />}
-        </span>
+        <span className="font-medium truncate">{tool.name}</span>
         <span className="truncate text-[10px] text-muted-foreground">
           {displayDescription ?? tool.group}
         </span>

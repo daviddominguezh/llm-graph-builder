@@ -56,6 +56,25 @@ export function renderStoreSelect(
   );
 }
 
+/**
+ * Renders the kv/rag group header's right slot. When the store is unbound, the
+ * orange info icon + tooltip sit beside the dropdown so the "why are these
+ * tools disabled?" affordance lives at the group level (not on each tool row).
+ */
+export function renderGroupRightSlot(
+  storeKind: StoreKind,
+  stores: AgentToolStoresPanelConfig,
+  placeholder: string,
+  disabledTooltip: string | undefined
+): React.ReactNode {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      {disabledTooltip !== undefined && <DisabledIndicator tooltip={disabledTooltip} />}
+      {renderStoreSelect(storeKind, stores, placeholder)}
+    </span>
+  );
+}
+
 export function computeDisabledReason(
   storeKind: StoreKind | null,
   stores: AgentToolStoresPanelConfig | undefined

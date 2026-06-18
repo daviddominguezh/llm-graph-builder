@@ -14,8 +14,9 @@ import { StaleEntriesGroup } from './StaleEntriesGroup';
 import { ToolRow as SelectableToolRow, type ToolRowDisabledReason } from './ToolRow';
 import {
   type AgentToolStoresPanelConfig,
+  buildDisabledTooltip,
   computeDisabledReason,
-  renderStoreSelect,
+  renderGroupRightSlot,
   storeKindForGroup,
 } from './toolStoreHelpers';
 
@@ -169,11 +170,12 @@ function AgentModeGroup(props: AgentModeGroupProps): React.JSX.Element {
   const storeKind = storeKindForGroup(group);
   const storePlaceholder =
     storeKind !== null ? tr('selectStoreKind', { kind: storeKind === 'kv' ? 'KV' : 'RAG' }) : '';
+  const disabledReason = computeDisabledReason(storeKind, agent.stores);
+  const disabledTooltip = buildDisabledTooltip(disabledReason, tr);
   const rightSlot =
     storeKind !== null && agent.stores !== undefined
-      ? renderStoreSelect(storeKind, agent.stores, storePlaceholder)
+      ? renderGroupRightSlot(storeKind, agent.stores, storePlaceholder, disabledTooltip)
       : undefined;
-  const disabledReason = computeDisabledReason(storeKind, agent.stores);
   return (
     <div>
       <ProviderHeader

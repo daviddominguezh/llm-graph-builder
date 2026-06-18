@@ -14,10 +14,9 @@ import type { ToolRowDisabledReason } from './ToolRow';
 import { FloatingSchema, type ToolSchema } from './ToolSchemaPopover';
 import {
   type AgentToolStoresPanelConfig,
-  DisabledIndicator,
   buildDisabledTooltip,
   computeDisabledReason,
-  renderStoreSelect,
+  renderGroupRightSlot,
   storeKindForGroup,
 } from './toolStoreHelpers';
 
@@ -80,10 +79,7 @@ function ViewToolRowBody(props: ViewToolRowBodyProps): React.JSX.Element {
   return (
     <>
       <div className="py-0.5 flex min-w-0 flex-1 flex-col">
-        <span className="font-medium flex items-center gap-1">
-          {tool.name}
-          {disabledTooltip !== undefined && <DisabledIndicator tooltip={disabledTooltip} />}
-        </span>
+        <span className="font-medium truncate">{tool.name}</span>
         <span className="truncate text-[10px] text-muted-foreground">
           {displayDescription ?? tool.group}
         </span>
@@ -186,11 +182,12 @@ function useGroupStoreState(
   const storeKind = storeKindForGroup(group);
   const storePlaceholder =
     storeKind !== null ? tr('selectStoreKind', { kind: storeKind === 'kv' ? 'KV' : 'RAG' }) : '';
+  const disabledReason = computeDisabledReason(storeKind, stores);
+  const disabledTooltip = buildDisabledTooltip(disabledReason, tr);
   const rightSlot =
     storeKind !== null && stores !== undefined
-      ? renderStoreSelect(storeKind, stores, storePlaceholder)
+      ? renderGroupRightSlot(storeKind, stores, storePlaceholder, disabledTooltip)
       : undefined;
-  const disabledReason = computeDisabledReason(storeKind, stores);
   return { rightSlot, disabledReason };
 }
 
