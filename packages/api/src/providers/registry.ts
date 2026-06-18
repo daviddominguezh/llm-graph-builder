@@ -32,7 +32,14 @@ export interface DescribeAllItem {
 
 export interface Registry {
   readonly providers: readonly Provider[];
-  readonly findToolByName: (toolName: string, ctx: ProviderCtx) => Promise<IndexEntry | null>;
+  /**
+   * Looks up a tool by its LLM-facing namespaced name (`${providerId}__${toolName}`).
+   * Callers that have the raw `(providerId, toolName)` pair should compose it via
+   * `namespaceToolName` from `./types.js`; callers that received the name FROM the
+   * LLM should pass it through unchanged, and may recover the pair with
+   * `parseNamespacedToolName` for downstream dispatch.
+   */
+  readonly findToolByName: (namespacedName: string, ctx: ProviderCtx) => Promise<IndexEntry | null>;
   readonly buildSelected: (args: { refs: SelectedTool[]; ctx: ProviderCtx }) => Promise<RegistryBuildResult>;
   readonly describeAll: (ctx: ProviderCtx) => Promise<DescribeAllItem[]>;
 }

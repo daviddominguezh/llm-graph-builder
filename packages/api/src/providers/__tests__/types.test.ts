@@ -1,7 +1,13 @@
 import { describe, expect, it } from '@jest/globals';
 import { z } from 'zod';
 
-import { type OpenFlowTool, type RawJsonSchema, toAiSdkTool } from '../types.js';
+import {
+  type OpenFlowTool,
+  type RawJsonSchema,
+  namespaceToolName,
+  parseNamespacedToolName,
+  toAiSdkTool,
+} from '../types.js';
 
 describe('toAiSdkTool', () => {
   it('maps a Zod-schema OpenFlowTool to an AI SDK Tool', () => {
@@ -35,5 +41,25 @@ describe('toAiSdkTool', () => {
     expect(aiTool.description).toBe('Greet via JSON Schema');
     expect(aiTool.inputSchema).toBeDefined();
     expect(typeof aiTool.execute).toBe('function');
+  });
+});
+
+describe('namespaceToolName / parseNamespacedToolName', () => {
+  it('round-trips a simple (providerId, toolName) pair', () => {
+    const name = namespaceToolName('kv_store', 'search');
+    expect(name).toBe('kv_store__search');
+    expect(parseNamespacedToolName(name)).toEqual({ providerId: 'kv_store', toolName: 'search' });
+  });
+
+  it('splits on the first separator so tool names containing __ survive', () => {
+    const name = namespaceToolName('rag', 'fancy__search');
+    expect(parseNamespacedToolName(name)).toEqual({ providerId: 'rag', toolName: 'fancy__search' });
+  });
+
+  it('returns null for malformed input (defensive contract)', () => {
+    expect(parseNamespacedToolName('no_separator_here')).toBeNull();
+    expect(parseNamespacedToolName('__missing_provider')).toBeNull();
+    expect(parseNamespacedToolName('missing_tool__')).toBeNull();
+    expect(parseNamespacedToolName('')).toBeNull();
   });
 });
