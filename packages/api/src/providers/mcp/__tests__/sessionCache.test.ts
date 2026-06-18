@@ -12,7 +12,7 @@ import {
 const ORG_ID = 'org-1';
 const SERVER_URL = 'https://example.com/mcp';
 const ONE_CALL = 1;
-const EXPECTED_TTL_SECONDS = 1800;
+const EXPECTED_TTL_SECONDS = 86400;
 const SAMPLE_CAPTURED_AT = 1_700_000_000_000;
 const MALFORMED_SESSION_ID_VALUE = 42;
 
