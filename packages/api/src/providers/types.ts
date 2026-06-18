@@ -55,6 +55,12 @@ function isZodSchema(value: ToolInputSchema): value is z.ZodType {
   return '_def' in value;
 }
 
+/**
+ * Wraps execute() with timing + ToolError code observability. `toolName` here is
+ * the dict-key the AI SDK presents to the LLM — when called via toAiSdkToolDict
+ * downstream of buildSelected / resolveToolsForCurrentNode it is the namespaced
+ * `${providerId}__${toolName}` form, so log lines match the name the LLM saw.
+ */
 function instrumentedExecute<O>(t: OpenFlowTool<O>, toolName: string): (args: unknown) => Promise<O> {
   return async (args: unknown): Promise<O> => {
     const start = Date.now();
