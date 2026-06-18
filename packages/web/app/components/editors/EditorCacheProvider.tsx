@@ -9,6 +9,10 @@ interface ElementRect {
   height: number;
 }
 
+function rectStyle(rect: ElementRect): React.CSSProperties {
+  return { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
+}
+
 interface PanelInsets {
   top: number;
   left: number;
@@ -108,7 +112,7 @@ function EditorBaseLayer({ mainRect }: { mainRect: ElementRect | null }) {
   return (
     <div
       className="fixed z-0 bg-background rounded-xl pointer-events-none"
-      style={mainRect}
+      style={rectStyle(mainRect)}
       aria-hidden
     />
   );
@@ -160,7 +164,7 @@ function CachedEditor({
   return (
     <div
       className={isVisible ? 'fixed z-0 overflow-hidden rounded-xl' : 'fixed inset-0 -z-[9999] invisible pointer-events-none'}
-      style={isVisible && mainRect ? mainRect : undefined}
+      style={isVisible && mainRect ? rectStyle(mainRect) : undefined}
     >
       {children}
     </div>
