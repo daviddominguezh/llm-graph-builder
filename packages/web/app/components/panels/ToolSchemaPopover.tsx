@@ -1,5 +1,6 @@
 'use client';
 
+import { type ProviderKind, useToolCatalog } from '@/app/lib/toolCatalog';
 import { Separator } from '@/components/ui/separator';
 import { useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
@@ -33,10 +34,12 @@ function SchemaFieldRow({
   name,
   prop,
   isRequired,
+  displayDescription,
 }: {
   name: string;
   prop: SchemaProperty;
   isRequired: boolean;
+  displayDescription: string | undefined;
 }) {
   return (
     <div className="flex flex-col gap-0.5">
@@ -45,8 +48,8 @@ function SchemaFieldRow({
         {prop.type && <span className="text-[10px] text-muted-foreground">({prop.type})</span>}
         {isRequired && <span className="text-[10px] font-medium text-orange-600">*</span>}
       </div>
-      {prop.description && (
-        <span className="text-[10px] leading-tight text-muted-foreground">{prop.description}</span>
+      {displayDescription !== undefined && displayDescription.length > 0 && (
+        <span className="text-[10px] leading-tight text-muted-foreground">{displayDescription}</span>
       )}
       {prop.enum && prop.enum.length > 0 && (
         <div className="flex flex-wrap gap-0.5">
@@ -61,7 +64,15 @@ function SchemaFieldRow({
   );
 }
 
-function ToolSchemaDetails({ schema }: { schema: ToolSchema }) {
+interface ToolSchemaDetailsProps {
+  schema: ToolSchema;
+  providerId: string;
+  providerKind: ProviderKind;
+  toolName: string;
+}
+
+function ToolSchemaDetails({ schema, providerId, providerKind, toolName }: ToolSchemaDetailsProps) {
+  const catalog = useToolCatalog();
   if (!schema.properties || Object.keys(schema.properties).length === 0) {
     return <p className="px-3 py-1 text-[10px] text-muted-foreground">No parameters</p>;
   }
@@ -75,23 +86,43 @@ function ToolSchemaDetails({ schema }: { schema: ToolSchema }) {
 
   return (
     <div className="flex flex-col px-3 pb-2">
-      {sorted.map(([name, prop], index) => (
-        <div key={name}>
-          {index > 0 && <Separator className="my-1.5" />}
-          <SchemaFieldRow name={name} prop={prop} isRequired={requiredSet.has(name)} />
-        </div>
-      ))}
+      {sorted.map(([name, prop], index) => {
+        const displayDescription = catalog.paramDescription(
+          providerId,
+          toolName,
+          name,
+          prop.description,
+          providerKind
+        );
+        return (
+          <div key={name}>
+            {index > 0 && <Separator className="my-1.5" />}
+            <SchemaFieldRow
+              name={name}
+              prop={prop}
+              isRequired={requiredSet.has(name)}
+              displayDescription={displayDescription}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 export function FloatingSchema({
   description = '',
+  providerId,
+  providerKind,
+  toolName,
   anchorRef,
   schema,
   onClose,
 }: {
   description?: string;
+  providerId: string;
+  providerKind: ProviderKind;
+  toolName: string;
   anchorRef: React.RefObject<HTMLDivElement | null>;
   schema: ToolSchema;
   onClose?: () => void;
@@ -139,7 +170,12 @@ export function FloatingSchema({
         </>
       )}
 
-      <ToolSchemaDetails schema={schema} />
+      <ToolSchemaDetails
+        schema={schema}
+        providerId={providerId}
+        providerKind={providerKind}
+        toolName={toolName}
+      />
     </div>,
     document.body
   );

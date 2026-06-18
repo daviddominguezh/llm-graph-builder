@@ -1,12 +1,15 @@
 'use client';
 
 import type { GroupHeaderState } from '@/app/lib/agentTools';
+import { type ProviderKind, useToolCatalog } from '@/app/lib/toolCatalog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useTranslations } from 'next-intl';
 
 import { CatalogFreshnessIndicator } from './CatalogFreshnessIndicator';
 
 interface ProviderHeaderProps {
+  providerId: string;
+  providerKind: ProviderKind;
   groupName: string;
   description?: string;
   state: GroupHeaderState;
@@ -37,6 +40,8 @@ function formatCount(args: {
 
 export function ProviderHeader(props: ProviderHeaderProps): React.JSX.Element {
   const t = useTranslations('agentTools');
+  const catalog = useToolCatalog();
+  const displayGroupName = catalog.groupName(props.providerId, props.groupName, props.providerKind);
   const isChecked = props.state === 'checked';
   const isIndeterminate = props.state === 'indeterminate';
   const count = formatCount({
@@ -57,7 +62,7 @@ export function ProviderHeader(props: ProviderHeaderProps): React.JSX.Element {
       />
       <div className="flex flex-col flex-1 min-w-0">
         <div className="flex items-center gap-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-          <span>{props.groupName}</span>
+          <span>{displayGroupName}</span>
           {count !== '' && <span className="lowercase">{count}</span>}
           {props.fetchedAt !== undefined && <CatalogFreshnessIndicator fetchedAt={props.fetchedAt} />}
         </div>

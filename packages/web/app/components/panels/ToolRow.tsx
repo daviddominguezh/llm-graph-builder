@@ -1,5 +1,6 @@
 'use client';
 
+import { type ProviderKind, useToolCatalog } from '@/app/lib/toolCatalog';
 import type { RegistryTool } from '@/app/lib/toolRegistryTypes';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Info } from 'lucide-react';
@@ -12,6 +13,8 @@ export type ToolRowDisabledReason = { kind: 'no_store_bound'; storeKind: 'kv' | 
 
 interface ToolRowProps {
   tool: RegistryTool;
+  providerId: string;
+  providerKind: ProviderKind;
   selected: boolean;
   expanded: boolean;
   onToggleSelected: () => void;
@@ -33,6 +36,7 @@ function buildDisabledTooltip(
 
 interface ToolRowHeaderProps {
   tool: RegistryTool;
+  displayDescription: string | undefined;
   selected: boolean;
   disabled: boolean;
   disabledTooltip: string | undefined;
@@ -41,7 +45,7 @@ interface ToolRowHeaderProps {
 }
 
 function ToolRowHeader(props: ToolRowHeaderProps): React.JSX.Element {
-  const { tool, selected, disabled, disabledTooltip, onToggleSelected, onToggleExpanded } = props;
+  const { tool, displayDescription, selected, disabled, disabledTooltip, onToggleSelected, onToggleExpanded } = props;
   return (
     <>
       <Checkbox
@@ -70,7 +74,7 @@ function ToolRowHeader(props: ToolRowHeaderProps): React.JSX.Element {
           )}
         </span>
         <span className="truncate text-[10px] text-muted-foreground">
-          {tool.description ?? tool.group}
+          {displayDescription ?? tool.group}
         </span>
       </button>
     </>
@@ -79,6 +83,8 @@ function ToolRowHeader(props: ToolRowHeaderProps): React.JSX.Element {
 
 export function ToolRow({
   tool,
+  providerId,
+  providerKind,
   selected,
   expanded,
   onToggleSelected,
@@ -88,6 +94,8 @@ export function ToolRow({
 }: ToolRowProps): React.JSX.Element {
   const rowRef = useRef<HTMLDivElement>(null);
   const t = useTranslations('agentTools');
+  const catalog = useToolCatalog();
+  const displayDescription = catalog.toolDescription(providerId, tool.name, tool.description, providerKind);
   const disabledTooltip = buildDisabledTooltip(disabledReason ?? null, t);
   const isDisabled = disabledTooltip !== undefined;
   const disabledCls = isDisabled ? 'opacity-60' : '';
@@ -99,6 +107,7 @@ export function ToolRow({
       >
         <ToolRowHeader
           tool={tool}
+          displayDescription={displayDescription}
           selected={selected}
           disabled={isDisabled}
           disabledTooltip={disabledTooltip}
@@ -108,7 +117,10 @@ export function ToolRow({
       </div>
       {expanded && tool.inputSchema !== undefined && (
         <FloatingSchema
-          description={tool.description}
+          description={displayDescription}
+          providerId={providerId}
+          providerKind={providerKind}
+          toolName={tool.name}
           anchorRef={rowRef}
           schema={tool.inputSchema as ToolSchema}
           onClose={onCollapse}

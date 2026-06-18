@@ -170,6 +170,8 @@ function GroupToolList(props: GroupToolListProps): React.JSX.Element {
           <SelectableToolRow
             key={key}
             tool={tool}
+            providerId={group.providerId}
+            providerKind={group.kind}
             selected={isToolSelected(agent.selectedTools, ref)}
             expanded={expandedTool === key}
             onToggleSelected={() => agent.onChange(toggleTool(agent.selectedTools, ref))}
@@ -203,6 +205,8 @@ function AgentModeGroup(props: AgentModeGroupProps): React.JSX.Element {
   return (
     <div>
       <ProviderHeader
+        providerId={group.providerId}
+        providerKind={group.kind}
         groupName={group.groupName}
         state={headerState}
         selectedInGroup={selectedInGroup}

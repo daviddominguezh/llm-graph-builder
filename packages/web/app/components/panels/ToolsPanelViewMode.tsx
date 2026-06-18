@@ -1,5 +1,6 @@
 'use client';
 
+import { type ProviderKind, useToolCatalog } from '@/app/lib/toolCatalog';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Play } from 'lucide-react';
@@ -42,14 +43,26 @@ export function PlayButton({ tool, onTest }: PlayButtonProps): React.JSX.Element
 
 interface ViewToolRowProps {
   tool: RegistryTool;
+  providerId: string;
+  providerKind: ProviderKind;
   expanded: boolean;
   onClick: () => void;
   onCollapse: () => void;
   onTest: (tool: RegistryTool) => void;
 }
 
-export function ViewToolRow({ tool, expanded, onClick, onCollapse, onTest }: ViewToolRowProps): React.JSX.Element {
+export function ViewToolRow({
+  tool,
+  providerId,
+  providerKind,
+  expanded,
+  onClick,
+  onCollapse,
+  onTest,
+}: ViewToolRowProps): React.JSX.Element {
   const rowRef = useRef<HTMLDivElement>(null);
+  const catalog = useToolCatalog();
+  const displayDescription = catalog.toolDescription(providerId, tool.name, tool.description, providerKind);
   return (
     <li className="flex flex-col w-[calc(33.3%_-_(var(--spacing)*2))] shrink-0 bg-input/70 rounded-sm py-0">
       <div
@@ -60,14 +73,17 @@ export function ViewToolRow({ tool, expanded, onClick, onCollapse, onTest }: Vie
         <div className="py-0.5 flex min-w-0 flex-1 flex-col">
           <span className="font-medium">{tool.name}</span>
           <span className="truncate text-[10px] text-muted-foreground">
-            {tool.description ?? tool.group}
+            {displayDescription ?? tool.group}
           </span>
         </div>
         <PlayButton tool={tool} onTest={onTest} />
       </div>
       {expanded && tool.inputSchema && (
         <FloatingSchema
-          description={tool.description}
+          description={displayDescription}
+          providerId={providerId}
+          providerKind={providerKind}
+          toolName={tool.name}
           anchorRef={rowRef}
           schema={tool.inputSchema as ToolSchema}
           onClose={onCollapse}
@@ -104,14 +120,16 @@ function ToolsListGroup({
   onCollapseTool,
   onTestTool,
 }: ToolsListGroupProps): React.JSX.Element {
+  const catalog = useToolCatalog();
   const providerId = groupProviderId(group);
   const hasError = providerId !== null && failedProviders.includes(providerId);
   const mcpFetchedAt = group.kind === 'mcp' ? group.fetchedAt : undefined;
+  const displayGroupName = catalog.groupName(group.providerId, group.groupName, group.kind);
   return (
     <div>
       <div className="sticky top-0 z-10 px-2 pt-0 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide bg-[rgb(255_255_255)] dark:bg-[rgb(18_18_18)]">
         <div className="pt-2 flex items-center gap-2">
-          <span>{group.groupName}</span>
+          <span>{displayGroupName}</span>
           {mcpFetchedAt !== undefined && <CatalogFreshnessIndicator fetchedAt={mcpFetchedAt} />}
         </div>
       </div>
@@ -123,6 +141,8 @@ function ToolsListGroup({
             <ViewToolRow
               key={key}
               tool={tool}
+              providerId={group.providerId}
+              providerKind={group.kind}
               expanded={expandedTool === key}
               onClick={() => onToggleTool(key)}
               onCollapse={onCollapseTool}
