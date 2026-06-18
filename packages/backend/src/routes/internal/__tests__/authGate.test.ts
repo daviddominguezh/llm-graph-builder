@@ -14,7 +14,7 @@ import {
   makeMockRag,
 } from './testHarness.js';
 
-process.env.INTERNAL_SERVICE_KEY = 'test-key';
+process.env.EDGE_FUNCTION_MASTER_KEY = 'test-key';
 
 const mockKvSvc = makeMockKv();
 const mockRagSvc = makeMockRag();
@@ -37,13 +37,13 @@ const PATH = '/internal/tools/kv-store/list-keys';
 const body = { tenantId: TENANT_ID, storeId: STORE_ID, offset: OFFSET, limit: LIMIT };
 
 describe('auth gate', () => {
-  it('rejects missing bearer token', async () => {
+  it('rejects missing master key header', async () => {
     const res = await request(app).post(PATH).send(body);
     expect(res.status).toBe(HTTP_UNAUTHORIZED);
   });
 
-  it('rejects wrong bearer token', async () => {
-    const res = await request(app).post(PATH).set('authorization', 'Bearer wrong').send(body);
+  it('rejects wrong master key', async () => {
+    const res = await request(app).post(PATH).set('x-master-key', 'wrong').send(body);
     expect(res.status).toBe(HTTP_UNAUTHORIZED);
   });
 });

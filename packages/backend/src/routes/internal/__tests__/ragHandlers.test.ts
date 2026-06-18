@@ -21,7 +21,7 @@ import {
   resetRagMocks,
 } from './testHarness.js';
 
-process.env.INTERNAL_SERVICE_KEY = 'test-key';
+process.env.EDGE_FUNCTION_MASTER_KEY = 'test-key';
 
 const mockKvSvc = makeMockKv();
 const mockRagSvc = makeMockRag();

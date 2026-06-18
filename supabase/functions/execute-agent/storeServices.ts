@@ -8,7 +8,7 @@
 //
 // Required env vars:
 //   INTERNAL_TOOLS_BACKEND_URL — base URL of the backend (e.g. https://api.example.com)
-//   INTERNAL_SERVICE_KEY       — shared secret matching the backend's INTERNAL_SERVICE_KEY
+//   EDGE_FUNCTION_MASTER_KEY   — shared secret matching the backend's EDGE_FUNCTION_MASTER_KEY
 //
 // On success the backend returns `{ ok: true, result }`; on a ToolError it
 // returns `{ ok: false, error: { code, message } }` with HTTP 200 so the same
@@ -47,7 +47,7 @@ function backendUrl(): string {
 }
 
 function sharedKey(): string {
-  return Deno.env.get('INTERNAL_SERVICE_KEY') ?? '';
+  return Deno.env.get('EDGE_FUNCTION_MASTER_KEY') ?? '';
 }
 
 interface BackendOk<T> {
@@ -71,7 +71,7 @@ async function callBackend<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(url, {
     method: 'POST',
     headers: {
-      authorization: `Bearer ${sharedKey()}`,
+      'x-master-key': sharedKey(),
       'content-type': 'application/json',
     },
     body: JSON.stringify(body),

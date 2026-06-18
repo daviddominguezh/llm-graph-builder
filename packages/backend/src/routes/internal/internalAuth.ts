@@ -1,25 +1,29 @@
 import type { NextFunction, Request, Response } from 'express';
 
-const INTERNAL_SERVICE_KEY = process.env.INTERNAL_SERVICE_KEY ?? '';
 const HTTP_UNAUTHORIZED = 401;
-const BEARER_PREFIX = 'Bearer ';
 
-function extractBearerToken(header: string | undefined): string | null {
-  if (header === undefined) return null;
-  if (!header.startsWith(BEARER_PREFIX)) return null;
-  return header.slice(BEARER_PREFIX.length);
+function getMasterKey(): string {
+  return process.env.EDGE_FUNCTION_MASTER_KEY ?? '';
+}
+
+function extractMasterKey(req: Request): string | null {
+  const { headers } = req;
+  const { 'x-master-key': value } = headers;
+  if (typeof value !== 'string' || value === '') return null;
+  return value;
 }
 
 export function requireInternalAuth(req: Request, res: Response, next: NextFunction): void {
-  const token = extractBearerToken(req.headers.authorization);
+  const token = extractMasterKey(req);
 
   if (token === null) {
-    res.status(HTTP_UNAUTHORIZED).json({ error: 'Missing authorization header' });
+    res.status(HTTP_UNAUTHORIZED).json({ error: 'Missing x-master-key header' });
     return;
   }
 
-  if (token !== INTERNAL_SERVICE_KEY || INTERNAL_SERVICE_KEY === '') {
-    res.status(HTTP_UNAUTHORIZED).json({ error: 'Invalid service key' });
+  const expected = getMasterKey();
+  if (expected === '' || token !== expected) {
+    res.status(HTTP_UNAUTHORIZED).json({ error: 'Invalid master key' });
     return;
   }
 

@@ -14,7 +14,7 @@ export const ZERO = 0;
 export const HALF = 0.5;
 export const ONE = 1;
 
-export const AUTH = { authorization: 'Bearer test-key' };
+export const AUTH = { 'x-master-key': 'test-key' };
 
 export type AnyFn = (...args: unknown[]) => Promise<unknown>;
 
