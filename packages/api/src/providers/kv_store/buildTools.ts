@@ -4,6 +4,22 @@ import type { ProviderCtx } from '../provider.js';
 import type { KvStoreServices, OpenFlowTool } from '../types.js';
 import { isKvStoreServices } from '../types.js';
 import {
+  GET_VALUES_KEYS_DESC,
+  GET_VALUES_TOOL_DESC,
+  LIST_KEYS_LIMIT_DESC,
+  LIST_KEYS_TOOL_DESC,
+  OFFSET_DESC,
+  SEARCH_LIMIT_DESC,
+  SEARCH_MODE_DESC,
+  SEARCH_ON_DESC,
+  SEARCH_PATTERN_DESC,
+  SEARCH_QUERY_DESC,
+  SEARCH_TOOL_DESC,
+  UPDATE_KEY_DESC,
+  UPDATE_VALUE_DESC,
+  UPDATE_VALUE_TOOL_DESC,
+} from './descriptions.js';
+import {
   KV_GET_VALUES_TOOL_NAME,
   KV_LIST_KEYS_TOOL_NAME,
   KV_SEARCH_TOOL_NAME,
@@ -24,23 +40,39 @@ const SEARCH_DEFAULT_LIMIT = 50;
 
 /* ─── Zod input schemas ─── */
 
-const listKeysInput = z.object({
-  offset: z.number().int().min(OFFSET_MIN).default(OFFSET_MIN),
-  limit: z.number().int().min(LIMIT_MIN).max(LIMIT_MAX).default(LIST_KEYS_DEFAULT_LIMIT),
-});
+const listKeysInput = z
+  .object({
+    offset: z.number().int().min(OFFSET_MIN).default(OFFSET_MIN).describe(OFFSET_DESC),
+    limit: z
+      .number()
+      .int()
+      .min(LIMIT_MIN)
+      .max(LIMIT_MAX)
+      .default(LIST_KEYS_DEFAULT_LIMIT)
+      .describe(LIST_KEYS_LIMIT_DESC),
+  })
+  .describe(LIST_KEYS_TOOL_DESC);
 
-const getValuesInput = z.object({
-  keys: z.array(z.string().max(KEY_MAX_BYTES)).max(KEYS_MAX_ITEMS),
-});
+const getValuesInput = z
+  .object({
+    keys: z.array(z.string().max(KEY_MAX_BYTES)).max(KEYS_MAX_ITEMS).describe(GET_VALUES_KEYS_DESC),
+  })
+  .describe(GET_VALUES_TOOL_DESC);
 
 const searchInput = z
   .object({
-    mode: z.enum(['substring', 'regex']),
-    on: z.enum(['keys', 'values', 'both']).default('both'),
-    query: z.string().min(LIMIT_MIN).max(QUERY_MAX).optional(),
-    pattern: z.string().max(KEY_PATTERN_MAX).optional(),
-    offset: z.number().int().min(OFFSET_MIN).default(OFFSET_MIN),
-    limit: z.number().int().min(LIMIT_MIN).max(LIMIT_MAX).default(SEARCH_DEFAULT_LIMIT),
+    mode: z.enum(['substring', 'regex']).describe(SEARCH_MODE_DESC),
+    on: z.enum(['keys', 'values', 'both']).default('both').describe(SEARCH_ON_DESC),
+    query: z.string().min(LIMIT_MIN).max(QUERY_MAX).optional().describe(SEARCH_QUERY_DESC),
+    pattern: z.string().max(KEY_PATTERN_MAX).optional().describe(SEARCH_PATTERN_DESC),
+    offset: z.number().int().min(OFFSET_MIN).default(OFFSET_MIN).describe(OFFSET_DESC),
+    limit: z
+      .number()
+      .int()
+      .min(LIMIT_MIN)
+      .max(LIMIT_MAX)
+      .default(SEARCH_DEFAULT_LIMIT)
+      .describe(SEARCH_LIMIT_DESC),
   })
   .superRefine((val, ctx) => {
     if (val.mode === 'substring' && (val.query === undefined || val.query === '')) {
@@ -49,12 +81,15 @@ const searchInput = z
     if (val.mode === 'regex' && (val.pattern === undefined || val.pattern === '')) {
       ctx.addIssue({ code: 'custom', message: 'pattern is required when mode="regex"' });
     }
-  });
+  })
+  .describe(SEARCH_TOOL_DESC);
 
-const updateValueInput = z.object({
-  key: z.string().min(LIMIT_MIN).max(KEY_MAX_BYTES),
-  value: z.string().max(VALUE_MAX_BYTES),
-});
+const updateValueInput = z
+  .object({
+    key: z.string().min(LIMIT_MIN).max(KEY_MAX_BYTES).describe(UPDATE_KEY_DESC),
+    value: z.string().max(VALUE_MAX_BYTES).describe(UPDATE_VALUE_DESC),
+  })
+  .describe(UPDATE_VALUE_TOOL_DESC);
 
 /* ─── Tool execute helpers ─── */
 
@@ -112,7 +147,7 @@ async function executeUpdateValue(ctx: KvToolCtx, args: unknown): Promise<unknow
 
 function makeListKeys(ctx: KvToolCtx): OpenFlowTool {
   return {
-    description: 'List keys in the bound KV store (paginated).',
+    description: LIST_KEYS_TOOL_DESC,
     inputSchema: listKeysInput,
     execute: async (args: unknown) => await executeListKeys(ctx, args),
   };
@@ -120,7 +155,7 @@ function makeListKeys(ctx: KvToolCtx): OpenFlowTool {
 
 function makeGetValues(ctx: KvToolCtx): OpenFlowTool {
   return {
-    description: 'Get values for an explicit set of keys.',
+    description: GET_VALUES_TOOL_DESC,
     inputSchema: getValuesInput,
     execute: async (args: unknown) => await executeGetValues(ctx, args),
   };
@@ -128,7 +163,7 @@ function makeGetValues(ctx: KvToolCtx): OpenFlowTool {
 
 function makeSearch(ctx: KvToolCtx): OpenFlowTool {
   return {
-    description: 'Search KV entries by substring or POSIX regex.',
+    description: SEARCH_TOOL_DESC,
     inputSchema: searchInput,
     execute: async (args: unknown) => await executeSearch(ctx, args),
   };
@@ -136,7 +171,7 @@ function makeSearch(ctx: KvToolCtx): OpenFlowTool {
 
 function makeUpdateValue(ctx: KvToolCtx): OpenFlowTool {
   return {
-    description: 'Insert or update a value for a key.',
+    description: UPDATE_VALUE_TOOL_DESC,
     inputSchema: updateValueInput,
     execute: async (args: unknown) => await executeUpdateValue(ctx, args),
   };

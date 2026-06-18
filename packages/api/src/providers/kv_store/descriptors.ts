@@ -1,5 +1,21 @@
 import type { ToolDescriptor } from '../provider.js';
 import type { RawJsonSchema } from '../types.js';
+import {
+  GET_VALUES_KEYS_DESC,
+  GET_VALUES_TOOL_DESC,
+  LIST_KEYS_LIMIT_DESC,
+  LIST_KEYS_TOOL_DESC,
+  OFFSET_DESC,
+  SEARCH_LIMIT_DESC,
+  SEARCH_MODE_DESC,
+  SEARCH_ON_DESC,
+  SEARCH_PATTERN_DESC,
+  SEARCH_QUERY_DESC,
+  SEARCH_TOOL_DESC,
+  UPDATE_KEY_DESC,
+  UPDATE_VALUE_DESC,
+  UPDATE_VALUE_TOOL_DESC,
+} from './descriptions.js';
 
 const ONE_KILOBYTE = 1024;
 const KEY_MAX_BYTES = 256;
@@ -18,25 +34,33 @@ export const KV_GET_VALUES_TOOL_NAME = 'get_values';
 export const KV_SEARCH_TOOL_NAME = 'search';
 export const KV_UPDATE_VALUE_TOOL_NAME = 'update_value';
 
-const offsetSchema: RawJsonSchema = { type: 'integer', minimum: OFFSET_MIN, default: OFFSET_MIN };
+const offsetSchema: RawJsonSchema = {
+  type: 'integer',
+  minimum: OFFSET_MIN,
+  default: OFFSET_MIN,
+  description: OFFSET_DESC,
+};
 const listKeysLimitSchema: RawJsonSchema = {
   type: 'integer',
   minimum: LIMIT_MIN,
   maximum: LIMIT_MAX,
   default: LIST_KEYS_DEFAULT_LIMIT,
+  description: LIST_KEYS_LIMIT_DESC,
 };
 const searchLimitSchema: RawJsonSchema = {
   type: 'integer',
   minimum: LIMIT_MIN,
   maximum: LIMIT_MAX,
   default: SEARCH_DEFAULT_LIMIT,
+  description: SEARCH_LIMIT_DESC,
 };
 
 const listKeysDescriptor: ToolDescriptor = {
   toolName: KV_LIST_KEYS_TOOL_NAME,
-  description: 'List the keys stored in the bound KV store for the current tenant. Paginated.',
+  description: LIST_KEYS_TOOL_DESC,
   inputSchema: {
     type: 'object',
+    description: LIST_KEYS_TOOL_DESC,
     required: ['offset', 'limit'],
     properties: { offset: offsetSchema, limit: listKeysLimitSchema },
   },
@@ -44,13 +68,15 @@ const listKeysDescriptor: ToolDescriptor = {
 
 const getValuesDescriptor: ToolDescriptor = {
   toolName: KV_GET_VALUES_TOOL_NAME,
-  description: 'Fetch values for an explicit list of keys. Missing keys map to null.',
+  description: GET_VALUES_TOOL_DESC,
   inputSchema: {
     type: 'object',
+    description: GET_VALUES_TOOL_DESC,
     required: ['keys'],
     properties: {
       keys: {
         type: 'array',
+        description: GET_VALUES_KEYS_DESC,
         items: { type: 'string', maxLength: KEY_MAX_BYTES },
         maxItems: KEYS_MAX_ITEMS,
       },
@@ -60,16 +86,21 @@ const getValuesDescriptor: ToolDescriptor = {
 
 const searchDescriptor: ToolDescriptor = {
   toolName: KV_SEARCH_TOOL_NAME,
-  description:
-    'Search KV entries by substring or POSIX regex. Use mode="substring" for case-insensitive ILIKE; mode="regex" for full POSIX regex (bounded scan).',
+  description: SEARCH_TOOL_DESC,
   inputSchema: {
     type: 'object',
+    description: SEARCH_TOOL_DESC,
     required: ['mode', 'on', 'offset', 'limit'],
     properties: {
-      mode: { type: 'string', enum: ['substring', 'regex'] },
-      on: { type: 'string', enum: ['keys', 'values', 'both'] },
-      query: { type: 'string', minLength: LIMIT_MIN, maxLength: QUERY_MAX },
-      pattern: { type: 'string', maxLength: KEY_PATTERN_MAX },
+      mode: { type: 'string', enum: ['substring', 'regex'], description: SEARCH_MODE_DESC },
+      on: { type: 'string', enum: ['keys', 'values', 'both'], default: 'both', description: SEARCH_ON_DESC },
+      query: {
+        type: 'string',
+        minLength: LIMIT_MIN,
+        maxLength: QUERY_MAX,
+        description: SEARCH_QUERY_DESC,
+      },
+      pattern: { type: 'string', maxLength: KEY_PATTERN_MAX, description: SEARCH_PATTERN_DESC },
       offset: offsetSchema,
       limit: searchLimitSchema,
     },
@@ -78,13 +109,19 @@ const searchDescriptor: ToolDescriptor = {
 
 const updateValueDescriptor: ToolDescriptor = {
   toolName: KV_UPDATE_VALUE_TOOL_NAME,
-  description: 'Insert or update a value for a key. Keys starting with "_sys." are reserved.',
+  description: UPDATE_VALUE_TOOL_DESC,
   inputSchema: {
     type: 'object',
+    description: UPDATE_VALUE_TOOL_DESC,
     required: ['key', 'value'],
     properties: {
-      key: { type: 'string', maxLength: KEY_MAX_BYTES, minLength: LIMIT_MIN },
-      value: { type: 'string', maxLength: VALUE_MAX_BYTES },
+      key: {
+        type: 'string',
+        maxLength: KEY_MAX_BYTES,
+        minLength: LIMIT_MIN,
+        description: UPDATE_KEY_DESC,
+      },
+      value: { type: 'string', maxLength: VALUE_MAX_BYTES, description: UPDATE_VALUE_DESC },
     },
   },
 };

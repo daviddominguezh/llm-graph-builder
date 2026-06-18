@@ -3,6 +3,15 @@ import { z } from 'zod';
 import type { ProviderCtx } from '../provider.js';
 import type { OpenFlowTool, RagStoreServices } from '../types.js';
 import { isRagStoreServices } from '../types.js';
+import {
+  RAG_LIMIT_DESC,
+  RAG_MIN_SIMILARITY_DESC,
+  RAG_MODE_DESC,
+  RAG_OFFSET_DESC,
+  RAG_PATTERN_DESC,
+  RAG_QUERY_DESC,
+  RAG_SEARCH_TOOL_DESC,
+} from './descriptions.js';
 import { RAG_SEARCH_TOOL_NAME } from './descriptors.js';
 
 const ONE_KILOBYTE = 1024;
@@ -17,16 +26,17 @@ const DEFAULT_MIN_SIMILARITY = 0.5;
 
 const searchInput = z
   .object({
-    mode: z.enum(['bm25', 'semantic', 'hybrid', 'regex']),
-    query: z.string().min(LIMIT_MIN).max(QUERY_MAX).optional(),
-    pattern: z.string().max(ONE_KILOBYTE).optional(),
+    mode: z.enum(['bm25', 'semantic', 'hybrid', 'regex']).describe(RAG_MODE_DESC),
+    query: z.string().min(LIMIT_MIN).max(QUERY_MAX).optional().describe(RAG_QUERY_DESC),
+    pattern: z.string().max(ONE_KILOBYTE).optional().describe(RAG_PATTERN_DESC),
     minSimilarity: z
       .number()
       .min(MIN_SIMILARITY_FLOOR)
       .max(MIN_SIMILARITY_CEIL)
-      .default(DEFAULT_MIN_SIMILARITY),
-    offset: z.number().int().min(OFFSET_MIN).default(OFFSET_MIN),
-    limit: z.number().int().min(LIMIT_MIN).max(LIMIT_MAX).default(DEFAULT_LIMIT),
+      .default(DEFAULT_MIN_SIMILARITY)
+      .describe(RAG_MIN_SIMILARITY_DESC),
+    offset: z.number().int().min(OFFSET_MIN).default(OFFSET_MIN).describe(RAG_OFFSET_DESC),
+    limit: z.number().int().min(LIMIT_MIN).max(LIMIT_MAX).default(DEFAULT_LIMIT).describe(RAG_LIMIT_DESC),
   })
   .superRefine((val, ctx) => {
     const textModes = ['bm25', 'semantic', 'hybrid'];
@@ -36,7 +46,8 @@ const searchInput = z
     if (val.mode === 'regex' && (val.pattern === undefined || val.pattern === '')) {
       ctx.addIssue({ code: 'custom', message: 'pattern is required when mode="regex"' });
     }
-  });
+  })
+  .describe(RAG_SEARCH_TOOL_DESC);
 
 interface RagToolCtx {
   services: RagStoreServices;
@@ -92,7 +103,7 @@ async function executeSearch(ctx: RagToolCtx, args: unknown): Promise<unknown> {
 
 function makeSearch(ctx: RagToolCtx): OpenFlowTool {
   return {
-    description: 'Search a bound RAG store (bm25 / semantic / hybrid / regex).',
+    description: RAG_SEARCH_TOOL_DESC,
     inputSchema: searchInput,
     execute: async (args: unknown) => await executeSearch(ctx, args),
   };

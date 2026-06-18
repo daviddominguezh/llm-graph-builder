@@ -1,5 +1,14 @@
 import type { ToolDescriptor } from '../provider.js';
 import type { RawJsonSchema } from '../types.js';
+import {
+  RAG_LIMIT_DESC,
+  RAG_MIN_SIMILARITY_DESC,
+  RAG_MODE_DESC,
+  RAG_OFFSET_DESC,
+  RAG_PATTERN_DESC,
+  RAG_QUERY_DESC,
+  RAG_SEARCH_TOOL_DESC,
+} from './descriptions.js';
 
 const ONE_KILOBYTE = 1024;
 const QUERY_MAX = 4096;
@@ -13,35 +22,37 @@ const MIN_SIMILARITY_CEIL = 1;
 
 export const RAG_SEARCH_TOOL_NAME = 'search';
 
-const offsetSchema: RawJsonSchema = { type: 'integer', minimum: OFFSET_MIN, default: OFFSET_MIN };
+const offsetSchema: RawJsonSchema = {
+  type: 'integer',
+  minimum: OFFSET_MIN,
+  default: OFFSET_MIN,
+  description: RAG_OFFSET_DESC,
+};
 const limitSchema: RawJsonSchema = {
   type: 'integer',
   minimum: LIMIT_MIN,
   maximum: LIMIT_MAX,
   default: DEFAULT_LIMIT,
+  description: RAG_LIMIT_DESC,
 };
 
 const searchDescriptor: ToolDescriptor = {
   toolName: RAG_SEARCH_TOOL_NAME,
-  description:
-    'Search a bound RAG (knowledge base) store. Modes: ' +
-    '"bm25" (Postgres FTS, ranked text), ' +
-    '"semantic" (vector similarity over embeddings), ' +
-    '"hybrid" (weighted blend of bm25 + semantic), ' +
-    '"regex" (POSIX regex with 500ms statement timeout). Returns top chunks as strings.',
+  description: RAG_SEARCH_TOOL_DESC,
   inputSchema: {
     type: 'object',
+    description: RAG_SEARCH_TOOL_DESC,
     required: ['mode', 'offset', 'limit'],
     properties: {
-      mode: { type: 'string', enum: ['bm25', 'semantic', 'hybrid', 'regex'] },
-      query: { type: 'string', minLength: LIMIT_MIN, maxLength: QUERY_MAX },
-      pattern: { type: 'string', maxLength: ONE_KILOBYTE },
+      mode: { type: 'string', enum: ['bm25', 'semantic', 'hybrid', 'regex'], description: RAG_MODE_DESC },
+      query: { type: 'string', minLength: LIMIT_MIN, maxLength: QUERY_MAX, description: RAG_QUERY_DESC },
+      pattern: { type: 'string', maxLength: ONE_KILOBYTE, description: RAG_PATTERN_DESC },
       minSimilarity: {
         type: 'number',
         minimum: MIN_SIMILARITY_FLOOR,
         maximum: MIN_SIMILARITY_CEIL,
         default: DEFAULT_MIN_SIMILARITY,
-        description: 'For semantic/hybrid modes only. 0 disables the similarity floor.',
+        description: RAG_MIN_SIMILARITY_DESC,
       },
       offset: offsetSchema,
       limit: limitSchema,
