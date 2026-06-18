@@ -114,7 +114,6 @@ const SYSTEM_PUBLIC_UNAUTHED = [
   '/api/agents/:agentSlug/:version',
   '/api/mock-execute/:agentSlug/:version',
   '/api/chat/latest-version/:tenantSlug/:agentSlug',
-  '/internal/resume-parent',
   '/internal/tools/kv-store/list-keys',
   '/internal/tools/kv-store/get-values',
   '/internal/tools/kv-store/search',
