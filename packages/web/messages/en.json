@@ -1960,5 +1960,192 @@
     "description": "We're having trouble loading this page.",
     "retrying": "Retrying…",
     "retry": "Retry"
+  },
+  "toolCatalog": {
+    "_about": "User-facing copy of builtin tool descriptions, separate from the LLM-facing strings in packages/api/src/providers/. Convention: toolCatalog.<providerId>.groupName, toolCatalog.<providerId>.tools.<toolName>.description, toolCatalog.<providerId>.tools.<toolName>.params.<paramName>. Names are NOT translated; only descriptions are. The Jest test in packages/web/app/lib/__tests__/toolCatalog.test.ts asserts every builtin tool + param has a key here.",
+    "kv_store": {
+      "groupName": "KV Store",
+      "tools": {
+        "list_keys": {
+          "description": "List every key in the bound KV store (paginated). Useful for browsing what data exists before reading specific values.",
+          "params": {
+            "offset": "Zero-based page offset. Defaults to 0.",
+            "limit": "Maximum keys per page (1–500). Defaults to 100."
+          }
+        },
+        "get_values": {
+          "description": "Fetch values for an explicit list of keys (up to 100 per call). Missing keys are returned as null.",
+          "params": {
+            "keys": "Keys to look up. Up to 100 per call, each at most 256 bytes."
+          }
+        },
+        "search": {
+          "description": "Find entries by substring or POSIX regex. Substring is case-insensitive; regex uses RE2 (safe, linear-time).",
+          "params": {
+            "mode": "How to match: substring (case-insensitive ILIKE) or regex (RE2-compatible POSIX).",
+            "on": "Which field(s) to match: keys, values, or both. Defaults to both.",
+            "query": "Substring to search for. Required when mode is substring.",
+            "pattern": "Regex pattern to scan for. Required when mode is regex.",
+            "offset": "Zero-based page offset. Defaults to 0.",
+            "limit": "Maximum matches per page (1–500). Defaults to 50."
+          }
+        },
+        "update_value": {
+          "description": "Insert or update a value for a key (upsert). System keys prefixed with _sys. are write-protected.",
+          "params": {
+            "key": "The key to write. 1–256 bytes. _sys.-prefixed keys are reserved.",
+            "value": "Value to store. Up to 256 KB. Overwrites any previous value."
+          }
+        }
+      }
+    },
+    "rag": {
+      "groupName": "RAG",
+      "tools": {
+        "search": {
+          "description": "Search the bound knowledge base for relevant chunks. Choose BM25 for keywords, semantic for meaning, hybrid for both, or regex for structured patterns.",
+          "params": {
+            "mode": "Search strategy: bm25 (keyword), semantic (meaning), hybrid (both), or regex (POSIX pattern).",
+            "query": "Search input. Required for bm25, semantic, and hybrid modes.",
+            "pattern": "Regex pattern to match. Required when mode is regex.",
+            "minSimilarity": "Minimum cosine similarity (0.0–1.0). Only applies to semantic and hybrid. Defaults to 0.5.",
+            "offset": "Zero-based page offset. Defaults to 0.",
+            "limit": "Maximum chunks per page (1–200). Defaults to 20."
+          }
+        }
+      }
+    },
+    "calendar": {
+      "groupName": "Calendar",
+      "tools": {
+        "list_calendars": {
+          "description": "List every calendar the connected Google account can access.",
+          "params": {}
+        },
+        "check_availability": {
+          "description": "Find open time slots on the calendar within a date range and desired duration.",
+          "params": {
+            "startIso": "Start of the search window (ISO-8601).",
+            "endIso": "End of the search window (ISO-8601).",
+            "durationMinutes": "Desired slot length in minutes."
+          }
+        },
+        "list_events": {
+          "description": "List events on the configured calendar within a date range.",
+          "params": {
+            "startIso": "Start of the range (ISO-8601).",
+            "endIso": "End of the range (ISO-8601)."
+          }
+        },
+        "get_event": {
+          "description": "Read full details for a single event by id.",
+          "params": {
+            "eventId": "The event id to read."
+          }
+        },
+        "book_appointment": {
+          "description": "Create a new event on the configured calendar.",
+          "params": {
+            "startIso": "Event start (ISO-8601).",
+            "endIso": "Event end (ISO-8601).",
+            "title": "Event title.",
+            "description": "Optional event description.",
+            "location": "Optional event location.",
+            "attendees": "Optional list of attendee email addresses.",
+            "addMeetLink": "When true, generates a Google Meet link for the event."
+          }
+        },
+        "update_event": {
+          "description": "Modify an existing event by id. Any omitted field is left unchanged.",
+          "params": {
+            "eventId": "Id of the event to update.",
+            "startIso": "New event start (ISO-8601).",
+            "endIso": "New event end (ISO-8601).",
+            "title": "New event title.",
+            "description": "New event description.",
+            "location": "New event location.",
+            "attendees": "Replacement list of attendee email addresses."
+          }
+        },
+        "cancel_appointment": {
+          "description": "Cancel (delete) an event by id. Attendees are notified automatically.",
+          "params": {
+            "eventId": "Id of the event to cancel."
+          }
+        }
+      }
+    },
+    "forms": {
+      "groupName": "Forms",
+      "tools": {
+        "set_form_fields": {
+          "description": "Write one or more fields to a structured form for the current conversation. All fields must validate or none are saved.",
+          "params": {
+            "formSlug": "Slug of the form to write to.",
+            "fields": "One or more field path/value pairs to set atomically."
+          }
+        },
+        "get_form_field": {
+          "description": "Read a single field from a structured form for the current conversation.",
+          "params": {
+            "formSlug": "Slug of the form to read from.",
+            "fieldPath": "Dotted path to the field, e.g. addresses[0].firstLine."
+          }
+        }
+      }
+    },
+    "lead_scoring": {
+      "groupName": "Lead Scoring",
+      "tools": {
+        "set_lead_score": {
+          "description": "Set the lead score (0–100) for the current conversation.",
+          "params": {
+            "score": "Lead score from 0 to 100."
+          }
+        },
+        "get_lead_score": {
+          "description": "Read the current lead score for the conversation, or null if not yet scored.",
+          "params": {}
+        }
+      }
+    },
+    "composition": {
+      "groupName": "Composition",
+      "tools": {
+        "create_agent": {
+          "description": "Spin up a new agent on the fly with a custom system prompt and dispatch it to handle a task.",
+          "params": {
+            "systemPrompt": "System prompt for the new agent.",
+            "task": "Task the agent should complete.",
+            "model": "LLM model to use. Defaults to the caller's model.",
+            "tools": "Tools to grant the agent: \"all\" or a list of tool names.",
+            "contextItems": "Context items to inject into the agent.",
+            "maxSteps": "Maximum number of steps the agent can take.",
+            "outputSchema": "JSON Schema used to validate the agent's output."
+          }
+        },
+        "invoke_agent": {
+          "description": "Invoke an existing agent by slug to handle a task.",
+          "params": {
+            "agentSlug": "Slug of the agent to invoke.",
+            "version": "Published version to execute (number or \"latest\").",
+            "task": "Task the agent should complete.",
+            "contextItems": "Additional context items.",
+            "model": "Override the agent's default model.",
+            "outputSchema": "JSON Schema used to validate the agent's output."
+          }
+        },
+        "invoke_workflow": {
+          "description": "Invoke an existing workflow by slug with a user message that drives routing.",
+          "params": {
+            "workflowSlug": "Slug of the workflow to invoke.",
+            "version": "Published version to execute (number or \"latest\").",
+            "user_said": "User message used for workflow routing.",
+            "contextItems": "Additional context items.",
+            "model": "Override the workflow's default model."
+          }
+        }
+      }
+    }
   }
 }
