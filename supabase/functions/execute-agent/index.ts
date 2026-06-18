@@ -74,6 +74,8 @@ interface ExecutePayload {
   data: Record<string, unknown>;
   quickReplies: Record<string, string>;
   sessionID: string;
+  /** Owning organisation id (distinct from tenantID). Used as MCP cache key. */
+  orgID: string;
   tenantID: string;
   userID: string;
   isFirstMessage: boolean;
@@ -407,7 +409,7 @@ function buildProviderCtx(args: BuildProviderCtxArgs): ProviderCtx {
     s,
   ]);
   return {
-    orgId: payload.tenantID,
+    orgId: payload.orgID,
     tenantId: payload.tenantID,
     agentId: payload.sessionID,
     isChildAgent: payload.isChildAgent ?? false,

@@ -7,7 +7,6 @@ import { handleChildFinish, persistCoreResult } from './executeCoreChildFinish.j
 import {
   type BuildCoreParamsOptions,
   buildCoreExecuteParams,
-  resolveOAuthBundle,
   resolveVfsCorePayload,
 } from './executeCoreHelpers.js';
 import { handleInlineDispatch } from './executeCoreInlineDispatch.js';
@@ -25,6 +24,7 @@ import type {
 } from './executeCoreTypes.js';
 import type { FetchedData } from './executeFetcher.js';
 import { logExec } from './executeHelpers.js';
+import { resolveOAuthBundle } from './executeOAuthResolver.js';
 
 export type { ExecuteCoreCallbacks, ExecuteCoreInput, ExecuteCoreOutput, OverrideAgentConfig };
 
@@ -112,6 +112,7 @@ async function runAgent(params: RunAgentParams): Promise<RunAgentResult> {
     }),
   ]);
   const buildOptions: BuildCoreParamsOptions = {
+    orgId: input.orgId,
     vfsPayload,
     overrideAgentConfig: override ?? input.overrideAgentConfig,
     conversationId: conversationId ?? undefined,

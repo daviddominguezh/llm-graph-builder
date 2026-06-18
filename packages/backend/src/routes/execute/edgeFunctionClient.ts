@@ -42,6 +42,8 @@ export interface ExecuteAgentParams {
   data: Record<string, unknown>;
   quickReplies: Record<string, string>;
   sessionID: string;
+  /** Owning organisation id. Distinct from tenantID (tenant of the message). Used as MCP cache key. */
+  orgID: string;
   tenantID: string;
   userID: string;
   isFirstMessage: boolean;

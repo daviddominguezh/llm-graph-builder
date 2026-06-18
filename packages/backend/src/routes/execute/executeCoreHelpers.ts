@@ -20,9 +20,6 @@ import { logExec, resolveMcpTransportVariables, resolveOAuthForExecution } from 
 import type { AgentExecutionInput } from './executeTypes.js';
 import { buildVfsPayload } from './vfsDispatch.js';
 
-export type { ResolveOAuthBundleArgs } from './executeOAuthResolver.js';
-export { resolveOAuthBundle } from './executeOAuthResolver.js';
-
 const ZERO_UNANSWERED = 0;
 const INCREMENT = 1;
 
@@ -91,6 +88,7 @@ export async function resolveVfsCorePayload(
 /* ─── Build edge function params ─── */
 
 export interface BuildCoreParamsOptions {
+  orgId: string;
   vfsPayload: VfsEdgeFunctionPayload | undefined;
   overrideAgentConfig?: OverrideAgentConfig;
   conversationId?: string;
@@ -113,12 +111,9 @@ function buildAgentExecuteParams(
   return { ...agentParams, ...override };
 }
 
-function buildOauthField(
-  oauthByProvider: Record<string, OAuthTokenBundle> | undefined
-): ExecuteAgentParams['oauth'] {
-  if (oauthByProvider === undefined) return undefined;
-  if (Object.keys(oauthByProvider).length === ZERO_UNANSWERED) return undefined;
-  return { byProvider: oauthByProvider };
+function buildOauthField(oauth: Record<string, OAuthTokenBundle> | undefined): ExecuteAgentParams['oauth'] {
+  if (oauth === undefined || Object.keys(oauth).length === ZERO_UNANSWERED) return undefined;
+  return { byProvider: oauth };
 }
 
 export function buildCoreExecuteParams(
@@ -139,6 +134,7 @@ export function buildCoreExecuteParams(
     data: input.context ?? {},
     quickReplies: {},
     sessionID: input.sessionId,
+    orgID: options.orgId,
     tenantID: input.tenantId,
     userID: input.userId,
     isFirstMessage: fetched.isNew,

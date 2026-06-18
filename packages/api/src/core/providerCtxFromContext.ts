@@ -23,9 +23,6 @@ function resolveServices(context: Context): (providerId: string) => unknown {
 export function providerCtxFromContext(context: Context): ProviderCtx {
   return {
     orgId: context.orgId ?? '',
-    // Casing boundary: legacy Context.tenantID (uppercase ID) is exposed to
-    // providers as ProviderCtx.tenantId (camelCase). Renaming Context.tenantID
-    // touches ~200 call sites and belongs in its own commit.
     tenantId: context.tenantID,
     agentId: context.agentId ?? '',
     isChildAgent: context.isChildAgent ?? false,
