@@ -12,7 +12,7 @@ import { ProviderHeader } from './ProviderHeader';
 import type { SaveState } from './SaveStateIndicator';
 import { StaleEntriesGroup } from './StaleEntriesGroup';
 import { StoreSelect, type StoreSelectStore } from './StoreSelect';
-import { ToolRow as SelectableToolRow } from './ToolRow';
+import { ToolRow as SelectableToolRow, type ToolRowDisabledReason } from './ToolRow';
 
 export interface AgentToolStoreBindingsView {
   selectedKvStoreId: string | null;
@@ -142,6 +142,50 @@ function renderStoreSelect(
   );
 }
 
+function computeDisabledReason(
+  storeKind: StoreKind | null,
+  stores: AgentToolStoresPanelConfig | undefined
+): ToolRowDisabledReason {
+  if (storeKind === null || stores === undefined) return null;
+  const id =
+    storeKind === 'kv' ? stores.bindings.selectedKvStoreId : stores.bindings.selectedRagStoreId;
+  if (id !== null) return null;
+  return { kind: 'no_store_bound', storeKind };
+}
+
+interface GroupToolListProps {
+  group: ToolGroup;
+  agent: AgentModeProps;
+  expandedTool: string | null;
+  disabledReason: ToolRowDisabledReason;
+  onToggleTool: (key: string) => void;
+  onCollapseTool: () => void;
+}
+
+function GroupToolList(props: GroupToolListProps): React.JSX.Element {
+  const { group, agent, expandedTool, disabledReason, onToggleTool, onCollapseTool } = props;
+  return (
+    <ul className="flex flex-row gap-2 gap-y-3 flex-wrap pl-1">
+      {group.tools.map((tool) => {
+        const ref = registryToolToSelectedTool(tool);
+        const key = `${tool.group}-${tool.name}`;
+        return (
+          <SelectableToolRow
+            key={key}
+            tool={tool}
+            selected={isToolSelected(agent.selectedTools, ref)}
+            expanded={expandedTool === key}
+            onToggleSelected={() => agent.onChange(toggleTool(agent.selectedTools, ref))}
+            onToggleExpanded={() => onToggleTool(key)}
+            onCollapse={onCollapseTool}
+            disabledReason={disabledReason}
+          />
+        );
+      })}
+    </ul>
+  );
+}
+
 function AgentModeGroup(props: AgentModeGroupProps): React.JSX.Element {
   const { group, agent, searchActive, expandedTool, failedProviders, onToggleTool, onCollapseTool } =
     props;
@@ -154,6 +198,7 @@ function AgentModeGroup(props: AgentModeGroupProps): React.JSX.Element {
   const storeKind = storeKindForGroup(group);
   const rightSlot =
     storeKind !== null && agent.stores !== undefined ? renderStoreSelect(storeKind, agent.stores) : undefined;
+  const disabledReason = computeDisabledReason(storeKind, agent.stores);
   return (
     <div>
       <ProviderHeader
@@ -168,23 +213,14 @@ function AgentModeGroup(props: AgentModeGroupProps): React.JSX.Element {
         rightSlot={rightSlot}
       />
       {hasError && <ProviderErrorRow agentId={agent.agentId} mode="agent" />}
-      <ul className="flex flex-row gap-2 gap-y-3 flex-wrap pl-1">
-        {group.tools.map((tool) => {
-          const ref = registryToolToSelectedTool(tool);
-          const key = `${tool.group}-${tool.name}`;
-          return (
-            <SelectableToolRow
-              key={key}
-              tool={tool}
-              selected={isToolSelected(agent.selectedTools, ref)}
-              expanded={expandedTool === key}
-              onToggleSelected={() => agent.onChange(toggleTool(agent.selectedTools, ref))}
-              onToggleExpanded={() => onToggleTool(key)}
-              onCollapse={onCollapseTool}
-            />
-          );
-        })}
-      </ul>
+      <GroupToolList
+        group={group}
+        agent={agent}
+        expandedTool={expandedTool}
+        disabledReason={disabledReason}
+        onToggleTool={onToggleTool}
+        onCollapseTool={onCollapseTool}
+      />
     </div>
   );
 }
