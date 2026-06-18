@@ -6,7 +6,7 @@ import type { SelectedTool } from '../../types/selectedTool.js';
 import type { Logger } from '../../utils/logger.js';
 import type { Provider, ProviderCtx, ToolDescriptor } from '../provider.js';
 import { composeRegistry } from '../registry.js';
-import type { OpenFlowTool } from '../types.js';
+import { type OpenFlowTool, namespaceToolName } from '../types.js';
 
 function makeLogger(): Logger {
   return {
@@ -116,7 +116,7 @@ describe('composeRegistry — buildSelected', () => {
       { providerType: 'builtin', providerId: 'calendar', toolName: 'check_availability' },
     ];
     const result = await registry.buildSelected({ refs, ctx: makeCtx() });
-    expect(result.tools.check_availability).toBeDefined();
+    expect(result.tools[namespaceToolName('calendar', 'check_availability')]).toBeDefined();
     expect(result.staleRefs).toEqual([]);
     expect(result.failedProviders).toEqual([]);
   });

@@ -5,7 +5,7 @@ import type { Logger } from '../utils/logger.js';
 import { type IndexEntry, buildToolIndex } from './buildToolIndex.js';
 import { buildMcpProvider } from './mcp/buildMcpProvider.js';
 import type { Provider, ProviderCtx, ToolDescriptor } from './provider.js';
-import type { OpenFlowTool } from './types.js';
+import { type OpenFlowTool, namespaceToolName } from './types.js';
 
 export type FailureReason = 'auth_failed' | 'timeout' | 'protocol_error' | 'unknown';
 
@@ -82,10 +82,21 @@ function groupRefsByProvider(
 
 type GroupResult = { tools: Record<string, OpenFlowTool> } | { failure: ProviderFailure };
 
+function namespaceProviderTools(
+  providerId: string,
+  tools: Record<string, OpenFlowTool>
+): Record<string, OpenFlowTool> {
+  const out: Record<string, OpenFlowTool> = {};
+  for (const [toolName, tool] of Object.entries(tools)) {
+    out[namespaceToolName(providerId, toolName)] = tool;
+  }
+  return out;
+}
+
 async function buildOneGroup(group: ProviderGroup, ctx: ProviderCtx): Promise<GroupResult> {
   try {
-    const tools = await group.provider.buildTools({ toolNames: group.toolNames, ctx });
-    return { tools };
+    const raw = await group.provider.buildTools({ toolNames: group.toolNames, ctx });
+    return { tools: namespaceProviderTools(group.provider.id, raw) };
   } catch (err) {
     return {
       failure: {

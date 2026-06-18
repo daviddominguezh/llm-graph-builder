@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import type { Provider, ProviderCtx, ToolDescriptor } from '../../providers/provider.js';
 import type { Registry } from '../../providers/registry.js';
-import type { OpenFlowTool } from '../../providers/types.js';
+import { type OpenFlowTool, namespaceToolName } from '../../providers/types.js';
 import { resolveToolsForCurrentNode } from '../resolveToolsForCurrentNode.js';
 
 function makeCtx(): ProviderCtx {
@@ -100,7 +100,8 @@ describe('resolveToolsForCurrentNode', () => {
       ctx: makeCtx(),
       currentNodeOutgoingEdges: edges,
     });
-    expect(result.toolName).toBe('check_availability');
-    expect(result.tools.check_availability).toBeDefined();
+    const expectedName = namespaceToolName('calendar', 'check_availability');
+    expect(result.toolName).toBe(expectedName);
+    expect(result.tools[expectedName]).toBeDefined();
   });
 });

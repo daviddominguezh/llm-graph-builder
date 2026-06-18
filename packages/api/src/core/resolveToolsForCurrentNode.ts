@@ -2,7 +2,7 @@ import type { Edge, Precondition } from '@daviddh/graph-types';
 
 import type { ProviderCtx } from '../providers/provider.js';
 import type { Registry } from '../providers/registry.js';
-import type { OpenFlowTool } from '../providers/types.js';
+import { type OpenFlowTool, namespaceToolName } from '../providers/types.js';
 
 export interface ResolveToolsArgs {
   registry: Registry;
@@ -53,6 +53,18 @@ export async function resolveToolsForCurrentNode(args: ResolveToolsArgs): Promis
     );
   }
 
-  const tools = await provider.buildTools({ toolNames: [ref.toolName], ctx: args.ctx });
-  return { tools, toolName: ref.toolName };
+  const raw = await provider.buildTools({ toolNames: [ref.toolName], ctx: args.ctx });
+  const tools = namespaceTools(provider.id, raw);
+  return { tools, toolName: namespaceToolName(provider.id, ref.toolName) };
+}
+
+function namespaceTools(
+  providerId: string,
+  tools: Record<string, OpenFlowTool>
+): Record<string, OpenFlowTool> {
+  const out: Record<string, OpenFlowTool> = {};
+  for (const [toolName, tool] of Object.entries(tools)) {
+    out[namespaceToolName(providerId, toolName)] = tool;
+  }
+  return out;
 }
