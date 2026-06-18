@@ -39,6 +39,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "@ai-sdk/provider": "^2.0.3",
     "@daviddh/graph-types": "*",
     "@openrouter/ai-sdk-provider": "^2.2.5",
     "@upstash/redis": "^1.37.0",
