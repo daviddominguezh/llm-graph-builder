@@ -31,11 +31,7 @@ function applyMatch(entry: KvEntry, on: FilterOn, fn: (s: string) => boolean): b
   return fn(entry.key) || fn(entry.value);
 }
 
-export function filterByMatcher<T extends KvEntry>(
-  entries: T[],
-  on: FilterOn,
-  matcher: FilterMatcher
-): T[] {
+export function filterByMatcher<T extends KvEntry>(entries: T[], on: FilterOn, matcher: FilterMatcher): T[] {
   if (matcher.kind === 'substring') {
     return entries.filter((e) =>
       applyMatch(e, on, (s) => matchSubstring(s, matcher.query, matcher.caseInsensitive))

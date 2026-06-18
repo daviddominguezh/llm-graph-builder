@@ -64,15 +64,15 @@ describe('filterByMatcher', () => {
   });
 
   it('substring with empty query returns all entries', () => {
-    expect(
-      filterByMatcher(entries, 'both', { kind: 'substring', query: '', caseInsensitive: true })
-    ).toEqual(entries);
+    expect(filterByMatcher(entries, 'both', { kind: 'substring', query: '', caseInsensitive: true })).toEqual(
+      entries
+    );
   });
 
   it('regex on=keys with RE2', () => {
-    expect(
-      filterByMatcher(entries, 'keys', { kind: 'regex', pattern: '^flags\\..*', flags: '' })
-    ).toEqual([entries[1]]);
+    expect(filterByMatcher(entries, 'keys', { kind: 'regex', pattern: '^flags\\..*', flags: '' })).toEqual([
+      entries[1],
+    ]);
   });
 
   it('throws SyntaxError on invalid pattern', () => {
