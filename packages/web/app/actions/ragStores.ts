@@ -1,13 +1,16 @@
 'use server';
 
+import { fetchFromBackend } from '@/app/lib/backendProxy';
 import {
   type RagStoreRow,
   createRagStore as createRagStoreLib,
-  deleteRagStore as deleteRagStoreLib,
   getRagStoresByOrg as getRagStoresByOrgLib,
   updateRagStore as updateRagStoreLib,
 } from '@/app/lib/ragStores';
 import { serverError, serverLog } from '@/app/lib/serverLogger';
+import { type DeleteStoreResult, buildDeleteFailure } from '@/app/lib/storeDeleteResult';
+
+export type { AgentRef, DeleteStoreResult } from '@/app/lib/storeDeleteResult';
 
 export async function getRagStoresByOrgAction(
   orgId: string
@@ -40,9 +43,14 @@ export async function updateRagStoreAction(
   return res;
 }
 
-export async function deleteRagStoreAction(storeId: string): Promise<{ error: string | null }> {
+export async function deleteRagStoreAction(storeId: string): Promise<DeleteStoreResult> {
   serverLog('[deleteRagStoreAction] storeId:', storeId);
-  const res = await deleteRagStoreLib(storeId);
-  if (res.error !== null) serverError('[deleteRagStoreAction] error:', res.error);
-  return res;
+  try {
+    await fetchFromBackend('DELETE', `/rag-stores/${encodeURIComponent(storeId)}`);
+    return { ok: true };
+  } catch (err) {
+    const failure = buildDeleteFailure(err);
+    serverError('[deleteRagStoreAction] failure:', failure);
+    return failure;
+  }
 }

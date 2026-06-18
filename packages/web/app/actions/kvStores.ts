@@ -1,16 +1,19 @@
 'use server';
 
+import { fetchFromBackend } from '@/app/lib/backendProxy';
 import {
   type KvEntry,
   type KvStoreRow,
   createKvStore as createKvStoreLib,
-  deleteKvStore as deleteKvStoreLib,
   getKvEntries as getKvEntriesLib,
   getKvStoresByOrg as getKvStoresByOrgLib,
   saveKvEntries as saveKvEntriesLib,
   updateKvStore as updateKvStoreLib,
 } from '@/app/lib/kvStores';
 import { serverError, serverLog } from '@/app/lib/serverLogger';
+import { type DeleteStoreResult, buildDeleteFailure } from '@/app/lib/storeDeleteResult';
+
+export type { AgentRef, DeleteStoreResult } from '@/app/lib/storeDeleteResult';
 
 export async function getKvStoresByOrgAction(
   orgId: string
@@ -43,11 +46,16 @@ export async function updateKvStoreAction(
   return res;
 }
 
-export async function deleteKvStoreAction(storeId: string): Promise<{ error: string | null }> {
+export async function deleteKvStoreAction(storeId: string): Promise<DeleteStoreResult> {
   serverLog('[deleteKvStoreAction] storeId:', storeId);
-  const res = await deleteKvStoreLib(storeId);
-  if (res.error !== null) serverError('[deleteKvStoreAction] error:', res.error);
-  return res;
+  try {
+    await fetchFromBackend('DELETE', `/kv-stores/${encodeURIComponent(storeId)}`);
+    return { ok: true };
+  } catch (err) {
+    const failure = buildDeleteFailure(err);
+    serverError('[deleteKvStoreAction] failure:', failure);
+    return failure;
+  }
 }
 
 export async function getKvEntriesAction(
