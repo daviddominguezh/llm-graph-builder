@@ -85,6 +85,39 @@ export function toAiSdkToolDict(tools: Record<string, OpenFlowTool>): Record<str
   return out;
 }
 
+/**
+ * Namespace separator used to encode `(providerId, toolName)` into a single
+ * LLM-facing tool name. Universally allowed by every major LLM provider's
+ * tool-name regex `^[A-Za-z0-9_-]+$`.
+ */
+export const TOOL_NAMESPACE_SEPARATOR = '__';
+
+/**
+ * Build the LLM-facing tool name from a provider id and tool name. Used as the
+ * single source of truth so the separator is never hardcoded elsewhere.
+ */
+export function namespaceToolName(providerId: string, toolName: string): string {
+  return `${providerId}${TOOL_NAMESPACE_SEPARATOR}${toolName}`;
+}
+
+/**
+ * Parse an LLM-supplied namespaced tool name back into `(providerId, toolName)`.
+ * Splits on the FIRST `__` so tool names containing `__` survive the round-trip.
+ * Returns `null` for malformed input — callers must handle defensively.
+ */
+const NOT_FOUND = -1;
+const FIRST_SLICE_START = 0;
+const EMPTY_LENGTH = 0;
+
+export function parseNamespacedToolName(name: string): { providerId: string; toolName: string } | null {
+  const idx = name.indexOf(TOOL_NAMESPACE_SEPARATOR);
+  if (idx === NOT_FOUND) return null;
+  const providerId = name.slice(FIRST_SLICE_START, idx);
+  const toolName = name.slice(idx + TOOL_NAMESPACE_SEPARATOR.length);
+  if (providerId.length === EMPTY_LENGTH || toolName.length === EMPTY_LENGTH) return null;
+  return { providerId, toolName };
+}
+
 export interface KvPagedResult<T> {
   items: T[];
   total: number;

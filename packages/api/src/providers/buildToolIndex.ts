@@ -1,12 +1,27 @@
 import type { Logger } from '../utils/logger.js';
-import type { Provider, ProviderCtx, ToolDescriptor } from './provider.js';
+import type { Provider, ProviderCtx, ProviderType, ToolDescriptor } from './provider.js';
+import { namespaceToolName } from './types.js';
 
 export interface IndexEntry {
   provider: Provider;
   descriptor: ToolDescriptor;
 }
 
-export type ConflictReporter = (conflict: { inBuiltin: string; inMcp: string; toolName: string }) => void;
+/**
+ * Reported when two providers ever publish the same LLM-facing tool name.
+ * With provider-namespaced names (`${providerId}__${toolName}`) collisions are
+ * impossible across distinct providers; the only remaining surface is a single
+ * provider (or, e.g., an MCP server) that explicitly chose a name shaped like
+ * `${someProviderId}__${someName}`. Kept as defense-in-depth.
+ */
+export type ConflictReporter = (conflict: {
+  namespacedName: string;
+  winnerProviderId: string;
+  winnerProviderType: ProviderType;
+  loserProviderId: string;
+  loserProviderType: ProviderType;
+  toolName: string;
+}) => void;
 
 interface ConflictCtx {
   logger: Logger;
@@ -19,13 +34,25 @@ function pickWinner(existing: IndexEntry, incoming: IndexEntry): { winner: Index
     : { winner: incoming, loser: existing };
 }
 
-function resolveConflict(existing: IndexEntry, incoming: IndexEntry, conflict: ConflictCtx): IndexEntry {
+function resolveConflict(
+  existing: IndexEntry,
+  incoming: IndexEntry,
+  namespacedName: string,
+  conflict: ConflictCtx
+): IndexEntry {
   const { winner, loser } = pickWinner(existing, incoming);
   const { descriptor } = incoming;
   const { toolName } = descriptor;
-  conflict.reportConflict({ inBuiltin: winner.provider.id, inMcp: loser.provider.id, toolName });
+  conflict.reportConflict({
+    namespacedName,
+    winnerProviderId: winner.provider.id,
+    winnerProviderType: winner.provider.type,
+    loserProviderId: loser.provider.id,
+    loserProviderType: loser.provider.type,
+    toolName,
+  });
   conflict.logger.warn(
-    `tool name collision: ${toolName} (built-in ${winner.provider.id} wins; mcp ${loser.provider.id} dropped)`
+    `tool name collision: ${namespacedName} (${winner.provider.type} ${winner.provider.id} wins; ${loser.provider.type} ${loser.provider.id} dropped)`
   );
   return winner;
 }
@@ -38,12 +65,13 @@ function indexDescriptors(
 ): void {
   for (const descriptor of descriptors) {
     const incoming: IndexEntry = { provider, descriptor };
-    const existing = index.get(descriptor.toolName);
+    const namespacedName = namespaceToolName(provider.id, descriptor.toolName);
+    const existing = index.get(namespacedName);
     if (existing === undefined) {
-      index.set(descriptor.toolName, incoming);
+      index.set(namespacedName, incoming);
       continue;
     }
-    index.set(descriptor.toolName, resolveConflict(existing, incoming, conflict));
+    index.set(namespacedName, resolveConflict(existing, incoming, namespacedName, conflict));
   }
 }
 
