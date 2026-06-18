@@ -7,6 +7,8 @@ import React from 'react';
 import { computeHeaderState, isToolSelected, toggleTool } from '@/app/lib/agentTools';
 import type { RegistryTool, ToolGroup } from '@/app/lib/toolRegistryTypes';
 
+import { Scrollable } from '../Scrollable';
+
 import { EmptyToolsHint } from './EmptyToolsHint';
 import { ProviderErrorRow, groupProviderId } from './ProviderErrorRow';
 import { ProviderHeader } from './ProviderHeader';
@@ -63,7 +65,7 @@ export function AgentModeBody(props: AgentModeBodyProps): React.JSX.Element {
     props;
   const showEmpty = agent.selectedTools.length === 0 && agent.staleEntries.length === 0;
   return (
-    <div className="flex-1 overflow-y-auto p-1 pt-0">
+    <Scrollable className="flex-1 p-1 pt-0">
       <StaleEntriesGroup staleEntries={agent.staleEntries} onRemove={agent.onRemoveStale} />
       {showEmpty && <EmptyToolsHint />}
       {groups.map((group) => (
@@ -78,7 +80,7 @@ export function AgentModeBody(props: AgentModeBodyProps): React.JSX.Element {
           onCollapseTool={onCollapseTool}
         />
       ))}
-    </div>
+    </Scrollable>
   );
 }
 
