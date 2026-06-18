@@ -83,6 +83,26 @@ function shapeProvider(provider: RegistryProviderResponse, fallbackFetchedAt: nu
   return { group, tools };
 }
 
+const FRONT_PROVIDER_IDS: ReadonlyArray<string> = ['kv_store', 'rag'];
+
+function frontRank(providerId: string): number {
+  const idx = FRONT_PROVIDER_IDS.indexOf(providerId);
+  return idx === -1 ? FRONT_PROVIDER_IDS.length : idx;
+}
+
+function sortFrontGroups(groups: ToolGroup[]): ToolGroup[] {
+  // Stable sort: kv_store + rag come first, everything else keeps its existing relative order
+  return groups
+    .map((group, index) => ({ group, index }))
+    .sort((a, b) => {
+      const rankA = frontRank(a.group.providerId);
+      const rankB = frontRank(b.group.providerId);
+      if (rankA !== rankB) return rankA - rankB;
+      return a.index - b.index;
+    })
+    .map((entry) => entry.group);
+}
+
 function buildState(data: RegistryResponse): RegistryState {
   const groups: ToolGroup[] = [];
   const tools: RegistryTool[] = [];
@@ -94,10 +114,11 @@ function buildState(data: RegistryResponse): RegistryState {
     tools.push(...shaped.tools);
     if (provider.error !== undefined) failed.push(provider.id);
   }
+  const sortedGroups = sortFrontGroups(groups);
   if (failed.length > 0) {
-    return { kind: 'partial-failure', groups, tools, failedProviders: failed, fetchedAt };
+    return { kind: 'partial-failure', groups: sortedGroups, tools, failedProviders: failed, fetchedAt };
   }
-  return { kind: 'loaded', groups, tools, fetchedAt };
+  return { kind: 'loaded', groups: sortedGroups, tools, fetchedAt };
 }
 
 function buildErrorState(error: unknown): RegistryState {
