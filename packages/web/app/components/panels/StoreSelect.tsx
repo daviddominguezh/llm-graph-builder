@@ -8,7 +8,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-export type StoreSelectSaveState = 'idle' | 'saving' | 'saved' | 'conflict' | 'error';
+export type StoreSelectSaveState =
+  | 'idle'
+  | 'saving'
+  | 'saved'
+  | 'conflict'
+  | 'error'
+  | 'disabled-by-failure';
 
 export interface StoreSelectStore {
   id: string;

@@ -11,7 +11,21 @@ import { ProviderErrorRow, groupProviderId } from './ProviderErrorRow';
 import { ProviderHeader } from './ProviderHeader';
 import type { SaveState } from './SaveStateIndicator';
 import { StaleEntriesGroup } from './StaleEntriesGroup';
+import { StoreSelect, type StoreSelectStore } from './StoreSelect';
 import { ToolRow as SelectableToolRow } from './ToolRow';
+
+export interface AgentToolStoreBindingsView {
+  selectedKvStoreId: string | null;
+  selectedRagStoreId: string | null;
+}
+
+export interface AgentToolStoresPanelConfig {
+  kvStores: StoreSelectStore[];
+  ragStores: StoreSelectStore[];
+  bindings: AgentToolStoreBindingsView;
+  saveState: SaveState;
+  onChangeBindings: (next: AgentToolStoreBindingsView) => void;
+}
 
 export interface AgentModeProps {
   agentId: string;
@@ -21,6 +35,7 @@ export interface AgentModeProps {
   onChange: (next: SelectedTool[]) => void;
   onRemoveStale: (entry: SelectedTool) => void;
   onRetrySave?: () => void;
+  stores?: AgentToolStoresPanelConfig;
 }
 
 export function registryToolToSelectedTool(t: RegistryTool): SelectedTool {
@@ -91,6 +106,42 @@ function applyHeaderToggle(
   return next;
 }
 
+type StoreKind = 'kv' | 'rag';
+
+function storeKindForGroup(group: ToolGroup): StoreKind | null {
+  if (group.kind !== 'builtin') return null;
+  if (group.providerId === 'kv_store') return 'kv';
+  if (group.providerId === 'rag') return 'rag';
+  return null;
+}
+
+function renderStoreSelect(
+  storeKind: StoreKind,
+  stores: AgentToolStoresPanelConfig
+): React.ReactNode {
+  const list = storeKind === 'kv' ? stores.kvStores : stores.ragStores;
+  const selectedId =
+    storeKind === 'kv' ? stores.bindings.selectedKvStoreId : stores.bindings.selectedRagStoreId;
+  /* i18n: storeSelectPlaceholder */
+  const placeholder = storeKind === 'kv' ? 'Select KV store' : 'Select RAG store';
+  const handleChange = (next: string | null): void => {
+    if (storeKind === 'kv') {
+      stores.onChangeBindings({ ...stores.bindings, selectedKvStoreId: next });
+    } else {
+      stores.onChangeBindings({ ...stores.bindings, selectedRagStoreId: next });
+    }
+  };
+  return (
+    <StoreSelect
+      stores={list}
+      selectedId={selectedId}
+      saveState={stores.saveState}
+      onChange={handleChange}
+      placeholder={placeholder}
+    />
+  );
+}
+
 function AgentModeGroup(props: AgentModeGroupProps): React.JSX.Element {
   const { group, agent, searchActive, expandedTool, failedProviders, onToggleTool, onCollapseTool } =
     props;
@@ -100,6 +151,9 @@ function AgentModeGroup(props: AgentModeGroupProps): React.JSX.Element {
   const providerId = groupProviderId(group);
   const hasError = providerId !== null && failedProviders.includes(providerId);
   const mcpFetchedAt = group.kind === 'mcp' ? group.fetchedAt : undefined;
+  const storeKind = storeKindForGroup(group);
+  const rightSlot =
+    storeKind !== null && agent.stores !== undefined ? renderStoreSelect(storeKind, agent.stores) : undefined;
   return (
     <div>
       <ProviderHeader
@@ -111,6 +165,7 @@ function AgentModeGroup(props: AgentModeGroupProps): React.JSX.Element {
         searchActive={searchActive}
         fetchedAt={mcpFetchedAt}
         onToggle={() => agent.onChange(applyHeaderToggle(agent.selectedTools, groupTools, headerState))}
+        rightSlot={rightSlot}
       />
       {hasError && <ProviderErrorRow agentId={agent.agentId} mode="agent" />}
       <ul className="flex flex-row gap-2 gap-y-3 flex-wrap pl-1">
