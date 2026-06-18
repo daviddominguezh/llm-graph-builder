@@ -17,6 +17,7 @@ const ZERO = 0;
 const TEN = 10;
 const FIVE = 5;
 const MIN_SIM = 0.7;
+const DEFAULT_MIN_SIM = 0.5;
 
 function makeLogger(): Logger {
   return {
@@ -121,7 +122,7 @@ describe('ragProvider — semantic + hybrid', () => {
     expect(services.searchHybrid).toHaveBeenCalledWith({
       tenantId: TENANT_ID,
       query: 'q',
-      minSimilarity: ZERO,
+      minSimilarity: DEFAULT_MIN_SIM,
       offset: ZERO,
       limit: FIVE,
     });

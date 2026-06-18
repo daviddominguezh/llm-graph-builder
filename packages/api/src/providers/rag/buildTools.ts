@@ -10,10 +10,10 @@ const QUERY_MAX = 4096;
 const OFFSET_MIN = 0;
 const LIMIT_MIN = 1;
 const LIMIT_MAX = 200;
-const DEFAULT_LIMIT = 10;
+const DEFAULT_LIMIT = 20;
 const MIN_SIMILARITY_FLOOR = 0;
 const MIN_SIMILARITY_CEIL = 1;
-const DEFAULT_MIN_SIMILARITY = 0;
+const DEFAULT_MIN_SIMILARITY = 0.5;
 
 const searchInput = z
   .object({

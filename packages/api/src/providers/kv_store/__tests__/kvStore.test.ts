@@ -10,6 +10,7 @@ const STORE_ID = 'kv-1';
 const ZERO = 0;
 const TWENTY = 20;
 const FIVE = 5;
+const LIST_KEYS_DEFAULT_LIMIT = 100;
 const EXPECTED_TOOL_COUNT = 4;
 
 function makeLogger(): Logger {
@@ -97,7 +98,7 @@ describe('kvStoreProvider — list_keys', () => {
     expect(tool).toBeDefined();
     if (tool === undefined) throw new Error('expected list_keys tool');
     await tool.execute({});
-    expect(services.listKeys).toHaveBeenCalledWith(TENANT_ID, ZERO, TWENTY);
+    expect(services.listKeys).toHaveBeenCalledWith(TENANT_ID, ZERO, LIST_KEYS_DEFAULT_LIMIT);
   });
 });
 

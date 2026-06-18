@@ -10,14 +10,27 @@ const KEYS_MAX_ITEMS = 100;
 const OFFSET_MIN = 0;
 const LIMIT_MIN = 1;
 const LIMIT_MAX = 500;
+const LIST_KEYS_DEFAULT_LIMIT = 100;
+const SEARCH_DEFAULT_LIMIT = 50;
 
 export const KV_LIST_KEYS_TOOL_NAME = 'list_keys';
 export const KV_GET_VALUES_TOOL_NAME = 'get_values';
 export const KV_SEARCH_TOOL_NAME = 'search';
 export const KV_UPDATE_VALUE_TOOL_NAME = 'update_value';
 
-const offsetSchema: RawJsonSchema = { type: 'integer', minimum: OFFSET_MIN };
-const limitSchema: RawJsonSchema = { type: 'integer', minimum: LIMIT_MIN, maximum: LIMIT_MAX };
+const offsetSchema: RawJsonSchema = { type: 'integer', minimum: OFFSET_MIN, default: OFFSET_MIN };
+const listKeysLimitSchema: RawJsonSchema = {
+  type: 'integer',
+  minimum: LIMIT_MIN,
+  maximum: LIMIT_MAX,
+  default: LIST_KEYS_DEFAULT_LIMIT,
+};
+const searchLimitSchema: RawJsonSchema = {
+  type: 'integer',
+  minimum: LIMIT_MIN,
+  maximum: LIMIT_MAX,
+  default: SEARCH_DEFAULT_LIMIT,
+};
 
 const listKeysDescriptor: ToolDescriptor = {
   toolName: KV_LIST_KEYS_TOOL_NAME,
@@ -25,7 +38,7 @@ const listKeysDescriptor: ToolDescriptor = {
   inputSchema: {
     type: 'object',
     required: ['offset', 'limit'],
-    properties: { offset: offsetSchema, limit: limitSchema },
+    properties: { offset: offsetSchema, limit: listKeysLimitSchema },
   },
 };
 
@@ -58,7 +71,7 @@ const searchDescriptor: ToolDescriptor = {
       query: { type: 'string', minLength: LIMIT_MIN, maxLength: QUERY_MAX },
       pattern: { type: 'string', maxLength: KEY_PATTERN_MAX },
       offset: offsetSchema,
-      limit: limitSchema,
+      limit: searchLimitSchema,
     },
   },
 };

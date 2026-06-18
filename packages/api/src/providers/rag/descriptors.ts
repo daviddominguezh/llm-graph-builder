@@ -6,13 +6,20 @@ const QUERY_MAX = 4096;
 const OFFSET_MIN = 0;
 const LIMIT_MIN = 1;
 const LIMIT_MAX = 200;
+const DEFAULT_LIMIT = 20;
+const DEFAULT_MIN_SIMILARITY = 0.5;
 const MIN_SIMILARITY_FLOOR = 0;
 const MIN_SIMILARITY_CEIL = 1;
 
 export const RAG_SEARCH_TOOL_NAME = 'search';
 
-const offsetSchema: RawJsonSchema = { type: 'integer', minimum: OFFSET_MIN };
-const limitSchema: RawJsonSchema = { type: 'integer', minimum: LIMIT_MIN, maximum: LIMIT_MAX };
+const offsetSchema: RawJsonSchema = { type: 'integer', minimum: OFFSET_MIN, default: OFFSET_MIN };
+const limitSchema: RawJsonSchema = {
+  type: 'integer',
+  minimum: LIMIT_MIN,
+  maximum: LIMIT_MAX,
+  default: DEFAULT_LIMIT,
+};
 
 const searchDescriptor: ToolDescriptor = {
   toolName: RAG_SEARCH_TOOL_NAME,
@@ -33,6 +40,7 @@ const searchDescriptor: ToolDescriptor = {
         type: 'number',
         minimum: MIN_SIMILARITY_FLOOR,
         maximum: MIN_SIMILARITY_CEIL,
+        default: DEFAULT_MIN_SIMILARITY,
         description: 'For semantic/hybrid modes only. 0 disables the similarity floor.',
       },
       offset: offsetSchema,

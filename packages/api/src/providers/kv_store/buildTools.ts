@@ -19,13 +19,14 @@ const KEYS_MAX_ITEMS = 100;
 const OFFSET_MIN = 0;
 const LIMIT_MIN = 1;
 const LIMIT_MAX = 500;
-const DEFAULT_LIMIT = 20;
+const LIST_KEYS_DEFAULT_LIMIT = 100;
+const SEARCH_DEFAULT_LIMIT = 50;
 
 /* ─── Zod input schemas ─── */
 
 const listKeysInput = z.object({
   offset: z.number().int().min(OFFSET_MIN).default(OFFSET_MIN),
-  limit: z.number().int().min(LIMIT_MIN).max(LIMIT_MAX).default(DEFAULT_LIMIT),
+  limit: z.number().int().min(LIMIT_MIN).max(LIMIT_MAX).default(LIST_KEYS_DEFAULT_LIMIT),
 });
 
 const getValuesInput = z.object({
@@ -39,7 +40,7 @@ const searchInput = z
     query: z.string().min(LIMIT_MIN).max(QUERY_MAX).optional(),
     pattern: z.string().max(KEY_PATTERN_MAX).optional(),
     offset: z.number().int().min(OFFSET_MIN).default(OFFSET_MIN),
-    limit: z.number().int().min(LIMIT_MIN).max(LIMIT_MAX).default(DEFAULT_LIMIT),
+    limit: z.number().int().min(LIMIT_MIN).max(LIMIT_MAX).default(SEARCH_DEFAULT_LIMIT),
   })
   .superRefine((val, ctx) => {
     if (val.mode === 'substring' && (val.query === undefined || val.query === '')) {

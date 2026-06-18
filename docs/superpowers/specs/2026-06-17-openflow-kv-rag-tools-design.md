@@ -151,7 +151,7 @@ Semantics:
 search(
   mode: 'bm25' | 'semantic' | 'hybrid' | 'regex',
   query: string,
-  minSimilarity?: number = 0.3,  // applies only to semantic + hybrid
+  minSimilarity?: number = 0.5,  // applies only to semantic + hybrid
   offset?: number,
   limit?: number = 20
 )
