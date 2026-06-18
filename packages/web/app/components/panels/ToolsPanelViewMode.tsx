@@ -10,7 +10,16 @@ import { useRef } from 'react';
 import type { RegistryTool, ToolGroup } from '../../lib/toolRegistry';
 import { CatalogFreshnessIndicator } from './CatalogFreshnessIndicator';
 import { ProviderErrorRow, groupProviderId } from './ProviderErrorRow';
+import type { ToolRowDisabledReason } from './ToolRow';
 import { FloatingSchema, type ToolSchema } from './ToolSchemaPopover';
+import {
+  type AgentToolStoresPanelConfig,
+  DisabledIndicator,
+  buildDisabledTooltip,
+  computeDisabledReason,
+  renderStoreSelect,
+  storeKindForGroup,
+} from './toolStoreHelpers';
 
 interface PlayButtonProps {
   tool: RegistryTool;
@@ -55,6 +64,33 @@ interface ViewToolRowProps {
   onClick: () => void;
   onCollapse: () => void;
   onTest: (tool: RegistryTool) => void;
+  disabledReason?: ToolRowDisabledReason;
+}
+
+interface ViewToolRowBodyProps {
+  tool: RegistryTool;
+  displayDescription: string | undefined;
+  disabledTooltip: string | undefined;
+  onTest: (tool: RegistryTool) => void;
+}
+
+function ViewToolRowBody(props: ViewToolRowBodyProps): React.JSX.Element {
+  const { tool, displayDescription, disabledTooltip, onTest } = props;
+  const isDisabled = disabledTooltip !== undefined;
+  return (
+    <>
+      <div className="py-0.5 flex min-w-0 flex-1 flex-col">
+        <span className="font-medium flex items-center gap-1">
+          {tool.name}
+          {disabledTooltip !== undefined && <DisabledIndicator tooltip={disabledTooltip} />}
+        </span>
+        <span className="truncate text-[10px] text-muted-foreground">
+          {displayDescription ?? tool.group}
+        </span>
+      </div>
+      <PlayButton tool={tool} onTest={onTest} disabled={isDisabled} disabledTooltip={disabledTooltip} />
+    </>
+  );
 }
 
 export function ViewToolRow({
@@ -65,24 +101,28 @@ export function ViewToolRow({
   onClick,
   onCollapse,
   onTest,
+  disabledReason,
 }: ViewToolRowProps): React.JSX.Element {
   const rowRef = useRef<HTMLDivElement>(null);
   const catalog = useToolCatalog();
+  const t = useTranslations('agentTools');
   const displayDescription = catalog.toolDescription(providerId, tool.name, tool.description, providerKind);
+  const disabledTooltip = buildDisabledTooltip(disabledReason ?? null, t);
+  const isDisabled = disabledTooltip !== undefined;
+  const disabledCls = isDisabled ? 'opacity-60' : '';
   return (
-    <li className="flex flex-col w-[calc(33.3%_-_(var(--spacing)*2))] shrink-0 bg-input/70 rounded-sm py-0">
+    <li className={`flex flex-col w-[calc(33.3%_-_(var(--spacing)*2))] shrink-0 bg-input/70 rounded-sm py-0 ${disabledCls}`}>
       <div
         ref={rowRef}
         className="py-0.5 group/tool flex w-full items-start gap-1 pl-2 pr-0.5 text-left text-xs cursor-default"
         onClick={onClick}
       >
-        <div className="py-0.5 flex min-w-0 flex-1 flex-col">
-          <span className="font-medium">{tool.name}</span>
-          <span className="truncate text-[10px] text-muted-foreground">
-            {displayDescription ?? tool.group}
-          </span>
-        </div>
-        <PlayButton tool={tool} onTest={onTest} />
+        <ViewToolRowBody
+          tool={tool}
+          displayDescription={displayDescription}
+          disabledTooltip={disabledTooltip}
+          onTest={onTest}
+        />
       </div>
       {expanded && tool.inputSchema && (
         <FloatingSchema
@@ -107,6 +147,7 @@ interface ToolsListProps {
   onToggleTool: (key: string) => void;
   onCollapseTool: () => void;
   onTestTool: (tool: RegistryTool) => void;
+  stores?: AgentToolStoresPanelConfig;
 }
 
 interface ToolsListGroupProps {
@@ -116,6 +157,41 @@ interface ToolsListGroupProps {
   onToggleTool: (key: string) => void;
   onCollapseTool: () => void;
   onTestTool: (tool: RegistryTool) => void;
+  stores?: AgentToolStoresPanelConfig;
+}
+
+interface GroupHeaderProps {
+  displayGroupName: string;
+  mcpFetchedAt: number | undefined;
+  rightSlot: React.ReactNode | undefined;
+}
+
+function GroupHeader({ displayGroupName, mcpFetchedAt, rightSlot }: GroupHeaderProps): React.JSX.Element {
+  return (
+    <div className="sticky top-0 z-10 px-2 pt-0 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide bg-[rgb(255_255_255)] dark:bg-[rgb(18_18_18)]">
+      <div className="pt-2 flex items-center gap-2">
+        <span>{displayGroupName}</span>
+        {mcpFetchedAt !== undefined && <CatalogFreshnessIndicator fetchedAt={mcpFetchedAt} />}
+        {rightSlot !== undefined && <div className="ml-auto flex items-center shrink-0">{rightSlot}</div>}
+      </div>
+    </div>
+  );
+}
+
+function useGroupStoreState(
+  group: ToolGroup,
+  stores: AgentToolStoresPanelConfig | undefined
+): { rightSlot: React.ReactNode | undefined; disabledReason: ToolRowDisabledReason } {
+  const tr = useTranslations('agentTools');
+  const storeKind = storeKindForGroup(group);
+  const storePlaceholder =
+    storeKind !== null ? tr('selectStoreKind', { kind: storeKind === 'kv' ? 'KV' : 'RAG' }) : '';
+  const rightSlot =
+    storeKind !== null && stores !== undefined
+      ? renderStoreSelect(storeKind, stores, storePlaceholder)
+      : undefined;
+  const disabledReason = computeDisabledReason(storeKind, stores);
+  return { rightSlot, disabledReason };
 }
 
 function ToolsListGroup({
@@ -125,20 +201,21 @@ function ToolsListGroup({
   onToggleTool,
   onCollapseTool,
   onTestTool,
+  stores,
 }: ToolsListGroupProps): React.JSX.Element {
   const catalog = useToolCatalog();
   const providerId = groupProviderId(group);
   const hasError = providerId !== null && failedProviders.includes(providerId);
   const mcpFetchedAt = group.kind === 'mcp' ? group.fetchedAt : undefined;
   const displayGroupName = catalog.groupName(group.providerId, group.groupName, group.kind);
+  const { rightSlot, disabledReason } = useGroupStoreState(group, stores);
   return (
     <div>
-      <div className="sticky top-0 z-10 px-2 pt-0 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide bg-[rgb(255_255_255)] dark:bg-[rgb(18_18_18)]">
-        <div className="pt-2 flex items-center gap-2">
-          <span>{displayGroupName}</span>
-          {mcpFetchedAt !== undefined && <CatalogFreshnessIndicator fetchedAt={mcpFetchedAt} />}
-        </div>
-      </div>
+      <GroupHeader
+        displayGroupName={displayGroupName}
+        mcpFetchedAt={mcpFetchedAt}
+        rightSlot={rightSlot}
+      />
       {hasError && <ProviderErrorRow mode="workflow" />}
       <ul className="flex flex-row gap-2 gap-y-3 flex-wrap pl-1">
         {group.tools.map((tool) => {
@@ -153,6 +230,7 @@ function ToolsListGroup({
               onClick={() => onToggleTool(key)}
               onCollapse={onCollapseTool}
               onTest={onTestTool}
+              disabledReason={disabledReason}
             />
           );
         })}
@@ -169,6 +247,7 @@ export function ToolsList({
   onToggleTool,
   onCollapseTool,
   onTestTool,
+  stores,
 }: ToolsListProps): React.JSX.Element {
   return (
     <div className="flex-1 overflow-y-auto p-1 pt-0">
@@ -186,6 +265,7 @@ export function ToolsList({
             onToggleTool={onToggleTool}
             onCollapseTool={onCollapseTool}
             onTestTool={onTestTool}
+            stores={stores}
           />
         ))
       )}

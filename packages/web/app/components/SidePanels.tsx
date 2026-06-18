@@ -27,6 +27,7 @@ import { OutputSchemaDialog } from './panels/OutputSchemaDialog';
 import { StartNodePanel } from './panels/StartNodePanel';
 import { ToolsPanel } from './panels/ToolsPanel';
 import { registryToolToSelectedTool } from './panels/ToolsPanelAgentMode';
+import type { AgentToolStoresPanelConfig } from './panels/toolStoreHelpers';
 import type { CtxPreconditionsState, EdgeSetter, NodeArray, NodeSetter } from './sidePanelHelpers';
 import {
   handleGlobalAddNode,
@@ -226,8 +227,19 @@ function AgentToolsSlot({ config, sidePanelProps: p, onPublishServer }: AgentToo
       open={p.toolsOpen}
       onClose={() => {}}
       agent={agentProp}
+      stores={buildStoresConfig(p.toolStores)}
     />
   );
+}
+
+function buildStoresConfig(toolStores: ToolStoresState): AgentToolStoresPanelConfig {
+  return {
+    kvStores: toolStores.kvStores,
+    ragStores: toolStores.ragStores,
+    bindings: toolStores.bindings,
+    saveState: toolStores.saveState,
+    onChangeBindings: toolStores.onChangeBindings,
+  };
 }
 
 interface BuildAgentPropArgs {
@@ -247,13 +259,7 @@ function buildAgentProp(args: BuildAgentPropArgs) {
     onChange: toolsState.handleToolsChange,
     onRemoveStale: toolsState.handleRemoveStale,
     onRetrySave: toolsState.handleRetrySave,
-    stores: {
-      kvStores: toolStores.kvStores,
-      ragStores: toolStores.ragStores,
-      bindings: toolStores.bindings,
-      saveState: toolStores.saveState,
-      onChangeBindings: toolStores.onChangeBindings,
-    },
+    stores: buildStoresConfig(toolStores),
   };
 }
 
@@ -263,7 +269,14 @@ function ToolsPanelSlot({ sidePanelProps: p, onPublishServer }: ToolsPanelSlotPr
       <AgentToolsSlot config={p.agentToolsConfig} sidePanelProps={p} onPublishServer={onPublishServer} />
     );
   }
-  return <ToolsPanel mcp={buildMcpProps(p, onPublishServer)} open={p.toolsOpen} onClose={() => {}} />;
+  return (
+    <ToolsPanel
+      mcp={buildMcpProps(p, onPublishServer)}
+      open={p.toolsOpen}
+      onClose={() => {}}
+      stores={buildStoresConfig(p.toolStores)}
+    />
+  );
 }
 
 export function SidePanels(props: SidePanelsProps) {

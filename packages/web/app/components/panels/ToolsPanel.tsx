@@ -20,6 +20,7 @@ import {
   useOutsideClose,
   useToolsPanelState,
 } from './ToolsPanelHelpers';
+import type { AgentToolStoresPanelConfig } from './toolStoreHelpers';
 
 interface McpProps {
   servers: McpServerConfig[];
@@ -41,6 +42,7 @@ interface ToolsPanelProps {
   open: boolean;
   onClose: () => void;
   agent?: AgentModeProps;
+  stores?: AgentToolStoresPanelConfig;
 }
 
 function filterGroups(groups: ToolGroup[], query: string): ToolGroup[] {
@@ -143,13 +145,22 @@ interface ToolsTabPanelProps {
   filteredGroups: ToolGroup[];
   totalCount: number;
   agent?: AgentModeProps;
+  stores?: AgentToolStoresPanelConfig;
   onTestTool: (tool: RegistryTool) => void;
   searchPlaceholder: string;
 }
 
 function ToolsTabPanel(props: ToolsTabPanelProps): React.JSX.Element {
-  const { inputRef, panelState, registryState, filteredGroups, totalCount, agent, searchPlaceholder } =
-    props;
+  const {
+    inputRef,
+    panelState,
+    registryState,
+    filteredGroups,
+    totalCount,
+    agent,
+    stores,
+    searchPlaceholder,
+  } = props;
   const onToggleTool = (key: string): void =>
     panelState.setExpandedTool((prev) => (prev === key ? null : key));
   const onCollapseTool = (): void => panelState.setExpandedTool(null);
@@ -169,6 +180,7 @@ function ToolsTabPanel(props: ToolsTabPanelProps): React.JSX.Element {
         expandedTool={panelState.expandedTool}
         query={panelState.query}
         agent={agent}
+        stores={stores}
         onToggleTool={onToggleTool}
         onCollapseTool={onCollapseTool}
         onTestTool={props.onTestTool}
@@ -177,7 +189,7 @@ function ToolsTabPanel(props: ToolsTabPanelProps): React.JSX.Element {
   );
 }
 
-export function ToolsPanel({ mcp, open, onClose, agent }: ToolsPanelProps) {
+export function ToolsPanel({ mcp, open, onClose, agent, stores }: ToolsPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const t = useTranslations('toolbar');
@@ -218,6 +230,7 @@ export function ToolsPanel({ mcp, open, onClose, agent }: ToolsPanelProps) {
               filteredGroups={filteredGroups}
               totalCount={totalCount}
               agent={agent}
+              stores={stores}
               onTestTool={tt.openTest}
               searchPlaceholder={t('searchTools')}
             />

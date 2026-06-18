@@ -11,6 +11,7 @@ import { PanelTotalFailureState } from './PanelTotalFailureState';
 import { SaveStateIndicator } from './SaveStateIndicator';
 import { type AgentModeProps, AgentModeBody } from './ToolsPanelAgentMode';
 import { ToolsList } from './ToolsPanelViewMode';
+import type { AgentToolStoresPanelConfig } from './toolStoreHelpers';
 
 interface SearchRowProps {
   inputRef: React.RefObject<HTMLInputElement | null>;
@@ -51,6 +52,7 @@ interface ToolsTabBodyProps {
   expandedTool: string | null;
   query: string;
   agent?: AgentModeProps;
+  stores?: AgentToolStoresPanelConfig;
   onToggleTool: (key: string) => void;
   onCollapseTool: () => void;
   onTestTool: (tool: RegistryTool) => void;
@@ -61,7 +63,7 @@ function getFailedProviders(registryState: RegistryState): string[] {
 }
 
 export function ToolsTabBody(props: ToolsTabBodyProps): React.JSX.Element {
-  const { registryState, filteredGroups, totalCount, expandedTool, query, agent } = props;
+  const { registryState, filteredGroups, totalCount, expandedTool, query, agent, stores } = props;
   if (registryState.kind === 'loading') return <PanelLoadingState />;
   if (registryState.kind === 'total-failure') {
     return <PanelTotalFailureState reason={registryState.reason} />;
@@ -90,6 +92,7 @@ export function ToolsTabBody(props: ToolsTabBodyProps): React.JSX.Element {
       onToggleTool={props.onToggleTool}
       onCollapseTool={props.onCollapseTool}
       onTestTool={props.onTestTool}
+      stores={stores}
     />
   );
 }
