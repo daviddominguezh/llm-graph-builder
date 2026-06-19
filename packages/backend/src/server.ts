@@ -116,11 +116,6 @@ const SYSTEM_PUBLIC_UNAUTHED = [
   '/api/chat/latest-version/:tenantSlug/:agentSlug',
   '/internal/embed',
   '/internal/regex/validate',
-  '/internal/tools/kv-store/list-keys',
-  '/internal/tools/kv-store/get-values',
-  '/internal/tools/kv-store/search',
-  '/internal/tools/kv-store/update-value',
-  '/internal/tools/rag/search',
   // Messaging webhook routes (signature-verified, not JWT)
   '/whatsapp/webhook',
   '/instagram/webhook',
