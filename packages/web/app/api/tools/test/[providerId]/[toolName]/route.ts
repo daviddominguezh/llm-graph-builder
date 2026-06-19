@@ -1,31 +1,26 @@
+// Next.js proxy for tool testing.
+//
+// The proxy is provider-agnostic: it has zero knowledge of specific provider
+// ids or tool names. It authenticates the user, gates access by looking up
+// the agent under RLS, builds a minimal ExecutePayload, then forwards the
+// request to the edge function's /execute-tool endpoint which produces the
+// tool dict and runs the requested tool.
 import { createClient } from '@/app/lib/supabase/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 import { fetchAgentBinding, fetchDefaultTenantId, verifyTenantInOrg } from './lookups';
-import { buildBackendBody, resolveBackendPath } from './routing';
-import {
-  type BackendPayload,
-  type BuiltinProviderId,
-  TestToolRequestSchema,
-  isBackendPayload,
-  isBuiltinProviderId,
-} from './types';
+import { buildExecuteToolBody } from './payload';
+import { type BackendPayload, TestToolRequestSchema, isBackendPayload } from './types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
 const HTTP_UNAUTHORIZED = 401;
 const HTTP_FORBIDDEN = 403;
+const HTTP_INTERNAL = 500;
 
 interface RouteContext {
   params: Promise<{ providerId: string; toolName: string }>;
-}
-
-interface ValidatedRoute {
-  provider: BuiltinProviderId;
-  toolName: string;
-  backendPath: string;
 }
 
 function errorJson(code: string, message: string, status: number): Response {
@@ -33,40 +28,31 @@ function errorJson(code: string, message: string, status: number): Response {
   return NextResponse.json(payload, { status });
 }
 
-function validateRoute(params: { providerId: string; toolName: string }): ValidatedRoute | Response {
-  if (!isBuiltinProviderId(params.providerId)) {
-    return errorJson('unsupported_provider', "Testing this provider isn't supported yet.", HTTP_BAD_REQUEST);
-  }
-  const backendPath = resolveBackendPath(params.providerId, params.toolName);
-  if (backendPath === null) {
-    return errorJson('unsupported_provider', "Testing this provider isn't supported yet.", HTTP_BAD_REQUEST);
-  }
-  return { provider: params.providerId, toolName: params.toolName, backendPath };
-}
-
 interface BindingResolution {
-  storeId: string;
+  orgId: string;
   tenantId: string;
+  selectedKvStoreId: string | null;
+  selectedRagStoreId: string | null;
 }
 
-async function resolveBindingAndTenant(
+async function resolveAgentContext(
   supabase: SupabaseClient,
-  body: { agentId: string; tenantId?: string },
-  provider: BuiltinProviderId
+  body: { agentId: string; tenantId?: string }
 ): Promise<BindingResolution | Response> {
   const binding = await fetchAgentBinding(supabase, body.agentId);
   if (binding === null) {
     return errorJson('forbidden', 'Agent not found or not accessible', HTTP_FORBIDDEN);
   }
-  const storeId = provider === 'kv_store' ? binding.selected_kv_store_id : binding.selected_rag_store_id;
-  if (storeId === null) {
-    return errorJson('no_store_bound', 'Bind a store for this provider first.', HTTP_BAD_REQUEST);
-  }
   const tenantId = await pickTenantId(supabase, body.tenantId, binding.org_id);
   if (tenantId === null) {
     return errorJson('no_tenant', 'No tenant available for this org', HTTP_BAD_REQUEST);
   }
-  return { storeId, tenantId };
+  return {
+    orgId: binding.org_id,
+    tenantId,
+    selectedKvStoreId: binding.selected_kv_store_id,
+    selectedRagStoreId: binding.selected_rag_store_id,
+  };
 }
 
 async function pickTenantId(
@@ -81,15 +67,17 @@ async function pickTenantId(
   return await fetchDefaultTenantId(supabase, orgId);
 }
 
-async function callBackend(backendPath: string, body: Record<string, unknown>): Promise<Response> {
-  const masterKey = process.env.EDGE_FUNCTION_MASTER_KEY ?? '';
-  if (masterKey === '') {
-    return errorJson('internal_error', 'Backend not configured', HTTP_OK);
-  }
-  const upstream = await fetch(`${API_URL}${backendPath}`, {
+interface CallEdgeArgs {
+  edgeUrl: string;
+  masterKey: string;
+  body: Record<string, unknown>;
+}
+
+async function callEdgeFunction(args: CallEdgeArgs): Promise<Response> {
+  const upstream = await fetch(`${args.edgeUrl}/execute-tool`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-master-key': masterKey },
-    body: JSON.stringify(body),
+    headers: { 'Content-Type': 'application/json', 'x-master-key': args.masterKey },
+    body: JSON.stringify(args.body),
   });
   const raw: unknown = await upstream.json().catch(() => null);
   if (!isBackendPayload(raw)) {
@@ -120,25 +108,42 @@ async function parseBody(
   return parsed.data;
 }
 
+interface EdgeEnv {
+  edgeUrl: string;
+  masterKey: string;
+}
+
+function readEdgeEnv(): EdgeEnv | Response {
+  const edgeUrl = process.env.SUPABASE_EDGE_FUNCTION_URL ?? '';
+  const masterKey = process.env.EDGE_FUNCTION_MASTER_KEY ?? '';
+  if (edgeUrl === '' || masterKey === '') {
+    return errorJson('internal_error', 'Edge function not configured', HTTP_INTERNAL);
+  }
+  return { edgeUrl, masterKey };
+}
+
 export async function POST(request: Request, context: RouteContext): Promise<Response> {
   const params = await context.params;
-  const route = validateRoute(params);
-  if (route instanceof Response) return route;
+  const env = readEdgeEnv();
+  if (env instanceof Response) return env;
   const body = await parseBody(request);
   if (body instanceof Response) return body;
   const supabase = await authenticate();
   if (supabase instanceof Response) return supabase;
-  const resolution = await resolveBindingAndTenant(supabase, body, route.provider);
+  const resolution = await resolveAgentContext(supabase, body);
   if (resolution instanceof Response) return resolution;
-  const backendBody = buildBackendBody(
-    route.provider,
-    route.toolName,
-    resolution.tenantId,
-    resolution.storeId,
-    body.args
-  );
+  const edgeBody = buildExecuteToolBody({
+    agentId: body.agentId,
+    orgId: resolution.orgId,
+    tenantId: resolution.tenantId,
+    providerId: params.providerId,
+    toolName: params.toolName,
+    selectedKvStoreId: resolution.selectedKvStoreId,
+    selectedRagStoreId: resolution.selectedRagStoreId,
+    args: body.args,
+  });
   try {
-    return await callBackend(route.backendPath, backendBody);
+    return await callEdgeFunction({ edgeUrl: env.edgeUrl, masterKey: env.masterKey, body: edgeBody });
   } catch {
     return errorJson('transient', "Couldn't run the tool — try again", HTTP_OK);
   }

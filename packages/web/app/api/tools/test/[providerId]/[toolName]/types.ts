@@ -8,12 +8,6 @@ export const TestToolRequestSchema = z.object({
 
 export type TestToolRequest = z.infer<typeof TestToolRequestSchema>;
 
-export type BuiltinProviderId = 'kv_store' | 'rag';
-
-export function isBuiltinProviderId(value: string): value is BuiltinProviderId {
-  return value === 'kv_store' || value === 'rag';
-}
-
 export interface AgentBindingRow {
   org_id: string;
   selected_kv_store_id: string | null;
