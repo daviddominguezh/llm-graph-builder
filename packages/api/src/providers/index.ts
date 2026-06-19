@@ -6,14 +6,16 @@ import { leadScoringProvider } from './lead_scoring/index.js';
 import type { Provider } from './provider.js';
 import { ragProvider } from './rag/index.js';
 
-export const builtInProviders: ReadonlyMap<string, Provider> = new Map([
+const builtInEntries: ReadonlyArray<readonly [string, Provider]> = [
   ['kv_store', kvStoreProvider],
   ['rag', ragProvider],
   ['calendar', calendarProvider],
   ['forms', formsProvider],
   ['lead_scoring', leadScoringProvider],
   ['composition', compositionProvider],
-]);
+];
+
+export const builtInProviders: ReadonlyMap<string, Provider> = new Map(builtInEntries);
 
 export type { Provider, ProviderCtx, ToolDescriptor, OAuthTokenBundle } from './provider.js';
 export type { BuiltinProviderId, BuiltinBundles } from './bundles.js';

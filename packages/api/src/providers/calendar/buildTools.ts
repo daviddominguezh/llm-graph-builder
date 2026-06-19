@@ -107,7 +107,16 @@ function makeCancelAppointment(ctx: CalendarCtx): OpenFlowTool {
   };
 }
 
-function buildAll(ctx: CalendarCtx): Record<string, OpenFlowTool> {
+type CalendarToolName =
+  | typeof LIST_CALENDARS_TOOL_NAME
+  | typeof CHECK_AVAILABILITY_TOOL_NAME
+  | typeof LIST_EVENTS_TOOL_NAME
+  | typeof GET_EVENT_TOOL_NAME
+  | typeof BOOK_APPOINTMENT_TOOL_NAME
+  | typeof UPDATE_EVENT_TOOL_NAME
+  | typeof CANCEL_APPOINTMENT_TOOL_NAME;
+
+function buildAll(ctx: CalendarCtx): Record<CalendarToolName, OpenFlowTool> {
   return {
     [LIST_CALENDARS_TOOL_NAME]: makeListCalendars(ctx),
     [CHECK_AVAILABILITY_TOOL_NAME]: makeCheckAvailability(ctx),
@@ -119,11 +128,29 @@ function buildAll(ctx: CalendarCtx): Record<string, OpenFlowTool> {
   };
 }
 
-function pickTools(all: Record<string, OpenFlowTool>, names: string[]): Record<string, OpenFlowTool> {
-  const result: Record<string, OpenFlowTool> = {};
+const CALENDAR_TOOL_NAMES: readonly string[] = [
+  LIST_CALENDARS_TOOL_NAME,
+  CHECK_AVAILABILITY_TOOL_NAME,
+  LIST_EVENTS_TOOL_NAME,
+  GET_EVENT_TOOL_NAME,
+  BOOK_APPOINTMENT_TOOL_NAME,
+  UPDATE_EVENT_TOOL_NAME,
+  CANCEL_APPOINTMENT_TOOL_NAME,
+];
+
+function isCalendarToolName(s: string): s is CalendarToolName {
+  return CALENDAR_TOOL_NAMES.includes(s);
+}
+
+function pickTools(
+  all: Record<CalendarToolName, OpenFlowTool>,
+  names: string[]
+): Partial<Record<CalendarToolName, OpenFlowTool>> {
+  const result: Partial<Record<CalendarToolName, OpenFlowTool>> = {};
   for (const name of names) {
+    if (!isCalendarToolName(name)) continue;
     const { [name]: tool } = all;
-    if (tool !== undefined) result[name] = tool;
+    result[name] = tool;
   }
   return result;
 }
@@ -142,7 +169,10 @@ function resolveServices(ctx: ProviderCtx): CalendarServices | undefined {
   return isCalendarServices(raw) ? raw : undefined;
 }
 
-function buildToolsSync(toolNames: string[], ctx: ProviderCtx): Record<string, OpenFlowTool> {
+function buildToolsSync(
+  toolNames: string[],
+  ctx: ProviderCtx
+): Partial<Record<CalendarToolName, OpenFlowTool>> {
   const services = resolveServices(ctx);
   if (services === undefined) return {};
   const calendarCtx = makeCtx(ctx.orgId, services);
@@ -153,7 +183,7 @@ function buildToolsSync(toolNames: string[], ctx: ProviderCtx): Record<string, O
 export async function buildCalendarTools(args: {
   toolNames: string[];
   ctx: ProviderCtx;
-}): Promise<Record<string, OpenFlowTool>> {
+}): Promise<Partial<Record<CalendarToolName, OpenFlowTool>>> {
   const { toolNames, ctx } = args;
   return await Promise.resolve(buildToolsSync(toolNames, ctx));
 }

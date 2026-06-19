@@ -73,5 +73,37 @@ export interface Provider {
   description?: string;
 
   describeTools: (ctx: ProviderCtx) => Promise<DescribeToolsResult>;
-  buildTools: (args: { toolNames: string[]; ctx: ProviderCtx }) => Promise<Record<string, OpenFlowTool>>;
+  // Returns a subset of the provider's tools (the caller may request only some).
+  // `Partial` is required for typed built-in providers to assign cleanly here:
+  // a narrow `Partial<Record<'list_keys' | 'search', …>>` widens to this shape
+  // without falsely claiming every string key has a tool.
+  buildTools: (args: {
+    toolNames: string[];
+    ctx: ProviderCtx;
+  }) => Promise<Partial<Record<string, OpenFlowTool>>>;
+}
+
+/**
+ * Built-in provider with a statically declared tool-name tuple. The tuple is
+ * the source of truth for which tools the provider exposes; `buildTools`
+ * returns a `Partial` map over those names (a subset is requested per call)
+ * and the runtime backstop test asserts the tuple matches the descriptors
+ * `describeTools` emits.
+ *
+ * `TN` is parameterised so that providers can pass a literal `as const` tuple
+ * and the buildTools return type narrows to that tuple's union. MCP providers
+ * stay on the loose `Provider` interface — their tool names are discovered at
+ * runtime and have no compile-time identity.
+ */
+export interface BuiltinProvider<
+  P extends BuiltinProviderId,
+  TN extends readonly string[] = readonly string[],
+> extends Provider {
+  type: 'builtin';
+  id: P;
+  toolNames: TN;
+  buildTools: (args: {
+    toolNames: string[];
+    ctx: ProviderCtx;
+  }) => Promise<Partial<Record<TN[number], OpenFlowTool>>>;
 }

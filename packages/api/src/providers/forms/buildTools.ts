@@ -66,26 +66,38 @@ function buildGetTool(svc: FormsServices, conversationId: string): OpenFlowTool 
   };
 }
 
-function buildAll(svc: FormsServices, conversationId: string): Record<string, OpenFlowTool> {
+type FormsToolName = 'set_form_fields' | 'get_form_field';
+
+function buildAll(svc: FormsServices, conversationId: string): Record<FormsToolName, OpenFlowTool> {
   return {
     set_form_fields: buildSetTool(svc, conversationId),
     get_form_field: buildGetTool(svc, conversationId),
   };
 }
 
-function filterByNames(all: Record<string, OpenFlowTool>, names: string[]): Record<string, OpenFlowTool> {
-  return Object.fromEntries(
-    names.flatMap((name) => {
-      const { [name]: tool } = all;
-      return tool === undefined ? [] : [[name, tool]];
-    })
-  );
+const FORMS_TOOL_NAMES: readonly string[] = ['set_form_fields', 'get_form_field'];
+
+function isFormsToolName(s: string): s is FormsToolName {
+  return FORMS_TOOL_NAMES.includes(s);
+}
+
+function filterByNames(
+  all: Record<FormsToolName, OpenFlowTool>,
+  names: string[]
+): Partial<Record<FormsToolName, OpenFlowTool>> {
+  const out: Partial<Record<FormsToolName, OpenFlowTool>> = {};
+  for (const name of names) {
+    if (!isFormsToolName(name)) continue;
+    const { [name]: tool } = all;
+    out[name] = tool;
+  }
+  return out;
 }
 
 export async function buildFormsTools(args: {
   toolNames: string[];
   ctx: ProviderCtx;
-}): Promise<Record<string, OpenFlowTool>> {
+}): Promise<Partial<Record<FormsToolName, OpenFlowTool>>> {
   const raw = await Promise.resolve(args.ctx.services('forms'));
   if (isFormsServices(raw) && args.ctx.conversationId !== undefined) {
     const all = buildAll(raw, args.ctx.conversationId);

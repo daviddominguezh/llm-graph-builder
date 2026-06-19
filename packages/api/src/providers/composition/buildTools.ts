@@ -8,6 +8,9 @@ import type { OpenFlowTool } from '../types.js';
 
 const FINISH_TOOL_NAME = 'finish';
 
+type CompositionToolName = 'create_agent' | 'invoke_agent' | 'invoke_workflow' | typeof FINISH_TOOL_NAME;
+type SelectableToolName = Exclude<CompositionToolName, typeof FINISH_TOOL_NAME>;
+
 const STUB_OPTIONS = { toolCallId: 'composition-adapter', messages: [] };
 
 function adaptTool(name: string, tool: Tool): OpenFlowTool {
@@ -22,7 +25,7 @@ function adaptTool(name: string, tool: Tool): OpenFlowTool {
   };
 }
 
-function buildSelectableTools(): Record<string, Tool> {
+function buildSelectableTools(): Record<SelectableToolName, Tool> {
   return {
     create_agent: createAgentTool(),
     invoke_agent: invokeAgentTool(),
@@ -30,24 +33,33 @@ function buildSelectableTools(): Record<string, Tool> {
   };
 }
 
-function collectRequestedTools(toolNames: string[], all: Record<string, Tool>): Record<string, OpenFlowTool> {
-  return toolNames
-    .filter((name) => name !== FINISH_TOOL_NAME)
-    .reduce<Record<string, OpenFlowTool>>((acc, name) => {
-      const { [name]: tool } = all;
-      if (tool === undefined) return acc;
-      return { ...acc, [name]: adaptTool(name, tool) };
-    }, {});
+const SELECTABLE_TOOL_NAMES: readonly string[] = ['create_agent', 'invoke_agent', 'invoke_workflow'];
+
+function isSelectableToolName(s: string): s is SelectableToolName {
+  return SELECTABLE_TOOL_NAMES.includes(s);
 }
 
-function finishEntry(): Record<string, OpenFlowTool> {
+function collectRequestedTools(
+  toolNames: string[],
+  all: Record<SelectableToolName, Tool>
+): Partial<Record<CompositionToolName, OpenFlowTool>> {
+  const out: Partial<Record<CompositionToolName, OpenFlowTool>> = {};
+  for (const name of toolNames) {
+    if (!isSelectableToolName(name)) continue;
+    const { [name]: tool } = all;
+    out[name] = adaptTool(name, tool);
+  }
+  return out;
+}
+
+function finishEntry(): Partial<Record<CompositionToolName, OpenFlowTool>> {
   return { [FINISH_TOOL_NAME]: adaptTool(FINISH_TOOL_NAME, createFinishTool()) };
 }
 
 export async function buildCompositionTools(args: {
   toolNames: string[];
   ctx: ProviderCtx;
-}): Promise<Record<string, OpenFlowTool>> {
+}): Promise<Partial<Record<CompositionToolName, OpenFlowTool>>> {
   const all = buildSelectableTools();
   const requested = collectRequestedTools(args.toolNames, all);
   const finish = args.ctx.isChildAgent ? finishEntry() : {};

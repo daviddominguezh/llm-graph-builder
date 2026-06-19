@@ -91,10 +91,11 @@ type GroupResult = { tools: Record<string, OpenFlowTool> } | { failure: Provider
 
 function namespaceProviderTools(
   providerId: string,
-  tools: Record<string, OpenFlowTool>
+  tools: Partial<Record<string, OpenFlowTool>>
 ): Record<string, OpenFlowTool> {
   const out: Record<string, OpenFlowTool> = {};
   for (const [toolName, tool] of Object.entries(tools)) {
+    if (tool === undefined) continue;
     out[namespaceToolName(providerId, toolName)] = tool;
   }
   return out;

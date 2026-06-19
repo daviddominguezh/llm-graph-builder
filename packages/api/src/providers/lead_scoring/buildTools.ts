@@ -65,7 +65,9 @@ function buildGetTool(service: LeadScoringServices): OpenFlowTool {
   };
 }
 
-function buildAllTools(service: LeadScoringServices): Record<string, OpenFlowTool> {
+type LeadScoringToolName = typeof SET_LEAD_SCORE_TOOL_NAME | typeof GET_LEAD_SCORE_TOOL_NAME;
+
+function buildAllTools(service: LeadScoringServices): Record<LeadScoringToolName, OpenFlowTool> {
   return {
     [SET_LEAD_SCORE_TOOL_NAME]: buildSetTool(service),
     [GET_LEAD_SCORE_TOOL_NAME]: buildGetTool(service),
@@ -75,16 +77,22 @@ function buildAllTools(service: LeadScoringServices): Record<string, OpenFlowToo
 export async function buildLeadScoringTools(args: {
   toolNames: string[];
   ctx: ProviderCtx;
-}): Promise<Record<string, OpenFlowTool>> {
+}): Promise<Partial<Record<LeadScoringToolName, OpenFlowTool>>> {
   const service = resolveService(args.ctx);
   if (service === undefined) return await Promise.resolve({});
 
   const allTools = buildAllTools(service);
-  const filtered: Record<string, OpenFlowTool> = {};
+  const filtered: Partial<Record<LeadScoringToolName, OpenFlowTool>> = {};
   for (const name of args.toolNames) {
+    if (!isLeadScoringToolName(name)) continue;
     const { [name]: tool } = allTools;
-    if (tool === undefined) continue;
     filtered[name] = tool;
   }
   return await Promise.resolve(filtered);
+}
+
+const LEAD_SCORING_TOOL_NAMES: readonly string[] = [SET_LEAD_SCORE_TOOL_NAME, GET_LEAD_SCORE_TOOL_NAME];
+
+function isLeadScoringToolName(s: string): s is LeadScoringToolName {
+  return LEAD_SCORING_TOOL_NAMES.includes(s);
 }

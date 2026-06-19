@@ -25,6 +25,12 @@ import {
   KV_UPDATE_VALUE_TOOL_NAME,
 } from './descriptors.js';
 
+type KvToolName =
+  | typeof KV_LIST_KEYS_TOOL_NAME
+  | typeof KV_GET_VALUES_TOOL_NAME
+  | typeof KV_SEARCH_TOOL_NAME
+  | typeof KV_UPDATE_VALUE_TOOL_NAME;
+
 const ONE_KILOBYTE = 1024;
 const KEY_MAX_BYTES = 256;
 const VALUE_MAX_BYTES = KEY_MAX_BYTES * ONE_KILOBYTE;
@@ -177,7 +183,7 @@ function makeUpdateValue(ctx: KvToolCtx): OpenFlowTool {
   };
 }
 
-function buildAll(ctx: KvToolCtx): Record<string, OpenFlowTool> {
+function buildAll(ctx: KvToolCtx): Record<KvToolName, OpenFlowTool> {
   return {
     [KV_LIST_KEYS_TOOL_NAME]: makeListKeys(ctx),
     [KV_GET_VALUES_TOOL_NAME]: makeGetValues(ctx),
@@ -186,11 +192,26 @@ function buildAll(ctx: KvToolCtx): Record<string, OpenFlowTool> {
   };
 }
 
-function pickTools(all: Record<string, OpenFlowTool>, names: string[]): Record<string, OpenFlowTool> {
-  const out: Record<string, OpenFlowTool> = {};
+const KV_TOOL_NAMES: readonly string[] = [
+  KV_LIST_KEYS_TOOL_NAME,
+  KV_GET_VALUES_TOOL_NAME,
+  KV_SEARCH_TOOL_NAME,
+  KV_UPDATE_VALUE_TOOL_NAME,
+];
+
+function isKvToolName(s: string): s is KvToolName {
+  return KV_TOOL_NAMES.includes(s);
+}
+
+function pickTools(
+  all: Record<KvToolName, OpenFlowTool>,
+  names: string[]
+): Partial<Record<KvToolName, OpenFlowTool>> {
+  const out: Partial<Record<KvToolName, OpenFlowTool>> = {};
   for (const name of names) {
+    if (!isKvToolName(name)) continue;
     const { [name]: tool } = all;
-    if (tool !== undefined) out[name] = tool;
+    out[name] = tool;
   }
   return out;
 }
@@ -200,7 +221,7 @@ function narrowServices(ctx: ProviderCtx): KvStoreServices | undefined {
   return isKvStoreServices(raw) ? raw : undefined;
 }
 
-function buildToolsSync(toolNames: string[], ctx: ProviderCtx): Record<string, OpenFlowTool> {
+function buildToolsSync(toolNames: string[], ctx: ProviderCtx): Partial<Record<KvToolName, OpenFlowTool>> {
   const services = narrowServices(ctx);
   if (services === undefined) return {};
   const toolCtx: KvToolCtx = { services, tenantId: ctx.tenantId };
@@ -210,7 +231,7 @@ function buildToolsSync(toolNames: string[], ctx: ProviderCtx): Record<string, O
 export async function buildKvTools(args: {
   toolNames: string[];
   ctx: ProviderCtx;
-}): Promise<Record<string, OpenFlowTool>> {
+}): Promise<Partial<Record<KvToolName, OpenFlowTool>>> {
   const { toolNames, ctx } = args;
   return await Promise.resolve(buildToolsSync(toolNames, ctx));
 }
