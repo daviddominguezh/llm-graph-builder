@@ -20,7 +20,14 @@ describe('SelectedTool helpers', () => {
     expect(equalsSelectedTool(a, mcp)).toBe(false);
   });
 
-  it('exposes the four canonical builtin provider IDs', () => {
-    expect(BUILTIN_PROVIDER_IDS).toEqual(['calendar', 'forms', 'lead_scoring', 'composition']);
+  it('exposes the canonical builtin provider IDs', () => {
+    expect(BUILTIN_PROVIDER_IDS).toEqual([
+      'kv_store',
+      'rag',
+      'forms',
+      'lead_scoring',
+      'calendar',
+      'composition',
+    ]);
   });
 });

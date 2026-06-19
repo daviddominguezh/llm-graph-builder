@@ -156,6 +156,10 @@ export type {
   RagSearchArgs,
   RagRegexArgs,
   KvPagedResult,
+  BuiltinBundles,
+  FormsServices,
+  CalendarServices,
+  LeadScoringProviderServices,
 } from './providers/index.js';
 export { ToolError, isKvStoreServices, isRagStoreServices } from './providers/index.js';
 

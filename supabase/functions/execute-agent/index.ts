@@ -5,7 +5,8 @@ import type { McpServerConfig, RuntimeGraph } from '@daviddh/graph-types';
 import type {
   AgentStepEvent,
   ApplyResult,
-  CalendarService,
+  BuiltinBundles,
+  BuiltinProviderId,
   CallAgentOutput,
   Context,
   FailedAttempt,
@@ -21,6 +22,7 @@ import type {
   SelectedTool,
 } from '@daviddh/llm-graph-runner';
 import {
+  BUILTIN_PROVIDER_IDS,
   VFSContext,
   applyFormFields,
   buildAgentToolsAtStart,
@@ -58,10 +60,15 @@ interface VfsPayloadData {
   };
 }
 
-interface CalendarBundle {
-  services: CalendarService;
-  orgId: string;
-}
+/**
+ * Internal calendar-builder return shape. Carries the underlying CalendarService
+ * + orgId; the calendar preparer adapts this to `BuiltinBundles['calendar']`
+ * (= `CalendarServices = { service, calendarId }`) for the typed resolver.
+ */
+type SupabaseClient = Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>;
+type LeadScoringServices = NonNullable<BuiltinBundles['lead_scoring']>['service'];
+type FormsBundle = NonNullable<BuiltinBundles['forms']>;
+type CalendarBundle = NonNullable<BuiltinBundles['calendar']>;
 
 interface ExecutePayload {
   appType?: 'workflow' | 'agent';
@@ -103,10 +110,10 @@ function buildCalendarBundle(payload: ExecutePayload): CalendarBundle | undefine
   const calendarToken = payload.oauth?.byProvider?.['calendar'];
   if (calendarToken === undefined) return undefined;
   return {
-    services: createGoogleCalendarService({
+    service: createGoogleCalendarService({
       getAccessToken: async () => calendarToken.accessToken,
     }),
-    orgId: payload.tenantID,
+    calendarId: 'primary',
   };
 }
 
@@ -119,11 +126,6 @@ const SSE_HEADERS = {
 };
 
 /* ─── Lead scoring services (production only) ─── */
-
-interface LeadScoringServices {
-  setLeadScore: (score: number) => Promise<void>;
-  getLeadScore: () => Promise<number | null>;
-}
 
 async function buildSupabaseForLeadScoring() {
   const { createClient } = await import('@supabase/supabase-js');
@@ -288,11 +290,6 @@ async function recordFailureViaRpc(
   if (error !== null) log.error(`append_form_failure failed: ${error.message}`);
 }
 
-interface FormsBundle {
-  services: FormsService;
-  forms: FormDefinition[];
-}
-
 function buildPopulatedFormsService(
   supabase: Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>,
   forms: FormDefinition[]
@@ -326,8 +323,8 @@ async function buildFormsBundle(conversationId: string): Promise<FormsBundle | u
   const agentId = await loadAgentIdForConversation(supabase, conversationId);
   if (agentId === null) return undefined;
   const forms = await loadFormsForAgent(supabase, agentId);
-  if (forms.length === 0) return { services: buildEmptyFormsService(supabase), forms: [] };
-  return { services: buildPopulatedFormsService(supabase, forms), forms };
+  if (forms.length === 0) return { service: buildEmptyFormsService(supabase), forms: [] };
+  return { service: buildPopulatedFormsService(supabase, forms), forms };
 }
 
 /* ─── Context builder ─── */
@@ -348,61 +345,100 @@ function buildContext(
   };
 }
 
-/* ─── v2 Provider registry + ctx (Plan B+C+D Tasks 15+19) ─── */
+/* ─── v2 Provider registry + ctx ─── */
 
-interface BuildProviderCtxArgs {
-  payload: ExecutePayload;
-  supabase: Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>;
-  conversationId?: string;
-  formsBundle?: FormsBundle;
-  leadScoringServices?: LeadScoringServices;
-  calendarBundle?: CalendarBundle;
+/**
+ * Per-provider preparers. Each returns the bundle shape declared in
+ * `BuiltinBundles[K]` so the resolver can be a pure lookup. The mapped type
+ * `{ [K in BuiltinProviderId]: BundlePreparer<K> }` forces every key to exist —
+ * adding a new builtin provider id fails the compile here until its preparer
+ * is wired.
+ */
+type BundlePreparer<K extends BuiltinProviderId> = (
+  payload: ExecutePayload,
+  supabase: SupabaseClient
+) => Promise<BuiltinBundles[K]>;
+
+function prepareKvBundle(payload: ExecutePayload): Promise<BuiltinBundles['kv_store']> {
+  const storeId = payload.selectedKvStoreId;
+  const services =
+    storeId === undefined || storeId === null || storeId === ''
+      ? makeNoStoreBoundKvServices()
+      : makeKvStoreService(storeId);
+  return Promise.resolve(services);
 }
 
-interface BuiltInProviderKv {
-  storeServices: ReturnType<typeof makeKvStoreService> | ReturnType<typeof makeNoStoreBoundKvServices>;
+function prepareRagBundle(payload: ExecutePayload): Promise<BuiltinBundles['rag']> {
+  const storeId = payload.selectedRagStoreId;
+  const services =
+    storeId === undefined || storeId === null || storeId === ''
+      ? makeNoStoreBoundRagServices()
+      : makeRagStoreService(storeId);
+  return Promise.resolve(services);
 }
 
-interface BuiltInProviderRag {
-  storeServices: ReturnType<typeof makeRagStoreService> | ReturnType<typeof makeNoStoreBoundRagServices>;
+async function prepareFormsBundle(payload: ExecutePayload): Promise<BuiltinBundles['forms']> {
+  if (payload.conversationId === undefined) return undefined;
+  return await buildFormsBundle(payload.conversationId);
 }
 
-function resolveKvServices(args: BuildProviderCtxArgs): BuiltInProviderKv['storeServices'] {
-  const storeId = args.payload.selectedKvStoreId;
-  if (storeId === undefined || storeId === null || storeId === '') {
-    return makeNoStoreBoundKvServices();
-  }
-  return makeKvStoreService(storeId);
+async function prepareLeadScoringBundle(
+  payload: ExecutePayload
+): Promise<BuiltinBundles['lead_scoring']> {
+  if (payload.conversationId === undefined) return undefined;
+  const service = await buildLeadScoringServices(payload.conversationId);
+  return { service };
 }
 
-function resolveRagServices(args: BuildProviderCtxArgs): BuiltInProviderRag['storeServices'] {
-  const storeId = args.payload.selectedRagStoreId;
-  if (storeId === undefined || storeId === null || storeId === '') {
-    return makeNoStoreBoundRagServices();
-  }
-  return makeRagStoreService(storeId);
+function prepareCalendarBundle(payload: ExecutePayload): Promise<BuiltinBundles['calendar']> {
+  return Promise.resolve(buildCalendarBundle(payload));
 }
 
-function buildServicesResolver(args: BuildProviderCtxArgs): (providerId: string) => unknown {
-  const { formsBundle, leadScoringServices, calendarBundle } = args;
+function prepareCompositionBundle(): Promise<BuiltinBundles['composition']> {
+  // The composition provider does not read ctx.services; its bundle is always undefined.
+  return Promise.resolve(undefined);
+}
+
+const PREPARERS: { [K in BuiltinProviderId]: BundlePreparer<K> } = {
+  kv_store: (payload) => prepareKvBundle(payload),
+  rag: (payload) => prepareRagBundle(payload),
+  forms: (payload) => prepareFormsBundle(payload),
+  lead_scoring: (payload) => prepareLeadScoringBundle(payload),
+  calendar: (payload) => prepareCalendarBundle(payload),
+  composition: () => prepareCompositionBundle(),
+};
+
+async function prepareAllBundles(
+  payload: ExecutePayload,
+  supabase: SupabaseClient
+): Promise<BuiltinBundles> {
+  const entries = await Promise.all(
+    BUILTIN_PROVIDER_IDS.map(async (id) => {
+      // Indexing PREPARERS by the variable id loses the per-key generic relationship;
+      // a per-id cast preserves it and matches the runtime contract of the mapped type.
+      const preparer = PREPARERS[id] as BundlePreparer<BuiltinProviderId>;
+      const bundle = await preparer(payload, supabase);
+      return [id, bundle] as const;
+    })
+  );
+  return Object.fromEntries(entries) as BuiltinBundles;
+}
+
+function buildServicesResolver(bundles: BuiltinBundles): (providerId: string) => unknown {
   return (providerId: string): unknown => {
-    if (providerId === 'forms' && formsBundle !== undefined) {
-      return { service: formsBundle.services, forms: formsBundle.forms };
-    }
-    if (providerId === 'lead_scoring' && leadScoringServices !== undefined) {
-      return { service: leadScoringServices };
-    }
-    if (providerId === 'calendar' && calendarBundle !== undefined) {
-      return { service: calendarBundle.services, calendarId: 'primary' };
-    }
-    if (providerId === 'kv_store') return resolveKvServices(args);
-    if (providerId === 'rag') return resolveRagServices(args);
+    if (providerId in bundles) return bundles[providerId as BuiltinProviderId];
     return undefined;
   };
 }
 
+interface BuildProviderCtxArgs {
+  payload: ExecutePayload;
+  conversationId?: string;
+  bundles: BuiltinBundles;
+}
+
 function buildProviderCtx(args: BuildProviderCtxArgs): ProviderCtx {
-  const { payload, conversationId } = args;
+  const { payload, conversationId, bundles } = args;
   const oauthEntries: Array<[string, OAuthTokenBundle]> = Object.entries(payload.oauth?.byProvider ?? {});
   const mcpServerEntries: Array<[string, McpServerConfig]> = (payload.graph.mcpServers ?? []).map((s) => [
     s.id,
@@ -418,7 +454,7 @@ function buildProviderCtx(args: BuildProviderCtxArgs): ProviderCtx {
     contextData: payload.data,
     oauthTokens: new Map<string, OAuthTokenBundle>(oauthEntries),
     mcpServers: new Map<string, McpServerConfig>(mcpServerEntries),
-    services: buildServicesResolver(args),
+    services: buildServicesResolver(bundles),
   };
 }
 
@@ -432,22 +468,16 @@ function buildRegistry(payload: ExecutePayload): Registry {
 
 interface BuildToolsV2Args {
   payload: ExecutePayload;
-  supabase: Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>;
   conversationId: string | undefined;
-  formsBundle: FormsBundle | undefined;
-  leadScoringServices: LeadScoringServices | undefined;
-  calendarBundle: CalendarBundle | undefined;
+  bundles: BuiltinBundles;
 }
 
 async function buildToolsForAgentV2(input: BuildToolsV2Args): Promise<Record<string, Tool>> {
   const registry = buildRegistry(input.payload);
   const ctx = buildProviderCtx({
     payload: input.payload,
-    supabase: input.supabase,
     conversationId: input.conversationId,
-    formsBundle: input.formsBundle,
-    leadScoringServices: input.leadScoringServices,
-    calendarBundle: input.calendarBundle,
+    bundles: input.bundles,
   });
   const built = await buildAgentToolsAtStart(registry, ctx, input.payload.selectedTools ?? []);
   return toAiSdkToolDict(built.tools);
@@ -608,27 +638,21 @@ type WriteEvent = (event: Record<string, unknown>) => void;
 
 interface RunAgentArgs {
   payload: ExecutePayload;
-  supabase: Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>;
   write: WriteEvent;
-  leadScoringServices?: LeadScoringServices;
-  formsBundle?: FormsBundle;
   conversationId?: string;
-  calendarBundle?: CalendarBundle;
+  bundles: BuiltinBundles;
 }
 
 async function runAgentExecution(args: RunAgentArgs): Promise<void> {
-  const { payload, supabase, write, leadScoringServices, formsBundle, conversationId, calendarBundle } = args;
+  const { payload, write, conversationId, bundles } = args;
   log.info(
     `agent start model=${payload.modelId} msgs=${payload.messages.length} prompt=${(payload.systemPrompt ?? '').slice(0, 80)}`
   );
 
   const tools = await buildToolsForAgentV2({
     payload,
-    supabase,
     conversationId,
-    formsBundle,
-    leadScoringServices,
-    calendarBundle,
+    bundles,
   });
 
   const result = await executeAgentLoop(
@@ -686,11 +710,8 @@ async function runAgentExecution(args: RunAgentArgs): Promise<void> {
 /* ─── Workflow execution ─── */
 
 interface WorkflowToolsBundle {
-  supabase: Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>;
-  leadScoringServices?: LeadScoringServices;
-  formsBundle?: FormsBundle;
   conversationId?: string;
-  calendarBundle?: CalendarBundle;
+  bundles: BuiltinBundles;
 }
 
 function buildWorkflowContext(
@@ -701,11 +722,8 @@ function buildWorkflowContext(
   const registry = buildRegistry(payload);
   const ctx = buildProviderCtx({
     payload,
-    supabase: bundle.supabase,
     conversationId: bundle.conversationId,
-    formsBundle: bundle.formsBundle,
-    leadScoringServices: bundle.leadScoringServices,
-    calendarBundle: bundle.calendarBundle,
+    bundles: bundle.bundles,
   });
   return {
     ...baseContext,
@@ -724,23 +742,17 @@ function buildWorkflowContext(
 
 interface RunWorkflowArgs {
   payload: ExecutePayload;
-  supabase: Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>;
   write: WriteEvent;
-  leadScoringServices?: LeadScoringServices;
-  formsBundle?: FormsBundle;
   conversationId?: string;
-  calendarBundle?: CalendarBundle;
+  bundles: BuiltinBundles;
 }
 
 async function runWorkflowExecution(args: RunWorkflowArgs): Promise<void> {
-  const { payload, supabase, write, leadScoringServices, formsBundle, conversationId, calendarBundle } = args;
+  const { payload, write, conversationId, bundles } = args;
   const baseContext = buildContext(payload);
   const bundle: WorkflowToolsBundle = {
-    supabase,
-    leadScoringServices,
-    formsBundle,
     conversationId,
-    calendarBundle,
+    bundles,
   };
   const context: Context = buildWorkflowContext(payload, baseContext, bundle);
 
@@ -829,37 +841,21 @@ Deno.serve(async (req: Request) => {
         }
 
         const supabase = await buildSupabaseForLeadScoring();
-
-        // Build lead scoring services when we have a real conversation
-        const leadScoringServices =
-          payload.conversationId !== undefined
-            ? await buildLeadScoringServices(payload.conversationId)
-            : undefined;
-
-        const formsBundle =
-          payload.conversationId !== undefined ? await buildFormsBundle(payload.conversationId) : undefined;
-
-        const calendarBundle = buildCalendarBundle(payload);
+        const bundles = await prepareAllBundles(payload, supabase);
 
         if (isAgent) {
           await runAgentExecution({
             payload,
-            supabase,
             write,
-            leadScoringServices,
-            formsBundle,
             conversationId: payload.conversationId,
-            calendarBundle,
+            bundles,
           });
         } else {
           await runWorkflowExecution({
             payload,
-            supabase,
             write,
-            leadScoringServices,
-            formsBundle,
             conversationId: payload.conversationId,
-            calendarBundle,
+            bundles,
           });
         }
 

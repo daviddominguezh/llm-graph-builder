@@ -16,6 +16,11 @@ export const builtInProviders: ReadonlyMap<string, Provider> = new Map([
 ]);
 
 export type { Provider, ProviderCtx, ToolDescriptor, OAuthTokenBundle } from './provider.js';
+export type { BuiltinProviderId, BuiltinBundles } from './bundles.js';
+export { BUILTIN_PROVIDER_IDS } from './bundles.js';
+export type { FormsServices } from './forms/buildTools.js';
+export type { CalendarServices } from './calendar/buildTools.js';
+export type { LeadScoringProviderServices } from './lead_scoring/buildTools.js';
 export type {
   OpenFlowTool,
   ToolErrorCode,
