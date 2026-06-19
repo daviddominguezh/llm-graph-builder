@@ -3,6 +3,7 @@
 import { GlassPanel } from '@/components/ui/glass-panel';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Operation } from '@daviddh/graph-types';
+import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 
@@ -55,19 +56,33 @@ type AgentEditorState = ReturnType<typeof useAgentEditorState>;
 type AgentEditorActions = ReturnType<typeof useAgentEditorActions>;
 type SkillActions = ReturnType<typeof useSkillActions>;
 
-function EditorPanel({ className, children }: { className?: string; children: ReactNode }) {
+function EditorPanel({
+  title,
+  className,
+  children,
+}: {
+  title: string;
+  className?: string;
+  children: ReactNode;
+}) {
   return (
     <GlassPanel
-      className={`flex h-[calc(100%-var(--spacing)*2.5)] shrink-0 flex-col p-4 mt-2 mb-2.5 rounded-xl ${className ?? ''}`}
+      className={`flex h-[calc(100%-var(--spacing)*2.5)] shrink-0 flex-col mt-2 mb-2.5 rounded-xl ${className ?? ''}`}
     >
-      {children}
+      <div className="flex items-center justify-between border-b px-3 py-2">
+        <h2 className="mt-[1px] font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60 cursor-default">
+          {title.toUpperCase()}
+        </h2>
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
     </GlassPanel>
   );
 }
 
 function PromptPanel({ state, actions }: { state: AgentEditorState; actions: AgentEditorActions }) {
+  const t = useTranslations('agentEditor');
   return (
-    <EditorPanel className="min-w-0 flex-1 basis-0">
+    <EditorPanel title={t('promptTab')} className="min-w-0 flex-1 basis-0">
       <div className="flex min-h-0 flex-1 flex-col w-full">
         <SystemPromptField value={state.systemPrompt} onChange={actions.handleSystemPromptChange} />
       </div>
@@ -84,10 +99,11 @@ interface CapabilitiesPanelProps {
 }
 
 function CapabilitiesPanel({ state, actions, skillActions, agentId, orgId }: CapabilitiesPanelProps) {
+  const t = useTranslations('agentEditor');
   return (
-    <EditorPanel className="min-w-0 flex-1 basis-0">
+    <EditorPanel title={t('capabilitiesTab')} className="min-w-0 flex-1 basis-0">
       <ScrollArea className="min-h-0 flex-1 w-full">
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 px-3">
           <SkillsList
             skills={state.skills}
             onAdd={skillActions.handleAddSkills}
@@ -138,7 +154,7 @@ export function AgentEditor({
 
   return (
     <div className="absolute" style={insets} onClick={onBackgroundClick}>
-      <div className="flex h-full w-full bg-background px-2 pb-1.5">
+      <div className="flex h-full w-full bg-card pl-2 pb-0">
         <div
           className="w-full h-full flex animate-in fade-in duration-300 gap-2"
           onClick={(e) => e.stopPropagation()}
@@ -152,7 +168,9 @@ export function AgentEditor({
             orgId={orgId}
           />
           {rightSlot !== undefined && (
-            <div className="w-[360px] shrink-0 h-[calc(100%-var(--spacing)*2.5)] mt-2 mb-2.5">{rightSlot}</div>
+            <div className="w-[360px] shrink-0 h-[calc(100%-var(--spacing)*2.5)] mt-2 mb-2.5">
+              {rightSlot}
+            </div>
           )}
         </div>
       </div>

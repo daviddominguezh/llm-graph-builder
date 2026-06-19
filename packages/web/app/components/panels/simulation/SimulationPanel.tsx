@@ -84,16 +84,28 @@ function SimulationHeader({
   const t = useTranslations('simulation');
 
   return (
-    <div className="flex flex-col gap-1 border-b px-3 py-2">
+    <div className="flex flex-col gap-1 border-b px-3 py-1.5">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold cursor-default">{t('title')}</span>
+        {embedded ? (
+          <h2 className="mt-[1px] font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60 cursor-default">
+            {t('title').toUpperCase()}
+          </h2>
+        ) : (
+          <span className="text-xs font-semibold cursor-default">{t('title')}</span>
+        )}
+
         <div className="flex items-center gap-0.5">
-          <Button variant="destructive" size="icon-sm" onClick={() => setConfirmOpen(true)}>
-            <RotateCcw className="size-3" />
+          <Button
+            variant="destructive"
+            size="icon-xs"
+            className="rounded-full"
+            onClick={() => setConfirmOpen(true)}
+          >
+            <RotateCcw />
           </Button>
           {embedded !== true && (
-            <Button variant="ghost" size="icon-sm" onClick={onStop}>
-              <X className="size-3" />
+            <Button variant="ghost" size="icon-xs" className="rounded-full" onClick={onStop}>
+              <X />
             </Button>
           )}
         </div>
@@ -209,7 +221,10 @@ function SimulationBody({ props, bottomRef }: SimulationBodyProps) {
   const { visitedNodes, terminated, loading, currentNode, totalTokens } = props;
   const { modelId, onModelIdChange, onSendMessage, onStop } = props;
   return (
-    <GlassPanel variant="background" className={`w-full h-full ${props.embedded ? 'rounded-xl' : 'rounded-e-xl border-l-[0.5px]'}`}>
+    <GlassPanel
+      variant="background"
+      className={`w-full h-full ${props.embedded ? 'rounded-xl' : 'rounded-e-xl border-l-[0.5px]'}`}
+    >
       <div className="relative flex h-full w-full flex-col">
         <SimulationHeader
           visitedNodes={visitedNodes}
