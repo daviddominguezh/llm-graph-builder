@@ -1,6 +1,7 @@
 import type { McpServerConfig } from '@daviddh/graph-types';
 
 import type { Logger } from '../utils/logger.js';
+import type { BuiltinBundles, BuiltinProviderId } from './bundles.js';
 import type { OpenFlowTool, RawJsonSchema } from './types.js';
 
 export type ProviderType = 'builtin' | 'mcp';
@@ -10,6 +11,23 @@ export interface OAuthTokenBundle {
   expiresAt: number;
   scopes?: string[];
   tokenIssuedAt: number;
+}
+
+/**
+ * Typed resolver for per-provider runtime bundles.
+ *
+ * Calling with a known `BuiltinProviderId` returns the bundle type from
+ * `BuiltinBundles` (or `undefined` when the edge function did not construct
+ * one); the fallback `string` overload preserves access for MCP / unknown
+ * provider ids and keeps the `unknown` discipline at the runtime trust
+ * boundary.
+ *
+ * Overload order matters — the literal `BuiltinProviderId` branch must come
+ * first so it wins for narrowed inputs.
+ */
+export interface ServicesResolver {
+  <P extends BuiltinProviderId>(providerId: P): BuiltinBundles[P] | undefined;
+  (providerId: string): unknown;
 }
 
 /**
@@ -31,7 +49,7 @@ export interface ProviderCtx {
   readonly oauthTokens: ReadonlyMap<string, OAuthTokenBundle>;
   readonly mcpServers: ReadonlyMap<string, McpServerConfig>;
 
-  readonly services: (providerId: string) => unknown;
+  readonly services: ServicesResolver;
 }
 
 export interface ToolDescriptor {

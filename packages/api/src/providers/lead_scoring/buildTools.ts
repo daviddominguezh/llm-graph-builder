@@ -31,9 +31,10 @@ function isLeadScoringServiceShape(value: unknown): value is LeadScoringServices
 
 function resolveService(ctx: ProviderCtx): LeadScoringServices | undefined {
   const raw = ctx.services('lead_scoring');
-  if (raw === null || typeof raw !== 'object') return undefined;
-  const service = Reflect.get(raw, 'service') as unknown;
-  return isLeadScoringServiceShape(service) ? service : undefined;
+  if (raw === undefined) return undefined;
+  // ctx.services is now typed to return the bundle shape directly. We still
+  // keep the runtime predicate as a sanity check at the trust boundary.
+  return isLeadScoringServiceShape(raw.service) ? raw.service : undefined;
 }
 
 function buildSetTool(service: LeadScoringServices): OpenFlowTool {

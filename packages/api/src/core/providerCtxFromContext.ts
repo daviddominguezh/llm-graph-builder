@@ -1,6 +1,6 @@
 import type { McpServerConfig } from '@daviddh/graph-types';
 
-import type { OAuthTokenBundle, ProviderCtx } from '../providers/provider.js';
+import type { OAuthTokenBundle, ProviderCtx, ServicesResolver } from '../providers/provider.js';
 import type { Context } from '../types/tools.js';
 import type { Logger } from '../utils/logger.js';
 import { logger as noopProxyLogger } from '../utils/logger.js';
@@ -8,15 +8,13 @@ import { logger as noopProxyLogger } from '../utils/logger.js';
 const EMPTY_OAUTH: ReadonlyMap<string, OAuthTokenBundle> = Object.freeze(new Map<string, OAuthTokenBundle>());
 const EMPTY_MCP: ReadonlyMap<string, McpServerConfig> = Object.freeze(new Map<string, McpServerConfig>());
 
-function noServices(): undefined {
-  return undefined;
-}
+const noServices: ServicesResolver = (() => undefined) as ServicesResolver;
 
 function resolveLogger(context: Context): Logger {
   return context.logger ?? noopProxyLogger;
 }
 
-function resolveServices(context: Context): (providerId: string) => unknown {
+function resolveServices(context: Context): ServicesResolver {
   return context.services ?? noServices;
 }
 

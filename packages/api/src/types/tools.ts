@@ -1,7 +1,7 @@
 import type { McpServerConfig } from '@daviddh/graph-types';
 import type { Tool } from 'ai';
 
-import type { OAuthTokenBundle } from '../providers/provider.js';
+import type { OAuthTokenBundle, ServicesResolver } from '../providers/provider.js';
 import type { Registry } from '../providers/registry.js';
 import type { Logger } from '../utils/logger.js';
 import type { TokenLog } from './ai/logs.js';
@@ -53,7 +53,7 @@ export interface Context {
   contextData?: Readonly<Record<string, unknown>>;
   oauthTokens?: ReadonlyMap<string, OAuthTokenBundle>;
   mcpServers?: ReadonlyMap<string, McpServerConfig>;
-  services?: (providerId: string) => unknown;
+  services?: ServicesResolver;
   logger?: Logger;
 }
 
