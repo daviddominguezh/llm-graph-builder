@@ -133,7 +133,15 @@ export {
 } from './types/selectedToolSchema.js';
 export type { PatchSelectedToolsBody } from './types/selectedToolSchema.js';
 
-export { builtInProviders, composeRegistry, toAiSdkTool, toAiSdkToolDict } from './providers/index.js';
+export {
+  builtInProviders,
+  composeRegistry,
+  namespaceToolName,
+  parseNamespacedToolName,
+  toAiSdkTool,
+  toAiSdkToolDict,
+  TOOL_NAMESPACE_SEPARATOR,
+} from './providers/index.js';
 export { connectMcp, createTransport, type McpClientHandle, type RawMcpTool } from './providers/mcp/index.js';
 export type {
   Provider,
