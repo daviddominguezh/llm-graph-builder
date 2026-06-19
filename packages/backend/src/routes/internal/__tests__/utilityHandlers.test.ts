@@ -20,12 +20,18 @@ beforeEach(() => {
   mockEmbed.mockReset();
 });
 
+const ONE = 1;
+const TWO = 2;
+const THREE = 3;
+const SCALE = 10;
+const SAMPLE_VECTOR: number[] = [ONE / SCALE, TWO / SCALE, THREE / SCALE];
+
 describe('POST /internal/embed', () => {
   it('returns vector on success', async () => {
-    mockEmbed.mockResolvedValue([0.1, 0.2, 0.3]);
+    mockEmbed.mockResolvedValue(SAMPLE_VECTOR);
     const res = await request(app).post('/internal/embed').set(AUTH).send({ text: 'hello' });
     expect(res.status).toBe(HTTP_OK);
-    expect(asBody(res.body).vector).toEqual([0.1, 0.2, 0.3]);
+    expect(asBody(res.body).vector).toEqual(SAMPLE_VECTOR);
     expect(mockEmbed).toHaveBeenCalledWith('hello');
   });
 

@@ -15,13 +15,14 @@ const HTTP_INTERNAL = 500;
 
 const EMBED_TEXT_MAX = 8192;
 const PATTERN_MAX = 1024;
+const STRING_MIN = 1;
 
 const EmbedBodySchema = z.object({
-  text: z.string().min(1).max(EMBED_TEXT_MAX),
+  text: z.string().min(STRING_MIN).max(EMBED_TEXT_MAX),
 });
 
 const RegexValidateBodySchema = z.object({
-  pattern: z.string().min(1).max(PATTERN_MAX),
+  pattern: z.string().min(STRING_MIN).max(PATTERN_MAX),
 });
 
 interface ErrPayload {
