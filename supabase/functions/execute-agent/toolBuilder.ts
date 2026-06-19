@@ -335,21 +335,27 @@ type BundlePreparer<K extends BuiltinProviderId> = (
   supabase: SupabaseClient
 ) => Promise<BuiltinBundles[K]>;
 
-function prepareKvBundle(payload: ExecutePayload): Promise<BuiltinBundles['kv_store']> {
+function prepareKvBundle(
+  payload: ExecutePayload,
+  supabase: SupabaseClient
+): Promise<BuiltinBundles['kv_store']> {
   const storeId = payload.selectedKvStoreId;
   const services =
     storeId === undefined || storeId === null || storeId === ''
       ? makeNoStoreBoundKvServices()
-      : makeKvStoreService(storeId);
+      : makeKvStoreService(supabase, storeId);
   return Promise.resolve(services);
 }
 
-function prepareRagBundle(payload: ExecutePayload): Promise<BuiltinBundles['rag']> {
+function prepareRagBundle(
+  payload: ExecutePayload,
+  supabase: SupabaseClient
+): Promise<BuiltinBundles['rag']> {
   const storeId = payload.selectedRagStoreId;
   const services =
     storeId === undefined || storeId === null || storeId === ''
       ? makeNoStoreBoundRagServices()
-      : makeRagStoreService(storeId);
+      : makeRagStoreService(supabase, storeId);
   return Promise.resolve(services);
 }
 
@@ -375,8 +381,8 @@ function prepareCompositionBundle(): Promise<BuiltinBundles['composition']> {
 }
 
 const PREPARERS: { [K in BuiltinProviderId]: BundlePreparer<K> } = {
-  kv_store: (payload) => prepareKvBundle(payload),
-  rag: (payload) => prepareRagBundle(payload),
+  kv_store: (payload, supabase) => prepareKvBundle(payload, supabase),
+  rag: (payload, supabase) => prepareRagBundle(payload, supabase),
   forms: (payload) => prepareFormsBundle(payload),
   lead_scoring: (payload) => prepareLeadScoringBundle(payload),
   calendar: (payload) => prepareCalendarBundle(payload),
