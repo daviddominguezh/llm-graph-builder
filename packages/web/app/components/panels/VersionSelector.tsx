@@ -112,7 +112,7 @@ function EmptyVersionsTrigger() {
   const t = useTranslations('editor');
 
   return (
-    <div className="flex items-center gap-1.5 rounded-full px-3 text-xs text-foreground">
+    <div className="flex items-center gap-1.5 rounded-full px-1.5 text-xs text-foreground">
       <History className="size-4" />
       <span className="font-bold cursor-default">{t('versionDraft')}</span>
     </div>

@@ -219,7 +219,7 @@ function DisabledPublishButton() {
   const tKeys = useTranslations('apiKeys');
 
   const button = (
-    <Button variant="link" size="sm" disabled className="gap-1.5 ml-2 mr-1.5">
+    <Button variant="link" size="sm" disabled className="gap-1.5 mx-0">
       {t('publish')}
     </Button>
   );
@@ -263,7 +263,7 @@ export function PublishButton(props: PublishButtonProps) {
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger
-        render={<Button variant="link" size="sm" className="group ml-2 mr-1.5 hover:no-underline" />}
+        render={<Button variant="link" size="sm" className="group mx-0 hover:no-underline" />}
       >
         <span className="inline-flex items-center gap-1 border-b border-transparent group-hover:border-current">
           {t('publish')}
