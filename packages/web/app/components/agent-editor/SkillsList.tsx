@@ -183,8 +183,8 @@ export function SkillsList({ skills, onAdd, onDelete, onDeleteMany }: SkillsList
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <Label className="text-xs font-medium">{t('skills')}</Label>
+      <div className="mt-2 flex items-center justify-between">
+        <Label className="text-xs font-medium -mt-[3px]">{t('skills')}</Label>
         <div className="flex items-center gap-1">
           {selectedCount > 0 && (
             <Button
