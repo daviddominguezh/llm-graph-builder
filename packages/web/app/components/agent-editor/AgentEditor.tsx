@@ -67,7 +67,7 @@ function EditorPanel({
 }) {
   return (
     <GlassPanel
-      className={`flex h-[calc(100%-var(--spacing)*2.5)] shrink-0 flex-col mt-2 mb-2.5 rounded-xl ${className ?? ''}`}
+      className={`flex h-[calc(100%-var(--spacing)*2)] shrink-0 flex-col mt-2 mb-2 rounded-xl ${className ?? ''}`}
     >
       <div className="flex items-center justify-between border-b px-3 py-2">
         <h2 className="mt-[1px] font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60 cursor-default">
@@ -168,7 +168,7 @@ export function AgentEditor({
             orgId={orgId}
           />
           {rightSlot !== undefined && (
-            <div className="w-[360px] shrink-0 h-[calc(100%-var(--spacing)*2.5)] mt-2 mb-2.5">
+            <div className="w-[360px] shrink-0 h-[calc(100%-var(--spacing)*2)] mt-2 mb-2">
               {rightSlot}
             </div>
           )}
