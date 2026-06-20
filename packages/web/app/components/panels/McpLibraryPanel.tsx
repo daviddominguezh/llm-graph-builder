@@ -11,11 +11,13 @@ import React from 'react';
 
 import type { McpLibraryState } from '../../hooks/useMcpLibrary';
 import { McpLibraryCard } from './McpLibraryCard';
+import { useOutsideClose } from './ToolsPanelHelpers';
 
 interface McpLibraryPanelProps {
   library: McpLibraryState;
   installedLibraryIds: string[];
   onInstall: (item: McpLibraryRow) => void;
+  onClose: () => void;
 }
 
 function LibraryPanelHeader() {
@@ -93,10 +95,13 @@ function LibraryItemsList({ items, loading, installedLibraryIds, onInstall }: Li
   );
 }
 
-export function McpLibraryPanel({ library, installedLibraryIds, onInstall }: McpLibraryPanelProps) {
+export function McpLibraryPanel({ library, installedLibraryIds, onInstall, onClose }: McpLibraryPanelProps) {
   const [query, setQuery] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useOutsideClose(true, containerRef, onClose);
 
   function handleQueryChange(value: string) {
     setQuery(value);
@@ -108,7 +113,7 @@ export function McpLibraryPanel({ library, installedLibraryIds, onInstall }: Mcp
 
   return (
     <GlassPanel className="pointer-events-auto absolute! w-[240px] bottom-0 left-0 top-0 z-10 flex w-80 flex-col rounded-e-md">
-      <div className="flex flex-col w-full h-full">
+      <div ref={containerRef} className="flex flex-col w-full h-full">
         <LibraryPanelHeader />
         <LibrarySearchBar value={query} onChange={handleQueryChange} />
         <LibraryItemsList

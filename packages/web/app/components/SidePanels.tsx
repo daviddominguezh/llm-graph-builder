@@ -318,6 +318,7 @@ export function SidePanels(props: SidePanelsProps) {
         mcpLibrary={props.mcpLibrary}
         installedLibraryIds={installedIds}
         onInstall={publish.handleInstallFromLibrary}
+        onCloseLibrary={props.onCloseLibrary}
       />
       {showSelectionPanel && (
         <SelectionPanel

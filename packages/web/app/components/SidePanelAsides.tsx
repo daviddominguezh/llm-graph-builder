@@ -16,6 +16,7 @@ export interface McpDialogsProps {
   mcpLibrary: McpLibraryState;
   installedLibraryIds: string[];
   onInstall: (item: McpLibraryRow) => void;
+  onCloseLibrary: () => void;
 }
 
 export function McpDialogs(props: McpDialogsProps) {
@@ -37,6 +38,7 @@ export function McpDialogs(props: McpDialogsProps) {
           library={props.mcpLibrary}
           installedLibraryIds={props.installedLibraryIds}
           onInstall={props.onInstall}
+          onClose={props.onCloseLibrary}
         />
       )}
     </>
