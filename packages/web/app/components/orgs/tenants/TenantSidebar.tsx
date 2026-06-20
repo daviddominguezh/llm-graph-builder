@@ -64,7 +64,7 @@ export function TenantSidebar({
 }: TenantSidebarProps): React.JSX.Element {
   const t = useTranslations('tenantSidebar');
   return (
-    <GlassPanel variant="background" className="w-56 shrink-0 flex flex-col">
+    <GlassPanel variant="background" className="w-56 shrink-0 rounded-s-xl flex flex-col before:shadow-none! after:shadow-none! border-r-[0.5px]">
       <div className="px-3 pt-2">
         <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60">
           {t('label')}
