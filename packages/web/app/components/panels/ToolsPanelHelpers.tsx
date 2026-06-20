@@ -9,7 +9,7 @@ import type { RegistryTool, ToolGroup } from '../../lib/toolRegistry';
 import { PanelLoadingState } from './PanelLoadingState';
 import { PanelTotalFailureState } from './PanelTotalFailureState';
 import { SaveStateIndicator } from './SaveStateIndicator';
-import { type AgentModeProps, AgentModeBody } from './ToolsPanelAgentMode';
+import { AgentModeBody, type AgentModeProps } from './ToolsPanelAgentMode';
 import { ToolsList } from './ToolsPanelViewMode';
 import type { AgentToolStoresPanelConfig } from './toolStoreHelpers';
 
@@ -19,6 +19,7 @@ interface SearchRowProps {
   onQueryChange: (q: string) => void;
   placeholder: string;
   agent?: AgentModeProps;
+  isAgent?: boolean;
 }
 
 export function SearchRow({
@@ -27,9 +28,10 @@ export function SearchRow({
   onQueryChange,
   placeholder,
   agent,
+  isAgent,
 }: SearchRowProps): React.JSX.Element {
   return (
-    <div className="flex items-center gap-2 px-3 py-2 border-b">
+    <div className={`flex items-center gap-2 px-3 ${isAgent ? 'py-1' : 'py-2'} border-b`}>
       <Search className="size-3.5 text-muted-foreground shrink-0" />
       <Input
         ref={inputRef}
@@ -38,9 +40,7 @@ export function SearchRow({
         placeholder={placeholder}
         className="h-7 border-0 bg-transparent! p-0 text-xs shadow-none focus-visible:ring-0"
       />
-      {agent !== undefined && (
-        <SaveStateIndicator state={agent.saveState} onRetry={agent.onRetrySave} />
-      )}
+      {agent !== undefined && <SaveStateIndicator state={agent.saveState} onRetry={agent.onRetrySave} />}
     </div>
   );
 }

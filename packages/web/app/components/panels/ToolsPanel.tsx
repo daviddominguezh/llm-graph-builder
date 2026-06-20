@@ -99,7 +99,7 @@ function PanelTabs({
   t: (key: string) => string;
   isAgent: boolean;
 }) {
-  const tabBaseCls = `cursor-pointer inline-flex flex-1 items-center justify-center gap-1 ${isAgent ? 'rounded-xl' : 'rounded-md'}  px-2.5 py-1 text-[11px] font-medium transition-colors border border-transparent`;
+  const tabBaseCls = `cursor-pointer inline-flex flex-1 items-center justify-center gap-1 ${isAgent ? 'rounded-xl' : 'rounded-md'}  px-2.5 py-[calc(0.5px+var(--spacing))] text-[11px] font-medium transition-colors border border-transparent`;
 
   const labels: Record<string, string> = { tools: t('toolsTab'), mcp: t('mcpServersTab') };
   return (
@@ -195,6 +195,7 @@ interface ToolsTabPanelProps {
   stores?: AgentToolStoresPanelConfig;
   onTestTool: (tool: RegistryTool) => void;
   searchPlaceholder: string;
+  isAgent?: boolean;
 }
 
 function ToolsTabPanel(props: ToolsTabPanelProps): React.JSX.Element {
@@ -207,6 +208,7 @@ function ToolsTabPanel(props: ToolsTabPanelProps): React.JSX.Element {
     agent,
     stores,
     searchPlaceholder,
+    isAgent
   } = props;
   const onToggleTool = (key: string): void =>
     panelState.setExpandedTool((prev) => (prev === key ? null : key));
@@ -214,6 +216,7 @@ function ToolsTabPanel(props: ToolsTabPanelProps): React.JSX.Element {
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <SearchRow
+      isAgent={isAgent}
         inputRef={inputRef}
         query={panelState.query}
         onQueryChange={panelState.setQuery}
@@ -280,6 +283,7 @@ export function ToolsPanel({ mcp, open, onClose, agent, stores, agentId }: Tools
           </div>
           {panelState.activeTab === 'tools' && (
             <ToolsTabPanel
+            isAgent={isAgentEditor}
               inputRef={inputRef}
               panelState={panelState}
               registryState={registryState}
