@@ -282,7 +282,7 @@ export function Toolbar(props: ToolbarProps) {
   } = props;
   const t = useTranslations('toolbar');
   return (
-    <div className="flex items-center gap-1.5">
+    <div data-tools-panel-portal className="flex items-center gap-1.5">
       {props.hideWorkflowActions !== true && (
         <PlayButton
           simulationActive={simulationActive ?? false}

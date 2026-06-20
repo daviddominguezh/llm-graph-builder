@@ -87,6 +87,7 @@ export interface SidePanelsProps {
   onPublishMcpServer: (server: McpServerConfig) => void;
   onOpenMcpLibrary: () => void;
   onCloseLibrary: () => void;
+  onCloseTools: () => void;
   pushOperation: PushOperation;
   agentToolsConfig?: AgentToolsConfig;
   toolStores: ToolStoresState;
@@ -225,7 +226,7 @@ function AgentToolsSlot({ config, sidePanelProps: p, onPublishServer }: AgentToo
     <ToolsPanel
       mcp={buildMcpProps(p, onPublishServer)}
       open={p.toolsOpen}
-      onClose={() => {}}
+      onClose={p.onCloseTools}
       agent={agentProp}
       stores={buildStoresConfig(p.toolStores)}
       agentId={config.agentId}

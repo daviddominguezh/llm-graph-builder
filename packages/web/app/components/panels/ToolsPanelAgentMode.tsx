@@ -2,6 +2,7 @@
 
 import { computeHeaderState, isToolSelected, toggleTool } from '@/app/lib/agentTools';
 import type { RegistryTool, ToolGroup } from '@/app/lib/toolRegistryTypes';
+import { Separator } from '@/components/ui/separator';
 import { type SelectedTool } from '@daviddh/llm-graph-runner';
 import { useTranslations } from 'next-intl';
 import React from 'react';
@@ -70,19 +71,23 @@ export function AgentModeBody(props: AgentModeBodyProps): React.JSX.Element {
     <Scrollable className="flex-1 p-1 pt-0">
       <StaleEntriesGroup staleEntries={agent.staleEntries} onRemove={agent.onRemoveStale} />
 
-      {groups.map((group) => (
-        <AgentModeGroup
-          key={group.groupName}
-          group={group}
-          agent={agent}
-          searchActive={searchActive}
-          expandedTool={expandedTool}
-          failedProviders={failedProviders}
-          onToggleTool={onToggleTool}
-          onCollapseTool={onCollapseTool}
-          onTestTool={onTestTool}
-        />
-      ))}
+      <div className="flex flex-col gap-2">
+        {groups.map((group) => (
+          <React.Fragment key={group.groupName}>
+            <AgentModeGroup
+              group={group}
+              agent={agent}
+              searchActive={searchActive}
+              expandedTool={expandedTool}
+              failedProviders={failedProviders}
+              onToggleTool={onToggleTool}
+              onCollapseTool={onCollapseTool}
+              onTestTool={onTestTool}
+            />
+            <Separator className="mt-2" />
+          </React.Fragment>
+        ))}
+      </div>
     </Scrollable>
   );
 }
@@ -191,6 +196,7 @@ function AgentModeGroup(props: AgentModeGroupProps): React.JSX.Element {
         searchActive={searchActive}
         fetchedAt={mcpFetchedAt}
         onToggle={() => agent.onChange(applyHeaderToggle(agent.selectedTools, groupTools, headerState))}
+        disabled={disabledReason !== null}
         leadingIndicator={leadingIndicator}
         rightSlot={rightSlot}
       />

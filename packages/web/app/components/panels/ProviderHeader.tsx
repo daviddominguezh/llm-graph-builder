@@ -19,6 +19,7 @@ interface ProviderHeaderProps {
   searchActive: boolean;
   fetchedAt?: number;
   onToggle: () => void;
+  disabled?: boolean;
   leadingIndicator?: React.ReactNode;
   rightSlot?: React.ReactNode;
 }
@@ -54,17 +55,18 @@ export function ProviderHeader(props: ProviderHeaderProps): React.JSX.Element {
     t,
   });
   return (
-    <div className="sticky top-0 z-10 flex items-center gap-2 px-2 pt-2 pb-1.5 bg-[rgb(255_255_255)] dark:bg-[rgb(20_20_20)]">
+    <div className="sticky top-0 z-10 flex items-center gap-2 px-2 pt-1.5 pb-1.5 bg-[rgb(255_255_255)] dark:bg-[rgb(20_20_20)]">
       <Checkbox
         checked={isChecked}
         indeterminate={isIndeterminate}
         onCheckedChange={props.onToggle}
+        disabled={props.disabled}
         aria-label={t('selectAll')}
       />
       <div className="flex flex-col flex-1 min-w-0">
         <div className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
           {props.leadingIndicator}
-          <span>{displayGroupName}</span>
+          <span className="cursor-default">{displayGroupName}</span>
           {count !== '' && <span className="lowercase">{count}</span>}
           {props.fetchedAt !== undefined && <CatalogFreshnessIndicator fetchedAt={props.fetchedAt} />}
         </div>
