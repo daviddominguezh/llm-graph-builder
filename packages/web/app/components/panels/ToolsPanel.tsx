@@ -13,14 +13,9 @@ import type { RegistryTool, ToolGroup } from '../../lib/toolRegistry';
 import type { McpServerConfig, McpTransport } from '../../schemas/graph.schema';
 import { useToolRegistry } from '../ToolRegistryProvider';
 import { McpServersSection } from './McpServersSection';
-import { ToolTestModal, type RunTool } from './ToolTestModal';
+import { type RunTool, ToolTestModal } from './ToolTestModal';
 import { type AgentModeProps } from './ToolsPanelAgentMode';
-import {
-  SearchRow,
-  ToolsTabBody,
-  useOutsideClose,
-  useToolsPanelState,
-} from './ToolsPanelHelpers';
+import { SearchRow, ToolsTabBody, useOutsideClose, useToolsPanelState } from './ToolsPanelHelpers';
 import type { AgentToolStoresPanelConfig } from './toolStoreHelpers';
 
 interface McpProps {
@@ -92,18 +87,20 @@ const PANEL_TABS = ['tools', 'mcp'] as const;
 const activeTabCls = 'bg-input text-foreground shadow-none';
 const inactiveTabCls =
   'text-muted-foreground hover:text-foreground border-transparent hover:bg-input dark:hover:bg-input/30';
-const tabBaseCls =
-  'cursor-pointer inline-flex flex-1 items-center justify-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors border border-transparent';
 
 function PanelTabs({
   value,
   onChange,
   t,
+  isAgent,
 }: {
   value: string;
   onChange: (v: string) => void;
   t: (key: string) => string;
+  isAgent: boolean;
 }) {
+  const tabBaseCls = `cursor-pointer inline-flex flex-1 items-center justify-center gap-1 ${isAgent ? 'rounded-xl' : 'rounded-md'}  px-2.5 py-1 text-[11px] font-medium transition-colors border border-transparent`;
+
   const labels: Record<string, string> = { tools: t('toolsTab'), mcp: t('mcpServersTab') };
   return (
     <div className="flex w-full gap-0.5 p-0.5">
@@ -147,7 +144,10 @@ function findBuiltinProvider(tool: RegistryTool, groups: ToolGroup[]): BuiltinTo
   return null;
 }
 
-function buildMcpRunner(transport: McpTransport | null, options: ToolCallOptions | undefined): RunTool | null {
+function buildMcpRunner(
+  transport: McpTransport | null,
+  options: ToolCallOptions | undefined
+): RunTool | null {
   if (transport === null) return null;
   return async (toolName, args, signal) => await callMcpTool(transport, toolName, args, options, signal);
 }
@@ -246,6 +246,8 @@ export function ToolsPanel({ mcp, open, onClose, agent, stores, agentId }: Tools
   const filteredGroups = filterGroups(allGroups, panelState.query);
   const totalCount = countTools(filteredGroups);
 
+  const isAgentEditor = agent !== undefined;
+
   useEffect(() => {
     if (open && panelState.activeTab === 'tools') {
       requestAnimationFrame(() => inputRef.current?.focus());
@@ -258,7 +260,9 @@ export function ToolsPanel({ mcp, open, onClose, agent, stores, agentId }: Tools
 
   return (
     <>
-      <GlassPanel className="pointer-events-auto absolute! top-0 right-0 z-20 w-[calc(360px+var(--spacing)*2)] h-full rounded-s-md shadow-lg overflow-hidden pointer-events-auto border-r-[0.5px]">
+      <GlassPanel
+        className={`pointer-events-auto absolute! right-0 z-20 overflow-hidden pointer-events-auto ${isAgentEditor ? 'right-[-1px] border-[0.5px] border-r-[1.5px] -mt-[0.5px] w-[400px] shadow-2xl rounded-xl top-2 h-[calc(100%-var(--spacing)*2)]!' : 'w-[calc(360px+var(--spacing)*2)] h-full top-0 border-r-[0.5px] shadow-lg rounded-s-md'}`}
+      >
         <div
           ref={containerRef}
           className="flex h-full flex-col"
@@ -267,7 +271,12 @@ export function ToolsPanel({ mcp, open, onClose, agent, stores, agentId }: Tools
           }}
         >
           <div className="flex items-center border-y-0 border-x-0 border-b p-0 overflow-hidden">
-            <PanelTabs value={panelState.activeTab} onChange={panelState.setActiveTab} t={t} />
+            <PanelTabs
+              isAgent={isAgentEditor}
+              value={panelState.activeTab}
+              onChange={panelState.setActiveTab}
+              t={t}
+            />
           </div>
           {panelState.activeTab === 'tools' && (
             <ToolsTabPanel
@@ -289,11 +298,7 @@ export function ToolsPanel({ mcp, open, onClose, agent, stores, agentId }: Tools
           )}
         </div>
       </GlassPanel>
-      <ToolTestModal
-        tool={tt.testingTool}
-        runTool={tt.runTool}
-        onClose={tt.closeTest}
-      />
+      <ToolTestModal tool={tt.testingTool} runTool={tt.runTool} onClose={tt.closeTest} />
     </>
   );
 }
