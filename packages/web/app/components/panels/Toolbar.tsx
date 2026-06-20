@@ -228,15 +228,15 @@ function ToolbarButtons(props: ToolbarProps) {
 
   return (
     <>
-      {!props.hideWorkflowActions && onToggleGlobalPanel && (
-        <ToolbarTooltip label={t('globalNodes')}>
+      {onToggleLibrary && (
+        <ToolbarTooltip label={t('mcpLibrary')}>
           <Button
             className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
             variant="ghost"
             size="default"
-            onClick={onToggleGlobalPanel}
+            onClick={onToggleLibrary}
           >
-            <Waypoints />
+            <Blocks />
           </Button>
         </ToolbarTooltip>
       )}
@@ -252,15 +252,15 @@ function ToolbarButtons(props: ToolbarProps) {
           </Button>
         </ToolbarTooltip>
       )}
-      {onToggleLibrary && (
-        <ToolbarTooltip label={t('mcpLibrary')}>
+      {!props.hideWorkflowActions && onToggleGlobalPanel && (
+        <ToolbarTooltip label={t('globalNodes')}>
           <Button
             className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
             variant="ghost"
             size="default"
-            onClick={onToggleLibrary}
+            onClick={onToggleGlobalPanel}
           >
-            <Blocks />
+            <Waypoints />
           </Button>
         </ToolbarTooltip>
       )}
