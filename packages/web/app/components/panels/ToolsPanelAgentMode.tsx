@@ -68,11 +68,11 @@ export function AgentModeBody(props: AgentModeBodyProps): React.JSX.Element {
   } = props;
 
   return (
-    <Scrollable className="flex-1 p-1 pt-0">
+    <Scrollable className="flex-1 p-1 pt-0 pb-4">
       <StaleEntriesGroup staleEntries={agent.staleEntries} onRemove={agent.onRemoveStale} />
 
       <div className="flex flex-col gap-2">
-        {groups.map((group) => (
+        {groups.map((group, i) => (
           <React.Fragment key={group.groupName}>
             <AgentModeGroup
               group={group}
@@ -84,7 +84,7 @@ export function AgentModeBody(props: AgentModeBodyProps): React.JSX.Element {
               onCollapseTool={onCollapseTool}
               onTestTool={onTestTool}
             />
-            <Separator className="mt-2" />
+            {i < groups.length - 1 && <Separator className="mt-2" />}
           </React.Fragment>
         ))}
       </div>
@@ -131,7 +131,7 @@ interface GroupToolListProps {
 function GroupToolList(props: GroupToolListProps): React.JSX.Element {
   const { group, agent, expandedTool, disabledReason, onToggleTool, onCollapseTool, onTestTool } = props;
   return (
-    <ul className="flex flex-row gap-2 gap-y-3 flex-wrap pl-1">
+    <ul className="flex flex-row gap-2 gap-y-3 flex-wrap pl-5">
       {group.tools.map((tool) => {
         const ref = registryToolToSelectedTool(tool);
         const key = `${tool.group}-${tool.name}`;

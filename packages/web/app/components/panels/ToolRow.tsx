@@ -32,48 +32,30 @@ interface ToolRowHeaderProps {
   disabled: boolean;
   disabledTooltip: string | undefined;
   onToggleSelected: () => void;
-  onToggleExpanded: () => void;
   onTest?: (tool: RegistryTool) => void;
 }
 
 function ToolRowHeader(props: ToolRowHeaderProps): React.JSX.Element {
-  const {
-    tool,
-    displayDescription,
-    selected,
-    disabled,
-    disabledTooltip,
-    onToggleSelected,
-    onToggleExpanded,
-    onTest,
-  } = props;
+  const { tool, displayDescription, selected, disabled, disabledTooltip, onToggleSelected, onTest } = props;
   return (
     <>
-      <Checkbox
-        checked={selected}
-        disabled={disabled}
-        onCheckedChange={onToggleSelected}
-        onClick={(e) => e.stopPropagation()}
-        className="mt-0.5"
-        aria-label={tool.name}
-      />
-      <button
-        type="button"
-        onClick={onToggleExpanded}
-        className="flex min-w-0 flex-1 flex-col text-left cursor-pointer"
-      >
-        <span className="font-medium truncate">{tool.name}</span>
-        <span className="truncate text-[10px] text-muted-foreground">
-          {displayDescription ?? tool.group}
-        </span>
-      </button>
+      <div className="flex flex-col min-w-0 flex-1 gap-0.5">
+        <div className="flex gap-1.5">
+          <Checkbox
+            checked={selected}
+            disabled={disabled}
+            onCheckedChange={onToggleSelected}
+            onClick={(e) => e.stopPropagation()}
+            className="mt-0.5"
+            aria-label={tool.name}
+          />
+          <span className="font-medium truncate">{tool.name}</span>
+        </div>
+        <span className="truncate text-[10px] text-muted-foreground">{displayDescription ?? tool.group}</span>
+      </div>
+
       {onTest !== undefined && (
-        <PlayButton
-          tool={tool}
-          onTest={onTest}
-          disabled={disabled}
-          disabledTooltip={disabledTooltip}
-        />
+        <PlayButton tool={tool} onTest={onTest} disabled={disabled} disabledTooltip={disabledTooltip} />
       )}
     </>
   );
@@ -86,7 +68,6 @@ export function ToolRow({
   selected,
   expanded,
   onToggleSelected,
-  onToggleExpanded,
   onCollapse,
   onTest,
   disabledReason,
@@ -99,10 +80,14 @@ export function ToolRow({
   const isDisabled = disabledTooltip !== undefined;
   const disabledCls = isDisabled ? 'opacity-60' : '';
   return (
-    <li className={`flex flex-col w-[calc(50%_-_(var(--spacing)*2))] shrink-0 bg-card rounded-sm py-1.5 ${disabledCls}`}>
+    <li
+      className={`flex flex-col w-[calc(50%_-_(var(--spacing)*2))] shrink-0 py-0.5 border-l-[1.5px] border-ring px-1 ${disabledCls}`}
+    >
       <div
         ref={rowRef}
-        className="group/tool flex w-full items-start gap-1.5 px-1 py-0 text-left text-xs cursor-pointer border-l-2 border-ring hover:border-accent"
+        className={`group/tool flex w-full items-start gap-1.5 px-1 py-0 text-left text-xs ${
+          isDisabled ? 'cursor-default' : 'cursor-pointer'
+        }`}
       >
         <ToolRowHeader
           tool={tool}
@@ -111,7 +96,6 @@ export function ToolRow({
           disabled={isDisabled}
           disabledTooltip={disabledTooltip}
           onToggleSelected={onToggleSelected}
-          onToggleExpanded={onToggleExpanded}
           onTest={onTest}
         />
       </div>

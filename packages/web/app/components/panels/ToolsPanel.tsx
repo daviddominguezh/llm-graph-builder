@@ -257,7 +257,7 @@ export function ToolsPanel({ mcp, open, onClose, agent, stores, agentId }: Tools
     }
   }, [open, panelState.activeTab]);
 
-  useOutsideClose(open, containerRef, onClose);
+  useOutsideClose(open && tt.testingTool === null, containerRef, onClose);
 
   if (!open) return null;
 

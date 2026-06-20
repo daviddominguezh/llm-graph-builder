@@ -121,6 +121,7 @@ export function ToolTestModal({ tool, runTool, onClose }: ToolTestModalProps) {
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent
+        data-tools-panel-portal
         className="sm:max-w-5xl h-[min(70vh,640px)] flex flex-col gap-0 p-0"
         showCloseButton
       >
