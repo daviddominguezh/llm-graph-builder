@@ -2,10 +2,11 @@
 
 import { type ProviderKind, useToolCatalog } from '@/app/lib/toolCatalog';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Play } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useRef } from 'react';
+import React, { useRef } from 'react';
 
 import type { RegistryTool, ToolGroup } from '../../lib/toolRegistry';
 import { CatalogFreshnessIndicator } from './CatalogFreshnessIndicator';
@@ -81,9 +82,7 @@ function ViewToolRowBody(props: ViewToolRowBodyProps): React.JSX.Element {
     <>
       <div className="py-0.5 flex min-w-0 flex-1 flex-col">
         <span className="font-medium truncate">{tool.name}</span>
-        <span className="truncate text-[10px] text-muted-foreground">
-          {displayDescription ?? tool.group}
-        </span>
+        <span className="truncate text-[10px] text-muted-foreground">{displayDescription ?? tool.group}</span>
       </div>
       <PlayButton tool={tool} onTest={onTest} disabled={isDisabled} disabledTooltip={disabledTooltip} />
     </>
@@ -108,10 +107,12 @@ export function ViewToolRow({
   const isDisabled = disabledTooltip !== undefined;
   const disabledCls = isDisabled ? 'opacity-60' : '';
   return (
-    <li className={`flex flex-col w-[calc(33.3%_-_(var(--spacing)*2))] shrink-0 bg-input/70 rounded-sm py-0 ${disabledCls}`}>
+    <li
+      className={`border-l-[1.5px] border-ring flex flex-col w-[calc(50%_-_(var(--spacing)*2))] shrink-0 py-0 ${disabledCls}`}
+    >
       <div
         ref={rowRef}
-        className="py-0.5 group/tool flex w-full items-start gap-1 pl-2 pr-0.5 text-left text-xs cursor-default"
+        className="group/tool flex w-full items-start gap-1 pl-2 pr-0.5 text-left text-xs cursor-default"
         onClick={onClick}
       >
         <ViewToolRowBody
@@ -171,7 +172,7 @@ function GroupHeader({
   rightSlot,
 }: GroupHeaderProps): React.JSX.Element {
   return (
-    <div className="sticky top-0 z-10 px-2 pt-0 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+    <div className="sticky top-0 z-10 px-2 pt-0 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide bg-background">
       <div className="pt-2 flex items-center gap-1.5">
         {leadingIndicator}
         <span>{displayGroupName}</span>
@@ -188,7 +189,10 @@ interface GroupStoreState {
   disabledReason: ToolRowDisabledReason;
 }
 
-function useGroupStoreState(group: ToolGroup, stores: AgentToolStoresPanelConfig | undefined): GroupStoreState {
+function useGroupStoreState(
+  group: ToolGroup,
+  stores: AgentToolStoresPanelConfig | undefined
+): GroupStoreState {
   const tr = useTranslations('agentTools');
   const storeKind = storeKindForGroup(group);
   const storePlaceholder =
@@ -227,7 +231,7 @@ function ToolsListGroup({
         rightSlot={rightSlot}
       />
       {hasError && <ProviderErrorRow mode="workflow" />}
-      <ul className="flex flex-row gap-2 gap-y-3 flex-wrap pl-1">
+      <ul className="flex flex-row gap-2 gap-y-3 flex-wrap pl-2.5">
         {group.tools.map((tool) => {
           const key = `${tool.group}-${tool.name}`;
           return (
@@ -266,18 +270,22 @@ export function ToolsList({
           {groups.length === 0 ? 'No tools discovered yet' : 'No results'}
         </p>
       ) : (
-        groups.map((group) => (
-          <ToolsListGroup
-            key={group.groupName}
-            group={group}
-            expandedTool={expandedTool}
-            failedProviders={failedProviders}
-            onToggleTool={onToggleTool}
-            onCollapseTool={onCollapseTool}
-            onTestTool={onTestTool}
-            stores={stores}
-          />
-        ))
+        <div className="flex flex-col gap-1">
+          {groups.map((group, i) => (
+            <React.Fragment key={group.groupName}>
+              <ToolsListGroup
+                group={group}
+                expandedTool={expandedTool}
+                failedProviders={failedProviders}
+                onToggleTool={onToggleTool}
+                onCollapseTool={onCollapseTool}
+                onTestTool={onTestTool}
+                stores={stores}
+              />
+              <Separator className="mt-2" />
+            </React.Fragment>
+          ))}
+        </div>
       )}
     </div>
   );

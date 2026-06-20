@@ -64,11 +64,14 @@ function getFailedProviders(registryState: RegistryState): string[] {
 
 export function ToolsTabBody(props: ToolsTabBodyProps): React.JSX.Element {
   const { registryState, filteredGroups, totalCount, expandedTool, query, agent, stores } = props;
+  const failedProviders = getFailedProviders(registryState);
+
   if (registryState.kind === 'loading') return <PanelLoadingState />;
+
   if (registryState.kind === 'total-failure') {
     return <PanelTotalFailureState reason={registryState.reason} />;
   }
-  const failedProviders = getFailedProviders(registryState);
+
   if (agent !== undefined) {
     return (
       <AgentModeBody
@@ -83,6 +86,7 @@ export function ToolsTabBody(props: ToolsTabBodyProps): React.JSX.Element {
       />
     );
   }
+
   return (
     <ToolsList
       groups={filteredGroups}
