@@ -222,7 +222,7 @@ function EditorTabBar({
   return (
     <div className={`w-full h-fit shrink-0 ${isAgent ? 'bg-card' : ''}`}>
       <div
-        className={`${isAgent ? 'bg-background dark:bg-[rgb(20_20_20/85%)]' : 'bg-[rgb(245_245_245/20%)]! dark:bg-[rgb(20_20_20/85%)]!'} backdrop-blur-lg! relative w-100% h-fit shrink-0 flex items-center pointer-events-auto px-0.5 py-0.5 rounded-se-xl! border-b-[0.5px]! ${isAgent ? 'border-x-[0.5px]! rounded-ee-xl!' : ''}`}
+        className={`${isAgent ? 'bg-background' : 'bg-[rgb(255_255_255/80%)]! '} dark:bg-[rgb(20_20_20/85%)]! backdrop-blur-xl! relative w-100% h-fit shrink-0 flex items-center pointer-events-auto px-0.5 py-0.5 rounded-se-xl! border-b-[0.5px]! ${isAgent ? 'border-x-[0.5px]! rounded-ee-xl!' : ''}`}
       >
         <div className="flex flex-row w-full items-center pl-1.5 pr-2.5">
           <Button

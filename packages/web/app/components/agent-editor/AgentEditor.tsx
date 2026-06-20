@@ -154,7 +154,7 @@ export function AgentEditor({
 
   return (
     <div className="absolute" style={insets} onClick={onBackgroundClick}>
-      <div className="flex h-full w-full bg-card pl-2 pb-0">
+      <div className="flex h-full w-full bg-card pl-2 pb-[1px]">
         <div
           className="w-full h-full flex animate-in fade-in duration-300 gap-2"
           onClick={(e) => e.stopPropagation()}
