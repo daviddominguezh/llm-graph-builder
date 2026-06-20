@@ -208,7 +208,6 @@ function ToolsTabPanel(props: ToolsTabPanelProps): React.JSX.Element {
     agent,
     stores,
     searchPlaceholder,
-    isAgent
   } = props;
   const onToggleTool = (key: string): void =>
     panelState.setExpandedTool((prev) => (prev === key ? null : key));
@@ -216,7 +215,6 @@ function ToolsTabPanel(props: ToolsTabPanelProps): React.JSX.Element {
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <SearchRow
-      isAgent={isAgent}
         inputRef={inputRef}
         query={panelState.query}
         onQueryChange={panelState.setQuery}
@@ -283,7 +281,6 @@ export function ToolsPanel({ mcp, open, onClose, agent, stores, agentId }: Tools
           </div>
           {panelState.activeTab === 'tools' && (
             <ToolsTabPanel
-            isAgent={isAgentEditor}
               inputRef={inputRef}
               panelState={panelState}
               registryState={registryState}

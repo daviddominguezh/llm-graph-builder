@@ -28,10 +28,9 @@ export function SearchRow({
   onQueryChange,
   placeholder,
   agent,
-  isAgent,
 }: SearchRowProps): React.JSX.Element {
   return (
-    <div className={`flex items-center gap-2 px-3 ${isAgent ? 'py-1' : 'py-2'} border-b`}>
+    <div className="flex items-center gap-2 px-3 py-1 border-b">
       <Search className="size-3.5 text-muted-foreground shrink-0" />
       <Input
         ref={inputRef}

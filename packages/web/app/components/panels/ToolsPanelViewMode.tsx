@@ -175,7 +175,7 @@ function GroupHeader({
     <div className="sticky top-0 z-10 px-2 pt-0 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide bg-background">
       <div className="pt-2 flex items-center gap-1.5">
         {leadingIndicator}
-        <span>{displayGroupName}</span>
+        <span className="cursor-default">{displayGroupName}</span>
         {mcpFetchedAt !== undefined && <CatalogFreshnessIndicator fetchedAt={mcpFetchedAt} />}
         {rightSlot !== undefined && <div className="ml-auto flex items-center shrink-0">{rightSlot}</div>}
       </div>
@@ -264,7 +264,7 @@ export function ToolsList({
   stores,
 }: ToolsListProps): React.JSX.Element {
   return (
-    <div className="flex-1 overflow-y-auto p-1 pt-0">
+    <div className="flex-1 overflow-y-auto p-1 pt-0 pb-4">
       {totalCount === 0 ? (
         <p className="p-3 text-xs text-muted-foreground bg-muted rounded-md mt-2 mx-1">
           {groups.length === 0 ? 'No tools discovered yet' : 'No results'}
@@ -282,7 +282,7 @@ export function ToolsList({
                 onTestTool={onTestTool}
                 stores={stores}
               />
-              <Separator className="mt-2" />
+              {i < groups.length - 1 && <Separator className="mt-2" />}
             </React.Fragment>
           ))}
         </div>
