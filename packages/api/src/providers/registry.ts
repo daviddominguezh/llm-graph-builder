@@ -4,6 +4,7 @@ import type { SelectedTool } from '../types/selectedTool.js';
 import type { Logger } from '../utils/logger.js';
 import { type IndexEntry, buildToolIndex } from './buildToolIndex.js';
 import { buildMcpProvider } from './mcp/buildMcpProvider.js';
+import type { CreateTransportFn } from './mcp/ensureSession.js';
 import type { Provider, ProviderCtx, ToolDescriptor } from './provider.js';
 import { type OpenFlowTool, namespaceToolName } from './types.js';
 
@@ -48,6 +49,8 @@ export interface ComposeRegistryArgs {
   builtIns: ReadonlyMap<string, Provider>;
   orgMcpServers: McpServerConfig[];
   logger: Logger;
+  /** Overrides the per-provider MCP transport factory (e.g. a backend egress-guarded one). */
+  createTransport?: CreateTransportFn;
 }
 
 function classifyError(err: unknown): FailureReason {
@@ -177,9 +180,12 @@ function makeEnsureIndex(providers: readonly Provider[], logger: Logger): Ensure
 
 function freezeProviders(
   builtIns: ReadonlyMap<string, Provider>,
-  mcpServers: McpServerConfig[]
+  mcpServers: McpServerConfig[],
+  createTransport?: CreateTransportFn
 ): readonly Provider[] {
-  const mcpProviders = mcpServers.map((s) => buildMcpProvider(s));
+  const mcpProviders = mcpServers.map((s) =>
+    buildMcpProvider(s, createTransport === undefined ? {} : { createTransport })
+  );
   return Object.freeze([...builtIns.values(), ...mcpProviders]);
 }
 
@@ -210,7 +216,7 @@ async function describeAllImpl(
 }
 
 export function composeRegistry(args: ComposeRegistryArgs): Registry {
-  const allProviders = freezeProviders(args.builtIns, args.orgMcpServers);
+  const allProviders = freezeProviders(args.builtIns, args.orgMcpServers, args.createTransport);
   const ensureIndex = makeEnsureIndex(allProviders, args.logger);
   return Object.freeze<Registry>({
     providers: allProviders,

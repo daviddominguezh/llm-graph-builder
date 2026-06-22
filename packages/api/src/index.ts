@@ -142,7 +142,14 @@ export {
   toAiSdkToolDict,
   TOOL_NAMESPACE_SEPARATOR,
 } from './providers/index.js';
-export { connectMcp, createTransport, type McpClientHandle, type RawMcpTool } from './providers/mcp/index.js';
+export {
+  connectMcp,
+  createTransport,
+  type McpClientHandle,
+  type McpTransport,
+  type RawMcpTool,
+} from './providers/mcp/index.js';
+export { extractServerUrl, type CreateTransportFn } from './providers/mcp/ensureSession.js';
 export { McpError, SessionExpiredError, TransportError, isSessionExpired } from './providers/mcp/index.js';
 export { withAbortTimeout, AbortTimeoutError } from './providers/mcp/transport/withAbortTimeout.js';
 export type {

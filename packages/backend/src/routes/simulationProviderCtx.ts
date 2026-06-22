@@ -5,8 +5,10 @@ import {
   type Registry,
   builtInProviders,
   composeRegistry,
+  createTransport,
 } from '@daviddh/llm-graph-runner';
 
+import { makeGuardedCreateTransport } from '../lib/guardedCreateTransport.js';
 import { consoleLogger } from '../logger.js';
 
 /**
@@ -55,5 +57,6 @@ export function buildSimulationRegistry(args: SimulationRegistryArgs): Registry 
     builtIns: builtInProviders,
     orgMcpServers: args.mcpServers,
     logger: consoleLogger,
+    createTransport: makeGuardedCreateTransport(createTransport),
   });
 }

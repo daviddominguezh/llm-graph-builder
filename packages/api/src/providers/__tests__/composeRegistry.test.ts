@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import type { SelectedTool } from '../../types/selectedTool.js';
 import type { Logger } from '../../utils/logger.js';
+import type { CreateTransportFn } from '../mcp/ensureSession.js';
 import type { Provider, ProviderCtx, ToolDescriptor } from '../provider.js';
 import { composeRegistry } from '../registry.js';
 import { type OpenFlowTool, namespaceToolName } from '../types.js';
@@ -131,5 +132,23 @@ describe('composeRegistry — buildSelected', () => {
     const result = await registry.buildSelected({ refs, ctx: makeCtx() });
     expect(result.tools).toEqual({});
     expect(result.staleRefs).toEqual(refs);
+  });
+});
+
+describe('composeRegistry — createTransport seam', () => {
+  it('forwards createTransport into the MCP provider connect path', async () => {
+    const createTransport: CreateTransportFn = jest.fn((): never => {
+      throw new Error('seam-reached');
+    });
+    const registry = composeRegistry({
+      builtIns: new Map(),
+      orgMcpServers: [fakeMcp],
+      logger: makeLogger(),
+      createTransport,
+    });
+    const mcpProvider = registry.providers.find((p) => p.type === 'mcp');
+    expect(mcpProvider).toBeDefined();
+    await expect(mcpProvider?.describeTools(makeCtx())).rejects.toThrow('seam-reached');
+    expect(createTransport).toHaveBeenCalledWith(fakeMcp);
   });
 });

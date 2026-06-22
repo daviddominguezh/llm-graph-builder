@@ -4,11 +4,13 @@ import {
   type ProviderCtx,
   builtInProviders,
   composeRegistry,
+  createTransport,
 } from '@daviddh/llm-graph-runner';
 import type { Request } from 'express';
 
 import { getAgentById } from '../../db/queries/agentQueries.js';
 import { getDecryptedEnvVariables, getPublishedGraphData } from '../../db/queries/executionAuthQueries.js';
+import { makeGuardedCreateTransport } from '../../lib/guardedCreateTransport.js';
 import { consoleLogger } from '../../logger.js';
 import { resolveServerTransport } from '../execute/executeHelpers.js';
 import {
@@ -82,7 +84,12 @@ async function respondWithRegistry(
   const rawMcpServers = extractMcpServers(graphData);
   const env = await getDecryptedEnvVariables(supabase, agent.org_id);
   const orgMcpServers = rawMcpServers.map((s) => resolveServerTransport(s, env.byName, env.byId));
-  const registry = composeRegistry({ builtIns: builtInProviders, orgMcpServers, logger: consoleLogger });
+  const registry = composeRegistry({
+    builtIns: builtInProviders,
+    orgMcpServers,
+    logger: consoleLogger,
+    createTransport: makeGuardedCreateTransport(createTransport),
+  });
   const ctx = buildCatalogProviderCtx(agent.org_id, agentId);
   const items = await registry.describeAll(ctx);
   res.status(HTTP_OK).json({ providers: shapeProviders(items), fetchedAt: Date.now() });
