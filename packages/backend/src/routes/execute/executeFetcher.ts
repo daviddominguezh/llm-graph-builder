@@ -12,6 +12,7 @@ import { getOrCreateSession, getSessionMessages } from '../../db/queries/executi
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { type StackEntry, getStackTop } from '../../db/queries/stackQueries.js';
 import type { AgentVfsSettings } from '../../db/queries/vfsConfigTypes.js';
+import { buildAgentRuntimeGraph } from './agentRuntimeGraph.js';
 import { HttpNotFoundError, fetchAgentRecordVersionAware } from './executeAgentRecord.js';
 import { messageRowToMessage, resolveChannelProvider } from './executeMessageFetcher.js';
 import type { AgentExecutionInput } from './executeTypes.js';
@@ -105,14 +106,6 @@ interface GraphFetchParams {
   productionApiKeyId: string;
 }
 
-const EMPTY_GRAPH: RuntimeGraph = {
-  startNode: 'INITIAL_STEP',
-  agents: [],
-  nodes: [],
-  edges: [],
-  initialUserMessage: '',
-};
-
 /**
  * Transforms design-time graph data to runtime format.
  *
@@ -173,7 +166,7 @@ export async function fetchGraphAndKeys(params: GraphFetchParams): Promise<Graph
     fetchAppType(supabase, agentId),
   ]);
 
-  const graph = appType === 'agent' ? EMPTY_GRAPH : ensureGraphData(graphData);
+  const graph = appType === 'agent' ? buildAgentRuntimeGraph(graphData) : ensureGraphData(graphData);
   return { graph, apiKey: ensureApiKey(apiKey), envVars, appType };
 }
 
