@@ -194,6 +194,7 @@ async function runAgentExecution(args: RunAgentArgs): Promise<void> {
       apiKey: payload.apiKey,
       modelId: payload.modelId,
       maxSteps: payload.maxSteps ?? null,
+      skills: payload.skills,
       tools,
       isChildAgent: payload.isChildAgent ?? false,
     },

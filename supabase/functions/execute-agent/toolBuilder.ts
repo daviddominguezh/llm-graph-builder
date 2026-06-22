@@ -21,6 +21,7 @@ import type {
   ProviderCtx,
   Registry,
   SelectedTool,
+  SkillDefinition,
 } from '@daviddh/llm-graph-runner';
 import {
   BUILTIN_PROVIDER_IDS,
@@ -84,6 +85,7 @@ export interface ExecutePayload {
   // Schema version: backend always sends 2.
   schemaVersion?: 2;
   selectedTools?: SelectedTool[];
+  skills?: SkillDefinition[];
   oauth?: { byProvider: Record<string, OAuthTokenBundle> };
   selectedKvStoreId?: string | null;
   selectedRagStoreId?: string | null;
