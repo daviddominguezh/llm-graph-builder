@@ -1,6 +1,8 @@
 import type { McpServerConfig, RuntimeGraph } from '@daviddh/graph-types';
 import { McpServerConfigSchema } from '@daviddh/graph-types';
 
+const EMPTY_LENGTH = 0;
+
 export const EMPTY_GRAPH: RuntimeGraph = Object.freeze({
   startNode: 'INITIAL_STEP',
   agents: [],
@@ -10,7 +12,7 @@ export const EMPTY_GRAPH: RuntimeGraph = Object.freeze({
 });
 
 function extractMcpServers(graphData: Record<string, unknown>): McpServerConfig[] {
-  const raw = graphData.mcpServers;
+  const { mcpServers: raw } = graphData;
   if (!Array.isArray(raw)) return [];
   const servers: McpServerConfig[] = [];
   for (const entry of raw) {
@@ -25,6 +27,6 @@ function extractMcpServers(graphData: Record<string, unknown>): McpServerConfig[
 export function buildAgentRuntimeGraph(graphData: Record<string, unknown> | null): RuntimeGraph {
   if (graphData === null) return EMPTY_GRAPH;
   const mcpServers = extractMcpServers(graphData);
-  if (mcpServers.length === 0) return EMPTY_GRAPH;
+  if (mcpServers.length === EMPTY_LENGTH) return EMPTY_GRAPH;
   return { ...EMPTY_GRAPH, mcpServers };
 }
