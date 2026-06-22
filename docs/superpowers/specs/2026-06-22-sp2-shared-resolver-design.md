@@ -1,8 +1,8 @@
 # Sub-project 2 — Shared MCP transport resolver refactor
 
 **Date:** 2026-06-22
-**Status:** Design draft (DESIGN only — no implementation). Depends on: SP0 (done).
-**Intent (locked):** Consolidate the duplicated `{{placeholder}}`-substitution resolvers into ONE shared module so SP4's per-tenant resolution builds on a single implementation. **Pure refactor — no behavior change.**
+**Status:** Design FINAL (all open decisions resolved — see "Resolved decisions"). DESIGN only — no implementation. Implementation plan: `docs/superpowers/plans/2026-06-22-sp2-shared-resolver.md`. Depends on: SP0 (done).
+**Intent (locked):** Consolidate the duplicated `{{placeholder}}`-substitution resolvers into ONE shared module so SP4's per-tenant resolution builds on a single implementation. **Refactor + one intended, tested behavior fix** (the header/env substitution leak on the discovery + simulate paths — see "Resolved decisions" D5).
 
 ---
 
@@ -13,6 +13,20 @@ The `{{NAME}}` template-substitution logic for MCP server transports is copy-pas
 The substitution itself is pure and shareable. The thing that legitimately differs per call site is the **value-source layer** (how a `VariableValue` becomes a concrete string — async backend-proxy lookup in web vs. pre-fetched decrypted maps in backend). The design separates these two concerns.
 
 ---
+
+## Resolved decisions (FINAL — user-chosen, settled)
+
+These supersede the "Open decisions" section below (kept for rationale). Each maps to its open-decision letter.
+
+- **R-a (was open (a)) — Regex.** Canonical `/\{\{(\w+)\}\}/g`, positional capture **group 1**. The named-group `/gv` variant is **dropped**. (Behaviorally identical for `\w` names; no caller reads `.groups.name`; the `/v` set-escaping is unused — proven in § "regex equivalence".)
+- **R-b (was open (b)) — Module home/name.** `packages/graph-types/src/mcpTransportResolver.ts`, re-exported from the package index (`src/index.ts`). **Pure** — no zod runtime, no I/O, no async; imports only the `McpTransport` / `McpServerConfig` / `VariableValue` **types** already defined in graph-types. Adds no runtime dependency to any consumer (web, backend, edge).
+- **R-c (was open (c)) — Scope.** Unify into the shared module: (1) the `{{}}` substitution (`resolveTransport`), (2) `extractTemplateVariables`, and (3) the **pure** `buildResolvedVars` (direct→value, env_ref→`byId[id] ?? ''`, undefined-`variableValues`→`byName` fallback) name→value mapping. Value **FETCHING / decryption** stays per call site (web = async per-id backend proxy; backend = pre-fetched decrypted maps). The shared `buildResolvedVars` is the **backend** mapping helper; web keeps its async `resolveValues` value layer and only adopts shared `resolveTransport` + the shared `VariableValue` type + shared `extractTemplateVariables`.
+- **R-d (was open (d)) — Edge function.** OUT of scope. The Deno edge function performs **no** `{{}}` substitution (it consumes already-resolved transports); it imports graph-types `dist` for types only and inherits the unified module transitively once `dist` is rebuilt. No edge code change.
+- **R-e — Web duplicate type + component call sites.** The hand-written `VariableValue`/`DirectValue`/`EnvRefValue` union in `packages/web/app/lib/resolveVariables.ts:3-11` is **deleted** and replaced by the graph-types `VariableValue` type (identical via `z.infer`). The two `extractVariableNames` component call sites — `PublishMcpDialog.tsx:185` and `LibraryServerFields.tsx:39` — migrate to the shared `extractTemplateVariables` (via a thin web re-export to minimize churn, see plan Task 2).
+
+### FIX THE LEAK (D5, intended behavior change — confirmed)
+
+The unified `resolveTransport` substitutes **ALL** transport fields on **ALL** paths: stdio `command` + `args` + **`env`**, and http/sse `url` + **`headers`**. Today `mcpToolService.ts` (`resolveTransportVars` `:46-58`) and `simulateHelpers.ts` (`resolveTransportVars` `:54-57`) **skip** `env` (stdio) and `headers` (http/sse), so `{{TOKEN}}` in a header or stdio env var leaks through literally — breaking header-authed and stdio-env-authed MCPs on the **tool-call** (discovery) and **preview** (simulate) paths. The **execute** path (`executeHelpers.ts:82-106`) and the **web** path (`resolveVariables.ts:38-56`) already substitute the full superset — they are the **correctness reference** for the parity tests. Unifying to the superset fixes #3/#4 (intended, tested, called out in PR).
 
 ## Decisions
 
@@ -127,7 +141,9 @@ Note on regex statefulness: a `/g` regex used with `String.prototype.replace` is
 
 ## Testing (parity tests proving identical output)
 
-New test file in graph-types (e.g. `packages/graph-types/src/mcpTransportResolver.test.ts` or the package's test convention) covering:
+**Test-infra note (verified):** graph-types currently has **no jest config and no test files**; its `build` runs `tsc -p tsconfig.build.json` over `src/**/*.ts`, so a co-located `src/*.test.ts` would be emitted into `dist`. The plan therefore (Task 1) adds a `packages/graph-types/jest.config.js` (ts-jest ESM preset, like backend's) AND excludes `**/*.test.ts` from the build's `include` (via `tsconfig.build.json`) so `dist` stays test-free. `jest` + `ts-jest` + `@types/jest` are already hoisted root devDeps. Parity tests live at `packages/graph-types/src/mcpTransportResolver.test.ts`, run with `cd packages/graph-types && NODE_OPTIONS='--experimental-vm-modules' npx jest`.
+
+New test file in graph-types (`packages/graph-types/src/mcpTransportResolver.test.ts`) covering:
 1. **Regex parity:** for a corpus of strings (`{{A}}`, `{{a_b1}}`, `{{ }}` (no match), `{{a}}{{b}}`, nested-ish `{{{{x}}}}`, unmatched `{{x}}`, unicode letters like `{{café}}` → `\w` excludes accented, both regexes agree), assert `match(plain) === match(named/gv)` for capture-1.
 2. **`resolveTransport` parity per transport type:** stdio (command/args/env), http (url/headers), sse (url/headers); assert output equals a literal expected object. Unmatched var stays `{{x}}`.
 3. **`extractTemplateVariables`:** dedup + ordering preserved; reads across all transport fields (it stringifies, so env/headers are covered).
@@ -146,7 +162,9 @@ New test file in graph-types (e.g. `packages/graph-types/src/mcpTransportResolve
 
 ---
 
-## Open decisions (need user input)
+## Open decisions — ALL RESOLVED (rationale retained; see "Resolved decisions" for the settled answers)
+
+> (a)→R-a plain `/g` group 1; (b)→R-b `graph-types/src/mcpTransportResolver.ts`; (c)→R-c option (ii) + D5 superset adopted; (d)→R-d edge out of scope.
 
 **(a) Canonical regex.** Plain `/\{\{(\w+)\}\}/g` (group 1) vs named-group `/\{\{(?<name>\w+)\}\}/gv`. Proven behaviorally identical for `\w` names; no caller uses `.groups.name`; the `/v` (unicode-sets) flag is irrelevant to `\w` and unused.
 > **Recommendation:** plain `/g` with capture group 1. Simplest, avoids `/v`'s stricter in-pattern escaping rules, matches the web copy. Unicode-sets mode does NOT matter here.

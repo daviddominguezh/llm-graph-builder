@@ -1,7 +1,7 @@
 # Sub-project 3 — SSRF hardening + discovery-error redaction (MCP discovery path)
 
 **Date:** 2026-06-22
-**Status:** Design — pending user review (Open decisions block below needs input before plan/build)
+**Status:** Design — SETTLED. All open decisions resolved (see "Resolved decisions"). Plan: `docs/superpowers/plans/2026-06-22-sp3-ssrf-hardening.md`.
 **Parent:** `2026-06-20-tenant-scoped-mcp-OVERVIEW.md` (see "Sub-project 3")
 **Depends on:** SP0 (agent MCP runtime fix) — done.
 **Amplified by:** SP4 (per-tenant "Verify all" fans out to N tenants × M servers live calls).
@@ -19,12 +19,15 @@ Second, **discovery errors are reflected verbatim** to the client (and SP4 will 
 
 SP0's "Known divergences" explicitly deferred this: *"SSRF surface (http/sse) opens on the agent path … Hardening is SP3"* (`2026-06-20-sp0-agent-mcp-runtime-fix-design.md:87`). This sub-project is an orthogonal security fix, shippable standalone.
 
-## Decisions (proposed — see Open decisions for the ones needing sign-off)
+## Resolved decisions (SETTLED)
 
-1. **Egress guard is a new, dedicated util** (there is no existing one to reuse — see Current state #4). It exposes a pure `assertEgressAllowed(url): void` (throws a typed `EgressBlockedError` with a *category*, never the URL) plus an async `resolveAndAssert(url)` that does DNS resolution and re-checks resolved IPs (DNS-rebinding defense).
-2. **Guard lives at the backend discover path (Node-only), defense-in-depth with a cheap literal-URL pre-check at the web proxy.** Rationale below (Open decision a) — the DNS-resolving guard needs `node:dns`/`node:net`, which the api transport layer is explicitly forbidden from importing (`createTransport.ts:7-19`). The backend is the single Node choke point both discovery and (post-SP0) runtime sessions funnel through.
-3. **Error redaction is a closed-set classifier** mapping any thrown error → one of a fixed enum of categories, each with **static** user copy. The classifier never interpolates `error.message`, the URL, headers, or the response body.
-4. **Outbound budget:** a dedicated connect+total timeout for discovery, distinct from the per-request `DEFAULT_REQUEST_TIMEOUT_MS = 30s` (`transport.ts:51`). Discovery is interactive; the budget is shorter (proposed 8s total — Open decision c).
+All five open decisions are now resolved. The choices below are binding for the implementation plan.
+
+1. **Guard location — defense-in-depth (decision a).** A cheap literal-host check at the web proxy (`packages/web/app/api/mcp/discover/route.ts`, Layer 1) PLUS an authoritative DNS-resolving guard at the backend discover route (`packages/backend/src/routes/discover.ts`, Layer 2). The same Layer-2 guard is extended to the runtime `ensureSession` connect path **in SP3** — wired in the backend by threading a guarded `createTransport` through `composeRegistry` → `buildMcpProvider`, NOT inside the api package. The api transport layer is **disqualified** for the DNS guard by `createTransport.ts:7-19` (webpack bundles api into web; it cannot import `node:dns`).
+2. **Policy — hard-block ALL private/internal addresses now (decision b).** Block loopback/`localhost`, `169.254.0.0/16` (IMDS), all RFC-1918 ranges, IPv6 link-local/ULA, IPv4-mapped variants, and non-`http(s)` schemes. Validate **every** resolved IP (anti-rebinding — block if any is private). The guard takes an **injectable allowlist param that is EMPTY for now**; the self-hosted-internal allowlist policy/UI is explicitly deferred.
+3. **Timeout — 8s total discovery budget (decision c).** A single dedicated total budget for discover (connect+list), distinct from the existing 30s per-request transport timeout `DEFAULT_REQUEST_TIMEOUT_MS` (`transport.ts:51`, unchanged).
+4. **Error categories — closed 9-category enum (decision d).** `blocked | dns | timeout | tls | auth | client_error | server_error | protocol | unknown`. Backend returns ONLY `{ errorCategory }` and NEVER `.message`, URL, headers, or body. Copy is static i18n looked up client-side from the category.
+5. **Build dedicated util (decision e).** New `packages/backend/src/lib/egressGuard.ts` + the `ipaddr.js` dependency for range checks. There is NO reusable util (the `http_request` "private IPs blocked" claim is unbacked copy — schema/description only, no handler, not registered). `resolveAndAssertEgress` is designed so a future `http_request` handler can share it. The repeated `AbortController`+`setTimeout` pattern (`httpTransport.ts:92-109`, `sseTransport.ts:79-97`) is extracted into a `withAbortTimeout` util used by the 8s budget.
 
 ## Current state (verified, file:line)
 
@@ -78,16 +81,19 @@ createTransport → connectMcp → listTools   (api package — unchanged; no no
 
 - **Layer 1 (web, `route.ts`):** synchronous, no DNS — pure URL parse. Blocks the obvious literal-IP/scheme attacks before the request leaves the Next.js process and before secret interpolation. Cheap, and means the backend isn't the only line of defense.
 - **Layer 2 (backend, `discover.ts`):** the authoritative guard. Does `dns.lookup` and validates **all resolved IPs** (defeats `myhost.evil.com → 169.254.169.254` rebinding). This is where `node:dns`/`node:net` are allowed. Wrap `discoverFromTransport` in a new `runDiscoveryWithBudget` that races a total-timeout abort.
-- **Runtime path (optional, Open decision a):** add `resolveAndAssertEgress` in `freshConnect`/`reattachSession` (`ensureSession.ts`) **in the backend execute path**, not in the api package — i.e. inject it via the existing `EnsureSessionDeps.createTransport` seam or a sibling guard call in the backend session wiring. Keeps `node:dns` out of api/web bundles.
+- **Runtime path (SETTLED — ships in SP3):** the same Layer-2 `resolveAndAssertEgress` guards the agent runtime connect path, wired entirely in backend code. The api package exposes a `createTransport` override seam all the way down: `composeRegistry({ ..., createTransport? })` (`registry.ts:212`) → `freezeProviders` → `buildMcpProvider(s, { createTransport })` (`buildMcpProvider.ts:208`, `registry.ts:182`) → `buildDefaultDeps(createTransport)` → `EnsureSessionDeps.createTransport` (used by `freshConnect`/`reattachSession`, `ensureSession.ts:68,86`). The backend (`simulationProviderCtx.ts:54`, `agents/getRegistry.ts:85`) builds a `guardedCreateTransport: CreateTransportFn` that `await resolveAndAssertEgress(extractServerUrl(server))` THEN delegates to the api's real `createTransport(server)`. `node:dns` stays in the backend `egressGuard.ts`; the api package is untouched except for adding the optional `createTransport` field to `ComposeRegistryArgs` and re-exporting `CreateTransportFn`/`extractServerUrl`/the wire `McpTransport` type. stdio servers have an empty URL → guard is a no-op (URL `''` → skip), matching existing `extractServerUrl` behavior.
 
 ### Egress guard module (new)
 
 `packages/backend/src/lib/egressGuard.ts` (Node-only; backend already imports node builtins):
 
-- `assertSchemeAndLiteralHost(rawUrl): void` — pure, no DNS. Parses URL; throws `EgressBlockedError('scheme')` for non-`http(s)`; if host is a literal IP (`net.isIP`), throws `EgressBlockedError('blocked')` when it falls in any denied range. **Safe to also export a web-importable variant** if it avoids `node:net` (use a small regex/ipaddr.js for literal classification) — see Open decision e.
-- `resolveAndAssertEgress(rawUrl): Promise<void>` — calls the literal check, then `dns.lookup(host, { all: true, verbatim: true })`, then asserts **every** returned address is public via `assertPublicIp`.
-- Denied ranges (closed list): `0.0.0.0/8`, `127.0.0.0/8` (loopback), `169.254.0.0/16` (link-local incl. IMDS), `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16` (RFC-1918), `::1`, `fc00::/7` (ULA), `fe80::/10` (IPv6 link-local), IPv4-mapped IPv6 of the above, and `localhost` literal. Plus an explicit `OpenFlow infrastructure` host denylist hook (the description's promise) — config-driven, defaults empty.
+- `assertSchemeAndLiteralHost(rawUrl, allowlist?): void` — pure, no DNS, no `node:net`. Parses URL; throws `EgressBlockedError('scheme')` for non-`http(s)`; rejects the `localhost` literal; if host is a literal IP (classified via `ipaddr.js`, which covers IPv4/IPv6/IPv4-mapped/octal-decimal normalization), throws `EgressBlockedError('blocked')` when it falls in any denied range. Because it avoids `node:net`/`node:dns`, **the same function (or a small sibling) is importable at the web Layer-1 pre-check** — the web proxy uses `ipaddr.js` (a pure-JS dep) for literal classification, no Node builtins.
+- `resolveAndAssertEgress(rawUrl, allowlist?): Promise<void>` — calls the literal/scheme check, then `dns.lookup(host, { all: true, verbatim: true })`, then asserts **every** returned address is public via `assertPublicIp`. Resolves to `void` on success; throws `EgressBlockedError('blocked')` on any private resolved IP, `EgressDnsError('dns')` on `ENOTFOUND`/`EAI_AGAIN`.
+- Denied ranges (closed list): `0.0.0.0/8`, `127.0.0.0/8` (loopback), `169.254.0.0/16` (link-local incl. IMDS), `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16` (RFC-1918), `::1`, `fc00::/7` (ULA), `fe80::/10` (IPv6 link-local), IPv4-mapped IPv6 of the above, and `localhost` literal. Range checks use `ipaddr.js` (`parse` + `range()` / `match`), not hand-rolled CIDR math.
+- **Injectable allowlist param (`allowlist: string[]`), defaults `[]`** — an IP/host the caller explicitly permits even if it falls in a denied range. EMPTY for SP3 (the self-hosted-internal policy is deferred). This is the seam where a future `OpenFlow infrastructure`/self-hosted toggle plugs in.
 - Allowed schemes: `http`, `https` only.
+
+**Shared `withAbortTimeout` util.** The 8s discovery budget and the existing per-request transport timeouts share one helper: `withAbortTimeout<T>(fn: (signal: AbortSignal) => Promise<T>, ms: number): Promise<T>` — creates an `AbortController`, `setTimeout`→`abort()`, `clearTimeout` in `finally`. SP3 introduces it (in `packages/api/src/providers/mcp/transport/` so both packages can use it) and uses it for the discover budget. Refactoring `httpTransport.ts:92-109` / `sseTransport.ts:79-97` onto it is a mechanical follow-up; SP3 ships the util + the discover-budget use, and may opt to refactor the two transports in the same pass if it stays green.
 
 ### Error-category taxonomy (closed set)
 
@@ -105,7 +111,7 @@ A single classifier `classifyDiscoveryError(err): DiscoveryErrorCategory` return
 | `protocol` | reached server but reply unusable (`McpError`/invalid JSON-RPC/no tools) | "The server is not a valid MCP endpoint." |
 | `unknown` | anything unclassified (fallback) | "Discovery failed." |
 
-(Whether `client_error`/`server_error`/`protocol` collapse into fewer buckets is Open decision d.) The backend response shape becomes `{ errorCategory: DiscoveryErrorCategory }` (no `error` free-text). `parseDiscoverError`/`api.ts` and `useMcpServers.ts` map the category → i18n copy; SP4 persists the **category enum**, never a string.
+All 9 categories are kept (decision d, settled). The backend response shape becomes `{ errorCategory: DiscoveryErrorCategory }` (no `error` free-text). `parseDiscoverError`/`api.ts` and `useMcpServers.ts` map the category → i18n copy; SP4 persists the **category enum**, never a string.
 
 ## Error handling / edge cases
 
@@ -123,25 +129,12 @@ A single classifier `classifyDiscoveryError(err): DiscoveryErrorCategory` return
 - **Redaction (the security payoff — must prove no leak):** drive `classifyDiscoveryError` with crafted errors whose `.message` contains a secret/URL (e.g. `Error('connect ECONNREFUSED https://user:s3cr3t@10.0.0.5/path')`, a 401 body echoing `Authorization: Bearer abc`, a TLS error string with the internal hostname). Assert the returned object **equals** `{ errorCategory: <expected> }` and that a serialized response **does not contain** the URL, host, header value, secret substring, or `.message`. Snapshot the full HTTP response body for each category and assert it is exactly the static set.
 - **Timeout/budget:** mock a transport that never resolves → `runDiscoveryWithBudget` aborts within the budget and classifies `timeout`.
 - **Web proxy (Layer 1):** literal-IP/scheme requests are rejected at `route.ts` without proxying (assert backend `fetch` not called); allowed URLs proxy through.
-- **End-to-end shape:** `useMcpServers` toast renders the **i18n category copy**, never the raw message; new i18n keys added for every category.
+- **End-to-end shape:** `useMcpServers` toast (`useMcpServers.ts:201`) renders the **i18n category copy** via the category→key map, never the raw message; new i18n keys added for every category. NOTE: the web app is single-locale today (next-intl with one `packages/web/messages/en.json`; `app/i18n/request.ts` hardcodes `locale: 'en'`), so "all locales" = `en.json` only — but the keys must be added there.
 - **Regression:** a legitimate public MCP server still discovers tools; runtime agent MCP (SP0 path) unaffected when guard added to `ensureSession` (public host passes).
 
-## Open decisions (need user input)
+## Open decisions
 
-**(a) WHERE the guard lives.** Web proxy only / backend only / api transport / defense-in-depth.
-→ **Recommendation: defense-in-depth — cheap literal check at the web proxy (Layer 1) + authoritative DNS-resolving guard at the backend discover route (Layer 2), and extend Layer 2 to the runtime `ensureSession` path (in backend wiring, not the api package).** The api transport layer is **disqualified** for the DNS guard by `createTransport.ts:7-19` (no `node:dns`/`node:net` — it's bundled into web). Backend is the single Node choke point; the web pre-check fails fast and adds a second line. Decide whether runtime-path coverage ships in SP3 or is split out (recommend: include it — same util, small surface, closes the SP0-flagged agent egress hole).
-
-**(b) Hard-block all private ranges vs org-configurable allowlist for self-hosted internal MCPs.**
-→ **Recommendation: hard-block by default now; design the util with an injectable allowlist param but ship it empty.** Self-hosted-internal is a real future need, but an org-level "allow 10.x" toggle is a footgun (one tenant in the org reaching another's internal net) and is entangled with SP4 tenant isolation. Defer the allowlist UI/policy to a follow-up; don't block SP3 on it.
-
-**(c) Outbound timeout value.**
-→ **Recommendation: 8s total discovery budget** (connect+list), separate from the 30s per-request transport default. Discovery is interactive (a user waiting on a toast), and SP4's "Verify all" multiplies the cost N×M — a tight budget bounds the fan-out. Make it a single constant; revisit if real servers need more.
-
-**(d) Exact error-category set.**
-→ **Recommendation: ship the 9-category set above**, but accept collapsing `client_error`+`auth` is unwise (auth is actionable: "fix credentials") — keep `auth` separate. `protocol` vs `unknown` could merge; recommend keeping `protocol` because it's the actionable "not an MCP server" signal. Final call: keep all 9; the cost is just i18n keys.
-
-**(e) Reuse existing http_request SSRF util vs build dedicated.**
-→ **Recommendation: build dedicated — there is nothing to reuse.** Verified: `http_request` has only schema+description, no handler, and **no IP-range enforcement exists anywhere in source** (#4 above); the description's "private IP ranges … blocked" is unbacked copy. Build `egressGuard.ts` as a standalone, well-tested util and design it so the (future) `http_request` handler can import the same `resolveAndAssertEgress`. Use a vetted lib (`ipaddr.js`) for range/normalization rather than hand-rolled CIDR math.
+**None — all five (a–e) are resolved.** See "Resolved decisions" above. The historical recommendations matched the final calls verbatim: (a) defense-in-depth incl. runtime path, (b) hard-block now with empty injectable allowlist, (c) 8s total budget, (d) keep all 9 categories, (e) build dedicated `egressGuard.ts` with `ipaddr.js`.
 
 ## Out of scope
 

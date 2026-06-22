@@ -1,7 +1,7 @@
 # Sub-project 1 — Default-tenant subsystem
 
 **Date:** 2026-06-22
-**Status:** Design (rev 1) — pending user review
+**Status:** Design (rev 2) — decisions settled; ready for implementation (plan: `../plans/2026-06-22-sp1-default-tenant.md`)
 **Parent:** `2026-06-20-tenant-scoped-mcp-OVERVIEW.md`
 **Supersedes for SP1:** §1 of `2026-06-20-tenant-scoped-mcp-config-design.md` (D7/D8)
 **Depends on:** none (SP0 is independent). **Unblocks:** SP4 (per-tenant MCP) — guarantees "the default tenant always exists" as the discovery/reference tenant.
@@ -22,7 +22,7 @@ This sub-project introduces the default tenant: auto-created **atomically with i
 | D8 | Backfill | Migration creates one org-named default tenant for **every existing org**; idempotent. |
 | SP1-a | Slug source | Derive from the **org name** via `generateTenantSlug` (hyphen-free), **not** the org's slug (org slugs contain hyphens — incompatible with the tenant format CHECK). Collision-safe via the existing `findUniqueTenantSlug`. |
 | SP1-b | Identity lock + delete guard | Enforced in **three layers**: backend route handlers (`PATCH`/`DELETE /tenants/:id`, org avatar/rename paths), DB guards (triggers), and web UI (suppress controls). DB guard is the backstop. |
-| SP1-c | Avatar mirroring | Org avatar is the source of truth; the default tenant's avatar follows it on set/change/removal. **Mechanism is an open decision — see "Open decisions".** |
+| SP1-c | Avatar mirroring | Org avatar is the source of truth; the default tenant's avatar follows it on set/change/removal. **Mechanism (settled, see Settled decisions): cross-bucket URL reference** — store the org's `org-avatars` URL in `tenants.avatar_url`; no byte-copy. |
 
 ## Current state (verified, file:line)
 
@@ -89,9 +89,9 @@ No RLS change (the column rides existing policies). The column is added to `LIST
 
 ### 2. Atomic org-creation hook
 
-The default tenant **must** be created in the same transaction as the org row — no window where an org has no default tenant. Two viable mechanisms (see Open decisions (b)); both must solve the **`auth.uid()` is NULL in SECURITY DEFINER** caveat that `add_org_creator` already documents (`:121-123`).
+The default tenant **must** be created in the same transaction as the org row — no window where an org has no default tenant. **Settled (decision b): an `AFTER INSERT` trigger on `organizations`.** Unlike `add_org_creator`'s member insert, it does not depend on `auth.uid()` (the tenant is org-scoped), so the **`auth.uid()` is NULL in SECURITY DEFINER** caveat that `add_org_creator` documents (`:121-123`) does not block it.
 
-**Recommended: an `AFTER INSERT` trigger on `organizations`** mirroring `add_org_creator` (same file, same transaction, runs before `insertOrg` returns):
+**`AFTER INSERT` trigger on `organizations`** mirroring `add_org_creator` (same file, same transaction, runs before `insertOrg` returns):
 
 ```sql
 CREATE OR REPLACE FUNCTION public.create_default_tenant()
@@ -149,7 +149,7 @@ CREATE TRIGGER trg_guard_default_tenant_delete BEFORE DELETE ON public.tenants
   FOR EACH ROW EXECUTE FUNCTION public.guard_default_tenant_delete();
 ```
 
-The update guard permits identity changes only when the **mirror path** opts in via a transaction-local GUC (`SET LOCAL app.mirror_default_tenant = 'on'`), so legitimate org→tenant mirroring is allowed while user edits are rejected. `is_default` itself is immutable. `org_id` cascade-delete of the org still removes the tenant (the DELETE guard fires per-row but the org deletion is the legitimate path — gate the guard on `current_setting('app.allow_default_tenant_delete', true)` set by the org-delete path, OR rely on `ON DELETE CASCADE` from `organizations` not firing this BEFORE DELETE on tenants — **verify**: cascade deletes DO fire row triggers, so the org-delete path must set the bypass GUC).
+**GUC delivery (settled):** because supabase-js writes go through PostgREST and each request is its own transaction, `SET LOCAL` from app code will **not** carry into a subsequent `.update()`. The bypass GUCs are therefore set **inside `SECURITY DEFINER` RPC functions** (via `perform set_config('app.mirror_default_tenant','on', true)` — the third arg `true` makes it transaction-local) that also perform the write, so flag-set + write are one atomic transaction. The backend calls these RPCs with `supabase.rpc(...)` (matching the `create_org_api_key`/`rollback_to_snapshot_tx` precedents). The update guard permits identity changes only when the **mirror path** opts in via this GUC (`app.mirror_default_tenant = 'on'`), so legitimate org→tenant mirroring is allowed while user edits are rejected. `is_default` itself is immutable. The DELETE guard gates on `current_setting('app.allow_default_tenant_delete', true) = 'on'`. **Confirmed caveat:** `ON DELETE CASCADE` from `organizations` (`20260326200000_tenants_table.sql:6`) DOES fire this per-row `BEFORE DELETE` trigger, so the org-delete path (`handleDeleteOrg`, `deleteOrg.ts`) **must** set the bypass GUC in the same transaction so the default tenant deletes with its org.
 
 **Backend route guards (defense in depth + clean error):**
 - `handleUpdateTenant` (`updateTenant.ts`): fetch the row; if `is_default`, reject name change with 409/403 `default_tenant_locked` (the name is mirror-only).
@@ -165,7 +165,7 @@ The default tenant's `name` mirrors the org name and its `slug` is derived from 
 
 ### 5. Avatar mirroring
 
-Org avatar is the source of truth; default tenant avatar follows it at three points: `handleUploadAvatar` (set/change), `handleRemoveAvatar` (clear), and the creation trigger/backfill (copy current org avatar). **Mechanism is Open decision (a).** Whichever is chosen, the sync is invoked from the backend org-avatar handlers (after `updateOrgFields`), writing `tenants.avatar_url` for the org's default tenant under the mirror GUC. The tenant Edit UI hides the avatar control for the default tenant regardless.
+Org avatar is the source of truth; default tenant avatar follows it at three points: `handleUploadAvatar` (set/change), `handleRemoveAvatar` (clear), and the creation trigger/backfill (current org avatar). **Mechanism (settled): cross-bucket URL reference (a-ii)** — write the org's `org-avatars` public URL (or `null` on removal) directly into the default tenant's `tenants.avatar_url`; **no byte-copy** into the `tenant-avatars` bucket. The sync is invoked from the backend org-avatar handlers (after `updateOrgFields`), writing `tenants.avatar_url` for the org's default tenant under the mirror GUC. `TenantAvatar` already proxies any URL, so rendering an `org-avatars` URL is fine (both buckets are public). The tenant Edit UI hides the avatar control for the default tenant regardless.
 
 ### 6. `is_default` propagation (types, guards, queries, UI)
 
@@ -173,9 +173,9 @@ Org avatar is the source of truth; default tenant avatar follows it at three poi
 - **Type guards:** add `'is_default' in value` to web `isTenantRow` (`lib/tenants.ts:29-39`); backend guard (`tenantQueries.ts:23-26`) optionally — keep minimal but include for parity.
 - **Queries:** add `is_default` to `LIST_COLUMNS`; keep `getTenantsByOrg` ordering but **sort default first** (e.g. `.order('is_default', {ascending:false}).order('created_at',{ascending:false})`) so SP4's "default tenant first" matrix requirement is satisfied at the data layer.
 - **UI per-row special-casing** (`TenantsSection.tsx`):
-  - `TenantRowActions` (`:116-161`): when `tenant.is_default`, **hide the Delete button** and render a small **"Default" badge** next to the name. Edit-button treatment is Open decision (c).
+  - `TenantRowActions` (`:116-161`): when `tenant.is_default`, **hide the Delete button** and render a small **"Default" badge** next to the name. The **Edit button stays** (settled decision (c)).
   - The row `Link` stays (default tenant is navigable like any other).
-  - `EditTenantDialog.tsx`: hide the `AvatarUpload` control and make `name` read-only for the default tenant (mirrors org).
+  - `EditTenantDialog.tsx`: for the default tenant, render a **read-only** dialog — disable the `name` `Input`, hide the `AvatarUpload` control, and show a `defaultLockedHint` ("mirrors the organization"). Do **not** suppress the Edit button (settled decision (c)).
   - `ChannelsTable.tsx` / `TenantSidebar.tsx`: optional "Default" marker; no behavioral change (channels remain editable).
 - **i18n:** add to `tenants` namespace: `defaultBadge` ("Default"), `defaultLockedHint` ("Name and avatar mirror the organization"), `defaultUndeletable` (delete error). Add translations to **all** locale files, not just `en.json`.
 
@@ -195,7 +195,7 @@ BEGIN
   LOOP
     slug := public.next_default_tenant_slug(o.name);   -- global-unique, format-safe, denylist-safe
     INSERT INTO public.tenants (org_id, name, slug, is_default, avatar_url)
-    VALUES (o.id, o.name, slug, true, o.avatar_url)     -- mirror current org avatar (URL or copied per Open decision a)
+    VALUES (o.id, o.name, slug, true, o.avatar_url)     -- mirror current org avatar by URL reference (settled decision a)
     ON CONFLICT DO NOTHING;                              -- idempotent vs the partial unique index
   END LOOP;
 END $backfill$;
@@ -210,7 +210,7 @@ END $backfill$;
 - Direct user edit of default-tenant name/slug/avatar, or delete: blocked at DB (raises), surfaced by backend as `default_tenant_locked` / `default_tenant_undeletable` with a clear message; web hides the controls so this is a backstop.
 - Org rename colliding with an existing tenant name in the org: reject the org rename with a descriptive error (don't let identity diverge).
 - Backfill encountering an org with a same-named non-default tenant: promote it (decision (ii) above), never silently leave the org without a default.
-- Org cascade-delete: org-delete path sets the bypass GUC so the default tenant deletes with its org; verify cascade triggers fire and are bypassed.
+- Org cascade-delete: cascade triggers fire (confirmed); the org-delete path sets the bypass GUC so the default tenant deletes with its org.
 - Mirror path failure (e.g. avatar copy fails): log + leave tenant avatar stale rather than failing the org operation; org avatar remains source of truth and a later sync corrects it.
 
 ## Testing
@@ -223,13 +223,17 @@ END $backfill$;
 - **Web (component):** default tenant shows "Default" badge, no Delete button, Edit dialog avatar hidden + name read-only (or per decision (c)); non-default rows unchanged.
 - **i18n:** new keys present in all locales.
 
-## Open decisions (need user input)
+## Settled decisions (resolved by user, 2026-06-22)
 
-**(a) Avatar mirroring mechanism.** Options: (i) **copy the org avatar bytes** into `tenant-avatars/{tenantId}/avatar` on every sync (self-contained tenant bucket, matches existing tenant-avatar path/policy convention, but duplicates storage and adds a copy step + failure mode); (ii) **store the cross-bucket `org-avatars` URL** directly in `tenants.avatar_url` (zero copy, always in sync by reference, but couples the tenant to the org bucket and means `TenantAvatar` renders an `org-avatars` URL — fine since both buckets are public and `TenantAvatar` just proxies any URL). **Recommendation: (ii) cross-bucket URL reference** — simplest, no copy failure mode, inherently stays in sync; the avatar control is hidden for the default tenant anyway so no one edits it through the tenant bucket. The backfill and mirror paths just write `org.avatar_url` into the tenant row.
+**(a) Avatar mirroring mechanism → cross-bucket URL reference.** Store the org's avatar URL (`org-avatars` bucket) directly in the default tenant's `tenants.avatar_url`; on org-avatar change/removal the mirror updates/nulls it. **No byte-copy** into the `tenant-avatars` bucket. (Zero copy, always in sync by reference, no copy failure mode. `TenantAvatar` proxies any URL and both buckets are public; the avatar control is hidden for the default tenant so no one edits it through the tenant bucket.) The backfill and mirror paths write `org.avatar_url` into the tenant row under the mirror GUC.
 
-**(b) Org-creation atomicity mechanism.** Options: (i) **`AFTER INSERT` trigger** on `organizations` (atomic in the insert transaction, mirrors the proven `add_org_creator`, no app changes, independent of `auth.uid()` since the tenant is org-scoped); (ii) **wrap org+tenant creation in an RPC/transaction** called from `createOrg.ts` (explicit, testable in app code, but is a larger refactor of the current plain-insert flow and still must run `provisionOpenRouterKey`/bloom-filter outside it). **Recommendation: (i) trigger** — smallest, atomic, consistent with the existing org-creation trigger pattern; the `auth.uid()` NULL caveat that constrains `add_org_creator` does not apply because creating an org-scoped tenant needs no user id.
+**(b) Org-creation atomicity mechanism → `AFTER INSERT` trigger on `organizations`.** Mirrors the proven `add_org_creator` pattern (`20260309100000_create_organizations.sql:115-133`): same transaction as the org insert, atomic, no app changes to `createOrg.ts`. Independent of `auth.uid()` since the created tenant is org-scoped (the `auth.uid()` NULL caveat that constrains `add_org_creator`'s member insert does not apply).
 
-**(c) Default-tenant Edit dialog treatment.** Options: (i) **suppress the Edit button entirely** for the default tenant (cleanest — nothing user-editable is exposed there today since channels/MCP live elsewhere; but loses a place to view identity); (ii) **render the Edit dialog read-only** (name disabled, avatar control hidden, with a "mirrors the organization" hint) so users understand *why* it's locked. **Recommendation: (ii) read-only dialog with explanatory hint** — discoverability and consistency (the row still has an Edit affordance), and it sets up SP4 where the same dialog/row will host editable operational config; suppressing the button now would force re-adding it in SP4.
+**(c) Default-tenant Edit dialog treatment → read-only dialog with hint.** Render the Edit dialog **read-only** for the default tenant (name `Input` disabled, `AvatarUpload` hidden, a "mirrors the organization" hint shown). **Do NOT suppress the Edit button** — discoverability/consistency (the row keeps its Edit affordance) and it sets up SP4 where the same dialog/row will host editable operational config.
+
+### Carried caveat (flagged for the org-delete path)
+
+Org delete relies on `ON DELETE CASCADE` from `organizations` to `tenants` (`20260326200000_tenants_table.sql:6`). **Cascade deletes DO fire per-row `BEFORE DELETE` triggers**, so the `guard_default_tenant_delete` trigger will fire on the default tenant during org deletion and raise unless bypassed. The org-delete path (`handleDeleteOrg`, `deleteOrg.ts`) must set the bypass GUC (`SET LOCAL app.allow_default_tenant_delete = 'on'`) in the same transaction as the org delete so the default tenant deletes with its org. The delete guard gates on that GUC.
 
 ## Out of scope
 
