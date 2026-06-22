@@ -1,4 +1,5 @@
-import type { Graph, McpServerConfig, McpTransport } from '@daviddh/graph-types';
+import type { Graph, McpServerConfig } from '@daviddh/graph-types';
+import { buildResolvedVars, resolveTransport } from '@daviddh/graph-types';
 import { type McpClientHandle, connectMcp, createTransport } from '@daviddh/llm-graph-runner';
 
 import { getDecryptedEnvVariables } from '../../db/queries/executionAuthQueries.js';
@@ -37,48 +38,12 @@ function requireServer(graph: Graph, serverId: string): McpServerConfig {
   return server;
 }
 
-const VARIABLE_PATTERN = /\{\{(?<name>\w+)\}\}/gv;
-
-function replaceVars(str: string, vars: Record<string, string>): string {
-  return str.replace(VARIABLE_PATTERN, (_, name: string) => vars[name] ?? `{{${name}}}`);
-}
-
-function resolveTransportVars(transport: McpTransport, vars: Record<string, string>): McpTransport {
-  if (transport.type === 'stdio') {
-    return {
-      ...transport,
-      command: replaceVars(transport.command, vars),
-      args: transport.args?.map((a) => replaceVars(a, vars)),
-    };
-  }
-  return {
-    ...transport,
-    url: replaceVars(transport.url, vars),
-  };
-}
-
-function resolveServerVars(server: McpServerConfig, envVars: Record<string, string>): Record<string, string> {
-  const { variableValues } = server;
-  if (variableValues === undefined) return envVars;
-  const resolved: Record<string, string> = {};
-  for (const [templateName, val] of Object.entries(variableValues)) {
-    if (val.type === 'direct') {
-      const { value } = val;
-      resolved[templateName] = value;
-    } else {
-      const { envVariableId } = val;
-      resolved[templateName] = envVars[envVariableId] ?? '';
-    }
-  }
-  return resolved;
-}
-
 async function openClient(ctx: ServiceContext, agentId: string, serverId: string): Promise<McpClientHandle> {
   const graph = requireGraph(await assembleGraph(ctx.supabase, agentId), agentId);
   const server = requireServer(graph, serverId);
   const { byId } = await getDecryptedEnvVariables(ctx.supabase, ctx.orgId);
-  const vars = resolveServerVars(server, byId);
-  const transport = resolveTransportVars(server.transport, vars);
+  const vars = buildResolvedVars(server.variableValues, { byName: {}, byId });
+  const transport = resolveTransport(server.transport, vars);
   const wireTransport = createTransport({ ...server, transport });
   return await connectMcp({ transport: wireTransport });
 }

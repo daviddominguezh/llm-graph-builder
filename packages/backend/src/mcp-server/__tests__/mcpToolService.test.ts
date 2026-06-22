@@ -90,6 +90,7 @@ const toolList = [
 
 const TOOL_COUNT = 2;
 const FIRST = 0;
+const LAST = -1;
 
 function buildMockHandle(): MockHandle {
   return {
@@ -150,6 +151,63 @@ describe('discoverTools', () => {
     await expect(discoverTools(buildCtx(), 'agent-1', 'missing-server')).rejects.toThrow(
       'MCP server not found: missing-server'
     );
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  variable substitution (env/headers) helpers                        */
+/* ------------------------------------------------------------------ */
+
+function resolvedTransport(): McpTransport {
+  const lastCall = mockCreateTransport.mock.calls.at(LAST);
+  if (lastCall === undefined) throw new Error('createTransport was not called');
+  const [server] = lastCall;
+  return server.transport;
+}
+
+async function runDiscoveryWith(server: McpServerConfig): Promise<void> {
+  mockAssembleGraph.mockResolvedValue({ ...testGraph, mcpServers: [server] });
+  mockConnectMcp.mockResolvedValue(buildMockHandle());
+  await discoverTools(buildCtx(), 'agent-1', 'server-1');
+}
+
+/* ------------------------------------------------------------------ */
+/*  variable substitution (env/headers)                                */
+/* ------------------------------------------------------------------ */
+
+describe('openClient variable substitution', () => {
+  it('substitutes {{VAR}} in http headers from an env_ref variable', async () => {
+    mockGetDecryptedEnvVariables.mockResolvedValue({ byName: {}, byId: { e1: 'secret' } });
+
+    await runDiscoveryWith({
+      id: 'server-1',
+      name: 'HTTP MCP',
+      transport: {
+        type: 'http',
+        url: 'https://api.example.com',
+        headers: { Authorization: 'Bearer {{TOK}}' },
+      },
+      enabled: true,
+      variableValues: { TOK: { type: 'env_ref', envVariableId: 'e1' } },
+    });
+
+    const transport = resolvedTransport();
+    if (transport.type === 'stdio') throw new Error('expected http transport');
+    expect(transport.headers?.Authorization).toBe('Bearer secret');
+  });
+
+  it('substitutes {{VAR}} in stdio env from a direct variable', async () => {
+    await runDiscoveryWith({
+      id: 'server-1',
+      name: 'Stdio MCP',
+      transport: { type: 'stdio', command: 'npx', args: ['-y', 'test-mcp'], env: { API_KEY: '{{KEY}}' } },
+      enabled: true,
+      variableValues: { KEY: { type: 'direct', value: 'k-123' } },
+    });
+
+    const transport = resolvedTransport();
+    if (transport.type !== 'stdio') throw new Error('expected stdio transport');
+    expect(transport.env?.API_KEY).toBe('k-123');
   });
 });
 
