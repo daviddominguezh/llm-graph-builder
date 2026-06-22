@@ -1,7 +1,8 @@
 'use client';
 
+import { extractTemplateVariables, MCP_LIBRARY_CATEGORIES } from '@daviddh/graph-types';
+
 import { publishMcpAction } from '@/app/actions/mcpLibrary';
-import { extractVariableNames } from '@/app/lib/resolveVariables';
 import type { McpServerConfig } from '@/app/schemas/graph.schema';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,6 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { MCP_LIBRARY_CATEGORIES } from '@daviddh/graph-types';
 import { AlertTriangle, Camera, Loader2, Server } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
@@ -182,7 +182,7 @@ interface PublishDialogBodyProps {
 
 function PublishDialogBody({ server, orgId, onOpenChange, onPublished }: PublishDialogBodyProps) {
   const t = useTranslations('mcpLibrary');
-  const variables = extractVariableNames(server.transport);
+  const variables = extractTemplateVariables(server.transport);
   const [loading, setLoading] = useState(false);
   const [formState, setFormState] = useState<PublishFormState>({
     description: '',

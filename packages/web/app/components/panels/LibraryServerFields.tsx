@@ -1,8 +1,9 @@
 'use client';
 
+import { extractTemplateVariables } from '@daviddh/graph-types';
+
 import type { McpAuthType } from '@/app/lib/mcpLibraryTypes';
 import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
-import { extractVariableNames } from '@/app/lib/resolveVariables';
 import type { McpServerConfig } from '@/app/schemas/graph.schema';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -36,7 +37,7 @@ export function areVariablesComplete(
 }
 
 function buildVariableList(server: McpServerConfig): Array<{ name: string }> {
-  return extractVariableNames(server.transport).map((name) => ({ name }));
+  return extractTemplateVariables(server.transport).map((name) => ({ name }));
 }
 
 function getTransportEndpoint(transport: McpServerConfig['transport']): string {

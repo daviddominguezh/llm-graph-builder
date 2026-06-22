@@ -1,8 +1,7 @@
-import type { McpTransport } from '@/app/schemas/graph.schema';
+import type { McpTransport, VariableValue } from '@daviddh/graph-types';
+import { resolveTransport } from '@daviddh/graph-types';
 
 import { getEnvVariableValue } from './orgEnvVariables';
-import type { VariableValue } from './resolveVariables';
-import { replaceInTransport } from './resolveVariables';
 
 export async function resolveValues(
   variableValues: Record<string, VariableValue>
@@ -29,5 +28,5 @@ export async function resolveTransportVariables(
   variableValues: Record<string, VariableValue>
 ): Promise<McpTransport> {
   const resolved = await resolveValues(variableValues);
-  return replaceInTransport(transport, resolved);
+  return resolveTransport(transport, resolved);
 }
