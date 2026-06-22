@@ -1,11 +1,16 @@
-import { describe, expect, it } from '@jest/globals';
 import { RuntimeGraphSchema } from '@daviddh/graph-types';
+import { describe, expect, it } from '@jest/globals';
 
 import { EMPTY_GRAPH, buildAgentRuntimeGraph } from './agentRuntimeGraph.js';
 
 const ONE_SERVER = 1;
 
-const VALID = { id: 'mcp-1', name: 'My MCP', transport: { type: 'http', url: 'https://x.com/mcp' }, enabled: true };
+const VALID = {
+  id: 'mcp-1',
+  name: 'My MCP',
+  transport: { type: 'http', url: 'https://x.com/mcp' },
+  enabled: true,
+};
 
 describe('buildAgentRuntimeGraph', () => {
   it('null → EMPTY_GRAPH', () => {
@@ -22,14 +27,18 @@ describe('buildAgentRuntimeGraph', () => {
   });
   it('preserves libraryItemId + variableValues', () => {
     const g = buildAgentRuntimeGraph({
-      mcpServers: [{ ...VALID, libraryItemId: 'lib-9', variableValues: { T: { type: 'direct', value: 'a' } } }],
+      mcpServers: [
+        { ...VALID, libraryItemId: 'lib-9', variableValues: { T: { type: 'direct', value: 'a' } } },
+      ],
     });
     const [first] = g.mcpServers ?? [];
     expect(first?.libraryItemId).toBe('lib-9');
     expect(first?.variableValues).toEqual({ T: { type: 'direct', value: 'a' } });
   });
   it('drops invalid entries', () => {
-    expect(buildAgentRuntimeGraph({ mcpServers: [VALID, { id: 'bad' }] }).mcpServers).toHaveLength(ONE_SERVER);
+    expect(buildAgentRuntimeGraph({ mcpServers: [VALID, { id: 'bad' }] }).mcpServers).toHaveLength(
+      ONE_SERVER
+    );
   });
   it('all-invalid → no mcpServers', () => {
     expect(buildAgentRuntimeGraph({ mcpServers: [{ id: 'bad' }] }).mcpServers).toBeUndefined();
