@@ -143,6 +143,8 @@ export {
   TOOL_NAMESPACE_SEPARATOR,
 } from './providers/index.js';
 export { connectMcp, createTransport, type McpClientHandle, type RawMcpTool } from './providers/mcp/index.js';
+export { McpError, SessionExpiredError, TransportError, isSessionExpired } from './providers/mcp/index.js';
+export { withAbortTimeout, AbortTimeoutError } from './providers/mcp/transport/withAbortTimeout.js';
 export type {
   Provider,
   ProviderCtx,
