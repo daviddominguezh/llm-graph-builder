@@ -106,3 +106,43 @@ describe('fetchGraphAndKeys', () => {
     expect(r.graph.startNode).toBe('INITIAL_STEP');
   });
 });
+
+/* ------------------------------------------------------------------ */
+/*  fetchAgentConfig skills                                            */
+/* ------------------------------------------------------------------ */
+
+function buildVersionStub(graphData: unknown): unknown {
+  const single = jest.fn(async () => await Promise.resolve({ data: { graph_data: graphData } }));
+  const eqVersion = jest.fn(() => ({ single }));
+  const eqAgent = jest.fn(() => ({ eq: eqVersion }));
+  const select = jest.fn(() => ({ eq: eqAgent }));
+  return { from: jest.fn(() => ({ select })) };
+}
+
+function versionSupabase(graphData: unknown): SupabaseClient {
+  const stub = buildVersionStub(graphData);
+  if (!isSupabaseClient(stub)) throw new Error('stub is not a supabase client');
+  return stub;
+}
+
+describe('fetchAgentConfig skills', () => {
+  it('returns validated skills from graph_data', async () => {
+    const { fetchAgentConfig } = await import('./executeFetcher.js');
+    const cfg = await fetchAgentConfig(
+      versionSupabase({
+        systemPrompt: 'p',
+        skills: [{ name: 'refund', description: 'd', content: 'x', repoUrl: null, sortOrder: FIRST }],
+      }),
+      'a1',
+      VERSION
+    );
+    expect(cfg.skills).toEqual([{ name: 'refund', description: 'd', content: 'x' }]);
+  });
+
+  it('absent skills → []', async () => {
+    const { fetchAgentConfig } = await import('./executeFetcher.js');
+    expect((await fetchAgentConfig(versionSupabase({ systemPrompt: 'p' }), 'a1', VERSION)).skills).toEqual(
+      []
+    );
+  });
+});

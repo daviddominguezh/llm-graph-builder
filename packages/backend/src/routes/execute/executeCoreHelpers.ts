@@ -38,8 +38,8 @@ interface FetchAllParams {
 function resolveAgentConfig(params: FetchAllParams, appType: string): Promise<AgentConfig> | null {
   const { overrideAgentConfig } = params;
   if (overrideAgentConfig !== undefined) {
-    const { systemPrompt, context, maxSteps } = overrideAgentConfig;
-    return Promise.resolve({ systemPrompt, context, maxSteps });
+    const { systemPrompt, context, maxSteps, skills } = overrideAgentConfig;
+    return Promise.resolve({ systemPrompt, context, maxSteps, skills: skills ?? [] });
   }
   if (appType === 'agent') {
     return fetchAgentConfig(params.supabase, params.agentId, params.version);

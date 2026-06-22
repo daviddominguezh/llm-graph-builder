@@ -1,6 +1,6 @@
 import type { RuntimeGraph } from '@daviddh/graph-types';
 import { RuntimeGraphSchema } from '@daviddh/graph-types';
-import type { Message, SelectedTool } from '@daviddh/llm-graph-runner';
+import type { Message, SelectedTool, SkillDefinition } from '@daviddh/llm-graph-runner';
 
 import {
   type DecryptedEnvVars,
@@ -16,6 +16,7 @@ import { buildAgentRuntimeGraph } from './agentRuntimeGraph.js';
 import { HttpNotFoundError, fetchAgentRecordVersionAware } from './executeAgentRecord.js';
 import { messageRowToMessage, resolveChannelProvider } from './executeMessageFetcher.js';
 import type { AgentExecutionInput } from './executeTypes.js';
+import { parseSnapshotSkills } from './snapshotSkills.js';
 
 export { fetchChildMessages, fetchExecutionMessages, fetchResumeMessages } from './executeMessageFetcher.js';
 
@@ -42,6 +43,7 @@ export interface AgentConfig {
   systemPrompt: string;
   context: string;
   maxSteps: number | null;
+  skills: SkillDefinition[];
 }
 
 export type { OverrideAgentConfig } from './executeOverrideTypes.js';
@@ -228,6 +230,7 @@ interface AgentGraphData {
   systemPrompt?: string;
   maxSteps?: number | null;
   contextItems?: Array<{ sortOrder?: number; content: string }>;
+  skills?: unknown;
 }
 
 function isAgentGraphData(val: unknown): val is AgentGraphData {
@@ -255,13 +258,14 @@ export async function fetchAgentConfig(
   const graphData = row?.graph_data;
 
   if (!isAgentGraphData(graphData)) {
-    return { systemPrompt: '', context: '', maxSteps: null };
+    return { systemPrompt: '', context: '', maxSteps: null, skills: [] };
   }
 
   return {
     systemPrompt: graphData.systemPrompt ?? '',
     context: flattenContextItems(graphData.contextItems),
     maxSteps: graphData.maxSteps ?? null,
+    skills: parseSnapshotSkills(graphData.skills),
   };
 }
 

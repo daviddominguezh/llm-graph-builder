@@ -5,6 +5,7 @@ import type {
   NodeProcessedEvent,
   OAuthTokenBundle,
   SelectedTool,
+  SkillDefinition,
 } from '@daviddh/llm-graph-runner';
 
 import { handleStepProcessed } from './edgeFunctionAgentEvents.js';
@@ -53,6 +54,7 @@ export interface ExecuteAgentParams {
   context?: string;
   maxSteps?: number | null;
   isChildAgent?: boolean;
+  skills?: SkillDefinition[];
   conversationId?: string;
   // Schema version for transition window (1 = legacy, 2 = oauth.byProvider)
   schemaVersion: EdgePayloadSchemaVersion;
