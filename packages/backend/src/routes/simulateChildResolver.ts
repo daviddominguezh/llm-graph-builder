@@ -1,6 +1,8 @@
 import type { McpServerConfig } from '@daviddh/graph-types';
+import type { SkillDefinition } from '@daviddh/llm-graph-runner';
 
 import type { SupabaseClient } from '../db/queries/operationHelpers.js';
+import { parseSnapshotSkills } from './execute/snapshotSkills.js';
 
 /* ─── Public types ─── */
 
@@ -10,6 +12,7 @@ export interface ResolvedChildConfig {
   modelId: string;
   maxSteps: number | null;
   mcpServers: McpServerConfig[];
+  skills: SkillDefinition[];
   isChildAgent: boolean;
   task: string;
   /** Resolved child agent ID (undefined for create_agent dynamic children) */
@@ -39,6 +42,7 @@ interface PublishedAgentGraphData {
   maxSteps?: number | null;
   contextItems?: ContextItem[];
   mcpServers?: McpServerConfig[];
+  skills?: unknown;
 }
 
 /* ─── Constants ─── */
@@ -163,7 +167,7 @@ function mergeContext(baseContext: string, params: Record<string, unknown>): str
 
 /* ─── Build config from published graph data ─── */
 
-function buildConfigFromGraphData(
+export function buildConfigFromGraphData(
   graphData: Record<string, unknown>,
   params: Record<string, unknown>
 ): ResolvedChildConfig {
@@ -178,6 +182,7 @@ function buildConfigFromGraphData(
     modelId: modelOverride,
     maxSteps: gd.maxSteps ?? null,
     mcpServers,
+    skills: parseSnapshotSkills(gd.skills),
     isChildAgent: true,
     task: stringParam(params, 'task', ''),
   };
@@ -209,6 +214,7 @@ function resolveCreateAgent(params: Record<string, unknown>): ResolvedChildConfi
     modelId: stringParam(params, 'model', ''),
     maxSteps: numberOrNull(params, 'maxSteps'),
     mcpServers: [],
+    skills: [],
     isChildAgent: true,
     task: stringParam(params, 'task', ''),
   };
@@ -236,6 +242,7 @@ async function resolveInvokeWorkflow(
     modelId: stringParam(params, 'model', ''),
     maxSteps: gd.maxSteps ?? null,
     mcpServers: Array.isArray(gd.mcpServers) ? gd.mcpServers : [],
+    skills: parseSnapshotSkills(gd.skills),
     isChildAgent: false,
     task: stringParam(params, 'user_said', ''),
     agentId,

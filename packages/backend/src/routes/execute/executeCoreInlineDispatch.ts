@@ -6,6 +6,7 @@ import type { ResolvedChildConfig } from '../simulateChildResolver.js';
 import type { ExecuteCoreInput, ExecuteCoreOutput, OverrideAgentConfig } from './executeCoreTypes.js';
 import type { FetchedData } from './executeFetcher.js';
 import { logExec } from './executeHelpers.js';
+import { parseSnapshotSkills } from './snapshotSkills.js';
 
 export const DISPATCH_TOOLS = new Set(['invoke_agent', 'create_agent', 'invoke_workflow']);
 const MAX_DEPTH = 10;
@@ -20,6 +21,7 @@ export function extractChildConfig(config: Record<string, unknown>): OverrideAge
     maxSteps: typeof config.maxSteps === 'number' ? config.maxSteps : null,
     modelId: typeof config.modelId === 'string' ? config.modelId : undefined,
     isChildAgent: true,
+    skills: parseSnapshotSkills(config.skills),
   };
 }
 
@@ -41,6 +43,7 @@ function childConfigToRecord(config: ResolvedChildConfig): Record<string, unknow
     modelId: config.modelId,
     maxSteps: config.maxSteps,
     isChildAgent: true,
+    skills: config.skills,
   };
 }
 
