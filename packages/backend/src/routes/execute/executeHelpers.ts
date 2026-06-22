@@ -1,4 +1,5 @@
-import type { McpServerConfig, McpTransport, RuntimeGraph } from '@daviddh/graph-types';
+import type { McpServerConfig, RuntimeGraph } from '@daviddh/graph-types';
+import { buildResolvedVars, resolveTransport } from '@daviddh/graph-types';
 import type { CallAgentOutput, Message, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
 import { MESSAGES_PROVIDER } from '@daviddh/llm-graph-runner';
 import type { Response } from 'express';
@@ -65,75 +66,13 @@ export function buildUserMessage(input: AgentExecutionInput): Message {
 
 /* ─── MCP transport variable resolution ─── */
 
-const VARIABLE_PATTERN = /\{\{(?<name>\w+)\}\}/gv;
-
-function replaceVarsInString(str: string, vars: Record<string, string>): string {
-  return str.replace(VARIABLE_PATTERN, (_, name: string) => vars[name] ?? `{{${name}}}`);
-}
-
-function replaceVarsInHeaders(
-  headers: Record<string, string> | undefined,
-  vars: Record<string, string>
-): Record<string, string> | undefined {
-  if (headers === undefined) return undefined;
-  return Object.fromEntries(Object.entries(headers).map(([k, v]) => [k, replaceVarsInString(v, vars)]));
-}
-
-function replaceStdioVars(
-  transport: Extract<McpTransport, { type: 'stdio' }>,
-  vars: Record<string, string>
-): McpTransport {
-  return {
-    ...transport,
-    command: replaceVarsInString(transport.command, vars),
-    args: transport.args?.map((a) => replaceVarsInString(a, vars)),
-    env:
-      transport.env === undefined
-        ? undefined
-        : Object.fromEntries(
-            Object.entries(transport.env).map(([k, v]) => [k, replaceVarsInString(v, vars)])
-          ),
-  };
-}
-
-function replaceVarsInTransport(transport: McpTransport, vars: Record<string, string>): McpTransport {
-  if (transport.type === 'stdio') return replaceStdioVars(transport, vars);
-  return {
-    ...transport,
-    url: replaceVarsInString(transport.url, vars),
-    headers: replaceVarsInHeaders(transport.headers, vars),
-  };
-}
-
-interface EnvVarMaps {
-  byName: Record<string, string>;
-  byId: Record<string, string>;
-}
-
-function buildResolvedVars(server: McpServerConfig, env: EnvVarMaps): Record<string, string> {
-  const { variableValues } = server;
-  if (variableValues === undefined) return env.byName;
-  const resolved: Record<string, string> = {};
-  for (const [templateName, val] of Object.entries(variableValues)) {
-    if (val.type === 'direct') {
-      const { value } = val;
-      resolved[templateName] = value;
-    } else {
-      const { envVariableId } = val;
-      resolved[templateName] = env.byId[envVariableId] ?? '';
-    }
-  }
-  return resolved;
-}
-
 export function resolveServerTransport(
   server: McpServerConfig,
   envByName: Record<string, string>,
   envById: Record<string, string>
 ): McpServerConfig {
-  const env: EnvVarMaps = { byName: envByName, byId: envById };
-  const vars = buildResolvedVars(server, env);
-  return { ...server, transport: replaceVarsInTransport(server.transport, vars) };
+  const vars = buildResolvedVars(server.variableValues, { byName: envByName, byId: envById });
+  return { ...server, transport: resolveTransport(server.transport, vars) };
 }
 
 export function resolveMcpTransportVariables(
