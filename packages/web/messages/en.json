@@ -819,7 +819,19 @@
     "oauthRequired": "This MCP requires sign-in. Click Discover Tools to connect.",
     "oauthSuccess": "Successfully connected!",
     "oauthError": "Failed to connect. Please try again.",
-    "oauthBadge": "OAuth"
+    "oauthBadge": "OAuth",
+    "discoveryErrors": {
+      "title": "Failed to discover tools",
+      "blocked": "This server's address is not allowed.",
+      "dns": "Could not resolve the server's address.",
+      "timeout": "The server did not respond in time.",
+      "tls": "Could not establish a secure connection.",
+      "auth": "The server rejected the credentials.",
+      "client_error": "The server rejected the request.",
+      "server_error": "The server returned an error.",
+      "protocol": "The server is not a valid MCP endpoint.",
+      "unknown": "Discovery failed."
+    }
   },
   "envVariables": {
     "title": "Environment Variables",

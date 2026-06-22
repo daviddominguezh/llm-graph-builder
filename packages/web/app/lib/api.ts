@@ -1,8 +1,27 @@
 import type { McpTransport } from '@/app/schemas/graph.schema';
 import { z } from 'zod';
 
+import {
+  DISCOVERY_ERROR_CATEGORIES,
+  type DiscoveryErrorCategory,
+  toDiscoveryErrorCategory,
+} from './discoveryErrorCopy';
 import type { SimCompositionCallbacks } from './sseSimComposition';
 import { SimCompositionSchemaFields, dispatchSimCompositionEvent } from './sseSimComposition';
+
+/**
+ * Error thrown by {@link discoverMcpTools}. Carries a redacted category only —
+ * never raw upstream error text, which can leak secrets or URLs.
+ */
+export class DiscoveryError extends Error {
+  readonly category: DiscoveryErrorCategory;
+
+  constructor(category: DiscoveryErrorCategory) {
+    super(`MCP discovery failed: ${category}`);
+    this.name = 'DiscoveryError';
+    this.category = category;
+  }
+}
 
 const SSE_DATA_PREFIX = 'data: ';
 const EMPTY_LENGTH = 0;
@@ -24,7 +43,7 @@ const DiscoverResponseSchema = z.object({
 });
 
 const ErrorResponseSchema = z.object({
-  error: z.string().optional(),
+  errorCategory: z.enum(DISCOVERY_ERROR_CATEGORIES).optional(),
 });
 
 async function fetchJsonUnknown(res: Response): Promise<unknown> {
@@ -32,10 +51,14 @@ async function fetchJsonUnknown(res: Response): Promise<unknown> {
   return JSON.parse(text) as unknown;
 }
 
-async function parseDiscoverError(res: Response): Promise<string> {
-  const raw = await fetchJsonUnknown(res);
-  const parsed = ErrorResponseSchema.safeParse(raw);
-  return parsed.success ? (parsed.data.error ?? 'Discovery failed') : 'Discovery failed';
+async function parseDiscoverErrorCategory(res: Response): Promise<DiscoveryErrorCategory> {
+  try {
+    const raw = await fetchJsonUnknown(res);
+    const parsed = ErrorResponseSchema.safeParse(raw);
+    return toDiscoveryErrorCategory(parsed.success ? parsed.data.errorCategory : undefined);
+  } catch {
+    return 'unknown';
+  }
 }
 
 export interface DiscoverOptions {
@@ -59,8 +82,7 @@ export async function discoverMcpTools(
     }),
   });
   if (!res.ok) {
-    const message = await parseDiscoverError(res);
-    throw new Error(message);
+    throw new DiscoveryError(await parseDiscoverErrorCategory(res));
   }
   const raw = await fetchJsonUnknown(res);
   const data = DiscoverResponseSchema.parse(raw);
