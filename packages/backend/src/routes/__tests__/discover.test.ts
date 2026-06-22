@@ -5,7 +5,7 @@ import express from 'express';
 import request from 'supertest';
 
 import { EgressBlockedError } from '../../lib/egressGuard.js';
-import { type DiscoverDeps, runDiscover } from '../discover.js';
+import { type DiscoverDeps, runDiscover, safeTransportLogLabel } from '../discover.js';
 
 type WireTransport = ReturnType<DiscoverDeps['createTransport']>;
 
@@ -158,5 +158,42 @@ describe('runDiscover — redaction + success', () => {
     expect(res.body).toEqual({
       tools: [{ name: 'echo', description: 'echoes', inputSchema: { type: 'object' } }],
     });
+  });
+});
+
+describe('safeTransportLogLabel — URL redaction', () => {
+  it('logs only the origin, dropping a query-string secret', () => {
+    const label = safeTransportLogLabel({ type: 'http', url: `https://h/mcp?key=${SECRET}` });
+
+    expect(label).toContain('https://h');
+    expect(label).not.toContain(SECRET);
+    expect(label).not.toContain('?key');
+    expect(label).not.toContain('/mcp');
+  });
+
+  it('drops a secret embedded in the URL path', () => {
+    const label = safeTransportLogLabel({ type: 'sse', url: `https://h/sse/${SECRET}` });
+
+    expect(label).toContain('https://h');
+    expect(label).not.toContain(SECRET);
+  });
+
+  it('falls back to the type alone when the URL cannot be parsed', () => {
+    const label = safeTransportLogLabel({ type: 'http', url: `not a url ${SECRET}` });
+
+    expect(label).toBe('type=http');
+    expect(label).not.toContain(SECRET);
+  });
+
+  it('logs only type and command for a stdio transport', () => {
+    const label = safeTransportLogLabel({
+      type: 'stdio',
+      command: 'node',
+      args: [SECRET],
+      env: { K: SECRET },
+    });
+
+    expect(label).toBe('type=stdio command=node');
+    expect(label).not.toContain(SECRET);
   });
 });

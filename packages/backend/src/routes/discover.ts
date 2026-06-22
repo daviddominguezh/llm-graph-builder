@@ -118,10 +118,28 @@ async function discoverFromTransport(transport: McpTransport, deps: DiscoverDeps
   return await runDiscoveryWithBudget(transport, deps);
 }
 
-/** Log only the redacted transport type/url — never headers (avoids secret leak). */
+/**
+ * Build a redacted, non-secret-bearing log label for a transport.
+ *
+ * The `/mcp/discover` route is unauthenticated and the transport is
+ * client-supplied; some MCP servers embed an auth token in the URL path or
+ * query (e.g. `https://host/mcp?key=SECRET`). We therefore log only the URL's
+ * origin (scheme + host + port) and drop the path and query entirely. If the
+ * URL can't be parsed we fall back to the transport type alone — never the raw
+ * string. Stdio transports have no URL, so we log only the type.
+ */
+export function safeTransportLogLabel(transport: McpTransport): string {
+  if (transport.type === 'stdio') return `type=${transport.type} command=${transport.command}`;
+  try {
+    return `type=${transport.type} origin=${new URL(transport.url).origin}`;
+  } catch {
+    return `type=${transport.type}`;
+  }
+}
+
+/** Log only the redacted transport label — never headers, path, or query (avoids secret leak). */
 function logRequest(transport: McpTransport): void {
-  const url = transport.type === 'stdio' ? '<stdio>' : transport.url;
-  process.stdout.write(`[discover] POST /mcp/discover type=${transport.type} url=${url}\n`);
+  process.stdout.write(`[discover] POST /mcp/discover ${safeTransportLogLabel(transport)}\n`);
 }
 
 function logError(category: DiscoveryErrorCategory): void {
