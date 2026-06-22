@@ -1,6 +1,12 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { EgressBlockedError, assertSchemeAndLiteralHost } from '../egressGuard.js';
+import type { EgressDeps } from '../egressGuard.js';
+import {
+  EgressBlockedError,
+  EgressDnsError,
+  assertSchemeAndLiteralHost,
+  resolveAndAssertEgress,
+} from '../egressGuard.js';
 
 const ONE_ASSERTION = 1;
 
@@ -86,5 +92,61 @@ describe('assertSchemeAndLiteralHost — reason + message', () => {
     } catch (e) {
       if (e instanceof EgressBlockedError) expect(e.message).not.toContain('169.254');
     }
+  });
+});
+
+const IPV6_FAMILY = 6;
+const IPV4_FAMILY = 4;
+
+const mockLookup = (addrs: readonly string[]): EgressDeps => ({
+  lookup: async () =>
+    await Promise.resolve(
+      addrs.map((address) => ({ address, family: address.includes(':') ? IPV6_FAMILY : IPV4_FAMILY }))
+    ),
+});
+
+const failingLookup: EgressDeps = {
+  lookup: async () => {
+    const e = new Error('boom') as NodeJS.ErrnoException;
+    e.code = 'ENOTFOUND';
+    return await Promise.reject(e);
+  },
+};
+
+describe('resolveAndAssertEgress', () => {
+  it('passes when every resolved IP is public', async () => {
+    await expect(
+      resolveAndAssertEgress('https://evil.test/x', [], mockLookup(['1.1.1.1']))
+    ).resolves.toBeUndefined();
+  });
+
+  it('blocks when host resolves to IMDS (rebinding)', async () => {
+    await expect(
+      resolveAndAssertEgress('https://evil.test/x', [], mockLookup(['169.254.169.254']))
+    ).rejects.toBeInstanceOf(EgressBlockedError);
+  });
+
+  it('blocks when ANY resolved IP is private (mixed public+private)', async () => {
+    await expect(
+      resolveAndAssertEgress('https://evil.test/x', [], mockLookup(['1.1.1.1', '10.0.0.5']))
+    ).rejects.toBeInstanceOf(EgressBlockedError);
+  });
+
+  it('throws EgressDnsError on resolution failure', async () => {
+    await expect(resolveAndAssertEgress('https://nope.test/x', [], failingLookup)).rejects.toBeInstanceOf(
+      EgressDnsError
+    );
+  });
+
+  it('still blocks a literal-IP URL before DNS (scheme/literal short-circuit)', async () => {
+    await expect(
+      resolveAndAssertEgress('http://10.1.2.3/x', [], mockLookup(['1.1.1.1']))
+    ).rejects.toBeInstanceOf(EgressBlockedError);
+  });
+
+  it('bypasses DNS for an allowlisted hostname', async () => {
+    await expect(
+      resolveAndAssertEgress('https://internal.test/x', ['internal.test'], failingLookup)
+    ).resolves.toBeUndefined();
   });
 });

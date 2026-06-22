@@ -1,4 +1,5 @@
 import ipaddr from 'ipaddr.js';
+import { lookup as dnsLookup } from 'node:dns/promises';
 
 /**
  * Pure SSRF egress classifier. Given a URL, it rejects non-http(s) schemes and
@@ -101,4 +102,41 @@ export function assertSchemeAndLiteralHost(rawUrl: string, allowlist: readonly s
   if (allowlist.includes(host)) return;
   if (host.toLowerCase() === LOCALHOST) throw new EgressBlockedError('blocked');
   if (ipaddr.isValid(host)) assertIpAllowed(host, allowlist);
+}
+
+/** Injectable DNS seam so tests run without real network resolution. */
+export interface EgressDeps {
+  lookup: (host: string) => Promise<ReadonlyArray<{ address: string; family: number }>>;
+}
+
+const defaultDeps: EgressDeps = {
+  lookup: async (host) => await dnsLookup(host, { all: true, verbatim: true }),
+};
+
+/**
+ * DNS-resolving egress guard (anti-rebinding). Runs the pure scheme/literal
+ * check first, then — for non-literal hostnames — resolves the host and asserts
+ * EVERY returned address is publicly routable. Any single private/blocked IP
+ * fails the whole check; a resolution failure throws `EgressDnsError`. Errors
+ * stay host-agnostic so probe targets never leak.
+ */
+export async function resolveAndAssertEgress(
+  rawUrl: string,
+  allowlist: readonly string[] = [],
+  deps: EgressDeps = defaultDeps
+): Promise<void> {
+  assertSchemeAndLiteralHost(rawUrl, allowlist);
+  const host = stripBrackets(parseUrl(rawUrl).hostname);
+  if (allowlist.includes(host) || ipaddr.isValid(host)) return;
+  const records = await resolveHost(host, deps);
+  for (const { address } of records) assertIpAllowed(address, allowlist);
+}
+
+/** Resolve `host` via the injected DNS seam, mapping any failure to `EgressDnsError`. */
+async function resolveHost(host: string, deps: EgressDeps): Promise<ReadonlyArray<{ address: string }>> {
+  try {
+    return await deps.lookup(host);
+  } catch {
+    throw new EgressDnsError();
+  }
 }
