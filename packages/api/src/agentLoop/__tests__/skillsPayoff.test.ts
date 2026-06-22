@@ -9,8 +9,8 @@ import type { Registry, RegistryBuildResult } from '../../providers/registry.js'
 import { type OpenFlowTool, namespaceToolName } from '../../providers/types.js';
 import type { SelectedTool } from '../../types/selectedTool.js';
 import type { Logger } from '../../utils/logger.js';
-import type { AgentLoopConfig, SkillDefinition } from '../agentLoopTypes.js';
 import { buildSystemMessage } from '../agentLoopHelpers.js';
+import type { AgentLoopConfig, SkillDefinition } from '../agentLoopTypes.js';
 import { buildSkillTool } from '../skillTool.js';
 
 const SKILL_TOOL_NAME = 'get_skill_content';
