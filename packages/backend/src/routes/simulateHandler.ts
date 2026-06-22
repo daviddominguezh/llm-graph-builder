@@ -1,3 +1,4 @@
+import type { McpServerConfig } from '@daviddh/graph-types';
 import type {
   CalendarService,
   CallAgentOutput,
@@ -11,6 +12,8 @@ import { randomUUID } from 'node:crypto';
 
 import { createServiceClient } from '../db/queries/executionAuthQueries.js';
 import { createGoogleCalendarService } from '../google/calendar/service.js';
+import { assertEgressForServers } from '../lib/assertEgressForServers.js';
+import { classifyDiscoveryError } from '../lib/discoveryError.js';
 import { consoleLogger } from '../logger.js';
 import { type McpSession, closeMcpSession, createMcpSession } from '../mcp/lifecycle.js';
 import { makeNoStoreBoundKvServices, makeNoStoreBoundRagServices } from '../services/noStoreBoundServices.js';
@@ -127,6 +130,19 @@ function sendError(res: Response, err: unknown): void {
   writeSSE(res, { type: 'error', message });
 }
 
+/**
+ * Redacted error for egress-guard failures on the direct-connect path: surfaces
+ * ONLY the closed-taxonomy category (never the raw message, URL, or host, which
+ * can carry secrets / probe targets).
+ */
+function sendRedactedError(res: Response, err: unknown): void {
+  writeSSE(res, {
+    type: 'error',
+    message: 'MCP server unreachable',
+    errorCategory: classifyDiscoveryError(err),
+  });
+}
+
 function resolveCalendarServices(orgId: string | undefined): {
   calendarServices?: CalendarService;
   orgId?: string;
@@ -208,6 +224,27 @@ async function runSimulation(body: SimulateRequest, res: Response): Promise<void
   }
 }
 
+/**
+ * Egress-guard the direct-connect path: assert every MCP server URL is publicly
+ * routable BEFORE opening any session, then connect. The registry path
+ * (`buildSimulationRegistry`) is guarded separately via `makeGuardedCreateTransport`,
+ * so this only closes the `createMcpSession` bypass. Returns `null` (and emits a
+ * redacted error) when egress is blocked — the caller must NOT connect.
+ */
+async function guardedCreateSession(
+  mcpServers: McpServerConfig[],
+  res: Response
+): Promise<McpSession | null> {
+  try {
+    await assertEgressForServers(mcpServers);
+  } catch (err) {
+    process.stdout.write(`[simulate] egress blocked: ${classifyDiscoveryError(err)}\n`);
+    sendRedactedError(res, err);
+    return null;
+  }
+  return await createMcpSession(mcpServers);
+}
+
 export async function handleSimulate(
   req: Request<Record<string, string>, unknown, SimulateRequest>,
   res: Response
@@ -218,7 +255,9 @@ export async function handleSimulate(
   setSseHeaders(res);
   let session: McpSession = EMPTY_SESSION;
   try {
-    session = await createMcpSession(mcpServers);
+    const connected = await guardedCreateSession(mcpServers, res);
+    if (connected === null) return;
+    session = connected;
     await runSimulation(body, res);
     writeSSE(res, { type: 'simulation_complete' });
     process.stdout.write('[simulate] workflow completed\n');
