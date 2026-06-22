@@ -175,40 +175,68 @@ async function runDiscoveryWith(server: McpServerConfig): Promise<void> {
 /*  variable substitution (env/headers)                                */
 /* ------------------------------------------------------------------ */
 
+async function expectEnvRefHeaderSubstituted(): Promise<void> {
+  mockGetDecryptedEnvVariables.mockResolvedValue({ byName: {}, byId: { e1: 'secret' } });
+
+  await runDiscoveryWith({
+    id: 'server-1',
+    name: 'HTTP MCP',
+    transport: { type: 'http', url: 'https://api.example.com', headers: { Authorization: 'Bearer {{TOK}}' } },
+    enabled: true,
+    variableValues: { TOK: { type: 'env_ref', envVariableId: 'e1' } },
+  });
+
+  const transport = resolvedTransport();
+  if (transport.type === 'stdio') throw new Error('expected http transport');
+  expect(transport.headers?.Authorization).toBe('Bearer secret');
+}
+
+async function expectUndefinedVariableValuesFallsBackToById(): Promise<void> {
+  // byId is keyed by the placeholder name here so the undefined-variableValues
+  // fallback (buildResolvedVars returns env.byName, which we wire to byId) can resolve it.
+  mockGetDecryptedEnvVariables.mockResolvedValue({ byName: {}, byId: { TOKEN: 'v' } });
+
+  await runDiscoveryWith({
+    id: 'server-1',
+    name: 'HTTP MCP',
+    transport: {
+      type: 'http',
+      url: 'https://api.example.com/{{TOKEN}}',
+      headers: { Authorization: 'Bearer {{TOKEN}}' },
+    },
+    enabled: true,
+    // variableValues intentionally omitted (undefined)
+  });
+
+  const transport = resolvedTransport();
+  if (transport.type === 'stdio') throw new Error('expected http transport');
+  expect(transport.url).toBe('https://api.example.com/v');
+  expect(transport.headers?.Authorization).toBe('Bearer v');
+}
+
+async function expectDirectEnvSubstituted(): Promise<void> {
+  await runDiscoveryWith({
+    id: 'server-1',
+    name: 'Stdio MCP',
+    transport: { type: 'stdio', command: 'npx', args: ['-y', 'test-mcp'], env: { API_KEY: '{{KEY}}' } },
+    enabled: true,
+    variableValues: { KEY: { type: 'direct', value: 'k-123' } },
+  });
+
+  const transport = resolvedTransport();
+  if (transport.type !== 'stdio') throw new Error('expected stdio transport');
+  expect(transport.env?.API_KEY).toBe('k-123');
+}
+
 describe('openClient variable substitution', () => {
-  it('substitutes {{VAR}} in http headers from an env_ref variable', async () => {
-    mockGetDecryptedEnvVariables.mockResolvedValue({ byName: {}, byId: { e1: 'secret' } });
+  it('substitutes {{VAR}} in http headers from an env_ref variable', expectEnvRefHeaderSubstituted);
 
-    await runDiscoveryWith({
-      id: 'server-1',
-      name: 'HTTP MCP',
-      transport: {
-        type: 'http',
-        url: 'https://api.example.com',
-        headers: { Authorization: 'Bearer {{TOK}}' },
-      },
-      enabled: true,
-      variableValues: { TOK: { type: 'env_ref', envVariableId: 'e1' } },
-    });
+  it(
+    'falls back to byId when variableValues is undefined (preserves old discovery behavior)',
+    expectUndefinedVariableValuesFallsBackToById
+  );
 
-    const transport = resolvedTransport();
-    if (transport.type === 'stdio') throw new Error('expected http transport');
-    expect(transport.headers?.Authorization).toBe('Bearer secret');
-  });
-
-  it('substitutes {{VAR}} in stdio env from a direct variable', async () => {
-    await runDiscoveryWith({
-      id: 'server-1',
-      name: 'Stdio MCP',
-      transport: { type: 'stdio', command: 'npx', args: ['-y', 'test-mcp'], env: { API_KEY: '{{KEY}}' } },
-      enabled: true,
-      variableValues: { KEY: { type: 'direct', value: 'k-123' } },
-    });
-
-    const transport = resolvedTransport();
-    if (transport.type !== 'stdio') throw new Error('expected stdio transport');
-    expect(transport.env?.API_KEY).toBe('k-123');
-  });
+  it('substitutes {{VAR}} in stdio env from a direct variable', expectDirectEnvSubstituted);
 });
 
 /* ------------------------------------------------------------------ */

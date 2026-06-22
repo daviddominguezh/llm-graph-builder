@@ -42,7 +42,10 @@ async function openClient(ctx: ServiceContext, agentId: string, serverId: string
   const graph = requireGraph(await assembleGraph(ctx.supabase, agentId), agentId);
   const server = requireServer(graph, serverId);
   const { byId } = await getDecryptedEnvVariables(ctx.supabase, ctx.orgId);
-  const vars = buildResolvedVars(server.variableValues, { byName: {}, byId });
+  // Pass byId as byName to preserve the old undefined-variableValues -> byId fallback:
+  // buildResolvedVars reads env.byName only in its `variableValues === undefined` branch.
+  // The defined case (direct -> value, env_ref -> byId[id]) is unaffected by this.
+  const vars = buildResolvedVars(server.variableValues, { byName: byId, byId });
   const transport = resolveTransport(server.transport, vars);
   const wireTransport = createTransport({ ...server, transport });
   return await connectMcp({ transport: wireTransport });
