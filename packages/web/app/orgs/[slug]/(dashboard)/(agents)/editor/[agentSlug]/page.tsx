@@ -41,7 +41,7 @@ export default async function EditorPage({ params }: EditorPageProps): Promise<R
       slug: tenantSlug,
       name,
       isDefault: is_default,
-      avatarUrl: avatar_url,
+      avatarUrl: avatar_url ?? null,
     }));
 
   return (

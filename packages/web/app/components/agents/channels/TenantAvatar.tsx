@@ -5,14 +5,14 @@ import Image from 'next/image';
 
 interface TenantAvatarProps {
   name: string;
-  avatarUrl: string | null;
+  avatarUrl: string | null | undefined;
   small?: boolean;
 }
 
 export function TenantAvatar({ name, avatarUrl, small = false }: TenantAvatarProps) {
   const initial = name.trim().charAt(0).toUpperCase() || '?';
 
-  if (avatarUrl !== null) {
+  if (avatarUrl !== null && avatarUrl !== undefined) {
     return (
       <Image
         src={toProxyImageSrc(avatarUrl)}
