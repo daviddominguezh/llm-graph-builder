@@ -1,27 +1,38 @@
-import { describe, expect, it, jest } from '@jest/globals';
-import { createClient } from '@supabase/supabase-js';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
-import { mirrorDefaultTenantAvatar, mirrorDefaultTenantIdentity } from './tenantQueries.js';
+interface RpcResult {
+  error: { message: string } | null;
+}
 
-const HTTP_OK = 200;
-const HTTP_ERROR = 500;
+const mockRpc = jest.fn<(fn: string, args: Record<string, unknown>) => Promise<RpcResult>>();
+
+jest.unstable_mockModule('@supabase/supabase-js', () => ({
+  createClient: jest.fn().mockReturnValue({ rpc: mockRpc }),
+}));
+
+const { createClient } = await import('@supabase/supabase-js');
+const { mirrorDefaultTenantAvatar, mirrorDefaultTenantIdentity } = await import('./tenantQueries.js');
+
 const SUPABASE_URL = 'http://localhost:54321';
 const SUPABASE_KEY = 'anon-key';
 
 describe('default-tenant mirror queries', () => {
+  beforeEach(() => {
+    mockRpc.mockReset();
+  });
+
   it('mirrorDefaultTenantIdentity calls set_default_tenant_identity', async () => {
+    mockRpc.mockResolvedValue({ error: null });
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-    const rpc = jest
-      .spyOn(supabase, 'rpc')
-      .mockResolvedValue({ data: null, error: null, count: null, status: HTTP_OK, statusText: 'OK' });
 
     const { error } = await mirrorDefaultTenantIdentity(supabase, 'o1', {
       name: 'Acme',
       slug: 'acme',
       avatarUrl: null,
     });
+
     expect(error).toBeNull();
-    expect(rpc).toHaveBeenCalledWith('set_default_tenant_identity', {
+    expect(mockRpc).toHaveBeenCalledWith('set_default_tenant_identity', {
       p_org_id: 'o1',
       p_name: 'Acme',
       p_slug: 'acme',
@@ -30,16 +41,11 @@ describe('default-tenant mirror queries', () => {
   });
 
   it('mirrorDefaultTenantAvatar surfaces the RPC error message', async () => {
+    mockRpc.mockResolvedValue({ error: { message: 'boom' } });
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-    jest.spyOn(supabase, 'rpc').mockResolvedValue({
-      data: null,
-      error: { message: 'boom', details: '', hint: '', code: '', name: 'PostgrestError' },
-      count: null,
-      status: HTTP_ERROR,
-      statusText: 'Error',
-    });
 
     const { error } = await mirrorDefaultTenantAvatar(supabase, 'o1', 'https://x/a');
+
     expect(error).toBe('boom');
   });
 });
