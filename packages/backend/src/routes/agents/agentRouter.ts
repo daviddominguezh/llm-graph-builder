@@ -7,6 +7,12 @@ import { handleGetVersions } from '../graph/getVersions.js';
 import { handlePostOperations } from '../graph/postOperations.js';
 import { handlePostPublish } from '../graph/postPublish.js';
 import { handlePostRestore } from '../graph/postRestore.js';
+import {
+  handleGetTenantConfig,
+  handleGetTenantStatus,
+  handlePutTenantConfigCell,
+} from '../mcp-server/mcpTenantConfigHandlers.js';
+import { handleVerifyTenantServer } from '../mcp-server/mcpTenantVerifyHandler.js';
 import { handleDisconnect } from '../oauth/oauthDisconnect.js';
 import { handleInitiate } from '../oauth/oauthInitiate.js';
 import { handleResolveToken } from '../oauth/oauthResolveToken.js';
@@ -47,6 +53,11 @@ agentRouter.patch('/:agentId/store-bindings', storeBindingsLimiter, handleUpdate
 
 agentRouter.get('/:agentId/registry', handleGetAgentRegistry);
 agentRouter.delete('/:agentId/mcp-cache/:mcpServerId', handleInvalidateMcpCache);
+
+agentRouter.get('/:agentId/mcp-tenant-config', handleGetTenantConfig);
+agentRouter.get('/:agentId/mcp-tenant-config/status', handleGetTenantStatus);
+agentRouter.put('/:agentId/mcp-tenant-config/:serverId/:tenantId', handlePutTenantConfigCell);
+agentRouter.post('/:agentId/mcp-tenant-config/:serverId/verify', handleVerifyTenantServer);
 agentRouter.get('/:agentId/graph', handleGetGraph);
 agentRouter.post('/:agentId/graph/operations', handlePostOperations);
 agentRouter.post('/:agentId/publish', handlePostPublish);
