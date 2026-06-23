@@ -8,6 +8,7 @@ import {
   type McpTransport,
   type TransportOptions,
 } from './transport.js';
+import { withAbortTimeout } from './withAbortTimeout.js';
 
 const SESSION_EXPIRED_STATUS_404 = 404;
 const SESSION_EXPIRED_STATUS_401 = 401;
@@ -78,21 +79,19 @@ interface PostArgs {
 
 async function postBody(args: PostArgs): Promise<Response> {
   const headers = buildHeaders(args.config, args.sessionId);
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => {
-    ctrl.abort();
-  }, args.timeoutMs);
   try {
-    return await args.fetchFn(args.config.url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(args.body),
-      signal: ctrl.signal,
-    });
+    return await withAbortTimeout(
+      args.timeoutMs,
+      async (signal) =>
+        await args.fetchFn(args.config.url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(args.body),
+          signal,
+        })
+    );
   } catch (err) {
     throw new TransportError('SSE transport failed', err);
-  } finally {
-    clearTimeout(timer);
   }
 }
 

@@ -12,6 +12,7 @@ import {
   type McpTransport,
   type TransportOptions,
 } from './transport.js';
+import { withAbortTimeout } from './withAbortTimeout.js';
 
 const SESSION_EXPIRED_STATUS_404 = 404;
 const SESSION_EXPIRED_STATUS_401 = 401;
@@ -90,21 +91,19 @@ interface FetchArgs {
 }
 
 async function performFetch(args: FetchArgs): Promise<Response> {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => {
-    ctrl.abort();
-  }, args.timeoutMs);
   try {
-    return await args.fetchFn(args.url, {
-      method: 'POST',
-      headers: args.headers,
-      body: args.body,
-      signal: ctrl.signal,
-    });
+    return await withAbortTimeout(
+      args.timeoutMs,
+      async (signal) =>
+        await args.fetchFn(args.url, {
+          method: 'POST',
+          headers: args.headers,
+          body: args.body,
+          signal,
+        })
+    );
   } catch (err) {
     throw new TransportError('HTTP transport failed', err);
-  } finally {
-    clearTimeout(timer);
   }
 }
 
