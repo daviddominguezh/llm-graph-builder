@@ -59,6 +59,7 @@ function MatrixHeaderCells({ columns }: { columns: string[] }) {
           {`{{${variable}}}`}
         </div>
       ))}
+      <div className={HEADER_CELL} aria-hidden />
       <div className={`${HEADER_CELL} ${HEADER_FROZEN_RIGHT}`}>{t('statusColumn')}</div>
     </>
   );
@@ -66,11 +67,11 @@ function MatrixHeaderCells({ columns }: { columns: string[] }) {
 
 function MatrixGrid(props: MatrixSectionProps) {
   const gridStyle = {
-    gridTemplateColumns: `200px repeat(${props.columns.length}, 150px) 180px`,
+    gridTemplateColumns: `200px repeat(${props.columns.length}, 150px) minmax(0, 1fr) 180px`,
   };
   return (
     <div data-native-scroll className="overflow-x-auto">
-      <div className="grid w-max text-xs" style={gridStyle}>
+      <div className="grid min-w-full text-xs" style={gridStyle}>
         <MatrixHeaderCells columns={props.columns} />
         {props.tenants.map((tenant) => (
           <McpMatrixRow

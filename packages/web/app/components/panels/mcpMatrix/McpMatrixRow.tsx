@@ -91,6 +91,7 @@ export function McpMatrixRow({
           />
         </div>
       ))}
+      <div aria-hidden />
       <StatusCell status={status} onTest={onTest} />
     </>
   );
