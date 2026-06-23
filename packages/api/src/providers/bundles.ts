@@ -2,6 +2,7 @@ import type { CalendarServices } from './calendar/buildTools.js';
 import type { FormsServices } from './forms/buildTools.js';
 import type { LeadScoringProviderServices } from './lead_scoring/buildTools.js';
 import type { KvStoreServices, RagStoreServices } from './types.js';
+import type { WebProviderServices } from './web/types.js';
 
 /**
  * Closed union of provider ids for all built-in providers. The single source of
@@ -10,7 +11,14 @@ import type { KvStoreServices, RagStoreServices } from './types.js';
  * the edge function. Adding a new built-in provider means adding its id here
  * AND wiring its bundle type below — both are then enforced by the compiler.
  */
-export type BuiltinProviderId = 'kv_store' | 'rag' | 'forms' | 'lead_scoring' | 'calendar' | 'composition';
+export type BuiltinProviderId =
+  | 'kv_store'
+  | 'rag'
+  | 'forms'
+  | 'lead_scoring'
+  | 'calendar'
+  | 'composition'
+  | 'web';
 
 /**
  * Runtime mirror of `BuiltinProviderId`. Used by the backstop test that asserts
@@ -24,6 +32,7 @@ export const BUILTIN_PROVIDER_IDS: readonly BuiltinProviderId[] = [
   'lead_scoring',
   'calendar',
   'composition',
+  'web',
 ] as const;
 
 /**
@@ -41,4 +50,5 @@ export interface BuiltinBundles {
   lead_scoring: LeadScoringProviderServices | undefined;
   calendar: CalendarServices | undefined;
   composition: undefined;
+  web: WebProviderServices | undefined;
 }

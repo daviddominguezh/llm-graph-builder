@@ -177,8 +177,12 @@ export type {
   FormsServices,
   CalendarServices,
   LeadScoringProviderServices,
+  WebSearchService,
+  WebProviderServices,
+  TavilyConfig,
 } from './providers/index.js';
 export { ToolError, isKvStoreServices, isRagStoreServices } from './providers/index.js';
+export { makeTavilyWebService } from './providers/index.js';
 
 export const execute = async (
   context: Context,

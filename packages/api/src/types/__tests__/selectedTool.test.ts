@@ -28,6 +28,7 @@ describe('SelectedTool helpers', () => {
       'lead_scoring',
       'calendar',
       'composition',
+      'web',
     ]);
   });
 });
