@@ -14,6 +14,7 @@ export interface TenantRow {
   updated_at: string;
   web_channel_enabled: boolean;
   web_channel_allowed_origins: string[];
+  is_default: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -37,7 +38,7 @@ function mapRows(data: unknown[]): TenantRow[] {
 }
 
 const LIST_COLUMNS =
-  'id, org_id, slug, name, avatar_url, created_at, updated_at, web_channel_enabled, web_channel_allowed_origins';
+  'id, org_id, slug, name, avatar_url, created_at, updated_at, web_channel_enabled, web_channel_allowed_origins, is_default';
 
 /* ------------------------------------------------------------------ */
 /*  Queries                                                            */
@@ -51,6 +52,7 @@ export async function getTenantsByOrg(
     .from('tenants')
     .select(LIST_COLUMNS)
     .eq('org_id', orgId)
+    .order('is_default', { ascending: false })
     .order('created_at', { ascending: false });
 
   if (error !== null) return { result: [], error: error.message };
@@ -86,6 +88,22 @@ export async function getTenantBySlug(
     .select(LIST_COLUMNS)
     .eq('org_id', orgId)
     .eq('slug', slug)
+    .maybeSingle();
+
+  if (error !== null) return { result: null, error: error.message };
+  if (data === null) return { result: null, error: null };
+  if (!isTenantRow(data)) return { result: null, error: 'Invalid tenant data' };
+  return { result: data, error: null };
+}
+
+export async function getTenantById(
+  supabase: SupabaseClient,
+  tenantId: string
+): Promise<{ result: TenantRow | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from('tenants')
+    .select(LIST_COLUMNS)
+    .eq('id', tenantId)
     .maybeSingle();
 
   if (error !== null) return { result: null, error: error.message };
