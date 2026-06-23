@@ -124,10 +124,28 @@ export async function fetchCurrentSlug(supabase: SupabaseClient, orgId: string):
   return (data as { slug: string }).slug;
 }
 
+export async function fetchCurrentAvatar(supabase: SupabaseClient, orgId: string): Promise<string | null> {
+  const { data } = await supabase.from('organizations').select('avatar_url').eq('id', orgId).single();
+  if (data === null || typeof data !== 'object' || !('avatar_url' in data)) return null;
+  return (data as { avatar_url: string | null }).avatar_url;
+}
+
 export async function deleteOrg(supabase: SupabaseClient, orgId: string): Promise<{ error: string | null }> {
   const { error } = await supabase.from('organizations').delete().eq('id', orgId);
   if (error !== null) return { error: error.message };
   return { error: null };
+}
+
+// Deletes the org via the SECURITY DEFINER RPC, which sets the transaction-local
+// bypass GUC so the cascade-deleted default tenant passes its delete guard.
+export async function deleteOrgWithDefaultTenant(
+  supabase: SupabaseClient,
+  orgId: string
+): Promise<{ error: string | null }> {
+  const { error } = (await supabase.rpc('delete_org_with_default_tenant', { p_org_id: orgId })) as {
+    error: { message: string } | null;
+  };
+  return { error: error === null ? null : error.message };
 }
 
 export async function getUserRoleInOrg(

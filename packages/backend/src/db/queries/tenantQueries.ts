@@ -112,6 +112,41 @@ export async function getTenantById(
   return { result: data, error: null };
 }
 
+export interface DefaultTenantIdentity {
+  name: string;
+  slug: string;
+  avatarUrl: string | null;
+}
+
+// Mirrors the org's identity onto its default tenant via the SECURITY DEFINER RPC
+// (which sets the transaction-local mirror GUC so the identity-lock trigger allows it).
+export async function mirrorDefaultTenantIdentity(
+  supabase: SupabaseClient,
+  orgId: string,
+  identity: DefaultTenantIdentity
+): Promise<{ error: string | null }> {
+  const { error } = (await supabase.rpc('set_default_tenant_identity', {
+    p_org_id: orgId,
+    p_name: identity.name,
+    p_slug: identity.slug,
+    p_avatar_url: identity.avatarUrl,
+  })) as { error: { message: string } | null };
+  return { error: error === null ? null : error.message };
+}
+
+// Mirrors only the org's avatar onto its default tenant (rename leaves avatar intact).
+export async function mirrorDefaultTenantAvatar(
+  supabase: SupabaseClient,
+  orgId: string,
+  avatarUrl: string | null
+): Promise<{ error: string | null }> {
+  const { error } = (await supabase.rpc('set_default_tenant_avatar', {
+    p_org_id: orgId,
+    p_avatar_url: avatarUrl,
+  })) as { error: { message: string } | null };
+  return { error: error === null ? null : error.message };
+}
+
 // Upper bound on rows fetched per suffix query. Well beyond the MAX_SUFFIX range; a
 // single tenant name that has already generated >1000 numeric-suffixed variants would
 // hit `Unable to find unique tenant slug` anyway, so this cap is comfort margin only.

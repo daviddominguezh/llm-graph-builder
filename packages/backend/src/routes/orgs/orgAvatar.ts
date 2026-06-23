@@ -2,6 +2,7 @@ import type { Request } from 'express';
 
 import { updateOrgFields } from '../../db/queries/orgQueries.js';
 import { removeOrgAvatar, uploadOrgAvatar } from '../../db/queries/orgStorageQueries.js';
+import { mirrorDefaultTenantAvatar } from '../../db/queries/tenantQueries.js';
 import {
   type AuthenticatedLocals,
   type AuthenticatedResponse,
@@ -14,6 +15,19 @@ import { getOrgId } from './orgHelpers.js';
 
 function getMulterFile(req: Request): Express.Multer.File | undefined {
   return (req as Request & { file?: Express.Multer.File }).file;
+}
+
+// Mirrors the org avatar onto its default tenant. Org is source of truth, so a
+// mirror failure is logged, not surfaced.
+async function mirrorAvatar(
+  supabase: AuthenticatedLocals['supabase'],
+  orgId: string,
+  url: string | null
+): Promise<void> {
+  const { error } = await mirrorDefaultTenantAvatar(supabase, orgId, url);
+  if (error !== null) {
+    process.stderr.write(`[sp1] default-tenant avatar mirror failed for org ${orgId}: ${error}\n`);
+  }
 }
 
 export async function handleUploadAvatar(req: Request, res: AuthenticatedResponse): Promise<void> {
@@ -49,6 +63,7 @@ export async function handleUploadAvatar(req: Request, res: AuthenticatedRespons
       return;
     }
 
+    await mirrorAvatar(supabase, orgId, url);
     res.status(HTTP_OK).json({ url });
   } catch (err) {
     res.status(HTTP_INTERNAL_ERROR).json({ error: extractErrorMessage(err) });
@@ -73,6 +88,7 @@ export async function handleRemoveAvatar(req: Request, res: AuthenticatedRespons
       return;
     }
 
+    await mirrorAvatar(supabase, orgId, null);
     res.status(HTTP_OK).json({ success: true });
   } catch (err) {
     res.status(HTTP_INTERNAL_ERROR).json({ error: extractErrorMessage(err) });
