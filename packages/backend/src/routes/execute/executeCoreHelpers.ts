@@ -16,8 +16,9 @@ import {
   fetchSessionData,
   getProductionKeyId,
 } from './executeFetcher.js';
-import { logExec, resolveMcpTransportVariables, resolveOAuthForExecution } from './executeHelpers.js';
+import { logExec, resolveOAuthForExecution } from './executeHelpers.js';
 import type { AgentExecutionInput } from './executeTypes.js';
+import { resolveTenantAndEnvGraph } from './resolveTenantGraph.js';
 import { buildVfsPayload } from './vfsDispatch.js';
 
 const ZERO_UNANSWERED = 0;
@@ -56,11 +57,12 @@ export async function fetchAllCoreData(params: FetchAllParams): Promise<FetchedD
     getAgentVfsSettings(supabase, agentId),
     fetchAgentRecord(supabase, agentId, version),
   ]);
-  const envResolvedGraph = resolveMcpTransportVariables(
-    graphAndKeys.graph,
-    graphAndKeys.envVars.byName,
-    graphAndKeys.envVars.byId
-  );
+  const envResolvedGraph = await resolveTenantAndEnvGraph({
+    supabase,
+    graphAndKeys,
+    tenantId: input.tenantId,
+    orgId,
+  });
   const resolvedGraph = await resolveOAuthForExecution(supabase, envResolvedGraph, orgId);
   const agentConfig = await resolveAgentConfig(params, graphAndKeys.appType);
   return { ...graphAndKeys, ...sessionData, graph: resolvedGraph, agentConfig, agentRecord, vfsSettings };

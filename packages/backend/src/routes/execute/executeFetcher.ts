@@ -13,6 +13,7 @@ import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { type StackEntry, getStackTop } from '../../db/queries/stackQueries.js';
 import type { AgentVfsSettings } from '../../db/queries/vfsConfigTypes.js';
 import { buildAgentRuntimeGraph } from './agentRuntimeGraph.js';
+import { type TenantConfigSnapshot, parseTenantConfigSnapshot } from './applyTenantMcpConfig.js';
 import { HttpNotFoundError, fetchAgentRecordVersionAware } from './executeAgentRecord.js';
 import { messageRowToMessage, resolveChannelProvider } from './executeMessageFetcher.js';
 import type { AgentExecutionInput } from './executeTypes.js';
@@ -61,6 +62,7 @@ export interface AgentExecutionRecord {
 
 export interface FetchedData {
   graph: RuntimeGraph;
+  mcpTenantConfig: TenantConfigSnapshot[];
   apiKey: string;
   envVars: DecryptedEnvVars;
   sessionDbId: string;
@@ -95,6 +97,7 @@ export async function getProductionKeyId(supabase: SupabaseClient, agentId: stri
 
 export interface GraphAndKeys {
   graph: RuntimeGraph;
+  mcpTenantConfig: TenantConfigSnapshot[];
   apiKey: string;
   envVars: DecryptedEnvVars;
   appType: string;
@@ -169,7 +172,8 @@ export async function fetchGraphAndKeys(params: GraphFetchParams): Promise<Graph
   ]);
 
   const graph = appType === 'agent' ? buildAgentRuntimeGraph(graphData) : ensureGraphData(graphData);
-  return { graph, apiKey: ensureApiKey(apiKey), envVars, appType };
+  const mcpTenantConfig = parseTenantConfigSnapshot(graphData);
+  return { graph, mcpTenantConfig, apiKey: ensureApiKey(apiKey), envVars, appType };
 }
 
 /* ─── Session fetching ─── */
