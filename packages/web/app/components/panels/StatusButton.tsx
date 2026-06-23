@@ -1,33 +1,30 @@
 'use client';
 
-import { useMemo } from 'react';
-import { CircleCheck, CircleAlert, Loader2, AlertTriangle } from 'lucide-react';
-import type { Node, Edge } from '@xyflow/react';
-import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
-  AlertDialogTrigger,
+  AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
   AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogCancel,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import type { Edge, Node } from '@xyflow/react';
+import { AlertTriangle, CircleAlert, CircleCheck, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useMemo } from 'react';
+
+import type { RFEdgeData, RFNodeData } from '../../utils/graphTransformers';
 import { validateGraph } from '../../utils/graphValidation';
-import type { RFNodeData, RFEdgeData } from '../../utils/graphTransformers';
-import type { McpServerConfig } from '../../schemas/graph.schema';
-import type { DiscoveredTool } from '../../lib/api';
+import { type McpTenantGateInput, aggregateStatusFor, hasMcpTenantErrors } from './mcpTenantGate';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
-interface McpHealthInput {
-  servers: McpServerConfig[];
-  discoveredTools: Record<string, DiscoveredTool[]>;
-}
+type McpHealthInput = McpTenantGateInput;
 
 interface StatusIssue {
   type: 'error' | 'warning';
@@ -46,17 +43,29 @@ interface StatusButtonProps {
 /*  MCP health checks                                                  */
 /* ------------------------------------------------------------------ */
 
-function checkMcpHealth(mcp: McpHealthInput, t: (key: string, values?: Record<string, string>) => string): StatusIssue[] {
+type Translate = (key: string, values?: Record<string, string>) => string;
+
+function serverIssue(
+  mcp: McpHealthInput,
+  server: McpHealthInput['servers'][number],
+  t: Translate
+): StatusIssue | null {
+  if (!server.enabled) {
+    return { type: 'warning', message: t('mcpDisabled', { name: server.name }) };
+  }
+  const aggregate = aggregateStatusFor(mcp, server.id);
+  if (aggregate === 'ok') return null;
+  if (aggregate === 'error') {
+    return { type: 'error', message: t('mcpTenantError', { name: server.name }) };
+  }
+  return { type: 'error', message: t('mcpTenantPending', { name: server.name }) };
+}
+
+function checkMcpHealth(mcp: McpHealthInput, t: Translate): StatusIssue[] {
   const issues: StatusIssue[] = [];
   for (const server of mcp.servers) {
-    if (!server.enabled) {
-      issues.push({ type: 'warning', message: t('mcpDisabled', { name: server.name }) });
-      continue;
-    }
-    const tools = mcp.discoveredTools[server.id];
-    if (tools === undefined || tools.length === 0) {
-      issues.push({ type: 'error', message: t('mcpNoTools', { name: server.name }) });
-    }
+    const issue = serverIssue(mcp, server, t);
+    if (issue !== null) issues.push(issue);
   }
   return issues;
 }
@@ -65,7 +74,15 @@ function checkMcpHealth(mcp: McpHealthInput, t: (key: string, values?: Record<st
 /*  Sub-components                                                     */
 /* ------------------------------------------------------------------ */
 
-function StatusIcon({ hasErrors, hasWarnings, saving }: { hasErrors: boolean; hasWarnings: boolean; saving: boolean }) {
+function StatusIcon({
+  hasErrors,
+  hasWarnings,
+  saving,
+}: {
+  hasErrors: boolean;
+  hasWarnings: boolean;
+  saving: boolean;
+}) {
   if (saving) return <Loader2 className="size-4 animate-spin text-orange-500" />;
   if (hasErrors) return <CircleAlert className="size-4 text-red-500" />;
   if (hasWarnings) return <AlertTriangle className="size-4 text-amber-500" />;
@@ -93,7 +110,13 @@ function IssueList({ issues }: { issues: StatusIssue[] }) {
 /*  StatusButton                                                       */
 /* ------------------------------------------------------------------ */
 
-export function StatusButton({ nodes, edges, pendingSave, mcpHealth, skipGraphValidation }: StatusButtonProps) {
+export function StatusButton({
+  nodes,
+  edges,
+  pendingSave,
+  mcpHealth,
+  skipGraphValidation,
+}: StatusButtonProps) {
   const t = useTranslations('status');
   const graphErrors = useMemo(
     () => (skipGraphValidation === true ? [] : validateGraph(nodes, edges)),
@@ -118,7 +141,11 @@ export function StatusButton({ nodes, edges, pendingSave, mcpHealth, skipGraphVa
     <AlertDialog>
       <AlertDialogTrigger
         render={
-          <Button variant="ghost" size="default" className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0">
+          <Button
+            variant="ghost"
+            size="default"
+            className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
+          >
             <StatusIcon hasErrors={hasErrors} hasWarnings={hasWarnings} saving={saving} />
           </Button>
         }
@@ -139,11 +166,7 @@ export function StatusButton({ nodes, edges, pendingSave, mcpHealth, skipGraphVa
   );
 }
 
-/** Returns true when there are blocking errors (not just warnings). */
+/** Returns true when there are blocking errors (any enabled server not all-tenant-ok). */
 export function hasMcpErrors(mcpHealth: McpHealthInput): boolean {
-  return mcpHealth.servers.some((s) => {
-    if (!s.enabled) return false;
-    const tools = mcpHealth.discoveredTools[s.id];
-    return tools === undefined || tools.length === 0;
-  });
+  return hasMcpTenantErrors(mcpHealth);
 }

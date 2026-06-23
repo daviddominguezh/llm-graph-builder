@@ -1336,7 +1336,9 @@
     "issuesFound": "Found {count} issue(s) that need attention:",
     "close": "Close",
     "mcpDisabled": "\"{name}\" is disabled. Enable it or remove it before publishing.",
-    "mcpNoTools": "\"{name}\" has no discovered tools. Run Discover Tools to connect it."
+    "mcpNoTools": "\"{name}\" has no discovered tools. Run Discover Tools to connect it.",
+    "mcpTenantPending": "\"{name}\" is not configured for every tenant. Complete and verify each tenant before publishing.",
+    "mcpTenantError": "\"{name}\" failed verification for at least one tenant. Fix its configuration before publishing."
   },
   "marketplace": {
     "searchPlaceholder": "Search templates...",

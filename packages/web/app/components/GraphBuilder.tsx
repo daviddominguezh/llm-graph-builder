@@ -29,6 +29,7 @@ import { useImportGraph } from '../hooks/useImportGraph';
 import { useMcpDiscovery } from '../hooks/useMcpDiscovery';
 import { useMcpLibrary } from '../hooks/useMcpLibrary';
 import { useMcpServers } from '../hooks/useMcpServers';
+import { useMcpTenantConfigs } from '../hooks/useMcpTenantConfigs';
 import { useOperationQueue } from '../hooks/useOperationQueue';
 import { useOutputSchemas } from '../hooks/useOutputSchemas';
 import { usePresets } from '../hooks/usePresets';
@@ -40,12 +41,14 @@ import {
   useCreateToolNode,
   useCreateUserNode,
 } from '../hooks/useStructuredNodeCreation';
-import { useToolStoresState, type ToolStoresState } from '../hooks/useToolStoresState';
+import { type ToolStoresState, useToolStoresState } from '../hooks/useToolStoresState';
 import { useVersions } from '../hooks/useVersions';
 import { useZoomView } from '../hooks/useZoomView';
 import type { DiscoveredTool } from '../lib/api';
 import type { ApiKeyRow } from '../lib/apiKeys';
-import type { Agent, Graph } from '../schemas/graph.schema';
+import type { ServerAggregateStatus } from '../lib/mcpTenantConfig';
+import type { OrgEnvVariableRow } from '../lib/orgEnvVariables';
+import type { Agent, Graph, McpServerConfig } from '../schemas/graph.schema';
 import { getSourceEdgeType } from '../utils/edgeTypeUtils';
 import { buildInitialEdges, buildInitialNodes } from '../utils/graphInitializer';
 import { serializeGraphData } from '../utils/graphSerializer';
@@ -112,6 +115,30 @@ interface LoadedEditorProps extends GraphBuilderProps {
   loadResult: GraphLoadResult;
   reload: () => void;
   initialDiscoveredTools: Record<string, DiscoveredTool[]>;
+}
+
+interface AggregateStatusArgs {
+  agentId: string | undefined;
+  servers: McpServerConfig[];
+  tenants: PublishTenant[];
+  envVariables: OrgEnvVariableRow[];
+}
+
+// Sources the SP4 per-tenant aggregate status (D9: a server is publishable only
+// when EVERY tenant is ok) and projects it into a serverId -> aggregate map for
+// the publish/save gate.
+function useMcpAggregateStatus(args: AggregateStatusArgs): Record<string, ServerAggregateStatus> {
+  const tenantIds = useMemo(() => args.tenants.map((tenant) => tenant.id), [args.tenants]);
+  const { aggregateFor } = useMcpTenantConfigs({
+    agentId: args.agentId ?? '',
+    servers: args.servers,
+    tenants: tenantIds,
+    envVariables: args.envVariables,
+  });
+  return useMemo(
+    () => Object.fromEntries(args.servers.map((server) => [server.id, aggregateFor(server.id)])),
+    [args.servers, aggregateFor]
+  );
 }
 
 function useGraphBuilderHooks(props: LoadedEditorProps) {
@@ -303,9 +330,15 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     enabled: agentId !== undefined && props.readOnly !== true,
   });
 
+  const mcpAggregateStatus = useMcpAggregateStatus({
+    agentId,
+    servers: mcpHook.servers,
+    tenants: props.tenants ?? [],
+    envVariables,
+  });
   const mcpHealthInput = useMemo(
-    () => ({ servers: mcpHook.servers, discoveredTools: mcpHook.discoveredTools }),
-    [mcpHook.servers, mcpHook.discoveredTools]
+    () => ({ servers: mcpHook.servers, aggregateStatus: mcpAggregateStatus }),
+    [mcpHook.servers, mcpAggregateStatus]
   );
   const agentHooks = useAgentEditorHooks({
     initialConfig: loadResult.agentConfig,
