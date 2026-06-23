@@ -12,7 +12,8 @@ export type ToolErrorCode =
   | 'value_too_large'
   | 'invalid_pattern'
   | 'pattern_timeout'
-  | 'tenant_not_allowed';
+  | 'tenant_not_allowed'
+  | 'upstream_error';
 
 export class ToolError extends Error {
   public readonly code: ToolErrorCode;
