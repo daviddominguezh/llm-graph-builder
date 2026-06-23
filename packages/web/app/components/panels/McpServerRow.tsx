@@ -2,7 +2,16 @@
 
 import type { ServerAggregateStatus } from '@/app/lib/mcpTenantConfig';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, CheckCircle, SlidersHorizontal, Trash2, XCircle } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  AlertTriangle,
+  CheckCircle,
+  Loader2,
+  RotateCw,
+  SlidersHorizontal,
+  Trash2,
+  XCircle,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -47,15 +56,53 @@ export interface McpServerRowProps {
   onPublish: () => void;
 }
 
+interface ReloadToolsButtonProps {
+  isDiscovering: boolean;
+  onDiscover: () => void;
+}
+
+function ReloadToolsButton({ isDiscovering, onDiscover }: ReloadToolsButtonProps) {
+  const t = useTranslations('toolbar');
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            title={t('reloadTools')}
+            aria-label={t('reloadTools')}
+            disabled={isDiscovering}
+            onClick={onDiscover}
+          />
+        }
+      >
+        {isDiscovering ? <Loader2 className="size-3 animate-spin" /> : <RotateCw className="size-3" />}
+      </TooltipTrigger>
+      <TooltipContent side="top">{t('reloadToolsHint')}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 interface TileProps {
   server: McpServerConfig;
   aggregate: ServerAggregateStatus;
   noVersion: boolean;
+  isDiscovering: boolean;
   onConfigure: () => void;
+  onDiscover: () => void;
   onRemove: () => void;
 }
 
-function ServerTile({ server, aggregate, noVersion, onConfigure, onRemove }: TileProps) {
+function ServerTile({
+  server,
+  aggregate,
+  noVersion,
+  isDiscovering,
+  onConfigure,
+  onDiscover,
+  onRemove,
+}: TileProps) {
   const t = useTranslations('toolbar');
   return (
     <div className="flex items-center justify-between gap-2">
@@ -65,6 +112,7 @@ function ServerTile({ server, aggregate, noVersion, onConfigure, onRemove }: Til
         {noVersion && <NoServerVersionBadge />}
       </span>
       <div className="flex items-center gap-1">
+        <ReloadToolsButton isDiscovering={isDiscovering} onDiscover={onDiscover} />
         <Button
           variant="ghost"
           size="icon-sm"
@@ -98,22 +146,21 @@ export function McpServerRow(props: McpServerRowProps) {
         server={props.server}
         aggregate={props.aggregate}
         noVersion={props.noVersion}
+        isDiscovering={props.isDiscovering}
         onConfigure={() => setMatrixOpen(true)}
+        onDiscover={props.onDiscover}
         onRemove={props.onRemove}
       />
       <McpTenantMatrixModal
         open={matrixOpen}
         onOpenChange={setMatrixOpen}
         server={props.server}
-        status={props.status}
-        isDiscovering={props.isDiscovering}
         agentId={props.agentId}
         tenants={toMatrixTenants(props.tenants)}
         envVariables={props.envVariables}
         orgId={props.orgId}
         authType={props.authType}
         onUpdate={props.onUpdate}
-        onDiscover={props.onDiscover}
         onPublish={props.onPublish}
       />
     </li>

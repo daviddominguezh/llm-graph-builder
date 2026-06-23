@@ -51,11 +51,10 @@ function MatrixHeader({ columns }: { columns: string[] }) {
       <TableRow>
         <TableHead className="w-[200px]">{t('tenantColumn')}</TableHead>
         {columns.map((variable) => (
-          <TableHead key={variable} className="font-mono text-[11px]">
+          <TableHead key={variable} className="w-[150px] font-mono text-[11px]">
             {`{{${variable}}}`}
           </TableHead>
         ))}
-        <TableHead className="w-[160px] text-right">{t('statusColumn')}</TableHead>
       </TableRow>
     </TableHeader>
   );

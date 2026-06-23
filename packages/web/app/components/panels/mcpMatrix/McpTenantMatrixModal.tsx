@@ -1,6 +1,5 @@
 'use client';
 
-import type { McpServerStatus } from '@/app/hooks/useMcpServers';
 import { useMcpTenantConfigs } from '@/app/hooks/useMcpTenantConfigs';
 import type { McpAuthType } from '@/app/lib/mcpLibraryTypes';
 import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
@@ -27,15 +26,12 @@ export interface McpTenantMatrixModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   server: McpServerConfig;
-  status: McpServerStatus;
-  isDiscovering: boolean;
   agentId: string;
   tenants: MatrixTenant[];
   envVariables: OrgEnvVariableRow[];
   orgId: string;
   authType?: McpAuthType;
   onUpdate: (updates: Partial<McpServerConfig>) => void;
-  onDiscover: () => void;
   onPublish: () => void;
 }
 
@@ -61,17 +57,14 @@ function DefinitionSection(props: McpTenantMatrixModalProps) {
     <section className="flex flex-col gap-2">
       <div className="flex items-baseline gap-2">
         <h3 className="text-xs font-semibold">{t('definitionTitle')}</h3>
-        {isFromLibrary && <span className="text-[0.625rem] text-muted-foreground">{t('libraryConfig')}</span>}
+        {isFromLibrary && <span className="text-xs text-muted-foreground">({t('libraryConfig')})</span>}
       </div>
       <ServerDefinitionFields
         server={props.server}
-        status={props.status}
-        isDiscovering={props.isDiscovering}
         envVariables={props.envVariables}
         orgId={props.orgId}
         authType={props.authType}
         onUpdate={props.onUpdate}
-        onDiscover={props.onDiscover}
         onPublish={props.onPublish}
       />
     </section>

@@ -114,6 +114,8 @@
     "status": "Validation status",
     "edit": "Edit",
     "configure": "Configure",
+    "reloadTools": "Reload tools",
+    "reloadToolsHint": "Re-discover this server's tools",
     "removeServer": "Remove server",
     "simulate": "Simulate",
     "generate": "Generate",
