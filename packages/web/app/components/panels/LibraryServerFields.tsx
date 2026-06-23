@@ -1,52 +1,63 @@
 'use client';
 
-import { extractTemplateVariables } from '@daviddh/graph-types';
-
 import type { McpAuthType } from '@/app/lib/mcpLibraryTypes';
-import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
 import type { McpServerConfig } from '@/app/schemas/graph.schema';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useTranslations } from 'next-intl';
 
-import { VariableValuesEditor } from './VariableValuesEditor';
-import type { VariableValue } from './VariableValuesEditor';
-
 interface LibraryServerFieldsProps {
   server: McpServerConfig;
-  envVariables: OrgEnvVariableRow[];
   authType?: McpAuthType;
   oauthConnected?: boolean;
-  onUpdate: (updates: Partial<McpServerConfig>) => void;
 }
 
-export interface VariableValueShape {
-  type: string;
-  value?: string;
-  envVariableId?: string;
-}
-
-export function areVariablesComplete(
-  variableValues: Record<string, VariableValueShape> | undefined
-): boolean {
-  if (variableValues === undefined) return true;
-  return Object.values(variableValues).every((v) =>
-    v.type === 'direct' ? (v.value ?? '') !== '' : (v.envVariableId ?? '') !== ''
+function ReadOnlyField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="space-y-1">
+      <Label>{label}</Label>
+      <Input value={value} disabled />
+    </div>
   );
 }
 
-function buildVariableList(server: McpServerConfig): Array<{ name: string }> {
-  return extractTemplateVariables(server.transport).map((name) => ({ name }));
+function KeyValueView({ label, entries }: { label: string; entries: Array<[string, string]> }) {
+  if (entries.length === 0) return null;
+
+  return (
+    <div className="space-y-1">
+      <Label>{label}</Label>
+      <div className="flex flex-col gap-1">
+        {entries.map(([key, value]) => (
+          <div key={key} className="flex gap-2">
+            <Input value={key} disabled className="flex-1 font-mono text-xs" />
+            <Input value={value} disabled className="flex-1 font-mono text-xs" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
-function getTransportEndpoint(transport: McpServerConfig['transport']): string {
-  if (transport.type === 'stdio') return transport.command;
-  return transport.url;
-}
+function TransportFieldsView({ transport }: { transport: McpServerConfig['transport'] }) {
+  if (transport.type === 'stdio') {
+    const args = transport.args ?? [];
+    return (
+      <>
+        <ReadOnlyField label="Command" value={transport.command} />
+        {args.length > 0 && <ReadOnlyField label="Arguments" value={args.join(' ')} />}
+        <KeyValueView label="Environment" entries={Object.entries(transport.env ?? {})} />
+      </>
+    );
+  }
 
-function getEndpointLabel(transport: McpServerConfig['transport']): string {
-  return transport.type === 'stdio' ? 'Command' : 'URL';
+  return (
+    <>
+      <ReadOnlyField label="URL" value={transport.url} />
+      <KeyValueView label="Headers" entries={Object.entries(transport.headers ?? {})} />
+    </>
+  );
 }
 
 function OAuthStatus({ connected }: { connected: boolean }) {
@@ -61,59 +72,18 @@ function OAuthStatus({ connected }: { connected: boolean }) {
   return <p className="text-xs text-muted-foreground">{t('oauthRequired')}</p>;
 }
 
-function VariableSection({
-  server,
-  envVariables,
-  onUpdate,
-}: Pick<LibraryServerFieldsProps, 'server' | 'envVariables' | 'onUpdate'>) {
-  const variables = buildVariableList(server);
-  const values = (server.variableValues ?? {}) as Record<string, VariableValue>;
-
-  function handleVariableChange(newValues: Record<string, VariableValue>): void {
-    onUpdate({ variableValues: newValues as McpServerConfig['variableValues'] });
-  }
-
-  if (variables.length === 0) return null;
-
-  return (
-    <VariableValuesEditor
-      variables={variables}
-      values={values}
-      envVariables={envVariables}
-      onChange={handleVariableChange}
-    />
-  );
-}
-
-export function LibraryServerFields({
-  server,
-  envVariables,
-  authType,
-  oauthConnected,
-  onUpdate,
-}: LibraryServerFieldsProps) {
+export function LibraryServerFields({ server, authType, oauthConnected }: LibraryServerFieldsProps) {
   const t = useTranslations('mcpLibrary');
-  const isOAuth = authType === 'oauth';
 
   return (
     <div className="mt-2 flex flex-col gap-2">
       <p className="text-xs font-semibold">{t('readOnlyConfig')}</p>
-      <div className='pl-3 border-l-2 flex flex-col gap-2 mb-1.5'>
-        <div className="space-y-1">
-          <Label>Name</Label>
-          <Input value={server.name} disabled />
-        </div>
-        <div className="space-y-1">
-          <Label>{getEndpointLabel(server.transport)}</Label>
-          <Input value={getTransportEndpoint(server.transport)} disabled />
-        </div>
+      <div className="pl-3 border-l-2 flex flex-col gap-2 mb-1.5">
+        <ReadOnlyField label="Name" value={server.name} />
+        <ReadOnlyField label="Transport" value={server.transport.type.toUpperCase()} />
+        <TransportFieldsView transport={server.transport} />
       </div>
-
-      {isOAuth ? (
-        <OAuthStatus connected={oauthConnected ?? false} />
-      ) : (
-        <VariableSection server={server} envVariables={envVariables} onUpdate={onUpdate} />
-      )}
+      {authType === 'oauth' && <OAuthStatus connected={oauthConnected ?? false} />}
     </div>
   );
 }

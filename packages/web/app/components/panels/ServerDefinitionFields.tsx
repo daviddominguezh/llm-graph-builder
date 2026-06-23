@@ -10,8 +10,7 @@ import { useOAuthStatus } from '../../hooks/useOAuthStatus';
 import type { McpAuthType } from '../../lib/mcpLibraryTypes';
 import type { OrgEnvVariableRow } from '../../lib/orgEnvVariables';
 import type { McpServerConfig } from '../../schemas/graph.schema';
-import { LibraryServerFields, areVariablesComplete } from './LibraryServerFields';
-import type { VariableValueShape } from './LibraryServerFields';
+import { LibraryServerFields } from './LibraryServerFields';
 import { StdioTransportFields, TransportTypeSelector, UrlTransportFields } from './TransportFields';
 
 interface DiscoverButtonProps {
@@ -81,27 +80,14 @@ interface LibraryFieldsProps {
 }
 
 function LibraryFields(props: LibraryFieldsProps) {
-  const { server, status, isDiscovering, envVariables, orgId, authType, onUpdate, onDiscover } = props;
-  const variableValues = server.variableValues as Record<string, VariableValueShape> | undefined;
-  const varsComplete = areVariablesComplete(variableValues);
+  const { server, status, isDiscovering, orgId, authType, onDiscover } = props;
   const oauthStatus = useOAuthStatus(orgId, authType === 'oauth' ? server.libraryItemId : undefined);
 
   return (
     <>
-      <LibraryServerFields
-        server={server}
-        envVariables={envVariables}
-        authType={authType}
-        oauthConnected={oauthStatus.connected}
-        onUpdate={onUpdate}
-      />
+      <LibraryServerFields server={server} authType={authType} oauthConnected={oauthStatus.connected} />
       <div className="w-full flex justify-end my-1.5 mt-3.5">
-        <DiscoverButton
-          status={status}
-          isDiscovering={isDiscovering}
-          onDiscover={onDiscover}
-          disabled={authType !== 'oauth' && !varsComplete}
-        />
+        <DiscoverButton status={status} isDiscovering={isDiscovering} onDiscover={onDiscover} />
       </div>
     </>
   );
