@@ -70,7 +70,6 @@ function ReloadToolsButton({ isDiscovering, onDiscover }: ReloadToolsButtonProps
           <Button
             variant="ghost"
             size="icon-sm"
-            title={t('reloadTools')}
             aria-label={t('reloadTools')}
             disabled={isDiscovering}
             onClick={onDiscover}
