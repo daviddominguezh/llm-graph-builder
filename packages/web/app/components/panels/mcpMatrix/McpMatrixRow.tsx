@@ -4,7 +4,6 @@ import { TenantAvatar } from '@/app/components/agents/channels/TenantAvatar';
 import type { ServerTenantStatus } from '@/app/lib/mcpTenantStatus';
 import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
 import { Button } from '@/components/ui/button';
-import { TableCell, TableRow } from '@/components/ui/table';
 import { AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -31,23 +30,35 @@ export interface McpMatrixRowProps {
 
 const DEFAULT_VALUE: VariableValue = { type: 'direct', value: '' };
 
+// Sticky frozen first column (Tenant) — opaque bg-popover so scrolled variable
+// cells don't bleed through; z-10 keeps it above the scrolling middle.
+const FROZEN_LEFT = 'sticky left-0 z-10 border-r bg-popover';
+// Sticky frozen last column (Status).
+const FROZEN_RIGHT = 'sticky right-0 z-10 border-l bg-popover';
+const CELL_PADDING = 'px-2 py-1.5';
+
 function RowStatusIcon({ kind, className }: { kind: RowStatusIconKind; className: string }) {
   if (kind === 'ok') return <CheckCircle className={`size-3 ${className}`} />;
   if (kind === 'error') return <XCircle className={`size-3 ${className}`} />;
   return <AlertTriangle className={`size-3 ${className}`} />;
 }
 
-interface TenantCellProps {
-  tenant: McpMatrixRowTenant;
-  status: ServerTenantStatus;
-  onTest: () => void;
+function TenantCell({ tenant }: { tenant: McpMatrixRowTenant }) {
+  const tTenants = useTranslations('tenants');
+  return (
+    <div className={`${FROZEN_LEFT} ${CELL_PADDING} flex items-center gap-2`}>
+      <TenantAvatar name={tenant.name} avatarUrl={tenant.avatarUrl} small />
+      <span className="truncate text-xs font-medium">{tenant.name}</span>
+      {tenant.isDefault && <span className="text-xs text-muted-foreground">{tTenants('defaultLabel')}</span>}
+    </div>
+  );
 }
 
-function StatusActionRow({ status, onTest }: { status: ServerTenantStatus; onTest: () => void }) {
+function StatusCell({ status, onTest }: { status: ServerTenantStatus; onTest: () => void }) {
   const t = useTranslations('mcpMatrix');
   const { labelKey, iconKind, colorClassName } = describeRowStatus(status);
   return (
-    <div className="flex items-center gap-2">
+    <div className={`${FROZEN_RIGHT} ${CELL_PADDING} flex items-center justify-between gap-2`}>
       <span className="flex items-center gap-1 text-[0.625rem] text-muted-foreground">
         <RowStatusIcon kind={iconKind} className={colorClassName} />
         {t(labelKey)}
@@ -56,24 +67,6 @@ function StatusActionRow({ status, onTest }: { status: ServerTenantStatus; onTes
         {t('test')}
       </Button>
     </div>
-  );
-}
-
-function TenantCell({ tenant, status, onTest }: TenantCellProps) {
-  const tTenants = useTranslations('tenants');
-  return (
-    <TableCell className="w-[200px] align-top">
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2">
-          <TenantAvatar name={tenant.name} avatarUrl={tenant.avatarUrl} small />
-          <span className="truncate text-xs font-medium">{tenant.name}</span>
-          {tenant.isDefault && (
-            <span className="text-xs text-muted-foreground">{tTenants('defaultLabel')}</span>
-          )}
-        </div>
-        <StatusActionRow status={status} onTest={onTest} />
-      </div>
-    </TableCell>
   );
 }
 
@@ -87,17 +80,18 @@ export function McpMatrixRow({
   onTest,
 }: McpMatrixRowProps) {
   return (
-    <TableRow>
-      <TenantCell tenant={tenant} status={status} onTest={onTest} />
+    <>
+      <TenantCell tenant={tenant} />
       {columns.map((variable) => (
-        <TableCell key={variable} className="w-[150px] align-top">
+        <div key={variable} className={`${CELL_PADDING} items-start`}>
           <McpMatrixCell
             value={values[variable] ?? DEFAULT_VALUE}
             envVars={envVars}
             onChange={(value) => onCellChange(variable, value)}
           />
-        </TableCell>
+        </div>
       ))}
-    </TableRow>
+      <StatusCell status={status} onTest={onTest} />
+    </>
   );
 }
