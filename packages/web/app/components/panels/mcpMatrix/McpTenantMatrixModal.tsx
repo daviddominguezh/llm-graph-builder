@@ -56,9 +56,13 @@ function useMatrixConfig({ server, agentId, tenants, envVariables }: MatrixConfi
 
 function DefinitionSection(props: McpTenantMatrixModalProps) {
   const t = useTranslations('mcpMatrix');
+  const isFromLibrary = props.server.libraryItemId !== undefined;
   return (
     <section className="flex flex-col gap-2">
-      <h3 className="text-xs font-semibold">{t('definitionTitle')}</h3>
+      <div className="flex items-baseline gap-2">
+        <h3 className="text-xs font-semibold">{t('definitionTitle')}</h3>
+        {isFromLibrary && <span className="text-[0.625rem] text-muted-foreground">{t('libraryConfig')}</span>}
+      </div>
       <ServerDefinitionFields
         server={props.server}
         status={props.status}

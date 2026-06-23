@@ -44,12 +44,6 @@ function OAuthNote() {
   return <p className="text-xs text-muted-foreground">{t('oauthStatusOnly')}</p>;
 }
 
-function ColumnHint({ columns }: { columns: string[] }) {
-  const t = useTranslations('mcpMatrix');
-  if (columns.length === 0) return null;
-  return <p className="text-[0.625rem] text-muted-foreground">{t('envVarColumnHint')}</p>;
-}
-
 function MatrixHeader({ columns }: { columns: string[] }) {
   const t = useTranslations('mcpMatrix');
   return (
@@ -91,7 +85,7 @@ export function MatrixSection(props: MatrixSectionProps) {
   if (props.tenants.length === 0) return <EmptyTenants />;
   return (
     <section className="flex flex-col gap-2">
-      {props.columns.length === 0 ? <OAuthNote /> : <ColumnHint columns={props.columns} />}
+      {props.columns.length === 0 && <OAuthNote />}
       <Table>
         <MatrixHeader columns={props.columns} />
         <MatrixRows {...props} />

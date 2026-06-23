@@ -3,7 +3,6 @@
 import { TenantAvatar } from '@/app/components/agents/channels/TenantAvatar';
 import type { ServerTenantStatus } from '@/app/lib/mcpTenantStatus';
 import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
@@ -46,9 +45,7 @@ function TenantCell({ tenant }: { tenant: McpMatrixRowTenant }) {
         <TenantAvatar name={tenant.name} avatarUrl={tenant.avatarUrl} small />
         <span className="truncate text-xs font-medium">{tenant.name}</span>
         {tenant.isDefault && (
-          <Badge variant="secondary" className="text-[0.625rem]">
-            {tTenants('defaultLabel')}
-          </Badge>
+          <span className="text-xs text-muted-foreground">{tTenants('defaultLabel')}</span>
         )}
       </div>
     </TableCell>

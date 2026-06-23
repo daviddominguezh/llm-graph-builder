@@ -2231,6 +2231,7 @@
     "needsConfig": "Needs configuration",
     "definitionHeader": "Definition",
     "definitionTitle": "Server definition",
+    "libraryConfig": "Configuration from library",
     "definitionHelp": "Configure how this MCP server connects for each tenant.",
     "useEnvVar": "Use environment variable",
     "envShared": "Shared across tenants",
