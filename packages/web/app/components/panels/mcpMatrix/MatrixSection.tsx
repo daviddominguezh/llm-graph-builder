@@ -27,9 +27,9 @@ export interface MatrixSectionProps {
 
 // Header cells share the muted/semibold look + bottom divider. Frozen header
 // cells use z-20 so they stay above the body's z-10 sticky cells when scrolled.
-const HEADER_CELL = 'px-2 py-1.5 border-b font-semibold text-muted-foreground';
-const HEADER_FROZEN_LEFT = 'sticky left-0 z-20 border-r bg-popover';
-const HEADER_FROZEN_RIGHT = 'sticky right-0 z-20 border-l bg-popover';
+const HEADER_CELL = 'px-2 py-1.5 border-b border-r font-semibold text-muted-foreground';
+const HEADER_FROZEN_LEFT = 'sticky left-0 z-20 bg-popover';
+const HEADER_FROZEN_RIGHT = 'sticky right-0 z-20 bg-popover';
 
 function LoadingBody() {
   return (
@@ -67,11 +67,11 @@ function MatrixHeaderCells({ columns }: { columns: string[] }) {
 
 function MatrixGrid(props: MatrixSectionProps) {
   const gridStyle = {
-    gridTemplateColumns: `200px repeat(${props.columns.length}, 150px) minmax(0, 1fr) 180px`,
+    gridTemplateColumns: `200px repeat(${props.columns.length}, 220px) minmax(0, 1fr) 180px`,
   };
   return (
     <div data-native-scroll className="overflow-x-auto">
-      <div className="grid min-w-full text-xs" style={gridStyle}>
+      <div className="grid min-w-full border-t border-l text-xs" style={gridStyle}>
         <MatrixHeaderCells columns={props.columns} />
         {props.tenants.map((tenant) => (
           <McpMatrixRow
