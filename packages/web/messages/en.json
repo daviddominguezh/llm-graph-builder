@@ -2215,5 +2215,22 @@
         }
       }
     }
+  },
+  "mcpMatrix": {
+    "title": "MCP configuration",
+    "verifyAll": "Verify all",
+    "test": "Test",
+    "statusOk": "Connected",
+    "statusPending": "Pending",
+    "statusError": "Error",
+    "needsConfig": "Needs configuration",
+    "definitionHeader": "Definition",
+    "definitionHelp": "Configure how this MCP server connects for each tenant.",
+    "useEnvVar": "Use environment variable",
+    "envShared": "Shared across tenants",
+    "secretWarning": "This value is stored securely and never displayed again after saving.",
+    "redactedError": "The connection failed. Details are hidden for security.",
+    "emptyTenants": "No tenants to configure.",
+    "oauthStatusOnly": "This server uses OAuth; only its connection status is shown here."
   }
 }
