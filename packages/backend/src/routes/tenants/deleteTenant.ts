@@ -9,6 +9,7 @@ import {
   HTTP_OK,
   extractErrorMessage,
 } from '../routeHelpers.js';
+import { assertNotDefaultTenant } from './defaultTenantGuards.js';
 import { getTenantIdParam } from './tenantHelpers.js';
 
 export async function handleDeleteTenant(req: Request, res: AuthenticatedResponse): Promise<void> {
@@ -19,6 +20,8 @@ export async function handleDeleteTenant(req: Request, res: AuthenticatedRespons
     res.status(HTTP_BAD_REQUEST).json({ error: 'Tenant ID is required' });
     return;
   }
+
+  if (await assertNotDefaultTenant(supabase, tenantId, res, 'default_tenant_undeletable')) return;
 
   try {
     const { error } = await deleteTenant(supabase, tenantId);

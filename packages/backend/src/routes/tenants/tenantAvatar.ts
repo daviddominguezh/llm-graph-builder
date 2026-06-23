@@ -10,6 +10,7 @@ import {
   HTTP_OK,
   extractErrorMessage,
 } from '../routeHelpers.js';
+import { assertNotDefaultTenant } from './defaultTenantGuards.js';
 import { getTenantIdParam } from './tenantHelpers.js';
 
 function getMulterFile(req: Request): Express.Multer.File | undefined {
@@ -24,6 +25,8 @@ export async function handleUploadTenantAvatar(req: Request, res: AuthenticatedR
     res.status(HTTP_BAD_REQUEST).json({ error: 'Tenant ID is required' });
     return;
   }
+
+  if (await assertNotDefaultTenant(supabase, tenantId, res, 'default_tenant_locked')) return;
 
   const file = getMulterFile(req);
   if (file === undefined) {
@@ -63,6 +66,8 @@ export async function handleRemoveTenantAvatar(req: Request, res: AuthenticatedR
     res.status(HTTP_BAD_REQUEST).json({ error: 'Tenant ID is required' });
     return;
   }
+
+  if (await assertNotDefaultTenant(supabase, tenantId, res, 'default_tenant_locked')) return;
 
   try {
     await removeTenantAvatar(supabase, tenantId);

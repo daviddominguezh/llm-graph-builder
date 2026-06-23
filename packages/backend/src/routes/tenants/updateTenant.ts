@@ -9,6 +9,7 @@ import {
   HTTP_OK,
   extractErrorMessage,
 } from '../routeHelpers.js';
+import { assertNotDefaultTenant } from './defaultTenantGuards.js';
 import { getTenantIdParam, parseStringField } from './tenantHelpers.js';
 
 export async function handleUpdateTenant(req: Request, res: AuthenticatedResponse): Promise<void> {
@@ -25,6 +26,8 @@ export async function handleUpdateTenant(req: Request, res: AuthenticatedRespons
     res.status(HTTP_BAD_REQUEST).json({ error: 'name is required' });
     return;
   }
+
+  if (await assertNotDefaultTenant(supabase, tenantId, res, 'default_tenant_locked')) return;
 
   try {
     const { result, error } = await updateTenant(supabase, tenantId, name);
