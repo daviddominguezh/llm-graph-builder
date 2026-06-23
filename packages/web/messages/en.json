@@ -113,6 +113,8 @@
   "toolbar": {
     "status": "Validation status",
     "edit": "Edit",
+    "configure": "Configure",
+    "removeServer": "Remove server",
     "simulate": "Simulate",
     "generate": "Generate",
     "globalNodes": "Global nodes",
@@ -2222,18 +2224,24 @@
   "mcpMatrix": {
     "title": "MCP configuration",
     "verifyAll": "Verify all",
-    "test": "Test",
+    "test": "Test connection",
     "statusOk": "Connected",
     "statusPending": "Pending",
     "statusError": "Error",
     "needsConfig": "Needs configuration",
     "definitionHeader": "Definition",
+    "definitionTitle": "Server definition",
     "definitionHelp": "Configure how this MCP server connects for each tenant.",
     "useEnvVar": "Use environment variable",
     "envShared": "Shared across tenants",
+    "envVarColumnHint": "Environment-variable references resolve to the same value for every tenant.",
     "secretWarning": "This value is stored securely and never displayed again after saving.",
     "redactedError": "The connection failed. Details are hidden for security.",
     "emptyTenants": "No tenants to configure.",
-    "oauthStatusOnly": "This server uses OAuth; only its connection status is shown here."
+    "oauthStatusOnly": "This server uses OAuth; only its connection status is shown here.",
+    "tenantColumn": "Tenant",
+    "statusColumn": "Status",
+    "directMode": "Direct value",
+    "envRefMode": "Environment variable"
   }
 }

@@ -1,189 +1,119 @@
 'use client';
 
-import { type UseMcpTenantConfigsResult, useMcpTenantConfigs } from '@/app/hooks/useMcpTenantConfigs';
+import type { McpServerStatus } from '@/app/hooks/useMcpServers';
+import { useMcpTenantConfigs } from '@/app/hooks/useMcpTenantConfigs';
+import type { McpAuthType } from '@/app/lib/mcpLibraryTypes';
 import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
-import type { McpServerConfig, McpTransport } from '@/app/schemas/graph.schema';
-import { Button } from '@/components/ui/button';
+import type { McpServerConfig } from '@/app/schemas/graph.schema';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import { Scrollable } from '../../Scrollable';
-import { McpMatrixRow } from './McpMatrixRow';
-import { McpServerDefinitionSection } from './McpServerDefinitionSection';
+import { ServerDefinitionFields } from '../ServerDefinitionFields';
+import { MatrixSection } from './MatrixSection';
+import { MatrixToolbar } from './MatrixToolbar';
 import {
   type MatrixTenant,
   buildMatrixColumns,
-  isCustomServer,
   mergeCellValue,
   orderTenantsDefaultFirst,
   valuesForTenant,
 } from './mcpMatrixModalLogic';
 
+type VariableInput = Parameters<typeof mergeCellValue>[2];
+
 export interface McpTenantMatrixModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   server: McpServerConfig;
+  status: McpServerStatus;
+  isDiscovering: boolean;
   agentId: string;
   tenants: MatrixTenant[];
   envVariables: OrgEnvVariableRow[];
-  onTransportChange?: (transport: McpTransport) => void;
+  orgId: string;
+  authType?: McpAuthType;
+  onUpdate: (updates: Partial<McpServerConfig>) => void;
+  onDiscover: () => void;
+  onPublish: () => void;
 }
 
-function LoadingBody() {
-  return (
-    <div className="flex items-center justify-center py-8">
-      <Loader2 className="size-4 animate-spin text-muted-foreground" />
-    </div>
-  );
-}
-
-function EmptyBody() {
-  const t = useTranslations('mcpMatrix');
-  return <p className="py-6 text-center text-xs text-muted-foreground">{t('emptyTenants')}</p>;
-}
-
-function OAuthNote() {
-  const t = useTranslations('mcpMatrix');
-  return <p className="text-xs text-muted-foreground">{t('oauthStatusOnly')}</p>;
-}
-
-interface RowsListProps {
-  server: McpServerConfig;
-  tenants: MatrixTenant[];
-  columns: string[];
-  envVariables: OrgEnvVariableRow[];
-  config: UseMcpTenantConfigsResult;
-}
-
-function RowsList({ server, tenants, columns, envVariables, config }: RowsListProps) {
-  return (
-    <div className="flex flex-col gap-2">
-      {columns.length === 0 && <OAuthNote />}
-      {tenants.map((tenant) => {
-        const values = valuesForTenant(config.rows, server.id, tenant.id);
-        return (
-          <McpMatrixRow
-            key={tenant.id}
-            tenant={tenant}
-            columns={columns}
-            values={values}
-            status={config.statusFor(server.id, tenant.id)}
-            envVars={envVariables}
-            onCellChange={(variable, value) =>
-              void config.saveCell(server.id, tenant.id, mergeCellValue(values, variable, value))
-            }
-            onTest={() => void config.verifyServer(server.id)}
-          />
-        );
-      })}
-    </div>
-  );
-}
-
-interface MatrixBodyProps {
-  server: McpServerConfig;
-  tenants: MatrixTenant[];
-  columns: string[];
-  envVariables: OrgEnvVariableRow[];
-  config: UseMcpTenantConfigsResult;
-  transport: McpTransport;
-  onTransportChange: (transport: McpTransport) => void;
-}
-
-function MatrixBody(props: MatrixBodyProps) {
-  const { server, tenants, columns, envVariables, config, transport, onTransportChange } = props;
-  return (
-    <div className="flex flex-col gap-3">
-      {isCustomServer(server) && (
-        <McpServerDefinitionSection transport={transport} onTemplateChange={onTransportChange} />
-      )}
-      {renderBody(config.loading, tenants, columns, envVariables, server, config)}
-    </div>
-  );
-}
-
-function renderBody(
-  loading: boolean,
-  tenants: MatrixTenant[],
-  columns: string[],
-  envVariables: OrgEnvVariableRow[],
-  server: McpServerConfig,
-  config: UseMcpTenantConfigsResult
-) {
-  if (loading) return <LoadingBody />;
-  if (tenants.length === 0) return <EmptyBody />;
-  return (
-    <Scrollable className="max-h-[60vh]">
-      <RowsList
-        server={server}
-        tenants={tenants}
-        columns={columns}
-        envVariables={envVariables}
-        config={config}
-      />
-    </Scrollable>
-  );
-}
-
-interface MatrixContentProps {
+interface MatrixConfigArgs {
   server: McpServerConfig;
   agentId: string;
   tenants: MatrixTenant[];
   envVariables: OrgEnvVariableRow[];
-  transport: McpTransport;
-  onTransportChange: (transport: McpTransport) => void;
 }
 
-function MatrixContent(props: MatrixContentProps) {
-  const { server, agentId, tenants, envVariables, transport, onTransportChange } = props;
-  const t = useTranslations('mcpMatrix');
+function useMatrixConfig({ server, agentId, tenants, envVariables }: MatrixConfigArgs) {
   const orderedTenants = useMemo(() => orderTenantsDefaultFirst(tenants), [tenants]);
   const ids = useMemo(() => orderedTenants.map((tenant) => tenant.id), [orderedTenants]);
-  const columns = useMemo(() => buildMatrixColumns({ ...server, transport }), [server, transport]);
+  const columns = useMemo(() => buildMatrixColumns(server), [server]);
   const config = useMcpTenantConfigs({ agentId, servers: [server], tenants: ids, envVariables });
+  return { orderedTenants, columns, config };
+}
+
+function DefinitionSection(props: McpTenantMatrixModalProps) {
+  const t = useTranslations('mcpMatrix');
+  return (
+    <section className="flex flex-col gap-2">
+      <h3 className="text-xs font-semibold">{t('definitionTitle')}</h3>
+      <ServerDefinitionFields
+        server={props.server}
+        status={props.status}
+        isDiscovering={props.isDiscovering}
+        envVariables={props.envVariables}
+        orgId={props.orgId}
+        authType={props.authType}
+        onUpdate={props.onUpdate}
+        onDiscover={props.onDiscover}
+        onPublish={props.onPublish}
+      />
+    </section>
+  );
+}
+
+function MatrixContent(props: McpTenantMatrixModalProps) {
+  const { server, agentId, tenants, envVariables } = props;
+  const { orderedTenants, columns, config } = useMatrixConfig({ server, agentId, tenants, envVariables });
+
+  const onCellChange = (tenantId: string, variable: string, value: VariableInput) => {
+    const values = valuesForTenant(config.rows, server.id, tenantId);
+    void config.saveCell(server.id, tenantId, mergeCellValue(values, variable, value));
+  };
+
   return (
     <>
-      <DialogHeader>
-        <div className="flex items-center justify-between gap-3">
-          <DialogTitle>{`${t('title')} — ${server.name}`}</DialogTitle>
-          <Button variant="outline" size="xs" onClick={() => void config.verifyAll()}>
-            {t('verifyAll')}
-          </Button>
+      <MatrixToolbar onVerifyAll={() => void config.verifyAll()} />
+      <Scrollable className="-mx-1 flex-1 px-1">
+        <div className="flex flex-col gap-4">
+          <DefinitionSection {...props} />
+          <MatrixSection
+            server={server}
+            tenants={orderedTenants}
+            columns={columns}
+            envVariables={envVariables}
+            config={config}
+            statusFor={(tenantId) => config.statusFor(server.id, tenantId)}
+            valuesFor={(tenantId) => valuesForTenant(config.rows, server.id, tenantId)}
+            onTest={() => void config.verifyServer(server.id)}
+            onCellChange={onCellChange}
+          />
         </div>
-      </DialogHeader>
-      <MatrixBody
-        server={server}
-        tenants={orderedTenants}
-        columns={columns}
-        envVariables={envVariables}
-        config={config}
-        transport={transport}
-        onTransportChange={onTransportChange}
-      />
+      </Scrollable>
     </>
   );
 }
 
 export function McpTenantMatrixModal(props: McpTenantMatrixModalProps) {
-  const { open, onOpenChange, server, agentId, tenants, envVariables, onTransportChange } = props;
-  const [transport, setTransport] = useState<McpTransport>(server.transport);
-  const handleTransportChange = (next: McpTransport) => {
-    setTransport(next);
-    onTransportChange?.(next);
-  };
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <MatrixContent
-          server={server}
-          agentId={agentId}
-          tenants={tenants}
-          envVariables={envVariables}
-          transport={transport}
-          onTransportChange={handleTransportChange}
-        />
+    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
+      <DialogContent className="flex max-h-[85vh] flex-col gap-3 sm:max-w-4xl">
+        <DialogHeader>
+          <DialogTitle>{props.server.name}</DialogTitle>
+        </DialogHeader>
+        <MatrixContent {...props} />
       </DialogContent>
     </Dialog>
   );

@@ -1,9 +1,11 @@
 'use client';
 
+import { TenantAvatar } from '@/app/components/agents/channels/TenantAvatar';
 import type { ServerTenantStatus } from '@/app/lib/mcpTenantStatus';
 import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { TableCell, TableRow } from '@/components/ui/table';
 import { AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -11,8 +13,15 @@ import type { VariableValue } from '../VariableValuesEditor';
 import { McpMatrixCell } from './McpMatrixCell';
 import { type RowStatusIconKind, describeRowStatus } from './mcpMatrixRowLogic';
 
+export interface McpMatrixRowTenant {
+  id: string;
+  name: string;
+  isDefault: boolean;
+  avatarUrl: string | null;
+}
+
 export interface McpMatrixRowProps {
-  tenant: { id: string; name: string; isDefault: boolean };
+  tenant: McpMatrixRowTenant;
   columns: string[];
   values: Record<string, VariableValue>;
   status: ServerTenantStatus;
@@ -29,28 +38,43 @@ function RowStatusIcon({ kind, className }: { kind: RowStatusIconKind; className
   return <AlertTriangle className={`size-3 ${className}`} />;
 }
 
-function TenantLabel({ tenant }: { tenant: McpMatrixRowProps['tenant'] }) {
+function TenantCell({ tenant }: { tenant: McpMatrixRowTenant }) {
   const tTenants = useTranslations('tenants');
   return (
-    <span className="flex items-center gap-1.5 text-xs">
-      {tenant.name}
-      {tenant.isDefault && (
-        <Badge variant="secondary" className="text-[0.625rem]">
-          {tTenants('defaultLabel')}
-        </Badge>
-      )}
-    </span>
+    <TableCell className="w-[200px]">
+      <div className="flex items-center gap-2">
+        <TenantAvatar name={tenant.name} avatarUrl={tenant.avatarUrl} small />
+        <span className="truncate text-xs font-medium">{tenant.name}</span>
+        {tenant.isDefault && (
+          <Badge variant="secondary" className="text-[0.625rem]">
+            {tTenants('defaultLabel')}
+          </Badge>
+        )}
+      </div>
+    </TableCell>
   );
 }
 
-function RowStatus({ status }: { status: ServerTenantStatus }) {
+interface StatusActionCellProps {
+  status: ServerTenantStatus;
+  onTest: () => void;
+}
+
+function StatusActionCell({ status, onTest }: StatusActionCellProps) {
   const t = useTranslations('mcpMatrix');
   const { labelKey, iconKind, colorClassName } = describeRowStatus(status);
   return (
-    <span className="flex items-center gap-1.5 text-[0.625rem] text-muted-foreground">
-      <RowStatusIcon kind={iconKind} className={colorClassName} />
-      {t(labelKey)}
-    </span>
+    <TableCell className="w-[160px]">
+      <div className="flex items-center justify-end gap-2">
+        <span className="flex items-center gap-1 text-[0.625rem] text-muted-foreground">
+          <RowStatusIcon kind={iconKind} className={colorClassName} />
+          {t(labelKey)}
+        </span>
+        <Button variant="outline" size="xs" onClick={onTest}>
+          {t('test')}
+        </Button>
+      </div>
+    </TableCell>
   );
 }
 
@@ -63,28 +87,19 @@ export function McpMatrixRow({
   onCellChange,
   onTest,
 }: McpMatrixRowProps) {
-  const t = useTranslations('mcpMatrix');
   return (
-    <div className="flex flex-col gap-2 rounded-md border-[0.5px] bg-background px-3 py-2 dark:border-0">
-      <div className="flex items-center justify-between">
-        <TenantLabel tenant={tenant} />
-        <div className="flex items-center gap-2">
-          <RowStatus status={status} />
-          <Button variant="outline" size="xs" onClick={onTest}>
-            {t('test')}
-          </Button>
-        </div>
-      </div>
-      <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${columns.length}, 1fr)` }}>
-        {columns.map((variable) => (
+    <TableRow>
+      <TenantCell tenant={tenant} />
+      {columns.map((variable) => (
+        <TableCell key={variable} className="align-top">
           <McpMatrixCell
-            key={variable}
             value={values[variable] ?? DEFAULT_VALUE}
             envVars={envVars}
             onChange={(value) => onCellChange(variable, value)}
           />
-        ))}
-      </div>
-    </div>
+        </TableCell>
+      ))}
+      <StatusActionCell status={status} onTest={onTest} />
+    </TableRow>
   );
 }

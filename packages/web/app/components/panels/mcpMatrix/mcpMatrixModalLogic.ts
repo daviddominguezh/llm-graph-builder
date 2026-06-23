@@ -9,6 +9,7 @@ export interface MatrixTenant {
   id: string;
   name: string;
   isDefault: boolean;
+  avatarUrl: string | null;
 }
 
 /**

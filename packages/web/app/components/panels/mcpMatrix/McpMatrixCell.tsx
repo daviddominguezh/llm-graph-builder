@@ -1,10 +1,8 @@
 'use client';
 
 import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { useTranslations } from 'next-intl';
 
 import type { VariableValue } from '../VariableValuesEditor';
@@ -17,18 +15,28 @@ export interface McpMatrixCellProps {
   onChange: (value: VariableValue) => void;
 }
 
-interface CellToggleProps {
+interface CellModeSelectProps {
   useEnvRef: boolean;
-  label: string;
-  onToggle: (useEnvRef: boolean) => void;
+  directLabel: string;
+  envLabel: string;
+  onChange: (useEnvRef: boolean) => void;
 }
 
-function CellToggle({ useEnvRef, label, onToggle }: CellToggleProps) {
+function CellModeSelect({ useEnvRef, directLabel, envLabel, onChange }: CellModeSelectProps) {
+  function handleModeChange(mode: string | null) {
+    if (mode !== null) onChange(mode === 'env_ref');
+  }
+
   return (
-    <Label className="flex items-center gap-1.5 text-[0.625rem] text-muted-foreground">
-      <Switch size="sm" checked={useEnvRef} onCheckedChange={onToggle} />
-      {label}
-    </Label>
+    <Select value={useEnvRef ? 'env_ref' : 'direct'} onValueChange={handleModeChange}>
+      <SelectTrigger size="sm" className="w-full text-xs">
+        <span className="flex flex-1 text-left">{useEnvRef ? envLabel : directLabel}</span>
+      </SelectTrigger>
+      <SelectContent alignItemWithTrigger={false} align="start">
+        <SelectItem value="direct">{directLabel}</SelectItem>
+        <SelectItem value="env_ref">{envLabel}</SelectItem>
+      </SelectContent>
+    </Select>
   );
 }
 
@@ -38,32 +46,27 @@ export function McpMatrixCell({ value, envVars, onChange }: McpMatrixCellProps) 
   const useEnvRef = isEnvRef(value);
 
   return (
-    <div className="flex flex-col gap-1">
-      <CellToggle
+    <div className="flex w-full flex-col gap-1">
+      <CellModeSelect
         useEnvRef={useEnvRef}
-        label={t('useEnvVar')}
-        onToggle={(on) => onChange(toggleCellMode(value, on))}
+        directLabel={t('directMode')}
+        envLabel={t('envRefMode')}
+        onChange={(on) => onChange(toggleCellMode(value, on))}
       />
       {useEnvRef ? (
-        <>
-          <EnvRefSelector
-            envVariableId={value.envVariableId}
-            envVariables={envVars}
-            t={tLib}
-            onChange={(id) => onChange({ type: 'env_ref', envVariableId: id })}
-          />
-          <Badge variant="secondary">{t('envShared')}</Badge>
-        </>
+        <EnvRefSelector
+          envVariableId={value.envVariableId}
+          envVariables={envVars}
+          t={tLib}
+          onChange={(id) => onChange({ type: 'env_ref', envVariableId: id })}
+        />
       ) : (
-        <>
-          <Input
-            value={value.value ?? ''}
-            onChange={(e) => onChange({ type: 'direct', value: e.target.value })}
-            placeholder={tLib('valuePlaceholder')}
-            className="text-sm"
-          />
-          <span className="text-[0.625rem] text-muted-foreground">{t('secretWarning')}</span>
-        </>
+        <Input
+          value={value.value ?? ''}
+          onChange={(e) => onChange({ type: 'direct', value: e.target.value })}
+          placeholder={tLib('valuePlaceholder')}
+          className="text-sm"
+        />
       )}
     </div>
   );

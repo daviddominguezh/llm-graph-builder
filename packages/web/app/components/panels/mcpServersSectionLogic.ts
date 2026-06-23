@@ -10,6 +10,7 @@ export interface SectionTenant {
   id: string;
   name: string;
   isDefault: boolean;
+  avatarUrl: string | null;
 }
 
 /**
@@ -17,7 +18,12 @@ export interface SectionTenant {
  * Pure so it is unit-testable in the node-env (no jsdom) Jest setup.
  */
 export function toMatrixTenants(tenants: SectionTenant[]): MatrixTenant[] {
-  return tenants.map((tenant) => ({ id: tenant.id, name: tenant.name, isDefault: tenant.isDefault }));
+  return tenants.map((tenant) => ({
+    id: tenant.id,
+    name: tenant.name,
+    isDefault: tenant.isDefault,
+    avatarUrl: tenant.avatarUrl,
+  }));
 }
 
 export type AggregateIconKind = 'ok' | 'warning' | 'error';

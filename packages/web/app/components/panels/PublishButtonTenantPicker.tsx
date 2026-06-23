@@ -11,6 +11,7 @@ export interface PublishTenant {
   slug: string;
   name: string;
   isDefault: boolean;
+  avatarUrl: string | null;
 }
 
 interface TenantPickerProps {

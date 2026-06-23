@@ -2,16 +2,15 @@
 
 import type { ServerAggregateStatus } from '@/app/lib/mcpTenantConfig';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, CheckCircle, ChevronDown, Trash2, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, SlidersHorizontal, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import type { McpServerStatus } from '../../hooks/useMcpServers';
 import type { McpAuthType, McpLibraryRow } from '../../lib/mcpLibraryTypes';
 import type { OrgEnvVariableRow } from '../../lib/orgEnvVariables';
-import type { McpServerConfig, McpTransport } from '../../schemas/graph.schema';
+import type { McpServerConfig } from '../../schemas/graph.schema';
 import { NoServerVersionBadge } from './NoServerVersionBadge';
-import { ServerDefinitionFields } from './ServerDefinitionFields';
 import { McpTenantMatrixModal } from './mcpMatrix/McpTenantMatrixModal';
 import {
   type AggregateIconKind,
@@ -48,40 +47,38 @@ export interface McpServerRowProps {
   onPublish: () => void;
 }
 
-function RowHeader({
-  server,
-  aggregate,
-  noVersion,
-  onEdit,
-  onToggle,
-  onRemove,
-  expanded,
-}: {
+interface TileProps {
   server: McpServerConfig;
   aggregate: ServerAggregateStatus;
   noVersion: boolean;
-  onEdit: () => void;
-  onToggle: () => void;
+  onConfigure: () => void;
   onRemove: () => void;
-  expanded: boolean;
-}) {
+}
+
+function ServerTile({ server, aggregate, noVersion, onConfigure, onRemove }: TileProps) {
   const t = useTranslations('toolbar');
   return (
-    <div className="flex items-center justify-between">
-      <button type="button" className="flex items-center gap-1.5 text-xs" onClick={onToggle}>
-        <ChevronDown className={`size-3 transition-transform ${expanded ? '' : '-rotate-90'}`} />
+    <div className="flex items-center justify-between gap-2">
+      <span className="flex min-w-0 items-center gap-1.5 text-xs">
         <AggregateStatusIcon status={aggregate} />
-        {server.name}
+        <span className="truncate">{server.name}</span>
         {noVersion && <NoServerVersionBadge />}
-      </button>
+      </span>
       <div className="flex items-center gap-1">
-        <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={onEdit}>
-          {t('edit')}
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          title={t('configure')}
+          aria-label={t('configure')}
+          onClick={onConfigure}
+        >
+          <SlidersHorizontal className="size-3" />
         </Button>
         <Button
           variant="destructive"
           size="icon-sm"
-          title="Remove server"
+          title={t('removeServer')}
+          aria-label={t('removeServer')}
           className="rounded-full"
           onClick={onRemove}
         >
@@ -93,44 +90,31 @@ function RowHeader({
 }
 
 export function McpServerRow(props: McpServerRowProps) {
-  const [expanded, setExpanded] = useState(false);
   const [matrixOpen, setMatrixOpen] = useState(false);
-  const handleTransportChange = (transport: McpTransport) => props.onUpdate({ transport });
 
   return (
-    <li className="rounded-md px-3 py-2 bg-background border-[0.5px] dark:border-0">
-      <RowHeader
+    <li className="rounded-md border-[0.5px] bg-background px-3 py-2 dark:border-0">
+      <ServerTile
         server={props.server}
         aggregate={props.aggregate}
         noVersion={props.noVersion}
-        expanded={expanded}
-        onEdit={() => setMatrixOpen(true)}
-        onToggle={() => setExpanded((prev) => !prev)}
+        onConfigure={() => setMatrixOpen(true)}
         onRemove={props.onRemove}
       />
-      {expanded && (
-        <div className="space-y-2 mt-2">
-          <ServerDefinitionFields
-            server={props.server}
-            status={props.status}
-            isDiscovering={props.isDiscovering}
-            envVariables={props.envVariables}
-            orgId={props.orgId}
-            authType={props.authType}
-            onUpdate={props.onUpdate}
-            onDiscover={props.onDiscover}
-            onPublish={props.onPublish}
-          />
-        </div>
-      )}
       <McpTenantMatrixModal
         open={matrixOpen}
         onOpenChange={setMatrixOpen}
         server={props.server}
+        status={props.status}
+        isDiscovering={props.isDiscovering}
         agentId={props.agentId}
         tenants={toMatrixTenants(props.tenants)}
         envVariables={props.envVariables}
-        onTransportChange={handleTransportChange}
+        orgId={props.orgId}
+        authType={props.authType}
+        onUpdate={props.onUpdate}
+        onDiscover={props.onDiscover}
+        onPublish={props.onPublish}
       />
     </li>
   );

@@ -5,12 +5,12 @@ import { type SectionTenant, describeAggregateStatus, toMatrixTenants } from '..
 describe('toMatrixTenants', () => {
   it('maps id/name/isDefault into MatrixTenant shape', () => {
     const tenants: SectionTenant[] = [
-      { id: 't1', name: 'Default', isDefault: true },
-      { id: 't2', name: 'Other', isDefault: false },
+      { id: 't1', name: 'Default', isDefault: true, avatarUrl: 'https://x/a.png' },
+      { id: 't2', name: 'Other', isDefault: false, avatarUrl: null },
     ];
     expect(toMatrixTenants(tenants)).toEqual([
-      { id: 't1', name: 'Default', isDefault: true },
-      { id: 't2', name: 'Other', isDefault: false },
+      { id: 't1', name: 'Default', isDefault: true, avatarUrl: 'https://x/a.png' },
+      { id: 't2', name: 'Other', isDefault: false, avatarUrl: null },
     ]);
   });
 

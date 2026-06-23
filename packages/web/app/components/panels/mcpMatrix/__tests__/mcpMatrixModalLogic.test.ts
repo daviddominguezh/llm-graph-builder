@@ -23,9 +23,9 @@ function server(overrides: Partial<McpServerConfig>): McpServerConfig {
 }
 
 const tenants: MatrixTenant[] = [
-  { id: 't-a', name: 'Acme', isDefault: false },
-  { id: 't-def', name: 'Default', isDefault: true },
-  { id: 't-b', name: 'Beta', isDefault: false },
+  { id: 't-a', name: 'Acme', isDefault: false, avatarUrl: null },
+  { id: 't-def', name: 'Default', isDefault: true, avatarUrl: null },
+  { id: 't-b', name: 'Beta', isDefault: false, avatarUrl: null },
 ];
 
 describe('buildMatrixColumns', () => {

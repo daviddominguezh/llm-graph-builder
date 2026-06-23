@@ -36,11 +36,12 @@ export default async function EditorPage({ params }: EditorPageProps): Promise<R
 
   const tenants = [...tenantRows]
     .sort((a, b) => a.created_at.localeCompare(b.created_at))
-    .map(({ id, slug: tenantSlug, name, is_default }) => ({
+    .map(({ id, slug: tenantSlug, name, is_default, avatar_url }) => ({
       id,
       slug: tenantSlug,
       name,
       isDefault: is_default,
+      avatarUrl: avatar_url,
     }));
 
   return (
