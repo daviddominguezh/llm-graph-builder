@@ -15,6 +15,7 @@ export interface TenantRow {
   updated_at: string;
   web_channel_enabled: boolean;
   web_channel_allowed_origins: string[];
+  is_default: boolean;
 }
 
 export interface WebChannelUpdate {
@@ -34,7 +35,8 @@ export function isTenantRow(value: unknown): value is TenantRow {
     'org_id' in value &&
     'slug' in value &&
     'web_channel_enabled' in value &&
-    'web_channel_allowed_origins' in value
+    'web_channel_allowed_origins' in value &&
+    'is_default' in value
   );
 }
 
