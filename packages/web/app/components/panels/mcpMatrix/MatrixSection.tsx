@@ -55,7 +55,7 @@ function MatrixHeaderCells({ columns }: { columns: string[] }) {
     <>
       <div className={`${HEADER_CELL} ${HEADER_FROZEN_LEFT}`}>{t('tenantColumn')}</div>
       {columns.map((variable) => (
-        <div key={variable} className={`${HEADER_CELL} font-mono text-[11px]`}>
+        <div key={variable} className={`${HEADER_CELL} text-center font-mono text-[11px]`}>
           {`{{${variable}}}`}
         </div>
       ))}
