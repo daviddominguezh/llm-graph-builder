@@ -1,4 +1,4 @@
-import type { McpServerConfig } from '@daviddh/graph-types';
+import type { McpServerConfig, VariableValue } from '@daviddh/graph-types';
 import {
   type DescribeAllItem,
   type ProviderCtx,
@@ -10,6 +10,8 @@ import type { Request } from 'express';
 
 import { getAgentById } from '../../db/queries/agentQueries.js';
 import { getDecryptedEnvVariables, getPublishedGraphData } from '../../db/queries/executionAuthQueries.js';
+import { type McpTenantConfigRow, getTenantConfigs } from '../../db/queries/mcpTenantConfigQueries.js';
+import { getTenantsByOrg } from '../../db/queries/tenantQueries.js';
 import { makeGuardedCreateTransport } from '../../lib/guardedCreateTransport.js';
 import { consoleLogger } from '../../logger.js';
 import { resolveServerTransport } from '../execute/executeHelpers.js';
@@ -33,10 +35,10 @@ function extractMcpServers(graphData: Record<string, unknown> | null): McpServer
   return Array.isArray(mcpServers) ? mcpServers : [];
 }
 
-function buildCatalogProviderCtx(orgId: string, agentId: string): ProviderCtx {
+function buildCatalogProviderCtx(orgId: string, agentId: string, tenantId: string): ProviderCtx {
   return {
     orgId,
-    tenantId: '',
+    tenantId,
     agentId,
     isChildAgent: false,
     logger: consoleLogger,
@@ -44,6 +46,39 @@ function buildCatalogProviderCtx(orgId: string, agentId: string): ProviderCtx {
     mcpServers: new Map<string, McpServerConfig>(),
     services: () => undefined,
   };
+}
+
+// The SP1 default tenant (first row of getTenantsByOrg) is the builder's canonical
+// reference tenant; its per-server config overrides the agent-wide variableValues.
+async function resolveDefaultTenant(
+  supabase: AuthenticatedLocals['supabase'],
+  orgId: string
+): Promise<string | null> {
+  const { result } = await getTenantsByOrg(supabase, orgId);
+  const [defaultTenant] = result;
+  return defaultTenant?.id ?? null;
+}
+
+function buildDefaultTenantVarMap(
+  configs: McpTenantConfigRow[],
+  defaultTenantId: string
+): Map<string, Record<string, VariableValue>> {
+  const map = new Map<string, Record<string, VariableValue>>();
+  for (const cfg of configs) {
+    if (cfg.tenant_id === defaultTenantId) map.set(cfg.server_id, cfg.variable_values);
+  }
+  return map;
+}
+
+function applyDefaultTenantValues(
+  servers: McpServerConfig[],
+  varMap: Map<string, Record<string, VariableValue>>
+): McpServerConfig[] {
+  return servers.map((server) => {
+    const tenantValues = varMap.get(server.id);
+    if (tenantValues === undefined) return server;
+    return { ...server, variableValues: tenantValues };
+  });
 }
 
 interface ProviderResponseShape {
@@ -70,6 +105,26 @@ function shapeProviders(items: DescribeAllItem[]): ProviderResponseShape[] {
   }));
 }
 
+interface ResolveServersArgs {
+  supabase: AuthenticatedLocals['supabase'];
+  agentId: string;
+  orgId: string;
+  defaultTenantId: string | null;
+  rawMcpServers: McpServerConfig[];
+}
+
+async function resolveDefaultTenantMcpServers(args: ResolveServersArgs): Promise<McpServerConfig[]> {
+  const { supabase, agentId, orgId, defaultTenantId, rawMcpServers } = args;
+  const env = await getDecryptedEnvVariables(supabase, orgId);
+  if (defaultTenantId === null) {
+    return rawMcpServers.map((s) => resolveServerTransport(s, env.byName, env.byId));
+  }
+  const configs = await getTenantConfigs(supabase, agentId);
+  const varMap = buildDefaultTenantVarMap(configs, defaultTenantId);
+  const withDefaults = applyDefaultTenantValues(rawMcpServers, varMap);
+  return withDefaults.map((s) => resolveServerTransport(s, env.byName, env.byId));
+}
+
 async function respondWithRegistry(
   supabase: AuthenticatedLocals['supabase'],
   agentId: string,
@@ -82,15 +137,21 @@ async function respondWithRegistry(
   }
   const graphData = await getPublishedGraphData(supabase, agentId, agent.current_version);
   const rawMcpServers = extractMcpServers(graphData);
-  const env = await getDecryptedEnvVariables(supabase, agent.org_id);
-  const orgMcpServers = rawMcpServers.map((s) => resolveServerTransport(s, env.byName, env.byId));
+  const defaultTenantId = await resolveDefaultTenant(supabase, agent.org_id);
+  const orgMcpServers = await resolveDefaultTenantMcpServers({
+    supabase,
+    agentId,
+    orgId: agent.org_id,
+    defaultTenantId,
+    rawMcpServers,
+  });
   const registry = composeRegistry({
     builtIns: builtInProviders,
     orgMcpServers,
     logger: consoleLogger,
     createTransport: makeGuardedCreateTransport(createTransport),
   });
-  const ctx = buildCatalogProviderCtx(agent.org_id, agentId);
+  const ctx = buildCatalogProviderCtx(agent.org_id, agentId, defaultTenantId ?? '');
   const items = await registry.describeAll(ctx);
   res.status(HTTP_OK).json({ providers: shapeProviders(items), fetchedAt: Date.now() });
 }
