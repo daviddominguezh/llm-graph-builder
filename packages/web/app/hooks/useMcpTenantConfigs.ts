@@ -39,6 +39,7 @@ export interface UseMcpTenantConfigsResult {
   saveCell: (serverId: string, tenantId: string, values: Record<string, VariableValue>) => Promise<void>;
   verifyServer: (serverId: string) => Promise<void>;
   verifyAll: () => Promise<void>;
+  verifyingFor: (serverId: string) => boolean;
   statusFor: (serverId: string, tenantId: string) => ServerTenantStatus;
   aggregateFor: (serverId: string) => ServerAggregateStatus;
 }
@@ -49,6 +50,7 @@ export function useMcpTenantConfigs(args: UseMcpTenantConfigsArgs): UseMcpTenant
   const [discovery, setDiscovery] = useState<McpTenantDiscoveryRow[]>([]);
   const [hashByCell, setHashByCell] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [verifyingIds, setVerifyingIds] = useState<ReadonlySet<string>>(new Set());
 
   const envNameById = useMemo(() => buildEnvNameById(envVariables), [envVariables]);
   useLoadBundle(agentId, setRows, setDiscovery, setLoading);
@@ -64,8 +66,9 @@ export function useMcpTenantConfigs(args: UseMcpTenantConfigsArgs): UseMcpTenant
   );
 
   const saveCell = useSaveCell(agentId, rows, setRows);
-  const verifyServer = useVerifyServer(agentId, setDiscovery);
+  const verifyServer = useVerifyServer(agentId, setDiscovery, setVerifyingIds);
   const verifyAll = useVerifyAll(servers, verifyServer);
+  const verifyingFor = useCallback((serverId: string) => verifyingIds.has(serverId), [verifyingIds]);
 
   const statusFor = useCallback(
     (serverId: string, tenantId: string) => statuses[cellKey(serverId, tenantId)] ?? 'pending',
@@ -73,7 +76,19 @@ export function useMcpTenantConfigs(args: UseMcpTenantConfigsArgs): UseMcpTenant
   );
   const aggregateFor = useCallback((serverId: string) => aggregate[serverId] ?? 'warning', [aggregate]);
 
-  return { rows, discovery, loading, saveCell, verifyServer, verifyAll, statusFor, aggregateFor };
+  return { rows, discovery, loading, saveCell, verifyServer, verifyAll, verifyingFor, statusFor, aggregateFor };
+}
+
+function withId(set: ReadonlySet<string>, id: string): ReadonlySet<string> {
+  const next = new Set(set);
+  next.add(id);
+  return next;
+}
+
+function withoutId(set: ReadonlySet<string>, id: string): ReadonlySet<string> {
+  const next = new Set(set);
+  next.delete(id);
+  return next;
 }
 
 function buildEnvNameById(envVariables: OrgEnvVariableRow[]): Record<string, string> {
@@ -163,14 +178,20 @@ function applySaveResult(
 
 function useVerifyServer(
   agentId: string,
-  setDiscovery: React.Dispatch<React.SetStateAction<McpTenantDiscoveryRow[]>>
+  setDiscovery: React.Dispatch<React.SetStateAction<McpTenantDiscoveryRow[]>>,
+  setVerifyingIds: React.Dispatch<React.SetStateAction<ReadonlySet<string>>>
 ): (serverId: string) => Promise<void> {
   return useCallback(
     async (serverId) => {
-      const { result } = await verifyMcpTenantServerAction(agentId, serverId);
-      setDiscovery((prev) => mergeDiscoveryRows(prev, serverId, result));
+      setVerifyingIds((prev) => withId(prev, serverId));
+      try {
+        const { result } = await verifyMcpTenantServerAction(agentId, serverId);
+        setDiscovery((prev) => mergeDiscoveryRows(prev, serverId, result));
+      } finally {
+        setVerifyingIds((prev) => withoutId(prev, serverId));
+      }
     },
-    [agentId, setDiscovery]
+    [agentId, setDiscovery, setVerifyingIds]
   );
 }
 

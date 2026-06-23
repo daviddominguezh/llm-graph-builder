@@ -80,6 +80,7 @@ function MatrixGrid(props: MatrixSectionProps) {
             columns={props.columns}
             values={props.valuesFor(tenant.id)}
             status={props.statusFor(tenant.id)}
+            verifying={props.config.verifyingFor(props.server.id)}
             envVars={props.envVariables}
             onCellChange={(variable, value) => props.onCellChange(tenant.id, variable, value)}
             onTest={props.onTest}

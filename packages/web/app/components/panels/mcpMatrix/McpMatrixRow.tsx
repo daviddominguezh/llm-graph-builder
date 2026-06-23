@@ -4,7 +4,7 @@ import { TenantAvatar } from '@/app/components/agents/channels/TenantAvatar';
 import type { ServerTenantStatus } from '@/app/lib/mcpTenantStatus';
 import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Loader2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import type { VariableValue } from '../VariableValuesEditor';
@@ -23,6 +23,7 @@ export interface McpMatrixRowProps {
   columns: string[];
   values: Record<string, VariableValue>;
   status: ServerTenantStatus;
+  verifying: boolean;
   envVars: OrgEnvVariableRow[];
   onCellChange: (variable: string, value: VariableValue) => void;
   onTest: () => void;
@@ -57,7 +58,13 @@ function TenantCell({ tenant }: { tenant: McpMatrixRowTenant }) {
   );
 }
 
-function StatusCell({ status, onTest }: { status: ServerTenantStatus; onTest: () => void }) {
+interface StatusCellProps {
+  status: ServerTenantStatus;
+  verifying: boolean;
+  onTest: () => void;
+}
+
+function StatusCell({ status, verifying, onTest }: StatusCellProps) {
   const t = useTranslations('mcpMatrix');
   const { labelKey, iconKind, colorClassName } = describeRowStatus(status);
   return (
@@ -66,8 +73,8 @@ function StatusCell({ status, onTest }: { status: ServerTenantStatus; onTest: ()
         <RowStatusIcon kind={iconKind} className={colorClassName} />
         {t(labelKey)}
       </span>
-      <Button variant="outline" size="xs" onClick={onTest}>
-        {t('test')}
+      <Button variant="outline" size="xs" onClick={onTest} disabled={verifying}>
+        {verifying ? <Loader2 className="size-3 animate-spin" /> : t('test')}
       </Button>
     </div>
   );
@@ -78,6 +85,7 @@ export function McpMatrixRow({
   columns,
   values,
   status,
+  verifying,
   envVars,
   onCellChange,
   onTest,
@@ -95,7 +103,7 @@ export function McpMatrixRow({
         </div>
       ))}
       <div aria-hidden className={CELL_BORDER} />
-      <StatusCell status={status} onTest={onTest} />
+      <StatusCell status={status} verifying={verifying} onTest={onTest} />
     </>
   );
 }
