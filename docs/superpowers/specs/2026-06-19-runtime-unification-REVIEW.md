@@ -51,10 +51,10 @@
 
 | Spec proposes | Verdict | Reasoning | Notes |
 |---|---|---|---|
-| OAuth resolver: lazy per-provider pull, Redis-cached BE-side | ✅ | **Decision:** resolve on first actual use, per provider-subject — never-used providers cost zero (an agent may declare 10 providers; a conversation uses few). Cache lives in **Redis (BE-side), not the ephemeral Worker**, so it survives suspend/resume (~1 generation per provider per token-lifetime, regardless of message count). Refresh-on-expiry + single-flight = automatic freshness. Calendar converted off the sync `ctx.oauthTokens` read; added `backend_unavailable` transient failure category so a BE blip ≠ "Reconnect Google". Spec §7. | |
+| OAuth resolution: **pool-internal** (no runtime resolver capability) | ✅ | **Decision:** MCP is the only provider and the BE pool owns MCP connections, so resolution moves into the pool's **connect path** — lazy, per binding, on first tool use; reuses `resolveAccessToken` (Redis cache + refresh-on-expiry + single-flight); cache survives the Worker's suspend/resume. **Dropped:** the runtime `oauthResolver` capability (§6.3), the `/internal/oauth/resolve` endpoint, and `InternalApiOAuthResolver` — no caller after calendar removal. Spec §7. | |
 | Preflight surfaces (publish button, sim first-message) | ✅ | Genuinely useful UX; could even ship independently. | |
-| `'google' \| 'mcp'` OAuth subject model | 🟡 | `google→orgId` correct today; uniform `tenantId` on the union is wrong (google resolves by org). Make subject per-provider; coordinate with SP4 tenant-scoping. | |
-| MCP-OAuth (`'mcp'` subject + 401 refresh/reconnect) | 🔵 | Greenfield, not a refactor — no MCP transport carries OAuth today. Build only when a real OAuth MCP server exists; validate against it. | |
+| OAuth subject model (`'mcp'` only) | ✅ | **Updated — Google Calendar removed.** Provider collapses to `'mcp'`; the subject keys on `mcpBindingId` + `tenantId` — **the same key the pool uses** (one concept, not two). Remaining dependency: reconcile with today's org + `libraryItemId` store as SP1/SP4 land tenant-scoping. Spec §7.1. | |
+| MCP-OAuth: wire into the pool + 401 reconnect | ✅ | **Decided — not greenfield.** OAuth MCP servers (Notion/Snowflake/Square) work today via `resolveAccessToken`. The unification's only real work: move resolution into the pool's connect path (push→lazy) and add **in-call 401 refresh-and-reconnect** (§8.4 — the one net-new piece); keep **preflight** (§7.3). The standalone runtime resolver + `/internal/oauth/resolve` are dropped. Keying reconciliation with SP4 still pending. Spec §7. | |
 
 ## Simulation
 

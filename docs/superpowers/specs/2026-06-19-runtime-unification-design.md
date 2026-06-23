@@ -112,7 +112,6 @@ interface RuntimeBase {
   selectedTools: ToolRef[];
   storeBindings: StoreBindings;
   mcpServers: McpServerConfig[];
-  oauthResolvers: OAuthResolvers;
   message: ChatMessage;
   dispatchDepth: number;             // 0 at top level; +1 per invoke_agent
   maxDispatchDepth: number;          // default 5
@@ -177,12 +176,13 @@ interface RuntimeCapabilities {
 // Shared services — identical in both runtimes; the core wires these once from
 // config. Listed separately so they are not mistaken for per-runtime seams.
 interface RuntimeServices {
-  oauthResolver: OAuthResolver;       // §7 — InternalApiOAuthResolver in both
   mcpPool: McpPoolClient;             // §8 — BackendMcpPoolClient in both
   loadChildAgentGraph: (agentId: string) => Promise<AgentGraph>;
   supabase: SupabaseClient;           // service-role; only the env source differs at construction
 }
 ```
+
+There is **no `oauthResolver` capability**: MCP is the only OAuth provider and the backend pool owns MCP connections, so the pool resolves/attaches/refreshes tokens internally on connect (§7). The runtime/Worker never resolves an MCP token.
 
 `DispatchNotifications` is removed: under the durable production model (§10) a suspended parent is resumed by an external re-invocation that reads persisted state, not by an in-process `waitFor`/`onComplete` callback.
 
@@ -261,29 +261,31 @@ type ExecutionEvent =
 
 Per-runtime transport adapters (`ssePublicAdapter` for production, `sseSimulationAdapter` for simulation) map this vocabulary onto whatever the FE consumes today, then converge over time as FE consumers are updated.
 
-## 7. OAuth resolver
+## 7. OAuth for MCP servers
 
-**What it's for:** tools that act on a third-party service on the org/tenant's behalf (e.g. the calendar tools calling Google Calendar) need a valid access token. The resolver turns a stored OAuth grant (a long-lived refresh token) into a fresh, short-lived access token.
+**What it's for:** an OAuth-protected MCP server an agent connects to (e.g. a Notion, Snowflake, or Square MCP server) needs a valid access token before its tools can run on the org/tenant's behalf. Resolution turns a stored OAuth grant (a long-lived refresh token) into a fresh, short-lived access token.
 
-**Decision — lazy, per-provider resolution backed by a BE-side (Redis) cache.** Tokens are resolved **on first actual use, per provider-subject**, through the backend's Redis-cached resolver — never pushed up front. Why:
+> **Scope note.** MCP is the **only** OAuth provider (Google Calendar was removed), and MCP OAuth is **live today** — OAuth library servers work via `resolveAccessToken` (full discovery / dynamic registration / PKCE / refresh, Redis-cached), which `resolveOAuthForExecution` currently injects as `Authorization: Bearer` into the server's `transport.headers` at execute time. So this section is **not** about building OAuth — it's about *where resolution lives* once the BE owns the MCP pool.
 
-- **Push-everything-up-front is wasteful.** An agent may declare many providers (Google, Slack, Discord, …) but a given conversation uses only some, at specific moments. Resolving all of them per invocation generates tokens that are never used — a 30-message conversation that never books would resolve Google up to 30 times for nothing. Lazy resolution materializes a provider's token **only if a tool actually needs it**; never-used providers cost zero.
-- **The cache must live in Redis (BE-side), not the Worker.** Production Workers are ephemeral and suspend/resume between every turn (§10.4); a Worker-local memo would be lost each turn and re-generate constantly. Redis (where `tokenResolver.ts` already caches) survives suspend/resume, so a token resolved on turn 3 is still warm on turn 20 → **~1 generation per provider per token-lifetime, regardless of message count.**
-- **Freshness is automatic.** Each cache entry stores `{ accessToken, expiresAt }`; on use, if expired (minus skew) the resolver refreshes via the stored refresh token and updates the cache, else returns the cached token. **Single-flight** ensures racing turns trigger at most one refresh. Expiry differs per provider (Google ~1h, Discord ~days, Slack bot tokens often non-expiring), so per-subject `expiresAt` is tracked.
+**Decision — the pool owns MCP OAuth; there is no runtime-facing OAuth resolver.** Because MCP is the only OAuth consumer and the **backend pool owns every MCP connection (§8)**, token resolution moves *inside the pool's connect path* — the production Worker never resolves an MCP token. It calls `/internal/mcp/invoke`, and the pool attaches/refreshes auth internally. Consequences:
 
-### 7.1 Interface
+- **No `oauthResolver` runtime capability, no `/internal/oauth/resolve` endpoint, no `InternalApiOAuthResolver`.** They had no caller once calendar (the only *runtime-side* OAuth consumer) was removed. Dropped from §6.3.
+- **Resolution is lazy, per-binding, on connect.** The pool only connects a `poolKey` (`agentId::tenantId::mcpBindingId`) when one of its tools is first invoked, so the token is resolved then — not pushed up front for every selected server (today's `resolveOAuthForExecution` behavior). Reuses the existing `resolveAccessToken` (Redis cache + refresh-on-expiry + single-flight); the cache lives BE-side, so it survives the Worker's suspend/resume (§10.4) → ~1 generation per binding per token-lifetime, regardless of message count.
+- **Dynamic auth on the pooled connection.** A long-lived pooled connection outlives a token, so the bearer can't be a static header baked in at start. The pool attaches the current token at connect and, on **401 / pre-expiry, refreshes and reconnects** (§8.4 — retry the *connect*, never the invoke). This 401-mid-session recovery is the only net-new logic.
+- **Keying.** Today the store is keyed **org + `libraryItemId`**; the `tenantId` dimension is the SP4 change. The OAuth subject (§7.1) and the pool key are the **same** concept — keep one, not two.
+
+### 7.1 Preflight interface
+
+The only OAuth surface the runtime/FE calls is **preflight** — a publish / first-message validity check, not a hot-path resolve (resolution itself is pool-internal, above):
 
 ```ts
-type OAuthProvider = 'google' | 'mcp';   // 'slack' / 'discord' / … added as providers are onboarded
-
 interface OAuthSubject {
-  provider: OAuthProvider;
-  subjectId: string;        // google → orgId; mcp → mcpBindingId
-  tenantId: string;
+  provider: 'mcp';          // MCP is the only provider; widen if a new OAuth integration is added
+  mcpBindingId: string;
+  tenantId: string;         // reconcile with today's org + libraryItemId store as SP4 lands
 }
 
-interface OAuthResolver {
-  resolve(subject: OAuthSubject): Promise<string>;          // lazy; cached + refreshed BE-side
+interface OAuthPreflight {
   preflight(subjects: OAuthSubject[]): Promise<PreflightReport>;
 }
 
@@ -298,31 +300,32 @@ interface PreflightFailure {
 }
 ```
 
+`OAuthSubject` is the **same key the pool uses** (`mcpBindingId` + `tenantId`) — deliberately one concept, not two.
+
 ### 7.2 Behavior
 
-- `resolve` is **lazy and per-(provider-subject)** — called only when a tool actually needs that provider's token. It is **Redis-cached BE-side** with refresh-on-expiry and single-flight (today's `tokenResolver.ts` behavior). From the Worker it is one HTTP hop to `/internal/oauth/resolve`, which returns a cached token in the common case (a real provider refresh happens at most once per token-lifetime).
-- `preflight` runs the same operation in batch over the providers the agent's **selected tools declare**, returning structured failures — used by the pre-flight surfaces (§7.3), not on the per-turn hot path.
-- Both runtimes inject an `InternalApiOAuthResolver` that HTTP-calls backend `/internal/oauth/resolve` + `/internal/oauth/preflight`. The actual logic + cache live once in backend `tokenResolver.ts`.
-- **Calendar is converted off the synchronous `ctx.oauthTokens` push-read** to this async resolver, so there is a single resolution path (no field half-removed from `ProviderCtx`, §6.2).
+- **Runtime tool call:** the Worker calls `/internal/mcp/invoke`; the pool resolves / attaches / refreshes the token internally (per the decision above). No OAuth call from the Worker.
+- **Preflight** runs `resolveAccessToken` in batch over the OAuth-protected MCP bindings the agent's **selected tools declare**, returning structured failures — used by the surfaces in §7.3, off the per-turn hot path.
+- All OAuth logic + cache live once in the backend, sharing the pool's server-side tenant/binding authorization (§8.1) — the caller never asserts the principal.
 
 ### 7.3 Pre-flight surfaces
 
-- **FE publish button** → `POST /api/agents/[agentId]/preflight-publish` → backend `/internal/oauth/preflight`. Batch-checks the providers the agent's selected tools declare; renders failures inline; blocks publish until resolved.
+- **FE publish button** → `POST /api/agents/[agentId]/preflight-publish` → backend `/internal/oauth/preflight`. Batch-checks the OAuth-protected MCP bindings the agent's selected tools declare; renders failures inline; blocks publish until resolved.
 - **Simulation handler first-message-of-session** → `POST /api/simulation/preflight` → backend `/internal/oauth/preflight`. Same modal surface in the sim panel.
 - **Production runtime invocation** → no pre-flight. Resolution is lazy on first tool use (per §7.2).
 
 ### 7.4 Failure UX
 
-Each failure has a user-facing string. Transient/infra failures are a **distinct category** from grant failures — a backend blip must never render as "Reconnect Google":
+Each failure has a user-facing string. Transient/infra failures are a **distinct category** from grant failures — a backend blip must never render as a "reconnect this server" prompt:
 
 | Reason | Render |
 |---|---|
-| `missing_grant` | "Connect Google to publish this agent." |
-| `refresh_failed` | "Reconnect Google." |
-| `revoked` | "Google access was revoked. Reconnect." |
-| `invalid_config` | "MCP server 'Linear' has invalid configuration." |
+| `missing_grant` | "Connect the '{server}' MCP server to publish this agent." |
+| `refresh_failed` | "Reconnect the '{server}' MCP server." |
+| `revoked` | "Access to '{server}' was revoked. Reconnect." |
+| `invalid_config` | "MCP server '{server}' has invalid configuration." |
 | `backend_unavailable` | "Couldn't verify connections right now — try again." (transient; not a grant problem) |
-| `unknown` | Fall back to the message string. |
+| `unknown` | Fall back to the redacted error category (never a raw message — SP3 redaction discipline). |
 
 ## 8. MCP connection pool (backend-owned)
 
@@ -374,7 +377,7 @@ poolKey = `${agentId}::${tenantId}::${mcpBindingId}`
 ### 8.4 Fault tolerance
 
 - **Retry only the connect/handshake phase — never an invoke that may have hit the wire.** A transport drop *after* bytes are sent is indistinguishable from never-sent at the JSON-RPC layer, so retrying a `callTool` can double-execute a non-idempotent tool (book/charge/send). Treat all tool calls as non-idempotent unless the tool declares otherwise, and thread an **idempotency key** so connect-retries and durable-resume retries (§10.4) dedupe.
-- **OAuth 401:** refresh via `OAuthResolver`, reconnect, retry the **connect** (not a mid-call invoke).
+- **OAuth 401:** refresh the token via `resolveAccessToken`, reconnect, retry the **connect** (not a mid-call invoke).
 - **Reconnect backoff:** exponential 100ms → 30s with ±25% jitter.
 - **Circuit breaker per pool key:** counts **connect attempts** (not borrowers) — 5 failures in 60s → open 60s → half-open → retry once. Breaker-open is surfaced to the caller as an explicit **transient/unavailable** category, distinct from a permanent error — not silently swallowed.
 - **Egress re-validation (TOCTOU):** the SP3 egress guard runs on connect **and** is re-validated on borrow — a pooled connection lives up to the TTL while DNS can rebind, so connect-time guarding alone is insufficient for a pool. Pin the resolved IP or re-check on reuse.
@@ -520,7 +523,6 @@ Shared services (`RuntimeServices`, wired once from config) — identical in bot
 
 | Service | Implementation (both runtimes) |
 |---|---|
-| `oauthResolver` | `InternalApiOAuthResolver` |
 | `mcpPool` | `BackendMcpPoolClient` |
 | `loadChildAgentGraph` | Published version reader |
 | `supabase` | service-role client (only the env source differs at construction: Workers binding in prod, `process.env` in the sim backend) |
@@ -554,8 +556,6 @@ packages/api/src/
 ├── capabilities/
 │   ├── dispatchPersistence.ts
 │   ├── dispatchStrategy.ts
-│   ├── dispatchNotifications.ts
-│   ├── oauthResolver.ts
 │   ├── mcpPoolClient.ts
 │   ├── observability.ts
 │   ├── rateLimiter.ts
@@ -595,7 +595,6 @@ packages/backend/src/
 ├── routes/internal/
 │   ├── mcpInvoke.ts                     ← POST /internal/mcp/invoke
 │   ├── mcpPreflight.ts                  ← POST /internal/mcp/preflight
-│   ├── oauthResolve.ts                  ← POST /internal/oauth/resolve
 │   └── oauthPreflight.ts                ← POST /internal/oauth/preflight
 ├── mcp/
 │   ├── connectionPool.ts                ← keyed by (agentId, tenantId, mcpBindingId)
@@ -631,7 +630,7 @@ packages/backend/src/
 - `services/ragStoreService.ts` (same)
 - `services/noStoreBoundServices.ts`
 
-Files like `tokenResolver.ts`, `executeOAuthResolver.ts`, persistence query modules — STAY. Become injected via `productionCapabilities`.
+The MCP OAuth machinery — `mcp/oauth/*` (`resolveAccessToken`, refresh, PKCE, registration) and the MCP-bundle resolution in `executeOAuthResolver.ts` — STAYS, and moves **inside the pool's connect path** (§7), not a runtime capability. Persistence query modules also STAY, injected via `productionCapabilities`. (The Google-only `tokenResolver.ts` was already deleted with the calendar integration.)
 
 ### 11.4 `packages/web/` (FE proxy route additions)
 
@@ -780,7 +779,7 @@ Phased commits matching the prior refactor cadence on this branch:
 
 1. **Phase 1:** Extract factories to `packages/shared-store-services/`. Both runtimes re-export from old locations during this phase for behavior equivalence.
 2. **Phase 2:** Add runtime + capability interfaces to `packages/api/`. Move `prepareAllBundles` / `buildProviderCtx` / `buildRegistry`. No driver changes yet.
-3. **Phase 3:** Add the 4 new `/internal/*` backend endpoints (mcp/invoke, mcp/preflight, oauth/resolve, oauth/preflight).
+3. **Phase 3:** Add the 3 new `/internal/*` backend endpoints (mcp/invoke, mcp/preflight, oauth/preflight). OAuth token *resolution* is pool-internal (§7), not a separate endpoint.
 4. **Phase 4:** Implement backend MCP connection pool.
 5. **Phase 5:** Migrate production driver to consume the new api runtime + capabilities.
 6. **Phase 6:** Migrate simulation driver.
