@@ -2162,6 +2162,71 @@
           }
         }
       }
+    },
+    "web": {
+      "groupName": "Web",
+      "tools": {
+        "search": {
+          "description": "Search the web for current information — news, facts, or anything beyond the model's knowledge cutoff. Returns snippets and source URLs.",
+          "params": {
+            "query": "What to search for.",
+            "max_results": "Maximum number of results to return. Defaults to 5.",
+            "search_depth": "Search thoroughness: basic, advanced, fast, or ultra-fast. Defaults to basic.",
+            "topic": "Search category. Currently fixed to 'general'.",
+            "time_range": "Restrict results to the last day, week, month, or year.",
+            "include_images": "Include query-related images in the response.",
+            "include_image_descriptions": "Include descriptions alongside any returned images.",
+            "include_raw_content": "Include the cleaned, parsed page content of each result.",
+            "include_domains": "Only return results from these domains.",
+            "exclude_domains": "Never return results from these domains.",
+            "country": "Boost results from a specific country (full country name, e.g. 'Germany').",
+            "include_favicon": "Include each result's favicon URL.",
+            "start_date": "Only results on or after this date (YYYY-MM-DD).",
+            "end_date": "Only results on or before this date (YYYY-MM-DD).",
+            "exact_match": "Only return results containing the exact quoted phrase(s) in the query."
+          }
+        },
+        "extract": {
+          "description": "Extract the content of specific URLs as markdown or plain text.",
+          "params": {
+            "urls": "The URLs to extract content from.",
+            "extract_depth": "Extraction thoroughness: basic, or advanced for protected sites and embedded content. Defaults to basic.",
+            "include_images": "Include images found on the pages.",
+            "format": "Output format: markdown or text. Defaults to markdown.",
+            "include_favicon": "Include each page's favicon URL.",
+            "query": "Optional query used to rerank extracted content by relevance."
+          }
+        },
+        "crawl": {
+          "description": "Crawl a website from a starting URL, extracting page content with configurable depth and breadth.",
+          "params": {
+            "url": "The root URL to begin crawling.",
+            "max_depth": "How far from the root URL to crawl (1–5). Defaults to 1.",
+            "max_breadth": "Maximum links followed per page level. Defaults to 20.",
+            "limit": "Total number of links to process before stopping. Defaults to 50.",
+            "instructions": "Natural-language guidance on which pages to return.",
+            "select_paths": "Regex patterns; only crawl URLs whose path matches.",
+            "select_domains": "Regex patterns; only crawl matching domains or subdomains.",
+            "allow_external": "Whether to include links to external domains. Defaults to true.",
+            "extract_depth": "Extraction thoroughness: basic or advanced. Defaults to basic.",
+            "format": "Output format: markdown or text. Defaults to markdown.",
+            "include_favicon": "Include each result's favicon URL."
+          }
+        },
+        "map": {
+          "description": "Map a website's structure, returning the URLs discovered from a starting URL.",
+          "params": {
+            "url": "The root URL to begin mapping.",
+            "max_depth": "How far from the root URL to map (1–5). Defaults to 1.",
+            "max_breadth": "Maximum links followed per page level. Defaults to 20.",
+            "limit": "Total number of links to process before stopping. Defaults to 50.",
+            "instructions": "Natural-language guidance for the crawler.",
+            "select_paths": "Regex patterns; only include URLs whose path matches.",
+            "select_domains": "Regex patterns; only include matching domains or subdomains.",
+            "allow_external": "Whether to include links to external domains. Defaults to true."
+          }
+        }
+      }
     }
   }
 }
