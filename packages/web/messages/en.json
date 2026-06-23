@@ -112,6 +112,7 @@
   },
   "toolbar": {
     "status": "Validation status",
+    "edit": "Edit",
     "simulate": "Simulate",
     "generate": "Generate",
     "globalNodes": "Global nodes",
