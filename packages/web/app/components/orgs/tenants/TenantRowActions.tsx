@@ -50,8 +50,8 @@ function DeleteTenantButton({ tenant, onDelete }: { tenant: TenantRow; onDelete:
   );
 }
 
-// The default tenant cannot be deleted (DB + backend enforce it), so its row
-// omits the Delete action entirely.
+// The default tenant's identity mirrors the org and it cannot be deleted (DB +
+// backend enforce both), so its row exposes no edit or delete actions.
 export function TenantRowActions({
   tenant,
   onEdit,
@@ -61,10 +61,12 @@ export function TenantRowActions({
   onEdit: (row: TenantRow) => void;
   onDelete: (row: TenantRow) => void;
 }) {
+  if (tenant.is_default) return null;
+
   return (
     <div className="flex items-center justify-end gap-0.5 opacity-0 transition-opacity group-hover/row:opacity-100">
       <EditTenantButton tenant={tenant} onEdit={onEdit} />
-      {!tenant.is_default && <DeleteTenantButton tenant={tenant} onDelete={onDelete} />}
+      <DeleteTenantButton tenant={tenant} onDelete={onDelete} />
     </div>
   );
 }

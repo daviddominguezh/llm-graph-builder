@@ -3,7 +3,6 @@
 import { getTenantsByOrgAction } from '@/app/actions/tenants';
 import { toProxyImageSrc } from '@/app/lib/supabase/image';
 import type { TenantRow } from '@/app/lib/tenants';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -172,9 +171,7 @@ function TenantsTable({
                   <span className="tenant-row-name truncate font-medium leading-none">{tenant.name}</span>
                 </Link>
                 {tenant.is_default && (
-                  <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
-                    {t('defaultBadge')}
-                  </Badge>
+                  <span className="text-muted-foreground text-xs">{t('defaultLabel')}</span>
                 )}
               </div>
             </TableCell>
