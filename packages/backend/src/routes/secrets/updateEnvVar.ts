@@ -2,6 +2,7 @@ import type { Request } from 'express';
 
 import type { EnvVariableUpdates } from '../../db/queries/envVariableQueries.js';
 import { updateEnvVariable } from '../../db/queries/envVariableQueries.js';
+import { staleDiscoveryAfterEnvChange } from '../mcp-server/mcpDiscoveryInvalidation.js';
 import {
   type AuthenticatedLocals,
   type AuthenticatedResponse,
@@ -45,6 +46,11 @@ export async function handleUpdateEnvVar(req: Request, res: AuthenticatedRespons
     if (error !== null) {
       res.status(HTTP_INTERNAL_ERROR).json({ error });
       return;
+    }
+
+    // A value change invalidates per-tenant discovery for cells referencing it.
+    if (updates.value !== undefined) {
+      await staleDiscoveryAfterEnvChange(supabase, varId);
     }
 
     res.status(HTTP_OK).json({ success: true });
