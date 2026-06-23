@@ -16,12 +16,15 @@ import { McpServersSection } from './McpServersSection';
 import { type RunTool, ToolTestModal } from './ToolTestModal';
 import { type AgentModeProps } from './ToolsPanelAgentMode';
 import { SearchRow, ToolsTabBody, useOutsideClose, useToolsPanelState } from './ToolsPanelHelpers';
+import type { SectionTenant } from './mcpServersSectionLogic';
 import type { AgentToolStoresPanelConfig } from './toolStoreHelpers';
 
 interface McpProps {
   servers: McpServerConfig[];
   discovering: Record<string, boolean>;
   serverStatus: Record<string, McpServerStatus>;
+  agentId: string;
+  tenants: SectionTenant[];
   orgId: string;
   envVariables: OrgEnvVariableRow[];
   libraryItems?: McpLibraryRow[];
@@ -68,6 +71,8 @@ function McpTab({ mcp }: { mcp: McpProps }) {
         servers={mcp.servers}
         discovering={mcp.discovering}
         serverStatus={mcp.serverStatus}
+        agentId={mcp.agentId}
+        tenants={mcp.tenants}
         orgId={mcp.orgId}
         envVariables={mcp.envVariables}
         libraryItems={mcp.libraryItems}

@@ -36,7 +36,12 @@ export default async function EditorPage({ params }: EditorPageProps): Promise<R
 
   const tenants = [...tenantRows]
     .sort((a, b) => a.created_at.localeCompare(b.created_at))
-    .map(({ id, slug: tenantSlug, name }) => ({ id, slug: tenantSlug, name }));
+    .map(({ id, slug: tenantSlug, name, is_default }) => ({
+      id,
+      slug: tenantSlug,
+      name,
+      isDefault: is_default,
+    }));
 
   return (
     <EditorTabs

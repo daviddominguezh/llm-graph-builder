@@ -10,6 +10,7 @@ export interface PublishTenant {
   id: string;
   slug: string;
   name: string;
+  isDefault: boolean;
 }
 
 interface TenantPickerProps {

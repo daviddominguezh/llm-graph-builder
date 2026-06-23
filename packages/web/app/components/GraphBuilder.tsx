@@ -761,6 +761,7 @@ function LoadedEditor(props: LoadedEditorProps) {
                 agentId={props.agentId ?? ''}
                 agentName={props.agentName ?? ''}
                 orgSlug={props.orgSlug ?? ''}
+                tenants={props.tenants ?? []}
                 envVariables={h.envVariables}
                 stagingKeyId={h.apiKeys.stagingKeyId}
                 productionKeyId={h.apiKeys.productionKeyId}

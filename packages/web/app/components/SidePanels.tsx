@@ -5,11 +5,11 @@ import type { SelectedTool } from '@daviddh/llm-graph-runner';
 import type { Edge } from '@xyflow/react';
 
 import { useAgentToolsState } from '../hooks/useAgentToolsState';
-import type { ToolStoresState } from '../hooks/useToolStoresState';
 import type { UseGraphSelectionReturn } from '../hooks/useGraphSelection';
 import type { McpLibraryState } from '../hooks/useMcpLibrary';
 import type { McpServersState } from '../hooks/useMcpServers';
 import type { OutputSchemasState } from '../hooks/useOutputSchemas';
+import type { ToolStoresState } from '../hooks/useToolStoresState';
 import { findStaleSelections } from '../lib/agentTools';
 import type { ApiKeyRow } from '../lib/apiKeys';
 import type { OrgEnvVariableRow } from '../lib/orgEnvVariables';
@@ -27,6 +27,7 @@ import { OutputSchemaDialog } from './panels/OutputSchemaDialog';
 import { StartNodePanel } from './panels/StartNodePanel';
 import { ToolsPanel } from './panels/ToolsPanel';
 import { registryToolToSelectedTool } from './panels/ToolsPanelAgentMode';
+import type { SectionTenant } from './panels/mcpServersSectionLogic';
 import type { AgentToolStoresPanelConfig } from './panels/toolStoreHelpers';
 import type { CtxPreconditionsState, EdgeSetter, NodeArray, NodeSetter } from './sidePanelHelpers';
 import {
@@ -79,6 +80,7 @@ export interface SidePanelsProps {
   agentId: string;
   agentName: string;
   orgSlug: string;
+  tenants: SectionTenant[];
   envVariables: OrgEnvVariableRow[];
   stagingKeyId: string | null;
   productionKeyId: string | null;
@@ -188,6 +190,8 @@ function buildMcpProps(p: SidePanelsProps, onPublishServer: (server: McpServerCo
     servers: p.mcpHook.servers,
     discovering: p.mcpHook.discovering,
     serverStatus: p.mcpHook.serverStatus,
+    agentId: p.agentId,
+    tenants: p.tenants,
     orgId: p.orgId,
     envVariables: p.envVariables,
     libraryItems: p.mcpLibrary.items,
