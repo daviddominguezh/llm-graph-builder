@@ -1,7 +1,11 @@
 import { z } from 'zod';
 
+const MIN_TEXT_LEN = 1;
+const MIN_ARRAY_ITEMS = 1;
+const MIN_COUNT = 1;
+
 export const webSearchInput = z.object({
-  query: z.string().min(1),
+  query: z.string().min(MIN_TEXT_LEN),
   max_results: z.number().int().optional(),
   search_depth: z.enum(['basic', 'advanced', 'fast', 'ultra-fast']).optional(),
   topic: z.literal('general').optional(),
@@ -19,7 +23,7 @@ export const webSearchInput = z.object({
 });
 
 export const webExtractInput = z.object({
-  urls: z.array(z.string()).min(1),
+  urls: z.array(z.string()).min(MIN_ARRAY_ITEMS),
   extract_depth: z.enum(['basic', 'advanced']).optional(),
   include_images: z.boolean().optional(),
   format: z.enum(['markdown', 'text']).optional(),
@@ -28,10 +32,10 @@ export const webExtractInput = z.object({
 });
 
 export const webCrawlInput = z.object({
-  url: z.string().min(1),
-  max_depth: z.number().int().min(1).optional(),
-  max_breadth: z.number().int().min(1).optional(),
-  limit: z.number().int().min(1).optional(),
+  url: z.string().min(MIN_TEXT_LEN),
+  max_depth: z.number().int().min(MIN_COUNT).optional(),
+  max_breadth: z.number().int().min(MIN_COUNT).optional(),
+  limit: z.number().int().min(MIN_COUNT).optional(),
   instructions: z.string().optional(),
   select_paths: z.array(z.string()).optional(),
   select_domains: z.array(z.string()).optional(),
@@ -42,10 +46,10 @@ export const webCrawlInput = z.object({
 });
 
 export const webMapInput = z.object({
-  url: z.string().min(1),
-  max_depth: z.number().int().min(1).optional(),
-  max_breadth: z.number().int().min(1).optional(),
-  limit: z.number().int().min(1).optional(),
+  url: z.string().min(MIN_TEXT_LEN),
+  max_depth: z.number().int().min(MIN_COUNT).optional(),
+  max_breadth: z.number().int().min(MIN_COUNT).optional(),
+  limit: z.number().int().min(MIN_COUNT).optional(),
   instructions: z.string().optional(),
   select_paths: z.array(z.string()).optional(),
   select_domains: z.array(z.string()).optional(),

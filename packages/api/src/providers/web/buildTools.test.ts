@@ -4,11 +4,14 @@ import type { ProviderCtx } from '../provider.js';
 import { buildWebTools } from './buildTools.js';
 import type { WebSearchService } from './types.js';
 
+const CREDITS = 1;
+const MAX_RESULTS = 3;
+
 function fakeService(): { service: WebSearchService; calls: unknown[] } {
   const calls: unknown[] = [];
-  const record = (name: string) => (input: unknown) => {
+  const record = (name: string) => async (input: unknown) => {
     calls.push({ name, input });
-    return Promise.resolve({ ok: name, usage: { credits: 1 } });
+    return await Promise.resolve({ ok: name, usage: { credits: CREDITS } });
   };
   return {
     calls,
@@ -21,27 +24,30 @@ function fakeService(): { service: WebSearchService; calls: unknown[] } {
   };
 }
 
-function ctxWith(serviceBundle: unknown): ProviderCtx {
-  const noop = () => undefined;
-  const logger = {
-    info: noop,
-    warn: noop,
+function silentLogger(): ProviderCtx['logger'] {
+  const noop = (): void => undefined;
+  return {
     error: noop,
+    warn: noop,
     help: noop,
     data: noop,
+    info: noop,
     debug: noop,
     prompt: noop,
     http: noop,
     verbose: noop,
     input: noop,
     silly: noop,
-  } as unknown as ProviderCtx['logger'];
+  };
+}
+
+function ctxWith(serviceBundle: unknown): ProviderCtx {
   return {
     orgId: 'o',
     tenantId: 't',
     agentId: 'a',
     isChildAgent: false,
-    logger,
+    logger: silentLogger(),
     oauthTokens: new Map(),
     mcpServers: new Map(),
     services: ((id: string) => (id === 'web' ? serviceBundle : undefined)) as ProviderCtx['services'],
@@ -53,9 +59,9 @@ describe('buildWebTools', () => {
     const { service, calls } = fakeService();
     const tools = await buildWebTools({ toolNames: ['search'], ctx: ctxWith({ service }) });
     expect(Object.keys(tools)).toEqual(['search']);
-    const result = await tools.search?.execute({ query: 'hi', max_results: 3 });
-    expect(result).toEqual({ ok: 'search', usage: { credits: 1 } });
-    expect(calls).toEqual([{ name: 'search', input: { query: 'hi', max_results: 3 } }]);
+    const result = await tools.search?.execute({ query: 'hi', max_results: MAX_RESULTS });
+    expect(result).toEqual({ ok: 'search', usage: { credits: CREDITS } });
+    expect(calls).toEqual([{ name: 'search', input: { query: 'hi', max_results: MAX_RESULTS } }]);
   });
 
   it('returns an empty map when no web service is bound', async () => {

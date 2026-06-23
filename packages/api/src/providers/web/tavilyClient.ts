@@ -19,6 +19,7 @@ export interface TavilyConfig {
   fetchImpl: TavilyFetch;
 }
 
+const ERROR_BODY_START = 0;
 const ERROR_BODY_MAX = 300;
 
 async function callTavily(cfg: TavilyConfig, endpoint: string, args: object): Promise<unknown> {
@@ -35,7 +36,7 @@ async function callTavily(cfg: TavilyConfig, endpoint: string, args: object): Pr
     const detail = await res.text().catch(() => '');
     throw new ToolError(
       'upstream_error',
-      `web ${endpoint} failed: HTTP ${String(res.status)} ${detail.slice(0, ERROR_BODY_MAX)}`
+      `web ${endpoint} failed: HTTP ${String(res.status)} ${detail.slice(ERROR_BODY_START, ERROR_BODY_MAX)}`
     );
   }
   return await res.json();

@@ -10,7 +10,7 @@ import {
   WEB_SEARCH_TOOL_NAME,
 } from './descriptors.js';
 import { webCrawlInput, webExtractInput, webMapInput, webSearchInput } from './schemas.js';
-import { isWebProviderServices, type WebSearchService } from './types.js';
+import { type WebSearchService, isWebProviderServices } from './types.js';
 
 type WebToolName =
   | typeof WEB_SEARCH_TOOL_NAME
@@ -29,22 +29,22 @@ function logUsage(ctx: WebToolCtx, tool: string, result: unknown): void {
   }
 }
 
-type Caller<S extends z.ZodType> = (input: z.infer<S>) => Promise<unknown>;
+interface ToolSpec<S extends z.ZodType> {
+  ctx: WebToolCtx;
+  description: string;
+  schema: S;
+  toolKey: string;
+  call: (input: z.infer<S>) => Promise<unknown>;
+}
 
-function makeTool<S extends z.ZodType>(
-  ctx: WebToolCtx,
-  description: string,
-  schema: S,
-  toolKey: string,
-  call: Caller<S>
-): OpenFlowTool {
+function makeTool<S extends z.ZodType>(spec: ToolSpec<S>): OpenFlowTool {
   return {
-    description,
-    inputSchema: schema,
+    description: spec.description,
+    inputSchema: spec.schema,
     execute: async (args: unknown) => {
-      const input = schema.parse(args) as z.infer<S>;
-      const result = await call(input);
-      logUsage(ctx, toolKey, result);
+      const input = spec.schema.parse(args);
+      const result = await spec.call(input);
+      logUsage(spec.ctx, spec.toolKey, result);
       return result;
     },
   };
@@ -52,14 +52,34 @@ function makeTool<S extends z.ZodType>(
 
 function buildAll(ctx: WebToolCtx): Record<WebToolName, OpenFlowTool> {
   return {
-    [WEB_SEARCH_TOOL_NAME]: makeTool(ctx, SEARCH_TOOL_DESC, webSearchInput, 'search', (i) =>
-      ctx.service.search(i)
-    ),
-    [WEB_EXTRACT_TOOL_NAME]: makeTool(ctx, EXTRACT_TOOL_DESC, webExtractInput, 'extract', (i) =>
-      ctx.service.extract(i)
-    ),
-    [WEB_CRAWL_TOOL_NAME]: makeTool(ctx, CRAWL_TOOL_DESC, webCrawlInput, 'crawl', (i) => ctx.service.crawl(i)),
-    [WEB_MAP_TOOL_NAME]: makeTool(ctx, MAP_TOOL_DESC, webMapInput, 'map', (i) => ctx.service.map(i)),
+    [WEB_SEARCH_TOOL_NAME]: makeTool({
+      ctx,
+      description: SEARCH_TOOL_DESC,
+      schema: webSearchInput,
+      toolKey: 'search',
+      call: async (i) => await ctx.service.search(i),
+    }),
+    [WEB_EXTRACT_TOOL_NAME]: makeTool({
+      ctx,
+      description: EXTRACT_TOOL_DESC,
+      schema: webExtractInput,
+      toolKey: 'extract',
+      call: async (i) => await ctx.service.extract(i),
+    }),
+    [WEB_CRAWL_TOOL_NAME]: makeTool({
+      ctx,
+      description: CRAWL_TOOL_DESC,
+      schema: webCrawlInput,
+      toolKey: 'crawl',
+      call: async (i) => await ctx.service.crawl(i),
+    }),
+    [WEB_MAP_TOOL_NAME]: makeTool({
+      ctx,
+      description: MAP_TOOL_DESC,
+      schema: webMapInput,
+      toolKey: 'map',
+      call: async (i) => await ctx.service.map(i),
+    }),
   };
 }
 

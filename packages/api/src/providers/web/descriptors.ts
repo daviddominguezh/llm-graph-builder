@@ -27,8 +27,8 @@ import {
   SEARCH_EXCLUDE_DOMAINS_DESC,
   SEARCH_INCLUDE_DOMAINS_DESC,
   SEARCH_INCLUDE_FAVICON_DESC,
-  SEARCH_INCLUDE_IMAGE_DESCRIPTIONS_DESC,
   SEARCH_INCLUDE_IMAGES_DESC,
+  SEARCH_INCLUDE_IMAGE_DESCRIPTIONS_DESC,
   SEARCH_INCLUDE_RAW_CONTENT_DESC,
   SEARCH_MAX_RESULTS_DESC,
   SEARCH_QUERY_DESC,
@@ -48,6 +48,8 @@ export const WEB_MAP_TOOL_NAME = 'map';
 const DEFAULT_MAX_RESULTS = 5;
 const DEFAULT_BREADTH = 20;
 const DEFAULT_LIMIT = 50;
+const MIN_BOUND = 1;
+const DEFAULT_DEPTH = 1;
 
 const stringArray = (description: string): RawJsonSchema => ({
   type: 'array',
@@ -57,17 +59,22 @@ const stringArray = (description: string): RawJsonSchema => ({
 });
 const depthFrom = (description: string): RawJsonSchema => ({
   type: 'integer',
-  minimum: 1,
-  default: 1,
+  minimum: MIN_BOUND,
+  default: DEFAULT_DEPTH,
   description,
 });
 const breadth: RawJsonSchema = {
   type: 'integer',
-  minimum: 1,
+  minimum: MIN_BOUND,
   default: DEFAULT_BREADTH,
   description: MAX_BREADTH_DESC,
 };
-const limit: RawJsonSchema = { type: 'integer', minimum: 1, default: DEFAULT_LIMIT, description: LIMIT_DESC };
+const limit: RawJsonSchema = {
+  type: 'integer',
+  minimum: MIN_BOUND,
+  default: DEFAULT_LIMIT,
+  description: LIMIT_DESC,
+};
 const allowExternal: RawJsonSchema = { type: 'boolean', default: true, description: ALLOW_EXTERNAL_DESC };
 
 const searchDescriptor: ToolDescriptor = {
