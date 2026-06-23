@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { CloserTool } from './toolEnum.js';
+
 const MIN_LENGTH = 1;
 const MIN_DURATION_MINUTES = 1;
 
@@ -48,3 +50,25 @@ export type ListEventsInput = z.infer<typeof listEventsInput>;
 export type EventRefInput = z.infer<typeof eventRefInput>;
 export type BookAppointmentInputSchema = z.infer<typeof bookAppointmentInput>;
 export type UpdateEventInputSchema = z.infer<typeof updateEventInput>;
+
+const {
+  listCalendars: LIST_CALENDARS_TOOL_NAME,
+  checkAvailability: CHECK_AVAILABILITY_TOOL_NAME,
+  listEvents: LIST_EVENTS_TOOL_NAME,
+  getEvent: GET_EVENT_TOOL_NAME,
+  bookAppointment: BOOK_APPOINTMENT_TOOL_NAME,
+  updateEvent: UPDATE_EVENT_TOOL_NAME,
+  cancelAppointment: CANCEL_APPOINTMENT_TOOL_NAME,
+} = CloserTool;
+
+export {
+  LIST_CALENDARS_TOOL_NAME,
+  CHECK_AVAILABILITY_TOOL_NAME,
+  LIST_EVENTS_TOOL_NAME,
+  GET_EVENT_TOOL_NAME,
+  BOOK_APPOINTMENT_TOOL_NAME,
+  UPDATE_EVENT_TOOL_NAME,
+  CANCEL_APPOINTMENT_TOOL_NAME,
+};
+
+export const DEFAULT_CALENDAR_ID = 'primary';

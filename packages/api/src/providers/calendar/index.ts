@@ -6,7 +6,7 @@ import {
   LIST_CALENDARS_TOOL_NAME,
   LIST_EVENTS_TOOL_NAME,
   UPDATE_EVENT_TOOL_NAME,
-} from '../../tools/calendarTools.js';
+} from '../../tools/calendarToolSchemas.js';
 import type { BuiltinProvider, ProviderCtx, ToolDescriptor } from '../provider.js';
 import { buildCalendarTools } from './buildTools.js';
 import { CALENDAR_DESCRIPTORS } from './descriptors.js';
@@ -29,7 +29,7 @@ export const calendarProvider: BuiltinProvider<'calendar', typeof TOOL_NAMES> = 
   type: 'builtin',
   id: 'calendar',
   displayName: 'OpenFlow/Calendar',
-  description: 'Read availability and manage events on a connected Google Calendar.',
+  description: 'Read availability and manage events (booking integration coming soon).',
   toolNames: TOOL_NAMES,
   describeTools: describeCalendarTools,
   buildTools: buildCalendarTools,

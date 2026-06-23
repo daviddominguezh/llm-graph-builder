@@ -6,7 +6,7 @@ import {
   LIST_CALENDARS_TOOL_NAME,
   LIST_EVENTS_TOOL_NAME,
   UPDATE_EVENT_TOOL_NAME,
-} from '../../tools/calendarTools.js';
+} from '../../tools/calendarToolSchemas.js';
 import {
   BOOK_APPOINTMENT_DESCRIPTION,
   CANCEL_APPOINTMENT_DESCRIPTION,

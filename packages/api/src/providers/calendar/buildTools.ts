@@ -1,14 +1,3 @@
-import type { z } from 'zod';
-
-import type { CalendarService } from '../../services/calendarService.js';
-import {
-  bookAppointmentInput,
-  checkAvailabilityInput,
-  eventRefInput,
-  listCalendarsInput,
-  listEventsInput,
-  updateEventInput,
-} from '../../tools/calendarToolSchemas.js';
 import {
   BOOK_APPOINTMENT_TOOL_NAME,
   CANCEL_APPOINTMENT_TOOL_NAME,
@@ -17,95 +6,28 @@ import {
   LIST_CALENDARS_TOOL_NAME,
   LIST_EVENTS_TOOL_NAME,
   UPDATE_EVENT_TOOL_NAME,
-} from '../../tools/calendarTools.js';
-import {
-  executeBookAppointment,
-  executeCancelAppointment,
-  executeCheckAvailability,
-  executeGetEvent,
-  executeListCalendars,
-  executeListEvents,
-  executeUpdateEvent,
-} from '../../tools/calendarToolsExecute.js';
+  bookAppointmentInput,
+  checkAvailabilityInput,
+  eventRefInput,
+  listCalendarsInput,
+  listEventsInput,
+  updateEventInput,
+} from '../../tools/calendarToolSchemas.js';
 import type { ProviderCtx } from '../provider.js';
 import type { OpenFlowTool } from '../types.js';
 
-function parseArgs<S extends z.ZodType>(schema: S, args: unknown): z.infer<S> {
-  return schema.parse(args);
-}
-
-export interface CalendarServices {
-  service: CalendarService;
-  calendarId: string;
-}
-
-interface CalendarCtx {
-  services: CalendarService;
-  orgId: string;
-  calendarId: string;
-}
-
-function makeCtx(orgId: string, s: CalendarServices): CalendarCtx {
-  return { services: s.service, orgId, calendarId: s.calendarId };
-}
-
-function makeListCalendars(ctx: CalendarCtx): OpenFlowTool {
-  return {
-    description: 'List all calendars accessible by the connected Google account.',
-    inputSchema: listCalendarsInput,
-    execute: async (_args: unknown) => await executeListCalendars(ctx),
-  };
-}
-
-function makeCheckAvailability(ctx: CalendarCtx): OpenFlowTool {
-  return {
-    description: 'Find available time slots within a date range.',
-    inputSchema: checkAvailabilityInput,
-    execute: async (args: unknown) =>
-      await executeCheckAvailability(parseArgs(checkAvailabilityInput, args), ctx),
-  };
-}
-
-function makeListEvents(ctx: CalendarCtx): OpenFlowTool {
-  return {
-    description: 'List events on the calendar within a date range.',
-    inputSchema: listEventsInput,
-    execute: async (args: unknown) => await executeListEvents(parseArgs(listEventsInput, args), ctx),
-  };
-}
-
-function makeGetEvent(ctx: CalendarCtx): OpenFlowTool {
-  return {
-    description: 'Read full details for a single event by id.',
-    inputSchema: eventRefInput,
-    execute: async (args: unknown) => await executeGetEvent(parseArgs(eventRefInput, args), ctx),
-  };
-}
-
-function makeBookAppointment(ctx: CalendarCtx): OpenFlowTool {
-  return {
-    description: 'Create a new event on the configured calendar.',
-    inputSchema: bookAppointmentInput,
-    execute: async (args: unknown) =>
-      await executeBookAppointment(parseArgs(bookAppointmentInput, args), ctx),
-  };
-}
-
-function makeUpdateEvent(ctx: CalendarCtx): OpenFlowTool {
-  return {
-    description: 'Modify an existing event by id.',
-    inputSchema: updateEventInput,
-    execute: async (args: unknown) => await executeUpdateEvent(parseArgs(updateEventInput, args), ctx),
-  };
-}
-
-function makeCancelAppointment(ctx: CalendarCtx): OpenFlowTool {
-  return {
-    description: 'Cancel (delete) an event by id.',
-    inputSchema: eventRefInput,
-    execute: async (args: unknown) => await executeCancelAppointment(parseArgs(eventRefInput, args), ctx),
-  };
-}
+/**
+ * Calendar tools are temporarily disabled. The Google Calendar integration was
+ * removed and booking is being migrated to an in-house system. The tools stay
+ * registered (names + input schemas intact) so existing graphs keep working,
+ * but every call is a no-op that returns a "disabled" sentinel — no external
+ * side effects.
+ */
+const DISABLED_RESULT = {
+  disabled: true as const,
+  message:
+    'Calendar integration is currently disabled. Booking is being migrated to an in-house system and will be available again soon.',
+};
 
 type CalendarToolName =
   | typeof LIST_CALENDARS_TOOL_NAME
@@ -116,15 +38,28 @@ type CalendarToolName =
   | typeof UPDATE_EVENT_TOOL_NAME
   | typeof CANCEL_APPOINTMENT_TOOL_NAME;
 
-function buildAll(ctx: CalendarCtx): Record<CalendarToolName, OpenFlowTool> {
+function disabledTool(description: string, inputSchema: OpenFlowTool['inputSchema']): OpenFlowTool {
+  return { description, inputSchema, execute: (_args: unknown) => DISABLED_RESULT };
+}
+
+function buildAll(): Record<CalendarToolName, OpenFlowTool> {
   return {
-    [LIST_CALENDARS_TOOL_NAME]: makeListCalendars(ctx),
-    [CHECK_AVAILABILITY_TOOL_NAME]: makeCheckAvailability(ctx),
-    [LIST_EVENTS_TOOL_NAME]: makeListEvents(ctx),
-    [GET_EVENT_TOOL_NAME]: makeGetEvent(ctx),
-    [BOOK_APPOINTMENT_TOOL_NAME]: makeBookAppointment(ctx),
-    [UPDATE_EVENT_TOOL_NAME]: makeUpdateEvent(ctx),
-    [CANCEL_APPOINTMENT_TOOL_NAME]: makeCancelAppointment(ctx),
+    [LIST_CALENDARS_TOOL_NAME]: disabledTool('List calendars (currently disabled).', listCalendarsInput),
+    [CHECK_AVAILABILITY_TOOL_NAME]: disabledTool(
+      'Check availability (currently disabled).',
+      checkAvailabilityInput
+    ),
+    [LIST_EVENTS_TOOL_NAME]: disabledTool('List events (currently disabled).', listEventsInput),
+    [GET_EVENT_TOOL_NAME]: disabledTool('Get an event (currently disabled).', eventRefInput),
+    [BOOK_APPOINTMENT_TOOL_NAME]: disabledTool(
+      'Book an appointment (currently disabled).',
+      bookAppointmentInput
+    ),
+    [UPDATE_EVENT_TOOL_NAME]: disabledTool('Update an event (currently disabled).', updateEventInput),
+    [CANCEL_APPOINTMENT_TOOL_NAME]: disabledTool(
+      'Cancel an appointment (currently disabled).',
+      eventRefInput
+    ),
   };
 }
 
@@ -155,35 +90,9 @@ function pickTools(
   return result;
 }
 
-function isCalendarServices(raw: unknown): raw is CalendarServices {
-  if (raw === null || raw === undefined || typeof raw !== 'object') return false;
-  return (
-    Object.hasOwn(raw, 'service') &&
-    Object.hasOwn(raw, 'calendarId') &&
-    typeof (raw as { calendarId?: unknown }).calendarId === 'string'
-  );
-}
-
-function resolveServices(ctx: ProviderCtx): CalendarServices | undefined {
-  const raw = ctx.services('calendar');
-  return isCalendarServices(raw) ? raw : undefined;
-}
-
-function buildToolsSync(
-  toolNames: string[],
-  ctx: ProviderCtx
-): Partial<Record<CalendarToolName, OpenFlowTool>> {
-  const services = resolveServices(ctx);
-  if (services === undefined) return {};
-  const calendarCtx = makeCtx(ctx.orgId, services);
-  const all = buildAll(calendarCtx);
-  return pickTools(all, toolNames);
-}
-
 export async function buildCalendarTools(args: {
   toolNames: string[];
   ctx: ProviderCtx;
 }): Promise<Partial<Record<CalendarToolName, OpenFlowTool>>> {
-  const { toolNames, ctx } = args;
-  return await Promise.resolve(buildToolsSync(toolNames, ctx));
+  return await Promise.resolve(pickTools(buildAll(), args.toolNames));
 }

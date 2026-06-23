@@ -3,7 +3,6 @@ import type { OAuthTokenBundle, SelectedTool } from '@daviddh/llm-graph-runner';
 
 import { type DecryptedConnection, getConnection } from '../../db/queries/oauthConnectionOperations.js';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
-import { resolveGoogleTokenBundle } from '../../google/calendar/tokenResolver.js';
 import { resolveAccessToken } from '../../mcp/oauth/tokenRefresh.js';
 import { logExec } from './executeHelpers.js';
 
@@ -12,29 +11,6 @@ const MS_PER_SECOND = 1000;
 const MINUTES_PER_HOUR = 60;
 const FALLBACK_TTL_MS = MINUTES_PER_HOUR * SECONDS_PER_MIN * MS_PER_SECOND;
 const EMPTY_LENGTH = 0;
-
-/* ─── Calendar bundle ─── */
-
-interface CalendarBundleArgs {
-  supabase: SupabaseClient;
-  orgId: string;
-  selectedTools: SelectedTool[];
-}
-
-function isCalendarUsed(selectedTools: SelectedTool[]): boolean {
-  return selectedTools.some((s) => s.providerType === 'builtin' && s.providerId === 'calendar');
-}
-
-async function fetchCalendarBundle(args: CalendarBundleArgs): Promise<OAuthTokenBundle | null> {
-  if (!isCalendarUsed(args.selectedTools)) return null;
-  try {
-    return await resolveGoogleTokenBundle(args.supabase, args.orgId);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'unknown';
-    logExec('calendar token resolution failed (non-fatal)', { error: msg });
-    return null;
-  }
-}
 
 /* ─── MCP bundles ─── */
 
@@ -119,16 +95,10 @@ export interface ResolveOAuthBundleArgs {
 export async function resolveOAuthBundle(
   args: ResolveOAuthBundleArgs
 ): Promise<Record<string, OAuthTokenBundle>> {
-  const out: Record<string, OAuthTokenBundle> = {};
-
-  const calendarBundle = await fetchCalendarBundle(args);
-  if (calendarBundle !== null) out.calendar = calendarBundle;
-
-  const mcpBundles = await resolveMcpBundles({
+  return await resolveMcpBundles({
     supabase: args.supabase,
     orgId: args.orgId,
     selectedTools: args.selectedTools,
     mcpServers: args.mcpServers,
   });
-  return { ...out, ...mcpBundles };
 }

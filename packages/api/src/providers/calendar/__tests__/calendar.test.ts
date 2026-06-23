@@ -61,11 +61,14 @@ describe('calendarProvider', () => {
     expect(names).toContain('cancel_appointment');
   });
 
-  it('returns empty when no calendar service in ctx', async () => {
+  it('builds the calendar tools as disabled no-ops', async () => {
     const built = await calendarProvider.buildTools({
       toolNames: ['check_availability'],
       ctx: makeCtx(),
     });
-    expect(built).toEqual({});
+    const { check_availability: tool } = built;
+    expect(tool).toBeDefined();
+    const result = await tool?.execute({});
+    expect(result).toMatchObject({ disabled: true });
   });
 });

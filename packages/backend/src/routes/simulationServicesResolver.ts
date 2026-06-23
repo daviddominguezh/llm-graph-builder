@@ -1,4 +1,3 @@
-import { createGoogleCalendarService } from '../google/calendar/service.js';
 import { makeKvStoreService } from '../services/kvStoreService.js';
 import { makeNoStoreBoundKvServices, makeNoStoreBoundRagServices } from '../services/noStoreBoundServices.js';
 import { makeRagStoreService } from '../services/ragStoreService.js';
@@ -17,11 +16,7 @@ function resolveRagServices(config: OrchestratorConfig): unknown {
 }
 
 export function buildSimulationServices(config: OrchestratorConfig): (providerId: string) => unknown {
-  const calendarServices = createGoogleCalendarService(config.supabase);
   return (providerId: string): unknown => {
-    if (providerId === 'calendar') {
-      return { service: calendarServices, calendarId: 'primary' };
-    }
     if (providerId === 'kv_store') return resolveKvServices(config);
     if (providerId === 'rag') return resolveRagServices(config);
     return undefined;

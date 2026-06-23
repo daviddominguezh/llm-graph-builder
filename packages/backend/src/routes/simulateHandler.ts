@@ -1,6 +1,5 @@
 import type { McpServerConfig } from '@daviddh/graph-types';
 import type {
-  CalendarService,
   CallAgentOutput,
   Context,
   NodeProcessedEvent,
@@ -11,7 +10,6 @@ import type { Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
 
 import { createServiceClient } from '../db/queries/executionAuthQueries.js';
-import { createGoogleCalendarService } from '../google/calendar/service.js';
 import { assertEgressForServers } from '../lib/assertEgressForServers.js';
 import { classifyDiscoveryError } from '../lib/discoveryError.js';
 import { consoleLogger } from '../logger.js';
@@ -143,22 +141,8 @@ function sendRedactedError(res: Response, err: unknown): void {
   });
 }
 
-function resolveCalendarServices(orgId: string | undefined): {
-  calendarServices?: CalendarService;
-  orgId?: string;
-} {
-  if (orgId === undefined || orgId === '') return {};
-  return {
-    calendarServices: createGoogleCalendarService(createServiceClient()),
-    orgId,
-  };
-}
-
-function buildSimulationServicesResolver(
-  calendarServices: CalendarService | undefined
-): (providerId: string) => unknown {
+function buildSimulationServicesResolver(): (providerId: string) => unknown {
   return (providerId: string): unknown => {
-    if (providerId === 'calendar') return calendarServices;
     // simulate has no per-agent store bindings — surface the sentinel services
     // so the LLM still sees the tools and gets a `no_store_bound` ToolError if
     // it tries to call one.
@@ -168,13 +152,10 @@ function buildSimulationServicesResolver(
   };
 }
 
-function buildContextWithRegistry(
-  body: SimulateRequest,
-  calendarServices: CalendarService | undefined
-): Omit<Context, 'toolsOverride' | 'onNodeVisited'> {
+function buildContextWithRegistry(body: SimulateRequest): Omit<Context, 'toolsOverride' | 'onNodeVisited'> {
   const baseContext = buildContext(body);
   const mcpServers = body.graph.mcpServers ?? [];
-  const services = buildSimulationServicesResolver(calendarServices);
+  const services = buildSimulationServicesResolver();
   const oauthTokens = new Map<string, OAuthTokenBundle>();
   const providerCtx = buildSimulationProviderCtx({
     orgId: body.orgId ?? '',
@@ -201,8 +182,7 @@ function buildContextWithRegistry(
 }
 
 async function runSimulation(body: SimulateRequest, res: Response): Promise<void> {
-  const calendar = resolveCalendarServices(body.orgId);
-  const context = buildContextWithRegistry(body, calendar.calendarServices);
+  const context = buildContextWithRegistry(body);
   const result = await executeWithCallbacks({
     context,
     messages: body.messages,

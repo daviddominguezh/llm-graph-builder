@@ -79,24 +79,7 @@ export {
 } from './tools/formsTools.js';
 export type { CreateFormsToolsParams } from './tools/formsTools.js';
 
-export type {
-  CalendarService,
-  CheckAvailabilityArgs,
-  ListEventsArgs,
-  EventRefArgs,
-  BookAppointmentArgs,
-  UpdateEventArgs,
-} from './services/calendarService.js';
-export type {
-  CalendarSummary,
-  CalendarEvent,
-  CalendarAttendee,
-  AvailableSlot,
-  BookAppointmentInput,
-  UpdateEventInput,
-} from './types/calendar.js';
 export {
-  createCalendarTools,
   DEFAULT_CALENDAR_ID,
   LIST_CALENDARS_TOOL_NAME,
   CHECK_AVAILABILITY_TOOL_NAME,
@@ -105,11 +88,7 @@ export {
   BOOK_APPOINTMENT_TOOL_NAME,
   UPDATE_EVENT_TOOL_NAME,
   CANCEL_APPOINTMENT_TOOL_NAME,
-} from './tools/calendarTools.js';
-export type { CreateCalendarToolsParams } from './tools/calendarTools.js';
-
-export { createGoogleCalendarService } from './google/calendar/service.js';
-export type { AccessTokenProvider, CreateGoogleCalendarServiceOptions } from './google/calendar/service.js';
+} from './tools/calendarToolSchemas.js';
 
 export { hashServerUrl, serverUrlSideTableKey } from './cache/serverHash.js';
 export type { ServerUrlSideTableEntry } from './cache/serverHash.js';
@@ -175,7 +154,6 @@ export type {
   KvPagedResult,
   BuiltinBundles,
   FormsServices,
-  CalendarServices,
   LeadScoringProviderServices,
   WebSearchService,
   WebProviderServices,

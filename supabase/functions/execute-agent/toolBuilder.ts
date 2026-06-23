@@ -29,7 +29,6 @@ import {
   buildAgentToolsAtStart,
   builtInProviders,
   composeRegistry,
-  createGoogleCalendarService,
   toAiSdkToolDict,
 } from '@daviddh/llm-graph-runner';
 import type { Tool } from 'ai';
@@ -95,7 +94,6 @@ export interface ExecutePayload {
 export type SupabaseClient = Awaited<ReturnType<typeof buildSupabaseClient>>;
 type LeadScoringServices = NonNullable<BuiltinBundles['lead_scoring']>['service'];
 type FormsBundle = NonNullable<BuiltinBundles['forms']>;
-type CalendarBundle = NonNullable<BuiltinBundles['calendar']>;
 
 /* ─── Logger ─── */
 
@@ -129,19 +127,6 @@ export async function buildSupabaseClient() {
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
   return createClient(supabaseUrl, serviceKey);
-}
-
-/* ─── Calendar bundle ─── */
-
-function buildCalendarBundle(payload: ExecutePayload): CalendarBundle | undefined {
-  const calendarToken = payload.oauth?.byProvider?.['calendar'];
-  if (calendarToken === undefined) return undefined;
-  return {
-    service: createGoogleCalendarService({
-      getAccessToken: async () => calendarToken.accessToken,
-    }),
-    calendarId: 'primary',
-  };
 }
 
 /* ─── Lead scoring services ─── */
@@ -375,10 +360,6 @@ async function prepareLeadScoringBundle(
   return { service };
 }
 
-function prepareCalendarBundle(payload: ExecutePayload): Promise<BuiltinBundles['calendar']> {
-  return Promise.resolve(buildCalendarBundle(payload));
-}
-
 function prepareCompositionBundle(): Promise<BuiltinBundles['composition']> {
   return Promise.resolve(undefined);
 }
@@ -392,7 +373,7 @@ const PREPARERS: { [K in BuiltinProviderId]: BundlePreparer<K> } = {
   rag: (payload, supabase) => prepareRagBundle(payload, supabase),
   forms: (payload) => prepareFormsBundle(payload),
   lead_scoring: (payload) => prepareLeadScoringBundle(payload),
-  calendar: (payload) => prepareCalendarBundle(payload),
+  calendar: () => Promise.resolve(undefined),
   composition: () => prepareCompositionBundle(),
   web: () => prepareWebBundle(),
 };

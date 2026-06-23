@@ -1,4 +1,3 @@
-import type { CalendarServices } from './calendar/buildTools.js';
 import type { FormsServices } from './forms/buildTools.js';
 import type { LeadScoringProviderServices } from './lead_scoring/buildTools.js';
 import type { KvStoreServices, RagStoreServices } from './types.js';
@@ -48,7 +47,7 @@ export interface BuiltinBundles {
   rag: RagStoreServices;
   forms: FormsServices | undefined;
   lead_scoring: LeadScoringProviderServices | undefined;
-  calendar: CalendarServices | undefined;
+  calendar: undefined;
   composition: undefined;
   web: WebProviderServices | undefined;
 }

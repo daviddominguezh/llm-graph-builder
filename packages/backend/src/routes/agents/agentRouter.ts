@@ -7,9 +7,6 @@ import { handleGetVersions } from '../graph/getVersions.js';
 import { handlePostOperations } from '../graph/postOperations.js';
 import { handlePostPublish } from '../graph/postPublish.js';
 import { handlePostRestore } from '../graph/postRestore.js';
-import { handleGoogleDisconnect } from '../oauth/googleOauthDisconnect.js';
-import { handleGoogleInitiate } from '../oauth/googleOauthInitiate.js';
-import { handleGoogleStatus } from '../oauth/googleOauthStatus.js';
 import { handleDisconnect } from '../oauth/oauthDisconnect.js';
 import { handleInitiate } from '../oauth/oauthInitiate.js';
 import { handleResolveToken } from '../oauth/oauthResolveToken.js';
@@ -61,10 +58,6 @@ agentRouter.post('/mcp-oauth/initiate', handleInitiate);
 agentRouter.get('/mcp-oauth/status', handleStatus);
 agentRouter.post('/mcp-oauth/resolve-token', handleResolveToken);
 agentRouter.delete('/mcp-oauth/connections', handleDisconnect);
-
-agentRouter.post('/google-oauth/initiate', handleGoogleInitiate);
-agentRouter.get('/google-oauth/status', handleGoogleStatus);
-agentRouter.delete('/google-oauth/connections', handleGoogleDisconnect);
 
 agentRouter.use('/:agentId/vfs-configs', vfsConfigRouter);
 agentRouter.get('/:agentId/vfs-settings', handleGetVfsSettings);

@@ -692,17 +692,6 @@
   "calendar": {
     "title": "Calendar"
   },
-  "googleCalendar": {
-    "title": "Google Calendar",
-    "description": "Connect a Google account so agents can read availability and book, reschedule, or cancel events.",
-    "connect": "Connect",
-    "disconnect": "Disconnect",
-    "connected": "Connected",
-    "notConnected": "Required for agents that use calendar tools.",
-    "connectError": "Couldn't start Google sign-in. Please try again.",
-    "disconnectError": "Couldn't disconnect. Please try again.",
-    "disconnectSuccess": "Google Calendar disconnected."
-  },
   "mcpServers": {
     "noVersionBadge": "No version",
     "noVersionTooltip": "This MCP server doesn't report a version. Caching may serve stale tools until you refresh manually."
@@ -2033,7 +2022,7 @@
       "groupName": "Calendar",
       "tools": {
         "list_calendars": {
-          "description": "List every calendar the connected Google account can access.",
+          "description": "List every calendar the connected account can access.",
           "params": {}
         },
         "check_availability": {
@@ -2066,7 +2055,7 @@
             "description": "Optional event description.",
             "location": "Optional event location.",
             "attendees": "Optional list of attendee email addresses.",
-            "addMeetLink": "When true, generates a Google Meet link for the event."
+            "addMeetLink": "When true, generates a video conference link for the event."
           }
         },
         "update_event": {
