@@ -85,7 +85,7 @@ export function MatrixSection(props: MatrixSectionProps) {
   return (
     <section className="flex flex-col gap-2">
       {props.columns.length === 0 && <OAuthNote />}
-      <Table>
+      <Table className="w-auto">
         <MatrixHeader columns={props.columns} />
         <MatrixRows {...props} />
       </Table>

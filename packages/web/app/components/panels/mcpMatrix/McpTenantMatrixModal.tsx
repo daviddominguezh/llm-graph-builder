@@ -106,7 +106,7 @@ function MatrixContent(props: McpTenantMatrixModalProps) {
 export function McpTenantMatrixModal(props: McpTenantMatrixModalProps) {
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="flex max-h-[85vh] flex-col gap-3 sm:max-w-4xl">
+      <DialogContent className="flex h-[calc(100vh-4rem)] w-[calc(100vw-4rem)] max-w-none flex-col gap-3 sm:max-w-none">
         <DialogHeader>
           <DialogTitle>{props.server.name}</DialogTitle>
         </DialogHeader>
