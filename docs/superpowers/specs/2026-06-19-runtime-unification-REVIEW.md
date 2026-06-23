@@ -53,8 +53,8 @@
 |---|---|---|---|
 | OAuth resolution: **pool-internal** (no runtime resolver capability) | ✅ | **Decision:** MCP is the only provider and the BE pool owns MCP connections, so resolution moves into the pool's **connect path** — lazy, per binding, on first tool use; reuses `resolveAccessToken` (Redis cache + refresh-on-expiry + single-flight); cache survives the Worker's suspend/resume. **Dropped:** the runtime `oauthResolver` capability (§6.3), the `/internal/oauth/resolve` endpoint, and `InternalApiOAuthResolver` — no caller after calendar removal. Spec §7. | |
 | Preflight surfaces (publish button, sim first-message) | ✅ | Genuinely useful UX; could even ship independently. | |
-| OAuth subject model (`'mcp'` only) | ✅ | **Updated — Google Calendar removed.** Provider collapses to `'mcp'`; the subject keys on `mcpBindingId` + `tenantId` — **the same key the pool uses** (one concept, not two). Remaining dependency: reconcile with today's org + `libraryItemId` store as SP1/SP4 land tenant-scoping. Spec §7.1. | |
-| MCP-OAuth: wire into the pool + 401 reconnect | ✅ | **Decided — not greenfield.** OAuth MCP servers (Notion/Snowflake/Square) work today via `resolveAccessToken`. The unification's only real work: move resolution into the pool's connect path (push→lazy) and add **in-call 401 refresh-and-reconnect** (§8.4 — the one net-new piece); keep **preflight** (§7.3). The standalone runtime resolver + `/internal/oauth/resolve` are dropped. Keying reconciliation with SP4 still pending. Spec §7. | |
+| OAuth subject model (`'mcp'` only) | ✅ | **Updated — Google Calendar removed.** Provider collapses to `'mcp'`; the subject keys on `mcpBindingId` + `tenantId` — **the same key the pool uses** (one concept, not two). SP1/SP4 are **shipped**: MCP transport config is tenant-scoped (so the `tenantId` key is live), while OAuth grants stay org-level (`org + libraryItemId`) by design — no reconciliation pending. Spec §7.1. | |
+| MCP-OAuth: wire into the pool + 401 reconnect | ✅ | **Decided — not greenfield.** OAuth MCP servers (Notion/Snowflake/Square) work today via `resolveAccessToken`. The unification's only real work: move resolution into the pool's connect path (push→lazy) and add **in-call 401 refresh-and-reconnect** (§8.4 — the one net-new piece); keep **preflight** (§7.3). The standalone runtime resolver + `/internal/oauth/resolve` are dropped. Keying settled (SP4 shipped): transport config tenant-scoped, OAuth grants org-level. Spec §7. | |
 
 ## Simulation
 
@@ -79,12 +79,11 @@
 | Spec proposes | Verdict | Reasoning | Notes |
 |---|---|---|---|
 | One canonical SSE `ExecutionEvent` vocabulary | ✅ | Worth doing — but vocabulary is missing `child_waiting` and workflow node events. Complete it. | |
-| Two per-runtime SSE adapters ("converge later") | ❌ | Institutionalizes the split; "later" never comes. Commit to a hard cutover that deletes the adapters; include the ignored `packages/widget` consumer. | |
+| SSE: one superset vocabulary, hard cutover (no adapters) | ✅ | **Decision:** drop the two per-runtime adapters / "converge later." §6.6 is now the **superset** `ExecutionEvent` (enriched with `Tokens`, `durationMs`, `reasoning`, `structuredOutput`, per-node `node_error`, `isMcp` on `tool_call`) so the cutover loses no features. Verified consumers — production API (`web/app/lib/api.ts`), simulation panel, **and the widget** (`packages/widget/useChatStream.ts`, public shape) — all migrate in one phase (§14 Phase 8) via a single shared `executionEventSse.ts`; legacy shapes deleted. | |
 | Service-role Supabase client + logger dedup (audit #10, #11) | ✅ | Pure win, low risk. | |
 | KV regex unification (audit #1) | ✅ | **Decision:** use `re2js` (pure-JS RE2 port). Single validator across Node/Deno/Workers — drops the `/internal/regex/validate` hop AND the native `re2` dependency; the KV factory becomes one portable import with no runtime branch. | |
 | RE2 portability | ✅ | **Decision:** `re2js` (pure JS, no native addon, no WASM) loads everywhere incl. Workers, keeps ReDoS-safe linear-time matching. Trade-off (slower than native/WASM) is irrelevant for lightweight pattern validation. Caveat: API differs from native `re2` → adapt `kv/matcher.ts` + parity test (à la SP2). | |
-| Delete `executeAgentPath.ts` | ❌ | Already deleted (`2b1fd5a1`). Phantom. Remove from plan. | |
-| Delete the rest of the §11.3 manifest | 🟡 | Re-verify every entry against `main` first — the manifest is provably stale. | |
+| §11.3 deletion manifest | ✅ | **Re-verified against `main`:** all 14 entries still exist (only `executeAgentPath.ts` was a phantom — now removed), so the list is not stale. Remaining: `kvStoreService`/`ragStoreService` are *partial* deletions (LLM-tool methods move to shared-store-services) — needs a `find_referencing_symbols` audit at implementation time to enumerate what stays, not an "if any" guess. Spec wording tightened. | |
 
 ## Frontend
 
@@ -98,18 +97,18 @@
 
 | Spec proposes | Verdict | Reasoning | Notes |
 |---|---|---|---|
-| `maxDispatchDepth` default 5 | ❌ | Silent 10→5 regression (both runtimes hardcode 10). Keep 10. | |
-| `maxChildRuntimeMs` default 24h | ❌ | Effectively "no timeout" on a recursion. Pick a real bound. | |
+| `maxDispatchDepth` default | ✅ | **Set to 10** everywhere (matches both runtimes; the spec's `5` was a silent regression). | |
+| `maxChildRuntimeMs` default | ✅ | **Set to 1h of *active execution*** (not wall-clock) — suspended / awaiting-input time doesn't count, so human-in-the-loop pauses don't trip it. A runaway-loop guard; abandoned-run GC is a separate durability concern. | |
 | 10-phase migration plan | 🟡 | Uneven and big-bang mid-way (prod & sim on different cores between phases 5–6). Re-sequence; split out the pool; flip both drivers behind one flag. | |
 | Characterization / equivalence tests | ✅ (add) | Missing. A "no behavior change" refactor with known divergences needs a Phase 0 oracle. | |
 
-## Staleness flags (apply across the table)
+## SP-series foundations (shipped — build on them)
 
 | Item | Verdict | Reasoning | Notes |
 |---|---|---|---|
-| Spec predates SP2 | 🟡 | SP2 shipped the MCP resolver dedup to `graph-types` (`6ef355d0`). This spec still plans it in `packages/api` → collision / re-duplication. | |
-| Spec OAuth/pool keying predates SP0/SP1/SP4 tenant-scoping | 🟡 | Designed org-scoped while the team is moving to tenant-scoped. Guarantees a second move unless coordinated. | |
-| Spec assumes prod `agent` app-type loads MCP | 🟡 | Per SP0, prod agents don't load MCP at runtime today. Pool design assumes a path SP0 must ship first. | |
+| SP2 (shared resolver) shipped | ✅ | `graph-types/src/mcpTransportResolver.ts` is live (`resolveTransport`/`extractTemplateVariables`/`buildResolvedVars`). The unified runtime + pool **consume** it — transport/value resolution is out of scope here, not re-deduped in `packages/api`. | |
+| SP1 + SP4 (tenant-scoping) shipped | ✅ | SP1 (default tenant, `20260622000000_tenants_default.sql`) + SP4 (tenant-scoped MCP config — `mcpTenantConfigHandlers`, `mcpTenantConfig` in `executeFetcher`) are live. The pool key's `tenantId` is justified by tenant-scoped transport config; OAuth grants stay org-level (`org + libraryItemId`) by design. No second move. | |
+| SP0 (agent MCP runtime) shipped | ✅ | Prod agents now load MCP at runtime — `executeFetcher.ts:174` builds a real agent runtime graph (`buildAgentRuntimeGraph`) and fetches `mcpTenantConfig`. The pool design's assumption holds. | |
 
 ## Bottom line
 

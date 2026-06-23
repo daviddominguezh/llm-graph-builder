@@ -17,7 +17,7 @@ This refactor unifies the two runtimes into **one runtime core in the api packag
 
 ## 2. Goals
 
-- Eliminate parallel implementations of the orchestrator and the five builtin service factories (KV / RAG / Calendar / Forms / Lead Scoring).
+- Eliminate parallel implementations of the orchestrator and the four builtin service factories (KV / RAG / Forms / Lead Scoring). (Calendar was removed — its tools are now disabled no-ops, no service to unify.)
 - Establish one canonical SSE event vocabulary.
 - Move MCP connection lifecycle into a backend-owned connection pool callable from both runtimes; eliminate the simulation-side eager-connect code path and the production-side embedded connection logic.
 - Establish a clean simulation/production discriminator (`environment`) on `ProviderCtx` that tools branch on locally; the orchestrator never branches.
@@ -46,16 +46,15 @@ The 11 duplication points the audit found, indexed for traceability throughout t
 | 3 | Child-dispatch loop | Two implementations; **finish-sentinel semantics already drifting.** |
 | 4 | MCP connection lifecycle | Simulation: eager + header-auth-only; Production: lazy + OAuth-pushed. **Sim skips OAuth refresh entirely.** |
 | 5 | Bundle preparers / ProviderCtx / Registry build | Parallel implementations. |
-| 6 | Builtin factory impls (KV / RAG / Calendar / Forms / LS) | Parallel implementations; KV regex divergent; forms/LS missing in sim. |
-| 7 | SSE event vocabulary + writers | Three distinct writers and shapes; FE consumers tuned to specific ones. |
-| 8 | OAuth access pattern (calendar) | Push (production) vs pull (simulation). |
+| 6 | Builtin factory impls (KV / RAG / Forms / LS) | Parallel implementations; KV regex divergent; forms/LS missing in sim. (Calendar removed — no longer a factory.) |
+| 7 | SSE event vocabulary + writers | **Two** emitters (prod edge + sim backend), **three** consumers (production API, simulation panel, widget) each tuned to a specific shape. Unified to one superset vocabulary via a hard cutover (§6.6). |
+| 8 | OAuth access pattern | Was calendar (push prod / pull sim); **calendar removed** — only MCP OAuth remains, addressed in §7 (push → lazy). |
 | 9 | MCP OAuth bundle resolution | **Missing entirely in simulation.** |
 | 10 | Service-role Supabase client constructor | Verbatim duplication; env-source differs. |
 | 11 | Runner logger | Verbatim duplication. |
 
 **Surprises:**
 
-- `routes/execute/executeAgentPath.ts` is **dead code** (zero callers anywhere). Marked for deletion.
 - The api package's MCP `composeRegistry` is **used by both paths for registry composition** but not for connection itself — connection logic lives in `buildAgentToolsAtStart` (production) and `createMcpSession` (simulation). The unification makes `composeRegistry` the canonical connection composition point.
 
 ## 5. Architecture overview
@@ -114,8 +113,8 @@ interface RuntimeBase {
   mcpServers: McpServerConfig[];
   message: ChatMessage;
   dispatchDepth: number;             // 0 at top level; +1 per invoke_agent
-  maxDispatchDepth: number;          // default 5
-  maxChildRuntimeMs: number;         // default 24 * 60 * 60 * 1000 (1 day; revisit later)
+  maxDispatchDepth: number;          // default 10 (matches both runtimes today)
+  maxChildRuntimeMs: number;         // default 60 * 60 * 1000 — 1h of ACTIVE execution (excludes suspended / awaiting-input time); a runaway-loop guard, not a wall-clock conversation cap
 }
 
 type RuntimeInput =
@@ -218,7 +217,7 @@ Mapping rules (re-derived; the one environment-aware row is END-without-finish, 
 | END node without `finish` — **production**, no assistant text | `{ status: 'error', code: 'no_result', message }` |
 | `dispatchDepth >= maxDispatchDepth` | `{ status: 'error', code: 'max_depth_exceeded', message }` |
 | Child throws / state machine errors | `{ status: 'error', code: 'child_failed', message }` |
-| Child exceeds `maxChildRuntimeMs` | `{ status: 'error', code: 'timeout', message }` |
+| Child exceeds `maxChildRuntimeMs` (active execution time, not wall-clock) | `{ status: 'error', code: 'timeout', message }` |
 | Child agent has no published version | `{ status: 'error', code: 'agent_not_published', message }` |
 | User aborts (sim only) | `{ status: 'error', code: 'aborted', message }` |
 
@@ -243,26 +242,54 @@ The **runtime is the single source of truth** for simulation state during a run.
 
 ### 6.6 Unified SSE event vocabulary
 
+One canonical `ExecutionEvent` union, consumed identically by all three FE consumers. It is the **superset** of every event and field the current emitters produce, so the cutover loses no features — per-node tokens, durations, reasoning, structured output, per-node (non-fatal) errors, and the `depth` needed for nested rendering are all first-class.
+
 ```ts
+type Tokens = { input: number; output: number; cached: number; costUSD?: number };
+
 type ExecutionEvent =
+  // node / step lifecycle (depth = 0 root, +1 per nested child)
   | { type: 'node_entered'; nodeId: string; depth: number }
-  | { type: 'node_exited'; nodeId: string; depth: number }
+  | {
+      type: 'node_exited';
+      nodeId: string;
+      depth: number;
+      text?: string;
+      tokens?: Tokens;
+      durationMs?: number;
+      reasoning?: string;
+      structuredOutput?: { nodeId: string; data: unknown };
+    }
   | { type: 'assistant_message'; text: string; depth: number }
-  | { type: 'tool_call'; toolName: string; toolCallId: string; args: unknown; depth: number }
+  // tools — split for granularity; `isMcp` drives the §12.4 simulation badge
+  | { type: 'tool_call'; toolName: string; toolCallId: string; args: unknown; depth: number; isMcp: boolean }
   | { type: 'tool_result'; toolCallId: string; result: unknown; depth: number }
-  | { type: 'simulation_state_patch'; tool: string; path: string; value: unknown }      // sim only — display only, not authoritative
-  | { type: 'simulation_state_snapshot'; state: Record<string, unknown> }               // sim only — terminal, authoritative
+  // simulation state (sim only)
+  | { type: 'simulation_state_patch'; tool: string; path: string; value: unknown }      // display only, not authoritative
+  | { type: 'simulation_state_snapshot'; state: Record<string, unknown> }               // terminal, authoritative
+  // composition
   | { type: 'child_dispatched'; childExecutionId: string; depth: number }
   | { type: 'child_suspended'; childExecutionId: string; depth: number }                       // prod durable: parent persisted, awaiting external resume
   | { type: 'child_awaiting_input'; childExecutionId: string; partial: string; depth: number } // sim: child paused for user input
-  | { type: 'child_finished'; childExecutionId: string; result: ChildResult; depth: number }
+  | { type: 'child_finished'; childExecutionId: string; result: ChildResult; tokens?: Tokens; depth: number }
+  // errors — per-node (non-fatal) vs fatal, both preserved from the production public shape
+  | { type: 'node_error'; nodeId: string; message: string; depth: number }
   | { type: 'error'; code: string; message: string }
-  | { type: 'finished'; result: string };
+  // terminal
+  | { type: 'finished'; result: string; tokens?: Tokens; structuredOutputs?: Record<string, unknown[]> };
 ```
 
-`child_dispatched` is emitted whenever any dispatch fires (sync or future-async). `child_finished` is emitted when the child's runtime returns or its error envelope is constructed. Both runtimes emit both events for every dispatch — this is what the FE uses to render the nested call structure with `depth`.
+`child_dispatched` is emitted whenever any dispatch fires; `child_finished` when the child's runtime returns or its error envelope is constructed. Both runtimes emit both for every dispatch — this is what the FE uses to render the nested call structure with `depth`.
 
-Per-runtime transport adapters (`ssePublicAdapter` for production, `sseSimulationAdapter` for simulation) map this vocabulary onto whatever the FE consumes today, then converge over time as FE consumers are updated.
+**Hard cutover — one vocabulary, no per-runtime adapters.** All three consumers migrate to `ExecutionEvent` in the same phase (§14 Phase 8); the runtime emits it directly through a **single shared serializer** (`executionEventSse.ts`). The per-runtime `ssePublicAdapter` / `sseSimulationAdapter` are **not built** — there is no "converge later" that institutionalizes the split. Today's consumers and the migration:
+
+| Consumer | Today | After |
+|---|---|---|
+| **Production API** (`web/app/lib/api.ts`, the `/api/agents/…` stream) | public shape (`text`/`toolCall`/`tokenUsage`/`structuredOutput`/`nodeError`/`done`) | `ExecutionEvent` |
+| **Simulation panel** (FE sim viewer) | sim shape (`step_processed`/`tool_executed`/`child_*`/`simulation_complete`) | `ExecutionEvent` |
+| **Widget** (`packages/widget`, `useChatStream.ts`) | production public shape (`text`/`done`/…) | `ExecutionEvent` |
+
+The superset is the union of those three, so the cutover is lossless: the sim panel keeps `child_awaiting_input` + per-depth tokens; the production API and widget keep `tokenUsage` (→ `node_exited.tokens` / `finished.tokens`), `structuredOutput`, and per-node `node_error`.
 
 ## 7. OAuth for MCP servers
 
@@ -275,7 +302,7 @@ Per-runtime transport adapters (`ssePublicAdapter` for production, `sseSimulatio
 - **No `oauthResolver` runtime capability, no `/internal/oauth/resolve` endpoint, no `InternalApiOAuthResolver`.** They had no caller once calendar (the only *runtime-side* OAuth consumer) was removed. Dropped from §6.3.
 - **Resolution is lazy, per-binding, on connect.** The pool only connects a `poolKey` (`agentId::tenantId::mcpBindingId`) when one of its tools is first invoked, so the token is resolved then — not pushed up front for every selected server (today's `resolveOAuthForExecution` behavior). Reuses the existing `resolveAccessToken` (Redis cache + refresh-on-expiry + single-flight); the cache lives BE-side, so it survives the Worker's suspend/resume (§10.4) → ~1 generation per binding per token-lifetime, regardless of message count.
 - **Dynamic auth on the pooled connection.** A long-lived pooled connection outlives a token, so the bearer can't be a static header baked in at start. The pool attaches the current token at connect and, on **401 / pre-expiry, refreshes and reconnects** (§8.4 — retry the *connect*, never the invoke). This 401-mid-session recovery is the only net-new logic.
-- **Keying.** Today the store is keyed **org + `libraryItemId`**; the `tenantId` dimension is the SP4 change. The OAuth subject (§7.1) and the pool key are the **same** concept — keep one, not two.
+- **Keying (settled — SP4 shipped).** MCP **transport config / variable values are tenant-scoped** (SP4, live), so the pool key includes `tenantId` — two tenants of one org can have different config for the same server → different connections. MCP **OAuth grants stay org-level**: `resolveAccessToken` is keyed `org + libraryItemId` (an org connects its account once; its tenants share the grant). No second move. The OAuth subject (§7.1) and the pool key are the **same** concept — keep one, not two.
 
 ### 7.1 Preflight interface
 
@@ -285,7 +312,7 @@ The only OAuth surface the runtime/FE calls is **preflight** — a publish / fir
 interface OAuthSubject {
   provider: 'mcp';          // MCP is the only provider; widen if a new OAuth integration is added
   mcpBindingId: string;
-  tenantId: string;         // reconcile with today's org + libraryItemId store as SP4 lands
+  tenantId: string;         // scopes the tenant transport config (SP4, live); OAuth grants resolve org-level (org + libraryItemId)
 }
 
 interface OAuthPreflight {
@@ -367,7 +394,7 @@ poolKey = `${agentId}::${tenantId}::${mcpBindingId}`
 
 - **Agent** owns the MCP config; **tenant** scopes the credentials; **mcpBindingId** is the per-agent config record id (`McpServerConfig.id`), not a server identity — two bindings to the same URL get separate entries. **Org** is implicit (agents are org-scoped).
 - **Sticky routing (decided).** When the backend/gateway is horizontally scaled, a given `poolKey` is **consistent-hash routed to a single instance**, so connection reuse holds, session-stateful MCP servers keep continuity, and upstreams don't see N× connections. This is mandatory before scaling out — in-memory pools without stickiness fracture (split-brain sessions, duplicate connections). We start with the pool in the backend directly; routing is sticky-by-`poolKey` from day one so scaling out is additive.
-- **Tenant-keying caveat.** Today MCP OAuth is keyed `orgId + libraryItemId` (no tenant dimension). The `tenantId` in the key anticipates SP1/SP4 tenant-scoping and must be reconciled with that work — the credential store needs the tenant dimension before this key is fully meaningful.
+- **Tenant keying (SP4, live).** MCP transport config / variable values are **tenant-scoped** (SP4 shipped — `mcpTenantConfigHandlers`, and `executeFetcher` fetches `mcpTenantConfig`), so `tenantId` in the pool key is meaningful: two tenants of one org can have different config for the same server → different connections. OAuth grants remain **org-level** (`resolveAccessToken` keyed `org + libraryItemId`) — shared across the org's tenants by design; not a gap.
 
 ### 8.3 Eviction + lifecycle
 
@@ -567,8 +594,9 @@ packages/api/src/
 │   ├── rateLimiter.ts
 │   └── index.ts                         ← RuntimeCapabilities aggregate
 ├── events/
-│   ├── types.ts                         ← ExecutionEvent union
-│   └── emitter.ts
+│   ├── types.ts                         ← ExecutionEvent union (superset, §6.6)
+│   ├── emitter.ts
+│   └── executionEventSse.ts             ← single shared ExecutionEvent → SSE serializer (both drivers)
 └── providers/                           ← existing
     ├── types.ts                          ← extends ProviderCtx with environment discriminant
     ├── registry.ts                       ← composeRegistry becomes canonical connection point
@@ -584,7 +612,6 @@ packages/shared-store-services/src/
 ├── ragStoreServices.ts
 ├── ragQueries.ts
 ├── ragSearchCores.ts
-├── calendarServices.ts                  ← from backend google/calendar/service.ts
 ├── formsServices.ts                     ← from backend services/formsService.ts
 ├── leadScoringServices.ts               ← from backend services/leadScoring*
 ├── internalApiClient.ts                 ← /internal/embed + /internal/regex/validate
@@ -610,13 +637,13 @@ packages/backend/src/
 │   └── reconnect.ts
 ├── runtime/
 │   ├── productionDriver.ts              ← thin: calls executeAgent
-│   ├── productionCapabilities.ts
-│   └── ssePublicAdapter.ts
+│   └── productionCapabilities.ts
 └── simulation/
     ├── simulationDriver.ts
-    ├── simulationCapabilities.ts
-    └── sseSimulationAdapter.ts
+    └── simulationCapabilities.ts
 ```
+
+Both drivers stream via the shared `api/events/executionEventSse.ts` serializer — there is **no** per-runtime SSE adapter (the hard cutover, §6.6).
 
 **Deleted:**
 
@@ -630,10 +657,8 @@ packages/backend/src/
 - `routes/execute/executeCore.ts`
 - `routes/execute/executeCoreInlineDispatch.ts`
 - `routes/execute/executeCoreChildFinish.ts`
-- `routes/execute/executeAgentPath.ts` (dead code; verify before deletion)
 - `mcp/lifecycle.ts` (`createMcpSession` / `closeMcpSession`)
-- `services/kvStoreService.ts` (LLM tool methods only; keep parts used by `simulationServicesResolver`'s downstream callers if any)
-- `services/ragStoreService.ts` (same)
+- `services/kvStoreService.ts` / `services/ragStoreService.ts` — the LLM-tool methods move to `packages/shared-store-services`. Before deleting, run a referencing-symbols audit (Serena `find_referencing_symbols`) and enumerate exactly which methods are still used by non-tool callers and must stay — don't delete on an "if any" guess.
 - `services/noStoreBoundServices.ts`
 
 The MCP OAuth machinery — `mcp/oauth/*` (`resolveAccessToken`, refresh, PKCE, registration) and the MCP-bundle resolution in `executeOAuthResolver.ts` — STAYS, and moves **inside the pool's connect path** (§7), not a runtime capability. Persistence query modules also STAY, injected via `productionCapabilities`. (The Google-only `tokenResolver.ts` was already deleted with the calendar integration.)
@@ -660,7 +685,6 @@ packages/worker/
 ├── src/
 │   ├── index.ts                  ← fetch handler / entry; invoked by the backend
 │   ├── productionCapabilities.ts ← wires DurableDispatchStrategy, SupabaseDispatchPersistence, observability, rateLimit
-│   ├── ssePublicAdapter.ts       ← maps ExecutionEvent → public SSE
 │   ├── resume.ts                 ← resume entry for suspended runs (queue / Durable Object alarm / cron)
 │   └── workerSupabase.ts         ← service-role client via a Workers binding (Hyperdrive or @supabase/supabase-js)
 └── wrangler.toml                 ← Worker config / bindings (no WASM needed — re2js is pure JS)
@@ -741,7 +765,7 @@ simulation.mcpBadge.tooltip
 
 ## 13. Per-tool simulation seam
 
-Simulation behavior is **per-tool and tool-owned** — each side-effecting builtin defines what it does in simulation via an `if (ctx.environment === 'simulation')` branch. This is the deliberate extension point, **not** duplication to be abstracted away: a KV write, a calendar booking, and a form update have genuinely different "what should this do in a simulation" answers, so each tool owns its branch.
+Simulation behavior is **per-tool and tool-owned** — each side-effecting builtin defines what it does in simulation via an `if (ctx.environment === 'simulation')` branch. This is the deliberate extension point, **not** duplication to be abstracted away: a KV write, a lead-score write, and a form update have genuinely different "what should this do in a simulation" answers, so each tool owns its branch.
 
 `ctx.simulationState` / `ctx.writeSimulationState` (§6.2, §9) are available **only** inside this branch — they exist on `ProviderCtx` solely when `environment === 'simulation'`, so production tools cannot read or write simulation state by construction. Simulation state is a simulation-only concept; it never exists in production.
 
@@ -773,13 +797,6 @@ Each tool later replaces the `simulatedNoop` call with its own logic against `si
 | `kv_store` | `search` | early-return | |
 | `kv_store` | `update_value` | early-return | |
 | `rag` | `search` | early-return | |
-| `calendar` | `list_calendars` | early-return | |
-| `calendar` | `check_availability` | early-return | |
-| `calendar` | `list_events` | early-return | |
-| `calendar` | `get_event` | early-return | |
-| `calendar` | `book_appointment` | early-return | |
-| `calendar` | `update_event` | early-return | |
-| `calendar` | `cancel_appointment` | early-return | |
 | `forms` | `set_form_fields` | early-return | |
 | `forms` | `get_form_field` | early-return | |
 | `lead_scoring` | `set_lead_score` | early-return | |
@@ -789,7 +806,7 @@ Each tool later replaces the `simulatedNoop` call with its own logic against `si
 | `composition` | `invoke_workflow` | **NO guard — recurse normally** | Same as `invoke_agent` |
 | `composition` | `finish` | **NO guard — sentinel works in both** | Returns the child's final message to the parent's dispatch result |
 
-Every side-effecting builtin gets the guard. **All four `composition` tools** (`create_agent`, `invoke_agent`, `invoke_workflow`, `finish`) intentionally don't — they are dispatch sentinels / handled by the recursion machinery + `environment` propagation, not per-tool branching. Note `finish` is only registered for **child** agents (`buildTools.ts` gates it on `ctx.isChildAgent`), so it doesn't exist at the top level at all.
+Every side-effecting builtin gets the guard. **All four `composition` tools** (`create_agent`, `invoke_agent`, `invoke_workflow`, `finish`) intentionally don't — they are dispatch sentinels / handled by the recursion machinery + `environment` propagation, not per-tool branching. Note `finish` is only registered for **child** agents (`buildTools.ts` gates it on `ctx.isChildAgent`), so it doesn't exist at the top level at all. Calendar tools are not listed — after the Google Calendar removal they are **disabled no-ops in both environments**, so they don't use the simulation seam at all.
 
 **MCP tools are NOT wrapped** — they execute for real in simulation (a sim run can create a real Linear issue / send a real message). Because that is a genuine side effect while builtins no-op, every MCP-sourced tool carries a visible **"real side effects" badge** in the sim UI (§12.4) so the mixed-reality is never a surprise. The badge ships *with* this phase, not after.
 
@@ -804,18 +821,16 @@ Phased commits matching the prior refactor cadence on this branch:
 5. **Phase 5:** Migrate production driver to consume the new api runtime + capabilities.
 6. **Phase 6:** Migrate simulation driver.
 7. **Phase 7:** Per-tool early-return guard added to all 24 builtin tools.
-8. **Phase 8:** SSE event vocabulary unified across drivers.
+8. **Phase 8 — SSE hard cutover (no adapters).** Land the superset `ExecutionEvent` vocabulary (§6.6) and migrate **all three consumers** in the same phase: production API (`web/app/lib/api.ts`), simulation panel, and the widget (`packages/widget/useChatStream.ts`). Both drivers stream via the one shared `executionEventSse.ts` serializer; the legacy public/sim SSE shapes and their writers are deleted. No `ssePublicAdapter`/`sseSimulationAdapter` — there is no transitional bridge. Verify each consumer renders the full superset (tokens, durations, structured output, per-node errors, `child_awaiting_input`) before deleting the old shapes.
 9. **Phase 9:** FE toolbar + sim state panel + tenant dropdown + modals.
-10. **Phase 10:** Delete dead code (`executeAgentPath.ts`, `createMcpSession`/`closeMcpSession`, all replaced modules listed in §11.3 / §11.4).
+10. **Phase 10:** Delete dead code (`createMcpSession`/`closeMcpSession`, all replaced modules listed in §11.3 / §11.4).
 
 Each phase commits independently with `npm run check` + tests green. Phase 10 is non-reversible; everything before is.
 
 ## 15. Risks and open questions
 
-- **Calendar OAuth resolution in simulation.** Mechanism is in place via the unified resolver, but live-stack verification is required.
-- **`executeAgentPath.ts` dead-code verification.** Re-grep for dynamic imports and string references before deletion.
 - **MCP connection pool memory growth.** Bound + LRU + TTL handle this; surface metrics so we know if 500-entry cap is appropriate at scale.
-- **SSE vocabulary convergence forces FE consumer updates.** Sim panel and execution viewer currently listen to different shapes; FE adapters bridge during transition, then we converge.
+- **SSE hard cutover touches all three consumers at once.** Production API, simulation panel, and widget currently listen to different shapes; the cutover migrates them to the superset `ExecutionEvent` in one phase (no bridging adapters). Risk is concentrated in Phase 8 — mitigate by building the superset from the union of the three existing sets (§6.6) so nothing is dropped, and by verifying each consumer before deleting the legacy shapes.
 - **Per-tool simulation semantics deferred to follow-up PRs.** Today every builtin tool no-ops in simulation. This is acceptable because the runtime unification's success criterion is structural, not behavioral fidelity of every tool.
 - **Backend becomes more stateful** (MCP connection pool). Document operational implications (restart drops connections, fault-tolerance via reconnect handles transients).
 - **Multi-backend deployment.** Today's assumption is single backend instance; horizontal scaling produces minor pool inefficiency, not correctness issue.
