@@ -40,6 +40,7 @@ import {
   makeNoStoreBoundRagServices,
   makeRagStoreService,
 } from './storeServices.ts';
+import { makeWebService } from './webServices.ts';
 
 /* ─── Shared types ─── */
 
@@ -382,6 +383,10 @@ function prepareCompositionBundle(): Promise<BuiltinBundles['composition']> {
   return Promise.resolve(undefined);
 }
 
+function prepareWebBundle(): Promise<BuiltinBundles['web']> {
+  return Promise.resolve(makeWebService());
+}
+
 const PREPARERS: { [K in BuiltinProviderId]: BundlePreparer<K> } = {
   kv_store: (payload, supabase) => prepareKvBundle(payload, supabase),
   rag: (payload, supabase) => prepareRagBundle(payload, supabase),
@@ -389,6 +394,7 @@ const PREPARERS: { [K in BuiltinProviderId]: BundlePreparer<K> } = {
   lead_scoring: (payload) => prepareLeadScoringBundle(payload),
   calendar: (payload) => prepareCalendarBundle(payload),
   composition: () => prepareCompositionBundle(),
+  web: () => prepareWebBundle(),
 };
 
 export async function prepareAllBundles(
