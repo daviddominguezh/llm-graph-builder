@@ -23,7 +23,7 @@ This refactor unifies the two runtimes into **one runtime core in the api packag
 - Establish a clean simulation/production discriminator (`environment`) on `ProviderCtx` that tools branch on locally; the orchestrator never branches.
 - Make OAuth resolution lazy (pull) with pre-flight checks at the two moments a user can actually act on failure (publish, first message of a simulation session).
 - Provide a simulation state model that is FE-owned, JSON-typed, and propagated through the runtime as opaque data.
-- Establish the per-tool simulation seam (today a shared default no-op) so forms, lead-scoring, and the other builtins can each define real simulation behavior over time; today they are silently absent in simulation. Simulation behavior is simulation-only — production tools never read or write simulation state.
+- Establish the per-tool simulation seam — for now **every** builtin tool (forms and lead-scoring included) returns a shared no-op in simulation; real per-tool simulation behavior (reading/writing the §9 sim state) is deferred **uniformly for all tools**, to be implemented later. Today forms/lead-scoring are silently absent in sim; the no-op at least makes them visible to the LLM. Simulation behavior is simulation-only — production tools never read or write simulation state.
 - Delete dead code identified by the audit.
 - Production dispatch is durable (suspend/resume) from the start, because hours-long runs on a CPU-capped host (Cloudflare Workers) cannot block in a single invocation; simulation keeps synchronous recursion. Genuine concurrent sub-agent execution (parent continues *in parallel* while child runs) remains future work, but the durable seam is in place.
 
@@ -223,6 +223,8 @@ Mapping rules (re-derived; the one environment-aware row is END-without-finish, 
 | User aborts (sim only) | `{ status: 'error', code: 'aborted', message }` |
 
 END-without-finish legitimately differs by environment: production has no user to supply input to a suspended child, so it terminates (with text, or `no_result` if there is none); simulation surfaces the interactive pause. This replaces the original draft's "last assistant text, canonical both runtimes" row, which matched neither runtime.
+
+The `finish`-based rows apply only in **child** context: `finish` is registered solely for child agents (`composition/buildTools.ts` gates it on `ctx.isChildAgent`), so a top-level run has no `finish` tool and always terminates via END.
 
 ### 6.5 `RuntimeOutput`
 
@@ -694,8 +696,10 @@ Use shadcn `<AlertDialog>` (already in use):
 ```ts
 const [simulationState, setSimulationState] = useState<Record<string, unknown>>({});
 
-const applyPatch = useCallback((path: string, value: unknown) => {
-  setSimulationState((prev) => setByJsonPointer(prev, path, value));
+// Authoritative update: adopt the terminal snapshot the runtime emits (§9.4).
+// `simulation_state_patch` events are display-only and do NOT mutate this store.
+const adoptSnapshot = useCallback((snapshot: Record<string, unknown>) => {
+  setSimulationState(snapshot);
 }, []);
 
 const resetSimulationState = useCallback(() => {
@@ -703,9 +707,19 @@ const resetSimulationState = useCallback(() => {
 }, []);
 ```
 
-`setByJsonPointer` lives in a new `app/utils/jsonPointer.ts`.
+The authoritative `simulationState` updates **only** via `adoptSnapshot` (the terminal `simulation_state_snapshot`, §9.4). `setByJsonPointer` (in a new `app/utils/jsonPointer.ts`) is used by the runtime for writes and, optionally, by the FE for the per-tool-call optimistic preview — never to mutate the authoritative store.
 
-### 12.4 Translations to add
+### 12.4 MCP side-effect badge (simulation)
+
+In simulation, builtin tools no-op (§13) but **MCP tools execute for real** — a sim run can create a real Linear issue or send a real message. To make that unmistakable, MCP-sourced tools carry a visible badge wherever simulation tools appear:
+
+- **Tool list / picker** (sim panel): each MCP tool shows the badge; built-in tools do not — so the user sees up front which tools are real.
+- **Tool-call cards** in the sim message view: the badge appears on every MCP tool-call card (alongside the §9.4 display patches), distinguishing a real call from a no-op builtin at the moment it fires.
+- **Implementation:** a small shadcn `<Badge>` with a warning tone (distinct, not red-alarm) + `aria-label` and a tooltip. The discriminator is the tool's provider (`providerType === 'mcp'`) — the same one the runtime uses, so it stays correct as servers change.
+
+The badge ships **with** the no-op-builtins phase (§14 Phase 7), not after — it's the minimum that makes the mixed-reality (fake builtins / real MCP) safe. A per-call dry-run confirm gate for side-effecting MCP tools is a possible follow-up.
+
+### 12.5 Translations to add
 
 ```
 simulation.resetState.title
@@ -721,6 +735,8 @@ simulation.toolbar.simulationStateLabel
 simulation.toolbar.openPanel
 simulation.statePanel.empty
 simulation.statePanel.resetButton
+simulation.mcpBadge.label
+simulation.mcpBadge.tooltip
 ```
 
 ## 13. Per-tool simulation seam
@@ -768,14 +784,14 @@ Each tool later replaces the `simulatedNoop` call with its own logic against `si
 | `forms` | `get_form_field` | early-return | |
 | `lead_scoring` | `set_lead_score` | early-return | |
 | `lead_scoring` | `get_lead_score` | early-return | |
-| `composition` | `create_agent` | early-return (synthetic agent id) | Creates a DB record in production; in simulation returns `{ simulated: true, agentId: '<sim-uuid>' }` so the LLM can reference the "created" agent later in the run |
-| `composition` | `invoke_agent` | **NO guard — recurse normally** | Recursion propagates `environment: 'simulation'` to the child; child's tools early-return as needed |
+| `composition` | `create_agent` | **NO guard — dispatch sentinel** | Returns a pure dispatch sentinel (`dispatchTools.ts`); **no DB write in either runtime** — the child is ephemeral. The dispatch resolver builds the in-memory child config; `environment` propagates via recursion. (If a synthetic sim id is ever wanted, it belongs in `resolveChildConfig`, not the tool's `execute`.) |
+| `composition` | `invoke_agent` | **NO guard — recurse normally** | Recursion propagates `environment: 'simulation'` to the child; child's tools no-op as needed |
 | `composition` | `invoke_workflow` | **NO guard — recurse normally** | Same as `invoke_agent` |
 | `composition` | `finish` | **NO guard — sentinel works in both** | Returns the child's final message to the parent's dispatch result |
 
-20 tools get the guard. 3 composition tools (`invoke_agent`, `invoke_workflow`, `finish`) intentionally don't — their semantics in simulation come from the runtime's recursion machinery and environment propagation, not from per-tool branching.
+Every side-effecting builtin gets the guard. **All four `composition` tools** (`create_agent`, `invoke_agent`, `invoke_workflow`, `finish`) intentionally don't — they are dispatch sentinels / handled by the recursion machinery + `environment` propagation, not per-tool branching. Note `finish` is only registered for **child** agents (`buildTools.ts` gates it on `ctx.isChildAgent`), so it doesn't exist at the top level at all.
 
-**MCP tools are NOT wrapped** — they have real side effects in simulation. The user understands this; no UI badge.
+**MCP tools are NOT wrapped** — they execute for real in simulation (a sim run can create a real Linear issue / send a real message). Because that is a genuine side effect while builtins no-op, every MCP-sourced tool carries a visible **"real side effects" badge** in the sim UI (§12.4) so the mixed-reality is never a surprise. The badge ships *with* this phase, not after.
 
 ## 14. Migration phasing
 
