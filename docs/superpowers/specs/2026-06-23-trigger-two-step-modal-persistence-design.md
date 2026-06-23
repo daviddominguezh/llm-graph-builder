@@ -1,172 +1,244 @@
-# Two-step trigger modal with backend persistence
+# Triggers: two-step modal, persistence, and a firing scheduler
 
 **Date:** 2026-06-23
 **Status:** Approved (pending spec review)
 
 ## Problem
 
-The Triggers tab inside the agent/workflow editor lets a user build a schedule
-(recurring / once / after-event), but:
+The Triggers tab in the agent/workflow editor builds a schedule (recurring /
+once / after-event) but: (1) it never captures the **initial message** the
+agent should receive; (2) triggers live only in client memory and never reach
+the backend; (3) nothing ever **fires** them — the FE shows "next runs" but no
+agent is invoked at those times.
 
-1. The modal captures only the *schedule*. It does not capture the **initial
-   user message** the workflow/agent should receive when the trigger fires.
-2. Triggers live only in client memory (`useTriggers` holds a
-   `Record<tenantId, Trigger[]>`); they are lost on refresh and never reach the
-   backend.
+We will: add a two-step modal (schedule → message), persist triggers through the
+established Client → Next.js server action → dedicated backend
+(`packages/backend`) flow, and add a backend scheduler that fires due triggers
+by invoking the agent through the same edge-function executor production uses.
 
-We need a two-step modal — step 1 is the existing schedule builder, step 2
-captures the initial message — and on create the trigger must be persisted
-through the established **Client → Next.js (server action) → dedicated backend**
-flow.
+## Repository reality (corrected)
 
-## Scope
+The dedicated backend **is** in this repo: `packages/backend` (Express,
+`NEXT_PUBLIC_API_URL` :4000). Relevant packages: `web` (Next.js), `backend`
+(Express + workers), `api`/`graph-types`/`shared-validation` (libraries),
+`supabase/` (migrations + edge functions, incl. `execute-agent`).
 
-- **Read + Write + Delete** of triggers via the backend. **No update/patch.**
-- Triggers are scoped to **agent + tenant** (the agent comes from the editor's
-  `agentSlug`/`agentId`; the tenant from the existing tenant sidebar).
-- Editing an existing trigger is **dropped**: rows expose delete only. Changing
-  a schedule means deleting and re-creating.
+## Scope (single change)
 
-Out of scope: after-event triggers (still "coming soon"), backend scheduler /
-execution, the dedicated backend's own implementation of the endpoints (defined
-here as a contract, implemented in that separate service — exactly as
-`/agents/by-org/:orgId` is consumed today).
+- **Read + Write + Delete** of triggers (no update/patch). Editing is **dropped**
+  — rows are delete-only; changing a schedule = delete + re-create.
+- Triggers are scoped to **agent + tenant**.
+- A backend **poll-worker** fires due triggers, with a **per-run lock** safe
+  across multiple BE instances, a **fresh session id per run**, and a
+  **configurable default user id**.
+- Firing reuses the production executor (`execute-agent` edge function via
+  `executeAgentCore`). The agent's **published production version** is run.
 
-## Data model
+Out of scope: after-event triggers (still "coming soon"); a management UI for
+run history; retries/backoff beyond what is stated under Resilience.
 
-`packages/web/app/components/agents/triggers/types.ts`
+## Component map
 
-Add `initialMessage` to the form state so the message travels with the schedule:
-
-```ts
-export interface TriggerFormState {
-  mode: ScheduleMode;
-  recurring: RecurringConfig;
-  onceDateTime: string;
-  initialMessage: string; // NEW
-}
+```
+FE (web)                         Backend (packages/backend)        Shared / DB
+─────────                        ──────────────────────────       ───────────
+TriggerFormDialog (2 steps)      agentRouter + trigger handlers    shared-validation:
+useTriggers (async CRUD)   ───▶  triggerQueries (db)         ───▶    triggers/schedule.ts
+actions/triggers.ts (proxy)      triggerWorker (poll loop)           (types + computeNextRun)
+lib/triggers.ts                  → executeAgentCore → execute-agent
+nextRun.ts (re-export shared)    claim_due_triggers RPC            migrations:
+                                                                     agent_triggers, trigger_runs
 ```
 
-`DEFAULT_TRIGGER_STATE.initialMessage = ''`. `Trigger` continues to extend
-`TriggerFormState` with `id`.
+## 1. Shared schedule logic (single source of truth)
 
-## UI — two-step modal
+Move the pure recurrence math out of the web package into
+`@openflow/shared-validation` so the FE preview and the backend scheduler use
+identical logic (no drift between "next runs" shown and when firing happens).
 
-`packages/web/app/components/agents/triggers/TriggerFormDialog.tsx`
+- New module `packages/shared-validation/src/triggers/schedule.ts` containing:
+  the schedule **types** (`ScheduleMode`, `RecurringUnit`, `Weekday`,
+  `RecurringConfig`, and the schedule portion of `TriggerFormState`), plus
+  `computeNextRun(state, now)` and `computePreviewRuns(...)` (ported verbatim
+  from `packages/web/app/components/agents/triggers/nextRun.ts`).
+- Add `dayjs` to `shared-validation` dependencies; export the module via
+  `package.json` `exports` (`"./triggers/schedule"`).
+- `packages/web/app/components/agents/triggers/types.ts` and `nextRun.ts`
+  **re-export** from the shared module (keeps existing web imports working).
+- `initialMessage: string` is added to `TriggerFormState` (web-side form type);
+  it is **not** part of the schedule math, so it stays in the web type that
+  extends the shared schedule type. `DEFAULT_TRIGGER_STATE.initialMessage = ''`.
 
-`FormBody` gains a `step` state: `'schedule' | 'message'`.
+## 2. UI — two-step modal
 
-- **Step 1 — Schedule.** The existing content (ModeSelector + active fields +
-  preview). Footer: `Cancel` · **`Next`**. `Next` advances to step 2 and is
-  always enabled (schedule has valid defaults — parity with today's Save, which
-  had no validation).
+`packages/web/app/components/agents/triggers/TriggerFormDialog.tsx`.
+`FormBody` gains `step: 'schedule' | 'message'`.
+
+- **Step 1 — Schedule.** Today's content. Footer: `Cancel` · **`Next`** (always
+  enabled — schedule has valid defaults).
 - **Step 2 — Message.** A labeled shadcn `Textarea` bound to
-  `state.initialMessage`. Footer: **`Back`** (returns to step 1, preserving all
-  state) · **`Create`**. `Create` is **disabled while
-  `state.initialMessage.trim() === ''`**. Clicking `Create` calls `onSave(state)`
-  and closes.
+  `state.initialMessage`. Footer: **`Back`** (preserves all state) · **`Create`**,
+  where `Create` is **disabled while `state.initialMessage.trim() === ''`**.
+  `Create` → `onSave(state)` then close.
 
-The dialog keeps its fixed height; step 2 reuses the same scroll container.
+To respect ESLint limits (40 lines/fn, 300/file, depth 2): extract
+`ScheduleStep.tsx` (current schedule body) and `MessageStep.tsx`; a small
+`StepFooter` renders the two footer variants. Dialog keeps its fixed height.
 
-### File/lint structure (ESLint: 40 lines/fn, 300 lines/file, depth 2)
+## 3. Persistence (web → backend)
 
-To stay within limits, extract:
+### Web
+- `app/lib/triggers.ts` — `TriggerRow` type + guards + `toTrigger` mapper +
+  `fetchFromBackend` calls; returns `{ result, error }`.
+- `app/actions/triggers.ts` — `'use server'` wrappers with `serverLog`/
+  `serverError` (mirrors `actions/tenants.ts`):
+  `listTriggersAction(agentId, tenantId)`,
+  `createTriggerAction(agentId, tenantId, form)`,
+  `deleteTriggerAction(agentId, triggerId)`.
 
-- `ScheduleStep.tsx` — the current schedule body (ModeSelector + `ActiveContent`
-  + `PreviewSection`), moved out of `TriggerFormDialog.tsx`.
-- `MessageStep.tsx` — the textarea + label.
-- A small `StepFooter` (inline in the dialog or its own file) rendering the two
-  footer variants.
+### Backend (`packages/backend`)
+Add to `routes/agents/agentRouter.ts` (after `requireAuth`), with Zod-validated
+bodies and a `db/queries/triggerQueries.ts` module:
+- `GET    /agents/:agentId/triggers?tenantId=:tenantId` → `TriggerRow[]`
+- `POST   /agents/:agentId/triggers` → `TriggerRow`
+  - body: `{ tenantId, mode, recurring, onceDateTime, initialMessage }` (explicit
+    flat fields; `recurring` is a nested object)
+  - handler computes `next_run_at` via the shared `computeNextRun` and inserts.
+- `DELETE /agents/:agentId/triggers/:triggerId` → `{ }` / 204
 
-`FormBody` orchestrates: holds `state` + `step`, renders the active step
-component and the matching footer.
+`TriggerRow` (snake_case, returned to web; `toTrigger` maps to the FE shape):
+`{ id, agent_id, tenant_id, org_id, mode, recurring, once_datetime,
+initial_message, next_run_at, last_run_at, enabled, created_at }`.
 
-## Persistence — server action, mirroring the tenants pattern
+## 4. Database (migration files only; user applies)
 
-New files, structured exactly like `app/lib/tenants.ts` + `app/actions/tenants.ts`:
+New migration under `supabase/migrations/`:
 
-### `app/lib/triggers.ts`
+**`agent_triggers`**
+| column | type | notes |
+|---|---|---|
+| id | uuid pk | `gen_random_uuid()` |
+| agent_id | uuid | FK agents |
+| tenant_id | uuid | FK tenants |
+| org_id | uuid | denormalized for scoping/RLS |
+| mode | text | `recurring` / `once` / `after-event` |
+| recurring | jsonb | nullable (RecurringConfig) |
+| once_datetime | timestamptz | nullable |
+| initial_message | text | not null |
+| next_run_at | timestamptz | nullable — null = unscheduled/claimed/done |
+| last_run_at | timestamptz | nullable |
+| enabled | boolean | not null default true |
+| created_at | timestamptz | default now() |
 
-- `TriggerRow` type (backend row, snake_case) + `isTriggerRow` /
-  `isTriggerRowArray` type guards + `extractError` helper.
-- `toTrigger(row: TriggerRow): Trigger` mapper.
-- `fetchFromBackend` calls (Read / Write / Delete), each returning
-  `{ result, error }`.
+Index `(enabled, next_run_at)` for the due query. RLS follows existing table
+conventions; the worker uses the service client (like `ragWorker`), web CRUD
+goes through the authenticated backend routes.
 
-```ts
-export interface TriggerRow {
-  id: string;
-  agent_id: string;
-  tenant_id: string;
-  mode: ScheduleMode;
-  recurring: RecurringConfig;
-  once_datetime: string;
-  initial_message: string;
-  created_at: string;
-}
+**`trigger_runs`** (audit + per-occurrence idempotency)
+`id uuid pk`, `trigger_id uuid FK`, `scheduled_for timestamptz not null`,
+`session_id text not null`, `status text` (`running`/`succeeded`/`failed`),
+`error text`, `started_at timestamptz default now()`, `finished_at timestamptz`.
+**`UNIQUE(trigger_id, scheduled_for)`**.
+
+**`claim_due_triggers(p_limit int)` RPC** — the per-run lock, mirroring the
+existing `claim_pending_*` `FOR UPDATE SKIP LOCKED` pattern, capturing the old
+`next_run_at` as `scheduled_for` and nulling it atomically so no other instance
+or later tick can re-pick the same occurrence:
+```sql
+WITH due AS (
+  SELECT id, next_run_at AS scheduled_for
+  FROM agent_triggers
+  WHERE enabled AND next_run_at IS NOT NULL AND next_run_at <= now()
+  ORDER BY next_run_at ASC
+  LIMIT p_limit
+  FOR UPDATE SKIP LOCKED
+)
+UPDATE agent_triggers t SET next_run_at = NULL
+FROM due WHERE t.id = due.id
+RETURNING t.*, due.scheduled_for;
 ```
 
-### `app/actions/triggers.ts`
+## 5. Backend scheduler (poll-worker)
 
-`'use server'` wrappers with `serverLog` / `serverError`, returning
-`{ result, error }`:
+`packages/backend/src/workers/triggerWorker.ts` (+ a `triggerWorkerLoop.ts` for
+the tick logic), mirroring `workers/ragWorker.ts`:
 
-- `listTriggersAction(agentId, tenantId)` → `{ result: Trigger[]; error }`
-- `createTriggerAction(agentId, tenantId, form: TriggerFormState)` →
-  `{ result: Trigger | null; error }`
-- `deleteTriggerAction(agentId, triggerId)` → `{ error }`
+- `startTriggerWorker()` is invoked in `packages/backend/src/index.ts` (next to
+  `startRagWorker()`); uses `createServiceClient`. `POLL_INTERVAL_MS` ~ 15000.
+- `tickOnce(supabase)`:
+  1. `claim_due_triggers(BATCH_LIMIT)` → claimed rows (each with `scheduled_for`).
+  2. For each (sequential `reduce`, like `ragWorker`):
+     - `INSERT INTO trigger_runs(trigger_id, scheduled_for, session_id, status)
+       VALUES (…, 'running') ON CONFLICT (trigger_id, scheduled_for) DO NOTHING`.
+       If no row inserted → skip (already handled). `session_id =
+       crypto.randomUUID()`.
+     - Resolve the agent's **published production version** (same resolution
+       production uses) and `orgId` from the agent row.
+     - `executeAgentCore({ supabase, orgId, agentId, version, input })` with
+       `input = { tenantId, userId: TRIGGER_DEFAULT_USER_ID, sessionId,
+       message: { text: initial_message }, channel: 'api', stream: false }`.
+     - Mark the `trigger_runs` row `succeeded`/`failed`(+error).
+  3. In a `finally` per trigger: set `last_run_at = now()` and recompute
+     `next_run_at` via shared `computeNextRun` from `scheduled_for` — recurring
+     and still before `endAt` → next occurrence; `once`/expired → leave `null`
+     (effectively complete). Advancing in `finally` ensures an execution error
+     does not stall the schedule.
 
-### Backend contract (consumed here; implemented in the dedicated backend)
+`safeDispatch` wraps each trigger so one failure can't kill the tick.
 
-Uses **explicit flat fields** in the payload (not an opaque blob); `recurring`
-remains a nested object.
+### Why this is a correct per-run lock across instances
+The claim `UPDATE … FOR UPDATE SKIP LOCKED` row-locks each due trigger; only one
+instance wins each row, and nulling `next_run_at` in the same statement means no
+later tick re-selects it until the worker writes the next occurrence. The
+`trigger_runs` unique `(trigger_id, scheduled_for)` is a second, hard guarantee
+against double-firing a given occurrence and doubles as run history.
 
-| Op     | Method · path                                       | Body                                                       | Returns        |
-| ------ | --------------------------------------------------- | ---------------------------------------------------------- | -------------- |
-| Read   | `GET /agents/:agentId/triggers?tenantId=:tenantId`  | —                                                          | `TriggerRow[]` |
-| Write  | `POST /agents/:agentId/triggers`                    | `{ tenantId, mode, recurring, onceDateTime, initialMessage }` | `TriggerRow`   |
-| Delete | `DELETE /agents/:agentId/triggers/:triggerId`       | —                                                          | `{}` / 204     |
+## 6. Configuration
 
-`agentId` is URL-encoded into the path (matching `/agents/by-org/${encodeURIComponent(orgId)}`).
+- `TRIGGER_DEFAULT_USER_ID` (backend env, a UUID) — `userId` for every trigger
+  run. Documented in the backend env example; `userId` is a pass-through
+  `nonEmpty` string in `AgentExecutionInputSchema`, so no auth-user row is
+  required by the execution path.
 
-## Wiring
+## 7. FE wiring
 
-- **`EditorTabs.tsx`** — pass `agentId` into `<TriggersPanel>`. (`agentId` is
-  already an `EditorTabsProps` field; `TriggersPanel` currently receives only
-  `orgId`/`orgSlug`.)
-- **`TriggersPanel.tsx`** — accept `agentId`; thread it into `useTriggers` and
-  the list. Drop the `onEdit`/edit-state path; keep add + delete.
-- **`useTriggers(agentId, tenantId)`** — becomes async:
-  - Loads via `listTriggersAction` on mount and whenever `(agentId, tenantId)`
-    change; exposes `triggers`, `loading`, `error`.
-  - `addTrigger(form)` → `createTriggerAction`; on success append the returned
-    `Trigger`.
-  - `deleteTrigger(id)` → `deleteTriggerAction`; on success remove locally.
-  - Guards against empty `agentId`/`tenantId` (current hook already guards
-    empty tenant).
-- **`TriggersListView` / `TriggerRow`** — remove the edit affordance; show a
-  triggers-list loading/error state.
+- `EditorTabs.tsx` passes `agentId` into `<TriggersPanel>` (it is already an
+  `EditorTabsProps` field).
+- `TriggersPanel` accepts `agentId`; threads it into `useTriggers`; drops the
+  edit-state path (add + delete only).
+- `useTriggers(agentId, tenantId)` becomes async: load via `listTriggersAction`
+  on mount / `(agentId, tenantId)` change (with `loading`/`error`); `addTrigger`
+  → `createTriggerAction`; `deleteTrigger` → `deleteTriggerAction`.
+- `TriggersListView`/`TriggerRow` remove the edit affordance; add list
+  loading/error states. Preview keeps using the (now shared) schedule util.
 
-## i18n
+## 8. i18n
 
-Single locale file: `packages/web/messages/en.json`, under `editor.triggers`.
-New keys: `next`, `back`, `create`, `messageStepTitle`, `messageLabel`,
-`messagePlaceholder`, and list-level `listLoading` / `listError`.
+`packages/web/messages/en.json` (single locale), under `editor.triggers`: add
+`next`, `back`, `create`, `messageStepTitle`, `messageLabel`,
+`messagePlaceholder`, `listLoading`, `listError`.
 
-## Error handling
+## 9. Error handling & resilience
 
-- Server actions catch via `extractError` and return `{ error }` strings (never
-  throw to the client) — same as tenants/agents.
-- `Create` disabled on empty message prevents empty submissions client-side.
-- List load failure renders an error state in the panel; create/delete failures
-  surface inline (toast or inline error — consistent with existing panel
-  behavior).
+- Web server actions catch via `extractError`, return `{ error }` (never throw
+  to client). `Create` disabled on empty message blocks empty submissions.
+- Worker: per-trigger `safeDispatch`; failed runs recorded in `trigger_runs`;
+  schedule still advances (`finally`).
+- **Known limitation:** if a worker process crashes *between* claiming (null
+  `next_run_at`) and writing the next occurrence, that trigger stalls. Mitigation
+  deferred to a follow-up (a stale-claim sweep using `trigger_runs.started_at`).
+  Called out explicitly so it isn't mistaken for covered.
 
-## Testing / verification
+## 10. Testing / verification
 
-- `npm run check` (format + lint + typecheck) must pass — watch the 40-line and
-  300-line ESLint limits during extraction.
-- Manual: open the Triggers tab for an agent, add a trigger, confirm `Create`
-  is disabled until a message is typed, confirm the POST payload shape and that
-  the row appears; delete it; reload and confirm Read repopulates from the BE.
+- `npm run check` (format + lint + typecheck, all packages) — watch ESLint
+  40-line/300-line limits during FE extraction and worker split.
+- Backend Jest: `computeNextRun` cases (shared); `claim_due_triggers` claims
+  each due row once under concurrent calls; `tickOnce` fires `executeAgentCore`
+  with a fresh `sessionId` + default `userId` and advances `next_run_at`;
+  `trigger_runs` ON CONFLICT prevents double-fire.
+- Manual e2e: create a `once` trigger a minute out → agent fires once, a session
+  is created, `trigger_runs` has one row, `next_run_at` clears; create a fast
+  recurring trigger → fires repeatedly on cadence; run two backend instances →
+  no double-fire.
 ```

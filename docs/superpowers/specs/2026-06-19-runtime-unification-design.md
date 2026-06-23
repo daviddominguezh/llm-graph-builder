@@ -157,7 +157,7 @@ type ProviderCtx =
 
 Tools narrow correctly: `if (ctx.environment === 'simulation')` makes `simulationState` and `writeSimulationState` available; `if (ctx.environment === 'production')` makes `conversationId` available.
 
-Compile-time immutability of `simulationState` is enforced via `DeepReadonly`. The existing ESLint ban on `as` type assertions catches the cast-escape hatch.
+`simulationState`'s immutability is a **runtime guarantee**, not just a type. `DeepReadonly` + the ESLint `as`-ban are the compile-time layer, but they are bypassable on their own (object spread, `structuredClone`, array mutators like `.push`/`.sort`, `satisfies`, `@ts-expect-error`, function-param widening). So the runtime **deep-`Object.freeze`s `simulationState` at the `ProviderCtx` boundary** before handing it to tools — a stray mutation throws (strict mode) instead of silently corrupting state the runtime believes is frozen. `DeepReadonly` stays as the developer-facing type.
 
 ### 6.3 `RuntimeCapabilities` and `RuntimeServices`
 
@@ -237,7 +237,7 @@ type RuntimeOutput =
   | (RuntimeOutputBase & { environment: 'simulation' });
 ```
 
-Updated simulation state is streamed via per-mutation SSE `simulation_state_patch` events, not as a return field.
+The **runtime is the single source of truth** for simulation state during a run. It streams display-only `simulation_state_patch` events for live rendering and a terminal, authoritative `simulation_state_snapshot` the FE adopts — not a return field, and the FE never rebuilds authoritative state from the patch stream (§9.4).
 
 ### 6.6 Unified SSE event vocabulary
 
@@ -248,7 +248,8 @@ type ExecutionEvent =
   | { type: 'assistant_message'; text: string; depth: number }
   | { type: 'tool_call'; toolName: string; toolCallId: string; args: unknown; depth: number }
   | { type: 'tool_result'; toolCallId: string; result: unknown; depth: number }
-  | { type: 'simulation_state_patch'; tool: string; path: string; value: unknown }      // sim only
+  | { type: 'simulation_state_patch'; tool: string; path: string; value: unknown }      // sim only — display only, not authoritative
+  | { type: 'simulation_state_snapshot'; state: Record<string, unknown> }               // sim only — terminal, authoritative
   | { type: 'child_dispatched'; childExecutionId: string; depth: number }
   | { type: 'child_suspended'; childExecutionId: string; depth: number }                       // prod durable: parent persisted, awaiting external resume
   | { type: 'child_awaiting_input'; childExecutionId: string; partial: string; depth: number } // sim: child paused for user input
@@ -404,7 +405,7 @@ Lives in FE memory (`useSimulationState.ts`), kept across runs within a tab sess
 
 ### 9.2 Read contract
 
-Tools read directly via property access against `ctx.simulationState`. `DeepReadonly` prevents direct mutation at compile time. ESLint's no-`as`-cast rule prevents the escape hatch.
+Tools read directly via property access against `ctx.simulationState`. Immutability is enforced at **runtime**: the runtime deep-`Object.freeze`s `simulationState` at the ctx boundary (§6.2), so a mutation throws rather than silently corrupting state. `DeepReadonly` + the ESLint `as`-ban are the compile-time layer but are bypassable on their own (spread / `structuredClone` / array mutators), which is why the freeze — not the type — is the actual guarantee.
 
 ### 9.3 Write contract
 
@@ -413,22 +414,24 @@ writeSimulationState: (path: string, value: unknown) => void;
 ```
 
 - **Path syntax:** JSON Pointer (RFC 6901), e.g. `/forms/contact/email`.
+- **`value` is deep-cloned on write** (`structuredClone`) before it enters the state, so a tool that retains a reference to what it passed cannot mutate committed state afterward — the same integrity concern as the read-side freeze (§6.2), on the write path.
 - Tools call it unconditionally; the runtime decides what happens based on `simulationStateWritable`:
-  - **Sim panel (`writable: true`):** mutation applied to runtime-internal copy; emits `simulation_state_patch` SSE event; FE accumulates patches into its local copy.
+  - **Sim panel (`writable: true`):** mutation applied to the runtime's authoritative copy (the single source of truth during a run); emits a **display-only** `simulation_state_patch` SSE event so the FE can render the change live. The FE does **not** reconstruct authoritative state from patches (§9.4).
   - **Play button (`writable: false`):** silent no-op; no SSE event; tool's other return values are unchanged. Invisible to the tool implementer.
 
-### 9.4 Per-mutation SSE shape
+### 9.4 State ownership: one source of truth
 
-```ts
-{
-  type: 'simulation_state_patch',
-  tool: 'set_form_fields',
-  path: '/forms/contact/email',
-  value: 'a@b.com'
-}
-```
+During a run the **runtime owns simulation state and is the only writer.** The FE never rebuilds authoritative state from the event stream — it holds the last snapshot it received and renders patches optimistically. This removes the dual-ownership fragility where a dropped SSE patch or a mid-run abort would silently desync (and then persist, because the FE feeds its state back on the next turn).
 
-FE applies via set-by-path. Renders the mutation alongside the originating tool-call card.
+- **`simulation_state_patch` — per mutation, display-only:**
+  ```ts
+  { type: 'simulation_state_patch', tool: 'set_form_fields', path: '/forms/contact/email', value: 'a@b.com' }
+  ```
+  The FE applies it by set-by-path **for live rendering only** (alongside the originating tool-call card). A dropped patch is purely cosmetic — it cannot corrupt authoritative state, because patches are not the source of truth.
+
+- **`simulation_state_snapshot` — terminal, authoritative:** when the run finishes, the runtime emits the full final state. The FE **replaces** its copy with this snapshot. This is the *only* thing that updates the FE's authoritative state, so a lost patch is self-correcting (the snapshot reconciles).
+
+- **Abort:** if the user stops the run, no terminal snapshot is emitted. The FE discards its optimistic patch rendering and keeps the **last committed snapshot** (the pre-run state) — a stopped run never leaves a half-mutated FE.
 
 ### 9.5 Request shape from FE
 
@@ -451,8 +454,9 @@ POST /api/simulation/run
 | Trigger | Effect |
 |---|---|
 | Tab opened | `{}` initial state |
-| Run completes | State retained in FE memory |
-| New user message | Same state passed through |
+| Run completes | FE adopts the terminal `simulation_state_snapshot` as its authoritative state |
+| Run aborted | FE keeps the last snapshot (pre-run); optimistic patch rendering discarded |
+| New user message | Last snapshot passed through (seeds the runtime's working copy) |
 | User clicks "Reset simulation state" | Confirmation modal → reset to `{}` + clear sim messages |
 | User changes `tenantId` in testing presets | Confirmation modal → reset state + sim messages |
 | Page reload | State gone (never persisted) |
