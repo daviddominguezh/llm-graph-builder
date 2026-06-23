@@ -1083,6 +1083,9 @@
     "minutesAgo": "{count}m ago",
     "hoursAgo": "{count}h ago",
     "daysAgo": "{count}d ago",
+    "defaultBadge": "Default",
+    "defaultLockedHint": "Name and avatar mirror the organization.",
+    "defaultUndeletable": "The default tenant cannot be deleted.",
     "webChannel": {
       "title": "Web channel",
       "subtitle": "Control where the OpenFlow chat widget can be embedded for this tenant.",

@@ -1,6 +1,10 @@
 'use client';
 
-import { removeTenantAvatarAction, updateTenantAction, uploadTenantAvatarAction } from '@/app/actions/tenants';
+import {
+  removeTenantAvatarAction,
+  updateTenantAction,
+  uploadTenantAvatarAction,
+} from '@/app/actions/tenants';
 import type { TenantRow } from '@/app/lib/tenants';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -103,6 +107,33 @@ function EditForm({ tenant, onOpenChange, onSaved }: Omit<EditTenantDialogProps,
   );
 }
 
+// The default tenant's identity mirrors the org, so its name and avatar are not
+// editable here — render a read-only view explaining why instead of the form.
+function ReadOnlyDefaultForm({
+  tenant,
+  onOpenChange,
+}: {
+  tenant: TenantRow;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const t = useTranslations('tenants');
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-1 flex-col gap-1">
+        <Label htmlFor="edit-tenant-name">{t('name')}</Label>
+        <Input id="edit-tenant-name" value={tenant.name} disabled readOnly />
+      </div>
+      <p className="text-xs text-muted-foreground">{t('defaultLockedHint')}</p>
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          {t('deleteCancel')}
+        </Button>
+      </DialogFooter>
+    </div>
+  );
+}
+
 export function EditTenantDialog({ tenant, open, onOpenChange, onSaved }: EditTenantDialogProps) {
   const t = useTranslations('tenants');
 
@@ -112,7 +143,11 @@ export function EditTenantDialog({ tenant, open, onOpenChange, onSaved }: EditTe
         <DialogHeader>
           <DialogTitle>{t('editTitle')}</DialogTitle>
         </DialogHeader>
-        <EditForm tenant={tenant} onOpenChange={onOpenChange} onSaved={onSaved} />
+        {tenant.is_default ? (
+          <ReadOnlyDefaultForm tenant={tenant} onOpenChange={onOpenChange} />
+        ) : (
+          <EditForm tenant={tenant} onOpenChange={onOpenChange} onSaved={onSaved} />
+        )}
       </DialogContent>
     </Dialog>
   );

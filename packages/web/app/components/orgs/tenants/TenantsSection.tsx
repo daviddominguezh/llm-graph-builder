@@ -3,20 +3,21 @@
 import { getTenantsByOrgAction } from '@/app/actions/tenants';
 import { toProxyImageSrc } from '@/app/lib/supabase/image';
 import type { TenantRow } from '@/app/lib/tenants';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Building2, Check, Copy, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Building2, Check, Copy, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
-import { useCallback, useEffect, useRef, useState } from 'react';
-
 import Link from 'next/link';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { CreateTenantDialog } from './CreateTenantDialog';
 import { DeleteTenantDialog } from './DeleteTenantDialog';
 import { EditTenantDialog } from './EditTenantDialog';
+import { TenantRowActions } from './TenantRowActions';
 
 interface TenantsSectionProps {
   orgId: string;
@@ -113,53 +114,6 @@ function CopyableId({ id }: { id: string }) {
   );
 }
 
-function TenantRowActions({
-  tenant,
-  onEdit,
-  onDelete,
-}: {
-  tenant: TenantRow;
-  onEdit: (row: TenantRow) => void;
-  onDelete: (row: TenantRow) => void;
-}) {
-  const t = useTranslations('tenants');
-
-  return (
-    <div className="flex items-center justify-end gap-0.5 opacity-0 transition-opacity group-hover/row:opacity-100">
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <Button
-              variant="ghost"
-              size="icon"
-              className="p-0! h-7 aspect-square"
-              onClick={() => onEdit(tenant)}
-            />
-          }
-        >
-          <Pencil className="size-3" />
-        </TooltipTrigger>
-        <TooltipContent side="top">{t('editTitle')}</TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <Button
-              variant="destructive"
-              size="icon"
-              className="p-0! h-7 aspect-square"
-              onClick={() => onDelete(tenant)}
-            />
-          }
-        >
-          <Trash2 className="size-3" />
-        </TooltipTrigger>
-        <TooltipContent side="top">{t('deleteTitle')}</TooltipContent>
-      </Tooltip>
-    </div>
-  );
-}
-
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   const t = useTranslations('tenants');
 
@@ -209,13 +163,20 @@ function TenantsTable({
             className={`group/row hover:bg-transparent ${newIds.has(tenant.id) ? 'row-enter' : ''}`}
           >
             <TableCell>
-              <Link
-                href={`/orgs/${orgSlug}/tenant/${tenant.slug}`}
-                className="tenant-row-link inline-flex items-center gap-2 max-w-[200px] align-middle transition-colors"
-              >
-                <TenantAvatar name={tenant.name} avatarUrl={tenant.avatar_url} />
-                <span className="tenant-row-name truncate font-medium leading-none">{tenant.name}</span>
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/orgs/${orgSlug}/tenant/${tenant.slug}`}
+                  className="tenant-row-link inline-flex items-center gap-2 max-w-[200px] align-middle transition-colors"
+                >
+                  <TenantAvatar name={tenant.name} avatarUrl={tenant.avatar_url} />
+                  <span className="tenant-row-name truncate font-medium leading-none">{tenant.name}</span>
+                </Link>
+                {tenant.is_default && (
+                  <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
+                    {t('defaultBadge')}
+                  </Badge>
+                )}
+              </div>
             </TableCell>
             <TableCell>
               <CopyableId id={tenant.id} />
