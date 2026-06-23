@@ -8,7 +8,7 @@
 
 The repository runs the agent state machine in **two execution runtimes**:
 
-- **Production:** Supabase edge function (`supabase/functions/execute-agent`, `execute-tool`) running on Deno
+- **Production:** Cloudflare Worker (`packages/worker`), migrating off the legacy Supabase Deno edge function whose 400s execution cap cannot hold hours-long agent runs
 - **Simulation:** Node Express backend (`packages/backend/src/routes/simulate*`) — the live preview path used by the graph editor
 
 A prior audit (recorded in conversation) identified **11 duplication points** between the two runtimes — some cosmetic, others load-bearing — plus two architectural surprises (dead code, an orphan abstraction). The visible duplication (orchestration + factory implementations) was confirmed; the load-bearing drift was found in items the audit hadn't initially highlighted, especially in MCP connection lifecycle and child-dispatch semantics.
@@ -23,14 +23,14 @@ This refactor unifies the two runtimes into **one runtime core in the api packag
 - Establish a clean simulation/production discriminator (`environment`) on `ProviderCtx` that tools branch on locally; the orchestrator never branches.
 - Make OAuth resolution lazy (pull) with pre-flight checks at the two moments a user can actually act on failure (publish, first message of a simulation session).
 - Provide a simulation state model that is FE-owned, JSON-typed, and propagated through the runtime as opaque data.
-- Wire forms and lead-scoring tools into simulation (currently silently absent).
+- Establish the per-tool simulation seam (today a shared default no-op) so forms, lead-scoring, and the other builtins can each define real simulation behavior over time; today they are silently absent in simulation. Simulation behavior is simulation-only — production tools never read or write simulation state.
 - Delete dead code identified by the audit.
-- Make all of this architecturally additive when async sub-agent invocation eventually becomes a need — no runtime-core changes required for that future work.
+- Production dispatch is durable (suspend/resume) from the start, because hours-long runs on a CPU-capped host (Cloudflare Workers) cannot block in a single invocation; simulation keeps synchronous recursion. Genuine concurrent sub-agent execution (parent continues *in parallel* while child runs) remains future work, but the durable seam is in place.
 
 ## 3. Out of scope
 
-- **Per-tool simulation semantics.** Every builtin tool gets a single early-return `if (ctx.environment === 'simulation')` returning a synthetic response with a `TODO`. Tools that need to read/write simulation state get their real implementations in follow-up PRs.
-- **True async sub-agent invocation** (parent continues while child runs). The runtime contracts are typed to accommodate it; the implementation is deferred.
+- **Bespoke per-tool simulation behavior.** The per-tool simulation seam (the `if (ctx.environment === 'simulation')` branch, §13) ships now, but for the initial cut every builtin returns a **shared default no-op** — no external side-effect, no state write. Each tool's real simulation behavior (returning realistic synthetic data and reading/writing the §9 simulation state) is implemented per tool afterwards. This is a deliberate, permanent extension point, not throwaway scaffolding: simulation semantics legitimately differ per tool, so each tool owns its own branch.
+- **Concurrent sub-agent execution** (parent continues *in parallel* while child runs). Production dispatch is durable (suspend/resume) per §10, but the parent still resumes only after the child completes; genuine parallelism is deferred.
 - **Cross-instance / multi-backend connection pooling** for MCP. Today's assumption is a single backend instance; if scaled horizontally, each instance maintains its own pool. Documented; not architectural blocker.
 - **Migration of the FE Supabase auth flows** — auth boundary remains as-is.
 - **Refactoring `simulationServicesResolver.ts`'s downstream callers** beyond what's required to consume the shared factories.
@@ -76,7 +76,7 @@ The 11 duplication points the audit found, indexed for traceability throughout t
              │                                                  │
    ┌─────────▼──────────┐                            ┌──────────▼──────────┐
    │  Production driver │                            │ Simulation driver   │
-   │  (Edge function)   │                            │ (Node Express)      │
+   │ (Cloudflare Worker)│                            │ (Node Express)      │
    │                    │                            │                     │
    │  • Real persistence│                            │  • No-op persistence│
    │  • Real OAuth      │  Both inject identical     │  • Real OAuth       │
@@ -160,50 +160,69 @@ Tools narrow correctly: `if (ctx.environment === 'simulation')` makes `simulatio
 
 Compile-time immutability of `simulationState` is enforced via `DeepReadonly`. The existing ESLint ban on `as` type assertions catches the cast-escape hatch.
 
-### 6.3 `RuntimeCapabilities`
+### 6.3 `RuntimeCapabilities` and `RuntimeServices`
+
+Only the capabilities that genuinely differ per runtime are injected by the driver. Everything else is shared infrastructure with one implementation in both runtimes, constructed once from environment config — it is NOT a per-runtime behavioral seam and must not be duplicated per driver.
 
 ```ts
+// Genuinely runtime-specific behavior — the driver injects these (5 seams).
 interface RuntimeCapabilities {
-  persistence: DispatchPersistence;       // §10 — production real; simulation no-op
-  dispatch: DispatchStrategy;             // §10 — sync recursion today; async-ready
-  notifications: DispatchNotifications;   // §10 — no-op today; reserved for async
-  oauthResolver: OAuthResolver;           // §7  — same impl in both; backed by backend
-  mcpPool: McpPoolClient;                 // §8  — same impl in both; backed by backend
+  persistence: DispatchPersistence;   // §10 — prod: durable (DB); sim: no-op
+  dispatch: DispatchStrategy;         // §10 — prod: durable suspend/resume; sim: sync recursion
+  observability: Observability;       // prod: structured/OTel; sim: console
+  rateLimit: RateLimiter;             // prod: token-bucket per tenant; sim: no-op
+  logger: RunnerLogger;               // prod: structured; sim: console
+}
+
+// Shared services — identical in both runtimes; the core wires these once from
+// config. Listed separately so they are not mistaken for per-runtime seams.
+interface RuntimeServices {
+  oauthResolver: OAuthResolver;       // §7 — InternalApiOAuthResolver in both
+  mcpPool: McpPoolClient;             // §8 — BackendMcpPoolClient in both
   loadChildAgentGraph: (agentId: string) => Promise<AgentGraph>;
-  observability: Observability;           // structured log/metrics; sim is no-op
-  rateLimit: RateLimiter;                 // production token-bucket; sim no-op
-  supabase: SupabaseClient;
-  logger: RunnerLogger;
+  supabase: SupabaseClient;           // service-role; only the env source differs at construction
 }
 ```
 
+`DispatchNotifications` is removed: under the durable production model (§10) a suspended parent is resumed by an external re-invocation that reads persisted state, not by an in-process `waitFor`/`onComplete` callback.
+
 ### 6.4 `ChildResult` envelope
+
+Re-derived from the two runtimes' actual termination paths (`executeCore.ts` / `executeCoreChildFinish.ts` for production, `simulationOrchestrator.ts` for simulation), not assumed. Two corrections vs the original draft: (a) `finish` carries a `success | error` status (the `FinishSentinel`) that must be preserved, and (b) simulation produces a real **awaiting-input** outcome today (its `child_waiting` state) that had no envelope.
 
 ```ts
 type ChildResult =
-  | { status: 'finished'; result: string }
-  | { status: 'error'; code: ChildErrorCode; message: string }
-  | { status: 'pending'; handle: DispatchHandle; hint: string };   // reserved for async
+  | { status: 'finished'; result: string; outcome: 'success' | 'error' }
+  | { status: 'awaiting_input'; partial: string }   // child paused for user input (sim child_waiting)
+  | { status: 'error'; code: ChildErrorCode; message: string };
 
 type ChildErrorCode =
   | 'max_depth_exceeded'
   | 'child_failed'
+  | 'no_result'          // child ended without finish and produced no assistant text
   | 'timeout'
   | 'agent_not_published'
   | 'aborted';
 ```
 
-Mapping rules (canonical, both runtimes):
+Suspension of a durable production parent is NOT a `ChildResult` — it is a `DispatchOutcome` (§10.2). `ChildResult` is always a terminal envelope.
 
-| Child terminates by | Returns |
+Mapping rules (re-derived; the one environment-aware row is END-without-finish, and deliberately so):
+
+| Child terminates by | ChildResult |
 |---|---|
-| Explicit `finish({ message })` | `{ status: 'finished', result: message }` |
-| State machine reaches END node without `finish` | `{ status: 'finished', result: <last assistant message text> }` |
+| Explicit `finish({ message, status: 'success' })` | `{ status: 'finished', result: message, outcome: 'success' }` |
+| Explicit `finish({ message, status: 'error' })` | `{ status: 'finished', result: message, outcome: 'error' }` |
+| END node without `finish` — **simulation** (interactive) | `{ status: 'awaiting_input', partial: <last assistant text> }` |
+| END node without `finish` — **production** (autonomous), has assistant text | `{ status: 'finished', result: <last assistant text>, outcome: 'success' }` |
+| END node without `finish` — **production**, no assistant text | `{ status: 'error', code: 'no_result', message }` |
 | `dispatchDepth >= maxDispatchDepth` | `{ status: 'error', code: 'max_depth_exceeded', message }` |
 | Child throws / state machine errors | `{ status: 'error', code: 'child_failed', message }` |
 | Child exceeds `maxChildRuntimeMs` | `{ status: 'error', code: 'timeout', message }` |
 | Child agent has no published version | `{ status: 'error', code: 'agent_not_published', message }` |
 | User aborts (sim only) | `{ status: 'error', code: 'aborted', message }` |
+
+END-without-finish legitimately differs by environment: production has no user to supply input to a suspended child, so it terminates (with text, or `no_result` if there is none); simulation surfaces the interactive pause. This replaces the original draft's "last assistant text, canonical both runtimes" row, which matched neither runtime.
 
 ### 6.5 `RuntimeOutput`
 
@@ -231,6 +250,8 @@ type ExecutionEvent =
   | { type: 'tool_result'; toolCallId: string; result: unknown; depth: number }
   | { type: 'simulation_state_patch'; tool: string; path: string; value: unknown }      // sim only
   | { type: 'child_dispatched'; childExecutionId: string; depth: number }
+  | { type: 'child_suspended'; childExecutionId: string; depth: number }                       // prod durable: parent persisted, awaiting external resume
+  | { type: 'child_awaiting_input'; childExecutionId: string; partial: string; depth: number } // sim: child paused for user input
   | { type: 'child_finished'; childExecutionId: string; result: ChildResult; depth: number }
   | { type: 'error'; code: string; message: string }
   | { type: 'finished'; result: string };
@@ -242,10 +263,18 @@ Per-runtime transport adapters (`ssePublicAdapter` for production, `sseSimulatio
 
 ## 7. OAuth resolver
 
+**What it's for:** tools that act on a third-party service on the org/tenant's behalf (e.g. the calendar tools calling Google Calendar) need a valid access token. The resolver turns a stored OAuth grant (a long-lived refresh token) into a fresh, short-lived access token.
+
+**Decision — lazy, per-provider resolution backed by a BE-side (Redis) cache.** Tokens are resolved **on first actual use, per provider-subject**, through the backend's Redis-cached resolver — never pushed up front. Why:
+
+- **Push-everything-up-front is wasteful.** An agent may declare many providers (Google, Slack, Discord, …) but a given conversation uses only some, at specific moments. Resolving all of them per invocation generates tokens that are never used — a 30-message conversation that never books would resolve Google up to 30 times for nothing. Lazy resolution materializes a provider's token **only if a tool actually needs it**; never-used providers cost zero.
+- **The cache must live in Redis (BE-side), not the Worker.** Production Workers are ephemeral and suspend/resume between every turn (§10.4); a Worker-local memo would be lost each turn and re-generate constantly. Redis (where `tokenResolver.ts` already caches) survives suspend/resume, so a token resolved on turn 3 is still warm on turn 20 → **~1 generation per provider per token-lifetime, regardless of message count.**
+- **Freshness is automatic.** Each cache entry stores `{ accessToken, expiresAt }`; on use, if expired (minus skew) the resolver refreshes via the stored refresh token and updates the cache, else returns the cached token. **Single-flight** ensures racing turns trigger at most one refresh. Expiry differs per provider (Google ~1h, Discord ~days, Slack bot tokens often non-expiring), so per-subject `expiresAt` is tracked.
+
 ### 7.1 Interface
 
 ```ts
-type OAuthProvider = 'google' | 'mcp';
+type OAuthProvider = 'google' | 'mcp';   // 'slack' / 'discord' / … added as providers are onboarded
 
 interface OAuthSubject {
   provider: OAuthProvider;
@@ -254,7 +283,7 @@ interface OAuthSubject {
 }
 
 interface OAuthResolver {
-  resolve(subject: OAuthSubject): Promise<string>;
+  resolve(subject: OAuthSubject): Promise<string>;          // lazy; cached + refreshed BE-side
   preflight(subjects: OAuthSubject[]): Promise<PreflightReport>;
 }
 
@@ -264,26 +293,27 @@ type PreflightReport =
 
 interface PreflightFailure {
   subject: OAuthSubject;
-  reason: 'missing_grant' | 'refresh_failed' | 'revoked' | 'invalid_config' | 'unknown';
+  reason: 'missing_grant' | 'refresh_failed' | 'revoked' | 'invalid_config' | 'backend_unavailable' | 'unknown';
   message: string;
 }
 ```
 
 ### 7.2 Behavior
 
-- `resolve` is memoized per-(subject × run-context); identical to today's Redis-cached `tokenResolver.ts` behavior with one extra HTTP hop for the edge function.
-- `preflight` runs the same operation in batch and returns structured failures.
-- Both runtimes inject an `InternalApiOAuthResolver` that HTTP-calls backend `/internal/oauth/resolve` + `/internal/oauth/preflight`. The actual logic lives once in backend `tokenResolver.ts`.
+- `resolve` is **lazy and per-(provider-subject)** — called only when a tool actually needs that provider's token. It is **Redis-cached BE-side** with refresh-on-expiry and single-flight (today's `tokenResolver.ts` behavior). From the Worker it is one HTTP hop to `/internal/oauth/resolve`, which returns a cached token in the common case (a real provider refresh happens at most once per token-lifetime).
+- `preflight` runs the same operation in batch over the providers the agent's **selected tools declare**, returning structured failures — used by the pre-flight surfaces (§7.3), not on the per-turn hot path.
+- Both runtimes inject an `InternalApiOAuthResolver` that HTTP-calls backend `/internal/oauth/resolve` + `/internal/oauth/preflight`. The actual logic + cache live once in backend `tokenResolver.ts`.
+- **Calendar is converted off the synchronous `ctx.oauthTokens` push-read** to this async resolver, so there is a single resolution path (no field half-removed from `ProviderCtx`, §6.2).
 
 ### 7.3 Pre-flight surfaces
 
-- **FE publish button** → `POST /api/agents/[agentId]/preflight-publish` → backend `/internal/oauth/preflight`. Renders failures inline; blocks publish until resolved.
+- **FE publish button** → `POST /api/agents/[agentId]/preflight-publish` → backend `/internal/oauth/preflight`. Batch-checks the providers the agent's selected tools declare; renders failures inline; blocks publish until resolved.
 - **Simulation handler first-message-of-session** → `POST /api/simulation/preflight` → backend `/internal/oauth/preflight`. Same modal surface in the sim panel.
-- **Production runtime invocation** → no pre-flight. Resolution is lazy on first tool use.
+- **Production runtime invocation** → no pre-flight. Resolution is lazy on first tool use (per §7.2).
 
 ### 7.4 Failure UX
 
-Each failure has a user-facing string:
+Each failure has a user-facing string. Transient/infra failures are a **distinct category** from grant failures — a backend blip must never render as "Reconnect Google":
 
 | Reason | Render |
 |---|---|
@@ -291,59 +321,72 @@ Each failure has a user-facing string:
 | `refresh_failed` | "Reconnect Google." |
 | `revoked` | "Google access was revoked. Reconnect." |
 | `invalid_config` | "MCP server 'Linear' has invalid configuration." |
+| `backend_unavailable` | "Couldn't verify connections right now — try again." (transient; not a grant problem) |
 | `unknown` | Fall back to the message string. |
 
-## 8. MCP connection pool — Option W
+## 8. MCP connection pool (backend-owned)
 
-Backend owns a single connection pool serving both runtimes via HTTP.
+**Decision:** the **backend owns all MCP connections and tool invocation**. The production Cloudflare Worker and the simulation runtime both reach MCP **only** through backend `/internal/mcp/*` endpoints. Rationale:
+
+- A **stateless Worker cannot hold a connection pool** — it is ephemeral per-invocation, so warm connections and caching must live in a long-running process.
+- **stdio MCP servers are subprocesses** and cannot run on a Worker at all; the backend must own them regardless, so owning *all* MCP transports is consistent rather than split-brained.
+- The backend **already fronts every Worker invocation** (it invokes the Worker on each message), so routing MCP through it adds **no new availability dependency** — it rides one that already exists.
+- **Connection reuse is a latency win:** a Worker dialing fresh per call would pay the full handshake every time; the pool amortizes it. The extra Worker→backend hop is small next to the MCP-server round-trip.
+- The backend is the only place that can run the **SP3 DNS-based egress guard** (the Worker has no `node:dns`), so centralizing MCP here gives **one guarded egress choke point**.
+- It composes with the durable model (§10.4): MCP connections live in the backend pool independent of the ephemeral Worker's suspend/resume lifecycle.
+
+**Where it lives:** start with the pool as a module **inside the backend** (`packages/backend/src/mcp/`). It is designed to be extracted into a dedicated, horizontally-scalable MCP gateway later; the pool key and sticky routing (§8.2) are built for that from day one, so extraction needs no retrofit.
 
 ### 8.1 Endpoints (added to backend)
 
 ```
 POST /internal/mcp/invoke
-     body: { agentId, tenantId, mcpBindingId, toolName, args }
-     → tool result (or transport error → 502)
+     body: { agentId, mcpBindingId, toolName, args }
+     → tool result | typed tool-level error (never crashes the caller's turn)
 
 POST /internal/mcp/preflight
-     body: { agentId, tenantId, mcpBindingId }
+     body: { agentId, mcpBindingId }
      → 200 ok | 400 connection failure
      (also warms the pool entry so it's hot for subsequent invokes)
 ```
 
-### 8.2 Pool key
+- **Server-side authorization (required).** The caller does **not** assert the security principal. `tenantId` and binding ownership are **derived server-side** from `agentId` against the DB (verify the binding belongs to the agent and the agent is authorized for the tenant). Master-key auth on `/internal/*` is an infrastructure boundary, not a tenant boundary — without server-side derivation, a caller passing an arbitrary `tenantId`/`mcpBindingId` is a confused-deputy hole across tenants.
+- **Graceful degradation.** If the pool/gateway is unreachable or the transport fails, the endpoint returns a **typed tool-level error** the LLM can react to — it never aborts the run.
+
+### 8.2 Pool key and sticky routing
 
 ```
 poolKey = `${agentId}::${tenantId}::${mcpBindingId}`
 ```
 
-- **Agent** owns the MCP config.
-- **Tenant** owns the OAuth credentials.
-- **mcpBindingId** is the per-agent configuration record id (the `id` field on `McpServerConfig`), not a server identity — two different bindings can point at the same external service URL and they get different pool entries.
-- **Org** is implicit (agents are org-scoped).
+- **Agent** owns the MCP config; **tenant** scopes the credentials; **mcpBindingId** is the per-agent config record id (`McpServerConfig.id`), not a server identity — two bindings to the same URL get separate entries. **Org** is implicit (agents are org-scoped).
+- **Sticky routing (decided).** When the backend/gateway is horizontally scaled, a given `poolKey` is **consistent-hash routed to a single instance**, so connection reuse holds, session-stateful MCP servers keep continuity, and upstreams don't see N× connections. This is mandatory before scaling out — in-memory pools without stickiness fracture (split-brain sessions, duplicate connections). We start with the pool in the backend directly; routing is sticky-by-`poolKey` from day one so scaling out is additive.
+- **Tenant-keying caveat.** Today MCP OAuth is keyed `orgId + libraryItemId` (no tenant dimension). The `tenantId` in the key anticipates SP1/SP4 tenant-scoping and must be reconciled with that work — the credential store needs the tenant dimension before this key is fully meaningful.
 
 ### 8.3 Eviction + lifecycle
 
 - **TTL:** 1 hour since last use (configurable).
-- **LRU cap:** 500 entries (configurable).
-- **Health check:** background sweep pings idle entries every 30 seconds; prunes dead connections from the pool proactively.
-- **On graceful shutdown:** close-all before exit.
-- **Concurrent same-key borrows:** entry holds a `Promise` — second borrower awaits the in-flight connection.
+- **LRU cap:** per-instance, sized from the socket/fd budget (not a round number); surface metrics to tune.
+- **Health check:** background sweep pings entries idle beyond TTL/2 (jittered, concurrency-capped) and prunes dead connections; must **not** evict a leased/in-flight entry (refcount borrows).
+- **Concurrent same-key borrows:** entry holds a `Promise` — second borrower awaits the in-flight connection. **On connect rejection, evict the entry and allow one fresh retry** rather than poisoning all awaiters until TTL.
+- **On graceful shutdown:** drain in-flight invokes, then close-all.
 
 ### 8.4 Fault tolerance
 
-- **Transport failure mid-call:** the MCP protocol's JSON-RPC ids let us distinguish "failed before request was acknowledged" (safe to retry once, transparently) from "failed after" (surface as error — tool calls may be non-idempotent).
-- **OAuth 401:** refresh token via `OAuthResolver`, reconnect, retry once.
+- **Retry only the connect/handshake phase — never an invoke that may have hit the wire.** A transport drop *after* bytes are sent is indistinguishable from never-sent at the JSON-RPC layer, so retrying a `callTool` can double-execute a non-idempotent tool (book/charge/send). Treat all tool calls as non-idempotent unless the tool declares otherwise, and thread an **idempotency key** so connect-retries and durable-resume retries (§10.4) dedupe.
+- **OAuth 401:** refresh via `OAuthResolver`, reconnect, retry the **connect** (not a mid-call invoke).
 - **Reconnect backoff:** exponential 100ms → 30s with ±25% jitter.
-- **Circuit breaker per pool key:** 5 reconnect failures in 60 seconds → open for 60s → half-open → retry once.
+- **Circuit breaker per pool key:** counts **connect attempts** (not borrowers) — 5 failures in 60s → open 60s → half-open → retry once. Breaker-open is surfaced to the caller as an explicit **transient/unavailable** category, distinct from a permanent error — not silently swallowed.
+- **Egress re-validation (TOCTOU):** the SP3 egress guard runs on connect **and** is re-validated on borrow — a pooled connection lives up to the TTL while DNS can rebind, so connect-time guarding alone is insufficient for a pool. Pin the resolved IP or re-check on reuse.
 - **State machine per entry:** `CONNECTING` / `OPEN` / `BROKEN`. Only `OPEN` is borrowable.
 - **Observability:** per-entry metrics (connects, retries, errors, last-used).
 
-The principle: tool callers never see retryable transport errors. They see real errors only.
+The principle: a tool caller never gets a retryable transport error *silently swallowed in a way that double-executes a side effect* — it gets either a real result or a typed transient/permanent error it can act on.
 
-### 8.5 What's deleted
+### 8.5 What's deleted / reconciled
 
-- `mcp/lifecycle.ts` (`createMcpSession`, `closeMcpSession`).
-- All callers of `createMcpSession` go through `capabilities.mcpPool` instead.
+- `mcp/lifecycle.ts` (`createMcpSession`, `closeMcpSession`) — deleted; all callers go through the backend pool. Delete **only after** the pool wires the SP3 egress guard, so the guarded path is never removed first.
+- The api-package **session-id cache** (`ensureSession` / `sessionCache`, keyed `orgId+serverUrl`) is **reconciled into the pool** — it caches a session *id* (shareable via Redis) while the pool holds the live transport; the two must not hand out conflicting sessions. One owner: the pool holds connections, and the session-id cache, if kept, lives inside it.
 - The Redis-backed tool-catalog cache stays as-is (separate layer; serves a different purpose).
 
 ## 9. Simulation state mechanics
@@ -413,11 +456,14 @@ POST /api/simulation/run
 
 ## 10. Dispatch capabilities — sync today, async-ready
 
-### 10.1 Sync recursion as the canonical model
+### 10.1 Two dispatch strategies: durable (production) and sync recursion (simulation)
 
-Today's production runtime uses synchronous mutual recursion (`executeAgentCore` → `handleInlineDispatch` → `executeAgentCore` for child → `handleChildFinish` → `executeAgentCore` for parent resume). The durable stack and placeholder messages serve crash recovery and observability, not concurrent execution. Simulation is also sync.
+The two runtimes have genuinely different execution models, and the design reflects that instead of forcing one:
 
-The unified runtime uses sync recursion. Persistence becomes an injected capability:
+- **Production — durable suspend/resume.** Agent runs can last hours (slow tools, long LLM chains, human-in-the-loop pauses) and run on a CPU-capped host (Cloudflare Workers), so a run cannot block in a single invocation. On child dispatch the parent's state is persisted and the invocation ends; an external trigger (queue / Durable Object alarm / cron sweeping suspended runs from Postgres — see § Production host) re-invokes the runtime to resume the parent once the child's result is durably written. Production already half-does this: `executeCoreInlineDispatch` suspends to the DB and `executeCoreChildFinish` resumes by re-invoking with `continueExecutionId`. This generalizes it into the canonical production model.
+- **Simulation — synchronous recursion.** Sim runs are short, interactive, single-session, and ephemeral. It keeps in-process mutual recursion (`executeAgentCore` → child → resume). No durability, no external re-invocation.
+
+Persistence is the injected seam that backs durability:
 
 ```ts
 interface DispatchPersistence {
@@ -428,11 +474,9 @@ interface DispatchPersistence {
 }
 ```
 
-Production injects `SupabaseDispatchPersistence` (stack/placeholder/suspend semantics today). Simulation injects `NoopPersistence`.
+Production injects `SupabaseDispatchPersistence`. Simulation injects `NoopPersistence` (sync recursion needs no persisted handles).
 
-### 10.2 Async-ready scaffolding
-
-The runtime's dispatch code uses these interfaces today even though no async path exists:
+### 10.2 `DispatchStrategy`
 
 ```ts
 interface DispatchStrategy {
@@ -440,42 +484,59 @@ interface DispatchStrategy {
 }
 
 type DispatchOutcome =
-  | { kind: 'completed'; childResult: ChildResult }
-  | { kind: 'pending'; handle: DispatchHandle };           // never emitted today
-
-interface DispatchNotifications {
-  waitFor(handle: DispatchHandle): Promise<ChildResult>;
-  onComplete(handle: DispatchHandle, callback: (result: ChildResult) => void): void;
-}
+  | { kind: 'completed'; childResult: ChildResult }    // sim: child ran inline (sync recursion)
+  | { kind: 'suspended'; handle: DispatchHandle };     // prod: parent persisted, resumes on external re-invocation
 ```
 
-At the dispatch site:
+Both branches are real and exercised — production emits `suspended`, simulation emits `completed`:
 
 ```ts
 const outcome = await capabilities.dispatch.dispatch(args);
 if (outcome.kind === 'completed') {
-  return injectChildResultIntoParent(outcome.childResult);
+  return injectChildResultIntoParent(outcome.childResult);   // simulation: continue in-process
 }
-// outcome.kind === 'pending' — TODO: async dispatch path
-throw new Error('Pending dispatch not yet supported');
+// outcome.kind === 'suspended' — production durable path:
+//   parent state was persisted via capabilities.persistence; this invocation now returns.
+//   The resume trigger re-invokes the runtime; on resume the child's ChildResult is read
+//   from persistence and injected into the parent exactly as the 'completed' branch would.
+return endInvocationSuspended(outcome.handle);
 ```
 
-The `pending` branch throws today because no strategy emits it. Adding `AsyncDispatchStrategy` later is additive — runtime core untouched.
+`SyncRecurseStrategy` (simulation) runs the child inline and always returns `completed`. `DurableDispatchStrategy` (production) persists via `DispatchPersistence`, returns `suspended`, and relies on the resume trigger (§ Production host) to continue. The two strategies share the child-result injection logic; only what happens between dispatch and result differs. (This replaces the original draft's reserved `pending`-throws scaffolding, which modelled an in-process async path that no longer fits the durable model.)
 
 ### 10.3 Capability matrix
+
+Runtime-specific seams (driver-injected) — these genuinely differ:
 
 | Capability | Production | Simulation |
 |---|---|---|
 | `persistence` | `SupabaseDispatchPersistence` | `NoopPersistence` |
-| `dispatch` | `SyncRecurseStrategy` | `SyncRecurseStrategy` |
-| `notifications` | `NoopNotifications` (reserved) | `NoopNotifications` |
-| `oauthResolver` | `InternalApiOAuthResolver` | `InternalApiOAuthResolver` |
-| `mcpPool` | `BackendMcpPoolClient` | `BackendMcpPoolClient` |
-| `loadChildAgentGraph` | Published version reader | Published version reader |
+| `dispatch` | `DurableDispatchStrategy` (suspend/resume) | `SyncRecurseStrategy` (in-process recursion) |
 | `observability` | OTel / structured | Console |
 | `rateLimit` | Token-bucket per tenant | `NoopRateLimit` |
-| `supabase` | service-role (process.env in backend; Deno.env in edge function) | service-role (process.env) |
 | `logger` | Structured | Console |
+
+Shared services (`RuntimeServices`, wired once from config) — identical in both runtimes, NOT per-runtime seams:
+
+| Service | Implementation (both runtimes) |
+|---|---|
+| `oauthResolver` | `InternalApiOAuthResolver` |
+| `mcpPool` | `BackendMcpPoolClient` |
+| `loadChildAgentGraph` | Published version reader |
+| `supabase` | service-role client (only the env source differs at construction: Workers binding in prod, `process.env` in the sim backend) |
+
+### 10.4 Production host & durable resume (DB-backed)
+
+Production runs on a **Cloudflare Worker** (`packages/worker`) with **DB-backed suspend/resume** — Supabase Postgres is the system of record for run state, reached through **Hyperdrive** (or the Supabase pooler) so stateless Workers don't exhaust connections. Chosen over Cloudflare Workflows and Durable-Object/Queue orchestration because ~1M concurrently-suspended conversations are just Postgres rows (no concurrency ceiling), it reuses the suspend/resume pattern production already implements, it is the cheapest at scale, and it stays portable (not welded to a Cloudflare primitive).
+
+Two resume paths:
+
+- **Human-in-the-loop (the common case).** A run suspended waiting for the next user message is resumed when that message arrives through the backend: the BE re-invokes the Worker with `continueExecutionId`; the Worker loads persisted state from Postgres via `DispatchPersistence` and continues. **No queue or external trigger** — the inbound message *is* the trigger.
+- **Autonomous (child finished / timeout).** When a durable parent must resume without user action, a thin driver re-invokes the Worker: **Cloudflare Queues** (sharded across queues to meet peak throughput) or a **cron sweep over a `pending_resumes` table**. `DurableDispatchStrategy` (§10.2) writes the pending handle; the driver consumes it.
+
+**Idempotency.** Every resume carries an idempotency key. A retried autonomous resume (queue redelivery, cron overlap, Worker restart) must not re-run a turn or re-fire a non-idempotent tool — the Worker checks the key against persisted run state before continuing.
+
+**Requirements:** Hyperdrive/pooler in front of Postgres from day one; a Postgres tier sized for peak suspend/resume read+write throughput; idempotency keys on all resumes.
 
 ## 11. Implementation layout
 
@@ -524,7 +585,7 @@ packages/shared-store-services/src/
 └── index.ts
 ```
 
-Works in both Node and Deno via `@supabase/supabase-js`. Imported by `packages/backend/` and `supabase/functions/_shared/`.
+Works in Node and the Cloudflare Workers runtime via `@supabase/supabase-js` (pure JS/TS, no native addons — `re2js` replaces native `re2`). Imported by `packages/backend/` and `packages/worker/`.
 
 ### 11.3 `packages/backend/` changes
 
@@ -584,31 +645,28 @@ packages/web/app/api/
 
 Both proxy to backend with master-key auth. Used by the publish dialog and by the sim handler on first-message-of-session respectively.
 
-### 11.5 `supabase/functions/` changes
+### 11.5 Production Cloudflare Worker (`packages/worker/`)
 
-**Reorganized:**
+Production execution moves from the Supabase Deno edge function to a **Cloudflare Worker**. Rationale: Supabase edge functions cap execution at 400s (wall-clock), which cannot hold hours-long agent runs; Workers cap CPU time, not wall-clock, so the I/O-bound agent loop (waiting on the LLM and tools) is not penalized — see § Production host. The Worker is a thin driver over the shared runtime core.
+
+**New:**
 ```
-supabase/functions/
-├── _shared/
-│   ├── edgeCapabilities.ts
-│   ├── edgeOAuthResolver.ts
-│   ├── edgeMcpPoolClient.ts
-│   ├── edgeSupabase.ts
-│   └── runtimeImports.ts
-├── execute-agent/
-│   ├── index.ts                         ← entry
-│   └── ssePublicAdapter.ts
-└── execute-tool/
-    └── index.ts
+packages/worker/
+├── src/
+│   ├── index.ts                  ← fetch handler / entry; invoked by the backend
+│   ├── productionCapabilities.ts ← wires DurableDispatchStrategy, SupabaseDispatchPersistence, observability, rateLimit
+│   ├── ssePublicAdapter.ts       ← maps ExecutionEvent → public SSE
+│   ├── resume.ts                 ← resume entry for suspended runs (queue / Durable Object alarm / cron)
+│   └── workerSupabase.ts         ← service-role client via a Workers binding (Hyperdrive or @supabase/supabase-js)
+└── wrangler.toml                 ← Worker config / bindings (no WASM needed — re2js is pure JS)
 ```
 
-**Deleted:**
-- `execute-agent/toolBuilder.ts`
-- `execute-agent/{kv,rag}StoreServices.ts`
-- `execute-agent/{kv,rag}Queries.ts`
-- `execute-agent/ragSearchCores.ts`
-- `execute-agent/internalApiClient.ts`
-- `execute-agent/storeServices.ts`
+Imports the runtime core from `packages/api` and the builtin factories from `packages/shared-store-services` — both Workers-compatible (pure JS/TS, no native addons; `re2js` replaces native `re2`). Single-tool execution (the former `execute-tool` function, used by the Play button) folds into this Worker.
+
+**No Deno-side duplicates are re-created.** The former `execute-agent/{toolBuilder, kvStoreServices, ragStoreServices, kvQueries, ragQueries, ragSearchCores, internalApiClient, storeServices}.ts` are not ported — that logic lives once in `packages/api` + `packages/shared-store-services`.
+
+**Deleted (legacy Supabase edge function):**
+- The entire `supabase/functions/execute-agent/` and `supabase/functions/execute-tool/` Deno runtime, once the Worker is live and cut over.
 
 ## 12. FE UX changes
 
@@ -662,19 +720,30 @@ simulation.statePanel.empty
 simulation.statePanel.resetButton
 ```
 
-## 13. Per-tool migration plan
+## 13. Per-tool simulation seam
 
-Every **side-effecting** builtin tool's `execute` function gains:
+Simulation behavior is **per-tool and tool-owned** — each side-effecting builtin defines what it does in simulation via an `if (ctx.environment === 'simulation')` branch. This is the deliberate extension point, **not** duplication to be abstracted away: a KV write, a calendar booking, and a form update have genuinely different "what should this do in a simulation" answers, so each tool owns its branch.
+
+`ctx.simulationState` / `ctx.writeSimulationState` (§6.2, §9) are available **only** inside this branch — they exist on `ProviderCtx` solely when `environment === 'simulation'`, so production tools cannot read or write simulation state by construction. Simulation state is a simulation-only concept; it never exists in production.
+
+**Initial cut — shared default no-op.** For now, every side-effecting builtin's simulation branch returns a single shared `simulatedNoop` helper: no external side-effect, no state mutation. This unblocks the unification without implementing 20 bespoke behaviors at once, and the shared helper keeps the interim branches from drifting while they all behave identically.
 
 ```ts
+import { simulatedNoop } from '@api/runtime/simulatedNoop';
+
 async execute(args: unknown, ctx: ProviderCtx) {
   if (ctx.environment === 'simulation') {
-    return { simulated: true, note: 'No action performed (simulation)' };
-    // TODO(SIM-<provider>-<tool>): implement actual simulation semantics
+    return simulatedNoop(args, ctx);   // interim default — replaced per tool over time
+    // Eventually, each tool implements its own simulation behavior, e.g.
+    //   forms.set_form_fields:
+    //     ctx.writeSimulationState(`/forms/${args.formId}`, args.fields);
+    //     return { ok: true, fields: args.fields };
   }
-  // ... existing production logic
+  // ... existing production logic (unchanged)
 }
 ```
+
+Each tool later replaces the `simulatedNoop` call with its own logic against `simulationState` — that bespoke per-tool behavior is deferred (§3), but the seam and the state model (§9) ship now.
 
 **Coverage by guard kind:**
 
@@ -762,5 +831,4 @@ Each phase commits independently with `npm run check` + tests green. Phase 10 is
   - `packages/web/app/hooks/useSimulationState.ts`
   - `packages/web/app/hooks/useSimulation.ts`
   - `packages/web/app/components/panels/{TestingPresetsSection,PublishButtonTenantPicker,JsonDisplay}.tsx`
-  - `supabase/functions/execute-agent/toolBuilder.ts`
-  - `supabase/functions/execute-tool/index.ts`
+  - `packages/worker/src/index.ts` (Cloudflare Worker; replaces `supabase/functions/execute-agent` + `execute-tool`)
