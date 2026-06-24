@@ -118,7 +118,6 @@ function ServerTile({
         {noVersion && <NoServerVersionBadge />}
       </span>
       <div className="flex items-center gap-1">
-        <ReloadToolsButton isDiscovering={isDiscovering} onDiscover={onDiscover} />
         <Button
           variant="ghost"
           size="icon-sm"
@@ -128,6 +127,7 @@ function ServerTile({
         >
           <SlidersHorizontal className="size-3" />
         </Button>
+        <ReloadToolsButton isDiscovering={isDiscovering} onDiscover={onDiscover} />
         <Button
           variant="destructive"
           size="icon-sm"

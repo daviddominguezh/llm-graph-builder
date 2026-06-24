@@ -71,7 +71,7 @@ function StatusCell({ status, verifying, onTest }: StatusCellProps) {
   const { labelKey, iconKind, colorClassName } = describeRowStatus(status);
   return (
     <div className={`${FROZEN_RIGHT} ${CELL_PADDING} flex items-center justify-between gap-1.5`}>
-      <span className="flex items-center gap-1 text-[0.625rem] text-muted-foreground">
+      <span className="flex items-center gap-1 text-[0.625rem] text-foreground font-medium">
         <RowStatusIcon kind={iconKind} className={colorClassName} />
         {t(labelKey)}
       </span>
@@ -80,7 +80,7 @@ function StatusCell({ status, verifying, onTest }: StatusCellProps) {
           render={
             <Button
               variant="ghost"
-              size="icon-xs"
+              size="icon-sm"
               className="rounded-full"
               aria-label={t('test')}
               disabled={verifying}
@@ -88,7 +88,7 @@ function StatusCell({ status, verifying, onTest }: StatusCellProps) {
             />
           }
         >
-          {verifying ? <Loader2 className="size-2.5 animate-spin" /> : <RotateCw className="size-2.5" />}
+          {verifying ? <Loader2 className="animate-spin" /> : <RotateCw />}
         </TooltipTrigger>
         <TooltipContent side="top">{t('testHint')}</TooltipContent>
       </Tooltip>

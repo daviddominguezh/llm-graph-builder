@@ -118,7 +118,7 @@ function PanelTabs({ value, onChange, t, isAgent, hasMcpError }: PanelTabsProps)
         >
           <span className="relative">
             {labels[tab]}
-            {tab === 'mcp' && hasMcpError && <ErrorDot />}
+            {tab === 'mcp' && hasMcpError && <ErrorDot className="-top-[1px] -right-[7px]" />}
           </span>
         </button>
       ))}

@@ -281,7 +281,7 @@ type ExecutionEvent =
 
 `child_dispatched` is emitted whenever any dispatch fires; `child_finished` when the child's runtime returns or its error envelope is constructed. Both runtimes emit both for every dispatch — this is what the FE uses to render the nested call structure with `depth`.
 
-**Hard cutover — one vocabulary, no per-runtime adapters.** All three consumers migrate to `ExecutionEvent` in the same phase (§14 Phase 8); the runtime emits it directly through a **single shared serializer** (`executionEventSse.ts`). The per-runtime `ssePublicAdapter` / `sseSimulationAdapter` are **not built** — there is no "converge later" that institutionalizes the split. Today's consumers and the migration:
+**Hard cutover — one vocabulary, no per-runtime adapters.** All three consumers migrate to `ExecutionEvent` in the same sub-project (RU5, §14); the runtime emits it directly through a **single shared serializer** (`executionEventSse.ts`). The per-runtime `ssePublicAdapter` / `sseSimulationAdapter` are **not built** — there is no "converge later" that institutionalizes the split. Today's consumers and the migration:
 
 | Consumer | Today | After |
 |---|---|---|
@@ -741,7 +741,7 @@ In simulation, builtin tools no-op (§13) but **MCP tools execute for real** —
 - **Tool-call cards** in the sim message view: the badge appears on every MCP tool-call card (alongside the §9.4 display patches), distinguishing a real call from a no-op builtin at the moment it fires.
 - **Implementation:** a small shadcn `<Badge>` with a warning tone (distinct, not red-alarm) + `aria-label` and a tooltip. The discriminator is the tool's provider (`providerType === 'mcp'`) — the same one the runtime uses, so it stays correct as servers change.
 
-The badge ships **with** the no-op-builtins phase (§14 Phase 7), not after — it's the minimum that makes the mixed-reality (fake builtins / real MCP) safe. A per-call dry-run confirm gate for side-effecting MCP tools is a possible follow-up.
+The badge ships **with** the no-op-builtins seam (RU3, §14), not after — it's the minimum that makes the mixed-reality (fake builtins / real MCP) safe. A per-call dry-run confirm gate for side-effecting MCP tools is a possible follow-up.
 
 ### 12.5 Translations to add
 
@@ -810,30 +810,28 @@ Every side-effecting builtin gets the guard. **All four `composition` tools** (`
 
 **MCP tools are NOT wrapped** — they execute for real in simulation (a sim run can create a real Linear issue / send a real message). Because that is a genuine side effect while builtins no-op, every MCP-sourced tool carries a visible **"real side effects" badge** in the sim UI (§12.4) so the mixed-reality is never a surprise. The badge ships *with* this phase, not after.
 
-## 14. Migration phasing
+## 14. Migration — decomposed into sub-projects
 
-Phased commits matching the prior refactor cadence on this branch:
+This refactor is **not** shipped as one set of phases. It grew too large for a single PR, so it is decomposed into ordered sub-projects (**RU1–RU6**), each with its own spec → plan → build cycle. This document is the **reference / north-star**; the decomposition, scope-per-RU, and dependency order live in **`2026-06-23-runtime-unification-OVERVIEW.md`**.
 
-1. **Phase 1:** Extract factories to `packages/shared-store-services/`. Both runtimes re-export from old locations during this phase for behavior equivalence.
-2. **Phase 2:** Add runtime + capability interfaces to `packages/api/`. Move `prepareAllBundles` / `buildProviderCtx` / `buildRegistry`. No driver changes yet.
-3. **Phase 3:** Add the 3 new `/internal/*` backend endpoints (mcp/invoke, mcp/preflight, oauth/preflight). OAuth token *resolution* is pool-internal (§7), not a separate endpoint.
-4. **Phase 4:** Implement backend MCP connection pool.
-5. **Phase 5:** Migrate production driver to consume the new api runtime + capabilities.
-6. **Phase 6:** Migrate simulation driver.
-7. **Phase 7:** Per-tool early-return guard added to all 24 builtin tools.
-8. **Phase 8 — SSE hard cutover (no adapters).** Land the superset `ExecutionEvent` vocabulary (§6.6) and migrate **all three consumers** in the same phase: production API (`web/app/lib/api.ts`), simulation panel, and the widget (`packages/widget/useChatStream.ts`). Both drivers stream via the one shared `executionEventSse.ts` serializer; the legacy public/sim SSE shapes and their writers are deleted. No `ssePublicAdapter`/`sseSimulationAdapter` — there is no transitional bridge. Verify each consumer renders the full superset (tokens, durations, structured output, per-node errors, `child_awaiting_input`) before deleting the old shapes.
-9. **Phase 9:** FE toolbar + sim state panel + tenant dropdown + modals.
-10. **Phase 10:** Delete dead code (`createMcpSession`/`closeMcpSession`, all replaced modules listed in §11.3 / §11.4).
+| RU | Sub-project | Maps to |
+|---|---|---|
+| **RU1** | `shared-store-services` + `re2js` | §11.2 |
+| **RU2** | MCP connection pool (BE-owned) + OAuth (pool-internal + preflight) | §7, §8 |
+| **RU3** | Runtime core + **simulation** driver (sim-state, seam, badge, FE UX) | §6, §9, §10, §12, §13 |
+| **RU4** | Production **Cloudflare Worker** + DB-backed durable execution | §10.4, §11.5 |
+| **RU5** | SSE hard cutover (superset `ExecutionEvent`, all 3 consumers) | §6.6 |
+| **RU6** | Dead-code deletion / finalize (non-reversible) | §11.3 |
 
-Each phase commits independently with `npm run check` + tests green. Phase 10 is non-reversible; everything before is.
+**Order:** RU1 ∥ RU2 → RU3 → RU4 → RU5 → RU6. Each sub-project commits independently with `npm run check` + tests green; RU6 is the only non-reversible step. See the OVERVIEW for the dependency graph and boundary rationale (notably: simulation migrates before production, and the MCP pool is standalone).
 
 ## 15. Risks and open questions
 
 - **MCP connection pool memory growth.** Bound + LRU + TTL handle this; surface metrics so we know if 500-entry cap is appropriate at scale.
-- **SSE hard cutover touches all three consumers at once.** Production API, simulation panel, and widget currently listen to different shapes; the cutover migrates them to the superset `ExecutionEvent` in one phase (no bridging adapters). Risk is concentrated in Phase 8 — mitigate by building the superset from the union of the three existing sets (§6.6) so nothing is dropped, and by verifying each consumer before deleting the legacy shapes.
+- **SSE hard cutover touches all three consumers at once.** Production API, simulation panel, and widget currently listen to different shapes; the cutover migrates them to the superset `ExecutionEvent` in one phase (no bridging adapters). Risk is concentrated in RU5 — mitigate by building the superset from the union of the three existing sets (§6.6) so nothing is dropped, and by verifying each consumer before deleting the legacy shapes.
 - **Per-tool simulation semantics deferred to follow-up PRs.** Today every builtin tool no-ops in simulation. This is acceptable because the runtime unification's success criterion is structural, not behavioral fidelity of every tool.
 - **Backend becomes more stateful** (MCP connection pool). Document operational implications (restart drops connections, fault-tolerance via reconnect handles transients).
-- **Multi-backend deployment.** Today's assumption is single backend instance; horizontal scaling produces minor pool inefficiency, not correctness issue.
+- **Multi-backend deployment.** Sticky routing (consistent-hash `poolKey` → instance, §8.2) is **required** before scaling the pool horizontally — without it, in-memory pools fracture (split-brain sessions, duplicate upstream connections). Decided, not optional.
 - **The simulation `composition.invoke_workflow`** may not complete meaningfully when the child is a workflow with its own runtime expectations — defer to per-tool semantics iteration.
 
 ## 16. Future work (explicitly out of scope here)

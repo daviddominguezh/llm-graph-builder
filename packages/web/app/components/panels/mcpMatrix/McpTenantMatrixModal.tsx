@@ -121,7 +121,7 @@ function MatrixContent(props: McpTenantMatrixModalProps) {
     <>
       <MatrixToolbar saving={config.saving} onVerifyAll={() => void config.verifyAll()} />
       <Scrollable className="-mx-1 min-h-0 flex-1 px-1">
-        <div className="cursor-default flex flex-col gap-4">
+        <div className="cursor-default flex flex-col gap-4 pt-1.5">
           <DefinitionSection {...props} />
           <p className="text-xs text-muted-foreground">{t('matrixHelp')}</p>
           <MatrixSection

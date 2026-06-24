@@ -99,8 +99,8 @@
 |---|---|---|---|
 | `maxDispatchDepth` default | ✅ | **Set to 10** everywhere (matches both runtimes; the spec's `5` was a silent regression). | |
 | `maxChildRuntimeMs` default | ✅ | **Set to 1h of *active execution*** (not wall-clock) — suspended / awaiting-input time doesn't count, so human-in-the-loop pauses don't trip it. A runaway-loop guard; abandoned-run GC is a separate durability concern. | |
-| 10-phase migration plan | 🟡 | Uneven and big-bang mid-way (prod & sim on different cores between phases 5–6). Re-sequence; split out the pool; flip both drivers behind one flag. | |
-| Characterization / equivalence tests | ✅ (add) | Missing. A "no behavior change" refactor with known divergences needs a Phase 0 oracle. | |
+| Migration order | ✅ | **Decomposed into 6 sub-projects (RU1–RU6)** — see `2026-06-23-runtime-unification-OVERVIEW.md`. Dependency-ordered (RU1/RU2 parallel → RU3 → RU4 → RU5 → RU6); risk-isolated (sim migrates before prod; MCP pool standalone; host move + durability isolated in RU4; non-reversible deletion quarantined to RU6). Each RU guarded by its own tests. Spec §14 points at the OVERVIEW. | |
+| Standalone behavior-test corpus | ❌ (dropped) | **Decision:** no separate conformance/characterization sub-project. Today's behavior isn't worth preserving, and a forward-looking shared corpus was judged not worth the overhead. Behavior tests live **inside RU3/RU4** (each driver tests the target behavior); prod≡sim convergence rests on those + the shared `packages/api` core. | |
 
 ## SP-series foundations (shipped — build on them)
 

@@ -16,7 +16,7 @@ export interface MatrixToolbarProps {
 export function MatrixToolbar({ saving, onVerifyAll }: MatrixToolbarProps) {
   const t = useTranslations('mcpMatrix');
   return (
-    <div className="flex items-center justify-between border-b pb-2">
+    <div className="cursor-default flex items-center justify-between border-b pb-2">
       {saving ? (
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Loader2 className="size-3 animate-spin" />

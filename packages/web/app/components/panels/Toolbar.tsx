@@ -252,7 +252,7 @@ function ToolbarButtons(props: ToolbarProps) {
             onClick={onToggleTools}
           >
             <SquareFunction />
-            {props.hasMcpError === true && <ErrorDot className="top-1 right-1" />}
+            {props.hasMcpError === true && <ErrorDot className="top-[2px] right-[2px]" />}
           </Button>
         </ToolbarTooltip>
       )}
