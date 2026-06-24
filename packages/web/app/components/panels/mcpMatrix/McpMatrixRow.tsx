@@ -127,7 +127,6 @@ export function McpMatrixRow({
           />
         </div>
       ))}
-      <div aria-hidden className={CELL_BG} />
       <StatusCell status={status} />
       <ActionCell verifying={verifying} onTest={onTest} />
     </>

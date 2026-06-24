@@ -371,9 +371,9 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
   const effectiveImport = isAgentMode ? agentImport : handleImport;
   const effectiveExport = isAgentMode ? agentExport : handleExport;
 
-  const canPublish = isAgentMode
-    ? !hasMcpErrors(mcpHealthInput)
-    : serializedGraph !== null && !hasMcpErrors(mcpHealthInput);
+  // Use the load-gated hasMcpError (not raw hasMcpErrors) so the publish button
+  // isn't briefly disabled — and rendered chevron-less — while tenant config loads.
+  const canPublish = isAgentMode ? !hasMcpError : serializedGraph !== null && !hasMcpError;
 
   useInitialViewport(reactFlowWrapper, rf.setViewport, loadResult.graphData);
   useSearchKeyboard(setSearchOpen);

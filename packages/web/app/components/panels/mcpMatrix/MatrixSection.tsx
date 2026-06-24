@@ -63,7 +63,6 @@ function MatrixHeaderCells({ columns }: { columns: string[] }) {
           {`{{${variable}}}`}
         </div>
       ))}
-      <div className={HEADER_CELL} aria-hidden />
       <div className={`${HEADER_CELL} ${HEADER_FROZEN_STATUS}`}>{t('statusColumn')}</div>
       <div className={`${HEADER_CELL} ${HEADER_FROZEN_ACTION} text-center`}>{t('actionColumn')}</div>
     </>
@@ -72,14 +71,16 @@ function MatrixHeaderCells({ columns }: { columns: string[] }) {
 
 function MatrixGrid(props: MatrixSectionProps) {
   const gridStyle = {
-    // Trailing columns: Status sizes to content; Action is a fixed 72px holding
-    // the reload button (HEADER_FROZEN_STATUS's right-[73px] = 72px + 1px gap).
-    gridTemplateColumns: `200px repeat(${props.columns.length}, 220px) minmax(0, 1fr) max-content 72px`,
+    // Size to content (w-max) so few-variable matrices don't stretch to full
+    // width with an empty filler cell. Status sizes to content; Action is a fixed
+    // 72px holding the reload button (HEADER_FROZEN_STATUS's right-[73px] =
+    // 72px + 1px gap). Wide matrices overflow and scroll with frozen columns.
+    gridTemplateColumns: `200px repeat(${props.columns.length}, 220px) max-content 72px`,
   };
   return (
     <div data-native-scroll className="overflow-x-auto">
       <div
-        className="grid min-w-full gap-px overflow-hidden rounded-md border bg-border text-xs"
+        className="grid w-max gap-px overflow-hidden rounded-md border bg-border text-xs"
         style={gridStyle}
       >
         <MatrixHeaderCells columns={props.columns} />
