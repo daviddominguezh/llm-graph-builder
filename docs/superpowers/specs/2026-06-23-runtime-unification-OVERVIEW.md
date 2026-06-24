@@ -32,15 +32,15 @@ Consolidate the four factories **+ redesign the agent search API** — *not* a p
 - **Forms/LeadScoring:** portable DB-op extraction. Both runtimes re-export from old locations during transition; deletions land in RU6.
 
 ### RU2 — MCP connection pool (backend-owned)  ∥ parallel with RU1
-A standalone reliability subsystem the runtimes *call*; delivers value before the rewrite. (§8, §7)
-- `packages/backend/src/mcp` pool: `connectionPool`, `poolEntry` state machine, `circuitBreaker`, `healthCheck`, `reconnect` (backoff + jitter).
-- Pool key `agentId::tenantId::mcpBindingId`; **sticky routing** (consistent-hash) from day one.
-- **Egress guard** on connect + re-validate on borrow (TOCTOU); **server-side tenant/binding authorization** on `/internal/mcp/*` (never trust the caller's body).
-- `/internal/mcp/{invoke,preflight}`.
+A **warm MCP connection cache** in the BE so tool calls reuse connections instead of reconnecting per call; transparently survives idle drops + instance crashes. Spec: `2026-06-24-RU2-mcp-connection-pool-design.md`. (§8, §7)
+- Reuses the api MCP primitives (`connectMcp`/`createTransport`/`callTool`), **absorbs** `ensureSession`/`sessionCache`; adds the pooling layer in `packages/backend/src/mcp/pool/`.
+- Pool key `agentId::tenantId::mcpBindingId`; warm cache + TTL/LRU eviction (stdio capped tighter) + keepalive + lazy reconnect-on-borrow.
+- **Fly routing:** consistent-hash `poolKey` over live `vms.<app>.internal` membership; `fly-replay` + `replay_cache` (per the Fly sticky-sessions guide); dead-owner re-routed server-side over 6PN — **one client call, one response**; only a mid-execution crash surfaces (`uncertain_outcome`).
+- **Egress guard** (`assertEgressForServers`) on connect + re-validate on borrow (TOCTOU); **server-side tenant/binding authorization** on `/internal/mcp/*` (never trust the caller's body).
+- `/internal/mcp/{invoke,preflight}` + `McpPoolClient` (injected into `buildMcpProvider`'s execute seam).
 - **MCP-OAuth into the pool's connect path** — lazy, reuse `resolveAccessToken`; 401 → refresh + reconnect (retry the connect, never the invoke).
-- **OAuth preflight**: `/internal/oauth/preflight` + FE surfaces (publish button, sim first-message).
-- Reconcile the api session-id cache into the pool; delete `mcp/lifecycle.ts` only after the guard is wired.
-- Consumed by simulation first; production wires it in RU4.
+- **Trimmed** vs north-star §8: no circuit breaker / background health-sweep / backoff state machine / idempotency keys (unnecessary — only provably-unsent calls are retried).
+- Runtime call-site flip lands with RU3/RU4; `mcp/lifecycle.ts` deletion in RU6.
 
 ### RU3 — Runtime core + simulation driver
 The heart, exercised by the **simpler** runtime first.

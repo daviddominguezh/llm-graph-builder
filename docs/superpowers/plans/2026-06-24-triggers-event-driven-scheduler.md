@@ -325,6 +325,7 @@ CREATE TABLE public.agent_triggers (
   initial_message text NOT NULL,
   next_run_at timestamptz,
   enabled boolean NOT NULL DEFAULT true,
+  armed_task_epoch bigint, -- hopEpoch of the currently-armed Cloud Task (for exact cancel); null when none
   run_count int NOT NULL DEFAULT 0,
   last_status text,
   last_run_at timestamptz,
@@ -588,16 +589,59 @@ export function createCloudTasksScheduler(deps: { client: TasksClientLike; confi
 }
 ```
 
-- [ ] **Step 5: Scheduler singleton + config (created here so C4 can import it)**
+- [ ] **Step 5: Local timer adapter (no GCP) — `localTimerScheduler.ts`**
 
-Create `packages/backend/src/triggers/schedulerSingleton.ts`: read + validate required env (`GCP_PROJECT_ID`, `CLOUD_TASKS_LOCATION`, `CLOUD_TASKS_QUEUE`, `CLOUD_TASKS_SERVICE_ACCOUNT`, `TRIGGER_FIRE_URL`, `EDGE_FUNCTION_MASTER_KEY`), construct a `CloudTasksClient` (`@google-cloud/tasks`), memoize `createCloudTasksScheduler({ client, config })`, export `getTriggerScheduler(): TriggerScheduler`. Add `@google-cloud/tasks` to `packages/backend/package.json` deps; run `npm install`.
+Create `packages/backend/src/triggers/localTimerScheduler.ts` — a second `TriggerScheduler` adapter for local dev / CI that POSTs the **real** fire webhook via in-process timers, so the entire fire path runs identically to production. ~30 lines:
 
-- [ ] **Step 6: Run tests (PASS) + typecheck, and commit**
+```ts
+import type { CancelInput, ScheduleInput, TriggerScheduler } from './scheduler.js';
+import { taskNameFor } from './scheduler.js';
 
-Run: `npm run test -w packages/backend -- --testPathPattern=cloudTasksScheduler` (PASS); `npm run typecheck -w packages/backend`.
+const MAX_DELAY_MS = 2_147_483_647; // setTimeout ceiling (~24.8 days)
+
+export function createLocalTimerScheduler(deps: { fireUrl: string; masterKey: string }): TriggerScheduler {
+  const timers = new Map<string, ReturnType<typeof setTimeout>>();
+  return {
+    async schedule(input: ScheduleInput): Promise<void> {
+      const name = taskNameFor(input.payload.triggerId, input.payload.occurrenceEpoch);
+      const delay = Math.min(MAX_DELAY_MS, Math.max(0, input.runAt.getTime() - Date.now()));
+      const existing = timers.get(name);
+      if (existing !== undefined) clearTimeout(existing); // idempotent by name (mirror Cloud Tasks)
+      const timer = setTimeout(() => {
+        timers.delete(name);
+        void fetch(deps.fireUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-master-key': deps.masterKey },
+          body: JSON.stringify(input.payload),
+        }).catch(() => undefined);
+      }, delay);
+      if (typeof timer.unref === 'function') timer.unref();
+      timers.set(name, timer);
+    },
+    async cancel(input: CancelInput): Promise<void> {
+      const name = taskNameFor(input.triggerId, input.occurrenceEpoch);
+      const t = timers.get(name);
+      if (t !== undefined) { clearTimeout(t); timers.delete(name); }
+    },
+  };
+}
+```
+Add a test: `schedule` with `runAt` ~now (fake-timers) POSTs `fireUrl` with the payload + `x-master-key`; `cancel` before the delay prevents the POST; re-`schedule` of the same name clears the prior timer. Use Jest fake timers + a `global.fetch` mock.
+
+- [ ] **Step 6: Scheduler singleton + adapter selection (created here so C4 can import it)**
+
+Create `packages/backend/src/triggers/schedulerSingleton.ts`: export `getTriggerScheduler(): TriggerScheduler`, memoized, **selecting the adapter by env**:
+- **Local** (default when GCP config is absent, or `TRIGGER_SCHEDULER==='local'`): `createLocalTimerScheduler({ fireUrl: TRIGGER_FIRE_URL, masterKey: EDGE_FUNCTION_MASTER_KEY })`. Requires only `TRIGGER_FIRE_URL` (e.g. `http://localhost:4000/internal/triggers/fire`) + `EDGE_FUNCTION_MASTER_KEY`.
+- **Cloud Tasks** (when `TRIGGER_SCHEDULER==='cloud-tasks'` or GCP env is present): validate `GCP_PROJECT_ID`/`CLOUD_TASKS_LOCATION`/`CLOUD_TASKS_QUEUE`/`CLOUD_TASKS_SERVICE_ACCOUNT`/`TRIGGER_FIRE_URL`/`EDGE_FUNCTION_MASTER_KEY`, construct a `CloudTasksClient` (`@google-cloud/tasks`), `createCloudTasksScheduler({ client, config })`.
+
+Add `@google-cloud/tasks` to `packages/backend/package.json` deps; run `npm install`. (**Optional, not required for v1:** a `rehydrateTimers()` called at boot that loads `enabled` triggers with a future `next_run_at` and re-arms local timers — gives restart-survival in local dev without any polling loop. Leave as a documented follow-up.)
+
+- [ ] **Step 7: Run tests (PASS) + typecheck, and commit**
+
+Run: `npm run test -w packages/backend -- --testPathPattern='cloudTasksScheduler|localTimerScheduler'` (PASS); `npm run typecheck -w packages/backend`.
 ```bash
-git add packages/backend/src/triggers/scheduler.ts packages/backend/src/triggers/cloudTasksScheduler.ts packages/backend/src/triggers/schedulerSingleton.ts packages/backend/src/triggers/__tests__/cloudTasksScheduler.test.ts packages/backend/package.json package-lock.json
-git commit -m "feat(backend): TriggerScheduler interface, Cloud Tasks adapter, scheduler singleton"
+git add packages/backend/src/triggers/scheduler.ts packages/backend/src/triggers/cloudTasksScheduler.ts packages/backend/src/triggers/localTimerScheduler.ts packages/backend/src/triggers/schedulerSingleton.ts packages/backend/src/triggers/__tests__/ packages/backend/package.json package-lock.json
+git commit -m "feat(backend): TriggerScheduler interface, Cloud Tasks + local adapters, scheduler singleton"
 ```
 
 ### Task C2: triggerQueries (CRUD + claim_and_rearm)
