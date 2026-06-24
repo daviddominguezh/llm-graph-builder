@@ -162,7 +162,8 @@ export function McpTenantMatrixModal(props: McpTenantMatrixModalProps) {
         className={`flex max-h-[calc(100vh-4rem)] max-w-none flex-col gap-3 sm:max-w-none ${widthClass}`}
       >
         <DialogHeader className='border-b pb-1'>
-          <DialogTitle className="cursor-default">{props.server.name}</DialogTitle>
+          <DialogTitle className="cursor-default invisible">{props.server.name}</DialogTitle>
+          <div className="cursor-default absolute top-2.5 text-sm font-medium">{props.server.name}</div>
         </DialogHeader>
         <MatrixContent {...props} />
       </DialogContent>

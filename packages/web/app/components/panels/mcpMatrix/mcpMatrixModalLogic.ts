@@ -18,7 +18,9 @@ export interface MatrixTenant {
  * renders status-only rows (no value cells).
  */
 export function buildMatrixColumns(server: McpServerConfig): string[] {
-  return extractTemplateVariables(server.transport);
+  const vars = extractTemplateVariables(server.transport);
+  // TODO: TEMPORARY — duplicate each variable to preview the 5-column layout. Revert.
+  return vars.flatMap((name) => [name, `${name}_copy`, `${name}_copy2`, `${name}_copy3`, `${name}_copy4`]);
 }
 
 /** A custom (non-library) server exposes the transport-template editor. */
