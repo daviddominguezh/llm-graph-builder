@@ -2230,7 +2230,6 @@
     "testHint": "Test this tenant's connection",
     "saving": "Saving…",
     "autosaveHint": "Changes save automatically",
-    "libraryBadge": "From library",
     "statusOk": "Connected",
     "statusPending": "Not verified",
     "statusError": "Error",

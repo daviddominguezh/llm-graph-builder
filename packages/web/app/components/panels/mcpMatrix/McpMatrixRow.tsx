@@ -70,7 +70,7 @@ function StatusCell({ status, verifying, onTest }: StatusCellProps) {
   const t = useTranslations('mcpMatrix');
   const { labelKey, iconKind, colorClassName } = describeRowStatus(status);
   return (
-    <div className={`${FROZEN_RIGHT} ${CELL_PADDING} flex flex-col items-start justify-center gap-1`}>
+    <div className={`${FROZEN_RIGHT} ${CELL_PADDING} flex items-center justify-center gap-1.5`}>
       <span className="flex items-center gap-1 text-[0.625rem] text-muted-foreground">
         <RowStatusIcon kind={iconKind} className={colorClassName} />
         {t(labelKey)}
@@ -79,7 +79,7 @@ function StatusCell({ status, verifying, onTest }: StatusCellProps) {
         <TooltipTrigger
           render={
             <Button
-              variant="ghost"
+              variant="default"
               size="icon-sm"
               aria-label={t('test')}
               disabled={verifying}

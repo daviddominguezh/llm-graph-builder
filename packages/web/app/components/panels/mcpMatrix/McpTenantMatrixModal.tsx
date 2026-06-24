@@ -4,7 +4,6 @@ import { useMcpTenantConfigs } from '@/app/hooks/useMcpTenantConfigs';
 import type { McpAuthType } from '@/app/lib/mcpLibraryTypes';
 import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
 import type { McpServerConfig } from '@/app/schemas/graph.schema';
-import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -63,18 +62,17 @@ function widthClassForColumns(columnCount: number): string {
 
 interface DefinitionHeaderProps {
   open: boolean;
-  isFromLibrary: boolean;
   onToggle: () => void;
 }
 
-function DefinitionHeader({ open, isFromLibrary, onToggle }: DefinitionHeaderProps) {
+function DefinitionHeader({ open, onToggle }: DefinitionHeaderProps) {
   const t = useTranslations('mcpMatrix');
   return (
     <button
       type="button"
       aria-expanded={open}
       onClick={onToggle}
-      className="flex items-center gap-1.5 text-left"
+      className="flex cursor-pointer items-center gap-1.5 text-left"
     >
       {open ? (
         <ChevronDown className="size-3 text-muted-foreground" />
@@ -82,11 +80,6 @@ function DefinitionHeader({ open, isFromLibrary, onToggle }: DefinitionHeaderPro
         <ChevronRight className="size-3 text-muted-foreground" />
       )}
       <h3 className="text-xs font-semibold">{t('definitionTitle')}</h3>
-      {isFromLibrary && (
-        <Badge variant="outline" className="text-[10px]">
-          {t('libraryBadge')}
-        </Badge>
-      )}
     </button>
   );
 }
@@ -94,10 +87,9 @@ function DefinitionHeader({ open, isFromLibrary, onToggle }: DefinitionHeaderPro
 function DefinitionSection(props: McpTenantMatrixModalProps) {
   const t = useTranslations('mcpMatrix');
   const [open, setOpen] = useState(false);
-  const isFromLibrary = props.server.libraryItemId !== undefined;
   return (
     <section className="flex flex-col gap-2">
-      <DefinitionHeader open={open} isFromLibrary={isFromLibrary} onToggle={() => setOpen((v) => !v)} />
+      <DefinitionHeader open={open} onToggle={() => setOpen((v) => !v)} />
       {open && (
         <div className="flex flex-col gap-2">
           <p className="text-xs text-muted-foreground">{t('definitionHelp')}</p>
