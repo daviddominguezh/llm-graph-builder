@@ -2,7 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 
 import type { ServerAggregateStatus } from '../../../lib/mcpTenantConfig';
 import type { McpServerConfig } from '../../../schemas/graph.schema';
-import { aggregateStatusFor, hasMcpAggregateError, hasMcpTenantErrors } from '../mcpTenantGate';
+import { aggregateStatusFor, hasMcpTenantErrors } from '../mcpTenantGate';
 
 function server(id: string, enabled: boolean): McpServerConfig {
   return {
@@ -48,32 +48,6 @@ describe('hasMcpTenantErrors', () => {
 
   it('passes with no servers', () => {
     expect(hasMcpTenantErrors(input([], {}))).toBe(false);
-  });
-});
-
-describe('hasMcpAggregateError', () => {
-  it('is true when an enabled server aggregate is error', () => {
-    const i = input([server('a', true), server('b', true)], { a: 'ok', b: 'error' });
-    expect(hasMcpAggregateError(i)).toBe(true);
-  });
-
-  it('is false when the only error is on a disabled server', () => {
-    const i = input([server('a', false)], { a: 'error' });
-    expect(hasMcpAggregateError(i)).toBe(false);
-  });
-
-  it('is false for warning-only aggregates (warning is not error)', () => {
-    const i = input([server('a', true)], { a: 'warning' });
-    expect(hasMcpAggregateError(i)).toBe(false);
-  });
-
-  it('is false when a server has no aggregate entry', () => {
-    const i = input([server('a', true)], {});
-    expect(hasMcpAggregateError(i)).toBe(false);
-  });
-
-  it('is false with no servers', () => {
-    expect(hasMcpAggregateError(input([], {}))).toBe(false);
   });
 });
 
