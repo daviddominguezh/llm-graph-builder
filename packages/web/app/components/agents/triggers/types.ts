@@ -1,27 +1,21 @@
-export type ScheduleMode = 'recurring' | 'once' | 'after-event';
-export type RecurringUnit = 'minutes' | 'hours' | 'days' | 'weeks' | 'months';
-export type Weekday = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
+import type { TriggerScheduleInput } from '@openflow/shared-validation/triggers/schedule';
 
-export const SCHEDULE_MODES: ScheduleMode[] = ['recurring', 'once', 'after-event'];
-export const WEEKDAYS: Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-export const RECURRING_UNITS: RecurringUnit[] = ['minutes', 'hours', 'days', 'weeks', 'months'];
+export type {
+  ScheduleMode,
+  RecurringUnit,
+  Weekday,
+  RecurringConfig,
+  TriggerScheduleInput,
+} from '@openflow/shared-validation/triggers/schedule';
+export {
+  SCHEDULE_MODES,
+  WEEKDAYS,
+  RECURRING_UNITS,
+} from '@openflow/shared-validation/triggers/schedule';
 
-export interface RecurringConfig {
-  unit: RecurringUnit;
-  interval: number;
-  weekdays: Weekday[];
-  dayOfMonth: number;
-  time: string;
-  startAt: string;
-  endAt: string;
+export interface TriggerFormState extends TriggerScheduleInput {
+  initialMessage: string;
 }
-
-export interface TriggerFormState {
-  mode: ScheduleMode;
-  recurring: RecurringConfig;
-  onceDateTime: string;
-}
-
 export interface Trigger extends TriggerFormState {
   id: string;
 }
@@ -41,4 +35,5 @@ export const DEFAULT_TRIGGER_STATE: TriggerFormState = {
     endAt: '',
   },
   onceDateTime: '',
+  initialMessage: '',
 };

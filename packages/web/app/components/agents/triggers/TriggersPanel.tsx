@@ -97,6 +97,7 @@ function stripId(trigger: Trigger): TriggerFormState {
     mode: trigger.mode,
     recurring: trigger.recurring,
     onceDateTime: trigger.onceDateTime,
+    initialMessage: trigger.initialMessage,
   };
 }
 
