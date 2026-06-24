@@ -32,3 +32,12 @@ function serverBlocksPublish(input: McpTenantGateInput, server: McpServerConfig)
 export function hasMcpTenantErrors(input: McpTenantGateInput): boolean {
   return input.servers.some((server) => serverBlocksPublish(input, server));
 }
+
+/**
+ * Returns true when at least one enabled server's aggregate status is 'error'
+ * (the red state surfaced in the tools list). Distinct from
+ * {@link hasMcpTenantErrors}, which also blocks on the 'warning' state.
+ */
+export function hasMcpAggregateError(input: McpTenantGateInput): boolean {
+  return input.servers.some((server) => server.enabled && aggregateStatusFor(input, server.id) === 'error');
+}

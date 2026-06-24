@@ -70,6 +70,7 @@ export interface SidePanelsProps {
   schemaDialog: SchemaDialogState;
   globalPanelOpen: boolean;
   toolsOpen: boolean;
+  hasMcpError: boolean;
   libraryOpen: boolean;
   mcpLibrary: McpLibraryState;
   setNodes: NodeSetter;
@@ -230,6 +231,7 @@ function AgentToolsSlot({ config, sidePanelProps: p, onPublishServer }: AgentToo
     <ToolsPanel
       mcp={buildMcpProps(p, onPublishServer)}
       open={p.toolsOpen}
+      hasMcpError={p.hasMcpError}
       onClose={p.onCloseTools}
       agent={agentProp}
       stores={buildStoresConfig(p.toolStores)}
@@ -279,6 +281,7 @@ function ToolsPanelSlot({ sidePanelProps: p, onPublishServer }: ToolsPanelSlotPr
     <ToolsPanel
       mcp={buildMcpProps(p, onPublishServer)}
       open={p.toolsOpen}
+      hasMcpError={p.hasMcpError}
       onClose={() => {}}
       stores={buildStoresConfig(p.toolStores)}
       agentId={p.agentId}

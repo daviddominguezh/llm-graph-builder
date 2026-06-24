@@ -28,6 +28,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
+import { ErrorDot } from './ErrorDot';
+
 const TOOLTIP_DELAY = 1000;
 
 interface ToolbarProps {
@@ -42,6 +44,7 @@ interface ToolbarProps {
   onToggleGlobalPanel?: () => void;
   onToggleTools?: () => void;
   onToggleLibrary?: () => void;
+  hasMcpError?: boolean;
   publishSlot?: ReactNode;
   versionSlot?: ReactNode;
   stagingKeyId?: string | null;
@@ -243,12 +246,13 @@ function ToolbarButtons(props: ToolbarProps) {
       {onToggleTools && (
         <ToolbarTooltip label={t('tools')}>
           <Button
-            className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
+            className="hover:bg-input! dark:hover:bg-input! aspect-square! relative px-0"
             variant="ghost"
             size="default"
             onClick={onToggleTools}
           >
             <SquareFunction />
+            {props.hasMcpError === true && <ErrorDot className="top-1 right-1" />}
           </Button>
         </ToolbarTooltip>
       )}

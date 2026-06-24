@@ -25,9 +25,10 @@ export interface MatrixSectionProps {
   onCellChange: (tenantId: string, variable: string, value: VariableValue) => void;
 }
 
-// Header cells share the muted/semibold look + bottom divider. Frozen header
-// cells use z-20 so they stay above the body's z-10 sticky cells when scrolled.
-const HEADER_CELL = 'px-2 py-1.5 border-b border-r font-semibold text-muted-foreground';
+// Header cells share the muted/semibold look. Opaque bg-popover so the grid's
+// 1px gaps render as bg-border lines. Frozen header cells use z-20 so they stay
+// above the body's z-10 sticky cells when scrolled.
+const HEADER_CELL = 'px-2 py-1.5 bg-popover font-semibold text-muted-foreground';
 const HEADER_FROZEN_LEFT = 'sticky left-0 z-20 bg-popover';
 const HEADER_FROZEN_RIGHT = 'sticky right-0 z-20 bg-popover';
 
@@ -71,7 +72,10 @@ function MatrixGrid(props: MatrixSectionProps) {
   };
   return (
     <div data-native-scroll className="overflow-x-auto">
-      <div className="grid min-w-full border-t border-l text-xs" style={gridStyle}>
+      <div
+        className="grid min-w-full gap-px overflow-hidden rounded-md border bg-border text-xs"
+        style={gridStyle}
+      >
         <MatrixHeaderCells columns={props.columns} />
         {props.tenants.map((tenant) => (
           <McpMatrixRow

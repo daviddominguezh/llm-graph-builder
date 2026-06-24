@@ -12,6 +12,7 @@ import type { OrgEnvVariableRow } from '../../lib/orgEnvVariables';
 import type { RegistryTool, ToolGroup } from '../../lib/toolRegistry';
 import type { McpServerConfig, McpTransport } from '../../schemas/graph.schema';
 import { useToolRegistry } from '../ToolRegistryProvider';
+import { ErrorDot } from './ErrorDot';
 import { McpServersSection } from './McpServersSection';
 import { type RunTool, ToolTestModal } from './ToolTestModal';
 import { type AgentModeProps } from './ToolsPanelAgentMode';
@@ -39,6 +40,7 @@ interface McpProps {
 interface ToolsPanelProps {
   mcp: McpProps;
   open: boolean;
+  hasMcpError?: boolean;
   onClose: () => void;
   agent?: AgentModeProps;
   stores?: AgentToolStoresPanelConfig;
@@ -93,18 +95,16 @@ const activeTabCls = 'bg-input text-foreground shadow-none';
 const inactiveTabCls =
   'text-muted-foreground hover:text-foreground border-transparent hover:bg-input dark:hover:bg-input/30';
 
-function PanelTabs({
-  value,
-  onChange,
-  t,
-  isAgent,
-}: {
+interface PanelTabsProps {
   value: string;
   onChange: (v: string) => void;
   t: (key: string) => string;
   isAgent: boolean;
-}) {
-  const tabBaseCls = `cursor-pointer inline-flex flex-1 items-center justify-center gap-1 ${isAgent ? 'rounded-xl' : 'rounded-md'}  px-2.5 py-[calc(0.5px+var(--spacing))] text-[11px] font-medium transition-colors border border-transparent`;
+  hasMcpError: boolean;
+}
+
+function PanelTabs({ value, onChange, t, isAgent, hasMcpError }: PanelTabsProps) {
+  const tabBaseCls = `relative cursor-pointer inline-flex flex-1 items-center justify-center gap-1 ${isAgent ? 'rounded-xl' : 'rounded-md'}  px-2.5 py-[calc(0.5px+var(--spacing))] text-[11px] font-medium transition-colors border border-transparent`;
 
   const labels: Record<string, string> = { tools: t('toolsTab'), mcp: t('mcpServersTab') };
   return (
@@ -116,7 +116,10 @@ function PanelTabs({
           onClick={() => onChange(tab)}
           className={`${tabBaseCls} ${tab === value ? activeTabCls : inactiveTabCls}`}
         >
-          {labels[tab]}
+          <span className="relative">
+            {labels[tab]}
+            {tab === 'mcp' && hasMcpError && <ErrorDot />}
+          </span>
         </button>
       ))}
     </div>
@@ -242,7 +245,7 @@ function ToolsTabPanel(props: ToolsTabPanelProps): React.JSX.Element {
   );
 }
 
-export function ToolsPanel({ mcp, open, onClose, agent, stores, agentId }: ToolsPanelProps) {
+export function ToolsPanel({ mcp, open, hasMcpError, onClose, agent, stores, agentId }: ToolsPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const t = useTranslations('toolbar');
@@ -282,6 +285,7 @@ export function ToolsPanel({ mcp, open, onClose, agent, stores, agentId }: Tools
               value={panelState.activeTab}
               onChange={panelState.setActiveTab}
               t={t}
+              hasMcpError={hasMcpError === true}
             />
           </div>
           {panelState.activeTab === 'tools' && (

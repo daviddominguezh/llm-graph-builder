@@ -37,9 +37,10 @@ const FROZEN_LEFT = 'sticky left-0 z-10 bg-popover';
 // Sticky frozen last column (Status).
 const FROZEN_RIGHT = 'sticky right-0 z-10 bg-popover';
 const CELL_PADDING = 'px-2 py-1.5';
-// Single-line full grid: every cell carries bottom + right borders; the grid
-// container adds the top + left edges.
-const CELL_BORDER = 'border-b border-r';
+// Gap-as-border grid: every cell carries an opaque bg-popover so the grid
+// container's 1px gaps reveal bg-border as clean single grid lines, and the
+// container's single rounded border frames the whole matrix.
+const CELL_BG = 'bg-popover';
 
 function RowStatusIcon({ kind, className }: { kind: RowStatusIconKind; className: string }) {
   if (kind === 'ok') return <CheckCircle className={`size-3 ${className}`} />;
@@ -50,7 +51,7 @@ function RowStatusIcon({ kind, className }: { kind: RowStatusIconKind; className
 function TenantCell({ tenant }: { tenant: McpMatrixRowTenant }) {
   const tTenants = useTranslations('tenants');
   return (
-    <div className={`${FROZEN_LEFT} ${CELL_BORDER} ${CELL_PADDING} flex items-center gap-2`}>
+    <div className={`${FROZEN_LEFT} ${CELL_PADDING} flex items-center gap-2`}>
       <TenantAvatar name={tenant.name} avatarUrl={tenant.avatarUrl} small />
       <span className="truncate text-xs font-medium">{tenant.name}</span>
       {tenant.isDefault && <span className="text-xs text-muted-foreground">{tTenants('defaultLabel')}</span>}
@@ -68,13 +69,14 @@ function StatusCell({ status, verifying, onTest }: StatusCellProps) {
   const t = useTranslations('mcpMatrix');
   const { labelKey, iconKind, colorClassName } = describeRowStatus(status);
   return (
-    <div className={`${FROZEN_RIGHT} ${CELL_BORDER} ${CELL_PADDING} flex flex-col items-start justify-center gap-1`}>
+    <div className={`${FROZEN_RIGHT} ${CELL_PADDING} flex flex-col items-start justify-center gap-1`}>
       <span className="flex items-center gap-1 text-[0.625rem] text-muted-foreground">
         <RowStatusIcon kind={iconKind} className={colorClassName} />
         {t(labelKey)}
       </span>
-      <Button variant="outline" size="xs" onClick={onTest} disabled={verifying}>
-        {verifying ? <Loader2 className="size-3 animate-spin" /> : t('test')}
+      <Button variant="outline" size="xs" onClick={onTest} disabled={verifying} className="relative">
+        <span className={verifying ? 'invisible' : undefined}>{t('test')}</span>
+        {verifying && <Loader2 className="absolute inset-0 m-auto size-3 animate-spin" />}
       </Button>
     </div>
   );
@@ -94,7 +96,7 @@ export function McpMatrixRow({
     <>
       <TenantCell tenant={tenant} />
       {columns.map((variable) => (
-        <div key={variable} className={`${CELL_BORDER} ${CELL_PADDING} items-start`}>
+        <div key={variable} className={`${CELL_BG} ${CELL_PADDING} items-start`}>
           <McpMatrixCell
             value={values[variable] ?? DEFAULT_VALUE}
             envVars={envVars}
@@ -102,7 +104,7 @@ export function McpMatrixRow({
           />
         </div>
       ))}
-      <div aria-hidden className={CELL_BORDER} />
+      <div aria-hidden className={CELL_BG} />
       <StatusCell status={status} verifying={verifying} onTest={onTest} />
     </>
   );

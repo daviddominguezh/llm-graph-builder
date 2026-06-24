@@ -71,6 +71,7 @@ import { SettingsTabContent } from './panels/SettingsTabContent';
 import { StatusButton, hasMcpErrors } from './panels/StatusButton';
 import { Toolbar } from './panels/Toolbar';
 import { VersionSwitcherSlot } from './panels/VersionSwitcherSlot';
+import { hasMcpAggregateError } from './panels/mcpTenantGate';
 import { SimulationPanel } from './panels/simulation';
 import { createPrecondition, handlePreconditionRemove, handlePreconditionUpdate } from './sidePanelHelpers';
 import { useSchemaDialogState } from './useSidePanelState';
@@ -340,6 +341,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     () => ({ servers: mcpHook.servers, aggregateStatus: mcpAggregateStatus }),
     [mcpHook.servers, mcpAggregateStatus]
   );
+  const hasMcpError = useMemo(() => hasMcpAggregateError(mcpHealthInput), [mcpHealthInput]);
   const agentHooks = useAgentEditorHooks({
     initialConfig: loadResult.agentConfig,
   });
@@ -443,6 +445,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     pendingSave,
     canPublish,
     mcpHealthInput,
+    hasMcpError,
     simulation,
     presetsHook,
     mcpHook,
@@ -671,6 +674,7 @@ function LoadedEditor(props: LoadedEditorProps) {
                 globalPanelOpen={h.globalPanelOpen}
                 onToggleGlobalPanel={() => h.setGlobalPanelOpen((prev) => !prev)}
                 onToggleTools={() => h.setToolsOpen((prev) => !prev)}
+                hasMcpError={h.hasMcpError}
                 onToggleLibrary={() => h.setLibraryOpen((prev) => !prev)}
                 stagingKeyId={h.apiKeys.stagingKeyId}
                 orgSlug={props.orgSlug}
@@ -751,6 +755,7 @@ function LoadedEditor(props: LoadedEditorProps) {
                 schemaDialog={h.schemaDialog}
                 globalPanelOpen={h.globalPanelOpen}
                 toolsOpen={h.toolsOpen}
+                hasMcpError={h.hasMcpError}
                 libraryOpen={h.libraryOpen}
                 mcpLibrary={h.mcpLibrary}
                 setNodes={h.setNodes}
