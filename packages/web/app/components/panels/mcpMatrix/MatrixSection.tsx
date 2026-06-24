@@ -78,25 +78,28 @@ function MatrixGrid(props: MatrixSectionProps) {
     gridTemplateColumns: `200px repeat(${props.columns.length}, 220px) max-content 72px`,
   };
   return (
-    <div data-native-scroll className="overflow-x-auto">
-      <div
-        className="mx-auto grid w-max gap-px overflow-hidden rounded-md border bg-border text-xs"
-        style={gridStyle}
-      >
-        <MatrixHeaderCells columns={props.columns} />
-        {props.tenants.map((tenant) => (
-          <McpMatrixRow
-            key={tenant.id}
-            tenant={tenant}
-            columns={props.columns}
-            values={props.valuesFor(tenant.id)}
-            status={props.statusFor(tenant.id)}
-            verifying={props.config.verifyingFor(props.server.id, tenant.id)}
-            envVars={props.envVariables}
-            onCellChange={(variable, value) => props.onCellChange(tenant.id, variable, value)}
-            onTest={() => props.onTest(tenant.id)}
-          />
-        ))}
+    // Bordered/rounded wrapper sizes to content (centered when narrow, capped at
+    // the container when wide). It must NOT enclose the sticky cells as their
+    // scroll context — the inner overflow-x-auto is the scroll container, so the
+    // grid stays overflow:visible and the frozen columns stick to the scroller.
+    <div className="mx-auto w-max max-w-full overflow-hidden rounded-md border">
+      <div data-native-scroll className="overflow-x-auto">
+        <div className="grid w-max gap-px bg-border text-xs" style={gridStyle}>
+          <MatrixHeaderCells columns={props.columns} />
+          {props.tenants.map((tenant) => (
+            <McpMatrixRow
+              key={tenant.id}
+              tenant={tenant}
+              columns={props.columns}
+              values={props.valuesFor(tenant.id)}
+              status={props.statusFor(tenant.id)}
+              verifying={props.config.verifyingFor(props.server.id, tenant.id)}
+              envVars={props.envVariables}
+              onCellChange={(variable, value) => props.onCellChange(tenant.id, variable, value)}
+              onTest={() => props.onTest(tenant.id)}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
