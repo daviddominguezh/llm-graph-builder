@@ -92,6 +92,7 @@ interface ScrollFades {
   showStart: boolean;
   showEnd: boolean;
   rightInset: number;
+  scrollbarPx: number;
 }
 
 // Track horizontal scroll edges (so a fade shows only when there's more to scroll
@@ -105,6 +106,7 @@ function useScrollFades(
     showStart: false,
     showEnd: false,
     rightInset: ACTION_COL_PX,
+    scrollbarPx: 0,
   });
   const update = useCallback(() => {
     const el = scrollerRef.current;
@@ -115,6 +117,7 @@ function useScrollFades(
       showStart: el.scrollLeft > EDGE_THRESHOLD_PX,
       showEnd: el.scrollLeft < maxScroll - EDGE_THRESHOLD_PX,
       rightInset: ACTION_COL_PX + GRID_GAP_PX + statusWidth + GRID_GAP_PX,
+      scrollbarPx: el.offsetHeight - el.clientHeight,
     });
   }, [scrollerRef, statusRef]);
   useEffect(() => {
@@ -132,7 +135,9 @@ function useScrollFades(
   return fades;
 }
 
-const FADE_BASE = 'pointer-events-none absolute inset-y-0 z-[1] w-10';
+// top-0 + a measured bottom inset so the fade never paints over the horizontal
+// scrollbar; w-6 keeps it subtle.
+const FADE_BASE = 'pointer-events-none absolute top-0 z-[1] w-6';
 
 function FadeEdges({ fades }: { fades: ScrollFades }) {
   return (
@@ -140,14 +145,14 @@ function FadeEdges({ fades }: { fades: ScrollFades }) {
       {fades.showStart && (
         <div
           aria-hidden
-          style={{ left: TENANT_COL_PX }}
+          style={{ left: TENANT_COL_PX, bottom: fades.scrollbarPx }}
           className={`${FADE_BASE} bg-gradient-to-r from-background to-transparent`}
         />
       )}
       {fades.showEnd && (
         <div
           aria-hidden
-          style={{ right: fades.rightInset }}
+          style={{ right: fades.rightInset, bottom: fades.scrollbarPx }}
           className={`${FADE_BASE} bg-gradient-to-l from-background to-transparent`}
         />
       )}
