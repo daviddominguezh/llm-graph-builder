@@ -24,10 +24,12 @@ These were resolved in review and must not be re-litigated per-RU:
 ## Sub-projects (dependency order)
 
 ### RU1 — `shared-store-services` + `re2js`  ∥ parallel with RU2
-Pure dedup, behavior-equivalent, low-risk.
-- New `packages/shared-store-services`: KV / RAG / Forms / LeadScoring factories, portable across Node + the Workers runtime (+ Deno during transition). (§11.2)
-- `re2js` replaces native `re2` for KV regex — one validator everywhere; drop the native dep and the `/internal/regex/validate` hop. Parity test vs native (à la SP2).
-- Both runtimes re-export from old locations. Verify via parity tests (factory output equivalence). No orchestration change.
+Consolidate the four factories **+ redesign the agent search API** — *not* a pure behavior-equivalent dedup. Spec: `2026-06-24-RU1-shared-store-services-design.md`.
+- New `packages/shared-store-services`: portable KV / RAG / Forms / LeadScoring factory + DB layer (Node + Workers + Deno). (§11.2)
+- **KV regex:** `re2js` (linear, ReDoS-safe) + trigram-`ILIKE` literal-prefilter (the DB never runs the regex) + bounded keyset-scan fallback. Drops native `re2` and the `/internal/regex/validate` hop; kills the RE2-vs-Postgres-`~` dialect divergence.
+- **Search API:** uniform opaque-cursor, match-count pagination across all modes (drops `offset`/`total`/clamp).
+- **RAG:** embed (`/internal/embed`) → vector pool → **always-on rerank** (`/internal/rerank`, new hop; FE toggle removed) → cursor-paginate.
+- **Forms/LeadScoring:** portable DB-op extraction. Both runtimes re-export from old locations during transition; deletions land in RU6.
 
 ### RU2 — MCP connection pool (backend-owned)  ∥ parallel with RU1
 A standalone reliability subsystem the runtimes *call*; delivers value before the rewrite. (§8, §7)
