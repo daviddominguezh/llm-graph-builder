@@ -177,7 +177,7 @@ function MatrixGrid(props: MatrixSectionProps) {
     // scroll context — the inner overflow-x-auto is the scroll container, so the
     // grid stays overflow:visible and the frozen columns stick to the scroller.
     <div className="relative mx-auto w-max max-w-full overflow-hidden rounded-md border">
-      <div ref={scrollerRef} data-native-scroll className="overflow-x-auto">
+      <div ref={scrollerRef} data-native-scroll className="overflow-x-auto overscroll-x-none">
         <div className="grid w-max gap-px bg-border text-xs" style={gridStyle}>
           <MatrixHeaderCells columns={props.columns} statusRef={statusRef} />
           {props.tenants.map((tenant) => (
