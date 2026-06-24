@@ -43,6 +43,7 @@ export interface McpServerRowProps {
   server: McpServerConfig;
   status: McpServerStatus;
   aggregate: ServerAggregateStatus;
+  aggregateLoading: boolean;
   isDiscovering: boolean;
   noVersion: boolean;
   agentId: string;
@@ -86,6 +87,7 @@ function ReloadToolsButton({ isDiscovering, onDiscover }: ReloadToolsButtonProps
 interface TileProps {
   server: McpServerConfig;
   aggregate: ServerAggregateStatus;
+  aggregateLoading: boolean;
   noVersion: boolean;
   isDiscovering: boolean;
   onConfigure: () => void;
@@ -96,6 +98,7 @@ interface TileProps {
 function ServerTile({
   server,
   aggregate,
+  aggregateLoading,
   noVersion,
   isDiscovering,
   onConfigure,
@@ -106,7 +109,11 @@ function ServerTile({
   return (
     <div className="flex items-center justify-between gap-2">
       <span className="flex min-w-0 items-center gap-1.5 text-xs">
-        <AggregateStatusIcon status={aggregate} />
+        {aggregateLoading ? (
+          <Loader2 className="size-3 animate-spin text-muted-foreground" />
+        ) : (
+          <AggregateStatusIcon status={aggregate} />
+        )}
         <span className="truncate">{server.name}</span>
         {noVersion && <NoServerVersionBadge />}
       </span>
@@ -144,6 +151,7 @@ export function McpServerRow(props: McpServerRowProps) {
       <ServerTile
         server={props.server}
         aggregate={props.aggregate}
+        aggregateLoading={props.aggregateLoading}
         noVersion={props.noVersion}
         isDiscovering={props.isDiscovering}
         onConfigure={() => setMatrixOpen(true)}

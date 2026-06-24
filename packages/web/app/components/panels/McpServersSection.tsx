@@ -67,7 +67,12 @@ export function McpServersSection(props: McpServersSectionProps) {
   const { groups } = useToolRegistry();
   const noVersionMap = buildNoVersionMap(groups);
   const tenantIds = useMemo(() => tenants.map((tenant) => tenant.id), [tenants]);
-  const { aggregateFor } = useMcpTenantConfigs({ agentId, servers, tenants: tenantIds, envVariables });
+  const { aggregateFor, loading: aggregateLoading } = useMcpTenantConfigs({
+    agentId,
+    servers,
+    tenants: tenantIds,
+    envVariables,
+  });
   const sorted = useMemo(() => [...servers].sort((a, b) => a.name.localeCompare(b.name)), [servers]);
 
   return (
@@ -80,6 +85,7 @@ export function McpServersSection(props: McpServersSectionProps) {
             server={server}
             status={serverStatus[server.id] ?? 'pending'}
             aggregate={aggregateFor(server.id)}
+            aggregateLoading={aggregateLoading}
             isDiscovering={discovering[server.id] ?? false}
             noVersion={noVersionMap[server.id] ?? false}
             agentId={agentId}

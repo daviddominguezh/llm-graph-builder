@@ -56,7 +56,7 @@ export function useMcpTenantConfigs(args: UseMcpTenantConfigsArgs): UseMcpTenant
   const [verifyingIds, setVerifyingIds] = useState<ReadonlySet<string>>(new Set());
 
   const envNameById = useMemo(() => buildEnvNameById(envVariables), [envVariables]);
-  useLoadBundle(agentId, setRows, setDiscovery, setLoading);
+  useLoadBundle({ agentId, setRows, setDiscovery, setHashByCell, setLoading });
   useCellHashes(rows, setHashByCell);
 
   const { statusFor, aggregateFor } = useStatuses({ servers, tenants, rows, discovery, envNameById, hashByCell });
@@ -130,25 +130,37 @@ function useStatuses(args: StatusArgs): {
   return { statusFor, aggregateFor };
 }
 
-function useLoadBundle(
-  agentId: string,
-  setRows: (rows: McpTenantConfigRow[]) => void,
-  setDiscovery: (rows: McpTenantDiscoveryRow[]) => void,
-  setLoading: (loading: boolean) => void
-): void {
+interface LoadBundleArgs {
+  agentId: string;
+  setRows: (rows: McpTenantConfigRow[]) => void;
+  setDiscovery: (rows: McpTenantDiscoveryRow[]) => void;
+  setHashByCell: (map: Record<string, string>) => void;
+  setLoading: (loading: boolean) => void;
+}
+
+// Compute the cell hashes as PART of the load so `loading` only flips false once
+// rows + discovery + hashes are all ready. Otherwise the tile briefly renders a
+// status from rows+discovery with an empty hash map (every cell reads stale =>
+// 'pending' => 'warning') before the async hash settles it to the real status —
+// a visible warning->error flicker on open.
+function useLoadBundle(args: LoadBundleArgs): void {
+  const { agentId, setRows, setDiscovery, setHashByCell, setLoading } = args;
   useEffect(() => {
     let active = true;
     setLoading(true);
-    void getMcpTenantConfigAction(agentId).then(({ result }) => {
+    void getMcpTenantConfigAction(agentId).then(async ({ result }) => {
+      const configs = result?.configs ?? [];
+      const hashes = await buildHashByCell(configs);
       if (!active) return;
-      setRows(result?.configs ?? []);
+      setRows(configs);
       setDiscovery(result?.discovery ?? []);
+      setHashByCell(hashes);
       setLoading(false);
     });
     return () => {
       active = false;
     };
-  }, [agentId, setRows, setDiscovery, setLoading]);
+  }, [agentId, setRows, setDiscovery, setHashByCell, setLoading]);
 }
 
 function useCellHashes(
