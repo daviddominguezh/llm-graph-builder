@@ -127,18 +127,24 @@ interface AggregateStatusArgs {
 // Sources the SP4 per-tenant aggregate status (D9: a server is publishable only
 // when EVERY tenant is ok) and projects it into a serverId -> aggregate map for
 // the publish/save gate.
-function useMcpAggregateStatus(args: AggregateStatusArgs): Record<string, ServerAggregateStatus> {
+interface AggregateStatusResult {
+  aggregateStatus: Record<string, ServerAggregateStatus>;
+  loading: boolean;
+}
+
+function useMcpAggregateStatus(args: AggregateStatusArgs): AggregateStatusResult {
   const tenantIds = useMemo(() => args.tenants.map((tenant) => tenant.id), [args.tenants]);
-  const { aggregateFor } = useMcpTenantConfigs({
+  const { aggregateFor, loading } = useMcpTenantConfigs({
     agentId: args.agentId ?? '',
     servers: args.servers,
     tenants: tenantIds,
     envVariables: args.envVariables,
   });
-  return useMemo(
+  const aggregateStatus = useMemo(
     () => Object.fromEntries(args.servers.map((server) => [server.id, aggregateFor(server.id)])),
     [args.servers, aggregateFor]
   );
+  return { aggregateStatus, loading };
 }
 
 function useGraphBuilderHooks(props: LoadedEditorProps) {
@@ -330,7 +336,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     enabled: agentId !== undefined && props.readOnly !== true,
   });
 
-  const mcpAggregateStatus = useMcpAggregateStatus({
+  const { aggregateStatus: mcpAggregateStatus, loading: mcpStatusLoading } = useMcpAggregateStatus({
     agentId,
     servers: mcpHook.servers,
     tenants: props.tenants ?? [],
@@ -340,7 +346,12 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     () => ({ servers: mcpHook.servers, aggregateStatus: mcpAggregateStatus }),
     [mcpHook.servers, mcpAggregateStatus]
   );
-  const hasMcpError = useMemo(() => hasMcpErrors(mcpHealthInput), [mcpHealthInput]);
+  // Hold the error dot until tenant config has loaded — otherwise the default
+  // 'warning' aggregate flashes a dot on every refresh before data confirms ok.
+  const hasMcpError = useMemo(
+    () => !mcpStatusLoading && hasMcpErrors(mcpHealthInput),
+    [mcpStatusLoading, mcpHealthInput]
+  );
   const agentHooks = useAgentEditorHooks({
     initialConfig: loadResult.agentConfig,
   });
