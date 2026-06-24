@@ -33,11 +33,14 @@ export interface McpMatrixRowProps {
 const DEFAULT_VALUE: VariableValue = { type: 'direct', value: '' };
 
 // Sticky frozen first column (Tenant) — opaque bg-popover so scrolled variable
-// cells don't bleed through; z-10 keeps it above the scrolling middle.
-const FROZEN_LEFT = 'sticky left-0 z-10 bg-popover';
+// cells don't bleed through; z-10 keeps it above the scrolling middle. border-r
+// carries the divider on the cell itself, since the grid gap-line between it and
+// the variables scrolls away/under the pinned column.
+const FROZEN_LEFT = 'sticky left-0 z-10 border-r bg-popover';
 // Two frozen right columns (offsets must match MatrixSection): Status sits left
 // of the 72px Action column, offset by the Action width + the 1px grid gap.
-const FROZEN_STATUS = 'sticky right-[73px] z-10 bg-popover';
+// border-l carries the divider (the gap-line scrolls under the pinned column).
+const FROZEN_STATUS = 'sticky right-[73px] z-10 border-l bg-popover';
 const FROZEN_ACTION = 'sticky right-0 z-10 bg-popover';
 const CELL_PADDING = 'px-3 py-2.5';
 // Gap-as-border grid: every cell carries an opaque bg-popover so the grid

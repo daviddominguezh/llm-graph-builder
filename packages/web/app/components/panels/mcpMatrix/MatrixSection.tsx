@@ -29,10 +29,12 @@ export interface MatrixSectionProps {
 // 1px gaps render as bg-border lines. Frozen header cells use z-20 so they stay
 // above the body's z-10 sticky cells when scrolled.
 const HEADER_CELL = 'px-3 py-2.5 bg-popover font-semibold text-muted-foreground';
-const HEADER_FROZEN_LEFT = 'sticky left-0 z-20 bg-popover';
+// border-r/border-l put the frozen-column divider on the cell itself; the grid
+// gap-line otherwise scrolls under the pinned column and disappears.
+const HEADER_FROZEN_LEFT = 'sticky left-0 z-20 border-r bg-popover';
 // Two frozen right columns: Status sits left of the 72px Action column, offset by
 // the Action width + the 1px grid gap (keep ACTION_COL_PX in MatrixGrid in sync).
-const HEADER_FROZEN_STATUS = 'sticky right-[73px] z-20 bg-popover';
+const HEADER_FROZEN_STATUS = 'sticky right-[73px] z-20 border-l bg-popover';
 const HEADER_FROZEN_ACTION = 'sticky right-0 z-20 bg-popover';
 
 function LoadingBody() {
