@@ -80,7 +80,7 @@ function MatrixGrid(props: MatrixSectionProps) {
   return (
     <div data-native-scroll className="overflow-x-auto">
       <div
-        className="grid w-max gap-px overflow-hidden rounded-md border bg-border text-xs"
+        className="mx-auto grid w-max gap-px overflow-hidden rounded-md border bg-border text-xs"
         style={gridStyle}
       >
         <MatrixHeaderCells columns={props.columns} />
