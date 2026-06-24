@@ -456,6 +456,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     canPublish,
     mcpHealthInput,
     hasMcpError,
+    mcpStatusLoading,
     simulation,
     presetsHook,
     mcpHook,
@@ -678,6 +679,7 @@ function LoadedEditor(props: LoadedEditorProps) {
                     edges={h.edges}
                     pendingSave={h.pendingSave}
                     mcpHealth={h.mcpHealthInput}
+                    mcpLoading={h.mcpStatusLoading}
                     skipGraphValidation={h.agentConfig !== undefined}
                   />
                 }

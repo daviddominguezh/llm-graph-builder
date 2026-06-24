@@ -36,6 +36,7 @@ interface StatusButtonProps {
   edges: Edge<RFEdgeData>[];
   pendingSave?: boolean;
   mcpHealth?: McpHealthInput;
+  mcpLoading?: boolean;
   skipGraphValidation?: boolean;
 }
 
@@ -78,12 +79,15 @@ function StatusIcon({
   hasErrors,
   hasWarnings,
   saving,
+  loading,
 }: {
   hasErrors: boolean;
   hasWarnings: boolean;
   saving: boolean;
+  loading: boolean;
 }) {
   if (saving) return <Loader2 className="size-4 animate-spin text-orange-500" />;
+  if (loading) return <Loader2 className="size-4 animate-spin text-muted-foreground" />;
   if (hasErrors) return <CircleAlert className="size-4 text-red-500" />;
   if (hasWarnings) return <AlertTriangle className="size-4 text-amber-500" />;
   return <CircleCheck className="size-4 text-green-500" />;
@@ -115,6 +119,7 @@ export function StatusButton({
   edges,
   pendingSave,
   mcpHealth,
+  mcpLoading,
   skipGraphValidation,
 }: StatusButtonProps) {
   const t = useTranslations('status');
@@ -122,9 +127,12 @@ export function StatusButton({
     () => (skipGraphValidation === true ? [] : validateGraph(nodes, edges)),
     [nodes, edges, skipGraphValidation]
   );
+  // While tenant config is still loading the aggregate defaults to a blocking
+  // 'warning'; skip the MCP check until it's known so the status doesn't flash
+  // red and self-correct on refresh.
   const mcpIssues = useMemo(
-    () => (mcpHealth !== undefined ? checkMcpHealth(mcpHealth, t) : []),
-    [mcpHealth, t]
+    () => (mcpHealth !== undefined && mcpLoading !== true ? checkMcpHealth(mcpHealth, t) : []),
+    [mcpHealth, mcpLoading, t]
   );
 
   const allIssues: StatusIssue[] = useMemo(() => {
@@ -146,7 +154,12 @@ export function StatusButton({
             size="default"
             className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
           >
-            <StatusIcon hasErrors={hasErrors} hasWarnings={hasWarnings} saving={saving} />
+            <StatusIcon
+              hasErrors={hasErrors}
+              hasWarnings={hasWarnings}
+              saving={saving}
+              loading={mcpLoading === true}
+            />
           </Button>
         }
       />
