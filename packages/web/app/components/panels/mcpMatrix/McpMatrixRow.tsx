@@ -71,6 +71,10 @@ function StatusCell({ status, verifying, onTest }: StatusCellProps) {
   const { labelKey, iconKind, colorClassName } = describeRowStatus(status);
   return (
     <div className={`${FROZEN_RIGHT} ${CELL_PADDING} flex items-center gap-1.5`}>
+      <span className="flex w-24 shrink-0 items-center gap-1 text-[0.625rem] text-muted-foreground">
+        <RowStatusIcon kind={iconKind} className={colorClassName} />
+        {t(labelKey)}
+      </span>
       <Tooltip>
         <TooltipTrigger
           render={
@@ -88,10 +92,6 @@ function StatusCell({ status, verifying, onTest }: StatusCellProps) {
         </TooltipTrigger>
         <TooltipContent side="top">{t('testHint')}</TooltipContent>
       </Tooltip>
-      <span className="flex items-center gap-1 text-[0.625rem] text-muted-foreground">
-        <RowStatusIcon kind={iconKind} className={colorClassName} />
-        {t(labelKey)}
-      </span>
     </div>
   );
 }
