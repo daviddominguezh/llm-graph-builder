@@ -36,12 +36,17 @@ const DEFAULT_VALUE: VariableValue = { type: 'direct', value: '' };
 // cells don't bleed through; z-10 keeps it above the scrolling middle. border-r
 // carries the divider on the cell itself, since the grid gap-line between it and
 // the variables scrolls away/under the pinned column.
-const FROZEN_LEFT = 'sticky left-0 z-10 border-r bg-popover';
+// Frozen columns use a solid bg-background (not the var cells' bg-popover) so
+// scrolled content can't bleed through. The -mr-px lets the cell's border-r
+// swallow the adjacent grid gap so the divider stays a single 1px line and
+// survives scroll.
+const FROZEN_LEFT = 'sticky left-0 z-10 -mr-px border-r bg-background';
 // Two frozen right columns (offsets must match MatrixSection): Status sits left
 // of the 72px Action column, offset by the Action width + the 1px grid gap.
-// border-l carries the divider (the gap-line scrolls under the pinned column).
-const FROZEN_STATUS = 'sticky right-[73px] z-10 border-l bg-popover';
-const FROZEN_ACTION = 'sticky right-0 z-10 bg-popover';
+// border-l + -ml-px carries the divider as a single line (the gap-line otherwise
+// scrolls under the pinned column).
+const FROZEN_STATUS = 'sticky right-[73px] z-10 -ml-px border-l bg-background';
+const FROZEN_ACTION = 'sticky right-0 z-10 bg-background';
 const CELL_PADDING = 'px-3 py-2.5';
 // Gap-as-border grid: every cell carries an opaque bg-popover so the grid
 // container's 1px gaps reveal bg-border as clean single grid lines, and the
