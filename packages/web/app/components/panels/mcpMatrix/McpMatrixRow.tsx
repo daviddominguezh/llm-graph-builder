@@ -79,7 +79,7 @@ function StatusCell({ status, verifying, onTest }: StatusCellProps) {
         <TooltipTrigger
           render={
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon-xs"
               className="rounded-full"
               aria-label={t('test')}
