@@ -108,6 +108,7 @@ function DefinitionSection(props: McpTenantMatrixModalProps) {
 }
 
 function MatrixContent(props: McpTenantMatrixModalProps) {
+  const t = useTranslations('mcpMatrix');
   const { server, agentId, tenants, envVariables } = props;
   const { orderedTenants, columns, config } = useMatrixConfig({ server, agentId, tenants, envVariables });
 
@@ -120,8 +121,9 @@ function MatrixContent(props: McpTenantMatrixModalProps) {
     <>
       <MatrixToolbar saving={config.saving} onVerifyAll={() => void config.verifyAll()} />
       <Scrollable className="-mx-1 min-h-0 flex-1 px-1">
-        <div className="flex flex-col gap-4">
+        <div className="cursor-default flex flex-col gap-4">
           <DefinitionSection {...props} />
+          <p className="text-xs text-muted-foreground">{t('matrixHelp')}</p>
           <MatrixSection
             server={server}
             tenants={orderedTenants}
@@ -148,7 +150,7 @@ export function McpTenantMatrixModal(props: McpTenantMatrixModalProps) {
         className={`flex max-h-[calc(100vh-4rem)] max-w-none flex-col gap-3 sm:max-w-none ${widthClass}`}
       >
         <DialogHeader>
-          <DialogTitle>{props.server.name}</DialogTitle>
+          <DialogTitle className="cursor-default">{props.server.name}</DialogTitle>
         </DialogHeader>
         <MatrixContent {...props} />
       </DialogContent>

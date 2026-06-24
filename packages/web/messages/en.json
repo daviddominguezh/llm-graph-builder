@@ -2237,6 +2237,7 @@
     "definitionHeader": "Definition",
     "definitionTitle": "Server definition",
     "definitionHelp": "Configure how this MCP server connects for each tenant.",
+    "matrixHelp": "Set each tenant's values for this server's variables, then verify the connection for that tenant.",
     "useEnvVar": "Use environment variable",
     "envShared": "Shared across tenants",
     "envVarColumnHint": "Environment-variable references resolve to the same value for every tenant.",

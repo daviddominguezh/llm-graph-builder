@@ -70,8 +70,8 @@ function StatusCell({ status, verifying, onTest }: StatusCellProps) {
   const t = useTranslations('mcpMatrix');
   const { labelKey, iconKind, colorClassName } = describeRowStatus(status);
   return (
-    <div className={`${FROZEN_RIGHT} ${CELL_PADDING} flex items-center gap-1.5`}>
-      <span className="flex w-24 shrink-0 items-center gap-1 text-[0.625rem] text-muted-foreground">
+    <div className={`${FROZEN_RIGHT} ${CELL_PADDING} flex items-center justify-between gap-1.5`}>
+      <span className="flex items-center gap-1 text-[0.625rem] text-muted-foreground">
         <RowStatusIcon kind={iconKind} className={colorClassName} />
         {t(labelKey)}
       </span>

@@ -68,7 +68,7 @@ function MatrixHeaderCells({ columns }: { columns: string[] }) {
 
 function MatrixGrid(props: MatrixSectionProps) {
   const gridStyle = {
-    gridTemplateColumns: `200px repeat(${props.columns.length}, 220px) minmax(0, 1fr) 180px`,
+    gridTemplateColumns: `200px repeat(${props.columns.length}, 220px) minmax(0, 1fr) 140px`,
   };
   return (
     <div data-native-scroll className="overflow-x-auto">
