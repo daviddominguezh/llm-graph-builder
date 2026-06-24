@@ -5,7 +5,7 @@ import type { McpAuthType } from '@/app/lib/mcpLibraryTypes';
 import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
 import type { McpServerConfig } from '@/app/schemas/graph.schema';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 
@@ -25,6 +25,7 @@ type VariableInput = Parameters<typeof mergeCellValue>[2];
 
 const SINGLE_VARIABLE = 1;
 const TWO_VARIABLES = 2;
+const DEFINITION_PANEL_ID = 'mcp-server-definition-panel';
 
 export interface McpTenantMatrixModalProps {
   open: boolean;
@@ -71,15 +72,18 @@ function DefinitionHeader({ open, onToggle }: DefinitionHeaderProps) {
     <button
       type="button"
       aria-expanded={open}
+      aria-controls={DEFINITION_PANEL_ID}
       onClick={onToggle}
-      className="flex cursor-pointer items-center gap-1.5 text-left"
+      className="group -mx-1 flex w-fit cursor-pointer items-center gap-1.5 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
     >
-      {open ? (
-        <ChevronDown className="size-3 text-muted-foreground" />
-      ) : (
-        <ChevronRight className="size-3 text-muted-foreground" />
-      )}
-      <h3 className="text-xs font-semibold">{t('definitionTitle')}</h3>
+      <ChevronRight
+        className={`size-3 text-muted-foreground transition-transform duration-200 group-hover:text-foreground motion-reduce:transition-none ${
+          open ? 'rotate-90' : ''
+        }`}
+      />
+      <h3 className="text-xs font-semibold text-muted-foreground transition-colors group-hover:text-foreground">
+        {t('definitionTitle')}
+      </h3>
     </button>
   );
 }
@@ -88,21 +92,29 @@ function DefinitionSection(props: McpTenantMatrixModalProps) {
   const t = useTranslations('mcpMatrix');
   const [open, setOpen] = useState(false);
   return (
-    <section className="flex flex-col gap-2">
+    <section className="flex flex-col">
       <DefinitionHeader open={open} onToggle={() => setOpen((v) => !v)} />
-      {open && (
-        <div className="flex flex-col gap-2">
-          <p className="text-xs text-muted-foreground">{t('definitionHelp')}</p>
-          <ServerDefinitionFields
-            server={props.server}
-            envVariables={props.envVariables}
-            orgId={props.orgId}
-            authType={props.authType}
-            onUpdate={props.onUpdate}
-            onPublish={props.onPublish}
-          />
+      <div
+        id={DEFINITION_PANEL_ID}
+        inert={!open}
+        className={`grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none ${
+          open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div className="flex flex-col gap-2 pt-2">
+            <p className="text-xs text-muted-foreground">{t('definitionHelp')}</p>
+            <ServerDefinitionFields
+              server={props.server}
+              envVariables={props.envVariables}
+              orgId={props.orgId}
+              authType={props.authType}
+              onUpdate={props.onUpdate}
+              onPublish={props.onPublish}
+            />
+          </div>
         </div>
-      )}
+      </div>
     </section>
   );
 }

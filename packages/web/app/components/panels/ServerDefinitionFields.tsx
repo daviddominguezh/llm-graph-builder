@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useTranslations } from 'next-intl';
 
 import { useOAuthStatus } from '../../hooks/useOAuthStatus';
 import type { McpAuthType } from '../../lib/mcpLibraryTypes';
@@ -19,10 +20,11 @@ interface EditableServerFieldsProps {
 
 function EditableServerFields(props: EditableServerFieldsProps) {
   const { server, onUpdate, onPublish } = props;
+  const t = useTranslations('mcpMatrix');
   return (
     <>
       <div className="space-y-1">
-        <Label>Name</Label>
+        <Label>{t('fieldName')}</Label>
         <Input value={server.name} onChange={(e) => onUpdate({ name: e.target.value })} />
       </div>
       <TransportTypeSelector server={server} onUpdate={onUpdate} />
@@ -30,7 +32,7 @@ function EditableServerFields(props: EditableServerFieldsProps) {
       <StdioTransportFields server={server} onUpdate={onUpdate} />
       <div className="flex gap-2">
         <Button variant="outline" size="sm" className="flex-1" onClick={onPublish}>
-          Publish
+          {t('publish')}
         </Button>
       </div>
     </>
