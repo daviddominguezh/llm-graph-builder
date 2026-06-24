@@ -474,22 +474,24 @@ import type { TriggerScheduleInput } from '@openflow/shared-validation/triggers/
  *  row. The fresh production version is resolved at fire time (not embedded). */
 export interface TriggerTaskPayload {
   triggerId: string;
-  occurrenceEpoch: number;
+  targetEpoch: number;   // whole-second epoch of the OCCURRENCE (when the agent runs; = scheduled_for / idempotency key)
+  hopEpoch: number;      // whole-second epoch of THIS task's own fire time (= scheduleTime; used for the task name). hopEpoch === targetEpoch ⇒ real fire; hopEpoch < targetEpoch ⇒ continuation hop
   agentId: string;
   tenantId: string;
   initialMessage: string;
   schedule: TriggerScheduleInput;
 }
 export interface ScheduleInput { runAt: Date; payload: TriggerTaskPayload }
-export interface CancelInput { triggerId: string; occurrenceEpoch: number }
+export interface CancelInput { triggerId: string; taskEpoch: number } // taskEpoch = the armed task's hopEpoch (agent_triggers.armed_task_epoch)
 export interface TriggerScheduler {
   schedule(input: ScheduleInput): Promise<void>;
   cancel(input: CancelInput): Promise<void>;
 }
-export function taskNameFor(triggerId: string, occurrenceEpoch: number): string {
-  return `trigger-${triggerId}-${occurrenceEpoch}`;
+export function taskNameFor(triggerId: string, taskEpoch: number): string {
+  return `trigger-${triggerId}-${taskEpoch}`;
 }
 ```
+Names are keyed by `hopEpoch` (each task's own fire time) so a continuation hop and the eventual real fire toward the same `targetEpoch` get **distinct** names — avoiding Cloud Tasks' post-completion name-reuse block.
 
 - [ ] **Step 2: Write failing tests for the adapter (with a fake Cloud Tasks client)**
 
@@ -508,15 +510,15 @@ function fakeClient() {
 }
 const cfg = { projectId: 'p', location: 'l', queue: 'agent-triggers', serviceAccount: 'sa@x', fireUrl: 'https://api/internal/triggers/fire', masterKey: 'mk' };
 
-const payload = { triggerId: 't1', occurrenceEpoch: 1782637200, agentId: 'a1', tenantId: 'te1', initialMessage: 'hi', schedule: { mode: 'once', onceDateTime: '', recurring: { unit: 'minutes', interval: 5, weekdays: [], dayOfMonth: 1, time: '09:00', startAt: '', endAt: '' } } } as const;
+const payload = { triggerId: 't1', targetEpoch: 1782637200, hopEpoch: 1782637200, agentId: 'a1', tenantId: 'te1', initialMessage: 'hi', schedule: { mode: 'once', onceDateTime: '', recurring: { unit: 'minutes', interval: 5, weekdays: [], dayOfMonth: 1, time: '09:00', startAt: '', endAt: '' } } } as const;
 
-it('creates an HTTP task with deterministic name, scheduleTime, x-master-key, and the payload body', async () => {
+it('names the task by hopEpoch and creates an HTTP task with scheduleTime, x-master-key, and the payload body', async () => {
   const c = fakeClient();
   const s = createCloudTasksScheduler({ client: c as never, config: cfg });
   await s.schedule({ runAt: new Date('2026-06-24T09:00:00Z'), payload });
   expect(c.created).toHaveLength(1);
   const req = c.created[0] as { task: { name: string; httpRequest: { url: string; headers: Record<string,string>; body: string } } };
-  expect(req.task.name.endsWith('trigger-t1-1782637200')).toBe(true);
+  expect(req.task.name.endsWith('trigger-t1-1782637200')).toBe(true); // hopEpoch
   expect(req.task.httpRequest.url).toBe(cfg.fireUrl);
   expect(req.task.httpRequest.headers['x-master-key']).toBe('mk');
   expect(JSON.parse(Buffer.from(req.task.httpRequest.body, 'base64').toString()).agentId).toBe('a1');
@@ -526,7 +528,7 @@ it('cancel treats NOT_FOUND as success (idempotent)', async () => {
   const c = fakeClient();
   c.deleteTask = async () => { const e = new Error('not found') as Error & { code?: number }; e.code = 5; throw e; };
   const s = createCloudTasksScheduler({ client: c as never, config: cfg });
-  await expect(s.cancel({ triggerId: 't1', occurrenceEpoch: 1782637200 })).resolves.toBeUndefined();
+  await expect(s.cancel({ triggerId: 't1', taskEpoch: 1782637200 })).resolves.toBeUndefined();
 });
 ```
 
@@ -565,7 +567,7 @@ export function createCloudTasksScheduler(deps: { client: TasksClientLike; confi
       await client.createTask({
         parent: client.queuePath(config.projectId, config.location, config.queue),
         task: {
-          name: fullName(payload.triggerId, payload.occurrenceEpoch),
+          name: fullName(payload.triggerId, payload.hopEpoch),
           scheduleTime: { seconds: Math.floor(input.runAt.getTime() / MS_PER_SECOND) },
           httpRequest: {
             httpMethod: 'POST',
@@ -578,7 +580,7 @@ export function createCloudTasksScheduler(deps: { client: TasksClientLike; confi
     },
     async cancel(input: CancelInput): Promise<void> {
       try {
-        await client.deleteTask({ name: fullName(input.triggerId, input.occurrenceEpoch) });
+        await client.deleteTask({ name: fullName(input.triggerId, input.taskEpoch) });
       } catch (err) {
         const code = (err as { code?: number }).code;
         if (code === GRPC_NOT_FOUND) return;
@@ -603,8 +605,8 @@ export function createLocalTimerScheduler(deps: { fireUrl: string; masterKey: st
   const timers = new Map<string, ReturnType<typeof setTimeout>>();
   return {
     async schedule(input: ScheduleInput): Promise<void> {
-      const name = taskNameFor(input.payload.triggerId, input.payload.occurrenceEpoch);
-      const delay = Math.min(MAX_DELAY_MS, Math.max(0, input.runAt.getTime() - Date.now()));
+      const name = taskNameFor(input.payload.triggerId, input.payload.hopEpoch);
+      const delay = Math.min(MAX_DELAY_MS, Math.max(0, input.runAt.getTime() - Date.now())); // armToward keeps delay ≤ horizon < MAX_DELAY_MS; clamp is a defensive backstop only
       const existing = timers.get(name);
       if (existing !== undefined) clearTimeout(existing); // idempotent by name (mirror Cloud Tasks)
       const timer = setTimeout(() => {
@@ -619,7 +621,7 @@ export function createLocalTimerScheduler(deps: { fireUrl: string; masterKey: st
       timers.set(name, timer);
     },
     async cancel(input: CancelInput): Promise<void> {
-      const name = taskNameFor(input.triggerId, input.occurrenceEpoch);
+      const name = taskNameFor(input.triggerId, input.taskEpoch);
       const t = timers.get(name);
       if (t !== undefined) { clearTimeout(t); timers.delete(name); }
     },
@@ -630,9 +632,9 @@ Add a test: `schedule` with `runAt` ~now (fake-timers) POSTs `fireUrl` with the 
 
 - [ ] **Step 6: Scheduler singleton + adapter selection (created here so C4 can import it)**
 
-Create `packages/backend/src/triggers/schedulerSingleton.ts`: export `getTriggerScheduler(): TriggerScheduler`, memoized, **selecting the adapter by env**:
-- **Local** (default when GCP config is absent, or `TRIGGER_SCHEDULER==='local'`): `createLocalTimerScheduler({ fireUrl: TRIGGER_FIRE_URL, masterKey: EDGE_FUNCTION_MASTER_KEY })`. Requires only `TRIGGER_FIRE_URL` (e.g. `http://localhost:4000/internal/triggers/fire`) + `EDGE_FUNCTION_MASTER_KEY`.
-- **Cloud Tasks** (when `TRIGGER_SCHEDULER==='cloud-tasks'` or GCP env is present): validate `GCP_PROJECT_ID`/`CLOUD_TASKS_LOCATION`/`CLOUD_TASKS_QUEUE`/`CLOUD_TASKS_SERVICE_ACCOUNT`/`TRIGGER_FIRE_URL`/`EDGE_FUNCTION_MASTER_KEY`, construct a `CloudTasksClient` (`@google-cloud/tasks`), `createCloudTasksScheduler({ client, config })`.
+Create `packages/backend/src/triggers/schedulerSingleton.ts`: export `getTriggerScheduler(): TriggerScheduler`, memoized, **selecting the adapter by the existing `PRODUCTION` env convention** (`packages/backend/.env.example` ships `PRODUCTION=false`):
+- **`process.env.PRODUCTION === 'true'` → Cloud Tasks:** validate `GCP_PROJECT_ID`/`CLOUD_TASKS_LOCATION`/`CLOUD_TASKS_QUEUE`/`CLOUD_TASKS_SERVICE_ACCOUNT`/`TRIGGER_FIRE_URL`/`EDGE_FUNCTION_MASTER_KEY`, construct a `CloudTasksClient` (`@google-cloud/tasks`), `createCloudTasksScheduler({ client, config })`.
+- **otherwise → local timer:** `createLocalTimerScheduler({ fireUrl: TRIGGER_FIRE_URL, masterKey: EDGE_FUNCTION_MASTER_KEY })`. Requires only `TRIGGER_FIRE_URL` (e.g. `http://localhost:4000/internal/triggers/fire`) + `EDGE_FUNCTION_MASTER_KEY`.
 
 Add `@google-cloud/tasks` to `packages/backend/package.json` deps; run `npm install`. (**Optional, not required for v1:** a `rehydrateTimers()` called at boot that loads `enabled` triggers with a future `next_run_at` and re-arms local timers — gives restart-survival in local dev without any polling loop. Leave as a documented follow-up.)
 
@@ -652,7 +654,7 @@ git commit -m "feat(backend): TriggerScheduler interface, Cloud Tasks + local ad
 
 **Interfaces:**
 - Consumes: `createServiceClient` (`db/queries/executionAuthQueries.js`), shared schedule types.
-- Produces: `TriggerRow` type (**single source of truth** — the snake_case field list in spec §3; web Task D1 copies it verbatim, with a comment in each pointing to the other); `listTriggers(supabase, agentId, tenantId)`, `insertTrigger(supabase, params)`, `deleteTrigger(supabase, agentId, triggerId)`, `setTriggerEnabled(supabase, agentId, triggerId, enabled)`, `claimAndRearm(supabase, triggerId, scheduledFor, nextRunAt)`, `recordOutcome(supabase, runId, status, failureReason?, error?)` — `recordOutcome` updates the `trigger_runs` row terminal status **and** sets `agent_triggers.last_status` (the claim RPC already set `run_count`/`last_run_at`). `insertTrigger` maps the validated `TriggerSchedule` union to the flat columns (`mode`, `recurring` jsonb-or-null, `once_datetime`-or-null). All return `{ result, error }` / `{ error }`.
+- Produces: `TriggerRow` type (**single source of truth** — the snake_case field list in spec §3; web Task D1 copies it verbatim, with a comment in each pointing to the other); `listTriggers(supabase, agentId, tenantId)`, `insertTrigger(supabase, params)`, `deleteTrigger(supabase, agentId, triggerId)`, `setTriggerEnabled(supabase, agentId, triggerId, enabled)`, `claimAndRearm(supabase, triggerId, scheduledFor, nextRunAt)`, `recordOutcome(supabase, runId, status, failureReason?, error?)` — `recordOutcome` updates the `trigger_runs` row terminal status **and** sets `agent_triggers.last_status` (the claim RPC already set `run_count`/`last_run_at`). `insertTrigger` maps the validated `TriggerSchedule` union to the flat columns (`mode`, `recurring` jsonb-or-null, `once_datetime`-or-null) and writes `next_run_at` + `armed_task_epoch`. Plus two small helpers for the hop: `isTriggerEnabled(supabase, triggerId): Promise<boolean>` (single `SELECT enabled`) and `setArmedTaskEpoch(supabase, triggerId, hopEpoch): Promise<void>` (`UPDATE agent_triggers SET armed_task_epoch = $2 WHERE id = $1`). `deleteTrigger`/`setTriggerEnabled(disable)` read `armed_task_epoch` to compute the `cancel({ triggerId, taskEpoch })` call. All return `{ result, error }` / `{ error }`.
 
 - [ ] **Step 1: Write `TriggerRow` + failing test (against a fake supabase)**
 
@@ -758,7 +760,29 @@ export async function resolveExecutionContext(
   if (error !== null || result === null) throw new Error(`agent ${agentId} not found: ${error ?? 'null'}`);
   return { orgId: result.org_id, version: result.current_version };
 }
+
+const MS = 1000;
+/** Base payload fields shared by every task of a trigger (no per-occurrence fields). */
+export type TaskBase = Pick<TriggerTaskPayload, 'triggerId' | 'agentId' | 'tenantId' | 'initialMessage' | 'schedule'>;
+
+/** Arm the task that moves a trigger toward `targetEpoch`. If the target is
+ *  within `horizonMs`, arm the REAL fire (hopEpoch === targetEpoch); otherwise
+ *  arm a continuation HOP at now+horizon (hopEpoch < targetEpoch). Adapter-
+ *  agnostic — both Cloud Tasks and the local timer get the hop for free. Also
+ *  records the armed hopEpoch for exact cancel. */
+export async function armToward(
+  deps: { supabase: SupabaseClient; scheduler: TriggerScheduler; horizonMs: number },
+  base: TaskBase, targetEpoch: number, now: Date
+): Promise<void> {
+  const targetMs = targetEpoch * MS;
+  const withinHorizon = targetMs - now.getTime() <= deps.horizonMs;
+  const runAt = withinHorizon ? new Date(targetMs) : new Date(now.getTime() + deps.horizonMs);
+  const hopEpoch = Math.floor(runAt.getTime() / MS);
+  await deps.scheduler.schedule({ runAt, payload: { ...base, targetEpoch, hopEpoch } });
+  await setArmedTaskEpoch(deps.supabase, base.triggerId, hopEpoch); // see triggerQueries (Task C2)
+}
 ```
+Imports for the additions: `import type { TriggerScheduler, TriggerTaskPayload } from './scheduler.js';` and `import { setArmedTaskEpoch } from '../db/queries/triggerQueries.js';`.
 
 - [ ] **Step 3: Implement `fireHandler.ts` (claim-first, fire-and-forget, timed-out)**
 
@@ -780,7 +804,7 @@ type ExecCtx = { orgId: string; agentId: string; version: number };
 type Execute = (ctx: ExecCtx, input: AgentExecutionInput) => Promise<void>;
 interface FireDeps {
   supabase: SupabaseClient; scheduler: TriggerScheduler;
-  defaultUserId: string; jitterWindowMs: number; execTimeoutMs: number; execute?: Execute;
+  defaultUserId: string; jitterWindowMs: number; execTimeoutMs: number; horizonMs: number; execute?: Execute;
 }
 
 function defaultExecute(supabase: SupabaseClient): Execute {
@@ -807,35 +831,48 @@ async function runAndRecord(deps: FireDeps, payload: TriggerTaskPayload, runId: 
 
 function parsePayload(body: unknown): TriggerTaskPayload | null {
   const p = body as Partial<TriggerTaskPayload>;
-  if (typeof p?.triggerId !== 'string' || typeof p?.occurrenceEpoch !== 'number') return null;
+  if (typeof p?.triggerId !== 'string' || typeof p?.targetEpoch !== 'number' || typeof p?.hopEpoch !== 'number') return null;
   if (typeof p.agentId !== 'string' || typeof p.tenantId !== 'string' || typeof p.initialMessage !== 'string') return null;
+  if (typeof p.schedule !== 'object' || p.schedule === null) return null;
   return p as TriggerTaskPayload;
+}
+
+function baseOf(p: TriggerTaskPayload): TaskBase {
+  return { triggerId: p.triggerId, agentId: p.agentId, tenantId: p.tenantId, initialMessage: p.initialMessage, schedule: p.schedule };
+}
+
+// Continuation hop: target still beyond horizon. Re-arm toward it (no run), but
+// only while enabled, so a paused trigger's stray hop stops the chain.
+async function handleContinuation(deps: FireDeps, p: TriggerTaskPayload, res: Response): Promise<void> {
+  if (await isTriggerEnabled(deps.supabase, p.triggerId)) {
+    await armToward({ supabase: deps.supabase, scheduler: deps.scheduler, horizonMs: deps.horizonMs }, baseOf(p), p.targetEpoch, new Date());
+  }
+  res.status(HTTP_OK).json({ ok: true, continuation: true });
 }
 
 export function createFireHandler(deps: FireDeps) {
   return async function fire(req: Request, res: Response): Promise<void> {
     const payload = parsePayload(req.body);
     if (payload === null) { res.status(HTTP_BAD_REQUEST).json({ error: 'invalid body' }); return; }
+    if (payload.hopEpoch !== payload.targetEpoch) { await handleContinuation(deps, payload, res); return; }
 
-    const scheduledFor = new Date(payload.occurrenceEpoch * EPOCH_TO_MS);
+    // Real fire. Claim FIRST: gates enabled, claims the run, advances next_run_at.
+    // null = disabled / deleted / duplicate → ack 200, arm nothing (chain dies cleanly).
+    const scheduledFor = new Date(payload.targetEpoch * EPOCH_TO_MS);
     const next = nextRunFor(payload.schedule, scheduledFor, payload.triggerId, deps.jitterWindowMs);
-
-    // Claim FIRST: gates enabled, claims the run, advances next_run_at. null =
-    // disabled / deleted / duplicate → ack 200, arm nothing (chain dies cleanly).
     const { result: run } = await claimAndRearm(deps.supabase, payload.triggerId, scheduledFor, next);
     if (run === null) { res.status(HTTP_OK).json({ ok: true, skipped: true }); return; }
 
     if (next !== null) {
-      await deps.scheduler.schedule({
-        runAt: next,
-        payload: { ...payload, occurrenceEpoch: Math.floor(next.getTime() / EPOCH_TO_MS) },
-      });
+      await armToward({ supabase: deps.supabase, scheduler: deps.scheduler, horizonMs: deps.horizonMs },
+        baseOf(payload), Math.floor(next.getTime() / EPOCH_TO_MS), new Date());
     }
     void runAndRecord(deps, payload, run.runId, run.sessionId); // detached
     res.status(HTTP_ACCEPTED).json({ ok: true });
   };
 }
 ```
+Add imports: `armToward`, `baseOf`'s `TaskBase` type from `./fireHelpers.js`, and `isTriggerEnabled` from `../db/queries/triggerQueries.js`.
 **Implementer note (v1 accepted):** `executeAgentCore` awaits the edge-function SSE to completion, so the detached `runAndRecord` holds an outbound connection for the run's duration (the 202 only unblocks the HTTP response). This is accepted for v1 (I/O-bound, fine at hundreds concurrent) and bounded by `withTimeout`. The true no-hold path (pre-generate an `executionId`, dispatch, and record via `getNotifier().waitForCompletion(executionId, timeoutMs)` on the Redis completion event) is deferred to P2.
 
 - [ ] **Step 4: Run tests (PASS) + typecheck, then commit**
