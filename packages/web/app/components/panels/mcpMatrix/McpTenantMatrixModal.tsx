@@ -5,6 +5,7 @@ import type { McpAuthType } from '@/app/lib/mcpLibraryTypes';
 import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
 import type { McpServerConfig } from '@/app/schemas/graph.schema';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
 import { ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
@@ -130,6 +131,7 @@ function MatrixContent(props: McpTenantMatrixModalProps) {
   return (
     <>
       <MatrixToolbar saving={config.saving} onVerifyAll={() => void config.verifyAll()} />
+      <Separator />
       <Scrollable className="-mx-1 min-h-0 flex-1 px-1">
         <div className="cursor-default flex flex-col gap-4 pt-1.5">
           <DefinitionSection {...props} />
@@ -159,7 +161,7 @@ export function McpTenantMatrixModal(props: McpTenantMatrixModalProps) {
       <DialogContent
         className={`flex max-h-[calc(100vh-4rem)] max-w-none flex-col gap-3 sm:max-w-none ${widthClass}`}
       >
-        <DialogHeader>
+        <DialogHeader className='border-b pb-1'>
           <DialogTitle className="cursor-default">{props.server.name}</DialogTitle>
         </DialogHeader>
         <MatrixContent {...props} />
