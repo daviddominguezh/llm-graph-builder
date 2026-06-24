@@ -35,8 +35,10 @@ const DEFAULT_VALUE: VariableValue = { type: 'direct', value: '' };
 // Sticky frozen first column (Tenant) — opaque bg-popover so scrolled variable
 // cells don't bleed through; z-10 keeps it above the scrolling middle.
 const FROZEN_LEFT = 'sticky left-0 z-10 bg-popover';
-// Sticky frozen last column (Status).
-const FROZEN_RIGHT = 'sticky right-0 z-10 bg-popover';
+// Two frozen right columns (offsets must match MatrixSection): Status sits left
+// of the 72px Action column, offset by the Action width + the 1px grid gap.
+const FROZEN_STATUS = 'sticky right-[73px] z-10 bg-popover';
+const FROZEN_ACTION = 'sticky right-0 z-10 bg-popover';
 const CELL_PADDING = 'px-3 py-2.5';
 // Gap-as-border grid: every cell carries an opaque bg-popover so the grid
 // container's 1px gaps reveal bg-border as clean single grid lines, and the
@@ -44,9 +46,9 @@ const CELL_PADDING = 'px-3 py-2.5';
 const CELL_BG = 'bg-popover';
 
 function RowStatusIcon({ kind, className }: { kind: RowStatusIconKind; className: string }) {
-  if (kind === 'ok') return <CheckCircle className={`size-3 ${className}`} />;
-  if (kind === 'error') return <XCircle className={`size-3 ${className}`} />;
-  return <AlertTriangle className={`size-3 ${className}`} />;
+  if (kind === 'ok') return <CheckCircle className={`size-3.5 ${className}`} />;
+  if (kind === 'error') return <XCircle className={`size-3.5 ${className}`} />;
+  return <AlertTriangle className={`size-3.5 ${className}`} />;
 }
 
 function TenantCell({ tenant }: { tenant: McpMatrixRowTenant }) {
@@ -60,21 +62,28 @@ function TenantCell({ tenant }: { tenant: McpMatrixRowTenant }) {
   );
 }
 
-interface StatusCellProps {
-  status: ServerTenantStatus;
+function StatusCell({ status }: { status: ServerTenantStatus }) {
+  const t = useTranslations('mcpMatrix');
+  const { labelKey, iconKind, colorClassName } = describeRowStatus(status);
+  return (
+    <div className={`${FROZEN_STATUS} ${CELL_PADDING} flex items-center`}>
+      <span className="flex items-center gap-1 text-xs text-foreground">
+        <RowStatusIcon kind={iconKind} className={colorClassName} />
+        {t(labelKey)}
+      </span>
+    </div>
+  );
+}
+
+interface ActionCellProps {
   verifying: boolean;
   onTest: () => void;
 }
 
-function StatusCell({ status, verifying, onTest }: StatusCellProps) {
+function ActionCell({ verifying, onTest }: ActionCellProps) {
   const t = useTranslations('mcpMatrix');
-  const { labelKey, iconKind, colorClassName } = describeRowStatus(status);
   return (
-    <div className={`${FROZEN_RIGHT} ${CELL_PADDING} flex items-center justify-between gap-1.5`}>
-      <span className="flex items-center gap-1 text-[0.625rem] text-foreground font-medium">
-        <RowStatusIcon kind={iconKind} className={colorClassName} />
-        {t(labelKey)}
-      </span>
+    <div className={`${FROZEN_ACTION} ${CELL_PADDING} flex items-center justify-center`}>
       <Tooltip>
         <TooltipTrigger
           render={
@@ -119,7 +128,8 @@ export function McpMatrixRow({
         </div>
       ))}
       <div aria-hidden className={CELL_BG} />
-      <StatusCell status={status} verifying={verifying} onTest={onTest} />
+      <StatusCell status={status} />
+      <ActionCell verifying={verifying} onTest={onTest} />
     </>
   );
 }

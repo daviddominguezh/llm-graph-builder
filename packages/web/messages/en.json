@@ -2247,6 +2247,7 @@
     "oauthStatusOnly": "This server uses OAuth; only its connection status is shown here.",
     "tenantColumn": "Tenant",
     "statusColumn": "Status",
+    "actionColumn": "Action",
     "directMode": "Direct value",
     "envRefMode": "Environment variable",
     "directModeShort": "Direct",

@@ -30,7 +30,10 @@ export interface MatrixSectionProps {
 // above the body's z-10 sticky cells when scrolled.
 const HEADER_CELL = 'px-3 py-2.5 bg-popover font-semibold text-muted-foreground';
 const HEADER_FROZEN_LEFT = 'sticky left-0 z-20 bg-popover';
-const HEADER_FROZEN_RIGHT = 'sticky right-0 z-20 bg-popover';
+// Two frozen right columns: Status sits left of the 72px Action column, offset by
+// the Action width + the 1px grid gap (keep ACTION_COL_PX in MatrixGrid in sync).
+const HEADER_FROZEN_STATUS = 'sticky right-[73px] z-20 bg-popover';
+const HEADER_FROZEN_ACTION = 'sticky right-0 z-20 bg-popover';
 
 function LoadingBody() {
   return (
@@ -61,14 +64,17 @@ function MatrixHeaderCells({ columns }: { columns: string[] }) {
         </div>
       ))}
       <div className={HEADER_CELL} aria-hidden />
-      <div className={`${HEADER_CELL} ${HEADER_FROZEN_RIGHT}`}>{t('statusColumn')}</div>
+      <div className={`${HEADER_CELL} ${HEADER_FROZEN_STATUS}`}>{t('statusColumn')}</div>
+      <div className={`${HEADER_CELL} ${HEADER_FROZEN_ACTION} text-center`}>{t('actionColumn')}</div>
     </>
   );
 }
 
 function MatrixGrid(props: MatrixSectionProps) {
   const gridStyle = {
-    gridTemplateColumns: `200px repeat(${props.columns.length}, 220px) minmax(0, 1fr) 155px`,
+    // Trailing columns: Status sizes to content; Action is a fixed 72px holding
+    // the reload button (HEADER_FROZEN_STATUS's right-[73px] = 72px + 1px gap).
+    gridTemplateColumns: `200px repeat(${props.columns.length}, 220px) minmax(0, 1fr) max-content 72px`,
   };
   return (
     <div data-native-scroll className="overflow-x-auto">
