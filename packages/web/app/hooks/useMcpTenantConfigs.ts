@@ -38,6 +38,7 @@ export interface UseMcpTenantConfigsResult {
   rows: McpTenantConfigRow[];
   discovery: McpTenantDiscoveryRow[];
   loading: boolean;
+  saving: boolean;
   saveCell: (serverId: string, tenantId: string, values: Record<string, VariableValue>) => Promise<void>;
   verifyServer: (serverId: string) => Promise<void>;
   verifyTenant: (serverId: string, tenantId: string) => Promise<void>;
@@ -47,33 +48,42 @@ export interface UseMcpTenantConfigsResult {
   aggregateFor: (serverId: string) => ServerAggregateStatus;
 }
 
+const NO_SAVES = 0;
+const SAVE_DELTA = 1;
+
 export function useMcpTenantConfigs(args: UseMcpTenantConfigsArgs): UseMcpTenantConfigsResult {
   const { agentId, servers, tenants, envVariables } = args;
   const [rows, setRows] = useState<McpTenantConfigRow[]>([]);
   const [discovery, setDiscovery] = useState<McpTenantDiscoveryRow[]>([]);
   const [hashByCell, setHashByCell] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [savingCount, setSavingCount] = useState(NO_SAVES);
   const [verifyingIds, setVerifyingIds] = useState<ReadonlySet<string>>(new Set());
 
   const envNameById = useMemo(() => buildEnvNameById(envVariables), [envVariables]);
   useLoadBundle({ agentId, setRows, setDiscovery, setHashByCell, setLoading });
   useCellHashes(rows, setHashByCell);
 
-  const { statusFor, aggregateFor } = useStatuses({ servers, tenants, rows, discovery, envNameById, hashByCell });
+  const { statusFor, aggregateFor } = useStatuses({
+    servers,
+    tenants,
+    rows,
+    discovery,
+    envNameById,
+    hashByCell,
+  });
 
-  const saveCell = useSaveCell(agentId, rows, setRows);
+  const saveCell = useSaveCell(agentId, rows, setRows, setSavingCount);
   const verifyServer = useVerifyServer(agentId, tenants, setDiscovery, setVerifyingIds);
   const verifyTenant = useVerifyTenant(agentId, setDiscovery, setVerifyingIds);
   const verifyAll = useVerifyAll(servers, verifyServer);
-  const verifyingFor = useCallback(
-    (serverId: string, tenantId: string) => verifyingIds.has(cellKey(serverId, tenantId)),
-    [verifyingIds]
-  );
+  const verifyingFor = useVerifyingFor(verifyingIds);
 
   return {
     rows,
     discovery,
     loading,
+    saving: savingCount > NO_SAVES,
     saveCell,
     verifyServer,
     verifyTenant,
@@ -82,6 +92,15 @@ export function useMcpTenantConfigs(args: UseMcpTenantConfigsArgs): UseMcpTenant
     statusFor,
     aggregateFor,
   };
+}
+
+function useVerifyingFor(
+  verifyingIds: ReadonlySet<string>
+): (serverId: string, tenantId: string) => boolean {
+  return useCallback(
+    (serverId, tenantId) => verifyingIds.has(cellKey(serverId, tenantId)),
+    [verifyingIds]
+  );
 }
 
 function withIds(set: ReadonlySet<string>, ids: string[]): ReadonlySet<string> {
@@ -183,22 +202,28 @@ type SaveCell = (serverId: string, tenantId: string, values: Record<string, Vari
 function useSaveCell(
   agentId: string,
   rows: McpTenantConfigRow[],
-  setRows: React.Dispatch<React.SetStateAction<McpTenantConfigRow[]>>
+  setRows: React.Dispatch<React.SetStateAction<McpTenantConfigRow[]>>,
+  setSavingCount: React.Dispatch<React.SetStateAction<number>>
 ): SaveCell {
   return useCallback(
     async (serverId, tenantId, values) => {
       const expectedUpdatedAt = findUpdatedAt(rows, serverId, tenantId);
       setRows((prev) => applyCellOptimistic(prev, { agentId, serverId, tenantId, values }));
-      const result = await saveMcpTenantCellAction({
-        agentId,
-        serverId,
-        tenantId,
-        variableValues: values,
-        expectedUpdatedAt,
-      });
-      applySaveResult(result, setRows, agentId);
+      setSavingCount((count) => count + SAVE_DELTA);
+      try {
+        const result = await saveMcpTenantCellAction({
+          agentId,
+          serverId,
+          tenantId,
+          variableValues: values,
+          expectedUpdatedAt,
+        });
+        applySaveResult(result, setRows, agentId);
+      } finally {
+        setSavingCount((count) => count - SAVE_DELTA);
+      }
     },
-    [agentId, rows, setRows]
+    [agentId, rows, setRows, setSavingCount]
   );
 }
 

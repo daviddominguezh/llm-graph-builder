@@ -4,7 +4,8 @@ import { TenantAvatar } from '@/app/components/agents/channels/TenantAvatar';
 import type { ServerTenantStatus } from '@/app/lib/mcpTenantStatus';
 import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, CheckCircle, Loader2, XCircle } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { AlertTriangle, CheckCircle, Loader2, RotateCw, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import type { VariableValue } from '../VariableValuesEditor';
@@ -74,10 +75,22 @@ function StatusCell({ status, verifying, onTest }: StatusCellProps) {
         <RowStatusIcon kind={iconKind} className={colorClassName} />
         {t(labelKey)}
       </span>
-      <Button variant="outline" size="xs" onClick={onTest} disabled={verifying} className="relative">
-        <span className={verifying ? 'invisible' : undefined}>{t('test')}</span>
-        {verifying && <Loader2 className="absolute inset-0 m-auto size-3 animate-spin" />}
-      </Button>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('test')}
+              disabled={verifying}
+              onClick={onTest}
+            />
+          }
+        >
+          {verifying ? <Loader2 className="size-3 animate-spin" /> : <RotateCw className="size-3" />}
+        </TooltipTrigger>
+        <TooltipContent side="top">{t('testHint')}</TooltipContent>
+      </Tooltip>
     </div>
   );
 }

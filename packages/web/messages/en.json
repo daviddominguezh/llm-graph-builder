@@ -2227,13 +2227,16 @@
     "title": "MCP configuration",
     "verifyAll": "Verify all",
     "test": "Test connection",
+    "testHint": "Test this tenant's connection",
+    "saving": "Saving…",
+    "autosaveHint": "Changes save automatically",
+    "libraryBadge": "From library",
     "statusOk": "Connected",
-    "statusPending": "Pending",
+    "statusPending": "Not verified",
     "statusError": "Error",
     "needsConfig": "Needs configuration",
     "definitionHeader": "Definition",
     "definitionTitle": "Server definition",
-    "libraryConfig": "Configuration from library",
     "definitionHelp": "Configure how this MCP server connects for each tenant.",
     "useEnvVar": "Use environment variable",
     "envShared": "Shared across tenants",
@@ -2245,6 +2248,8 @@
     "tenantColumn": "Tenant",
     "statusColumn": "Status",
     "directMode": "Direct value",
-    "envRefMode": "Environment variable"
+    "envRefMode": "Environment variable",
+    "directModeShort": "Direct",
+    "envRefModeShort": "Reference"
   }
 }

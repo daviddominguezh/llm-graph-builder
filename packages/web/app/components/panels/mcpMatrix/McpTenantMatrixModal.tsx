@@ -4,9 +4,11 @@ import { useMcpTenantConfigs } from '@/app/hooks/useMcpTenantConfigs';
 import type { McpAuthType } from '@/app/lib/mcpLibraryTypes';
 import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
 import type { McpServerConfig } from '@/app/schemas/graph.schema';
+import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 import { Scrollable } from '../../Scrollable';
 import { ServerDefinitionFields } from '../ServerDefinitionFields';
@@ -21,6 +23,9 @@ import {
 } from './mcpMatrixModalLogic';
 
 type VariableInput = Parameters<typeof mergeCellValue>[2];
+
+const SINGLE_VARIABLE = 1;
+const TWO_VARIABLES = 2;
 
 export interface McpTenantMatrixModalProps {
   open: boolean;
@@ -50,23 +55,62 @@ function useMatrixConfig({ server, agentId, tenants, envVariables }: MatrixConfi
   return { orderedTenants, columns, config };
 }
 
+function widthClassForColumns(columnCount: number): string {
+  if (columnCount <= SINGLE_VARIABLE) return 'w-[680px]';
+  if (columnCount === TWO_VARIABLES) return 'w-[920px]';
+  return 'w-[calc(100vw-4rem)]';
+}
+
+interface DefinitionHeaderProps {
+  open: boolean;
+  isFromLibrary: boolean;
+  onToggle: () => void;
+}
+
+function DefinitionHeader({ open, isFromLibrary, onToggle }: DefinitionHeaderProps) {
+  const t = useTranslations('mcpMatrix');
+  return (
+    <button
+      type="button"
+      aria-expanded={open}
+      onClick={onToggle}
+      className="flex items-center gap-1.5 text-left"
+    >
+      {open ? (
+        <ChevronDown className="size-3 text-muted-foreground" />
+      ) : (
+        <ChevronRight className="size-3 text-muted-foreground" />
+      )}
+      <h3 className="text-xs font-semibold">{t('definitionTitle')}</h3>
+      {isFromLibrary && (
+        <Badge variant="outline" className="text-[10px]">
+          {t('libraryBadge')}
+        </Badge>
+      )}
+    </button>
+  );
+}
+
 function DefinitionSection(props: McpTenantMatrixModalProps) {
   const t = useTranslations('mcpMatrix');
+  const [open, setOpen] = useState(false);
   const isFromLibrary = props.server.libraryItemId !== undefined;
   return (
     <section className="flex flex-col gap-2">
-      <div className="flex items-baseline gap-2">
-        <h3 className="text-xs font-semibold">{t('definitionTitle')}</h3>
-        {isFromLibrary && <span className="text-xs text-muted-foreground">({t('libraryConfig')})</span>}
-      </div>
-      <ServerDefinitionFields
-        server={props.server}
-        envVariables={props.envVariables}
-        orgId={props.orgId}
-        authType={props.authType}
-        onUpdate={props.onUpdate}
-        onPublish={props.onPublish}
-      />
+      <DefinitionHeader open={open} isFromLibrary={isFromLibrary} onToggle={() => setOpen((v) => !v)} />
+      {open && (
+        <div className="flex flex-col gap-2">
+          <p className="text-xs text-muted-foreground">{t('definitionHelp')}</p>
+          <ServerDefinitionFields
+            server={props.server}
+            envVariables={props.envVariables}
+            orgId={props.orgId}
+            authType={props.authType}
+            onUpdate={props.onUpdate}
+            onPublish={props.onPublish}
+          />
+        </div>
+      )}
     </section>
   );
 }
@@ -82,8 +126,8 @@ function MatrixContent(props: McpTenantMatrixModalProps) {
 
   return (
     <>
-      <MatrixToolbar onVerifyAll={() => void config.verifyAll()} />
-      <Scrollable className="-mx-1 flex-1 px-1">
+      <MatrixToolbar saving={config.saving} onVerifyAll={() => void config.verifyAll()} />
+      <Scrollable className="-mx-1 min-h-0 flex-1 px-1">
         <div className="flex flex-col gap-4">
           <DefinitionSection {...props} />
           <MatrixSection
@@ -104,9 +148,13 @@ function MatrixContent(props: McpTenantMatrixModalProps) {
 }
 
 export function McpTenantMatrixModal(props: McpTenantMatrixModalProps) {
+  const columns = useMemo(() => buildMatrixColumns(props.server), [props.server]);
+  const widthClass = widthClassForColumns(columns.length);
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="flex h-[calc(100vh-4rem)] w-[calc(100vw-4rem)] max-w-none flex-col gap-3 sm:max-w-none">
+      <DialogContent
+        className={`flex max-h-[calc(100vh-4rem)] max-w-none flex-col gap-3 sm:max-w-none ${widthClass}`}
+      >
         <DialogHeader>
           <DialogTitle>{props.server.name}</DialogTitle>
         </DialogHeader>
