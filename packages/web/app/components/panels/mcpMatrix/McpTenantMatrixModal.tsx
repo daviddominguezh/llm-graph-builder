@@ -74,7 +74,7 @@ function DefinitionHeader({ open, onToggle }: DefinitionHeaderProps) {
       aria-expanded={open}
       aria-controls={DEFINITION_PANEL_ID}
       onClick={onToggle}
-      className="group -mx-1 flex w-fit cursor-pointer items-center gap-1.5 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+      className="group -mx-1 flex w-fit cursor-pointer items-center gap-1.5 rounded-md px-1 py-0.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
     >
       <ChevronRight
         className={`size-3 text-muted-foreground transition-transform duration-200 group-hover:text-foreground motion-reduce:transition-none ${

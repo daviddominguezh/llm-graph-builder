@@ -22,7 +22,7 @@ function EditableServerFields(props: EditableServerFieldsProps) {
   const { server, onUpdate, onPublish } = props;
   const t = useTranslations('mcpMatrix');
   return (
-    <>
+    <div className="flex flex-col gap-3">
       <div className="space-y-1">
         <Label>{t('fieldName')}</Label>
         <Input value={server.name} onChange={(e) => onUpdate({ name: e.target.value })} />
@@ -30,12 +30,12 @@ function EditableServerFields(props: EditableServerFieldsProps) {
       <TransportTypeSelector server={server} onUpdate={onUpdate} />
       <UrlTransportFields server={server} onUpdate={onUpdate} />
       <StdioTransportFields server={server} onUpdate={onUpdate} />
-      <div className="flex gap-2">
+      <div className="flex border-t border-border/60 pt-3">
         <Button variant="outline" size="sm" className="flex-1" onClick={onPublish}>
           {t('publish')}
         </Button>
       </div>
-    </>
+    </div>
   );
 }
 

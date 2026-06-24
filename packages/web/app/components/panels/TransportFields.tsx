@@ -39,7 +39,7 @@ export function StdioTransportFields({ server, onUpdate }: { server: McpServerCo
   if (transport.type !== 'stdio') return null;
 
   return (
-    <>
+    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-2">
       <div className="space-y-1">
         <Label>{t('fieldCommand')}</Label>
         <Input
@@ -58,7 +58,7 @@ export function StdioTransportFields({ server, onUpdate }: { server: McpServerCo
           placeholder="mcp-server --port 3001"
         />
       </div>
-    </>
+    </div>
   );
 }
 
