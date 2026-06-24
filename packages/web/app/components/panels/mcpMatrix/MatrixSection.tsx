@@ -6,12 +6,20 @@ import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
 import type { McpServerConfig } from '@/app/schemas/graph.schema';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { VariableValue } from '../VariableValuesEditor';
 import { McpMatrixRow } from './McpMatrixRow';
 import type { MatrixTenant } from './mcpMatrixModalLogic';
 
 type VariableMap = Record<string, VariableValue>;
+
+// Frozen-column widths (keep in sync with the grid template + sticky offsets) so
+// the scroll-fades sit in the variable region, not over the frozen columns.
+const TENANT_COL_PX = 200;
+const ACTION_COL_PX = 72;
+const GRID_GAP_PX = 1;
+const EDGE_THRESHOLD_PX = 1;
 
 export interface MatrixSectionProps {
   server: McpServerConfig;
@@ -56,7 +64,13 @@ function OAuthNote() {
   return <p className="text-xs text-muted-foreground">{t('oauthStatusOnly')}</p>;
 }
 
-function MatrixHeaderCells({ columns }: { columns: string[] }) {
+function MatrixHeaderCells({
+  columns,
+  statusRef,
+}: {
+  columns: string[];
+  statusRef: React.RefObject<HTMLDivElement | null>;
+}) {
   const t = useTranslations('mcpMatrix');
   return (
     <>
@@ -66,8 +80,77 @@ function MatrixHeaderCells({ columns }: { columns: string[] }) {
           {`{{${variable}}}`}
         </div>
       ))}
-      <div className={`${HEADER_CELL} ${HEADER_FROZEN_STATUS}`}>{t('statusColumn')}</div>
+      <div ref={statusRef} className={`${HEADER_CELL} ${HEADER_FROZEN_STATUS}`}>
+        {t('statusColumn')}
+      </div>
       <div className={`${HEADER_CELL} ${HEADER_FROZEN_ACTION} text-center`}>{t('actionColumn')}</div>
+    </>
+  );
+}
+
+interface ScrollFades {
+  showStart: boolean;
+  showEnd: boolean;
+  rightInset: number;
+}
+
+// Track horizontal scroll edges (so a fade shows only when there's more to scroll
+// that way) and measure the right frozen group so the end-fade stops at it.
+function useScrollFades(
+  scrollerRef: React.RefObject<HTMLDivElement | null>,
+  statusRef: React.RefObject<HTMLDivElement | null>,
+  columnCount: number
+): ScrollFades {
+  const [fades, setFades] = useState<ScrollFades>({
+    showStart: false,
+    showEnd: false,
+    rightInset: ACTION_COL_PX,
+  });
+  const update = useCallback(() => {
+    const el = scrollerRef.current;
+    if (el === null) return;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    const statusWidth = statusRef.current?.offsetWidth ?? 0;
+    setFades({
+      showStart: el.scrollLeft > EDGE_THRESHOLD_PX,
+      showEnd: el.scrollLeft < maxScroll - EDGE_THRESHOLD_PX,
+      rightInset: ACTION_COL_PX + GRID_GAP_PX + statusWidth + GRID_GAP_PX,
+    });
+  }, [scrollerRef, statusRef]);
+  useEffect(() => {
+    update();
+    const el = scrollerRef.current;
+    if (el === null) return undefined;
+    el.addEventListener('scroll', update, { passive: true });
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => {
+      el.removeEventListener('scroll', update);
+      observer.disconnect();
+    };
+  }, [update, columnCount]);
+  return fades;
+}
+
+const FADE_BASE = 'pointer-events-none absolute inset-y-0 z-[1] w-10';
+
+function FadeEdges({ fades }: { fades: ScrollFades }) {
+  return (
+    <>
+      {fades.showStart && (
+        <div
+          aria-hidden
+          style={{ left: TENANT_COL_PX }}
+          className={`${FADE_BASE} bg-gradient-to-r from-background to-transparent`}
+        />
+      )}
+      {fades.showEnd && (
+        <div
+          aria-hidden
+          style={{ right: fades.rightInset }}
+          className={`${FADE_BASE} bg-gradient-to-l from-background to-transparent`}
+        />
+      )}
     </>
   );
 }
@@ -80,15 +163,18 @@ function MatrixGrid(props: MatrixSectionProps) {
     // 72px + 1px gap). Wide matrices overflow and scroll with frozen columns.
     gridTemplateColumns: `200px repeat(${props.columns.length}, 220px) max-content 72px`,
   };
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const statusRef = useRef<HTMLDivElement>(null);
+  const fades = useScrollFades(scrollerRef, statusRef, props.columns.length);
   return (
     // Bordered/rounded wrapper sizes to content (centered when narrow, capped at
     // the container when wide). It must NOT enclose the sticky cells as their
     // scroll context — the inner overflow-x-auto is the scroll container, so the
     // grid stays overflow:visible and the frozen columns stick to the scroller.
-    <div className="mx-auto w-max max-w-full overflow-hidden rounded-md border">
-      <div data-native-scroll className="overflow-x-auto">
+    <div className="relative mx-auto w-max max-w-full overflow-hidden rounded-md border">
+      <div ref={scrollerRef} data-native-scroll className="overflow-x-auto">
         <div className="grid w-max gap-px bg-border text-xs" style={gridStyle}>
-          <MatrixHeaderCells columns={props.columns} />
+          <MatrixHeaderCells columns={props.columns} statusRef={statusRef} />
           {props.tenants.map((tenant) => (
             <McpMatrixRow
               key={tenant.id}
@@ -104,6 +190,7 @@ function MatrixGrid(props: MatrixSectionProps) {
           ))}
         </div>
       </div>
+      <FadeEdges fades={fades} />
     </div>
   );
 }
