@@ -4,15 +4,49 @@ import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useTranslations } from 'next-intl';
+import { useEffect, useState } from 'react';
+import { useDebouncedCallback } from 'use-debounce';
 
 import type { VariableValue } from '../VariableValuesEditor';
 import { EnvRefSelector } from '../VariableValuesEditor';
 import { isEnvRef, toggleCellMode } from './mcpMatrixCellLogic';
 
+// Persist on a trailing debounce so typing isn't round-tripped (and reset) per
+// keystroke; the input is locally controlled so it never flickers mid-type.
+const DEBOUNCE_MS = 800;
+
 export interface McpMatrixCellProps {
   value: VariableValue;
   envVars: OrgEnvVariableRow[];
   onChange: (value: VariableValue) => void;
+}
+
+interface DirectValueInputProps {
+  value: string;
+  placeholder: string;
+  onChange: (value: string) => void;
+}
+
+function DirectValueInput({ value, placeholder, onChange }: DirectValueInputProps) {
+  const [text, setText] = useState(value);
+  // Local state is authoritative while editing; re-sync only when the persisted
+  // value changes externally (switching tenants/cells, mode toggle, reset).
+  useEffect(() => {
+    setText(value);
+  }, [value]);
+  const debounced = useDebouncedCallback(onChange, DEBOUNCE_MS);
+  return (
+    <Input
+      value={text}
+      onChange={(e) => {
+        setText(e.target.value);
+        debounced(e.target.value);
+      }}
+      onBlur={() => debounced.flush()}
+      placeholder={placeholder}
+      className="text-sm"
+    />
+  );
 }
 
 interface CellModeToggleProps {
@@ -62,11 +96,10 @@ export function McpMatrixCell({ value, envVars, onChange }: McpMatrixCellProps) 
           onChange={(id) => onChange({ type: 'env_ref', envVariableId: id })}
         />
       ) : (
-        <Input
+        <DirectValueInput
           value={value.value ?? ''}
-          onChange={(e) => onChange({ type: 'direct', value: e.target.value })}
           placeholder={tLib('valuePlaceholder')}
-          className="text-sm"
+          onChange={(v) => onChange({ type: 'direct', value: v })}
         />
       )}
     </div>
