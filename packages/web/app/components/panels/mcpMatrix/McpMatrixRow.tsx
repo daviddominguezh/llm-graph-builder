@@ -46,7 +46,9 @@ const FROZEN_LEFT = 'sticky left-0 z-10 -mr-px border-r bg-background';
 // border-l + -ml-px carries the divider as a single line (the gap-line otherwise
 // scrolls under the pinned column).
 const FROZEN_STATUS = 'sticky right-[73px] z-10 -ml-px border-l bg-background';
-const FROZEN_ACTION = 'sticky right-0 z-10 bg-background';
+// Action's own border-l carries the Status↔Action divider so it can't be painted
+// over by variables scrolling under the gap; -ml-px swallows the adjacent gap.
+const FROZEN_ACTION = 'sticky right-0 z-10 -ml-px border-l bg-background';
 const CELL_PADDING = 'px-3 py-2.5';
 // Gap-as-border grid: every cell carries an opaque bg-popover so the grid
 // container's 1px gaps reveal bg-border as clean single grid lines, and the

@@ -36,7 +36,7 @@ const HEADER_FROZEN_LEFT = 'sticky left-0 z-20 -mr-px border-r bg-background';
 // Two frozen right columns: Status sits left of the 72px Action column, offset by
 // the Action width + the 1px grid gap (keep the 72px Action width in MatrixGrid in sync).
 const HEADER_FROZEN_STATUS = 'sticky right-[73px] z-20 -ml-px border-l bg-background';
-const HEADER_FROZEN_ACTION = 'sticky right-0 z-20 bg-background';
+const HEADER_FROZEN_ACTION = 'sticky right-0 z-20 -ml-px border-l bg-background';
 
 function LoadingBody() {
   return (
