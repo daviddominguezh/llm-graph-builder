@@ -21,7 +21,7 @@ export interface MatrixSectionProps {
   config: UseMcpTenantConfigsResult;
   statusFor: (tenantId: string) => ServerTenantStatus;
   valuesFor: (tenantId: string) => VariableMap;
-  onTest: () => void;
+  onTest: (tenantId: string) => void;
   onCellChange: (tenantId: string, variable: string, value: VariableValue) => void;
 }
 
@@ -80,10 +80,10 @@ function MatrixGrid(props: MatrixSectionProps) {
             columns={props.columns}
             values={props.valuesFor(tenant.id)}
             status={props.statusFor(tenant.id)}
-            verifying={props.config.verifyingFor(props.server.id)}
+            verifying={props.config.verifyingFor(props.server.id, tenant.id)}
             envVars={props.envVariables}
             onCellChange={(variable, value) => props.onCellChange(tenant.id, variable, value)}
-            onTest={props.onTest}
+            onTest={() => props.onTest(tenant.id)}
           />
         ))}
       </div>

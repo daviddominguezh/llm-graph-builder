@@ -5,6 +5,7 @@ import {
   getMcpTenantConfigAction,
   saveMcpTenantCellAction,
   verifyMcpTenantServerAction,
+  verifyMcpTenantTenantAction,
 } from '../actions/mcpTenantConfig';
 import type {
   McpTenantConfigRow,
@@ -20,6 +21,7 @@ import {
   cellKey,
   computeAggregateStatuses,
   computeTenantStatuses,
+  mergeDiscoveryRow,
   mergeDiscoveryRows,
   mergeSavedRow,
 } from '../lib/mcpTenantConfigState';
@@ -38,8 +40,9 @@ export interface UseMcpTenantConfigsResult {
   loading: boolean;
   saveCell: (serverId: string, tenantId: string, values: Record<string, VariableValue>) => Promise<void>;
   verifyServer: (serverId: string) => Promise<void>;
+  verifyTenant: (serverId: string, tenantId: string) => Promise<void>;
   verifyAll: () => Promise<void>;
-  verifyingFor: (serverId: string) => boolean;
+  verifyingFor: (serverId: string, tenantId: string) => boolean;
   statusFor: (serverId: string, tenantId: string) => ServerTenantStatus;
   aggregateFor: (serverId: string) => ServerAggregateStatus;
 }
@@ -56,6 +59,61 @@ export function useMcpTenantConfigs(args: UseMcpTenantConfigsArgs): UseMcpTenant
   useLoadBundle(agentId, setRows, setDiscovery, setLoading);
   useCellHashes(rows, setHashByCell);
 
+  const { statusFor, aggregateFor } = useStatuses({ servers, tenants, rows, discovery, envNameById, hashByCell });
+
+  const saveCell = useSaveCell(agentId, rows, setRows);
+  const verifyServer = useVerifyServer(agentId, tenants, setDiscovery, setVerifyingIds);
+  const verifyTenant = useVerifyTenant(agentId, setDiscovery, setVerifyingIds);
+  const verifyAll = useVerifyAll(servers, verifyServer);
+  const verifyingFor = useCallback(
+    (serverId: string, tenantId: string) => verifyingIds.has(cellKey(serverId, tenantId)),
+    [verifyingIds]
+  );
+
+  return {
+    rows,
+    discovery,
+    loading,
+    saveCell,
+    verifyServer,
+    verifyTenant,
+    verifyAll,
+    verifyingFor,
+    statusFor,
+    aggregateFor,
+  };
+}
+
+function withIds(set: ReadonlySet<string>, ids: string[]): ReadonlySet<string> {
+  const next = new Set(set);
+  for (const id of ids) next.add(id);
+  return next;
+}
+
+function withoutIds(set: ReadonlySet<string>, ids: string[]): ReadonlySet<string> {
+  const next = new Set(set);
+  for (const id of ids) next.delete(id);
+  return next;
+}
+
+function buildEnvNameById(envVariables: OrgEnvVariableRow[]): Record<string, string> {
+  return Object.fromEntries(envVariables.map((v) => [v.id, v.name]));
+}
+
+interface StatusArgs {
+  servers: ServerLike[];
+  tenants: string[];
+  rows: McpTenantConfigRow[];
+  discovery: McpTenantDiscoveryRow[];
+  envNameById: Record<string, string>;
+  hashByCell: Record<string, string>;
+}
+
+function useStatuses(args: StatusArgs): {
+  statusFor: (serverId: string, tenantId: string) => ServerTenantStatus;
+  aggregateFor: (serverId: string) => ServerAggregateStatus;
+} {
+  const { servers, tenants, rows, discovery, envNameById, hashByCell } = args;
   const statuses = useMemo(
     () => computeTenantStatuses({ servers, tenants, configs: rows, discovery, envNameById, hashByCell }),
     [servers, tenants, rows, discovery, envNameById, hashByCell]
@@ -64,35 +122,12 @@ export function useMcpTenantConfigs(args: UseMcpTenantConfigsArgs): UseMcpTenant
     () => computeAggregateStatuses(servers, tenants, statuses),
     [servers, tenants, statuses]
   );
-
-  const saveCell = useSaveCell(agentId, rows, setRows);
-  const verifyServer = useVerifyServer(agentId, setDiscovery, setVerifyingIds);
-  const verifyAll = useVerifyAll(servers, verifyServer);
-  const verifyingFor = useCallback((serverId: string) => verifyingIds.has(serverId), [verifyingIds]);
-
   const statusFor = useCallback(
     (serverId: string, tenantId: string) => statuses[cellKey(serverId, tenantId)] ?? 'pending',
     [statuses]
   );
   const aggregateFor = useCallback((serverId: string) => aggregate[serverId] ?? 'warning', [aggregate]);
-
-  return { rows, discovery, loading, saveCell, verifyServer, verifyAll, verifyingFor, statusFor, aggregateFor };
-}
-
-function withId(set: ReadonlySet<string>, id: string): ReadonlySet<string> {
-  const next = new Set(set);
-  next.add(id);
-  return next;
-}
-
-function withoutId(set: ReadonlySet<string>, id: string): ReadonlySet<string> {
-  const next = new Set(set);
-  next.delete(id);
-  return next;
-}
-
-function buildEnvNameById(envVariables: OrgEnvVariableRow[]): Record<string, string> {
-  return Object.fromEntries(envVariables.map((v) => [v.id, v.name]));
+  return { statusFor, aggregateFor };
 }
 
 function useLoadBundle(
@@ -178,17 +213,39 @@ function applySaveResult(
 
 function useVerifyServer(
   agentId: string,
+  tenants: string[],
   setDiscovery: React.Dispatch<React.SetStateAction<McpTenantDiscoveryRow[]>>,
   setVerifyingIds: React.Dispatch<React.SetStateAction<ReadonlySet<string>>>
 ): (serverId: string) => Promise<void> {
   return useCallback(
     async (serverId) => {
-      setVerifyingIds((prev) => withId(prev, serverId));
+      const keys = tenants.map((tenantId) => cellKey(serverId, tenantId));
+      setVerifyingIds((prev) => withIds(prev, keys));
       try {
         const { result } = await verifyMcpTenantServerAction(agentId, serverId);
         setDiscovery((prev) => mergeDiscoveryRows(prev, serverId, result));
       } finally {
-        setVerifyingIds((prev) => withoutId(prev, serverId));
+        setVerifyingIds((prev) => withoutIds(prev, keys));
+      }
+    },
+    [agentId, tenants, setDiscovery, setVerifyingIds]
+  );
+}
+
+function useVerifyTenant(
+  agentId: string,
+  setDiscovery: React.Dispatch<React.SetStateAction<McpTenantDiscoveryRow[]>>,
+  setVerifyingIds: React.Dispatch<React.SetStateAction<ReadonlySet<string>>>
+): (serverId: string, tenantId: string) => Promise<void> {
+  return useCallback(
+    async (serverId, tenantId) => {
+      const keys = [cellKey(serverId, tenantId)];
+      setVerifyingIds((prev) => withIds(prev, keys));
+      try {
+        const { result } = await verifyMcpTenantTenantAction(agentId, serverId, tenantId);
+        if (result !== null) setDiscovery((prev) => mergeDiscoveryRow(prev, result));
+      } finally {
+        setVerifyingIds((prev) => withoutIds(prev, keys));
       }
     },
     [agentId, setDiscovery, setVerifyingIds]

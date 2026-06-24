@@ -129,6 +129,10 @@ export function buildVerifyPath(agentId: string, serverId: string): string {
   return `${buildConfigPath(agentId)}/${encodeURIComponent(serverId)}/verify`;
 }
 
+export function buildTenantVerifyPath(agentId: string, serverId: string, tenantId: string): string {
+  return `${buildCellPath(agentId, serverId, tenantId)}/verify`;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
@@ -202,5 +206,25 @@ export async function verifyMcpTenantServer(
     return { result: data.rows, error: null };
   } catch (err) {
     return { result: [], error: extractError(err) };
+  }
+}
+
+function extractDiscoveryRow(data: unknown): McpTenantDiscoveryRow | null {
+  if (typeof data !== 'object' || data === null || !('row' in data)) return null;
+  return isMcpTenantDiscoveryRow(data.row) ? data.row : null;
+}
+
+export async function verifyMcpTenantTenant(
+  agentId: string,
+  serverId: string,
+  tenantId: string
+): Promise<{ result: McpTenantDiscoveryRow | null; error: string | null }> {
+  try {
+    const data = await fetchFromBackend('POST', buildTenantVerifyPath(agentId, serverId, tenantId));
+    const row = extractDiscoveryRow(data);
+    if (row === null) return { result: null, error: 'Invalid response' };
+    return { result: row, error: null };
+  } catch (err) {
+    return { result: null, error: extractError(err) };
   }
 }

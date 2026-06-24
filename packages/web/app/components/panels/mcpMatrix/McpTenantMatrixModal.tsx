@@ -94,7 +94,7 @@ function MatrixContent(props: McpTenantMatrixModalProps) {
             config={config}
             statusFor={(tenantId) => config.statusFor(server.id, tenantId)}
             valuesFor={(tenantId) => valuesForTenant(config.rows, server.id, tenantId)}
-            onTest={() => void config.verifyServer(server.id)}
+            onTest={(tenantId) => void config.verifyTenant(server.id, tenantId)}
             onCellChange={onCellChange}
           />
         </div>

@@ -12,6 +12,7 @@ import {
   getMcpTenantStatus as getMcpTenantStatusLib,
   saveMcpTenantCell as saveMcpTenantCellLib,
   verifyMcpTenantServer as verifyMcpTenantServerLib,
+  verifyMcpTenantTenant as verifyMcpTenantTenantLib,
 } from '@/app/lib/mcpTenantConfig';
 import { serverError, serverLog } from '@/app/lib/serverLogger';
 
@@ -48,5 +49,16 @@ export async function verifyMcpTenantServerAction(
   serverLog('[verifyMcpTenantServerAction] agentId:', agentId, 'serverId:', serverId);
   const res = await verifyMcpTenantServerLib(agentId, serverId);
   if (res.error !== null) serverError('[verifyMcpTenantServerAction] error:', res.error);
+  return res;
+}
+
+export async function verifyMcpTenantTenantAction(
+  agentId: string,
+  serverId: string,
+  tenantId: string
+): Promise<{ result: McpTenantDiscoveryRow | null; error: string | null }> {
+  serverLog('[verifyMcpTenantTenantAction] agentId:', agentId, 'serverId:', serverId, 'tenantId:', tenantId);
+  const res = await verifyMcpTenantTenantLib(agentId, serverId, tenantId);
+  if (res.error !== null) serverError('[verifyMcpTenantTenantAction] error:', res.error);
   return res;
 }
