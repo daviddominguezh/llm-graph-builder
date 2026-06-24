@@ -114,7 +114,7 @@ function ServerTile({
         ) : (
           <AggregateStatusIcon status={aggregate} />
         )}
-        <span className="truncate">{server.name}</span>
+        <span className="truncate cursor-default">{server.name}</span>
         {noVersion && <NoServerVersionBadge />}
       </span>
       <div className="flex items-center gap-1">
@@ -147,7 +147,7 @@ export function McpServerRow(props: McpServerRowProps) {
   const [matrixOpen, setMatrixOpen] = useState(false);
 
   return (
-    <li className="rounded-md border-[0.5px] bg-background px-3 py-2 dark:border-0">
+    <li className="bg-background py-2 border-b">
       <ServerTile
         server={props.server}
         aggregate={props.aggregate}

@@ -78,7 +78,7 @@ export function McpServersSection(props: McpServersSectionProps) {
   return (
     <div className="mt-2">
       <SectionHeader onOpenLibrary={props.onOpenLibrary} onAdd={props.onAdd} />
-      <ul className="space-y-2">
+      <ul className="space-y-2 pl-2">
         {sorted.map((server) => (
           <McpServerRow
             key={server.id}
