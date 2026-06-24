@@ -89,7 +89,6 @@ function DefinitionHeader({ open, onToggle }: DefinitionHeaderProps) {
 }
 
 function DefinitionSection(props: McpTenantMatrixModalProps) {
-  const t = useTranslations('mcpMatrix');
   const [open, setOpen] = useState(false);
   return (
     <section className="flex flex-col">
@@ -103,7 +102,6 @@ function DefinitionSection(props: McpTenantMatrixModalProps) {
       >
         <div className="overflow-hidden">
           <div className="flex flex-col gap-2 pt-2">
-            <p className="text-xs text-muted-foreground">{t('definitionHelp')}</p>
             <ServerDefinitionFields
               server={props.server}
               envVariables={props.envVariables}

@@ -26,7 +26,7 @@ function KeyValueSection({ label, entries }: { label: string; entries: Array<[st
   return (
     <div className="space-y-1">
       <Label className="text-xs">{label}</Label>
-      <div className="flex flex-col gap-0.5 font-mono text-xs">
+      <div className="flex flex-col gap-0.5 font-mono text-xs pl-2">
         {entries.map(([key, value]) => (
           <div key={key} className="flex gap-1.5">
             <span className="text-muted-foreground">{key}:</span>
@@ -43,7 +43,7 @@ function InlineScalars({ transport, name }: { transport: McpServerConfig['transp
   if (transport.type === 'stdio') {
     const args = transport.args ?? [];
     return (
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs pl-2">
         <InlineField label={t('fieldName')} value={name} />
         <InlineField label={t('fieldCommand')} value={transport.command} />
         {args.length > 0 && <InlineField label={t('fieldArguments')} value={args.join(' ')} />}
@@ -52,7 +52,7 @@ function InlineScalars({ transport, name }: { transport: McpServerConfig['transp
   }
 
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs pl-2">
       <InlineField label={t('fieldName')} value={name} />
       <InlineField label={t('fieldUrl')} value={transport.url} />
     </div>
@@ -78,8 +78,11 @@ export function LibraryServerFields({ server, authType, oauthConnected }: Librar
   const env = transport.type === 'stdio' ? Object.entries(transport.env ?? {}) : [];
 
   return (
-    <div className="flex flex-col gap-2 border-l pl-3">
-      <InlineScalars transport={transport} name={server.name} />
+    <div className="flex flex-col gap-2 border-l pl-3 ml-5">
+      <div className="flex flex-col space-y-1">
+        <Label className="text-xs">{t('mcpBasic')}</Label>
+        <InlineScalars transport={transport} name={server.name} />
+      </div>
       <KeyValueSection label={t('fieldHeaders')} entries={headers} />
       <KeyValueSection label={t('fieldEnvironment')} entries={env} />
       {authType === 'oauth' && <OAuthStatus connected={oauthConnected ?? false} />}
