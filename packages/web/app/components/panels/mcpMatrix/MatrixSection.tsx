@@ -80,7 +80,7 @@ function MatrixHeaderCells({
           {`{{${variable}}}`}
         </div>
       ))}
-      <div ref={statusRef} className={`${HEADER_CELL} ${HEADER_FROZEN_STATUS}`}>
+      <div ref={statusRef} className={`${HEADER_CELL} ${HEADER_FROZEN_STATUS} text-center`}>
         {t('statusColumn')}
       </div>
       <div className={`${HEADER_CELL} ${HEADER_FROZEN_ACTION} text-center`}>{t('actionColumn')}</div>
@@ -162,23 +162,23 @@ function FadeEdges({ fades }: { fades: ScrollFades }) {
 
 function MatrixGrid(props: MatrixSectionProps) {
   const gridStyle = {
-    // Size to content (w-max) so few-variable matrices don't stretch to full
-    // width with an empty filler cell. Status sizes to content; Action is a fixed
-    // 72px holding the reload button (HEADER_FROZEN_STATUS's right-[73px] =
-    // 72px + 1px gap). Wide matrices overflow and scroll with frozen columns.
-    gridTemplateColumns: `200px repeat(${props.columns.length}, 220px) max-content 72px`,
+    // Tenant grows to fill available width (minmax 1fr) so few-variable matrices
+    // don't leave an empty filler cell; it collapses to its 200px min when the
+    // grid overflows. Status sizes to content; Action is a fixed 72px holding the
+    // reload button (HEADER_FROZEN_STATUS's right-[73px] = 72px + 1px gap). Wide
+    // matrices overflow and scroll with the frozen columns.
+    gridTemplateColumns: `minmax(${TENANT_COL_PX}px, 1fr) repeat(${props.columns.length}, 220px) max-content ${ACTION_COL_PX}px`,
   };
   const scrollerRef = useRef<HTMLDivElement>(null);
   const statusRef = useRef<HTMLDivElement>(null);
   const fades = useScrollFades(scrollerRef, statusRef, props.columns.length);
   return (
-    // Bordered/rounded wrapper sizes to content (centered when narrow, capped at
-    // the container when wide). It must NOT enclose the sticky cells as their
-    // scroll context — the inner overflow-x-auto is the scroll container, so the
-    // grid stays overflow:visible and the frozen columns stick to the scroller.
-    <div className="relative mx-auto w-max max-w-full overflow-hidden rounded-md border">
+    // Full-width bordered/rounded wrapper. It must NOT enclose the sticky cells as
+    // their scroll context — the inner overflow-x-auto is the scroll container, so
+    // the grid stays overflow:visible and the frozen columns stick to the scroller.
+    <div className="relative w-full overflow-hidden rounded-md border">
       <div ref={scrollerRef} data-native-scroll className="overflow-x-auto overscroll-x-none">
-        <div className="grid w-max gap-px bg-border text-xs" style={gridStyle}>
+        <div className="grid min-w-full gap-px bg-border text-xs" style={gridStyle}>
           <MatrixHeaderCells columns={props.columns} statusRef={statusRef} />
           {props.tenants.map((tenant) => (
             <McpMatrixRow
