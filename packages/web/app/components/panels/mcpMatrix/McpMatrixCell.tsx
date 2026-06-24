@@ -47,7 +47,7 @@ export function McpMatrixCell({ value, envVars, onChange }: McpMatrixCellProps) 
   const useEnvRef = isEnvRef(value);
 
   return (
-    <div className="flex w-full flex-col gap-1">
+    <div className="flex w-full flex-col gap-2">
       <CellModeToggle
         useEnvRef={useEnvRef}
         directLabel={t('directModeShort')}

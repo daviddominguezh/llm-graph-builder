@@ -37,7 +37,7 @@ const DEFAULT_VALUE: VariableValue = { type: 'direct', value: '' };
 const FROZEN_LEFT = 'sticky left-0 z-10 bg-popover';
 // Sticky frozen last column (Status).
 const FROZEN_RIGHT = 'sticky right-0 z-10 bg-popover';
-const CELL_PADDING = 'px-2 py-1.5';
+const CELL_PADDING = 'px-3 py-2.5';
 // Gap-as-border grid: every cell carries an opaque bg-popover so the grid
 // container's 1px gaps reveal bg-border as clean single grid lines, and the
 // container's single rounded border frames the whole matrix.
@@ -70,27 +70,27 @@ function StatusCell({ status, verifying, onTest }: StatusCellProps) {
   const t = useTranslations('mcpMatrix');
   const { labelKey, iconKind, colorClassName } = describeRowStatus(status);
   return (
-    <div className={`${FROZEN_RIGHT} ${CELL_PADDING} flex items-center justify-center gap-1.5`}>
-      <span className="flex items-center gap-1 text-[0.625rem] text-muted-foreground">
-        <RowStatusIcon kind={iconKind} className={colorClassName} />
-        {t(labelKey)}
-      </span>
+    <div className={`${FROZEN_RIGHT} ${CELL_PADDING} flex items-center gap-1.5`}>
       <Tooltip>
         <TooltipTrigger
           render={
             <Button
               variant="default"
-              size="icon-sm"
+              size="icon-xs"
               aria-label={t('test')}
               disabled={verifying}
               onClick={onTest}
             />
           }
         >
-          {verifying ? <Loader2 className="size-3 animate-spin" /> : <RotateCw className="size-3" />}
+          {verifying ? <Loader2 className="size-2.5 animate-spin" /> : <RotateCw className="size-2.5" />}
         </TooltipTrigger>
         <TooltipContent side="top">{t('testHint')}</TooltipContent>
       </Tooltip>
+      <span className="flex items-center gap-1 text-[0.625rem] text-muted-foreground">
+        <RowStatusIcon kind={iconKind} className={colorClassName} />
+        {t(labelKey)}
+      </span>
     </div>
   );
 }

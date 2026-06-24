@@ -28,7 +28,7 @@ export interface MatrixSectionProps {
 // Header cells share the muted/semibold look. Opaque bg-popover so the grid's
 // 1px gaps render as bg-border lines. Frozen header cells use z-20 so they stay
 // above the body's z-10 sticky cells when scrolled.
-const HEADER_CELL = 'px-2 py-1.5 bg-popover font-semibold text-muted-foreground';
+const HEADER_CELL = 'px-3 py-2.5 bg-popover font-semibold text-muted-foreground';
 const HEADER_FROZEN_LEFT = 'sticky left-0 z-20 bg-popover';
 const HEADER_FROZEN_RIGHT = 'sticky right-0 z-20 bg-popover';
 
