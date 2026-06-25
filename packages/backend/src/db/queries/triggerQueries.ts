@@ -86,6 +86,9 @@ export async function getTriggerById(
 }
 
 export interface InsertTriggerParams {
+  /** App-generated UUID so jitter can be seeded before the (single) insert. When
+   *  omitted, the DB column default generates one. */
+  id?: string;
   agentId: string;
   tenantId: string;
   orgId: string;
@@ -111,24 +114,31 @@ function flattenSchedule(schedule: TriggerSchedule): FlatSchedule {
   return { mode: 'after-event', recurring: null, once_datetime: null };
 }
 
+function buildInsertRow(params: InsertTriggerParams): Record<string, unknown> {
+  const flat = flattenSchedule(params.schedule);
+  const row: Record<string, unknown> = {
+    agent_id: params.agentId,
+    tenant_id: params.tenantId,
+    org_id: params.orgId,
+    mode: flat.mode,
+    recurring: flat.recurring,
+    once_datetime: flat.once_datetime,
+    initial_message: params.initialMessage,
+    next_run_at: mapNextRunAt(params.nextRunAt),
+    armed_task_epoch: params.armedTaskEpoch,
+  };
+  const { id } = params;
+  if (id !== undefined) row.id = id;
+  return row;
+}
+
 export async function insertTrigger(
   supabase: SupabaseClient,
   params: InsertTriggerParams
 ): Promise<{ result: TriggerRow | null; error: string | null }> {
-  const flat = flattenSchedule(params.schedule);
   const { data, error } = await supabase
     .from('agent_triggers')
-    .insert({
-      agent_id: params.agentId,
-      tenant_id: params.tenantId,
-      org_id: params.orgId,
-      mode: flat.mode,
-      recurring: flat.recurring,
-      once_datetime: flat.once_datetime,
-      initial_message: params.initialMessage,
-      next_run_at: mapNextRunAt(params.nextRunAt),
-      armed_task_epoch: params.armedTaskEpoch,
-    })
+    .insert(buildInsertRow(params))
     .select(TRIGGER_COLUMNS)
     .single();
   if (error !== null) return { result: null, error: error.message };
