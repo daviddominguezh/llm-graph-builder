@@ -115,6 +115,7 @@ const SYSTEM_PUBLIC_UNAUTHED = [
   '/api/chat/latest-version/:tenantSlug/:agentSlug',
   '/internal/embed',
   '/internal/regex/validate',
+  '/internal/triggers/fire',
   // Messaging webhook routes (signature-verified, not JWT)
   '/whatsapp/webhook',
   '/instagram/webhook',
