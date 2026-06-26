@@ -150,7 +150,9 @@ function TabContent({ activeTab, props }: { activeTab: TabId; props: EditorTabsP
       className={`flex flex-col bg-background overflow-hidden ${activeTab === 'agent' ? 'hidden' : 'flex-1'}`}
     >
       {activeTab === 'channels' && <ChannelsPanel orgId={props.orgId} agentId={props.agentId} />}
-      {activeTab === 'triggers' && <TriggersPanel orgId={props.orgId} orgSlug={props.orgSlug} />}
+      {activeTab === 'triggers' && (
+        <TriggersPanel orgId={props.orgId} orgSlug={props.orgSlug} agentId={props.agentId} />
+      )}
       {activeTab === 'data' && (
         <div className="mx-auto w-full max-w-lg flex flex-col gap-6 p-6">
           <div ref={dataPortalRef} className="flex flex-col gap-4" />

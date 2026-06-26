@@ -1,64 +1,112 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import {
+  createTriggerAction,
+  deleteTriggerAction,
+  listTriggersAction,
+  setTriggerEnabledAction,
+} from '@/app/actions/triggers';
+import type { TriggerRow } from '@/app/lib/triggers';
+import { useCallback, useEffect, useState } from 'react';
 
-import type { Trigger, TriggerFormState } from './types';
+import type { TriggerFormState } from './types';
 
 export interface UseTriggersResult {
-  triggers: Trigger[];
-  addTrigger: (form: TriggerFormState) => void;
-  updateTrigger: (id: string, form: TriggerFormState) => void;
-  deleteTrigger: (id: string) => void;
+  triggers: TriggerRow[];
+  loading: boolean;
+  error: string | null;
+  addTrigger: (form: TriggerFormState) => Promise<void>;
+  deleteTrigger: (id: string) => Promise<void>;
+  setEnabled: (id: string, enabled: boolean) => Promise<void>;
 }
 
-type TriggersByTenant = Record<string, Trigger[]>;
-
-function withAdded(prev: TriggersByTenant, tenantId: string, form: TriggerFormState): TriggersByTenant {
-  const next: Trigger = { ...form, id: crypto.randomUUID() };
-  return { ...prev, [tenantId]: [...(prev[tenantId] ?? []), next] };
+interface LoadState {
+  triggers: TriggerRow[];
+  loading: boolean;
+  error: string | null;
 }
 
-function withUpdated(
-  prev: TriggersByTenant,
+const INITIAL_STATE: LoadState = { triggers: [], loading: true, error: null };
+
+function useTriggersLoad(agentId: string, tenantId: string, setState: (s: LoadState) => void): void {
+  useEffect(() => {
+    if (agentId === '' || tenantId === '') {
+      setState({ triggers: [], loading: false, error: null });
+      return undefined;
+    }
+    let cancelled = false;
+    setState({ triggers: [], loading: true, error: null });
+    void listTriggersAction(agentId, tenantId).then(({ result, error }) => {
+      if (cancelled) return;
+      setState({ triggers: result, loading: false, error });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [agentId, tenantId, setState]);
+}
+
+function useAddTrigger(
+  agentId: string,
   tenantId: string,
-  id: string,
-  form: TriggerFormState
-): TriggersByTenant {
-  const list = prev[tenantId] ?? [];
-  return { ...prev, [tenantId]: list.map((t) => (t.id === id ? { ...form, id } : t)) };
+  setState: React.Dispatch<React.SetStateAction<LoadState>>
+) {
+  return useCallback(
+    async (form: TriggerFormState) => {
+      if (agentId === '' || tenantId === '') return;
+      const { result } = await createTriggerAction(agentId, tenantId, form);
+      if (result === null) return;
+      setState((prev) => ({ ...prev, triggers: [...prev.triggers, result] }));
+    },
+    [agentId, tenantId, setState]
+  );
 }
 
-function withRemoved(prev: TriggersByTenant, tenantId: string, id: string): TriggersByTenant {
-  const list = prev[tenantId] ?? [];
-  return { ...prev, [tenantId]: list.filter((t) => t.id !== id) };
+function useDeleteTrigger(agentId: string, setState: React.Dispatch<React.SetStateAction<LoadState>>) {
+  return useCallback(
+    async (id: string) => {
+      if (agentId === '') return;
+      const { error } = await deleteTriggerAction(agentId, id);
+      if (error !== null) return;
+      setState((prev) => ({ ...prev, triggers: prev.triggers.filter((t) => t.id !== id) }));
+    },
+    [agentId, setState]
+  );
 }
 
-export function useTriggers(tenantId: string): UseTriggersResult {
-  const [byTenant, setByTenant] = useState<TriggersByTenant>({});
+function setEnabledLocally(triggers: TriggerRow[], id: string, enabled: boolean): TriggerRow[] {
+  return triggers.map((t) => (t.id === id ? { ...t, enabled } : t));
+}
 
-  const addTrigger = useCallback(
-    (form: TriggerFormState) => {
-      if (tenantId === '') return;
-      setByTenant((prev) => withAdded(prev, tenantId, form));
+function useSetEnabled(agentId: string, setState: React.Dispatch<React.SetStateAction<LoadState>>) {
+  return useCallback(
+    async (id: string, enabled: boolean) => {
+      if (agentId === '') return;
+      setState((prev) => ({ ...prev, triggers: setEnabledLocally(prev.triggers, id, enabled) }));
+      const { error } = await setTriggerEnabledAction(agentId, id, enabled);
+      if (error === null) return;
+      setState((prev) => ({ ...prev, triggers: setEnabledLocally(prev.triggers, id, !enabled) }));
     },
-    [tenantId]
+    [agentId, setState]
   );
+}
 
-  const updateTrigger = useCallback(
-    (id: string, form: TriggerFormState) => {
-      if (tenantId === '') return;
-      setByTenant((prev) => withUpdated(prev, tenantId, id, form));
-    },
-    [tenantId]
-  );
+export function useTriggers(agentId: string, tenantId: string): UseTriggersResult {
+  const [state, setState] = useState<LoadState>(INITIAL_STATE);
+  const setLoad = useCallback((s: LoadState) => setState(s), []);
 
-  const deleteTrigger = useCallback(
-    (id: string) => {
-      if (tenantId === '') return;
-      setByTenant((prev) => withRemoved(prev, tenantId, id));
-    },
-    [tenantId]
-  );
+  useTriggersLoad(agentId, tenantId, setLoad);
 
-  return { triggers: byTenant[tenantId] ?? [], addTrigger, updateTrigger, deleteTrigger };
+  const addTrigger = useAddTrigger(agentId, tenantId, setState);
+  const deleteTrigger = useDeleteTrigger(agentId, setState);
+  const setEnabled = useSetEnabled(agentId, setState);
+
+  return {
+    triggers: state.triggers,
+    loading: state.loading,
+    error: state.error,
+    addTrigger,
+    deleteTrigger,
+    setEnabled,
+  };
 }

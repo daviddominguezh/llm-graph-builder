@@ -10,13 +10,14 @@ import { useEffect, useState } from 'react';
 
 import { TriggerFormDialog } from './TriggerFormDialog';
 import { TriggersListView } from './TriggersListView';
-import type { Trigger, TriggerFormState } from './types';
+import type { TriggerFormState } from './types';
 import { DEFAULT_TRIGGER_STATE } from './types';
 import { useTriggers } from './useTriggers';
 
 interface TriggersPanelProps {
   orgId: string;
   orgSlug: string;
+  agentId: string;
 }
 
 interface TenantsData {
@@ -29,7 +30,7 @@ const INITIAL_TENANTS: TenantsData = { tenants: [], loading: true, error: null }
 const EMPTY_LIST = 0;
 const FIRST_INDEX = 0;
 
-type EditingState = { mode: 'add' } | { mode: 'edit'; id: string };
+type EditingState = { mode: 'add' };
 
 interface TenantsState {
   forOrgId: string;
@@ -72,9 +73,7 @@ function LoadingState() {
 
 function ErrorState() {
   const t = useTranslations('editor.triggers.picker');
-  return (
-    <div className="flex flex-1 items-center justify-center text-xs text-destructive">{t('error')}</div>
-  );
+  return <div className="flex flex-1 items-center justify-center text-xs text-destructive">{t('error')}</div>;
 }
 
 function EmptyTenantsState({ orgSlug }: { orgSlug: string }) {
@@ -92,50 +91,58 @@ function EmptyTenantsState({ orgSlug }: { orgSlug: string }) {
   );
 }
 
-function stripId(trigger: Trigger): TriggerFormState {
-  return {
-    mode: trigger.mode,
-    recurring: trigger.recurring,
-    onceDateTime: trigger.onceDateTime,
-    initialMessage: trigger.initialMessage,
-  };
+function ListLoadingState() {
+  const t = useTranslations('editor.triggers');
+  return (
+    <div className="flex flex-1 items-center justify-center gap-1.5 text-xs text-muted-foreground">
+      <Loader2 className="size-3.5 animate-spin" />
+      <span>{t('listLoading')}</span>
+    </div>
+  );
 }
 
-function getInitialForm(editing: EditingState, triggers: Trigger[]): TriggerFormState {
-  if (editing.mode === 'add') return DEFAULT_TRIGGER_STATE;
-  const target = triggers.find((t) => t.id === editing.id);
-  return target ? stripId(target) : DEFAULT_TRIGGER_STATE;
+function ListErrorState() {
+  const t = useTranslations('editor.triggers');
+  return (
+    <div className="flex flex-1 items-center justify-center text-xs text-destructive">{t('listError')}</div>
+  );
 }
 
 interface BodyProps {
+  agentId: string;
   tenants: TenantRow[];
   tenantId: string;
   setTenantId: (id: string) => void;
 }
 
-function PanelBody({ tenants, tenantId, setTenantId }: BodyProps) {
-  const { triggers, addTrigger, updateTrigger, deleteTrigger } = useTriggers(tenantId);
+function PanelBody({ agentId, tenants, tenantId, setTenantId }: BodyProps) {
+  const { triggers, loading, error, addTrigger, deleteTrigger, setEnabled } = useTriggers(agentId, tenantId);
   const [editing, setEditing] = useState<EditingState | null>(null);
 
   const handleSave = (form: TriggerFormState) => {
-    if (editing?.mode === 'add') addTrigger(form);
-    else if (editing?.mode === 'edit') updateTrigger(editing.id, form);
+    void addTrigger(form);
     setEditing(null);
   };
 
   return (
     <div className="flex flex-1 overflow-hidden">
       <TenantSidebar tenants={tenants} currentTenantId={tenantId} onSelect={setTenantId} />
-      <TriggersListView
-        triggers={triggers}
-        onAdd={() => setEditing({ mode: 'add' })}
-        onEdit={(id) => setEditing({ mode: 'edit', id })}
-        onDelete={deleteTrigger}
-      />
+      {loading ? (
+        <ListLoadingState />
+      ) : error !== null ? (
+        <ListErrorState />
+      ) : (
+        <TriggersListView
+          triggers={triggers}
+          onAdd={() => setEditing({ mode: 'add' })}
+          onSetEnabled={(id, enabled) => void setEnabled(id, enabled)}
+          onDelete={(id) => void deleteTrigger(id)}
+        />
+      )}
       <TriggerFormDialog
         open={editing !== null}
-        isEdit={editing?.mode === 'edit'}
-        initial={editing ? getInitialForm(editing, triggers) : DEFAULT_TRIGGER_STATE}
+        isEdit={false}
+        initial={DEFAULT_TRIGGER_STATE}
         onOpenChange={(open) => !open && setEditing(null)}
         onSave={handleSave}
       />
@@ -143,7 +150,7 @@ function PanelBody({ tenants, tenantId, setTenantId }: BodyProps) {
   );
 }
 
-export function TriggersPanel({ orgId, orgSlug }: TriggersPanelProps) {
+export function TriggersPanel({ orgId, orgSlug, agentId }: TriggersPanelProps) {
   const [tenantId, setTenantId] = useState<string>('');
   const { tenants, loading, error } = useTenants(orgId);
   useDefaultTenant(tenants, tenantId, setTenantId);
@@ -152,5 +159,5 @@ export function TriggersPanel({ orgId, orgSlug }: TriggersPanelProps) {
   if (error !== null) return <ErrorState />;
   if (tenants.length === EMPTY_LIST) return <EmptyTenantsState orgSlug={orgSlug} />;
 
-  return <PanelBody tenants={tenants} tenantId={tenantId} setTenantId={setTenantId} />;
+  return <PanelBody agentId={agentId} tenants={tenants} tenantId={tenantId} setTenantId={setTenantId} />;
 }

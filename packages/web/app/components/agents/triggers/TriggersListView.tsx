@@ -1,25 +1,18 @@
 'use client';
 
 import { Scrollable } from '@/app/components/Scrollable';
+import type { TriggerRow as WireTriggerRow } from '@/app/lib/triggers';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { TriggerRow } from './TriggerRow';
-import type { Trigger } from './types';
 
 interface TriggersListViewProps {
-  triggers: Trigger[];
+  triggers: WireTriggerRow[];
   onAdd: () => void;
-  onEdit: (id: string) => void;
+  onSetEnabled: (id: string, enabled: boolean) => void;
   onDelete: (id: string) => void;
 }
 
@@ -29,9 +22,7 @@ function ListCardHeader({ count, onAdd }: { count: number; onAdd: () => void }) 
     <CardHeader>
       <CardTitle className="flex items-center">
         {t('title')}
-        {count > 0 && (
-          <span className="ml-2 text-[10px] font-normal text-muted-foreground">{count}</span>
-        )}
+        {count > 0 && <span className="ml-2 text-[10px] font-normal text-muted-foreground">{count}</span>}
       </CardTitle>
       <CardDescription>{t('description')}</CardDescription>
       <CardAction>
@@ -59,14 +50,14 @@ function EmptyList({ onAdd }: { onAdd: () => void }) {
   );
 }
 
-function TriggersList({ triggers, onEdit, onDelete }: Omit<TriggersListViewProps, 'onAdd'>) {
+function TriggersList({ triggers, onSetEnabled, onDelete }: Omit<TriggersListViewProps, 'onAdd'>) {
   return (
     <div className="flex flex-col gap-2">
       {triggers.map((trigger) => (
         <TriggerRow
           key={trigger.id}
           trigger={trigger}
-          onClick={() => onEdit(trigger.id)}
+          onSetEnabled={(enabled) => onSetEnabled(trigger.id, enabled)}
           onDelete={() => onDelete(trigger.id)}
         />
       ))}
@@ -86,7 +77,7 @@ export function TriggersListView(props: TriggersListViewProps) {
             ) : (
               <TriggersList
                 triggers={props.triggers}
-                onEdit={props.onEdit}
+                onSetEnabled={props.onSetEnabled}
                 onDelete={props.onDelete}
               />
             )}

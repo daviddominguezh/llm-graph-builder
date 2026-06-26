@@ -1,55 +1,60 @@
 'use client';
 
+import type { TriggerRow as WireTriggerRow } from '@/app/lib/triggers';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import dayjs from 'dayjs';
 import { Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { computeNextRun } from './nextRun';
-import type { Trigger } from './types';
-
 const NEXT_FORMAT = 'ddd, MMM D · h:mm A';
 
 interface TriggerRowProps {
-  trigger: Trigger;
-  onClick: () => void;
+  trigger: WireTriggerRow;
+  onSetEnabled: (enabled: boolean) => void;
   onDelete: () => void;
 }
 
-function useSubtitle(trigger: Trigger): string {
+function useSubtitle(trigger: WireTriggerRow): string {
   const t = useTranslations('editor.triggers');
-  if (trigger.mode === 'after-event') return t('previewAfterEvent');
-  const next = computeNextRun(trigger, dayjs());
-  if (!next) return t('previewNone');
-  return next.locale('en').format(NEXT_FORMAT);
+  if (!trigger.enabled) return t('paused');
+  if (trigger.next_run_at === null) return t('previewNone');
+  return dayjs(trigger.next_run_at).locale('en').format(NEXT_FORMAT);
 }
 
-export function TriggerRow({ trigger, onClick, onDelete }: TriggerRowProps) {
+function RowMeta({ trigger }: { trigger: WireTriggerRow }) {
   const t = useTranslations('editor.triggers');
   const subtitle = useSubtitle(trigger);
-  const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onDelete();
-  };
   return (
-    <div className="group relative">
-      <button
-        type="button"
-        onClick={onClick}
-        className="flex w-full items-center gap-3 rounded-md border px-3 py-2 text-left transition-colors hover:bg-muted/30 cursor-pointer"
-      >
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="text-xs font-medium">{t(`summaryMode.${trigger.mode}`)}</span>
-          <span className="text-[11px] tabular-nums text-muted-foreground">{subtitle}</span>
-        </div>
-      </button>
+    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+      <span className="text-xs font-medium">{t(`summaryMode.${trigger.mode}`)}</span>
+      <span className="text-[11px] tabular-nums text-muted-foreground">{subtitle}</span>
+      {trigger.last_status !== null && (
+        <span className="text-[10px] text-muted-foreground/70">{trigger.last_status}</span>
+      )}
+    </div>
+  );
+}
+
+export function TriggerRow({ trigger, onSetEnabled, onDelete }: TriggerRowProps) {
+  const t = useTranslations('editor.triggers');
+  const switchLabel = trigger.enabled ? t('disableTrigger') : t('enableTrigger');
+  return (
+    <div className="group relative flex w-full items-center gap-3 rounded-md border px-3 py-2">
+      <RowMeta trigger={trigger} />
+      <Switch
+        checked={trigger.enabled}
+        onCheckedChange={(v) => onSetEnabled(v)}
+        aria-label={switchLabel}
+        title={trigger.enabled ? t('enabledLabel') : t('paused')}
+      />
       <Button
         type="button"
         variant="ghost"
         size="icon-sm"
-        onClick={handleDelete}
+        onClick={onDelete}
         aria-label={t('delete')}
-        className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100"
+        className="opacity-0 transition-opacity group-hover:opacity-100"
       >
         <Trash2 className="size-3.5" />
       </Button>
