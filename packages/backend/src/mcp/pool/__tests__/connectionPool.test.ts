@@ -45,7 +45,9 @@ describe('connectionPool borrow/return', () => {
     pool.release(key);
     pool.release(key);
   });
+});
 
+describe('connectionPool connect failure', () => {
   it('clears the connecting promise on failure so a later borrow retries', async () => {
     const pool = createConnectionPool();
     const connect = jest
@@ -66,13 +68,15 @@ describe('connectionPool borrow/return', () => {
     const key = buildPoolKey({ agentId: 'a', tenantId: 't', mcpBindingId: 'b' });
     await expect(pool.borrow(key, connect)).rejects.toThrow('boom');
     const orphan = pool.entries().get(key);
-    if (orphan !== undefined) {
-      expect(orphan.borrows).toBe(EXPECT_ZERO_BORROWS);
-    } else {
+    if (orphan === undefined) {
       expect(pool.has(key)).toBe(false);
+    } else {
+      expect(orphan.borrows).toBe(EXPECT_ZERO_BORROWS);
     }
   });
+});
 
+describe('connectionPool warm reuse', () => {
   it('reuses the warm handle on a second borrow without reconnecting', async () => {
     const pool = createConnectionPool();
     const connect = jest.fn<() => Promise<McpClientHandle>>(async () => await Promise.resolve(fakeHandle()));
