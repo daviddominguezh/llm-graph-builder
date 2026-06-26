@@ -348,7 +348,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 **Interfaces:**
 - `export type DeepReadonly<T>` (recursive readonly).
 - `export type ExecutionType = 'agent' | 'workflow';` (mirrors prod `appType`).
-- `export const MAX_DISPATCH_DEPTH = 10;` and `export const MAX_CHILD_RUNTIME_MS = 60 * 60 * 1000;`
+- `export const MAX_DISPATCH_DEPTH = 3;` and `export const MAX_CHILD_RUNTIME_MS = 60 * 60 * 1000;`
 - `export interface RuntimeBase { orgId; tenantId; userId; agentId; executionType: ExecutionType; selectedTools; mcpServers; dispatchDepth; maxDispatchDepth; maxChildRuntimeMs }`.
 - `export type RuntimeInput` and `export type RuntimeOutput` (env unions; both carry `executionType`).
 
@@ -364,8 +364,8 @@ import type { DeepReadonly, ExecutionType, RuntimeOutput } from '../types.js';
 import { MAX_CHILD_RUNTIME_MS, MAX_DISPATCH_DEPTH } from '../types.js';
 
 describe('runtime constants', () => {
-  it('match both runtimes today', () => {
-    expect(MAX_DISPATCH_DEPTH).toBe(10);
+  it('is the single configurable dispatch cap, default 3', () => {
+    expect(MAX_DISPATCH_DEPTH).toBe(3);
     expect(MAX_CHILD_RUNTIME_MS).toBe(3600000);
   });
 });
@@ -408,7 +408,7 @@ export type DeepReadonly<T> = T extends (infer U)[]
 
 export type ExecutionType = 'agent' | 'workflow';
 
-export const MAX_DISPATCH_DEPTH = 10;
+export const MAX_DISPATCH_DEPTH = 3;
 export const MAX_CHILD_RUNTIME_MS = 60 * 60 * 1000;
 
 export interface ToolRef {

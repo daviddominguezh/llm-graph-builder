@@ -13,7 +13,7 @@ The original design assumed a single-shot refactor. It grew into ~8 distinct con
 These were resolved in review and must not be re-litigated per-RU:
 
 - **Production host:** Cloudflare Worker (`packages/worker`), not the Supabase Deno edge function (400s cap can't hold hours-long runs; Workers cap CPU, not wall-clock).
-- **Durability:** DB-backed suspend/resume in Supabase Postgres (via Hyperdrive/pooler) — chosen over Cloudflare Workflows / Durable-Object orchestration. Human resumes via BE re-invoke; autonomous resumes via sharded Queues / cron over `pending_resumes`; idempotency key on every resume.
+- **Durability:** DB-backed suspend/resume in Supabase Postgres (via Hyperdrive/pooler) — chosen over Cloudflare Workflows / Durable-Object orchestration. Human resumes via BE re-invoke; autonomous resumes via **direct self-re-invoke (primary) + a Cloudflare Cron sweep over `pending_resumes` as a backstop** (Queues dropped — RU4 §5); idempotency key on every resume.
 - **MCP:** backend-owned connection pool with sticky routing; the pool resolves/attaches/refreshes OAuth internally on connect (no runtime-facing OAuth resolver). Egress guard + server-side tenant auth required.
 - **OAuth:** MCP is the only provider (Google Calendar removed). Resolution is pool-internal + lazy; only **preflight** is FE-facing. Grants stay org-level; transport config is tenant-scoped (SP4).
 - **KV regex:** `re2js` (pure JS) — one validator across Node/Workers/Deno; no native addon, no `/internal/regex/validate` hop.
