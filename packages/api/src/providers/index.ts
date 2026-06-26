@@ -34,7 +34,7 @@ export type {
   KvSearchTarget,
   RagSearchArgs,
   RagRegexArgs,
-  KvPagedResult,
+  SearchPage,
 } from './types.js';
 export {
   toAiSdkTool,

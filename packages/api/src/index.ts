@@ -151,7 +151,7 @@ export type {
   KvSearchTarget,
   RagSearchArgs,
   RagRegexArgs,
-  KvPagedResult,
+  SearchPage,
   BuiltinBundles,
   FormsServices,
   LeadScoringProviderServices,

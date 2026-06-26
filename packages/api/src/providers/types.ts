@@ -125,12 +125,10 @@ export function parseNamespacedToolName(name: string): { providerId: string; too
   return { providerId, toolName };
 }
 
-export interface KvPagedResult<T> {
+export interface SearchPage<T> {
   items: T[];
-  total: number;
-  offset: number;
   limit: number;
-  truncated?: true;
+  nextCursor: string | null;
 }
 
 export type KvSearchTarget = 'keys' | 'values' | 'both';
@@ -139,24 +137,24 @@ export interface KvSearchArgs {
   tenantId: string;
   on: KvSearchTarget;
   query: string;
-  offset: number;
   limit: number;
+  cursor?: string;
 }
 
 export interface KvRegexArgs {
   tenantId: string;
   on: KvSearchTarget;
   pattern: string;
-  offset: number;
   limit: number;
+  cursor?: string;
 }
 
 export interface KvStoreServices {
   storeId: string;
-  listKeys: (tenantId: string, offset: number, limit: number) => Promise<KvPagedResult<string>>;
+  listKeys: (tenantId: string, limit: number, cursor?: string) => Promise<SearchPage<string>>;
   getValues: (tenantId: string, keys: string[]) => Promise<Record<string, string | null>>;
-  searchSubstring: (args: KvSearchArgs) => Promise<KvPagedResult<{ key: string; value: string }>>;
-  searchRegex: (args: KvRegexArgs) => Promise<KvPagedResult<{ key: string; value: string }>>;
+  searchSubstring: (args: KvSearchArgs) => Promise<SearchPage<{ key: string; value: string }>>;
+  searchRegex: (args: KvRegexArgs) => Promise<SearchPage<{ key: string; value: string }>>;
   updateValue: (tenantId: string, key: string, value: string) => Promise<{ success: true }>;
 }
 
@@ -164,15 +162,15 @@ export interface RagSearchArgs {
   tenantId: string;
   query: string;
   minSimilarity: number;
-  offset: number;
   limit: number;
+  cursor?: string;
 }
 
 export interface RagRegexArgs {
   tenantId: string;
   pattern: string;
-  offset: number;
   limit: number;
+  cursor?: string;
 }
 
 export interface RagStoreServices {
@@ -180,12 +178,12 @@ export interface RagStoreServices {
   searchBm25: (
     tenantId: string,
     query: string,
-    offset: number,
-    limit: number
-  ) => Promise<KvPagedResult<string>>;
-  searchSemantic: (args: RagSearchArgs) => Promise<KvPagedResult<string>>;
-  searchHybrid: (args: RagSearchArgs) => Promise<KvPagedResult<string>>;
-  searchRegex: (args: RagRegexArgs) => Promise<KvPagedResult<string>>;
+    limit: number,
+    cursor?: string
+  ) => Promise<SearchPage<string>>;
+  searchSemantic: (args: RagSearchArgs) => Promise<SearchPage<string>>;
+  searchHybrid: (args: RagSearchArgs) => Promise<SearchPage<string>>;
+  searchRegex: (args: RagRegexArgs) => Promise<SearchPage<string>>;
 }
 
 export function isKvStoreServices(v: unknown): v is KvStoreServices {
