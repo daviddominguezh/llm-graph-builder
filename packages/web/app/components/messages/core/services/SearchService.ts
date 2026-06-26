@@ -1,4 +1,4 @@
-import { ChatSearchResults, Conversation, LastMessage, Message } from '@/app/types/chat';
+import type { ChatSearchResults, Conversation, LastMessage, Message } from '@/app/types/chat';
 import { formatPhone } from '@/app/utils/strs';
 import MiniSearch from 'minisearch';
 
@@ -47,10 +47,10 @@ interface SearchServiceConfig {
  * - Falls back to cache when index doesn't have data
  */
 export class SearchService {
-  private conversationIndex: MiniSearch<ConversationDocument>;
-  private messageIndex: MiniSearch<MessageDocument>;
+  private readonly conversationIndex: MiniSearch<ConversationDocument>;
+  private readonly messageIndex: MiniSearch<MessageDocument>;
   private readonly config: Required<SearchServiceConfig>;
-  private indexedChatIds = new Set<string>();
+  private readonly indexedChatIds = new Set<string>();
 
   constructor(config: SearchServiceConfig = {}) {
     this.config = {
@@ -330,7 +330,7 @@ export class SearchService {
   private getMessageText(message: Message['message'] | undefined): string | null {
     if (!message) return null;
 
-    const content = message.content;
+    const { content } = message;
 
     if (typeof content === 'string') {
       return content;

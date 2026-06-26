@@ -34,7 +34,6 @@ export interface UseGraphSelectionReturn {
 
 interface PanelCloseState {
   setGlobalPanelOpen: (v: boolean) => void;
-  setPresetsOpen: (v: boolean) => void;
   setToolsOpen: (v: boolean) => void;
   setSearchOpen: (v: boolean) => void;
   setLibraryOpen: (v: boolean) => void;
@@ -71,7 +70,6 @@ function useClickHandlers(
       setSelectedNodeId(node.id);
       setSelectedEdgeId(null);
       panels.setGlobalPanelOpen(false);
-      panels.setPresetsOpen(false);
       panels.setToolsOpen(false);
       panels.setCopilotOpen(false);
     },
@@ -92,7 +90,6 @@ function useClickHandlers(
     setSelectedNodeId(null);
     setSelectedEdgeId(null);
     panels.setGlobalPanelOpen(false);
-    panels.setPresetsOpen(false);
     panels.setToolsOpen(false);
     panels.setSearchOpen(false);
     panels.setLibraryOpen(false);
@@ -138,7 +135,6 @@ function useNavigationCallbacks(
       setSelectedNodeId(targetNodeId);
       setSelectedEdgeId(null);
       panels.setGlobalPanelOpen(false);
-      panels.setPresetsOpen(false);
     },
     [nodes, reactFlow, reactFlowWrapper, setNodes, setEdges, setSelectedNodeId, setSelectedEdgeId, panels]
   );

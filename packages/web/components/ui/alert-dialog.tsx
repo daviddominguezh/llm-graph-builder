@@ -121,8 +121,15 @@ function AlertDialogDescription({
   );
 }
 
-function AlertDialogAction({ ...props }: React.ComponentProps<typeof Button>) {
-  return <Button data-slot="alert-dialog-action" variant="destructive" {...props} className="" />;
+function AlertDialogAction({ className, ...props }: React.ComponentProps<typeof Button>) {
+  return (
+    <Button
+      data-slot="alert-dialog-action"
+      variant="destructive"
+      {...props}
+      className={cn('rounded-md', className)}
+    />
+  );
 }
 
 function AlertDialogCancel({
@@ -135,7 +142,7 @@ function AlertDialogCancel({
     <AlertDialogPrimitive.Close
       data-slot="alert-dialog-cancel"
       className={cn(className)}
-      render={<Button variant={variant} size={size} />}
+      render={<Button variant={variant} size={size} className="rounded-md" />}
       {...props}
     />
   );

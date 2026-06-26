@@ -41,9 +41,11 @@ interface StubFirebaseServices {
 // Stub implementations
 // ---------------------------------------------------------------------------
 
-export const initializeFirebase = (): StubFirebaseServices => {
-  return { firebaseApp: null, auth: null, storage: null };
-};
+export const initializeFirebase = (): StubFirebaseServices => ({
+  firebaseApp: null,
+  auth: null,
+  storage: null,
+});
 
 export const getCurrentFirebaseUser = async (): Promise<StubFirebaseUser | null> => {
   const uid = process.env.NEXT_PUBLIC_CLOSER_FIREBASE_UID;
@@ -58,13 +60,9 @@ export const getCurrentFirebaseUser = async (): Promise<StubFirebaseUser | null>
   };
 };
 
-export const checkSimpleFirebaseAuth = async (): Promise<StubFirebaseUser | null> => {
-  return null;
-};
+export const checkSimpleFirebaseAuth = async (): Promise<StubFirebaseUser | null> => null;
 
-export const checkFirebaseAuth = async (): Promise<boolean> => {
-  return false;
-};
+export const checkFirebaseAuth = async (): Promise<boolean> => false;
 
 export const signInWithEmailPassword = async (email: string, password: string): Promise<StubFirebaseUser> => {
   void email;

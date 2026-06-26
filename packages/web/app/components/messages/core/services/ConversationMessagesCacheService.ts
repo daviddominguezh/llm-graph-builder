@@ -31,7 +31,8 @@ class ConversationMessagesCacheServiceImpl {
     if (this.db) return;
 
     if (this.initPromise) {
-      return this.initPromise;
+      await this.initPromise;
+      return;
     }
 
     this.initPromise = new Promise((resolve, reject) => {
@@ -60,7 +61,7 @@ class ConversationMessagesCacheServiceImpl {
       };
     });
 
-    return this.initPromise;
+    await this.initPromise;
   }
 
   /**
@@ -87,9 +88,11 @@ class ConversationMessagesCacheServiceImpl {
         const store = transaction.objectStore(CONVERSATION_MESSAGES_STORE_NAME);
         const request = store.get(cacheKey);
 
-        request.onerror = () => reject(request.error);
+        request.onerror = () => {
+          reject(request.error);
+        };
         request.onsuccess = () => {
-          const result = request.result;
+          const { result } = request;
           if (!result) {
             resolve(null);
             return;
@@ -124,8 +127,12 @@ class ConversationMessagesCacheServiceImpl {
         };
 
         const request = store.put(record);
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => resolve();
+        request.onerror = () => {
+          reject(request.error);
+        };
+        request.onsuccess = () => {
+          resolve();
+        };
       });
     } catch (error) {
       console.error('[ConversationMessagesCacheService] setCache error:', error);
@@ -251,8 +258,12 @@ class ConversationMessagesCacheServiceImpl {
         const store = transaction.objectStore(CONVERSATION_MESSAGES_STORE_NAME);
         const request = store.delete(cacheKey);
 
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => resolve();
+        request.onerror = () => {
+          reject(request.error);
+        };
+        request.onsuccess = () => {
+          resolve();
+        };
       });
     } catch (error) {
       console.error('[ConversationMessagesCacheService] clearConversationCache error:', error);
@@ -271,7 +282,9 @@ class ConversationMessagesCacheServiceImpl {
         const store = transaction.objectStore(CONVERSATION_MESSAGES_STORE_NAME);
         const request = store.openCursor();
 
-        request.onerror = () => reject(request.error);
+        request.onerror = () => {
+          reject(request.error);
+        };
         request.onsuccess = () => {
           const cursor = request.result;
           if (cursor) {

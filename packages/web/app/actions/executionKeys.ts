@@ -1,6 +1,11 @@
 'use server';
 
-import type { CreateExecutionKeyResult, ExecutionKeyAgent, ExecutionKeyRow } from '@/app/lib/executionKeys';
+import type {
+  CreateExecutionKeyParams,
+  CreateExecutionKeyResult,
+  ExecutionKeyAgent,
+  ExecutionKeyRow,
+} from '@/app/lib/executionKeys';
 import {
   createExecutionKey as createExecutionKeyLib,
   deleteExecutionKey as deleteExecutionKeyLib,
@@ -8,6 +13,7 @@ import {
   getExecutionKeysByOrg as getExecutionKeysByOrgLib,
   updateExecutionKeyAgents as updateExecutionKeyAgentsLib,
   updateExecutionKeyName as updateExecutionKeyNameLib,
+  updateExecutionKeyTenants as updateExecutionKeyTenantsLib,
 } from '@/app/lib/executionKeys';
 import { serverError, serverLog } from '@/app/lib/serverLogger';
 
@@ -32,14 +38,19 @@ export async function getAgentsForKeyAction(
 }
 
 export async function createExecutionKeyAction(
-  orgId: string,
-  name: string,
-  allAgents: boolean,
-  agentIds: string[],
-  expiresAt: string | null
+  params: CreateExecutionKeyParams
 ): Promise<{ result: CreateExecutionKeyResult | null; error: string | null }> {
-  serverLog('[createExecutionKeyAction] orgId:', orgId, 'name:', name, 'allAgents:', allAgents);
-  const res = await createExecutionKeyLib(orgId, name, allAgents, agentIds, expiresAt);
+  serverLog(
+    '[createExecutionKeyAction] orgId:',
+    params.orgId,
+    'name:',
+    params.name,
+    'allAgents:',
+    params.allAgents,
+    'allTenants:',
+    params.allTenants
+  );
+  const res = await createExecutionKeyLib(params);
   if (res.error === null) serverLog('[createExecutionKeyAction] created key:', res.result?.key.id);
   else serverError('[createExecutionKeyAction] error:', res.error);
   return res;
@@ -47,11 +58,23 @@ export async function createExecutionKeyAction(
 
 export async function updateExecutionKeyAgentsAction(
   keyId: string,
+  allAgents: boolean,
   agentIds: string[]
 ): Promise<{ error: string | null }> {
   serverLog('[updateExecutionKeyAgentsAction] keyId:', keyId, 'agentIds:', agentIds);
-  const res = await updateExecutionKeyAgentsLib(keyId, agentIds);
+  const res = await updateExecutionKeyAgentsLib(keyId, allAgents, agentIds);
   if (res.error !== null) serverError('[updateExecutionKeyAgentsAction] error:', res.error);
+  return res;
+}
+
+export async function updateExecutionKeyTenantsAction(
+  keyId: string,
+  allTenants: boolean,
+  tenantIds: string[]
+): Promise<{ error: string | null }> {
+  serverLog('[updateExecutionKeyTenantsAction] keyId:', keyId, 'tenantIds:', tenantIds);
+  const res = await updateExecutionKeyTenantsLib(keyId, allTenants, tenantIds);
+  if (res.error !== null) serverError('[updateExecutionKeyTenantsAction] error:', res.error);
   return res;
 }
 

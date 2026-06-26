@@ -1,5 +1,6 @@
 {
   "startNode": "INITIAL_STEP",
+  "selectedTools": [],
   "agents": [],
   "nodes": [
     { "id": "INITIAL_STEP", "text": "Start", "kind": "agent", "description": "Starting point" },

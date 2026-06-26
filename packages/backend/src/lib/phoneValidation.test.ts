@@ -2,7 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 
 import { validatePhone } from './phoneValidation.js';
 
-describe('validatePhone', () => {
+describe('validatePhone — accepts supported mobiles', () => {
   it('accepts a valid US mobile', () => {
     expect(validatePhone('+14155550199')).toEqual({ ok: true, e164: '+14155550199' });
   });
@@ -24,8 +24,20 @@ describe('validatePhone', () => {
   it('accepts a valid Brazil mobile', () => {
     expect(validatePhone('+5511912345678')).toEqual({ ok: true, e164: '+5511912345678' });
   });
-  it('rejects unsupported country', () => {
-    expect(validatePhone('+33123456789')).toEqual({ ok: false, error: 'country_not_supported' });
+  it('accepts a valid France mobile', () => {
+    expect(validatePhone('+33612345678')).toEqual({ ok: true, e164: '+33612345678' });
+  });
+  it('accepts a valid Spain mobile', () => {
+    expect(validatePhone('+34612345678')).toEqual({ ok: true, e164: '+34612345678' });
+  });
+});
+
+describe('validatePhone — rejects disallowed numbers', () => {
+  it('rejects out-of-region country (India)', () => {
+    expect(validatePhone('+919812345678')).toEqual({ ok: false, error: 'country_not_supported' });
+  });
+  it('rejects excluded sanctioned country (Russia)', () => {
+    expect(validatePhone('+79161234567')).toEqual({ ok: false, error: 'country_not_supported' });
   });
   it('rejects premium NANP 900', () => {
     expect(validatePhone('+19005551234')).toEqual({ ok: false, error: 'premium_number' });

@@ -17,8 +17,11 @@ import { ChevronDown, Info, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import type { SelectedTool } from '@daviddh/llm-graph-runner';
+import type { ToolStoresState } from '../../hooks/useToolStoresState';
 import type { ExistingEdgeType } from '../../utils/edgeTypeUtils';
 import { IfElseDialog, LoopDialog, ToolNodeDialog, UserNodeDialog } from './nodeCreationDialogs';
+import type { LoopConnection } from './nodeCreationDialogs/LoopDialog';
 import { NodeTypeDropdown, type NodeCreationType } from './NodeTypeDropdown';
 
 const START_NODE_ID = 'INITIAL_STEP';
@@ -34,14 +37,11 @@ interface ConnectionMenuProps {
   onSelectNode: (targetNodeId: string) => void;
   onCreateNode: () => void;
   onCreateUserNode: (value: string) => void;
-  onCreateToolNode: (toolName: string) => void;
+  onCreateToolNode: (tool: SelectedTool) => void;
   onCreateIfElse: (branchA: string, branchB: string) => void;
-  onCreateLoop: (
-    connection: { type: 'none' | 'user_said' | 'tool_call'; value: string },
-    continueValue: string,
-    exitValue: string,
-  ) => void;
+  onCreateLoop: (connection: LoopConnection, continueValue: string, exitValue: string) => void;
   onClose: () => void;
+  toolStores: ToolStoresState;
 }
 
 interface DialogsProps {
@@ -50,13 +50,10 @@ interface DialogsProps {
   sourceEdgeType: ExistingEdgeType;
   onClose: () => void;
   onCreateUserNode: (value: string) => void;
-  onCreateToolNode: (toolName: string) => void;
+  onCreateToolNode: (tool: SelectedTool) => void;
   onCreateIfElse: (branchA: string, branchB: string) => void;
-  onCreateLoop: (
-    connection: { type: 'none' | 'user_said' | 'tool_call'; value: string },
-    continueValue: string,
-    exitValue: string,
-  ) => void;
+  onCreateLoop: (connection: LoopConnection, continueValue: string, exitValue: string) => void;
+  toolStores: ToolStoresState;
 }
 
 function ConnectionDialogs({
@@ -68,6 +65,7 @@ function ConnectionDialogs({
   onCreateToolNode,
   onCreateIfElse,
   onCreateLoop,
+  toolStores,
 }: DialogsProps) {
   const handleOpenChange = (open: boolean) => {
     if (!open) onClose();
@@ -86,6 +84,7 @@ function ConnectionDialogs({
         onOpenChange={handleOpenChange}
         sourceNodeLabel={sourceLabel}
         onCreate={onCreateToolNode}
+        toolStores={toolStores}
       />
       <IfElseDialog
         open={activeDialog === 'ifElse'}
@@ -99,6 +98,7 @@ function ConnectionDialogs({
         sourceNodeLabel={sourceLabel}
         sourceEdgeType={sourceEdgeType}
         onCreate={onCreateLoop}
+        toolStores={toolStores}
       />
     </>
   );
@@ -116,6 +116,7 @@ export function ConnectionMenu({
   onCreateIfElse,
   onCreateLoop,
   onClose,
+  toolStores,
 }: ConnectionMenuProps) {
   const t = useTranslations('connectionMenu');
   const [activeDialog, setActiveDialog] = useState<ActiveDialog>(null);
@@ -206,6 +207,7 @@ export function ConnectionMenu({
         onCreateToolNode={onCreateToolNode}
         onCreateIfElse={onCreateIfElse}
         onCreateLoop={onCreateLoop}
+        toolStores={toolStores}
       />
     </>
   );

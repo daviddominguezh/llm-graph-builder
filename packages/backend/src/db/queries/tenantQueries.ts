@@ -14,6 +14,7 @@ export interface TenantRow {
   updated_at: string;
   web_channel_enabled: boolean;
   web_channel_allowed_origins: string[];
+  is_default: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -37,7 +38,7 @@ function mapRows(data: unknown[]): TenantRow[] {
 }
 
 const LIST_COLUMNS =
-  'id, org_id, slug, name, avatar_url, created_at, updated_at, web_channel_enabled, web_channel_allowed_origins';
+  'id, org_id, slug, name, avatar_url, created_at, updated_at, web_channel_enabled, web_channel_allowed_origins, is_default';
 
 /* ------------------------------------------------------------------ */
 /*  Queries                                                            */
@@ -51,6 +52,7 @@ export async function getTenantsByOrg(
     .from('tenants')
     .select(LIST_COLUMNS)
     .eq('org_id', orgId)
+    .order('is_default', { ascending: false })
     .order('created_at', { ascending: false });
 
   if (error !== null) return { result: [], error: error.message };
@@ -92,6 +94,57 @@ export async function getTenantBySlug(
   if (data === null) return { result: null, error: null };
   if (!isTenantRow(data)) return { result: null, error: 'Invalid tenant data' };
   return { result: data, error: null };
+}
+
+export async function getTenantById(
+  supabase: SupabaseClient,
+  tenantId: string
+): Promise<{ result: TenantRow | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from('tenants')
+    .select(LIST_COLUMNS)
+    .eq('id', tenantId)
+    .maybeSingle();
+
+  if (error !== null) return { result: null, error: error.message };
+  if (data === null) return { result: null, error: null };
+  if (!isTenantRow(data)) return { result: null, error: 'Invalid tenant data' };
+  return { result: data, error: null };
+}
+
+export interface DefaultTenantIdentity {
+  name: string;
+  slug: string;
+  avatarUrl: string | null;
+}
+
+// Mirrors the org's identity onto its default tenant via the SECURITY DEFINER RPC
+// (which sets the transaction-local mirror GUC so the identity-lock trigger allows it).
+export async function mirrorDefaultTenantIdentity(
+  supabase: SupabaseClient,
+  orgId: string,
+  identity: DefaultTenantIdentity
+): Promise<{ error: string | null }> {
+  const { error } = (await supabase.rpc('set_default_tenant_identity', {
+    p_org_id: orgId,
+    p_name: identity.name,
+    p_slug: identity.slug,
+    p_avatar_url: identity.avatarUrl,
+  })) as { error: { message: string } | null };
+  return { error: error === null ? null : error.message };
+}
+
+// Mirrors only the org's avatar onto its default tenant (rename leaves avatar intact).
+export async function mirrorDefaultTenantAvatar(
+  supabase: SupabaseClient,
+  orgId: string,
+  avatarUrl: string | null
+): Promise<{ error: string | null }> {
+  const { error } = (await supabase.rpc('set_default_tenant_avatar', {
+    p_org_id: orgId,
+    p_avatar_url: avatarUrl,
+  })) as { error: { message: string } | null };
+  return { error: error === null ? null : error.message };
 }
 
 // Upper bound on rows fetched per suffix query. Well beyond the MAX_SUFFIX range; a

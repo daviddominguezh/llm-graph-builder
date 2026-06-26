@@ -52,9 +52,27 @@ const TemplateNodeSchema = z.object({
   position: z.object({ x: z.number(), y: z.number() }).optional(),
 });
 
+const TEMPLATE_TOOL_NAME_MIN_LEN = 1;
+const TEMPLATE_TOOL_NAME_MAX_LEN = 100;
+
+const TemplateToolRefSchema = z.object({
+  providerType: z.enum(['builtin', 'mcp']),
+  providerId: z.string().min(TEMPLATE_TOOL_NAME_MIN_LEN).max(TEMPLATE_TOOL_NAME_MAX_LEN),
+  toolName: z.string().min(TEMPLATE_TOOL_NAME_MIN_LEN).max(TEMPLATE_TOOL_NAME_MAX_LEN),
+});
+
+/**
+ * Templates carry preconditions in a slightly looser form than runtime graphs:
+ * `value` covers user_said / agent_decision text; `tool` carries the full
+ * SelectedTool ref for tool_call. Either field may be present depending on
+ * `type`. Templates emitted before this enrichment have only `value` for
+ * tool_call — those fall back to a `builtin/calendar` default at conversion
+ * time, with a console warning so authors know to re-export the template.
+ */
 const TemplatePreconditionSchema = z.object({
   type: z.string(),
-  value: z.string(),
+  value: z.string().optional(),
+  tool: TemplateToolRefSchema.optional(),
   description: z.string().optional(),
 });
 

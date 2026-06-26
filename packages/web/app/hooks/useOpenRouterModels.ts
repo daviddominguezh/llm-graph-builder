@@ -37,14 +37,14 @@ async function fetchModelsFromApi(): Promise<OpenRouterModel[]> {
   return parsed.models;
 }
 
-function fetchModels(): Promise<OpenRouterModel[]> {
-  if (cached !== null) return Promise.resolve(cached);
-  if (pending !== null) return pending;
+async function fetchModels(): Promise<OpenRouterModel[]> {
+  if (cached !== null) return await Promise.resolve(cached);
+  if (pending !== null) return await pending;
   pending = fetchModelsFromApi().catch(() => {
     cached = [];
     return [];
   });
-  return pending;
+  return await pending;
 }
 
 export function useOpenRouterModels(): OpenRouterModel[] {

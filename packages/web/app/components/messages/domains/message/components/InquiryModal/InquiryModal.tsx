@@ -73,7 +73,7 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({
           />
 
           <div className="flex justify-end gap-2 mt-6">
-            <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            <Button variant="ghost" className="rounded-md" onClick={() => onOpenChange(false)}>
               {t('Cancel')}
             </Button>
             <Button

@@ -1,27 +1,34 @@
 'use client';
 
+import { GlassPanel } from '@/components/ui/glass-panel';
+import type { SelectedTool } from '@daviddh/llm-graph-runner';
 import type { Edge } from '@xyflow/react';
 
+import { useAgentToolsState } from '../hooks/useAgentToolsState';
+import type { UseGraphSelectionReturn } from '../hooks/useGraphSelection';
+import type { McpLibraryState } from '../hooks/useMcpLibrary';
+import type { McpServersState } from '../hooks/useMcpServers';
+import type { OutputSchemasState } from '../hooks/useOutputSchemas';
+import type { ToolStoresState } from '../hooks/useToolStoresState';
+import { findStaleSelections } from '../lib/agentTools';
 import type { ApiKeyRow } from '../lib/apiKeys';
 import type { OrgEnvVariableRow } from '../lib/orgEnvVariables';
 import type { Agent, McpServerConfig } from '../schemas/graph.schema';
-import type { McpServersState } from '../hooks/useMcpServers';
-import type { OutputSchemasState } from '../hooks/useOutputSchemas';
-import type { PushOperation } from '../utils/operationBuilders';
-import type { RFEdgeData } from '../utils/graphTransformers';
-import type { UseGraphSelectionReturn } from '../hooks/useGraphSelection';
-import type { McpLibraryState } from '../hooks/useMcpLibrary';
 import type { ContextPreset } from '../types/preset';
-
-import { GlassPanel } from '@/components/ui/glass-panel';
 import { START_NODE_ID } from '../utils/graphInitializer';
+import type { RFEdgeData } from '../utils/graphTransformers';
+import type { PushOperation } from '../utils/operationBuilders';
+import { McpDialogs } from './SidePanelAsides';
+import { useToolRegistry } from './ToolRegistryProvider';
 import { EdgePanel } from './panels/EdgePanel';
 import { GlobalNodesPanel } from './panels/GlobalNodesPanel';
 import { NodePanel } from './panels/NodePanel';
 import { OutputSchemaDialog } from './panels/OutputSchemaDialog';
 import { StartNodePanel } from './panels/StartNodePanel';
 import { ToolsPanel } from './panels/ToolsPanel';
-import { McpDialogs, PresetsAside } from './SidePanelAsides';
+import { registryToolToSelectedTool } from './panels/ToolsPanelAgentMode';
+import type { SectionTenant } from './panels/mcpServersSectionLogic';
+import type { AgentToolStoresPanelConfig } from './panels/toolStoreHelpers';
 import type { CtxPreconditionsState, EdgeSetter, NodeArray, NodeSetter } from './sidePanelHelpers';
 import {
   handleGlobalAddNode,
@@ -30,7 +37,8 @@ import {
   handleGlobalUpdateNode,
 } from './sidePanelHelpers';
 import { getInstalledLibraryIds } from './sidePanelMcpHelpers';
-import { usePublishState, useSchemaDialogState } from './useSidePanelState';
+import type { SchemaDialogState } from './useSidePanelState';
+import { usePublishState } from './useSidePanelState';
 
 type EdgeArray = Array<Edge<RFEdgeData>>;
 
@@ -59,9 +67,10 @@ export interface SidePanelsProps {
   presetsHook: PresetsHook;
   mcpHook: McpServersState;
   outputSchemasHook: OutputSchemasState;
+  schemaDialog: SchemaDialogState;
   globalPanelOpen: boolean;
-  presetsOpen: boolean;
   toolsOpen: boolean;
+  hasMcpError: boolean;
   libraryOpen: boolean;
   mcpLibrary: McpLibraryState;
   setNodes: NodeSetter;
@@ -72,6 +81,7 @@ export interface SidePanelsProps {
   agentId: string;
   agentName: string;
   orgSlug: string;
+  tenants: SectionTenant[];
   envVariables: OrgEnvVariableRow[];
   stagingKeyId: string | null;
   productionKeyId: string | null;
@@ -80,7 +90,19 @@ export interface SidePanelsProps {
   onPublishMcpServer: (server: McpServerConfig) => void;
   onOpenMcpLibrary: () => void;
   onCloseLibrary: () => void;
+  onCloseTools: () => void;
   pushOperation: PushOperation;
+  agentToolsConfig?: AgentToolsConfig;
+  toolStores: ToolStoresState;
+}
+
+export interface AgentToolsConfig {
+  agentId: string;
+  appType: string;
+  initialSelectedTools: SelectedTool[];
+  initialUpdatedAt: string;
+  initialBindings?: { selectedKvStoreId: string | null; selectedRagStoreId: string | null };
+  initialBindingsUpdatedAt?: string;
 }
 
 interface SelectionPanelProps extends SidePanelsProps {
@@ -89,11 +111,11 @@ interface SelectionPanelProps extends SidePanelsProps {
 }
 
 function SelectionPanel(props: SelectionPanelProps) {
-  const { selection, nodes, agents, presetsHook, ctxPreconditions, pushOperation } = props;
+  const { selection, nodes, agents, presetsHook, ctxPreconditions, pushOperation, toolStores } = props;
   const isStartNode = selection.selectedNodeId === START_NODE_ID;
 
   return (
-    <GlassPanel className="absolute! h-[calc(100%-var(--spacing)*4)] right-2 top-2 bottom-2 z-10 w-80! rounded-md pointer-events-auto">
+    <GlassPanel className="pointer-events-auto absolute! h-full right-0 top-0 bottom-0 z-10 w-80! rounded-s-xl rounded-ee-xl pointer-events-auto overflow-hidden">
       {selection.selectedNodeId !== null && isStartNode && (
         <StartNodePanel
           nodeId={selection.selectedNodeId}
@@ -132,6 +154,7 @@ function SelectionPanel(props: SelectionPanelProps) {
           availableContextPreconditions={ctxPreconditions.allContextPreconditions}
           onSelectNode={selection.navigateToNode}
           pushOperation={pushOperation}
+          toolStores={toolStores}
         />
       )}
     </GlassPanel>
@@ -142,7 +165,7 @@ type GlobalPanelProps = Pick<SidePanelsProps, 'setNodes' | 'setEdges' | 'nodes' 
 
 function GlobalPanel({ setNodes, setEdges, nodes, pushOperation }: GlobalPanelProps) {
   return (
-    <GlassPanel className="absolute right-1.5 top-1.5 bottom-0 z-10 w-80 rounded-md pointer-events-auto">
+    <GlassPanel className="pointer-events-auto absolute! right-0 top-0 bottom-0 z-10 w-80 rounded-md pointer-events-auto">
       <GlobalNodesPanel
         nodes={nodes}
         onAddNode={() => handleGlobalAddNode(setNodes, pushOperation)}
@@ -163,55 +186,134 @@ interface ToolsPanelSlotProps {
   onPublishServer: (server: McpServerConfig) => void;
 }
 
-function ToolsPanelSlot({ sidePanelProps: p, onPublishServer }: ToolsPanelSlotProps) {
+function buildMcpProps(p: SidePanelsProps, onPublishServer: (server: McpServerConfig) => void) {
+  return {
+    servers: p.mcpHook.servers,
+    discovering: p.mcpHook.discovering,
+    serverStatus: p.mcpHook.serverStatus,
+    agentId: p.agentId,
+    tenants: p.tenants,
+    orgId: p.orgId,
+    envVariables: p.envVariables,
+    libraryItems: p.mcpLibrary.items,
+    onAddServer: p.mcpHook.addServer,
+    onRemoveServer: p.mcpHook.removeServer,
+    onUpdateServer: p.mcpHook.updateServer,
+    onDiscoverTools: p.mcpHook.discoverTools,
+    onPublishServer,
+    onOpenLibrary: p.onOpenMcpLibrary,
+  };
+}
+
+interface AgentToolsSlotProps {
+  config: AgentToolsConfig;
+  sidePanelProps: SidePanelsProps;
+  onPublishServer: (server: McpServerConfig) => void;
+}
+
+function AgentToolsSlot({ config, sidePanelProps: p, onPublishServer }: AgentToolsSlotProps) {
+  const { groups, state: registryState } = useToolRegistry();
+  const registryFailed = registryState.kind === 'total-failure';
+  const toolsState = useAgentToolsState({
+    agentId: config.agentId,
+    initialSelectedTools: config.initialSelectedTools,
+    initialUpdatedAt: config.initialUpdatedAt,
+    registryFailed,
+  });
+  const registry = groups.flatMap((g) => g.tools.map(registryToolToSelectedTool));
+  const staleEntries = findStaleSelections({
+    selections: toolsState.selectedTools,
+    registry,
+    failedProviders: [],
+  });
+  const agentProp = buildAgentProp({ config, toolsState, toolStores: p.toolStores, staleEntries });
   return (
     <ToolsPanel
-      mcp={{
-        servers: p.mcpHook.servers,
-        discovering: p.mcpHook.discovering,
-        serverStatus: p.mcpHook.serverStatus,
-        orgId: p.orgId,
-        envVariables: p.envVariables,
-        libraryItems: p.mcpLibrary.items,
-        onAddServer: p.mcpHook.addServer,
-        onRemoveServer: p.mcpHook.removeServer,
-        onUpdateServer: p.mcpHook.updateServer,
-        onDiscoverTools: p.mcpHook.discoverTools,
-        onPublishServer,
-        onOpenLibrary: p.onOpenMcpLibrary,
-      }}
+      mcp={buildMcpProps(p, onPublishServer)}
       open={p.toolsOpen}
+      hasMcpError={p.hasMcpError}
+      onClose={p.onCloseTools}
+      agent={agentProp}
+      stores={buildStoresConfig(p.toolStores)}
+      agentId={config.agentId}
+    />
+  );
+}
+
+function buildStoresConfig(toolStores: ToolStoresState): AgentToolStoresPanelConfig {
+  return {
+    kvStores: toolStores.kvStores,
+    ragStores: toolStores.ragStores,
+    bindings: toolStores.bindings,
+    saveState: toolStores.saveState,
+    onChangeBindings: toolStores.onChangeBindings,
+  };
+}
+
+interface BuildAgentPropArgs {
+  config: AgentToolsConfig;
+  toolsState: ReturnType<typeof useAgentToolsState>;
+  toolStores: ToolStoresState;
+  staleEntries: SelectedTool[];
+}
+
+function buildAgentProp(args: BuildAgentPropArgs) {
+  const { config, toolsState, toolStores, staleEntries } = args;
+  return {
+    agentId: config.agentId,
+    selectedTools: toolsState.selectedTools,
+    staleEntries,
+    saveState: toolsState.saveState,
+    onChange: toolsState.handleToolsChange,
+    onRemoveStale: toolsState.handleRemoveStale,
+    onRetrySave: toolsState.handleRetrySave,
+    stores: buildStoresConfig(toolStores),
+  };
+}
+
+function ToolsPanelSlot({ sidePanelProps: p, onPublishServer }: ToolsPanelSlotProps) {
+  if (p.agentToolsConfig !== undefined && p.agentToolsConfig.appType === 'agent') {
+    return (
+      <AgentToolsSlot config={p.agentToolsConfig} sidePanelProps={p} onPublishServer={onPublishServer} />
+    );
+  }
+  return (
+    <ToolsPanel
+      mcp={buildMcpProps(p, onPublishServer)}
+      open={p.toolsOpen}
+      hasMcpError={p.hasMcpError}
       onClose={() => {}}
+      stores={buildStoresConfig(p.toolStores)}
+      agentId={p.agentId}
     />
   );
 }
 
 export function SidePanels(props: SidePanelsProps) {
-  const { selection, simulation, globalPanelOpen, presetsOpen, libraryOpen } = props;
+  const { selection, simulation, globalPanelOpen, libraryOpen, schemaDialog } = props;
   const isVirtualNode = selection.selectedNodeId !== null && selection.selectedNodeId.startsWith('step-');
-  const hasSelection = !isVirtualNode && (selection.selectedNodeId !== null || selection.selectedEdgeId !== null);
+  const hasSelection =
+    !isVirtualNode && (selection.selectedNodeId !== null || selection.selectedEdgeId !== null);
   const showSelectionPanel = !simulation.active && hasSelection;
-
-  const schema = useSchemaDialogState({
-    outputSchemasHook: props.outputSchemasHook,
-    selection: props.selection,
-    setNodes: props.setNodes,
-  });
 
   const publish = usePublishState(props.mcpHook);
   const installedIds = getInstalledLibraryIds(props.mcpHook.servers);
 
-  const readOnlyClass = props.readOnly === true ? '[&_input]:pointer-events-none [&_textarea]:pointer-events-none [&_button]:pointer-events-none [&_[role=checkbox]]:pointer-events-none [&_select]:pointer-events-none [&_[role=combobox]]:pointer-events-none' : '';
+  const readOnlyClass =
+    props.readOnly === true
+      ? '[&_input]:pointer-events-none [&_textarea]:pointer-events-none [&_button]:pointer-events-none [&_[role=checkbox]]:pointer-events-none [&_select]:pointer-events-none [&_[role=combobox]]:pointer-events-none'
+      : '';
 
   return (
-    <div className={`pointer-events-auto ${readOnlyClass}`}>
+    <div className={`pointer-events-none h-full w-full ${readOnlyClass}`}>
       <OutputSchemaDialog
-        schema={schema.editingSchema}
+        schema={schemaDialog.editingSchema}
+        agentId={props.agentId}
         onSave={props.outputSchemasHook.updateSchema}
-        onSaved={schema.handleSchemaSaved}
-        open={schema.editingSchemaId !== null}
+        onSaved={schemaDialog.handleSchemaSaved}
+        open={schemaDialog.editingSchemaId !== null}
         onOpenChange={(open) => {
-          if (!open) schema.handleSchemaDialogClose();
+          if (!open) schemaDialog.handleSchemaDialogClose();
         }}
       />
       <McpDialogs
@@ -223,12 +325,13 @@ export function SidePanels(props: SidePanelsProps) {
         mcpLibrary={props.mcpLibrary}
         installedLibraryIds={installedIds}
         onInstall={publish.handleInstallFromLibrary}
+        onCloseLibrary={props.onCloseLibrary}
       />
       {showSelectionPanel && (
         <SelectionPanel
           {...props}
-          onEditSchema={schema.handleEditSchema}
-          onEditNewSchema={schema.handleEditNewSchema}
+          onEditSchema={schemaDialog.handleEditSchema}
+          onEditNewSchema={schemaDialog.handleEditNewSchema}
         />
       )}
       {globalPanelOpen && (
@@ -240,25 +343,6 @@ export function SidePanels(props: SidePanelsProps) {
         />
       )}
       <ToolsPanelSlot sidePanelProps={props} onPublishServer={publish.setPublishServer} />
-      {presetsOpen && !libraryOpen && (
-        <PresetsAside
-          presetsHook={props.presetsHook}
-          ctxPreconditions={props.ctxPreconditions}
-          setEdges={props.setEdges}
-          orgApiKeys={props.orgApiKeys}
-          stagingKeyId={props.stagingKeyId}
-          productionKeyId={props.productionKeyId}
-          onStagingKeyChange={props.onStagingKeyChange}
-          onProductionKeyChange={props.onProductionKeyChange}
-          outputSchemasHook={props.outputSchemasHook}
-          onEditSchema={schema.handleEditSchema}
-          onEditNewSchema={schema.handleEditNewSchema}
-          onRemoveSchema={schema.handleRemoveSchema}
-          agentId={props.agentId}
-          agentName={props.agentName}
-          orgSlug={props.orgSlug}
-        />
-      )}
     </div>
   );
 }

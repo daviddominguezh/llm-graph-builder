@@ -13,8 +13,8 @@ function SelectAgentPrompt() {
   const t = useTranslations('agents');
 
   return (
-    <div className="flex h-full items-center justify-center bg-background">
-      <div className="flex w-full max-w-3xl flex-col items-center gap-0 rounded-md bg-background px-4 py-8 text-center">
+    <div className="flex h-full items-center justify-center bg-background border-t border-b border-r rounded-e-xl border-[0.5px]!">
+      <div className="flex w-full max-w-3xl flex-col items-center gap-0 rounded-md bg-background px-4 py-8 text-center cursor-default">
         <Zap className="size-6 text-muted-foreground/50" />
         <p className="text-sm font-medium mt-1">{t('selectAgent')}</p>
         <p className="text-xs text-muted-foreground max-w-sm">{t('selectAgentDescription')}</p>

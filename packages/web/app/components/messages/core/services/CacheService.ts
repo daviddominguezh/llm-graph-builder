@@ -1,4 +1,4 @@
-import { CacheServiceInterface, CachedData } from '../../MessagesDashboard.types';
+import type { CacheServiceInterface, CachedData } from '../../MessagesDashboard.types';
 
 /**
  * Abstract Cache Service for managing local data caching
@@ -121,7 +121,9 @@ export class LocalStorageCache extends CacheService {
           keysToRemove.push(key);
         }
       }
-      keysToRemove.forEach((key) => localStorage.removeItem(key));
+      keysToRemove.forEach((key) => {
+        localStorage.removeItem(key);
+      });
     } else {
       // Clear specific namespace
       const keysToRemove: string[] = [];
@@ -132,7 +134,9 @@ export class LocalStorageCache extends CacheService {
           keysToRemove.push(key);
         }
       }
-      keysToRemove.forEach((key) => localStorage.removeItem(key));
+      keysToRemove.forEach((key) => {
+        localStorage.removeItem(key);
+      });
     }
   }
 
@@ -176,10 +180,10 @@ export class LocalStorageCache extends CacheService {
  * Suitable for large datasets and better performance
  */
 export class IndexedDBCache extends CacheService {
-  private dbName = 'messagesDashboardCache';
-  private dbVersion = 1;
+  private readonly dbName = 'messagesDashboardCache';
+  private readonly dbVersion = 1;
   private db: IDBDatabase | null = null;
-  private storeName = 'cache';
+  private readonly storeName = 'cache';
 
   constructor() {
     super();
@@ -187,10 +191,12 @@ export class IndexedDBCache extends CacheService {
   }
 
   private async initDatabase(): Promise<void> {
-    return new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const request = indexedDB.open(this.dbName, this.dbVersion);
 
-      request.onerror = () => reject(request.error);
+      request.onerror = () => {
+        reject(request.error);
+      };
       request.onsuccess = () => {
         this.db = request.result;
         resolve();
@@ -221,16 +227,18 @@ export class IndexedDBCache extends CacheService {
       throw new Error('Database not initialized');
     }
 
-    const db = this.db;
+    const { db } = this;
 
-    return new Promise((resolve, reject) => {
+    return await new Promise<CachedData<T> | null>((resolve, reject) => {
       const transaction = db.transaction([this.storeName], 'readonly');
       const store = transaction.objectStore(this.storeName);
       const request = store.get(this.getCacheKey(key, namespace));
 
-      request.onerror = () => reject(request.error);
+      request.onerror = () => {
+        reject(request.error);
+      };
       request.onsuccess = () => {
-        const result = request.result;
+        const { result } = request;
         if (!result) {
           resolve(null);
           return;
@@ -260,9 +268,9 @@ export class IndexedDBCache extends CacheService {
       throw new Error('Database not initialized');
     }
 
-    const db = this.db;
+    const { db } = this;
 
-    return new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const transaction = db.transaction([this.storeName], 'readwrite');
       const store = transaction.objectStore(this.storeName);
 
@@ -275,8 +283,12 @@ export class IndexedDBCache extends CacheService {
       };
 
       const request = store.put(record);
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve();
+      request.onerror = () => {
+        reject(request.error);
+      };
+      request.onsuccess = () => {
+        resolve();
+      };
     });
   }
 
@@ -302,15 +314,19 @@ export class IndexedDBCache extends CacheService {
       throw new Error('Database not initialized');
     }
 
-    const db = this.db;
+    const { db } = this;
 
-    return new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const transaction = db.transaction([this.storeName], 'readwrite');
       const store = transaction.objectStore(this.storeName);
       const request = store.delete(this.getCacheKey(key, namespace));
 
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve();
+      request.onerror = () => {
+        reject(request.error);
+      };
+      request.onsuccess = () => {
+        resolve();
+      };
     });
   }
 
@@ -321,23 +337,29 @@ export class IndexedDBCache extends CacheService {
       throw new Error('Database not initialized');
     }
 
-    const db = this.db;
+    const { db } = this;
 
-    return new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const transaction = db.transaction([this.storeName], 'readwrite');
       const store = transaction.objectStore(this.storeName);
 
       if (!namespace) {
         // Clear all
         const request = store.clear();
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => resolve();
+        request.onerror = () => {
+          reject(request.error);
+        };
+        request.onsuccess = () => {
+          resolve();
+        };
       } else {
         // Clear by namespace
         const index = store.index('namespace');
         const request = index.openCursor(IDBKeyRange.only(namespace));
 
-        request.onerror = () => reject(request.error);
+        request.onerror = () => {
+          reject(request.error);
+        };
         request.onsuccess = () => {
           const cursor = request.result;
           if (cursor) {
@@ -356,7 +378,7 @@ export class IndexedDBCache extends CacheService {
  * Memory cache implementation for testing and development
  */
 export class MemoryCache extends CacheService {
-  private cache = new Map<string, CachedData<unknown>>();
+  private readonly cache = new Map<string, CachedData<unknown>>();
 
   async get<T>(key: string, namespace: string): Promise<CachedData<T> | null> {
     const cacheKey = this.getCacheKey(key, namespace);

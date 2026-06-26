@@ -6,15 +6,17 @@ import {
   ComboboxContent,
   ComboboxEmpty,
   ComboboxGroup,
-  ComboboxInput,
   ComboboxItem,
   ComboboxLabel,
   ComboboxList,
+  ComboboxPopupInput,
+  ComboboxTrigger,
   useComboboxAnchor,
 } from '@/components/ui/combobox';
+import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
-import { useRef, useMemo } from 'react';
+import { useMemo } from 'react';
 
 import type { OpenRouterModel } from '../../../hooks/useOpenRouterModels';
 import { SimulationThinkingEffort, type ThinkingEffort } from './SimulationThinkingEffort';
@@ -24,7 +26,7 @@ interface ProviderIcon {
   className?: string;
 }
 
-interface ModelGroup {
+interface ProviderGroup {
   value: string;
   items: string[];
 }
@@ -39,7 +41,7 @@ function extractShortName(modelId: string): string {
   return slash > 0 ? modelId.slice(slash + 1) : modelId;
 }
 
-function buildGroups(models: OpenRouterModel[]): ModelGroup[] {
+function buildGroups(models: OpenRouterModel[]): ProviderGroup[] {
   const map = new Map<string, string[]>();
   for (const m of models) {
     const provider = extractProvider(m.id);
@@ -76,6 +78,46 @@ function ProviderImg({ icon, size = 14 }: { icon: ProviderIcon; size?: number })
   );
 }
 
+interface TriggerLabelProps {
+  label: string;
+  effort: ThinkingEffort;
+}
+
+function TriggerLabel({ label, effort }: TriggerLabelProps) {
+  return (
+    <>
+      <span className="truncate">{label}</span>
+      {effort === 'high' && (
+        <span className="shrink-0 text-[11px] text-muted-foreground/60">Thinking</span>
+      )}
+    </>
+  );
+}
+
+interface ProviderGroupSectionProps {
+  group: ProviderGroup;
+  icon: ProviderIcon | undefined;
+  nameMap: Map<string, string>;
+}
+
+function ProviderGroupSection({ group, icon, nameMap }: ProviderGroupSectionProps) {
+  return (
+    <ComboboxGroup items={group.items}>
+      <ComboboxLabel className="my-1 sticky -top-1 z-10 flex items-center gap-1.5 bg-card font-semibold uppercase text-muted-foreground/60">
+        {icon !== undefined && <ProviderImg icon={icon} size={12} />}
+        {group.value}
+      </ComboboxLabel>
+      <ComboboxCollection>
+        {(modelId: string) => (
+          <ComboboxItem className="cursor-pointer mx-1 w-[calc(100%-var(--spacing)*2)]" key={modelId} value={modelId}>
+            {nameMap.get(modelId) ?? modelId}
+          </ComboboxItem>
+        )}
+      </ComboboxCollection>
+    </ComboboxGroup>
+  );
+}
+
 interface SimulationModelSelectorProps {
   models: OpenRouterModel[];
   value: string;
@@ -84,7 +126,13 @@ interface SimulationModelSelectorProps {
   onEffortChange: (value: ThinkingEffort) => void;
 }
 
-export function SimulationModelSelector({ models, value, onValueChange, effort, onEffortChange }: SimulationModelSelectorProps) {
+export function SimulationModelSelector({
+  models,
+  value,
+  onValueChange,
+  effort,
+  onEffortChange,
+}: SimulationModelSelectorProps) {
   const t = useTranslations('simulation');
   const groups = useMemo(() => buildGroups(models), [models]);
   const iconMap = useMemo(() => buildIconMap(models), [models]);
@@ -92,8 +140,9 @@ export function SimulationModelSelector({ models, value, onValueChange, effort, 
     () => new Map(models.map((m) => [m.id, m.name.replace(/^[^:]+:\s*/, '')])),
     [models]
   );
-  const openRef = useRef(false);
   const anchorRef = useComboboxAnchor();
+
+  const selectedLabel = nameMap.get(value) ?? t('selectModel');
 
   return (
     <Combobox
@@ -101,50 +150,27 @@ export function SimulationModelSelector({ models, value, onValueChange, effort, 
       value={value}
       onValueChange={(v) => onValueChange(v ?? '')}
       itemToStringLabel={extractShortName}
-      onOpenChange={(open) => { openRef.current = open; }}
     >
       <div ref={anchorRef}>
-        <ComboboxInput
-          placeholder={t('selectModel')}
-          className="model-selector-trigger h-6 border-none bg-transparent! text-[11px] text-muted-foreground shadow-none transition-colors rounded-md hover:bg-background! focus-within:bg-background!"
-          style={{ width: 'auto', flex: '0 0 auto', cursor: 'default', fieldSizing: 'content', boxShadow: 'none', borderColor: 'transparent' } as React.CSSProperties}
-        >
-          {effort === 'high' && (
-            <span
-              className="shrink-0 cursor-default text-[11px] text-muted-foreground/60"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                if (!openRef.current) {
-                  (e.currentTarget.parentElement?.querySelector('button') as HTMLButtonElement | null)?.click();
-                }
-              }}
-            >
-              Thinking
-            </span>
-          )}
-        </ComboboxInput>
+        <ComboboxTrigger className="flex h-6 items-center gap-1 rounded-md bg-transparent px-1.5 text-[11px] text-muted-foreground transition-colors hover:bg-background data-popup-open:bg-background">
+          <TriggerLabel label={selectedLabel} effort={effort} />
+        </ComboboxTrigger>
       </div>
-      <ComboboxContent className="flex w-[280px] flex-col" align="end" anchor={anchorRef}>
+      <ComboboxContent className="flex h-72 w-[280px] flex-col" align="end" anchor={anchorRef}>
+        <div className="flex h-8 shrink-0 items-center gap-1.5 border-b px-2">
+          <Search className="size-3 shrink-0 text-muted-foreground/70" />
+          <ComboboxPopupInput placeholder={t('searchModels')} />
+        </div>
         <ComboboxEmpty>{t('noModelsFound')}</ComboboxEmpty>
-        <ComboboxList className="flex-1">
-          {(group) => {
-            const icon = iconMap.get(group.value);
-            return (
-              <ComboboxGroup key={group.value} items={group.items}>
-                <ComboboxLabel className="sticky -top-1 z-10 flex items-center gap-1.5 bg-popover font-semibold uppercase text-muted-foreground/60">
-                  {icon !== undefined && <ProviderImg icon={icon} size={12} />}
-                  {group.value}
-                </ComboboxLabel>
-                <ComboboxCollection>
-                  {(modelId) => (
-                    <ComboboxItem key={modelId} value={modelId}>
-                      {nameMap.get(modelId) ?? modelId}
-                    </ComboboxItem>
-                  )}
-                </ComboboxCollection>
-              </ComboboxGroup>
-            );
-          }}
+        <ComboboxList className="flex-1 py-1 px-0">
+          {(group: ProviderGroup) => (
+            <ProviderGroupSection
+              key={group.value}
+              group={group}
+              icon={iconMap.get(group.value)}
+              nameMap={nameMap}
+            />
+          )}
         </ComboboxList>
         <div className="shrink-0 border-t px-2 py-1.5">
           <SimulationThinkingEffort value={effort} onValueChange={onEffortChange} />

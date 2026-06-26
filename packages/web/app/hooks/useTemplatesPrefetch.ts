@@ -39,8 +39,12 @@ export function useTemplatesPrefetch(): TemplatesPrefetchState {
 
     void fetchTopTemplates()
       .then(setItems)
-      .catch(() => setItems([]))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        setItems([]);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
   return useMemo(() => ({ items, loading }), [items, loading]);

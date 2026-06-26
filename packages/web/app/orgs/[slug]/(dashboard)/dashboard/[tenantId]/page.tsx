@@ -37,7 +37,7 @@ export default async function TenantExecutionsPage({
   const tenantId = tenant.tenant_id;
 
   return (
-    <div className="flex h-[calc(100%-var(--spacing)*2)] flex-col bg-background overflow-hidden border border mr-2 rounded-xl">
+    <div className="flex h-[calc(100%-var(--spacing)*2.5)] flex-col bg-background overflow-hidden border border mr-2.5 rounded-xl">
       <div className="px-4 py-3 shrink-0 bg-background">
         <nav className="flex items-center gap-1 text-sm text-muted-foreground">
           <Link href={`/orgs/${slug}/dashboard`} className="hover:text-foreground text-xs font-medium">

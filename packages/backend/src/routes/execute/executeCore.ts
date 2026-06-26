@@ -24,6 +24,7 @@ import type {
 } from './executeCoreTypes.js';
 import type { FetchedData } from './executeFetcher.js';
 import { logExec } from './executeHelpers.js';
+import { resolveOAuthBundle } from './executeOAuthResolver.js';
 
 export type { ExecuteCoreCallbacks, ExecuteCoreInput, ExecuteCoreOutput, OverrideAgentConfig };
 
@@ -98,22 +99,33 @@ interface RunAgentResult {
 }
 
 async function runAgent(params: RunAgentParams): Promise<RunAgentResult> {
-  const vfsPayload = await resolveVfsCorePayload(
-    params.supabase,
-    params.fetched,
-    params.input.agentId,
-    params.input.orgId
-  );
+  const { fetched, supabase, input, model, callbacks, override, conversationId } = params;
+  const { agentRecord } = fetched;
+  const mcpServers = fetched.graph.mcpServers ?? [];
+  const [vfsPayload, oauthByProvider] = await Promise.all([
+    resolveVfsCorePayload(supabase, fetched, input.agentId, input.orgId),
+    resolveOAuthBundle({
+      supabase,
+      orgId: agentRecord.org_id,
+      selectedTools: agentRecord.selected_tools,
+      mcpServers,
+    }),
+  ]);
   const buildOptions: BuildCoreParamsOptions = {
+    orgId: input.orgId,
     vfsPayload,
-    overrideAgentConfig: params.override ?? params.input.overrideAgentConfig,
-    conversationId: params.conversationId ?? undefined,
+    overrideAgentConfig: override ?? input.overrideAgentConfig,
+    conversationId: conversationId ?? undefined,
+    oauthByProvider,
+    selectedTools: agentRecord.selected_tools,
+    selectedKvStoreId: agentRecord.selected_kv_store_id,
+    selectedRagStoreId: agentRecord.selected_rag_store_id,
   };
-  const edgeParams = buildCoreExecuteParams(params.fetched, params.input.input, params.model, buildOptions);
+  const edgeParams = buildCoreExecuteParams(fetched, input.input, model, buildOptions);
   const startTime = Date.now();
   const { output, nodeData } = await executeAgent(edgeParams, {
-    onNodeVisited: params.callbacks?.onNodeVisited ?? noop,
-    onNodeProcessed: params.callbacks?.onNodeProcessed ?? noop,
+    onNodeVisited: callbacks?.onNodeVisited ?? noop,
+    onNodeProcessed: callbacks?.onNodeProcessed ?? noop,
   });
   return { output, nodeData, durationMs: Date.now() - startTime };
 }

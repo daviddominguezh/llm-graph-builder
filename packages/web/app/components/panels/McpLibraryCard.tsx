@@ -36,9 +36,9 @@ function CardInfo({ item }: { item: McpLibraryRow }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
       <div className="flex items-center gap-1">
-        <p className="truncate text-xs font-medium">{item.name}</p>
+        <p className="truncate text-xs font-medium cursor-default">{item.name}</p>
       </div>
-      <div className="flex items-center gap-1.5 text-[10px]">
+      <div className="flex items-center gap-1.5 text-[10px] cursor-default">
         {item.org_name !== undefined && <span className="truncate">{item.org_name}</span>}
         {item.org_name !== undefined && <span>·</span>}
         <span className="flex items-center gap-0.5">
@@ -54,25 +54,25 @@ function InstallButton({ isInstalled, onInstall }: { isInstalled: boolean; onIns
   return (
     <Button
       size="icon-xs"
-      variant={isInstalled ? 'outline' : 'default'}
+      variant={isInstalled ? 'ghost' : 'default'}
       disabled={isInstalled}
       onClick={onInstall}
-      className="shrink-0"
+      className={`shrink-0 ${isInstalled ? 'bg-green-600 shadow-none rounded-full disabled:opacity-100' : ''}`}
     >
-      {isInstalled ? <Check className="size-2.5" /> : <Download className="size-2.5" />}
+      {isInstalled ? <Check strokeWidth={isInstalled ? 4 : 2} className="size-2.5 text-white" /> : <Download className="size-2.5" />}
     </Button>
   );
 }
 
 export function McpLibraryCard({ item, isInstalled, onInstall }: McpLibraryCardProps) {
   return (
-    <div className="flex flex-col gap-1 border-b mx-2 mt-2 pb-2 px-2 first:mt-0.5">
+    <div className="flex flex-col gap-1 border-b mx-2 mt-2 pb-2 px-1 first:mt-0.5">
       <div className="flex items-start gap-2">
         <CardImage imageUrl={item.image_url} name={item.name} />
         <CardInfo item={item} />
         <InstallButton isInstalled={isInstalled} onInstall={() => onInstall(item)} />
       </div>
-      <p className="line-clamp-2 text-[10px] text-muted-foreground">{item.description}</p>
+      <p className="line-clamp-2 text-[10px] text-muted-foreground cursor-default">{item.description}</p>
     </div>
   );
 }

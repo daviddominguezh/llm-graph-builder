@@ -51,8 +51,9 @@ function isOrgIdRow(value: unknown): value is OrgIdRow {
 
 async function lookupOrgId(supabase: SupabaseClient, libraryItemId: string): Promise<string | null> {
   const result = await supabase
-    .from('mcp_oauth_connections')
+    .from('oauth_connections')
     .select('org_id')
+    .eq('provider', 'mcp')
     .eq('library_item_id', libraryItemId)
     .limit(SINGLE_RESULT)
     .single();

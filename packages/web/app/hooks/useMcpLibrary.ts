@@ -34,8 +34,12 @@ export function useMcpLibrary(): McpLibraryState {
 
     void fetchLibrary()
       .then(setItems)
-      .catch(() => setItems([]))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        setItems([]);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
   return useMemo(() => ({ items, loading }), [items, loading]);

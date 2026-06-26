@@ -1,24 +1,25 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AlertTriangle, BookOpen, CheckCircle, ChevronDown, Loader2, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { BookOpen, Plus } from 'lucide-react';
+import { useMemo } from 'react';
 
 import type { McpServerStatus } from '../../hooks/useMcpServers';
-import { useOAuthStatus } from '../../hooks/useOAuthStatus';
-import type { OrgEnvVariableRow } from '../../lib/orgEnvVariables';
+import { useMcpTenantConfigs } from '../../hooks/useMcpTenantConfigs';
 import type { McpAuthType, McpLibraryRow } from '../../lib/mcpLibraryTypes';
+import type { OrgEnvVariableRow } from '../../lib/orgEnvVariables';
 import type { McpServerConfig } from '../../schemas/graph.schema';
-import { LibraryServerFields, areVariablesComplete } from './LibraryServerFields';
-import type { VariableValueShape } from './LibraryServerFields';
-import { StdioTransportFields, TransportTypeSelector, UrlTransportFields } from './TransportFields';
+import { useToolRegistry } from '../ToolRegistryProvider';
+import { McpServerRow } from './McpServerRow';
+import type { SectionTenant } from './mcpServersSectionLogic';
 
 interface McpServersSectionProps {
   servers: McpServerConfig[];
   discovering: Record<string, boolean>;
   serverStatus: Record<string, McpServerStatus>;
+  agentId: string;
+  tenants: SectionTenant[];
   orgId: string;
   envVariables: OrgEnvVariableRow[];
   libraryItems?: McpLibraryRow[];
@@ -30,278 +31,74 @@ interface McpServersSectionProps {
   onOpenLibrary: () => void;
 }
 
-interface ServerItemProps {
-  server: McpServerConfig;
-  status: McpServerStatus;
-  isDiscovering: boolean;
-  envVariables: OrgEnvVariableRow[];
-  orgId: string;
-  authType?: McpAuthType;
-  onRemove: () => void;
-  onUpdate: (updates: Partial<McpServerConfig>) => void;
-  onDiscover: () => void;
-  onPublish: () => void;
-}
-
-function DiscoverButton({
-  status,
-  isDiscovering,
-  onDiscover,
-  disabled,
-  className,
-}: {
-  status: McpServerStatus;
-  isDiscovering: boolean;
-  onDiscover: () => void;
-  disabled?: boolean;
-  className?: string;
-}) {
-  const isActive = status === 'active';
-  const label = isActive ? 'Reload Tools' : 'Discover Tools';
-
-  return (
-    <Button
-      variant="default"
-      size="sm"
-      className={className}
-      onClick={onDiscover}
-      disabled={isDiscovering || (disabled ?? false)}
-    >
-      {isDiscovering ? <Loader2 className="size-3 animate-spin text-white" /> : label}
-    </Button>
-  );
-}
-
-function EditableServerFields({
-  server,
-  status,
-  isDiscovering,
-  onUpdate,
-  onDiscover,
-  onPublish,
-}: Omit<ServerItemProps, 'onRemove' | 'envVariables' | 'orgId' | 'authType'>) {
-  return (
-    <>
-      <div className="space-y-1">
-        <Label>Name</Label>
-        <Input value={server.name} onChange={(e) => onUpdate({ name: e.target.value })} />
-      </div>
-      <TransportTypeSelector server={server} onUpdate={onUpdate} />
-      <UrlTransportFields server={server} onUpdate={onUpdate} />
-      <StdioTransportFields server={server} onUpdate={onUpdate} />
-      <div className="flex gap-2">
-        <Button variant="outline" size="sm" className="flex-1" onClick={onPublish}>
-          Publish
-        </Button>
-        <DiscoverButton
-          status={status}
-          isDiscovering={isDiscovering}
-          onDiscover={onDiscover}
-          className="flex-1"
-        />
-      </div>
-    </>
-  );
-}
-
-interface LibraryExpandedProps {
-  server: McpServerConfig;
-  status: McpServerStatus;
-  isDiscovering: boolean;
-  envVariables: OrgEnvVariableRow[];
-  orgId: string;
-  authType?: McpAuthType;
-  onUpdate: (updates: Partial<McpServerConfig>) => void;
-  onDiscover: () => void;
-}
-
-function LibraryExpandedFields({
-  server,
-  status,
-  isDiscovering,
-  envVariables,
-  orgId,
-  authType,
-  onUpdate,
-  onDiscover,
-}: LibraryExpandedProps) {
-  const variableValues = server.variableValues as Record<string, VariableValueShape> | undefined;
-  const varsComplete = areVariablesComplete(variableValues);
-  const oauthStatus = useOAuthStatus(orgId, authType === 'oauth' ? server.libraryItemId : undefined);
-
-  return (
-    <>
-      <LibraryServerFields
-        server={server}
-        envVariables={envVariables}
-        authType={authType}
-        oauthConnected={oauthStatus.connected}
-        onUpdate={onUpdate}
-      />
-      <DiscoverButton
-        status={status}
-        isDiscovering={isDiscovering}
-        onDiscover={onDiscover}
-        disabled={authType !== 'oauth' && !varsComplete}
-        className="w-full"
-      />
-    </>
-  );
-}
-
-function ServerItemExpanded({
-  server,
-  status,
-  isDiscovering,
-  envVariables,
-  orgId,
-  authType,
-  onUpdate,
-  onDiscover,
-  onPublish,
-}: Omit<ServerItemProps, 'onRemove'>) {
-  const isFromLibrary = server.libraryItemId !== undefined;
-
-  return (
-    <div className="space-y-2 mt-2">
-      {isFromLibrary ? (
-        <LibraryExpandedFields
-          server={server}
-          status={status}
-          isDiscovering={isDiscovering}
-          envVariables={envVariables}
-          orgId={orgId}
-          authType={authType}
-          onUpdate={onUpdate}
-          onDiscover={onDiscover}
-        />
-      ) : (
-        <EditableServerFields
-          server={server}
-          status={status}
-          isDiscovering={isDiscovering}
-          onUpdate={onUpdate}
-          onDiscover={onDiscover}
-          onPublish={onPublish}
-        />
-      )}
-    </div>
-  );
-}
-
-function StatusIcon({ status }: { status: McpServerStatus }) {
-  if (status === 'active') {
-    return <CheckCircle className="size-3 text-green-500" />;
-  }
-  return <AlertTriangle className="size-3 text-orange-400" />;
-}
-
-function ServerItem({
-  server,
-  status,
-  isDiscovering,
-  envVariables,
-  orgId,
-  authType,
-  onRemove,
-  onUpdate,
-  onDiscover,
-  onPublish,
-}: ServerItemProps) {
-  const [expanded, setExpanded] = useState(false);
-
-  return (
-    <li className="rounded-md border px-3 py-2 bg-background">
-      <div
-        className="flex items-center justify-between cursor-pointer"
-        onClick={() => setExpanded(!expanded)}
-      >
-        <span className="flex items-center gap-1.5 text-xs">
-          <ChevronDown className={`size-3 transition-transform ${expanded ? '' : '-rotate-90'}`} />
-          <StatusIcon status={status} />
-          {server.name}
-        </span>
-        <Button
-          variant="destructive"
-          size="icon-xs"
-          title="Remove server"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove();
-          }}
-        >
-          <Trash2 className="size-3" />
-        </Button>
-      </div>
-      {expanded && (
-        <ServerItemExpanded
-          server={server}
-          status={status}
-          isDiscovering={isDiscovering}
-          envVariables={envVariables}
-          orgId={orgId}
-          authType={authType}
-          onUpdate={onUpdate}
-          onDiscover={onDiscover}
-          onPublish={onPublish}
-        />
-      )}
-    </li>
-  );
-}
-
 function getAuthType(server: McpServerConfig, libraryItems: McpLibraryRow[]): McpAuthType | undefined {
   if (server.libraryItemId === undefined) return undefined;
   return libraryItems.find((i) => i.id === server.libraryItemId)?.auth_type;
 }
 
-export function McpServersSection({
-  servers,
-  discovering,
-  serverStatus,
-  envVariables,
-  orgId,
-  libraryItems,
-  onAdd,
-  onRemove,
-  onUpdate,
-  onDiscover,
-  onPublish,
-  onOpenLibrary,
-}: McpServersSectionProps) {
-  const items = libraryItems ?? [];
+function buildNoVersionMap(groups: ReturnType<typeof useToolRegistry>['groups']): Record<string, boolean> {
+  const out: Record<string, boolean> = {};
+  for (const g of groups) {
+    if (g.kind !== 'mcp') continue;
+    out[g.providerId] = g.serverVersion === '';
+  }
+  return out;
+}
+
+function SectionHeader({ onOpenLibrary, onAdd }: { onOpenLibrary: () => void; onAdd: () => void }) {
+  return (
+    <div className="flex items-center justify-between mb-2">
+      <Label>MCP Servers</Label>
+      <div className="flex items-center gap-1">
+        <Button variant="ghost" size="icon-xs" className="rounded-full" onClick={onOpenLibrary}>
+          <BookOpen className="size-3" />
+        </Button>
+        <Button variant="ghost" size="icon-xs" className="rounded-full" onClick={onAdd}>
+          <Plus className="size-3" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function McpServersSection(props: McpServersSectionProps) {
+  const { servers, discovering, serverStatus, agentId, tenants, envVariables, orgId } = props;
+  const items = props.libraryItems ?? [];
+  const { groups } = useToolRegistry();
+  const noVersionMap = buildNoVersionMap(groups);
+  const tenantIds = useMemo(() => tenants.map((tenant) => tenant.id), [tenants]);
+  const { aggregateFor, loading: aggregateLoading } = useMcpTenantConfigs({
+    agentId,
+    servers,
+    tenants: tenantIds,
+    envVariables,
+  });
+  const sorted = useMemo(() => [...servers].sort((a, b) => a.name.localeCompare(b.name)), [servers]);
 
   return (
     <div className="mt-2">
-      <div className="flex items-center justify-between mb-2">
-        <Label>MCP Servers</Label>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon-xs" onClick={onOpenLibrary}>
-            <BookOpen className="size-3" />
-          </Button>
-          <Button variant="ghost" size="icon-xs" onClick={onAdd}>
-            <Plus className="size-3" />
-          </Button>
-        </div>
-      </div>
-      <ul className="space-y-2">
-        {[...servers]
-          .sort((a, b) => a.name.localeCompare(b.name))
-          .map((server) => (
-            <ServerItem
-              key={server.id}
-              server={server}
-              status={serverStatus[server.id] ?? 'pending'}
-              isDiscovering={discovering[server.id] ?? false}
-              envVariables={envVariables}
-              orgId={orgId}
-              authType={getAuthType(server, items)}
-              onRemove={() => onRemove(server.id)}
-              onUpdate={(updates) => onUpdate(server.id, updates)}
-              onDiscover={() => onDiscover(server.id)}
-              onPublish={() => onPublish(server)}
-            />
-          ))}
+      <SectionHeader onOpenLibrary={props.onOpenLibrary} onAdd={props.onAdd} />
+      <ul className="space-y-2 pl-2">
+        {sorted.map((server) => (
+          <McpServerRow
+            key={server.id}
+            server={server}
+            status={serverStatus[server.id] ?? 'pending'}
+            aggregate={aggregateFor(server.id)}
+            aggregateLoading={aggregateLoading}
+            isDiscovering={discovering[server.id] ?? false}
+            noVersion={noVersionMap[server.id] ?? false}
+            agentId={agentId}
+            tenants={tenants}
+            envVariables={envVariables}
+            orgId={orgId}
+            authType={getAuthType(server, items)}
+            onRemove={() => props.onRemove(server.id)}
+            onUpdate={(updates) => props.onUpdate(server.id, updates)}
+            onDiscover={() => props.onDiscover(server.id)}
+            onPublish={() => props.onPublish(server)}
+          />
+        ))}
       </ul>
     </div>
   );

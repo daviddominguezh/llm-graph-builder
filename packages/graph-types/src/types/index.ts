@@ -20,6 +20,7 @@ import type {
   RuntimeGraphSchema,
   RuntimeNodeKindSchema,
   RuntimeNodeSchema,
+  VariableValueSchema,
 } from '../schemas/index.js';
 
 export type Agent = z.infer<typeof AgentSchema>;
@@ -39,6 +40,7 @@ export type Graph = z.infer<typeof GraphSchema>;
 export type RuntimeGraph = z.infer<typeof RuntimeGraphSchema>;
 export type McpTransport = z.infer<typeof McpTransportSchema>;
 export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
+export type VariableValue = z.infer<typeof VariableValueSchema>;
 export type Operation = z.infer<typeof OperationSchema>;
 export type OperationsBatch = z.infer<typeof OperationsBatchSchema>;
 export type OutputSchemaEntity = z.infer<typeof OutputSchemaEntitySchema>;

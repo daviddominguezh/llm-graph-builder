@@ -1,6 +1,7 @@
 'use client';
 
 import { addOrgMemberAction } from '@/app/actions/orgMembers';
+import { Scrollable } from '@/app/components/Scrollable';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -10,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
@@ -125,7 +126,7 @@ function InviteForm({ orgId, existingEmails, onOpenChange, onInvited }: InviteMe
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
-      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-1">
+      <Scrollable className="flex min-h-0 flex-1 flex-col gap-2 p-1">
         {validated.map((entry) => (
           <InviteRowEntry
             key={entry.id}
@@ -136,14 +137,18 @@ function InviteForm({ orgId, existingEmails, onOpenChange, onInvited }: InviteMe
             onRemove={removeRow}
           />
         ))}
-        <Button variant="ghost" size="sm" className="self-start shrink-0 text-muted-foreground" onClick={addRow}>
+        <Button variant="ghost" size="sm" className="mt-1 self-start shrink-0 text-muted-foreground rounded-md" onClick={addRow}>
           <Plus className="size-3.5" />
           {t('addAnother')}
         </Button>
-      </div>
+      </Scrollable>
       <DialogFooter className="shrink-0">
         <Button onClick={handleSubmit} disabled={!canSubmit}>
-          {loading ? t('inviting') : t('inviteCount', { count: validated.filter((e) => e.email.trim() !== '').length })}
+          {loading ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            t('inviteCount', { count: validated.filter((e) => e.email.trim() !== '').length })
+          )}
         </Button>
       </DialogFooter>
     </div>

@@ -3,124 +3,72 @@
 import { createExecutionKeyAction } from '@/app/actions/executionKeys';
 import type { AgentMetadata } from '@/app/lib/agents';
 import type { ExecutionKeyRow } from '@/app/lib/executionKeys';
+import type { TenantRow } from '@/app/lib/tenants';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Combobox,
-  ComboboxChip,
-  ComboboxChips,
-  ComboboxChipsInput,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxItem,
-  ComboboxList,
-  useComboboxAnchor,
-} from '@/components/ui/combobox';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { LoaderCircle, TriangleAlert } from 'lucide-react';
+import { LoaderCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
-interface AgentOption {
-  value: string;
-  label: string;
-}
+import {
+  AllAgentsToggle,
+  AllTenantsToggle,
+  type ScopeOption,
+  ScopeMultiSelect,
+} from './ScopeSelectors';
 
 interface CreateExecutionKeyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   orgId: string;
   agents: AgentMetadata[];
+  tenants: TenantRow[];
   onCreated: (result: { key: ExecutionKeyRow; fullKey: string }) => void;
 }
 
 interface FormErrors {
   nameError: string;
   agentsError: string;
+  tenantsError: string;
 }
 
-function buildAgentOptions(agents: AgentMetadata[]): AgentOption[] {
+function emptyErrors(): FormErrors {
+  return { nameError: '', agentsError: '', tenantsError: '' };
+}
+
+function buildAgentOptions(agents: AgentMetadata[]): ScopeOption[] {
   return agents.map((a) => ({ value: a.id, label: a.name }));
 }
 
-function validateForm(
-  name: string,
-  allAgents: boolean,
-  selectedIds: string[],
-  t: (key: string) => string
-): FormErrors | null {
-  const nameError = name === '' ? t('nameRequired') : '';
-  const agentsError = !allAgents && selectedIds.length === 0 ? t('agentsRequired') : '';
+function buildTenantOptions(tenants: TenantRow[]): ScopeOption[] {
+  return tenants.map((t) => ({ value: t.id, label: t.name }));
+}
 
-  if (nameError !== '' || agentsError !== '') {
-    return { nameError, agentsError };
+interface ValidateArgs {
+  name: string;
+  allAgents: boolean;
+  agentIds: string[];
+  allTenants: boolean;
+  tenantIds: string[];
+  t: (key: string) => string;
+}
+
+function validateForm(args: ValidateArgs): FormErrors | null {
+  const nameError = args.name === '' ? args.t('nameRequired') : '';
+  const agentsError = !args.allAgents && args.agentIds.length === 0 ? args.t('agentsRequired') : '';
+  const tenantsError = !args.allTenants && args.tenantIds.length === 0 ? args.t('tenantsRequired') : '';
+
+  if (nameError !== '' || agentsError !== '' || tenantsError !== '') {
+    return { nameError, agentsError, tenantsError };
   }
-
   return null;
-}
-
-function AgentChipsList({ selected }: { selected: AgentOption[] }) {
-  return (
-    <>
-      {selected.map((item) => (
-        <ComboboxChip key={item.value}>{item.label}</ComboboxChip>
-      ))}
-    </>
-  );
-}
-
-function AgentMultiSelect({
-  options,
-  selected,
-  onSelectedChange,
-  error,
-}: {
-  options: AgentOption[];
-  selected: AgentOption[];
-  onSelectedChange: (values: AgentOption[]) => void;
-  error: string;
-}) {
-  const t = useTranslations('executionKeys');
-  const anchor = useComboboxAnchor();
-
-  return (
-    <div className="flex flex-col gap-1">
-      <Label htmlFor="exec-key-agents">{t('agents')}</Label>
-      <p className="text-muted-foreground text-xs">{t('agentsDescription')}</p>
-      <Combobox
-        multiple
-        items={options}
-        value={selected}
-        onValueChange={onSelectedChange}
-        itemToStringLabel={(item) => item.label}
-        isItemEqualToValue={(a, b) => a.value === b.value}
-      >
-        <ComboboxChips ref={anchor}>
-          <AgentChipsList selected={selected} />
-          <ComboboxChipsInput id="exec-key-agents" placeholder={t('agentsPlaceholder')} />
-        </ComboboxChips>
-        <ComboboxContent anchor={anchor}>
-          <ComboboxEmpty>{t('agentsPlaceholder')}</ComboboxEmpty>
-          <ComboboxList>
-            {(item: AgentOption) => (
-              <ComboboxItem key={item.value} value={item}>
-                {item.label}
-              </ComboboxItem>
-            )}
-          </ComboboxList>
-        </ComboboxContent>
-      </Combobox>
-      {error !== '' && <p className="text-destructive text-xs">{error}</p>}
-    </div>
-  );
 }
 
 function NameField({ error }: { error: string }) {
   const t = useTranslations('executionKeys');
-
   return (
     <div className="flex flex-col gap-1">
       <Label htmlFor="exec-key-name">{t('name')}</Label>
@@ -132,7 +80,6 @@ function NameField({ error }: { error: string }) {
 
 function ExpirationField() {
   const t = useTranslations('executionKeys');
-
   return (
     <div className="flex flex-col gap-1">
       <Label htmlFor="exec-key-expires">{t('expiresAt')}</Label>
@@ -142,84 +89,129 @@ function ExpirationField() {
   );
 }
 
-function useCreateKeyForm(
-  orgId: string,
-  allAgents: boolean,
-  selectedAgents: AgentOption[],
-  onCreated: CreateExecutionKeyDialogProps['onCreated']
-) {
+interface FormState {
+  allAgents: boolean;
+  allTenants: boolean;
+  selectedAgents: ScopeOption[];
+  selectedTenants: ScopeOption[];
+}
+
+interface SubmitArgs {
+  orgId: string;
+  state: FormState;
+  onCreated: CreateExecutionKeyDialogProps['onCreated'];
+}
+
+function useCreateKeyForm(args: SubmitArgs) {
   const t = useTranslations('executionKeys');
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<FormErrors>({ nameError: '', agentsError: '' });
+  const [errors, setErrors] = useState<FormErrors>(emptyErrors());
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const name = (formData.get('name') as string).trim();
     const expiresAt = (formData.get('expiresAt') as string) || null;
-    const selectedIds = selectedAgents.map((a) => a.value);
+    const agentIds = args.state.selectedAgents.map((a) => a.value);
+    const tenantIds = args.state.selectedTenants.map((t2) => t2.value);
 
-    const validationErrors = validateForm(name, allAgents, selectedIds, t);
+    const validationErrors = validateForm({
+      name,
+      allAgents: args.state.allAgents,
+      agentIds,
+      allTenants: args.state.allTenants,
+      tenantIds,
+      t,
+    });
     if (validationErrors !== null) {
       setErrors(validationErrors);
       return;
     }
 
     setLoading(true);
-    setErrors({ nameError: '', agentsError: '' });
+    setErrors(emptyErrors());
 
-    const { result, error } = await createExecutionKeyAction(orgId, name, allAgents, selectedIds, expiresAt);
+    const { result, error } = await createExecutionKeyAction({
+      orgId: args.orgId,
+      name,
+      allAgents: args.state.allAgents,
+      agentIds,
+      allTenants: args.state.allTenants,
+      tenantIds,
+      expiresAt,
+    });
     setLoading(false);
 
     if (error !== null || result === null) {
       toast.error(error ?? t('createError'));
       return;
     }
-
-    onCreated(result);
+    args.onCreated(result);
   }
 
   function resetErrors() {
-    setErrors({ nameError: '', agentsError: '' });
+    setErrors(emptyErrors());
   }
 
   return { loading, errors, handleSubmit, resetErrors };
 }
 
-function AllAgentsWarning() {
-  const t = useTranslations('executionKeys');
+interface ScopeSectionsProps {
+  agentOptions: ScopeOption[];
+  tenantOptions: ScopeOption[];
+  state: FormState;
+  setState: (updater: (prev: FormState) => FormState) => void;
+  errors: FormErrors;
+}
 
+function ScopeSections({ agentOptions, tenantOptions, state, setState, errors }: ScopeSectionsProps) {
+  const t = useTranslations('executionKeys');
   return (
-    <div className="flex items-start gap-2 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-      <TriangleAlert className="size-3.5 shrink-0 mt-0.5" />
-      <p>{t('allAgentsWarning')}</p>
-    </div>
+    <>
+      <AllAgentsToggle
+        checked={state.allAgents}
+        onCheckedChange={(v) => setState((prev) => ({ ...prev, allAgents: v }))}
+      />
+      {!state.allAgents && (
+        <ScopeMultiSelect
+          id="exec-key-agents"
+          label={t('agents')}
+          description={t('agentsDescription')}
+          placeholder={t('agentsPlaceholder')}
+          options={agentOptions}
+          selected={state.selectedAgents}
+          onSelectedChange={(values) => setState((prev) => ({ ...prev, selectedAgents: values }))}
+          error={errors.agentsError}
+        />
+      )}
+      <AllTenantsToggle
+        checked={state.allTenants}
+        onCheckedChange={(v) => setState((prev) => ({ ...prev, allTenants: v }))}
+      />
+      {!state.allTenants && (
+        <ScopeMultiSelect
+          id="exec-key-tenants"
+          label={t('tenants')}
+          description={t('tenantsDescription')}
+          placeholder={t('tenantsPlaceholder')}
+          options={tenantOptions}
+          selected={state.selectedTenants}
+          onSelectedChange={(values) => setState((prev) => ({ ...prev, selectedTenants: values }))}
+          error={errors.tenantsError}
+        />
+      )}
+    </>
   );
 }
 
-function AllAgentsToggle({
-  checked,
-  onCheckedChange,
-}: {
-  checked: boolean;
-  onCheckedChange: (checked: boolean) => void;
-}) {
-  const t = useTranslations('executionKeys');
-
-  return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-center gap-2">
-        <Checkbox
-          id="exec-key-all-agents"
-          checked={checked}
-          onCheckedChange={(val) => onCheckedChange(val === true)}
-        />
-        <Label htmlFor="exec-key-all-agents">{t('allAgents')}</Label>
-      </div>
-      <p className="text-muted-foreground text-xs">{t('allAgentsDescription')}</p>
-      {checked && <AllAgentsWarning />}
-    </div>
-  );
+function useDialogState() {
+  const [state, setState] = useState<FormState>({
+    allAgents: true,
+    allTenants: true,
+    selectedAgents: [],
+    selectedTenants: [],
+  });
+  return { state, setState };
 }
 
 export function CreateExecutionKeyDialog({
@@ -227,24 +219,24 @@ export function CreateExecutionKeyDialog({
   onOpenChange,
   orgId,
   agents,
+  tenants,
   onCreated,
 }: CreateExecutionKeyDialogProps) {
   const t = useTranslations('executionKeys');
-  const options = useMemo(() => buildAgentOptions(agents), [agents]);
-  const [allAgents, setAllAgents] = useState(true);
-  const [selectedAgents, setSelectedAgents] = useState<AgentOption[]>([]);
-  const { loading, errors, handleSubmit, resetErrors } = useCreateKeyForm(orgId, allAgents, selectedAgents, onCreated);
+  const agentOptions = useMemo(() => buildAgentOptions(agents), [agents]);
+  const tenantOptions = useMemo(() => buildTenantOptions(tenants), [tenants]);
+  const { state, setState } = useDialogState();
+  const { loading, errors, handleSubmit, resetErrors } = useCreateKeyForm({ orgId, state, onCreated });
 
   const handleOpenChange = useCallback(
     (next: boolean) => {
       if (next) {
-        setAllAgents(true);
-        setSelectedAgents([]);
+        setState({ allAgents: true, allTenants: true, selectedAgents: [], selectedTenants: [] });
         resetErrors();
       }
       onOpenChange(next);
     },
-    [onOpenChange, resetErrors]
+    [onOpenChange, resetErrors, setState]
   );
 
   return (
@@ -255,15 +247,13 @@ export function CreateExecutionKeyDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <NameField error={errors.nameError} />
-          <AllAgentsToggle checked={allAgents} onCheckedChange={setAllAgents} />
-          {!allAgents && (
-            <AgentMultiSelect
-              options={options}
-              selected={selectedAgents}
-              onSelectedChange={setSelectedAgents}
-              error={errors.agentsError}
-            />
-          )}
+          <ScopeSections
+            agentOptions={agentOptions}
+            tenantOptions={tenantOptions}
+            state={state}
+            setState={setState}
+            errors={errors}
+          />
           <ExpirationField />
           <DialogFooter>
             <Button type="submit" disabled={loading}>

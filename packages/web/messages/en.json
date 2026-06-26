@@ -94,14 +94,14 @@
     "logout": "Sign out",
     "loading": "Loading...",
     "backToAgents": "Back to apps",
-    "formatGraph": "Auto-layout",
     "copyJson": "Copy JSON",
     "copyCurl": "Copy cURL",
+    "copyPrompt": "Copy prompt",
     "copied": "Copied",
     "optional": "optional"
   },
   "copilot": {
-    "title": "Copilot",
+    "title": "Ask OpenFlow",
     "newChat": "New chat",
     "placeholder": "Ask about your agents...",
     "send": "Send",
@@ -112,6 +112,11 @@
   },
   "toolbar": {
     "status": "Validation status",
+    "edit": "Edit",
+    "configure": "Configure",
+    "reloadTools": "Reload tools",
+    "reloadToolsHint": "Re-discover this server's tools",
+    "removeServer": "Remove server",
     "simulate": "Simulate",
     "generate": "Generate",
     "globalNodes": "Global nodes",
@@ -194,10 +199,92 @@
     "deleteCancel": "Cancel",
     "tabs": {
       "agent": "Agent",
+      "data": "Data",
       "channels": "Channels",
+      "triggers": "Triggers",
       "settings": "Settings",
       "channelsPlaceholder": "Channels coming soon",
       "settingsPlaceholder": "Settings coming soon"
+    },
+    "triggers": {
+      "title": "Triggers",
+      "description": "Run this agent on a schedule.",
+      "soon": "Soon",
+      "add": "Add",
+      "empty": "No triggers yet",
+      "emptyDescription": "Triggers run this agent automatically on a recurring schedule or at a specific date and time.",
+      "modalAdd": "Add trigger",
+      "modalEdit": "Edit trigger",
+      "cancel": "Cancel",
+      "save": "Save",
+      "delete": "Delete trigger",
+      "next": "Next",
+      "back": "Back",
+      "create": "Create",
+      "messageLabel": "Message the agent will receive",
+      "messagePlaceholder": "e.g. Summarize today's new leads",
+      "listLoading": "Loading triggers…",
+      "listError": "Couldn't load triggers",
+      "enabledLabel": "Enabled",
+      "paused": "Paused",
+      "enableTrigger": "Enable",
+      "disableTrigger": "Pause",
+      "previewApproximate": "Actual run time may vary slightly",
+      "summaryMode": {
+        "recurring": "Recurring",
+        "once": "One-time",
+        "after-event": "On event"
+      },
+      "modeLabel": "Type:",
+      "mode": {
+        "recurring": "Recurring",
+        "once": "One-time",
+        "after-event": "On event"
+      },
+      "runEvery": "Run every:",
+      "runOn": "Run at:",
+      "on": "on",
+      "onDay": "on day",
+      "at": "at",
+      "startingAt": "Starting at:",
+      "startMode": {
+        "now": "Now",
+        "specific": "Specific date"
+      },
+      "endsAt": "Ends at:",
+      "endMode": {
+        "never": "Never",
+        "specific": "Specific date"
+      },
+      "pickDateTime": "Pick a date and time",
+      "afterEventComingSoon": "After-event triggers are coming soon — they'll fire once another agent or workflow event completes.",
+      "previewLabel": "Next run:",
+      "previewLabelMany": "Next runs",
+      "previewNone": "Not scheduled",
+      "picker": {
+        "label": "Tenant",
+        "loading": "Loading tenants…",
+        "error": "Couldn't load tenants",
+        "placeholder": "Select a tenant",
+        "emptyLabel": "No tenants yet.",
+        "emptyCta": "Create one"
+      },
+      "units": {
+        "minutes": { "singular": "minute", "plural": "minutes" },
+        "hours": { "singular": "hour", "plural": "hours" },
+        "days": { "singular": "day", "plural": "days" },
+        "weeks": { "singular": "week", "plural": "weeks" },
+        "months": { "singular": "month", "plural": "months" }
+      },
+      "weekdays": {
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat",
+        "sun": "Sun"
+      }
     },
     "channels": {
       "tenant": "Tenant",
@@ -244,6 +331,7 @@
     "terminatedDescription": "Simulation complete",
     "placeholder": "Type a message...",
     "selectModel": "Select model...",
+    "searchModels": "Search models...",
     "noModelsFound": "No models found",
     "effortLow": "Low",
     "effortMedium": "Medium",
@@ -322,7 +410,10 @@
     "toolCallWarningTitle": "Switch to tool call?",
     "toolCallWarningDescription": "The source node \"{nodeId}\" has text and/or description content that will be cleared. Tool call nodes do not use these fields.",
     "toolCallWarningConfirm": "Clear & continue",
-    "toolCallWarningCancel": "Cancel"
+    "toolCallWarningCancel": "Cancel",
+    "preconditionType_user_said": "User Said",
+    "preconditionType_agent_decision": "Agent Decision",
+    "preconditionType_tool_call": "Tool Call"
   },
   "connectionMenu": {
     "connectToExisting": "Connect to existing node:",
@@ -403,8 +494,33 @@
     "apply": "Apply",
     "cancel": "Cancel"
   },
+  "contextKeys": {
+    "sectionTitle": "Context"
+  },
+  "testingPresets": {
+    "sectionTitle": "Testing Presets",
+    "name": "Name",
+    "sessionId": "Session ID",
+    "tenantId": "Tenant ID",
+    "userId": "User ID",
+    "deletePreset": "Delete preset",
+    "deleteTitle": "Delete preset?",
+    "deleteDescription": "This will permanently delete the preset \"{name}\".",
+    "delete": "Delete",
+    "cancel": "Cancel"
+  },
   "outputSchemas": {
     "sectionTitle": "Output Schemas",
+    "section": { "description": "Reusable data shapes. Forms use schemas to decide what to collect." },
+    "warnings": {
+      "usedByForms": "This schema is used by {count} form(s): {forms}. Renaming a field here keeps existing data under the old name — older conversations will show the old name in exports.",
+      "fieldUsed": "Used by form {form}. Renaming leaves old data under the old name.",
+      "deleteBlocked": {
+        "title": "Can't delete schema",
+        "body": "This schema is used by {count} form(s). Remove these forms first:",
+        "close": "Close"
+      }
+    },
     "newSchema": "New schema...",
     "deleteTitle": "Delete schema?",
     "deleteDescription": "This will remove the schema \"{name}\" and unassign it from any nodes using it.",
@@ -414,6 +530,133 @@
     "save": "Save",
     "cancel": "Cancel",
     "editSchema": "Edit schema"
+  },
+  "forms": {
+    "section": {
+      "title": "Forms",
+      "description": "Structured data your agent collects during conversations, exportable as CSV."
+    },
+    "empty": {
+      "noSchemas": {
+        "title": "No forms yet",
+        "description": "Forms are built from output schemas. Create a schema to get started.",
+        "cta": "Create output schema"
+      },
+      "noForms": {
+        "title": "No forms yet",
+        "description": "Forms let your agent collect structured data during conversations and export it as CSV.",
+        "cta": "Create form"
+      }
+    },
+    "dialog": {
+      "create": { "step1": { "title": "Name your form" }, "step2": { "title": "Validations" } },
+      "edit": { "step1": { "title": "Form details" }, "step2": { "title": "Validations" } },
+      "stepsCount": "Step {step} of {total}",
+      "next": "Next",
+      "back": "Back",
+      "cancel": "Cancel",
+      "createButton": "Create form",
+      "save": "Save",
+      "immutableHelp": "To change the name or schema, delete this form and create a new one.",
+      "unsavedConfirm": "Discard unsaved validation changes?"
+    },
+    "field": {
+      "name": { "label": "Name", "placeholder": "e.g. Customer Lead Form", "required": "Name is required" },
+      "identifier": {
+        "label": "Identifier",
+        "edit": "Edit",
+        "invalidFormat": "Only lowercase letters, numbers, and hyphens",
+        "taken": "Already in use",
+        "checking": "Checking…",
+        "available": "Available"
+      },
+      "schema": {
+        "label": "Schema",
+        "placeholder": "Select a schema",
+        "immutableHelp": "To use a different schema, delete this form and create a new one."
+      }
+    },
+    "validations": {
+      "title": "Validations",
+      "countProgress": "{configured} of {total} configured",
+      "parentCount": "{configured}/{total}",
+      "search": { "placeholder": "Search fields…" },
+      "filter": { "all": "All", "configured": "Configured", "unconfigured": "Unconfigured" },
+      "stale": {
+        "banner": "{count} validation rule(s) no longer match the current schema.",
+        "remove": "Remove stale rules",
+        "keep": "Keep for now"
+      },
+      "kind": {
+        "none": "None",
+        "email": "Valid email",
+        "twoWordName": "Two-word name (≥2 words, each ≥2 chars)",
+        "pastDate": "Past date",
+        "futureDate": "Future date",
+        "pastHour": "Past hour",
+        "futureHour": "Future hour",
+        "length": "Length",
+        "range": "Range",
+        "unavailable": "—"
+      },
+      "length": {
+        "mode": { "range": "Range", "exact": "Exact" },
+        "min": "Min",
+        "max": "Max",
+        "exact": "Exact"
+      }
+    },
+    "delete": {
+      "title": "Delete form {slug}?",
+      "body": "Past conversations keep their data.",
+      "slugReuseWarning": "A future form with the same name will NOT inherit this old data (data is keyed by a stable identifier, not the name).",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "rightPanel": {
+      "title": "Form data",
+      "rollupBadge": "{filled}/{total}",
+      "summary": { "progress": "{filled}/{total} fields collected" },
+      "editForm": "Edit form",
+      "emptyFieldsCount": "{count} empty fields",
+      "notSet": "—",
+      "emptyArray": "—",
+      "failedAttempts": { "title": "Last failed attempt(s)", "item": "{fieldPath} {reason} ({when})" }
+    },
+    "chatList": {
+      "agentFilter": { "placeholder": "All agents", "search": { "placeholder": "Search agents…" } }
+    },
+    "export": {
+      "button": "Export as CSV",
+      "dialog": { "title": "Export form data" },
+      "dateRange": {
+        "label": "Date range",
+        "max15Days": "Max range is 15 days.",
+        "tooltip": "Longer ranges require scheduled exports (coming soon)."
+      },
+      "agent": { "label": "Agent" },
+      "form": { "label": "Form" },
+      "matchCount": "{inRange} conversations match · {withData} with form data",
+      "matchCountNoData": {
+        "tooltip": "No data to export for the selected range",
+        "suggestion": "Try expanding the range or picking a different form.",
+        "viewInChatList": "View in chat list"
+      },
+      "cancel": "Cancel",
+      "export": "Export",
+      "generating": "Generating…",
+      "abort": "Abort",
+      "success": "Exported {count} conversations",
+      "successTruncated": "Exported {count} conversations (some fields truncated — too many array items)",
+      "errorRaceEmpty": "All matching conversations were deleted during export. Refresh and try again.",
+      "relativeTime": {
+        "justNow": "just now",
+        "secondsAgo": "{n}s ago",
+        "minutesAgo": "{n} min ago",
+        "hoursAgo": "{n}h ago",
+        "daysAgo": "{n}d ago"
+      }
+    }
   },
   "orgs": {
     "title": "My Organizations",
@@ -429,7 +672,9 @@
     "logs": "Logs",
     "team": "Team",
     "chats": "Chats",
+    "calendar": "Calendar",
     "tenants": "Tenants",
+    "knowledgeBase": "Knowledge base",
     "settings": "Settings",
     "settingsTitle": "Organization Settings",
     "generalSection": "General",
@@ -459,6 +704,54 @@
   },
   "chats": {
     "tenant": "Tenant"
+  },
+  "calendar": {
+    "title": "Calendar"
+  },
+  "mcpServers": {
+    "noVersionBadge": "No version",
+    "noVersionTooltip": "This MCP server doesn't report a version. Caching may serve stale tools until you refresh manually."
+  },
+  "agentTools": {
+    "selectAll": "Select all",
+    "clear": "Clear",
+    "removeAllStale": "Remove all",
+    "countOfTotal": "{n} of {total}",
+    "countOfTotalVisible": "{n} of {visible} visible · {total} total",
+    "allSelected": "all",
+    "noToolsHint": "No tools enabled. This agent can only converse.",
+    "staleHeader": "Stale entries (provider removed)",
+    "removeStale": "Remove",
+    "runInProgressNote": "Changes apply to the next run.",
+    "providerError": "Couldn't load tools — retry",
+    "providerErrorAgentNote": "Workflows that call this tool will fail at runtime — fix the provider first.",
+    "providerErrorWorkflowNote": "Agents will run without these tools and may improvise.",
+    "refreshToolsButton": "Refresh tools",
+    "registryTotalFailure": "Couldn't load tool catalog. Refresh to retry.",
+    "retry": "retry",
+    "saveStates": {
+      "saving": "Saving…",
+      "saved": "Saved",
+      "error": "Couldn't save — retry",
+      "conflict": "Conflict — refreshing",
+      "disabledByFailure": "Save paused — tool catalog couldn't load"
+    },
+    "saveError": "Couldn't save tool selection. Please try again.",
+    "limitExceeded": "You can select at most 100 tools. Remove some before saving.",
+    "storeOrgMismatch": "Selected store belongs to a different organization.",
+    "storeRequired": "Store required",
+    "storeRequiredTooltip": "Select a {kind} store at the top of this group to enable this tool.",
+    "selectStore": "Select store",
+    "selectStoreKind": "Select {kind} store",
+    "noneOption": "— None —",
+    "fix": "Fix",
+    "fixPopoverTitle": "Select a {kind} store",
+    "fixPopoverDescription": "Tools in this group need a store to operate on. You can change this later in the tools panel.",
+    "fixPopoverCancel": "Cancel",
+    "fixPopoverConfirm": "Confirm",
+    "updatedJustNow": "Updated just now",
+    "updatedMinutesAgo": "Updated {minutes}m ago",
+    "updatedHoursAgo": "Updated {hours}h ago"
   },
   "apiKeys": {
     "title": "OpenRouter API Keys",
@@ -531,7 +824,19 @@
     "oauthRequired": "This MCP requires sign-in. Click Discover Tools to connect.",
     "oauthSuccess": "Successfully connected!",
     "oauthError": "Failed to connect. Please try again.",
-    "oauthBadge": "OAuth"
+    "oauthBadge": "OAuth",
+    "discoveryErrors": {
+      "title": "Failed to discover tools",
+      "blocked": "This server's address is not allowed.",
+      "dns": "Could not resolve the server's address.",
+      "timeout": "The server did not respond in time.",
+      "tls": "Could not establish a secure connection.",
+      "auth": "The server rejected the credentials.",
+      "client_error": "The server rejected the request.",
+      "server_error": "The server returned an error.",
+      "protocol": "The server is not a valid MCP endpoint.",
+      "unknown": "Discovery failed."
+    }
   },
   "envVariables": {
     "title": "Environment Variables",
@@ -563,6 +868,196 @@
     "copied": "Copied!",
     "copyError": "Failed to copy value."
   },
+  "knowledgeBase": {
+    "title": "Documents",
+    "description": "Files your agents can search and reference.",
+    "addFiles": "Add files",
+    "emptyTitle": "No files yet",
+    "emptyDescription": "Drag files anywhere or click Add files.",
+    "dropToAdd": "Release to add",
+    "totalSize": "{count, plural, =1 {# file · {size}} other {# files · {size}}}",
+    "clearAll": "Clear",
+    "filesSkipped": "{count, plural, =1 {1 file skipped (unsupported type)} other {# files skipped (unsupported types)}}",
+    "remove": "Remove",
+    "tabRag": "RAG DB",
+    "tabKv": "KV Store",
+    "storesSidebar": {
+      "title": "Knowledge bases",
+      "newRag": "New RAG store",
+      "newKv": "New KV store",
+      "search": "Search...",
+      "empty": "No stores yet. Create your first one.",
+      "noResults": "No matching stores",
+      "actions": "Actions",
+      "rename": "Rename",
+      "delete": "Delete",
+      "idLabel": "ID:"
+    },
+    "rename": {
+      "title": "Rename knowledge base",
+      "description": "Update the display name. The slug stays the same.",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Product FAQ",
+      "slugUnchanged": "Slug stays as: {slug}",
+      "submit": "Save",
+      "cancel": "Cancel"
+    },
+    "create": {
+      "title": "New knowledge base",
+      "description": "Define a shared knowledge base for your org. Each tenant fills it in with their own content.",
+      "typeLabel": "Type",
+      "typeRag": "RAG Store",
+      "typeRagDescription": "Tenants upload documents. Agents retrieve relevant chunks at query time.",
+      "typeKv": "KV Store",
+      "typeKvDescription": "A table of key/value pairs each tenant edits directly.",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Product FAQ",
+      "idPreview": "Your DB identifier will be: <mono>{slug}</mono>",
+      "submit": "Create",
+      "cancel": "Cancel"
+    },
+    "delete": {
+      "title": "Delete store?",
+      "description": "This action cannot be undone. All per-tenant data inside this store will be deleted.",
+      "confirm": "Delete",
+      "cancel": "Cancel",
+      "errorToast": "Could not delete store."
+    },
+    "deleteBlocked": {
+      "title": "This store is in use",
+      "draftSectionTitle": "Used in draft",
+      "draftSectionBody": "Change the store to None (or another) in these draft agents. No publish required.",
+      "publishedSectionTitle": "Used in latest published version",
+      "publishedSectionBody": "These agents reference this store in their latest published version. Change the binding in their draft and publish a new version before this store can be deleted.",
+      "closeButton": "Close"
+    },
+    "kvStore": {
+      "sysHelperText": "Keys prefixed with \"_sys.\" are read-only to agents.",
+      "sysBadge": "read-only"
+    },
+    "storeHeader": {
+      "slugLabel": "Slug",
+      "delete": "Delete store"
+    },
+    "tenantTabs": {
+      "label": "Tenant",
+      "noTenants": "No tenants yet. Create a tenant before adding content."
+    },
+    "emptyPage": {
+      "title": "No store selected",
+      "description": "Choose a RAG or KV store from the sidebar, or create a new one."
+    },
+    "kv": {
+      "search": "Search keys and values…",
+      "headerKey": "Key",
+      "headerValue": "Value",
+      "remove": "Remove",
+      "keyPlaceholder": "key",
+      "valuePlaceholder": "value",
+      "addKeyPlaceholder": "Add a key…",
+      "addValuePlaceholder": "value",
+      "noResults": "No matches for \"{query}\"",
+      "entries": "{count, plural, =1 {1 entry} other {# entries}}",
+      "pageOf": "{page} / {total}",
+      "prevPage": "Previous page",
+      "nextPage": "Next page",
+      "duplicateKey": "Duplicate key",
+      "deleteTitle": "Delete entry?",
+      "deleteDescription": "This action cannot be undone.",
+      "deleteConfirm": "Delete",
+      "deleteCancel": "Cancel"
+    },
+    "ragUpload": {
+      "idle": "Drag files here or click to upload",
+      "drop": "Release to upload",
+      "pageDropOverlay": "Drop files to upload",
+      "uploading": "Uploading…",
+      "upload": "Upload",
+      "extensions": "pdf · docx · pptx · xlsx · html · jpg · jpeg · png · txt · md · csv · json",
+      "dialogTitle": "Upload files",
+      "dialogDescription": "Configure OCR and language hints, then start the upload.",
+      "addFiles": "Add files",
+      "remove": "Remove",
+      "ocrLabel": "OCR",
+      "ocrModeStandard": "Standard",
+      "ocrModeAdvanced": "Advanced",
+      "ocrModeAdvancedForced": "This file type only supports Advanced mode",
+      "languagesLabel": "Languages",
+      "languagesPlaceholder": "Select a language (optional)",
+      "uploadCta": "Upload {count, plural, =1 {1 file} other {# files}}",
+      "uploadInProgress": "Uploading…",
+      "close": "Close",
+      "done": "All files processed",
+      "errorPrefix": "Failed",
+      "ocrTooltip": "Enable OCR for scanned files, tables, spreadsheets, or documents with diagrams, charts, or embedded images. Leave it off for plain text documents."
+    },
+    "ragStatus": {
+      "pending": "Pending",
+      "uploading": "Uploading",
+      "parsing": "Parsing",
+      "chunking": "Chunking",
+      "embedding": "Embedding",
+      "done": "Done",
+      "failed": "Failed"
+    },
+    "ragFiles": {
+      "remove": "Remove",
+      "openChunks": "Open chunks",
+      "pageCount": "{count, plural, =1 {1 page} other {# pages}}",
+      "deleteTitle": "Delete file?",
+      "deleteDescription": "This will permanently delete the file and all its chunks. This cannot be undone.",
+      "deleteConfirm": "Delete",
+      "deleteCancel": "Cancel",
+      "summary": "{files, plural, =1 {# file} other {# files}} · {pages, plural, =1 {# page} other {# pages}} · {bytes}",
+      "noMatches": "No files match your search"
+    },
+    "ragChunks": {
+      "loading": "Loading chunks…",
+      "page": "p. {page}",
+      "pageRange": "p. {start}–{end}",
+      "paragraph": "¶ {idx}",
+      "tokens": "{count} tok",
+      "prev": "Previous",
+      "next": "Next",
+      "colPage": "Page",
+      "colParagraph": "Paragraph",
+      "colTokens": "Tokens",
+      "colContent": "Content",
+      "colSimilarity": "Similarity",
+      "viewAll": "View all",
+      "viewLess": "View less",
+      "copy": "Copy",
+      "copied": "Copied",
+      "drawerSubtitle": "{count, plural, =1 {1 chunk on this page} other {# chunks on this page}}",
+      "noMatchInFile": "No matching chunks in this file"
+    },
+    "ragSearch": {
+      "placeholder": "Search files and chunks…",
+      "submit": "Search",
+      "clear": "Clear",
+      "empty": "No results",
+      "page": "p. {page}",
+      "paragraph": "¶ {idx}",
+      "distance": "d={d}",
+      "topKLabel": "Top",
+      "minSimilarityLabel": "min similarity",
+      "rerankLabel": "Rerank",
+      "rerankTooltip": "Reorders the top candidates with a cross-encoder model that scores each chunk against your query. Improves relevance for ambiguous or natural-language queries at the cost of an extra API call.",
+      "mode": {
+        "simple": "Simple",
+        "semantic": "Semantic",
+        "hybrid": "Hybrid"
+      },
+      "description": {
+        "simple": "Lexical keyword match scored by term frequency across stored chunks.",
+        "semantic": "Vector similarity over embedded chunks, ideal for natural-language queries.",
+        "hybrid": "Mixes lexical and semantic candidates and reranks them with a cross-encoder."
+      }
+    }
+  },
+  "tenantSidebar": {
+    "label": "Tenant"
+  },
   "tenants": {
     "title": "Tenants",
     "description": "Create and manage tenant environments for your deployed agents.",
@@ -593,6 +1088,7 @@
     "minutesAgo": "{count}m ago",
     "hoursAgo": "{count}h ago",
     "daysAgo": "{count}d ago",
+    "defaultLabel": "(default)",
     "webChannel": {
       "title": "Web channel",
       "subtitle": "Control where the OpenFlow chat widget can be embedded for this tenant.",
@@ -629,7 +1125,10 @@
     "collapse": "Collapse",
     "copied": "Copied",
     "status": "Status",
-    "duration": "Duration"
+    "duration": "Duration",
+    "noStoreBoundError": "Bind a store for this provider first.",
+    "unsupportedProviderError": "Testing this provider isn't supported yet.",
+    "transientError": "Couldn't run the tool — try again."
   },
   "theme": {
     "appearance": "Appearance",
@@ -680,7 +1179,18 @@
     "otherAgents": "+{count} others",
     "editAgents": "Edit agents",
     "editName": "Edit name",
-    "updateError": "Failed to update key. Please try again."
+    "updateError": "Failed to update key. Please try again.",
+    "allTenants": "All tenants",
+    "allTenantsDescription": "Access all tenants, including future ones.",
+    "allTenantsWarning": "Anyone with this key can act on behalf of any tenant in your organization. Use scoped keys for third-party or per-tenant integrations.",
+    "allTenantsBadge": "All tenants",
+    "tenants": "Tenants",
+    "tenantsDescription": "Select which tenants this key can act on behalf of.",
+    "tenantsRequired": "Select at least one tenant.",
+    "tenantsPlaceholder": "Search tenants...",
+    "tenantsBadge": "tenants: {count}",
+    "tenantsScopedBadge": "Scoped tenants",
+    "selectTenants": "Select tenants"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -792,6 +1302,8 @@
       "user": "User",
       "session": "Session",
       "channel": "Channel",
+      "copy": "Copy",
+      "copied": "Copied!",
       "createdAt": "Created at",
       "totalCost": "Total Cost",
       "totalTokens": "Total Tokens",
@@ -840,7 +1352,9 @@
     "issuesFound": "Found {count} issue(s) that need attention:",
     "close": "Close",
     "mcpDisabled": "\"{name}\" is disabled. Enable it or remove it before publishing.",
-    "mcpNoTools": "\"{name}\" has no discovered tools. Run Discover Tools to connect it."
+    "mcpNoTools": "\"{name}\" has no discovered tools. Run Discover Tools to connect it.",
+    "mcpTenantPending": "\"{name}\" is not configured for every tenant. Complete and verify each tenant before publishing.",
+    "mcpTenantError": "\"{name}\" failed verification for at least one tenant. Fix its configuration before publishing."
   },
   "marketplace": {
     "searchPlaceholder": "Search templates...",
@@ -1469,5 +1983,293 @@
     "description": "We're having trouble loading this page.",
     "retrying": "Retrying…",
     "retry": "Retry"
+  },
+  "toolCatalog": {
+    "_about": "User-facing copy of builtin tool descriptions, separate from the LLM-facing strings in packages/api/src/providers/. Convention: toolCatalog.<providerId>.groupName, toolCatalog.<providerId>.tools.<toolName>.description, toolCatalog.<providerId>.tools.<toolName>.params.<paramName>. Names are NOT translated; only descriptions are. The Jest test in packages/web/app/lib/__tests__/toolCatalog.test.ts asserts every builtin tool + param has a key here.",
+    "kv_store": {
+      "groupName": "KV Store",
+      "tools": {
+        "list_keys": {
+          "description": "List every key in the bound KV store (paginated). Useful for browsing what data exists before reading specific values.",
+          "params": {
+            "offset": "Zero-based page offset. Defaults to 0.",
+            "limit": "Maximum keys per page (1–500). Defaults to 100."
+          }
+        },
+        "get_values": {
+          "description": "Fetch values for an explicit list of keys (up to 100 per call). Missing keys are returned as null.",
+          "params": {
+            "keys": "Keys to look up. Up to 100 per call, each at most 256 bytes."
+          }
+        },
+        "search": {
+          "description": "Find entries by substring or regex. Substring is case-insensitive; regex is bounded to a sample for safety.",
+          "params": {
+            "mode": "How to match: substring (case-insensitive) or regex.",
+            "on": "Which field(s) to match: keys, values, or both. Defaults to both.",
+            "query": "What to search for. For substring mode: a case-insensitive substring (max 2048 chars). For regex mode: a regex pattern (max 1024 chars; no lookaround or backreferences).",
+            "offset": "Zero-based page offset. Defaults to 0.",
+            "limit": "Maximum matches per page (1–500). Defaults to 50."
+          }
+        },
+        "update_value": {
+          "description": "Insert or update a value for a key (upsert). System keys prefixed with _sys. are write-protected.",
+          "params": {
+            "key": "The key to write. 1–256 bytes. _sys.-prefixed keys are reserved.",
+            "value": "Value to store. Up to 256 KB. Overwrites any previous value."
+          }
+        }
+      }
+    },
+    "rag": {
+      "groupName": "RAG",
+      "tools": {
+        "search": {
+          "description": "Search the bound knowledge base for relevant chunks. Choose BM25 for keywords, semantic for meaning, hybrid for both, or regex for structured patterns.",
+          "params": {
+            "mode": "Search strategy: bm25 (keyword), semantic (meaning), hybrid (both), or regex (pattern).",
+            "query": "What to search for. For bm25: keyword(s). For semantic/hybrid: a natural-language phrase. For regex: a regex pattern (max 1024 chars; no lookaround or backreferences).",
+            "minSimilarity": "Minimum cosine similarity (0.0–1.0). Only applies to semantic and hybrid. Defaults to 0.5.",
+            "offset": "Zero-based page offset. Defaults to 0.",
+            "limit": "Maximum chunks per page (1–200). Defaults to 20."
+          }
+        }
+      }
+    },
+    "calendar": {
+      "groupName": "Calendar",
+      "tools": {
+        "list_calendars": {
+          "description": "List every calendar the connected account can access.",
+          "params": {}
+        },
+        "check_availability": {
+          "description": "Find open time slots on the calendar within a date range and desired duration.",
+          "params": {
+            "startIso": "Start of the search window (ISO-8601).",
+            "endIso": "End of the search window (ISO-8601).",
+            "durationMinutes": "Desired slot length in minutes."
+          }
+        },
+        "list_events": {
+          "description": "List events on the configured calendar within a date range.",
+          "params": {
+            "startIso": "Start of the range (ISO-8601).",
+            "endIso": "End of the range (ISO-8601)."
+          }
+        },
+        "get_event": {
+          "description": "Read full details for a single event by id.",
+          "params": {
+            "eventId": "The event id to read."
+          }
+        },
+        "book_appointment": {
+          "description": "Create a new event on the configured calendar.",
+          "params": {
+            "startIso": "Event start (ISO-8601).",
+            "endIso": "Event end (ISO-8601).",
+            "title": "Event title.",
+            "description": "Optional event description.",
+            "location": "Optional event location.",
+            "attendees": "Optional list of attendee email addresses.",
+            "addMeetLink": "When true, generates a video conference link for the event."
+          }
+        },
+        "update_event": {
+          "description": "Modify an existing event by id. Any omitted field is left unchanged.",
+          "params": {
+            "eventId": "Id of the event to update.",
+            "startIso": "New event start (ISO-8601).",
+            "endIso": "New event end (ISO-8601).",
+            "title": "New event title.",
+            "description": "New event description.",
+            "location": "New event location.",
+            "attendees": "Replacement list of attendee email addresses."
+          }
+        },
+        "cancel_appointment": {
+          "description": "Cancel (delete) an event by id. Attendees are notified automatically.",
+          "params": {
+            "eventId": "Id of the event to cancel."
+          }
+        }
+      }
+    },
+    "forms": {
+      "groupName": "Forms",
+      "tools": {
+        "set_form_fields": {
+          "description": "Write one or more fields to a structured form for the current conversation. All fields must validate or none are saved.",
+          "params": {
+            "formSlug": "Slug of the form to write to.",
+            "fields": "One or more field path/value pairs to set atomically."
+          }
+        },
+        "get_form_field": {
+          "description": "Read a single field from a structured form for the current conversation.",
+          "params": {
+            "formSlug": "Slug of the form to read from.",
+            "fieldPath": "Dotted path to the field, e.g. addresses[0].firstLine."
+          }
+        }
+      }
+    },
+    "lead_scoring": {
+      "groupName": "Lead Scoring",
+      "tools": {
+        "set_lead_score": {
+          "description": "Set the lead score (0–100) for the current conversation.",
+          "params": {
+            "score": "Lead score from 0 to 100."
+          }
+        },
+        "get_lead_score": {
+          "description": "Read the current lead score for the conversation, or null if not yet scored.",
+          "params": {}
+        }
+      }
+    },
+    "composition": {
+      "groupName": "Composition",
+      "tools": {
+        "create_agent": {
+          "description": "Spin up a new agent on the fly with a custom system prompt and dispatch it to handle a task.",
+          "params": {
+            "systemPrompt": "System prompt for the new agent.",
+            "task": "Task the agent should complete.",
+            "model": "LLM model to use. Defaults to the caller's model.",
+            "tools": "Tools to grant the agent: \"all\" or a list of tool names.",
+            "contextItems": "Context items to inject into the agent.",
+            "maxSteps": "Maximum number of steps the agent can take.",
+            "outputSchema": "JSON Schema used to validate the agent's output."
+          }
+        },
+        "invoke_agent": {
+          "description": "Invoke an existing agent by slug to handle a task.",
+          "params": {
+            "agentSlug": "Slug of the agent to invoke.",
+            "version": "Published version to execute (number or \"latest\").",
+            "task": "Task the agent should complete.",
+            "contextItems": "Additional context items.",
+            "model": "Override the agent's default model.",
+            "outputSchema": "JSON Schema used to validate the agent's output."
+          }
+        },
+        "invoke_workflow": {
+          "description": "Invoke an existing workflow by slug with a user message that drives routing.",
+          "params": {
+            "workflowSlug": "Slug of the workflow to invoke.",
+            "version": "Published version to execute (number or \"latest\").",
+            "user_said": "User message used for workflow routing.",
+            "contextItems": "Additional context items.",
+            "model": "Override the workflow's default model."
+          }
+        }
+      }
+    },
+    "web": {
+      "groupName": "Web",
+      "tools": {
+        "search": {
+          "description": "Search the web for current information — news, facts, or anything beyond the model's knowledge cutoff. Returns snippets and source URLs.",
+          "params": {
+            "query": "What to search for.",
+            "max_results": "Maximum number of results to return. Defaults to 5.",
+            "search_depth": "Search thoroughness: basic, advanced, fast, or ultra-fast. Defaults to basic.",
+            "topic": "Search category. Currently fixed to 'general'.",
+            "time_range": "Restrict results to the last day, week, month, or year.",
+            "include_images": "Include query-related images in the response.",
+            "include_image_descriptions": "Include descriptions alongside any returned images.",
+            "include_raw_content": "Include the cleaned, parsed page content of each result.",
+            "include_domains": "Only return results from these domains.",
+            "exclude_domains": "Never return results from these domains.",
+            "country": "Boost results from a specific country (full country name, e.g. 'Germany').",
+            "include_favicon": "Include each result's favicon URL.",
+            "start_date": "Only results on or after this date (YYYY-MM-DD).",
+            "end_date": "Only results on or before this date (YYYY-MM-DD).",
+            "exact_match": "Only return results containing the exact quoted phrase(s) in the query."
+          }
+        },
+        "extract": {
+          "description": "Extract the content of specific URLs as markdown or plain text.",
+          "params": {
+            "urls": "The URLs to extract content from.",
+            "extract_depth": "Extraction thoroughness: basic, or advanced for protected sites and embedded content. Defaults to basic.",
+            "include_images": "Include images found on the pages.",
+            "format": "Output format: markdown or text. Defaults to markdown.",
+            "include_favicon": "Include each page's favicon URL.",
+            "query": "Optional query used to rerank extracted content by relevance."
+          }
+        },
+        "crawl": {
+          "description": "Crawl a website from a starting URL, extracting page content with configurable depth and breadth.",
+          "params": {
+            "url": "The root URL to begin crawling.",
+            "max_depth": "How far from the root URL to crawl (1–5). Defaults to 1.",
+            "max_breadth": "Maximum links followed per page level. Defaults to 20.",
+            "limit": "Total number of links to process before stopping. Defaults to 50.",
+            "instructions": "Natural-language guidance on which pages to return.",
+            "select_paths": "Regex patterns; only crawl URLs whose path matches.",
+            "select_domains": "Regex patterns; only crawl matching domains or subdomains.",
+            "allow_external": "Whether to include links to external domains. Defaults to true.",
+            "extract_depth": "Extraction thoroughness: basic or advanced. Defaults to basic.",
+            "format": "Output format: markdown or text. Defaults to markdown.",
+            "include_favicon": "Include each result's favicon URL."
+          }
+        },
+        "map": {
+          "description": "Map a website's structure, returning the URLs discovered from a starting URL.",
+          "params": {
+            "url": "The root URL to begin mapping.",
+            "max_depth": "How far from the root URL to map (1–5). Defaults to 1.",
+            "max_breadth": "Maximum links followed per page level. Defaults to 20.",
+            "limit": "Total number of links to process before stopping. Defaults to 50.",
+            "instructions": "Natural-language guidance for the crawler.",
+            "select_paths": "Regex patterns; only include URLs whose path matches.",
+            "select_domains": "Regex patterns; only include matching domains or subdomains.",
+            "allow_external": "Whether to include links to external domains. Defaults to true."
+          }
+        }
+      }
+    }
+  },
+  "mcpMatrix": {
+    "mcpBasic": "Setup",
+    "title": "MCP configuration",
+    "verifyAll": "Verify all",
+    "test": "Test connection",
+    "testHint": "Test this tenant's connection",
+    "saving": "Saving…",
+    "autosaveHint": "Changes save automatically",
+    "statusOk": "Connected",
+    "statusPending": "Not verified",
+    "statusError": "Error",
+    "needsConfig": "Needs configuration",
+    "definitionHeader": "Definition",
+    "definitionTitle": "Server definition",
+    "matrixHelp": "Set each tenant's values for this server's variables, then verify the connection for that tenant.",
+    "useEnvVar": "Use environment variable",
+    "envShared": "Shared across tenants",
+    "envVarColumnHint": "Environment-variable references resolve to the same value for every tenant.",
+    "secretWarning": "This value is stored securely and never displayed again after saving.",
+    "redactedError": "The connection failed. Details are hidden for security.",
+    "emptyTenants": "No tenants to configure.",
+    "oauthStatusOnly": "This server uses OAuth; only its connection status is shown here.",
+    "tenantColumn": "Tenant",
+    "statusColumn": "Status",
+    "actionColumn": "Action",
+    "fieldName": "Name",
+    "fieldTransport": "Transport",
+    "fieldUrl": "URL",
+    "fieldCommand": "Command",
+    "fieldArguments": "Arguments",
+    "fieldHeaders": "Headers",
+    "fieldEnvironment": "Environment",
+    "publish": "Publish",
+    "directMode": "Direct value",
+    "envRefMode": "Environment variable",
+    "directModeShort": "Direct",
+    "envRefModeShort": "Reference"
   }
 }

@@ -13,21 +13,36 @@ interface EditorPageProps {
 export default async function EditorPage({ params }: EditorPageProps): Promise<React.JSX.Element> {
   const { slug, agentSlug } = await params;
 
-  const [{ result: org }, { agent }] = await Promise.all([getOrgBySlug(slug), getAgentBySlug(agentSlug)]);
-  if (!org) redirect('/');
-  if (!agent || agent.org_id !== org.id) redirect(`/orgs/${slug}`);
+  const [{ result: org }, agentResult] = await Promise.all([getOrgBySlug(slug), getAgentBySlug(agentSlug)]);
+  const { agent } = agentResult;
+
+  if (!org) {
+    redirect('/');
+  }
+  if (!agent || agent.org_id !== org.id) {
+    redirect(`/orgs/${slug}`);
+  }
 
   const [apiKeysResult, tenantsResult] = await Promise.all([
     getApiKeysByOrg(org.id),
     getTenantsByOrg(org.id),
   ]);
+
   const { result: orgApiKeys, error: apiKeyError } = apiKeysResult;
   const { result: tenantRows, error: tenantsError } = tenantsResult;
+
   if (apiKeyError !== null) console.error('[EditorPage] failed to load API keys:', apiKeyError);
   if (tenantsError !== null) console.error('[EditorPage] failed to load tenants:', tenantsError);
+
   const tenants = [...tenantRows]
     .sort((a, b) => a.created_at.localeCompare(b.created_at))
-    .map(({ id, slug: tenantSlug, name }) => ({ id, slug: tenantSlug, name }));
+    .map(({ id, slug: tenantSlug, name, is_default, avatar_url }) => ({
+      id,
+      slug: tenantSlug,
+      name,
+      isDefault: is_default,
+      avatarUrl: avatar_url ?? null,
+    }));
 
   return (
     <EditorTabs
@@ -46,6 +61,11 @@ export default async function EditorPage({ params }: EditorPageProps): Promise<R
       agentDescription={agent.description}
       agentCategory={agent.category}
       agentIsPublic={agent.is_public}
+      agentAppType={agent.app_type}
+      agentSelectedTools={agent.selected_tools}
+      agentUpdatedAt={agent.updated_at}
+      agentSelectedKvStoreId={agent.selected_kv_store_id}
+      agentSelectedRagStoreId={agent.selected_rag_store_id}
     />
   );
 }

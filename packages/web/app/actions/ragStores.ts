@@ -1,0 +1,56 @@
+'use server';
+
+import { fetchFromBackend } from '@/app/lib/backendProxy';
+import {
+  type RagStoreRow,
+  createRagStore as createRagStoreLib,
+  getRagStoresByOrg as getRagStoresByOrgLib,
+  updateRagStore as updateRagStoreLib,
+} from '@/app/lib/ragStores';
+import { serverError, serverLog } from '@/app/lib/serverLogger';
+import { type DeleteStoreResult, buildDeleteFailure } from '@/app/lib/storeDeleteResult';
+
+export type { AgentRef, DeleteStoreResult } from '@/app/lib/storeDeleteResult';
+
+export async function getRagStoresByOrgAction(
+  orgId: string
+): Promise<{ result: RagStoreRow[]; error: string | null }> {
+  serverLog('[getRagStoresByOrgAction] orgId:', orgId);
+  const res = await getRagStoresByOrgLib(orgId);
+  if (res.error === null) serverLog('[getRagStoresByOrgAction] found', res.result.length, 'stores');
+  else serverError('[getRagStoresByOrgAction] error:', res.error);
+  return res;
+}
+
+export async function createRagStoreAction(
+  orgId: string,
+  name: string
+): Promise<{ result: RagStoreRow | null; error: string | null }> {
+  serverLog('[createRagStoreAction] orgId:', orgId, 'name:', name);
+  const res = await createRagStoreLib(orgId, name);
+  if (res.error === null) serverLog('[createRagStoreAction] created store:', res.result?.id);
+  else serverError('[createRagStoreAction] error:', res.error);
+  return res;
+}
+
+export async function updateRagStoreAction(
+  storeId: string,
+  name: string
+): Promise<{ result: RagStoreRow | null; error: string | null }> {
+  serverLog('[updateRagStoreAction] storeId:', storeId, 'name:', name);
+  const res = await updateRagStoreLib(storeId, name);
+  if (res.error !== null) serverError('[updateRagStoreAction] error:', res.error);
+  return res;
+}
+
+export async function deleteRagStoreAction(storeId: string): Promise<DeleteStoreResult> {
+  serverLog('[deleteRagStoreAction] storeId:', storeId);
+  try {
+    await fetchFromBackend('DELETE', `/rag-stores/${encodeURIComponent(storeId)}`);
+    return { ok: true };
+  } catch (err) {
+    const failure = buildDeleteFailure(err);
+    serverError('[deleteRagStoreAction] failure:', failure);
+    return failure;
+  }
+}

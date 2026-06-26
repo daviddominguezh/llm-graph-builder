@@ -1,6 +1,9 @@
+import type { SkillDefinition } from '@daviddh/llm-graph-runner';
+
 /**
  * Config override for dynamically created child agents (create_agent tool).
- * These have no published agent version — their config is stored in the pending_child_executions row.
+ * These have no published agent version — their config is passed inline via the
+ * dispatch path (see executeCoreInlineDispatch.ts).
  */
 export interface OverrideAgentConfig {
   systemPrompt: string;
@@ -8,4 +11,5 @@ export interface OverrideAgentConfig {
   maxSteps: number | null;
   modelId?: string;
   isChildAgent?: boolean;
+  skills?: SkillDefinition[];
 }

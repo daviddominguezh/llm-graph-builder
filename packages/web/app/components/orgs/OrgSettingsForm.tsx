@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useState } from 'react';
@@ -69,7 +70,7 @@ function NameSection({ org }: OrgSettingsFormProps) {
       <div className="flex items-center gap-2">
         <Input id="org-name" name="name" defaultValue={org.name} placeholder={t('namePlaceholder')} required />
         <Button type="submit" variant="outline" className="border-[0.5px] rounded-md" size="sm" disabled={loading}>
-          {t('saveName')}
+          {loading ? <Loader2 className="size-4 animate-spin" /> : t('saveName')}
         </Button>
       </div>
       {nameError !== '' && <p className="text-destructive text-xs">{nameError}</p>}

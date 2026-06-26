@@ -16,5 +16,5 @@ export async function GET(request: Request): Promise<Response> {
 
   const qs = params.toString();
   const path = qs === '' ? '/mcp-library' : `/mcp-library?${qs}`;
-  return proxyToBackend('GET', path);
+  return await proxyToBackend('GET', path);
 }

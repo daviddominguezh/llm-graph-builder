@@ -11,10 +11,14 @@ const getPreconditionPrefix = (type: string): string => {
   return '';
 };
 
+const getPreconditionDisplay = (precondition: Precondition): string =>
+  precondition.type === 'tool_call' ? precondition.tool.toolName : precondition.value;
+
 export const formatPrecondition = (precondition: Precondition): string => {
   const prefix = getPreconditionPrefix(precondition.type);
-  if (prefix === '') return precondition.value;
-  return `${prefix} "${precondition.value}"`;
+  const display = getPreconditionDisplay(precondition);
+  if (prefix === '') return display;
+  return `${prefix} "${display}"`;
 };
 
 interface FormatOptionParams {
@@ -57,7 +61,10 @@ const getUserSaidExamples = async (
     (mEdge) => (mEdge.preconditions ?? []).filter((pre) => pre.type === 'user_said').length > FIRST_INDEX
   );
   const userSaid = userEdges
-    .map((mEdge) => (mEdge.preconditions ?? [])[FIRST_INDEX]?.value)
+    .map((mEdge) => {
+      const { [FIRST_INDEX]: first } = mEdge.preconditions ?? [];
+      return first?.type === 'user_said' ? first.value : undefined;
+    })
     .filter((value): value is string => value !== undefined);
   if (userSaid.length > FIRST_INDEX) {
     return `\n  - ${userSaid.join('\n  - ')}`;

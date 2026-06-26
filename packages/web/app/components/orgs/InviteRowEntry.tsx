@@ -26,7 +26,7 @@ export function InviteRowEntry({ entry, canRemove, onEmailChange, onRoleChange, 
   const t = useTranslations('team');
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1 mt-1">
       <div className="flex items-center gap-2">
         <Input
           type="email"

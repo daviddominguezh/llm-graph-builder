@@ -42,9 +42,7 @@ export function WelcomeView({ onSend, isStreaming, onOpenSidebar }: WelcomeViewP
               <h1 className="text-2xl font-semibold tracking-tight">
                 {t('welcomeGreeting', { tenant: agent.tenantName })}
               </h1>
-              <p className="text-sm text-muted-foreground">
-                {t('welcomeSubtitle', { name: firstName })}
-              </p>
+              <p className="text-sm text-muted-foreground">{t('welcomeSubtitle', { name: firstName })}</p>
             </div>
           </div>
           <ComposerInput variant="welcome" onSend={onSend} isStreaming={isStreaming} />

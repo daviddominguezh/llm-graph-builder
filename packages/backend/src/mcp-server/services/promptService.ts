@@ -1,4 +1,4 @@
-import type { Edge, Graph, Node } from '@daviddh/graph-types';
+import type { Edge, Graph, Node, Precondition } from '@daviddh/graph-types';
 
 import { assembleGraph } from '../../db/queries/graphQueries.js';
 import type { ServiceContext } from '../types.js';
@@ -56,6 +56,10 @@ export function extractTemplateVariables(text: string): string[] {
   return [...matches];
 }
 
+function preconditionValue(p: Precondition): string {
+  return p.type === 'tool_call' ? p.tool.toolName : p.value;
+}
+
 function buildOptions(edges: Edge[]): PromptOption[] {
   const options: PromptOption[] = [];
   let index = EMPTY_LENGTH;
@@ -65,7 +69,7 @@ function buildOptions(edges: Edge[]): PromptOption[] {
         index,
         targetNodeId: edge.to,
         preconditionType: p.type,
-        value: p.value,
+        value: preconditionValue(p),
         description: p.description,
       });
       index += INCREMENT;

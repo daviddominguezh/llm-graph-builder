@@ -7,6 +7,12 @@ import { handleGetVersions } from '../graph/getVersions.js';
 import { handlePostOperations } from '../graph/postOperations.js';
 import { handlePostPublish } from '../graph/postPublish.js';
 import { handlePostRestore } from '../graph/postRestore.js';
+import {
+  handleGetTenantConfig,
+  handleGetTenantStatus,
+  handlePutTenantConfigCell,
+} from '../mcp-server/mcpTenantConfigHandlers.js';
+import { handleVerifyTenantCell, handleVerifyTenantServer } from '../mcp-server/mcpTenantVerifyHandler.js';
 import { handleDisconnect } from '../oauth/oauthDisconnect.js';
 import { handleInitiate } from '../oauth/oauthInitiate.js';
 import { handleResolveToken } from '../oauth/oauthResolveToken.js';
@@ -15,11 +21,18 @@ import { handleCreateAgent } from './createAgent.js';
 import { handleDeleteAgent } from './deleteAgentHandler.js';
 import { handleGetAgentBySlug } from './getAgentBySlug.js';
 import { handleGetAgentsByOrg } from './getAgentsByOrg.js';
+import { handleGetAgentRegistry } from './getRegistry.js';
 import { handleGetVfsSettings } from './getVfsSettings.js';
+import { handleInvalidateMcpCache } from './invalidateMcpCache.js';
 import { handleSaveProductionKey } from './saveProductionKey.js';
 import { handleSaveStagingKey } from './saveStagingKey.js';
+import { selectedToolsLimiter } from './selectedToolsRateLimiter.js';
+import { storeBindingsLimiter } from './storeBindingsRateLimiter.js';
+import { triggerRouter } from './triggers/triggerRouter.js';
 import { handleUpdateCategory } from './updateCategory.js';
 import { handleUpdateMetadata } from './updateMetadata.js';
+import { handleUpdateSelectedTools } from './updateSelectedTools.js';
+import { handleUpdateStoreBindings } from './updateStoreBindings.js';
 import { handleUpdateVfsSettings } from './updateVfsSettings.js';
 import { handleUpdateVisibility } from './updateVisibility.js';
 import { vfsConfigRouter } from './vfsConfigRouter.js';
@@ -36,7 +49,17 @@ agentRouter.patch('/:agentId/production-key', handleSaveProductionKey);
 agentRouter.patch('/:agentId/visibility', handleUpdateVisibility);
 agentRouter.patch('/:agentId/category', handleUpdateCategory);
 agentRouter.patch('/:agentId/metadata', handleUpdateMetadata);
+agentRouter.patch('/:agentId/selected-tools', selectedToolsLimiter, handleUpdateSelectedTools);
+agentRouter.patch('/:agentId/store-bindings', storeBindingsLimiter, handleUpdateStoreBindings);
 
+agentRouter.get('/:agentId/registry', handleGetAgentRegistry);
+agentRouter.delete('/:agentId/mcp-cache/:mcpServerId', handleInvalidateMcpCache);
+
+agentRouter.get('/:agentId/mcp-tenant-config', handleGetTenantConfig);
+agentRouter.get('/:agentId/mcp-tenant-config/status', handleGetTenantStatus);
+agentRouter.put('/:agentId/mcp-tenant-config/:serverId/:tenantId', handlePutTenantConfigCell);
+agentRouter.post('/:agentId/mcp-tenant-config/:serverId/:tenantId/verify', handleVerifyTenantCell);
+agentRouter.post('/:agentId/mcp-tenant-config/:serverId/verify', handleVerifyTenantServer);
 agentRouter.get('/:agentId/graph', handleGetGraph);
 agentRouter.post('/:agentId/graph/operations', handlePostOperations);
 agentRouter.post('/:agentId/publish', handlePostPublish);
@@ -49,6 +72,7 @@ agentRouter.get('/mcp-oauth/status', handleStatus);
 agentRouter.post('/mcp-oauth/resolve-token', handleResolveToken);
 agentRouter.delete('/mcp-oauth/connections', handleDisconnect);
 
+agentRouter.use('/:agentId/triggers', triggerRouter);
 agentRouter.use('/:agentId/vfs-configs', vfsConfigRouter);
 agentRouter.get('/:agentId/vfs-settings', handleGetVfsSettings);
 agentRouter.patch('/:agentId/vfs-settings', handleUpdateVfsSettings);

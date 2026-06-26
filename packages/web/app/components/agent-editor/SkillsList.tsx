@@ -183,22 +183,22 @@ export function SkillsList({ skills, onAdd, onDelete, onDeleteMany }: SkillsList
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <Label className="text-xs font-medium">{t('skills')}</Label>
+      <div className="mt-2 flex items-center justify-between">
+        <Label className="text-xs font-medium -mt-[3px]">{t('skills')}</Label>
         <div className="flex items-center gap-1">
           {selectedCount > 0 && (
             <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+              variant="destructive"
+              size="xs"
+              className="rounded-md"
               onClick={() => setConfirmBatchOpen(true)}
             >
-              <Trash2 className="mr-1 size-3" />
+              <Trash2 className="mr-1" />
               {t('removeSelected', { count: String(selectedCount) })}
             </Button>
           )}
-          <Button variant="outline" size="sm" className="h-7 text-xs rounded-md" onClick={() => setDialogOpen(true)}>
-            <Plus className="mr-1 size-3" />
+          <Button variant="outline" size="xs" className="rounded-md" onClick={() => setDialogOpen(true)}>
+            <Plus className="mr-1" />
             {t('addSkill')}
           </Button>
         </div>

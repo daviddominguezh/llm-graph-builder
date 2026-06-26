@@ -1,5 +1,12 @@
 import type { RuntimeGraph } from '@daviddh/graph-types';
-import type { CallAgentOutput, Message, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
+import type {
+  CallAgentOutput,
+  Message,
+  NodeProcessedEvent,
+  OAuthTokenBundle,
+  SelectedTool,
+  SkillDefinition,
+} from '@daviddh/llm-graph-runner';
 
 import { handleStepProcessed } from './edgeFunctionAgentEvents.js';
 import { buildResultFromResponse, mapRawToolCalls } from './edgeFunctionOutputParsers.js';
@@ -17,6 +24,14 @@ import {
 
 export type { NodeProcessedData, VfsEdgeFunctionPayload } from './executeSharedTypes.js';
 
+/** Payload schema version sent to the edge function. */
+export enum EdgePayloadSchemaVersion {
+  /** Legacy: googleCalendar flat field */
+  Legacy = 1,
+  /** Current: oauth.byProvider map */
+  Current = 2,
+}
+
 export interface ExecuteAgentParams {
   appType?: 'workflow' | 'agent';
   graph: RuntimeGraph;
@@ -28,6 +43,8 @@ export interface ExecuteAgentParams {
   data: Record<string, unknown>;
   quickReplies: Record<string, string>;
   sessionID: string;
+  /** Owning organisation id. Distinct from tenantID (tenant of the message). Used as MCP cache key. */
+  orgID: string;
   tenantID: string;
   userID: string;
   isFirstMessage: boolean;
@@ -37,7 +54,17 @@ export interface ExecuteAgentParams {
   context?: string;
   maxSteps?: number | null;
   isChildAgent?: boolean;
+  skills?: SkillDefinition[];
   conversationId?: string;
+  // Schema version for transition window (1 = legacy, 2 = oauth.byProvider)
+  schemaVersion: EdgePayloadSchemaVersion;
+  // Pre-selected tools for agent mode
+  selectedTools?: SelectedTool[];
+  // Pre-resolved OAuth token bundles, keyed by providerId
+  oauth?: { byProvider: Record<string, OAuthTokenBundle> };
+  // Per-agent KV / RAG store bindings, version-aware (null when no store is bound)
+  selectedKvStoreId?: string | null;
+  selectedRagStoreId?: string | null;
 }
 
 export interface ExecuteAgentCallbacks {

@@ -41,6 +41,12 @@ Powered by OpenRouter, so you can use OpenAI, Anthropic, Google, Mistral, Meta, 
 
 Need your agent to call external APIs, query databases, or integrate with third-party services? Create or install MCP (Model Context Protocol) servers directly from the visual builder. No glue code.
 
+### Built-in tools
+
+Beyond MCP, OpenFlow ships **first-party tool groups** agents can use with zero setup — key-value and RAG stores, forms, lead scoring, and agent/workflow composition. The newest is **`openflow/web`**: live web **search**, content **extract**, site **crawl**, and site **map**, powered by Tavily.
+
+Crucially, the web tools are **wrapped behind our own interface** — the provider is an implementation detail. We can swap Tavily for a different backend, or our own search infrastructure, without changing the tools agents see or the schemas they call. A single platform API key (`TAVILY_API_KEY`) is held server-side; tenants never handle it, and builders just pick which of the four tools to grant each agent.
+
 ### Observability Built In
 
 Every execution is logged with full trace visibility:
@@ -55,6 +61,10 @@ Every execution is logged with full trace visibility:
 ### API-First Execution
 
 Deploy any agent as an API endpoint. Call it from your app, your backend, your mobile client — anywhere. Your infrastructure, our agents.
+
+### Scheduled & Event-Driven Triggers
+
+Run agents automatically on a schedule — not just on inbound messages. Attach a **recurring** (every N minutes/hours/days/weeks/months), **one-time**, or (soon) **event-based** schedule to any agent — per tenant — give it the initial message it should receive, and it fires on its own. Scheduling is **event-driven via Google Cloud Tasks** (no polling): each occurrence is a durable task that survives backend restarts and deploys, runs the agent's published production version through the same executor as a live message, and is **safe across multiple backend instances** (at-most-once per occurrence). Pause, resume, or delete a trigger and the schedule updates instantly. Local dev runs on a zero-dependency in-process timer.
 
 ---
 
@@ -157,6 +167,260 @@ packages/
 ├── graph-types/   # Shared Zod schemas & TypeScript types
 └── landing/       # Landing page
 ```
+
+---
+
+## Architecture
+
+OpenFlow executes two kinds of things, and the distinction runs through the whole system:
+
+- **Agents** — conversational LLM loops (LLM → tool calls → repeat, multi-turn). **Not** graph-based.
+- **Workflows** — directed graphs of **nodes and edges**, traversed node-by-node.
+
+Either can invoke the other (an agent can dispatch a workflow as a sub-task, and vice-versa), nested to a configurable depth. Both run inside `packages/api` (the engine),
+ are multi-tenant, and call tools over **MCP**.
+
+> The platform is mid-migration. The **legacy** architecture below is what runs today; the **new** architecture is the target of an in-progress *Runtime Unification* (spe
+cs live in `docs/superpowers/specs/`). Both are documented here so the whole system is legible.
+
+### Core building blocks
+
+```mermaid
+flowchart LR
+  msg[User message] --> rt[Runtime engine · packages/api]
+  rt -->|agent| al[Agent loop<br/>LLM and tool calls]
+  rt -->|workflow| wf[Workflow graph<br/>node and edge traversal]
+  al -->|dispatch| child[Child agent or workflow]
+  wf -->|dispatch| child
+  al --> tools[Tools via MCP]
+  wf --> tools
+  rt --> obs[Per-step persistence<br/>messages, tokens, tool I/O]
+  obs --> dash[Observability dashboards]
+```
+
+### Current architecture (legacy)
+
+Today, **production agent execution runs on Supabase Edge Functions (Deno)**, invoked and SSE-proxied by the Express backend. Several things are **duplicated or divergent
+** across the two runtimes, and the edge's **400-second execution cap** means a run cannot last longer than that.
+
+Scheduled **triggers** fire agents into this same prod path on their own — **event-driven** via Google Cloud Tasks (an in-process timer in local dev), with no polling loop.
+
+**Built-in tool groups** (KV, RAG, forms, lead scoring, composition, and **web**) are assembled per execution inside the edge function and injected into the engine's tool registry. Most read Supabase directly; the **`web`** group instead calls the **Tavily REST API** over HTTPS, behind an internal `WebSearchService` seam so the provider can be swapped without touching the agent-facing tools.
+
+```mermaid
+flowchart TB
+  subgraph clients[Clients]
+    web[Web builder + dashboard]
+    widget[Embedded widget]
+    ext[External API]
+  end
+
+  subgraph be["Backend · Fly.io · Node/Express"]
+    prod[executeCore*<br/>prod orchestrator]
+    sima[simulateAgentHandler<br/>agent sim]
+    simw[simulateHandler<br/>workflow sim]
+    trig["Triggers · CRUD + fire webhook<br/>claim-first, fire-and-forget"]
+    mcp[MCP: connect per call]
+    st1[KV/RAG store services<br/>Node copy]
+  end
+
+  ct["Cloud Tasks · scheduled HTTP tasks<br/>local dev: in-process timer"]
+
+  subgraph edge["Supabase Edge · Deno · 400s cap"]
+    ea[execute-agent]
+    et[execute-tool]
+    st2[KV/RAG store services<br/>Deno copy]
+    webx[Web tools service<br/>Tavily REST client]
+  end
+
+  subgraph engine["packages/api · engine"]
+    agent[executeAgentLoop · agents]
+    flow[executeWithCallbacks · workflows]
+  end
+
+  db[(Supabase Postgres)]
+  tavily[(Tavily API<br/>search · extract · crawl · map)]
+
+  web --> prod
+  widget --> prod
+  ext --> prod
+  prod -->|invoke + proxy SSE| ea
+  ea --> agent
+  ea --> flow
+  ea -->|built-in web tools| webx
+  webx -->|HTTPS| tavily
+  web -->|agent sim| sima
+  web -->|workflow sim| simw
+  sima --> agent
+  simw --> flow
+  web -->|create, pause, delete trigger| trig
+  trig -->|arm, cancel task| ct
+  ct -->|fire webhook at due time| trig
+  trig -->|run via executeCore| prod
+  prod --> db
+  ea --> db
+  st2 --> db
+  st1 --> db
+  trig -->|agent_triggers, trigger_runs| db
+```
+
+**Pain points this causes:**
+
+- **No long runs** — the 400s edge cap kills anything slow (long chains, slow tools, human-in-the-loop pauses).
+- **Duplication** — KV/RAG/store services exist twice (Node + Deno); the prod orchestrator and the simulation orchestrators are parallel implementations.
+- **Divergent SSE** — three event vocabularies (prod internal, prod public, simulation) plus an internal→public adapter; three consumers each tuned to a different shape.
+- **MCP reconnects every call** — no warm connection reuse.
+- **The FE decides agent-vs-workflow** and calls different endpoints, instead of the backend routing by type.
+
+### New architecture (migration target — *Runtime Unification*)
+
+Production execution moves to **Cloudflare Workers** running a **durable, resumable step-machine**: every run is a sequence of **steps** (an agent's LLM-request / tool-ca
+ll, or a workflow's node / tool-call), each one a **checkpoint persisted to Postgres**. A run spans **many** Worker invocations and can last **hours**, suspending and res
+uming across them. The backend stays the public boundary and owns the MCP connection pool and SSE delivery.
+
+```mermaid
+flowchart TB
+  subgraph clients[Clients]
+    web[Web builder + dashboard]
+    widget[Embedded widget]
+    ext[External API]
+  end
+
+  subgraph be["Backend · Fly.io · multi-instance"]
+    apisrv[Public API + SSE serve<br/>+ public event projection]
+    pool[MCP connection pool<br/>consistent-hash routed, warm]
+    pubep[Internal events publish]
+  end
+
+  subgraph cf["Cloudflare Workers · durable"]
+    worker[Runtime host]
+  end
+
+  subgraph engine["packages/api · ONE core"]
+    sm[executeTurn / childDispatch]
+    asm[AgentStepMachine]
+    wsm[WorkflowStepMachine]
+  end
+
+  sss[shared-store-services<br/>KV/RAG/Forms/LeadScoring]
+  db[(Supabase Postgres<br/>via Hyperdrive)]
+  redis[(Redis Cloud · pub/sub)]
+  tasks[(Google Cloud Tasks<br/>trigger scheduler)]
+  tavily[Tavily web API]
+
+  web --> apisrv
+  widget --> apisrv
+  ext --> apisrv
+  apisrv -->|trigger / resume run| worker
+  worker --> sm
+  sm -->|by type| asm
+  sm -->|by type| wsm
+  worker --> sss --> db
+  apisrv -->|dashboard RAG search| sss
+  worker -->|tool call| pool
+  worker -->|web tools: search/extract/crawl/map| tavily
+  tasks -->|fire occurrence → run agent| apisrv
+  worker -->|per-step checkpoint| db
+  worker -->|events, batched ~50ms| pubep --> redis
+  redis -->|live| apisrv
+  apisrv -->|resume: replay gap| db
+  apisrv -->|SSE| clients
+```
+
+**What changes:**
+
+- **One core, two engines** — `executeTurn` drives a `StepMachine`; `AgentStepMachine` wraps the agent loop, `WorkflowStepMachine` wraps the workflow graph. The **backend
+ chooses the engine by type** (the FE never does), behind one unified API for prod and one for sim.
+- **Durable execution** — each step is persisted; on a budget limit / child dispatch / input wait the run **suspends** and an external trigger **resumes** it. Hours-long
+runs survive Worker restarts.
+- **One MCP connection pool** — backend-owned, warm, consistent-hash routed across Fly instances; tool calls reuse connections instead of reconnecting.
+- **One event vocabulary** — a superset `ExecutionEvent` everywhere internally; a single curated `PublicExecutionEvent` projection at the public edge (so the widget/API s
+tay a stable contract).
+- **One store package** — `shared-store-services`, portable across Node + Workers (no more Node/Deno copies).
+- **Web tools run in the Worker** — `openflow/web` (Tavily search / extract / crawl / map) is a portable builtin provider; the Worker calls Tavily **directly** (in-process `fetch`, no backend hop), with `TAVILY_API_KEY` held as a Worker secret. It's provider-wrapped, so the search backend is swappable without changing the tools agents see.
+- **Triggers are a scheduled entry point** — Google Cloud Tasks (prod) or an in-process timer (dev) fire each occurrence and invoke the agent's published version through the **same executor as a live message** (the Worker). Distinct from durable *resume*: triggers start **new** runs (own tables `agent_triggers`/`trigger_runs`, at-most-once via Cloud Tasks + a DB unique constraint), whereas resume continues **suspended** runs (`pending_resumes`). A trigger-fired run that later suspends simply becomes a normal durable execution.
+
+#### Durable execution — suspend & resume
+
+```mermaid
+sequenceDiagram
+  participant FE
+  participant BE as Backend
+  participant W as Worker (ephemeral)
+  participant PG as Postgres
+
+  FE->>BE: user message
+  BE->>W: trigger run (executionId)
+  loop steps until budget / suspend
+    W->>W: run one step (LLM / tool / node)
+    W->>PG: persist step (checkpoint)
+  end
+  W->>PG: write pending_resume (reason)
+  W-->>BE: fire direct re-invoke, then end
+  Note over W: a fresh invocation picks it up
+  W->>PG: load state, continue from next step
+  Note over PG: a cron sweep re-fires any dropped trigger (backstop)
+```
+
+#### Real-time delivery — durable two-tier SSE
+
+The same events power **live chat streaming** (Redis pub/sub) and **resume-after-disconnect** (the Postgres log) — and survive a backend instance dying mid-run.
+
+```mermaid
+sequenceDiagram
+  participant W as Worker
+  participant PUB as BE · events publish
+  participant R as Redis Cloud
+  participant SRV as BE · SSE serving instance
+  participant FE
+
+  FE->>SRV: open SSE (POST), subscribe to execution
+  W->>PUB: batched events (~50ms)
+  PUB->>R: PUBLISH execution_id
+  R->>SRV: deliver (subscribed)
+  SRV->>FE: id + data (live, real-time)
+  Note over W,FE: durable events also persisted to Postgres
+  FE->>SRV: reconnect with last seq (after a drop)
+  SRV->>FE: replay gap from Postgres log, then resubscribe to Redis
+```
+
+- **Live path** — Worker → backend → **Redis Cloud** pub/sub → the backend instance holding the SSE connection → client. Sub-second; this is the Claude-like typing feel.
+- **Durable path** — completed messages, tool calls, tool results, and **token usage** are persisted to Postgres (also powering the cost dashboards). Only the raw typing-
+animation deltas are live-only.
+- **Failover** — if the serving backend instance dies, the Worker keeps running; the client reconnects to any instance, which replays the gap from the Postgres log. **No
+durable event is lost.**
+
+### Infrastructure summary
+
+| Concern | Legacy | New |
+| --- | --- | --- |
+| Prod execution host | Supabase Edge (Deno, 400s cap) | Cloudflare Workers (durable, hours) |
+| Orchestration | Duplicated (prod + 2 sim paths) | One core, two engines, BE-routed by type |
+| Long-running / resume | ❌ | ✅ DB-backed suspend/resume |
+| MCP connections | Per-call | BE-owned warm pool (Fly-routed) |
+| Store services | Node + Deno copies | One portable `shared-store-services` |
+| SSE | 3 shapes + adapter | One `ExecutionEvent` + public projection |
+| Live streaming / resume | Edge stream proxied | Redis Cloud pub/sub + Postgres event log |
+| DB access from compute | Direct | Postgres via Hyperdrive |
+| Redis | Upstash (cache) + Redis Cloud (pub/sub) | unchanged (Upstash cache, Redis Cloud pub/sub) |
+
+### Design notes — the non-obvious bits
+
+A few realities that aren't obvious from the diagrams but are essential to understanding the system:
+
+- **Agents and workflows are two different execution *engines*, not variants of one.** An agent is a conversational loop (`executeAgentLoop`); a workflow is a graph traversal over nodes and edges (`executeWithCallbacks`). Agents never run as graphs — anything graph-shaped for an agent (e.g. `buildAgentRuntimeGraph`) is a near-empty placeholder. The **backend** decides which engine to run from the entity's type; the client API is identical either way, and either engine can dispatch the other.
+
+- **Two Redis providers, on purpose.** **Upstash** (HTTP REST) backs simple caches (GET/SET/DEL) and is Workers-friendly — but its REST interface *cannot hold a pub/sub `SUBSCRIBE`*. **Redis Cloud** (ioredis/TCP) backs everything that needs a persistent connection: pub/sub (the live SSE fan-out), distributed locks, rate limiting. That split is *why* the live event path is Redis Cloud, not Upstash.
+
+- **The backend is multi-instance behind Fly sticky routing.** A request can land on any instance, so two things route deliberately: the **MCP connection pool** consistent-hashes each connection key to a specific instance (via Fly `fly-replay`) so a warm connection is reused, not duplicated; and the **SSE serve step** is instance-agnostic — any instance can serve a stream, because live events arrive over Redis pub/sub and resume reads from the shared Postgres log.
+
+- **The embedded widget is a separately-deployed, external artifact.** It runs on customers' websites and carries its own copy of the public event shape — so the public SSE vocabulary (`PublicExecutionEvent`) is a **stable API contract**, not an internal detail. The runtime uses the richer internal `ExecutionEvent`; a single projection at the public edge keeps the external contract stable while internals evolve. That projection is a deliberate boundary, not an accidental adapter.
+
+- **One persistence write, two purposes.** Persisting each step's output to Postgres is *simultaneously* the durability checkpoint (for resume) and the data behind the cost/trace dashboards — not two systems. Only the raw token-by-token typing animation is live-only (Redis); everything durable (messages, tool calls, tool results, token usage) is persisted.
+
+- **Durable resume is DB-backed, not in-memory.** Today a parent agent dispatching a child runs *inline* (synchronously) on the backend; that can't work on a CPU-capped Worker for hours-long runs. So execution suspends to Postgres and resumes via a direct re-invoke (with a cron sweep as a backstop) — reintroducing a DB-backed resume mechanism that the inline model didn't need.
+
+- **Scheduled triggers are event-driven, never polled.** A trigger's schedule lives as *one Cloud Tasks task per occurrence* (an in-process timer in local dev) — there is no scan loop. When a task fires it POSTs an internal, master-key-gated webhook that **claims the run first**: a single `claim_and_rearm` Postgres RPC gates `enabled`, claims via an `UNIQUE(trigger_id, scheduled_for)` idempotency key, and advances the schedule — *then* the agent runs **detached** (the webhook returns `202` immediately, so a multi-minute run isn't bound by the dispatch deadline). Because the schedule lives in Cloud Tasks + Postgres and never in a process, it's durable across restarts/deploys and **safe across multiple backend instances**: Cloud Tasks delivers each fire to one (load-balanced) instance, and the DB key guarantees at-most-once execution per occurrence regardless of which instance handles it. Long inter-occurrence gaps (monthly, far-future one-shots) beyond the scheduler's horizon are bridged by a **continuation hop** that re-arms within range. A single `TriggerScheduler` seam swaps Cloud Tasks (prod, `PRODUCTION=true`) for the in-process timer (local) with no change to the firing logic.
 
 ---
 

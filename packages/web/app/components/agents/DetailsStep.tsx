@@ -105,7 +105,11 @@ function CategoryField({
       >
         <SelectTrigger className="w-full">
           <SelectValue>
-            {value !== '' ? tc(value) : <span className="text-muted-foreground">{t('categoryPlaceholder')}</span>}
+            {value !== '' ? (
+              tc(value)
+            ) : (
+              <span className="text-muted-foreground">{t('categoryPlaceholder')}</span>
+            )}
           </SelectValue>
         </SelectTrigger>
         <SelectContent alignItemWithTrigger={false} align="end" style={{ maxHeight: '30vh' }}>
@@ -133,12 +137,15 @@ function VisibilityOption({
   label: string;
   description: string;
 }) {
-  const border = selected ? 'border-primary ring-1 ring-primary' : 'border-border';
+  const border = selected ? 'border-primary' : 'border-border';
+  const background = selected
+    ? 'bg-background hover:bg-background dark:hover:bg-input/70 dark:bg-input/70'
+    : 'bg-transparent dark:bg-transparent hover:bg-input/70! border-border border-solid';
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex flex-1 cursor-pointer flex-col gap-1 rounded-lg border p-3 text-left transition-[border-color,box-shadow] duration-150 bg-background hover:bg-card/60 ${border}`}
+      className={`flex flex-1 cursor-pointer flex-col gap-1 rounded-lg border p-3 text-left transition-[border-color,box-shadow] duration-150 ${border} ${background}`}
     >
       <div className="flex items-center gap-1.5">
         {icon}
@@ -212,7 +219,7 @@ function DetailsFooter({
 
   return (
     <DialogFooter className="mt-4.5 shrink-0">
-      <Button variant="outline" onClick={onBack} disabled={loading}>
+      <Button variant="outline" className="rounded-md" onClick={onBack} disabled={loading}>
         {t('back')}
       </Button>
       <Button onClick={onSubmit} disabled={disabled}>
@@ -226,7 +233,15 @@ function DetailsFooter({
 /*  DetailsStep                                                        */
 /* ------------------------------------------------------------------ */
 
-export function DetailsStep({ state, onChange, onBack, onSubmit, loading, checking, available }: DetailsStepProps) {
+export function DetailsStep({
+  state,
+  onChange,
+  onBack,
+  onSubmit,
+  loading,
+  checking,
+  available,
+}: DetailsStepProps) {
   const canSubmit =
     state.name.trim() !== '' &&
     state.description.trim() !== '' &&
@@ -238,7 +253,12 @@ export function DetailsStep({ state, onChange, onBack, onSubmit, loading, checki
   return (
     <>
       <DetailsFields state={state} onChange={onChange} nameTaken={available === false} />
-      <DetailsFooter onBack={onBack} onSubmit={onSubmit} loading={loading || checking} disabled={!canSubmit} />
+      <DetailsFooter
+        onBack={onBack}
+        onSubmit={onSubmit}
+        loading={loading || checking}
+        disabled={!canSubmit}
+      />
     </>
   );
 }

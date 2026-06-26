@@ -1,0 +1,19 @@
+const VERSION_SENTINEL = 'v0';
+const KIB = 1024;
+const MAX_CACHE_VALUE_KIB = 256;
+const EMPTY_LENGTH = 0;
+
+export const MAX_CACHE_VALUE_BYTES = MAX_CACHE_VALUE_KIB * KIB;
+
+export function mcpToolsListKey(orgId: string, serverHash: string, serverVersion: string): string {
+  const version = serverVersion.length > EMPTY_LENGTH ? serverVersion : VERSION_SENTINEL;
+  return `mcp_tools:v1:${orgId}:${serverHash}:${version}`;
+}
+
+export function mcpCurrentVersionKey(orgId: string, serverHash: string): string {
+  return `mcp_current_version:v1:${orgId}:${serverHash}`;
+}
+
+export function isCacheableSize(serializedValue: string): boolean {
+  return new TextEncoder().encode(serializedValue).byteLength <= MAX_CACHE_VALUE_BYTES;
+}

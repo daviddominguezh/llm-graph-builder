@@ -9,6 +9,10 @@ interface ElementRect {
   height: number;
 }
 
+function rectStyle(rect: ElementRect): React.CSSProperties {
+  return { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
+}
+
 interface PanelInsets {
   top: number;
   left: number;
@@ -23,6 +27,10 @@ interface EditorCacheContextType {
   setMainRect: (rect: ElementRect | null) => void;
   setToolbarPortal: (el: HTMLElement | null) => void;
   toolbarPortal: HTMLElement | null;
+  setSettingsPortal: (el: HTMLElement | null) => void;
+  settingsPortal: HTMLElement | null;
+  setDataPortal: (el: HTMLElement | null) => void;
+  dataPortal: HTMLElement | null;
   isEditorActive: boolean;
   activeEditorId: string | null;
   panelInsets: PanelInsets | null;
@@ -42,6 +50,8 @@ export function EditorCacheProvider({ children }: { children: React.ReactNode })
   const [slotRect, setSlotRect] = useState<ElementRect | null>(null);
   const [mainRect, setMainRect] = useState<ElementRect | null>(null);
   const [toolbarPortal, setToolbarPortal] = useState<HTMLElement | null>(null);
+  const [settingsPortal, setSettingsPortal] = useState<HTMLElement | null>(null);
+  const [dataPortal, setDataPortal] = useState<HTMLElement | null>(null);
 
   const register = useCallback((agentId: string, content: React.ReactNode) => {
     setEntries((prev) => {
@@ -72,22 +82,39 @@ export function EditorCacheProvider({ children }: { children: React.ReactNode })
       setMainRect,
       setToolbarPortal,
       toolbarPortal,
+      setSettingsPortal,
+      settingsPortal,
+      setDataPortal,
+      dataPortal,
       isEditorActive,
       activeEditorId: activeId,
       panelInsets,
     }),
-    [register, isEditorActive, activeId, panelInsets, toolbarPortal]
+    [register, isEditorActive, activeId, panelInsets, toolbarPortal, settingsPortal, dataPortal]
   );
 
   return (
     <EditorCacheContext.Provider value={value}>
       {children}
+      <EditorBaseLayer mainRect={mainRect} />
       {Array.from(entries.entries()).map(([agentId, content]) => (
         <CachedEditor key={agentId} isVisible={agentId === activeId && slotRect !== null} mainRect={mainRect}>
           {content}
         </CachedEditor>
       ))}
     </EditorCacheContext.Provider>
+  );
+}
+
+function EditorBaseLayer({ mainRect }: { mainRect: ElementRect | null }) {
+  console.log(mainRect);
+  if (!mainRect) return null;
+  return (
+    <div
+      className="fixed z-0 bg-background rounded-xl pointer-events-none"
+      style={rectStyle(mainRect)}
+      aria-hidden
+    />
   );
 }
 
@@ -106,7 +133,7 @@ export function MainContainer({ children, className }: { children: React.ReactNo
       const spacingPx = spacingRaw.endsWith('px')
         ? parseFloat(spacingRaw)
         : parseFloat(spacingRaw) * (parseFloat(root.fontSize) || 16);
-      setMainRect({ top: r.top, left: r.left + spacingPx, width: r.width, height: r.height });
+      setMainRect({ top: r.top, left: r.left + spacingPx, width: r.width - (spacingPx * 3.5), height: r.height - (spacingPx * 2.5) });
     };
     update();
 
@@ -137,7 +164,7 @@ function CachedEditor({
   return (
     <div
       className={isVisible ? 'fixed z-0 overflow-hidden rounded-xl' : 'fixed inset-0 -z-[9999] invisible pointer-events-none'}
-      style={isVisible && mainRect ? mainRect : undefined}
+      style={isVisible && mainRect ? rectStyle(mainRect) : undefined}
     >
       {children}
     </div>

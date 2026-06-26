@@ -31,13 +31,13 @@ function AppTypeCard({
   label: string;
   description: string;
 }) {
-  const active = selected ? 'bg-background hover:bg-background! dark:hover:bg-input/30 dark:bg-input/30! ring-1 ring-primary border-solid' : 'bg-card dark:bg-transparent border-border';
+  const active = selected ? 'bg-background hover:bg-background! dark:hover:bg-input/30 dark:bg-input/30! border-primary' : 'bg-transparent dark:bg-transparent border-border';
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex flex-1 h-[82px] cursor-pointer flex-col gap-1 rounded-lg border border-ring/60 dark:border-ring p-3 text-left transition-[border-color,box-shadow,transform] duration-150 dark:hover:bg-input/30 hover:bg-input border-dashed ${active}`}
+      className={`flex flex-1 h-[82px] cursor-pointer flex-col gap-1 rounded-lg border p-3 text-left transition-[border-color,box-shadow,transform] duration-150 dark:hover:bg-input/30 hover:bg-input ${active}`}
     >
       <div className="flex items-center gap-1.5">
         {icon}

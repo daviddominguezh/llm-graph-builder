@@ -1,61 +1,178 @@
-import { type McpTransport, McpTransportSchema } from '@daviddh/graph-types';
+import { type McpServerConfig, type McpTransport, McpTransportSchema } from '@daviddh/graph-types';
+// `createTransport`/`connectMcp` are typed against the api package's own bundled
+// graph-types; aliasing their actual signatures via `typeof` avoids a cross-copy
+// `McpServerConfig` identity clash while keeping the seams injectable.
+import { type RawMcpTool, connectMcp, createTransport, withAbortTimeout } from '@daviddh/llm-graph-runner';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 
-import { connectMcpClient } from '../mcp/client.js';
+import { type DiscoveryErrorCategory, classifyDiscoveryError } from '../lib/discoveryError.js';
+import { resolveAndAssertEgress } from '../lib/egressGuard.js';
 import type { DiscoverResponse, DiscoveredTool } from '../types.js';
 
 const HTTP_BAD_REQUEST = 400;
+
+/** The api package's wire transport type, derived from `createTransport`'s
+ * return so we never re-export it from the api index. */
+type WireTransport = ReturnType<typeof createTransport>;
+
+/** Total wall-clock budget for the whole discovery operation (connect + list). */
+export const DISCOVERY_BUDGET_MS = 8_000;
 
 const DiscoverBodySchema = z.object({
   transport: McpTransportSchema,
 });
 
-function parseTransport(body: unknown): McpTransport {
+/**
+ * Injectable seams so tests can stub egress, transport creation, the MCP
+ * connection, and the budget without touching the real network or DNS.
+ */
+export interface DiscoverDeps {
+  assertEgress: (url: string) => Promise<void>;
+  createTransport: typeof createTransport;
+  connectMcp: typeof connectMcp;
+  budgetMs: number;
+}
+
+const defaultDeps: DiscoverDeps = {
+  assertEgress: async (url) => {
+    await resolveAndAssertEgress(url, []);
+  },
+  createTransport,
+  connectMcp,
+  budgetMs: DISCOVERY_BUDGET_MS,
+};
+
+function parseTransport(body: unknown): McpTransport | null {
   const result = DiscoverBodySchema.safeParse(body);
-  if (!result.success) {
-    throw new Error(`Invalid transport config: ${result.error.message}`);
-  }
-  return result.data.transport;
+  return result.success ? result.data.transport : null;
 }
 
-async function discoverFromTransport(transport: McpTransport): Promise<DiscoverResponse> {
-  const client = await connectMcpClient(transport);
+function transportToServerConfig(transport: McpTransport): McpServerConfig {
+  return { id: 'discover', name: 'discover', transport, enabled: true };
+}
+
+/** Read the post-substitution URL of an http/sse transport (stdio has no URL). */
+function transportUrl(transport: McpTransport): string {
+  if (transport.type === 'http' || transport.type === 'sse') return transport.url;
+  throw new Error('Unsupported transport type');
+}
+
+function mapTools(rawTools: RawMcpTool[]): DiscoveredTool[] {
+  return rawTools.map((tool) => ({
+    name: tool.name,
+    description: tool.description,
+    inputSchema: tool.inputSchema,
+  }));
+}
+
+/** A promise that rejects as soon as `signal` aborts (never resolves otherwise). */
+async function abortRejection(signal: AbortSignal): Promise<never> {
+  const { promise, reject } = Promise.withResolvers<never>();
+  signal.addEventListener(
+    'abort',
+    () => {
+      reject(new Error('aborted'));
+    },
+    { once: true }
+  );
+  return await promise;
+}
+
+/** Connect + list, then close. Best-effort `close()` if the budget aborts mid-flight. */
+async function connectAndListTools(
+  wireTransport: WireTransport,
+  deps: DiscoverDeps,
+  signal: AbortSignal
+): Promise<DiscoverResponse> {
+  const handle = await deps.connectMcp({ transport: wireTransport });
+  signal.addEventListener(
+    'abort',
+    () => {
+      handle.close().catch(() => undefined);
+    },
+    { once: true }
+  );
   try {
-    const result = await client.listTools();
-    const tools: DiscoveredTool[] = result.tools.map((tool) => ({
-      name: tool.name,
-      description: tool.description,
-      inputSchema: tool.inputSchema,
-    }));
-    return { tools };
+    return { tools: mapTools(await handle.listTools()) };
   } finally {
-    await client.close();
+    await handle.close();
   }
 }
 
-function logRequest(body: unknown): void {
-  process.stdout.write(`[discover] POST /mcp/discover body=${JSON.stringify(body)}\n`);
+/** Connect + list tools, racing the shared discovery budget. */
+async function runDiscoveryWithBudget(
+  transport: McpTransport,
+  deps: DiscoverDeps
+): Promise<DiscoverResponse> {
+  const wireTransport = deps.createTransport(transportToServerConfig(transport));
+  return await withAbortTimeout(
+    deps.budgetMs,
+    async (signal) =>
+      await Promise.race([connectAndListTools(wireTransport, deps, signal), abortRejection(signal)])
+  );
 }
 
-function logError(message: string): void {
-  process.stderr.write(`[discover] ERROR: ${message}\n`);
+async function discoverFromTransport(transport: McpTransport, deps: DiscoverDeps): Promise<DiscoverResponse> {
+  await deps.assertEgress(transportUrl(transport));
+  return await runDiscoveryWithBudget(transport, deps);
+}
+
+/**
+ * Build a redacted, non-secret-bearing log label for a transport.
+ *
+ * The `/mcp/discover` route is unauthenticated and the transport is
+ * client-supplied; some MCP servers embed an auth token in the URL path or
+ * query (e.g. `https://host/mcp?key=SECRET`). We therefore log only the URL's
+ * origin (scheme + host + port) and drop the path and query entirely. If the
+ * URL can't be parsed we fall back to the transport type alone — never the raw
+ * string. Stdio transports have no URL, so we log only the type.
+ */
+export function safeTransportLogLabel(transport: McpTransport): string {
+  if (transport.type === 'stdio') return `type=${transport.type} command=${transport.command}`;
+  try {
+    return `type=${transport.type} origin=${new URL(transport.url).origin}`;
+  } catch {
+    return `type=${transport.type}`;
+  }
+}
+
+/** Log only the redacted transport label — never headers, path, or query (avoids secret leak). */
+function logRequest(transport: McpTransport): void {
+  process.stdout.write(`[discover] POST /mcp/discover ${safeTransportLogLabel(transport)}\n`);
+}
+
+function logError(category: DiscoveryErrorCategory): void {
+  process.stderr.write(`[discover] ERROR: ${category}\n`);
 }
 
 function logSuccess(toolCount: number): void {
   process.stdout.write(`[discover] OK: discovered ${String(toolCount)} tools\n`);
 }
 
-export async function handleDiscover(req: Request, res: Response): Promise<void> {
-  logRequest(req.body);
+/**
+ * Testable core. Kept separate from the Express handler so `deps` can be
+ * injected without colliding with Express's `(req, res, next)` arity.
+ */
+export async function runDiscover(req: Request, res: Response, deps: DiscoverDeps): Promise<void> {
+  const transport = parseTransport(req.body);
+  if (transport === null) {
+    res.status(HTTP_BAD_REQUEST).json({ errorCategory: 'unknown' satisfies DiscoveryErrorCategory });
+    return;
+  }
+  logRequest(transport);
   try {
-    const transport = parseTransport(req.body);
-    const result = await discoverFromTransport(transport);
+    const result = await discoverFromTransport(transport, deps);
     logSuccess(result.tools.length);
     res.json(result);
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    logError(message);
-    res.status(HTTP_BAD_REQUEST).json({ error: message });
+    const errorCategory = classifyDiscoveryError(err);
+    logError(errorCategory);
+    res.status(HTTP_BAD_REQUEST).json({ errorCategory });
   }
+}
+
+/** Express handler — keep arity at 2 so Express never injects `next` as deps. */
+export async function handleDiscover(req: Request, res: Response): Promise<void> {
+  await runDiscover(req, res, defaultDeps);
 }

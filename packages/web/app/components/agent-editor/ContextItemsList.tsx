@@ -44,8 +44,8 @@ export function ContextItemsList({ items, onInsert, onUpdate, onDelete }: Contex
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <Label className="text-xs font-medium">{t('contextItems')}</Label>
-        <Button variant="outline" size="sm" className="h-7 text-xs rounded-md" onClick={handleAdd}>
-          <Plus className="mr-1 size-3" />
+        <Button variant="outline" size="xs" className="rounded-md" onClick={handleAdd}>
+          <Plus className="mr-1" />
           {t('addContextItem')}
         </Button>
       </div>

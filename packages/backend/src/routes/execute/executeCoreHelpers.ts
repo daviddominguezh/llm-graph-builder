@@ -1,19 +1,24 @@
+import type { OAuthTokenBundle, SelectedTool } from '@daviddh/llm-graph-runner';
+
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { getAgentVfsSettings } from '../../db/queries/vfsConfigQueries.js';
 import { updateConversationLastMessage } from '../../messaging/queries/conversationMutations.js';
 import { findOrCreateConversation } from '../../messaging/queries/conversationQueries.js';
 import { insertMessage, insertMessageAi } from '../../messaging/queries/messageQueries.js';
 import { publishToTenant } from '../../messaging/services/redis.js';
+import { EdgePayloadSchemaVersion } from './edgeFunctionClient.js';
 import type { ExecuteAgentParams, VfsEdgeFunctionPayload } from './edgeFunctionClient.js';
 import type { AgentConfig, FetchedData, OverrideAgentConfig } from './executeFetcher.js';
 import {
   fetchAgentConfig,
+  fetchAgentRecord,
   fetchGraphAndKeys,
   fetchSessionData,
   getProductionKeyId,
 } from './executeFetcher.js';
-import { logExec, resolveMcpTransportVariables, resolveOAuthForExecution } from './executeHelpers.js';
+import { logExec, resolveOAuthForExecution } from './executeHelpers.js';
 import type { AgentExecutionInput } from './executeTypes.js';
+import { resolveTenantAndEnvGraph } from './resolveTenantGraph.js';
 import { buildVfsPayload } from './vfsDispatch.js';
 
 const ZERO_UNANSWERED = 0;
@@ -34,8 +39,8 @@ interface FetchAllParams {
 function resolveAgentConfig(params: FetchAllParams, appType: string): Promise<AgentConfig> | null {
   const { overrideAgentConfig } = params;
   if (overrideAgentConfig !== undefined) {
-    const { systemPrompt, context, maxSteps } = overrideAgentConfig;
-    return Promise.resolve({ systemPrompt, context, maxSteps });
+    const { systemPrompt, context, maxSteps, skills } = overrideAgentConfig;
+    return Promise.resolve({ systemPrompt, context, maxSteps, skills: skills ?? [] });
   }
   if (appType === 'agent') {
     return fetchAgentConfig(params.supabase, params.agentId, params.version);
@@ -46,19 +51,21 @@ function resolveAgentConfig(params: FetchAllParams, appType: string): Promise<Ag
 export async function fetchAllCoreData(params: FetchAllParams): Promise<FetchedData> {
   const { supabase, agentId, orgId, version, input, model } = params;
   const productionKeyId = await getProductionKeyId(supabase, agentId);
-  const [graphAndKeys, sessionData, vfsSettings] = await Promise.all([
+  const [graphAndKeys, sessionData, vfsSettings, agentRecord] = await Promise.all([
     fetchGraphAndKeys({ supabase, agentId, version, orgId, productionApiKeyId: productionKeyId }),
     fetchSessionData({ supabase, agentId, orgId, version, input, model }),
     getAgentVfsSettings(supabase, agentId),
+    fetchAgentRecord(supabase, agentId, version),
   ]);
-  const envResolvedGraph = resolveMcpTransportVariables(
-    graphAndKeys.graph,
-    graphAndKeys.envVars.byName,
-    graphAndKeys.envVars.byId
-  );
+  const envResolvedGraph = await resolveTenantAndEnvGraph({
+    supabase,
+    graphAndKeys,
+    tenantId: input.tenantId,
+    orgId,
+  });
   const resolvedGraph = await resolveOAuthForExecution(supabase, envResolvedGraph, orgId);
   const agentConfig = await resolveAgentConfig(params, graphAndKeys.appType);
-  return { ...graphAndKeys, ...sessionData, graph: resolvedGraph, agentConfig, vfsSettings };
+  return { ...graphAndKeys, ...sessionData, graph: resolvedGraph, agentConfig, agentRecord, vfsSettings };
 }
 
 /* ─── VFS payload resolution ─── */
@@ -83,9 +90,14 @@ export async function resolveVfsCorePayload(
 /* ─── Build edge function params ─── */
 
 export interface BuildCoreParamsOptions {
+  orgId: string;
   vfsPayload: VfsEdgeFunctionPayload | undefined;
   overrideAgentConfig?: OverrideAgentConfig;
   conversationId?: string;
+  oauthByProvider?: Record<string, OAuthTokenBundle>;
+  selectedTools?: SelectedTool[];
+  selectedKvStoreId?: string | null;
+  selectedRagStoreId?: string | null;
 }
 
 function buildAgentExecuteParams(
@@ -101,12 +113,18 @@ function buildAgentExecuteParams(
   return { ...agentParams, ...override };
 }
 
+function buildOauthField(oauth: Record<string, OAuthTokenBundle> | undefined): ExecuteAgentParams['oauth'] {
+  if (oauth === undefined || Object.keys(oauth).length === ZERO_UNANSWERED) return undefined;
+  return { byProvider: oauth };
+}
+
 export function buildCoreExecuteParams(
   fetched: FetchedData,
   input: AgentExecutionInput,
   model: string,
   options: BuildCoreParamsOptions
 ): ExecuteAgentParams {
+  const { oauthByProvider } = options;
   const base: ExecuteAgentParams = {
     appType: fetched.appType === 'agent' ? 'agent' : 'workflow',
     graph: fetched.graph,
@@ -118,11 +136,17 @@ export function buildCoreExecuteParams(
     data: input.context ?? {},
     quickReplies: {},
     sessionID: input.sessionId,
+    orgID: options.orgId,
     tenantID: input.tenantId,
     userID: input.userId,
     isFirstMessage: fetched.isNew,
     vfs: options.vfsPayload,
     conversationId: options.conversationId,
+    schemaVersion: EdgePayloadSchemaVersion.Current,
+    selectedTools: options.selectedTools,
+    oauth: buildOauthField(oauthByProvider),
+    selectedKvStoreId: options.selectedKvStoreId,
+    selectedRagStoreId: options.selectedRagStoreId,
   };
 
   if (fetched.appType === 'agent') {

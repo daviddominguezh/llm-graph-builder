@@ -9,10 +9,12 @@ import { Separator } from '@/components/ui/separator';
 import type { LucideIcon } from 'lucide-react';
 import {
   Building2,
+  Calendar,
   ChevronsUpDown,
+  Database,
   KeyRound,
-  LayoutDashboard,
   LogOut,
+  Logs,
   MessageSquare,
   Settings,
   Users,
@@ -25,6 +27,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 
 import { OrgSwitcherPopover } from './OrgSwitcherPopover';
+import { SidebarThemeToggle } from './SidebarThemeToggle';
 
 interface OrgSidebarProps {
   org: OrgRow;
@@ -65,7 +68,7 @@ function NavItem({
 }) {
   return (
     <div
-      className={`cursor-pointer group flex flex-col justify-center items-center p-0 w-full aspect-square rounded-[5px] ${active ? 'bg-primary/8 hover:bg-primary/8' : 'hover:bg-sidebar-accent'}`}
+      className={`cursor-pointer group flex flex-col justify-center items-center p-0 w-full aspect-square rounded-[5px] ${active ? 'bg-primary/8 hover:bg-primary/8' : 'hover:bg-primary/8'}`}
     >
       <Button
         variant="ghost"
@@ -151,12 +154,14 @@ interface NavItemDef {
 
 const TOP_NAV_ITEMS: NavItemDef[] = [
   { segment: '', path: '', Icon: Zap, labelKey: 'agents' },
-  { segment: 'dashboard', path: '/dashboard', Icon: LayoutDashboard, labelKey: 'dashboard' },
-  { segment: 'chats', path: '/chats', Icon: MessageSquare, labelKey: 'chats' },
+  { segment: 'knowledge-base', path: '/knowledge-base', Icon: Database, labelKey: 'knowledgeBase' },
   { segment: 'tenants', path: '/tenants', Icon: Building2, labelKey: 'tenants' },
+  { segment: 'chats', path: '/chats', Icon: MessageSquare, labelKey: 'chats' },
+  { segment: 'calendar', path: '/calendar', Icon: Calendar, labelKey: 'calendar' },
 ];
 
 const BOTTOM_NAV_ITEMS: NavItemDef[] = [
+  { segment: 'dashboard', path: '/dashboard', Icon: Logs, labelKey: 'dashboard' },
   { segment: 'api-keys', path: '/api-keys', Icon: KeyRound, labelKey: 'apiKeys' },
   { segment: 'team', path: '/team', Icon: Users, labelKey: 'team' },
   { segment: 'settings', path: '/settings', Icon: Settings, labelKey: 'settings' },
@@ -174,11 +179,13 @@ function NavList({
   basePath,
   segment,
   onItemClick,
+  trailing,
 }: {
   items: NavItemDef[];
   basePath: string;
   segment: string;
   onItemClick?: (item: NavItemDef, e: React.MouseEvent) => void;
+  trailing?: React.ReactNode;
 }) {
   return (
     <nav className="flex flex-col gap-0.5">
@@ -191,6 +198,7 @@ function NavList({
           onClick={onItemClick ? (e) => onItemClick(item, e) : undefined}
         />
       ))}
+      {trailing}
     </nav>
   );
 }
@@ -200,11 +208,13 @@ function NavListExpanded({
   basePath,
   segment,
   onItemClick,
+  trailing,
 }: {
   items: NavItemDef[];
   basePath: string;
   segment: string;
   onItemClick?: (item: NavItemDef, e: React.MouseEvent) => void;
+  trailing?: React.ReactNode;
 }) {
   const t = useTranslations('orgs');
 
@@ -220,6 +230,7 @@ function NavListExpanded({
           onClick={onItemClick ? (e) => onItemClick(item, e) : undefined}
         />
       ))}
+      {trailing}
     </nav>
   );
 }
@@ -327,7 +338,7 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
 
   return (
     <aside
-      className={`shrink-0 flex flex-col gap-2 overflow-hidden p-2 pl-1.5 pr-0 pt-3 pb-2 transition-[width,background-color] duration-100 ${sidebar.collapsed ? 'w-[calc(45px-var(--spacing)*1.5)] bg-background' : 'w-58.5 bg-background'} ${sidebar.contentCollapsed ? 'border border-transparent' : 'shadow-lg border rounded-e-md z-12'}`}
+      className={`shrink-0 h-[calc(100%-var(--spacing)*5)] flex flex-col gap-2 overflow-hidden p-2 px-1.5 pt-3 pb-1.5 transition-[width,background-color] duration-100 ${sidebar.collapsed ? 'w-[calc(45px)] bg-transparent' : 'w-58.5 bg-background'} ${sidebar.contentCollapsed ? 'border border-transparent' : 'shadow-lg border rounded-e-md z-12'}`}
     >
       <OrgSwitcherPopover
         currentOrg={org}
@@ -348,9 +359,19 @@ export function OrgSidebar({ org }: OrgSidebarProps) {
       )}
       <div className="mt-auto flex flex-col gap-2">
         {sidebar.contentCollapsed ? (
-          <NavList items={BOTTOM_NAV_ITEMS} basePath={basePath} segment={segment} />
+          <NavList
+            items={BOTTOM_NAV_ITEMS}
+            basePath={basePath}
+            segment={segment}
+            trailing={<SidebarThemeToggle collapsed />}
+          />
         ) : (
-          <NavListExpanded items={BOTTOM_NAV_ITEMS} basePath={basePath} segment={segment} />
+          <NavListExpanded
+            items={BOTTOM_NAV_ITEMS}
+            basePath={basePath}
+            segment={segment}
+            trailing={<SidebarThemeToggle collapsed={false} />}
+          />
         )}
         <Separator />
         <LogoutButton />

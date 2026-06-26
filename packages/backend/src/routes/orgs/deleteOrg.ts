@@ -1,6 +1,6 @@
 import type { Request } from 'express';
 
-import { deleteOrg } from '../../db/queries/orgQueries.js';
+import { deleteOrgWithDefaultTenant } from '../../db/queries/orgQueries.js';
 import { removeOrgAvatar } from '../../db/queries/orgStorageQueries.js';
 import {
   type AuthenticatedLocals,
@@ -23,7 +23,7 @@ export async function handleDeleteOrg(req: Request, res: AuthenticatedResponse):
 
   try {
     await removeOrgAvatar(supabase, orgId);
-    const { error } = await deleteOrg(supabase, orgId);
+    const { error } = await deleteOrgWithDefaultTenant(supabase, orgId);
 
     if (error !== null) {
       res.status(HTTP_INTERNAL_ERROR).json({ error });

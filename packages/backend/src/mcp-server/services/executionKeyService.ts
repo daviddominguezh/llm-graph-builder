@@ -47,6 +47,8 @@ interface CreateExecutionKeyInput {
   agentIds: string[];
   expiresAt?: string | null;
   allAgents?: boolean;
+  allTenants?: boolean;
+  tenantIds?: string[];
 }
 
 export async function createExecutionKey(
@@ -58,6 +60,8 @@ export async function createExecutionKey(
     name: input.name,
     allAgents: input.allAgents ?? false,
     agentIds: input.agentIds,
+    allTenants: input.allTenants ?? true,
+    tenantIds: input.tenantIds ?? [],
     expiresAt: input.expiresAt ?? null,
   });
   if (error !== null || result === null) throw new Error(error ?? 'Failed to create execution key');

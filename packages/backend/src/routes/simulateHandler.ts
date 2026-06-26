@@ -1,14 +1,24 @@
-import type { CallAgentOutput, NodeProcessedEvent } from '@daviddh/llm-graph-runner';
-import { executeWithCallbacks, injectSystemTools } from '@daviddh/llm-graph-runner';
+import type { McpServerConfig } from '@daviddh/graph-types';
+import type {
+  CallAgentOutput,
+  Context,
+  NodeProcessedEvent,
+  OAuthTokenBundle,
+} from '@daviddh/llm-graph-runner';
+import { executeWithCallbacks } from '@daviddh/llm-graph-runner';
 import type { Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
 
 import { createServiceClient } from '../db/queries/executionAuthQueries.js';
+import { assertEgressForServers } from '../lib/assertEgressForServers.js';
+import { classifyDiscoveryError } from '../lib/discoveryError.js';
 import { consoleLogger } from '../logger.js';
 import { type McpSession, closeMcpSession, createMcpSession } from '../mcp/lifecycle.js';
+import { makeNoStoreBoundKvServices, makeNoStoreBoundRagServices } from '../services/noStoreBoundServices.js';
 import type { SimulateRequest } from '../types.js';
 import { buildContext, setSseHeaders, sumTokens, writeSSE } from './simulate.js';
 import { resolveChildConfig } from './simulateChildResolver.js';
+import { buildSimulationProviderCtx, buildSimulationRegistry } from './simulationProviderCtx.js';
 
 const EMPTY_SESSION: McpSession = { clients: [], tools: {} };
 const CHILD_DEPTH = 1;
@@ -118,14 +128,65 @@ function sendError(res: Response, err: unknown): void {
   writeSSE(res, { type: 'error', message });
 }
 
-async function runSimulation(body: SimulateRequest, session: McpSession, res: Response): Promise<void> {
-  const context = buildContext(body);
-  const tools = injectSystemTools({ existingTools: session.tools, isChildAgent: false });
+/**
+ * Redacted error for egress-guard failures on the direct-connect path: surfaces
+ * ONLY the closed-taxonomy category (never the raw message, URL, or host, which
+ * can carry secrets / probe targets).
+ */
+function sendRedactedError(res: Response, err: unknown): void {
+  writeSSE(res, {
+    type: 'error',
+    message: 'MCP server unreachable',
+    errorCategory: classifyDiscoveryError(err),
+  });
+}
+
+function buildSimulationServicesResolver(): (providerId: string) => unknown {
+  return (providerId: string): unknown => {
+    // simulate has no per-agent store bindings — surface the sentinel services
+    // so the LLM still sees the tools and gets a `no_store_bound` ToolError if
+    // it tries to call one.
+    if (providerId === 'kv_store') return makeNoStoreBoundKvServices();
+    if (providerId === 'rag') return makeNoStoreBoundRagServices();
+    return undefined;
+  };
+}
+
+function buildContextWithRegistry(body: SimulateRequest): Omit<Context, 'toolsOverride' | 'onNodeVisited'> {
+  const baseContext = buildContext(body);
+  const mcpServers = body.graph.mcpServers ?? [];
+  const services = buildSimulationServicesResolver();
+  const oauthTokens = new Map<string, OAuthTokenBundle>();
+  const providerCtx = buildSimulationProviderCtx({
+    orgId: body.orgId ?? '',
+    tenantId: body.tenantID,
+    agentId: body.sessionID,
+    isChildAgent: false,
+    oauthTokens,
+    mcpServers,
+    services,
+  });
+  return {
+    ...baseContext,
+    registry: buildSimulationRegistry({ mcpServers }),
+    orgId: providerCtx.orgId,
+    agentId: providerCtx.agentId,
+    isChildAgent: providerCtx.isChildAgent,
+    conversationId: providerCtx.conversationId,
+    contextData: providerCtx.contextData,
+    oauthTokens: providerCtx.oauthTokens,
+    mcpServers: providerCtx.mcpServers,
+    services: providerCtx.services,
+    logger: consoleLogger,
+  };
+}
+
+async function runSimulation(body: SimulateRequest, res: Response): Promise<void> {
+  const context = buildContextWithRegistry(body);
   const result = await executeWithCallbacks({
     context,
     messages: body.messages,
     currentNode: body.currentNode,
-    toolsOverride: tools,
     logger: consoleLogger,
     structuredOutputs: body.structuredOutputs,
     onNodeVisited: (nodeId: string) => {
@@ -143,6 +204,27 @@ async function runSimulation(body: SimulateRequest, session: McpSession, res: Re
   }
 }
 
+/**
+ * Egress-guard the direct-connect path: assert every MCP server URL is publicly
+ * routable BEFORE opening any session, then connect. The registry path
+ * (`buildSimulationRegistry`) is guarded separately via `makeGuardedCreateTransport`,
+ * so this only closes the `createMcpSession` bypass. Returns `null` (and emits a
+ * redacted error) when egress is blocked — the caller must NOT connect.
+ */
+async function guardedCreateSession(
+  mcpServers: McpServerConfig[],
+  res: Response
+): Promise<McpSession | null> {
+  try {
+    await assertEgressForServers(mcpServers);
+  } catch (err) {
+    process.stdout.write(`[simulate] egress blocked: ${classifyDiscoveryError(err)}\n`);
+    sendRedactedError(res, err);
+    return null;
+  }
+  return await createMcpSession(mcpServers);
+}
+
 export async function handleSimulate(
   req: Request<Record<string, string>, unknown, SimulateRequest>,
   res: Response
@@ -153,8 +235,10 @@ export async function handleSimulate(
   setSseHeaders(res);
   let session: McpSession = EMPTY_SESSION;
   try {
-    session = await createMcpSession(mcpServers);
-    await runSimulation(body, session, res);
+    const connected = await guardedCreateSession(mcpServers, res);
+    if (connected === null) return;
+    session = connected;
+    await runSimulation(body, res);
     writeSSE(res, { type: 'simulation_complete' });
     process.stdout.write('[simulate] workflow completed\n');
   } catch (err) {

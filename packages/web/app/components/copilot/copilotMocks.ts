@@ -56,7 +56,7 @@ const MOCK_RESPONSES: CopilotMessageBlock[][] = [
 let mockIndex = 0;
 
 export function getNextMockResponse(): CopilotMessageBlock[] {
-  const response = MOCK_RESPONSES[mockIndex % MOCK_RESPONSES.length]!;
+  const response = MOCK_RESPONSES[mockIndex % MOCK_RESPONSES.length];
   mockIndex++;
   return response;
 }

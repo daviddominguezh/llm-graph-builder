@@ -1,6 +1,6 @@
 import type { Operation, OutputSchemaEntity } from '@daviddh/graph-types';
 import { nanoid } from 'nanoid';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import type { PushOperation } from '../utils/operationBuilders';
 
@@ -37,6 +37,20 @@ function buildDeleteOp(id: string): Operation {
   return { type: 'deleteOutputSchema', schemaId: id };
 }
 
+/**
+ * A schema that has been added to local state but never persisted is a "draft":
+ * its first save must be an insert, and discarding it must not emit a delete op
+ * (the backend never heard about it). Mutating `draftIds` here is safe because
+ * `reactStrictMode` is off, so the `setSchemas` updater runs exactly once.
+ */
+function persistOpForSchema(schema: OutputSchemaEntity, draftIds: Set<string>): Operation {
+  if (draftIds.has(schema.id)) {
+    draftIds.delete(schema.id);
+    return buildInsertOp(schema);
+  }
+  return buildUpdateOp(schema);
+}
+
 export interface UseOutputSchemasOptions {
   initialSchemas: OutputSchemaEntity[] | undefined;
   pushOperation: PushOperation;
@@ -45,17 +59,24 @@ export interface UseOutputSchemasOptions {
 export function useOutputSchemas(options: UseOutputSchemasOptions): OutputSchemasState {
   const { initialSchemas, pushOperation } = options;
   const [schemas, setSchemas] = useState<OutputSchemaEntity[]>(initialSchemas ?? []);
+  const draftIdsRef = useRef<Set<string>>(new Set());
 
   const addSchema = useCallback((): string => {
     const schema = createDefaultSchema();
     setSchemas((prev) => [...prev, schema]);
-    pushOperation(buildInsertOp(schema));
+    // Track as an unpersisted draft; the insert op is deferred until the first
+    // save so that creating then cancelling never touches the backend.
+    draftIdsRef.current.add(schema.id);
     return schema.id;
-  }, [pushOperation]);
+  }, []);
 
   const removeSchema = useCallback(
     (id: string) => {
       setSchemas((prev) => prev.filter((s) => s.id !== id));
+      if (draftIdsRef.current.has(id)) {
+        draftIdsRef.current.delete(id);
+        return;
+      }
       pushOperation(buildDeleteOp(id));
     },
     [pushOperation]
@@ -67,7 +88,7 @@ export function useOutputSchemas(options: UseOutputSchemasOptions): OutputSchema
         const updated = prev.map((s) => (s.id === id ? { ...s, ...updates } : s));
         const merged = updated.find((s) => s.id === id);
         if (merged !== undefined) {
-          pushOperation(buildUpdateOp(merged));
+          pushOperation(persistOpForSchema(merged, draftIdsRef.current));
         }
         return updated;
       });

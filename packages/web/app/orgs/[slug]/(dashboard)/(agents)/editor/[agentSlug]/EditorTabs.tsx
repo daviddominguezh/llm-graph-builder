@@ -3,20 +3,21 @@
 import { useAgentsSidebar } from '@/app/components/agents/AgentsSidebarContext';
 import { SettingsPanel } from '@/app/components/agents/SettingsPanel';
 import { ChannelsPanel } from '@/app/components/agents/channels/ChannelsPanel';
+import { TriggersPanel } from '@/app/components/agents/triggers/TriggersPanel';
 import { useEditorCache } from '@/app/components/editors/EditorCacheProvider';
 import type { PublishTenant } from '@/app/components/panels/PublishButtonTenantPicker';
 import type { ApiKeyRow } from '@/app/lib/apiKeys';
 import { Button } from '@/components/ui/button';
-import { GlassPanel } from '@/components/ui/glass-panel';
 import { Separator } from '@/components/ui/separator';
-import { Brain, PanelLeftClose, PanelLeftOpen, Radio, Settings } from 'lucide-react';
+import type { SelectedTool } from '@daviddh/llm-graph-runner';
+import { Brain, Database, PanelLeftClose, PanelLeftOpen, Radio, Settings, Zap } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { EditorClient } from './EditorClient';
 
-type TabId = 'agent' | 'channels' | 'settings';
+type TabId = 'agent' | 'data' | 'channels' | 'triggers' | 'settings';
 
 interface EditorTabsProps {
   agentSlug: string;
@@ -34,15 +35,22 @@ interface EditorTabsProps {
   agentDescription: string;
   agentCategory: string;
   agentIsPublic: boolean;
+  agentAppType: string;
+  agentSelectedTools: SelectedTool[];
+  agentUpdatedAt: string;
+  agentSelectedKvStoreId: string | null;
+  agentSelectedRagStoreId: string | null;
 }
 
 const TAB_ICONS: Record<TabId, LucideIcon> = {
   agent: Brain,
+  data: Database,
   channels: Radio,
+  triggers: Zap,
   settings: Settings,
 };
 
-const TABS: TabId[] = ['agent', 'channels', 'settings'];
+const TABS: TabId[] = ['agent', 'data', 'triggers', 'channels', 'settings'];
 
 interface TabButtonProps {
   tab: TabId;
@@ -86,6 +94,11 @@ function buildEditorElement(props: EditorTabsProps): React.ReactNode {
       orgApiKeys={props.orgApiKeys}
       stagingApiKeyId={props.stagingApiKeyId}
       productionApiKeyId={props.productionApiKeyId}
+      agentAppType={props.agentAppType}
+      agentSelectedTools={props.agentSelectedTools}
+      agentUpdatedAt={props.agentUpdatedAt}
+      agentSelectedKvStoreId={props.agentSelectedKvStoreId}
+      agentSelectedRagStoreId={props.agentSelectedRagStoreId}
     />
   );
 }
@@ -124,33 +137,66 @@ function useSlotSync(slotRef: React.RefObject<HTMLDivElement | null>, activeTab:
   }, [activeTab, setSlotRect, slotRef]);
 }
 
+function TabContent({ activeTab, props }: { activeTab: TabId; props: EditorTabsProps }) {
+  const { setSettingsPortal, setDataPortal } = useEditorCache();
+  const settingsPortalRef = useCallback(
+    (el: HTMLDivElement | null) => setSettingsPortal(el),
+    [setSettingsPortal]
+  );
+  const dataPortalRef = useCallback((el: HTMLDivElement | null) => setDataPortal(el), [setDataPortal]);
+
+  return (
+    <div
+      className={`flex flex-col bg-background overflow-hidden ${activeTab === 'agent' ? 'hidden' : 'flex-1'}`}
+    >
+      {activeTab === 'channels' && <ChannelsPanel orgId={props.orgId} agentId={props.agentId} />}
+      {activeTab === 'triggers' && (
+        <TriggersPanel orgId={props.orgId} orgSlug={props.orgSlug} agentId={props.agentId} />
+      )}
+      {activeTab === 'data' && (
+        <div className="mx-auto w-full max-w-lg flex flex-col gap-6 p-6">
+          <div ref={dataPortalRef} className="flex flex-col gap-4" />
+        </div>
+      )}
+      {activeTab === 'settings' && (
+        <SettingsPanel
+          agentId={props.agentId}
+          agentName={props.agentName}
+          agentSlug={props.agentSlug}
+          initialDescription={props.agentDescription}
+          initialCategory={props.agentCategory}
+          initialIsPublic={props.agentIsPublic}
+          currentVersion={props.initialVersion}
+          extraContent={<div ref={settingsPortalRef} className="flex flex-col gap-6 mt-1" />}
+        />
+      )}
+    </div>
+  );
+}
+
 export function EditorTabs(props: EditorTabsProps) {
   const [activeTab, setActiveTab] = useState<TabId>('agent');
   const t = useTranslations('editor.tabs');
   const tAgents = useTranslations('agents');
   const slotRef = useRef<HTMLDivElement>(null);
+  const isAgentEditor = props.agentAppType === 'agent';
 
   useEditorRegistration(props);
   useSlotSync(slotRef, activeTab);
 
   return (
-    <div className="w-full h-full flex flex-col pt-[1px]">
-      <EditorTabBar activeTab={activeTab} onTabChange={setActiveTab} t={t} tAgents={tAgents} />
+    <div
+      className={`w-full h-full flex flex-col pt-[0px] border-t border-b rounded-e-xl overflow-hidden ${isAgentEditor ? 'border-t-[0.5px]! border-b-card! border-b-[0.5px]!' : 'border-[0.5px]! border-r'}`}
+    >
+      <EditorTabBar
+        isAgent={isAgentEditor}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        t={t}
+        tAgents={tAgents}
+      />
       <div ref={slotRef} className={activeTab === 'agent' ? 'flex-1' : 'hidden'} />
-      <div className={`flex flex-col bg-background ${activeTab === 'agent' ? 'hidden' : 'flex-1'}`}>
-        {activeTab === 'channels' && <ChannelsPanel orgId={props.orgId} agentId={props.agentId} />}
-        {activeTab === 'settings' && (
-          <SettingsPanel
-            agentId={props.agentId}
-            agentName={props.agentName}
-            agentSlug={props.agentSlug}
-            initialDescription={props.agentDescription}
-            initialCategory={props.agentCategory}
-            initialIsPublic={props.agentIsPublic}
-            currentVersion={props.initialVersion}
-          />
-        )}
-      </div>
+      <TabContent activeTab={activeTab} props={props} />
     </div>
   );
 }
@@ -160,11 +206,13 @@ function EditorTabBar({
   onTabChange,
   t,
   tAgents,
+  isAgent,
 }: {
   activeTab: TabId;
   onTabChange: (tab: TabId) => void;
   t: (key: string) => string;
   tAgents: (key: string) => string;
+  isAgent: boolean;
 }) {
   const { collapsed, setCollapsed } = useAgentsSidebar();
   const { setToolbarPortal } = useEditorCache();
@@ -174,32 +222,39 @@ function EditorTabBar({
   const toolbarRef = useCallback((el: HTMLDivElement | null) => setToolbarPortal(el), [setToolbarPortal]);
 
   return (
-    <GlassPanel
-      variant="background"
-      className="relative w-[calc(100%-(var(--spacing)*4))] rounded-full h-[41px] shrink-0 flex items-center px-2 mx-2 pointer-events-auto"
-    >
-      <div className="flex flex-row w-full items-center">
-        <Button
-          variant="ghost"
-          size="lg"
-          className="mr-2 hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
-          onClick={() => setCollapsed(!collapsed)}
-          title={sidebarLabel}
-        >
-          <SidebarIcon />
-        </Button>
-        <Separator orientation="vertical" className="my-2" />
-        <div className="inline-flex gap-1 h-fit dark:gap-0.5 rounded-sm border border-[0.5px] border-transparent bg-transparent p-0.5 ml-4.5">
-          {TABS.map((tab) => (
-            <TabButton key={tab} tab={tab} active={activeTab === tab} onClick={onTabChange} label={t(tab)} />
-          ))}
+    <div className={`w-full h-fit shrink-0 ${isAgent ? 'bg-card' : ''}`}>
+      <div
+        className={`${isAgent ? 'bg-background' : 'bg-[rgb(255_255_255/80%)]! '} dark:bg-[rgb(20_20_20/85%)]! backdrop-blur-xl! relative w-100% h-fit shrink-0 flex items-center pointer-events-auto px-0.5 py-0.5 rounded-se-xl! border-b-[0.5px]! ${isAgent ? 'border-x-[0.5px]! rounded-ee-xl!' : ''}`}
+      >
+        <div className="flex flex-row w-full items-center pl-1.5 pr-2.5">
+          <Button
+            variant="ghost"
+            size="default"
+            className="mr-2 hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
+            onClick={() => setCollapsed(!collapsed)}
+            title={sidebarLabel}
+          >
+            <SidebarIcon />
+          </Button>
+          <Separator orientation="vertical" className="my-2" />
+          <div className="inline-flex gap-1 h-fit dark:gap-0.5 rounded-sm border border-[0.5px] border-transparent bg-transparent p-0.5 ml-4">
+            {TABS.map((tab) => (
+              <TabButton
+                key={tab}
+                tab={tab}
+                active={activeTab === tab}
+                onClick={onTabChange}
+                label={t(tab)}
+              />
+            ))}
+          </div>
+          <div className="flex-1" />
+          <div
+            ref={toolbarRef}
+            className={`flex items-center gap-1.5 ${activeTab !== 'agent' ? 'hidden' : ''}`}
+          />
         </div>
-        <div className="flex-1" />
-        <div
-          ref={toolbarRef}
-          className={`flex items-center gap-1.5 ${activeTab !== 'agent' ? 'hidden' : ''}`}
-        />
       </div>
-    </GlassPanel>
+    </div>
   );
 }

@@ -17,9 +17,9 @@ import {
   setLastMessage,
 } from '@/app/components/messages/store';
 import { TEST_PHONE } from '@/app/constants/messages';
-import { AI_MESSAGE_ROLES, Conversation, INTENT, LastMessage } from '@/app/types/chat';
+import { AI_MESSAGE_ROLES, type Conversation, INTENT, type LastMessage } from '@/app/types/chat';
 import { calculateUnansweredCount } from '@/app/utils/chatUtils';
-import { Dispatch } from 'redux';
+import type { Dispatch } from 'redux';
 
 import type { CacheServiceInterface } from '../../MessagesDashboard.types';
 import { ConversationMessagesCacheService } from '../services/ConversationMessagesCacheService';
@@ -38,11 +38,11 @@ import { ConversationMessagesCacheService } from '../services/ConversationMessag
 export class MessageRepository {
   // Cache is now stored forever - no TTL validation
   // Messages are fetched incrementally (only new messages after last cached message)
-  private static INFINITE_CACHE_TTL = Number.MAX_SAFE_INTEGER; // Effectively infinite cache
+  private static readonly INFINITE_CACHE_TTL = Number.MAX_SAFE_INTEGER; // Effectively infinite cache
 
   constructor(
-    private dispatch: Dispatch,
-    private cacheService: CacheServiceInterface
+    private readonly dispatch: Dispatch,
+    private readonly cacheService: CacheServiceInterface
   ) {}
 
   /**
@@ -60,8 +60,8 @@ export class MessageRepository {
 
       // Calculate unanswered counts for chats with AI disabled
       // Use only cached data - NO fetching
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const chatsNeedingCount = Object.entries(initialData).filter(([_, chat]) => !chat.enabled);
+
+      const chatsNeedingCount = Object.entries(initialData).filter(([, chat]) => !chat.enabled);
 
       // Create a map of unanswered counts
       const unansweredCounts: Record<string, number> = {};
@@ -282,7 +282,7 @@ export class MessageRepository {
     message: string,
     mediaType: 'text' | 'image' | 'audio' | 'pdf' = 'text',
     messageId?: string,
-    isTestChat: boolean = false
+    isTestChat = false
   ): Promise<void> {
     try {
       if (isTestChat) {
@@ -308,7 +308,7 @@ export class MessageRepository {
     mediaUrl: string,
     mediaType: 'image' | 'audio' | 'pdf' | 'video',
     messageId: string,
-    isTestChat: boolean = false,
+    isTestChat = false,
     caption?: string
   ): Promise<void> {
     try {

@@ -1,5 +1,5 @@
 import { proxyToBackend } from '@/app/lib/backendProxy';
 
 export async function GET(): Promise<Response> {
-  return proxyToBackend('GET', '/auth/identities');
+  return await proxyToBackend('GET', '/auth/identities');
 }

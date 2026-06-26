@@ -1,6 +1,8 @@
 import type { McpTransport, RuntimeGraph } from '@daviddh/graph-types';
 import type { Message } from '@daviddh/llm-graph-runner';
 
+import type { DiscoveryErrorCategory } from './lib/discoveryError.js';
+
 export interface DiscoverRequest {
   transport: McpTransport;
 }
@@ -8,7 +10,7 @@ export interface DiscoverRequest {
 export interface DiscoveredTool {
   name: string;
   description: string | undefined;
-  inputSchema: Record<string, unknown> | undefined;
+  inputSchema: unknown;
 }
 
 export interface DiscoverResponse {
@@ -74,7 +76,7 @@ export type SimulationEvent =
       nodeTokens: Array<{ node: string; tokens: { input: number; output: number; cached: number } }>;
       tokenUsage: { input: number; output: number; cached: number };
     }
-  | { type: 'error'; message: string }
+  | { type: 'error'; message: string; errorCategory?: DiscoveryErrorCategory }
   | { type: 'simulation_complete' }
   | {
       type: 'child_dispatched';

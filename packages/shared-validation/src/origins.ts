@@ -66,11 +66,7 @@ function isValidHostname(host: string, allowWildcard: boolean): boolean {
   return true;
 }
 
-function buildParsed(
-  protocol: AllowedProtocol,
-  host: string,
-  port: string | null
-): ParsedOrigin {
+function buildParsed(protocol: AllowedProtocol, host: string, port: string | null): ParsedOrigin {
   return { protocol, hostname: host.toLowerCase(), port };
 }
 

@@ -22,7 +22,7 @@ export default async function AccountPage(): Promise<React.JSX.Element> {
   const fullName = (user.user_metadata as Record<string, string> | undefined)?.full_name ?? null;
 
   return (
-    <div className="h-[calc(100%-var(--spacing)*2)] overflow-y-auto p-6 border rounded-xl mr-2 overflow-hidden bg-background">
+    <div className="h-[calc(100%-var(--spacing)*2.5)] overflow-y-auto p-6 border rounded-xl mr-2.5 overflow-hidden bg-background">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
         <div>
           <h1 className="text-sm font-semibold">{t('title')}</h1>

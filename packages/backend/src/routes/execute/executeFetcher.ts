@@ -1,6 +1,6 @@
 import type { RuntimeGraph } from '@daviddh/graph-types';
 import { RuntimeGraphSchema } from '@daviddh/graph-types';
-import type { Message } from '@daviddh/llm-graph-runner';
+import type { Message, SelectedTool, SkillDefinition } from '@daviddh/llm-graph-runner';
 
 import {
   type DecryptedEnvVars,
@@ -12,12 +12,17 @@ import { getOrCreateSession, getSessionMessages } from '../../db/queries/executi
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
 import { type StackEntry, getStackTop } from '../../db/queries/stackQueries.js';
 import type { AgentVfsSettings } from '../../db/queries/vfsConfigTypes.js';
+import { buildAgentRuntimeGraph } from './agentRuntimeGraph.js';
+import { type TenantConfigSnapshot, parseTenantConfigSnapshot } from './applyTenantMcpConfig.js';
+import { HttpNotFoundError, fetchAgentRecordVersionAware } from './executeAgentRecord.js';
 import { messageRowToMessage, resolveChannelProvider } from './executeMessageFetcher.js';
 import type { AgentExecutionInput } from './executeTypes.js';
+import { parseSnapshotSkills } from './snapshotSkills.js';
 
 export { fetchChildMessages, fetchExecutionMessages, fetchResumeMessages } from './executeMessageFetcher.js';
 
 const EMPTY_LENGTH = 0;
+const HTTP_NOT_FOUND = 404;
 const HTTP_UNPROCESSABLE = 422;
 const HTTP_TOO_MANY = 429;
 const HTTP_INTERNAL = 500;
@@ -39,14 +44,25 @@ export interface AgentConfig {
   systemPrompt: string;
   context: string;
   maxSteps: number | null;
+  skills: SkillDefinition[];
 }
 
 export type { OverrideAgentConfig } from './executeOverrideTypes.js';
+
+/* ─── Agent execution record — lean subset of AgentRow needed at runtime ─── */
+
+export interface AgentExecutionRecord {
+  org_id: string;
+  selected_tools: SelectedTool[];
+  selected_kv_store_id: string | null;
+  selected_rag_store_id: string | null;
+}
 
 /* ─── Fetched data shape ─── */
 
 export interface FetchedData {
   graph: RuntimeGraph;
+  mcpTenantConfig: TenantConfigSnapshot[];
   apiKey: string;
   envVars: DecryptedEnvVars;
   sessionDbId: string;
@@ -56,6 +72,7 @@ export interface FetchedData {
   messageHistory: Message[];
   appType: string;
   agentConfig: AgentConfig | null;
+  agentRecord: AgentExecutionRecord;
   vfsSettings: AgentVfsSettings | null;
   stackTop: StackEntry | null;
 }
@@ -80,6 +97,7 @@ export async function getProductionKeyId(supabase: SupabaseClient, agentId: stri
 
 export interface GraphAndKeys {
   graph: RuntimeGraph;
+  mcpTenantConfig: TenantConfigSnapshot[];
   apiKey: string;
   envVars: DecryptedEnvVars;
   appType: string;
@@ -92,14 +110,6 @@ interface GraphFetchParams {
   orgId: string;
   productionApiKeyId: string;
 }
-
-const EMPTY_GRAPH: RuntimeGraph = {
-  startNode: 'INITIAL_STEP',
-  agents: [],
-  nodes: [],
-  edges: [],
-  initialUserMessage: '',
-};
 
 /**
  * Transforms design-time graph data to runtime format.
@@ -161,8 +171,9 @@ export async function fetchGraphAndKeys(params: GraphFetchParams): Promise<Graph
     fetchAppType(supabase, agentId),
   ]);
 
-  const graph = appType === 'agent' ? EMPTY_GRAPH : ensureGraphData(graphData);
-  return { graph, apiKey: ensureApiKey(apiKey), envVars, appType };
+  const graph = appType === 'agent' ? buildAgentRuntimeGraph(graphData) : ensureGraphData(graphData);
+  const mcpTenantConfig = parseTenantConfigSnapshot(graphData);
+  return { graph, mcpTenantConfig, apiKey: ensureApiKey(apiKey), envVars, appType };
 }
 
 /* ─── Session fetching ─── */
@@ -223,6 +234,7 @@ interface AgentGraphData {
   systemPrompt?: string;
   maxSteps?: number | null;
   contextItems?: Array<{ sortOrder?: number; content: string }>;
+  skills?: unknown;
 }
 
 function isAgentGraphData(val: unknown): val is AgentGraphData {
@@ -250,12 +262,28 @@ export async function fetchAgentConfig(
   const graphData = row?.graph_data;
 
   if (!isAgentGraphData(graphData)) {
-    return { systemPrompt: '', context: '', maxSteps: null };
+    return { systemPrompt: '', context: '', maxSteps: null, skills: [] };
   }
 
   return {
     systemPrompt: graphData.systemPrompt ?? '',
     context: flattenContextItems(graphData.contextItems),
     maxSteps: graphData.maxSteps ?? null,
+    skills: parseSnapshotSkills(graphData.skills),
   };
+}
+
+/* ─── Agent execution record (version-aware) ─── */
+
+export async function fetchAgentRecord(
+  supabase: SupabaseClient,
+  agentId: string,
+  version: number
+): Promise<AgentExecutionRecord> {
+  try {
+    return await fetchAgentRecordVersionAware(supabase, agentId, version);
+  } catch (err) {
+    if (err instanceof HttpNotFoundError) throw new HttpError(HTTP_NOT_FOUND, err.message);
+    throw err;
+  }
 }

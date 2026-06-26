@@ -1,11 +1,16 @@
 'use client';
 
-import { removeTenantAvatarAction, updateTenantAction, uploadTenantAvatarAction } from '@/app/actions/tenants';
+import {
+  removeTenantAvatarAction,
+  updateTenantAction,
+  uploadTenantAvatarAction,
+} from '@/app/actions/tenants';
 import type { TenantRow } from '@/app/lib/tenants';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -95,7 +100,7 @@ function EditForm({ tenant, onOpenChange, onSaved }: Omit<EditTenantDialogProps,
       </div>
       <DialogFooter>
         <Button type="submit" disabled={loading || name.trim() === ''}>
-          {t('save')}
+          {loading ? <Loader2 className="size-4 animate-spin" /> : t('save')}
         </Button>
       </DialogFooter>
     </form>

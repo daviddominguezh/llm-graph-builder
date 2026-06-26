@@ -1,11 +1,10 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
-
 import type { OrgEnvVariableRow } from '@/app/lib/orgEnvVariables';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { useTranslations } from 'next-intl';
 
 export interface VariableValue {
   type: 'direct' | 'env_ref';
@@ -39,14 +38,14 @@ function DirectValueInput({ value, t, onChange }: DirectValueInputProps) {
   );
 }
 
-interface EnvRefSelectorProps {
+export interface EnvRefSelectorProps {
   envVariableId: string | undefined;
   envVariables: OrgEnvVariableRow[];
   t: TranslationFn;
   onChange: (id: string) => void;
 }
 
-function EnvRefSelector({ envVariableId, envVariables, t, onChange }: EnvRefSelectorProps) {
+export function EnvRefSelector({ envVariableId, envVariables, t, onChange }: EnvRefSelectorProps) {
   function handleChange(v: string | null) {
     if (v !== null) onChange(v);
   }
@@ -58,7 +57,7 @@ function EnvRefSelector({ envVariableId, envVariables, t, onChange }: EnvRefSele
       <SelectTrigger className="w-full text-xs">
         <span className="flex flex-1 text-left">{selectedName ?? t('selectEnvVar')}</span>
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent alignItemWithTrigger={false} align="end">
         {envVariables.map((ev) => (
           <SelectItem key={ev.id} value={ev.id}>
             {ev.name}
@@ -95,7 +94,7 @@ function VariableRow({ variable, variableValue, envVariables, t, onChange }: Var
             {variableValue.type === 'env_ref' ? t('envVariable') : t('directValue')}
           </span>
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent alignItemWithTrigger={false} align="end">
           <SelectItem value="direct">{t('directValue')}</SelectItem>
           <SelectItem value="env_ref">{t('envVariable')}</SelectItem>
         </SelectContent>
@@ -118,7 +117,12 @@ function VariableRow({ variable, variableValue, envVariables, t, onChange }: Var
   );
 }
 
-export function VariableValuesEditor({ variables, values, envVariables, onChange }: VariableValuesEditorProps) {
+export function VariableValuesEditor({
+  variables,
+  values,
+  envVariables,
+  onChange,
+}: VariableValuesEditorProps) {
   const t = useTranslations('mcpLibrary');
 
   if (variables.length === 0) return null;
@@ -126,16 +130,18 @@ export function VariableValuesEditor({ variables, values, envVariables, onChange
   return (
     <div className="flex flex-col gap-3">
       <Label className="text-xs font-semibold">{t('variables')}</Label>
-      {variables.map((variable) => (
-        <VariableRow
-          key={variable.name}
-          variable={variable}
-          variableValue={values[variable.name] ?? { type: 'direct' }}
-          envVariables={envVariables}
-          t={t}
-          onChange={(newValue) => onChange({ ...values, [variable.name]: newValue })}
-        />
-      ))}
+      <div className="flex flex-col border-l-2 pl-3 gap-2">
+        {variables.map((variable) => (
+          <VariableRow
+            key={variable.name}
+            variable={variable}
+            variableValue={values[variable.name] ?? { type: 'direct' }}
+            envVariables={envVariables}
+            t={t}
+            onChange={(newValue) => onChange({ ...values, [variable.name]: newValue })}
+          />
+        ))}
+      </div>
     </div>
   );
 }

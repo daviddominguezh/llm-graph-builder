@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useState } from 'react';
@@ -75,7 +76,7 @@ function CreateAgentForm({ orgId, orgSlug, onOpenChange }: CreateAgentFormProps)
       />
       <DialogFooter>
         <Button type="submit" disabled={loading || name.trim() === '' || description.trim() === ''}>
-          {t('create')}
+          {loading ? <Loader2 className="size-4 animate-spin" /> : t('create')}
         </Button>
       </DialogFooter>
     </form>

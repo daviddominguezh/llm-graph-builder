@@ -33,7 +33,7 @@ function Separator() {
 
 export function TokenDisplay({ tokens, durationMs, className = '' }: TokenDisplayProps) {
   return (
-    <span className={cn('inline-flex items-center font-mono text-[10px] text-muted-foreground', className)}>
+    <span className={cn('cursor-default inline-flex items-center font-mono text-[10px] text-muted-foreground', className)}>
       <ArrowDownToLine className="mr-0.5 size-2.5" />
       <span title="Input tokens">{formatCount(tokens.input)}</span>
       <Separator />

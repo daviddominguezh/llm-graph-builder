@@ -115,7 +115,7 @@ export function calculateInitialViewport(
   initialNodePosition: { x: number; y: number },
   containerHeight: number
 ): { x: number; y: number; zoom: number } {
-  const padding = 50;
+  const padding = 300;
   const zoom = 0.8;
 
   const nodeCenterY = initialNodePosition.y + INITIAL_STEP_HEIGHT / HALF_DIVISOR;

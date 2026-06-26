@@ -11,6 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -62,7 +63,7 @@ export function TransferOwnershipDialog(props: TransferOwnershipDialogProps) {
         <AlertDialogFooter>
           <AlertDialogCancel>{t('transferCancel')}</AlertDialogCancel>
           <AlertDialogAction onClick={handleTransfer} disabled={loading}>
-            {loading ? t('transferring') : t('transferConfirm')}
+            {loading ? <Loader2 className="size-4 animate-spin" /> : t('transferConfirm')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

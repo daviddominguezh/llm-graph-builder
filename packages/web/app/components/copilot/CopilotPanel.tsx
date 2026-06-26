@@ -7,12 +7,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { GlassPanel } from '@/components/ui/glass-panel';
 import { History, Plus, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { useCopilotContext } from './CopilotProvider';
 import { CopilotInput } from './CopilotInput';
 import { CopilotMessages } from './CopilotMessages';
+import { useCopilotContext } from './CopilotProvider';
 import type { CopilotSession } from './copilotTypes';
 
 const MIN_MESSAGES_FOR_NEW_CHAT = 1;
@@ -52,30 +53,30 @@ function CopilotHeader({ sessions, activeSession, onNewChat, onSwitchSession, on
   const canCreateNew = activeSession !== null && activeSession.messages.length >= MIN_MESSAGES_FOR_NEW_CHAT;
 
   return (
-    <div className="flex items-center justify-between border-b px-3 py-2">
-      <span className="text-xs font-semibold">{t('title')}</span>
+    <div className="sticky top-0 z-10 shrink-0 flex items-center justify-between pl-2 pr-0.5 py-0.5">
+      <span className="text-xs font-semibold cursor-default"></span>
       <div className="flex items-center gap-0.5">
         <Button
           variant="ghost"
-          size="sm"
-          className="h-8 w-8"
+          size="default"
+          className="aspect-square! px-0"
           onClick={onNewChat}
           disabled={!canCreateNew}
           aria-label={t('newChat')}
         >
-          <Plus className="size-4" />
+          <Plus />
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
               <Button
                 variant="ghost"
-                size="sm"
-                className="h-8 w-8"
+                size="default"
+                className="aspect-square! px-0"
                 disabled={!canShowHistory}
                 aria-label={t('selectChat')}
               >
-                <History className="size-4" />
+                <History />
               </Button>
             }
           />
@@ -99,8 +100,14 @@ function CopilotHeader({ sessions, activeSession, onNewChat, onSwitchSession, on
               })}
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button variant="ghost" size="sm" className="h-8 w-8" onClick={onClose} aria-label={t('close')}>
-          <X className="size-4" />
+        <Button
+          variant="ghost"
+          size="default"
+          className="aspect-square! px-0"
+          onClick={onClose}
+          aria-label={t('close')}
+        >
+          <X />
         </Button>
       </div>
     </div>
@@ -113,16 +120,20 @@ export function CopilotPanel() {
   if (!ctx.isOpen) return null;
 
   return (
-    <div className="fixed bottom-[calc((var(--spacing)*2)_-_0px)] top-8 right-2 top-1.5 z-40 flex w-[400px] flex-col border bg-background rounded-xl">
-      <CopilotHeader
-        sessions={ctx.sessions}
-        activeSession={ctx.activeSession}
-        onNewChat={() => ctx.createSession()}
-        onSwitchSession={ctx.switchSession}
-        onClose={() => ctx.setOpen(false)}
-      />
-      <CopilotMessages messages={ctx.activeSession?.messages ?? []} />
-      <CopilotInput onSend={ctx.sendMessage} onStop={ctx.stopStreaming} isStreaming={ctx.isStreaming} />
+    <div className="fixed bottom-[calc((var(--spacing)*2.5)_-_0px)] top-[calc((var(--spacing)*5.5)-2px)] right-2.5 top-1.5 z-40 w-[400px]">
+      <GlassPanel className="w-full h-full flex flex-col rounded-xl overflow-hidden border-[0.5px] border-l-0 shadow-lg">
+        <CopilotHeader
+          sessions={ctx.sessions}
+          activeSession={ctx.activeSession}
+          onNewChat={() => ctx.createSession()}
+          onSwitchSession={ctx.switchSession}
+          onClose={() => ctx.setOpen(false)}
+        />
+        <div className="flex flex-col flex-1 min-h-0 w-full">
+          <CopilotMessages messages={ctx.activeSession?.messages ?? []} />
+          <CopilotInput onSend={ctx.sendMessage} onStop={ctx.stopStreaming} isStreaming={ctx.isStreaming} />
+        </div>
+      </GlassPanel>
     </div>
   );
 }

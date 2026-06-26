@@ -1,8 +1,37 @@
 {
   "startNode": "INITIAL_STEP",
-  "agents": [{ "id": "greeting" }, { "id": "browse" }, { "id": "checkout" }, { "id": "tracking" }],
+  "selectedTools": [],
+  "agents": [
+    {
+      "id": "greeting"
+    },
+    {
+      "id": "browse"
+    },
+    {
+      "id": "checkout"
+    },
+    {
+      "id": "tracking"
+    }
+  ],
+  "mcpServers": [
+    {
+      "id": "ecommerce",
+      "name": "Ecommerce MCP (configure URL)",
+      "transport": {
+        "type": "http",
+        "url": "https://example.com/ecommerce-mcp"
+      },
+      "enabled": false
+    }
+  ],
   "nodes": [
-    { "id": "INITIAL_STEP", "text": "START", "kind": "agent" },
+    {
+      "id": "INITIAL_STEP",
+      "text": "START",
+      "kind": "agent"
+    },
     {
       "id": "AnswerBusinessQuestion",
       "text": "AnswerBusinessQuestion",
@@ -12,14 +41,14 @@
     },
     {
       "id": "IdentifyFirstContact",
-      "text": "Identificar si: 1) es un saludo común (hola), o 2) la búsqueda de un producto con imagen de referencia",
+      "text": "Identificar si: 1) es un saludo com\u00fan (hola), o 2) la b\u00fasqueda de un producto con imagen de referencia",
       "kind": "agent_decision",
       "description": "Identify whether it is a common greeting (hello) or a search for a product with a reference image",
       "agent": "greeting"
     },
     {
       "id": "GreetingAskName",
-      "text": "¡Un gusto tenerte en {BUSINESS_NAME}! Mi nombre es {BOT_NAME}. ¿Cuál es tu nombre?",
+      "text": "\u00a1Un gusto tenerte en {BUSINESS_NAME}! Mi nombre es {BOT_NAME}. \u00bfCu\u00e1l es tu nombre?",
       "kind": "agent",
       "description": "Respond exactly with the response example below:",
       "agent": "greeting",
@@ -34,7 +63,7 @@
     },
     {
       "id": "AskNameImageSearch",
-      "text": "Bueno, pues un gusto tenerte en {BUSINESS_NAME}. Mi nombre es {BOT_NAME}. Mientras busco el producto que enviaste, por favor dime, ¿cuál es tu nombre?",
+      "text": "Bueno, pues un gusto tenerte en {BUSINESS_NAME}. Mi nombre es {BOT_NAME}. Mientras busco el producto que enviaste, por favor dime, \u00bfcu\u00e1l es tu nombre?",
       "kind": "agent",
       "description": "Respond exactly with the response example below:",
       "agent": "greeting",
@@ -49,7 +78,7 @@
     },
     {
       "id": "RegisterUserNameImageSearch",
-      "text": "Encantada de conocerte {USER_NAME}. Cuéntame, ¿qué productos estás buscando hoy? Si gustas, aquí puedes encontrar el catálogo de nuestros productos: {CATALOG_URL}",
+      "text": "Encantada de conocerte {USER_NAME}. Cu\u00e9ntame, \u00bfqu\u00e9 productos est\u00e1s buscando hoy? Si gustas, aqu\u00ed puedes encontrar el cat\u00e1logo de nuestros productos: {CATALOG_URL}",
       "kind": "agent",
       "description": "Send an initial message that opens the conversation and invites the user to express their needs",
       "agent": "greeting"
@@ -63,7 +92,7 @@
     },
     {
       "id": "RegisterUserName",
-      "text": "Encantada de conocerte {USER_NAME}. Cuéntame, ¿qué productos estás buscando hoy? Si gustas, aquí puedes encontrar el catálogo de nuestros productos: {CATALOG_URL}",
+      "text": "Encantada de conocerte {USER_NAME}. Cu\u00e9ntame, \u00bfqu\u00e9 productos est\u00e1s buscando hoy? Si gustas, aqu\u00ed puedes encontrar el cat\u00e1logo de nuestros productos: {CATALOG_URL}",
       "kind": "agent",
       "description": "Send an initial message that opens the conversation and invites the user to express their needs",
       "agent": "greeting",
@@ -71,7 +100,7 @@
     },
     {
       "id": "ContinueWithExistingUserName",
-      "text": "¡Me alegra tenerte de nuevo por aquí, {USER_NAME}! Cuéntame, ¿qué productos estás buscando hoy?",
+      "text": "\u00a1Me alegra tenerte de nuevo por aqu\u00ed, {USER_NAME}! Cu\u00e9ntame, \u00bfqu\u00e9 productos est\u00e1s buscando hoy?",
       "kind": "agent",
       "description": "Send an initial message saluting the user by their name that opens the conversation and invites them to express their needs",
       "agent": "greeting",
@@ -79,7 +108,7 @@
     },
     {
       "id": "AskGenderAsSearchCriteria",
-      "text": "Ok, ¿lo necesitas para hombre o para mujer? (si el usuario ya mencionó el genero arriba, pregutale por otra personalización, como la talla, el color, el uso que le quiere dar, el material, el almacenamiento, la capacidad (otra personalización): ¿Serian camisas para mujer en qué talla? o  ¿Serian pantalones para hombre en qué color?",
+      "text": "Ok, \u00bflo necesitas para hombre o para mujer? (si el usuario ya mencion\u00f3 el genero arriba, pregutale por otra personalizaci\u00f3n, como la talla, el color, el uso que le quiere dar, el material, el almacenamiento, la capacidad (otra personalizaci\u00f3n): \u00bfSerian camisas para mujer en qu\u00e9 talla? o  \u00bfSerian pantalones para hombre en qu\u00e9 color?",
       "kind": "agent",
       "description": "If the user has already said the gender, ask for the size, but do not ask again if it is for women or men. **If they have already said it, note the gender user mentioned above**",
       "agent": "browse",
@@ -108,15 +137,15 @@
     },
     {
       "id": "AskTheReferenceImage",
-      "text": "¿Puedes compartirme la imagen que viste? Con eso, busco el producto",
+      "text": "\u00bfPuedes compartirme la imagen que viste? Con eso, busco el producto",
       "kind": "agent",
-      "description": "Send a message asking the reference image to help them find the product. Example: '¿Puedes compartirme la imagen que viste? Con eso, busco el producto",
+      "description": "Send a message asking the reference image to help them find the product. Example: '\u00bfPuedes compartirme la imagen que viste? Con eso, busco el producto",
       "agent": "greeting",
       "nextNodeIsUser": true
     },
     {
       "id": "NoProductsFound",
-      "text": "Te cuento que acabé de revisar en nuestro inventario y no tenemos: [mencionar el producto que busca el cliente]. ¿Quieres que te ayude a encontrar algo similar?",
+      "text": "Te cuento que acab\u00e9 de revisar en nuestro inventario y no tenemos: [mencionar el producto que busca el cliente]. \u00bfQuieres que te ayude a encontrar algo similar?",
       "kind": "agent",
       "description": "Send a message being honest about no products were found, but asks sutile if: Is there any other product they would be interested?",
       "agent": "browse",
@@ -138,7 +167,7 @@
     },
     {
       "id": "DoAnswerProductPersonalizationSP",
-      "text": "Responde la pregunta del usuario y finaliza con algo como: ¿Continuamos con la opcion que te mostré, o quieres buscar otro producto?",
+      "text": "Responde la pregunta del usuario y finaliza con algo como: \u00bfContinuamos con la opcion que te mostr\u00e9, o quieres buscar otro producto?",
       "kind": "agent",
       "description": "Use the availability information you received in the searchProduct tool's result to reply to the user question",
       "agent": "browse",
@@ -153,7 +182,7 @@
     },
     {
       "id": "DoAnswerProductPersonalizationMP",
-      "text": "Responde la pregunta del usuario y finaliza con algo como: ¿Continuamos con alguna de las opciones que viste, o quieres buscar otro producto?",
+      "text": "Responde la pregunta del usuario y finaliza con algo como: \u00bfContinuamos con alguna de las opciones que viste, o quieres buscar otro producto?",
       "kind": "agent",
       "description": "Use the availability information you received in the searchProduct tool's result to reply to the user question",
       "agent": "browse",
@@ -161,7 +190,7 @@
     },
     {
       "id": "ExistingPersonalizationSP",
-      "text": "La personalización existe, se le debe mostrar al usuario",
+      "text": "La personalizaci\u00f3n existe, se le debe mostrar al usuario",
       "kind": "agent",
       "description": "The requested personalization EXISTS in the product data.",
       "agent": "browse"
@@ -175,7 +204,7 @@
     },
     {
       "id": "InformNonExistingPersonalizationSP",
-      "text": "No está disponible en la personalización que lo buscas. Pero puedo buscarte algo similar, ¿quieres que miremos?",
+      "text": "No est\u00e1 disponible en la personalizaci\u00f3n que lo buscas. Pero puedo buscarte algo similar, \u00bfquieres que miremos?",
       "kind": "agent",
       "description": "Informs the user about the personalization they are asking for are not available and propose action",
       "agent": "browse",
@@ -197,7 +226,7 @@
     },
     {
       "id": "ExistingPersonalizationMP",
-      "text": "La personalización existe, se le debe mostrar al usuario",
+      "text": "La personalizaci\u00f3n existe, se le debe mostrar al usuario",
       "kind": "agent",
       "description": "The requested personalization EXISTS for the specified product.",
       "agent": "browse"
@@ -211,7 +240,7 @@
     },
     {
       "id": "InformNonExistingPersonalizationMP",
-      "text": "No está disponible en la personalización que lo buscas. Pero puedo buscarte algo similar, ¿quieres que miremos?",
+      "text": "No est\u00e1 disponible en la personalizaci\u00f3n que lo buscas. Pero puedo buscarte algo similar, \u00bfquieres que miremos?",
       "kind": "agent",
       "description": "Informs the user about the personalization they are asking for are not available and propose action",
       "agent": "browse",
@@ -226,7 +255,7 @@
     },
     {
       "id": "SingleProduct",
-      "text": "Mira, estuve buscando y te encontré esta opción: <PRODUCT CARD> ¿Cumple con lo que buscabas?",
+      "text": "Mira, estuve buscando y te encontr\u00e9 esta opci\u00f3n: <PRODUCT CARD> \u00bfCumple con lo que buscabas?",
       "kind": "agent",
       "description": "DO NOT CHANGE the product card format you received, return it exactly as you got it.",
       "agent": "browse",
@@ -234,7 +263,7 @@
     },
     {
       "id": "MultipleProducts",
-      "text": "Estaba buscando, y encontré estás opciones: <PRODUCT CARD> ¿Cuál te gusta?",
+      "text": "Estaba buscando, y encontr\u00e9 est\u00e1s opciones: <PRODUCT CARD> \u00bfCu\u00e1l te gusta?",
       "kind": "agent",
       "description": "DO NOT CHANGE the product card format you received, return it exactly as you got it.",
       "agent": "browse",
@@ -242,7 +271,7 @@
     },
     {
       "id": "AskInformation",
-      "text": "Responde usando el historial de la descripción de los productos",
+      "text": "Responde usando el historial de la descripci\u00f3n de los productos",
       "kind": "agent",
       "description": "Respond using the product search tool's results history. You already have this information from the product description. For example: 'The available colors and sizes are:[X, Y, Z]'",
       "agent": "browse",
@@ -250,7 +279,7 @@
     },
     {
       "id": "AnswerProductQuestionSP",
-      "text": "<RESPUESTA A LA PREGUNTA> ¿Con cuál producto te gustaría continuar?",
+      "text": "<RESPUESTA A LA PREGUNTA> \u00bfCon cu\u00e1l producto te gustar\u00eda continuar?",
       "kind": "agent",
       "description": "Respond using the product search tool's results history and conversation context. You already have this information from the product description.",
       "agent": "browse",
@@ -258,7 +287,7 @@
     },
     {
       "id": "AnswerProductQuestionMP",
-      "text": "<RESPUESTA A LA PREGUNTA> ¿Te gustaría continuar con este producto?",
+      "text": "<RESPUESTA A LA PREGUNTA> \u00bfTe gustar\u00eda continuar con este producto?",
       "kind": "agent",
       "description": "Respond using the product search tool's results history and conversation context. You already have this information from the product description.",
       "agent": "browse",
@@ -266,7 +295,7 @@
     },
     {
       "id": "AskChanges",
-      "text": "Entiendo. ¿Qué característica le cambiarías y te consigo algo mejor?",
+      "text": "Entiendo. \u00bfQu\u00e9 caracter\u00edstica le cambiar\u00edas y te consigo algo mejor?",
       "kind": "agent",
       "description": "Ask what the user would change to refine the search",
       "agent": "browse",
@@ -274,7 +303,7 @@
     },
     {
       "id": "NotInterestedInSeeingAnyMore",
-      "text": "Vale, ¿Crees que puedo ayudarte en algo más?",
+      "text": "Vale, \u00bfCrees que puedo ayudarte en algo m\u00e1s?",
       "kind": "agent",
       "description": "Thank the user and ask if you can help with anything else",
       "agent": "browse",
@@ -282,7 +311,7 @@
     },
     {
       "id": "ConfirmAddCart",
-      "text": "¿Quieres ordenar este producto? 🛒",
+      "text": "\u00bfQuieres ordenar este producto? \ud83d\uded2",
       "kind": "agent",
       "description": "Propose adding the chosen product to the user`s shopping cart",
       "agent": "browse",
@@ -290,7 +319,7 @@
     },
     {
       "id": "AskQuantity",
-      "text": "¿Cuántas unidades quieres llevar?",
+      "text": "\u00bfCu\u00e1ntas unidades quieres llevar?",
       "kind": "agent",
       "description": "Request the quantity of units to add",
       "agent": "browse",
@@ -298,7 +327,7 @@
     },
     {
       "id": "AskMultipleQuantities",
-      "text": "¿Cuántas unidades de cada producto quieres llevar?",
+      "text": "\u00bfCu\u00e1ntas unidades de cada producto quieres llevar?",
       "kind": "agent",
       "description": "Request the quantity of each kind of product they want to add. Ask using a list schema",
       "agent": "browse",
@@ -329,7 +358,7 @@
     },
     {
       "id": "CartOptions",
-      "text": "Listo, los productos ya están en tu carrito. Ahora, ¿Quieres continuar al pago? 🛒, o ¿Te gustaria seguir comprando más cosas? 🔍",
+      "text": "Listo, los productos ya est\u00e1n en tu carrito. Ahora, \u00bfQuieres continuar al pago? \ud83d\uded2, o \u00bfTe gustaria seguir comprando m\u00e1s cosas? \ud83d\udd0d",
       "kind": "agent",
       "description": "Confirm products added and Offer next actions: finalize current order or continue shopping",
       "agent": "browse",
@@ -337,7 +366,7 @@
     },
     {
       "id": "BuyMoreItems",
-      "text": "Cuéntame, ¿en qué color o talla buscas el otro producto que quieres comprar?",
+      "text": "Cu\u00e9ntame, \u00bfen qu\u00e9 color o talla buscas el otro producto que quieres comprar?",
       "kind": "agent",
       "description": "Please request the size, color, and material details to ensure accurate product searches based on the user's preferences.",
       "agent": "browse",
@@ -345,7 +374,7 @@
     },
     {
       "id": "WhichRemove",
-      "text": "¿Cuál producto deseas eliminar? Producto 1... Producto 2...",
+      "text": "\u00bfCu\u00e1l producto deseas eliminar? Producto 1... Producto 2...",
       "kind": "agent",
       "description": "Ask the user which product to remove",
       "agent": "browse",
@@ -353,14 +382,14 @@
     },
     {
       "id": "RemoveSuccess",
-      "text": "✅ Producto eliminado del carrito",
+      "text": "\u2705 Producto eliminado del carrito",
       "kind": "agent",
       "description": "Confirm that the item was removed from the cart",
       "agent": "browse"
     },
     {
       "id": "WhichReplace",
-      "text": "¿Cuál producto quieres reemplazar? Producto 1... Producto 2...",
+      "text": "\u00bfCu\u00e1l producto quieres reemplazar? Producto 1... Producto 2...",
       "kind": "agent",
       "description": "Ask which cart product will be replaced",
       "agent": "browse",
@@ -368,7 +397,7 @@
     },
     {
       "id": "WhatInstead",
-      "text": "¿Qué producto quieres agregar en su lugar?",
+      "text": "\u00bfQu\u00e9 producto quieres agregar en su lugar?",
       "kind": "agent",
       "description": "Ask which product should be added as a replacement",
       "agent": "browse",
@@ -383,7 +412,7 @@
     },
     {
       "id": "AddSameProductWithNewPersonalization",
-      "text": "Agregando el mismo producto con la nueva personalización",
+      "text": "Agregando el mismo producto con la nueva personalizaci\u00f3n",
       "kind": "agent",
       "description": "Adds the same product to cart with the new personalization specified by the user",
       "agent": "browse"
@@ -397,7 +426,7 @@
     },
     {
       "id": "CustomLink",
-      "text": "Revisa que tus personalizaciones esten bien, en este link: <LINK>. Y avisame cuando hayas confirmado tu pedido. Espero tu confirmación para avanzar",
+      "text": "Revisa que tus personalizaciones esten bien, en este link: <LINK>. Y avisame cuando hayas confirmado tu pedido. Espero tu confirmaci\u00f3n para avanzar",
       "kind": "agent",
       "description": "Provide the link to the customization form and ask for confirmation when finished",
       "agent": "browse",
@@ -413,7 +442,7 @@
     },
     {
       "id": "AskCity",
-      "text": "¿En qué ciudad estás ubicado?",
+      "text": "\u00bfEn qu\u00e9 ciudad est\u00e1s ubicado?",
       "kind": "agent",
       "description": "Request the city to calculate shipping and coverage",
       "agent": "checkout",
@@ -421,14 +450,14 @@
     },
     {
       "id": "CityHasExactMatch",
-      "text": "Revisaré la cobertura y el costo de envío a: [Menciona la ciudad encontrada]",
+      "text": "Revisar\u00e9 la cobertura y el costo de env\u00edo a: [Menciona la ciudad encontrada]",
       "kind": "agent",
       "description": "Continues with the process. This option is only available when the tool searchCityId returned one (1) unique single exact match. You can never choose this option if the search returned more than one city.",
       "agent": "checkout"
     },
     {
       "id": "ClarifyCity",
-      "text": "Mira que no encontré la ciudad exacta que mencionaste. ¿Cuál de estas opciones es la tuya:",
+      "text": "Mira que no encontr\u00e9 la ciudad exacta que mencionaste. \u00bfCu\u00e1l de estas opciones es la tuya:",
       "kind": "agent",
       "description": "Asks the user to choose an alternative when there is no exact match",
       "agent": "checkout",
@@ -443,7 +472,7 @@
     },
     {
       "id": "InformShippingFees",
-      "text": "Tu envío tiene un costo de: $<PRICE>. ¿Continuamos con el pago?",
+      "text": "Tu env\u00edo tiene un costo de: $<PRICE>. \u00bfContinuamos con el pago?",
       "kind": "agent",
       "description": "Inform the calculated shipping cost",
       "agent": "checkout",
@@ -458,7 +487,7 @@
     },
     {
       "id": "ShowTotalOnline",
-      "text": "El total a pagar en línea es de :$<PRICE>. ¿Confirmas?",
+      "text": "El total a pagar en l\u00ednea es de :$<PRICE>. \u00bfConfirmas?",
       "kind": "agent",
       "description": "Shows the total to pay for online payment",
       "agent": "checkout",
@@ -466,7 +495,7 @@
     },
     {
       "id": "AskDataOnline",
-      "text": "Para procesar tu pedido enviame estos datos: \n1. Nombre completo\n2. Email\n3. Cédula\n4. Dirección completa\n5. Barrio \n6. Detalles de tu dirección solo si los hay (ejemplo: Apto 301, Torre B, etc.)",
+      "text": "Para procesar tu pedido enviame estos datos: \n1. Nombre completo\n2. Email\n3. C\u00e9dula\n4. Direcci\u00f3n completa\n5. Barrio \n6. Detalles de tu direcci\u00f3n solo si los hay (ejemplo: Apto 301, Torre B, etc.)",
       "kind": "agent",
       "description": "Request the data required for online payment",
       "agent": "checkout",
@@ -474,7 +503,7 @@
     },
     {
       "id": "RequestMissingDataOnline",
-      "text": "Faltó <Mencionar el dato que no pasó la validación o que el usuario olvidó compartir>. Por favor, envíamelo",
+      "text": "Falt\u00f3 <Mencionar el dato que no pas\u00f3 la validaci\u00f3n o que el usuario olvid\u00f3 compartir>. Por favor, env\u00edamelo",
       "kind": "agent",
       "description": "Request the missing or invalid data required for moving forward in the online payment",
       "agent": "checkout",
@@ -482,7 +511,7 @@
     },
     {
       "id": "RequestMissingDataCOD",
-      "text": "Faltó <Mencionar el dato que no pasó la validación o que el usuario olvidó compartir>. Por favor, envíamelo",
+      "text": "Falt\u00f3 <Mencionar el dato que no pas\u00f3 la validaci\u00f3n o que el usuario olvid\u00f3 compartir>. Por favor, env\u00edamelo",
       "kind": "agent",
       "description": "Request the missing or invalid data required for moving forward in creating the cash on delivery order",
       "agent": "checkout",
@@ -505,7 +534,7 @@
     },
     {
       "id": "ShowOrderSummary",
-      "text": "Confirmame si está de acuerdo con el total a pagar:\n📦 Resumen del Pedido\n• Producto 1: $X\n• Producto 2: $Y\n💰 Subtotal: $Z\n🚚 Envío: $A\n💳 Método de pago: $B\n━━━━━━━━━━━━━\n✅ Total: $C",
+      "text": "Confirmame si est\u00e1 de acuerdo con el total a pagar:\n\ud83d\udce6 Resumen del Pedido\n\u2022 Producto 1: $X\n\u2022 Producto 2: $Y\n\ud83d\udcb0 Subtotal: $Z\n\ud83d\ude9a Env\u00edo: $A\n\ud83d\udcb3 M\u00e9todo de pago: $B\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u2705 Total: $C",
       "kind": "agent",
       "description": "Present the final order summary structured to receive confirmation from user",
       "agent": "checkout",
@@ -513,7 +542,7 @@
     },
     {
       "id": "AskDataCOD",
-      "text": "Para procesar tu pedido enviame estos datos: \n1. Nombre completo\n2. Email\n3. Cédula\n4. Dirección completa\n5. Barrio \n6. Detalles de tu dirección solo si los hay (ejemplo: Apto 301, Torre B, etc.)",
+      "text": "Para procesar tu pedido enviame estos datos: \n1. Nombre completo\n2. Email\n3. C\u00e9dula\n4. Direcci\u00f3n completa\n5. Barrio \n6. Detalles de tu direcci\u00f3n solo si los hay (ejemplo: Apto 301, Torre B, etc.)",
       "kind": "agent",
       "description": "Request the data required for cash on delivery",
       "agent": "checkout",
@@ -523,7 +552,7 @@
       "id": "ValidateCODData",
       "text": "Validando datos para crear la orden",
       "kind": "agent",
-      "description": "Validate the user's input against these specific requirements:\n(1) nombre: must be non-empty full name (first + last name),\n(2) email: must match valid email format (contains @ and domain),\n(3) documentoIdentidad: must be non-empty ID number (cédula) and it must have at maximum 10 digits, if it has more than 10 digits, you MUST reject this and ask for a valid number,\n(4) direccion: must be complete,\n5) barrio (string, MANDATORY): The neighborhood name (e.g., Laureles),\n6)  detalle (string, OPTIONAL): ONLY for apartment/tower/floor details like 'Apto 301', 'Torre B Piso 5', 'Conjunto Los Pinos'",
+      "description": "Validate the user's input against these specific requirements:\n(1) nombre: must be non-empty full name (first + last name),\n(2) email: must match valid email format (contains @ and domain),\n(3) documentoIdentidad: must be non-empty ID number (c\u00e9dula) and it must have at maximum 10 digits, if it has more than 10 digits, you MUST reject this and ask for a valid number,\n(4) direccion: must be complete,\n5) barrio (string, MANDATORY): The neighborhood name (e.g., Laureles),\n6)  detalle (string, OPTIONAL): ONLY for apartment/tower/floor details like 'Apto 301', 'Torre B Piso 5', 'Conjunto Los Pinos'",
       "agent": "checkout"
     },
     {
@@ -535,7 +564,7 @@
     },
     {
       "id": "OrderSuccess",
-      "text": "Listo, ya creamos tu pedido. Cuando tu número de guía esté listo te lo comparto",
+      "text": "Listo, ya creamos tu pedido. Cuando tu n\u00famero de gu\u00eda est\u00e9 listo te lo comparto",
       "kind": "agent",
       "description": "DO NOT CHANGE the order confirmation format you received, return it exactly as you got it",
       "agent": "checkout",
@@ -543,7 +572,7 @@
     },
     {
       "id": "PaymentPending",
-      "text": "⚠️ Aún no tenemos tu pago registrado. Por favor vuelve a intentarlo y confírmame",
+      "text": "\u26a0\ufe0f A\u00fan no tenemos tu pago registrado. Por favor vuelve a intentarlo y conf\u00edrmame",
       "kind": "agent",
       "description": "Inform that the payment is not yet registered and request a retry",
       "agent": "checkout",
@@ -726,7 +755,7 @@
     },
     {
       "id": "CityDoesNotExist",
-      "text": "No encontré ninguna ciudad con ese nombre. Por favor, corrige el nombre de la ciudad y lo vuelvo a buscar",
+      "text": "No encontr\u00e9 ninguna ciudad con ese nombre. Por favor, corrige el nombre de la ciudad y lo vuelvo a buscar",
       "kind": "agent",
       "description": "Inform the user that the city they specified does not exist and ask them to provide a valid city name",
       "agent": "checkout",
@@ -734,7 +763,7 @@
     },
     {
       "id": "AskPayment",
-      "text": "¿Cuál será tu método de pago? Tenemos {PAYMENT_METHODS}",
+      "text": "\u00bfCu\u00e1l ser\u00e1 tu m\u00e9todo de pago? Tenemos {PAYMENT_METHODS}",
       "kind": "agent",
       "description": "Request the preferred payment method",
       "agent": "checkout",
@@ -742,7 +771,7 @@
     },
     {
       "id": "AskPaymentInvalidOption",
-      "text": "No manejamos ese método de pago, sin embargo tenemos {PAYMENT_METHODS} ¿Cuál prefieres?",
+      "text": "No manejamos ese m\u00e9todo de pago, sin embargo tenemos {PAYMENT_METHODS} \u00bfCu\u00e1l prefieres?",
       "kind": "agent",
       "agent": "checkout",
       "description": "Informs the chosen payment method is not available and request one valid preferred payment method",
@@ -773,7 +802,7 @@
       "id": "ValidateOnlineData",
       "text": "Validando datos para generar el link de pago",
       "kind": "agent",
-      "description": "Validate the user's input against these specific requirements:\n(1) nombre: must be non-empty full name (first + last name),\n(2) email: must match valid email format (contains @ and domain),\n(3) documentoIdentidad: must be non-empty ID number (cédula) and it must have at maximum 10 digits, if it has more than 10 digits, you MUST reject this and ask for a valid number,\n(4) direccion: must be complete,\n5) barrio (string, MANDATORY): The neighborhood name (e.g., Laureles),\n6)  detalle (string, OPTIONAL): ONLY for apartment/tower/floor details like 'Apto 301', 'Torre B Piso 5', 'Conjunto Los Pinos'",
+      "description": "Validate the user's input against these specific requirements:\n(1) nombre: must be non-empty full name (first + last name),\n(2) email: must match valid email format (contains @ and domain),\n(3) documentoIdentidad: must be non-empty ID number (c\u00e9dula) and it must have at maximum 10 digits, if it has more than 10 digits, you MUST reject this and ask for a valid number,\n(4) direccion: must be complete,\n5) barrio (string, MANDATORY): The neighborhood name (e.g., Laureles),\n6)  detalle (string, OPTIONAL): ONLY for apartment/tower/floor details like 'Apto 301', 'Torre B Piso 5', 'Conjunto Los Pinos'",
       "agent": "checkout"
     },
     {
@@ -820,7 +849,7 @@
     },
     {
       "id": "ShowTotalTransference",
-      "text": "Total a pagar por transferencia: $<PRICE>. ¿Confirmas?",
+      "text": "Total a pagar por transferencia: $<PRICE>. \u00bfConfirmas?",
       "kind": "agent",
       "description": "Shows the total to pay for transference payment",
       "agent": "checkout",
@@ -828,7 +857,7 @@
     },
     {
       "id": "AskDataTransference",
-      "text": "Para procesar tu pedido por transferencia envíame estos datos: \n1. Nombre completo\n2. Email\n3. Cédula\n4. Dirección completa\n5. Barrio \n6. Detalles de tu dirección solo si los hay (ejemplo: Apto 301, Torre B, etc.)",
+      "text": "Para procesar tu pedido por transferencia env\u00edame estos datos: \n1. Nombre completo\n2. Email\n3. C\u00e9dula\n4. Direcci\u00f3n completa\n5. Barrio \n6. Detalles de tu direcci\u00f3n solo si los hay (ejemplo: Apto 301, Torre B, etc.)",
       "kind": "agent",
       "description": "Request the data required for transference payment",
       "agent": "checkout",
@@ -838,12 +867,12 @@
       "id": "ValidateTransferenceData",
       "text": "Validando datos para generar los datos de transferencia",
       "kind": "agent",
-      "description": "Validate the user's input against these specific requirements:\n(1) nombre: must be non-empty full name (first + last name),\n(2) email: must match valid email format (contains @ and domain),\n(3) documentoIdentidad: must be non-empty ID number (cédula) and it must have at maximum 10 digits, if it has more than 10 digits, you MUST reject this and ask for a valid number,\n(4) direccion: must be complete,\n5) barrio (string, MANDATORY): The neighborhood name (e.g., Laureles),\n6) detalle (string, OPTIONAL): ONLY for apartment/tower/floor details like 'Apto 301', 'Torre B Piso 5', 'Conjunto Los Pinos'",
+      "description": "Validate the user's input against these specific requirements:\n(1) nombre: must be non-empty full name (first + last name),\n(2) email: must match valid email format (contains @ and domain),\n(3) documentoIdentidad: must be non-empty ID number (c\u00e9dula) and it must have at maximum 10 digits, if it has more than 10 digits, you MUST reject this and ask for a valid number,\n(4) direccion: must be complete,\n5) barrio (string, MANDATORY): The neighborhood name (e.g., Laureles),\n6) detalle (string, OPTIONAL): ONLY for apartment/tower/floor details like 'Apto 301', 'Torre B Piso 5', 'Conjunto Los Pinos'",
       "agent": "checkout"
     },
     {
       "id": "RequestMissingDataTransference",
-      "text": "Faltó <Mencionar el dato que no pasó la validación o que el usuario olvidó compartir>. Por favor, envíamelo",
+      "text": "Falt\u00f3 <Mencionar el dato que no pas\u00f3 la validaci\u00f3n o que el usuario olvid\u00f3 compartir>. Por favor, env\u00edamelo",
       "kind": "agent",
       "description": "Request the missing or invalid data required for moving forward in the transference payment",
       "agent": "checkout",
@@ -858,7 +887,7 @@
     },
     {
       "id": "ShowTransferenceDetails",
-      "text": "Estos son los datos para realizar tu transferencia: [BANK_DETAILS]. Por favor confirma cuando hayas realizado el pago y envía captura del comprobante",
+      "text": "Estos son los datos para realizar tu transferencia: [BANK_DETAILS]. Por favor confirma cuando hayas realizado el pago y env\u00eda captura del comprobante",
       "kind": "agent",
       "description": "Provide the transference bank details so the user can complete the payment. Ask for screenshot confirmation.",
       "agent": "checkout",
@@ -866,7 +895,7 @@
     },
     {
       "id": "AskPaymentScreenshot",
-      "text": "¿Puedes compartirme la captura de pantalla del comprobante de pago?",
+      "text": "\u00bfPuedes compartirme la captura de pantalla del comprobante de pago?",
       "kind": "agent",
       "description": "Request the payment screenshot as confirmation of the transference",
       "agent": "checkout",
@@ -896,7 +925,7 @@
     },
     {
       "id": "PaymentPendingTransference",
-      "text": "Ya revisamos y no hemos recibido tu pago. ¿Estás seguro de que lo realizaste? Por favor, confírmame si sí lo enviaste, y a qué cuenta.",
+      "text": "Ya revisamos y no hemos recibido tu pago. \u00bfEst\u00e1s seguro de que lo realizaste? Por favor, conf\u00edrmame si s\u00ed lo enviaste, y a qu\u00e9 cuenta.",
       "kind": "agent",
       "description": "Inform that the transference payment is was not received and request payment confirmation double check",
       "agent": "checkout",
@@ -926,7 +955,7 @@
     },
     {
       "id": "UserDoesNotNeedAnythingElse",
-      "text": "Vale, entiendo, ten un buen día y gracias por considerarnos",
+      "text": "Vale, entiendo, ten un buen d\u00eda y gracias por considerarnos",
       "kind": "agent",
       "description": "Wish the user a good day and mention that you will be there for them when they need something else",
       "agent": "tracking",
@@ -934,7 +963,7 @@
     },
     {
       "id": "OrderUnpaid",
-      "text": "Tu pedido aún no ha sido pagado. Necesitas completar el pago primero.",
+      "text": "Tu pedido a\u00fan no ha sido pagado. Necesitas completar el pago primero.",
       "kind": "agent",
       "description": "Inform user their order is unpaid",
       "agent": "tracking",
@@ -950,7 +979,7 @@
     },
     {
       "id": "OrderConfirmed",
-      "text": "Tu pedido está confirmado y se está preparando para envío.",
+      "text": "Tu pedido est\u00e1 confirmado y se est\u00e1 preparando para env\u00edo.",
       "kind": "agent",
       "description": "Inform user order is confirmed and being prepared",
       "agent": "tracking",
@@ -958,14 +987,14 @@
     },
     {
       "id": "OrderSent",
-      "text": "El pedido fue enviado. Decidir SI existe trackingId ó NO existe",
+      "text": "El pedido fue enviado. Decidir SI existe trackingId \u00f3 NO existe",
       "kind": "agent",
       "description": "Analyze and determine if the order includes tracking Id information",
       "agent": "tracking"
     },
     {
       "id": "OrderReceived",
-      "text": "Según nuestros registros, tu pedido ya fue entregado.",
+      "text": "Seg\u00fan nuestros registros, tu pedido ya fue entregado.",
       "kind": "agent",
       "description": "Inform user order was delivered",
       "agent": "tracking",
@@ -973,7 +1002,7 @@
     },
     {
       "id": "ReceiptInformation",
-      "text": "Te comparto la guía de seguimiento",
+      "text": "Te comparto la gu\u00eda de seguimiento",
       "kind": "agent",
       "description": "Share with the user the tool result of sendTrackingID",
       "agent": "tracking",
@@ -997,7 +1026,7 @@
     },
     {
       "id": "NoOrdersFound",
-      "text": "No encontré ningún pedido asociado a tu cuenta.",
+      "text": "No encontr\u00e9 ning\u00fan pedido asociado a tu cuenta.",
       "kind": "agent",
       "description": "Inform user they have no orders",
       "agent": "tracking",
@@ -1005,7 +1034,7 @@
     },
     {
       "id": "TrackingIdNotFound",
-      "text": "Tu pedido ya fue enviado, pero aún no tengo el número de la guía. Cuando el administrador la cargue, te la compartiré.",
+      "text": "Tu pedido ya fue enviado, pero a\u00fan no tengo el n\u00famero de la gu\u00eda. Cuando el administrador la cargue, te la compartir\u00e9.",
       "kind": "agent",
       "description": "Inform that the order was sent but the trackingId is not attached yet, in some time will be available",
       "agent": "tracking",
@@ -1013,7 +1042,7 @@
     },
     {
       "id": "OfferTrackingGuide",
-      "text": "Tu pedido ya fue enviado. Este es tu número de guía: [trackingId]. ¿Te envío el PDF de la transportadora?",
+      "text": "Tu pedido ya fue enviado. Este es tu n\u00famero de gu\u00eda: [trackingId]. \u00bfTe env\u00edo el PDF de la transportadora?",
       "kind": "agent",
       "description": "Ask user if they want to receive the PDF with the trackingId info",
       "agent": "tracking",
@@ -1035,14 +1064,14 @@
     },
     {
       "id": "TrackingGuideDeclined",
-      "text": "Entendido, no enviaré la guía.",
+      "text": "Entendido, no enviar\u00e9 la gu\u00eda.",
       "kind": "agent",
       "description": "Acknowledge user declined the tracking guide",
       "agent": "tracking"
     },
     {
       "id": "AskMoreTracking",
-      "text": "¿Hay algo más en lo que pueda ayudarte?",
+      "text": "\u00bfHay algo m\u00e1s en lo que pueda ayudarte?",
       "kind": "agent",
       "description": "Ask if user needs more tracking assistance",
       "agent": "tracking",
@@ -1053,7 +1082,12 @@
     {
       "from": "INITIAL_STEP",
       "to": "IdentifyFirstContact",
-      "preconditions": [{ "type": "user_said", "value": "Busco un producto/referencia" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Busco un producto/referencia"
+        }
+      ]
     },
     {
       "from": "IdentifyFirstContact",
@@ -1064,7 +1098,9 @@
           "value": "The user said hello or introduced themselves, but did not say which product they wanted and did not send any pictures"
         }
       ],
-      "contextPreconditions": { "preconditions": ["NO_USER_HAS_NAME"] }
+      "contextPreconditions": {
+        "preconditions": ["NO_USER_HAS_NAME"]
+      }
     },
     {
       "from": "IdentifyFirstContact",
@@ -1075,7 +1111,10 @@
           "value": "The user said hello or introduced themselves, but did not say which product they wanted and did not send any pictures"
         }
       ],
-      "contextPreconditions": { "preconditions": ["USER_HAS_NAME"], "jumpTo": "RegisterUserName" }
+      "contextPreconditions": {
+        "preconditions": ["USER_HAS_NAME"],
+        "jumpTo": "RegisterUserName"
+      }
     },
     {
       "from": "IdentifyFirstContact",
@@ -1096,7 +1135,9 @@
           "value": "The user has already sent an image of the product."
         }
       ],
-      "contextPreconditions": { "preconditions": ["USER_HAS_NAME"] }
+      "contextPreconditions": {
+        "preconditions": ["USER_HAS_NAME"]
+      }
     },
     {
       "from": "UnderstandTheReference",
@@ -1107,7 +1148,9 @@
           "value": "The user has already sent an image of the product."
         }
       ],
-      "contextPreconditions": { "preconditions": ["NO_USER_HAS_NAME"] }
+      "contextPreconditions": {
+        "preconditions": ["NO_USER_HAS_NAME"]
+      }
     },
     {
       "from": "UnderstandTheReference",
@@ -1119,11 +1162,15 @@
         }
       ]
     },
-
     {
       "from": "AskNameImageSearch",
       "to": "UserSpecifiedNameImageSearch",
-      "preconditions": [{ "type": "user_said", "value": "Me llamo [NAME]" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Me llamo [NAME]"
+        }
+      ]
     },
     {
       "from": "UserSpecifiedNameImageSearch",
@@ -1131,8 +1178,12 @@
       "preconditions": [
         {
           "type": "tool_call",
-          "value": "addUserName",
-          "description": "Use the provided name the user gave to you as the name parameter in the addUserName tool"
+          "description": "Use the provided name the user gave to you as the name parameter in the addUserName tool",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "addUserName"
+          }
         }
       ]
     },
@@ -1143,7 +1194,12 @@
     {
       "from": "GreetingAskName",
       "to": "UserSpecifiedName",
-      "preconditions": [{ "type": "user_said", "value": "Me llamo [NAME]" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Me llamo [NAME]"
+        }
+      ]
     },
     {
       "from": "UserSpecifiedName",
@@ -1151,15 +1207,24 @@
       "preconditions": [
         {
           "type": "tool_call",
-          "value": "addUserName",
-          "description": "Use the provided name the user gave to you as the name parameter in the addUserName tool"
+          "description": "Use the provided name the user gave to you as the name parameter in the addUserName tool",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "addUserName"
+          }
         }
       ]
     },
     {
       "from": "RegisterUserName",
       "to": "SearchIntent",
-      "preconditions": [{ "type": "user_said", "value": "Quisiera un [PRODUCTO] como..." }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Quisiera un [PRODUCTO] como..."
+        }
+      ]
     },
     {
       "from": "AskTheReferenceImage",
@@ -1168,34 +1233,81 @@
     {
       "from": "SearchIntent",
       "to": "SearchProduct",
-      "preconditions": [{ "type": "tool_call", "value": "searchProducts" }],
-      "contextPreconditions": { "preconditions": ["NO_ASK_GENDER"] }
+      "preconditions": [
+        {
+          "type": "tool_call",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "searchProducts"
+          }
+        }
+      ],
+      "contextPreconditions": {
+        "preconditions": ["NO_ASK_GENDER"]
+      }
     },
     {
       "from": "SearchIntent",
       "to": "SearchProduct",
-      "preconditions": [{ "type": "tool_call", "value": "searchProducts" }],
-      "contextPreconditions": { "preconditions": ["NEVER_ASK_GENDER"] }
+      "preconditions": [
+        {
+          "type": "tool_call",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "searchProducts"
+          }
+        }
+      ],
+      "contextPreconditions": {
+        "preconditions": ["NEVER_ASK_GENDER"]
+      }
     },
     {
       "from": "SearchIntent",
       "to": "AskGenderAsSearchCriteria",
-      "contextPreconditions": { "preconditions": ["ASK_GENDER"] }
+      "contextPreconditions": {
+        "preconditions": ["ASK_GENDER"]
+      }
     },
     {
       "from": "AskGenderAsSearchCriteria",
       "to": "ProceedWithGenderSelection",
-      "preconditions": [{ "type": "user_said", "value": "Para hombre o para mujer" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Para hombre o para mujer"
+        }
+      ]
     },
     {
       "from": "ProceedWithGenderSelection",
       "to": "SaveGenderBeforeSearch",
-      "preconditions": [{ "type": "tool_call", "value": "saveUserGender" }]
+      "preconditions": [
+        {
+          "type": "tool_call",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "saveUserGender"
+          }
+        }
+      ]
     },
     {
       "from": "SaveGenderBeforeSearch",
       "to": "SearchProduct",
-      "preconditions": [{ "type": "tool_call", "value": "searchProducts" }]
+      "preconditions": [
+        {
+          "type": "tool_call",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "searchProducts"
+          }
+        }
+      ]
     },
     {
       "from": "AnswerProductQuestionSP",
@@ -1204,7 +1316,12 @@
     {
       "from": "SingleProduct",
       "to": "ShowSingleImage",
-      "preconditions": [{ "type": "user_said", "value": "Quisiera ver otra imagen" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Quisiera ver otra imagen"
+        }
+      ]
     },
     {
       "from": "SingleProduct",
@@ -1212,7 +1329,7 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "¿cuál de los que me mostraste es el más barato? o ¿por qué este producto me sirve? o ¿por qué me lo recomiendas? o ¿qué tal es la calidad? o ¿cómo son los materiales? (pregunta que indica que quiere más información)"
+          "value": "\u00bfcu\u00e1l de los que me mostraste es el m\u00e1s barato? o \u00bfpor qu\u00e9 este producto me sirve? o \u00bfpor qu\u00e9 me lo recomiendas? o \u00bfqu\u00e9 tal es la calidad? o \u00bfc\u00f3mo son los materiales? (pregunta que indica que quiere m\u00e1s informaci\u00f3n)"
         }
       ]
     },
@@ -1222,19 +1339,29 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "¿En qué color/talla/material/almacenamiento (personalización) esta disponible? (pregunta por disponibilidad de personalizaciones)"
+          "value": "\u00bfEn qu\u00e9 color/talla/material/almacenamiento (personalizaci\u00f3n) esta disponible? (pregunta por disponibilidad de personalizaciones)"
         }
       ]
     },
     {
       "from": "SingleProduct",
       "to": "ConfirmAddCart",
-      "preconditions": [{ "type": "user_said", "value": "Sí me gusta" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "S\u00ed me gusta"
+        }
+      ]
     },
     {
       "from": "SingleProduct",
       "to": "AskChanges",
-      "preconditions": [{ "type": "user_said", "value": "No me gusta" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "No me gusta"
+        }
+      ]
     },
     {
       "from": "SingleProduct",
@@ -1242,7 +1369,7 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "Lo tienes en otro material/tamaño/talla/coloralmacenamiento (personalización)?"
+          "value": "Lo tienes en otro material/tama\u00f1o/talla/coloralmacenamiento (personalizaci\u00f3n)?"
         }
       ]
     },
@@ -1252,7 +1379,7 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "¿Qué otras opciones tienes? / Prefiero ver otro producto distinto, como ... [X, Y, Z], ¿Qué otras opciones tienes más baratas?"
+          "value": "\u00bfQu\u00e9 otras opciones tienes? / Prefiero ver otro producto distinto, como ... [X, Y, Z], \u00bfQu\u00e9 otras opciones tienes m\u00e1s baratas?"
         }
       ]
     },
@@ -1262,10 +1389,13 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "No me gusto, o deja así, o solo dame el producto que ya tenia en el carrito"
+          "value": "No me gusto, o deja as\u00ed, o solo dame el producto que ya tenia en el carrito"
         }
       ],
-      "contextPreconditions": { "preconditions": ["USER_HAS_NONEMPTY_CART"], "jumpTo": "ContinueWithOrder" }
+      "contextPreconditions": {
+        "preconditions": ["USER_HAS_NONEMPTY_CART"],
+        "jumpTo": "ContinueWithOrder"
+      }
     },
     {
       "from": "SingleProduct",
@@ -1273,7 +1403,7 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "No, gracias. Nada, así está bien, gracias por su atención, dejemos así"
+          "value": "No, gracias. Nada, as\u00ed est\u00e1 bien, gracias por su atenci\u00f3n, dejemos as\u00ed"
         }
       ]
     },
@@ -1313,8 +1443,12 @@
       "preconditions": [
         {
           "type": "tool_call",
-          "value": "sendImage",
-          "description": "Send an image of the personalization the user is asking for"
+          "description": "Send an image of the personalization the user is asking for",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "sendImage"
+          }
         }
       ]
     },
@@ -1328,7 +1462,7 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "Pregunto por la disponibilidad de una personalización específica de un producto que ya me mostraste antes. Por ejemplo: ¿Tienes X producto que ya me mostraste antes, en el color/talla/material/estilo/almacenamiento X?"
+          "value": "Pregunto por la disponibilidad de una personalizaci\u00f3n espec\u00edfica de un producto que ya me mostraste antes. Por ejemplo: \u00bfTienes X producto que ya me mostraste antes, en el color/talla/material/estilo/almacenamiento X?"
         }
       ]
     },
@@ -1338,14 +1472,17 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "Pregunto por la disponibilidad de alguna personalización general de un producto que ya me mostraste antes. Por ejemplo: ¿En qué colores/tallas/materiales/estilos/almacenamientos lo tienes?"
+          "value": "Pregunto por la disponibilidad de alguna personalizaci\u00f3n general de un producto que ya me mostraste antes. Por ejemplo: \u00bfEn qu\u00e9 colores/tallas/materiales/estilos/almacenamientos lo tienes?"
         }
       ]
     },
     {
       "from": "AnswerProductPersonalizationsSP",
       "to": "DoAnswerProductPersonalizationSP",
-      "contextPreconditions": { "preconditions": ["ALWAYS_TRUE"], "jumpTo": "SingleProduct" }
+      "contextPreconditions": {
+        "preconditions": ["ALWAYS_TRUE"],
+        "jumpTo": "SingleProduct"
+      }
     },
     {
       "from": "InformNonExistingPersonalizationSP",
@@ -1353,14 +1490,19 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "Quiero continuar con el color/talla/material/estilo/almacenamiento (personalización) X que me mostraste"
+          "value": "Quiero continuar con el color/talla/material/estilo/almacenamiento (personalizaci\u00f3n) X que me mostraste"
         }
       ]
     },
     {
       "from": "InformNonExistingPersonalizationSP",
       "to": "SearchIntent",
-      "preconditions": [{ "type": "user_said", "value": "Entonces quiero otro [PRODUCTO] como..." }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Entonces quiero otro [PRODUCTO] como..."
+        }
+      ]
     },
     {
       "from": "CheckProductPersonalizationsMP",
@@ -1388,8 +1530,12 @@
       "preconditions": [
         {
           "type": "tool_call",
-          "value": "sendImage",
-          "description": "Send an image of the personalization the user is asking for"
+          "description": "Send an image of the personalization the user is asking for",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "sendImage"
+          }
         }
       ]
     },
@@ -1403,14 +1549,17 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "Pregunto por la disponibilidad de alguna personalización general de un producto que ya me mostraste antes. Por ejemplo: ¿En qué colores/tallas/materiales/estilos/almacenamientos lo tienes?"
+          "value": "Pregunto por la disponibilidad de alguna personalizaci\u00f3n general de un producto que ya me mostraste antes. Por ejemplo: \u00bfEn qu\u00e9 colores/tallas/materiales/estilos/almacenamientos lo tienes?"
         }
       ]
     },
     {
       "from": "AnswerProductPersonalizationsMP",
       "to": "DoAnswerProductPersonalizationMP",
-      "contextPreconditions": { "preconditions": ["ALWAYS_TRUE"], "jumpTo": "MultipleProducts" }
+      "contextPreconditions": {
+        "preconditions": ["ALWAYS_TRUE"],
+        "jumpTo": "MultipleProducts"
+      }
     },
     {
       "from": "InformNonExistingPersonalizationMP",
@@ -1418,7 +1567,7 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "Preguntó por una personalización específica de un producto que ya le mostraste antes. Por ejemplo: ¿Tienes X producto que ya me mostraste antes, en el color/talla/material/estilo/almacenamiento X?"
+          "value": "Pregunt\u00f3 por una personalizaci\u00f3n espec\u00edfica de un producto que ya le mostraste antes. Por ejemplo: \u00bfTienes X producto que ya me mostraste antes, en el color/talla/material/estilo/almacenamiento X?"
         }
       ]
     },
@@ -1428,14 +1577,19 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "Afirmo que quiero continuar con el color/talla/material/estilo/almacenamiento (personalización) X que ya me mostraste"
+          "value": "Afirmo que quiero continuar con el color/talla/material/estilo/almacenamiento (personalizaci\u00f3n) X que ya me mostraste"
         }
       ]
     },
     {
       "from": "InformNonExistingPersonalizationMP",
       "to": "SearchIntent",
-      "preconditions": [{ "type": "user_said", "value": "Entonces tienes otro [PRODUCTO] como..." }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Entonces tienes otro [PRODUCTO] como..."
+        }
+      ]
     },
     {
       "from": "AnswerProductQuestionMP",
@@ -1444,7 +1598,12 @@
     {
       "from": "MultipleProducts",
       "to": "ConfirmAddCart",
-      "preconditions": [{ "type": "user_said", "value": "Me gusta el producto [X]" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Me gusta el producto [X]"
+        }
+      ]
     },
     {
       "from": "MultipleProducts",
@@ -1452,7 +1611,7 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "¿cuál de los que me mostraste es el más barato? o ¿por qué este producto me sirve? o ¿por qué me lo recomiendas? o ¿qué tal es la calidad? o ¿cómo son los materiales? (pregunta que indica que quiere más información)"
+          "value": "\u00bfcu\u00e1l de los que me mostraste es el m\u00e1s barato? o \u00bfpor qu\u00e9 este producto me sirve? o \u00bfpor qu\u00e9 me lo recomiendas? o \u00bfqu\u00e9 tal es la calidad? o \u00bfc\u00f3mo son los materiales? (pregunta que indica que quiere m\u00e1s informaci\u00f3n)"
         }
       ]
     },
@@ -1472,7 +1631,7 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "¿Qué opciones más baratas tienes?, ¿Qué otras opciones tienes en otro (precio, color, tamaño, material)?"
+          "value": "\u00bfQu\u00e9 opciones m\u00e1s baratas tienes?, \u00bfQu\u00e9 otras opciones tienes en otro (precio, color, tama\u00f1o, material)?"
         }
       ]
     },
@@ -1482,7 +1641,7 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "Ninguno me gustó"
+          "value": "Ninguno me gust\u00f3"
         }
       ]
     },
@@ -1492,7 +1651,7 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "No, nada, así está bien, gracias por su atención, dejemos así"
+          "value": "No, nada, as\u00ed est\u00e1 bien, gracias por su atenci\u00f3n, dejemos as\u00ed"
         }
       ]
     },
@@ -1502,7 +1661,7 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "¿El producto [X] (mostrado antes) está disponible en otro color/talla/material/almacenamiento?"
+          "value": "\u00bfEl producto [X] (mostrado antes) est\u00e1 disponible en otro color/talla/material/almacenamiento?"
         }
       ]
     },
@@ -1512,7 +1671,7 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "¿Tienen el producto [Y] (NO mostrado antes) en [Z] personalización? Me interesa saber si lo tienen en un (color, talla, material, almacenamiento) especifico. (Pregunta por un producto que NO se le había mostrado antes)"
+          "value": "\u00bfTienen el producto [Y] (NO mostrado antes) en [Z] personalizaci\u00f3n? Me interesa saber si lo tienen en un (color, talla, material, almacenamiento) especifico. (Pregunta por un producto que NO se le hab\u00eda mostrado antes)"
         }
       ]
     },
@@ -1522,7 +1681,7 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "¿En qué colores/tallas/materiales/almacenamiento (personalización) esta disponible?"
+          "value": "\u00bfEn qu\u00e9 colores/tallas/materiales/almacenamiento (personalizaci\u00f3n) esta disponible?"
         }
       ]
     },
@@ -1532,10 +1691,13 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "No me gusto, o deja así, o solo dame el producto que ya tenia en el carrito"
+          "value": "No me gusto, o deja as\u00ed, o solo dame el producto que ya tenia en el carrito"
         }
       ],
-      "contextPreconditions": { "preconditions": ["USER_HAS_NONEMPTY_CART"], "jumpTo": "ContinueWithOrder" }
+      "contextPreconditions": {
+        "preconditions": ["USER_HAS_NONEMPTY_CART"],
+        "jumpTo": "ContinueWithOrder"
+      }
     },
     {
       "from": "AskForNewDifferentProduct",
@@ -1543,41 +1705,73 @@
       "preconditions": [
         {
           "type": "tool_call",
-          "value": "searchProducts"
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "searchProducts"
+          }
         }
       ]
     },
     {
       "from": "AskInformation",
       "to": "ConfirmAddCart",
-      "preconditions": [{ "type": "user_said", "value": "Me gusta el producto [X]" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Me gusta el producto [X]"
+        }
+      ]
     },
     {
       "from": "AskInformation",
       "to": "SearchIntent",
       "preconditions": [
-        { "type": "user_said", "value": "Es que estaba buscando algo con X, Y, Z características" }
+        {
+          "type": "user_said",
+          "value": "Es que estaba buscando algo con X, Y, Z caracter\u00edsticas"
+        }
       ]
     },
     {
       "from": "AskChanges",
       "to": "SearchIntent",
-      "preconditions": [{ "type": "user_said", "value": "Me gustaría que tuviera..." }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Me gustar\u00eda que tuviera..."
+        }
+      ]
     },
     {
       "from": "AskChanges",
       "to": "CheckIfMultipleProducts",
-      "preconditions": [{ "type": "user_said", "value": "Quiero seguir con este producto" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Quiero seguir con este producto"
+        }
+      ]
     },
     {
       "from": "ConfirmAddCart",
       "to": "CheckIfMultipleProducts",
-      "preconditions": [{ "type": "user_said", "value": "Sí, agrégalo" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "S\u00ed, agr\u00e9galo"
+        }
+      ]
     },
     {
       "from": "ConfirmAddCart",
       "to": "AskChanges",
-      "preconditions": [{ "type": "user_said", "value": "No, no lo agregues" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "No, no lo agregues"
+        }
+      ]
     },
     {
       "from": "ConfirmAddCart",
@@ -1585,7 +1779,7 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "Preguntó por una personalización de un producto que ya le mostraste antes"
+          "value": "Pregunt\u00f3 por una personalizaci\u00f3n de un producto que ya le mostraste antes"
         }
       ]
     },
@@ -1595,7 +1789,7 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "Prefiero buscar otro producto que tenga X caracteristica, o lo necesito con X, Y, Z, Me gustaría que tuviera..."
+          "value": "Prefiero buscar otro producto que tenga X caracteristica, o lo necesito con X, Y, Z, Me gustar\u00eda que tuviera..."
         }
       ]
     },
@@ -1622,7 +1816,12 @@
     {
       "from": "AskQuantity",
       "to": "ProceedWithGivenQuantity",
-      "preconditions": [{ "type": "user_said", "value": "Quiero X unidades" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Quiero X unidades"
+        }
+      ]
     },
     {
       "from": "ProceedWithGivenQuantity",
@@ -1630,8 +1829,12 @@
       "preconditions": [
         {
           "type": "tool_call",
-          "value": "addMultipleItemsToCart",
-          "description": "Collect all the products and their quantities the user wants to add. Group them into the items array. The \"personalizations\" property is optional and must be provided ONLY IF the user specified them explicitly. NEVER ask for personalizations."
+          "description": "Collect all the products and their quantities the user wants to add. Group them into the items array. The \"personalizations\" property is optional and must be provided ONLY IF the user specified them explicitly. NEVER ask for personalizations.",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "addMultipleItemsToCart"
+          }
         }
       ]
     },
@@ -1639,7 +1842,10 @@
       "from": "AskMultipleQuantities",
       "to": "ProceedWithMultipleGivenQuantity",
       "preconditions": [
-        { "type": "user_said", "value": "Quiero X unidades del product Y, - Z unidades del product M, etc" }
+        {
+          "type": "user_said",
+          "value": "Quiero X unidades del product Y, - Z unidades del product M, etc"
+        }
       ]
     },
     {
@@ -1648,8 +1854,12 @@
       "preconditions": [
         {
           "type": "tool_call",
-          "value": "addMultipleItemsToCart",
-          "description": "Collect all the product ids and their quantities the user wants to add, **do not ask for personalizations**. Group them into the items array for the tool call."
+          "description": "Collect all the product ids and their quantities the user wants to add, **do not ask for personalizations**. Group them into the items array for the tool call.",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "addMultipleItemsToCart"
+          }
         }
       ]
     },
@@ -1689,7 +1899,7 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "¿Cuáles personalizaciones sí estan disponibles? ¿En qué personalización (talla, color, material, almacenamiento) sí tienes stock disponible? o pregunta por personalizaciones que sí tengan suficiente stock"
+          "value": "\u00bfCu\u00e1les personalizaciones s\u00ed estan disponibles? \u00bfEn qu\u00e9 personalizaci\u00f3n (talla, color, material, almacenamiento) s\u00ed tienes stock disponible? o pregunta por personalizaciones que s\u00ed tengan suficiente stock"
         }
       ]
     },
@@ -1709,7 +1919,7 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "Quiero llevar el mismo producto en otra personalización"
+          "value": "Quiero llevar el mismo producto en otra personalizaci\u00f3n"
         }
       ]
     },
@@ -1726,45 +1936,86 @@
     {
       "from": "CartOptions",
       "to": "BuyMoreItems",
-      "preconditions": [{ "type": "user_said", "value": "Quiero comprar más productos" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Quiero comprar m\u00e1s productos"
+        }
+      ]
     },
     {
       "from": "CartOptions",
       "to": "ContinueWithOrder",
       "preconditions": [
-        { "type": "user_said", "value": "Continuar / Avanzar / Terminar / Finalizar el pedido" }
+        {
+          "type": "user_said",
+          "value": "Continuar / Avanzar / Terminar / Finalizar el pedido"
+        }
       ]
     },
     {
       "from": "CartOptions",
       "to": "GetCart",
-      "preconditions": [{ "type": "user_said", "value": "Ver carrito" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Ver carrito"
+        }
+      ]
     },
     {
       "from": "CartOptions",
       "to": "RemoveItemFromCart",
-      "preconditions": [{ "type": "user_said", "value": "Eliminar producto" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Eliminar producto"
+        }
+      ]
     },
     {
       "from": "CartOptions",
       "to": "ReplaceItemFromCart",
-      "preconditions": [{ "type": "user_said", "value": "Reemplazar producto" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Reemplazar producto"
+        }
+      ]
     },
     {
       "from": "BuyMoreItems",
       "to": "SearchIntent",
-      "preconditions": [{ "type": "user_said", "value": "Quisiera un producto X" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Quisiera un producto X"
+        }
+      ]
     },
-    { "from": "RemoveSuccess", "to": "CartOptions" },
+    {
+      "from": "RemoveSuccess",
+      "to": "CartOptions"
+    },
     {
       "from": "WhichReplace",
       "to": "ReplaceItemSpecified",
-      "preconditions": [{ "type": "user_said", "value": "Quiero reemplazar el producto X" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Quiero reemplazar el producto X"
+        }
+      ]
     },
     {
       "from": "WhatInstead",
       "to": "CheckReplacementType",
-      "preconditions": [{ "type": "user_said", "value": "Quiero el producto X con personalización Y" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Quiero el producto X con personalizaci\u00f3n Y"
+        }
+      ]
     },
     {
       "from": "CheckReplacementType",
@@ -1792,28 +2043,48 @@
       "preconditions": [
         {
           "type": "tool_call",
-          "value": "addMultipleItemsToCart",
-          "description": "Add the same product ID to cart with the new personalizations specified by the user. Use the product ID from the item that was just deleted. Wrap it in the items array. The personalizations MUST be provided based on what the user explicitly said they want."
+          "description": "Add the same product ID to cart with the new personalizations specified by the user. Use the product ID from the item that was just deleted. Wrap it in the items array. The personalizations MUST be provided based on what the user explicitly said they want.",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "addMultipleItemsToCart"
+          }
         }
       ]
     },
-    { "from": "ShowCart", "to": "CartOptions" },
+    {
+      "from": "ShowCart",
+      "to": "CartOptions"
+    },
     {
       "from": "CustomLink",
       "to": "UserSaidFormWasFilled",
-      "preconditions": [{ "type": "user_said", "value": "Listo, ya llené el formulario" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Listo, ya llen\u00e9 el formulario"
+        }
+      ]
     },
     {
       "from": "RemindCustom",
       "to": "RemindCustom1",
       "preconditions": [
-        { "type": "user_said", "value": "\"Listo, llené el formulario\", o \"lo veo bien\", o \"ya está\"" }
+        {
+          "type": "user_said",
+          "value": "\"Listo, llen\u00e9 el formulario\", o \"lo veo bien\", o \"ya est\u00e1\""
+        }
       ]
     },
     {
       "from": "AskCity",
       "to": "UserSpecifiedCity",
-      "preconditions": [{ "type": "user_said", "value": "Estoy en la ciudad X" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Estoy en la ciudad X"
+        }
+      ]
     },
     {
       "from": "CityHasExactMatch",
@@ -1821,8 +2092,12 @@
       "preconditions": [
         {
           "type": "tool_call",
-          "value": "confirmShippingToCity",
-          "description": "Use the full cityID obtained from the call to the tool \"searchCityId\" as the \"cityID\" parameter for this call. NEVER hallucinate nor shorten this cityID value."
+          "description": "Use the full cityID obtained from the call to the tool \"searchCityId\" as the \"cityID\" parameter for this call. NEVER hallucinate nor shorten this cityID value.",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "confirmShippingToCity"
+          }
         }
       ]
     },
@@ -1830,34 +2105,65 @@
       "from": "ClarifyCity",
       "to": "ConfirmShippingToCity",
       "preconditions": [
-        { "type": "user_said", "value": "Eligió el nombre de una de las ciudades de la lista" }
+        {
+          "type": "user_said",
+          "value": "Eligi\u00f3 el nombre de una de las ciudades de la lista"
+        }
       ]
     },
     {
       "from": "ClarifyCity",
       "to": "AskCity",
-      "preconditions": [{ "type": "user_said", "value": "No es esa, no es ninguna opción de la lista" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "No es esa, no es ninguna opci\u00f3n de la lista"
+        }
+      ]
     },
-    { "from": "CalculatShippingFees", "to": "InformShippingFees" },
+    {
+      "from": "CalculatShippingFees",
+      "to": "InformShippingFees"
+    },
     {
       "from": "InformShippingFees",
       "to": "AskPayment",
-      "preconditions": [{ "type": "user_said", "value": "Sí" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "S\u00ed"
+        }
+      ]
     },
     {
       "from": "InformShippingFees",
       "to": "CartOptions",
-      "preconditions": [{ "type": "user_said", "value": "No" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "No"
+        }
+      ]
     },
     {
       "from": "AskPayment",
       "to": "AskPayment1",
-      "preconditions": [{ "type": "user_said", "value": "Pago en línea" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Pago en l\u00ednea"
+        }
+      ]
     },
     {
       "from": "AskPayment",
       "to": "AskPayment2",
-      "preconditions": [{ "type": "user_said", "value": "Pago contra entrega" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Pago contra entrega"
+        }
+      ]
     },
     {
       "from": "AskPayment",
@@ -1865,7 +2171,7 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "Alguna de las opciones de transferencia (debe ser una opción específica)"
+          "value": "Alguna de las opciones de transferencia (debe ser una opci\u00f3n espec\u00edfica)"
         }
       ]
     },
@@ -1875,19 +2181,29 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "Cualquier opción que no esté explícitamente en la lista (no es ni pago en línea ni pago contra entrega, ni una de las opciones de transferencia listadas específicamente) o no específico con cuál tipo de transferencia"
+          "value": "Cualquier opci\u00f3n que no est\u00e9 expl\u00edcitamente en la lista (no es ni pago en l\u00ednea ni pago contra entrega, ni una de las opciones de transferencia listadas espec\u00edficamente) o no espec\u00edfico con cu\u00e1l tipo de transferencia"
         }
       ]
     },
     {
       "from": "AskPaymentInvalidOption",
       "to": "AskPayment1",
-      "preconditions": [{ "type": "user_said", "value": "Pago en línea" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Pago en l\u00ednea"
+        }
+      ]
     },
     {
       "from": "AskPaymentInvalidOption",
       "to": "AskPayment2",
-      "preconditions": [{ "type": "user_said", "value": "Pago contra entrega" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Pago contra entrega"
+        }
+      ]
     },
     {
       "from": "AskPaymentInvalidOption",
@@ -1895,7 +2211,7 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "Alguna de las opciones de transferencia (debe ser una opción específica)"
+          "value": "Alguna de las opciones de transferencia (debe ser una opci\u00f3n espec\u00edfica)"
         }
       ]
     },
@@ -1905,31 +2221,56 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "Una opción que no está en la lista (no es ni pago en línea ni pago contra entrega, ni una de las opciones de transferencia listadas específicamente) o no específico con cuál tipo de transferencia"
+          "value": "Una opci\u00f3n que no est\u00e1 en la lista (no es ni pago en l\u00ednea ni pago contra entrega, ni una de las opciones de transferencia listadas espec\u00edficamente) o no espec\u00edfico con cu\u00e1l tipo de transferencia"
         }
       ]
     },
     {
       "from": "AskPayment2",
       "to": "ShowTotalCOD",
-      "preconditions": [{ "type": "tool_call", "value": "calculateTotalPayment" }]
+      "preconditions": [
+        {
+          "type": "tool_call",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "calculateTotalPayment"
+          }
+        }
+      ]
     },
-    { "from": "ShowTotalCOD", "to": "ShowOrderSummary" },
+    {
+      "from": "ShowTotalCOD",
+      "to": "ShowOrderSummary"
+    },
     {
       "from": "ShowOrderSummary",
       "to": "AskDataCOD",
-      "preconditions": [{ "type": "user_said", "value": "Sí, confirmo" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "S\u00ed, confirmo"
+        }
+      ]
     },
     {
       "from": "ShowOrderSummary",
       "to": "OrderCancelled",
-      "preconditions": [{ "type": "user_said", "value": "No, no confirmo" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "No, no confirmo"
+        }
+      ]
     },
     {
       "from": "AskDataCOD",
       "to": "ValidateCODData",
       "preconditions": [
-        { "type": "user_said", "value": "Mi nombre es Pepito, correo..., cédula..., dirección..." }
+        {
+          "type": "user_said",
+          "value": "Mi nombre es Pepito, correo..., c\u00e9dula..., direcci\u00f3n..."
+        }
       ]
     },
     {
@@ -1966,39 +2307,68 @@
       "from": "ValidateCODData",
       "to": "CreateCODOrder",
       "preconditions": [
-        { "type": "agent_decision", "value": "All required fields are present, valid, and complete" }
+        {
+          "type": "agent_decision",
+          "value": "All required fields are present, valid, and complete"
+        }
       ]
     },
     {
       "from": "CreateCODOrder",
       "to": "OrderSuccess",
-      "preconditions": [{ "type": "tool_call", "value": "createCashOnDeliveryOrder" }]
+      "preconditions": [
+        {
+          "type": "tool_call",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "createCashOnDeliveryOrder"
+          }
+        }
+      ]
     },
-    { "from": "OrderCancelled", "to": "CartOptions" },
+    {
+      "from": "OrderCancelled",
+      "to": "CartOptions"
+    },
     {
       "from": "SearchProduct",
       "to": "NoProductsFound",
       "preconditions": [
-        { "type": "agent_decision", "value": "the tool search did not found any (0) products" }
+        {
+          "type": "agent_decision",
+          "value": "the tool search did not found any (0) products"
+        }
       ]
     },
     {
       "from": "SearchProduct",
       "to": "ShowSingleImage",
-      "preconditions": [{ "type": "agent_decision", "value": "the tool search found only one (1) product" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "the tool search found only one (1) product"
+        }
+      ]
     },
     {
       "from": "SearchProduct",
       "to": "ShowSeveralImages",
       "preconditions": [
-        { "type": "agent_decision", "value": "the tool search found more than one (>1) product" }
+        {
+          "type": "agent_decision",
+          "value": "the tool search found more than one (>1) product"
+        }
       ]
     },
     {
       "from": "NoProductsFound",
       "to": "SearchIntent",
       "preconditions": [
-        { "type": "user_said", "value": "¿Qué otras opciones tienes? ó, quiero un [PRODUCTO] como..." }
+        {
+          "type": "user_said",
+          "value": "\u00bfQu\u00e9 otras opciones tienes? \u00f3, quiero un [PRODUCTO] como..."
+        }
       ]
     },
     {
@@ -2017,10 +2387,12 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "No gracias, ya no me interesa nada más o No, asi esta bien"
+          "value": "No gracias, ya no me interesa nada m\u00e1s o No, asi esta bien"
         }
       ],
-      "contextPreconditions": { "preconditions": ["USER_HAS_EMPTY_CART"] }
+      "contextPreconditions": {
+        "preconditions": ["USER_HAS_EMPTY_CART"]
+      }
     },
     {
       "from": "NoProductsFound",
@@ -2028,10 +2400,13 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "No me gusto, o deja así, o solo dame el producto que ya tenia en el carrito"
+          "value": "No me gusto, o deja as\u00ed, o solo dame el producto que ya tenia en el carrito"
         }
       ],
-      "contextPreconditions": { "preconditions": ["USER_HAS_NONEMPTY_CART"], "jumpTo": "ContinueWithOrder" }
+      "contextPreconditions": {
+        "preconditions": ["USER_HAS_NONEMPTY_CART"],
+        "jumpTo": "ContinueWithOrder"
+      }
     },
     {
       "from": "ShowSingleImage",
@@ -2039,8 +2414,12 @@
       "preconditions": [
         {
           "type": "tool_call",
-          "value": "sendImage",
-          "description": "Call the tool \"sendImage\" NOW. Do not request any additional information, do not ask for customizations, just call the tool NOW. Provide the tool with the ID of the image you want to send to the user, you obtained this ID in the result of the call to the tool \"searchProducts\""
+          "description": "Call the tool \"sendImage\" NOW. Do not request any additional information, do not ask for customizations, just call the tool NOW. Provide the tool with the ID of the image you want to send to the user, you obtained this ID in the result of the call to the tool \"searchProducts\"",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "sendImage"
+          }
         }
       ]
     },
@@ -2050,8 +2429,12 @@
       "preconditions": [
         {
           "type": "tool_call",
-          "value": "productCards",
-          "description": "Call the tool \"productCards\" NOW."
+          "description": "Call the tool \"productCards\" NOW.",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "productCards"
+          }
         }
       ]
     },
@@ -2061,8 +2444,12 @@
       "preconditions": [
         {
           "type": "tool_call",
-          "value": "sendImages",
-          "description": "IMMEDIATELY call the tool \"sendImages\". Your ONLY task is to execute the tool call - do NOT send any text message, do NOT ask questions, do NOT provide options. Simply call the tool with an array of product IDs from search results. Include one image ID per distinct product (max 3). If multiple personalizations exist, pick one automatically. The tool itself sends the images to the user."
+          "description": "IMMEDIATELY call the tool \"sendImages\". Your ONLY task is to execute the tool call - do NOT send any text message, do NOT ask questions, do NOT provide options. Simply call the tool with an array of product IDs from search results. Include one image ID per distinct product (max 3). If multiple personalizations exist, pick one automatically. The tool itself sends the images to the user.",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "sendImages"
+          }
         }
       ]
     },
@@ -2072,97 +2459,220 @@
       "preconditions": [
         {
           "type": "tool_call",
-          "value": "productCards",
-          "description": "Call the tool \"productCards\" NOW."
+          "description": "Call the tool \"productCards\" NOW.",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "productCards"
+          }
         }
       ]
     },
     {
       "from": "UserSaidFormWasFilled",
       "to": "ConfirmCustomFormWasFilled",
-      "preconditions": [{ "type": "tool_call", "value": "confirmOrderCustomization" }]
+      "preconditions": [
+        {
+          "type": "tool_call",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "confirmOrderCustomization"
+          }
+        }
+      ]
     },
     {
       "from": "ConfirmCustomFormWasFilled",
       "to": "AskCity",
-      "preconditions": [{ "type": "agent_decision", "value": "The user DID complete the form" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "The user DID complete the form"
+        }
+      ]
     },
     {
       "from": "ConfirmCustomFormWasFilled",
       "to": "RemindCustom",
-      "preconditions": [{ "type": "agent_decision", "value": "The user did NOT complete the form" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "The user did NOT complete the form"
+        }
+      ]
     },
     {
       "from": "RemindCustom1",
       "to": "RemindCustom2",
-      "preconditions": [{ "type": "tool_call", "value": "confirmOrderCustomization" }]
+      "preconditions": [
+        {
+          "type": "tool_call",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "confirmOrderCustomization"
+          }
+        }
+      ]
     },
     {
       "from": "RemindCustom2",
       "to": "AskCity",
-      "preconditions": [{ "type": "agent_decision", "value": "The user DID complete the form" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "The user DID complete the form"
+        }
+      ]
     },
     {
       "from": "RemindCustom2",
       "to": "RemindCustom",
-      "preconditions": [{ "type": "agent_decision", "value": "The user did NOT complete the form" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "The user did NOT complete the form"
+        }
+      ]
     },
     {
       "from": "ContinueWithOrder",
       "to": "CustomLink",
-      "preconditions": [{ "type": "tool_call", "value": "createOrderCustomization" }]
+      "preconditions": [
+        {
+          "type": "tool_call",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "createOrderCustomization"
+          }
+        }
+      ]
     },
-    { "from": "GetCart", "to": "ShowCart", "preconditions": [{ "type": "tool_call", "value": "getCart" }] },
+    {
+      "from": "GetCart",
+      "to": "ShowCart",
+      "preconditions": [
+        {
+          "type": "tool_call",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "getCart"
+          }
+        }
+      ]
+    },
     {
       "from": "RemoveItemFromCart",
       "to": "UserDidNotSpecifyItemToRemove",
       "preconditions": [
-        { "type": "agent_decision", "value": "The user did NOT specify which product to remove" }
+        {
+          "type": "agent_decision",
+          "value": "The user did NOT specify which product to remove"
+        }
       ]
     },
     {
       "from": "RemoveItemFromCart",
       "to": "UserSpecifiedItemToRemove",
-      "preconditions": [{ "type": "agent_decision", "value": "The user DID specify which product to remove" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "The user DID specify which product to remove"
+        }
+      ]
     },
     {
       "from": "UserDidNotSpecifyItemToRemove",
       "to": "WhichRemove",
-      "preconditions": [{ "type": "tool_call", "value": "getCart" }]
+      "preconditions": [
+        {
+          "type": "tool_call",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "getCart"
+          }
+        }
+      ]
     },
     {
       "from": "UserSpecifiedItemToRemove",
       "to": "RemoveSuccess",
-      "preconditions": [{ "type": "tool_call", "value": "deleteCartItem" }]
+      "preconditions": [
+        {
+          "type": "tool_call",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "deleteCartItem"
+          }
+        }
+      ]
     },
     {
       "from": "ReplaceItemFromCart",
       "to": "UserSpecifiedItemToReplace",
       "preconditions": [
-        { "type": "agent_decision", "value": "The user DID specify which product to replace" }
+        {
+          "type": "agent_decision",
+          "value": "The user DID specify which product to replace"
+        }
       ]
     },
     {
       "from": "ReplaceItemFromCart",
       "to": "UserDidNotSpecifyItemToReplace",
       "preconditions": [
-        { "type": "agent_decision", "value": "The user did NOT specify which product to replace" }
+        {
+          "type": "agent_decision",
+          "value": "The user did NOT specify which product to replace"
+        }
       ]
     },
     {
       "from": "UserSpecifiedItemToReplace",
       "to": "WhatInstead",
-      "preconditions": [{ "type": "tool_call", "value": "deleteCartItem" }]
+      "preconditions": [
+        {
+          "type": "tool_call",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "deleteCartItem"
+          }
+        }
+      ]
     },
     {
       "from": "UserDidNotSpecifyItemToReplace",
       "to": "WhichReplace",
-      "preconditions": [{ "type": "tool_call", "value": "getCart" }]
+      "preconditions": [
+        {
+          "type": "tool_call",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "getCart"
+          }
+        }
+      ]
     },
     {
       "from": "ReplaceItemSpecified",
       "to": "WhatInstead",
-      "preconditions": [{ "type": "tool_call", "value": "deleteCartItem" }]
+      "preconditions": [
+        {
+          "type": "tool_call",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "deleteCartItem"
+          }
+        }
+      ]
     },
     {
       "from": "UserSpecifiedCity",
@@ -2170,30 +2680,54 @@
       "preconditions": [
         {
           "type": "tool_call",
-          "value": "searchCityId",
-          "description": "If the user says a city name (e.g. 'Medellín'), call `searchCityId` with: { \"city\": \"<city>\" }.\nExample: user says 'Bogotá' → call `searchCityId` with input {\"city\": \"Bogotá\"}."
+          "description": "If the user says a city name (e.g. 'Medell\u00edn'), call `searchCityId` with: { \"city\": \"<city>\" }.\nExample: user says 'Bogot\u00e1' \u2192 call `searchCityId` with input {\"city\": \"Bogot\u00e1\"}.",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "searchCityId"
+          }
         }
       ]
     },
     {
       "from": "AskCity2",
       "to": "CityHasExactMatch",
-      "preconditions": [{ "type": "agent_decision", "value": "City had an exact match" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "City had an exact match"
+        }
+      ]
     },
     {
       "from": "AskCity2",
       "to": "ClarifyCity",
-      "preconditions": [{ "type": "agent_decision", "value": "City had several matches" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "City had several matches"
+        }
+      ]
     },
     {
       "from": "AskCity2",
       "to": "CityDoesNotExist",
-      "preconditions": [{ "type": "agent_decision", "value": "No city was found" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "No city was found"
+        }
+      ]
     },
     {
       "from": "CityDoesNotExist",
       "to": "UserSpecifiedCity",
-      "preconditions": [{ "type": "user_said", "value": "Nuevo nombre de ciudad corregido" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Nuevo nombre de ciudad corregido"
+        }
+      ]
     },
     {
       "from": "ConfirmShippingToCity",
@@ -2201,33 +2735,61 @@
       "preconditions": [
         {
           "type": "tool_call",
-          "value": "confirmShippingToCity",
-          "description": "Use the full cityID obtained from the call to the tool \"searchCityId\" as the \"cityID\" parameter for this call. NEVER hallucinate nor shorten this cityID value."
+          "description": "Use the full cityID obtained from the call to the tool \"searchCityId\" as the \"cityID\" parameter for this call. NEVER hallucinate nor shorten this cityID value.",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "confirmShippingToCity"
+          }
         }
       ]
     },
-
     {
       "from": "AskPayment3",
       "to": "CalculateTotalTransference",
-      "preconditions": [{ "type": "tool_call", "value": "calculateTotalPayment" }]
+      "preconditions": [
+        {
+          "type": "tool_call",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "calculateTotalPayment"
+          }
+        }
+      ]
     },
-    { "from": "CalculateTotalTransference", "to": "ShowTotalTransference" },
+    {
+      "from": "CalculateTotalTransference",
+      "to": "ShowTotalTransference"
+    },
     {
       "from": "ShowTotalTransference",
       "to": "AskDataTransference",
-      "preconditions": [{ "type": "user_said", "value": "Sí, confirmo" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "S\u00ed, confirmo"
+        }
+      ]
     },
     {
       "from": "ShowTotalTransference",
       "to": "CartOptions",
-      "preconditions": [{ "type": "user_said", "value": "No, no confirmo" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "No, no confirmo"
+        }
+      ]
     },
     {
       "from": "AskDataTransference",
       "to": "ValidateTransferenceData",
       "preconditions": [
-        { "type": "user_said", "value": "Mi nombre es Pepito, correo..., cédula..., dirección..." }
+        {
+          "type": "user_said",
+          "value": "Mi nombre es Pepito, correo..., c\u00e9dula..., direcci\u00f3n..."
+        }
       ]
     },
     {
@@ -2273,7 +2835,16 @@
     {
       "from": "CreateTransferencePayment",
       "to": "ShowTransferenceDetails",
-      "preconditions": [{ "type": "tool_call", "value": "getTransferenceDetails" }]
+      "preconditions": [
+        {
+          "type": "tool_call",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "getTransferenceDetails"
+          }
+        }
+      ]
     },
     {
       "from": "ShowTransferenceDetails",
@@ -2281,7 +2852,7 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "el usuario dice \"ya pagué, mira la captura de pantalla del comprobante\" o explícitamente en su ÚLTIMO mensaje informa que no pudo tomar la captura de pantalla, por ejemplo \"ya pagué, pero no tomé captura\" o \"no tomé captura\""
+          "value": "el usuario dice \"ya pagu\u00e9, mira la captura de pantalla del comprobante\" o expl\u00edcitamente en su \u00daLTIMO mensaje informa que no pudo tomar la captura de pantalla, por ejemplo \"ya pagu\u00e9, pero no tom\u00e9 captura\" o \"no tom\u00e9 captura\""
         }
       ]
     },
@@ -2291,7 +2862,7 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "el usuario dice \"ya pagué\", pero NO ha enviado captura de pantalla del comprobante NI TAMPOCO ha dicho explícitamente que NO TOMÓ la captura"
+          "value": "el usuario dice \"ya pagu\u00e9\", pero NO ha enviado captura de pantalla del comprobante NI TAMPOCO ha dicho expl\u00edcitamente que NO TOM\u00d3 la captura"
         }
       ]
     },
@@ -2301,7 +2872,7 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "el usuario envía la captura de pantalla de la transferencia o explícitamente indica que NO tomó captura de pantalla"
+          "value": "el usuario env\u00eda la captura de pantalla de la transferencia o expl\u00edcitamente indica que NO tom\u00f3 captura de pantalla"
         }
       ]
     },
@@ -2321,8 +2892,12 @@
       "preconditions": [
         {
           "type": "tool_call",
-          "value": "waitForTransferenceVerification",
-          "description": "You do not need a screenshot to call this tool, you must call this tool NOW"
+          "description": "You do not need a screenshot to call this tool, you must call this tool NOW",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "waitForTransferenceVerification"
+          }
         }
       ]
     },
@@ -2333,12 +2908,22 @@
     {
       "from": "ShowTransferenceDetails2",
       "to": "OrderSuccess",
-      "preconditions": [{ "type": "agent_decision", "value": "The tool result confirmed the payment" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "The tool result confirmed the payment"
+        }
+      ]
     },
     {
       "from": "ShowTransferenceDetails2",
       "to": "PaymentPendingTransference",
-      "preconditions": [{ "type": "agent_decision", "value": "The tool result did not confirm the payment" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "The tool result did not confirm the payment"
+        }
+      ]
     },
     {
       "from": "PaymentPendingTransference",
@@ -2346,7 +2931,7 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "el usuario dice \"ya pagué, mira la captura de pantalla del comprobante\" o explícitamente en su ÚLTIMO mensaje informa que no pudo tomar la captura de pantalla, por ejemplo \"ya pagué, pero no tomé captura\" o \"no tomé captura\""
+          "value": "el usuario dice \"ya pagu\u00e9, mira la captura de pantalla del comprobante\" o expl\u00edcitamente en su \u00daLTIMO mensaje informa que no pudo tomar la captura de pantalla, por ejemplo \"ya pagu\u00e9, pero no tom\u00e9 captura\" o \"no tom\u00e9 captura\""
         }
       ]
     },
@@ -2356,7 +2941,7 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "el usuario dice \"ya pagué\", pero NO ha enviado captura de pantalla del comprobante NI TAMPOCO ha dicho explícitamente que no pudo tomar captura"
+          "value": "el usuario dice \"ya pagu\u00e9\", pero NO ha enviado captura de pantalla del comprobante NI TAMPOCO ha dicho expl\u00edcitamente que no pudo tomar captura"
         }
       ]
     },
@@ -2367,24 +2952,49 @@
     {
       "from": "AskPayment1",
       "to": "CalculateTotalOnline",
-      "preconditions": [{ "type": "tool_call", "value": "calculateTotalPayment" }]
+      "preconditions": [
+        {
+          "type": "tool_call",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "calculateTotalPayment"
+          }
+        }
+      ]
     },
-    { "from": "CalculateTotalOnline", "to": "ShowTotalOnline" },
+    {
+      "from": "CalculateTotalOnline",
+      "to": "ShowTotalOnline"
+    },
     {
       "from": "ShowTotalOnline",
       "to": "AskDataOnline",
-      "preconditions": [{ "type": "user_said", "value": "Sí, confirmo" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "S\u00ed, confirmo"
+        }
+      ]
     },
     {
       "from": "ShowTotalOnline",
       "to": "CartOptions",
-      "preconditions": [{ "type": "user_said", "value": "No, no confirmo" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "No, no confirmo"
+        }
+      ]
     },
     {
       "from": "AskDataOnline",
       "to": "ValidateOnlineData",
       "preconditions": [
-        { "type": "user_said", "value": "Mi nombre es Pepito, correo..., cédula..., dirección..." }
+        {
+          "type": "user_said",
+          "value": "Mi nombre es Pepito, correo..., c\u00e9dula..., direcci\u00f3n..."
+        }
       ]
     },
     {
@@ -2430,47 +3040,104 @@
     {
       "from": "CreateOnlinePayment",
       "to": "ShowPayLink",
-      "preconditions": [{ "type": "tool_call", "value": "createPaymentLink" }]
+      "preconditions": [
+        {
+          "type": "tool_call",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "createPaymentLink"
+          }
+        }
+      ]
     },
     {
       "from": "ShowPayLink",
       "to": "ShowPayLink1",
-      "preconditions": [{ "type": "user_said", "value": "¡Ya pagué!" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "\u00a1Ya pagu\u00e9!"
+        }
+      ]
     },
     {
       "from": "ShowPayLink1",
       "to": "ShowPayLink2",
-      "preconditions": [{ "type": "tool_call", "value": "verifyPayment" }]
+      "preconditions": [
+        {
+          "type": "tool_call",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "verifyPayment"
+          }
+        }
+      ]
     },
     {
       "from": "ShowPayLink2",
       "to": "OrderSuccess",
-      "preconditions": [{ "type": "agent_decision", "value": "The tool result confirmed the payment" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "The tool result confirmed the payment"
+        }
+      ]
     },
     {
       "from": "ShowPayLink2",
       "to": "PaymentPending",
-      "preconditions": [{ "type": "agent_decision", "value": "The tool result did not confirm the payment" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "The tool result did not confirm the payment"
+        }
+      ]
     },
     {
       "from": "PaymentPending",
       "to": "PaymentPending1",
-      "preconditions": [{ "type": "user_said", "value": "¡Ya pagué!" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "\u00a1Ya pagu\u00e9!"
+        }
+      ]
     },
     {
       "from": "PaymentPending1",
       "to": "PaymentPending2",
-      "preconditions": [{ "type": "tool_call", "value": "verifyPayment" }]
+      "preconditions": [
+        {
+          "type": "tool_call",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "verifyPayment"
+          }
+        }
+      ]
     },
     {
       "from": "PaymentPending2",
       "to": "OrderSuccess",
-      "preconditions": [{ "type": "agent_decision", "value": "The tool result confirmed the payment" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "The tool result confirmed the payment"
+        }
+      ]
     },
     {
       "from": "OrderSuccess",
       "to": "UserDoesNotNeedAnythingElse",
-      "preconditions": [{ "type": "user_said", "value": "Gracias, eso es todo o no necesito nada más" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Gracias, eso es todo o no necesito nada m\u00e1s"
+        }
+      ]
     },
     {
       "from": "OrderSuccess",
@@ -2478,26 +3145,39 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "¿Cómo va mi pedido? o ¿Cuándo llega mi pedido? o pásame la guía de envío"
+          "value": "\u00bfC\u00f3mo va mi pedido? o \u00bfCu\u00e1ndo llega mi pedido? o p\u00e1same la gu\u00eda de env\u00edo"
         }
       ]
     },
     {
       "from": "NotInterestedInSeeingAnyMore",
       "to": "UserDoesNotNeedAnythingElse",
-      "preconditions": [{ "type": "user_said", "value": "No, no necesito nada más, gracias, eso era todo" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "No, no necesito nada m\u00e1s, gracias, eso era todo"
+        }
+      ]
     },
     {
       "from": "NotInterestedInSeeingAnyMore",
       "to": "RegisterUserName",
       "preconditions": [
-        { "type": "user_said", "value": "Si, necesito ayuda con algo: busco, quiero, necesito [X]" }
+        {
+          "type": "user_said",
+          "value": "Si, necesito ayuda con algo: busco, quiero, necesito [X]"
+        }
       ]
     },
     {
       "from": "PaymentPending2",
       "to": "PaymentPending",
-      "preconditions": [{ "type": "agent_decision", "value": "The tool result did not confirm the payment" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "The tool result did not confirm the payment"
+        }
+      ]
     },
     {
       "from": "RegisterUserName",
@@ -2505,89 +3185,177 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "¿Cómo va mi pedido? o ¿Cuándo llega mi pedido? o pásame la guía de envío"
+          "value": "\u00bfC\u00f3mo va mi pedido? o \u00bfCu\u00e1ndo llega mi pedido? o p\u00e1same la gu\u00eda de env\u00edo"
         }
       ]
     },
     {
       "from": "TrackingOrderStatus",
       "to": "InterpretOrderStatus",
-      "preconditions": [{ "type": "tool_call", "value": "getOrders" }]
+      "preconditions": [
+        {
+          "type": "tool_call",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "getOrders"
+          }
+        }
+      ]
     },
     {
       "from": "InterpretOrderStatus",
       "to": "OrderUnpaid",
-      "preconditions": [{ "type": "agent_decision", "value": "Order status is unpaid" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "Order status is unpaid"
+        }
+      ]
     },
     {
       "from": "InterpretOrderStatus",
       "to": "OrderPaidUnconfirmed",
-      "preconditions": [{ "type": "agent_decision", "value": "Order status is paid/unconfirmed" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "Order status is paid/unconfirmed"
+        }
+      ]
     },
     {
       "from": "InterpretOrderStatus",
       "to": "OrderConfirmed",
-      "preconditions": [{ "type": "agent_decision", "value": "Order status is confirmed" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "Order status is confirmed"
+        }
+      ]
     },
     {
       "from": "InterpretOrderStatus",
       "to": "OrderSent",
-      "preconditions": [{ "type": "agent_decision", "value": "Order status is sent/enviado" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "Order status is sent/enviado"
+        }
+      ]
     },
     {
       "from": "InterpretOrderStatus",
       "to": "OrderReceived",
-      "preconditions": [{ "type": "agent_decision", "value": "Order status is received" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "Order status is received"
+        }
+      ]
     },
     {
       "from": "InterpretOrderStatus",
       "to": "OrderCancelledTracking",
-      "preconditions": [{ "type": "agent_decision", "value": "Order status is cancelled" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "Order status is cancelled"
+        }
+      ]
     },
     {
       "from": "InterpretOrderStatus",
       "to": "OrderPaymentFailed",
-      "preconditions": [{ "type": "agent_decision", "value": "Order status is payment-failed" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "Order status is payment-failed"
+        }
+      ]
     },
     {
       "from": "InterpretOrderStatus",
       "to": "NoOrdersFound",
-      "preconditions": [{ "type": "agent_decision", "value": "No orders found for user" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "No orders found for user"
+        }
+      ]
     },
     {
       "from": "OrderSent",
       "to": "OfferTrackingGuide",
-      "preconditions": [{ "type": "agent_decision", "value": "trackingId exists in response" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "trackingId exists in response"
+        }
+      ]
     },
     {
       "from": "OrderSent",
       "to": "TrackingIdNotFound",
-      "preconditions": [{ "type": "agent_decision", "value": "No trackingId exists" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "No trackingId exists"
+        }
+      ]
     },
     {
       "from": "TrackingIdNotFound",
       "to": "AskMoreTracking",
-      "preconditions": [{ "type": "user_said", "value": "Vale, gracias, esperaré que me la envies" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Vale, gracias, esperar\u00e9 que me la envies"
+        }
+      ]
     },
     {
       "from": "OfferTrackingGuide",
       "to": "UserWantsGuide",
-      "preconditions": [{ "type": "user_said", "value": "User responds to guide offer" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "User responds to guide offer"
+        }
+      ]
     },
     {
       "from": "UserWantsGuide",
       "to": "SendTrackingGuide",
-      "preconditions": [{ "type": "agent_decision", "value": "User wants the guide" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "User wants the guide"
+        }
+      ]
     },
     {
       "from": "UserWantsGuide",
       "to": "TrackingGuideDeclined",
-      "preconditions": [{ "type": "agent_decision", "value": "User declined the guide" }]
+      "preconditions": [
+        {
+          "type": "agent_decision",
+          "value": "User declined the guide"
+        }
+      ]
     },
     {
       "from": "SendTrackingGuide",
       "to": "ReceiptInformation",
-      "preconditions": [{ "type": "tool_call", "value": "sendTrackingID" }]
+      "preconditions": [
+        {
+          "type": "tool_call",
+          "tool": {
+            "providerType": "mcp",
+            "providerId": "ecommerce",
+            "toolName": "sendTrackingID"
+          }
+        }
+      ]
     },
     {
       "from": "ReceiptInformation",
@@ -2628,12 +3396,22 @@
     {
       "from": "AskMoreTracking",
       "to": "InterpretOrderStatus",
-      "preconditions": [{ "type": "user_said", "value": "tengo otra duda / necesito también otra cosa..." }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "tengo otra duda / necesito tambi\u00e9n otra cosa..."
+        }
+      ]
     },
     {
       "from": "AskMoreTracking",
       "to": "UserDoesNotNeedAnythingElse",
-      "preconditions": [{ "type": "user_said", "value": "Eso es todo, muchas gracias, no necesito nada más" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Eso es todo, muchas gracias, no necesito nada m\u00e1s"
+        }
+      ]
     },
     {
       "from": "AskMoreTracking",
@@ -2641,14 +3419,19 @@
       "preconditions": [
         {
           "type": "user_said",
-          "value": "Ya no necesito nada más sobre mi pedido, pero quiero preguntarte otra cosa"
+          "value": "Ya no necesito nada m\u00e1s sobre mi pedido, pero quiero preguntarte otra cosa"
         }
       ]
     },
     {
       "from": "UserDoesNotNeedAnythingElse",
       "to": "RegisterUserName",
-      "preconditions": [{ "type": "user_said", "value": "Hola, tengo una pregunta, o necesito saber algo" }]
+      "preconditions": [
+        {
+          "type": "user_said",
+          "value": "Hola, tengo una pregunta, o necesito saber algo"
+        }
+      ]
     }
   ]
 }

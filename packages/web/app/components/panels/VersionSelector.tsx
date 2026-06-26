@@ -112,7 +112,7 @@ function EmptyVersionsTrigger() {
   const t = useTranslations('editor');
 
   return (
-    <div className="flex items-center gap-1.5 rounded-full px-3 text-xs text-foreground">
+    <div className="flex items-center gap-1.5 rounded-full px-1.5 text-xs text-foreground">
       <History className="size-4" />
       <span className="font-bold cursor-default">{t('versionDraft')}</span>
     </div>
@@ -150,14 +150,15 @@ export function VersionSelector(props: VersionSelectorProps) {
     setPendingVersion(null);
   }, []);
 
-  if (versions.length === 0) return <EmptyVersionsTrigger />;
+  const hasAnyVersion = versions.length > 0 || (loading && currentVersion > 0);
+  if (!hasAnyVersion) return <EmptyVersionsTrigger />;
 
   return (
     <>
       <Select value={String(currentVersion)} onValueChange={handleValueChange} disabled={loading}>
         <SelectTrigger
           size="sm"
-          className="cursor-pointer data-[size=sm]:h-auto border-0 bg-transparent dark:bg-transparent px-2 text-xs font-bold [&>svg:last-child]:hidden hover:bg-input dark:hover:bg-input rounded-full relative aspect-square h-8"
+          className="cursor-pointer data-[size=sm]:h-auto border-0 bg-transparent dark:bg-transparent px-1.5 text-xs font-bold [&>svg:last-child]:hidden hover:bg-input dark:hover:bg-input rounded-full relative aspect-square h-6"
         >
           <History className="size-4" />
         </SelectTrigger>

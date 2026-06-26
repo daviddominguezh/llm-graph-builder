@@ -9,10 +9,16 @@ import type {
 import { getAuthToken, handleAuthError } from '@/app/components/messages/services/auth';
 import { isPublicEndpoint as checkIsPublicEndpoint } from '@/app/components/messages/shared/constStubs';
 import { isLocalDevelopment } from '@/app/components/messages/shared/utilStubs';
-import { Conversation, INTENT, LastMessage, LastMessages, Message } from '@/app/types/chat';
-import { FinalUserInfoAPI } from '@/app/types/finalUsers';
-import { MediaFileDetail, MediaFileKind } from '@/app/types/media';
-import { Collaborator, InnerSettings } from '@/app/types/projectInnerSettings';
+import {
+  type Conversation,
+  INTENT,
+  type LastMessage,
+  type LastMessages,
+  type Message,
+} from '@/app/types/chat';
+import type { FinalUserInfoAPI } from '@/app/types/finalUsers';
+import type { MediaFileDetail, MediaFileKind } from '@/app/types/media';
+import type { Collaborator, InnerSettings } from '@/app/types/projectInnerSettings';
 
 const API_BASE_URL = '/api/messaging';
 
@@ -103,7 +109,7 @@ export const getUserPictureByEmail = async (email: string): Promise<string | nul
       return null;
     }
     const body = await response.json();
-    if (!body || !body.url) {
+    if (!body?.url) {
       return null;
     }
     return body.url;
@@ -114,7 +120,7 @@ export const getUserPictureByEmail = async (email: string): Promise<string | nul
 };
 
 // Track in-flight picture requests to prevent concurrent duplicate fetches
-const userPicturePendingRequests: Map<string, Promise<string | null>> = new Map();
+const userPicturePendingRequests = new Map<string, Promise<string | null>>();
 
 /**
  * Get user profile picture by email with caching
@@ -128,7 +134,7 @@ export const getUserPictureByEmailCached = async (email: string, cache = false):
   // Try to get from cache if caching is enabled
   if (cache) {
     const cached = await cacheService.get('user-pictures', email);
-    if (cached && cached.data) {
+    if (cached?.data) {
       return cached.data as string;
     }
   }
@@ -136,7 +142,7 @@ export const getUserPictureByEmailCached = async (email: string, cache = false):
   // Check if there's already a pending request for this email
   const pendingRequest = userPicturePendingRequests.get(email);
   if (pendingRequest) {
-    return pendingRequest;
+    return await pendingRequest;
   }
 
   // Create and track the fetch promise
@@ -158,7 +164,7 @@ export const getUserPictureByEmailCached = async (email: string, cache = false):
   })();
 
   userPicturePendingRequests.set(email, fetchPromise);
-  return fetchPromise;
+  return await fetchPromise;
 };
 
 export const getFinalUserInfo = async (namespace: string, id: string): Promise<FinalUserInfoAPI> => {
@@ -176,7 +182,7 @@ export const getFinalUserInfo = async (namespace: string, id: string): Promise<F
       return emptyFinalUser;
     }
     const body = await response.json();
-    if (!body || !body.user) {
+    if (!body?.user) {
       return emptyFinalUser;
     }
     return body.user;
@@ -381,9 +387,7 @@ export const setChatbotActiveState = async (
         'Content-Type': 'application/json',
       },
     });
-  } catch (error) {
-    return;
-  }
+  } catch (error) {}
 };
 
 // Note types
@@ -557,9 +561,7 @@ export const sendMessage = async (
         type,
       }),
     });
-  } catch (error) {
-    return;
-  }
+  } catch (error) {}
 };
 
 export const fixInquiry = async (namespace: string, conversationId: string, msg: string) => {
@@ -575,9 +577,7 @@ export const fixInquiry = async (namespace: string, conversationId: string, msg:
         namespace,
       }),
     });
-  } catch (error) {
-    return;
-  }
+  } catch (error) {}
 };
 
 export const sendTestMessage = async (
@@ -601,9 +601,7 @@ export const sendTestMessage = async (
         type,
       }),
     });
-  } catch (error) {
-    return;
-  }
+  } catch (error) {}
 };
 
 export const deleteConversation = async (namespace: string, conversationId: string) => {
@@ -611,9 +609,7 @@ export const deleteConversation = async (namespace: string, conversationId: stri
     await authenticatedFetch(`${API_BASE_URL}/messages/${namespace}/${conversationId}`, {
       method: 'DELETE',
     });
-  } catch (error) {
-    return;
-  }
+  } catch (error) {}
 };
 
 export const sendMediaTestMessage = async (
@@ -642,9 +638,7 @@ export const sendMediaTestMessage = async (
       },
       body: JSON.stringify(body),
     });
-  } catch (error) {
-    return;
-  }
+  } catch (error) {}
 };
 
 export const sendMediaMessage = async (
@@ -673,14 +667,12 @@ export const sendMediaMessage = async (
       },
       body: JSON.stringify(body),
     });
-  } catch (error) {
-    return;
-  }
+  } catch (error) {}
 };
 
 // Cache and request deduplication for last messages
-const lastMessagesCache: Map<string, { data: LastMessages; timestamp: number }> = new Map();
-const lastMessagesPendingRequests: Map<string, Promise<LastMessages | null>> = new Map();
+const lastMessagesCache = new Map<string, { data: LastMessages; timestamp: number }>();
+const lastMessagesPendingRequests = new Map<string, Promise<LastMessages | null>>();
 const LAST_MESSAGES_CACHE_TTL = 60 * 1000; // 1 minute
 
 export const getLastMessages = async (namespace: string): Promise<LastMessages | null> => {
@@ -694,7 +686,7 @@ export const getLastMessages = async (namespace: string): Promise<LastMessages |
   // 2. Check if there's already a pending request
   const pendingRequest = lastMessagesPendingRequests.get(namespace);
   if (pendingRequest) {
-    return pendingRequest;
+    return await pendingRequest;
   }
 
   // 3. Create and track the fetch promise
@@ -718,7 +710,7 @@ export const getLastMessages = async (namespace: string): Promise<LastMessages |
   })();
 
   lastMessagesPendingRequests.set(namespace, fetchPromise);
-  return fetchPromise;
+  return await fetchPromise;
 };
 
 /**
@@ -784,10 +776,10 @@ export const getLastMessagesDelta = async (
 
     // API returns "messages" field but type expects "conversations"
     // Handle both field names for backwards compatibility
-    type RawDeltaResponse = {
+    interface RawDeltaResponse {
       messages?: Record<string, LastMessage>;
       conversations?: Record<string, LastMessage>;
-    };
+    }
     const rawData = data as RawDeltaResponse;
     if (!data.conversations && rawData.messages) {
       data.conversations = rawData.messages;
@@ -841,9 +833,7 @@ export const readConversation = async (namespace: string, conversationId: string
         'Content-Type': 'application/json',
       },
     });
-  } catch (error) {
-    return;
-  }
+  } catch (error) {}
 };
 
 export const getProjectInnerSettings = async (namespace: string): Promise<InnerSettings | null> => {
@@ -857,9 +847,9 @@ export const getProjectInnerSettings = async (namespace: string): Promise<InnerS
 };
 
 // In-memory cache for project inner settings (short-term deduplication)
-const innerSettingsCache: Map<string, { data: InnerSettings; timestamp: number }> = new Map();
+const innerSettingsCache = new Map<string, { data: InnerSettings; timestamp: number }>();
 // Track in-flight requests to prevent concurrent duplicate fetches
-const innerSettingsPendingRequests: Map<string, Promise<InnerSettings | null>> = new Map();
+const innerSettingsPendingRequests = new Map<string, Promise<InnerSettings | null>>();
 const INNER_SETTINGS_CACHE_TTL = 60 * 1000; // 1 minute TTL for in-memory cache
 
 /**
@@ -877,7 +867,7 @@ export const getProjectInnerSettingsCached = async (namespace: string): Promise<
   // Check if there's already a pending request for this namespace
   const pendingRequest = innerSettingsPendingRequests.get(namespace);
   if (pendingRequest) {
-    return pendingRequest;
+    return await pendingRequest;
   }
 
   // Create and track the fetch promise
@@ -898,7 +888,7 @@ export const getProjectInnerSettingsCached = async (namespace: string): Promise<
   })();
 
   innerSettingsPendingRequests.set(namespace, fetchPromise);
-  return fetchPromise;
+  return await fetchPromise;
 };
 
 /**

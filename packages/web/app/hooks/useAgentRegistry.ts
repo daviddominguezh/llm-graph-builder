@@ -1,0 +1,139 @@
+'use client';
+
+import useSWR from 'swr';
+
+import type { RegistryTool, ToolGroup } from '../lib/toolRegistryTypes';
+
+export type RegistryState =
+  | { kind: 'loading' }
+  | { kind: 'loaded'; groups: ToolGroup[]; tools: RegistryTool[]; fetchedAt: number }
+  | {
+      kind: 'partial-failure';
+      groups: ToolGroup[];
+      tools: RegistryTool[];
+      failedProviders: string[];
+      fetchedAt: number;
+    }
+  | { kind: 'total-failure'; reason: string };
+
+const DEDUPE_INTERVAL_MS = 300_000;
+
+interface RegistryToolResponse {
+  toolName: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+}
+
+interface RegistryProviderError {
+  reason: string;
+  detail: string;
+}
+
+interface RegistryProviderResponse {
+  type: 'builtin' | 'mcp';
+  id: string;
+  displayName: string;
+  description?: string;
+  tools: RegistryToolResponse[];
+  cachedAt?: number;
+  serverVersion?: string;
+  error?: RegistryProviderError;
+}
+
+interface RegistryResponse {
+  providers: RegistryProviderResponse[];
+  fetchedAt?: number;
+}
+
+async function fetcher(url: string): Promise<RegistryResponse> {
+  const res = await fetch(url, { method: 'GET' });
+  if (!res.ok) {
+    const text = await res.text().catch(() => 'Unknown error');
+    throw new Error(`Registry request failed (${String(res.status)}): ${text}`);
+  }
+  return (await res.json()) as RegistryResponse;
+}
+
+function builtinSourceId(provider: RegistryProviderResponse): string {
+  return provider.type === 'builtin' ? `__${provider.id}__` : provider.id;
+}
+
+interface ShapedProvider {
+  group: ToolGroup;
+  tools: RegistryTool[];
+}
+
+function shapeProvider(provider: RegistryProviderResponse, fallbackFetchedAt: number): ShapedProvider {
+  const sourceId = builtinSourceId(provider);
+  const tools: RegistryTool[] = provider.tools.map((tool) => ({
+    sourceId,
+    group: provider.displayName,
+    name: tool.toolName,
+    description: tool.description,
+    inputSchema: tool.inputSchema,
+  }));
+  const group: ToolGroup = {
+    kind: provider.type,
+    groupName: provider.displayName,
+    providerId: provider.id,
+    tools,
+    fetchedAt: provider.type === 'mcp' ? (provider.cachedAt ?? fallbackFetchedAt) : undefined,
+    serverVersion: provider.type === 'mcp' ? provider.serverVersion : undefined,
+  };
+  return { group, tools };
+}
+
+const FRONT_PROVIDER_IDS: ReadonlyArray<string> = ['kv_store', 'rag'];
+
+function frontRank(providerId: string): number {
+  const idx = FRONT_PROVIDER_IDS.indexOf(providerId);
+  return idx === -1 ? FRONT_PROVIDER_IDS.length : idx;
+}
+
+function sortFrontGroups(groups: ToolGroup[]): ToolGroup[] {
+  // Stable sort: kv_store + rag come first, everything else keeps its existing relative order
+  return groups
+    .map((group, index) => ({ group, index }))
+    .sort((a, b) => {
+      const rankA = frontRank(a.group.providerId);
+      const rankB = frontRank(b.group.providerId);
+      if (rankA !== rankB) return rankA - rankB;
+      return a.index - b.index;
+    })
+    .map((entry) => entry.group);
+}
+
+function buildState(data: RegistryResponse): RegistryState {
+  const groups: ToolGroup[] = [];
+  const tools: RegistryTool[] = [];
+  const failed: string[] = [];
+  const fetchedAt = data.fetchedAt ?? Date.now();
+  for (const provider of data.providers) {
+    const shaped = shapeProvider(provider, fetchedAt);
+    groups.push(shaped.group);
+    tools.push(...shaped.tools);
+    if (provider.error !== undefined) failed.push(provider.id);
+  }
+  const sortedGroups = sortFrontGroups(groups);
+  if (failed.length > 0) {
+    return { kind: 'partial-failure', groups: sortedGroups, tools, failedProviders: failed, fetchedAt };
+  }
+  return { kind: 'loaded', groups: sortedGroups, tools, fetchedAt };
+}
+
+function buildErrorState(error: unknown): RegistryState {
+  const reason = error instanceof Error ? error.message : 'unknown';
+  return { kind: 'total-failure', reason };
+}
+
+export function useAgentRegistry(agentId: string): RegistryState {
+  const key = agentId.length > 0 ? `/api/agents/${encodeURIComponent(agentId)}/registry` : null;
+  const { data, error, isLoading } = useSWR<RegistryResponse>(key, fetcher, {
+    revalidateOnMount: true,
+    dedupingInterval: DEDUPE_INTERVAL_MS,
+  });
+  if (key === null || isLoading) return { kind: 'loading' };
+  if (error !== undefined) return buildErrorState(error);
+  if (data === undefined) return { kind: 'loading' };
+  return buildState(data);
+}

@@ -9,9 +9,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import type { SelectedTool } from '@daviddh/llm-graph-runner';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import type { ToolStoresState } from '../../../hooks/useToolStoresState';
 import { ToolCombobox } from '../ToolCombobox';
 import { SingleEdgePreview } from './MiniGraphPreview';
 
@@ -19,7 +21,8 @@ interface ToolNodeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sourceNodeLabel: string;
-  onCreate: (toolName: string) => void;
+  onCreate: (tool: SelectedTool) => void;
+  toolStores: ToolStoresState;
 }
 
 export function ToolNodeDialog({
@@ -27,18 +30,20 @@ export function ToolNodeDialog({
   onOpenChange,
   sourceNodeLabel,
   onCreate,
+  toolStores,
 }: ToolNodeDialogProps) {
   const t = useTranslations('connectionMenu');
-  const [toolName, setToolName] = useState('');
+  const [tool, setTool] = useState<SelectedTool | null>(null);
 
   const handleCreate = () => {
-    onCreate(toolName);
-    setToolName('');
+    if (!tool) return;
+    onCreate(tool);
+    setTool(null);
     onOpenChange(false);
   };
 
   const handleCancel = () => {
-    setToolName('');
+    setTool(null);
     onOpenChange(false);
   };
 
@@ -52,16 +57,20 @@ export function ToolNodeDialog({
         <div className="space-y-2 px-1">
           <Label className="text-xs">{t('toolToCall')}</Label>
           <ToolCombobox
-            value={toolName}
-            onValueChange={setToolName}
+            value={tool}
+            onValueChange={setTool}
             placeholder={t('selectTool')}
+            bindings={toolStores.bindings}
+            kvStores={toolStores.kvStores}
+            ragStores={toolStores.ragStores}
+            onChangeBindings={toolStores.onChangeBindings}
           />
         </div>
         <DialogFooter>
           <Button variant="outline" size="sm" onClick={handleCancel}>
             {t('cancel')}
           </Button>
-          <Button size="sm" onClick={handleCreate} disabled={toolName === ''} className="active:scale-[0.97] transition-transform">
+          <Button size="sm" onClick={handleCreate} disabled={tool === null} className="active:scale-[0.97] transition-transform">
             {t('create')}
           </Button>
         </DialogFooter>

@@ -4,19 +4,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { McpServerConfig } from '@/app/schemas/graph.schema';
+import { useTranslations } from 'next-intl';
 
 import { HeadersEditor } from './HeadersEditor';
 
 type UpdateFn = (u: Partial<McpServerConfig>) => void;
 
 export function UrlTransportFields({ server, onUpdate }: { server: McpServerConfig; onUpdate: UpdateFn }) {
+  const t = useTranslations('mcpMatrix');
   const transport = server.transport;
   if (transport.type !== 'sse' && transport.type !== 'http') return null;
 
   return (
     <>
       <div className="space-y-1">
-        <Label>URL</Label>
+        <Label>{t('fieldUrl')}</Label>
         <Input
           value={transport.url}
           onChange={(e) => onUpdate({ transport: { ...transport, url: e.target.value } })}
@@ -32,13 +34,14 @@ export function UrlTransportFields({ server, onUpdate }: { server: McpServerConf
 }
 
 export function StdioTransportFields({ server, onUpdate }: { server: McpServerConfig; onUpdate: UpdateFn }) {
+  const t = useTranslations('mcpMatrix');
   const transport = server.transport;
   if (transport.type !== 'stdio') return null;
 
   return (
-    <>
+    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-2">
       <div className="space-y-1">
-        <Label>Command</Label>
+        <Label>{t('fieldCommand')}</Label>
         <Input
           value={transport.command}
           onChange={(e) => onUpdate({ transport: { ...transport, command: e.target.value } })}
@@ -46,7 +49,7 @@ export function StdioTransportFields({ server, onUpdate }: { server: McpServerCo
         />
       </div>
       <div className="space-y-1">
-        <Label>Arguments</Label>
+        <Label>{t('fieldArguments')}</Label>
         <Input
           value={transport.args?.join(' ') ?? ''}
           onChange={(e) =>
@@ -55,14 +58,15 @@ export function StdioTransportFields({ server, onUpdate }: { server: McpServerCo
           placeholder="mcp-server --port 3001"
         />
       </div>
-    </>
+    </div>
   );
 }
 
 export function TransportTypeSelector({ server, onUpdate }: { server: McpServerConfig; onUpdate: UpdateFn }) {
+  const t = useTranslations('mcpMatrix');
   return (
     <div className="space-y-1">
-      <Label>Transport</Label>
+      <Label>{t('fieldTransport')}</Label>
       <Select
         value={server.transport.type}
         onValueChange={(value) => {

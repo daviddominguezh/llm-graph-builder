@@ -7,16 +7,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Building2, Check, Copy, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Building2, Check, Copy, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
-import { useCallback, useEffect, useRef, useState } from 'react';
-
 import Link from 'next/link';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { CreateTenantDialog } from './CreateTenantDialog';
 import { DeleteTenantDialog } from './DeleteTenantDialog';
 import { EditTenantDialog } from './EditTenantDialog';
+import { TenantRowActions } from './TenantRowActions';
 
 interface TenantsSectionProps {
   orgId: string;
@@ -113,66 +113,15 @@ function CopyableId({ id }: { id: string }) {
   );
 }
 
-function TenantRowActions({
-  tenant,
-  onEdit,
-  onDelete,
-}: {
-  tenant: TenantRow;
-  onEdit: (row: TenantRow) => void;
-  onDelete: (row: TenantRow) => void;
-}) {
-  const t = useTranslations('tenants');
-
-  return (
-    <div className="flex items-center justify-end gap-0.5 opacity-0 transition-opacity group-hover/row:opacity-100">
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <Button
-              variant="ghost"
-              size="icon"
-              className="p-0! h-7 aspect-square"
-              onClick={() => onEdit(tenant)}
-            />
-          }
-        >
-          <Pencil className="size-3" />
-        </TooltipTrigger>
-        <TooltipContent side="top">{t('editTitle')}</TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <Button
-              variant="destructive"
-              size="icon"
-              className="p-0! h-7 aspect-square"
-              onClick={() => onDelete(tenant)}
-            />
-          }
-        >
-          <Trash2 className="size-3" />
-        </TooltipTrigger>
-        <TooltipContent side="top">{t('deleteTitle')}</TooltipContent>
-      </Tooltip>
-    </div>
-  );
-}
-
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   const t = useTranslations('tenants');
 
   return (
-    <div className="flex flex-col items-center justify-center gap-3 py-12 text-center bg-background rounded-md border border-dashed">
-      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-        <Building2 className="size-5 text-muted-foreground" />
-      </div>
-      <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium">{t('noTenants')}</p>
-        <p className="max-w-xs text-xs text-muted-foreground">{t('emptyDescription')}</p>
-      </div>
-      <Button size="sm" className="rounded-full" onClick={onAdd}>
+    <div className="flex flex-col items-center gap-2 rounded-md border border-dashed bg-background px-4 py-8 text-center">
+      <Building2 className="size-6 text-muted-foreground/50" />
+      <p className="text-sm font-medium">{t('noTenants')}</p>
+      <p className="text-xs text-muted-foreground max-w-xs">{t('emptyDescription')}</p>
+      <Button size="sm" className="mt-2 rounded-full" onClick={onAdd}>
         <Plus className="size-3.5" />
         {t('add')}
       </Button>
@@ -213,13 +162,18 @@ function TenantsTable({
             className={`group/row hover:bg-transparent ${newIds.has(tenant.id) ? 'row-enter' : ''}`}
           >
             <TableCell>
-              <Link
-                href={`/orgs/${orgSlug}/tenant/${tenant.slug}`}
-                className="tenant-row-link inline-flex items-center gap-2 max-w-[200px] align-middle transition-colors"
-              >
-                <TenantAvatar name={tenant.name} avatarUrl={tenant.avatar_url} />
-                <span className="tenant-row-name truncate font-medium leading-none">{tenant.name}</span>
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/orgs/${orgSlug}/tenant/${tenant.slug}`}
+                  className="tenant-row-link inline-flex items-center gap-2 max-w-[200px] align-middle transition-colors"
+                >
+                  <TenantAvatar name={tenant.name} avatarUrl={tenant.avatar_url} />
+                  <span className="tenant-row-name truncate font-medium leading-none">{tenant.name}</span>
+                </Link>
+                {tenant.is_default && (
+                  <span className="text-muted-foreground text-xs">{t('defaultLabel')}</span>
+                )}
+              </div>
             </TableCell>
             <TableCell>
               <CopyableId id={tenant.id} />

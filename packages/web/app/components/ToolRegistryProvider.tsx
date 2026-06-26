@@ -3,25 +3,35 @@
 import { createContext, useContext, useMemo } from 'react';
 import type { ReactNode } from 'react';
 
-import type { DiscoveredTool } from '../lib/api';
-import { type RegistryTool, type ToolGroup, buildToolRegistry } from '../lib/toolRegistry';
-import type { McpServerConfig } from '../schemas/graph.schema';
+import { type RegistryState, useAgentRegistry } from '../hooks/useAgentRegistry';
+import type { RegistryTool, ToolGroup } from '../lib/toolRegistryTypes';
 
 interface ToolRegistryValue {
   tools: RegistryTool[];
   groups: ToolGroup[];
+  state: RegistryState;
 }
 
 const ToolRegistryContext = createContext<ToolRegistryValue | null>(null);
 
 interface ToolRegistryProviderProps {
-  servers: McpServerConfig[];
-  discoveredTools: Record<string, DiscoveredTool[]>;
+  agentId: string;
   children: ReactNode;
 }
 
-export function ToolRegistryProvider({ servers, discoveredTools, children }: ToolRegistryProviderProps) {
-  const value = useMemo(() => buildToolRegistry(servers, discoveredTools), [servers, discoveredTools]);
+function deriveValue(state: RegistryState): ToolRegistryValue {
+  if (state.kind === 'loaded' || state.kind === 'partial-failure') {
+    return { tools: state.tools, groups: state.groups, state };
+  }
+  return { tools: [], groups: [], state };
+}
+
+export function ToolRegistryProvider({
+  agentId,
+  children,
+}: ToolRegistryProviderProps): React.JSX.Element {
+  const state = useAgentRegistry(agentId);
+  const value = useMemo(() => deriveValue(state), [state]);
   return <ToolRegistryContext.Provider value={value}>{children}</ToolRegistryContext.Provider>;
 }
 

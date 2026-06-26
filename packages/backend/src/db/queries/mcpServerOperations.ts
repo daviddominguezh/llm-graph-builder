@@ -1,5 +1,6 @@
 import type { McpTransport, Operation } from '@daviddh/graph-types';
 
+import { staleDiscoveryAfterServerEdit } from '../../routes/mcp-server/mcpDiscoveryInvalidation.js';
 import type { SupabaseClient } from './operationHelpers.js';
 import { throwOnMutationError } from './operationHelpers.js';
 
@@ -57,6 +58,8 @@ export async function updateMcpServer(
     .eq('agent_id', agentId)
     .eq('server_id', data.serverId);
   throwOnMutationError(result, 'updateMcpServer');
+  // A transport/definition edit changes the discovery surface for all tenants.
+  await staleDiscoveryAfterServerEdit(supabase, agentId, data.serverId);
 }
 
 export async function deleteMcpServer(

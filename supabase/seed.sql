@@ -249,41 +249,52 @@ INSERT INTO public.graph_edges (
 ON CONFLICT (id) DO NOTHING;
 
 -- 10. Create edge preconditions
+-- For tool_call rows, populate the structured columns (provider_type, provider_id, tool_name)
+-- so the assembler doesn't fall through to the legacy 'builtin/calendar/<value>' default.
+-- All four tool_call edges target the Linear MCP server (server_id 'LksmRH1FDdU2NbockiZVa').
 INSERT INTO public.graph_edge_preconditions (
-  id, edge_id, type, value, description
+  id, edge_id, type, value, description, provider_type, provider_id, tool_name
 ) VALUES
 -- INITIAL_STEP -> create_recipe (user_said)
 ( 'c3000000-0000-0000-0000-000000000001',
   'c2000000-0000-0000-0000-000000000001',
-  'user_said', 'I want you to give me a recipe about...', 'User wants you to create a new recipe' ),
+  'user_said', 'I want you to give me a recipe about...', 'User wants you to create a new recipe',
+  NULL, NULL, NULL ),
 -- INITIAL_STEP -> read_linear_recipes (user_said)
 ( 'c3000000-0000-0000-0000-000000000002',
   'c2000000-0000-0000-0000-000000000002',
-  'user_said', 'Check the previously saved recipes', 'User wants to retrieve previous recipe suggestions' ),
+  'user_said', 'Check the previously saved recipes', 'User wants to retrieve previous recipe suggestions',
+  NULL, NULL, NULL ),
 -- list_linear_teams -> with_linear_teams_listed (tool_call)
 ( 'c3000000-0000-0000-0000-000000000003',
   'c2000000-0000-0000-0000-000000000004',
-  'tool_call', 'list_teams', 'Retrieves all the linear teams' ),
+  'tool_call', 'list_teams', 'Retrieves all the linear teams',
+  'mcp', 'LksmRH1FDdU2NbockiZVa', 'list_teams' ),
 -- read_linear_recipes -> determine_recipe_count (tool_call)
 ( 'c3000000-0000-0000-0000-000000000004',
   'c2000000-0000-0000-0000-000000000005',
-  'tool_call', 'list_issues', 'Retrieves all the linear issues' ),
+  'tool_call', 'list_issues', 'Retrieves all the linear issues',
+  'mcp', 'LksmRH1FDdU2NbockiZVa', 'list_issues' ),
 -- determine_recipe_count -> with_existing_recipes (agent_decision)
 ( 'c3000000-0000-0000-0000-000000000005',
   'c2000000-0000-0000-0000-000000000006',
-  'agent_decision', 'the user has existing recipes', '' ),
+  'agent_decision', 'the user has existing recipes', '',
+  NULL, NULL, NULL ),
 -- determine_recipe_count -> terminal_node (agent_decision)
 ( 'c3000000-0000-0000-0000-000000000006',
   'c2000000-0000-0000-0000-000000000007',
-  'agent_decision', 'the user does not have recipes', '' ),
+  'agent_decision', 'the user does not have recipes', '',
+  NULL, NULL, NULL ),
 -- with_existing_recipes -> terminal_node (tool_call)
 ( 'c3000000-0000-0000-0000-000000000007',
   'c2000000-0000-0000-0000-000000000008',
-  'tool_call', 'get_issue', 'Retrieves a specific issue' ),
+  'tool_call', 'get_issue', 'Retrieves a specific issue',
+  'mcp', 'LksmRH1FDdU2NbockiZVa', 'get_issue' ),
 -- with_linear_teams_listed -> terminal_node (tool_call)
 ( 'c3000000-0000-0000-0000-000000000008',
   'c2000000-0000-0000-0000-000000000009',
-  'tool_call', 'save_issue', 'Saves the generated recipe in linear' )
+  'tool_call', 'save_issue', 'Saves the generated recipe in linear',
+  'mcp', 'LksmRH1FDdU2NbockiZVa', 'save_issue' )
 ON CONFLICT (id) DO NOTHING;
 
 -- 11. Create org env variable for Linear API key

@@ -1,4 +1,4 @@
-import { BusinessSetup, Product } from '@/app/components/messages/shared/stubs';
+import type { BusinessSetup, Product } from '@/app/components/messages/shared/stubs';
 import { formatCurrency } from '@/app/components/messages/shared/utilStubs';
 
 // TODO: This is required for other than nike
@@ -204,11 +204,11 @@ const generatePersonalizationsStr = (
   }
 
   return personalizations
-    .map((personalization) => {
-      return `
+    .map((personalization) =>
+      `
 ${MAP_PERSONALIZATION_TYPE_TO_EMOJI[personalization.type.trim()] || '📏'} *${personalization.type.trim()}:* ${personalization.values.map((val) => val.trim()).join(', ')}.
-    `.trim();
-    })
+    `.trim()
+    )
     .join('\n')
     .trim();
 };
@@ -230,7 +230,7 @@ const calculateProductPrice = (
   // Find the selected media
   const selectedMedia = product.media.find((m) => m.id === selectedImageId);
 
-  if (!selectedMedia || !selectedMedia.personalizations || selectedMedia.personalizations.length === 0) {
+  if (!selectedMedia?.personalizations || selectedMedia.personalizations.length === 0) {
     return product.price;
   }
 
@@ -261,14 +261,14 @@ const calculateProductPrice = (
       }
 
       // Third check: all values for each type must match
-      const allValuesMatch = imagePersonalizations.every((imagePers) => {
+      const allValuesMatch = imagePersonalizations.every((imagePers) =>
         // Find if any value from this personalization type matches in the combination
-        return imagePers.values.some((imageValue) => {
-          return comboOptions.some(
+        imagePers.values.some((imageValue) =>
+          comboOptions.some(
             (option) => option.type.trim() === imagePers.type && option.value.trim() === imageValue
-          );
-        });
-      });
+          )
+        )
+      );
 
       if (allValuesMatch) {
         return pricingCombo.customPrice;
@@ -316,7 +316,7 @@ const createProductCardStr = (
   const personalizationsStr = generatePersonalizationsStr(product, selectedImageId, businessSetup);
   const price = calculateProductPrice(product, selectedImageId, businessSetup);
 
-  return `*🛍️${'  ' + product.name.trim()}*\n💵 *Precio:* desde $${formatCurrency(price.toString())}
+  return `*🛍️  ${product.name.trim()}*\n💵 *Precio:* desde $${formatCurrency(price.toString())}
 ${personalizationsStr}
   `.trim();
 };
@@ -325,6 +325,4 @@ export const createProductCardsStr = (
   prod: Product,
   selectedImage?: string,
   businessSetup?: BusinessSetup
-): string => {
-  return createProductCardStr(prod, selectedImage, businessSetup);
-};
+): string => createProductCardStr(prod, selectedImage, businessSetup);

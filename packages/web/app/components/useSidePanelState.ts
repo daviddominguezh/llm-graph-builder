@@ -1,5 +1,5 @@
 import { useTranslations } from 'next-intl';
-import { useCallback, useRef, useState } from 'react';
+import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { installMcpAction } from '../actions/mcpLibrary';
@@ -28,6 +28,33 @@ interface SchemaDialogOptions {
   setNodes: NodeSetter;
 }
 
+/**
+ * Removes a still-unsaved new schema if the dialog unmounts via a path that
+ * never fires `onOpenChange(false)` (e.g. navigating away, the panel being torn
+ * down). Reads the latest values through a ref so the unmount-only effect never
+ * captures a stale pending id. With the deferred-insert behaviour in
+ * `useOutputSchemas`, this removes the local draft and emits no backend op.
+ */
+function useUnsavedSchemaCleanup(
+  pendingNewSchemaId: string | null,
+  savedRef: RefObject<boolean>,
+  removeSchema: (id: string) => void
+): void {
+  const latest = useRef({ pendingNewSchemaId, removeSchema });
+
+  useEffect(() => {
+    latest.current = { pendingNewSchemaId, removeSchema };
+  });
+
+  useEffect(
+    () => () => {
+      const { pendingNewSchemaId: pendingId, removeSchema: remove } = latest.current;
+      if (pendingId !== null && !savedRef.current) remove(pendingId);
+    },
+    [savedRef]
+  );
+}
+
 export function useSchemaDialogState(options: SchemaDialogOptions): SchemaDialogState {
   const { outputSchemasHook, selection, setNodes } = options;
   const [editingSchemaId, setEditingSchemaId] = useState<string | null>(null);
@@ -36,6 +63,8 @@ export function useSchemaDialogState(options: SchemaDialogOptions): SchemaDialog
 
   const editingSchema =
     editingSchemaId !== null ? outputSchemasHook.schemas.find((s) => s.id === editingSchemaId) : undefined;
+
+  useUnsavedSchemaCleanup(pendingNewSchemaId, savedRef, outputSchemasHook.removeSchema);
 
   const handleEditSchema = useCallback((id: string) => {
     setEditingSchemaId(id);

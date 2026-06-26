@@ -8,6 +8,7 @@ export interface ExecutionKeyRow {
   name: string;
   key_prefix: string;
   all_agents: boolean;
+  all_tenants: boolean;
   expires_at: string | null;
   created_at: string;
   last_used_at: string | null;
@@ -17,6 +18,10 @@ export interface ExecutionKeyAgent {
   agent_id: string;
   agent_name: string;
   agent_slug: string;
+}
+
+export interface ExecutionKeyTenant {
+  tenant_id: string;
 }
 
 export interface ExecutionKeyWithAgents extends ExecutionKeyRow {
@@ -64,6 +69,7 @@ export {
   getExecutionKeysByOrg,
   updateExecutionKeyAgents,
   updateExecutionKeyName,
+  updateExecutionKeyTenants,
 } from './executionKeysQueries';
 
-export type { CreateExecutionKeyResult } from './executionKeysQueries';
+export type { CreateExecutionKeyParams, CreateExecutionKeyResult } from './executionKeysQueries';

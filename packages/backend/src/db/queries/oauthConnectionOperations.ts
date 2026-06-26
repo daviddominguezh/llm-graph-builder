@@ -86,9 +86,10 @@ async function fetchConnectionRow(
   libraryItemId: string
 ): Promise<OAuthConnectionRow | null> {
   const result = await supabase
-    .from('mcp_oauth_connections')
+    .from('oauth_connections')
     .select(CONNECTION_COLUMNS)
     .eq('org_id', orgId)
+    .eq('provider', 'mcp')
     .eq('library_item_id', libraryItemId)
     .single();
   if (result.error === null) return OAuthConnectionRowSchema.parse(result.data);
@@ -127,7 +128,7 @@ export async function upsertConnection(
   supabase: SupabaseClient,
   input: UpsertConnectionInput
 ): Promise<void> {
-  const result = await supabase.rpc('upsert_oauth_connection', {
+  const result = await supabase.rpc('upsert_mcp_oauth_connection', {
     p_org_id: input.orgId,
     p_library_item_id: input.libraryItemId,
     p_client_id: input.clientId,
@@ -148,9 +149,10 @@ export async function deleteConnection(
   libraryItemId: string
 ): Promise<void> {
   const result = await supabase
-    .from('mcp_oauth_connections')
+    .from('oauth_connections')
     .delete()
     .eq('org_id', orgId)
+    .eq('provider', 'mcp')
     .eq('library_item_id', libraryItemId);
   throwOnMutationError(result, 'deleteConnection');
 }
@@ -172,9 +174,10 @@ export async function getConnectionStatus(
   libraryItemId: string
 ): Promise<ConnectionStatus> {
   const result = await supabase
-    .from('mcp_oauth_connections')
+    .from('oauth_connections')
     .select('connected_by, expires_at')
     .eq('org_id', orgId)
+    .eq('provider', 'mcp')
     .eq('library_item_id', libraryItemId)
     .single();
   if (result.error !== null) {

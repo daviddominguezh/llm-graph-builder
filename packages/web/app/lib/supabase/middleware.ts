@@ -18,7 +18,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
 const HTTP_FORBIDDEN = 403;
 
 function startsWithAny(path: string, routes: string[]): boolean {
-  return routes.some((r) => path === r || path.startsWith(r + '/'));
+  return routes.some((r) => path === r || path.startsWith(`${r}/`));
 }
 
 function wantsJson(req: NextRequest): boolean {

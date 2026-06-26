@@ -1,8 +1,27 @@
 import type { McpTransport } from '@/app/schemas/graph.schema';
 import { z } from 'zod';
 
+import {
+  DISCOVERY_ERROR_CATEGORIES,
+  type DiscoveryErrorCategory,
+  toDiscoveryErrorCategory,
+} from './discoveryErrorCopy';
 import type { SimCompositionCallbacks } from './sseSimComposition';
 import { SimCompositionSchemaFields, dispatchSimCompositionEvent } from './sseSimComposition';
+
+/**
+ * Error thrown by {@link discoverMcpTools}. Carries a redacted category only —
+ * never raw upstream error text, which can leak secrets or URLs.
+ */
+export class DiscoveryError extends Error {
+  readonly category: DiscoveryErrorCategory;
+
+  constructor(category: DiscoveryErrorCategory) {
+    super(`MCP discovery failed: ${category}`);
+    this.name = 'DiscoveryError';
+    this.category = category;
+  }
+}
 
 const SSE_DATA_PREFIX = 'data: ';
 const EMPTY_LENGTH = 0;
@@ -24,7 +43,7 @@ const DiscoverResponseSchema = z.object({
 });
 
 const ErrorResponseSchema = z.object({
-  error: z.string().optional(),
+  errorCategory: z.enum(DISCOVERY_ERROR_CATEGORIES).optional(),
 });
 
 async function fetchJsonUnknown(res: Response): Promise<unknown> {
@@ -32,10 +51,14 @@ async function fetchJsonUnknown(res: Response): Promise<unknown> {
   return JSON.parse(text) as unknown;
 }
 
-async function parseDiscoverError(res: Response): Promise<string> {
-  const raw = await fetchJsonUnknown(res);
-  const parsed = ErrorResponseSchema.safeParse(raw);
-  return parsed.success ? (parsed.data.error ?? 'Discovery failed') : 'Discovery failed';
+async function parseDiscoverErrorCategory(res: Response): Promise<DiscoveryErrorCategory> {
+  try {
+    const raw = await fetchJsonUnknown(res);
+    const parsed = ErrorResponseSchema.safeParse(raw);
+    return toDiscoveryErrorCategory(parsed.success ? parsed.data.errorCategory : undefined);
+  } catch {
+    return 'unknown';
+  }
 }
 
 export interface DiscoverOptions {
@@ -59,8 +82,7 @@ export async function discoverMcpTools(
     }),
   });
   if (!res.ok) {
-    const message = await parseDiscoverError(res);
-    throw new Error(message);
+    throw new DiscoveryError(await parseDiscoverErrorCategory(res));
   }
   const raw = await fetchJsonUnknown(res);
   const data = DiscoverResponseSchema.parse(raw);
@@ -119,6 +141,47 @@ export async function callMcpTool(
   });
   const raw = await fetchJsonUnknown(res);
   return ToolCallResponseSchema.parse(raw) as ToolCallResponse;
+}
+
+const BuiltinResponseSchema = z.union([
+  z.object({ ok: z.literal(true), result: z.unknown() }),
+  z.object({
+    ok: z.literal(false),
+    error: z.object({ code: z.string(), message: z.string() }),
+  }),
+]);
+
+export interface BuiltinToolCallParams {
+  providerId: string;
+  toolName: string;
+  agentId: string;
+  args: Record<string, unknown>;
+  tenantId?: string;
+}
+
+function mapBuiltinResponse(raw: unknown): ToolCallResponse {
+  const parsed = BuiltinResponseSchema.parse(raw);
+  if (parsed.ok) return { success: true, result: parsed.result };
+  return { success: false, error: { message: parsed.error.message, code: parsed.error.code } };
+}
+
+export async function callBuiltinTool(
+  params: BuiltinToolCallParams,
+  signal?: AbortSignal
+): Promise<ToolCallResponse> {
+  const url = `/api/tools/test/${encodeURIComponent(params.providerId)}/${encodeURIComponent(params.toolName)}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      agentId: params.agentId,
+      tenantId: params.tenantId,
+      args: params.args,
+    }),
+    signal,
+  });
+  const raw = await fetchJsonUnknown(res);
+  return mapBuiltinResponse(raw);
 }
 
 export interface SimulateRequestBody {

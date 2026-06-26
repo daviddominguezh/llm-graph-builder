@@ -120,7 +120,7 @@ describe('POST /auth/phone/check — validation', () => {
   });
 
   it('unsupported country returns 400', async () => {
-    const res = await request(makeApp()).post('/auth/phone/check').send({ phone: '+33123456789' });
+    const res = await request(makeApp()).post('/auth/phone/check').send({ phone: '+919812345678' });
     expect(res.status).toBe(HTTP_BAD_REQUEST);
     expect(res.body).toEqual({ error: 'country_not_supported' });
   });

@@ -1,14 +1,19 @@
 import type { Operation } from '@daviddh/graph-types';
 import { nanoid } from 'nanoid';
+import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
 import { getOAuthConnectionStatus } from '../actions/mcpOauth';
-import { type DiscoveredTool, discoverMcpTools } from '../lib/api';
+import { type DiscoveredTool, DiscoveryError, discoverMcpTools } from '../lib/api';
+import { discoveryErrorRelativeKey, toDiscoveryErrorCategory } from '../lib/discoveryErrorCopy';
 import type { McpLibraryRow } from '../lib/mcpLibraryTypes';
 import { initiateOAuthFlow } from '../lib/mcpOauthClient';
 import type { McpServerConfig } from '../schemas/graph.schema';
 import type { PushOperation } from '../utils/operationBuilders';
+
+/** Translator scoped to the `mcpLibrary` namespace (next-intl). */
+type McpTranslator = (key: string) => string;
 
 export type McpServerStatus = 'pending' | 'active';
 
@@ -45,32 +50,17 @@ function removeKeyFromRecord<T>(record: Record<string, T>, key: string): Record<
   return Object.fromEntries(Object.entries(record).filter(([k]) => k !== key));
 }
 
+function mcpOpFields(serverId: string, s: McpServerConfig) {
+  const { name, transport, enabled, libraryItemId, variableValues } = s;
+  return { serverId, name, transport, enabled, libraryItemId, variableValues };
+}
+
 function buildInsertMcpOp(server: McpServerConfig): Operation {
-  return {
-    type: 'insertMcpServer',
-    data: {
-      serverId: server.id,
-      name: server.name,
-      transport: server.transport,
-      enabled: server.enabled,
-      libraryItemId: server.libraryItemId,
-      variableValues: server.variableValues,
-    },
-  };
+  return { type: 'insertMcpServer', data: mcpOpFields(server.id, server) };
 }
 
 function buildUpdateMcpOp(id: string, merged: McpServerConfig): Operation {
-  return {
-    type: 'updateMcpServer',
-    data: {
-      serverId: id,
-      name: merged.name,
-      transport: merged.transport,
-      enabled: merged.enabled,
-      libraryItemId: merged.libraryItemId,
-      variableValues: merged.variableValues,
-    },
-  };
+  return { type: 'updateMcpServer', data: mcpOpFields(id, merged) };
 }
 
 function buildDeleteMcpOp(id: string): Operation {
@@ -94,11 +84,18 @@ interface ServerMutations {
 function buildEmptyVariableValues(
   variables: Array<{ name: string }>
 ): Record<string, { type: 'direct'; value: string }> {
-  const values: Record<string, { type: 'direct'; value: string }> = {};
-  for (const v of variables) {
-    values[v.name] = { type: 'direct', value: '' };
+  return Object.fromEntries(variables.map((v) => [v.name, { type: 'direct' as const, value: '' }]));
+}
+
+async function invalidateMcpCache(agentId: string | undefined, serverId: string): Promise<void> {
+  if (agentId === undefined) return;
+  try {
+    await fetch(`/api/agents/${encodeURIComponent(agentId)}/mcp-cache/${encodeURIComponent(serverId)}`, {
+      method: 'DELETE',
+    });
+  } catch {
+    // Cache bust failed — proceed with discovery anyway
   }
-  return values;
 }
 
 function useServerMutations(setters: MutationSetters): ServerMutations {
@@ -187,10 +184,22 @@ interface NormalDiscoverParams {
   id: string;
   orgId?: string;
   setters: DiscoverySetters;
+  t: McpTranslator;
+}
+
+/**
+ * Renders a static, localized toast for a discovery failure based solely on the
+ * redacted error category. Never surfaces raw upstream error text.
+ */
+function showDiscoveryErrorToast(err: unknown, t: McpTranslator): void {
+  const category = err instanceof DiscoveryError ? err.category : toDiscoveryErrorCategory(undefined);
+  toast.error(t('discoveryErrors.title'), {
+    description: t(discoveryErrorRelativeKey(category)),
+  });
 }
 
 function runNormalDiscover(params: NormalDiscoverParams): void {
-  const { server, id, orgId, setters } = params;
+  const { server, id, orgId, setters, t } = params;
   const { setDiscoveredTools, setDiscovering, setServerStatus } = setters;
 
   void discoverMcpTools(server.transport, {
@@ -205,8 +214,7 @@ function runNormalDiscover(params: NormalDiscoverParams): void {
     })
     .catch((err: unknown) => {
       setDiscoveredTools((prev) => ({ ...prev, [id]: [] }));
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      toast.error(`Failed to discover tools: ${msg}`);
+      showDiscoveryErrorToast(err, t);
     })
     .finally(() => {
       setDiscovering((prev) => ({ ...prev, [id]: false }));
@@ -217,42 +225,41 @@ interface DiscoveryContext {
   servers: McpServerConfig[];
   libraryItems: McpLibraryRow[];
   orgId: string;
+  agentId: string | undefined;
   setters: DiscoverySetters;
+  t: McpTranslator;
 }
 
-function discoverForServer(ctx: DiscoveryContext, id: string): void {
-  const { servers, libraryItems, orgId, setters } = ctx;
+async function discoverForServer(ctx: DiscoveryContext, id: string): Promise<void> {
+  const { servers, libraryItems, orgId, agentId, setters, t } = ctx;
   const server = servers.find((s) => s.id === id);
   if (server === undefined) return;
 
   setters.setDiscovering((prev) => ({ ...prev, [id]: true }));
+  await invalidateMcpCache(agentId, id);
   const authType = getLibraryAuthType(libraryItems, server.libraryItemId);
 
   if (authType === 'oauth') {
-    void handleOAuthDiscover({ server, orgId, setDiscovering: setters.setDiscovering }).then((redirected) => {
-      if (!redirected) runNormalDiscover({ server, id, orgId, setters });
-    });
+    const redirected = await handleOAuthDiscover({ server, orgId, setDiscovering: setters.setDiscovering });
+    if (!redirected) runNormalDiscover({ server, id, orgId, setters, t });
     return;
   }
-
-  runNormalDiscover({ server, id, orgId, setters });
+  runNormalDiscover({ server, id, orgId, setters, t });
 }
 
 function useToolDiscovery(ctx: DiscoveryContext): (id: string) => void {
-  const { servers, libraryItems, orgId, setters } = ctx;
+  const { servers, libraryItems, orgId, agentId, setters, t } = ctx;
 
   return useCallback(
-    (id: string) => discoverForServer({ servers, libraryItems, orgId, setters }, id),
-    [servers, libraryItems, orgId, setters]
+    (id: string) => {
+      void discoverForServer({ servers, libraryItems, orgId, agentId, setters, t }, id);
+    },
+    [servers, libraryItems, orgId, agentId, setters, t]
   );
 }
 
 function buildInitialStatus(tools: Record<string, DiscoveredTool[]>): Record<string, McpServerStatus> {
-  const status: Record<string, McpServerStatus> = {};
-  for (const id of Object.keys(tools)) {
-    status[id] = 'active';
-  }
-  return status;
+  return Object.fromEntries(Object.keys(tools).map((id) => [id, 'active' as const]));
 }
 
 export interface UseMcpServersOptions {
@@ -261,6 +268,7 @@ export interface UseMcpServersOptions {
   pushOperation: PushOperation;
   libraryItems?: McpLibraryRow[];
   orgId?: string;
+  agentId?: string;
 }
 
 export function useMcpServers(options: UseMcpServersOptions): McpServersState {
@@ -274,13 +282,16 @@ export function useMcpServers(options: UseMcpServersOptions): McpServersState {
     buildInitialStatus(initialDiscoveredTools ?? {})
   );
 
+  const t = useTranslations('mcpLibrary');
   const mutations = useServerMutations({ setServers, setDiscoveredTools, setServerStatus, pushOperation });
   const setters = { setDiscoveredTools, setDiscovering, setServerStatus };
   const discoverTools = useToolDiscovery({
     servers,
     libraryItems: options.libraryItems ?? [],
     orgId: options.orgId ?? '',
+    agentId: options.agentId,
     setters,
+    t,
   });
   return {
     servers,

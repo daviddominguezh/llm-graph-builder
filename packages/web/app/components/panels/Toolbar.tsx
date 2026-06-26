@@ -18,9 +18,7 @@ import {
   Blocks,
   Download,
   Menu,
-  Palette,
   Play,
-  Settings,
   SquareFunction,
   Upload,
   Waypoints,
@@ -30,7 +28,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-import { ThemeSwitcher } from '../ThemeSwitcher';
+import { ErrorDot } from './ErrorDot';
 
 const TOOLTIP_DELAY = 1000;
 
@@ -44,9 +42,9 @@ interface ToolbarProps {
   statusSlot?: ReactNode;
   globalPanelOpen?: boolean;
   onToggleGlobalPanel?: () => void;
-  onTogglePresets?: () => void;
   onToggleTools?: () => void;
   onToggleLibrary?: () => void;
+  hasMcpError?: boolean;
   publishSlot?: ReactNode;
   versionSlot?: ReactNode;
   stagingKeyId?: string | null;
@@ -122,34 +120,23 @@ interface FileMenuItemsProps {
 function FileMenuItems({ onImport, onExport, onFormat, hideWorkflowActions }: FileMenuItemsProps) {
   const t = useTranslations('common');
   const tToolbar = useTranslations('toolbar');
-  const tTheme = useTranslations('theme');
 
   return (
     <>
-      <div className="flex items-center justify-between pl-2 pr-1 py-1.5">
-        <span className="text-xs/relaxed flex gap-2 items-center cursor-default">
-          <Palette className="size-4" />
-          {tTheme('label')}
-        </span>
-        <ThemeSwitcher />
-      </div>
-      <Separator />
-      <div className="pt-1">
-        <DropdownMenuItem onClick={onImport}>
-          <Upload className="size-4" />
-          {t('import')}
+      <DropdownMenuItem onClick={onImport}>
+        <Upload className="size-4" />
+        {t('import')}
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={onExport}>
+        <Download className="size-4" />
+        {t('export')}
+      </DropdownMenuItem>
+      {!hideWorkflowActions && (
+        <DropdownMenuItem onClick={onFormat}>
+          <AlignHorizontalSpaceAround className="size-4" />
+          {tToolbar('autoLayout')}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onExport}>
-          <Download className="size-4" />
-          {t('export')}
-        </DropdownMenuItem>
-        {!hideWorkflowActions && (
-          <DropdownMenuItem onClick={onFormat}>
-            <AlignHorizontalSpaceAround className="size-4" />
-            {tToolbar('autoLayout')}
-          </DropdownMenuItem>
-        )}
-      </div>
+      )}
     </>
   );
 }
@@ -179,7 +166,11 @@ export function FileMenu({
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0" variant="ghost" size="lg">
+          <Button
+            className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
+            variant="ghost"
+            size="default"
+          >
             <Menu />
           </Button>
         }
@@ -193,7 +184,7 @@ export function FileMenu({
             agentName={agentName}
           />
         )}
-        <Separator />
+        <Separator className="my-1" />
         <FileMenuItems
           onImport={onImport}
           onExport={onExport}
@@ -212,7 +203,7 @@ function PlayButton({ simulationActive, onPlay, disabled, label }: PlayButtonPro
     <Button
       className="hover:bg-input! dark:hover:bg-input aspect-square! px-0"
       variant={simulationActive ? 'default' : 'ghost'}
-      size="lg"
+      size="default"
       onClick={disabled ? undefined : onPlay}
       disabled={disabled}
     >
@@ -235,60 +226,47 @@ interface PlayButtonProps {
 }
 
 function ToolbarButtons(props: ToolbarProps) {
-  const { onToggleGlobalPanel, onToggleTools, onToggleLibrary, onTogglePresets } = props;
+  const { onToggleGlobalPanel, onToggleTools, onToggleLibrary } = props;
   const t = useTranslations('toolbar');
 
   return (
     <>
-      {!props.hideWorkflowActions && onToggleGlobalPanel && (
-        <ToolbarTooltip label={t('globalNodes')}>
-          <Button
-            className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
-            variant="ghost"
-            size="lg"
-            onClick={onToggleGlobalPanel}
-          >
-            <Waypoints />
-          </Button>
-        </ToolbarTooltip>
-      )}
-      {onToggleTools && (
-        <ToolbarTooltip label={t('tools')}>
-          <Button
-            className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
-            variant="ghost"
-            size="lg"
-            onClick={onToggleTools}
-          >
-            <SquareFunction />
-          </Button>
-        </ToolbarTooltip>
-      )}
       {onToggleLibrary && (
         <ToolbarTooltip label={t('mcpLibrary')}>
           <Button
             className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
             variant="ghost"
-            size="lg"
+            size="default"
             onClick={onToggleLibrary}
           >
             <Blocks />
           </Button>
         </ToolbarTooltip>
       )}
-      {onTogglePresets && (
-        <>
-          <ToolbarTooltip label={t('settings')}>
-            <Button
-              className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
-              variant="ghost"
-              size="lg"
-              onClick={onTogglePresets}
-            >
-              <Settings />
-            </Button>
-          </ToolbarTooltip>
-        </>
+      {onToggleTools && (
+        <ToolbarTooltip label={t('tools')}>
+          <Button
+            className="hover:bg-input! dark:hover:bg-input! aspect-square! relative px-0"
+            variant="ghost"
+            size="default"
+            onClick={onToggleTools}
+          >
+            <SquareFunction />
+            {props.hasMcpError === true && <ErrorDot className="top-[2px] right-[2px]" />}
+          </Button>
+        </ToolbarTooltip>
+      )}
+      {!props.hideWorkflowActions && onToggleGlobalPanel && (
+        <ToolbarTooltip label={t('globalNodes')}>
+          <Button
+            className="hover:bg-input! dark:hover:bg-input! aspect-square! px-0"
+            variant="ghost"
+            size="default"
+            onClick={onToggleGlobalPanel}
+          >
+            <Waypoints />
+          </Button>
+        </ToolbarTooltip>
       )}
     </>
   );
@@ -308,7 +286,7 @@ export function Toolbar(props: ToolbarProps) {
   } = props;
   const t = useTranslations('toolbar');
   return (
-    <div className="flex items-center gap-1.5">
+    <div data-tools-panel-portal className="flex items-center gap-1.5">
       {props.hideWorkflowActions !== true && (
         <PlayButton
           simulationActive={simulationActive ?? false}
@@ -329,9 +307,9 @@ export function Toolbar(props: ToolbarProps) {
         hideWorkflowActions={props.hideWorkflowActions}
       />
       <Separator orientation="vertical" className="my-2 mx-2" />
-      {props.statusSlot}
-      {props.versionSlot}
       {props.publishSlot}
+      {props.versionSlot}
+      {props.statusSlot}
     </div>
   );
 }

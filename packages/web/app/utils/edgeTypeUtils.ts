@@ -33,7 +33,7 @@ export function getSourceEdgeType(sourceNodeId: string, edges: Array<Edge<RFEdge
     .filter((e) => !hasContextPreconditionsOnly(e));
 
   if (outgoing.length === EMPTY) return 'unset';
-  return getEdgePreconditionType(outgoing[EMPTY]!);
+  return getEdgePreconditionType(outgoing[EMPTY]);
 }
 
 export function isStartNode(nodeId: string): boolean {

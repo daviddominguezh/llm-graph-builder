@@ -1,21 +1,19 @@
-import type { createMCPClient } from '@ai-sdk/mcp';
-import type { Graph, McpServerConfig, McpTransport } from '@daviddh/graph-types';
+import type { Graph, McpServerConfig } from '@daviddh/graph-types';
+import { buildResolvedVars, resolveTransport } from '@daviddh/graph-types';
+import { type McpClientHandle, connectMcp, createTransport } from '@daviddh/llm-graph-runner';
 
 import { getDecryptedEnvVariables } from '../../db/queries/executionAuthQueries.js';
 import { assembleGraph } from '../../db/queries/graphQueries.js';
-import { connectMcpClient } from '../../mcp/client.js';
 import type { ServiceContext } from '../types.js';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
-type McpClient = Awaited<ReturnType<typeof createMCPClient>>;
-
 export interface DiscoveredTool {
   name: string;
   description: string | undefined;
-  inputSchema: Record<string, unknown>;
+  inputSchema: unknown;
 }
 
 export interface CallToolInput {
@@ -40,49 +38,17 @@ function requireServer(graph: Graph, serverId: string): McpServerConfig {
   return server;
 }
 
-const VARIABLE_PATTERN = /\{\{(?<name>\w+)\}\}/gv;
-
-function replaceVars(str: string, vars: Record<string, string>): string {
-  return str.replace(VARIABLE_PATTERN, (_, name: string) => vars[name] ?? `{{${name}}}`);
-}
-
-function resolveTransportVars(transport: McpTransport, vars: Record<string, string>): McpTransport {
-  if (transport.type === 'stdio') {
-    return {
-      ...transport,
-      command: replaceVars(transport.command, vars),
-      args: transport.args?.map((a) => replaceVars(a, vars)),
-    };
-  }
-  return {
-    ...transport,
-    url: replaceVars(transport.url, vars),
-  };
-}
-
-function resolveServerVars(server: McpServerConfig, envVars: Record<string, string>): Record<string, string> {
-  const { variableValues } = server;
-  if (variableValues === undefined) return envVars;
-  const resolved: Record<string, string> = {};
-  for (const [templateName, val] of Object.entries(variableValues)) {
-    if (val.type === 'direct') {
-      const { value } = val;
-      resolved[templateName] = value;
-    } else {
-      const { envVariableId } = val;
-      resolved[templateName] = envVars[envVariableId] ?? '';
-    }
-  }
-  return resolved;
-}
-
-async function openClient(ctx: ServiceContext, agentId: string, serverId: string): Promise<McpClient> {
+async function openClient(ctx: ServiceContext, agentId: string, serverId: string): Promise<McpClientHandle> {
   const graph = requireGraph(await assembleGraph(ctx.supabase, agentId), agentId);
   const server = requireServer(graph, serverId);
   const { byId } = await getDecryptedEnvVariables(ctx.supabase, ctx.orgId);
-  const vars = resolveServerVars(server, byId);
-  const transport = resolveTransportVars(server.transport, vars);
-  return await connectMcpClient(transport);
+  // Pass byId as byName to preserve the old undefined-variableValues -> byId fallback:
+  // buildResolvedVars reads env.byName only in its `variableValues === undefined` branch.
+  // The defined case (direct -> value, env_ref -> byId[id]) is unaffected by this.
+  const vars = buildResolvedVars(server.variableValues, { byName: byId, byId });
+  const transport = resolveTransport(server.transport, vars);
+  const wireTransport = createTransport({ ...server, transport });
+  return await connectMcp({ transport: wireTransport });
 }
 
 /* ------------------------------------------------------------------ */
@@ -94,28 +60,25 @@ export async function discoverTools(
   agentId: string,
   serverId: string
 ): Promise<DiscoveredTool[]> {
-  const client = await openClient(ctx, agentId, serverId);
+  const handle = await openClient(ctx, agentId, serverId);
   try {
-    const { tools } = await client.listTools();
+    const tools = await handle.listTools();
     return tools.map((t) => ({
       name: t.name,
       description: t.description,
-      inputSchema: t.inputSchema as Record<string, unknown>,
+      inputSchema: t.inputSchema,
     }));
   } finally {
-    await client.close();
+    await handle.close();
   }
 }
 
 export async function callTool(ctx: ServiceContext, input: CallToolInput): Promise<unknown> {
   const { agentId, serverId, toolName, args } = input;
-  const client = await openClient(ctx, agentId, serverId);
+  const handle = await openClient(ctx, agentId, serverId);
   try {
-    const toolSet = await client.tools();
-    const { [toolName]: tool } = toolSet;
-    if (tool === undefined) throw new Error(`Tool not found: ${toolName}`);
-    return await tool.execute(args, { toolCallId: toolName, messages: [] });
+    return await handle.callTool(toolName, args);
   } finally {
-    await client.close();
+    await handle.close();
   }
 }

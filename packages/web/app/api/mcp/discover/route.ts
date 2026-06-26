@@ -1,3 +1,4 @@
+import { isLiteralBlocked } from '@/app/lib/egressPrecheck';
 import { resolveTransportVariables } from '@/app/lib/resolveVariablesServer';
 import { createClient } from '@/app/lib/supabase/server';
 import { McpTransportSchema, VariableValueSchema } from '@daviddh/graph-types';
@@ -38,17 +39,46 @@ interface ProxyContext {
   parsed: DiscoverRequest;
 }
 
-async function resolveAndProxy(ctx: ProxyContext): Promise<Response> {
-  let { transport } = ctx.parsed;
+type ResolvedTransport = DiscoverRequest['transport'];
+const DEFAULT_ERROR_CATEGORY = 'unknown';
 
+/**
+ * Layer-1 literal-host pre-check (defense-in-depth). For http/sse transports,
+ * reject obvious-bad URLs at the edge so we never proxy them upstream. Returns a
+ * 400 `{ errorCategory: 'blocked' }` response when blocked, else `null`.
+ */
+function precheckTransport(transport: ResolvedTransport): NextResponse | null {
+  if (transport.type !== 'http' && transport.type !== 'sse') return null;
+  if (!isLiteralBlocked(transport.url)) return null;
+  return NextResponse.json({ errorCategory: 'blocked' }, { status: HTTP_BAD_REQUEST });
+}
+
+/** Extract the backend's redacted `errorCategory`; never forward a raw body. */
+function extractErrorCategory(body: unknown): string {
+  if (typeof body === 'object' && body !== null && 'errorCategory' in body) {
+    const { errorCategory } = body as { errorCategory: unknown };
+    if (typeof errorCategory === 'string') return errorCategory;
+  }
+  return DEFAULT_ERROR_CATEGORY;
+}
+
+async function resolveTransport(ctx: ProxyContext): Promise<ResolvedTransport> {
+  let { transport } = ctx.parsed;
   if (ctx.parsed.variableValues !== undefined) {
     transport = await resolveTransportVariables(transport, ctx.parsed.variableValues);
   }
-
   const oauthHeaders = await resolveOAuthHeaders(ctx.authHeader, ctx.parsed);
   if (oauthHeaders !== undefined && (transport.type === 'http' || transport.type === 'sse')) {
     transport = { ...transport, headers: { ...transport.headers, ...oauthHeaders } };
   }
+  return transport;
+}
+
+async function resolveAndProxy(ctx: ProxyContext): Promise<Response> {
+  const transport = await resolveTransport(ctx);
+
+  const blocked = precheckTransport(transport);
+  if (blocked !== null) return blocked;
 
   const upstream = await fetch(`${API_URL}/mcp/discover`, {
     method: 'POST',
@@ -57,6 +87,9 @@ async function resolveAndProxy(ctx: ProxyContext): Promise<Response> {
   });
 
   const data: unknown = await upstream.json();
+  if (!upstream.ok) {
+    return NextResponse.json({ errorCategory: extractErrorCategory(data) }, { status: upstream.status });
+  }
   return NextResponse.json(data, { status: upstream.status });
 }
 
@@ -78,5 +111,5 @@ export async function POST(request: Request): Promise<Response> {
   const session = await supabase.auth.getSession();
   const authHeader = `Bearer ${session.data.session?.access_token ?? ''}`;
 
-  return resolveAndProxy({ authHeader, parsed: result.data });
+  return await resolveAndProxy({ authHeader, parsed: result.data });
 }

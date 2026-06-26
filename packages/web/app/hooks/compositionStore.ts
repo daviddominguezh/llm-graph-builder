@@ -7,11 +7,13 @@ import {
 
 export class CompositionStore {
   private state: CompositionState = INITIAL_STATE;
-  private listeners = new Set<() => void>();
+  private readonly listeners = new Set<() => void>();
 
   dispatch(event: CompositionEvent): void {
     this.state = transition(this.state, event);
-    this.listeners.forEach((fn) => fn());
+    this.listeners.forEach((fn) => {
+      fn();
+    });
   }
 
   // Arrow functions for stable references (required by useSyncExternalStore)

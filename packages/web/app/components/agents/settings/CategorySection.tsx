@@ -5,6 +5,7 @@ import { TEMPLATE_CATEGORIES } from '@daviddh/graph-types';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -55,7 +56,7 @@ export function CategorySection({ agentId, initialCategory }: CategorySectionPro
         </SelectContent>
       </Select>
       <Button size="sm" onClick={handleSave} disabled={unchanged || saving} className="mt-1 self-end">
-        {saving ? t('saving') : t('save')}
+        {saving ? <Loader2 className="size-4 animate-spin" /> : t('save')}
       </Button>
     </div>
   );

@@ -11,6 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -62,7 +63,7 @@ export function RemoveMemberDialog(props: RemoveMemberDialogProps) {
         <AlertDialogFooter>
           <AlertDialogCancel>{t('removeCancel')}</AlertDialogCancel>
           <AlertDialogAction variant="destructive" onClick={handleRemove} disabled={loading}>
-            {loading ? t('removing') : t('removeConfirm')}
+            {loading ? <Loader2 className="size-4 animate-spin" /> : t('removeConfirm')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

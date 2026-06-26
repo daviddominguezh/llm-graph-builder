@@ -43,7 +43,7 @@ async function resolveMcpServersInGraph(graph: unknown): Promise<void> {
   const servers = g.mcpServers;
   if (!Array.isArray(servers)) return;
   g.mcpServers = await Promise.all(
-    servers.map((s: unknown) => resolveServerVariables(s as Record<string, unknown>))
+    servers.map(async (s: unknown) => await resolveServerVariables(s as Record<string, unknown>))
   );
 }
 

@@ -1,65 +1,28 @@
 // Supabase Edge Function — Stateless Agent Executor
 // Receives complete payload, executes agent via @daviddh/llm-graph-runner, streams SSE events back.
 // No DB access, no secrets resolution — all provided in the payload.
-import { createMCPClient } from '@ai-sdk/mcp';
-import type { McpServerConfig, McpTransport, RuntimeGraph } from '@daviddh/graph-types';
 import type {
-  AgentLoopResult,
   AgentStepEvent,
+  BuiltinBundles,
   CallAgentOutput,
   Context,
-  Logger,
-  Message,
   NodeProcessedEvent,
 } from '@daviddh/llm-graph-runner';
-import {
-  VFSContext,
-  executeAgentLoop,
-  executeWithCallbacks,
-  generateVFSTools,
-  injectSystemTools,
-} from '@daviddh/llm-graph-runner';
+import { VFSContext, executeAgentLoop, executeWithCallbacks, generateVFSTools } from '@daviddh/llm-graph-runner';
 import { GitHubSourceProvider } from '@daviddh/vfs-providers';
 import type { Tool } from 'ai';
 
-interface VfsPayloadData {
-  token: string;
-  owner: string;
-  repo: string;
-  commitSha: string;
-  tenantSlug: string;
-  agentSlug: string;
-  userJwt: string;
-  settings: {
-    protectedPaths?: string[];
-    searchCandidateLimit?: number;
-    readLineCeiling?: number;
-    rateLimitThreshold?: number;
-  };
-}
-
-interface ExecutePayload {
-  appType?: 'workflow' | 'agent';
-  graph: RuntimeGraph;
-  apiKey: string;
-  modelId: string;
-  currentNodeId: string;
-  messages: Message[];
-  structuredOutputs: Record<string, unknown[]>;
-  data: Record<string, unknown>;
-  quickReplies: Record<string, string>;
-  sessionID: string;
-  tenantID: string;
-  userID: string;
-  isFirstMessage: boolean;
-  vfs?: VfsPayloadData;
-  // Agent-specific fields
-  systemPrompt?: string;
-  context?: string;
-  maxSteps?: number | null;
-  isChildAgent?: boolean;
-  conversationId?: string;
-}
+import {
+  type ExecutePayload,
+  type VfsPayloadData,
+  buildBaseContext,
+  buildProviderCtx,
+  buildRegistry,
+  buildSupabaseClient,
+  buildToolsForAgentV2,
+  prepareAllBundles,
+  runnerLogger,
+} from './toolBuilder.ts';
 
 const SSE_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -68,163 +31,6 @@ const SSE_HEADERS = {
   'Cache-Control': 'no-cache',
   Connection: 'keep-alive',
 };
-
-/* ─── MCP session management ─── */
-
-type McpClient = Awaited<ReturnType<typeof createMCPClient>>;
-
-async function connectMcpServer(transport: McpTransport): Promise<McpClient> {
-  if (transport.type === 'http') {
-    return await createMCPClient({
-      transport: { type: 'http', url: transport.url, headers: transport.headers },
-    });
-  }
-  if (transport.type === 'sse') {
-    return await createMCPClient({
-      transport: { type: 'sse', url: transport.url, headers: transport.headers },
-    });
-  }
-  throw new Error(`Unsupported transport type in edge function: ${transport.type}`);
-}
-
-interface McpConnectionResult {
-  tools: Record<string, Tool>;
-  clients: McpClient[];
-}
-
-interface McpConnectionFailure {
-  server: string;
-  error: string;
-}
-
-interface McpValidationResult {
-  success: McpConnectionResult | null;
-  failures: McpConnectionFailure[];
-}
-
-async function attemptMcpConnection(
-  server: McpServerConfig
-): Promise<{ client: McpClient; tools: Record<string, Tool> }> {
-  const client = await connectMcpServer(server.transport);
-  await client.listTools();
-  const tools = await client.tools();
-  return { client, tools };
-}
-
-function buildMcpErrorMessage(failures: McpConnectionFailure[]): string {
-  const details = failures.map((f) => `${f.server} (${f.error})`).join(', ');
-  return `Failed to connect to MCP servers: ${details}`;
-}
-
-async function validateAndConnectMcpServers(servers: McpServerConfig[]): Promise<McpValidationResult> {
-  const enabled = servers.filter((s) => s.enabled);
-  if (enabled.length === 0) return { success: { tools: {}, clients: [] }, failures: [] };
-
-  const results = await Promise.allSettled(enabled.map((server) => attemptMcpConnection(server)));
-
-  const clients: McpClient[] = [];
-  const allTools: Record<string, Tool> = {};
-  const failures: McpConnectionFailure[] = [];
-
-  for (let i = 0; i < results.length; i++) {
-    const result = results[i]!;
-    const server = enabled[i]!;
-    if (result.status === 'fulfilled') {
-      clients.push(result.value.client);
-      Object.assign(allTools, result.value.tools);
-    } else {
-      const errMsg = result.reason instanceof Error ? result.reason.message : 'Unknown error';
-      failures.push({ server: server.name, error: errMsg });
-    }
-  }
-
-  if (failures.length > 0) {
-    await closeMcpClients(clients);
-    return { success: null, failures };
-  }
-
-  return { success: { tools: allTools, clients }, failures: [] };
-}
-
-async function closeMcpClients(clients: McpClient[]): Promise<void> {
-  await Promise.all(clients.map((c) => c.close().catch(() => {})));
-}
-
-/* ─── Lead scoring services (production only) ─── */
-
-interface LeadScoringServices {
-  setLeadScore: (score: number) => Promise<void>;
-  getLeadScore: () => Promise<number | null>;
-}
-
-async function buildSupabaseForLeadScoring() {
-  const { createClient } = await import('@supabase/supabase-js');
-  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-  return createClient(supabaseUrl, serviceKey);
-}
-
-async function setLeadScoreOnConversation(
-  supabase: Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>,
-  conversationId: string,
-  score: number
-): Promise<void> {
-  const { data: existing } = await supabase
-    .from('conversations')
-    .select('metadata')
-    .eq('id', conversationId)
-    .single();
-  const currentMetadata =
-    existing !== null && typeof existing.metadata === 'object' && existing.metadata !== null
-      ? (existing.metadata as Record<string, unknown>)
-      : {};
-  const merged = { ...currentMetadata, lead_score: score };
-  const { error } = await supabase
-    .from('conversations')
-    .update({ metadata: merged })
-    .eq('id', conversationId);
-  if (error !== null) {
-    log.error(`set_lead_score failed: ${error.message}`);
-  }
-}
-
-async function getLeadScoreFromConversation(
-  supabase: Awaited<ReturnType<typeof buildSupabaseForLeadScoring>>,
-  conversationId: string
-): Promise<number | null> {
-  const { data } = await supabase.from('conversations').select('metadata').eq('id', conversationId).single();
-  if (data === null || data.metadata === null || typeof data.metadata !== 'object') {
-    return null;
-  }
-  const meta = data.metadata as Record<string, unknown>;
-  return typeof meta['lead_score'] === 'number' ? meta['lead_score'] : null;
-}
-
-async function buildLeadScoringServices(conversationId: string): Promise<LeadScoringServices> {
-  const supabase = await buildSupabaseForLeadScoring();
-  return {
-    setLeadScore: (score: number) => setLeadScoreOnConversation(supabase, conversationId, score),
-    getLeadScore: () => getLeadScoreFromConversation(supabase, conversationId),
-  };
-}
-
-/* ─── Context builder ─── */
-
-function buildContext(
-  payload: ExecutePayload
-): Omit<Context, 'toolsOverride' | 'onNodeVisited' | 'onNodeProcessed'> {
-  return {
-    graph: payload.graph,
-    apiKey: payload.apiKey,
-    modelId: payload.modelId,
-    sessionID: payload.sessionID,
-    tenantID: payload.tenantID,
-    userID: payload.userID,
-    data: payload.data,
-    quickReplies: payload.quickReplies,
-    isFirstMessage: payload.isFirstMessage,
-  };
-}
 
 /* ─── VFS bootstrap ─── */
 
@@ -322,6 +128,17 @@ function timingSafeEqual(a: string, b: string): boolean {
   return mismatch === 0;
 }
 
+const CURRENT_SCHEMA_VERSION = 2;
+
+function validateSchemaVersion(schemaVersion: unknown): Response | null {
+  if (schemaVersion === undefined) return null;
+  if (schemaVersion === CURRENT_SCHEMA_VERSION) return null;
+  return new Response(JSON.stringify({ error: `unsupported schemaVersion: ${String(schemaVersion)}` }), {
+    status: 400,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 function authenticateRequest(req: Request): Response | null {
   const masterKey = Deno.env.get('EDGE_FUNCTION_MASTER_KEY');
   if (masterKey === undefined || masterKey === '') {
@@ -346,37 +163,28 @@ const log = {
   warn: (msg: string) => console.warn(`[edge] ${msg}`),
 };
 
-function prefixed(fn: (...args: unknown[]) => void): (...args: unknown[]) => void {
-  return (...args: unknown[]) => fn('[runner]', ...args);
-}
-
-const runnerLogger: Logger = {
-  error: prefixed(console.error),
-  warn: prefixed(console.warn),
-  help: prefixed(console.info),
-  data: prefixed(console.debug),
-  info: prefixed(console.info),
-  debug: prefixed(console.debug),
-  prompt: prefixed(console.debug),
-  http: prefixed(console.debug),
-  verbose: prefixed(console.debug),
-  input: prefixed(console.debug),
-  silly: prefixed(console.debug),
-};
-
 /* ─── Agent loop execution ─── */
 
 type WriteEvent = (event: Record<string, unknown>) => void;
 
-async function runAgentExecution(
-  payload: ExecutePayload,
-  allTools: Record<string, Tool>,
-  write: WriteEvent,
-  leadScoringServices?: LeadScoringServices
-): Promise<void> {
+interface RunAgentArgs {
+  payload: ExecutePayload;
+  write: WriteEvent;
+  conversationId?: string;
+  bundles: BuiltinBundles;
+}
+
+async function runAgentExecution(args: RunAgentArgs): Promise<void> {
+  const { payload, write, conversationId, bundles } = args;
   log.info(
-    `agent start model=${payload.modelId} msgs=${payload.messages.length} tools=${Object.keys(allTools).length} prompt=${(payload.systemPrompt ?? '').slice(0, 80)}`
+    `agent start model=${payload.modelId} msgs=${payload.messages.length} prompt=${(payload.systemPrompt ?? '').slice(0, 80)}`
   );
+
+  const tools = await buildToolsForAgentV2({
+    payload,
+    conversationId,
+    bundles,
+  });
 
   const result = await executeAgentLoop(
     {
@@ -386,12 +194,8 @@ async function runAgentExecution(
       apiKey: payload.apiKey,
       modelId: payload.modelId,
       maxSteps: payload.maxSteps ?? null,
-      tools: injectSystemTools({
-        existingTools: allTools,
-        isChildAgent: payload.isChildAgent ?? false,
-        leadScoringServices,
-        contextData: payload.data,
-      }),
+      skills: payload.skills,
+      tools,
       isChildAgent: payload.isChildAgent ?? false,
     },
     {
@@ -437,25 +241,58 @@ async function runAgentExecution(
 
 /* ─── Workflow execution ─── */
 
-async function runWorkflowExecution(
+interface WorkflowToolsBundle {
+  conversationId?: string;
+  bundles: BuiltinBundles;
+}
+
+function buildWorkflowContext(
   payload: ExecutePayload,
-  allTools: Record<string, Tool>,
-  write: WriteEvent,
-  leadScoringServices?: LeadScoringServices
-): Promise<void> {
-  const context = buildContext(payload);
+  baseContext: Omit<Context, 'toolsOverride' | 'onNodeVisited' | 'onNodeProcessed'>,
+  bundle: WorkflowToolsBundle
+): Context {
+  const registry = buildRegistry(payload);
+  const ctx = buildProviderCtx({
+    payload,
+    conversationId: bundle.conversationId,
+    bundles: bundle.bundles,
+  });
+  return {
+    ...baseContext,
+    registry,
+    orgId: ctx.orgId,
+    agentId: ctx.agentId,
+    isChildAgent: ctx.isChildAgent,
+    conversationId: ctx.conversationId,
+    contextData: ctx.contextData,
+    oauthTokens: ctx.oauthTokens,
+    mcpServers: ctx.mcpServers,
+    services: ctx.services,
+    logger: runnerLogger,
+  };
+}
+
+interface RunWorkflowArgs {
+  payload: ExecutePayload;
+  write: WriteEvent;
+  conversationId?: string;
+  bundles: BuiltinBundles;
+}
+
+async function runWorkflowExecution(args: RunWorkflowArgs): Promise<void> {
+  const { payload, write, conversationId, bundles } = args;
+  const baseContext = buildBaseContext(payload);
+  const bundle: WorkflowToolsBundle = {
+    conversationId,
+    bundles,
+  };
+  const context: Context = buildWorkflowContext(payload, baseContext, bundle);
 
   const result = await executeWithCallbacks({
     context,
     logger: runnerLogger,
     messages: payload.messages,
     currentNode: payload.currentNodeId,
-    toolsOverride: injectSystemTools({
-      existingTools: allTools,
-      isChildAgent: false,
-      leadScoringServices,
-      contextData: payload.data,
-    }),
     structuredOutputs: payload.structuredOutputs,
     onNodeVisited: (nodeId: string) => {
       write({ type: 'node_visited', nodeId });
@@ -514,9 +351,12 @@ Deno.serve(async (req: Request) => {
   if (authError !== null) return authError;
 
   const payload: ExecutePayload = await req.json();
+  const schemaVersionError = validateSchemaVersion(payload.schemaVersion);
+  if (schemaVersionError !== null) return schemaVersionError;
   const isAgent = payload.appType === 'agent';
-  log.info(`request appType=${payload.appType ?? 'workflow'} model=${payload.modelId}`);
-  const mcpServers = isAgent ? [] : (payload.graph.mcpServers ?? []);
+  log.info(
+    `request appType=${payload.appType ?? 'workflow'} model=${payload.modelId} schemaVersion=${payload.schemaVersion ?? CURRENT_SCHEMA_VERSION}`
+  );
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -525,36 +365,30 @@ Deno.serve(async (req: Request) => {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
       };
 
-      let clients: McpClient[] = [];
-
       try {
-        const validation = await validateAndConnectMcpServers(mcpServers);
-
-        if (validation.success === null) {
-          write({ type: 'error', message: buildMcpErrorMessage(validation.failures) });
-          return;
-        }
-
-        clients = validation.success.clients;
-        const allTools: Record<string, Tool> = { ...validation.success.tools };
-
         if (!isAgent) {
-          const vfsResult = await bootstrapVfs(payload, buildContext(payload));
-          if (vfsResult !== null) {
-            Object.assign(allTools, vfsResult.tools);
-          }
+          // VFS tools are wired into the runner's Context; the workflow path uses them via
+          // the registry. Bootstrap is currently still a side-effect (initialising VFSContext).
+          await bootstrapVfs(payload, buildBaseContext(payload));
         }
 
-        // Build lead scoring services when we have a real conversation
-        const leadScoringServices =
-          payload.conversationId !== undefined
-            ? await buildLeadScoringServices(payload.conversationId)
-            : undefined;
+        const supabase = await buildSupabaseClient();
+        const bundles = await prepareAllBundles(payload, supabase);
 
         if (isAgent) {
-          await runAgentExecution(payload, allTools, write, leadScoringServices);
+          await runAgentExecution({
+            payload,
+            write,
+            conversationId: payload.conversationId,
+            bundles,
+          });
         } else {
-          await runWorkflowExecution(payload, allTools, write, leadScoringServices);
+          await runWorkflowExecution({
+            payload,
+            write,
+            conversationId: payload.conversationId,
+            bundles,
+          });
         }
 
         write({ type: 'execution_complete' });
@@ -563,7 +397,6 @@ Deno.serve(async (req: Request) => {
         log.error(message);
         write({ type: 'error', message });
       } finally {
-        await closeMcpClients(clients);
         controller.close();
       }
     },

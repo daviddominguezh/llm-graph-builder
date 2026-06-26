@@ -92,7 +92,7 @@ function CurlDisplay({ agentSlug, version, publishing = false }: CurlDisplayProp
   const curl = buildCurlCommand(agentSlug, version);
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1">
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium">
           {t('curlExample')}
@@ -117,14 +117,15 @@ function PublishStatus({ version }: { version: number }) {
       >
         {isPublished ? (
           <>
-            <span className="text-[10px] text-muted-foreground rounded-full px-1.5 font-mono mr-1.5 bg-input dark:bg-input/70">
-              v{version}
-            </span>
-            <Separator orientation="vertical" />
             <span
-              className={`mx-1.5 inline-block size-2.5 rounded-full ${isPublished ? 'bg-green-500' : 'bg-muted-foreground'}`}
+              className={`mr-1.5 inline-block size-2.5 rounded-full ${isPublished ? 'bg-green-500' : 'bg-muted-foreground'}`}
             />
             {t('publishedVersion')}
+            
+            <span className="ml-1.5 text-muted-foreground font-medium text-xs">
+              {'('}v{version}
+              {')'}
+            </span>
           </>
         ) : (
           <>
@@ -203,7 +204,7 @@ function PopoverBody(props: PopoverBodyProps) {
             publishing={publishing}
           />
           <Button variant="default" size="sm" className="w-full" onClick={onPublish} disabled={publishing}>
-            {t('publish')} v{version + 1}
+            {publishing ? <Loader2 className="size-4 animate-spin" /> : `${t('publish')} v${version + 1}`}
           </Button>
         </>
       ) : (
@@ -218,7 +219,7 @@ function DisabledPublishButton() {
   const tKeys = useTranslations('apiKeys');
 
   const button = (
-    <Button variant="default" size="lg" disabled className="gap-1.5 px-3 rounded-full">
+    <Button variant="link" size="sm" disabled className="gap-1.5 mx-0">
       {t('publish')}
     </Button>
   );
@@ -262,12 +263,14 @@ export function PublishButton(props: PublishButtonProps) {
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger
-        render={<Button variant="default" size="lg" className="gap-1.5 px-3 rounded-full pr-2" />}
+        render={<Button variant="link" size="sm" className="group mx-0 hover:no-underline" />}
       >
-        {t('publish')}
-        <ChevronDown className='size-4' />
+        <span className="inline-flex items-center gap-1 border-b border-transparent group-hover:border-current">
+          {t('publish')}
+          <ChevronDown className="size-3.5" />
+        </span>
       </PopoverTrigger>
-      <PopoverContent side="bottom" align="end" sideOffset={8} className="w-96">
+      <PopoverContent side="bottom" align="center" sideOffset={8} className="w-96 mr-1.5 -mt-1">
         <PopoverBody
           agentSlug={agentSlug}
           orgSlug={orgSlug}

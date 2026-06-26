@@ -150,7 +150,7 @@ function buildStandardEdgeOptions(ctx: StandardEdgeContext): SMNextOptions {
       edges,
       toolsByEdge,
       nodes,
-      toolCallValue: toolCall.value,
+      toolCallValue: toolCall.tool.toolName,
       toolDescription: toolCall.description,
       toolFields: toolCall.toolFields,
       nextNode: firstEdgeEntry.to,
