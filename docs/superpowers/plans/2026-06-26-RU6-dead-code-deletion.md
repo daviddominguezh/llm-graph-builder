@@ -207,3 +207,9 @@ At plan-authoring time, the working branch (`feat/data-tools`) does **not** cont
 - **Spec §3/§7 says remove edge-function `[functions.*]` entries from `supabase/config.toml`** — **none exist** in the current `config.toml` (no `[functions.execute-agent]` / `[functions.execute-tool]`). Task 9 is a verify-then-no-op here unless RU1–RU5 add them. (FLAG; not invented.)
 - **Spec §3 says remove the edge "CI/CD deploy steps"** — the `deploy-functions` job in `.github/workflows/ci.yaml` is **generic** (loops over every dir under `supabase/functions`); there are no per-function deploy steps. Deleting the function dirs (Task 7) is what removes them from deploy. Task 9 verifies the generic loop, it does not delete named steps. (FLAG.)
 - **`supabase/functions/vfs-cleanup` is a third edge function NOT in the RU6 manifest** — it (and its `deno.json`, and possibly `SUPABASE_EDGE_FUNCTION_URL` / `EDGE_FUNCTION_MASTER_KEY`) must be preserved; `.env.example` and `supabase/functions/deno.json` removals in Task 9 are conditional on `vfs-cleanup` not needing them. (FLAG; affects "delete `deno.json` / env refs" being unconditional in the spec.)
+
+---
+
+## Integration note: executeCore deletion + `invokeWorker` (spec §3 update)
+
+The `executeCore*` deletion (Task 6) removes `executeAgentCore` **entirely** — but `handleExecute` AND the triggers fire path call it to reach the Worker. RU4 introduces a **new `invokeWorker`** as that BE→Worker entry (RU4 plan "Integration" note). So Task 6's reference check must confirm **both** call sites — `handleExecute` and `fireHandler.ts` (`defaultExecute`) — have switched to `invokeWorker` before deleting `executeCore*`. `invokeWorker` is **kept**, not deleted.

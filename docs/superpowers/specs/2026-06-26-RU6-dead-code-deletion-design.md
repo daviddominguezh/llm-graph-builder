@@ -37,7 +37,7 @@ RU1–RU5 each left their legacy code **in place behind re-export shims / parall
 
 **From RU4 (Worker + durable):**
 - The entire Supabase Deno edge runtime: `supabase/functions/execute-agent/` + `supabase/functions/execute-tool/`.
-- The legacy BE prod orchestrator `routes/execute/executeCore*.ts` (the inline-dispatch suspend/resume) now superseded by the Worker's durable `StepMachine`, plus the `edgeFunctionClient` edge-URL remnants.
+- The legacy BE prod orchestrator `routes/execute/executeCore*.ts` (incl. `executeAgentCore` + the inline-dispatch suspend/resume) — deleted **entirely**, superseded by the Worker's durable `StepMachine`, plus the `edgeFunctionClient` edge-URL remnants. **Survivor:** the BE→Worker entry is RU4's new `invokeWorker` (used by `handleExecute` + the triggers fire path) — that is **kept**, not part of this deletion.
 
 **From RU5 (SSE):**
 - Anything the RU5 cutover left (RU5 deletes the SSE shapes/writers it directly replaces; RU6 sweeps any stragglers) — e.g. the `executeTypes.ts` internal shape if RU5 didn't fully remove it. **`PublicExecutionEvent` is NOT deleted** (decision B — it's the public projection target).

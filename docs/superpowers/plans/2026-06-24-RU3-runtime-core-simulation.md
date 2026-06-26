@@ -2618,3 +2618,9 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 6. **§6.4 prod `no_result`/`finished` rows** — forward-design; only the pure mapper is unit-tested in RU3, exercised by a running strategy in RU4 (Decision 6; Task 5).
 7. **`RuntimeServices.supabase: SupabaseClient`** — api can't import the backend type; typed structurally as `SupabaseLike` (Task 4).
 8. **Two sim-SSE unions + the two sim-state members** — the throwaway bridge temporarily extends BOTH `AgentSimulationEvent` and the workflow union with `simulation_state_patch`/`simulation_state_snapshot` (and the workflow union with `child_finished`), all removed at RU5 (Decision 10; Tasks 17, 19).
+
+---
+
+## Integration note: web tool sim seam (spec §7 — added)
+
+The `simulatedNoop` task (the per-builtin seam) **explicitly includes the `web` provider**: add the `if (ctx.environment === 'simulation')` branch to `packages/api/src/providers/web/buildTools.ts` (it has none today), and add a **`web` branch to `simulationServicesResolver`** (it binds only `kv_store`/`rag` today, so web tools currently vanish in sim — or would fire real billable Tavily calls if bound). Folds into the "across builtins" seam task + the sim resolver wiring.

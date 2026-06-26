@@ -305,6 +305,8 @@ flowchart TB
   sss[shared-store-services<br/>KV/RAG/Forms/LeadScoring]
   db[(Supabase Postgres<br/>via Hyperdrive)]
   redis[(Redis Cloud · pub/sub)]
+  tasks[(Google Cloud Tasks<br/>trigger scheduler)]
+  tavily[Tavily web API]
 
   web --> apisrv
   widget --> apisrv
@@ -316,6 +318,8 @@ flowchart TB
   worker --> sss --> db
   apisrv -->|dashboard RAG search| sss
   worker -->|tool call| pool
+  worker -->|web tools: search/extract/crawl/map| tavily
+  tasks -->|fire occurrence → run agent| apisrv
   worker -->|per-step checkpoint| db
   worker -->|events, batched ~50ms| pubep --> redis
   redis -->|live| apisrv
@@ -333,6 +337,8 @@ runs survive Worker restarts.
 - **One event vocabulary** — a superset `ExecutionEvent` everywhere internally; a single curated `PublicExecutionEvent` projection at the public edge (so the widget/API s
 tay a stable contract).
 - **One store package** — `shared-store-services`, portable across Node + Workers (no more Node/Deno copies).
+- **Web tools run in the Worker** — `openflow/web` (Tavily search / extract / crawl / map) is a portable builtin provider; the Worker calls Tavily **directly** (in-process `fetch`, no backend hop), with `TAVILY_API_KEY` held as a Worker secret. It's provider-wrapped, so the search backend is swappable without changing the tools agents see.
+- **Triggers are a scheduled entry point** — Google Cloud Tasks (prod) or an in-process timer (dev) fire each occurrence and invoke the agent's published version through the **same executor as a live message** (the Worker). Distinct from durable *resume*: triggers start **new** runs (own tables `agent_triggers`/`trigger_runs`, at-most-once via Cloud Tasks + a DB unique constraint), whereas resume continues **suspended** runs (`pending_resumes`). A trigger-fired run that later suspends simply becomes a normal durable execution.
 
 #### Durable execution — suspend & resume
 

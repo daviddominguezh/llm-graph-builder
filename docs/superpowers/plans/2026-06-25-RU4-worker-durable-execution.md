@@ -2150,3 +2150,14 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 7. **§17's "`seq` column on the durable event log" already exists as `agent_execution_events.sequence`.** Spec §17 reads as if a new `seq` column must be added; but `agent_execution_events(execution_id, sequence)` (with `UNIQUE(execution_id, sequence)` + a replay index, `20260403100000_agent_composition.sql:51-62`) already IS the per-`execution_id` monotonic log — it is merely caller-assigned (`default 0`) today. Built to reality: Task 10 adds an atomic per-execution `seq` ALLOCATOR (`next_execution_event_seq`) over the existing table rather than a duplicate column/table (finding #12). **FLAGGED — if the user expected a fresh column, this reuses the existing log instead (and `getEventsAfter` is already the RU5 read-side reader).**
 
 8. **§17 "Worker publishes to Redis Cloud pub/sub" — must NOT use Upstash.** The repo runs a documented dual-Redis split (`messaging/services/redis.ts`): **Upstash** (`@upstash/redis`, HTTP REST) for cache GET/SET only — it **cannot** `PUBLISH`/`SUBSCRIBE`; **Redis Cloud** (`ioredis`, TCP) for pub/sub (`redisCloud.ts` `publishMessage` / the `redisCompletionNotifier` pattern). Task 11 publishes via `publishMessage` (Redis Cloud), NOT Upstash. The Worker holds no Redis connection at all — it POSTs to `/internal/events/publish` and the BE owns the ioredis publish (Tasks 11/12). Not a contradiction in the code, but a spec instruction that is easy to implement against the wrong client — pinned here.
+
+---
+
+## Integration: web tools + triggers (spec §18 — added)
+
+Four additional tasks from the web/triggers integration decisions (each a normal TDD task to expand when RU4 is built):
+
+- **`invokeWorker`** — a new BE→Worker entry used by BOTH `handleExecute` and the triggers fire path (`fireHandler.ts` `defaultExecute`). Replaces `executeAgentCore`; takes the run input + an optional `triggerRunId`. (RU6 deletes `executeCore*`/`executeAgentCore` entirely — this survives.)
+- **Shared portable bundle-preparer module** — extract the edge `toolBuilder.ts` `PREPARERS` (wire `ctx.services(...)` for kv/rag/forms/web/composition) into a portable `packages/api` module used by the Worker AND the RU3 sim driver (no Node/Deno duplication, matching RU1's store-service unification).
+- **Web tools on the Worker** — add `TAVILY_API_KEY` to `wrangler.toml` bindings; a Worker-side `makeWebService({ apiKey: env.TAVILY_API_KEY })` (port of Deno `webServices.ts`); the Worker calls Tavily directly (in-process `fetch`, no `/internal/web` hop).
+- **Trigger terminal-outcome recording** — the Worker, on reaching a **terminal** state (not a suspend) with a `triggerRunId` present, writes `trigger_runs.status` (`succeeded`/`failed`+error); no-op if absent. The trigger fire path becomes **fire-and-forget** at the BE (no `await`-to-completion, no `recordOutcome` there).

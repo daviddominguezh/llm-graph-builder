@@ -94,7 +94,8 @@ The core emits the **superset** `ExecutionEvent` union (§6.6) directly — per-
 
 ## 7. Per-tool simulation seam + MCP badge (§13, §12.4)
 
-- The seam ships now: `if (ctx.environment === 'simulation')` in each builtin → a **shared `simulatedNoop`** (no side-effect, no state write) for *every* builtin (forms/lead-scoring included). This makes tools visible to the LLM in sim (today forms/LS are silently absent) without per-tool behavior. Bespoke per-tool sim behavior is a deliberate, permanent extension point, deferred uniformly.
+- The seam ships now: `if (ctx.environment === 'simulation')` in each builtin → a **shared `simulatedNoop`** (no side-effect, no state write) for *every* builtin (forms/lead-scoring **and the `web` provider** included). This makes tools visible to the LLM in sim (today forms/LS *and* web are silently absent) without per-tool behavior. Bespoke per-tool sim behavior is a deliberate, permanent extension point, deferred uniformly.
+  - **`web` (Tavily) is explicitly in scope:** `packages/api/src/providers/web/buildTools.ts` has no sim seam today, and `simulationServicesResolver` doesn't bind `web` — so in sim it either vanishes or (if bound) fires **real billable Tavily calls**. RU3 adds the `simulatedNoop` branch to `web/buildTools.ts` and a `web` branch to `simulationServicesResolver`.
 - **MCP "real side-effects" badge:** MCP tools fire real side effects even in sim (the pool always connects to the real server); the sim UI surfaces a badge so the user knows those calls are real, not simulated.
 
 ## 8. Simulation FE UX (distinct workstream within RU3)
