@@ -160,6 +160,219 @@ packages/
 
 ---
 
+## Architecture
+
+OpenFlow executes two kinds of things, and the distinction runs through the whole system:
+
+- **Agents** — conversational LLM loops (LLM → tool calls → repeat, multi-turn). **Not** graph-based.
+- **Workflows** — directed graphs of **nodes and edges**, traversed node-by-node.
+
+Either can invoke the other (an agent can dispatch a workflow as a sub-task, and vice-versa), nested to a configurable depth. Both run inside `packages/api` (the engine),
+ are multi-tenant, and call tools over **MCP**.
+
+> The platform is mid-migration. The **legacy** architecture below is what runs today; the **new** architecture is the target of an in-progress *Runtime Unification* (spe
+cs live in `docs/superpowers/specs/`). Both are documented here so the whole system is legible.
+
+### Core building blocks
+
+```mermaid
+flowchart LR
+  msg[User message] --> rt[Runtime engine · packages/api]
+  rt -->|agent| al[Agent loop<br/>LLM and tool calls]
+  rt -->|workflow| wf[Workflow graph<br/>node and edge traversal]
+  al -->|dispatch| child[Child agent or workflow]
+  wf -->|dispatch| child
+  al --> tools[Tools via MCP]
+  wf --> tools
+  rt --> obs[Per-step persistence<br/>messages, tokens, tool I/O]
+  obs --> dash[Observability dashboards]
+```
+
+### Current architecture (legacy)
+
+Today, **production agent execution runs on Supabase Edge Functions (Deno)**, invoked and SSE-proxied by the Express backend. Several things are **duplicated or divergent
+** across the two runtimes, and the edge's **400-second execution cap** means a run cannot last longer than that.
+
+```mermaid
+flowchart TB
+  subgraph clients[Clients]
+    web[Web builder + dashboard]
+    widget[Embedded widget]
+    ext[External API]
+  end
+
+  subgraph be["Backend · Fly.io · Node/Express"]
+    prod[executeCore*<br/>prod orchestrator]
+    sima[simulateAgentHandler<br/>agent sim]
+    simw[simulateHandler<br/>workflow sim]
+    mcp[MCP: connect per call]
+    st1[KV/RAG store services<br/>Node copy]
+  end
+
+  subgraph edge["Supabase Edge · Deno · 400s cap"]
+    ea[execute-agent]
+    et[execute-tool]
+    st2[KV/RAG store services<br/>Deno copy]
+  end
+
+  subgraph engine["packages/api · engine"]
+    agent[executeAgentLoop · agents]
+    flow[executeWithCallbacks · workflows]
+  end
+
+  db[(Supabase Postgres)]
+
+  web --> prod
+  widget --> prod
+  ext --> prod
+  prod -->|invoke + proxy SSE| ea
+  ea --> agent
+  ea --> flow
+  web -->|agent sim| sima
+  web -->|workflow sim| simw
+  sima --> agent
+  simw --> flow
+  prod --> db
+  ea --> db
+  st2 --> db
+  st1 --> db
+```
+
+**Pain points this causes:**
+
+- **No long runs** — the 400s edge cap kills anything slow (long chains, slow tools, human-in-the-loop pauses).
+- **Duplication** — KV/RAG/store services exist twice (Node + Deno); the prod orchestrator and the simulation orchestrators are parallel implementations.
+- **Divergent SSE** — three event vocabularies (prod internal, prod public, simulation) plus an internal→public adapter; three consumers each tuned to a different shape.
+- **MCP reconnects every call** — no warm connection reuse.
+- **The FE decides agent-vs-workflow** and calls different endpoints, instead of the backend routing by type.
+
+### New architecture (migration target — *Runtime Unification*)
+
+Production execution moves to **Cloudflare Workers** running a **durable, resumable step-machine**: every run is a sequence of **steps** (an agent's LLM-request / tool-ca
+ll, or a workflow's node / tool-call), each one a **checkpoint persisted to Postgres**. A run spans **many** Worker invocations and can last **hours**, suspending and res
+uming across them. The backend stays the public boundary and owns the MCP connection pool and SSE delivery.
+
+```mermaid
+flowchart TB
+  subgraph clients[Clients]
+    web[Web builder + dashboard]
+    widget[Embedded widget]
+    ext[External API]
+  end
+
+  subgraph be["Backend · Fly.io · multi-instance"]
+    apisrv[Public API + SSE serve<br/>+ public event projection]
+    pool[MCP connection pool<br/>consistent-hash routed, warm]
+    pubep[Internal events publish]
+  end
+
+  subgraph cf["Cloudflare Workers · durable"]
+    worker[Runtime host]
+  end
+
+  subgraph engine["packages/api · ONE core"]
+    sm[executeTurn / childDispatch]
+    asm[AgentStepMachine]
+    wsm[WorkflowStepMachine]
+  end
+
+  sss[shared-store-services<br/>KV/RAG/Forms/LeadScoring]
+  db[(Supabase Postgres<br/>via Hyperdrive)]
+  redis[(Redis Cloud · pub/sub)]
+
+  web --> apisrv
+  widget --> apisrv
+  ext --> apisrv
+  apisrv -->|trigger / resume run| worker
+  worker --> sm
+  sm -->|by type| asm
+  sm -->|by type| wsm
+  worker --> sss --> db
+  worker -->|tool call| pool
+  worker -->|per-step checkpoint| db
+  worker -->|events, batched ~50ms| pubep --> redis
+  redis -->|live| apisrv
+  apisrv -->|resume: replay gap| db
+  apisrv -->|SSE| clients
+```
+
+**What changes:**
+
+- **One core, two engines** — `executeTurn` drives a `StepMachine`; `AgentStepMachine` wraps the agent loop, `WorkflowStepMachine` wraps the workflow graph. The **backend
+ chooses the engine by type** (the FE never does), behind one unified API for prod and one for sim.
+- **Durable execution** — each step is persisted; on a budget limit / child dispatch / input wait the run **suspends** and an external trigger **resumes** it. Hours-long
+runs survive Worker restarts.
+- **One MCP connection pool** — backend-owned, warm, consistent-hash routed across Fly instances; tool calls reuse connections instead of reconnecting.
+- **One event vocabulary** — a superset `ExecutionEvent` everywhere internally; a single curated `PublicExecutionEvent` projection at the public edge (so the widget/API s
+tay a stable contract).
+- **One store package** — `shared-store-services`, portable across Node + Workers (no more Node/Deno copies).
+
+#### Durable execution — suspend & resume
+
+```mermaid
+sequenceDiagram
+  participant FE
+  participant BE as Backend
+  participant W as Worker (ephemeral)
+  participant PG as Postgres
+
+  FE->>BE: user message
+  BE->>W: trigger run (executionId)
+  loop steps until budget / suspend
+    W->>W: run one step (LLM / tool / node)
+    W->>PG: persist step (checkpoint)
+  end
+  W->>PG: write pending_resume (reason)
+  W-->>BE: fire direct re-invoke, then end
+  Note over W: a fresh invocation picks it up
+  W->>PG: load state, continue from next step
+  Note over PG: a cron sweep re-fires any dropped trigger (backstop)
+```
+
+#### Real-time delivery — durable two-tier SSE
+
+The same events power **live chat streaming** (Redis pub/sub) and **resume-after-disconnect** (the Postgres log) — and survive a backend instance dying mid-run.
+
+```mermaid
+sequenceDiagram
+  participant W as Worker
+  participant PUB as BE · events publish
+  participant R as Redis Cloud
+  participant SRV as BE · SSE serving instance
+  participant FE
+
+  FE->>SRV: open SSE (POST), subscribe to execution
+  W->>PUB: batched events (~50ms)
+  PUB->>R: PUBLISH execution_id
+  R->>SRV: deliver (subscribed)
+  SRV->>FE: id + data (live, real-time)
+  Note over W,FE: durable events also persisted to Postgres
+  FE->>SRV: reconnect with last seq (after a drop)
+  SRV->>FE: replay gap from Postgres log, then resubscribe to Redis
+```
+
+- **Live path** — Worker → backend → **Redis Cloud** pub/sub → the backend instance holding the SSE connection → client. Sub-second; this is the Claude-like typing feel.
+- **Durable path** — completed messages, tool calls, tool results, and **token usage** are persisted to Postgres (also powering the cost dashboards). Only the raw typing-
+animation deltas are live-only.
+- **Failover** — if the serving backend instance dies, the Worker keeps running; the client reconnects to any instance, which replays the gap from the Postgres log. **No
+durable event is lost.**
+
+### Infrastructure summary
+
+| Concern | Legacy | New |
+| --- | --- | --- |
+| Prod execution host | Supabase Edge (Deno, 400s cap) | Cloudflare Workers (durable, hours) |
+| Orchestration | Duplicated (prod + 2 sim paths) | One core, two engines, BE-routed by type |
+| Long-running / resume | ❌ | ✅ DB-backed suspend/resume |
+| MCP connections | Per-call | BE-owned warm pool (Fly-routed) |
+| Store services | Node + Deno copies | One portable `shared-store-services` |
+| SSE | 3 shapes + adapter | One `ExecutionEvent` + public projection |
+| Live streaming / resume | Edge stream proxied | Redis Cloud pub/sub + Postgres event log |
+| DB access from compute | Direct | Postgres via Hyperdrive |
+| Redis | Upstash (cache) + Redis Cloud (pub/sub) | unchanged (Upstash cache, Redis Cloud pub/sub) |
+
+---
+
 ## Getting Started
 
 ### Prerequisites
