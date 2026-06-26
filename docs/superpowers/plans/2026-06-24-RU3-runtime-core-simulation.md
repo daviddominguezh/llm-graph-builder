@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Lift the outer agent orchestration (child dispatch, ChildResult injection, event emission, await-input handling) out of the duplicated `simulationOrchestrator.ts` into a single capability-parameterized core in `packages/api` (`executeTurn` + `childDispatch` wrapping the existing `callAgentStep`/`executeAgentLoop`), then migrate the simulation driver onto it (sync recursion, no-op persistence, console caps), emitting a superset `ExecutionEvent` union bridged to today's sim-SSE shape — while production stays on the legacy edge orchestrator until RU4.
+**Goal:** Lift the outer orchestration (child dispatch, ChildResult injection, event emission, await-input handling) out of the two duplicated simulation drivers (`simulationOrchestrator.ts` for agents, `simulateHandler.ts` for workflows) into a single capability-parameterized core in `packages/api`. The core drives a **`StepMachine`** abstraction with **two adapters** — `AgentStepMachine` (wraps `executeAgentLoop`) and `WorkflowStepMachine` (wraps `executeWithCallbacks`) — and **selects the engine by execution type server-side** (mirroring prod `executeAgentCore`'s `appType` routing). Both sim endpoints migrate onto the core behind **one sim API** where the backend routes agent-vs-workflow (the FE stops choosing). The core emits a superset `ExecutionEvent` union bridged to today's sim-SSE shapes; production stays on the legacy edge orchestrator until RU4.
 
-**Architecture:** `executeTurn` builds an env-discriminated `ProviderCtx`, runs the existing inner loop, and inspects the loop's `dispatchResult` (`DispatchSentinel`). On a dispatch decision it calls `childDispatch`, which runs the child through the injected `DispatchStrategy`, maps the child's termination to a `ChildResult`, and re-injects it into the parent (shared injection logic; only sim's `SyncRecurseStrategy` runs here, prod's durable strategy is contract-only). All progress flows through an `ExecutionEvent` emitter (superset of all three FE shapes); the backend sim handler converts those events to today's sim-SSE shape via a throwaway bridge. Sim state is held authoritatively by the runtime: deep-frozen at the ctx boundary, deep-cloned on write, surfaced as display-only `simulation_state_patch` events plus a terminal `simulation_state_snapshot`.
+**Architecture:** `executeTurn` builds an env-discriminated `ProviderCtx`, **picks a `StepMachine` by execution type** (`'agent'` → `AgentStepMachine`, `'workflow'` → `WorkflowStepMachine`), and calls `advance()` until the machine reports a terminal, an awaiting-input, or a dispatch decision. On a dispatch decision (`AgentLoopResult.dispatchResult` for agents / `CallAgentOutput.dispatchResult` for workflows) it calls `childDispatch`, which runs the child through the injected `DispatchStrategy`, maps the child's termination to a `ChildResult`, and re-injects it into the parent. Because dispatch is `StepMachine`-level, an agent can dispatch a workflow and vice-versa (interchangeable). Only sim's `SyncRecurseStrategy` runs in RU3; prod's durable strategy is contract-only. All progress flows through an `ExecutionEvent` emitter (superset of all FE shapes); the backend sim handler converts those events to today's sim-SSE shapes via a throwaway bridge. Sim state is held authoritatively by the runtime: deep-frozen at the ctx boundary, deep-cloned on write, surfaced as display-only `simulation_state_patch` events plus a terminal `simulation_state_snapshot`.
 
-**Tech Stack:** TypeScript (ESM, NodeNext, strict, `noUncheckedIndexedAccess`), the api package's existing pipeline (`callAgentStep`, `executeAgentLoop`, `DispatchSentinel`/`FinishSentinel`), Jest ESM (`unstable_mockModule`), Express SSE (backend bridge), Next.js 16 / React / shadcn (`AlertDialog`, `Popover`, `Badge`) + `next-intl` messages (`packages/web/messages/en.json`).
+**Tech Stack:** TypeScript (ESM, NodeNext, strict, `noUncheckedIndexedAccess`), the api package's existing engines (`executeAgentLoop` → `AgentLoopResult`; `executeWithCallbacks` → `CallAgentOutput | null`), `DispatchSentinel`/`FinishSentinel`, Jest ESM (`unstable_mockModule`), Express SSE (backend bridge), Next.js 16 / React / shadcn (`AlertDialog`, `Popover`, `Badge`) + `next-intl` messages (`packages/web/messages/en.json`).
 
 ## Global Constraints
 
@@ -14,7 +14,7 @@
 - ESLint: `max-lines-per-function` 40, `max-lines` 300, `max-depth` 2 — split into helpers/files, never compress lines. (This core is large — decompose aggressively.)
 - Tests: Jest ESM — `npm run test -w packages/<pkg> -- --testPathPattern=…`. Full gate: `npm run check`.
 - Prettier: single quotes, 2-space indent, width 110, trailing comma es5; `@trivago/prettier-plugin-sort-imports` import sorting.
-- **Always add translations** for any user-facing copy (the sim FE UX adds several — keys listed in Task 17).
+- **Always add translations** for any user-facing copy (the sim FE UX adds several — keys listed in Task 19).
 - Commit messages end with `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`; stage files explicitly (never `git add -A` / `-am`).
 
 ---
@@ -23,19 +23,25 @@
 
 These are verified against the real code. Where the spec assumes a shape the code does not have, this plan implements against the real code and flags it here.
 
-1. **`executeAgent` does NOT yield a dispatch decision.** The spec (§4) says "`executeAgent` yields a dispatch decision (today's `parentResult.dispatchResult`)". In reality `executeAgent` (`core/agentExecutor.ts`) is the *attempt* executor; the dispatch decision is surfaced one layer up: `callAgentStep` / `executeAgentFlowRecursive` returns a `CallAgentOutput` whose optional `dispatchResult?: DispatchSentinel` and `finishResult?: FinishSentinel` carry the decision, and `executeAgentLoop` returns an `AgentLoopResult` with the same two optional fields. **RU3 wraps `executeAgentLoop` (the loop), not `executeAgent` (the attempt).** `executeTurn` inspects `loopResult.dispatchResult` / `loopResult.finishResult`. No re-injection loop exists today (the legacy backend `simulationOrchestrator.runSimulationOrchestration` owns it); RU3 ports that loop into `packages/api`.
+1. **Two engines, two result shapes — wrap the loop / the workflow runner, not the inner executor.** The agent engine is `executeAgentLoop(config, callbacks, logger?) => Promise<AgentLoopResult>` (`packages/api/src/agentLoop/agentLoop.ts:204`). `AgentLoopResult` (`agentLoopTypes.ts:59`) = `{ finalText: string; steps: number; totalTokens: TokenLog; tokensLogs: ActionTokenUsage[]; toolCalls: AgentToolCallRecord[]; finishResult?: FinishSentinel; dispatchResult?: DispatchSentinel }`. The workflow engine is `executeWithCallbacks(options: ExecuteWithCallbacksOptions) => Promise<CallAgentOutput | null>` (`packages/api/src/index.ts:191`). `CallAgentOutput` (`core/types.ts:38`) = `{ message; tokensLogs: ActionTokenUsage[]; toolCalls; visitedNodes: string[]; parsedResults?; text?: string; debugMessages; structuredOutputs?; dispatchResult?: DispatchSentinel; finishResult?: FinishSentinel }`. **RU3 wraps each behind a `StepMachine` adapter (Task 11) — never `executeAgent` (the per-attempt executor).** FLAGGED: the spec's §4 phrasing "`executeAgent` yields a dispatch decision" is wrong; the dispatch decision lives on `AgentLoopResult.dispatchResult` / `CallAgentOutput.dispatchResult`.
 
-2. **`ProviderCtx` is a flat interface, not a discriminated union, and has no `environment` field.** Real shape (`providers/provider.ts:39-53`): `{ orgId, tenantId, agentId, isChildAgent, logger, conversationId?, contextData?, oauthTokens, mcpServers, services }`. It already has `isChildAgent` (good — finish gating uses it). It does NOT have `dispatchDepth` (north-star §6.2 adds it). **RU3 converts `ProviderCtx` to the env-discriminated union** by adding a shared base plus `environment: 'production' | 'simulation'` arms (Task 9). This is a breaking type change consumed by every builtin + `providerCtxFromContext` + `buildSimulationProviderCtx`; Task 9 updates all of them.
+2. **Prod routes by `appType` — RU3 mirrors it.** `executeFetcher.ts:159` `fetchAppType` reads `agents.app_type` (`'agent' | 'workflow'`, defaults `'workflow'`); `fetchGraphAndKeys` branches `appType === 'agent' ? buildAgentRuntimeGraph(...) : ensureGraphData(...)`, and `executeAgentCore` (`executeCore.ts:133`) returns `appType` in its output. **`executeTurn` selects the `StepMachine` by the same `'agent' | 'workflow'` discriminant, server-side** (Task 14). FLAGGED: prod's engine choice is currently expressed via *graph building* (`buildAgentRuntimeGraph` vs `ensureGraphData`) feeding a single runner, not via a `StepMachine` switch — RU3 introduces the `StepMachine` seam that RU4 will retrofit onto prod. RU3 only proves it on the two sim drivers.
 
-3. **No `AgentGraph` type exists; the child seam is `ResolvedChildConfig`, not `loadChildAgentGraph`.** The spec's `RuntimeServices.loadChildAgentGraph: (agentId) => Promise<AgentGraph>` does not match reality. graph-types exports no `AgentGraph`. The real child-resolution seam is `resolveChildConfig(input): Promise<ResolvedChildConfig>` (`simulateChildResolver.ts`), where `ResolvedChildConfig = { systemPrompt, context, modelId, maxSteps, mcpServers, skills, isChildAgent, task, agentId?, version? }`. **RU3 defines `RuntimeServices.resolveChildConfig: (input: ResolveChildInput) => Promise<ResolvedChildConfig>`** (the port of `simulateChildResolver.ts`) instead of `loadChildAgentGraph`. FLAGGED — confirm with RU4 author that prod uses the same resolver.
+3. **The FE already posts both sims to `/api/simulate`; the real "FE choice" is `streamAgentSimulation` vs `streamSimulation` + two backend handlers.** `useSimulationSend.ts:17` branches `if (deps.appType === 'agent' || isChildActive) sendAgentSim(...) else sendWorkflowSim(...)`. `sendAgentSim` → `streamAgentSimulation` (`agentSimulationApi.ts`, body has `appType:'agent'` + `composition`), `sendWorkflowSim` → `streamSimulation` (`api.ts`, body has `graph`/`currentNode`/preset fields). **Both already `fetch('/api/simulate')`** — but the backend exposes **two** handlers (`server.ts:151` `app.post('/simulate', handleSimulate)` + `:152` `app.post('/simulate-agent', handleSimulateAgent)`), and the Next.js `/api/simulate` proxy currently fans out by body shape. FLAGGED contradiction: the spec says "FE stops choosing between `streamAgentSimulation`/`streamSimulation`." The unification RU3 delivers is: **the BE decides agent-vs-workflow from `appType` in ONE handler**, and the FE collapses to **one** stream fn posting one body (carrying `appType`) (Task 20). The two backend endpoints are unified behind `handleSimulate` routing on `appType`; `/simulate-agent` becomes a thin alias until RU6.
 
-4. **`rag` registers `search_rag`, not `search`.** Spec §13's coverage table says `rag.search`; the real tool name is `search_rag` (`providers/rag/buildTools.ts`). `kv_store` registers `list_keys`/`get_values`/`search`/`update_value`. The `simulatedNoop` seam (Task 12) is keyed on the real names. FLAGGED.
+4. **`ProviderCtx` is a flat interface, no `environment` field.** Real shape (`providers/provider.ts:39-53`): `{ orgId, tenantId, agentId, isChildAgent, logger, conversationId?, contextData?, oauthTokens, mcpServers, services }` — all `readonly`. It has `isChildAgent` (good — finish gating uses it) but no `dispatchDepth`/`environment`. **RU3 converts `ProviderCtx` to an env-discriminated union** (Task 9), consumed by every builtin + `buildSimulationProviderCtx` (`simulationProviderCtx.ts:35`). FLAGGED: breaking type change; Task 9 updates all construction sites.
 
-5. **Prod END-without-finish has no explicit "no_result error" path today.** Real prod (`executeCoreChildFinish.ts:persistCoreResult`) persists `output.text ?? ''` and returns `undefined` (parent not resumed) — there is no `{ status:'error', code:'no_result' }` envelope today. The spec's `ChildResult` mapping is a *forward design* for RU4. RU3 implements the full mapping table in `mapTerminationToChildResult` (Task 5) including the prod rows, but only the **simulation** rows are exercised by a running strategy in RU3 (the prod `no_result`/`finished` rows are covered by unit tests of the pure mapper, run in RU4). FLAGGED as forward-design.
+5. **No `AgentGraph` type; the child seam is `ResolvedChildConfig` and it includes `skills`.** `resolveChildConfig(input: ResolveChildParams) => Promise<ResolvedChildConfig>` (`simulateChildResolver.ts:270`) with `DISPATCH_HANDLERS` keyed `invoke_agent`/`create_agent`/`invoke_workflow`. `ResolvedChildConfig` (`:9`) = `{ systemPrompt; context; modelId; maxSteps: number | null; mcpServers: McpServerConfig[]; skills: SkillDefinition[]; isChildAgent; task; agentId?; version? }`. **RU3 defines `RuntimeServices.resolveChildConfig` over this shape (including `skills`)** instead of the north-star's `loadChildAgentGraph: (agentId) => Promise<AgentGraph>`. FLAGGED — confirm with RU4 that prod uses the same resolver.
 
-6. **RU1/RU2 cross-deps (confirm names at impl time):** RU1 exports `makeKvStoreService(supabase, storeId)`, `makeRagStoreService(supabase, storeId, client)`, `makeLeadScoringDbService(supabase, conversationId)`, `makeNoStoreBoundKvServices()`, `makeNoStoreBoundRagServices()` from `@daviddh/shared-store-services` (today the backend still has local `makeNoStoreBound*`). RU2 exports `createMcpPoolClient(opts): McpInvoker` and the `McpInvoker` interface from `@daviddh/llm-graph-runner` (`providers/mcp/poolClient.ts`). RU3 references these as existing. FLAGGED — verify exact import paths when RU1/RU2 land.
+6. **Prod END-without-finish has no explicit `no_result` error today.** RU3 implements the full §6.4 mapping in `mapTerminationToChildResult` (Task 5) including the prod rows, but only the **simulation** rows are exercised by a running strategy in RU3; the prod `no_result`/`finished` rows are covered by pure-mapper unit tests, run for real in RU4. FLAGGED as forward-design.
 
-7. **`simulateHandler.ts` has two sim paths.** The orchestrator path (`simulationOrchestrator.ts`, agent sim) and a separate legacy `buildContextWithRegistry` path in `simulateHandler.ts` (workflow/no-store sim). RU3 migrates the **agent orchestrator path** onto `executeTurn` (Task 16). The workflow path stays legacy until RU6.
+7. **Workflow sim today does NOT re-inject after dispatch.** `simulateHandler.ts:200` only emits `child_dispatched` and stops (no parent resume). The agent sim (`simulationOrchestrator.ts:109` `continueParentAfterChild`) DOES re-inject (pushes a tool-result message, re-runs the parent). FLAGGED: migrating the workflow path onto `executeTurn` **adds** child re-injection to the workflow sim that did not exist before — this is a deliberate behavior gain (the spec §1 calls workflow "previously left on the legacy engine"), validated by RU3's own behavior tests (§9), not by parity with the old workflow handler.
+
+8. **`rag` registers `search_rag`, not `search`.** `kv_store` registers `list_keys`/`get_values`/`search`/`update_value`. The `simulatedNoop` seam (Task 12) is keyed on the real names. FLAGGED.
+
+9. **RU1/RU2 cross-deps (confirm names at impl time):** RU1 store services (`makeNoStoreBoundKvServices`/`makeNoStoreBoundRagServices` exist locally in backend today at `services/noStoreBoundServices.ts`). RU2 exports `createMcpPoolClient` + `McpInvoker` (`providers/mcp/poolClient.ts`). RU3 references these as existing. FLAGGED — verify exact import paths when RU1/RU2 land; until then Task 4 declares a local `McpInvoker` stub.
+
+10. **Two distinct sim-SSE unions today.** Agent sim uses `AgentSimulationEvent` (`simulateAgentTypes.ts:111` — `step_started`/`step_processed`/`tool_executed`/`agent_response`/`error`/`simulation_complete`/`child_dispatched`/`child_finished`/`child_waiting`; NO sim-state events). Workflow sim uses a different shape in `simulate.ts` (`node_visited`/`node_processed`/`agent_response`/`child_dispatched`/`simulation_complete`/`error`). RU3's bridge (Task 16) maps `ExecutionEvent` → the **appropriate** union per engine and **temporarily extends both** with `simulation_state_patch`/`simulation_state_snapshot`. FLAGGED.
 
 ---
 
@@ -43,58 +49,69 @@ These are verified against the real code. Where the spec assumes a shape the cod
 
 | File | Responsibility |
 |------|----------------|
-| `packages/api/src/events/types.ts` (create) | The superset `ExecutionEvent` union + `Tokens` type (§6.6). |
+| `packages/api/src/events/types.ts` (create) | The superset `ExecutionEvent` union + `Tokens` type (§5/§6.6). |
 | `packages/api/src/events/emitter.ts` (create) | `createEventEmitter()`: push events into an `AsyncIterable<ExecutionEvent>` buffer; `emit()` + `close()`. |
+| `packages/api/src/events/__tests__/types.test.ts` (create) | Union admits each event shape. |
 | `packages/api/src/events/__tests__/emitter.test.ts` (create) | Emitter buffering/ordering/close test. |
 | `packages/api/src/events/__tests__/emitterCompleteness.test.ts` (create) | §5 assertion: every field each of the 3 RU5 consumers needs is constructible from the union. |
-| `packages/api/src/runtime/types.ts` (create) | `RuntimeInput`/`RuntimeOutput` env unions, `DeepReadonly`, `RuntimeBase`, depth/timeout consts. |
+| `packages/api/src/runtime/types.ts` (create) | `RuntimeInput`/`RuntimeOutput` env unions, `ExecutionType`, `DeepReadonly`, `RuntimeBase`, depth/timeout consts. |
 | `packages/api/src/runtime/childResult.ts` (create) | `ChildResult`, `ChildErrorCode`, `mapTerminationToChildResult()` (the §6.4 table). |
 | `packages/api/src/runtime/__tests__/childResult.test.ts` (create) | Every mapping row incl. env-aware END-without-finish. |
 | `packages/api/src/capabilities/dispatchPersistence.ts` (create) | `DispatchPersistence` + `DispatchHandle` contract. |
-| `packages/api/src/capabilities/dispatchStrategy.ts` (create) | `DispatchStrategy`, `DispatchArgs`, `DispatchOutcome` contract + shared `injectChildResultIntoParent`. |
-| `packages/api/src/capabilities/observability.ts` (create) | `Observability` + `RateLimiter` interfaces. |
-| `packages/api/src/capabilities/index.ts` (create) | `RuntimeCapabilities` + `RuntimeServices` aggregate types. |
-| `packages/api/src/simulation/noopPersistence.ts` (create) | `NoopPersistence` impl. |
-| `packages/api/src/simulation/consoleCapabilities.ts` (create) | console `Observability`/`RunnerLogger`, `NoopRateLimit`. |
+| `packages/api/src/capabilities/dispatchStrategy.ts` (create) | `DispatchStrategy`, `DispatchArgs`, `DispatchOutcome` contract. |
+| `packages/api/src/capabilities/observability.ts` (create) | `Observability` + `RateLimiter` + `RunnerLogger` interfaces. |
+| `packages/api/src/capabilities/index.ts` (create) | `RuntimeCapabilities` + `RuntimeServices` aggregate types + `ResolveChildInput`/`ResolvedChildConfig`. |
+| `packages/api/src/capabilities/__tests__/contracts.test.ts` (create) | Stub-strategy contract test. |
+| `packages/api/src/simulation/noopPersistence.ts` (create) | `noopPersistence` impl. |
+| `packages/api/src/simulation/consoleCapabilities.ts` (create) | console `Observability`/`RunnerLogger`, `noopRateLimit`. |
 | `packages/api/src/simulation/syncRecurseStrategy.ts` (create) | `SyncRecurseStrategy`: runs child inline → `completed`. |
-| `packages/api/src/simulation/__tests__/syncRecurseStrategy.test.ts` (create) | Inline-recursion + depth-guard behavior. |
-| `packages/api/src/runtime/simStateStore.ts` (create) | `createSimStateStore()`: deep-freeze read copy, deep-clone write, JSON-Pointer set, patch list, snapshot. |
-| `packages/api/src/runtime/__tests__/simStateStore.test.ts` (create) | Freeze-throws, write-clone, patch/snapshot, abort-keeps-last. |
+| `packages/api/src/simulation/__tests__/*.test.ts` (create) | Sim caps + inline-recursion + depth-guard behavior. |
 | `packages/api/src/runtime/jsonPointer.ts` (create) | `setByJsonPointer(obj, pointer, value)` (RFC 6901). |
+| `packages/api/src/runtime/simStateStore.ts` (create) | `createSimStateStore()`: deep-freeze read, deep-clone write, patch list, snapshot. |
 | `packages/api/src/runtime/simulatedNoop.ts` (create) | Shared `simulatedNoop(args, ctx)` returned by every builtin in sim. |
-| `packages/api/src/runtime/childDispatch.ts` (create) | `childDispatch()`: run strategy, map termination, emit `child_*`, re-inject. |
-| `packages/api/src/runtime/executeTurn.ts` (create) | `executeTurn()`: build ctx, run loop, drive dispatch loop, emit events, return `RuntimeOutput`. |
-| `packages/api/src/runtime/__tests__/executeTurn.test.ts` (create) | Single-turn + one-dispatch + depth-cap integration. |
-| `packages/api/src/runtime/resolveChildConfig.ts` (create) | Port of backend `simulateChildResolver.ts` into api (the `RuntimeServices.resolveChildConfig` seam). |
-| `packages/api/src/providers/provider.ts` (modify) | `ProviderCtx` → env-discriminated union (`environment`, `dispatchDepth`, sim arms). |
+| `packages/api/src/runtime/childDispatch.ts` (create) | `childDispatch()`: run strategy, map termination, emit `child_*`, return `ChildResult`. |
+| `packages/api/src/runtime/stepMachine.ts` (create) | `StepMachine` interface + `StepReport` union. |
+| `packages/api/src/runtime/agentStepMachine.ts` (create) | `AgentStepMachine` wrapping `executeAgentLoop`. |
+| `packages/api/src/runtime/workflowStepMachine.ts` (create) | `WorkflowStepMachine` wrapping `executeWithCallbacks`. |
+| `packages/api/src/runtime/selectStepMachine.ts` (create) | `selectStepMachine(executionType, deps)` — the engine-by-type switch. |
+| `packages/api/src/runtime/executeTurn.ts` (create) | `executeTurn()`: build ctx, select machine, drive advance/dispatch loop, emit events, return `RuntimeOutput`. |
+| `packages/api/src/runtime/resolveChildConfig.ts` (create) | Adapter conforming the backend resolver to `RuntimeServices.resolveChildConfig`. |
+| `packages/api/src/runtime/__tests__/*.test.ts` (create) | jsonPointer / simStateStore / childDispatch / stepMachine adapters / executeTurn. |
+| `packages/api/src/providers/provider.ts` (modify) | `ProviderCtx` → env-discriminated union (`environment`, `dispatchDepth`, sim arm). |
 | `packages/api/src/core/providerCtxFromContext.ts` (modify) | Produce the production arm of the union. |
-| `packages/api/src/providers/{kv_store,rag,forms,lead_scoring,web}/buildTools.ts` (modify) | `if (ctx.environment === 'simulation') return simulatedNoop(args, ctx)` guard. |
-| `packages/api/src/index.ts` (modify) | Re-export the new public types (`ExecutionEvent`, `ChildResult`, `RuntimeCapabilities`, `RuntimeServices`, `executeTurn`, sim impls). |
+| `packages/api/src/providers/{kv_store,rag,forms,lead_scoring,web}/buildTools.ts` (modify) | `if (ctx.environment === 'simulation') return simulatedNoop(...)` guard. |
+| `packages/api/src/index.ts` (modify) | Re-export the new public types (`ExecutionEvent`, `ChildResult`, `RuntimeCapabilities`, `RuntimeServices`, `executeTurn`, `StepMachine`, sim impls). |
 | `packages/backend/src/routes/simulationProviderCtx.ts` (modify) | Set `environment: 'simulation'` + sim arm when building ctx. |
-| `packages/backend/src/runtime/simulationCapabilities.ts` (create) | Wire sim `RuntimeCapabilities` + `RuntimeServices` for the driver. |
-| `packages/backend/src/runtime/executionEventBridge.ts` (create) | Throwaway `ExecutionEvent → AgentSimulationEvent` mapper. |
-| `packages/backend/src/runtime/__tests__/executionEventBridge.test.ts` (create) | Bridge maps every event the FE consumes. |
-| `packages/backend/src/routes/simulationOrchestrator.ts` (modify) | `runSimulationOrchestration` becomes a thin driver over `executeTurn` + the bridge. |
-| `packages/web/app/utils/jsonPointer.ts` (create) | FE `setByJsonPointer` for optimistic patch preview. |
+| `packages/backend/src/runtime/simulationCapabilities.ts` (create) | Wire sim `RuntimeCapabilities` + `RuntimeServices`. |
+| `packages/backend/src/runtime/executionEventBridge.ts` (create) | Throwaway `ExecutionEvent → AgentSimulationEvent | WorkflowSimEvent` mapper (per engine). |
+| `packages/backend/src/runtime/__tests__/executionEventBridge.test.ts` (create) | Bridge maps every event the FE consumes (both engines). |
+| `packages/backend/src/routes/simulationOrchestrator.ts` (modify) | `runSimulationOrchestration` becomes a thin agent driver over `executeTurn` + the bridge. |
+| `packages/backend/src/routes/simulateHandler.ts` (modify) | Workflow `runSimulation` becomes a thin driver over `executeTurn` + the bridge. |
+| `packages/backend/src/routes/simulateHandlerUnified.ts` (create) | One handler routing agent-vs-workflow by `appType`; `/simulate` + `/simulate-agent` delegate to it. |
+| `packages/backend/src/server.ts` (modify) | Both routes delegate to the unified handler. |
+| `packages/web/app/utils/jsonPointer.ts` (create) | FE `setByJsonPointer` for patch preview. |
 | `packages/web/app/hooks/useSimulationState.ts` (modify) | `adoptSnapshot` + `resetSimulationState` + `simulationState` store. |
+| `packages/web/app/hooks/useSimulationSend.ts` (modify) | Collapse the two stream fns into one (BE routes by `appType`). |
+| `packages/web/app/hooks/simulationSendHelpers.ts` (modify) | Single `sendSim` builds one body carrying `appType`. |
+| `packages/web/app/lib/simulationApi.ts` (create) | One `streamSimulation` posting `/api/simulate` (replaces the two). |
 | `packages/web/app/components/panels/SimulationStatePanel.tsx` (create) | Sim-state panel (`JsonBlock` + reset button). |
 | `packages/web/app/components/panels/TestingPresetsPopover.tsx` (create) | Testing-presets popover w/ `TenantPicker`. |
 | `packages/web/app/components/panels/ResetSimulationDialog.tsx` (create) | Reset `AlertDialog`. |
 | `packages/web/app/components/panels/TenantSwitchResetDialog.tsx` (create) | Tenant-switch reset `AlertDialog`. |
 | `packages/web/app/components/McpSideEffectBadge.tsx` (create) | The "real side effects" badge. |
-| `packages/web/messages/en.json` (modify) | The §12.5 translation keys. |
+| `packages/web/messages/en.json` (modify) | The §8 / §12.5 translation keys. |
 
 ---
 
 ### Task 1: `ExecutionEvent` superset union + `Tokens` type
 
 **Files:**
-- Create: `packages/api/src/events/types.ts`
+- Create: `packages/api/src/events/types.ts`, `packages/api/src/runtime/childResult.ts` (type-only stub)
 - Test: `packages/api/src/events/__tests__/types.test.ts`
 
 **Interfaces:**
-- Consumes: `ChildResult` is referenced as a forward import from `../runtime/childResult.js` — but to avoid a cycle, Task 1 inlines a local `ChildResultRef` shape and Task 5 replaces it. (Actually: define `ExecutionEvent` to import `ChildResult` from `../runtime/childResult.js`; Task 5 lands first if dispatched out of order — so here we define `ChildResult` co-located is wrong; instead this task imports the type lazily. To keep tasks independently testable, Task 1 declares `child_finished` with `result: ChildResult` and we add `childResult.ts` as a stub in this task.)
-- Produces: `export type Tokens = { input: number; output: number; cached: number; costUSD?: number }` and `export type ExecutionEvent = …` (full union below).
+- `export type Tokens = { input: number; output: number; cached: number; costUSD?: number }`
+- `export type ExecutionEvent = …` (full union below). The `child_finished` arm references `ChildResult` from `../runtime/childResult.js`; this task lands the `ChildResult`/`ChildErrorCode` **types** in `childResult.ts` (Task 5 appends the mapper).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -137,8 +154,6 @@ Expected: FAIL — cannot find module `../types.js` (and `../runtime/childResult
 
 - [ ] **Step 3: Write minimal implementation**
 
-First create the `ChildResult` stub it imports (this is the real file Task 5 will flesh out — Task 5 only adds the mapper, the type lands here so the union compiles):
-
 ```ts
 // packages/api/src/runtime/childResult.ts
 export type ChildErrorCode =
@@ -154,8 +169,6 @@ export type ChildResult =
   | { status: 'awaiting_input'; partial: string }
   | { status: 'error'; code: ChildErrorCode; message: string };
 ```
-
-Then the events union:
 
 ```ts
 // packages/api/src/events/types.ts
@@ -180,7 +193,7 @@ export type ExecutionEvent =
   | { type: 'tool_result'; toolCallId: string; result: unknown; depth: number }
   | { type: 'simulation_state_patch'; tool: string; path: string; value: unknown }
   | { type: 'simulation_state_snapshot'; state: Record<string, unknown> }
-  | { type: 'child_dispatched'; childExecutionId: string; depth: number }
+  | { type: 'child_dispatched'; childExecutionId: string; dispatchType: string; task: string; depth: number }
   | { type: 'child_suspended'; childExecutionId: string; depth: number }
   | { type: 'child_awaiting_input'; childExecutionId: string; partial: string; depth: number }
   | { type: 'child_finished'; childExecutionId: string; result: ChildResult; tokens?: Tokens; depth: number }
@@ -212,10 +225,8 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 - Test: `packages/api/src/events/__tests__/emitter.test.ts`
 
 **Interfaces:**
-- Consumes: `ExecutionEvent` from `../events/types.js` (Task 1).
-- Produces:
-  - `export interface EventEmitter { emit(ev: ExecutionEvent): void; close(): void; events: AsyncIterable<ExecutionEvent>; }`
-  - `export function createEventEmitter(): EventEmitter` — a single-consumer push buffer: `emit` enqueues; `close` ends iteration; `events` yields in emission order, draining queued events then awaiting new ones.
+- `export interface EventEmitter { emit(ev: ExecutionEvent): void; close(): void; events: AsyncIterable<ExecutionEvent>; }`
+- `export function createEventEmitter(): EventEmitter` — single-consumer push buffer: `emit` enqueues; `close` ends iteration; `events` yields in emission order, draining queued events then awaiting new ones.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -328,21 +339,20 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 3: Runtime types — `DeepReadonly`, `RuntimeInput`/`RuntimeOutput`, depth/timeout consts
+### Task 3: Runtime types — `DeepReadonly`, `ExecutionType`, `RuntimeInput`/`RuntimeOutput`, depth/timeout consts
 
 **Files:**
 - Create: `packages/api/src/runtime/types.ts`
 - Test: `packages/api/src/runtime/__tests__/types.test.ts`
 
 **Interfaces:**
-- Consumes: `ExecutionEvent` from `../events/types.js` (Task 1).
-- Produces:
-  - `export type DeepReadonly<T>` (recursive readonly).
-  - `export const MAX_DISPATCH_DEPTH = 10;` and `export const MAX_CHILD_RUNTIME_MS = 60 * 60 * 1000;`
-  - `export interface RuntimeBase { orgId; tenantId; userId; agentId; selectedTools; mcpServers; dispatchDepth; maxDispatchDepth; maxChildRuntimeMs }` (kept minimal — only fields RU3's sim driver actually threads; prod-only `executionId`/`conversationId` go on the production arm).
-  - `export type RuntimeInput` and `export type RuntimeOutput` (the env unions from §6.1/§6.5).
+- `export type DeepReadonly<T>` (recursive readonly).
+- `export type ExecutionType = 'agent' | 'workflow';` (mirrors prod `appType`).
+- `export const MAX_DISPATCH_DEPTH = 10;` and `export const MAX_CHILD_RUNTIME_MS = 60 * 60 * 1000;`
+- `export interface RuntimeBase { orgId; tenantId; userId; agentId; executionType: ExecutionType; selectedTools; mcpServers; dispatchDepth; maxDispatchDepth; maxChildRuntimeMs }`.
+- `export type RuntimeInput` and `export type RuntimeOutput` (env unions; both carry `executionType`).
 
-> NOTE: The north-star §6.1 `RuntimeBase` includes `graph`/`storeBindings`/`message`; RU3's sim driver continues to pass those through the existing `SimulateAgentRequest` body rather than a new `RuntimeInput` (the migration in Task 16 keeps the request shape). So `RuntimeInput`/`RuntimeOutput` here are defined as the canonical contract types but the sim driver passes its existing body — they are not yet the wire shape. FLAGGED: full `RuntimeInput` wiring lands in RU4/RU5.
+> NOTE: north-star §6.1 `RuntimeBase` includes `graph`/`storeBindings`/`message`; RU3's sim drivers keep passing those via the existing request bodies (`SimulateRequest`/`SimulateAgentRequest`) rather than a new `RuntimeInput` wire shape — `RuntimeInput`/`RuntimeOutput` are the canonical contract types only; full wiring lands RU4/RU5. FLAGGED.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -350,7 +360,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 // packages/api/src/runtime/__tests__/types.test.ts
 import { describe, expect, it } from '@jest/globals';
 
-import type { DeepReadonly, RuntimeOutput } from '../types.js';
+import type { DeepReadonly, ExecutionType, RuntimeOutput } from '../types.js';
 import { MAX_CHILD_RUNTIME_MS, MAX_DISPATCH_DEPTH } from '../types.js';
 
 describe('runtime constants', () => {
@@ -363,12 +373,15 @@ describe('runtime constants', () => {
 describe('DeepReadonly + RuntimeOutput', () => {
   it('compiles a frozen nested shape and a simulation output', () => {
     const ro: DeepReadonly<{ a: { b: number } }> = { a: { b: 1 } };
+    const et: ExecutionType = 'agent';
     const out: RuntimeOutput = {
       environment: 'simulation',
+      executionType: 'workflow',
       finalResult: 'done',
       events: (async function* () {})(),
     };
     expect(ro.a.b).toBe(1);
+    expect(et).toBe('agent');
     expect(out.environment).toBe('simulation');
   });
 });
@@ -393,6 +406,8 @@ export type DeepReadonly<T> = T extends (infer U)[]
     ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
     : T;
 
+export type ExecutionType = 'agent' | 'workflow';
+
 export const MAX_DISPATCH_DEPTH = 10;
 export const MAX_CHILD_RUNTIME_MS = 60 * 60 * 1000;
 
@@ -406,6 +421,7 @@ export interface RuntimeBase {
   tenantId: string;
   userId: string;
   agentId: string;
+  executionType: ExecutionType;
   selectedTools: ToolRef[];
   mcpServers: McpServerConfig[];
   dispatchDepth: number;
@@ -424,6 +440,7 @@ export type RuntimeInput =
 export interface RuntimeOutputBase {
   events: AsyncIterable<ExecutionEvent>;
   finalResult: string;
+  executionType: ExecutionType;
 }
 
 export type RuntimeOutput =
@@ -440,7 +457,7 @@ Expected: PASS
 
 ```bash
 git add packages/api/src/runtime/types.ts packages/api/src/runtime/__tests__/types.test.ts
-git commit -m "feat(api): runtime types (DeepReadonly, RuntimeInput/Output, depth/timeout consts)
+git commit -m "feat(api): runtime types (DeepReadonly, ExecutionType, RuntimeInput/Output, consts)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
@@ -450,25 +467,15 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ### Task 4: Capability + service contracts (interfaces only)
 
 **Files:**
-- Create: `packages/api/src/capabilities/dispatchPersistence.ts`
-- Create: `packages/api/src/capabilities/dispatchStrategy.ts`
-- Create: `packages/api/src/capabilities/observability.ts`
-- Create: `packages/api/src/capabilities/index.ts`
+- Create: `packages/api/src/capabilities/dispatchPersistence.ts`, `dispatchStrategy.ts`, `observability.ts`, `index.ts`
 - Test: `packages/api/src/capabilities/__tests__/contracts.test.ts`
 
 **Interfaces:**
-- Consumes: `ChildResult` (Task 1), `ResolvedChildConfig` + `ResolveChildInput` (forward — declared minimally here; replaced by the Task 15 port import). `McpInvoker` from RU2 (`providers/mcp/poolClient.js`), `SupabaseClient` from the backend's `operationHelpers` — but the api package cannot import the backend, so `RuntimeServices.supabase` is typed as `unknown`-bounded `SupabaseLike` to avoid a cross-package dep. FLAGGED: §6.3 says `supabase: SupabaseClient`; api types it structurally.
-- Produces:
-  - `export interface DispatchHandle { executionId: string; childExecutionId: string }`
-  - `export interface DispatchPersistence { beforeDispatch(a): Promise<DispatchHandle>; onChildFinish(a): Promise<void>; onChildError(a): Promise<void>; listPending(executionId: string): Promise<DispatchHandle[]> }`
-  - `export interface DispatchArgs { dispatchDepth; maxDispatchDepth; runChild: () => Promise<ChildResult> }`
-  - `export type DispatchOutcome = { kind: 'completed'; childResult: ChildResult } | { kind: 'suspended'; handle: DispatchHandle }`
-  - `export interface DispatchStrategy { dispatch(args: DispatchArgs): Promise<DispatchOutcome> }`
-  - `export interface Observability { event(name: string, data?: Record<string, unknown>): void }`
-  - `export interface RateLimiter { acquire(tenantId: string): Promise<void> }`
-  - `export interface RunnerLogger { info; warn; error }` (re-export shape of existing `Logger`).
-  - `export interface RuntimeCapabilities { persistence; dispatch; observability; rateLimit; logger }`
-  - `export interface RuntimeServices { mcpPool: McpInvoker; resolveChildConfig: (input: ResolveChildInput) => Promise<ResolvedChildConfig>; supabase: SupabaseLike }`
+- `DispatchHandle`, `DispatchPersistence`, `DispatchArgs`, `DispatchOutcome`, `DispatchStrategy`, `Observability`, `RateLimiter`, `RunnerLogger`.
+- `RuntimeCapabilities = { persistence; dispatch; observability; rateLimit; logger }`.
+- `RuntimeServices = { mcpPool: McpInvoker; resolveChildConfig: (input: ResolveChildInput) => Promise<ResolvedChildConfig>; supabase: SupabaseLike }`.
+- `ResolvedChildConfig` **includes `skills`** (verified against `simulateChildResolver.ts:9`). `SkillDefinition` is imported from graph-types if exported there; else typed as `{ name: string; description: string; content: string }`. FLAGGED — reconcile the `SkillDefinition` import at impl time.
+- `RuntimeServices.supabase` is typed `SupabaseLike` (structural) because the api package cannot import the backend's `SupabaseClient`. FLAGGED: §6.3 says `supabase: SupabaseClient`; api types it structurally.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -514,11 +521,7 @@ export interface DispatchHandle {
 }
 
 export interface DispatchPersistence {
-  beforeDispatch(args: {
-    executionId: string;
-    parentSnapshot: unknown;
-    childInput: unknown;
-  }): Promise<DispatchHandle>;
+  beforeDispatch(args: { executionId: string; parentSnapshot: unknown; childInput: unknown }): Promise<DispatchHandle>;
   onChildFinish(args: { handle: DispatchHandle; childResult: ChildResult }): Promise<void>;
   onChildError(args: { handle: DispatchHandle; error: unknown }): Promise<void>;
   listPending(executionId: string): Promise<DispatchHandle[]>;
@@ -564,7 +567,8 @@ export interface RunnerLogger {
 
 ```ts
 // packages/api/src/capabilities/index.ts
-import type { McpInvoker } from '../providers/mcp/poolClient.js';
+import type { McpServerConfig } from '@daviddh/graph-types';
+
 import type { DispatchPersistence } from './dispatchPersistence.js';
 import type { DispatchStrategy } from './dispatchStrategy.js';
 import type { Observability, RateLimiter, RunnerLogger } from './observability.js';
@@ -572,6 +576,19 @@ import type { Observability, RateLimiter, RunnerLogger } from './observability.j
 export type { DispatchHandle, DispatchPersistence } from './dispatchPersistence.js';
 export type { DispatchArgs, DispatchOutcome, DispatchStrategy } from './dispatchStrategy.js';
 export type { Observability, RateLimiter, RunnerLogger } from './observability.js';
+
+// RU2 reconcile: replace this local stub with the import from providers/mcp/poolClient.js.
+export interface McpInvoker {
+  invoke(a: {
+    agentId: string;
+    tenantId: string;
+    mcpBindingId: string;
+    toolName: string;
+    args: unknown;
+  }): Promise<unknown>;
+}
+
+export type SupabaseLike = Record<string, unknown>;
 
 export interface RuntimeCapabilities {
   persistence: DispatchPersistence;
@@ -581,12 +598,16 @@ export interface RuntimeCapabilities {
   logger: RunnerLogger;
 }
 
-export type SupabaseLike = Record<string, unknown>;
-
 export interface ResolveChildInput {
   dispatchType: 'create_agent' | 'invoke_agent' | 'invoke_workflow';
   params: Record<string, unknown>;
   orgId: string;
+}
+
+export interface SkillDefinitionLike {
+  name: string;
+  description: string;
+  content: string;
 }
 
 export interface ResolvedChildConfig {
@@ -594,7 +615,8 @@ export interface ResolvedChildConfig {
   context: string;
   modelId: string;
   maxSteps: number | null;
-  mcpServers: import('@daviddh/graph-types').McpServerConfig[];
+  mcpServers: McpServerConfig[];
+  skills: SkillDefinitionLike[];
   isChildAgent: boolean;
   task: string;
   agentId?: string;
@@ -607,8 +629,6 @@ export interface RuntimeServices {
   supabase: SupabaseLike;
 }
 ```
-
-> If RU2's `McpInvoker` import path is not yet present, temporarily declare `import type { McpInvoker } from '../providers/mcp/poolClient.js';` will fail to resolve — in that case stub `export interface McpInvoker { invoke(a: { agentId: string; tenantId: string; mcpBindingId: string; toolName: string; args: unknown }): Promise<unknown> }` locally and FLAG to reconcile with RU2.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -629,14 +649,15 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ### Task 5: `mapTerminationToChildResult` — the §6.4 mapping table
 
 **Files:**
-- Modify: `packages/api/src/runtime/childResult.ts` (add the mapper; the types landed in Task 1)
+- Modify: `packages/api/src/runtime/childResult.ts` (add the mapper; types landed in Task 1)
 - Test: `packages/api/src/runtime/__tests__/childResult.test.ts`
 
 **Interfaces:**
-- Consumes: `FinishSentinel` from `../types/sentinels.js` (real shape: `{ __sentinel: 'finish'; output: string; status: 'success' | 'error' }`).
-- Produces:
-  - `export interface TerminationInput { environment: 'production' | 'simulation'; finishResult?: FinishSentinel; lastAssistantText: string; depthExceeded?: boolean; failure?: { kind: 'child_failed' | 'timeout' | 'agent_not_published' | 'aborted'; message: string } }`
-  - `export function mapTerminationToChildResult(input: TerminationInput): ChildResult`
+- Consumes: `FinishSentinel` from `../types/sentinels.js` (real shape `{ __sentinel: 'finish'; output: string; status: 'success' | 'error' }`).
+- `export interface TerminationInput { environment: 'production' | 'simulation'; finishResult?: FinishSentinel; lastAssistantText: string; depthExceeded?: boolean; failure?: { kind: 'child_failed' | 'timeout' | 'agent_not_published' | 'aborted'; message: string } }`
+- `export function mapTerminationToChildResult(input: TerminationInput): ChildResult`
+
+The one env-aware row: END-without-`finish` → **sim** `awaiting_input`, **prod** `finished` (has text) or `error: no_result`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -668,15 +689,18 @@ describe('mapTerminationToChildResult', () => {
   });
 
   it('END-without-finish in simulation → awaiting_input with last text', () => {
-    expect(
-      mapTerminationToChildResult({ environment: 'simulation', lastAssistantText: 'hold on' })
-    ).toEqual({ status: 'awaiting_input', partial: 'hold on' });
+    expect(mapTerminationToChildResult({ environment: 'simulation', lastAssistantText: 'hold on' })).toEqual({
+      status: 'awaiting_input',
+      partial: 'hold on',
+    });
   });
 
   it('END-without-finish in production with text → finished/success', () => {
-    expect(
-      mapTerminationToChildResult({ environment: 'production', lastAssistantText: 'answer' })
-    ).toEqual({ status: 'finished', result: 'answer', outcome: 'success' });
+    expect(mapTerminationToChildResult({ environment: 'production', lastAssistantText: 'answer' })).toEqual({
+      status: 'finished',
+      result: 'answer',
+      outcome: 'success',
+    });
   });
 
   it('END-without-finish in production with no text → error/no_result', () => {
@@ -686,11 +710,7 @@ describe('mapTerminationToChildResult', () => {
   });
 
   it('depth exceeded → error/max_depth_exceeded', () => {
-    const r = mapTerminationToChildResult({
-      environment: 'simulation',
-      lastAssistantText: '',
-      depthExceeded: true,
-    });
+    const r = mapTerminationToChildResult({ environment: 'simulation', lastAssistantText: '', depthExceeded: true });
     if (r.status === 'error') expect(r.code).toBe('max_depth_exceeded');
   });
 
@@ -708,12 +728,12 @@ describe('mapTerminationToChildResult', () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `npm run test -w packages/api -- --testPathPattern=runtime/__tests__/childResult`
-Expected: FAIL — `mapTerminationToChildResult` is not exported.
+Expected: FAIL — `mapTerminationToChildResult` not exported.
 
 - [ ] **Step 3: Write minimal implementation** (append to `childResult.ts`)
 
 ```ts
-// packages/api/src/runtime/childResult.ts  (append below the type defs from Task 1)
+// packages/api/src/runtime/childResult.ts  (append below the Task 1 type defs)
 import type { FinishSentinel } from '../types/sentinels.js';
 
 export interface TerminationInput {
@@ -762,20 +782,13 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 6: Sim capabilities — `NoopPersistence`, console caps, `NoopRateLimit`
+### Task 6: Sim capabilities — `noopPersistence`, console caps, `noopRateLimit`
 
 **Files:**
-- Create: `packages/api/src/simulation/noopPersistence.ts`
-- Create: `packages/api/src/simulation/consoleCapabilities.ts`
+- Create: `packages/api/src/simulation/noopPersistence.ts`, `consoleCapabilities.ts`
 - Test: `packages/api/src/simulation/__tests__/consoleCapabilities.test.ts`
 
-**Interfaces:**
-- Consumes: `DispatchPersistence`, `Observability`, `RateLimiter`, `RunnerLogger` (Task 4).
-- Produces:
-  - `export const noopPersistence: DispatchPersistence`
-  - `export const noopRateLimit: RateLimiter`
-  - `export const consoleObservability: Observability`
-  - `export const consoleLogger: RunnerLogger`
+**Interfaces:** `noopPersistence: DispatchPersistence`, `noopRateLimit: RateLimiter`, `consoleObservability: Observability`, `consoleLogger: RunnerLogger`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -825,7 +838,6 @@ export const noopRateLimit: RateLimiter = {
 
 export const consoleObservability: Observability = {
   event: (name, data) => {
-    // eslint config allows console in sim caps; keep structured shape.
     console.info(`[sim] ${name}`, data ?? {});
   },
 };
@@ -837,7 +849,7 @@ export const consoleLogger: RunnerLogger = {
 };
 ```
 
-> If the api ESLint config forbids `console`, route these through the existing `utils/logger.ts` proxy logger instead of raw `console`, keeping the same `RunnerLogger`/`Observability` shape. FLAG and adapt.
+> If the api ESLint config forbids raw `console`, route these through the existing `utils/logger.ts` proxy keeping the same `RunnerLogger`/`Observability` shape. FLAG and adapt.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -848,7 +860,7 @@ Expected: PASS
 
 ```bash
 git add packages/api/src/simulation/noopPersistence.ts packages/api/src/simulation/consoleCapabilities.ts packages/api/src/simulation/__tests__/consoleCapabilities.test.ts
-git commit -m "feat(api): sim capabilities (NoopPersistence, console observability/logger, NoopRateLimit)
+git commit -m "feat(api): sim capabilities (noopPersistence, console observability/logger, noopRateLimit)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
@@ -861,8 +873,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 - Create: `packages/api/src/runtime/jsonPointer.ts`
 - Test: `packages/api/src/runtime/__tests__/jsonPointer.test.ts`
 
-**Interfaces:**
-- Produces: `export function setByJsonPointer(target: Record<string, unknown>, pointer: string, value: unknown): Record<string, unknown>` — returns a NEW object with the value set at the pointer path (creates intermediate objects); does not mutate `target`.
+**Interfaces:** `export function setByJsonPointer(target: Record<string, unknown>, pointer: string, value: unknown): Record<string, unknown>` — returns a NEW object with the value set at the pointer path (creates intermediate objects); does not mutate `target`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -902,10 +913,7 @@ function decodeToken(token: string): string {
 
 function tokens(pointer: string): string[] {
   if (pointer === '') return [];
-  return pointer
-    .split('/')
-    .slice(1)
-    .map(decodeToken);
+  return pointer.split('/').slice(1).map(decodeToken);
 }
 
 export function setByJsonPointer(
@@ -953,12 +961,10 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 - Test: `packages/api/src/runtime/__tests__/simStateStore.test.ts`
 
 **Interfaces:**
-- Consumes: `setByJsonPointer` (Task 7), `DeepReadonly` (Task 3), `ExecutionEvent` (Task 1).
-- Produces:
-  - `export interface SimStatePatch { tool: string; path: string; value: unknown }`
-  - `export interface SimStateStore { read(): DeepReadonly<Record<string, unknown>>; write(tool: string, path: string, value: unknown): SimStatePatch | null; snapshot(): Record<string, unknown>; patches(): SimStatePatch[] }`
-  - `export function createSimStateStore(initial: Record<string, unknown>, writable: boolean): SimStateStore` — `read()` returns a deep-frozen view; `write()` deep-clones value, applies via `setByJsonPointer` to the authoritative copy, records a patch and returns it when `writable`, or returns `null` (no-op) when not writable.
-  - `export function deepFreeze<T>(value: T): T`
+- `export interface SimStatePatch { tool: string; path: string; value: unknown }`
+- `export interface SimStateStore { read(): DeepReadonly<Record<string, unknown>>; write(tool, path, value): SimStatePatch | null; snapshot(): Record<string, unknown>; patches(): SimStatePatch[] }`
+- `export function createSimStateStore(initial, writable): SimStateStore` — `read()` deep-frozen; `write()` deep-clones value, applies via `setByJsonPointer`, records+returns a patch when `writable` else `null`.
+- `export function deepFreeze<T>(value: T): T`
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1035,10 +1041,7 @@ export interface SimStateStore {
   patches(): SimStatePatch[];
 }
 
-export function createSimStateStore(
-  initial: Record<string, unknown>,
-  writable: boolean
-): SimStateStore {
+export function createSimStateStore(initial: Record<string, unknown>, writable: boolean): SimStateStore {
   let authoritative: Record<string, unknown> = structuredClone(initial);
   const recorded: SimStatePatch[] = [];
 
@@ -1090,15 +1093,12 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 - Test: `packages/api/src/providers/__tests__/providerCtxEnv.test.ts`
 
 **Interfaces:**
-- Consumes: existing `ProviderCtx` fields; `SimStateStore` (Task 8); `DeepReadonly` (Task 3).
-- Produces:
-  - `ProviderCtx` becomes `ProviderCtxBase & (ProductionCtxArm | SimulationCtxArm)`:
-    - `ProviderCtxBase`: existing fields **minus** `conversationId` plus `dispatchDepth: number`.
-    - production arm: `{ environment: 'production'; conversationId?: string }`.
-    - simulation arm: `{ environment: 'simulation'; simulationState: DeepReadonly<Record<string, unknown>>; writeSimulationState: (path: string, value: unknown) => void }`.
-  - `export async function simulatedNoop(args: unknown, ctx: ProviderCtx): Promise<{ simulated: true }>` (logs nothing; returns a stable no-op marker).
-  - `providerCtxFromContext` returns the production arm (`environment: 'production'`, `dispatchDepth: context.dispatchDepth ?? 0`).
-  - `buildSimulationProviderCtx` returns the simulation arm.
+- `ProviderCtx` becomes `ProviderCtxBase & (ProductionCtxArm | SimulationCtxArm)`:
+  - `ProviderCtxBase`: existing fields **minus** `conversationId`, plus `dispatchDepth: number`.
+  - production arm: `{ environment: 'production'; conversationId?: string }`.
+  - simulation arm: `{ environment: 'simulation'; simulationState: DeepReadonly<Record<string, unknown>>; writeSimulationState: (path: string, value: unknown) => void }`.
+- `export async function simulatedNoop(args: unknown, ctx: ProviderCtx): Promise<{ simulated: true }>`.
+- `providerCtxFromContext` returns the production arm; `buildSimulationProviderCtx` returns the simulation arm.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1129,9 +1129,7 @@ function simCtx(): ProviderCtx {
 describe('ProviderCtx env discriminant', () => {
   it('narrows to the simulation arm and simulatedNoop returns the marker', async () => {
     const ctx = simCtx();
-    if (ctx.environment === 'simulation') {
-      ctx.writeSimulationState('/x', 1);
-    }
+    if (ctx.environment === 'simulation') ctx.writeSimulationState('/x', 1);
     expect(await simulatedNoop({}, ctx)).toEqual({ simulated: true });
   });
 });
@@ -1144,7 +1142,7 @@ Expected: FAIL — `environment`/`simulationState` not on `ProviderCtx`; `simula
 
 - [ ] **Step 3: Write minimal implementation**
 
-Edit `provider.ts`: replace the flat `ProviderCtx` interface with the union:
+Replace the flat `ProviderCtx` interface (`provider.ts:39-53`) with the union:
 
 ```ts
 // packages/api/src/providers/provider.ts  (replace the `export interface ProviderCtx { ... }` block)
@@ -1172,8 +1170,6 @@ export type ProviderCtx =
     });
 ```
 
-Create `simulatedNoop.ts`:
-
 ```ts
 // packages/api/src/runtime/simulatedNoop.ts
 import type { ProviderCtx } from '../providers/provider.js';
@@ -1183,34 +1179,13 @@ export async function simulatedNoop(_args: unknown, _ctx: ProviderCtx): Promise<
 }
 ```
 
-Edit `providerCtxFromContext.ts` — add to the returned object:
+Edit `providerCtxFromContext.ts` — add `environment: 'production'` and `dispatchDepth: context.dispatchDepth ?? 0` to the returned object. Edit `buildSimulationProviderCtx` (`simulationProviderCtx.ts:35`) — accept `dispatchDepth`/`simulationState`/`writeSimulationState` args (default `0`/`{}`/no-op) and set `environment: 'simulation'` + the sim arm; drop `conversationId` from the sim arm (and from `SimulationCtxArgs` if no caller needs it — it does not exist on the sim arm). Resolve all `ProviderCtx` construction sites (`grep -rn "buildSimulationProviderCtx(\|environment:" packages`).
 
-```ts
-// in providerCtxFromContext(): add these fields to the returned ProviderCtx
-    environment: 'production',
-    dispatchDepth: context.dispatchDepth ?? 0,
-```
-
-(remove the bare `conversationId` line only if TS complains; the production arm keeps it optional.)
-
-Edit `simulationProviderCtx.ts` `buildSimulationProviderCtx` — add to the returned object and accept the store:
-
-```ts
-// add params: simulationState: DeepReadonly<Record<string, unknown>>; writeSimulationState: (p, v) => void; dispatchDepth: number
-// and in the returned object:
-    environment: 'simulation',
-    dispatchDepth: args.dispatchDepth ?? 0,
-    simulationState: args.simulationState ?? {},
-    writeSimulationState: args.writeSimulationState ?? (() => undefined),
-```
-
-(Drop `conversationId` from the simulation arm — it does not exist there. If existing call sites pass it, remove those args.)
-
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 4: Run test + typecheck**
 
 Run: `npm run test -w packages/api -- --testPathPattern=providers/__tests__/providerCtxEnv`
-Then: `npm run typecheck -w packages/api` (expect new errors in builtin `buildTools.ts` that read `ctx.conversationId` unconditionally — fixed in Task 12) and `npm run typecheck -w packages/backend`.
-Expected: the new test PASSES; resolve any non-builtin typecheck breakage from the union change here (e.g. add `dispatchDepth`/`environment` at every `ProviderCtx` construction site found via `grep -rn "environment:" packages` and `buildSimulationProviderCtx(`).
+Then: `npm run typecheck -w packages/api && npm run typecheck -w packages/backend`
+Expected: new test PASSES; builtin `buildTools.ts` typecheck breakage from the union is fixed in Task 12 — resolve all other ctx-construction breakage here.
 
 - [ ] **Step 5: Commit**
 
@@ -1223,15 +1198,13 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 10: `SyncRecurseStrategy` + shared child-result injection
+### Task 10: `SyncRecurseStrategy` + depth guard
 
 **Files:**
 - Create: `packages/api/src/simulation/syncRecurseStrategy.ts`
 - Test: `packages/api/src/simulation/__tests__/syncRecurseStrategy.test.ts`
 
-**Interfaces:**
-- Consumes: `DispatchStrategy`, `DispatchArgs`, `DispatchOutcome` (Task 4); `ChildResult` (Task 1).
-- Produces: `export const syncRecurseStrategy: DispatchStrategy` — runs `args.runChild()` inline and returns `{ kind: 'completed', childResult }`. If `args.dispatchDepth + 1 > args.maxDispatchDepth`, it returns `{ kind: 'completed', childResult: { status:'error', code:'max_depth_exceeded', message } }` WITHOUT calling `runChild`.
+**Interfaces:** `export const syncRecurseStrategy: DispatchStrategy` — runs `args.runChild()` inline → `{ kind: 'completed', childResult }`. If `args.dispatchDepth + 1 > args.maxDispatchDepth`, returns `{ kind: 'completed', childResult: { status:'error', code:'max_depth_exceeded', message } }` WITHOUT calling `runChild`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1302,17 +1275,16 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 11: `childDispatch` — run strategy, map termination, emit child_* events, re-inject
+### Task 11: `childDispatch` — run strategy, map termination, emit child_* events
 
 **Files:**
 - Create: `packages/api/src/runtime/childDispatch.ts`
 - Test: `packages/api/src/runtime/__tests__/childDispatch.test.ts`
 
 **Interfaces:**
-- Consumes: `DispatchStrategy` (Task 4), `mapTerminationToChildResult` (Task 5), `ChildResult` (Task 1), `EventEmitter` (Task 2), `DispatchSentinel` (`types/sentinels.js`).
-- Produces:
-  - `export interface ChildDispatchArgs { sentinel: DispatchSentinel; dispatchDepth: number; maxDispatchDepth: number; environment: 'production' | 'simulation'; strategy: DispatchStrategy; emitter: EventEmitter; runChildToTermination: () => Promise<{ finishResult?: FinishSentinel; lastAssistantText: string }>; childExecutionId: string; }`
-  - `export async function childDispatch(args: ChildDispatchArgs): Promise<ChildResult>` — emits `child_dispatched`; calls `strategy.dispatch({ ..., runChild })` where `runChild` runs `runChildToTermination()` then maps via `mapTerminationToChildResult`; on `completed` emits the env-appropriate event (`child_awaiting_input` for `awaiting_input`, else `child_finished`) and returns the `ChildResult`; on `suspended` emits `child_suspended` and returns a sentinel error `{ status:'error', code:'child_failed', message:'suspended (durable path not run in sim)' }` (the suspended branch is contract-only in RU3).
+- `export interface ChildTermination { finishResult?: FinishSentinel; lastAssistantText: string }`
+- `export interface ChildDispatchArgs { sentinel: DispatchSentinel; dispatchDepth; maxDispatchDepth; environment: 'production' | 'simulation'; strategy: DispatchStrategy; emitter: EventEmitter; childExecutionId: string; task: string; runChildToTermination: () => Promise<ChildTermination> }`
+- `export async function childDispatch(args: ChildDispatchArgs): Promise<ChildResult>` — emits `child_dispatched`; the strategy's `runChild` runs `runChildToTermination()` then maps via `mapTerminationToChildResult`; on `completed` emits `child_awaiting_input` (for `awaiting_input`) else `child_finished`, returns the `ChildResult`; on `suspended` emits `child_suspended` and returns `{ status:'error', code:'child_failed', message }` (suspended branch is contract-only in RU3).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1342,6 +1314,7 @@ describe('childDispatch', () => {
       strategy: syncRecurseStrategy,
       emitter,
       childExecutionId: 'c1',
+      task: 'do it',
       runChildToTermination: async () => ({
         finishResult: { __sentinel: 'finish', output: 'done', status: 'success' },
         lastAssistantText: '',
@@ -1349,8 +1322,7 @@ describe('childDispatch', () => {
     });
     emitter.close();
     expect(result).toEqual({ status: 'finished', result: 'done', outcome: 'success' });
-    const types = (await drain(emitter.events)).map((e) => e.type);
-    expect(types).toEqual(['child_dispatched', 'child_finished']);
+    expect((await drain(emitter.events)).map((e) => e.type)).toEqual(['child_dispatched', 'child_finished']);
   });
 
   it('emits child_awaiting_input for an END-without-finish child in sim', async () => {
@@ -1363,12 +1335,12 @@ describe('childDispatch', () => {
       strategy: syncRecurseStrategy,
       emitter,
       childExecutionId: 'c2',
+      task: 'do it',
       runChildToTermination: async () => ({ lastAssistantText: 'hold on' }),
     });
     emitter.close();
     expect(result).toEqual({ status: 'awaiting_input', partial: 'hold on' });
-    const types = (await drain(emitter.events)).map((e) => e.type);
-    expect(types).toEqual(['child_dispatched', 'child_awaiting_input']);
+    expect((await drain(emitter.events)).map((e) => e.type)).toEqual(['child_dispatched', 'child_awaiting_input']);
   });
 });
 ```
@@ -1401,18 +1373,14 @@ export interface ChildDispatchArgs {
   strategy: DispatchStrategy;
   emitter: EventEmitter;
   childExecutionId: string;
+  task: string;
   runChildToTermination: () => Promise<ChildTermination>;
 }
 
 function emitChildResult(args: ChildDispatchArgs, result: ChildResult): void {
   const depth = args.dispatchDepth + 1;
   if (result.status === 'awaiting_input') {
-    args.emitter.emit({
-      type: 'child_awaiting_input',
-      childExecutionId: args.childExecutionId,
-      partial: result.partial,
-      depth,
-    });
+    args.emitter.emit({ type: 'child_awaiting_input', childExecutionId: args.childExecutionId, partial: result.partial, depth });
     return;
   }
   args.emitter.emit({ type: 'child_finished', childExecutionId: args.childExecutionId, result, depth });
@@ -1422,6 +1390,8 @@ export async function childDispatch(args: ChildDispatchArgs): Promise<ChildResul
   args.emitter.emit({
     type: 'child_dispatched',
     childExecutionId: args.childExecutionId,
+    dispatchType: args.sentinel.type,
+    task: args.task,
     depth: args.dispatchDepth + 1,
   });
   const runChild = async (): Promise<ChildResult> => {
@@ -1441,11 +1411,7 @@ export async function childDispatch(args: ChildDispatchArgs): Promise<ChildResul
     emitChildResult(args, outcome.childResult);
     return outcome.childResult;
   }
-  args.emitter.emit({
-    type: 'child_suspended',
-    childExecutionId: args.childExecutionId,
-    depth: args.dispatchDepth + 1,
-  });
+  args.emitter.emit({ type: 'child_suspended', childExecutionId: args.childExecutionId, depth: args.dispatchDepth + 1 });
   return { status: 'error', code: 'child_failed', message: 'Durable suspend not run in simulation.' };
 }
 ```
@@ -1469,18 +1435,12 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ### Task 12: Per-tool `simulatedNoop` seam across builtins
 
 **Files:**
-- Modify: `packages/api/src/providers/kv_store/buildTools.ts`
-- Modify: `packages/api/src/providers/rag/buildTools.ts`
-- Modify: `packages/api/src/providers/forms/buildTools.ts`
-- Modify: `packages/api/src/providers/lead_scoring/buildTools.ts`
-- Modify: `packages/api/src/providers/web/buildTools.ts`
+- Modify: `packages/api/src/providers/{kv_store,rag,forms,lead_scoring,web}/buildTools.ts`
 - Test: `packages/api/src/providers/__tests__/simulatedNoopSeam.test.ts`
 
-**Interfaces:**
-- Consumes: `simulatedNoop` (Task 9), env-discriminated `ProviderCtx` (Task 9).
-- Produces: each builtin tool's `execute` begins with `if (ctx.environment === 'simulation') return simulatedNoop(args, ctx);`. Real tool names (verified): kv_store `list_keys`/`get_values`/`search`/`update_value`; rag `search_rag`; forms `set_form_fields`/`get_form_field`; lead_scoring `set_lead_score`/`get_lead_score`; web `web_search`/`web_extract`/`web_crawl`/`web_map`. (Composition + calendar are NOT touched — §13.)
+**Interfaces:** each builtin tool's `execute` begins with `if (ctx.environment === 'simulation') return simulatedNoop(args, ctx);`. Real tool names (verified): kv_store `list_keys`/`get_values`/`search`/`update_value`; rag `search_rag`; forms `set_form_fields`/`get_form_field`; lead_scoring `set_lead_score`/`get_lead_score`; web `web_search`/`web_extract`/`web_crawl`/`web_map`. (Composition + calendar NOT touched — §13.)
 
-> NOTE: web is NOT in spec §13's table but §7 scope says "every builtin (forms/lead-scoring included)" and §13 says "every side-effecting builtin"; web search/extract/crawl/map perform real network egress, so they get the guard. FLAGGED: web is an addition beyond §13's explicit table — confirm intent (it is consistent with "every builtin no-ops in sim", §2/§7).
+> NOTE: web is NOT in spec §13's table but §7 scope says "every builtin"; web tools do real network egress, so they get the guard. FLAGGED: confirm intent (consistent with "every builtin no-ops in sim").
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1511,16 +1471,16 @@ describe('forms tools no-op in simulation', () => {
 });
 ```
 
-> Adjust `buildForms` to whatever the file actually exports (the provider's `buildTools`). If the tool's `execute` signature is `(args) => ...` (no ctx param, as seen in real code), the guard must close over `ctx` from the surrounding `buildTools(args)` scope, NOT a second param. Inspect the real `execute` closure: it already has `ctx`/`params` in scope.
+> Adjust `buildForms` to the real exported builder. The `execute` closure already has `ctx`/`params` in scope; the guard closes over that `ctx`, not a second param.
 
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `npm run test -w packages/api -- --testPathPattern=providers/__tests__/simulatedNoopSeam`
-Expected: FAIL — `execute` still runs the production path (returns form result, not `{ simulated: true }`).
+Expected: FAIL — `execute` still runs the production path.
 
 - [ ] **Step 3: Write minimal implementation**
 
-For each builtin, at the top of every listed tool's `execute` closure (which already has `ctx` in scope), insert the guard. Example for forms `set_form_fields` (real execute is `execute: async (args: unknown) => await executeSet(parseArgs(setInput, args), params)`, and `params` carries `ctx`):
+For each listed tool, insert the guard as the first statement of `execute` (expand terse one-expression `execute` to a block first — never compress):
 
 ```ts
 // providers/forms/buildTools.ts — inside the set_form_fields tool object
@@ -1532,20 +1492,13 @@ import { simulatedNoop } from '../../runtime/simulatedNoop.js';
       },
 ```
 
-Repeat the identical pattern (`if (ctx.environment === 'simulation') return await simulatedNoop(args, ctx);` as the first statement) for:
-- kv_store: `list_keys`, `get_values`, `search`, `update_value`
-- rag: `search_rag`
-- forms: `set_form_fields`, `get_form_field`
-- lead_scoring: `set_lead_score`, `get_lead_score`
-- web: `web_search`, `web_extract`, `web_crawl`, `web_map`
+Repeat for: kv_store `list_keys`/`get_values`/`search`/`update_value`; rag `search_rag`; forms `set_form_fields`/`get_form_field`; lead_scoring `set_lead_score`/`get_lead_score`; web `web_search`/`web_extract`/`web_crawl`/`web_map`.
 
-(Where a tool's `execute` is the terse one-expression form, expand it to a block first — never compress.)
-
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 4: Run test + typecheck**
 
 Run: `npm run test -w packages/api -- --testPathPattern=providers/__tests__/simulatedNoopSeam`
 Then: `npm run typecheck -w packages/api`
-Expected: PASS, and the union-narrowing makes `ctx.simulationState` available only inside the guard.
+Expected: PASS; union-narrowing makes `ctx.simulationState` available only inside the guard.
 
 - [ ] **Step 5: Commit**
 
@@ -1558,17 +1511,13 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 13: `resolveChildConfig` ported into api (the `RuntimeServices.resolveChildConfig` seam)
+### Task 13: `resolveChildConfig` adapter (inject backend resolver as the seam)
 
 **Files:**
 - Create: `packages/api/src/runtime/resolveChildConfig.ts`
 - Test: `packages/api/src/runtime/__tests__/resolveChildConfig.test.ts`
 
-**Interfaces:**
-- Consumes: `ResolveChildInput` + `ResolvedChildConfig` (Task 4); a `SupabaseLike` reader passed in.
-- Produces: `export async function resolveChildConfig(supabase: SupabaseLike, input: ResolveChildInput): Promise<ResolvedChildConfig>` — ports the backend `simulateChildResolver.ts` `DISPATCH_HANDLERS` logic (`create_agent` builds an in-memory child from params; `invoke_agent`/`invoke_workflow` read the published version). For RU3 the only consumer is the sim driver, so this can wrap the backend resolver via injection rather than re-port the DB queries IF the backend keeps `simulateChildResolver.ts` until RU6 — to avoid a premature port, the sim driver may inject the existing backend `resolveChildConfig` as `RuntimeServices.resolveChildConfig`. DECISION: **inject, don't re-port in RU3.** This task instead defines the `resolveChildConfig` *adapter contract* and a thin passthrough; the real DB port lands in RU4 (Worker needs it). FLAGGED.
-
-> Because of the above decision, Task 13 is small: it provides `makeResolveChildConfig(supabase, backendResolve)` that conforms the existing backend resolver to the `RuntimeServices.resolveChildConfig` signature. The test exercises the adapter with a fake backend resolver.
+**Interfaces:** `export function makeResolveChildConfig(supabase: SupabaseLike, backendResolve: BackendResolve): (input: ResolveChildInput) => Promise<ResolvedChildConfig>`. DECISION: **inject, don't re-port the DB queries in RU3** (the backend keeps `simulateChildResolver.ts` until RU6; the real DB port lands in RU4 for the Worker). This task provides only the thin adapter conforming the existing backend resolver to the `RuntimeServices.resolveChildConfig` signature. FLAGGED.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1582,7 +1531,7 @@ import { makeResolveChildConfig } from '../resolveChildConfig.js';
 describe('makeResolveChildConfig adapter', () => {
   it('forwards to the injected backend resolver', async () => {
     const stub: ResolvedChildConfig = {
-      systemPrompt: 'sp', context: 'c', modelId: 'm', maxSteps: null, mcpServers: [],
+      systemPrompt: 'sp', context: 'c', modelId: 'm', maxSteps: null, mcpServers: [], skills: [],
       isChildAgent: true, task: 'do it',
     };
     const resolve = makeResolveChildConfig({}, async () => stub);
@@ -1603,17 +1552,13 @@ Expected: FAIL — cannot find module `../resolveChildConfig.js`.
 // packages/api/src/runtime/resolveChildConfig.ts
 import type { ResolveChildInput, ResolvedChildConfig, SupabaseLike } from '../capabilities/index.js';
 
-export type BackendResolve = (
-  supabase: SupabaseLike,
-  input: ResolveChildInput
-) => Promise<ResolvedChildConfig>;
+export type BackendResolve = (supabase: SupabaseLike, input: ResolveChildInput) => Promise<ResolvedChildConfig>;
 
 export function makeResolveChildConfig(
   supabase: SupabaseLike,
   backendResolve: BackendResolve
 ): (input: ResolveChildInput) => Promise<ResolvedChildConfig> {
-  return async (input: ResolveChildInput): Promise<ResolvedChildConfig> =>
-    await backendResolve(supabase, input);
+  return async (input: ResolveChildInput): Promise<ResolvedChildConfig> => await backendResolve(supabase, input);
 }
 ```
 
@@ -1633,19 +1578,225 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 14: `executeTurn` — build ctx, run loop, drive dispatch loop, emit events
+### Task 14: `StepMachine` interface + `AgentStepMachine` + `WorkflowStepMachine` + engine-by-type selector
+
+**Files:**
+- Create: `packages/api/src/runtime/stepMachine.ts`, `agentStepMachine.ts`, `workflowStepMachine.ts`, `selectStepMachine.ts`
+- Test: `packages/api/src/runtime/__tests__/stepMachine.test.ts`
+
+**Interfaces:**
+- `export type StepReport =`
+  `| { kind: 'step'; assistantText?: string; nodeId?: string; tokens?: Tokens; reasoning?: string; durationMs?: number }`
+  `| { kind: 'dispatch'; sentinel: DispatchSentinel }`
+  `| { kind: 'awaiting_input'; partial: string }`
+  `| { kind: 'terminal'; finalText: string; finishResult?: FinishSentinel };`
+- `export interface StepMachine { advance(): Promise<StepReport>; injectChildResult(result: ChildResult): void; }`
+  - `advance()` runs the next step (one LLM request/tool-call for agent; one node for workflow) and reports the outcome.
+  - `injectChildResult` threads a resolved `ChildResult` back so the next `advance()` resumes the parent.
+- `AgentStepMachine` wraps `executeAgentLoop` — it owns the loop config/callbacks; a single `advance()` runs the loop to its next decision and surfaces `dispatchResult` → `{ kind:'dispatch' }`, `finishResult`/`finalText` → `{ kind:'terminal' }`. On `injectChildResult`, it pushes the child's tool-result message into its message list (mirroring legacy `continueParentAfterChild`) before the next `advance()`.
+- `WorkflowStepMachine` wraps `executeWithCallbacks` — `advance()` runs it to its next decision; `CallAgentOutput.dispatchResult` → `{ kind:'dispatch' }`, `CallAgentOutput.text`/`finishResult` → `{ kind:'terminal' }`; `null` output → `{ kind:'terminal'; finalText:'' }`. It forwards `onNodeVisited`/`onNodeProcessed` into the emitter (passed in via deps).
+- `export function selectStepMachine(executionType: ExecutionType, deps: StepMachineDeps): StepMachine` — `'agent'` → `AgentStepMachine`, `'workflow'` → `WorkflowStepMachine`. `StepMachineDeps` carries the per-engine closures the driver provides (`runAgentLoop`/`runWorkflow`, the emitter, the message list), so the api core stays decoupled from the concrete model/graph plumbing the backend owns.
+
+> **Decomposition (max-lines):** each machine + the selector is its own file. The machines hold the message-threading/resume logic that legacy `continueParentAfterChild` (`simulationOrchestrator.ts:109`) owned for agents — RU3 lifts it into `AgentStepMachine`. The workflow machine adds equivalent resume threading (workflow sim had none before — see Decision 7). FLAGGED: this is new workflow behavior, validated by this task's tests, not parity.
+
+- [ ] **Step 1: Write the failing test**
+
+```ts
+// packages/api/src/runtime/__tests__/stepMachine.test.ts
+import { describe, expect, it } from '@jest/globals';
+
+import { selectStepMachine } from '../selectStepMachine.js';
+
+const baseDeps = {
+  emitter: { emit() {}, close() {}, events: (async function* () {})() },
+};
+
+describe('selectStepMachine', () => {
+  it('agent machine reports a dispatch then a terminal after injectChildResult', async () => {
+    let phase = 0;
+    const machine = selectStepMachine('agent', {
+      ...baseDeps,
+      runAgentLoop: async () => {
+        phase += 1;
+        if (phase === 1) {
+          return {
+            finalText: 'parent', steps: 1, totalTokens: { input: 0, output: 0, cached: 0 },
+            tokensLogs: [], toolCalls: [], dispatchResult: { __sentinel: 'dispatch', type: 'invoke_agent', params: {} },
+          };
+        }
+        return { finalText: 'parent done', steps: 1, totalTokens: { input: 0, output: 0, cached: 0 }, tokensLogs: [], toolCalls: [] };
+      },
+    } as never);
+    const first = await machine.advance();
+    expect(first.kind).toBe('dispatch');
+    machine.injectChildResult({ status: 'finished', result: 'child', outcome: 'success' });
+    const second = await machine.advance();
+    expect(second.kind).toBe('terminal');
+    if (second.kind === 'terminal') expect(second.finalText).toBe('parent done');
+  });
+
+  it('workflow machine maps a null output to a terminal', async () => {
+    const machine = selectStepMachine('workflow', {
+      ...baseDeps,
+      runWorkflow: async () => null,
+    } as never);
+    const report = await machine.advance();
+    expect(report.kind).toBe('terminal');
+  });
+
+  it('workflow machine surfaces a dispatch from CallAgentOutput.dispatchResult', async () => {
+    const machine = selectStepMachine('workflow', {
+      ...baseDeps,
+      runWorkflow: async () => ({
+        message: null, tokensLogs: [], toolCalls: [], visitedNodes: [], text: '',
+        debugMessages: {}, dispatchResult: { __sentinel: 'dispatch', type: 'invoke_workflow', params: {} },
+      }),
+    } as never);
+    const report = await machine.advance();
+    expect(report.kind).toBe('dispatch');
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npm run test -w packages/api -- --testPathPattern=runtime/__tests__/stepMachine`
+Expected: FAIL — cannot find module `../selectStepMachine.js`.
+
+- [ ] **Step 3: Write minimal implementation**
+
+```ts
+// packages/api/src/runtime/stepMachine.ts
+import type { Tokens } from '../events/types.js';
+import type { DispatchSentinel, FinishSentinel } from '../types/sentinels.js';
+import type { ChildResult } from './childResult.js';
+
+export type StepReport =
+  | { kind: 'step'; assistantText?: string; nodeId?: string; tokens?: Tokens; reasoning?: string; durationMs?: number }
+  | { kind: 'dispatch'; sentinel: DispatchSentinel }
+  | { kind: 'awaiting_input'; partial: string }
+  | { kind: 'terminal'; finalText: string; finishResult?: FinishSentinel };
+
+export interface StepMachine {
+  advance(): Promise<StepReport>;
+  injectChildResult(result: ChildResult): void;
+}
+```
+
+```ts
+// packages/api/src/runtime/agentStepMachine.ts
+import type { EventEmitter } from '../events/emitter.js';
+import type { AgentLoopResult } from '../agentLoop/agentLoopTypes.js';
+import type { ChildResult } from './childResult.js';
+import type { StepMachine, StepReport } from './stepMachine.js';
+
+export interface AgentMachineDeps {
+  emitter: EventEmitter;
+  runAgentLoop: () => Promise<AgentLoopResult>;
+  onChildResult?: (result: ChildResult) => void;
+}
+
+function reportFromLoop(result: AgentLoopResult): StepReport {
+  if (result.dispatchResult !== undefined) return { kind: 'dispatch', sentinel: result.dispatchResult };
+  return { kind: 'terminal', finalText: result.finalText, finishResult: result.finishResult };
+}
+
+export function createAgentStepMachine(deps: AgentMachineDeps): StepMachine {
+  let pending: ChildResult | null = null;
+  return {
+    advance: async (): Promise<StepReport> => {
+      const result = await deps.runAgentLoop();
+      if (result.finalText.length > 0) deps.emitter.emit({ type: 'assistant_message', text: result.finalText, depth: 0 });
+      return reportFromLoop(result);
+    },
+    injectChildResult: (result: ChildResult): void => {
+      pending = result;
+      deps.onChildResult?.(result);
+    },
+  };
+}
+```
+
+> NOTE: `runAgentLoop` is a deps closure built by the driver (Task 17) — it owns the message list, so `injectChildResult`'s pushed tool-result message is visible to the NEXT `runAgentLoop()` call (the driver re-reads its message array). `pending` is retained for the suspended/durable path in RU4. Keep each function ≤40 lines; split helpers if needed.
+
+```ts
+// packages/api/src/runtime/workflowStepMachine.ts
+import type { CallAgentOutput } from '../core/types.js';
+import type { EventEmitter } from '../events/emitter.js';
+import type { ChildResult } from './childResult.js';
+import type { StepMachine, StepReport } from './stepMachine.js';
+
+export interface WorkflowMachineDeps {
+  emitter: EventEmitter;
+  runWorkflow: () => Promise<CallAgentOutput | null>;
+  onChildResult?: (result: ChildResult) => void;
+}
+
+function reportFromOutput(output: CallAgentOutput | null): StepReport {
+  if (output === null) return { kind: 'terminal', finalText: '' };
+  if (output.dispatchResult !== undefined) return { kind: 'dispatch', sentinel: output.dispatchResult };
+  return { kind: 'terminal', finalText: output.text ?? '', finishResult: output.finishResult };
+}
+
+export function createWorkflowStepMachine(deps: WorkflowMachineDeps): StepMachine {
+  return {
+    advance: async (): Promise<StepReport> => reportFromOutput(await deps.runWorkflow()),
+    injectChildResult: (result: ChildResult): void => {
+      deps.onChildResult?.(result);
+    },
+  };
+}
+```
+
+```ts
+// packages/api/src/runtime/selectStepMachine.ts
+import type { ExecutionType } from './types.js';
+import { createAgentStepMachine, type AgentMachineDeps } from './agentStepMachine.js';
+import { createWorkflowStepMachine, type WorkflowMachineDeps } from './workflowStepMachine.js';
+import type { StepMachine } from './stepMachine.js';
+
+export type StepMachineDeps = (AgentMachineDeps & Partial<WorkflowMachineDeps>) | (WorkflowMachineDeps & Partial<AgentMachineDeps>);
+
+export function selectStepMachine(executionType: ExecutionType, deps: StepMachineDeps): StepMachine {
+  if (executionType === 'agent') return createAgentStepMachine(deps as AgentMachineDeps);
+  return createWorkflowStepMachine(deps as WorkflowMachineDeps);
+}
+```
+
+> The `as` casts at the selector boundary are a deliberate, narrow exception confined to the discriminated dispatch; the per-engine deps are validated by the machine's own typed factory. If the no-`as` rule rejects this, replace `StepMachineDeps` with a discriminated `{ executionType: 'agent'; ...AgentMachineDeps } | { executionType: 'workflow'; ...WorkflowMachineDeps }` and switch on it. FLAG and pick the cleaner shape at impl time.
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npm run test -w packages/api -- --testPathPattern=runtime/__tests__/stepMachine`
+Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add packages/api/src/runtime/stepMachine.ts packages/api/src/runtime/agentStepMachine.ts packages/api/src/runtime/workflowStepMachine.ts packages/api/src/runtime/selectStepMachine.ts packages/api/src/runtime/__tests__/stepMachine.test.ts
+git commit -m "feat(api): StepMachine interface + AgentStepMachine + WorkflowStepMachine + engine selector
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+```
+
+---
+
+### Task 15: `executeTurn` — select machine by type, drive advance/dispatch loop, emit events
 
 **Files:**
 - Create: `packages/api/src/runtime/executeTurn.ts`
 - Test: `packages/api/src/runtime/__tests__/executeTurn.test.ts`
 
 **Interfaces:**
-- Consumes: `executeAgentLoop` (`agentLoop/agentLoop.js`, returns `AgentLoopResult` with `finalText`, `dispatchResult?`, `finishResult?`, `totalTokens`); `EventEmitter` (Task 2); `childDispatch` (Task 11); `RuntimeCapabilities`/`RuntimeServices` (Task 4); `SimStateStore` (Task 8); `RuntimeOutput` (Task 3).
-- Produces:
-  - `export interface ExecuteTurnArgs { environment: 'production' | 'simulation'; dispatchDepth: number; maxDispatchDepth: number; capabilities: RuntimeCapabilities; services: RuntimeServices; simStore?: SimStateStore; runLoop: () => Promise<AgentLoopResult>; runChildLoop: (config: ResolvedChildConfig) => Promise<AgentLoopResult>; }`
-  - `export async function executeTurn(args: ExecuteTurnArgs): Promise<RuntimeOutput>` — runs `runLoop()`; emits `node_exited`/`assistant_message`/`finished` (minimal mapping from `AgentLoopResult`); if `loopResult.dispatchResult !== undefined`, resolves the child config via `services.resolveChildConfig`, calls `childDispatch` with `runChildToTermination` = (run `runChildLoop(config)`, return `{ finishResult, lastAssistantText: childLoop.finalText }`), then continues. On terminal completion emits the sim snapshot (when `simStore`) and `finished`. Returns `{ environment, events, finalResult }`.
+- `export interface ExecuteTurnArgs { environment: 'production' | 'simulation'; executionType: ExecutionType; dispatchDepth: number; maxDispatchDepth: number; capabilities: RuntimeCapabilities; services: RuntimeServices; simStore?: SimStateStore; machine: StepMachine; runChildToTermination: (config: ResolvedChildConfig) => Promise<ChildTermination>; }`
+- `export async function executeTurn(args: ExecuteTurnArgs): Promise<RuntimeOutput>` — loops `machine.advance()`:
+  - `terminal` → emit sim snapshot (if `simStore`) + `finished`, return.
+  - `awaiting_input` → emit nothing extra; finalize as `finished` with the partial.
+  - `dispatch` → resolve child config via `services.resolveChildConfig`, call `childDispatch` (engine-agnostic), `machine.injectChildResult(childResult)`, continue the loop.
+  - Guards on `maxDispatchDepth` via the strategy (Task 10).
+- Returns `{ environment, executionType, events, finalResult }`.
 
-> The full parent-resume re-injection (pushing a tool-result message and re-running the parent loop, as `continueParentAfterChild` does today) is owned by the caller's `runLoop`/`runChildLoop` closures the driver provides — `executeTurn` orchestrates the *sequence* and the events; the message threading stays in the driver (Task 16) which already has the `simulationOrchestrator` machinery. This keeps `executeTurn` under the line limit and avoids re-implementing message plumbing. FLAGGED: this is a pragmatic split; RU4 may pull more into `executeTurn`.
+> `runChildToTermination(config)` is supplied by the driver and runs the CHILD `StepMachine` (which may be the other engine) to its termination — that is where agent↔workflow interchangeability is realized. `executeTurn` orchestrates the sequence + events; per-engine model/graph plumbing stays in the driver closures (Task 17/18). Keep `executeTurn` ≤40 lines by extracting `driveDispatch`/`emitTerminal` helpers. FLAGGED: pragmatic split; RU4 may pull more in.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1654,25 +1805,17 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 import { describe, expect, it } from '@jest/globals';
 
 import type { ExecutionEvent } from '../../events/types.js';
+import { createEventEmitter } from '../../events/emitter.js';
 import { noopPersistence } from '../../simulation/noopPersistence.js';
 import { consoleLogger, consoleObservability, noopRateLimit } from '../../simulation/consoleCapabilities.js';
 import { syncRecurseStrategy } from '../../simulation/syncRecurseStrategy.js';
+import type { StepMachine, StepReport } from '../stepMachine.js';
 import { executeTurn } from '../executeTurn.js';
 
-const caps = {
-  persistence: noopPersistence,
-  dispatch: syncRecurseStrategy,
-  observability: consoleObservability,
-  rateLimit: noopRateLimit,
-  logger: consoleLogger,
-};
-
+const caps = { persistence: noopPersistence, dispatch: syncRecurseStrategy, observability: consoleObservability, rateLimit: noopRateLimit, logger: consoleLogger };
 const services = {
   mcpPool: { invoke: async () => ({}) },
-  resolveChildConfig: async () => ({
-    systemPrompt: 's', context: 'c', modelId: 'm', maxSteps: null, mcpServers: [],
-    isChildAgent: true, task: 't',
-  }),
+  resolveChildConfig: async () => ({ systemPrompt: 's', context: 'c', modelId: 'm', maxSteps: null, mcpServers: [], skills: [], isChildAgent: true, task: 't' }),
   supabase: {},
 };
 
@@ -1682,41 +1825,37 @@ async function drain(it: AsyncIterable<ExecutionEvent>): Promise<ExecutionEvent[
   return out;
 }
 
+function scriptedMachine(reports: StepReport[]): StepMachine {
+  let i = 0;
+  return { advance: async () => reports[i++]!, injectChildResult: () => undefined };
+}
+
 describe('executeTurn', () => {
-  it('emits finished for a single no-dispatch turn', async () => {
+  it('emits finished for a single terminal turn', async () => {
     const out = await executeTurn({
-      environment: 'simulation',
-      dispatchDepth: 0,
-      maxDispatchDepth: 10,
-      capabilities: caps as never,
-      services: services as never,
-      runLoop: async () => ({ finalText: 'hello', steps: 1, totalTokens: { input: 1, output: 1, cached: 0 }, tokensLogs: [], toolCalls: [] }),
-      runChildLoop: async () => ({ finalText: '', steps: 0, totalTokens: { input: 0, output: 0, cached: 0 }, tokensLogs: [], toolCalls: [] }),
+      environment: 'simulation', executionType: 'agent', dispatchDepth: 0, maxDispatchDepth: 10,
+      capabilities: caps as never, services: services as never,
+      machine: scriptedMachine([{ kind: 'terminal', finalText: 'hello' }]),
+      runChildToTermination: async () => ({ lastAssistantText: '' }),
     });
     expect(out.finalResult).toBe('hello');
-    const types = (await drain(out.events)).map((e) => e.type);
-    expect(types).toContain('finished');
+    expect((await drain(out.events)).map((e) => e.type)).toContain('finished');
   });
 
-  it('drives one child dispatch and emits child_dispatched + child_finished', async () => {
+  it('drives one child dispatch (agent dispatching a workflow child) then terminates', async () => {
     const out = await executeTurn({
-      environment: 'simulation',
-      dispatchDepth: 0,
-      maxDispatchDepth: 10,
-      capabilities: caps as never,
-      services: services as never,
-      runLoop: async () => ({
-        finalText: 'parent done', steps: 1, totalTokens: { input: 0, output: 0, cached: 0 }, tokensLogs: [], toolCalls: [],
-        dispatchResult: { __sentinel: 'dispatch', type: 'invoke_agent', params: {} },
-      }),
-      runChildLoop: async () => ({
-        finalText: 'child answer', steps: 1, totalTokens: { input: 0, output: 0, cached: 0 }, tokensLogs: [], toolCalls: [],
-        finishResult: { __sentinel: 'finish', output: 'child answer', status: 'success' },
-      }),
+      environment: 'simulation', executionType: 'agent', dispatchDepth: 0, maxDispatchDepth: 10,
+      capabilities: caps as never, services: services as never,
+      machine: scriptedMachine([
+        { kind: 'dispatch', sentinel: { __sentinel: 'dispatch', type: 'invoke_workflow', params: {} } },
+        { kind: 'terminal', finalText: 'parent done' },
+      ]),
+      runChildToTermination: async () => ({ finishResult: { __sentinel: 'finish', output: 'child', status: 'success' }, lastAssistantText: '' }),
     });
     const types = (await drain(out.events)).map((e) => e.type);
     expect(types).toContain('child_dispatched');
     expect(types).toContain('child_finished');
+    expect(types).toContain('finished');
   });
 });
 ```
@@ -1730,70 +1869,69 @@ Expected: FAIL — cannot find module `../executeTurn.js`.
 
 ```ts
 // packages/api/src/runtime/executeTurn.ts
-import type { RuntimeCapabilities, RuntimeServices, ResolvedChildConfig } from '../capabilities/index.js';
-import { createEventEmitter } from '../events/emitter.js';
-import type { AgentLoopResult } from '../agentLoop/agentLoopTypes.js';
+import type { ResolvedChildConfig, RuntimeCapabilities, RuntimeServices } from '../capabilities/index.js';
+import { createEventEmitter, type EventEmitter } from '../events/emitter.js';
+import type { ChildTermination } from './childDispatch.js';
 import { childDispatch } from './childDispatch.js';
 import type { SimStateStore } from './simStateStore.js';
-import type { RuntimeOutput } from './types.js';
+import type { StepMachine, StepReport } from './stepMachine.js';
+import type { ExecutionType, RuntimeOutput } from './types.js';
 
 export interface ExecuteTurnArgs {
   environment: 'production' | 'simulation';
+  executionType: ExecutionType;
   dispatchDepth: number;
   maxDispatchDepth: number;
   capabilities: RuntimeCapabilities;
   services: RuntimeServices;
   simStore?: SimStateStore;
-  runLoop: () => Promise<AgentLoopResult>;
-  runChildLoop: (config: ResolvedChildConfig) => Promise<AgentLoopResult>;
+  machine: StepMachine;
+  runChildToTermination: (config: ResolvedChildConfig) => Promise<ChildTermination>;
 }
 
-function emitTerminal(args: ExecuteTurnArgs, emitter: ReturnType<typeof createEventEmitter>, text: string): void {
-  if (args.simStore !== undefined) {
-    emitter.emit({ type: 'simulation_state_snapshot', state: args.simStore.snapshot() });
-  }
-  emitter.emit({ type: 'finished', result: text });
-}
-
-async function dispatchChild(
-  args: ExecuteTurnArgs,
-  emitter: ReturnType<typeof createEventEmitter>,
-  loopResult: AgentLoopResult
-): Promise<void> {
-  const sentinel = loopResult.dispatchResult;
-  if (sentinel === undefined) return;
-  const config = await args.services.resolveChildConfig({
-    dispatchType: sentinel.type,
-    params: sentinel.params,
-    orgId: '',
-  });
-  await childDispatch({
-    sentinel,
+async function handleDispatch(args: ExecuteTurnArgs, emitter: EventEmitter, report: Extract<StepReport, { kind: 'dispatch' }>): Promise<void> {
+  const config = await args.services.resolveChildConfig({ dispatchType: report.sentinel.type, params: report.sentinel.params, orgId: '' });
+  const childResult = await childDispatch({
+    sentinel: report.sentinel,
     dispatchDepth: args.dispatchDepth,
     maxDispatchDepth: args.maxDispatchDepth,
     environment: args.environment,
     strategy: args.capabilities.dispatch,
     emitter,
     childExecutionId: `child-${String(args.dispatchDepth + 1)}`,
-    runChildToTermination: async () => {
-      const child = await args.runChildLoop(config);
-      return { finishResult: child.finishResult, lastAssistantText: child.finalText };
-    },
+    task: config.task,
+    runChildToTermination: async () => await args.runChildToTermination(config),
   });
+  args.machine.injectChildResult(childResult);
+}
+
+function emitTerminal(args: ExecuteTurnArgs, emitter: EventEmitter, text: string): void {
+  if (args.simStore !== undefined) emitter.emit({ type: 'simulation_state_snapshot', state: args.simStore.snapshot() });
+  emitter.emit({ type: 'finished', result: text });
+}
+
+async function driveLoop(args: ExecuteTurnArgs, emitter: EventEmitter): Promise<string> {
+  for (;;) {
+    const report = await args.machine.advance();
+    if (report.kind === 'dispatch') {
+      await handleDispatch(args, emitter, report);
+      continue;
+    }
+    if (report.kind === 'awaiting_input') return report.partial;
+    if (report.kind === 'terminal') return report.finalText;
+  }
 }
 
 export async function executeTurn(args: ExecuteTurnArgs): Promise<RuntimeOutput> {
   const emitter = createEventEmitter();
-  const loopResult = await args.runLoop();
-  if (loopResult.finalText.length > 0) {
-    emitter.emit({ type: 'assistant_message', text: loopResult.finalText, depth: args.dispatchDepth });
-  }
-  await dispatchChild(args, emitter, loopResult);
-  emitTerminal(args, emitter, loopResult.finalText);
+  const finalResult = await driveLoop(args, emitter);
+  emitTerminal(args, emitter, finalResult);
   emitter.close();
-  return { environment: args.environment, events: emitter.events, finalResult: loopResult.finalText };
+  return { environment: args.environment, executionType: args.executionType, events: emitter.events, finalResult };
 }
 ```
+
+> `report.kind === 'step'` simply continues the loop (no early return) — the emitter already received per-step events from the machine. Keep `max-depth` ≤2 by using the early-`continue`/`return` style above.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -1804,23 +1942,20 @@ Expected: PASS
 
 ```bash
 git add packages/api/src/runtime/executeTurn.ts packages/api/src/runtime/__tests__/executeTurn.test.ts
-git commit -m "feat(api): executeTurn (run loop, drive dispatch, emit ExecutionEvents)
+git commit -m "feat(api): executeTurn (select engine by type, drive dispatch loop, emit ExecutionEvents)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
 
 ---
 
-### Task 15: Public barrel exports + emitter-completeness assertion test
+### Task 16: Public barrel exports + emitter-completeness assertion test
 
 **Files:**
 - Modify: `packages/api/src/index.ts`
 - Test: `packages/api/src/events/__tests__/emitterCompleteness.test.ts`
 
-**Interfaces:**
-- Consumes: everything above.
-- Produces: barrel re-exports of `ExecutionEvent`, `Tokens`, `ChildResult`, `ChildErrorCode`, `mapTerminationToChildResult`, `RuntimeCapabilities`, `RuntimeServices`, `DispatchStrategy`/`DispatchOutcome`/`DispatchPersistence`, `executeTurn`, `childDispatch`, `createEventEmitter`, `createSimStateStore`, `setByJsonPointer`, `simulatedNoop`, `syncRecurseStrategy`, `noopPersistence`, `consoleObservability`, `consoleLogger`, `noopRateLimit`, `MAX_DISPATCH_DEPTH`, `MAX_CHILD_RUNTIME_MS`, `makeResolveChildConfig`.
-- The completeness test asserts the superset covers each of the 3 RU5 consumers' field needs (§5).
+**Interfaces:** barrel re-exports of the new public surface (`ExecutionEvent`, `Tokens`, `ChildResult`, `ChildErrorCode`, `mapTerminationToChildResult`, `RuntimeCapabilities`, `RuntimeServices`, `ResolveChildInput`, `ResolvedChildConfig`, `DispatchStrategy`/`DispatchOutcome`/`DispatchArgs`/`DispatchPersistence`/`DispatchHandle`, `Observability`/`RateLimiter`/`RunnerLogger`, `McpInvoker`, `SupabaseLike`, `executeTurn`, `childDispatch`, `StepMachine`/`StepReport`/`selectStepMachine`, `createEventEmitter`, `createSimStateStore`/`deepFreeze`/`SimStateStore`/`SimStatePatch`, `setByJsonPointer`, `simulatedNoop`, `syncRecurseStrategy`, `noopPersistence`, `consoleObservability`/`consoleLogger`/`noopRateLimit`, `makeResolveChildConfig`, `MAX_DISPATCH_DEPTH`/`MAX_CHILD_RUNTIME_MS`, `RuntimeInput`/`RuntimeOutput`/`DeepReadonly`/`ExecutionType`/`ToolRef`). The completeness test asserts the superset covers each of the 3 RU5 consumers' field needs (§5).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1830,7 +1965,6 @@ import { describe, expect, it } from '@jest/globals';
 
 import type { ExecutionEvent } from '../types.js';
 
-// Each RU5 consumer's required fields, asserted constructible from the union.
 describe('ExecutionEvent superset completeness (RU5 consumer guard)', () => {
   it('production API: text, toolCall, tokenUsage, structuredOutput, nodeError, done', () => {
     const text: ExecutionEvent = { type: 'assistant_message', text: 'x', depth: 0 };
@@ -1842,16 +1976,17 @@ describe('ExecutionEvent superset completeness (RU5 consumer guard)', () => {
     expect([text, toolCall, tokenUsage, structured, nodeError, done].length).toBe(6);
   });
 
-  it('simulation panel: step_processed(reasoning), tool_executed, child_*, snapshot/patch', () => {
+  it('simulation panel: step(reasoning), tool_result, child_*, snapshot/patch', () => {
     const step: ExecutionEvent = { type: 'node_exited', nodeId: 'n', depth: 0, reasoning: 'why', durationMs: 5 };
     const toolResult: ExecutionEvent = { type: 'tool_result', toolCallId: 'i', result: {}, depth: 0 };
     const awaiting: ExecutionEvent = { type: 'child_awaiting_input', childExecutionId: 'c', partial: 'p', depth: 1 };
+    const dispatched: ExecutionEvent = { type: 'child_dispatched', childExecutionId: 'c', dispatchType: 'invoke_agent', task: 't', depth: 1 };
     const patch: ExecutionEvent = { type: 'simulation_state_patch', tool: 't', path: '/a', value: 1 };
     const snapshot: ExecutionEvent = { type: 'simulation_state_snapshot', state: {} };
-    expect([step, toolResult, awaiting, patch, snapshot].length).toBe(5);
+    expect([step, toolResult, awaiting, dispatched, patch, snapshot].length).toBe(6);
   });
 
-  it('widget: text + done + per-node tokens', () => {
+  it('widget: text + done', () => {
     const text: ExecutionEvent = { type: 'assistant_message', text: 'x', depth: 0 };
     const done: ExecutionEvent = { type: 'finished', result: 'r' };
     expect([text, done].length).toBe(2);
@@ -1859,14 +1994,12 @@ describe('ExecutionEvent superset completeness (RU5 consumer guard)', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 2: Run test to verify it fails (or compile-fails)**
 
 Run: `npm run test -w packages/api -- --testPathPattern=events/__tests__/emitterCompleteness`
-Expected: PASS immediately if the union from Task 1 is complete — if any consumer field has no home, a TS compile error in this test FAILS the run. (That failure IS the §5 guard firing.) Confirm it compiles+passes; if a field is missing, add it to the union in `events/types.ts` and re-run.
+Expected: PASS if the Task 1 union is complete; if any consumer field has no home a TS compile error FAILS the run — that failure IS the §5 guard. Add the missing field to `events/types.ts` and re-run.
 
-- [ ] **Step 3: Add the barrel exports**
-
-In `packages/api/src/index.ts`, add (respecting `@trivago` import sort):
+- [ ] **Step 3: Add the barrel exports** (respecting `@trivago` import sort)
 
 ```ts
 export type { ExecutionEvent, Tokens } from './events/types.js';
@@ -1874,21 +2007,14 @@ export { createEventEmitter } from './events/emitter.js';
 export type { ChildResult, ChildErrorCode, TerminationInput } from './runtime/childResult.js';
 export { mapTerminationToChildResult } from './runtime/childResult.js';
 export type {
-  RuntimeCapabilities,
-  RuntimeServices,
-  ResolveChildInput,
-  ResolvedChildConfig,
-  DispatchStrategy,
-  DispatchOutcome,
-  DispatchArgs,
-  DispatchPersistence,
-  DispatchHandle,
-  Observability,
-  RateLimiter,
-  RunnerLogger,
+  RuntimeCapabilities, RuntimeServices, ResolveChildInput, ResolvedChildConfig, McpInvoker, SupabaseLike,
+  DispatchStrategy, DispatchOutcome, DispatchArgs, DispatchPersistence, DispatchHandle,
+  Observability, RateLimiter, RunnerLogger,
 } from './capabilities/index.js';
 export { executeTurn } from './runtime/executeTurn.js';
 export { childDispatch } from './runtime/childDispatch.js';
+export { selectStepMachine } from './runtime/selectStepMachine.js';
+export type { StepMachine, StepReport } from './runtime/stepMachine.js';
 export { createSimStateStore, deepFreeze } from './runtime/simStateStore.js';
 export type { SimStateStore, SimStatePatch } from './runtime/simStateStore.js';
 export { setByJsonPointer } from './runtime/jsonPointer.js';
@@ -1898,7 +2024,7 @@ export { noopPersistence } from './simulation/noopPersistence.js';
 export { consoleObservability, consoleLogger, noopRateLimit } from './simulation/consoleCapabilities.js';
 export { makeResolveChildConfig } from './runtime/resolveChildConfig.js';
 export { MAX_DISPATCH_DEPTH, MAX_CHILD_RUNTIME_MS } from './runtime/types.js';
-export type { RuntimeInput, RuntimeOutput, DeepReadonly, ToolRef } from './runtime/types.js';
+export type { RuntimeInput, RuntimeOutput, DeepReadonly, ExecutionType, ToolRef } from './runtime/types.js';
 ```
 
 - [ ] **Step 4: Run typecheck + the completeness test**
@@ -1917,31 +2043,29 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 16: Sim capabilities wiring + `ExecutionEvent → sim-SSE` bridge (backend)
+### Task 17: Sim capabilities wiring + `ExecutionEvent → sim-SSE` bridge (both engines)
 
 **Files:**
-- Create: `packages/backend/src/runtime/simulationCapabilities.ts`
-- Create: `packages/backend/src/runtime/executionEventBridge.ts`
+- Create: `packages/backend/src/runtime/simulationCapabilities.ts`, `executionEventBridge.ts`
 - Test: `packages/backend/src/runtime/__tests__/executionEventBridge.test.ts`
 
 **Interfaces:**
-- Consumes (from `@daviddh/llm-graph-runner`): `RuntimeCapabilities`, `RuntimeServices`, `syncRecurseStrategy`, `noopPersistence`, `consoleObservability`, `consoleLogger`, `noopRateLimit`, `makeResolveChildConfig`, `ExecutionEvent`. RU2: `createMcpPoolClient`. Backend: `resolveChildConfig` (existing `simulateChildResolver.ts`), `AgentSimulationEvent` + `writeAgentSSE` (`simulateAgentSse.ts`).
-- Produces:
-  - `export function buildSimulationCapabilities(): RuntimeCapabilities` = `{ persistence: noopPersistence, dispatch: syncRecurseStrategy, observability: consoleObservability, rateLimit: noopRateLimit, logger: consoleLogger }`.
-  - `export function buildSimulationServices(supabase, mcpPool): RuntimeServices`.
-  - `export function executionEventToSim(ev: ExecutionEvent): AgentSimulationEvent | null` — maps the superset to today's sim shape. Mapping:
-    - `assistant_message` → `{ type: 'agent_response', depth, text, steps: 0, totalTokens, toolCalls: [] }` (or fold into `step_processed`).
-    - `tool_call`/`tool_result` → `{ type: 'tool_executed', step, depth, toolCall }`.
-    - `node_exited` → `{ type: 'step_processed', ... }`.
-    - `child_dispatched` → `{ type: 'child_dispatched', ... }`.
-    - `child_finished` → `{ type: 'child_finished', depth, output, status, tokens }`.
-    - `child_awaiting_input` → `{ type: 'child_waiting', depth, text: partial }`.
-    - `finished` → `{ type: 'simulation_complete' }`.
-    - `error` → `{ type: 'error', message }`.
-    - `simulation_state_patch`/`simulation_state_snapshot` → **forwarded** (see below).
-    - `node_entered`/`assistant_message` duplicates/`child_suspended` → `null` (ExecutionEvent-only; surface to other consumers only post-RU5).
+- `buildSimulationCapabilities(): RuntimeCapabilities` = `{ persistence: noopPersistence, dispatch: syncRecurseStrategy, observability: consoleObservability, rateLimit: noopRateLimit, logger: consoleLogger }`.
+- `buildSimulationRuntimeServices(supabase, mcpPool): RuntimeServices` — wires `makeResolveChildConfig(supabase, ...)` to the existing backend `resolveChildConfig`.
+- `executionEventToSim(ev: ExecutionEvent, executionType: ExecutionType): AgentSimulationEvent | WorkflowSimEvent | null` — maps the superset to today's **per-engine** sim shape (agent → `AgentSimulationEvent`; workflow → the `simulate.ts` union). Mapping highlights:
+  - `assistant_message` → agent `agent_response` (or `step_processed`) / workflow `agent_response`.
+  - `tool_call`/`tool_result` → agent `tool_executed`.
+  - `node_exited` → agent `step_processed` / workflow `node_processed`.
+  - `node_entered` → workflow `node_visited` (agent → `null`).
+  - `child_dispatched` → `child_dispatched` (both, carrying `dispatchType`/`task`).
+  - `child_finished` → agent `child_finished` (`{ depth, output, status, tokens }`); workflow has no `child_finished` today → forward as a synthesized `child_dispatched`-paired event or `null` (workflow sim previously stopped at dispatch — see Decision 7; emit the new `child_finished` shape, temporarily extending the workflow union).
+  - `child_awaiting_input` → agent `child_waiting` (`{ depth, text: partial }`).
+  - `finished` → `simulation_complete` (both).
+  - `error` → `{ type: 'error', message }` (both).
+  - `simulation_state_patch`/`simulation_state_snapshot` → **forwarded 1:1** (both — temporary union extension).
+  - `child_suspended` → `null` (durable-only; surfaces post-RU5).
 
-> **The bridge FORWARDS `simulation_state_patch`/`simulation_state_snapshot`** (corrected — do NOT drop them). Today's sim-SSE union lacks them, so this task **temporarily extends `AgentSimulationEvent`** (`packages/backend/src/routes/simulateAgentTypes.ts`) with exactly two members — `{ type: 'simulation_state_patch'; tool: string; path: string; value: unknown }` and `{ type: 'simulation_state_snapshot'; state: Record<string, unknown> }` — and `executionEventToSim` maps them through 1:1. Task 18's panel consumes them off the SSE stream. This makes RU3 validate the §6 sim-state model end-to-end (runtime → bridge → FE), not via FE-side optimistic-local patches. The two members (and this whole bridge) are absorbed/deleted at RU5's full cutover.
+> **The bridge FORWARDS `simulation_state_patch`/`simulation_state_snapshot`** (do NOT drop them). Today neither sim-SSE union has them, so this task **temporarily extends both** (`simulateAgentTypes.ts` AND the `simulate.ts` workflow union) with exactly those two members, mapped 1:1. Task 18's panel consumes them off the SSE stream, validating the §6 runtime→FE sim-state model end-to-end. Both members + the whole bridge are deleted at RU5's full cutover.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1951,40 +2075,41 @@ import { describe, expect, it } from '@jest/globals';
 
 import { executionEventToSim } from '../executionEventBridge.js';
 
-describe('executionEventToSim', () => {
+describe('executionEventToSim (agent)', () => {
   it('maps child_awaiting_input → child_waiting', () => {
-    expect(
-      executionEventToSim({ type: 'child_awaiting_input', childExecutionId: 'c', partial: 'p', depth: 1 })
-    ).toEqual({ type: 'child_waiting', depth: 1, text: 'p' });
+    expect(executionEventToSim({ type: 'child_awaiting_input', childExecutionId: 'c', partial: 'p', depth: 1 }, 'agent')).toEqual({
+      type: 'child_waiting', depth: 1, text: 'p',
+    });
   });
 
   it('maps child_finished → child_finished (sim shape)', () => {
-    const out = executionEventToSim({
-      type: 'child_finished', childExecutionId: 'c', depth: 1,
-      result: { status: 'finished', result: 'done', outcome: 'success' },
-      tokens: { input: 1, output: 2, cached: 0 },
-    });
+    const out = executionEventToSim(
+      { type: 'child_finished', childExecutionId: 'c', depth: 1, result: { status: 'finished', result: 'done', outcome: 'success' }, tokens: { input: 1, output: 2, cached: 0 } },
+      'agent'
+    );
     expect(out).toEqual({ type: 'child_finished', depth: 1, output: 'done', status: 'success', tokens: { input: 1, output: 2, cached: 0 } });
   });
 
   it('maps finished → simulation_complete', () => {
-    expect(executionEventToSim({ type: 'finished', result: 'x' })).toEqual({ type: 'simulation_complete' });
+    expect(executionEventToSim({ type: 'finished', result: 'x' }, 'agent')).toEqual({ type: 'simulation_complete' });
   });
 
   it('forwards simulation_state_snapshot (temporary bridge extension)', () => {
-    expect(executionEventToSim({ type: 'simulation_state_snapshot', state: { a: 1 } })).toEqual({
-      type: 'simulation_state_snapshot',
-      state: { a: 1 },
+    expect(executionEventToSim({ type: 'simulation_state_snapshot', state: { a: 1 } }, 'agent')).toEqual({
+      type: 'simulation_state_snapshot', state: { a: 1 },
     });
   });
 
   it('forwards simulation_state_patch (temporary bridge extension)', () => {
-    expect(executionEventToSim({ type: 'simulation_state_patch', tool: 't', path: '/a', value: 1 })).toEqual({
-      type: 'simulation_state_patch',
-      tool: 't',
-      path: '/a',
-      value: 1,
+    expect(executionEventToSim({ type: 'simulation_state_patch', tool: 't', path: '/a', value: 1 }, 'agent')).toEqual({
+      type: 'simulation_state_patch', tool: 't', path: '/a', value: 1,
     });
+  });
+});
+
+describe('executionEventToSim (workflow)', () => {
+  it('maps node_entered → node_visited', () => {
+    expect(executionEventToSim({ type: 'node_entered', nodeId: 'n1', depth: 0 }, 'workflow')).toEqual({ type: 'node_visited', nodeId: 'n1' });
   });
 });
 ```
@@ -1994,35 +2119,44 @@ describe('executionEventToSim', () => {
 Run: `npm run test -w packages/backend -- --testPathPattern=runtime/__tests__/executionEventBridge`
 Expected: FAIL — cannot find module `../executionEventBridge.js`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [ ] **Step 3: Write minimal implementation** (decompose into `bridgeAgent.ts`/`bridgeWorkflow.ts` helpers to respect max-lines)
 
 ```ts
 // packages/backend/src/runtime/executionEventBridge.ts
+import type { ExecutionEvent, ExecutionType } from '@daviddh/llm-graph-runner';
+
+import type { AgentSimulationEvent } from '../routes/simulateAgentTypes.js';
+import type { WorkflowSimEvent } from '../routes/simulate.js';
+import { agentEventToSim } from './bridgeAgent.js';
+import { workflowEventToSim } from './bridgeWorkflow.js';
+
+export function executionEventToSim(
+  ev: ExecutionEvent,
+  executionType: ExecutionType
+): AgentSimulationEvent | WorkflowSimEvent | null {
+  return executionType === 'agent' ? agentEventToSim(ev) : workflowEventToSim(ev);
+}
+```
+
+```ts
+// packages/backend/src/runtime/bridgeAgent.ts
 import type { ExecutionEvent } from '@daviddh/llm-graph-runner';
 
 import type { AgentSimulationEvent } from '../routes/simulateAgentTypes.js';
 
-function childFinishedToSim(
-  ev: Extract<ExecutionEvent, { type: 'child_finished' }>
-): AgentSimulationEvent {
-  const result = ev.result;
-  const output = result.status === 'finished' ? result.result : '';
-  const status = result.status === 'finished' ? result.outcome : 'error';
-  return {
-    type: 'child_finished',
-    depth: ev.depth,
-    output,
-    status,
-    tokens: ev.tokens ?? { input: 0, output: 0, cached: 0 },
-  };
+function childFinishedToSim(ev: Extract<ExecutionEvent, { type: 'child_finished' }>): AgentSimulationEvent {
+  const r = ev.result;
+  const output = r.status === 'finished' ? r.result : '';
+  const status = r.status === 'finished' ? r.outcome : 'error';
+  return { type: 'child_finished', depth: ev.depth, output, status, tokens: ev.tokens ?? { input: 0, output: 0, cached: 0 } };
 }
 
-export function executionEventToSim(ev: ExecutionEvent): AgentSimulationEvent | null {
+export function agentEventToSim(ev: ExecutionEvent): AgentSimulationEvent | null {
   switch (ev.type) {
     case 'child_awaiting_input':
       return { type: 'child_waiting', depth: ev.depth, text: ev.partial };
     case 'child_dispatched':
-      return null; // child_dispatched needs parent metadata the bridge lacks here; emitted by driver directly
+      return null; // emitted directly by driver with parent metadata the bridge lacks
     case 'child_finished':
       return childFinishedToSim(ev);
     case 'finished':
@@ -2037,35 +2171,43 @@ export function executionEventToSim(ev: ExecutionEvent): AgentSimulationEvent | 
       return null;
   }
 }
-// NB: this requires adding those two members to the `AgentSimulationEvent` union in
-// `packages/backend/src/routes/simulateAgentTypes.ts` (temporary; removed at RU5).
+```
+
+```ts
+// packages/backend/src/runtime/bridgeWorkflow.ts
+import type { ExecutionEvent } from '@daviddh/llm-graph-runner';
+
+import type { WorkflowSimEvent } from '../routes/simulate.js';
+
+export function workflowEventToSim(ev: ExecutionEvent): WorkflowSimEvent | null {
+  switch (ev.type) {
+    case 'node_entered':
+      return { type: 'node_visited', nodeId: ev.nodeId };
+    case 'finished':
+      return { type: 'simulation_complete' };
+    case 'error':
+      return { type: 'error', message: ev.message };
+    case 'simulation_state_patch':
+      return { type: 'simulation_state_patch', tool: ev.tool, path: ev.path, value: ev.value };
+    case 'simulation_state_snapshot':
+      return { type: 'simulation_state_snapshot', state: ev.state };
+    default:
+      return null;
+  }
+}
 ```
 
 ```ts
 // packages/backend/src/runtime/simulationCapabilities.ts
 import {
-  consoleLogger,
-  consoleObservability,
-  makeResolveChildConfig,
-  noopPersistence,
-  noopRateLimit,
-  syncRecurseStrategy,
-  type RuntimeCapabilities,
-  type RuntimeServices,
-  type McpInvoker,
-  type SupabaseLike,
+  consoleLogger, consoleObservability, makeResolveChildConfig, noopPersistence, noopRateLimit, syncRecurseStrategy,
+  type McpInvoker, type RuntimeCapabilities, type RuntimeServices, type SupabaseLike,
 } from '@daviddh/llm-graph-runner';
 
 import { resolveChildConfig } from '../routes/simulateChildResolver.js';
 
 export function buildSimulationCapabilities(): RuntimeCapabilities {
-  return {
-    persistence: noopPersistence,
-    dispatch: syncRecurseStrategy,
-    observability: consoleObservability,
-    rateLimit: noopRateLimit,
-    logger: consoleLogger,
-  };
+  return { persistence: noopPersistence, dispatch: syncRecurseStrategy, observability: consoleObservability, rateLimit: noopRateLimit, logger: consoleLogger };
 }
 
 export function buildSimulationRuntimeServices(supabase: SupabaseLike, mcpPool: McpInvoker): RuntimeServices {
@@ -2079,6 +2221,8 @@ export function buildSimulationRuntimeServices(supabase: SupabaseLike, mcpPool: 
 }
 ```
 
+> Add the two sim-state members to BOTH `AgentSimulationEvent` (`simulateAgentTypes.ts`) and the workflow `WorkflowSimEvent` union (`simulate.ts`), plus a `child_finished` member to the workflow union (new behavior — Decision 7). Export `WorkflowSimEvent` from `simulate.ts` if not already. Temporary; removed at RU5.
+
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `npm run test -w packages/backend -- --testPathPattern=runtime/__tests__/executionEventBridge && npm run typecheck -w packages/backend`
@@ -2087,132 +2231,150 @@ Expected: PASS / clean.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add packages/backend/src/runtime/simulationCapabilities.ts packages/backend/src/runtime/executionEventBridge.ts packages/backend/src/runtime/__tests__/executionEventBridge.test.ts
-git commit -m "feat(backend): sim capabilities wiring + throwaway ExecutionEvent→sim-SSE bridge
+git add packages/backend/src/runtime/simulationCapabilities.ts packages/backend/src/runtime/executionEventBridge.ts packages/backend/src/runtime/bridgeAgent.ts packages/backend/src/runtime/bridgeWorkflow.ts packages/backend/src/runtime/__tests__/executionEventBridge.test.ts
+git commit -m "feat(backend): sim capabilities wiring + throwaway ExecutionEvent→sim-SSE bridge (both engines)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
 
 ---
 
-### Task 17: Migrate `simulationOrchestrator` onto `executeTurn`
+### Task 18: Migrate BOTH sim handlers onto `executeTurn` behind ONE sim handler (BE routes by type)
 
 **Files:**
-- Modify: `packages/backend/src/routes/simulationOrchestrator.ts`
-- Test: `packages/backend/src/routes/__tests__/simulationOrchestrator.test.ts`
+- Modify: `packages/backend/src/routes/simulationOrchestrator.ts` (agent `runLoop`/`runChildLoop` closures over `executeAgentLoop`)
+- Modify: `packages/backend/src/routes/simulateHandler.ts` (workflow `runWorkflow` closure over `executeWithCallbacks`)
+- Create: `packages/backend/src/routes/simulateHandlerUnified.ts` (the one handler routing by `appType`)
+- Create: `packages/backend/src/routes/simulationDriverHelpers.ts` (shared `buildTurnArgs`/`selectStepMachine` deps/`toResult`)
+- Modify: `packages/backend/src/server.ts` (`/simulate` + `/simulate-agent` both delegate to the unified handler)
+- Test: `packages/backend/src/routes/__tests__/simulateHandlerUnified.test.ts`
 
 **Interfaces:**
-- Consumes: `executeTurn`, `createSimStateStore` (api); `buildSimulationCapabilities`/`buildSimulationRuntimeServices`/`executionEventToSim` (Task 16); existing `buildLoopConfig`/`executeAgentLoop`/`buildChildOrchestratorConfig` helpers (kept as the `runLoop`/`runChildLoop` closures); `writeAgentSSE` (`simulateAgentSse.ts`).
-- Produces: `runSimulationOrchestration(config, callbacks)` becomes a thin driver: builds the sim-state store from `config.body.simulationState`/`simulationStateWritable`, constructs `executeTurn` args with `runLoop = () => executeAgentLoop(loopConfig, loopCallbacks, consoleLogger)` and `runChildLoop = (childConfig) => executeAgentLoop(buildChildLoopConfig(childConfig), …)`, iterates `output.events`, bridges each via `executionEventToSim`, and emits non-null events through the existing SSE writer. Existing `OrchestratorResult` is kept as the return shape (derived from `output.finalResult` + whether a `child_awaiting_input` fired).
+- `handleSimulateUnified(req, res)` — parses the body, derives `executionType` from `appType` in the body (`'agent'` when `body.appType === 'agent'` OR a child is active; else `'workflow'`), builds the engine-specific `StepMachine` deps (agent closures wrap `executeAgentLoop`+`buildLoopConfig`; workflow closures wrap `executeWithCallbacks`+`buildContextWithRegistry`), constructs the sim-state store from `body.simulationState`/`simulationStateWritable`, runs `executeTurn({ executionType, machine: selectStepMachine(executionType, deps), runChildToTermination, ... })`, iterates `output.events`, bridges each via `executionEventToSim(ev, executionType)`, and writes non-null events through the appropriate SSE writer (`writeAgentSSE` / `writeSSE`). `child_dispatched` is emitted directly by the driver (carrying parent metadata) as today.
+- `/simulate` and `/simulate-agent` (`server.ts:151-152`) both call `handleSimulateUnified`; the old `handleSimulate`/`handleSimulateAgent` become thin shims (or are inlined). This is the server-side agent-vs-workflow routing the spec demands.
 
-> The legacy `continueParentAfterChild` message-threading stays inside the `runChildLoop`/resume closure the driver builds (per Task 14's split). The orchestrator keeps producing today's `OrchestratorResult` so its caller (`simulateHandler`) is unchanged.
+> **The child's engine may differ from the parent's** (agent dispatching a workflow / vice-versa). `runChildToTermination(config)` builds a CHILD `StepMachine` via `selectStepMachine(childExecutionType, childDeps)` and runs it to termination — `childExecutionType` comes from the dispatch type (`invoke_workflow` → `'workflow'`; `invoke_agent`/`create_agent` → `'agent'`). This realizes §1/§4 interchangeability. Decompose aggressively to respect max-lines (each closure builder + the driver loop is its own helper).
+>
+> The legacy agent `continueParentAfterChild` message-threading moves into the agent `runChildToTermination`/`injectChildResult` closures; the workflow path GAINS re-injection it never had (Decision 7).
 
 - [ ] **Step 1: Write the failing test**
 
 ```ts
-// packages/backend/src/routes/__tests__/simulationOrchestrator.test.ts
+// packages/backend/src/routes/__tests__/simulateHandlerUnified.test.ts
 import { describe, expect, it, jest } from '@jest/globals';
 
-// Mock executeAgentLoop to return a simple finishing parent (no dispatch).
+// Override the engine runners with stubs so no real LLM is called.
 jest.unstable_mockModule('@daviddh/llm-graph-runner', async () => {
   const actual = await import('@daviddh/llm-graph-runner');
-  return {
-    ...actual,
-    // keep real executeTurn / bridge helpers; override the loop runner used by buildLoopConfig path if needed
-  };
+  return { ...actual };
 });
 
-const { runSimulationOrchestration } = await import('../simulationOrchestrator.js');
+const { runUnifiedSimulation } = await import('../simulateHandlerUnified.js');
 
-describe('runSimulationOrchestration on executeTurn', () => {
-  it('returns a completed result for a non-dispatch turn', async () => {
-    const events: string[] = [];
-    const config = {
-      body: { tenantId: 't', messages: [{ role: 'user', message: { text: 'hi' } }], maxSteps: 2, simulationState: {}, simulationStateWritable: true },
-      depth: 0, maxNestingDepth: 10, orgId: 'o', supabase: {} as never,
-    } as never;
-    const result = await runSimulationOrchestration(config, {
-      onSseEvent: (e: { type: string }) => events.push(e.type),
-      onChildFinished: () => undefined,
-    } as never);
-    expect(result.type).toBe('completed');
+function fakeRes(): { events: string[]; write: (s: string) => void; flush?: () => void; end: () => void } {
+  const events: string[] = [];
+  return {
+    events,
+    write: (s: string) => {
+      const m = /"type":"([^"]+)"/.exec(s);
+      if (m) events.push(m[1]!);
+    },
+    end: () => undefined,
+  };
+}
+
+describe('runUnifiedSimulation', () => {
+  it('routes a workflow body through the workflow engine and completes', async () => {
+    const res = fakeRes();
+    await runUnifiedSimulation(
+      { body: { tenantID: 't', orgId: 'o', graph: { mcpServers: [] }, messages: [], currentNode: 'start', simulationState: {}, simulationStateWritable: true }, supabase: {} as never },
+      res as never,
+      { runWorkflowOverride: async () => null } // test seam: inject a null-output workflow run
+    );
+    expect(res.events).toContain('simulation_complete');
   });
 });
 ```
 
-> This test is a smoke test; adjust the mock to whatever minimal loop stub makes `runLoop` resolve a `finalText` without a real model. If `buildLoopConfig` calls a real LLM, inject a fake `runLoop` via a new optional `config.__runLoopOverride` test seam OR mock `buildLoopConfig`. Keep the seam test-only.
+> The `runWorkflowOverride`/`runAgentLoopOverride` test seam is test-only — wire it as an optional 3rd arg that, when present, replaces the real `executeWithCallbacks`/`executeAgentLoop` closure. If `buildLoopConfig`/`buildContextWithRegistry` call a real model, this seam is what keeps the test offline.
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npm run test -w packages/backend -- --testPathPattern=routes/__tests__/simulationOrchestrator`
-Expected: FAIL — orchestrator not yet routed through `executeTurn` / shape mismatch.
+Run: `npm run test -w packages/backend -- --testPathPattern=routes/__tests__/simulateHandlerUnified`
+Expected: FAIL — module/handler missing.
 
-- [ ] **Step 3: Write minimal implementation**
-
-Refactor `runSimulationOrchestration` to drive `executeTurn` (decompose into helpers to respect the 40-line limit):
+- [ ] **Step 3: Write minimal implementation** (decompose across `simulateHandlerUnified.ts` + `simulationDriverHelpers.ts`)
 
 ```ts
-// packages/backend/src/routes/simulationOrchestrator.ts  (new core — keep helpers in this file or a new simulationDriverHelpers.ts)
-import { createSimStateStore, executeTurn } from '@daviddh/llm-graph-runner';
+// packages/backend/src/routes/simulateHandlerUnified.ts  (sketch — keep each fn ≤40 lines)
+import { createSimStateStore, executeTurn, selectStepMachine, type ExecutionType } from '@daviddh/llm-graph-runner';
 
 import { buildSimulationCapabilities, buildSimulationRuntimeServices } from '../runtime/simulationCapabilities.js';
 import { executionEventToSim } from '../runtime/executionEventBridge.js';
+import { buildAgentMachineDeps, buildWorkflowMachineDeps, buildRunChildToTermination, writeSimEvent } from './simulationDriverHelpers.js';
 
-export async function runSimulationOrchestration(
-  config: OrchestratorConfig,
-  callbacks: OrchestratorCallbacks
-): Promise<OrchestratorResult> {
-  const simStore = createSimStateStore(
-    config.body.simulationState ?? {},
-    config.body.simulationStateWritable ?? true
-  );
-  const output = await executeTurn(buildTurnArgs(config, simStore));
-  let awaiting: { depth: number; text: string } | null = null;
-  for await (const ev of output.events) {
-    if (ev.type === 'child_awaiting_input') awaiting = { depth: ev.depth, text: ev.partial };
-    const sim = executionEventToSim(ev);
-    if (sim !== null) callbacks.onSseEvent(sim);
-  }
-  if (awaiting !== null) return { type: 'child_waiting', depth: awaiting.depth, text: awaiting.text };
-  return { type: 'completed', result: toLoopResult(output) };
+export interface UnifiedConfig { body: Record<string, unknown>; supabase: unknown; }
+export interface UnifiedOverrides { runWorkflowOverride?: () => Promise<unknown>; runAgentLoopOverride?: () => Promise<unknown>; }
+
+function pickExecutionType(body: Record<string, unknown>): ExecutionType {
+  return body.appType === 'agent' ? 'agent' : 'workflow';
+}
+
+export async function runUnifiedSimulation(config: UnifiedConfig, res: unknown, overrides: UnifiedOverrides = {}): Promise<void> {
+  const executionType = pickExecutionType(config.body);
+  const simStore = createSimStateStore(/* body.simulationState */ {}, /* writable */ true);
+  const deps = executionType === 'agent'
+    ? buildAgentMachineDeps(config, simStore, overrides)
+    : buildWorkflowMachineDeps(config, simStore, overrides);
+  const output = await executeTurn({
+    environment: 'simulation', executionType, dispatchDepth: 0, maxDispatchDepth: 10,
+    capabilities: buildSimulationCapabilities(),
+    services: buildSimulationRuntimeServices(config.supabase as never, deps.mcpPool),
+    simStore,
+    machine: selectStepMachine(executionType, deps.machineDeps),
+    runChildToTermination: buildRunChildToTermination(config, deps),
+  });
+  for await (const ev of output.events) writeSimEvent(res, ev, executionType);
 }
 ```
 
-`buildTurnArgs`, `toLoopResult`, and the `runLoop`/`runChildLoop` closures (reusing `buildLoopConfig`/`executeAgentLoop`/`buildChildOrchestratorConfig`) go in a sibling `simulationDriverHelpers.ts` to stay under `max-lines`. Adapt `OrchestratorCallbacks` to carry an `onSseEvent` callback (the caller `simulateHandler` already has `writeAgentSSE(res, event)` — pass it).
+`buildAgentMachineDeps` wraps `buildLoopConfig`+`executeAgentLoop` (reusing today's `simulationOrchestrator` helpers); `buildWorkflowMachineDeps` wraps `buildContextWithRegistry`+`executeWithCallbacks` (reusing today's `simulateHandler` helpers, forwarding `onNodeVisited`/`onNodeProcessed` into the emitter). `writeSimEvent` runs `executionEventToSim(ev, executionType)` and writes non-null via `writeAgentSSE`/`writeSSE`. The HTTP entrypoints (`handleSimulate`, `handleSimulateAgent`) set SSE headers, call `runUnifiedSimulation`, and end the response.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 4: Run test + typecheck**
 
-Run: `npm run test -w packages/backend -- --testPathPattern=routes/__tests__/simulationOrchestrator && npm run typecheck -w packages/backend`
-Expected: PASS / clean.
+Run: `npm run test -w packages/backend -- --testPathPattern="routes/__tests__/simulateHandlerUnified|routes/__tests__/simulateHandler|routes/__tests__/simulationOrchestrator" && npm run typecheck -w packages/backend`
+Expected: PASS / clean. (Pre-existing `simulateHandler.test.ts`/`simulationOrchestrator.test.ts` may need re-pointing at the unified path.)
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add packages/backend/src/routes/simulationOrchestrator.ts packages/backend/src/routes/simulationDriverHelpers.ts packages/backend/src/routes/__tests__/simulationOrchestrator.test.ts
-git commit -m "feat(backend): drive simulation through executeTurn + ExecutionEvent bridge
+git add packages/backend/src/routes/simulateHandlerUnified.ts packages/backend/src/routes/simulationDriverHelpers.ts packages/backend/src/routes/simulateHandler.ts packages/backend/src/routes/simulationOrchestrator.ts packages/backend/src/server.ts packages/backend/src/routes/__tests__/simulateHandlerUnified.test.ts
+git commit -m "feat(backend): drive BOTH sims through executeTurn behind one handler (BE routes by appType)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
 
 ---
 
-### Task 18: FE sim-state store hook + `setByJsonPointer` + JSON panel
-
-> **Data source (corrected with Task 16):** the panel consumes the **runtime-emitted** `simulation_state_patch`/`simulation_state_snapshot` events that the bridge now forwards over SSE — *not* FE-side optimistic-local patches. So the FE sim-stream parser must recognize those two event types; `useSimulationState` applies a `simulation_state_patch` display-only via `setByJsonPointer`, and **replaces** its copy on `simulation_state_snapshot` via `adoptSnapshot` (the only authoritative update, per §6). This is what validates the §6 runtime-as-sole-writer model in RU3.
+### Task 19: FE sim-state store hook + `setByJsonPointer` + JSON panel + MCP badge + dialogs
 
 **Files:**
 - Create: `packages/web/app/utils/jsonPointer.ts`
 - Modify: `packages/web/app/hooks/useSimulationState.ts`
-- Create: `packages/web/app/components/panels/SimulationStatePanel.tsx`
-- Test: `packages/web/app/utils/__tests__/jsonPointer.test.ts`
+- Create: `packages/web/app/components/panels/SimulationStatePanel.tsx`, `TestingPresetsPopover.tsx`, `ResetSimulationDialog.tsx`, `TenantSwitchResetDialog.tsx`, `packages/web/app/components/McpSideEffectBadge.tsx`
+- Test: `packages/web/app/utils/__tests__/jsonPointer.test.ts`, `packages/web/app/components/__tests__/McpSideEffectBadge.test.tsx`
+
+> **Data source:** the panel consumes the **runtime-emitted** `simulation_state_patch`/`simulation_state_snapshot` events the bridge forwards over SSE (Task 17) — not FE-side optimistic-local patches. The FE sim-stream parser must recognize those two types; `useSimulationState` applies a `simulation_state_patch` display-only via `setByJsonPointer`, and **replaces** its copy on `simulation_state_snapshot` via `adoptSnapshot` (the only authoritative update, per §6). This validates §6's runtime-as-sole-writer model.
 
 **Interfaces:**
-- Produces:
-  - `export function setByJsonPointer(obj, pointer, value)` (FE copy of Task 7 logic — web cannot import the api package's internal module path; duplicate the small RFC-6901 setter).
-  - `useSimulationState` gains `simulationState: Record<string, unknown>`, `adoptSnapshot(snapshot)`, `resetSimulationState()`.
-  - `SimulationStatePanel` renders `simulationState` via `JsonBlock` (from `JsonDisplay.tsx`) with an empty-state message and a "Reset simulation" footer button.
+- `setByJsonPointer(obj, pointer, value)` (FE copy of Task 7 logic; web cannot import the api internal path).
+- `useSimulationState` gains `simulationState: Record<string, unknown>`, `adoptSnapshot(snapshot)`, `resetSimulationState()`.
+- `SimulationStatePanel` renders `simulationState` via `JsonBlock` (from `JsonDisplay.tsx`) + empty-state + a reset footer button.
+- `McpSideEffectBadge` — shadcn `<Badge>` warning tone + `aria-label` + tooltip, rendered where `providerType === 'mcp'`.
+- `ResetSimulationDialog` / `TenantSwitchResetDialog` — shadcn `AlertDialog` using §8 keys.
+- `TestingPresetsPopover` — wraps the existing `TestingPresetsSection` in a `Popover`, replacing the tenant text input with `TenantPicker`; a tenant change while `simulationState` is non-empty OR sim messages exist opens `TenantSwitchResetDialog`.
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **Step 1: Write the failing tests**
 
 ```ts
 // packages/web/app/utils/__tests__/jsonPointer.test.ts
@@ -2229,99 +2391,6 @@ describe('setByJsonPointer (FE)', () => {
   });
 });
 ```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `npm run test -w packages/web -- --testPathPattern=utils/__tests__/jsonPointer`
-Expected: FAIL — cannot find module `../jsonPointer`.
-
-- [ ] **Step 3: Write minimal implementation**
-
-Create `packages/web/app/utils/jsonPointer.ts` (identical RFC-6901 setter as Task 7, no `.js` extension per web import conventions). Then add to `useSimulationState.ts`:
-
-```ts
-// packages/web/app/hooks/useSimulationState.ts  (add inside the hook)
-const [simulationState, setSimulationState] = useState<Record<string, unknown>>({});
-
-const adoptSnapshot = useCallback((snapshot: Record<string, unknown>) => {
-  setSimulationState(snapshot);
-}, []);
-
-const resetSimulationState = useCallback(() => {
-  setSimulationState({});
-}, []);
-```
-
-Expose `simulationState`, `adoptSnapshot`, `resetSimulationState` on the returned object/setters. Create `SimulationStatePanel.tsx`:
-
-```tsx
-// packages/web/app/components/panels/SimulationStatePanel.tsx
-'use client';
-
-import { useTranslations } from 'next-intl';
-
-import { JsonBlock } from './JsonDisplay';
-import { Button } from '@/components/ui/button';
-
-interface Props {
-  state: Record<string, unknown>;
-  onReset: () => void;
-}
-
-export function SimulationStatePanel({ state, onReset }: Props): React.JSX.Element {
-  const t = useTranslations();
-  const isEmpty = Object.keys(state).length === 0;
-  return (
-    <div className="flex flex-col gap-2">
-      {isEmpty ? (
-        <p className="text-xs text-muted-foreground">{t('simulation.statePanel.empty')}</p>
-      ) : (
-        <JsonBlock value={state} />
-      )}
-      <Button size="sm" variant="outline" onClick={onReset}>
-        {t('simulation.statePanel.resetButton')}
-      </Button>
-    </div>
-  );
-}
-```
-
-(Adjust `JsonBlock` import/prop names to the real `JsonDisplay.tsx` exports.)
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `npm run test -w packages/web -- --testPathPattern=utils/__tests__/jsonPointer && npm run lint -w packages/web`
-Expected: PASS / clean (translation keys added in Task 20 — if lint flags missing keys, do Task 20 first or add keys now).
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add packages/web/app/utils/jsonPointer.ts packages/web/app/hooks/useSimulationState.ts packages/web/app/components/panels/SimulationStatePanel.tsx packages/web/app/utils/__tests__/jsonPointer.test.ts
-git commit -m "feat(web): sim-state store hook (adoptSnapshot/reset) + JSON state panel + jsonPointer
-
-Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
-```
-
----
-
-### Task 19: FE — testing-presets popover, reset + tenant-switch dialogs, MCP badge
-
-**Files:**
-- Create: `packages/web/app/components/panels/TestingPresetsPopover.tsx`
-- Create: `packages/web/app/components/panels/ResetSimulationDialog.tsx`
-- Create: `packages/web/app/components/panels/TenantSwitchResetDialog.tsx`
-- Create: `packages/web/app/components/McpSideEffectBadge.tsx`
-- Test: `packages/web/app/components/__tests__/McpSideEffectBadge.test.tsx`
-
-**Interfaces:**
-- Consumes: shadcn `Popover`, `AlertDialog`, `Badge`; `TestingPresetsSection` + `PublishButtonTenantPicker`'s `TenantPicker`; `useTranslations`.
-- Produces:
-  - `TestingPresetsPopover` — wraps `TestingPresetsSection` in a `Popover`, replacing the tenant text input with `TenantPicker`; a tenant change while `simulationState` is non-empty OR sim messages exist opens `TenantSwitchResetDialog`.
-  - `ResetSimulationDialog` — `AlertDialog` with `simulation.resetState.*` copy; on confirm calls `onReset` (reset state + clear sim messages/tokens + reset to start node).
-  - `TenantSwitchResetDialog` — `AlertDialog` with `simulation.tenantSwitchReset.*` copy; on confirm resets then applies the tenant change.
-  - `McpSideEffectBadge` — shadcn `<Badge>` warning tone, `aria-label`, tooltip; rendered where `providerType === 'mcp'` (tool picker + tool-call cards).
-
-- [ ] **Step 1: Write the failing test**
 
 ```tsx
 // packages/web/app/components/__tests__/McpSideEffectBadge.test.tsx
@@ -2344,12 +2413,22 @@ describe('McpSideEffectBadge', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 2: Run tests to verify they fail**
 
-Run: `npm run test -w packages/web -- --testPathPattern=McpSideEffectBadge`
-Expected: FAIL — cannot find module `../McpSideEffectBadge` (and missing `simulation.mcpBadge.*` keys — add in Task 20 first if needed).
+Run: `npm run test -w packages/web -- --testPathPattern="utils/__tests__/jsonPointer|McpSideEffectBadge"`
+Expected: FAIL — modules / `simulation.mcpBadge.*` keys missing (add keys in Task 20 first if lint blocks).
 
 - [ ] **Step 3: Write minimal implementation**
+
+Create `packages/web/app/utils/jsonPointer.ts` (identical RFC-6901 setter as Task 7, no `.js` extension). Add to `useSimulationState.ts`:
+
+```ts
+const [simulationState, setSimulationState] = useState<Record<string, unknown>>({});
+const adoptSnapshot = useCallback((snapshot: Record<string, unknown>) => setSimulationState(snapshot), []);
+const resetSimulationState = useCallback(() => setSimulationState({}), []);
+```
+
+Expose `simulationState`/`adoptSnapshot`/`resetSimulationState`. Create `SimulationStatePanel.tsx`, `McpSideEffectBadge.tsx`, `ResetSimulationDialog.tsx`, `TenantSwitchResetDialog.tsx`, `TestingPresetsPopover.tsx`:
 
 ```tsx
 // packages/web/app/components/McpSideEffectBadge.tsx
@@ -2365,11 +2444,7 @@ export function McpSideEffectBadge(): React.JSX.Element {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Badge
-          variant="outline"
-          className="border-amber-500 text-amber-600"
-          aria-label={t('simulation.mcpBadge.tooltip')}
-        >
+        <Badge variant="outline" className="border-amber-500 text-amber-600" aria-label={t('simulation.mcpBadge.tooltip')}>
           {t('simulation.mcpBadge.label')}
         </Badge>
       </TooltipTrigger>
@@ -2379,35 +2454,39 @@ export function McpSideEffectBadge(): React.JSX.Element {
 }
 ```
 
-Build `ResetSimulationDialog`, `TenantSwitchResetDialog` with shadcn `AlertDialog` using the §12.5 keys, and `TestingPresetsPopover` wrapping `TestingPresetsSection` + `TenantPicker`. Wire `McpSideEffectBadge` into the tool picker + tool-call cards where `providerType === 'mcp'`. (Run `npx shadcn@latest add badge tooltip popover alert-dialog` only for any not already present.)
+(Adjust `JsonBlock`/`TestingPresetsSection`/`TenantPicker` imports to real exports. Wire `McpSideEffectBadge` into the tool picker + tool-call cards where `providerType === 'mcp'`. Run `npx shadcn@latest add badge tooltip popover alert-dialog` for any not already present.)
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 4: Run tests + lint**
 
-Run: `npm run test -w packages/web -- --testPathPattern=McpSideEffectBadge && npm run lint -w packages/web`
-Expected: PASS / clean.
+Run: `npm run test -w packages/web -- --testPathPattern="utils/__tests__/jsonPointer|McpSideEffectBadge" && npm run lint -w packages/web`
+Expected: PASS / clean (translation keys land in Task 20 — do Task 20 first or add keys now if lint flags them).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add packages/web/app/components/panels/TestingPresetsPopover.tsx packages/web/app/components/panels/ResetSimulationDialog.tsx packages/web/app/components/panels/TenantSwitchResetDialog.tsx packages/web/app/components/McpSideEffectBadge.tsx packages/web/app/components/__tests__/McpSideEffectBadge.test.tsx
-git commit -m "feat(web): testing-presets popover, reset/tenant-switch dialogs, MCP side-effect badge
+git add packages/web/app/utils/jsonPointer.ts packages/web/app/hooks/useSimulationState.ts packages/web/app/components/panels/SimulationStatePanel.tsx packages/web/app/components/panels/TestingPresetsPopover.tsx packages/web/app/components/panels/ResetSimulationDialog.tsx packages/web/app/components/panels/TenantSwitchResetDialog.tsx packages/web/app/components/McpSideEffectBadge.tsx packages/web/app/utils/__tests__/jsonPointer.test.ts packages/web/app/components/__tests__/McpSideEffectBadge.test.tsx
+git commit -m "feat(web): sim-state panel + jsonPointer + reset/tenant-switch dialogs + MCP badge
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
 
 ---
 
-### Task 20: Translations (§12.5 keys) + toolbar wiring
+### Task 20: Collapse the two FE sim stream fns into one (BE routes by `appType`) + translations + toolbar
 
 **Files:**
+- Create: `packages/web/app/lib/simulationApi.ts` (one `streamSimulation` posting `/api/simulate`)
+- Modify: `packages/web/app/hooks/useSimulationSend.ts`, `packages/web/app/hooks/simulationSendHelpers.ts`
 - Modify: `packages/web/messages/en.json`
-- Modify: the simulation toolbar component (locate via `grep -rn "TestingPresetsSection\|toolbar" packages/web/app/components`) to mount the two icon buttons (testing presets + sim state panel).
-- Test: `packages/web/app/__tests__/simulationMessages.test.ts`
+- Modify: the simulation toolbar component (`grep -rn "TestingPresetsSection\|toolbar" packages/web/app/components`) to mount the testing-presets + sim-state icon buttons
+- Test: `packages/web/app/__tests__/simulationMessages.test.ts`, `packages/web/app/hooks/__tests__/useSimulationSend.test.ts`
 
 **Interfaces:**
-- Produces: the §12.5 keys under a `simulation` namespace in `en.json`; the toolbar renders the testing-presets icon (opens `TestingPresetsPopover`) and the sim-state icon (opens `SimulationStatePanel`).
+- **One** `streamSimulation(params, callbacks, signal)` in `simulationApi.ts` posting `/api/simulate` with a body that always carries `appType` (`'agent' | 'workflow'`) plus the union of fields both engines need (the BE ignores irrelevant fields per `appType`). This **deletes** the FE's agent-vs-workflow choice: `useSimulationSend` no longer branches on `appType`/`isChildActive` to pick a fn — it builds one body (setting `appType` from `deps.appType`/child-active) and calls the single `streamSimulation`. `streamAgentSimulation`/`streamSimulation` in `api.ts`/`agentSimulationApi.ts` are removed (or re-export the unified fn) — FLAGGED: the BE (Task 18) now routes by `appType`, so the FE only needs to *report* the type, not choose the endpoint.
+- §8 translation keys under a `simulation` namespace.
+- Toolbar renders the testing-presets icon (opens `TestingPresetsPopover`) + the sim-state icon (opens `SimulationStatePanel`).
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **Step 1: Write the failing tests**
 
 ```ts
 // packages/web/app/__tests__/simulationMessages.test.ts
@@ -2424,7 +2503,7 @@ const REQUIRED = [
 ];
 
 describe('simulation translation keys', () => {
-  it('all §12.5 keys exist', () => {
+  it('all §8 keys exist', () => {
     const sim = (messages as Record<string, Record<string, unknown>>).simulation;
     for (const path of REQUIRED) {
       const [group, key] = path.split('.');
@@ -2434,57 +2513,43 @@ describe('simulation translation keys', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+```ts
+// packages/web/app/hooks/__tests__/useSimulationSend.test.ts
+// Assert the hook calls ONE streamSimulation with appType set, for both agent and workflow deps.
+// (Mock simulationApi.streamSimulation; assert it's called once with body.appType === expected.)
+```
 
-Run: `npm run test -w packages/web -- --testPathPattern=simulationMessages`
-Expected: FAIL — keys missing.
+- [ ] **Step 2: Run tests to verify they fail**
+
+Run: `npm run test -w packages/web -- --testPathPattern="simulationMessages|useSimulationSend"`
+Expected: FAIL — keys missing / hook still branches into two fns.
 
 - [ ] **Step 3: Write minimal implementation**
 
-Add to `packages/web/messages/en.json` under a `simulation` object (merge if it exists):
+Add the `simulation` namespace to `en.json`:
 
 ```json
 "simulation": {
-  "resetState": {
-    "title": "Reset simulation state?",
-    "description": "This clears the current simulation state and conversation. This cannot be undone.",
-    "confirm": "Reset",
-    "cancel": "Cancel"
-  },
-  "tenantSwitchReset": {
-    "title": "Switch tenant and reset?",
-    "description": "Changing the tenant resets the simulation state and conversation. This cannot be undone.",
-    "confirm": "Switch and reset",
-    "cancel": "Cancel"
-  },
-  "toolbar": {
-    "testingPresetsLabel": "Testing presets",
-    "simulationStateLabel": "Simulation state",
-    "openPanel": "Open panel"
-  },
-  "statePanel": {
-    "empty": "No simulation state yet.",
-    "resetButton": "Reset simulation"
-  },
-  "mcpBadge": {
-    "label": "Real",
-    "tooltip": "MCP tools run for real in simulation — this call has real side effects."
-  }
+  "resetState": { "title": "Reset simulation state?", "description": "This clears the current simulation state and conversation. This cannot be undone.", "confirm": "Reset", "cancel": "Cancel" },
+  "tenantSwitchReset": { "title": "Switch tenant and reset?", "description": "Changing the tenant resets the simulation state and conversation. This cannot be undone.", "confirm": "Switch and reset", "cancel": "Cancel" },
+  "toolbar": { "testingPresetsLabel": "Testing presets", "simulationStateLabel": "Simulation state", "openPanel": "Open panel" },
+  "statePanel": { "empty": "No simulation state yet.", "resetButton": "Reset simulation" },
+  "mcpBadge": { "label": "Real", "tooltip": "MCP tools run for real in simulation — this call has real side effects." }
 }
 ```
 
-Wire the toolbar icon buttons (using the `toolbar.*` labels as `aria-label`/tooltip) to open the popover and panel.
+Create `simulationApi.ts` with one `streamSimulation` (posts `/api/simulate`, reuses `readSseStream`). Refactor `useSimulationSend.ts` to build one body (`appType` from `deps.appType` or child-active) and call the single fn; collapse `sendAgentSim`/`sendWorkflowSim` in `simulationSendHelpers.ts` into one `sendSim`. Wire the toolbar icon buttons (using `toolbar.*` labels as `aria-label`/tooltip).
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 4: Run tests + lint**
 
-Run: `npm run test -w packages/web -- --testPathPattern=simulationMessages && npm run lint -w packages/web`
+Run: `npm run test -w packages/web -- --testPathPattern="simulationMessages|useSimulationSend|jsonPointer|McpSideEffectBadge" && npm run lint -w packages/web`
 Expected: PASS / clean.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add packages/web/messages/en.json packages/web/app/__tests__/simulationMessages.test.ts
-git commit -m "feat(web): simulation i18n keys + toolbar testing-presets/sim-state icon buttons
+git add packages/web/app/lib/simulationApi.ts packages/web/app/hooks/useSimulationSend.ts packages/web/app/hooks/simulationSendHelpers.ts packages/web/messages/en.json packages/web/app/__tests__/simulationMessages.test.ts packages/web/app/hooks/__tests__/useSimulationSend.test.ts
+git commit -m "feat(web): one sim stream fn (BE routes by appType) + sim i18n + toolbar buttons
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
@@ -2502,7 +2567,7 @@ Expected: format clean, lint clean (no `eslint-disable`, no `any`), `tsc -b` cle
 
 - [ ] **Step 2: Run all touched suites**
 
-Run: `npm run test -w packages/api && npm run test -w packages/backend -- --testPathPattern=runtime && npm run test -w packages/web -- --testPathPattern="jsonPointer|McpSideEffectBadge|simulationMessages|simulationOrchestrator"`
+Run: `npm run test -w packages/api && npm run test -w packages/backend -- --testPathPattern="runtime|simulateHandlerUnified|simulationOrchestrator|simulateHandler" && npm run test -w packages/web -- --testPathPattern="jsonPointer|McpSideEffectBadge|simulationMessages|useSimulationSend"`
 Expected: all green.
 
 - [ ] **Step 3: Commit any formatting fixups**
@@ -2520,28 +2585,36 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 | Spec section | Task(s) |
 |---|---|
-| §2 In-scope: core `executeTurn`+`childDispatch` wrapping the loop | 11, 14 |
+| §1 two engines, one core; engine chosen by type server-side; child dispatch interchangeable | 14, 15, 18 |
+| §2 In-scope: core `executeTurn` + `childDispatch` driving a `StepMachine` (Agent + Workflow adapters) | 11, 14, 15 |
+| §2 sim drivers — BOTH agent and workflow — on the core behind one sim API (BE routes by type) | 17, 18, 20 |
 | §2/§3/§6.3 `RuntimeCapabilities` (5 seams) + `RuntimeServices` | 4 |
 | §3/§6.4 `ChildResult` envelope + env-aware termination mapping | 1, 5 |
 | §3 `DispatchStrategy`/`DispatchPersistence` contracts | 4 |
 | §3 sim impls (SyncRecurse + Noop + console/no-op caps) | 6, 10 |
 | §3/§6.2 env-discriminated `ProviderCtx` | 9 |
-| §5 superset `ExecutionEvent` emitter + bridge + completeness assertion | 1, 2, 16, 15 |
+| §4 `StepMachine` interface + AgentStepMachine (`executeAgentLoop`) + WorkflowStepMachine (`executeWithCallbacks`) | 14 |
+| §4 `executeTurn` selects engine by type + drives dispatch loop; `childDispatch` re-injects | 11, 15 |
+| §5 superset `ExecutionEvent` emitter + bridge + completeness assertion | 1, 2, 16, 17 |
 | §6 sim-state model (deep-freeze, clone-write, `DeepReadonly`, patch/snapshot, abort, mutation-throws test) | 3, 7, 8 |
 | §6 sim-state JSON-Pointer write | 7 |
 | §7/§13 per-tool `simulatedNoop` seam in every builtin | 9, 12 |
 | §7/§12.4 MCP "real side-effects" badge | 19 |
-| §8/§11 migrate sim handler onto `executeTurn` + bridge | 16, 17 |
-| §8 testing-presets popover, sim-state panel, reset/tenant-switch modals, i18n | 18, 19, 20 |
-| §9 validation: behavior tests on the new core | 5, 8, 10, 11, 14, 15 (emitter completeness), 16 |
-| §10 child-result injection shared by both strategies; only sim runs | 10, 11 |
-| RU3 child seam (north-star §6.3 `loadChildAgentGraph` → real `resolveChildConfig`) | 4, 13 |
+| §8 testing-presets popover, sim-state panel, reset/tenant-switch modals, i18n; collapse two FE stream fns into one | 19, 20 |
+| §9 validation: behavior tests on the new core (both engines) | 5, 8, 10, 11, 14, 15, 16, 17, 18 |
+| §10 child-result injection shared; only sim's sync strategy runs | 10, 11, 15 |
+| §11 the throwaway bridge carries the two sim-state events | 17, 19 |
+| RU3 child seam (north-star `loadChildAgentGraph` → real `resolveChildConfig`) | 4, 13 |
 | Full gate (`npm run check`) | 21 |
 
-**Out of scope (correctly deferred, per spec §2/§10/§11):** running `DurableDispatchStrategy`/`SupabaseDispatchPersistence` (contracts only — Task 4); prod edge migration (RU4); SSE consumer cutover + bridge deletion (RU5); legacy orchestrator deletion (RU6); bespoke per-tool sim behavior (every builtin no-ops uniformly).
+**Out of scope (correctly deferred, per spec §2/§10/§11):** running `DurableDispatchStrategy`/`SupabaseDispatchPersistence` (contracts only — Task 4); prod edge migration / retrofitting the `StepMachine` seam onto prod (RU4); SSE consumer cutover + bridge deletion (RU5); legacy orchestrator deletion (RU6); bespoke per-tool sim behavior (every builtin no-ops uniformly).
 
-**Spec requirements I could NOT cleanly map (flagged, not silently fixed):**
-1. North-star §6.3 `RuntimeServices.loadChildAgentGraph: (agentId) => Promise<AgentGraph>` — no `AgentGraph` type exists; mapped to the real `resolveChildConfig`/`ResolvedChildConfig` seam (Tasks 4, 13).
-2. §4 "`executeAgent` yields a dispatch decision" — `executeAgent` does not; the loop's `AgentLoopResult.dispatchResult` does. Wrapped the loop, not the attempt executor (Task 14).
-3. §6.4 prod `no_result`/`finished` END-without-finish rows — forward-design; not exercised by a running strategy in RU3 (only the pure mapper is unit-tested) (Task 5).
-4. §5/§6 `simulation_state_patch`/`simulation_state_snapshot` delivery — the throwaway bridge is **temporarily extended** with these two `AgentSimulationEvent` members (Task 16) and the FE consumes them (Task 18), so RU3 validates the §6 runtime→FE sim-state model end-to-end. Both members + the whole bridge are removed at RU5's full cutover.
+**Spec requirements I could NOT cleanly map (FLAGGED, not silently fixed):**
+1. **§4 "`executeAgent` yields a dispatch decision"** — false against code. The dispatch decision is on `AgentLoopResult.dispatchResult` (agent) and `CallAgentOutput.dispatchResult` (workflow). RU3 wraps the loop / the workflow runner behind a `StepMachine`, never the per-attempt `executeAgent` (Decision 1; Task 14).
+2. **"FE stops choosing between `streamAgentSimulation`/`streamSimulation`" vs. reality** — the FE *already* posts both to `/api/simulate`; the real choice is which body/stream fn + which of the TWO backend handlers (`/simulate`, `/simulate-agent`). RU3's unification = BE routes agent-vs-workflow from `appType` in ONE handler (Task 18) and the FE collapses to ONE stream fn carrying `appType` (Task 20) (Decision 3).
+3. **Prod engine choice is via graph-building, not a `StepMachine` switch** — `fetchGraphAndKeys` branches `appType === 'agent' ? buildAgentRuntimeGraph : ensureGraphData` feeding a single runner. RU3 introduces the `StepMachine` seam and proves it on the two sims; retrofitting prod is RU4 (Decision 2).
+4. **Workflow sim gains child re-injection it never had** — `simulateHandler.ts` only emitted `child_dispatched` and stopped. Migrating onto `executeTurn` adds parent-resume to the workflow sim (a deliberate behavior gain, not parity) (Decision 7; Tasks 14, 17, 18).
+5. **North-star `loadChildAgentGraph`/`AgentGraph`** — no such type; real seam is `resolveChildConfig`/`ResolvedChildConfig` (includes `skills`). Mapped to `RuntimeServices.resolveChildConfig`, injected not re-ported in RU3 (Decisions 5; Tasks 4, 13).
+6. **§6.4 prod `no_result`/`finished` rows** — forward-design; only the pure mapper is unit-tested in RU3, exercised by a running strategy in RU4 (Decision 6; Task 5).
+7. **`RuntimeServices.supabase: SupabaseClient`** — api can't import the backend type; typed structurally as `SupabaseLike` (Task 4).
+8. **Two sim-SSE unions + the two sim-state members** — the throwaway bridge temporarily extends BOTH `AgentSimulationEvent` and the workflow union with `simulation_state_patch`/`simulation_state_snapshot` (and the workflow union with `child_finished`), all removed at RU5 (Decision 10; Tasks 17, 19).

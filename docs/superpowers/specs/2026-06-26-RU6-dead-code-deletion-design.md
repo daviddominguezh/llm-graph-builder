@@ -43,7 +43,8 @@ RU1–RU5 each left their legacy code **in place behind re-export shims / parall
 - Anything the RU5 cutover left (RU5 deletes the SSE shapes/writers it directly replaces; RU6 sweeps any stragglers) — e.g. the `executeTypes.ts` internal shape if RU5 didn't fully remove it. **`PublicExecutionEvent` is NOT deleted** (decision B — it's the public projection target).
 
 **Edge infra decommission (decision 2):**
-- **Agent-editable (code/config):** remove the edge-function **CI/CD deploy steps** (deploy workflow / `supabase/config.toml` function entries), the `supabase/functions/deno.json`, and edge env-var references in `.env.example` / config.
+- **Only `execute-agent` + `execute-tool` are removed. `supabase/functions/vfs-cleanup` is a THIRD edge function that stays** — so shared edge infra is removed only *conditionally* on `vfs-cleanup` not needing it.
+- **Agent-editable (code/config):** remove the edge-function **CI/CD deploy steps** if any are function-named (the CI loops generically over `supabase/functions/*`, so deleting the two dirs is usually what removes them from deploy — verify); remove `supabase/config.toml` entries for the two functions **if present** (they may not exist — verify-then-no-op); keep `supabase/functions/deno.json` and any `.env.example` edge refs **if `vfs-cleanup` still uses them** (only remove what's exclusively `execute-agent`/`execute-tool`).
 - **User-performed (cloud-side, like migrations):** delete the deployed `execute-agent` / `execute-tool` functions from the **Supabase dashboard/CLI**, and remove their **cloud env vars** + any edge-only secrets. RU6 lists these as explicit user steps; the agent does not touch the live Supabase project.
 
 ## 4. Verification protocol (per deletion)

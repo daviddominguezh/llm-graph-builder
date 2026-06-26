@@ -4,7 +4,7 @@
 
 **Goal:** Turn every production execution into a durable, resumable per-step machine — checkpointing each step the moment it completes, suspending for budget / input / dispatch, and resuming via a direct self-re-invoke (primary) backstopped by a staleness-gated Cloudflare Cron sweep — then host the RU3 runtime core in a new `packages/worker` Cloudflare Worker over Hyperdrive and flip `edgeFunctionClient` from the Supabase Deno edge to the Worker.
 
-**Architecture:** Two phases in one plan. **4a (Node)** builds the durable mechanism on the RU3 core and exercises it entirely from the Node backend against Postgres: re-introduced `pending_resumes` table + `claim_pending_resumes` RPC, per-step checkpoint persistence (hooking `onStepProcessed`/`onToolExecuted` — tool result persisted *before* the position marker advances), `SupabaseDispatchPersistence` over `agent_stack_entries`, `DurableDispatchStrategy` (returns `{ kind: 'suspended' }`, sharing RU3's child-result injection), direct re-invoke triggers + idempotency keys, the portable cron-sweep function, active-leaf routing, and `maxDispatchDepth` collapsed to a single const defaulting to **3**. **4b (host)** scaffolds `packages/worker` (Hyperdrive `workerSupabase`, `wrangler.toml`), a `fetch` handler (new run / human resume / direct re-invoke) running `executeTurn` with durable caps, a `scheduled()` cron-backstop handler, the folded-in `execute-tool` single-tool path, a Workers-compat smoke (Miniflare), and the `edgeFunctionClient` flip. Concurrent-child / N-children stay deferred (stages 2–3): `listPending` is a collection, executions are addressed by `execution_id`, and an "input source" concept is named — but not implemented.
+**Architecture:** Two phases in one plan. The durable mechanism is **engine-agnostic** — it drives RU3's `StepMachine` (the engine chosen by execution type: `AgentStepMachine` for agent steps, `WorkflowStepMachine` for workflow steps), and the checkpoint/resume/`pending_resumes` machinery is identical for both (one mechanism, never duplicated per engine; §3). **4a (Node)** builds that mechanism on the RU3 core and exercises it entirely from the Node backend against Postgres: re-introduced `pending_resumes` table + `claim_pending_resumes` RPC, per-step checkpoint persistence (hooking the engine's `onStepProcessed`/`onToolExecuted` step callbacks — a tool result persisted *before* the position marker advances), `SupabaseDispatchPersistence` over `agent_stack_entries`, `DurableDispatchStrategy` (returns `{ kind: 'suspended' }`, sharing RU3's child-result injection), direct re-invoke triggers + idempotency keys, the portable cron-sweep function, active-leaf routing, `maxDispatchDepth` collapsed to a single const defaulting to **3**, plus the **durable SSE PRODUCER side** (§17): a per-`execution_id` monotonic `seq` on the durable event log and a BE `POST /internal/events/publish` endpoint that publishes to **Redis Cloud pub/sub** over the existing ioredis client. **4b (host)** scaffolds `packages/worker` (Hyperdrive `workerSupabase`, `wrangler.toml`), a `fetch` handler (new run / human resume / direct re-invoke) running `executeTurn` with durable caps, the **Worker-side `ExecutionEvent` batching (~50ms flush) that POSTs to `/internal/events/publish`** (token deltas live-only; completed messages / token usage / tool calls/results both published and persisted), a `scheduled()` cron-backstop handler, the folded-in `execute-tool` single-tool path, a Workers-compat smoke (Miniflare), and the `edgeFunctionClient` flip. The Worker holds no Redis connection. The BE serve/resume (SSE consumer) side is **RU5** — NOT built here. Concurrent-child / N-children stay deferred (stages 2–3): `listPending` is a collection, executions are addressed by `execution_id`, and an "input source" concept is named — but not implemented.
 
 **Tech Stack:** TypeScript (ESM, NodeNext, strict, `noUncheckedIndexedAccess`), Postgres via `@supabase/supabase-js` (service-role; Node `process.env` in 4a, Cloudflare **Hyperdrive** binding in 4b), the RU3 runtime core (`executeTurn` / `DispatchStrategy` / `DispatchPersistence` / `ChildResult` from `packages/api`), RU2 `McpPoolClient` (`createMcpPoolClient`), RU1 `shared-store-services` factories, Jest ESM (`unstable_mockModule`), Cloudflare Workers (`wrangler`, `[triggers] crons`, `scheduled()`, `ctx.waitUntil(fetch(self))`), Miniflare for the Workers-compat smoke.
 
@@ -29,21 +29,23 @@ Verified against the real code, migrations, and the RU1/RU2/RU3 plans. Where the
 
 3. **The "durable mechanism" already exists at dispatch-boundary granularity — RU4 generalizes it to per-step.** Production today: `executeCoreInlineDispatch.ts` (`handleInlineDispatch`) suspends the parent to `agent_stack_entries.parent_session_state` + writes a `__CHILD_PENDING__` placeholder tool-result message + sets `agent_executions.status='suspended'` + pushes a stack entry; `executeCoreChildFinish.ts` (`handleChildFinish`) resumes by updating the placeholder, popping the stack, and re-invoking `executeAgentCore` with `continueExecutionId`. RU4 reuses this exact suspend/resume *shape* but (a) moves persistence to per-step via the loop callbacks and (b) drives suspend through the injected `DurableDispatchStrategy` instead of inline recursion. **The current inline path recurses in-process (`executeAgentCore(childInput)` at `executeCoreInlineDispatch.ts:210`); under the durable model the invocation must END after `beforeDispatch`, not recurse.** This is the core behavioral change.
 
-4. **Persistence is at execution *boundaries* today, not per-step — RU4 moves it.** `executePersistence.ts` (`persistPostExecution`) and `executeCoreHelpers.ts` (`persistMessagingPostExecution`) run once at the end of an execution. The loop (`packages/api/src/agentLoop/agentLoop.ts`) fires `onStepProcessed` (required) every step and `onToolExecuted?` per tool call — today only for streaming, NOT DB writes. RU4 hooks these to write each step's output as it completes. **`onToolExecuted` fires inside `appendResponseMessages` AFTER `onStepProcessed` for that step**, and only for non-finish/non-dispatch steps (the loop returns early on a finish/dispatch sentinel before appending — see `runLoopStep` at `agentLoop.ts:148-172`). The per-step checkpoint hook design must account for that ordering (Task 2).
+4. **Persistence is at execution *boundaries* today, not per-step — RU4 moves it. The hook is engine-agnostic (§3).** `executePersistence.ts` (`persistPostExecution`) and `executeCoreHelpers.ts` (`persistMessagingPostExecution`) run once at the end of an execution. The durable model drives RU3's `StepMachine`, and *a step is whatever the active engine reports* — for an agent step (`AgentStepMachine`) the loop (`packages/api/src/agentLoop/agentLoop.ts`) fires `onStepProcessed` (required) every LLM request and `onToolExecuted?` per tool call; for a workflow step (`WorkflowStepMachine`) each node / tool call is a step through the same callback shape. Today these fire only for streaming, NOT DB writes. RU4 hooks them to write each step's output as it completes — **one checkpoint mechanism for both engines, not a per-engine duplicate**. **For the agent engine specifically, `onToolExecuted` fires inside `appendResponseMessages` AFTER `onStepProcessed` for that step**, and only for non-finish/non-dispatch steps (the loop returns early on a finish/dispatch sentinel before appending — see `runLoopStep` at `agentLoop.ts:148-172`). The per-step checkpoint hook design (Task 2) accounts for that ordering and is engine-neutral — `makeStepCheckpointer` takes the `AgentLoopCallbacks` slice the engine emits, so the workflow engine reuses it unchanged.
 
 5. **`maxDispatchDepth` is scattered and defaults to 10 — RU4 collapses to ONE const default 3.** Locations: `MAX_DEPTH=10` (`executeCoreInlineDispatch.ts:12`), `DEFAULT_MAX_NESTING_DEPTH=10` (`backend/src/routes/simulateAgentHandler.ts` and `packages/api/src/types/agentConfig.ts`), and RU3 exports `MAX_DISPATCH_DEPTH=10` from `packages/api/src/runtime/types.ts`. North-star §6.1 said 10; **RU4 §9 overrides to 3** as a single configurable const, N-safe. **The user's requirement is ONE variable used everywhere — sim AND prod.** Since both runtimes run the RU3 core (`executeTurn`/`childDispatch`), the core's `MAX_DISPATCH_DEPTH` (`packages/api/src/runtime/types.ts`, = **3**) is the **sole authority**. Task 8 therefore: sets `MAX_DISPATCH_DEPTH = 3`; replaces the prod-path `MAX_DEPTH=10` (`executeCoreInlineDispatch.ts:12`) with an import of it; and **consolidates the legacy `DEFAULT_MAX_NESTING_DEPTH=10` (`simulateAgentHandler.ts`, `agentConfig.ts`) onto the same const** — redirect the imports to `MAX_DISPATCH_DEPTH` (or delete `DEFAULT_MAX_NESTING_DEPTH` as dead once the sim handler runs on `executeTurn` per RU3). **No path is left at 10.** (Coordinate with RU3: its sim migration should already route depth through the core const; RU4 sets the value to 3 and removes any residual duplicate.)
 
 6. **RU3 `DispatchPersistence`/`DispatchHandle` final shapes (read directly from RU3 Task 4, lines 508–525):** `DispatchHandle = { executionId: string; childExecutionId: string }`; `DispatchPersistence = { beforeDispatch(args:{executionId,parentSnapshot,childInput}):Promise<DispatchHandle>; onChildFinish(args:{handle,childResult}):Promise<void>; onChildError(args:{handle,error}):Promise<void>; listPending(executionId:string):Promise<DispatchHandle[]> }`. `DispatchOutcome = {kind:'completed';childResult} | {kind:'suspended';handle}`. `DispatchStrategy = { dispatch(args:DispatchArgs):Promise<DispatchOutcome> }` where `DispatchArgs = { dispatchDepth; maxDispatchDepth; runChild:()=>Promise<ChildResult> }`. **FLAGGED cross-RU dependency:** a parallel exploration of the RU3 plan reported a different `DispatchPersistence` (`persist`/`resume`) and a richer `DispatchHandle` (`sessionId`/`dispatchId`/`dispatchedAt`/`parentLastMessage`) — that appears to be a misread of a draft section. This plan implements against the §6/§10.1 spec + RU3 Task 4 text (`beforeDispatch`/`onChildFinish`/`onChildError`/`listPending`). **If RU3 actually shipped the `persist`/`resume` shape, reconcile before Task 3 — the durable persistence impl is built to the four-method contract.**
 
-7. **RU1 package name is ambiguous across plans.** The RU1 plan/agent reports `@openflow/shared-store-services`; the RU3 plan references `@daviddh/shared-store-services`. The Worker (Task 10) imports the RU1 factories; use whatever name RU1 actually published (`grep '"name"' packages/shared-store-services/package.json` at impl time). **FLAGGED cross-RU dependency.**
+7. **RU1 package name is ambiguous across plans.** The RU1 plan/agent reports `@openflow/shared-store-services`; the RU3 plan references `@daviddh/shared-store-services`. The Worker (Task 13) imports the RU1 factories; use whatever name RU1 actually published (`grep '"name"' packages/shared-store-services/package.json` at impl time). **FLAGGED cross-RU dependency.**
 
 8. **RU2 client contract (confirmed):** `createMcpPoolClient({ baseUrl, masterKey, fetch? }): McpInvoker` from `packages/api/src/providers/mcp/poolClient.ts`; `McpInvoker.invoke({ agentId, tenantId, mcpBindingId, toolName, args }): Promise<unknown>`. The Worker holds no MCP connections — it calls the BE pool over `/internal/mcp/invoke`. This matches `RuntimeServices.mcpPool` (RU3 Task 4).
 
-9. **`packages/worker` and `wrangler.toml` do not exist yet** (`ls packages/` → api, backend, graph-types, landing, shared-validation, web, widget; no `wrangler.toml` anywhere). 4b is greenfield. **Cloudflare specifics (Hyperdrive binding shape, `ctx.waitUntil(fetch(self))` self-invoke limits, `scheduled()` signature, cron syntax) are documented as ASSUMPTIONS and verified against a real deploy in Task 14/16 — FLAGGED wherever not verifiable from the repo.**
+9. **`packages/worker` and `wrangler.toml` do not exist yet** (`ls packages/` → api, backend, graph-types, landing, shared-validation, web, widget; no `wrangler.toml` anywhere). 4b is greenfield. **Cloudflare specifics (Hyperdrive binding shape, `ctx.waitUntil(fetch(self))` self-invoke limits, `scheduled()` signature, cron syntax) are documented as ASSUMPTIONS and verified against a real deploy in Task 17/19 — FLAGGED wherever not verifiable from the repo.**
 
 10. **`agent_executions.status` already supports `suspended`** (`running/completed/failed/suspended`, from `20260409100000`). No new status enum value is needed for suspend. RU4 adds a per-step **position marker** — design choice (Task 2): store it in `agent_stack_entries.parent_session_state` for dispatched executions (existing) and add a small `agent_executions` JSONB/text column (`resume_marker`) for budget/input suspends of non-dispatched executions. **FLAGGED:** a new column on `agent_executions` is a migration (Task 2); confirm column name `resume_marker jsonb` is acceptable.
 
 11. **The Worker imports the durable impls; where do they live?** Spec §14 offers a choice ("`packages/api/src/capabilities/{…}` durable impls OR `packages/backend` if the impls live BE-side and the Worker imports them"). **Decision: the durable impls live in `packages/api`** (`packages/api/src/production/`) so BOTH the Node backend (4a tests/driver) and the Worker (4b) import one implementation — the whole point of 4a is to build+test them in Node before the host move. They depend only on a `SupabaseLike` client + the query helpers, which are injected. **FLAGGED:** this requires the per-step + dispatch query helpers (today in `packages/backend/src/db/queries/*` and `executePersistence.ts`) to be reachable from `packages/api`. The durable impls in `packages/api` take a **`DurableQueries` port** (an injected interface, Task 3) so `packages/api` never imports `packages/backend`; the Node backend and the Worker each supply a concrete `DurableQueries` over their own `supabase` client.
+
+12. **The durable event log + per-`execution_id` `seq` ALREADY HALF-EXISTS — spec §17's "add a `seq` column" is satisfied by `agent_execution_events`, not a brand-new column. FLAGGED — implemented against reality.** Spec §17 says "give each persisted event a monotonic `seq` per `execution_id`" and suggests "extend the Task-2 `resume_marker`/checkpoint migration, or a new migration." But the codebase already has `agent_execution_events(id, execution_id, org_id, sequence integer not null default 0, event_type, payload jsonb, created_at)` with `UNIQUE(execution_id, sequence)` and `idx_execution_events_replay(execution_id, sequence)` (`20260403100000_agent_composition.sql:51-62`), plus `persistEvent`/`getEventsAfter` over it (`packages/backend/src/db/queries/eventQueries.ts`). **That `sequence` column IS the per-`execution_id` monotonic `seq` §17 asks for** — it just defaults to `0` and is currently caller-assigned (never auto-incremented per execution). **Decision: reuse `agent_execution_events` as the durable event log; the §17 "`seq` column" work is (a) a small migration making the per-execution sequence monotonic + safe under concurrent inserts, and (b) the producer write path — NOT a duplicate `seq` column on a different table.** This is a producer-side extension of the existing replay log (`getEventsAfter(supabase, executionId, afterSequence)` is already the RU5-side resume reader — RU5, not built here). **FLAGGED:** spec §17 implies a greenfield `seq`; the real shape is "harden the existing `sequence`." Built to reality (Task 10).
 
 ---
 
@@ -67,6 +69,12 @@ Verified against the real code, migrations, and the RU1/RU2/RU3 plans. Where the
 | `packages/backend/src/db/queries/durableQueriesImpl.ts` (create) | Node `DurableQueries` impl over the backend `SupabaseClient` (reuses `executePersistence`/`stackQueries`/`messageQueries`). |
 | `packages/backend/src/routes/execute/durableRunDriver.ts` (create) | Node durable-run driver: wires caps + `DurableQueries` + a no-op/local `Reinvoker`, runs `executeTurn` with durable caps; used by the 4a end-to-end test. |
 | `packages/backend/src/routes/execute/__tests__/durableRun.e2e.test.ts` (create) | 4a end-to-end multi-suspend resume test (forced budget suspends + a child dispatch). |
+| `supabase/migrations/<ts>_execution_event_seq.sql` (create) | §17 durable event log: harden the EXISTING `agent_execution_events.sequence` into a per-`execution_id` monotonic `seq` — `next_execution_event_seq(p_execution_id)` SECURITY DEFINER allocator (atomic, gap-free under concurrent inserts). NOT a new column on a new table. |
+| `packages/backend/src/db/queries/eventSeqQueries.ts` (create) | `persistExecutionEvent(supabase, { executionId, orgId, eventType, payload })` — allocates the next per-execution `seq` via the RPC and inserts (the §17 "BOTH published and persisted" write). |
+| `packages/backend/src/routes/internal/publishEventsHandler.ts` (create) | `POST /internal/events/publish` handler: Zod-validated body of `ExecutionEvent`s; persists durable events (via `eventSeqQueries`), then publishes ALL to Redis Cloud pub/sub (channel = `execution_id`) via `publishMessage`. Master-key auth (existing `requireInternalAuth`). |
+| `packages/backend/src/routes/internal/internalRouter.ts` (modify) | Register `internalRouter.post('/events/publish', …)`. |
+| `packages/backend/src/server.ts` (modify) | Add `/internal/events/publish` to `SYSTEM_PUBLIC_UNAUTHED` (master-key, not JWT — mirrors `/internal/triggers/fire`). |
+| `packages/worker/src/eventBatcher.ts` (create) | `makeEventBatcher({ flushMs, publish })`: buffers `ExecutionEvent`s, flushes every ~50ms (token deltas live-only; completed messages/token usage/tool calls/results marked durable). Worker holds NO Redis connection — `publish` POSTs to `/internal/events/publish`. |
 | `packages/worker/src/index.ts` (create) | Worker `fetch` (new run / human resume / direct re-invoke) + `scheduled()` (cron backstop). |
 | `packages/worker/src/workerSupabase.ts` (create) | service-role `@supabase/supabase-js` client over the Hyperdrive binding. |
 | `packages/worker/src/runDurable.ts` (create) | Wires `RuntimeCapabilities` (DurableDispatchStrategy, SupabaseDispatchPersistence, OTel/structured logger, token-bucket) + `RuntimeServices` + a `fetch(self)` `Reinvoker`; runs `executeTurn`. |
@@ -1077,7 +1085,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 - Test: `packages/backend/src/routes/execute/__tests__/durableRun.e2e.test.ts`
 
 **Interfaces:**
-- Consumes (api): `makeStepCheckpointer`, `makeSupabaseDispatchPersistence`, `makeDurableDispatchStrategy`, `triggerDirectReinvoke`, `sweepPendingResumes`, `resolveActiveLeaf`, `makeIdempotencyKey`, `MAX_DISPATCH_DEPTH`, `executeTurn`, `RuntimeCapabilities`, `RuntimeServices`, `DispatchPersistence`, `Reinvoker`, `DurableQueries` (all from `@daviddh/llm-graph-runner` after the Task 10/15-style barrel). Backend: `SupabaseClient`, `executePersistence`/`stackQueries`/`messageQueries`/`executionQueries` helpers, RU2 `createMcpPoolClient`.
+- Consumes (api): `makeStepCheckpointer`, `makeSupabaseDispatchPersistence`, `makeDurableDispatchStrategy`, `triggerDirectReinvoke`, `sweepPendingResumes`, `resolveActiveLeaf`, `makeIdempotencyKey`, `MAX_DISPATCH_DEPTH`, `executeTurn`, `RuntimeCapabilities`, `RuntimeServices`, `DispatchPersistence`, `Reinvoker`, `DurableQueries` (all from `@daviddh/llm-graph-runner` after the Task 13/18-style barrel). Backend: `SupabaseClient`, `executePersistence`/`stackQueries`/`messageQueries`/`executionQueries` helpers, RU2 `createMcpPoolClient`.
 - Produces:
   - `packages/backend/src/db/queries/durableQueriesImpl.ts`: `export function makeNodeDurableQueries(supabase: SupabaseClient): DurableQueries` — concrete impl of every `DurableQueries` method over the backend `supabase` client (reusing `saveExecutionMessage`/`saveExecutionMessageRaw`/`updateToolOutputMessage`/`pushStackEntry`/`popStackEntry`/`getStackTop`/`updateSessionState`, the `agent_executions.resume_marker` column, and the `pending_resumes` table + `claim_pending_resumes` RPC).
   - `packages/backend/src/routes/execute/durableRunDriver.ts`: `export async function runDurable(args: { supabase; orgId; agentId; version; input; executionId; rootExecutionId; reinvoker: Reinvoker }): Promise<{ status: 'suspended' | 'finished'; finalResult: string }>` — wires caps (`persistence: makeSupabaseDispatchPersistence(queries, rootExecutionId)`, `dispatch: makeDurableDispatchStrategy(...)`, structured logger, token-bucket/no-op rateLimit for the Node test), services (`mcpPool: createMcpPoolClient(...)`, `resolveChildConfig`, `supabase`), the step-checkpointer callbacks, and runs `executeTurn`. On a `child_suspended`/budget suspend it calls `triggerDirectReinvoke`. The Node `Reinvoker` is a **local loop driver** (re-calls `runDurable` for the next segment) so the test can drive a multi-segment run in-process without a Worker.
@@ -1172,9 +1180,463 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 ---
 
+### Task 10: §17 durable event log — per-`execution_id` monotonic `seq` (harden the EXISTING `agent_execution_events`)
+
+> **PRODUCER side only.** This builds the durable log + the per-execution `seq` allocator. The BE *serve/resume* side — reading the log back on SSE reconnect (`getEventsAfter`) and replaying to the client — is **RU5**, NOT built here (finding #12).
+
+**Files:**
+- Create: `supabase/migrations/20260625100200_execution_event_seq.sql`
+- Create: `packages/backend/src/db/queries/eventSeqQueries.ts`
+- Test: `packages/backend/src/db/queries/__tests__/executionEventSeq.test.ts`
+
+**Interfaces:**
+- Consumes: the existing `agent_execution_events(execution_id, org_id, sequence, event_type, payload)` table + `UNIQUE(execution_id, sequence)` (`20260403100000_agent_composition.sql:51-62`).
+- Produces (SQL surface): `next_execution_event_seq(p_execution_id uuid) returns integer` — a `SECURITY DEFINER` allocator returning the next per-`execution_id` sequence atomically (gap-free under concurrent inserts: `select coalesce(max(sequence), -1) + 1 … for update`-style or an advisory-lock guard keyed by `execution_id`). The existing `UNIQUE(execution_id, sequence)` is the safety net.
+- Produces (TS): `packages/backend/src/db/queries/eventSeqQueries.ts`: `export interface PersistExecutionEventArgs { executionId: string; orgId: string; eventType: string; payload: Record<string, unknown> }` and `export async function persistExecutionEvent(supabase: SupabaseClient, args: PersistExecutionEventArgs): Promise<number>` — allocates the next `seq` via the RPC, inserts the row, returns the assigned `seq`. (Reuses the `agent_execution_events` shape `persistEvent`/`getEventsAfter` already use; the RPC replaces the caller-assigned `sequence default 0`.)
+
+- [ ] **Step 1: Write the failing test**
+
+```ts
+// packages/backend/src/db/queries/__tests__/executionEventSeq.test.ts
+import { readFileSync } from 'node:fs';
+import { describe, expect, it, jest } from '@jest/globals';
+
+import { persistExecutionEvent } from '../eventSeqQueries.js';
+
+const SQL = readFileSync(
+  'supabase/migrations/20260625100200_execution_event_seq.sql',
+  'utf8'
+);
+
+describe('execution_event_seq migration', () => {
+  it('adds a per-execution monotonic seq allocator (does NOT create a parallel table)', () => {
+    expect(SQL).toMatch(/create or replace function\s+(public\.)?next_execution_event_seq\s*\(\s*p_execution_id uuid\s*\)/i);
+    expect(SQL.toLowerCase()).toContain('security definer');
+    expect(SQL.toLowerCase()).toContain('agent_execution_events');
+    // Reuses the existing table — no new events table.
+    expect(SQL).not.toMatch(/create table[^;]*durable_event/i);
+  });
+});
+
+describe('persistExecutionEvent', () => {
+  it('allocates the next seq via the RPC then inserts, returning the seq', async () => {
+    const rpc = jest.fn(async () => ({ data: 7, error: null }));
+    const insert = jest.fn(async () => ({ error: null }));
+    const supabase = {
+      rpc,
+      from: jest.fn(() => ({ insert })),
+    } as unknown as Parameters<typeof persistExecutionEvent>[0];
+    const seq = await persistExecutionEvent(supabase, {
+      executionId: 'exec-1', orgId: 'org-1', eventType: 'message', payload: { text: 'hi' },
+    });
+    expect(rpc).toHaveBeenCalledWith('next_execution_event_seq', { p_execution_id: 'exec-1' });
+    expect(seq).toBe(7);
+    expect(insert).toHaveBeenCalledTimes(1);
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npm run test -w packages/backend -- --testPathPattern=executionEventSeq`
+Expected: FAIL — migration file missing (`ENOENT`) + cannot find module `../eventSeqQueries.js`.
+
+- [ ] **Step 3: Write the migration + minimal implementation**
+
+```sql
+-- supabase/migrations/20260625100200_execution_event_seq.sql
+-- RU4 §17 (PRODUCER side): the durable event log is the EXISTING agent_execution_events
+-- table (created 2026-04-03). This adds a per-execution_id monotonic `seq` ALLOCATOR so
+-- each persisted event gets a gap-free incrementing sequence under concurrent inserts.
+-- We do NOT create a parallel events table or a duplicate column — the existing
+-- `sequence` (UNIQUE(execution_id, sequence)) IS the seq; this makes it auto-assigned.
+-- The RU5 serve/resume side (getEventsAfter replay on reconnect) is OUT OF SCOPE here.
+
+create or replace function public.next_execution_event_seq(p_execution_id uuid)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_next integer;
+begin
+  -- Advisory lock keyed by execution_id keeps concurrent allocators serialized;
+  -- the UNIQUE(execution_id, sequence) constraint is the final safety net.
+  perform pg_advisory_xact_lock(hashtext(p_execution_id::text));
+  select coalesce(max(sequence), -1) + 1
+    into v_next
+    from public.agent_execution_events
+   where execution_id = p_execution_id;
+  return v_next;
+end;
+$$;
+```
+
+```ts
+// packages/backend/src/db/queries/eventSeqQueries.ts
+import type { SupabaseClient } from './operationHelpers.js';
+
+export interface PersistExecutionEventArgs {
+  executionId: string;
+  orgId: string;
+  eventType: string;
+  payload: Record<string, unknown>;
+}
+
+export async function persistExecutionEvent(
+  supabase: SupabaseClient,
+  args: PersistExecutionEventArgs
+): Promise<number> {
+  const { data, error } = await supabase.rpc('next_execution_event_seq', {
+    p_execution_id: args.executionId,
+  });
+  if (error !== null) throw new Error(`seq allocation failed: ${error.message}`);
+  const seq = typeof data === 'number' ? data : Number(data);
+  const { error: insertError } = await supabase.from('agent_execution_events').insert({
+    execution_id: args.executionId,
+    org_id: args.orgId,
+    sequence: seq,
+    event_type: args.eventType,
+    payload: args.payload,
+  });
+  if (insertError !== null) throw new Error(`event insert failed: ${insertError.message}`);
+  return seq;
+}
+```
+
+> `SupabaseClient` here is the local `operationHelpers.ts` alias (matches `eventQueries.ts`). The `.rpc(...)` return shape (`{ data, error }`) matches the existing query helpers; keep it typed (no `any`).
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npm run test -w packages/backend -- --testPathPattern=executionEventSeq`
+Expected: PASS
+
+- [ ] **Step 5: Commit** (migration written, NOT applied — user applies)
+
+```bash
+git add supabase/migrations/20260625100200_execution_event_seq.sql packages/backend/src/db/queries/eventSeqQueries.ts packages/backend/src/db/queries/__tests__/executionEventSeq.test.ts
+git commit -m "feat(db): per-execution_id monotonic seq allocator on agent_execution_events (RU4 §17 durable log, producer side)
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+```
+
+---
+
+### Task 11: `POST /internal/events/publish` — persist durable events + publish to Redis Cloud pub/sub
+
+> **PRODUCER side (§17).** The Worker POSTs batched `ExecutionEvent`s here; this endpoint (a) persists the durable ones via Task 10's `persistExecutionEvent`, then (b) publishes ALL of them to **Redis Cloud pub/sub** (channel = `execution_id`) via the EXISTING ioredis client (`messaging/services/redisCloud.ts` `publishMessage` — the `redisCompletionNotifier` pattern). **NOT Upstash** — Upstash is REST/cache-only and cannot `PUBLISH`/`SUBSCRIBE` (documented split: `messaging/services/redis.ts`). The BE serve/resume (SSE consumer) side is RU5.
+
+**Files:**
+- Create: `packages/backend/src/routes/internal/publishEventsHandler.ts`
+- Modify: `packages/backend/src/routes/internal/internalRouter.ts` (register the route)
+- Modify: `packages/backend/src/server.ts` (add `/internal/events/publish` to `SYSTEM_PUBLIC_UNAUTHED`)
+- Test: `packages/backend/src/routes/internal/__tests__/publishEventsHandler.test.ts`
+
+**Interfaces:**
+- Consumes: `persistExecutionEvent` (Task 10), `publishMessage(channel, payload)` from `messaging/services/redisCloud.ts`, the existing `requireInternalAuth` master-key gate, a service-role `SupabaseClient`.
+- Produces:
+  - Wire-format `PublishEventBody` (Zod): `{ executionId: string; orgId: string; events: Array<{ eventType: string; payload: Record<string, unknown>; durable: boolean }> }`. `durable: true` → persisted AND published (completed messages, token usage, tool calls, tool results, node/child/terminal events); `durable: false` → published ONLY (raw incremental text streaming deltas — the typing animation; live-only per §17).
+  - `packages/backend/src/routes/internal/publishEventsHandler.ts`: `export function makePublishEventsHandler(deps: { supabase: SupabaseClient; publish: (channel: string, payload: string) => Promise<void> }): (req: Request, res: Response) => Promise<void>` — validates the body, for each event: if `durable` call `persistExecutionEvent` (assigns the `seq`), then `publish(executionId, JSON.stringify(event))`; returns `{ ok: true, persisted: <count> }`. (Inject `publish` so the test substitutes a fake — default is `publishMessage`.)
+  - register in `internalRouter.ts`: `internalRouter.post('/events/publish', getPublishEventsHandler())` (lazy-built like the fire handler, so importing the router in tests never constructs the service client).
+
+- [ ] **Step 1: Write the failing test**
+
+```ts
+// packages/backend/src/routes/internal/__tests__/publishEventsHandler.test.ts
+import { describe, expect, it, jest } from '@jest/globals';
+import type { Request, Response } from 'express';
+
+import { makePublishEventsHandler } from '../publishEventsHandler.js';
+
+function mockRes(): { res: Response; body: () => unknown; status: () => number } {
+  let statusCode = 200;
+  let jsonBody: unknown = undefined;
+  const res = {
+    status(code: number) { statusCode = code; return this; },
+    json(b: unknown) { jsonBody = b; return this; },
+  } as unknown as Response;
+  return { res, body: () => jsonBody, status: () => statusCode };
+}
+
+describe('makePublishEventsHandler', () => {
+  it('persists only durable events but publishes all', async () => {
+    const persisted: string[] = [];
+    const published: string[] = [];
+    const supabase = {
+      rpc: jest.fn(async () => ({ data: 0, error: null })),
+      from: jest.fn(() => ({ insert: jest.fn(async () => { persisted.push('row'); return { error: null }; }) })),
+    } as unknown as Parameters<typeof makePublishEventsHandler>[0]['supabase'];
+    const handler = makePublishEventsHandler({
+      supabase,
+      publish: async (_channel, _payload) => { published.push(_channel); },
+    });
+    const req = { body: {
+      executionId: 'exec-1', orgId: 'org-1',
+      events: [
+        { eventType: 'token_delta', payload: { delta: 'h' }, durable: false },
+        { eventType: 'message', payload: { text: 'hi' }, durable: true },
+      ],
+    } } as Request;
+    const { res, body, status } = mockRes();
+    await handler(req, res);
+    expect(status()).toBe(200);
+    expect(persisted.length).toBe(1); // only the durable one
+    expect(published.length).toBe(2); // both published
+    expect((body() as { persisted: number }).persisted).toBe(1);
+  });
+
+  it('rejects a malformed body with 400', async () => {
+    const handler = makePublishEventsHandler({
+      supabase: {} as never,
+      publish: async () => undefined,
+    });
+    const req = { body: { nope: true } } as Request;
+    const { res, status } = mockRes();
+    await handler(req, res);
+    expect(status()).toBe(400);
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npm run test -w packages/backend -- --testPathPattern=publishEventsHandler`
+Expected: FAIL — cannot find module `../publishEventsHandler.js`.
+
+- [ ] **Step 3: Write minimal implementation**
+
+```ts
+// packages/backend/src/routes/internal/publishEventsHandler.ts
+import type { Request, Response } from 'express';
+import { z } from 'zod';
+
+import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
+import { persistExecutionEvent } from '../../db/queries/eventSeqQueries.js';
+
+const HTTP_OK = 200;
+const HTTP_BAD_REQUEST = 400;
+
+const EventSchema = z.object({
+  eventType: z.string().min(1),
+  payload: z.record(z.unknown()),
+  durable: z.boolean(),
+});
+
+const PublishEventBodySchema = z.object({
+  executionId: z.string().min(1),
+  orgId: z.string().min(1),
+  events: z.array(EventSchema).min(1),
+});
+
+export interface PublishEventsDeps {
+  supabase: SupabaseClient;
+  publish: (channel: string, payload: string) => Promise<void>;
+}
+
+type ParsedBody = z.infer<typeof PublishEventBodySchema>;
+
+async function deliver(deps: PublishEventsDeps, body: ParsedBody): Promise<number> {
+  let persisted = 0;
+  for (const event of body.events) {
+    if (event.durable) {
+      await persistExecutionEvent(deps.supabase, {
+        executionId: body.executionId,
+        orgId: body.orgId,
+        eventType: event.eventType,
+        payload: event.payload,
+      });
+      persisted += 1;
+    }
+    await deps.publish(body.executionId, JSON.stringify(event));
+  }
+  return persisted;
+}
+
+export function makePublishEventsHandler(
+  deps: PublishEventsDeps
+): (req: Request, res: Response) => Promise<void> {
+  return async function publishEvents(req: Request, res: Response): Promise<void> {
+    const parsed = PublishEventBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(HTTP_BAD_REQUEST).json({ ok: false, error: parsed.error.message });
+      return;
+    }
+    const persisted = await deliver(deps, parsed.data);
+    res.status(HTTP_OK).json({ ok: true, persisted });
+  };
+}
+```
+
+> The `for`/`await`-in-loop preserves per-`execution_id` `seq` ordering (events must persist in arrival order) — `max-depth` is 2 here (one `for`, one `if`); fine. If lint flags `await`-in-loop, extract a `deliverOne` helper and keep the sequential `reduce` — do NOT `Promise.all` (it would scramble `seq`).
+
+Register in `internalRouter.ts` (mirror the lazy `getFireHandler` pattern so importing the router in tests never builds the service client):
+
+```ts
+// internalRouter.ts (add)
+import { publishMessage } from '../../messaging/services/redisCloud.js';
+import { makePublishEventsHandler } from './publishEventsHandler.js';
+
+type PublishHandler = (req: Request, res: Response) => Promise<void>;
+let publishHandler: PublishHandler | undefined = undefined;
+
+function getPublishEventsHandler(): PublishHandler {
+  publishHandler ??= makePublishEventsHandler({
+    supabase: createServiceClient(),
+    publish: publishMessage,
+  });
+  return publishHandler;
+}
+
+internalRouter.post('/events/publish', async (req, res) => {
+  await getPublishEventsHandler()(req, res);
+});
+```
+
+In `server.ts`, add `'/internal/events/publish'` to the `SYSTEM_PUBLIC_UNAUTHED` list (master-key, not JWT — exactly like `'/internal/triggers/fire'`).
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npm run test -w packages/backend -- --testPathPattern=publishEventsHandler && npm run typecheck -w packages/backend`
+Expected: PASS / clean.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add packages/backend/src/routes/internal/publishEventsHandler.ts packages/backend/src/routes/internal/internalRouter.ts packages/backend/src/server.ts packages/backend/src/routes/internal/__tests__/publishEventsHandler.test.ts
+git commit -m "feat(backend): POST /internal/events/publish — persist durable events + Redis Cloud pub/sub (RU4 §17 producer)
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+```
+
+---
+
 ## Phase 4b — Cloudflare host cutover
 
-### Task 10: `packages/worker` scaffold + `wrangler.toml` + `workerSupabase` (Hyperdrive)
+### Task 12: Worker `ExecutionEvent` batcher (~50ms flush → `/internal/events/publish`)
+
+> **§17 Worker side.** The Worker batches `ExecutionEvent`s and flushes them (~50ms) by POSTing to the BE's `/internal/events/publish` (Task 11). **Token deltas are live-only** (`durable: false` — published, not persisted); completed messages, token usage, tool calls, and tool results are **BOTH published and persisted** (`durable: true`). The Worker holds **NO** Redis connection — the BE owns the publish (and is the only client-facing SSE boundary; RU5). This task builds the portable batcher; it is wired into `runDurable.ts` in Task 14 (`fetch` handler).
+
+**Files:**
+- Create: `packages/worker/src/eventBatcher.ts`
+- Test: `packages/worker/src/__tests__/eventBatcher.test.ts`
+
+**Interfaces:**
+- Consumes: a `publish(body: PublishEventBody): Promise<void>` closure (POSTs to `${MCP_BASE_URL or BE URL}/internal/events/publish` with the `x-master-key` header — injected so the test fakes it); a clock/`flushMs`.
+- Produces: `packages/worker/src/eventBatcher.ts`:
+  - `export interface WorkerExecutionEvent { eventType: string; payload: Record<string, unknown>; durable: boolean }`
+  - `export interface EventBatcher { enqueue(event: WorkerExecutionEvent): void; flush(): Promise<void> }`
+  - `export function makeEventBatcher(opts: { executionId: string; orgId: string; flushMs: number; send: (body: { executionId: string; orgId: string; events: WorkerExecutionEvent[] }) => Promise<void> }): EventBatcher` — `enqueue` appends to an in-memory buffer and (re)arms a `setTimeout(flushMs)`; `flush` drains the buffer and `await send(...)` (no-op if empty). `flush()` must be callable on suspend/terminal so the last partial batch is delivered before the invocation ends (the caller wraps it in `ctx.waitUntil`).
+
+- [ ] **Step 1: Write the failing test**
+
+```ts
+// packages/worker/src/__tests__/eventBatcher.test.ts
+import { describe, expect, it, jest } from '@jest/globals';
+
+import { makeEventBatcher } from '../eventBatcher.js';
+
+describe('makeEventBatcher', () => {
+  it('buffers events and delivers them on flush', async () => {
+    const sent: Array<{ events: unknown[] }> = [];
+    const batcher = makeEventBatcher({
+      executionId: 'exec-1', orgId: 'org-1', flushMs: 50,
+      send: async (body) => { sent.push(body); },
+    });
+    batcher.enqueue({ eventType: 'token_delta', payload: { delta: 'h' }, durable: false });
+    batcher.enqueue({ eventType: 'message', payload: { text: 'hi' }, durable: true });
+    await batcher.flush();
+    expect(sent.length).toBe(1);
+    expect(sent[0]?.events.length).toBe(2);
+  });
+
+  it('flush with an empty buffer does not call send', async () => {
+    const send = jest.fn(async () => undefined);
+    const batcher = makeEventBatcher({ executionId: 'e', orgId: 'o', flushMs: 50, send });
+    await batcher.flush();
+    expect(send).not.toHaveBeenCalled();
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npm run test -w packages/worker -- --testPathPattern=eventBatcher`
+Expected: FAIL — cannot find module `../eventBatcher.js` (and `packages/worker` is scaffolded in Task 13 — if run before Task 13, the workspace is missing; sequence this test after the scaffold or stub the package here).
+
+> **Ordering note:** the batcher is Node-pure (no Worker globals beyond `setTimeout`), so its test can run the moment `packages/worker` exists. If you reach this task before Task 13's scaffold, do Task 13's package wiring first, then return — the batcher has no Cloudflare dependency.
+
+- [ ] **Step 3: Write minimal implementation**
+
+```ts
+// packages/worker/src/eventBatcher.ts
+export interface WorkerExecutionEvent {
+  eventType: string;
+  payload: Record<string, unknown>;
+  durable: boolean;
+}
+
+export interface PublishBody {
+  executionId: string;
+  orgId: string;
+  events: WorkerExecutionEvent[];
+}
+
+export interface EventBatcher {
+  enqueue(event: WorkerExecutionEvent): void;
+  flush(): Promise<void>;
+}
+
+export interface BatcherOpts {
+  executionId: string;
+  orgId: string;
+  flushMs: number;
+  send: (body: PublishBody) => Promise<void>;
+}
+
+export function makeEventBatcher(opts: BatcherOpts): EventBatcher {
+  let buffer: WorkerExecutionEvent[] = [];
+  let timer: ReturnType<typeof setTimeout> | undefined = undefined;
+
+  async function flush(): Promise<void> {
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      timer = undefined;
+    }
+    if (buffer.length === 0) return;
+    const events = buffer;
+    buffer = [];
+    await opts.send({ executionId: opts.executionId, orgId: opts.orgId, events });
+  }
+
+  function enqueue(event: WorkerExecutionEvent): void {
+    buffer.push(event);
+    timer ??= setTimeout(() => {
+      void flush();
+    }, opts.flushMs);
+  }
+
+  return { enqueue, flush };
+}
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `npm run test -w packages/worker -- --testPathPattern=eventBatcher`
+Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add packages/worker/src/eventBatcher.ts packages/worker/src/__tests__/eventBatcher.test.ts
+git commit -m "feat(worker): ExecutionEvent batcher (~50ms flush → /internal/events/publish; token deltas live-only) (RU4 §17)
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+```
+
+---
+
+### Task 13: `packages/worker` scaffold + `wrangler.toml` + `workerSupabase` (Hyperdrive)
 
 **Files:**
 - Create: `packages/worker/package.json`
@@ -1187,7 +1649,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 - Consumes: `@supabase/supabase-js` `createClient`; a Cloudflare `Env` with a Hyperdrive binding.
 - Produces:
   - `packages/worker/src/workerSupabase.ts`: `export interface WorkerEnv { HYPERDRIVE: { connectionString: string }; SUPABASE_URL: string; SUPABASE_SERVICE_ROLE_KEY: string; EDGE_FUNCTION_MASTER_KEY: string; MCP_BASE_URL: string; WORKER_SELF_URL: string }` and `export function makeWorkerSupabase(env: WorkerEnv): SupabaseClient` — service-role client. **ASSUMPTION (verify on a real deploy):** supabase-js over the Hyperdrive `connectionString` (Hyperdrive fronts Postgres for stateless Workers). If supabase-js PostgREST cannot ride Hyperdrive directly, fall back to the Supabase pooler URL via `SUPABASE_URL` + service-role key; the durable writes need the service-role path. **FLAGGED — confirm Hyperdrive vs pooler against the real deploy (spec §15).**
-  - `wrangler.toml` with the Hyperdrive binding, secrets (master key, MCP base URL), `[triggers] crons` (Task 12), and limits.
+  - `wrangler.toml` with the Hyperdrive binding, secrets (master key, MCP base URL), `[triggers] crons` (Task 15), and limits.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1285,7 +1747,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 11: Worker `fetch` handler (new run / human resume / direct re-invoke) running `executeTurn` with durable caps
+### Task 14: Worker `fetch` handler (new run / human resume / direct re-invoke) running `executeTurn` with durable caps
 
 **Files:**
 - Create: `packages/worker/src/workerDurableQueries.ts`
@@ -1294,11 +1756,11 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 - Test: `packages/worker/src/__tests__/fetchHandler.test.ts`
 
 **Interfaces:**
-- Consumes: `makeWorkerSupabase` (Task 10); api durable impls + `executeTurn` (Tasks 2–9); RU2 `createMcpPoolClient`.
+- Consumes: `makeWorkerSupabase` (Task 13); api durable impls + `executeTurn` (Tasks 2–9); the §17 `makeEventBatcher` (Task 12); RU2 `createMcpPoolClient`.
 - Produces:
   - `packages/worker/src/workerDurableQueries.ts`: `export function makeWorkerDurableQueries(supabase): DurableQueries` (same surface as the Node impl, over `workerSupabase`; may be a thin re-use if the Node impl is client-agnostic — prefer sharing the impl from `packages/api` with the client injected).
   - `packages/worker/src/runDurable.ts`: `export async function runDurableOnWorker(args: { env: WorkerEnv; ctx: ExecutionContext; request: DurableRunRequest }): Promise<Response>` — wires caps + services + a `fetch(self)` `Reinvoker` (`ctx.waitUntil(fetch(env.WORKER_SELF_URL, { method:'POST', body: { mode:'reinvoke', executionId, idempotencyKey } }))`) and runs `executeTurn`.
-  - `packages/worker/src/index.ts`: `export default { async fetch(request, env, ctx): Promise<Response>, async scheduled(event, env, ctx): Promise<void> }` — `fetch` discriminates the body `mode`: `new_run` (mint executionId + run), `human_resume` (resolve active leaf via `resolveActiveLeaf`, continue that `executionId`), `reinvoke` (idempotency-check then continue the same execution). `scheduled` is Task 12.
+  - `packages/worker/src/index.ts`: `export default { async fetch(request, env, ctx): Promise<Response>, async scheduled(event, env, ctx): Promise<void> }` — `fetch` discriminates the body `mode`: `new_run` (mint executionId + run), `human_resume` (resolve active leaf via `resolveActiveLeaf`, continue that `executionId`), `reinvoke` (idempotency-check then continue the same execution). `scheduled` is Task 15. The `runDurable` wiring also constructs the §17 `makeEventBatcher` (Task 12) and flushes it (`ctx.waitUntil(batcher.flush())`) on suspend/terminal.
   - `DurableRunRequest` discriminated union: `{ mode:'new_run'; orgId; agentId; version; input } | { mode:'human_resume'; conversationId; message } | { mode:'reinvoke'; executionId; idempotencyKey }`.
 
 - [ ] **Step 1: Write the failing test**
@@ -1327,7 +1789,7 @@ describe('worker fetch handler', () => {
 });
 ```
 
-> The happy-path runs are covered by the 4a e2e (Task 9, real durable logic in Node) and the Miniflare smoke (Task 14); this test only asserts the handler's dispatch/validation surface without a live DB.
+> The happy-path runs are covered by the 4a e2e (Task 9, real durable logic in Node) and the Miniflare smoke (Task 17); this test only asserts the handler's dispatch/validation surface without a live DB.
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -1336,7 +1798,7 @@ Expected: FAIL — cannot find module `../index.js`.
 
 - [ ] **Step 3: Write minimal implementation**
 
-Implement `workerDurableQueries.ts`, `runDurable.ts`, and `index.ts` per the interfaces. Keep `index.ts` thin (parse body → discriminate `mode` → delegate), decomposed into `handleNewRun`/`handleHumanResume`/`handleReinvoke` helpers to respect `max-lines-per-function`. The `Reinvoker` uses `ctx.waitUntil(fetch(env.WORKER_SELF_URL, ...))`. **ASSUMPTION (spec §15): confirm CF allows a Worker self-`fetch` via `waitUntil` within limits; the cron backstop (Task 12) covers any dropped fire. FLAGGED.**
+Implement `workerDurableQueries.ts`, `runDurable.ts`, and `index.ts` per the interfaces. Keep `index.ts` thin (parse body → discriminate `mode` → delegate), decomposed into `handleNewRun`/`handleHumanResume`/`handleReinvoke` helpers to respect `max-lines-per-function`. The `Reinvoker` uses `ctx.waitUntil(fetch(env.WORKER_SELF_URL, ...))`. **ASSUMPTION (spec §15): confirm CF allows a Worker self-`fetch` via `waitUntil` within limits; the cron backstop (Task 15) covers any dropped fire. FLAGGED.**
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -1354,7 +1816,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 12: `scheduled()` cron-backstop handler
+### Task 15: `scheduled()` cron-backstop handler
 
 **Files:**
 - Modify: `packages/worker/src/index.ts` (`scheduled` handler)
@@ -1423,7 +1885,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 13: Fold in `execute-tool` single-tool execution (Play button)
+### Task 16: Fold in `execute-tool` single-tool execution (Play button)
 
 **Files:**
 - Create: `packages/worker/src/singleTool.ts`
@@ -1483,7 +1945,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 14: Workers-compat smoke (core + RU1 import/run clean, Miniflare)
+### Task 17: Workers-compat smoke (core + RU1 import/run clean, Miniflare)
 
 **Files:**
 - Create: `packages/worker/src/__tests__/workersCompat.smoke.test.ts`
@@ -1542,7 +2004,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 15: Flip `edgeFunctionClient` → Worker
+### Task 18: Flip `edgeFunctionClient` → Worker
 
 **Files:**
 - Modify: `packages/backend/src/routes/execute/edgeFunctionClient.ts`
@@ -1550,7 +2012,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 **Interfaces:**
 - Consumes: a `WORKER_URL` env var (new) replacing `SUPABASE_EDGE_FUNCTION_URL` as the execute target.
-- Produces: `executeAgent(...)` POSTs to the Worker URL (the `new_run` / resume `mode` body shape from Task 11) instead of `${SUPABASE_EDGE_FUNCTION_URL}/execute-agent`. The Worker is now the production execution host. **The edge `execute-agent`/`execute-tool` Deno code is LEFT IN PLACE — deletion is RU6** (spec §10).
+- Produces: `executeAgent(...)` POSTs to the Worker URL (the `new_run` / resume `mode` body shape from Task 14) instead of `${SUPABASE_EDGE_FUNCTION_URL}/execute-agent`. The Worker is now the production execution host. **The edge `execute-agent`/`execute-tool` Deno code is LEFT IN PLACE — deletion is RU6** (spec §10).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1601,7 +2063,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 16: Full gate + Cloudflare-assumption verification checklist
+### Task 19: Full gate + Cloudflare-assumption verification checklist
 
 **Files:** none (verification only).
 
@@ -1612,18 +2074,18 @@ Expected: format clean, lint clean (no `eslint-disable`, no `any`), `tsc -b` cle
 
 - [ ] **Step 2: Run all touched suites**
 
-Run: `npm run test -w packages/api -- --testPathPattern=production && npm run test -w packages/backend -- --testPathPattern="durableRun|pendingResumesShape|edgeFunctionClient" && npm run test -w packages/worker`
+Run: `npm run test -w packages/api -- --testPathPattern=production && npm run test -w packages/backend -- --testPathPattern="durableRun|pendingResumesShape|edgeFunctionClient|executionEventSeq|publishEventsHandler" && npm run test -w packages/worker`
 Expected: all green.
 
 - [ ] **Step 3: Verify the deferred-but-not-precluded structural choices hold**
 
-Confirm (read-only): `listPending` returns a collection (Task 3); executions are addressed by `execution_id` (no "stack top" in the durable path — Task 7); the "input source" concept is named in `activeLeaf.ts`'s comment (Task 7). None of concurrent-child / N-children is implemented.
+Confirm (read-only): `listPending` returns a collection (Task 3); executions are addressed by `execution_id` (no "stack top" in the durable path — Task 7); the "input source" concept is named in `activeLeaf.ts`'s comment (Task 7). None of concurrent-child / N-children is implemented. **§17 producer:** the Worker holds NO Redis connection (publish goes through `/internal/events/publish`, Task 11/12); token deltas are `durable: false` (live-only) while completed messages / token usage / tool calls / tool results are `durable: true` (persisted to the per-`execution_id` `seq` log, Task 10). The BE serve/resume (SSE consumer) side is NOT built here (RU5).
 
 - [ ] **Step 4: Cloudflare-assumption verification (manual, against a real deploy — spec §15)**
 
 Record results in the PR description (these cannot be unit-asserted from the repo):
-- Hyperdrive vs Supabase pooler fronts the service-role write path (Task 10 ASSUMPTION).
-- Worker self-`fetch` via `ctx.waitUntil` is allowed within CF limits (Task 11 ASSUMPTION).
+- Hyperdrive vs Supabase pooler fronts the service-role write path (Task 13 ASSUMPTION).
+- Worker self-`fetch` via `ctx.waitUntil` is allowed within CF limits (Task 14 ASSUMPTION).
 - `maxChildRuntimeMs` "active execution time" accumulates across invocations (persisted), not per-invocation (spec §15) — confirm the resume_marker/queries persist accumulated active ms; if not yet wired, FLAG as a follow-up before the user's end-to-end gate.
 - The user's pre-merge end-to-end gate exercises a real durable suspend/resume across Worker invocations (spec §13).
 
@@ -1642,24 +2104,26 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 | Spec section | Task(s) |
 |---|---|
-| §1 Intent: durable per-step step-machine across many invocations | 2, 4, 5, 9, 11 |
-| §2 In (4a): per-step checkpoint; suspend reasons; resume triggers; DurableDispatchStrategy + persistence; pending_resumes + claim RPC; idempotency; maxDispatchDepth 3 | 1–9 |
-| §2 In (4b): packages/worker; wrangler; Hyperdrive; fold in execute-tool; flip edgeFunctionClient; Workers-compat verify | 10–15 |
-| §2 Out: concurrent-child / N children deferred, accommodated | 3 (`listPending` collection), 7 (`execution_id` addressing + input-source comment), 16 (step 3) |
+| §1 Intent: durable per-step step-machine across many invocations | 2, 4, 5, 9, 14 |
+| §2 In (4a): per-step checkpoint; suspend reasons; resume triggers; DurableDispatchStrategy + persistence; pending_resumes + claim RPC; idempotency; maxDispatchDepth 3; **§17 producer (seq log + publish endpoint)** | 1–11 |
+| §2 In (4b): packages/worker; wrangler; Hyperdrive; **§17 Worker event batcher**; fold in execute-tool; flip edgeFunctionClient; Workers-compat verify | 12–18 |
+| §2 Out: concurrent-child / N children deferred, accommodated; **SSE consumer/serve side (RU5)** | 3 (`listPending` collection), 7 (`execution_id` addressing + input-source comment), 19 (step 3); RU5 noted in 10/11/12 |
+| §3 engine-agnostic step-machine (`StepMachine`; agent + workflow steps; one checkpoint mechanism) | finding #4; 2 (`makeStepCheckpointer` engine-neutral over the `AgentLoopCallbacks` slice) |
 | §3 step = resumable checkpoint; tool-result-persisted-before-advance | 2 |
-| §3 suspend reasons (budget/input/dispatch) → resume triggers | 3 (dispatch), 5 (budget direct re-invoke), 11 (input/human resume) |
+| §3 suspend reasons (budget/input/dispatch) → resume triggers | 3 (dispatch), 5 (budget direct re-invoke), 14 (input/human resume) |
 | §4 execution tree + active-leaf routing (execution_id addressed, N-depth safe) | 7 |
-| §5 direct re-invoke PRIMARY + cron sweep BACKSTOP (staleness-gated, labelled) | 5 (primary), 6 + 12 (backstop) |
+| §5 direct re-invoke PRIMARY + cron sweep BACKSTOP (staleness-gated, labelled) | 5 (primary), 6 + 15 (backstop) |
 | §6 execution persistence (per-step + dispatch ops + listPending collection; pending_resumes + claim RPC) | 1, 2, 3 |
 | §7 DurableDispatchStrategy (suspend → `{kind:'suspended'}`, shared child-injection) | 4, 9 |
 | §8 idempotency keys (checked before continuing) | 5, 9 |
 | §9 maxDispatchDepth single const default 3, N-safe | 8 |
-| §10 the Cloudflare Worker (index/workerSupabase/runDurable/singleTool, wrangler, Hyperdrive, MCP via RU2 pool, edge left in place) | 10–13, 15 |
-| §11 phasing (4a Node; 4b host) | Phase 4a (1–9) / Phase 4b (10–16) |
+| §10 the Cloudflare Worker (index/workerSupabase/runDurable/singleTool, wrangler, Hyperdrive, MCP via RU2 pool, edge left in place) | 12–16, 18 |
+| §11 phasing (4a Node; 4b host) | Phase 4a (1–11) / Phase 4b (12–19) |
 | §12 future-proofing (listPending collection, execution_id addressing, input-source concept) | 3, 7 |
-| §13 tests (per-step+resume-from-next; suspend→trigger; direct re-invoke; sweep claims only stale; idempotency dedupe; tool-before-advance; DurableDispatchStrategy parity; active-leaf; depth cap; multi-invoke run) | 2, 4, 5, 6, 7, 8, 9; 4b smoke 14 |
-| §14 affected paths (api durable impls, migrations, edited core/edgeFunctionClient) | 1, 2, 8, 9, 15 |
-| §15 risks (per-step write volume; Workers compat; self-fetch limits; Hyperdrive vs pooler; maxChildRuntimeMs accumulation) | 14, 16 (verification), flagged in 10/11 |
+| §13 tests (per-step+resume-from-next; suspend→trigger; direct re-invoke; sweep claims only stale; idempotency dedupe; tool-before-advance; DurableDispatchStrategy parity; active-leaf; depth cap; multi-invoke run) | 2, 4, 5, 6, 7, 8, 9; 4b smoke 17 |
+| §14 affected paths (api durable impls, migrations, edited core/edgeFunctionClient) | 1, 2, 8, 9, 18 |
+| §15 risks (per-step write volume; Workers compat; self-fetch limits; Hyperdrive vs pooler; maxChildRuntimeMs accumulation) | 17, 19 (verification), flagged in 13/14 |
+| **§17 durable SSE delivery — PRODUCER side** (seq column on the durable event log; `POST /internal/events/publish` → **Redis Cloud pub/sub** not Upstash; Worker ~50ms batch; token deltas live-only, completed messages/token usage/tool calls/results published AND persisted; Worker holds no Redis connection; BE serve/resume = RU5, NOT here) | **10** (seq log on `agent_execution_events`), **11** (`/internal/events/publish` + Redis Cloud publish), **12** (Worker batcher); wired into the `fetch` handler in 14 |
 
 **Out of scope (correctly deferred, per spec §2/§12):** concurrent-child / N concurrent children (stages 2–3 — only the structural seams ship: `listPending` collection, `execution_id` addressing, named "input source"); the SSE consumer cutover (RU5); deleting the edge `execute-agent`/`execute-tool` Deno runtime (RU6).
 
@@ -1682,3 +2146,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 5. **RU3 `DispatchPersistence` shape ambiguity.** Built to the four-method `beforeDispatch`/`onChildFinish`/`onChildError`/`listPending` contract (RU3 Task 4 text + RU4 §6/§10.1). A parallel read of the RU3 plan surfaced a `persist`/`resume` two-method variant with a richer `DispatchHandle`; if RU3 actually shipped that, reconcile before Task 3 (finding #6).
 
 6. **Cross-RU name drift:** RU1 package is `@openflow/shared-store-services` (RU1 plan/agent) vs `@daviddh/shared-store-services` (RU3 plan). Use the real published name at impl time (finding #7).
+
+7. **§17's "`seq` column on the durable event log" already exists as `agent_execution_events.sequence`.** Spec §17 reads as if a new `seq` column must be added; but `agent_execution_events(execution_id, sequence)` (with `UNIQUE(execution_id, sequence)` + a replay index, `20260403100000_agent_composition.sql:51-62`) already IS the per-`execution_id` monotonic log — it is merely caller-assigned (`default 0`) today. Built to reality: Task 10 adds an atomic per-execution `seq` ALLOCATOR (`next_execution_event_seq`) over the existing table rather than a duplicate column/table (finding #12). **FLAGGED — if the user expected a fresh column, this reuses the existing log instead (and `getEventsAfter` is already the RU5 read-side reader).**
+
+8. **§17 "Worker publishes to Redis Cloud pub/sub" — must NOT use Upstash.** The repo runs a documented dual-Redis split (`messaging/services/redis.ts`): **Upstash** (`@upstash/redis`, HTTP REST) for cache GET/SET only — it **cannot** `PUBLISH`/`SUBSCRIBE`; **Redis Cloud** (`ioredis`, TCP) for pub/sub (`redisCloud.ts` `publishMessage` / the `redisCompletionNotifier` pattern). Task 11 publishes via `publishMessage` (Redis Cloud), NOT Upstash. The Worker holds no Redis connection at all — it POSTs to `/internal/events/publish` and the BE owns the ioredis publish (Tasks 11/12). Not a contradiction in the code, but a spec instruction that is easy to implement against the wrong client — pinned here.
