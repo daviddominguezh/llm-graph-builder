@@ -4,12 +4,7 @@ import type { Request, Response } from 'express';
 import { createServiceClient } from '../../db/queries/executionAuthQueries.js';
 import { createFireHandler } from '../../triggers/fireHandler.js';
 import { getTriggerScheduler } from '../../triggers/schedulerSingleton.js';
-import {
-  defaultUserId,
-  execTimeoutMs,
-  jitterWindowMs,
-  maxHorizonMs,
-} from '../../triggers/triggerConfig.js';
+import { defaultUserId, execTimeoutMs, jitterWindowMs, maxHorizonMs } from '../../triggers/triggerConfig.js';
 import { requireInternalAuth } from './internalAuth.js';
 import { handleEmbed, handleRegexValidate } from './utilityHandlers.js';
 

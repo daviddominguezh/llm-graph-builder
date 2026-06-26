@@ -120,7 +120,10 @@ async function runSetTriggerEnabled(
     res.status(HTTP_INTERNAL_ERROR).json({ error });
     return;
   }
-  const fresh = await readPostMutationRow(read, ctx.supabase, ctx.triggerId, { ...row, enabled: ctx.enabled });
+  const fresh = await readPostMutationRow(read, ctx.supabase, ctx.triggerId, {
+    ...row,
+    enabled: ctx.enabled,
+  });
   res.status(HTTP_OK).json(fresh);
 }
 

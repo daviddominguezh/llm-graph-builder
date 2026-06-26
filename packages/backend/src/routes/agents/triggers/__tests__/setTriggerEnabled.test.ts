@@ -32,12 +32,8 @@ const setNextRunAtCalls: Array<{ triggerId: string; nextRunAt: Date | null }> = 
 const realQueries = await import('../../../../db/queries/triggerQueries.js');
 jest.unstable_mockModule('../../../../db/queries/triggerQueries.js', () => ({
   ...realQueries,
-  setTriggerEnabled: jest
-    .fn<(typeof realQueries)['setTriggerEnabled']>()
-    .mockResolvedValue({ error: null }),
-  setArmedTaskEpoch: jest
-    .fn<(typeof realQueries)['setArmedTaskEpoch']>()
-    .mockResolvedValue(undefined),
+  setTriggerEnabled: jest.fn<(typeof realQueries)['setTriggerEnabled']>().mockResolvedValue({ error: null }),
+  setArmedTaskEpoch: jest.fn<(typeof realQueries)['setArmedTaskEpoch']>().mockResolvedValue(undefined),
   setNextRunAt: jest
     .fn<(typeof realQueries)['setNextRunAt']>()
     .mockImplementation(async (_supabase, triggerId, nextRunAt) => {
@@ -69,7 +65,10 @@ function buildRow(overrides: Partial<TriggerRow>): TriggerRow {
   };
 }
 
-type GetById = (s: SupabaseClient, id: string) => Promise<{ result: TriggerRow | null; error: string | null }>;
+type GetById = (
+  s: SupabaseClient,
+  id: string
+) => Promise<{ result: TriggerRow | null; error: string | null }>;
 
 function twoStageGetTriggerById(stale: TriggerRow, fresh: TriggerRow): GetById {
   let call = ZERO;
