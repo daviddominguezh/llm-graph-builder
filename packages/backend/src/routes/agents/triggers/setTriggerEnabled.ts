@@ -1,7 +1,12 @@
 import type { Request } from 'express';
 
 import type { SupabaseClient } from '../../../db/queries/operationHelpers.js';
-import { type TriggerRow, getTriggerById, setTriggerEnabled } from '../../../db/queries/triggerQueries.js';
+import {
+  type TriggerRow,
+  getTriggerById,
+  setNextRunAt,
+  setTriggerEnabled,
+} from '../../../db/queries/triggerQueries.js';
 import { armToward, nextRunFor } from '../../../triggers/fireHelpers.js';
 import { getTriggerScheduler } from '../../../triggers/schedulerSingleton.js';
 import { jitterWindowMs, maxHorizonMs } from '../../../triggers/triggerConfig.js';
@@ -47,6 +52,7 @@ async function rearm(supabase: SupabaseClient, agentId: string, row: TriggerRow)
     Math.floor(next.getTime() / EPOCH_TO_MS),
     new Date()
   );
+  await setNextRunAt(supabase, row.id, next);
 }
 
 async function applyEnabled(

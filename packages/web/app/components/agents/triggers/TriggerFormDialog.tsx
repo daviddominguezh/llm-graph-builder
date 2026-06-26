@@ -47,7 +47,6 @@ function FormBody({ initial, isEdit, onSave, onCancel }: FormBodyProps) {
       </div>
       <StepFooter
         step={step}
-        isEdit={isEdit}
         messageEmpty={state.initialMessage.trim() === ''}
         onCancel={onCancel}
         onNext={() => setStep('message')}

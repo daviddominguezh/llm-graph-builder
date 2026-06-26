@@ -191,6 +191,17 @@ export async function setArmedTaskEpoch(
   await supabase.from('agent_triggers').update({ armed_task_epoch: hopEpoch }).eq('id', triggerId);
 }
 
+export async function setNextRunAt(
+  supabase: SupabaseClient,
+  triggerId: string,
+  nextRunAt: Date | null
+): Promise<void> {
+  await supabase
+    .from('agent_triggers')
+    .update({ next_run_at: mapNextRunAt(nextRunAt) })
+    .eq('id', triggerId);
+}
+
 interface ClaimRow {
   run_id: string;
   session_id: string;

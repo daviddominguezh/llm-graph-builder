@@ -6,7 +6,6 @@ import { useTranslations } from 'next-intl';
 
 interface StepFooterProps {
   step: 'schedule' | 'message';
-  isEdit: boolean;
   messageEmpty: boolean;
   onCancel: () => void;
   onNext: () => void;

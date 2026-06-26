@@ -1,5 +1,3 @@
-import dayjs from 'dayjs';
-
 import { applyJitter, computeNextRunAt, TriggerScheduleSchema, type TriggerScheduleInput } from './schedule.js';
 
 const recurringMins = (interval: number): TriggerScheduleInput => ({

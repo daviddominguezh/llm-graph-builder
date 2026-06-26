@@ -221,7 +221,6 @@
       "next": "Next",
       "back": "Back",
       "create": "Create",
-      "messageStepTitle": "Initial message",
       "messageLabel": "Message the agent will receive",
       "messagePlaceholder": "e.g. Summarize today's new leads",
       "listLoading": "Loading triggers…",
@@ -262,7 +261,6 @@
       "previewLabel": "Next run:",
       "previewLabelMany": "Next runs",
       "previewNone": "Not scheduled",
-      "previewAfterEvent": "Triggered by an event",
       "picker": {
         "label": "Tenant",
         "loading": "Loading tenants…",

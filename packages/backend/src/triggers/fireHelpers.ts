@@ -4,7 +4,6 @@ import {
   computeNextRunAt,
 } from '@openflow/shared-validation/triggers/schedule';
 
-import { getAgentById } from '../db/queries/agentQueries.js';
 import type { SupabaseClient } from '../db/queries/operationHelpers.js';
 import { setArmedTaskEpoch as setArmedTaskEpochQuery } from '../db/queries/triggerQueries.js';
 import type { AgentExecutionInput } from '../routes/execute/executeTypes.js';
@@ -41,19 +40,6 @@ export function buildTriggerInput(
     channel: 'api',
     stream: false,
   };
-}
-
-/** Resolve the FRESH published production version at fire time (never embedded
- *  in the task — the agent may have been republished since arming). */
-export async function resolveExecutionContext(
-  supabase: SupabaseClient,
-  agentId: string
-): Promise<{ orgId: string; version: number }> {
-  const { result, error } = await getAgentById(supabase, agentId);
-  if (error !== null || result === null) {
-    throw new Error(`agent ${agentId} not found: ${error ?? 'null'}`);
-  }
-  return { orgId: result.org_id, version: result.current_version };
 }
 
 /** Base payload fields shared by every task of a trigger (no per-occurrence fields). */

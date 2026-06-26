@@ -7,17 +7,10 @@ export type {
   RecurringConfig,
   TriggerScheduleInput,
 } from '@openflow/shared-validation/triggers/schedule';
-export {
-  SCHEDULE_MODES,
-  WEEKDAYS,
-  RECURRING_UNITS,
-} from '@openflow/shared-validation/triggers/schedule';
+export { SCHEDULE_MODES, WEEKDAYS, RECURRING_UNITS } from '@openflow/shared-validation/triggers/schedule';
 
 export interface TriggerFormState extends TriggerScheduleInput {
   initialMessage: string;
-}
-export interface Trigger extends TriggerFormState {
-  id: string;
 }
 
 const DEFAULT_INTERVAL = 5;
