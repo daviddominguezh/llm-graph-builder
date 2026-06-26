@@ -94,13 +94,8 @@ export function useMcpTenantConfigs(args: UseMcpTenantConfigsArgs): UseMcpTenant
   };
 }
 
-function useVerifyingFor(
-  verifyingIds: ReadonlySet<string>
-): (serverId: string, tenantId: string) => boolean {
-  return useCallback(
-    (serverId, tenantId) => verifyingIds.has(cellKey(serverId, tenantId)),
-    [verifyingIds]
-  );
+function useVerifyingFor(verifyingIds: ReadonlySet<string>): (serverId: string, tenantId: string) => boolean {
+  return useCallback((serverId, tenantId) => verifyingIds.has(cellKey(serverId, tenantId)), [verifyingIds]);
 }
 
 function withIds(set: ReadonlySet<string>, ids: string[]): ReadonlySet<string> {

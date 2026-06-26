@@ -43,7 +43,7 @@ A **warm MCP connection cache** in the BE so tool calls reuse connections instea
 - Runtime call-site flip lands with RU3/RU4; `mcp/lifecycle.ts` deletion in RU6.
 
 ### RU3 — Runtime core + simulation driver
-The heart, exercised by the **simpler** runtime first.
+The heart, exercised by the **simpler** runtime first. Spec: `2026-06-24-RU3-runtime-core-simulation-design.md`.
 - `packages/api` core: `executeAgent`/`executeTurn`/`childDispatch`, `RuntimeCapabilities` (5 seams) + `RuntimeServices`, `ChildResult` (incl. `awaiting_input`), `DispatchStrategy` (`SyncRecurse` + `Durable` contracts) with `DispatchOutcome = completed | suspended`, the `ExecutionEvent` emitter (superset), env-discriminated `ProviderCtx`. (§6, §10)
 - Migrate the **simulation driver** onto the core (`SyncRecurseStrategy` + `NoopPersistence`).
 - Sim-state model: FE-owned, runtime sole writer, deep `Object.freeze` at the ctx boundary, write-side deep-clone, display-only patches + terminal authoritative snapshot. (§9)
@@ -52,26 +52,28 @@ The heart, exercised by the **simpler** runtime first.
 - Consumes RU1 + RU2. Validated by its own behavior tests. (Bounded "two cores" window — sim on the new core, prod still legacy — until RU4.)
 
 ### RU4 — Production Cloudflare Worker + durable execution
-The biggest / riskiest; the host move and durability are isolated here. (§10.4, §11.5)
-- `packages/worker`: Cloudflare Worker running the RU3 core (replaces `supabase/functions/execute-agent` + `execute-tool`).
-- DB-backed durable suspend/resume: `SupabaseDispatchPersistence` + `DurableDispatchStrategy`; resume triggers (human → BE re-invoke; autonomous → sharded Queues / cron over `pending_resumes`); idempotency key on every resume.
-- Hyperdrive (or Supabase pooler) in front of Postgres; sized tier.
-- Consumes RU3, RU1, RU2.
-- If still too large at execution time, sub-splits into **4a** (durable dispatch on the core) and **4b** (Cloudflare host cutover) — keep as one spec until proven necessary.
+The biggest / riskiest; the host move and durability are isolated here. Spec: `2026-06-25-RU4-worker-durable-execution-design.md`. (§10.4, §11.5)
+- **Durable step-machine:** every execution checkpoints **per step** (agent: each LLM request + each tool call; workflow: each node + each tool call) and spans many Worker invocations. The per-step write **is** the dashboard message-persistence (moved from end-of-execution to per-step). Suspends for budget / human-input / dispatch.
+- **Resume triggers:** human → BE re-invoke (active-leaf routing); non-input suspends → **direct self-re-invoke (primary)** + **Cloudflare Cron Trigger sweep over `pending_resumes` (backstop / sanity-check only)**; idempotency key on every resume.
+- `SupabaseDispatchPersistence` + `DurableDispatchStrategy` over `agent_stack_entries`; re-introduce `pending_resumes` + `claim_pending_resumes` RPC. `maxDispatchDepth` default **3**, single variable, N-safe.
+- **Scope = the current sleep-model made durable only**; concurrent-child + N-children deferred (stages 2–3) but schema/interfaces accommodate them (collection `listPending`, tree `execution_id` addressing, "input-source").
+- `packages/worker` (4b) runs the RU3 core + RU1 factories (Workers-compatible), Hyperdrive in front of Postgres, folds in `execute-tool`, flips `edgeFunctionClient` → Worker. Consumes RU3, RU1, RU2.
+- **Two phases, one spec:** **4a** (durable dispatch on the core, built + tested in Node) → **4b** (Cloudflare host cutover).
 
 ### RU5 — SSE hard cutover
-Touches all three consumers at once, so it comes after both drivers emit `ExecutionEvent`. (§6.6)
-- Land the superset `ExecutionEvent` + the single `executionEventSse.ts` serializer.
-- Migrate all three consumers: production API (`web/app/lib/api.ts`), simulation panel, widget (`packages/widget/useChatStream.ts`).
-- Delete the legacy public/sim SSE shapes + writers; no adapters.
-- Verify each consumer renders the full superset (tokens, durations, structured output, per-node errors, `child_awaiting_input`) before deleting the old shapes.
+Touches all three consumers at once, so it comes after both drivers emit `ExecutionEvent`. Spec: `2026-06-25-RU5-sse-hard-cutover-design.md`. (§6.6)
+- Land the superset `ExecutionEvent` + the single `executionEventSse.ts` serializer (`data: {type,...}` wire); deletes the prod **internal→public adapter** too.
+- Migrate all three consumers — **full rename, no aliases**: production API (`web/app/lib/api.ts`), sim path (`sseSimComposition.ts`/`compositionMachine.ts`/`useSimulationSend.ts`), widget (`packages/widget/src/ui/useChatStream.ts`).
+- Delete the legacy public/sim SSE shapes + writers + the **RU3 throwaway bridge** (`executionEventToSim` + its temporary sim-state members); no adapters.
+- **No automated verification harness** — manual cross-consumer verification (RU3's emitter-completeness assertion is retained, source-side).
 - Depends on RU3 + RU4.
 
 ### RU6 — Dead-code deletion / finalize
-Quarantine the irreversible step. (§11.3)
+Quarantine the irreversible step. Spec: `2026-06-26-RU6-dead-code-deletion-design.md`. (§11.3)
 - Delete the (verified) §11.3 manifest — run `find_referencing_symbols` on the partial `kvStoreService`/`ragStoreService` deletions first.
-- Delete `mcp/lifecycle.ts`, the old orchestrators, and the Supabase edge function.
-- Non-reversible; the full test suite must stay green.
+- Delete `mcp/lifecycle.ts`; **both** legacy sim orchestrators (`simulationOrchestrator`, `simulateHandler` workflow, `simulateAgentHandler` agent); the legacy prod orchestrator (`executeCore*`); and the Supabase edge functions (`execute-agent` + `execute-tool`).
+- **Keeps** `PublicExecutionEvent` (decision B) + the engine internals (`executeAgentLoop`/`executeWithCallbacks`).
+- Runs **only after** RU1–5 merged + the user's end-to-end gate passes. Non-reversible; full suite must stay green; each deletion gated by a reference check.
 
 ## Dependency graph
 

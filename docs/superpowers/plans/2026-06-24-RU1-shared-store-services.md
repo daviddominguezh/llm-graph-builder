@@ -4,7 +4,7 @@
 
 **Goal:** Collapse the four duplicated builtin store-service factories (KV, RAG, Forms, LeadScoring) into one portable `packages/shared-store-services` package, redesign KV+RAG agent search to a uniform opaque-cursor / match-count contract with ReDoS-safe `re2js` KV regex and always-on RAG rerank, and drop native `re2` plus the `/internal/regex/validate` hop.
 
-**Architecture:** A new pure-JS/TS package (`@openflow/shared-store-services`) houses the supabase-js DB layer + factory logic for all four services, runnable in Node, Cloudflare Workers, and Deno. KV regex parses with `re2js`, extracts required literal substrings to drive a trigram-`ILIKE` prefilter, and otherwise runs a bounded keyset scan — the LLM-supplied regex never touches Postgres. RAG semantic/hybrid embed the query via the existing BE `/internal/embed` hop, vector-retrieve a bounded pool, always rerank via a new BE `/internal/rerank` hop, then cursor-paginate. All search modes expose `{ items, limit, nextCursor }` keyed by an opaque cursor (no offset/total). Backend and edge keep thin re-export shims during the transition.
+**Architecture:** A new pure-JS/TS package (`@daviddh/shared-store-services`) houses the supabase-js DB layer + factory logic for all four services, runnable in Node, Cloudflare Workers, and Deno. KV regex parses with `re2js`, extracts required literal substrings to drive a trigram-`ILIKE` prefilter, and otherwise runs a bounded keyset scan — the LLM-supplied regex never touches Postgres. RAG semantic/hybrid embed the query via the existing BE `/internal/embed` hop, vector-retrieve a bounded pool, always rerank via a new BE `/internal/rerank` hop, then cursor-paginate. All search modes expose `{ items, limit, nextCursor }` keyed by an opaque cursor (no offset/total). Backend and edge keep thin re-export shims during the transition.
 
 **Tech Stack:** TypeScript (strict, NodeNext ESM), `@supabase/supabase-js`, `re2js` (pure-JS RE2 port), Jest (ESM via ts-jest), Express (BE internal routes), Next.js (FE dashboard), Zod (tool input schemas).
 
@@ -26,7 +26,7 @@
 
 **New package `packages/shared-store-services/`**
 
-- `package.json` — package manifest: name `@openflow/shared-store-services`, deps `@supabase/supabase-js` + `re2js`, scripts (build/lint/typecheck/format/check/test).
+- `package.json` — package manifest: name `@daviddh/shared-store-services`, deps `@supabase/supabase-js` + `re2js`, scripts (build/lint/typecheck/format/check/test).
 - `tsconfig.json` — strict NodeNext config mirroring `packages/api/tsconfig.json` (composite, declaration, noEmit for typecheck).
 - `tsconfig.build.json` — emit config used by `build`.
 - `jest.config.js` — ESM ts-jest config mirroring `packages/api/jest.config.js`.
@@ -62,7 +62,7 @@
 - `src/services/ragStoreService.ts` — re-export shim of `makeRagStoreService`.
 - `src/routes/ragStores/ragFiles/searchChunks.ts` — drop `rerank` param; hardcode rerank on (dashboard path).
 - `src/routes/ragStores/ragFiles/hybridSearch.ts` — uses the shared `SearchParams` (rerank already removed there).
-- `packages/backend/package.json` — remove `re2`; add `@openflow/shared-store-services`.
+- `packages/backend/package.json` — remove `re2`; add `@daviddh/shared-store-services`.
 - `packages/shared-validation/package.json` + `src/kv/matcher.ts` — replace native `re2` with `re2js`.
 
 **Modified — `supabase/functions/execute-agent/`** (edge re-export shims)
@@ -133,7 +133,7 @@ Create `packages/shared-store-services/package.json`:
 
 ```json
 {
-  "name": "@openflow/shared-store-services",
+  "name": "@daviddh/shared-store-services",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -2149,7 +2149,7 @@ Repoint the backend and edge store-service factories at the new package so mid-m
 - Test: `packages/backend/src/services/kvStoreService.test.ts` (retarget to the re-export)
 
 **Interfaces:**
-- Consumes: `makeKvStoreService`, `makeRagStoreService`, `makeInternalApiClient` from `@openflow/shared-store-services`.
+- Consumes: `makeKvStoreService`, `makeRagStoreService`, `makeInternalApiClient` from `@daviddh/shared-store-services`.
 - Produces: backend `makeKvStoreService(supabase, storeId)` (unchanged signature), `makeRagStoreService(supabase, storeId)` — the backend wrapper constructs an internal-api client from env (`process.env.BACKEND_INTERNAL_URL`/`EDGE_FUNCTION_MASTER_KEY`) and passes it through.
 
 - [ ] **Step 1: Write the failing test**
@@ -2157,7 +2157,7 @@ Repoint the backend and edge store-service factories at the new package so mid-m
 Replace the body of `packages/backend/src/services/kvStoreService.test.ts` with a shim-identity test (the deep behavior is now tested in the shared package):
 
 ```ts
-import { makeKvStoreService as shared } from '@openflow/shared-store-services';
+import { makeKvStoreService as shared } from '@daviddh/shared-store-services';
 
 import { makeKvStoreService } from './kvStoreService.js';
 
@@ -2175,15 +2175,15 @@ Expected: FAIL — backend `makeKvStoreService` is still the local implementatio
 
 - [ ] **Step 3: Write minimal implementation**
 
-Add `"@openflow/shared-store-services": "*"` to `packages/backend/package.json` `dependencies` and remove the `"re2": "^1.24.1"` line. Run `npm install`.
+Add `"@daviddh/shared-store-services": "*"` to `packages/backend/package.json` `dependencies` and remove the `"re2": "^1.24.1"` line. Run `npm install`.
 
 Replace `packages/backend/src/services/kvStoreService.ts` entirely with:
 
 ```ts
 // Re-export shim (RU1 transition). The implementation now lives in
-// @openflow/shared-store-services so Node, Worker, and Deno share one copy.
+// @daviddh/shared-store-services so Node, Worker, and Deno share one copy.
 // Old file deletion happens in RU6.
-export { makeKvStoreService } from '@openflow/shared-store-services';
+export { makeKvStoreService } from '@daviddh/shared-store-services';
 ```
 
 Replace `packages/backend/src/services/ragStoreService.ts` entirely with a shim that builds the internal client from env and binds it:
@@ -2192,7 +2192,7 @@ Replace `packages/backend/src/services/ragStoreService.ts` entirely with a shim 
 import {
   makeInternalApiClient,
   makeRagStoreService as makeShared,
-} from '@openflow/shared-store-services';
+} from '@daviddh/shared-store-services';
 import type { RagStoreServices } from '@daviddh/llm-graph-runner';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -2210,13 +2210,13 @@ export function makeRagStoreService(supabase: SupabaseClient, storeId: string): 
 
 (If the backend currently calls Vertex in-process for embeddings rather than over `/internal/embed`, keep `BACKEND_INTERNAL_URL` pointing at the backend's own internal router — the route exists and is master-key-gated.) Update `packages/backend/src/services/ragStoreService.test.ts` similarly to assert it returns a `RagStoreServices` with `searchBm25` defined (it is no longer a pure identity since it injects a client).
 
-For the edge: replace `supabase/functions/execute-agent/kvStoreServices.ts` and `ragStoreServices.ts` bodies with re-exports from the package (import map alias `@openflow/shared-store-services`; if the edge import map cannot resolve the workspace package, re-export via a relative path to the built `dist` or a Deno-friendly alias — match the existing `@daviddh/llm-graph-runner` resolution already used in these files):
+For the edge: replace `supabase/functions/execute-agent/kvStoreServices.ts` and `ragStoreServices.ts` bodies with re-exports from the package (import map alias `@daviddh/shared-store-services`; if the edge import map cannot resolve the workspace package, re-export via a relative path to the built `dist` or a Deno-friendly alias — match the existing `@daviddh/llm-graph-runner` resolution already used in these files):
 
 ```ts
-export { makeKvStoreService } from '@openflow/shared-store-services';
+export { makeKvStoreService } from '@daviddh/shared-store-services';
 ```
 ```ts
-export { makeRagStoreService } from '@openflow/shared-store-services';
+export { makeRagStoreService } from '@daviddh/shared-store-services';
 ```
 
 In `supabase/functions/execute-agent/internalApiClient.ts`: remove `validateRegexPattern` and its `HTTP_BAD_REQUEST`/`ToolError` regex branch; add a `rerank(input)` function calling `POST /internal/rerank` mirroring `embedText`'s auth + error handling. Any remaining edge callers of `validateRegexPattern` (none remain once the store services re-export) are removed.

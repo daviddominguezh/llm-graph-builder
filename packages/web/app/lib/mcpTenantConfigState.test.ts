@@ -115,11 +115,33 @@ describe('mergeDiscoveryRows', () => {
 describe('mergeDiscoveryRow', () => {
   it('replaces only the matching (server, tenant) row, preserving siblings', () => {
     const start: McpTenantDiscoveryRow[] = [
-      { agent_id: AGENT, server_id: 's1', tenant_id: 't1', status: 'pending', error: null, values_hash: null, discovered_at: null },
-      { agent_id: AGENT, server_id: 's1', tenant_id: 't2', status: 'ok', error: null, values_hash: 'h', discovered_at: 'd' },
+      {
+        agent_id: AGENT,
+        server_id: 's1',
+        tenant_id: 't1',
+        status: 'pending',
+        error: null,
+        values_hash: null,
+        discovered_at: null,
+      },
+      {
+        agent_id: AGENT,
+        server_id: 's1',
+        tenant_id: 't2',
+        status: 'ok',
+        error: null,
+        values_hash: 'h',
+        discovered_at: 'd',
+      },
     ];
     const fresh: McpTenantDiscoveryRow = {
-      agent_id: AGENT, server_id: 's1', tenant_id: 't1', status: 'ok', error: null, values_hash: 'h', discovered_at: 'd',
+      agent_id: AGENT,
+      server_id: 's1',
+      tenant_id: 't1',
+      status: 'ok',
+      error: null,
+      values_hash: 'h',
+      discovered_at: 'd',
     };
     const next = mergeDiscoveryRow(start, fresh);
     expect(next).toHaveLength(TWO);
