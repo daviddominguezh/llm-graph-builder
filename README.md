@@ -41,6 +41,12 @@ Powered by OpenRouter, so you can use OpenAI, Anthropic, Google, Mistral, Meta, 
 
 Need your agent to call external APIs, query databases, or integrate with third-party services? Create or install MCP (Model Context Protocol) servers directly from the visual builder. No glue code.
 
+### Built-in tools
+
+Beyond MCP, OpenFlow ships **first-party tool groups** agents can use with zero setup — key-value and RAG stores, forms, lead scoring, and agent/workflow composition. The newest is **`openflow/web`**: live web **search**, content **extract**, site **crawl**, and site **map**, powered by Tavily.
+
+Crucially, the web tools are **wrapped behind our own interface** — the provider is an implementation detail. We can swap Tavily for a different backend, or our own search infrastructure, without changing the tools agents see or the schemas they call. A single platform API key (`TAVILY_API_KEY`) is held server-side; tenants never handle it, and builders just pick which of the four tools to grant each agent.
+
 ### Observability Built In
 
 Every execution is logged with full trace visibility:
@@ -199,6 +205,8 @@ Today, **production agent execution runs on Supabase Edge Functions (Deno)**, in
 
 Scheduled **triggers** fire agents into this same prod path on their own — **event-driven** via Google Cloud Tasks (an in-process timer in local dev), with no polling loop.
 
+**Built-in tool groups** (KV, RAG, forms, lead scoring, composition, and **web**) are assembled per execution inside the edge function and injected into the engine's tool registry. Most read Supabase directly; the **`web`** group instead calls the **Tavily REST API** over HTTPS, behind an internal `WebSearchService` seam so the provider can be swapped without touching the agent-facing tools.
+
 ```mermaid
 flowchart TB
   subgraph clients[Clients]
@@ -222,6 +230,7 @@ flowchart TB
     ea[execute-agent]
     et[execute-tool]
     st2[KV/RAG store services<br/>Deno copy]
+    webx[Web tools service<br/>Tavily REST client]
   end
 
   subgraph engine["packages/api · engine"]
@@ -230,6 +239,7 @@ flowchart TB
   end
 
   db[(Supabase Postgres)]
+  tavily[(Tavily API<br/>search · extract · crawl · map)]
 
   web --> prod
   widget --> prod
@@ -237,6 +247,8 @@ flowchart TB
   prod -->|invoke + proxy SSE| ea
   ea --> agent
   ea --> flow
+  ea -->|built-in web tools| webx
+  webx -->|HTTPS| tavily
   web -->|agent sim| sima
   web -->|workflow sim| simw
   sima --> agent
