@@ -7,6 +7,7 @@ import { buildPoolKey } from '../poolKey.js';
 const EXPECT_ONE_CONNECT = 1;
 const EXPECT_TWO_CONNECTS = 2;
 const EXPECT_ONE_ENTRY = 1;
+const EXPECT_ZERO_BORROWS = 0;
 
 const INIT: McpClientHandle['initialized'] = {
   protocolVersion: '2024-11-05',
@@ -57,6 +58,19 @@ describe('connectionPool borrow/return', () => {
     await expect(pool.borrow(key, connect)).resolves.toBeDefined();
     pool.release(key);
     expect(connect).toHaveBeenCalledTimes(EXPECT_TWO_CONNECTS);
+  });
+
+  it('leaves no un-evictable orphan when the connect rejects (refcount not leaked)', async () => {
+    const pool = createConnectionPool();
+    const connect = jest.fn<() => Promise<McpClientHandle>>().mockRejectedValueOnce(new Error('boom'));
+    const key = buildPoolKey({ agentId: 'a', tenantId: 't', mcpBindingId: 'b' });
+    await expect(pool.borrow(key, connect)).rejects.toThrow('boom');
+    const orphan = pool.entries().get(key);
+    if (orphan !== undefined) {
+      expect(orphan.borrows).toBe(EXPECT_ZERO_BORROWS);
+    } else {
+      expect(pool.has(key)).toBe(false);
+    }
   });
 
   it('reuses the warm handle on a second borrow without reconnecting', async () => {

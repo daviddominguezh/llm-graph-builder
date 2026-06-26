@@ -81,6 +81,20 @@ function takeEntry(map: Map<string, PoolEntry>, key: string, isStdio: boolean): 
   return created;
 }
 
+/**
+ * Undo the refcount taken in `borrowWith` when the connect rejects. The caller
+ * receives a rejected promise and will not call `release`, so without this the
+ * entry would stay pinned at `borrows>0` (unusable AND un-evictable forever).
+ * Drop the borrow and, if the entry is now a handle-less husk with no other
+ * borrowers, remove it so a transient connect failure leaves no lingering slot.
+ */
+function unwindFailedBorrow(map: Map<string, PoolEntry>, key: string): void {
+  const entry = map.get(key);
+  if (entry === undefined) return;
+  if (entry.borrows > ZERO) entry.borrows -= ONE;
+  if (entry.handle === null && entry.borrows === ZERO) map.delete(key);
+}
+
 async function borrowWith(
   state: EvictionState,
   key: string,
@@ -90,7 +104,12 @@ async function borrowWith(
   const entry = takeEntry(state.map, key, isStdio);
   entry.borrows += ONE;
   markUsed(entry, state.now);
-  return await connectInto(state.map, key, connect);
+  try {
+    return await connectInto(state.map, key, connect);
+  } catch (error) {
+    unwindFailedBorrow(state.map, key);
+    throw error;
+  }
 }
 
 function buildState(opts: ConnectionPoolOptions): EvictionState {
