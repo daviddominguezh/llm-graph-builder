@@ -27,7 +27,6 @@ function buildCloudTasksConfig(): CloudTasksConfig {
     projectId: requireEnv('GCP_PROJECT_ID'),
     location: requireEnv('CLOUD_TASKS_LOCATION'),
     queue: requireEnv('CLOUD_TASKS_QUEUE'),
-    serviceAccount: requireEnv('CLOUD_TASKS_SERVICE_ACCOUNT'),
     fireUrl: requireEnv('TRIGGER_FIRE_URL'),
     masterKey: requireEnv('EDGE_FUNCTION_MASTER_KEY'),
   };

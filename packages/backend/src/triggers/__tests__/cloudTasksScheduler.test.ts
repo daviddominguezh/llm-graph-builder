@@ -43,7 +43,6 @@ const cfg = {
   projectId: 'p',
   location: 'l',
   queue: 'agent-triggers',
-  serviceAccount: 'sa@x',
   fireUrl: 'https://api/internal/triggers/fire',
   masterKey: 'mk',
 };

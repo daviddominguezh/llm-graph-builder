@@ -5,7 +5,6 @@ export interface CloudTasksConfig {
   projectId: string;
   location: string;
   queue: string;
-  serviceAccount: string;
   fireUrl: string;
   masterKey: string;
 }
