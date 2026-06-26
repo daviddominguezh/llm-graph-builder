@@ -1,15 +1,12 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
-import { ModeSelector } from './ModeSelector';
-import { NextRunPreview } from './NextRunPreview';
-import { OnceField } from './OnceField';
-import { RecurringFields } from './RecurringFields';
+import { MessageStep } from './MessageStep';
+import { ScheduleStep } from './ScheduleStep';
+import { StepFooter } from './StepFooter';
 import type { TriggerFormState } from './types';
 
 interface TriggerFormDialogProps {
@@ -20,46 +17,7 @@ interface TriggerFormDialogProps {
   onSave: (form: TriggerFormState) => void;
 }
 
-interface FormProps {
-  state: TriggerFormState;
-  setState: (next: TriggerFormState) => void;
-}
-
-function AfterEventNote() {
-  const t = useTranslations('editor.triggers');
-  return (
-    <div className="rounded-md bg-muted/60 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
-      {t('afterEventComingSoon')}
-    </div>
-  );
-}
-
-function ActiveContent({ state, setState }: FormProps) {
-  if (state.mode === 'recurring') {
-    return (
-      <RecurringFields value={state.recurring} onChange={(recurring) => setState({ ...state, recurring })} />
-    );
-  }
-  if (state.mode === 'once') {
-    return (
-      <OnceField
-        value={state.onceDateTime}
-        onChange={(onceDateTime) => setState({ ...state, onceDateTime })}
-      />
-    );
-  }
-  return <AfterEventNote />;
-}
-
-function PreviewSection({ state }: { state: TriggerFormState }) {
-  if (state.mode !== 'recurring') return null;
-  return (
-    <>
-      <Separator />
-      <NextRunPreview state={state} />
-    </>
-  );
-}
+type WizardStep = 'schedule' | 'message';
 
 interface FormBodyProps {
   initial: TriggerFormState;
@@ -70,34 +28,32 @@ interface FormBodyProps {
 
 function FormBody({ initial, isEdit, onSave, onCancel }: FormBodyProps) {
   const t = useTranslations('editor.triggers');
-
   const [state, setState] = useState<TriggerFormState>(initial);
+  const [step, setStep] = useState<WizardStep>('schedule');
   return (
     <>
       <DialogHeader>
         <DialogTitle>{isEdit ? t('modalEdit') : t('modalAdd')}</DialogTitle>
       </DialogHeader>
       <div className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1" data-native-scroll>
-        <div className="flex flex-col gap-2.5">
-          <ModeSelector value={state.mode} onChange={(mode) => setState({ ...state, mode })} />
-          <Separator />
-          <div className="flex gap-x-3">
-            <span className="shrink-0 text-xs font-medium text-foreground invisible">{t('modeLabel')}</span>
-            <div className={`flex-1 flex flex-col gap-2.5 `}>
-              <ActiveContent state={state} setState={setState} />
-              <PreviewSection state={state} />
-            </div>
-          </div>
-        </div>
+        {step === 'schedule' ? (
+          <ScheduleStep state={state} setState={setState} />
+        ) : (
+          <MessageStep
+            value={state.initialMessage}
+            onChange={(v) => setState({ ...state, initialMessage: v })}
+          />
+        )}
       </div>
-      <DialogFooter>
-        <Button variant="outline" onClick={onCancel} className="rounded-md">
-          {t('cancel')}
-        </Button>
-        <Button onClick={() => onSave(state)} className="rounded-md">
-          {t('save')}
-        </Button>
-      </DialogFooter>
+      <StepFooter
+        step={step}
+        isEdit={isEdit}
+        messageEmpty={state.initialMessage.trim() === ''}
+        onCancel={onCancel}
+        onNext={() => setStep('message')}
+        onBack={() => setStep('schedule')}
+        onSave={() => onSave(state)}
+      />
     </>
   );
 }
