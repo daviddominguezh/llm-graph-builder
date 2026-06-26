@@ -1,0 +1,35 @@
+{
+  "name": "@daviddh/shared-store-services",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "rm -rf dist tsconfig*.tsbuildinfo && tsc -p tsconfig.build.json",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write \"**/*.{js,ts,json}\"",
+    "check": "npm run format && npm run lint && npm run typecheck",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' npx jest"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@daviddh/llm-graph-runner": "*",
+    "@supabase/supabase-js": "^2.99.0",
+    "re2js": "^2.8.3"
+  }
+}
