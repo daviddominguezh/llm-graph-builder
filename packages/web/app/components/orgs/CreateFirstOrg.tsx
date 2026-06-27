@@ -1,14 +1,14 @@
 'use client';
 
+import { useSlugAvailability } from '@/app/hooks/useSlugAvailability';
 import logo from '@/app/icon.png';
 import logoBlack from '@/app/openflowLogoBlack.png';
 import logoWhite from '@/app/openflowLogoWhite.png';
-import { useSlugAvailability } from '@/app/hooks/useSlugAvailability';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -19,9 +19,9 @@ import { CreateOrgFields, submitOrg } from './CreateOrgDialog';
 function WelcomeLogo() {
   return (
     <div className="welcome-stagger-1 flex items-center gap-2 mr-2">
-      <Image className="mb-0.5" src={logo} alt="OpenFlow" height={28} priority />
-      <Image className="dark:hidden" src={logoBlack} alt="OpenFlow" height={20} priority />
-      <Image className="hidden dark:block" src={logoWhite} alt="OpenFlow" height={20} priority />
+      <Image className="mb-0.5" src={logo} alt="OpenFlow" height={25} priority />
+      <Image className="dark:hidden" src={logoBlack} alt="OpenFlow" height={18} priority />
+      <Image className="hidden dark:block" src={logoWhite} alt="OpenFlow" height={18} priority />
     </div>
   );
 }
@@ -30,9 +30,9 @@ function WelcomeHeading() {
   const t = useTranslations('orgs.welcome');
 
   return (
-    <div className="welcome-stagger-2 flex flex-col gap-1.5 text-center">
-      <h1 className="text-xl font-bold tracking-tight">{t('title')}</h1>
-      <p className="text-muted-foreground text-sm">{t('description')}</p>
+    <div className="w-full welcome-stagger-2 flex flex-col gap-0">
+      <h1 className="text-base font-semibold tracking-tight">{t('title')}</h1>
+      <p className="text-muted-foreground text-xs">{t('description')}</p>
     </div>
   );
 }
@@ -116,10 +116,13 @@ export function CreateFirstOrg() {
         <ShaderBackground />
       </div>
       <div className="relative z-3 flex flex-col items-center gap-3 mb-14">
-        <WelcomeLogo />
-        <WelcomeHeading />
+
         <Card className="mt-3 welcome-stagger-3 w-full max-w-sm shadow-xl w-[400px] bg-popover border-[0.5px]! ring-0 outline-none">
           <CardContent>
+            <div className="relative z-3 flex flex-col items-center gap-4 mb-3.5">
+              <WelcomeLogo />
+              <WelcomeHeading />
+            </div>
             <WelcomeForm />
           </CardContent>
         </Card>

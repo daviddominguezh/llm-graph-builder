@@ -697,9 +697,9 @@
     "uploadError": "Failed to upload image. Please try again.",
     "back": "Back",
     "welcome": {
-      "title": "Welcome to OpenFlow",
+      "title": "Let's get started",
       "description": "Create your first organization to start building agents.",
-      "cta": "Get started"
+      "cta": "Create"
     }
   },
   "chats": {
