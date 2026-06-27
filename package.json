@@ -56,6 +56,7 @@
     "build:types": "npm run build -w packages/graph-types",
     "build:shared": "npm run build -w packages/shared-validation",
     "build:web": "npm run build -w packages/web",
+    "build": "npm run build:types && npm run build:shared && npm run build:api",
     "dev": "concurrently -n backend,web,widget \"ENABLE_MOCK_EXECUTE=true npm run dev -w packages/backend\" \"npm run dev -w packages/web\" \"npm run dev -w packages/widget\"",
     "test": "npm run test --workspaces --if-present",
     "test:core": "npm run test -w @daviddh/llm-graph-builder/web"
