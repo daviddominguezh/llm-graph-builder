@@ -7,17 +7,17 @@ import { getTriggerScheduler } from '../../triggers/schedulerSingleton.js';
 import { defaultUserId, execTimeoutMs, jitterWindowMs, maxHorizonMs } from '../../triggers/triggerConfig.js';
 import { requireInternalAuth } from './internalAuth.js';
 import { handleMcpInvoke } from './mcpInvoke.js';
-import { handleEmbed, handleRegexValidate } from './utilityHandlers.js';
+import { handleEmbed, handleRerank } from './utilityHandlers.js';
 
 export const internalRouter = Router();
 
 internalRouter.use(requireInternalAuth);
 
 // Node-only utility shims for the Supabase edge function: Vertex embeddings
-// (requires service-account auth) and RE2-based regex validation (native
-// addon). All KV/RAG Postgres work lives in the edge function itself.
+// (requires service-account auth) and Vertex semantic-ranker reranking. All
+// KV/RAG Postgres work lives in the edge function itself.
 internalRouter.post('/embed', handleEmbed);
-internalRouter.post('/regex/validate', handleRegexValidate);
+internalRouter.post('/rerank', handleRerank);
 
 // MCP tool invocation: resolve binding server-side, borrow a pooled connection
 // (egress re-validated on borrow), call the tool, release. Auth is the static

@@ -114,7 +114,7 @@ const SYSTEM_PUBLIC_UNAUTHED = [
   '/api/mock-execute/:agentSlug/:version',
   '/api/chat/latest-version/:tenantSlug/:agentSlug',
   '/internal/embed',
-  '/internal/regex/validate',
+  '/internal/rerank',
   '/internal/triggers/fire',
   '/internal/mcp/invoke',
   // Messaging webhook routes (signature-verified, not JWT)

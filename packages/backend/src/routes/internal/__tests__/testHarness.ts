@@ -1,5 +1,7 @@
 import type express from 'express';
 
+import type { RerankedRecord } from '../../../rag/rerank.js';
+
 export const HTTP_OK = 200;
 export const HTTP_BAD = 400;
 export const HTTP_UNAUTHORIZED = 401;
@@ -10,6 +12,7 @@ interface BodyShape {
   ok?: boolean;
   error?: string;
   vector?: number[];
+  records?: RerankedRecord[];
 }
 
 function isBodyShape(value: unknown): value is BodyShape {

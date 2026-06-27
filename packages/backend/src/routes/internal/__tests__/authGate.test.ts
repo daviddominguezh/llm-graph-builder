@@ -14,8 +14,9 @@ jest.unstable_mockModule('../../../rag/embeddings.js', () => ({
 const { internalRouter } = await import('../internalRouter.js');
 const app = buildApp(internalRouter, express);
 
-const PATH = '/internal/regex/validate';
-const body = { pattern: 'foo' };
+const TOP_N = 1;
+const PATH = '/internal/rerank';
+const body = { query: 'foo', records: [{ id: 'a', content: 'b' }], topN: TOP_N };
 
 describe('auth gate', () => {
   it('rejects missing master key header', async () => {
