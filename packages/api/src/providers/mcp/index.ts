@@ -19,3 +19,11 @@ export { createTransport } from './transport/createTransport.js';
 export type { McpTransport, TransportOptions } from './transport/transport.js';
 
 export { McpError, SessionExpiredError, TransportError, isSessionExpired } from './transport/errors.js';
+
+export { McpPoolError, createMcpPoolClient } from './poolClient.js';
+export type {
+  McpInvoker,
+  McpInvokeArgs,
+  McpPoolErrorCategory,
+  FetchLike as McpPoolFetchLike,
+} from './poolClient.js';

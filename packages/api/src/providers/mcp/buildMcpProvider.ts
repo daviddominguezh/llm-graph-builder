@@ -20,12 +20,19 @@ import {
   tryWriteCachedTools,
   tryWriteCurrentVersion,
 } from './mcpCacheHelpers.js';
+import type { McpInvoker } from './poolClient.js';
 
 export interface BuildMcpProviderOptions {
   /** Test seam — override the transport factory. Production uses the real createTransport. */
   createTransport?: CreateTransportFn;
   /** Test seam — override session cache I/O. */
   sessionCache?: SessionCacheIo;
+  /**
+   * When present, tool execution routes through the BE MCP pool instead of the
+   * per-call connect (`withSession`) path. Additive: when absent, the default
+   * `withSession` behavior is preserved unchanged.
+   */
+  mcpPool?: McpInvoker;
 }
 
 function rawToolToDescriptor(rt: RawMcpTool): ToolDescriptor {
@@ -149,42 +156,47 @@ async function describe(
   );
 }
 
-function buildExecuteFn(
-  deps: EnsureSessionDeps,
-  server: McpServerConfig,
-  ctx: ProviderCtx,
-  toolName: string
-): OpenFlowTool['execute'] {
+/** Bundled runtime for the tool-execution path so each helper stays ≤4 params. */
+interface ToolBuildRuntime {
+  deps: EnsureSessionDeps;
+  server: McpServerConfig;
+  ctx: ProviderCtx;
+  mcpPool: McpInvoker | undefined;
+}
+
+function buildExecuteFn(rt: ToolBuildRuntime, toolName: string): OpenFlowTool['execute'] {
+  const { deps, server, ctx, mcpPool } = rt;
+  if (mcpPool !== undefined) {
+    return async (args: unknown): Promise<unknown> =>
+      await mcpPool.invoke({
+        agentId: ctx.agentId,
+        tenantId: ctx.tenantId,
+        mcpBindingId: server.id,
+        toolName,
+        args,
+      });
+  }
   return async (args: unknown): Promise<unknown> =>
     await withSession(deps, server, ctx, async (session) => await session.handle.callTool(toolName, args));
 }
 
-function rawToolToOpenFlowTool(
-  deps: EnsureSessionDeps,
-  server: McpServerConfig,
-  ctx: ProviderCtx,
-  rt: RawMcpTool
-): OpenFlowTool {
+function rawToolToOpenFlowTool(rt: ToolBuildRuntime, raw: RawMcpTool): OpenFlowTool {
   return {
-    description: rt.description ?? '',
-    inputSchema: rt.inputSchema,
-    execute: buildExecuteFn(deps, server, ctx, rt.name),
+    description: raw.description ?? '',
+    inputSchema: raw.inputSchema,
+    execute: buildExecuteFn(rt, raw.name),
   };
 }
 
-async function build(
-  deps: EnsureSessionDeps,
-  server: McpServerConfig,
-  ctx: ProviderCtx,
-  toolNames: string[]
-): Promise<Record<string, OpenFlowTool>> {
+async function build(rt: ToolBuildRuntime, toolNames: string[]): Promise<Record<string, OpenFlowTool>> {
+  const { deps, server, ctx } = rt;
   return await withSession(deps, server, ctx, async (session) => {
     const rawTools = await session.handle.listTools();
     const out: Record<string, OpenFlowTool> = {};
     for (const name of toolNames) {
-      const rt = rawTools.find((x) => x.name === name);
-      if (rt === undefined) continue;
-      out[name] = rawToolToOpenFlowTool(deps, server, ctx, rt);
+      const raw = rawTools.find((x) => x.name === name);
+      if (raw === undefined) continue;
+      out[name] = rawToolToOpenFlowTool(rt, raw);
     }
     return out;
   });
@@ -214,6 +226,7 @@ export function buildMcpProvider(server: McpServerConfig, options: BuildMcpProvi
     id: server.id,
     displayName: server.name,
     describeTools: async (ctx) => await describe(deps, server, ctx),
-    buildTools: async ({ toolNames, ctx }) => await build(deps, server, ctx, toolNames),
+    buildTools: async ({ toolNames, ctx }) =>
+      await build({ deps, server, ctx, mcpPool: options.mcpPool }, toolNames),
   };
 }
