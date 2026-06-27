@@ -105,21 +105,18 @@ interface UseTenantSearchReturn {
   mode: SearchMode;
   topK: number;
   minSimilarity: number;
-  rerank: boolean;
   submittedQuery: string;
   isPending: boolean;
   setQuery: (q: string) => void;
   setMode: (m: SearchMode) => void;
   setTopK: (k: number) => void;
   setMinSimilarity: (s: number) => void;
-  setRerank: (enabled: boolean) => void;
   submit: () => void;
   clear: () => void;
 }
 
 const DEFAULT_TOP_K = 5;
 const DEFAULT_MIN_SIMILARITY = 0.5;
-const RERANK_MIN_K = 5;
 
 interface SearchParamsState {
   storeId: string;
@@ -128,7 +125,6 @@ interface SearchParamsState {
   mode: SearchMode;
   topK: number;
   minSimilarity: number;
-  rerank: boolean;
 }
 
 interface SearchRunHandlers {
@@ -149,7 +145,6 @@ async function executeSearch(
   const { result } = await searchAction(params.storeId, params.tenantId, params.mode, params.query, {
     topK: params.topK,
     minSimilarity: params.minSimilarity,
-    rerank: params.rerank,
   });
   if (myId !== handlers.requestIdRef.current) return;
   handlers.setResponse(result);
@@ -161,21 +156,19 @@ function useTenantSearch(storeId: string, tenantId: string): UseTenantSearchRetu
   const [mode, setMode] = useState<SearchMode>('simple');
   const [topK, setTopK] = useState(DEFAULT_TOP_K);
   const [minSimilarity, setMinSimilarity] = useState(DEFAULT_MIN_SIMILARITY);
-  const [rerank, setRerank] = useState(false);
   const [response, setResponse] = useState<SearchResponse | null>(null);
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [isPending, setPending] = useState(false);
   const requestIdRef = useRef(0);
-  const effectiveRerank = mode === 'hybrid' || (rerank && topK >= RERANK_MIN_K);
 
   const submit = useCallback((): void => {
     const trimmed = query.trim();
     if (trimmed === '') return;
     void executeSearch(
-      { storeId, tenantId, query: trimmed, mode, topK, minSimilarity, rerank: effectiveRerank },
+      { storeId, tenantId, query: trimmed, mode, topK, minSimilarity },
       { setResponse, setSubmittedQuery, setPending, requestIdRef }
     );
-  }, [storeId, tenantId, query, mode, topK, minSimilarity, effectiveRerank]);
+  }, [storeId, tenantId, query, mode, topK, minSimilarity]);
 
   const clear = useCallback((): void => {
     requestIdRef.current += 1;
@@ -191,14 +184,12 @@ function useTenantSearch(storeId: string, tenantId: string): UseTenantSearchRetu
     mode,
     topK,
     minSimilarity,
-    rerank,
     submittedQuery,
     isPending,
     setQuery,
     setMode,
     setTopK,
     setMinSimilarity,
-    setRerank,
     submit,
     clear,
   };
@@ -471,14 +462,12 @@ function PageBody({
         mode={search.mode}
         topK={search.topK}
         minSimilarity={search.minSimilarity}
-        rerank={search.rerank}
         isSearching={search.isPending}
         canClear={search.submittedQuery !== ''}
         onQueryChange={search.setQuery}
         onModeChange={search.setMode}
         onTopKChange={search.setTopK}
         onMinSimilarityChange={search.setMinSimilarity}
-        onRerankChange={search.setRerank}
         onSubmit={search.submit}
         onClear={search.clear}
       />

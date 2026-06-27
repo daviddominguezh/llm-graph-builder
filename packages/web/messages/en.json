@@ -1041,8 +1041,6 @@
       "distance": "d={d}",
       "topKLabel": "Top",
       "minSimilarityLabel": "min similarity",
-      "rerankLabel": "Rerank",
-      "rerankTooltip": "Reorders the top candidates with a cross-encoder model that scores each chunk against your query. Improves relevance for ambiguous or natural-language queries at the cost of an extra API call.",
       "mode": {
         "simple": "Simple",
         "semantic": "Semantic",
@@ -1051,7 +1049,7 @@
       "description": {
         "simple": "Lexical keyword match scored by term frequency across stored chunks.",
         "semantic": "Vector similarity over embedded chunks, ideal for natural-language queries.",
-        "hybrid": "Mixes lexical and semantic candidates and reranks them with a cross-encoder."
+        "hybrid": "Mixes lexical and semantic candidates and merges them by relevance."
       }
     }
   },

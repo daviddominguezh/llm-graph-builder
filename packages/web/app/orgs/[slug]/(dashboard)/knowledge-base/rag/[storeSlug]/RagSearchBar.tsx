@@ -2,10 +2,8 @@
 
 import type { SearchMode } from '@/app/lib/ragFiles';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Info, Loader2, Search, X } from 'lucide-react';
+import { Loader2, Search, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type KeyboardEvent, useState } from 'react';
 
@@ -14,19 +12,15 @@ interface RagSearchBarProps {
   mode: SearchMode;
   topK: number;
   minSimilarity: number;
-  rerank: boolean;
   isSearching: boolean;
   canClear: boolean;
   onQueryChange: (query: string) => void;
   onModeChange: (mode: SearchMode) => void;
   onTopKChange: (k: number) => void;
   onMinSimilarityChange: (s: number) => void;
-  onRerankChange: (enabled: boolean) => void;
   onSubmit: () => void;
   onClear: () => void;
 }
-
-const RERANK_MIN_K = 5;
 
 const MODES: SearchMode[] = ['simple', 'semantic', 'hybrid'];
 
@@ -73,13 +67,11 @@ interface SearchControlsProps {
   mode: SearchMode;
   topK: number;
   minSimilarity: number;
-  rerank: boolean;
   isSearching: boolean;
   canClear: boolean;
   hasQuery: boolean;
   onTopKChange: (k: number) => void;
   onMinSimilarityChange: (s: number) => void;
-  onRerankChange: (enabled: boolean) => void;
   onSubmit: () => void;
   onClear: () => void;
 }
@@ -181,49 +173,6 @@ function MinSimField({ minSimilarity, onMinSimilarityChange }: MinSimFieldProps)
   );
 }
 
-interface RerankToggleProps {
-  rerank: boolean;
-  rerankAvailable: boolean;
-  forced: boolean;
-  onRerankChange: (enabled: boolean) => void;
-}
-
-function RerankToggle({
-  rerank,
-  rerankAvailable,
-  forced,
-  onRerankChange,
-}: RerankToggleProps): React.JSX.Element {
-  const t = useTranslations('knowledgeBase.ragSearch');
-  const checked = forced ? true : rerank && rerankAvailable;
-  const dimmed = !forced && !rerankAvailable;
-  const labelClass = forced
-    ? 'flex items-center gap-1.5 pointer-events-none select-none'
-    : 'flex items-center gap-1.5';
-  return (
-    <div className={`flex items-center gap-1.5 ${dimmed ? 'opacity-50 cursor-not-allowed' : ''}`}>
-      <label className={labelClass}>
-        <Checkbox
-          checked={checked}
-          disabled={!forced && !rerankAvailable}
-          onCheckedChange={(v) => onRerankChange(v === true)}
-        />
-        <span>{t('rerankLabel')}</span>
-      </label>
-      <Tooltip>
-        <TooltipTrigger
-          type="button"
-          aria-label={t('rerankTooltip')}
-          className="cursor-help text-muted-foreground hover:text-foreground"
-        >
-          <Info className="size-3" />
-        </TooltipTrigger>
-        <TooltipContent className="max-w-xs text-xs">{t('rerankTooltip')}</TooltipContent>
-      </Tooltip>
-    </div>
-  );
-}
-
 interface SearchActionsProps {
   isSearching: boolean;
   canClear: boolean;
@@ -257,10 +206,7 @@ function SearchActions({
 }
 
 function SearchControls(props: SearchControlsProps): React.JSX.Element {
-  const rerankAvailable = props.topK >= RERANK_MIN_K;
   const showMinSim = props.mode === 'semantic' || props.mode === 'hybrid';
-  const showRerankToggle = props.mode === 'semantic' || props.mode === 'hybrid';
-  const rerankForced = props.mode === 'hybrid';
   return (
     <div className="flex flex-1 items-center gap-4 text-[10px] font-mono text-muted-foreground pl-1 mt-[2px]">
       <TopKField topK={props.topK} onTopKChange={props.onTopKChange} />
@@ -268,14 +214,6 @@ function SearchControls(props: SearchControlsProps): React.JSX.Element {
         <MinSimField
           minSimilarity={props.minSimilarity}
           onMinSimilarityChange={props.onMinSimilarityChange}
-        />
-      )}
-      {showRerankToggle && (
-        <RerankToggle
-          rerank={props.rerank}
-          rerankAvailable={rerankAvailable}
-          forced={rerankForced}
-          onRerankChange={props.onRerankChange}
         />
       )}
       <SearchActions
@@ -339,13 +277,11 @@ export function RagSearchBar(props: RagSearchBarProps): React.JSX.Element {
           mode={props.mode}
           topK={props.topK}
           minSimilarity={props.minSimilarity}
-          rerank={props.rerank}
           isSearching={props.isSearching}
           canClear={props.canClear}
           hasQuery={props.query.trim() !== ''}
           onTopKChange={props.onTopKChange}
           onMinSimilarityChange={props.onMinSimilarityChange}
-          onRerankChange={props.onRerankChange}
           onSubmit={props.onSubmit}
           onClear={props.onClear}
         />
