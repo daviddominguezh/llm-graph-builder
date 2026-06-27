@@ -32,6 +32,7 @@
     "@ai-sdk/google-vertex": "^4.0.125",
     "@daviddh/graph-types": "*",
     "@daviddh/llm-graph-runner": "*",
+    "@daviddh/shared-store-services": "*",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@google-cloud/documentai": "^9.6.1",
     "@google-cloud/storage": "^7.19.0",

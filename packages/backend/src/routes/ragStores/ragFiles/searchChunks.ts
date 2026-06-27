@@ -19,7 +19,7 @@ import {
 } from '../../routeHelpers.js';
 import { runHybridSearch } from './hybridSearch.js';
 import { fetchImagePoolIfAny, mergePoolsByScore } from './imageSearchPool.js';
-import { getStoreIdParam, parseBoolean, parseNumber, parseString } from './ragFileHelpers.js';
+import { getStoreIdParam, parseNumber, parseString } from './ragFileHelpers.js';
 
 const DEFAULT_K = 5;
 const MAX_K = 10;
@@ -40,7 +40,6 @@ export interface SearchParams {
   k: number;
   minSimilarity: number;
   maxDistance: number | null;
-  rerank: boolean;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -66,11 +65,10 @@ function parseParams(req: Request): SearchParams | null {
   const k = clamp(Math.floor(kRaw), MIN_K, MAX_K);
   const minSimilarity = parseMinSimilarity(req.body);
   const maxDistance = toMaxDistance(minSimilarity);
-  const rerank = parseBoolean(req.body, 'rerank') ?? false;
   if (storeId === undefined || tenantId === undefined || query === undefined || mode === undefined) {
     return null;
   }
-  return { storeId, tenantId, mode, query, k, minSimilarity, maxDistance, rerank };
+  return { storeId, tenantId, mode, query, k, minSimilarity, maxDistance };
 }
 
 async function runSimpleSearch(
@@ -132,12 +130,11 @@ function log(msg: string): void {
 async function fetchTextPool(supabase: Supabase, p: SearchParams): Promise<SemanticChunk[]> {
   const queryVector = await embedQuery(p.query);
   log(`embed ok dims=${String(queryVector.length)}`);
-  const poolSize = p.rerank ? RERANK_CANDIDATE_POOL : p.k;
   const { result, error } = await searchBySemantic(supabase, {
     ragStoreId: p.storeId,
     tenantId: p.tenantId,
     queryVector,
-    k: poolSize,
+    k: RERANK_CANDIDATE_POOL,
     maxDistance: p.maxDistance,
   });
   if (error !== null) throw new Error(error);
@@ -145,8 +142,9 @@ async function fetchTextPool(supabase: Supabase, p: SearchParams): Promise<Seman
   return result;
 }
 
-async function maybeRerankTextPool(p: SearchParams, pool: SemanticChunk[]): Promise<SemanticChunk[]> {
-  if (!p.rerank) return pool;
+// Rerank is always on (no toggle): the candidate pool is always reranked
+// down to the top-k.
+async function rerankTextPool(p: SearchParams, pool: SemanticChunk[]): Promise<SemanticChunk[]> {
   const chunks = await applyRerank({
     query: p.query,
     candidates: pool,
@@ -160,7 +158,7 @@ async function maybeRerankTextPool(p: SearchParams, pool: SemanticChunk[]): Prom
 async function runSemanticPipeline(supabase: Supabase, p: SearchParams): Promise<SemanticChunk[]> {
   const textPool = await fetchTextPool(supabase, p);
   const [textRanked, imagePool] = await Promise.all([
-    maybeRerankTextPool(p, textPool),
+    rerankTextPool(p, textPool),
     fetchImagePoolIfAny(supabase, { storeId: p.storeId, tenantId: p.tenantId, query: p.query, k: p.k }),
   ]);
   log(`image pool=${String(imagePool.length)}`);
@@ -173,7 +171,7 @@ async function runSemanticSearch(
   p: SearchParams,
   res: AuthenticatedResponse
 ): Promise<void> {
-  log(`entry k=${String(p.k)} rerank=${String(p.rerank)} query="${p.query}"`);
+  log(`entry k=${String(p.k)} query="${p.query}"`);
   try {
     const chunks = await resolveImageChunksContent(await runSemanticPipeline(supabase, p));
     res.status(HTTP_OK).json({ mode: 'semantic', chunks });
