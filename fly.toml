@@ -16,6 +16,12 @@ primary_region = 'iad'
   min_machines_running = 1
   processes = ['app']
 
+  [[http_service.http_options.replay_cache]]
+    path_prefix = "/internal/mcp/"
+    ttl_seconds = 60
+    type = "header"
+    name = "x-mcp-poolkey"
+
 [[vm]]
   memory = '1gb'
   cpu_kind = 'shared'
