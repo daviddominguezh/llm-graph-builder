@@ -10,3 +10,11 @@ export {
   KV_SCAN_BYTE_BUDGET,
 } from './pagination.js';
 export { makeKvStoreService } from './kv/kvStoreService.js';
+export {
+  type InternalApiClient,
+  type InternalApiConfig,
+  type RerankInput,
+  type RerankedRecord,
+  makeInternalApiClient,
+} from './internalApiClient.js';
+export { type RagChunk, ftsPool, semanticPool } from './rag/ragQueries.js';
