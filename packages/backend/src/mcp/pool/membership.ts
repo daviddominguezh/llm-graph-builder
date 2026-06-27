@@ -1,9 +1,10 @@
 import { resolveTxt as dnsResolveTxt } from 'node:dns/promises';
 
-// Fly internal DNS: `vms.<app>.internal` returns one TXT record per running
-// machine, each formatted "<machine_id> <region>" (per Fly's 6PN/.internal
-// docs). We parse defensively (first token = machine id) and document the
-// assumption; confirm the exact format against a real Fly deploy before prod.
+// Fly internal DNS: `vms.<app>.internal` returns the machine membership as a
+// COMMA-SEPARATED list of "<machine_id> <region>" entries. Fly may return the
+// whole list as one TXT record (comma-joined) or split across records, and a
+// long record may be chunked into 255-byte pieces. We join chunks, split on
+// commas, then take the first whitespace token as machine id (region optional).
 export interface Member {
   machineId: string;
   region: string;
@@ -34,15 +35,24 @@ export function buildMembershipDeps(): MembershipDeps {
   };
 }
 
-export function parseTxtRecords(records: string[][]): Member[] {
-  const out: Member[] = [];
-  for (const chunks of records) {
-    const tokens = chunks.join('').trim().split(/\s+/v);
-    const machineId = tokens[MACHINE_ID_IDX] ?? '';
-    if (machineId === '') continue;
-    out.push({ machineId, region: tokens[REGION_IDX] ?? '' });
+function parseEntry(entry: string): Member | null {
+  const tokens = entry.trim().split(/\s+/v);
+  const machineId = tokens[MACHINE_ID_IDX] ?? '';
+  if (machineId === '') return null;
+  return { machineId, region: tokens[REGION_IDX] ?? '' };
+}
+
+function parseRecord(chunks: string[]): Member[] {
+  const members: Member[] = [];
+  for (const entry of chunks.join('').split(',')) {
+    const member = parseEntry(entry);
+    if (member !== null) members.push(member);
   }
-  return out;
+  return members;
+}
+
+export function parseTxtRecords(records: string[][]): Member[] {
+  return records.flatMap(parseRecord);
 }
 
 interface CacheState {

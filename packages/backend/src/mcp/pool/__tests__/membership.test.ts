@@ -29,6 +29,13 @@ describe('parseTxtRecords', () => {
     expect(parseTxtRecords([['148ed', '123 iad']])).toEqual([{ machineId: '148ed123', region: 'iad' }]);
   });
 
+  it('splits a single comma-joined record into one member per entry', () => {
+    expect(parseTxtRecords([['148ed526c33d89 iad,5683049f227e83 ord']])).toEqual([
+      { machineId: '148ed526c33d89', region: 'iad' },
+      { machineId: '5683049f227e83', region: 'ord' },
+    ]);
+  });
+
   it('skips empty/malformed chunks', () => {
     expect(parseTxtRecords([[''], ['148ed123 iad']])).toEqual([{ machineId: '148ed123', region: 'iad' }]);
   });
