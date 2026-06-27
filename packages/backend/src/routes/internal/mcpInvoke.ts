@@ -97,7 +97,16 @@ async function borrowLive(deps: InvokeDeps, binding: ResolvedBinding, key: strin
   const handle = await deps.pool.borrow(key, connect);
   const entry = deps.pool.entries().get(key);
   if (entry === undefined) return handle;
-  return await validateOrReconnect(entry, connect, deps.isHealthy);
+  try {
+    return await validateOrReconnect(entry, connect, deps.isHealthy);
+  } catch (error) {
+    // `borrow` already took the refcount to 1; the pool only self-unwinds the
+    // FIRST connect, not this on-borrow reconnect. Release once so the now
+    // handle-less entry nets back to 0 and eviction can reclaim it (eviction
+    // permanently skips `borrows > 0`), then rethrow into the transport path.
+    deps.pool.release(key);
+    throw error;
+  }
 }
 
 /**

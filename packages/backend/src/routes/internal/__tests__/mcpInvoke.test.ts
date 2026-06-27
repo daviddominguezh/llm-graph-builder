@@ -45,6 +45,9 @@ function baseDeps(over: Partial<InvokeDeps> = {}): InvokeDeps {
 
 const baseArgs = { agentId: 'ag1', tenantId: 't1', mcpBindingId: 'srv1', toolName: 'do', args: {} };
 
+const FIRST_CONNECT = 1;
+const NONE = 0;
+
 async function run(over: Partial<InvokeDeps> = {}): Promise<InvokeOutcome> {
   return await invokeMcp({ ...baseArgs, deps: baseDeps(over) });
 }
@@ -104,5 +107,24 @@ describe('invokeMcp — failure boundary', () => {
   it('maps a binding resolution failure to category binding', async () => {
     const out = await run({ resolveBinding: async () => await reject('binding not found') });
     expect(out).toEqual({ kind: 'tool_error', category: 'binding' });
+  });
+
+  it('releases the borrow when the on-borrow reconnect fails (no leaked refcount)', async () => {
+    const pool = createConnectionPool();
+    let connects = 0;
+    const connect = async (): Promise<McpClientHandle> => {
+      connects += FIRST_CONNECT;
+      if (connects === FIRST_CONNECT) {
+        return await Promise.resolve(handle(async () => await Promise.resolve({ content: [] })));
+      }
+      return await reject('reconnect refused');
+    };
+    const out = await invokeMcp({
+      ...baseArgs,
+      deps: baseDeps({ pool, isHealthy: async () => await Promise.resolve(false), connect }),
+    });
+    expect(out).toEqual({ kind: 'tool_error', category: 'transport' });
+    const leaked = [...pool.entries().values()].filter((e) => e.borrows > NONE);
+    expect(leaked).toHaveLength(NONE);
   });
 });
