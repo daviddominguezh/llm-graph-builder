@@ -6,6 +6,7 @@ import { createFireHandler } from '../../triggers/fireHandler.js';
 import { getTriggerScheduler } from '../../triggers/schedulerSingleton.js';
 import { defaultUserId, execTimeoutMs, jitterWindowMs, maxHorizonMs } from '../../triggers/triggerConfig.js';
 import { requireInternalAuth } from './internalAuth.js';
+import { handleMcpInvoke } from './mcpInvoke.js';
 import { handleEmbed, handleRegexValidate } from './utilityHandlers.js';
 
 export const internalRouter = Router();
@@ -17,6 +18,11 @@ internalRouter.use(requireInternalAuth);
 // addon). All KV/RAG Postgres work lives in the edge function itself.
 internalRouter.post('/embed', handleEmbed);
 internalRouter.post('/regex/validate', handleRegexValidate);
+
+// MCP tool invocation: resolve binding server-side, borrow a pooled connection
+// (egress re-validated on borrow), call the tool, release. Auth is the static
+// x-master-key gate above; exempt from the JWT gate via SYSTEM_PUBLIC_UNAUTHED.
+internalRouter.post('/mcp/invoke', handleMcpInvoke);
 
 // The fire handler's deps (service Supabase client + scheduler singleton) read
 // required env at construction and throw when unset. Build them lazily on the

@@ -116,6 +116,7 @@ const SYSTEM_PUBLIC_UNAUTHED = [
   '/internal/embed',
   '/internal/regex/validate',
   '/internal/triggers/fire',
+  '/internal/mcp/invoke',
   // Messaging webhook routes (signature-verified, not JWT)
   '/whatsapp/webhook',
   '/instagram/webhook',
