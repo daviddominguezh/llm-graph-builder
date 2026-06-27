@@ -60,8 +60,21 @@ function resultFromBody(body: unknown): unknown {
   throw new McpPoolError('transport');
 }
 
+async function readJsonSafe(res: Response): Promise<unknown> {
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+function errorFromResponseBody(body: unknown): McpPoolError {
+  if (isRecord(body) && isErrorCategory(body.category)) return new McpPoolError(body.category);
+  return new McpPoolError('transport');
+}
+
 async function parseResponse(res: Response): Promise<unknown> {
-  if (!res.ok) throw new McpPoolError('transport');
+  if (!res.ok) throw errorFromResponseBody(await readJsonSafe(res));
   const body: unknown = await res.json();
   return resultFromBody(body);
 }

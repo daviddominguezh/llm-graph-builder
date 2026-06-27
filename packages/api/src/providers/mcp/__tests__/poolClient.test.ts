@@ -3,6 +3,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { type FetchLike, type McpInvokeArgs, McpPoolError, createMcpPoolClient } from '../poolClient.js';
 
 const HTTP_OK = 200;
+const HTTP_BAD_REQUEST = 400;
 const HTTP_SERVER_ERROR = 500;
 
 const SAMPLE_ARGS: McpInvokeArgs = {
@@ -96,5 +97,24 @@ describe('createMcpPoolClient — transport mapping', () => {
     const promise = client(fetchMock).invoke(SAMPLE_ARGS);
 
     await expect(promise).rejects.toMatchObject({ category: 'transport' });
+  });
+});
+
+describe('createMcpPoolClient — non-ok body category mapping', () => {
+  it('surfaces the binding category from a 400 tool_error body', async () => {
+    const fetchMock = jest.fn<FetchLike>(
+      async () =>
+        await Promise.resolve(
+          new Response(JSON.stringify({ kind: 'tool_error', category: 'binding' }), {
+            status: HTTP_BAD_REQUEST,
+            headers: { 'content-type': 'application/json' },
+          })
+        )
+    );
+
+    const promise = client(fetchMock).invoke(SAMPLE_ARGS);
+
+    await expect(promise).rejects.toBeInstanceOf(McpPoolError);
+    await expect(promise).rejects.toMatchObject({ category: 'binding' });
   });
 });

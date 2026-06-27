@@ -8,7 +8,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 function internalClient(): ReturnType<typeof makeInternalApiClient> {
   return makeInternalApiClient({
-    baseUrl: process.env.BACKEND_INTERNAL_URL ?? 'http://127.0.0.1:3001',
+    baseUrl: process.env.BACKEND_INTERNAL_URL ?? 'http://127.0.0.1:4000',
     masterKey: process.env.EDGE_FUNCTION_MASTER_KEY ?? '',
   });
 }
