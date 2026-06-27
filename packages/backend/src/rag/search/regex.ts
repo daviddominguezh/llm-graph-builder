@@ -1,6 +1,6 @@
 import { ToolError } from '@daviddh/llm-graph-runner';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import RE2 from 're2';
+import { RE2JS } from 're2js';
 
 import { type RegexSearchResult, searchByRegex } from '../../db/queries/ragRegexQueries.js';
 import { type PaginatedSearchResult, type RegexSearchParams, clampOffset } from './types.js';
@@ -17,9 +17,9 @@ function preValidatePattern(pattern: string): void {
     throw new ToolError('invalid_pattern', `Pattern exceeds ${String(MAX_PATTERN_LENGTH)} chars`);
   }
   try {
-    const compiled = new RE2(pattern);
-    // Reference compiled to avoid `no-new` while still exercising the compiler.
-    void compiled.source;
+    // Compile-only: rejects malformed/linear-blowup patterns before they reach
+    // Postgres. re2js is pure-JS (no native addon) and linear-time.
+    RE2JS.compile(pattern);
   } catch (err) {
     throw new ToolError('invalid_pattern', err instanceof Error ? err.message : 'invalid regex');
   }
@@ -39,8 +39,8 @@ function buildResult(
 
 // runRegexSearch — paginated POSIX-regex search over rag_chunks for the agent path.
 //
-// Pre-validates the pattern with RE2 to reject linear-blowup regex patterns
-// before sending to Postgres. The RPC also enforces a 500ms statement timeout
+// Pre-validates the pattern with re2js to reject malformed/linear-blowup regex
+// patterns before sending to Postgres. The RPC also enforces a 500ms statement timeout
 // as a second line of defense; we surface that as a `pattern_timeout` ToolError.
 //
 // The `_searchFn` parameter is exposed only for unit tests (ESM module mocking

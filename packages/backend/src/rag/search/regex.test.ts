@@ -75,7 +75,7 @@ describe('runRegexSearch — error mapping', () => {
     ).rejects.toMatchObject({ name: 'ToolError', code: 'invalid_pattern' });
   });
 
-  it('throws invalid_pattern when RE2 cannot compile the pattern', async () => {
+  it('throws invalid_pattern when re2js cannot compile the pattern', async () => {
     const fn = withResult({ result: [], total: ZERO, error: null, timedOut: false });
     await expect(
       runRegexSearch(fakeSupabase, { ...baseParams, pattern: '(unbalanced' }, fn)
