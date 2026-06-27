@@ -20,3 +20,5 @@ export {
 export { type RagChunk, ftsPool, semanticPool } from './rag/ragQueries.js';
 export { rerankPool } from './rag/rerank.js';
 export { makeRagStoreService } from './rag/ragStoreService.js';
+export { makeLeadScoringDbService } from './leadScoring/leadScoringService.js';
+export { makeFormsDbService } from './forms/formsService.js';
