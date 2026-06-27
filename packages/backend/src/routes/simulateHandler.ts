@@ -20,6 +20,9 @@ import { buildContext, setSseHeaders, sumTokens, writeSSE } from './simulate.js'
 import { resolveChildConfig } from './simulateChildResolver.js';
 import { buildSimulationProviderCtx, buildSimulationRegistry } from './simulationProviderCtx.js';
 
+export { buildSimulationMcpInvoker } from './simulateMcpInvoker.js';
+export type { SimInvokerArgs, SimMcpInvokeArgs, SimMcpInvoker } from './simulateMcpInvoker.js';
+
 const EMPTY_SESSION: McpSession = { clients: [], tools: {} };
 const CHILD_DEPTH = 1;
 const ROOT_DEPTH = 0;
