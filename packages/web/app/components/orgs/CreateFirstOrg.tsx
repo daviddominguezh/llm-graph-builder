@@ -115,10 +115,9 @@ export function CreateFirstOrg() {
       <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 1 }}>
         <ShaderBackground />
       </div>
-      <div className="relative z-3 flex flex-col items-center gap-3 mb-14">
-
-        <Card className="mt-3 welcome-stagger-3 w-full max-w-sm shadow-xl w-[400px] bg-popover border-[0.5px]! ring-0 outline-none">
-          <CardContent>
+      <div className="relative z-3 flex flex-col items-center">
+        <Card className="welcome-stagger-3 w-full rounded-xl max-w-sm shadow-2xl! w-[400px] min-w-[400px] bg-popover border-[0.5px]! ring-0 outline-none p-0!">
+          <CardContent className='py-5.5! px-5.5!'>
             <div className="relative z-3 flex flex-col items-center gap-4 mb-3.5">
               <WelcomeLogo />
               <WelcomeHeading />

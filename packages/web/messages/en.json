@@ -698,7 +698,7 @@
     "back": "Back",
     "welcome": {
       "title": "Let's get started",
-      "description": "Create your first organization to start building agents.",
+      "description": "Create your organization to start building agents.",
       "cta": "Create"
     }
   },
