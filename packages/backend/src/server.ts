@@ -117,6 +117,7 @@ const SYSTEM_PUBLIC_UNAUTHED = [
   '/internal/rerank',
   '/internal/triggers/fire',
   '/internal/mcp/invoke',
+  '/internal/mcp/preflight',
   // Messaging webhook routes (signature-verified, not JWT)
   '/whatsapp/webhook',
   '/instagram/webhook',

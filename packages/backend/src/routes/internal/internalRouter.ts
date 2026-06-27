@@ -7,6 +7,7 @@ import { getTriggerScheduler } from '../../triggers/schedulerSingleton.js';
 import { defaultUserId, execTimeoutMs, jitterWindowMs, maxHorizonMs } from '../../triggers/triggerConfig.js';
 import { requireInternalAuth } from './internalAuth.js';
 import { handleMcpInvoke } from './mcpInvoke.js';
+import { handleMcpPreflight } from './mcpPreflight.js';
 import { handleEmbed, handleRerank } from './utilityHandlers.js';
 
 export const internalRouter = Router();
@@ -23,6 +24,12 @@ internalRouter.post('/rerank', handleRerank);
 // (egress re-validated on borrow), call the tool, release. Auth is the static
 // x-master-key gate above; exempt from the JWT gate via SYSTEM_PUBLIC_UNAUTHED.
 internalRouter.post('/mcp/invoke', handleMcpInvoke);
+
+// MCP preflight: WARM a pool entry ahead of use — resolve binding server-side,
+// re-validate egress, borrow (cold connect) then release WITHOUT calling a tool.
+// 200 when the connection warmed OK, 400 on a binding/egress/connect failure.
+// Same static x-master-key gate; exempt from JWT via SYSTEM_PUBLIC_UNAUTHED.
+internalRouter.post('/mcp/preflight', handleMcpPreflight);
 
 // The fire handler's deps (service Supabase client + scheduler singleton) read
 // required env at construction and throw when unset. Build them lazily on the
