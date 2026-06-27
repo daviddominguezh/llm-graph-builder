@@ -1,5 +1,6 @@
-// FE-safe filter helpers. Anything that imports RE2 lives in ./matcher.ts and is reached
-// via a subpath export so the FE bundle never pulls in the native re2.node binary.
+// FE-safe filter helpers. Anything that imports the regex engine lives in ./matcher.ts and is
+// reached via a subpath export. The engine is re2js, a pure-JS RE2 implementation that is
+// ReDoS-safe (linear-time matching) and portable to Workers/Deno (no native binary).
 
 export interface KvEntry {
   key: string;

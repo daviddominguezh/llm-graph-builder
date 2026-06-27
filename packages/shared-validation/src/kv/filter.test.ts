@@ -76,9 +76,9 @@ describe('filterByMatcher', () => {
     ]);
   });
 
-  it('throws SyntaxError on invalid pattern', () => {
+  it('throws on invalid pattern', () => {
     expect(() =>
       filterByMatcher(entries, 'keys', { kind: 'regex', pattern: '[unterminated', flags: '' })
-    ).toThrow(/missing \]/);
+    ).toThrow(/invalid regex/);
   });
 });
