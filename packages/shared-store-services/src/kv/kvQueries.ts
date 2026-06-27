@@ -51,6 +51,22 @@ function escapeLikePattern(input: string): string {
   return input.replace(/\\/gv, '\\\\').replace(/%/gv, '\\%').replace(/_/gv, '\\_');
 }
 
+// PostgREST `.or()` takes a comma-separated filter STRING where `,` separates
+// clauses, `(`/`)` group, and `.` delimits column/op/value. The LLM-controlled
+// literal flows into that string, so structural chars must not be interpretable
+// as syntax (injection). PostgREST lets a value be double-quoted; inside quotes
+// `\` and `"` are backslash-escaped and everything else (commas, parens, dots)
+// is treated as a literal value. We quote the whole ILIKE value so the literal
+// can never add or alter clauses.
+function quotePostgrestValue(value: string): string {
+  return `"${value.replace(/\\/gv, '\\\\').replace(/"/gv, '\\"')}"`;
+}
+
+function orIlikeFilter(pattern: string): string {
+  const quoted = quotePostgrestValue(pattern);
+  return `key.ilike.${quoted},value.ilike.${quoted}`;
+}
+
 interface ListKeysArgs {
   kvStoreId: string;
   tenantId: string;
@@ -116,7 +132,7 @@ interface IlikeableQuery<Q> {
 function applyIlikeTarget<Q extends IlikeableQuery<Q>>(base: Q, on: KvSearchOn, pattern: string): Q {
   if (on === 'keys') return base.ilike('key', pattern);
   if (on === 'values') return base.ilike('value', pattern);
-  return base.or(`key.ilike.${pattern},value.ilike.${pattern}`);
+  return base.or(orIlikeFilter(pattern));
 }
 
 export async function ilikePrefilterPage(

@@ -9,3 +9,4 @@ export {
   KV_SCAN_ROW_BUDGET,
   KV_SCAN_BYTE_BUDGET,
 } from './pagination.js';
+export { makeKvStoreService } from './kv/kvStoreService.js';
