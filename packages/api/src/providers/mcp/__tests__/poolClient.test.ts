@@ -45,8 +45,23 @@ describe('createMcpPoolClient — happy path', () => {
     expect(header(call?.init ?? {}, 'x-mcp-poolkey')).toBe('ag1::t1::srv1');
     expect(header(call?.init ?? {}, 'x-master-key')).toBe('secret');
     expect(call?.init.body).toBe(
-      JSON.stringify({ agentId: 'ag1', mcpBindingId: 'srv1', toolName: 'do', args: {} })
+      JSON.stringify({ agentId: 'ag1', tenantId: 't1', mcpBindingId: 'srv1', toolName: 'do', args: {} })
     );
+  });
+
+  it('includes tenantId in the POSTed request body so BE BodySchema validation passes', async () => {
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    const fetchMock = jest.fn<FetchLike>(async (url, init) => {
+      calls.push({ url, init });
+      return await Promise.resolve(jsonResponse({ kind: 'result', result: {} }));
+    });
+
+    await client(fetchMock).invoke(SAMPLE_ARGS);
+
+    const [call] = calls;
+    const rawBody = typeof call?.init.body === 'string' ? call.init.body : '';
+    const parsedBody: unknown = JSON.parse(rawBody);
+    expect(parsedBody).toMatchObject({ tenantId: 't1' });
   });
 });
 

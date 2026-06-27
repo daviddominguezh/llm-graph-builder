@@ -76,6 +76,7 @@ function buildRequestInit(opts: PoolClientOptions, poolKey: string, a: McpInvoke
     },
     body: JSON.stringify({
       agentId: a.agentId,
+      tenantId: a.tenantId,
       mcpBindingId: a.mcpBindingId,
       toolName: a.toolName,
       args: a.args,
