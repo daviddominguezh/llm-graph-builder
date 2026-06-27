@@ -58,9 +58,15 @@ function skipCharClass(pattern: string, open: number): number {
 
 // Accumulates maximal literal runs while scanning the pattern. Mutating `this`
 // keeps the scan loop short and avoids reassigning a passed-in parameter.
+//
+// Group bookkeeping: each `(` pushes the count of already-finalized runs and the
+// length of the in-progress run, so a later optional `)` (`?`, `*`, `{0,...}`)
+// can discard exactly that group's contribution and break run contiguity, while
+// a required group's interior survives as a sound literal.
 class RunAccumulator {
-  private readonly runs: string[] = [];
+  private runs: string[] = [];
   private current = EMPTY;
+  private readonly groupStack: GroupMark[] = [];
 
   close(): void {
     if (this.current.length > ZERO) this.runs.push(this.current);
@@ -74,10 +80,53 @@ class RunAccumulator {
     else this.current += ch;
   }
 
+  openGroup(): void {
+    // The current run cannot span the `(` boundary: anything before it is fixed,
+    // anything inside starts fresh so it can be discarded if the group is optional.
+    this.close();
+    this.groupStack.push({ runCount: this.runs.length });
+  }
+
+  // Called at `)`. When `optional` is true, drop every run finalized since the
+  // matching `(` and reset contiguity; otherwise the group's runs stay required.
+  closeGroup(optional: boolean): void {
+    this.close();
+    const mark = this.groupStack.pop();
+    if (optional) this.runs = this.runs.slice(ZERO, mark?.runCount ?? this.runs.length);
+  }
+
   result(): string[] {
     this.close();
     return this.runs;
   }
+}
+
+interface GroupMark {
+  readonly runCount: number;
+}
+
+// A `)` is optional (its interior not guaranteed present) when immediately
+// followed by `?`, `*`, or a `{0...}`/`{0}` brace range whose MINIMUM repeat is
+// zero. `+`, `{1,}`, `{n,...}` (n>=1) or no quantifier keep the group required.
+function groupIsOptional(pattern: string, closeIdx: number): boolean {
+  const next = pattern[closeIdx + ONE] ?? EMPTY;
+  if (next === '?' || next === '*') return true;
+  if (next === '{') return braceMinIsZero(pattern, closeIdx + ONE);
+  return false;
+}
+
+// Read the minimum-repeat field of a `{...}` quantifier opening at `open`.
+// Returns true when that minimum is zero (e.g. `{0}`, `{0,3}`).
+function braceMinIsZero(pattern: string, open: number): boolean {
+  let i = open + ONE;
+  let digits = EMPTY;
+  while (i < pattern.length) {
+    const ch = pattern[i] ?? EMPTY;
+    if (ch === ',' || ch === '}') break;
+    digits += ch;
+    i += ONE;
+  }
+  return digits.length > ZERO && Number(digits) === ZERO;
 }
 
 function literalRuns(pattern: string): string[] {
@@ -92,6 +141,10 @@ function literalRuns(pattern: string): string[] {
     } else if (ch === '[') {
       acc.close();
       i = skipCharClass(pattern, i);
+    } else if (ch === '(') {
+      acc.openGroup();
+    } else if (ch === ')') {
+      acc.closeGroup(groupIsOptional(pattern, i));
     } else if (META.has(ch)) {
       acc.close();
     } else {

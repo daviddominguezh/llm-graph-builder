@@ -40,3 +40,23 @@ describe('re2js regex engine', () => {
     expect(matchEntry(re, { key: 'secret', value: 'v' }, 'both')).toBe(true);
   });
 });
+
+describe('extractRequiredLiteral — optional-group soundness', () => {
+  it('returns null when the required literal lives inside an optional group', () => {
+    // The group interior is NOT guaranteed present, so no sound literal exists.
+    expect(extractRequiredLiteral('(abc)?')).toBeNull();
+    expect(extractRequiredLiteral('(ab)*')).toBeNull();
+    // x and y are not contiguous (group between them) and each is below MIN len.
+    expect(extractRequiredLiteral('x(ab)*y')).toBeNull();
+    expect(extractRequiredLiteral('(hello)?world')).toBe('world');
+  });
+
+  it('keeps required literals outside an optional group', () => {
+    expect(extractRequiredLiteral('(abc)*def')).toBe('def');
+  });
+
+  it('keeps the interior of a required group as a sound literal', () => {
+    expect(extractRequiredLiteral('(abc)+')).toContain('abc');
+    expect(extractRequiredLiteral('(abc)def')).not.toBeNull();
+  });
+});
